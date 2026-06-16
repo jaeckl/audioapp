@@ -1,0 +1,40 @@
+# Build outputs
+build/
+**/build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.iml
+
+# Android
+**/.gradle/
+**/local.properties
+**/*.keystore
+**/captures/
+
+# iOS (future)
+**/Pods/
+**/.symlinks/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+*.pem
+
+# CMake / JUCE fetch
+engine_juce/cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+
+# Fixtures generated
+fixtures/renders/tmp/

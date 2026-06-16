@@ -1,0 +1,59 @@
+# Device Model
+
+## Overview
+
+Devices are **internal built-in modules**, not external VST/AU/CLAP plugins.
+
+## Device categories
+
+- **Instrument** — produces audio from MIDI (oscillator, sampler)
+- **Audio effect** — transforms audio (gain, pan, filter)
+- **MIDI effect** — transforms MIDI (future)
+- **Utility** — routing, metering (future)
+- **Send/receive** — internal bus routing (minimal, later)
+
+## Device interface (conceptual)
+
+Each device provides:
+
+- Stable `device_type` and instance `device_id`
+- Versioned state blob for serialization
+- Parameter descriptors (id, name, min, max, default, unit)
+- Realtime-safe `processBlock` (or MIDI + audio variants)
+- UI metadata (display name, editor layout hints)
+
+## MVP devices
+
+| Device | Role | Milestone |
+|--------|------|-----------|
+| Simple Oscillator | Instrument | 01–02 |
+| Gain | Effect | 08 |
+| Pan | Effect | 08 |
+| Simple Filter | Effect | 08 |
+| Simple Sampler | Instrument | 06 |
+
+## Parameters
+
+- Identified by stable `parameter_id` within the device instance
+- Values set via bridge commands; read from snapshot for UI
+- Automation targets reference `parameter_id` (architecture from start)
+
+## Serialization
+
+Device state is stored in `project.json` under the track's device chain entry:
+
+```json
+{
+  "id": "dev-001",
+  "type": "simple_oscillator",
+  "version": 1,
+  "parameters": {
+    "frequency": 440.0,
+    "waveform": "sine"
+  }
+}
+```
+
+## Realtime rules
+
+Device DSP must follow [realtime_audio_rules.md](realtime_audio_rules.md). No allocations in `processBlock`.

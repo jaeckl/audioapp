@@ -1,0 +1,12 @@
+{
+  "type": "app",
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "project": "android"
+        }
+      }
+    }
+  }
+}

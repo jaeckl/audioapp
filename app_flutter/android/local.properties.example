@@ -1,0 +1,3 @@
+# Flutter SDK path — set automatically in dev container or locally.
+# Example: flutter.sdk=/opt/flutter
+sdk.dir=/opt/android-sdk
