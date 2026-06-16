@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../features/arrangement/arrangement_timeline_metrics.dart';
 import '../app/app_info.dart';
 import '../bridge/engine_bridge.dart';
 import '../bridge/project_snapshot.dart';
@@ -105,10 +106,13 @@ class _DawShellState extends State<DawShell> {
     }
   }
 
-  Future<void> _addMidiClip(String trackId) async {
+  Future<void> _addMidiClip(String trackId, double startBeat) async {
     try {
       await widget.bridge.selectTrack(trackId);
-      final snapshot = await widget.bridge.createMidiClip(trackId: trackId);
+      final snapshot = await widget.bridge.createMidiClip(
+        trackId: trackId,
+        startBeat: startBeat,
+      );
       await _refreshSnapshot(snapshot);
     } catch (e) {
       if (!mounted) return;
@@ -116,40 +120,58 @@ class _DawShellState extends State<DawShell> {
     }
   }
 
-  Future<void> _addAudioClip(String trackId) async {
-    final samples = _snapshot?.samples ?? const <SampleLibraryEntrySnapshot>[];
-    if (samples.isEmpty) {
-      await _selectTrack(trackId);
-      if (!mounted) return;
-      setState(() => _tab = _ShellTab.library);
-      return;
+  TrackSnapshot? _trackById(String trackId) {
+    for (final track in _snapshot?.tracks ?? const <TrackSnapshot>[]) {
+      if (track.id == trackId) {
+        return track;
+      }
     }
+    return null;
+  }
+
+  Future<void> _addAudioClip(String trackId, double desiredStartBeat) async {
+    await _selectTrack(trackId);
+    if (!mounted) return;
 
     final sample = await showModalBottomSheet<SampleLibraryEntrySnapshot>(
       context: context,
-      backgroundColor: const Color(0xFF1A1A22),
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0E0E14),
       showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          children: [
-            for (final entry in samples)
-              ListTile(
-                leading: const Icon(Icons.library_music_outlined),
-                title: Text(entry.name),
-                onTap: () => Navigator.pop(context, entry),
-              ),
-          ],
+      builder: (context) => SizedBox(
+        height: MediaQuery.of(context).size.height * 0.82,
+        child: SampleLibraryPickerSheet(
+          initialSamples: _snapshot?.samples ?? const [],
+          onPreview: _previewSample,
+          onImportSamples: () async {
+            final updated = await widget.bridge.importSample();
+            if (updated != null) {
+              await _refreshSnapshot(updated);
+              return updated.samples;
+            }
+            return _snapshot?.samples ?? const [];
+          },
+          onSampleSelected: (entry) => Navigator.pop(context, entry),
         ),
       ),
     );
     if (sample == null) return;
 
+    final track = _trackById(trackId);
+    if (track == null) return;
+
+    final startBeat = ArrangementTimelineMetrics.placementStartBeat(
+      desiredStartBeat: desiredStartBeat,
+      clipLengthBeats: sample.durationBeats,
+      existingClips: ArrangementTimelineMetrics.clipIntervalsForTrack(track),
+    );
+
     try {
-      await widget.bridge.selectTrack(trackId);
       final updated = await widget.bridge.createSampleClip(
         trackId: trackId,
         sampleId: sample.id,
+        startBeat: startBeat,
+        lengthBeats: sample.durationBeats,
       );
       await _refreshSnapshot(updated);
     } catch (e) {
@@ -382,7 +404,6 @@ class _DawShellState extends State<DawShell> {
   @override
   Widget build(BuildContext context) {
     final snapshot = _snapshot;
-    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0E0E14),
@@ -393,6 +414,7 @@ class _DawShellState extends State<DawShell> {
             TransportBar.padded(
               context: context,
               bpm: snapshot.bpm,
+              playheadBeats: snapshot.playheadBeats,
               version: kAppVersion,
             ),
           Expanded(
@@ -402,34 +424,9 @@ class _DawShellState extends State<DawShell> {
           ),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        backgroundColor: const Color(0xFF121218),
-        indicatorColor: const Color(0xFF2D2D3A),
+      bottomNavigationBar: DawBottomNavBar(
         selectedIndex: _tab.index,
-        height: 64 + bottomInset,
         onDestinationSelected: (index) => setState(() => _tab = _ShellTab.values[index]),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.grid_view_outlined),
-            selectedIcon: Icon(Icons.grid_view),
-            label: 'Arrangement',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.tune_outlined),
-            selectedIcon: Icon(Icons.tune),
-            label: 'Mixer',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.library_music_outlined),
-            selectedIcon: Icon(Icons.library_music),
-            label: 'Library',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
       ),
     );
   }

@@ -1,6 +1,8 @@
 // Timeline zoom and clip layout helpers for the arrangement view.
 import 'dart:math' as math;
 
+import '../../bridge/project_snapshot.dart';
+
 class ArrangementTimelineMetrics {
   static const double defaultPixelsPerBeat = 64;
   static const double minPixelsPerBeat = 28;
@@ -9,6 +11,81 @@ class ArrangementTimelineMetrics {
   static const double trackLaneHeight = 56;
   static const double timelineBeats = 32;
   static const double minClipDisplayWidthPx = 120;
+  static const double gridBeats = 1.0;
+  static const double defaultMidiClipLengthBeats = 4.0;
+
+  static double quantizeBeat(double beat, {double grid = gridBeats}) {
+    if (grid <= 0) {
+      return beat;
+    }
+    return (beat / grid).floor() * grid;
+  }
+
+  static bool clipsOverlap({
+    required double aStartBeat,
+    required double aLengthBeats,
+    required double bStartBeat,
+    required double bLengthBeats,
+  }) {
+    return aStartBeat < bStartBeat + bLengthBeats && bStartBeat < aStartBeat + aLengthBeats;
+  }
+
+  /// Quantized start beat at or after [desiredStartBeat] that fits without overlapping [existingClips].
+  static double placementStartBeat({
+    required double desiredStartBeat,
+    required double clipLengthBeats,
+    required List<({double start, double length})> existingClips,
+    double timelineEndBeats = timelineBeats,
+    double grid = gridBeats,
+  }) {
+    if (clipLengthBeats <= 0) {
+      return quantizeBeat(desiredStartBeat.clamp(0.0, timelineEndBeats), grid: grid);
+    }
+
+    var start = quantizeBeat(desiredStartBeat.clamp(0.0, timelineEndBeats), grid: grid);
+    for (var attempt = 0; attempt < 128; attempt++) {
+      if (start + clipLengthBeats > timelineEndBeats) {
+        final fallback = quantizeBeat(
+          (timelineEndBeats - clipLengthBeats).clamp(0.0, timelineEndBeats),
+          grid: grid,
+        );
+        final fallbackFree = !existingClips.any(
+          (clip) => clipsOverlap(
+            aStartBeat: fallback,
+            aLengthBeats: clipLengthBeats,
+            bStartBeat: clip.start,
+            bLengthBeats: clip.length,
+          ),
+        );
+        return fallbackFree ? fallback : start;
+      }
+
+      final conflict = existingClips.where(
+        (clip) => clipsOverlap(
+          aStartBeat: start,
+          aLengthBeats: clipLengthBeats,
+          bStartBeat: clip.start,
+          bLengthBeats: clip.length,
+        ),
+      );
+      if (conflict.isEmpty) {
+        return start;
+      }
+
+      final nextStart = conflict
+          .map((clip) => clip.start + clip.length)
+          .reduce(math.max);
+      start = quantizeBeat(nextStart, grid: grid);
+    }
+    return start;
+  }
+
+  static List<({double start, double length})> clipIntervalsForTrack(TrackSnapshot track) {
+    return [
+      ...track.midiClips.map((clip) => (start: clip.startBeat, length: clip.lengthBeats)),
+      ...track.sampleClips.map((clip) => (start: clip.startBeat, length: clip.lengthBeats)),
+    ];
+  }
 
   static double clampPixelsPerBeat(double value) {
     return value.clamp(minPixelsPerBeat, maxPixelsPerBeat);

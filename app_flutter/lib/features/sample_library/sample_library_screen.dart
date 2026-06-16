@@ -6,6 +6,7 @@ class SampleLibraryScreen extends StatelessWidget {
   const SampleLibraryScreen({
     super.key,
     this.embedded = false,
+    this.embeddedTitle,
     required this.samples,
     required this.onPreview,
     required this.onInsert,
@@ -13,6 +14,7 @@ class SampleLibraryScreen extends StatelessWidget {
   });
 
   final bool embedded;
+  final String? embeddedTitle;
   final List<SampleLibraryEntrySnapshot> samples;
   final ValueChanged<SampleLibraryEntrySnapshot> onPreview;
   final ValueChanged<SampleLibraryEntrySnapshot> onInsert;
@@ -50,7 +52,7 @@ class SampleLibraryScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
             child: Row(
               children: [
-                Text('Library', style: theme.textTheme.titleMedium),
+                Text(embeddedTitle ?? 'Library', style: theme.textTheme.titleMedium),
                 const Spacer(),
                 IconButton(
                   tooltip: 'Import audio',
@@ -179,4 +181,51 @@ class WaveformPainter extends CustomPainter {
 
 class _WaveformPainter extends WaveformPainter {
   const _WaveformPainter({required super.peaks});
+}
+
+/// Bottom-sheet sample picker with live refresh after import.
+class SampleLibraryPickerSheet extends StatefulWidget {
+  const SampleLibraryPickerSheet({
+    super.key,
+    required this.initialSamples,
+    required this.onPreview,
+    required this.onImportSamples,
+    required this.onSampleSelected,
+  });
+
+  final List<SampleLibraryEntrySnapshot> initialSamples;
+  final ValueChanged<SampleLibraryEntrySnapshot> onPreview;
+  final Future<List<SampleLibraryEntrySnapshot>> Function() onImportSamples;
+  final ValueChanged<SampleLibraryEntrySnapshot> onSampleSelected;
+
+  @override
+  State<SampleLibraryPickerSheet> createState() => _SampleLibraryPickerSheetState();
+}
+
+class _SampleLibraryPickerSheetState extends State<SampleLibraryPickerSheet> {
+  late List<SampleLibraryEntrySnapshot> _samples;
+
+  @override
+  void initState() {
+    super.initState();
+    _samples = widget.initialSamples;
+  }
+
+  Future<void> _import() async {
+    final updated = await widget.onImportSamples();
+    if (!mounted) return;
+    setState(() => _samples = updated);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SampleLibraryScreen(
+      embedded: true,
+      embeddedTitle: 'Insert sample',
+      samples: _samples,
+      onPreview: widget.onPreview,
+      onInsert: widget.onSampleSelected,
+      onImport: _import,
+    );
+  }
 }

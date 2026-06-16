@@ -58,4 +58,27 @@ void main() {
     );
     expect(gap, 2);
   });
+
+  test('quantizeBeat snaps down to grid', () {
+    expect(ArrangementTimelineMetrics.quantizeBeat(3.9), 3.0);
+    expect(ArrangementTimelineMetrics.quantizeBeat(4.0), 4.0);
+  });
+
+  test('placementStartBeat avoids overlap by shifting forward', () {
+    final start = ArrangementTimelineMetrics.placementStartBeat(
+      desiredStartBeat: 2.0,
+      clipLengthBeats: 4.0,
+      existingClips: [(start: 0.0, length: 4.0)],
+    );
+    expect(start, 4.0);
+  });
+
+  test('placementStartBeat uses quantized press position', () {
+    final start = ArrangementTimelineMetrics.placementStartBeat(
+      desiredStartBeat: 2.7,
+      clipLengthBeats: 2.0,
+      existingClips: [],
+    );
+    expect(start, 2.0);
+  });
 }
