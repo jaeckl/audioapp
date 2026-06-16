@@ -1,36 +1,48 @@
 # Tickets
 
-Work is planned as **user stories** (one vertical slice per story). Each story maps to a milestone and follows the template in [AGENT.md](../AGENT.md) §14.
+Work is planned as **user stories** — one shippable vertical slice per story (or a tight sequence within a milestone). Template: [AGENT.md](../AGENT.md) §14.
 
 ## Roadmap
 
-See [docs/milestones/roadmap.md](../docs/milestones/roadmap.md) for the full phase/milestone plan.
+[docs/milestones/roadmap.md](../docs/milestones/roadmap.md)
 
 ## Naming
 
 | Pattern | Example |
 |---------|---------|
-| User story ID | `US-03-02` |
-| File | `US-03-02-play-midi-through-device.md` |
-| Folder | `tickets/milestone-03/` |
+| User story ID | `US-06-02` |
+| File | `US-06-02-import-sample-system-picker.md` |
+| Folder | `tickets/milestone-06/` |
 
-## Status
+## Story counts (current)
 
-| Milestone | Stories | Notes |
-|-----------|---------|-------|
-| M00 | US-00-01, US-00-02 | Bootstrap complete |
-| M01 | US-01-01 | Next up — real JUCE audio |
-| M02–M09 | See roadmap | Planned |
+| Milestone | Stories | Status |
+|-----------|---------|--------|
+| M00 | 3 | Done |
+| M01 | 1 | Done |
+| M02 | 3 | Done |
+| M03 | 3 | Done |
+| M04 | 3 | Done |
+| M05 | 2 | Done |
+| M06 | 4 | Next |
+| M07 | 2 | Planned |
+| M08 | 4 | Planned |
+| M09 | 2 | Planned |
 
 ## Definition of done
 
-Per [AGENT.md](../AGENT.md) §17:
+Per AGENT.md §17 + §2.8:
 
-- Acceptance criteria **and** the ticket’s **demo script** pass on Android device
-- Full vertical slice: UX (dialogs, feedback, errors) + engine + bridge + tests
-- JUCE JSON and system document pickers where applicable (§2.6)
-- No follow-up ticket needed to complete the same user-facing story
+- Acceptance criteria and **demo script** pass on Android device
+- Full slice: UX (dialogs, feedback, errors) + engine + bridge + tests
+- `juce::JSON` / system pickers where applicable
+- No follow-up ticket to finish the same user-facing feature
 
-Audio stories: real JUCE path + realtime safety review.
+## PO decisions (M06–M09)
 
-Persistence stories: save → kill app → load round-trip on device.
+| Topic | Decision |
+|-------|----------|
+| M06 library | Bundled starter pack **+** user import (SAF) |
+| M07 trim UI | **Waveform + trim handles** required |
+| M08 effects | **One story per effect** (Gain → Pan → Filter) |
+| M09 export | **System save dialog** (like M05) |

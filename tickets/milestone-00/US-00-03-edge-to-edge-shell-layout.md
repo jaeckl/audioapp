@@ -51,6 +51,11 @@ Fix letterboxing above the Android navigation bar and beside the punch-hole came
 
 No unused black/empty bands above the nav bar or beside the front camera; DAW regions fill the phone display.
 
+## Demo script (on-device, ~30s)
+
+1. Portrait: no letterbox above nav bar; transport tappable.
+2. Landscape: content extends behind cutout; timeline usable.
+
 ## Depends on
 
 US-00-02

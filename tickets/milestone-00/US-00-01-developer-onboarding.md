@@ -59,6 +59,12 @@ N/A (developer-facing). User can install debug APK.
 
 None for skeleton.
 
+## Demo script (developer, ~15 min)
+
+1. Clone repo → follow `windows_android_setup.md`.
+2. `flutter build apk --debug` succeeds.
+3. `flutter run` on physical device installs and opens shell.
+
 ## Documentation updates
 
 - [x] README.md

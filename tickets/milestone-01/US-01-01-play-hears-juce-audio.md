@@ -53,6 +53,10 @@ Complete vertical path: Flutter → MethodChannel → C++ engine → Android aud
 
 User opens app, taps Play, hears a 440 Hz test tone.
 
+## Demo script (on-device, ~20s)
+
+1. Open app → Play → hear tone → Stop → silence.
+
 ## Realtime/performance notes
 
 - Stack buffer only in AAudio callback; no heap alloc in RT path

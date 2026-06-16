@@ -1,124 +1,118 @@
 # Product Roadmap — User Stories
 
-Vertical slices only. Each user story must be visible, testable, and (when audio-related) use a real JUCE path.
+Vertical slices only. Each story follows [AGENT.md](../../AGENT.md) §14 (UX flow, platform UX, demo script, investor bar §2.8).
 
 ## Phases
 
 | Phase | Milestones | Theme |
 |-------|------------|-------|
-| **0 — Foundation** | M00 | Repo, docs, toolchain, placeholder shell |
-| **1 — Audio proof** | M01 | Flutter → bridge → JUCE → speaker |
-| **2 — Core DAW loop** | M02–M04 | Tracks, devices, MIDI clips, editing |
-| **3 — Persistence** | M05 | Save/load diffable projects |
+| **0 — Foundation** | M00 | Repo, docs, toolchain, shell |
+| **1 — Audio proof** | M01 | Flutter → native engine → speaker |
+| **2 — Core DAW loop** | M02–M04 | Tracks, devices, MIDI, editing |
+| **3 — Persistence** | M05 | Save/load `.audioapp.zip` |
 | **4 — Samples** | M06–M07 | Library, sampler, trim editor |
-| **5 — Mix & export** | M08–M09 | Effects, automation, offline render |
+| **5 — Mix & export** | M08–M09 | Effects, automation, WAV export |
 
 ---
 
 ## Milestone 00 — Foundation
 
-| ID | User story | Status |
-|----|------------|--------|
-| [US-00-01](../../tickets/milestone-00/US-00-01-developer-onboarding.md) | As a **developer**, I can set up the repo on Windows/Android and build the app and engine skeleton. | Done |
-| [US-00-02](../../tickets/milestone-00/US-00-02-daw-shell-placeholder.md) | As a **user**, I open the app and see a clear DAW layout (timeline, transport, device strip placeholders). | Done |
-
-**User-visible outcome:** App installs and shows where the DAW will live. No fake audio.
+| ID | Summary | Status |
+|----|---------|--------|
+| [US-00-01](../../tickets/milestone-00/US-00-01-developer-onboarding.md) | Developer onboarding & build | Done |
+| [US-00-02](../../tickets/milestone-00/US-00-02-daw-shell-placeholder.md) | DAW shell placeholder | Done |
+| [US-00-03](../../tickets/milestone-00/US-00-03-edge-to-edge-shell-layout.md) | Edge-to-edge layout | Done |
 
 ---
 
 ## Milestone 01 — First real sound
 
-| ID | User story | Status |
-|----|------------|--------|
-| [US-01-01](../../tickets/milestone-01/US-01-01-play-hears-juce-audio.md) | As a **user**, I press Play and hear real sound from the native engine on my Android device. | Done |
-
-**User-visible outcome:** Audible test tone; Stop silences it.
+| ID | Summary | Status |
+|----|---------|--------|
+| [US-01-01](../../tickets/milestone-01/US-01-01-play-hears-juce-audio.md) | Play/Stop audible on device | Done |
 
 ---
 
 ## Milestone 02 — Track & device strip
 
-| ID | User story | Status |
-|----|------------|--------|
-| [US-02-01](../../tickets/milestone-02/US-02-01-add-and-select-track.md) | As a **user**, I can add a track and select it in the arrangement. | Todo |
-| [US-02-02](../../tickets/milestone-02/US-02-02-device-strip-oscillator.md) | As a **user**, I see the device strip for the selected track and change an oscillator parameter with audible effect. | Todo |
-
-**User-visible outcome:** First real DAW interaction — track + instrument strip controls sound.
+| ID | Summary | Status |
+|----|---------|--------|
+| [US-02-01](../../tickets/milestone-02/US-02-01-add-track.md) | Add track | Done |
+| [US-02-02](../../tickets/milestone-02/US-02-02-select-track.md) | Select track → device strip | Done |
+| [US-02-03](../../tickets/milestone-02/US-02-03-oscillator-device-strip.md) | Oscillator frequency audible | Done |
 
 ---
 
 ## Milestone 03 — MIDI clip playback
 
-| ID | User story | Status |
-|----|------------|--------|
-| [US-03-01](../../tickets/milestone-03/US-03-01-create-midi-clip-on-timeline.md) | As a **user**, I can create a MIDI clip on a track and see it on the timeline. | Todo |
-| [US-03-02](../../tickets/milestone-03/US-03-02-play-midi-through-device.md) | As a **user**, I press Play and hear the clip’s notes through the track’s oscillator at fixed BPM, with looping. | Todo |
-
-**User-visible outcome:** Arrangement plays a MIDI pattern through the device chain.
+| ID | Summary | Status |
+|----|---------|--------|
+| [US-03-01](../../tickets/milestone-03/US-03-01-create-midi-clip-on-timeline.md) | Create MIDI clip on timeline | Done |
+| [US-03-02](../../tickets/milestone-03/US-03-02-transport-playhead.md) | Transport playhead | Done |
+| [US-03-03](../../tickets/milestone-03/US-03-03-midi-clip-playback.md) | MIDI clip → audio playback | Done |
 
 ---
 
 ## Milestone 04 — Mobile MIDI editing
 
-| ID | User story | Status |
-|----|------------|--------|
-| [US-04-01](../../tickets/milestone-04/US-04-01-open-piano-roll.md) | As a **user**, I can open a mobile-friendly piano roll from a clip on the timeline. | Todo |
-| [US-04-02](../../tickets/milestone-04/US-04-02-edit-notes-in-piano-roll.md) | As a **user**, I can add, move, resize, and delete notes with grid snapping and hear changes on playback. | Todo |
-
-**User-visible outcome:** Write a simple melody or rhythm on the phone.
+| ID | Summary | Status |
+|----|---------|--------|
+| [US-04-01](../../tickets/milestone-04/US-04-01-open-piano-roll.md) | Open piano roll from clip | Done |
+| [US-04-02](../../tickets/milestone-04/US-04-02-add-delete-notes.md) | Add/delete notes | Done |
+| [US-04-03](../../tickets/milestone-04/US-04-03-move-resize-notes-grid-snap.md) | Move/resize + grid snap | Done |
 
 ---
 
 ## Milestone 05 — Save & load
 
-| ID | User story | Status |
-|----|------------|--------|
-| [US-05-01](../../tickets/milestone-05/US-05-01-save-project.md) | As a **user**, I save via the **system save dialog** to a `.audioapp.zip` I choose. | Done |
-| [US-05-02](../../tickets/milestone-05/US-05-02-load-project.md) | As a **user**, I open a saved `.audioapp.zip` via the **system file picker** and continue editing. | Done |
+| ID | Summary | Status |
+|----|---------|--------|
+| [US-05-01](../../tickets/milestone-05/US-05-01-save-project.md) | Save via system dialog → zip | Done |
+| [US-05-02](../../tickets/milestone-05/US-05-02-load-project.md) | Load via system picker | Done |
 
-**User-visible outcome:** Save → force-stop app → Load → arrangement restored (PO demo script in milestone-05.md).
+**PO demo:** Save → force-stop → Load → arrangement restored.
 
 ---
 
 ## Milestone 06 — Sample library & sampler
 
-| ID | User story | Status |
-|----|------------|--------|
-| [US-06-01](../../tickets/milestone-06/US-06-01-sample-library-import.md) | As a **user**, I can browse a sample library and import/reference a local audio file. | Todo |
-| [US-06-02](../../tickets/milestone-06/US-06-02-sampler-midi-trigger.md) | As a **user**, I can load a sample into a sampler device and trigger it from a MIDI clip. | Todo |
+| ID | Summary | Status |
+|----|---------|--------|
+| [US-06-01](../../tickets/milestone-06/US-06-01-bundled-sample-library.md) | Bundled starter pack + library UI | Todo |
+| [US-06-02](../../tickets/milestone-06/US-06-02-import-sample-system-picker.md) | Import via system file picker | Todo |
+| [US-06-03](../../tickets/milestone-06/US-06-03-sampler-device-on-strip.md) | Sampler on device strip | Todo |
+| [US-06-04](../../tickets/milestone-06/US-06-04-midi-triggers-sample.md) | MIDI triggers sample loop | Todo |
 
-**User-visible outcome:** Simple sample-based loop.
+**PO demo:** Sampler + 4-on-floor → Save → Load → same loop.
 
 ---
 
 ## Milestone 07 — Sampler fullscreen editor
 
-| ID | User story | Status |
-|----|------------|--------|
-| [US-07-01](../../tickets/milestone-07/US-07-01-sampler-fullscreen-trim.md) | As a **user**, I can open the sampler fullscreen, set trim start/end, and hear playback respect trim without changing the source file. | Todo |
-
-**User-visible outcome:** Shape samples non-destructively.
+| ID | Summary | Status |
+|----|---------|--------|
+| [US-07-01](../../tickets/milestone-07/US-07-01-open-fullscreen-sampler.md) | Open fullscreen sampler | Todo |
+| [US-07-02](../../tickets/milestone-07/US-07-02-waveform-trim-editor.md) | Waveform + trim handles | Todo |
 
 ---
 
 ## Milestone 08 — Effects & automation
 
-| ID | User story | Status |
-|----|------------|--------|
-| [US-08-01](../../tickets/milestone-08/US-08-01-effect-device-chain.md) | As a **user**, I can add gain, pan, and filter devices after an instrument and hear the mix change. | Todo |
-| [US-08-02](../../tickets/milestone-08/US-08-02-parameter-automation.md) | As a **user**, I can target a device parameter with simple automation data that affects playback. | Todo |
-
-**User-visible outcome:** Shape sound through the device strip.
+| ID | Summary | Status |
+|----|---------|--------|
+| [US-08-01](../../tickets/milestone-08/US-08-01-gain-device.md) | Gain effect | Todo |
+| [US-08-02](../../tickets/milestone-08/US-08-02-pan-device.md) | Pan effect | Todo |
+| [US-08-03](../../tickets/milestone-08/US-08-03-filter-device.md) | Filter effect | Todo |
+| [US-08-04](../../tickets/milestone-08/US-08-04-parameter-automation.md) | Parameter automation | Todo |
 
 ---
 
 ## Milestone 09 — Offline render
 
-| ID | User story | Status |
-|----|------------|--------|
-| [US-09-01](../../tickets/milestone-09/US-09-01-export-project-wav.md) | As a **user**, I can export/render the current project to a local WAV file faster than realtime. | Todo |
-
-**User-visible outcome:** Share a rendered loop or track.
+| ID | Summary | Status |
+|----|---------|--------|
+| [US-09-01](../../tickets/milestone-09/US-09-01-offline-render-engine.md) | Offline render engine | Todo |
+| [US-09-02](../../tickets/milestone-09/US-09-02-export-wav-system-dialog.md) | Export WAV via save dialog | Todo |
 
 ---
 
@@ -130,6 +124,4 @@ M00 ──► M01 ──► M02 ──► M03 ──► M04
                                └──► M08 ──► M09
 ```
 
-## Ticket index
-
-All implementation tickets live under `tickets/milestone-XX/`. See [tickets/README.md](../../tickets/README.md).
+[tickets/README.md](../../tickets/README.md) · Story template: AGENT.md §14

@@ -51,9 +51,11 @@ Placeholder DAW shell — visible regions, no fake audio.
 
 Recognizable minimal DAW shell on phone or emulator.
 
-## Documentation updates
+## Demo script (on-device, ~20s)
 
-- [x] flutter_guidelines.md structure
+1. Install APK → open app → see arrangement, transport, device strip regions labeled.
+
+## Documentation updates
 
 ## Status
 
