@@ -86,6 +86,29 @@ flutter run -d <device-id>
 
 6. While developing: save Dart files → hot reload (`r` in terminal) or hot restart (`R`).
 
+## Automatic deploy (recommended)
+
+The repo installs the latest debug build to your phone **after each agent session** and supports hot reload while you edit.
+
+| What | How |
+|------|-----|
+| **Launcher always up to date** | Cursor hook runs `tools\flutter_deploy.ps1` when the agent finishes |
+| **Hot reload while coding** | `.vscode/settings.json` → save any Dart file reloads (needs an active debug session) |
+| **Background debug session** | `.\tools\flutter_dev.ps1` keeps `flutter run` attached to your phone |
+| **Manual install** | `.\tools\flutter_deploy.ps1` |
+
+```powershell
+# One-time per session (or after reboot): start background flutter run
+.\tools\flutter_dev.ps1
+
+# Force install now (same as the agent hook)
+.\tools\flutter_deploy.ps1
+```
+
+**Why the drawer showed an old build:** opening the app from the launcher runs the **installed APK**, not a detached `flutter run`. `flutter_deploy.ps1` / `flutter install` updates that APK.
+
+**Hooks:** `.cursor/hooks.json` — enable **Hooks** in Cursor settings if deploy does not run automatically.
+
 ### Wireless debugging (optional, Android 11+)
 
 Same Wi‑Fi as the PC:

@@ -37,9 +37,14 @@ First configure downloads JUCE into the CMake build directory.
 
 Additional modules added only when needed.
 
-## Android / Flutter integration
+## Android vs desktop
 
-The engine builds as a static or shared library linked from the Flutter Android Gradle project via `native_bridge/`. Exact linking is established in Milestone 01.
+| Platform | Audio backend | Notes |
+|----------|---------------|-------|
+| **Android (M01)** | AAudio via `EngineHost_android.cpp` | Same `TestOscillator` DSP; no JUCE CMake on device (avoids `juceaide` cross-compile) |
+| **Desktop / host tests** | JUCE `AudioDeviceManager` via `EngineHost_juce.cpp` | FetchContent JUCE 8.0.4 |
+
+Full JUCE-on-Android CMake linking is planned once host `juceaide` bootstrap is automated (MSVC or documented MinGW path).
 
 ## Updating JUCE
 

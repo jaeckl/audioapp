@@ -11,6 +11,8 @@ build/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
 *.iml
 
 # Android
@@ -26,6 +28,9 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local Flutter dev session (PID, logs)
+.flutter-dev/
 
 # Secrets
 .env

@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 
-class DeviceStrip extends StatelessWidget {
-  const DeviceStrip({super.key, required this.visible});
+import '../../bridge/project_snapshot.dart';
 
-  final bool visible;
+class DeviceStrip extends StatelessWidget {
+  const DeviceStrip({
+    super.key,
+    required this.track,
+    required this.onFrequencyChanged,
+  });
+
+  final TrackSnapshot? track;
+  final void Function(String deviceId, double frequencyHz) onFrequencyChanged;
 
   @override
   Widget build(BuildContext context) {
-    if (!visible) {
+    if (track == null) {
       return Container(
         height: 48,
         alignment: Alignment.center,
@@ -19,28 +26,52 @@ class DeviceStrip extends StatelessWidget {
       );
     }
 
+    DeviceSnapshot? oscillator;
+    for (final device in track!.devices) {
+      if (device.type == 'simple_oscillator') {
+        oscillator = device;
+        break;
+      }
+    }
+
     return Container(
-      height: 100,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: const BoxDecoration(
         color: Color(0xFF121218),
         border: Border(top: BorderSide(color: Colors.white12)),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Device strip', style: Theme.of(context).textTheme.labelLarge),
-          const SizedBox(height: 8),
-          Expanded(
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: const [
-                _DeviceCard(title: 'Oscillator', subtitle: 'Instrument'),
-                SizedBox(width: 8),
-                _DeviceCard(title: '+ Device', subtitle: 'Add (M02)'),
+          Text('Device strip — ${track!.name}', style: Theme.of(context).textTheme.labelLarge),
+          const SizedBox(height: 6),
+          if (oscillator == null)
+            Text(
+              'No instrument on this track',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white54),
+            )
+          else
+            Row(
+              children: [
+                _DeviceCard(
+                  title: 'Oscillator',
+                  subtitle: '${oscillator.frequencyHz.round()} Hz',
+                ),
+                const SizedBox(width: 12),
+                const Text('Frequency'),
+                Expanded(
+                  child: Slider(
+                    min: 110,
+                    max: 880,
+                    divisions: 14,
+                    value: oscillator.frequencyHz.clamp(110, 880),
+                    label: '${oscillator.frequencyHz.round()} Hz',
+                    onChanged: (value) => onFrequencyChanged(oscillator!.id, value),
+                  ),
+                ),
               ],
             ),
-          ),
         ],
       ),
     );
@@ -57,22 +88,19 @@ class _DeviceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 140,
-      padding: const EdgeInsets.all(12),
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      alignment: Alignment.centerLeft,
       decoration: BoxDecoration(
         color: const Color(0xFF252530),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.white12),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.titleSmall),
-          Text(
-            subtitle,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white54),
-          ),
-        ],
+      child: Text(
+        '$title · $subtitle',
+        style: Theme.of(context).textTheme.labelMedium,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }

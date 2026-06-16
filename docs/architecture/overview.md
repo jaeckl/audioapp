@@ -72,3 +72,4 @@ Audio and MIDI flow through a directed graph:
 - [ADR-0003](../adr/ADR-0003-graph-based-engine.md) — Graph-based engine
 - [ADR-0004](../adr/ADR-0004-no-external-plugin-formats.md) — No external plugins
 - [ADR-0005](../adr/ADR-0005-diffable-project-format.md) — Diffable project format
+- [ADR-0006](../adr/ADR-0006-os-bridge-project-files.md) — OS bridge owns file I/O (hybrid)

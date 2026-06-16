@@ -35,16 +35,16 @@ MIDI clip entity in C++ project model with visual representation in arrangement.
 
 ## Acceptance criteria
 
-- [ ] User can create MIDI clip on selected track
-- [ ] Clip appears at correct horizontal position/length
-- [ ] Clip data stored in C++ with stable clip ID
-- [ ] Flutter tests clip creation UI flow
-- [ ] C++ serialization round-trip for clip metadata
+- [x] User can create MIDI clip on selected track
+- [x] Clip appears at correct horizontal position/length
+- [x] Clip data stored in C++ with stable clip ID
+- [x] Flutter tests clip creation UI flow
+- [x] C++ serialization round-trip for clip metadata
 
 ## Tests required
 
-- [ ] C++ unit tests
-- [ ] Widget tests
+- [x] C++ unit tests
+- [x] Widget tests
 - [ ] Manual smoke
 
 ## User-visible result
@@ -57,4 +57,4 @@ US-02-02
 
 ## Status
 
-**Todo**
+**Done**

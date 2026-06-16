@@ -35,18 +35,26 @@ Commands are invoked as `invokeMethod` with a method name and optional JSON map.
 | Command | Status | Description |
 |---------|--------|-------------|
 | `ping` | Milestone 00 | Connectivity check |
-| `play` | Milestone 01 | Start transport / test tone |
+| `play` | Milestone 01 | Start transport / test tone (AAudio on Android) |
 | `stop` | Milestone 01 | Stop transport |
-| `createProject` | Milestone 02 | New project |
-| `addTrack` | Milestone 02 | Add arrangement track |
+| `createProject` | Milestone 02 | New empty project |
+| `getProjectSnapshot` | Milestone 02 | Read project state |
+| `addTrack` | Milestone 02 | Add track (includes default oscillator) |
 | `selectTrack` | Milestone 02 | Selection |
-| `addDeviceToTrack` | Milestone 02 | Append device to chain |
 | `setDeviceParameter` | Milestone 02 | Set parameter by id |
 | `createMidiClip` | Milestone 03 | Create clip on track |
-| `saveProject` | Milestone 05 | Save to path |
-| `loadProject` | Milestone 05 | Load from path |
+| `setMidiClipNotes` | Milestone 04 | Replace all notes in a MIDI clip |
+| `saveProject` | Milestone 05 | Save `.audioapp.zip` (Kotlin zip + C++ JSON) |
+| `loadProject` | Milestone 05 | Open `.audioapp.zip` (Kotlin zip + C++ JSON) |
 
-### Example (Dart)
+### Android save / load
+
+| Action | API | File |
+|--------|-----|------|
+| **Save** | `CreateDocument` (`application/zip`) | `project.audioapp.zip` |
+| **Load** | `OpenDocument` (zip MIME) | existing `.audioapp.zip` |
+
+Archive contains `project.json`, `assets/samples/`, `metadata/`. Cancel → `{cancelled: true}`.
 
 ```dart
 await engineChannel.invokeMethod('play');
@@ -73,6 +81,14 @@ Events stream as maps on `EventChannel`:
 | `error` | On error | `{ code, message }` |
 
 High-frequency data must be throttled and coalesced before sending to Dart.
+
+## Save / load (hybrid — ADR-0006)
+
+Android: SAF save/open for `project.audioapp.zip`; Kotlin builds zip; C++ serializes `project.json` inside.
+
+Desktop: `ProjectArchive.cpp` (`saveProjectToArchive` / `loadProjectFromArchive`).
+
+JNI: `nativeGetProjectFileJson`, `nativeLoadProjectFileJson`.
 
 ## Serialization
 

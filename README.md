@@ -72,9 +72,9 @@ JUCE is fetched via CMake FetchContent (pinned version). See [docs/architecture/
 
 ## Current milestone
 
-**Milestone 01** — First real sound ([roadmap](docs/milestones/roadmap.md), [US-01-01](tickets/milestone-01/US-01-01-play-hears-juce-audio.md)).
+**Milestone 02** — Tracks & device strip ([US-02-01](tickets/milestone-02/US-02-01-add-and-select-track.md)).
 
-Milestone 00 (foundation) is complete.
+Milestone 01 (first real audio) is complete.
 
 ## License
 

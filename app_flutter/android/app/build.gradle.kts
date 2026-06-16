@@ -20,10 +20,31 @@ android {
 
     defaultConfig {
         applicationId = "com.audioapp.daw"
-        minSdk = 24
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        externalNativeBuild {
+            cmake {
+                cppFlags += "-std=c++17"
+                arguments += listOf(
+                    "-DANDROID_STL=c++_shared",
+                    "-DAUDIOAPP_BUILD_TESTS=OFF",
+                )
+            }
+        }
+
+        ndk {
+            abiFilters += listOf("arm64-v8a", "x86_64")
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 
     buildTypes {
@@ -37,4 +58,6 @@ flutter {
     source = "../.."
 }
 
-dependencies {}
+dependencies {
+    implementation("androidx.activity:activity-ktx:1.9.3")
+}

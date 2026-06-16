@@ -32,3 +32,23 @@
 ## MVP placeholder shell
 
 Milestone 00 delivers labeled regions without fake audio. Regions must map to future features clearly.
+
+## System insets (edge-to-edge)
+
+The DAW shell runs **edge-to-edge** on Android:
+
+- `WindowCompat.setDecorFitsSystemWindows(false)` + Flutter `SystemUiMode.edgeToEdge`
+- `windowLayoutInDisplayCutoutMode = shortEdges` so content may draw in punch-hole / inline camera areas in landscape
+- **Do not** wrap the whole shell in `SafeArea` — it letterboxes above the gesture nav bar and beside cutouts
+
+### Padding policy
+
+| Region | Insets |
+|--------|--------|
+| Engine status header | Top status bar only (`ShellInsets.headerPadding`) |
+| Arrangement / device strip | Full width; no horizontal safe-area padding |
+| Transport | Flush to bottom display edge; no outer safe-area padding |
+
+Fullscreen editors (piano roll, sampler) may apply additional per-control insets later.
+
+See [US-00-03](../../tickets/milestone-00/US-00-03-edge-to-edge-shell-layout.md).

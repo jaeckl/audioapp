@@ -1,0 +1,8 @@
+{
+  "dart.flutterHotReloadOnSave": "all",
+  "dart.flutterHotReloadOnSaveMode": "reload",
+  "dart.flutterSelectedDeviceId": "ZY32MCWDJ6",
+  "files.watcherExclude": {
+    "**/.flutter-dev/**": true
+  }
+}

@@ -242,8 +242,8 @@ The UI sends commands such as:
 * `play`
 * `stop`
 * `setBpm`
-* `saveProject`
-* `loadProject`
+* `saveProject` — Flutter UI; Android Kotlin writes file, C++ serializes (ADR-0006)
+* `loadProject` — Flutter UI; Android Kotlin reads file, C++ deserializes (ADR-0006)
 * `renderProject`
 
 Commands should be validated by the C++ project engine.
@@ -518,17 +518,15 @@ Automation is project data and must be serializable.
 
 The project format must be diffable and versioned.
 
-Use a folder-based project structure or archive that can be unpacked into a folder.
+Use a **`.audioapp.zip` archive** containing `project.json` and asset paths ([ADR-0005](../adr/ADR-0005-diffable-project-format.md)).
 
-Recommended structure:
+Recommended archive layout (inside `.audioapp.zip`):
 
 ```text
-MyProject/
+project.audioapp.zip
   project.json
-  assets/
-    samples/
+  assets/samples/
   metadata/
-  renders/
 ```
 
 `project.json` should be human-readable and diffable.
@@ -1015,8 +1013,7 @@ Persist projects in a versioned, diffable format.
 
 Scope:
 
-* Project folder or unpacked structure.
-* `project.json`.
+* `.audioapp.zip` archive (contains `project.json`).
 * Stable IDs.
 * Save command.
 * Load command.
@@ -1282,6 +1279,7 @@ docs/adr/ADR-0002-android-first-mvp.md
 docs/adr/ADR-0003-graph-based-engine.md
 docs/adr/ADR-0004-no-external-plugin-formats.md
 docs/adr/ADR-0005-diffable-project-format.md
+docs/adr/ADR-0006-os-bridge-project-files.md
 tickets/milestone-00/
 tickets/milestone-01/
 tickets/milestone-02/

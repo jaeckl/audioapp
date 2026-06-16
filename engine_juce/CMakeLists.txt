@@ -7,18 +7,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(AUDIOAPP_BUILD_TESTS "Build engine unit tests" ON)
 
-include(FetchContent)
-FetchContent_Declare(
-  JUCE
-  GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
-  GIT_TAG        8.0.4
-  GIT_SHALLOW    TRUE
-)
-FetchContent_MakeAvailable(JUCE)
-
 add_library(audioapp_engine STATIC
-  src/EngineHost.cpp
   src/TestOscillator.cpp
+  src/ProjectEngine.cpp
+  src/ProjectJson.cpp
+  src/ProjectArchive.cpp
+  src/MidiClipPlayback.cpp
+  src/EngineHost_commands.cpp
 )
 
 target_include_directories(audioapp_engine
@@ -26,26 +21,55 @@ target_include_directories(audioapp_engine
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(audioapp_engine
-  PUBLIC
-    juce::juce_audio_basics
-    juce::juce_audio_devices
-    juce::juce_audio_processors
-    juce::juce_core
-    juce::juce_events
-)
+if(ANDROID)
+  target_sources(audioapp_engine PRIVATE src/EngineHost_android.cpp)
+  find_library(aaudio-lib aaudio)
+  find_library(log-lib log)
+  target_link_libraries(audioapp_engine
+    PUBLIC
+      ${aaudio-lib}
+      ${log-lib}
+  )
+else()
+  set(JUCE_BUILD_HELPER_TOOLS OFF CACHE BOOL "" FORCE)
+  set(JUCE_BUILD_EXTRAS OFF CACHE BOOL "" FORCE)
+  set(JUCE_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
-target_compile_definitions(audioapp_engine
-  PUBLIC
-    JUCE_WEB_BROWSER=0
-    JUCE_USE_CURL=0
-    JUCE_DISPLAY_SPLASH_SCREEN=0
-)
+  include(FetchContent)
+  FetchContent_Declare(
+    JUCE
+    GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
+    GIT_TAG        8.0.4
+    GIT_SHALLOW    TRUE
+  )
+  FetchContent_MakeAvailable(JUCE)
 
-if(AUDIOAPP_BUILD_TESTS)
+  target_sources(audioapp_engine PRIVATE src/EngineHost_juce.cpp)
+  target_link_libraries(audioapp_engine
+    PUBLIC
+      juce::juce_audio_basics
+      juce::juce_audio_devices
+      juce::juce_core
+      juce::juce_events
+  )
+  target_compile_definitions(audioapp_engine
+    PUBLIC
+      JUCE_WEB_BROWSER=0
+      JUCE_USE_CURL=0
+      JUCE_DISPLAY_SPLASH_SCREEN=0
+  )
+endif()
+
+if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
   enable_testing()
   add_executable(audioapp_engine_tests
     tests/engine_smoke_test.cpp
+    tests/oscillator_output_test.cpp
+    tests/project_engine_test.cpp
+    tests/midi_clip_playback_test.cpp
+    tests/midi_clip_notes_test.cpp
+    tests/project_archive_test.cpp
+    tests/project_serialization_test.cpp
   )
   target_link_libraries(audioapp_engine_tests PRIVATE audioapp_engine)
   add_test(NAME engine_smoke COMMAND audioapp_engine_tests)

@@ -1,18 +1,27 @@
 # Native bridge
 
-Android JNI and Flutter plugin wiring lives here.
+Android JNI and Flutter MethodChannel wiring.
 
 ## Layout
 
 ```text
 native_bridge/
-  include/     C++ bridge API
-  src/         BridgeHost command dispatch
-  android/     Kotlin/Java MethodChannel handler (Milestone 01)
+  include/     C++ BridgeHost command dispatch
+  src/         BridgeHost.cpp
+
+app_flutter/android/app/src/main/
+  kotlin/.../MainActivity.kt         MethodChannel + SAF pickers
+  kotlin/.../ProjectArchiveStore.kt  Zip archive I/O (ADR-0006)
+  cpp/jni_bridge.cpp                 JNI entry points
 ```
 
-## Status
+## Responsibilities (ADR-0006)
 
-Milestone 00: C++ `BridgeHost` with `ping`, `play`, `stop` stubs. Kotlin registration in `app_flutter/android` completes the Flutter path in Milestone 01.
+| Component | Role |
+|-----------|------|
+| `BridgeHost` | Engine commands; JSON serialize API for Android JNI |
+| `ProjectArchiveStore` (Kotlin) | Build/read `.audioapp.zip` via SAF document URIs |
+| `ProjectArchive.cpp` (C++) | Zip archive I/O on desktop / tests |
+| `ProjectJson.cpp` (C++) | `project.json` schema (all platforms) |
 
-See [flutter_native_bridge.md](../docs/bridge/flutter_native_bridge.md).
+See [flutter_native_bridge.md](../docs/bridge/flutter_native_bridge.md) and [ADR-0006](../docs/adr/ADR-0006-os-bridge-project-files.md).

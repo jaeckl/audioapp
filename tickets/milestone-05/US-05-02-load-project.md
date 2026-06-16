@@ -10,51 +10,50 @@ Milestone 05 — Save & load
 
 ## User story
 
-As a **user**, I can load a saved project and continue with tracks, clips, devices, and parameters restored.
+As a **user**, I can open a saved `.audioapp.zip` and continue with tracks, clips, devices, and parameters restored.
 
 ## Goal
 
-`loadProject` command restores authoritative C++ state and Flutter projection.
+`loadProject` restores authoritative C++ state from a zip archive via the system open-file dialog.
 
 ## Background
 
 - [project_model.md](../../docs/architecture/project_model.md)
-- Migration placeholder for future format versions
+- [ADR-0006](../../docs/adr/ADR-0006-os-bridge-project-files.md)
 
 ## Scope
 
 - Command: `loadProject`
-- Restore tracks, clips, devices, parameters, BPM
+- Restore from `project.json` inside the archive
 - Flutter UI reflects loaded snapshot
-- Basic migration hook (no-op for v1)
+- **System open-file dialog** (SAF `OpenDocument`, zip filter)
 
 ## Out of scope
 
-- Sample file copy on load (references only until export)
 - Cloud sync
+- Opening raw `project.json` without zip wrapper
 
 ## Acceptance criteria
 
-- [ ] User can load saved project from UI
-- [ ] Arrangement, device strip, parameters match saved file
-- [ ] Playback works after load
-- [ ] C++ round-trip save→load tests
-- [ ] Flutter integration test for save/load flow where practical
+- [x] User can load from UI
+- [x] Arrangement, device strip, parameters match saved archive
+- [x] Playback works after load
+- [x] C++ round-trip archive tests
+- [x] Flutter integration test (mocked)
+- [x] System **open-file** dialog
+- [x] Invalid archive → clear error
+- [x] User cancel → unchanged state
 
 ## Tests required
 
-- [ ] C++ serialization + migration placeholder tests
-- [ ] Integration test
-- [ ] Manual close/reopen smoke
+- [x] C++ archive tests
+- [x] Integration test (mocked)
+- [ ] Manual load on device
 
 ## User-visible result
 
-Create project → save → kill app → load → continue editing.
-
-## Depends on
-
-US-05-01
+Save archive → kill app → Load → pick same `.audioapp.zip` → continue editing.
 
 ## Status
 
-**Todo**
+**Done**

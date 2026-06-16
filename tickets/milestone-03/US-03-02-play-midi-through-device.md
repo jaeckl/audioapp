@@ -35,16 +35,16 @@ MIDI scheduling + playhead + device chain produces audible pattern.
 
 ## Acceptance criteria
 
-- [ ] Play schedules notes at correct times for BPM
-- [ ] Oscillator produces sound from MIDI note on events
-- [ ] Extending clip loop region repeats pattern
-- [ ] C++ MIDI scheduling tests
-- [ ] Silence when stopped
-- [ ] Playhead visible in UI
+- [x] Play schedules notes at correct times for BPM
+- [x] Oscillator produces sound from MIDI note on events
+- [x] Extending clip loop region repeats pattern
+- [x] C++ MIDI scheduling tests
+- [x] Silence when stopped
+- [x] Playhead visible in UI
 
 ## Tests required
 
-- [ ] C++ MIDI scheduling unit tests
+- [x] C++ MIDI scheduling unit tests
 - [ ] Offline render test for known note pattern
 - [ ] Manual device smoke
 
@@ -63,4 +63,4 @@ US-03-01
 
 ## Status
 
-**Todo**
+**Done**

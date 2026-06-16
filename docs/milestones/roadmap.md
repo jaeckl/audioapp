@@ -30,7 +30,7 @@ Vertical slices only. Each user story must be visible, testable, and (when audio
 
 | ID | User story | Status |
 |----|------------|--------|
-| [US-01-01](../../tickets/milestone-01/US-01-01-play-hears-juce-audio.md) | As a **user**, I press Play and hear real sound from the JUCE engine on my Android device. | Todo |
+| [US-01-01](../../tickets/milestone-01/US-01-01-play-hears-juce-audio.md) | As a **user**, I press Play and hear real sound from the native engine on my Android device. | Done |
 
 **User-visible outcome:** Audible test tone; Stop silences it.
 
@@ -73,8 +73,8 @@ Vertical slices only. Each user story must be visible, testable, and (when audio
 
 | ID | User story | Status |
 |----|------------|--------|
-| [US-05-01](../../tickets/milestone-05/US-05-01-save-project.md) | As a **user**, I can save my project to a versioned folder with diffable `project.json`. | Todo |
-| [US-05-02](../../tickets/milestone-05/US-05-02-load-project.md) | As a **user**, I can load a saved project and continue with tracks, clips, devices, and parameters restored. | Todo |
+| [US-05-01](../../tickets/milestone-05/US-05-01-save-project.md) | As a **user**, I can save my project as a `.audioapp.zip` archive with diffable `project.json`. | Done |
+| [US-05-02](../../tickets/milestone-05/US-05-02-load-project.md) | As a **user**, I can load a saved `.audioapp.zip` and continue editing. | Done |
 
 **User-visible outcome:** Projects survive app restart.
 

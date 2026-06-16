@@ -1,0 +1,12 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "AudioApp (Moto g86)",
+      "cwd": "app_flutter",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "ZY32MCWDJ6"
+    }
+  ]
+}
