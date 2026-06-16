@@ -32,6 +32,10 @@ bool EngineHost::setDeviceParameter(const std::string& deviceId,
     return project_.setDeviceParameter(deviceId, parameterId, value);
 }
 
+bool EngineHost::setMasterGain(float gain) {
+    return project_.setMasterGain(gain);
+}
+
 std::string EngineHost::getProjectSnapshotJson() const {
     return snapshotToJson(project_.snapshot());
 }
@@ -42,6 +46,10 @@ float EngineHost::activeOscillatorFrequencyHz() const {
 
 double EngineHost::playheadBeats() const noexcept {
     return project_.playheadBeats();
+}
+
+void EngineHost::setPlayheadBeats(double beats) noexcept {
+    project_.setPlayheadBeats(beats);
 }
 
 void EngineHost::readMasterMix(float* monoOut,

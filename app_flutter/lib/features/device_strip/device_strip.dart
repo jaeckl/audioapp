@@ -27,7 +27,7 @@ class DeviceStrip extends StatelessWidget {
     }
 
     DeviceSnapshot? oscillator;
-    for (final device in track!.devices) {
+    for (final device in track!.visibleDevices) {
       if (device.type == 'simple_oscillator') {
         oscillator = device;
         break;

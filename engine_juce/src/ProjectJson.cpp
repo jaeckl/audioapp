@@ -78,7 +78,11 @@ MidiNoteState midiNoteFromVar(const juce::var& value) {
 
 juce::var deviceToVar(const DeviceState& device) {
     auto* parameters = new juce::DynamicObject();
-    parameters->setProperty("frequency", static_cast<double>(device.frequencyHz));
+    if (device.type == "track_gain") {
+        parameters->setProperty("gain", static_cast<double>(device.gain));
+    } else {
+        parameters->setProperty("frequency", static_cast<double>(device.frequencyHz));
+    }
 
     auto* object = new juce::DynamicObject();
     object->setProperty("id", toJuceString(device.id));
@@ -95,6 +99,7 @@ DeviceState deviceFromVar(const juce::var& value) {
         const auto parameters = object->getProperty("parameters");
         if (const auto* params = parameters.getDynamicObject()) {
             device.frequencyHz = varToFloat(params->getProperty("frequency"), 440.0f);
+            device.gain = varToFloat(params->getProperty("gain"), 1.0f);
         }
     }
     return device;
@@ -267,6 +272,7 @@ juce::var snapshotToVar(const ProjectSnapshot& snapshot) {
     auto* master = new juce::DynamicObject();
     master->setProperty("id", toJuceString(snapshot.master.id));
     master->setProperty("name", toJuceString(snapshot.master.name));
+    master->setProperty("gain", static_cast<double>(snapshot.master.gain));
 
     auto* object = new juce::DynamicObject();
     object->setProperty("bpm", snapshot.bpm);
@@ -297,6 +303,11 @@ juce::var projectFileToVar(const ProjectFileData& project) {
     object->setProperty("name", toJuceString(project.name));
     object->setProperty("bpm", project.bpm);
     object->setProperty("selectedTrackId", toJuceString(project.selectedTrackId));
+    auto* master = new juce::DynamicObject();
+    master->setProperty("id", toJuceString(project.master.id));
+    master->setProperty("name", toJuceString(project.master.name));
+    master->setProperty("gain", static_cast<double>(project.master.gain));
+    object->setProperty("master", juce::var(master));
     object->setProperty("samples", samples);
     object->setProperty("tracks", tracks);
     return juce::var(object);
@@ -329,6 +340,14 @@ bool parseProjectFileJson(const std::string& json, ProjectFileData& out) {
     out.selectedTrackId = varToString(object->getProperty("selectedTrackId"));
     out.tracks.clear();
     out.sampleLibrary.clear();
+    out.master.id = "master";
+    out.master.name = "Master";
+    out.master.gain = 1.0f;
+    if (const auto* masterObject = object->getProperty("master").getDynamicObject()) {
+        out.master.id = varToString(masterObject->getProperty("id"));
+        out.master.name = varToString(masterObject->getProperty("name"));
+        out.master.gain = varToFloat(masterObject->getProperty("gain"), 1.0f);
+    }
 
     if (const auto* samples = varArray(object->getProperty("samples"))) {
         out.sampleLibrary.reserve(static_cast<size_t>(samples->size()));

@@ -17,6 +17,7 @@ struct DeviceState {
     std::string id;
     std::string type;
     float frequencyHz = 440.0f;
+    float gain = 1.0f;
 };
 
 struct TrackState {
@@ -30,6 +31,7 @@ struct TrackState {
 struct MasterTrackState {
     std::string id = "master";
     std::string name = "Master";
+    float gain = 1.0f;
 };
 
 struct ProjectSnapshot {
@@ -52,6 +54,7 @@ public:
     bool setDeviceParameter(const std::string& deviceId,
                             const std::string& parameterId,
                             float value);
+    bool setMasterGain(float gain);
     std::string createMidiClip(const std::string& trackId,
                                double startBeat,
                                double lengthBeats);
@@ -73,6 +76,7 @@ public:
     void setPlaying(bool playing);
     bool isPlaying() const noexcept;
     double playheadBeats() const noexcept;
+    void setPlayheadBeats(double beats) noexcept;
     void resetPlayhead() noexcept;
     void advancePlayhead(int numFrames, double sampleRate) noexcept;
 
@@ -84,6 +88,7 @@ private:
         std::string id;
         std::string type;
         float frequencyHz = 440.0f;
+        float gain = 1.0f;
     };
 
     struct MidiNote {
@@ -134,6 +139,7 @@ private:
     struct TrackPlaybackSnapshot {
         std::string trackId;
         float idleFrequencyHz = 440.0f;
+        float trackGain = 1.0f;
         int noteCount = 0;
         PlaybackNote notes[32];
         int regionCount = 0;
@@ -156,6 +162,7 @@ private:
     std::atomic<float> activeFrequencyHz_{440.0f};
     std::atomic<bool> playing_{false};
     std::atomic<double> playheadBeats_{0.0};
+    std::atomic<float> masterGain_{1.0f};
 
     TrackPlaybackSnapshot trackPlayback_[kMaxTracks];
     std::atomic<int> trackPlaybackCount_{0};
@@ -167,6 +174,8 @@ private:
     float frequencyForPlayheadUnlocked(double playheadBeat) const noexcept;
     void syncActiveFrequencyLocked();
     void recomputeIdCountersLocked();
+    void ensureTrackGainDevicesLocked();
+    static float trackGainFromDevices(const std::vector<Device>& devices);
     Track* findTrackLocked(const std::string& trackId);
     Device* findDeviceLocked(const std::string& deviceId);
     MidiClip* findMidiClipLocked(const std::string& clipId);

@@ -8,9 +8,13 @@ import '../bridge/engine_bridge.dart';
 import '../bridge/project_snapshot.dart';
 import '../features/arrangement/arrangement_view.dart';
 import '../features/device_strip/device_strip.dart';
+import '../features/mixer/mixer_view.dart';
 import '../features/piano_roll/piano_roll_screen.dart';
 import '../features/sample_library/sample_library_screen.dart';
+import '../features/settings/settings_screen.dart';
 import '../features/transport/transport_bar.dart';
+
+enum _ShellTab { arrangement, mixer, library, settings }
 
 class DawShell extends StatefulWidget {
   const DawShell({
@@ -31,6 +35,7 @@ class _DawShellState extends State<DawShell> {
   String? _saveStatus;
   String? _error;
   Timer? _playheadTimer;
+  _ShellTab _tab = _ShellTab.arrangement;
 
   @override
   void initState() {
@@ -130,6 +135,30 @@ class _DawShellState extends State<DawShell> {
     }
   }
 
+  Future<void> _setTrackGain(String deviceId, double value) async {
+    try {
+      final snapshot = await widget.bridge.setDeviceParameter(
+        deviceId: deviceId,
+        parameterId: 'gain',
+        value: value,
+      );
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+    }
+  }
+
+  Future<void> _setMasterGain(double value) async {
+    try {
+      final snapshot = await widget.bridge.setMasterGain(value);
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+    }
+  }
+
   Future<void> _saveProject() async {
     try {
       final location = await widget.bridge.saveProject();
@@ -173,62 +202,43 @@ class _DawShellState extends State<DawShell> {
     }
   }
 
-  Future<void> _openSampleLibrary() async {
-    final snapshot = _snapshot;
-    if (snapshot == null) return;
-
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (context) => SampleLibraryScreen(
-          samples: snapshot.samples,
-          onPreview: (sample) async {
-            try {
-              await widget.bridge.previewSample(sample.id);
-            } catch (e) {
-              if (!mounted) return;
-              setState(() => _error = e.toString());
-            }
-          },
-          onInsert: (sample) async {
-            final trackId = _snapshot?.selectedTrackId;
-            if (trackId == null || trackId.isEmpty) return;
-            final navigator = Navigator.of(context);
-            navigator.pop();
-            try {
-              final updated = await widget.bridge.createSampleClip(
-                trackId: trackId,
-                sampleId: sample.id,
-              );
-              await _refreshSnapshot(updated);
-            } catch (e) {
-              if (!mounted) return;
-              setState(() => _error = e.toString());
-            }
-          },
-          onImport: () async {
-            try {
-              final updated = await widget.bridge.importSample();
-              if (!mounted) return;
-              if (updated != null) {
-                await _refreshSnapshot(updated);
-                if (!mounted) return;
-                final navigator = Navigator.of(context);
-                navigator.pop();
-                await _openSampleLibrary();
-              }
-            } catch (e) {
-              if (!mounted) return;
-              setState(() => _error = e.toString());
-            }
-          },
-        ),
-      ),
-    );
-
+  Future<void> _importSample() async {
     try {
-      final refreshed = await widget.bridge.getProjectSnapshot();
-      await _refreshSnapshot(refreshed);
-    } catch (_) {}
+      final updated = await widget.bridge.importSample();
+      if (!mounted) return;
+      if (updated != null) {
+        await _refreshSnapshot(updated);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+    }
+  }
+
+  Future<void> _insertSample(SampleLibraryEntrySnapshot sample) async {
+    final trackId = _snapshot?.selectedTrackId;
+    if (trackId == null || trackId.isEmpty) return;
+    try {
+      final updated = await widget.bridge.createSampleClip(
+        trackId: trackId,
+        sampleId: sample.id,
+      );
+      await _refreshSnapshot(updated);
+      if (!mounted) return;
+      setState(() => _tab = _ShellTab.arrangement);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+    }
+  }
+
+  Future<void> _previewSample(SampleLibraryEntrySnapshot sample) async {
+    try {
+      await widget.bridge.previewSample(sample.id);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+    }
   }
 
   Future<void> _openPianoRoll(String trackId, MidiClipSnapshot clip) async {
@@ -259,6 +269,16 @@ class _DawShellState extends State<DawShell> {
     } catch (_) {}
   }
 
+  Future<void> _setPlayheadBeats(double beats) async {
+    try {
+      final snapshot = await widget.bridge.setPlayheadBeats(beats);
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+    }
+  }
+
   Future<void> _togglePlay() async {
     if (_playing) {
       await widget.bridge.stop();
@@ -271,9 +291,61 @@ class _DawShellState extends State<DawShell> {
     setState(() => _playing = !_playing);
   }
 
+  Widget _buildTabBody(ProjectSnapshot snapshot) {
+    switch (_tab) {
+      case _ShellTab.arrangement:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: ArrangementView(
+                snapshot: snapshot,
+                playheadBeats: snapshot.playheadBeats,
+                playing: _playing,
+                onPlayStop: _togglePlay,
+                onPlayheadSeek: _setPlayheadBeats,
+                onTrackSelected: _selectTrack,
+                onAddTrack: _addTrack,
+                onAddMidiClip: _addMidiClip,
+                onClipTap: _openPianoRoll,
+                onSampleClipTap: (_, __) {},
+                onSaveProject: _saveProject,
+                onLoadProject: _loadProject,
+              ),
+            ),
+            DeviceStrip(
+              track: snapshot.selectedTrack,
+              onFrequencyChanged: _setFrequency,
+            ),
+            TransportBar(
+              bpm: snapshot.bpm,
+              playheadBeats: snapshot.playheadBeats,
+            ),
+          ],
+        );
+      case _ShellTab.mixer:
+        return MixerView(
+          snapshot: snapshot,
+          onTrackGainChanged: _setTrackGain,
+          onMasterGainChanged: _setMasterGain,
+        );
+      case _ShellTab.library:
+        return SampleLibraryScreen(
+          embedded: true,
+          samples: snapshot.samples,
+          onPreview: _previewSample,
+          onInsert: _insertSample,
+          onImport: _importSample,
+        );
+      case _ShellTab.settings:
+        return const SettingsScreen();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final snapshot = _snapshot;
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0E0E14),
@@ -288,15 +360,15 @@ class _DawShellState extends State<DawShell> {
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white54),
               ),
             ),
-            if (_saveStatus != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  _saveStatus!,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white54),
-                ),
+          if (_saveStatus != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                _saveStatus!,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white54),
               ),
-            if (_error != null)
+            ),
+          if (_error != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Text(_error!, style: const TextStyle(color: Colors.redAccent)),
@@ -304,28 +376,36 @@ class _DawShellState extends State<DawShell> {
           Expanded(
             child: snapshot == null
                 ? const Center(child: CircularProgressIndicator())
-                : ArrangementView(
-                    snapshot: snapshot,
-                    playheadBeats: snapshot.playheadBeats,
-                    onTrackSelected: _selectTrack,
-                    onAddTrack: _addTrack,
-                    onAddMidiClip: _addMidiClip,
-                    onOpenSampleLibrary: _openSampleLibrary,
-                    onClipTap: _openPianoRoll,
-                    onSampleClipTap: (_, __) {},
-                    onSaveProject: _saveProject,
-                    onLoadProject: _loadProject,
-                  ),
+                : _buildTabBody(snapshot),
           ),
-          DeviceStrip(
-            track: snapshot?.selectedTrack,
-            onFrequencyChanged: _setFrequency,
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        backgroundColor: const Color(0xFF121218),
+        indicatorColor: const Color(0xFF2D2D3A),
+        selectedIndex: _tab.index,
+        height: 64 + bottomInset,
+        onDestinationSelected: (index) => setState(() => _tab = _ShellTab.values[index]),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.grid_view_outlined),
+            selectedIcon: Icon(Icons.grid_view),
+            label: 'Arrangement',
           ),
-          TransportBar(
-            playing: _playing,
-            bpm: snapshot?.bpm ?? 120,
-            playheadBeats: snapshot?.playheadBeats ?? 0,
-            onPlayStop: _togglePlay,
+          NavigationDestination(
+            icon: Icon(Icons.tune_outlined),
+            selectedIcon: Icon(Icons.tune),
+            label: 'Mixer',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.library_music_outlined),
+            selectedIcon: Icon(Icons.library_music),
+            label: 'Library',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: 'Settings',
           ),
         ],
       ),

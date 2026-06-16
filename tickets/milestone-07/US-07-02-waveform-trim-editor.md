@@ -77,7 +77,7 @@ M07 **wow moment:** visual waveform + trim handles + audible result. PO: **wavef
 
 ## Depends on
 
-US-07-01, US-06-04
+US-06-04, US-06-05
 
 
 ## Companion stories

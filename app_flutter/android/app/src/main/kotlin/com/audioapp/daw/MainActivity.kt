@@ -194,6 +194,8 @@ class MainActivity : FlutterFragmentActivity() {
                         "selectTrack",
                         "addDeviceToTrack",
                         "setDeviceParameter",
+                        "setMasterGain",
+                        "setPlayheadBeats",
                         "createMidiClip",
                         "setMidiClipNotes",
                         "createSampleClip",

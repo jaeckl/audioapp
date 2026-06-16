@@ -30,6 +30,7 @@ public:
     bool setDeviceParameter(const std::string& deviceId,
                             const std::string& parameterId,
                             float value);
+    bool setMasterGain(float gain);
     std::string createMidiClip(const std::string& trackId,
                                double startBeat,
                                double lengthBeats);
@@ -55,6 +56,7 @@ public:
 
     void advancePlayheadForBlock(int numFrames, double sampleRate) noexcept;
     float activeOscillatorFrequencyHz() const;
+    void setPlayheadBeats(double beats) noexcept;
     void readMasterMix(float* monoOut,
                        int numFrames,
                        double sampleRate,

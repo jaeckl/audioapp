@@ -11,6 +11,7 @@ struct ProjectFileData {
     std::string name = "Untitled";
     int bpm = 120;
     std::string selectedTrackId;
+    MasterTrackState master;
     std::vector<SampleLibraryEntryState> sampleLibrary;
     std::vector<TrackState> tracks;
 };

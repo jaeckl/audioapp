@@ -5,12 +5,14 @@ import '../../bridge/project_snapshot.dart';
 class SampleLibraryScreen extends StatelessWidget {
   const SampleLibraryScreen({
     super.key,
+    this.embedded = false,
     required this.samples,
     required this.onPreview,
     required this.onInsert,
     required this.onImport,
   });
 
+  final bool embedded;
   final List<SampleLibraryEntrySnapshot> samples;
   final ValueChanged<SampleLibraryEntrySnapshot> onPreview;
   final ValueChanged<SampleLibraryEntrySnapshot> onInsert;
@@ -19,6 +21,50 @@ class SampleLibraryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final list = samples.isEmpty
+        ? Center(
+            child: Text(
+              'No samples yet',
+              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white38),
+            ),
+          )
+        : ListView.separated(
+            padding: const EdgeInsets.all(12),
+            itemCount: samples.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final sample = samples[index];
+              return _SampleLibraryTile(
+                sample: sample,
+                onPreview: () => onPreview(sample),
+                onInsert: () => onInsert(sample),
+              );
+            },
+          );
+
+    if (embedded) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
+            child: Row(
+              children: [
+                Text('Library', style: theme.textTheme.titleMedium),
+                const Spacer(),
+                IconButton(
+                  tooltip: 'Import audio',
+                  onPressed: onImport,
+                  icon: const Icon(Icons.upload_file_outlined),
+                ),
+              ],
+            ),
+          ),
+          Expanded(child: list),
+        ],
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF0E0E14),
       appBar: AppBar(
@@ -32,26 +78,7 @@ class SampleLibraryScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: samples.isEmpty
-          ? Center(
-              child: Text(
-                'No samples yet',
-                style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white38),
-              ),
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.all(12),
-              itemCount: samples.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final sample = samples[index];
-                return _SampleLibraryTile(
-                  sample: sample,
-                  onPreview: () => onPreview(sample),
-                  onInsert: () => onInsert(sample),
-                );
-              },
-            ),
+      body: list,
     );
   }
 }

@@ -3,16 +3,12 @@ import 'package:flutter/material.dart';
 class TransportBar extends StatelessWidget {
   const TransportBar({
     super.key,
-    required this.playing,
     required this.bpm,
     required this.playheadBeats,
-    required this.onPlayStop,
   });
 
-  final bool playing;
   final int bpm;
   final double playheadBeats;
-  final VoidCallback onPlayStop;
 
   @override
   Widget build(BuildContext context) {
@@ -24,12 +20,6 @@ class TransportBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          IconButton.filled(
-            onPressed: onPlayStop,
-            icon: Icon(playing ? Icons.stop : Icons.play_arrow),
-            tooltip: playing ? 'Stop' : 'Play',
-          ),
-          const SizedBox(width: 16),
           Text('BPM $bpm', style: Theme.of(context).textTheme.titleSmall),
           const Spacer(),
           Text(

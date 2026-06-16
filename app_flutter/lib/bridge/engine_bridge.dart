@@ -50,6 +50,14 @@ class EngineBridge {
     });
   }
 
+  Future<ProjectSnapshot> setMasterGain(double gain) async {
+    return _invokeForSnapshot('setMasterGain', {'gain': gain});
+  }
+
+  Future<ProjectSnapshot> setPlayheadBeats(double playheadBeats) async {
+    return _invokeForSnapshot('setPlayheadBeats', {'playheadBeats': playheadBeats});
+  }
+
   Future<ProjectSnapshot> createMidiClip({
     required String trackId,
     double startBeat = 0,

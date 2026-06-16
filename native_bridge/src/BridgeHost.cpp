@@ -64,6 +64,18 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         }
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
+    if (method == "setMasterGain") {
+        const auto value = static_cast<float>(jsonGetNumberArg(argumentsJson, "gain", 1.0));
+        if (!engine().setMasterGain(value)) {
+            return buildBridgeError("invalid_gain");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
+    if (method == "setPlayheadBeats") {
+        const auto beats = jsonGetNumberArg(argumentsJson, "playheadBeats", 0.0);
+        engine().setPlayheadBeats(beats);
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
     if (method == "createMidiClip") {
         const auto trackId = jsonGetStringArg(argumentsJson, "trackId");
         const auto startBeat = jsonGetNumberArg(argumentsJson, "startBeat", 0.0);

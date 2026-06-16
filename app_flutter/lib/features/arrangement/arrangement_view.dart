@@ -11,8 +11,10 @@ class ArrangementView extends StatefulWidget {
     required this.onTrackSelected,
     required this.onAddTrack,
     required this.onAddMidiClip,
-    required this.onOpenSampleLibrary,
     required this.playheadBeats,
+    required this.playing,
+    required this.onPlayStop,
+    required this.onPlayheadSeek,
     required this.onClipTap,
     required this.onSampleClipTap,
     required this.onSaveProject,
@@ -23,8 +25,10 @@ class ArrangementView extends StatefulWidget {
   final ValueChanged<String> onTrackSelected;
   final VoidCallback onAddTrack;
   final VoidCallback onAddMidiClip;
-  final VoidCallback onOpenSampleLibrary;
   final double playheadBeats;
+  final bool playing;
+  final VoidCallback onPlayStop;
+  final ValueChanged<double> onPlayheadSeek;
   final void Function(String trackId, MidiClipSnapshot clip) onClipTap;
   final void Function(String trackId, SampleClipSnapshot clip) onSampleClipTap;
   final VoidCallback onSaveProject;
@@ -35,29 +39,43 @@ class ArrangementView extends StatefulWidget {
 }
 
 class _ArrangementViewState extends State<ArrangementView> {
+  static const double _playButtonSize = 40;
+
   final ScrollController _horizontalScroll = ScrollController();
   final ScrollController _masterScroll = ScrollController();
+  final GlobalKey _timelineViewportKey = GlobalKey();
   double _pixelsPerBeat = ArrangementTimelineMetrics.defaultPixelsPerBeat;
   double _scaleStartPixelsPerBeat = ArrangementTimelineMetrics.defaultPixelsPerBeat;
   int _activePointers = 0;
   bool _syncingScroll = false;
+  bool _scrubbingPlayhead = false;
+  double? _scrubPlayheadBeats;
 
   bool get _pinchZoomActive => _activePointers >= 2;
+
+  double get _displayPlayheadBeats => _scrubPlayheadBeats ?? widget.playheadBeats;
 
   @override
   void initState() {
     super.initState();
-    _horizontalScroll.addListener(_syncTrackScrollToMaster);
+    _horizontalScroll.addListener(_onTimelineScroll);
     _masterScroll.addListener(_syncMasterScrollToTrack);
   }
 
   @override
   void dispose() {
-    _horizontalScroll.removeListener(_syncTrackScrollToMaster);
+    _horizontalScroll.removeListener(_onTimelineScroll);
     _masterScroll.removeListener(_syncMasterScrollToTrack);
     _horizontalScroll.dispose();
     _masterScroll.dispose();
     super.dispose();
+  }
+
+  void _onTimelineScroll() {
+    _syncTrackScrollToMaster();
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _syncTrackScrollToMaster() {
@@ -118,6 +136,37 @@ class _ArrangementViewState extends State<ArrangementView> {
     });
   }
 
+  void _seekPlayheadFromGlobal(Offset globalPosition) {
+    final viewport = _timelineViewportKey.currentContext?.findRenderObject() as RenderBox?;
+    if (viewport == null) {
+      return;
+    }
+    final localX = viewport.globalToLocal(globalPosition).dx;
+    final scrollX = _horizontalScroll.hasClients ? _horizontalScroll.offset : 0.0;
+    final beats = ((scrollX + localX) / _pixelsPerBeat).clamp(
+      0.0,
+      ArrangementTimelineMetrics.timelineBeats,
+    );
+    setState(() => _scrubPlayheadBeats = beats);
+    widget.onPlayheadSeek(beats);
+  }
+
+  void _onPlayheadScrubStart(LongPressStartDetails details) {
+    setState(() => _scrubbingPlayhead = true);
+    _seekPlayheadFromGlobal(details.globalPosition);
+  }
+
+  void _onPlayheadScrubUpdate(LongPressMoveUpdateDetails details) {
+    _seekPlayheadFromGlobal(details.globalPosition);
+  }
+
+  void _onPlayheadScrubEnd(LongPressEndDetails details) {
+    setState(() {
+      _scrubbingPlayhead = false;
+      _scrubPlayheadBeats = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -150,12 +199,6 @@ class _ArrangementViewState extends State<ArrangementView> {
                 ),
               const SizedBox(width: 8),
               FilledButton.tonalIcon(
-                onPressed: widget.onOpenSampleLibrary,
-                icon: const Icon(Icons.library_music_outlined, size: 18),
-                label: const Text('Samples'),
-              ),
-              const SizedBox(width: 8),
-              FilledButton.tonalIcon(
                 onPressed: widget.onAddTrack,
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Track'),
@@ -166,125 +209,196 @@ class _ArrangementViewState extends State<ArrangementView> {
         Expanded(
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 8),
+            clipBehavior: Clip.none,
             decoration: BoxDecoration(
               color: const Color(0xFF1A1A22),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Colors.white12),
             ),
             child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final viewportWidth = constraints.maxWidth - ArrangementTimelineMetrics.trackHeaderWidth;
-                      final timelineChild = SizedBox(
-                        width: timelineWidth,
-                        child: Stack(
-                          children: [
-                            Column(
-                              children: [
-                                for (final track in widget.snapshot.tracks)
-                                  _TrackLane(
-                                    track: track,
-                                    selected: track.id == widget.snapshot.selectedTrackId,
-                                    pixelsPerBeat: _pixelsPerBeat,
-                                    viewportWidthPx: viewportWidth,
-                                    onClipTap: widget.onClipTap,
-                                    onSampleClipTap: widget.onSampleClipTap,
-                                  ),
-                              ],
-                            ),
-                            Positioned(
-                              left: widget.playheadBeats * _pixelsPerBeat,
-                              top: 0,
-                              bottom: 0,
-                              child: Container(
-                                width: 2,
-                                color: theme.colorScheme.secondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
+              builder: (context, constraints) {
+                final viewportWidth = constraints.maxWidth - ArrangementTimelineMetrics.trackHeaderWidth;
+                final scrollOffset = widget.snapshot.tracks.isNotEmpty &&
+                        _horizontalScroll.hasClients
+                    ? _horizontalScroll.offset
+                    : (_masterScroll.hasClients ? _masterScroll.offset : 0.0);
+                final playheadX =
+                    ArrangementTimelineMetrics.trackHeaderWidth +
+                    _displayPlayheadBeats * _pixelsPerBeat -
+                    scrollOffset;
 
-                      return Column(
-                        children: [
-                          Expanded(
-                            child: widget.snapshot.tracks.isEmpty
-                                ? Center(
-                                    child: Text(
-                                      'No tracks — tap Track to add one',
-                                      style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white38),
-                                    ),
-                                  )
-                                : Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      SizedBox(
-                                        width: ArrangementTimelineMetrics.trackHeaderWidth,
-                                        child: Column(
-                                          children: [
-                                            for (var i = 0; i < widget.snapshot.tracks.length; i++)
-                                              _TrackHeader(
-                                                track: widget.snapshot.tracks[i],
-                                                index: i,
-                                                selected: widget.snapshot.tracks[i].id ==
-                                                    widget.snapshot.selectedTrackId,
-                                                onTap: () =>
-                                                    widget.onTrackSelected(widget.snapshot.tracks[i].id),
+                final lanesChild = SizedBox(
+                  width: timelineWidth,
+                  child: Column(
+                    children: [
+                      for (final track in widget.snapshot.tracks)
+                        _TrackLane(
+                          track: track,
+                          selected: track.id == widget.snapshot.selectedTrackId,
+                          pixelsPerBeat: _pixelsPerBeat,
+                          viewportWidthPx: viewportWidth,
+                          onClipTap: widget.onClipTap,
+                          onSampleClipTap: widget.onSampleClipTap,
+                        ),
+                    ],
+                  ),
+                );
+
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: widget.snapshot.tracks.isEmpty
+                              ? Center(
+                                  child: Text(
+                                    'No tracks — tap Track to add one',
+                                    style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white38),
+                                  ),
+                                )
+                              : Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SizedBox(
+                                      width: ArrangementTimelineMetrics.trackHeaderWidth,
+                                      child: Column(
+                                        children: [
+                                          for (var i = 0; i < widget.snapshot.tracks.length; i++)
+                                            _TrackHeader(
+                                              track: widget.snapshot.tracks[i],
+                                              index: i,
+                                              selected: widget.snapshot.tracks[i].id ==
+                                                  widget.snapshot.selectedTrackId,
+                                              onTap: () => widget.onTrackSelected(
+                                                widget.snapshot.tracks[i].id,
                                               ),
-                                          ],
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: Listener(
-                                          onPointerDown: _onPointerDown,
-                                          onPointerUp: _onPointerUp,
-                                          onPointerCancel: _onPointerUp,
-                                          child: GestureDetector(
-                                            onScaleStart: _onScaleStart,
-                                            onScaleUpdate: _onScaleUpdate,
-                                            behavior: HitTestBehavior.opaque,
-                                            child: SingleChildScrollView(
-                                              controller: _horizontalScroll,
-                                              scrollDirection: Axis.horizontal,
-                                              physics: _pinchZoomActive
-                                                  ? const NeverScrollableScrollPhysics()
-                                                  : const BouncingScrollPhysics(
-                                                      parent: AlwaysScrollableScrollPhysics(),
-                                                    ),
-                                              child: timelineChild,
                                             ),
+                                        ],
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Listener(
+                                        key: widget.snapshot.tracks.isNotEmpty ? _timelineViewportKey : null,
+                                        onPointerDown: _onPointerDown,
+                                        onPointerUp: _onPointerUp,
+                                        onPointerCancel: _onPointerUp,
+                                        child: GestureDetector(
+                                          onScaleStart: _onScaleStart,
+                                          onScaleUpdate: _onScaleUpdate,
+                                          behavior: HitTestBehavior.opaque,
+                                          child: SingleChildScrollView(
+                                            controller: _horizontalScroll,
+                                            scrollDirection: Axis.horizontal,
+                                            physics: _pinchZoomActive
+                                                ? const NeverScrollableScrollPhysics()
+                                                : const BouncingScrollPhysics(
+                                                    parent: AlwaysScrollableScrollPhysics(),
+                                                  ),
+                                            child: lanesChild,
                                           ),
                                         ),
                                       ),
-                                    ],
-                                  ),
-                          ),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _MasterHeader(master: widget.snapshot.master),
-                              Expanded(
+                                    ),
+                                  ],
+                                ),
+                        ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _MasterHeader(master: widget.snapshot.master),
+                            Expanded(
+                              child: Listener(
+                                key: widget.snapshot.tracks.isEmpty ? _timelineViewportKey : null,
                                 child: SingleChildScrollView(
                                   controller: _masterScroll,
                                   scrollDirection: Axis.horizontal,
                                   physics: const BouncingScrollPhysics(
                                     parent: AlwaysScrollableScrollPhysics(),
                                   ),
-                                  child: _MasterLane(
-                                    width: timelineWidth,
-                                    playheadBeats: widget.playheadBeats,
-                                    pixelsPerBeat: _pixelsPerBeat,
-                                  ),
+                                  child: _MasterLane(width: timelineWidth),
                                 ),
                               ),
-                            ],
-                          ),
-                        ],
-                      );
-                    },
-                  ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Positioned(
+                      left: playheadX,
+                      top: 0,
+                      bottom: 0,
+                      width: 2,
+                      child: IgnorePointer(
+                        child: Container(color: theme.colorScheme.secondary),
+                      ),
+                    ),
+                    Positioned(
+                      left: playheadX - _playButtonSize / 2 + 1,
+                      bottom: 0,
+                      child: _PlayheadTransportButton(
+                        size: _playButtonSize,
+                        playing: widget.playing,
+                        scrubbing: _scrubbingPlayhead,
+                        onTap: widget.onPlayStop,
+                        onScrubStart: _onPlayheadScrubStart,
+                        onScrubUpdate: _onPlayheadScrubUpdate,
+                        onScrubEnd: _onPlayheadScrubEnd,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _PlayheadTransportButton extends StatelessWidget {
+  const _PlayheadTransportButton({
+    required this.size,
+    required this.playing,
+    required this.scrubbing,
+    required this.onTap,
+    required this.onScrubStart,
+    required this.onScrubUpdate,
+    required this.onScrubEnd,
+  });
+
+  final double size;
+  final bool playing;
+  final bool scrubbing;
+  final VoidCallback onTap;
+  final GestureLongPressStartCallback onScrubStart;
+  final GestureLongPressMoveUpdateCallback onScrubUpdate;
+  final GestureLongPressEndCallback onScrubEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      elevation: scrubbing ? 8 : 4,
+      color: scrubbing ? theme.colorScheme.tertiary : theme.colorScheme.secondary,
+      shape: const CircleBorder(),
+      clipBehavior: Clip.none,
+      child: GestureDetector(
+        onTap: scrubbing ? null : onTap,
+        onLongPressStart: onScrubStart,
+        onLongPressMoveUpdate: onScrubUpdate,
+        onLongPressEnd: onScrubEnd,
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: Icon(
+            playing ? Icons.stop : Icons.play_arrow,
+            color: scrubbing ? theme.colorScheme.onTertiary : theme.colorScheme.onSecondary,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -320,15 +434,9 @@ class _MasterHeader extends StatelessWidget {
 }
 
 class _MasterLane extends StatelessWidget {
-  const _MasterLane({
-    required this.width,
-    required this.playheadBeats,
-    required this.pixelsPerBeat,
-  });
+  const _MasterLane({required this.width});
 
   final double width;
-  final double playheadBeats;
-  final double pixelsPerBeat;
 
   @override
   Widget build(BuildContext context) {
@@ -353,15 +461,6 @@ class _MasterLane extends StatelessWidget {
                 color: Colors.amber.shade100,
                 fontWeight: FontWeight.w600,
               ),
-            ),
-          ),
-          Positioned(
-            left: playheadBeats * pixelsPerBeat,
-            top: 0,
-            bottom: 0,
-            child: Container(
-              width: 2,
-              color: theme.colorScheme.secondary,
             ),
           ),
         ],

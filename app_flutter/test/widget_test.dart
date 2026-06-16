@@ -16,6 +16,7 @@ void main() {
       'playheadBeats': 0.0,
       'playing': false,
       'selectedTrackId': '',
+      'master': {'id': 'master', 'name': 'Master', 'gain': 1.0},
       'tracks': [],
     },
   };
@@ -48,6 +49,11 @@ void main() {
                       'type': 'simple_oscillator',
                       'parameters': {'frequency': 440.0},
                     },
+                    {
+                      'id': 'dev-2',
+                      'type': 'track_gain',
+                      'parameters': {'gain': 1.0},
+                    },
                   ],
                   'midiClips': [],
                 },
@@ -71,6 +77,11 @@ void main() {
                       'id': 'dev-1',
                       'type': 'simple_oscillator',
                       'parameters': {'frequency': 440.0},
+                    },
+                    {
+                      'id': 'dev-2',
+                      'type': 'track_gain',
+                      'parameters': {'gain': 1.0},
                     },
                   ],
                   'midiClips': [
@@ -109,6 +120,11 @@ void main() {
                       'id': 'dev-1',
                       'type': 'simple_oscillator',
                       'parameters': {'frequency': 440.0},
+                    },
+                    {
+                      'id': 'dev-2',
+                      'type': 'track_gain',
+                      'parameters': {'gain': 1.0},
                     },
                   ],
                   'midiClips': [
@@ -164,6 +180,8 @@ void main() {
           };
         case 'selectTrack':
         case 'setDeviceParameter':
+        case 'setMasterGain':
+        case 'setPlayheadBeats':
         case 'play':
         case 'stop':
           return null;
@@ -184,7 +202,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Arrangement'), findsOneWidget);
+    expect(find.text('BPM 120'), findsOneWidget);
+    expect(find.text('Mixer'), findsOneWidget);
+    expect(find.text('Library'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
+
+    await tester.tap(find.text('Track'));
+    await tester.pumpAndSettle();
     expect(find.byIcon(Icons.play_arrow), findsOneWidget);
   });
 
@@ -249,7 +273,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.close));
     await tester.pumpAndSettle();
 
-    expect(find.text('Arrangement'), findsOneWidget);
+    expect(find.text('BPM 120'), findsOneWidget);
   });
 
   testWidgets('Save and load project buttons dispatch bridge commands', (tester) async {

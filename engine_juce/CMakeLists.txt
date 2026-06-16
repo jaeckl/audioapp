@@ -86,6 +86,7 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/sample_bank_test.cpp
     tests/sample_clip_test.cpp
     tests/master_mix_test.cpp
+    tests/track_gain_test.cpp
   )
   target_link_libraries(audioapp_engine_tests PRIVATE audioapp_engine)
   add_test(NAME engine_smoke COMMAND audioapp_engine_tests)

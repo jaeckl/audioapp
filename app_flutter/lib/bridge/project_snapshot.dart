@@ -47,19 +47,37 @@ class ProjectSnapshot {
   }
 }
 
+extension TrackSnapshotDevices on TrackSnapshot {
+  /// FX/instrument devices shown in the arrangement device strip (excludes track_gain).
+  Iterable<DeviceSnapshot> get visibleDevices =>
+      devices.where((device) => device.type != 'track_gain');
+
+  DeviceSnapshot? get trackGainDevice {
+    for (var i = devices.length - 1; i >= 0; i--) {
+      if (devices[i].type == 'track_gain') {
+        return devices[i];
+      }
+    }
+    return null;
+  }
+}
+
 class MasterTrackSnapshot {
   const MasterTrackSnapshot({
     required this.id,
     required this.name,
+    required this.gain,
   });
 
   final String id;
   final String name;
+  final double gain;
 
   factory MasterTrackSnapshot.fromMap(Map<dynamic, dynamic>? map) {
     return MasterTrackSnapshot(
       id: map?['id'] as String? ?? 'master',
       name: map?['name'] as String? ?? 'Master',
+      gain: (map?['gain'] as num?)?.toDouble() ?? 1.0,
     );
   }
 }
@@ -104,11 +122,13 @@ class DeviceSnapshot {
     required this.id,
     required this.type,
     required this.frequencyHz,
+    required this.gain,
   });
 
   final String id;
   final String type;
   final double frequencyHz;
+  final double gain;
 
   factory DeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -116,6 +136,7 @@ class DeviceSnapshot {
       id: map['id'] as String? ?? '',
       type: map['type'] as String? ?? '',
       frequencyHz: (params['frequency'] as num?)?.toDouble() ?? 440.0,
+      gain: (params['gain'] as num?)?.toDouble() ?? 1.0,
     );
   }
 }

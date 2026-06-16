@@ -94,10 +94,12 @@ Vertical slices only. Each story follows [AGENT.md](../../AGENT.md) §14 (UX flo
 
 ---
 
-## Milestone 07 — Sampler fullscreen editor
+## Milestone 07 — Shell navigation, mixer & sampler
 
 | ID | Summary | Status |
 |----|---------|--------|
+| [US-07-03](../../tickets/milestone-07/US-07-03-portrait-shell-navigation.md) | Portrait bottom nav + playhead transport | Done |
+| [US-07-04](../../tickets/milestone-07/US-07-04-mixer-track-gain.md) | Mixer + track_gain device | Done |
 | [US-07-01](../../tickets/milestone-07/US-07-01-open-fullscreen-sampler.md) | Open fullscreen sampler | Todo |
 | [US-07-02](../../tickets/milestone-07/US-07-02-waveform-trim-editor.md) | Waveform + trim handles | Todo |
 

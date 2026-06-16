@@ -25,6 +25,7 @@ void ProjectEngine::createProject() {
     activeFrequencyHz_.store(440.0f, std::memory_order_release);
     playing_.store(false, std::memory_order_release);
     playheadBeats_.store(0.0, std::memory_order_release);
+    masterGain_.store(1.0f, std::memory_order_release);
     trackPlaybackCount_.store(0, std::memory_order_release);
 }
 
@@ -39,6 +40,12 @@ std::string ProjectEngine::addTrack(const std::string& name) {
     osc.type = "simple_oscillator";
     osc.frequencyHz = 440.0f;
     track.devices.push_back(std::move(osc));
+
+    Device gain;
+    gain.id = "dev-" + std::to_string(nextDeviceNum_++);
+    gain.type = "track_gain";
+    gain.gain = 1.0f;
+    track.devices.push_back(std::move(gain));
 
     tracks_.push_back(std::move(track));
     selectedTrackId_ = tracks_.back().id;
@@ -69,10 +76,15 @@ std::string ProjectEngine::addDeviceToTrack(const std::string& trackId, const st
     device.id = "dev-" + std::to_string(nextDeviceNum_++);
     device.type = deviceType.empty() ? "simple_oscillator" : deviceType;
     device.frequencyHz = 440.0f;
-    track->devices.push_back(std::move(device));
+    const std::string deviceId = device.id;
+    if (!track->devices.empty() && track->devices.back().type == "track_gain") {
+        track->devices.insert(track->devices.end() - 1, std::move(device));
+    } else {
+        track->devices.push_back(std::move(device));
+    }
     syncActiveFrequencyLocked();
     rebuildTrackPlaybackLocked();
-    return track->devices.back().id;
+    return deviceId;
 }
 
 bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
@@ -80,12 +92,25 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
                                        float value) {
     std::lock_guard<std::mutex> lock(mutex_);
     Device* device = findDeviceLocked(deviceId);
-    if (device == nullptr || parameterId != "frequency") {
+    if (device == nullptr) {
         return false;
     }
-    device->frequencyHz = value;
-    syncActiveFrequencyLocked();
-    rebuildTrackPlaybackLocked();
+    if (parameterId == "frequency" && device->type == "simple_oscillator") {
+        device->frequencyHz = value;
+        syncActiveFrequencyLocked();
+        rebuildTrackPlaybackLocked();
+        return true;
+    }
+    if (parameterId == "gain" && device->type == "track_gain") {
+        device->gain = std::clamp(value, 0.0f, 1.0f);
+        rebuildTrackPlaybackLocked();
+        return true;
+    }
+    return false;
+}
+
+bool ProjectEngine::setMasterGain(float gain) {
+    masterGain_.store(std::clamp(gain, 0.0f, 1.0f), std::memory_order_release);
     return true;
 }
 
@@ -176,6 +201,7 @@ ProjectSnapshot ProjectEngine::snapshot() const {
     snap.playing = playing_.load(std::memory_order_relaxed);
     snap.master.id = "master";
     snap.master.name = "Master";
+    snap.master.gain = masterGain_.load(std::memory_order_relaxed);
     if (sampleBank_ != nullptr) {
         for (const auto& sample : sampleBank_->listSamples()) {
             SampleLibraryEntryState entry;
@@ -198,6 +224,7 @@ ProjectSnapshot ProjectEngine::snapshot() const {
             ds.id = device.id;
             ds.type = device.type;
             ds.frequencyHz = device.frequencyHz;
+            ds.gain = device.gain;
             ts.devices.push_back(ds);
         }
         ts.midiClips.reserve(track.midiClips.size());
@@ -270,7 +297,7 @@ void ProjectEngine::readMasterMix(float* monoOut,
         return;
     }
 
-    const float equalGain = 1.0f / static_cast<float>(trackCount);
+    const float masterGain = masterGain_.load(std::memory_order_acquire);
     constexpr int kMaxFrames = 4096;
     float trackMono[kMaxFrames];
     const int framesToProcess = numFrames > kMaxFrames ? kMaxFrames : numFrames;
@@ -314,12 +341,12 @@ void ProjectEngine::readMasterMix(float* monoOut,
         }
 
         for (int frame = 0; frame < framesToProcess; ++frame) {
-            monoOut[frame] += trackMono[frame] * equalGain;
+            monoOut[frame] += trackMono[frame] * track.trackGain;
         }
     }
 
     for (int frame = 0; frame < framesToProcess; ++frame) {
-        monoOut[frame] = std::tanh(monoOut[frame]);
+        monoOut[frame] = std::tanh(monoOut[frame] * masterGain);
     }
 }
 
@@ -338,6 +365,11 @@ bool ProjectEngine::isPlaying() const noexcept {
 
 double ProjectEngine::playheadBeats() const noexcept {
     return playheadBeats_.load(std::memory_order_acquire);
+}
+
+void ProjectEngine::setPlayheadBeats(double beats) noexcept {
+    const double clamped = beats < 0.0 ? 0.0 : beats;
+    playheadBeats_.store(clamped, std::memory_order_release);
 }
 
 void ProjectEngine::resetPlayhead() noexcept {
@@ -360,6 +392,9 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
     file.name = projectName_;
     file.bpm = bpm_;
     file.selectedTrackId = selectedTrackId_;
+    file.master.id = "master";
+    file.master.name = "Master";
+    file.master.gain = masterGain_.load(std::memory_order_relaxed);
     if (sampleBank_ != nullptr) {
         for (const auto& sample : sampleBank_->listSamples()) {
             SampleLibraryEntryState entry;
@@ -378,7 +413,7 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
         ts.id = track.id;
         ts.name = track.name;
         for (const auto& device : track.devices) {
-            ts.devices.push_back(DeviceState{device.id, device.type, device.frequencyHz});
+            ts.devices.push_back(DeviceState{device.id, device.type, device.frequencyHz, device.gain});
         }
         for (const auto& clip : track.midiClips) {
             MidiClipState cs;
@@ -434,6 +469,7 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
             device.id = deviceState.id;
             device.type = deviceState.type;
             device.frequencyHz = deviceState.frequencyHz;
+            device.gain = deviceState.gain;
             track.devices.push_back(std::move(device));
         }
         for (const auto& clipState : trackState.midiClips) {
@@ -463,6 +499,12 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
     }
 
     recomputeIdCountersLocked();
+    ensureTrackGainDevicesLocked();
+    if (data.master.gain > 0.0f) {
+        masterGain_.store(std::clamp(data.master.gain, 0.0f, 1.0f), std::memory_order_release);
+    } else {
+        masterGain_.store(1.0f, std::memory_order_release);
+    }
     playing_.store(false, std::memory_order_release);
     playheadBeats_.store(0.0, std::memory_order_release);
     syncActiveFrequencyLocked();
@@ -519,6 +561,7 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                 break;
             }
         }
+        snap.trackGain = trackGainFromDevices(sourceTrack.devices);
 
         for (const auto& clip : sourceTrack.midiClips) {
             for (const auto& note : clip.notes) {
@@ -655,6 +698,35 @@ ProjectEngine::MidiClip* ProjectEngine::findMidiClipLocked(const std::string& cl
         }
     }
     return nullptr;
+}
+
+float ProjectEngine::trackGainFromDevices(const std::vector<Device>& devices) {
+    for (auto it = devices.rbegin(); it != devices.rend(); ++it) {
+        if (it->type == "track_gain") {
+            return it->gain;
+        }
+    }
+    return 1.0f;
+}
+
+void ProjectEngine::ensureTrackGainDevicesLocked() {
+    for (auto& track : tracks_) {
+        bool hasGain = false;
+        for (const auto& device : track.devices) {
+            if (device.type == "track_gain") {
+                hasGain = true;
+                break;
+            }
+        }
+        if (hasGain) {
+            continue;
+        }
+        Device gain;
+        gain.id = "dev-" + std::to_string(nextDeviceNum_++);
+        gain.type = "track_gain";
+        gain.gain = 1.0f;
+        track.devices.push_back(std::move(gain));
+    }
 }
 
 } // namespace audioapp
