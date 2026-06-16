@@ -112,6 +112,40 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
         rebuildTrackPlaybackLocked();
         return true;
     }
+    if (device->type == "simple_sampler") {
+        if (parameterId == "attack" || parameterId == "decay" || parameterId == "release") {
+            const float clamped = std::clamp(value, 0.0f, 1.0f);
+            if (parameterId == "attack") {
+                device->attack = clamped;
+            } else if (parameterId == "decay") {
+                device->decay = clamped;
+            } else {
+                device->release = clamped;
+            }
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
+        if (parameterId == "sustain") {
+            device->sustain = std::clamp(value, 0.0f, 1.0f);
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
+        if (parameterId == "filterCutoff") {
+            device->filterCutoff = std::clamp(value, 0.0f, 1.0f);
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
+        if (parameterId == "filterQ") {
+            device->filterQ = std::clamp(value, 0.0f, 1.0f);
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
+        if (parameterId == "filterMode") {
+            device->filterMode = std::clamp(static_cast<int>(std::lround(value)), 0, 3);
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
+    }
     return false;
 }
 
@@ -293,6 +327,13 @@ ProjectSnapshot ProjectEngine::snapshot() const {
             ds.frequencyHz = device.frequencyHz;
             ds.gain = device.gain;
             ds.sampleId = device.sampleId;
+            ds.attack = device.attack;
+            ds.decay = device.decay;
+            ds.sustain = device.sustain;
+            ds.release = device.release;
+            ds.filterCutoff = device.filterCutoff;
+            ds.filterQ = device.filterQ;
+            ds.filterMode = device.filterMode;
             ts.devices.push_back(ds);
         }
         ts.midiClips.reserve(track.midiClips.size());
@@ -525,6 +566,13 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
                 device.frequencyHz,
                 device.gain,
                 device.sampleId,
+                device.attack,
+                device.decay,
+                device.sustain,
+                device.release,
+                device.filterCutoff,
+                device.filterQ,
+                device.filterMode,
             });
         }
         for (const auto& clip : track.midiClips) {
@@ -583,6 +631,13 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
             device.frequencyHz = deviceState.frequencyHz;
             device.gain = deviceState.gain;
             device.sampleId = deviceState.sampleId;
+            device.attack = deviceState.attack;
+            device.decay = deviceState.decay;
+            device.sustain = deviceState.sustain;
+            device.release = deviceState.release;
+            device.filterCutoff = deviceState.filterCutoff;
+            device.filterQ = deviceState.filterQ;
+            device.filterMode = deviceState.filterMode;
             track.devices.push_back(std::move(device));
         }
         for (const auto& clipState : trackState.midiClips) {

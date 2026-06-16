@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
-import '../sample_library/sample_library_screen.dart';
 import 'device_strip_metrics.dart';
 import 'sampler_device_strip.dart';
 
@@ -10,7 +9,7 @@ class DeviceStrip extends StatelessWidget {
     super.key,
     required this.track,
     required this.samples,
-    required this.onSamplerGainChanged,
+    required this.onSamplerParameterChanged,
     required this.onAssignSamplerSample,
     required this.onOpenSamplerEditor,
     required this.onPreviewSample,
@@ -20,7 +19,8 @@ class DeviceStrip extends StatelessWidget {
 
   final TrackSnapshot? track;
   final List<SampleLibraryEntrySnapshot> samples;
-  final void Function(String deviceId, double gain) onSamplerGainChanged;
+  final void Function(String deviceId, String parameterId, double value)
+      onSamplerParameterChanged;
   final void Function(String deviceId, String sampleId) onAssignSamplerSample;
   final void Function(TrackSnapshot track, DeviceSnapshot device) onOpenSamplerEditor;
   final ValueChanged<SampleLibraryEntrySnapshot> onPreviewSample;
@@ -69,8 +69,8 @@ class DeviceStrip extends StatelessWidget {
         trackName: track.name,
         device: sampler,
         sample: _sampleForDevice(sampler),
-        onGainChanged: (value) => onSamplerGainChanged(sampler.id, value),
-        onLoadSample: () => _pickSample(context, sampler.id),
+        onParameterChanged: (parameterId, value) =>
+            onSamplerParameterChanged(sampler.id, parameterId, value),
         onOpenFullscreen: () => onOpenSamplerEditor(track, sampler),
       );
     }
@@ -110,27 +110,5 @@ class DeviceStrip extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  Future<void> _pickSample(BuildContext context, String deviceId) async {
-    final sample = await showModalBottomSheet<SampleLibraryEntrySnapshot>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF0E0E14),
-      showDragHandle: true,
-      builder: (context) => SizedBox(
-        height: MediaQuery.of(context).size.height * 0.82,
-        child: SampleLibraryPickerSheet(
-          initialSamples: samples,
-          onPreview: onPreviewSample,
-          onImportSamples: onImportSamples,
-          onSampleSelected: (entry) => Navigator.pop(context, entry),
-        ),
-      ),
-    );
-    if (sample == null) {
-      return;
-    }
-    onAssignSamplerSample(deviceId, sample.id);
   }
 }

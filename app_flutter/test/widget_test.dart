@@ -303,8 +303,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('SAMPLER'), findsOneWidget);
-    expect(find.text('Load'), findsOneWidget);
-    expect(find.byType(Slider), findsOneWidget);
+    expect(find.text('ADSR'), findsOneWidget);
+    expect(find.text('FILTER'), findsOneWidget);
+    expect(find.text('Load'), findsNothing);
   });
 
   testWidgets('Track long-press menu adds MIDI clip', (tester) async {

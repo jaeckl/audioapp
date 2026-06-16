@@ -142,6 +142,13 @@ class DeviceSnapshot {
     required this.frequencyHz,
     required this.gain,
     required this.sampleId,
+    required this.attack,
+    required this.decay,
+    required this.sustain,
+    required this.release,
+    required this.filterCutoff,
+    required this.filterQ,
+    required this.filterMode,
   });
 
   final String id;
@@ -149,6 +156,13 @@ class DeviceSnapshot {
   final double frequencyHz;
   final double gain;
   final String sampleId;
+  final double attack;
+  final double decay;
+  final double sustain;
+  final double release;
+  final double filterCutoff;
+  final double filterQ;
+  final int filterMode;
 
   factory DeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -158,6 +172,13 @@ class DeviceSnapshot {
       frequencyHz: (params['frequency'] as num?)?.toDouble() ?? 440.0,
       gain: (params['gain'] as num?)?.toDouble() ?? 1.0,
       sampleId: params['sampleId'] as String? ?? '',
+      attack: (params['attack'] as num?)?.toDouble() ?? 0.01,
+      decay: (params['decay'] as num?)?.toDouble() ?? 0.3,
+      sustain: (params['sustain'] as num?)?.toDouble() ?? 0.7,
+      release: (params['release'] as num?)?.toDouble() ?? 0.4,
+      filterCutoff: (params['filterCutoff'] as num?)?.toDouble() ?? 1.0,
+      filterQ: (params['filterQ'] as num?)?.toDouble() ?? 0.35,
+      filterMode: (params['filterMode'] as num?)?.toInt() ?? 0,
     );
   }
 }

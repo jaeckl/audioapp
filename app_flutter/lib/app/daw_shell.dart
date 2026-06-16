@@ -182,11 +182,11 @@ class _DawShellState extends State<DawShell> {
     }
   }
 
-  Future<void> _setSamplerGain(String deviceId, double value) async {
+  Future<void> _setSamplerParameter(String deviceId, String parameterId, double value) async {
     try {
       final snapshot = await widget.bridge.setDeviceParameter(
         deviceId: deviceId,
-        parameterId: 'gain',
+        parameterId: parameterId,
         value: value,
       );
       await _refreshSnapshot(snapshot);
@@ -194,6 +194,10 @@ class _DawShellState extends State<DawShell> {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
     }
+  }
+
+  Future<void> _setSamplerGain(String deviceId, double value) async {
+    await _setSamplerParameter(deviceId, 'gain', value);
   }
 
   Future<void> _assignSamplerSample(String deviceId, String sampleId) async {
@@ -481,7 +485,7 @@ class _DawShellState extends State<DawShell> {
             DeviceStrip(
               track: snapshot.selectedTrack,
               samples: snapshot.samples,
-              onSamplerGainChanged: _setSamplerGain,
+              onSamplerParameterChanged: _setSamplerParameter,
               onAssignSamplerSample: _assignSamplerSample,
               onOpenSamplerEditor: _openSamplerEditor,
               onPreviewSample: _previewSample,

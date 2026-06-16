@@ -83,6 +83,13 @@ juce::var deviceToVar(const DeviceState& device) {
     }
     if (device.type == "simple_sampler") {
         parameters->setProperty("sampleId", toJuceString(device.sampleId));
+        parameters->setProperty("attack", static_cast<double>(device.attack));
+        parameters->setProperty("decay", static_cast<double>(device.decay));
+        parameters->setProperty("sustain", static_cast<double>(device.sustain));
+        parameters->setProperty("release", static_cast<double>(device.release));
+        parameters->setProperty("filterCutoff", static_cast<double>(device.filterCutoff));
+        parameters->setProperty("filterQ", static_cast<double>(device.filterQ));
+        parameters->setProperty("filterMode", device.filterMode);
     }
     if (device.type == "simple_oscillator") {
         parameters->setProperty("frequency", static_cast<double>(device.frequencyHz));
@@ -105,6 +112,13 @@ DeviceState deviceFromVar(const juce::var& value) {
             device.frequencyHz = varToFloat(params->getProperty("frequency"), 440.0f);
             device.gain = varToFloat(params->getProperty("gain"), 1.0f);
             device.sampleId = varToString(params->getProperty("sampleId"));
+            device.attack = varToFloat(params->getProperty("attack"), 0.01f);
+            device.decay = varToFloat(params->getProperty("decay"), 0.3f);
+            device.sustain = varToFloat(params->getProperty("sustain"), 0.7f);
+            device.release = varToFloat(params->getProperty("release"), 0.4f);
+            device.filterCutoff = varToFloat(params->getProperty("filterCutoff"), 1.0f);
+            device.filterQ = varToFloat(params->getProperty("filterQ"), 0.35f);
+            device.filterMode = varToInt(params->getProperty("filterMode"), 0);
         }
     }
     return device;
