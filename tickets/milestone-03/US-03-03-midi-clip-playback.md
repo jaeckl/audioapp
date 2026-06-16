@@ -79,6 +79,12 @@ Preallocated scheduling; no JSON/logging on audio thread.
 
 US-03-01, US-03-02
 
+
+## Companion stories
+
+- [UX/UI](US-03-03-ux-ui.md)
+- [Interaction](US-03-03-interaction.md)
+
 ## Status
 
 **Done**

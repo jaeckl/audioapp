@@ -124,4 +124,4 @@ M00 ──► M01 ──► M02 ──► M03 ──► M04
                                └──► M08 ──► M09
 ```
 
-[tickets/README.md](../../tickets/README.md) · Story template: AGENT.md §14
+[tickets/README.md](../../tickets/README.md) · [Companion stories](../../tickets/COMPANION_STORIES.md) · Story template: AGENT.md §14

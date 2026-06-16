@@ -73,6 +73,12 @@ Arrangement shows a new track row immediately.
 
 US-01-01
 
+
+## Companion stories
+
+- [UX/UI](US-02-01-ux-ui.md)
+- [Interaction](US-02-01-interaction.md)
+
 ## Status
 
 **Done**

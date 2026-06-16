@@ -71,6 +71,12 @@ Complete piano roll editing — move + resize with snap; playback matches.
 
 US-04-02
 
+
+## Companion stories
+
+- [UX/UI](US-04-03-ux-ui.md)
+- [Interaction](US-04-03-interaction.md)
+
 ## Status
 
 **Done**

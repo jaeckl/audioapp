@@ -74,6 +74,12 @@ Sketch beats/melody directly on phone.
 
 US-04-01
 
+
+## Companion stories
+
+- [UX/UI](US-04-02-ux-ui.md)
+- [Interaction](US-04-02-interaction.md)
+
 ## Status
 
 **Done**

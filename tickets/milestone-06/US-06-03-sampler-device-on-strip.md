@@ -71,6 +71,12 @@ Device strip shows sampler with your chosen sound loaded.
 
 US-06-01, US-06-02
 
+
+## Companion stories
+
+- [UX/UI](US-06-03-ux-ui.md)
+- [Interaction](US-06-03-interaction.md)
+
 ## Status
 
 **Todo**

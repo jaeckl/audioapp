@@ -78,6 +78,12 @@ Voice pool preallocated; sample data read-only on audio thread.
 
 US-06-03, US-03-03
 
+
+## Companion stories
+
+- [UX/UI](US-06-04-ux-ui.md)
+- [Interaction](US-06-04-interaction.md)
+
 ## Status
 
 **Todo**

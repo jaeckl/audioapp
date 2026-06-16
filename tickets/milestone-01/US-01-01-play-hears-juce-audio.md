@@ -70,6 +70,12 @@ User opens app, taps Play, hears a 440 Hz test tone.
 
 US-00-01, US-00-02
 
+
+## Companion stories
+
+- [UX/UI](US-01-01-ux-ui.md)
+- [Interaction](US-01-01-interaction.md)
+
 ## Status
 
 **Done**

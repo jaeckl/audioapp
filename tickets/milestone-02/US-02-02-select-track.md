@@ -73,6 +73,12 @@ Tapping tracks feels like a real DAW — strip follows selection.
 
 US-02-01
 
+
+## Companion stories
+
+- [UX/UI](US-02-02-ux-ui.md)
+- [Interaction](US-02-02-interaction.md)
+
 ## Status
 
 **Done**

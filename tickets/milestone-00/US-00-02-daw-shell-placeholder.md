@@ -57,6 +57,12 @@ Recognizable minimal DAW shell on phone or emulator.
 
 ## Documentation updates
 
+
+## Companion stories
+
+- [UX/UI](US-00-02-ux-ui.md)
+- [Interaction](US-00-02-interaction.md)
+
 ## Status
 
 **Done**

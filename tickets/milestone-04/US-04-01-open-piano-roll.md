@@ -71,6 +71,12 @@ Clear path from timeline into musical editing.
 
 US-03-01
 
+
+## Companion stories
+
+- [UX/UI](US-04-01-ux-ui.md)
+- [Interaction](US-04-01-interaction.md)
+
 ## Status
 
 **Done**

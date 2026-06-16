@@ -105,6 +105,12 @@ US-05-01
 - [ ] Migrate `ProjectJson.cpp` to `juce::JSON` (AGENT.md §2.6)
 - [ ] Optional: show loaded track count in success message for PO clarity
 
+
+## Companion stories
+
+- [UX/UI](US-05-02-ux-ui.md)
+- [Interaction](US-05-02-interaction.md)
+
 ## Status
 
 **Done**

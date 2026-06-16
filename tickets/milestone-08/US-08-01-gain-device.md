@@ -73,6 +73,12 @@ First mixing control — level shaping on the strip.
 
 US-02-03
 
+
+## Companion stories
+
+- [UX/UI](US-08-01-ux-ui.md)
+- [Interaction](US-08-01-interaction.md)
+
 ## Status
 
 **Todo**

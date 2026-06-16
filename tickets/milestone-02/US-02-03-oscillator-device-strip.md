@@ -80,6 +80,12 @@ Frequency read from snapshot on audio thread; no locks in callback.
 
 US-02-02, US-01-01
 
+
+## Companion stories
+
+- [UX/UI](US-02-03-ux-ui.md)
+- [Interaction](US-02-03-interaction.md)
+
 ## Status
 
 **Done**

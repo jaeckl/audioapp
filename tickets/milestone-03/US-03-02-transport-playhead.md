@@ -71,6 +71,12 @@ Timeline feels alive during playback.
 
 US-02-03, US-03-01
 
+
+## Companion stories
+
+- [UX/UI](US-03-02-ux-ui.md)
+- [Interaction](US-03-02-interaction.md)
+
 ## Status
 
 **Done**

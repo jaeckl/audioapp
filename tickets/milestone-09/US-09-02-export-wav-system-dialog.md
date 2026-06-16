@@ -79,6 +79,12 @@ M09 **wow moment:** Tap Export → render progress → pick location → playabl
 
 US-09-01, US-05-01
 
+
+## Companion stories
+
+- [UX/UI](US-09-02-ux-ui.md)
+- [Interaction](US-09-02-interaction.md)
+
 ## Status
 
 **Todo**

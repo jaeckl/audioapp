@@ -73,6 +73,12 @@ Sound evolves during playback — step toward a real DAW.
 
 US-08-03
 
+
+## Companion stories
+
+- [UX/UI](US-08-04-ux-ui.md)
+- [Interaction](US-08-04-interaction.md)
+
 ## Status
 
 **Todo**

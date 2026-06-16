@@ -78,6 +78,12 @@ Bring your own sounds into the app like a professional workflow.
 
 US-06-01
 
+
+## Companion stories
+
+- [UX/UI](US-06-02-ux-ui.md)
+- [Interaction](US-06-02-interaction.md)
+
 ## Status
 
 **Todo**

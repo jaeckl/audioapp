@@ -11,8 +11,18 @@ Work is planned as **user stories** — one shippable vertical slice per story (
 | Pattern | Example |
 |---------|---------|
 | User story ID | `US-06-02` |
-| File | `US-06-02-import-sample-system-picker.md` |
+| Feature file | `US-06-02-import-sample-system-picker.md` |
+| UX/UI companion | `US-06-02-ux-ui.md` |
+| Interaction companion | `US-06-02-interaction.md` |
 | Folder | `tickets/milestone-06/` |
+
+Every user-facing feature has **three** linked tickets. See [COMPANION_STORIES.md](COMPANION_STORIES.md) and AGENT.md §14.1.
+
+Regenerate companions after manifest changes:
+
+```bash
+python tools/gen_companion_tickets.py
+```
 
 ## Story counts (current)
 
@@ -28,6 +38,8 @@ Work is planned as **user stories** — one shippable vertical slice per story (
 | M07 | 2 | Planned |
 | M08 | 4 | Planned |
 | M09 | 2 | Planned |
+
+**Companion sub-stories:** each user-facing feature also has `US-XX-YY-ux-ui.md` and `US-XX-YY-interaction.md` (50 companions for 25 features). See [COMPANION_STORIES.md](COMPANION_STORIES.md).
 
 ## Definition of done
 

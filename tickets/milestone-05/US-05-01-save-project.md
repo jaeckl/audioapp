@@ -103,6 +103,12 @@ US-03-01 (clips), US-02-01 (tracks)
 
 - None
 
+
+## Companion stories
+
+- [UX/UI](US-05-01-ux-ui.md)
+- [Interaction](US-05-01-interaction.md)
+
 ## Status
 
 **Done**

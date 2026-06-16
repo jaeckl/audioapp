@@ -60,6 +60,12 @@ No unused black/empty bands above the nav bar or beside the front camera; DAW re
 
 US-00-02
 
+
+## Companion stories
+
+- [UX/UI](US-00-03-ux-ui.md)
+- [Interaction](US-00-03-interaction.md)
+
 ## Status
 
 **Done**

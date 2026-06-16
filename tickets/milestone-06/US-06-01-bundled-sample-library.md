@@ -74,6 +74,12 @@ App feels like a real music tool — sounds included out of the box.
 
 US-05-02
 
+
+## Companion stories
+
+- [UX/UI](US-06-01-ux-ui.md)
+- [Interaction](US-06-01-interaction.md)
+
 ## Status
 
 **Todo**

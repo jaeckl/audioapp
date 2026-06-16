@@ -53,6 +53,12 @@ Second effect increment — stereo placement audible on headphones.
 
 US-08-01
 
+
+## Companion stories
+
+- [UX/UI](US-08-02-ux-ui.md)
+- [Interaction](US-08-02-interaction.md)
+
 ## Status
 
 **Todo**

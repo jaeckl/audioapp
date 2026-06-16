@@ -70,6 +70,12 @@ Sampler feels like a first-class instrument, not a tiny card.
 
 US-06-03
 
+
+## Companion stories
+
+- [UX/UI](US-07-01-ux-ui.md)
+- [Interaction](US-07-01-interaction.md)
+
 ## Status
 
 **Todo**

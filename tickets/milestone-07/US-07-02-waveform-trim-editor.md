@@ -79,6 +79,12 @@ M07 **wow moment:** visual waveform + trim handles + audible result. PO: **wavef
 
 US-07-01, US-06-04
 
+
+## Companion stories
+
+- [UX/UI](US-07-02-ux-ui.md)
+- [Interaction](US-07-02-interaction.md)
+
 ## Status
 
 **Todo**

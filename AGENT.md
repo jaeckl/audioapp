@@ -952,6 +952,112 @@ Story IDs or none.
 Todo / In progress / Done
 ```
 
+### 14.1 Companion sub-stories (UX/UI + Interaction)
+
+Every **user-facing feature** ticket (`US-XX-YY`) must have **two companion sub-stories** filed alongside it:
+
+| Suffix file | Type | Purpose |
+|-------------|------|---------|
+| `US-XX-YY-ux-ui.md` | UX / UI | Layout, visual hierarchy, states, copy, mobile patterns, accessibility |
+| `US-XX-YY-interaction.md` | Interaction | Gestures, taps, dialogs, feedback, cancel/back, edge cases |
+
+**Naming:** same folder as parent, e.g. `tickets/milestone-06/US-06-01-ux-ui.md`.
+
+**When required:**
+
+| Parent story | UX/UI + Interaction required? |
+|--------------|-------------------------------|
+| User-facing feature (UI, audio triggered from UI) | **Yes** — ship or update companions **before** implementation |
+| Developer-only (onboarding, engine-only render) | Optional — document in parent only |
+
+Parent feature ticket must link companions under `## Companion stories`. Companions link back via `## Parent feature`.
+
+**UX/UI companion template:**
+
+```markdown
+# US-XX-YY-ux-ui: Title — UX & UI
+
+## Type
+UX / UI
+
+## Parent feature
+[US-XX-YY …](US-XX-YY-….md)
+
+## Design intent
+Why this screen/control should feel the way it does (1–3 sentences).
+
+## Layout & hierarchy
+- Primary action / focal area
+- Secondary controls
+- Phone portrait vs landscape notes
+
+## Visual states
+| State | Treatment |
+|-------|-----------|
+| Default | … |
+| Empty | … |
+| Loading | … |
+| Success | … |
+| Error | … |
+
+## Copy & feedback
+- Button labels, tooltips, status strings (exact or approved pattern)
+
+## Accessibility & mobile
+- Tap target sizes, contrast, thumb reach (see mobile_ui_guidelines.md)
+
+## Acceptance criteria (visual)
+- [ ] PO can identify all states on device without explanation
+- [ ] Matches dark DAW theme and edge-to-edge rules
+- [ ] Widget/golden screenshot test where practical
+
+## Status
+Todo / Done
+```
+
+**Interaction companion template:**
+
+```markdown
+# US-XX-YY-interaction: Title — Interaction
+
+## Type
+Interaction
+
+## Parent feature
+[US-XX-YY …](US-XX-YY-….md)
+
+## Entry points
+Where the user starts this flow (toolbar, strip, clip, system).
+
+## Interaction map
+| User action | Control | Feedback | Engine / system result |
+|-------------|---------|----------|-------------------------|
+| … | … | … | … |
+
+## System dialogs
+SAF / permissions / back gesture — per platform row if needed.
+
+## Cancel & back
+What happens on cancel, back, or interrupt.
+
+## Error paths
+| Failure | User sees | Data state |
+|---------|-----------|------------|
+
+## Demo script (interaction-only, ~30–60s)
+Steps that exercise every row in the interaction map.
+
+## Acceptance criteria
+- [ ] Every action in map works on physical device
+- [ ] Cancel/error paths verified
+- [ ] No silent failure or surprise navigation
+
+## Status
+Todo / Done
+```
+
+Regenerate or add companions when splitting features. See [tickets/COMPANION_STORIES.md](../tickets/COMPANION_STORIES.md).
+
 ---
 
 ## 15. Milestone Plan

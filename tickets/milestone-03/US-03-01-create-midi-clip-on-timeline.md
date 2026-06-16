@@ -71,6 +71,12 @@ Timeline shows a MIDI region — arrangement is real.
 
 US-02-02
 
+
+## Companion stories
+
+- [UX/UI](US-03-01-ux-ui.md)
+- [Interaction](US-03-01-interaction.md)
+
 ## Status
 
 **Done**

@@ -54,6 +54,12 @@ Third effect increment — timbral control with measurable frequency response.
 
 US-08-02
 
+
+## Companion stories
+
+- [UX/UI](US-08-03-ux-ui.md)
+- [Interaction](US-08-03-interaction.md)
+
 ## Status
 
 **Todo**
