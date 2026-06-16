@@ -179,6 +179,34 @@ void main() {
             },
           };
         case 'selectTrack':
+          return {
+            'ok': true,
+            'snapshot': {
+              'bpm': 120,
+              'playheadBeats': 0.0,
+              'playing': false,
+              'selectedTrackId': 'track-1',
+              'tracks': [
+                {
+                  'id': 'track-1',
+                  'name': 'Track 1',
+                  'devices': [
+                    {
+                      'id': 'dev-1',
+                      'type': 'simple_oscillator',
+                      'parameters': {'frequency': 440.0},
+                    },
+                    {
+                      'id': 'dev-2',
+                      'type': 'track_gain',
+                      'parameters': {'gain': 1.0},
+                    },
+                  ],
+                  'midiClips': [],
+                },
+              ],
+            },
+          };
         case 'setDeviceParameter':
         case 'setMasterGain':
         case 'setPlayheadBeats':
@@ -196,18 +224,20 @@ void main() {
         .setMockMethodCallHandler(channel, null);
   });
 
-  testWidgets('DAW shell shows arrangement and transport', (tester) async {
+  testWidgets('DAW shell shows transport header and bottom nav', (tester) async {
     await tester.pumpWidget(
       MaterialApp(home: DawShell(bridge: EngineBridge(channel: channel))),
     );
     await tester.pumpAndSettle();
 
     expect(find.text('BPM 120'), findsOneWidget);
+    expect(find.text('v0.1.0'), findsOneWidget);
     expect(find.text('Mixer'), findsOneWidget);
     expect(find.text('Library'), findsOneWidget);
     expect(find.text('Settings'), findsOneWidget);
+    expect(find.textContaining('Engine:'), findsNothing);
 
-    await tester.tap(find.text('Track'));
+    await tester.tap(find.byTooltip('Add track'));
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.play_arrow), findsOneWidget);
   });
@@ -223,7 +253,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Track'));
+    await tester.tap(find.byTooltip('Add track'));
     await tester.pumpAndSettle();
 
     expect(find.text('Device strip — Track 1'), findsOneWidget);
@@ -231,7 +261,7 @@ void main() {
     expect(find.byType(Slider), findsOneWidget);
   });
 
-  testWidgets('Creating MIDI clip shows clip block on timeline', (tester) async {
+  testWidgets('Track long-press menu adds MIDI clip', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -242,9 +272,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Track'));
+    await tester.tap(find.byTooltip('Add track'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Add MIDI'));
+    await tester.longPress(find.byTooltip('Track 1'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add MIDI Clip'));
     await tester.pumpAndSettle();
 
     expect(find.text('MIDI'), findsOneWidget);
@@ -261,9 +293,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Track'));
+    await tester.tap(find.byTooltip('Add track'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Add MIDI'));
+    await tester.longPress(find.byTooltip('Track 1'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add MIDI Clip'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('MIDI'));
     await tester.pumpAndSettle();
@@ -276,7 +310,7 @@ void main() {
     expect(find.text('BPM 120'), findsOneWidget);
   });
 
-  testWidgets('Save and load project buttons dispatch bridge commands', (tester) async {
+  testWidgets('Save and load project buttons in settings', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -287,11 +321,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Save project'));
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save project'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Saved project'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Load project'));
+    await tester.tap(find.text('Open project'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Loaded project'), findsOneWidget);
   });

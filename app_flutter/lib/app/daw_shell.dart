@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../app/shell_insets.dart';
+import '../app/app_info.dart';
 import '../bridge/engine_bridge.dart';
 import '../bridge/project_snapshot.dart';
 import '../features/arrangement/arrangement_view.dart';
@@ -30,10 +30,9 @@ class DawShell extends StatefulWidget {
 
 class _DawShellState extends State<DawShell> {
   bool _playing = false;
-  String? _bridgeStatus;
   ProjectSnapshot? _snapshot;
   String? _saveStatus;
-  String? _error;
+  String? _projectError;
   Timer? _playheadTimer;
   _ShellTab _tab = _ShellTab.arrangement;
 
@@ -51,19 +50,16 @@ class _DawShellState extends State<DawShell> {
 
   Future<void> _bootstrap() async {
     try {
-      final pong = await widget.bridge.ping();
+      await widget.bridge.ping();
       final snapshot = await widget.bridge.createProject();
       if (!mounted) return;
-      setState(() {
-        _bridgeStatus = pong.isNotEmpty ? 'Engine: $pong' : 'Engine: connected';
-        _snapshot = snapshot;
-      });
+      setState(() => _snapshot = snapshot);
     } on MissingPluginException {
       if (!mounted) return;
-      setState(() => _bridgeStatus = 'Engine: native bridge unavailable');
+      setState(() => _projectError = 'Engine: native bridge unavailable');
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() => _projectError = e.toString());
     }
   }
 
@@ -95,7 +91,7 @@ class _DawShellState extends State<DawShell> {
       await _refreshSnapshot(snapshot);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() => _projectError = e.toString());
     }
   }
 
@@ -105,19 +101,60 @@ class _DawShellState extends State<DawShell> {
       await _refreshSnapshot(snapshot);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() => _projectError = e.toString());
     }
   }
 
-  Future<void> _addMidiClip() async {
-    final trackId = _snapshot?.selectedTrackId;
-    if (trackId == null || trackId.isEmpty) return;
+  Future<void> _addMidiClip(String trackId) async {
     try {
+      await widget.bridge.selectTrack(trackId);
       final snapshot = await widget.bridge.createMidiClip(trackId: trackId);
       await _refreshSnapshot(snapshot);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() => _projectError = e.toString());
+    }
+  }
+
+  Future<void> _addAudioClip(String trackId) async {
+    final samples = _snapshot?.samples ?? const <SampleLibraryEntrySnapshot>[];
+    if (samples.isEmpty) {
+      await _selectTrack(trackId);
+      if (!mounted) return;
+      setState(() => _tab = _ShellTab.library);
+      return;
+    }
+
+    final sample = await showModalBottomSheet<SampleLibraryEntrySnapshot>(
+      context: context,
+      backgroundColor: const Color(0xFF1A1A22),
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            for (final entry in samples)
+              ListTile(
+                leading: const Icon(Icons.library_music_outlined),
+                title: Text(entry.name),
+                onTap: () => Navigator.pop(context, entry),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (sample == null) return;
+
+    try {
+      await widget.bridge.selectTrack(trackId);
+      final updated = await widget.bridge.createSampleClip(
+        trackId: trackId,
+        sampleId: sample.id,
+      );
+      await _refreshSnapshot(updated);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
     }
   }
 
@@ -131,7 +168,7 @@ class _DawShellState extends State<DawShell> {
       await _refreshSnapshot(snapshot);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() => _projectError = e.toString());
     }
   }
 
@@ -145,7 +182,7 @@ class _DawShellState extends State<DawShell> {
       await _refreshSnapshot(snapshot);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() => _projectError = e.toString());
     }
   }
 
@@ -155,7 +192,7 @@ class _DawShellState extends State<DawShell> {
       await _refreshSnapshot(snapshot);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() => _projectError = e.toString());
     }
   }
 
@@ -168,14 +205,14 @@ class _DawShellState extends State<DawShell> {
       }
       setState(() {
         _saveStatus = 'Saved project';
-        _error = null;
+        _projectError = null;
       });
     } on PlatformException catch (e) {
       if (!mounted) return;
-      setState(() => _error = '${e.code}: ${e.message ?? "save failed"}');
+      setState(() => _projectError = '${e.code}: ${e.message ?? "save failed"}');
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() => _projectError = e.toString());
     }
   }
 
@@ -190,15 +227,15 @@ class _DawShellState extends State<DawShell> {
       if (!mounted) return;
       setState(() {
         _saveStatus = 'Loaded project';
-        _error = null;
+        _projectError = null;
         _playing = false;
       });
     } on PlatformException catch (e) {
       if (!mounted) return;
-      setState(() => _error = '${e.code}: ${e.message ?? "load failed"}');
+      setState(() => _projectError = '${e.code}: ${e.message ?? "load failed"}');
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() => _projectError = e.toString());
     }
   }
 
@@ -211,7 +248,7 @@ class _DawShellState extends State<DawShell> {
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() => _projectError = e.toString());
     }
   }
 
@@ -228,7 +265,7 @@ class _DawShellState extends State<DawShell> {
       setState(() => _tab = _ShellTab.arrangement);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() => _projectError = e.toString());
     }
   }
 
@@ -237,7 +274,7 @@ class _DawShellState extends State<DawShell> {
       await widget.bridge.previewSample(sample.id);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() => _projectError = e.toString());
     }
   }
 
@@ -275,7 +312,7 @@ class _DawShellState extends State<DawShell> {
       await _refreshSnapshot(snapshot);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() => _projectError = e.toString());
     }
   }
 
@@ -307,19 +344,14 @@ class _DawShellState extends State<DawShell> {
                 onTrackSelected: _selectTrack,
                 onAddTrack: _addTrack,
                 onAddMidiClip: _addMidiClip,
+                onAddAudioClip: _addAudioClip,
                 onClipTap: _openPianoRoll,
                 onSampleClipTap: (_, __) {},
-                onSaveProject: _saveProject,
-                onLoadProject: _loadProject,
               ),
             ),
             DeviceStrip(
               track: snapshot.selectedTrack,
               onFrequencyChanged: _setFrequency,
-            ),
-            TransportBar(
-              bpm: snapshot.bpm,
-              playheadBeats: snapshot.playheadBeats,
             ),
           ],
         );
@@ -338,7 +370,12 @@ class _DawShellState extends State<DawShell> {
           onImport: _importSample,
         );
       case _ShellTab.settings:
-        return const SettingsScreen();
+        return SettingsScreen(
+          onSaveProject: _saveProject,
+          onLoadProject: _loadProject,
+          statusMessage: _saveStatus,
+          errorMessage: _projectError,
+        );
     }
   }
 
@@ -352,26 +389,11 @@ class _DawShellState extends State<DawShell> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (_bridgeStatus != null)
-            Padding(
-              padding: ShellInsets.headerPadding(context),
-              child: Text(
-                _bridgeStatus!,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white54),
-              ),
-            ),
-          if (_saveStatus != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                _saveStatus!,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white54),
-              ),
-            ),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(_error!, style: const TextStyle(color: Colors.redAccent)),
+          if (snapshot != null)
+            TransportBar.padded(
+              context: context,
+              bpm: snapshot.bpm,
+              version: kAppVersion,
             ),
           Expanded(
             child: snapshot == null
