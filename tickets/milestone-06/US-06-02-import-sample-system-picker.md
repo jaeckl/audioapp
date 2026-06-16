@@ -6,7 +6,7 @@ Feature
 
 ## Milestone
 
-Milestone 06 — Sample library & sampler
+Milestone 06 — Sample library & audio clips
 
 ## User story
 

@@ -1,4 +1,4 @@
-# US-06-04-interaction: MIDI triggers sample — Interaction
+# US-06-04-interaction: Waveform in arrangement — Interaction
 
 ## Type
 
@@ -6,17 +6,17 @@ Interaction
 
 ## Parent feature
 
-[US-06-04](US-06-04-midi-triggers-sample.md)
+[US-06-04](US-06-04-waveform-in-arrangement.md)
 
 ## Entry points
 
-- Play with sampler + MIDI clip
+- View arrangement after insert
 
 ## Interaction map
 
 | User action | Control | Feedback | Result |
 |-------------|---------|----------|--------|
-| Trigger | Play | Sample voices | MIDI→sampler |
+| Scroll timeline | Horizontal scroll | Waveform scrolls with clip | Cached peaks |
 
 ## System dialogs
 
@@ -24,21 +24,21 @@ _Per parent feature and ADR-0006. Document SAF MIME types in parent Platform UX.
 
 ## Cancel & back
 
-Stop
+N/A
 
 ## Error paths
 
 | Failure | User sees | Data state |
 |---------|-----------|------------|
-| No sample | Error on play attempt | Silent fail NOT OK |
+| Missing peaks | Flat fallback | Clip still visible |
 
 ## Demo script (interaction-only)
 
-- 4-on-floor → Save → Load → Play
+- Two clips → different shapes
 
 ## Acceptance criteria
 
-- [ ] Round-trip on device
+- [ ] No jank scrolling 2+ clips
 
 
 ## Status

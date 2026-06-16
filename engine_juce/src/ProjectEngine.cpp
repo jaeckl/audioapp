@@ -1,10 +1,13 @@
 #include "audioapp/ProjectEngine.hpp"
 #include "audioapp/ProjectJson.hpp"
 #include "audioapp/MidiUtils.hpp"
+#include "audioapp/MasterMix.hpp"
+#include "audioapp/SamplePlayback.hpp"
 
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <cstring>
 #include <cstdlib>
 
 namespace audioapp {
@@ -17,11 +20,12 @@ void ProjectEngine::createProject() {
     nextTrackNum_ = 1;
     nextDeviceNum_ = 1;
     nextClipNum_ = 1;
+    nextSampleClipNum_ = 1;
     bpm_ = 120;
     activeFrequencyHz_.store(440.0f, std::memory_order_release);
     playing_.store(false, std::memory_order_release);
     playheadBeats_.store(0.0, std::memory_order_release);
-    playbackNoteCount_.store(0, std::memory_order_release);
+    trackPlaybackCount_.store(0, std::memory_order_release);
 }
 
 std::string ProjectEngine::addTrack(const std::string& name) {
@@ -39,7 +43,7 @@ std::string ProjectEngine::addTrack(const std::string& name) {
     tracks_.push_back(std::move(track));
     selectedTrackId_ = tracks_.back().id;
     syncActiveFrequencyLocked();
-    rebuildPlaybackNotesLocked();
+    rebuildTrackPlaybackLocked();
     return selectedTrackId_;
 }
 
@@ -50,7 +54,7 @@ bool ProjectEngine::selectTrack(const std::string& trackId) {
     }
     selectedTrackId_ = trackId;
     syncActiveFrequencyLocked();
-    rebuildPlaybackNotesLocked();
+    rebuildTrackPlaybackLocked();
     return true;
 }
 
@@ -67,7 +71,7 @@ std::string ProjectEngine::addDeviceToTrack(const std::string& trackId, const st
     device.frequencyHz = 440.0f;
     track->devices.push_back(std::move(device));
     syncActiveFrequencyLocked();
-    rebuildPlaybackNotesLocked();
+    rebuildTrackPlaybackLocked();
     return track->devices.back().id;
 }
 
@@ -81,7 +85,7 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
     }
     device->frequencyHz = value;
     syncActiveFrequencyLocked();
-    rebuildPlaybackNotesLocked();
+    rebuildTrackPlaybackLocked();
     return true;
 }
 
@@ -107,7 +111,7 @@ std::string ProjectEngine::createMidiClip(const std::string& trackId,
     clip.notes.push_back(seed);
 
     track->midiClips.push_back(std::move(clip));
-    rebuildPlaybackNotesLocked();
+    rebuildTrackPlaybackLocked();
     return track->midiClips.back().id;
 }
 
@@ -129,8 +133,38 @@ bool ProjectEngine::setMidiClipNotes(const std::string& clipId,
         stored.velocity = note.velocity;
         clip->notes.push_back(stored);
     }
-    rebuildPlaybackNotesLocked();
+    rebuildTrackPlaybackLocked();
     return true;
+}
+
+std::string ProjectEngine::createSampleClip(const std::string& trackId,
+                                            const std::string& sampleId,
+                                            double startBeat,
+                                            double lengthBeats) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    Track* track = findTrackLocked(trackId);
+    if (track == nullptr || sampleId.empty()) {
+        return {};
+    }
+    if (sampleBank_ != nullptr && sampleBank_->findSample(sampleId) == nullptr) {
+        return {};
+    }
+
+    SampleClip clip;
+    clip.id = "sclip-" + std::to_string(nextSampleClipNum_++);
+    clip.sampleId = sampleId;
+    clip.startBeat = startBeat < 0.0 ? 0.0 : startBeat;
+    if (lengthBeats > 0.0) {
+        clip.lengthBeats = lengthBeats;
+    } else if (sampleBank_ != nullptr) {
+        clip.lengthBeats = sampleBank_->beatsForSample(sampleId, bpm_);
+    } else {
+        clip.lengthBeats = 4.0;
+    }
+
+    track->sampleClips.push_back(std::move(clip));
+    rebuildTrackPlaybackLocked();
+    return track->sampleClips.back().id;
 }
 
 ProjectSnapshot ProjectEngine::snapshot() const {
@@ -140,6 +174,19 @@ ProjectSnapshot ProjectEngine::snapshot() const {
     snap.selectedTrackId = selectedTrackId_;
     snap.playheadBeats = playheadBeats_.load(std::memory_order_relaxed);
     snap.playing = playing_.load(std::memory_order_relaxed);
+    snap.master.id = "master";
+    snap.master.name = "Master";
+    if (sampleBank_ != nullptr) {
+        for (const auto& sample : sampleBank_->listSamples()) {
+            SampleLibraryEntryState entry;
+            entry.id = sample.id;
+            entry.name = sample.name;
+            entry.source = sample.source;
+            entry.durationBeats = sampleBank_->beatsForSample(sample.id, bpm_);
+            entry.waveformPeaks = sample.peaks;
+            snap.samples.push_back(std::move(entry));
+        }
+    }
     snap.tracks.reserve(tracks_.size());
     for (const auto& track : tracks_) {
         TrackState ts;
@@ -170,6 +217,21 @@ ProjectSnapshot ProjectEngine::snapshot() const {
             }
             ts.midiClips.push_back(std::move(cs));
         }
+        ts.sampleClips.reserve(track.sampleClips.size());
+        for (const auto& clip : track.sampleClips) {
+            SampleClipState cs;
+            cs.id = clip.id;
+            cs.sampleId = clip.sampleId;
+            cs.startBeat = clip.startBeat;
+            cs.lengthBeats = clip.lengthBeats;
+            if (sampleBank_ != nullptr) {
+                if (const auto* sample = sampleBank_->findSample(clip.sampleId)) {
+                    cs.sampleName = sample->name;
+                    cs.waveformPeaks = sample->peaks;
+                }
+            }
+            ts.sampleClips.push_back(std::move(cs));
+        }
         snap.tracks.push_back(std::move(ts));
     }
     return snap;
@@ -177,15 +239,94 @@ ProjectSnapshot ProjectEngine::snapshot() const {
 
 float ProjectEngine::activeOscillatorFrequencyHz() const {
     if (playing_.load(std::memory_order_acquire)) {
-        return frequencyForPlayheadUnlocked(playheadBeats_.load(std::memory_order_acquire));
+        const int selectedIndex = selectedTrackPlaybackIndex();
+        if (selectedIndex >= 0) {
+            const auto& track = trackPlayback_[selectedIndex];
+            const double playhead = playheadBeats_.load(std::memory_order_acquire);
+            if (trackHasActiveSampleAtPlayhead(track, playhead)) {
+                return 0.0f;
+            }
+            return frequencyForTrackSnapshot(track, playhead);
+        }
     }
     return activeFrequencyHz_.load(std::memory_order_acquire);
+}
+
+void ProjectEngine::readMasterMix(float* monoOut,
+                                  int numFrames,
+                                  double sampleRate,
+                                  double playheadStartBeat) noexcept {
+    if (monoOut == nullptr || numFrames <= 0) {
+        return;
+    }
+    std::memset(monoOut, 0, static_cast<size_t>(numFrames) * sizeof(float));
+
+    if (!playing_.load(std::memory_order_acquire)) {
+        return;
+    }
+
+    const int trackCount = trackPlaybackCount_.load(std::memory_order_acquire);
+    if (trackCount <= 0) {
+        return;
+    }
+
+    const float equalGain = 1.0f / static_cast<float>(trackCount);
+    constexpr int kMaxFrames = 4096;
+    float trackMono[kMaxFrames];
+    const int framesToProcess = numFrames > kMaxFrames ? kMaxFrames : numFrames;
+
+    SampleClipPlaybackRegion regions[8];
+
+    for (int trackIndex = 0; trackIndex < trackCount; ++trackIndex) {
+        TrackPlaybackSnapshot& track = trackPlayback_[trackIndex];
+        std::memset(trackMono, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+
+        if (track.regionCount > 0) {
+            for (int i = 0; i < track.regionCount; ++i) {
+                const SampleRegion& source = track.regions[i];
+                regions[i] = SampleClipPlaybackRegion{
+                    source.clipStartBeat,
+                    source.clipLengthBeats,
+                    source.pcm,
+                    source.frameCount,
+                    source.pcmSampleRate,
+                };
+            }
+            mixSampleRegionsBlock(trackMono,
+                                  framesToProcess,
+                                  sampleRate,
+                                  bpm_,
+                                  playheadStartBeat,
+                                  regions,
+                                  track.regionCount);
+        }
+
+        if (!trackHasActiveSampleAtPlayhead(track, playheadStartBeat)) {
+            const float frequency = frequencyForTrackSnapshot(track, playheadStartBeat);
+            if (frequency > 0.0f) {
+                addSineBlock(trackMono,
+                             framesToProcess,
+                             sampleRate,
+                             frequency,
+                             track.phase,
+                             kOscillatorGain);
+            }
+        }
+
+        for (int frame = 0; frame < framesToProcess; ++frame) {
+            monoOut[frame] += trackMono[frame] * equalGain;
+        }
+    }
+
+    for (int frame = 0; frame < framesToProcess; ++frame) {
+        monoOut[frame] = std::tanh(monoOut[frame]);
+    }
 }
 
 void ProjectEngine::setPlaying(bool playing) {
     if (playing) {
         std::lock_guard<std::mutex> lock(mutex_);
-        rebuildPlaybackNotesLocked();
+        rebuildTrackPlaybackLocked();
         resetPlayhead();
     }
     playing_.store(playing, std::memory_order_release);
@@ -219,6 +360,17 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
     file.name = projectName_;
     file.bpm = bpm_;
     file.selectedTrackId = selectedTrackId_;
+    if (sampleBank_ != nullptr) {
+        for (const auto& sample : sampleBank_->listSamples()) {
+            SampleLibraryEntryState entry;
+            entry.id = sample.id;
+            entry.name = sample.name;
+            entry.source = sample.source;
+            entry.durationBeats = sampleBank_->beatsForSample(sample.id, bpm_);
+            entry.waveformPeaks = sample.peaks;
+            file.sampleLibrary.push_back(std::move(entry));
+        }
+    }
     file.tracks.reserve(tracks_.size());
 
     for (const auto& track : tracks_) {
@@ -242,6 +394,20 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
                 });
             }
             ts.midiClips.push_back(std::move(cs));
+        }
+        for (const auto& clip : track.sampleClips) {
+            SampleClipState cs;
+            cs.id = clip.id;
+            cs.sampleId = clip.sampleId;
+            cs.startBeat = clip.startBeat;
+            cs.lengthBeats = clip.lengthBeats;
+            if (sampleBank_ != nullptr) {
+                if (const auto* sample = sampleBank_->findSample(clip.sampleId)) {
+                    cs.sampleName = sample->name;
+                    cs.waveformPeaks = sample->peaks;
+                }
+            }
+            ts.sampleClips.push_back(std::move(cs));
         }
         file.tracks.push_back(std::move(ts));
     }
@@ -285,6 +451,14 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
             }
             track.midiClips.push_back(std::move(clip));
         }
+        for (const auto& clipState : trackState.sampleClips) {
+            SampleClip clip;
+            clip.id = clipState.id;
+            clip.sampleId = clipState.sampleId;
+            clip.startBeat = clipState.startBeat;
+            clip.lengthBeats = clipState.lengthBeats;
+            track.sampleClips.push_back(std::move(clip));
+        }
         tracks_.push_back(std::move(track));
     }
 
@@ -292,7 +466,7 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
     playing_.store(false, std::memory_order_release);
     playheadBeats_.store(0.0, std::memory_order_release);
     syncActiveFrequencyLocked();
-    rebuildPlaybackNotesLocked();
+    rebuildTrackPlaybackLocked();
     return true;
 }
 
@@ -308,6 +482,7 @@ void ProjectEngine::recomputeIdCountersLocked() {
     int maxTrack = 0;
     int maxDevice = 0;
     int maxClip = 0;
+    int maxSampleClip = 0;
     for (const auto& track : tracks_) {
         maxTrack = std::max(maxTrack, maxSuffix(track.id, "track-"));
         for (const auto& device : track.devices) {
@@ -316,21 +491,41 @@ void ProjectEngine::recomputeIdCountersLocked() {
         for (const auto& clip : track.midiClips) {
             maxClip = std::max(maxClip, maxSuffix(clip.id, "clip-"));
         }
+        for (const auto& clip : track.sampleClips) {
+            maxSampleClip = std::max(maxSampleClip, maxSuffix(clip.id, "sclip-"));
+        }
     }
     nextTrackNum_ = maxTrack + 1;
     nextDeviceNum_ = maxDevice + 1;
     nextClipNum_ = maxClip + 1;
+    nextSampleClipNum_ = maxSampleClip + 1;
 }
 
-void ProjectEngine::rebuildPlaybackNotesLocked() {
-    int count = 0;
-    if (Track* track = findTrackLocked(selectedTrackId_)) {
-        for (const auto& clip : track->midiClips) {
+void ProjectEngine::rebuildTrackPlaybackLocked() {
+    int trackIndex = 0;
+    for (const auto& sourceTrack : tracks_) {
+        if (trackIndex >= kMaxTracks) {
+            break;
+        }
+
+        TrackPlaybackSnapshot& snap = trackPlayback_[trackIndex];
+        snap.trackId = sourceTrack.id;
+        snap.noteCount = 0;
+        snap.regionCount = 0;
+        snap.idleFrequencyHz = 440.0f;
+        for (const auto& device : sourceTrack.devices) {
+            if (device.type == "simple_oscillator") {
+                snap.idleFrequencyHz = device.frequencyHz;
+                break;
+            }
+        }
+
+        for (const auto& clip : sourceTrack.midiClips) {
             for (const auto& note : clip.notes) {
-                if (count >= kMaxPlaybackNotes) {
+                if (snap.noteCount >= static_cast<int>(sizeof(snap.notes) / sizeof(snap.notes[0]))) {
                     break;
                 }
-                playbackNotes_[count++] = PlaybackNote{
+                snap.notes[snap.noteCount++] = PlaybackNote{
                     note.pitch,
                     clip.startBeat,
                     clip.lengthBeats,
@@ -339,15 +534,48 @@ void ProjectEngine::rebuildPlaybackNotesLocked() {
                 };
             }
         }
+
+        if (sampleBank_ != nullptr) {
+            for (const auto& clip : sourceTrack.sampleClips) {
+                if (snap.regionCount >= static_cast<int>(sizeof(snap.regions) / sizeof(snap.regions[0]))) {
+                    break;
+                }
+                const auto* sample = sampleBank_->findSample(clip.sampleId);
+                if (sample == nullptr || sample->pcm.empty()) {
+                    continue;
+                }
+                snap.regions[snap.regionCount++] = SampleRegion{
+                    clip.startBeat,
+                    clip.lengthBeats,
+                    sample->pcm.data(),
+                    static_cast<int>(sample->pcm.size()),
+                    sample->sampleRate,
+                };
+            }
+        }
+
+        ++trackIndex;
     }
-    playbackNoteCount_.store(count, std::memory_order_release);
+    trackPlaybackCount_.store(trackIndex, std::memory_order_release);
 }
 
-float ProjectEngine::frequencyForPlayheadUnlocked(double playheadBeat) const noexcept {
-    const int count = playbackNoteCount_.load(std::memory_order_acquire);
+bool ProjectEngine::trackHasActiveSampleAtPlayhead(const TrackPlaybackSnapshot& track,
+                                                   double playheadBeat) const noexcept {
+    for (int i = 0; i < track.regionCount; ++i) {
+        const SampleRegion& region = track.regions[i];
+        if (playheadBeat >= region.clipStartBeat &&
+            playheadBeat < region.clipStartBeat + region.clipLengthBeats) {
+            return true;
+        }
+    }
+    return false;
+}
+
+float ProjectEngine::frequencyForTrackSnapshot(const TrackPlaybackSnapshot& track,
+                                               double playheadBeat) const noexcept {
     int pitch = -1;
-    for (int i = 0; i < count; ++i) {
-        const PlaybackNote& note = playbackNotes_[i];
+    for (int i = 0; i < track.noteCount; ++i) {
+        const PlaybackNote& note = track.notes[i];
         if (playheadBeat < note.clipStartBeat || playheadBeat >= note.clipStartBeat + note.clipLengthBeats) {
             continue;
         }
@@ -362,7 +590,25 @@ float ProjectEngine::frequencyForPlayheadUnlocked(double playheadBeat) const noe
     if (pitch >= 0) {
         return midiNoteToHz(pitch);
     }
-    return activeFrequencyHz_.load(std::memory_order_relaxed);
+    return track.idleFrequencyHz;
+}
+
+int ProjectEngine::selectedTrackPlaybackIndex() const noexcept {
+    const int count = trackPlaybackCount_.load(std::memory_order_acquire);
+    for (int i = 0; i < count; ++i) {
+        if (trackPlayback_[i].trackId == selectedTrackId_) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+float ProjectEngine::frequencyForPlayheadUnlocked(double playheadBeat) const noexcept {
+    const int selectedIndex = selectedTrackPlaybackIndex();
+    if (selectedIndex < 0) {
+        return activeFrequencyHz_.load(std::memory_order_relaxed);
+    }
+    return frequencyForTrackSnapshot(trackPlayback_[selectedIndex], playheadBeat);
 }
 
 void ProjectEngine::syncActiveFrequencyLocked() {

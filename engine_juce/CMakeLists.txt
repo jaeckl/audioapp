@@ -30,6 +30,10 @@ add_library(audioapp_engine STATIC
   src/ProjectJson.cpp
   src/ProjectArchive.cpp
   src/MidiClipPlayback.cpp
+  src/SampleBank.cpp
+  src/WavLoader.cpp
+  src/SamplePlayback.cpp
+  src/MasterMix.cpp
   src/EngineHost_commands.cpp
 )
 
@@ -79,6 +83,9 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/midi_clip_notes_test.cpp
     tests/project_archive_test.cpp
     tests/project_serialization_test.cpp
+    tests/sample_bank_test.cpp
+    tests/sample_clip_test.cpp
+    tests/master_mix_test.cpp
   )
   target_link_libraries(audioapp_engine_tests PRIVATE audioapp_engine)
   add_test(NAME engine_smoke COMMAND audioapp_engine_tests)

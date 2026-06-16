@@ -3,6 +3,7 @@
 #include <android/log.h>
 
 #include <string>
+#include <vector>
 
 #include "audioapp/bridge/BridgeHost.hpp"
 
@@ -27,6 +28,19 @@ std::string jstringToUtf8(JNIEnv* env, jstring value) {
     std::string result(chars);
     env->ReleaseStringUTFChars(value, chars);
     return result;
+}
+
+std::vector<uint8_t> jbyteArrayToVector(JNIEnv* env, jbyteArray array) {
+    if (array == nullptr) {
+        return {};
+    }
+    const auto length = env->GetArrayLength(array);
+    if (length <= 0) {
+        return {};
+    }
+    std::vector<uint8_t> bytes(static_cast<size_t>(length));
+    env->GetByteArrayRegion(array, 0, length, reinterpret_cast<jbyte*>(bytes.data()));
+    return bytes;
 }
 
 } // namespace
@@ -54,7 +68,6 @@ Java_com_audioapp_daw_MainActivity_nativeStop(JNIEnv* /*env*/, jobject /*thiz*/)
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_audioapp_daw_MainActivity_nativeGetProjectFileJson(JNIEnv* env, jobject /*thiz*/) {
-    // ADR-0006: serialize only; Kotlin ProjectArchiveStore writes zip bytes.
     const auto json = bridge().getProjectFileJson();
     return env->NewStringUTF(json.c_str());
 }
@@ -65,5 +78,16 @@ Java_com_audioapp_daw_MainActivity_nativeLoadProjectFileJson(JNIEnv* env,
                                                              jstring projectJson) {
     const auto json = jstringToUtf8(env, projectJson);
     const auto response = bridge().loadProjectFileJson(json);
+    return env->NewStringUTF(response.c_str());
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_audioapp_daw_MainActivity_nativeImportWavSample(JNIEnv* env,
+                                                         jobject /*thiz*/,
+                                                         jstring displayName,
+                                                         jbyteArray wavBytes) {
+    const auto name = jstringToUtf8(env, displayName);
+    const auto bytes = jbyteArrayToVector(env, wavBytes);
+    const auto response = bridge().importWavSample(name, bytes);
     return env->NewStringUTF(response.c_str());
 }

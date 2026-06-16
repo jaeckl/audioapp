@@ -1,4 +1,4 @@
-# US-06-04-ux-ui: MIDI triggers sample — UX & UI
+# US-06-04-ux-ui: Waveform in arrangement — UX & UI
 
 ## Type
 
@@ -6,25 +6,27 @@ UX / UI
 
 ## Parent feature
 
-[US-06-04](US-06-04-midi-triggers-sample.md)
+[US-06-04](US-06-04-waveform-in-arrangement.md)
 
 ## Design intent
 
-Playback moment — user hears drums/samples not test tone.
+Waveform makes clips recognizable at a glance.
 
 ## Layout & hierarchy
 
-No extra chrome during play; clip + playhead as M03.
+Mini waveform drawn inside clip rect; peaks centered vertically.
 
 ## Visual states
 
 | State | Treatment |
 |-------|-----------|
-| Playing sample | Optional clip pulse |
+| Sample clip | Waveform visible |
+| MIDI clip | No waveform |
+| Loading peaks | Placeholder shimmer optional |
 
 ## Copy & feedback
 
-None
+None on clip
 
 ## Accessibility & mobile
 
@@ -34,7 +36,8 @@ None
 
 ## Acceptance criteria (visual)
 
-- [ ] Clearly sample not oscillator
+- [ ] Kick vs snare visually different
+- [ ] Readable on 1-bar clip width
 
 ## Status
 

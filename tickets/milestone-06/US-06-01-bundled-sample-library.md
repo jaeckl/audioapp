@@ -6,7 +6,7 @@ Feature
 
 ## Milestone
 
-Milestone 06 — Sample library & sampler
+Milestone 06 — Sample library & audio clips
 
 ## User story
 
@@ -26,7 +26,7 @@ Library UI + engine index of bundled samples with stable IDs — first M06 inves
 1. User opens **Sample library** from app chrome or device strip entry point.
 2. Sees categories or flat list of **bundled** samples (kick, snare, hat, etc.).
 3. Tap sample → preview play (short audition, non-destructive).
-4. Tap **Use on track** / **Load to sampler** (wired in US-06-03) — placeholder OK until next story.
+4. Tap **Insert on track** (wired in US-06-03) or preview only in this story.
 
 ## Platform UX
 
@@ -44,7 +44,7 @@ Library UI + engine index of bundled samples with stable IDs — first M06 inves
 ## Out of scope
 
 - User import (US-06-02)
-- Sampler device assignment (US-06-03)
+- Sample clip on timeline (US-06-03)
 - Copying samples into `.audioapp.zip` on save (references only for MVP; document)
 
 ## Acceptance criteria

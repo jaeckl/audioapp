@@ -9,6 +9,7 @@ import '../bridge/project_snapshot.dart';
 import '../features/arrangement/arrangement_view.dart';
 import '../features/device_strip/device_strip.dart';
 import '../features/piano_roll/piano_roll_screen.dart';
+import '../features/sample_library/sample_library_screen.dart';
 import '../features/transport/transport_bar.dart';
 
 class DawShell extends StatefulWidget {
@@ -172,6 +173,64 @@ class _DawShellState extends State<DawShell> {
     }
   }
 
+  Future<void> _openSampleLibrary() async {
+    final snapshot = _snapshot;
+    if (snapshot == null) return;
+
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (context) => SampleLibraryScreen(
+          samples: snapshot.samples,
+          onPreview: (sample) async {
+            try {
+              await widget.bridge.previewSample(sample.id);
+            } catch (e) {
+              if (!mounted) return;
+              setState(() => _error = e.toString());
+            }
+          },
+          onInsert: (sample) async {
+            final trackId = _snapshot?.selectedTrackId;
+            if (trackId == null || trackId.isEmpty) return;
+            final navigator = Navigator.of(context);
+            navigator.pop();
+            try {
+              final updated = await widget.bridge.createSampleClip(
+                trackId: trackId,
+                sampleId: sample.id,
+              );
+              await _refreshSnapshot(updated);
+            } catch (e) {
+              if (!mounted) return;
+              setState(() => _error = e.toString());
+            }
+          },
+          onImport: () async {
+            try {
+              final updated = await widget.bridge.importSample();
+              if (!mounted) return;
+              if (updated != null) {
+                await _refreshSnapshot(updated);
+                if (!mounted) return;
+                final navigator = Navigator.of(context);
+                navigator.pop();
+                await _openSampleLibrary();
+              }
+            } catch (e) {
+              if (!mounted) return;
+              setState(() => _error = e.toString());
+            }
+          },
+        ),
+      ),
+    );
+
+    try {
+      final refreshed = await widget.bridge.getProjectSnapshot();
+      await _refreshSnapshot(refreshed);
+    } catch (_) {}
+  }
+
   Future<void> _openPianoRoll(String trackId, MidiClipSnapshot clip) async {
     TrackSnapshot? track;
     for (final t in _snapshot?.tracks ?? const <TrackSnapshot>[]) {
@@ -251,7 +310,9 @@ class _DawShellState extends State<DawShell> {
                     onTrackSelected: _selectTrack,
                     onAddTrack: _addTrack,
                     onAddMidiClip: _addMidiClip,
+                    onOpenSampleLibrary: _openSampleLibrary,
                     onClipTap: _openPianoRoll,
+                    onSampleClipTap: (_, __) {},
                     onSaveProject: _saveProject,
                     onLoadProject: _loadProject,
                   ),

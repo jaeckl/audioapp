@@ -1,4 +1,5 @@
 #include "audioapp/ProjectJson.hpp"
+#include "audioapp/SampleTypes.hpp"
 
 #include <juce_core/juce_core.h>
 
@@ -130,6 +131,74 @@ MidiClipState midiClipFromVar(const juce::var& value) {
     return clip;
 }
 
+juce::var sampleClipToVar(const SampleClipState& clip) {
+    juce::Array<juce::var> peaks;
+    peaks.ensureStorageAllocated(static_cast<int>(clip.waveformPeaks.size()));
+    for (const auto peak : clip.waveformPeaks) {
+        peaks.add(static_cast<double>(peak));
+    }
+
+    auto* object = new juce::DynamicObject();
+    object->setProperty("id", toJuceString(clip.id));
+    object->setProperty("sampleId", toJuceString(clip.sampleId));
+    object->setProperty("sampleName", toJuceString(clip.sampleName));
+    object->setProperty("startBeat", clip.startBeat);
+    object->setProperty("lengthBeats", clip.lengthBeats);
+    object->setProperty("waveformPeaks", peaks);
+    return juce::var(object);
+}
+
+SampleClipState sampleClipFromVar(const juce::var& value) {
+    SampleClipState clip;
+    if (const auto* object = value.getDynamicObject()) {
+        clip.id = varToString(object->getProperty("id"));
+        clip.sampleId = varToString(object->getProperty("sampleId"));
+        clip.sampleName = varToString(object->getProperty("sampleName"));
+        clip.startBeat = varToDouble(object->getProperty("startBeat"), 0.0);
+        clip.lengthBeats = varToDouble(object->getProperty("lengthBeats"), 4.0);
+        if (const auto* peakArray = varArray(object->getProperty("waveformPeaks"))) {
+            clip.waveformPeaks.reserve(static_cast<size_t>(peakArray->size()));
+            for (const auto& peakVar : *peakArray) {
+                clip.waveformPeaks.push_back(varToFloat(peakVar, 0.0f));
+            }
+        }
+    }
+    return clip;
+}
+
+juce::var sampleLibraryEntryToVar(const SampleLibraryEntryState& entry) {
+    juce::Array<juce::var> peaks;
+    peaks.ensureStorageAllocated(static_cast<int>(entry.waveformPeaks.size()));
+    for (const auto peak : entry.waveformPeaks) {
+        peaks.add(static_cast<double>(peak));
+    }
+
+    auto* object = new juce::DynamicObject();
+    object->setProperty("id", toJuceString(entry.id));
+    object->setProperty("name", toJuceString(entry.name));
+    object->setProperty("source", toJuceString(entry.source));
+    object->setProperty("durationBeats", entry.durationBeats);
+    object->setProperty("waveformPeaks", peaks);
+    return juce::var(object);
+}
+
+SampleLibraryEntryState sampleLibraryEntryFromVar(const juce::var& value) {
+    SampleLibraryEntryState entry;
+    if (const auto* object = value.getDynamicObject()) {
+        entry.id = varToString(object->getProperty("id"));
+        entry.name = varToString(object->getProperty("name"));
+        entry.source = varToString(object->getProperty("source"));
+        entry.durationBeats = varToDouble(object->getProperty("durationBeats"), 4.0);
+        if (const auto* peakArray = varArray(object->getProperty("waveformPeaks"))) {
+            entry.waveformPeaks.reserve(static_cast<size_t>(peakArray->size()));
+            for (const auto& peakVar : *peakArray) {
+                entry.waveformPeaks.push_back(varToFloat(peakVar, 0.0f));
+            }
+        }
+    }
+    return entry;
+}
+
 juce::var trackToVar(const TrackState& track) {
     juce::Array<juce::var> devices;
     devices.ensureStorageAllocated(static_cast<int>(track.devices.size()));
@@ -143,11 +212,18 @@ juce::var trackToVar(const TrackState& track) {
         clips.add(midiClipToVar(clip));
     }
 
+    juce::Array<juce::var> sampleClips;
+    sampleClips.ensureStorageAllocated(static_cast<int>(track.sampleClips.size()));
+    for (const auto& clip : track.sampleClips) {
+        sampleClips.add(sampleClipToVar(clip));
+    }
+
     auto* object = new juce::DynamicObject();
     object->setProperty("id", toJuceString(track.id));
     object->setProperty("name", toJuceString(track.name));
     object->setProperty("devices", devices);
     object->setProperty("midiClips", clips);
+    object->setProperty("sampleClips", sampleClips);
     return juce::var(object);
 }
 
@@ -166,6 +242,11 @@ TrackState trackFromVar(const juce::var& value) {
                 track.midiClips.push_back(midiClipFromVar(clipVar));
             }
         }
+        if (const auto* sampleClips = varArray(object->getProperty("sampleClips"))) {
+            for (const auto& clipVar : *sampleClips) {
+                track.sampleClips.push_back(sampleClipFromVar(clipVar));
+            }
+        }
     }
     return track;
 }
@@ -177,11 +258,23 @@ juce::var snapshotToVar(const ProjectSnapshot& snapshot) {
         tracks.add(trackToVar(track));
     }
 
+    juce::Array<juce::var> samples;
+    samples.ensureStorageAllocated(static_cast<int>(snapshot.samples.size()));
+    for (const auto& sample : snapshot.samples) {
+        samples.add(sampleLibraryEntryToVar(sample));
+    }
+
+    auto* master = new juce::DynamicObject();
+    master->setProperty("id", toJuceString(snapshot.master.id));
+    master->setProperty("name", toJuceString(snapshot.master.name));
+
     auto* object = new juce::DynamicObject();
     object->setProperty("bpm", snapshot.bpm);
     object->setProperty("playheadBeats", snapshot.playheadBeats);
     object->setProperty("playing", snapshot.playing);
     object->setProperty("selectedTrackId", toJuceString(snapshot.selectedTrackId));
+    object->setProperty("master", juce::var(master));
+    object->setProperty("samples", samples);
     object->setProperty("tracks", tracks);
     return juce::var(object);
 }
@@ -193,11 +286,18 @@ juce::var projectFileToVar(const ProjectFileData& project) {
         tracks.add(trackToVar(track));
     }
 
+    juce::Array<juce::var> samples;
+    samples.ensureStorageAllocated(static_cast<int>(project.sampleLibrary.size()));
+    for (const auto& sample : project.sampleLibrary) {
+        samples.add(sampleLibraryEntryToVar(sample));
+    }
+
     auto* object = new juce::DynamicObject();
     object->setProperty("project_format_version", project.projectFormatVersion);
     object->setProperty("name", toJuceString(project.name));
     object->setProperty("bpm", project.bpm);
     object->setProperty("selectedTrackId", toJuceString(project.selectedTrackId));
+    object->setProperty("samples", samples);
     object->setProperty("tracks", tracks);
     return juce::var(object);
 }
@@ -228,6 +328,14 @@ bool parseProjectFileJson(const std::string& json, ProjectFileData& out) {
     out.bpm = varToInt(object->getProperty("bpm"), 120);
     out.selectedTrackId = varToString(object->getProperty("selectedTrackId"));
     out.tracks.clear();
+    out.sampleLibrary.clear();
+
+    if (const auto* samples = varArray(object->getProperty("samples"))) {
+        out.sampleLibrary.reserve(static_cast<size_t>(samples->size()));
+        for (const auto& sampleVar : *samples) {
+            out.sampleLibrary.push_back(sampleLibraryEntryFromVar(sampleVar));
+        }
+    }
 
     if (const auto* tracks = varArray(object->getProperty("tracks"))) {
         out.tracks.reserve(static_cast<size_t>(tracks->size()));

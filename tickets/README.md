@@ -34,7 +34,7 @@ python tools/gen_companion_tickets.py
 | M03 | 3 | Done |
 | M04 | 3 | Done |
 | M05 | 2 | Done |
-| M06 | 4 | Next |
+| M06 | 5 | **Next** |
 | M07 | 2 | Planned |
 | M08 | 4 | Planned |
 | M09 | 2 | Planned |
@@ -54,7 +54,7 @@ Per AGENT.md §17 + §2.8:
 
 | Topic | Decision |
 |-------|----------|
-| M06 library | Bundled starter pack **+** user import (SAF) |
+| M06 library | Bundled starter pack **+** user import; **audio clips on timeline** (insert, waveform, playhead audition) |
 | M07 trim UI | **Waveform + trim handles** required |
 | M08 effects | **One story per effect** (Gain → Pan → Filter) |
 | M09 export | **System save dialog** (like M05) |

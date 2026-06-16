@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 namespace audioapp::bridge {
 
@@ -13,6 +14,7 @@ public:
     std::string getProjectFileJson();
     /// Parse `project.json` content into the engine; returns bridge JSON response. Used by Android JNI.
     std::string loadProjectFileJson(const std::string& projectJson);
+    std::string importWavSample(const std::string& displayName, const std::vector<uint8_t>& wavBytes);
 
 private:
     bool playing_ = false;

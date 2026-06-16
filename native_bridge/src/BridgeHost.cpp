@@ -81,6 +81,24 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         }
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
+    if (method == "createSampleClip") {
+        const auto trackId = jsonGetStringArg(argumentsJson, "trackId");
+        const auto sampleId = jsonGetStringArg(argumentsJson, "sampleId");
+        const auto startBeat = jsonGetNumberArg(argumentsJson, "startBeat", 0.0);
+        const auto lengthBeats = jsonGetNumberArg(argumentsJson, "lengthBeats", 0.0);
+        if (engine().createSampleClip(trackId, sampleId, startBeat, lengthBeats).empty()) {
+            return buildBridgeError("sample_clip_failed");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
+    if (method == "previewSample") {
+        const auto sampleId = jsonGetStringArg(argumentsJson, "sampleId");
+        if (sampleId.empty()) {
+            return buildBridgeError("sample_not_found");
+        }
+        engine().previewSample(sampleId);
+        return R"({"ok":true,"previewing":true})";
+    }
 #ifndef __ANDROID__
     // Desktop bridge hosts: C++ archive I/O (ADR-0006). Android uses Kotlin ProjectArchiveStore.
     if (method == "saveProject") {
@@ -108,6 +126,14 @@ std::string BridgeHost::getProjectFileJson() {
 std::string BridgeHost::loadProjectFileJson(const std::string& projectJson) {
     if (projectJson.empty() || !engine().loadProjectFileJson(projectJson)) {
         return buildBridgeError("load_failed");
+    }
+    return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+}
+
+std::string BridgeHost::importWavSample(const std::string& displayName,
+                                        const std::vector<uint8_t>& wavBytes) {
+    if (wavBytes.empty() || engine().importWavSample(displayName, wavBytes).empty()) {
+        return buildBridgeError("import_failed");
     }
     return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
 }

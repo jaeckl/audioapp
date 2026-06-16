@@ -220,7 +220,7 @@ void main() {
 
     await tester.tap(find.text('Track'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Clip'));
+    await tester.tap(find.text('Add MIDI'));
     await tester.pumpAndSettle();
 
     expect(find.text('MIDI'), findsOneWidget);
@@ -239,7 +239,7 @@ void main() {
 
     await tester.tap(find.text('Track'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Clip'));
+    await tester.tap(find.text('Add MIDI'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('MIDI'));
     await tester.pumpAndSettle();

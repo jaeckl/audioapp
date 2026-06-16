@@ -35,22 +35,22 @@ struct EngineHost::Impl {
 
         auto* output = static_cast<float*>(audioData);
         const bool shouldPlay = self->playing.load(std::memory_order_acquire);
-        self->oscillator.setEnabled(shouldPlay);
-
         const double rate = self->sampleRate.load(std::memory_order_acquire);
-        if (shouldPlay) {
-            self->owner.advancePlayheadForBlock(numFrames, rate);
-        }
-        self->oscillator.setFrequency(self->owner.activeOscillatorFrequencyHz());
-
         constexpr int32_t kMaxFrames = 4096;
-        float mono[kMaxFrames];
+        float masterMono[kMaxFrames];
         const int32_t framesToProcess = numFrames > kMaxFrames ? kMaxFrames : numFrames;
 
-        self->oscillator.processBlock(mono, framesToProcess, rate);
+        std::memset(masterMono, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+
+        const double playheadStart = self->owner.playheadBeats();
+        if (shouldPlay) {
+            self->owner.readMasterMix(masterMono, framesToProcess, rate, playheadStart);
+            self->owner.advancePlayheadForBlock(framesToProcess, rate);
+        }
+        self->owner.readPreviewMix(masterMono, framesToProcess, rate);
 
         for (int32_t frame = 0; frame < framesToProcess; ++frame) {
-            const float sample = mono[frame];
+            const float sample = masterMono[frame];
             output[frame * 2] = sample;
             output[frame * 2 + 1] = sample;
         }
@@ -137,7 +137,9 @@ struct EngineHost::Impl {
     }
 };
 
-EngineHost::EngineHost() : impl_(std::make_unique<Impl>(*this)) {}
+EngineHost::EngineHost() : impl_(std::make_unique<Impl>(*this)) {
+    ensureSampleBankReady();
+}
 
 EngineHost::~EngineHost() {
     impl_->playing.store(false, std::memory_order_release);
@@ -165,6 +167,10 @@ void EngineHost::setPlaying(bool shouldPlay) {
 
 bool EngineHost::isPlaying() const noexcept {
     return impl_->playing.load(std::memory_order_acquire);
+}
+
+void EngineHost::ensureAudioOutput() {
+    impl_->startStream();
 }
 
 } // namespace audioapp

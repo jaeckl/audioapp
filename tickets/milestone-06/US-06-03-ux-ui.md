@@ -1,4 +1,4 @@
-# US-06-03-ux-ui: Sampler on device strip — UX & UI
+# US-06-03-ux-ui: Insert sample clip on track — UX & UI
 
 ## Type
 
@@ -6,28 +6,27 @@ UX / UI
 
 ## Parent feature
 
-[US-06-03](US-06-03-sampler-device-on-strip.md)
+[US-06-03](US-06-03-insert-sample-clip-on-track.md)
 
 ## Design intent
 
-Sampler card shows loaded sound by name — confidence in assignment.
+Inserting audio feels like placing a region — clear clip block on timeline.
 
 ## Layout & hierarchy
 
-Strip card: Sampler title, sample name, Choose sample button.
+Library row action Insert on track; timeline shows sample clip distinct from MIDI (color/icon).
 
 ## Visual states
 
 | State | Treatment |
 |-------|-----------|
-| Unassigned | No sample / placeholder |
-| Assigned | Sample name prominent |
+| No clip | Timeline empty or MIDI only |
+| Sample clip | Block with name label |
 
 ## Copy & feedback
 
-- Sampler
-- Choose sample
-- No sample selected
+- Insert on track
+- Sample clip
 
 ## Accessibility & mobile
 
@@ -37,8 +36,8 @@ Strip card: Sampler title, sample name, Choose sample button.
 
 ## Acceptance criteria (visual)
 
-- [ ] Name truncates gracefully
-- [ ] Choose obvious
+- [ ] Clip visually distinct from MIDI
+- [ ] Sample name visible
 
 ## Status
 

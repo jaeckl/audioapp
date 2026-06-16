@@ -1,4 +1,4 @@
-# US-06-03-interaction: Sampler on device strip — Interaction
+# US-06-03-interaction: Insert sample clip on track — Interaction
 
 ## Type
 
@@ -6,19 +6,18 @@ Interaction
 
 ## Parent feature
 
-[US-06-03](US-06-03-sampler-device-on-strip.md)
+[US-06-03](US-06-03-insert-sample-clip-on-track.md)
 
 ## Entry points
 
-- Add sampler to strip
-- Choose sample
+- Sample library with track selected
 
 ## Interaction map
 
 | User action | Control | Feedback | Result |
 |-------------|---------|----------|--------|
-| Add sampler | Add device | Card appears | addDeviceToTrack |
-| Choose | Button | Library picker | Assign sample ID |
+| Insert | Insert on track | Clip on timeline | createSampleClip |
+| Wrong track | Select track first | Toast if none | No orphan clip |
 
 ## System dialogs
 
@@ -26,21 +25,21 @@ _Per parent feature and ADR-0006. Document SAF MIME types in parent Platform UX.
 
 ## Cancel & back
 
-Picker cancel → no change
+Back from library without insert
 
 ## Error paths
 
 | Failure | User sees | Data state |
 |---------|-----------|------------|
-| Missing sample on play | Documented toast | No crash |
+| No track selected | Toast | No clip created |
 
 ## Demo script (interaction-only)
 
-- Add sampler → choose kick → name on card
+- Select track → library → insert kick → clip appears
 
 ## Acceptance criteria
 
-- [ ] Return from library preserves strip context
+- [ ] ≤3 taps from library to clip visible
 
 
 ## Status

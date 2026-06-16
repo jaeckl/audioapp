@@ -34,7 +34,7 @@ python tools/gen_companion_tickets.py
 | M03 | US-03-01 … US-03-03 |
 | M04 | US-04-01 … US-04-03 |
 | M05 | US-05-01, US-05-02 |
-| M06 | US-06-01 … US-06-04 |
+| M06 | US-06-01 … US-06-05 |
 | M07 | US-07-01, US-07-02 |
 | M08 | US-08-01 … US-08-04 |
 | M09 | US-09-02 (export UI only) |

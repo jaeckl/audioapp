@@ -18,6 +18,7 @@ class MainActivity : FlutterFragmentActivity() {
 
     private var pendingSaveResult: MethodChannel.Result? = null
     private var pendingLoadResult: MethodChannel.Result? = null
+    private var pendingImportResult: MethodChannel.Result? = null
 
     private val createProjectArchive = registerForActivityResult(
         ActivityResultContracts.CreateDocument(ProjectArchiveStore.ARCHIVE_MIME_TYPE),
@@ -27,8 +28,12 @@ class MainActivity : FlutterFragmentActivity() {
         ActivityResultContracts.OpenDocument(),
     ) { documentUri -> onLoadArchivePicked(documentUri) }
 
+    private val openAudioSample = registerForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { documentUri -> onImportSamplePicked(documentUri) }
+
     private fun launchSaveArchivePicker(result: MethodChannel.Result) {
-        if (pendingSaveResult != null || pendingLoadResult != null) {
+        if (pendingSaveResult != null || pendingLoadResult != null || pendingImportResult != null) {
             result.error("busy", "File picker already open", null)
             return
         }
@@ -37,12 +42,61 @@ class MainActivity : FlutterFragmentActivity() {
     }
 
     private fun launchLoadArchivePicker(result: MethodChannel.Result) {
-        if (pendingSaveResult != null || pendingLoadResult != null) {
+        if (pendingSaveResult != null || pendingLoadResult != null || pendingImportResult != null) {
             result.error("busy", "File picker already open", null)
             return
         }
         pendingLoadResult = result
         openProjectArchive.launch(ProjectArchiveStore.openArchiveMimeFilter)
+    }
+
+    private fun launchImportSamplePicker(result: MethodChannel.Result) {
+        if (pendingSaveResult != null || pendingLoadResult != null || pendingImportResult != null) {
+            result.error("busy", "File picker already open", null)
+            return
+        }
+        pendingImportResult = result
+        openAudioSample.launch(arrayOf("audio/*"))
+    }
+
+    private fun onImportSamplePicked(documentUri: Uri?) {
+        val result = pendingImportResult
+        pendingImportResult = null
+        if (result == null) {
+            return
+        }
+        if (documentUri == null) {
+            result.success(mapOf("ok" to false, "cancelled" to true))
+            return
+        }
+        try {
+            val displayName = contentResolver.query(documentUri, null, null, null, null)?.use { cursor ->
+                val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                if (nameIndex >= 0 && cursor.moveToFirst()) cursor.getString(nameIndex) else null
+            } ?: "Imported sample"
+            val bytes = contentResolver.openInputStream(documentUri)?.use { input ->
+                input.readBytes()
+            } ?: ByteArray(0)
+            if (bytes.isEmpty()) {
+                result.error("import_failed", "Empty audio file", null)
+                return
+            }
+            val response = nativeImportWavSample(displayName, bytes)
+            val map = jsonToMap(response).toMutableMap()
+            if (map["ok"] == true) {
+                map["cancelled"] = false
+                result.success(map)
+            } else {
+                val error = map["error"]?.toString() ?: "import_failed"
+                result.error(error, "Failed to import sample", null)
+            }
+        } catch (e: IOException) {
+            Log.e(logTag, "Import sample failed", e)
+            result.error("import_failed", e.message, null)
+        } catch (e: Exception) {
+            Log.e(logTag, "Import sample failed", e)
+            result.error("engine_error", e.message, null)
+        }
     }
 
     private fun onSaveArchivePicked(documentUri: Uri?) {
@@ -133,6 +187,7 @@ class MainActivity : FlutterFragmentActivity() {
                         }
                         "saveProject" -> launchSaveArchivePicker(result)
                         "loadProject" -> launchLoadArchivePicker(result)
+                        "importSample" -> launchImportSamplePicker(result)
                         "createProject",
                         "getProjectSnapshot",
                         "addTrack",
@@ -140,7 +195,9 @@ class MainActivity : FlutterFragmentActivity() {
                         "addDeviceToTrack",
                         "setDeviceParameter",
                         "createMidiClip",
-                        "setMidiClipNotes" -> {
+                        "setMidiClipNotes",
+                        "createSampleClip",
+                        "previewSample" -> {
                             val argsJson = when (val args = call.arguments) {
                                 null -> "{}"
                                 is Map<*, *> -> mapToJson(args).toString()
@@ -226,6 +283,7 @@ class MainActivity : FlutterFragmentActivity() {
     private external fun nativeInvoke(method: String, argsJson: String): String
     private external fun nativeGetProjectFileJson(): String
     private external fun nativeLoadProjectFileJson(projectJson: String): String
+    private external fun nativeImportWavSample(displayName: String, wavBytes: ByteArray): String
     private external fun nativePlay()
     private external fun nativeStop()
 

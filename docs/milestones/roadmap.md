@@ -74,16 +74,23 @@ Vertical slices only. Each story follows [AGENT.md](../../AGENT.md) §14 (UX flo
 
 ---
 
-## Milestone 06 — Sample library & sampler
+## Milestone 06 — Sample library & audio clips
 
 | ID | Summary | Status |
 |----|---------|--------|
 | [US-06-01](../../tickets/milestone-06/US-06-01-bundled-sample-library.md) | Bundled starter pack + library UI | Todo |
 | [US-06-02](../../tickets/milestone-06/US-06-02-import-sample-system-picker.md) | Import via system file picker | Todo |
-| [US-06-03](../../tickets/milestone-06/US-06-03-sampler-device-on-strip.md) | Sampler on device strip | Todo |
-| [US-06-04](../../tickets/milestone-06/US-06-04-midi-triggers-sample.md) | MIDI triggers sample loop | Todo |
+| [US-06-03](../../tickets/milestone-06/US-06-03-insert-sample-clip-on-track.md) | Insert sample clip from library onto track | Todo |
+| [US-06-04](../../tickets/milestone-06/US-06-04-waveform-in-arrangement.md) | Waveform visible in arrangement | Todo |
+| [US-06-05](../../tickets/milestone-06/US-06-05-playhead-sample-audition.md) | Hear sample when playhead crosses clip (selected track) | Todo |
+| [US-06-06](../../tickets/milestone-06/US-06-06-compact-icon-track-headers.md) | Compact icon track headers | Done |
+| [US-06-07](../../tickets/milestone-06/US-06-07-sample-clip-readable-width.md) | Sample clip readable width | Done |
+| [US-06-08](../../tickets/milestone-06/US-06-08-pinch-horizontal-zoom.md) | Pinch horizontal zoom | Done |
+| [US-06-09](../../tickets/milestone-06/US-06-09-horizontal-scroll-arrangement.md) | Horizontal scroll arrangement | Done |
+| [US-06-10](../../tickets/milestone-06/US-06-10-master-track-arrangement-row.md) | Master track row (bottom) | Done |
+| [US-06-11](../../tickets/milestone-06/US-06-11-equal-sum-master-bus.md) | Equal-sum master bus → device out | Done |
 
-**PO demo:** Sampler + 4-on-floor → Save → Load → same loop.
+**PO demo:** Insert kick + snare → waveforms → Play → pinch/scroll → master row → all tracks to speaker.
 
 ---
 

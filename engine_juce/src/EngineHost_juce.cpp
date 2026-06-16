@@ -5,6 +5,7 @@
 #include <juce_events/juce_events.h>
 
 #include <atomic>
+#include <cstring>
 #include <mutex>
 
 namespace audioapp {
@@ -69,15 +70,15 @@ struct EngineHost::Impl : juce::AudioIODeviceCallback {
         }
 
         const bool shouldPlay = playing.load(std::memory_order_acquire);
-        oscillator.setEnabled(shouldPlay);
-
         const double rate = sampleRate.load(std::memory_order_acquire);
+        const double playheadStart = owner.playheadBeats();
         if (shouldPlay) {
+            owner.readMasterMix(left, numSamples, rate, playheadStart);
             owner.advancePlayheadForBlock(numSamples, rate);
+        } else {
+            juce::FloatVectorOperations::clear(left, numSamples);
         }
-        oscillator.setFrequency(owner.activeOscillatorFrequencyHz());
-
-        oscillator.processBlock(left, numSamples, rate);
+        owner.readPreviewMix(left, numSamples, rate);
 
         for (int ch = 1; ch < numOutputChannels; ++ch) {
             float* const out = outputChannelData[ch];
@@ -89,7 +90,9 @@ struct EngineHost::Impl : juce::AudioIODeviceCallback {
     }
 };
 
-EngineHost::EngineHost() : impl_(std::make_unique<Impl>(*this)) {}
+EngineHost::EngineHost() : impl_(std::make_unique<Impl>(*this)) {
+    ensureSampleBankReady();
+}
 
 EngineHost::~EngineHost() {
     if (impl_->audioInitialized.load(std::memory_order_acquire)) {
@@ -113,6 +116,10 @@ void EngineHost::setPlaying(bool shouldPlay) {
 
 bool EngineHost::isPlaying() const noexcept {
     return impl_->playing.load(std::memory_order_acquire);
+}
+
+void EngineHost::ensureAudioOutput() {
+    impl_->ensureAudioInitialized();
 }
 
 } // namespace audioapp

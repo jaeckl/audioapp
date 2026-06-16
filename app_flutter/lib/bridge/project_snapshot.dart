@@ -5,6 +5,8 @@ class ProjectSnapshot {
     required this.selectedTrackId,
     required this.playheadBeats,
     required this.playing,
+    required this.master,
+    required this.samples,
     required this.tracks,
   });
 
@@ -12,16 +14,23 @@ class ProjectSnapshot {
   final String selectedTrackId;
   final double playheadBeats;
   final bool playing;
+  final MasterTrackSnapshot master;
+  final List<SampleLibraryEntrySnapshot> samples;
   final List<TrackSnapshot> tracks;
 
   factory ProjectSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final snapshot = map['snapshot'] as Map<dynamic, dynamic>? ?? map;
     final tracksRaw = snapshot['tracks'] as List<dynamic>? ?? [];
+    final samplesRaw = snapshot['samples'] as List<dynamic>? ?? [];
     return ProjectSnapshot(
       bpm: (snapshot['bpm'] as num?)?.toInt() ?? 120,
       selectedTrackId: snapshot['selectedTrackId'] as String? ?? '',
       playheadBeats: (snapshot['playheadBeats'] as num?)?.toDouble() ?? 0.0,
       playing: snapshot['playing'] == true,
+      master: MasterTrackSnapshot.fromMap(snapshot['master'] as Map<dynamic, dynamic>?),
+      samples: samplesRaw
+          .map((s) => SampleLibraryEntrySnapshot.fromMap(s as Map<dynamic, dynamic>))
+          .toList(),
       tracks: tracksRaw
           .map((t) => TrackSnapshot.fromMap(t as Map<dynamic, dynamic>))
           .toList(),
@@ -38,22 +47,42 @@ class ProjectSnapshot {
   }
 }
 
+class MasterTrackSnapshot {
+  const MasterTrackSnapshot({
+    required this.id,
+    required this.name,
+  });
+
+  final String id;
+  final String name;
+
+  factory MasterTrackSnapshot.fromMap(Map<dynamic, dynamic>? map) {
+    return MasterTrackSnapshot(
+      id: map?['id'] as String? ?? 'master',
+      name: map?['name'] as String? ?? 'Master',
+    );
+  }
+}
+
 class TrackSnapshot {
   const TrackSnapshot({
     required this.id,
     required this.name,
     required this.devices,
     required this.midiClips,
+    required this.sampleClips,
   });
 
   final String id;
   final String name;
   final List<DeviceSnapshot> devices;
   final List<MidiClipSnapshot> midiClips;
+  final List<SampleClipSnapshot> sampleClips;
 
   factory TrackSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final devicesRaw = map['devices'] as List<dynamic>? ?? [];
     final clipsRaw = map['midiClips'] as List<dynamic>? ?? [];
+    final sampleClipsRaw = map['sampleClips'] as List<dynamic>? ?? [];
     return TrackSnapshot(
       id: map['id'] as String? ?? '',
       name: map['name'] as String? ?? '',
@@ -62,6 +91,9 @@ class TrackSnapshot {
           .toList(),
       midiClips: clipsRaw
           .map((c) => MidiClipSnapshot.fromMap(c as Map<dynamic, dynamic>))
+          .toList(),
+      sampleClips: sampleClipsRaw
+          .map((c) => SampleClipSnapshot.fromMap(c as Map<dynamic, dynamic>))
           .toList(),
     );
   }
@@ -110,6 +142,63 @@ class MidiClipSnapshot {
       notes: notesRaw
           .map((n) => MidiNoteSnapshot.fromMap(n as Map<dynamic, dynamic>))
           .toList(),
+    );
+  }
+}
+
+class SampleClipSnapshot {
+  const SampleClipSnapshot({
+    required this.id,
+    required this.sampleId,
+    required this.sampleName,
+    required this.startBeat,
+    required this.lengthBeats,
+    required this.waveformPeaks,
+  });
+
+  final String id;
+  final String sampleId;
+  final String sampleName;
+  final double startBeat;
+  final double lengthBeats;
+  final List<double> waveformPeaks;
+
+  factory SampleClipSnapshot.fromMap(Map<dynamic, dynamic> map) {
+    final peaksRaw = map['waveformPeaks'] as List<dynamic>? ?? [];
+    return SampleClipSnapshot(
+      id: map['id'] as String? ?? '',
+      sampleId: map['sampleId'] as String? ?? '',
+      sampleName: map['sampleName'] as String? ?? '',
+      startBeat: (map['startBeat'] as num?)?.toDouble() ?? 0.0,
+      lengthBeats: (map['lengthBeats'] as num?)?.toDouble() ?? 4.0,
+      waveformPeaks: peaksRaw.map((p) => (p as num).toDouble()).toList(),
+    );
+  }
+}
+
+class SampleLibraryEntrySnapshot {
+  const SampleLibraryEntrySnapshot({
+    required this.id,
+    required this.name,
+    required this.source,
+    required this.durationBeats,
+    required this.waveformPeaks,
+  });
+
+  final String id;
+  final String name;
+  final String source;
+  final double durationBeats;
+  final List<double> waveformPeaks;
+
+  factory SampleLibraryEntrySnapshot.fromMap(Map<dynamic, dynamic> map) {
+    final peaksRaw = map['waveformPeaks'] as List<dynamic>? ?? [];
+    return SampleLibraryEntrySnapshot(
+      id: map['id'] as String? ?? '',
+      name: map['name'] as String? ?? '',
+      source: map['source'] as String? ?? '',
+      durationBeats: (map['durationBeats'] as num?)?.toDouble() ?? 4.0,
+      waveformPeaks: peaksRaw.map((p) => (p as num).toDouble()).toList(),
     );
   }
 }

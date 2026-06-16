@@ -1,9 +1,13 @@
 #pragma once
 
 #include "audioapp/ProjectEngine.hpp"
+#include "audioapp/SampleBank.hpp"
 
+#include <atomic>
+#include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace audioapp {
 
@@ -30,6 +34,13 @@ public:
                                double startBeat,
                                double lengthBeats);
     bool setMidiClipNotes(const std::string& clipId, const std::vector<MidiNoteState>& notes);
+    std::string createSampleClip(const std::string& trackId,
+                                 const std::string& sampleId,
+                                 double startBeat,
+                                 double lengthBeats);
+    std::string importWavSample(const std::string& displayName, const std::vector<uint8_t>& wavBytes);
+    void previewSample(const std::string& sampleId);
+    void ensureAudioOutput();
 
     /// Desktop / tests: `.audioapp.zip` I/O via ProjectArchive.cpp (ADR-0006).
     bool saveProject(const std::string& archivePath);
@@ -44,11 +55,29 @@ public:
 
     void advancePlayheadForBlock(int numFrames, double sampleRate) noexcept;
     float activeOscillatorFrequencyHz() const;
+    void readMasterMix(float* monoOut,
+                       int numFrames,
+                       double sampleRate,
+                       double playheadStartBeat) noexcept;
+    double playheadBeats() const noexcept;
+    void readPreviewMix(float* monoOut, int numFrames, double sampleRate) noexcept;
 
 private:
     struct Impl;
     std::unique_ptr<Impl> impl_;
     ProjectEngine project_;
+    SampleBank sampleBank_;
+    int nextImportSampleNum_ = 1;
+
+    struct PreviewVoice {
+        std::atomic<bool> active{false};
+        std::atomic<int> position{0};
+        std::vector<float> pcm;
+        std::atomic<double> sampleRate{48000.0};
+    };
+
+    PreviewVoice previewVoice_;
+    void ensureSampleBankReady();
 };
 
 } // namespace audioapp

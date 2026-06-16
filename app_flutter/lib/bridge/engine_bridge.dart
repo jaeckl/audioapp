@@ -79,6 +79,50 @@ class EngineBridge {
     });
   }
 
+  Future<ProjectSnapshot> createSampleClip({
+    required String trackId,
+    required String sampleId,
+    double startBeat = 0,
+    double lengthBeats = 0,
+  }) async {
+    return _invokeForSnapshot('createSampleClip', {
+      'trackId': trackId,
+      'sampleId': sampleId,
+      'startBeat': startBeat,
+      'lengthBeats': lengthBeats,
+    });
+  }
+
+  Future<void> previewSample(String sampleId) async {
+    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>('previewSample', {
+      'sampleId': sampleId,
+    });
+    if (result == null || result['ok'] != true) {
+      throw PlatformException(
+        code: result?['error']?.toString() ?? 'preview_failed',
+        message: 'Failed to preview sample',
+      );
+    }
+  }
+
+  /// Opens SAF picker for a WAV/audio file and imports into the sample library.
+  Future<ProjectSnapshot?> importSample() async {
+    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>('importSample');
+    if (result == null) {
+      throw PlatformException(code: 'null_response', message: 'No response from engine');
+    }
+    if (result['cancelled'] == true) {
+      return null;
+    }
+    if (result['ok'] != true) {
+      throw PlatformException(
+        code: result['error']?.toString() ?? 'import_failed',
+        message: 'Failed to import sample',
+      );
+    }
+    return ProjectSnapshot.fromMap(result);
+  }
+
   /// Opens the system save dialog for a `.audioapp.zip` archive.
   /// Returns the saved document URI, or null if the user cancelled.
   Future<String?> saveProject() async {

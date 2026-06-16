@@ -18,6 +18,7 @@ Interaction
 |-------------|---------|----------|--------|
 | Open library | Menu/button | Navigate | List loads |
 | Preview | Row tap or preview btn | Audio audition | Short play |
+| Insert on track | Button on row | Returns to arrangement | US-06-03 when wired |
 | Close | Back | Return | Stop preview |
 
 ## System dialogs
