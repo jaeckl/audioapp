@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22.1)
-project(audioapp_native LANGUAGES CXX)
+project(audioapp_native LANGUAGES CXX C)
 
 set(AUDIOAPP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../")
 

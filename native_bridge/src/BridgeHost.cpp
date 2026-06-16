@@ -3,10 +3,6 @@
 #include "audioapp/EngineHost.hpp"
 #include "audioapp/ProjectJson.hpp"
 
-#include <cstdlib>
-#include <cctype>
-#include <sstream>
-
 namespace audioapp::bridge {
 
 namespace {
@@ -16,62 +12,11 @@ EngineHost& engine() {
     return instance;
 }
 
-std::string extractJsonString(const std::string& json, const std::string& key) {
-    const std::string needle = "\"" + key + "\":";
-    const auto pos = json.find(needle);
-    if (pos == std::string::npos) {
-        return {};
-    }
-    size_t i = pos + needle.size();
-    while (i < json.size() && std::isspace(static_cast<unsigned char>(json[i]))) {
-        ++i;
-    }
-    if (i >= json.size() || json[i] != '"') {
-        return {};
-    }
-    ++i;
-    const auto start = i;
-    const auto end = json.find('"', start);
-    if (end == std::string::npos) {
-        return {};
-    }
-    return json.substr(start, end - start);
-}
-
-std::string escapeJsonString(const std::string& value) {
-    std::string out;
-    out.reserve(value.size());
-    for (char c : value) {
-        if (c == '"' || c == '\\') {
-            out.push_back('\\');
-        }
-        out.push_back(c);
-    }
-    return out;
-}
-
-float extractJsonNumber(const std::string& json, const std::string& key) {
-    const std::string needle = "\"" + key + "\":";
-    const auto pos = json.find(needle);
-    if (pos == std::string::npos) {
-        return 0.0f;
-    }
-    size_t i = pos + needle.size();
-    while (i < json.size() && std::isspace(static_cast<unsigned char>(json[i]))) {
-        ++i;
-    }
-    return std::strtof(json.c_str() + i, nullptr);
-}
-
-std::string okWithSnapshot() {
-  return std::string(R"({"ok":true,"snapshot":)") + engine().getProjectSnapshotJson() + "}";
-}
-
 } // namespace
 
 std::string BridgeHost::handleCommand(const std::string& method, const std::string& argumentsJson) {
     if (method == "ping") {
-        return R"({"ok":true,"message":")" + engine().ping() + R"("})";
+        return buildBridgeOkWithMessage(engine().ping());
     }
     if (method == "play") {
         playing_ = true;
@@ -85,75 +30,75 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
     }
     if (method == "createProject") {
         engine().createProject();
-        return okWithSnapshot();
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
     if (method == "getProjectSnapshot") {
-        return okWithSnapshot();
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
     if (method == "addTrack") {
-        const auto name = extractJsonString(argumentsJson, "name");
+        const auto name = jsonGetStringArg(argumentsJson, "name");
         engine().addTrack(name);
-        return okWithSnapshot();
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
     if (method == "selectTrack") {
-        const auto trackId = extractJsonString(argumentsJson, "trackId");
+        const auto trackId = jsonGetStringArg(argumentsJson, "trackId");
         if (!engine().selectTrack(trackId)) {
-            return R"({"ok":false,"error":"track_not_found"})";
+            return buildBridgeError("track_not_found");
         }
-        return okWithSnapshot();
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
     if (method == "addDeviceToTrack") {
-        const auto trackId = extractJsonString(argumentsJson, "trackId");
-        const auto deviceType = extractJsonString(argumentsJson, "deviceType");
+        const auto trackId = jsonGetStringArg(argumentsJson, "trackId");
+        const auto deviceType = jsonGetStringArg(argumentsJson, "deviceType");
         if (engine().addDeviceToTrack(trackId, deviceType).empty()) {
-            return R"({"ok":false,"error":"track_not_found"})";
+            return buildBridgeError("track_not_found");
         }
-        return okWithSnapshot();
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
     if (method == "setDeviceParameter") {
-        const auto deviceId = extractJsonString(argumentsJson, "deviceId");
-        const auto parameterId = extractJsonString(argumentsJson, "parameterId");
-        const auto value = extractJsonNumber(argumentsJson, "value");
+        const auto deviceId = jsonGetStringArg(argumentsJson, "deviceId");
+        const auto parameterId = jsonGetStringArg(argumentsJson, "parameterId");
+        const auto value = static_cast<float>(jsonGetNumberArg(argumentsJson, "value", 0.0));
         if (!engine().setDeviceParameter(deviceId, parameterId, value)) {
-            return R"({"ok":false,"error":"invalid_parameter"})";
+            return buildBridgeError("invalid_parameter");
         }
-        return okWithSnapshot();
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
     if (method == "createMidiClip") {
-        const auto trackId = extractJsonString(argumentsJson, "trackId");
-        const auto startBeat = extractJsonNumber(argumentsJson, "startBeat");
-        const auto lengthBeats = extractJsonNumber(argumentsJson, "lengthBeats");
+        const auto trackId = jsonGetStringArg(argumentsJson, "trackId");
+        const auto startBeat = jsonGetNumberArg(argumentsJson, "startBeat", 0.0);
+        const auto lengthBeats = jsonGetNumberArg(argumentsJson, "lengthBeats", 4.0);
         if (engine().createMidiClip(trackId, startBeat, lengthBeats).empty()) {
-            return R"({"ok":false,"error":"track_not_found"})";
+            return buildBridgeError("track_not_found");
         }
-        return okWithSnapshot();
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
     if (method == "setMidiClipNotes") {
-        const auto clipId = extractJsonString(argumentsJson, "clipId");
+        const auto clipId = jsonGetStringArg(argumentsJson, "clipId");
         const auto notes = parseMidiNotesFromArgs(argumentsJson);
         if (!engine().setMidiClipNotes(clipId, notes)) {
-            return R"({"ok":false,"error":"clip_not_found"})";
+            return buildBridgeError("clip_not_found");
         }
-        return okWithSnapshot();
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
 #ifndef __ANDROID__
     // Desktop bridge hosts: C++ archive I/O (ADR-0006). Android uses Kotlin ProjectArchiveStore.
     if (method == "saveProject") {
-        const auto path = extractJsonString(argumentsJson, "path");
+        const auto path = jsonGetStringArg(argumentsJson, "path");
         if (path.empty() || !engine().saveProject(path)) {
-            return R"({"ok":false,"error":"save_failed"})";
+            return buildBridgeError("save_failed");
         }
-        return R"({"ok":true,"path":")" + escapeJsonString(path) + "\"}";
+        return buildBridgeOkWithPath(path);
     }
     if (method == "loadProject") {
-        const auto path = extractJsonString(argumentsJson, "path");
+        const auto path = jsonGetStringArg(argumentsJson, "path");
         if (path.empty() || !engine().loadProject(path)) {
-            return R"({"ok":false,"error":"load_failed"})";
+            return buildBridgeError("load_failed");
         }
-        return okWithSnapshot();
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
 #endif
-    return R"({"ok":false,"error":"unknown_command"})";
+    return buildBridgeError("unknown_command");
 }
 
 std::string BridgeHost::getProjectFileJson() {
@@ -162,9 +107,9 @@ std::string BridgeHost::getProjectFileJson() {
 
 std::string BridgeHost::loadProjectFileJson(const std::string& projectJson) {
     if (projectJson.empty() || !engine().loadProjectFileJson(projectJson)) {
-        return R"({"ok":false,"error":"load_failed"})";
+        return buildBridgeError("load_failed");
     }
-    return okWithSnapshot();
+    return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
 }
 
 } // namespace audioapp::bridge

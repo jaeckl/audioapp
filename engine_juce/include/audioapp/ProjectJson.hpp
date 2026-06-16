@@ -22,4 +22,12 @@ bool parseProjectFileJson(const std::string& json, ProjectFileData& out);
 std::string snapshotToJson(const ProjectSnapshot& snapshot);
 std::vector<MidiNoteState> parseMidiNotesFromArgs(const std::string& argumentsJson);
 
+/// Bridge command JSON helpers (control thread).
+std::string jsonGetStringArg(const std::string& argumentsJson, const std::string& key);
+double jsonGetNumberArg(const std::string& argumentsJson, const std::string& key, double fallback = 0.0);
+std::string buildBridgeOkWithSnapshot(const std::string& snapshotJson);
+std::string buildBridgeOkWithPath(const std::string& path);
+std::string buildBridgeOkWithMessage(const std::string& message);
+std::string buildBridgeError(const std::string& errorCode);
+
 } // namespace audioapp

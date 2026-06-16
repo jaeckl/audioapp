@@ -55,8 +55,8 @@ project.audioapp.zip
 
 | Platform | Archive I/O | Serialize / deserialize |
 |----------|-------------|-------------------------|
-| **Android** | Kotlin `ProjectArchiveStore` + SAF save/open dialogs | C++ JNI |
-| **Desktop / tests** | C++ `ProjectArchive.cpp` | C++ `ProjectJson.cpp` |
+| **Android** | Kotlin `ProjectArchiveStore` + SAF save/open dialogs | C++ JNI (`juce::JSON` on control thread) |
+| **Desktop / tests** | C++ `ProjectArchive.cpp` | C++ `ProjectJson.cpp` (`juce::JSON`) |
 | **Flutter** | None (Save/Load UI → MethodChannel) | None |
 
 - **Save / Load** open system save/open dialogs for `project.audioapp.zip`.

@@ -32,10 +32,24 @@ First configure downloads JUCE into the CMake build directory.
 - `juce_audio_basics`
 - `juce_audio_devices`
 - `juce_audio_processors`
-- `juce_core`
+- `juce_core` — includes **`juce::JSON`**, `juce::var`, file utilities
 - `juce_events`
 
-Additional modules added only when needed.
+## JSON / project files
+
+Project serialization (`project.json` inside `.audioapp.zip`) must use **`juce::JSON`** on the control thread:
+
+- Parse: `juce::JSON::parse(jsonString)` → `juce::var`
+- Emit: `juce::JSON::toString(var, true)` for pretty, diffable output
+- Build objects with `juce::DynamicObject` or `juce::var` property trees
+
+Do not maintain a parallel custom JSON parser in `engine_juce`. Legacy hand-rolled code should be migrated when touching serialization.
+
+Realtime rule unchanged: no JSON work on the audio callback.
+
+### Android engine
+
+The Android `.so` links **`juce_core`** (`JUCE_MODULES_ONLY`) for `juce::JSON` on the control thread. Audio still uses AAudio (`EngineHost_android.cpp`). CMake projects must enable **`LANGUAGES CXX C`** when linking JUCE modules.
 
 ## Android vs desktop
 

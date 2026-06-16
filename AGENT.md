@@ -115,6 +115,84 @@ Each milestone must answer:
 * How is it tested?
 * Which docs/tickets were updated?
 
+### 2.6 Use JUCE and platform primitives — do not reinvent the wheel
+
+This project is built on **JUCE** and **mobile OS APIs**. Agents must prefer established libraries over custom implementations.
+
+**JSON and serialization (C++):**
+
+* Use **`juce::JSON`**, **`juce::var`**, and **`juce::DynamicObject`** for reading/writing `project.json` and other structured config.
+* Do **not** implement hand-rolled JSON parsers, `find("\"key\":")` scanners, or ad-hoc string builders for persisted formats.
+* Parsing/serialization runs on the **control thread only** (never on the audio callback — see §2.3).
+* Pretty-printed output is fine; use a real parser that handles whitespace.
+
+**Other JUCE:**
+
+* Before adding a utility (files, strings, time, threading helpers), check whether `juce_core` or an already-linked module provides it.
+* Add new JUCE modules only when justified; document in [juce_dependency.md](docs/architecture/juce_dependency.md).
+
+**OS and Flutter:**
+
+* User-facing **Save** / **Open** / **Export** must use **system document pickers** (Android SAF `CreateDocument` / `OpenDocument`, etc.), not folder-tree consent, raw path fields, or engine writing directly to arbitrary paths on mobile.
+* Zip/archive assembly on Android belongs in the Kotlin OS bridge; C++ owns schema and bytes-to-json, not SAF.
+
+**When custom code is OK:**
+
+* Realtime DSP, graph scheduling, and domain types with no suitable JUCE equivalent.
+* Thin adapters between JUCE types and bridge DTOs.
+
+### 2.7 Complete vertical slices — aim for a “wow moment”
+
+A user story is **not** done when only the engine hook exists, or when the happy path works only in unit tests with mocks.
+
+Ship the **full PO slice in one pass**:
+
+| Layer | Must be included when the story needs it |
+|-------|------------------------------------------|
+| **UX** | Obvious entry point (toolbar/menu), native dialogs where expected, status text, errors in the UI |
+| **Engine** | Authoritative C++ state change + serialization if persistent |
+| **Bridge** | Typed command, structured errors, snapshot refresh |
+| **Tests** | C++ round-trip on **real** serialized output; Flutter/widget tests; **manual demo script** on device |
+
+**Anti-patterns (do not ship as “done”):**
+
+* Save/load that writes bytes but uses a broken parser → user sees empty project with no error.
+* “Save” that only dumps JSON to an internal path without a save dialog.
+* “Load” that only works from a dev fixture, not from the user’s picked file.
+* Splitting one user-visible feature across multiple follow-up tickets (e.g. save dialog in a later amendment).
+
+If a ticket’s acceptance criteria are too thin, **refine the ticket first** (§14), then implement.
+
+**Demo script:** Every persistence or major UX story must name a **60-second on-device demo** (e.g. *add track → save via system dialog → kill app → open → load same file → arrangement matches*).
+
+### 2.8 Ship with confidence — investor-quality increments
+
+Treat **every increment as a demo to investors**: polished enough to trust, focused enough to ship.
+
+**Be bold and clear:**
+
+* Choose a concrete solution and implement the **full user-facing slice** — do not hedge with half-features that need a follow-up pass.
+* Prefer one well-built path over multiple partial options.
+* State goals and outcomes plainly in tickets and PRs.
+
+**Do not overengineer:**
+
+* No extra abstraction layers, generic frameworks, or “future-proof” plumbing without a current user story.
+* No duplicate models (Flutter vs C++) or parallel parsers.
+* If JUCE or the OS already solves it, use that.
+
+**Think one step ahead:**
+
+* **Modularity** — engine, bridge, and UI stay separable; devices and serialization evolve without rewrites.
+* **Separation of concerns** — C++ owns truth; Flutter renders; Kotlin/Android owns SAF I/O.
+* **Maintainability** — code a teammate can change in six months without archaeology.
+
+**Quality bar (mobile first):**
+
+* **No bugs, no strange behaviour** — empty states, cancel, and errors must be intentional and visible; never “success” with wrong data.
+* **Mobile UX** — thumb reach, system dialogs, clear feedback, no desktop idioms on phone.
+* **Verify on device** before calling a story done; C++ tests alone are not enough for persistence or SAF flows.
+
 ---
 
 ## 3. Target Platform
@@ -555,6 +633,7 @@ Rules:
 * Copy samples into exported bundles when exporting/sharing.
 * No autosave in MVP unless explicitly requested.
 * Undo/redo architecture should exist from day one.
+* **Serialize/deserialize with `juce::JSON` / `juce::var`** on the control thread (§2.6). Do not maintain a parallel custom JSON implementation.
 
 ### 9.1 Undo/redo
 
@@ -776,6 +855,8 @@ What risks remain?
 
 All work must be planned as markdown tickets under `/tickets`.
 
+Tickets are written for a **product owner**, not only for engineers. A PO should be able to read a ticket and know exactly what the user taps, what dialog appears, and how to verify success on a phone.
+
 Ticket template:
 
 ```markdown
@@ -789,47 +870,86 @@ Feature / Spike / Refactor / Test / Documentation / Bug
 
 Milestone name
 
+## User story
+
+As a **user**, I want … so that …
+
 ## Goal
 
-What user-visible or architecture-validating outcome should this produce?
+One sentence: the “wow moment” when this ships.
 
 ## Background
 
 Relevant context and links to docs/ADRs.
 
+## UX flow
+
+Numbered steps from the user’s perspective (every screen, button, and system dialog):
+
+1. User taps …
+2. System shows … (e.g. Android save-file dialog, default filename)
+3. On success …
+4. On cancel …
+5. On error …
+
+## Platform UX
+
+| Platform | Requirement |
+|----------|-------------|
+| Android | e.g. SAF `CreateDocument`, MIME type, default name, persistable URI |
+| (future iOS) | … |
+
 ## Scope
 
-What is included?
+What is included in **this** slice (must be shippable alone).
 
-## Out of Scope
+## Out of scope
 
-What is explicitly not included?
+What is explicitly not included (other stories or later phases).
 
-## Acceptance Criteria
+## Acceptance criteria
 
-- [ ] Criterion 1
-- [ ] Criterion 2
-- [ ] Criterion 3
+Functional (check all that apply):
 
-## Tests Required
+- [ ] …
+- [ ] Round-trip: created content survives save → reload (or named demo script)
+- [ ] Cancel leaves prior state unchanged
+- [ ] Failure shows clear message in UI (not silent empty state)
+- [ ] Uses framework/platform primitives (JUCE JSON, system dialogs) per §2.6
 
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] Audio render/golden tests
-- [ ] Widget tests
-- [ ] Manual smoke test
+## Demo script (on-device, ~60s)
 
-## User-Visible Result
+Steps a PO runs to sign off:
 
-What can the user see/hear/do after this ticket?
+1. …
+2. …
 
-## Realtime/Performance Notes
+## Tests required
+
+- [ ] C++ unit tests (real serialization round-trip where applicable)
+- [ ] Widget / integration tests
+- [ ] Audio golden tests (if audio)
+- [ ] Manual demo script on Android device
+
+## User-visible result
+
+What the user sees/hears when the story is complete.
+
+## Realtime/performance notes
 
 Any realtime or memory implications.
 
-## Documentation Updates
+## Documentation updates
 
-Which docs must be updated?
+Which docs/ADRs must be updated?
+
+## Depends on
+
+Story IDs or none.
+
+## Status
+
+Todo / In progress / Done
 ```
 
 ---
@@ -1009,30 +1129,28 @@ User-visible result:
 
 Goal:
 
-Persist projects in a versioned, diffable format.
+User can **save and open projects like a real app** — system dialogs, zip archive, full round-trip on device.
 
-Scope:
+Scope (single shippable slice — not engine-only first):
 
-* `.audioapp.zip` archive (contains `project.json`).
-* Stable IDs.
-* Save command.
-* Load command.
-* Basic project file version.
-* Serialization tests.
-* Migration placeholder.
+* `.audioapp.zip` archive (`project.json` + folder layout per ADR-0005).
+* **`juce::JSON` serialization** in C++ (no custom parser).
+* Android SAF **save-file** and **open-file** dialogs (ADR-0006).
+* Save / Load in app chrome with success, cancel, and error feedback.
+* C++ archive round-trip tests + on-device demo script.
 
 Acceptance criteria:
 
-* User can save project.
-* User can load project.
-* Tracks, clips, devices, parameters, and BPM restore correctly.
-* Project file is human-readable and diffable.
-* C++ serialization tests pass.
-* Flutter integration test covers save/load flow where practical.
+* Tap Save → system save dialog → default `project.audioapp.zip` → archive contains diffable `project.json` with current tracks/clips.
+* Tap Load → system open dialog → arrangement and device strip match saved project.
+* Kill app between save and load → still works.
+* Cancel → no error, state unchanged.
+* Corrupt/wrong file → clear error in UI.
+* C++ tests parse **actual** `projectFileToJson` output.
 
 User-visible result:
 
-* User can create a simple project, close/reopen, and continue.
+* PO demo: add track + clip → Save → force-stop app → Load → continue editing. One pass, no follow-up “add dialog” ticket.
 
 ---
 
@@ -1173,7 +1291,8 @@ User-visible result:
 * Use immutable or double-buffered render graph snapshots.
 * Keep device DSP independent from Flutter.
 * Keep serialization independent from UI.
-* Write unit tests for engine logic.
+* **Use `juce::JSON` / `juce::var` for JSON** — never hand-roll parsers (§2.6).
+* Write unit tests for engine logic; serialization tests must round-trip **real** engine output.
 
 ### 16.2 Flutter guidelines
 
@@ -1205,14 +1324,16 @@ User-visible result:
 
 A ticket is done only when:
 
-* Acceptance criteria are met.
-* The feature is visible and/or audible if it is user-facing.
-* Required tests are added or updated.
+* All acceptance criteria and the **demo script** pass.
+* The feature is visible and/or audible if it is user-facing — including **dialogs, feedback, and error states** named in the ticket.
+* Required tests are added or updated (C++ round-trip uses real serialized output where applicable).
 * Relevant docs are updated.
 * Realtime implications are considered.
 * No fake UI-only implementation is presented as real.
+* No “phase 2” follow-up is required for the same user story (e.g. adding save dialog after “save works internally”).
+* Framework primitives used per §2.6 (JUCE JSON, system document pickers).
 * The app still builds.
-* The Android smoke path still works.
+* The Android on-device demo script succeeds.
 
 For audio tickets, done also requires:
 
@@ -1220,6 +1341,12 @@ For audio tickets, done also requires:
 * no known audio-thread safety violation
 * no unbounded allocations in audio callback
 * deterministic tests where possible
+
+For persistence tickets, done also requires:
+
+* save → load round-trip on device restores tracks, clips, devices, and parameters
+* user cancel and failure paths verified
+* no silent empty state on successful load
 
 ---
 
@@ -1236,17 +1363,19 @@ When working as the coding agent:
 7. Never hide unfinished work behind polished UI.
 8. Never claim audio works unless there is a real JUCE path.
 9. Prefer clean separation of concerns.
-10. Reuse functionality where appropriate.
-11. Plan ahead enough to avoid dead ends, but do not overengineer before the first sound.
-12. Update ADRs when architecture changes.
-13. Keep Flutter and JUCE decoupled.
-14. Keep engine reusable outside Flutter.
-15. Keep MVP Android-first.
-16. Avoid iOS-specific work unless explicitly requested.
-17. Avoid server/cloud/account features.
-18. Avoid external plugin hosting.
-19. Keep project files versioned and diffable.
-20. Always preserve realtime safety.
+10. Reuse JUCE and OS APIs — do not reinvent JSON, file pickers, or zip I/O (§2.6).
+11. Implement the **full** user story in one slice — UX, bridge, engine, tests, demo script (§2.7).
+12. Ship **investor-quality** increments: bold complete solutions, no overengineering, mobile UX verified on device (§2.8).
+13. Plan ahead enough to avoid dead ends, but do not overengineer before the first sound.
+14. Update ADRs when architecture changes.
+15. Keep Flutter and JUCE decoupled.
+16. Keep engine reusable outside Flutter.
+17. Keep MVP Android-first.
+18. Avoid iOS-specific work unless explicitly requested.
+19. Avoid server/cloud/account features.
+20. Avoid external plugin hosting.
+21. Keep project files versioned and diffable.
+22. Always preserve realtime safety.
 
 ---
 

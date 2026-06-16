@@ -36,3 +36,6 @@
 
 - Keep JSON parsing off the audio thread
 - Version all persisted structures
+- Use **`juce::JSON`**, **`juce::var`**, and **`juce::DynamicObject`** for `project.json` read/write (see AGENT.md §2.6)
+- Do not add hand-rolled JSON scanners or string concatenation serializers
+- Unit tests must round-trip **real** `getProjectFileJson()` output, including pretty-printed whitespace

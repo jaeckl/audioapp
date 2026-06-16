@@ -24,4 +24,13 @@ See [docs/milestones/roadmap.md](../docs/milestones/roadmap.md) for the full pha
 
 ## Definition of done
 
-Per AGENT.md §17: acceptance criteria met, tests added, docs updated, app builds, Android smoke path works. Audio stories require a real JUCE path and realtime safety review.
+Per [AGENT.md](../AGENT.md) §17:
+
+- Acceptance criteria **and** the ticket’s **demo script** pass on Android device
+- Full vertical slice: UX (dialogs, feedback, errors) + engine + bridge + tests
+- JUCE JSON and system document pickers where applicable (§2.6)
+- No follow-up ticket needed to complete the same user-facing story
+
+Audio stories: real JUCE path + realtime safety review.
+
+Persistence stories: save → kill app → load round-trip on device.

@@ -79,7 +79,7 @@ object ProjectArchiveStore {
     fun writeProjectArchive(context: Context, documentUri: Uri, projectJson: String) {
         persistDocumentUri(context, documentUri, writable = true)
         val bytes = buildArchiveBytes(projectJson)
-        context.contentResolver.openOutputStream(documentUri, "wt")?.use { stream ->
+        context.contentResolver.openOutputStream(documentUri)?.use { stream ->
             stream.write(bytes)
         } ?: throw IOException("Could not open archive for writing")
     }

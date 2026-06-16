@@ -1,0 +1,28 @@
+---
+description: Complete vertical slices and use JUCE/platform primitives — do not reinvent wheels.
+alwaysApply: true
+---
+
+# Vertical slices & JUCE-first
+
+Read [AGENT.md](../../AGENT.md) §2.5–2.7, §14, §17 before implementing a user story.
+
+## Do not reinvent the wheel
+
+- **JSON (C++):** use `juce::JSON` / `juce::var` / `juce::DynamicObject` for project and config serialization. Do **not** add hand-rolled string parsers for JSON.
+- **JUCE elsewhere:** prefer JUCE modules already in the dependency tree (`juce_core`, audio, etc.) before custom utilities.
+- **OS I/O:** use platform save/open dialogs (Android SAF `CreateDocument` / `OpenDocument`, etc.) — not folder-tree pickers or raw path text fields for user-facing save/load.
+- **Realtime path:** still no JSON parsing on the audio thread (parse on control thread, then apply snapshot).
+
+## Ship the full slice — “wow moment”
+
+A vertical slice is **done** when a PO can demo it once on device without follow-up amendments:
+
+- End-to-end UX (button → native dialog → engine → UI refresh)
+- Clear success, cancel, and error feedback
+- Round-trip or playback proof where persistence/audio is involved
+- C++ tests that exercise **real** serialized output (not mocks only)
+
+If acceptance criteria omit dialogs, error states, or the demo script, **expand the ticket first**, then implement.
+
+**Investor bar (§2.8):** Bold, complete slices; no overengineering; verify on device; mobile UX matters.

@@ -73,10 +73,10 @@ Vertical slices only. Each user story must be visible, testable, and (when audio
 
 | ID | User story | Status |
 |----|------------|--------|
-| [US-05-01](../../tickets/milestone-05/US-05-01-save-project.md) | As a **user**, I can save my project as a `.audioapp.zip` archive with diffable `project.json`. | Done |
-| [US-05-02](../../tickets/milestone-05/US-05-02-load-project.md) | As a **user**, I can load a saved `.audioapp.zip` and continue editing. | Done |
+| [US-05-01](../../tickets/milestone-05/US-05-01-save-project.md) | As a **user**, I save via the **system save dialog** to a `.audioapp.zip` I choose. | Done |
+| [US-05-02](../../tickets/milestone-05/US-05-02-load-project.md) | As a **user**, I open a saved `.audioapp.zip` via the **system file picker** and continue editing. | Done |
 
-**User-visible outcome:** Projects survive app restart.
+**User-visible outcome:** Save → force-stop app → Load → arrangement restored (PO demo script in milestone-05.md).
 
 ---
 

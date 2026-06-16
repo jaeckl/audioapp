@@ -1,11 +1,28 @@
 cmake_minimum_required(VERSION 3.22)
-project(audioapp_engine VERSION 0.1.0 LANGUAGES CXX)
+project(audioapp_engine VERSION 0.1.0 LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(AUDIOAPP_BUILD_TESTS "Build engine unit tests" ON)
+
+set(JUCE_BUILD_HELPER_TOOLS OFF CACHE BOOL "" FORCE)
+set(JUCE_BUILD_EXTRAS OFF CACHE BOOL "" FORCE)
+set(JUCE_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+if(ANDROID)
+  # Cross-compiling Android cannot bootstrap juceaide on all host toolchains; modules-only is enough for juce_core JSON.
+  set(JUCE_MODULES_ONLY ON CACHE BOOL "" FORCE)
+endif()
+
+include(FetchContent)
+FetchContent_Declare(
+  JUCE
+  GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
+  GIT_TAG        8.0.4
+  GIT_SHALLOW    TRUE
+)
+FetchContent_MakeAvailable(JUCE)
 
 add_library(audioapp_engine STATIC
   src/TestOscillator.cpp
@@ -21,6 +38,18 @@ target_include_directories(audioapp_engine
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+target_link_libraries(audioapp_engine
+  PUBLIC
+    juce::juce_core
+)
+
+target_compile_definitions(audioapp_engine
+  PUBLIC
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+
 if(ANDROID)
   target_sources(audioapp_engine PRIVATE src/EngineHost_android.cpp)
   find_library(aaudio-lib aaudio)
@@ -31,32 +60,12 @@ if(ANDROID)
       ${log-lib}
   )
 else()
-  set(JUCE_BUILD_HELPER_TOOLS OFF CACHE BOOL "" FORCE)
-  set(JUCE_BUILD_EXTRAS OFF CACHE BOOL "" FORCE)
-  set(JUCE_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-
-  include(FetchContent)
-  FetchContent_Declare(
-    JUCE
-    GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
-    GIT_TAG        8.0.4
-    GIT_SHALLOW    TRUE
-  )
-  FetchContent_MakeAvailable(JUCE)
-
   target_sources(audioapp_engine PRIVATE src/EngineHost_juce.cpp)
   target_link_libraries(audioapp_engine
     PUBLIC
       juce::juce_audio_basics
       juce::juce_audio_devices
-      juce::juce_core
       juce::juce_events
-  )
-  target_compile_definitions(audioapp_engine
-    PUBLIC
-      JUCE_WEB_BROWSER=0
-      JUCE_USE_CURL=0
-      JUCE_DISPLAY_SPLASH_SCREEN=0
   )
 endif()
 
