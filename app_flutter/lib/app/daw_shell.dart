@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../features/arrangement/arrangement_timeline_metrics.dart';
 import '../app/app_info.dart';
+import 'daw_bottom_nav_bar.dart';
 import '../bridge/engine_bridge.dart';
 import '../bridge/project_snapshot.dart';
 import '../features/arrangement/arrangement_view.dart';
