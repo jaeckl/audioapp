@@ -25,4 +25,6 @@ A vertical slice is **done** when a PO can demo it once on device without follow
 
 If acceptance criteria omit dialogs, error states, or the demo script, **expand the ticket first**, then implement.
 
+**Companion tickets:** every user-facing `US-XX-YY` needs `US-XX-YY-ux-ui.md` and `US-XX-YY-interaction.md` (AGENT.md §14.1). Run `python tools/gen_companion_tickets.py` after manifest edits.
+
 **Investor bar (§2.8):** Bold, complete slices; no overengineering; verify on device; mobile UX matters.
