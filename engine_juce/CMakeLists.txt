@@ -34,6 +34,7 @@ add_library(audioapp_engine STATIC
   src/WavLoader.cpp
   src/SamplePlayback.cpp
   src/MasterMix.cpp
+  src/DeviceChain.cpp
   src/EngineHost_commands.cpp
 )
 
@@ -87,6 +88,8 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/sample_clip_test.cpp
     tests/master_mix_test.cpp
     tests/track_gain_test.cpp
+    tests/sampler_midi_playback_test.cpp
+    tests/device_chain_test.cpp
   )
   target_link_libraries(audioapp_engine_tests PRIVATE audioapp_engine)
   add_test(NAME engine_smoke COMMAND audioapp_engine_tests)

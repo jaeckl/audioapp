@@ -34,8 +34,8 @@ void main() {
           'devices': [
             {
               'id': 'dev-1',
-              'type': 'simple_oscillator',
-              'parameters': {'frequency': 440.0},
+              'type': 'simple_sampler',
+              'parameters': {'gain': 1.0, 'sampleId': ''},
             },
           ],
           'midiClips': [],
@@ -60,6 +60,7 @@ void main() {
         case 'selectTrack':
           return oneTrackSnapshot;
         case 'setDeviceParameter':
+        case 'setDeviceStringParameter':
           return {
             'ok': true,
             'snapshot': {
@@ -74,8 +75,8 @@ void main() {
                   'devices': [
                     {
                       'id': 'dev-1',
-                      'type': 'simple_oscillator',
-                      'parameters': {'frequency': 220.0},
+                      'type': 'simple_sampler',
+                      'parameters': {'gain': 0.5, 'sampleId': 'sample-1'},
                     },
                   ],
                   'midiClips': [],
@@ -98,8 +99,8 @@ void main() {
                   'devices': [
                     {
                       'id': 'dev-1',
-                      'type': 'simple_oscillator',
-                      'parameters': {'frequency': 440.0},
+                      'type': 'simple_sampler',
+                      'parameters': {'gain': 1.0, 'sampleId': ''},
                     },
                   ],
                   'midiClips': [
@@ -129,8 +130,8 @@ void main() {
                   'devices': [
                     {
                       'id': 'dev-1',
-                      'type': 'simple_oscillator',
-                      'parameters': {'frequency': 440.0},
+                      'type': 'simple_sampler',
+                      'parameters': {'gain': 1.0, 'sampleId': ''},
                     },
                   ],
                   'midiClips': [
@@ -175,8 +176,8 @@ void main() {
                   'devices': [
                     {
                       'id': 'dev-1',
-                      'type': 'simple_oscillator',
-                      'parameters': {'frequency': 220.0},
+                      'type': 'simple_sampler',
+                      'parameters': {'gain': 0.5, 'sampleId': ''},
                     },
                   ],
                   'midiClips': [],
@@ -207,16 +208,25 @@ void main() {
   test('addTrack returns snapshot with track', () async {
     final snapshot = await bridge.addTrack(name: 'Track 1');
     expect(snapshot.tracks.length, 1);
-    expect(snapshot.tracks.first.devices.first.frequencyHz, 440.0);
+    expect(snapshot.tracks.first.devices.first.gain, 1.0);
   });
 
-  test('setDeviceParameter updates frequency in snapshot', () async {
+  test('setDeviceParameter updates sampler gain in snapshot', () async {
     final snapshot = await bridge.setDeviceParameter(
       deviceId: 'dev-1',
-      parameterId: 'frequency',
-      value: 220.0,
+      parameterId: 'gain',
+      value: 0.5,
     );
-    expect(snapshot.selectedTrack?.devices.first.frequencyHz, 220.0);
+    expect(snapshot.selectedTrack?.devices.first.gain, 0.5);
+  });
+
+  test('setDeviceStringParameter updates sampler sample id', () async {
+    final snapshot = await bridge.setDeviceStringParameter(
+      deviceId: 'dev-1',
+      parameterId: 'sampleId',
+      value: 'sample-1',
+    );
+    expect(snapshot.selectedTrack?.devices.first.sampleId, 'sample-1');
   });
 
   test('createMidiClip returns snapshot with clip', () async {
@@ -249,6 +259,6 @@ void main() {
     final snapshot = await bridge.loadProject();
     expect(snapshot, isNotNull);
     expect(snapshot!.tracks.first.name, 'Loaded Track');
-    expect(snapshot.tracks.first.devices.first.frequencyHz, 220.0);
+    expect(snapshot.tracks.first.devices.first.gain, 0.5);
   });
 }

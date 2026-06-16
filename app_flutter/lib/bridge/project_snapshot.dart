@@ -52,6 +52,24 @@ extension TrackSnapshotDevices on TrackSnapshot {
   Iterable<DeviceSnapshot> get visibleDevices =>
       devices.where((device) => device.type != 'track_gain');
 
+  DeviceSnapshot? get samplerDevice {
+    for (final device in visibleDevices) {
+      if (device.type == 'simple_sampler') {
+        return device;
+      }
+    }
+    return null;
+  }
+
+  DeviceSnapshot? get oscillatorDevice {
+    for (final device in visibleDevices) {
+      if (device.type == 'simple_oscillator') {
+        return device;
+      }
+    }
+    return null;
+  }
+
   DeviceSnapshot? get trackGainDevice {
     for (var i = devices.length - 1; i >= 0; i--) {
       if (devices[i].type == 'track_gain') {
@@ -123,12 +141,14 @@ class DeviceSnapshot {
     required this.type,
     required this.frequencyHz,
     required this.gain,
+    required this.sampleId,
   });
 
   final String id;
   final String type;
   final double frequencyHz;
   final double gain;
+  final String sampleId;
 
   factory DeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -137,6 +157,7 @@ class DeviceSnapshot {
       type: map['type'] as String? ?? '',
       frequencyHz: (params['frequency'] as num?)?.toDouble() ?? 440.0,
       gain: (params['gain'] as num?)?.toDouble() ?? 1.0,
+      sampleId: params['sampleId'] as String? ?? '',
     );
   }
 }

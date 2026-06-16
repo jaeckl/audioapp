@@ -32,6 +32,12 @@ bool EngineHost::setDeviceParameter(const std::string& deviceId,
     return project_.setDeviceParameter(deviceId, parameterId, value);
 }
 
+bool EngineHost::setDeviceStringParameter(const std::string& deviceId,
+                                          const std::string& parameterId,
+                                          const std::string& value) {
+    return project_.setDeviceStringParameter(deviceId, parameterId, value);
+}
+
 bool EngineHost::setMasterGain(float gain) {
     return project_.setMasterGain(gain);
 }

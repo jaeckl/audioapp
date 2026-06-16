@@ -1,39 +1,46 @@
-#include "audioapp/ProjectEngine.hpp"
+#include "audioapp/EngineHost.hpp"
 
 #include <cmath>
 #include <cstdlib>
 
 int main() {
-    audioapp::ProjectEngine project;
-    project.createProject();
-    const std::string trackId = project.addTrack("A");
+    audioapp::EngineHost host;
+    host.createProject();
+    const std::string trackId = host.addTrack("A");
     if (trackId.empty()) {
         return EXIT_FAILURE;
     }
 
-    const auto snap = project.snapshot();
-    if (snap.tracks.size() != 1 || snap.tracks[0].devices.size() < 2) {
+    if (host.createSampleClip(trackId, "sample_kick", 0.0, 0.0).empty()) {
         return EXIT_FAILURE;
     }
 
-    const auto& gainDevice = snap.tracks[0].devices.back();
-    if (gainDevice.type != "track_gain") {
+    const std::string json = host.getProjectSnapshotJson();
+    const auto gainPos = json.rfind("\"type\":\"track_gain\"");
+    if (gainPos == std::string::npos) {
+        return EXIT_FAILURE;
+    }
+    const auto idPos = json.rfind("\"id\":\"dev-", gainPos);
+    if (idPos == std::string::npos) {
+        return EXIT_FAILURE;
+    }
+    const auto idStart = idPos + 6;
+    const auto idEnd = json.find('"', idStart);
+    const std::string gainDeviceId = json.substr(idStart, idEnd - idStart);
+
+    if (!host.setDeviceParameter(gainDeviceId, "gain", 0.5f)) {
         return EXIT_FAILURE;
     }
 
-    if (!project.setDeviceParameter(gainDevice.id, "gain", 0.5f)) {
-        return EXIT_FAILURE;
-    }
-
-    project.setPlaying(true);
+    host.setPlaying(true);
     float full[256] = {};
     float half[256] = {};
-    project.readMasterMix(full, 256, 48000.0, 0.0);
+    host.readMasterMix(full, 256, 48000.0, 0.0);
 
-    if (!project.setDeviceParameter(gainDevice.id, "gain", 0.25f)) {
+    if (!host.setDeviceParameter(gainDeviceId, "gain", 0.25f)) {
         return EXIT_FAILURE;
     }
-    project.readMasterMix(half, 256, 48000.0, 0.0);
+    host.readMasterMix(half, 256, 48000.0, 0.0);
 
     float peakFull = 0.0f;
     float peakHalf = 0.0f;
@@ -50,12 +57,12 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    if (!project.setMasterGain(0.5f)) {
+    if (!host.setMasterGain(0.5f)) {
         return EXIT_FAILURE;
     }
 
     float masterHalf[256] = {};
-    project.readMasterMix(masterHalf, 256, 48000.0, 0.0);
+    host.readMasterMix(masterHalf, 256, 48000.0, 0.0);
     float peakMasterHalf = 0.0f;
     for (const float sample : masterHalf) {
         peakMasterHalf = std::max(peakMasterHalf, std::abs(sample));

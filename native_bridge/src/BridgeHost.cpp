@@ -71,6 +71,15 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         }
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
+    if (method == "setDeviceStringParameter") {
+        const auto deviceId = jsonGetStringArg(argumentsJson, "deviceId");
+        const auto parameterId = jsonGetStringArg(argumentsJson, "parameterId");
+        const auto value = jsonGetStringArg(argumentsJson, "value");
+        if (!engine().setDeviceStringParameter(deviceId, parameterId, value)) {
+            return buildBridgeError("invalid_parameter");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
     if (method == "setPlayheadBeats") {
         const auto beats = jsonGetNumberArg(argumentsJson, "playheadBeats", 0.0);
         engine().setPlayheadBeats(beats);

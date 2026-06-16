@@ -38,6 +38,9 @@ int main() {
     }
 
     project.setPlaying(true);
+    if (project.addDeviceToTrack(trackId, "simple_oscillator").empty()) {
+        return EXIT_FAILURE;
+    }
     if (std::abs(project.activeOscillatorFrequencyHz() - 261.63f) > 1.0f) {
         return EXIT_FAILURE;
     }

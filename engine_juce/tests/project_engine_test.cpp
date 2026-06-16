@@ -22,11 +22,16 @@ int main() {
     }
 
     const auto& device = snap.tracks[0].devices[0];
-    if (!project.setDeviceParameter(device.id, "frequency", 220.0f)) {
+    if (device.type != "simple_sampler") {
         return EXIT_FAILURE;
     }
 
-    if (std::abs(project.activeOscillatorFrequencyHz() - 220.0f) > 0.01f) {
+    if (!project.setDeviceParameter(device.id, "gain", 0.5f)) {
+        return EXIT_FAILURE;
+    }
+
+    const auto snapAfterGain = project.snapshot();
+    if (std::abs(snapAfterGain.tracks[0].devices[0].gain - 0.5f) > 0.01f) {
         return EXIT_FAILURE;
     }
 
@@ -63,9 +68,6 @@ int main() {
 
     project.setPlaying(true);
     if (!project.isPlaying()) {
-        return EXIT_FAILURE;
-    }
-    if (std::abs(project.activeOscillatorFrequencyHz() - 261.63f) > 1.0f) {
         return EXIT_FAILURE;
     }
     project.setPlaying(false);

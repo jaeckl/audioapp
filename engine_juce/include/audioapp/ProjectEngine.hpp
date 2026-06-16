@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <cstdint>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -8,6 +9,7 @@
 #include "audioapp/MidiClipPlayback.hpp"
 #include "audioapp/SampleBank.hpp"
 #include "audioapp/SampleTypes.hpp"
+#include "audioapp/DeviceChain.hpp"
 
 namespace audioapp {
 
@@ -18,6 +20,7 @@ struct DeviceState {
     std::string type;
     float frequencyHz = 440.0f;
     float gain = 1.0f;
+    std::string sampleId;
 };
 
 struct TrackState {
@@ -54,6 +57,9 @@ public:
     bool setDeviceParameter(const std::string& deviceId,
                             const std::string& parameterId,
                             float value);
+    bool setDeviceStringParameter(const std::string& deviceId,
+                                  const std::string& parameterId,
+                                  const std::string& value);
     bool setMasterGain(float gain);
     std::string createMidiClip(const std::string& trackId,
                                double startBeat,
@@ -92,6 +98,7 @@ private:
         std::string type;
         float frequencyHz = 440.0f;
         float gain = 1.0f;
+        std::string sampleId;
     };
 
     struct MidiNote {
@@ -129,6 +136,7 @@ private:
         double clipLengthBeats = 4.0;
         double noteStartBeat = 0.0;
         double noteDurationBeats = 1.0;
+        float velocity = 100.0f;
     };
 
     struct SampleRegion {
@@ -141,17 +149,16 @@ private:
 
     struct TrackPlaybackSnapshot {
         std::string trackId;
-        float idleFrequencyHz = 440.0f;
-        float trackGain = 1.0f;
         int noteCount = 0;
         PlaybackNote notes[32];
         int regionCount = 0;
         SampleRegion regions[8];
-        float phase = 0.0f;
+        int deviceCount = 0;
+        DeviceNodePlayback devices[kMaxDevicesPerTrack];
+        float oscillatorPhase = 0.0f;
     };
 
     static constexpr int kMaxTracks = 8;
-    static constexpr float kOscillatorGain = 0.2f;
 
     mutable std::mutex mutex_;
     std::string projectName_ = "Untitled";
@@ -171,14 +178,12 @@ private:
     std::atomic<int> trackPlaybackCount_{0};
 
     void rebuildTrackPlaybackLocked();
-    float frequencyForTrackSnapshot(const TrackPlaybackSnapshot& track, double playheadBeat) const noexcept;
     bool trackHasActiveSampleAtPlayhead(const TrackPlaybackSnapshot& track, double playheadBeat) const noexcept;
     int selectedTrackPlaybackIndex() const noexcept;
-    float frequencyForPlayheadUnlocked(double playheadBeat) const noexcept;
     void syncActiveFrequencyLocked();
     void recomputeIdCountersLocked();
     void ensureTrackGainDevicesLocked();
-    static float trackGainFromDevices(const std::vector<Device>& devices);
+    const DeviceNodePlayback* findOscillatorNode(const TrackPlaybackSnapshot& track) const noexcept;
     Track* findTrackLocked(const std::string& trackId);
     Device* findDeviceLocked(const std::string& deviceId);
     MidiClip* findMidiClipLocked(const std::string& clipId);

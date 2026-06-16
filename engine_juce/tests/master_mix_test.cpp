@@ -6,8 +6,19 @@
 int main() {
     audioapp::EngineHost host;
     host.createProject();
-    host.addTrack("A");
-    host.addTrack("B");
+    const std::string trackA = host.addTrack("A");
+    const std::string trackB = host.addTrack("B");
+    if (trackA.empty() || trackB.empty()) {
+        return EXIT_FAILURE;
+    }
+
+    if (host.createSampleClip(trackA, "sample_kick", 0.0, 0.0).empty()) {
+        return EXIT_FAILURE;
+    }
+    if (host.createSampleClip(trackB, "sample_snare", 0.0, 0.0).empty()) {
+        return EXIT_FAILURE;
+    }
+
     host.setPlaying(true);
 
     float buffer[256] = {};

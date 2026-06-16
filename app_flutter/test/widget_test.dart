@@ -46,8 +46,8 @@ void main() {
                   'devices': [
                     {
                       'id': 'dev-1',
-                      'type': 'simple_oscillator',
-                      'parameters': {'frequency': 440.0},
+                      'type': 'simple_sampler',
+                      'parameters': {'gain': 1.0, 'sampleId': ''},
                     },
                     {
                       'id': 'dev-2',
@@ -75,8 +75,8 @@ void main() {
                   'devices': [
                     {
                       'id': 'dev-1',
-                      'type': 'simple_oscillator',
-                      'parameters': {'frequency': 440.0},
+                      'type': 'simple_sampler',
+                      'parameters': {'gain': 1.0, 'sampleId': ''},
                     },
                     {
                       'id': 'dev-2',
@@ -120,8 +120,8 @@ void main() {
                   'devices': [
                     {
                       'id': 'dev-1',
-                      'type': 'simple_oscillator',
-                      'parameters': {'frequency': 440.0},
+                      'type': 'simple_sampler',
+                      'parameters': {'gain': 1.0, 'sampleId': ''},
                     },
                     {
                       'id': 'dev-2',
@@ -163,8 +163,8 @@ void main() {
                   'devices': [
                     {
                       'id': 'dev-1',
-                      'type': 'simple_oscillator',
-                      'parameters': {'frequency': 440.0},
+                      'type': 'simple_sampler',
+                      'parameters': {'gain': 1.0, 'sampleId': ''},
                     },
                     {
                       'id': 'dev-2',
@@ -238,8 +238,8 @@ void main() {
                   'devices': [
                     {
                       'id': 'dev-1',
-                      'type': 'simple_oscillator',
-                      'parameters': {'frequency': 440.0},
+                      'type': 'simple_sampler',
+                      'parameters': {'gain': 1.0, 'sampleId': ''},
                     },
                     {
                       'id': 'dev-2',
@@ -253,6 +253,7 @@ void main() {
             },
           };
         case 'setDeviceParameter':
+        case 'setDeviceStringParameter':
         case 'setMasterGain':
         case 'setPlayheadBeats':
         case 'play':
@@ -287,7 +288,7 @@ void main() {
     expect(find.byIcon(Icons.play_arrow), findsOneWidget);
   });
 
-  testWidgets('Adding track shows device strip with frequency slider', (tester) async {
+  testWidgets('Adding track shows sampler device strip', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -301,8 +302,8 @@ void main() {
     await tester.tap(find.byTooltip('Add track'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Device strip — Track 1'), findsOneWidget);
-    expect(find.text('Frequency'), findsOneWidget);
+    expect(find.text('SAMPLER'), findsOneWidget);
+    expect(find.text('Load'), findsOneWidget);
     expect(find.byType(Slider), findsOneWidget);
   });
 

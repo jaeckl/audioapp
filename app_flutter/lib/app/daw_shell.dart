@@ -10,6 +10,7 @@ import '../bridge/engine_bridge.dart';
 import '../bridge/project_snapshot.dart';
 import '../features/arrangement/arrangement_view.dart';
 import '../features/device_strip/device_strip.dart';
+import '../features/device_strip/sampler_editor_screen.dart';
 import '../features/mixer/mixer_view.dart';
 import '../features/piano_roll/piano_roll_screen.dart';
 import '../features/sample_library/sample_library_screen.dart';
@@ -179,6 +180,92 @@ class _DawShellState extends State<DawShell> {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
     }
+  }
+
+  Future<void> _setSamplerGain(String deviceId, double value) async {
+    try {
+      final snapshot = await widget.bridge.setDeviceParameter(
+        deviceId: deviceId,
+        parameterId: 'gain',
+        value: value,
+      );
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
+  Future<void> _assignSamplerSample(String deviceId, String sampleId) async {
+    try {
+      final snapshot = await widget.bridge.setDeviceStringParameter(
+        deviceId: deviceId,
+        parameterId: 'sampleId',
+        value: sampleId,
+      );
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
+  SampleLibraryEntrySnapshot? _sampleForDevice(DeviceSnapshot device) {
+    if (device.sampleId.isEmpty) {
+      return null;
+    }
+    for (final sample in _snapshot?.samples ?? const <SampleLibraryEntrySnapshot>[]) {
+      if (sample.id == device.sampleId) {
+        return sample;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _openSamplerEditor(TrackSnapshot track, DeviceSnapshot device) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (context) => SamplerEditorScreen(
+          trackName: track.name,
+          device: device,
+          sample: _sampleForDevice(device),
+          onGainChanged: (value) => _setSamplerGain(device.id, value),
+          onLoadSample: () => _pickSamplerSample(device.id),
+        ),
+      ),
+    );
+
+    try {
+      final snapshot = await widget.bridge.getProjectSnapshot();
+      await _refreshSnapshot(snapshot);
+    } catch (_) {}
+  }
+
+  Future<void> _pickSamplerSample(String deviceId) async {
+    final sample = await showModalBottomSheet<SampleLibraryEntrySnapshot>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0E0E14),
+      showDragHandle: true,
+      builder: (context) => SizedBox(
+        height: MediaQuery.of(context).size.height * 0.82,
+        child: SampleLibraryPickerSheet(
+          initialSamples: _snapshot?.samples ?? const [],
+          onPreview: _previewSample,
+          onImportSamples: () async {
+            final updated = await widget.bridge.importSample();
+            if (updated != null) {
+              await _refreshSnapshot(updated);
+              return updated.samples;
+            }
+            return _snapshot?.samples ?? const [];
+          },
+          onSampleSelected: (entry) => Navigator.pop(context, entry),
+        ),
+      ),
+    );
+    if (sample == null) return;
+    await _assignSamplerSample(deviceId, sample.id);
   }
 
   Future<void> _setFrequency(String deviceId, double value) async {
@@ -393,6 +480,19 @@ class _DawShellState extends State<DawShell> {
             ),
             DeviceStrip(
               track: snapshot.selectedTrack,
+              samples: snapshot.samples,
+              onSamplerGainChanged: _setSamplerGain,
+              onAssignSamplerSample: _assignSamplerSample,
+              onOpenSamplerEditor: _openSamplerEditor,
+              onPreviewSample: _previewSample,
+              onImportSamples: () async {
+                final updated = await widget.bridge.importSample();
+                if (updated != null) {
+                  await _refreshSnapshot(updated);
+                  return updated.samples;
+                }
+                return snapshot.samples;
+              },
               onFrequencyChanged: _setFrequency,
             ),
           ],

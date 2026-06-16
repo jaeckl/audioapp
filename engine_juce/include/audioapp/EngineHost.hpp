@@ -30,6 +30,9 @@ public:
     bool setDeviceParameter(const std::string& deviceId,
                             const std::string& parameterId,
                             float value);
+    bool setDeviceStringParameter(const std::string& deviceId,
+                                  const std::string& parameterId,
+                                  const std::string& value);
     bool setMasterGain(float gain);
     std::string createMidiClip(const std::string& trackId,
                                double startBeat,

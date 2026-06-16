@@ -78,9 +78,13 @@ MidiNoteState midiNoteFromVar(const juce::var& value) {
 
 juce::var deviceToVar(const DeviceState& device) {
     auto* parameters = new juce::DynamicObject();
-    if (device.type == "track_gain") {
+    if (device.type == "track_gain" || device.type == "simple_sampler") {
         parameters->setProperty("gain", static_cast<double>(device.gain));
-    } else {
+    }
+    if (device.type == "simple_sampler") {
+        parameters->setProperty("sampleId", toJuceString(device.sampleId));
+    }
+    if (device.type == "simple_oscillator") {
         parameters->setProperty("frequency", static_cast<double>(device.frequencyHz));
     }
 
@@ -100,6 +104,7 @@ DeviceState deviceFromVar(const juce::var& value) {
         if (const auto* params = parameters.getDynamicObject()) {
             device.frequencyHz = varToFloat(params->getProperty("frequency"), 440.0f);
             device.gain = varToFloat(params->getProperty("gain"), 1.0f);
+            device.sampleId = varToString(params->getProperty("sampleId"));
         }
     }
     return device;

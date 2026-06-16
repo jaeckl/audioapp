@@ -50,6 +50,18 @@ class EngineBridge {
     });
   }
 
+  Future<ProjectSnapshot> setDeviceStringParameter({
+    required String deviceId,
+    required String parameterId,
+    required String value,
+  }) async {
+    return _invokeForSnapshot('setDeviceStringParameter', {
+      'deviceId': deviceId,
+      'parameterId': parameterId,
+      'value': value,
+    });
+  }
+
   Future<ProjectSnapshot> setMasterGain(double gain) async {
     return _invokeForSnapshot('setMasterGain', {'gain': gain});
   }

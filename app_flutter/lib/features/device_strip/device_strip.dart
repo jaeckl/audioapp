@@ -1,107 +1,136 @@
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
+import '../sample_library/sample_library_screen.dart';
+import 'device_strip_metrics.dart';
+import 'sampler_device_strip.dart';
 
 class DeviceStrip extends StatelessWidget {
   const DeviceStrip({
     super.key,
     required this.track,
+    required this.samples,
+    required this.onSamplerGainChanged,
+    required this.onAssignSamplerSample,
+    required this.onOpenSamplerEditor,
+    required this.onPreviewSample,
+    required this.onImportSamples,
     required this.onFrequencyChanged,
   });
 
   final TrackSnapshot? track;
+  final List<SampleLibraryEntrySnapshot> samples;
+  final void Function(String deviceId, double gain) onSamplerGainChanged;
+  final void Function(String deviceId, String sampleId) onAssignSamplerSample;
+  final void Function(TrackSnapshot track, DeviceSnapshot device) onOpenSamplerEditor;
+  final ValueChanged<SampleLibraryEntrySnapshot> onPreviewSample;
+  final Future<List<SampleLibraryEntrySnapshot>> Function() onImportSamples;
   final void Function(String deviceId, double frequencyHz) onFrequencyChanged;
+
+  SampleLibraryEntrySnapshot? _sampleForDevice(DeviceSnapshot device) {
+    if (device.sampleId.isEmpty) {
+      return null;
+    }
+    for (final sample in samples) {
+      if (sample.id == device.sampleId) {
+        return sample;
+      }
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (track == null) {
-      return Container(
-        height: 48,
-        alignment: Alignment.center,
-        color: const Color(0xFF121218),
+    return SizedBox(
+      height: DeviceStripMetrics.height,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          color: Color(0xFF121218),
+          border: Border(top: BorderSide(color: Colors.white12)),
+        ),
+        child: track == null ? _emptyState(context) : _trackDevices(context, track!),
+      ),
+    );
+  }
+
+  Widget _emptyState(BuildContext context) {
+    return Center(
+      child: Text(
+        'Select a track to show devices',
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white38),
+      ),
+    );
+  }
+
+  Widget _trackDevices(BuildContext context, TrackSnapshot track) {
+    final sampler = track.samplerDevice;
+    if (sampler != null) {
+      return SamplerDeviceStrip(
+        trackName: track.name,
+        device: sampler,
+        sample: _sampleForDevice(sampler),
+        onGainChanged: (value) => onSamplerGainChanged(sampler.id, value),
+        onLoadSample: () => _pickSample(context, sampler.id),
+        onOpenFullscreen: () => onOpenSamplerEditor(track, sampler),
+      );
+    }
+
+    final oscillator = track.oscillatorDevice;
+    if (oscillator == null) {
+      return Center(
         child: Text(
-          'Select a track to show device strip',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white38),
+          'No instrument on ${track.name}',
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white54),
         ),
       );
     }
 
-    DeviceSnapshot? oscillator;
-    for (final device in track!.visibleDevices) {
-      if (device.type == 'simple_oscillator') {
-        oscillator = device;
-        break;
-      }
-    }
-
-    return Container(
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: const BoxDecoration(
-        color: Color(0xFF121218),
-        border: Border(top: BorderSide(color: Colors.white12)),
-      ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Device strip — ${track!.name}', style: Theme.of(context).textTheme.labelLarge),
-          const SizedBox(height: 6),
-          if (oscillator == null)
-            Text(
-              'No instrument on this track',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white54),
-            )
-          else
-            Row(
-              children: [
-                _DeviceCard(
-                  title: 'Oscillator',
-                  subtitle: '${oscillator.frequencyHz.round()} Hz',
+          Text('Oscillator — ${track.name}', style: Theme.of(context).textTheme.labelLarge),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Text('${oscillator.frequencyHz.round()} Hz'),
+              Expanded(
+                child: Slider(
+                  min: 110,
+                  max: 880,
+                  divisions: 14,
+                  value: oscillator.frequencyHz.clamp(110, 880),
+                  label: '${oscillator.frequencyHz.round()} Hz',
+                  onChanged: (value) => onFrequencyChanged(oscillator.id, value),
                 ),
-                const SizedBox(width: 12),
-                const Text('Frequency'),
-                Expanded(
-                  child: Slider(
-                    min: 110,
-                    max: 880,
-                    divisions: 14,
-                    value: oscillator.frequencyHz.clamp(110, 880),
-                    label: '${oscillator.frequencyHz.round()} Hz',
-                    onChanged: (value) => onFrequencyChanged(oscillator!.id, value),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
-}
 
-class _DeviceCard extends StatelessWidget {
-  const _DeviceCard({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 140,
-      height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      alignment: Alignment.centerLeft,
-      decoration: BoxDecoration(
-        color: const Color(0xFF252530),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Text(
-        '$title · $subtitle',
-        style: Theme.of(context).textTheme.labelMedium,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+  Future<void> _pickSample(BuildContext context, String deviceId) async {
+    final sample = await showModalBottomSheet<SampleLibraryEntrySnapshot>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0E0E14),
+      showDragHandle: true,
+      builder: (context) => SizedBox(
+        height: MediaQuery.of(context).size.height * 0.82,
+        child: SampleLibraryPickerSheet(
+          initialSamples: samples,
+          onPreview: onPreviewSample,
+          onImportSamples: onImportSamples,
+          onSampleSelected: (entry) => Navigator.pop(context, entry),
+        ),
       ),
     );
+    if (sample == null) {
+      return;
+    }
+    onAssignSamplerSample(deviceId, sample.id);
   }
 }
