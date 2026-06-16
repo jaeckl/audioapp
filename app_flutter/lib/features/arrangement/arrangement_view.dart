@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'dart:async';
 
 import '../../bridge/project_snapshot.dart';
+import 'arrangement_clip_drag.dart';
 import 'arrangement_timeline_metrics.dart';
 import 'track_lane_icon.dart';
 
@@ -18,6 +21,7 @@ class ArrangementView extends StatefulWidget {
     required this.onPlayheadSeek,
     required this.onClipTap,
     required this.onSampleClipTap,
+    required this.onMoveClip,
   });
 
   final ProjectSnapshot snapshot;
@@ -31,6 +35,11 @@ class ArrangementView extends StatefulWidget {
   final ValueChanged<double> onPlayheadSeek;
   final void Function(String trackId, MidiClipSnapshot clip) onClipTap;
   final void Function(String trackId, SampleClipSnapshot clip) onSampleClipTap;
+  final Future<void> Function({
+    required String clipId,
+    required String trackId,
+    required double startBeat,
+  }) onMoveClip;
 
   @override
   State<ArrangementView> createState() => _ArrangementViewState();
@@ -42,14 +51,18 @@ class _ArrangementViewState extends State<ArrangementView> {
   final ScrollController _horizontalScroll = ScrollController();
   final ScrollController _masterScroll = ScrollController();
   final GlobalKey _timelineViewportKey = GlobalKey();
+  final GlobalKey _trackLanesKey = GlobalKey();
+  final GlobalKey _arrangementStackKey = GlobalKey();
   double _pixelsPerBeat = ArrangementTimelineMetrics.defaultPixelsPerBeat;
   double _scaleStartPixelsPerBeat = ArrangementTimelineMetrics.defaultPixelsPerBeat;
   int _activePointers = 0;
   bool _syncingScroll = false;
   bool _scrubbingPlayhead = false;
   double? _scrubPlayheadBeats;
+  ArrangementClipDragSession? _clipDrag;
 
   bool get _pinchZoomActive => _activePointers >= 2;
+  bool get _clipDragActive => _clipDrag != null;
 
   double get _displayPlayheadBeats => _scrubPlayheadBeats ?? widget.playheadBeats;
 
@@ -186,11 +199,141 @@ class _ArrangementViewState extends State<ArrangementView> {
     );
   }
 
+  int _sourceTrackIndex(String trackId) {
+    final tracks = widget.snapshot.tracks;
+    for (var i = 0; i < tracks.length; i++) {
+      if (tracks[i].id == trackId) {
+        return i;
+      }
+    }
+    return 0;
+  }
+
+  int _trackIndexFromGlobal(Offset globalPosition) {
+    final lanesBox = _trackLanesKey.currentContext?.findRenderObject() as RenderBox?;
+    if (lanesBox == null) {
+      return 0;
+    }
+    final localY = lanesBox.globalToLocal(globalPosition).dy;
+    if (localY < 0) {
+      return 0;
+    }
+    final index = localY ~/ ArrangementTimelineMetrics.trackLaneHeight;
+    return index.clamp(0, widget.snapshot.tracks.length - 1);
+  }
+
+  double _desiredBeatForDrag(Offset globalPosition, ArrangementClipDragSession session) {
+    final pointerBeat = _beatFromGlobal(globalPosition);
+    final delta = pointerBeat - session.pointerBeatAtStart;
+    return (session.originalStartBeat + delta).clamp(
+      0.0,
+      ArrangementTimelineMetrics.timelineBeats,
+    );
+  }
+
+  double _previewStartBeatForTrack(
+    TrackSnapshot track,
+    ArrangementClipDragSession session,
+    double desiredBeat,
+  ) {
+    return ArrangementTimelineMetrics.placementStartBeat(
+      desiredStartBeat: desiredBeat,
+      clipLengthBeats: session.lengthBeats,
+      existingClips: ArrangementTimelineMetrics.clipIntervalsForTrackExcluding(
+        track,
+        excludeClipId: session.clipId,
+      ),
+    );
+  }
+
+  void _startClipDrag({
+    required String trackId,
+    required String clipId,
+    required double lengthBeats,
+    required bool isMidi,
+    required double originalStartBeat,
+    required Offset globalPosition,
+    MidiClipSnapshot? midiClip,
+    SampleClipSnapshot? sampleClip,
+  }) {
+    final pointerBeat = _beatFromGlobal(globalPosition);
+    final trackIndex = _sourceTrackIndex(trackId);
+    final track = widget.snapshot.tracks[trackIndex];
+    final session = ArrangementClipDragSession(
+      clipId: clipId,
+      sourceTrackId: trackId,
+      lengthBeats: lengthBeats,
+      isMidi: isMidi,
+      originalStartBeat: originalStartBeat,
+      pointerBeatAtStart: pointerBeat,
+      midiClip: midiClip,
+      sampleClip: sampleClip,
+      targetTrackIndex: trackIndex,
+      previewStartBeat: originalStartBeat,
+    );
+    final previewStart = _previewStartBeatForTrack(
+      track,
+      session,
+      _desiredBeatForDrag(globalPosition, session),
+    );
+
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _clipDrag = session.copyWith(previewStartBeat: previewStart);
+    });
+  }
+
+  void _updateClipDrag(LongPressMoveUpdateDetails details) {
+    final session = _clipDrag;
+    if (session == null) {
+      return;
+    }
+    final targetIndex = _trackIndexFromGlobal(details.globalPosition);
+    final targetTrack = widget.snapshot.tracks[targetIndex];
+    final desiredBeat = _desiredBeatForDrag(details.globalPosition, session);
+    final previewStart = _previewStartBeatForTrack(targetTrack, session, desiredBeat);
+    setState(() {
+      _clipDrag = session.copyWith(
+        targetTrackIndex: targetIndex,
+        previewStartBeat: previewStart,
+      );
+    });
+  }
+
+  void _onClipDragEnd(LongPressEndDetails details) {
+    unawaited(_endClipDrag());
+  }
+
+  Future<void> _endClipDrag() async {
+    final session = _clipDrag;
+    if (session == null) {
+      return;
+    }
+    setState(() => _clipDrag = null);
+
+    final targetTrack = widget.snapshot.tracks[session.targetTrackIndex];
+    await widget.onMoveClip(
+      clipId: session.clipId,
+      trackId: targetTrack.id,
+      startBeat: session.previewStartBeat,
+    );
+  }
+
+  void _cancelClipDrag() {
+    if (_clipDrag == null) {
+      return;
+    }
+    setState(() => _clipDrag = null);
+  }
+
   Future<void> _onTrackLongPress(
     TrackSnapshot track,
     LongPressStartDetails details, {
     required bool lanePress,
   }) async {
+    if (_clipDragActive) {
+      return;
+    }
     final desiredBeat = lanePress ? _beatFromGlobal(details.globalPosition) : widget.playheadBeats;
     await _showTrackPopupMenu(track, details.globalPosition, desiredBeat);
   }
@@ -269,6 +412,7 @@ class _ArrangementViewState extends State<ArrangementView> {
                     scrollOffset;
 
                 final lanesChild = SizedBox(
+                  key: _trackLanesKey,
                   width: timelineWidth,
                   child: Column(
                     children: [
@@ -278,8 +422,13 @@ class _ArrangementViewState extends State<ArrangementView> {
                           selected: track.id == widget.snapshot.selectedTrackId,
                           pixelsPerBeat: _pixelsPerBeat,
                           viewportWidthPx: viewportWidth,
+                          draggingClipId: _clipDrag?.clipId,
                           onClipTap: widget.onClipTap,
                           onSampleClipTap: widget.onSampleClipTap,
+                          onClipDragStart: _startClipDrag,
+                          onClipDragUpdate: _updateClipDrag,
+                          onClipDragEnd: _onClipDragEnd,
+                          onClipDragCancel: _cancelClipDrag,
                           onLongPressStart: (details) => _onTrackLongPress(
                             track,
                             details,
@@ -291,7 +440,10 @@ class _ArrangementViewState extends State<ArrangementView> {
                   ),
                 );
 
+                final clipDrag = _clipDrag;
+
                 return Stack(
+                  key: _arrangementStackKey,
                   clipBehavior: Clip.none,
                   children: [
                     Column(
@@ -337,7 +489,7 @@ class _ArrangementViewState extends State<ArrangementView> {
                                     child: SingleChildScrollView(
                                       controller: _horizontalScroll,
                                       scrollDirection: Axis.horizontal,
-                                      physics: _pinchZoomActive
+                                      physics: (_pinchZoomActive || _clipDragActive)
                                           ? const NeverScrollableScrollPhysics()
                                           : const BouncingScrollPhysics(
                                               parent: AlwaysScrollableScrollPhysics(),
@@ -401,6 +553,13 @@ class _ArrangementViewState extends State<ArrangementView> {
                       height: ArrangementTimelineMetrics.trackLaneHeight,
                       child: _AddTrackViewportLabel(onTap: widget.onAddTrack),
                     ),
+                    if (clipDrag != null)
+                      _ClipDragPreview(
+                        stackKey: _arrangementStackKey,
+                        session: clipDrag,
+                        pixelsPerBeat: _pixelsPerBeat,
+                        scrollOffset: scrollOffset,
+                      ),
                   ],
                 );
               },
@@ -664,8 +823,13 @@ class _TrackLane extends StatelessWidget {
     required this.selected,
     required this.pixelsPerBeat,
     required this.viewportWidthPx,
+    required this.draggingClipId,
     required this.onClipTap,
     required this.onSampleClipTap,
+    required this.onClipDragStart,
+    required this.onClipDragUpdate,
+    required this.onClipDragEnd,
+    required this.onClipDragCancel,
     required this.onLongPressStart,
   });
 
@@ -673,8 +837,22 @@ class _TrackLane extends StatelessWidget {
   final bool selected;
   final double pixelsPerBeat;
   final double viewportWidthPx;
+  final String? draggingClipId;
   final void Function(String trackId, MidiClipSnapshot clip) onClipTap;
   final void Function(String trackId, SampleClipSnapshot clip) onSampleClipTap;
+  final void Function({
+    required String trackId,
+    required String clipId,
+    required double lengthBeats,
+    required bool isMidi,
+    required double originalStartBeat,
+    required Offset globalPosition,
+    MidiClipSnapshot? midiClip,
+    SampleClipSnapshot? sampleClip,
+  }) onClipDragStart;
+  final GestureLongPressMoveUpdateCallback onClipDragUpdate;
+  final GestureLongPressEndCallback onClipDragEnd;
+  final VoidCallback onClipDragCancel;
   final GestureLongPressStartCallback onLongPressStart;
 
   List<double> get _clipStarts {
@@ -719,7 +897,20 @@ class _TrackLane extends StatelessWidget {
               height: laneHeight - 8,
               child: _SampleClipBlock(
                 clip: clip,
+                highlighted: draggingClipId == clip.id,
                 onTap: () => onSampleClipTap(track.id, clip),
+                onDragStart: (details) => onClipDragStart(
+                  trackId: track.id,
+                  clipId: clip.id,
+                  lengthBeats: clip.lengthBeats,
+                  isMidi: false,
+                  originalStartBeat: clip.startBeat,
+                  globalPosition: details.globalPosition,
+                  sampleClip: clip,
+                ),
+                onDragUpdate: onClipDragUpdate,
+                onDragEnd: onClipDragEnd,
+                onDragCancel: onClipDragCancel,
               ),
             ),
           for (final clip in track.midiClips)
@@ -730,7 +921,20 @@ class _TrackLane extends StatelessWidget {
               height: laneHeight - 8,
               child: _MidiClipBlock(
                 clip: clip,
+                highlighted: draggingClipId == clip.id,
                 onTap: () => onClipTap(track.id, clip),
+                onDragStart: (details) => onClipDragStart(
+                  trackId: track.id,
+                  clipId: clip.id,
+                  lengthBeats: clip.lengthBeats,
+                  isMidi: true,
+                  originalStartBeat: clip.startBeat,
+                  globalPosition: details.globalPosition,
+                  midiClip: clip,
+                ),
+                onDragUpdate: onClipDragUpdate,
+                onDragEnd: onClipDragEnd,
+                onDragCancel: onClipDragCancel,
               ),
             ),
         ],
@@ -741,30 +945,60 @@ class _TrackLane extends StatelessWidget {
 }
 
 class _MidiClipBlock extends StatelessWidget {
-  const _MidiClipBlock({required this.clip, required this.onTap});
+  const _MidiClipBlock({
+    required this.clip,
+    required this.highlighted,
+    required this.onTap,
+    required this.onDragStart,
+    required this.onDragUpdate,
+    required this.onDragEnd,
+    required this.onDragCancel,
+  });
 
   final MidiClipSnapshot clip;
+  final bool highlighted;
   final VoidCallback onTap;
+  final GestureLongPressStartCallback onDragStart;
+  final GestureLongPressMoveUpdateCallback onDragUpdate;
+  final GestureLongPressEndCallback onDragEnd;
+  final VoidCallback onDragCancel;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(6),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: const Color(0xFF3A4A6B),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: Colors.white24),
-          ),
-          alignment: Alignment.centerLeft,
-          child: Text(
-            'MIDI',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white70),
-            overflow: TextOverflow.ellipsis,
+      child: GestureDetector(
+        onTap: highlighted ? null : onTap,
+        onLongPressStart: onDragStart,
+        onLongPressMoveUpdate: onDragUpdate,
+        onLongPressEnd: onDragEnd,
+        onLongPressCancel: onDragCancel,
+        child: Opacity(
+          opacity: highlighted ? 0.35 : 1,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFF3A4A6B),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: highlighted ? const Color(0xFF8EB4FF) : Colors.white24,
+                width: highlighted ? 2 : 1,
+              ),
+              boxShadow: highlighted
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF8EB4FF).withValues(alpha: 0.45),
+                        blurRadius: 8,
+                      ),
+                    ]
+                  : null,
+            ),
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'MIDI',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white70),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ),
       ),
@@ -773,45 +1007,145 @@ class _MidiClipBlock extends StatelessWidget {
 }
 
 class _SampleClipBlock extends StatelessWidget {
-  const _SampleClipBlock({required this.clip, required this.onTap});
+  const _SampleClipBlock({
+    required this.clip,
+    required this.highlighted,
+    required this.onTap,
+    required this.onDragStart,
+    required this.onDragUpdate,
+    required this.onDragEnd,
+    required this.onDragCancel,
+  });
 
   final SampleClipSnapshot clip;
+  final bool highlighted;
   final VoidCallback onTap;
+  final GestureLongPressStartCallback onDragStart;
+  final GestureLongPressMoveUpdateCallback onDragUpdate;
+  final GestureLongPressEndCallback onDragEnd;
+  final VoidCallback onDragCancel;
 
   @override
   Widget build(BuildContext context) {
     final label = clip.sampleName.isNotEmpty ? clip.sampleName : 'Sample';
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(6),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: const Color(0xFF2E4A3A),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: const Color(0xFF5A9E78)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
+      child: GestureDetector(
+        onTap: highlighted ? null : onTap,
+        onLongPressStart: onDragStart,
+        onLongPressMoveUpdate: onDragUpdate,
+        onLongPressEnd: onDragEnd,
+        onLongPressCancel: onDragCancel,
+        child: Opacity(
+          opacity: highlighted ? 0.35 : 1,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2E4A3A),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: highlighted ? const Color(0xFF8EB4FF) : const Color(0xFF5A9E78),
+                width: highlighted ? 2 : 1,
               ),
-              const SizedBox(height: 2),
-              Expanded(
-                child: CustomPaint(
-                  painter: _ArrangementWaveformPainter(peaks: clip.waveformPeaks),
+              boxShadow: highlighted
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF8EB4FF).withValues(alpha: 0.45),
+                        blurRadius: 8,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 2),
+                Expanded(
+                  child: CustomPaint(
+                    painter: _ArrangementWaveformPainter(peaks: clip.waveformPeaks),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ClipDragPreview extends StatelessWidget {
+  const _ClipDragPreview({
+    required this.stackKey,
+    required this.session,
+    required this.pixelsPerBeat,
+    required this.scrollOffset,
+  });
+
+  final GlobalKey stackKey;
+  final ArrangementClipDragSession session;
+  final double pixelsPerBeat;
+  final double scrollOffset;
+
+  @override
+  Widget build(BuildContext context) {
+    final stackBox = stackKey.currentContext?.findRenderObject() as RenderBox?;
+    if (stackBox == null) {
+      return const SizedBox.shrink();
+    }
+
+    final laneHeight = ArrangementTimelineMetrics.trackLaneHeight;
+    final left = ArrangementTimelineMetrics.trackHeaderWidth +
+        session.previewStartBeat * pixelsPerBeat -
+        scrollOffset;
+    final top = session.targetTrackIndex * laneHeight + 4;
+    final height = laneHeight - 8;
+    final width = session.isMidi
+        ? session.lengthBeats * pixelsPerBeat
+        : ArrangementTimelineMetrics.clipDisplayWidthPx(
+            startBeat: session.previewStartBeat,
+            lengthBeats: session.lengthBeats,
+            pixelsPerBeat: pixelsPerBeat,
+            gapEndBeat: ArrangementTimelineMetrics.timelineBeats,
+          );
+
+    return Positioned(
+      left: left,
+      top: top,
+      width: width,
+      height: height,
+      child: IgnorePointer(
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(6),
+          clipBehavior: Clip.antiAlias,
+          color: session.isMidi ? const Color(0xFF3A4A6B) : const Color(0xFF2E4A3A),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: const Color(0xFF8EB4FF), width: 2),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            alignment: Alignment.centerLeft,
+            child: Text(
+              session.isMidi
+                  ? 'MIDI'
+                  : (session.sampleClip?.sampleName.isNotEmpty == true
+                      ? session.sampleClip!.sampleName
+                      : 'Sample'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white),
+            ),
           ),
         ),
       ),

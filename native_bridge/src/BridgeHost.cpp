@@ -103,6 +103,15 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         }
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
+    if (method == "moveClip") {
+        const auto clipId = jsonGetStringArg(argumentsJson, "clipId");
+        const auto trackId = jsonGetStringArg(argumentsJson, "trackId");
+        const auto startBeat = jsonGetNumberArg(argumentsJson, "startBeat", 0.0);
+        if (!engine().moveClip(clipId, trackId, startBeat)) {
+            return buildBridgeError("move_clip_failed");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
     if (method == "previewSample") {
         const auto sampleId = jsonGetStringArg(argumentsJson, "sampleId");
         if (sampleId.empty()) {

@@ -199,6 +199,7 @@ class MainActivity : FlutterFragmentActivity() {
                         "createMidiClip",
                         "setMidiClipNotes",
                         "createSampleClip",
+                        "moveClip",
                         "previewSample" -> {
                             val argsJson = when (val args = call.arguments) {
                                 null -> "{}"

@@ -192,6 +192,48 @@ std::string ProjectEngine::createSampleClip(const std::string& trackId,
     return track->sampleClips.back().id;
 }
 
+bool ProjectEngine::moveClip(const std::string& clipId,
+                             const std::string& targetTrackId,
+                             double startBeat) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    Track* targetTrack = findTrackLocked(targetTrackId);
+    if (targetTrack == nullptr || clipId.empty()) {
+        return false;
+    }
+
+    const double clampedStart = startBeat < 0.0 ? 0.0 : startBeat;
+
+    for (auto& track : tracks_) {
+        for (auto it = track.midiClips.begin(); it != track.midiClips.end(); ++it) {
+            if (it->id != clipId) {
+                continue;
+            }
+            MidiClip clip = std::move(*it);
+            track.midiClips.erase(it);
+            clip.startBeat = clampedStart;
+            targetTrack->midiClips.push_back(std::move(clip));
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
+    }
+
+    for (auto& track : tracks_) {
+        for (auto it = track.sampleClips.begin(); it != track.sampleClips.end(); ++it) {
+            if (it->id != clipId) {
+                continue;
+            }
+            SampleClip clip = std::move(*it);
+            track.sampleClips.erase(it);
+            clip.startBeat = clampedStart;
+            targetTrack->sampleClips.push_back(std::move(clip));
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
+    }
+
+    return false;
+}
+
 ProjectSnapshot ProjectEngine::snapshot() const {
     std::lock_guard<std::mutex> lock(mutex_);
     ProjectSnapshot snap;
@@ -692,6 +734,17 @@ ProjectEngine::Device* ProjectEngine::findDeviceLocked(const std::string& device
 ProjectEngine::MidiClip* ProjectEngine::findMidiClipLocked(const std::string& clipId) {
     for (auto& track : tracks_) {
         for (auto& clip : track.midiClips) {
+            if (clip.id == clipId) {
+                return &clip;
+            }
+        }
+    }
+    return nullptr;
+}
+
+ProjectEngine::SampleClip* ProjectEngine::findSampleClipLocked(const std::string& clipId) {
+    for (auto& track : tracks_) {
+        for (auto& clip : track.sampleClips) {
             if (clip.id == clipId) {
                 return &clip;
             }

@@ -101,6 +101,18 @@ class EngineBridge {
     });
   }
 
+  Future<ProjectSnapshot> moveClip({
+    required String clipId,
+    required String trackId,
+    required double startBeat,
+  }) async {
+    return _invokeForSnapshot('moveClip', {
+      'clipId': clipId,
+      'trackId': trackId,
+      'startBeat': startBeat,
+    });
+  }
+
   Future<void> previewSample(String sampleId) async {
     final result = await _channel.invokeMethod<Map<dynamic, dynamic>>('previewSample', {
       'sampleId': sampleId,

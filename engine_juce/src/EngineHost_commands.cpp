@@ -101,6 +101,12 @@ std::string EngineHost::createSampleClip(const std::string& trackId,
     return project_.createSampleClip(trackId, sampleId, startBeat, lengthBeats);
 }
 
+bool EngineHost::moveClip(const std::string& clipId,
+                          const std::string& targetTrackId,
+                          double startBeat) {
+    return project_.moveClip(clipId, targetTrackId, startBeat);
+}
+
 std::string EngineHost::importWavSample(const std::string& displayName,
                                         const std::vector<uint8_t>& wavBytes) {
     ensureSampleBankReady();

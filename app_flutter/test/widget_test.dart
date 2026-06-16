@@ -103,6 +103,51 @@ void main() {
               ],
             },
           };
+        case 'moveClip':
+          final args = call.arguments as Map<dynamic, dynamic>?;
+          final startBeat = (args?['startBeat'] as num?)?.toDouble() ?? 0.0;
+          return {
+            'ok': true,
+            'snapshot': {
+              'bpm': 120,
+              'playheadBeats': 0.0,
+              'playing': false,
+              'selectedTrackId': 'track-1',
+              'tracks': [
+                {
+                  'id': 'track-1',
+                  'name': 'Track 1',
+                  'devices': [
+                    {
+                      'id': 'dev-1',
+                      'type': 'simple_oscillator',
+                      'parameters': {'frequency': 440.0},
+                    },
+                    {
+                      'id': 'dev-2',
+                      'type': 'track_gain',
+                      'parameters': {'gain': 1.0},
+                    },
+                  ],
+                  'midiClips': [
+                    {
+                      'id': 'clip-1',
+                      'startBeat': startBeat,
+                      'lengthBeats': 4.0,
+                      'notes': [
+                        {
+                          'pitch': 60,
+                          'startBeat': 0.0,
+                          'durationBeats': 1.0,
+                          'velocity': 100.0,
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          };
         case 'setMidiClipNotes':
           return {
             'ok': true,
@@ -232,9 +277,9 @@ void main() {
 
     expect(find.text('BPM 120'), findsOneWidget);
     expect(find.text('v0.1.0'), findsOneWidget);
-    expect(find.text('Mixer'), findsOneWidget);
-    expect(find.text('Library'), findsOneWidget);
-    expect(find.text('Settings'), findsOneWidget);
+    expect(find.bySemanticsLabel('Mixer'), findsOneWidget);
+    expect(find.bySemanticsLabel('Library'), findsOneWidget);
+    expect(find.bySemanticsLabel('Settings'), findsOneWidget);
     expect(find.textContaining('Engine:'), findsNothing);
 
     await tester.tap(find.byTooltip('Add track'));
@@ -321,7 +366,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Settings'));
+    await tester.tap(find.bySemanticsLabel('Settings'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save project'));
     await tester.pumpAndSettle();

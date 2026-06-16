@@ -1,3 +1,4 @@
+import 'package:audioapp/bridge/project_snapshot.dart';
 import 'package:audioapp/features/arrangement/arrangement_timeline_metrics.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -80,5 +81,35 @@ void main() {
       existingClips: [],
     );
     expect(start, 2.0);
+  });
+
+  test('clipIntervalsForTrackExcluding omits moved clip', () {
+    final track = TrackSnapshot(
+      id: 'track-1',
+      name: 'Track 1',
+      devices: const [],
+      sampleClips: const [],
+      midiClips: [
+        MidiClipSnapshot(
+          id: 'clip-1',
+          startBeat: 0,
+          lengthBeats: 4,
+          notes: const [],
+        ),
+        MidiClipSnapshot(
+          id: 'clip-2',
+          startBeat: 8,
+          lengthBeats: 4,
+          notes: const [],
+        ),
+      ],
+    );
+
+    final intervals = ArrangementTimelineMetrics.clipIntervalsForTrackExcluding(
+      track,
+      excludeClipId: 'clip-1',
+    );
+    expect(intervals.length, 1);
+    expect(intervals.first.start, 8);
   });
 }

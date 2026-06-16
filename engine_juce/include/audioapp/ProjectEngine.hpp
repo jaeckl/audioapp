@@ -63,6 +63,9 @@ public:
                                  const std::string& sampleId,
                                  double startBeat,
                                  double lengthBeats);
+    bool moveClip(const std::string& clipId,
+                  const std::string& targetTrackId,
+                  double startBeat);
 
     ProjectSnapshot snapshot() const;
     float activeOscillatorFrequencyHz() const;
@@ -179,6 +182,7 @@ private:
     Track* findTrackLocked(const std::string& trackId);
     Device* findDeviceLocked(const std::string& deviceId);
     MidiClip* findMidiClipLocked(const std::string& clipId);
+    SampleClip* findSampleClipLocked(const std::string& clipId);
 
     const SampleBank* sampleBank_ = nullptr;
 };

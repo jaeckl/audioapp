@@ -44,6 +44,23 @@ int main() {
         return EXIT_FAILURE;
     }
 
+    const std::string track2Id = project.addTrack("Bass");
+    if (track2Id.empty()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!project.moveClip(clipId, track2Id, 8.0)) {
+        return EXIT_FAILURE;
+    }
+
+    const auto moved = project.snapshot();
+    if (moved.tracks[0].midiClips.size() != 0 || moved.tracks[1].midiClips.size() != 1) {
+        return EXIT_FAILURE;
+    }
+    if (std::abs(moved.tracks[1].midiClips[0].startBeat - 8.0) > 0.001) {
+        return EXIT_FAILURE;
+    }
+
     project.setPlaying(true);
     if (!project.isPlaying()) {
         return EXIT_FAILURE;

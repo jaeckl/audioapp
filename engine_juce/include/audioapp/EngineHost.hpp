@@ -39,6 +39,9 @@ public:
                                  const std::string& sampleId,
                                  double startBeat,
                                  double lengthBeats);
+    bool moveClip(const std::string& clipId,
+                  const std::string& targetTrackId,
+                  double startBeat);
     std::string importWavSample(const std::string& displayName, const std::vector<uint8_t>& wavBytes);
     void previewSample(const std::string& sampleId);
     void ensureAudioOutput();

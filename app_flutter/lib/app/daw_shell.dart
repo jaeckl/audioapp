@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../features/arrangement/arrangement_timeline_metrics.dart';
 import '../app/app_info.dart';
-import 'daw_bottom_nav_bar.dart';
+import 'daw_shell_nav.dart';
 import '../bridge/engine_bridge.dart';
 import '../bridge/project_snapshot.dart';
 import '../features/arrangement/arrangement_view.dart';
@@ -329,6 +329,24 @@ class _DawShellState extends State<DawShell> {
     } catch (_) {}
   }
 
+  Future<void> _moveClip({
+    required String clipId,
+    required String trackId,
+    required double startBeat,
+  }) async {
+    try {
+      final snapshot = await widget.bridge.moveClip(
+        clipId: clipId,
+        trackId: trackId,
+        startBeat: startBeat,
+      );
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
   Future<void> _setPlayheadBeats(double beats) async {
     try {
       final snapshot = await widget.bridge.setPlayheadBeats(beats);
@@ -370,6 +388,7 @@ class _DawShellState extends State<DawShell> {
                 onAddAudioClip: _addAudioClip,
                 onClipTap: _openPianoRoll,
                 onSampleClipTap: (_, __) {},
+                onMoveClip: _moveClip,
               ),
             ),
             DeviceStrip(
@@ -402,32 +421,46 @@ class _DawShellState extends State<DawShell> {
     }
   }
 
+  Widget _buildMainColumn(ProjectSnapshot? snapshot) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (snapshot != null)
+          TransportBar.padded(
+            context: context,
+            bpm: snapshot.bpm,
+            playheadBeats: snapshot.playheadBeats,
+            version: kAppVersion,
+          ),
+        Expanded(
+          child: snapshot == null
+              ? const Center(child: CircularProgressIndicator())
+              : _buildTabBody(snapshot),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final snapshot = _snapshot;
+    final navGeometry = DawShellNavGeometry.of(context);
+    final nav = DawShellNav(
+      selectedIndex: _tab.index,
+      geometry: navGeometry,
+      onDestinationSelected: (index) => setState(() => _tab = _ShellTab.values[index]),
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFF0E0E14),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: Stack(
         children: [
-          if (snapshot != null)
-            TransportBar.padded(
-              context: context,
-              bpm: snapshot.bpm,
-              playheadBeats: snapshot.playheadBeats,
-              version: kAppVersion,
-            ),
-          Expanded(
-            child: snapshot == null
-                ? const Center(child: CircularProgressIndicator())
-                : _buildTabBody(snapshot),
+          Padding(
+            padding: navGeometry.contentPadding,
+            child: _buildMainColumn(snapshot),
           ),
+          navGeometry.position(context: context, child: nav),
         ],
-      ),
-      bottomNavigationBar: DawBottomNavBar(
-        selectedIndex: _tab.index,
-        onDestinationSelected: (index) => setState(() => _tab = _ShellTab.values[index]),
       ),
     );
   }

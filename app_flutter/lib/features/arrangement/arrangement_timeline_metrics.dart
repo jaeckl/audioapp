@@ -80,6 +80,20 @@ class ArrangementTimelineMetrics {
     return start;
   }
 
+  static List<({double start, double length})> clipIntervalsForTrackExcluding(
+    TrackSnapshot track, {
+    String? excludeClipId,
+  }) {
+    return [
+      ...track.midiClips
+          .where((clip) => clip.id != excludeClipId)
+          .map((clip) => (start: clip.startBeat, length: clip.lengthBeats)),
+      ...track.sampleClips
+          .where((clip) => clip.id != excludeClipId)
+          .map((clip) => (start: clip.startBeat, length: clip.lengthBeats)),
+    ];
+  }
+
   static List<({double start, double length})> clipIntervalsForTrack(TrackSnapshot track) {
     return [
       ...track.midiClips.map((clip) => (start: clip.startBeat, length: clip.lengthBeats)),
