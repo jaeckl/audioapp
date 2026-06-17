@@ -159,6 +159,46 @@ void main() {
               ],
             },
           };
+        case 'setClipLength':
+          final args = call.arguments as Map<dynamic, dynamic>;
+          final length = (args['lengthBeats'] as num).toDouble();
+          return {
+            'ok': true,
+            'snapshot': {
+              'bpm': 120,
+              'playheadBeats': 0.0,
+              'playing': false,
+              'selectedTrackId': 'track-1',
+              'tracks': [
+                {
+                  'id': 'track-1',
+                  'name': 'Track 1',
+                  'devices': [
+                    {
+                      'id': 'dev-1',
+                      'type': 'simple_sampler',
+                      'parameters': {'gain': 1.0, 'sampleId': ''},
+                    },
+                  ],
+                  'midiClips': [
+                    {
+                      'id': args['clipId'] as String? ?? 'clip-1',
+                      'startBeat': 0.0,
+                      'lengthBeats': length,
+                      'notes': [
+                        {
+                          'pitch': 60,
+                          'startBeat': 0.0,
+                          'durationBeats': 4.0,
+                          'velocity': 100.0,
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          };
         case 'saveProject':
           return {'ok': true, 'uri': 'file:///tmp/project.audioapp.zip', 'cancelled': false};
         case 'loadProject':
@@ -248,6 +288,15 @@ void main() {
     );
     expect(snapshot.selectedTrack?.midiClips.first.notes.length, 2);
     expect(snapshot.selectedTrack?.midiClips.first.notes[1].pitch, 64);
+  });
+
+  test('setClipLength updates clip length in snapshot', () async {
+    await bridge.addTrack(name: 'Track 1');
+    await bridge.createMidiClip(trackId: 'track-1');
+    final snapshot = await bridge.setClipLength(clipId: 'clip-1', lengthBeats: 2.0);
+    expect(snapshot.selectedTrack?.midiClips.first.lengthBeats, 2.0);
+    expect(snapshot.selectedTrack?.midiClips.first.notes.length, 1);
+    expect(snapshot.selectedTrack?.midiClips.first.kind, ClipContentKind.midi);
   });
 
   test('saveProject returns uri', () async {

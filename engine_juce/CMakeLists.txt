@@ -85,6 +85,7 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/project_engine_test.cpp
     tests/midi_clip_playback_test.cpp
     tests/midi_clip_notes_test.cpp
+    tests/clip_length_test.cpp
     tests/project_archive_test.cpp
     tests/project_serialization_test.cpp
     tests/sample_bank_test.cpp

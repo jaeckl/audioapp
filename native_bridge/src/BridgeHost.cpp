@@ -121,6 +121,14 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         }
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
+    if (method == "setClipLength") {
+        const auto clipId = jsonGetStringArg(argumentsJson, "clipId");
+        const auto lengthBeats = jsonGetNumberArg(argumentsJson, "lengthBeats", 4.0);
+        if (!engine().setClipLength(clipId, lengthBeats)) {
+            return buildBridgeError("clip_not_found");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
     if (method == "setBpm") {
         const auto bpm = static_cast<int>(jsonGetNumberArg(argumentsJson, "bpm", 120.0));
         if (!engine().setBpm(bpm)) {
@@ -181,6 +189,16 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
     }
     if (method == "allNotesOff") {
         engine().allNotesOff();
+        return R"({"ok":true})";
+    }
+    if (method == "setPitchBend") {
+        const auto bend = jsonGetNumberArg(argumentsJson, "bend", 0.0);
+        engine().setPitchBend(static_cast<float>(bend));
+        return R"({"ok":true})";
+    }
+    if (method == "setModulation") {
+        const auto mod = jsonGetNumberArg(argumentsJson, "mod", 0.0);
+        engine().setModulation(static_cast<float>(mod));
         return R"({"ok":true})";
     }
     if (method == "clearCapture") {

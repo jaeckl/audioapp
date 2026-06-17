@@ -125,6 +125,16 @@ class EngineBridge {
     });
   }
 
+  Future<ProjectSnapshot> setClipLength({
+    required String clipId,
+    required double lengthBeats,
+  }) async {
+    return _invokeForSnapshot('setClipLength', {
+      'clipId': clipId,
+      'lengthBeats': lengthBeats,
+    });
+  }
+
   Future<ProjectSnapshot> setBpm(int bpm) async {
     return _invokeForSnapshot('setBpm', {'bpm': bpm});
   }
@@ -167,6 +177,14 @@ class EngineBridge {
 
   Future<void> allNotesOff() async {
     await _invokeOk('allNotesOff');
+  }
+
+  Future<void> setPitchBend(double bend) async {
+    await _invokeOk('setPitchBend', {'bend': bend});
+  }
+
+  Future<void> setModulation(double mod) async {
+    await _invokeOk('setModulation', {'mod': mod});
   }
 
   Future<void> clearCapture() async {

@@ -69,6 +69,17 @@ class PlayDeckRail extends StatelessWidget {
               ),
             ),
             const Spacer(),
+            _RailButton(
+              icon: Icons.tune,
+              label: 'Perf',
+              active: activeView == PlayContextView.performancePanel,
+              enabled: enabled,
+              onTap: () => onViewChanged(
+                activeView == PlayContextView.performancePanel
+                    ? PlayContextView.perform
+                    : PlayContextView.performancePanel,
+              ),
+            ),
           ],
         ),
       ),

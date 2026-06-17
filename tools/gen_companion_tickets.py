@@ -317,6 +317,36 @@ FEATURES: list[dict] = [
         },
     },
     {
+        "milestone": "milestone-04",
+        "id": "04-11",
+        "title": "Piano roll clip bounds & end marker",
+        "parent": "US-04-11-piano-roll-horizontal-scroll-and-clip-bounds.md",
+        "status": "Done",
+        "ux": {
+            "intent": "Clip end is obvious — red line + pill handle on ruler; editing canvas extends past it.",
+            "layout": "Vertical red boundary at lengthBeats; 16×20 pill on ruler row; dimmed grid past boundary optional.",
+            "states": [
+                ("Default", "Boundary at clip length"),
+                ("Dragging end", "Line follows finger; scroll locked"),
+                ("Notes past end", "Full-opacity notes; silent on play"),
+            ],
+            "copy": "SnackBar on setClipLength failure",
+            "ac": ["Handle visible without zoom", "Boundary aligns with grid beats"],
+        },
+        "ix": {
+            "entry": ["Piano roll open on MIDI clip"],
+            "map": [
+                ("Resize clip", "Drag end pill", "Red line moves; release persists", "setClipLength"),
+                ("Edit past end", "Draw note right of line", "Note appears", "setMidiClipNotes"),
+                ("Play shortened", "Play transport", "Notes past boundary silent", "engine gate"),
+            ],
+            "cancel": "Drag away without release still commits on pointer up",
+            "errors": [("setClipLength fail", "SnackBar + save error state", "Boundary reverts on reload")],
+            "demo": ["Shorten to 2 bars → play → lengthen → play again"],
+            "ac": ["One setClipLength per drag release", "28px hit target on marker"],
+        },
+    },
+    {
         "milestone": "milestone-05",
         "id": "05-01",
         "title": "Save project",

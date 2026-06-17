@@ -13,6 +13,10 @@ void main() {
 
   int? lastNoteOnPitch;
   double? lastNoteOnVelocity;
+  double? lastModulation;
+  double? lastPitchBend;
+  double? peakModulation;
+  double? peakPitchBend;
 
   const bootstrapSnapshot = {
     'ok': true,
@@ -30,6 +34,10 @@ void main() {
   setUp(() {
     lastNoteOnPitch = null;
     lastNoteOnVelocity = null;
+    lastModulation = null;
+    lastPitchBend = null;
+    peakModulation = null;
+    peakPitchBend = null;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
       switch (call.method) {
@@ -277,6 +285,20 @@ void main() {
           return {'ok': true};
         case 'noteOff':
           return {'ok': true};
+        case 'setModulation':
+          lastModulation = (call.arguments as Map?)?['mod'] as double?;
+          final v = lastModulation;
+          if (v != null && (peakModulation == null || v > peakModulation!)) {
+            peakModulation = v;
+          }
+          return {'ok': true};
+        case 'setPitchBend':
+          lastPitchBend = (call.arguments as Map?)?['bend'] as double?;
+          final v = lastPitchBend;
+          if (v != null && (peakPitchBend == null || v.abs() > peakPitchBend!.abs())) {
+            peakPitchBend = v;
+          }
+          return {'ok': true};
         case 'setRecordArmed':
           return {
             'ok': true,
@@ -434,10 +456,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Piano roll'), findsOneWidget);
+    expect(find.textContaining('Track 1'), findsOneWidget);
+    expect(find.textContaining('bars'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.close));
-    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('120'), findsOneWidget);
   });
@@ -514,5 +538,38 @@ void main() {
 
     expect(lastNoteOnPitch, 48);
     expect(lastNoteOnVelocity, isNotNull);
+  });
+
+  testWidgets('Drag on pad sends pitchBend and modulation', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(home: DawShell(bridge: EngineBridge(channel: channel))),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Add track'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('Play'));
+    await tester.pumpAndSettle();
+
+    final padGrid = tester.renderObject<RenderBox>(find.byType(MpcPadGrid));
+    final topLeft = padGrid.localToGlobal(const Offset(8, 8));
+    final gesture = await tester.startGesture(topLeft);
+    await tester.pump(const Duration(milliseconds: 30));
+    // Drag down (bend negative) and right (mod positive). 20px right
+    // of the cell origin should map to mod ~ 20 / 60 = 0.33.
+    await gesture.moveBy(const Offset(20, 15));
+    await tester.pump(const Duration(milliseconds: 30));
+    await gesture.up();
+    await tester.pump(const Duration(milliseconds: 120));
+
+    expect(peakModulation, isNotNull);
+    expect(peakModulation, greaterThan(0.0));
+    expect(peakPitchBend, isNotNull);
+    expect(peakPitchBend, lessThan(0.0));
   });
 }

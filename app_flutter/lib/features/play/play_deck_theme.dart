@@ -7,7 +7,10 @@ export 'play_deck_layout.dart'
         ArpMode,
         ArpModeLabel,
         ChordQuality,
-        ChordQualityLabel;
+        ChordQualityLabel,
+        ChordMemory,
+        CaptureQuantize,
+        CaptureQuantizeLabel;
 
 /// Flat palette for the play deck — minimal chrome, no key borders.
 abstract final class PlayDeckTheme {
@@ -15,9 +18,11 @@ abstract final class PlayDeckTheme {
   static const railBackground = Color(0xFF1C1C20);
   static const gapColor = Color(0xFF121216);
   static const panelBackground = Color(0xFF15151A);
+  static const stripBackground = Color(0xFF15151A);
 
   static const padIdle = Color(0xFF2E2E34);
   static const padActive = Color(0xFFE87B8A);
+  static const padChoke = Color(0xFFC94860);
 
   static const keyIdle = Color(0xFF2E2E34);
   static const keyWhite = Color(0xFFD8D8DE);
@@ -34,5 +39,5 @@ abstract final class PlayDeckTheme {
   static const optionLabel = Color(0xFFDEDEDE);
 
   static const cellGap = 2.0;
-  static const railWidth = 60.0;
+  static const railWidth = 64.0;
 }

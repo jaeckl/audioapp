@@ -14,7 +14,12 @@ class PlayScale {
 
   static const List<PlayScale> presets = [chromatic, major, minor, pentatonicMinor];
 
-  static PlayScale byId(String id) {
+  static PlayScale byId(String id, {List<PlayScale> custom = const []}) {
+    for (final scale in custom) {
+      if (scale.id == id) {
+        return scale;
+      }
+    }
     for (final scale in presets) {
       if (scale.id == id) {
         return scale;
@@ -55,11 +60,44 @@ class PlayScale {
     }
     return '${index + 1}';
   }
+
+  static const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 }
 
 /// Y touch position within pad/key → MIDI velocity.
-int velocityFromY(double localY, double height, {bool invert = true}) {
+int velocityFromY(
+  double localY,
+  double height, {
+  bool invert = true,
+  VelocityCurve curve = VelocityCurve.linear,
+}) {
   final t = (localY / height).clamp(0.0, 1.0);
   final normalized = invert ? 1.0 - t : t;
-  return (40 + normalized * 87).round().clamp(1, 127);
+  double shaped;
+  switch (curve) {
+    case VelocityCurve.soft:
+      shaped = normalized * normalized;
+      break;
+    case VelocityCurve.hard:
+      shaped = 1 - (1 - normalized) * (1 - normalized);
+      break;
+    case VelocityCurve.fixed:
+      shaped = 0.85;
+      break;
+    case VelocityCurve.linear:
+      shaped = normalized;
+      break;
+  }
+  return (40 + shaped * 87).round().clamp(1, 127);
+}
+
+enum VelocityCurve { linear, soft, hard, fixed }
+
+extension VelocityCurveLabel on VelocityCurve {
+  String get label => switch (this) {
+        VelocityCurve.linear => 'Linear',
+        VelocityCurve.soft => 'Soft',
+        VelocityCurve.hard => 'Hard',
+        VelocityCurve.fixed => 'Fixed',
+      };
 }

@@ -86,6 +86,7 @@ public:
     bool moveClip(const std::string& clipId,
                   const std::string& targetTrackId,
                   double startBeat);
+    bool setClipLength(const std::string& clipId, double lengthBeats);
     bool setBpm(int bpm);
     bool deleteTrack(const std::string& trackId);
     bool deleteClip(const std::string& clipId);
@@ -101,6 +102,8 @@ public:
     void clearCapture();
     bool commitCapture();
     void readLiveMix(float* monoOut, int numFrames, double sampleRate) noexcept;
+    void setLivePitchBend(float bend) noexcept;
+    void setLiveModulation(float mod) noexcept;
 
     ProjectSnapshot snapshot() const;
     float activeOscillatorFrequencyHz() const;
@@ -227,6 +230,8 @@ private:
     uint64_t captureStartSample_ = 0;
     bool captureActive_ = false;
     LivePerformanceMixer liveMixer_;
+    std::atomic<float> livePitchBend_{0.0f};
+    std::atomic<float> liveModulation_{0.0f};
 
     TrackPlaybackSnapshot trackPlayback_[kMaxTracks];
     std::atomic<int> trackPlaybackCount_{0};

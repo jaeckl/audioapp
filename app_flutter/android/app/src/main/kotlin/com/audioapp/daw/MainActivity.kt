@@ -254,6 +254,7 @@ class MainActivity : FlutterFragmentActivity() {
                         "setMidiClipNotes",
                         "createSampleClip",
                         "moveClip",
+                        "setClipLength",
                         "setBpm",
                         "deleteTrack",
                         "deleteClip",
@@ -267,6 +268,8 @@ class MainActivity : FlutterFragmentActivity() {
                         "clearCapture",
                         "commitCapture",
                         "enterPlayMode",
+                        "setPitchBend",
+                        "setModulation",
                         "previewSample" -> {
                             val argsJson = when (val args = call.arguments) {
                                 null -> "{}"

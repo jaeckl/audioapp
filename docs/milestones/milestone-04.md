@@ -14,7 +14,7 @@
 | [US-04-08](../../tickets/milestone-04/US-04-08-multi-select-notes-lasso-or-long-press.md) | Multi-select notes (lasso or long-press) | Todo |
 | [US-04-09](../../tickets/milestone-04/US-04-09-duplicate-selected-notes.md) | Duplicate selected notes | Todo |
 | [US-04-10](../../tickets/milestone-04/US-04-10-quantize-selection-to-grid.md) | Quantize selection to grid | Todo |
-| [US-04-11](../../tickets/milestone-04/US-04-11-piano-roll-horizontal-scroll-and-clip-bounds.md) | Piano roll horizontal scroll & clip bounds | Todo |
+| [US-04-11](../../tickets/milestone-04/US-04-11-piano-roll-horizontal-scroll-and-clip-bounds.md) | Piano roll horizontal scroll & clip bounds | Done |
 | [US-04-12](../../tickets/milestone-04/US-04-12-piano-roll-pinch-zoom-beats-axis.md) | Piano roll pinch zoom (beats axis) | Todo |
 | [US-04-13](../../tickets/milestone-04/US-04-13-undoredo-note-edits-session-scope.md) | Undo/redo note edits (session scope) | Todo |
 | [US-04-14](../../tickets/milestone-04/US-04-14-copypaste-note-buffer-across-clips.md) | Copy/paste note buffer across clips | Todo |

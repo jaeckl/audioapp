@@ -1,4 +1,11 @@
 /// Engine project snapshot from C++.
+library;
+
+export 'clip_snapshots.dart';
+export 'timeline_clip.dart';
+
+import 'clip_snapshots.dart';
+
 class ProjectSnapshot {
   const ProjectSnapshot({
     required this.bpm,
@@ -259,62 +266,6 @@ class DeviceSnapshot {
   }
 }
 
-class MidiClipSnapshot {
-  const MidiClipSnapshot({
-    required this.id,
-    required this.startBeat,
-    required this.lengthBeats,
-    required this.notes,
-  });
-
-  final String id;
-  final double startBeat;
-  final double lengthBeats;
-  final List<MidiNoteSnapshot> notes;
-
-  factory MidiClipSnapshot.fromMap(Map<dynamic, dynamic> map) {
-    final notesRaw = map['notes'] as List<dynamic>? ?? [];
-    return MidiClipSnapshot(
-      id: map['id'] as String? ?? '',
-      startBeat: (map['startBeat'] as num?)?.toDouble() ?? 0.0,
-      lengthBeats: (map['lengthBeats'] as num?)?.toDouble() ?? 4.0,
-      notes: notesRaw
-          .map((n) => MidiNoteSnapshot.fromMap(n as Map<dynamic, dynamic>))
-          .toList(),
-    );
-  }
-}
-
-class SampleClipSnapshot {
-  const SampleClipSnapshot({
-    required this.id,
-    required this.sampleId,
-    required this.sampleName,
-    required this.startBeat,
-    required this.lengthBeats,
-    required this.waveformPeaks,
-  });
-
-  final String id;
-  final String sampleId;
-  final String sampleName;
-  final double startBeat;
-  final double lengthBeats;
-  final List<double> waveformPeaks;
-
-  factory SampleClipSnapshot.fromMap(Map<dynamic, dynamic> map) {
-    final peaksRaw = map['waveformPeaks'] as List<dynamic>? ?? [];
-    return SampleClipSnapshot(
-      id: map['id'] as String? ?? '',
-      sampleId: map['sampleId'] as String? ?? '',
-      sampleName: map['sampleName'] as String? ?? '',
-      startBeat: (map['startBeat'] as num?)?.toDouble() ?? 0.0,
-      lengthBeats: (map['lengthBeats'] as num?)?.toDouble() ?? 4.0,
-      waveformPeaks: peaksRaw.map((p) => (p as num).toDouble()).toList(),
-    );
-  }
-}
-
 class SampleLibraryEntrySnapshot {
   const SampleLibraryEntrySnapshot({
     required this.id,
@@ -338,29 +289,6 @@ class SampleLibraryEntrySnapshot {
       source: map['source'] as String? ?? '',
       durationBeats: (map['durationBeats'] as num?)?.toDouble() ?? 4.0,
       waveformPeaks: peaksRaw.map((p) => (p as num).toDouble()).toList(),
-    );
-  }
-}
-
-class MidiNoteSnapshot {
-  const MidiNoteSnapshot({
-    required this.pitch,
-    required this.startBeat,
-    required this.durationBeats,
-    required this.velocity,
-  });
-
-  final int pitch;
-  final double startBeat;
-  final double durationBeats;
-  final double velocity;
-
-  factory MidiNoteSnapshot.fromMap(Map<dynamic, dynamic> map) {
-    return MidiNoteSnapshot(
-      pitch: (map['pitch'] as num?)?.toInt() ?? 60,
-      startBeat: (map['startBeat'] as num?)?.toDouble() ?? 0.0,
-      durationBeats: (map['durationBeats'] as num?)?.toDouble() ?? 1.0,
-      velocity: (map['velocity'] as num?)?.toDouble() ?? 100.0,
     );
   }
 }

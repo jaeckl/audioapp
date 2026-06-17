@@ -2,9 +2,8 @@
 enum PlaySurfaceMode { pads, keys }
 
 /// What is currently filling the play area next to the rail.
-enum PlayContextView { perform, octave, performPanel }
+enum PlayContextView { perform, octave, performPanel, scaleBuilder, performancePanel }
 
-/// Local model for the auto-chord / arp panel.
 enum ArpMode {
   off,
   up,
@@ -53,10 +52,31 @@ extension ChordQualityLabel on ChordQuality {
       };
 }
 
+enum CaptureQuantize { off, quarter, eighth, sixteenth }
+
+extension CaptureQuantizeLabel on CaptureQuantize {
+  String get label => switch (this) {
+        CaptureQuantize.off => 'Off',
+        CaptureQuantize.quarter => '1/4',
+        CaptureQuantize.eighth => '1/8',
+        CaptureQuantize.sixteenth => '1/16',
+      };
+}
+
+class ChordMemory {
+  ChordMemory({required this.label, required this.quality});
+  final String label;
+  final ChordQuality quality;
+}
+
 class PlayDeckLayout {
   const PlayDeckLayout._();
 
-  static const double deckHeight = 260;
+  static const double deckHeight = 280;
+  static const double modStripHeight = 22;
   static const double keyCellMinSize = 40;
   static const int keyMaxColumns = 8;
+  static const int defaultKeyboardRows = 2;
+
+  static double get chromeHeight => deckHeight + modStripHeight;
 }

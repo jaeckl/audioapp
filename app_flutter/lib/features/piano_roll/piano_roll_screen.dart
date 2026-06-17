@@ -1,14 +1,18 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../bridge/engine_bridge.dart';
 import '../../bridge/project_snapshot.dart';
-
-const double kPixelsPerBeat = 40;
-const double kRowHeight = 22;
-const int kMinPitch = 48;
-const int kMaxPitch = 72;
-const double kSnapBeats = 0.25;
-const double kDefaultNoteBeats = 1.0;
+import '../play/play_deck.dart';
+import '../play/play_deck_layout.dart';
+import 'piano_roll_edit_sheet.dart';
+import 'piano_roll_grid_sheet.dart';
+import 'piano_roll_metrics.dart';
+import 'piano_roll_note_ops.dart';
+import 'piano_roll_theme.dart';
+import 'piano_roll_tool_dock.dart';
+import 'piano_roll_viewport.dart';
 
 class PianoRollScreen extends StatefulWidget {
   const PianoRollScreen({
@@ -32,329 +36,293 @@ class PianoRollScreen extends StatefulWidget {
 
 class _PianoRollScreenState extends State<PianoRollScreen> {
   late List<MidiNoteSnapshot> _notes;
-  int? _draggingIndex;
-  _DragMode _dragMode = _DragMode.none;
-  Offset? _dragStart;
-  double? _dragStartBeat;
-  double? _dragStartDuration;
-  int? _dragStartPitch;
-  bool _saving = false;
+  late int _initialOctaveOffset;
+  late double _clipLengthBeats;
+  final List<List<MidiNoteSnapshot>> _undoStack = [];
+  final List<List<MidiNoteSnapshot>> _redoStack = [];
+
+  PianoRollGridSettings _grid = const PianoRollGridSettings();
+  PianoRollTool _tool = PianoRollTool.select;
+  int? _selectedIndex;
+  PianoRollSaveState _saveState = PianoRollSaveState.saved;
 
   @override
   void initState() {
     super.initState();
     _notes = List.of(widget.clip.notes);
+    _clipLengthBeats = widget.clip.lengthBeats;
+    _initialOctaveOffset = PianoRollMetrics.initialOctaveOffset(
+      _notes.map((n) => n.pitch),
+    );
+    widget.bridge.enterPlayMode();
   }
 
-  double get _gridWidth => widget.clip.lengthBeats * kPixelsPerBeat;
-  double get _gridHeight => (kMaxPitch - kMinPitch + 1) * kRowHeight;
+  @override
+  void dispose() {
+    widget.bridge.allNotesOff();
+    super.dispose();
+  }
+
+  double get _virtualLengthBeats {
+    var contentEnd = _clipLengthBeats;
+    for (final note in _notes) {
+      contentEnd = math.max(contentEnd, note.startBeat + note.durationBeats);
+    }
+    return PianoRollMetrics.virtualLengthBeats(contentEnd);
+  }
+
+  String get _gridDockLabel {
+    final base = _grid.snap.shortLabel;
+    return _grid.triplet ? '${base}T' : base;
+  }
+
+  void _pushUndo() {
+    _undoStack.add(_cloneNotes(_notes));
+    if (_undoStack.length > 50) _undoStack.removeAt(0);
+    _redoStack.clear();
+  }
+
+  List<MidiNoteSnapshot> _cloneNotes(List<MidiNoteSnapshot> notes) {
+    return notes
+        .map(
+          (n) => MidiNoteSnapshot(
+            pitch: n.pitch,
+            startBeat: n.startBeat,
+            durationBeats: n.durationBeats,
+            velocity: n.velocity,
+          ),
+        )
+        .toList();
+  }
+
+  void _undo() {
+    if (_undoStack.isEmpty) return;
+    _redoStack.add(_cloneNotes(_notes));
+    setState(() => _notes = _undoStack.removeLast());
+    _persistNotes();
+  }
+
+  void _redo() {
+    if (_redoStack.isEmpty) return;
+    _undoStack.add(_cloneNotes(_notes));
+    setState(() => _notes = _redoStack.removeLast());
+    _persistNotes();
+  }
+
+  void _onNotesChanged(List<MidiNoteSnapshot> notes) {
+    setState(() => _notes = notes);
+  }
+
+  void _onEditStarted() {
+    setState(_pushUndo);
+  }
+
+  void _onEditFinished() {
+    _persistNotes();
+  }
+
+  void _applyNotes(List<MidiNoteSnapshot> notes, {int? selectedIndex}) {
+    setState(() {
+      _pushUndo();
+      _notes = notes;
+      _selectedIndex = selectedIndex;
+    });
+    _persistNotes();
+  }
+
+  void _quantizeSelection() {
+    final index = _selectedIndex;
+    if (index == null || index < 0 || index >= _notes.length) return;
+    final notes = List<MidiNoteSnapshot>.of(_notes);
+    notes[index] = PianoRollNoteOps.quantize(
+      notes[index],
+      _grid,
+      maxLengthBeats: _clipLengthBeats,
+    );
+    _applyNotes(notes, selectedIndex: index);
+  }
+
+  void _quantizeAll() {
+    final notes = PianoRollNoteOps.quantizeAll(
+      _notes,
+      _grid,
+      maxLengthBeats: _clipLengthBeats,
+    );
+    _applyNotes(notes, selectedIndex: _selectedIndex);
+  }
+
+  void _nudgeSelected({double beatDelta = 0, int pitchDelta = 0}) {
+    final index = _selectedIndex;
+    if (index == null || index < 0 || index >= _notes.length) return;
+    final notes = List<MidiNoteSnapshot>.of(_notes);
+    notes[index] = PianoRollNoteOps.nudge(
+      notes[index],
+      beatDelta: beatDelta,
+      pitchDelta: pitchDelta,
+      snapBeats: _grid.snapBeats,
+      maxLengthBeats: _clipLengthBeats,
+      minPitch: PianoRollMetrics.gridMinPitch,
+      maxPitch: PianoRollMetrics.gridMaxPitch,
+    );
+    _applyNotes(notes, selectedIndex: index);
+  }
+
+  void _deleteSelected() {
+    final index = _selectedIndex;
+    if (index == null || index < 0 || index >= _notes.length) return;
+    final notes = List<MidiNoteSnapshot>.of(_notes)..removeAt(index);
+    _applyNotes(notes, selectedIndex: null);
+  }
+
+  Future<void> _persistClipLength() async {
+    setState(() => _saveState = PianoRollSaveState.saving);
+    try {
+      final snapshot = await widget.bridge.setClipLength(
+        clipId: widget.clip.id,
+        lengthBeats: _clipLengthBeats,
+      );
+      widget.onSnapshot(snapshot);
+      if (mounted) setState(() => _saveState = PianoRollSaveState.saved);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _saveState = PianoRollSaveState.error);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not update clip length — try again'),
+            backgroundColor: PianoRollTheme.saveError,
+          ),
+        );
+      }
+    }
+  }
 
   Future<void> _persistNotes() async {
-    setState(() => _saving = true);
+    setState(() => _saveState = PianoRollSaveState.saving);
     try {
       final snapshot = await widget.bridge.setMidiClipNotes(
         clipId: widget.clip.id,
         notes: _notes,
       );
       widget.onSnapshot(snapshot);
-    } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) setState(() => _saveState = PianoRollSaveState.saved);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _saveState = PianoRollSaveState.error);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not save notes — try again'),
+            backgroundColor: PianoRollTheme.saveError,
+          ),
+        );
+      }
     }
   }
 
-  double _snapBeat(double beat) {
-    return (beat / kSnapBeats).round() * kSnapBeats;
+  void _openGridSheet() {
+    PianoRollGridSheet.show(
+      context,
+      settings: _grid,
+      onChanged: (next) => setState(() => _grid = next),
+    );
   }
 
-  int _pitchFromDy(double dy) {
-    final pitch = kMaxPitch - (dy / kRowHeight).floor();
-    return pitch.clamp(kMinPitch, kMaxPitch);
+  void _openEditSheet() {
+    PianoRollEditSheet.show(
+      context,
+      hasSelection: _selectedIndex != null,
+      noteCount: _notes.length,
+      onQuantizeSelection: _quantizeSelection,
+      onQuantizeAll: _quantizeAll,
+      onNudgeLeft: () => _nudgeSelected(beatDelta: -1),
+      onNudgeRight: () => _nudgeSelected(beatDelta: 1),
+      onNudgeUp: () => _nudgeSelected(pitchDelta: 1),
+      onNudgeDown: () => _nudgeSelected(pitchDelta: -1),
+      onDeleteSelected: _deleteSelected,
+    );
   }
 
-  double _beatFromDx(double dx) {
-    return _snapBeat((dx / kPixelsPerBeat).clamp(0.0, widget.clip.lengthBeats - kSnapBeats));
-  }
-
-  int? _noteIndexAt(Offset local) {
-    for (var i = _notes.length - 1; i >= 0; i--) {
-      final note = _notes[i];
-      final left = note.startBeat * kPixelsPerBeat;
-      final top = (kMaxPitch - note.pitch) * kRowHeight;
-      final width = note.durationBeats * kPixelsPerBeat;
-      final rect = Rect.fromLTWH(left, top, width, kRowHeight);
-      if (rect.contains(local)) return i;
-    }
-    return null;
-  }
-
-  _DragMode _dragModeAt(Offset local, int index) {
-    final note = _notes[index];
-    final left = note.startBeat * kPixelsPerBeat;
-    final width = note.durationBeats * kPixelsPerBeat;
-    if (local.dx >= left + width - 12) {
-      return _DragMode.resize;
-    }
-    return _DragMode.move;
-  }
-
-  void _addNoteAt(Offset local) {
-    final pitch = _pitchFromDy(local.dy);
-    final startBeat = _beatFromDx(local.dx);
-    if (startBeat + kDefaultNoteBeats > widget.clip.lengthBeats) return;
-
-    setState(() {
-      _notes.add(MidiNoteSnapshot(
-        pitch: pitch,
-        startBeat: startBeat,
-        durationBeats: kDefaultNoteBeats,
-        velocity: 100,
-      ));
-    });
-    _persistNotes();
-  }
-
-  void _deleteNote(int index) {
-    setState(() => _notes.removeAt(index));
-    _persistNotes();
+  Widget _saveIndicator() {
+    return switch (_saveState) {
+      PianoRollSaveState.saved =>
+        const Icon(Icons.circle, size: 10, color: PianoRollTheme.saveOk),
+      PianoRollSaveState.saving => const SizedBox(
+          width: 14,
+          height: 14,
+          child: CircularProgressIndicator(strokeWidth: 2, color: PianoRollTheme.label),
+        ),
+      PianoRollSaveState.error =>
+        const Icon(Icons.error_outline, size: 16, color: PianoRollTheme.saveError),
+    };
   }
 
   @override
   Widget build(BuildContext context) {
-    final topInset = MediaQuery.viewPaddingOf(context).top;
+    final barCount = (widget.clip.lengthBeats / PianoRollMetrics.beatsPerBar).ceil();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF101018),
+      resizeToAvoidBottomInset: false,
+      backgroundColor: PianoRollTheme.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF101018),
-        title: Text('Piano roll — ${widget.trackName}'),
+        backgroundColor: PianoRollTheme.background,
+        foregroundColor: Colors.white,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        title: Text(
+          '${widget.trackName} · $barCount bars',
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        ),
         actions: [
-          if (_saving)
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
-            ),
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Center(child: _saveIndicator()),
+          ),
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(16, 4, 16, 8 + topInset * 0),
-            child: Text(
-              'Tap grid to add · drag to move · drag right edge to resize · long-press to delete',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white54),
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 36,
-                    child: Column(
-                      children: [
-                        for (var index = 0; index <= kMaxPitch - kMinPitch; index++)
-                          Builder(
-                            builder: (context) {
-                              final pitch = kMaxPitch - index;
-                              final isC = pitch % 12 == 0;
-                              return Container(
-                                height: kRowHeight,
-                                alignment: Alignment.centerRight,
-                                padding: const EdgeInsets.only(right: 4),
-                                color: isC ? const Color(0xFF1E1E28) : null,
-                                child: Text(
-                                  _pitchLabel(pitch),
-                                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                        color: Colors.white38,
-                                        fontSize: 9,
-                                      ),
-                                ),
-                              );
-                            },
-                          ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: SizedBox(
-                        width: _gridWidth,
-                        height: _gridHeight,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTapUp: (details) {
-                            if (_noteIndexAt(details.localPosition) == null) {
-                              _addNoteAt(details.localPosition);
-                            }
-                          },
-                          onLongPressStart: (details) {
-                            final index = _noteIndexAt(details.localPosition);
-                            if (index != null) _deleteNote(index);
-                          },
-                          onPanStart: (details) {
-                            final index = _noteIndexAt(details.localPosition);
-                            if (index == null) return;
-                            _draggingIndex = index;
-                            _dragMode = _dragModeAt(details.localPosition, index);
-                            _dragStart = details.localPosition;
-                            _dragStartBeat = _notes[index].startBeat;
-                            _dragStartDuration = _notes[index].durationBeats;
-                            _dragStartPitch = _notes[index].pitch;
-                          },
-                          onPanUpdate: (details) {
-                            final index = _draggingIndex;
-                            if (index == null ||
-                                _dragStart == null ||
-                                _dragStartBeat == null ||
-                                _dragStartDuration == null ||
-                                _dragStartPitch == null) {
-                              return;
-                            }
-
-                            final delta = details.localPosition - _dragStart!;
-                            setState(() {
-                              final note = _notes[index];
-                              if (_dragMode == _DragMode.move) {
-                                final newBeat = _snapBeat(
-                                  (_dragStartBeat! + delta.dx / kPixelsPerBeat)
-                                      .clamp(0.0, widget.clip.lengthBeats - note.durationBeats),
-                                );
-                                final newPitch = _pitchFromDy(
-                                  (kMaxPitch - _dragStartPitch!) * kRowHeight + delta.dy,
-                                );
-                                _notes[index] = MidiNoteSnapshot(
-                                  pitch: newPitch,
-                                  startBeat: newBeat,
-                                  durationBeats: note.durationBeats,
-                                  velocity: note.velocity,
-                                );
-                              } else if (_dragMode == _DragMode.resize) {
-                                final newDuration = _snapBeat(
-                                  (_dragStartDuration! + delta.dx / kPixelsPerBeat)
-                                      .clamp(kSnapBeats, widget.clip.lengthBeats - note.startBeat),
-                                );
-                                _notes[index] = MidiNoteSnapshot(
-                                  pitch: note.pitch,
-                                  startBeat: note.startBeat,
-                                  durationBeats: newDuration,
-                                  velocity: note.velocity,
-                                );
-                              }
-                            });
-                          },
-                          onPanEnd: (_) {
-                            if (_draggingIndex != null) _persistNotes();
-                            _draggingIndex = null;
-                            _dragMode = _DragMode.none;
-                          },
-                          child: CustomPaint(
-                            painter: _PianoRollGridPainter(
-                              lengthBeats: widget.clip.lengthBeats,
-                              minPitch: kMinPitch,
-                              maxPitch: kMaxPitch,
-                            ),
-                            child: Stack(
-                              children: [
-                                for (var i = 0; i < _notes.length; i++)
-                                  _NoteBlock(
-                                    note: _notes[i],
-                                    selected: i == _draggingIndex,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+      body: MediaQuery.removePadding(
+        context: context,
+        removeBottom: true,
+        child: Column(
+          children: [
+            Expanded(
+              child: PianoRollViewport(
+                notes: _notes,
+                clipLengthBeats: _clipLengthBeats,
+                virtualLengthBeats: _virtualLengthBeats,
+                minPitch: PianoRollMetrics.gridMinPitch,
+                maxPitch: PianoRollMetrics.gridMaxPitch,
+                gridSettings: _grid,
+                tool: _tool,
+                selectedIndex: _selectedIndex,
+                onNotesChanged: _onNotesChanged,
+                onSelectionChanged: (index) => setState(() => _selectedIndex = index),
+                onEditStarted: _onEditStarted,
+                onEditFinished: _onEditFinished,
+                onClipLengthChanged: (length) => setState(() => _clipLengthBeats = length),
+                onClipLengthCommit: _persistClipLength,
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static String _pitchLabel(int pitch) {
-    const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    final octave = (pitch ~/ 12) - 1;
-    return '${names[pitch % 12]}$octave';
-  }
-}
-
-enum _DragMode { none, move, resize }
-
-class _NoteBlock extends StatelessWidget {
-  const _NoteBlock({required this.note, required this.selected});
-
-  final MidiNoteSnapshot note;
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      left: note.startBeat * kPixelsPerBeat,
-      top: (kMaxPitch - note.pitch) * kRowHeight + 2,
-      width: note.durationBeats * kPixelsPerBeat,
-      height: kRowHeight - 4,
-      child: Container(
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFF8B7CF6) : const Color(0xFF5C6BC0),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: selected ? Colors.white : Colors.white24),
+            PianoRollToolDock(
+              tool: _tool,
+              gridLabel: _gridDockLabel,
+              canUndo: _undoStack.isNotEmpty,
+              canRedo: _redoStack.isNotEmpty,
+              onToolChanged: (tool) => setState(() => _tool = tool),
+              onGridTap: _openGridSheet,
+              onEditTap: _openEditSheet,
+              onUndo: _undo,
+              onRedo: _redo,
+            ),
+            PlayDeck(
+              bridge: widget.bridge,
+              initialSurfaceMode: PlaySurfaceMode.keys,
+              initialOctaveOffset: _initialOctaveOffset,
+            ),
+          ],
         ),
       ),
     );
-  }
-}
-
-class _PianoRollGridPainter extends CustomPainter {
-  _PianoRollGridPainter({
-    required this.lengthBeats,
-    required this.minPitch,
-    required this.maxPitch,
-  });
-
-  final double lengthBeats;
-  final int minPitch;
-  final int maxPitch;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final beatPaint = Paint()
-      ..color = Colors.white10
-      ..strokeWidth = 1;
-    final barPaint = Paint()
-      ..color = Colors.white24
-      ..strokeWidth = 1;
-
-    for (var beat = 0.0; beat <= lengthBeats; beat += 0.25) {
-      final x = beat * kPixelsPerBeat;
-      final paint = beat % 1 == 0 ? barPaint : beatPaint;
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-
-    for (var pitch = minPitch; pitch <= maxPitch; pitch++) {
-      final y = (maxPitch - pitch) * kRowHeight;
-      final isC = pitch % 12 == 0;
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(size.width, y),
-        Paint()..color = isC ? Colors.white12 : Colors.white.withValues(alpha: 0.04),
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _PianoRollGridPainter oldDelegate) {
-    return oldDelegate.lengthBeats != lengthBeats;
   }
 }

@@ -132,6 +132,14 @@ void ProjectEngine::allNotesOff() {
     liveMixer_.allNotesOff();
 }
 
+void ProjectEngine::setLivePitchBend(float bend) noexcept {
+    livePitchBend_.store(bend, std::memory_order_relaxed);
+}
+
+void ProjectEngine::setLiveModulation(float mod) noexcept {
+    liveModulation_.store(mod, std::memory_order_relaxed);
+}
+
 void ProjectEngine::clearCapture() {
     std::lock_guard<std::mutex> lock(mutex_);
     captureEvents_.clear();

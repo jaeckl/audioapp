@@ -15,6 +15,9 @@ class PlayKeyboard extends StatefulWidget {
     required this.rowCount,
     this.scrollOffset = 0,
     this.highlightedPitches = const <int>{},
+    this.velocityCurve = VelocityCurve.linear,
+    this.onModulationChanged,
+    this.onPitchBendChanged,
   });
 
   final EngineBridge bridge;
@@ -24,6 +27,9 @@ class PlayKeyboard extends StatefulWidget {
   final int rowCount;
   final int scrollOffset;
   final Set<int> highlightedPitches;
+  final VelocityCurve velocityCurve;
+  final ValueChanged<double>? onModulationChanged;
+  final ValueChanged<double>? onPitchBendChanged;
 
   @override
   State<PlayKeyboard> createState() => _PlayKeyboardState();
@@ -32,6 +38,14 @@ class PlayKeyboard extends StatefulWidget {
 class _PlayKeyboardState extends State<PlayKeyboard> {
   final Set<int> _heldPitches = {};
   static const _rootMidi = 60;
+
+  // Active drag tracking for mod/bend. Keyed by pointer so multi-finger
+  // glides don't fight each other.
+  final Map<int, _KeyDrag> _drags = {};
+  double _currentMod = 0.0;
+  double _currentBend = 0.0;
+  static const double _modRangePx = 60.0; // px of horizontal drag for full mod
+  static const double _bendRangePx = 50.0; // px of vertical drag for full bend
 
   List<int> get _allPitches {
     final scale = widget.inKeyOnly ? widget.scale : PlayScale.chromatic;
@@ -49,7 +63,7 @@ class _PlayKeyboardState extends State<PlayKeyboard> {
     try {
       await widget.bridge.noteOn(
         pitch: pitch,
-        velocity: velocityFromY(localY, height).toDouble(),
+        velocity: velocityFromY(localY, height, curve: widget.velocityCurve).toDouble(),
       );
     } catch (_) {}
   }
@@ -60,6 +74,56 @@ class _PlayKeyboardState extends State<PlayKeyboard> {
     try {
       await widget.bridge.noteOff(pitch: pitch);
     } catch (_) {}
+  }
+
+  void _onKeyPointerDown(int pitch, int pointer, Offset local) {
+    _drags[pointer] = _KeyDrag(pitch: pitch, origin: local, last: local);
+  }
+
+  void _onKeyPointerMove(int pointer, Offset local, Size keySize) {
+    final drag = _drags[pointer];
+    if (drag == null) return;
+    final dx = local.dx - drag.origin.dx;
+    final dy = local.dy - drag.origin.dy;
+    // Mod from horizontal drag.
+    final mod = (dx / _modRangePx).clamp(0.0, 1.0);
+    // Bend from vertical drag (positive = up = bend up).
+    final bend = (-dy / _bendRangePx).clamp(-1.0, 1.0);
+    if (mod != _currentMod) {
+      _currentMod = mod;
+      widget.onModulationChanged?.call(mod);
+      try {
+        widget.bridge.setModulation(mod);
+      } catch (_) {}
+    }
+    if (bend != _currentBend) {
+      _currentBend = bend;
+      widget.onPitchBendChanged?.call(bend);
+      try {
+        widget.bridge.setPitchBend(bend);
+      } catch (_) {}
+    }
+    drag.last = local;
+  }
+
+  Future<void> _onKeyPointerEnd(int pointer) async {
+    _drags.remove(pointer);
+    if (_drags.isNotEmpty) return; // another finger still down — keep current
+    if (_currentMod != 0.0) {
+      _currentMod = 0.0;
+      widget.onModulationChanged?.call(0.0);
+      try {
+        await widget.bridge.setModulation(0.0);
+      } catch (_) {}
+    }
+    if (_currentBend != 0.0) {
+      _currentBend = 0.0;
+      widget.onPitchBendChanged?.call(0.0);
+      try {
+        await widget.bridge.setPitchBend(0.0);
+      } catch (_) {}
+    }
+    if (mounted) setState(() {});
   }
 
   @override
@@ -75,6 +139,9 @@ class _PlayKeyboardState extends State<PlayKeyboard> {
         highlighted: widget.highlightedPitches,
         onDown: _noteDown,
         onUp: _noteUp,
+        onPointerDown: _onKeyPointerDown,
+        onPointerMove: _onKeyPointerMove,
+        onPointerEnd: _onKeyPointerEnd,
       );
     }
 
@@ -87,8 +154,18 @@ class _PlayKeyboardState extends State<PlayKeyboard> {
       highlighted: widget.highlightedPitches,
       onDown: _noteDown,
       onUp: _noteUp,
+      onPointerDown: _onKeyPointerDown,
+      onPointerMove: _onKeyPointerMove,
+      onPointerEnd: _onKeyPointerEnd,
     );
   }
+}
+
+class _KeyDrag {
+  _KeyDrag({required this.pitch, required this.origin, required this.last});
+  final int pitch;
+  final Offset origin;
+  Offset last;
 }
 
 class _ScaleKeyGrid extends StatelessWidget {
@@ -101,6 +178,9 @@ class _ScaleKeyGrid extends StatelessWidget {
     required this.highlighted,
     required this.onDown,
     required this.onUp,
+    required this.onPointerDown,
+    required this.onPointerMove,
+    required this.onPointerEnd,
   });
 
   final List<int> pitches;
@@ -111,6 +191,9 @@ class _ScaleKeyGrid extends StatelessWidget {
   final Set<int> highlighted;
   final Future<void> Function(int pitch, double y, double h) onDown;
   final Future<void> Function(int pitch) onUp;
+  final void Function(int pitch, int pointer, Offset local) onPointerDown;
+  final void Function(int pointer, Offset local, Size keySize) onPointerMove;
+  final Future<void> Function(int pointer) onPointerEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -164,6 +247,9 @@ class _ScaleKeyGrid extends StatelessWidget {
       active: held.contains(pitch) || highlighted.contains(pitch),
       onDown: (y, h) => onDown(pitch, y, h),
       onUp: () => onUp(pitch),
+      onPointerDown: (pointer, local) => onPointerDown(pitch, pointer, local),
+      onPointerMove: onPointerMove,
+      onPointerEnd: onPointerEnd,
     );
   }
 
@@ -182,6 +268,9 @@ class _ChromaticPiano extends StatelessWidget {
     required this.highlighted,
     required this.onDown,
     required this.onUp,
+    required this.onPointerDown,
+    required this.onPointerMove,
+    required this.onPointerEnd,
   });
 
   final int octaveRoot;
@@ -190,6 +279,9 @@ class _ChromaticPiano extends StatelessWidget {
   final Set<int> highlighted;
   final Future<void> Function(int pitch, double y, double h) onDown;
   final Future<void> Function(int pitch) onUp;
+  final void Function(int pitch, int pointer, Offset local) onPointerDown;
+  final void Function(int pointer, Offset local, Size keySize) onPointerMove;
+  final Future<void> Function(int pointer) onPointerEnd;
 
   static const _whiteSteps = [0, 2, 4, 5, 7, 9, 11];
 
@@ -206,6 +298,9 @@ class _ChromaticPiano extends StatelessWidget {
         highlighted: highlighted,
         onDown: onDown,
         onUp: onUp,
+        onPointerDown: onPointerDown,
+        onPointerMove: onPointerMove,
+        onPointerEnd: onPointerEnd,
       );
     }
 
@@ -239,6 +334,10 @@ class _ChromaticPiano extends StatelessWidget {
                               highlighted.contains(octaveRoot + _whiteSteps[i] + 1),
                           onDown: (y, h) => onDown(octaveRoot + _whiteSteps[i] + 1, y, h),
                           onUp: () => onUp(octaveRoot + _whiteSteps[i] + 1),
+                          onPointerDown: (pointer, local) =>
+                              onPointerDown(octaveRoot + _whiteSteps[i] + 1, pointer, local),
+                          onPointerMove: onPointerMove,
+                          onPointerEnd: onPointerEnd,
                         ),
                       ),
                 ],
@@ -259,6 +358,10 @@ class _ChromaticPiano extends StatelessWidget {
                             highlighted.contains(octaveRoot + _whiteSteps[i]),
                         onDown: (y, h) => onDown(octaveRoot + _whiteSteps[i], y, h),
                         onUp: () => onUp(octaveRoot + _whiteSteps[i]),
+                        onPointerDown: (pointer, local) =>
+                            onPointerDown(octaveRoot + _whiteSteps[i], pointer, local),
+                        onPointerMove: onPointerMove,
+                        onPointerEnd: onPointerEnd,
                       ),
                     ),
                   ],
@@ -277,6 +380,9 @@ class _ChromaticPiano extends StatelessWidget {
                   highlighted: highlighted,
                   onDown: onDown,
                   onUp: onUp,
+                  onPointerDown: onPointerDown,
+                  onPointerMove: onPointerMove,
+                  onPointerEnd: onPointerEnd,
                 ),
               ),
             ],
@@ -293,6 +399,9 @@ class _KeyCell extends StatelessWidget {
     required this.active,
     required this.onDown,
     required this.onUp,
+    required this.onPointerDown,
+    required this.onPointerMove,
+    required this.onPointerEnd,
     this.light = false,
     this.dark = false,
   });
@@ -304,6 +413,9 @@ class _KeyCell extends StatelessWidget {
 
   final void Function(double y, double h) onDown;
   final VoidCallback onUp;
+  final void Function(int pointer, Offset local) onPointerDown;
+  final void Function(int pointer, Offset local, Size keySize) onPointerMove;
+  final Future<void> Function(int pointer) onPointerEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -320,9 +432,21 @@ class _KeyCell extends StatelessWidget {
 
     return Listener(
       behavior: HitTestBehavior.opaque,
-      onPointerDown: (e) => onDown(e.localPosition.dy, context.size?.height ?? 48),
-      onPointerUp: (_) => onUp(),
-      onPointerCancel: (_) => onUp(),
+      onPointerDown: (e) {
+        onDown(e.localPosition.dy, context.size?.height ?? 48);
+        onPointerDown(e.pointer, e.localPosition);
+      },
+      onPointerMove: (e) {
+        onPointerMove(e.pointer, e.localPosition, context.size ?? const Size(60, 60));
+      },
+      onPointerUp: (e) {
+        onUp();
+        onPointerEnd(e.pointer);
+      },
+      onPointerCancel: (e) {
+        onUp();
+        onPointerEnd(e.pointer);
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 45),
         color: color,

@@ -45,6 +45,7 @@ public:
     bool moveClip(const std::string& clipId,
                   const std::string& targetTrackId,
                   double startBeat);
+    bool setClipLength(const std::string& clipId, double lengthBeats);
     bool setBpm(int bpm);
     bool deleteTrack(const std::string& trackId);
     bool deleteClip(const std::string& clipId);
@@ -63,6 +64,8 @@ public:
     void clearCapture();
     bool commitCapture();
     void enterPlayMode();
+    void setPitchBend(float bend) noexcept;
+    void setModulation(float mod) noexcept;
 
     bool saveProject(const std::string& archivePath);
     bool loadProject(const std::string& archivePath);

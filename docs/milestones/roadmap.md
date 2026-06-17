@@ -147,7 +147,7 @@
 | US-04-08 | Multi-select notes | ⬜ |
 | US-04-09 | Duplicate selected notes | ⬜ |
 | US-04-10 | Quantize selection | ⬜ |
-| US-04-11 | Piano roll horizontal scroll | ⬜ |
+| US-04-11 | Piano roll horizontal scroll & clip bounds | ✅ |
 | US-04-12 | Piano roll pinch zoom | ⬜ |
 | US-04-13 | Undo/redo note edits | ⬜ |
 | US-04-14 | Copy/paste notes across clips | ⬜ |

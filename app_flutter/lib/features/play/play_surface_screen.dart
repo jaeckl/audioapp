@@ -1,16 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../bridge/engine_bridge.dart';
 import '../../bridge/project_snapshot.dart';
 import '../arrangement/arrangement_view.dart';
-import 'mpc_pad_grid.dart';
-import 'octave_panel.dart';
-import 'perform_panel.dart';
+import 'play_deck.dart';
 import 'play_deck_layout.dart';
-import 'play_deck_rail.dart';
-import 'play_deck_theme.dart';
-import 'play_keyboard.dart';
-import 'play_scale.dart';
+import 'track_mute_row.dart';
 
 class PlaySurfaceScreen extends StatefulWidget {
   const PlaySurfaceScreen({
@@ -55,24 +52,13 @@ class PlaySurfaceScreen extends StatefulWidget {
 }
 
 class _PlaySurfaceScreenState extends State<PlaySurfaceScreen> {
-  PlaySurfaceMode _surfaceMode = PlaySurfaceMode.pads;
-  PlayContextView _view = PlayContextView.perform;
-  int _octaveOffset = 0;
-  int _keyboardRows = 2;
-  int _padBank = 0;
-  String _scaleId = PlayScale.major.id;
-  bool _inKeyOnly = true;
+  final GlobalKey<PlayDeckState> _deckKey = GlobalKey();
   bool _busy = false;
 
-  ChordQuality _chord = ChordQuality.major;
-  ArpMode _arp = ArpMode.off;
-  int _octaveSpan = 1;
-  int _rateMs = 130;
-  int _activeRootOffset = 0;
-  final Set<int> _highlightedPitches = {};
+  final Set<String> _mutedTrackIds = {};
+  final Set<String> _soloedTrackIds = {};
 
-  static const int _rootMidi = 60;
-  static const _noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  PlaySurfaceMode? _preferredSurfaceMode;
 
   @override
   void initState() {
@@ -91,60 +77,16 @@ class _PlaySurfaceScreenState extends State<PlaySurfaceScreen> {
 
   void _syncModeFromTrack() {
     final track = widget.snapshot.selectedTrack;
+    PlaySurfaceMode? mode;
     if (track?.oscillatorDevice != null) {
-      _surfaceMode = PlaySurfaceMode.keys;
+      mode = PlaySurfaceMode.keys;
     } else if (track?.samplerDevice != null) {
-      _surfaceMode = PlaySurfaceMode.pads;
+      mode = PlaySurfaceMode.pads;
     }
-  }
-
-  void _onOctaveDelta(int delta) {
-    setState(() {
-      _octaveOffset = (_octaveOffset + delta).clamp(-4, 4);
-      if (_surfaceMode == PlaySurfaceMode.pads) {
-        final bank = ((_octaveOffset + 4) ~/ 2).clamp(0, 3);
-        _padBank = bank * 16;
-      }
-    });
-  }
-
-  void _onSurfaceModeChanged(PlaySurfaceMode mode) {
-    setState(() {
-      _surfaceMode = mode;
-      _view = PlayContextView.perform;
-      _highlightedPitches.clear();
-    });
-  }
-
-  void _onViewChanged(PlayContextView view) {
-    setState(() {
-      _view = view;
-      if (view != PlayContextView.performPanel) {
-        _highlightedPitches.clear();
-      }
-    });
-  }
-
-  void _updateHighlights(int rootOffset) {
-    _activeRootOffset = rootOffset;
-    if (_chord == ChordQuality.off) {
-      _highlightedPitches
-        ..clear()
-        ..add(_rootMidi + _octaveOffset * 12 + rootOffset);
-      return;
+    if (mode != _preferredSurfaceMode) {
+      setState(() => _preferredSurfaceMode = mode);
+      _deckKey.currentState?.setSurfaceMode(mode ?? PlaySurfaceMode.pads);
     }
-    final root = _rootMidi + _octaveOffset * 12 + rootOffset;
-    _highlightedPitches
-      ..clear()
-      ..addAll(_buildChordPitches(root, _chord, _octaveSpan));
-  }
-
-  static List<int> _buildChordPitches(int root, ChordQuality q, int span) {
-    final intervals = q.intervals;
-    return [
-      for (var o = 0; o < span; o++)
-        for (final step in intervals) root + o * 12 + step,
-    ];
   }
 
   Future<void> _setRecordArmed() async {
@@ -156,6 +98,16 @@ class _PlaySurfaceScreenState extends State<PlaySurfaceScreen> {
 
   Future<void> _commitCapture() async {
     if (_busy) return;
+    final deck = _deckKey.currentState;
+    if (deck == null) return;
+    if (deck.quantize != CaptureQuantize.off) {
+      deck.setMetronome(true);
+      setState(() {});
+      await Future<void>.delayed(const Duration(milliseconds: 800));
+      if (!mounted) return;
+      deck.setMetronome(false);
+      setState(() {});
+    }
     setState(() => _busy = true);
     try {
       final updated = await widget.bridge.commitCapture();
@@ -182,12 +134,32 @@ class _PlaySurfaceScreenState extends State<PlaySurfaceScreen> {
     } catch (_) {}
   }
 
+  void _toggleTrackMute(String trackId) {
+    setState(() {
+      if (_mutedTrackIds.contains(trackId)) {
+        _mutedTrackIds.remove(trackId);
+      } else {
+        _mutedTrackIds.add(trackId);
+      }
+    });
+  }
+
+  void _toggleTrackSolo(String trackId) {
+    setState(() {
+      if (_soloedTrackIds.contains(trackId)) {
+        _soloedTrackIds.remove(trackId);
+      } else {
+        _soloedTrackIds.add(trackId);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final track = widget.snapshot.selectedTrack;
     final armed = widget.snapshot.recordArmed;
-    final scale = PlayScale.byId(_scaleId);
     final hasTrack = track != null;
+    final deck = _deckKey.currentState;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -196,9 +168,20 @@ class _PlaySurfaceScreenState extends State<PlaySurfaceScreen> {
           _CaptureStrip(
             armed: armed,
             busy: _busy,
+            quantize: deck?.quantize ?? CaptureQuantize.quarter,
+            latch: deck?.latch ?? false,
+            metronome: deck?.metronome ?? false,
             onArmToggle: _setRecordArmed,
             onCapture: _commitCapture,
             onClear: _clearCapture,
+            onLatchToggle: () {
+              _deckKey.currentState?.toggleLatch();
+              setState(() {});
+            },
+            onMetronomeToggle: () {
+              _deckKey.currentState?.toggleMetronome();
+              setState(() {});
+            },
           ),
         Expanded(
           child: ArrangementView(
@@ -220,119 +203,27 @@ class _PlaySurfaceScreenState extends State<PlaySurfaceScreen> {
             onDuplicateClip: widget.onDuplicateClip,
           ),
         ),
-        ColoredBox(
-          color: PlayDeckTheme.deckBackground,
-          child: SizedBox(
-            height: PlayDeckLayout.deckHeight,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                PlayDeckRail(
-                  surfaceMode: _surfaceMode,
-                  activeView: _view,
-                  octaveDisplay: _octaveDisplay,
-                  enabled: hasTrack,
-                  onSurfaceModeChanged: _onSurfaceModeChanged,
-                  onViewChanged: _onViewChanged,
-                ),
-                Expanded(child: _buildContextArea(hasTrack, scale)),
-              ],
-            ),
+        if (hasTrack)
+          TrackMuteRow(
+            tracks: widget.snapshot.tracks,
+            selectedTrackId: widget.snapshot.selectedTrackId,
+            mutedTrackIds: _mutedTrackIds,
+            soloedTrackIds: _soloedTrackIds,
+            onToggleMute: _toggleTrackMute,
+            onToggleSolo: _toggleTrackSolo,
+            onSelectTrack: widget.onTrackSelected,
           ),
+        PlayDeck(
+          key: _deckKey,
+          bridge: widget.bridge,
+          enabled: hasTrack,
+          showModStrip: hasTrack,
+          initialSurfaceMode: _preferredSurfaceMode,
+          onPerformanceChanged: () => setState(() {}),
         ),
       ],
     );
   }
-
-  Widget _buildContextArea(bool hasTrack, PlayScale scale) {
-    if (!hasTrack) {
-      return ColoredBox(
-        color: PlayDeckTheme.gapColor,
-        child: Center(
-          child: Text(
-            'Select a track',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: PlayDeckTheme.railLabel),
-          ),
-        ),
-      );
-    }
-
-    switch (_view) {
-      case PlayContextView.octave:
-        return ColoredBox(
-          color: PlayDeckTheme.gapColor,
-          child: Padding(
-            padding: const EdgeInsets.all(2),
-            child: OctavePanel(
-              octaveOffset: _octaveOffset,
-              rowCount: _keyboardRows,
-              scaleId: _scaleId,
-              inKeyOnly: _inKeyOnly,
-              rootName: _noteNames[_rootMidi % 12],
-              onOctaveDelta: _onOctaveDelta,
-              onRowCountChanged: (r) => setState(() => _keyboardRows = r),
-              onScaleChanged: (id) => setState(() => _scaleId = id),
-              onInKeyToggle: () => setState(() => _inKeyOnly = !_inKeyOnly),
-            ),
-          ),
-        );
-      case PlayContextView.performPanel:
-        return ColoredBox(
-          color: PlayDeckTheme.gapColor,
-          child: Padding(
-            padding: const EdgeInsets.all(2),
-            child: PerformPanel(
-              bridge: widget.bridge,
-              scaleId: _scaleId,
-              rootMidi: _rootMidi + _octaveOffset * 12,
-              chord: _chord,
-              arp: _arp,
-              octaveSpan: _octaveSpan,
-              rateMs: _rateMs,
-              highlightedRoot: _activeRootOffset,
-              onChordChanged: (q) => setState(() {
-                _chord = q;
-                _updateHighlights(_activeRootOffset);
-              }),
-              onArpChanged: (m) => setState(() => _arp = m),
-              onSpanChanged: (s) => setState(() {
-                _octaveSpan = s;
-                _updateHighlights(_activeRootOffset);
-              }),
-              onRateChanged: (ms) => setState(() => _rateMs = ms),
-              onKeyDown: (offset) => setState(() => _updateHighlights(offset)),
-              onKeyUp: () => setState(() => _highlightedPitches.clear()),
-            ),
-          ),
-        );
-      case PlayContextView.perform:
-        return ColoredBox(
-          color: PlayDeckTheme.gapColor,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(2, 2, 2, 2),
-            child: _surfaceMode == PlaySurfaceMode.pads
-                ? MpcPadGrid(
-                    bridge: widget.bridge,
-                    bankOffset: _padBank,
-                    highlightedPitches: _highlightedPitches,
-                  )
-                : PlayKeyboard(
-                    bridge: widget.bridge,
-                    scale: scale,
-                    inKeyOnly: _inKeyOnly && scale.id != 'chromatic',
-                    octaveOffset: _octaveOffset,
-                    rowCount: _keyboardRows,
-                    highlightedPitches: _highlightedPitches,
-                  ),
-          ),
-        );
-    }
-  }
-
-  int get _octaveDisplay => (2 + _octaveOffset).clamp(-2, 8);
 }
 
 /// Slim capture bar above the arrangement when ARM is on. Hidden when not armed.
@@ -340,25 +231,42 @@ class _CaptureStrip extends StatelessWidget {
   const _CaptureStrip({
     required this.armed,
     required this.busy,
+    required this.quantize,
+    required this.latch,
+    required this.metronome,
     required this.onArmToggle,
     required this.onCapture,
     required this.onClear,
+    required this.onLatchToggle,
+    required this.onMetronomeToggle,
   });
 
   final bool armed;
   final bool busy;
+  final CaptureQuantize quantize;
+  final bool latch;
+  final bool metronome;
   final VoidCallback onArmToggle;
   final VoidCallback onCapture;
   final VoidCallback onClear;
+  final VoidCallback onLatchToggle;
+  final VoidCallback onMetronomeToggle;
 
   @override
   Widget build(BuildContext context) {
     if (!armed) {
-      return _SimpleTextButton(
-        icon: Icons.fiber_manual_record,
-        color: Colors.redAccent,
-        label: 'ARM',
-        onTap: onArmToggle,
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Row(
+          children: [
+            _SimpleTextButton(
+              icon: Icons.fiber_manual_record,
+              color: Colors.redAccent,
+              label: 'ARM',
+              onTap: onArmToggle,
+            ),
+          ],
+        ),
       );
     }
 
@@ -375,6 +283,18 @@ class _CaptureStrip extends StatelessWidget {
               onTap: onArmToggle,
             ),
             const VerticalDivider(width: 1, color: Color(0xFF5A2A30)),
+            _SimpleTextButton(
+              icon: latch ? Icons.lock : Icons.lock_open,
+              color: latch ? Colors.amber : Colors.white54,
+              label: 'Latch',
+              onTap: onLatchToggle,
+            ),
+            _SimpleTextButton(
+              icon: metronome ? Icons.timer : Icons.timer_outlined,
+              color: metronome ? Colors.amber : Colors.white54,
+              label: quantize.label,
+              onTap: onMetronomeToggle,
+            ),
             Expanded(
               child: FilledButton.icon(
                 style: FilledButton.styleFrom(
@@ -427,7 +347,7 @@ class _SimpleTextButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

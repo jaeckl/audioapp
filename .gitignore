@@ -43,3 +43,8 @@ CMakeFiles/
 
 # Fixtures generated
 fixtures/renders/tmp/
+
+# Local agent debug captures (repo root)
+/debug-*.png
+/debug-*.txt
+/build_log.txt

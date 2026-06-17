@@ -117,6 +117,10 @@ bool EngineHost::moveClip(const std::string& clipId,
     return project_.moveClip(clipId, targetTrackId, startBeat);
 }
 
+bool EngineHost::setClipLength(const std::string& clipId, double lengthBeats) {
+    return project_.setClipLength(clipId, lengthBeats);
+}
+
 bool EngineHost::setBpm(int bpm) {
     return project_.setBpm(bpm);
 }
@@ -167,6 +171,14 @@ bool EngineHost::commitCapture() {
 
 void EngineHost::enterPlayMode() {
     ensureAudioOutput();
+}
+
+void EngineHost::setPitchBend(float bend) noexcept {
+    project_.setLivePitchBend(bend);
+}
+
+void EngineHost::setModulation(float mod) noexcept {
+    project_.setLiveModulation(mod);
 }
 
 std::vector<float> EngineHost::renderOffline(double lengthBeats, double sampleRate) {

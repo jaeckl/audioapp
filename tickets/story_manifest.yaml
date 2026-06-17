@@ -134,7 +134,7 @@ stories:
   - { id: US-04-08, milestone: M04, status: todo, title: Multi-select notes (lasso or long-press) }
   - { id: US-04-09, milestone: M04, status: todo, title: Duplicate selected notes }
   - { id: US-04-10, milestone: M04, status: todo, title: Quantize selection to grid }
-  - { id: US-04-11, milestone: M04, status: todo, title: Piano roll horizontal scroll & clip bounds }
+  - { id: US-04-11, milestone: M04, status: done, title: Piano roll horizontal scroll & clip bounds }
   - { id: US-04-12, milestone: M04, status: todo, title: Piano roll pinch zoom (beats axis) }
   - { id: US-04-13, milestone: M04, status: todo, title: Undo/redo note edits (session scope) }
   - { id: US-04-14, milestone: M04, status: todo, title: Copy/paste note buffer across clips }

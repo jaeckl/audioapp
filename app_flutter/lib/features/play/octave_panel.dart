@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'play_deck_theme.dart';
+import 'play_scale.dart';
 
 /// Settings panel for octave / key range / scale.
 class OctavePanel extends StatelessWidget {
@@ -11,10 +12,16 @@ class OctavePanel extends StatelessWidget {
     required this.scaleId,
     required this.inKeyOnly,
     required this.rootName,
+    required this.velocityCurve,
+    required this.quantize,
+    required this.customScales,
     required this.onOctaveDelta,
     required this.onRowCountChanged,
     required this.onScaleChanged,
     required this.onInKeyToggle,
+    required this.onVelocityCurveChanged,
+    required this.onQuantizeChanged,
+    required this.onEditCustomScales,
   });
 
   final int octaveOffset;
@@ -22,10 +29,16 @@ class OctavePanel extends StatelessWidget {
   final String scaleId;
   final bool inKeyOnly;
   final String rootName;
+  final VelocityCurve velocityCurve;
+  final CaptureQuantize quantize;
+  final List<PlayScale> customScales;
   final ValueChanged<int> onOctaveDelta;
   final ValueChanged<int> onRowCountChanged;
   final ValueChanged<String> onScaleChanged;
   final VoidCallback onInKeyToggle;
+  final ValueChanged<VelocityCurve> onVelocityCurveChanged;
+  final ValueChanged<CaptureQuantize> onQuantizeChanged;
+  final VoidCallback onEditCustomScales;
 
   static const _scaleOptions = [
     {'id': 'chromatic', 'label': 'Chrom'},
@@ -93,11 +106,46 @@ class OctavePanel extends StatelessWidget {
                   selected: scaleId == opt['id'],
                   onTap: () => onScaleChanged(opt['id']!),
                 ),
+              for (final custom in customScales)
+                _Pill(
+                  label: custom.label,
+                  selected: scaleId == custom.id,
+                  onTap: () => onScaleChanged(custom.id),
+                ),
               _Pill(
                 label: 'In key',
                 selected: inKeyOnly,
                 onTap: onInKeyToggle,
               ),
+              _Pill(label: 'Edit', selected: false, onTap: onEditCustomScales),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _SectionTitle(text: 'Velocity curve'),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final c in VelocityCurve.values)
+                _Pill(
+                  label: c.label,
+                  selected: velocityCurve == c,
+                  onTap: () => onVelocityCurveChanged(c),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _SectionTitle(text: 'Capture quantize'),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final q in CaptureQuantize.values)
+                _Pill(
+                  label: q.label,
+                  selected: quantize == q,
+                  onTap: () => onQuantizeChanged(q),
+                ),
             ],
           ),
         ],

@@ -4,6 +4,7 @@
 #include "audioapp/MidiUtils.hpp"
 #include "audioapp/SamplePlayback.hpp"
 
+#include <algorithm>
 #include <cmath>
 
 namespace audioapp {
@@ -16,8 +17,8 @@ bool isMidiNoteActive(const MidiPlaybackNote& note, double beat) {
     }
     const double posInClip = beat - note.clipStartBeat;
     const double loopedBeat = std::fmod(posInClip, note.clipLengthBeats);
-    return loopedBeat >= note.noteStartBeat
-        && loopedBeat < (note.noteStartBeat + note.noteDurationBeats);
+    const double noteEnd = std::min(note.noteStartBeat + note.noteDurationBeats, note.clipLengthBeats);
+    return loopedBeat >= note.noteStartBeat && loopedBeat < noteEnd;
 }
 
 } // namespace

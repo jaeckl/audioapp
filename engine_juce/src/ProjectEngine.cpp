@@ -1,5 +1,6 @@
 #include "audioapp/ProjectEngine.hpp"
 #include "audioapp/ProjectJson.hpp"
+#include "audioapp/TimelineClipTypes.hpp"
 #include "audioapp/MidiUtils.hpp"
 #include "audioapp/MasterMix.hpp"
 #include "audioapp/SamplePlayback.hpp"
@@ -300,6 +301,23 @@ bool ProjectEngine::moveClip(const std::string& clipId,
         }
     }
 
+    return false;
+}
+
+bool ProjectEngine::setClipLength(const std::string& clipId, double lengthBeats) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    const double len = lengthBeats < kMinClipLengthBeats ? kMinClipLengthBeats : lengthBeats;
+
+    if (MidiClip* midi = findMidiClipLocked(clipId)) {
+        midi->lengthBeats = len;
+        rebuildTrackPlaybackLocked();
+        return true;
+    }
+    if (SampleClip* sample = findSampleClipLocked(clipId)) {
+        sample->lengthBeats = len;
+        rebuildTrackPlaybackLocked();
+        return true;
+    }
     return false;
 }
 
