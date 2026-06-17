@@ -32,6 +32,8 @@ class SubtractiveSynthDevicePanel extends StatefulWidget {
     this.onTabChanged,
     this.onOpenFullscreen,
     this.showExpandControl = false,
+    this.modulatedParams = const {},
+    this.onModulationAssign,
   });
 
   final DeviceSnapshot device;
@@ -42,6 +44,8 @@ class SubtractiveSynthDevicePanel extends StatefulWidget {
   final ValueChanged<SubtractiveDeviceTab>? onTabChanged;
   final VoidCallback? onOpenFullscreen;
   final bool showExpandControl;
+  final Set<String> modulatedParams;
+  final void Function(String paramId, String paramLabel)? onModulationAssign;
 
   static const Color panel = Color(0xFF1C1C24);
   static const Color accent = DeviceStripTheme.subtractiveSynthAccent;
@@ -75,6 +79,7 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
     required ValueChanged<double> onChanged,
     String? displayValue,
     double? size,
+    String? paramId,
   }) {
     return RotaryKnob(
       label: label,
@@ -83,6 +88,10 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
       displayValue: displayValue,
       size: size ?? _knobSize,
       accentColor: SubtractiveSynthDevicePanel.accent,
+      modulationActive: paramId != null && widget.modulatedParams.contains(paramId),
+      onModulationAssign: paramId != null && widget.onModulationAssign != null
+          ? () => widget.onModulationAssign!(paramId, label)
+          : null,
     );
   }
 
@@ -239,6 +248,7 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
               size: _knobSize * 0.82,
               displayValue: subtractiveShapeLabel(shape),
               onChanged: (v) => widget.onParameterChanged(shapeParam, v),
+              paramId: shapeParam,
             ),
             _knob(
               label: 'Pitch',
@@ -246,6 +256,7 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
               size: _knobSize * 0.82,
               displayValue: '${(semi * 11).round()}',
               onChanged: (v) => widget.onParameterChanged(semiParam, v),
+              paramId: semiParam,
             ),
             _knob(
               label: 'Sync',
@@ -253,6 +264,7 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
               size: _knobSize * 0.82,
               displayValue: SamplerDevicePanel.formatPercent(sync),
               onChanged: (v) => widget.onParameterChanged(syncParam, v),
+              paramId: syncParam,
             ),
           ],
         ),
@@ -305,6 +317,7 @@ Widget _mixTab() {
                           size: _knobSize * 0.82,
                           displayValue: '${1 + (widget.device.unisonVoices * 3).round()}',
                           onChanged: (v) => widget.onParameterChanged('unisonVoices', v),
+                          paramId: 'unisonVoices',
                         ),
                       ),
                     ),
@@ -316,6 +329,7 @@ Widget _mixTab() {
                           size: _knobSize * 0.82,
                           displayValue: SamplerDevicePanel.formatPercent(widget.device.unisonDetune),
                           onChanged: (v) => widget.onParameterChanged('unisonDetune', v),
+                          paramId: 'unisonDetune',
                         ),
                       ),
                     ),
@@ -371,6 +385,7 @@ Widget _mixTab() {
                           size: _knobSize * 0.82,
                           displayValue: SamplerDevicePanel.formatPercent(widget.device.oscMix),
                           onChanged: (v) => widget.onParameterChanged('oscMix', v),
+                          paramId: 'oscMix',
                         ),
                       ),
                     ),
@@ -382,6 +397,7 @@ Widget _mixTab() {
                           size: _knobSize * 0.82,
                           displayValue: SamplerDevicePanel.formatPercent(widget.device.noiseLevel),
                           onChanged: (v) => widget.onParameterChanged('noiseLevel', v),
+                          paramId: 'noiseLevel',
                         ),
                       ),
                     ),
@@ -442,6 +458,7 @@ Widget _mixTab() {
                       value: widget.device.filterCutoff,
                       displayValue: SamplerDevicePanel.formatCutoffHz(widget.device.filterCutoff),
                       onChanged: (v) => widget.onParameterChanged('filterCutoff', v),
+                      paramId: 'filterCutoff',
                     ),
                     const SizedBox(width: 4),
                     _knob(
@@ -449,6 +466,7 @@ Widget _mixTab() {
                       value: widget.device.filterQ,
                       displayValue: SamplerDevicePanel.formatQ(widget.device.filterQ),
                       onChanged: (v) => widget.onParameterChanged('filterQ', v),
+                      paramId: 'filterQ',
                     ),
                     const SizedBox(width: 4),
                     _knob(
@@ -456,6 +474,7 @@ Widget _mixTab() {
                       value: widget.device.filterEnvAmount,
                       displayValue: SamplerDevicePanel.formatPercent(widget.device.filterEnvAmount),
                       onChanged: (v) => widget.onParameterChanged('filterEnvAmount', v),
+                      paramId: 'filterEnvAmount',
                     ),
                     const SizedBox(width: 4),
                   ],
@@ -549,6 +568,7 @@ Widget _mixTab() {
                           ? 'Off'
                           : '${(widget.device.glideMs * 2000).round()} ms',
                       onChanged: (v) => widget.onParameterChanged('glideMs', v),
+                      paramId: 'glideMs',
                     ),
                     const SizedBox(width: 8),
                     _knob(
@@ -557,6 +577,7 @@ Widget _mixTab() {
                       size: _knobSize * 0.9,
                       displayValue: SamplerDevicePanel.formatPercent(widget.device.velocitySensitivity),
                       onChanged: (v) => widget.onParameterChanged('velocitySensitivity', v),
+                      paramId: 'velocitySensitivity',
                     ),
                   ],
                 ),
@@ -603,24 +624,32 @@ Widget _mixTab() {
     String prefix = '',
   }) {
     String id(String name) => prefix.isEmpty ? name : '$prefix${name[0].toUpperCase()}${name.substring(1)}';
+    final aId = id('attack');
+    final dId = id('decay');
+    final sId = id('sustain');
+    final rId = id('release');
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         _knob(label: 'A', value: attack, size: _knobSize * 0.8,
           displayValue: SamplerDevicePanel.formatPercent(attack),
-          onChanged: (v) => onChanged(id('attack'), v)),
+          onChanged: (v) => onChanged(aId, v),
+          paramId: aId),
         const SizedBox(width: 8),
         _knob(label: 'D', value: decay, size: _knobSize * 0.8,
           displayValue: SamplerDevicePanel.formatPercent(decay),
-          onChanged: (v) => onChanged(id('decay'), v)),
+          onChanged: (v) => onChanged(dId, v),
+          paramId: dId),
         const SizedBox(width: 8),
         _knob(label: 'S', value: sustain, size: _knobSize * 0.8,
           displayValue: SamplerDevicePanel.formatPercent(sustain),
-          onChanged: (v) => onChanged(id('sustain'), v)),
+          onChanged: (v) => onChanged(sId, v),
+          paramId: sId),
         const SizedBox(width: 8),
         _knob(label: 'R', value: release, size: _knobSize * 0.8,
           displayValue: SamplerDevicePanel.formatPercent(release),
-          onChanged: (v) => onChanged(id('release'), v)),
+          onChanged: (v) => onChanged(rId, v),
+          paramId: rId),
       ],
     );
   }

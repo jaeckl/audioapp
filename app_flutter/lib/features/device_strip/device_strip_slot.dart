@@ -9,6 +9,7 @@ import 'device_strip_metrics.dart';
 import 'device_strip_theme.dart';
 import 'device_strip_viewport.dart';
 import 'device_tool_rail.dart';
+import 'modulation_assign_sheet.dart';
 import 'modulation_strip.dart';
 import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
@@ -69,6 +70,8 @@ class DeviceStripSlot extends StatefulWidget {
 class _DeviceStripSlotState extends State<DeviceStripSlot> {
   late int _selectedTabIndex;
   bool _modStripVisible = false;
+  late List<LfoSnapshot> _localLfos;
+  late List<ModulationEdgeSnapshot> _localModEdges;
 
   ProjectSnapshot get _emptySnapshot => ProjectSnapshot(
     bpm: 120,
@@ -85,12 +88,12 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     modEdges: [],
   );
 
-  List<DeviceTabSpec> get _containerTabs => DeviceContainerTabs.forDeviceType(widget.device.type);
-
   @override
   void initState() {
     super.initState();
     _selectedTabIndex = _initialTabIndex();
+    _localLfos = List.of(widget.lfos);
+    _localModEdges = List.of(widget.modEdges);
   }
 
   @override
@@ -107,6 +110,65 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     if (widget.device.id != oldWidget.device.id) {
       _selectedTabIndex = _initialTabIndex();
     }
+    // Sync local LFO/edge state from parent snapshot
+    if (widget.lfos != oldWidget.lfos || widget.modEdges != oldWidget.modEdges) {
+      _localLfos = List.of(widget.lfos);
+      _localModEdges = List.of(widget.modEdges);
+    }
+  }
+
+  Set<String> get _modulatedParamIds {
+    return _localModEdges
+        .where((e) => e.deviceId == widget.device.id)
+        .map((e) => e.paramId)
+        .toSet();
+  }
+
+  Future<ProjectSnapshot> _onBridgeCall(String method, Map<String, dynamic> args) async {
+    final bridge = widget.onModulationBridgeCall;
+    if (bridge == null) return _emptySnapshot;
+    final snapshot = await bridge(method, args);
+    if (mounted) {
+      setState(() {
+        _localLfos = List.of(snapshot.lfos);
+        _localModEdges = List.of(snapshot.modEdges);
+      });
+    }
+    return snapshot;
+  }
+
+  List<DeviceTabSpec> get _containerTabs => DeviceContainerTabs.forDeviceType(widget.device.type);
+
+  void _showModulationAssignSheet(String paramId, String paramLabel) {
+    final deviceEdges = _localModEdges
+        .where((e) => e.deviceId == widget.device.id && e.paramId == paramId)
+        .toList();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1A1A24),
+      builder: (ctx) => ModulationAssignSheet(
+        lfos: _localLfos,
+        existingEdges: deviceEdges,
+        deviceId: widget.device.id,
+        paramId: paramId,
+        paramLabel: paramLabel,
+        onAssign: (lfoId, amount) async {
+          await _onBridgeCall('assignModulation', {
+            'lfoId': lfoId,
+            'deviceId': widget.device.id,
+            'paramId': paramId,
+            'amount': amount,
+          });
+        },
+        onRemove: (lfoId) async {
+          await _onBridgeCall('removeModulation', {
+            'lfoId': lfoId,
+            'paramId': paramId,
+          });
+        },
+      ),
+    );
   }
 
   int _initialTabIndex() {
@@ -200,14 +262,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                   SizedBox(
                     width: 180,
                     child: ModulationStrip(
-                      lfos: widget.lfos,
-                      modEdges: widget.modEdges,
+                      lfos: _localLfos,
+                      modEdges: _localModEdges,
                       deviceId: widget.device.id,
-                      onBridgeCall: (method, args) {
-                        final bridge = widget.onModulationBridgeCall;
-                        if (bridge == null) return Future.value(_emptySnapshot);
-                        return bridge(method, args);
-                      },
+                      onBridgeCall: _onBridgeCall,
                     ),
                   ),
                 SizedBox(
@@ -254,6 +312,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             onTabChanged: widget.onSamplerTabChanged,
             onCollapse: widget.onCollapse,
             selectedTab: SamplerDeviceTab.values[_selectedTabIndex],
+            modulatedParams: _modulatedParamIds,
+            onModulationAssign: _showModulationAssignSheet,
           ),
         );
       case 'simple_oscillator':
@@ -268,6 +328,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             onCollapse: widget.onCollapse,
             embeddedInCard: true,
             selectedTab: OscillatorDeviceTab.values[_selectedTabIndex],
+            modulatedParams: _modulatedParamIds,
+            onModulationAssign: _showModulationAssignSheet,
           ),
         );
       case 'subtractive_synth':
@@ -281,6 +343,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             selectedTab: SubtractiveDeviceTab.values[_selectedTabIndex],
             onTabChanged: widget.onSynthTabChanged,
             onOpenFullscreen: widget.onOpenSamplerEditor,
+            modulatedParams: _modulatedParamIds,
+            onModulationAssign: _showModulationAssignSheet,
           ),
         );
       default:

@@ -14,6 +14,8 @@ class SamplerDeviceStrip extends StatelessWidget {
     this.onCollapse,
     this.embeddedInCard = true,
     this.selectedTab,
+    this.modulatedParams = const {},
+    this.onModulationAssign,
   });
 
   final DeviceSnapshot device;
@@ -23,6 +25,8 @@ class SamplerDeviceStrip extends StatelessWidget {
   final VoidCallback? onCollapse;
   final bool embeddedInCard;
   final SamplerDeviceTab? selectedTab;
+  final Set<String> modulatedParams;
+  final void Function(String paramId, String paramLabel)? onModulationAssign;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +39,8 @@ class SamplerDeviceStrip extends StatelessWidget {
       onCollapse: onCollapse,
       selectedTab: selectedTab,
       density: SamplerPanelDensity.strip,
+      modulatedParams: modulatedParams,
+      onModulationAssign: onModulationAssign,
     );
   }
 }

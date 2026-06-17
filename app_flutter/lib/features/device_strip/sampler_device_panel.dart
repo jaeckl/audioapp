@@ -28,6 +28,8 @@ class SamplerDevicePanel extends StatefulWidget {
     this.onCollapse,
     this.embeddedInCard = false,
     this.selectedTab,
+    this.modulatedParams = const {},
+    this.onModulationAssign,
   });
 
   final DeviceSnapshot device;
@@ -41,6 +43,8 @@ class SamplerDevicePanel extends StatefulWidget {
   final VoidCallback? onCollapse;
   final bool embeddedInCard;
   final SamplerDeviceTab? selectedTab;
+  final Set<String> modulatedParams;
+  final void Function(String paramId, String paramLabel)? onModulationAssign;
 
   static const Color panel = Color(0xFF1C1C24);
   static const Color accent = Color(0xFFE8A54B);
@@ -173,12 +177,16 @@ class _SamplerDevicePanelState extends State<SamplerDevicePanel> {
           device: widget.device,
           knobSize: widget._knobSize,
           onParameterChanged: widget.onParameterChanged,
+          modulatedParams: widget.modulatedParams,
+          onModulationAssign: widget.onModulationAssign,
         );
       case SamplerDeviceTab.filter:
         return _FilterTab(
           device: widget.device,
           knobSize: widget._knobSize,
           onParameterChanged: widget.onParameterChanged,
+          modulatedParams: widget.modulatedParams,
+          onModulationAssign: widget.onModulationAssign,
         );
     }
   }
@@ -290,11 +298,15 @@ class _EnvTab extends StatelessWidget {
     required this.device,
     required this.knobSize,
     required this.onParameterChanged,
+    required this.modulatedParams,
+    required this.onModulationAssign,
   });
 
   final DeviceSnapshot device;
   final double knobSize;
   final void Function(String parameterId, double value) onParameterChanged;
+  final Set<String> modulatedParams;
+  final void Function(String paramId, String paramLabel)? onModulationAssign;
 
   @override
   Widget build(BuildContext context) {
@@ -306,6 +318,10 @@ class _EnvTab extends StatelessWidget {
           size: knobSize,
           displayValue: SamplerDevicePanel.formatPercent(device.attack),
           onChanged: (v) => onParameterChanged('attack', v),
+          modulationActive: modulatedParams.contains('attack'),
+          onModulationAssign: onModulationAssign != null
+              ? () => onModulationAssign!('attack', 'Attack')
+              : null,
         ),
         RotaryKnob(
           label: 'Decay',
@@ -313,6 +329,10 @@ class _EnvTab extends StatelessWidget {
           size: knobSize,
           displayValue: SamplerDevicePanel.formatPercent(device.decay),
           onChanged: (v) => onParameterChanged('decay', v),
+          modulationActive: modulatedParams.contains('decay'),
+          onModulationAssign: onModulationAssign != null
+              ? () => onModulationAssign!('decay', 'Decay')
+              : null,
         ),
         RotaryKnob(
           label: 'Sustain',
@@ -320,6 +340,10 @@ class _EnvTab extends StatelessWidget {
           size: knobSize,
           displayValue: SamplerDevicePanel.formatPercent(device.sustain),
           onChanged: (v) => onParameterChanged('sustain', v),
+          modulationActive: modulatedParams.contains('sustain'),
+          onModulationAssign: onModulationAssign != null
+              ? () => onModulationAssign!('sustain', 'Sustain')
+              : null,
         ),
         RotaryKnob(
           label: 'Release',
@@ -327,6 +351,10 @@ class _EnvTab extends StatelessWidget {
           size: knobSize,
           displayValue: SamplerDevicePanel.formatPercent(device.release),
           onChanged: (v) => onParameterChanged('release', v),
+          modulationActive: modulatedParams.contains('release'),
+          onModulationAssign: onModulationAssign != null
+              ? () => onModulationAssign!('release', 'Release')
+              : null,
         ),
       ],
     );
@@ -338,11 +366,15 @@ class _FilterTab extends StatelessWidget {
     required this.device,
     required this.knobSize,
     required this.onParameterChanged,
+    required this.modulatedParams,
+    required this.onModulationAssign,
   });
 
   final DeviceSnapshot device;
   final double knobSize;
   final void Function(String parameterId, double value) onParameterChanged;
+  final Set<String> modulatedParams;
+  final void Function(String paramId, String paramLabel)? onModulationAssign;
 
   static const _modes = ['LP', 'HP', 'BP', 'NT'];
 
@@ -407,6 +439,10 @@ class _FilterTab extends StatelessWidget {
                 size: knobSize,
                 displayValue: SamplerDevicePanel.formatCutoffHz(device.filterCutoff),
                 onChanged: (v) => onParameterChanged('filterCutoff', v),
+                modulationActive: modulatedParams.contains('filterCutoff'),
+                onModulationAssign: onModulationAssign != null
+                    ? () => onModulationAssign!('filterCutoff', 'Cutoff')
+                    : null,
               ),
               RotaryKnob(
                 label: 'Resonance',
@@ -414,6 +450,10 @@ class _FilterTab extends StatelessWidget {
                 size: knobSize,
                 displayValue: SamplerDevicePanel.formatQ(device.filterQ),
                 onChanged: (v) => onParameterChanged('filterQ', v),
+                modulationActive: modulatedParams.contains('filterQ'),
+                onModulationAssign: onModulationAssign != null
+                    ? () => onModulationAssign!('filterQ', 'Resonance')
+                    : null,
               ),
             ],
           ),
