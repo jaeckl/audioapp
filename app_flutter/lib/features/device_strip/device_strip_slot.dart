@@ -70,6 +70,21 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   late int _selectedTabIndex;
   bool _modStripVisible = false;
 
+  ProjectSnapshot get _emptySnapshot => ProjectSnapshot(
+    bpm: 120,
+    selectedTrackId: '',
+    playheadBeats: 0,
+    playing: false,
+    loopEnabled: true,
+    loopLengthBeats: 16,
+    recordArmed: false,
+    master: const MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1.0),
+    samples: [],
+    tracks: [],
+    lfos: [],
+    modEdges: [],
+  );
+
   List<DeviceTabSpec> get _containerTabs => DeviceContainerTabs.forDeviceType(widget.device.type);
 
   @override
@@ -114,27 +129,6 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     }
   }
 
-  void _showModulationSheet() {
-    final bridge = widget.onModulationBridgeCall;
-    if (bridge == null) return;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: DeviceStripTheme.toolRailBackground,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: ModulationStrip(
-          lfos: widget.lfos,
-          modEdges: widget.modEdges,
-          deviceId: widget.device.id,
-          onBridgeCall: (method, args) => bridge(method, args),
-        ),
-      ),
-    );
-  }
-
   bool get _collapsed => widget.density == DeviceStripSlotDensity.collapsed;
 
   bool get _showsToolRail => !_collapsed;
@@ -144,9 +138,11 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         collapsed: _collapsed,
       );
 
+  double get _modStripWidth => _modStripVisible ? 180.0 : 0.0;
+
   double get _slotWidth {
     if (!_showsToolRail) return _cardWidth;
-    return _cardWidth + DeviceStripMetrics.toolRailWidth + DeviceStripMetrics.levelPanelWidth;
+    return _cardWidth + DeviceStripMetrics.toolRailWidth + DeviceStripMetrics.levelPanelWidth + _modStripWidth;
   }
 
   String? get _cardSubtitle => switch (widget.device.type) {
@@ -198,8 +194,22 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                   onBypassToggle: widget.onBypassToggle ?? () {},
                   onLibrary: widget.onOpenLibrary,
                   modActive: _modStripVisible,
-                  onModToggle: () => _showModulationSheet(),
+                  onModToggle: () => setState(() => _modStripVisible = !_modStripVisible),
                 ),
+                if (_modStripVisible)
+                  SizedBox(
+                    width: 180,
+                    child: ModulationStrip(
+                      lfos: widget.lfos,
+                      modEdges: widget.modEdges,
+                      deviceId: widget.device.id,
+                      onBridgeCall: (method, args) {
+                        final bridge = widget.onModulationBridgeCall;
+                        if (bridge == null) return Future.value(_emptySnapshot);
+                        return bridge(method, args);
+                      },
+                    ),
+                  ),
                 SizedBox(
                   width: _cardWidth,
                   child: DeviceStripCard(
