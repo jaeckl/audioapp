@@ -31,6 +31,12 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
               subtitle: const Text('Simple sine tone generator'),
               onTap: () => Navigator.pop(context, 'simple_oscillator'),
             ),
+            ListTile(
+              leading: const Icon(Icons.graphic_eq, color: Color(0xFF7B6CF6)),
+              title: const Text('Subtractive Synth'),
+              subtitle: const Text('2 osc · LP12 · 8-voice poly'),
+              onTap: () => Navigator.pop(context, 'subtractive_synth'),
+            ),
             const SizedBox(height: 8),
           ],
         ),

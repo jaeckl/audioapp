@@ -30,15 +30,19 @@ abstract final class DeviceStripTheme {
   static const double collapsedChainBottomPadding = 4;
   static const double collapsedSlotTopPadding = 0;
 
+  static const subtractiveSynthAccent = Color(0xFF7B6CF6);
+
   static Color accentForDeviceType(String type) => switch (type) {
         'simple_sampler' => samplerAccent,
         'simple_oscillator' => oscillatorAccent,
+        'subtractive_synth' => subtractiveSynthAccent,
         _ => genericAccent,
       };
 
   static String labelForDeviceType(String type) => switch (type) {
         'simple_sampler' => 'Sampler',
         'simple_oscillator' => 'Oscillator',
+        'subtractive_synth' => 'Subtractive Synth',
         _ => type,
       };
 }

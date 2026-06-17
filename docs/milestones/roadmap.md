@@ -18,6 +18,7 @@
 | **3 — Persistence** | M05 | Save/load `.audioapp.zip` | 20 |
 | **4 — Samples** | M06–M07 | Library, clips, sampler UX, shell | 40 |
 | **5 — Mix & export** | M08–M09 | Real DSP, automation, WAV export | 40 |
+| **6 — Flagship instrument** | M11 | Subtractive synth (8-voice, LP12) | 10 |
 
 ---
 
@@ -293,6 +294,29 @@
 | US-09-19 | Stem export (per track) — stretch | ⬜ |
 | US-09-20 | M09 PO demo — external player playback | ⬜ |
 
+**PO demo:** Export arrangement → open in external player → confirm levels.
+
+---
+
+## Milestone 11 — Subtractive synth instrument
+
+| ID | Summary | Status |
+|----|---------|--------|
+| US-11-01 | Engine MVP — 8-voice poly, saw, amp ADSR, LP12 + filter env | ⬜ |
+| US-11-02 | Device picker, minimal strip, save/load, coexist with oscillator | ⬜ |
+| US-11-03 | Dual oscillators + unison | ⬜ |
+| US-11-04 | Noise + osc mix modes (mix/neg/am/sign/max) | ⬜ |
+| US-11-05 | Osc tab + waveform preview painters | ⬜ |
+| US-11-06 | Mix, Filter, Amp strip tabs | ⬜ |
+| US-11-07 | Fullscreen editor + test note | ⬜ |
+| US-11-08 | Factory presets + content library | ⬜ |
+| US-11-09 | Glide + velocity (no LFO) | ⬜ |
+| US-11-20 | M11 PO demo — subtractive synth end-to-end | ⬜ |
+
+**Locked:** poly **8** voices · **LP12 only** · **`subtractive_synth` coexists** with `simple_oscillator` · **no LFO** in M11.
+
+**PO demo:** Add synth → dual osc pad → filter sweep → preset from library → save/reload → play alongside oscillator on track 2.
+
 ---
 
 ## Dependency graph
@@ -301,6 +325,7 @@
 M00 ──► M01 ──► M02 ──► M03 ──► M04
                       └──► M05 ──► M06 ──► M07
                                └──► M08 ──► M09
+                      └──► M11 (after M08-02, M10-02 live notes)
 ```
 
 **Critical path to investor demo:** M06-14 (sampler MIDI) → M08-04/05 (real ADSR/filter) → M07-02 (trim) → M09-01/02 (export).

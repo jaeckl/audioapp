@@ -61,6 +61,7 @@ double _deviceGain(DeviceSnapshot device) {
   return switch (device.type) {
     'simple_sampler' => device.gain,
     'simple_oscillator' => 0.85,
+    'subtractive_synth' => device.gain,
     _ => 0.5,
   };
 }

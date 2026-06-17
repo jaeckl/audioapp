@@ -1,4 +1,6 @@
-import '../../bridge/project_snapshot.dart';import 'library_category.dart';
+import '../../bridge/project_snapshot.dart';
+
+import 'library_category.dart';
 
 sealed class LibraryItem {
   const LibraryItem({
@@ -176,6 +178,42 @@ abstract final class LibraryCatalog {
         title: 'Sub bass',
         subtitle: 'Low sine foundation',
         deviceType: 'simple_oscillator',
+      ),
+      LibraryPresetItem(
+        id: 'preset:synth-init',
+        title: 'Init synth',
+        subtitle: 'Saw · open filter',
+        deviceType: 'subtractive_synth',
+      ),
+      LibraryPresetItem(
+        id: 'preset:synth-warm-pad',
+        title: 'Warm pad',
+        subtitle: 'Unison · slow attack',
+        deviceType: 'subtractive_synth',
+      ),
+      LibraryPresetItem(
+        id: 'preset:synth-pluck',
+        title: 'Pluck',
+        subtitle: 'Short amp · filter sweep',
+        deviceType: 'subtractive_synth',
+      ),
+      LibraryPresetItem(
+        id: 'preset:synth-bass',
+        title: 'Synth bass',
+        subtitle: 'Square + saw stack',
+        deviceType: 'subtractive_synth',
+      ),
+      LibraryPresetItem(
+        id: 'preset:synth-lead',
+        title: 'Detuned lead',
+        subtitle: 'AM mix · glide',
+        deviceType: 'subtractive_synth',
+      ),
+      LibraryPresetItem(
+        id: 'preset:synth-noise-sweep',
+        title: 'Noise sweep',
+        subtitle: 'Filter env texture',
+        deviceType: 'subtractive_synth',
       ),
     ];
   }

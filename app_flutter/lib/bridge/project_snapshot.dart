@@ -86,6 +86,15 @@ extension TrackSnapshotDevices on TrackSnapshot {
     return null;
   }
 
+  DeviceSnapshot? get subtractiveSynthDevice {
+    for (final device in visibleDevices) {
+      if (device.type == 'subtractive_synth') {
+        return device;
+      }
+    }
+    return null;
+  }
+
   DeviceSnapshot? get trackGainDevice {
     for (var i = devices.length - 1; i >= 0; i--) {
       if (devices[i].type == 'track_gain') {
@@ -169,6 +178,27 @@ class DeviceSnapshot {
     required this.trimStartSec,
     required this.trimEndSec,
     this.bypassed = false,
+    this.osc1Wave = 2,
+    this.osc2Wave = 2,
+    this.osc1Octave = 0.5,
+    this.osc1Semi = 0.0,
+    this.osc1Detune = 0.5,
+    this.osc2Octave = 0.5,
+    this.osc2Semi = 0.0,
+    this.osc2Detune = 0.5,
+    this.osc1Level = 0.85,
+    this.osc2Level = 0.5,
+    this.noiseLevel = 0.0,
+    this.oscMixMode = 0,
+    this.unisonVoices = 0.0,
+    this.unisonDetune = 0.35,
+    this.filterEnvAmount = 0.5,
+    this.filterAttack = 0.05,
+    this.filterDecay = 0.35,
+    this.filterSustain = 0.4,
+    this.filterRelease = 0.45,
+    this.glideMs = 0.0,
+    this.velocitySensitivity = 1.0,
   });
 
   final String id;
@@ -187,6 +217,27 @@ class DeviceSnapshot {
   final double trimStartSec;
   final double trimEndSec;
   final bool bypassed;
+  final int osc1Wave;
+  final int osc2Wave;
+  final double osc1Octave;
+  final double osc1Semi;
+  final double osc1Detune;
+  final double osc2Octave;
+  final double osc2Semi;
+  final double osc2Detune;
+  final double osc1Level;
+  final double osc2Level;
+  final double noiseLevel;
+  final int oscMixMode;
+  final double unisonVoices;
+  final double unisonDetune;
+  final double filterEnvAmount;
+  final double filterAttack;
+  final double filterDecay;
+  final double filterSustain;
+  final double filterRelease;
+  final double glideMs;
+  final double velocitySensitivity;
 
   factory DeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -207,6 +258,27 @@ class DeviceSnapshot {
       trimStartSec: (params['trimStartSec'] as num?)?.toDouble() ?? 0.0,
       trimEndSec: (params['trimEndSec'] as num?)?.toDouble() ?? 0.0,
       bypassed: _readBypass(params['bypass']),
+      osc1Wave: (params['osc1Wave'] as num?)?.toInt() ?? 2,
+      osc2Wave: (params['osc2Wave'] as num?)?.toInt() ?? 2,
+      osc1Octave: (params['osc1Octave'] as num?)?.toDouble() ?? 0.5,
+      osc1Semi: (params['osc1Semi'] as num?)?.toDouble() ?? 0.0,
+      osc1Detune: (params['osc1Detune'] as num?)?.toDouble() ?? 0.5,
+      osc2Octave: (params['osc2Octave'] as num?)?.toDouble() ?? 0.5,
+      osc2Semi: (params['osc2Semi'] as num?)?.toDouble() ?? 0.0,
+      osc2Detune: (params['osc2Detune'] as num?)?.toDouble() ?? 0.5,
+      osc1Level: (params['osc1Level'] as num?)?.toDouble() ?? 0.85,
+      osc2Level: (params['osc2Level'] as num?)?.toDouble() ?? 0.5,
+      noiseLevel: (params['noiseLevel'] as num?)?.toDouble() ?? 0.0,
+      oscMixMode: (params['oscMixMode'] as num?)?.toInt() ?? 0,
+      unisonVoices: (params['unisonVoices'] as num?)?.toDouble() ?? 0.0,
+      unisonDetune: (params['unisonDetune'] as num?)?.toDouble() ?? 0.35,
+      filterEnvAmount: (params['filterEnvAmount'] as num?)?.toDouble() ?? 0.5,
+      filterAttack: (params['filterAttack'] as num?)?.toDouble() ?? 0.05,
+      filterDecay: (params['filterDecay'] as num?)?.toDouble() ?? 0.35,
+      filterSustain: (params['filterSustain'] as num?)?.toDouble() ?? 0.4,
+      filterRelease: (params['filterRelease'] as num?)?.toDouble() ?? 0.45,
+      glideMs: (params['glideMs'] as num?)?.toDouble() ?? 0.0,
+      velocitySensitivity: (params['velocitySensitivity'] as num?)?.toDouble() ?? 1.0,
     );
   }
 
@@ -236,6 +308,27 @@ class DeviceSnapshot {
     double? trimStartSec,
     double? trimEndSec,
     bool? bypassed,
+    int? osc1Wave,
+    int? osc2Wave,
+    double? osc1Octave,
+    double? osc1Semi,
+    double? osc1Detune,
+    double? osc2Octave,
+    double? osc2Semi,
+    double? osc2Detune,
+    double? osc1Level,
+    double? osc2Level,
+    double? noiseLevel,
+    int? oscMixMode,
+    double? unisonVoices,
+    double? unisonDetune,
+    double? filterEnvAmount,
+    double? filterAttack,
+    double? filterDecay,
+    double? filterSustain,
+    double? filterRelease,
+    double? glideMs,
+    double? velocitySensitivity,
   }) {
     return DeviceSnapshot(
       id: id ?? this.id,
@@ -254,6 +347,27 @@ class DeviceSnapshot {
       trimStartSec: trimStartSec ?? this.trimStartSec,
       trimEndSec: trimEndSec ?? this.trimEndSec,
       bypassed: bypassed ?? this.bypassed,
+      osc1Wave: osc1Wave ?? this.osc1Wave,
+      osc2Wave: osc2Wave ?? this.osc2Wave,
+      osc1Octave: osc1Octave ?? this.osc1Octave,
+      osc1Semi: osc1Semi ?? this.osc1Semi,
+      osc1Detune: osc1Detune ?? this.osc1Detune,
+      osc2Octave: osc2Octave ?? this.osc2Octave,
+      osc2Semi: osc2Semi ?? this.osc2Semi,
+      osc2Detune: osc2Detune ?? this.osc2Detune,
+      osc1Level: osc1Level ?? this.osc1Level,
+      osc2Level: osc2Level ?? this.osc2Level,
+      noiseLevel: noiseLevel ?? this.noiseLevel,
+      oscMixMode: oscMixMode ?? this.oscMixMode,
+      unisonVoices: unisonVoices ?? this.unisonVoices,
+      unisonDetune: unisonDetune ?? this.unisonDetune,
+      filterEnvAmount: filterEnvAmount ?? this.filterEnvAmount,
+      filterAttack: filterAttack ?? this.filterAttack,
+      filterDecay: filterDecay ?? this.filterDecay,
+      filterSustain: filterSustain ?? this.filterSustain,
+      filterRelease: filterRelease ?? this.filterRelease,
+      glideMs: glideMs ?? this.glideMs,
+      velocitySensitivity: velocitySensitivity ?? this.velocitySensitivity,
     );
   }
 
@@ -283,6 +397,48 @@ class DeviceSnapshot {
         return copyWith(trimEndSec: value);
       case 'bypass':
         return copyWith(bypassed: value >= 0.5);
+      case 'osc1Wave':
+        return copyWith(osc1Wave: value.round().clamp(0, 4));
+      case 'osc2Wave':
+        return copyWith(osc2Wave: value.round().clamp(0, 4));
+      case 'osc1Octave':
+        return copyWith(osc1Octave: value);
+      case 'osc1Semi':
+        return copyWith(osc1Semi: value);
+      case 'osc1Detune':
+        return copyWith(osc1Detune: value);
+      case 'osc2Octave':
+        return copyWith(osc2Octave: value);
+      case 'osc2Semi':
+        return copyWith(osc2Semi: value);
+      case 'osc2Detune':
+        return copyWith(osc2Detune: value);
+      case 'osc1Level':
+        return copyWith(osc1Level: value);
+      case 'osc2Level':
+        return copyWith(osc2Level: value);
+      case 'noiseLevel':
+        return copyWith(noiseLevel: value);
+      case 'oscMixMode':
+        return copyWith(oscMixMode: value.round().clamp(0, 4));
+      case 'unisonVoices':
+        return copyWith(unisonVoices: value);
+      case 'unisonDetune':
+        return copyWith(unisonDetune: value);
+      case 'filterEnvAmount':
+        return copyWith(filterEnvAmount: value);
+      case 'filterAttack':
+        return copyWith(filterAttack: value);
+      case 'filterDecay':
+        return copyWith(filterDecay: value);
+      case 'filterSustain':
+        return copyWith(filterSustain: value);
+      case 'filterRelease':
+        return copyWith(filterRelease: value);
+      case 'glideMs':
+        return copyWith(glideMs: value);
+      case 'velocitySensitivity':
+        return copyWith(velocitySensitivity: value);
       default:
         return this;
     }

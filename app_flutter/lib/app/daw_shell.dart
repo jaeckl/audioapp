@@ -14,6 +14,8 @@ import '../features/content_library/library_category.dart';
 import '../features/content_library/library_fly_in_panel.dart';
 import '../features/device_strip/device_strip.dart';
 import '../features/device_strip/sampler_editor_screen.dart';
+import '../features/device_strip/subtractive_synth_editor_screen.dart';
+import '../features/device_strip/subtractive_synth_presets.dart';
 import '../features/mixer/mixer_view.dart';
 import '../features/play/play_surface_screen.dart';
 import '../features/piano_roll/piano_roll_screen.dart';
@@ -247,7 +249,34 @@ class _DawShellState extends State<DawShell> {
     await _libraryPanelKey.currentState?.close();
   }
 
-  void _onLibraryPresetTap(LibraryPresetItem item) {
+  void _onLibraryPresetTap(LibraryPresetItem item) async {
+    final synth = _snapshot?.selectedTrack?.subtractiveSynthDevice;
+    if (item.deviceType == 'subtractive_synth') {
+      if (synth == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Select a track with a Subtractive Synth first')),
+        );
+        return;
+      }
+      final params = SubtractiveSynthPresets.presets[item.id];
+      if (params == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Unknown preset "${item.title}"')),
+        );
+        return;
+      }
+      for (final entry in params.entries) {
+        await _setSamplerParameter(synth.id, entry.key, entry.value);
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Loaded preset "${item.title}"')),
+      );
+      await _libraryPanelKey.currentState?.close();
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Preset "${item.title}" — coming soon')),
     );
@@ -284,19 +313,35 @@ class _DawShellState extends State<DawShell> {
   }
 
   Future<void> _openSamplerEditor(TrackSnapshot track, DeviceSnapshot device) async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (context) => SamplerEditorScreen(
-          trackName: track.name,
-          device: device,
-          sample: _sampleForDevice(device),
-          bpm: _snapshot?.bpm ?? 120,
-          onParameterChanged: (parameterId, value) =>
-              _setSamplerParameter(device.id, parameterId, value),
-          onLoadSample: () => _pickSamplerSample(device.id),
+    if (device.type == 'subtractive_synth') {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (context) => SubtractiveSynthEditorScreen(
+            trackName: track.name,
+            device: device,
+            bridge: widget.bridge,
+            onParameterChanged: (parameterId, value) =>
+                _setSamplerParameter(device.id, parameterId, value),
+          ),
         ),
-      ),
-    );
+      );
+    } else if (device.type == 'simple_sampler') {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (context) => SamplerEditorScreen(
+            trackName: track.name,
+            device: device,
+            sample: _sampleForDevice(device),
+            bpm: _snapshot?.bpm ?? 120,
+            onParameterChanged: (parameterId, value) =>
+                _setSamplerParameter(device.id, parameterId, value),
+            onLoadSample: () => _pickSamplerSample(device.id),
+          ),
+        ),
+      );
+    } else {
+      return;
+    }
 
     try {
       final snapshot = await widget.bridge.getProjectSnapshot();

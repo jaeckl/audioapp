@@ -6,6 +6,7 @@ import 'device_strip_metrics.dart';
 import 'device_strip_slot.dart';
 import 'device_strip_theme.dart';
 import 'sampler_device_panel.dart';
+import 'subtractive_synth_device_panel.dart';
 
 /// Horizontally scrollable Bitwig/Ableton-style device chain row.
 class DeviceChainRow extends StatelessWidget {
@@ -20,8 +21,10 @@ class DeviceChainRow extends StatelessWidget {
     required this.onFrequencyChanged,
     required this.onInsertDevice,
     this.onSamplerTabChanged,
+    this.onSynthTabChanged,
     this.onCollapse,
     this.samplerTabFor,
+    this.synthTabFor,
     this.scrollController,
     this.onBypassToggle,
     this.onOpenLibrary,
@@ -37,8 +40,10 @@ class DeviceChainRow extends StatelessWidget {
   final void Function(String deviceId, double frequencyHz) onFrequencyChanged;
   final void Function(int insertIndex) onInsertDevice;
   final void Function(String deviceId, SamplerDeviceTab tab)? onSamplerTabChanged;
+  final void Function(String deviceId, SubtractiveDeviceTab tab)? onSynthTabChanged;
   final VoidCallback? onCollapse;
   final SamplerDeviceTab Function(String deviceId)? samplerTabFor;
+  final SubtractiveDeviceTab Function(String deviceId)? synthTabFor;
   final ScrollController? scrollController;
   final void Function(String deviceId, bool bypassed)? onBypassToggle;
   final void Function(DeviceSnapshot device)? onOpenLibrary;
@@ -87,6 +92,7 @@ class DeviceChainRow extends StatelessWidget {
                   sample: _sampleFor(devices[i]),
                   density: density,
                   samplerTab: samplerTabFor?.call(devices[i].id) ?? SamplerDeviceTab.sample,
+                  synthTab: synthTabFor?.call(devices[i].id) ?? SubtractiveDeviceTab.osc,
                   onSamplerParameterChanged: (parameterId, value) =>
                       onSamplerParameterChanged(devices[i].id, parameterId, value),
                   onDeviceParameterChanged: (parameterId, value) =>
@@ -97,6 +103,9 @@ class DeviceChainRow extends StatelessWidget {
                   onSamplerTabChanged: onSamplerTabChanged == null
                       ? null
                       : (tab) => onSamplerTabChanged!(devices[i].id, tab),
+                  onSynthTabChanged: onSynthTabChanged == null
+                      ? null
+                      : (tab) => onSynthTabChanged!(devices[i].id, tab),
                   onCollapse: density == DeviceStripSlotDensity.strip ? onCollapse : null,
                   onBypassToggle: onBypassToggle == null
                       ? null

@@ -1,4 +1,4 @@
-# Story manifest — ~20 user stories per milestone (M00–M09).
+# Story manifest — ~20 user stories per milestone (M00–M11).
 # Full ticket bodies: AGENT.md §14. Regenerate companions: python tools/gen_companion_tickets.py
 # Status: done | in_progress | todo | deferred
 
@@ -33,6 +33,9 @@ milestones:
   - id: M09
     name: Offline render & export
     theme: bounce, WAV export, shareable output
+  - id: M11
+    name: Subtractive synth instrument
+    theme: 8-voice poly, dual osc, LP12, presets — no LFO
 
 stories:
   # ── M00 Foundation (20) ─────────────────────────────────────────────
@@ -254,3 +257,15 @@ stories:
   - { id: US-09-18, milestone: M09, status: todo, title: Export loop range only (cycle markers) }
   - { id: US-09-19, milestone: M09, status: todo, title: Stem export (one WAV per track) — stretch }
   - { id: US-09-20, milestone: M09, status: todo, title: M09 PO demo — export → play in external player }
+
+  # ── M11 Subtractive synth instrument (10) ───────────────────────────
+  - { id: US-11-01, milestone: M11, status: todo, title: Subtractive synth engine MVP (8-voice poly, LP12) }
+  - { id: US-11-02, milestone: M11, status: todo, title: Subtractive synth device — picker, strip, save/load }
+  - { id: US-11-03, milestone: M11, status: todo, title: Dual oscillators + unison }
+  - { id: US-11-04, milestone: M11, status: todo, title: Noise generator + oscillator mix modes }
+  - { id: US-11-05, milestone: M11, status: todo, title: Osc tab + waveform preview painters }
+  - { id: US-11-06, milestone: M11, status: todo, title: Mix, Filter, and Amp strip tabs }
+  - { id: US-11-07, milestone: M11, status: todo, title: Fullscreen subtractive synth editor + test note }
+  - { id: US-11-08, milestone: M11, status: todo, title: Factory presets + content library }
+  - { id: US-11-09, milestone: M11, status: todo, title: Glide + velocity sensitivity (no LFO) }
+  - { id: US-11-20, milestone: M11, status: todo, title: M11 PO demo — subtractive synth end-to-end }

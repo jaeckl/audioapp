@@ -7,6 +7,7 @@ import 'device_chain_minimap.dart';
 import 'device_chain_row.dart';
 import 'device_strip_slot.dart';
 import 'sampler_device_panel.dart';
+import 'subtractive_synth_device_panel.dart';
 
 /// Fullscreen horizontally scrollable device chain for the selected track.
 class DeviceChainScreen extends StatefulWidget {
@@ -25,6 +26,8 @@ class DeviceChainScreen extends StatefulWidget {
     required this.onImportAudio,
     this.onSamplerTabChanged,
     this.samplerTabFor,
+    this.onSynthTabChanged,
+    this.synthTabFor,
     this.onBypassToggle,
   });
 
@@ -42,6 +45,8 @@ class DeviceChainScreen extends StatefulWidget {
   final Future<void> Function() onImportAudio;
   final void Function(String deviceId, SamplerDeviceTab tab)? onSamplerTabChanged;
   final SamplerDeviceTab Function(String deviceId)? samplerTabFor;
+  final void Function(String deviceId, SubtractiveDeviceTab tab)? onSynthTabChanged;
+  final SubtractiveDeviceTab Function(String deviceId)? synthTabFor;
   final void Function(String deviceId, bool bypassed)? onBypassToggle;
 
   @override
@@ -98,11 +103,13 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
                       density: density,
                       scrollController: _scrollController,
                       samplerTabFor: widget.samplerTabFor,
+                      synthTabFor: widget.synthTabFor,
                       onSamplerParameterChanged: widget.onSamplerParameterChanged,
                       onOpenSamplerEditor: widget.onOpenSamplerEditor,
                       onFrequencyChanged: widget.onFrequencyChanged,
                       onInsertDevice: widget.onInsertDevice,
                       onSamplerTabChanged: widget.onSamplerTabChanged,
+                      onSynthTabChanged: widget.onSynthTabChanged,
                       onBypassToggle: widget.onBypassToggle,
                       onOpenLibrary: _openLibrary,
                     ),

@@ -11,7 +11,9 @@ import 'device_strip_viewport.dart';
 import 'device_tool_rail.dart';
 import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
+import 'subtractive_synth_device_panel.dart';
 import 'sampler_device_strip.dart';
+import 'subtractive_synth_device_strip.dart';
 
 enum DeviceStripSlotDensity { strip, collapsed, fullscreen }
 
@@ -28,10 +30,12 @@ class DeviceStripSlot extends StatefulWidget {
     required this.onOpenSamplerEditor,
     required this.onFrequencyChanged,
     this.onSamplerTabChanged,
+    this.onSynthTabChanged,
     this.onCollapse,
     this.onBypassToggle,
     this.onOpenLibrary,
     this.samplerTab = SamplerDeviceTab.sample,
+    this.synthTab = SubtractiveDeviceTab.osc,
   });
 
   final TrackSnapshot track;
@@ -43,10 +47,12 @@ class DeviceStripSlot extends StatefulWidget {
   final VoidCallback onOpenSamplerEditor;
   final void Function(double frequencyHz) onFrequencyChanged;
   final ValueChanged<SamplerDeviceTab>? onSamplerTabChanged;
+  final ValueChanged<SubtractiveDeviceTab>? onSynthTabChanged;
   final VoidCallback? onCollapse;
   final VoidCallback? onBypassToggle;
   final VoidCallback? onOpenLibrary;
   final SamplerDeviceTab samplerTab;
+  final SubtractiveDeviceTab synthTab;
 
   @override
   State<DeviceStripSlot> createState() => _DeviceStripSlotState();
@@ -70,6 +76,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         widget.samplerTab != oldWidget.samplerTab) {
       _selectedTabIndex = widget.samplerTab.index;
     }
+    if (widget.device.type == 'subtractive_synth' &&
+        widget.synthTab != oldWidget.synthTab) {
+      _selectedTabIndex = widget.synthTab.index;
+    }
     if (widget.device.id != oldWidget.device.id) {
       _selectedTabIndex = _initialTabIndex();
     }
@@ -79,6 +89,9 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     if (widget.device.type == 'simple_sampler') {
       return widget.samplerTab.index;
     }
+    if (widget.device.type == 'subtractive_synth') {
+      return widget.synthTab.index;
+    }
     return 0;
   }
 
@@ -86,6 +99,9 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     setState(() => _selectedTabIndex = index);
     if (widget.device.type == 'simple_sampler') {
       widget.onSamplerTabChanged?.call(SamplerDeviceTab.values[index]);
+    }
+    if (widget.device.type == 'subtractive_synth') {
+      widget.onSynthTabChanged?.call(SubtractiveDeviceTab.values[index]);
     }
   }
 
@@ -106,6 +122,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   String? get _cardSubtitle => switch (widget.device.type) {
         'simple_sampler' => widget.sample?.name,
         'simple_oscillator' => '${widget.device.frequencyHz.round()} Hz',
+        'subtractive_synth' => 'LP12 · 8 voices',
         _ => null,
       };
 
@@ -209,6 +226,19 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             onCollapse: widget.onCollapse,
             embeddedInCard: true,
             selectedTab: OscillatorDeviceTab.values[_selectedTabIndex],
+          ),
+        );
+      case 'subtractive_synth':
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: _cardWidth,
+          designHeight: contentHeight,
+          child: SubtractiveSynthDeviceStrip(
+            device: widget.device,
+            onParameterChanged: widget.onSamplerParameterChanged,
+            selectedTab: SubtractiveDeviceTab.values[_selectedTabIndex],
+            onTabChanged: widget.onSynthTabChanged,
+            onOpenFullscreen: widget.onOpenSamplerEditor,
           ),
         );
       default:

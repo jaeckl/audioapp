@@ -7,6 +7,7 @@ import 'device_picker_sheet.dart';
 import 'device_strip_metrics.dart';
 import 'device_strip_slot.dart';
 import 'sampler_device_panel.dart';
+import 'subtractive_synth_device_panel.dart';
 
 class DeviceStrip extends StatefulWidget {
   const DeviceStrip({
@@ -49,6 +50,7 @@ class DeviceStrip extends StatefulWidget {
 class _DeviceStripState extends State<DeviceStrip> {
   bool _expanded = false;
   final Map<String, SamplerDeviceTab> _samplerTabs = {};
+  final Map<String, SubtractiveDeviceTab> _synthTabs = {};
 
   bool _shouldStartCollapsed(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -60,6 +62,13 @@ class _DeviceStripState extends State<DeviceStrip> {
 
   void _setSamplerTab(String deviceId, SamplerDeviceTab tab) {
     setState(() => _samplerTabs[deviceId] = tab);
+  }
+
+  SubtractiveDeviceTab _synthTabFor(String deviceId) =>
+      _synthTabs[deviceId] ?? SubtractiveDeviceTab.osc;
+
+  void _setSynthTab(String deviceId, SubtractiveDeviceTab tab) {
+    setState(() => _synthTabs[deviceId] = tab);
   }
 
   Future<void> _insertDevice(TrackSnapshot track, int insertIndex) async {
@@ -78,11 +87,13 @@ class _DeviceStripState extends State<DeviceStrip> {
           samples: widget.samples,
           playing: widget.playing,
           samplerTabFor: _samplerTabFor,
+          synthTabFor: _synthTabFor,
           onSamplerParameterChanged: widget.onSamplerParameterChanged,
           onOpenSamplerEditor: widget.onOpenSamplerEditor,
           onFrequencyChanged: widget.onFrequencyChanged,
           onInsertDevice: (insertIndex) => _insertDevice(track, insertIndex),
           onSamplerTabChanged: _setSamplerTab,
+          onSynthTabChanged: _setSynthTab,
           onBypassToggle: widget.onBypassToggle,
           onPreviewAudio: widget.onPreviewSample,
           onAssignSamplerSample: widget.onAssignSamplerSample,
@@ -139,11 +150,13 @@ class _DeviceStripState extends State<DeviceStrip> {
                       ? DeviceStripSlotDensity.collapsed
                       : DeviceStripSlotDensity.strip,
                   samplerTabFor: _samplerTabFor,
+                  synthTabFor: _synthTabFor,
                   onSamplerParameterChanged: widget.onSamplerParameterChanged,
                   onOpenSamplerEditor: widget.onOpenSamplerEditor,
                   onFrequencyChanged: widget.onFrequencyChanged,
                   onInsertDevice: (insertIndex) => _insertDevice(track, insertIndex),
                   onSamplerTabChanged: _setSamplerTab,
+                  onSynthTabChanged: _setSynthTab,
                   onBypassToggle: widget.onBypassToggle,
                   onOpenLibrary: widget.onOpenDeviceLibrary,
                 ),
