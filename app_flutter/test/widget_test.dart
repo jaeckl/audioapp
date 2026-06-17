@@ -1,6 +1,7 @@
 import 'package:audioapp/app/daw_shell.dart';
 import 'package:audioapp/bridge/engine_bridge.dart';
 import 'package:audioapp/features/play/mpc_pad_grid.dart';
+import 'package:audioapp/features/device_strip/device_insert_slot.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,6 +18,7 @@ void main() {
   double? lastPitchBend;
   double? peakModulation;
   double? peakPitchBend;
+  bool mockWithSamplerDefault = false;
 
   const bootstrapSnapshot = {
     'ok': true,
@@ -38,6 +40,7 @@ void main() {
     lastPitchBend = null;
     peakModulation = null;
     peakPitchBend = null;
+    mockWithSamplerDefault = false;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
       switch (call.method) {
@@ -59,18 +62,26 @@ void main() {
                 {
                   'id': 'track-1',
                   'name': 'Track 1',
-                  'devices': [
-                    {
-                      'id': 'dev-1',
-                      'type': 'simple_sampler',
-                      'parameters': {'gain': 1.0, 'sampleId': '', 'bypass': false},
-                    },
-                    {
-                      'id': 'dev-2',
-                      'type': 'track_gain',
-                      'parameters': {'gain': 1.0},
-                    },
-                  ],
+                  'devices': mockWithSamplerDefault
+                      ? [
+                          {
+                            'id': 'dev-1',
+                            'type': 'simple_sampler',
+                            'parameters': {'gain': 1.0, 'sampleId': '', 'bypass': false},
+                          },
+                          {
+                            'id': 'dev-2',
+                            'type': 'track_gain',
+                            'parameters': {'gain': 1.0},
+                          },
+                        ]
+                      : [
+                          {
+                            'id': 'dev-1',
+                            'type': 'track_gain',
+                            'parameters': {'gain': 1.0},
+                          },
+                        ],
                   'midiClips': [],
                 },
               ],
@@ -421,7 +432,7 @@ void main() {
     expect(find.byIcon(Icons.play_arrow), findsOneWidget);
   });
 
-  testWidgets('Adding track shows sampler device strip', (tester) async {
+  testWidgets('Adding track shows no devices initially, can insert a device', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -435,10 +446,8 @@ void main() {
     await tester.tap(find.byTooltip('Add track'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Sample'), findsOneWidget);
-    expect(find.text('Sample'), findsOneWidget);
-    expect(find.text('Env'), findsOneWidget);
-    expect(find.text('Load'), findsNothing);
+    expect(find.text('No devices'), findsOneWidget);
+    expect(find.byType(DeviceInsertSlot), findsOneWidget);
   });
 
   testWidgets('Track long-press menu adds MIDI clip', (tester) async {
@@ -516,6 +525,7 @@ void main() {
   });
 
   testWidgets('Play tab shows MPC pads after add track', (tester) async {
+    mockWithSamplerDefault = true;
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -541,6 +551,7 @@ void main() {
   });
 
   testWidgets('Pad press invokes noteOn on bridge', (tester) async {
+    mockWithSamplerDefault = true;
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -568,6 +579,7 @@ void main() {
   });
 
   testWidgets('Drag on pad sends pitchBend and modulation', (tester) async {
+    mockWithSamplerDefault = true;
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);

@@ -34,8 +34,8 @@ void main() {
           'devices': [
             {
               'id': 'dev-1',
-              'type': 'simple_sampler',
-              'parameters': {'gain': 1.0, 'sampleId': ''},
+              'type': 'track_gain',
+              'parameters': {'gain': 1.0},
             },
           ],
           'midiClips': [],

@@ -166,12 +166,6 @@ std::string ProjectEngine::addTrack(const std::string& name) {
     track.id = "track-" + std::to_string(nextTrackNum_++);
     track.name = name.empty() ? ("Track " + std::to_string(tracks_.size() + 1)) : name;
 
-    Device osc;
-    osc.id = "dev-" + std::to_string(nextDeviceNum_++);
-    osc.type = "simple_sampler";
-    osc.gain = 1.0f;
-    track.devices.push_back(std::move(osc));
-
     Device gain;
     gain.id = "dev-" + std::to_string(nextDeviceNum_++);
     gain.type = "track_gain";
