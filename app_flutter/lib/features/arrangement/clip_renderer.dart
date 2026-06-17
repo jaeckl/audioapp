@@ -1,0 +1,135 @@
+import 'package:flutter/material.dart';
+
+import 'arrangement_clip_theme.dart';
+
+/// Paints condensed clip content inside the arrangement timeline.
+abstract class ClipRenderer {
+  const ClipRenderer();
+
+  Color get clipBackgroundColor;
+
+  Color get clipContentBackgroundColor;
+
+  /// Paints notes, waveform, or other condensed content inside [contentRect].
+  void paintContent(Canvas canvas, Rect contentRect);
+
+  /// Optional label row above the painted content (e.g. sample name).
+  String? get headerLabel => null;
+
+  /// Centered fallback when there is nothing to paint in the body.
+  String? get emptyPlaceholder => null;
+}
+
+/// Shared chrome + [ClipRenderer] body for arrangement clip blocks.
+class ArrangementClipChrome extends StatelessWidget {
+  const ArrangementClipChrome({
+    super.key,
+    required this.renderer,
+    required this.highlighted,
+    this.child,
+  });
+
+  final ClipRenderer renderer;
+  final bool highlighted;
+  final Widget? child;
+
+  static const double _radius = 6;
+  static const double _contentInset = 3;
+  static const double _headerHeight = 18;
+
+  @override
+  Widget build(BuildContext context) {
+    final header = renderer.headerLabel;
+    final placeholder = renderer.emptyPlaceholder;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: renderer.clipBackgroundColor,
+        borderRadius: BorderRadius.circular(_radius),
+        border: Border.all(
+          color: highlighted
+              ? ArrangementClipTheme.highlightBorder
+              : _idleBorderColor(renderer),
+          width: highlighted ? 2 : 1,
+        ),
+        boxShadow: highlighted
+            ? [
+                BoxShadow(
+                  color: ArrangementClipTheme.highlightShadow.withValues(alpha: 0.45),
+                  blurRadius: 8,
+                ),
+              ]
+            : null,
+      ),
+      padding: const EdgeInsets.all(_contentInset),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (header != null)
+            SizedBox(
+              height: _headerHeight,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  header,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+            ),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: CustomPaint(
+                painter: _ClipContentPainter(renderer: renderer),
+                child: placeholder == null
+                    ? child
+                    : Center(
+                        child: Text(
+                          placeholder,
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: ArrangementClipTheme.placeholderLabel,
+                              ),
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Color _idleBorderColor(ClipRenderer renderer) {
+    return renderer.clipBackgroundColor == ArrangementClipTheme.sampleClipBackground
+        ? ArrangementClipTheme.sampleClipBorder
+        : ArrangementClipTheme.midiClipBorder;
+  }
+}
+
+class _ClipContentPainter extends CustomPainter {
+  const _ClipContentPainter({required this.renderer});
+
+  final ClipRenderer renderer;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.width <= 0 || size.height <= 0) return;
+
+    final rect = Offset.zero & size;
+    canvas.drawRect(
+      rect,
+      Paint()..color = renderer.clipContentBackgroundColor,
+    );
+    renderer.paintContent(canvas, rect);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ClipContentPainter oldDelegate) {
+    return oldDelegate.renderer != renderer;
+  }
+}

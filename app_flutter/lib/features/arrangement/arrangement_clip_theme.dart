@@ -1,0 +1,23 @@
+import 'package:flutter/material.dart';
+
+/// Arrangement timeline clip colors.
+abstract final class ArrangementClipTheme {
+  static const midiClipBackground = Color(0xFF3A4A6B);
+  static const sampleClipBackground = Color(0xFF2E4A3A);
+
+  static const midiClipBorder = Color(0x40FFFFFF);
+  static const sampleClipBorder = Color(0xFF5A9E78);
+
+  static const highlightBorder = Color(0xFF8EB4FF);
+  static const highlightShadow = Color(0xFF8EB4FF);
+
+  static const midiNoteFill = Color(0xB0C8D8F5);
+  static const sampleWaveform = Color(0xFF9AD4B3);
+
+  static const placeholderLabel = Color(0xB3FFFFFF);
+
+  /// Darker fill behind condensed clip content (notes, waveform).
+  static Color contentBackground(Color clipBackground) {
+    return Color.lerp(clipBackground, Colors.black, 0.38)!;
+  }
+}

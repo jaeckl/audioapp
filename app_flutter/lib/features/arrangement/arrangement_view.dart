@@ -5,6 +5,9 @@ import 'dart:async';
 import '../../bridge/project_snapshot.dart';
 import 'arrangement_clip_drag.dart';
 import 'arrangement_timeline_metrics.dart';
+import 'clip_renderer.dart';
+import 'midi_clip_renderer.dart';
+import 'sample_clip_renderer.dart';
 import 'track_lane_icon.dart';
 
 class ArrangementView extends StatefulWidget {
@@ -1073,30 +1076,9 @@ class _MidiClipBlock extends StatelessWidget {
         onLongPressCancel: onDragCancel,
         child: Opacity(
           opacity: highlighted ? 0.35 : 1,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFF3A4A6B),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                color: highlighted ? const Color(0xFF8EB4FF) : Colors.white24,
-                width: highlighted ? 2 : 1,
-              ),
-              boxShadow: highlighted
-                  ? [
-                      BoxShadow(
-                        color: const Color(0xFF8EB4FF).withValues(alpha: 0.45),
-                        blurRadius: 8,
-                      ),
-                    ]
-                  : null,
-            ),
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'MIDI',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white70),
-              overflow: TextOverflow.ellipsis,
-            ),
+          child: ArrangementClipChrome(
+            renderer: MidiClipRenderer(clip),
+            highlighted: highlighted,
           ),
         ),
       ),
@@ -1127,7 +1109,6 @@ class _SampleClipBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = clip.sampleName.isNotEmpty ? clip.sampleName : 'Sample';
     return Material(
       color: Colors.transparent,
       child: GestureDetector(
@@ -1139,44 +1120,9 @@ class _SampleClipBlock extends StatelessWidget {
         onLongPressCancel: onDragCancel,
         child: Opacity(
           opacity: highlighted ? 0.35 : 1,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2E4A3A),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                color: highlighted ? const Color(0xFF8EB4FF) : const Color(0xFF5A9E78),
-                width: highlighted ? 2 : 1,
-              ),
-              boxShadow: highlighted
-                  ? [
-                      BoxShadow(
-                        color: const Color(0xFF8EB4FF).withValues(alpha: 0.45),
-                        blurRadius: 8,
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-                const SizedBox(height: 2),
-                Expanded(
-                  child: CustomPaint(
-                    painter: _ArrangementWaveformPainter(peaks: clip.waveformPeaks),
-                  ),
-                ),
-              ],
-            ),
+          child: ArrangementClipChrome(
+            renderer: SampleClipRenderer(clip),
+            highlighted: highlighted,
           ),
         ),
       ),
@@ -1229,57 +1175,36 @@ class _ClipDragPreview extends StatelessWidget {
           elevation: 8,
           borderRadius: BorderRadius.circular(6),
           clipBehavior: Clip.antiAlias,
-          color: session.isMidi ? const Color(0xFF3A4A6B) : const Color(0xFF2E4A3A),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: const Color(0xFF8EB4FF), width: 2),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            alignment: Alignment.centerLeft,
-            child: Text(
-              session.isMidi
-                  ? 'MIDI'
-                  : (session.sampleClip?.sampleName.isNotEmpty == true
-                      ? session.sampleClip!.sampleName
-                      : 'Sample'),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white),
-            ),
-          ),
+          color: Colors.transparent,
+          child: session.isMidi
+              ? ArrangementClipChrome(
+                  renderer: MidiClipRenderer(
+                    session.midiClip ??
+                        MidiClipSnapshot(
+                          id: session.clipId,
+                          startBeat: session.previewStartBeat,
+                          lengthBeats: session.lengthBeats,
+                          notes: const [],
+                        ),
+                  ),
+                  highlighted: true,
+                )
+              : ArrangementClipChrome(
+                  renderer: SampleClipRenderer(
+                    session.sampleClip ??
+                        SampleClipSnapshot(
+                          id: session.clipId,
+                          sampleId: '',
+                          sampleName: 'Sample',
+                          startBeat: session.previewStartBeat,
+                          lengthBeats: session.lengthBeats,
+                          waveformPeaks: const [],
+                        ),
+                  ),
+                  highlighted: true,
+                ),
         ),
       ),
     );
-  }
-}
-
-class _ArrangementWaveformPainter extends CustomPainter {
-  const _ArrangementWaveformPainter({required this.peaks});
-
-  final List<double> peaks;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (peaks.isEmpty) {
-      return;
-    }
-    final paint = Paint()
-      ..color = const Color(0xFF9AD4B3)
-      ..strokeWidth = 1.2
-      ..strokeCap = StrokeCap.round;
-    final midY = size.height / 2;
-    final step = size.width / peaks.length;
-    for (var i = 0; i < peaks.length; i++) {
-      final peak = peaks[i].clamp(0.0, 1.0);
-      final x = i * step + step / 2;
-      final half = peak * midY;
-      canvas.drawLine(Offset(x, midY - half), Offset(x, midY + half), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _ArrangementWaveformPainter oldDelegate) {
-    return oldDelegate.peaks != peaks;
   }
 }
