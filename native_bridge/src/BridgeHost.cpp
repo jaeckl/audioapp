@@ -50,7 +50,8 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
     if (method == "addDeviceToTrack") {
         const auto trackId = jsonGetStringArg(argumentsJson, "trackId");
         const auto deviceType = jsonGetStringArg(argumentsJson, "deviceType");
-        if (engine().addDeviceToTrack(trackId, deviceType).empty()) {
+        const auto insertIndex = static_cast<int>(jsonGetNumberArg(argumentsJson, "insertIndex", -1.0));
+        if (engine().addDeviceToTrack(trackId, deviceType, insertIndex).empty()) {
             return buildBridgeError("track_not_found");
         }
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());

@@ -290,6 +290,24 @@ class _DawShellState extends State<DawShell> {
     }
   }
 
+  Future<void> _addDeviceToTrack(
+    String trackId,
+    String deviceType,
+    int insertIndex,
+  ) async {
+    try {
+      final snapshot = await widget.bridge.addDeviceToTrack(
+        trackId: trackId,
+        deviceType: deviceType,
+        insertIndex: insertIndex,
+      );
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
   Future<void> _setTrackGain(String deviceId, double value) async {
     try {
       final snapshot = await widget.bridge.setDeviceParameter(
@@ -610,6 +628,7 @@ class _DawShellState extends State<DawShell> {
             DeviceStrip(
               track: snapshot.selectedTrack,
               samples: snapshot.samples,
+              playing: _playing,
               onSamplerParameterChanged: _setSamplerParameter,
               onAssignSamplerSample: _assignSamplerSample,
               onOpenSamplerEditor: _openSamplerEditor,
@@ -623,6 +642,7 @@ class _DawShellState extends State<DawShell> {
                 return snapshot.samples;
               },
               onFrequencyChanged: _setFrequency,
+              onAddDevice: _addDeviceToTrack,
             ),
           ],
         );

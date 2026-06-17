@@ -38,6 +38,18 @@ class EngineBridge {
     return _invokeForSnapshot('selectTrack', {'trackId': trackId});
   }
 
+  Future<ProjectSnapshot> addDeviceToTrack({
+    required String trackId,
+    required String deviceType,
+    int? insertIndex,
+  }) async {
+    return _invokeForSnapshot('addDeviceToTrack', {
+      'trackId': trackId,
+      'deviceType': deviceType,
+      if (insertIndex != null) 'insertIndex': insertIndex,
+    });
+  }
+
   Future<ProjectSnapshot> setDeviceParameter({
     required String deviceId,
     required String parameterId,

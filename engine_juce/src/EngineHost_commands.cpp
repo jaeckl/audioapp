@@ -22,8 +22,10 @@ bool EngineHost::selectTrack(const std::string& trackId) {
     return project_.selectTrack(trackId);
 }
 
-std::string EngineHost::addDeviceToTrack(const std::string& trackId, const std::string& deviceType) {
-    return project_.addDeviceToTrack(trackId, deviceType);
+std::string EngineHost::addDeviceToTrack(const std::string& trackId,
+                                         const std::string& deviceType,
+                                         int insertIndex) {
+    return project_.addDeviceToTrack(trackId, deviceType, insertIndex);
 }
 
 bool EngineHost::setDeviceParameter(const std::string& deviceId,

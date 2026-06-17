@@ -26,7 +26,9 @@ public:
     void createProject();
     std::string addTrack(const std::string& name);
     bool selectTrack(const std::string& trackId);
-    std::string addDeviceToTrack(const std::string& trackId, const std::string& deviceType);
+    std::string addDeviceToTrack(const std::string& trackId,
+                                 const std::string& deviceType,
+                                 int insertIndex = -1);
     bool setDeviceParameter(const std::string& deviceId,
                             const std::string& parameterId,
                             float value);

@@ -7,22 +7,20 @@ import 'sampler_device_panel.dart';
 class SamplerDeviceStrip extends StatelessWidget {
   const SamplerDeviceStrip({
     super.key,
-    required this.trackName,
     required this.device,
     required this.sample,
     required this.onParameterChanged,
-    required this.onOpenFullscreen,
     this.onTabChanged,
     this.onCollapse,
+    this.embeddedInCard = true,
   });
 
-  final String trackName;
   final DeviceSnapshot device;
   final SampleLibraryEntrySnapshot? sample;
   final void Function(String parameterId, double value) onParameterChanged;
-  final VoidCallback onOpenFullscreen;
   final ValueChanged<SamplerDeviceTab>? onTabChanged;
   final VoidCallback? onCollapse;
+  final bool embeddedInCard;
 
   @override
   Widget build(BuildContext context) {
@@ -30,8 +28,7 @@ class SamplerDeviceStrip extends StatelessWidget {
       device: device,
       sample: sample,
       onParameterChanged: onParameterChanged,
-      showExpandControl: true,
-      onOpenFullscreen: onOpenFullscreen,
+      embeddedInCard: embeddedInCard,
       onTabChanged: onTabChanged,
       onCollapse: onCollapse,
       density: SamplerPanelDensity.strip,

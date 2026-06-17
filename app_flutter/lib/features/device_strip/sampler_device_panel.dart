@@ -26,6 +26,7 @@ class SamplerDevicePanel extends StatefulWidget {
     this.initialTab = SamplerDeviceTab.sample,
     this.onTabChanged,
     this.onCollapse,
+    this.embeddedInCard = false,
   });
 
   final DeviceSnapshot device;
@@ -37,6 +38,7 @@ class SamplerDevicePanel extends StatefulWidget {
   final SamplerDeviceTab initialTab;
   final ValueChanged<SamplerDeviceTab>? onTabChanged;
   final VoidCallback? onCollapse;
+  final bool embeddedInCard;
 
   static const Color panel = Color(0xFF1C1C24);
   static const Color accent = Color(0xFFE8A54B);
@@ -93,42 +95,80 @@ class _SamplerDevicePanelState extends State<SamplerDevicePanel> {
     final peaks = widget.sample?.waveformPeaks ?? const <double>[];
 
     return Material(
-      color: SamplerDevicePanel.panel,
+      color: widget.embeddedInCard ? Colors.transparent : SamplerDevicePanel.panel,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(0, 6, 10, 6),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(width: 4, color: SamplerDevicePanel.accent),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
+        padding: EdgeInsets.fromLTRB(
+          widget.embeddedInCard ? 10 : 0,
+          widget.embeddedInCard ? 6 : 6,
+          10,
+          6,
+        ),
+        child: widget.embeddedInCard
+            ? Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _WaveformHeader(
-                    sampleName: sampleName,
-                    showExpandControl: widget.showExpandControl,
-                    onOpenFullscreen: widget.onOpenFullscreen,
-                    onCollapse: widget.onCollapse,
-                  ),
-                  const SizedBox(height: 6),
-                  DeviceTabBar(
-                    tabs: SamplerDevicePanel._tabs,
-                    selectedIndex: _tab.index,
-                    onSelected: (index) {
-                      final tab = SamplerDeviceTab.values[index];
-                      setState(() => _tab = tab);
-                      widget.onTabChanged?.call(tab);
-                    },
-                    accentColor: SamplerDevicePanel.accent,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DeviceTabBar(
+                          tabs: SamplerDevicePanel._tabs,
+                          selectedIndex: _tab.index,
+                          onSelected: (index) {
+                            final tab = SamplerDeviceTab.values[index];
+                            setState(() => _tab = tab);
+                            widget.onTabChanged?.call(tab);
+                          },
+                          accentColor: SamplerDevicePanel.accent,
+                        ),
+                      ),
+                      if (widget.onCollapse != null)
+                        IconButton(
+                          tooltip: 'Collapse device',
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                          onPressed: widget.onCollapse,
+                          icon: const Icon(Icons.unfold_less, size: 18, color: Colors.white54),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Expanded(child: _buildTabBody(context, theme, peaks)),
                 ],
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(width: 4, color: SamplerDevicePanel.accent),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _WaveformHeader(
+                          sampleName: sampleName,
+                          showExpandControl: widget.showExpandControl,
+                          onOpenFullscreen: widget.onOpenFullscreen,
+                          onCollapse: widget.onCollapse,
+                        ),
+                        const SizedBox(height: 6),
+                        DeviceTabBar(
+                          tabs: SamplerDevicePanel._tabs,
+                          selectedIndex: _tab.index,
+                          onSelected: (index) {
+                            final tab = SamplerDeviceTab.values[index];
+                            setState(() => _tab = tab);
+                            widget.onTabChanged?.call(tab);
+                          },
+                          accentColor: SamplerDevicePanel.accent,
+                        ),
+                        const SizedBox(height: 8),
+                        Expanded(child: _buildTabBody(context, theme, peaks)),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -138,7 +178,7 @@ class _SamplerDevicePanelState extends State<SamplerDevicePanel> {
       case SamplerDeviceTab.sample:
         return _SampleTab(
           peaks: peaks,
-          showExpandControl: widget.showExpandControl,
+          showExpandControl: widget.embeddedInCard ? false : widget.showExpandControl,
           onOpenFullscreen: widget.onOpenFullscreen,
         );
       case SamplerDeviceTab.env:
@@ -456,73 +496,46 @@ class _KnobRow extends StatelessWidget {
 class SamplerDeviceStripCollapsed extends StatelessWidget {
   const SamplerDeviceStripCollapsed({
     super.key,
-    required this.device,
     required this.sample,
-    required this.activeTab,
     required this.onExpand,
-    required this.onOpenFullscreen,
+    this.embeddedInCard = false,
   });
 
-  final DeviceSnapshot device;
   final SampleLibraryEntrySnapshot? sample;
-  final SamplerDeviceTab activeTab;
   final VoidCallback onExpand;
-  final VoidCallback onOpenFullscreen;
+  final bool embeddedInCard;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final peaks = sample?.waveformPeaks ?? const <double>[];
-    final tabLabel = SamplerDevicePanel._tabs[activeTab.index].label;
 
     return Material(
-      color: SamplerDevicePanel.panel,
+      color: embeddedInCard ? Colors.transparent : SamplerDevicePanel.panel,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(0, 4, 8, 4),
+        padding: EdgeInsets.fromLTRB(embeddedInCard ? 10 : 0, 4, 8, 4),
         child: Row(
           children: [
-            Container(width: 4, height: double.infinity, color: SamplerDevicePanel.accent),
-            const SizedBox(width: 10),
+            if (!embeddedInCard)
+              Container(width: 4, height: double.infinity, color: SamplerDevicePanel.accent),
+            if (!embeddedInCard) const SizedBox(width: 10),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'SAMPLER · $tabLabel',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: SamplerDevicePanel.accent,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.6,
-                    ),
+              child: SizedBox(
+                height: 36,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF121218),
+                    borderRadius: BorderRadius.circular(2),
+                    border: Border.all(color: Colors.white12),
                   ),
-                  Text(
-                    sample?.name ?? 'No sample',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelMedium?.copyWith(color: Colors.white70),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            SizedBox(
-              width: 72,
-              height: 36,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF121218),
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: Colors.white12),
-                ),
-                child: peaks.isEmpty
-                    ? null
-                    : ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: CustomPaint(
-                          painter: WaveformPainter(peaks: peaks, color: SamplerDevicePanel.wave),
+                  child: peaks.isEmpty
+                      ? null
+                      : ClipRRect(
+                          borderRadius: BorderRadius.circular(2),
+                          child: CustomPaint(
+                            painter: WaveformPainter(peaks: peaks, color: SamplerDevicePanel.wave),
+                          ),
                         ),
-                      ),
+                ),
               ),
             ),
             IconButton(
@@ -530,12 +543,6 @@ class SamplerDeviceStripCollapsed extends StatelessWidget {
               visualDensity: VisualDensity.compact,
               onPressed: onExpand,
               icon: const Icon(Icons.unfold_more, size: 20, color: Colors.white54),
-            ),
-            IconButton(
-              tooltip: 'Open sampler editor',
-              visualDensity: VisualDensity.compact,
-              onPressed: onOpenFullscreen,
-              icon: const Icon(Icons.open_in_full, size: 18, color: Colors.white54),
             ),
           ],
         ),

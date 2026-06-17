@@ -14,12 +14,14 @@ class OscillatorDevicePanel extends StatefulWidget {
     required this.frequencyHz,
     required this.onFrequencyChanged,
     this.onCollapse,
+    this.embeddedInCard = false,
   });
 
   final String trackName;
   final double frequencyHz;
   final ValueChanged<double> onFrequencyChanged;
   final VoidCallback? onCollapse;
+  final bool embeddedInCard;
 
   static const Color panel = Color(0xFF1C1C24);
   static const Color accent = Color(0xFF6EC9E8);
@@ -49,85 +51,115 @@ class _OscillatorDevicePanelState extends State<OscillatorDevicePanel> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final hz = widget.frequencyHz.round();
 
     return Material(
-      color: OscillatorDevicePanel.panel,
+      color: widget.embeddedInCard ? Colors.transparent : OscillatorDevicePanel.panel,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(0, 6, 10, 6),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(width: 4, color: OscillatorDevicePanel.accent),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
+        padding: EdgeInsets.fromLTRB(widget.embeddedInCard ? 10 : 0, 6, 10, 6),
+        child: widget.embeddedInCard
+            ? Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Row(
                     children: [
-                      Text(
-                        'OSCILLATOR',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: OscillatorDevicePanel.accent,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.1,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
                       Expanded(
-                        child: Text(
-                          widget.trackName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        child: DeviceTabBar(
+                          tabs: OscillatorDevicePanel._tabs,
+                          selectedIndex: _tab,
+                          onSelected: (index) => setState(() => _tab = index),
+                          accentColor: OscillatorDevicePanel.accent,
                         ),
                       ),
                       if (widget.onCollapse != null)
                         IconButton(
                           tooltip: 'Collapse device',
                           visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
                           onPressed: widget.onCollapse,
                           icon: const Icon(Icons.unfold_less, size: 18, color: Colors.white54),
                         ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  DeviceTabBar(
-                    tabs: OscillatorDevicePanel._tabs,
-                    selectedIndex: _tab,
-                    onSelected: (index) => setState(() => _tab = index),
-                    accentColor: OscillatorDevicePanel.accent,
-                  ),
                   const SizedBox(height: 8),
+                  Expanded(child: _toneKnob(hz)),
+                ],
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(width: 4, color: OscillatorDevicePanel.accent),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF121218),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                      ),
-                      child: Center(
-                        child: RotaryKnob(
-                          label: 'Frequency',
-                          value: OscillatorDevicePanel._hzToNormalized(widget.frequencyHz),
-                          size: DeviceKnobSizes.strip + 4,
-                          displayValue: '$hz Hz',
-                          accentColor: OscillatorDevicePanel.accent,
-                          onChanged: (v) =>
-                              widget.onFrequencyChanged(OscillatorDevicePanel._normalizedToHz(v)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              'OSCILLATOR',
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: OscillatorDevicePanel.accent,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 1.1,
+                                  ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                widget.trackName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ),
+                            if (widget.onCollapse != null)
+                              IconButton(
+                                tooltip: 'Collapse device',
+                                visualDensity: VisualDensity.compact,
+                                onPressed: widget.onCollapse,
+                                icon: const Icon(Icons.unfold_less, size: 18, color: Colors.white54),
+                              ),
+                          ],
                         ),
-                      ),
+                        const SizedBox(height: 6),
+                        DeviceTabBar(
+                          tabs: OscillatorDevicePanel._tabs,
+                          selectedIndex: _tab,
+                          onSelected: (index) => setState(() => _tab = index),
+                          accentColor: OscillatorDevicePanel.accent,
+                        ),
+                        const SizedBox(height: 8),
+                        Expanded(child: _toneKnob(hz)),
+                      ],
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+      ),
+    );
+  }
+
+  Widget _toneKnob(int hz) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF121218),
+        borderRadius: BorderRadius.circular(2),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Center(
+        child: RotaryKnob(
+          label: 'Frequency',
+          value: OscillatorDevicePanel._hzToNormalized(widget.frequencyHz),
+          size: DeviceKnobSizes.strip + 4,
+          displayValue: '$hz Hz',
+          accentColor: OscillatorDevicePanel.accent,
+          onChanged: (v) =>
+              widget.onFrequencyChanged(OscillatorDevicePanel._normalizedToHz(v)),
         ),
       ),
     );
@@ -137,47 +169,25 @@ class _OscillatorDevicePanelState extends State<OscillatorDevicePanel> {
 class OscillatorDeviceStripCollapsed extends StatelessWidget {
   const OscillatorDeviceStripCollapsed({
     super.key,
-    required this.trackName,
-    required this.frequencyHz,
     required this.onExpand,
+    this.embeddedInCard = false,
   });
 
-  final String trackName;
-  final double frequencyHz;
   final VoidCallback onExpand;
+  final bool embeddedInCard;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Material(
-      color: OscillatorDevicePanel.panel,
+      color: embeddedInCard ? Colors.transparent : OscillatorDevicePanel.panel,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(0, 4, 8, 4),
+        padding: EdgeInsets.fromLTRB(embeddedInCard ? 10 : 0, 4, 8, 4),
         child: Row(
           children: [
-            Container(width: 4, height: double.infinity, color: OscillatorDevicePanel.accent),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'OSCILLATOR · Tone',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: OscillatorDevicePanel.accent,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Text(
-                    '$trackName · ${frequencyHz.round()} Hz',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelMedium?.copyWith(color: Colors.white70),
-                  ),
-                ],
-              ),
-            ),
+            if (!embeddedInCard)
+              Container(width: 4, height: double.infinity, color: OscillatorDevicePanel.accent),
+            if (!embeddedInCard) const SizedBox(width: 10),
+            const Spacer(),
             IconButton(
               tooltip: 'Expand device',
               onPressed: onExpand,

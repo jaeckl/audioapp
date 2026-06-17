@@ -76,6 +76,40 @@ void main() {
               ],
             },
           };
+        case 'addDeviceToTrack':
+          return {
+            'ok': true,
+            'snapshot': {
+              'bpm': 120,
+              'playheadBeats': 0.0,
+              'playing': false,
+              'selectedTrackId': 'track-1',
+              'tracks': [
+                {
+                  'id': 'track-1',
+                  'name': 'Track 1',
+                  'devices': [
+                    {
+                      'id': 'dev-1',
+                      'type': 'simple_sampler',
+                      'parameters': {'gain': 1.0, 'sampleId': ''},
+                    },
+                    {
+                      'id': 'dev-3',
+                      'type': 'simple_oscillator',
+                      'parameters': {'frequency': 440.0},
+                    },
+                    {
+                      'id': 'dev-2',
+                      'type': 'track_gain',
+                      'parameters': {'gain': 1.0},
+                    },
+                  ],
+                  'midiClips': [],
+                },
+              ],
+            },
+          };
         case 'createMidiClip':
           return {
             'ok': true,

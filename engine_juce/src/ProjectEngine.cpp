@@ -67,7 +67,9 @@ bool ProjectEngine::selectTrack(const std::string& trackId) {
     return true;
 }
 
-std::string ProjectEngine::addDeviceToTrack(const std::string& trackId, const std::string& deviceType) {
+std::string ProjectEngine::addDeviceToTrack(const std::string& trackId,
+                                            const std::string& deviceType,
+                                            int insertIndex) {
     std::lock_guard<std::mutex> lock(mutex_);
     Track* track = findTrackLocked(trackId);
     if (track == nullptr) {
@@ -79,11 +81,22 @@ std::string ProjectEngine::addDeviceToTrack(const std::string& trackId, const st
     device.type = deviceType.empty() ? "simple_oscillator" : deviceType;
     device.frequencyHz = 440.0f;
     const std::string deviceId = device.id;
-    if (!track->devices.empty() && track->devices.back().type == "track_gain") {
-        track->devices.insert(track->devices.end() - 1, std::move(device));
-    } else {
-        track->devices.push_back(std::move(device));
+
+    size_t gainIndex = track->devices.size();
+    for (size_t i = 0; i < track->devices.size(); ++i) {
+        if (track->devices[i].type == "track_gain") {
+            gainIndex = i;
+            break;
+        }
     }
+
+    size_t insertAt = gainIndex;
+    if (insertIndex >= 0) {
+        insertAt = std::min(static_cast<size_t>(insertIndex), gainIndex);
+    }
+
+    track->devices.insert(track->devices.begin() + static_cast<std::ptrdiff_t>(insertAt),
+                          std::move(device));
     syncActiveFrequencyLocked();
     rebuildTrackPlaybackLocked();
     return deviceId;
