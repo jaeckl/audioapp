@@ -127,14 +127,23 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   Future<ProjectSnapshot> _onBridgeCall(String method, Map<String, dynamic> args) async {
     final bridge = widget.onModulationBridgeCall;
     if (bridge == null) return _emptySnapshot;
-    final snapshot = await bridge(method, args);
-    if (mounted) {
-      setState(() {
-        _localLfos = List.of(snapshot.lfos);
-        _localModEdges = List.of(snapshot.modEdges);
-      });
+    try {
+      final snapshot = await bridge(method, args);
+      if (mounted) {
+        setState(() {
+          _localLfos = List.of(snapshot.lfos);
+          _localModEdges = List.of(snapshot.modEdges);
+        });
+      }
+      return snapshot;
+    } catch (e) {
+      if (mounted && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Modulation error: $e'), duration: const Duration(seconds: 3)),
+        );
+      }
+      return _emptySnapshot;
     }
-    return snapshot;
   }
 
   List<DeviceTabSpec> get _containerTabs => DeviceContainerTabs.forDeviceType(widget.device.type);
@@ -256,7 +265,14 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                   onBypassToggle: widget.onBypassToggle ?? () {},
                   onLibrary: widget.onOpenLibrary,
                   modActive: _modStripVisible,
-                  onModToggle: () => setState(() => _modStripVisible = !_modStripVisible),
+                  onModToggle: () async {
+                    if (!_modStripVisible && _localLfos.isEmpty) {
+                      // Auto-create first LFO so the strip isn't empty
+                      await _onBridgeCall('createLfo', {});
+                      if (!mounted) return;
+                    }
+                    setState(() => _modStripVisible = !_modStripVisible);
+                  },
                 ),
                 if (_modStripVisible)
                   SizedBox(
