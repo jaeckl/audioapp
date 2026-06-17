@@ -188,7 +188,7 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
         ),
         const SizedBox(height: 6),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _knob(
               label: 'Shape',
@@ -197,6 +197,7 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
               displayValue: subtractiveShapeLabel(shape),
               onChanged: (v) => widget.onParameterChanged(shapeParam, v),
             ),
+            const SizedBox(width: 14),
             _knob(
               label: 'Pitch',
               value: semi,
@@ -204,6 +205,7 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
               displayValue: '${(semi * 11).round()}',
               onChanged: (v) => widget.onParameterChanged(semiParam, v),
             ),
+            const SizedBox(width: 14),
             _knob(
               label: 'Sync',
               value: sync,
