@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include "audioapp/SamplerFilter.hpp"
 #include "audioapp/SamplePlayback.hpp"
 
