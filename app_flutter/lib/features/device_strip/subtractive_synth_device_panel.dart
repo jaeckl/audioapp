@@ -13,6 +13,14 @@ enum SubtractivePanelDensity { strip, editor }
 
 enum SubtractiveDeviceTab { osc, mix, filter, amp }
 
+/// Visual variant for the panel container.
+///
+///   * [screen] — dark fill, subtle border. Used for waveform/signal displays.
+///   * [elevated] — medium fill, subtle border. Used for inset knob-column panels.
+///   * [flat] — light fill, no border by default. Used for background grouping
+///     such as envelope rows.
+enum PanelVariant { screen, elevated, flat }
+
 class SubtractiveSynthDevicePanel extends StatefulWidget {
   const SubtractiveSynthDevicePanel({
     super.key,
@@ -75,6 +83,35 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
       displayValue: displayValue,
       size: size ?? _knobSize,
       accentColor: SubtractiveSynthDevicePanel.accent,
+    );
+  }
+
+  Widget _panelBox({
+    required Widget child,
+    PanelVariant variant = PanelVariant.screen,
+    bool showBorder = true,
+    EdgeInsetsGeometry padding = const EdgeInsets.all(4),
+  }) {
+    final Color fill = switch (variant) {
+      PanelVariant.screen => const Color(0xFF121218),
+      PanelVariant.elevated => const Color(0xFF16161E),
+      PanelVariant.flat => const Color(0xFF1A1A24),
+    };
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(6),
+        border: showBorder
+            ? Border.all(color: Colors.white.withValues(alpha: 0.08))
+            : null,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: Padding(
+          padding: padding,
+          child: child,
+        ),
+      ),
     );
   }
 
@@ -183,8 +220,9 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
         Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
         const SizedBox(height: 4),
         Expanded(
-          child: _InsetPanel(
-            child: SubtractiveWaveformPreview(
+          child: _panelBox(
+              variant: PanelVariant.screen,
+              child: SubtractiveWaveformPreview(
               shape: shape,
               accent: SubtractiveSynthDevicePanel.accent,
             ),
@@ -242,10 +280,10 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
           // Left Group: Unison + Spread (Vertical Column, Shrunk and Aligned Left)
           SizedBox(
             width: _knobSize + 24,
-            child: _InsetPanel(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                child: Column(
+            child: _panelBox(
+              variant: PanelVariant.elevated,
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+              child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const Text(
@@ -278,15 +316,14 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                 ),
               ),
             ),
-          ),
           const SizedBox(width: 8),
           // Right Group: Mix Mode + Mix + Noise (Vertical Column, Shrunk and Aligned Left)
           SizedBox(
             width: _knobSize + 24,
-            child: _InsetPanel(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                child: Column(
+            child: _panelBox(
+              variant: PanelVariant.elevated,
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+              child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const Text(
@@ -337,7 +374,6 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -395,14 +431,18 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
             ],
           ),
           const Spacer(),
-          _adsrRow(
-            attack: widget.device.filterAttack,
-            decay: widget.device.filterDecay,
-            sustain: widget.device.filterSustain,
-            release: widget.device.filterRelease,
-            onChanged: (id, v) => widget.onParameterChanged(id, v),
-            prefix: 'filter',
-            usePanel: false,
+          _panelBox(
+            variant: PanelVariant.flat,
+            showBorder: false,
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: _adsrRow(
+              attack: widget.device.filterAttack,
+              decay: widget.device.filterDecay,
+              sustain: widget.device.filterSustain,
+              release: widget.device.filterRelease,
+              onChanged: (id, v) => widget.onParameterChanged(id, v),
+              prefix: 'filter',
+            ),
           ),
         ],
       ),
@@ -460,13 +500,17 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
             ],
           ),
           const Spacer(),
-          _adsrRow(
-            attack: widget.device.attack,
-            decay: widget.device.decay,
-            sustain: widget.device.sustain,
-            release: widget.device.release,
-            onChanged: widget.onParameterChanged,
-            usePanel: false,
+          _panelBox(
+            variant: PanelVariant.flat,
+            showBorder: false,
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: _adsrRow(
+              attack: widget.device.attack,
+              decay: widget.device.decay,
+              sustain: widget.device.sustain,
+              release: widget.device.release,
+              onChanged: widget.onParameterChanged,
+            ),
           ),
         ],
       ),
@@ -480,99 +524,25 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
     required double release,
     required void Function(String id, double value) onChanged,
     String prefix = '',
-    bool usePanel = true,
   }) {
     String id(String name) => prefix.isEmpty ? name : '$prefix${name[0].toUpperCase()}${name.substring(1)}';
-    final knobs = [
-      _knob(
-        label: 'A',
-        value: attack,
-        size: _knobSize * 0.8,
-        displayValue: SamplerDevicePanel.formatPercent(attack),
-        onChanged: (v) => onChanged(id('attack'), v),
-      ),
-      _knob(
-        label: 'D',
-        value: decay,
-        size: _knobSize * 0.8,
-        displayValue: SamplerDevicePanel.formatPercent(decay),
-        onChanged: (v) => onChanged(id('decay'), v),
-      ),
-      _knob(
-        label: 'S',
-        value: sustain,
-        size: _knobSize * 0.8,
-        displayValue: SamplerDevicePanel.formatPercent(sustain),
-        onChanged: (v) => onChanged(id('sustain'), v),
-      ),
-      _knob(
-        label: 'R',
-        value: release,
-        size: _knobSize * 0.8,
-        displayValue: SamplerDevicePanel.formatPercent(release),
-        onChanged: (v) => onChanged(id('release'), v),
-      ),
-    ];
-
-    if (usePanel) {
-      return _SynthKnobRow(children: knobs);
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: knobs,
-      ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _knob(label: 'A', value: attack, size: _knobSize * 0.8,
+          displayValue: SamplerDevicePanel.formatPercent(attack),
+          onChanged: (v) => onChanged(id('attack'), v)),
+        _knob(label: 'D', value: decay, size: _knobSize * 0.8,
+          displayValue: SamplerDevicePanel.formatPercent(decay),
+          onChanged: (v) => onChanged(id('decay'), v)),
+        _knob(label: 'S', value: sustain, size: _knobSize * 0.8,
+          displayValue: SamplerDevicePanel.formatPercent(sustain),
+          onChanged: (v) => onChanged(id('sustain'), v)),
+        _knob(label: 'R', value: release, size: _knobSize * 0.8,
+          displayValue: SamplerDevicePanel.formatPercent(release),
+          onChanged: (v) => onChanged(id('release'), v)),
+      ],
     );
   }
 }
 
-class _InsetPanel extends StatelessWidget {
-  const _InsetPanel({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFF121218),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(6),
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: child,
-        ),
-      ),
-    );
-  }
-}
-
-class _SynthKnobRow extends StatelessWidget {
-  const _SynthKnobRow({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFF121218),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: children,
-        ),
-      ),
-    );
-  }
-}
