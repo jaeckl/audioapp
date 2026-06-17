@@ -229,19 +229,20 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
   }
 
   Widget _mixTab() {
-    final knobWidth = _knobSize + 8;
     return Padding(
       padding: const EdgeInsets.all(8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          // Left Group: Unison + Spread
-          Expanded(
+          // Left Group: Unison + Spread (Vertical Column, Shrunk and Aligned Left)
+          SizedBox(
+            width: _knobSize + 24,
             child: _InsetPanel(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const Text(
                       'UNISON',
@@ -253,24 +254,20 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                       ),
                     ),
                     const Spacer(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _knob(
-                          label: 'Voices',
-                          value: widget.device.unisonVoices,
-                          size: _knobSize * 0.85,
-                          displayValue: '${1 + (widget.device.unisonVoices * 3).round()}',
-                          onChanged: (v) => widget.onParameterChanged('unisonVoices', v),
-                        ),
-                        _knob(
-                          label: 'Spread',
-                          value: widget.device.unisonDetune,
-                          size: _knobSize * 0.85,
-                          displayValue: SamplerDevicePanel.formatPercent(widget.device.unisonDetune),
-                          onChanged: (v) => widget.onParameterChanged('unisonDetune', v),
-                        ),
-                      ],
+                    _knob(
+                      label: 'Voices',
+                      value: widget.device.unisonVoices,
+                      size: _knobSize * 0.82,
+                      displayValue: '${1 + (widget.device.unisonVoices * 3).round()}',
+                      onChanged: (v) => widget.onParameterChanged('unisonVoices', v),
+                    ),
+                    const Spacer(),
+                    _knob(
+                      label: 'Spread',
+                      value: widget.device.unisonDetune,
+                      size: _knobSize * 0.82,
+                      displayValue: SamplerDevicePanel.formatPercent(widget.device.unisonDetune),
+                      onChanged: (v) => widget.onParameterChanged('unisonDetune', v),
                     ),
                     const Spacer(),
                   ],
@@ -279,13 +276,14 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
             ),
           ),
           const SizedBox(width: 8),
-          // Right Group: Mix Mode + Mix + Noise
-          Expanded(
+          // Right Group: Mix Mode + Mix + Noise (Vertical Column, Shrunk and Aligned Left)
+          SizedBox(
+            width: _knobSize + 24,
             child: _InsetPanel(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const Text(
                       'MIXER',
@@ -297,44 +295,38 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                       ),
                     ),
                     const Spacer(),
-                    Row(
-                      children: [
-                        const SizedBox(width: 4),
-                        SizedBox(
-                          width: knobWidth,
-                          height: 26,
-                          child: _flatDropdown<int>(
-                            value: widget.device.oscMixMode.clamp(0, SubtractiveSynthDevicePanel._mixModes.length - 1),
-                            items: List.generate(
-                              SubtractiveSynthDevicePanel._mixModes.length,
-                              (i) => DropdownMenuItem(value: i, child: Text(SubtractiveSynthDevicePanel._mixModes[i])),
-                            ),
-                            onChanged: (v) {
-                              if (v != null) widget.onParameterChanged('oscMixMode', v.toDouble());
-                            },
+                    SizedBox(
+                      width: _knobSize + 4,
+                      height: 24,
+                      child: _borderlessDropdown<int>(
+                        value: widget.device.oscMixMode.clamp(0, SubtractiveSynthDevicePanel._mixModes.length - 1),
+                        items: List.generate(
+                          SubtractiveSynthDevicePanel._mixModes.length,
+                          (i) => DropdownMenuItem(
+                            value: i,
+                            child: Text(SubtractiveSynthDevicePanel._mixModes[i]),
                           ),
                         ),
-                      ],
+                        onChanged: (v) {
+                          if (v != null) widget.onParameterChanged('oscMixMode', v.toDouble());
+                        },
+                      ),
                     ),
                     const Spacer(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _knob(
-                          label: 'Mix',
-                          value: widget.device.oscMix,
-                          size: _knobSize * 0.85,
-                          displayValue: SamplerDevicePanel.formatPercent(widget.device.oscMix),
-                          onChanged: (v) => widget.onParameterChanged('oscMix', v),
-                        ),
-                        _knob(
-                          label: 'Noise',
-                          value: widget.device.noiseLevel,
-                          size: _knobSize * 0.85,
-                          displayValue: SamplerDevicePanel.formatPercent(widget.device.noiseLevel),
-                          onChanged: (v) => widget.onParameterChanged('noiseLevel', v),
-                        ),
-                      ],
+                    _knob(
+                      label: 'Mix',
+                      value: widget.device.oscMix,
+                      size: _knobSize * 0.82,
+                      displayValue: SamplerDevicePanel.formatPercent(widget.device.oscMix),
+                      onChanged: (v) => widget.onParameterChanged('oscMix', v),
+                    ),
+                    const Spacer(),
+                    _knob(
+                      label: 'Noise',
+                      value: widget.device.noiseLevel,
+                      size: _knobSize * 0.82,
+                      displayValue: SamplerDevicePanel.formatPercent(widget.device.noiseLevel),
+                      onChanged: (v) => widget.onParameterChanged('noiseLevel', v),
                     ),
                     const Spacer(),
                   ],
@@ -428,6 +420,28 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
             onChanged: onChanged,
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _borderlessDropdown<T>({
+    required T value,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?> onChanged,
+  }) {
+    return DropdownButtonHideUnderline(
+      child: DropdownButton<T>(
+        value: value,
+        isExpanded: true,
+        dropdownColor: const Color(0xFF1C1C24),
+        style: const TextStyle(
+          color: SubtractiveSynthDevicePanel.accent,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+        icon: const Icon(Icons.expand_more, color: SubtractiveSynthDevicePanel.accent, size: 14),
+        items: items,
+        onChanged: onChanged,
       ),
     );
   }
