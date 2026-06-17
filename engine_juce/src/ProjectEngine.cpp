@@ -126,6 +126,16 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
         rebuildTrackPlaybackLocked();
         return true;
     }
+    if (parameterId == "gain" && device->type == "simple_oscillator") {
+        device->gain = std::clamp(value, 0.0f, 1.0f);
+        rebuildTrackPlaybackLocked();
+        return true;
+    }
+    if (parameterId == "pan" && device->type != "track_gain") {
+        device->pan = std::clamp(value, 0.0f, 1.0f);
+        rebuildTrackPlaybackLocked();
+        return true;
+    }
     if (parameterId == "bypass" && device->type != "track_gain") {
         device->bypassed = value >= 0.5f;
         rebuildTrackPlaybackLocked();
@@ -494,6 +504,7 @@ ProjectSnapshot ProjectEngine::snapshot() const {
             ds.type = device.type;
             ds.frequencyHz = device.frequencyHz;
             ds.gain = device.gain;
+            ds.pan = device.pan;
             ds.sampleId = device.sampleId;
             ds.attack = device.attack;
             ds.decay = device.decay;
@@ -588,18 +599,42 @@ void ProjectEngine::readMasterMix(float* monoOut,
     if (monoOut == nullptr || numFrames <= 0) {
         return;
     }
-    std::memset(monoOut, 0, static_cast<size_t>(numFrames) * sizeof(float));
+    constexpr int kMaxFrames = 4096;
+    const int framesToProcess = numFrames > kMaxFrames ? kMaxFrames : numFrames;
+    float left[kMaxFrames];
+    float right[kMaxFrames];
+    readMasterMixStereo(left, right, framesToProcess, sampleRate, playheadStartBeat);
+    for (int frame = 0; frame < framesToProcess; ++frame) {
+        monoOut[frame] = (left[frame] + right[frame]) * 0.5f;
+    }
+    if (framesToProcess < numFrames) {
+        std::memset(monoOut + framesToProcess, 0,
+                    static_cast<size_t>(numFrames - framesToProcess) * sizeof(float));
+    }
+}
+
+void ProjectEngine::readMasterMixStereo(float* leftOut,
+                                        float* rightOut,
+                                        int numFrames,
+                                        double sampleRate,
+                                        double playheadStartBeat) noexcept {
+    if (leftOut == nullptr || rightOut == nullptr || numFrames <= 0) {
+        return;
+    }
+    std::memset(leftOut, 0, static_cast<size_t>(numFrames) * sizeof(float));
+    std::memset(rightOut, 0, static_cast<size_t>(numFrames) * sizeof(float));
     if (!playing_.load(std::memory_order_acquire)) {
         return;
     }
-    mixAtPlayheadBeat(monoOut, numFrames, sampleRate, playheadStartBeat);
+    mixAtPlayheadBeatStereo(leftOut, rightOut, numFrames, sampleRate, playheadStartBeat);
 }
 
-void ProjectEngine::mixAtPlayheadBeat(float* monoOut,
-                                      int numFrames,
-                                      double sampleRate,
-                                      double playheadStartBeat) noexcept {
-    if (monoOut == nullptr || numFrames <= 0) {
+void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
+                                            float* masterRight,
+                                            int numFrames,
+                                            double sampleRate,
+                                            double playheadStartBeat) noexcept {
+    if (masterLeft == nullptr || masterRight == nullptr || numFrames <= 0) {
         return;
     }
 
@@ -610,14 +645,16 @@ void ProjectEngine::mixAtPlayheadBeat(float* monoOut,
 
     const float masterGain = masterGain_.load(std::memory_order_acquire);
     constexpr int kMaxFrames = 4096;
-    float trackMono[kMaxFrames];
+    float trackLeft[kMaxFrames];
+    float trackRight[kMaxFrames];
     const int framesToProcess = numFrames > kMaxFrames ? kMaxFrames : numFrames;
 
     SampleClipPlaybackRegion regions[8];
 
     for (int trackIndex = 0; trackIndex < trackCount; ++trackIndex) {
         const TrackPlaybackSnapshot& track = trackPlayback_[trackIndex];
-        std::memset(trackMono, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+        std::memset(trackLeft, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+        std::memset(trackRight, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
 
         if (track.regionCount > 0) {
             for (int i = 0; i < track.regionCount; ++i) {
@@ -630,13 +667,16 @@ void ProjectEngine::mixAtPlayheadBeat(float* monoOut,
                     source.pcmSampleRate,
                 };
             }
-            mixSampleRegionsBlock(trackMono,
+            mixSampleRegionsBlock(trackLeft,
                                   framesToProcess,
                                   sampleRate,
                                   bpm_,
                                   playheadStartBeat,
                                   regions,
                                   track.regionCount);
+            for (int frame = 0; frame < framesToProcess; ++frame) {
+                trackRight[frame] = trackLeft[frame];
+            }
         }
 
         const bool suppressInstruments = trackHasActiveSampleAtPlayhead(track, playheadStartBeat);
@@ -656,7 +696,8 @@ void ProjectEngine::mixAtPlayheadBeat(float* monoOut,
         }
 
         float oscillatorPhase = track.oscillatorPhase;
-        processDeviceChain(trackMono,
+        processDeviceChain(trackLeft,
+                           trackRight,
                            framesToProcess,
                            sampleRate,
                            bpm_,
@@ -671,12 +712,31 @@ void ProjectEngine::mixAtPlayheadBeat(float* monoOut,
         trackPlayback_[trackIndex].oscillatorPhase = oscillatorPhase;
 
         for (int frame = 0; frame < framesToProcess; ++frame) {
-            monoOut[frame] += trackMono[frame];
+            masterLeft[frame] += trackLeft[frame];
+            masterRight[frame] += trackRight[frame];
         }
     }
 
     for (int frame = 0; frame < framesToProcess; ++frame) {
-        monoOut[frame] = std::tanh(monoOut[frame] * masterGain);
+        masterLeft[frame] = std::tanh(masterLeft[frame] * masterGain);
+        masterRight[frame] = std::tanh(masterRight[frame] * masterGain);
+    }
+}
+
+void ProjectEngine::mixAtPlayheadBeat(float* monoOut,
+                                      int numFrames,
+                                      double sampleRate,
+                                      double playheadStartBeat) noexcept {
+    if (monoOut == nullptr || numFrames <= 0) {
+        return;
+    }
+    constexpr int kMaxFrames = 4096;
+    const int framesToProcess = numFrames > kMaxFrames ? kMaxFrames : numFrames;
+    float left[kMaxFrames];
+    float right[kMaxFrames];
+    mixAtPlayheadBeatStereo(left, right, framesToProcess, sampleRate, playheadStartBeat);
+    for (int frame = 0; frame < framesToProcess; ++frame) {
+        monoOut[frame] = (left[frame] + right[frame]) * 0.5f;
     }
 }
 
@@ -751,6 +811,7 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
                 device.type,
                 device.frequencyHz,
                 device.gain,
+                device.pan,
                 device.sampleId,
                 device.attack,
                 device.decay,
@@ -819,6 +880,7 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
             device.type = deviceState.type;
             device.frequencyHz = deviceState.frequencyHz;
             device.gain = deviceState.gain;
+            device.pan = deviceState.pan;
             device.sampleId = deviceState.sampleId;
             device.attack = deviceState.attack;
             device.decay = deviceState.decay;
@@ -926,9 +988,12 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
             if (device.type == "simple_oscillator") {
                 node.kind = DeviceNodeKind::Oscillator;
                 node.frequencyHz = device.frequencyHz;
+                node.gain = device.gain;
+                node.pan = device.pan;
             } else if (device.type == "simple_sampler") {
                 node.kind = DeviceNodeKind::Sampler;
                 node.gain = device.gain;
+                node.pan = device.pan;
                 node.attack = device.attack;
                 node.decay = device.decay;
                 node.sustain = device.sustain;

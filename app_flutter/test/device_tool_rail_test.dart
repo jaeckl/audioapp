@@ -11,6 +11,8 @@ void main() {
           body: SizedBox(
             height: 120,
             child: DeviceToolRail(
+              deviceName: 'Sampler',
+              accentColor: const Color(0xFFE8A54B),
               bypassed: false,
               showLibrary: true,
               onBypassToggle: () {},
@@ -23,5 +25,6 @@ void main() {
 
     expect(find.byIcon(Icons.power_settings_new), findsOneWidget);
     expect(find.byIcon(Icons.library_music_outlined), findsOneWidget);
+    expect(find.text('SAMPLER'), findsOneWidget);
   });
 }

@@ -9,6 +9,9 @@ import 'daw_shell_nav.dart';
 import '../bridge/engine_bridge.dart';
 import '../bridge/project_snapshot.dart';
 import '../features/arrangement/arrangement_view.dart';
+import '../features/content_library/library_catalog.dart';
+import '../features/content_library/library_category.dart';
+import '../features/content_library/library_fly_in_panel.dart';
 import '../features/device_strip/device_strip.dart';
 import '../features/device_strip/sampler_editor_screen.dart';
 import '../features/mixer/mixer_view.dart';
@@ -39,6 +42,10 @@ class _DawShellState extends State<DawShell> {
   String? _projectError;
   Timer? _playheadTimer;
   _ShellTab _tab = _ShellTab.arrangement;
+  bool _libraryOpen = false;
+  LibraryCategory _libraryCategory = LibraryCategory.audioClips;
+  String? _librarySamplerDeviceId;
+  final GlobalKey<LibraryFlyInPanelState> _libraryPanelKey = GlobalKey();
 
   @override
   void initState() {
@@ -203,7 +210,47 @@ class _DawShellState extends State<DawShell> {
 
   Future<void> _openDeviceLibrary(DeviceSnapshot device) async {
     if (device.type != 'simple_sampler') return;
-    await _pickSamplerSample(device.id);
+    setState(() {
+      _libraryOpen = true;
+      _libraryCategory = LibraryCategory.audioClips;
+      _librarySamplerDeviceId = device.id;
+    });
+  }
+
+  void _closeLibrary() {
+    setState(() {
+      _libraryOpen = false;
+      _librarySamplerDeviceId = null;
+    });
+  }
+
+  Future<void> _openLibrary({LibraryCategory category = LibraryCategory.audioClips}) async {
+    setState(() {
+      _libraryOpen = true;
+      _libraryCategory = category;
+      _librarySamplerDeviceId = null;
+    });
+  }
+
+  Future<void> _onLibraryInsertAudio(SampleLibraryEntrySnapshot sample) async {
+    final deviceId = _librarySamplerDeviceId;
+    if (deviceId != null) {
+      await _assignSamplerSample(deviceId, sample.id);
+      await _libraryPanelKey.currentState?.close();
+      return;
+    }
+    await _insertSample(sample);
+  }
+
+  Future<void> _onLibraryMidiTap(LibraryMidiItem item) async {
+    await _openPianoRoll(item.trackId, item.clip);
+    await _libraryPanelKey.currentState?.close();
+  }
+
+  void _onLibraryPresetTap(LibraryPresetItem item) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Preset "${item.title}" — coming soon')),
+    );
   }
 
   Future<void> _setSamplerGain(String deviceId, double value) async {
@@ -408,6 +455,7 @@ class _DawShellState extends State<DawShell> {
       await _refreshSnapshot(updated);
       if (!mounted) return;
       setState(() => _tab = _ShellTab.arrangement);
+      await _libraryPanelKey.currentState?.close();
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
@@ -591,6 +639,19 @@ class _DawShellState extends State<DawShell> {
   }
 
   Future<void> _onTabSelected(_ShellTab tab) async {
+    if (tab == _ShellTab.library) {
+      if (_libraryOpen) {
+        await _libraryPanelKey.currentState?.close();
+      } else {
+        await _openLibrary();
+      }
+      return;
+    }
+
+    if (_libraryOpen) {
+      _closeLibrary();
+    }
+
     if (_tab == tab) return;
     if (_tab == _ShellTab.play && tab != _ShellTab.play) {
       try {
@@ -635,6 +696,7 @@ class _DawShellState extends State<DawShell> {
               ),
             ),
             DeviceStrip(
+              snapshot: snapshot,
               track: snapshot.selectedTrack,
               samples: snapshot.samples,
               playing: _playing,
@@ -681,13 +743,7 @@ class _DawShellState extends State<DawShell> {
           onMasterGainChanged: _setMasterGain,
         );
       case _ShellTab.library:
-        return SampleLibraryScreen(
-          embedded: true,
-          samples: snapshot.samples,
-          onPreview: _previewSample,
-          onInsert: _insertSample,
-          onImport: _importSample,
-        );
+        return const SizedBox.shrink();
       case _ShellTab.settings:
         return SettingsScreen(
           onSaveProject: _saveProject,
@@ -730,7 +786,7 @@ class _DawShellState extends State<DawShell> {
     final snapshot = _snapshot;
     final navGeometry = DawShellNavGeometry.of(context);
     final nav = DawShellNav(
-      selectedIndex: _tab.index,
+      selectedIndex: _libraryOpen ? _ShellTab.library.index : _tab.index,
       geometry: navGeometry,
       onDestinationSelected: (index) => _onTabSelected(_ShellTab.values[index]),
     );
@@ -744,6 +800,18 @@ class _DawShellState extends State<DawShell> {
             child: _buildMainColumn(snapshot),
           ),
           navGeometry.position(context: context, child: nav),
+          if (_libraryOpen && snapshot != null)
+            LibraryFlyInPanel(
+              key: _libraryPanelKey,
+              snapshot: snapshot,
+              initialCategory: _libraryCategory,
+              onClose: _closeLibrary,
+              onPreviewAudio: _previewSample,
+              onInsertAudio: _onLibraryInsertAudio,
+              onImportAudio: _importSample,
+              onMidiClipTap: _onLibraryMidiTap,
+              onPresetTap: _onLibraryPresetTap,
+            ),
         ],
       ),
     );

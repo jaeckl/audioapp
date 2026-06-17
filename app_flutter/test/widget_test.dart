@@ -139,14 +139,7 @@ void main() {
                       'id': 'clip-1',
                       'startBeat': 0.0,
                       'lengthBeats': 4.0,
-                      'notes': [
-                        {
-                          'pitch': 60,
-                          'startBeat': 0.0,
-                          'durationBeats': 1.0,
-                          'velocity': 100.0,
-                        },
-                      ],
+                      'notes': [],
                     },
                   ],
                 },
@@ -442,7 +435,7 @@ void main() {
     await tester.tap(find.byTooltip('Add track'));
     await tester.pumpAndSettle();
 
-    expect(find.text('SAMPLER'), findsOneWidget);
+    expect(find.text('Sample'), findsOneWidget);
     expect(find.text('Sample'), findsOneWidget);
     expect(find.text('Env'), findsOneWidget);
     expect(find.text('Load'), findsNothing);

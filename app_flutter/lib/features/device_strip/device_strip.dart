@@ -11,6 +11,7 @@ import 'sampler_device_panel.dart';
 class DeviceStrip extends StatefulWidget {
   const DeviceStrip({
     super.key,
+    required this.snapshot,
     required this.track,
     required this.samples,
     required this.playing,
@@ -25,6 +26,7 @@ class DeviceStrip extends StatefulWidget {
     required this.onOpenDeviceLibrary,
   });
 
+  final ProjectSnapshot snapshot;
   final TrackSnapshot? track;
   final List<SampleLibraryEntrySnapshot> samples;
   final bool playing;
@@ -71,6 +73,7 @@ class _DeviceStripState extends State<DeviceStrip> {
       MaterialPageRoute<void>(
         fullscreenDialog: true,
         builder: (context) => DeviceChainScreen(
+          snapshot: widget.snapshot,
           track: track,
           samples: widget.samples,
           playing: widget.playing,
@@ -81,7 +84,11 @@ class _DeviceStripState extends State<DeviceStrip> {
           onInsertDevice: (insertIndex) => _insertDevice(track, insertIndex),
           onSamplerTabChanged: _setSamplerTab,
           onBypassToggle: widget.onBypassToggle,
-          onOpenLibrary: widget.onOpenDeviceLibrary,
+          onPreviewAudio: widget.onPreviewSample,
+          onAssignSamplerSample: widget.onAssignSamplerSample,
+          onImportAudio: () async {
+            await widget.onImportSamples();
+          },
         ),
       ),
     );

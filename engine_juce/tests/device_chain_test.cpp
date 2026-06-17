@@ -20,7 +20,8 @@ float peakAbs(const float* buffer, int count) {
 int main() {
     constexpr int kFrames = 256;
     constexpr double kSampleRate = 48000.0;
-    float buffer[kFrames];
+    float left[kFrames];
+    float right[kFrames];
 
     // Sampler node without loaded PCM stays silent even with MIDI notes present.
     {
@@ -30,10 +31,13 @@ int main() {
         audioapp::DeviceNodePlayback devices[1] = {};
         devices[0].kind = audioapp::DeviceNodeKind::Sampler;
         devices[0].gain = 1.0f;
+        devices[0].pan = 0.5f;
 
-        std::memset(buffer, 0, sizeof(buffer));
+        std::memset(left, 0, sizeof(left));
+        std::memset(right, 0, sizeof(right));
         float phase = 0.0f;
-        audioapp::processDeviceChain(buffer,
+        audioapp::processDeviceChain(left,
+                                     right,
                                      kFrames,
                                      kSampleRate,
                                      120,
@@ -44,7 +48,7 @@ int main() {
                                      1,
                                      phase,
                                      false);
-        if (peakAbs(buffer, kFrames) > 1.0e-6f) {
+        if (peakAbs(left, kFrames) > 1.0e-6f || peakAbs(right, kFrames) > 1.0e-6f) {
             return EXIT_FAILURE;
         }
     }
@@ -54,12 +58,16 @@ int main() {
         audioapp::DeviceNodePlayback devices[2] = {};
         devices[0].kind = audioapp::DeviceNodeKind::Oscillator;
         devices[0].frequencyHz = 440.0f;
+        devices[0].gain = 1.0f;
+        devices[0].pan = 0.5f;
         devices[1].kind = audioapp::DeviceNodeKind::TrackGain;
         devices[1].gain = 0.25f;
 
-        std::memset(buffer, 0, sizeof(buffer));
+        std::memset(left, 0, sizeof(left));
+        std::memset(right, 0, sizeof(right));
         float phase = 0.0f;
-        audioapp::processDeviceChain(buffer,
+        audioapp::processDeviceChain(left,
+                                     right,
                                      kFrames,
                                      kSampleRate,
                                      120,
@@ -70,11 +78,39 @@ int main() {
                                      2,
                                      phase,
                                      false);
-        const float peak = peakAbs(buffer, kFrames);
+        const float peak = (peakAbs(left, kFrames) + peakAbs(right, kFrames)) * 0.5f;
         if (peak <= 0.01f) {
             return EXIT_FAILURE;
         }
         if (peak >= audioapp::kInstrumentOutputGain * 0.9f) {
+            return EXIT_FAILURE;
+        }
+    }
+
+    // Hard pan left biases energy into the left channel.
+    {
+        audioapp::DeviceNodePlayback devices[1] = {};
+        devices[0].kind = audioapp::DeviceNodeKind::Oscillator;
+        devices[0].frequencyHz = 440.0f;
+        devices[0].gain = 1.0f;
+        devices[0].pan = 0.0f;
+
+        std::memset(left, 0, sizeof(left));
+        std::memset(right, 0, sizeof(right));
+        float phase = 0.0f;
+        audioapp::processDeviceChain(left,
+                                     right,
+                                     kFrames,
+                                     kSampleRate,
+                                     120,
+                                     0.0,
+                                     nullptr,
+                                     0,
+                                     devices,
+                                     1,
+                                     phase,
+                                     false);
+        if (peakAbs(left, kFrames) <= peakAbs(right, kFrames)) {
             return EXIT_FAILURE;
         }
     }
@@ -88,6 +124,7 @@ int main() {
             return EXIT_FAILURE;
         }
 
+        float buffer[kFrames];
         host.setPlaying(true);
         std::memset(buffer, 0, sizeof(buffer));
         host.readMasterMix(buffer, kFrames, kSampleRate, 0.0);

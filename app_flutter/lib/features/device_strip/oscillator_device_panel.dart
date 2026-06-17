@@ -15,6 +15,7 @@ class OscillatorDevicePanel extends StatefulWidget {
     required this.onFrequencyChanged,
     this.onCollapse,
     this.embeddedInCard = false,
+    this.selectedTab,
   });
 
   final String trackName;
@@ -22,13 +23,16 @@ class OscillatorDevicePanel extends StatefulWidget {
   final ValueChanged<double> onFrequencyChanged;
   final VoidCallback? onCollapse;
   final bool embeddedInCard;
+  final OscillatorDeviceTab? selectedTab;
 
   static const Color panel = Color(0xFF1C1C24);
   static const Color accent = Color(0xFF6EC9E8);
 
-  static const _tabs = <DeviceTabSpec>[
+  static const containerTabs = <DeviceTabSpec>[
     DeviceTabSpec(label: 'Tone', icon: Icons.waves),
   ];
+
+  static const _tabs = containerTabs;
 
   static double _hzToNormalized(double hz) {
     const minHz = 110.0;
@@ -49,6 +53,8 @@ class OscillatorDevicePanel extends StatefulWidget {
 class _OscillatorDevicePanelState extends State<OscillatorDevicePanel> {
   int _tab = 0;
 
+  int get _activeTab => widget.selectedTab?.index ?? _tab;
+
   @override
   Widget build(BuildContext context) {
     final hz = widget.frequencyHz.round();
@@ -56,33 +62,11 @@ class _OscillatorDevicePanelState extends State<OscillatorDevicePanel> {
     return Material(
       color: widget.embeddedInCard ? Colors.transparent : OscillatorDevicePanel.panel,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(widget.embeddedInCard ? 10 : 0, 6, 10, 6),
+        padding: EdgeInsets.fromLTRB(widget.embeddedInCard ? 10 : 0, widget.embeddedInCard ? 4 : 6, 10, 6),
         child: widget.embeddedInCard
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DeviceTabBar(
-                          tabs: OscillatorDevicePanel._tabs,
-                          selectedIndex: _tab,
-                          onSelected: (index) => setState(() => _tab = index),
-                          accentColor: OscillatorDevicePanel.accent,
-                        ),
-                      ),
-                      if (widget.onCollapse != null)
-                        IconButton(
-                          tooltip: 'Collapse device',
-                          visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                          onPressed: widget.onCollapse,
-                          icon: const Icon(Icons.unfold_less, size: 18, color: Colors.white54),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
                   Expanded(child: _toneKnob(hz)),
                 ],
               )
@@ -129,7 +113,7 @@ class _OscillatorDevicePanelState extends State<OscillatorDevicePanel> {
                         const SizedBox(height: 6),
                         DeviceTabBar(
                           tabs: OscillatorDevicePanel._tabs,
-                          selectedIndex: _tab,
+                          selectedIndex: _activeTab,
                           onSelected: (index) => setState(() => _tab = index),
                           accentColor: OscillatorDevicePanel.accent,
                         ),

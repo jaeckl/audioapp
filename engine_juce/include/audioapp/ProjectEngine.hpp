@@ -22,6 +22,7 @@ struct DeviceState {
     std::string type;
     float frequencyHz = 440.0f;
     float gain = 1.0f;
+    float pan = 0.5f;
     std::string sampleId;
     float attack = 0.01f;
     float decay = 0.3f;
@@ -114,6 +115,11 @@ public:
                        int numFrames,
                        double sampleRate,
                        double playheadStartBeat) noexcept;
+    void readMasterMixStereo(float* leftOut,
+                             float* rightOut,
+                             int numFrames,
+                             double sampleRate,
+                             double playheadStartBeat) noexcept;
 
     void setSampleBank(const SampleBank* bank) { sampleBank_ = bank; }
 
@@ -133,6 +139,7 @@ private:
         std::string type;
         float frequencyHz = 440.0f;
         float gain = 1.0f;
+        float pan = 0.5f;
         std::string sampleId;
         float attack = 0.01f;
         float decay = 0.3f;
@@ -245,6 +252,11 @@ private:
                            int numFrames,
                            double sampleRate,
                            double playheadStartBeat) noexcept;
+    void mixAtPlayheadBeatStereo(float* masterLeft,
+                                 float* masterRight,
+                                 int numFrames,
+                                 double sampleRate,
+                                 double playheadStartBeat) noexcept;
     bool trackHasActiveSampleAtPlayhead(const TrackPlaybackSnapshot& track, double playheadBeat) const noexcept;
     int selectedTrackPlaybackIndex() const noexcept;
     void syncActiveFrequencyLocked();

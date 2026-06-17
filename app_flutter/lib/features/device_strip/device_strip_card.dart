@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'device_header_tab_bar.dart';
 import 'device_strip_theme.dart';
+import 'device_tab_bar.dart';
 
 /// Visible card container for one device in the horizontal chain.
 class DeviceStripCard extends StatelessWidget {
@@ -12,6 +14,10 @@ class DeviceStripCard extends StatelessWidget {
     this.subtitle,
     this.headerOnly = false,
     this.attachToolRail = false,
+    this.attachLevelPanel = false,
+    this.tabs = const [],
+    this.selectedTabIndex = 0,
+    this.onTabSelected,
   });
 
   final String deviceType;
@@ -24,6 +30,15 @@ class DeviceStripCard extends StatelessWidget {
 
   /// When true, omits the left border where a tool rail is attached.
   final bool attachToolRail;
+
+  /// When true, omits the right border where a level panel is attached.
+  final bool attachLevelPanel;
+
+  final List<DeviceTabSpec> tabs;
+  final int selectedTabIndex;
+  final ValueChanged<int>? onTabSelected;
+
+  bool get _usesContainerTabs => !headerOnly && tabs.isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -49,10 +64,12 @@ class DeviceStripCard extends StatelessWidget {
           bottom: borderSide,
         ),
       ),
-      foregroundDecoration: BoxDecoration(
-        borderRadius: cardRadius,
-        border: const Border(right: borderSide),
-      ),
+      foregroundDecoration: attachLevelPanel
+          ? null
+          : BoxDecoration(
+              borderRadius: cardRadius,
+              border: const Border(right: borderSide),
+            ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -71,17 +88,20 @@ class DeviceStripCard extends StatelessWidget {
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _HeaderBar(
-                        theme: theme,
-                        accent: accent,
-                        label: label,
-                        subtitle: subtitle,
-                      ),
-                      Divider(
-                        height: 1,
-                        thickness: 1,
-                        color: Colors.white.withValues(alpha: 0.06),
-                      ),
+                      if (_usesContainerTabs)
+                        _ContainerTabHeader(
+                          tabs: tabs,
+                          selectedTabIndex: selectedTabIndex,
+                          accent: accent,
+                          onTabSelected: onTabSelected,
+                        )
+                      else
+                        _HeaderBar(
+                          theme: theme,
+                          accent: accent,
+                          label: label,
+                          subtitle: subtitle,
+                        ),
                       SizedBox(
                         height: bodyHeight,
                         child: child,
@@ -89,7 +109,42 @@ class DeviceStripCard extends StatelessWidget {
                     ],
                   ),
           ),
+          if (attachLevelPanel)
+            ColoredBox(
+              color: accent,
+              child: const SizedBox(width: DeviceStripTheme.accentStripeWidth),
+            ),
         ],
+      ),
+    );
+  }
+}
+
+class _ContainerTabHeader extends StatelessWidget {
+  const _ContainerTabHeader({
+    required this.tabs,
+    required this.selectedTabIndex,
+    required this.accent,
+    required this.onTabSelected,
+  });
+
+  final List<DeviceTabSpec> tabs;
+  final int selectedTabIndex;
+  final Color accent;
+  final ValueChanged<int>? onTabSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: DeviceStripTheme.headerHeight,
+      child: ColoredBox(
+        color: DeviceStripTheme.cardHeader,
+        child: DeviceHeaderTabBar(
+          tabs: tabs,
+          selectedIndex: selectedTabIndex,
+          accentColor: accent,
+          onSelected: onTabSelected ?? (_) {},
+        ),
       ),
     );
   }

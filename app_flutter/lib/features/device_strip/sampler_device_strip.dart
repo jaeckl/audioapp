@@ -13,6 +13,7 @@ class SamplerDeviceStrip extends StatelessWidget {
     this.onTabChanged,
     this.onCollapse,
     this.embeddedInCard = true,
+    this.selectedTab,
   });
 
   final DeviceSnapshot device;
@@ -21,6 +22,7 @@ class SamplerDeviceStrip extends StatelessWidget {
   final ValueChanged<SamplerDeviceTab>? onTabChanged;
   final VoidCallback? onCollapse;
   final bool embeddedInCard;
+  final SamplerDeviceTab? selectedTab;
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +33,7 @@ class SamplerDeviceStrip extends StatelessWidget {
       embeddedInCard: embeddedInCard,
       onTabChanged: onTabChanged,
       onCollapse: onCollapse,
+      selectedTab: selectedTab,
       density: SamplerPanelDensity.strip,
     );
   }

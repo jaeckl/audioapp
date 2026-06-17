@@ -32,6 +32,9 @@ class DeviceStripMetrics {
   /// Tool rail prepended to expanded/fullscreen device cards.
   static const double toolRailWidth = 30;
 
+  /// Gain + pan panel between tool rail and device card.
+  static const double levelPanelWidth = 64;
+
   static double designWidthFor(String deviceType, {bool collapsed = false}) {
     if (collapsed) {
       return collapsedDesignWidth;

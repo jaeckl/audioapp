@@ -11,7 +11,7 @@ import 'rotary_knob.dart';
 /// Layout density for sampler controls.
 enum SamplerPanelDensity { strip, editor }
 
-enum SamplerDeviceTab { sample, env, filter, level }
+enum SamplerDeviceTab { sample, env, filter }
 
 /// Tabbed sampler UI — one parameter group per tab with large knobs (FLM / Note pattern).
 class SamplerDevicePanel extends StatefulWidget {
@@ -27,6 +27,7 @@ class SamplerDevicePanel extends StatefulWidget {
     this.onTabChanged,
     this.onCollapse,
     this.embeddedInCard = false,
+    this.selectedTab,
   });
 
   final DeviceSnapshot device;
@@ -39,17 +40,19 @@ class SamplerDevicePanel extends StatefulWidget {
   final ValueChanged<SamplerDeviceTab>? onTabChanged;
   final VoidCallback? onCollapse;
   final bool embeddedInCard;
+  final SamplerDeviceTab? selectedTab;
 
   static const Color panel = Color(0xFF1C1C24);
   static const Color accent = Color(0xFFE8A54B);
   static const Color wave = Color(0xFF6EC9A0);
 
-  static const _tabs = <DeviceTabSpec>[
+  static const containerTabs = <DeviceTabSpec>[
     DeviceTabSpec(label: 'Sample', icon: Icons.graphic_eq),
     DeviceTabSpec(label: 'Env', icon: Icons.show_chart),
     DeviceTabSpec(label: 'Filter', icon: Icons.tune),
-    DeviceTabSpec(label: 'Level', icon: Icons.volume_up_outlined),
   ];
+
+  static const _tabs = containerTabs;
 
   static String formatCutoffHz(double normalized) {
     const minHz = 20.0;
@@ -82,10 +85,20 @@ class SamplerDevicePanel extends StatefulWidget {
 class _SamplerDevicePanelState extends State<SamplerDevicePanel> {
   late SamplerDeviceTab _tab;
 
+  SamplerDeviceTab get _activeTab => widget.selectedTab ?? _tab;
+
   @override
   void initState() {
     super.initState();
     _tab = widget.initialTab;
+  }
+
+  @override
+  void didUpdateWidget(covariant SamplerDevicePanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedTab != null && widget.selectedTab != oldWidget.selectedTab) {
+      _tab = widget.selectedTab!;
+    }
   }
 
   @override
@@ -99,7 +112,7 @@ class _SamplerDevicePanelState extends State<SamplerDevicePanel> {
       child: Padding(
         padding: EdgeInsets.fromLTRB(
           widget.embeddedInCard ? 10 : 0,
-          widget.embeddedInCard ? 6 : 6,
+          widget.embeddedInCard ? 4 : 6,
           10,
           6,
         ),
@@ -107,32 +120,6 @@ class _SamplerDevicePanelState extends State<SamplerDevicePanel> {
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DeviceTabBar(
-                          tabs: SamplerDevicePanel._tabs,
-                          selectedIndex: _tab.index,
-                          onSelected: (index) {
-                            final tab = SamplerDeviceTab.values[index];
-                            setState(() => _tab = tab);
-                            widget.onTabChanged?.call(tab);
-                          },
-                          accentColor: SamplerDevicePanel.accent,
-                        ),
-                      ),
-                      if (widget.onCollapse != null)
-                        IconButton(
-                          tooltip: 'Collapse device',
-                          visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                          onPressed: widget.onCollapse,
-                          icon: const Icon(Icons.unfold_less, size: 18, color: Colors.white54),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
                   Expanded(child: _buildTabBody(context, theme, peaks)),
                 ],
               )
@@ -174,7 +161,7 @@ class _SamplerDevicePanelState extends State<SamplerDevicePanel> {
   }
 
   Widget _buildTabBody(BuildContext context, ThemeData theme, List<double> peaks) {
-    switch (_tab) {
+    switch (_activeTab) {
       case SamplerDeviceTab.sample:
         return _SampleTab(
           peaks: peaks,
@@ -189,12 +176,6 @@ class _SamplerDevicePanelState extends State<SamplerDevicePanel> {
         );
       case SamplerDeviceTab.filter:
         return _FilterTab(
-          device: widget.device,
-          knobSize: widget._knobSize,
-          onParameterChanged: widget.onParameterChanged,
-        );
-      case SamplerDeviceTab.level:
-        return _LevelTab(
           device: widget.device,
           knobSize: widget._knobSize,
           onParameterChanged: widget.onParameterChanged,
@@ -438,31 +419,6 @@ class _FilterTab extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _LevelTab extends StatelessWidget {
-  const _LevelTab({
-    required this.device,
-    required this.knobSize,
-    required this.onParameterChanged,
-  });
-
-  final DeviceSnapshot device;
-  final double knobSize;
-  final void Function(String parameterId, double value) onParameterChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: RotaryKnob(
-        label: 'Gain',
-        value: device.gain.clamp(0, 1),
-        size: knobSize + 8,
-        displayValue: SamplerDevicePanel.formatPercent(device.gain.clamp(0, 1)),
-        onChanged: (v) => onParameterChanged('gain', v),
-      ),
     );
   }
 }

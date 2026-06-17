@@ -37,23 +37,25 @@ struct EngineHost::Impl {
         const bool shouldPlay = self->playing.load(std::memory_order_acquire);
         const double rate = self->sampleRate.load(std::memory_order_acquire);
         constexpr int32_t kMaxFrames = 4096;
-        float masterMono[kMaxFrames];
+        float masterLeft[kMaxFrames];
+        float masterRight[kMaxFrames];
         const int32_t framesToProcess = numFrames > kMaxFrames ? kMaxFrames : numFrames;
 
-        std::memset(masterMono, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+        std::memset(masterLeft, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+        std::memset(masterRight, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
 
         const double playheadStart = self->owner.playheadBeats();
         if (shouldPlay) {
-            self->owner.readMasterMix(masterMono, framesToProcess, rate, playheadStart);
+            self->owner.readMasterMixStereo(
+                masterLeft, masterRight, framesToProcess, rate, playheadStart);
             self->owner.advancePlayheadForBlock(framesToProcess, rate);
         }
-        self->owner.readPreviewMix(masterMono, framesToProcess, rate);
-        self->owner.readLiveMix(masterMono, framesToProcess, rate);
+        self->owner.readPreviewMix(masterLeft, framesToProcess, rate);
+        self->owner.readLiveMix(masterLeft, framesToProcess, rate);
 
         for (int32_t frame = 0; frame < framesToProcess; ++frame) {
-            const float sample = masterMono[frame];
-            output[frame * 2] = sample;
-            output[frame * 2 + 1] = sample;
+            output[frame * 2] = masterLeft[frame];
+            output[frame * 2 + 1] = masterRight[frame];
         }
 
         if (framesToProcess < numFrames) {

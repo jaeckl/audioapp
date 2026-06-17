@@ -17,11 +17,12 @@ abstract final class DeviceStripTheme {
   static const double toolRailRadius = 10;
   static const double cardRadius = 2;
   static const double cardBorderWidth = 1.5;
-  static const double headerHeight = 22;
+  static const double headerHeight = 40;
+  static const double headerTabTopInset = 0;
   static const double accentStripeWidth = 4;
 
-  /// Header + divider inside [DeviceStripCard].
-  static const double cardChromeHeight = headerHeight + 1;
+  /// Header chrome (tabs live in the header; no extra divider).
+  static const double cardChromeHeight = headerHeight;
 
   static const double slotVerticalPadding = 4;
 

@@ -7,12 +7,16 @@ import 'device_strip_theme.dart';
 class DeviceToolRail extends StatelessWidget {
   const DeviceToolRail({
     super.key,
+    required this.deviceName,
+    required this.accentColor,
     required this.bypassed,
     required this.showLibrary,
     required this.onBypassToggle,
     this.onLibrary,
   });
 
+  final String deviceName;
+  final Color accentColor;
   final bool bypassed;
   final bool showLibrary;
   final VoidCallback onBypassToggle;
@@ -38,24 +42,46 @@ class DeviceToolRail extends StatelessWidget {
       ),
       child: SizedBox(
         width: DeviceStripMetrics.toolRailWidth,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Stack(
+          alignment: Alignment.center,
           children: [
-            _ToolRailButton(
-              icon: Icons.power_settings_new,
-              tooltip: bypassed ? 'Enable device' : 'Bypass device',
-              active: !bypassed,
-              onPressed: onBypassToggle,
-            ),
-            if (showLibrary) ...[
-              const SizedBox(height: 10),
-              _ToolRailButton(
-                icon: Icons.library_music_outlined,
-                tooltip: 'Open sample library',
-                enabled: onLibrary != null,
-                onPressed: onLibrary,
+            RotatedBox(
+              quarterTurns: 3,
+              child: Text(
+                deviceName.toUpperCase(),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: accentColor,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                  height: 1,
+                ),
               ),
-            ],
+            ),
+            Positioned(
+              top: 4,
+              left: 0,
+              right: 0,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _ToolRailButton(
+                    icon: Icons.power_settings_new,
+                    tooltip: bypassed ? 'Enable device' : 'Bypass device',
+                    active: !bypassed,
+                    onPressed: onBypassToggle,
+                  ),
+                  if (showLibrary)
+                    _ToolRailButton(
+                      icon: Icons.library_music_outlined,
+                      tooltip: 'Open sample library',
+                      enabled: onLibrary != null,
+                      onPressed: onLibrary,
+                    ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -90,7 +116,7 @@ class _ToolRailButton extends StatelessWidget {
       tooltip: tooltip,
       visualDensity: VisualDensity.compact,
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+      constraints: const BoxConstraints(minWidth: 28, minHeight: 24),
       onPressed: enabled ? onPressed : null,
       icon: Icon(icon, size: 18, color: color),
     );

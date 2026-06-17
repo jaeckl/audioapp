@@ -27,6 +27,7 @@ struct DeviceNodePlayback {
     DeviceNodeKind kind = DeviceNodeKind::Unknown;
     float frequencyHz = 440.0f;
     float gain = 1.0f;
+    float pan = 0.5f;
     const float* samplerPcm = nullptr;
     int samplerFrameCount = 0;
     double samplerPcmSampleRate = 48000.0;
@@ -51,7 +52,8 @@ float midiActiveFrequencyHz(const MidiPlaybackNote* notes,
                             float idleFrequencyHz) noexcept;
 
 /// Process track device chain in order: instruments add audio, effects transform in place.
-void processDeviceChain(float* trackBuffer,
+void processDeviceChain(float* trackLeft,
+                        float* trackRight,
                         int numFrames,
                         double sampleRate,
                         int bpm,

@@ -47,7 +47,8 @@ void main() {
     expect(find.byIcon(Icons.add), findsOneWidget);
     expect(find.byType(DeviceStripCard), findsOneWidget);
     expect(find.byIcon(Icons.power_settings_new), findsOneWidget);
-    expect(find.text('SAMPLER'), findsWidgets);
+    expect(find.text('Sample'), findsOneWidget);
+    expect(find.text('Env'), findsOneWidget);
   });
 
   testWidgets('collapsed strip uses header-only cards and global expand', (tester) async {
@@ -75,10 +76,24 @@ void main() {
       sampleClips: [],
     );
 
+    final snapshot = ProjectSnapshot(
+      bpm: 120,
+      selectedTrackId: track.id,
+      playheadBeats: 0,
+      playing: false,
+      loopEnabled: false,
+      loopLengthBeats: 16,
+      recordArmed: false,
+      master: const MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1),
+      samples: const [],
+      tracks: [track],
+    );
+
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: DeviceStrip(
+            snapshot: snapshot,
             track: track,
             samples: const [],
             playing: false,

@@ -89,6 +89,8 @@ class DeviceChainRow extends StatelessWidget {
                   samplerTab: samplerTabFor?.call(devices[i].id) ?? SamplerDeviceTab.sample,
                   onSamplerParameterChanged: (parameterId, value) =>
                       onSamplerParameterChanged(devices[i].id, parameterId, value),
+                  onDeviceParameterChanged: (parameterId, value) =>
+                      onSamplerParameterChanged(devices[i].id, parameterId, value),
                   onOpenSamplerEditor: () => onOpenSamplerEditor(track, devices[i]),
                   onFrequencyChanged: (value) =>
                       onFrequencyChanged(devices[i].id, value),

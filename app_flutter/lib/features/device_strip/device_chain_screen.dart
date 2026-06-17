@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
+import '../content_library/library_category.dart';
+import '../content_library/library_fly_in_panel.dart';
 import 'device_chain_minimap.dart';
 import 'device_chain_row.dart';
 import 'device_strip_slot.dart';
@@ -10,6 +12,7 @@ import 'sampler_device_panel.dart';
 class DeviceChainScreen extends StatefulWidget {
   const DeviceChainScreen({
     super.key,
+    required this.snapshot,
     required this.track,
     required this.samples,
     required this.playing,
@@ -17,12 +20,15 @@ class DeviceChainScreen extends StatefulWidget {
     required this.onOpenSamplerEditor,
     required this.onFrequencyChanged,
     required this.onInsertDevice,
+    required this.onPreviewAudio,
+    required this.onAssignSamplerSample,
+    required this.onImportAudio,
     this.onSamplerTabChanged,
     this.samplerTabFor,
     this.onBypassToggle,
-    this.onOpenLibrary,
   });
 
+  final ProjectSnapshot snapshot;
   final TrackSnapshot track;
   final List<SampleLibraryEntrySnapshot> samples;
   final bool playing;
@@ -31,10 +37,12 @@ class DeviceChainScreen extends StatefulWidget {
   final void Function(TrackSnapshot track, DeviceSnapshot device) onOpenSamplerEditor;
   final void Function(String deviceId, double frequencyHz) onFrequencyChanged;
   final void Function(int insertIndex) onInsertDevice;
+  final ValueChanged<SampleLibraryEntrySnapshot> onPreviewAudio;
+  final void Function(String deviceId, String sampleId) onAssignSamplerSample;
+  final Future<void> Function() onImportAudio;
   final void Function(String deviceId, SamplerDeviceTab tab)? onSamplerTabChanged;
   final SamplerDeviceTab Function(String deviceId)? samplerTabFor;
   final void Function(String deviceId, bool bypassed)? onBypassToggle;
-  final void Function(DeviceSnapshot device)? onOpenLibrary;
 
   @override
   State<DeviceChainScreen> createState() => _DeviceChainScreenState();
@@ -42,11 +50,30 @@ class DeviceChainScreen extends StatefulWidget {
 
 class _DeviceChainScreenState extends State<DeviceChainScreen> {
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey<LibraryFlyInPanelState> _libraryPanelKey = GlobalKey();
+  DeviceSnapshot? _libraryDevice;
 
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _openLibrary(DeviceSnapshot device) {
+    if (device.type != 'simple_sampler') return;
+    setState(() => _libraryDevice = device);
+  }
+
+  void _closeLibrary() {
+    setState(() => _libraryDevice = null);
+  }
+
+  Future<void> _onLibraryInsertAudio(SampleLibraryEntrySnapshot sample) async {
+    final device = _libraryDevice;
+    if (device != null) {
+      widget.onAssignSamplerSample(device.id, sample.id);
+    }
+    await _libraryPanelKey.currentState?.close();
   }
 
   @override
@@ -77,7 +104,7 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
                       onInsertDevice: widget.onInsertDevice,
                       onSamplerTabChanged: widget.onSamplerTabChanged,
                       onBypassToggle: widget.onBypassToggle,
-                      onOpenLibrary: widget.onOpenLibrary,
+                      onOpenLibrary: _openLibrary,
                     ),
                   ),
                 ),
@@ -104,6 +131,16 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
                 icon: const Icon(Icons.close, size: 22),
               ),
             ),
+            if (_libraryDevice != null)
+              LibraryFlyInPanel(
+                key: _libraryPanelKey,
+                snapshot: widget.snapshot,
+                initialCategory: LibraryCategory.audioClips,
+                onClose: _closeLibrary,
+                onPreviewAudio: widget.onPreviewAudio,
+                onInsertAudio: _onLibraryInsertAudio,
+                onImportAudio: widget.onImportAudio,
+              ),
           ],
         ),
       ),

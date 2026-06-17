@@ -6,10 +6,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 
 namespace audioapp {
 
 namespace {
+
+constexpr int kScratchFrames = 4096;
 
 bool isMidiNoteActive(const MidiPlaybackNote& note, double beat) {
     if (beat < note.clipStartBeat || beat >= note.clipStartBeat + note.clipLengthBeats) {
@@ -19,6 +22,21 @@ bool isMidiNoteActive(const MidiPlaybackNote& note, double beat) {
     const double loopedBeat = std::fmod(posInClip, note.clipLengthBeats);
     const double noteEnd = std::min(note.noteStartBeat + note.noteDurationBeats, note.clipLengthBeats);
     return loopedBeat >= note.noteStartBeat && loopedBeat < noteEnd;
+}
+
+void panMixBlock(float* trackLeft,
+                 float* trackRight,
+                 const float* mono,
+                 int numFrames,
+                 float pan) noexcept {
+    const float angle = std::clamp(pan, 0.0f, 1.0f) * 1.57079632679f;
+    const float leftGain = std::cos(angle);
+    const float rightGain = std::sin(angle);
+    for (int frame = 0; frame < numFrames; ++frame) {
+        const float sample = mono[frame];
+        trackLeft[frame] += sample * leftGain;
+        trackRight[frame] += sample * rightGain;
+    }
 }
 
 } // namespace
@@ -40,7 +58,8 @@ float midiActiveFrequencyHz(const MidiPlaybackNote* notes,
     return idleFrequencyHz;
 }
 
-void processDeviceChain(float* trackBuffer,
+void processDeviceChain(float* trackLeft,
+                        float* trackRight,
                         int numFrames,
                         double sampleRate,
                         int bpm,
@@ -52,9 +71,13 @@ void processDeviceChain(float* trackBuffer,
                         float& oscillatorPhase,
                         bool suppressInstruments,
                         BiquadState* samplerFilterStates) noexcept {
-    if (trackBuffer == nullptr || numFrames <= 0 || devices == nullptr || deviceCount <= 0) {
+    if (trackLeft == nullptr || trackRight == nullptr || numFrames <= 0 || devices == nullptr ||
+        deviceCount <= 0) {
         return;
     }
+
+    const int framesToProcess = numFrames > kScratchFrames ? kScratchFrames : numFrames;
+    float scratch[kScratchFrames];
 
     for (int deviceIndex = 0; deviceIndex < deviceCount; ++deviceIndex) {
         const DeviceNodePlayback& node = devices[deviceIndex];
@@ -65,12 +88,14 @@ void processDeviceChain(float* trackBuffer,
                 const float frequency =
                     midiActiveFrequencyHz(notes, noteCount, playheadStartBeat, node.frequencyHz);
                 if (frequency > 0.0f) {
-                    addSineBlock(trackBuffer,
-                                 numFrames,
+                    std::memset(scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+                    addSineBlock(scratch,
+                                 framesToProcess,
                                  sampleRate,
                                  frequency,
                                  oscillatorPhase,
-                                 kInstrumentOutputGain);
+                                 kInstrumentOutputGain * node.gain);
+                    panMixBlock(trackLeft, trackRight, scratch, framesToProcess, node.pan);
                 }
             }
             break;
@@ -90,8 +115,9 @@ void processDeviceChain(float* trackBuffer,
                         note.velocity,
                     };
                 }
-                mixSamplerMidiNotesBlock(trackBuffer,
-                                         numFrames,
+                std::memset(scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+                mixSamplerMidiNotesBlock(scratch,
+                                         framesToProcess,
                                          sampleRate,
                                          bpm,
                                          playheadStartBeat,
@@ -116,12 +142,14 @@ void processDeviceChain(float* trackBuffer,
                                                  ? &samplerFilterStates[deviceIndex]
                                                  : nullptr,
                                          });
+                panMixBlock(trackLeft, trackRight, scratch, framesToProcess, node.pan);
             }
             break;
 
         case DeviceNodeKind::TrackGain:
-            for (int frame = 0; frame < numFrames; ++frame) {
-                trackBuffer[frame] *= node.gain;
+            for (int frame = 0; frame < framesToProcess; ++frame) {
+                trackLeft[frame] *= node.gain;
+                trackRight[frame] *= node.gain;
             }
             break;
 

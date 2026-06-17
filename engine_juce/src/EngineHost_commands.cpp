@@ -67,6 +67,14 @@ void EngineHost::readMasterMix(float* monoOut,
     project_.readMasterMix(monoOut, numFrames, sampleRate, playheadStartBeat);
 }
 
+void EngineHost::readMasterMixStereo(float* leftOut,
+                                     float* rightOut,
+                                     int numFrames,
+                                     double sampleRate,
+                                     double playheadStartBeat) noexcept {
+    project_.readMasterMixStereo(leftOut, rightOut, numFrames, sampleRate, playheadStartBeat);
+}
+
 void EngineHost::readPreviewMix(float* monoOut, int numFrames, double sampleRate) noexcept {
     if (monoOut == nullptr || numFrames <= 0 || !previewVoice_.active.load(std::memory_order_acquire)) {
         return;

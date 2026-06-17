@@ -83,6 +83,11 @@ public:
                        int numFrames,
                        double sampleRate,
                        double playheadStartBeat) noexcept;
+    void readMasterMixStereo(float* leftOut,
+                             float* rightOut,
+                             int numFrames,
+                             double sampleRate,
+                             double playheadStartBeat) noexcept;
     double playheadBeats() const noexcept;
     void readPreviewMix(float* monoOut, int numFrames, double sampleRate) noexcept;
     void readLiveMix(float* monoOut, int numFrames, double sampleRate) noexcept;

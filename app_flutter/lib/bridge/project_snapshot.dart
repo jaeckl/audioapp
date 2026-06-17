@@ -157,6 +157,7 @@ class DeviceSnapshot {
     required this.type,
     required this.frequencyHz,
     required this.gain,
+    required this.pan,
     required this.sampleId,
     required this.attack,
     required this.decay,
@@ -174,6 +175,7 @@ class DeviceSnapshot {
   final String type;
   final double frequencyHz;
   final double gain;
+  final double pan;
   final String sampleId;
   final double attack;
   final double decay;
@@ -193,6 +195,7 @@ class DeviceSnapshot {
       type: map['type'] as String? ?? '',
       frequencyHz: (params['frequency'] as num?)?.toDouble() ?? 440.0,
       gain: (params['gain'] as num?)?.toDouble() ?? 1.0,
+      pan: (params['pan'] as num?)?.toDouble() ?? 0.5,
       sampleId: params['sampleId'] as String? ?? '',
       attack: (params['attack'] as num?)?.toDouble() ?? 0.01,
       decay: (params['decay'] as num?)?.toDouble() ?? 0.3,
@@ -221,6 +224,7 @@ class DeviceSnapshot {
     String? type,
     double? frequencyHz,
     double? gain,
+    double? pan,
     String? sampleId,
     double? attack,
     double? decay,
@@ -238,6 +242,7 @@ class DeviceSnapshot {
       type: type ?? this.type,
       frequencyHz: frequencyHz ?? this.frequencyHz,
       gain: gain ?? this.gain,
+      pan: pan ?? this.pan,
       sampleId: sampleId ?? this.sampleId,
       attack: attack ?? this.attack,
       decay: decay ?? this.decay,
@@ -264,6 +269,8 @@ class DeviceSnapshot {
         return copyWith(release: value);
       case 'gain':
         return copyWith(gain: value);
+      case 'pan':
+        return copyWith(pan: value);
       case 'filterCutoff':
         return copyWith(filterCutoff: value);
       case 'filterQ':
