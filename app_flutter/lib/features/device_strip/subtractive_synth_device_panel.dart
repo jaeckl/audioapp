@@ -604,17 +604,20 @@ Widget _mixTab() {
   }) {
     String id(String name) => prefix.isEmpty ? name : '$prefix${name[0].toUpperCase()}${name.substring(1)}';
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      mainAxisSize: MainAxisSize.min,
       children: [
         _knob(label: 'A', value: attack, size: _knobSize * 0.8,
           displayValue: SamplerDevicePanel.formatPercent(attack),
           onChanged: (v) => onChanged(id('attack'), v)),
+        const SizedBox(width: 8),
         _knob(label: 'D', value: decay, size: _knobSize * 0.8,
           displayValue: SamplerDevicePanel.formatPercent(decay),
           onChanged: (v) => onChanged(id('decay'), v)),
+        const SizedBox(width: 8),
         _knob(label: 'S', value: sustain, size: _knobSize * 0.8,
           displayValue: SamplerDevicePanel.formatPercent(sustain),
           onChanged: (v) => onChanged(id('sustain'), v)),
+        const SizedBox(width: 8),
         _knob(label: 'R', value: release, size: _knobSize * 0.8,
           displayValue: SamplerDevicePanel.formatPercent(release),
           onChanged: (v) => onChanged(id('release'), v)),
