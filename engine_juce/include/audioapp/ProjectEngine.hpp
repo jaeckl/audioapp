@@ -32,6 +32,7 @@ struct DeviceState {
     int filterMode = 0;
     float trimStartSec = 0.0f;
     float trimEndSec = 0.0f;
+    bool bypassed = false;
 };
 
 struct TrackState {
@@ -142,6 +143,7 @@ private:
         int filterMode = 0;
         float trimStartSec = 0.0f;
         float trimEndSec = 0.0f;
+        bool bypassed = false;
     };
 
     struct MidiNote {

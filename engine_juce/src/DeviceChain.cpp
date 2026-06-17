@@ -61,7 +61,7 @@ void processDeviceChain(float* trackBuffer,
 
         switch (node.kind) {
         case DeviceNodeKind::Oscillator:
-            if (!suppressInstruments) {
+            if (!node.bypassed && !suppressInstruments) {
                 const float frequency =
                     midiActiveFrequencyHz(notes, noteCount, playheadStartBeat, node.frequencyHz);
                 if (frequency > 0.0f) {
@@ -76,7 +76,7 @@ void processDeviceChain(float* trackBuffer,
             break;
 
         case DeviceNodeKind::Sampler:
-            if (!suppressInstruments && node.samplerPcm != nullptr && noteCount > 0) {
+            if (!node.bypassed && !suppressInstruments && node.samplerPcm != nullptr && noteCount > 0) {
                 SamplerMidiNoteRegion regions[32];
                 const int regionCount = noteCount > 32 ? 32 : noteCount;
                 for (int i = 0; i < regionCount; ++i) {

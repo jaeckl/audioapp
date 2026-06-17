@@ -21,6 +21,8 @@ class DeviceStrip extends StatefulWidget {
     required this.onImportSamples,
     required this.onFrequencyChanged,
     required this.onAddDevice,
+    required this.onBypassToggle,
+    required this.onOpenDeviceLibrary,
   });
 
   final TrackSnapshot? track;
@@ -35,6 +37,8 @@ class DeviceStrip extends StatefulWidget {
   final void Function(String deviceId, double frequencyHz) onFrequencyChanged;
   final Future<void> Function(String trackId, String deviceType, int insertIndex)
       onAddDevice;
+  final void Function(String deviceId, bool bypassed) onBypassToggle;
+  final void Function(DeviceSnapshot device) onOpenDeviceLibrary;
 
   @override
   State<DeviceStrip> createState() => _DeviceStripState();
@@ -76,6 +80,8 @@ class _DeviceStripState extends State<DeviceStrip> {
           onFrequencyChanged: widget.onFrequencyChanged,
           onInsertDevice: (insertIndex) => _insertDevice(track, insertIndex),
           onSamplerTabChanged: _setSamplerTab,
+          onBypassToggle: widget.onBypassToggle,
+          onOpenLibrary: widget.onOpenDeviceLibrary,
         ),
       ),
     );
@@ -110,7 +116,13 @@ class _DeviceStripState extends State<DeviceStrip> {
                 _DeviceStripHeader(
                   track: track,
                   deviceCount: track.visibleDevices.length,
+                  collapsed: collapsed,
+                  showCollapse: _shouldStartCollapsed(context),
                   onOpenFullscreen: () => _openDeviceChain(track),
+                  onExpand: collapsed ? () => setState(() => _expanded = true) : null,
+                  onCollapse: !collapsed && _shouldStartCollapsed(context)
+                      ? () => setState(() => _expanded = false)
+                      : null,
                 ),
                 DeviceChainRow(
                   track: track,
@@ -125,12 +137,8 @@ class _DeviceStripState extends State<DeviceStrip> {
                   onFrequencyChanged: widget.onFrequencyChanged,
                   onInsertDevice: (insertIndex) => _insertDevice(track, insertIndex),
                   onSamplerTabChanged: _setSamplerTab,
-                  onExpand: collapsed ? () => setState(() => _expanded = true) : null,
-                  onCollapse: collapsed
-                      ? null
-                      : _shouldStartCollapsed(context)
-                          ? () => setState(() => _expanded = false)
-                          : null,
+                  onBypassToggle: widget.onBypassToggle,
+                  onOpenLibrary: widget.onOpenDeviceLibrary,
                 ),
               ],
             ),
@@ -143,16 +151,24 @@ class _DeviceStripHeader extends StatelessWidget {
     required this.track,
     required this.deviceCount,
     required this.onOpenFullscreen,
+    this.collapsed = false,
+    this.showCollapse = false,
+    this.onExpand,
+    this.onCollapse,
   });
 
   final TrackSnapshot track;
   final int deviceCount;
   final VoidCallback onOpenFullscreen;
+  final bool collapsed;
+  final bool showCollapse;
+  final VoidCallback? onExpand;
+  final VoidCallback? onCollapse;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 6, 4, 2),
+      padding: EdgeInsets.fromLTRB(12, 6, 4, collapsed ? 0 : 2),
       child: Row(
         children: [
           Text(
@@ -172,6 +188,20 @@ class _DeviceStripHeader extends StatelessWidget {
               style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white70),
             ),
           ),
+          if (collapsed && onExpand != null)
+            IconButton(
+              tooltip: 'Expand device strip',
+              visualDensity: VisualDensity.compact,
+              onPressed: onExpand,
+              icon: const Icon(Icons.unfold_more, size: 20, color: Colors.white54),
+            ),
+          if (!collapsed && showCollapse && onCollapse != null)
+            IconButton(
+              tooltip: 'Collapse device strip',
+              visualDensity: VisualDensity.compact,
+              onPressed: onCollapse,
+              icon: const Icon(Icons.unfold_less, size: 20, color: Colors.white54),
+            ),
           IconButton(
             tooltip: 'Open device chain',
             visualDensity: VisualDensity.compact,

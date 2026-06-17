@@ -8,8 +8,11 @@ class DeviceStripMetrics {
   /// Expanded sampler strip: tabs + big knobs.
   static const double height = 236;
 
-  /// Collapsed peek height (waveform + expand).
-  static const double collapsedHeight = 112;
+  /// Collapsed strip: header-only device name panels.
+  static const double collapsedHeight = 64;
+
+  /// Minimap scrub bar under the fullscreen chain.
+  static const double minimapHeight = 48;
 
   /// Width of each device panel in the horizontal chain.
   static const double slotWidth = designWidth;
@@ -24,7 +27,10 @@ class DeviceStripMetrics {
 
   static const double oscillatorDesignWidth = 360;
 
-  static const double collapsedDesignWidth = 240;
+  static const double collapsedDesignWidth = 160;
+
+  /// Tool rail prepended to expanded/fullscreen device cards.
+  static const double toolRailWidth = 30;
 
   static double designWidthFor(String deviceType, {bool collapsed = false}) {
     if (collapsed) {

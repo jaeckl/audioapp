@@ -197,6 +197,15 @@ class _DawShellState extends State<DawShell> {
     }
   }
 
+  Future<void> _setDeviceBypass(String deviceId, bool bypassed) async {
+    await _setSamplerParameter(deviceId, 'bypass', bypassed ? 1.0 : 0.0);
+  }
+
+  Future<void> _openDeviceLibrary(DeviceSnapshot device) async {
+    if (device.type != 'simple_sampler') return;
+    await _pickSamplerSample(device.id);
+  }
+
   Future<void> _setSamplerGain(String deviceId, double value) async {
     await _setSamplerParameter(deviceId, 'gain', value);
   }
@@ -643,6 +652,8 @@ class _DawShellState extends State<DawShell> {
               },
               onFrequencyChanged: _setFrequency,
               onAddDevice: _addDeviceToTrack,
+              onBypassToggle: (deviceId, bypassed) => _setDeviceBypass(deviceId, bypassed),
+              onOpenDeviceLibrary: _openDeviceLibrary,
             ),
           ],
         );

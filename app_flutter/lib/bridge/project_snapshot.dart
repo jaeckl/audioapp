@@ -167,6 +167,7 @@ class DeviceSnapshot {
     required this.filterMode,
     required this.trimStartSec,
     required this.trimEndSec,
+    this.bypassed = false,
   });
 
   final String id;
@@ -183,6 +184,7 @@ class DeviceSnapshot {
   final int filterMode;
   final double trimStartSec;
   final double trimEndSec;
+  final bool bypassed;
 
   factory DeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -201,7 +203,17 @@ class DeviceSnapshot {
       filterMode: (params['filterMode'] as num?)?.toInt() ?? 0,
       trimStartSec: (params['trimStartSec'] as num?)?.toDouble() ?? 0.0,
       trimEndSec: (params['trimEndSec'] as num?)?.toDouble() ?? 0.0,
+      bypassed: _readBypass(params['bypass']),
     );
+  }
+
+  static bool _readBypass(dynamic value) {
+    return switch (value) {
+      true => true,
+      false => false,
+      final num n => n != 0,
+      _ => false,
+    };
   }
 
   DeviceSnapshot copyWith({
@@ -219,6 +231,7 @@ class DeviceSnapshot {
     int? filterMode,
     double? trimStartSec,
     double? trimEndSec,
+    bool? bypassed,
   }) {
     return DeviceSnapshot(
       id: id ?? this.id,
@@ -235,6 +248,7 @@ class DeviceSnapshot {
       filterMode: filterMode ?? this.filterMode,
       trimStartSec: trimStartSec ?? this.trimStartSec,
       trimEndSec: trimEndSec ?? this.trimEndSec,
+      bypassed: bypassed ?? this.bypassed,
     );
   }
 
@@ -260,6 +274,8 @@ class DeviceSnapshot {
         return copyWith(trimStartSec: value);
       case 'trimEndSec':
         return copyWith(trimEndSec: value);
+      case 'bypass':
+        return copyWith(bypassed: value >= 0.5);
       default:
         return this;
     }

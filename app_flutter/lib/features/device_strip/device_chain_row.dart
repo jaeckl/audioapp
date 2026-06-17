@@ -4,6 +4,7 @@ import '../../bridge/project_snapshot.dart';
 import 'device_chain_separator.dart';
 import 'device_strip_metrics.dart';
 import 'device_strip_slot.dart';
+import 'device_strip_theme.dart';
 import 'sampler_device_panel.dart';
 
 /// Horizontally scrollable Bitwig/Ableton-style device chain row.
@@ -19,9 +20,11 @@ class DeviceChainRow extends StatelessWidget {
     required this.onFrequencyChanged,
     required this.onInsertDevice,
     this.onSamplerTabChanged,
-    this.onExpand,
     this.onCollapse,
     this.samplerTabFor,
+    this.scrollController,
+    this.onBypassToggle,
+    this.onOpenLibrary,
   });
 
   final TrackSnapshot track;
@@ -34,9 +37,11 @@ class DeviceChainRow extends StatelessWidget {
   final void Function(String deviceId, double frequencyHz) onFrequencyChanged;
   final void Function(int insertIndex) onInsertDevice;
   final void Function(String deviceId, SamplerDeviceTab tab)? onSamplerTabChanged;
-  final VoidCallback? onExpand;
   final VoidCallback? onCollapse;
   final SamplerDeviceTab Function(String deviceId)? samplerTabFor;
+  final ScrollController? scrollController;
+  final void Function(String deviceId, bool bypassed)? onBypassToggle;
+  final void Function(DeviceSnapshot device)? onOpenLibrary;
 
   double get _rowHeight => switch (density) {
         DeviceStripSlotDensity.fullscreen => DeviceStripMetrics.fullscreenHeight,
@@ -61,8 +66,16 @@ class DeviceChainRow extends StatelessWidget {
       child: ScrollConfiguration(
         behavior: ScrollConfiguration.of(context).copyWith(scrollbars: true),
         child: ListView(
+          controller: scrollController,
           scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          padding: density == DeviceStripSlotDensity.collapsed
+              ? const EdgeInsets.fromLTRB(
+                  8,
+                  DeviceStripTheme.collapsedChainTopPadding,
+                  8,
+                  DeviceStripTheme.collapsedChainBottomPadding,
+                )
+              : const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           children: [
             if (devices.isEmpty)
               _leadingInsert(context)
@@ -82,8 +95,12 @@ class DeviceChainRow extends StatelessWidget {
                   onSamplerTabChanged: onSamplerTabChanged == null
                       ? null
                       : (tab) => onSamplerTabChanged!(devices[i].id, tab),
-                  onExpand: onExpand,
-                  onCollapse: onCollapse,
+                  onCollapse: density == DeviceStripSlotDensity.strip ? onCollapse : null,
+                  onBypassToggle: onBypassToggle == null
+                      ? null
+                      : () => onBypassToggle!(devices[i].id, !devices[i].bypassed),
+                  onOpenLibrary:
+                      onOpenLibrary == null ? null : () => onOpenLibrary!(devices[i]),
                 ),
                 DeviceChainSeparator(
                   active: playing,

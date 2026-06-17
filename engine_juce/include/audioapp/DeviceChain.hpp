@@ -39,6 +39,7 @@ struct DeviceNodePlayback {
     int filterMode = 0;
     int trimStartFrame = 0;
     int trimEndFrame = 0;
+    bool bypassed = false;
 };
 
 static constexpr int kMaxDevicesPerTrack = 16;

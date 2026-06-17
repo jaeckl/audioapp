@@ -100,6 +100,7 @@ juce::var deviceToVar(const DeviceState& device) {
     auto* object = new juce::DynamicObject();
     object->setProperty("id", toJuceString(device.id));
     object->setProperty("type", toJuceString(device.type));
+    parameters->setProperty("bypass", device.bypassed ? 1.0 : 0.0);
     object->setProperty("parameters", juce::var(parameters));
     return juce::var(object);
 }
@@ -123,6 +124,7 @@ DeviceState deviceFromVar(const juce::var& value) {
             device.filterMode = varToInt(params->getProperty("filterMode"), 0);
             device.trimStartSec = varToFloat(params->getProperty("trimStartSec"), 0.0f);
             device.trimEndSec = varToFloat(params->getProperty("trimEndSec"), 0.0f);
+            device.bypassed = varToFloat(params->getProperty("bypass"), 0.0f) >= 0.5f;
         }
     }
     return device;

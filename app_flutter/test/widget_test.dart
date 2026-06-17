@@ -63,7 +63,7 @@ void main() {
                     {
                       'id': 'dev-1',
                       'type': 'simple_sampler',
-                      'parameters': {'gain': 1.0, 'sampleId': ''},
+                      'parameters': {'gain': 1.0, 'sampleId': '', 'bypass': false},
                     },
                     {
                       'id': 'dev-2',
@@ -92,7 +92,7 @@ void main() {
                     {
                       'id': 'dev-1',
                       'type': 'simple_sampler',
-                      'parameters': {'gain': 1.0, 'sampleId': ''},
+                      'parameters': {'gain': 1.0, 'sampleId': '', 'bypass': false},
                     },
                     {
                       'id': 'dev-3',
@@ -126,7 +126,7 @@ void main() {
                     {
                       'id': 'dev-1',
                       'type': 'simple_sampler',
-                      'parameters': {'gain': 1.0, 'sampleId': ''},
+                      'parameters': {'gain': 1.0, 'sampleId': '', 'bypass': false},
                     },
                     {
                       'id': 'dev-2',
@@ -171,7 +171,7 @@ void main() {
                     {
                       'id': 'dev-1',
                       'type': 'simple_sampler',
-                      'parameters': {'gain': 1.0, 'sampleId': ''},
+                      'parameters': {'gain': 1.0, 'sampleId': '', 'bypass': false},
                     },
                     {
                       'id': 'dev-2',
@@ -214,7 +214,7 @@ void main() {
                     {
                       'id': 'dev-1',
                       'type': 'simple_sampler',
-                      'parameters': {'gain': 1.0, 'sampleId': ''},
+                      'parameters': {'gain': 1.0, 'sampleId': '', 'bypass': false},
                     },
                     {
                       'id': 'dev-2',
@@ -289,7 +289,7 @@ void main() {
                     {
                       'id': 'dev-1',
                       'type': 'simple_sampler',
-                      'parameters': {'gain': 1.0, 'sampleId': ''},
+                      'parameters': {'gain': 1.0, 'sampleId': '', 'bypass': false},
                     },
                     {
                       'id': 'dev-2',
@@ -350,7 +350,7 @@ void main() {
                     {
                       'id': 'dev-1',
                       'type': 'simple_sampler',
-                      'parameters': {'gain': 1.0, 'sampleId': ''},
+                      'parameters': {'gain': 1.0, 'sampleId': '', 'bypass': false},
                     },
                   ],
                   'midiClips': [],
@@ -375,7 +375,7 @@ void main() {
                     {
                       'id': 'dev-1',
                       'type': 'simple_sampler',
-                      'parameters': {'gain': 1.0, 'sampleId': ''},
+                      'parameters': {'gain': 1.0, 'sampleId': '', 'bypass': false},
                     },
                   ],
                   'midiClips': [

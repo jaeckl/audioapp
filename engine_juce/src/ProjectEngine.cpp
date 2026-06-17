@@ -126,6 +126,11 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
         rebuildTrackPlaybackLocked();
         return true;
     }
+    if (parameterId == "bypass" && device->type != "track_gain") {
+        device->bypassed = value >= 0.5f;
+        rebuildTrackPlaybackLocked();
+        return true;
+    }
     if (device->type == "simple_sampler") {
         if (parameterId == "attack" || parameterId == "decay" || parameterId == "release") {
             const float clamped = std::clamp(value, 0.0f, 1.0f);
@@ -499,6 +504,7 @@ ProjectSnapshot ProjectEngine::snapshot() const {
             ds.filterMode = device.filterMode;
             ds.trimStartSec = device.trimStartSec;
             ds.trimEndSec = device.trimEndSec;
+            ds.bypassed = device.bypassed;
             ts.devices.push_back(ds);
         }
         ts.midiClips.reserve(track.midiClips.size());
@@ -755,6 +761,7 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
                 device.filterMode,
                 device.trimStartSec,
                 device.trimEndSec,
+                device.bypassed,
             });
         }
         for (const auto& clip : track.midiClips) {
@@ -822,6 +829,7 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
             device.filterMode = deviceState.filterMode;
             device.trimStartSec = deviceState.trimStartSec;
             device.trimEndSec = deviceState.trimEndSec;
+            device.bypassed = deviceState.bypassed;
             track.devices.push_back(std::move(device));
         }
         for (const auto& clipState : trackState.midiClips) {
@@ -914,6 +922,7 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
             }
 
             DeviceNodePlayback& node = snap.devices[snap.deviceCount++];
+            node.bypassed = device.bypassed;
             if (device.type == "simple_oscillator") {
                 node.kind = DeviceNodeKind::Oscillator;
                 node.frequencyHz = device.frequencyHz;
