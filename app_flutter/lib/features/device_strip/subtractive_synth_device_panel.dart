@@ -468,6 +468,7 @@ Widget _mixTab() {
             variant: PanelVariant.screen,
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   'FEG',
@@ -567,6 +568,7 @@ Widget _mixTab() {
             variant: PanelVariant.screen,
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   'AEG',
