@@ -41,7 +41,7 @@ class DeviceStripMetrics {
     }
     return switch (deviceType) {
       'simple_sampler' => designWidth,
-      'subtractive_synth' => designWidth,
+      'subtractive_synth' => oscillatorDesignWidth,
       'simple_oscillator' => oscillatorDesignWidth,
       _ => 280,
     };

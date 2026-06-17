@@ -124,7 +124,7 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
   }
 
   Widget _oscTab() {
-    final bankWidth = _knobSize * 3.2;
+    final bankWidth = _knobSize * 2.9;
     return Padding(
       padding: const EdgeInsets.all(8),
       child: Row(
@@ -350,18 +350,27 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _flatDropdown<int>(
-            value: mode,
-            items: List.generate(
-              SubtractiveSynthDevicePanel._filterTypes.length,
-              (i) => DropdownMenuItem(
-                value: i,
-                child: Text(SubtractiveSynthDevicePanel._filterTypes[i]),
+          Row(
+            children: [
+              const SizedBox(width: 4),
+              SizedBox(
+                width: _knobSize + 24,
+                height: 24,
+                child: _borderlessDropdown<int>(
+                  value: mode,
+                  items: List.generate(
+                    SubtractiveSynthDevicePanel._filterTypes.length,
+                    (i) => DropdownMenuItem(
+                      value: i,
+                      child: Text(SubtractiveSynthDevicePanel._filterTypes[i]),
+                    ),
+                  ),
+                  onChanged: (v) {
+                    if (v != null) widget.onParameterChanged('filterMode', v.toDouble());
+                  },
+                ),
               ),
-            ),
-            onChanged: (v) {
-              if (v != null) widget.onParameterChanged('filterMode', v.toDouble());
-            },
+            ],
           ),
           const SizedBox(height: 8),
           _SynthKnobRow(
