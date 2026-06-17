@@ -296,6 +296,7 @@ Widget _mixTab() {
                         letterSpacing: 1.0,
                       ),
                     ),
+                    const Expanded(child: SizedBox.shrink()),
                     Expanded(
                       child: Center(
                         child: _knob(
@@ -318,7 +319,6 @@ Widget _mixTab() {
                         ),
                       ),
                     ),
-                    const Expanded(child: SizedBox.shrink()),
                   ],
                 ),
             ),
@@ -465,8 +465,7 @@ Widget _mixTab() {
           ),
           const Spacer(),
           _panelBox(
-            variant: PanelVariant.subtle,
-            showBorder: false,
+            variant: PanelVariant.screen,
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
             child: _adsrRow(
               attack: widget.device.filterAttack,
@@ -552,8 +551,7 @@ Widget _mixTab() {
           ),
           const Spacer(),
           _panelBox(
-            variant: PanelVariant.subtle,
-            showBorder: false,
+            variant: PanelVariant.screen,
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
             child: _adsrRow(
               attack: widget.device.attack,
