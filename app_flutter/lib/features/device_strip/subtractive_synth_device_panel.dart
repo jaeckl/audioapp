@@ -466,14 +466,27 @@ Widget _mixTab() {
           const Spacer(),
           _panelBox(
             variant: PanelVariant.screen,
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-            child: _adsrRow(
-              attack: widget.device.filterAttack,
-              decay: widget.device.filterDecay,
-              sustain: widget.device.filterSustain,
-              release: widget.device.filterRelease,
-              onChanged: (id, v) => widget.onParameterChanged(id, v),
-              prefix: 'filter',
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            child: Column(
+              children: [
+                const Text(
+                  'FEG',
+                  style: TextStyle(
+                    color: Colors.white30,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                _adsrRow(
+                  attack: widget.device.filterAttack,
+                  decay: widget.device.filterDecay,
+                  sustain: widget.device.filterSustain,
+                  release: widget.device.filterRelease,
+                  onChanged: (id, v) => widget.onParameterChanged(id, v),
+                  prefix: 'filter',
+                ),
+              ],
             ),
           ),
         ],
@@ -552,13 +565,26 @@ Widget _mixTab() {
           const Spacer(),
           _panelBox(
             variant: PanelVariant.screen,
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-            child: _adsrRow(
-              attack: widget.device.attack,
-              decay: widget.device.decay,
-              sustain: widget.device.sustain,
-              release: widget.device.release,
-              onChanged: widget.onParameterChanged,
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            child: Column(
+              children: [
+                const Text(
+                  'AEG',
+                  style: TextStyle(
+                    color: Colors.white30,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                _adsrRow(
+                  attack: widget.device.attack,
+                  decay: widget.device.decay,
+                  sustain: widget.device.sustain,
+                  release: widget.device.release,
+                  onChanged: widget.onParameterChanged,
+                ),
+              ],
             ),
           ),
         ],
