@@ -124,12 +124,15 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
   }
 
   Widget _oscTab() {
+    final bankWidth = _knobSize * 3.2;
     return Padding(
       padding: const EdgeInsets.all(8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          Expanded(
+          SizedBox(
+            width: bankWidth,
             child: _oscBank(
               label: 'Osc 1',
               shape: widget.device.osc1Shape,
@@ -143,7 +146,8 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
             ),
           ),
           const SizedBox(width: 8),
-          Expanded(
+          SizedBox(
+            width: bankWidth,
             child: _oscBank(
               label: 'Osc 2',
               shape: widget.device.osc2Shape,
@@ -188,7 +192,7 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
         ),
         const SizedBox(height: 6),
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             _knob(
               label: 'Shape',
@@ -197,7 +201,6 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
               displayValue: subtractiveShapeLabel(shape),
               onChanged: (v) => widget.onParameterChanged(shapeParam, v),
             ),
-            const SizedBox(width: 14),
             _knob(
               label: 'Pitch',
               value: semi,
@@ -205,7 +208,6 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
               displayValue: '${(semi * 11).round()}',
               onChanged: (v) => widget.onParameterChanged(semiParam, v),
             ),
-            const SizedBox(width: 14),
             _knob(
               label: 'Sync',
               value: sync,
