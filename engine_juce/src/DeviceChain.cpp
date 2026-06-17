@@ -72,7 +72,11 @@ void processDeviceChain(float* trackLeft,
                         float& oscillatorPhase,
                         bool suppressInstruments,
                         BiquadState* samplerFilterStates,
-                        SubtractiveSynthRuntime* subtractiveRuntimes) noexcept {
+                        SubtractiveSynthRuntime* subtractiveRuntimes,
+                        const float* lfoValues,
+                        int lfoCount,
+                        const ModulationEdge* modEdges,
+                        int modEdgeCount) noexcept {
     if (trackLeft == nullptr || trackRight == nullptr || numFrames <= 0 || devices == nullptr ||
         deviceCount <= 0) {
         return;
@@ -84,11 +88,44 @@ void processDeviceChain(float* trackLeft,
     for (int deviceIndex = 0; deviceIndex < deviceCount; ++deviceIndex) {
         const DeviceNodePlayback& node = devices[deviceIndex];
 
-        switch (node.kind) {
+        // Build modulated copy of node (LFO values are per-block, computed by caller)
+        DeviceNodePlayback modulated = node;
+        if (lfoValues != nullptr && lfoCount > 0 && !node.deviceId.empty()) {
+            // Find all edges targeting this device
+            for (int e = 0; e < modEdgeCount; ++e) {
+                const auto& edge = modEdges[e];
+                if (edge.deviceId != node.deviceId || edge.lfoId >= lfoCount) {
+                    continue;
+                }
+                const float lfoOut = lfoValues[edge.lfoId];
+                const float modAmount = edge.amount * lfoOut;
+                if (edge.paramId == "gain") {
+                    modulated.gain = std::clamp(node.gain + modAmount, 0.0f, 1.0f);
+                } else if (edge.paramId == "pan") {
+                    modulated.pan = std::clamp(node.pan + modAmount, 0.0f, 1.0f);
+                } else if (edge.paramId == "frequency") {
+                    modulated.frequencyHz = std::max(20.0f, node.frequencyHz + modAmount * 440.0f);
+                } else if (edge.paramId == "filterCutoff") {
+                    modulated.filterCutoff = std::clamp(node.filterCutoff + modAmount, 0.0f, 1.0f);
+                } else if (edge.paramId == "filterQ") {
+                    modulated.filterQ = std::clamp(node.filterQ + modAmount, 0.0f, 1.0f);
+                } else if (edge.paramId == "attack") {
+                    modulated.attack = std::clamp(node.attack + modAmount, 0.0f, 1.0f);
+                } else if (edge.paramId == "decay") {
+                    modulated.decay = std::clamp(node.decay + modAmount, 0.0f, 1.0f);
+                } else if (edge.paramId == "sustain") {
+                    modulated.sustain = std::clamp(node.sustain + modAmount, 0.0f, 1.0f);
+                } else if (edge.paramId == "release") {
+                    modulated.release = std::clamp(node.release + modAmount, 0.0f, 1.0f);
+                }
+            }
+        }
+
+        switch (modulated.kind) {
         case DeviceNodeKind::Oscillator:
-            if (!node.bypassed && !suppressInstruments) {
+            if (!modulated.bypassed && !suppressInstruments) {
                 const float frequency =
-                    midiActiveFrequencyHz(notes, noteCount, playheadStartBeat, node.frequencyHz);
+                    midiActiveFrequencyHz(notes, noteCount, playheadStartBeat, modulated.frequencyHz);
                 if (frequency > 0.0f) {
                     std::memset(scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
                     addSineBlock(scratch,
@@ -96,14 +133,14 @@ void processDeviceChain(float* trackLeft,
                                  sampleRate,
                                  frequency,
                                  oscillatorPhase,
-                                 kInstrumentOutputGain * node.gain);
-                    panMixBlock(trackLeft, trackRight, scratch, framesToProcess, node.pan);
+                                 kInstrumentOutputGain * modulated.gain);
+                    panMixBlock(trackLeft, trackRight, scratch, framesToProcess, modulated.pan);
                 }
             }
             break;
 
         case DeviceNodeKind::Sampler:
-            if (!node.bypassed && !suppressInstruments && node.samplerPcm != nullptr && noteCount > 0) {
+            if (!modulated.bypassed && !suppressInstruments && modulated.samplerPcm != nullptr && noteCount > 0) {
                 SamplerMidiNoteRegion regions[32];
                 const int regionCount = noteCount > 32 ? 32 : noteCount;
                 for (int i = 0; i < regionCount; ++i) {
@@ -126,30 +163,30 @@ void processDeviceChain(float* trackLeft,
                                          regions,
                                          regionCount,
                                          SamplerInstrumentPlayback{
-                                             node.samplerPcm,
-                                             node.samplerFrameCount,
-                                             node.samplerPcmSampleRate,
-                                             node.gain * kInstrumentOutputGain,
+                                             modulated.samplerPcm,
+                                             modulated.samplerFrameCount,
+                                             modulated.samplerPcmSampleRate,
+                                             modulated.gain * kInstrumentOutputGain,
                                              60,
-                                             node.attack,
-                                             node.decay,
-                                             node.sustain,
-                                             node.release,
-                                             node.filterCutoff,
-                                             node.filterQ,
-                                             node.filterMode,
-                                             node.trimStartFrame,
-                                             node.trimEndFrame,
+                                             modulated.attack,
+                                             modulated.decay,
+                                             modulated.sustain,
+                                             modulated.release,
+                                             modulated.filterCutoff,
+                                             modulated.filterQ,
+                                             modulated.filterMode,
+                                             modulated.trimStartFrame,
+                                             modulated.trimEndFrame,
                                              samplerFilterStates != nullptr
                                                  ? &samplerFilterStates[deviceIndex]
                                                  : nullptr,
                                          });
-                panMixBlock(trackLeft, trackRight, scratch, framesToProcess, node.pan);
+                panMixBlock(trackLeft, trackRight, scratch, framesToProcess, modulated.pan);
             }
             break;
 
         case DeviceNodeKind::SubtractiveSynth:
-            if (!node.bypassed && !suppressInstruments && noteCount > 0) {
+            if (!modulated.bypassed && !suppressInstruments && noteCount > 0) {
                 SubtractiveMidiNoteRegion regions[32];
                 const int regionCount = noteCount > 32 ? 32 : noteCount;
                 for (int i = 0; i < regionCount; ++i) {
@@ -176,16 +213,16 @@ void processDeviceChain(float* trackLeft,
                                              playheadStartBeat,
                                              regions,
                                              regionCount,
-                                             node.subtractive,
+                                             modulated.subtractive,
                                              runtime != nullptr ? *runtime : localRuntime);
-                panMixBlock(trackLeft, trackRight, scratch, framesToProcess, node.pan);
+                panMixBlock(trackLeft, trackRight, scratch, framesToProcess, modulated.pan);
             }
             break;
 
         case DeviceNodeKind::TrackGain:
             for (int frame = 0; frame < framesToProcess; ++frame) {
-                trackLeft[frame] *= node.gain;
-                trackRight[frame] *= node.gain;
+                trackLeft[frame] *= modulated.gain;
+                trackRight[frame] *= modulated.gain;
             }
             break;
 

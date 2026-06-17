@@ -30,6 +30,7 @@ class DeviceChainScreen extends StatefulWidget {
     this.onSynthTabChanged,
     this.synthTabFor,
     this.onBypassToggle,
+    this.onModulationBridgeCall,
   });
 
   final ProjectSnapshot snapshot;
@@ -49,6 +50,8 @@ class DeviceChainScreen extends StatefulWidget {
   final void Function(String deviceId, SubtractiveDeviceTab tab)? onSynthTabChanged;
   final SubtractiveDeviceTab Function(String deviceId)? synthTabFor;
   final void Function(String deviceId, bool bypassed)? onBypassToggle;
+  final Future<ProjectSnapshot> Function(String method, Map<String, dynamic> args)?
+      onModulationBridgeCall;
 
   @override
   State<DeviceChainScreen> createState() => _DeviceChainScreenState();
@@ -194,6 +197,9 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
                       onSynthTabChanged: widget.onSynthTabChanged,
                       onBypassToggle: widget.onBypassToggle == null ? null : _onBypassToggle,
                       onOpenLibrary: _openLibrary,
+                      lfos: widget.snapshot.lfos,
+                      modEdges: widget.snapshot.modEdges,
+                      onModulationBridgeCall: widget.onModulationBridgeCall,
                     ),
                   ),
                 ),

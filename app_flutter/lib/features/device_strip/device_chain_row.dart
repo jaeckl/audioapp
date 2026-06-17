@@ -28,6 +28,9 @@ class DeviceChainRow extends StatelessWidget {
     this.scrollController,
     this.onBypassToggle,
     this.onOpenLibrary,
+    this.lfos = const [],
+    this.modEdges = const [],
+    this.onModulationBridgeCall,
   });
 
   final TrackSnapshot track;
@@ -47,6 +50,10 @@ class DeviceChainRow extends StatelessWidget {
   final ScrollController? scrollController;
   final void Function(String deviceId, bool bypassed)? onBypassToggle;
   final void Function(DeviceSnapshot device)? onOpenLibrary;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
+  final Future<ProjectSnapshot> Function(String method, Map<String, dynamic> args)?
+      onModulationBridgeCall;
 
   double get _rowHeight => switch (density) {
         DeviceStripSlotDensity.fullscreen => DeviceStripMetrics.fullscreenHeight,
@@ -112,6 +119,9 @@ class DeviceChainRow extends StatelessWidget {
                       : () => onBypassToggle!(devices[i].id, !devices[i].bypassed),
                   onOpenLibrary:
                       onOpenLibrary == null ? null : () => onOpenLibrary!(devices[i]),
+                  lfos: lfos,
+                  modEdges: modEdges,
+                  onModulationBridgeCall: onModulationBridgeCall,
                 ),
                 DeviceChainSeparator(
                   active: playing,

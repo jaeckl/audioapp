@@ -152,12 +152,17 @@ void ProjectEngine::createProject() {
     nextDeviceNum_ = 1;
     nextClipNum_ = 1;
     nextSampleClipNum_ = 1;
+    nextLfoId_ = 1;
     bpm_ = 120;
     activeFrequencyHz_.store(440.0f, std::memory_order_release);
     playing_.store(false, std::memory_order_release);
     playheadBeats_.store(0.0, std::memory_order_release);
     masterGain_.store(1.0f, std::memory_order_release);
     trackPlaybackCount_.store(0, std::memory_order_release);
+    lfos_.clear();
+    modEdges_.clear();
+    lfoPlaybackCount_.store(0, std::memory_order_release);
+    modEdgePlaybackCount_.store(0, std::memory_order_release);
 }
 
 std::string ProjectEngine::addTrack(const std::string& name) {
@@ -794,6 +799,10 @@ ProjectSnapshot ProjectEngine::snapshot() const {
         }
         snap.tracks.push_back(std::move(ts));
     }
+
+    snap.lfos = lfos_;
+    snap.modEdges = modEdges_;
+
     return snap;
 }
 
@@ -891,6 +900,28 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
     float trackRight[kMaxFrames];
     const int framesToProcess = numFrames > kMaxFrames ? kMaxFrames : numFrames;
 
+    // Compute LFO values at block resolution
+    const int lfoCount = lfoPlaybackCount_.load(std::memory_order_acquire);
+    float lfoValues[kMaxLfos]{};
+    const int edgeCount = modEdgePlaybackCount_.load(std::memory_order_acquire);
+    if (lfoCount > 0) {
+        const double playheadSeconds = playheadStartBeat * 60.0 / static_cast<double>(std::max(bpm_, 1));
+        for (int i = 0; i < lfoCount; ++i) {
+            const auto& lfo = lfoPlayback_[i].state;
+            double phase;
+            if (lfo.syncDivision == 0) {
+                // Hz mode: phase derived from wall clock
+                phase = playheadSeconds * static_cast<double>(lfo.rate) + static_cast<double>(lfo.phase);
+            } else {
+                // Sync mode: derive phase from playhead position
+                const double beatDuration = lfoSyncBeats(lfo.syncDivision);
+                phase = (beatDuration > 0.0) ? (playheadStartBeat / beatDuration) : 0.0;
+            }
+            lfoValues[i] = lfoEvaluate(static_cast<LfoWaveform>(lfo.waveform),
+                                       static_cast<float>(phase));
+        }
+    }
+
     SampleClipPlaybackRegion regions[8];
 
     for (int trackIndex = 0; trackIndex < trackCount; ++trackIndex) {
@@ -951,7 +982,11 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                            oscillatorPhase,
                            suppressInstruments,
                            trackPlayback_[trackIndex].samplerFilterStates,
-                           trackPlayback_[trackIndex].subtractiveRuntimes);
+                           trackPlayback_[trackIndex].subtractiveRuntimes,
+                           lfoValues,
+                           lfoCount,
+                           modEdgePlayback_,
+                           edgeCount);
         trackPlayback_[trackIndex].oscillatorPhase = oscillatorPhase;
 
         for (int frame = 0; frame < framesToProcess; ++frame) {
@@ -1084,6 +1119,8 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
         }
         file.tracks.push_back(std::move(ts));
     }
+    file.lfos = lfos_;
+    file.modEdges = modEdges_;
     return file;
 }
 
@@ -1135,6 +1172,10 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
 
     recomputeIdCountersLocked();
     ensureTrackGainDevicesLocked();
+
+    lfos_ = data.lfos;
+    modEdges_ = data.modEdges;
+
     if (data.master.gain > 0.0f) {
         masterGain_.store(std::clamp(data.master.gain, 0.0f, 1.0f), std::memory_order_release);
     } else {
@@ -1144,7 +1185,136 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
     playheadBeats_.store(0.0, std::memory_order_release);
     syncActiveFrequencyLocked();
     rebuildTrackPlaybackLocked();
+    rebuildLfoPlaybackLocked();
     return true;
+}
+
+int ProjectEngine::createLfo() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    LfoState lfo;
+    lfo.id = nextLfoId_++;
+    lfo.waveform = static_cast<int>(LfoWaveform::Sine);
+    lfo.rate = 1.0f;
+    lfo.syncDivision = 3; // 1/4
+    lfo.phase = 0.0f;
+    lfos_.push_back(std::move(lfo));
+    rebuildLfoPlaybackLocked();
+    return lfo.id;
+}
+
+bool ProjectEngine::removeLfo(int lfoId) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (auto it = lfos_.begin(); it != lfos_.end(); ++it) {
+        if (it->id != lfoId) {
+            continue;
+        }
+        lfos_.erase(it);
+        // Remove all edges referencing this LFO
+        for (auto eit = modEdges_.begin(); eit != modEdges_.end();) {
+            if (eit->lfoId == lfoId) {
+                eit = modEdges_.erase(eit);
+            } else {
+                ++eit;
+            }
+        }
+        rebuildLfoPlaybackLocked();
+        return true;
+    }
+    return false;
+}
+
+bool ProjectEngine::updateLfoParam(int lfoId, const std::string& param, float value) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (auto& lfo : lfos_) {
+        if (lfo.id != lfoId) {
+            continue;
+        }
+        if (param == "waveform") {
+            lfo.waveform = std::clamp(static_cast<int>(value), 0, static_cast<int>(LfoWaveform::Ramp));
+        } else if (param == "rate") {
+            lfo.rate = std::max(0.01f, value);
+        } else if (param == "syncDivision") {
+            lfo.syncDivision = std::clamp(static_cast<int>(value), 0, 5);
+        } else if (param == "phase") {
+            lfo.phase = std::clamp(value, 0.0f, 1.0f);
+        } else {
+            return false;
+        }
+        rebuildLfoPlaybackLocked();
+        return true;
+    }
+    return false;
+}
+
+bool ProjectEngine::assignModulation(int lfoId, const std::string& deviceId,
+                                     const std::string& paramId, float amount) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    // Check LFO exists
+    bool lfoOk = false;
+    for (const auto& lfo : lfos_) {
+        if (lfo.id == lfoId) {
+            lfoOk = true;
+            break;
+        }
+    }
+    if (!lfoOk) {
+        return false;
+    }
+    // Check device exists
+    if (findDeviceLocked(deviceId) == nullptr) {
+        return false;
+    }
+    // Update existing edge or add new one
+    for (auto& edge : modEdges_) {
+        if (edge.lfoId == lfoId && edge.paramId == paramId) {
+            edge.deviceId = deviceId;
+            edge.amount = std::clamp(amount, -1.0f, 1.0f);
+            rebuildLfoPlaybackLocked();
+            return true;
+        }
+    }
+    ModulationEdge edge;
+    edge.lfoId = lfoId;
+    edge.deviceId = deviceId;
+    edge.paramId = paramId;
+    edge.amount = std::clamp(amount, -1.0f, 1.0f);
+    modEdges_.push_back(std::move(edge));
+    rebuildLfoPlaybackLocked();
+    return true;
+}
+
+bool ProjectEngine::removeModulation(int lfoId, const std::string& paramId) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (auto it = modEdges_.begin(); it != modEdges_.end(); ++it) {
+        if (it->lfoId == lfoId && it->paramId == paramId) {
+            modEdges_.erase(it);
+            rebuildLfoPlaybackLocked();
+            return true;
+        }
+    }
+    return false;
+}
+
+void ProjectEngine::rebuildLfoPlaybackLocked() {
+    int lfoIndex = 0;
+    for (const auto& lfo : lfos_) {
+        if (lfoIndex >= kMaxLfos) {
+            break;
+        }
+        lfoPlayback_[lfoIndex].state = lfo;
+        ++lfoIndex;
+    }
+    lfoPlaybackCount_.store(lfoIndex, std::memory_order_release);
+
+    int edgeIndex = 0;
+    for (const auto& edge : modEdges_) {
+        if (edgeIndex >= kMaxModEdges) {
+            break;
+        }
+        modEdgePlayback_[edgeIndex] = edge;
+        ++edgeIndex;
+    }
+    modEdgePlaybackCount_.store(edgeIndex, std::memory_order_release);
 }
 
 void ProjectEngine::recomputeIdCountersLocked() {
@@ -1160,6 +1330,7 @@ void ProjectEngine::recomputeIdCountersLocked() {
     int maxDevice = 0;
     int maxClip = 0;
     int maxSampleClip = 0;
+    int maxLfo = 0;
     for (const auto& track : tracks_) {
         maxTrack = std::max(maxTrack, maxSuffix(track.id, "track-"));
         for (const auto& device : track.devices) {
@@ -1172,10 +1343,14 @@ void ProjectEngine::recomputeIdCountersLocked() {
             maxSampleClip = std::max(maxSampleClip, maxSuffix(clip.id, "sclip-"));
         }
     }
+    for (const auto& lfo : lfos_) {
+        maxLfo = std::max(maxLfo, lfo.id);
+    }
     nextTrackNum_ = maxTrack + 1;
     nextDeviceNum_ = maxDevice + 1;
     nextClipNum_ = maxClip + 1;
     nextSampleClipNum_ = maxSampleClip + 1;
+    nextLfoId_ = maxLfo + 1;
 }
 
 void ProjectEngine::rebuildTrackPlaybackLocked() {
@@ -1197,6 +1372,7 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
             }
 
             DeviceNodePlayback& node = snap.devices[snap.deviceCount++];
+            node.deviceId = device.id;
             node.bypassed = device.bypassed;
             if (device.type == "simple_oscillator") {
                 node.kind = DeviceNodeKind::Oscillator;

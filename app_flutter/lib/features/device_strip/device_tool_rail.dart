@@ -13,6 +13,8 @@ class DeviceToolRail extends StatelessWidget {
     required this.showLibrary,
     required this.onBypassToggle,
     this.onLibrary,
+    this.modActive = false,
+    this.onModToggle,
   });
 
   final String deviceName;
@@ -21,6 +23,8 @@ class DeviceToolRail extends StatelessWidget {
   final bool showLibrary;
   final VoidCallback onBypassToggle;
   final VoidCallback? onLibrary;
+  final bool modActive;
+  final VoidCallback? onModToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -79,6 +83,10 @@ class DeviceToolRail extends StatelessWidget {
                       enabled: onLibrary != null,
                       onPressed: onLibrary,
                     ),
+                  _ModButton(
+                    active: modActive,
+                    onPressed: onModToggle,
+                  ),
                 ],
               ),
             ),
@@ -119,6 +127,35 @@ class _ToolRailButton extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 28, minHeight: 24),
       onPressed: enabled ? onPressed : null,
       icon: Icon(icon, size: 18, color: color),
+    );
+  }
+}
+
+class _ModButton extends StatelessWidget {
+  const _ModButton({
+    required this.active,
+    required this.onPressed,
+  });
+
+  final bool active;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: 'Modulation',
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 28, minHeight: 24),
+      onPressed: onPressed,
+      icon: Text(
+        'Mod',
+        style: TextStyle(
+          color: active ? const Color(0xFFE8A54B) : Colors.white54,
+          fontSize: 9,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }

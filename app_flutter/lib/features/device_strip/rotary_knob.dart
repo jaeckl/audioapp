@@ -24,6 +24,8 @@ class RotaryKnob extends StatefulWidget {
     this.displayValue,
     this.size = DeviceKnobSizes.strip,
     this.accentColor = const Color(0xFFE8A54B),
+    this.modulationActive = false,
+    this.onModulationAssign,
   });
 
   final String label;
@@ -32,6 +34,8 @@ class RotaryKnob extends StatefulWidget {
   final String? displayValue;
   final double size;
   final Color accentColor;
+  final bool modulationActive;
+  final VoidCallback? onModulationAssign;
 
   @override
   State<RotaryKnob> createState() => _RotaryKnobState();
@@ -67,6 +71,7 @@ class _RotaryKnobState extends State<RotaryKnob> {
           onVerticalDragStart: _onDragStart,
           onVerticalDragUpdate: _onDragUpdate,
           onDoubleTap: () => widget.onChanged(0.5),
+          onLongPress: widget.onModulationAssign,
           child: SizedBox(
             width: widget.size + 8,
             height: widget.size + 4,
@@ -82,6 +87,7 @@ class _RotaryKnobState extends State<RotaryKnob> {
                       angle: angle,
                       accentColor: widget.accentColor,
                       strokeWidth: stroke,
+                      modulationActive: widget.modulationActive,
                     ),
                   ),
                 ),
@@ -126,12 +132,14 @@ class _KnobPainter extends CustomPainter {
     required this.angle,
     required this.accentColor,
     this.strokeWidth = 3,
+    this.modulationActive = false,
   });
 
   final double value;
   final double angle;
   final Color accentColor;
   final double strokeWidth;
+  final bool modulationActive;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -174,10 +182,21 @@ class _KnobPainter extends CustomPainter {
 
     final fillPaint = Paint()..color = const Color(0xFF14141C);
     canvas.drawCircle(center, radius - 6, fillPaint);
+
+    // Modulation indicator dot (top-right of the knob center)
+    if (modulationActive) {
+      final dotPaint = Paint()..color = accentColor;
+      canvas.drawCircle(
+        Offset(center.dx + (radius - 6) * 0.5, center.dy - (radius - 6) * 0.5),
+        2.0,
+        dotPaint,
+      );
+    }
   }
 
   @override
   bool shouldRepaint(covariant _KnobPainter oldDelegate) {
-    return oldDelegate.value != value || oldDelegate.angle != angle;
+    return oldDelegate.value != value || oldDelegate.angle != angle ||
+        oldDelegate.modulationActive != modulationActive;
   }
 }

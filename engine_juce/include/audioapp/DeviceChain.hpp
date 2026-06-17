@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include "audioapp/LfoTypes.hpp"
 #include "audioapp/SamplerFilter.hpp"
 #include "audioapp/SubtractiveSynth.hpp"
 
@@ -27,6 +28,7 @@ enum class DeviceNodeKind : uint8_t {
 /// Immutable per-track device chain node (built on control thread, read on audio thread).
 struct DeviceNodePlayback {
     DeviceNodeKind kind = DeviceNodeKind::Unknown;
+    std::string deviceId;
     float frequencyHz = 440.0f;
     float gain = 1.0f;
     float pan = 0.5f;
@@ -68,6 +70,10 @@ void processDeviceChain(float* trackLeft,
                         float& oscillatorPhase,
                         bool suppressInstruments,
                         BiquadState* samplerFilterStates = nullptr,
-                        SubtractiveSynthRuntime* subtractiveRuntimes = nullptr) noexcept;
+                        SubtractiveSynthRuntime* subtractiveRuntimes = nullptr,
+                        const float* lfoValues = nullptr,
+                        int lfoCount = 0,
+                        const ModulationEdge* modEdges = nullptr,
+                        int modEdgeCount = 0) noexcept;
 
 } // namespace audioapp

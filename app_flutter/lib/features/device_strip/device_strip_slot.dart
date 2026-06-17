@@ -9,6 +9,7 @@ import 'device_strip_metrics.dart';
 import 'device_strip_theme.dart';
 import 'device_strip_viewport.dart';
 import 'device_tool_rail.dart';
+import 'modulation_strip.dart';
 import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
 import 'subtractive_synth_device_panel.dart';
@@ -36,6 +37,9 @@ class DeviceStripSlot extends StatefulWidget {
     this.onOpenLibrary,
     this.samplerTab = SamplerDeviceTab.sample,
     this.synthTab = SubtractiveDeviceTab.osc,
+    this.lfos = const [],
+    this.modEdges = const [],
+    this.onModulationBridgeCall,
   });
 
   final TrackSnapshot track;
@@ -53,6 +57,10 @@ class DeviceStripSlot extends StatefulWidget {
   final VoidCallback? onOpenLibrary;
   final SamplerDeviceTab samplerTab;
   final SubtractiveDeviceTab synthTab;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
+  final Future<ProjectSnapshot> Function(String method, Map<String, dynamic> args)?
+      onModulationBridgeCall;
 
   @override
   State<DeviceStripSlot> createState() => _DeviceStripSlotState();
@@ -60,6 +68,7 @@ class DeviceStripSlot extends StatefulWidget {
 
 class _DeviceStripSlotState extends State<DeviceStripSlot> {
   late int _selectedTabIndex;
+  bool _modStripVisible = false;
 
   List<DeviceTabSpec> get _containerTabs => DeviceContainerTabs.forDeviceType(widget.device.type);
 
@@ -167,6 +176,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                   showLibrary: widget.device.type == 'simple_sampler',
                   onBypassToggle: widget.onBypassToggle ?? () {},
                   onLibrary: widget.onOpenLibrary,
+                  modActive: _modStripVisible,
+                  onModToggle: () => setState(() => _modStripVisible = !_modStripVisible),
                 ),
                 SizedBox(
                   width: _cardWidth,

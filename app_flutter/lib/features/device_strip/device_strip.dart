@@ -25,6 +25,7 @@ class DeviceStrip extends StatefulWidget {
     required this.onAddDevice,
     required this.onBypassToggle,
     required this.onOpenDeviceLibrary,
+    this.onModulationBridgeCall,
   });
 
   final ProjectSnapshot snapshot;
@@ -42,6 +43,8 @@ class DeviceStrip extends StatefulWidget {
       onAddDevice;
   final void Function(String deviceId, bool bypassed) onBypassToggle;
   final void Function(DeviceSnapshot device) onOpenDeviceLibrary;
+  final Future<ProjectSnapshot> Function(String method, Map<String, dynamic> args)?
+      onModulationBridgeCall;
 
   @override
   State<DeviceStrip> createState() => _DeviceStripState();
@@ -100,6 +103,7 @@ class _DeviceStripState extends State<DeviceStrip> {
           onImportAudio: () async {
             await widget.onImportSamples();
           },
+          onModulationBridgeCall: widget.onModulationBridgeCall,
         ),
       ),
     );
@@ -146,6 +150,8 @@ class _DeviceStripState extends State<DeviceStrip> {
                   track: track,
                   samples: widget.samples,
                   playing: widget.playing,
+                  lfos: widget.snapshot.lfos,
+                  modEdges: widget.snapshot.modEdges,
                   density: collapsed
                       ? DeviceStripSlotDensity.collapsed
                       : DeviceStripSlotDensity.strip,
@@ -159,6 +165,7 @@ class _DeviceStripState extends State<DeviceStrip> {
                   onSynthTabChanged: _setSynthTab,
                   onBypassToggle: widget.onBypassToggle,
                   onOpenLibrary: widget.onOpenDeviceLibrary,
+                  onModulationBridgeCall: widget.onModulationBridgeCall,
                 ),
               ],
             ),

@@ -18,6 +18,8 @@ class ProjectSnapshot {
     required this.master,
     required this.samples,
     required this.tracks,
+    this.lfos = const [],
+    this.modEdges = const [],
   });
 
   final int bpm;
@@ -30,11 +32,15 @@ class ProjectSnapshot {
   final MasterTrackSnapshot master;
   final List<SampleLibraryEntrySnapshot> samples;
   final List<TrackSnapshot> tracks;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
 
   factory ProjectSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final snapshot = map['snapshot'] as Map<dynamic, dynamic>? ?? map;
     final tracksRaw = snapshot['tracks'] as List<dynamic>? ?? [];
     final samplesRaw = snapshot['samples'] as List<dynamic>? ?? [];
+    final lfosRaw = snapshot['lfos'] as List<dynamic>? ?? [];
+    final modEdgesRaw = snapshot['modEdges'] as List<dynamic>? ?? [];
     return ProjectSnapshot(
       bpm: (snapshot['bpm'] as num?)?.toInt() ?? 120,
       selectedTrackId: snapshot['selectedTrackId'] as String? ?? '',
@@ -49,6 +55,12 @@ class ProjectSnapshot {
           .toList(),
       tracks: tracksRaw
           .map((t) => TrackSnapshot.fromMap(t as Map<dynamic, dynamic>))
+          .toList(),
+      lfos: lfosRaw
+          .map((l) => LfoSnapshot.fromMap(l as Map<dynamic, dynamic>))
+          .toList(),
+      modEdges: modEdgesRaw
+          .map((e) => ModulationEdgeSnapshot.fromMap(e as Map<dynamic, dynamic>))
           .toList(),
     );
   }
@@ -527,6 +539,100 @@ class SampleLibraryEntrySnapshot {
       source: map['source'] as String? ?? '',
       durationBeats: (map['durationBeats'] as num?)?.toDouble() ?? 4.0,
       waveformPeaks: peaksRaw.map((p) => (p as num).toDouble()).toList(),
+    );
+  }
+}
+
+/// LFO source snapshot from the engine.
+class LfoSnapshot {
+  const LfoSnapshot({
+    required this.id,
+    this.waveform = 0,
+    this.rate = 1.0,
+    this.syncDivision = 0,
+    this.phase = 0.0,
+    this.name = '',
+  });
+
+  final int id;
+  final int waveform; // 0=Sine, 1=Tri, 2=Saw, 3=Square, 4=Ramp
+  final double rate;
+  final int syncDivision; // 0=free, 1=1/1, 2=1/2, 3=1/4, 4=1/8, 5=1/16
+  final double phase;
+  final String name;
+
+  factory LfoSnapshot.fromMap(Map<dynamic, dynamic> map) {
+    return LfoSnapshot(
+      id: (map['id'] as num?)?.toInt() ?? 0,
+      waveform: (map['waveform'] as num?)?.toInt() ?? 0,
+      rate: (map['rate'] as num?)?.toDouble() ?? 1.0,
+      syncDivision: (map['syncDivision'] as num?)?.toInt() ?? 0,
+      phase: (map['phase'] as num?)?.toDouble() ?? 0.0,
+      name: map['name'] as String? ?? '',
+    );
+  }
+
+  static const List<String> waveformNames = [
+    'Sine', 'Tri', 'Saw', 'Square', 'Ramp',
+  ];
+
+  String get waveformName => waveform >= 0 && waveform < waveformNames.length
+      ? waveformNames[waveform]
+      : 'Sine';
+
+  LfoSnapshot copyWith({
+    int? id,
+    int? waveform,
+    double? rate,
+    int? syncDivision,
+    double? phase,
+    String? name,
+  }) {
+    return LfoSnapshot(
+      id: id ?? this.id,
+      waveform: waveform ?? this.waveform,
+      rate: rate ?? this.rate,
+      syncDivision: syncDivision ?? this.syncDivision,
+      phase: phase ?? this.phase,
+      name: name ?? this.name,
+    );
+  }
+}
+
+/// Modulation edge linking an LFO to a device parameter.
+class ModulationEdgeSnapshot {
+  const ModulationEdgeSnapshot({
+    required this.lfoId,
+    required this.deviceId,
+    required this.paramId,
+    this.amount = 0.0,
+  });
+
+  final int lfoId;
+  final String deviceId;
+  final String paramId;
+  final double amount;
+
+  factory ModulationEdgeSnapshot.fromMap(Map<dynamic, dynamic> map) {
+    return ModulationEdgeSnapshot(
+      lfoId: (map['lfoId'] as num?)?.toInt() ?? 0,
+      deviceId: map['deviceId'] as String? ?? '',
+      paramId: map['paramId'] as String? ?? '',
+      amount: (map['amount'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+
+  ModulationEdgeSnapshot copyWith({
+    int? lfoId,
+    String? deviceId,
+    String? paramId,
+    double? amount,
+  }) {
+    return ModulationEdgeSnapshot(
+      lfoId: lfoId ?? this.lfoId,
+      deviceId: deviceId ?? this.deviceId,
+      paramId: paramId ?? this.paramId,
+      amount: amount ?? this.amount,
     );
   }
 }

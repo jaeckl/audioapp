@@ -159,6 +159,26 @@ bool EngineHost::setRecordArmed(bool armed) {
     return project_.setRecordArmed(armed);
 }
 
+int EngineHost::createLfo() {
+    return project_.createLfo();
+}
+
+bool EngineHost::removeLfo(int lfoId) {
+    return project_.removeLfo(lfoId);
+}
+
+bool EngineHost::updateLfoParam(int lfoId, const std::string& param, float value) {
+    return project_.updateLfoParam(lfoId, param, value);
+}
+
+bool EngineHost::assignModulation(int lfoId, const std::string& deviceId, const std::string& paramId, float amount) {
+    return project_.assignModulation(lfoId, deviceId, paramId, amount);
+}
+
+bool EngineHost::removeModulation(int lfoId, const std::string& paramId) {
+    return project_.removeModulation(lfoId, paramId);
+}
+
 bool EngineHost::noteOn(int pitch, float velocity) {
     return project_.noteOn(pitch, velocity);
 }

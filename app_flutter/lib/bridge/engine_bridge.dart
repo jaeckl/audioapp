@@ -207,6 +207,52 @@ class EngineBridge {
     return _invokeForSnapshot('commitCapture');
   }
 
+  // ─── LFO & Modulation ─────────────────────────────────
+
+  Future<ProjectSnapshot> createLfo() async {
+    return _invokeForSnapshot('createLfo');
+  }
+
+  Future<ProjectSnapshot> removeLfo(int lfoId) async {
+    return _invokeForSnapshot('removeLfo', {'lfoId': lfoId});
+  }
+
+  Future<ProjectSnapshot> updateLfoParam({
+    required int lfoId,
+    required String param,
+    required double value,
+  }) async {
+    return _invokeForSnapshot('updateLfoParam', {
+      'lfoId': lfoId,
+      'param': param,
+      'value': value,
+    });
+  }
+
+  Future<ProjectSnapshot> assignModulation({
+    required int lfoId,
+    required String deviceId,
+    required String paramId,
+    required double amount,
+  }) async {
+    return _invokeForSnapshot('assignModulation', {
+      'lfoId': lfoId,
+      'deviceId': deviceId,
+      'paramId': paramId,
+      'amount': amount,
+    });
+  }
+
+  Future<ProjectSnapshot> removeModulation({
+    required int lfoId,
+    required String paramId,
+  }) async {
+    return _invokeForSnapshot('removeModulation', {
+      'lfoId': lfoId,
+      'paramId': paramId,
+    });
+  }
+
   Future<void> _invokeOk(String method, [Map<String, dynamic>? args]) async {
     final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(method, args);
     if (result == null) {

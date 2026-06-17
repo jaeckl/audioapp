@@ -362,6 +362,90 @@ TrackState trackFromVar(const juce::var& value) {
     return track;
 }
 
+// --- LFO / modulation serialization helpers ---
+
+juce::var lfoToVar(const LfoState& lfo) {
+    auto* object = new juce::DynamicObject();
+    object->setProperty("id", lfo.id);
+    object->setProperty("waveform", lfo.waveform);
+    object->setProperty("rate", static_cast<double>(lfo.rate));
+    object->setProperty("syncDivision", lfo.syncDivision);
+    object->setProperty("phase", static_cast<double>(lfo.phase));
+    return juce::var(object);
+}
+
+LfoState lfoFromVar(const juce::var& value) {
+    LfoState lfo;
+    if (const auto* object = value.getDynamicObject()) {
+        lfo.id = varToInt(object->getProperty("id"), 0);
+        lfo.waveform = varToInt(object->getProperty("waveform"), 0);
+        lfo.rate = varToFloat(object->getProperty("rate"), 1.0f);
+        lfo.syncDivision = varToInt(object->getProperty("syncDivision"), 0);
+        lfo.phase = varToFloat(object->getProperty("phase"), 0.0f);
+    }
+    return lfo;
+}
+
+juce::var modEdgeToVar(const ModulationEdge& edge) {
+    auto* object = new juce::DynamicObject();
+    object->setProperty("lfoId", edge.lfoId);
+    object->setProperty("deviceId", toJuceString(edge.deviceId));
+    object->setProperty("paramId", toJuceString(edge.paramId));
+    object->setProperty("amount", static_cast<double>(edge.amount));
+    return juce::var(object);
+}
+
+ModulationEdge modEdgeFromVar(const juce::var& value) {
+    ModulationEdge edge;
+    if (const auto* object = value.getDynamicObject()) {
+        edge.lfoId = varToInt(object->getProperty("lfoId"), 0);
+        edge.deviceId = varToString(object->getProperty("deviceId"));
+        edge.paramId = varToString(object->getProperty("paramId"));
+        edge.amount = varToFloat(object->getProperty("amount"), 0.0f);
+    }
+    return edge;
+}
+
+juce::var lfoArrayToVar(const std::vector<LfoState>& lfos) {
+    juce::Array<juce::var> result;
+    result.ensureStorageAllocated(static_cast<int>(lfos.size()));
+    for (const auto& lfo : lfos) {
+        result.add(lfoToVar(lfo));
+    }
+    return juce::var(result);
+}
+
+std::vector<LfoState> lfoArrayFromVar(const juce::var& value) {
+    std::vector<LfoState> result;
+    if (const auto* arr = varArray(value)) {
+        result.reserve(static_cast<size_t>(arr->size()));
+        for (const auto& item : *arr) {
+            result.push_back(lfoFromVar(item));
+        }
+    }
+    return result;
+}
+
+juce::var modEdgeArrayToVar(const std::vector<ModulationEdge>& edges) {
+    juce::Array<juce::var> result;
+    result.ensureStorageAllocated(static_cast<int>(edges.size()));
+    for (const auto& edge : edges) {
+        result.add(modEdgeToVar(edge));
+    }
+    return juce::var(result);
+}
+
+std::vector<ModulationEdge> modEdgeArrayFromVar(const juce::var& value) {
+    std::vector<ModulationEdge> result;
+    if (const auto* arr = varArray(value)) {
+        result.reserve(static_cast<size_t>(arr->size()));
+        for (const auto& item : *arr) {
+            result.push_back(modEdgeFromVar(item));
+        }
+    }
+    return result;
+}
+
 juce::var snapshotToVar(const ProjectSnapshot& snapshot) {
     juce::Array<juce::var> tracks;
     tracks.ensureStorageAllocated(static_cast<int>(snapshot.tracks.size()));
@@ -391,6 +475,8 @@ juce::var snapshotToVar(const ProjectSnapshot& snapshot) {
     object->setProperty("master", juce::var(master));
     object->setProperty("samples", samples);
     object->setProperty("tracks", tracks);
+    object->setProperty("lfos", lfoArrayToVar(snapshot.lfos));
+    object->setProperty("modEdges", modEdgeArrayToVar(snapshot.modEdges));
     return juce::var(object);
 }
 
@@ -419,6 +505,8 @@ juce::var projectFileToVar(const ProjectFileData& project) {
     object->setProperty("master", juce::var(master));
     object->setProperty("samples", samples);
     object->setProperty("tracks", tracks);
+    object->setProperty("lfos", lfoArrayToVar(project.lfos));
+    object->setProperty("modEdges", modEdgeArrayToVar(project.modEdges));
     return juce::var(object);
 }
 
@@ -471,6 +559,14 @@ bool parseProjectFileJson(const std::string& json, ProjectFileData& out) {
             out.tracks.push_back(trackFromVar(trackVar));
         }
     }
+
+    if (object->hasProperty("lfos")) {
+        out.lfos = lfoArrayFromVar(object->getProperty("lfos"));
+    }
+    if (object->hasProperty("modEdges")) {
+        out.modEdges = modEdgeArrayFromVar(object->getProperty("modEdges"));
+    }
+
     return true;
 }
 

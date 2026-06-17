@@ -5,8 +5,8 @@
 #include <mutex>
 #include <string>
 #include <vector>
-#include <vector>
 
+#include "audioapp/LfoTypes.hpp"
 #include "audioapp/LivePerformance.hpp"
 #include "audioapp/MidiClipPlayback.hpp"
 #include "audioapp/SampleBank.hpp"
@@ -88,6 +88,8 @@ struct ProjectSnapshot {
     MasterTrackState master;
     std::vector<SampleLibraryEntryState> samples;
     std::vector<TrackState> tracks;
+    std::vector<LfoState> lfos;
+    std::vector<ModulationEdge> modEdges;
 };
 
 /// Authoritative project model (control thread only).
@@ -127,6 +129,11 @@ public:
     std::vector<float> renderOffline(double lengthBeats, double sampleRate);
 
     bool setRecordArmed(bool armed);
+    int createLfo();
+    bool removeLfo(int lfoId);
+    bool updateLfoParam(int lfoId, const std::string& param, float value);
+    bool assignModulation(int lfoId, const std::string& deviceId, const std::string& paramId, float amount);
+    bool removeModulation(int lfoId, const std::string& paramId);
     bool noteOn(int pitch, float velocity);
     bool noteOff(int pitch);
     void allNotesOff();
@@ -328,6 +335,25 @@ private:
     static void copyStateToDevice(const DeviceState& src, Device& dst);
 
     const SampleBank* sampleBank_ = nullptr;
+
+    // --- LFO / modulation state ---
+    std::vector<LfoState> lfos_;
+    std::vector<ModulationEdge> modEdges_;
+    int nextLfoId_ = 1;
+
+    static constexpr int kMaxLfos = 16;
+    static constexpr int kMaxModEdges = 64;
+
+    /// Audio-thread LFO snapshot.
+    struct LfoPlaybackEntry {
+        LfoState state;
+    };
+    LfoPlaybackEntry lfoPlayback_[kMaxLfos]{};
+    ModulationEdge modEdgePlayback_[kMaxModEdges]{};
+    std::atomic<int> lfoPlaybackCount_{0};
+    std::atomic<int> modEdgePlaybackCount_{0};
+
+    void rebuildLfoPlaybackLocked();
 };
 
 } // namespace audioapp

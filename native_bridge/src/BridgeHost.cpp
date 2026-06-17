@@ -212,6 +212,44 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         }
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
+    if (method == "createLfo") {
+        const int lfoId = engine().createLfo();
+        return R"({"ok":true,"lfoId":)" + std::to_string(lfoId) + R"(,"snapshot":)" + engine().getProjectSnapshotJson() + "}";
+    }
+    if (method == "removeLfo") {
+        const auto lfoId = static_cast<int>(jsonGetNumberArg(argumentsJson, "lfoId", 0.0));
+        if (!engine().removeLfo(lfoId)) {
+            return buildBridgeError("lfo_not_found");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
+    if (method == "updateLfoParam") {
+        const auto lfoId = static_cast<int>(jsonGetNumberArg(argumentsJson, "lfoId", 0.0));
+        const auto param = jsonGetStringArg(argumentsJson, "param");
+        const auto value = static_cast<float>(jsonGetNumberArg(argumentsJson, "value", 0.0));
+        if (!engine().updateLfoParam(lfoId, param, value)) {
+            return buildBridgeError("lfo_param_failed");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
+    if (method == "assignModulation") {
+        const auto lfoId = static_cast<int>(jsonGetNumberArg(argumentsJson, "lfoId", 0.0));
+        const auto deviceId = jsonGetStringArg(argumentsJson, "deviceId");
+        const auto paramId = jsonGetStringArg(argumentsJson, "paramId");
+        const auto amount = static_cast<float>(jsonGetNumberArg(argumentsJson, "amount", 0.0));
+        if (!engine().assignModulation(lfoId, deviceId, paramId, amount)) {
+            return buildBridgeError("modulation_failed");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
+    if (method == "removeModulation") {
+        const auto lfoId = static_cast<int>(jsonGetNumberArg(argumentsJson, "lfoId", 0.0));
+        const auto paramId = jsonGetStringArg(argumentsJson, "paramId");
+        if (!engine().removeModulation(lfoId, paramId)) {
+            return buildBridgeError("modulation_remove_failed");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
     if (method == "enterPlayMode") {
         engine().enterPlayMode();
         return R"({"ok":true})";

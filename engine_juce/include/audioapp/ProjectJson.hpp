@@ -1,8 +1,10 @@
 #pragma once
 
 #include "audioapp/ProjectEngine.hpp"
+#include "audioapp/LfoTypes.hpp"
 
 #include <string>
+#include <vector>
 
 namespace audioapp {
 
@@ -14,6 +16,8 @@ struct ProjectFileData {
     MasterTrackState master;
     std::vector<SampleLibraryEntryState> sampleLibrary;
     std::vector<TrackState> tracks;
+    std::vector<LfoState> lfos;
+    std::vector<ModulationEdge> modEdges;
 };
 
 constexpr int kProjectFormatVersion = 1;
@@ -23,6 +27,10 @@ bool parseProjectFileJson(const std::string& json, ProjectFileData& out);
 
 std::string snapshotToJson(const ProjectSnapshot& snapshot);
 std::vector<MidiNoteState> parseMidiNotesFromArgs(const std::string& argumentsJson);
+
+/// LFO evaluation and helpers.
+float lfoEvaluate(LfoWaveform waveform, float phase) noexcept;
+double lfoSyncBeats(int syncDivision) noexcept;
 
 /// Bridge command JSON helpers (control thread).
 std::string jsonGetStringArg(const std::string& argumentsJson, const std::string& key);

@@ -40,6 +40,7 @@ add_library(audioapp_engine STATIC
   src/MasterMix.cpp
   src/DeviceChain.cpp
   src/EngineHost_commands.cpp
+  src/LfoEngine.cpp
 )
 
 target_include_directories(audioapp_engine
@@ -97,6 +98,7 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/device_chain_test.cpp
     tests/live_performance_test.cpp
     tests/subtractive_synth_test.cpp
+    tests/lfo_modulation_test.cpp
   )
   target_link_libraries(audioapp_engine_tests PRIVATE audioapp_engine)
   add_test(NAME engine_smoke COMMAND audioapp_engine_tests)

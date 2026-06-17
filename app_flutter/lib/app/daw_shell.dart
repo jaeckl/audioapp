@@ -210,6 +210,66 @@ class _DawShellState extends State<DawShell> {
     await _setSamplerParameter(deviceId, 'bypass', bypassed ? 1.0 : 0.0);
   }
 
+  Future<ProjectSnapshot> _modulationBridgeCall(
+    String method,
+    Map<String, dynamic> args,
+  ) async {
+    try {
+      ProjectSnapshot result;
+      switch (method) {
+        case 'createLfo':
+          result = await widget.bridge.createLfo();
+          break;
+        case 'removeLfo':
+          result = await widget.bridge.removeLfo(
+            (args['lfoId'] as num).toInt(),
+          );
+          break;
+        case 'updateLfoParam':
+          result = await widget.bridge.updateLfoParam(
+            lfoId: (args['lfoId'] as num).toInt(),
+            param: args['param'] as String,
+            value: (args['value'] as num).toDouble(),
+          );
+          break;
+        case 'assignModulation':
+          result = await widget.bridge.assignModulation(
+            lfoId: (args['lfoId'] as num).toInt(),
+            deviceId: args['deviceId'] as String,
+            paramId: args['paramId'] as String,
+            amount: (args['amount'] as num).toDouble(),
+          );
+          break;
+        case 'removeModulation':
+          result = await widget.bridge.removeModulation(
+            lfoId: (args['lfoId'] as num).toInt(),
+            paramId: args['paramId'] as String,
+          );
+          break;
+        default:
+          throw Exception('Unknown modulation bridge method: $method');
+      }
+      await _refreshSnapshot(result);
+      return result;
+    } catch (e) {
+      if (!mounted) return _snapshot ?? ProjectSnapshot(
+        bpm: 120,
+        selectedTrackId: '',
+        playheadBeats: 0,
+        playing: false,
+        loopEnabled: true,
+        loopLengthBeats: 16,
+        recordArmed: false,
+        master: const MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1.0),
+        samples: [],
+        tracks: [],
+        lfos: [],
+        modEdges: [],
+      );
+      rethrow;
+    }
+  }
+
   Future<void> _openDeviceLibrary(DeviceSnapshot device) async {
     if (device.type != 'simple_sampler') return;
     setState(() {
@@ -761,6 +821,7 @@ class _DawShellState extends State<DawShell> {
               onAddDevice: _addDeviceToTrack,
               onBypassToggle: (deviceId, bypassed) => _setDeviceBypass(deviceId, bypassed),
               onOpenDeviceLibrary: _openDeviceLibrary,
+              onModulationBridgeCall: _modulationBridgeCall,
             ),
           ],
         );
