@@ -23,11 +23,16 @@ class SubtractiveWaveformPreview extends StatelessWidget {
             constraints.maxHeight.isFinite && constraints.maxHeight > 0
                 ? constraints.maxHeight
                 : height;
-        return SizedBox(
-          height: resolvedHeight,
-          child: CustomPaint(
-            painter: _WavePainter(shape: shape, color: accent),
-            size: Size.infinite,
+        final resolvedWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
+            ? constraints.maxWidth
+            : double.infinity;
+        return ClipRect(
+          child: SizedBox(
+            width: resolvedWidth,
+            height: resolvedHeight,
+            child: CustomPaint(
+              painter: _WavePainter(shape: shape, color: accent),
+            ),
           ),
         );
       },

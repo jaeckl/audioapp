@@ -480,9 +480,12 @@ class _InsetPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: child,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: child,
+        ),
       ),
     );
   }

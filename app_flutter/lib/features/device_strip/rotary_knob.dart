@@ -4,6 +4,16 @@ import 'package:flutter/material.dart';
 
 import 'device_knob_sizes.dart';
 
+/// Knob dial geometry — 0 at south-west, max at south-east (clockwise over the
+/// top; bottom 120° is empty).
+abstract final class KnobArcGeometry {
+  static const double start = math.pi * (5.0 / 6.0); // 150° — south-west
+  static const double sweep = math.pi * (4.0 / 3.0); // +240° clockwise → south-east
+
+  static double indicatorAngle(double value) =>
+      start + value.clamp(0.0, 1.0) * sweep;
+}
+
 /// Compact rotary control styled after Bitwig / FL Studio Mobile device knobs.
 class RotaryKnob extends StatefulWidget {
   const RotaryKnob({
@@ -46,7 +56,7 @@ class _RotaryKnobState extends State<RotaryKnob> {
   Widget build(BuildContext context) {
     final stroke = widget.size >= DeviceKnobSizes.editor ? 4.0 : 3.0;
     final theme = Theme.of(context);
-    final angle = -math.pi * 0.75 + (widget.value.clamp(0, 1) * math.pi * 1.5);
+    final angle = KnobArcGeometry.indicatorAngle(widget.value);
     final labelSize = widget.size >= DeviceKnobSizes.strip ? 10.0 : 9.0;
 
     return Column(
@@ -127,12 +137,20 @@ class _KnobPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2 - 2;
+    final arcRect = Rect.fromCircle(center: center, radius: radius);
 
     final trackPaint = Paint()
       ..color = Colors.white.withValues(alpha: 0.08)
       ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
       ..strokeWidth = strokeWidth;
-    canvas.drawCircle(center, radius, trackPaint);
+    canvas.drawArc(
+      arcRect,
+      KnobArcGeometry.start,
+      KnobArcGeometry.sweep,
+      false,
+      trackPaint,
+    );
 
     final arcPaint = Paint()
       ..color = accentColor.withValues(alpha: 0.85)
@@ -140,9 +158,9 @@ class _KnobPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeWidth = strokeWidth;
     canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -math.pi * 0.75,
-      value * math.pi * 1.5,
+      arcRect,
+      KnobArcGeometry.start,
+      value * KnobArcGeometry.sweep,
       false,
       arcPaint,
     );
