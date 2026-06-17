@@ -121,6 +121,39 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         }
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
+    if (method == "setBpm") {
+        const auto bpm = static_cast<int>(jsonGetNumberArg(argumentsJson, "bpm", 120.0));
+        if (!engine().setBpm(bpm)) {
+            return buildBridgeError("invalid_bpm");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
+    if (method == "deleteTrack") {
+        const auto trackId = jsonGetStringArg(argumentsJson, "trackId");
+        if (!engine().deleteTrack(trackId)) {
+            return buildBridgeError("delete_track_failed");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
+    if (method == "deleteClip") {
+        const auto clipId = jsonGetStringArg(argumentsJson, "clipId");
+        if (!engine().deleteClip(clipId)) {
+            return buildBridgeError("delete_clip_failed");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
+    if (method == "setLoopEnabled") {
+        const auto enabled = jsonGetBoolArg(argumentsJson, "enabled", true);
+        engine().setLoopEnabled(enabled);
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
+    if (method == "setLoopLengthBeats") {
+        const auto length = jsonGetNumberArg(argumentsJson, "lengthBeats", 16.0);
+        if (!engine().setLoopLengthBeats(length)) {
+            return buildBridgeError("invalid_loop_length");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
     if (method == "previewSample") {
         const auto sampleId = jsonGetStringArg(argumentsJson, "sampleId");
         if (sampleId.empty()) {
@@ -166,6 +199,10 @@ std::string BridgeHost::importWavSample(const std::string& displayName,
         return buildBridgeError("import_failed");
     }
     return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+}
+
+std::vector<float> BridgeHost::renderOffline(double lengthBeats, double sampleRate) {
+    return engine().renderOffline(lengthBeats, sampleRate);
 }
 
 } // namespace audioapp::bridge

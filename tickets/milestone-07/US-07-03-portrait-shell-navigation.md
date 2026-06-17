@@ -20,3 +20,14 @@ Replace the transport play button in the bottom bar with a four-tab shell: **Arr
 - `app_flutter/lib/features/sample_library/sample_library_screen.dart`
 
 [interaction](US-07-03-interaction.md) · [ux-ui](US-07-03-ux-ui.md)
+
+
+
+## Companion stories
+
+- [UX/UI](US-07-03-ux-ui.md)
+- [Interaction](US-07-03-interaction.md)
+
+## Status
+
+**Done**

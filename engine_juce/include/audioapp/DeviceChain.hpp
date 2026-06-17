@@ -28,6 +28,15 @@ struct DeviceNodePlayback {
     const float* samplerPcm = nullptr;
     int samplerFrameCount = 0;
     double samplerPcmSampleRate = 48000.0;
+    float attack = 0.01f;
+    float decay = 0.1f;
+    float sustain = 1.0f;
+    float release = 0.2f;
+    float filterCutoff = 1.0f;
+    float filterQ = 0.5f;
+    int filterMode = 0;
+    int trimStartFrame = 0;
+    int trimEndFrame = 0;
 };
 
 static constexpr int kMaxDevicesPerTrack = 16;
@@ -49,6 +58,7 @@ void processDeviceChain(float* trackBuffer,
                         const DeviceNodePlayback* devices,
                         int deviceCount,
                         float& oscillatorPhase,
-                        bool suppressInstruments) noexcept;
+                        bool suppressInstruments,
+                        BiquadState* samplerFilterStates = nullptr) noexcept;
 
 } // namespace audioapp

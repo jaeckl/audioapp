@@ -5,12 +5,14 @@ class SettingsScreen extends StatelessWidget {
     super.key,
     required this.onSaveProject,
     required this.onLoadProject,
+    required this.onExportMix,
     this.statusMessage,
     this.errorMessage,
   });
 
   final VoidCallback onSaveProject;
   final VoidCallback onLoadProject;
+  final VoidCallback onExportMix;
   final String? statusMessage;
   final String? errorMessage;
 
@@ -34,6 +36,14 @@ class SettingsScreen extends StatelessWidget {
           onPressed: onLoadProject,
           icon: const Icon(Icons.folder_open_outlined),
           label: const Text('Open project'),
+        ),
+        const SizedBox(height: 16),
+        Text('Export', style: theme.textTheme.titleSmall),
+        const SizedBox(height: 8),
+        FilledButton.tonalIcon(
+          onPressed: onExportMix,
+          icon: const Icon(Icons.upload_outlined),
+          label: const Text('Export mix (WAV)'),
         ),
         if (statusMessage != null) ...[
           const SizedBox(height: 12),

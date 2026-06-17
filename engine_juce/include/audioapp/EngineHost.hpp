@@ -45,17 +45,19 @@ public:
     bool moveClip(const std::string& clipId,
                   const std::string& targetTrackId,
                   double startBeat);
+    bool setBpm(int bpm);
+    bool deleteTrack(const std::string& trackId);
+    bool deleteClip(const std::string& clipId);
+    bool setLoopEnabled(bool enabled);
+    bool setLoopLengthBeats(double lengthBeats);
+    std::vector<float> renderOffline(double lengthBeats, double sampleRate);
     std::string importWavSample(const std::string& displayName, const std::vector<uint8_t>& wavBytes);
     void previewSample(const std::string& sampleId);
     void ensureAudioOutput();
 
-    /// Desktop / tests: `.audioapp.zip` I/O via ProjectArchive.cpp (ADR-0006).
     bool saveProject(const std::string& archivePath);
     bool loadProject(const std::string& archivePath);
-
-    /// All platforms: serialize in-memory project to `project.json` text.
     std::string getProjectFileJson() const;
-    /// All platforms: restore project from `project.json` text.
     bool loadProjectFileJson(const std::string& json);
 
     std::string getProjectSnapshotJson() const;

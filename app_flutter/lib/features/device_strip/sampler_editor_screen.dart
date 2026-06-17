@@ -1,100 +1,111 @@
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
-import '../sample_library/sample_library_screen.dart';
-import 'sampler_device_strip.dart';
+import 'device_landscape_shell.dart';
+import 'device_strip_metrics.dart';
+import 'sampler_device_panel.dart';
+import 'waveform_trim_editor.dart';
 
-/// Fullscreen sampler editor (waveform trim in US-07-02).
-class SamplerEditorScreen extends StatelessWidget {
+/// Fullscreen sampler editor — landscape-only, same layout as the device strip.
+class SamplerEditorScreen extends StatefulWidget {
   const SamplerEditorScreen({
     super.key,
     required this.trackName,
     required this.device,
     required this.sample,
-    required this.onGainChanged,
+    required this.bpm,
+    required this.onParameterChanged,
     required this.onLoadSample,
   });
 
   final String trackName;
   final DeviceSnapshot device;
   final SampleLibraryEntrySnapshot? sample;
-  final ValueChanged<double> onGainChanged;
-  final VoidCallback onLoadSample;
+  final int bpm;
+  final Future<void> Function(String parameterId, double value) onParameterChanged;
+  final Future<SampleLibraryEntrySnapshot?> Function() onLoadSample;
+
+  @override
+  State<SamplerEditorScreen> createState() => _SamplerEditorScreenState();
+}
+
+class _SamplerEditorScreenState extends State<SamplerEditorScreen> {
+  late DeviceSnapshot _device;
+  SampleLibraryEntrySnapshot? _sample;
+
+  @override
+  void initState() {
+    super.initState();
+    _device = widget.device;
+    _sample = widget.sample;
+  }
+
+  double get _durationSec {
+    final beats = _sample?.durationBeats ?? 0;
+    if (beats <= 0 || widget.bpm <= 0) return 1.0;
+    return beats * 60.0 / widget.bpm;
+  }
+
+  Future<void> _handleParameterChanged(String parameterId, double value) async {
+    setState(() => _device = _device.withParameter(parameterId, value));
+    await widget.onParameterChanged(parameterId, value);
+  }
+
+  Future<void> _handleLoadSample() async {
+    final sample = await widget.onLoadSample();
+    if (!mounted || sample == null) {
+      return;
+    }
+    setState(() {
+      _sample = sample;
+      _device = _device.copyWith(sampleId: sample.id);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final sampleName = sample?.name ?? 'No sample loaded';
-    final peaks = sample?.waveformPeaks ?? const <double>[];
+    final sampleName = _sample?.name ?? 'No sample loaded';
+    final peaks = _sample?.waveformPeaks ?? const <double>[];
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0E0E14),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1A1A22),
-        title: Text(sampleName),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
+    return DeviceLandscapeShell(
+      title: '${widget.trackName} · $sampleName',
+      designWidth: DeviceStripMetrics.designWidth,
+      designHeight: DeviceStripMetrics.height + 80,
+      actions: [
+        IconButton(
+          tooltip: 'Load sample',
+          onPressed: _handleLoadSample,
+          icon: const Icon(Icons.folder_open_outlined),
         ),
-        actions: [
-          IconButton(
-            tooltip: 'Load sample',
-            onPressed: onLoadSample,
-            icon: const Icon(Icons.folder_open_outlined),
-          ),
-        ],
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      ],
+      child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Text(
-              '$trackName · Sampler',
-              style: theme.textTheme.labelLarge?.copyWith(color: Colors.white54),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              child: peaks.isEmpty
+                  ? const Center(child: Text('Load a sample to trim'))
+                  : WaveformTrimEditor(
+                      peaks: peaks,
+                      durationSec: _durationSec,
+                      trimStartSec: _device.trimStartSec,
+                      trimEndSec: _device.trimEndSec,
+                      onTrimChanged: (start, end) async {
+                        await _handleParameterChanged('trimStartSec', start);
+                        await _handleParameterChanged('trimEndSec', end);
+                      },
+                    ),
             ),
           ),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF121218),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.white12),
-                ),
-                child: peaks.isEmpty
-                    ? Center(
-                        child: Text(
-                          'Load a sample from the library',
-                          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white38),
-                        ),
-                      )
-                    : ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: CustomPaint(
-                          painter: WaveformPainter(peaks: peaks),
-                          child: const SizedBox.expand(),
-                        ),
-                      ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            child: Row(
-              children: [
-                const Text('Gain'),
-                Expanded(
-                  child: Slider(
-                    min: 0,
-                    max: 1,
-                    value: device.gain.clamp(0, 1),
-                    onChanged: onGainChanged,
-                  ),
-                ),
-                Text('${(device.gain * 100).round()}%'),
-              ],
+            flex: 3,
+            child: SamplerDevicePanel(
+              device: _device,
+              sample: _sample,
+              onParameterChanged: (parameterId, value) {
+                _handleParameterChanged(parameterId, value);
+              },
             ),
           ),
         ],

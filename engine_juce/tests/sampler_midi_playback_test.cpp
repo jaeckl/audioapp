@@ -1,10 +1,20 @@
 #include "audioapp/EngineHost.hpp"
+#include "audioapp/SamplePlayback.hpp"
 
 #include <cmath>
 #include <cstdlib>
 
 int main() {
-    audioapp::EngineHost host;
+    using namespace audioapp;
+
+    if (samplerAdsrGain(0.0f, 1.0f, 0.5f, 0.5f, 1.0f, 0.5f) > 0.01f) {
+        return EXIT_FAILURE;
+    }
+    if (std::abs(samplerAdsrGain(0.25f, 1.0f, 0.5f, 0.5f, 1.0f, 0.5f) - 0.5f) > 0.01f) {
+        return EXIT_FAILURE;
+    }
+
+    EngineHost host;
     host.createProject();
     const std::string trackId = host.addTrack("Drums");
     if (trackId.empty()) {
@@ -35,6 +45,20 @@ int main() {
         peakSample = std::max(peakSample, std::abs(sample));
     }
     if (peakSample <= 1.0e-4f) {
+        return EXIT_FAILURE;
+    }
+
+    if (!host.setDeviceParameter("dev-1", "attack", 1.0f)) {
+        return EXIT_FAILURE;
+    }
+
+    float slowAttack[512] = {};
+    host.readMasterMix(slowAttack, 512, 48000.0, 0.0);
+    float peakSlow = 0.0f;
+    for (const float sample : slowAttack) {
+        peakSlow = std::max(peakSlow, std::abs(sample));
+    }
+    if (peakSlow >= peakSample * 0.95f) {
         return EXIT_FAILURE;
     }
 

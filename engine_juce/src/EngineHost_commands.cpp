@@ -113,6 +113,30 @@ bool EngineHost::moveClip(const std::string& clipId,
     return project_.moveClip(clipId, targetTrackId, startBeat);
 }
 
+bool EngineHost::setBpm(int bpm) {
+    return project_.setBpm(bpm);
+}
+
+bool EngineHost::deleteTrack(const std::string& trackId) {
+    return project_.deleteTrack(trackId);
+}
+
+bool EngineHost::deleteClip(const std::string& clipId) {
+    return project_.deleteClip(clipId);
+}
+
+bool EngineHost::setLoopEnabled(bool enabled) {
+    return project_.setLoopEnabled(enabled);
+}
+
+bool EngineHost::setLoopLengthBeats(double lengthBeats) {
+    return project_.setLoopLengthBeats(lengthBeats);
+}
+
+std::vector<float> EngineHost::renderOffline(double lengthBeats, double sampleRate) {
+    return project_.renderOffline(lengthBeats, sampleRate);
+}
+
 std::string EngineHost::importWavSample(const std::string& displayName,
                                         const std::vector<uint8_t>& wavBytes) {
     ensureSampleBankReady();

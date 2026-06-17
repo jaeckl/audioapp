@@ -19,6 +19,11 @@ class MainActivity : FlutterFragmentActivity() {
     private var pendingSaveResult: MethodChannel.Result? = null
     private var pendingLoadResult: MethodChannel.Result? = null
     private var pendingImportResult: MethodChannel.Result? = null
+    private var pendingExportResult: MethodChannel.Result? = null
+
+    private val createWavExport = registerForActivityResult(
+        ActivityResultContracts.CreateDocument(WavEncoder.MIME_TYPE),
+    ) { documentUri -> onExportWavPicked(documentUri) }
 
     private val createProjectArchive = registerForActivityResult(
         ActivityResultContracts.CreateDocument(ProjectArchiveStore.ARCHIVE_MIME_TYPE),
@@ -33,7 +38,7 @@ class MainActivity : FlutterFragmentActivity() {
     ) { documentUri -> onImportSamplePicked(documentUri) }
 
     private fun launchSaveArchivePicker(result: MethodChannel.Result) {
-        if (pendingSaveResult != null || pendingLoadResult != null || pendingImportResult != null) {
+        if (pendingSaveResult != null || pendingLoadResult != null || pendingImportResult != null || pendingExportResult != null) {
             result.error("busy", "File picker already open", null)
             return
         }
@@ -51,7 +56,7 @@ class MainActivity : FlutterFragmentActivity() {
     }
 
     private fun launchImportSamplePicker(result: MethodChannel.Result) {
-        if (pendingSaveResult != null || pendingLoadResult != null || pendingImportResult != null) {
+        if (pendingSaveResult != null || pendingLoadResult != null || pendingImportResult != null || pendingExportResult != null) {
             result.error("busy", "File picker already open", null)
             return
         }
@@ -165,6 +170,47 @@ class MainActivity : FlutterFragmentActivity() {
         }
     }
 
+    private fun launchExportMixPicker(result: MethodChannel.Result, lengthBeats: Double) {
+        if (pendingSaveResult != null || pendingLoadResult != null || pendingImportResult != null || pendingExportResult != null) {
+            result.error("busy", "File picker already open", null)
+            return
+        }
+        pendingExportLengthBeats = lengthBeats
+        pendingExportResult = result
+        createWavExport.launch(WavEncoder.DEFAULT_NAME)
+    }
+
+    private var pendingExportLengthBeats: Double = 16.0
+
+    private fun onExportWavPicked(documentUri: Uri?) {
+        val result = pendingExportResult
+        pendingExportResult = null
+        if (result == null) {
+            return
+        }
+        if (documentUri == null) {
+            result.success(mapOf("ok" to false, "cancelled" to true))
+            return
+        }
+        try {
+            val pcm = nativeRenderOffline(pendingExportLengthBeats)
+            if (pcm.isEmpty()) {
+                result.error("export_failed", "Render produced no audio", null)
+                return
+            }
+            contentResolver.openOutputStream(documentUri)?.use { output ->
+                WavEncoder.writeMonoFloat32Wav(output, pcm)
+            } ?: run {
+                result.error("export_failed", "Could not open output stream", null)
+                return
+            }
+            result.success(mapOf("ok" to true, "uri" to documentUri.toString(), "cancelled" to false))
+        } catch (e: Exception) {
+            Log.e(logTag, "Export WAV failed", e)
+            result.error("export_failed", e.message, null)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
@@ -188,6 +234,13 @@ class MainActivity : FlutterFragmentActivity() {
                         "saveProject" -> launchSaveArchivePicker(result)
                         "loadProject" -> launchLoadArchivePicker(result)
                         "importSample" -> launchImportSamplePicker(result)
+                        "exportMix" -> {
+                            val lengthBeats = when (val args = call.arguments) {
+                                is Map<*, *> -> (args["lengthBeats"] as? Number)?.toDouble() ?: 16.0
+                                else -> 16.0
+                            }
+                            launchExportMixPicker(result, lengthBeats)
+                        }
                         "createProject",
                         "getProjectSnapshot",
                         "addTrack",
@@ -201,6 +254,10 @@ class MainActivity : FlutterFragmentActivity() {
                         "setMidiClipNotes",
                         "createSampleClip",
                         "moveClip",
+                        "setBpm",
+                        "deleteTrack",
+                        "deleteClip",
+                        "setLoopEnabled",
                         "previewSample" -> {
                             val argsJson = when (val args = call.arguments) {
                                 null -> "{}"
@@ -288,6 +345,7 @@ class MainActivity : FlutterFragmentActivity() {
     private external fun nativeGetProjectFileJson(): String
     private external fun nativeLoadProjectFileJson(projectJson: String): String
     private external fun nativeImportWavSample(displayName: String, wavBytes: ByteArray): String
+    private external fun nativeRenderOffline(lengthBeats: Double): FloatArray
     private external fun nativePlay()
     private external fun nativeStop()
 

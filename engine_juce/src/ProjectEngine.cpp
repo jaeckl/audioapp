@@ -145,6 +145,16 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
             rebuildTrackPlaybackLocked();
             return true;
         }
+        if (parameterId == "trimStartSec") {
+            device->trimStartSec = std::max(0.0f, value);
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
+        if (parameterId == "trimEndSec") {
+            device->trimEndSec = std::max(0.0f, value);
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
     }
     return false;
 }
@@ -293,6 +303,96 @@ bool ProjectEngine::moveClip(const std::string& clipId,
     return false;
 }
 
+bool ProjectEngine::setBpm(int bpm) {
+    if (bpm < 40 || bpm > 300) {
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(mutex_);
+    bpm_ = bpm;
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
+bool ProjectEngine::deleteTrack(const std::string& trackId) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (tracks_.size() <= 1) {
+        return false;
+    }
+    for (auto it = tracks_.begin(); it != tracks_.end(); ++it) {
+        if (it->id != trackId) {
+            continue;
+        }
+        tracks_.erase(it);
+        if (selectedTrackId_ == trackId) {
+            selectedTrackId_ = tracks_.empty() ? std::string{} : tracks_.front().id;
+        }
+        syncActiveFrequencyLocked();
+        rebuildTrackPlaybackLocked();
+        return true;
+    }
+    return false;
+}
+
+bool ProjectEngine::deleteClip(const std::string& clipId) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (auto& track : tracks_) {
+        for (auto it = track.midiClips.begin(); it != track.midiClips.end(); ++it) {
+            if (it->id == clipId) {
+                track.midiClips.erase(it);
+                rebuildTrackPlaybackLocked();
+                return true;
+            }
+        }
+        for (auto it = track.sampleClips.begin(); it != track.sampleClips.end(); ++it) {
+            if (it->id == clipId) {
+                track.sampleClips.erase(it);
+                rebuildTrackPlaybackLocked();
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool ProjectEngine::setLoopEnabled(bool enabled) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    loopEnabled_ = enabled;
+    return true;
+}
+
+bool ProjectEngine::setLoopLengthBeats(double lengthBeats) {
+    if (lengthBeats < 1.0) {
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(mutex_);
+    loopLengthBeats_ = lengthBeats;
+    return true;
+}
+
+std::vector<float> ProjectEngine::renderOffline(double lengthBeats, double sampleRate) {
+    if (lengthBeats <= 0.0 || sampleRate <= 0.0) {
+        return {};
+    }
+    std::lock_guard<std::mutex> lock(mutex_);
+    const int totalFrames =
+        static_cast<int>(lengthBeats * sampleRate * 60.0 / static_cast<double>(std::max(bpm_, 1)));
+    if (totalFrames <= 0) {
+        return {};
+    }
+    std::vector<float> output(static_cast<size_t>(totalFrames), 0.0f);
+    constexpr int kBlock = 512;
+    float block[kBlock];
+    for (int offset = 0; offset < totalFrames; offset += kBlock) {
+        const int frames = std::min(kBlock, totalFrames - offset);
+        const double beat =
+            static_cast<double>(offset) / sampleRate * static_cast<double>(bpm_) / 60.0;
+        std::memset(block, 0, static_cast<size_t>(frames) * sizeof(float));
+        mixAtPlayheadBeat(block, frames, sampleRate, beat);
+        std::memcpy(output.data() + offset, block, static_cast<size_t>(frames) * sizeof(float));
+    }
+    return output;
+}
+
 ProjectSnapshot ProjectEngine::snapshot() const {
     std::lock_guard<std::mutex> lock(mutex_);
     ProjectSnapshot snap;
@@ -300,6 +400,8 @@ ProjectSnapshot ProjectEngine::snapshot() const {
     snap.selectedTrackId = selectedTrackId_;
     snap.playheadBeats = playheadBeats_.load(std::memory_order_relaxed);
     snap.playing = playing_.load(std::memory_order_relaxed);
+    snap.loopEnabled = loopEnabled_;
+    snap.loopLengthBeats = loopLengthBeats_;
     snap.master.id = "master";
     snap.master.name = "Master";
     snap.master.gain = masterGain_.load(std::memory_order_relaxed);
@@ -334,6 +436,8 @@ ProjectSnapshot ProjectEngine::snapshot() const {
             ds.filterCutoff = device.filterCutoff;
             ds.filterQ = device.filterQ;
             ds.filterMode = device.filterMode;
+            ds.trimStartSec = device.trimStartSec;
+            ds.trimEndSec = device.trimEndSec;
             ts.devices.push_back(ds);
         }
         ts.midiClips.reserve(track.midiClips.size());
@@ -418,8 +522,17 @@ void ProjectEngine::readMasterMix(float* monoOut,
         return;
     }
     std::memset(monoOut, 0, static_cast<size_t>(numFrames) * sizeof(float));
-
     if (!playing_.load(std::memory_order_acquire)) {
+        return;
+    }
+    mixAtPlayheadBeat(monoOut, numFrames, sampleRate, playheadStartBeat);
+}
+
+void ProjectEngine::mixAtPlayheadBeat(float* monoOut,
+                                      int numFrames,
+                                      double sampleRate,
+                                      double playheadStartBeat) noexcept {
+    if (monoOut == nullptr || numFrames <= 0) {
         return;
     }
 
@@ -436,7 +549,7 @@ void ProjectEngine::readMasterMix(float* monoOut,
     SampleClipPlaybackRegion regions[8];
 
     for (int trackIndex = 0; trackIndex < trackCount; ++trackIndex) {
-        TrackPlaybackSnapshot& track = trackPlayback_[trackIndex];
+        const TrackPlaybackSnapshot& track = trackPlayback_[trackIndex];
         std::memset(trackMono, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
 
         if (track.regionCount > 0) {
@@ -475,6 +588,7 @@ void ProjectEngine::readMasterMix(float* monoOut,
             };
         }
 
+        float oscillatorPhase = track.oscillatorPhase;
         processDeviceChain(trackMono,
                            framesToProcess,
                            sampleRate,
@@ -484,8 +598,10 @@ void ProjectEngine::readMasterMix(float* monoOut,
                            noteCount,
                            track.devices,
                            track.deviceCount,
-                           track.oscillatorPhase,
-                           suppressInstruments);
+                           oscillatorPhase,
+                           suppressInstruments,
+                           trackPlayback_[trackIndex].samplerFilterStates);
+        trackPlayback_[trackIndex].oscillatorPhase = oscillatorPhase;
 
         for (int frame = 0; frame < framesToProcess; ++frame) {
             monoOut[frame] += trackMono[frame];
@@ -528,7 +644,10 @@ void ProjectEngine::advancePlayhead(int numFrames, double sampleRate) noexcept {
         return;
     }
     const double current = playheadBeats_.load(std::memory_order_relaxed);
-    const double next = advancePlayheadBeats(current, numFrames, sampleRate, bpm_);
+    double next = advancePlayheadBeats(current, numFrames, sampleRate, bpm_);
+    if (loopEnabled_ && loopLengthBeats_ > 0.0 && next >= loopLengthBeats_) {
+        next = std::fmod(next, loopLengthBeats_);
+    }
     playheadBeats_.store(next, std::memory_order_release);
 }
 
@@ -573,6 +692,8 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
                 device.filterCutoff,
                 device.filterQ,
                 device.filterMode,
+                device.trimStartSec,
+                device.trimEndSec,
             });
         }
         for (const auto& clip : track.midiClips) {
@@ -638,6 +759,8 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
             device.filterCutoff = deviceState.filterCutoff;
             device.filterQ = deviceState.filterQ;
             device.filterMode = deviceState.filterMode;
+            device.trimStartSec = deviceState.trimStartSec;
+            device.trimEndSec = deviceState.trimEndSec;
             track.devices.push_back(std::move(device));
         }
         for (const auto& clipState : trackState.midiClips) {
@@ -736,6 +859,13 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
             } else if (device.type == "simple_sampler") {
                 node.kind = DeviceNodeKind::Sampler;
                 node.gain = device.gain;
+                node.attack = device.attack;
+                node.decay = device.decay;
+                node.sustain = device.sustain;
+                node.release = device.release;
+                node.filterCutoff = device.filterCutoff;
+                node.filterQ = device.filterQ;
+                node.filterMode = device.filterMode;
                 node.samplerPcm = nullptr;
                 node.samplerFrameCount = 0;
                 node.samplerPcmSampleRate = 48000.0;
@@ -745,6 +875,16 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                             node.samplerPcm = sample->pcm.data();
                             node.samplerFrameCount = static_cast<int>(sample->pcm.size());
                             node.samplerPcmSampleRate = sample->sampleRate;
+                            const int frameCount = node.samplerFrameCount;
+                            node.trimStartFrame = std::clamp(
+                                static_cast<int>(device.trimStartSec * sample->sampleRate),
+                                0,
+                                std::max(0, frameCount - 1));
+                            node.trimEndFrame = device.trimEndSec > 0.0f
+                                ? std::clamp(static_cast<int>(device.trimEndSec * sample->sampleRate),
+                                             node.trimStartFrame + 1,
+                                             frameCount)
+                                : frameCount;
                         }
                     }
                 }

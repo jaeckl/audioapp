@@ -19,3 +19,14 @@ Mixer tab shows one column per track plus master, each with a volume slider. Per
 - `app_flutter/lib/bridge/project_snapshot.dart`
 
 [interaction](US-07-04-interaction.md) · [ux-ui](US-07-04-ux-ui.md)
+
+
+
+## Companion stories
+
+- [UX/UI](US-07-04-ux-ui.md)
+- [Interaction](US-07-04-interaction.md)
+
+## Status
+
+**Done**

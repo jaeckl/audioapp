@@ -1,25 +1,30 @@
 # Milestone 06 — Sample library & audio clips
 
-PO refinement: **sample clips on the timeline** (not sampler-on-strip as the M06 core).
+**20 stories** — see [roadmap](roadmap.md) · [story_manifest.yaml](../../tickets/story_manifest.yaml)
 
-| Story | Summary |
-|-------|---------|
-| [US-06-01](../../tickets/milestone-06/US-06-01-bundled-sample-library.md) | Bundled library + preview |
-| [US-06-02](../../tickets/milestone-06/US-06-02-import-sample-system-picker.md) | Import via system picker |
-| [US-06-03](../../tickets/milestone-06/US-06-03-insert-sample-clip-on-track.md) | Insert sample clip from library onto track |
-| [US-06-04](../../tickets/milestone-06/US-06-04-waveform-in-arrangement.md) | Waveform visible in arrangement |
-| [US-06-05](../../tickets/milestone-06/US-06-05-playhead-sample-audition.md) | Hear sample when playhead crosses clip (selected track) |
-| [US-06-06](../../tickets/milestone-06/US-06-06-compact-icon-track-headers.md) | Compact icon track headers |
-| [US-06-07](../../tickets/milestone-06/US-06-07-sample-clip-readable-width.md) | Sample clip readable width |
-| [US-06-08](../../tickets/milestone-06/US-06-08-pinch-horizontal-zoom.md) | Pinch horizontal zoom |
-| [US-06-09](../../tickets/milestone-06/US-06-09-horizontal-scroll-arrangement.md) | Horizontal scroll arrangement |
-| [US-06-10](../../tickets/milestone-06/US-06-10-master-track-arrangement-row.md) | Master track row (bottom) |
-| [US-06-11](../../tickets/milestone-06/US-06-11-equal-sum-master-bus.md) | Equal-sum master bus → device out |
+| ID | Summary | Status |
+|----|---------|--------|
+| US-06-01 | Bundled library + tab | Done |
+| US-06-02 | Import via system picker | Done |
+| US-06-03 | Insert sample clip on track | Done |
+| US-06-04 | Waveform in arrangement | Done |
+| US-06-05 | Playhead sample audition | Done |
+| US-06-06 | Compact track headers | Done |
+| US-06-07 | Readable clip width | Done |
+| US-06-08 | Pinch zoom | Done |
+| US-06-09 | Horizontal scroll | Done |
+| US-06-10 | Master row | Done |
+| US-06-11 | Equal-sum master bus | Done |
+| US-06-12 | Library preview | Done |
+| US-06-13 | WAV decode + peaks | Done |
+| US-06-14 | MIDI sampler playback | In progress |
+| US-06-15 | Sample clip drag move | Todo |
+| US-06-16 | Sample clip resize | Todo |
+| US-06-17 | Duplicate sample clip | Todo |
+| US-06-18 | Delete sample clip | Todo |
+| US-06-19 | Library search | Todo |
+| US-06-20 | M06 PO demo | Todo |
 
-**PO demo:** Insert kick + snare clips → see waveforms → Play → hear each as playhead passes → Save/Load. Pinch/scroll timeline; icon track headers; master row at bottom.
+Legacy ticket files US-06-01 … US-06-11 remain in `tickets/milestone-06/`. New IDs US-06-12+ map to split work in the manifest.
 
-## Deferred (backlog later)
-
-Sampler device on strip + MIDI-triggered sample playback (previous US-06-03/04 draft) — revisit after audio clips land or as parallel instrument path.
-
-[roadmap](roadmap.md)
+**PO demo:** Library → insert kick + snare → waveforms → play → save/load.

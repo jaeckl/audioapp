@@ -33,6 +33,7 @@ add_library(audioapp_engine STATIC
   src/SampleBank.cpp
   src/WavLoader.cpp
   src/SamplePlayback.cpp
+  src/SamplerFilter.cpp
   src/MasterMix.cpp
   src/DeviceChain.cpp
   src/EngineHost_commands.cpp

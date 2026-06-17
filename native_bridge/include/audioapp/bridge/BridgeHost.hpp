@@ -15,6 +15,7 @@ public:
     /// Parse `project.json` content into the engine; returns bridge JSON response. Used by Android JNI.
     std::string loadProjectFileJson(const std::string& projectJson);
     std::string importWavSample(const std::string& displayName, const std::vector<uint8_t>& wavBytes);
+    std::vector<float> renderOffline(double lengthBeats, double sampleRate);
 
 private:
     bool playing_ = false;

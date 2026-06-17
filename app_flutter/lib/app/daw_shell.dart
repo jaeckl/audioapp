@@ -233,7 +233,9 @@ class _DawShellState extends State<DawShell> {
           trackName: track.name,
           device: device,
           sample: _sampleForDevice(device),
-          onGainChanged: (value) => _setSamplerGain(device.id, value),
+          bpm: _snapshot?.bpm ?? 120,
+          onParameterChanged: (parameterId, value) =>
+              _setSamplerParameter(device.id, parameterId, value),
           onLoadSample: () => _pickSamplerSample(device.id),
         ),
       ),
@@ -245,7 +247,7 @@ class _DawShellState extends State<DawShell> {
     } catch (_) {}
   }
 
-  Future<void> _pickSamplerSample(String deviceId) async {
+  Future<SampleLibraryEntrySnapshot?> _pickSamplerSample(String deviceId) async {
     final sample = await showModalBottomSheet<SampleLibraryEntrySnapshot>(
       context: context,
       isScrollControlled: true,
@@ -268,8 +270,9 @@ class _DawShellState extends State<DawShell> {
         ),
       ),
     );
-    if (sample == null) return;
+    if (sample == null) return null;
     await _assignSamplerSample(deviceId, sample.id);
+    return sample;
   }
 
   Future<void> _setFrequency(String deviceId, double value) async {
@@ -420,6 +423,85 @@ class _DawShellState extends State<DawShell> {
     } catch (_) {}
   }
 
+  Future<void> _setBpm(int bpm) async {
+    try {
+      final snapshot = await widget.bridge.setBpm(bpm);
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
+  Future<void> _setLoopEnabled(bool enabled) async {
+    try {
+      final snapshot = await widget.bridge.setLoopEnabled(enabled);
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
+  Future<void> _confirmDeleteTrack(String trackId) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete track?'),
+        content: const Text('Clips on this track will be removed.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      final snapshot = await widget.bridge.deleteTrack(trackId);
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
+  Future<void> _confirmDeleteClip(String clipId) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete clip?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      final snapshot = await widget.bridge.deleteClip(clipId);
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
+  Future<void> _exportMix() async {
+    try {
+      setState(() => _saveStatus = 'Rendering…');
+      final length = _snapshot?.loopLengthBeats ?? 16.0;
+      final uri = await widget.bridge.exportMix(lengthBeats: length);
+      if (!mounted) return;
+      setState(() => _saveStatus = uri == null ? null : 'Exported mix');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _projectError = e.toString();
+        _saveStatus = null;
+      });
+    }
+  }
+
   Future<void> _moveClip({
     required String clipId,
     required String trackId,
@@ -480,6 +562,8 @@ class _DawShellState extends State<DawShell> {
                 onClipTap: _openPianoRoll,
                 onSampleClipTap: (_, __) {},
                 onMoveClip: _moveClip,
+                onDeleteTrack: _confirmDeleteTrack,
+                onDeleteClip: _confirmDeleteClip,
               ),
             ),
             DeviceStrip(
@@ -519,6 +603,7 @@ class _DawShellState extends State<DawShell> {
         return SettingsScreen(
           onSaveProject: _saveProject,
           onLoadProject: _loadProject,
+          onExportMix: _exportMix,
           statusMessage: _saveStatus,
           errorMessage: _projectError,
         );
@@ -535,6 +620,9 @@ class _DawShellState extends State<DawShell> {
             bpm: snapshot.bpm,
             playheadBeats: snapshot.playheadBeats,
             version: kAppVersion,
+            loopEnabled: snapshot.loopEnabled,
+            onBpmChanged: _setBpm,
+            onLoopToggled: _setLoopEnabled,
           ),
         Expanded(
           child: snapshot == null

@@ -17,3 +17,14 @@ In landscape, the shell bottom tab bar stays pinned to the bottom edge (never re
 - `app_flutter/lib/app/daw_shell.dart`
 
 [interaction](US-07-06-interaction.md) · [ux-ui](US-07-06-ux-ui.md)
+
+
+
+## Companion stories
+
+- [UX/UI](US-07-06-ux-ui.md)
+- [Interaction](US-07-06-interaction.md)
+
+## Status
+
+**Done**

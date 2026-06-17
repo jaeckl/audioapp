@@ -22,6 +22,8 @@ class ArrangementView extends StatefulWidget {
     required this.onClipTap,
     required this.onSampleClipTap,
     required this.onMoveClip,
+    this.onDeleteTrack,
+    this.onDeleteClip,
   });
 
   final ProjectSnapshot snapshot;
@@ -40,6 +42,8 @@ class ArrangementView extends StatefulWidget {
     required String trackId,
     required double startBeat,
   }) onMoveClip;
+  final void Function(String trackId)? onDeleteTrack;
+  final void Function(String clipId)? onDeleteClip;
 
   @override
   State<ArrangementView> createState() => _ArrangementViewState();
@@ -357,8 +361,8 @@ class _ArrangementViewState extends State<ArrangementView> {
       context: context,
       position: menuPosition,
       color: const Color(0xFF1A1A22),
-      items: const [
-        PopupMenuItem(
+      items: [
+        const PopupMenuItem(
           value: 'midi',
           child: ListTile(
             contentPadding: EdgeInsets.zero,
@@ -366,7 +370,7 @@ class _ArrangementViewState extends State<ArrangementView> {
             title: Text('Add MIDI Clip'),
           ),
         ),
-        PopupMenuItem(
+        const PopupMenuItem(
           value: 'audio',
           child: ListTile(
             contentPadding: EdgeInsets.zero,
@@ -374,6 +378,15 @@ class _ArrangementViewState extends State<ArrangementView> {
             title: Text('Add Audio Clip'),
           ),
         ),
+        if (widget.onDeleteTrack != null)
+          const PopupMenuItem(
+            value: 'delete_track',
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.delete_outline, size: 22, color: Colors.redAccent),
+              title: Text('Delete track'),
+            ),
+          ),
       ],
     );
     if (!mounted || action == null) {
@@ -389,6 +402,8 @@ class _ArrangementViewState extends State<ArrangementView> {
       widget.onAddMidiClip(track.id, startBeat);
     } else if (action == 'audio') {
       widget.onAddAudioClip(track.id, desiredBeat);
+    } else if (action == 'delete_track') {
+      widget.onDeleteTrack?.call(track.id);
     }
   }
 
@@ -434,6 +449,7 @@ class _ArrangementViewState extends State<ArrangementView> {
                             details,
                             lanePress: true,
                           ),
+                          onDeleteClip: widget.onDeleteClip,
                         ),
                       _AddTrackLane(),
                     ],
@@ -831,6 +847,7 @@ class _TrackLane extends StatelessWidget {
     required this.onClipDragEnd,
     required this.onClipDragCancel,
     required this.onLongPressStart,
+    this.onDeleteClip,
   });
 
   final TrackSnapshot track;
@@ -854,6 +871,7 @@ class _TrackLane extends StatelessWidget {
   final GestureLongPressEndCallback onClipDragEnd;
   final VoidCallback onClipDragCancel;
   final GestureLongPressStartCallback onLongPressStart;
+  final void Function(String clipId)? onDeleteClip;
 
   List<double> get _clipStarts {
     return [
@@ -899,6 +917,7 @@ class _TrackLane extends StatelessWidget {
                 clip: clip,
                 highlighted: draggingClipId == clip.id,
                 onTap: () => onSampleClipTap(track.id, clip),
+                onDoubleTap: onDeleteClip == null ? null : () => onDeleteClip!(clip.id),
                 onDragStart: (details) => onClipDragStart(
                   trackId: track.id,
                   clipId: clip.id,
@@ -923,6 +942,7 @@ class _TrackLane extends StatelessWidget {
                 clip: clip,
                 highlighted: draggingClipId == clip.id,
                 onTap: () => onClipTap(track.id, clip),
+                onDoubleTap: onDeleteClip == null ? null : () => onDeleteClip!(clip.id),
                 onDragStart: (details) => onClipDragStart(
                   trackId: track.id,
                   clipId: clip.id,
@@ -953,11 +973,13 @@ class _MidiClipBlock extends StatelessWidget {
     required this.onDragUpdate,
     required this.onDragEnd,
     required this.onDragCancel,
+    this.onDoubleTap,
   });
 
   final MidiClipSnapshot clip;
   final bool highlighted;
   final VoidCallback onTap;
+  final VoidCallback? onDoubleTap;
   final GestureLongPressStartCallback onDragStart;
   final GestureLongPressMoveUpdateCallback onDragUpdate;
   final GestureLongPressEndCallback onDragEnd;
@@ -969,6 +991,7 @@ class _MidiClipBlock extends StatelessWidget {
       color: Colors.transparent,
       child: GestureDetector(
         onTap: highlighted ? null : onTap,
+        onDoubleTap: onDoubleTap,
         onLongPressStart: onDragStart,
         onLongPressMoveUpdate: onDragUpdate,
         onLongPressEnd: onDragEnd,
@@ -1015,11 +1038,13 @@ class _SampleClipBlock extends StatelessWidget {
     required this.onDragUpdate,
     required this.onDragEnd,
     required this.onDragCancel,
+    this.onDoubleTap,
   });
 
   final SampleClipSnapshot clip;
   final bool highlighted;
   final VoidCallback onTap;
+  final VoidCallback? onDoubleTap;
   final GestureLongPressStartCallback onDragStart;
   final GestureLongPressMoveUpdateCallback onDragUpdate;
   final GestureLongPressEndCallback onDragEnd;
@@ -1032,6 +1057,7 @@ class _SampleClipBlock extends StatelessWidget {
       color: Colors.transparent,
       child: GestureDetector(
         onTap: highlighted ? null : onTap,
+        onDoubleTap: onDoubleTap,
         onLongPressStart: onDragStart,
         onLongPressMoveUpdate: onDragUpdate,
         onLongPressEnd: onDragEnd,

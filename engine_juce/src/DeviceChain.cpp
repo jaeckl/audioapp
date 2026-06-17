@@ -49,7 +49,8 @@ void processDeviceChain(float* trackBuffer,
                         const DeviceNodePlayback* devices,
                         int deviceCount,
                         float& oscillatorPhase,
-                        bool suppressInstruments) noexcept {
+                        bool suppressInstruments,
+                        BiquadState* samplerFilterStates) noexcept {
     if (trackBuffer == nullptr || numFrames <= 0 || devices == nullptr || deviceCount <= 0) {
         return;
     }
@@ -101,6 +102,18 @@ void processDeviceChain(float* trackBuffer,
                                              node.samplerPcmSampleRate,
                                              node.gain * kInstrumentOutputGain,
                                              60,
+                                             node.attack,
+                                             node.decay,
+                                             node.sustain,
+                                             node.release,
+                                             node.filterCutoff,
+                                             node.filterQ,
+                                             node.filterMode,
+                                             node.trimStartFrame,
+                                             node.trimEndFrame,
+                                             samplerFilterStates != nullptr
+                                                 ? &samplerFilterStates[deviceIndex]
+                                                 : nullptr,
                                          });
             }
             break;

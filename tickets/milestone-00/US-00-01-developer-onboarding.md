@@ -70,6 +70,12 @@ None for skeleton.
 - [x] README.md
 - [x] docs/guidelines/windows_android_setup.md
 
+
+## Companion stories
+
+- [UX/UI](US-00-01-ux-ui.md)
+- [Interaction](US-00-01-interaction.md)
+
 ## Status
 
 **Done**

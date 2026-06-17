@@ -63,6 +63,12 @@ Engine test harness: render fixture → compare golden file.
 
 US-08-03 (minimum graph richness)
 
+
+## Companion stories
+
+- [UX/UI](US-09-01-ux-ui.md)
+- [Interaction](US-09-01-interaction.md)
+
 ## Status
 
 **Todo**

@@ -48,6 +48,7 @@ class _RotaryKnobState extends State<RotaryKnob> {
       mainAxisSize: MainAxisSize.min,
       children: [
         GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onVerticalDragStart: _onDragStart,
           onVerticalDragUpdate: _onDragUpdate,
           child: SizedBox(

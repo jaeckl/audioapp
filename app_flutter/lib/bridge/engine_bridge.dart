@@ -125,6 +125,42 @@ class EngineBridge {
     });
   }
 
+  Future<ProjectSnapshot> setBpm(int bpm) async {
+    return _invokeForSnapshot('setBpm', {'bpm': bpm});
+  }
+
+  Future<ProjectSnapshot> deleteTrack(String trackId) async {
+    return _invokeForSnapshot('deleteTrack', {'trackId': trackId});
+  }
+
+  Future<ProjectSnapshot> deleteClip(String clipId) async {
+    return _invokeForSnapshot('deleteClip', {'clipId': clipId});
+  }
+
+  Future<ProjectSnapshot> setLoopEnabled(bool enabled) async {
+    return _invokeForSnapshot('setLoopEnabled', {'enabled': enabled});
+  }
+
+  /// Renders [lengthBeats] and saves via system dialog. Null if cancelled.
+  Future<String?> exportMix({double lengthBeats = 16.0}) async {
+    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>('exportMix', {
+      'lengthBeats': lengthBeats,
+    });
+    if (result == null) {
+      throw PlatformException(code: 'null_response', message: 'No response from engine');
+    }
+    if (result['cancelled'] == true) {
+      return null;
+    }
+    if (result['ok'] != true) {
+      throw PlatformException(
+        code: result['error']?.toString() ?? 'export_failed',
+        message: 'Export failed',
+      );
+    }
+    return result['uri'] as String?;
+  }
+
   Future<void> previewSample(String sampleId) async {
     final result = await _channel.invokeMethod<Map<dynamic, dynamic>>('previewSample', {
       'sampleId': sampleId,

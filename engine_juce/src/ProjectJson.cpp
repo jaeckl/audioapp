@@ -90,6 +90,8 @@ juce::var deviceToVar(const DeviceState& device) {
         parameters->setProperty("filterCutoff", static_cast<double>(device.filterCutoff));
         parameters->setProperty("filterQ", static_cast<double>(device.filterQ));
         parameters->setProperty("filterMode", device.filterMode);
+        parameters->setProperty("trimStartSec", static_cast<double>(device.trimStartSec));
+        parameters->setProperty("trimEndSec", static_cast<double>(device.trimEndSec));
     }
     if (device.type == "simple_oscillator") {
         parameters->setProperty("frequency", static_cast<double>(device.frequencyHz));
@@ -119,6 +121,8 @@ DeviceState deviceFromVar(const juce::var& value) {
             device.filterCutoff = varToFloat(params->getProperty("filterCutoff"), 1.0f);
             device.filterQ = varToFloat(params->getProperty("filterQ"), 0.35f);
             device.filterMode = varToInt(params->getProperty("filterMode"), 0);
+            device.trimStartSec = varToFloat(params->getProperty("trimStartSec"), 0.0f);
+            device.trimEndSec = varToFloat(params->getProperty("trimEndSec"), 0.0f);
         }
     }
     return device;
@@ -297,6 +301,8 @@ juce::var snapshotToVar(const ProjectSnapshot& snapshot) {
     object->setProperty("bpm", snapshot.bpm);
     object->setProperty("playheadBeats", snapshot.playheadBeats);
     object->setProperty("playing", snapshot.playing);
+    object->setProperty("loopEnabled", snapshot.loopEnabled);
+    object->setProperty("loopLengthBeats", snapshot.loopLengthBeats);
     object->setProperty("selectedTrackId", toJuceString(snapshot.selectedTrackId));
     object->setProperty("master", juce::var(master));
     object->setProperty("samples", samples);
@@ -410,6 +416,17 @@ double jsonGetNumberArg(const std::string& argumentsJson, const std::string& key
     const auto root = parseRootVar(argumentsJson);
     if (const auto* object = root.getDynamicObject()) {
         return varToDouble(object->getProperty(toJuceString(key)), fallback);
+    }
+    return fallback;
+}
+
+bool jsonGetBoolArg(const std::string& argumentsJson, const std::string& key, bool fallback) {
+    const auto root = parseRootVar(argumentsJson);
+    if (const auto* object = root.getDynamicObject()) {
+        const auto value = object->getProperty(toJuceString(key));
+        if (value.isBool()) {
+            return static_cast<bool>(value);
+        }
     }
     return fallback;
 }

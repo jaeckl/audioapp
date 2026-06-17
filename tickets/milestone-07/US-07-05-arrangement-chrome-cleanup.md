@@ -21,3 +21,14 @@ Remove debug/engine header and arrangement toolbar. Move transport info to top, 
 - `app_flutter/lib/features/transport/transport_bar.dart`
 
 [interaction](US-07-05-interaction.md) · [ux-ui](US-07-05-ux-ui.md)
+
+
+
+## Companion stories
+
+- [UX/UI](US-07-05-ux-ui.md)
+- [Interaction](US-07-05-interaction.md)
+
+## Status
+
+**Done**

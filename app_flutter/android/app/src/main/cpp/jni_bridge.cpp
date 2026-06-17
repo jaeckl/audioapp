@@ -91,3 +91,19 @@ Java_com_audioapp_daw_MainActivity_nativeImportWavSample(JNIEnv* env,
     const auto response = bridge().importWavSample(name, bytes);
     return env->NewStringUTF(response.c_str());
 }
+
+extern "C" JNIEXPORT jfloatArray JNICALL
+Java_com_audioapp_daw_MainActivity_nativeRenderOffline(JNIEnv* env,
+                                                       jobject /*thiz*/,
+                                                       jdouble lengthBeats) {
+    const auto pcm = bridge().renderOffline(lengthBeats, 48000.0);
+    if (pcm.empty()) {
+        return env->NewFloatArray(0);
+    }
+    jfloatArray array = env->NewFloatArray(static_cast<jsize>(pcm.size()));
+    if (array == nullptr) {
+        return nullptr;
+    }
+    env->SetFloatArrayRegion(array, 0, static_cast<jsize>(pcm.size()), pcm.data());
+    return array;
+}

@@ -5,6 +5,8 @@ class ProjectSnapshot {
     required this.selectedTrackId,
     required this.playheadBeats,
     required this.playing,
+    required this.loopEnabled,
+    required this.loopLengthBeats,
     required this.master,
     required this.samples,
     required this.tracks,
@@ -14,6 +16,8 @@ class ProjectSnapshot {
   final String selectedTrackId;
   final double playheadBeats;
   final bool playing;
+  final bool loopEnabled;
+  final double loopLengthBeats;
   final MasterTrackSnapshot master;
   final List<SampleLibraryEntrySnapshot> samples;
   final List<TrackSnapshot> tracks;
@@ -27,6 +31,8 @@ class ProjectSnapshot {
       selectedTrackId: snapshot['selectedTrackId'] as String? ?? '',
       playheadBeats: (snapshot['playheadBeats'] as num?)?.toDouble() ?? 0.0,
       playing: snapshot['playing'] == true,
+      loopEnabled: snapshot['loopEnabled'] != false,
+      loopLengthBeats: (snapshot['loopLengthBeats'] as num?)?.toDouble() ?? 16.0,
       master: MasterTrackSnapshot.fromMap(snapshot['master'] as Map<dynamic, dynamic>?),
       samples: samplesRaw
           .map((s) => SampleLibraryEntrySnapshot.fromMap(s as Map<dynamic, dynamic>))
@@ -149,6 +155,8 @@ class DeviceSnapshot {
     required this.filterCutoff,
     required this.filterQ,
     required this.filterMode,
+    required this.trimStartSec,
+    required this.trimEndSec,
   });
 
   final String id;
@@ -163,6 +171,8 @@ class DeviceSnapshot {
   final double filterCutoff;
   final double filterQ;
   final int filterMode;
+  final double trimStartSec;
+  final double trimEndSec;
 
   factory DeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -179,7 +189,70 @@ class DeviceSnapshot {
       filterCutoff: (params['filterCutoff'] as num?)?.toDouble() ?? 1.0,
       filterQ: (params['filterQ'] as num?)?.toDouble() ?? 0.35,
       filterMode: (params['filterMode'] as num?)?.toInt() ?? 0,
+      trimStartSec: (params['trimStartSec'] as num?)?.toDouble() ?? 0.0,
+      trimEndSec: (params['trimEndSec'] as num?)?.toDouble() ?? 0.0,
     );
+  }
+
+  DeviceSnapshot copyWith({
+    String? id,
+    String? type,
+    double? frequencyHz,
+    double? gain,
+    String? sampleId,
+    double? attack,
+    double? decay,
+    double? sustain,
+    double? release,
+    double? filterCutoff,
+    double? filterQ,
+    int? filterMode,
+    double? trimStartSec,
+    double? trimEndSec,
+  }) {
+    return DeviceSnapshot(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      frequencyHz: frequencyHz ?? this.frequencyHz,
+      gain: gain ?? this.gain,
+      sampleId: sampleId ?? this.sampleId,
+      attack: attack ?? this.attack,
+      decay: decay ?? this.decay,
+      sustain: sustain ?? this.sustain,
+      release: release ?? this.release,
+      filterCutoff: filterCutoff ?? this.filterCutoff,
+      filterQ: filterQ ?? this.filterQ,
+      filterMode: filterMode ?? this.filterMode,
+      trimStartSec: trimStartSec ?? this.trimStartSec,
+      trimEndSec: trimEndSec ?? this.trimEndSec,
+    );
+  }
+
+  DeviceSnapshot withParameter(String parameterId, double value) {
+    switch (parameterId) {
+      case 'attack':
+        return copyWith(attack: value);
+      case 'decay':
+        return copyWith(decay: value);
+      case 'sustain':
+        return copyWith(sustain: value);
+      case 'release':
+        return copyWith(release: value);
+      case 'gain':
+        return copyWith(gain: value);
+      case 'filterCutoff':
+        return copyWith(filterCutoff: value);
+      case 'filterQ':
+        return copyWith(filterQ: value);
+      case 'filterMode':
+        return copyWith(filterMode: value.round().clamp(0, 3));
+      case 'trimStartSec':
+        return copyWith(trimStartSec: value);
+      case 'trimEndSec':
+        return copyWith(trimEndSec: value);
+      default:
+        return this;
+    }
   }
 }
 

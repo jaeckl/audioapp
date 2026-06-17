@@ -5,6 +5,7 @@
 #include <mutex>
 #include <string>
 #include <vector>
+#include <vector>
 
 #include "audioapp/MidiClipPlayback.hpp"
 #include "audioapp/SampleBank.hpp"
@@ -28,6 +29,8 @@ struct DeviceState {
     float filterCutoff = 1.0f;
     float filterQ = 0.35f;
     int filterMode = 0;
+    float trimStartSec = 0.0f;
+    float trimEndSec = 0.0f;
 };
 
 struct TrackState {
@@ -49,6 +52,8 @@ struct ProjectSnapshot {
     std::string selectedTrackId;
     double playheadBeats = 0.0;
     bool playing = false;
+    bool loopEnabled = true;
+    double loopLengthBeats = 16.0;
     MasterTrackState master;
     std::vector<SampleLibraryEntryState> samples;
     std::vector<TrackState> tracks;
@@ -79,6 +84,12 @@ public:
     bool moveClip(const std::string& clipId,
                   const std::string& targetTrackId,
                   double startBeat);
+    bool setBpm(int bpm);
+    bool deleteTrack(const std::string& trackId);
+    bool deleteClip(const std::string& clipId);
+    bool setLoopEnabled(bool enabled);
+    bool setLoopLengthBeats(double lengthBeats);
+    std::vector<float> renderOffline(double lengthBeats, double sampleRate);
 
     ProjectSnapshot snapshot() const;
     float activeOscillatorFrequencyHz() const;
@@ -113,6 +124,8 @@ private:
         float filterCutoff = 1.0f;
         float filterQ = 0.35f;
         int filterMode = 0;
+        float trimStartSec = 0.0f;
+        float trimEndSec = 0.0f;
     };
 
     struct MidiNote {
@@ -169,6 +182,7 @@ private:
         SampleRegion regions[8];
         int deviceCount = 0;
         DeviceNodePlayback devices[kMaxDevicesPerTrack];
+        BiquadState samplerFilterStates[kMaxDevicesPerTrack];
         float oscillatorPhase = 0.0f;
     };
 
@@ -187,11 +201,17 @@ private:
     std::atomic<bool> playing_{false};
     std::atomic<double> playheadBeats_{0.0};
     std::atomic<float> masterGain_{1.0f};
+    bool loopEnabled_ = true;
+    double loopLengthBeats_ = 16.0;
 
     TrackPlaybackSnapshot trackPlayback_[kMaxTracks];
     std::atomic<int> trackPlaybackCount_{0};
 
     void rebuildTrackPlaybackLocked();
+    void mixAtPlayheadBeat(float* monoOut,
+                           int numFrames,
+                           double sampleRate,
+                           double playheadStartBeat) noexcept;
     bool trackHasActiveSampleAtPlayhead(const TrackPlaybackSnapshot& track, double playheadBeat) const noexcept;
     int selectedTrackPlaybackIndex() const noexcept;
     void syncActiveFrequencyLocked();
