@@ -6,7 +6,7 @@ import 'device_strip_metrics.dart';
 import 'sampler_device_panel.dart';
 import 'waveform_trim_editor.dart';
 
-/// Fullscreen sampler editor — landscape-only, same layout as the device strip.
+/// Fullscreen sampler editor — landscape, tabbed device with large knobs.
 class SamplerEditorScreen extends StatefulWidget {
   const SamplerEditorScreen({
     super.key,
@@ -32,6 +32,7 @@ class SamplerEditorScreen extends StatefulWidget {
 class _SamplerEditorScreenState extends State<SamplerEditorScreen> {
   late DeviceSnapshot _device;
   SampleLibraryEntrySnapshot? _sample;
+  SamplerDeviceTab _tab = SamplerDeviceTab.sample;
 
   @override
   void initState() {
@@ -70,7 +71,7 @@ class _SamplerEditorScreenState extends State<SamplerEditorScreen> {
     return DeviceLandscapeShell(
       title: '${widget.trackName} · $sampleName',
       designWidth: DeviceStripMetrics.designWidth,
-      designHeight: DeviceStripMetrics.height + 80,
+      designHeight: DeviceStripMetrics.height + 40,
       actions: [
         IconButton(
           tooltip: 'Load sample',
@@ -80,29 +81,33 @@ class _SamplerEditorScreenState extends State<SamplerEditorScreen> {
       ],
       child: Column(
         children: [
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-              child: peaks.isEmpty
-                  ? const Center(child: Text('Load a sample to trim'))
-                  : WaveformTrimEditor(
-                      peaks: peaks,
-                      durationSec: _durationSec,
-                      trimStartSec: _device.trimStartSec,
-                      trimEndSec: _device.trimEndSec,
-                      onTrimChanged: (start, end) async {
-                        await _handleParameterChanged('trimStartSec', start);
-                        await _handleParameterChanged('trimEndSec', end);
-                      },
-                    ),
+          if (_tab == SamplerDeviceTab.sample)
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                child: peaks.isEmpty
+                    ? const Center(child: Text('Load a sample to trim'))
+                    : WaveformTrimEditor(
+                        peaks: peaks,
+                        durationSec: _durationSec,
+                        trimStartSec: _device.trimStartSec,
+                        trimEndSec: _device.trimEndSec,
+                        onTrimChanged: (start, end) async {
+                          await _handleParameterChanged('trimStartSec', start);
+                          await _handleParameterChanged('trimEndSec', end);
+                        },
+                      ),
+              ),
             ),
-          ),
           Expanded(
-            flex: 3,
+            flex: _tab == SamplerDeviceTab.sample ? 3 : 5,
             child: SamplerDevicePanel(
               device: _device,
               sample: _sample,
+              initialTab: _tab,
+              density: SamplerPanelDensity.editor,
+              onTabChanged: (tab) => setState(() => _tab = tab),
               onParameterChanged: (parameterId, value) {
                 _handleParameterChanged(parameterId, value);
               },

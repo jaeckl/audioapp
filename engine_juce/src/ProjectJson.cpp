@@ -303,6 +303,7 @@ juce::var snapshotToVar(const ProjectSnapshot& snapshot) {
     object->setProperty("playing", snapshot.playing);
     object->setProperty("loopEnabled", snapshot.loopEnabled);
     object->setProperty("loopLengthBeats", snapshot.loopLengthBeats);
+    object->setProperty("recordArmed", snapshot.recordArmed);
     object->setProperty("selectedTrackId", toJuceString(snapshot.selectedTrackId));
     object->setProperty("master", juce::var(master));
     object->setProperty("samples", samples);

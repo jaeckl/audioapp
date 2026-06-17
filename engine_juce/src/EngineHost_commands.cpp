@@ -91,6 +91,10 @@ void EngineHost::readPreviewMix(float* monoOut, int numFrames, double sampleRate
     previewVoice_.position.store(position, std::memory_order_release);
 }
 
+void EngineHost::readLiveMix(float* monoOut, int numFrames, double sampleRate) noexcept {
+    project_.readLiveMix(monoOut, numFrames, sampleRate);
+}
+
 std::string EngineHost::createMidiClip(const std::string& trackId, double startBeat, double lengthBeats) {
     return project_.createMidiClip(trackId, startBeat, lengthBeats);
 }
@@ -125,12 +129,44 @@ bool EngineHost::deleteClip(const std::string& clipId) {
     return project_.deleteClip(clipId);
 }
 
+bool EngineHost::duplicateClip(const std::string& clipId) {
+    return project_.duplicateClip(clipId);
+}
+
 bool EngineHost::setLoopEnabled(bool enabled) {
     return project_.setLoopEnabled(enabled);
 }
 
 bool EngineHost::setLoopLengthBeats(double lengthBeats) {
     return project_.setLoopLengthBeats(lengthBeats);
+}
+
+bool EngineHost::setRecordArmed(bool armed) {
+    return project_.setRecordArmed(armed);
+}
+
+bool EngineHost::noteOn(int pitch, float velocity) {
+    return project_.noteOn(pitch, velocity);
+}
+
+bool EngineHost::noteOff(int pitch) {
+    return project_.noteOff(pitch);
+}
+
+void EngineHost::allNotesOff() {
+    project_.allNotesOff();
+}
+
+void EngineHost::clearCapture() {
+    project_.clearCapture();
+}
+
+bool EngineHost::commitCapture() {
+    return project_.commitCapture();
+}
+
+void EngineHost::enterPlayMode() {
+    ensureAudioOutput();
 }
 
 std::vector<float> EngineHost::renderOffline(double lengthBeats, double sampleRate) {

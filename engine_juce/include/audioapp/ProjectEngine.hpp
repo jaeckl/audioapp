@@ -7,6 +7,7 @@
 #include <vector>
 #include <vector>
 
+#include "audioapp/LivePerformance.hpp"
 #include "audioapp/MidiClipPlayback.hpp"
 #include "audioapp/SampleBank.hpp"
 #include "audioapp/SampleTypes.hpp"
@@ -54,6 +55,7 @@ struct ProjectSnapshot {
     bool playing = false;
     bool loopEnabled = true;
     double loopLengthBeats = 16.0;
+    bool recordArmed = false;
     MasterTrackState master;
     std::vector<SampleLibraryEntryState> samples;
     std::vector<TrackState> tracks;
@@ -87,9 +89,18 @@ public:
     bool setBpm(int bpm);
     bool deleteTrack(const std::string& trackId);
     bool deleteClip(const std::string& clipId);
+    bool duplicateClip(const std::string& clipId);
     bool setLoopEnabled(bool enabled);
     bool setLoopLengthBeats(double lengthBeats);
     std::vector<float> renderOffline(double lengthBeats, double sampleRate);
+
+    bool setRecordArmed(bool armed);
+    bool noteOn(int pitch, float velocity);
+    bool noteOff(int pitch);
+    void allNotesOff();
+    void clearCapture();
+    bool commitCapture();
+    void readLiveMix(float* monoOut, int numFrames, double sampleRate) noexcept;
 
     ProjectSnapshot snapshot() const;
     float activeOscillatorFrequencyHz() const;
@@ -203,6 +214,19 @@ private:
     std::atomic<float> masterGain_{1.0f};
     bool loopEnabled_ = true;
     double loopLengthBeats_ = 16.0;
+    bool recordArmed_ = false;
+
+    struct CaptureEvent {
+        enum class Type { NoteOn, NoteOff };
+        Type type = Type::NoteOn;
+        int pitch = 60;
+        float velocity = 100.0f;
+        uint64_t sampleTime = 0;
+    };
+    std::vector<CaptureEvent> captureEvents_;
+    uint64_t captureStartSample_ = 0;
+    bool captureActive_ = false;
+    LivePerformanceMixer liveMixer_;
 
     TrackPlaybackSnapshot trackPlayback_[kMaxTracks];
     std::atomic<int> trackPlaybackCount_{0};
@@ -222,6 +246,8 @@ private:
     Device* findDeviceLocked(const std::string& deviceId);
     MidiClip* findMidiClipLocked(const std::string& clipId);
     SampleClip* findSampleClipLocked(const std::string& clipId);
+    bool buildLiveInstrumentForTrack(const Track& track, LiveInstrumentSnapshot& out) const;
+    double sampleTimeToCaptureBeat(uint64_t sampleTime) const;
 
     const SampleBank* sampleBank_ = nullptr;
 };

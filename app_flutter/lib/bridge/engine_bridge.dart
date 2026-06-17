@@ -137,8 +137,57 @@ class EngineBridge {
     return _invokeForSnapshot('deleteClip', {'clipId': clipId});
   }
 
+  Future<ProjectSnapshot> duplicateClip(String clipId) async {
+    return _invokeForSnapshot('duplicateClip', {'clipId': clipId});
+  }
+
   Future<ProjectSnapshot> setLoopEnabled(bool enabled) async {
     return _invokeForSnapshot('setLoopEnabled', {'enabled': enabled});
+  }
+
+  Future<ProjectSnapshot> setLoopLengthBeats(double lengthBeats) async {
+    return _invokeForSnapshot('setLoopLengthBeats', {'lengthBeats': lengthBeats});
+  }
+
+  Future<void> enterPlayMode() async {
+    await _invokeOk('enterPlayMode');
+  }
+
+  Future<ProjectSnapshot> setRecordArmed(bool armed) async {
+    return _invokeForSnapshot('setRecordArmed', {'armed': armed});
+  }
+
+  Future<void> noteOn({required int pitch, required double velocity}) async {
+    await _invokeOk('noteOn', {'pitch': pitch, 'velocity': velocity});
+  }
+
+  Future<void> noteOff({required int pitch}) async {
+    await _invokeOk('noteOff', {'pitch': pitch});
+  }
+
+  Future<void> allNotesOff() async {
+    await _invokeOk('allNotesOff');
+  }
+
+  Future<void> clearCapture() async {
+    await _invokeOk('clearCapture');
+  }
+
+  Future<ProjectSnapshot> commitCapture() async {
+    return _invokeForSnapshot('commitCapture');
+  }
+
+  Future<void> _invokeOk(String method, [Map<String, dynamic>? args]) async {
+    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(method, args);
+    if (result == null) {
+      throw PlatformException(code: 'null_response', message: 'No response from engine');
+    }
+    if (result['ok'] != true) {
+      throw PlatformException(
+        code: result['error']?.toString() ?? 'engine_error',
+        message: 'Engine command failed: $method',
+      );
+    }
   }
 
   /// Renders [lengthBeats] and saves via system dialog. Null if cancelled.

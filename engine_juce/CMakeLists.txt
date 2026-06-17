@@ -27,6 +27,8 @@ FetchContent_MakeAvailable(JUCE)
 add_library(audioapp_engine STATIC
   src/TestOscillator.cpp
   src/ProjectEngine.cpp
+  src/LivePerformance.cpp
+  src/ProjectEngine_live.cpp
   src/ProjectJson.cpp
   src/ProjectArchive.cpp
   src/MidiClipPlayback.cpp
@@ -91,6 +93,7 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/track_gain_test.cpp
     tests/sampler_midi_playback_test.cpp
     tests/device_chain_test.cpp
+    tests/live_performance_test.cpp
   )
   target_link_libraries(audioapp_engine_tests PRIVATE audioapp_engine)
   add_test(NAME engine_smoke COMMAND audioapp_engine_tests)

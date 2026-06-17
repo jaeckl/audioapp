@@ -142,6 +142,13 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         }
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
+    if (method == "duplicateClip") {
+        const auto clipId = jsonGetStringArg(argumentsJson, "clipId");
+        if (!engine().duplicateClip(clipId)) {
+            return buildBridgeError("duplicate_clip_failed");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
     if (method == "setLoopEnabled") {
         const auto enabled = jsonGetBoolArg(argumentsJson, "enabled", true);
         engine().setLoopEnabled(enabled);
@@ -153,6 +160,42 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
             return buildBridgeError("invalid_loop_length");
         }
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
+    if (method == "setRecordArmed") {
+        const auto armed = jsonGetBoolArg(argumentsJson, "armed", false);
+        engine().setRecordArmed(armed);
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
+    if (method == "noteOn") {
+        const auto pitch = static_cast<int>(jsonGetNumberArg(argumentsJson, "pitch", 60.0));
+        const auto velocity = static_cast<float>(jsonGetNumberArg(argumentsJson, "velocity", 100.0));
+        if (!engine().noteOn(pitch, velocity)) {
+            return buildBridgeError("note_on_failed");
+        }
+        return R"({"ok":true})";
+    }
+    if (method == "noteOff") {
+        const auto pitch = static_cast<int>(jsonGetNumberArg(argumentsJson, "pitch", 60.0));
+        engine().noteOff(pitch);
+        return R"({"ok":true})";
+    }
+    if (method == "allNotesOff") {
+        engine().allNotesOff();
+        return R"({"ok":true})";
+    }
+    if (method == "clearCapture") {
+        engine().clearCapture();
+        return R"({"ok":true})";
+    }
+    if (method == "commitCapture") {
+        if (!engine().commitCapture()) {
+            return buildBridgeError("capture_failed");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
+    if (method == "enterPlayMode") {
+        engine().enterPlayMode();
+        return R"({"ok":true})";
     }
     if (method == "previewSample") {
         const auto sampleId = jsonGetStringArg(argumentsJson, "sampleId");

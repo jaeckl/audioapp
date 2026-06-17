@@ -1,0 +1,256 @@
+# Story manifest — ~20 user stories per milestone (M00–M09).
+# Full ticket bodies: AGENT.md §14. Regenerate companions: python tools/gen_companion_tickets.py
+# Status: done | in_progress | todo | deferred
+
+milestones:
+  - id: M00
+    name: Foundation
+    theme: Repo, toolchain, shell, bridge, docs
+  - id: M01
+    name: First real sound
+    theme: AAudio, oscillator, transport audible
+  - id: M02
+    name: Tracks & device strip
+    theme: addTrack, select, instrument strip
+  - id: M03
+    name: MIDI clip playback
+    theme: clips on timeline, playhead, MIDI → audio
+  - id: M04
+    name: Mobile MIDI editing
+    theme: piano roll, note edit, grid snap
+  - id: M05
+    name: Save & load
+    theme: project.json zip, SAF dialogs
+  - id: M06
+    name: Sample library & audio clips
+    theme: library, import, sample clips on timeline
+  - id: M07
+    name: Shell, mixer & sampler UX
+    theme: nav, mixer, sampler strip + fullscreen editor
+  - id: M08
+    name: Device chain DSP & mix
+    theme: real effects, sampler DSP, solo/mute, meters
+  - id: M09
+    name: Offline render & export
+    theme: bounce, WAV export, shareable output
+
+stories:
+  # ── M00 Foundation (20) ─────────────────────────────────────────────
+  - { id: US-00-01, milestone: M00, status: done, title: Developer onboarding & reproducible build }
+  - { id: US-00-02, milestone: M00, status: done, title: DAW shell three-band layout placeholder }
+  - { id: US-00-03, milestone: M00, status: done, title: Edge-to-edge layout & safe-area insets }
+  - { id: US-00-04, milestone: M00, status: done, title: Flutter ↔ native MethodChannel bridge scaffold }
+  - { id: US-00-05, milestone: M00, status: done, title: JUCE engine static lib & CMake fetch }
+  - { id: US-00-06, milestone: M00, status: done, title: Engine smoke test executable }
+  - { id: US-00-07, milestone: M00, status: done, title: Project documentation skeleton (AGENT, ADRs, milestones) }
+  - { id: US-00-08, milestone: M00, status: done, title: Dark flat theme tokens & Material baseline }
+  - { id: US-00-09, milestone: M00, status: done, title: Transport bar chrome (BPM, playhead label, version) }
+  - { id: US-00-10, milestone: M00, status: done, title: Android adb doctor & Windows setup guide }
+  - { id: US-00-11, milestone: M00, status: done, title: Bridge ping/pong health check in shell }
+  - { id: US-00-12, milestone: M00, status: done, title: Native bridge error envelope (ok + message) }
+  - { id: US-00-13, milestone: M00, status: done, title: Repo folder layout (app_flutter, engine_juce, native_bridge) }
+  - { id: US-00-14, milestone: M00, status: done, title: Flutter widget smoke test bootstraps shell }
+  - { id: US-00-15, milestone: M00, status: in_progress, title: Flutter deploy script & device auto-install }
+  - { id: US-00-16, milestone: M00, status: todo, title: CI workflow — engine tests on push }
+  - { id: US-00-17, milestone: M00, status: todo, title: CI workflow — Flutter analyze & widget tests }
+  - { id: US-00-18, milestone: M00, status: todo, title: Crash-safe engine init & user-visible boot failure }
+  - { id: US-00-19, milestone: M00, status: todo, title: Structured logging channel (control thread only) }
+  - { id: US-00-20, milestone: M00, status: todo, title: Release vs debug build flavors documented }
+
+  # ── M01 First real sound (20) ───────────────────────────────────────
+  - { id: US-01-01, milestone: M01, status: done, title: Play/Stop audible test tone on device }
+  - { id: US-01-02, milestone: M01, status: done, title: AAudio output path on Android }
+  - { id: US-01-03, milestone: M01, status: done, title: EngineHost lifecycle (start/stop audio) }
+  - { id: US-01-04, milestone: M01, status: done, title: TestOscillator RT-safe sine generator }
+  - { id: US-01-05, milestone: M01, status: done, title: Bridge play/stop commands }
+  - { id: US-01-06, milestone: M01, status: done, title: Transport UI toggles play state }
+  - { id: US-01-07, milestone: M01, status: done, title: Master gain parameter & soft clip }
+  - { id: US-01-08, milestone: M01, status: done, title: Silence when transport stopped }
+  - { id: US-01-09, milestone: M01, status: done, title: C++ oscillator output golden test }
+  - { id: US-01-10, milestone: M01, status: todo, title: Android audio focus (duck/pause on call) }
+  - { id: US-01-11, milestone: M01, status: todo, title: Buffer size / latency note in settings }
+  - { id: US-01-12, milestone: M01, status: todo, title: Underrun counter (debug overlay) }
+  - { id: US-01-13, milestone: M01, status: todo, title: Background → foreground audio resume }
+  - { id: US-01-14, milestone: M01, status: todo, title: CPU wake lock only while playing }
+  - { id: US-01-15, milestone: M01, status: todo, title: Output device change notification (Android) }
+  - { id: US-01-16, milestone: M01, status: todo, title: Sample rate negotiation (48 kHz default) }
+  - { id: US-01-17, milestone: M01, status: todo, title: RT safety checklist doc for contributors }
+  - { id: US-01-18, milestone: M01, status: todo, title: Engine thread priority boost on Android }
+  - { id: US-01-19, milestone: M01, status: todo, title: First-run audio permission UX (if required) }
+  - { id: US-01-20, milestone: M01, status: todo, title: M01 PO demo script in tickets (signed-off checklist) }
+
+  # ── M02 Tracks & device strip (20) ──────────────────────────────────
+  - { id: US-02-01, milestone: M02, status: done, title: Add track (engine + bridge + UI) }
+  - { id: US-02-02, milestone: M02, status: done, title: Select track → show device strip }
+  - { id: US-02-03, milestone: M02, status: done, title: Oscillator device strip & frequency parameter }
+  - { id: US-02-04, milestone: M02, status: done, title: Device & track IDs in project model }
+  - { id: US-02-05, milestone: M02, status: done, title: Auto-insert track_gain device on new track }
+  - { id: US-02-06, milestone: M02, status: done, title: Track row in arrangement view }
+  - { id: US-02-07, milestone: M02, status: done, title: Selected track highlight in arrangement }
+  - { id: US-02-08, milestone: M02, status: done, title: Empty device strip hint when no selection }
+  - { id: US-02-09, milestone: M02, status: done, title: C++ project_engine_test (add/select track) }
+  - { id: US-02-10, milestone: M02, status: done, title: Default instrument on new track (sampler) }
+  - { id: US-02-11, milestone: M02, status: done, title: addDeviceToTrack bridge API }
+  - { id: US-02-12, milestone: M02, status: todo, title: Rename track (inline or dialog) }
+  - { id: US-02-13, milestone: M02, status: todo, title: Delete track with confirm dialog }
+  - { id: US-02-14, milestone: M02, status: todo, title: Reorder tracks (drag handle) }
+  - { id: US-02-15, milestone: M02, status: todo, title: Max track count guard + UI message }
+  - { id: US-02-16, milestone: M02, status: todo, title: Duplicate track (devices + empty clips) }
+  - { id: US-02-17, milestone: M02, status: todo, title: Track color/icon picker }
+  - { id: US-02-18, milestone: M02, status: todo, title: Device strip fixed height metrics per device type }
+  - { id: US-02-19, milestone: M02, status: todo, title: Instrument vs FX device categories in model }
+  - { id: US-02-20, milestone: M02, status: todo, title: M02 PO demo — two tracks, two timbres }
+
+  # ── M03 MIDI clip playback (20) ───────────────────────────────────
+  - { id: US-03-01, milestone: M03, status: done, title: Create MIDI clip on timeline }
+  - { id: US-03-02, milestone: M03, status: done, title: Transport playhead position & advance }
+  - { id: US-03-03, milestone: M03, status: done, title: MIDI clip note → audible pitch at playhead }
+  - { id: US-03-04, milestone: M03, status: done, title: Clip start beat & length in project model }
+  - { id: US-03-05, milestone: M03, status: done, title: Seed note in new MIDI clip }
+  - { id: US-03-06, milestone: M03, status: done, title: Note duration & velocity in playback }
+  - { id: US-03-07, milestone: M03, status: done, title: Clip looping within lengthBeats }
+  - { id: US-03-08, milestone: M03, status: done, title: BPM affects playhead advance }
+  - { id: US-03-09, milestone: M03, status: done, title: C++ midi_clip_playback_test }
+  - { id: US-03-10, milestone: M03, status: done, title: MIDI clip block visible on arrangement }
+  - { id: US-03-11, milestone: M03, status: todo, title: Set project BPM from transport }
+  - { id: US-03-12, milestone: M03, status: todo, title: Tap tempo (optional v1) }
+  - { id: US-03-13, milestone: M03, status: todo, title: Loop region / cycle playback }
+  - { id: US-03-14, milestone: M03, status: todo, title: Metronome click on control thread }
+  - { id: US-03-15, milestone: M03, status: todo, title: Count-in before record (prep for M04) }
+  - { id: US-03-16, milestone: M03, status: todo, title: Multiple MIDI clips per track (ordering) }
+  - { id: US-03-17, milestone: M03, status: todo, title: Clip mute flag (no audio, still visible) }
+  - { id: US-03-18, milestone: M03, status: todo, title: Active clip priority when notes overlap }
+  - { id: US-03-19, milestone: M03, status: todo, title: Stop vs pause semantics documented }
+  - { id: US-03-20, milestone: M03, status: todo, title: M03 PO demo — two-bar loop audible }
+
+  # ── M04 Mobile MIDI editing (20) ────────────────────────────────────
+  - { id: US-04-01, milestone: M04, status: done, title: Open piano roll from MIDI clip }
+  - { id: US-04-02, milestone: M04, status: done, title: Add & delete notes in piano roll }
+  - { id: US-04-03, milestone: M04, status: done, title: Move & resize notes with grid snap }
+  - { id: US-04-04, milestone: M04, status: done, title: setMidiClipNotes bridge round-trip }
+  - { id: US-04-05, milestone: M04, status: done, title: Piano roll grid & pitch rows render }
+  - { id: US-04-06, milestone: M04, status: done, title: Close piano roll returns to arrangement }
+  - { id: US-04-07, milestone: M04, status: todo, title: Note velocity edit (slider or drag) }
+  - { id: US-04-08, milestone: M04, status: todo, title: Multi-select notes (lasso or long-press) }
+  - { id: US-04-09, milestone: M04, status: todo, title: Duplicate selected notes }
+  - { id: US-04-10, milestone: M04, status: todo, title: Quantize selection to grid }
+  - { id: US-04-11, milestone: M04, status: todo, title: Piano roll horizontal scroll & clip bounds }
+  - { id: US-04-12, milestone: M04, status: todo, title: Piano roll pinch zoom (beats axis) }
+  - { id: US-04-13, milestone: M04, status: todo, title: Undo/redo note edits (session scope) }
+  - { id: US-04-14, milestone: M04, status: todo, title: Copy/paste note buffer across clips }
+  - { id: US-04-15, milestone: M04, status: todo, title: Clip length resize in arrangement }
+  - { id: US-04-16, milestone: M04, status: todo, title: Duplicate MIDI clip on timeline }
+  - { id: US-04-17, milestone: M04, status: todo, title: Delete MIDI clip with confirm }
+  - { id: US-04-18, milestone: M04, status: todo, title: MIDI clip rename / color }
+  - { id: US-04-19, milestone: M04, status: todo, title: Piano roll landscape lock (optional) }
+  - { id: US-04-20, milestone: M04, status: todo, title: M04 PO demo — sketch melody on device }
+
+  # ── M05 Save & load (20) ────────────────────────────────────────────
+  - { id: US-05-01, milestone: M05, status: done, title: Save project via SAF CreateDocument (.audioapp.zip) }
+  - { id: US-05-02, milestone: M05, status: done, title: Load project via SAF OpenDocument }
+  - { id: US-05-03, milestone: M05, status: done, title: project.json schema v1 via juce::JSON }
+  - { id: US-05-04, milestone: M05, status: done, title: Zip archive packs JSON + sample refs }
+  - { id: US-05-05, milestone: M05, status: done, title: Settings screen save/load entry points }
+  - { id: US-05-06, milestone: M05, status: done, title: C++ project_archive round-trip tests }
+  - { id: US-05-07, milestone: M05, status: done, title: Success & error feedback in shell }
+  - { id: US-05-08, milestone: M05, status: todo, title: Cancel save/load leaves project unchanged }
+  - { id: US-05-09, milestone: M05, status: todo, title: Invalid file format user message }
+  - { id: US-05-10, milestone: M05, status: todo, title: New project / discard changes confirm }
+  - { id: US-05-11, milestone: M05, status: todo, title: Autosave draft to app sandbox (optional) }
+  - { id: US-05-12, milestone: M05, status: todo, title: Project dirty flag & unsaved indicator }
+  - { id: US-05-13, milestone: M05, status: todo, title: Embed imported samples in zip (self-contained) }
+  - { id: US-05-14, milestone: M05, status: todo, title: Missing sample on load — clear error + relink UI }
+  - { id: US-05-15, milestone: M05, status: todo, title: Project format version migrate hook (stub) }
+  - { id: US-05-16, milestone: M05, status: todo, title: Default filename from project name }
+  - { id: US-05-17, milestone: M05, status: todo, title: Save restores selected track & playhead }
+  - { id: US-05-18, milestone: M05, status: todo, title: Large project save progress indicator }
+  - { id: US-05-19, milestone: M05, status: todo, title: C++ fuzz malformed zip rejection }
+  - { id: US-05-20, milestone: M05, status: todo, title: M05 PO demo — force-stop → reload identical session }
+
+  # ── M06 Sample library & audio clips (20) ─────────────────────────
+  - { id: US-06-01, milestone: M06, status: done, title: Bundled starter sample pack + library tab }
+  - { id: US-06-02, milestone: M06, status: done, title: Import sample via system file picker }
+  - { id: US-06-03, milestone: M06, status: done, title: Insert sample clip on track from library }
+  - { id: US-06-04, milestone: M06, status: done, title: Waveform peaks in arrangement clip }
+  - { id: US-06-05, milestone: M06, status: done, title: Sample clip audible when playhead crosses }
+  - { id: US-06-06, milestone: M06, status: done, title: Compact icon track headers }
+  - { id: US-06-07, milestone: M06, status: done, title: Minimum readable sample clip width }
+  - { id: US-06-08, milestone: M06, status: done, title: Pinch horizontal zoom on arrangement }
+  - { id: US-06-09, milestone: M06, status: done, title: Horizontal scroll arrangement timeline }
+  - { id: US-06-10, milestone: M06, status: done, title: Master track row at bottom of arrangement }
+  - { id: US-06-11, milestone: M06, status: done, title: Equal-sum master bus to device output }
+  - { id: US-06-12, milestone: M06, status: done, title: Preview sample in library (audition) }
+  - { id: US-06-13, milestone: M06, status: done, title: WAV decode + peak cache in SampleBank }
+  - { id: US-06-14, milestone: M06, status: in_progress, title: MIDI-triggered sampler device playback }
+  - { id: US-06-15, milestone: M06, status: todo, title: Sample clip drag move & cross-track drop }
+  - { id: US-06-16, milestone: M06, status: todo, title: Sample clip resize (length beats) }
+  - { id: US-06-17, milestone: M06, status: todo, title: Sample clip duplicate }
+  - { id: US-06-18, milestone: M06, status: todo, title: Delete sample clip with confirm }
+  - { id: US-06-19, milestone: M06, status: todo, title: Library search/filter by name }
+  - { id: US-06-20, milestone: M06, status: todo, title: M06 PO demo — kick/snare on timeline → play → save }
+
+  # ── M07 Shell, mixer & sampler UX (20) ──────────────────────────────
+  - { id: US-07-01, milestone: M07, status: done, title: Open fullscreen sampler (landscape) }
+  - { id: US-07-02, milestone: M07, status: todo, title: Waveform trim handles + preview }
+  - { id: US-07-03, milestone: M07, status: done, title: Portrait bottom navigation (tabs) }
+  - { id: US-07-04, milestone: M07, status: done, title: Mixer tab + per-track track_gain }
+  - { id: US-07-05, milestone: M07, status: done, title: Arrangement chrome cleanup (transport top) }
+  - { id: US-07-06, milestone: M07, status: done, title: Landscape nav on physical bottom/side edge }
+  - { id: US-07-07, milestone: M07, status: done, title: Sampler device strip (Bitwig-style layout) }
+  - { id: US-07-08, milestone: M07, status: done, title: ADSR + filter panel UI on sampler strip }
+  - { id: US-07-09, milestone: M07, status: done, title: Device strip uniform scale (no landscape stretch) }
+  - { id: US-07-10, milestone: M07, status: done, title: Shared SamplerDevicePanel strip + fullscreen }
+  - { id: US-07-11, milestone: M07, status: done, title: Assign sampleId to sampler (bridge string param) }
+  - { id: US-07-12, milestone: M07, status: done, title: Fullscreen sampler live parameter state }
+  - { id: US-07-13, milestone: M07, status: todo, title: Load sample from fullscreen editor picker }
+  - { id: US-07-14, milestone: M07, status: todo, title: Sampler sample zone root key & tune (basic) }
+  - { id: US-07-15, milestone: M07, status: todo, title: Sampler gain as device parameter (strip removed) }
+  - { id: US-07-16, milestone: M07, status: todo, title: Playhead scrub from transport bar }
+  - { id: US-07-17, milestone: M07, status: todo, title: Settings tab project metadata (name, BPM) }
+  - { id: US-07-18, milestone: M07, status: todo, title: In-app changelog / version sheet }
+  - { id: US-07-19, milestone: M07, status: todo, title: Haptic feedback on transport & key taps }
+  - { id: US-07-20, milestone: M07, status: todo, title: M07 PO demo — fullscreen trim prep → mixer gain }
+
+  # ── M08 Device chain DSP & mix (20) ─────────────────────────────────
+  - { id: US-08-01, milestone: M08, status: done, title: track_gain device in ordered device chain }
+  - { id: US-08-02, milestone: M08, status: done, title: Device chain executor (processDeviceChain) }
+  - { id: US-08-03, milestone: M08, status: done, title: Default sampler instrument (no hidden oscillator) }
+  - { id: US-08-04, milestone: M08, status: todo, title: Sampler ADSR envelope DSP in chain }
+  - { id: US-08-05, milestone: M08, status: todo, title: Sampler multimode filter DSP in chain }
+  - { id: US-08-06, milestone: M08, status: todo, title: Pan device (stereo balance) in chain }
+  - { id: US-08-07, milestone: M08, status: todo, title: Dedicated filter effect device (post-instrument) }
+  - { id: US-08-08, milestone: M08, status: todo, title: Effect bypass toggle per device node }
+  - { id: US-08-09, milestone: M08, status: todo, title: Add/remove device UI on track }
+  - { id: US-08-10, milestone: M08, status: todo, title: Device chain order drag-reorder }
+  - { id: US-08-11, milestone: M08, status: todo, title: Solo track (mute others) }
+  - { id: US-08-12, milestone: M08, status: todo, title: Mute track }
+  - { id: US-08-13, milestone: M08, status: todo, title: Peak meter on mixer channel }
+  - { id: US-08-14, milestone: M08, status: todo, title: Master bus limiter polish (-1 dBTP) }
+  - { id: US-08-15, milestone: M08, status: todo, title: Voice stealing / max polyphony on sampler }
+  - { id: US-08-16, milestone: M08, status: todo, title: RT-safe parameter smoothing (cutoff/gain) }
+  - { id: US-08-17, milestone: M08, status: todo, title: C++ golden tests per effect node }
+  - { id: US-08-18, milestone: M08, status: todo, title: Parameter automation recording (lane data) }
+  - { id: US-08-19, milestone: M08, status: todo, title: Parameter automation playback on transport }
+  - { id: US-08-20, milestone: M08, status: todo, title: M08 PO demo — filter sweep + automation on cutoff }
+
+  # ── M09 Offline render & export (20) ────────────────────────────────
+  - { id: US-09-01, milestone: M09, status: todo, title: Offline render engine (non-RT graph walk) }
+  - { id: US-09-02, milestone: M09, status: todo, title: Export WAV via system save dialog }
+  - { id: US-09-03, milestone: M09, status: todo, title: Render progress % on control thread }
+  - { id: US-09-04, milestone: M09, status: todo, title: Cancel render in progress }
+  - { id: US-09-05, milestone: M09, status: todo, title: Export length = arrangement length (bars) }
+  - { id: US-09-06, milestone: M09, status: todo, title: Export includes all tracks summed }
+  - { id: US-09-07, milestone: M09, status: todo, title: Export respects sampler trim bounds }
+  - { id: US-09-08, milestone: M09, status: todo, title: Export 44.1 kHz stereo 16-bit PCM WAV }
+  - { id: US-09-09, milestone: M09, status: todo, title: C++ golden offline render test }
+  - { id: US-09-10, milestone: M09, status: todo, title: Flutter export button in settings }
+  - { id: US-09-11, milestone: M09, status: todo, title: Default export filename from project name }
+  - { id: US-09-12, milestone: M09, status: todo, title: Export error — disk full / permission denied }
+  - { id: US-09-13, milestone: M09, status: todo, title: Post-export “Open with…” optional share sheet }
+  - { id: US-09-14, milestone: M09, status: todo, title: Export normalize peak option (checkbox) }
+  - { id: US-09-15, milestone: M09, status: todo, title: Export tail for release time (reverb/envelope) }
+  - { id: US-09-16, milestone: M09, status: todo, title: Bridge renderProject async command }
+  - { id: US-09-17, milestone: M09, status: todo, title: Render faster-than-realtime benchmark test }
+  - { id: US-09-18, milestone: M09, status: todo, title: Export loop range only (cycle markers) }
+  - { id: US-09-19, milestone: M09, status: todo, title: Stem export (one WAV per track) — stretch }
+  - { id: US-09-20, milestone: M09, status: todo, title: M09 PO demo — export → play in external player }

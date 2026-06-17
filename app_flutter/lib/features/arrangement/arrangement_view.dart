@@ -24,6 +24,10 @@ class ArrangementView extends StatefulWidget {
     required this.onMoveClip,
     this.onDeleteTrack,
     this.onDeleteClip,
+    this.onDuplicateClip,
+    this.onOpenPlay,
+    this.focusTrackId,
+    this.compact = false,
   });
 
   final ProjectSnapshot snapshot;
@@ -44,6 +48,12 @@ class ArrangementView extends StatefulWidget {
   }) onMoveClip;
   final void Function(String trackId)? onDeleteTrack;
   final void Function(String clipId)? onDeleteClip;
+  final void Function(String clipId)? onDuplicateClip;
+  final void Function(String trackId)? onOpenPlay;
+  /// When [compact] is true, only this track lane is shown (defaults to selected).
+  final String? focusTrackId;
+  /// Hides master/add-track chrome for embedded play-mode timeline.
+  final bool compact;
 
   @override
   State<ArrangementView> createState() => _ArrangementViewState();
@@ -387,6 +397,15 @@ class _ArrangementViewState extends State<ArrangementView> {
               title: Text('Delete track'),
             ),
           ),
+        if (widget.onOpenPlay != null)
+          const PopupMenuItem(
+            value: 'play',
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.piano, size: 22),
+              title: Text('Play instrument'),
+            ),
+          ),
       ],
     );
     if (!mounted || action == null) {
@@ -404,6 +423,44 @@ class _ArrangementViewState extends State<ArrangementView> {
       widget.onAddAudioClip(track.id, desiredBeat);
     } else if (action == 'delete_track') {
       widget.onDeleteTrack?.call(track.id);
+    } else if (action == 'play') {
+      widget.onOpenPlay?.call(track.id);
+    }
+  }
+
+  Future<void> _showClipMenu(String clipId) async {
+    if (widget.onDeleteClip == null && widget.onDuplicateClip == null) {
+      return;
+    }
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: const Color(0xFF1A1A22),
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (widget.onDuplicateClip != null)
+              ListTile(
+                leading: const Icon(Icons.copy_outlined),
+                title: const Text('Duplicate clip'),
+                onTap: () => Navigator.pop(context, 'duplicate'),
+              ),
+            if (widget.onDeleteClip != null)
+              ListTile(
+                leading: const Icon(Icons.delete_outline),
+                title: const Text('Delete clip'),
+                onTap: () => Navigator.pop(context, 'delete'),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || action == null) return;
+    if (action == 'duplicate') {
+      widget.onDuplicateClip?.call(clipId);
+    } else if (action == 'delete') {
+      widget.onDeleteClip?.call(clipId);
     }
   }
 
@@ -411,6 +468,15 @@ class _ArrangementViewState extends State<ArrangementView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final timelineWidth = ArrangementTimelineMetrics.timelineBeats * _pixelsPerBeat;
+    final visibleTracks = widget.compact
+        ? widget.snapshot.tracks
+            .where(
+              (t) =>
+                  t.id ==
+                  (widget.focusTrackId ?? widget.snapshot.selectedTrackId),
+            )
+            .toList()
+        : widget.snapshot.tracks;
 
     return Container(
       clipBehavior: Clip.none,
@@ -431,7 +497,7 @@ class _ArrangementViewState extends State<ArrangementView> {
                   width: timelineWidth,
                   child: Column(
                     children: [
-                      for (final track in widget.snapshot.tracks)
+                      for (final track in visibleTracks)
                         _TrackLane(
                           track: track,
                           selected: track.id == widget.snapshot.selectedTrackId,
@@ -450,8 +516,9 @@ class _ArrangementViewState extends State<ArrangementView> {
                             lanePress: true,
                           ),
                           onDeleteClip: widget.onDeleteClip,
+                          onClipMenu: _showClipMenu,
                         ),
-                      _AddTrackLane(),
+                      if (!widget.compact) _AddTrackLane(),
                     ],
                   ),
                 );
@@ -473,22 +540,26 @@ class _ArrangementViewState extends State<ArrangementView> {
                                 width: ArrangementTimelineMetrics.trackHeaderWidth,
                                 child: Column(
                                   children: [
-                                    for (var i = 0; i < widget.snapshot.tracks.length; i++)
+                                    for (var i = 0; i < visibleTracks.length; i++)
                                       _TrackHeader(
-                                        track: widget.snapshot.tracks[i],
-                                        index: i,
-                                        selected: widget.snapshot.tracks[i].id ==
+                                        track: visibleTracks[i],
+                                        index: widget.snapshot.tracks
+                                            .indexWhere((t) => t.id == visibleTracks[i].id),
+                                        selected: visibleTracks[i].id ==
                                             widget.snapshot.selectedTrackId,
                                         onTap: () => widget.onTrackSelected(
-                                          widget.snapshot.tracks[i].id,
+                                          visibleTracks[i].id,
                                         ),
-                                        onLongPressStart: (details) => _onTrackLongPress(
-                                          widget.snapshot.tracks[i],
-                                          details,
-                                          lanePress: false,
-                                        ),
+                                        onLongPressStart: widget.compact
+                                            ? null
+                                            : (details) => _onTrackLongPress(
+                                                  visibleTracks[i],
+                                                  details,
+                                                  lanePress: false,
+                                                ),
                                       ),
-                                    _AddTrackHeader(onTap: widget.onAddTrack),
+                                    if (!widget.compact)
+                                      _AddTrackHeader(onTap: widget.onAddTrack),
                                   ],
                                 ),
                               ),
@@ -518,25 +589,26 @@ class _ArrangementViewState extends State<ArrangementView> {
                             ],
                           ),
                         ),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _MasterHeader(master: widget.snapshot.master),
-                            Expanded(
-                              child: Listener(
-                                key: null,
-                                child: SingleChildScrollView(
-                                  controller: _masterScroll,
-                                  scrollDirection: Axis.horizontal,
-                                  physics: const BouncingScrollPhysics(
-                                    parent: AlwaysScrollableScrollPhysics(),
+                        if (!widget.compact)
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _MasterHeader(master: widget.snapshot.master),
+                              Expanded(
+                                child: Listener(
+                                  key: null,
+                                  child: SingleChildScrollView(
+                                    controller: _masterScroll,
+                                    scrollDirection: Axis.horizontal,
+                                    physics: const BouncingScrollPhysics(
+                                      parent: AlwaysScrollableScrollPhysics(),
+                                    ),
+                                    child: _MasterLane(width: timelineWidth),
                                   ),
-                                  child: _MasterLane(width: timelineWidth),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
                       ],
                     ),
                     Positioned(
@@ -561,14 +633,15 @@ class _ArrangementViewState extends State<ArrangementView> {
                         onScrubEnd: _onPlayheadScrubEnd,
                       ),
                     ),
-                    Positioned(
-                      top: widget.snapshot.tracks.length *
-                          ArrangementTimelineMetrics.trackLaneHeight,
-                      left: ArrangementTimelineMetrics.trackHeaderWidth,
-                      width: viewportWidth,
-                      height: ArrangementTimelineMetrics.trackLaneHeight,
-                      child: _AddTrackViewportLabel(onTap: widget.onAddTrack),
-                    ),
+                    if (!widget.compact)
+                      Positioned(
+                        top: visibleTracks.length *
+                            ArrangementTimelineMetrics.trackLaneHeight,
+                        left: ArrangementTimelineMetrics.trackHeaderWidth,
+                        width: viewportWidth,
+                        height: ArrangementTimelineMetrics.trackLaneHeight,
+                        child: _AddTrackViewportLabel(onTap: widget.onAddTrack),
+                      ),
                     if (clipDrag != null)
                       _ClipDragPreview(
                         stackKey: _arrangementStackKey,
@@ -701,14 +774,14 @@ class _TrackHeader extends StatelessWidget {
     required this.index,
     required this.selected,
     required this.onTap,
-    required this.onLongPressStart,
+    this.onLongPressStart,
   });
 
   final TrackSnapshot track;
   final int index;
   final bool selected;
   final VoidCallback onTap;
-  final GestureLongPressStartCallback onLongPressStart;
+  final GestureLongPressStartCallback? onLongPressStart;
 
   @override
   Widget build(BuildContext context) {
@@ -848,6 +921,7 @@ class _TrackLane extends StatelessWidget {
     required this.onClipDragCancel,
     required this.onLongPressStart,
     this.onDeleteClip,
+    this.onClipMenu,
   });
 
   final TrackSnapshot track;
@@ -872,6 +946,7 @@ class _TrackLane extends StatelessWidget {
   final VoidCallback onClipDragCancel;
   final GestureLongPressStartCallback onLongPressStart;
   final void Function(String clipId)? onDeleteClip;
+  final void Function(String clipId)? onClipMenu;
 
   List<double> get _clipStarts {
     return [
@@ -917,7 +992,7 @@ class _TrackLane extends StatelessWidget {
                 clip: clip,
                 highlighted: draggingClipId == clip.id,
                 onTap: () => onSampleClipTap(track.id, clip),
-                onDoubleTap: onDeleteClip == null ? null : () => onDeleteClip!(clip.id),
+                onDoubleTap: onClipMenu == null ? null : () => onClipMenu!(clip.id),
                 onDragStart: (details) => onClipDragStart(
                   trackId: track.id,
                   clipId: clip.id,
@@ -942,7 +1017,7 @@ class _TrackLane extends StatelessWidget {
                 clip: clip,
                 highlighted: draggingClipId == clip.id,
                 onTap: () => onClipTap(track.id, clip),
-                onDoubleTap: onDeleteClip == null ? null : () => onDeleteClip!(clip.id),
+                onDoubleTap: onClipMenu == null ? null : () => onClipMenu!(clip.id),
                 onDragStart: (details) => onClipDragStart(
                   trackId: track.id,
                   clipId: clip.id,

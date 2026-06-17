@@ -257,7 +257,16 @@ class MainActivity : FlutterFragmentActivity() {
                         "setBpm",
                         "deleteTrack",
                         "deleteClip",
+                        "duplicateClip",
                         "setLoopEnabled",
+                        "setLoopLengthBeats",
+                        "setRecordArmed",
+                        "noteOn",
+                        "noteOff",
+                        "allNotesOff",
+                        "clearCapture",
+                        "commitCapture",
+                        "enterPlayMode",
                         "previewSample" -> {
                             val argsJson = when (val args = call.arguments) {
                                 null -> "{}"

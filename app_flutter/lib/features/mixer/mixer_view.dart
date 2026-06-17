@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
 import '../arrangement/track_lane_icon.dart';
+import '../device_strip/device_knob_sizes.dart';
+import '../device_strip/rotary_knob.dart';
 
 class MixerView extends StatelessWidget {
   const MixerView({
@@ -83,7 +85,7 @@ class _MixerColumn extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      width: 80,
+      width: 88,
       margin: const EdgeInsets.only(right: 8),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
@@ -102,22 +104,16 @@ class _MixerColumn extends StatelessWidget {
             textAlign: TextAlign.center,
             style: theme.textTheme.labelSmall,
           ),
+          const Spacer(),
+          RotaryKnob(
+            label: 'Gain',
+            value: gain.clamp(0.0, 1.0),
+            size: DeviceKnobSizes.mixer,
+            displayValue: '${(gain * 100).round()}%',
+            accentColor: accent ?? const Color(0xFFE8A54B),
+            onChanged: onGainChanged,
+          ),
           const SizedBox(height: 8),
-          Expanded(
-            child: RotatedBox(
-              quarterTurns: 3,
-              child: Slider(
-                min: 0,
-                max: 1,
-                value: gain.clamp(0.0, 1.0),
-                onChanged: onGainChanged,
-              ),
-            ),
-          ),
-          Text(
-            '${(gain * 100).round()}%',
-            style: theme.textTheme.labelSmall?.copyWith(color: Colors.white54),
-          ),
         ],
       ),
     );

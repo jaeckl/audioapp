@@ -11,8 +11,10 @@
 1. **Arrangement / timeline** — tracks, clips, playhead
 2. **Track headers** — names, selection
 3. **Transport** — play, stop, BPM display
-4. **Device strip** — horizontal chain at bottom
+4. **Device strip** — horizontal chain at bottom (collapse on phone; fullscreen to edit)
 5. **Editors** — piano roll, sampler fullscreen (later)
+
+See [mobile_ux_competitive_analysis.md](mobile_ux_competitive_analysis.md) for Ableton Note / FL Studio Mobile layout research and target shell.
 
 ## Gestures (target)
 
@@ -21,11 +23,17 @@
 - Long-press context actions
 - Horizontal swipe on device strip
 
+## Device panels
+
+- One **tab per parameter group** (Sample / Env / Filter / Level) — never all knobs at once.
+- **Big rotary knobs** (`DeviceKnobSizes`: strip 56dp, editor 76dp).
+- Double-tap knob resets to 50%; double-tap clip opens Duplicate / Delete menu.
+
 ## Phone vs tablet
 
 | Element | Phone | Tablet |
 |---------|-------|--------|
-| Device strip | Always visible bottom | Bottom or side |
+| Device strip | Collapsed peek on phone; expand for tabbed knobs | Bottom or side |
 | Piano roll | Full-screen overlay | Split or overlay |
 | Sample library | Modal / drawer | Panel |
 

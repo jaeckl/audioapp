@@ -12,6 +12,8 @@ class SamplerDeviceStrip extends StatelessWidget {
     required this.sample,
     required this.onParameterChanged,
     required this.onOpenFullscreen,
+    this.onTabChanged,
+    this.onCollapse,
   });
 
   final String trackName;
@@ -19,6 +21,8 @@ class SamplerDeviceStrip extends StatelessWidget {
   final SampleLibraryEntrySnapshot? sample;
   final void Function(String parameterId, double value) onParameterChanged;
   final VoidCallback onOpenFullscreen;
+  final ValueChanged<SamplerDeviceTab>? onTabChanged;
+  final VoidCallback? onCollapse;
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +32,9 @@ class SamplerDeviceStrip extends StatelessWidget {
       onParameterChanged: onParameterChanged,
       showExpandControl: true,
       onOpenFullscreen: onOpenFullscreen,
+      onTabChanged: onTabChanged,
+      onCollapse: onCollapse,
+      density: SamplerPanelDensity.strip,
     );
   }
 }

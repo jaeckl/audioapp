@@ -7,6 +7,7 @@ class ProjectSnapshot {
     required this.playing,
     required this.loopEnabled,
     required this.loopLengthBeats,
+    required this.recordArmed,
     required this.master,
     required this.samples,
     required this.tracks,
@@ -18,6 +19,7 @@ class ProjectSnapshot {
   final bool playing;
   final bool loopEnabled;
   final double loopLengthBeats;
+  final bool recordArmed;
   final MasterTrackSnapshot master;
   final List<SampleLibraryEntrySnapshot> samples;
   final List<TrackSnapshot> tracks;
@@ -33,6 +35,7 @@ class ProjectSnapshot {
       playing: snapshot['playing'] == true,
       loopEnabled: snapshot['loopEnabled'] != false,
       loopLengthBeats: (snapshot['loopLengthBeats'] as num?)?.toDouble() ?? 16.0,
+      recordArmed: snapshot['recordArmed'] == true,
       master: MasterTrackSnapshot.fromMap(snapshot['master'] as Map<dynamic, dynamic>?),
       samples: samplesRaw
           .map((s) => SampleLibraryEntrySnapshot.fromMap(s as Map<dynamic, dynamic>))

@@ -48,6 +48,7 @@ struct EngineHost::Impl {
             self->owner.advancePlayheadForBlock(framesToProcess, rate);
         }
         self->owner.readPreviewMix(masterMono, framesToProcess, rate);
+        self->owner.readLiveMix(masterMono, framesToProcess, rate);
 
         for (int32_t frame = 0; frame < framesToProcess; ++frame) {
             const float sample = masterMono[frame];

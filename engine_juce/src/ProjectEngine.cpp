@@ -354,6 +354,35 @@ bool ProjectEngine::deleteClip(const std::string& clipId) {
     return false;
 }
 
+bool ProjectEngine::duplicateClip(const std::string& clipId) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (auto& track : tracks_) {
+        for (const auto& clip : track.midiClips) {
+            if (clip.id != clipId) {
+                continue;
+            }
+            MidiClip copy = clip;
+            copy.id = "clip-" + std::to_string(nextClipNum_++);
+            copy.startBeat = clip.startBeat + clip.lengthBeats;
+            track.midiClips.push_back(std::move(copy));
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
+        for (const auto& clip : track.sampleClips) {
+            if (clip.id != clipId) {
+                continue;
+            }
+            SampleClip copy = clip;
+            copy.id = "sclip-" + std::to_string(nextSampleClipNum_++);
+            copy.startBeat = clip.startBeat + clip.lengthBeats;
+            track.sampleClips.push_back(std::move(copy));
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
+    }
+    return false;
+}
+
 bool ProjectEngine::setLoopEnabled(bool enabled) {
     std::lock_guard<std::mutex> lock(mutex_);
     loopEnabled_ = enabled;
@@ -402,6 +431,7 @@ ProjectSnapshot ProjectEngine::snapshot() const {
     snap.playing = playing_.load(std::memory_order_relaxed);
     snap.loopEnabled = loopEnabled_;
     snap.loopLengthBeats = loopLengthBeats_;
+    snap.recordArmed = recordArmed_;
     snap.master.id = "master";
     snap.master.name = "Master";
     snap.master.gain = masterGain_.load(std::memory_order_relaxed);

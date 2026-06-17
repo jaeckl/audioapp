@@ -12,12 +12,13 @@ import '../features/arrangement/arrangement_view.dart';
 import '../features/device_strip/device_strip.dart';
 import '../features/device_strip/sampler_editor_screen.dart';
 import '../features/mixer/mixer_view.dart';
+import '../features/play/play_surface_screen.dart';
 import '../features/piano_roll/piano_roll_screen.dart';
 import '../features/sample_library/sample_library_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/transport/transport_bar.dart';
 
-enum _ShellTab { arrangement, mixer, library, settings }
+enum _ShellTab { arrangement, play, mixer, library, settings }
 
 class DawShell extends StatefulWidget {
   const DawShell({
@@ -443,6 +444,26 @@ class _DawShellState extends State<DawShell> {
     }
   }
 
+  Future<void> _setLoopLengthBeats(double beats) async {
+    try {
+      final snapshot = await widget.bridge.setLoopLengthBeats(beats);
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
+  Future<void> _duplicateClip(String clipId) async {
+    try {
+      final snapshot = await widget.bridge.duplicateClip(clipId);
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
   Future<void> _confirmDeleteTrack(String trackId) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -542,6 +563,21 @@ class _DawShellState extends State<DawShell> {
     setState(() => _playing = !_playing);
   }
 
+  Future<void> _onTabSelected(_ShellTab tab) async {
+    if (_tab == tab) return;
+    if (_tab == _ShellTab.play && tab != _ShellTab.play) {
+      try {
+        await widget.bridge.allNotesOff();
+      } catch (_) {}
+    }
+    setState(() => _tab = tab);
+    if (tab == _ShellTab.play) {
+      try {
+        await widget.bridge.enterPlayMode();
+      } catch (_) {}
+    }
+  }
+
   Widget _buildTabBody(ProjectSnapshot snapshot) {
     switch (_tab) {
       case _ShellTab.arrangement:
@@ -564,6 +600,11 @@ class _DawShellState extends State<DawShell> {
                 onMoveClip: _moveClip,
                 onDeleteTrack: _confirmDeleteTrack,
                 onDeleteClip: _confirmDeleteClip,
+                onDuplicateClip: _duplicateClip,
+                onOpenPlay: (trackId) async {
+                  await _selectTrack(trackId);
+                  await _onTabSelected(_ShellTab.play);
+                },
               ),
             ),
             DeviceStrip(
@@ -584,6 +625,23 @@ class _DawShellState extends State<DawShell> {
               onFrequencyChanged: _setFrequency,
             ),
           ],
+        );
+      case _ShellTab.play:
+        return PlaySurfaceScreen(
+          bridge: widget.bridge,
+          snapshot: snapshot,
+          onSnapshot: _refreshSnapshot,
+          playing: _playing,
+          onPlayStop: _togglePlay,
+          onPlayheadSeek: _setPlayheadBeats,
+          onTrackSelected: _selectTrack,
+          onAddMidiClip: _addMidiClip,
+          onAddAudioClip: _addAudioClip,
+          onClipTap: _openPianoRoll,
+          onSampleClipTap: (_, __) {},
+          onMoveClip: _moveClip,
+          onDeleteClip: _confirmDeleteClip,
+          onDuplicateClip: _duplicateClip,
         );
       case _ShellTab.mixer:
         return MixerView(
@@ -621,8 +679,11 @@ class _DawShellState extends State<DawShell> {
             playheadBeats: snapshot.playheadBeats,
             version: kAppVersion,
             loopEnabled: snapshot.loopEnabled,
+            loopLengthBeats: snapshot.loopLengthBeats,
             onBpmChanged: _setBpm,
             onLoopToggled: _setLoopEnabled,
+            onLoopLengthChanged: _setLoopLengthBeats,
+            onExportMix: _exportMix,
           ),
         Expanded(
           child: snapshot == null
@@ -640,7 +701,7 @@ class _DawShellState extends State<DawShell> {
     final nav = DawShellNav(
       selectedIndex: _tab.index,
       geometry: navGeometry,
-      onDestinationSelected: (index) => setState(() => _tab = _ShellTab.values[index]),
+      onDestinationSelected: (index) => _onTabSelected(_ShellTab.values[index]),
     );
 
     return Scaffold(

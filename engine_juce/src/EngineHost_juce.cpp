@@ -79,6 +79,7 @@ struct EngineHost::Impl : juce::AudioIODeviceCallback {
             juce::FloatVectorOperations::clear(left, numSamples);
         }
         owner.readPreviewMix(left, numSamples, rate);
+        owner.readLiveMix(left, numSamples, rate);
 
         for (int ch = 1; ch < numOutputChannels; ++ch) {
             float* const out = outputChannelData[ch];

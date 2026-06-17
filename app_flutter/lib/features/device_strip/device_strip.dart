@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import '../../bridge/project_snapshot.dart';
 import 'device_strip_metrics.dart';
 import 'device_strip_viewport.dart';
+import 'oscillator_device_panel.dart';
+import 'sampler_device_panel.dart';
 import 'sampler_device_strip.dart';
 
-class DeviceStrip extends StatelessWidget {
+class DeviceStrip extends StatefulWidget {
   const DeviceStrip({
     super.key,
     required this.track,
@@ -28,11 +30,19 @@ class DeviceStrip extends StatelessWidget {
   final Future<List<SampleLibraryEntrySnapshot>> Function() onImportSamples;
   final void Function(String deviceId, double frequencyHz) onFrequencyChanged;
 
+  @override
+  State<DeviceStrip> createState() => _DeviceStripState();
+}
+
+class _DeviceStripState extends State<DeviceStrip> {
+  bool _expanded = false;
+  SamplerDeviceTab _samplerTab = SamplerDeviceTab.sample;
+
   SampleLibraryEntrySnapshot? _sampleForDevice(DeviceSnapshot device) {
     if (device.sampleId.isEmpty) {
       return null;
     }
-    for (final sample in samples) {
+    for (final sample in widget.samples) {
       if (sample.id == device.sampleId) {
         return sample;
       }
@@ -40,50 +50,94 @@ class DeviceStrip extends StatelessWidget {
     return null;
   }
 
+  bool _shouldStartCollapsed(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    return size.height < 720 || size.width < 400;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final collapsed = !_expanded && _shouldStartCollapsed(context);
+    final stripHeight =
+        collapsed ? DeviceStripMetrics.collapsedHeight : DeviceStripMetrics.height;
+
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: Color(0xFF121218),
         border: Border(top: BorderSide(color: Colors.white12)),
       ),
-      child: track == null ? _emptyState(context) : _trackDevices(context, track!),
+      child: widget.track == null
+          ? SizedBox(
+              height: stripHeight,
+              child: Center(
+                child: Text(
+                  'Select a track to show devices',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white38),
+                ),
+              ),
+            )
+          : _trackDevices(context, widget.track!, collapsed, stripHeight),
     );
   }
 
-  Widget _emptyState(BuildContext context) {
-    return SizedBox(
-      height: DeviceStripMetrics.height,
-      child: Center(
-        child: Text(
-          'Select a track to show devices',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white38),
-        ),
-      ),
-    );
-  }
-
-  Widget _trackDevices(BuildContext context, TrackSnapshot track) {
+  Widget _trackDevices(
+    BuildContext context,
+    TrackSnapshot track,
+    bool collapsed,
+    double stripHeight,
+  ) {
     final sampler = track.samplerDevice;
     if (sampler != null) {
+      if (collapsed) {
+        return SizedBox(
+          height: stripHeight,
+          child: SamplerDeviceStripCollapsed(
+            device: sampler,
+            sample: _sampleForDevice(sampler),
+            activeTab: _samplerTab,
+            onExpand: () => setState(() => _expanded = true),
+            onOpenFullscreen: () => widget.onOpenSamplerEditor(track, sampler),
+          ),
+        );
+      }
+
       return DeviceStripViewport(
+        designHeight: DeviceStripMetrics.height,
         child: SamplerDeviceStrip(
           trackName: track.name,
           device: sampler,
           sample: _sampleForDevice(sampler),
           onParameterChanged: (parameterId, value) =>
-              onSamplerParameterChanged(sampler.id, parameterId, value),
-          onOpenFullscreen: () => onOpenSamplerEditor(track, sampler),
+              widget.onSamplerParameterChanged(sampler.id, parameterId, value),
+          onOpenFullscreen: () => widget.onOpenSamplerEditor(track, sampler),
+          onTabChanged: (tab) => setState(() => _samplerTab = tab),
+          onCollapse: _shouldStartCollapsed(context)
+              ? () => setState(() => _expanded = false)
+              : null,
         ),
       );
     }
 
     final oscillator = track.oscillatorDevice;
     if (oscillator == null) {
-      return Center(
-        child: Text(
-          'No instrument on ${track.name}',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white54),
+      return SizedBox(
+        height: stripHeight,
+        child: Center(
+          child: Text(
+            'No instrument on ${track.name}',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white54),
+          ),
+        ),
+      );
+    }
+
+    if (collapsed) {
+      return SizedBox(
+        height: stripHeight,
+        child: OscillatorDeviceStripCollapsed(
+          trackName: track.name,
+          frequencyHz: oscillator.frequencyHz,
+          onExpand: () => setState(() => _expanded = true),
         ),
       );
     }
@@ -91,30 +145,13 @@ class DeviceStrip extends StatelessWidget {
     return DeviceStripViewport(
       designWidth: 360,
       designHeight: DeviceStripMetrics.height,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Oscillator — ${track.name}', style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Text('${oscillator.frequencyHz.round()} Hz'),
-                Expanded(
-                  child: Slider(
-                    min: 110,
-                    max: 880,
-                    divisions: 14,
-                    value: oscillator.frequencyHz.clamp(110, 880),
-                    label: '${oscillator.frequencyHz.round()} Hz',
-                    onChanged: (value) => onFrequencyChanged(oscillator.id, value),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+      child: OscillatorDevicePanel(
+        trackName: track.name,
+        frequencyHz: oscillator.frequencyHz,
+        onFrequencyChanged: (value) => widget.onFrequencyChanged(oscillator.id, value),
+        onCollapse: _shouldStartCollapsed(context)
+            ? () => setState(() => _expanded = false)
+            : null,
       ),
     );
   }

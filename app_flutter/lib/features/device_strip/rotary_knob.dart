@@ -2,7 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// Compact rotary control styled after Bitwig device knobs.
+import 'device_knob_sizes.dart';
+
+/// Compact rotary control styled after Bitwig / FL Studio Mobile device knobs.
 class RotaryKnob extends StatefulWidget {
   const RotaryKnob({
     super.key,
@@ -10,7 +12,7 @@ class RotaryKnob extends StatefulWidget {
     required this.value,
     required this.onChanged,
     this.displayValue,
-    this.size = 38,
+    this.size = DeviceKnobSizes.strip,
     this.accentColor = const Color(0xFFE8A54B),
   });
 
@@ -35,14 +37,17 @@ class _RotaryKnobState extends State<RotaryKnob> {
   }
 
   void _onDragUpdate(DragUpdateDetails details) {
-    final delta = (_dragStartY - details.localPosition.dy) / 120;
+    final sensitivity = 120.0 + widget.size * 2;
+    final delta = (_dragStartY - details.localPosition.dy) / sensitivity;
     widget.onChanged((_dragStartValue + delta).clamp(0.0, 1.0));
   }
 
   @override
   Widget build(BuildContext context) {
+    final stroke = widget.size >= DeviceKnobSizes.editor ? 4.0 : 3.0;
     final theme = Theme.of(context);
     final angle = -math.pi * 0.75 + (widget.value.clamp(0, 1) * math.pi * 1.5);
+    final labelSize = widget.size >= DeviceKnobSizes.strip ? 10.0 : 9.0;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -51,24 +56,32 @@ class _RotaryKnobState extends State<RotaryKnob> {
           behavior: HitTestBehavior.opaque,
           onVerticalDragStart: _onDragStart,
           onVerticalDragUpdate: _onDragUpdate,
+          onDoubleTap: () => widget.onChanged(0.5),
           child: SizedBox(
-            width: widget.size,
-            height: widget.size,
-            child: CustomPaint(
-              painter: _KnobPainter(
-                value: widget.value.clamp(0, 1),
-                angle: angle,
-                accentColor: widget.accentColor,
+            width: widget.size + 8,
+            height: widget.size + 4,
+            child: Center(
+              child: SizedBox(
+                width: widget.size,
+                height: widget.size,
+                child: CustomPaint(
+                  painter: _KnobPainter(
+                    value: widget.value.clamp(0, 1),
+                    angle: angle,
+                    accentColor: widget.accentColor,
+                    strokeWidth: stroke,
+                  ),
+                ),
               ),
             ),
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 3),
         Text(
           widget.label,
           style: theme.textTheme.labelSmall?.copyWith(
             color: Colors.white54,
-            fontSize: 9,
+            fontSize: labelSize,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -97,11 +110,13 @@ class _KnobPainter extends CustomPainter {
     required this.value,
     required this.angle,
     required this.accentColor,
+    this.strokeWidth = 3,
   });
 
   final double value;
   final double angle;
   final Color accentColor;
+  final double strokeWidth;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -111,14 +126,14 @@ class _KnobPainter extends CustomPainter {
     final trackPaint = Paint()
       ..color = Colors.white.withValues(alpha: 0.08)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
+      ..strokeWidth = strokeWidth;
     canvas.drawCircle(center, radius, trackPaint);
 
     final arcPaint = Paint()
       ..color = accentColor.withValues(alpha: 0.85)
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
-      ..strokeWidth = 3;
+      ..strokeWidth = strokeWidth;
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
       -math.pi * 0.75,

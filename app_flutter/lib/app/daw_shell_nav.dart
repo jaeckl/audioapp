@@ -122,9 +122,10 @@ class DawShellNav extends StatelessWidget {
 
   static const _destinations = <({IconData icon, IconData selectedIcon, String label})>[
     (icon: Icons.grid_view_outlined, selectedIcon: Icons.grid_view, label: 'Arrangement'),
+    (icon: Icons.piano_outlined, selectedIcon: Icons.piano, label: 'Play'),
     (icon: Icons.tune_outlined, selectedIcon: Icons.tune, label: 'Mixer'),
     (icon: Icons.library_music_outlined, selectedIcon: Icons.library_music, label: 'Library'),
-    (icon: Icons.settings_outlined, selectedIcon: Icons.settings, label: 'Settings'),
+    (icon: Icons.folder_open_outlined, selectedIcon: Icons.folder_open, label: 'Project'),
   ];
 
   bool get _isVertical =>

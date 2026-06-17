@@ -48,12 +48,21 @@ public:
     bool setBpm(int bpm);
     bool deleteTrack(const std::string& trackId);
     bool deleteClip(const std::string& clipId);
+    bool duplicateClip(const std::string& clipId);
     bool setLoopEnabled(bool enabled);
     bool setLoopLengthBeats(double lengthBeats);
     std::vector<float> renderOffline(double lengthBeats, double sampleRate);
     std::string importWavSample(const std::string& displayName, const std::vector<uint8_t>& wavBytes);
     void previewSample(const std::string& sampleId);
     void ensureAudioOutput();
+
+    bool setRecordArmed(bool armed);
+    bool noteOn(int pitch, float velocity);
+    bool noteOff(int pitch);
+    void allNotesOff();
+    void clearCapture();
+    bool commitCapture();
+    void enterPlayMode();
 
     bool saveProject(const std::string& archivePath);
     bool loadProject(const std::string& archivePath);
@@ -71,6 +80,7 @@ public:
                        double playheadStartBeat) noexcept;
     double playheadBeats() const noexcept;
     void readPreviewMix(float* monoOut, int numFrames, double sampleRate) noexcept;
+    void readLiveMix(float* monoOut, int numFrames, double sampleRate) noexcept;
 
 private:
     struct Impl;
