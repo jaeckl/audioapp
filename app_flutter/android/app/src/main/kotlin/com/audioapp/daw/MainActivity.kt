@@ -270,7 +270,12 @@ class MainActivity : FlutterFragmentActivity() {
                         "enterPlayMode",
                         "setPitchBend",
                         "setModulation",
-                        "previewSample" -> {
+                        "previewSample",
+                        "createLfo",
+                        "removeLfo",
+                        "updateLfoParam",
+                        "assignModulation",
+                        "removeModulation" -> {
                             val argsJson = when (val args = call.arguments) {
                                 null -> "{}"
                                 is Map<*, *> -> mapToJson(args).toString()
