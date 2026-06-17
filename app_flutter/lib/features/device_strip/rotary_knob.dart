@@ -25,6 +25,8 @@ class RotaryKnob extends StatefulWidget {
     this.size = DeviceKnobSizes.strip,
     this.accentColor = const Color(0xFFE8A54B),
     this.modulationActive = false,
+    this.modulationAmount = 0.0,
+    this.connectModeActive = false,
     this.onModulationAssign,
   });
 
@@ -35,6 +37,8 @@ class RotaryKnob extends StatefulWidget {
   final double size;
   final Color accentColor;
   final bool modulationActive;
+  final double modulationAmount;
+  final bool connectModeActive;
   final VoidCallback? onModulationAssign;
 
   @override
@@ -88,6 +92,8 @@ class _RotaryKnobState extends State<RotaryKnob> {
                       accentColor: widget.accentColor,
                       strokeWidth: stroke,
                       modulationActive: widget.modulationActive,
+                      modulationAmount: widget.modulationAmount,
+                      connectModeActive: widget.connectModeActive,
                     ),
                   ),
                 ),
@@ -133,6 +139,8 @@ class _KnobPainter extends CustomPainter {
     required this.accentColor,
     this.strokeWidth = 3,
     this.modulationActive = false,
+    this.modulationAmount = 0.0,
+    this.connectModeActive = false,
   });
 
   final double value;
@@ -140,6 +148,8 @@ class _KnobPainter extends CustomPainter {
   final Color accentColor;
   final double strokeWidth;
   final bool modulationActive;
+  final double modulationAmount;
+  final bool connectModeActive;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -147,8 +157,12 @@ class _KnobPainter extends CustomPainter {
     final radius = size.width / 2 - 2;
     final arcRect = Rect.fromCircle(center: center, radius: radius);
 
+    // --- Track arc ---
+    // If connectModeActive, draw the whole track in accent with 30% alpha
     final trackPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.08)
+      ..color = connectModeActive
+          ? accentColor.withValues(alpha: 0.3)
+          : Colors.white.withValues(alpha: 0.08)
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeWidth = strokeWidth;
@@ -160,6 +174,7 @@ class _KnobPainter extends CustomPainter {
       trackPaint,
     );
 
+    // --- Value arc ---
     final arcPaint = Paint()
       ..color = accentColor.withValues(alpha: 0.85)
       ..style = PaintingStyle.stroke
@@ -173,6 +188,23 @@ class _KnobPainter extends CustomPainter {
       arcPaint,
     );
 
+    // --- Modulation range arc (centered on current value) ---
+    if (modulationActive && modulationAmount != 0.0) {
+      final modLow = (value - modulationAmount.abs()).clamp(0.0, 1.0);
+      final modHigh = (value + modulationAmount.abs()).clamp(0.0, 1.0);
+      final modStartAngle = KnobArcGeometry.indicatorAngle(modLow);
+      final modSweepAngle =
+          KnobArcGeometry.indicatorAngle(modHigh) - modStartAngle;
+
+      final modPaint = Paint()
+        ..color = accentColor.withValues(alpha: 0.5)
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = strokeWidth * 0.5;
+      canvas.drawArc(arcRect, modStartAngle, modSweepAngle, false, modPaint);
+    }
+
+    // --- Indicator dot ---
     final indicatorPaint = Paint()..color = accentColor;
     final indicatorEnd = Offset(
       center.dx + math.cos(angle) * (radius - 4),
@@ -180,6 +212,7 @@ class _KnobPainter extends CustomPainter {
     );
     canvas.drawCircle(indicatorEnd, 2.5, indicatorPaint);
 
+    // --- Center fill ---
     final fillPaint = Paint()..color = const Color(0xFF14141C);
     canvas.drawCircle(center, radius - 6, fillPaint);
 
@@ -196,7 +229,10 @@ class _KnobPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _KnobPainter oldDelegate) {
-    return oldDelegate.value != value || oldDelegate.angle != angle ||
-        oldDelegate.modulationActive != modulationActive;
+    return oldDelegate.value != value ||
+        oldDelegate.angle != angle ||
+        oldDelegate.modulationActive != modulationActive ||
+        oldDelegate.modulationAmount != modulationAmount ||
+        oldDelegate.connectModeActive != connectModeActive;
   }
 }

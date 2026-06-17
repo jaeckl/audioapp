@@ -15,6 +15,8 @@ class SamplerDeviceStrip extends StatelessWidget {
     this.embeddedInCard = true,
     this.selectedTab,
     this.modulatedParams = const {},
+    this.modulationAmounts = const {},
+    this.connectModeLfoId,
     this.onModulationAssign,
   });
 
@@ -26,6 +28,8 @@ class SamplerDeviceStrip extends StatelessWidget {
   final bool embeddedInCard;
   final SamplerDeviceTab? selectedTab;
   final Set<String> modulatedParams;
+  final Map<String, double> modulationAmounts;
+  final int? connectModeLfoId;
   final void Function(String paramId, String paramLabel)? onModulationAssign;
 
   @override
@@ -40,6 +44,8 @@ class SamplerDeviceStrip extends StatelessWidget {
       selectedTab: selectedTab,
       density: SamplerPanelDensity.strip,
       modulatedParams: modulatedParams,
+      modulationAmounts: modulationAmounts,
+      connectModeLfoId: connectModeLfoId,
       onModulationAssign: onModulationAssign,
     );
   }

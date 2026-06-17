@@ -33,6 +33,8 @@ class SubtractiveSynthDevicePanel extends StatefulWidget {
     this.onOpenFullscreen,
     this.showExpandControl = false,
     this.modulatedParams = const {},
+    this.modulationAmounts = const {},
+    this.connectModeLfoId,
     this.onModulationAssign,
   });
 
@@ -45,6 +47,8 @@ class SubtractiveSynthDevicePanel extends StatefulWidget {
   final VoidCallback? onOpenFullscreen;
   final bool showExpandControl;
   final Set<String> modulatedParams;
+  final Map<String, double> modulationAmounts;
+  final int? connectModeLfoId;
   final void Function(String paramId, String paramLabel)? onModulationAssign;
 
   static const Color panel = Color(0xFF1C1C24);
@@ -80,7 +84,10 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
     String? displayValue,
     double? size,
     String? paramId,
+    Map<String, double> modulationAmounts = const {},
+    int? connectModeLfoId,
   }) {
+    final modAmount = paramId != null ? modulationAmounts[paramId] ?? 0.0 : 0.0;
     return RotaryKnob(
       label: label,
       value: value,
@@ -89,6 +96,8 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
       size: size ?? _knobSize,
       accentColor: SubtractiveSynthDevicePanel.accent,
       modulationActive: paramId != null && widget.modulatedParams.contains(paramId),
+      modulationAmount: modAmount,
+      connectModeActive: paramId != null && connectModeLfoId != null,
       onModulationAssign: paramId != null && widget.onModulationAssign != null
           ? () => widget.onModulationAssign!(paramId, label)
           : null,
@@ -249,6 +258,8 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
               displayValue: subtractiveShapeLabel(shape),
               onChanged: (v) => widget.onParameterChanged(shapeParam, v),
               paramId: shapeParam,
+              modulationAmounts: widget.modulationAmounts,
+              connectModeLfoId: widget.connectModeLfoId,
             ),
             _knob(
               label: 'Pitch',
@@ -257,6 +268,8 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
               displayValue: '${(semi * 11).round()}',
               onChanged: (v) => widget.onParameterChanged(semiParam, v),
               paramId: semiParam,
+              modulationAmounts: widget.modulationAmounts,
+              connectModeLfoId: widget.connectModeLfoId,
             ),
             _knob(
               label: 'Sync',
@@ -265,6 +278,8 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
               displayValue: SamplerDevicePanel.formatPercent(sync),
               onChanged: (v) => widget.onParameterChanged(syncParam, v),
               paramId: syncParam,
+              modulationAmounts: widget.modulationAmounts,
+              connectModeLfoId: widget.connectModeLfoId,
             ),
           ],
         ),
@@ -318,6 +333,8 @@ Widget _mixTab() {
                           displayValue: '${1 + (widget.device.unisonVoices * 3).round()}',
                           onChanged: (v) => widget.onParameterChanged('unisonVoices', v),
                           paramId: 'unisonVoices',
+                          modulationAmounts: widget.modulationAmounts,
+                          connectModeLfoId: widget.connectModeLfoId,
                         ),
                       ),
                     ),
@@ -330,6 +347,8 @@ Widget _mixTab() {
                           displayValue: SamplerDevicePanel.formatPercent(widget.device.unisonDetune),
                           onChanged: (v) => widget.onParameterChanged('unisonDetune', v),
                           paramId: 'unisonDetune',
+                          modulationAmounts: widget.modulationAmounts,
+                          connectModeLfoId: widget.connectModeLfoId,
                         ),
                       ),
                     ),
@@ -386,6 +405,8 @@ Widget _mixTab() {
                           displayValue: SamplerDevicePanel.formatPercent(widget.device.oscMix),
                           onChanged: (v) => widget.onParameterChanged('oscMix', v),
                           paramId: 'oscMix',
+                          modulationAmounts: widget.modulationAmounts,
+                          connectModeLfoId: widget.connectModeLfoId,
                         ),
                       ),
                     ),
@@ -398,6 +419,8 @@ Widget _mixTab() {
                           displayValue: SamplerDevicePanel.formatPercent(widget.device.noiseLevel),
                           onChanged: (v) => widget.onParameterChanged('noiseLevel', v),
                           paramId: 'noiseLevel',
+                          modulationAmounts: widget.modulationAmounts,
+                          connectModeLfoId: widget.connectModeLfoId,
                         ),
                       ),
                     ),
@@ -459,6 +482,8 @@ Widget _mixTab() {
                       displayValue: SamplerDevicePanel.formatCutoffHz(widget.device.filterCutoff),
                       onChanged: (v) => widget.onParameterChanged('filterCutoff', v),
                       paramId: 'filterCutoff',
+                      modulationAmounts: widget.modulationAmounts,
+                      connectModeLfoId: widget.connectModeLfoId,
                     ),
                     const SizedBox(width: 4),
                     _knob(
@@ -467,6 +492,8 @@ Widget _mixTab() {
                       displayValue: SamplerDevicePanel.formatQ(widget.device.filterQ),
                       onChanged: (v) => widget.onParameterChanged('filterQ', v),
                       paramId: 'filterQ',
+                      modulationAmounts: widget.modulationAmounts,
+                      connectModeLfoId: widget.connectModeLfoId,
                     ),
                     const SizedBox(width: 4),
                     _knob(
@@ -475,6 +502,8 @@ Widget _mixTab() {
                       displayValue: SamplerDevicePanel.formatPercent(widget.device.filterEnvAmount),
                       onChanged: (v) => widget.onParameterChanged('filterEnvAmount', v),
                       paramId: 'filterEnvAmount',
+                      modulationAmounts: widget.modulationAmounts,
+                      connectModeLfoId: widget.connectModeLfoId,
                     ),
                     const SizedBox(width: 4),
                   ],
@@ -569,6 +598,8 @@ Widget _mixTab() {
                           : '${(widget.device.glideMs * 2000).round()} ms',
                       onChanged: (v) => widget.onParameterChanged('glideMs', v),
                       paramId: 'glideMs',
+                      modulationAmounts: widget.modulationAmounts,
+                      connectModeLfoId: widget.connectModeLfoId,
                     ),
                     const SizedBox(width: 8),
                     _knob(
@@ -578,6 +609,8 @@ Widget _mixTab() {
                       displayValue: SamplerDevicePanel.formatPercent(widget.device.velocitySensitivity),
                       onChanged: (v) => widget.onParameterChanged('velocitySensitivity', v),
                       paramId: 'velocitySensitivity',
+                      modulationAmounts: widget.modulationAmounts,
+                      connectModeLfoId: widget.connectModeLfoId,
                     ),
                   ],
                 ),
@@ -634,22 +667,30 @@ Widget _mixTab() {
         _knob(label: 'A', value: attack, size: _knobSize * 0.8,
           displayValue: SamplerDevicePanel.formatPercent(attack),
           onChanged: (v) => onChanged(aId, v),
-          paramId: aId),
+          paramId: aId,
+          modulationAmounts: widget.modulationAmounts,
+          connectModeLfoId: widget.connectModeLfoId),
         const SizedBox(width: 8),
         _knob(label: 'D', value: decay, size: _knobSize * 0.8,
           displayValue: SamplerDevicePanel.formatPercent(decay),
           onChanged: (v) => onChanged(dId, v),
-          paramId: dId),
+          paramId: dId,
+          modulationAmounts: widget.modulationAmounts,
+          connectModeLfoId: widget.connectModeLfoId),
         const SizedBox(width: 8),
         _knob(label: 'S', value: sustain, size: _knobSize * 0.8,
           displayValue: SamplerDevicePanel.formatPercent(sustain),
           onChanged: (v) => onChanged(sId, v),
-          paramId: sId),
+          paramId: sId,
+          modulationAmounts: widget.modulationAmounts,
+          connectModeLfoId: widget.connectModeLfoId),
         const SizedBox(width: 8),
         _knob(label: 'R', value: release, size: _knobSize * 0.8,
           displayValue: SamplerDevicePanel.formatPercent(release),
           onChanged: (v) => onChanged(rId, v),
-          paramId: rId),
+          paramId: rId,
+          modulationAmounts: widget.modulationAmounts,
+          connectModeLfoId: widget.connectModeLfoId),
       ],
     );
   }

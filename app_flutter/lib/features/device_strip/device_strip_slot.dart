@@ -9,8 +9,9 @@ import 'device_strip_metrics.dart';
 import 'device_strip_theme.dart';
 import 'device_strip_viewport.dart';
 import 'device_tool_rail.dart';
+import 'lfo_properties_panel.dart';
 import 'modulation_assign_sheet.dart';
-import 'modulation_strip.dart';
+import 'modulation_grid.dart';
 import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
 import 'subtractive_synth_device_panel.dart';
@@ -72,6 +73,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   bool _modStripVisible = false;
   late List<LfoSnapshot> _localLfos;
   late List<ModulationEdgeSnapshot> _localModEdges;
+  int? _selectedLfoId;
+  int? _connectModeLfoId;
 
   ProjectSnapshot get _emptySnapshot => ProjectSnapshot(
     bpm: 120,
@@ -117,11 +120,28 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     }
   }
 
+  LfoSnapshot? get _selectedLfo =>
+      _selectedLfoId == null ? null : _localLfos.where((l) => l.id == _selectedLfoId).firstOrNull;
+
   Set<String> get _modulatedParamIds {
     return _localModEdges
         .where((e) => e.deviceId == widget.device.id)
         .map((e) => e.paramId)
         .toSet();
+  }
+
+  Map<String, double> get _modulationAmounts {
+    final map = <String, double>{};
+    for (final edge in _localModEdges.where((e) => e.deviceId == widget.device.id)) {
+      map[edge.paramId] = edge.amount;
+    }
+    return map;
+  }
+
+  int? get _connectModeLfo {
+    if (_connectModeLfoId == null) return null;
+    if (_localLfos.any((l) => l.id == _connectModeLfoId)) return _connectModeLfoId;
+    return null;
   }
 
   Future<ProjectSnapshot> _onBridgeCall(String method, Map<String, dynamic> args) async {
@@ -200,6 +220,19 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     }
   }
 
+  void _onLfoTap(int lfoId) {
+    setState(() {
+      _selectedLfoId = _selectedLfoId == lfoId ? null : lfoId;
+    });
+  }
+
+  void _onLfoLongPress(int lfoId) {
+    setState(() {
+      _connectModeLfoId = _connectModeLfoId == lfoId ? null : lfoId;
+      _selectedLfoId = lfoId;
+    });
+  }
+
   bool get _collapsed => widget.density == DeviceStripSlotDensity.collapsed;
 
   bool get _showsToolRail => !_collapsed;
@@ -209,11 +242,26 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         collapsed: _collapsed,
       );
 
-  double get _modStripWidth => _modStripVisible ? 180.0 : 0.0;
+  double get _modGridWidth => _modStripVisible ? 130.0 : 0.0;
+  double get _modPropsWidth => _modStripVisible && _selectedLfo != null ? 160.0 : 0.0;
 
   double get _slotWidth {
     if (!_showsToolRail) return _cardWidth;
-    return _cardWidth + DeviceStripMetrics.toolRailWidth + DeviceStripMetrics.levelPanelWidth + _modStripWidth;
+    return _cardWidth + DeviceStripMetrics.toolRailWidth + DeviceStripMetrics.levelPanelWidth
+        + _modGridWidth + _modPropsWidth;
+  }
+
+  Widget _modulationSidebar() {
+    return ModulationGrid(
+      lfos: _localLfos,
+      selectedLfoId: _selectedLfoId,
+      maxLfos: 2,
+      connectModeLfoId: _connectModeLfoId,
+      onLfoTap: _onLfoTap,
+      onLfoLongPress: _onLfoLongPress,
+      onAddLfo: () => _onBridgeCall('createLfo', {}),
+      onRemoveLfo: (id) => _onBridgeCall('removeLfo', {'lfoId': id}),
+    );
   }
 
   String? get _cardSubtitle => switch (widget.device.type) {
@@ -276,12 +324,26 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                 ),
                 if (_modStripVisible)
                   SizedBox(
-                    width: 180,
-                    child: ModulationStrip(
-                      lfos: _localLfos,
-                      modEdges: _localModEdges,
-                      deviceId: widget.device.id,
-                      onBridgeCall: _onBridgeCall,
+                    width: 130,
+                    child: _modulationSidebar(),
+                  ),
+                if (_modStripVisible && _selectedLfo != null)
+                  SizedBox(
+                    width: 160,
+                    child: LfoPropertiesPanel(
+                      lfo: _selectedLfo!,
+                      edges: _localModEdges
+                          .where((e) => e.lfoId == _selectedLfo!.id && e.deviceId == widget.device.id)
+                          .toList(),
+                      onUpdate: (param, value) => _onBridgeCall('updateLfoParam', {
+                        'lfoId': _selectedLfo!.id,
+                        'param': param,
+                        'value': value,
+                      }),
+                      onRemoveEdge: (lfoId, paramId) => _onBridgeCall('removeModulation', {
+                        'lfoId': lfoId,
+                        'paramId': paramId,
+                      }),
                     ),
                   ),
                 SizedBox(
@@ -329,6 +391,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             onCollapse: widget.onCollapse,
             selectedTab: SamplerDeviceTab.values[_selectedTabIndex],
             modulatedParams: _modulatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
             onModulationAssign: _showModulationAssignSheet,
           ),
         );
@@ -345,6 +409,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             embeddedInCard: true,
             selectedTab: OscillatorDeviceTab.values[_selectedTabIndex],
             modulatedParams: _modulatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
             onModulationAssign: _showModulationAssignSheet,
           ),
         );
@@ -360,6 +426,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             onTabChanged: widget.onSynthTabChanged,
             onOpenFullscreen: widget.onOpenSamplerEditor,
             modulatedParams: _modulatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
             onModulationAssign: _showModulationAssignSheet,
           ),
         );

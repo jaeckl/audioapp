@@ -12,6 +12,8 @@ class SubtractiveSynthDeviceStrip extends StatelessWidget {
     this.onTabChanged,
     this.onOpenFullscreen,
     this.modulatedParams = const {},
+    this.modulationAmounts = const {},
+    this.connectModeLfoId,
     this.onModulationAssign,
   });
 
@@ -21,6 +23,8 @@ class SubtractiveSynthDeviceStrip extends StatelessWidget {
   final ValueChanged<SubtractiveDeviceTab>? onTabChanged;
   final VoidCallback? onOpenFullscreen;
   final Set<String> modulatedParams;
+  final Map<String, double> modulationAmounts;
+  final int? connectModeLfoId;
   final void Function(String paramId, String paramLabel)? onModulationAssign;
 
   @override
@@ -35,6 +39,8 @@ class SubtractiveSynthDeviceStrip extends StatelessWidget {
       onOpenFullscreen: onOpenFullscreen,
       showExpandControl: onOpenFullscreen != null,
       modulatedParams: modulatedParams,
+      modulationAmounts: modulationAmounts,
+      connectModeLfoId: connectModeLfoId,
       onModulationAssign: onModulationAssign,
     );
   }

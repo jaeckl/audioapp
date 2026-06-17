@@ -29,6 +29,8 @@ class SamplerDevicePanel extends StatefulWidget {
     this.embeddedInCard = false,
     this.selectedTab,
     this.modulatedParams = const {},
+    this.modulationAmounts = const {},
+    this.connectModeLfoId,
     this.onModulationAssign,
   });
 
@@ -44,6 +46,8 @@ class SamplerDevicePanel extends StatefulWidget {
   final bool embeddedInCard;
   final SamplerDeviceTab? selectedTab;
   final Set<String> modulatedParams;
+  final Map<String, double> modulationAmounts;
+  final int? connectModeLfoId;
   final void Function(String paramId, String paramLabel)? onModulationAssign;
 
   static const Color panel = Color(0xFF1C1C24);
@@ -178,6 +182,8 @@ class _SamplerDevicePanelState extends State<SamplerDevicePanel> {
           knobSize: widget._knobSize,
           onParameterChanged: widget.onParameterChanged,
           modulatedParams: widget.modulatedParams,
+          modulationAmounts: widget.modulationAmounts,
+          connectModeLfoId: widget.connectModeLfoId,
           onModulationAssign: widget.onModulationAssign,
         );
       case SamplerDeviceTab.filter:
@@ -186,6 +192,8 @@ class _SamplerDevicePanelState extends State<SamplerDevicePanel> {
           knobSize: widget._knobSize,
           onParameterChanged: widget.onParameterChanged,
           modulatedParams: widget.modulatedParams,
+          modulationAmounts: widget.modulationAmounts,
+          connectModeLfoId: widget.connectModeLfoId,
           onModulationAssign: widget.onModulationAssign,
         );
     }
@@ -299,6 +307,8 @@ class _EnvTab extends StatelessWidget {
     required this.knobSize,
     required this.onParameterChanged,
     required this.modulatedParams,
+    required this.modulationAmounts,
+    required this.connectModeLfoId,
     required this.onModulationAssign,
   });
 
@@ -306,6 +316,8 @@ class _EnvTab extends StatelessWidget {
   final double knobSize;
   final void Function(String parameterId, double value) onParameterChanged;
   final Set<String> modulatedParams;
+  final Map<String, double> modulationAmounts;
+  final int? connectModeLfoId;
   final void Function(String paramId, String paramLabel)? onModulationAssign;
 
   @override
@@ -319,6 +331,8 @@ class _EnvTab extends StatelessWidget {
           displayValue: SamplerDevicePanel.formatPercent(device.attack),
           onChanged: (v) => onParameterChanged('attack', v),
           modulationActive: modulatedParams.contains('attack'),
+          modulationAmount: modulationAmounts['attack'] ?? 0.0,
+          connectModeActive: connectModeLfoId != null,
           onModulationAssign: onModulationAssign != null
               ? () => onModulationAssign!('attack', 'Attack')
               : null,
@@ -330,6 +344,8 @@ class _EnvTab extends StatelessWidget {
           displayValue: SamplerDevicePanel.formatPercent(device.decay),
           onChanged: (v) => onParameterChanged('decay', v),
           modulationActive: modulatedParams.contains('decay'),
+          modulationAmount: modulationAmounts['decay'] ?? 0.0,
+          connectModeActive: connectModeLfoId != null,
           onModulationAssign: onModulationAssign != null
               ? () => onModulationAssign!('decay', 'Decay')
               : null,
@@ -341,6 +357,8 @@ class _EnvTab extends StatelessWidget {
           displayValue: SamplerDevicePanel.formatPercent(device.sustain),
           onChanged: (v) => onParameterChanged('sustain', v),
           modulationActive: modulatedParams.contains('sustain'),
+          modulationAmount: modulationAmounts['sustain'] ?? 0.0,
+          connectModeActive: connectModeLfoId != null,
           onModulationAssign: onModulationAssign != null
               ? () => onModulationAssign!('sustain', 'Sustain')
               : null,
@@ -352,6 +370,8 @@ class _EnvTab extends StatelessWidget {
           displayValue: SamplerDevicePanel.formatPercent(device.release),
           onChanged: (v) => onParameterChanged('release', v),
           modulationActive: modulatedParams.contains('release'),
+          modulationAmount: modulationAmounts['release'] ?? 0.0,
+          connectModeActive: connectModeLfoId != null,
           onModulationAssign: onModulationAssign != null
               ? () => onModulationAssign!('release', 'Release')
               : null,
@@ -367,6 +387,8 @@ class _FilterTab extends StatelessWidget {
     required this.knobSize,
     required this.onParameterChanged,
     required this.modulatedParams,
+    required this.modulationAmounts,
+    required this.connectModeLfoId,
     required this.onModulationAssign,
   });
 
@@ -374,6 +396,8 @@ class _FilterTab extends StatelessWidget {
   final double knobSize;
   final void Function(String parameterId, double value) onParameterChanged;
   final Set<String> modulatedParams;
+  final Map<String, double> modulationAmounts;
+  final int? connectModeLfoId;
   final void Function(String paramId, String paramLabel)? onModulationAssign;
 
   static const _modes = ['LP', 'HP', 'BP', 'NT'];
@@ -440,6 +464,8 @@ class _FilterTab extends StatelessWidget {
                 displayValue: SamplerDevicePanel.formatCutoffHz(device.filterCutoff),
                 onChanged: (v) => onParameterChanged('filterCutoff', v),
                 modulationActive: modulatedParams.contains('filterCutoff'),
+                modulationAmount: modulationAmounts['filterCutoff'] ?? 0.0,
+                connectModeActive: connectModeLfoId != null,
                 onModulationAssign: onModulationAssign != null
                     ? () => onModulationAssign!('filterCutoff', 'Cutoff')
                     : null,
@@ -451,6 +477,8 @@ class _FilterTab extends StatelessWidget {
                 displayValue: SamplerDevicePanel.formatQ(device.filterQ),
                 onChanged: (v) => onParameterChanged('filterQ', v),
                 modulationActive: modulatedParams.contains('filterQ'),
+                modulationAmount: modulationAmounts['filterQ'] ?? 0.0,
+                connectModeActive: connectModeLfoId != null,
                 onModulationAssign: onModulationAssign != null
                     ? () => onModulationAssign!('filterQ', 'Resonance')
                     : null,

@@ -17,6 +17,8 @@ class OscillatorDevicePanel extends StatefulWidget {
     this.embeddedInCard = false,
     this.selectedTab,
     this.modulatedParams = const {},
+    this.modulationAmounts = const {},
+    this.connectModeLfoId,
     this.onModulationAssign,
   });
 
@@ -27,6 +29,8 @@ class OscillatorDevicePanel extends StatefulWidget {
   final bool embeddedInCard;
   final OscillatorDeviceTab? selectedTab;
   final Set<String> modulatedParams;
+  final Map<String, double> modulationAmounts;
+  final int? connectModeLfoId;
   final void Function(String paramId, String paramLabel)? onModulationAssign;
 
   static const Color panel = Color(0xFF1C1C24);
@@ -149,6 +153,8 @@ class _OscillatorDevicePanelState extends State<OscillatorDevicePanel> {
           onChanged: (v) =>
               widget.onFrequencyChanged(OscillatorDevicePanel._normalizedToHz(v)),
           modulationActive: widget.modulatedParams.contains('frequency'),
+          modulationAmount: widget.modulationAmounts['frequency'] ?? 0.0,
+          connectModeActive: widget.connectModeLfoId != null,
           onModulationAssign: widget.onModulationAssign != null
               ? () => widget.onModulationAssign!('frequency', 'Frequency')
               : null,
