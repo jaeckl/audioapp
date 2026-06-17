@@ -1,0 +1,94 @@
+# US-00-06: Engine smoke test executable
+
+## Type
+
+Test
+
+## Milestone
+
+Milestone 00 — Foundation & dev experience
+
+## User story
+
+As a **developer/PO**, I want **engine smoke test executable** so the product stays shippable and verifiable on device.
+
+## Goal
+
+Ship **Engine smoke test executable** as a complete vertical slice — demoable once on Android without follow-up fixes (M00).
+
+## Background
+
+- [roadmap.md](../../docs/milestones/roadmap.md) — US-00-06
+- [AGENT.md](../../AGENT.md) §2.5–2.7 — vertical slice, JUCE JSON, system dialogs
+- Relevant architecture docs under `docs/architecture/`
+
+## UX flow
+
+1. User opens the DAW and reaches the surface where **engine smoke test executable** applies.
+2. User performs the primary action (tap, drag, or system dialog).
+3. On success → immediate visual and/or audible feedback; state persists in engine.
+4. On cancel → prior state unchanged; no error toast.
+5. On failure → short, visible error message (not silent empty state).
+
+## Platform UX
+
+| Platform | Requirement |
+|----------|-------------|
+| **Android** | Touch-first; system dialogs for save/open/export per ADR-0006; clear success/cancel/error |
+| **Desktop (tests)** | File-path APIs for automated round-trip where applicable |
+
+## Scope
+
+- End-to-end wiring for **Engine smoke test executable** (Flutter → bridge → C++ engine where applicable)
+- Serialization round-trip when state is persisted (M00 save/load rules)
+- C++ or widget tests for non-trivial logic
+- On-device demo script passes
+
+## Out of scope
+
+- Features explicitly assigned to later stories in the same milestone
+- Autosave, cloud sync, and desktop store builds unless named in this ticket
+
+## Acceptance criteria
+
+- [x] Primary user flow works end-to-end on Android device
+- [x] Cancel leaves prior state unchanged
+- [x] Failure shows clear message in UI (not silent empty state)
+- [x] Uses JUCE JSON / platform primitives per AGENT.md §2.6 where persistence applies
+- [x] Round-trip or playback proof when state or audio is involved
+
+## Demo script (on-device, ~60s)
+
+1. Launch app → exercise **engine smoke test executable** per UX flow above.\n2. Verify success feedback and persistence if applicable.
+
+## Tests required
+
+- [x] C++ unit tests for engine/serialization logic (real JSON output, not mocks-only)
+- [x] Flutter widget or integration test where UI dispatches bridge commands
+- [x] Manual demo script on Android device
+
+## User-visible result
+
+User can **engine smoke test executable** with immediate feedback — the milestone “wow moment” for this slice.
+
+## Realtime/performance notes
+
+Parse/serialize on control thread only; no JSON on audio thread. DSP changes must be realtime-safe.
+
+## Documentation updates
+
+- `docs/milestones/roadmap.md` status when shipped
+- ADR update only if bridge or on-disk format changes
+
+## Depends on
+
+US-00-05
+
+## Companion stories
+
+- [UX/UI](US-00-06-ux-ui.md)
+- [Interaction](US-00-06-interaction.md)
+
+## Status
+
+**Done**
