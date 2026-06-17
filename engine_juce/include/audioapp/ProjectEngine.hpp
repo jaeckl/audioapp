@@ -12,6 +12,7 @@
 #include "audioapp/SampleBank.hpp"
 #include "audioapp/SampleTypes.hpp"
 #include "audioapp/DeviceChain.hpp"
+#include "audioapp/SubtractiveSynth.hpp"
 
 namespace audioapp {
 
@@ -34,6 +35,27 @@ struct DeviceState {
     float trimStartSec = 0.0f;
     float trimEndSec = 0.0f;
     bool bypassed = false;
+    int osc1Wave = 2;
+    int osc2Wave = 2;
+    float osc1Octave = 0.5f;
+    float osc1Semi = 0.0f;
+    float osc1Detune = 0.5f;
+    float osc2Octave = 0.5f;
+    float osc2Semi = 0.0f;
+    float osc2Detune = 0.5f;
+    float osc1Level = 0.85f;
+    float osc2Level = 0.5f;
+    float noiseLevel = 0.0f;
+    int oscMixMode = 0;
+    float unisonVoices = 0.0f;
+    float unisonDetune = 0.35f;
+    float filterEnvAmount = 0.5f;
+    float filterAttack = 0.05f;
+    float filterDecay = 0.35f;
+    float filterSustain = 0.4f;
+    float filterRelease = 0.45f;
+    float glideMs = 0.0f;
+    float velocitySensitivity = 1.0f;
 };
 
 struct TrackState {
@@ -151,6 +173,27 @@ private:
         float trimStartSec = 0.0f;
         float trimEndSec = 0.0f;
         bool bypassed = false;
+        int osc1Wave = 2;
+        int osc2Wave = 2;
+        float osc1Octave = 0.5f;
+        float osc1Semi = 0.0f;
+        float osc1Detune = 0.5f;
+        float osc2Octave = 0.5f;
+        float osc2Semi = 0.0f;
+        float osc2Detune = 0.5f;
+        float osc1Level = 0.85f;
+        float osc2Level = 0.5f;
+        float noiseLevel = 0.0f;
+        int oscMixMode = 0;
+        float unisonVoices = 0.0f;
+        float unisonDetune = 0.35f;
+        float filterEnvAmount = 0.5f;
+        float filterAttack = 0.05f;
+        float filterDecay = 0.35f;
+        float filterSustain = 0.4f;
+        float filterRelease = 0.45f;
+        float glideMs = 0.0f;
+        float velocitySensitivity = 1.0f;
     };
 
     struct MidiNote {
@@ -208,6 +251,7 @@ private:
         int deviceCount = 0;
         DeviceNodePlayback devices[kMaxDevicesPerTrack];
         BiquadState samplerFilterStates[kMaxDevicesPerTrack];
+        SubtractiveSynthRuntime subtractiveRuntimes[kMaxDevicesPerTrack];
         float oscillatorPhase = 0.0f;
     };
 
@@ -269,6 +313,9 @@ private:
     SampleClip* findSampleClipLocked(const std::string& clipId);
     bool buildLiveInstrumentForTrack(const Track& track, LiveInstrumentSnapshot& out) const;
     double sampleTimeToCaptureBeat(uint64_t sampleTime) const;
+    static SubtractiveSynthParams subtractiveParamsFromDevice(const Device& device);
+    static void copyDeviceToState(const Device& src, DeviceState& dst);
+    static void copyStateToDevice(const DeviceState& src, Device& dst);
 
     const SampleBank* sampleBank_ = nullptr;
 };

@@ -14,6 +14,119 @@
 
 namespace audioapp {
 
+SubtractiveSynthParams ProjectEngine::subtractiveParamsFromDevice(const Device& device) {
+    SubtractiveSynthParams params;
+    params.gain = device.gain;
+    params.osc1Wave = device.osc1Wave;
+    params.osc2Wave = device.osc2Wave;
+    params.osc1Octave = device.osc1Octave;
+    params.osc1Semi = device.osc1Semi;
+    params.osc1Detune = device.osc1Detune;
+    params.osc2Octave = device.osc2Octave;
+    params.osc2Semi = device.osc2Semi;
+    params.osc2Detune = device.osc2Detune;
+    params.osc1Level = device.osc1Level;
+    params.osc2Level = device.osc2Level;
+    params.noiseLevel = device.noiseLevel;
+    params.oscMixMode = device.oscMixMode;
+    params.unisonVoices = device.unisonVoices;
+    params.unisonDetune = device.unisonDetune;
+    params.filterCutoff = device.filterCutoff;
+    params.filterQ = device.filterQ;
+    params.filterEnvAmount = device.filterEnvAmount;
+    params.filterAttack = device.filterAttack;
+    params.filterDecay = device.filterDecay;
+    params.filterSustain = device.filterSustain;
+    params.filterRelease = device.filterRelease;
+    params.ampAttack = device.attack;
+    params.ampDecay = device.decay;
+    params.ampSustain = device.sustain;
+    params.ampRelease = device.release;
+    params.glideMs = device.glideMs;
+    params.velocitySensitivity = device.velocitySensitivity;
+    return params;
+}
+
+void ProjectEngine::copyDeviceToState(const Device& src, DeviceState& dst) {
+    dst.id = src.id;
+    dst.type = src.type;
+    dst.frequencyHz = src.frequencyHz;
+    dst.gain = src.gain;
+    dst.pan = src.pan;
+    dst.sampleId = src.sampleId;
+    dst.attack = src.attack;
+    dst.decay = src.decay;
+    dst.sustain = src.sustain;
+    dst.release = src.release;
+    dst.filterCutoff = src.filterCutoff;
+    dst.filterQ = src.filterQ;
+    dst.filterMode = src.filterMode;
+    dst.trimStartSec = src.trimStartSec;
+    dst.trimEndSec = src.trimEndSec;
+    dst.bypassed = src.bypassed;
+    dst.osc1Wave = src.osc1Wave;
+    dst.osc2Wave = src.osc2Wave;
+    dst.osc1Octave = src.osc1Octave;
+    dst.osc1Semi = src.osc1Semi;
+    dst.osc1Detune = src.osc1Detune;
+    dst.osc2Octave = src.osc2Octave;
+    dst.osc2Semi = src.osc2Semi;
+    dst.osc2Detune = src.osc2Detune;
+    dst.osc1Level = src.osc1Level;
+    dst.osc2Level = src.osc2Level;
+    dst.noiseLevel = src.noiseLevel;
+    dst.oscMixMode = src.oscMixMode;
+    dst.unisonVoices = src.unisonVoices;
+    dst.unisonDetune = src.unisonDetune;
+    dst.filterEnvAmount = src.filterEnvAmount;
+    dst.filterAttack = src.filterAttack;
+    dst.filterDecay = src.filterDecay;
+    dst.filterSustain = src.filterSustain;
+    dst.filterRelease = src.filterRelease;
+    dst.glideMs = src.glideMs;
+    dst.velocitySensitivity = src.velocitySensitivity;
+}
+
+void ProjectEngine::copyStateToDevice(const DeviceState& src, Device& dst) {
+    dst.id = src.id;
+    dst.type = src.type;
+    dst.frequencyHz = src.frequencyHz;
+    dst.gain = src.gain;
+    dst.pan = src.pan;
+    dst.sampleId = src.sampleId;
+    dst.attack = src.attack;
+    dst.decay = src.decay;
+    dst.sustain = src.sustain;
+    dst.release = src.release;
+    dst.filterCutoff = src.filterCutoff;
+    dst.filterQ = src.filterQ;
+    dst.filterMode = src.filterMode;
+    dst.trimStartSec = src.trimStartSec;
+    dst.trimEndSec = src.trimEndSec;
+    dst.bypassed = src.bypassed;
+    dst.osc1Wave = src.osc1Wave;
+    dst.osc2Wave = src.osc2Wave;
+    dst.osc1Octave = src.osc1Octave;
+    dst.osc1Semi = src.osc1Semi;
+    dst.osc1Detune = src.osc1Detune;
+    dst.osc2Octave = src.osc2Octave;
+    dst.osc2Semi = src.osc2Semi;
+    dst.osc2Detune = src.osc2Detune;
+    dst.osc1Level = src.osc1Level;
+    dst.osc2Level = src.osc2Level;
+    dst.noiseLevel = src.noiseLevel;
+    dst.oscMixMode = src.oscMixMode;
+    dst.unisonVoices = src.unisonVoices;
+    dst.unisonDetune = src.unisonDetune;
+    dst.filterEnvAmount = src.filterEnvAmount;
+    dst.filterAttack = src.filterAttack;
+    dst.filterDecay = src.filterDecay;
+    dst.filterSustain = src.filterSustain;
+    dst.filterRelease = src.filterRelease;
+    dst.glideMs = src.glideMs;
+    dst.velocitySensitivity = src.velocitySensitivity;
+}
+
 void ProjectEngine::createProject() {
     std::lock_guard<std::mutex> lock(mutex_);
     tracks_.clear();
@@ -80,6 +193,24 @@ std::string ProjectEngine::addDeviceToTrack(const std::string& trackId,
     device.id = "dev-" + std::to_string(nextDeviceNum_++);
     device.type = deviceType.empty() ? "simple_oscillator" : deviceType;
     device.frequencyHz = 440.0f;
+    if (device.type == "subtractive_synth") {
+        device.attack = 0.02f;
+        device.decay = 0.25f;
+        device.sustain = 0.75f;
+        device.release = 0.35f;
+        device.filterCutoff = 0.75f;
+        device.filterQ = 0.2f;
+        device.osc1Wave = 2;
+        device.osc2Wave = 2;
+        device.osc1Level = 0.85f;
+        device.osc2Level = 0.5f;
+        device.filterEnvAmount = 0.5f;
+        device.filterAttack = 0.05f;
+        device.filterDecay = 0.35f;
+        device.filterSustain = 0.4f;
+        device.filterRelease = 0.45f;
+        device.velocitySensitivity = 1.0f;
+    }
     const std::string deviceId = device.id;
 
     size_t gainIndex = track->devices.size();
@@ -127,6 +258,11 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
         return true;
     }
     if (parameterId == "gain" && device->type == "simple_oscillator") {
+        device->gain = std::clamp(value, 0.0f, 1.0f);
+        rebuildTrackPlaybackLocked();
+        return true;
+    }
+    if (parameterId == "gain" && device->type == "subtractive_synth") {
         device->gain = std::clamp(value, 0.0f, 1.0f);
         rebuildTrackPlaybackLocked();
         return true;
@@ -181,6 +317,90 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
         }
         if (parameterId == "trimEndSec") {
             device->trimEndSec = std::max(0.0f, value);
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
+    }
+    if (device->type == "subtractive_synth") {
+        if (parameterId == "attack" || parameterId == "decay" || parameterId == "release" ||
+            parameterId == "sustain") {
+            const float clamped = std::clamp(value, 0.0f, 1.0f);
+            if (parameterId == "attack") {
+                device->attack = clamped;
+            } else if (parameterId == "decay") {
+                device->decay = clamped;
+            } else if (parameterId == "release") {
+                device->release = clamped;
+            } else {
+                device->sustain = clamped;
+            }
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
+        if (parameterId == "filterCutoff" || parameterId == "filterQ" || parameterId == "filterEnvAmount" ||
+            parameterId == "filterAttack" || parameterId == "filterDecay" || parameterId == "filterSustain" ||
+            parameterId == "filterRelease" || parameterId == "osc1Octave" || parameterId == "osc1Semi" ||
+            parameterId == "osc1Detune" || parameterId == "osc2Octave" || parameterId == "osc2Semi" ||
+            parameterId == "osc2Detune" || parameterId == "osc1Level" || parameterId == "osc2Level" ||
+            parameterId == "noiseLevel" || parameterId == "unisonVoices" || parameterId == "unisonDetune" ||
+            parameterId == "glideMs" || parameterId == "velocitySensitivity") {
+            float clamped = std::clamp(value, 0.0f, 1.0f);
+            if (parameterId == "filterCutoff") {
+                device->filterCutoff = clamped;
+            } else if (parameterId == "filterQ") {
+                device->filterQ = clamped;
+            } else if (parameterId == "filterEnvAmount") {
+                device->filterEnvAmount = clamped;
+            } else if (parameterId == "filterAttack") {
+                device->filterAttack = clamped;
+            } else if (parameterId == "filterDecay") {
+                device->filterDecay = clamped;
+            } else if (parameterId == "filterSustain") {
+                device->filterSustain = clamped;
+            } else if (parameterId == "filterRelease") {
+                device->filterRelease = clamped;
+            } else if (parameterId == "osc1Octave") {
+                device->osc1Octave = clamped;
+            } else if (parameterId == "osc1Semi") {
+                device->osc1Semi = clamped;
+            } else if (parameterId == "osc1Detune") {
+                device->osc1Detune = clamped;
+            } else if (parameterId == "osc2Octave") {
+                device->osc2Octave = clamped;
+            } else if (parameterId == "osc2Semi") {
+                device->osc2Semi = clamped;
+            } else if (parameterId == "osc2Detune") {
+                device->osc2Detune = clamped;
+            } else if (parameterId == "osc1Level") {
+                device->osc1Level = clamped;
+            } else if (parameterId == "osc2Level") {
+                device->osc2Level = clamped;
+            } else if (parameterId == "noiseLevel") {
+                device->noiseLevel = clamped;
+            } else if (parameterId == "unisonVoices") {
+                device->unisonVoices = clamped;
+            } else if (parameterId == "unisonDetune") {
+                device->unisonDetune = clamped;
+            } else if (parameterId == "glideMs") {
+                device->glideMs = clamped;
+            } else {
+                device->velocitySensitivity = clamped;
+            }
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
+        if (parameterId == "osc1Wave") {
+            device->osc1Wave = std::clamp(static_cast<int>(std::lround(value)), 0, 4);
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
+        if (parameterId == "osc2Wave") {
+            device->osc2Wave = std::clamp(static_cast<int>(std::lround(value)), 0, 4);
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
+        if (parameterId == "oscMixMode") {
+            device->oscMixMode = std::clamp(static_cast<int>(std::lround(value)), 0, 4);
             rebuildTrackPlaybackLocked();
             return true;
         }
@@ -500,23 +720,8 @@ ProjectSnapshot ProjectEngine::snapshot() const {
         ts.devices.reserve(track.devices.size());
         for (const auto& device : track.devices) {
             DeviceState ds;
-            ds.id = device.id;
-            ds.type = device.type;
-            ds.frequencyHz = device.frequencyHz;
-            ds.gain = device.gain;
-            ds.pan = device.pan;
-            ds.sampleId = device.sampleId;
-            ds.attack = device.attack;
-            ds.decay = device.decay;
-            ds.sustain = device.sustain;
-            ds.release = device.release;
-            ds.filterCutoff = device.filterCutoff;
-            ds.filterQ = device.filterQ;
-            ds.filterMode = device.filterMode;
-            ds.trimStartSec = device.trimStartSec;
-            ds.trimEndSec = device.trimEndSec;
-            ds.bypassed = device.bypassed;
-            ts.devices.push_back(ds);
+            copyDeviceToState(device, ds);
+            ts.devices.push_back(std::move(ds));
         }
         ts.midiClips.reserve(track.midiClips.size());
         for (const auto& clip : track.midiClips) {
@@ -708,7 +913,8 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                            track.deviceCount,
                            oscillatorPhase,
                            suppressInstruments,
-                           trackPlayback_[trackIndex].samplerFilterStates);
+                           trackPlayback_[trackIndex].samplerFilterStates,
+                           trackPlayback_[trackIndex].subtractiveRuntimes);
         trackPlayback_[trackIndex].oscillatorPhase = oscillatorPhase;
 
         for (int frame = 0; frame < framesToProcess; ++frame) {
@@ -806,24 +1012,9 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
         ts.id = track.id;
         ts.name = track.name;
         for (const auto& device : track.devices) {
-            ts.devices.push_back(DeviceState{
-                device.id,
-                device.type,
-                device.frequencyHz,
-                device.gain,
-                device.pan,
-                device.sampleId,
-                device.attack,
-                device.decay,
-                device.sustain,
-                device.release,
-                device.filterCutoff,
-                device.filterQ,
-                device.filterMode,
-                device.trimStartSec,
-                device.trimEndSec,
-                device.bypassed,
-            });
+            DeviceState ds;
+            copyDeviceToState(device, ds);
+            ts.devices.push_back(std::move(ds));
         }
         for (const auto& clip : track.midiClips) {
             MidiClipState cs;
@@ -876,22 +1067,7 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
         track.name = trackState.name;
         for (const auto& deviceState : trackState.devices) {
             Device device;
-            device.id = deviceState.id;
-            device.type = deviceState.type;
-            device.frequencyHz = deviceState.frequencyHz;
-            device.gain = deviceState.gain;
-            device.pan = deviceState.pan;
-            device.sampleId = deviceState.sampleId;
-            device.attack = deviceState.attack;
-            device.decay = deviceState.decay;
-            device.sustain = deviceState.sustain;
-            device.release = deviceState.release;
-            device.filterCutoff = deviceState.filterCutoff;
-            device.filterQ = deviceState.filterQ;
-            device.filterMode = deviceState.filterMode;
-            device.trimStartSec = deviceState.trimStartSec;
-            device.trimEndSec = deviceState.trimEndSec;
-            device.bypassed = deviceState.bypassed;
+            copyStateToDevice(deviceState, device);
             track.devices.push_back(std::move(device));
         }
         for (const auto& clipState : trackState.midiClips) {
@@ -1026,6 +1202,11 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
             } else if (device.type == "track_gain") {
                 node.kind = DeviceNodeKind::TrackGain;
                 node.gain = device.gain;
+            } else if (device.type == "subtractive_synth") {
+                node.kind = DeviceNodeKind::SubtractiveSynth;
+                node.gain = device.gain;
+                node.pan = device.pan;
+                node.subtractive = subtractiveParamsFromDevice(device);
             } else {
                 node.kind = DeviceNodeKind::Unknown;
             }

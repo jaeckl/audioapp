@@ -3,6 +3,7 @@
 #include "audioapp/MasterMix.hpp"
 #include "audioapp/MidiUtils.hpp"
 #include "audioapp/SamplePlayback.hpp"
+#include "audioapp/SubtractiveSynth.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -70,7 +71,8 @@ void processDeviceChain(float* trackLeft,
                         int deviceCount,
                         float& oscillatorPhase,
                         bool suppressInstruments,
-                        BiquadState* samplerFilterStates) noexcept {
+                        BiquadState* samplerFilterStates,
+                        SubtractiveSynthRuntime* subtractiveRuntimes) noexcept {
     if (trackLeft == nullptr || trackRight == nullptr || numFrames <= 0 || devices == nullptr ||
         deviceCount <= 0) {
         return;
@@ -142,6 +144,40 @@ void processDeviceChain(float* trackLeft,
                                                  ? &samplerFilterStates[deviceIndex]
                                                  : nullptr,
                                          });
+                panMixBlock(trackLeft, trackRight, scratch, framesToProcess, node.pan);
+            }
+            break;
+
+        case DeviceNodeKind::SubtractiveSynth:
+            if (!node.bypassed && !suppressInstruments && noteCount > 0) {
+                SubtractiveMidiNoteRegion regions[32];
+                const int regionCount = noteCount > 32 ? 32 : noteCount;
+                for (int i = 0; i < regionCount; ++i) {
+                    const MidiPlaybackNote& note = notes[i];
+                    regions[i] = SubtractiveMidiNoteRegion{
+                        note.pitch,
+                        i,
+                        note.clipStartBeat,
+                        note.clipLengthBeats,
+                        note.noteStartBeat,
+                        note.noteDurationBeats,
+                        note.velocity,
+                    };
+                }
+                std::memset(scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+                SubtractiveSynthRuntime* runtime =
+                    subtractiveRuntimes != nullptr ? &subtractiveRuntimes[deviceIndex]
+                                                   : nullptr;
+                SubtractiveSynthRuntime localRuntime{};
+                mixSubtractiveMidiNotesBlock(scratch,
+                                             framesToProcess,
+                                             sampleRate,
+                                             bpm,
+                                             playheadStartBeat,
+                                             regions,
+                                             regionCount,
+                                             node.subtractive,
+                                             runtime != nullptr ? *runtime : localRuntime);
                 panMixBlock(trackLeft, trackRight, scratch, framesToProcess, node.pan);
             }
             break;

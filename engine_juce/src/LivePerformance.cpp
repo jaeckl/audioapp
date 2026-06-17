@@ -4,6 +4,7 @@
 #include "audioapp/MidiUtils.hpp"
 #include "audioapp/SamplePlayback.hpp"
 #include "audioapp/SamplerFilter.hpp"
+#include "audioapp/SubtractiveSynth.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -34,6 +35,9 @@ void LivePerformanceMixer::releaseVoice(LiveVoiceSlot& voice, uint64_t now) noex
     if (!voice.releasing) {
         voice.releasing = true;
         voice.releaseSample = now;
+        if (voice.instrument.kind == LiveInstrumentKind::SubtractiveSynth) {
+            voice.subtractiveReleaseSec = static_cast<double>(now) / 48000.0;
+        }
     }
 }
 
@@ -61,6 +65,17 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         voice.releasing = false;
         voice.oscillatorPhase = 0.0f;
         voice.filterState = BiquadState{};
+        voice.subtractive = SubtractiveVoiceRuntime{};
+        voice.subtractiveStartSec = static_cast<double>(now) / 48000.0;
+        voice.subtractiveReleaseSec = -1.0;
+        if (instrument.kind == LiveInstrumentKind::SubtractiveSynth) {
+            voice.subtractive.active = 1;
+            voice.subtractive.pitch = pitch;
+            voice.subtractive.velocity = voice.velocity;
+            voice.subtractive.targetHz = subtractiveOscPitchHz(pitch, 0.5f, 0.0f, 0.5f);
+            voice.subtractive.currentHz = voice.subtractive.targetHz;
+            voice.subtractive.noiseSeed = 0.2f;
+        }
         voice.active.store(1, std::memory_order_release);
         return i;
     }
@@ -75,6 +90,17 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
     steal.releasing = false;
     steal.oscillatorPhase = 0.0f;
     steal.filterState = BiquadState{};
+    steal.subtractive = SubtractiveVoiceRuntime{};
+    steal.subtractiveStartSec = static_cast<double>(now) / 48000.0;
+    steal.subtractiveReleaseSec = -1.0;
+    if (instrument.kind == LiveInstrumentKind::SubtractiveSynth) {
+        steal.subtractive.active = 1;
+        steal.subtractive.pitch = pitch;
+        steal.subtractive.velocity = steal.velocity;
+        steal.subtractive.targetHz = subtractiveOscPitchHz(pitch, 0.5f, 0.0f, 0.5f);
+        steal.subtractive.currentHz = steal.subtractive.targetHz;
+        steal.subtractive.noiseSeed = 0.2f;
+    }
     steal.active.store(1, std::memory_order_release);
     return 0;
 }
@@ -147,7 +173,118 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
 
             const float velGain = (voice.velocity / 100.0f) * inst.gain * kInstrumentOutputGain;
 
-            if (inst.kind == LiveInstrumentKind::Oscillator) {
+            if (inst.kind == LiveInstrumentKind::SubtractiveSynth) {
+                const auto& params = inst.subtractive;
+                const float ampAttackSec = adsrNormalizedToSeconds(params.ampAttack, 2.0f);
+                const float ampDecaySec = adsrNormalizedToSeconds(params.ampDecay, 2.0f);
+                const float ampReleaseSec = adsrNormalizedToSeconds(params.ampRelease, 3.0f);
+                const float ampSustain = std::clamp(params.ampSustain, 0.0f, 1.0f);
+                const float filterAttackSec = adsrNormalizedToSeconds(params.filterAttack, 2.0f);
+                const float filterDecaySec = adsrNormalizedToSeconds(params.filterDecay, 2.0f);
+                const float filterReleaseSec = adsrNormalizedToSeconds(params.filterRelease, 3.0f);
+                const float filterSustain = std::clamp(params.filterSustain, 0.0f, 1.0f);
+
+                const double voiceElapsed =
+                    static_cast<double>(sampleIndex - voice.startSample) / sampleRate;
+                float noteDurationSec = 3600.0f;
+                if (voice.releasing && voice.releaseSample >= voice.startSample) {
+                    noteDurationSec = static_cast<float>(
+                        static_cast<double>(voice.releaseSample - voice.startSample) / sampleRate);
+                }
+
+                const float ampGain = samplerAdsrGain(static_cast<float>(voiceElapsed),
+                                                      noteDurationSec,
+                                                      ampAttackSec,
+                                                      ampDecaySec,
+                                                      ampSustain,
+                                                      ampReleaseSec);
+                if (ampGain <= 0.0f) {
+                    if (voice.releasing) {
+                        voice.active.store(0, std::memory_order_release);
+                    }
+                    continue;
+                }
+
+                const float filterGain = samplerAdsrGain(static_cast<float>(voiceElapsed),
+                                                         noteDurationSec,
+                                                         filterAttackSec,
+                                                         filterDecaySec,
+                                                         filterSustain,
+                                                         filterReleaseSec);
+                const float vel = std::clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
+                const float velAmount =
+                    1.0f - params.velocitySensitivity * (1.0f - vel);
+                const float glideMs = params.glideMs * 2000.0f;
+                const float glideCoeff =
+                    glideMs > 0.0f
+                        ? 1.0f - std::exp(-1.0f / (static_cast<float>(sampleRate) * glideMs * 0.001f))
+                        : 1.0f;
+
+                voice.subtractive.targetHz =
+                    subtractiveOscPitchHz(voice.pitch, 0.5f, 0.0f, 0.5f);
+                voice.subtractive.pitch = voice.pitch;
+                voice.subtractive.velocity = voice.velocity;
+
+                float sample = 0.0f;
+                auto& sv = voice.subtractive;
+                if (glideCoeff > 0.0f && glideCoeff < 1.0f) {
+                    sv.currentHz += (sv.targetHz - sv.currentHz) * glideCoeff;
+                } else {
+                    sv.currentHz = sv.targetHz;
+                }
+
+                const int unisonCount = subtractiveUnisonCount(params.unisonVoices);
+                const float spreadCents = params.unisonDetune * 50.0f;
+                const float osc1Root = subtractiveOscPitchHz(
+                    voice.pitch, params.osc1Octave, params.osc1Semi, params.osc1Detune);
+                const float osc2Root = subtractiveOscPitchHz(
+                    voice.pitch, params.osc2Octave, params.osc2Semi, params.osc2Detune);
+                const float pitchRatio =
+                    sv.currentHz / subtractiveOscPitchHz(voice.pitch, 0.5f, 0.0f, 0.5f);
+
+                auto renderBank = [&](int wave, float rootHz, float level, float* phases) {
+                    float sum = 0.0f;
+                    for (int u = 0; u < unisonCount; ++u) {
+                        const float spread = unisonCount > 1
+                            ? (static_cast<float>(u) / static_cast<float>(unisonCount - 1) - 0.5f) *
+                                  2.0f
+                            : 0.0f;
+                        const float hz = rootHz * pitchRatio *
+                            std::pow(2.0f, (spread * spreadCents) / 1200.0f);
+                        const float phaseInc = 6.28318530718f * hz / static_cast<float>(sampleRate);
+                        sum += subtractiveWaveSample(wave, phases[u]);
+                        phases[u] += phaseInc;
+                        if (phases[u] >= 6.28318530718f) {
+                            phases[u] -= 6.28318530718f;
+                        }
+                    }
+                    return unisonCount > 0 ? (sum / static_cast<float>(unisonCount)) * level : 0.0f;
+                };
+
+                const float osc1 =
+                    renderBank(params.osc1Wave, osc1Root, params.osc1Level, sv.osc1Phases);
+                const float osc2 =
+                    renderBank(params.osc2Wave, osc2Root, params.osc2Level, sv.osc2Phases);
+                float mixed =
+                    subtractiveMixOscPair(osc1, osc2, params.oscMixMode, params.osc2Level);
+                if (params.noiseLevel > 0.0f) {
+                    mixed += ((sv.noiseSeed = std::fmod(sv.noiseSeed * 16807.0f, 2147483647.0f)) /
+                              1073741823.5f - 1.0f) *
+                        params.noiseLevel;
+                }
+
+                const float baseCutoff = normalizedCutoffToHz(params.filterCutoff);
+                const float envCutoff =
+                    baseCutoff * (1.0f + filterGain * params.filterEnvAmount * 4.0f);
+                BiquadCoeffs coeffs{};
+                cookSamplerBiquad(coeffs,
+                                  0,
+                                  static_cast<float>(sampleRate),
+                                  std::clamp(envCutoff, 20.0f, 20000.0f),
+                                  normalizedQToValue(params.filterQ));
+                sample = processBiquadSample(mixed, coeffs, sv.filterState);
+                mix += sample * ampGain * velAmount * params.gain * kInstrumentOutputGain;
+            } else if (inst.kind == LiveInstrumentKind::Oscillator) {
                 const float hz = midiNoteToHz(voice.pitch);
                 const float phaseInc = static_cast<float>(2.0 * 3.14159265358979323846 * hz / sampleRate);
                 const float sample = std::sin(voice.oscillatorPhase) * envGain * velGain;

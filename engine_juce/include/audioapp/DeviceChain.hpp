@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "audioapp/SamplerFilter.hpp"
+#include "audioapp/SubtractiveSynth.hpp"
 
 namespace audioapp {
 
@@ -19,6 +20,7 @@ enum class DeviceNodeKind : uint8_t {
     Unknown = 0,
     Oscillator,
     Sampler,
+    SubtractiveSynth,
     TrackGain,
 };
 
@@ -41,6 +43,7 @@ struct DeviceNodePlayback {
     int trimStartFrame = 0;
     int trimEndFrame = 0;
     bool bypassed = false;
+    SubtractiveSynthParams subtractive{};
 };
 
 static constexpr int kMaxDevicesPerTrack = 16;
@@ -64,6 +67,7 @@ void processDeviceChain(float* trackLeft,
                         int deviceCount,
                         float& oscillatorPhase,
                         bool suppressInstruments,
-                        BiquadState* samplerFilterStates = nullptr) noexcept;
+                        BiquadState* samplerFilterStates = nullptr,
+                        SubtractiveSynthRuntime* subtractiveRuntimes = nullptr) noexcept;
 
 } // namespace audioapp

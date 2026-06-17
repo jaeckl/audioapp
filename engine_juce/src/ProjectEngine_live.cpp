@@ -20,6 +20,13 @@ double quantizeCaptureBeat(double beat, double grid = 0.25) {
 bool ProjectEngine::buildLiveInstrumentForTrack(const Track& track,
                                                 LiveInstrumentSnapshot& out) const {
     for (const auto& device : track.devices) {
+        if (device.type == "subtractive_synth") {
+            out = LiveInstrumentSnapshot{};
+            out.kind = LiveInstrumentKind::SubtractiveSynth;
+            out.gain = device.gain;
+            out.subtractive = subtractiveParamsFromDevice(device);
+            return true;
+        }
         if (device.type == "simple_oscillator") {
             out = LiveInstrumentSnapshot{};
             out.kind = LiveInstrumentKind::Oscillator;

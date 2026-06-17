@@ -79,7 +79,7 @@ MidiNoteState midiNoteFromVar(const juce::var& value) {
 juce::var deviceToVar(const DeviceState& device) {
     auto* parameters = new juce::DynamicObject();
     if (device.type == "track_gain" || device.type == "simple_sampler" ||
-        device.type == "simple_oscillator") {
+        device.type == "simple_oscillator" || device.type == "subtractive_synth") {
         parameters->setProperty("gain", static_cast<double>(device.gain));
     }
     if (device.type != "track_gain") {
@@ -99,6 +99,36 @@ juce::var deviceToVar(const DeviceState& device) {
     }
     if (device.type == "simple_oscillator") {
         parameters->setProperty("frequency", static_cast<double>(device.frequencyHz));
+    }
+    if (device.type == "subtractive_synth") {
+        parameters->setProperty("attack", static_cast<double>(device.attack));
+        parameters->setProperty("decay", static_cast<double>(device.decay));
+        parameters->setProperty("sustain", static_cast<double>(device.sustain));
+        parameters->setProperty("release", static_cast<double>(device.release));
+        parameters->setProperty("filterCutoff", static_cast<double>(device.filterCutoff));
+        parameters->setProperty("filterQ", static_cast<double>(device.filterQ));
+        parameters->setProperty("filterEnvAmount", static_cast<double>(device.filterEnvAmount));
+        parameters->setProperty("filterAttack", static_cast<double>(device.filterAttack));
+        parameters->setProperty("filterDecay", static_cast<double>(device.filterDecay));
+        parameters->setProperty("filterSustain", static_cast<double>(device.filterSustain));
+        parameters->setProperty("filterRelease", static_cast<double>(device.filterRelease));
+        parameters->setProperty("osc1Wave", device.osc1Wave);
+        parameters->setProperty("osc2Wave", device.osc2Wave);
+        parameters->setProperty("osc1Octave", static_cast<double>(device.osc1Octave));
+        parameters->setProperty("osc1Semi", static_cast<double>(device.osc1Semi));
+        parameters->setProperty("osc1Detune", static_cast<double>(device.osc1Detune));
+        parameters->setProperty("osc2Octave", static_cast<double>(device.osc2Octave));
+        parameters->setProperty("osc2Semi", static_cast<double>(device.osc2Semi));
+        parameters->setProperty("osc2Detune", static_cast<double>(device.osc2Detune));
+        parameters->setProperty("osc1Level", static_cast<double>(device.osc1Level));
+        parameters->setProperty("osc2Level", static_cast<double>(device.osc2Level));
+        parameters->setProperty("noiseLevel", static_cast<double>(device.noiseLevel));
+        parameters->setProperty("oscMixMode", device.oscMixMode);
+        parameters->setProperty("unisonVoices", static_cast<double>(device.unisonVoices));
+        parameters->setProperty("unisonDetune", static_cast<double>(device.unisonDetune));
+        parameters->setProperty("glideMs", static_cast<double>(device.glideMs));
+        parameters->setProperty("velocitySensitivity",
+                                static_cast<double>(device.velocitySensitivity));
     }
 
     auto* object = new juce::DynamicObject();
@@ -130,6 +160,28 @@ DeviceState deviceFromVar(const juce::var& value) {
             device.trimStartSec = varToFloat(params->getProperty("trimStartSec"), 0.0f);
             device.trimEndSec = varToFloat(params->getProperty("trimEndSec"), 0.0f);
             device.bypassed = varToFloat(params->getProperty("bypass"), 0.0f) >= 0.5f;
+            device.osc1Wave = varToInt(params->getProperty("osc1Wave"), 2);
+            device.osc2Wave = varToInt(params->getProperty("osc2Wave"), 2);
+            device.osc1Octave = varToFloat(params->getProperty("osc1Octave"), 0.5f);
+            device.osc1Semi = varToFloat(params->getProperty("osc1Semi"), 0.0f);
+            device.osc1Detune = varToFloat(params->getProperty("osc1Detune"), 0.5f);
+            device.osc2Octave = varToFloat(params->getProperty("osc2Octave"), 0.5f);
+            device.osc2Semi = varToFloat(params->getProperty("osc2Semi"), 0.0f);
+            device.osc2Detune = varToFloat(params->getProperty("osc2Detune"), 0.5f);
+            device.osc1Level = varToFloat(params->getProperty("osc1Level"), 0.85f);
+            device.osc2Level = varToFloat(params->getProperty("osc2Level"), 0.5f);
+            device.noiseLevel = varToFloat(params->getProperty("noiseLevel"), 0.0f);
+            device.oscMixMode = varToInt(params->getProperty("oscMixMode"), 0);
+            device.unisonVoices = varToFloat(params->getProperty("unisonVoices"), 0.0f);
+            device.unisonDetune = varToFloat(params->getProperty("unisonDetune"), 0.35f);
+            device.filterEnvAmount = varToFloat(params->getProperty("filterEnvAmount"), 0.5f);
+            device.filterAttack = varToFloat(params->getProperty("filterAttack"), 0.05f);
+            device.filterDecay = varToFloat(params->getProperty("filterDecay"), 0.35f);
+            device.filterSustain = varToFloat(params->getProperty("filterSustain"), 0.4f);
+            device.filterRelease = varToFloat(params->getProperty("filterRelease"), 0.45f);
+            device.glideMs = varToFloat(params->getProperty("glideMs"), 0.0f);
+            device.velocitySensitivity =
+                varToFloat(params->getProperty("velocitySensitivity"), 1.0f);
         }
     }
     return device;

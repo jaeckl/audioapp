@@ -5,6 +5,7 @@
 
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/SamplerFilter.hpp"
+#include "audioapp/SubtractiveSynth.hpp"
 
 namespace audioapp {
 
@@ -14,6 +15,7 @@ enum class LiveInstrumentKind : uint8_t {
     None = 0,
     Oscillator,
     Sampler,
+    SubtractiveSynth,
 };
 
 /// Immutable instrument snapshot copied on note-on (control thread writes, audio thread reads).
@@ -34,6 +36,7 @@ struct LiveInstrumentSnapshot {
     int filterMode = 0;
     int trimStartFrame = 0;
     int trimEndFrame = 0;
+    SubtractiveSynthParams subtractive{};
 };
 
 struct LiveVoiceSlot {
@@ -46,6 +49,9 @@ struct LiveVoiceSlot {
     LiveInstrumentSnapshot instrument{};
     float oscillatorPhase = 0.0f;
     BiquadState filterState{};
+    SubtractiveVoiceRuntime subtractive{};
+    double subtractiveStartSec = 0.0;
+    double subtractiveReleaseSec = -1.0;
 };
 
 /// RT-safe live voice mixer + sample clock (control thread configures, audio thread reads).
