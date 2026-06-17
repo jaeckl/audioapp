@@ -213,8 +213,8 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
     if (method == "createLfo") {
-        const int lfoId = engine().createLfo();
-        return R"({"ok":true,"lfoId":)" + std::to_string(lfoId) + R"(,"snapshot":)" + engine().getProjectSnapshotJson() + "}";
+        engine().createLfo();
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
     if (method == "removeLfo") {
         const auto lfoId = static_cast<int>(jsonGetNumberArg(argumentsJson, "lfoId", 0.0));
