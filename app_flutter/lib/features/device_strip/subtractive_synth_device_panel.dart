@@ -370,32 +370,31 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                   },
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _SynthKnobRow(
-            children: [
+              const Spacer(),
               _knob(
                 label: 'Cutoff',
                 value: widget.device.filterCutoff,
                 displayValue: SamplerDevicePanel.formatCutoffHz(widget.device.filterCutoff),
                 onChanged: (v) => widget.onParameterChanged('filterCutoff', v),
               ),
+              const SizedBox(width: 4),
               _knob(
                 label: 'Res',
                 value: widget.device.filterQ,
                 displayValue: SamplerDevicePanel.formatQ(widget.device.filterQ),
                 onChanged: (v) => widget.onParameterChanged('filterQ', v),
               ),
+              const SizedBox(width: 4),
               _knob(
                 label: 'Env amt',
                 value: widget.device.filterEnvAmount,
                 displayValue: SamplerDevicePanel.formatPercent(widget.device.filterEnvAmount),
                 onChanged: (v) => widget.onParameterChanged('filterEnvAmount', v),
               ),
+              const SizedBox(width: 4),
             ],
           ),
-          const SizedBox(height: 6),
+          const Spacer(),
           _adsrRow(
             attack: widget.device.filterAttack,
             decay: widget.device.filterDecay,
@@ -403,36 +402,9 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
             release: widget.device.filterRelease,
             onChanged: (id, v) => widget.onParameterChanged(id, v),
             prefix: 'filter',
+            usePanel: false,
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _flatDropdown<T>({
-    required T value,
-    required List<DropdownMenuItem<T>> items,
-    required ValueChanged<T?> onChanged,
-  }) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFF121218),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<T>(
-            value: value,
-            isExpanded: true,
-            dropdownColor: const Color(0xFF1C1C24),
-            style: const TextStyle(color: Colors.white, fontSize: 12),
-            icon: Icon(Icons.expand_more, color: SubtractiveSynthDevicePanel.accent, size: 18),
-            items: items,
-            onChanged: onChanged,
-          ),
-        ),
       ),
     );
   }
@@ -463,16 +435,10 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
     return Padding(
       padding: const EdgeInsets.all(8),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _adsrRow(
-            attack: widget.device.attack,
-            decay: widget.device.decay,
-            sustain: widget.device.sustain,
-            release: widget.device.release,
-            onChanged: widget.onParameterChanged,
-          ),
-          const SizedBox(height: 6),
-          _SynthKnobRow(
+          Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               _knob(
                 label: 'Glide',
@@ -483,6 +449,7 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                     : '${(widget.device.glideMs * 2000).round()} ms',
                 onChanged: (v) => widget.onParameterChanged('glideMs', v),
               ),
+              const SizedBox(width: 8),
               _knob(
                 label: 'Velocity',
                 value: widget.device.velocitySensitivity,
@@ -491,6 +458,15 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                 onChanged: (v) => widget.onParameterChanged('velocitySensitivity', v),
               ),
             ],
+          ),
+          const Spacer(),
+          _adsrRow(
+            attack: widget.device.attack,
+            decay: widget.device.decay,
+            sustain: widget.device.sustain,
+            release: widget.device.release,
+            onChanged: widget.onParameterChanged,
+            usePanel: false,
           ),
         ],
       ),
@@ -504,39 +480,50 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
     required double release,
     required void Function(String id, double value) onChanged,
     String prefix = '',
+    bool usePanel = true,
   }) {
     String id(String name) => prefix.isEmpty ? name : '$prefix${name[0].toUpperCase()}${name.substring(1)}';
-    return _SynthKnobRow(
-      children: [
-        _knob(
-          label: 'A',
-          value: attack,
-          size: _knobSize * 0.8,
-          displayValue: SamplerDevicePanel.formatPercent(attack),
-          onChanged: (v) => onChanged(id('attack'), v),
-        ),
-        _knob(
-          label: 'D',
-          value: decay,
-          size: _knobSize * 0.8,
-          displayValue: SamplerDevicePanel.formatPercent(decay),
-          onChanged: (v) => onChanged(id('decay'), v),
-        ),
-        _knob(
-          label: 'S',
-          value: sustain,
-          size: _knobSize * 0.8,
-          displayValue: SamplerDevicePanel.formatPercent(sustain),
-          onChanged: (v) => onChanged(id('sustain'), v),
-        ),
-        _knob(
-          label: 'R',
-          value: release,
-          size: _knobSize * 0.8,
-          displayValue: SamplerDevicePanel.formatPercent(release),
-          onChanged: (v) => onChanged(id('release'), v),
-        ),
-      ],
+    final knobs = [
+      _knob(
+        label: 'A',
+        value: attack,
+        size: _knobSize * 0.8,
+        displayValue: SamplerDevicePanel.formatPercent(attack),
+        onChanged: (v) => onChanged(id('attack'), v),
+      ),
+      _knob(
+        label: 'D',
+        value: decay,
+        size: _knobSize * 0.8,
+        displayValue: SamplerDevicePanel.formatPercent(decay),
+        onChanged: (v) => onChanged(id('decay'), v),
+      ),
+      _knob(
+        label: 'S',
+        value: sustain,
+        size: _knobSize * 0.8,
+        displayValue: SamplerDevicePanel.formatPercent(sustain),
+        onChanged: (v) => onChanged(id('sustain'), v),
+      ),
+      _knob(
+        label: 'R',
+        value: release,
+        size: _knobSize * 0.8,
+        displayValue: SamplerDevicePanel.formatPercent(release),
+        onChanged: (v) => onChanged(id('release'), v),
+      ),
+    ];
+
+    if (usePanel) {
+      return _SynthKnobRow(children: knobs);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: knobs,
+      ),
     );
   }
 }
