@@ -5,8 +5,8 @@ class DeviceStripMetrics {
   /// Canonical sampler strip width (landscape does not stretch beyond this).
   static const double designWidth = 520;
 
-  /// Expanded sampler strip: tabs + big knobs.
-  static const double height = 236;
+  /// Expanded strip + fullscreen chain device row height.
+  static const double height = 320;
 
   /// Collapsed strip: header-only device name panels.
   static const double collapsedHeight = 64;
@@ -22,8 +22,8 @@ class DeviceStripMetrics {
 
   static const double insertButtonSize = 28;
 
-  /// Fullscreen chain uses taller panels.
-  static const double fullscreenHeight = 320;
+  /// Alias for [height] — fullscreen chain uses the same device card height.
+  static const double fullscreenHeight = height;
 
   static const double oscillatorDesignWidth = 360;
 

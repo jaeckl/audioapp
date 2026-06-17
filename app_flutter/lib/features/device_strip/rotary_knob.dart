@@ -60,19 +60,39 @@ class _RotaryKnobState extends State<RotaryKnob> {
           child: SizedBox(
             width: widget.size + 8,
             height: widget.size + 4,
-            child: Center(
-              child: SizedBox(
-                width: widget.size,
-                height: widget.size,
-                child: CustomPaint(
-                  painter: _KnobPainter(
-                    value: widget.value.clamp(0, 1),
-                    angle: angle,
-                    accentColor: widget.accentColor,
-                    strokeWidth: stroke,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: widget.size,
+                  height: widget.size,
+                  child: CustomPaint(
+                    painter: _KnobPainter(
+                      value: widget.value.clamp(0, 1),
+                      angle: angle,
+                      accentColor: widget.accentColor,
+                      strokeWidth: stroke,
+                    ),
                   ),
                 ),
-              ),
+                if (widget.displayValue != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        widget.displayValue!,
+                        maxLines: 1,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: widget.accentColor,
+                          fontSize: widget.size * 0.17,
+                          fontWeight: FontWeight.w700,
+                          height: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ),
@@ -85,21 +105,6 @@ class _RotaryKnobState extends State<RotaryKnob> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        if (widget.displayValue != null)
-          SizedBox(
-            height: 10,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                widget.displayValue!,
-                maxLines: 1,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: widget.accentColor,
-                  fontSize: 8,
-                ),
-              ),
-            ),
-          ),
       ],
     );
   }

@@ -20,6 +20,8 @@ struct SubtractiveSynthParams {
     float gain = 1.0f;
     int osc1Wave = 2;
     int osc2Wave = 2;
+    float osc1Shape = 0.5f;
+    float osc2Shape = 0.5f;
     float osc1Octave = 0.5f;
     float osc1Semi = 0.0f;
     float osc1Detune = 0.5f;
@@ -28,10 +30,14 @@ struct SubtractiveSynthParams {
     float osc2Detune = 0.5f;
     float osc1Level = 0.85f;
     float osc2Level = 0.5f;
+    float oscMix = 0.37f;
     float noiseLevel = 0.0f;
     int oscMixMode = 0;
+    float osc1Sync = 0.0f;
+    float osc2Sync = 0.0f;
     float unisonVoices = 0.0f;
     float unisonDetune = 0.35f;
+    int filterMode = 0;
     float filterCutoff = 0.75f;
     float filterQ = 0.2f;
     float filterEnvAmount = 0.5f;
@@ -79,6 +85,9 @@ struct SubtractiveMidiNoteRegion {
 
 float subtractiveWaveSample(int wave, float phase) noexcept;
 
+/// Continuous shape 0..1 morphs sine → tri → saw → square → pulse.
+float subtractiveMorphWaveSample(float shape, float phase) noexcept;
+
 int subtractiveUnisonCount(float normalized) noexcept;
 
 float subtractiveOscPitchHz(int rootPitch,
@@ -87,6 +96,13 @@ float subtractiveOscPitchHz(int rootPitch,
                             float detuneNorm) noexcept;
 
 float subtractiveMixOscPair(float osc1, float osc2, int mixMode, float osc2Level) noexcept;
+
+float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
+                             const SubtractiveSynthParams& params,
+                             float ampGain,
+                             float filterGain,
+                             double sampleRate,
+                             float glideCoeff) noexcept;
 
 void mixSubtractiveMidiNotesBlock(float* monoOut,
                                   int numFrames,

@@ -180,6 +180,8 @@ class DeviceSnapshot {
     this.bypassed = false,
     this.osc1Wave = 2,
     this.osc2Wave = 2,
+    this.osc1Shape = 0.5,
+    this.osc2Shape = 0.5,
     this.osc1Octave = 0.5,
     this.osc1Semi = 0.0,
     this.osc1Detune = 0.5,
@@ -188,6 +190,9 @@ class DeviceSnapshot {
     this.osc2Detune = 0.5,
     this.osc1Level = 0.85,
     this.osc2Level = 0.5,
+    this.oscMix = 0.37,
+    this.osc1Sync = 0.0,
+    this.osc2Sync = 0.0,
     this.noiseLevel = 0.0,
     this.oscMixMode = 0,
     this.unisonVoices = 0.0,
@@ -219,6 +224,8 @@ class DeviceSnapshot {
   final bool bypassed;
   final int osc1Wave;
   final int osc2Wave;
+  final double osc1Shape;
+  final double osc2Shape;
   final double osc1Octave;
   final double osc1Semi;
   final double osc1Detune;
@@ -227,6 +234,9 @@ class DeviceSnapshot {
   final double osc2Detune;
   final double osc1Level;
   final double osc2Level;
+  final double oscMix;
+  final double osc1Sync;
+  final double osc2Sync;
   final double noiseLevel;
   final int oscMixMode;
   final double unisonVoices;
@@ -260,6 +270,10 @@ class DeviceSnapshot {
       bypassed: _readBypass(params['bypass']),
       osc1Wave: (params['osc1Wave'] as num?)?.toInt() ?? 2,
       osc2Wave: (params['osc2Wave'] as num?)?.toInt() ?? 2,
+      osc1Shape: (params['osc1Shape'] as num?)?.toDouble() ??
+          ((params['osc1Wave'] as num?)?.toInt() ?? 2) / 4.0,
+      osc2Shape: (params['osc2Shape'] as num?)?.toDouble() ??
+          ((params['osc2Wave'] as num?)?.toInt() ?? 2) / 4.0,
       osc1Octave: (params['osc1Octave'] as num?)?.toDouble() ?? 0.5,
       osc1Semi: (params['osc1Semi'] as num?)?.toDouble() ?? 0.0,
       osc1Detune: (params['osc1Detune'] as num?)?.toDouble() ?? 0.5,
@@ -268,6 +282,13 @@ class DeviceSnapshot {
       osc2Detune: (params['osc2Detune'] as num?)?.toDouble() ?? 0.5,
       osc1Level: (params['osc1Level'] as num?)?.toDouble() ?? 0.85,
       osc2Level: (params['osc2Level'] as num?)?.toDouble() ?? 0.5,
+      oscMix: (params['oscMix'] as num?)?.toDouble() ??
+          _deriveOscMix(
+            (params['osc1Level'] as num?)?.toDouble() ?? 0.85,
+            (params['osc2Level'] as num?)?.toDouble() ?? 0.5,
+          ),
+      osc1Sync: (params['osc1Sync'] as num?)?.toDouble() ?? 0.0,
+      osc2Sync: (params['osc2Sync'] as num?)?.toDouble() ?? 0.0,
       noiseLevel: (params['noiseLevel'] as num?)?.toDouble() ?? 0.0,
       oscMixMode: (params['oscMixMode'] as num?)?.toInt() ?? 0,
       unisonVoices: (params['unisonVoices'] as num?)?.toDouble() ?? 0.0,
@@ -280,6 +301,12 @@ class DeviceSnapshot {
       glideMs: (params['glideMs'] as num?)?.toDouble() ?? 0.0,
       velocitySensitivity: (params['velocitySensitivity'] as num?)?.toDouble() ?? 1.0,
     );
+  }
+
+  static double _deriveOscMix(double osc1Level, double osc2Level) {
+    final sum = osc1Level + osc2Level;
+    if (sum <= 0.001) return 0.37;
+    return osc2Level / sum;
   }
 
   static bool _readBypass(dynamic value) {
@@ -310,6 +337,8 @@ class DeviceSnapshot {
     bool? bypassed,
     int? osc1Wave,
     int? osc2Wave,
+    double? osc1Shape,
+    double? osc2Shape,
     double? osc1Octave,
     double? osc1Semi,
     double? osc1Detune,
@@ -318,6 +347,9 @@ class DeviceSnapshot {
     double? osc2Detune,
     double? osc1Level,
     double? osc2Level,
+    double? oscMix,
+    double? osc1Sync,
+    double? osc2Sync,
     double? noiseLevel,
     int? oscMixMode,
     double? unisonVoices,
@@ -349,6 +381,8 @@ class DeviceSnapshot {
       bypassed: bypassed ?? this.bypassed,
       osc1Wave: osc1Wave ?? this.osc1Wave,
       osc2Wave: osc2Wave ?? this.osc2Wave,
+      osc1Shape: osc1Shape ?? this.osc1Shape,
+      osc2Shape: osc2Shape ?? this.osc2Shape,
       osc1Octave: osc1Octave ?? this.osc1Octave,
       osc1Semi: osc1Semi ?? this.osc1Semi,
       osc1Detune: osc1Detune ?? this.osc1Detune,
@@ -357,6 +391,9 @@ class DeviceSnapshot {
       osc2Detune: osc2Detune ?? this.osc2Detune,
       osc1Level: osc1Level ?? this.osc1Level,
       osc2Level: osc2Level ?? this.osc2Level,
+      oscMix: oscMix ?? this.oscMix,
+      osc1Sync: osc1Sync ?? this.osc1Sync,
+      osc2Sync: osc2Sync ?? this.osc2Sync,
       noiseLevel: noiseLevel ?? this.noiseLevel,
       oscMixMode: oscMixMode ?? this.oscMixMode,
       unisonVoices: unisonVoices ?? this.unisonVoices,
@@ -398,9 +435,25 @@ class DeviceSnapshot {
       case 'bypass':
         return copyWith(bypassed: value >= 0.5);
       case 'osc1Wave':
-        return copyWith(osc1Wave: value.round().clamp(0, 4));
+        return copyWith(
+          osc1Wave: value.round().clamp(0, 4),
+          osc1Shape: value.round().clamp(0, 4) / 4.0,
+        );
       case 'osc2Wave':
-        return copyWith(osc2Wave: value.round().clamp(0, 4));
+        return copyWith(
+          osc2Wave: value.round().clamp(0, 4),
+          osc2Shape: value.round().clamp(0, 4) / 4.0,
+        );
+      case 'osc1Shape':
+        return copyWith(
+          osc1Shape: value.clamp(0.0, 1.0),
+          osc1Wave: (value * 4).round().clamp(0, 4),
+        );
+      case 'osc2Shape':
+        return copyWith(
+          osc2Shape: value.clamp(0.0, 1.0),
+          osc2Wave: (value * 4).round().clamp(0, 4),
+        );
       case 'osc1Octave':
         return copyWith(osc1Octave: value);
       case 'osc1Semi':
@@ -417,6 +470,12 @@ class DeviceSnapshot {
         return copyWith(osc1Level: value);
       case 'osc2Level':
         return copyWith(osc2Level: value);
+      case 'oscMix':
+        return copyWith(oscMix: value.clamp(0.0, 1.0));
+      case 'osc1Sync':
+        return copyWith(osc1Sync: value.clamp(0.0, 1.0));
+      case 'osc2Sync':
+        return copyWith(osc2Sync: value.clamp(0.0, 1.0));
       case 'noiseLevel':
         return copyWith(noiseLevel: value);
       case 'oscMixMode':

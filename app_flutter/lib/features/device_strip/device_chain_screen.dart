@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../bridge/project_snapshot.dart';
 import '../content_library/library_category.dart';
@@ -57,9 +58,90 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<LibraryFlyInPanelState> _libraryPanelKey = GlobalKey();
   DeviceSnapshot? _libraryDevice;
+  late TrackSnapshot _track;
+
+  @override
+  void initState() {
+    super.initState();
+    _track = widget.track;
+    SystemChrome.setPreferredOrientations(const [
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  }
+
+  @override
+  void didUpdateWidget(covariant DeviceChainScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.track.id != widget.track.id) {
+      _track = widget.track;
+    }
+  }
+
+  TrackSnapshot _trackWithDeviceParameter(
+    String deviceId,
+    String parameterId,
+    double value,
+  ) {
+    return TrackSnapshot(
+      id: _track.id,
+      name: _track.name,
+      devices: _track.devices
+          .map((device) => device.id == deviceId
+              ? device.withParameter(parameterId, value)
+              : device)
+          .toList(),
+      midiClips: _track.midiClips,
+      sampleClips: _track.sampleClips,
+    );
+  }
+
+  void _onSamplerParameterChanged(String deviceId, String parameterId, double value) {
+    setState(() => _track = _trackWithDeviceParameter(deviceId, parameterId, value));
+    widget.onSamplerParameterChanged(deviceId, parameterId, value);
+  }
+
+  void _onFrequencyChanged(String deviceId, double frequencyHz) {
+    setState(() {
+      _track = TrackSnapshot(
+        id: _track.id,
+        name: _track.name,
+        devices: _track.devices
+            .map((device) => device.id == deviceId
+                ? device.copyWith(frequencyHz: frequencyHz)
+                : device)
+            .toList(),
+        midiClips: _track.midiClips,
+        sampleClips: _track.sampleClips,
+      );
+    });
+    widget.onFrequencyChanged(deviceId, frequencyHz);
+  }
+
+  void _onBypassToggle(String deviceId, bool bypassed) {
+    setState(() => _track = _trackWithDeviceParameter(deviceId, 'bypass', bypassed ? 1.0 : 0.0));
+    widget.onBypassToggle?.call(deviceId, bypassed);
+  }
+
+  void _onAssignSamplerSample(String deviceId, String sampleId) {
+    setState(() {
+      _track = TrackSnapshot(
+        id: _track.id,
+        name: _track.name,
+        devices: _track.devices
+            .map((device) =>
+                device.id == deviceId ? device.copyWith(sampleId: sampleId) : device)
+            .toList(),
+        midiClips: _track.midiClips,
+        sampleClips: _track.sampleClips,
+      );
+    });
+    widget.onAssignSamplerSample(deviceId, sampleId);
+  }
 
   @override
   void dispose() {
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     _scrollController.dispose();
     super.dispose();
   }
@@ -76,7 +158,7 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
   Future<void> _onLibraryInsertAudio(SampleLibraryEntrySnapshot sample) async {
     final device = _libraryDevice;
     if (device != null) {
-      widget.onAssignSamplerSample(device.id, sample.id);
+      _onAssignSamplerSample(device.id, sample.id);
     }
     await _libraryPanelKey.currentState?.close();
   }
@@ -97,26 +179,26 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: DeviceChainRow(
-                      track: widget.track,
+                      track: _track,
                       samples: widget.samples,
                       playing: widget.playing,
                       density: density,
                       scrollController: _scrollController,
                       samplerTabFor: widget.samplerTabFor,
                       synthTabFor: widget.synthTabFor,
-                      onSamplerParameterChanged: widget.onSamplerParameterChanged,
+                      onSamplerParameterChanged: _onSamplerParameterChanged,
                       onOpenSamplerEditor: widget.onOpenSamplerEditor,
-                      onFrequencyChanged: widget.onFrequencyChanged,
+                      onFrequencyChanged: _onFrequencyChanged,
                       onInsertDevice: widget.onInsertDevice,
                       onSamplerTabChanged: widget.onSamplerTabChanged,
                       onSynthTabChanged: widget.onSynthTabChanged,
-                      onBypassToggle: widget.onBypassToggle,
+                      onBypassToggle: widget.onBypassToggle == null ? null : _onBypassToggle,
                       onOpenLibrary: _openLibrary,
                     ),
                   ),
                 ),
                 DeviceChainMinimap(
-                  track: widget.track,
+                  track: _track,
                   scrollController: _scrollController,
                   density: density,
                 ),

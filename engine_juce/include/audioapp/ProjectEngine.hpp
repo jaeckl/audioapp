@@ -37,6 +37,8 @@ struct DeviceState {
     bool bypassed = false;
     int osc1Wave = 2;
     int osc2Wave = 2;
+    float osc1Shape = 0.5f;
+    float osc2Shape = 0.5f;
     float osc1Octave = 0.5f;
     float osc1Semi = 0.0f;
     float osc1Detune = 0.5f;
@@ -45,6 +47,9 @@ struct DeviceState {
     float osc2Detune = 0.5f;
     float osc1Level = 0.85f;
     float osc2Level = 0.5f;
+    float oscMix = 0.37f;
+    float osc1Sync = 0.0f;
+    float osc2Sync = 0.0f;
     float noiseLevel = 0.0f;
     int oscMixMode = 0;
     float unisonVoices = 0.0f;
@@ -175,6 +180,8 @@ private:
         bool bypassed = false;
         int osc1Wave = 2;
         int osc2Wave = 2;
+        float osc1Shape = 0.5f;
+        float osc2Shape = 0.5f;
         float osc1Octave = 0.5f;
         float osc1Semi = 0.0f;
         float osc1Detune = 0.5f;
@@ -183,6 +190,9 @@ private:
         float osc2Detune = 0.5f;
         float osc1Level = 0.85f;
         float osc2Level = 0.5f;
+        float oscMix = 0.37f;
+        float osc1Sync = 0.0f;
+        float osc2Sync = 0.0f;
         float noiseLevel = 0.0f;
         int oscMixMode = 0;
         float unisonVoices = 0.0f;

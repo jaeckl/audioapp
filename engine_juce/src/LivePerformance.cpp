@@ -220,70 +220,18 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                         ? 1.0f - std::exp(-1.0f / (static_cast<float>(sampleRate) * glideMs * 0.001f))
                         : 1.0f;
 
-                voice.subtractive.targetHz =
-                    subtractiveOscPitchHz(voice.pitch, 0.5f, 0.0f, 0.5f);
-                voice.subtractive.pitch = voice.pitch;
-                voice.subtractive.velocity = voice.velocity;
-
-                float sample = 0.0f;
                 auto& sv = voice.subtractive;
-                if (glideCoeff > 0.0f && glideCoeff < 1.0f) {
-                    sv.currentHz += (sv.targetHz - sv.currentHz) * glideCoeff;
-                } else {
-                    sv.currentHz = sv.targetHz;
-                }
-
-                const int unisonCount = subtractiveUnisonCount(params.unisonVoices);
-                const float spreadCents = params.unisonDetune * 50.0f;
-                const float osc1Root = subtractiveOscPitchHz(
-                    voice.pitch, params.osc1Octave, params.osc1Semi, params.osc1Detune);
-                const float osc2Root = subtractiveOscPitchHz(
-                    voice.pitch, params.osc2Octave, params.osc2Semi, params.osc2Detune);
-                const float pitchRatio =
-                    sv.currentHz / subtractiveOscPitchHz(voice.pitch, 0.5f, 0.0f, 0.5f);
-
-                auto renderBank = [&](int wave, float rootHz, float level, float* phases) {
-                    float sum = 0.0f;
-                    for (int u = 0; u < unisonCount; ++u) {
-                        const float spread = unisonCount > 1
-                            ? (static_cast<float>(u) / static_cast<float>(unisonCount - 1) - 0.5f) *
-                                  2.0f
-                            : 0.0f;
-                        const float hz = rootHz * pitchRatio *
-                            std::pow(2.0f, (spread * spreadCents) / 1200.0f);
-                        const float phaseInc = 6.28318530718f * hz / static_cast<float>(sampleRate);
-                        sum += subtractiveWaveSample(wave, phases[u]);
-                        phases[u] += phaseInc;
-                        if (phases[u] >= 6.28318530718f) {
-                            phases[u] -= 6.28318530718f;
-                        }
-                    }
-                    return unisonCount > 0 ? (sum / static_cast<float>(unisonCount)) * level : 0.0f;
-                };
-
-                const float osc1 =
-                    renderBank(params.osc1Wave, osc1Root, params.osc1Level, sv.osc1Phases);
-                const float osc2 =
-                    renderBank(params.osc2Wave, osc2Root, params.osc2Level, sv.osc2Phases);
-                float mixed =
-                    subtractiveMixOscPair(osc1, osc2, params.oscMixMode, params.osc2Level);
-                if (params.noiseLevel > 0.0f) {
-                    mixed += ((sv.noiseSeed = std::fmod(sv.noiseSeed * 16807.0f, 2147483647.0f)) /
-                              1073741823.5f - 1.0f) *
-                        params.noiseLevel;
-                }
-
-                const float baseCutoff = normalizedCutoffToHz(params.filterCutoff);
-                const float envCutoff =
-                    baseCutoff * (1.0f + filterGain * params.filterEnvAmount * 4.0f);
-                BiquadCoeffs coeffs{};
-                cookSamplerBiquad(coeffs,
-                                  0,
-                                  static_cast<float>(sampleRate),
-                                  std::clamp(envCutoff, 20.0f, 20000.0f),
-                                  normalizedQToValue(params.filterQ));
-                sample = processBiquadSample(mixed, coeffs, sv.filterState);
-                mix += sample * ampGain * velAmount * params.gain * kInstrumentOutputGain;
+                sv.targetHz =
+                    subtractiveOscPitchHz(voice.pitch, 0.5f, 0.0f, 0.5f);
+                sv.pitch = voice.pitch;
+                sv.velocity = voice.velocity;
+                mix += subtractiveVoiceSample(sv,
+                                                params,
+                                                ampGain * velAmount,
+                                                filterGain,
+                                                sampleRate,
+                                                glideCoeff) *
+                        params.gain * kInstrumentOutputGain;
             } else if (inst.kind == LiveInstrumentKind::Oscillator) {
                 const float hz = midiNoteToHz(voice.pitch);
                 const float phaseInc = static_cast<float>(2.0 * 3.14159265358979323846 * hz / sampleRate);

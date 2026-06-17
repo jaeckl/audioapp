@@ -10,10 +10,13 @@
 
 namespace audioapp {
 
+constexpr float kSubtractivePi = 3.14159265358979323846f;
+constexpr float kSubtractiveTwoPi = 6.28318530718f;
+
 namespace {
 
-constexpr float kPi = 3.14159265358979323846f;
-constexpr float kTwoPi = 6.28318530718f;
+constexpr float kPi = kSubtractivePi;
+constexpr float kTwoPi = kSubtractiveTwoPi;
 
 float beatAtFrame(double playheadStartBeat, int frameIndex, double sampleRate, int bpm) {
     const double seconds = static_cast<double>(frameIndex) / sampleRate;
@@ -58,18 +61,29 @@ bool isSubtractiveNoteAudible(const SubtractiveMidiNoteRegion& note,
     return loopedBeat < noteEnd + releaseBeats;
 }
 
-float renderOscBank(int wave,
+} // namespace
+
+float subtractiveNoiseSample(float& seed) noexcept {
+    seed = std::fmod(seed * 16807.0f, 2147483647.0f);
+    return (seed / 1073741823.5f) - 1.0f;
+}
+
+float renderOscBank(float shape,
                     float rootHz,
                     float detuneCents,
                     float level,
                     int unisonCount,
                     float unisonSpread,
                     float* phases,
-                    double sampleRate) noexcept {
+                    double sampleRate,
+                    const float* syncMasterPhases = nullptr,
+                    float syncMasterHz = 0.0f,
+                    float syncAmount = 0.0f) noexcept {
     if (level <= 0.0f || unisonCount <= 0) {
         return 0.0f;
     }
 
+    const float sync = std::clamp(syncAmount, 0.0f, 1.0f);
     float sum = 0.0f;
     for (int u = 0; u < unisonCount; ++u) {
         const float spread = unisonCount > 1
@@ -77,17 +91,29 @@ float renderOscBank(int wave,
             : 0.0f;
         const float cents = detuneCents + spread * unisonSpread;
         const float hz = rootHz * std::pow(2.0f, cents / 1200.0f);
-        const float phaseInc = kTwoPi * hz / static_cast<float>(sampleRate);
-        sum += subtractiveWaveSample(wave, phases[u]);
-        phases[u] += phaseInc;
-        if (phases[u] >= kTwoPi) {
-            phases[u] -= kTwoPi;
+        const float phaseInc = kSubtractiveTwoPi * hz / static_cast<float>(sampleRate);
+
+        float phase = phases[u];
+        if (syncMasterPhases != nullptr && sync > 0.001f && syncMasterHz > 1.0f) {
+            const float ratio = hz / syncMasterHz;
+            const float syncedPhase =
+                std::fmod(syncMasterPhases[u] * ratio, kSubtractiveTwoPi);
+            phase = phase * (1.0f - sync) + syncedPhase * sync;
+            phases[u] = syncedPhase;
+        } else {
+            phases[u] += phaseInc;
+            if (phases[u] >= kSubtractiveTwoPi) {
+                phases[u] -= kSubtractiveTwoPi;
+            }
+            phase = phases[u];
         }
+
+        sum += subtractiveMorphWaveSample(shape, phase);
     }
     return (sum / static_cast<float>(unisonCount)) * level;
 }
 
-float voiceSample(SubtractiveVoiceRuntime& voice,
+float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
                   const SubtractiveSynthParams& params,
                   float ampGain,
                   float filterGain,
@@ -108,41 +134,50 @@ float voiceSample(SubtractiveVoiceRuntime& voice,
         subtractiveOscPitchHz(voice.pitch, params.osc2Octave, params.osc2Semi, params.osc2Detune);
     const float pitchRatio = voice.currentHz / subtractiveOscPitchHz(voice.pitch, 0.5f, 0.0f, 0.5f);
 
-    const float osc1 = renderOscBank(params.osc1Wave,
-                                     osc1Root * pitchRatio,
+    const float mix = std::clamp(params.oscMix, 0.0f, 1.0f);
+    const float peakLevel = 0.85f;
+    const float osc1Level = std::sqrt(1.0f - mix) * peakLevel;
+    const float osc2Level = std::sqrt(mix) * peakLevel;
+
+    const float osc1Hz = osc1Root * pitchRatio;
+    const float osc1 = renderOscBank(params.osc1Shape,
+                                     osc1Hz,
                                      0.0f,
-                                     params.osc1Level,
+                                     osc1Level,
                                      unisonCount,
                                      spreadCents,
                                      voice.osc1Phases,
                                      sampleRate);
-    const float osc2 = renderOscBank(params.osc2Wave,
+    const float syncAmount =
+        std::clamp(params.osc1Sync, 0.0f, 1.0f) * std::clamp(params.osc2Sync, 0.0f, 1.0f);
+    const float osc2 = renderOscBank(params.osc2Shape,
                                      osc2Root * pitchRatio,
                                      0.0f,
-                                     params.osc2Level,
+                                     osc2Level,
                                      unisonCount,
                                      spreadCents,
                                      voice.osc2Phases,
-                                     sampleRate);
+                                     sampleRate,
+                                     voice.osc1Phases,
+                                     osc1Hz,
+                                     syncAmount);
 
-    float mixed = subtractiveMixOscPair(osc1, osc2, params.oscMixMode, params.osc2Level);
+    float mixed = subtractiveMixOscPair(osc1, osc2, params.oscMixMode, 1.0f);
     if (params.noiseLevel > 0.0f) {
-        mixed += noiseSample(voice.noiseSeed) * params.noiseLevel;
+        mixed += subtractiveNoiseSample(voice.noiseSeed) * params.noiseLevel;
     }
 
     const float baseCutoff = normalizedCutoffToHz(params.filterCutoff);
     const float envCutoff = baseCutoff * (1.0f + filterGain * params.filterEnvAmount * 4.0f);
     BiquadCoeffs coeffs{};
     cookSamplerBiquad(coeffs,
-                      0,
+                      std::clamp(params.filterMode, 0, 3),
                       static_cast<float>(sampleRate),
                       std::clamp(envCutoff, 20.0f, 20000.0f),
                       normalizedQToValue(params.filterQ));
     mixed = processBiquadSample(mixed, coeffs, voice.filterState);
     return mixed * ampGain;
 }
-
-} // namespace
 
 float subtractiveWaveSample(int wave, float phase) noexcept {
     const float wrapped = std::fmod(phase, kTwoPi);
@@ -161,6 +196,16 @@ float subtractiveWaveSample(int wave, float phase) noexcept {
     default:
         return wrapped < kPi ? 1.0f : -0.2f;
     }
+}
+
+float subtractiveMorphWaveSample(float shape, float phase) noexcept {
+    const float scaled = std::clamp(shape, 0.0f, 1.0f) * 4.0f;
+    const int i0 = std::min(4, static_cast<int>(scaled));
+    const int i1 = std::min(4, i0 + 1);
+    const float t = scaled - static_cast<float>(i0);
+    const float a = subtractiveWaveSample(i0, phase);
+    const float b = subtractiveWaveSample(i1, phase);
+    return a * (1.0f - t) + b * t;
 }
 
 int subtractiveUnisonCount(float normalized) noexcept {
@@ -261,7 +306,7 @@ void renderSubtractiveLiveVoice(float& mix,
         glideMs > 0.0f ? 1.0f - std::exp(-1.0f / (static_cast<float>(sampleRate) * glideMs * 0.001f))
                        : 1.0f;
 
-    mix += voiceSample(voice, params, ampGain * velGain, filterGain, sampleRate, glideCoeff) *
+    mix += subtractiveVoiceSample(voice, params, ampGain * velGain, filterGain, sampleRate, glideCoeff) *
            params.gain * kInstrumentOutputGain;
 }
 
@@ -380,7 +425,7 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
             const float vel = std::clamp(note.velocity / 127.0f, 0.0f, 1.0f);
             const float velGain = 1.0f - params.velocitySensitivity * (1.0f - vel);
 
-            mix += voiceSample(voice, params, ampGain * velGain, filterGain, sampleRate, glideCoeff) *
+            mix += subtractiveVoiceSample(voice, params, ampGain * velGain, filterGain, sampleRate, glideCoeff) *
                    params.gain * kInstrumentOutputGain;
         }
 

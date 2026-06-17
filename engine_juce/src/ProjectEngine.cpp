@@ -19,6 +19,8 @@ SubtractiveSynthParams ProjectEngine::subtractiveParamsFromDevice(const Device& 
     params.gain = device.gain;
     params.osc1Wave = device.osc1Wave;
     params.osc2Wave = device.osc2Wave;
+    params.osc1Shape = device.osc1Shape;
+    params.osc2Shape = device.osc2Shape;
     params.osc1Octave = device.osc1Octave;
     params.osc1Semi = device.osc1Semi;
     params.osc1Detune = device.osc1Detune;
@@ -27,10 +29,14 @@ SubtractiveSynthParams ProjectEngine::subtractiveParamsFromDevice(const Device& 
     params.osc2Detune = device.osc2Detune;
     params.osc1Level = device.osc1Level;
     params.osc2Level = device.osc2Level;
+    params.oscMix = device.oscMix;
+    params.osc1Sync = device.osc1Sync;
+    params.osc2Sync = device.osc2Sync;
     params.noiseLevel = device.noiseLevel;
     params.oscMixMode = device.oscMixMode;
     params.unisonVoices = device.unisonVoices;
     params.unisonDetune = device.unisonDetune;
+    params.filterMode = device.filterMode;
     params.filterCutoff = device.filterCutoff;
     params.filterQ = device.filterQ;
     params.filterEnvAmount = device.filterEnvAmount;
@@ -66,6 +72,8 @@ void ProjectEngine::copyDeviceToState(const Device& src, DeviceState& dst) {
     dst.bypassed = src.bypassed;
     dst.osc1Wave = src.osc1Wave;
     dst.osc2Wave = src.osc2Wave;
+    dst.osc1Shape = src.osc1Shape;
+    dst.osc2Shape = src.osc2Shape;
     dst.osc1Octave = src.osc1Octave;
     dst.osc1Semi = src.osc1Semi;
     dst.osc1Detune = src.osc1Detune;
@@ -74,6 +82,9 @@ void ProjectEngine::copyDeviceToState(const Device& src, DeviceState& dst) {
     dst.osc2Detune = src.osc2Detune;
     dst.osc1Level = src.osc1Level;
     dst.osc2Level = src.osc2Level;
+    dst.oscMix = src.oscMix;
+    dst.osc1Sync = src.osc1Sync;
+    dst.osc2Sync = src.osc2Sync;
     dst.noiseLevel = src.noiseLevel;
     dst.oscMixMode = src.oscMixMode;
     dst.unisonVoices = src.unisonVoices;
@@ -106,6 +117,8 @@ void ProjectEngine::copyStateToDevice(const DeviceState& src, Device& dst) {
     dst.bypassed = src.bypassed;
     dst.osc1Wave = src.osc1Wave;
     dst.osc2Wave = src.osc2Wave;
+    dst.osc1Shape = src.osc1Shape;
+    dst.osc2Shape = src.osc2Shape;
     dst.osc1Octave = src.osc1Octave;
     dst.osc1Semi = src.osc1Semi;
     dst.osc1Detune = src.osc1Detune;
@@ -114,6 +127,9 @@ void ProjectEngine::copyStateToDevice(const DeviceState& src, Device& dst) {
     dst.osc2Detune = src.osc2Detune;
     dst.osc1Level = src.osc1Level;
     dst.osc2Level = src.osc2Level;
+    dst.oscMix = src.oscMix;
+    dst.osc1Sync = src.osc1Sync;
+    dst.osc2Sync = src.osc2Sync;
     dst.noiseLevel = src.noiseLevel;
     dst.oscMixMode = src.oscMixMode;
     dst.unisonVoices = src.unisonVoices;
@@ -202,6 +218,8 @@ std::string ProjectEngine::addDeviceToTrack(const std::string& trackId,
         device.filterQ = 0.2f;
         device.osc1Wave = 2;
         device.osc2Wave = 2;
+        device.osc1Shape = 0.5f;
+        device.osc2Shape = 0.5f;
         device.osc1Level = 0.85f;
         device.osc2Level = 0.5f;
         device.filterEnvAmount = 0.5f;
@@ -342,6 +360,7 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
             parameterId == "filterRelease" || parameterId == "osc1Octave" || parameterId == "osc1Semi" ||
             parameterId == "osc1Detune" || parameterId == "osc2Octave" || parameterId == "osc2Semi" ||
             parameterId == "osc2Detune" || parameterId == "osc1Level" || parameterId == "osc2Level" ||
+            parameterId == "oscMix" || parameterId == "osc1Sync" || parameterId == "osc2Sync" ||
             parameterId == "noiseLevel" || parameterId == "unisonVoices" || parameterId == "unisonDetune" ||
             parameterId == "glideMs" || parameterId == "velocitySensitivity") {
             float clamped = std::clamp(value, 0.0f, 1.0f);
@@ -375,6 +394,12 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
                 device->osc1Level = clamped;
             } else if (parameterId == "osc2Level") {
                 device->osc2Level = clamped;
+            } else if (parameterId == "oscMix") {
+                device->oscMix = clamped;
+            } else if (parameterId == "osc1Sync") {
+                device->osc1Sync = clamped;
+            } else if (parameterId == "osc2Sync") {
+                device->osc2Sync = clamped;
             } else if (parameterId == "noiseLevel") {
                 device->noiseLevel = clamped;
             } else if (parameterId == "unisonVoices") {
@@ -391,11 +416,29 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
         }
         if (parameterId == "osc1Wave") {
             device->osc1Wave = std::clamp(static_cast<int>(std::lround(value)), 0, 4);
+            device->osc1Shape = static_cast<float>(device->osc1Wave) / 4.0f;
             rebuildTrackPlaybackLocked();
             return true;
         }
         if (parameterId == "osc2Wave") {
             device->osc2Wave = std::clamp(static_cast<int>(std::lround(value)), 0, 4);
+            device->osc2Shape = static_cast<float>(device->osc2Wave) / 4.0f;
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
+        if (parameterId == "osc1Shape") {
+            const float clamped = std::clamp(value, 0.0f, 1.0f);
+            device->osc1Shape = clamped;
+            device->osc1Wave =
+                std::clamp(static_cast<int>(std::lround(clamped * 4.0f)), 0, 4);
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
+        if (parameterId == "osc2Shape") {
+            const float clamped = std::clamp(value, 0.0f, 1.0f);
+            device->osc2Shape = clamped;
+            device->osc2Wave =
+                std::clamp(static_cast<int>(std::lround(clamped * 4.0f)), 0, 4);
             rebuildTrackPlaybackLocked();
             return true;
         }
