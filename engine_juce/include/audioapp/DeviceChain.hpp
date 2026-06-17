@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include "audioapp/SamplerFilter.hpp"
+
 namespace audioapp {
 
 struct MidiPlaybackNote {
