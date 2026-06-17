@@ -114,6 +114,27 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     }
   }
 
+  void _showModulationSheet() {
+    final bridge = widget.onModulationBridgeCall;
+    if (bridge == null) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: DeviceStripTheme.toolRailBackground,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: ModulationStrip(
+          lfos: widget.lfos,
+          modEdges: widget.modEdges,
+          deviceId: widget.device.id,
+          onBridgeCall: (method, args) => bridge(method, args),
+        ),
+      ),
+    );
+  }
+
   bool get _collapsed => widget.density == DeviceStripSlotDensity.collapsed;
 
   bool get _showsToolRail => !_collapsed;
@@ -177,7 +198,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                   onBypassToggle: widget.onBypassToggle ?? () {},
                   onLibrary: widget.onOpenLibrary,
                   modActive: _modStripVisible,
-                  onModToggle: () => setState(() => _modStripVisible = !_modStripVisible),
+                  onModToggle: () => _showModulationSheet(),
                 ),
                 SizedBox(
                   width: _cardWidth,
