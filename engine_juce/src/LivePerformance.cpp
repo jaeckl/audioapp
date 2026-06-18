@@ -5,6 +5,7 @@
 #include "audioapp/SamplePlayback.hpp"
 #include "audioapp/SamplerFilter.hpp"
 #include "audioapp/KickGenerator.hpp"
+#include "audioapp/SnareGenerator.hpp"
 #include "audioapp/SubtractiveSynth.hpp"
 
 #include <algorithm>
@@ -68,6 +69,7 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         voice.filterState = BiquadState{};
         voice.subtractive = SubtractiveVoiceRuntime{};
         voice.kick = KickVoiceRuntime{};
+        voice.snare = SnareVoiceRuntime{};
         voice.subtractiveStartSec = static_cast<double>(now) / 48000.0;
         voice.subtractiveReleaseSec = -1.0;
         if (instrument.kind == LiveInstrumentKind::SubtractiveSynth) {
@@ -79,6 +81,8 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
             voice.subtractive.noiseSeed = 0.2f;
         } else if (instrument.kind == LiveInstrumentKind::KickGenerator) {
             triggerKickVoice(voice.kick, pitch, voice.velocity);
+        } else if (instrument.kind == LiveInstrumentKind::SnareGenerator) {
+            triggerSnareVoice(voice.snare, pitch, voice.velocity);
         }
         voice.active.store(1, std::memory_order_release);
         return i;
@@ -96,6 +100,7 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
     steal.filterState = BiquadState{};
     steal.subtractive = SubtractiveVoiceRuntime{};
     steal.kick = KickVoiceRuntime{};
+    steal.snare = SnareVoiceRuntime{};
     steal.subtractiveStartSec = static_cast<double>(now) / 48000.0;
     steal.subtractiveReleaseSec = -1.0;
     if (instrument.kind == LiveInstrumentKind::SubtractiveSynth) {
@@ -107,6 +112,8 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         steal.subtractive.noiseSeed = 0.2f;
     } else if (instrument.kind == LiveInstrumentKind::KickGenerator) {
         triggerKickVoice(steal.kick, pitch, steal.velocity);
+    } else if (instrument.kind == LiveInstrumentKind::SnareGenerator) {
+        triggerSnareVoice(steal.snare, pitch, steal.velocity);
     }
     steal.active.store(1, std::memory_order_release);
     return 0;
@@ -164,6 +171,26 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                 const float velGain = 1.0f - inst.kick.kickVelocity * (1.0f - vel);
                 mix += kickGeneratorSample(kv, inst.kick, sampleRate, velGain);
                 if (kv.active == 0) {
+                    voice.active.store(0, std::memory_order_release);
+                }
+                continue;
+            }
+
+            if (inst.kind == LiveInstrumentKind::SnareGenerator) {
+                auto& sv = voice.snare;
+                const double elapsedSec =
+                    static_cast<double>(sampleIndex - voice.startSample) / sampleRate;
+                if (elapsedSec < 0.0) {
+                    continue;
+                }
+                if (sv.active == 0) {
+                    triggerSnareVoice(sv, voice.pitch, voice.velocity);
+                }
+                sv.elapsedSec = elapsedSec;
+                const float vel = std::clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
+                const float velGain = 1.0f - inst.snare.snareVelocity * (1.0f - vel);
+                mix += snareGeneratorSample(sv, inst.snare, sampleRate, velGain);
+                if (sv.active == 0) {
                     voice.active.store(0, std::memory_order_release);
                 }
                 continue;

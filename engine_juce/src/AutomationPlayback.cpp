@@ -3,6 +3,7 @@
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/model/TrackModel.hpp"
 #include "audioapp/KickGenerator.hpp"
+#include "audioapp/SnareGenerator.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -153,6 +154,25 @@ void applyAutomationValue(DeviceVariantParams& params,
                 p->kickTone = value;
             } else if (paramId == "kickVelocity") {
                 p->kickVelocity = value;
+            }
+        }
+        break;
+    case DeviceNodeKind::SnareGenerator:
+        if (auto* p = std::get_if<SnareGeneratorParams>(&params)) {
+            if (paramId == "gain") {
+                p->gain = value;
+            } else if (paramId == "snareBody") {
+                p->snareBody = value;
+            } else if (paramId == "snareTune") {
+                p->snareTune = value;
+            } else if (paramId == "snareSnares") {
+                p->snareSnares = value;
+            } else if (paramId == "snareSnap") {
+                p->snareSnap = value;
+            } else if (paramId == "snareDecay") {
+                p->snareDecay = value;
+            } else if (paramId == "snareVelocity") {
+                p->snareVelocity = value;
             }
         }
         break;

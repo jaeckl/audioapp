@@ -38,6 +38,7 @@ add_library(audioapp_engine STATIC
   src/SamplerFilter.cpp
   src/SubtractiveSynth.cpp
   src/KickGenerator.cpp
+  src/SnareGenerator.cpp
   src/MasterMix.cpp
   src/DeviceChain.cpp
   src/devices/DeviceRegistry.cpp
@@ -46,6 +47,7 @@ add_library(audioapp_engine STATIC
   src/devices/TrackGainDeviceType.cpp
   src/devices/SubtractiveSynthDeviceType.cpp
   src/devices/KickGeneratorDeviceType.cpp
+  src/devices/SnareGeneratorDeviceType.cpp
   src/model/TrackRepository.cpp
   src/model/ClipRepository.cpp
   src/transport/TransportController.cpp
@@ -119,6 +121,10 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
   add_executable(device_registry_test tests/device_registry_test.cpp)
   target_link_libraries(device_registry_test PRIVATE audioapp_engine)
   add_test(NAME device_registry_test COMMAND device_registry_test)
+
+  add_executable(snare_generator_test tests/snare_generator_test.cpp)
+  target_link_libraries(snare_generator_test PRIVATE audioapp_engine)
+  add_test(NAME snare_generator_test COMMAND snare_generator_test)
 
   add_executable(device_types_test tests/device_types_test.cpp)
   target_link_libraries(device_types_test PRIVATE audioapp_engine)

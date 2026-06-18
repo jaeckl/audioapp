@@ -226,6 +226,12 @@ class DeviceSnapshot {
     this.kickClick = 0.35,
     this.kickTone = 0.50,
     this.kickVelocity = 1.0,
+    this.snareBody = 0.55,
+    this.snareTune = 0.50,
+    this.snareSnares = 0.60,
+    this.snareSnap = 0.40,
+    this.snareDecay = 0.50,
+    this.snareVelocity = 1.0,
   });
 
   final String id;
@@ -274,6 +280,12 @@ class DeviceSnapshot {
   final double kickClick;
   final double kickTone;
   final double kickVelocity;
+  final double snareBody;
+  final double snareTune;
+  final double snareSnares;
+  final double snareSnap;
+  final double snareDecay;
+  final double snareVelocity;
 
   factory DeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -325,6 +337,12 @@ class DeviceSnapshot {
       kickClick: (params['kickClick'] as num?)?.toDouble() ?? 0.35,
       kickTone: (params['kickTone'] as num?)?.toDouble() ?? 0.50,
       kickVelocity: (params['kickVelocity'] as num?)?.toDouble() ?? 1.0,
+      snareBody: (params['snareBody'] as num?)?.toDouble() ?? 0.55,
+      snareTune: (params['snareTune'] as num?)?.toDouble() ?? 0.50,
+      snareSnares: (params['snareSnares'] as num?)?.toDouble() ?? 0.60,
+      snareSnap: (params['snareSnap'] as num?)?.toDouble() ?? 0.40,
+      snareDecay: (params['snareDecay'] as num?)?.toDouble() ?? 0.50,
+      snareVelocity: (params['snareVelocity'] as num?)?.toDouble() ?? 1.0,
     );
   }
 
@@ -411,6 +429,12 @@ class DeviceSnapshot {
     double? kickClick,
     double? kickTone,
     double? kickVelocity,
+    double? snareBody,
+    double? snareTune,
+    double? snareSnares,
+    double? snareSnap,
+    double? snareDecay,
+    double? snareVelocity,
   }) {
     return DeviceSnapshot(
       id: id ?? this.id,
@@ -459,6 +483,12 @@ class DeviceSnapshot {
       kickClick: kickClick ?? this.kickClick,
       kickTone: kickTone ?? this.kickTone,
       kickVelocity: kickVelocity ?? this.kickVelocity,
+      snareBody: snareBody ?? this.snareBody,
+      snareTune: snareTune ?? this.snareTune,
+      snareSnares: snareSnares ?? this.snareSnares,
+      snareSnap: snareSnap ?? this.snareSnap,
+      snareDecay: snareDecay ?? this.snareDecay,
+      snareVelocity: snareVelocity ?? this.snareVelocity,
     );
   }
 
@@ -548,6 +578,18 @@ class DeviceSnapshot {
         return copyWith(kickTone: value.clamp(0.0, 1.0));
       case 'kickVelocity':
         return copyWith(kickVelocity: value.clamp(0.0, 1.0));
+      case 'snareBody':
+        return copyWith(snareBody: value.clamp(0.0, 1.0));
+      case 'snareTune':
+        return copyWith(snareTune: value.clamp(0.0, 1.0));
+      case 'snareSnares':
+        return copyWith(snareSnares: value.clamp(0.0, 1.0));
+      case 'snareSnap':
+        return copyWith(snareSnap: value.clamp(0.0, 1.0));
+      case 'snareDecay':
+        return copyWith(snareDecay: value.clamp(0.0, 1.0));
+      case 'snareVelocity':
+        return copyWith(snareVelocity: value.clamp(0.0, 1.0));
       default:
         return this;
     }

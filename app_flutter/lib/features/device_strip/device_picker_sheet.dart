@@ -44,6 +44,12 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
               subtitle: const Text('808-style · pitch-drop body'),
               onTap: () => Navigator.pop(context, 'kick_generator'),
             ),
+            ListTile(
+              leading: const Icon(Icons.album_outlined, color: Color(0xFFF0C14B)),
+              title: const Text('Snare Generator'),
+              subtitle: const Text('Body + noise · tunable'),
+              onTap: () => Navigator.pop(context, 'snare_generator'),
+            ),
             const SizedBox(height: 8),
           ],
         ),
