@@ -70,7 +70,7 @@ struct EngineHost::Impl {
         auto* self = static_cast<Impl*>(userData);
         if (self != nullptr) {
             AUDIOAPP_LOG("AAudio error: %s", AAudio_convertResultToText(error));
-            self->playing.store(false, std::memory_order_release);
+            self->owner.setPlaying(false);
         }
     }
 
@@ -124,6 +124,17 @@ struct EngineHost::Impl {
         if (!openStream()) {
             return false;
         }
+
+        std::lock_guard<std::mutex> lock(streamMutex);
+        if (stream == nullptr) {
+            return false;
+        }
+
+        const aaudio_stream_state_t state = AAudioStream_getState(stream);
+        if (state == AAUDIO_STREAM_STATE_STARTED || state == AAUDIO_STREAM_STATE_STARTING) {
+            return true;
+        }
+
         const aaudio_result_t result = AAudioStream_requestStart(stream);
         if (result != AAUDIO_OK) {
             AUDIOAPP_LOG("AAudioStream_requestStart failed: %s", AAudio_convertResultToText(result));
@@ -155,15 +166,17 @@ std::string EngineHost::ping() const {
 }
 
 void EngineHost::setPlaying(bool shouldPlay) {
-    project_.setPlaying(shouldPlay);
     if (shouldPlay) {
         if (!impl_->startStream()) {
             AUDIOAPP_LOG("Failed to start audio stream");
+            project_.setPlaying(false);
             return;
         }
     } else {
         impl_->stopStream();
     }
+
+    project_.setPlaying(shouldPlay);
     impl_->playing.store(shouldPlay, std::memory_order_release);
     impl_->oscillator.setEnabled(shouldPlay);
 }
