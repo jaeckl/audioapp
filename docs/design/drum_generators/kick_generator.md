@@ -33,7 +33,9 @@ All automatable and LFO-modulatable except `pan` follows strip rules.
 
 ## Strip tabs
 
-### Body
+> **Superseded for kick (M15):** see [kick_generator_ux_addendum.md](kick_generator_ux_addendum.md) — single-page **Kick bench**, no tabs. Snare/clap/cymbal still use 3-tab layout until migrated.
+
+### Body (legacy 3-tab layout)
 - Preview: pitch-drop curve (orange) + amp outline (dim white)
 - Knobs: **Pitch**, **Punch**, **Tone**
 
@@ -41,8 +43,9 @@ All automatable and LFO-modulatable except `pan` follows strip rules.
 - Preview: zoomed click burst waveform
 - Knobs: **Click**, **Snap** (future: high-pass on click — use Click for v1)
 
-### Amp
-- Knobs: **Decay**, **Velocity**, (inherits gain/pan from level panel)
+### Amp (legacy 3-tab layout)
+
+- Knobs: **Decay**, **Velocity** — Velocity moves to **DrumMonoOutputPanel** (M15); Gain on output rail, not here.
 
 ## UX notes
 

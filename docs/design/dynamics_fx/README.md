@@ -36,6 +36,10 @@ cd app_flutter && flutter build web -t lib/dynamics_fx_screenshot_main.dart -o b
 python tools/capture_dynamics_screenshots.py
 ```
 
+## Strip chrome (M15)
+
+Dynamics devices will gain **DynamicsInputPanel** (left of card) and **DynamicsOutputPanel** (right). See [device_strip_chrome.md](../device_strip_chrome.md) and US-15-04.
+
 ## Parameter conventions
 
 All knobs normalized **0…1** (mapped to useful ranges in C++), automatable, serialized in `project.json`.

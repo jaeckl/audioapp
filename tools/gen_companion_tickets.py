@@ -732,6 +732,143 @@ FEATURES: list[dict] = [
             "ac": ["Default .wav name", "MIME audio/wav"],
         },
     },
+    {
+        "milestone": "milestone-15",
+        "id": "15-01",
+        "title": "Device strip chrome framework",
+        "parent": "US-15-01-device-strip-chrome-framework.md",
+        "status": "Todo",
+        "ux": {
+            "intent": "Strip chrome is composable — each device family gets the right input/output columns without one-size Pan+Gain.",
+            "layout": "Row: Tool | Mod? | Lfo? | Input? | Card | Output?; radii attach input/output to card edges.",
+            "states": [
+                ("Synth", "Stereo Pan + Gain output only"),
+                ("Mono drum", "DrumMonoOutputPanel — Gain + Vel sens, no Pan"),
+                ("Dynamics", "Input meter left, Gain + GR right"),
+            ],
+            "copy": ["Gain", "Pan", "Vel sens", "GR"],
+            "ac": [
+                "Slot width includes per-type input/output columns",
+                "Card border radius meets input/output panels",
+                "No DeviceLevelPanel hard-coded in slot",
+            ],
+        },
+        "ix": {
+            "entry": ["Expand device in chain"],
+            "map": [
+                ("Expand synth", "Tap slot", "Pan + Gain on right", "Stereo output rail"),
+                ("Expand compressor", "Tap slot", "Input column + GR output", "Dynamics chrome"),
+                ("Toggle mod strip", "Mod button", "Input/output stay aligned", "Chrome stable"),
+            ],
+            "cancel": "Collapse slot — chrome hidden with card",
+            "errors": [],
+            "demo": ["Synth vs compressor — different strip columns visible"],
+            "ac": ["Registry returns correct panels per device type"],
+        },
+    },
+    {
+        "milestone": "milestone-15",
+        "id": "15-02",
+        "title": "Kick bench layout + kickModel engine branch",
+        "parent": "US-15-02-kick-bench-kick-model.md",
+        "status": "Todo",
+        "ux": {
+            "intent": "One-screen kick shaping — preview, model picker, all knobs — no tab hunting.",
+            "layout": "~480px card: left 2/3 preview + 1/3 model segment (808/909/Analog); right 2×3 knob grid.",
+            "states": [
+                ("808 active", "All knobs live; preview animates on drag"),
+                ("909/Analog", "Segment visible; disabled in v1"),
+                ("Output rail", "Gain + Vel sens off-card (US-15-03)"),
+            ],
+            "copy": ["808", "909", "Analog", "Pitch", "Punch", "Tone", "Click", "Decay"],
+            "ac": [
+                "No tabs on kick card",
+                "Preview ~2/3 left column height",
+                "Six 808 params visible without tab tap",
+            ],
+        },
+        "ix": {
+            "entry": ["Insert Kick Generator → expand slot"],
+            "map": [
+                ("Tweak Pitch", "Drag knob", "Preview pitch curve updates", "Deeper/higher kick"),
+                ("Raise Click", "Drag knob", "Transient preview", "Sharper attack"),
+                ("Select 808", "Tap segment", "808 highlighted", "kickModel=0"),
+                ("Save project", "Save", "Layout unchanged on reload", "Round-trip"),
+            ],
+            "cancel": "Remove device — bench dismissed",
+            "errors": [],
+            "demo": ["All knobs visible → tweak punch/decay → save/reload"],
+            "ac": ["kickModel in JSON; hear timbre change on timeline"],
+        },
+    },
+    {
+        "milestone": "milestone-15",
+        "id": "15-03",
+        "title": "Mono drum output panels",
+        "parent": "US-15-03-mono-drum-output-panels.md",
+        "status": "Todo",
+        "ux": {
+            "intent": "Mono drums use Gain + Velocity sensitivity — not Pan — matching hardware drum strips.",
+            "layout": "Compact right column ~56px: Vel sens + Gain knobs; no Pan.",
+            "states": [
+                ("Kick", "kickVelocity + gain"),
+                ("Snare/clap/cymbal", "Type-specific *Velocity param + gain"),
+            ],
+            "copy": ["Gain", "Vel sens", "Velocity"],
+            "ac": [
+                "Pan not shown for any of four drum types",
+                "Knobs meet 44dp touch target",
+                "Automation/mod hooks on output knobs",
+            ],
+        },
+        "ix": {
+            "entry": ["Expand kick/snare/clap/cymbal slot"],
+            "map": [
+                ("Lower Gain", "Drag Gain", "Quieter hits", "gain param updated"),
+                ("Vel sens 0%", "Drag Vel sens", "Pads same level", "Velocity ignored"),
+                ("Vel sens 100%", "Drag Vel sens", "Harder pad = louder", "Velocity scales hit"),
+                ("Save", "Save project", "Gain + Vel sens restored", "Round-trip"),
+            ],
+            "cancel": "Collapse slot",
+            "errors": [],
+            "demo": ["Kick Gain 50% → Vel sens sweep on pads → save/reload"],
+            "ac": ["All four drum types share DrumMonoOutputPanel layout"],
+        },
+    },
+    {
+        "milestone": "milestone-15",
+        "id": "15-04",
+        "title": "Dynamics input and output panels",
+        "parent": "US-15-04-dynamics-input-output-panels.md",
+        "status": "Todo",
+        "ux": {
+            "intent": "Dynamics FX read like a rack — input level before, gain reduction after.",
+            "layout": "Input column ~56–72px left of card; output ~72px with Gain + GR meter/bar.",
+            "states": [
+                ("Idle", "GR at 0 dB or empty bar"),
+                ("Compressing", "GR shows reduction during signal"),
+                ("Input", "Peak/RMS bar or envelope-driven v1"),
+            ],
+            "copy": ["GR", "Gain", "In", "dB"],
+            "ac": [
+                "All four dynamics types show input + output columns",
+                "GR readable at strip height",
+                "Pan not shown on dynamics devices",
+            ],
+        },
+        "ix": {
+            "entry": ["Insert gate/compressor/expander/limiter → expand"],
+            "map": [
+                ("Play loop", "Transport", "Input meter moves", "Signal visible pre-FX"),
+                ("Lower threshold", "Drag on card", "GR increases on hits", "Compression audible"),
+                ("Trim output Gain", "Drag output Gain", "Level post-FX changes", "Make-up gain"),
+            ],
+            "cancel": "Collapse slot",
+            "errors": [],
+            "demo": ["Kick → compressor → threshold down → GR moves → output Gain trim"],
+            "ac": ["Slot width includes input + output for dynamics"],
+        },
+    },
 ]
 
 

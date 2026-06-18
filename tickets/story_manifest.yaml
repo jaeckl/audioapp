@@ -45,6 +45,9 @@ milestones:
   - id: M14
     name: Dynamics FX
     theme: gate, compressor, expander, limiter — in-chain audio effects
+  - id: M15
+    name: Device strip UX chrome
+    theme: per-device input/output panels, kick bench, kickModel DSP branch
   - id: M12
     name: ProjectEngine decomposition
     theme: per-device classes, domain services, thin ProjectEngine facade
@@ -298,6 +301,13 @@ stories:
   - { id: US-14-03, milestone: M14, status: done, title: Expander effect device }
   - { id: US-14-04, milestone: M14, status: done, title: Limiter effect device }
   - { id: US-14-20, milestone: M14, status: todo, title: M14 PO demo — dynamics chain on drum track }
+
+  # ── M15 Device strip UX chrome (6) ──────────────────────────────────────
+  - { id: US-15-01, milestone: M15, status: todo, title: Device strip chrome framework }
+  - { id: US-15-02, milestone: M15, status: todo, title: Kick bench layout + kickModel engine branch }
+  - { id: US-15-03, milestone: M15, status: todo, title: Mono drum output panels (Gain + Vel sens) }
+  - { id: US-15-04, milestone: M15, status: todo, title: Dynamics input + output panels }
+  - { id: US-15-20, milestone: M15, status: todo, title: M15 PO demo — strip chrome on device }
 
   # ── M12 ProjectEngine decomposition (12) ─────────────────────────────
   - { id: US-12-00, milestone: M12, status: in_progress, title: ADR & architecture baseline for ProjectEngine refactor }

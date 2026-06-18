@@ -40,6 +40,17 @@ Each device provides:
 - Values set via bridge commands; read from snapshot for UI
 - Automation targets reference `parameter_id` (architecture from start)
 
+## Strip chrome (M15)
+
+Per-device **input** and **output** columns replace the universal Pan+Gain rail for some families. See:
+
+- [ADR-0008](../adr/ADR-0008-device-strip-ui-chrome.md)
+- [device_strip_chrome.md](../design/device_strip_chrome.md)
+
+Slot order: `[Tool][Mod?][Lfo?][Input?][Card][Output?]`. Engine `DeviceSlot.gain` / `pan` remain universal; UI chooses visibility.
+
+**Model variants** (e.g. kick 808 vs analog) use a **parameter branch in DSP** (`kickModel`), not a new device type in the picker.
+
 ## Serialization
 
 Device state is stored in `project.json` under the track's device chain entry:
