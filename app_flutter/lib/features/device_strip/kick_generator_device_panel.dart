@@ -4,6 +4,7 @@ import '../../bridge/project_snapshot.dart';
 import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
+import 'drum_model_tab_bar.dart';
 import 'kick_envelope_preview.dart';
 import 'kick_model.dart';
 import 'kick_model_ui_registry.dart';
@@ -131,26 +132,12 @@ class KickGeneratorDevicePanel extends StatelessWidget {
   }
 
   Widget _modelSegment(BuildContext context, int selectedIndex) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        for (var i = 0; i < KickModel.labels.length; i++)
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(left: i == 0 ? 0 : 4),
-              child: _ModelChip(
-                label: KickModel.labels[i],
-                selected: i == selectedIndex,
-                enabled: KickModel.isSelectable(i),
-                accent: accent,
-                theme: theme,
-                onTap: KickModel.isSelectable(i)
-                    ? () => onParameterChanged('kickModel', KickModel.valueFromIndex(i))
-                    : null,
-              ),
-            ),
-          ),
-      ],
+    return DrumModelTabBar(
+      labels: KickModel.labels,
+      selectedIndex: selectedIndex,
+      accent: accent,
+      isEnabled: KickModel.isSelectable,
+      onSelected: (i) => onParameterChanged('kickModel', KickModel.valueFromIndex(i)),
     );
   }
 
@@ -185,66 +172,6 @@ class KickGeneratorDevicePanel extends StatelessWidget {
       onAutomateRequest:
           onAutomateParameter != null ? () => onAutomateParameter!(paramId) : null,
       onChanged: (v) => onParameterChanged(paramId, v),
-    );
-  }
-}
-
-class _ModelChip extends StatelessWidget {
-  const _ModelChip({
-    required this.label,
-    required this.selected,
-    required this.enabled,
-    required this.accent,
-    required this.theme,
-    this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final bool enabled;
-  final Color accent;
-  final ThemeData theme;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final bg = selected
-        ? accent.withValues(alpha: 0.22)
-        : enabled
-            ? Colors.white.withValues(alpha: 0.06)
-            : Colors.white.withValues(alpha: 0.03);
-    final fg = selected
-        ? accent
-        : enabled
-            ? Colors.white70
-            : Colors.white30;
-
-    return Material(
-      color: bg,
-      borderRadius: BorderRadius.circular(6),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(6),
-        child: Container(
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: selected ? accent : Colors.white.withValues(alpha: 0.08),
-            ),
-          ),
-          child: Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: fg,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-              fontSize: 10,
-              letterSpacing: 0.4,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

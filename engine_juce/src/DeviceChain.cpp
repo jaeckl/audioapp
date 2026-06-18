@@ -286,8 +286,6 @@ bool isDynamicsDeviceNodeKind(const DeviceNodeKind kind) noexcept {
            kind == DeviceNodeKind::Expander || kind == DeviceNodeKind::Limiter;
 }
 
-namespace {
-
 float midiActiveFrequencyHz(const MidiPlaybackNote* notes,
                             int noteCount,
                             double playheadBeat,
@@ -698,7 +696,5 @@ void processDeviceChain(float* trackLeft,
         }
     }
 }
-
-} // namespace
 
 } // namespace audioapp
