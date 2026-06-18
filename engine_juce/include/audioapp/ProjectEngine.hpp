@@ -180,6 +180,7 @@ private:
         SubtractiveSynthRuntime subtractiveRuntimes[kMaxDevicesPerTrack];
         KickGeneratorRuntime kickRuntimes[kMaxDevicesPerTrack];
         SnareGeneratorRuntime snareRuntimes[kMaxDevicesPerTrack];
+        ClapGeneratorRuntime clapRuntimes[kMaxDevicesPerTrack];
         float oscillatorPhase = 0.0f;
     };
 

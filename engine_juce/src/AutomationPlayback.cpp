@@ -4,6 +4,7 @@
 #include "audioapp/model/TrackModel.hpp"
 #include "audioapp/KickGenerator.hpp"
 #include "audioapp/SnareGenerator.hpp"
+#include "audioapp/ClapGenerator.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -173,6 +174,23 @@ void applyAutomationValue(DeviceVariantParams& params,
                 p->snareDecay = value;
             } else if (paramId == "snareVelocity") {
                 p->snareVelocity = value;
+            }
+        }
+        break;
+    case DeviceNodeKind::ClapGenerator:
+        if (auto* p = std::get_if<ClapGeneratorParams>(&params)) {
+            if (paramId == "gain") {
+                p->gain = value;
+            } else if (paramId == "clapBursts") {
+                p->clapBursts = value;
+            } else if (paramId == "clapSpread") {
+                p->clapSpread = value;
+            } else if (paramId == "clapTone") {
+                p->clapTone = value;
+            } else if (paramId == "clapRoom") {
+                p->clapRoom = value;
+            } else if (paramId == "clapDecay") {
+                p->clapDecay = value;
             }
         }
         break;

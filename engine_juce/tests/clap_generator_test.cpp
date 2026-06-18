@@ -1,6 +1,6 @@
 #include "audioapp/DeviceChain.hpp"
+#include "audioapp/ClapGenerator.hpp"
 #include "audioapp/LivePerformance.hpp"
-#include "audioapp/SnareGenerator.hpp"
 
 #include <cmath>
 #include <cstdlib>
@@ -23,21 +23,21 @@ int main() {
     constexpr double kSampleRate = 48000.0;
 
     audioapp::MidiPlaybackNote notes[1] = {
-        {38, 0.0, 4.0, 0.0, 1.0, 100.0f},
+        {39, 0.0, 4.0, 0.0, 1.0, 100.0f},
     };
 
     audioapp::DeviceNodePlayback devices[1] = {};
-    devices[0].kind = audioapp::DeviceNodeKind::SnareGenerator;
+    devices[0].kind = audioapp::DeviceNodeKind::ClapGenerator;
     devices[0].gain = 1.0f;
     devices[0].pan = 0.5f;
-    devices[0].params = audioapp::SnareGeneratorParams{};
+    devices[0].params = audioapp::ClapGeneratorParams{};
 
     float left[kFrames];
     float right[kFrames];
     std::memset(left, 0, sizeof(left));
     std::memset(right, 0, sizeof(right));
     float phase = 0.0f;
-    audioapp::SnareGeneratorRuntime runtime{};
+    audioapp::ClapGeneratorRuntime runtime{};
 
     audioapp::processDeviceChain(left,
                                  right,
@@ -62,12 +62,12 @@ int main() {
     }
 
     audioapp::LiveInstrumentSnapshot instrument{};
-    instrument.kind = audioapp::LiveInstrumentKind::SnareGenerator;
+    instrument.kind = audioapp::LiveInstrumentKind::ClapGenerator;
     instrument.gain = 1.0f;
-    instrument.snare.gain = 1.0f;
+    instrument.clap.gain = 1.0f;
 
     audioapp::LivePerformanceMixer mixer;
-    mixer.noteOn(instrument, 38, 100.0f);
+    mixer.noteOn(instrument, 39, 100.0f);
 
     float live[kFrames];
     std::memset(live, 0, sizeof(live));

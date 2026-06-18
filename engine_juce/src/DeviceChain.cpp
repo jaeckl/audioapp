@@ -7,6 +7,7 @@
 #include "audioapp/SubtractiveSynth.hpp"
 #include "audioapp/KickGenerator.hpp"
 #include "audioapp/SnareGenerator.hpp"
+#include "audioapp/ClapGenerator.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -151,6 +152,20 @@ void applyModulation(SnareGeneratorParams& p, float modAmount, const std::string
     }
 }
 
+void applyModulation(ClapGeneratorParams& p, float modAmount, const std::string& paramId) noexcept {
+    if (paramId == "clapBursts") {
+        p.clapBursts = std::clamp(p.clapBursts + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "clapSpread") {
+        p.clapSpread = std::clamp(p.clapSpread + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "clapTone") {
+        p.clapTone = std::clamp(p.clapTone + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "clapRoom") {
+        p.clapRoom = std::clamp(p.clapRoom + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "clapDecay") {
+        p.clapDecay = std::clamp(p.clapDecay + modAmount, 0.0f, 1.0f);
+    }
+}
+
 /// Multiply buffer by per-frame gain values.
 void multiplyPerFrameGain(float* buffer, int frames, const float* perFrameGain) noexcept {
     for (int f = 0; f < frames; ++f) {
@@ -204,6 +219,7 @@ void processDeviceChain(float* trackLeft,
                         SubtractiveSynthRuntime* subtractiveRuntimes,
                         KickGeneratorRuntime* kickRuntimes,
                         SnareGeneratorRuntime* snareRuntimes,
+                        ClapGeneratorRuntime* clapRuntimes,
                         const float* lfoValues,
                         int lfoCount,
                         const ModulationEdge* modEdges,
@@ -442,6 +458,34 @@ void processDeviceChain(float* trackLeft,
                                            playheadStartBeat, regions, regionCount, snareParams,
                                            snareRuntimes != nullptr ? snareRuntimes[deviceIndex]
                                                                     : localRuntime);
+                    multiplyPerFrameGain(scratch, framesToProcess, perFrameGain);
+                    mixStereoPerFramePan(trackLeft, trackRight, scratch,
+                                         framesToProcess, perFramePan);
+                }
+            }
+            break;
+        }
+        case DeviceNodeKind::ClapGenerator: {
+            if (!suppressInstruments) {
+                const auto& clapParams = std::get<ClapGeneratorParams>(modulatedParams);
+                if (noteCount > 0) {
+                    ClapMidiNoteRegion regions[32];
+                    const int regionCount = noteCount > 32 ? 32 : noteCount;
+                    for (int i = 0; i < regionCount; ++i) {
+                        const MidiPlaybackNote& note = notes[i];
+                        regions[i] = ClapMidiNoteRegion{
+                            note.pitch, i,
+                            note.clipStartBeat, note.clipLengthBeats,
+                            note.noteStartBeat, note.noteDurationBeats,
+                            note.velocity,
+                        };
+                    }
+                    std::memset(scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+                    ClapGeneratorRuntime localRuntime{};
+                    mixClapMidiNotesBlock(scratch, framesToProcess, sampleRate, bpm,
+                                          playheadStartBeat, regions, regionCount, clapParams,
+                                          clapRuntimes != nullptr ? clapRuntimes[deviceIndex]
+                                                                  : localRuntime);
                     multiplyPerFrameGain(scratch, framesToProcess, perFrameGain);
                     mixStereoPerFramePan(trackLeft, trackRight, scratch,
                                          framesToProcess, perFramePan);

@@ -3,12 +3,14 @@
 #include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/devices/KickGeneratorDeviceType.hpp"
 #include "audioapp/devices/SnareGeneratorDeviceType.hpp"
+#include "audioapp/devices/ClapGeneratorDeviceType.hpp"
 #include "audioapp/devices/OscillatorDeviceType.hpp"
 #include "audioapp/devices/SamplerDeviceType.hpp"
 #include "audioapp/devices/SubtractiveSynthDeviceType.hpp"
 #include "audioapp/devices/TrackGainDeviceType.hpp"
 #include "audioapp/devices/instances/KickGeneratorInstance.hpp"
 #include "audioapp/devices/instances/SnareGeneratorInstance.hpp"
+#include "audioapp/devices/instances/ClapGeneratorInstance.hpp"
 #include "audioapp/devices/instances/OscillatorInstance.hpp"
 #include "audioapp/devices/instances/SamplerInstance.hpp"
 #include "audioapp/devices/instances/SubtractiveSynthInstance.hpp"
@@ -61,6 +63,9 @@ const IDeviceType* DeviceRegistry::findForSlot(const DeviceSlot& slot) const {
     }
     if (std::holds_alternative<SnareGeneratorInstance>(slot.instance)) {
         return find(device_types::kSnareGenerator);
+    }
+    if (std::holds_alternative<ClapGeneratorInstance>(slot.instance)) {
+        return find(device_types::kClapGenerator);
     }
     return nullptr;
 }
@@ -148,6 +153,7 @@ DeviceRegistry DeviceRegistry::createBuiltIn() {
     registry.registerType(std::make_unique<SubtractiveSynthDeviceType>());
     registry.registerType(std::make_unique<KickGeneratorDeviceType>());
     registry.registerType(std::make_unique<SnareGeneratorDeviceType>());
+    registry.registerType(std::make_unique<ClapGeneratorDeviceType>());
     return registry;
 }
 

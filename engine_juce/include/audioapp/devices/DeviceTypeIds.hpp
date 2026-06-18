@@ -8,5 +8,6 @@ inline constexpr const char* kTrackGain = "track_gain";
 inline constexpr const char* kSubtractiveSynth = "subtractive_synth";
 inline constexpr const char* kKickGenerator = "kick_generator";
 inline constexpr const char* kSnareGenerator = "snare_generator";
+inline constexpr const char* kClapGenerator = "clap_generator";
 
 } // namespace audioapp::device_types
