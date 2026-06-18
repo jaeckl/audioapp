@@ -91,6 +91,9 @@ class ArrangementTimelineMetrics {
       ...track.sampleClips
           .where((clip) => clip.id != excludeClipId)
           .map((clip) => (start: clip.startBeat, length: clip.lengthBeats)),
+      ...track.automationClips
+          .where((clip) => clip.id != excludeClipId)
+          .map((clip) => (start: clip.startBeat, length: clip.lengthBeats)),
     ];
   }
 
@@ -98,6 +101,7 @@ class ArrangementTimelineMetrics {
     return [
       ...track.midiClips.map((clip) => (start: clip.startBeat, length: clip.lengthBeats)),
       ...track.sampleClips.map((clip) => (start: clip.startBeat, length: clip.lengthBeats)),
+      ...track.automationClips.map((clip) => (start: clip.startBeat, length: clip.lengthBeats)),
     ];
   }
 

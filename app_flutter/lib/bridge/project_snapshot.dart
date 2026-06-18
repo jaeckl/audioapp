@@ -144,6 +144,7 @@ class TrackSnapshot {
     required this.devices,
     required this.midiClips,
     required this.sampleClips,
+    this.automationClips = const [],
   });
 
   final String id;
@@ -151,11 +152,13 @@ class TrackSnapshot {
   final List<DeviceSnapshot> devices;
   final List<MidiClipSnapshot> midiClips;
   final List<SampleClipSnapshot> sampleClips;
+  final List<AutomationClipSnapshot> automationClips;
 
   factory TrackSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final devicesRaw = map['devices'] as List<dynamic>? ?? [];
     final clipsRaw = map['midiClips'] as List<dynamic>? ?? [];
     final sampleClipsRaw = map['sampleClips'] as List<dynamic>? ?? [];
+    final automationClipsRaw = map['automationClips'] as List<dynamic>? ?? [];
     return TrackSnapshot(
       id: map['id'] as String? ?? '',
       name: map['name'] as String? ?? '',
@@ -167,6 +170,9 @@ class TrackSnapshot {
           .toList(),
       sampleClips: sampleClipsRaw
           .map((c) => SampleClipSnapshot.fromMap(c as Map<dynamic, dynamic>))
+          .toList(),
+      automationClips: automationClipsRaw
+          .map((c) => AutomationClipSnapshot.fromMap(c as Map<dynamic, dynamic>))
           .toList(),
     );
   }

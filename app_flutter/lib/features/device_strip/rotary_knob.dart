@@ -29,6 +29,9 @@ class RotaryKnob extends StatefulWidget {
     this.modulationAmount = 0.0,
     this.connectModeActive = false,
     this.onModulationAssign,
+    this.linkModeActive = false,
+    this.linkModeAccent = const Color(0xFFB48CFF),
+    this.onLinkTap,
   });
 
   final String label;
@@ -43,6 +46,9 @@ class RotaryKnob extends StatefulWidget {
   /// Called in connect mode after a long-press drag gesture completes.
   /// The [double] is the modulation amount (-1.0 to 1.0).
   final ValueChanged<double>? onModulationAssign;
+  final bool linkModeActive;
+  final Color linkModeAccent;
+  final VoidCallback? onLinkTap;
 
   @override
   State<RotaryKnob> createState() => _RotaryKnobState();
@@ -71,7 +77,7 @@ class _RotaryKnobState extends State<RotaryKnob>
     _pulseAnimation = Tween<double>(begin: 0.15, end: 0.45).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
-    if (widget.connectModeActive) {
+    if (widget.connectModeActive || widget.linkModeActive) {
       _pulseController.repeat(reverse: true);
     }
   }
@@ -79,9 +85,11 @@ class _RotaryKnobState extends State<RotaryKnob>
   @override
   void didUpdateWidget(covariant RotaryKnob oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.connectModeActive && !oldWidget.connectModeActive) {
+    final pulseActive = widget.connectModeActive || widget.linkModeActive;
+    final oldPulseActive = oldWidget.connectModeActive || oldWidget.linkModeActive;
+    if (pulseActive && !oldPulseActive) {
       _pulseController.repeat(reverse: true);
-    } else if (!widget.connectModeActive && oldWidget.connectModeActive) {
+    } else if (!pulseActive && oldPulseActive) {
       _pulseController.stop();
       _pulseController.reset();
     }
@@ -117,7 +125,7 @@ class _RotaryKnobState extends State<RotaryKnob>
   // --- Connect-mode long-press modulation assignment ---
 
   void _onLongPressStart(LongPressStartDetails details) {
-    if (!widget.connectModeActive) return;
+    if (!widget.connectModeActive || widget.linkModeActive) return;
     HapticFeedback.mediumImpact();
     _pulseController.stop();
     _assignmentAmount = 0.0;
@@ -141,7 +149,7 @@ class _RotaryKnobState extends State<RotaryKnob>
     if (!_assignmentMode) return;
     widget.onModulationAssign?.call(_assignmentAmount);
     _pulseController.reset();
-    if (widget.connectModeActive) {
+    if (widget.connectModeActive || widget.linkModeActive) {
       _pulseController.repeat(reverse: true);
     }
     setState(() {
@@ -157,31 +165,36 @@ class _RotaryKnobState extends State<RotaryKnob>
     final theme = Theme.of(context);
     final angle = KnobArcGeometry.indicatorAngle(widget.value);
     final labelSize = widget.size >= DeviceKnobSizes.strip ? 10.0 : 9.0;
+    final pulseAccent =
+        widget.linkModeActive ? widget.linkModeAccent : widget.accentColor;
+    final showConnectPulse =
+        (widget.connectModeActive || widget.linkModeActive) && _highlightsVisible;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onLongPressStart: _onLongPressStart,
-          onLongPressMoveUpdate: _onLongPressMoveUpdate,
-          onLongPressEnd: _onLongPressEnd,
-          onVerticalDragStart: _onDragStart,
-          onVerticalDragUpdate: _onDragUpdate,
-          onVerticalDragEnd: _onDragEnd,
-          onVerticalDragCancel: _onDragCancel,
-          onDoubleTap: () => widget.onChanged(0.5),
+          onTap: widget.linkModeActive ? widget.onLinkTap : null,
+          onLongPressStart: widget.linkModeActive ? null : _onLongPressStart,
+          onLongPressMoveUpdate: widget.linkModeActive ? null : _onLongPressMoveUpdate,
+          onLongPressEnd: widget.linkModeActive ? null : _onLongPressEnd,
+          onVerticalDragStart: widget.linkModeActive ? null : _onDragStart,
+          onVerticalDragUpdate: widget.linkModeActive ? null : _onDragUpdate,
+          onVerticalDragEnd: widget.linkModeActive ? null : _onDragEnd,
+          onVerticalDragCancel: widget.linkModeActive ? null : _onDragCancel,
+          onDoubleTap: widget.linkModeActive ? null : () => widget.onChanged(0.5),
           child: SizedBox(
             width: widget.size + 8,
             height: widget.size + 4,
             child: AnimatedBuilder(
               animation: _pulseAnimation,
               builder: (context, child) {
-                final showGlow = widget.connectModeActive && _highlightsVisible;
+                final showGlow = showConnectPulse;
                 return CustomPaint(
                   painter: showGlow
                       ? _BackgroundGlowPainter(
-                          glowColor: widget.accentColor
+                          glowColor: pulseAccent
                               .withValues(alpha: _pulseAnimation.value),
                           borderRadius: 8,
                         )
@@ -196,12 +209,11 @@ class _RotaryKnobState extends State<RotaryKnob>
                           painter: _KnobPainter(
                             value: widget.value.clamp(0, 1),
                             angle: angle,
-                            accentColor: widget.accentColor,
+                            accentColor: pulseAccent,
                             strokeWidth: stroke,
                             modulationActive: widget.modulationActive,
                             modulationAmount: widget.modulationAmount,
-                            connectModeActive:
-                                widget.connectModeActive && _highlightsVisible,
+                            connectModeActive: showConnectPulse,
                             assignmentMode: _assignmentMode,
                             assignmentAmount: _assignmentAmount,
                           ),

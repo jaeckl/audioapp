@@ -6,7 +6,8 @@
 #include <string>
 #include <vector>
 
-#include "audioapp/DeviceState.hpp"
+#include "audioapp/AutomationTypes.hpp"
+#include "audioapp/AutomationPlayback.hpp"
 #include "audioapp/devices/DeviceSlot.hpp"
 #include "audioapp/model/TrackModel.hpp"
 #include "audioapp/model/TrackRepository.hpp"
@@ -32,6 +33,7 @@ struct TrackState {
     std::vector<DeviceState> devices;
     std::vector<MidiClipState> midiClips;
     std::vector<SampleClipState> sampleClips;
+    std::vector<AutomationClipState> automationClips;
 };
 
 struct MasterTrackState {
@@ -96,6 +98,14 @@ public:
     bool deleteTrack(const std::string& trackId);
     bool deleteClip(const std::string& clipId);
     bool duplicateClip(const std::string& clipId);
+    std::string createAutomationClip(const std::string& trackId,
+                                     double startBeat,
+                                     double lengthBeats);
+    bool assignAutomationTarget(const std::string& clipId,
+                                const std::string& deviceId,
+                                const std::string& paramId);
+    bool setAutomationPoints(const std::string& clipId,
+                             const std::vector<AutomationPointState>& points);
     bool setLoopEnabled(bool enabled);
     bool setLoopLengthBeats(double lengthBeats);
     std::vector<float> renderOffline(double lengthBeats, double sampleRate);
@@ -199,7 +209,12 @@ private:
     TrackPlaybackSnapshot trackPlayback_[kMaxTracks];
     std::atomic<int> trackPlaybackCount_{0};
 
+    static constexpr int kMaxAutomationClips = 32;
+    AutomationClipPlayback automationPlayback_[kMaxAutomationClips]{};
+    std::atomic<int> automationPlaybackCount_{0};
+
     void rebuildTrackPlaybackLocked();
+    void rebuildAutomationPlaybackLocked();
     void mixAtPlayheadBeat(float* monoOut,
                            int numFrames,
                            double sampleRate,

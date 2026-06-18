@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
+import '../../features/content_library/library_theme.dart';
 import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
@@ -36,6 +37,8 @@ class SubtractiveSynthDevicePanel extends StatefulWidget {
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
+    this.automationLinkActive = false,
+    this.onAutomationLinkTap,
   });
 
   final DeviceSnapshot device;
@@ -50,6 +53,8 @@ class SubtractiveSynthDevicePanel extends StatefulWidget {
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
+  final bool automationLinkActive;
+  final ValueChanged<String>? onAutomationLinkTap;
 
   static const Color panel = Color(0xFF1C1C24);
   static const Color accent = DeviceStripTheme.subtractiveSynthAccent;
@@ -101,6 +106,11 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
       connectModeActive: paramId != null && connectModeLfoId != null,
       onModulationAssign: paramId != null && onModulationAssign != null
           ? (a) => onModulationAssign(paramId, a)
+          : null,
+      linkModeActive: paramId != null && widget.automationLinkActive,
+      linkModeAccent: LibraryTheme.accentAutomation,
+      onLinkTap: paramId != null && widget.onAutomationLinkTap != null
+          ? () => widget.onAutomationLinkTap!(paramId)
           : null,
     );
   }

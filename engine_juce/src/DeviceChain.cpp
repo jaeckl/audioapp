@@ -1,5 +1,6 @@
 #include "audioapp/DeviceChain.hpp"
 
+#include "audioapp/AutomationPlayback.hpp"
 #include "audioapp/MasterMix.hpp"
 #include "audioapp/MidiUtils.hpp"
 #include "audioapp/SamplePlayback.hpp"
@@ -168,7 +169,9 @@ void processDeviceChain(float* trackLeft,
                         const float* lfoValues,
                         int lfoCount,
                         const ModulationEdge* modEdges,
-                        int modEdgeCount) noexcept {
+                        int modEdgeCount,
+                        const AutomationClipPlayback* automationClips,
+                        int automationClipCount) noexcept {
     if (trackLeft == nullptr || trackRight == nullptr || numFrames <= 0 || devices == nullptr ||
         deviceCount <= 0) {
         return;
@@ -229,6 +232,37 @@ void processDeviceChain(float* trackLeft,
                         const float lfoOut = lfoValues[edge.lfoId * framesToProcess + f];
                         perFramePan[f] = std::clamp(perFramePan[f] + edge.amount * lfoOut, 0.0f, 1.0f);
                     }
+                }
+            }
+        }
+
+        // --- Apply timeline automation (block-rate absolute values) ---
+        if (automationClips != nullptr && automationClipCount > 0 && !node.deviceId.empty()) {
+            for (int a = 0; a < automationClipCount; ++a) {
+                const AutomationClipPlayback& ac = automationClips[a];
+                if (std::string(ac.deviceId) != node.deviceId) {
+                    continue;
+                }
+                const double beat = playheadStartBeat;
+                if (beat < static_cast<double>(ac.clipStartBeat) ||
+                    beat >= static_cast<double>(ac.clipStartBeat + ac.clipLengthBeats)) {
+                    continue;
+                }
+                const float beatInClip =
+                    static_cast<float>(beat - static_cast<double>(ac.clipStartBeat));
+                const float value =
+                    evaluateAutomationEnvelope(ac.points, ac.pointCount, beatInClip);
+                const std::string paramId(ac.paramId);
+                if (paramId == "gain") {
+                    for (int f = 0; f < framesToProcess; ++f) {
+                        perFrameGain[f] = value;
+                    }
+                } else if (paramId == "pan") {
+                    for (int f = 0; f < framesToProcess; ++f) {
+                        perFramePan[f] = value;
+                    }
+                } else {
+                    applyAutomationValue(modulatedParams, node.kind, paramId, value);
                 }
             }
         }

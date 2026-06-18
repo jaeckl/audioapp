@@ -48,6 +48,14 @@ public:
                   const std::string& targetTrackId,
                   double startBeat);
     bool setClipLength(const std::string& clipId, double lengthBeats);
+    std::string createAutomationClip(const std::string& trackId,
+                                     double startBeat,
+                                     double lengthBeats);
+    bool assignAutomationTarget(const std::string& clipId,
+                                const std::string& deviceId,
+                                const std::string& paramId);
+    bool setAutomationPoints(const std::string& clipId,
+                             const std::vector<AutomationPointState>& points);
     bool setBpm(int bpm);
     bool deleteTrack(const std::string& trackId);
     bool deleteClip(const std::string& clipId);

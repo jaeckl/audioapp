@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
+import '../../features/content_library/library_theme.dart';
 import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
 import 'rotary_knob.dart';
@@ -17,6 +18,8 @@ class DeviceLevelPanel extends StatelessWidget {
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
+    this.automationLinkActive = false,
+    this.onAutomationLinkTap,
   });
 
   final DeviceSnapshot device;
@@ -27,6 +30,8 @@ class DeviceLevelPanel extends StatelessWidget {
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
+  final bool automationLinkActive;
+  final ValueChanged<String>? onAutomationLinkTap;
 
   static String formatGain(double gain) => '${(gain.clamp(0, 1) * 100).round()}%';
 
@@ -75,6 +80,11 @@ class DeviceLevelPanel extends StatelessWidget {
               onModulationAssign: onModulationAssign != null
                   ? (a) => onModulationAssign!('pan', a)
                   : null,
+              linkModeActive: automationLinkActive,
+              linkModeAccent: LibraryTheme.accentAutomation,
+              onLinkTap: automationLinkActive && onAutomationLinkTap != null
+                  ? () => onAutomationLinkTap!('pan')
+                  : null,
             ),
             const SizedBox(height: 8),
             RotaryKnob(
@@ -89,6 +99,11 @@ class DeviceLevelPanel extends StatelessWidget {
               connectModeActive: connectModeLfoId != null,
               onModulationAssign: onModulationAssign != null
                   ? (a) => onModulationAssign!('gain', a)
+                  : null,
+              linkModeActive: automationLinkActive,
+              linkModeAccent: LibraryTheme.accentAutomation,
+              onLinkTap: automationLinkActive && onAutomationLinkTap != null
+                  ? () => onAutomationLinkTap!('gain')
                   : null,
             ),
           ],

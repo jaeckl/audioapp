@@ -27,6 +27,7 @@ bool parseProjectFileJson(const std::string& json, ProjectFileData& out);
 
 std::string snapshotToJson(const ProjectSnapshot& snapshot);
 std::vector<MidiNoteState> parseMidiNotesFromArgs(const std::string& argumentsJson);
+std::vector<AutomationPointState> parseAutomationPointsFromArgs(const std::string& argumentsJson);
 
 /// LFO evaluation and helpers.
 float lfoEvaluate(LfoWaveform waveform, float phase) noexcept;

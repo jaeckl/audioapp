@@ -102,3 +102,87 @@ class SampleClipSnapshot implements ClipTimelineSpan {
     );
   }
 }
+
+class AutomationPointSnapshot {
+  const AutomationPointSnapshot({
+    required this.beat,
+    required this.value,
+  });
+
+  final double beat;
+  final double value;
+
+  factory AutomationPointSnapshot.fromMap(Map<dynamic, dynamic> map) {
+    return AutomationPointSnapshot(
+      beat: (map['beat'] as num?)?.toDouble() ?? 0.0,
+      value: (map['value'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'beat': beat,
+        'value': value,
+      };
+}
+
+/// Parameter automation clip on a track timeline.
+class AutomationClipSnapshot implements ClipTimelineSpan {
+  const AutomationClipSnapshot({
+    required this.id,
+    required this.startBeat,
+    required this.lengthBeats,
+    required this.deviceId,
+    required this.paramId,
+    required this.points,
+  });
+
+  @override
+  final String id;
+
+  @override
+  final double startBeat;
+
+  @override
+  final double lengthBeats;
+
+  @override
+  ClipContentKind get kind => ClipContentKind.automation;
+
+  final String deviceId;
+  final String paramId;
+  final List<AutomationPointSnapshot> points;
+
+  bool get isLinked => deviceId.isNotEmpty && paramId.isNotEmpty;
+
+  double get endBeat => startBeat + lengthBeats;
+
+  String get linkLabel =>
+      isLinked ? _humanizeParamId(paramId) : 'Link';
+
+  static String _humanizeParamId(String paramId) {
+    return switch (paramId) {
+      'filterCutoff' => 'Filter',
+      'filterQ' => 'Resonance',
+      'gain' => 'Gain',
+      'attack' => 'Attack',
+      'decay' => 'Decay',
+      'sustain' => 'Sustain',
+      'release' => 'Release',
+      _ => paramId,
+    };
+  }
+
+  factory AutomationClipSnapshot.fromMap(Map<dynamic, dynamic> map) {
+    final pointsRaw = map['points'] as List<dynamic>? ?? [];
+    return AutomationClipSnapshot(
+      id: map['id'] as String? ?? '',
+      startBeat: (map['startBeat'] as num?)?.toDouble() ?? 0.0,
+      lengthBeats: (map['lengthBeats'] as num?)?.toDouble() ?? 4.0,
+      deviceId: map['deviceId'] as String? ?? '',
+      paramId: map['paramId'] as String? ?? '',
+      points: pointsRaw
+          .map((p) => AutomationPointSnapshot.fromMap(p as Map<dynamic, dynamic>))
+          .toList(),
+    );
+  }
+}

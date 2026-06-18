@@ -11,6 +11,7 @@ class ArrangementClipDragSession {
     required this.pointerBeatAtStart,
     this.midiClip,
     this.sampleClip,
+    this.automationClip,
     required this.targetTrackIndex,
     required this.previewStartBeat,
   });
@@ -23,6 +24,8 @@ class ArrangementClipDragSession {
   final double pointerBeatAtStart;
   final MidiClipSnapshot? midiClip;
   final SampleClipSnapshot? sampleClip;
+
+  final AutomationClipSnapshot? automationClip;
 
   int targetTrackIndex;
   double previewStartBeat;
@@ -40,6 +43,7 @@ class ArrangementClipDragSession {
       pointerBeatAtStart: pointerBeatAtStart,
       midiClip: midiClip,
       sampleClip: sampleClip,
+      automationClip: automationClip,
       targetTrackIndex: targetTrackIndex ?? this.targetTrackIndex,
       previewStartBeat: previewStartBeat ?? this.previewStartBeat,
     );

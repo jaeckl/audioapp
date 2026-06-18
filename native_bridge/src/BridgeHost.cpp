@@ -116,6 +116,32 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         }
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
+    if (method == "createAutomationClip") {
+        const auto trackId = jsonGetStringArg(argumentsJson, "trackId");
+        const auto startBeat = jsonGetNumberArg(argumentsJson, "startBeat", 0.0);
+        const auto lengthBeats = jsonGetNumberArg(argumentsJson, "lengthBeats", 4.0);
+        if (engine().createAutomationClip(trackId, startBeat, lengthBeats).empty()) {
+            return buildBridgeError("automation_clip_failed");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
+    if (method == "assignAutomationTarget") {
+        const auto clipId = jsonGetStringArg(argumentsJson, "clipId");
+        const auto deviceId = jsonGetStringArg(argumentsJson, "deviceId");
+        const auto paramId = jsonGetStringArg(argumentsJson, "paramId");
+        if (!engine().assignAutomationTarget(clipId, deviceId, paramId)) {
+            return buildBridgeError("assign_automation_failed");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
+    if (method == "setAutomationPoints") {
+        const auto clipId = jsonGetStringArg(argumentsJson, "clipId");
+        const auto points = parseAutomationPointsFromArgs(argumentsJson);
+        if (!engine().setAutomationPoints(clipId, points)) {
+            return buildBridgeError("automation_points_failed");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
     if (method == "moveClip") {
         const auto clipId = jsonGetStringArg(argumentsJson, "clipId");
         const auto trackId = jsonGetStringArg(argumentsJson, "trackId");

@@ -28,12 +28,27 @@ struct SampleClip {
     double lengthBeats = 4.0;
 };
 
+struct AutomationPoint {
+    double beat = 0.0;
+    float value = 0.0f;
+};
+
+struct AutomationClip {
+    std::string id;
+    double startBeat = 0.0;
+    double lengthBeats = 4.0;
+    std::string deviceId;
+    std::string paramId;
+    std::vector<AutomationPoint> points;
+};
+
 struct Track {
     std::string id;
     std::string name;
     std::vector<DeviceSlot> devices;
     std::vector<MidiClip> midiClips;
     std::vector<SampleClip> sampleClips;
+    std::vector<AutomationClip> automationClips;
 };
 
 } // namespace audioapp

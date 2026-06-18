@@ -24,8 +24,10 @@ class DeviceStrip extends StatefulWidget {
     required this.onFrequencyChanged,
     required this.onAddDevice,
     required this.onBypassToggle,
-    required this.onOpenDeviceLibrary,
+    required     this.onOpenDeviceLibrary,
     this.onModulationBridgeCall,
+    this.automationLinkClipId,
+    this.onAutomationParamSelected,
   });
 
   final ProjectSnapshot snapshot;
@@ -45,6 +47,8 @@ class DeviceStrip extends StatefulWidget {
   final void Function(DeviceSnapshot device) onOpenDeviceLibrary;
   final Future<ProjectSnapshot> Function(String method, Map<String, dynamic> args)?
       onModulationBridgeCall;
+  final String? automationLinkClipId;
+  final void Function(String deviceId, String paramId)? onAutomationParamSelected;
 
   @override
   State<DeviceStrip> createState() => _DeviceStripState();
@@ -167,6 +171,8 @@ class _DeviceStripState extends State<DeviceStrip> {
                   onBypassToggle: widget.onBypassToggle,
                   onOpenLibrary: widget.onOpenDeviceLibrary,
                   onModulationBridgeCall: widget.onModulationBridgeCall,
+                  automationLinkActive: widget.automationLinkClipId != null,
+                  onAutomationParamSelected: widget.onAutomationParamSelected,
                 ),
               ],
             ),

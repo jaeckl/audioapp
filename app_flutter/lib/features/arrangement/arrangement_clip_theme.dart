@@ -16,6 +16,10 @@ abstract final class ArrangementClipTheme {
 
   static const placeholderLabel = Color(0xB3FFFFFF);
 
+  static const automationClipBackground = Color(0xFF4A3868);
+  static const automationClipBorder = Color(0xFFB48CFF);
+  static const automationCurve = Color(0xFFE0CCFF);
+
   /// Darker fill behind condensed clip content (notes, waveform).
   static Color contentBackground(Color clipBackground) {
     return Color.lerp(clipBackground, Colors.black, 0.38)!;
