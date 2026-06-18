@@ -1,9 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../bridge/engine_bridge.dart';
 import '../../bridge/project_snapshot.dart';
 import '../../features/content_library/library_theme.dart';
+import 'automation_curve_shapes.dart';
 
 /// Full-screen editor for automation clip breakpoints.
 class AutomationCurveEditorScreen extends StatefulWidget {
@@ -29,6 +32,8 @@ class _AutomationCurveEditorScreenState extends State<AutomationCurveEditorScree
   late List<AutomationPointSnapshot> _points;
   int? _dragIndex;
   bool _saving = false;
+  AutomationCurveShape? _activeShape;
+  AutomationShapeParams _shapeParams = const AutomationShapeParams();
 
   @override
   void initState() {
@@ -40,6 +45,49 @@ class _AutomationCurveEditorScreenState extends State<AutomationCurveEditorScree
         AutomationPointSnapshot(beat: widget.clip.lengthBeats, value: 0.25),
       ];
     }
+    _shapeParams = _shapeParamsFromPoints(_points);
+  }
+
+  AutomationShapeParams _shapeParamsFromPoints(List<AutomationPointSnapshot> points) {
+    if (points.isEmpty) return const AutomationShapeParams();
+    var min = points.first.value;
+    var max = points.first.value;
+    for (final p in points) {
+      min = math.min(min, p.value);
+      max = math.max(max, p.value);
+    }
+    return AutomationShapeParams(min: min, max: max);
+  }
+
+  void _applyActiveShape() {
+    final shape = _activeShape;
+    if (shape == null) return;
+    _points = generateAutomationShapePoints(
+      shape: shape,
+      params: _shapeParams,
+      lengthBeats: widget.clip.lengthBeats,
+    );
+  }
+
+  void _selectShape(AutomationCurveShape shape) {
+    setState(() {
+      _activeShape = shape;
+      _applyActiveShape();
+    });
+    HapticFeedback.selectionClick();
+  }
+
+  void _setShapeParams(AutomationShapeParams params) {
+    setState(() {
+      _shapeParams = params;
+      if (_activeShape != null) {
+        _applyActiveShape();
+      }
+    });
+  }
+
+  void _clearActiveShape() {
+    _activeShape = null;
   }
 
   Future<void> _save() async {
@@ -65,6 +113,7 @@ class _AutomationCurveEditorScreenState extends State<AutomationCurveEditorScree
   }
 
   void _updatePoint(int index, {double? beat, double? value}) {
+    _clearActiveShape();
     setState(() {
       final current = _points[index];
       _points[index] = AutomationPointSnapshot(
@@ -115,6 +164,7 @@ class _AutomationCurveEditorScreenState extends State<AutomationCurveEditorScree
     final value =
         (1.0 - details.localPosition.dy / size.height).clamp(0.0, 1.0);
     setState(() {
+      _activeShape = null;
       _points.add(AutomationPointSnapshot(beat: beat, value: value));
       _points.sort((a, b) => a.beat.compareTo(b.beat));
     });
@@ -150,8 +200,15 @@ class _AutomationCurveEditorScreenState extends State<AutomationCurveEditorScree
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Drag points · double-tap empty area to add',
+              'Pick a shape below or drag points · double-tap to add',
               style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 12),
+            ),
+            const SizedBox(height: 10),
+            _ShapeToolbar(
+              activeShape: _activeShape,
+              params: _shapeParams,
+              onShapeSelected: _selectShape,
+              onParamsChanged: _setShapeParams,
             ),
             const SizedBox(height: 12),
             Expanded(
@@ -186,6 +243,205 @@ class _AutomationCurveEditorScreenState extends State<AutomationCurveEditorScree
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ShapeToolbar extends StatelessWidget {
+  const _ShapeToolbar({
+    required this.activeShape,
+    required this.params,
+    required this.onShapeSelected,
+    required this.onParamsChanged,
+  });
+
+  final AutomationCurveShape? activeShape;
+  final AutomationShapeParams params;
+  final ValueChanged<AutomationCurveShape> onShapeSelected;
+  final ValueChanged<AutomationShapeParams> onParamsChanged;
+
+  static const _shapes = AutomationCurveShape.values;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = LibraryTheme.accentAutomation;
+    final showPeriodic = activeShape?.isPeriodic ?? false;
+    final showDuty = activeShape?.usesDuty ?? false;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final shape in _shapes)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _ShapeChip(
+                    label: shape.label,
+                    selected: activeShape == shape,
+                    accent: accent,
+                    onTap: () => onShapeSelected(shape),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        if (activeShape != null) ...[
+          const SizedBox(height: 10),
+          _ShapeSlider(
+            label: 'Floor',
+            value: params.min,
+            onChanged: (v) => onParamsChanged(params.copyWith(min: v)),
+          ),
+          _ShapeSlider(
+            label: 'Peak',
+            value: params.max,
+            onChanged: (v) => onParamsChanged(params.copyWith(max: v)),
+          ),
+          if (showPeriodic) ...[
+            _ShapeSlider(
+              label: 'Cycles',
+              value: params.cycles,
+              min: 0.25,
+              max: 16,
+              divisions: 63,
+              display: params.cycles.toStringAsFixed(2),
+              onChanged: (v) => onParamsChanged(params.copyWith(cycles: v)),
+            ),
+            _ShapeSlider(
+              label: 'Phase',
+              value: params.phase,
+              display: '${(params.phase * 100).round()}%',
+              onChanged: (v) => onParamsChanged(params.copyWith(phase: v)),
+            ),
+          ],
+          if (showDuty)
+            _ShapeSlider(
+              label: 'Pulse width',
+              value: params.duty,
+              min: 0.05,
+              max: 0.95,
+              display: '${(params.duty * 100).round()}%',
+              onChanged: (v) => onParamsChanged(params.copyWith(duty: v)),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ShapeChip extends StatelessWidget {
+  const _ShapeChip({
+    required this.label,
+    required this.selected,
+    required this.accent,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final Color accent;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? accent.withValues(alpha: 0.22) : const Color(0xFF1A1A24),
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: selected ? accent : Colors.white.withValues(alpha: 0.12),
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? accent : Colors.white.withValues(alpha: 0.75),
+              fontSize: 12,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShapeSlider extends StatelessWidget {
+  const _ShapeSlider({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    this.min = 0,
+    this.max = 1,
+    this.divisions = 100,
+    this.display,
+  });
+
+  final String label;
+  final double value;
+  final ValueChanged<double> onChanged;
+  final double min;
+  final double max;
+  final int divisions;
+  final String? display;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = LibraryTheme.accentAutomation;
+    final shown = display ?? value.toStringAsFixed(2);
+
+    return Row(
+      children: [
+        SizedBox(
+          width: 72,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.6),
+              fontSize: 11,
+            ),
+          ),
+        ),
+        Expanded(
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: accent,
+              inactiveTrackColor: Colors.white.withValues(alpha: 0.08),
+              thumbColor: accent,
+              overlayColor: accent.withValues(alpha: 0.15),
+              trackHeight: 3,
+            ),
+            child: Slider(
+              value: value.clamp(min, max),
+              min: min,
+              max: max,
+              divisions: divisions,
+              onChanged: onChanged,
+            ),
+          ),
+        ),
+        SizedBox(
+          width: 44,
+          child: Text(
+            shown,
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.75),
+              fontSize: 11,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
