@@ -39,6 +39,7 @@ add_library(audioapp_engine STATIC
   src/SubtractiveSynth.cpp
   src/MasterMix.cpp
   src/DeviceChain.cpp
+  src/devices/DeviceRegistry.cpp
   src/EngineHost_commands.cpp
   src/LfoEngine.cpp
 )
@@ -102,4 +103,8 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
   )
   target_link_libraries(audioapp_engine_tests PRIVATE audioapp_engine)
   add_test(NAME engine_smoke COMMAND audioapp_engine_tests)
+
+  add_executable(device_registry_test tests/device_registry_test.cpp)
+  target_link_libraries(device_registry_test PRIVATE audioapp_engine)
+  add_test(NAME device_registry_test COMMAND device_registry_test)
 endif()

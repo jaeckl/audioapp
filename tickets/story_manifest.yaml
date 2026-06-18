@@ -281,7 +281,7 @@ stories:
 
   # ── M12 ProjectEngine decomposition (12) ─────────────────────────────
   - { id: US-12-00, milestone: M12, status: in_progress, title: ADR & architecture baseline for ProjectEngine refactor }
-  - { id: US-12-01, milestone: M12, status: todo, title: IDeviceType interface + DeviceRegistry }
+  - { id: US-12-01, milestone: M12, status: done, title: IDeviceType interface + DeviceRegistry }
   - { id: US-12-02, milestone: M12, status: todo, title: Per-device control classes (Oscillator, Sampler, TrackGain, SubtractiveSynth) }
   - { id: US-12-03, milestone: M12, status: todo, title: DeviceSlot variant model — replace flat Device / DeviceState }
   - { id: US-12-04, milestone: M12, status: todo, title: Extract DeviceParameterService — remove setDeviceParameter god method }

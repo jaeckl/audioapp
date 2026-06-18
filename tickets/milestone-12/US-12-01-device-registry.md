@@ -24,11 +24,11 @@ As a **developer**, I want a registry that maps device type strings to handler o
 
 ## Scope
 
-- [ ] Add `engine_juce/include/audioapp/devices/IDeviceType.hpp` — interface (see refactor plan)
-- [ ] Add `DeviceRegistry` — `registerType`, `find(typeId)`, `knownTypes()`
-- [ ] Register four built-in types (implementations may stub param/JSON until US-12-02)
-- [ ] `addDeviceToTrack` uses registry for type validation + factory (delegate to type's `createDefault`)
-- [ ] Unit test: unknown type rejected; known type creates instance with correct `typeId`
+- [x] Add `engine_juce/include/audioapp/devices/IDeviceType.hpp` — interface (see refactor plan)
+- [x] Add `DeviceRegistry` — `registerType`, `find(typeId)`, `knownTypes()`
+- [x] Register four built-in types (implementations may stub param/JSON until US-12-02)
+- [x] `addDeviceToTrack` uses registry for type validation + factory (delegate to type's `createDefault`)
+- [x] Unit test: unknown type rejected; known type creates instance with correct `typeId`
 
 ## Out of scope
 
@@ -38,10 +38,10 @@ As a **developer**, I want a registry that maps device type strings to handler o
 
 ## Acceptance criteria
 
-- [ ] `DeviceRegistry` is the only place that enumerates supported device type strings
-- [ ] `addDeviceToTrack(..., "unknown")` returns empty / false
-- [ ] Existing device insert behavior unchanged for four built-in types
-- [ ] All existing C++ + Flutter tests pass
+- [x] `DeviceRegistry` is the only place that enumerates supported device type strings
+- [x] `addDeviceToTrack(..., "unknown")` returns empty / false
+- [x] Existing device insert behavior unchanged for four built-in types
+- [x] All existing C++ + Flutter tests pass
 
 ## Demo script (developer, ~5 min)
 
@@ -50,8 +50,8 @@ As a **developer**, I want a registry that maps device type strings to handler o
 
 ## Tests required
 
-- [ ] `device_registry_test.cpp` — lookup, factory, unknown type
-- [ ] Existing engine tests green
+- [x] `device_registry_test.cpp` — lookup, factory, unknown type
+- [x] Existing engine tests green
 
 ## Realtime/performance notes
 
@@ -67,4 +67,4 @@ US-12-00
 
 ## Status
 
-Todo
+Done

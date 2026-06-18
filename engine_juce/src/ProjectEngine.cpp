@@ -5,6 +5,7 @@
 #include "audioapp/MasterMix.hpp"
 #include "audioapp/SamplePlayback.hpp"
 #include "audioapp/DeviceChain.hpp"
+#include "audioapp/devices/DeviceTypeIds.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -176,10 +177,9 @@ std::string ProjectEngine::addTrack(const std::string& name) {
     track.id = "track-" + std::to_string(nextTrackNum_++);
     track.name = name.empty() ? ("Track " + std::to_string(tracks_.size() + 1)) : name;
 
+    const std::string gainId = "dev-" + std::to_string(nextDeviceNum_++);
     Device gain;
-    gain.id = "dev-" + std::to_string(nextDeviceNum_++);
-    gain.type = "track_gain";
-    gain.gain = 1.0f;
+    copyStateToDevice(deviceRegistry_.createDefault(device_types::kTrackGain, gainId), gain);
     track.devices.push_back(std::move(gain));
 
     tracks_.push_back(std::move(track));
@@ -209,35 +209,19 @@ std::string ProjectEngine::addDeviceToTrack(const std::string& trackId,
         return {};
     }
 
-    Device device;
-    device.id = "dev-" + std::to_string(nextDeviceNum_++);
-    device.type = deviceType.empty() ? "simple_oscillator" : deviceType;
-    device.frequencyHz = 440.0f;
-    if (device.type == "subtractive_synth") {
-        device.attack = 0.02f;
-        device.decay = 0.25f;
-        device.sustain = 0.75f;
-        device.release = 0.35f;
-        device.filterCutoff = 0.75f;
-        device.filterQ = 0.2f;
-        device.osc1Wave = 2;
-        device.osc2Wave = 2;
-        device.osc1Shape = 0.5f;
-        device.osc2Shape = 0.5f;
-        device.osc1Level = 0.85f;
-        device.osc2Level = 0.5f;
-        device.filterEnvAmount = 0.5f;
-        device.filterAttack = 0.05f;
-        device.filterDecay = 0.35f;
-        device.filterSustain = 0.4f;
-        device.filterRelease = 0.45f;
-        device.velocitySensitivity = 1.0f;
+    const std::string resolvedType =
+        deviceType.empty() ? device_types::kOscillator : deviceType;
+    if (!deviceRegistry_.isKnownType(resolvedType)) {
+        return {};
     }
-    const std::string deviceId = device.id;
+
+    const std::string deviceId = "dev-" + std::to_string(nextDeviceNum_++);
+    Device device;
+    copyStateToDevice(deviceRegistry_.createDefault(resolvedType, deviceId), device);
 
     size_t gainIndex = track->devices.size();
     for (size_t i = 0; i < track->devices.size(); ++i) {
-        if (track->devices[i].type == "track_gain") {
+        if (track->devices[i].type == device_types::kTrackGain) {
             gainIndex = i;
             break;
         }
@@ -1608,7 +1592,7 @@ void ProjectEngine::ensureTrackGainDevicesLocked() {
     for (auto& track : tracks_) {
         bool hasGain = false;
         for (const auto& device : track.devices) {
-            if (device.type == "track_gain") {
+            if (device.type == device_types::kTrackGain) {
                 hasGain = true;
                 break;
             }
@@ -1616,10 +1600,9 @@ void ProjectEngine::ensureTrackGainDevicesLocked() {
         if (hasGain) {
             continue;
         }
+        const std::string gainId = "dev-" + std::to_string(nextDeviceNum_++);
         Device gain;
-        gain.id = "dev-" + std::to_string(nextDeviceNum_++);
-        gain.type = "track_gain";
-        gain.gain = 1.0f;
+        copyStateToDevice(deviceRegistry_.createDefault(device_types::kTrackGain, gainId), gain);
         track.devices.push_back(std::move(gain));
     }
 }
