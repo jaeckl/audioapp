@@ -137,7 +137,8 @@ From `AGENT.md`:
 | **Ableton/Logic lanes under track** | **High** (lane header) | High when stacked | Good | Lane-based, not clip object | OK collapsed |
 | **Bitwig joker + pin** | High when pinned | Medium | **Excellent** | Lanes, not clips | Good for “last touched” |
 | **Drag clip → LFO grid** | Medium | Low | Experimental | Good | Needs clear drop affordance |
-| **Parameter panel mini-lane** | **High** | **Lowest** | Good | Per-parameter | **Best for phone height budget** |
+| **Link chip + Link Mode (Option G)** | **High after link** | **Lowest** | **Excellent** | **Excellent** | **Preferred — reuses LFO pulse UX** |
+| **Parameter panel mini-lane** | **High** | **Lowest** | Good | Per-parameter | Optional complement, not timeline |
 
 ---
 
@@ -168,22 +169,96 @@ Each option includes: user flow, data shape, pros/cons, and mobile notes.
 
 ---
 
-### Option B — **Automation lane under existing track (Ableton/Logic style)**
+### Option B — **Automation lane under existing track (Ableton/Logic style)** — ❌ rejected
 
-**Flow:**
+**Explicitly ruled out:** collapsible sub-lanes — they consume vertical space, add mode complexity, and duplicate affordances better handled by Link Mode (Option G).
 
-1. Select instrument track.
-2. Tap **Automation** chevron below track lane → expands sub-lane.
-3. Parameter picker → **Filter cutoff** (`dev-2`).
-4. Draw breakpoints in expanded lane (or open fullscreen editor for precision).
+~~Sub-lane under track~~ — kept here only as historical comparison:
 
 | Pros | Cons |
 |------|------|
-| No extra track row — target tied to **sound source** | Sub-lane competes with clip height on phone |
-| Familiar to Ableton/Logic users | Multiple params = multiple stacked sub-lanes |
-| Implicit routing: “this track’s device chain” | Cross-track targets (master gain) need exception rules |
+| No extra track row | **Rejected:** competes with clip height on phone |
+| Familiar to Ableton/Logic users | Collapse/expand adds cognitive load |
+| | Multiple params = stacked sub-lanes anyway |
 
-**Mobile:** Default **one sub-lane**; “+ lane” adds another. Sub-lane height **≥44dp** for touch. Prefer **fullscreen editor** for Bezier work; mini-lane for overview only.
+**Verdict:** Do not implement collapsible automation sub-lanes.
+
+---
+
+### Option G — **Link Mode on automation clip (LFO connect-mode pattern)** — ✅ preferred
+
+Reuse the **existing modulation connect UX**: when an automation clip is in **Link Mode**, automatable knobs in the device strip **pulse** (same `RotaryKnob` animation as LFO long-press connect). User taps a knob to bind `(deviceId, parameterId)` to that clip.
+
+This solves **target assignment** and **clip reuse** without dedicated automation track rows or sub-lanes.
+
+#### Two entry variants (choose one or combine)
+
+| Variant | Trigger | Best for |
+|---------|---------|----------|
+| **G1 — Tap clip** | Short tap automation clip (when unlinked or “re-link”) → enters Link Mode | Discoverability; matches “select then act” |
+| **G2 — Floating link chip** | Small **link icon** pill floats above clip center (always visible when linked or not) → tap toggles Link Mode | **Reuse:** obvious affordance when scanning timeline; no need to guess tap semantics |
+| **G3 — Long-press menu** | Long-press clip → “Link parameter…” / “Change target” | Secondary; power users |
+
+**Recommendation:** **G2 floating chip as primary**, G1 tap as shortcut when chip is hard to hit, G3 in context menu.
+
+#### Link Mode flow (mirrors LFO connect)
+
+```
+User taps link chip on automation clip (or taps unlinked clip)
+  → Shell enters automationLinkClipId = clip-7
+  → Device strip: all modulatable knobs pulse (orange/purple accent — distinct from LFO orange)
+  → Banner: "Tap a control to automate" [Cancel]
+  → User taps Filter cutoff knob on subtractive synth
+  → Engine: assignAutomationTarget(clipId, deviceId, paramId)
+  → Clip label updates: "Synth · Filter cutoff"
+  → Link Mode exits; pulse stops
+```
+
+**Clip reuse (FL desktop strength):**
+
+```
+Duplicate automation clip (same envelope points) to another track/region
+  → New instance has same curve but targetId empty OR inherited
+  → Tap link chip → Link Mode → tap different knob (e.g. Gain on track 2)
+  → Same sweep shape, new parameter — no redraw
+```
+
+Or **linked target sharing:** multiple clip instances reference one `AutomationTarget` (all move together) vs **independent targets** with copied points — product toggle later.
+
+#### Visual design (align with existing code)
+
+| Element | LFO connect today | Automation Link Mode (proposed) |
+|---------|-------------------|----------------------------------|
+| Enter | Long-press LFO in MOD grid | Tap link chip / clip |
+| Pulse | `RotaryKnob` `_pulseController` 15–45% alpha | **Same widget path**, different accent (`LibraryTheme.accentAutomation` purple) |
+| Assign gesture | Long-press knob + vertical drag (amount) | **Short tap knob** only (no amount — envelope defines values) |
+| Exit | Toggle LFO long-press / assign complete | Tap Cancel, tap valid knob, or tap outside |
+| Strip scope | Current device slot | All devices on **selected track** first; optional “all tracks” for master params |
+
+#### Pros / cons
+
+| Pros | Cons |
+|------|------|
+| **Zero extra timeline rows** | Target not visible until linked (mitigate: chip + label) |
+| Reuses proven connect-mode code path | User must understand Link Mode (mitigate: same as MOD) |
+| **Excellent for clip reuse** | Wrong-track device tap needs clear error toast |
+| Works on phone — no drag precision | Link Mode + arrangement scroll: need sticky banner |
+| Distinct from LFO (tap vs long-press+amount) | |
+
+#### Floating link chip (G2) spec
+
+```
+        [🔗]  ← 36×36dp, above clip, purple when linked, pulsing when Link Mode active
+   ╔══════════════════╗
+   ║  ∿∿ envelope    ║  Automation clip body (purple)
+   ╚══════════════════╝
+   Synth · Cutoff      ← subtitle after linked
+```
+
+- **Unlinked:** chip outline + “?” tooltip on first use  
+- **Linked:** chip filled + param abbreviated on clip  
+- **Link Mode active:** chip pulses; clip border pulses in sync  
+- **Double-tap clip:** open curve editor (unchanged — separate from link)
 
 ---
 
@@ -245,28 +320,39 @@ Each option includes: user flow, data shape, pros/cons, and mobile notes.
 
 ### Option F — **Hybrid recommended (phased)**
 
-Align with FL Mobile + Bitwig + our device strip:
+Align with FL Mobile + our device strip + **Link Mode (Option G)**:
 
 | Phase | UX | Engine |
 |-------|-----|--------|
-| **M8 MVP** | **Option D** + promote to timeline: knob → “Automate this” → mini-lane in strip → one automation clip on **linked automation lane/track** | `AutomationClip`, `AutomationTarget`, linear breakpoints, playback |
-| **M8+** | **Option B** collapsed sub-lane under instrument track OR **Option A** dedicated row (user pref) | Bezier segments, clip duplicate |
-| **Later** | Reusable clip library (FL desktop style) | Clip templates in library catalog |
+| **M8 MVP** | Library or knob → create automation clip on timeline → **link chip → Link Mode → tap knob** → double-tap → fullscreen curve editor | `AutomationClip`, `AutomationTarget`, linear breakpoints, playback |
+| **M8+** | Duplicate clip + re-link; Bezier segment modes | Target reuse vs copy semantics |
+| **Later** | Clip templates in library (FL desktop style) | Shared envelope presets |
 
----
+**Explicitly not in plan:** collapsible sub-lanes (Option B).
 
 ## 6. Assigning clips to device strips / parameters — concrete flows
 
-### Flow 1 — **Knob-first (recommended primary)**
+### Flow 1 — **Knob-first create, clip link chip assign (recommended primary)**
 
 ```
-Tweak knob → Strip overflow / long-press → "Automate this"
-  → Engine: resolve (selectedDeviceId, paramId)
-  → Create AutomationTarget + empty AutomationClip at playhead (1 bar)
-  → Open curve editor (fullscreen)
+Long-press knob → "Automate this"
+  → Engine creates empty AutomationClip at playhead (1 bar) on selected track
+  → Link Mode auto-starts OR user taps link chip
+  → Tap same knob (or another) to confirm target
+  → Double-tap clip → curve editor
 ```
 
-**Why:** Matches FL Mobile CTRL, our competitive analysis, and MOD connect mode. One hand on strip, no drag precision required.
+**Why:** Creates clip with musical context; assignment reuses Link Mode.
+
+### Flow 1b — **Library template + Link Mode (reuse-first)**
+
+```
+Library → Automation → "Filter sweep" → place on timeline
+  → Clip has envelope points, no target yet
+  → Tap link chip → Link Mode → tap cutoff knob
+```
+
+**Why:** Best demonstrates clip reuse — shape travels, target chosen per instance.
 
 ### Flow 2 — **Timeline-first**
 
@@ -364,9 +450,9 @@ Three viable models:
 - `automation` — automation clips only, no audio/MIDI; header shows bound target
 - (future) `audio`, `bus`
 
-Instrument tracks may still host **automation sub-lanes** (Option B) without changing role.
+Instrument tracks may host automation clips on the **same row** as MIDI/sample (Option C) — target visibility comes from **link chip + label**, not sub-lanes.
 
----
+**Explicitly rejected:** collapsible automation sub-lanes under instrument tracks.
 
 ## 9. Data model sketch (engine-neutral)
 
@@ -407,13 +493,14 @@ Based on `mobile_ux_competitive_analysis.md` vertical budget (~640dp usable):
 
 | Priority | Pattern | Rationale |
 |----------|---------|-----------|
-| **P0** | Knob → “Automate this” | Lowest friction; no new timeline rows initially |
-| **P0** | Fullscreen curve editor | Bezier/precision need space |
-| **P0** | Purple automation clip styling + `Device · Param` label | Visibility without desktop lanes |
-| **P1** | One collapsible automation sub-lane under instrument track | Balance visibility vs height |
+| **P0** | **Link chip + Link Mode** (Option G) | Target assign + clip reuse; reuses LFO pulse UX |
+| **P0** | Fullscreen curve editor (double-tap clip) | Bezier/precision need space |
+| **P0** | Purple clip + `Device · Param` label after link | Scanability without extra rows |
+| **P0** | Knob → “Automate this” (creates clip) | Fast entry; pairs with Link Mode |
 | **P1** | Automation arm + record tweaks | FL Mobile parity |
-| **P2** | Dedicated automation track rows | When project has many sweeps |
+| **P2** | Dedicated automation track rows (Option A) | Optional filter for dense projects |
 | **P2** | Drag-from-library assignment | Tablet |
+| **Avoid** | **Collapsible sub-lanes** | User rejected; vertical cost + mode complexity |
 | **Avoid** | Many stacked lanes on phone portrait | Scroll fatigue |
 | **Avoid** | Drag clip onto LFO grid | Conceptual mismatch |
 
@@ -423,12 +510,14 @@ Based on `mobile_ux_competitive_analysis.md` vertical budget (~640dp usable):
 
 ## 11. Open product decisions
 
-1. **Track vs lane default:** Instrument sub-lane (Ableton) vs automation track row (FL Mobile) as default — could be Settings toggle.
-2. **Same-track MIDI + automation clips:** Allowed on instrument track, or force automation-only rows?
-3. **Master / send automation:** Separate master automation track or master “device” in strip?
-4. **Clip vs lane persistence:** Breakpoints in movable clips only, or also orphan lane data (Logic region vs track)?
-5. **LFO interaction:** Additive vs multiplicative vs override when both target same param.
-6. **MVP curve:** Linear segments only vs one “smooth” preset per segment.
+1. **Track vs lane default:** ~~Sub-lanes~~ **Link Mode on clip** — no sub-lanes.
+2. **Link chip always visible vs tap-only:** Prefer **always-visible chip** (G2) for reuse; tap clip (G1) as alternate.
+3. **Same-track MIDI + automation clips:** Allowed on instrument track — automation clips sit in arrangement row, linked via chip.
+4. **Master / send automation:** Link Mode includes master strip or master “device” when implemented.
+5. **Clip vs lane persistence:** Breakpoints in movable clips only (no orphan lane data).
+6. **LFO interaction:** Additive vs multiplicative vs override when both target same param.
+7. **MVP curve:** Linear segments only vs one “smooth” preset per segment.
+8. **Duplicate clip semantics:** Copy points only (re-link required) vs share `AutomationTarget` id.
 
 ---
 
@@ -437,14 +526,16 @@ Based on `mobile_ux_competitive_analysis.md` vertical budget (~640dp usable):
 **Demo script (PO):**
 
 1. Add track + subtractive synth.
-2. Long-press **Filter cutoff** → **Automate this**.
-3. Fullscreen editor opens; tap two points; middle value lower → sweep shape.
-4. Clip appears on timeline (purple, labeled `Synth · Filter cutoff`).
-5. Play → audible filter sweep; save/load restores curve.
+2. Library → place **Filter sweep** automation template (or knob → Automate this).
+3. Tap **link chip** on purple clip → device strip knobs **pulse** (Link Mode).
+4. Tap **Filter cutoff** → clip label shows `Synth · Filter cutoff`.
+5. Double-tap clip → add/move points in fullscreen editor.
+6. Duplicate clip to bar 9 → tap link chip → tap **Gain** on another device (reuse shape, new target).
+7. Play → sweeps audible; save/load restores targets + curves.
 
-**Engine:** `US-08-18` target + clip + breakpoints JSON.  
+**Engine:** `US-08-18` target + clip + breakpoints JSON + `assignAutomationTarget(clipId, deviceId, paramId)`.  
 **Playback:** `US-08-19` evaluate at playhead.  
-**UI:** `US-08-04` companions + this doc’s Flow 1 + fullscreen editor.
+**UI:** Link Mode shell state (parallel to `_connectModeLfoId`); extend `RotaryKnob` pulse with `linkModeActive` + purple accent; automation clip renderer with floating chip.
 
 ---
 
