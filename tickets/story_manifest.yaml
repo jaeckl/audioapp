@@ -42,6 +42,9 @@ milestones:
   - id: M13
     name: Drum generators
     theme: synthesized kick, snare, clap, cymbal — monophonic MIDI devices
+  - id: M14
+    name: Dynamics FX
+    theme: gate, compressor, expander, limiter — in-chain audio effects
   - id: M12
     name: ProjectEngine decomposition
     theme: per-device classes, domain services, thin ProjectEngine facade
@@ -288,6 +291,13 @@ stories:
   - { id: US-13-03, milestone: M13, status: done, title: Clap generator }
   - { id: US-13-04, milestone: M13, status: done, title: Cymbal / crash generator }
   - { id: US-13-20, milestone: M13, status: todo, title: M13 PO demo — drum generators end-to-end }
+
+  # ── M14 Dynamics FX (5) ───────────────────────────────────────────────
+  - { id: US-14-01, milestone: M14, status: done, title: Gate effect device }
+  - { id: US-14-02, milestone: M14, status: done, title: Compressor effect device }
+  - { id: US-14-03, milestone: M14, status: done, title: Expander effect device }
+  - { id: US-14-04, milestone: M14, status: done, title: Limiter effect device }
+  - { id: US-14-20, milestone: M14, status: todo, title: M14 PO demo — dynamics chain on drum track }
 
   # ── M12 ProjectEngine decomposition (12) ─────────────────────────────
   - { id: US-12-00, milestone: M12, status: in_progress, title: ADR & architecture baseline for ProjectEngine refactor }
