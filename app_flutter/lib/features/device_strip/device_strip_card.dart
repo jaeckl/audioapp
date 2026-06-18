@@ -14,7 +14,8 @@ class DeviceStripCard extends StatelessWidget {
     this.subtitle,
     this.headerOnly = false,
     this.attachToolRail = false,
-    this.attachLevelPanel = false,
+    this.attachInputPanel = false,
+    this.attachOutputPanel = false,
     this.tabs = const [],
     this.selectedTabIndex = 0,
     this.onTabSelected,
@@ -31,8 +32,11 @@ class DeviceStripCard extends StatelessWidget {
   /// When true, omits the left border where a tool rail is attached.
   final bool attachToolRail;
 
-  /// When true, omits the right border where a level panel is attached.
-  final bool attachLevelPanel;
+  /// When true, omits the left border where an input panel is attached.
+  final bool attachInputPanel;
+
+  /// When true, omits the right border where an output panel is attached.
+  final bool attachOutputPanel;
 
   final List<DeviceTabSpec> tabs;
   final int selectedTabIndex;
@@ -60,11 +64,11 @@ class DeviceStripCard extends StatelessWidget {
         borderRadius: cardRadius,
         border: Border(
           top: borderSide,
-          left: attachToolRail ? BorderSide.none : borderSide,
+          left: attachInputPanel || attachToolRail ? BorderSide.none : borderSide,
           bottom: borderSide,
         ),
       ),
-      foregroundDecoration: attachLevelPanel
+      foregroundDecoration: attachOutputPanel
           ? null
           : BoxDecoration(
               borderRadius: cardRadius,
@@ -109,7 +113,7 @@ class DeviceStripCard extends StatelessWidget {
                     ],
                   ),
           ),
-          if (attachLevelPanel)
+          if (attachOutputPanel)
             ColoredBox(
               color: accent,
               child: const SizedBox(width: DeviceStripTheme.accentStripeWidth),

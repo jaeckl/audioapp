@@ -2,6 +2,14 @@
 class DeviceStripMetrics {
   const DeviceStripMetrics._();
 
+  static const _dynamicsTypes = {'gate', 'compressor', 'expander', 'limiter'};
+  static const _drumTypes = {
+    'kick_generator',
+    'snare_generator',
+    'clap_generator',
+    'cymbal_generator',
+  };
+
   /// Canonical sampler strip width (landscape does not stretch beyond this).
   static const double designWidth = 520;
 
@@ -32,8 +40,29 @@ class DeviceStripMetrics {
   /// Tool rail prepended to expanded/fullscreen device cards.
   static const double toolRailWidth = 30;
 
-  /// Gain + pan panel between tool rail and device card.
-  static const double levelPanelWidth = 64;
+  /// Gain + pan panel between tool rail and device card (legacy name).
+  static const double levelPanelWidth = stereoOutputPanelWidth;
+
+  /// Stereo instrument output column (pan + gain).
+  static const double stereoOutputPanelWidth = 64;
+
+  /// Mono drum output column (gain + velocity sens).
+  static const double drumMonoOutputPanelWidth = 64;
+
+  /// Dynamics FX output column (gain + GR).
+  static const double dynamicsOutputPanelWidth = 72;
+
+  /// Dynamics FX input column (meter).
+  static const double dynamicsInputPanelWidth = 64;
+
+  static double inputPanelWidthFor(String deviceType) =>
+      _dynamicsTypes.contains(deviceType) ? dynamicsInputPanelWidth : 0;
+
+  static double outputPanelWidthFor(String deviceType) {
+    if (_drumTypes.contains(deviceType)) return drumMonoOutputPanelWidth;
+    if (_dynamicsTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
+    return stereoOutputPanelWidth;
+  }
 
   static double designWidthFor(String deviceType, {bool collapsed = false}) {
     if (collapsed) {

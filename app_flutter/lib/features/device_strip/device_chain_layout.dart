@@ -12,7 +12,10 @@ abstract final class DeviceChainLayout {
     if (density == DeviceStripSlotDensity.collapsed) {
       return cardWidth;
     }
-    return cardWidth + DeviceStripMetrics.toolRailWidth + DeviceStripMetrics.levelPanelWidth;
+    return cardWidth +
+        DeviceStripMetrics.toolRailWidth +
+        DeviceStripMetrics.inputPanelWidthFor(device.type) +
+        DeviceStripMetrics.outputPanelWidthFor(device.type);
   }
 
   /// Total scrollable content width including list horizontal padding.

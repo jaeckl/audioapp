@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
 import 'device_container_tabs.dart';
-import 'device_level_panel.dart';
+import 'device_strip_chrome.dart';
 import 'device_tab_bar.dart';
 import 'device_strip_card.dart';
 import 'device_strip_metrics.dart';
@@ -270,11 +270,35 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   double get _modGridWidth => _modStripVisible ? 130.0 : 0.0;
   double get _modPropsWidth => _modStripVisible && _selectedLfo != null ? 160.0 : 0.0;
 
+  double get _inputWidth => DeviceStripMetrics.inputPanelWidthFor(widget.device.type);
+  double get _outputWidth => DeviceStripMetrics.outputPanelWidthFor(widget.device.type);
+
   double get _slotWidth {
     if (!_showsToolRail) return _cardWidth;
-    return _cardWidth + DeviceStripMetrics.toolRailWidth + DeviceStripMetrics.levelPanelWidth
-        + _modGridWidth + _modPropsWidth;
+    return _cardWidth +
+        DeviceStripMetrics.toolRailWidth +
+        _inputWidth +
+        _outputWidth +
+        _modGridWidth +
+        _modPropsWidth;
   }
+
+  DeviceStripChromeBindings get _chromeBindings => DeviceStripChromeBindings(
+        device: widget.device,
+        accentColor: DeviceStripTheme.accentForDeviceType(widget.device.type),
+        onParameterChanged: widget.onDeviceParameterChanged,
+        modulatedParams: _modulatedParamIds,
+        modulationAmounts: _modulationAmounts,
+        connectModeLfoId: _connectModeLfo,
+        onModulationAssign: _onModulationForDevice,
+        automationLinkActive: widget.automationLinkActive,
+        onAutomationLinkTap: widget.onAutomationParamSelected != null
+            ? _onAutomationLinkTap
+            : null,
+        onAutomateParameter: widget.onAutomateParameter != null
+            ? _onAutomateParameter
+            : null,
+      );
 
   Widget _modulationSidebar() {
     return ModulationGrid(
@@ -379,13 +403,22 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                       }),
                     ),
                   ),
+                if (_inputWidth > 0)
+                  SizedBox(
+                    width: _inputWidth,
+                    child: DeviceStripChrome.inputPanel(
+                      deviceType: widget.device.type,
+                      bindings: _chromeBindings,
+                    ),
+                  ),
                 SizedBox(
                   width: _cardWidth,
                   child: DeviceStripCard(
                     deviceType: widget.device.type,
                     subtitle: _cardSubtitle,
                     attachToolRail: true,
-                    attachLevelPanel: true,
+                    attachInputPanel: _inputWidth > 0,
+                    attachOutputPanel: true,
                     tabs: _containerTabs,
                     selectedTabIndex: _selectedTabIndex,
                     onTabSelected: _onTabSelected,
@@ -394,22 +427,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                   ),
                 ),
                 SizedBox(
-                  width: DeviceStripMetrics.levelPanelWidth,
-                  child: DeviceLevelPanel(
-                    device: widget.device,
-                    accentColor: DeviceStripTheme.accentForDeviceType(widget.device.type),
-                    onParameterChanged: widget.onDeviceParameterChanged,
-                    modulatedParams: _modulatedParamIds,
-                    modulationAmounts: _modulationAmounts,
-                    connectModeLfoId: _connectModeLfo,
-                    onModulationAssign: _onModulationForDevice,
-                    automationLinkActive: widget.automationLinkActive,
-                    onAutomationLinkTap: widget.onAutomationParamSelected != null
-                        ? _onAutomationLinkTap
-                        : null,
-                    onAutomateParameter: widget.onAutomateParameter != null
-                        ? _onAutomateParameter
-                        : null,
+                  width: _outputWidth,
+                  child: DeviceStripChrome.outputPanel(
+                    deviceType: widget.device.type,
+                    bindings: _chromeBindings,
                   ),
                 ),
               ],
