@@ -13,6 +13,8 @@ import 'lfo_properties_panel.dart';
 import 'modulation_grid.dart';
 import 'kick_generator_device_panel.dart';
 import 'kick_generator_device_strip.dart';
+import 'snare_generator_device_panel.dart';
+import 'snare_generator_device_strip.dart';
 import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
 import 'subtractive_synth_device_panel.dart';
@@ -287,6 +289,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         'simple_oscillator' => '${widget.device.frequencyHz.round()} Hz',
         'subtractive_synth' => 'Multimode · 8 voices',
         'kick_generator' => 'Mono · synth',
+        'snare_generator' => 'Mono · synth',
         _ => null,
       };
 
@@ -494,6 +497,28 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             device: widget.device,
             onParameterChanged: widget.onDeviceParameterChanged,
             selectedTab: KickDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
+            modulatedParams: _modulatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
+            onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
+          ),
+        );
+      case 'snare_generator':
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: _cardWidth,
+          designHeight: contentHeight,
+          child: SnareGeneratorDeviceStrip(
+            device: widget.device,
+            onParameterChanged: widget.onDeviceParameterChanged,
+            selectedTab: SnareDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
             modulatedParams: _modulatedParamIds,
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,

@@ -179,6 +179,7 @@ private:
         BiquadState samplerFilterStates[kMaxDevicesPerTrack];
         SubtractiveSynthRuntime subtractiveRuntimes[kMaxDevicesPerTrack];
         KickGeneratorRuntime kickRuntimes[kMaxDevicesPerTrack];
+        SnareGeneratorRuntime snareRuntimes[kMaxDevicesPerTrack];
         float oscillatorPhase = 0.0f;
     };
 

@@ -142,6 +142,14 @@ juce::var deviceToVar(const DeviceState& device) {
         parameters->setProperty("kickTone", static_cast<double>(device.kickTone));
         parameters->setProperty("kickVelocity", static_cast<double>(device.kickVelocity));
     }
+    if (device.type == "snare_generator") {
+        parameters->setProperty("snareBody", static_cast<double>(device.snareBody));
+        parameters->setProperty("snareTune", static_cast<double>(device.snareTune));
+        parameters->setProperty("snareSnares", static_cast<double>(device.snareSnares));
+        parameters->setProperty("snareSnap", static_cast<double>(device.snareSnap));
+        parameters->setProperty("snareDecay", static_cast<double>(device.snareDecay));
+        parameters->setProperty("snareVelocity", static_cast<double>(device.snareVelocity));
+    }
 
     auto* object = new juce::DynamicObject();
     object->setProperty("id", toJuceString(device.id));
@@ -220,6 +228,12 @@ DeviceState deviceFromVar(const juce::var& value) {
             device.kickClick = varToFloat(params->getProperty("kickClick"), 0.35f);
             device.kickTone = varToFloat(params->getProperty("kickTone"), 0.50f);
             device.kickVelocity = varToFloat(params->getProperty("kickVelocity"), 1.0f);
+            device.snareBody = varToFloat(params->getProperty("snareBody"), 0.55f);
+            device.snareTune = varToFloat(params->getProperty("snareTune"), 0.50f);
+            device.snareSnares = varToFloat(params->getProperty("snareSnares"), 0.60f);
+            device.snareSnap = varToFloat(params->getProperty("snareSnap"), 0.40f);
+            device.snareDecay = varToFloat(params->getProperty("snareDecay"), 0.50f);
+            device.snareVelocity = varToFloat(params->getProperty("snareVelocity"), 1.0f);
         }
     }
     return device;

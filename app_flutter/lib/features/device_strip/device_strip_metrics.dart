@@ -43,6 +43,7 @@ class DeviceStripMetrics {
       'simple_sampler' => designWidth,
       'subtractive_synth' => oscillatorDesignWidth,
       'kick_generator' => oscillatorDesignWidth,
+      'snare_generator' => oscillatorDesignWidth,
       'simple_oscillator' => oscillatorDesignWidth,
       _ => 280,
     };

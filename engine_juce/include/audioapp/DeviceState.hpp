@@ -52,6 +52,12 @@ struct DeviceState {
     float kickClick = 0.35f;
     float kickTone = 0.50f;
     float kickVelocity = 1.0f;
+    float snareBody = 0.55f;
+    float snareTune = 0.50f;
+    float snareSnares = 0.60f;
+    float snareSnap = 0.40f;
+    float snareDecay = 0.50f;
+    float snareVelocity = 1.0f;
 };
 
 } // namespace audioapp
