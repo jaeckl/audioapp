@@ -23,11 +23,9 @@ void ProjectEngine::createProject() {
     trackRepo_.clear();
     clipRepo_.clear();
     projectName_ = "Untitled";
+    transport_.reset();
     nextLfoId_ = 1;
-    bpm_ = 120;
     activeFrequencyHz_.store(440.0f, std::memory_order_release);
-    playing_.store(false, std::memory_order_release);
-    playheadBeats_.store(0.0, std::memory_order_release);
     masterGain_.store(1.0f, std::memory_order_release);
     trackPlaybackCount_.store(0, std::memory_order_release);
     lfos_.clear();
@@ -163,7 +161,7 @@ std::string ProjectEngine::createSampleClip(const std::string& trackId,
                                             double lengthBeats) {
     std::lock_guard<std::mutex> lock(mutex_);
     const std::string clipId = clipRepo_.createSampleClip(
-        trackId, sampleId, startBeat, lengthBeats, sampleBank_, bpm_);
+        trackId, sampleId, startBeat, lengthBeats, sampleBank_, transport_.bpm());
     if (clipId.empty()) {
         return {};
     }
@@ -192,11 +190,10 @@ bool ProjectEngine::setClipLength(const std::string& clipId, double lengthBeats)
 }
 
 bool ProjectEngine::setBpm(int bpm) {
-    if (bpm < 40 || bpm > 300) {
+    if (!transport_.setBpm(bpm)) {
         return false;
     }
     std::lock_guard<std::mutex> lock(mutex_);
-    bpm_ = bpm;
     rebuildTrackPlaybackLocked();
     return true;
 }
@@ -231,17 +228,12 @@ bool ProjectEngine::duplicateClip(const std::string& clipId) {
 
 bool ProjectEngine::setLoopEnabled(bool enabled) {
     std::lock_guard<std::mutex> lock(mutex_);
-    loopEnabled_ = enabled;
+    transport_.setLoopEnabled(enabled);
     return true;
 }
 
 bool ProjectEngine::setLoopLengthBeats(double lengthBeats) {
-    if (lengthBeats < 1.0) {
-        return false;
-    }
-    std::lock_guard<std::mutex> lock(mutex_);
-    loopLengthBeats_ = lengthBeats;
-    return true;
+    return transport_.setLoopLengthBeats(lengthBeats);
 }
 
 std::vector<float> ProjectEngine::renderOffline(double lengthBeats, double sampleRate) {
@@ -250,7 +242,7 @@ std::vector<float> ProjectEngine::renderOffline(double lengthBeats, double sampl
     }
     std::lock_guard<std::mutex> lock(mutex_);
     const int totalFrames =
-        static_cast<int>(lengthBeats * sampleRate * 60.0 / static_cast<double>(std::max(bpm_, 1)));
+        static_cast<int>(lengthBeats * sampleRate * 60.0 / static_cast<double>(std::max(transport_.bpm(), 1)));
     if (totalFrames <= 0) {
         return {};
     }
@@ -260,7 +252,7 @@ std::vector<float> ProjectEngine::renderOffline(double lengthBeats, double sampl
     for (int offset = 0; offset < totalFrames; offset += kBlock) {
         const int frames = std::min(kBlock, totalFrames - offset);
         const double beat =
-            static_cast<double>(offset) / sampleRate * static_cast<double>(bpm_) / 60.0;
+            static_cast<double>(offset) / sampleRate * static_cast<double>(transport_.bpm()) / 60.0;
         std::memset(block, 0, static_cast<size_t>(frames) * sizeof(float));
         mixAtPlayheadBeat(block, frames, sampleRate, beat);
         std::memcpy(output.data() + offset, block, static_cast<size_t>(frames) * sizeof(float));
@@ -271,12 +263,12 @@ std::vector<float> ProjectEngine::renderOffline(double lengthBeats, double sampl
 ProjectSnapshot ProjectEngine::snapshot() const {
     std::lock_guard<std::mutex> lock(mutex_);
     ProjectSnapshot snap;
-    snap.bpm = bpm_;
+    snap.bpm = transport_.bpm();
     snap.selectedTrackId = trackRepo_.selectedTrackId();
-    snap.playheadBeats = playheadBeats_.load(std::memory_order_relaxed);
-    snap.playing = playing_.load(std::memory_order_relaxed);
-    snap.loopEnabled = loopEnabled_;
-    snap.loopLengthBeats = loopLengthBeats_;
+    snap.playheadBeats = transport_.playheadBeats();
+    snap.playing = transport_.isPlaying();
+    snap.loopEnabled = transport_.loopEnabled();
+    snap.loopLengthBeats = transport_.loopLengthBeats();
     snap.recordArmed = recordArmed_;
     snap.master.id = "master";
     snap.master.name = "Master";
@@ -287,7 +279,7 @@ ProjectSnapshot ProjectEngine::snapshot() const {
             entry.id = sample.id;
             entry.name = sample.name;
             entry.source = sample.source;
-            entry.durationBeats = sampleBank_->beatsForSample(sample.id, bpm_);
+            entry.durationBeats = sampleBank_->beatsForSample(sample.id, transport_.bpm());
             entry.waveformPeaks = sample.peaks;
             snap.samples.push_back(std::move(entry));
         }
@@ -343,7 +335,7 @@ ProjectSnapshot ProjectEngine::snapshot() const {
 }
 
 float ProjectEngine::activeOscillatorFrequencyHz() const {
-    if (!playing_.load(std::memory_order_acquire)) {
+    if (!transport_.isPlaying()) {
         return activeFrequencyHz_.load(std::memory_order_acquire);
     }
 
@@ -358,7 +350,7 @@ float ProjectEngine::activeOscillatorFrequencyHz() const {
         return 0.0f;
     }
 
-    const double playhead = playheadBeats_.load(std::memory_order_acquire);
+    const double playhead = transport_.playheadBeats();
     if (trackHasActiveSampleAtPlayhead(track, playhead)) {
         return 0.0f;
     }
@@ -411,7 +403,7 @@ void ProjectEngine::readMasterMixStereo(float* leftOut,
     }
     std::memset(leftOut, 0, static_cast<size_t>(numFrames) * sizeof(float));
     std::memset(rightOut, 0, static_cast<size_t>(numFrames) * sizeof(float));
-    if (!playing_.load(std::memory_order_acquire)) {
+    if (!transport_.isPlaying()) {
         return;
     }
     mixAtPlayheadBeatStereo(leftOut, rightOut, numFrames, sampleRate, playheadStartBeat);
@@ -451,7 +443,7 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
             lfoValues.reserve(needed + 4096);
         }
         lfoValues.resize(needed, 0.0f);
-        const double playheadSeconds = playheadStartBeat * 60.0 / static_cast<double>(std::max(bpm_, 1));
+        const double playheadSeconds = playheadStartBeat * 60.0 / static_cast<double>(std::max(transport_.bpm(), 1));
         const double samplePeriod = 1.0 / std::max(sampleRate, 1.0);
         for (int i = 0; i < lfoCount; ++i) {
             const auto& lfo = lfoPlayback_[i].state;
@@ -464,7 +456,7 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                 } else {
                     // Sync mode: derive phase from playhead position
                     const double beatDuration = lfoSyncBeats(lfo.syncDivision);
-                    const double frameBeat = playheadStartBeat + static_cast<double>(frame) * samplePeriod * (static_cast<double>(std::max(bpm_, 1)) / 60.0);
+                    const double frameBeat = playheadStartBeat + static_cast<double>(frame) * samplePeriod * (static_cast<double>(std::max(transport_.bpm(), 1)) / 60.0);
                     phase = (beatDuration > 0.0) ? (frameBeat / beatDuration) : 0.0;
                     phase += static_cast<double>(lfo.phase);
                 }
@@ -496,7 +488,7 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
             mixSampleRegionsBlock(trackLeft,
                                   framesToProcess,
                                   sampleRate,
-                                  bpm_,
+                                  transport_.bpm(),
                                   playheadStartBeat,
                                   regions,
                                   track.regionCount);
@@ -526,7 +518,7 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                            trackRight,
                            framesToProcess,
                            sampleRate,
-                           bpm_,
+                           transport_.bpm(),
                            playheadStartBeat,
                            midiNotes,
                            noteCount,
@@ -575,38 +567,29 @@ void ProjectEngine::setPlaying(bool playing) {
     if (playing) {
         std::lock_guard<std::mutex> lock(mutex_);
         rebuildTrackPlaybackLocked();
-        resetPlayhead();
+        transport_.resetPlayhead();
     }
-    playing_.store(playing, std::memory_order_release);
+    transport_.setPlaying(playing);
 }
 
 bool ProjectEngine::isPlaying() const noexcept {
-    return playing_.load(std::memory_order_acquire);
+    return transport_.isPlaying();
 }
 
 double ProjectEngine::playheadBeats() const noexcept {
-    return playheadBeats_.load(std::memory_order_acquire);
+    return transport_.playheadBeats();
 }
 
 void ProjectEngine::setPlayheadBeats(double beats) noexcept {
-    const double clamped = beats < 0.0 ? 0.0 : beats;
-    playheadBeats_.store(clamped, std::memory_order_release);
+    transport_.setPlayheadBeats(beats);
 }
 
 void ProjectEngine::resetPlayhead() noexcept {
-    playheadBeats_.store(0.0, std::memory_order_release);
+    transport_.resetPlayhead();
 }
 
 void ProjectEngine::advancePlayhead(int numFrames, double sampleRate) noexcept {
-    if (!playing_.load(std::memory_order_acquire)) {
-        return;
-    }
-    const double current = playheadBeats_.load(std::memory_order_relaxed);
-    double next = advancePlayheadBeats(current, numFrames, sampleRate, bpm_);
-    if (loopEnabled_ && loopLengthBeats_ > 0.0 && next >= loopLengthBeats_) {
-        next = std::fmod(next, loopLengthBeats_);
-    }
-    playheadBeats_.store(next, std::memory_order_release);
+    transport_.advancePlayhead(numFrames, sampleRate);
 }
 
 ProjectFileData ProjectEngine::toProjectFileData() const {
@@ -614,7 +597,7 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
     ProjectFileData file;
     file.projectFormatVersion = kProjectFormatVersion;
     file.name = projectName_;
-    file.bpm = bpm_;
+    file.bpm = transport_.bpm();
     file.selectedTrackId = trackRepo_.selectedTrackId();
     file.master.id = "master";
     file.master.name = "Master";
@@ -625,7 +608,7 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
             entry.id = sample.id;
             entry.name = sample.name;
             entry.source = sample.source;
-            entry.durationBeats = sampleBank_->beatsForSample(sample.id, bpm_);
+            entry.durationBeats = sampleBank_->beatsForSample(sample.id, transport_.bpm());
             entry.waveformPeaks = sample.peaks;
             file.sampleLibrary.push_back(std::move(entry));
         }
@@ -682,7 +665,11 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
 
     std::lock_guard<std::mutex> lock(mutex_);
     projectName_ = data.name.empty() ? "Untitled" : data.name;
-    bpm_ = data.bpm > 0 ? data.bpm : 120;
+    if (data.bpm > 0) {
+        transport_.setBpm(data.bpm);
+    } else {
+        transport_.setBpm(120);
+    }
     trackRepo_.setSelectedTrackId(data.selectedTrackId);
     trackRepo_.tracks().clear();
 
@@ -730,8 +717,8 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
     } else {
         masterGain_.store(1.0f, std::memory_order_release);
     }
-    playing_.store(false, std::memory_order_release);
-    playheadBeats_.store(0.0, std::memory_order_release);
+    transport_.setPlaying(false);
+    transport_.resetPlayhead();
     syncActiveFrequencyLocked();
     rebuildTrackPlaybackLocked();
     rebuildLfoPlaybackLocked();

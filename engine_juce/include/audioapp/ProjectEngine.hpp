@@ -19,6 +19,7 @@
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/SubtractiveSynth.hpp"
 #include "audioapp/devices/DeviceRegistry.hpp"
+#include "audioapp/transport/TransportController.hpp"
 
 namespace audioapp {
 
@@ -163,15 +164,11 @@ private:
 
     mutable std::mutex mutex_;
     std::string projectName_ = "Untitled";
-    int bpm_ = 120;
+    TransportController transport_;
     TrackRepository trackRepo_;
     ClipRepository clipRepo_{trackRepo_};
     std::atomic<float> activeFrequencyHz_{440.0f};
-    std::atomic<bool> playing_{false};
-    std::atomic<double> playheadBeats_{0.0};
     std::atomic<float> masterGain_{1.0f};
-    bool loopEnabled_ = true;
-    double loopLengthBeats_ = 16.0;
     bool recordArmed_ = false;
 
     struct CaptureEvent {

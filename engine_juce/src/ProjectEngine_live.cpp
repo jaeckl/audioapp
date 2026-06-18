@@ -34,7 +34,7 @@ double ProjectEngine::sampleTimeToCaptureBeat(uint64_t sampleTime) const {
     }
     const double seconds =
         static_cast<double>(sampleTime - captureStartSample_) / 48000.0;
-    return seconds * static_cast<double>(bpm_) / 60.0;
+    return seconds * static_cast<double>(transport_.bpm()) / 60.0;
 }
 
 bool ProjectEngine::setRecordArmed(bool armed) {
@@ -171,7 +171,7 @@ bool ProjectEngine::commitCapture() {
             maxEnd = std::max(maxEnd, note.startBeat + note.durationBeats);
         }
         clipLength = std::max(4.0, std::ceil(maxEnd / 4.0) * 4.0);
-        clipStart = playheadBeats_;
+        clipStart = transport_.playheadBeats();
         trackId = trackRepo_.selectedTrackId();
 
         captureEvents_.clear();
