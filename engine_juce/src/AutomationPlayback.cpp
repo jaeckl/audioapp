@@ -212,6 +212,64 @@ void applyAutomationValue(DeviceVariantParams& params,
             }
         }
         break;
+    case DeviceNodeKind::Gate:
+        if (auto* p = std::get_if<GateParams>(&params)) {
+            if (paramId == "gateThreshold") {
+                p->gateThreshold = value;
+            } else if (paramId == "gateAttack") {
+                p->gateAttack = value;
+            } else if (paramId == "gateRelease") {
+                p->gateRelease = value;
+            } else if (paramId == "gateHold") {
+                p->gateHold = value;
+            } else if (paramId == "gateRange") {
+                p->gateRange = value;
+            }
+        }
+        break;
+    case DeviceNodeKind::Compressor:
+        if (auto* p = std::get_if<CompressorParams>(&params)) {
+            if (paramId == "compThreshold") {
+                p->compThreshold = value;
+            } else if (paramId == "compRatio") {
+                p->compRatio = value;
+            } else if (paramId == "compAttack") {
+                p->compAttack = value;
+            } else if (paramId == "compRelease") {
+                p->compRelease = value;
+            } else if (paramId == "compKnee") {
+                p->compKnee = value;
+            } else if (paramId == "compMakeup") {
+                p->compMakeup = value;
+            }
+        }
+        break;
+    case DeviceNodeKind::Expander:
+        if (auto* p = std::get_if<ExpanderParams>(&params)) {
+            if (paramId == "expandThreshold") {
+                p->expandThreshold = value;
+            } else if (paramId == "expandRatio") {
+                p->expandRatio = value;
+            } else if (paramId == "expandAttack") {
+                p->expandAttack = value;
+            } else if (paramId == "expandRelease") {
+                p->expandRelease = value;
+            } else if (paramId == "expandRange") {
+                p->expandRange = value;
+            }
+        }
+        break;
+    case DeviceNodeKind::Limiter:
+        if (auto* p = std::get_if<LimiterParams>(&params)) {
+            if (paramId == "limitCeiling") {
+                p->limitCeiling = value;
+            } else if (paramId == "limitRelease") {
+                p->limitRelease = value;
+            } else if (paramId == "limitDrive") {
+                p->limitDrive = value;
+            }
+        }
+        break;
     case DeviceNodeKind::TrackGain:
         break;
     default:

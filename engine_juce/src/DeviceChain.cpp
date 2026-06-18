@@ -9,6 +9,7 @@
 #include "audioapp/SnareGenerator.hpp"
 #include "audioapp/ClapGenerator.hpp"
 #include "audioapp/CymbalGenerator.hpp"
+#include "audioapp/DynamicsProcessor.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -181,6 +182,60 @@ void applyModulation(CymbalGeneratorParams& p, float modAmount, const std::strin
     }
 }
 
+void applyModulation(GateParams& p, float modAmount, const std::string& paramId) noexcept {
+    if (paramId == "gateThreshold") {
+        p.gateThreshold = std::clamp(p.gateThreshold + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "gateAttack") {
+        p.gateAttack = std::clamp(p.gateAttack + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "gateRelease") {
+        p.gateRelease = std::clamp(p.gateRelease + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "gateHold") {
+        p.gateHold = std::clamp(p.gateHold + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "gateRange") {
+        p.gateRange = std::clamp(p.gateRange + modAmount, 0.0f, 1.0f);
+    }
+}
+
+void applyModulation(CompressorParams& p, float modAmount, const std::string& paramId) noexcept {
+    if (paramId == "compThreshold") {
+        p.compThreshold = std::clamp(p.compThreshold + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "compRatio") {
+        p.compRatio = std::clamp(p.compRatio + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "compAttack") {
+        p.compAttack = std::clamp(p.compAttack + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "compRelease") {
+        p.compRelease = std::clamp(p.compRelease + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "compKnee") {
+        p.compKnee = std::clamp(p.compKnee + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "compMakeup") {
+        p.compMakeup = std::clamp(p.compMakeup + modAmount, 0.0f, 1.0f);
+    }
+}
+
+void applyModulation(ExpanderParams& p, float modAmount, const std::string& paramId) noexcept {
+    if (paramId == "expandThreshold") {
+        p.expandThreshold = std::clamp(p.expandThreshold + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "expandRatio") {
+        p.expandRatio = std::clamp(p.expandRatio + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "expandAttack") {
+        p.expandAttack = std::clamp(p.expandAttack + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "expandRelease") {
+        p.expandRelease = std::clamp(p.expandRelease + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "expandRange") {
+        p.expandRange = std::clamp(p.expandRange + modAmount, 0.0f, 1.0f);
+    }
+}
+
+void applyModulation(LimiterParams& p, float modAmount, const std::string& paramId) noexcept {
+    if (paramId == "limitCeiling") {
+        p.limitCeiling = std::clamp(p.limitCeiling + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "limitRelease") {
+        p.limitRelease = std::clamp(p.limitRelease + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "limitDrive") {
+        p.limitDrive = std::clamp(p.limitDrive + modAmount, 0.0f, 1.0f);
+    }
+}
+
 /// Multiply buffer by per-frame gain values.
 void multiplyPerFrameGain(float* buffer, int frames, const float* perFrameGain) noexcept {
     for (int f = 0; f < frames; ++f) {
@@ -236,6 +291,7 @@ void processDeviceChain(float* trackLeft,
                         SnareGeneratorRuntime* snareRuntimes,
                         ClapGeneratorRuntime* clapRuntimes,
                         CymbalGeneratorRuntime* cymbalRuntimes,
+                        DynamicsRuntime* dynamicsRuntimes,
                         const float* lfoValues,
                         int lfoCount,
                         const ModulationEdge* modEdges,
@@ -534,6 +590,54 @@ void processDeviceChain(float* trackLeft,
                     mixStereoPerFramePan(trackLeft, trackRight, scratch,
                                          framesToProcess, perFramePan);
                 }
+            }
+            break;
+        }
+        case DeviceNodeKind::Gate: {
+            auto p = std::get<GateParams>(modulatedParams);
+            DynamicsRuntime localRuntime{};
+            processGateStereoBlock(trackLeft, trackRight, framesToProcess, sampleRate, p,
+                                   dynamicsRuntimes != nullptr ? dynamicsRuntimes[deviceIndex]
+                                                                 : localRuntime);
+            for (int f = 0; f < framesToProcess; ++f) {
+                trackLeft[f] *= perFrameGain[f];
+                trackRight[f] *= perFrameGain[f];
+            }
+            break;
+        }
+        case DeviceNodeKind::Compressor: {
+            auto p = std::get<CompressorParams>(modulatedParams);
+            DynamicsRuntime localRuntime{};
+            processCompressorStereoBlock(trackLeft, trackRight, framesToProcess, sampleRate, p,
+                                         dynamicsRuntimes != nullptr ? dynamicsRuntimes[deviceIndex]
+                                                                       : localRuntime);
+            for (int f = 0; f < framesToProcess; ++f) {
+                trackLeft[f] *= perFrameGain[f];
+                trackRight[f] *= perFrameGain[f];
+            }
+            break;
+        }
+        case DeviceNodeKind::Expander: {
+            auto p = std::get<ExpanderParams>(modulatedParams);
+            DynamicsRuntime localRuntime{};
+            processExpanderStereoBlock(trackLeft, trackRight, framesToProcess, sampleRate, p,
+                                       dynamicsRuntimes != nullptr ? dynamicsRuntimes[deviceIndex]
+                                                                     : localRuntime);
+            for (int f = 0; f < framesToProcess; ++f) {
+                trackLeft[f] *= perFrameGain[f];
+                trackRight[f] *= perFrameGain[f];
+            }
+            break;
+        }
+        case DeviceNodeKind::Limiter: {
+            auto p = std::get<LimiterParams>(modulatedParams);
+            DynamicsRuntime localRuntime{};
+            processLimiterStereoBlock(trackLeft, trackRight, framesToProcess, sampleRate, p,
+                                      dynamicsRuntimes != nullptr ? dynamicsRuntimes[deviceIndex]
+                                                                  : localRuntime);
+            for (int f = 0; f < framesToProcess; ++f) {
+                trackLeft[f] *= perFrameGain[f];
+                trackRight[f] *= perFrameGain[f];
             }
             break;
         }

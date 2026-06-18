@@ -68,6 +68,25 @@ struct DeviceState {
     float cymbalDecay = 0.50f;
     float cymbalChoke = 0.0f;
     float cymbalVelocity = 1.0f;
+    float gateThreshold = 0.45f;
+    float gateAttack = 0.25f;
+    float gateRelease = 0.50f;
+    float gateHold = 0.20f;
+    float gateRange = 0.0f;
+    float compThreshold = 0.55f;
+    float compRatio = 0.50f;
+    float compAttack = 0.20f;
+    float compRelease = 0.55f;
+    float compKnee = 0.25f;
+    float compMakeup = 0.35f;
+    float expandThreshold = 0.40f;
+    float expandRatio = 0.45f;
+    float expandAttack = 0.25f;
+    float expandRelease = 0.55f;
+    float expandRange = 0.15f;
+    float limitCeiling = 0.85f;
+    float limitRelease = 0.40f;
+    float limitDrive = 0.0f;
 };
 
 } // namespace audioapp

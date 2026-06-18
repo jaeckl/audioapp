@@ -53,6 +53,10 @@ add_library(audioapp_engine STATIC
   src/devices/SnareGeneratorDeviceType.cpp
   src/devices/ClapGeneratorDeviceType.cpp
   src/devices/CymbalGeneratorDeviceType.cpp
+  src/devices/GateDeviceType.cpp
+  src/devices/CompressorDeviceType.cpp
+  src/devices/ExpanderDeviceType.cpp
+  src/devices/LimiterDeviceType.cpp
   src/model/TrackRepository.cpp
   src/model/ClipRepository.cpp
   src/transport/TransportController.cpp
@@ -138,6 +142,10 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
   add_executable(cymbal_generator_test tests/cymbal_generator_test.cpp)
   target_link_libraries(cymbal_generator_test PRIVATE audioapp_engine)
   add_test(NAME cymbal_generator_test COMMAND cymbal_generator_test)
+
+  add_executable(gate_device_test tests/gate_device_test.cpp)
+  target_link_libraries(gate_device_test PRIVATE audioapp_engine)
+  add_test(NAME gate_device_test COMMAND gate_device_test)
 
   add_executable(dynamics_processor_test tests/dynamics_processor_test.cpp)
   target_link_libraries(dynamics_processor_test PRIVATE audioapp_engine)

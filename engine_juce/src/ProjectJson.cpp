@@ -79,7 +79,9 @@ MidiNoteState midiNoteFromVar(const juce::var& value) {
 juce::var deviceToVar(const DeviceState& device) {
     auto* parameters = new juce::DynamicObject();
     if (device.type == "track_gain" || device.type == "simple_sampler" ||
-        device.type == "simple_oscillator" || device.type == "subtractive_synth") {
+        device.type == "simple_oscillator" || device.type == "subtractive_synth" ||
+        device.type == "gate" || device.type == "compressor" || device.type == "expander" ||
+        device.type == "limiter") {
         parameters->setProperty("gain", static_cast<double>(device.gain));
     }
     if (device.type != "track_gain") {
@@ -163,6 +165,33 @@ juce::var deviceToVar(const DeviceState& device) {
         parameters->setProperty("cymbalDecay", static_cast<double>(device.cymbalDecay));
         parameters->setProperty("cymbalChoke", static_cast<double>(device.cymbalChoke));
         parameters->setProperty("cymbalVelocity", static_cast<double>(device.cymbalVelocity));
+    }
+    if (device.type == "gate") {
+        parameters->setProperty("gateThreshold", static_cast<double>(device.gateThreshold));
+        parameters->setProperty("gateAttack", static_cast<double>(device.gateAttack));
+        parameters->setProperty("gateRelease", static_cast<double>(device.gateRelease));
+        parameters->setProperty("gateHold", static_cast<double>(device.gateHold));
+        parameters->setProperty("gateRange", static_cast<double>(device.gateRange));
+    }
+    if (device.type == "compressor") {
+        parameters->setProperty("compThreshold", static_cast<double>(device.compThreshold));
+        parameters->setProperty("compRatio", static_cast<double>(device.compRatio));
+        parameters->setProperty("compAttack", static_cast<double>(device.compAttack));
+        parameters->setProperty("compRelease", static_cast<double>(device.compRelease));
+        parameters->setProperty("compKnee", static_cast<double>(device.compKnee));
+        parameters->setProperty("compMakeup", static_cast<double>(device.compMakeup));
+    }
+    if (device.type == "expander") {
+        parameters->setProperty("expandThreshold", static_cast<double>(device.expandThreshold));
+        parameters->setProperty("expandRatio", static_cast<double>(device.expandRatio));
+        parameters->setProperty("expandAttack", static_cast<double>(device.expandAttack));
+        parameters->setProperty("expandRelease", static_cast<double>(device.expandRelease));
+        parameters->setProperty("expandRange", static_cast<double>(device.expandRange));
+    }
+    if (device.type == "limiter") {
+        parameters->setProperty("limitCeiling", static_cast<double>(device.limitCeiling));
+        parameters->setProperty("limitRelease", static_cast<double>(device.limitRelease));
+        parameters->setProperty("limitDrive", static_cast<double>(device.limitDrive));
     }
 
     auto* object = new juce::DynamicObject();
@@ -258,6 +287,25 @@ DeviceState deviceFromVar(const juce::var& value) {
             device.cymbalDecay = varToFloat(params->getProperty("cymbalDecay"), 0.50f);
             device.cymbalChoke = varToFloat(params->getProperty("cymbalChoke"), 0.0f);
             device.cymbalVelocity = varToFloat(params->getProperty("cymbalVelocity"), 1.0f);
+            device.gateThreshold = varToFloat(params->getProperty("gateThreshold"), 0.45f);
+            device.gateAttack = varToFloat(params->getProperty("gateAttack"), 0.25f);
+            device.gateRelease = varToFloat(params->getProperty("gateRelease"), 0.50f);
+            device.gateHold = varToFloat(params->getProperty("gateHold"), 0.20f);
+            device.gateRange = varToFloat(params->getProperty("gateRange"), 0.0f);
+            device.compThreshold = varToFloat(params->getProperty("compThreshold"), 0.55f);
+            device.compRatio = varToFloat(params->getProperty("compRatio"), 0.50f);
+            device.compAttack = varToFloat(params->getProperty("compAttack"), 0.20f);
+            device.compRelease = varToFloat(params->getProperty("compRelease"), 0.55f);
+            device.compKnee = varToFloat(params->getProperty("compKnee"), 0.25f);
+            device.compMakeup = varToFloat(params->getProperty("compMakeup"), 0.35f);
+            device.expandThreshold = varToFloat(params->getProperty("expandThreshold"), 0.40f);
+            device.expandRatio = varToFloat(params->getProperty("expandRatio"), 0.45f);
+            device.expandAttack = varToFloat(params->getProperty("expandAttack"), 0.25f);
+            device.expandRelease = varToFloat(params->getProperty("expandRelease"), 0.55f);
+            device.expandRange = varToFloat(params->getProperty("expandRange"), 0.15f);
+            device.limitCeiling = varToFloat(params->getProperty("limitCeiling"), 0.85f);
+            device.limitRelease = varToFloat(params->getProperty("limitRelease"), 0.40f);
+            device.limitDrive = varToFloat(params->getProperty("limitDrive"), 0.0f);
         }
     }
     return device;

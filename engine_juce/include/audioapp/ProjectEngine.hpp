@@ -182,6 +182,7 @@ private:
         SnareGeneratorRuntime snareRuntimes[kMaxDevicesPerTrack];
         ClapGeneratorRuntime clapRuntimes[kMaxDevicesPerTrack];
         CymbalGeneratorRuntime cymbalRuntimes[kMaxDevicesPerTrack];
+        DynamicsRuntime dynamicsRuntimes[kMaxDevicesPerTrack];
         float oscillatorPhase = 0.0f;
     };
 
