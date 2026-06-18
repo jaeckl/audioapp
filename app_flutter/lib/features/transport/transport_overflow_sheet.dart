@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../bridge/bridge_parsing.dart';
+
 /// Tap-tempo helper — averages last intervals between taps.
 class TapTempo {
   TapTempo({this.maxSamples = 4, this.minBpm = 40, this.maxBpm = 300});
@@ -63,6 +65,30 @@ class TransportOverflowSheet extends StatefulWidget {
 class _TransportOverflowSheetState extends State<TransportOverflowSheet> {
   final _tapTempo = TapTempo();
   String? _tapHint;
+  late bool _loopEnabled;
+  late double _loopLengthBars;
+
+  @override
+  void initState() {
+    super.initState();
+    _loopEnabled = widget.loopEnabled;
+    _loopLengthBars = _barsFromBeats(widget.loopLengthBeats);
+  }
+
+  @override
+  void didUpdateWidget(covariant TransportOverflowSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.loopEnabled != widget.loopEnabled) {
+      _loopEnabled = widget.loopEnabled;
+    }
+    if (oldWidget.loopLengthBeats != widget.loopLengthBeats) {
+      _loopLengthBars = _barsFromBeats(widget.loopLengthBeats);
+    }
+  }
+
+  double _barsFromBeats(double beats) {
+    return readEngineDouble(beats, defaultValue: 16.0) / 4.0;
+  }
 
   void _onTapTempo() {
     final bpm = _tapTempo.registerTap();
@@ -99,8 +125,11 @@ class _TransportOverflowSheetState extends State<TransportOverflowSheet> {
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Loop playback'),
-                value: widget.loopEnabled,
-                onChanged: widget.onLoopToggled,
+                value: _loopEnabled,
+                onChanged: (enabled) {
+                  setState(() => _loopEnabled = enabled);
+                  widget.onLoopToggled(enabled);
+                },
               ),
               const SizedBox(height: 8),
               Text('Loop length (bars)', style: theme.textTheme.labelMedium),
@@ -108,9 +137,14 @@ class _TransportOverflowSheetState extends State<TransportOverflowSheet> {
                 min: 1,
                 max: 64,
                 divisions: 63,
-                label: '${(widget.loopLengthBeats / 4).round()} bars',
-                value: (widget.loopLengthBeats / 4).clamp(1, 64),
-                onChanged: (bars) => widget.onLoopLengthChanged(bars * 4),
+                label: '${_loopLengthBars.round()} bars',
+                value: _loopLengthBars.clamp(1, 64),
+                onChanged: _loopEnabled
+                    ? (bars) {
+                        setState(() => _loopLengthBars = bars);
+                        widget.onLoopLengthChanged(bars * 4);
+                      }
+                    : null,
               ),
               if (widget.onExportMix != null) ...[
                 const Divider(height: 24),

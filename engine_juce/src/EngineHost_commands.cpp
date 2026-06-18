@@ -201,6 +201,7 @@ bool EngineHost::removeModulation(int lfoId, const std::string& paramId) {
 }
 
 bool EngineHost::noteOn(int pitch, float velocity) {
+    ensureAudioOutput();
     return project_.noteOn(pitch, velocity);
 }
 

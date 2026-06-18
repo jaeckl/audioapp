@@ -1,3 +1,5 @@
+import 'bridge_parsing.dart';
+
 /// Lightweight transport position from the engine (no full project snapshot).
 class TransportState {
   const TransportState({
@@ -17,10 +19,10 @@ class TransportState {
   factory TransportState.fromMap(Map<dynamic, dynamic> map) {
     return TransportState(
       playheadBeats: (map['playheadBeats'] as num?)?.toDouble() ?? 0.0,
-      playing: map['playing'] == true,
+      playing: readEngineBool(map['playing'], defaultValue: false),
       bpm: (map['bpm'] as num?)?.toInt() ?? 120,
-      loopEnabled: map['loopEnabled'] != false,
-      loopLengthBeats: (map['loopLengthBeats'] as num?)?.toDouble() ?? 16.0,
+      loopEnabled: readEngineBool(map['loopEnabled'], defaultValue: true),
+      loopLengthBeats: readEngineDouble(map['loopLengthBeats'], defaultValue: 16.0),
     );
   }
 }

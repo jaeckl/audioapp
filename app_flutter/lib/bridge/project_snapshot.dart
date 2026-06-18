@@ -4,6 +4,7 @@ library;
 export 'clip_snapshots.dart';
 export 'timeline_clip.dart';
 
+import 'bridge_parsing.dart';
 import 'clip_snapshots.dart';
 
 class ProjectSnapshot {
@@ -46,8 +47,8 @@ class ProjectSnapshot {
       selectedTrackId: snapshot['selectedTrackId'] as String? ?? '',
       playheadBeats: (snapshot['playheadBeats'] as num?)?.toDouble() ?? 0.0,
       playing: snapshot['playing'] == true,
-      loopEnabled: snapshot['loopEnabled'] != false,
-      loopLengthBeats: (snapshot['loopLengthBeats'] as num?)?.toDouble() ?? 16.0,
+      loopEnabled: readEngineBool(snapshot['loopEnabled'], defaultValue: true),
+      loopLengthBeats: readEngineDouble(snapshot['loopLengthBeats'], defaultValue: 16.0),
       recordArmed: snapshot['recordArmed'] == true,
       master: MasterTrackSnapshot.fromMap(snapshot['master'] as Map<dynamic, dynamic>?),
       samples: samplesRaw

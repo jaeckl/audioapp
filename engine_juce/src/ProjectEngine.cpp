@@ -265,6 +265,7 @@ bool ProjectEngine::setLoopEnabled(bool enabled) {
 }
 
 bool ProjectEngine::setLoopLengthBeats(double lengthBeats) {
+    std::lock_guard<std::mutex> lock(mutex_);
     return transport_.setLoopLengthBeats(lengthBeats);
 }
 

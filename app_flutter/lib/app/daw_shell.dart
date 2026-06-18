@@ -137,11 +137,24 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
     unawaited(_syncTransportState());
   }
 
+  void _syncTransportAnchorFromSnapshot(ProjectSnapshot snapshot) {
+    _syncBpm = snapshot.bpm;
+    _syncLoopEnabled = snapshot.loopEnabled;
+    _syncLoopLengthBeats = snapshot.loopLengthBeats;
+    if (!_playing) {
+      _syncPlayheadBeats = snapshot.playheadBeats;
+      _displayPlayheadBeats = snapshot.playheadBeats;
+    }
+  }
+
   Future<void> _bootstrap() async {
     try {
       await widget.bridge.ping();
-      final snapshot = await widget.bridge.createProject();
+      await widget.bridge.createProject();
+      final snapshot = await widget.bridge.addTrack(name: 'Track 1');
+      await widget.bridge.enterPlayMode();
       if (!mounted) return;
+      _syncTransportAnchorFromSnapshot(snapshot);
       setState(() => _snapshot = snapshot);
     } on MissingPluginException {
       if (!mounted) return;
@@ -180,15 +193,51 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
   Future<void> _addMidiClip(String trackId, double startBeat) async {
     try {
       await widget.bridge.selectTrack(trackId);
-      final snapshot = await widget.bridge.createMidiClip(
+      final before = _trackById(trackId);
+      final beforeClipCount = before?.midiClips.length ?? 0;
+      var snapshot = await widget.bridge.createMidiClip(
         trackId: trackId,
         startBeat: startBeat,
       );
+      final track = snapshot.tracks.firstWhere((t) => t.id == trackId);
+      if (track.midiClips.length > beforeClipCount) {
+        final clip = track.midiClips.last;
+        final defaultPitch = _defaultMidiPitchForTrack(track);
+        if (defaultPitch != null) {
+          snapshot = await widget.bridge.setMidiClipNotes(
+            clipId: clip.id,
+            notes: [
+              MidiNoteSnapshot(
+                pitch: defaultPitch,
+                startBeat: 0,
+                durationBeats: 1,
+                velocity: 100,
+              ),
+            ],
+          );
+        }
+      }
       await _refreshSnapshot(snapshot);
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
     }
+  }
+
+  int? _defaultMidiPitchForTrack(TrackSnapshot track) {
+    for (final device in track.visibleDevices) {
+      switch (device.type) {
+        case 'kick_generator':
+          return 36;
+        case 'snare_generator':
+          return 38;
+        case 'clap_generator':
+          return 39;
+        case 'cymbal_generator':
+          return 42;
+      }
+    }
+    return null;
   }
 
   TrackSnapshot? _trackById(String trackId) {
@@ -878,6 +927,7 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
     try {
       final snapshot = await widget.bridge.setLoopEnabled(enabled);
       await _refreshSnapshot(snapshot);
+      _syncTransportAnchorFromSnapshot(snapshot);
       if (_playing) {
         await _syncTransportState();
       }
@@ -891,6 +941,7 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
     try {
       final snapshot = await widget.bridge.setLoopLengthBeats(beats);
       await _refreshSnapshot(snapshot);
+      _syncTransportAnchorFromSnapshot(snapshot);
       if (_playing) {
         await _syncTransportState();
       }
@@ -1136,6 +1187,10 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
           onSaveProject: _saveProject,
           onLoadProject: _loadProject,
           onExportMix: _exportMix,
+          loopEnabled: snapshot.loopEnabled,
+          loopLengthBeats: snapshot.loopLengthBeats,
+          onLoopToggled: _setLoopEnabled,
+          onLoopLengthChanged: _setLoopLengthBeats,
           statusMessage: _saveStatus,
           errorMessage: _projectError,
         );
