@@ -43,6 +43,7 @@ void main() {
     'snare_generator',
     'clap_generator',
     'cymbal_generator',
+    'crash_generator',
   ];
 
   for (final type in drumTypes) {

@@ -28,6 +28,7 @@ KickGeneratorInstance instanceFromSnapshot(const DeviceState& state) {
     instance.kickClick = state.kickClick;
     instance.kickTone = state.kickTone;
     instance.kickVelocity = state.kickVelocity;
+    instance.kickKeyTrack = state.kickKeyTrack;
     return instance;
 }
 
@@ -39,6 +40,7 @@ void applyInstanceToSnapshot(const KickGeneratorInstance& instance, DeviceState&
     state.kickClick = instance.kickClick;
     state.kickTone = instance.kickTone;
     state.kickVelocity = instance.kickVelocity;
+    state.kickKeyTrack = instance.kickKeyTrack;
 }
 
 } // namespace
@@ -95,6 +97,8 @@ DeviceParameterResult KickGeneratorDeviceType::setParameter(DeviceSlot& slot,
         instance.kickTone = clamped;
     } else if (parameterId == "kickVelocity") {
         instance.kickVelocity = clamped;
+    } else if (parameterId == "kickKeyTrack") {
+        instance.kickKeyTrack = clamped >= 0.5f ? 1.0f : 0.0f;
     } else {
         return result;
     }
@@ -112,7 +116,7 @@ bool KickGeneratorDeviceType::setStringParameter(DeviceSlot&,
 
 std::vector<std::string_view> KickGeneratorDeviceType::modulatableParams() const {
     return {"gain", "pan", "kickPitch", "kickPunch", "kickDecay", "kickClick", "kickTone",
-            "kickVelocity"};
+            "kickVelocity", "kickKeyTrack"};
 }
 
 void KickGeneratorDeviceType::buildPlaybackNode(const DeviceSlot& slot,

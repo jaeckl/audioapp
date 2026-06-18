@@ -10,11 +10,14 @@ class PianoRollKeyColumn extends StatelessWidget {
     required this.minPitch,
     required this.maxPitch,
     required this.rowHeight,
+    this.highlightPitch,
   });
 
   final int minPitch;
   final int maxPitch;
   final double rowHeight;
+  /// GM drum lane (e.g. 38 = D2 snare) — show full note name on this row.
+  final int? highlightPitch;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +30,11 @@ class PianoRollKeyColumn extends StatelessWidget {
         child: Column(
           children: [
             for (var pitch = maxPitch; pitch >= minPitch; pitch--)
-              _KeyRow(pitch: pitch, rowHeight: rowHeight),
+              _KeyRow(
+                pitch: pitch,
+                rowHeight: rowHeight,
+                highlight: highlightPitch == pitch,
+              ),
           ],
         ),
       ),
@@ -36,10 +43,15 @@ class PianoRollKeyColumn extends StatelessWidget {
 }
 
 class _KeyRow extends StatelessWidget {
-  const _KeyRow({required this.pitch, required this.rowHeight});
+  const _KeyRow({
+    required this.pitch,
+    required this.rowHeight,
+    this.highlight = false,
+  });
 
   final int pitch;
   final double rowHeight;
+  final bool highlight;
 
   bool get _isBlack => PianoRollNoteOps.isBlackKey(pitch);
 
@@ -51,22 +63,27 @@ class _KeyRow extends StatelessWidget {
     return Container(
       height: rowHeight,
       decoration: BoxDecoration(
-        color: bg,
+        color: highlight ? const Color(0xFF3A3028) : bg,
         border: Border(
           bottom: BorderSide(
             color: _isBlack ? const Color(0xFF1E1E24) : const Color(0xFFD9D0C4),
             width: 0.5,
           ),
+          left: highlight
+              ? const BorderSide(color: Color(0xFFE8A060), width: 2)
+              : BorderSide.none,
         ),
       ),
       alignment: Alignment.center,
-      child: isC
+      child: (isC || highlight)
           ? Text(
-              PianoRollMetrics.octaveLabel(pitch),
+              highlight ? PianoRollMetrics.noteLabel(pitch) : PianoRollMetrics.octaveLabel(pitch),
               style: TextStyle(
-                fontSize: 9,
+                fontSize: highlight ? 8 : 9,
                 fontWeight: FontWeight.w700,
-                color: _isBlack ? PianoRollTheme.cKeyAccent : PianoRollTheme.whiteKeyLabel,
+                color: highlight
+                    ? const Color(0xFFE8A060)
+                    : (_isBlack ? PianoRollTheme.cKeyAccent : PianoRollTheme.whiteKeyLabel),
               ),
             )
           : null,

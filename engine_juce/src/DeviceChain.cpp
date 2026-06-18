@@ -9,6 +9,7 @@
 #include "audioapp/SnareGenerator.hpp"
 #include "audioapp/ClapGenerator.hpp"
 #include "audioapp/CymbalGenerator.hpp"
+#include "audioapp/CrashGenerator.hpp"
 #include "audioapp/DynamicsProcessor.hpp"
 
 #include <algorithm>
@@ -207,6 +208,20 @@ void applyModulation(CymbalGeneratorParams& p, float modAmount, const std::strin
     }
 }
 
+void applyModulation(CrashGeneratorParams& p, float modAmount, const std::string& paramId) noexcept {
+    if (paramId == "crashWash") {
+        p.crashWash = std::clamp(p.crashWash + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "crashBright") {
+        p.crashBright = std::clamp(p.crashBright + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "crashSpread") {
+        p.crashSpread = std::clamp(p.crashSpread + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "crashDecay") {
+        p.crashDecay = std::clamp(p.crashDecay + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "crashVelocity") {
+        p.crashVelocity = std::clamp(p.crashVelocity + modAmount, 0.0f, 1.0f);
+    }
+}
+
 void applyModulation(GateParams& p, float modAmount, const std::string& paramId) noexcept {
     if (paramId == "gateThreshold") {
         p.gateThreshold = std::clamp(p.gateThreshold + modAmount, 0.0f, 1.0f);
@@ -321,6 +336,7 @@ void processDeviceChain(float* trackLeft,
                         SnareGeneratorRuntime* snareRuntimes,
                         ClapGeneratorRuntime* clapRuntimes,
                         CymbalGeneratorRuntime* cymbalRuntimes,
+                        CrashGeneratorRuntime* crashRuntimes,
                         DynamicsRuntime* dynamicsRuntimes,
                         DeviceMeterAtomic* deviceMeters,
                         int maxDeviceMeters,
@@ -618,6 +634,34 @@ void processDeviceChain(float* trackLeft,
                                             playheadStartBeat, regions, regionCount, cymbalParams,
                                             cymbalRuntimes != nullptr ? cymbalRuntimes[deviceIndex]
                                                                       : localRuntime);
+                    multiplyPerFrameGain(scratch, framesToProcess, perFrameGain);
+                    mixStereoPerFramePan(trackLeft, trackRight, scratch,
+                                         framesToProcess, perFramePan);
+                }
+            }
+            break;
+        }
+        case DeviceNodeKind::CrashGenerator: {
+            if (!suppressInstruments) {
+                const auto& crashParams = std::get<CrashGeneratorParams>(modulatedParams);
+                if (noteCount > 0) {
+                    CrashMidiNoteRegion regions[32];
+                    const int regionCount = noteCount > 32 ? 32 : noteCount;
+                    for (int i = 0; i < regionCount; ++i) {
+                        const MidiPlaybackNote& note = notes[i];
+                        regions[i] = CrashMidiNoteRegion{
+                            note.pitch, i,
+                            note.clipStartBeat, note.clipLengthBeats,
+                            note.noteStartBeat, note.noteDurationBeats,
+                            note.velocity,
+                        };
+                    }
+                    std::memset(scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+                    CrashGeneratorRuntime localRuntime{};
+                    mixCrashMidiNotesBlock(scratch, framesToProcess, sampleRate, bpm,
+                                           playheadStartBeat, regions, regionCount, crashParams,
+                                           crashRuntimes != nullptr ? crashRuntimes[deviceIndex]
+                                                                    : localRuntime);
                     multiplyPerFrameGain(scratch, framesToProcess, perFrameGain);
                     mixStereoPerFramePan(trackLeft, trackRight, scratch,
                                          framesToProcess, perFramePan);

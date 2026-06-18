@@ -8,6 +8,7 @@
 #include "audioapp/SnareGenerator.hpp"
 #include "audioapp/ClapGenerator.hpp"
 #include "audioapp/CymbalGenerator.hpp"
+#include "audioapp/CrashGenerator.hpp"
 #include "audioapp/SamplerFilter.hpp"
 #include "audioapp/SubtractiveSynth.hpp"
 
@@ -24,6 +25,7 @@ enum class LiveInstrumentKind : uint8_t {
     SnareGenerator,
     ClapGenerator,
     CymbalGenerator,
+    CrashGenerator,
 };
 
 /// Immutable instrument snapshot copied on note-on (control thread writes, audio thread reads).
@@ -51,6 +53,7 @@ struct LiveInstrumentSnapshot {
     SnareGeneratorParams snare{};
     ClapGeneratorParams clap{};
     CymbalGeneratorParams cymbal{};
+    CrashGeneratorParams crash{};
 };
 
 struct LiveVoiceSlot {
@@ -68,6 +71,7 @@ struct LiveVoiceSlot {
     SnareVoiceRuntime snare{};
     ClapVoiceRuntime clap{};
     CymbalVoiceRuntime cymbal{};
+    CrashVoiceRuntime crash{};
     double subtractiveStartSec = 0.0;
     double subtractiveReleaseSec = -1.0;
 };

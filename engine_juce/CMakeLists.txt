@@ -41,6 +41,8 @@ add_library(audioapp_engine STATIC
   src/SnareGenerator.cpp
   src/ClapGenerator.cpp
   src/CymbalGenerator.cpp
+  src/CrashGenerator.cpp
+  src/MetallicNoiseSynth.cpp
   src/DynamicsProcessor.cpp
   src/MasterMix.cpp
   src/DeviceChain.cpp
@@ -53,6 +55,7 @@ add_library(audioapp_engine STATIC
   src/devices/SnareGeneratorDeviceType.cpp
   src/devices/ClapGeneratorDeviceType.cpp
   src/devices/CymbalGeneratorDeviceType.cpp
+  src/devices/CrashGeneratorDeviceType.cpp
   src/devices/GateDeviceType.cpp
   src/devices/CompressorDeviceType.cpp
   src/devices/ExpanderDeviceType.cpp
@@ -142,6 +145,10 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
   add_executable(cymbal_generator_test tests/cymbal_generator_test.cpp)
   target_link_libraries(cymbal_generator_test PRIVATE audioapp_engine)
   add_test(NAME cymbal_generator_test COMMAND cymbal_generator_test)
+
+  add_executable(crash_generator_test tests/crash_generator_test.cpp)
+  target_link_libraries(crash_generator_test PRIVATE audioapp_engine)
+  add_test(NAME crash_generator_test COMMAND crash_generator_test)
 
   add_executable(gate_device_test tests/gate_device_test.cpp)
   target_link_libraries(gate_device_test PRIVATE audioapp_engine)

@@ -247,6 +247,8 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
           return 39;
         case 'cymbal_generator':
           return 42;
+        case 'crash_generator':
+          return 49;
       }
     }
     return null;
@@ -911,6 +913,7 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
           clip: clip,
           trackName: track!.name,
           bpm: _snapshot?.bpm ?? 120,
+          drumAnchorPitch: track.drumAnchorPitch,
           onSnapshot: _refreshSnapshot,
         ),
       ),

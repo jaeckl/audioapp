@@ -10,6 +10,7 @@ inline constexpr const char* kKickGenerator = "kick_generator";
 inline constexpr const char* kSnareGenerator = "snare_generator";
 inline constexpr const char* kClapGenerator = "clap_generator";
 inline constexpr const char* kCymbalGenerator = "cymbal_generator";
+inline constexpr const char* kCrashGenerator = "crash_generator";
 inline constexpr const char* kGate = "gate";
 inline constexpr const char* kCompressor = "compressor";
 inline constexpr const char* kExpander = "expander";

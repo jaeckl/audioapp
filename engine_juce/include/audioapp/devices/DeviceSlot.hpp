@@ -4,6 +4,7 @@
 #include "audioapp/devices/instances/SnareGeneratorInstance.hpp"
 #include "audioapp/devices/instances/ClapGeneratorInstance.hpp"
 #include "audioapp/devices/instances/CymbalGeneratorInstance.hpp"
+#include "audioapp/devices/instances/CrashGeneratorInstance.hpp"
 #include "audioapp/devices/instances/OscillatorInstance.hpp"
 #include "audioapp/devices/instances/SamplerInstance.hpp"
 #include "audioapp/devices/instances/SubtractiveSynthInstance.hpp"
@@ -26,6 +27,7 @@ using DeviceInstance = std::variant<OscillatorInstance,
                                     SnareGeneratorInstance,
                                     ClapGeneratorInstance,
                                     CymbalGeneratorInstance,
+                                    CrashGeneratorInstance,
                                     GateInstance,
                                     CompressorInstance,
                                     ExpanderInstance,

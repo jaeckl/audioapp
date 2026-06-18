@@ -5,6 +5,7 @@
 #include "audioapp/devices/SnareGeneratorDeviceType.hpp"
 #include "audioapp/devices/ClapGeneratorDeviceType.hpp"
 #include "audioapp/devices/CymbalGeneratorDeviceType.hpp"
+#include "audioapp/devices/CrashGeneratorDeviceType.hpp"
 #include "audioapp/devices/GateDeviceType.hpp"
 #include "audioapp/devices/CompressorDeviceType.hpp"
 #include "audioapp/devices/ExpanderDeviceType.hpp"
@@ -17,6 +18,7 @@
 #include "audioapp/devices/instances/SnareGeneratorInstance.hpp"
 #include "audioapp/devices/instances/ClapGeneratorInstance.hpp"
 #include "audioapp/devices/instances/CymbalGeneratorInstance.hpp"
+#include "audioapp/devices/instances/CrashGeneratorInstance.hpp"
 #include "audioapp/devices/instances/GateInstance.hpp"
 #include "audioapp/devices/instances/CompressorInstance.hpp"
 #include "audioapp/devices/instances/ExpanderInstance.hpp"
@@ -79,6 +81,9 @@ const IDeviceType* DeviceRegistry::findForSlot(const DeviceSlot& slot) const {
     }
     if (std::holds_alternative<CymbalGeneratorInstance>(slot.instance)) {
         return find(device_types::kCymbalGenerator);
+    }
+    if (std::holds_alternative<CrashGeneratorInstance>(slot.instance)) {
+        return find(device_types::kCrashGenerator);
     }
     if (std::holds_alternative<GateInstance>(slot.instance)) {
         return find(device_types::kGate);
@@ -180,6 +185,7 @@ DeviceRegistry DeviceRegistry::createBuiltIn() {
     registry.registerType(std::make_unique<SnareGeneratorDeviceType>());
     registry.registerType(std::make_unique<ClapGeneratorDeviceType>());
     registry.registerType(std::make_unique<CymbalGeneratorDeviceType>());
+    registry.registerType(std::make_unique<CrashGeneratorDeviceType>());
     registry.registerType(std::make_unique<GateDeviceType>());
     registry.registerType(std::make_unique<CompressorDeviceType>());
     registry.registerType(std::make_unique<ExpanderDeviceType>());

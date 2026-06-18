@@ -53,6 +53,7 @@ struct DeviceState {
     float kickClick = 0.35f;
     float kickTone = 0.50f;
     float kickVelocity = 1.0f;
+    float kickKeyTrack = 1.0f;
     float snareBody = 0.55f;
     float snareTune = 0.50f;
     float snareSnares = 0.60f;
@@ -70,6 +71,13 @@ struct DeviceState {
     float cymbalDecay = 0.50f;
     float cymbalChoke = 0.0f;
     float cymbalVelocity = 1.0f;
+    float cymbalModel = 0.0f;
+    float crashModel = 0.0f;
+    float crashWash = 0.60f;
+    float crashBright = 0.65f;
+    float crashSpread = 0.50f;
+    float crashDecay = 0.55f;
+    float crashVelocity = 1.0f;
     float gateThreshold = 0.45f;
     float gateAttack = 0.25f;
     float gateRelease = 0.50f;

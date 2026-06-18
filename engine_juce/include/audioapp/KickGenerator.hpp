@@ -13,6 +13,7 @@ struct KickGeneratorParams {
     float kickClick = 0.35f;
     float kickTone = 0.50f;
     float kickVelocity = 1.0f;
+    float kickKeyTrack = 1.0f;
 };
 
 struct KickVoiceRuntime {
@@ -40,6 +41,8 @@ struct KickMidiNoteRegion {
 };
 
 void triggerKickVoice(KickVoiceRuntime& voice, int pitch, float velocity) noexcept;
+
+float drumMidiKeyTrackRatio(int pitch, int referencePitch, float keyTrackNorm) noexcept;
 
 float kickGeneratorSample(KickVoiceRuntime& voice,
                           const KickGeneratorParams& params,

@@ -144,6 +144,7 @@ juce::var deviceToVar(const DeviceState& device) {
         parameters->setProperty("kickClick", static_cast<double>(device.kickClick));
         parameters->setProperty("kickTone", static_cast<double>(device.kickTone));
         parameters->setProperty("kickVelocity", static_cast<double>(device.kickVelocity));
+        parameters->setProperty("kickKeyTrack", static_cast<double>(device.kickKeyTrack));
     }
     if (device.type == "snare_generator") {
         parameters->setProperty("snareBody", static_cast<double>(device.snareBody));
@@ -162,11 +163,20 @@ juce::var deviceToVar(const DeviceState& device) {
         parameters->setProperty("clapVelocity", static_cast<double>(device.clapVelocity));
     }
     if (device.type == "cymbal_generator") {
+        parameters->setProperty("cymbalModel", static_cast<double>(device.cymbalModel));
         parameters->setProperty("cymbalMetal", static_cast<double>(device.cymbalMetal));
         parameters->setProperty("cymbalBrightness", static_cast<double>(device.cymbalBrightness));
         parameters->setProperty("cymbalDecay", static_cast<double>(device.cymbalDecay));
         parameters->setProperty("cymbalChoke", static_cast<double>(device.cymbalChoke));
         parameters->setProperty("cymbalVelocity", static_cast<double>(device.cymbalVelocity));
+    }
+    if (device.type == "crash_generator") {
+        parameters->setProperty("crashModel", static_cast<double>(device.crashModel));
+        parameters->setProperty("crashWash", static_cast<double>(device.crashWash));
+        parameters->setProperty("crashBright", static_cast<double>(device.crashBright));
+        parameters->setProperty("crashSpread", static_cast<double>(device.crashSpread));
+        parameters->setProperty("crashDecay", static_cast<double>(device.crashDecay));
+        parameters->setProperty("crashVelocity", static_cast<double>(device.crashVelocity));
     }
     if (device.type == "gate") {
         parameters->setProperty("gateThreshold", static_cast<double>(device.gateThreshold));
@@ -281,6 +291,7 @@ DeviceState deviceFromVar(const juce::var& value) {
             device.kickClick = varToFloat(params->getProperty("kickClick"), 0.35f);
             device.kickTone = varToFloat(params->getProperty("kickTone"), 0.50f);
             device.kickVelocity = varToFloat(params->getProperty("kickVelocity"), 1.0f);
+            device.kickKeyTrack = varToFloat(params->getProperty("kickKeyTrack"), 1.0f);
             device.snareBody = varToFloat(params->getProperty("snareBody"), 0.55f);
             device.snareTune = varToFloat(params->getProperty("snareTune"), 0.50f);
             device.snareSnares = varToFloat(params->getProperty("snareSnares"), 0.60f);
@@ -293,11 +304,18 @@ DeviceState deviceFromVar(const juce::var& value) {
             device.clapRoom = varToFloat(params->getProperty("clapRoom"), 0.50f);
             device.clapDecay = varToFloat(params->getProperty("clapDecay"), 0.50f);
             device.clapVelocity = varToFloat(params->getProperty("clapVelocity"), 1.0f);
+            device.cymbalModel = varToFloat(params->getProperty("cymbalModel"), 0.0f);
             device.cymbalMetal = varToFloat(params->getProperty("cymbalMetal"), 0.55f);
             device.cymbalBrightness = varToFloat(params->getProperty("cymbalBrightness"), 0.60f);
             device.cymbalDecay = varToFloat(params->getProperty("cymbalDecay"), 0.50f);
             device.cymbalChoke = varToFloat(params->getProperty("cymbalChoke"), 0.0f);
             device.cymbalVelocity = varToFloat(params->getProperty("cymbalVelocity"), 1.0f);
+            device.crashModel = varToFloat(params->getProperty("crashModel"), 0.0f);
+            device.crashWash = varToFloat(params->getProperty("crashWash"), 0.60f);
+            device.crashBright = varToFloat(params->getProperty("crashBright"), 0.65f);
+            device.crashSpread = varToFloat(params->getProperty("crashSpread"), 0.50f);
+            device.crashDecay = varToFloat(params->getProperty("crashDecay"), 0.55f);
+            device.crashVelocity = varToFloat(params->getProperty("crashVelocity"), 1.0f);
             device.gateThreshold = varToFloat(params->getProperty("gateThreshold"), 0.45f);
             device.gateAttack = varToFloat(params->getProperty("gateAttack"), 0.25f);
             device.gateRelease = varToFloat(params->getProperty("gateRelease"), 0.50f);

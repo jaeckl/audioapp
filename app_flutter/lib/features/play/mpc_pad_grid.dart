@@ -11,6 +11,7 @@ class MpcPadGrid extends StatefulWidget {
     super.key,
     required this.bridge,
     required this.bankOffset,
+    this.pitchBase,
     this.highlightedPitches = const <int>{},
     this.chokeGroupByColumn = false,
     this.chokeGroupByRow = false,
@@ -23,6 +24,8 @@ class MpcPadGrid extends StatefulWidget {
 
   final EngineBridge bridge;
   final int bankOffset;
+  /// Drum tracks: GM anchor (e.g. 38 snare). Null → chromatic grid at C3 (48).
+  final int? pitchBase;
   final Set<int> highlightedPitches;
   final bool chokeGroupByColumn;
   final bool chokeGroupByRow;
@@ -54,7 +57,7 @@ class _MpcPadGridState extends State<MpcPadGrid> {
   static const double _modRangePx = 60.0;
   static const double _bendRangePx = 50.0;
 
-  int _pitchForPad(int index) => 48 + widget.bankOffset + index;
+  int _pitchForPad(int index) => (widget.pitchBase ?? 48) + widget.bankOffset + index;
 
   int get _rows => widget.rowCount;
   int get _padCount => MpcPadGrid.columns * _rows;

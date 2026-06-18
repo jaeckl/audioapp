@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
 import 'cymbal_decay_preview.dart';
-import 'cymbal_model.dart';
-import 'cymbal_model_ui_registry.dart';
+import 'crash_model.dart';
+import 'crash_model_ui_registry.dart';
 import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
 import 'drum_model_tab_bar.dart';
 import 'rotary_knob.dart';
 
-class CymbalGeneratorDevicePanel extends StatelessWidget {
-  const CymbalGeneratorDevicePanel({
+class CrashGeneratorDevicePanel extends StatelessWidget {
+  const CrashGeneratorDevicePanel({
     super.key,
     required this.device,
     required this.onParameterChanged,
@@ -36,14 +36,14 @@ class CymbalGeneratorDevicePanel extends StatelessWidget {
   final ValueChanged<String>? onAutomationLinkTap;
   final ValueChanged<String>? onAutomateParameter;
 
-  static const accent = DeviceStripTheme.cymbalGeneratorAccent;
+  static const accent = DeviceStripTheme.crashGeneratorAccent;
 
   static const containerTabs = <DeviceTabSpec>[];
 
   @override
   Widget build(BuildContext context) {
-    final modelIndex = CymbalModel.indexFromValue(device.cymbalModel);
-    final knobs = CymbalModelUiRegistry.knobsForModelIndex(modelIndex);
+    final modelIndex = CrashModel.indexFromValue(device.crashModel);
+    final knobs = CrashModelUiRegistry.knobsForModelIndex(modelIndex);
     final bench = Padding(
       padding: const EdgeInsets.all(8),
       child: Row(
@@ -58,9 +58,9 @@ class CymbalGeneratorDevicePanel extends StatelessWidget {
                   flex: 2,
                   child: _previewBox(
                     child: CymbalDecayPreview(
-                      metal: device.cymbalMetal,
-                      brightness: device.cymbalBrightness,
-                      decay: device.cymbalDecay,
+                      metal: device.crashWash,
+                      brightness: device.crashBright,
+                      decay: device.crashDecay,
                       accent: accent,
                     ),
                   ),
@@ -69,12 +69,12 @@ class CymbalGeneratorDevicePanel extends StatelessWidget {
                 Expanded(
                   flex: 1,
                   child: DrumModelTabBar(
-                    labels: CymbalModel.labels,
+                    labels: CrashModel.labels,
                     selectedIndex: modelIndex,
                     accent: accent,
-                    isEnabled: CymbalModel.isSelectable,
+                    isEnabled: CrashModel.isSelectable,
                     onSelected: (i) =>
-                        onParameterChanged('cymbalModel', CymbalModel.valueFromIndex(i)),
+                        onParameterChanged('crashModel', CrashModel.valueFromIndex(i)),
                   ),
                 ),
               ],
@@ -122,7 +122,7 @@ class CymbalGeneratorDevicePanel extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(10, 6, 10, 4),
             child: Text(
-              'CYMBAL GENERATOR',
+              'CRASH GENERATOR',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: Colors.white54,
                     letterSpacing: 1.2,
@@ -147,7 +147,7 @@ class CymbalGeneratorDevicePanel extends StatelessWidget {
     );
   }
 
-  Widget _buildKnob(CymbalKnobSpec spec) {
+  Widget _buildKnob(CrashKnobSpec spec) {
     final value = spec.value(device);
     final paramId = spec.paramId;
     return RotaryKnob(

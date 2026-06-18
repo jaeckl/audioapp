@@ -1,4 +1,4 @@
-#include "audioapp/CymbalGenerator.hpp"
+#include "audioapp/CrashGenerator.hpp"
 
 #include "audioapp/DeviceChain.hpp"
 
@@ -9,19 +9,17 @@ namespace audioapp {
 
 namespace {
 
-constexpr double kTwoPi = 6.28318530718;
-
 float beatAtFrame(double playheadStartBeat, int frameIndex, double sampleRate, int bpm) {
     const double seconds = static_cast<double>(frameIndex) / sampleRate;
     return playheadStartBeat + seconds * static_cast<double>(bpm) / 60.0;
 }
 
-bool isCymbalNoteAudible(const CymbalMidiNoteRegion& note,
-                         double beat,
-                         int bpm,
-                         float releaseSec,
-                         double& elapsedSecondsOut,
-                         bool& inReleaseOut) noexcept {
+bool isCrashNoteAudible(const CrashMidiNoteRegion& note,
+                        double beat,
+                        int bpm,
+                        float releaseSec,
+                        double& elapsedSecondsOut,
+                        bool& inReleaseOut) noexcept {
     if (beat < note.clipStartBeat || beat >= note.clipStartBeat + note.clipLengthBeats || bpm <= 0) {
         return false;
     }
@@ -50,42 +48,44 @@ float normalizedToAmpDecaySec(float normalized, float minSec, float maxSec) noex
     return minSec + (1.0f - clamped) * (maxSec - minSec);
 }
 
-MetallicNoiseTimbre cymbalTimbreForModel(int modelIndex,
-                                         const CymbalGeneratorParams& params) noexcept {
+MetallicNoiseTimbre crashTimbreForModel(int modelIndex,
+                                        const CrashGeneratorParams& params) noexcept {
     MetallicNoiseTimbre timbre;
-    timbre.metalNorm = params.cymbalMetal;
-    timbre.brightNorm = params.cymbalBrightness;
-    timbre.decayNorm = params.cymbalDecay;
-    timbre.chokeNorm = params.cymbalChoke;
+    timbre.metalNorm = params.crashWash;
+    timbre.brightNorm = params.crashBright;
+    timbre.decayNorm = params.crashDecay;
+    timbre.chokeNorm = 0.0f;
+
+    const float spread = std::clamp(params.crashSpread, 0.0f, 1.0f);
 
     switch (modelIndex) {
-    case 1: // Open
-        timbre.minDecaySec = 0.12f;
-        timbre.maxDecaySec = 0.85f;
-        timbre.hpStartHz = 7000.0f;
-        timbre.hpEndHz = 900.0f;
-        timbre.sweepTauSec = 0.05f;
-        timbre.washGain = 0.95f;
-        timbre.attackGain = 0.50f;
+    case 1: // Classic
+        timbre.minDecaySec = 0.55f;
+        timbre.maxDecaySec = 2.4f;
+        timbre.hpStartHz = 5200.0f + spread * 2200.0f;
+        timbre.hpEndHz = 500.0f;
+        timbre.sweepTauSec = 0.12f;
+        timbre.washGain = 1.05f;
+        timbre.attackGain = 0.72f;
         break;
-    case 2: // Pedal
-        timbre.minDecaySec = 0.06f;
-        timbre.maxDecaySec = 0.35f;
-        timbre.hpStartHz = 4500.0f;
-        timbre.hpEndHz = 700.0f;
-        timbre.sweepTauSec = 0.025f;
-        timbre.washGain = 0.75f;
-        timbre.attackGain = 0.40f;
+    case 2: // Dark
+        timbre.minDecaySec = 0.75f;
+        timbre.maxDecaySec = 3.0f;
+        timbre.hpStartHz = 3200.0f + spread * 1200.0f;
+        timbre.hpEndHz = 320.0f;
+        timbre.sweepTauSec = 0.18f;
+        timbre.washGain = 0.92f;
+        timbre.attackGain = 0.55f;
         break;
     case 0:
-    default: // Closed
-        timbre.minDecaySec = 0.05f;
-        timbre.maxDecaySec = 0.28f;
-        timbre.hpStartHz = 5500.0f;
-        timbre.hpEndHz = 1100.0f;
-        timbre.sweepTauSec = 0.03f;
-        timbre.washGain = 0.82f;
-        timbre.attackGain = 0.62f;
+    default: // Bright
+        timbre.minDecaySec = 0.45f;
+        timbre.maxDecaySec = 2.0f;
+        timbre.hpStartHz = 7600.0f + spread * 2800.0f;
+        timbre.hpEndHz = 900.0f;
+        timbre.sweepTauSec = 0.08f;
+        timbre.washGain = 1.15f;
+        timbre.attackGain = 0.85f;
         break;
     }
     return timbre;
@@ -93,44 +93,44 @@ MetallicNoiseTimbre cymbalTimbreForModel(int modelIndex,
 
 } // namespace
 
-int cymbalModelIndex(float cymbalModel) noexcept {
-    return std::clamp(static_cast<int>(std::lround(cymbalModel * 2.0f)), 0, 2);
+int crashModelIndex(float crashModel) noexcept {
+    return std::clamp(static_cast<int>(std::lround(crashModel * 2.0f)), 0, 2);
 }
 
-void triggerCymbalVoice(CymbalVoiceRuntime& voice, int pitch, float velocity) noexcept {
+void triggerCrashVoice(CrashVoiceRuntime& voice, int pitch, float velocity) noexcept {
     triggerMetallicNoiseVoice(voice, pitch, velocity);
 }
 
-float cymbalGeneratorSample(CymbalVoiceRuntime& voice,
-                            const CymbalGeneratorParams& params,
-                            double sampleRate,
-                            float velocityGain) noexcept {
-    const auto timbre = cymbalTimbreForModel(cymbalModelIndex(params.cymbalModel), params);
+float crashGeneratorSample(CrashVoiceRuntime& voice,
+                           const CrashGeneratorParams& params,
+                           double sampleRate,
+                           float velocityGain) noexcept {
+    const auto timbre = crashTimbreForModel(crashModelIndex(params.crashModel), params);
     return metallicNoiseSample(voice, timbre, sampleRate, velocityGain,
                                params.gain * kInstrumentOutputGain);
 }
 
-void mixCymbalMidiNotesBlock(float* monoOut,
-                             int numFrames,
-                             double sampleRate,
-                             int bpm,
-                             double playheadStartBeat,
-                             const CymbalMidiNoteRegion* notes,
-                             int noteCount,
-                             const CymbalGeneratorParams& params,
-                             CymbalGeneratorRuntime& runtime) noexcept {
+void mixCrashMidiNotesBlock(float* monoOut,
+                            int numFrames,
+                            double sampleRate,
+                            int bpm,
+                            double playheadStartBeat,
+                            const CrashMidiNoteRegion* notes,
+                            int noteCount,
+                            const CrashGeneratorParams& params,
+                            CrashGeneratorRuntime& runtime) noexcept {
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
         return;
     }
 
     const float releaseSec =
-        normalizedToAmpDecaySec(params.cymbalDecay, 0.05f, 0.85f) + 0.08f;
+        normalizedToAmpDecaySec(params.crashDecay, 0.45f, 3.0f) + 0.15f;
 
     for (int frame = 0; frame < numFrames; ++frame) {
         const double beat = beatAtFrame(playheadStartBeat, frame, sampleRate, bpm);
 
         int activeNoteKey = -1;
-        int activePitch = 42;
+        int activePitch = 49;
         float activeVelocity = 100.0f;
         double activeElapsed = 0.0;
 
@@ -138,7 +138,7 @@ void mixCymbalMidiNotesBlock(float* monoOut,
             const auto& note = notes[noteIndex];
             double elapsedSeconds = 0.0;
             bool inRelease = false;
-            if (!isCymbalNoteAudible(note, beat, bpm, releaseSec, elapsedSeconds, inRelease)) {
+            if (!isCrashNoteAudible(note, beat, bpm, releaseSec, elapsedSeconds, inRelease)) {
                 continue;
             }
             activeNoteKey = note.noteKey;
@@ -154,14 +154,14 @@ void mixCymbalMidiNotesBlock(float* monoOut,
         }
 
         if (runtime.lastNoteKey != activeNoteKey || runtime.voice.active == 0) {
-            triggerCymbalVoice(runtime.voice, activePitch, activeVelocity);
+            triggerCrashVoice(runtime.voice, activePitch, activeVelocity);
             runtime.lastNoteKey = activeNoteKey;
         }
         runtime.voice.elapsedSec = activeElapsed;
 
         const float vel = std::clamp(runtime.voice.velocity / 127.0f, 0.0f, 1.0f);
-        const float velGain = 1.0f - params.cymbalVelocity * (1.0f - vel);
-        monoOut[frame] += cymbalGeneratorSample(runtime.voice, params, sampleRate, velGain);
+        const float velGain = 1.0f - params.crashVelocity * (1.0f - vel);
+        monoOut[frame] += crashGeneratorSample(runtime.voice, params, sampleRate, velGain);
     }
 }
 

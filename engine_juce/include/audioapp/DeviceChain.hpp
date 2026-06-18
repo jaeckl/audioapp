@@ -9,6 +9,7 @@
 #include "audioapp/SnareGenerator.hpp"
 #include "audioapp/ClapGenerator.hpp"
 #include "audioapp/CymbalGenerator.hpp"
+#include "audioapp/CrashGenerator.hpp"
 #include "audioapp/DynamicsProcessor.hpp"
 #include "audioapp/LfoTypes.hpp"
 #include "audioapp/SamplerFilter.hpp"
@@ -34,6 +35,7 @@ enum class DeviceNodeKind : uint8_t {
     SnareGenerator,
     ClapGenerator,
     CymbalGenerator,
+    CrashGenerator,
     Gate,
     Compressor,
     Expander,
@@ -79,6 +81,7 @@ using DeviceVariantParams = std::variant<
     SnareGeneratorParams,
     ClapGeneratorParams,
     CymbalGeneratorParams,
+    CrashGeneratorParams,
     GateParams,
     CompressorParams,
     ExpanderParams,
@@ -133,6 +136,7 @@ void processDeviceChain(float* trackLeft,
                         SnareGeneratorRuntime* snareRuntimes = nullptr,
                         ClapGeneratorRuntime* clapRuntimes = nullptr,
                         CymbalGeneratorRuntime* cymbalRuntimes = nullptr,
+                        CrashGeneratorRuntime* crashRuntimes = nullptr,
                         DynamicsRuntime* dynamicsRuntimes = nullptr,
                         DeviceMeterAtomic* deviceMeters = nullptr,
                         int maxDeviceMeters = 0,

@@ -22,6 +22,7 @@ class PianoRollScreen extends StatefulWidget {
     required this.trackName,
     required this.bpm,
     required this.onSnapshot,
+    this.drumAnchorPitch,
   });
 
   final EngineBridge bridge;
@@ -29,6 +30,8 @@ class PianoRollScreen extends StatefulWidget {
   final String trackName;
   final int bpm;
   final ValueChanged<ProjectSnapshot> onSnapshot;
+  /// GM drum pitch for this track (38 snare, 36 kick, …). Locks draw lane + scroll.
+  final int? drumAnchorPitch;
 
   @override
   State<PianoRollScreen> createState() => _PianoRollScreenState();
@@ -51,9 +54,11 @@ class _PianoRollScreenState extends State<PianoRollScreen> {
     super.initState();
     _notes = List.of(widget.clip.notes);
     _clipLengthBeats = widget.clip.lengthBeats;
-    _initialOctaveOffset = PianoRollMetrics.initialOctaveOffset(
-      _notes.map((n) => n.pitch),
-    );
+    _initialOctaveOffset = widget.drumAnchorPitch != null
+        ? PianoRollMetrics.octaveOffsetFromPitch(widget.drumAnchorPitch!)
+        : PianoRollMetrics.initialOctaveOffset(
+            _notes.map((n) => n.pitch),
+          );
     widget.bridge.enterPlayMode();
   }
 
@@ -199,9 +204,21 @@ class _PianoRollScreenState extends State<PianoRollScreen> {
   Future<void> _persistNotes() async {
     setState(() => _saveState = PianoRollSaveState.saving);
     try {
+      final notes = widget.drumAnchorPitch != null
+          ? _notes
+              .map(
+                (n) => MidiNoteSnapshot(
+                  pitch: widget.drumAnchorPitch!,
+                  startBeat: n.startBeat,
+                  durationBeats: n.durationBeats,
+                  velocity: n.velocity,
+                ),
+              )
+              .toList()
+          : _notes;
       final snapshot = await widget.bridge.setMidiClipNotes(
         clipId: widget.clip.id,
-        notes: _notes,
+        notes: notes,
       );
       widget.onSnapshot(snapshot);
       if (mounted) setState(() => _saveState = PianoRollSaveState.saved);
@@ -293,6 +310,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> {
                 virtualLengthBeats: _virtualLengthBeats,
                 minPitch: PianoRollMetrics.gridMinPitch,
                 maxPitch: PianoRollMetrics.gridMaxPitch,
+                drumAnchorPitch: widget.drumAnchorPitch,
                 gridSettings: _grid,
                 tool: _tool,
                 selectedIndex: _selectedIndex,
@@ -319,6 +337,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> {
               bridge: widget.bridge,
               initialSurfaceMode: PlaySurfaceMode.keys,
               initialOctaveOffset: _initialOctaveOffset,
+              padPitchBase: widget.drumAnchorPitch,
             ),
           ],
         ),

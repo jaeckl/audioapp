@@ -166,6 +166,10 @@ class PianoRollMetrics {
 
 
 
+  static String noteLabel(int pitch) {
+    return '${pitchLetter(pitch)}${(pitch ~/ 12) - 1}';
+  }
+
   static String octaveLabel(int pitch) {
 
     final octave = (pitch ~/ 12) - 1;

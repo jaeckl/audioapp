@@ -24,6 +24,7 @@ class PianoRollViewport extends StatefulWidget {
     required this.virtualLengthBeats,
     required this.minPitch,
     required this.maxPitch,
+    this.drumAnchorPitch,
     required this.gridSettings,
     required this.tool,
     required this.selectedIndex,
@@ -41,6 +42,7 @@ class PianoRollViewport extends StatefulWidget {
   final double virtualLengthBeats;
   final int minPitch;
   final int maxPitch;
+  final int? drumAnchorPitch;
   final PianoRollGridSettings gridSettings;
   final PianoRollTool tool;
   final int? selectedIndex;
@@ -570,7 +572,9 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
       if (!_vertical.hasClients) return;
       _didInitialScroll = true;
       final y = PianoRollMetrics.initialVerticalScrollOffset(
-        pitches: widget.notes.map((n) => n.pitch),
+        pitches: widget.drumAnchorPitch != null && widget.notes.isEmpty
+            ? [widget.drumAnchorPitch!]
+            : widget.notes.map((n) => n.pitch),
         minPitch: widget.minPitch,
         maxPitch: widget.maxPitch,
         rowHeight: _rowHeight,
@@ -585,6 +589,9 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
   }
 
   int _pitchFromDy(double dy) {
+    if (widget.drumAnchorPitch != null) {
+      return widget.drumAnchorPitch!;
+    }
     final pitch = widget.maxPitch - (dy / _rowHeight).floor();
     return pitch.clamp(widget.minPitch, widget.maxPitch);
   }
@@ -771,6 +778,7 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
                           minPitch: widget.minPitch,
                           maxPitch: widget.maxPitch,
                           rowHeight: _rowHeight,
+                          highlightPitch: widget.drumAnchorPitch,
                         ),
                       ),
                     ),

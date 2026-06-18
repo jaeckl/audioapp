@@ -6,6 +6,7 @@
 #include "audioapp/SnareGenerator.hpp"
 #include "audioapp/ClapGenerator.hpp"
 #include "audioapp/CymbalGenerator.hpp"
+#include "audioapp/CrashGenerator.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -213,6 +214,23 @@ void applyAutomationValue(DeviceVariantParams& params,
                 p->cymbalChoke = value;
             } else if (paramId == "cymbalVelocity") {
                 p->cymbalVelocity = value;
+            }
+        }
+        break;
+    case DeviceNodeKind::CrashGenerator:
+        if (auto* p = std::get_if<CrashGeneratorParams>(&params)) {
+            if (paramId == "gain") {
+                p->gain = value;
+            } else if (paramId == "crashWash") {
+                p->crashWash = value;
+            } else if (paramId == "crashBright") {
+                p->crashBright = value;
+            } else if (paramId == "crashSpread") {
+                p->crashSpread = value;
+            } else if (paramId == "crashDecay") {
+                p->crashDecay = value;
+            } else if (paramId == "crashVelocity") {
+                p->crashVelocity = value;
             }
         }
         break;

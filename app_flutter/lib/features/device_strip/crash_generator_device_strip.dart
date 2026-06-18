@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
-import 'cymbal_generator_device_panel.dart';
+import 'crash_generator_device_panel.dart';
 
-class CymbalGeneratorDeviceStrip extends StatelessWidget {
-  const CymbalGeneratorDeviceStrip({
+class CrashGeneratorDeviceStrip extends StatelessWidget {
+  const CrashGeneratorDeviceStrip({
     super.key,
     required this.device,
     required this.onParameterChanged,
@@ -29,7 +29,7 @@ class CymbalGeneratorDeviceStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CymbalGeneratorDevicePanel(
+    return CrashGeneratorDevicePanel(
       device: device,
       onParameterChanged: onParameterChanged,
       embeddedInCard: true,

@@ -59,8 +59,14 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
             ListTile(
               leading: const Icon(Icons.blur_on, color: Color(0xFF9AD4E8)),
               title: const Text('Cymbal Generator'),
-              subtitle: const Text('Metallic noise · hat or crash'),
+              subtitle: const Text('Hi-hat · filtered noise wash'),
               onTap: () => Navigator.pop(context, 'cymbal_generator'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.water_drop_outlined, color: Color(0xFF7BC8E8)),
+              title: const Text('Crash Generator'),
+              subtitle: const Text('Long metallic wash · noise shimmer'),
+              onTap: () => Navigator.pop(context, 'crash_generator'),
             ),
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 8, 20, 4),

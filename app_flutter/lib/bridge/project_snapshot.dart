@@ -153,6 +153,25 @@ extension TrackSnapshotDevices on TrackSnapshot {
     return null;
   }
 
+  /// GM anchor pitch for monophonic drum generators (snare = 38, etc.).
+  int? get drumAnchorPitch {
+    for (final device in visibleDevices) {
+      switch (device.type) {
+        case 'kick_generator':
+          return 36;
+        case 'snare_generator':
+          return 38;
+        case 'clap_generator':
+          return 39;
+        case 'cymbal_generator':
+          return 42;
+        case 'crash_generator':
+          return 49;
+      }
+    }
+    return null;
+  }
+
   DeviceSnapshot? get trackGainDevice {
     for (var i = devices.length - 1; i >= 0; i--) {
       if (devices[i].type == 'track_gain') {
@@ -273,6 +292,7 @@ class DeviceSnapshot {
     this.kickClick = 0.35,
     this.kickTone = 0.50,
     this.kickVelocity = 1.0,
+    this.kickKeyTrack = 1.0,
     this.snareBody = 0.55,
     this.snareTune = 0.50,
     this.snareSnares = 0.60,
@@ -285,11 +305,18 @@ class DeviceSnapshot {
     this.clapRoom = 0.50,
     this.clapDecay = 0.50,
     this.clapVelocity = 1.0,
+    this.cymbalModel = 0.0,
     this.cymbalMetal = 0.55,
     this.cymbalBrightness = 0.60,
     this.cymbalDecay = 0.50,
     this.cymbalChoke = 0.0,
     this.cymbalVelocity = 1.0,
+    this.crashModel = 0.0,
+    this.crashWash = 0.60,
+    this.crashBright = 0.65,
+    this.crashSpread = 0.50,
+    this.crashDecay = 0.55,
+    this.crashVelocity = 1.0,
     this.gateThreshold = 0.45,
     this.gateAttack = 0.25,
     this.gateRelease = 0.50,
@@ -360,6 +387,7 @@ class DeviceSnapshot {
   final double kickClick;
   final double kickTone;
   final double kickVelocity;
+  final double kickKeyTrack;
   final double snareBody;
   final double snareTune;
   final double snareSnares;
@@ -372,11 +400,18 @@ class DeviceSnapshot {
   final double clapRoom;
   final double clapDecay;
   final double clapVelocity;
+  final double cymbalModel;
   final double cymbalMetal;
   final double cymbalBrightness;
   final double cymbalDecay;
   final double cymbalChoke;
   final double cymbalVelocity;
+  final double crashModel;
+  final double crashWash;
+  final double crashBright;
+  final double crashSpread;
+  final double crashDecay;
+  final double crashVelocity;
   final double gateThreshold;
   final double gateAttack;
   final double gateRelease;
@@ -451,6 +486,7 @@ class DeviceSnapshot {
       kickClick: (params['kickClick'] as num?)?.toDouble() ?? 0.35,
       kickTone: (params['kickTone'] as num?)?.toDouble() ?? 0.50,
       kickVelocity: (params['kickVelocity'] as num?)?.toDouble() ?? 1.0,
+      kickKeyTrack: (params['kickKeyTrack'] as num?)?.toDouble() ?? 1.0,
       snareBody: (params['snareBody'] as num?)?.toDouble() ?? 0.55,
       snareTune: (params['snareTune'] as num?)?.toDouble() ?? 0.50,
       snareSnares: (params['snareSnares'] as num?)?.toDouble() ?? 0.60,
@@ -463,11 +499,18 @@ class DeviceSnapshot {
       clapRoom: (params['clapRoom'] as num?)?.toDouble() ?? 0.50,
       clapDecay: (params['clapDecay'] as num?)?.toDouble() ?? 0.50,
       clapVelocity: (params['clapVelocity'] as num?)?.toDouble() ?? 1.0,
+      cymbalModel: (params['cymbalModel'] as num?)?.toDouble() ?? 0.0,
       cymbalMetal: (params['cymbalMetal'] as num?)?.toDouble() ?? 0.55,
       cymbalBrightness: (params['cymbalBrightness'] as num?)?.toDouble() ?? 0.60,
       cymbalDecay: (params['cymbalDecay'] as num?)?.toDouble() ?? 0.50,
       cymbalChoke: (params['cymbalChoke'] as num?)?.toDouble() ?? 0.0,
       cymbalVelocity: (params['cymbalVelocity'] as num?)?.toDouble() ?? 1.0,
+      crashModel: (params['crashModel'] as num?)?.toDouble() ?? 0.0,
+      crashWash: (params['crashWash'] as num?)?.toDouble() ?? 0.60,
+      crashBright: (params['crashBright'] as num?)?.toDouble() ?? 0.65,
+      crashSpread: (params['crashSpread'] as num?)?.toDouble() ?? 0.50,
+      crashDecay: (params['crashDecay'] as num?)?.toDouble() ?? 0.55,
+      crashVelocity: (params['crashVelocity'] as num?)?.toDouble() ?? 1.0,
       gateThreshold: (params['gateThreshold'] as num?)?.toDouble() ?? 0.45,
       gateAttack: (params['gateAttack'] as num?)?.toDouble() ?? 0.25,
       gateRelease: (params['gateRelease'] as num?)?.toDouble() ?? 0.50,
@@ -576,6 +619,7 @@ class DeviceSnapshot {
     double? kickClick,
     double? kickTone,
     double? kickVelocity,
+    double? kickKeyTrack,
     double? snareBody,
     double? snareTune,
     double? snareSnares,
@@ -588,11 +632,18 @@ class DeviceSnapshot {
     double? clapRoom,
     double? clapDecay,
     double? clapVelocity,
+    double? cymbalModel,
     double? cymbalMetal,
     double? cymbalBrightness,
     double? cymbalDecay,
     double? cymbalChoke,
     double? cymbalVelocity,
+    double? crashModel,
+    double? crashWash,
+    double? crashBright,
+    double? crashSpread,
+    double? crashDecay,
+    double? crashVelocity,
     double? gateThreshold,
     double? gateAttack,
     double? gateRelease,
@@ -663,6 +714,7 @@ class DeviceSnapshot {
       kickClick: kickClick ?? this.kickClick,
       kickTone: kickTone ?? this.kickTone,
       kickVelocity: kickVelocity ?? this.kickVelocity,
+      kickKeyTrack: kickKeyTrack ?? this.kickKeyTrack,
       snareBody: snareBody ?? this.snareBody,
       snareTune: snareTune ?? this.snareTune,
       snareSnares: snareSnares ?? this.snareSnares,
@@ -675,11 +727,18 @@ class DeviceSnapshot {
       clapRoom: clapRoom ?? this.clapRoom,
       clapDecay: clapDecay ?? this.clapDecay,
       clapVelocity: clapVelocity ?? this.clapVelocity,
+      cymbalModel: cymbalModel ?? this.cymbalModel,
       cymbalMetal: cymbalMetal ?? this.cymbalMetal,
       cymbalBrightness: cymbalBrightness ?? this.cymbalBrightness,
       cymbalDecay: cymbalDecay ?? this.cymbalDecay,
       cymbalChoke: cymbalChoke ?? this.cymbalChoke,
       cymbalVelocity: cymbalVelocity ?? this.cymbalVelocity,
+      crashModel: crashModel ?? this.crashModel,
+      crashWash: crashWash ?? this.crashWash,
+      crashBright: crashBright ?? this.crashBright,
+      crashSpread: crashSpread ?? this.crashSpread,
+      crashDecay: crashDecay ?? this.crashDecay,
+      crashVelocity: crashVelocity ?? this.crashVelocity,
       gateThreshold: gateThreshold ?? this.gateThreshold,
       gateAttack: gateAttack ?? this.gateAttack,
       gateRelease: gateRelease ?? this.gateRelease,
@@ -792,6 +851,8 @@ class DeviceSnapshot {
         return copyWith(kickTone: value.clamp(0.0, 1.0));
       case 'kickVelocity':
         return copyWith(kickVelocity: value.clamp(0.0, 1.0));
+      case 'kickKeyTrack':
+        return copyWith(kickKeyTrack: value >= 0.5 ? 1.0 : 0.0);
       case 'snareBody':
         return copyWith(snareBody: value.clamp(0.0, 1.0));
       case 'snareTune':
@@ -816,6 +877,8 @@ class DeviceSnapshot {
         return copyWith(clapDecay: value.clamp(0.0, 1.0));
       case 'clapVelocity':
         return copyWith(clapVelocity: value.clamp(0.0, 1.0));
+      case 'cymbalModel':
+        return copyWith(cymbalModel: value.clamp(0.0, 1.0));
       case 'cymbalMetal':
         return copyWith(cymbalMetal: value.clamp(0.0, 1.0));
       case 'cymbalBrightness':
@@ -826,6 +889,18 @@ class DeviceSnapshot {
         return copyWith(cymbalChoke: value.clamp(0.0, 1.0));
       case 'cymbalVelocity':
         return copyWith(cymbalVelocity: value.clamp(0.0, 1.0));
+      case 'crashModel':
+        return copyWith(crashModel: value.clamp(0.0, 1.0));
+      case 'crashWash':
+        return copyWith(crashWash: value.clamp(0.0, 1.0));
+      case 'crashBright':
+        return copyWith(crashBright: value.clamp(0.0, 1.0));
+      case 'crashSpread':
+        return copyWith(crashSpread: value.clamp(0.0, 1.0));
+      case 'crashDecay':
+        return copyWith(crashDecay: value.clamp(0.0, 1.0));
+      case 'crashVelocity':
+        return copyWith(crashVelocity: value.clamp(0.0, 1.0));
       case 'gateThreshold':
         return copyWith(gateThreshold: value.clamp(0.0, 1.0));
       case 'gateAttack':

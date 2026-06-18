@@ -41,6 +41,7 @@ class DrumMonoOutputPanel extends StatelessWidget {
         'snare_generator' => 'snareVelocity',
         'clap_generator' => 'clapVelocity',
         'cymbal_generator' => 'cymbalVelocity',
+        'crash_generator' => 'crashVelocity',
         _ => null,
       };
 
@@ -49,6 +50,7 @@ class DrumMonoOutputPanel extends StatelessWidget {
         'snare_generator' => device.snareVelocity,
         'clap_generator' => device.clapVelocity,
         'cymbal_generator' => device.cymbalVelocity,
+        'crash_generator' => device.crashVelocity,
         _ => 1.0,
       };
 

@@ -8,6 +8,7 @@ class DeviceStripMetrics {
     'snare_generator',
     'clap_generator',
     'cymbal_generator',
+    'crash_generator',
   };
 
   /// Canonical sampler strip width (landscape does not stretch beyond this).
@@ -76,7 +77,8 @@ class DeviceStripMetrics {
       'kick_generator' => kickDesignWidth,
       'snare_generator' => oscillatorDesignWidth,
       'clap_generator' => oscillatorDesignWidth,
-      'cymbal_generator' => oscillatorDesignWidth,
+      'cymbal_generator' => kickDesignWidth,
+      'crash_generator' => kickDesignWidth,
       'gate' => oscillatorDesignWidth,
       'compressor' => oscillatorDesignWidth,
       'expander' => oscillatorDesignWidth,

@@ -19,6 +19,9 @@ import 'clap_generator_device_panel.dart';
 import 'clap_generator_device_strip.dart';
 import 'cymbal_generator_device_panel.dart';
 import 'cymbal_generator_device_strip.dart';
+import 'cymbal_model.dart';
+import 'crash_generator_device_strip.dart';
+import 'crash_model.dart';
 import 'dynamics_fx_panels.dart';
 import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
@@ -322,7 +325,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         'kick_generator' => 'Mono · ${KickModel.labelFromValue(widget.device.kickModel)}',
         'snare_generator' => 'Mono · synth',
         'clap_generator' => 'Mono · synth',
-        'cymbal_generator' => 'Mono · synth',
+        'cymbal_generator' => 'Mono · ${CymbalModel.labelFromValue(widget.device.cymbalModel)}',
+        'crash_generator' => 'Mono · ${CrashModel.labelFromValue(widget.device.crashModel)}',
         'gate' => 'Stereo · FX',
         'compressor' => 'Stereo · FX',
         'expander' => 'Stereo · FX',
@@ -595,7 +599,27 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           child: CymbalGeneratorDeviceStrip(
             device: widget.device,
             onParameterChanged: widget.onDeviceParameterChanged,
-            selectedTab: CymbalDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
+            modulatedParams: _modulatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
+            onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
+          ),
+        );
+      case 'crash_generator':
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: _cardWidth,
+          designHeight: contentHeight,
+          child: CrashGeneratorDeviceStrip(
+            device: widget.device,
+            onParameterChanged: widget.onDeviceParameterChanged,
             modulatedParams: _modulatedParamIds,
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,

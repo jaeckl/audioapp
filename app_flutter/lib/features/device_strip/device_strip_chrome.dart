@@ -45,6 +45,7 @@ abstract final class DeviceStripChrome {
     'snare_generator',
     'clap_generator',
     'cymbal_generator',
+    'crash_generator',
   };
 
   static bool hasInputPanel(String deviceType) =>

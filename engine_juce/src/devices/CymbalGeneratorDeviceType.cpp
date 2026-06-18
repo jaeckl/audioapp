@@ -21,6 +21,7 @@ DeviceState stripSnapshot(const DeviceSlot& slot, std::string_view typeId) {
 
 CymbalGeneratorInstance instanceFromSnapshot(const DeviceState& state) {
     CymbalGeneratorInstance instance;
+    instance.cymbalModel = state.cymbalModel;
     instance.cymbalMetal = state.cymbalMetal;
     instance.cymbalBrightness = state.cymbalBrightness;
     instance.cymbalDecay = state.cymbalDecay;
@@ -30,6 +31,7 @@ CymbalGeneratorInstance instanceFromSnapshot(const DeviceState& state) {
 }
 
 void applyInstanceToSnapshot(const CymbalGeneratorInstance& instance, DeviceState& state) {
+    state.cymbalModel = instance.cymbalModel;
     state.cymbalMetal = instance.cymbalMetal;
     state.cymbalBrightness = instance.cymbalBrightness;
     state.cymbalDecay = instance.cymbalDecay;
@@ -77,7 +79,9 @@ DeviceParameterResult CymbalGeneratorDeviceType::setParameter(DeviceSlot& slot,
 
     auto& instance = std::get<CymbalGeneratorInstance>(slot.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
-    if (parameterId == "cymbalMetal") {
+    if (parameterId == "cymbalModel") {
+        instance.cymbalModel = clamped;
+    } else if (parameterId == "cymbalMetal") {
         instance.cymbalMetal = clamped;
     } else if (parameterId == "cymbalBrightness") {
         instance.cymbalBrightness = clamped;

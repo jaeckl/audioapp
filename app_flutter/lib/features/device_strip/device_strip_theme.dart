@@ -35,6 +35,7 @@ abstract final class DeviceStripTheme {
   static const snareGeneratorAccent = Color(0xFFF0C14B);
   static const clapGeneratorAccent = Color(0xFFE8A0C8);
   static const cymbalGeneratorAccent = Color(0xFF9AD4E8);
+  static const crashGeneratorAccent = Color(0xFF7BC8E8);
   static const gateAccent = Color(0xFF6EC9A8);
   static const compressorAccent = Color(0xFFE8A54B);
   static const expanderAccent = Color(0xFF9AD4E8);
@@ -48,6 +49,7 @@ abstract final class DeviceStripTheme {
         'snare_generator' => snareGeneratorAccent,
         'clap_generator' => clapGeneratorAccent,
         'cymbal_generator' => cymbalGeneratorAccent,
+        'crash_generator' => crashGeneratorAccent,
         'gate' => gateAccent,
         'compressor' => compressorAccent,
         'expander' => expanderAccent,
@@ -63,6 +65,7 @@ abstract final class DeviceStripTheme {
         'snare_generator' => 'Snare Generator',
         'clap_generator' => 'Clap Generator',
         'cymbal_generator' => 'Cymbal Generator',
+        'crash_generator' => 'Crash Generator',
         'gate' => 'Gate',
         'compressor' => 'Compressor',
         'expander' => 'Expander',

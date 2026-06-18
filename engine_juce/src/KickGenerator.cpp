@@ -60,6 +60,13 @@ float normalizedToAmpDecaySec(float normalized) noexcept {
 
 } // namespace
 
+float drumMidiKeyTrackRatio(int pitch, int referencePitch, float keyTrackNorm) noexcept {
+    if (keyTrackNorm < 0.5f) {
+        return 1.0f;
+    }
+    return std::pow(2.0f, static_cast<float>(pitch - referencePitch) / 12.0f);
+}
+
 void triggerKickVoice(KickVoiceRuntime& voice, int pitch, float velocity) noexcept {
     std::memset(&voice, 0, sizeof(voice));
     voice.active = 1;
@@ -87,7 +94,7 @@ float kickGeneratorSample808(KickVoiceRuntime& voice,
     const float ampDecaySec = normalizedToAmpDecaySec(params.kickDecay);
 
     const float tuneRatio =
-        std::pow(2.0f, static_cast<float>(voice.pitch - 36) / 12.0f);
+        drumMidiKeyTrackRatio(voice.pitch, 36, params.kickKeyTrack);
     const double t = voice.elapsedSec;
     const float ampEnv = static_cast<float>(std::exp(-t / static_cast<double>(ampDecaySec)));
     if (ampEnv <= 0.00001f) {

@@ -219,6 +219,7 @@ class _PlaySurfaceScreenState extends State<PlaySurfaceScreen> {
           enabled: hasTrack,
           showModStrip: hasTrack,
           initialSurfaceMode: _preferredSurfaceMode,
+          padPitchBase: track?.drumAnchorPitch,
           onPerformanceChanged: () => setState(() {}),
         ),
       ],

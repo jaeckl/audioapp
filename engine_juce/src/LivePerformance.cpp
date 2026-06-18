@@ -8,6 +8,7 @@
 #include "audioapp/SnareGenerator.hpp"
 #include "audioapp/ClapGenerator.hpp"
 #include "audioapp/CymbalGenerator.hpp"
+#include "audioapp/CrashGenerator.hpp"
 #include "audioapp/SubtractiveSynth.hpp"
 
 #include <algorithm>
@@ -74,6 +75,7 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         voice.snare = SnareVoiceRuntime{};
         voice.clap = ClapVoiceRuntime{};
         voice.cymbal = CymbalVoiceRuntime{};
+        voice.crash = CrashVoiceRuntime{};
         voice.subtractiveStartSec = static_cast<double>(now) / 48000.0;
         voice.subtractiveReleaseSec = -1.0;
         if (instrument.kind == LiveInstrumentKind::SubtractiveSynth) {
@@ -91,6 +93,8 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
             triggerClapVoice(voice.clap, voice.velocity, instrument.clap);
         } else if (instrument.kind == LiveInstrumentKind::CymbalGenerator) {
             triggerCymbalVoice(voice.cymbal, pitch, voice.velocity);
+        } else if (instrument.kind == LiveInstrumentKind::CrashGenerator) {
+            triggerCrashVoice(voice.crash, pitch, voice.velocity);
         }
         voice.active.store(1, std::memory_order_release);
         return i;
@@ -111,6 +115,7 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
     steal.snare = SnareVoiceRuntime{};
     steal.clap = ClapVoiceRuntime{};
     steal.cymbal = CymbalVoiceRuntime{};
+    steal.crash = CrashVoiceRuntime{};
     steal.subtractiveStartSec = static_cast<double>(now) / 48000.0;
     steal.subtractiveReleaseSec = -1.0;
     if (instrument.kind == LiveInstrumentKind::SubtractiveSynth) {
@@ -128,6 +133,8 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         triggerClapVoice(steal.clap, steal.velocity, instrument.clap);
     } else if (instrument.kind == LiveInstrumentKind::CymbalGenerator) {
         triggerCymbalVoice(steal.cymbal, pitch, steal.velocity);
+    } else if (instrument.kind == LiveInstrumentKind::CrashGenerator) {
+        triggerCrashVoice(steal.crash, pitch, steal.velocity);
     }
     steal.active.store(1, std::memory_order_release);
     return 0;
@@ -245,6 +252,26 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                 const float velGain = 1.0f - inst.cymbal.cymbalVelocity * (1.0f - vel);
                 mix += cymbalGeneratorSample(cyv, inst.cymbal, sampleRate, velGain);
                 if (cyv.active == 0) {
+                    voice.active.store(0, std::memory_order_release);
+                }
+                continue;
+            }
+
+            if (inst.kind == LiveInstrumentKind::CrashGenerator) {
+                auto& crv = voice.crash;
+                const double elapsedSec =
+                    static_cast<double>(sampleIndex - voice.startSample) / sampleRate;
+                if (elapsedSec < 0.0) {
+                    continue;
+                }
+                if (crv.active == 0) {
+                    triggerCrashVoice(crv, voice.pitch, voice.velocity);
+                }
+                crv.elapsedSec = elapsedSec;
+                const float vel = std::clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
+                const float velGain = 1.0f - inst.crash.crashVelocity * (1.0f - vel);
+                mix += crashGeneratorSample(crv, inst.crash, sampleRate, velGain);
+                if (crv.active == 0) {
                     voice.active.store(0, std::memory_order_release);
                 }
                 continue;

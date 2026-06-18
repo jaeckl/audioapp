@@ -23,6 +23,7 @@ class PlayDeck extends StatefulWidget {
     this.showModStrip = true,
     this.initialSurfaceMode,
     this.initialOctaveOffset = 0,
+    this.padPitchBase,
     this.onPerformanceChanged,
   });
 
@@ -31,6 +32,8 @@ class PlayDeck extends StatefulWidget {
   final bool showModStrip;
   final PlaySurfaceMode? initialSurfaceMode;
   final int initialOctaveOffset;
+  /// When set (drum tracks), pad 0 fires this MIDI note instead of C3 (48).
+  final int? padPitchBase;
   final VoidCallback? onPerformanceChanged;
 
   @override
@@ -317,6 +320,7 @@ class PlayDeckState extends State<PlayDeck> {
                 ? MpcPadGrid(
                     bridge: widget.bridge,
                     bankOffset: _padBank,
+                    pitchBase: widget.padPitchBase,
                     highlightedPitches: _highlightedPitches,
                     chokeGroupByColumn: _padChokeByColumn,
                     chokeGroupByRow: _padChokeByRow,

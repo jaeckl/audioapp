@@ -12,6 +12,7 @@ struct KickGeneratorInstance {
     float kickClick = 0.35f;
     float kickTone = 0.50f;
     float kickVelocity = 1.0f;
+    float kickKeyTrack = 1.0f;
 
     KickGeneratorParams toPlaybackParams(float gain) const {
         KickGeneratorParams params;
@@ -23,6 +24,7 @@ struct KickGeneratorInstance {
         params.kickClick = kickClick;
         params.kickTone = kickTone;
         params.kickVelocity = kickVelocity;
+        params.kickKeyTrack = kickKeyTrack;
         return params;
     }
 };
