@@ -16,45 +16,6 @@
 
 namespace audioapp {
 
-SubtractiveSynthParams ProjectEngine::subtractiveParamsFromDevice(const Device& device) {
-    SubtractiveSynthParams params;
-    params.gain = device.gain;
-    params.osc1Wave = device.osc1Wave;
-    params.osc2Wave = device.osc2Wave;
-    params.osc1Shape = device.osc1Shape;
-    params.osc2Shape = device.osc2Shape;
-    params.osc1Octave = device.osc1Octave;
-    params.osc1Semi = device.osc1Semi;
-    params.osc1Detune = device.osc1Detune;
-    params.osc2Octave = device.osc2Octave;
-    params.osc2Semi = device.osc2Semi;
-    params.osc2Detune = device.osc2Detune;
-    params.osc1Level = device.osc1Level;
-    params.osc2Level = device.osc2Level;
-    params.oscMix = device.oscMix;
-    params.osc1Sync = device.osc1Sync;
-    params.osc2Sync = device.osc2Sync;
-    params.noiseLevel = device.noiseLevel;
-    params.oscMixMode = device.oscMixMode;
-    params.unisonVoices = device.unisonVoices;
-    params.unisonDetune = device.unisonDetune;
-    params.filterMode = device.filterMode;
-    params.filterCutoff = device.filterCutoff;
-    params.filterQ = device.filterQ;
-    params.filterEnvAmount = device.filterEnvAmount;
-    params.filterAttack = device.filterAttack;
-    params.filterDecay = device.filterDecay;
-    params.filterSustain = device.filterSustain;
-    params.filterRelease = device.filterRelease;
-    params.ampAttack = device.attack;
-    params.ampDecay = device.decay;
-    params.ampSustain = device.sustain;
-    params.ampRelease = device.release;
-    params.glideMs = device.glideMs;
-    params.velocitySensitivity = device.velocitySensitivity;
-    return params;
-}
-
 void ProjectEngine::copyDeviceToState(const Device& src, DeviceState& dst) {
     dst.id = src.id;
     dst.type = src.type;
@@ -247,206 +208,20 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
     if (device == nullptr) {
         return false;
     }
-    if (parameterId == "frequency" && device->type == "simple_oscillator") {
-        device->frequencyHz = value;
+
+    DeviceState state;
+    copyDeviceToState(*device, state);
+    const DeviceParameterResult result =
+        deviceRegistry_.setParameter(state, parameterId, value);
+    if (!result.handled) {
+        return false;
+    }
+    copyStateToDevice(state, *device);
+    if (result.syncActiveFrequency) {
         syncActiveFrequencyLocked();
-        rebuildTrackPlaybackLocked();
-        return true;
     }
-    if (parameterId == "gain" && device->type == "track_gain") {
-        device->gain = std::clamp(value, 0.0f, 1.0f);
-        rebuildTrackPlaybackLocked();
-        return true;
-    }
-    if (parameterId == "gain" && device->type == "simple_sampler") {
-        device->gain = std::clamp(value, 0.0f, 1.0f);
-        rebuildTrackPlaybackLocked();
-        return true;
-    }
-    if (parameterId == "gain" && device->type == "simple_oscillator") {
-        device->gain = std::clamp(value, 0.0f, 1.0f);
-        rebuildTrackPlaybackLocked();
-        return true;
-    }
-    if (parameterId == "gain" && device->type == "subtractive_synth") {
-        device->gain = std::clamp(value, 0.0f, 1.0f);
-        rebuildTrackPlaybackLocked();
-        return true;
-    }
-    if (parameterId == "pan" && device->type != "track_gain") {
-        device->pan = std::clamp(value, 0.0f, 1.0f);
-        rebuildTrackPlaybackLocked();
-        return true;
-    }
-    if (parameterId == "bypass" && device->type != "track_gain") {
-        device->bypassed = value >= 0.5f;
-        rebuildTrackPlaybackLocked();
-        return true;
-    }
-    if (device->type == "simple_sampler") {
-        if (parameterId == "attack" || parameterId == "decay" || parameterId == "release") {
-            const float clamped = std::clamp(value, 0.0f, 1.0f);
-            if (parameterId == "attack") {
-                device->attack = clamped;
-            } else if (parameterId == "decay") {
-                device->decay = clamped;
-            } else {
-                device->release = clamped;
-            }
-            rebuildTrackPlaybackLocked();
-            return true;
-        }
-        if (parameterId == "sustain") {
-            device->sustain = std::clamp(value, 0.0f, 1.0f);
-            rebuildTrackPlaybackLocked();
-            return true;
-        }
-        if (parameterId == "filterCutoff") {
-            device->filterCutoff = std::clamp(value, 0.0f, 1.0f);
-            rebuildTrackPlaybackLocked();
-            return true;
-        }
-        if (parameterId == "filterQ") {
-            device->filterQ = std::clamp(value, 0.0f, 1.0f);
-            rebuildTrackPlaybackLocked();
-            return true;
-        }
-        if (parameterId == "filterMode") {
-            device->filterMode = std::clamp(static_cast<int>(std::lround(value)), 0, 3);
-            rebuildTrackPlaybackLocked();
-            return true;
-        }
-        if (parameterId == "trimStartSec") {
-            device->trimStartSec = std::max(0.0f, value);
-            rebuildTrackPlaybackLocked();
-            return true;
-        }
-        if (parameterId == "trimEndSec") {
-            device->trimEndSec = std::max(0.0f, value);
-            rebuildTrackPlaybackLocked();
-            return true;
-        }
-        if (parameterId == "regionStartSec") {
-            device->regionStartSec = std::max(0.0f, value);
-            rebuildTrackPlaybackLocked();
-            return true;
-        }
-        if (parameterId == "regionEndSec") {
-            device->regionEndSec = std::max(0.0f, value);
-            rebuildTrackPlaybackLocked();
-            return true;
-        }
-    }
-    if (device->type == "subtractive_synth") {
-        if (parameterId == "attack" || parameterId == "decay" || parameterId == "release" ||
-            parameterId == "sustain") {
-            const float clamped = std::clamp(value, 0.0f, 1.0f);
-            if (parameterId == "attack") {
-                device->attack = clamped;
-            } else if (parameterId == "decay") {
-                device->decay = clamped;
-            } else if (parameterId == "release") {
-                device->release = clamped;
-            } else {
-                device->sustain = clamped;
-            }
-            rebuildTrackPlaybackLocked();
-            return true;
-        }
-        if (parameterId == "filterCutoff" || parameterId == "filterQ" || parameterId == "filterEnvAmount" ||
-            parameterId == "filterAttack" || parameterId == "filterDecay" || parameterId == "filterSustain" ||
-            parameterId == "filterRelease" || parameterId == "osc1Octave" || parameterId == "osc1Semi" ||
-            parameterId == "osc1Detune" || parameterId == "osc2Octave" || parameterId == "osc2Semi" ||
-            parameterId == "osc2Detune" || parameterId == "osc1Level" || parameterId == "osc2Level" ||
-            parameterId == "oscMix" || parameterId == "osc1Sync" || parameterId == "osc2Sync" ||
-            parameterId == "noiseLevel" || parameterId == "unisonVoices" || parameterId == "unisonDetune" ||
-            parameterId == "glideMs" || parameterId == "velocitySensitivity") {
-            float clamped = std::clamp(value, 0.0f, 1.0f);
-            if (parameterId == "filterCutoff") {
-                device->filterCutoff = clamped;
-            } else if (parameterId == "filterQ") {
-                device->filterQ = clamped;
-            } else if (parameterId == "filterEnvAmount") {
-                device->filterEnvAmount = clamped;
-            } else if (parameterId == "filterAttack") {
-                device->filterAttack = clamped;
-            } else if (parameterId == "filterDecay") {
-                device->filterDecay = clamped;
-            } else if (parameterId == "filterSustain") {
-                device->filterSustain = clamped;
-            } else if (parameterId == "filterRelease") {
-                device->filterRelease = clamped;
-            } else if (parameterId == "osc1Octave") {
-                device->osc1Octave = clamped;
-            } else if (parameterId == "osc1Semi") {
-                device->osc1Semi = clamped;
-            } else if (parameterId == "osc1Detune") {
-                device->osc1Detune = clamped;
-            } else if (parameterId == "osc2Octave") {
-                device->osc2Octave = clamped;
-            } else if (parameterId == "osc2Semi") {
-                device->osc2Semi = clamped;
-            } else if (parameterId == "osc2Detune") {
-                device->osc2Detune = clamped;
-            } else if (parameterId == "osc1Level") {
-                device->osc1Level = clamped;
-            } else if (parameterId == "osc2Level") {
-                device->osc2Level = clamped;
-            } else if (parameterId == "oscMix") {
-                device->oscMix = clamped;
-            } else if (parameterId == "osc1Sync") {
-                device->osc1Sync = clamped;
-            } else if (parameterId == "osc2Sync") {
-                device->osc2Sync = clamped;
-            } else if (parameterId == "noiseLevel") {
-                device->noiseLevel = clamped;
-            } else if (parameterId == "unisonVoices") {
-                device->unisonVoices = clamped;
-            } else if (parameterId == "unisonDetune") {
-                device->unisonDetune = clamped;
-            } else if (parameterId == "glideMs") {
-                device->glideMs = clamped;
-            } else {
-                device->velocitySensitivity = clamped;
-            }
-            rebuildTrackPlaybackLocked();
-            return true;
-        }
-        if (parameterId == "osc1Wave") {
-            device->osc1Wave = std::clamp(static_cast<int>(std::lround(value)), 0, 4);
-            device->osc1Shape = static_cast<float>(device->osc1Wave) / 4.0f;
-            rebuildTrackPlaybackLocked();
-            return true;
-        }
-        if (parameterId == "osc2Wave") {
-            device->osc2Wave = std::clamp(static_cast<int>(std::lround(value)), 0, 4);
-            device->osc2Shape = static_cast<float>(device->osc2Wave) / 4.0f;
-            rebuildTrackPlaybackLocked();
-            return true;
-        }
-        if (parameterId == "osc1Shape") {
-            const float clamped = std::clamp(value, 0.0f, 1.0f);
-            device->osc1Shape = clamped;
-            device->osc1Wave =
-                std::clamp(static_cast<int>(std::lround(clamped * 4.0f)), 0, 4);
-            rebuildTrackPlaybackLocked();
-            return true;
-        }
-        if (parameterId == "osc2Shape") {
-            const float clamped = std::clamp(value, 0.0f, 1.0f);
-            device->osc2Shape = clamped;
-            device->osc2Wave =
-                std::clamp(static_cast<int>(std::lround(clamped * 4.0f)), 0, 4);
-            rebuildTrackPlaybackLocked();
-            return true;
-        }
-        if (parameterId == "oscMixMode") {
-            device->oscMixMode = std::clamp(static_cast<int>(std::lround(value)), 0, 4);
-            rebuildTrackPlaybackLocked();
-            return true;
-        }
-    }
-    return false;
+    rebuildTrackPlaybackLocked();
+    return true;
 }
 
 bool ProjectEngine::setDeviceStringParameter(const std::string& deviceId,
@@ -457,15 +232,16 @@ bool ProjectEngine::setDeviceStringParameter(const std::string& deviceId,
     if (device == nullptr) {
         return false;
     }
-    if (parameterId == "sampleId" && device->type == "simple_sampler") {
-        if (!value.empty() && sampleBank_ != nullptr && sampleBank_->findSample(value) == nullptr) {
-            return false;
-        }
-        device->sampleId = value;
-        rebuildTrackPlaybackLocked();
-        return true;
+
+    DeviceState state;
+    copyDeviceToState(*device, state);
+    const PlaybackBuildContext context{sampleBank_};
+    if (!deviceRegistry_.setStringParameter(state, parameterId, value, context)) {
+        return false;
     }
-    return false;
+    copyStateToDevice(state, *device);
+    rebuildTrackPlaybackLocked();
+    return true;
 }
 
 bool ProjectEngine::setMasterGain(float gain) {
@@ -1392,65 +1168,11 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
             node.bypassed = device.bypassed;
             node.gain = device.gain;
             node.pan = device.pan;
-            if (device.type == "simple_oscillator") {
-                node.kind = DeviceNodeKind::Oscillator;
-                node.params = OscillatorParams{
-                    .frequencyHz = device.frequencyHz,
-                };
-            } else if (device.type == "simple_sampler") {
-                node.kind = DeviceNodeKind::Sampler;
-                SamplerParams sp;
-                sp.attack = device.attack;
-                sp.decay = device.decay;
-                sp.sustain = device.sustain;
-                sp.release = device.release;
-                sp.filterCutoff = device.filterCutoff;
-                sp.filterQ = device.filterQ;
-                sp.filterMode = device.filterMode;
-                sp.samplerPcm = nullptr;
-                sp.samplerFrameCount = 0;
-                sp.samplerPcmSampleRate = 48000.0;
-                if (sampleBank_ != nullptr && !device.sampleId.empty()) {
-                    if (const auto* sample = sampleBank_->findSample(device.sampleId)) {
-                        if (!sample->pcm.empty()) {
-                            sp.samplerPcm = sample->pcm.data();
-                            sp.samplerFrameCount = static_cast<int>(sample->pcm.size());
-                            sp.samplerPcmSampleRate = sample->sampleRate;
-                            const int frameCount = sp.samplerFrameCount;
-                            sp.trimStartFrame = std::clamp(
-                                static_cast<int>(device.trimStartSec * sample->sampleRate),
-                                0,
-                                std::max(0, frameCount - 1));
-                            sp.trimEndFrame = device.trimEndSec > 0.0f
-                                ? std::clamp(static_cast<int>(device.trimEndSec * sample->sampleRate),
-                                             sp.trimStartFrame + 1,
-                                             frameCount)
-                                : frameCount;
-                            sp.regionStartFrame = 0;
-                            sp.regionEndFrame = 0;
-                            if (device.regionEndSec > 0.0f) {
-                                const int rawStart = static_cast<int>(device.regionStartSec * sample->sampleRate);
-                                sp.regionStartFrame = std::clamp(rawStart,
-                                    sp.trimStartFrame,
-                                    sp.trimEndFrame - 1);
-                                const int rawEnd = static_cast<int>(device.regionEndSec * sample->sampleRate);
-                                sp.regionEndFrame = std::clamp(rawEnd,
-                                    sp.regionStartFrame + 1,
-                                    sp.trimEndFrame);
-                            }
-                        }
-                    }
-                }
-                node.params = sp;
-            } else if (device.type == "track_gain") {
-                node.kind = DeviceNodeKind::TrackGain;
-                node.params = TrackGainParams{};
-            } else if (device.type == "subtractive_synth") {
-                node.kind = DeviceNodeKind::SubtractiveSynth;
-                node.params = subtractiveParamsFromDevice(device);
-            } else {
-                node.kind = DeviceNodeKind::Unknown;
-            }
+
+            DeviceState deviceState;
+            copyDeviceToState(device, deviceState);
+            const PlaybackBuildContext context{sampleBank_};
+            deviceRegistry_.buildPlaybackNode(deviceState, context, node);
         }
 
         for (const auto& clip : sourceTrack.midiClips) {

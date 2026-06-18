@@ -24,13 +24,13 @@ Four `*DeviceType` classes implement `IDeviceType` with typed instance structs (
 
 ## Scope
 
-- [ ] `OscillatorDeviceType` — `frequencyHz` + shared strip params via wrapper
-- [ ] `SamplerDeviceType` — ADSR, filter, trim/region, `sampleId`
-- [ ] `TrackGainDeviceType` — gain only (no pan/bypass on utility gain node per current rules)
-- [ ] `SubtractiveSynthDeviceType` — full synth param set (maps to existing `SubtractiveSynthParams` for playback)
-- [ ] Each type: `createDefault`, `setParameter`, `setStringParameter`, modulatable param id list
-- [ ] Each type: `buildPlaybackNode` fills `DeviceNodePlayback` (may delegate to existing helpers)
-- [ ] Each type: `buildLiveInstrument` where applicable (oscillator, sampler, synth — not track_gain)
+- [x] `OscillatorDeviceType` — `frequencyHz` + shared strip params via wrapper
+- [x] `SamplerDeviceType` — ADSR, filter, trim/region, `sampleId`
+- [x] `TrackGainDeviceType` — gain only (no pan/bypass on utility gain node per current rules)
+- [x] `SubtractiveSynthDeviceType` — full synth param set (maps to existing `SubtractiveSynthParams` for playback)
+- [x] Each type: `createDefault`, `setParameter`, `setStringParameter`, modulatable param id list
+- [x] Each type: `buildPlaybackNode` fills `DeviceNodePlayback` (may delegate to existing helpers)
+- [x] Each type: `buildLiveInstrument` where applicable (oscillator, sampler, synth — not track_gain)
 
 ## Out of scope
 
@@ -40,11 +40,11 @@ Four `*DeviceType` classes implement `IDeviceType` with typed instance structs (
 
 ## Acceptance criteria
 
-- [ ] No device type class references another type's fields
-- [ ] `setParameter("filterCutoff", …)` on oscillator returns false
-- [ ] Defaults match current `addDeviceToTrack` behavior exactly
-- [ ] `buildPlaybackNode` output matches pre-refactor `rebuildTrackPlaybackLocked` for each type
-- [ ] Per-type unit tests for param clamping and playback node shape
+- [x] No device type class references another type's fields
+- [x] `setParameter("filterCutoff", …)` on oscillator returns false
+- [x] Defaults match current `addDeviceToTrack` behavior exactly
+- [x] `buildPlaybackNode` output matches pre-refactor `rebuildTrackPlaybackLocked` for each type
+- [x] Per-type unit tests for param clamping and playback node shape
 
 ## Demo script (developer, ~10 min)
 
