@@ -126,6 +126,40 @@ class EngineBridge {
     });
   }
 
+  Future<ProjectSnapshot> createAutomationClip({
+    required String trackId,
+    double startBeat = 0,
+    double lengthBeats = 4,
+  }) async {
+    return _invokeForSnapshot('createAutomationClip', {
+      'trackId': trackId,
+      'startBeat': startBeat,
+      'lengthBeats': lengthBeats,
+    });
+  }
+
+  Future<ProjectSnapshot> assignAutomationTarget({
+    required String clipId,
+    required String deviceId,
+    required String paramId,
+  }) async {
+    return _invokeForSnapshot('assignAutomationTarget', {
+      'clipId': clipId,
+      'deviceId': deviceId,
+      'paramId': paramId,
+    });
+  }
+
+  Future<ProjectSnapshot> setAutomationPoints({
+    required String clipId,
+    required List<AutomationPointSnapshot> points,
+  }) async {
+    return _invokeForSnapshot('setAutomationPoints', {
+      'clipId': clipId,
+      'points': points.map((p) => p.toMap()).toList(),
+    });
+  }
+
   Future<ProjectSnapshot> createSampleClip({
     required String trackId,
     required String sampleId,

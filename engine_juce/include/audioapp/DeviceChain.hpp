@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <variant>
 
+#include "audioapp/AutomationTypes.hpp"
 #include "audioapp/LfoTypes.hpp"
 #include "audioapp/SamplerFilter.hpp"
 #include "audioapp/SubtractiveSynth.hpp"
@@ -99,6 +100,8 @@ void processDeviceChain(float* trackLeft,
                         const float* lfoValues = nullptr,
                         int lfoCount = 0,
                         const ModulationEdge* modEdges = nullptr,
-                        int modEdgeCount = 0) noexcept;
+                        int modEdgeCount = 0,
+                        const AutomationClipPlayback* automationClips = nullptr,
+                        int automationClipCount = 0) noexcept;
 
 } // namespace audioapp

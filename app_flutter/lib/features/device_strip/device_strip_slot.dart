@@ -42,6 +42,8 @@ class DeviceStripSlot extends StatefulWidget {
     this.lfos = const [],
     this.modEdges = const [],
     this.onModulationBridgeCall,
+    this.automationLinkActive = false,
+    this.onAutomationParamSelected,
   });
 
   final TrackSnapshot track;
@@ -64,6 +66,8 @@ class DeviceStripSlot extends StatefulWidget {
   final List<ModulationEdgeSnapshot> modEdges;
   final Future<ProjectSnapshot> Function(String method, Map<String, dynamic> args)?
       onModulationBridgeCall;
+  final bool automationLinkActive;
+  final void Function(String deviceId, String paramId)? onAutomationParamSelected;
 
   @override
   State<DeviceStripSlot> createState() => _DeviceStripSlotState();
@@ -200,6 +204,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         'amount': (amount * 100).roundToDouble() / 100,
       });
     };
+  }
+
+  void _onAutomationLinkTap(String paramId) {
+    widget.onAutomationParamSelected?.call(widget.device.id, paramId);
   }
 
   int _initialTabIndex() {
@@ -372,6 +380,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                     modulationAmounts: _modulationAmounts,
                     connectModeLfoId: _connectModeLfo,
                     onModulationAssign: _onModulationForDevice,
+                    automationLinkActive: widget.automationLinkActive,
+                    onAutomationLinkTap: widget.onAutomationParamSelected != null
+                        ? _onAutomationLinkTap
+                        : null,
                   ),
                 ),
               ],
@@ -438,6 +450,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
           ),
         );
       default:

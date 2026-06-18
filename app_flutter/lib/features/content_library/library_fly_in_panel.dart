@@ -18,6 +18,7 @@ class LibraryFlyInPanel extends StatefulWidget {
     required this.onImportAudio,
     this.initialCategory = LibraryCategory.audioClips,
     this.onMidiClipTap,
+    this.onAutomationTap,
     this.onPresetTap,
   });
 
@@ -28,6 +29,7 @@ class LibraryFlyInPanel extends StatefulWidget {
   final VoidCallback onImportAudio;
   final LibraryCategory initialCategory;
   final void Function(LibraryMidiItem item)? onMidiClipTap;
+  final void Function(LibraryAutomationItem item)? onAutomationTap;
   final void Function(LibraryPresetItem item)? onPresetTap;
 
   @override
@@ -124,6 +126,7 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
                                 onInsertAudio: widget.onInsertAudio,
                                 onImportAudio: widget.onImportAudio,
                                 onMidiClipTap: widget.onMidiClipTap,
+                                onAutomationTap: widget.onAutomationTap,
                                 onPresetTap: widget.onPresetTap,
                               ),
                             ),

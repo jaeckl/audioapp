@@ -48,6 +48,7 @@ add_library(audioapp_engine STATIC
   src/model/ClipRepository.cpp
   src/transport/TransportController.cpp
   src/modulation/ModulationGraph.cpp
+  src/AutomationPlayback.cpp
   src/EngineHost_commands.cpp
   src/LfoEngine.cpp
 )

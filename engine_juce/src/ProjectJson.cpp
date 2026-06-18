@@ -281,6 +281,49 @@ SampleClipState sampleClipFromVar(const juce::var& value) {
     return clip;
 }
 
+juce::var automationClipToVar(const AutomationClipState& clip) {
+    juce::Array<juce::var> points;
+    points.ensureStorageAllocated(static_cast<int>(clip.points.size()));
+    for (const auto& point : clip.points) {
+        auto* pointObject = new juce::DynamicObject();
+        pointObject->setProperty("beat", point.beat);
+        pointObject->setProperty("value", static_cast<double>(point.value));
+        points.add(juce::var(pointObject));
+    }
+
+    auto* object = new juce::DynamicObject();
+    object->setProperty("id", toJuceString(clip.id));
+    object->setProperty("startBeat", clip.startBeat);
+    object->setProperty("lengthBeats", clip.lengthBeats);
+    object->setProperty("deviceId", toJuceString(clip.deviceId));
+    object->setProperty("paramId", toJuceString(clip.paramId));
+    object->setProperty("points", points);
+    return juce::var(object);
+}
+
+AutomationClipState automationClipFromVar(const juce::var& value) {
+    AutomationClipState clip;
+    if (const auto* object = value.getDynamicObject()) {
+        clip.id = varToString(object->getProperty("id"));
+        clip.startBeat = varToDouble(object->getProperty("startBeat"), 0.0);
+        clip.lengthBeats = varToDouble(object->getProperty("lengthBeats"), 4.0);
+        clip.deviceId = varToString(object->getProperty("deviceId"));
+        clip.paramId = varToString(object->getProperty("paramId"));
+        if (const auto* pointArray = varArray(object->getProperty("points"))) {
+            clip.points.reserve(static_cast<size_t>(pointArray->size()));
+            for (const auto& pointVar : *pointArray) {
+                if (const auto* pointObject = pointVar.getDynamicObject()) {
+                    clip.points.push_back(AutomationPointState{
+                        varToDouble(pointObject->getProperty("beat"), 0.0),
+                        varToFloat(pointObject->getProperty("value"), 0.0f),
+                    });
+                }
+            }
+        }
+    }
+    return clip;
+}
+
 juce::var sampleLibraryEntryToVar(const SampleLibraryEntryState& entry) {
     juce::Array<juce::var> peaks;
     peaks.ensureStorageAllocated(static_cast<int>(entry.waveformPeaks.size()));
@@ -333,12 +376,19 @@ juce::var trackToVar(const TrackState& track) {
         sampleClips.add(sampleClipToVar(clip));
     }
 
+    juce::Array<juce::var> automationClips;
+    automationClips.ensureStorageAllocated(static_cast<int>(track.automationClips.size()));
+    for (const auto& clip : track.automationClips) {
+        automationClips.add(automationClipToVar(clip));
+    }
+
     auto* object = new juce::DynamicObject();
     object->setProperty("id", toJuceString(track.id));
     object->setProperty("name", toJuceString(track.name));
     object->setProperty("devices", devices);
     object->setProperty("midiClips", clips);
     object->setProperty("sampleClips", sampleClips);
+    object->setProperty("automationClips", automationClips);
     return juce::var(object);
 }
 
@@ -360,6 +410,11 @@ TrackState trackFromVar(const juce::var& value) {
         if (const auto* sampleClips = varArray(object->getProperty("sampleClips"))) {
             for (const auto& clipVar : *sampleClips) {
                 track.sampleClips.push_back(sampleClipFromVar(clipVar));
+            }
+        }
+        if (const auto* automationClips = varArray(object->getProperty("automationClips"))) {
+            for (const auto& clipVar : *automationClips) {
+                track.automationClips.push_back(automationClipFromVar(clipVar));
             }
         }
     }
@@ -586,6 +641,25 @@ std::vector<MidiNoteState> parseMidiNotesFromArgs(const std::string& argumentsJs
         }
     }
     return notes;
+}
+
+std::vector<AutomationPointState> parseAutomationPointsFromArgs(const std::string& argumentsJson) {
+    std::vector<AutomationPointState> points;
+    const auto root = parseRootVar(argumentsJson);
+    if (const auto* object = root.getDynamicObject()) {
+        if (const auto* pointArray = varArray(object->getProperty("points"))) {
+            points.reserve(static_cast<size_t>(pointArray->size()));
+            for (const auto& pointVar : *pointArray) {
+                if (const auto* pointObject = pointVar.getDynamicObject()) {
+                    points.push_back(AutomationPointState{
+                        varToDouble(pointObject->getProperty("beat"), 0.0),
+                        varToFloat(pointObject->getProperty("value"), 0.0f),
+                    });
+                }
+            }
+        }
+    }
+    return points;
 }
 
 std::string jsonGetStringArg(const std::string& argumentsJson, const std::string& key) {

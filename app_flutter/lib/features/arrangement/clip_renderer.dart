@@ -105,9 +105,13 @@ class ArrangementClipChrome extends StatelessWidget {
   }
 
   static Color _idleBorderColor(ClipRenderer renderer) {
-    return renderer.clipBackgroundColor == ArrangementClipTheme.sampleClipBackground
-        ? ArrangementClipTheme.sampleClipBorder
-        : ArrangementClipTheme.midiClipBorder;
+    if (renderer.clipBackgroundColor == ArrangementClipTheme.sampleClipBackground) {
+      return ArrangementClipTheme.sampleClipBorder;
+    }
+    if (renderer.clipBackgroundColor == ArrangementClipTheme.automationClipBackground) {
+      return ArrangementClipTheme.automationClipBorder;
+    }
+    return ArrangementClipTheme.midiClipBorder;
   }
 }
 

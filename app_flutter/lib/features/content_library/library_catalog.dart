@@ -46,9 +46,15 @@ class LibraryAutomationItem extends LibraryItem {
     required super.title,
     required super.subtitle,
     required this.parameterLabel,
+    this.trackId,
+    this.clip,
+    this.suggestedParamId,
   });
 
   final String parameterLabel;
+  final String? trackId;
+  final AutomationClipSnapshot? clip;
+  final String? suggestedParamId;
 }
 
 class LibraryPresetItem extends LibraryItem {
@@ -128,29 +134,46 @@ abstract final class LibraryCatalog {
   }
 
   static List<LibraryItem> _automationItems(ProjectSnapshot snapshot) {
-    if (snapshot.tracks.isEmpty) {
-      return const [];
+    final items = <LibraryItem>[];
+    for (final track in snapshot.tracks) {
+      for (final clip in track.automationClips) {
+        items.add(
+          LibraryAutomationItem(
+            id: 'auto-clip:${clip.id}',
+            title: clip.isLinked ? clip.linkLabel : 'Automation clip',
+            subtitle: '${track.name} · ${clip.lengthBeats.round()} beats',
+            parameterLabel: clip.linkLabel,
+            trackId: track.id,
+            clip: clip,
+          ),
+        );
+      }
     }
-    return [
-      const LibraryAutomationItem(
-        id: 'auto:volume',
-        title: 'Volume lane',
-        subtitle: 'Master track automation',
-        parameterLabel: 'Volume',
-      ),
-      const LibraryAutomationItem(
-        id: 'auto:filter',
-        title: 'Filter cutoff',
-        subtitle: 'Sampler filter sweep',
-        parameterLabel: 'Filter',
-      ),
-      const LibraryAutomationItem(
-        id: 'auto:send',
-        title: 'Send A',
-        subtitle: 'Aux send level',
-        parameterLabel: 'Send',
-      ),
-    ];
+    if (items.isEmpty) {
+      items.addAll(const [
+        LibraryAutomationItem(
+          id: 'auto:filter',
+          title: 'Filter cutoff',
+          subtitle: 'Synth/sampler filter sweep',
+          parameterLabel: 'Filter',
+          suggestedParamId: 'filterCutoff',
+        ),
+        LibraryAutomationItem(
+          id: 'auto:gain',
+          title: 'Gain',
+          subtitle: 'Device output level',
+          parameterLabel: 'Gain',
+          suggestedParamId: 'gain',
+        ),
+        LibraryAutomationItem(
+          id: 'auto:blank',
+          title: 'Blank automation',
+          subtitle: 'Create clip · tap Link to assign',
+          parameterLabel: 'Link',
+        ),
+      ]);
+    }
+    return items;
   }
 
   static List<LibraryItem> _presetItems(ProjectSnapshot snapshot) {

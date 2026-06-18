@@ -15,6 +15,8 @@ class SubtractiveSynthDeviceStrip extends StatelessWidget {
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
+    this.automationLinkActive = false,
+    this.onAutomationLinkTap,
   });
 
   final DeviceSnapshot device;
@@ -26,6 +28,8 @@ class SubtractiveSynthDeviceStrip extends StatelessWidget {
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
+  final bool automationLinkActive;
+  final ValueChanged<String>? onAutomationLinkTap;
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +46,8 @@ class SubtractiveSynthDeviceStrip extends StatelessWidget {
       modulationAmounts: modulationAmounts,
       connectModeLfoId: connectModeLfoId,
       onModulationAssign: onModulationAssign,
+      automationLinkActive: automationLinkActive,
+      onAutomationLinkTap: onAutomationLinkTap,
     );
   }
 }

@@ -15,6 +15,7 @@ class LibraryContentPane extends StatelessWidget {
     required this.onInsertAudio,
     required this.onImportAudio,
     this.onMidiClipTap,
+    this.onAutomationTap,
     this.onPresetTap,
   });
 
@@ -24,6 +25,7 @@ class LibraryContentPane extends StatelessWidget {
   final ValueChanged<SampleLibraryEntrySnapshot> onInsertAudio;
   final VoidCallback onImportAudio;
   final void Function(LibraryMidiItem item)? onMidiClipTap;
+  final void Function(LibraryAutomationItem item)? onAutomationTap;
   final void Function(LibraryPresetItem item)? onPresetTap;
 
   @override
@@ -82,6 +84,7 @@ class LibraryContentPane extends StatelessWidget {
                     onPreviewAudio: onPreviewAudio,
                     onInsertAudio: onInsertAudio,
                     onMidiClipTap: onMidiClipTap,
+                    onAutomationTap: onAutomationTap,
                     onPresetTap: onPresetTap,
                   ),
                 ),
@@ -132,6 +135,7 @@ class _LibraryItemTile extends StatelessWidget {
     required this.onPreviewAudio,
     required this.onInsertAudio,
     this.onMidiClipTap,
+    this.onAutomationTap,
     this.onPresetTap,
   });
 
@@ -140,6 +144,7 @@ class _LibraryItemTile extends StatelessWidget {
   final ValueChanged<SampleLibraryEntrySnapshot> onPreviewAudio;
   final ValueChanged<SampleLibraryEntrySnapshot> onInsertAudio;
   final void Function(LibraryMidiItem item)? onMidiClipTap;
+  final void Function(LibraryAutomationItem item)? onAutomationTap;
   final void Function(LibraryPresetItem item)? onPresetTap;
 
   @override
@@ -196,6 +201,8 @@ class _LibraryItemTile extends StatelessWidget {
         onInsertAudio(audio.sample);
       case final LibraryMidiItem midi:
         onMidiClipTap?.call(midi);
+      case final LibraryAutomationItem automation:
+        onAutomationTap?.call(automation);
       case final LibraryPresetItem preset:
         onPresetTap?.call(preset);
       default:

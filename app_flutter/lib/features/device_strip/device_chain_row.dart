@@ -32,6 +32,8 @@ class DeviceChainRow extends StatelessWidget {
     this.lfos = const [],
     this.modEdges = const [],
     this.onModulationBridgeCall,
+    this.automationLinkActive = false,
+    this.onAutomationParamSelected,
   });
 
   final TrackSnapshot track;
@@ -56,6 +58,8 @@ class DeviceChainRow extends StatelessWidget {
   final List<ModulationEdgeSnapshot> modEdges;
   final Future<ProjectSnapshot> Function(String method, Map<String, dynamic> args)?
       onModulationBridgeCall;
+  final bool automationLinkActive;
+  final void Function(String deviceId, String paramId)? onAutomationParamSelected;
 
   double get _rowHeight => switch (density) {
         DeviceStripSlotDensity.fullscreen => DeviceStripMetrics.fullscreenHeight,
@@ -125,6 +129,8 @@ class DeviceChainRow extends StatelessWidget {
                   lfos: lfos,
                   modEdges: modEdges,
                   onModulationBridgeCall: onModulationBridgeCall,
+                  automationLinkActive: automationLinkActive,
+                  onAutomationParamSelected: onAutomationParamSelected,
                 ),
                 DeviceChainSeparator(
                   active: playing,

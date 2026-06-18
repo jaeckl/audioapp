@@ -135,6 +135,23 @@ bool EngineHost::setClipLength(const std::string& clipId, double lengthBeats) {
     return project_.setClipLength(clipId, lengthBeats);
 }
 
+std::string EngineHost::createAutomationClip(const std::string& trackId,
+                                             double startBeat,
+                                             double lengthBeats) {
+    return project_.createAutomationClip(trackId, startBeat, lengthBeats);
+}
+
+bool EngineHost::assignAutomationTarget(const std::string& clipId,
+                                          const std::string& deviceId,
+                                          const std::string& paramId) {
+    return project_.assignAutomationTarget(clipId, deviceId, paramId);
+}
+
+bool EngineHost::setAutomationPoints(const std::string& clipId,
+                                     const std::vector<AutomationPointState>& points) {
+    return project_.setAutomationPoints(clipId, points);
+}
+
 bool EngineHost::setBpm(int bpm) {
     return project_.setBpm(bpm);
 }

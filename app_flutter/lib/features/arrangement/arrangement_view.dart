@@ -5,6 +5,7 @@ import 'dart:async';
 import '../../bridge/project_snapshot.dart';
 import 'arrangement_clip_drag.dart';
 import 'arrangement_timeline_metrics.dart';
+import 'automation_clip_renderer.dart';
 import 'clip_renderer.dart';
 import 'midi_clip_renderer.dart';
 import 'sample_clip_renderer.dart';
@@ -29,6 +30,9 @@ class ArrangementView extends StatefulWidget {
     this.onDeleteClip,
     this.onDuplicateClip,
     this.onOpenPlay,
+    this.automationLinkClipId,
+    this.onAutomationLinkToggle,
+    this.onAutomationClipDoubleTap,
     this.focusTrackId,
     this.compact = false,
   });
@@ -53,6 +57,9 @@ class ArrangementView extends StatefulWidget {
   final void Function(String clipId)? onDeleteClip;
   final void Function(String clipId)? onDuplicateClip;
   final void Function(String trackId)? onOpenPlay;
+  final String? automationLinkClipId;
+  final void Function(String clipId)? onAutomationLinkToggle;
+  final void Function(String trackId, AutomationClipSnapshot clip)? onAutomationClipDoubleTap;
   /// When [compact] is true, only this track lane is shown (defaults to selected).
   final String? focusTrackId;
   /// Hides master/add-track chrome for embedded play-mode timeline.
@@ -272,6 +279,7 @@ class _ArrangementViewState extends State<ArrangementView> {
     required Offset globalPosition,
     MidiClipSnapshot? midiClip,
     SampleClipSnapshot? sampleClip,
+    AutomationClipSnapshot? automationClip,
   }) {
     final pointerBeat = _beatFromGlobal(globalPosition);
     final trackIndex = _sourceTrackIndex(trackId);
@@ -285,6 +293,7 @@ class _ArrangementViewState extends State<ArrangementView> {
       pointerBeatAtStart: pointerBeat,
       midiClip: midiClip,
       sampleClip: sampleClip,
+      automationClip: automationClip,
       targetTrackIndex: trackIndex,
       previewStartBeat: originalStartBeat,
     );
@@ -520,6 +529,9 @@ class _ArrangementViewState extends State<ArrangementView> {
                           ),
                           onDeleteClip: widget.onDeleteClip,
                           onClipMenu: _showClipMenu,
+                          automationLinkClipId: widget.automationLinkClipId,
+                          onAutomationLinkToggle: widget.onAutomationLinkToggle,
+                          onAutomationClipDoubleTap: widget.onAutomationClipDoubleTap,
                         ),
                       if (!widget.compact) _AddTrackLane(),
                     ],
@@ -925,6 +937,9 @@ class _TrackLane extends StatelessWidget {
     required this.onLongPressStart,
     this.onDeleteClip,
     this.onClipMenu,
+    this.automationLinkClipId,
+    this.onAutomationLinkToggle,
+    this.onAutomationClipDoubleTap,
   });
 
   final TrackSnapshot track;
@@ -943,6 +958,7 @@ class _TrackLane extends StatelessWidget {
     required Offset globalPosition,
     MidiClipSnapshot? midiClip,
     SampleClipSnapshot? sampleClip,
+    AutomationClipSnapshot? automationClip,
   }) onClipDragStart;
   final GestureLongPressMoveUpdateCallback onClipDragUpdate;
   final GestureLongPressEndCallback onClipDragEnd;
@@ -950,17 +966,23 @@ class _TrackLane extends StatelessWidget {
   final GestureLongPressStartCallback onLongPressStart;
   final void Function(String clipId)? onDeleteClip;
   final void Function(String clipId)? onClipMenu;
+  final String? automationLinkClipId;
+  final void Function(String clipId)? onAutomationLinkToggle;
+  final void Function(String trackId, AutomationClipSnapshot clip)? onAutomationClipDoubleTap;
 
   List<double> get _clipStarts {
     return [
       ...track.midiClips.map((c) => c.startBeat),
       ...track.sampleClips.map((c) => c.startBeat),
+      ...track.automationClips.map((c) => c.startBeat),
     ];
   }
 
   @override
   Widget build(BuildContext context) {
     final laneHeight = ArrangementTimelineMetrics.trackLaneHeight;
+    final automationLaneTop = laneHeight / 2;
+    final automationHeight = laneHeight / 2 - 4;
     return GestureDetector(
       onLongPressStart: onLongPressStart,
       behavior: HitTestBehavior.opaque,
@@ -1035,8 +1057,106 @@ class _TrackLane extends StatelessWidget {
                 onDragCancel: onClipDragCancel,
               ),
             ),
+          for (final clip in track.automationClips)
+            Positioned(
+              left: clip.startBeat * pixelsPerBeat,
+              top: automationLaneTop,
+              width: clip.lengthBeats * pixelsPerBeat,
+              height: automationHeight,
+              child: _AutomationClipBlock(
+                clip: clip,
+                highlighted: draggingClipId == clip.id,
+                linkActive: automationLinkClipId == clip.id,
+                onLinkToggle: onAutomationLinkToggle == null
+                    ? null
+                    : () => onAutomationLinkToggle!(clip.id),
+                onDoubleTap: onAutomationClipDoubleTap == null
+                    ? null
+                    : () => onAutomationClipDoubleTap!(track.id, clip),
+                onDragStart: (details) => onClipDragStart(
+                  trackId: track.id,
+                  clipId: clip.id,
+                  lengthBeats: clip.lengthBeats,
+                  isMidi: false,
+                  originalStartBeat: clip.startBeat,
+                  globalPosition: details.globalPosition,
+                  automationClip: clip,
+                ),
+                onDragUpdate: onClipDragUpdate,
+                onDragEnd: onClipDragEnd,
+                onDragCancel: onClipDragCancel,
+                onMenu: onClipMenu == null ? null : () => onClipMenu!(clip.id),
+              ),
+            ),
         ],
       ),
+      ),
+    );
+  }
+}
+
+class _AutomationClipBlock extends StatelessWidget {
+  const _AutomationClipBlock({
+    required this.clip,
+    required this.highlighted,
+    required this.linkActive,
+    this.onLinkToggle,
+    this.onDoubleTap,
+    required this.onDragStart,
+    required this.onDragUpdate,
+    required this.onDragEnd,
+    required this.onDragCancel,
+    this.onMenu,
+  });
+
+  final AutomationClipSnapshot clip;
+  final bool highlighted;
+  final bool linkActive;
+  final VoidCallback? onLinkToggle;
+  final VoidCallback? onDoubleTap;
+  final GestureLongPressStartCallback onDragStart;
+  final GestureLongPressMoveUpdateCallback onDragUpdate;
+  final GestureLongPressEndCallback onDragEnd;
+  final VoidCallback onDragCancel;
+  final VoidCallback? onMenu;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          GestureDetector(
+            onDoubleTap: onDoubleTap ?? onMenu,
+            onLongPressStart: onDragStart,
+            onLongPressMoveUpdate: onDragUpdate,
+            onLongPressEnd: onDragEnd,
+            onLongPressCancel: onDragCancel,
+            child: Opacity(
+              opacity: highlighted ? 0.35 : 1,
+              child: ArrangementClipChrome(
+                renderer: AutomationClipRenderer(clip),
+                highlighted: highlighted || linkActive,
+              ),
+            ),
+          ),
+          if (onLinkToggle != null)
+            Positioned(
+              top: -10,
+              left: 0,
+              right: 0,
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: AutomationClipLinkChip(
+                  label: clip.linkLabel,
+                  linked: clip.isLinked,
+                  active: linkActive,
+                  onTap: onLinkToggle!,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -1156,7 +1276,7 @@ class _ClipDragPreview extends StatelessWidget {
         scrollOffset;
     final top = session.targetTrackIndex * laneHeight + 4;
     final height = laneHeight - 8;
-    final width = session.isMidi
+    final width = session.isMidi || session.automationClip != null
         ? session.lengthBeats * pixelsPerBeat
         : ArrangementTimelineMetrics.clipDisplayWidthPx(
             startBeat: session.previewStartBeat,
@@ -1189,6 +1309,21 @@ class _ClipDragPreview extends StatelessWidget {
                   ),
                   highlighted: true,
                 )
+              : session.automationClip != null
+                  ? ArrangementClipChrome(
+                      renderer: AutomationClipRenderer(
+                        session.automationClip ??
+                            AutomationClipSnapshot(
+                              id: session.clipId,
+                              startBeat: session.previewStartBeat,
+                              lengthBeats: session.lengthBeats,
+                              deviceId: '',
+                              paramId: '',
+                              points: const [],
+                            ),
+                      ),
+                      highlighted: true,
+                    )
               : ArrangementClipChrome(
                   renderer: SampleClipRenderer(
                     session.sampleClip ??

@@ -10,6 +10,7 @@ import 'daw_shell_nav.dart';
 import '../bridge/engine_bridge.dart';
 import '../bridge/project_snapshot.dart';
 import '../bridge/transport_state.dart';
+import '../features/automation/automation_curve_editor_screen.dart';
 import '../features/arrangement/arrangement_view.dart';
 import '../features/content_library/library_catalog.dart';
 import '../features/content_library/library_category.dart';
@@ -57,6 +58,7 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
   bool _libraryOpen = false;
   LibraryCategory _libraryCategory = LibraryCategory.audioClips;
   String? _librarySamplerDeviceId;
+  String? _automationLinkClipId;
   final GlobalKey<LibraryFlyInPanelState> _libraryPanelKey = GlobalKey();
 
   @override
@@ -196,6 +198,86 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
       }
     }
     return null;
+  }
+
+  Future<void> _addAutomationClip(
+    String trackId,
+    double startBeat, {
+    String? deviceId,
+    String? paramId,
+  }) async {
+    try {
+      await widget.bridge.selectTrack(trackId);
+      final beforeCount = _trackById(trackId)?.automationClips.length ?? 0;
+      var snapshot = await widget.bridge.createAutomationClip(
+        trackId: trackId,
+        startBeat: startBeat,
+      );
+      final track = snapshot.tracks.firstWhere((t) => t.id == trackId);
+      if (track.automationClips.length <= beforeCount) {
+        await _refreshSnapshot(snapshot);
+        return;
+      }
+      final created = track.automationClips.last;
+      if (deviceId != null && paramId != null) {
+        snapshot = await widget.bridge.assignAutomationTarget(
+          clipId: created.id,
+          deviceId: deviceId,
+          paramId: paramId,
+        );
+      } else {
+        setState(() => _automationLinkClipId = created.id);
+      }
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
+  void _toggleAutomationLink(String clipId) {
+    setState(() {
+      _automationLinkClipId = _automationLinkClipId == clipId ? null : clipId;
+    });
+  }
+
+  Future<void> _assignAutomationParam(String deviceId, String paramId) async {
+    final clipId = _automationLinkClipId;
+    if (clipId == null) return;
+    try {
+      final snapshot = await widget.bridge.assignAutomationTarget(
+        clipId: clipId,
+        deviceId: deviceId,
+        paramId: paramId,
+      );
+      await _refreshSnapshot(snapshot);
+      if (!mounted) return;
+      setState(() => _automationLinkClipId = null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Linked automation to $paramId')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
+  Future<void> _openAutomationCurveEditor(
+    String trackId,
+    AutomationClipSnapshot clip,
+  ) async {
+    final track = _trackById(trackId);
+    if (track == null) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (context) => AutomationCurveEditorScreen(
+          trackName: track.name,
+          clip: clip,
+          bridge: widget.bridge,
+          onSaved: _refreshSnapshot,
+        ),
+      ),
+    );
   }
 
   Future<void> _addAudioClip(String trackId, double desiredStartBeat) async {
@@ -366,7 +448,48 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
     await _libraryPanelKey.currentState?.close();
   }
 
-  void _onLibraryPresetTap(LibraryPresetItem item) async {
+  Future<void> _onLibraryAutomationTap(LibraryAutomationItem item) async {
+    final track = _snapshot?.selectedTrack;
+    if (track == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select a track first')),
+      );
+      return;
+    }
+
+    if (item.trackId != null && item.clip != null) {
+      await _openAutomationCurveEditor(item.trackId!, item.clip!);
+      await _libraryPanelKey.currentState?.close();
+      return;
+    }
+
+    final startBeat = ArrangementTimelineMetrics.placementStartBeat(
+      desiredStartBeat: _effectivePlayheadBeats,
+      clipLengthBeats: ArrangementTimelineMetrics.defaultMidiClipLengthBeats,
+      existingClips: ArrangementTimelineMetrics.clipIntervalsForTrack(track),
+    );
+
+    String? deviceId;
+    String? paramId;
+    if (item.suggestedParamId != null) {
+      final synth = track.subtractiveSynthDevice ?? track.samplerDevice;
+      if (synth != null) {
+        deviceId = synth.id;
+        paramId = item.suggestedParamId;
+      }
+    }
+
+    await _addAutomationClip(
+      track.id,
+      startBeat,
+      deviceId: deviceId,
+      paramId: paramId,
+    );
+    await _libraryPanelKey.currentState?.close();
+  }
+
+  Future<void> _onLibraryPresetTap(LibraryPresetItem item) async {
     final synth = _snapshot?.selectedTrack?.subtractiveSynthDevice;
     if (item.deviceType == 'subtractive_synth') {
       if (synth == null) {
@@ -873,6 +996,9 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
                   await _selectTrack(trackId);
                   await _onTabSelected(_ShellTab.play);
                 },
+                automationLinkClipId: _automationLinkClipId,
+                onAutomationLinkToggle: _toggleAutomationLink,
+                onAutomationClipDoubleTap: _openAutomationCurveEditor,
               ),
             ),
             DeviceStrip(
@@ -897,6 +1023,8 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
               onBypassToggle: (deviceId, bypassed) => _setDeviceBypass(deviceId, bypassed),
               onOpenDeviceLibrary: _openDeviceLibrary,
               onModulationBridgeCall: _modulationBridgeCall,
+              automationLinkClipId: _automationLinkClipId,
+              onAutomationParamSelected: _assignAutomationParam,
             ),
           ],
         );
@@ -991,6 +1119,7 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
               onInsertAudio: _onLibraryInsertAudio,
               onImportAudio: _importSample,
               onMidiClipTap: _onLibraryMidiTap,
+              onAutomationTap: _onLibraryAutomationTap,
               onPresetTap: _onLibraryPresetTap,
             ),
         ],
