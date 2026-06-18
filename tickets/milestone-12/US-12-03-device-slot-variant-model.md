@@ -24,12 +24,12 @@ As a **developer**, I want track device chains to store typed device instances i
 
 ## Scope
 
-- [ ] Define `DeviceSlot` { id, gain, pan, bypassed, DeviceInstance variant }
-- [ ] Replace `Track::devices` vector type
-- [ ] `DeviceState` snapshot DTO built via device type `toSnapshotDto()` — same keys as today
-- [ ] `ProjectJson.cpp` read/write uses registry + device types (not field-by-field on flat struct)
-- [ ] Delete `ProjectEngine::Device` nested struct and copy helpers
-- [ ] `loadFromProjectFileData` reconstructs variant instances via type JSON readers
+- [x] Define `DeviceSlot` { id, gain, pan, bypassed, DeviceInstance variant }
+- [x] Replace `Track::devices` vector type
+- [x] `DeviceState` snapshot DTO built via device type `toSnapshotState()` — same keys as today
+- [x] `ProjectJson.cpp` read/write uses registry + device types (not field-by-field on flat struct)
+- [x] Delete `ProjectEngine::Device` nested struct and copy helpers
+- [x] `loadFromProjectFileData` reconstructs variant instances via type JSON readers
 
 ## Out of scope
 
@@ -39,10 +39,10 @@ As a **developer**, I want track device chains to store typed device instances i
 
 ## Acceptance criteria
 
-- [ ] `DeviceState` struct removed or reduced to thin DTO populated by registry
-- [ ] Save → load → snapshot JSON byte-identical for fixture projects (or semantically equal per `project_serialization_test`)
-- [ ] Flutter 51/51 tests pass without Dart changes
-- [ ] No remaining 45-field flat device struct in engine
+- [x] `DeviceState` struct removed or reduced to thin DTO populated by registry
+- [x] Save → load → snapshot JSON byte-identical for fixture projects (or semantically equal per `project_serialization_test`)
+- [x] Flutter 51/51 tests pass without Dart changes
+- [x] No remaining 45-field flat device struct in engine
 
 ## Demo script (developer, ~10 min)
 
@@ -51,8 +51,8 @@ As a **developer**, I want track device chains to store typed device instances i
 
 ## Tests required
 
-- [ ] Extend `project_serialization_test.cpp` — all four device types in one project
-- [ ] Flutter tests unchanged and green
+- [x] Extend `project_serialization_test.cpp` — all four device types in one project
+- [x] Flutter tests unchanged and green
 
 ## Documentation updates
 
@@ -64,4 +64,4 @@ US-12-02
 
 ## Status
 
-Todo
+Done

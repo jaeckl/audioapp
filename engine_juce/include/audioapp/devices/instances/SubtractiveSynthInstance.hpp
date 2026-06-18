@@ -1,8 +1,6 @@
 #pragma once
 
-#include "audioapp/DeviceState.hpp"
 #include "audioapp/SubtractiveSynth.hpp"
-#include "audioapp/devices/DeviceTypeIds.hpp"
 
 namespace audioapp {
 
@@ -41,83 +39,6 @@ struct SubtractiveSynthInstance {
     float ampRelease = 0.4f;
     float glideMs = 0.0f;
     float velocitySensitivity = 1.0f;
-
-    static SubtractiveSynthInstance fromState(const DeviceState& state) {
-        SubtractiveSynthInstance instance;
-        instance.gain = state.gain;
-        instance.osc1Wave = state.osc1Wave;
-        instance.osc2Wave = state.osc2Wave;
-        instance.osc1Shape = state.osc1Shape;
-        instance.osc2Shape = state.osc2Shape;
-        instance.osc1Octave = state.osc1Octave;
-        instance.osc1Semi = state.osc1Semi;
-        instance.osc1Detune = state.osc1Detune;
-        instance.osc2Octave = state.osc2Octave;
-        instance.osc2Semi = state.osc2Semi;
-        instance.osc2Detune = state.osc2Detune;
-        instance.osc1Level = state.osc1Level;
-        instance.osc2Level = state.osc2Level;
-        instance.oscMix = state.oscMix;
-        instance.osc1Sync = state.osc1Sync;
-        instance.osc2Sync = state.osc2Sync;
-        instance.noiseLevel = state.noiseLevel;
-        instance.oscMixMode = state.oscMixMode;
-        instance.unisonVoices = state.unisonVoices;
-        instance.unisonDetune = state.unisonDetune;
-        instance.filterMode = static_cast<float>(state.filterMode);
-        instance.filterCutoff = state.filterCutoff;
-        instance.filterQ = state.filterQ;
-        instance.filterEnvAmount = state.filterEnvAmount;
-        instance.filterAttack = state.filterAttack;
-        instance.filterDecay = state.filterDecay;
-        instance.filterSustain = state.filterSustain;
-        instance.filterRelease = state.filterRelease;
-        instance.ampAttack = state.attack;
-        instance.ampDecay = state.decay;
-        instance.ampSustain = state.sustain;
-        instance.ampRelease = state.release;
-        instance.glideMs = state.glideMs;
-        instance.velocitySensitivity = state.velocitySensitivity;
-        return instance;
-    }
-
-    void applyTo(DeviceState& state) const {
-        state.type = device_types::kSubtractiveSynth;
-        state.gain = gain;
-        state.osc1Wave = osc1Wave;
-        state.osc2Wave = osc2Wave;
-        state.osc1Shape = osc1Shape;
-        state.osc2Shape = osc2Shape;
-        state.osc1Octave = osc1Octave;
-        state.osc1Semi = osc1Semi;
-        state.osc1Detune = osc1Detune;
-        state.osc2Octave = osc2Octave;
-        state.osc2Semi = osc2Semi;
-        state.osc2Detune = osc2Detune;
-        state.osc1Level = osc1Level;
-        state.osc2Level = osc2Level;
-        state.oscMix = oscMix;
-        state.osc1Sync = osc1Sync;
-        state.osc2Sync = osc2Sync;
-        state.noiseLevel = noiseLevel;
-        state.oscMixMode = oscMixMode;
-        state.unisonVoices = unisonVoices;
-        state.unisonDetune = unisonDetune;
-        state.filterMode = static_cast<int>(filterMode);
-        state.filterCutoff = filterCutoff;
-        state.filterQ = filterQ;
-        state.filterEnvAmount = filterEnvAmount;
-        state.filterAttack = filterAttack;
-        state.filterDecay = filterDecay;
-        state.filterSustain = filterSustain;
-        state.filterRelease = filterRelease;
-        state.attack = ampAttack;
-        state.decay = ampDecay;
-        state.sustain = ampSustain;
-        state.release = ampRelease;
-        state.glideMs = glideMs;
-        state.velocitySensitivity = velocitySensitivity;
-    }
 
     SubtractiveSynthParams toPlaybackParams() const {
         SubtractiveSynthParams params;

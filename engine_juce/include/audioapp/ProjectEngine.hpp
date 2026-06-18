@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "audioapp/DeviceState.hpp"
+#include "audioapp/devices/DeviceSlot.hpp"
 #include "audioapp/LfoTypes.hpp"
 #include "audioapp/LivePerformance.hpp"
 #include "audioapp/MidiClipPlayback.hpp"
@@ -125,53 +126,6 @@ public:
     bool loadFromProjectFileData(const ProjectFileData& data);
 
 private:
-    struct Device {
-        std::string id;
-        std::string type;
-        float frequencyHz = 440.0f;
-        float gain = 1.0f;
-        float pan = 0.5f;
-        std::string sampleId;
-        float attack = 0.01f;
-        float decay = 0.3f;
-        float sustain = 0.7f;
-        float release = 0.4f;
-        float filterCutoff = 1.0f;
-        float filterQ = 0.35f;
-        int filterMode = 0;
-        float trimStartSec = 0.0f;
-        float trimEndSec = 0.0f;
-        float regionStartSec = 0.0f;
-        float regionEndSec = 0.0f;
-        bool bypassed = false;
-        int osc1Wave = 2;
-        int osc2Wave = 2;
-        float osc1Shape = 0.5f;
-        float osc2Shape = 0.5f;
-        float osc1Octave = 0.5f;
-        float osc1Semi = 0.0f;
-        float osc1Detune = 0.5f;
-        float osc2Octave = 0.5f;
-        float osc2Semi = 0.0f;
-        float osc2Detune = 0.5f;
-        float osc1Level = 0.85f;
-        float osc2Level = 0.5f;
-        float oscMix = 0.37f;
-        float osc1Sync = 0.0f;
-        float osc2Sync = 0.0f;
-        float noiseLevel = 0.0f;
-        int oscMixMode = 0;
-        float unisonVoices = 0.0f;
-        float unisonDetune = 0.35f;
-        float filterEnvAmount = 0.5f;
-        float filterAttack = 0.05f;
-        float filterDecay = 0.35f;
-        float filterSustain = 0.4f;
-        float filterRelease = 0.45f;
-        float glideMs = 0.0f;
-        float velocitySensitivity = 1.0f;
-    };
-
     struct MidiNote {
         int pitch = 60;
         double startBeat = 0.0;
@@ -196,7 +150,7 @@ private:
     struct Track {
         std::string id;
         std::string name;
-        std::vector<Device> devices;
+        std::vector<DeviceSlot> devices;
         std::vector<MidiClip> midiClips;
         std::vector<SampleClip> sampleClips;
     };
@@ -284,14 +238,11 @@ private:
     void ensureTrackGainDevicesLocked();
     const DeviceNodePlayback* findOscillatorNode(const TrackPlaybackSnapshot& track) const noexcept;
     Track* findTrackLocked(const std::string& trackId);
-    Device* findDeviceLocked(const std::string& deviceId);
+    DeviceSlot* findDeviceLocked(const std::string& deviceId);
     MidiClip* findMidiClipLocked(const std::string& clipId);
     SampleClip* findSampleClipLocked(const std::string& clipId);
     bool buildLiveInstrumentForTrack(const Track& track, LiveInstrumentSnapshot& out) const;
     double sampleTimeToCaptureBeat(uint64_t sampleTime) const;
-    static void copyDeviceToState(const Device& src, DeviceState& dst);
-    static void copyStateToDevice(const DeviceState& src, Device& dst);
-
     const SampleBank* sampleBank_ = nullptr;
 
     // --- LFO / modulation state ---

@@ -1,6 +1,8 @@
 #include "audioapp/devices/DeviceRegistry.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/devices/PlaybackBuildContext.hpp"
+#include "audioapp/devices/instances/OscillatorInstance.hpp"
+#include "audioapp/devices/instances/SubtractiveSynthInstance.hpp"
 
 #include <cmath>
 #include <cstdlib>
@@ -17,37 +19,40 @@ int main() {
     const audioapp::DeviceRegistry registry = audioapp::DeviceRegistry::createBuiltIn();
     const audioapp::PlaybackBuildContext context{};
 
-    audioapp::DeviceState oscillator = registry.createDefault(
-        audioapp::device_types::kOscillator, "dev-osc");
+    audioapp::DeviceSlot oscillator =
+        registry.createDefault(audioapp::device_types::kOscillator, "dev-osc");
     auto oscResult = registry.setParameter(oscillator, "frequency", 880.0f);
     if (!oscResult.handled || !oscResult.syncActiveFrequency) {
         return EXIT_FAILURE;
     }
-    if (std::abs(oscillator.frequencyHz - 880.0f) > 0.001f) {
+    if (std::abs(std::get<audioapp::OscillatorInstance>(oscillator.instance).frequencyHz - 880.0f) >
+        0.001f) {
         return EXIT_FAILURE;
     }
     if (!expectFalse(registry.setParameter(oscillator, "filterCutoff", 0.5f).handled)) {
         return EXIT_FAILURE;
     }
 
-    audioapp::DeviceState sampler = registry.createDefault(
-        audioapp::device_types::kSampler, "dev-sampler");
+    audioapp::DeviceSlot sampler =
+        registry.createDefault(audioapp::device_types::kSampler, "dev-sampler");
     if (!registry.setParameter(sampler, "attack", 1.5f).handled) {
         return EXIT_FAILURE;
     }
-    if (std::abs(sampler.attack - 1.0f) > 0.001f) {
+    const audioapp::DeviceState samplerState = registry.toSnapshotState(sampler);
+    if (std::abs(samplerState.attack - 1.0f) > 0.001f) {
         return EXIT_FAILURE;
     }
 
-    audioapp::DeviceState synth = registry.createDefault(
-        audioapp::device_types::kSubtractiveSynth, "dev-synth");
-    if (std::abs(synth.filterCutoff - 0.75f) > 0.001f) {
+    audioapp::DeviceSlot synth =
+        registry.createDefault(audioapp::device_types::kSubtractiveSynth, "dev-synth");
+    const audioapp::DeviceState synthDefaults = registry.toSnapshotState(synth);
+    if (std::abs(synthDefaults.filterCutoff - 0.75f) > 0.001f) {
         return EXIT_FAILURE;
     }
     if (!registry.setParameter(synth, "osc1Wave", 3.0f).handled) {
         return EXIT_FAILURE;
     }
-    if (synth.osc1Wave != 3) {
+    if (std::get<audioapp::SubtractiveSynthInstance>(synth.instance).osc1Wave != 3) {
         return EXIT_FAILURE;
     }
 
@@ -61,8 +66,8 @@ int main() {
     }
 
     audioapp::DeviceNodePlayback gainNode{};
-    audioapp::DeviceState gain = registry.createDefault(
-        audioapp::device_types::kTrackGain, "dev-gain");
+    audioapp::DeviceSlot gain =
+        registry.createDefault(audioapp::device_types::kTrackGain, "dev-gain");
     registry.buildPlaybackNode(gain, context, gainNode);
     if (gainNode.kind != audioapp::DeviceNodeKind::TrackGain) {
         return EXIT_FAILURE;
@@ -94,6 +99,13 @@ int main() {
 
     const auto modParams = registry.modulatableParams(audioapp::device_types::kOscillator);
     if (modParams.empty()) {
+        return EXIT_FAILURE;
+    }
+
+    const audioapp::DeviceState roundTrip =
+        registry.toSnapshotState(registry.slotFromSnapshot(registry.toSnapshotState(oscillator)));
+    if (roundTrip.type != audioapp::device_types::kOscillator ||
+        std::abs(roundTrip.frequencyHz - 880.0f) > 0.001f) {
         return EXIT_FAILURE;
     }
 

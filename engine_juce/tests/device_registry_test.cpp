@@ -20,8 +20,8 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    const audioapp::DeviceState oscillator = registry.createDefault(
-        audioapp::device_types::kOscillator, "dev-test-1");
+    const audioapp::DeviceState oscillator = registry.toSnapshotState(registry.createDefault(
+        audioapp::device_types::kOscillator, "dev-test-1"));
     if (oscillator.type != audioapp::device_types::kOscillator) {
         return EXIT_FAILURE;
     }
@@ -32,8 +32,8 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    const audioapp::DeviceState gain = registry.createDefault(
-        audioapp::device_types::kTrackGain, "dev-test-2");
+    const audioapp::DeviceState gain = registry.toSnapshotState(registry.createDefault(
+        audioapp::device_types::kTrackGain, "dev-test-2"));
     if (gain.type != audioapp::device_types::kTrackGain) {
         return EXIT_FAILURE;
     }
@@ -41,8 +41,8 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    const audioapp::DeviceState synth = registry.createDefault(
-        audioapp::device_types::kSubtractiveSynth, "dev-test-3");
+    const audioapp::DeviceState synth = registry.toSnapshotState(registry.createDefault(
+        audioapp::device_types::kSubtractiveSynth, "dev-test-3"));
     if (synth.type != audioapp::device_types::kSubtractiveSynth) {
         return EXIT_FAILURE;
     }

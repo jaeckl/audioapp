@@ -76,6 +76,18 @@ Flutter caches a read-only snapshot for UI:
 - transport: `playheadBeats`, `playing`
 - Updated via engine events, not by duplicating mutation logic in Dart
 
+### Internal device model (M12)
+
+On the control thread, each track's device chain stores **`DeviceSlot`** entries:
+
+```text
+DeviceSlot
+├── id, gain, pan, bypassed   # shared strip fields
+└── DeviceInstance (variant)  # Oscillator | Sampler | TrackGain | SubtractiveSynth
+```
+
+`DeviceState` remains the **snapshot / JSON DTO** — populated via `DeviceRegistry::toSnapshotState()` for bridge and `project.json` I/O. No virtual dispatch or JSON parsing on the audio thread; playback uses pre-built `DeviceNodePlayback` snapshots.
+
 ## Snapshot JSON (bridge projection)
 
 Live UI snapshot returned by engine commands (`getProjectSnapshot`, mutations):
