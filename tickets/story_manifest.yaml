@@ -238,9 +238,9 @@ stories:
   - { id: US-08-15, milestone: M08, status: todo, title: Voice stealing / max polyphony on sampler }
   - { id: US-08-16, milestone: M08, status: todo, title: RT-safe parameter smoothing (cutoff/gain) }
   - { id: US-08-17, milestone: M08, status: todo, title: C++ golden tests per effect node }
-  - { id: US-08-18, milestone: M08, status: todo, title: Parameter automation recording (lane data) }
-  - { id: US-08-19, milestone: M08, status: todo, title: Parameter automation playback on transport }
-  - { id: US-08-20, milestone: M08, status: todo, title: M08 PO demo — filter sweep + automation on cutoff }
+  - { id: US-08-18, milestone: M08, status: done, title: Parameter automation recording (lane data) }
+  - { id: US-08-19, milestone: M08, status: done, title: Parameter automation playback on transport }
+  - { id: US-08-20, milestone: M08, status: in_progress, title: M08 PO demo — filter sweep + automation on cutoff }
 
   # ── M09 Offline render & export (20) ────────────────────────────────
   - { id: US-09-01, milestone: M09, status: todo, title: Offline render engine (non-RT graph walk) }

@@ -262,6 +262,83 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
     }
   }
 
+  double _automationValueForDevice(DeviceSnapshot device, String paramId) {
+    return switch (paramId) {
+      'gain' => device.gain.clamp(0.0, 1.0),
+      'pan' => device.pan.clamp(0.0, 1.0),
+      'filterCutoff' => device.filterCutoff.clamp(0.0, 1.0),
+      'filterQ' => device.filterQ.clamp(0.0, 1.0),
+      'attack' => device.attack.clamp(0.0, 1.0),
+      'decay' => device.decay.clamp(0.0, 1.0),
+      'sustain' => device.sustain.clamp(0.0, 1.0),
+      'release' => device.release.clamp(0.0, 1.0),
+      'frequency' => ((device.frequencyHz - 110.0) / 770.0).clamp(0.0, 1.0),
+      _ => 0.5,
+    };
+  }
+
+  Future<void> _automateParameter(String deviceId, String paramId) async {
+    final track = _snapshot?.selectedTrack;
+    if (track == null) return;
+
+    DeviceSnapshot? device;
+    for (final candidate in track.devices) {
+      if (candidate.id == deviceId) {
+        device = candidate;
+        break;
+      }
+    }
+    if (device == null) return;
+
+    const lengthBeats = ArrangementTimelineMetrics.defaultMidiClipLengthBeats;
+    final startBeat = ArrangementTimelineMetrics.placementStartBeat(
+      desiredStartBeat: _effectivePlayheadBeats,
+      clipLengthBeats: lengthBeats,
+      existingClips: ArrangementTimelineMetrics.clipIntervalsForTrack(track),
+    );
+    final value = _automationValueForDevice(device, paramId);
+
+    try {
+      await widget.bridge.selectTrack(track.id);
+      final beforeCount = track.automationClips.length;
+      var snapshot = await widget.bridge.createAutomationClip(
+        trackId: track.id,
+        startBeat: startBeat,
+        lengthBeats: lengthBeats,
+      );
+      final updatedTrack = snapshot.tracks.firstWhere((t) => t.id == track.id);
+      if (updatedTrack.automationClips.length <= beforeCount) {
+        await _refreshSnapshot(snapshot);
+        return;
+      }
+      final created = updatedTrack.automationClips.last;
+      snapshot = await widget.bridge.assignAutomationTarget(
+        clipId: created.id,
+        deviceId: deviceId,
+        paramId: paramId,
+      );
+      snapshot = await widget.bridge.setAutomationPoints(
+        clipId: created.id,
+        points: [
+          AutomationPointSnapshot(beat: 0, value: value),
+          AutomationPointSnapshot(beat: lengthBeats, value: value),
+        ],
+      );
+      await _refreshSnapshot(snapshot);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Automation clip for ${AutomationClipSnapshot.linkLabelForParam(paramId)}',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
   Future<void> _openAutomationCurveEditor(
     String trackId,
     AutomationClipSnapshot clip,
@@ -1025,6 +1102,7 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
               onModulationBridgeCall: _modulationBridgeCall,
               automationLinkClipId: _automationLinkClipId,
               onAutomationParamSelected: _assignAutomationParam,
+              onAutomateParameter: _automateParameter,
             ),
           ],
         );

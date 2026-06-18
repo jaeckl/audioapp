@@ -19,6 +19,9 @@ class SamplerDeviceStrip extends StatelessWidget {
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
+    this.automationLinkActive = false,
+    this.onAutomationLinkTap,
+    this.onAutomateParameter,
   });
 
   final DeviceSnapshot device;
@@ -32,6 +35,9 @@ class SamplerDeviceStrip extends StatelessWidget {
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
+  final bool automationLinkActive;
+  final ValueChanged<String>? onAutomationLinkTap;
+  final ValueChanged<String>? onAutomateParameter;
   final int bpm;
 
   @override
@@ -50,6 +56,9 @@ class SamplerDeviceStrip extends StatelessWidget {
       modulationAmounts: modulationAmounts,
       connectModeLfoId: connectModeLfoId,
       onModulationAssign: onModulationAssign,
+      automationLinkActive: automationLinkActive,
+      onAutomationLinkTap: onAutomationLinkTap,
+      onAutomateParameter: onAutomateParameter,
     );
   }
 }

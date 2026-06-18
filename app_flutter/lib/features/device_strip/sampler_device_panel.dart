@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../bridge/project_snapshot.dart';
 import '../sample_library/sample_library_screen.dart';
 import 'device_knob_sizes.dart';
+import 'device_automation_knob.dart';
 import 'device_tab_bar.dart';
 import 'rotary_knob.dart';
 
@@ -33,6 +34,9 @@ class SamplerDevicePanel extends StatefulWidget {
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
+    this.automationLinkActive = false,
+    this.onAutomationLinkTap,
+    this.onAutomateParameter,
   });
 
   final DeviceSnapshot device;
@@ -50,6 +54,9 @@ class SamplerDevicePanel extends StatefulWidget {
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
+  final bool automationLinkActive;
+  final ValueChanged<String>? onAutomationLinkTap;
+  final ValueChanged<String>? onAutomateParameter;
   final int bpm;
 
   static const Color panel = Color(0xFF1C1C24);
@@ -197,6 +204,9 @@ class _SamplerDevicePanelState extends State<SamplerDevicePanel> {
           modulationAmounts: widget.modulationAmounts,
           connectModeLfoId: widget.connectModeLfoId,
           onModulationAssign: widget.onModulationAssign,
+          automationLinkActive: widget.automationLinkActive,
+          onAutomationLinkTap: widget.onAutomationLinkTap,
+          onAutomateParameter: widget.onAutomateParameter,
         );
       case SamplerDeviceTab.filter:
         return _FilterTab(
@@ -207,6 +217,9 @@ class _SamplerDevicePanelState extends State<SamplerDevicePanel> {
           modulationAmounts: widget.modulationAmounts,
           connectModeLfoId: widget.connectModeLfoId,
           onModulationAssign: widget.onModulationAssign,
+          automationLinkActive: widget.automationLinkActive,
+          onAutomationLinkTap: widget.onAutomationLinkTap,
+          onAutomateParameter: widget.onAutomateParameter,
         );
     }
   }
@@ -558,6 +571,9 @@ class _EnvTab extends StatelessWidget {
     required this.modulationAmounts,
     required this.connectModeLfoId,
     required this.onModulationAssign,
+    required this.automationLinkActive,
+    this.onAutomationLinkTap,
+    this.onAutomateParameter,
   });
 
   final DeviceSnapshot device;
@@ -567,62 +583,77 @@ class _EnvTab extends StatelessWidget {
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
+  final bool automationLinkActive;
+  final ValueChanged<String>? onAutomationLinkTap;
+  final ValueChanged<String>? onAutomateParameter;
 
   @override
   Widget build(BuildContext context) {
     return _KnobRow(
       children: [
-        RotaryKnob(
+        deviceAutomationKnob(
           label: 'Attack',
           value: device.attack,
           size: knobSize,
           displayValue: SamplerDevicePanel.formatPercent(device.attack),
           onChanged: (v) => onParameterChanged('attack', v),
-          modulationActive: modulatedParams.contains('attack'),
-          modulationAmount: modulationAmounts['attack'] ?? 0.0,
-          connectModeActive: connectModeLfoId != null,
-          onModulationAssign: onModulationAssign != null
-              ? (a) => onModulationAssign!('attack', a)
-              : null,
+          paramId: 'attack',
+          accentColor: SamplerDevicePanel.accent,
+          modulatedParams: modulatedParams,
+          modulationAmounts: modulationAmounts,
+          connectModeLfoId: connectModeLfoId,
+          onModulationAssign: onModulationAssign,
+          automationLinkActive: automationLinkActive,
+          onAutomationLinkTap: onAutomationLinkTap,
+          onAutomateParameter: onAutomateParameter,
         ),
-        RotaryKnob(
+        deviceAutomationKnob(
           label: 'Decay',
           value: device.decay,
           size: knobSize,
           displayValue: SamplerDevicePanel.formatPercent(device.decay),
           onChanged: (v) => onParameterChanged('decay', v),
-          modulationActive: modulatedParams.contains('decay'),
-          modulationAmount: modulationAmounts['decay'] ?? 0.0,
-          connectModeActive: connectModeLfoId != null,
-          onModulationAssign: onModulationAssign != null
-              ? (a) => onModulationAssign!('decay', a)
-              : null,
+          paramId: 'decay',
+          accentColor: SamplerDevicePanel.accent,
+          modulatedParams: modulatedParams,
+          modulationAmounts: modulationAmounts,
+          connectModeLfoId: connectModeLfoId,
+          onModulationAssign: onModulationAssign,
+          automationLinkActive: automationLinkActive,
+          onAutomationLinkTap: onAutomationLinkTap,
+          onAutomateParameter: onAutomateParameter,
         ),
-        RotaryKnob(
+        deviceAutomationKnob(
           label: 'Sustain',
           value: device.sustain,
           size: knobSize,
           displayValue: SamplerDevicePanel.formatPercent(device.sustain),
           onChanged: (v) => onParameterChanged('sustain', v),
-          modulationActive: modulatedParams.contains('sustain'),
-          modulationAmount: modulationAmounts['sustain'] ?? 0.0,
-          connectModeActive: connectModeLfoId != null,
-          onModulationAssign: onModulationAssign != null
-              ? (a) => onModulationAssign!('sustain', a)
-              : null,
+          paramId: 'sustain',
+          accentColor: SamplerDevicePanel.accent,
+          modulatedParams: modulatedParams,
+          modulationAmounts: modulationAmounts,
+          connectModeLfoId: connectModeLfoId,
+          onModulationAssign: onModulationAssign,
+          automationLinkActive: automationLinkActive,
+          onAutomationLinkTap: onAutomationLinkTap,
+          onAutomateParameter: onAutomateParameter,
         ),
-        RotaryKnob(
+        deviceAutomationKnob(
           label: 'Release',
           value: device.release,
           size: knobSize,
           displayValue: SamplerDevicePanel.formatPercent(device.release),
           onChanged: (v) => onParameterChanged('release', v),
-          modulationActive: modulatedParams.contains('release'),
-          modulationAmount: modulationAmounts['release'] ?? 0.0,
-          connectModeActive: connectModeLfoId != null,
-          onModulationAssign: onModulationAssign != null
-              ? (a) => onModulationAssign!('release', a)
-              : null,
+          paramId: 'release',
+          accentColor: SamplerDevicePanel.accent,
+          modulatedParams: modulatedParams,
+          modulationAmounts: modulationAmounts,
+          connectModeLfoId: connectModeLfoId,
+          onModulationAssign: onModulationAssign,
+          automationLinkActive: automationLinkActive,
+          onAutomationLinkTap: onAutomationLinkTap,
+          onAutomateParameter: onAutomateParameter,
         ),
       ],
     );
@@ -638,6 +669,9 @@ class _FilterTab extends StatelessWidget {
     required this.modulationAmounts,
     required this.connectModeLfoId,
     required this.onModulationAssign,
+    required this.automationLinkActive,
+    this.onAutomationLinkTap,
+    this.onAutomateParameter,
   });
 
   final DeviceSnapshot device;
@@ -647,6 +681,9 @@ class _FilterTab extends StatelessWidget {
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
+  final bool automationLinkActive;
+  final ValueChanged<String>? onAutomationLinkTap;
+  final ValueChanged<String>? onAutomateParameter;
 
   static const _modes = ['LP', 'HP', 'BP', 'NT'];
 
@@ -705,31 +742,37 @@ class _FilterTab extends StatelessWidget {
         Expanded(
           child: _KnobRow(
             children: [
-              RotaryKnob(
+              deviceAutomationKnob(
                 label: 'Cutoff',
                 value: device.filterCutoff,
                 size: knobSize,
                 displayValue: SamplerDevicePanel.formatCutoffHz(device.filterCutoff),
                 onChanged: (v) => onParameterChanged('filterCutoff', v),
-                modulationActive: modulatedParams.contains('filterCutoff'),
-                modulationAmount: modulationAmounts['filterCutoff'] ?? 0.0,
-                connectModeActive: connectModeLfoId != null,
-                onModulationAssign: onModulationAssign != null
-                    ? (a) => onModulationAssign!('filterCutoff', a)
-                    : null,
+                paramId: 'filterCutoff',
+                accentColor: SamplerDevicePanel.accent,
+                modulatedParams: modulatedParams,
+                modulationAmounts: modulationAmounts,
+                connectModeLfoId: connectModeLfoId,
+                onModulationAssign: onModulationAssign,
+                automationLinkActive: automationLinkActive,
+                onAutomationLinkTap: onAutomationLinkTap,
+                onAutomateParameter: onAutomateParameter,
               ),
-              RotaryKnob(
+              deviceAutomationKnob(
                 label: 'Resonance',
                 value: device.filterQ,
                 size: knobSize,
                 displayValue: SamplerDevicePanel.formatQ(device.filterQ),
                 onChanged: (v) => onParameterChanged('filterQ', v),
-                modulationActive: modulatedParams.contains('filterQ'),
-                modulationAmount: modulationAmounts['filterQ'] ?? 0.0,
-                connectModeActive: connectModeLfoId != null,
-                onModulationAssign: onModulationAssign != null
-                    ? (a) => onModulationAssign!('filterQ', a)
-                    : null,
+                paramId: 'filterQ',
+                accentColor: SamplerDevicePanel.accent,
+                modulatedParams: modulatedParams,
+                modulationAmounts: modulationAmounts,
+                connectModeLfoId: connectModeLfoId,
+                onModulationAssign: onModulationAssign,
+                automationLinkActive: automationLinkActive,
+                onAutomationLinkTap: onAutomationLinkTap,
+                onAutomateParameter: onAutomateParameter,
               ),
             ],
           ),

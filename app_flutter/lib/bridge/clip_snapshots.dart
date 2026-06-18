@@ -159,6 +159,8 @@ class AutomationClipSnapshot implements ClipTimelineSpan {
   String get linkLabel =>
       isLinked ? _humanizeParamId(paramId) : 'Link';
 
+  static String linkLabelForParam(String paramId) => _humanizeParamId(paramId);
+
   static String _humanizeParamId(String paramId) {
     return switch (paramId) {
       'filterCutoff' => 'Filter',

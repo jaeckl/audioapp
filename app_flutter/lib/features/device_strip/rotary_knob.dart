@@ -32,6 +32,7 @@ class RotaryKnob extends StatefulWidget {
     this.linkModeActive = false,
     this.linkModeAccent = const Color(0xFFB48CFF),
     this.onLinkTap,
+    this.onAutomateRequest,
   });
 
   final String label;
@@ -49,6 +50,7 @@ class RotaryKnob extends StatefulWidget {
   final bool linkModeActive;
   final Color linkModeAccent;
   final VoidCallback? onLinkTap;
+  final VoidCallback? onAutomateRequest;
 
   @override
   State<RotaryKnob> createState() => _RotaryKnobState();
@@ -125,7 +127,14 @@ class _RotaryKnobState extends State<RotaryKnob>
   // --- Connect-mode long-press modulation assignment ---
 
   void _onLongPressStart(LongPressStartDetails details) {
-    if (!widget.connectModeActive || widget.linkModeActive) return;
+    if (widget.linkModeActive) return;
+    if (!widget.connectModeActive) {
+      if (widget.onAutomateRequest != null) {
+        HapticFeedback.mediumImpact();
+        widget.onAutomateRequest!.call();
+      }
+      return;
+    }
     HapticFeedback.mediumImpact();
     _pulseController.stop();
     _assignmentAmount = 0.0;

@@ -28,6 +28,7 @@ class DeviceStrip extends StatefulWidget {
     this.onModulationBridgeCall,
     this.automationLinkClipId,
     this.onAutomationParamSelected,
+    this.onAutomateParameter,
   });
 
   final ProjectSnapshot snapshot;
@@ -49,6 +50,7 @@ class DeviceStrip extends StatefulWidget {
       onModulationBridgeCall;
   final String? automationLinkClipId;
   final void Function(String deviceId, String paramId)? onAutomationParamSelected;
+  final void Function(String deviceId, String paramId)? onAutomateParameter;
 
   @override
   State<DeviceStrip> createState() => _DeviceStripState();
@@ -108,6 +110,9 @@ class _DeviceStripState extends State<DeviceStrip> {
             await widget.onImportSamples();
           },
           onModulationBridgeCall: widget.onModulationBridgeCall,
+          automationLinkClipId: widget.automationLinkClipId,
+          onAutomationParamSelected: widget.onAutomationParamSelected,
+          onAutomateParameter: widget.onAutomateParameter,
         ),
       ),
     );
@@ -173,6 +178,7 @@ class _DeviceStripState extends State<DeviceStrip> {
                   onModulationBridgeCall: widget.onModulationBridgeCall,
                   automationLinkActive: widget.automationLinkClipId != null,
                   onAutomationParamSelected: widget.onAutomationParamSelected,
+                  onAutomateParameter: widget.onAutomateParameter,
                 ),
               ],
             ),

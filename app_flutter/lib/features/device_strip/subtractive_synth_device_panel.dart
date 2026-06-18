@@ -39,6 +39,7 @@ class SubtractiveSynthDevicePanel extends StatefulWidget {
     this.onModulationAssign,
     this.automationLinkActive = false,
     this.onAutomationLinkTap,
+    this.onAutomateParameter,
   });
 
   final DeviceSnapshot device;
@@ -55,6 +56,7 @@ class SubtractiveSynthDevicePanel extends StatefulWidget {
   final void Function(String paramId, double amount)? onModulationAssign;
   final bool automationLinkActive;
   final ValueChanged<String>? onAutomationLinkTap;
+  final ValueChanged<String>? onAutomateParameter;
 
   static const Color panel = Color(0xFF1C1C24);
   static const Color accent = DeviceStripTheme.subtractiveSynthAccent;
@@ -111,6 +113,9 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
       linkModeAccent: LibraryTheme.accentAutomation,
       onLinkTap: paramId != null && widget.onAutomationLinkTap != null
           ? () => widget.onAutomationLinkTap!(paramId)
+          : null,
+      onAutomateRequest: paramId != null && widget.onAutomateParameter != null
+          ? () => widget.onAutomateParameter!(paramId)
           : null,
     );
   }
