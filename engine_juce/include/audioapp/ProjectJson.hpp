@@ -37,6 +37,7 @@ std::string jsonGetStringArg(const std::string& argumentsJson, const std::string
 double jsonGetNumberArg(const std::string& argumentsJson, const std::string& key, double fallback = 0.0);
 bool jsonGetBoolArg(const std::string& argumentsJson, const std::string& key, bool fallback = false);
 std::string buildBridgeOkWithSnapshot(const std::string& snapshotJson);
+std::string buildBridgeOkTransportState(const TransportStateSnapshot& transport);
 std::string buildBridgeOkWithPath(const std::string& path);
 std::string buildBridgeOkWithMessage(const std::string& message);
 std::string buildBridgeError(const std::string& errorCode);

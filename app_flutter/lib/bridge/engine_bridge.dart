@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 
 import 'project_snapshot.dart';
+import 'transport_state.dart';
 
 /// Flutter ↔ native engine bridge (MethodChannel).
 class EngineBridge {
@@ -28,6 +29,20 @@ class EngineBridge {
 
   Future<ProjectSnapshot> getProjectSnapshot() async {
     return _invokeForSnapshot('getProjectSnapshot');
+  }
+
+  Future<TransportState> getTransportState() async {
+    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>('getTransportState');
+    if (result == null) {
+      throw PlatformException(code: 'null_response', message: 'No response from engine');
+    }
+    if (result['ok'] != true) {
+      throw PlatformException(
+        code: result['error']?.toString() ?? 'engine_error',
+        message: 'Engine command failed: getTransportState',
+      );
+    }
+    return TransportState.fromMap(result);
   }
 
   Future<ProjectSnapshot> addTrack({String? name}) async {

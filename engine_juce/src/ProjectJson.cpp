@@ -622,6 +622,17 @@ std::string buildBridgeOkWithSnapshot(const std::string& snapshotJson) {
     return toStdString(juce::JSON::toString(juce::var(root), false));
 }
 
+std::string buildBridgeOkTransportState(const TransportStateSnapshot& transport) {
+    auto* root = new juce::DynamicObject();
+    root->setProperty("ok", true);
+    root->setProperty("playheadBeats", transport.playheadBeats);
+    root->setProperty("playing", transport.playing);
+    root->setProperty("bpm", transport.bpm);
+    root->setProperty("loopEnabled", transport.loopEnabled);
+    root->setProperty("loopLengthBeats", transport.loopLengthBeats);
+    return toStdString(juce::JSON::toString(juce::var(root), false));
+}
+
 std::string buildBridgeOkWithPath(const std::string& path) {
     auto* root = new juce::DynamicObject();
     root->setProperty("ok", true);

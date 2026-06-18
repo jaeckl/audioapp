@@ -48,6 +48,10 @@ std::string EngineHost::getProjectSnapshotJson() const {
     return snapshotToJson(project_.snapshot());
 }
 
+std::string EngineHost::getTransportStateJson() const {
+    return buildBridgeOkTransportState(project_.transportState());
+}
+
 float EngineHost::activeOscillatorFrequencyHz() const {
     return project_.activeOscillatorFrequencyHz();
 }

@@ -243,6 +243,7 @@ class MainActivity : FlutterFragmentActivity() {
                         }
                         "createProject",
                         "getProjectSnapshot",
+                        "getTransportState",
                         "addTrack",
                         "selectTrack",
                         "addDeviceToTrack",

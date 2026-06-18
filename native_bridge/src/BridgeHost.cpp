@@ -35,6 +35,9 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
     if (method == "getProjectSnapshot") {
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
+    if (method == "getTransportState") {
+        return engine().getTransportStateJson();
+    }
     if (method == "addTrack") {
         const auto name = jsonGetStringArg(argumentsJson, "name");
         engine().addTrack(name);

@@ -588,6 +588,16 @@ void ProjectEngine::advancePlayhead(int numFrames, double sampleRate) noexcept {
     transport_.advancePlayhead(numFrames, sampleRate);
 }
 
+TransportStateSnapshot ProjectEngine::transportState() const noexcept {
+    TransportStateSnapshot state;
+    state.playheadBeats = transport_.playheadBeats();
+    state.playing = transport_.isPlaying();
+    state.bpm = transport_.bpm();
+    state.loopEnabled = transport_.loopEnabled();
+    state.loopLengthBeats = transport_.loopLengthBeats();
+    return state;
+}
+
 ProjectFileData ProjectEngine::toProjectFileData() const {
     std::lock_guard<std::mutex> lock(mutex_);
     ProjectFileData file;
