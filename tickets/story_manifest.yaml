@@ -286,7 +286,7 @@ stories:
   - { id: US-12-03, milestone: M12, status: done, title: DeviceSlot variant model — replace flat Device / DeviceState }
   - { id: US-12-04, milestone: M12, status: todo, title: Extract DeviceParameterService — remove setDeviceParameter god method }
   - { id: US-12-05, milestone: M12, status: done, title: Extract TrackRepository + ClipRepository }
-  - { id: US-12-06, milestone: M12, status: todo, title: Extract TransportController }
+  - { id: US-12-06, milestone: M12, status: done, title: Extract TransportController }
   - { id: US-12-07, milestone: M12, status: todo, title: Extract ModulationGraph service }
   - { id: US-12-08, milestone: M12, status: todo, title: Extract PlaybackSnapshotBuilder }
   - { id: US-12-09, milestone: M12, status: todo, title: Extract ArrangementMixer }
