@@ -8,6 +8,9 @@
 
 #include "audioapp/DeviceState.hpp"
 #include "audioapp/devices/DeviceSlot.hpp"
+#include "audioapp/model/TrackModel.hpp"
+#include "audioapp/model/TrackRepository.hpp"
+#include "audioapp/model/ClipRepository.hpp"
 #include "audioapp/LfoTypes.hpp"
 #include "audioapp/LivePerformance.hpp"
 #include "audioapp/MidiClipPlayback.hpp"
@@ -126,35 +129,6 @@ public:
     bool loadFromProjectFileData(const ProjectFileData& data);
 
 private:
-    struct MidiNote {
-        int pitch = 60;
-        double startBeat = 0.0;
-        double durationBeats = 1.0;
-        float velocity = 100.0f;
-    };
-
-    struct MidiClip {
-        std::string id;
-        double startBeat = 0.0;
-        double lengthBeats = 4.0;
-        std::vector<MidiNote> notes;
-    };
-
-    struct SampleClip {
-        std::string id;
-        std::string sampleId;
-        double startBeat = 0.0;
-        double lengthBeats = 4.0;
-    };
-
-    struct Track {
-        std::string id;
-        std::string name;
-        std::vector<DeviceSlot> devices;
-        std::vector<MidiClip> midiClips;
-        std::vector<SampleClip> sampleClips;
-    };
-
     struct PlaybackNote {
         int pitch = 60;
         double clipStartBeat = 0.0;
@@ -190,12 +164,8 @@ private:
     mutable std::mutex mutex_;
     std::string projectName_ = "Untitled";
     int bpm_ = 120;
-    int nextTrackNum_ = 1;
-    int nextDeviceNum_ = 1;
-    int nextClipNum_ = 1;
-    int nextSampleClipNum_ = 1;
-    std::vector<Track> tracks_;
-    std::string selectedTrackId_;
+    TrackRepository trackRepo_;
+    ClipRepository clipRepo_{trackRepo_};
     std::atomic<float> activeFrequencyHz_{440.0f};
     std::atomic<bool> playing_{false};
     std::atomic<double> playheadBeats_{0.0};
@@ -235,12 +205,8 @@ private:
     int selectedTrackPlaybackIndex() const noexcept;
     void syncActiveFrequencyLocked();
     void recomputeIdCountersLocked();
-    void ensureTrackGainDevicesLocked();
     const DeviceNodePlayback* findOscillatorNode(const TrackPlaybackSnapshot& track) const noexcept;
-    Track* findTrackLocked(const std::string& trackId);
     DeviceSlot* findDeviceLocked(const std::string& deviceId);
-    MidiClip* findMidiClipLocked(const std::string& clipId);
-    SampleClip* findSampleClipLocked(const std::string& clipId);
     bool buildLiveInstrumentForTrack(const Track& track, LiveInstrumentSnapshot& out) const;
     double sampleTimeToCaptureBeat(uint64_t sampleTime) const;
     const SampleBank* sampleBank_ = nullptr;

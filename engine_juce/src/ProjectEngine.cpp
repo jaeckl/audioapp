@@ -20,13 +20,9 @@ namespace audioapp {
 
 void ProjectEngine::createProject() {
     std::lock_guard<std::mutex> lock(mutex_);
-    tracks_.clear();
-    selectedTrackId_.clear();
+    trackRepo_.clear();
+    clipRepo_.clear();
     projectName_ = "Untitled";
-    nextTrackNum_ = 1;
-    nextDeviceNum_ = 1;
-    nextClipNum_ = 1;
-    nextSampleClipNum_ = 1;
     nextLfoId_ = 1;
     bpm_ = 120;
     activeFrequencyHz_.store(440.0f, std::memory_order_release);
@@ -42,26 +38,17 @@ void ProjectEngine::createProject() {
 
 std::string ProjectEngine::addTrack(const std::string& name) {
     std::lock_guard<std::mutex> lock(mutex_);
-    Track track;
-    track.id = "track-" + std::to_string(nextTrackNum_++);
-    track.name = name.empty() ? ("Track " + std::to_string(tracks_.size() + 1)) : name;
-
-    const std::string gainId = "dev-" + std::to_string(nextDeviceNum_++);
-    track.devices.push_back(deviceRegistry_.createDefault(device_types::kTrackGain, gainId));
-
-    tracks_.push_back(std::move(track));
-    selectedTrackId_ = tracks_.back().id;
+    const std::string trackId = trackRepo_.addTrack(name, deviceRegistry_);
     syncActiveFrequencyLocked();
     rebuildTrackPlaybackLocked();
-    return selectedTrackId_;
+    return trackId;
 }
 
 bool ProjectEngine::selectTrack(const std::string& trackId) {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (findTrackLocked(trackId) == nullptr) {
+    if (!trackRepo_.selectTrack(trackId)) {
         return false;
     }
-    selectedTrackId_ = trackId;
     syncActiveFrequencyLocked();
     rebuildTrackPlaybackLocked();
     return true;
@@ -71,7 +58,7 @@ std::string ProjectEngine::addDeviceToTrack(const std::string& trackId,
                                             const std::string& deviceType,
                                             int insertIndex) {
     std::lock_guard<std::mutex> lock(mutex_);
-    Track* track = findTrackLocked(trackId);
+    Track* track = trackRepo_.findTrack(trackId);
     if (track == nullptr) {
         return {};
     }
@@ -82,7 +69,7 @@ std::string ProjectEngine::addDeviceToTrack(const std::string& trackId,
         return {};
     }
 
-    const std::string deviceId = "dev-" + std::to_string(nextDeviceNum_++);
+    const std::string deviceId = trackRepo_.allocateDeviceId();
     DeviceSlot device = deviceRegistry_.createDefault(resolvedType, deviceId);
 
     size_t gainIndex = track->devices.size();
@@ -152,45 +139,19 @@ std::string ProjectEngine::createMidiClip(const std::string& trackId,
                                           double startBeat,
                                           double lengthBeats) {
     std::lock_guard<std::mutex> lock(mutex_);
-    Track* track = findTrackLocked(trackId);
-    if (track == nullptr) {
+    const std::string clipId = clipRepo_.createMidiClip(trackId, startBeat, lengthBeats);
+    if (clipId.empty()) {
         return {};
     }
-
-    MidiClip clip;
-    clip.id = "clip-" + std::to_string(nextClipNum_++);
-    clip.startBeat = startBeat < 0.0 ? 0.0 : startBeat;
-    clip.lengthBeats = lengthBeats > 0.0 ? lengthBeats : 4.0;
-
-    MidiNote seed;
-    seed.pitch = 60;
-    seed.startBeat = 0.0;
-    seed.durationBeats = 1.0;
-    seed.velocity = 100.0f;
-    clip.notes.push_back(seed);
-
-    track->midiClips.push_back(std::move(clip));
     rebuildTrackPlaybackLocked();
-    return track->midiClips.back().id;
+    return clipId;
 }
 
 bool ProjectEngine::setMidiClipNotes(const std::string& clipId,
                                      const std::vector<MidiNoteState>& notes) {
     std::lock_guard<std::mutex> lock(mutex_);
-    MidiClip* clip = findMidiClipLocked(clipId);
-    if (clip == nullptr) {
+    if (!clipRepo_.setMidiClipNotes(clipId, notes)) {
         return false;
-    }
-
-    clip->notes.clear();
-    clip->notes.reserve(notes.size());
-    for (const auto& note : notes) {
-        MidiNote stored;
-        stored.pitch = note.pitch;
-        stored.startBeat = note.startBeat < 0.0 ? 0.0 : note.startBeat;
-        stored.durationBeats = note.durationBeats > 0.0 ? note.durationBeats : 0.25;
-        stored.velocity = note.velocity;
-        clip->notes.push_back(stored);
     }
     rebuildTrackPlaybackLocked();
     return true;
@@ -201,88 +162,33 @@ std::string ProjectEngine::createSampleClip(const std::string& trackId,
                                             double startBeat,
                                             double lengthBeats) {
     std::lock_guard<std::mutex> lock(mutex_);
-    Track* track = findTrackLocked(trackId);
-    if (track == nullptr || sampleId.empty()) {
+    const std::string clipId = clipRepo_.createSampleClip(
+        trackId, sampleId, startBeat, lengthBeats, sampleBank_, bpm_);
+    if (clipId.empty()) {
         return {};
     }
-    if (sampleBank_ != nullptr && sampleBank_->findSample(sampleId) == nullptr) {
-        return {};
-    }
-
-    SampleClip clip;
-    clip.id = "sclip-" + std::to_string(nextSampleClipNum_++);
-    clip.sampleId = sampleId;
-    clip.startBeat = startBeat < 0.0 ? 0.0 : startBeat;
-    if (lengthBeats > 0.0) {
-        clip.lengthBeats = lengthBeats;
-    } else if (sampleBank_ != nullptr) {
-        clip.lengthBeats = sampleBank_->beatsForSample(sampleId, bpm_);
-    } else {
-        clip.lengthBeats = 4.0;
-    }
-
-    track->sampleClips.push_back(std::move(clip));
     rebuildTrackPlaybackLocked();
-    return track->sampleClips.back().id;
+    return clipId;
 }
 
 bool ProjectEngine::moveClip(const std::string& clipId,
                              const std::string& targetTrackId,
                              double startBeat) {
     std::lock_guard<std::mutex> lock(mutex_);
-    Track* targetTrack = findTrackLocked(targetTrackId);
-    if (targetTrack == nullptr || clipId.empty()) {
+    if (!clipRepo_.moveClip(clipId, targetTrackId, startBeat)) {
         return false;
     }
-
-    const double clampedStart = startBeat < 0.0 ? 0.0 : startBeat;
-
-    for (auto& track : tracks_) {
-        for (auto it = track.midiClips.begin(); it != track.midiClips.end(); ++it) {
-            if (it->id != clipId) {
-                continue;
-            }
-            MidiClip clip = std::move(*it);
-            track.midiClips.erase(it);
-            clip.startBeat = clampedStart;
-            targetTrack->midiClips.push_back(std::move(clip));
-            rebuildTrackPlaybackLocked();
-            return true;
-        }
-    }
-
-    for (auto& track : tracks_) {
-        for (auto it = track.sampleClips.begin(); it != track.sampleClips.end(); ++it) {
-            if (it->id != clipId) {
-                continue;
-            }
-            SampleClip clip = std::move(*it);
-            track.sampleClips.erase(it);
-            clip.startBeat = clampedStart;
-            targetTrack->sampleClips.push_back(std::move(clip));
-            rebuildTrackPlaybackLocked();
-            return true;
-        }
-    }
-
-    return false;
+    rebuildTrackPlaybackLocked();
+    return true;
 }
 
 bool ProjectEngine::setClipLength(const std::string& clipId, double lengthBeats) {
     std::lock_guard<std::mutex> lock(mutex_);
-    const double len = lengthBeats < kMinClipLengthBeats ? kMinClipLengthBeats : lengthBeats;
-
-    if (MidiClip* midi = findMidiClipLocked(clipId)) {
-        midi->lengthBeats = len;
-        rebuildTrackPlaybackLocked();
-        return true;
+    if (!clipRepo_.setClipLength(clipId, lengthBeats)) {
+        return false;
     }
-    if (SampleClip* sample = findSampleClipLocked(clipId)) {
-        sample->lengthBeats = len;
-        rebuildTrackPlaybackLocked();
-        return true;
-    }
-    return false;
+    rebuildTrackPlaybackLocked();
+    return true;
 }
 
 bool ProjectEngine::setBpm(int bpm) {
@@ -297,72 +203,30 @@ bool ProjectEngine::setBpm(int bpm) {
 
 bool ProjectEngine::deleteTrack(const std::string& trackId) {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (tracks_.size() <= 1) {
+    if (!trackRepo_.deleteTrack(trackId)) {
         return false;
     }
-    for (auto it = tracks_.begin(); it != tracks_.end(); ++it) {
-        if (it->id != trackId) {
-            continue;
-        }
-        tracks_.erase(it);
-        if (selectedTrackId_ == trackId) {
-            selectedTrackId_ = tracks_.empty() ? std::string{} : tracks_.front().id;
-        }
-        syncActiveFrequencyLocked();
-        rebuildTrackPlaybackLocked();
-        return true;
-    }
-    return false;
+    syncActiveFrequencyLocked();
+    rebuildTrackPlaybackLocked();
+    return true;
 }
 
 bool ProjectEngine::deleteClip(const std::string& clipId) {
     std::lock_guard<std::mutex> lock(mutex_);
-    for (auto& track : tracks_) {
-        for (auto it = track.midiClips.begin(); it != track.midiClips.end(); ++it) {
-            if (it->id == clipId) {
-                track.midiClips.erase(it);
-                rebuildTrackPlaybackLocked();
-                return true;
-            }
-        }
-        for (auto it = track.sampleClips.begin(); it != track.sampleClips.end(); ++it) {
-            if (it->id == clipId) {
-                track.sampleClips.erase(it);
-                rebuildTrackPlaybackLocked();
-                return true;
-            }
-        }
+    if (!clipRepo_.deleteClip(clipId)) {
+        return false;
     }
-    return false;
+    rebuildTrackPlaybackLocked();
+    return true;
 }
 
 bool ProjectEngine::duplicateClip(const std::string& clipId) {
     std::lock_guard<std::mutex> lock(mutex_);
-    for (auto& track : tracks_) {
-        for (const auto& clip : track.midiClips) {
-            if (clip.id != clipId) {
-                continue;
-            }
-            MidiClip copy = clip;
-            copy.id = "clip-" + std::to_string(nextClipNum_++);
-            copy.startBeat = clip.startBeat + clip.lengthBeats;
-            track.midiClips.push_back(std::move(copy));
-            rebuildTrackPlaybackLocked();
-            return true;
-        }
-        for (const auto& clip : track.sampleClips) {
-            if (clip.id != clipId) {
-                continue;
-            }
-            SampleClip copy = clip;
-            copy.id = "sclip-" + std::to_string(nextSampleClipNum_++);
-            copy.startBeat = clip.startBeat + clip.lengthBeats;
-            track.sampleClips.push_back(std::move(copy));
-            rebuildTrackPlaybackLocked();
-            return true;
-        }
+    if (!clipRepo_.duplicateClip(clipId)) {
+        return false;
     }
-    return false;
+    rebuildTrackPlaybackLocked();
+    return true;
 }
 
 bool ProjectEngine::setLoopEnabled(bool enabled) {
@@ -408,7 +272,7 @@ ProjectSnapshot ProjectEngine::snapshot() const {
     std::lock_guard<std::mutex> lock(mutex_);
     ProjectSnapshot snap;
     snap.bpm = bpm_;
-    snap.selectedTrackId = selectedTrackId_;
+    snap.selectedTrackId = trackRepo_.selectedTrackId();
     snap.playheadBeats = playheadBeats_.load(std::memory_order_relaxed);
     snap.playing = playing_.load(std::memory_order_relaxed);
     snap.loopEnabled = loopEnabled_;
@@ -428,8 +292,8 @@ ProjectSnapshot ProjectEngine::snapshot() const {
             snap.samples.push_back(std::move(entry));
         }
     }
-    snap.tracks.reserve(tracks_.size());
-    for (const auto& track : tracks_) {
+    snap.tracks.reserve(trackRepo_.tracks().size());
+    for (const auto& track : trackRepo_.tracks()) {
         TrackState ts;
         ts.id = track.id;
         ts.name = track.name;
@@ -751,7 +615,7 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
     file.projectFormatVersion = kProjectFormatVersion;
     file.name = projectName_;
     file.bpm = bpm_;
-    file.selectedTrackId = selectedTrackId_;
+    file.selectedTrackId = trackRepo_.selectedTrackId();
     file.master.id = "master";
     file.master.name = "Master";
     file.master.gain = masterGain_.load(std::memory_order_relaxed);
@@ -766,9 +630,9 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
             file.sampleLibrary.push_back(std::move(entry));
         }
     }
-    file.tracks.reserve(tracks_.size());
+    file.tracks.reserve(trackRepo_.tracks().size());
 
-    for (const auto& track : tracks_) {
+    for (const auto& track : trackRepo_.tracks()) {
         TrackState ts;
         ts.id = track.id;
         ts.name = track.name;
@@ -819,8 +683,8 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
     std::lock_guard<std::mutex> lock(mutex_);
     projectName_ = data.name.empty() ? "Untitled" : data.name;
     bpm_ = data.bpm > 0 ? data.bpm : 120;
-    selectedTrackId_ = data.selectedTrackId;
-    tracks_.clear();
+    trackRepo_.setSelectedTrackId(data.selectedTrackId);
+    trackRepo_.tracks().clear();
 
     for (const auto& trackState : data.tracks) {
         Track track;
@@ -852,11 +716,11 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
             clip.lengthBeats = clipState.lengthBeats;
             track.sampleClips.push_back(std::move(clip));
         }
-        tracks_.push_back(std::move(track));
+        trackRepo_.tracks().push_back(std::move(track));
     }
 
     recomputeIdCountersLocked();
-    ensureTrackGainDevicesLocked();
+    trackRepo_.ensureTrackGainDevices(deviceRegistry_);
 
     lfos_ = data.lfos;
     modEdges_ = data.modEdges;
@@ -1003,44 +867,19 @@ void ProjectEngine::rebuildLfoPlaybackLocked() {
 }
 
 void ProjectEngine::recomputeIdCountersLocked() {
-    auto maxSuffix = [](const std::string& id, const std::string& prefix) {
-        if (id.rfind(prefix, 0) != 0) {
-            return 0;
-        }
-        const auto suffix = id.substr(prefix.size());
-        return suffix.empty() ? 0 : std::atoi(suffix.c_str());
-    };
+    trackRepo_.recomputeIdCounters();
+    clipRepo_.recomputeIdCounters();
 
-    int maxTrack = 0;
-    int maxDevice = 0;
-    int maxClip = 0;
-    int maxSampleClip = 0;
     int maxLfo = 0;
-    for (const auto& track : tracks_) {
-        maxTrack = std::max(maxTrack, maxSuffix(track.id, "track-"));
-        for (const auto& device : track.devices) {
-            maxDevice = std::max(maxDevice, maxSuffix(device.id, "dev-"));
-        }
-        for (const auto& clip : track.midiClips) {
-            maxClip = std::max(maxClip, maxSuffix(clip.id, "clip-"));
-        }
-        for (const auto& clip : track.sampleClips) {
-            maxSampleClip = std::max(maxSampleClip, maxSuffix(clip.id, "sclip-"));
-        }
-    }
     for (const auto& lfo : lfos_) {
         maxLfo = std::max(maxLfo, lfo.id);
     }
-    nextTrackNum_ = maxTrack + 1;
-    nextDeviceNum_ = maxDevice + 1;
-    nextClipNum_ = maxClip + 1;
-    nextSampleClipNum_ = maxSampleClip + 1;
     nextLfoId_ = maxLfo + 1;
 }
 
 void ProjectEngine::rebuildTrackPlaybackLocked() {
     int trackIndex = 0;
-    for (const auto& sourceTrack : tracks_) {
+    for (const auto& sourceTrack : trackRepo_.tracks()) {
         if (trackIndex >= kMaxTracks) {
             break;
         }
@@ -1131,7 +970,7 @@ const DeviceNodePlayback* ProjectEngine::findOscillatorNode(
 int ProjectEngine::selectedTrackPlaybackIndex() const noexcept {
     const int count = trackPlaybackCount_.load(std::memory_order_acquire);
     for (int i = 0; i < count; ++i) {
-        if (trackPlayback_[i].trackId == selectedTrackId_) {
+        if (trackPlayback_[i].trackId == trackRepo_.selectedTrackId()) {
             return i;
         }
     }
@@ -1140,8 +979,9 @@ int ProjectEngine::selectedTrackPlaybackIndex() const noexcept {
 
 void ProjectEngine::syncActiveFrequencyLocked() {
     float freq = 440.0f;
-    if (!selectedTrackId_.empty()) {
-        if (Track* track = findTrackLocked(selectedTrackId_)) {
+    const std::string& selectedId = trackRepo_.selectedTrackId();
+    if (!selectedId.empty()) {
+        if (Track* track = trackRepo_.findTrack(selectedId)) {
             bool foundOscillator = false;
             for (const auto& device : track->devices) {
                 if (std::holds_alternative<OscillatorInstance>(device.instance)) {
@@ -1159,17 +999,8 @@ void ProjectEngine::syncActiveFrequencyLocked() {
     activeFrequencyHz_.store(freq, std::memory_order_release);
 }
 
-ProjectEngine::Track* ProjectEngine::findTrackLocked(const std::string& trackId) {
-    for (auto& track : tracks_) {
-        if (track.id == trackId) {
-            return &track;
-        }
-    }
-    return nullptr;
-}
-
 DeviceSlot* ProjectEngine::findDeviceLocked(const std::string& deviceId) {
-    for (auto& track : tracks_) {
+    for (auto& track : trackRepo_.tracks()) {
         for (auto& device : track.devices) {
             if (device.id == deviceId) {
                 return &device;
@@ -1177,45 +1008,6 @@ DeviceSlot* ProjectEngine::findDeviceLocked(const std::string& deviceId) {
         }
     }
     return nullptr;
-}
-
-ProjectEngine::MidiClip* ProjectEngine::findMidiClipLocked(const std::string& clipId) {
-    for (auto& track : tracks_) {
-        for (auto& clip : track.midiClips) {
-            if (clip.id == clipId) {
-                return &clip;
-            }
-        }
-    }
-    return nullptr;
-}
-
-ProjectEngine::SampleClip* ProjectEngine::findSampleClipLocked(const std::string& clipId) {
-    for (auto& track : tracks_) {
-        for (auto& clip : track.sampleClips) {
-            if (clip.id == clipId) {
-                return &clip;
-            }
-        }
-    }
-    return nullptr;
-}
-
-void ProjectEngine::ensureTrackGainDevicesLocked() {
-    for (auto& track : tracks_) {
-        bool hasGain = false;
-        for (const auto& device : track.devices) {
-            if (std::holds_alternative<TrackGainInstance>(device.instance)) {
-                hasGain = true;
-                break;
-            }
-        }
-        if (hasGain) {
-            continue;
-        }
-        const std::string gainId = "dev-" + std::to_string(nextDeviceNum_++);
-        track.devices.push_back(deviceRegistry_.createDefault(device_types::kTrackGain, gainId));
-    }
 }
 
 } // namespace audioapp

@@ -49,10 +49,10 @@ bool ProjectEngine::setRecordArmed(bool armed) {
 
 bool ProjectEngine::noteOn(int pitch, float velocity) {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (selectedTrackId_.empty()) {
+    if (trackRepo_.selectedTrackId().empty()) {
         return false;
     }
-    Track* track = findTrackLocked(selectedTrackId_);
+    Track* track = trackRepo_.findTrack(trackRepo_.selectedTrackId());
     if (track == nullptr) {
         return false;
     }
@@ -118,7 +118,7 @@ bool ProjectEngine::commitCapture() {
 
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        if (!captureActive_ || captureEvents_.empty() || selectedTrackId_.empty()) {
+        if (!captureActive_ || captureEvents_.empty() || trackRepo_.selectedTrackId().empty()) {
             return false;
         }
 
@@ -172,7 +172,7 @@ bool ProjectEngine::commitCapture() {
         }
         clipLength = std::max(4.0, std::ceil(maxEnd / 4.0) * 4.0);
         clipStart = playheadBeats_;
-        trackId = selectedTrackId_;
+        trackId = trackRepo_.selectedTrackId();
 
         captureEvents_.clear();
         captureActive_ = false;

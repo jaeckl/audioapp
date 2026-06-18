@@ -24,11 +24,11 @@ As a **developer**, I want track and clip CRUD in dedicated modules so that `Pro
 
 ## Scope
 
-- [ ] `TrackRepository` — track CRUD, selection, auto-insert `track_gain` on new track
-- [ ] `ClipRepository` — MIDI + sample clip CRUD, move between tracks, duplicate
-- [ ] `ProjectModel` holds repositories' data or repositories hold `std::vector<Track>` with `DeviceSlot` chains
-- [ ] `ProjectEngine` public method signatures unchanged
-- [ ] `recomputeIdCountersLocked` lives in repository or `ProjectModel`
+- [x] `TrackRepository` — track CRUD, selection, auto-insert `track_gain` on new track
+- [x] `ClipRepository` — MIDI + sample clip CRUD, move between tracks, duplicate
+- [x] `TrackModel.hpp` — shared `Track`, `MidiClip`, `SampleClip` types
+- [x] `ProjectEngine` public method signatures unchanged
+- [x] `recomputeIdCountersLocked` delegates track/device + clip counters to repositories
 
 ## Out of scope
 
@@ -38,9 +38,9 @@ As a **developer**, I want track and clip CRUD in dedicated modules so that `Pro
 
 ## Acceptance criteria
 
-- [ ] Track/clip behavior identical — same IDs, same clip bounds rules
-- [ ] `commitCapture` (live) still creates MIDI clip correctly (integration with US-12-10)
-- [ ] Existing clip-related tests pass
+- [x] Track/clip behavior identical — same IDs, same clip bounds rules
+- [x] `commitCapture` (live) still creates MIDI clip correctly (integration with US-12-10)
+- [x] Existing clip-related tests pass
 
 ## Demo script (developer, ~5 min)
 
@@ -48,13 +48,13 @@ As a **developer**, I want track and clip CRUD in dedicated modules so that `Pro
 
 ## Tests required
 
-- [ ] C++ tests for clip move/duplicate edge cases (add if missing)
-- [ ] Flutter `widget_test` — add MIDI clip flow
+- [x] C++ `track_clip_repository_test.cpp` — move, duplicate, delete, length
+- [x] Flutter `widget_test` — add MIDI clip flow
 
 ## Depends on
 
-US-12-01 (device slots on tracks — full integration after US-12-03; may stub flat adapter until then)
+US-12-03
 
 ## Status
 
-Todo
+Done

@@ -88,6 +88,8 @@ DeviceSlot
 
 `DeviceState` remains the **snapshot / JSON DTO** — populated via `DeviceRegistry::toSnapshotState()` for bridge and `project.json` I/O. No virtual dispatch or JSON parsing on the audio thread; playback uses pre-built `DeviceNodePlayback` snapshots.
 
+**Track/clip arrangement (M12 US-12-05):** `TrackRepository` owns `std::vector<Track>` + selection + track/device ID counters; `ClipRepository` owns MIDI/sample clip CRUD and clip ID counters. `ProjectEngine` delegates and triggers playback rebuilds.
+
 ## Snapshot JSON (bridge projection)
 
 Live UI snapshot returned by engine commands (`getProjectSnapshot`, mutations):
