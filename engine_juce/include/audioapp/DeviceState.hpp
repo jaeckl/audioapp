@@ -58,6 +58,11 @@ struct DeviceState {
     float snareSnap = 0.40f;
     float snareDecay = 0.50f;
     float snareVelocity = 1.0f;
+    float clapBursts = 0.50f;
+    float clapSpread = 0.45f;
+    float clapTone = 0.55f;
+    float clapRoom = 0.50f;
+    float clapDecay = 0.50f;
 };
 
 } // namespace audioapp

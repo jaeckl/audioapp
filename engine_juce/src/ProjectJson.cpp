@@ -150,6 +150,13 @@ juce::var deviceToVar(const DeviceState& device) {
         parameters->setProperty("snareDecay", static_cast<double>(device.snareDecay));
         parameters->setProperty("snareVelocity", static_cast<double>(device.snareVelocity));
     }
+    if (device.type == "clap_generator") {
+        parameters->setProperty("clapBursts", static_cast<double>(device.clapBursts));
+        parameters->setProperty("clapSpread", static_cast<double>(device.clapSpread));
+        parameters->setProperty("clapTone", static_cast<double>(device.clapTone));
+        parameters->setProperty("clapRoom", static_cast<double>(device.clapRoom));
+        parameters->setProperty("clapDecay", static_cast<double>(device.clapDecay));
+    }
 
     auto* object = new juce::DynamicObject();
     object->setProperty("id", toJuceString(device.id));
@@ -234,6 +241,11 @@ DeviceState deviceFromVar(const juce::var& value) {
             device.snareSnap = varToFloat(params->getProperty("snareSnap"), 0.40f);
             device.snareDecay = varToFloat(params->getProperty("snareDecay"), 0.50f);
             device.snareVelocity = varToFloat(params->getProperty("snareVelocity"), 1.0f);
+            device.clapBursts = varToFloat(params->getProperty("clapBursts"), 0.50f);
+            device.clapSpread = varToFloat(params->getProperty("clapSpread"), 0.45f);
+            device.clapTone = varToFloat(params->getProperty("clapTone"), 0.55f);
+            device.clapRoom = varToFloat(params->getProperty("clapRoom"), 0.50f);
+            device.clapDecay = varToFloat(params->getProperty("clapDecay"), 0.50f);
         }
     }
     return device;

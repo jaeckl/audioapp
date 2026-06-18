@@ -33,6 +33,7 @@ abstract final class DeviceStripTheme {
   static const subtractiveSynthAccent = Color(0xFF7B6CF6);
   static const kickGeneratorAccent = Color(0xFFE85D4B);
   static const snareGeneratorAccent = Color(0xFFF0C14B);
+  static const clapGeneratorAccent = Color(0xFFE8A0C8);
 
   static Color accentForDeviceType(String type) => switch (type) {
         'simple_sampler' => samplerAccent,
@@ -40,6 +41,7 @@ abstract final class DeviceStripTheme {
         'subtractive_synth' => subtractiveSynthAccent,
         'kick_generator' => kickGeneratorAccent,
         'snare_generator' => snareGeneratorAccent,
+        'clap_generator' => clapGeneratorAccent,
         _ => genericAccent,
       };
 
@@ -49,6 +51,7 @@ abstract final class DeviceStripTheme {
         'subtractive_synth' => 'Subtractive Synth',
         'kick_generator' => 'Kick Generator',
         'snare_generator' => 'Snare Generator',
+        'clap_generator' => 'Clap Generator',
         _ => type,
       };
 }

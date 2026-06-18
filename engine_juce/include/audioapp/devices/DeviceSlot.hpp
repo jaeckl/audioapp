@@ -2,6 +2,7 @@
 
 #include "audioapp/devices/instances/KickGeneratorInstance.hpp"
 #include "audioapp/devices/instances/SnareGeneratorInstance.hpp"
+#include "audioapp/devices/instances/ClapGeneratorInstance.hpp"
 #include "audioapp/devices/instances/OscillatorInstance.hpp"
 #include "audioapp/devices/instances/SamplerInstance.hpp"
 #include "audioapp/devices/instances/SubtractiveSynthInstance.hpp"
@@ -17,7 +18,8 @@ using DeviceInstance = std::variant<OscillatorInstance,
                                     TrackGainInstance,
                                     SubtractiveSynthInstance,
                                     KickGeneratorInstance,
-                                    SnareGeneratorInstance>;
+                                    SnareGeneratorInstance,
+                                    ClapGeneratorInstance>;
 
 struct DeviceSlot {
     std::string id;

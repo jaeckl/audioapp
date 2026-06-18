@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'device_tab_bar.dart';
 import 'kick_generator_device_panel.dart';
 import 'snare_generator_device_panel.dart';
+import 'clap_generator_device_panel.dart';
 import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
 import 'subtractive_synth_device_panel.dart';
@@ -16,6 +17,7 @@ abstract final class DeviceContainerTabs {
       'subtractive_synth' => SubtractiveSynthDevicePanel.containerTabs,
       'kick_generator' => KickGeneratorDevicePanel.containerTabs,
       'snare_generator' => SnareGeneratorDevicePanel.containerTabs,
+      'clap_generator' => ClapGeneratorDevicePanel.containerTabs,
       _ => const <DeviceTabSpec>[],
     };
   }

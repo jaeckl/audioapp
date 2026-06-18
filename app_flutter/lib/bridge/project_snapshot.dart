@@ -232,6 +232,11 @@ class DeviceSnapshot {
     this.snareSnap = 0.40,
     this.snareDecay = 0.50,
     this.snareVelocity = 1.0,
+    this.clapBursts = 0.50,
+    this.clapSpread = 0.45,
+    this.clapTone = 0.55,
+    this.clapRoom = 0.50,
+    this.clapDecay = 0.50,
   });
 
   final String id;
@@ -286,6 +291,11 @@ class DeviceSnapshot {
   final double snareSnap;
   final double snareDecay;
   final double snareVelocity;
+  final double clapBursts;
+  final double clapSpread;
+  final double clapTone;
+  final double clapRoom;
+  final double clapDecay;
 
   factory DeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -343,6 +353,11 @@ class DeviceSnapshot {
       snareSnap: (params['snareSnap'] as num?)?.toDouble() ?? 0.40,
       snareDecay: (params['snareDecay'] as num?)?.toDouble() ?? 0.50,
       snareVelocity: (params['snareVelocity'] as num?)?.toDouble() ?? 1.0,
+      clapBursts: (params['clapBursts'] as num?)?.toDouble() ?? 0.50,
+      clapSpread: (params['clapSpread'] as num?)?.toDouble() ?? 0.45,
+      clapTone: (params['clapTone'] as num?)?.toDouble() ?? 0.55,
+      clapRoom: (params['clapRoom'] as num?)?.toDouble() ?? 0.50,
+      clapDecay: (params['clapDecay'] as num?)?.toDouble() ?? 0.50,
     );
   }
 
@@ -435,6 +450,11 @@ class DeviceSnapshot {
     double? snareSnap,
     double? snareDecay,
     double? snareVelocity,
+    double? clapBursts,
+    double? clapSpread,
+    double? clapTone,
+    double? clapRoom,
+    double? clapDecay,
   }) {
     return DeviceSnapshot(
       id: id ?? this.id,
@@ -489,6 +509,11 @@ class DeviceSnapshot {
       snareSnap: snareSnap ?? this.snareSnap,
       snareDecay: snareDecay ?? this.snareDecay,
       snareVelocity: snareVelocity ?? this.snareVelocity,
+      clapBursts: clapBursts ?? this.clapBursts,
+      clapSpread: clapSpread ?? this.clapSpread,
+      clapTone: clapTone ?? this.clapTone,
+      clapRoom: clapRoom ?? this.clapRoom,
+      clapDecay: clapDecay ?? this.clapDecay,
     );
   }
 
@@ -590,6 +615,16 @@ class DeviceSnapshot {
         return copyWith(snareDecay: value.clamp(0.0, 1.0));
       case 'snareVelocity':
         return copyWith(snareVelocity: value.clamp(0.0, 1.0));
+      case 'clapBursts':
+        return copyWith(clapBursts: value.clamp(0.0, 1.0));
+      case 'clapSpread':
+        return copyWith(clapSpread: value.clamp(0.0, 1.0));
+      case 'clapTone':
+        return copyWith(clapTone: value.clamp(0.0, 1.0));
+      case 'clapRoom':
+        return copyWith(clapRoom: value.clamp(0.0, 1.0));
+      case 'clapDecay':
+        return copyWith(clapDecay: value.clamp(0.0, 1.0));
       default:
         return this;
     }
