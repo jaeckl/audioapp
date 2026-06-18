@@ -50,6 +50,15 @@ void main() {
           return bootstrapSnapshot;
         case 'getProjectSnapshot':
           return bootstrapSnapshot;
+        case 'getTransportState':
+          return {
+            'ok': true,
+            'playheadBeats': 0.0,
+            'playing': false,
+            'bpm': 120,
+            'loopEnabled': true,
+            'loopLengthBeats': 16.0,
+          };
         case 'addTrack':
           return {
             'ok': true,

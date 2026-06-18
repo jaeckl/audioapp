@@ -55,6 +55,15 @@ struct ProjectSnapshot {
     std::vector<ModulationEdge> modEdges;
 };
 
+/// Lightweight transport read for UI polling (no track/device serialization).
+struct TransportStateSnapshot {
+    double playheadBeats = 0.0;
+    bool playing = false;
+    int bpm = 120;
+    bool loopEnabled = true;
+    double loopLengthBeats = 16.0;
+};
+
 /// Authoritative project model (control thread only).
 class ProjectEngine {
 public:
@@ -126,6 +135,7 @@ public:
     void setPlayheadBeats(double beats) noexcept;
     void resetPlayhead() noexcept;
     void advancePlayhead(int numFrames, double sampleRate) noexcept;
+    TransportStateSnapshot transportState() const noexcept;
 
     ProjectFileData toProjectFileData() const;
     bool loadFromProjectFileData(const ProjectFileData& data);

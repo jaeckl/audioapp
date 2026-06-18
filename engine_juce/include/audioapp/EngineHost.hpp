@@ -80,6 +80,7 @@ public:
     bool loadProjectFileJson(const std::string& json);
 
     std::string getProjectSnapshotJson() const;
+    std::string getTransportStateJson() const;
 
     void advancePlayheadForBlock(int numFrames, double sampleRate) noexcept;
     float activeOscillatorFrequencyHz() const;

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../features/arrangement/arrangement_timeline_metrics.dart';
@@ -8,6 +9,7 @@ import '../app/app_info.dart';
 import 'daw_shell_nav.dart';
 import '../bridge/engine_bridge.dart';
 import '../bridge/project_snapshot.dart';
+import '../bridge/transport_state.dart';
 import '../features/arrangement/arrangement_view.dart';
 import '../features/content_library/library_catalog.dart';
 import '../features/content_library/library_category.dart';
@@ -37,12 +39,20 @@ class DawShell extends StatefulWidget {
   State<DawShell> createState() => _DawShellState();
 }
 
-class _DawShellState extends State<DawShell> {
+class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin {
   bool _playing = false;
   ProjectSnapshot? _snapshot;
   String? _saveStatus;
   String? _projectError;
-  Timer? _playheadTimer;
+  Ticker? _playheadTicker;
+  Timer? _transportSyncTimer;
+  double? _displayPlayheadBeats;
+  double _syncPlayheadBeats = 0;
+  DateTime _syncTime = DateTime.now();
+  int _syncBpm = 120;
+  bool _syncLoopEnabled = true;
+  double _syncLoopLengthBeats = 16;
+  bool _transportSyncInFlight = false;
   _ShellTab _tab = _ShellTab.arrangement;
   bool _libraryOpen = false;
   LibraryCategory _libraryCategory = LibraryCategory.audioClips;
@@ -57,8 +67,72 @@ class _DawShellState extends State<DawShell> {
 
   @override
   void dispose() {
-    _playheadTimer?.cancel();
+    _stopPlayheadAnimation();
     super.dispose();
+  }
+
+  double get _effectivePlayheadBeats =>
+      _displayPlayheadBeats ?? _snapshot?.playheadBeats ?? 0.0;
+
+  void _stopPlayheadAnimation() {
+    _playheadTicker?.stop();
+    _playheadTicker?.dispose();
+    _playheadTicker = null;
+    _transportSyncTimer?.cancel();
+    _transportSyncTimer = null;
+  }
+
+  void _anchorTransport(TransportState transport) {
+    _syncPlayheadBeats = transport.playheadBeats;
+    _syncTime = DateTime.now();
+    _syncBpm = transport.bpm;
+    _syncLoopEnabled = transport.loopEnabled;
+    _syncLoopLengthBeats = transport.loopLengthBeats;
+    _displayPlayheadBeats = transport.playheadBeats;
+  }
+
+  double _extrapolatePlayheadBeats() {
+    final elapsed = DateTime.now().difference(_syncTime).inMicroseconds / 1000000.0;
+    var beats = _syncPlayheadBeats + elapsed * (_syncBpm / 60.0);
+    if (_syncLoopEnabled && _syncLoopLengthBeats > 0) {
+      beats = beats % _syncLoopLengthBeats;
+    }
+    return beats;
+  }
+
+  Future<void> _syncTransportState({bool updatePlaying = false}) async {
+    if (_transportSyncInFlight) return;
+    _transportSyncInFlight = true;
+    try {
+      final transport = await widget.bridge.getTransportState();
+      if (!mounted) return;
+      _anchorTransport(transport);
+      if (updatePlaying && !transport.playing) {
+        _playing = false;
+        _stopPlayheadAnimation();
+      }
+      setState(() {
+        if (updatePlaying) {
+          _playing = transport.playing;
+        }
+        _displayPlayheadBeats = transport.playing ? _extrapolatePlayheadBeats() : transport.playheadBeats;
+      });
+    } catch (_) {
+    } finally {
+      _transportSyncInFlight = false;
+    }
+  }
+
+  void _startPlayheadAnimation() {
+    _stopPlayheadAnimation();
+    _playheadTicker = createTicker((_) {
+      if (!mounted || !_playing) return;
+      setState(() => _displayPlayheadBeats = _extrapolatePlayheadBeats());
+    })..start();
+    _transportSyncTimer = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      unawaited(_syncTransportState());
+    });
+    unawaited(_syncTransportState());
   }
 
   Future<void> _bootstrap() async {
@@ -79,23 +153,6 @@ class _DawShellState extends State<DawShell> {
   Future<void> _refreshSnapshot(ProjectSnapshot snapshot) async {
     if (!mounted) return;
     setState(() => _snapshot = snapshot);
-  }
-
-  void _startPlayheadPolling() {
-    _playheadTimer?.cancel();
-    _playheadTimer = Timer.periodic(const Duration(milliseconds: 100), (_) async {
-      try {
-        final snapshot = await widget.bridge.getProjectSnapshot();
-        if (!mounted) return;
-        setState(() {
-          _snapshot = snapshot;
-          _playing = snapshot.playing;
-        });
-        if (!snapshot.playing) {
-          _playheadTimer?.cancel();
-        }
-      } catch (_) {}
-    });
   }
 
   Future<void> _addTrack() async {
@@ -608,6 +665,9 @@ class _DawShellState extends State<DawShell> {
     try {
       final snapshot = await widget.bridge.setBpm(bpm);
       await _refreshSnapshot(snapshot);
+      if (_playing) {
+        await _syncTransportState();
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
@@ -618,6 +678,9 @@ class _DawShellState extends State<DawShell> {
     try {
       final snapshot = await widget.bridge.setLoopEnabled(enabled);
       await _refreshSnapshot(snapshot);
+      if (_playing) {
+        await _syncTransportState();
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
@@ -628,6 +691,9 @@ class _DawShellState extends State<DawShell> {
     try {
       final snapshot = await widget.bridge.setLoopLengthBeats(beats);
       await _refreshSnapshot(snapshot);
+      if (_playing) {
+        await _syncTransportState();
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
@@ -725,6 +791,12 @@ class _DawShellState extends State<DawShell> {
     try {
       final snapshot = await widget.bridge.setPlayheadBeats(beats);
       await _refreshSnapshot(snapshot);
+      if (_playing) {
+        await _syncTransportState();
+      } else {
+        if (!mounted) return;
+        setState(() => _displayPlayheadBeats = null);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
@@ -734,13 +806,16 @@ class _DawShellState extends State<DawShell> {
   Future<void> _togglePlay() async {
     if (_playing) {
       await widget.bridge.stop();
-      _playheadTimer?.cancel();
+      _stopPlayheadAnimation();
+      if (!mounted) return;
+      setState(() => _playing = false);
+      await _syncTransportState();
     } else {
       await widget.bridge.play();
-      _startPlayheadPolling();
+      if (!mounted) return;
+      setState(() => _playing = true);
+      _startPlayheadAnimation();
     }
-    if (!mounted) return;
-    setState(() => _playing = !_playing);
   }
 
   Future<void> _onTabSelected(_ShellTab tab) async {
@@ -780,7 +855,7 @@ class _DawShellState extends State<DawShell> {
             Expanded(
               child: ArrangementView(
                 snapshot: snapshot,
-                playheadBeats: snapshot.playheadBeats,
+                playheadBeats: _effectivePlayheadBeats,
                 playing: _playing,
                 onPlayStop: _togglePlay,
                 onPlayheadSeek: _setPlayheadBeats,
@@ -869,7 +944,7 @@ class _DawShellState extends State<DawShell> {
           TransportBar.padded(
             context: context,
             bpm: snapshot.bpm,
-            playheadBeats: snapshot.playheadBeats,
+            playheadBeats: _effectivePlayheadBeats,
             version: kAppVersion,
             loopEnabled: snapshot.loopEnabled,
             loopLengthBeats: snapshot.loopLengthBeats,
