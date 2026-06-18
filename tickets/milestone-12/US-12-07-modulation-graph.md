@@ -24,10 +24,10 @@ As a **developer**, I want LFO and modulation edge state in one module so that m
 
 ## Scope
 
-- [ ] Extract modulation state + rebuild into `ModulationGraph`
-- [ ] `ProjectEngine` forwards LFO/mod API
-- [ ] Snapshot + project file include modulation via graph getters
-- [ ] Cascade delete: removing LFO removes its edges (behavior unchanged)
+- [x] Extract modulation state + rebuild into `ModulationGraph`
+- [x] `ProjectEngine` forwards LFO/mod API
+- [x] Snapshot + project file include modulation via graph getters
+- [x] Cascade delete: removing LFO removes its edges (behavior unchanged)
 
 ## Out of scope
 
@@ -37,9 +37,9 @@ As a **developer**, I want LFO and modulation edge state in one module so that m
 
 ## Acceptance criteria
 
-- [ ] `lfo_modulation_test.cpp` passes
-- [ ] Save/load preserves LFOs and edges
-- [ ] Audio-thread LFO buffer layout unchanged for `ArrangementMixer`
+- [x] `lfo_modulation_test.cpp` passes
+- [x] Save/load preserves LFOs and edges
+- [x] Audio-thread LFO buffer layout unchanged for `ArrangementMixer`
 
 ## Demo script (developer, ~5 min)
 
@@ -48,8 +48,8 @@ As a **developer**, I want LFO and modulation edge state in one module so that m
 
 ## Tests required
 
-- [ ] `lfo_modulation_test.cpp`
-- [ ] Serialization section of same test
+- [x] `lfo_modulation_test.cpp`
+- [x] Serialization section of same test
 
 ## Depends on
 
@@ -57,4 +57,4 @@ US-12-00
 
 ## Status
 
-Todo
+Done

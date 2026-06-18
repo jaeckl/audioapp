@@ -20,6 +20,7 @@
 #include "audioapp/SubtractiveSynth.hpp"
 #include "audioapp/devices/DeviceRegistry.hpp"
 #include "audioapp/transport/TransportController.hpp"
+#include "audioapp/modulation/ModulationGraph.hpp"
 
 namespace audioapp {
 
@@ -208,24 +209,7 @@ private:
     double sampleTimeToCaptureBeat(uint64_t sampleTime) const;
     const SampleBank* sampleBank_ = nullptr;
 
-    // --- LFO / modulation state ---
-    std::vector<LfoState> lfos_;
-    std::vector<ModulationEdge> modEdges_;
-    int nextLfoId_ = 1;
-
-    static constexpr int kMaxLfos = 16;
-    static constexpr int kMaxModEdges = 64;
-
-    /// Audio-thread LFO snapshot.
-    struct LfoPlaybackEntry {
-        LfoState state;
-    };
-    LfoPlaybackEntry lfoPlayback_[kMaxLfos]{};
-    ModulationEdge modEdgePlayback_[kMaxModEdges]{};
-    std::atomic<int> lfoPlaybackCount_{0};
-    std::atomic<int> modEdgePlaybackCount_{0};
-
-    void rebuildLfoPlaybackLocked();
+    ModulationGraph modulationGraph_;
 
     DeviceRegistry deviceRegistry_{DeviceRegistry::createBuiltIn()};
 };
