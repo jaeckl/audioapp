@@ -5,6 +5,7 @@ import 'kick_generator_device_panel.dart';
 import 'snare_generator_device_panel.dart';
 import 'clap_generator_device_panel.dart';
 import 'cymbal_generator_device_panel.dart';
+import 'dynamics_fx_panels.dart';
 import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
 import 'subtractive_synth_device_panel.dart';
@@ -20,6 +21,10 @@ abstract final class DeviceContainerTabs {
       'snare_generator' => SnareGeneratorDevicePanel.containerTabs,
       'clap_generator' => ClapGeneratorDevicePanel.containerTabs,
       'cymbal_generator' => CymbalGeneratorDevicePanel.containerTabs,
+      'gate' => GateDevicePanel.containerTabs,
+      'compressor' => CompressorDevicePanel.containerTabs,
+      'expander' => ExpanderDevicePanel.containerTabs,
+      'limiter' => LimiterDevicePanel.containerTabs,
       _ => const <DeviceTabSpec>[],
     };
   }

@@ -242,6 +242,25 @@ class DeviceSnapshot {
     this.cymbalDecay = 0.50,
     this.cymbalChoke = 0.0,
     this.cymbalVelocity = 1.0,
+    this.gateThreshold = 0.45,
+    this.gateAttack = 0.25,
+    this.gateRelease = 0.50,
+    this.gateHold = 0.20,
+    this.gateRange = 0.0,
+    this.compThreshold = 0.55,
+    this.compRatio = 0.50,
+    this.compAttack = 0.20,
+    this.compRelease = 0.55,
+    this.compKnee = 0.25,
+    this.compMakeup = 0.35,
+    this.expandThreshold = 0.40,
+    this.expandRatio = 0.45,
+    this.expandAttack = 0.25,
+    this.expandRelease = 0.55,
+    this.expandRange = 0.15,
+    this.limitCeiling = 0.85,
+    this.limitRelease = 0.40,
+    this.limitDrive = 0.0,
   });
 
   final String id;
@@ -306,6 +325,25 @@ class DeviceSnapshot {
   final double cymbalDecay;
   final double cymbalChoke;
   final double cymbalVelocity;
+  final double gateThreshold;
+  final double gateAttack;
+  final double gateRelease;
+  final double gateHold;
+  final double gateRange;
+  final double compThreshold;
+  final double compRatio;
+  final double compAttack;
+  final double compRelease;
+  final double compKnee;
+  final double compMakeup;
+  final double expandThreshold;
+  final double expandRatio;
+  final double expandAttack;
+  final double expandRelease;
+  final double expandRange;
+  final double limitCeiling;
+  final double limitRelease;
+  final double limitDrive;
 
   factory DeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -373,6 +411,25 @@ class DeviceSnapshot {
       cymbalDecay: (params['cymbalDecay'] as num?)?.toDouble() ?? 0.50,
       cymbalChoke: (params['cymbalChoke'] as num?)?.toDouble() ?? 0.0,
       cymbalVelocity: (params['cymbalVelocity'] as num?)?.toDouble() ?? 1.0,
+      gateThreshold: (params['gateThreshold'] as num?)?.toDouble() ?? 0.45,
+      gateAttack: (params['gateAttack'] as num?)?.toDouble() ?? 0.25,
+      gateRelease: (params['gateRelease'] as num?)?.toDouble() ?? 0.50,
+      gateHold: (params['gateHold'] as num?)?.toDouble() ?? 0.20,
+      gateRange: (params['gateRange'] as num?)?.toDouble() ?? 0.0,
+      compThreshold: (params['compThreshold'] as num?)?.toDouble() ?? 0.55,
+      compRatio: (params['compRatio'] as num?)?.toDouble() ?? 0.50,
+      compAttack: (params['compAttack'] as num?)?.toDouble() ?? 0.20,
+      compRelease: (params['compRelease'] as num?)?.toDouble() ?? 0.55,
+      compKnee: (params['compKnee'] as num?)?.toDouble() ?? 0.25,
+      compMakeup: (params['compMakeup'] as num?)?.toDouble() ?? 0.35,
+      expandThreshold: (params['expandThreshold'] as num?)?.toDouble() ?? 0.40,
+      expandRatio: (params['expandRatio'] as num?)?.toDouble() ?? 0.45,
+      expandAttack: (params['expandAttack'] as num?)?.toDouble() ?? 0.25,
+      expandRelease: (params['expandRelease'] as num?)?.toDouble() ?? 0.55,
+      expandRange: (params['expandRange'] as num?)?.toDouble() ?? 0.15,
+      limitCeiling: (params['limitCeiling'] as num?)?.toDouble() ?? 0.85,
+      limitRelease: (params['limitRelease'] as num?)?.toDouble() ?? 0.40,
+      limitDrive: (params['limitDrive'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -475,6 +532,25 @@ class DeviceSnapshot {
     double? cymbalDecay,
     double? cymbalChoke,
     double? cymbalVelocity,
+    double? gateThreshold,
+    double? gateAttack,
+    double? gateRelease,
+    double? gateHold,
+    double? gateRange,
+    double? compThreshold,
+    double? compRatio,
+    double? compAttack,
+    double? compRelease,
+    double? compKnee,
+    double? compMakeup,
+    double? expandThreshold,
+    double? expandRatio,
+    double? expandAttack,
+    double? expandRelease,
+    double? expandRange,
+    double? limitCeiling,
+    double? limitRelease,
+    double? limitDrive,
   }) {
     return DeviceSnapshot(
       id: id ?? this.id,
@@ -539,6 +615,25 @@ class DeviceSnapshot {
       cymbalDecay: cymbalDecay ?? this.cymbalDecay,
       cymbalChoke: cymbalChoke ?? this.cymbalChoke,
       cymbalVelocity: cymbalVelocity ?? this.cymbalVelocity,
+      gateThreshold: gateThreshold ?? this.gateThreshold,
+      gateAttack: gateAttack ?? this.gateAttack,
+      gateRelease: gateRelease ?? this.gateRelease,
+      gateHold: gateHold ?? this.gateHold,
+      gateRange: gateRange ?? this.gateRange,
+      compThreshold: compThreshold ?? this.compThreshold,
+      compRatio: compRatio ?? this.compRatio,
+      compAttack: compAttack ?? this.compAttack,
+      compRelease: compRelease ?? this.compRelease,
+      compKnee: compKnee ?? this.compKnee,
+      compMakeup: compMakeup ?? this.compMakeup,
+      expandThreshold: expandThreshold ?? this.expandThreshold,
+      expandRatio: expandRatio ?? this.expandRatio,
+      expandAttack: expandAttack ?? this.expandAttack,
+      expandRelease: expandRelease ?? this.expandRelease,
+      expandRange: expandRange ?? this.expandRange,
+      limitCeiling: limitCeiling ?? this.limitCeiling,
+      limitRelease: limitRelease ?? this.limitRelease,
+      limitDrive: limitDrive ?? this.limitDrive,
     );
   }
 
@@ -660,6 +755,44 @@ class DeviceSnapshot {
         return copyWith(cymbalChoke: value.clamp(0.0, 1.0));
       case 'cymbalVelocity':
         return copyWith(cymbalVelocity: value.clamp(0.0, 1.0));
+      case 'gateThreshold':
+        return copyWith(gateThreshold: value.clamp(0.0, 1.0));
+      case 'gateAttack':
+        return copyWith(gateAttack: value.clamp(0.0, 1.0));
+      case 'gateRelease':
+        return copyWith(gateRelease: value.clamp(0.0, 1.0));
+      case 'gateHold':
+        return copyWith(gateHold: value.clamp(0.0, 1.0));
+      case 'gateRange':
+        return copyWith(gateRange: value.clamp(0.0, 1.0));
+      case 'compThreshold':
+        return copyWith(compThreshold: value.clamp(0.0, 1.0));
+      case 'compRatio':
+        return copyWith(compRatio: value.clamp(0.0, 1.0));
+      case 'compAttack':
+        return copyWith(compAttack: value.clamp(0.0, 1.0));
+      case 'compRelease':
+        return copyWith(compRelease: value.clamp(0.0, 1.0));
+      case 'compKnee':
+        return copyWith(compKnee: value.clamp(0.0, 1.0));
+      case 'compMakeup':
+        return copyWith(compMakeup: value.clamp(0.0, 1.0));
+      case 'expandThreshold':
+        return copyWith(expandThreshold: value.clamp(0.0, 1.0));
+      case 'expandRatio':
+        return copyWith(expandRatio: value.clamp(0.0, 1.0));
+      case 'expandAttack':
+        return copyWith(expandAttack: value.clamp(0.0, 1.0));
+      case 'expandRelease':
+        return copyWith(expandRelease: value.clamp(0.0, 1.0));
+      case 'expandRange':
+        return copyWith(expandRange: value.clamp(0.0, 1.0));
+      case 'limitCeiling':
+        return copyWith(limitCeiling: value.clamp(0.0, 1.0));
+      case 'limitRelease':
+        return copyWith(limitRelease: value.clamp(0.0, 1.0));
+      case 'limitDrive':
+        return copyWith(limitDrive: value.clamp(0.0, 1.0));
       default:
         return this;
     }

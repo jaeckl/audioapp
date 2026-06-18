@@ -62,6 +62,42 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
               subtitle: const Text('Metallic noise · hat or crash'),
               onTap: () => Navigator.pop(context, 'cymbal_generator'),
             ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
+              child: Text(
+                'Effects',
+                style: TextStyle(
+                  color: Color(0xFF9A9AA8),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.door_sliding, color: Color(0xFF6EC9A8)),
+              title: const Text('Gate'),
+              subtitle: const Text('Noise gate · threshold & hold'),
+              onTap: () => Navigator.pop(context, 'gate'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.compress, color: Color(0xFFE8A54B)),
+              title: const Text('Compressor'),
+              subtitle: const Text('Downward · ratio & makeup'),
+              onTap: () => Navigator.pop(context, 'compressor'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.unfold_more, color: Color(0xFF9AD4E8)),
+              title: const Text('Expander'),
+              subtitle: const Text('Downward · below threshold'),
+              onTap: () => Navigator.pop(context, 'expander'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.horizontal_rule, color: Color(0xFFE85D4B)),
+              title: const Text('Limiter'),
+              subtitle: const Text('Brick-wall ceiling · track bus'),
+              onTap: () => Navigator.pop(context, 'limiter'),
+            ),
             const SizedBox(height: 8),
           ],
         ),

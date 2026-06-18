@@ -46,6 +46,10 @@ class DeviceStripMetrics {
       'snare_generator' => oscillatorDesignWidth,
       'clap_generator' => oscillatorDesignWidth,
       'cymbal_generator' => oscillatorDesignWidth,
+      'gate' => oscillatorDesignWidth,
+      'compressor' => oscillatorDesignWidth,
+      'expander' => oscillatorDesignWidth,
+      'limiter' => oscillatorDesignWidth,
       'simple_oscillator' => oscillatorDesignWidth,
       _ => 280,
     };

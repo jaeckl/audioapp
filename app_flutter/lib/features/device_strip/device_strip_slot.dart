@@ -19,6 +19,7 @@ import 'clap_generator_device_panel.dart';
 import 'clap_generator_device_strip.dart';
 import 'cymbal_generator_device_panel.dart';
 import 'cymbal_generator_device_strip.dart';
+import 'dynamics_fx_panels.dart';
 import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
 import 'subtractive_synth_device_panel.dart';
@@ -296,6 +297,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         'snare_generator' => 'Mono · synth',
         'clap_generator' => 'Mono · synth',
         'cymbal_generator' => 'Mono · synth',
+        'gate' => 'Stereo · FX',
+        'compressor' => 'Stereo · FX',
+        'expander' => 'Stereo · FX',
+        'limiter' => 'Stereo · FX',
         _ => null,
       };
 
@@ -580,6 +585,78 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             onAutomateParameter: widget.onAutomateParameter != null
                 ? _onAutomateParameter
                 : null,
+          ),
+        );
+      case 'gate':
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: _cardWidth,
+          designHeight: contentHeight,
+          child: GateDeviceStrip(
+            device: widget.device,
+            onParameterChanged: widget.onDeviceParameterChanged,
+            selectedTab: GateDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
+            modulatedParams: _modulatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
+            onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
+            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+          ),
+        );
+      case 'compressor':
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: _cardWidth,
+          designHeight: contentHeight,
+          child: CompressorDeviceStrip(
+            device: widget.device,
+            onParameterChanged: widget.onDeviceParameterChanged,
+            selectedTab: CompressorDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
+            modulatedParams: _modulatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
+            onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
+            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+          ),
+        );
+      case 'expander':
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: _cardWidth,
+          designHeight: contentHeight,
+          child: ExpanderDeviceStrip(
+            device: widget.device,
+            onParameterChanged: widget.onDeviceParameterChanged,
+            selectedTab: ExpanderDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
+            modulatedParams: _modulatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
+            onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
+            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+          ),
+        );
+      case 'limiter':
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: _cardWidth,
+          designHeight: contentHeight,
+          child: LimiterDeviceStrip(
+            device: widget.device,
+            onParameterChanged: widget.onDeviceParameterChanged,
+            selectedTab: LimiterDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
+            modulatedParams: _modulatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
+            onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
+            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
           ),
         );
       default:
