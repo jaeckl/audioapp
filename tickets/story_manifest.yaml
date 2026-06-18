@@ -38,7 +38,7 @@ milestones:
     theme: per-device variant params, modulation dispatch, clean extensibility
   - id: M11
     name: Subtractive synth instrument
-    theme: 8-voice poly, dual osc, LP12, presets — no LFO
+    theme: 8-voice poly, dual osc, multimode filter, presets — no dedicated synth LFO
   - id: M12
     name: ProjectEngine decomposition
     theme: per-device classes, domain services, thin ProjectEngine facade
@@ -268,15 +268,15 @@ stories:
   - { id: US-10-01, milestone: M10, status: todo, title: Device chain variant refactor (per-type params + modulation dispatch) }
 
   # ── M11 Subtractive synth instrument (10) ───────────────────────────
-  - { id: US-11-01, milestone: M11, status: todo, title: Subtractive synth engine MVP (8-voice poly, LP12) }
-  - { id: US-11-02, milestone: M11, status: todo, title: Subtractive synth device — picker, strip, save/load }
-  - { id: US-11-03, milestone: M11, status: todo, title: Dual oscillators + unison }
-  - { id: US-11-04, milestone: M11, status: todo, title: Noise generator + oscillator mix modes }
-  - { id: US-11-05, milestone: M11, status: todo, title: Osc tab + waveform preview painters }
-  - { id: US-11-06, milestone: M11, status: todo, title: Mix, Filter, and Amp strip tabs }
-  - { id: US-11-07, milestone: M11, status: todo, title: Fullscreen subtractive synth editor + test note }
-  - { id: US-11-08, milestone: M11, status: todo, title: Factory presets + content library }
-  - { id: US-11-09, milestone: M11, status: todo, title: Glide + velocity sensitivity (no LFO) }
+  - { id: US-11-01, milestone: M11, status: done, title: Subtractive synth engine MVP (8-voice poly, LP12) }
+  - { id: US-11-02, milestone: M11, status: done, title: Subtractive synth device — picker, strip, save/load }
+  - { id: US-11-03, milestone: M11, status: done, title: Dual oscillators + unison }
+  - { id: US-11-04, milestone: M11, status: done, title: Noise generator + oscillator mix modes }
+  - { id: US-11-05, milestone: M11, status: done, title: Osc tab + waveform preview painters }
+  - { id: US-11-06, milestone: M11, status: done, title: Mix, Filter, and Amp strip tabs }
+  - { id: US-11-07, milestone: M11, status: done, title: Fullscreen subtractive synth editor + test note }
+  - { id: US-11-08, milestone: M11, status: done, title: Factory presets + content library }
+  - { id: US-11-09, milestone: M11, status: done, title: Glide + velocity sensitivity (no LFO) }
   - { id: US-11-20, milestone: M11, status: todo, title: M11 PO demo — subtractive synth end-to-end }
 
   # ── M12 ProjectEngine decomposition (12) ─────────────────────────────

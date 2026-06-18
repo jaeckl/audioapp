@@ -15,7 +15,14 @@ struct BiquadState {
     float z2 = 0.0f;
 };
 
-/// mode: 0 LP, 1 HP, 2 BP, 3 notch
+static constexpr int kCombMaxDelay = 1024;
+
+struct CombFilterState {
+    float buffer[kCombMaxDelay]{};
+    int writeIndex = 0;
+};
+
+/// mode: 0 LP, 1 HP, 2 BP, 3 notch, 4 comb
 void cookSamplerBiquad(BiquadCoeffs& coeffs,
                        int mode,
                        float sampleRate,
@@ -25,6 +32,13 @@ void cookSamplerBiquad(BiquadCoeffs& coeffs,
 float processBiquadSample(float input,
                           const BiquadCoeffs& coeffs,
                           BiquadState& state) noexcept;
+
+int combDelaySamples(float sampleRate, float cutoffHz) noexcept;
+
+float processCombSample(float input,
+                        CombFilterState& state,
+                        int delaySamples,
+                        float feedback) noexcept;
 
 float normalizedCutoffToHz(float normalized) noexcept;
 

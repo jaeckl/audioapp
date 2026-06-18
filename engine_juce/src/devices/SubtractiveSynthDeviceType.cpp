@@ -23,8 +23,6 @@ DeviceState stripSnapshot(const DeviceSlot& slot, std::string_view typeId) {
 SubtractiveSynthInstance instanceFromSnapshot(const DeviceState& state) {
     SubtractiveSynthInstance instance;
     instance.gain = state.gain;
-    instance.osc1Wave = state.osc1Wave;
-    instance.osc2Wave = state.osc2Wave;
     instance.osc1Shape = state.osc1Shape;
     instance.osc2Shape = state.osc2Shape;
     instance.osc1Octave = state.osc1Octave;
@@ -33,8 +31,6 @@ SubtractiveSynthInstance instanceFromSnapshot(const DeviceState& state) {
     instance.osc2Octave = state.osc2Octave;
     instance.osc2Semi = state.osc2Semi;
     instance.osc2Detune = state.osc2Detune;
-    instance.osc1Level = state.osc1Level;
-    instance.osc2Level = state.osc2Level;
     instance.oscMix = state.oscMix;
     instance.osc1Sync = state.osc1Sync;
     instance.osc2Sync = state.osc2Sync;
@@ -60,8 +56,6 @@ SubtractiveSynthInstance instanceFromSnapshot(const DeviceState& state) {
 }
 
 void applyInstanceToSnapshot(const SubtractiveSynthInstance& instance, DeviceState& state) {
-    state.osc1Wave = instance.osc1Wave;
-    state.osc2Wave = instance.osc2Wave;
     state.osc1Shape = instance.osc1Shape;
     state.osc2Shape = instance.osc2Shape;
     state.osc1Octave = instance.osc1Octave;
@@ -70,8 +64,6 @@ void applyInstanceToSnapshot(const SubtractiveSynthInstance& instance, DeviceSta
     state.osc2Octave = instance.osc2Octave;
     state.osc2Semi = instance.osc2Semi;
     state.osc2Detune = instance.osc2Detune;
-    state.osc1Level = instance.osc1Level;
-    state.osc2Level = instance.osc2Level;
     state.oscMix = instance.oscMix;
     state.osc1Sync = instance.osc1Sync;
     state.osc2Sync = instance.osc2Sync;
@@ -111,12 +103,8 @@ DeviceSlot SubtractiveSynthDeviceType::createDefault(const std::string& deviceId
     instance.ampRelease = 0.35f;
     instance.filterCutoff = 0.75f;
     instance.filterQ = 0.2f;
-    instance.osc1Wave = 2;
-    instance.osc2Wave = 2;
     instance.osc1Shape = 0.5f;
     instance.osc2Shape = 0.5f;
-    instance.osc1Level = 0.85f;
-    instance.osc2Level = 0.5f;
     instance.filterEnvAmount = 0.5f;
     instance.filterAttack = 0.05f;
     instance.filterDecay = 0.35f;
@@ -171,8 +159,7 @@ DeviceParameterResult SubtractiveSynthDeviceType::setParameter(DeviceSlot& slot,
                parameterId == "filterRelease" || parameterId == "osc1Octave" ||
                parameterId == "osc1Semi" || parameterId == "osc1Detune" ||
                parameterId == "osc2Octave" || parameterId == "osc2Semi" ||
-               parameterId == "osc2Detune" || parameterId == "osc1Level" ||
-               parameterId == "osc2Level" || parameterId == "oscMix" ||
+               parameterId == "osc2Detune" || parameterId == "oscMix" ||
                parameterId == "osc1Sync" || parameterId == "osc2Sync" ||
                parameterId == "noiseLevel" || parameterId == "unisonVoices" ||
                parameterId == "unisonDetune" || parameterId == "glideMs" ||
@@ -204,10 +191,6 @@ DeviceParameterResult SubtractiveSynthDeviceType::setParameter(DeviceSlot& slot,
             instance.osc2Semi = clamped;
         } else if (parameterId == "osc2Detune") {
             instance.osc2Detune = clamped;
-        } else if (parameterId == "osc1Level") {
-            instance.osc1Level = clamped;
-        } else if (parameterId == "osc2Level") {
-            instance.osc2Level = clamped;
         } else if (parameterId == "oscMix") {
             instance.oscMix = clamped;
         } else if (parameterId == "osc1Sync") {
@@ -225,22 +208,15 @@ DeviceParameterResult SubtractiveSynthDeviceType::setParameter(DeviceSlot& slot,
         } else {
             instance.velocitySensitivity = clamped;
         }
-    } else if (parameterId == "osc1Wave") {
-        instance.osc1Wave = std::clamp(static_cast<int>(std::lround(value)), 0, 4);
-        instance.osc1Shape = static_cast<float>(instance.osc1Wave) / 4.0f;
-    } else if (parameterId == "osc2Wave") {
-        instance.osc2Wave = std::clamp(static_cast<int>(std::lround(value)), 0, 4);
-        instance.osc2Shape = static_cast<float>(instance.osc2Wave) / 4.0f;
     } else if (parameterId == "osc1Shape") {
-        const float clamped = std::clamp(value, 0.0f, 1.0f);
-        instance.osc1Shape = clamped;
-        instance.osc1Wave = std::clamp(static_cast<int>(std::lround(clamped * 4.0f)), 0, 4);
+        instance.osc1Shape = std::clamp(value, 0.0f, 1.0f);
     } else if (parameterId == "osc2Shape") {
-        const float clamped = std::clamp(value, 0.0f, 1.0f);
-        instance.osc2Shape = clamped;
-        instance.osc2Wave = std::clamp(static_cast<int>(std::lround(clamped * 4.0f)), 0, 4);
+        instance.osc2Shape = std::clamp(value, 0.0f, 1.0f);
     } else if (parameterId == "oscMixMode") {
         instance.oscMixMode = std::clamp(static_cast<int>(std::lround(value)), 0, 4);
+    } else if (parameterId == "filterMode") {
+        instance.filterMode =
+            static_cast<float>(std::clamp(static_cast<int>(std::lround(value)), 0, 4));
     } else {
         return result;
     }
@@ -258,11 +234,11 @@ bool SubtractiveSynthDeviceType::setStringParameter(DeviceSlot&,
 
 std::vector<std::string_view> SubtractiveSynthDeviceType::modulatableParams() const {
     return {
-        "gain", "pan", "filterCutoff", "filterQ", "attack", "decay", "sustain", "release",
-        "osc1Shape", "osc2Shape", "osc1Octave", "osc1Semi", "osc1Detune", "osc2Octave",
-        "osc2Semi", "osc2Detune", "osc1Level", "osc2Level", "oscMix", "osc1Sync", "osc2Sync",
-        "noiseLevel", "unisonVoices", "unisonDetune", "filterEnvAmount", "filterAttack",
-        "filterDecay", "filterSustain", "filterRelease", "glideMs", "velocitySensitivity",
+        "gain", "pan", "filterCutoff", "filterQ", "filterMode", "attack", "decay", "sustain",
+        "release", "osc1Shape", "osc2Shape", "osc1Octave", "osc1Semi", "osc1Detune", "osc2Octave",
+        "osc2Semi", "osc2Detune", "oscMix", "osc1Sync", "osc2Sync", "noiseLevel", "oscMixMode",
+        "unisonVoices", "unisonDetune", "filterEnvAmount", "filterAttack", "filterDecay",
+        "filterSustain", "filterRelease", "glideMs", "velocitySensitivity",
     };
 }
 

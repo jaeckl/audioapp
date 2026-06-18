@@ -73,10 +73,14 @@ void applyAutomationValue(DeviceVariantParams& params,
         break;
     case DeviceNodeKind::SubtractiveSynth:
         if (auto* p = std::get_if<SubtractiveSynthParams>(&params)) {
-            if (paramId == "filterCutoff") {
+            if (paramId == "gain") {
+                p->gain = value;
+            } else if (paramId == "filterCutoff") {
                 p->filterCutoff = value;
             } else if (paramId == "filterQ") {
                 p->filterQ = value;
+            } else if (paramId == "filterMode") {
+                p->filterMode = std::clamp(static_cast<int>(std::lround(value * 4.0f)), 0, 4);
             } else if (paramId == "attack") {
                 p->ampAttack = value;
             } else if (paramId == "decay") {
@@ -85,8 +89,50 @@ void applyAutomationValue(DeviceVariantParams& params,
                 p->ampSustain = value;
             } else if (paramId == "release") {
                 p->ampRelease = value;
-            } else if (paramId == "gain") {
-                p->gain = value;
+            } else if (paramId == "osc1Shape") {
+                p->osc1Shape = value;
+            } else if (paramId == "osc2Shape") {
+                p->osc2Shape = value;
+            } else if (paramId == "osc1Octave") {
+                p->osc1Octave = value;
+            } else if (paramId == "osc1Semi") {
+                p->osc1Semi = value;
+            } else if (paramId == "osc1Detune") {
+                p->osc1Detune = value;
+            } else if (paramId == "osc2Octave") {
+                p->osc2Octave = value;
+            } else if (paramId == "osc2Semi") {
+                p->osc2Semi = value;
+            } else if (paramId == "osc2Detune") {
+                p->osc2Detune = value;
+            } else if (paramId == "oscMix") {
+                p->oscMix = value;
+            } else if (paramId == "osc1Sync") {
+                p->osc1Sync = value;
+            } else if (paramId == "osc2Sync") {
+                p->osc2Sync = value;
+            } else if (paramId == "noiseLevel") {
+                p->noiseLevel = value;
+            } else if (paramId == "oscMixMode") {
+                p->oscMixMode = std::clamp(static_cast<int>(std::lround(value * 4.0f)), 0, 4);
+            } else if (paramId == "unisonVoices") {
+                p->unisonVoices = value;
+            } else if (paramId == "unisonDetune") {
+                p->unisonDetune = value;
+            } else if (paramId == "filterEnvAmount") {
+                p->filterEnvAmount = value;
+            } else if (paramId == "filterAttack") {
+                p->filterAttack = value;
+            } else if (paramId == "filterDecay") {
+                p->filterDecay = value;
+            } else if (paramId == "filterSustain") {
+                p->filterSustain = value;
+            } else if (paramId == "filterRelease") {
+                p->filterRelease = value;
+            } else if (paramId == "glideMs") {
+                p->glideMs = value;
+            } else if (paramId == "velocitySensitivity") {
+                p->velocitySensitivity = value;
             }
         }
         break;

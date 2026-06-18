@@ -114,8 +114,6 @@ juce::var deviceToVar(const DeviceState& device) {
         parameters->setProperty("filterDecay", static_cast<double>(device.filterDecay));
         parameters->setProperty("filterSustain", static_cast<double>(device.filterSustain));
         parameters->setProperty("filterRelease", static_cast<double>(device.filterRelease));
-        parameters->setProperty("osc1Wave", device.osc1Wave);
-        parameters->setProperty("osc2Wave", device.osc2Wave);
         parameters->setProperty("osc1Shape", static_cast<double>(device.osc1Shape));
         parameters->setProperty("osc2Shape", static_cast<double>(device.osc2Shape));
         parameters->setProperty("osc1Octave", static_cast<double>(device.osc1Octave));
@@ -124,8 +122,6 @@ juce::var deviceToVar(const DeviceState& device) {
         parameters->setProperty("osc2Octave", static_cast<double>(device.osc2Octave));
         parameters->setProperty("osc2Semi", static_cast<double>(device.osc2Semi));
         parameters->setProperty("osc2Detune", static_cast<double>(device.osc2Detune));
-        parameters->setProperty("osc1Level", static_cast<double>(device.osc1Level));
-        parameters->setProperty("osc2Level", static_cast<double>(device.osc2Level));
         parameters->setProperty("oscMix", static_cast<double>(device.oscMix));
         parameters->setProperty("osc1Sync", static_cast<double>(device.osc1Sync));
         parameters->setProperty("osc2Sync", static_cast<double>(device.osc2Sync));
@@ -170,17 +166,17 @@ DeviceState deviceFromVar(const juce::var& value) {
             device.regionStartSec = varToFloat(params->getProperty("regionStartSec"), 0.0f);
             device.regionEndSec = varToFloat(params->getProperty("regionEndSec"), 0.0f);
             device.bypassed = varToFloat(params->getProperty("bypass"), 0.0f) >= 0.5f;
-            device.osc1Wave = varToInt(params->getProperty("osc1Wave"), 2);
-            device.osc2Wave = varToInt(params->getProperty("osc2Wave"), 2);
             if (params->hasProperty("osc1Shape")) {
                 device.osc1Shape = varToFloat(params->getProperty("osc1Shape"), 0.5f);
             } else {
-                device.osc1Shape = static_cast<float>(device.osc1Wave) / 4.0f;
+                const int legacyWave = varToInt(params->getProperty("osc1Wave"), 2);
+                device.osc1Shape = static_cast<float>(legacyWave) / 4.0f;
             }
             if (params->hasProperty("osc2Shape")) {
                 device.osc2Shape = varToFloat(params->getProperty("osc2Shape"), 0.5f);
             } else {
-                device.osc2Shape = static_cast<float>(device.osc2Wave) / 4.0f;
+                const int legacyWave = varToInt(params->getProperty("osc2Wave"), 2);
+                device.osc2Shape = static_cast<float>(legacyWave) / 4.0f;
             }
             device.osc1Octave = varToFloat(params->getProperty("osc1Octave"), 0.5f);
             device.osc1Semi = varToFloat(params->getProperty("osc1Semi"), 0.0f);
@@ -188,13 +184,13 @@ DeviceState deviceFromVar(const juce::var& value) {
             device.osc2Octave = varToFloat(params->getProperty("osc2Octave"), 0.5f);
             device.osc2Semi = varToFloat(params->getProperty("osc2Semi"), 0.0f);
             device.osc2Detune = varToFloat(params->getProperty("osc2Detune"), 0.5f);
-            device.osc1Level = varToFloat(params->getProperty("osc1Level"), 0.85f);
-            device.osc2Level = varToFloat(params->getProperty("osc2Level"), 0.5f);
             if (params->hasProperty("oscMix")) {
                 device.oscMix = varToFloat(params->getProperty("oscMix"), 0.37f);
             } else {
-                const float sum = device.osc1Level + device.osc2Level;
-                device.oscMix = sum > 0.001f ? device.osc2Level / sum : 0.37f;
+                const float osc1Level = varToFloat(params->getProperty("osc1Level"), 0.85f);
+                const float osc2Level = varToFloat(params->getProperty("osc2Level"), 0.5f);
+                const float sum = osc1Level + osc2Level;
+                device.oscMix = sum > 0.001f ? osc2Level / sum : 0.37f;
             }
             device.osc1Sync = varToFloat(params->getProperty("osc1Sync"), 0.0f);
             device.osc2Sync = varToFloat(params->getProperty("osc2Sync"), 0.0f);

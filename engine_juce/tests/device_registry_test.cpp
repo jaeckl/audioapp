@@ -49,7 +49,7 @@ int main() {
     if (std::abs(synth.filterCutoff - 0.75f) > 0.001f) {
         return EXIT_FAILURE;
     }
-    if (synth.osc1Wave != 2) {
+    if (std::abs(synth.osc1Shape - 0.5f) > 0.001f) {
         return EXIT_FAILURE;
     }
 
