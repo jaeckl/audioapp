@@ -49,7 +49,7 @@ class SubtractiveSynthDevicePanel extends StatefulWidget {
   final Set<String> modulatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
-  final void Function(String paramId, String paramLabel)? onModulationAssign;
+  final void Function(String paramId, double amount)? onModulationAssign;
 
   static const Color panel = Color(0xFF1C1C24);
   static const Color accent = DeviceStripTheme.subtractiveSynthAccent;
@@ -86,6 +86,7 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
     String? paramId,
     Map<String, double> modulationAmounts = const {},
     int? connectModeLfoId,
+    void Function(String paramId, double amount)? onModulationAssign,
   }) {
     final modAmount = paramId != null ? modulationAmounts[paramId] ?? 0.0 : 0.0;
     return RotaryKnob(
@@ -98,8 +99,8 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
       modulationActive: paramId != null && widget.modulatedParams.contains(paramId),
       modulationAmount: modAmount,
       connectModeActive: paramId != null && connectModeLfoId != null,
-      onModulationAssign: paramId != null && widget.onModulationAssign != null
-          ? () => widget.onModulationAssign!(paramId, label)
+      onModulationAssign: paramId != null && onModulationAssign != null
+          ? (a) => onModulationAssign(paramId, a)
           : null,
     );
   }
@@ -260,6 +261,7 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
               paramId: shapeParam,
               modulationAmounts: widget.modulationAmounts,
               connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
             ),
             _knob(
               label: 'Pitch',
@@ -270,6 +272,7 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
               paramId: semiParam,
               modulationAmounts: widget.modulationAmounts,
               connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
             ),
             _knob(
               label: 'Sync',
@@ -280,6 +283,7 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
               paramId: syncParam,
               modulationAmounts: widget.modulationAmounts,
               connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
             ),
           ],
         ),
@@ -335,6 +339,7 @@ Widget _mixTab() {
                           paramId: 'unisonVoices',
                           modulationAmounts: widget.modulationAmounts,
                           connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
                         ),
                       ),
                     ),
@@ -349,6 +354,7 @@ Widget _mixTab() {
                           paramId: 'unisonDetune',
                           modulationAmounts: widget.modulationAmounts,
                           connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
                         ),
                       ),
                     ),
@@ -407,6 +413,7 @@ Widget _mixTab() {
                           paramId: 'oscMix',
                           modulationAmounts: widget.modulationAmounts,
                           connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
                         ),
                       ),
                     ),
@@ -421,6 +428,7 @@ Widget _mixTab() {
                           paramId: 'noiseLevel',
                           modulationAmounts: widget.modulationAmounts,
                           connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
                         ),
                       ),
                     ),
@@ -484,6 +492,7 @@ Widget _mixTab() {
                       paramId: 'filterCutoff',
                       modulationAmounts: widget.modulationAmounts,
                       connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
                     ),
                     const SizedBox(width: 4),
                     _knob(
@@ -494,6 +503,7 @@ Widget _mixTab() {
                       paramId: 'filterQ',
                       modulationAmounts: widget.modulationAmounts,
                       connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
                     ),
                     const SizedBox(width: 4),
                     _knob(
@@ -504,6 +514,7 @@ Widget _mixTab() {
                       paramId: 'filterEnvAmount',
                       modulationAmounts: widget.modulationAmounts,
                       connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
                     ),
                     const SizedBox(width: 4),
                   ],
@@ -600,6 +611,7 @@ Widget _mixTab() {
                       paramId: 'glideMs',
                       modulationAmounts: widget.modulationAmounts,
                       connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
                     ),
                     const SizedBox(width: 8),
                     _knob(
@@ -611,6 +623,7 @@ Widget _mixTab() {
                       paramId: 'velocitySensitivity',
                       modulationAmounts: widget.modulationAmounts,
                       connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
                     ),
                   ],
                 ),

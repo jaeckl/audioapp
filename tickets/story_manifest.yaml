@@ -33,6 +33,9 @@ milestones:
   - id: M09
     name: Offline render & export
     theme: bounce, WAV export, shareable output
+  - id: M10
+    name: Device chain architecture
+    theme: per-device variant params, modulation dispatch, clean extensibility
   - id: M11
     name: Subtractive synth instrument
     theme: 8-voice poly, dual osc, LP12, presets — no LFO
@@ -257,6 +260,9 @@ stories:
   - { id: US-09-18, milestone: M09, status: todo, title: Export loop range only (cycle markers) }
   - { id: US-09-19, milestone: M09, status: todo, title: Stem export (one WAV per track) — stretch }
   - { id: US-09-20, milestone: M09, status: todo, title: M09 PO demo — export → play in external player }
+
+  # ── M10 Device chain architecture (1 story) ─────────────────────────
+  - { id: US-10-01, milestone: M10, status: todo, title: Device chain variant refactor (per-type params + modulation dispatch) }
 
   # ── M11 Subtractive synth instrument (10) ───────────────────────────
   - { id: US-11-01, milestone: M11, status: todo, title: Subtractive synth engine MVP (8-voice poly, LP12) }

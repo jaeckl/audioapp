@@ -25,7 +25,7 @@ class SubtractiveSynthDeviceStrip extends StatelessWidget {
   final Set<String> modulatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
-  final void Function(String paramId, String paramLabel)? onModulationAssign;
+  final void Function(String paramId, double amount)? onModulationAssign;
 
   @override
   Widget build(BuildContext context) {

@@ -32,6 +32,7 @@ int main() {
         devices[0].kind = audioapp::DeviceNodeKind::Sampler;
         devices[0].gain = 1.0f;
         devices[0].pan = 0.5f;
+        devices[0].params = audioapp::SamplerParams{};
 
         std::memset(left, 0, sizeof(left));
         std::memset(right, 0, sizeof(right));
@@ -57,11 +58,12 @@ int main() {
     {
         audioapp::DeviceNodePlayback devices[2] = {};
         devices[0].kind = audioapp::DeviceNodeKind::Oscillator;
-        devices[0].frequencyHz = 440.0f;
         devices[0].gain = 1.0f;
         devices[0].pan = 0.5f;
+        devices[0].params = audioapp::OscillatorParams{440.0f};
         devices[1].kind = audioapp::DeviceNodeKind::TrackGain;
         devices[1].gain = 0.25f;
+        devices[1].params = audioapp::TrackGainParams{};
 
         std::memset(left, 0, sizeof(left));
         std::memset(right, 0, sizeof(right));
@@ -91,9 +93,9 @@ int main() {
     {
         audioapp::DeviceNodePlayback devices[1] = {};
         devices[0].kind = audioapp::DeviceNodeKind::Oscillator;
-        devices[0].frequencyHz = 440.0f;
         devices[0].gain = 1.0f;
         devices[0].pan = 0.0f;
+        devices[0].params = audioapp::OscillatorParams{440.0f};
 
         std::memset(left, 0, sizeof(left));
         std::memset(right, 0, sizeof(right));

@@ -106,6 +106,7 @@ class _SamplerEditorScreenState extends State<SamplerEditorScreen> {
               device: _device,
               sample: _sample,
               initialTab: _tab,
+              bpm: widget.bpm,
               density: SamplerPanelDensity.editor,
               onTabChanged: (tab) => setState(() => _tab = tab),
               onParameterChanged: (parameterId, value) {

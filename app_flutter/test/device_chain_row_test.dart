@@ -34,6 +34,7 @@ void main() {
             track: track,
             samples: const [],
             playing: false,
+            bpm: 120,
             density: DeviceStripSlotDensity.strip,
             onSamplerParameterChanged: (_, __, ___) {},
             onOpenSamplerEditor: (_, __) {},

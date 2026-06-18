@@ -15,6 +15,7 @@ class DeviceChainRow extends StatelessWidget {
     required this.track,
     required this.samples,
     required this.playing,
+    required this.bpm,
     required this.density,
     required this.onSamplerParameterChanged,
     required this.onOpenSamplerEditor,
@@ -36,6 +37,7 @@ class DeviceChainRow extends StatelessWidget {
   final TrackSnapshot track;
   final List<SampleLibraryEntrySnapshot> samples;
   final bool playing;
+  final int bpm;
   final DeviceStripSlotDensity density;
   final void Function(String deviceId, String parameterId, double value)
       onSamplerParameterChanged;
@@ -97,6 +99,7 @@ class DeviceChainRow extends StatelessWidget {
                   track: track,
                   device: devices[i],
                   sample: _sampleFor(devices[i]),
+                  bpm: bpm,
                   density: density,
                   samplerTab: samplerTabFor?.call(devices[i].id) ?? SamplerDeviceTab.sample,
                   synthTab: synthTabFor?.call(devices[i].id) ?? SubtractiveDeviceTab.osc,

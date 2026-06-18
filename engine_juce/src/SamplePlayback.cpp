@@ -163,11 +163,25 @@ void mixSamplerMidiNotesBlock(float* monoOut,
 
             const double pitchRatio =
                 std::pow(2.0, static_cast<double>(note.pitch - sampler.rootPitch) / 12.0);
-            const double readPos =
-                static_cast<double>(startFrame) + elapsedSeconds * sampler.pcmSampleRate * pitchRatio;
-            if (readPos < static_cast<double>(startFrame) ||
-                readPos >= static_cast<double>(endFrame - 1)) {
-                continue;
+
+            // Determine the loop region within the trimmed sample (valid when regionEndFrame > 0)
+            const bool hasRegion = sampler.regionEndFrame > 0 && sampler.regionEndFrame > sampler.regionStartFrame;
+            const int loopStart = hasRegion ? sampler.regionStartFrame : startFrame;
+            const int loopEnd = hasRegion ? sampler.regionEndFrame : endFrame;
+            const int loopLen = loopEnd - loopStart;
+
+            double readPos;
+            if (hasRegion && loopLen > 1) {
+                // Loop playback within the selected region
+                const double regionProgress = elapsedSeconds * sampler.pcmSampleRate * pitchRatio;
+                readPos = static_cast<double>(loopStart) + std::fmod(regionProgress, static_cast<double>(loopLen));
+            } else {
+                // No region set — linear playback (original behavior)
+                readPos = static_cast<double>(startFrame) + elapsedSeconds * sampler.pcmSampleRate * pitchRatio;
+                if (readPos < static_cast<double>(startFrame) ||
+                    readPos >= static_cast<double>(endFrame - 1)) {
+                    continue;
+                }
             }
             const int index = static_cast<int>(readPos);
             const float frac = static_cast<float>(readPos - static_cast<double>(index));

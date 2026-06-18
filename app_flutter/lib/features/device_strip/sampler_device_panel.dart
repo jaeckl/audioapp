@@ -28,6 +28,7 @@ class SamplerDevicePanel extends StatefulWidget {
     this.onCollapse,
     this.embeddedInCard = false,
     this.selectedTab,
+    this.bpm = 120,
     this.modulatedParams = const {},
     this.modulationAmounts = const {},
     this.connectModeLfoId,
@@ -48,7 +49,8 @@ class SamplerDevicePanel extends StatefulWidget {
   final Set<String> modulatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
-  final void Function(String paramId, String paramLabel)? onModulationAssign;
+  final void Function(String paramId, double amount)? onModulationAssign;
+  final int bpm;
 
   static const Color panel = Color(0xFF1C1C24);
   static const Color accent = Color(0xFFE8A54B);
@@ -94,6 +96,12 @@ class _SamplerDevicePanelState extends State<SamplerDevicePanel> {
   late SamplerDeviceTab _tab;
 
   SamplerDeviceTab get _activeTab => widget.selectedTab ?? _tab;
+
+  double get _durationSec {
+    final beats = widget.sample?.durationBeats ?? 0;
+    if (beats <= 0 || widget.bpm <= 0) return 1.0;
+    return beats * 60.0 / widget.bpm;
+  }
 
   @override
   void initState() {
@@ -171,10 +179,14 @@ class _SamplerDevicePanelState extends State<SamplerDevicePanel> {
   Widget _buildTabBody(BuildContext context, ThemeData theme, List<double> peaks) {
     switch (_activeTab) {
       case SamplerDeviceTab.sample:
+        final durationSec = _durationSec;
         return _SampleTab(
+          device: widget.device,
           peaks: peaks,
+          durationSec: durationSec,
           showExpandControl: widget.embeddedInCard ? false : widget.showExpandControl,
           onOpenFullscreen: widget.onOpenFullscreen,
+          onParameterChanged: widget.onParameterChanged,
         );
       case SamplerDeviceTab.env:
         return _EnvTab(
@@ -260,22 +272,74 @@ class _WaveformHeader extends StatelessWidget {
   }
 }
 
-class _SampleTab extends StatelessWidget {
+class _SampleTab extends StatefulWidget {
   const _SampleTab({
+    required this.device,
     required this.peaks,
+    required this.durationSec,
     required this.showExpandControl,
     required this.onOpenFullscreen,
+    required this.onParameterChanged,
   });
 
+  final DeviceSnapshot device;
   final List<double> peaks;
+  final double durationSec;
   final bool showExpandControl;
   final VoidCallback? onOpenFullscreen;
+  final void Function(String parameterId, double value) onParameterChanged;
+
+  @override
+  State<_SampleTab> createState() => _SampleTabState();
+}
+
+class _SampleTabState extends State<_SampleTab> {
+  static const double _handleWidth = 24;
+  late double _localStart;
+  late double _localEnd;
+  _RegionDrag? _drag;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncLocal();
+  }
+
+  @override
+  void didUpdateWidget(covariant _SampleTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_drag == null) {
+      _syncLocal();
+    }
+  }
+
+  void _syncLocal() {
+    _localStart = widget.device.regionStartSec;
+    _localEnd = widget.device.regionEndSec;
+  }
+
+  double get _regionStart => _drag != null ? _localStart : widget.device.regionStartSec;
+  double get _regionEnd => _drag != null ? _localEnd : widget.device.regionEndSec;
+
+  double _secFromDx(double dx, double width) {
+    final dur = widget.durationSec > 0 ? widget.durationSec : 1.0;
+    return (dx / width * dur).clamp(0, dur);
+  }
+
+  void _commit() {
+    widget.onParameterChanged('regionStartSec', _localStart);
+    widget.onParameterChanged('regionEndSec', _localEnd);
+  }
+
+  bool get _hasRegion => widget.device.regionEndSec > 0;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final dur = widget.durationSec > 0 ? widget.durationSec : 1.0;
+
     return GestureDetector(
-      onTap: showExpandControl ? onOpenFullscreen : null,
+      onTap: widget.showExpandControl ? widget.onOpenFullscreen : null,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: const Color(0xFF121218),
@@ -284,22 +348,206 @@ class _SampleTab extends StatelessWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(6),
-          child: peaks.isEmpty
+          child: widget.peaks.isEmpty
               ? Center(
                   child: Text(
-                    showExpandControl ? 'Tap to load / trim sample' : 'No sample loaded',
+                    widget.showExpandControl ? 'Tap to load / trim sample' : 'No sample loaded',
                     style: theme.textTheme.labelMedium?.copyWith(color: Colors.white38),
                   ),
                 )
-              : CustomPaint(
-                  painter: WaveformPainter(peaks: peaks, color: SamplerDevicePanel.wave),
-                  child: const SizedBox.expand(),
+              : LayoutBuilder(
+                  builder: (context, constraints) {
+                    final w = constraints.maxWidth;
+                    final startX = _regionStart / dur * w;
+                    final endX = _regionEnd / dur * w;
+                    return GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTapUp: _hasRegion
+                          ? null
+                          : (d) {
+                              // Tap to create a default region centered at tap position
+                              final tapSec = _secFromDx(d.localPosition.dx, w);
+                              final halfWidth = dur * 0.1;
+                              final start = (tapSec - halfWidth).clamp(0.0, dur);
+                              var end = (tapSec + halfWidth).clamp(0.0, dur);
+                              if (end - start < 0.05) {
+                                end = (start + 0.05).clamp(0.0, dur);
+                              }
+                              _localStart = start;
+                              _localEnd = end;
+                              _commit();
+                            },
+                      onHorizontalDragStart: (d) {
+                        if (!_hasRegion) return;
+                        final x = d.localPosition.dx;
+                        if ((x - startX).abs() < _handleWidth) {
+                          _drag = _RegionDrag.start;
+                          _localStart = widget.device.regionStartSec;
+                        } else if ((x - endX).abs() < _handleWidth) {
+                          _drag = _RegionDrag.end;
+                          _localEnd = widget.device.regionEndSec;
+                        }
+                      },
+                      onHorizontalDragUpdate: (d) {
+                        if (_drag == null) return;
+                        setState(() {
+                          final sec = _secFromDx(d.localPosition.dx, w);
+                          if (_drag == _RegionDrag.start) {
+                            _localStart = sec.clamp(0, _localEnd - 0.02);
+                          } else {
+                            _localEnd = sec.clamp(_localStart + 0.02, dur);
+                          }
+                        });
+                      },
+                      onHorizontalDragEnd: (_) {
+                        if (_drag == null) return;
+                        _drag = null;
+                        _commit();
+                      },
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          // Base waveform
+                          CustomPaint(
+                            painter: WaveformPainter(peaks: widget.peaks, color: SamplerDevicePanel.wave),
+                          ),
+                          // Region overlay (highlighted band)
+                          if (_hasRegion)
+                            Positioned(
+                              left: startX.clamp(0, w),
+                              width: (endX - startX).clamp(0, w),
+                              top: 0,
+                              bottom: 0,
+                              child: IgnorePointer(
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: SamplerDevicePanel.accent.withValues(alpha: 0.15),
+                                    border: Border.symmetric(
+                                      vertical: BorderSide(
+                                        color: SamplerDevicePanel.accent.withValues(alpha: 0.7),
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          // Region handles
+                          if (_hasRegion)
+                            Positioned(
+                              left: (startX - _handleWidth / 2).clamp(0, w - _handleWidth),
+                              top: 4,
+                              bottom: 4,
+                              child: Container(
+                                width: _handleWidth,
+                                decoration: BoxDecoration(
+                                  color: SamplerDevicePanel.accent,
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 4,
+                                      height: 14,
+                                      decoration: BoxDecoration(
+                                        color: Colors.black54,
+                                        borderRadius: BorderRadius.circular(1),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          if (_hasRegion)
+                            Positioned(
+                              left: (endX - _handleWidth / 2).clamp(0, w - _handleWidth),
+                              top: 4,
+                              bottom: 4,
+                              child: Container(
+                                width: _handleWidth,
+                                decoration: BoxDecoration(
+                                  color: SamplerDevicePanel.accent,
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 4,
+                                      height: 14,
+                                      decoration: BoxDecoration(
+                                        color: Colors.black54,
+                                        borderRadius: BorderRadius.circular(1),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          // No region hint
+                          if (!_hasRegion)
+                            Positioned(
+                              bottom: 4,
+                              right: 6,
+                              child: Text(
+                                'Tap → set loop region',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: SamplerDevicePanel.accent.withValues(alpha: 0.5),
+                                  fontSize: 9,
+                                ),
+                              ),
+                            ),
+                          // Region indicator badge with clear button
+                          if (_hasRegion)
+                            Positioned(
+                              top: 3,
+                              left: 4,
+                              child: GestureDetector(
+                                onTap: () {
+                                  widget.onParameterChanged('regionStartSec', 0);
+                                  widget.onParameterChanged('regionEndSec', 0);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: SamplerDevicePanel.accent.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(
+                                      color: SamplerDevicePanel.accent.withValues(alpha: 0.4),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'LOOP',
+                                        style: theme.textTheme.labelSmall?.copyWith(
+                                          color: SamplerDevicePanel.accent,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.8,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Icon(Icons.close, size: 10, color: SamplerDevicePanel.accent),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
         ),
       ),
     );
   }
 }
+
+enum _RegionDrag { start, end }
 
 class _EnvTab extends StatelessWidget {
   const _EnvTab({
@@ -318,7 +566,7 @@ class _EnvTab extends StatelessWidget {
   final Set<String> modulatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
-  final void Function(String paramId, String paramLabel)? onModulationAssign;
+  final void Function(String paramId, double amount)? onModulationAssign;
 
   @override
   Widget build(BuildContext context) {
@@ -334,7 +582,7 @@ class _EnvTab extends StatelessWidget {
           modulationAmount: modulationAmounts['attack'] ?? 0.0,
           connectModeActive: connectModeLfoId != null,
           onModulationAssign: onModulationAssign != null
-              ? () => onModulationAssign!('attack', 'Attack')
+              ? (a) => onModulationAssign!('attack', a)
               : null,
         ),
         RotaryKnob(
@@ -347,7 +595,7 @@ class _EnvTab extends StatelessWidget {
           modulationAmount: modulationAmounts['decay'] ?? 0.0,
           connectModeActive: connectModeLfoId != null,
           onModulationAssign: onModulationAssign != null
-              ? () => onModulationAssign!('decay', 'Decay')
+              ? (a) => onModulationAssign!('decay', a)
               : null,
         ),
         RotaryKnob(
@@ -360,7 +608,7 @@ class _EnvTab extends StatelessWidget {
           modulationAmount: modulationAmounts['sustain'] ?? 0.0,
           connectModeActive: connectModeLfoId != null,
           onModulationAssign: onModulationAssign != null
-              ? () => onModulationAssign!('sustain', 'Sustain')
+              ? (a) => onModulationAssign!('sustain', a)
               : null,
         ),
         RotaryKnob(
@@ -373,7 +621,7 @@ class _EnvTab extends StatelessWidget {
           modulationAmount: modulationAmounts['release'] ?? 0.0,
           connectModeActive: connectModeLfoId != null,
           onModulationAssign: onModulationAssign != null
-              ? () => onModulationAssign!('release', 'Release')
+              ? (a) => onModulationAssign!('release', a)
               : null,
         ),
       ],
@@ -398,7 +646,7 @@ class _FilterTab extends StatelessWidget {
   final Set<String> modulatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
-  final void Function(String paramId, String paramLabel)? onModulationAssign;
+  final void Function(String paramId, double amount)? onModulationAssign;
 
   static const _modes = ['LP', 'HP', 'BP', 'NT'];
 
@@ -467,7 +715,7 @@ class _FilterTab extends StatelessWidget {
                 modulationAmount: modulationAmounts['filterCutoff'] ?? 0.0,
                 connectModeActive: connectModeLfoId != null,
                 onModulationAssign: onModulationAssign != null
-                    ? () => onModulationAssign!('filterCutoff', 'Cutoff')
+                    ? (a) => onModulationAssign!('filterCutoff', a)
                     : null,
               ),
               RotaryKnob(
@@ -480,7 +728,7 @@ class _FilterTab extends StatelessWidget {
                 modulationAmount: modulationAmounts['filterQ'] ?? 0.0,
                 connectModeActive: connectModeLfoId != null,
                 onModulationAssign: onModulationAssign != null
-                    ? () => onModulationAssign!('filterQ', 'Resonance')
+                    ? (a) => onModulationAssign!('filterQ', a)
                     : null,
               ),
             ],

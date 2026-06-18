@@ -11,6 +11,7 @@
 #include <cmath>
 #include <cstring>
 #include <cstdlib>
+#include <vector>
 
 namespace audioapp {
 
@@ -69,6 +70,8 @@ void ProjectEngine::copyDeviceToState(const Device& src, DeviceState& dst) {
     dst.filterMode = src.filterMode;
     dst.trimStartSec = src.trimStartSec;
     dst.trimEndSec = src.trimEndSec;
+    dst.regionStartSec = src.regionStartSec;
+    dst.regionEndSec = src.regionEndSec;
     dst.bypassed = src.bypassed;
     dst.osc1Wave = src.osc1Wave;
     dst.osc2Wave = src.osc2Wave;
@@ -114,6 +117,8 @@ void ProjectEngine::copyStateToDevice(const DeviceState& src, Device& dst) {
     dst.filterMode = src.filterMode;
     dst.trimStartSec = src.trimStartSec;
     dst.trimEndSec = src.trimEndSec;
+    dst.regionStartSec = src.regionStartSec;
+    dst.regionEndSec = src.regionEndSec;
     dst.bypassed = src.bypassed;
     dst.osc1Wave = src.osc1Wave;
     dst.osc2Wave = src.osc2Wave;
@@ -334,6 +339,16 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
         }
         if (parameterId == "trimEndSec") {
             device->trimEndSec = std::max(0.0f, value);
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
+        if (parameterId == "regionStartSec") {
+            device->regionStartSec = std::max(0.0f, value);
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
+        if (parameterId == "regionEndSec") {
+            device->regionEndSec = std::max(0.0f, value);
             rebuildTrackPlaybackLocked();
             return true;
         }
@@ -840,7 +855,8 @@ float ProjectEngine::activeOscillatorFrequencyHz() const {
             note.velocity,
         };
     }
-    return midiActiveFrequencyHz(midiNotes, noteCount, playhead, oscillator->frequencyHz);
+    return midiActiveFrequencyHz(midiNotes, noteCount, playhead,
+                                 std::get<OscillatorParams>(oscillator->params).frequencyHz);
 }
 
 void ProjectEngine::readMasterMix(float* monoOut,
@@ -900,25 +916,41 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
     float trackRight[kMaxFrames];
     const int framesToProcess = numFrames > kMaxFrames ? kMaxFrames : numFrames;
 
-    // Compute LFO values at block resolution
+        // Compute per-frame LFO values for gain/pan modulation.
+    // DSP-specific params still use frame-0 (block-rate).
     const int lfoCount = lfoPlaybackCount_.load(std::memory_order_acquire);
-    float lfoValues[kMaxLfos]{};
     const int edgeCount = modEdgePlaybackCount_.load(std::memory_order_acquire);
+    // Per-frame LFO buffer: lfoValues[lfoId * framesToProcess + frame]
+    // thread_local vector avoids large stack allocation and is allocation-free
+    // after the first warm-up call on the audio thread.
+    thread_local std::vector<float> lfoValues;
     if (lfoCount > 0) {
+        const size_t needed = static_cast<size_t>(lfoCount) * static_cast<size_t>(framesToProcess);
+        if (lfoValues.capacity() < needed) {
+            lfoValues.reserve(needed + 4096);
+        }
+        lfoValues.resize(needed, 0.0f);
         const double playheadSeconds = playheadStartBeat * 60.0 / static_cast<double>(std::max(bpm_, 1));
+        const double samplePeriod = 1.0 / std::max(sampleRate, 1.0);
         for (int i = 0; i < lfoCount; ++i) {
             const auto& lfo = lfoPlayback_[i].state;
-            double phase;
-            if (lfo.syncDivision == 0) {
-                // Hz mode: phase derived from wall clock
-                phase = playheadSeconds * static_cast<double>(lfo.rate) + static_cast<double>(lfo.phase);
-            } else {
-                // Sync mode: derive phase from playhead position
-                const double beatDuration = lfoSyncBeats(lfo.syncDivision);
-                phase = (beatDuration > 0.0) ? (playheadStartBeat / beatDuration) : 0.0;
+            for (int frame = 0; frame < framesToProcess; ++frame) {
+                const double frameSeconds = playheadSeconds + static_cast<double>(frame) * samplePeriod;
+                double phase;
+                if (lfo.syncDivision == 0) {
+                    // Hz mode: phase derived from wall clock
+                    phase = frameSeconds * static_cast<double>(lfo.rate) + static_cast<double>(lfo.phase);
+                } else {
+                    // Sync mode: derive phase from playhead position
+                    const double beatDuration = lfoSyncBeats(lfo.syncDivision);
+                    const double frameBeat = playheadStartBeat + static_cast<double>(frame) * samplePeriod * (static_cast<double>(std::max(bpm_, 1)) / 60.0);
+                    phase = (beatDuration > 0.0) ? (frameBeat / beatDuration) : 0.0;
+                    phase += static_cast<double>(lfo.phase);
+                }
+                lfoValues[i * framesToProcess + frame] = lfoEvaluate(
+                    static_cast<LfoWaveform>(lfo.waveform),
+                    static_cast<float>(phase));
             }
-            lfoValues[i] = lfoEvaluate(static_cast<LfoWaveform>(lfo.waveform),
-                                       static_cast<float>(phase));
         }
     }
 
@@ -983,7 +1015,7 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                            suppressInstruments,
                            trackPlayback_[trackIndex].samplerFilterStates,
                            trackPlayback_[trackIndex].subtractiveRuntimes,
-                           lfoValues,
+                           lfoCount > 0 ? lfoValues.data() : nullptr,
                            lfoCount,
                            modEdgePlayback_,
                            edgeCount);
@@ -1374,52 +1406,64 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
             DeviceNodePlayback& node = snap.devices[snap.deviceCount++];
             node.deviceId = device.id;
             node.bypassed = device.bypassed;
+            node.gain = device.gain;
+            node.pan = device.pan;
             if (device.type == "simple_oscillator") {
                 node.kind = DeviceNodeKind::Oscillator;
-                node.frequencyHz = device.frequencyHz;
-                node.gain = device.gain;
-                node.pan = device.pan;
+                node.params = OscillatorParams{
+                    .frequencyHz = device.frequencyHz,
+                };
             } else if (device.type == "simple_sampler") {
                 node.kind = DeviceNodeKind::Sampler;
-                node.gain = device.gain;
-                node.pan = device.pan;
-                node.attack = device.attack;
-                node.decay = device.decay;
-                node.sustain = device.sustain;
-                node.release = device.release;
-                node.filterCutoff = device.filterCutoff;
-                node.filterQ = device.filterQ;
-                node.filterMode = device.filterMode;
-                node.samplerPcm = nullptr;
-                node.samplerFrameCount = 0;
-                node.samplerPcmSampleRate = 48000.0;
+                SamplerParams sp;
+                sp.attack = device.attack;
+                sp.decay = device.decay;
+                sp.sustain = device.sustain;
+                sp.release = device.release;
+                sp.filterCutoff = device.filterCutoff;
+                sp.filterQ = device.filterQ;
+                sp.filterMode = device.filterMode;
+                sp.samplerPcm = nullptr;
+                sp.samplerFrameCount = 0;
+                sp.samplerPcmSampleRate = 48000.0;
                 if (sampleBank_ != nullptr && !device.sampleId.empty()) {
                     if (const auto* sample = sampleBank_->findSample(device.sampleId)) {
                         if (!sample->pcm.empty()) {
-                            node.samplerPcm = sample->pcm.data();
-                            node.samplerFrameCount = static_cast<int>(sample->pcm.size());
-                            node.samplerPcmSampleRate = sample->sampleRate;
-                            const int frameCount = node.samplerFrameCount;
-                            node.trimStartFrame = std::clamp(
+                            sp.samplerPcm = sample->pcm.data();
+                            sp.samplerFrameCount = static_cast<int>(sample->pcm.size());
+                            sp.samplerPcmSampleRate = sample->sampleRate;
+                            const int frameCount = sp.samplerFrameCount;
+                            sp.trimStartFrame = std::clamp(
                                 static_cast<int>(device.trimStartSec * sample->sampleRate),
                                 0,
                                 std::max(0, frameCount - 1));
-                            node.trimEndFrame = device.trimEndSec > 0.0f
+                            sp.trimEndFrame = device.trimEndSec > 0.0f
                                 ? std::clamp(static_cast<int>(device.trimEndSec * sample->sampleRate),
-                                             node.trimStartFrame + 1,
+                                             sp.trimStartFrame + 1,
                                              frameCount)
                                 : frameCount;
+                            sp.regionStartFrame = 0;
+                            sp.regionEndFrame = 0;
+                            if (device.regionEndSec > 0.0f) {
+                                const int rawStart = static_cast<int>(device.regionStartSec * sample->sampleRate);
+                                sp.regionStartFrame = std::clamp(rawStart,
+                                    sp.trimStartFrame,
+                                    sp.trimEndFrame - 1);
+                                const int rawEnd = static_cast<int>(device.regionEndSec * sample->sampleRate);
+                                sp.regionEndFrame = std::clamp(rawEnd,
+                                    sp.regionStartFrame + 1,
+                                    sp.trimEndFrame);
+                            }
                         }
                     }
                 }
+                node.params = sp;
             } else if (device.type == "track_gain") {
                 node.kind = DeviceNodeKind::TrackGain;
-                node.gain = device.gain;
+                node.params = TrackGainParams{};
             } else if (device.type == "subtractive_synth") {
                 node.kind = DeviceNodeKind::SubtractiveSynth;
-                node.gain = device.gain;
-                node.pan = device.pan;
-                node.subtractive = subtractiveParamsFromDevice(device);
+                node.params = subtractiveParamsFromDevice(device);
             } else {
                 node.kind = DeviceNodeKind::Unknown;
             }

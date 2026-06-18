@@ -34,6 +34,8 @@ struct DeviceState {
     int filterMode = 0;
     float trimStartSec = 0.0f;
     float trimEndSec = 0.0f;
+    float regionStartSec = 0.0f;
+    float regionEndSec = 0.0f;
     bool bypassed = false;
     int osc1Wave = 2;
     int osc2Wave = 2;
@@ -184,6 +186,8 @@ private:
         int filterMode = 0;
         float trimStartSec = 0.0f;
         float trimEndSec = 0.0f;
+        float regionStartSec = 0.0f;
+        float regionEndSec = 0.0f;
         bool bypassed = false;
         int osc1Wave = 2;
         int osc2Wave = 2;

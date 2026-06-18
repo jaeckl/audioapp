@@ -63,6 +63,15 @@ bool ProjectEngine::buildLiveInstrumentForTrack(const Track& track,
                     if (out.trimEndFrame <= out.trimStartFrame) {
                         out.trimEndFrame = out.samplerFrameCount;
                     }
+                    // Region (loop region within trimmed bounds)
+                    out.regionStartFrame = 0;
+                    out.regionEndFrame = 0;
+                    if (device.regionEndSec > 0.0f) {
+                        const int rawRegStart = static_cast<int>(device.regionStartSec * sample->sampleRate);
+                        out.regionStartFrame = std::clamp(rawRegStart, out.trimStartFrame, out.trimEndFrame - 1);
+                        const int rawRegEnd = static_cast<int>(device.regionEndSec * sample->sampleRate);
+                        out.regionEndFrame = std::clamp(rawRegEnd, out.regionStartFrame + 1, out.trimEndFrame);
+                    }
                 }
             }
             return true;

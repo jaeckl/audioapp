@@ -150,6 +150,7 @@ class _DeviceStripState extends State<DeviceStrip> {
                   track: track,
                   samples: widget.samples,
                   playing: widget.playing,
+                  bpm: widget.snapshot.bpm,
                   lfos: widget.snapshot.lfos,
                   modEdges: widget.snapshot.modEdges,
                   density: collapsed

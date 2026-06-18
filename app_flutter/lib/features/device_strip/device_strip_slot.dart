@@ -10,7 +10,6 @@ import 'device_strip_theme.dart';
 import 'device_strip_viewport.dart';
 import 'device_tool_rail.dart';
 import 'lfo_properties_panel.dart';
-import 'modulation_assign_sheet.dart';
 import 'modulation_grid.dart';
 import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
@@ -27,6 +26,7 @@ class DeviceStripSlot extends StatefulWidget {
     required this.track,
     required this.device,
     required this.sample,
+    required this.bpm,
     required this.density,
     required this.onSamplerParameterChanged,
     required this.onDeviceParameterChanged,
@@ -47,6 +47,7 @@ class DeviceStripSlot extends StatefulWidget {
   final TrackSnapshot track;
   final DeviceSnapshot device;
   final SampleLibraryEntrySnapshot? sample;
+  final int bpm;
   final DeviceStripSlotDensity density;
   final void Function(String parameterId, double value) onSamplerParameterChanged;
   final void Function(String parameterId, double value) onDeviceParameterChanged;
@@ -124,15 +125,22 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       _selectedLfoId == null ? null : _localLfos.where((l) => l.id == _selectedLfoId).firstOrNull;
 
   Set<String> get _modulatedParamIds {
-    return _localModEdges
-        .where((e) => e.deviceId == widget.device.id)
-        .map((e) => e.paramId)
-        .toSet();
+    var edges = _localModEdges
+        .where((e) => e.deviceId == widget.device.id);
+    if (_connectModeLfoId != null) {
+      edges = edges.where((e) => e.lfoId == _connectModeLfoId);
+    }
+    return edges.map((e) => e.paramId).toSet();
   }
 
   Map<String, double> get _modulationAmounts {
+    var edges = _localModEdges
+        .where((e) => e.deviceId == widget.device.id);
+    if (_connectModeLfoId != null) {
+      edges = edges.where((e) => e.lfoId == _connectModeLfoId);
+    }
     final map = <String, double>{};
-    for (final edge in _localModEdges.where((e) => e.deviceId == widget.device.id)) {
+    for (final edge in edges) {
       map[edge.paramId] = edge.amount;
     }
     return map;
@@ -168,36 +176,30 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
 
   List<DeviceTabSpec> get _containerTabs => DeviceContainerTabs.forDeviceType(widget.device.type);
 
-  void _showModulationAssignSheet(String paramId, String paramLabel) {
-    final deviceEdges = _localModEdges
-        .where((e) => e.deviceId == widget.device.id && e.paramId == paramId)
-        .toList();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF1A1A24),
-      builder: (ctx) => ModulationAssignSheet(
-        lfos: _localLfos,
-        existingEdges: deviceEdges,
-        deviceId: widget.device.id,
-        paramId: paramId,
-        paramLabel: paramLabel,
-        onAssign: (lfoId, amount) async {
-          await _onBridgeCall('assignModulation', {
-            'lfoId': lfoId,
-            'deviceId': widget.device.id,
-            'paramId': paramId,
-            'amount': amount,
-          });
-        },
-        onRemove: (lfoId) async {
-          await _onBridgeCall('removeModulation', {
-            'lfoId': lfoId,
-            'paramId': paramId,
-          });
-        },
-      ),
-    );
+  ValueChanged<double> _onModulationFor(String paramId) {
+    final lfoId = _connectModeLfo;
+    if (lfoId == null) return (_) {};
+    return (double amount) {
+      _onBridgeCall('assignModulation', {
+        'lfoId': lfoId,
+        'deviceId': widget.device.id,
+        'paramId': paramId,
+        'amount': (amount * 100).roundToDouble() / 100,
+      });
+    };
+  }
+
+  void Function(String paramId, double amount)? get _onModulationForDevice {
+    final lfoId = _connectModeLfo;
+    if (lfoId == null) return null;
+    return (String paramId, double amount) {
+      _onBridgeCall('assignModulation', {
+        'lfoId': lfoId,
+        'deviceId': widget.device.id,
+        'paramId': paramId,
+        'amount': (amount * 100).roundToDouble() / 100,
+      });
+    };
   }
 
   int _initialTabIndex() {
@@ -366,6 +368,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                     device: widget.device,
                     accentColor: DeviceStripTheme.accentForDeviceType(widget.device.type),
                     onParameterChanged: widget.onDeviceParameterChanged,
+                    modulatedParams: _modulatedParamIds,
+                    modulationAmounts: _modulationAmounts,
+                    connectModeLfoId: _connectModeLfo,
+                    onModulationAssign: _onModulationForDevice,
                   ),
                 ),
               ],
@@ -386,6 +392,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           child: SamplerDeviceStrip(
             device: widget.device,
             sample: widget.sample,
+            bpm: widget.bpm,
             onParameterChanged: widget.onSamplerParameterChanged,
             onTabChanged: widget.onSamplerTabChanged,
             onCollapse: widget.onCollapse,
@@ -393,7 +400,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             modulatedParams: _modulatedParamIds,
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,
-            onModulationAssign: _showModulationAssignSheet,
+            onModulationAssign: _onModulationForDevice,
           ),
         );
       case 'simple_oscillator':
@@ -411,7 +418,9 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             modulatedParams: _modulatedParamIds,
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,
-            onModulationAssign: _showModulationAssignSheet,
+            onModulationAssign: _connectModeLfo != null
+                ? _onModulationFor('frequency')
+                : null,
           ),
         );
       case 'subtractive_synth':
@@ -428,7 +437,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             modulatedParams: _modulatedParamIds,
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,
-            onModulationAssign: _showModulationAssignSheet,
+            onModulationAssign: _onModulationForDevice,
           ),
         );
       default:

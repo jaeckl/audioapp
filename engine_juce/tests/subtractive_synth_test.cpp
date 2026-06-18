@@ -33,9 +33,13 @@ int main() {
     devices[0].kind = audioapp::DeviceNodeKind::SubtractiveSynth;
     devices[0].gain = 1.0f;
     devices[0].pan = 0.5f;
-    devices[0].subtractive.gain = 1.0f;
-    devices[0].subtractive.osc1Wave = 2;
-    devices[0].subtractive.filterCutoff = 0.7f;
+    {
+        audioapp::SubtractiveSynthParams synthParams;
+        synthParams.gain = 1.0f;
+        synthParams.osc1Wave = 2;
+        synthParams.filterCutoff = 0.7f;
+        devices[0].params = synthParams;
+    }
 
     float left[kFrames];
     float right[kFrames];

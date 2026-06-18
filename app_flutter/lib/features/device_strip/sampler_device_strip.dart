@@ -14,6 +14,7 @@ class SamplerDeviceStrip extends StatelessWidget {
     this.onCollapse,
     this.embeddedInCard = true,
     this.selectedTab,
+    this.bpm = 120,
     this.modulatedParams = const {},
     this.modulationAmounts = const {},
     this.connectModeLfoId,
@@ -30,13 +31,15 @@ class SamplerDeviceStrip extends StatelessWidget {
   final Set<String> modulatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
-  final void Function(String paramId, String paramLabel)? onModulationAssign;
+  final void Function(String paramId, double amount)? onModulationAssign;
+  final int bpm;
 
   @override
   Widget build(BuildContext context) {
     return SamplerDevicePanel(
       device: device,
       sample: sample,
+      bpm: bpm,
       onParameterChanged: onParameterChanged,
       embeddedInCard: embeddedInCard,
       onTabChanged: onTabChanged,

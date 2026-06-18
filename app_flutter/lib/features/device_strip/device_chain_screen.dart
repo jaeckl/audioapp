@@ -185,6 +185,7 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
                       track: _track,
                       samples: widget.samples,
                       playing: widget.playing,
+                      bpm: widget.snapshot.bpm,
                       density: density,
                       scrollController: _scrollController,
                       samplerTabFor: widget.samplerTabFor,

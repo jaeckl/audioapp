@@ -31,7 +31,7 @@ class OscillatorDevicePanel extends StatefulWidget {
   final Set<String> modulatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
-  final void Function(String paramId, String paramLabel)? onModulationAssign;
+  final ValueChanged<double>? onModulationAssign;
 
   static const Color panel = Color(0xFF1C1C24);
   static const Color accent = Color(0xFF6EC9E8);
@@ -156,7 +156,7 @@ class _OscillatorDevicePanelState extends State<OscillatorDevicePanel> {
           modulationAmount: widget.modulationAmounts['frequency'] ?? 0.0,
           connectModeActive: widget.connectModeLfoId != null,
           onModulationAssign: widget.onModulationAssign != null
-              ? () => widget.onModulationAssign!('frequency', 'Frequency')
+              ? widget.onModulationAssign
               : null,
         ),
       ),

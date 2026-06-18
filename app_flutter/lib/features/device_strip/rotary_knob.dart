@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'device_knob_sizes.dart';
 
@@ -39,25 +40,115 @@ class RotaryKnob extends StatefulWidget {
   final bool modulationActive;
   final double modulationAmount;
   final bool connectModeActive;
-  final VoidCallback? onModulationAssign;
+  /// Called in connect mode after a long-press drag gesture completes.
+  /// The [double] is the modulation amount (-1.0 to 1.0).
+  final ValueChanged<double>? onModulationAssign;
 
   @override
   State<RotaryKnob> createState() => _RotaryKnobState();
 }
 
-class _RotaryKnobState extends State<RotaryKnob> {
+class _RotaryKnobState extends State<RotaryKnob>
+    with SingleTickerProviderStateMixin {
   double _dragStartValue = 0;
   double _dragStartY = 0;
+  bool _highlightsVisible = true;
+
+  // Modulation assignment gesture state (connect mode)
+  bool _assignmentMode = false;
+  double _assignmentAmount = 0.0;
+
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    _pulseAnimation = Tween<double>(begin: 0.15, end: 0.45).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+    if (widget.connectModeActive) {
+      _pulseController.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant RotaryKnob oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.connectModeActive && !oldWidget.connectModeActive) {
+      _pulseController.repeat(reverse: true);
+    } else if (!widget.connectModeActive && oldWidget.connectModeActive) {
+      _pulseController.stop();
+      _pulseController.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  // --- Normal knob drag (changes value) ---
 
   void _onDragStart(DragStartDetails details) {
     _dragStartValue = widget.value;
     _dragStartY = details.localPosition.dy;
+    // In connect mode the long-press handles the modulation gesture;
+    // plain drags still change the value normally.
   }
 
   void _onDragUpdate(DragUpdateDetails details) {
     final sensitivity = 120.0 + widget.size * 2;
     final delta = (_dragStartY - details.localPosition.dy) / sensitivity;
     widget.onChanged((_dragStartValue + delta).clamp(0.0, 1.0));
+  }
+
+  void _onDragEnd(DragEndDetails details) {
+    // Not involved in connect-mode gesture — long-press handles it.
+  }
+
+  void _onDragCancel() {}
+
+  // --- Connect-mode long-press modulation assignment ---
+
+  void _onLongPressStart(LongPressStartDetails details) {
+    if (!widget.connectModeActive) return;
+    HapticFeedback.mediumImpact();
+    _pulseController.stop();
+    _assignmentAmount = 0.0;
+    _dragStartY = details.localPosition.dy; // reuse for assignment drag origin
+    setState(() {
+      _highlightsVisible = false;
+      _assignmentMode = true;
+    });
+  }
+
+  void _onLongPressMoveUpdate(LongPressMoveUpdateDetails details) {
+    if (!_assignmentMode) return;
+    // Sensitivity: 200 px vertical travel = 1.0 amount (full range)
+    const sensitivity = 200.0;
+    final dy = details.localPosition.dy - _dragStartY;
+    final amount = (-dy / sensitivity).clamp(-1.0, 1.0);
+    setState(() => _assignmentAmount = amount);
+  }
+
+  void _onLongPressEnd(LongPressEndDetails details) {
+    if (!_assignmentMode) return;
+    widget.onModulationAssign?.call(_assignmentAmount);
+    _pulseController.reset();
+    if (widget.connectModeActive) {
+      _pulseController.repeat(reverse: true);
+    }
+    setState(() {
+      _highlightsVisible = true;
+      _assignmentMode = false;
+      _assignmentAmount = 0.0;
+    });
   }
 
   @override
@@ -72,49 +163,71 @@ class _RotaryKnobState extends State<RotaryKnob> {
       children: [
         GestureDetector(
           behavior: HitTestBehavior.opaque,
+          onLongPressStart: _onLongPressStart,
+          onLongPressMoveUpdate: _onLongPressMoveUpdate,
+          onLongPressEnd: _onLongPressEnd,
           onVerticalDragStart: _onDragStart,
           onVerticalDragUpdate: _onDragUpdate,
+          onVerticalDragEnd: _onDragEnd,
+          onVerticalDragCancel: _onDragCancel,
           onDoubleTap: () => widget.onChanged(0.5),
-          onLongPress: widget.onModulationAssign,
           child: SizedBox(
             width: widget.size + 8,
             height: widget.size + 4,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: widget.size,
-                  height: widget.size,
-                  child: CustomPaint(
-                    painter: _KnobPainter(
-                      value: widget.value.clamp(0, 1),
-                      angle: angle,
-                      accentColor: widget.accentColor,
-                      strokeWidth: stroke,
-                      modulationActive: widget.modulationActive,
-                      modulationAmount: widget.modulationAmount,
-                      connectModeActive: widget.connectModeActive,
-                    ),
-                  ),
-                ),
-                if (widget.displayValue != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        widget.displayValue!,
-                        maxLines: 1,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: widget.accentColor,
-                          fontSize: widget.size * 0.17,
-                          fontWeight: FontWeight.w700,
-                          height: 1,
+            child: AnimatedBuilder(
+              animation: _pulseAnimation,
+              builder: (context, child) {
+                final showGlow = widget.connectModeActive && _highlightsVisible;
+                return CustomPaint(
+                  painter: showGlow
+                      ? _BackgroundGlowPainter(
+                          glowColor: widget.accentColor
+                              .withValues(alpha: _pulseAnimation.value),
+                          borderRadius: 8,
+                        )
+                      : null,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: widget.size,
+                        height: widget.size,
+                        child: CustomPaint(
+                          painter: _KnobPainter(
+                            value: widget.value.clamp(0, 1),
+                            angle: angle,
+                            accentColor: widget.accentColor,
+                            strokeWidth: stroke,
+                            modulationActive: widget.modulationActive,
+                            modulationAmount: widget.modulationAmount,
+                            connectModeActive:
+                                widget.connectModeActive && _highlightsVisible,
+                            assignmentMode: _assignmentMode,
+                            assignmentAmount: _assignmentAmount,
+                          ),
                         ),
                       ),
-                    ),
+                      if (widget.displayValue != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              widget.displayValue!,
+                              maxLines: 1,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: widget.accentColor,
+                                fontSize: widget.size * 0.17,
+                                fontWeight: FontWeight.w700,
+                                height: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-              ],
+                );
+              },
             ),
           ),
         ),
@@ -141,6 +254,8 @@ class _KnobPainter extends CustomPainter {
     this.modulationActive = false,
     this.modulationAmount = 0.0,
     this.connectModeActive = false,
+    this.assignmentMode = false,
+    this.assignmentAmount = 0.0,
   });
 
   final double value;
@@ -150,6 +265,8 @@ class _KnobPainter extends CustomPainter {
   final bool modulationActive;
   final double modulationAmount;
   final bool connectModeActive;
+  final bool assignmentMode;
+  final double assignmentAmount;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -196,12 +313,37 @@ class _KnobPainter extends CustomPainter {
       final modSweepAngle =
           KnobArcGeometry.indicatorAngle(modHigh) - modStartAngle;
 
+      final modRect = connectModeActive
+          ? Rect.fromCircle(center: center, radius: radius + strokeWidth)
+          : arcRect;
       final modPaint = Paint()
-        ..color = accentColor.withValues(alpha: 0.5)
+        ..color = connectModeActive
+            ? Colors.white.withValues(alpha: 0.5)
+            : accentColor.withValues(alpha: 0.5)
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
         ..strokeWidth = strokeWidth * 0.5;
-      canvas.drawArc(arcRect, modStartAngle, modSweepAngle, false, modPaint);
+      canvas.drawArc(modRect, modStartAngle, modSweepAngle, false, modPaint);
+    }
+
+    // --- Assignment arc (connect-mode long-press drag visual) ---
+    if (assignmentMode && assignmentAmount != 0.0) {
+      final target = (value + assignmentAmount).clamp(0.0, 1.0);
+      final fromAngle = KnobArcGeometry.indicatorAngle(value);
+      final toAngle = KnobArcGeometry.indicatorAngle(target);
+      final startA = math.min(fromAngle, toAngle);
+      final sweepA = (toAngle - fromAngle).abs();
+
+      final assignRect = Rect.fromCircle(
+        center: center,
+        radius: radius + strokeWidth,
+      );
+      final assignPaint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.75)
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = strokeWidth * 0.7;
+      canvas.drawArc(assignRect, startA, sweepA, false, assignPaint);
     }
 
     // --- Indicator dot ---
@@ -215,16 +357,6 @@ class _KnobPainter extends CustomPainter {
     // --- Center fill ---
     final fillPaint = Paint()..color = const Color(0xFF14141C);
     canvas.drawCircle(center, radius - 6, fillPaint);
-
-    // Modulation indicator dot (top-right of the knob center)
-    if (modulationActive) {
-      final dotPaint = Paint()..color = accentColor;
-      canvas.drawCircle(
-        Offset(center.dx + (radius - 6) * 0.5, center.dy - (radius - 6) * 0.5),
-        2.0,
-        dotPaint,
-      );
-    }
   }
 
   @override
@@ -233,6 +365,34 @@ class _KnobPainter extends CustomPainter {
         oldDelegate.angle != angle ||
         oldDelegate.modulationActive != modulationActive ||
         oldDelegate.modulationAmount != modulationAmount ||
-        oldDelegate.connectModeActive != connectModeActive;
+        oldDelegate.connectModeActive != connectModeActive ||
+        oldDelegate.assignmentMode != assignmentMode ||
+        oldDelegate.assignmentAmount != assignmentAmount;
+  }
+}
+
+/// Paints a rounded-rect background glow behind the knob.
+class _BackgroundGlowPainter extends CustomPainter {
+  _BackgroundGlowPainter({
+    required this.glowColor,
+    required this.borderRadius,
+  });
+
+  final Color glowColor;
+  final double borderRadius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(2, 2, size.width - 4, size.height - 4);
+    final rrect = RRect.fromRectAndRadius(rect, Radius.circular(borderRadius));
+    final paint = Paint()
+      ..color = glowColor
+      ..style = PaintingStyle.fill;
+    canvas.drawRRect(rrect, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _BackgroundGlowPainter oldDelegate) {
+    return oldDelegate.glowColor != glowColor;
   }
 }

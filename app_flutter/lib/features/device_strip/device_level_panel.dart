@@ -13,12 +13,20 @@ class DeviceLevelPanel extends StatelessWidget {
     required this.accentColor,
     required this.onParameterChanged,
     this.knobSize = DeviceKnobSizes.compact,
+    this.modulatedParams = const {},
+    this.modulationAmounts = const {},
+    this.connectModeLfoId,
+    this.onModulationAssign,
   });
 
   final DeviceSnapshot device;
   final Color accentColor;
   final void Function(String parameterId, double value) onParameterChanged;
   final double knobSize;
+  final Set<String> modulatedParams;
+  final Map<String, double> modulationAmounts;
+  final int? connectModeLfoId;
+  final void Function(String paramId, double amount)? onModulationAssign;
 
   static String formatGain(double gain) => '${(gain.clamp(0, 1) * 100).round()}%';
 
@@ -61,6 +69,12 @@ class DeviceLevelPanel extends StatelessWidget {
               accentColor: accentColor,
               displayValue: formatPan(device.pan),
               onChanged: (value) => onParameterChanged('pan', value),
+              modulationActive: modulatedParams.contains('pan'),
+              modulationAmount: modulationAmounts['pan'] ?? 0.0,
+              connectModeActive: connectModeLfoId != null,
+              onModulationAssign: onModulationAssign != null
+                  ? (a) => onModulationAssign!('pan', a)
+                  : null,
             ),
             const SizedBox(height: 8),
             RotaryKnob(
@@ -70,6 +84,12 @@ class DeviceLevelPanel extends StatelessWidget {
               accentColor: accentColor,
               displayValue: formatGain(device.gain),
               onChanged: (value) => onParameterChanged('gain', value),
+              modulationActive: modulatedParams.contains('gain'),
+              modulationAmount: modulationAmounts['gain'] ?? 0.0,
+              connectModeActive: connectModeLfoId != null,
+              onModulationAssign: onModulationAssign != null
+                  ? (a) => onModulationAssign!('gain', a)
+                  : null,
             ),
           ],
         ),

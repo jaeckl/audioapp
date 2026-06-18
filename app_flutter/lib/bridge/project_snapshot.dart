@@ -189,6 +189,8 @@ class DeviceSnapshot {
     required this.filterMode,
     required this.trimStartSec,
     required this.trimEndSec,
+    this.regionStartSec = 0.0,
+    this.regionEndSec = 0.0,
     this.bypassed = false,
     this.osc1Wave = 2,
     this.osc2Wave = 2,
@@ -233,6 +235,8 @@ class DeviceSnapshot {
   final int filterMode;
   final double trimStartSec;
   final double trimEndSec;
+  final double regionStartSec;
+  final double regionEndSec;
   final bool bypassed;
   final int osc1Wave;
   final int osc2Wave;
@@ -279,6 +283,8 @@ class DeviceSnapshot {
       filterMode: (params['filterMode'] as num?)?.toInt() ?? 0,
       trimStartSec: (params['trimStartSec'] as num?)?.toDouble() ?? 0.0,
       trimEndSec: (params['trimEndSec'] as num?)?.toDouble() ?? 0.0,
+      regionStartSec: (params['regionStartSec'] as num?)?.toDouble() ?? 0.0,
+      regionEndSec: (params['regionEndSec'] as num?)?.toDouble() ?? 0.0,
       bypassed: _readBypass(params['bypass']),
       osc1Wave: (params['osc1Wave'] as num?)?.toInt() ?? 2,
       osc2Wave: (params['osc2Wave'] as num?)?.toInt() ?? 2,
@@ -346,6 +352,8 @@ class DeviceSnapshot {
     int? filterMode,
     double? trimStartSec,
     double? trimEndSec,
+    double? regionStartSec,
+    double? regionEndSec,
     bool? bypassed,
     int? osc1Wave,
     int? osc2Wave,
@@ -390,6 +398,8 @@ class DeviceSnapshot {
       filterMode: filterMode ?? this.filterMode,
       trimStartSec: trimStartSec ?? this.trimStartSec,
       trimEndSec: trimEndSec ?? this.trimEndSec,
+      regionStartSec: regionStartSec ?? this.regionStartSec,
+      regionEndSec: regionEndSec ?? this.regionEndSec,
       bypassed: bypassed ?? this.bypassed,
       osc1Wave: osc1Wave ?? this.osc1Wave,
       osc2Wave: osc2Wave ?? this.osc2Wave,
@@ -444,6 +454,10 @@ class DeviceSnapshot {
         return copyWith(trimStartSec: value);
       case 'trimEndSec':
         return copyWith(trimEndSec: value);
+      case 'regionStartSec':
+        return copyWith(regionStartSec: value);
+      case 'regionEndSec':
+        return copyWith(regionEndSec: value);
       case 'bypass':
         return copyWith(bypassed: value >= 0.5);
       case 'osc1Wave':

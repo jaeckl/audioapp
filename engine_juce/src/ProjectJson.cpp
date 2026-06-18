@@ -96,6 +96,8 @@ juce::var deviceToVar(const DeviceState& device) {
         parameters->setProperty("filterMode", device.filterMode);
         parameters->setProperty("trimStartSec", static_cast<double>(device.trimStartSec));
         parameters->setProperty("trimEndSec", static_cast<double>(device.trimEndSec));
+        parameters->setProperty("regionStartSec", static_cast<double>(device.regionStartSec));
+        parameters->setProperty("regionEndSec", static_cast<double>(device.regionEndSec));
     }
     if (device.type == "simple_oscillator") {
         parameters->setProperty("frequency", static_cast<double>(device.frequencyHz));
@@ -165,6 +167,8 @@ DeviceState deviceFromVar(const juce::var& value) {
             device.filterMode = varToInt(params->getProperty("filterMode"), 0);
             device.trimStartSec = varToFloat(params->getProperty("trimStartSec"), 0.0f);
             device.trimEndSec = varToFloat(params->getProperty("trimEndSec"), 0.0f);
+            device.regionStartSec = varToFloat(params->getProperty("regionStartSec"), 0.0f);
+            device.regionEndSec = varToFloat(params->getProperty("regionEndSec"), 0.0f);
             device.bypassed = varToFloat(params->getProperty("bypass"), 0.0f) >= 0.5f;
             device.osc1Wave = varToInt(params->getProperty("osc1Wave"), 2);
             device.osc2Wave = varToInt(params->getProperty("osc2Wave"), 2);

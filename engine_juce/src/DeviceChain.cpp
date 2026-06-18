@@ -25,18 +25,110 @@ bool isMidiNoteActive(const MidiPlaybackNote& note, double beat) {
     return loopedBeat >= note.noteStartBeat && loopedBeat < noteEnd;
 }
 
-void panMixBlock(float* trackLeft,
-                 float* trackRight,
-                 const float* mono,
-                 int numFrames,
-                 float pan) noexcept {
-    const float angle = std::clamp(pan, 0.0f, 1.0f) * 1.57079632679f;
-    const float leftGain = std::cos(angle);
-    const float rightGain = std::sin(angle);
-    for (int frame = 0; frame < numFrames; ++frame) {
-        const float sample = mono[frame];
-        trackLeft[frame] += sample * leftGain;
-        trackRight[frame] += sample * rightGain;
+// ---- Per-type modulation overloads ----
+// These handle DSP-specific parameters only (block-rate, use lfoValue at frame 0).
+
+void applyModulation(OscillatorParams& p, float modAmount, const std::string& paramId) noexcept {
+    if (paramId == "frequency") {
+        p.frequencyHz = std::max(20.0f, p.frequencyHz + modAmount * 440.0f);
+    }
+}
+
+void applyModulation(SamplerParams& p, float modAmount, const std::string& paramId) noexcept {
+    if (paramId == "filterCutoff") {
+        p.filterCutoff = std::clamp(p.filterCutoff + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "filterQ") {
+        p.filterQ = std::clamp(p.filterQ + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "attack") {
+        p.attack = std::clamp(p.attack + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "decay") {
+        p.decay = std::clamp(p.decay + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "sustain") {
+        p.sustain = std::clamp(p.sustain + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "release") {
+        p.release = std::clamp(p.release + modAmount, 0.0f, 1.0f);
+    }
+}
+
+void applyModulation(TrackGainParams&, float, const std::string&) noexcept {}
+
+void applyModulation(SubtractiveSynthParams& p, float modAmount, const std::string& paramId) noexcept {
+    if (paramId == "filterCutoff") {
+        p.filterCutoff = std::clamp(p.filterCutoff + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "filterQ") {
+        p.filterQ = std::clamp(p.filterQ + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "attack") {
+        p.ampAttack = std::clamp(p.ampAttack + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "decay") {
+        p.ampDecay = std::clamp(p.ampDecay + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "sustain") {
+        p.ampSustain = std::clamp(p.ampSustain + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "release") {
+        p.ampRelease = std::clamp(p.ampRelease + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "osc1Shape") {
+        p.osc1Shape = std::clamp(p.osc1Shape + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "osc2Shape") {
+        p.osc2Shape = std::clamp(p.osc2Shape + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "osc1Octave") {
+        p.osc1Octave = std::clamp(p.osc1Octave + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "osc1Semi") {
+        p.osc1Semi = std::clamp(p.osc1Semi + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "osc1Detune") {
+        p.osc1Detune = std::clamp(p.osc1Detune + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "osc2Octave") {
+        p.osc2Octave = std::clamp(p.osc2Octave + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "osc2Semi") {
+        p.osc2Semi = std::clamp(p.osc2Semi + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "osc2Detune") {
+        p.osc2Detune = std::clamp(p.osc2Detune + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "osc1Level") {
+        p.osc1Level = std::clamp(p.osc1Level + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "osc2Level") {
+        p.osc2Level = std::clamp(p.osc2Level + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "oscMix") {
+        p.oscMix = std::clamp(p.oscMix + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "osc1Sync") {
+        p.osc1Sync = std::clamp(p.osc1Sync + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "osc2Sync") {
+        p.osc2Sync = std::clamp(p.osc2Sync + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "noiseLevel") {
+        p.noiseLevel = std::clamp(p.noiseLevel + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "unisonVoices") {
+        p.unisonVoices = std::clamp(p.unisonVoices + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "unisonDetune") {
+        p.unisonDetune = std::clamp(p.unisonDetune + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "filterEnvAmount") {
+        p.filterEnvAmount = std::clamp(p.filterEnvAmount + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "filterAttack") {
+        p.filterAttack = std::clamp(p.filterAttack + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "filterDecay") {
+        p.filterDecay = std::clamp(p.filterDecay + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "filterSustain") {
+        p.filterSustain = std::clamp(p.filterSustain + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "filterRelease") {
+        p.filterRelease = std::clamp(p.filterRelease + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "glideMs") {
+        p.glideMs = std::clamp(p.glideMs + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "velocitySensitivity") {
+        p.velocitySensitivity = std::clamp(p.velocitySensitivity + modAmount, 0.0f, 1.0f);
+    }
+}
+
+/// Multiply buffer by per-frame gain values.
+void multiplyPerFrameGain(float* buffer, int frames, const float* perFrameGain) noexcept {
+    for (int f = 0; f < frames; ++f) {
+        buffer[f] *= perFrameGain[f];
+    }
+}
+
+/// Mix mono buffer into stereo with per-frame pan values.
+void mixStereoPerFramePan(float* trackLeft, float* trackRight,
+                           const float* mono, int frames,
+                           const float* perFramePan) noexcept {
+    for (int f = 0; f < frames; ++f) {
+        const float angle = std::clamp(perFramePan[f], 0.0f, 1.0f) * 1.57079632679f;
+        trackLeft[f] += mono[f] * std::cos(angle);
+        trackRight[f] += mono[f] * std::sin(angle);
     }
 }
 
@@ -88,144 +180,154 @@ void processDeviceChain(float* trackLeft,
     for (int deviceIndex = 0; deviceIndex < deviceCount; ++deviceIndex) {
         const DeviceNodePlayback& node = devices[deviceIndex];
 
-        // Build modulated copy of node (LFO values are per-block, computed by caller)
-        DeviceNodePlayback modulated = node;
+        if (node.bypassed) {
+            continue;
+        }
+
+        // --- Apply modulation to DSP-specific params (block-rate) ---
+        auto modulatedParams = node.params;
+
         if (lfoValues != nullptr && lfoCount > 0 && !node.deviceId.empty()) {
-            // Find all edges targeting this device
             for (int e = 0; e < modEdgeCount; ++e) {
                 const auto& edge = modEdges[e];
                 if (edge.deviceId != node.deviceId || edge.lfoId >= lfoCount) {
                     continue;
                 }
-                const float lfoOut = lfoValues[edge.lfoId];
-                const float modAmount = edge.amount * lfoOut;
-                if (edge.paramId == "gain") {
-                    modulated.gain = std::clamp(node.gain + modAmount, 0.0f, 1.0f);
-                } else if (edge.paramId == "pan") {
-                    modulated.pan = std::clamp(node.pan + modAmount, 0.0f, 1.0f);
-                } else if (edge.paramId == "frequency") {
-                    modulated.frequencyHz = std::max(20.0f, node.frequencyHz + modAmount * 440.0f);
-                } else if (edge.paramId == "filterCutoff") {
-                    modulated.filterCutoff = std::clamp(node.filterCutoff + modAmount, 0.0f, 1.0f);
-                } else if (edge.paramId == "filterQ") {
-                    modulated.filterQ = std::clamp(node.filterQ + modAmount, 0.0f, 1.0f);
-                } else if (edge.paramId == "attack") {
-                    modulated.attack = std::clamp(node.attack + modAmount, 0.0f, 1.0f);
-                } else if (edge.paramId == "decay") {
-                    modulated.decay = std::clamp(node.decay + modAmount, 0.0f, 1.0f);
-                } else if (edge.paramId == "sustain") {
-                    modulated.sustain = std::clamp(node.sustain + modAmount, 0.0f, 1.0f);
-                } else if (edge.paramId == "release") {
-                    modulated.release = std::clamp(node.release + modAmount, 0.0f, 1.0f);
+                if (edge.paramId != "gain" && edge.paramId != "pan") {
+                    // DSP-specific param — block-rate (first-frame LFO value)
+                    const float lfoOut = lfoValues[edge.lfoId * framesToProcess];
+                    const float modAmount = edge.amount * lfoOut;
+                    std::visit([&](auto& params) {
+                        applyModulation(params, modAmount, edge.paramId);
+                    }, modulatedParams);
                 }
             }
         }
 
-        switch (modulated.kind) {
-        case DeviceNodeKind::Oscillator:
-            if (!modulated.bypassed && !suppressInstruments) {
-                const float frequency =
-                    midiActiveFrequencyHz(notes, noteCount, playheadStartBeat, modulated.frequencyHz);
+        // --- Build per-frame gain/pan arrays ---
+        // Always build them from the base values; edges add modulation per-frame.
+        float perFrameGain[kScratchFrames];
+        float perFramePan[kScratchFrames];
+        for (int f = 0; f < framesToProcess; ++f) {
+            perFrameGain[f] = node.gain;
+            perFramePan[f] = node.pan;
+        }
+
+        if (lfoValues != nullptr && lfoCount > 0 && !node.deviceId.empty()) {
+            for (int e = 0; e < modEdgeCount; ++e) {
+                const auto& edge = modEdges[e];
+                if (edge.deviceId != node.deviceId || edge.lfoId >= lfoCount) {
+                    continue;
+                }
+                if (edge.paramId == "gain") {
+                    for (int f = 0; f < framesToProcess; ++f) {
+                        const float lfoOut = lfoValues[edge.lfoId * framesToProcess + f];
+                        perFrameGain[f] = std::clamp(perFrameGain[f] + edge.amount * lfoOut, 0.0f, 1.0f);
+                    }
+                } else if (edge.paramId == "pan") {
+                    for (int f = 0; f < framesToProcess; ++f) {
+                        const float lfoOut = lfoValues[edge.lfoId * framesToProcess + f];
+                        perFramePan[f] = std::clamp(perFramePan[f] + edge.amount * lfoOut, 0.0f, 1.0f);
+                    }
+                }
+            }
+        }
+
+        // --- Process device and apply per-frame gain/pan ---
+        switch (node.kind) {
+        case DeviceNodeKind::Oscillator: {
+            if (!suppressInstruments) {
+                auto p = std::get<OscillatorParams>(modulatedParams);
+                p.frequencyHz = midiActiveFrequencyHz(notes, noteCount,
+                    playheadStartBeat, p.frequencyHz);
+                // Produce oscillator output at kInstrumentOutputGain scale,
+                // then layer external gain and pan per-frame.
+                const float frequency = p.frequencyHz;
                 if (frequency > 0.0f) {
                     std::memset(scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
-                    addSineBlock(scratch,
-                                 framesToProcess,
-                                 sampleRate,
-                                 frequency,
-                                 oscillatorPhase,
-                                 kInstrumentOutputGain * modulated.gain);
-                    panMixBlock(trackLeft, trackRight, scratch, framesToProcess, modulated.pan);
+                    addSineBlock(scratch, framesToProcess, sampleRate, frequency,
+                                 oscillatorPhase, kInstrumentOutputGain);
+                    multiplyPerFrameGain(scratch, framesToProcess, perFrameGain);
+                    mixStereoPerFramePan(trackLeft, trackRight, scratch,
+                                         framesToProcess, perFramePan);
                 }
             }
             break;
-
-        case DeviceNodeKind::Sampler:
-            if (!modulated.bypassed && !suppressInstruments && modulated.samplerPcm != nullptr && noteCount > 0) {
-                SamplerMidiNoteRegion regions[32];
-                const int regionCount = noteCount > 32 ? 32 : noteCount;
-                for (int i = 0; i < regionCount; ++i) {
-                    const MidiPlaybackNote& note = notes[i];
-                    regions[i] = SamplerMidiNoteRegion{
-                        note.pitch,
-                        note.clipStartBeat,
-                        note.clipLengthBeats,
-                        note.noteStartBeat,
-                        note.noteDurationBeats,
-                        note.velocity,
-                    };
+        }
+        case DeviceNodeKind::Sampler: {
+            if (!suppressInstruments) {
+                const auto& p = std::get<SamplerParams>(modulatedParams);
+                if (p.samplerPcm != nullptr && noteCount > 0) {
+                    SamplerMidiNoteRegion regions[32];
+                    const int regionCount = noteCount > 32 ? 32 : noteCount;
+                    for (int i = 0; i < regionCount; ++i) {
+                        const MidiPlaybackNote& note = notes[i];
+                        regions[i] = SamplerMidiNoteRegion{
+                            note.pitch, note.clipStartBeat, note.clipLengthBeats,
+                            note.noteStartBeat, note.noteDurationBeats, note.velocity,
+                        };
+                    }
+                    std::memset(scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+                    mixSamplerMidiNotesBlock(scratch, framesToProcess, sampleRate, bpm,
+                                             playheadStartBeat, regions, regionCount,
+                                             SamplerInstrumentPlayback{
+                                                 p.samplerPcm,
+                                                 p.samplerFrameCount,
+                                                 p.samplerPcmSampleRate,
+                                                 kInstrumentOutputGain,
+                                                 60,
+                                                 p.attack, p.decay,
+                                                 p.sustain, p.release,
+                                                 p.filterCutoff, p.filterQ,
+                                                 p.filterMode,
+                                                 p.trimStartFrame, p.trimEndFrame,
+                                                 p.regionStartFrame, p.regionEndFrame,
+                                                 samplerFilterStates != nullptr
+                                                     ? &samplerFilterStates[deviceIndex] : nullptr,
+                                             });
+                    multiplyPerFrameGain(scratch, framesToProcess, perFrameGain);
+                    mixStereoPerFramePan(trackLeft, trackRight, scratch,
+                                         framesToProcess, perFramePan);
                 }
-                std::memset(scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
-                mixSamplerMidiNotesBlock(scratch,
-                                         framesToProcess,
-                                         sampleRate,
-                                         bpm,
-                                         playheadStartBeat,
-                                         regions,
-                                         regionCount,
-                                         SamplerInstrumentPlayback{
-                                             modulated.samplerPcm,
-                                             modulated.samplerFrameCount,
-                                             modulated.samplerPcmSampleRate,
-                                             modulated.gain * kInstrumentOutputGain,
-                                             60,
-                                             modulated.attack,
-                                             modulated.decay,
-                                             modulated.sustain,
-                                             modulated.release,
-                                             modulated.filterCutoff,
-                                             modulated.filterQ,
-                                             modulated.filterMode,
-                                             modulated.trimStartFrame,
-                                             modulated.trimEndFrame,
-                                             samplerFilterStates != nullptr
-                                                 ? &samplerFilterStates[deviceIndex]
-                                                 : nullptr,
-                                         });
-                panMixBlock(trackLeft, trackRight, scratch, framesToProcess, modulated.pan);
             }
             break;
-
-        case DeviceNodeKind::SubtractiveSynth:
-            if (!modulated.bypassed && !suppressInstruments && noteCount > 0) {
-                SubtractiveMidiNoteRegion regions[32];
-                const int regionCount = noteCount > 32 ? 32 : noteCount;
-                for (int i = 0; i < regionCount; ++i) {
-                    const MidiPlaybackNote& note = notes[i];
-                    regions[i] = SubtractiveMidiNoteRegion{
-                        note.pitch,
-                        i,
-                        note.clipStartBeat,
-                        note.clipLengthBeats,
-                        note.noteStartBeat,
-                        note.noteDurationBeats,
-                        note.velocity,
-                    };
+        }
+        case DeviceNodeKind::SubtractiveSynth: {
+            if (!suppressInstruments) {
+                const auto& synthParams = std::get<SubtractiveSynthParams>(modulatedParams);
+                if (noteCount > 0) {
+                    SubtractiveMidiNoteRegion regions[32];
+                    const int regionCount = noteCount > 32 ? 32 : noteCount;
+                    for (int i = 0; i < regionCount; ++i) {
+                        const MidiPlaybackNote& note = notes[i];
+                        regions[i] = SubtractiveMidiNoteRegion{
+                            note.pitch, i,
+                            note.clipStartBeat, note.clipLengthBeats,
+                            note.noteStartBeat, note.noteDurationBeats,
+                            note.velocity,
+                        };
+                    }
+                    std::memset(scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+                    SubtractiveSynthRuntime localRuntime{};
+                    mixSubtractiveMidiNotesBlock(scratch, framesToProcess, sampleRate, bpm,
+                                                 playheadStartBeat, regions, regionCount,
+                                                 synthParams,
+                                                 subtractiveRuntimes != nullptr
+                                                     ? subtractiveRuntimes[deviceIndex] : localRuntime);
+                    multiplyPerFrameGain(scratch, framesToProcess, perFrameGain);
+                    mixStereoPerFramePan(trackLeft, trackRight, scratch,
+                                         framesToProcess, perFramePan);
                 }
-                std::memset(scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
-                SubtractiveSynthRuntime* runtime =
-                    subtractiveRuntimes != nullptr ? &subtractiveRuntimes[deviceIndex]
-                                                   : nullptr;
-                SubtractiveSynthRuntime localRuntime{};
-                mixSubtractiveMidiNotesBlock(scratch,
-                                             framesToProcess,
-                                             sampleRate,
-                                             bpm,
-                                             playheadStartBeat,
-                                             regions,
-                                             regionCount,
-                                             modulated.subtractive,
-                                             runtime != nullptr ? *runtime : localRuntime);
-                panMixBlock(trackLeft, trackRight, scratch, framesToProcess, modulated.pan);
             }
             break;
-
-        case DeviceNodeKind::TrackGain:
-            for (int frame = 0; frame < framesToProcess; ++frame) {
-                trackLeft[frame] *= modulated.gain;
-                trackRight[frame] *= modulated.gain;
+        }
+        case DeviceNodeKind::TrackGain: {
+            for (int f = 0; f < framesToProcess; ++f) {
+                trackLeft[f] *= perFrameGain[f];
+                trackRight[f] *= perFrameGain[f];
             }
             break;
-
+        }
         case DeviceNodeKind::Unknown:
         default:
             break;

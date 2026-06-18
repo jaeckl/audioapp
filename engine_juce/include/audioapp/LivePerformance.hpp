@@ -36,6 +36,8 @@ struct LiveInstrumentSnapshot {
     int filterMode = 0;
     int trimStartFrame = 0;
     int trimEndFrame = 0;
+    int regionStartFrame = 0;
+    int regionEndFrame = 0;
     SubtractiveSynthParams subtractive{};
 };
 
