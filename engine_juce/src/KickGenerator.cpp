@@ -68,10 +68,10 @@ void triggerKickVoice(KickVoiceRuntime& voice, int pitch, float velocity) noexce
     voice.noiseSeed = 0.1f + static_cast<float>(pitch) * 0.013f;
 }
 
-float kickGeneratorSample(KickVoiceRuntime& voice,
-                          const KickGeneratorParams& params,
-                          double sampleRate,
-                          float velocityGain) noexcept {
+float kickGeneratorSample808(KickVoiceRuntime& voice,
+                             const KickGeneratorParams& params,
+                             double sampleRate,
+                             float velocityGain) noexcept {
     if (voice.active == 0 || sampleRate <= 0.0) {
         return 0.0f;
     }
@@ -115,6 +115,22 @@ float kickGeneratorSample(KickVoiceRuntime& voice,
 
     const float sample = (body * (1.0f - clickNorm * 0.35f) + click) * ampEnv * velocityGain;
     return sample * params.gain * kInstrumentOutputGain;
+}
+
+int kickModelIndex(float kickModel) noexcept {
+    return std::clamp(static_cast<int>(std::lround(kickModel * 2.0f)), 0, 2);
+}
+
+float kickGeneratorSample(KickVoiceRuntime& voice,
+                          const KickGeneratorParams& params,
+                          double sampleRate,
+                          float velocityGain) noexcept {
+    switch (kickModelIndex(params.kickModel)) {
+        case 0:
+        default:
+            // v1: 808 path; 909 / Analog reuse 808 until dedicated DSP lands.
+            return kickGeneratorSample808(voice, params, sampleRate, velocityGain);
+    }
 }
 
 void mixKickMidiNotesBlock(float* monoOut,

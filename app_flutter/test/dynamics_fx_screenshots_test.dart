@@ -294,5 +294,5 @@ void main() {
       ),
     );
     await _capturePng(tester, boundaryKey, '06_dynamics_chain_row.png');
-  }, skip: 'RepaintBoundary.toImage() hangs headless; use tools/capture_dynamics_screenshots.py');
+  }, skip: true); // RepaintBoundary.toImage() hangs headless; use tools/capture_dynamics_screenshots.py
 }

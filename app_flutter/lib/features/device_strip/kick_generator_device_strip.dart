@@ -8,8 +8,6 @@ class KickGeneratorDeviceStrip extends StatelessWidget {
     super.key,
     required this.device,
     required this.onParameterChanged,
-    this.selectedTab,
-    this.onTabChanged,
     this.modulatedParams = const {},
     this.modulationAmounts = const {},
     this.connectModeLfoId,
@@ -21,8 +19,6 @@ class KickGeneratorDeviceStrip extends StatelessWidget {
 
   final DeviceSnapshot device;
   final void Function(String parameterId, double value) onParameterChanged;
-  final KickDeviceTab? selectedTab;
-  final ValueChanged<KickDeviceTab>? onTabChanged;
   final Set<String> modulatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
@@ -37,8 +33,6 @@ class KickGeneratorDeviceStrip extends StatelessWidget {
       device: device,
       onParameterChanged: onParameterChanged,
       embeddedInCard: true,
-      selectedTab: selectedTab,
-      onTabChanged: onTabChanged,
       modulatedParams: modulatedParams,
       modulationAmounts: modulationAmounts,
       connectModeLfoId: connectModeLfoId,

@@ -21,6 +21,7 @@ DeviceState stripSnapshot(const DeviceSlot& slot, std::string_view typeId) {
 
 KickGeneratorInstance instanceFromSnapshot(const DeviceState& state) {
     KickGeneratorInstance instance;
+    instance.kickModel = state.kickModel;
     instance.kickPitch = state.kickPitch;
     instance.kickPunch = state.kickPunch;
     instance.kickDecay = state.kickDecay;
@@ -31,6 +32,7 @@ KickGeneratorInstance instanceFromSnapshot(const DeviceState& state) {
 }
 
 void applyInstanceToSnapshot(const KickGeneratorInstance& instance, DeviceState& state) {
+    state.kickModel = instance.kickModel;
     state.kickPitch = instance.kickPitch;
     state.kickPunch = instance.kickPunch;
     state.kickDecay = instance.kickDecay;
@@ -79,7 +81,9 @@ DeviceParameterResult KickGeneratorDeviceType::setParameter(DeviceSlot& slot,
 
     auto& instance = std::get<KickGeneratorInstance>(slot.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
-    if (parameterId == "kickPitch") {
+    if (parameterId == "kickModel") {
+        instance.kickModel = clamped;
+    } else if (parameterId == "kickPitch") {
         instance.kickPitch = clamped;
     } else if (parameterId == "kickPunch") {
         instance.kickPunch = clamped;

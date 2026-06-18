@@ -11,8 +11,8 @@ import 'device_strip_viewport.dart';
 import 'device_tool_rail.dart';
 import 'lfo_properties_panel.dart';
 import 'modulation_grid.dart';
-import 'kick_generator_device_panel.dart';
 import 'kick_generator_device_strip.dart';
+import 'kick_model.dart';
 import 'snare_generator_device_panel.dart';
 import 'snare_generator_device_strip.dart';
 import 'clap_generator_device_panel.dart';
@@ -317,7 +317,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         'simple_sampler' => widget.sample?.name,
         'simple_oscillator' => '${widget.device.frequencyHz.round()} Hz',
         'subtractive_synth' => 'Multimode · 8 voices',
-        'kick_generator' => 'Mono · synth',
+        'kick_generator' => 'Mono · ${KickModel.labelFromValue(widget.device.kickModel)}',
         'snare_generator' => 'Mono · synth',
         'clap_generator' => 'Mono · synth',
         'cymbal_generator' => 'Mono · synth',
@@ -528,7 +528,6 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           child: KickGeneratorDeviceStrip(
             device: widget.device,
             onParameterChanged: widget.onDeviceParameterChanged,
-            selectedTab: KickDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
             modulatedParams: _modulatedParamIds,
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,

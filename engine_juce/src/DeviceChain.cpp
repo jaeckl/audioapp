@@ -123,7 +123,9 @@ void applyModulation(SubtractiveSynthParams& p, float modAmount, const std::stri
 }
 
 void applyModulation(KickGeneratorParams& p, float modAmount, const std::string& paramId) noexcept {
-    if (paramId == "kickPitch") {
+    if (paramId == "kickModel") {
+        p.kickModel = std::clamp(p.kickModel + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "kickPitch") {
         p.kickPitch = std::clamp(p.kickPitch + modAmount, 0.0f, 1.0f);
     } else if (paramId == "kickPunch") {
         p.kickPunch = std::clamp(p.kickPunch + modAmount, 0.0f, 1.0f);

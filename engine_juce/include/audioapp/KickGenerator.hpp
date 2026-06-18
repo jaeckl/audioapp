@@ -6,6 +6,7 @@ namespace audioapp {
 
 struct KickGeneratorParams {
     float gain = 1.0f;
+    float kickModel = 0.0f;
     float kickPitch = 0.55f;
     float kickPunch = 0.60f;
     float kickDecay = 0.50f;

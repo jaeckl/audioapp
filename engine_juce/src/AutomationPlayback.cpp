@@ -144,6 +144,8 @@ void applyAutomationValue(DeviceVariantParams& params,
         if (auto* p = std::get_if<KickGeneratorParams>(&params)) {
             if (paramId == "gain") {
                 p->gain = value;
+            } else if (paramId == "kickModel") {
+                p->kickModel = value;
             } else if (paramId == "kickPitch") {
                 p->kickPitch = value;
             } else if (paramId == "kickPunch") {

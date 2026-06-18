@@ -33,6 +33,8 @@ class DeviceStripMetrics {
   /// Alias for [height] — fullscreen chain uses the same device card height.
   static const double fullscreenHeight = height;
 
+  static const double kickDesignWidth = 480;
+
   static const double oscillatorDesignWidth = 360;
 
   static const double collapsedDesignWidth = 160;
@@ -71,7 +73,7 @@ class DeviceStripMetrics {
     return switch (deviceType) {
       'simple_sampler' => designWidth,
       'subtractive_synth' => oscillatorDesignWidth,
-      'kick_generator' => oscillatorDesignWidth,
+      'kick_generator' => kickDesignWidth,
       'snare_generator' => oscillatorDesignWidth,
       'clap_generator' => oscillatorDesignWidth,
       'cymbal_generator' => oscillatorDesignWidth,

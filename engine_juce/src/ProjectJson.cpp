@@ -137,6 +137,7 @@ juce::var deviceToVar(const DeviceState& device) {
                                 static_cast<double>(device.velocitySensitivity));
     }
     if (device.type == "kick_generator") {
+        parameters->setProperty("kickModel", static_cast<double>(device.kickModel));
         parameters->setProperty("kickPitch", static_cast<double>(device.kickPitch));
         parameters->setProperty("kickPunch", static_cast<double>(device.kickPunch));
         parameters->setProperty("kickDecay", static_cast<double>(device.kickDecay));
@@ -265,6 +266,7 @@ DeviceState deviceFromVar(const juce::var& value) {
             device.glideMs = varToFloat(params->getProperty("glideMs"), 0.0f);
             device.velocitySensitivity =
                 varToFloat(params->getProperty("velocitySensitivity"), 1.0f);
+            device.kickModel = varToFloat(params->getProperty("kickModel"), 0.0f);
             device.kickPitch = varToFloat(params->getProperty("kickPitch"), 0.55f);
             device.kickPunch = varToFloat(params->getProperty("kickPunch"), 0.60f);
             device.kickDecay = varToFloat(params->getProperty("kickDecay"), 0.50f);

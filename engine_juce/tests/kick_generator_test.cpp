@@ -59,6 +59,30 @@ int main() {
         return EXIT_FAILURE;
     }
 
+    devices[0].params.kickModel = 0.5f;
+    std::memset(left, 0, sizeof(left));
+    std::memset(right, 0, sizeof(right));
+    phase = 0.0f;
+    runtime = {};
+    audioapp::processDeviceChain(left,
+                                 right,
+                                 kFrames,
+                                 kSampleRate,
+                                 120,
+                                 0.0,
+                                 notes,
+                                 1,
+                                 devices,
+                                 1,
+                                 phase,
+                                 false,
+                                 nullptr,
+                                 nullptr,
+                                 &runtime);
+    if (peakAbs(left, kFrames) <= 0.001f) {
+        return EXIT_FAILURE;
+    }
+
     audioapp::LiveInstrumentSnapshot instrument{};
     instrument.kind = audioapp::LiveInstrumentKind::KickGenerator;
     instrument.gain = 1.0f;

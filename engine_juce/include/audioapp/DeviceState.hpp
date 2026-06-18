@@ -46,6 +46,7 @@ struct DeviceState {
     float filterRelease = 0.45f;
     float glideMs = 0.0f;
     float velocitySensitivity = 1.0f;
+    float kickModel = 0.0f;
     float kickPitch = 0.55f;
     float kickPunch = 0.60f;
     float kickDecay = 0.50f;

@@ -221,6 +221,7 @@ class DeviceSnapshot {
     this.filterRelease = 0.45,
     this.glideMs = 0.0,
     this.velocitySensitivity = 1.0,
+    this.kickModel = 0.0,
     this.kickPitch = 0.55,
     this.kickPunch = 0.60,
     this.kickDecay = 0.50,
@@ -304,6 +305,7 @@ class DeviceSnapshot {
   final double filterRelease;
   final double glideMs;
   final double velocitySensitivity;
+  final double kickModel;
   final double kickPitch;
   final double kickPunch;
   final double kickDecay;
@@ -390,6 +392,7 @@ class DeviceSnapshot {
       filterRelease: (params['filterRelease'] as num?)?.toDouble() ?? 0.45,
       glideMs: (params['glideMs'] as num?)?.toDouble() ?? 0.0,
       velocitySensitivity: (params['velocitySensitivity'] as num?)?.toDouble() ?? 1.0,
+      kickModel: (params['kickModel'] as num?)?.toDouble() ?? 0.0,
       kickPitch: (params['kickPitch'] as num?)?.toDouble() ?? 0.55,
       kickPunch: (params['kickPunch'] as num?)?.toDouble() ?? 0.60,
       kickDecay: (params['kickDecay'] as num?)?.toDouble() ?? 0.50,
@@ -511,6 +514,7 @@ class DeviceSnapshot {
     double? filterRelease,
     double? glideMs,
     double? velocitySensitivity,
+    double? kickModel,
     double? kickPitch,
     double? kickPunch,
     double? kickDecay,
@@ -594,6 +598,7 @@ class DeviceSnapshot {
       filterRelease: filterRelease ?? this.filterRelease,
       glideMs: glideMs ?? this.glideMs,
       velocitySensitivity: velocitySensitivity ?? this.velocitySensitivity,
+      kickModel: kickModel ?? this.kickModel,
       kickPitch: kickPitch ?? this.kickPitch,
       kickPunch: kickPunch ?? this.kickPunch,
       kickDecay: kickDecay ?? this.kickDecay,
@@ -712,6 +717,8 @@ class DeviceSnapshot {
         return copyWith(glideMs: value);
       case 'velocitySensitivity':
         return copyWith(velocitySensitivity: value);
+      case 'kickModel':
+        return copyWith(kickModel: value.clamp(0.0, 1.0));
       case 'kickPitch':
         return copyWith(kickPitch: value.clamp(0.0, 1.0));
       case 'kickPunch':
