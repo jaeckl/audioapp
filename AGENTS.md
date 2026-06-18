@@ -56,3 +56,19 @@ host-managed, KVM-accelerated emulator). The cloud loop below is headless only.
 - These are on `PATH` via `~/.bashrc`. The Android SDK and JDK paths are also stored in
   Flutter's own config, so `flutter` works without env vars. `local.properties` is
   gitignored and is regenerated automatically by `flutter pub get`.
+
+### Python audio-analysis tools (for audio debugging)
+
+A dedicated venv at **`/opt/audio-tools-venv`** has `numpy`, `scipy`, `soundfile`,
+`matplotlib`, and `librosa` (system `libsndfile1` + `ffmpeg` are installed). Use it to
+inspect engine output — peak/RMS/dBFS, FFT/STFT, onset detection, pitch tracking, and
+spectrogram images:
+
+```bash
+/opt/audio-tools-venv/bin/python your_analysis.py render.wav
+```
+
+The engine exposes `EngineHost::renderOffline(lengthBeats, sampleRate)` (mono float, see
+`engine_juce/include/audioapp/EngineHost.hpp`); dump that to a WAV and analyze it. Note
+that the simple oscillator is harmonically rich, so naive per-window `argmax` pitch
+detection is unreliable — prefer a spectrogram or `librosa.pyin`/onset detection.
