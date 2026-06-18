@@ -44,6 +44,8 @@ add_library(audioapp_engine STATIC
   src/devices/SamplerDeviceType.cpp
   src/devices/TrackGainDeviceType.cpp
   src/devices/SubtractiveSynthDeviceType.cpp
+  src/model/TrackRepository.cpp
+  src/model/ClipRepository.cpp
   src/EngineHost_commands.cpp
   src/LfoEngine.cpp
 )

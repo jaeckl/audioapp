@@ -22,7 +22,7 @@ int main() {
     }
 
     const auto& device = snap.tracks[0].devices[0];
-    if (device.type != "simple_sampler") {
+    if (device.type != "track_gain") {
         return EXIT_FAILURE;
     }
 
