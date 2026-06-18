@@ -1,5 +1,5 @@
 #include "audioapp/DeviceChain.hpp"
-#include "audioapp/ClapGenerator.hpp"
+#include "audioapp/CymbalGenerator.hpp"
 #include "audioapp/LivePerformance.hpp"
 
 #include <cmath>
@@ -19,25 +19,25 @@ float peakAbs(const float* buffer, int count) {
 } // namespace
 
 int main() {
-    constexpr int kFrames = 2048;
+    constexpr int kFrames = 4096;
     constexpr double kSampleRate = 48000.0;
 
     audioapp::MidiPlaybackNote notes[1] = {
-        {39, 0.0, 4.0, 0.0, 1.0, 100.0f},
+        {42, 0.0, 4.0, 0.0, 1.0, 100.0f},
     };
 
     audioapp::DeviceNodePlayback devices[1] = {};
-    devices[0].kind = audioapp::DeviceNodeKind::ClapGenerator;
+    devices[0].kind = audioapp::DeviceNodeKind::CymbalGenerator;
     devices[0].gain = 1.0f;
     devices[0].pan = 0.5f;
-    devices[0].params = audioapp::ClapGeneratorParams{};
+    devices[0].params = audioapp::CymbalGeneratorParams{};
 
     float left[kFrames];
     float right[kFrames];
     std::memset(left, 0, sizeof(left));
     std::memset(right, 0, sizeof(right));
     float phase = 0.0f;
-    audioapp::ClapGeneratorRuntime runtime{};
+    audioapp::CymbalGeneratorRuntime runtime{};
 
     audioapp::processDeviceChain(left,
                                  right,
@@ -55,20 +55,20 @@ int main() {
                                  nullptr,
                                  nullptr,
                                  nullptr,
-                                 &runtime,
-                                 nullptr);
+                                 nullptr,
+                                 &runtime);
 
     if (peakAbs(left, kFrames) <= 0.001f) {
         return EXIT_FAILURE;
     }
 
     audioapp::LiveInstrumentSnapshot instrument{};
-    instrument.kind = audioapp::LiveInstrumentKind::ClapGenerator;
+    instrument.kind = audioapp::LiveInstrumentKind::CymbalGenerator;
     instrument.gain = 1.0f;
-    instrument.clap.gain = 1.0f;
+    instrument.cymbal.gain = 1.0f;
 
     audioapp::LivePerformanceMixer mixer;
-    mixer.noteOn(instrument, 39, 100.0f);
+    mixer.noteOn(instrument, 42, 100.0f);
 
     float live[kFrames];
     std::memset(live, 0, sizeof(live));

@@ -63,6 +63,11 @@ struct DeviceState {
     float clapTone = 0.55f;
     float clapRoom = 0.50f;
     float clapDecay = 0.50f;
+    float cymbalMetal = 0.55f;
+    float cymbalBrightness = 0.60f;
+    float cymbalDecay = 0.50f;
+    float cymbalChoke = 0.0f;
+    float cymbalVelocity = 1.0f;
 };
 
 } // namespace audioapp

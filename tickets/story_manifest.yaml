@@ -283,10 +283,10 @@ stories:
   - { id: US-11-20, milestone: M11, status: todo, title: M11 PO demo — subtractive synth end-to-end }
 
   # ── M13 Drum generators (5) ───────────────────────────────────────────
-  - { id: US-13-01, milestone: M13, status: in_progress, title: Kick generator — engine + strip }
-  - { id: US-13-02, milestone: M13, status: todo, title: Snare generator }
-  - { id: US-13-03, milestone: M13, status: todo, title: Clap generator }
-  - { id: US-13-04, milestone: M13, status: todo, title: Cymbal / crash generator }
+  - { id: US-13-01, milestone: M13, status: done, title: Kick generator — engine + strip }
+  - { id: US-13-02, milestone: M13, status: done, title: Snare generator }
+  - { id: US-13-03, milestone: M13, status: done, title: Clap generator }
+  - { id: US-13-04, milestone: M13, status: done, title: Cymbal / crash generator }
   - { id: US-13-20, milestone: M13, status: todo, title: M13 PO demo — drum generators end-to-end }
 
   # ── M12 ProjectEngine decomposition (12) ─────────────────────────────

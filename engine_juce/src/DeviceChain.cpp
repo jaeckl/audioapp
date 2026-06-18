@@ -8,6 +8,7 @@
 #include "audioapp/KickGenerator.hpp"
 #include "audioapp/SnareGenerator.hpp"
 #include "audioapp/ClapGenerator.hpp"
+#include "audioapp/CymbalGenerator.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -166,6 +167,20 @@ void applyModulation(ClapGeneratorParams& p, float modAmount, const std::string&
     }
 }
 
+void applyModulation(CymbalGeneratorParams& p, float modAmount, const std::string& paramId) noexcept {
+    if (paramId == "cymbalMetal") {
+        p.cymbalMetal = std::clamp(p.cymbalMetal + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "cymbalBrightness") {
+        p.cymbalBrightness = std::clamp(p.cymbalBrightness + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "cymbalDecay") {
+        p.cymbalDecay = std::clamp(p.cymbalDecay + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "cymbalChoke") {
+        p.cymbalChoke = std::clamp(p.cymbalChoke + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "cymbalVelocity") {
+        p.cymbalVelocity = std::clamp(p.cymbalVelocity + modAmount, 0.0f, 1.0f);
+    }
+}
+
 /// Multiply buffer by per-frame gain values.
 void multiplyPerFrameGain(float* buffer, int frames, const float* perFrameGain) noexcept {
     for (int f = 0; f < frames; ++f) {
@@ -220,6 +235,7 @@ void processDeviceChain(float* trackLeft,
                         KickGeneratorRuntime* kickRuntimes,
                         SnareGeneratorRuntime* snareRuntimes,
                         ClapGeneratorRuntime* clapRuntimes,
+                        CymbalGeneratorRuntime* cymbalRuntimes,
                         const float* lfoValues,
                         int lfoCount,
                         const ModulationEdge* modEdges,
@@ -486,6 +502,34 @@ void processDeviceChain(float* trackLeft,
                                           playheadStartBeat, regions, regionCount, clapParams,
                                           clapRuntimes != nullptr ? clapRuntimes[deviceIndex]
                                                                   : localRuntime);
+                    multiplyPerFrameGain(scratch, framesToProcess, perFrameGain);
+                    mixStereoPerFramePan(trackLeft, trackRight, scratch,
+                                         framesToProcess, perFramePan);
+                }
+            }
+            break;
+        }
+        case DeviceNodeKind::CymbalGenerator: {
+            if (!suppressInstruments) {
+                const auto& cymbalParams = std::get<CymbalGeneratorParams>(modulatedParams);
+                if (noteCount > 0) {
+                    CymbalMidiNoteRegion regions[32];
+                    const int regionCount = noteCount > 32 ? 32 : noteCount;
+                    for (int i = 0; i < regionCount; ++i) {
+                        const MidiPlaybackNote& note = notes[i];
+                        regions[i] = CymbalMidiNoteRegion{
+                            note.pitch, i,
+                            note.clipStartBeat, note.clipLengthBeats,
+                            note.noteStartBeat, note.noteDurationBeats,
+                            note.velocity,
+                        };
+                    }
+                    std::memset(scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+                    CymbalGeneratorRuntime localRuntime{};
+                    mixCymbalMidiNotesBlock(scratch, framesToProcess, sampleRate, bpm,
+                                            playheadStartBeat, regions, regionCount, cymbalParams,
+                                            cymbalRuntimes != nullptr ? cymbalRuntimes[deviceIndex]
+                                                                      : localRuntime);
                     multiplyPerFrameGain(scratch, framesToProcess, perFrameGain);
                     mixStereoPerFramePan(trackLeft, trackRight, scratch,
                                          framesToProcess, perFramePan);

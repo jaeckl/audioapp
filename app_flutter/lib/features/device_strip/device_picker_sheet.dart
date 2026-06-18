@@ -56,6 +56,12 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
               subtitle: const Text('Multi-hit noise · room clap'),
               onTap: () => Navigator.pop(context, 'clap_generator'),
             ),
+            ListTile(
+              leading: const Icon(Icons.blur_on, color: Color(0xFF9AD4E8)),
+              title: const Text('Cymbal Generator'),
+              subtitle: const Text('Metallic noise · hat or crash'),
+              onTap: () => Navigator.pop(context, 'cymbal_generator'),
+            ),
             const SizedBox(height: 8),
           ],
         ),
