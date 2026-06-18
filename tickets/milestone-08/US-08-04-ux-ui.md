@@ -10,23 +10,27 @@ UX / UI
 
 ## Design intent
 
-Automation visible — lane or breakpoint dots on timeline or parameter panel.
+Automation clip in lower half of track lane; purple curve preview; floating **Link** chip above clip; device knobs pulse purple in Link Mode.
 
 ## Layout & hierarchy
 
-Simple lane under clip or automation panel; breakpoints draggable.
+- Automation clip: bottom half of track lane (same row as MIDI/sample)
+- Link chip: centered above clip
+- Curve editor: fullscreen overlay on double-tap
 
 ## Visual states
 
 | State | Treatment |
 |-------|-----------|
-| Editing | Breakpoints visible |
-| Playing | Playhead crosses breakpoints |
+| Unlinked | "AUTO" placeholder + Link chip |
+| Link Mode active | Purple chip glow; knobs pulse |
+| Linked | Param label on clip header |
+| Editing | Fullscreen curve editor |
 
 ## Copy & feedback
 
-- Automate
-- Automation
+- Link / Filter / Gain labels on chip
+- Snackbar on Automate this and Link assign
 
 ## Accessibility & mobile
 
@@ -36,8 +40,9 @@ Simple lane under clip or automation panel; breakpoints draggable.
 
 ## Acceptance criteria (visual)
 
-- [ ] MVP simple UI — not hidden in menu only
+- [x] Automation clips visible on timeline (not menu-only)
+- [x] Link chip discoverable on clip
 
 ## Status
 
-**Todo**
+**Done**

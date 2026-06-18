@@ -44,6 +44,7 @@ class DeviceStripSlot extends StatefulWidget {
     this.onModulationBridgeCall,
     this.automationLinkActive = false,
     this.onAutomationParamSelected,
+    this.onAutomateParameter,
   });
 
   final TrackSnapshot track;
@@ -68,6 +69,7 @@ class DeviceStripSlot extends StatefulWidget {
       onModulationBridgeCall;
   final bool automationLinkActive;
   final void Function(String deviceId, String paramId)? onAutomationParamSelected;
+  final void Function(String deviceId, String paramId)? onAutomateParameter;
 
   @override
   State<DeviceStripSlot> createState() => _DeviceStripSlotState();
@@ -208,6 +210,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
 
   void _onAutomationLinkTap(String paramId) {
     widget.onAutomationParamSelected?.call(widget.device.id, paramId);
+  }
+
+  void _onAutomateParameter(String paramId) {
+    widget.onAutomateParameter?.call(widget.device.id, paramId);
   }
 
   int _initialTabIndex() {
@@ -384,6 +390,9 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                     onAutomationLinkTap: widget.onAutomationParamSelected != null
                         ? _onAutomationLinkTap
                         : null,
+                    onAutomateParameter: widget.onAutomateParameter != null
+                        ? _onAutomateParameter
+                        : null,
                   ),
                 ),
               ],
@@ -413,6 +422,13 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
           ),
         );
       case 'simple_oscillator':
@@ -432,6 +448,13 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _connectModeLfo != null
                 ? _onModulationFor('frequency')
+                : null,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
                 : null,
           ),
         );
@@ -453,6 +476,9 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             automationLinkActive: widget.automationLinkActive,
             onAutomationLinkTap: widget.onAutomationParamSelected != null
                 ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
                 : null,
           ),
         );

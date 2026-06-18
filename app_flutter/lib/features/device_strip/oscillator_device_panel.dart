@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'device_automation_knob.dart';
 import 'device_knob_sizes.dart';
 import 'device_tab_bar.dart';
-import 'rotary_knob.dart';
 
 enum OscillatorDeviceTab { tone }
 
@@ -20,6 +20,9 @@ class OscillatorDevicePanel extends StatefulWidget {
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
+    this.automationLinkActive = false,
+    this.onAutomationLinkTap,
+    this.onAutomateParameter,
   });
 
   final String trackName;
@@ -32,6 +35,9 @@ class OscillatorDevicePanel extends StatefulWidget {
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final ValueChanged<double>? onModulationAssign;
+  final bool automationLinkActive;
+  final ValueChanged<String>? onAutomationLinkTap;
+  final ValueChanged<String>? onAutomateParameter;
 
   static const Color panel = Color(0xFF1C1C24);
   static const Color accent = Color(0xFF6EC9E8);
@@ -144,20 +150,24 @@ class _OscillatorDevicePanelState extends State<OscillatorDevicePanel> {
         border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: Center(
-        child: RotaryKnob(
+        child: deviceAutomationKnob(
           label: 'Frequency',
           value: OscillatorDevicePanel._hzToNormalized(widget.frequencyHz),
           size: DeviceKnobSizes.strip + 4,
           displayValue: '$hz Hz',
-          accentColor: OscillatorDevicePanel.accent,
           onChanged: (v) =>
               widget.onFrequencyChanged(OscillatorDevicePanel._normalizedToHz(v)),
-          modulationActive: widget.modulatedParams.contains('frequency'),
-          modulationAmount: widget.modulationAmounts['frequency'] ?? 0.0,
-          connectModeActive: widget.connectModeLfoId != null,
+          paramId: 'frequency',
+          accentColor: OscillatorDevicePanel.accent,
+          modulatedParams: widget.modulatedParams,
+          modulationAmounts: widget.modulationAmounts,
+          connectModeLfoId: widget.connectModeLfoId,
           onModulationAssign: widget.onModulationAssign != null
-              ? widget.onModulationAssign
+              ? (_, amount) => widget.onModulationAssign!(amount)
               : null,
+          automationLinkActive: widget.automationLinkActive,
+          onAutomationLinkTap: widget.onAutomationLinkTap,
+          onAutomateParameter: widget.onAutomateParameter,
         ),
       ),
     );

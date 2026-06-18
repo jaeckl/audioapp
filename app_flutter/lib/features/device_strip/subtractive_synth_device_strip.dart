@@ -17,6 +17,7 @@ class SubtractiveSynthDeviceStrip extends StatelessWidget {
     this.onModulationAssign,
     this.automationLinkActive = false,
     this.onAutomationLinkTap,
+    this.onAutomateParameter,
   });
 
   final DeviceSnapshot device;
@@ -30,6 +31,7 @@ class SubtractiveSynthDeviceStrip extends StatelessWidget {
   final void Function(String paramId, double amount)? onModulationAssign;
   final bool automationLinkActive;
   final ValueChanged<String>? onAutomationLinkTap;
+  final ValueChanged<String>? onAutomateParameter;
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +50,7 @@ class SubtractiveSynthDeviceStrip extends StatelessWidget {
       onModulationAssign: onModulationAssign,
       automationLinkActive: automationLinkActive,
       onAutomationLinkTap: onAutomationLinkTap,
+      onAutomateParameter: onAutomateParameter,
     );
   }
 }

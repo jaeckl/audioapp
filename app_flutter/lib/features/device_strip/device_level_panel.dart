@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
 import '../../features/content_library/library_theme.dart';
+import 'device_automation_knob.dart';
 import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
-import 'rotary_knob.dart';
 
 /// Shared gain + pan controls appended after every expanded device card.
 class DeviceLevelPanel extends StatelessWidget {
@@ -20,6 +20,7 @@ class DeviceLevelPanel extends StatelessWidget {
     this.onModulationAssign,
     this.automationLinkActive = false,
     this.onAutomationLinkTap,
+    this.onAutomateParameter,
   });
 
   final DeviceSnapshot device;
@@ -32,6 +33,7 @@ class DeviceLevelPanel extends StatelessWidget {
   final void Function(String paramId, double amount)? onModulationAssign;
   final bool automationLinkActive;
   final ValueChanged<String>? onAutomationLinkTap;
+  final ValueChanged<String>? onAutomateParameter;
 
   static String formatGain(double gain) => '${(gain.clamp(0, 1) * 100).round()}%';
 
@@ -67,44 +69,38 @@ class DeviceLevelPanel extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            RotaryKnob(
+            deviceAutomationKnob(
               label: 'Pan',
               value: device.pan.clamp(0, 1),
               size: knobSize,
-              accentColor: accentColor,
               displayValue: formatPan(device.pan),
               onChanged: (value) => onParameterChanged('pan', value),
-              modulationActive: modulatedParams.contains('pan'),
-              modulationAmount: modulationAmounts['pan'] ?? 0.0,
-              connectModeActive: connectModeLfoId != null,
-              onModulationAssign: onModulationAssign != null
-                  ? (a) => onModulationAssign!('pan', a)
-                  : null,
-              linkModeActive: automationLinkActive,
-              linkModeAccent: LibraryTheme.accentAutomation,
-              onLinkTap: automationLinkActive && onAutomationLinkTap != null
-                  ? () => onAutomationLinkTap!('pan')
-                  : null,
+              paramId: 'pan',
+              accentColor: accentColor,
+              modulatedParams: modulatedParams,
+              modulationAmounts: modulationAmounts,
+              connectModeLfoId: connectModeLfoId,
+              onModulationAssign: onModulationAssign,
+              automationLinkActive: automationLinkActive,
+              onAutomationLinkTap: onAutomationLinkTap,
+              onAutomateParameter: onAutomateParameter,
             ),
             const SizedBox(height: 8),
-            RotaryKnob(
+            deviceAutomationKnob(
               label: 'Gain',
               value: device.gain.clamp(0, 1),
               size: knobSize,
-              accentColor: accentColor,
               displayValue: formatGain(device.gain),
               onChanged: (value) => onParameterChanged('gain', value),
-              modulationActive: modulatedParams.contains('gain'),
-              modulationAmount: modulationAmounts['gain'] ?? 0.0,
-              connectModeActive: connectModeLfoId != null,
-              onModulationAssign: onModulationAssign != null
-                  ? (a) => onModulationAssign!('gain', a)
-                  : null,
-              linkModeActive: automationLinkActive,
-              linkModeAccent: LibraryTheme.accentAutomation,
-              onLinkTap: automationLinkActive && onAutomationLinkTap != null
-                  ? () => onAutomationLinkTap!('gain')
-                  : null,
+              paramId: 'gain',
+              accentColor: accentColor,
+              modulatedParams: modulatedParams,
+              modulationAmounts: modulationAmounts,
+              connectModeLfoId: connectModeLfoId,
+              onModulationAssign: onModulationAssign,
+              automationLinkActive: automationLinkActive,
+              onAutomationLinkTap: onAutomationLinkTap,
+              onAutomateParameter: onAutomateParameter,
             ),
           ],
         ),
