@@ -19,61 +19,11 @@ double quantizeCaptureBeat(double beat, double grid = 0.25) {
 
 bool ProjectEngine::buildLiveInstrumentForTrack(const Track& track,
                                                 LiveInstrumentSnapshot& out) const {
+    const PlaybackBuildContext context{sampleBank_};
     for (const auto& device : track.devices) {
-        if (device.type == "subtractive_synth") {
-            out = LiveInstrumentSnapshot{};
-            out.kind = LiveInstrumentKind::SubtractiveSynth;
-            out.gain = device.gain;
-            out.subtractive = subtractiveParamsFromDevice(device);
-            return true;
-        }
-        if (device.type == "simple_oscillator") {
-            out = LiveInstrumentSnapshot{};
-            out.kind = LiveInstrumentKind::Oscillator;
-            out.frequencyHz = device.frequencyHz;
-            out.gain = device.gain;
-            return true;
-        }
-        if (device.type == "simple_sampler") {
-            out = LiveInstrumentSnapshot{};
-            out.kind = LiveInstrumentKind::Sampler;
-            out.gain = device.gain;
-            out.rootPitch = 60;
-            out.attack = device.attack;
-            out.decay = device.decay;
-            out.sustain = device.sustain;
-            out.release = device.release;
-            out.filterCutoff = device.filterCutoff;
-            out.filterQ = device.filterQ;
-            out.filterMode = device.filterMode;
-            if (sampleBank_ != nullptr && !device.sampleId.empty()) {
-                const auto* sample = sampleBank_->findSample(device.sampleId);
-                if (sample != nullptr && !sample->pcm.empty()) {
-                    out.samplerPcm = sample->pcm.data();
-                    out.samplerFrameCount = static_cast<int>(sample->pcm.size());
-                    out.samplerPcmSampleRate = sample->sampleRate;
-                    const double trimStartSec = std::max(0.0, static_cast<double>(device.trimStartSec));
-                    const double trimEndSec = device.trimEndSec > trimStartSec
-                                                  ? static_cast<double>(device.trimEndSec)
-                                                  : static_cast<double>(sample->pcm.size()) /
-                                                        sample->sampleRate;
-                    out.trimStartFrame =
-                        static_cast<int>(trimStartSec * sample->sampleRate);
-                    out.trimEndFrame = static_cast<int>(trimEndSec * sample->sampleRate);
-                    if (out.trimEndFrame <= out.trimStartFrame) {
-                        out.trimEndFrame = out.samplerFrameCount;
-                    }
-                    // Region (loop region within trimmed bounds)
-                    out.regionStartFrame = 0;
-                    out.regionEndFrame = 0;
-                    if (device.regionEndSec > 0.0f) {
-                        const int rawRegStart = static_cast<int>(device.regionStartSec * sample->sampleRate);
-                        out.regionStartFrame = std::clamp(rawRegStart, out.trimStartFrame, out.trimEndFrame - 1);
-                        const int rawRegEnd = static_cast<int>(device.regionEndSec * sample->sampleRate);
-                        out.regionEndFrame = std::clamp(rawRegEnd, out.regionStartFrame + 1, out.trimEndFrame);
-                    }
-                }
-            }
+        DeviceState state;
+        copyDeviceToState(device, state);
+        if (deviceRegistry_.buildLiveInstrument(state, context, out)) {
             return true;
         }
     }

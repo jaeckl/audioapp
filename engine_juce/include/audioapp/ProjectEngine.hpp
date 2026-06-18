@@ -289,7 +289,6 @@ private:
     SampleClip* findSampleClipLocked(const std::string& clipId);
     bool buildLiveInstrumentForTrack(const Track& track, LiveInstrumentSnapshot& out) const;
     double sampleTimeToCaptureBeat(uint64_t sampleTime) const;
-    static SubtractiveSynthParams subtractiveParamsFromDevice(const Device& device);
     static void copyDeviceToState(const Device& src, DeviceState& dst);
     static void copyStateToDevice(const DeviceState& src, Device& dst);
 

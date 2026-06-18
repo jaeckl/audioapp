@@ -1,78 +1,11 @@
 #include "audioapp/devices/DeviceRegistry.hpp"
 
-#include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/devices/IDeviceType.hpp"
+#include "audioapp/devices/OscillatorDeviceType.hpp"
+#include "audioapp/devices/SamplerDeviceType.hpp"
+#include "audioapp/devices/SubtractiveSynthDeviceType.hpp"
+#include "audioapp/devices/TrackGainDeviceType.hpp"
 
 namespace audioapp {
-namespace {
-
-DeviceState baseState(const std::string& deviceId, const char* typeId) {
-    DeviceState state;
-    state.id = deviceId;
-    state.type = typeId;
-    return state;
-}
-
-class OscillatorDeviceType final : public IDeviceType {
-public:
-    std::string typeId() const override { return device_types::kOscillator; }
-
-    DeviceState createDefault(const std::string& deviceId) const override {
-        DeviceState state = baseState(deviceId, device_types::kOscillator);
-        state.frequencyHz = 440.0f;
-        return state;
-    }
-};
-
-class SamplerDeviceType final : public IDeviceType {
-public:
-    std::string typeId() const override { return device_types::kSampler; }
-
-    DeviceState createDefault(const std::string& deviceId) const override {
-        return baseState(deviceId, device_types::kSampler);
-    }
-};
-
-class TrackGainDeviceType final : public IDeviceType {
-public:
-    std::string typeId() const override { return device_types::kTrackGain; }
-
-    DeviceState createDefault(const std::string& deviceId) const override {
-        DeviceState state = baseState(deviceId, device_types::kTrackGain);
-        state.gain = 1.0f;
-        return state;
-    }
-};
-
-class SubtractiveSynthDeviceType final : public IDeviceType {
-public:
-    std::string typeId() const override { return device_types::kSubtractiveSynth; }
-
-    DeviceState createDefault(const std::string& deviceId) const override {
-        DeviceState state = baseState(deviceId, device_types::kSubtractiveSynth);
-        state.attack = 0.02f;
-        state.decay = 0.25f;
-        state.sustain = 0.75f;
-        state.release = 0.35f;
-        state.filterCutoff = 0.75f;
-        state.filterQ = 0.2f;
-        state.osc1Wave = 2;
-        state.osc2Wave = 2;
-        state.osc1Shape = 0.5f;
-        state.osc2Shape = 0.5f;
-        state.osc1Level = 0.85f;
-        state.osc2Level = 0.5f;
-        state.filterEnvAmount = 0.5f;
-        state.filterAttack = 0.05f;
-        state.filterDecay = 0.35f;
-        state.filterSustain = 0.4f;
-        state.filterRelease = 0.45f;
-        state.velocitySensitivity = 1.0f;
-        return state;
-    }
-};
-
-} // namespace
 
 DeviceRegistry::DeviceRegistry() = default;
 
@@ -108,6 +41,56 @@ DeviceState DeviceRegistry::createDefault(std::string_view typeId,
         return {};
     }
     return type->createDefault(deviceId);
+}
+
+DeviceParameterResult DeviceRegistry::setParameter(DeviceState& state,
+                                                   std::string_view parameterId,
+                                                   float value) const {
+    const IDeviceType* type = find(state.type);
+    if (type == nullptr) {
+        return {};
+    }
+    return type->setParameter(state, parameterId, value);
+}
+
+bool DeviceRegistry::setStringParameter(DeviceState& state,
+                                        std::string_view parameterId,
+                                        const std::string& value,
+                                        const PlaybackBuildContext& context) const {
+    const IDeviceType* type = find(state.type);
+    if (type == nullptr) {
+        return false;
+    }
+    return type->setStringParameter(state, parameterId, value, context);
+}
+
+void DeviceRegistry::buildPlaybackNode(const DeviceState& state,
+                                       const PlaybackBuildContext& context,
+                                       DeviceNodePlayback& out) const {
+    const IDeviceType* type = find(state.type);
+    if (type == nullptr) {
+        out.kind = DeviceNodeKind::Unknown;
+        return;
+    }
+    type->buildPlaybackNode(state, context, out);
+}
+
+bool DeviceRegistry::buildLiveInstrument(const DeviceState& state,
+                                           const PlaybackBuildContext& context,
+                                           LiveInstrumentSnapshot& out) const {
+    const IDeviceType* type = find(state.type);
+    if (type == nullptr) {
+        return false;
+    }
+    return type->buildLiveInstrument(state, context, out);
+}
+
+std::vector<std::string_view> DeviceRegistry::modulatableParams(std::string_view typeId) const {
+    const IDeviceType* type = find(typeId);
+    if (type == nullptr) {
+        return {};
+    }
+    return type->modulatableParams();
 }
 
 DeviceRegistry DeviceRegistry::createBuiltIn() {

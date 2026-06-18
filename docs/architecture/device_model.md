@@ -60,4 +60,4 @@ Device DSP must follow [realtime_audio_rules.md](realtime_audio_rules.md). No al
 
 ## M12 implementation (planned)
 
-Control-thread device classes (`OscillatorDeviceType`, etc.) and `DeviceRegistry` implement this conceptual interface — see [project_engine_refactor.md](project_engine_refactor.md) and [ADR-0007](../adr/ADR-0007-project-engine-decomposition.md). Playback remains variant-based (`DeviceNodePlayback`, US-10-01).
+Control-thread device classes (`OscillatorDeviceType`, `SamplerDeviceType`, `TrackGainDeviceType`, `SubtractiveSynthDeviceType`) implement `IDeviceType` in `engine_juce/include/audioapp/devices/` — see [project_engine_refactor.md](project_engine_refactor.md) and [ADR-0007](../adr/ADR-0007-project-engine-decomposition.md). Playback remains variant-based (`DeviceNodePlayback`, US-10-01).
