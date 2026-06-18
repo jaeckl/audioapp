@@ -9,7 +9,7 @@ int main() {
     const audioapp::DeviceRegistry registry = audioapp::DeviceRegistry::createBuiltIn();
 
     const auto known = registry.knownTypes();
-    if (known.size() != 7) {
+    if (known.size() != 8) {
         return EXIT_FAILURE;
     }
 

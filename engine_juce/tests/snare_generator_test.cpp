@@ -54,8 +54,9 @@ int main() {
                                  nullptr,
                                  nullptr,
                                  nullptr,
+                                 &runtime,
                                  nullptr,
-                                 &runtime);
+                                 nullptr);
 
     if (peakAbs(left, kFrames) <= 0.001f) {
         return EXIT_FAILURE;

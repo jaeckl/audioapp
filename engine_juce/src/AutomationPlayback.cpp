@@ -5,6 +5,7 @@
 #include "audioapp/KickGenerator.hpp"
 #include "audioapp/SnareGenerator.hpp"
 #include "audioapp/ClapGenerator.hpp"
+#include "audioapp/CymbalGenerator.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -191,6 +192,23 @@ void applyAutomationValue(DeviceVariantParams& params,
                 p->clapRoom = value;
             } else if (paramId == "clapDecay") {
                 p->clapDecay = value;
+            }
+        }
+        break;
+    case DeviceNodeKind::CymbalGenerator:
+        if (auto* p = std::get_if<CymbalGeneratorParams>(&params)) {
+            if (paramId == "gain") {
+                p->gain = value;
+            } else if (paramId == "cymbalMetal") {
+                p->cymbalMetal = value;
+            } else if (paramId == "cymbalBrightness") {
+                p->cymbalBrightness = value;
+            } else if (paramId == "cymbalDecay") {
+                p->cymbalDecay = value;
+            } else if (paramId == "cymbalChoke") {
+                p->cymbalChoke = value;
+            } else if (paramId == "cymbalVelocity") {
+                p->cymbalVelocity = value;
             }
         }
         break;

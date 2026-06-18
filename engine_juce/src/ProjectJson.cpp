@@ -157,6 +157,13 @@ juce::var deviceToVar(const DeviceState& device) {
         parameters->setProperty("clapRoom", static_cast<double>(device.clapRoom));
         parameters->setProperty("clapDecay", static_cast<double>(device.clapDecay));
     }
+    if (device.type == "cymbal_generator") {
+        parameters->setProperty("cymbalMetal", static_cast<double>(device.cymbalMetal));
+        parameters->setProperty("cymbalBrightness", static_cast<double>(device.cymbalBrightness));
+        parameters->setProperty("cymbalDecay", static_cast<double>(device.cymbalDecay));
+        parameters->setProperty("cymbalChoke", static_cast<double>(device.cymbalChoke));
+        parameters->setProperty("cymbalVelocity", static_cast<double>(device.cymbalVelocity));
+    }
 
     auto* object = new juce::DynamicObject();
     object->setProperty("id", toJuceString(device.id));
@@ -246,6 +253,11 @@ DeviceState deviceFromVar(const juce::var& value) {
             device.clapTone = varToFloat(params->getProperty("clapTone"), 0.55f);
             device.clapRoom = varToFloat(params->getProperty("clapRoom"), 0.50f);
             device.clapDecay = varToFloat(params->getProperty("clapDecay"), 0.50f);
+            device.cymbalMetal = varToFloat(params->getProperty("cymbalMetal"), 0.55f);
+            device.cymbalBrightness = varToFloat(params->getProperty("cymbalBrightness"), 0.60f);
+            device.cymbalDecay = varToFloat(params->getProperty("cymbalDecay"), 0.50f);
+            device.cymbalChoke = varToFloat(params->getProperty("cymbalChoke"), 0.0f);
+            device.cymbalVelocity = varToFloat(params->getProperty("cymbalVelocity"), 1.0f);
         }
     }
     return device;

@@ -45,6 +45,7 @@ class DeviceStripMetrics {
       'kick_generator' => oscillatorDesignWidth,
       'snare_generator' => oscillatorDesignWidth,
       'clap_generator' => oscillatorDesignWidth,
+      'cymbal_generator' => oscillatorDesignWidth,
       'simple_oscillator' => oscillatorDesignWidth,
       _ => 280,
     };

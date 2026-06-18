@@ -237,6 +237,11 @@ class DeviceSnapshot {
     this.clapTone = 0.55,
     this.clapRoom = 0.50,
     this.clapDecay = 0.50,
+    this.cymbalMetal = 0.55,
+    this.cymbalBrightness = 0.60,
+    this.cymbalDecay = 0.50,
+    this.cymbalChoke = 0.0,
+    this.cymbalVelocity = 1.0,
   });
 
   final String id;
@@ -296,6 +301,11 @@ class DeviceSnapshot {
   final double clapTone;
   final double clapRoom;
   final double clapDecay;
+  final double cymbalMetal;
+  final double cymbalBrightness;
+  final double cymbalDecay;
+  final double cymbalChoke;
+  final double cymbalVelocity;
 
   factory DeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -358,6 +368,11 @@ class DeviceSnapshot {
       clapTone: (params['clapTone'] as num?)?.toDouble() ?? 0.55,
       clapRoom: (params['clapRoom'] as num?)?.toDouble() ?? 0.50,
       clapDecay: (params['clapDecay'] as num?)?.toDouble() ?? 0.50,
+      cymbalMetal: (params['cymbalMetal'] as num?)?.toDouble() ?? 0.55,
+      cymbalBrightness: (params['cymbalBrightness'] as num?)?.toDouble() ?? 0.60,
+      cymbalDecay: (params['cymbalDecay'] as num?)?.toDouble() ?? 0.50,
+      cymbalChoke: (params['cymbalChoke'] as num?)?.toDouble() ?? 0.0,
+      cymbalVelocity: (params['cymbalVelocity'] as num?)?.toDouble() ?? 1.0,
     );
   }
 
@@ -455,6 +470,11 @@ class DeviceSnapshot {
     double? clapTone,
     double? clapRoom,
     double? clapDecay,
+    double? cymbalMetal,
+    double? cymbalBrightness,
+    double? cymbalDecay,
+    double? cymbalChoke,
+    double? cymbalVelocity,
   }) {
     return DeviceSnapshot(
       id: id ?? this.id,
@@ -514,6 +534,11 @@ class DeviceSnapshot {
       clapTone: clapTone ?? this.clapTone,
       clapRoom: clapRoom ?? this.clapRoom,
       clapDecay: clapDecay ?? this.clapDecay,
+      cymbalMetal: cymbalMetal ?? this.cymbalMetal,
+      cymbalBrightness: cymbalBrightness ?? this.cymbalBrightness,
+      cymbalDecay: cymbalDecay ?? this.cymbalDecay,
+      cymbalChoke: cymbalChoke ?? this.cymbalChoke,
+      cymbalVelocity: cymbalVelocity ?? this.cymbalVelocity,
     );
   }
 
@@ -625,6 +650,16 @@ class DeviceSnapshot {
         return copyWith(clapRoom: value.clamp(0.0, 1.0));
       case 'clapDecay':
         return copyWith(clapDecay: value.clamp(0.0, 1.0));
+      case 'cymbalMetal':
+        return copyWith(cymbalMetal: value.clamp(0.0, 1.0));
+      case 'cymbalBrightness':
+        return copyWith(cymbalBrightness: value.clamp(0.0, 1.0));
+      case 'cymbalDecay':
+        return copyWith(cymbalDecay: value.clamp(0.0, 1.0));
+      case 'cymbalChoke':
+        return copyWith(cymbalChoke: value.clamp(0.0, 1.0));
+      case 'cymbalVelocity':
+        return copyWith(cymbalVelocity: value.clamp(0.0, 1.0));
       default:
         return this;
     }
