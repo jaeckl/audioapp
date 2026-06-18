@@ -2,6 +2,7 @@
 
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/model/TrackModel.hpp"
+#include "audioapp/KickGenerator.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -133,6 +134,25 @@ void applyAutomationValue(DeviceVariantParams& params,
                 p->glideMs = value;
             } else if (paramId == "velocitySensitivity") {
                 p->velocitySensitivity = value;
+            }
+        }
+        break;
+    case DeviceNodeKind::KickGenerator:
+        if (auto* p = std::get_if<KickGeneratorParams>(&params)) {
+            if (paramId == "gain") {
+                p->gain = value;
+            } else if (paramId == "kickPitch") {
+                p->kickPitch = value;
+            } else if (paramId == "kickPunch") {
+                p->kickPunch = value;
+            } else if (paramId == "kickDecay") {
+                p->kickDecay = value;
+            } else if (paramId == "kickClick") {
+                p->kickClick = value;
+            } else if (paramId == "kickTone") {
+                p->kickTone = value;
+            } else if (paramId == "kickVelocity") {
+                p->kickVelocity = value;
             }
         }
         break;

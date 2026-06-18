@@ -4,6 +4,7 @@
 #include <variant>
 
 #include "audioapp/AutomationTypes.hpp"
+#include "audioapp/KickGenerator.hpp"
 #include "audioapp/LfoTypes.hpp"
 #include "audioapp/SamplerFilter.hpp"
 #include "audioapp/SubtractiveSynth.hpp"
@@ -24,6 +25,7 @@ enum class DeviceNodeKind : uint8_t {
     Oscillator,
     Sampler,
     SubtractiveSynth,
+    KickGenerator,
     TrackGain,
 };
 
@@ -61,6 +63,7 @@ using DeviceVariantParams = std::variant<
     OscillatorParams,
     SamplerParams,
     SubtractiveSynthParams,
+    KickGeneratorParams,
     TrackGainParams
 >;
 
@@ -97,6 +100,7 @@ void processDeviceChain(float* trackLeft,
                         bool suppressInstruments,
                         BiquadState* samplerFilterStates = nullptr,
                         SubtractiveSynthRuntime* subtractiveRuntimes = nullptr,
+                        KickGeneratorRuntime* kickRuntimes = nullptr,
                         const float* lfoValues = nullptr,
                         int lfoCount = 0,
                         const ModulationEdge* modEdges = nullptr,

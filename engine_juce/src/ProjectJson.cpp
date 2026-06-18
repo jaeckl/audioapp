@@ -134,6 +134,14 @@ juce::var deviceToVar(const DeviceState& device) {
         parameters->setProperty("velocitySensitivity",
                                 static_cast<double>(device.velocitySensitivity));
     }
+    if (device.type == "kick_generator") {
+        parameters->setProperty("kickPitch", static_cast<double>(device.kickPitch));
+        parameters->setProperty("kickPunch", static_cast<double>(device.kickPunch));
+        parameters->setProperty("kickDecay", static_cast<double>(device.kickDecay));
+        parameters->setProperty("kickClick", static_cast<double>(device.kickClick));
+        parameters->setProperty("kickTone", static_cast<double>(device.kickTone));
+        parameters->setProperty("kickVelocity", static_cast<double>(device.kickVelocity));
+    }
 
     auto* object = new juce::DynamicObject();
     object->setProperty("id", toJuceString(device.id));
@@ -206,6 +214,12 @@ DeviceState deviceFromVar(const juce::var& value) {
             device.glideMs = varToFloat(params->getProperty("glideMs"), 0.0f);
             device.velocitySensitivity =
                 varToFloat(params->getProperty("velocitySensitivity"), 1.0f);
+            device.kickPitch = varToFloat(params->getProperty("kickPitch"), 0.55f);
+            device.kickPunch = varToFloat(params->getProperty("kickPunch"), 0.60f);
+            device.kickDecay = varToFloat(params->getProperty("kickDecay"), 0.50f);
+            device.kickClick = varToFloat(params->getProperty("kickClick"), 0.35f);
+            device.kickTone = varToFloat(params->getProperty("kickTone"), 0.50f);
+            device.kickVelocity = varToFloat(params->getProperty("kickVelocity"), 1.0f);
         }
     }
     return device;
