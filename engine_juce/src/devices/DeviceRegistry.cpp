@@ -1,9 +1,14 @@
 #include "audioapp/devices/DeviceRegistry.hpp"
 
+#include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/devices/OscillatorDeviceType.hpp"
 #include "audioapp/devices/SamplerDeviceType.hpp"
 #include "audioapp/devices/SubtractiveSynthDeviceType.hpp"
 #include "audioapp/devices/TrackGainDeviceType.hpp"
+#include "audioapp/devices/instances/OscillatorInstance.hpp"
+#include "audioapp/devices/instances/SamplerInstance.hpp"
+#include "audioapp/devices/instances/SubtractiveSynthInstance.hpp"
+#include "audioapp/devices/instances/TrackGainInstance.hpp"
 
 namespace audioapp {
 
@@ -34,8 +39,24 @@ std::vector<std::string_view> DeviceRegistry::knownTypes() const {
     return typeIds_;
 }
 
-DeviceState DeviceRegistry::createDefault(std::string_view typeId,
-                                          const std::string& deviceId) const {
+const IDeviceType* DeviceRegistry::findForSlot(const DeviceSlot& slot) const {
+    if (std::holds_alternative<OscillatorInstance>(slot.instance)) {
+        return find(device_types::kOscillator);
+    }
+    if (std::holds_alternative<SamplerInstance>(slot.instance)) {
+        return find(device_types::kSampler);
+    }
+    if (std::holds_alternative<TrackGainInstance>(slot.instance)) {
+        return find(device_types::kTrackGain);
+    }
+    if (std::holds_alternative<SubtractiveSynthInstance>(slot.instance)) {
+        return find(device_types::kSubtractiveSynth);
+    }
+    return nullptr;
+}
+
+DeviceSlot DeviceRegistry::createDefault(std::string_view typeId,
+                                         const std::string& deviceId) const {
     const IDeviceType* type = find(typeId);
     if (type == nullptr) {
         return {};
@@ -43,46 +64,62 @@ DeviceState DeviceRegistry::createDefault(std::string_view typeId,
     return type->createDefault(deviceId);
 }
 
-DeviceParameterResult DeviceRegistry::setParameter(DeviceState& state,
-                                                   std::string_view parameterId,
-                                                   float value) const {
+DeviceState DeviceRegistry::toSnapshotState(const DeviceSlot& slot) const {
+    const IDeviceType* type = findForSlot(slot);
+    if (type == nullptr) {
+        return {};
+    }
+    return type->toSnapshotState(slot);
+}
+
+DeviceSlot DeviceRegistry::slotFromSnapshot(const DeviceState& state) const {
     const IDeviceType* type = find(state.type);
     if (type == nullptr) {
         return {};
     }
-    return type->setParameter(state, parameterId, value);
+    return type->slotFromSnapshot(state);
 }
 
-bool DeviceRegistry::setStringParameter(DeviceState& state,
+DeviceParameterResult DeviceRegistry::setParameter(DeviceSlot& slot,
+                                                   std::string_view parameterId,
+                                                   float value) const {
+    const IDeviceType* type = findForSlot(slot);
+    if (type == nullptr) {
+        return {};
+    }
+    return type->setParameter(slot, parameterId, value);
+}
+
+bool DeviceRegistry::setStringParameter(DeviceSlot& slot,
                                         std::string_view parameterId,
                                         const std::string& value,
                                         const PlaybackBuildContext& context) const {
-    const IDeviceType* type = find(state.type);
+    const IDeviceType* type = findForSlot(slot);
     if (type == nullptr) {
         return false;
     }
-    return type->setStringParameter(state, parameterId, value, context);
+    return type->setStringParameter(slot, parameterId, value, context);
 }
 
-void DeviceRegistry::buildPlaybackNode(const DeviceState& state,
+void DeviceRegistry::buildPlaybackNode(const DeviceSlot& slot,
                                        const PlaybackBuildContext& context,
                                        DeviceNodePlayback& out) const {
-    const IDeviceType* type = find(state.type);
+    const IDeviceType* type = findForSlot(slot);
     if (type == nullptr) {
         out.kind = DeviceNodeKind::Unknown;
         return;
     }
-    type->buildPlaybackNode(state, context, out);
+    type->buildPlaybackNode(slot, context, out);
 }
 
-bool DeviceRegistry::buildLiveInstrument(const DeviceState& state,
-                                           const PlaybackBuildContext& context,
-                                           LiveInstrumentSnapshot& out) const {
-    const IDeviceType* type = find(state.type);
+bool DeviceRegistry::buildLiveInstrument(const DeviceSlot& slot,
+                                         const PlaybackBuildContext& context,
+                                         LiveInstrumentSnapshot& out) const {
+    const IDeviceType* type = findForSlot(slot);
     if (type == nullptr) {
         return false;
     }
-    return type->buildLiveInstrument(state, context, out);
+    return type->buildLiveInstrument(slot, context, out);
 }
 
 std::vector<std::string_view> DeviceRegistry::modulatableParams(std::string_view typeId) const {

@@ -21,9 +21,7 @@ bool ProjectEngine::buildLiveInstrumentForTrack(const Track& track,
                                                 LiveInstrumentSnapshot& out) const {
     const PlaybackBuildContext context{sampleBank_};
     for (const auto& device : track.devices) {
-        DeviceState state;
-        copyDeviceToState(device, state);
-        if (deviceRegistry_.buildLiveInstrument(state, context, out)) {
+        if (deviceRegistry_.buildLiveInstrument(device, context, out)) {
             return true;
         }
     }

@@ -53,8 +53,8 @@ Four `*DeviceType` classes implement `IDeviceType` with typed instance structs (
 
 ## Tests required
 
-- [ ] One focused C++ test file per device type (or single `device_types_test.cpp` with sections)
-- [ ] Regression: `device_chain_test`, `subtractive_synth_test`
+- [x] One focused C++ test file per device type (or single `device_types_test.cpp` with sections)
+- [x] Regression: `device_chain_test`, `subtractive_synth_test`
 
 ## Realtime/performance notes
 
@@ -70,4 +70,4 @@ US-12-01
 
 ## Status
 
-Todo
+Done

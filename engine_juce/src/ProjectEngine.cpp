@@ -6,6 +6,8 @@
 #include "audioapp/SamplePlayback.hpp"
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
+#include "audioapp/devices/instances/OscillatorInstance.hpp"
+#include "audioapp/devices/instances/TrackGainInstance.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -15,100 +17,6 @@
 #include <vector>
 
 namespace audioapp {
-
-void ProjectEngine::copyDeviceToState(const Device& src, DeviceState& dst) {
-    dst.id = src.id;
-    dst.type = src.type;
-    dst.frequencyHz = src.frequencyHz;
-    dst.gain = src.gain;
-    dst.pan = src.pan;
-    dst.sampleId = src.sampleId;
-    dst.attack = src.attack;
-    dst.decay = src.decay;
-    dst.sustain = src.sustain;
-    dst.release = src.release;
-    dst.filterCutoff = src.filterCutoff;
-    dst.filterQ = src.filterQ;
-    dst.filterMode = src.filterMode;
-    dst.trimStartSec = src.trimStartSec;
-    dst.trimEndSec = src.trimEndSec;
-    dst.regionStartSec = src.regionStartSec;
-    dst.regionEndSec = src.regionEndSec;
-    dst.bypassed = src.bypassed;
-    dst.osc1Wave = src.osc1Wave;
-    dst.osc2Wave = src.osc2Wave;
-    dst.osc1Shape = src.osc1Shape;
-    dst.osc2Shape = src.osc2Shape;
-    dst.osc1Octave = src.osc1Octave;
-    dst.osc1Semi = src.osc1Semi;
-    dst.osc1Detune = src.osc1Detune;
-    dst.osc2Octave = src.osc2Octave;
-    dst.osc2Semi = src.osc2Semi;
-    dst.osc2Detune = src.osc2Detune;
-    dst.osc1Level = src.osc1Level;
-    dst.osc2Level = src.osc2Level;
-    dst.oscMix = src.oscMix;
-    dst.osc1Sync = src.osc1Sync;
-    dst.osc2Sync = src.osc2Sync;
-    dst.noiseLevel = src.noiseLevel;
-    dst.oscMixMode = src.oscMixMode;
-    dst.unisonVoices = src.unisonVoices;
-    dst.unisonDetune = src.unisonDetune;
-    dst.filterEnvAmount = src.filterEnvAmount;
-    dst.filterAttack = src.filterAttack;
-    dst.filterDecay = src.filterDecay;
-    dst.filterSustain = src.filterSustain;
-    dst.filterRelease = src.filterRelease;
-    dst.glideMs = src.glideMs;
-    dst.velocitySensitivity = src.velocitySensitivity;
-}
-
-void ProjectEngine::copyStateToDevice(const DeviceState& src, Device& dst) {
-    dst.id = src.id;
-    dst.type = src.type;
-    dst.frequencyHz = src.frequencyHz;
-    dst.gain = src.gain;
-    dst.pan = src.pan;
-    dst.sampleId = src.sampleId;
-    dst.attack = src.attack;
-    dst.decay = src.decay;
-    dst.sustain = src.sustain;
-    dst.release = src.release;
-    dst.filterCutoff = src.filterCutoff;
-    dst.filterQ = src.filterQ;
-    dst.filterMode = src.filterMode;
-    dst.trimStartSec = src.trimStartSec;
-    dst.trimEndSec = src.trimEndSec;
-    dst.regionStartSec = src.regionStartSec;
-    dst.regionEndSec = src.regionEndSec;
-    dst.bypassed = src.bypassed;
-    dst.osc1Wave = src.osc1Wave;
-    dst.osc2Wave = src.osc2Wave;
-    dst.osc1Shape = src.osc1Shape;
-    dst.osc2Shape = src.osc2Shape;
-    dst.osc1Octave = src.osc1Octave;
-    dst.osc1Semi = src.osc1Semi;
-    dst.osc1Detune = src.osc1Detune;
-    dst.osc2Octave = src.osc2Octave;
-    dst.osc2Semi = src.osc2Semi;
-    dst.osc2Detune = src.osc2Detune;
-    dst.osc1Level = src.osc1Level;
-    dst.osc2Level = src.osc2Level;
-    dst.oscMix = src.oscMix;
-    dst.osc1Sync = src.osc1Sync;
-    dst.osc2Sync = src.osc2Sync;
-    dst.noiseLevel = src.noiseLevel;
-    dst.oscMixMode = src.oscMixMode;
-    dst.unisonVoices = src.unisonVoices;
-    dst.unisonDetune = src.unisonDetune;
-    dst.filterEnvAmount = src.filterEnvAmount;
-    dst.filterAttack = src.filterAttack;
-    dst.filterDecay = src.filterDecay;
-    dst.filterSustain = src.filterSustain;
-    dst.filterRelease = src.filterRelease;
-    dst.glideMs = src.glideMs;
-    dst.velocitySensitivity = src.velocitySensitivity;
-}
 
 void ProjectEngine::createProject() {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -139,9 +47,7 @@ std::string ProjectEngine::addTrack(const std::string& name) {
     track.name = name.empty() ? ("Track " + std::to_string(tracks_.size() + 1)) : name;
 
     const std::string gainId = "dev-" + std::to_string(nextDeviceNum_++);
-    Device gain;
-    copyStateToDevice(deviceRegistry_.createDefault(device_types::kTrackGain, gainId), gain);
-    track.devices.push_back(std::move(gain));
+    track.devices.push_back(deviceRegistry_.createDefault(device_types::kTrackGain, gainId));
 
     tracks_.push_back(std::move(track));
     selectedTrackId_ = tracks_.back().id;
@@ -177,12 +83,11 @@ std::string ProjectEngine::addDeviceToTrack(const std::string& trackId,
     }
 
     const std::string deviceId = "dev-" + std::to_string(nextDeviceNum_++);
-    Device device;
-    copyStateToDevice(deviceRegistry_.createDefault(resolvedType, deviceId), device);
+    DeviceSlot device = deviceRegistry_.createDefault(resolvedType, deviceId);
 
     size_t gainIndex = track->devices.size();
     for (size_t i = 0; i < track->devices.size(); ++i) {
-        if (track->devices[i].type == device_types::kTrackGain) {
+        if (std::holds_alternative<TrackGainInstance>(track->devices[i].instance)) {
             gainIndex = i;
             break;
         }
@@ -204,19 +109,16 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
                                        const std::string& parameterId,
                                        float value) {
     std::lock_guard<std::mutex> lock(mutex_);
-    Device* device = findDeviceLocked(deviceId);
+    DeviceSlot* device = findDeviceLocked(deviceId);
     if (device == nullptr) {
         return false;
     }
 
-    DeviceState state;
-    copyDeviceToState(*device, state);
     const DeviceParameterResult result =
-        deviceRegistry_.setParameter(state, parameterId, value);
+        deviceRegistry_.setParameter(*device, parameterId, value);
     if (!result.handled) {
         return false;
     }
-    copyStateToDevice(state, *device);
     if (result.syncActiveFrequency) {
         syncActiveFrequencyLocked();
     }
@@ -228,18 +130,15 @@ bool ProjectEngine::setDeviceStringParameter(const std::string& deviceId,
                                              const std::string& parameterId,
                                              const std::string& value) {
     std::lock_guard<std::mutex> lock(mutex_);
-    Device* device = findDeviceLocked(deviceId);
+    DeviceSlot* device = findDeviceLocked(deviceId);
     if (device == nullptr) {
         return false;
     }
 
-    DeviceState state;
-    copyDeviceToState(*device, state);
     const PlaybackBuildContext context{sampleBank_};
-    if (!deviceRegistry_.setStringParameter(state, parameterId, value, context)) {
+    if (!deviceRegistry_.setStringParameter(*device, parameterId, value, context)) {
         return false;
     }
-    copyStateToDevice(state, *device);
     rebuildTrackPlaybackLocked();
     return true;
 }
@@ -536,9 +435,7 @@ ProjectSnapshot ProjectEngine::snapshot() const {
         ts.name = track.name;
         ts.devices.reserve(track.devices.size());
         for (const auto& device : track.devices) {
-            DeviceState ds;
-            copyDeviceToState(device, ds);
-            ts.devices.push_back(std::move(ds));
+            ts.devices.push_back(deviceRegistry_.toSnapshotState(device));
         }
         ts.midiClips.reserve(track.midiClips.size());
         for (const auto& clip : track.midiClips) {
@@ -876,9 +773,7 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
         ts.id = track.id;
         ts.name = track.name;
         for (const auto& device : track.devices) {
-            DeviceState ds;
-            copyDeviceToState(device, ds);
-            ts.devices.push_back(std::move(ds));
+            ts.devices.push_back(deviceRegistry_.toSnapshotState(device));
         }
         for (const auto& clip : track.midiClips) {
             MidiClipState cs;
@@ -932,9 +827,7 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
         track.id = trackState.id;
         track.name = trackState.name;
         for (const auto& deviceState : trackState.devices) {
-            Device device;
-            copyStateToDevice(deviceState, device);
-            track.devices.push_back(std::move(device));
+            track.devices.push_back(deviceRegistry_.slotFromSnapshot(deviceState));
         }
         for (const auto& clipState : trackState.midiClips) {
             MidiClip clip;
@@ -1169,10 +1062,8 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
             node.gain = device.gain;
             node.pan = device.pan;
 
-            DeviceState deviceState;
-            copyDeviceToState(device, deviceState);
             const PlaybackBuildContext context{sampleBank_};
-            deviceRegistry_.buildPlaybackNode(deviceState, context, node);
+            deviceRegistry_.buildPlaybackNode(device, context, node);
         }
 
         for (const auto& clip : sourceTrack.midiClips) {
@@ -1253,8 +1144,8 @@ void ProjectEngine::syncActiveFrequencyLocked() {
         if (Track* track = findTrackLocked(selectedTrackId_)) {
             bool foundOscillator = false;
             for (const auto& device : track->devices) {
-                if (device.type == "simple_oscillator") {
-                    freq = device.frequencyHz;
+                if (std::holds_alternative<OscillatorInstance>(device.instance)) {
+                    freq = std::get<OscillatorInstance>(device.instance).frequencyHz;
                     foundOscillator = true;
                     break;
                 }
@@ -1277,7 +1168,7 @@ ProjectEngine::Track* ProjectEngine::findTrackLocked(const std::string& trackId)
     return nullptr;
 }
 
-ProjectEngine::Device* ProjectEngine::findDeviceLocked(const std::string& deviceId) {
+DeviceSlot* ProjectEngine::findDeviceLocked(const std::string& deviceId) {
     for (auto& track : tracks_) {
         for (auto& device : track.devices) {
             if (device.id == deviceId) {
@@ -1314,7 +1205,7 @@ void ProjectEngine::ensureTrackGainDevicesLocked() {
     for (auto& track : tracks_) {
         bool hasGain = false;
         for (const auto& device : track.devices) {
-            if (device.type == device_types::kTrackGain) {
+            if (std::holds_alternative<TrackGainInstance>(device.instance)) {
                 hasGain = true;
                 break;
             }
@@ -1323,9 +1214,7 @@ void ProjectEngine::ensureTrackGainDevicesLocked() {
             continue;
         }
         const std::string gainId = "dev-" + std::to_string(nextDeviceNum_++);
-        Device gain;
-        copyStateToDevice(deviceRegistry_.createDefault(device_types::kTrackGain, gainId), gain);
-        track.devices.push_back(std::move(gain));
+        track.devices.push_back(deviceRegistry_.createDefault(device_types::kTrackGain, gainId));
     }
 }
 
