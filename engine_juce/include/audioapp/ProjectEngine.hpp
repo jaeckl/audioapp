@@ -214,6 +214,10 @@ private:
     TrackPlaybackSnapshot trackPlayback_[kMaxTracks];
     std::atomic<int> trackPlaybackCount_{0};
 
+    DeviceMeterAtomic deviceMeters_[kMaxDeviceMeters];
+    std::string deviceMeterIds_[kMaxDeviceMeters];
+    int deviceMeterSlotCount_ = 0;
+
     static constexpr int kMaxAutomationClips = 32;
     AutomationClipPlayback automationPlayback_[kMaxAutomationClips]{};
     std::atomic<int> automationPlaybackCount_{0};
@@ -233,6 +237,7 @@ private:
     int selectedTrackPlaybackIndex() const noexcept;
     void syncActiveFrequencyLocked();
     void recomputeIdCountersLocked();
+    void applyLiveDeviceMetersLocked(ProjectSnapshot& snap) const;
     const DeviceNodePlayback* findOscillatorNode(const TrackPlaybackSnapshot& track) const noexcept;
     DeviceSlot* findDeviceLocked(const std::string& deviceId);
     bool buildLiveInstrumentForTrack(const Track& track, LiveInstrumentSnapshot& out) const;

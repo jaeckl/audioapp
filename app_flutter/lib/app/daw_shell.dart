@@ -119,6 +119,9 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
         }
         _displayPlayheadBeats = transport.playing ? _extrapolatePlayheadBeats() : transport.playheadBeats;
       });
+      if (_playing && _snapshot != null) {
+        unawaited(_refreshLiveMeters());
+      }
     } catch (_) {
     } finally {
       _transportSyncInFlight = false;
@@ -168,6 +171,15 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
   Future<void> _refreshSnapshot(ProjectSnapshot snapshot) async {
     if (!mounted) return;
     setState(() => _snapshot = snapshot);
+  }
+
+  Future<void> _refreshLiveMeters() async {
+    if (!_playing || _snapshot == null) return;
+    try {
+      final fresh = await widget.bridge.getProjectSnapshot();
+      if (!mounted || _snapshot == null) return;
+      setState(() => _snapshot = _snapshot!.withMergedDeviceMeters(fresh));
+    } catch (_) {}
   }
 
   Future<void> _addTrack() async {

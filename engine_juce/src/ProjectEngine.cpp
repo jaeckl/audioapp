@@ -377,6 +377,8 @@ ProjectSnapshot ProjectEngine::snapshot() const {
     snap.lfos = modulationGraph_.lfos();
     snap.modEdges = modulationGraph_.modEdges();
 
+    applyLiveDeviceMetersLocked(snap);
+
     return snap;
 }
 
@@ -579,6 +581,8 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                            trackPlayback_[trackIndex].clapRuntimes,
                            trackPlayback_[trackIndex].cymbalRuntimes,
                            trackPlayback_[trackIndex].dynamicsRuntimes,
+                           deviceMeters_,
+                           deviceMeterSlotCount_,
                            lfoCount > 0 ? lfoValues.data() : nullptr,
                            lfoCount,
                            modulationGraph_.modEdgePlaybackData(),
@@ -850,7 +854,29 @@ void ProjectEngine::recomputeIdCountersLocked() {
     modulationGraph_.recomputeIdCounters();
 }
 
+void ProjectEngine::applyLiveDeviceMetersLocked(ProjectSnapshot& snap) const {
+    for (auto& trackState : snap.tracks) {
+        for (auto& device : trackState.devices) {
+            if (device.type != "gate" && device.type != "compressor" &&
+                device.type != "expander" && device.type != "limiter") {
+                continue;
+            }
+            for (int i = 0; i < deviceMeterSlotCount_; ++i) {
+                if (deviceMeterIds_[i] != device.id) {
+                    continue;
+                }
+                device.meterGainReductionDb =
+                    deviceMeters_[i].gainReductionDb.load(std::memory_order_relaxed);
+                device.meterInputLevel =
+                    deviceMeters_[i].inputPeak.load(std::memory_order_relaxed);
+                break;
+            }
+        }
+    }
+}
+
 void ProjectEngine::rebuildTrackPlaybackLocked() {
+    deviceMeterSlotCount_ = 0;
     int trackIndex = 0;
     for (const auto& sourceTrack : trackRepo_.tracks()) {
         if (trackIndex >= kMaxTracks) {
@@ -868,14 +894,21 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                 break;
             }
 
-            DeviceNodePlayback& node = snap.devices[snap.deviceCount++];
+            DeviceNodePlayback& node = snap.devices[snap.deviceCount];
             node.deviceId = device.id;
             node.bypassed = device.bypassed;
             node.gain = device.gain;
             node.pan = device.pan;
+            node.meterSlot = -1;
 
             const PlaybackBuildContext context{sampleBank_};
             deviceRegistry_.buildPlaybackNode(device, context, node);
+            if (isDynamicsDeviceNodeKind(node.kind) && deviceMeterSlotCount_ < kMaxDeviceMeters) {
+                node.meterSlot = static_cast<int8_t>(deviceMeterSlotCount_);
+                deviceMeterIds_[deviceMeterSlotCount_] = device.id;
+                ++deviceMeterSlotCount_;
+            }
+            ++snap.deviceCount;
         }
 
         for (const auto& clip : sourceTrack.midiClips) {

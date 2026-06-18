@@ -39,6 +39,7 @@ class DrumMonoOutputPanel extends StatelessWidget {
   static String? velocityParamIdFor(String deviceType) => switch (deviceType) {
         'kick_generator' => 'kickVelocity',
         'snare_generator' => 'snareVelocity',
+        'clap_generator' => 'clapVelocity',
         'cymbal_generator' => 'cymbalVelocity',
         _ => null,
       };
@@ -46,6 +47,7 @@ class DrumMonoOutputPanel extends StatelessWidget {
   static double velocityFor(DeviceSnapshot device) => switch (device.type) {
         'kick_generator' => device.kickVelocity,
         'snare_generator' => device.snareVelocity,
+        'clap_generator' => device.clapVelocity,
         'cymbal_generator' => device.cymbalVelocity,
         _ => 1.0,
       };
@@ -105,9 +107,11 @@ class DynamicsInputPanel extends StatelessWidget {
   const DynamicsInputPanel({
     super.key,
     required this.accentColor,
+    this.inputLevel = 0,
   });
 
   final Color accentColor;
+  final double inputLevel;
 
   @override
   Widget build(BuildContext context) {
@@ -139,7 +143,7 @@ class DynamicsInputPanel extends StatelessWidget {
                 child: Align(
                   alignment: Alignment.bottomCenter,
                   child: FractionallySizedBox(
-                    heightFactor: 0.35,
+                    heightFactor: inputLevel.clamp(0.05, 1.0),
                     widthFactor: 0.55,
                     child: DecoratedBox(
                       decoration: BoxDecoration(

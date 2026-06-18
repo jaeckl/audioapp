@@ -162,7 +162,7 @@ void mixClapMidiNotesBlock(float* monoOut,
         runtime.voice.elapsedSec = activeElapsed;
 
         const float vel = std::clamp(runtime.voice.velocity / 127.0f, 0.0f, 1.0f);
-        const float velGain = 0.5f + vel * 0.5f;
+        const float velGain = 1.0f - params.clapVelocity * (1.0f - vel);
         monoOut[frame] += clapGeneratorSample(runtime.voice, params, sampleRate, velGain);
     }
 }

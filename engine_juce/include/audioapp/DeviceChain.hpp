@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <atomic>
 #include <variant>
 
 #include "audioapp/AutomationTypes.hpp"
@@ -92,11 +93,21 @@ struct DeviceNodePlayback {
     bool bypassed = false;
     float gain = 1.0f;   // universal output gain (every device has one)
     float pan = 0.5f;    // universal stereo pan
+    int8_t meterSlot = -1; // dynamics meter index for live UI (-1 = none)
     DeviceVariantParams params;
 };
 
 static constexpr int kMaxDevicesPerTrack = 16;
 static constexpr float kInstrumentOutputGain = 0.2f;
+
+struct DeviceMeterAtomic {
+    std::atomic<float> gainReductionDb{0.0f};
+    std::atomic<float> inputPeak{0.0f};
+};
+
+static constexpr int kMaxDeviceMeters = 128;
+
+bool isDynamicsDeviceNodeKind(DeviceNodeKind kind) noexcept;
 
 float midiActiveFrequencyHz(const MidiPlaybackNote* notes,
                             int noteCount,
@@ -123,6 +134,8 @@ void processDeviceChain(float* trackLeft,
                         ClapGeneratorRuntime* clapRuntimes = nullptr,
                         CymbalGeneratorRuntime* cymbalRuntimes = nullptr,
                         DynamicsRuntime* dynamicsRuntimes = nullptr,
+                        DeviceMeterAtomic* deviceMeters = nullptr,
+                        int maxDeviceMeters = 0,
                         const float* lfoValues = nullptr,
                         int lfoCount = 0,
                         const ModulationEdge* modEdges = nullptr,

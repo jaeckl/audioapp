@@ -194,6 +194,8 @@ void applyAutomationValue(DeviceVariantParams& params,
                 p->clapRoom = value;
             } else if (paramId == "clapDecay") {
                 p->clapDecay = value;
+            } else if (paramId == "clapVelocity") {
+                p->clapVelocity = value;
             }
         }
         break;

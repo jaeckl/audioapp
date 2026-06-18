@@ -10,6 +10,7 @@ struct ClapGeneratorInstance {
     float clapTone = 0.55f;
     float clapRoom = 0.50f;
     float clapDecay = 0.50f;
+    float clapVelocity = 1.0f;
 
     ClapGeneratorParams toPlaybackParams(float gain) const {
         ClapGeneratorParams params;
@@ -19,6 +20,7 @@ struct ClapGeneratorInstance {
         params.clapTone = clapTone;
         params.clapRoom = clapRoom;
         params.clapDecay = clapDecay;
+        params.clapVelocity = clapVelocity;
         return params;
     }
 };

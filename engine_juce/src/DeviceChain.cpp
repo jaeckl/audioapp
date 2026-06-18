@@ -21,6 +21,27 @@ namespace {
 
 constexpr int kScratchFrames = 4096;
 
+float stereoBlockPeak(const float* left, const float* right, int frameCount) noexcept {
+    float peak = 0.0f;
+    for (int i = 0; i < frameCount; ++i) {
+        peak = std::max(peak, std::max(std::abs(left[i]), std::abs(right[i])));
+    }
+    return peak;
+}
+
+void publishDynamicsMeters(const DeviceNodePlayback& node,
+                           const DynamicsRuntime& runtime,
+                           float inputPeak,
+                           DeviceMeterAtomic* deviceMeters,
+                           int maxDeviceMeters) noexcept {
+    if (deviceMeters == nullptr || node.meterSlot < 0 || node.meterSlot >= maxDeviceMeters) {
+        return;
+    }
+    deviceMeters[node.meterSlot].gainReductionDb.store(runtime.gainReductionDb,
+                                                       std::memory_order_relaxed);
+    deviceMeters[node.meterSlot].inputPeak.store(inputPeak, std::memory_order_relaxed);
+}
+
 bool isMidiNoteActive(const MidiPlaybackNote& note, double beat) {
     if (beat < note.clipStartBeat || beat >= note.clipStartBeat + note.clipLengthBeats) {
         return false;
@@ -167,6 +188,8 @@ void applyModulation(ClapGeneratorParams& p, float modAmount, const std::string&
         p.clapRoom = std::clamp(p.clapRoom + modAmount, 0.0f, 1.0f);
     } else if (paramId == "clapDecay") {
         p.clapDecay = std::clamp(p.clapDecay + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "clapVelocity") {
+        p.clapVelocity = std::clamp(p.clapVelocity + modAmount, 0.0f, 1.0f);
     }
 }
 
@@ -258,6 +281,13 @@ void mixStereoPerFramePan(float* trackLeft, float* trackRight,
 
 } // namespace
 
+bool isDynamicsDeviceNodeKind(const DeviceNodeKind kind) noexcept {
+    return kind == DeviceNodeKind::Gate || kind == DeviceNodeKind::Compressor ||
+           kind == DeviceNodeKind::Expander || kind == DeviceNodeKind::Limiter;
+}
+
+namespace {
+
 float midiActiveFrequencyHz(const MidiPlaybackNote* notes,
                             int noteCount,
                             double playheadBeat,
@@ -294,6 +324,8 @@ void processDeviceChain(float* trackLeft,
                         ClapGeneratorRuntime* clapRuntimes,
                         CymbalGeneratorRuntime* cymbalRuntimes,
                         DynamicsRuntime* dynamicsRuntimes,
+                        DeviceMeterAtomic* deviceMeters,
+                        int maxDeviceMeters,
                         const float* lfoValues,
                         int lfoCount,
                         const ModulationEdge* modEdges,
@@ -598,9 +630,11 @@ void processDeviceChain(float* trackLeft,
         case DeviceNodeKind::Gate: {
             auto p = std::get<GateParams>(modulatedParams);
             DynamicsRuntime localRuntime{};
-            processGateStereoBlock(trackLeft, trackRight, framesToProcess, sampleRate, p,
-                                   dynamicsRuntimes != nullptr ? dynamicsRuntimes[deviceIndex]
-                                                                 : localRuntime);
+            DynamicsRuntime& runtime =
+                dynamicsRuntimes != nullptr ? dynamicsRuntimes[deviceIndex] : localRuntime;
+            const float inputPeak = stereoBlockPeak(trackLeft, trackRight, framesToProcess);
+            processGateStereoBlock(trackLeft, trackRight, framesToProcess, sampleRate, p, runtime);
+            publishDynamicsMeters(node, runtime, inputPeak, deviceMeters, maxDeviceMeters);
             for (int f = 0; f < framesToProcess; ++f) {
                 trackLeft[f] *= perFrameGain[f];
                 trackRight[f] *= perFrameGain[f];
@@ -610,9 +644,12 @@ void processDeviceChain(float* trackLeft,
         case DeviceNodeKind::Compressor: {
             auto p = std::get<CompressorParams>(modulatedParams);
             DynamicsRuntime localRuntime{};
+            DynamicsRuntime& runtime =
+                dynamicsRuntimes != nullptr ? dynamicsRuntimes[deviceIndex] : localRuntime;
+            const float inputPeak = stereoBlockPeak(trackLeft, trackRight, framesToProcess);
             processCompressorStereoBlock(trackLeft, trackRight, framesToProcess, sampleRate, p,
-                                         dynamicsRuntimes != nullptr ? dynamicsRuntimes[deviceIndex]
-                                                                       : localRuntime);
+                                         runtime);
+            publishDynamicsMeters(node, runtime, inputPeak, deviceMeters, maxDeviceMeters);
             for (int f = 0; f < framesToProcess; ++f) {
                 trackLeft[f] *= perFrameGain[f];
                 trackRight[f] *= perFrameGain[f];
@@ -622,9 +659,12 @@ void processDeviceChain(float* trackLeft,
         case DeviceNodeKind::Expander: {
             auto p = std::get<ExpanderParams>(modulatedParams);
             DynamicsRuntime localRuntime{};
+            DynamicsRuntime& runtime =
+                dynamicsRuntimes != nullptr ? dynamicsRuntimes[deviceIndex] : localRuntime;
+            const float inputPeak = stereoBlockPeak(trackLeft, trackRight, framesToProcess);
             processExpanderStereoBlock(trackLeft, trackRight, framesToProcess, sampleRate, p,
-                                       dynamicsRuntimes != nullptr ? dynamicsRuntimes[deviceIndex]
-                                                                     : localRuntime);
+                                       runtime);
+            publishDynamicsMeters(node, runtime, inputPeak, deviceMeters, maxDeviceMeters);
             for (int f = 0; f < framesToProcess; ++f) {
                 trackLeft[f] *= perFrameGain[f];
                 trackRight[f] *= perFrameGain[f];
@@ -634,9 +674,11 @@ void processDeviceChain(float* trackLeft,
         case DeviceNodeKind::Limiter: {
             auto p = std::get<LimiterParams>(modulatedParams);
             DynamicsRuntime localRuntime{};
-            processLimiterStereoBlock(trackLeft, trackRight, framesToProcess, sampleRate, p,
-                                      dynamicsRuntimes != nullptr ? dynamicsRuntimes[deviceIndex]
-                                                                  : localRuntime);
+            DynamicsRuntime& runtime =
+                dynamicsRuntimes != nullptr ? dynamicsRuntimes[deviceIndex] : localRuntime;
+            const float inputPeak = stereoBlockPeak(trackLeft, trackRight, framesToProcess);
+            processLimiterStereoBlock(trackLeft, trackRight, framesToProcess, sampleRate, p, runtime);
+            publishDynamicsMeters(node, runtime, inputPeak, deviceMeters, maxDeviceMeters);
             for (int f = 0; f < framesToProcess; ++f) {
                 trackLeft[f] *= perFrameGain[f];
                 trackRight[f] *= perFrameGain[f];
@@ -656,5 +698,7 @@ void processDeviceChain(float* trackLeft,
         }
     }
 }
+
+} // namespace
 
 } // namespace audioapp

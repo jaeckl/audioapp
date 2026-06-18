@@ -11,6 +11,7 @@ struct ClapGeneratorParams {
     float clapTone = 0.55f;
     float clapRoom = 0.50f;
     float clapDecay = 0.50f;
+    float clapVelocity = 1.0f;
 };
 
 struct ClapVoiceRuntime {

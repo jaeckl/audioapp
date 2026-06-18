@@ -173,11 +173,11 @@ class _CymbalGeneratorDevicePanelState extends State<CymbalGeneratorDevicePanel>
     return Padding(
       padding: const EdgeInsets.all(8),
       child: _knob(
-        label: 'Velocity',
-        value: widget.device.cymbalVelocity,
-        paramId: 'cymbalVelocity',
-        displayValue: '${(widget.device.cymbalVelocity * 100).round()}%',
-        onChanged: (v) => widget.onParameterChanged('cymbalVelocity', v),
+        label: 'Decay',
+        value: widget.device.cymbalDecay,
+        paramId: 'cymbalDecay',
+        displayValue: cymbalDecayLabel(widget.device.cymbalDecay),
+        onChanged: (v) => widget.onParameterChanged('cymbalDecay', v),
       ),
     );
   }

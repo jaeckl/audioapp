@@ -74,6 +74,51 @@ class ProjectSnapshot {
     }
     return tracks.isEmpty ? null : tracks.first;
   }
+
+  /// Merge live dynamics meter readouts from [fresh] without replacing other state.
+  ProjectSnapshot withMergedDeviceMeters(ProjectSnapshot fresh) {
+    final meterByDeviceId = <String, DeviceSnapshot>{};
+    for (final track in fresh.tracks) {
+      for (final device in track.devices) {
+        meterByDeviceId[device.id] = device;
+      }
+    }
+
+    return ProjectSnapshot(
+      bpm: bpm,
+      selectedTrackId: selectedTrackId,
+      playheadBeats: playheadBeats,
+      playing: playing,
+      loopEnabled: loopEnabled,
+      loopLengthBeats: loopLengthBeats,
+      recordArmed: recordArmed,
+      master: master,
+      samples: samples,
+      tracks: tracks
+          .map(
+            (track) => TrackSnapshot(
+              id: track.id,
+              name: track.name,
+              devices: track.devices
+                  .map((device) {
+                    final meters = meterByDeviceId[device.id];
+                    if (meters == null) return device;
+                    return device.copyWith(
+                      meterGainReductionDb: meters.meterGainReductionDb,
+                      meterInputLevel: meters.meterInputLevel,
+                    );
+                  })
+                  .toList(),
+              midiClips: track.midiClips,
+              sampleClips: track.sampleClips,
+              automationClips: track.automationClips,
+            ),
+          )
+          .toList(),
+      lfos: lfos,
+      modEdges: modEdges,
+    );
+  }
 }
 
 extension TrackSnapshotDevices on TrackSnapshot {
@@ -239,6 +284,7 @@ class DeviceSnapshot {
     this.clapTone = 0.55,
     this.clapRoom = 0.50,
     this.clapDecay = 0.50,
+    this.clapVelocity = 1.0,
     this.cymbalMetal = 0.55,
     this.cymbalBrightness = 0.60,
     this.cymbalDecay = 0.50,
@@ -263,6 +309,8 @@ class DeviceSnapshot {
     this.limitCeiling = 0.85,
     this.limitRelease = 0.40,
     this.limitDrive = 0.0,
+    this.meterGainReductionDb = 0.0,
+    this.meterInputLevel = 0.0,
   });
 
   final String id;
@@ -323,6 +371,7 @@ class DeviceSnapshot {
   final double clapTone;
   final double clapRoom;
   final double clapDecay;
+  final double clapVelocity;
   final double cymbalMetal;
   final double cymbalBrightness;
   final double cymbalDecay;
@@ -347,9 +396,12 @@ class DeviceSnapshot {
   final double limitCeiling;
   final double limitRelease;
   final double limitDrive;
+  final double meterGainReductionDb;
+  final double meterInputLevel;
 
   factory DeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
+    final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
     return DeviceSnapshot(
       id: map['id'] as String? ?? '',
       type: map['type'] as String? ?? '',
@@ -410,6 +462,7 @@ class DeviceSnapshot {
       clapTone: (params['clapTone'] as num?)?.toDouble() ?? 0.55,
       clapRoom: (params['clapRoom'] as num?)?.toDouble() ?? 0.50,
       clapDecay: (params['clapDecay'] as num?)?.toDouble() ?? 0.50,
+      clapVelocity: (params['clapVelocity'] as num?)?.toDouble() ?? 1.0,
       cymbalMetal: (params['cymbalMetal'] as num?)?.toDouble() ?? 0.55,
       cymbalBrightness: (params['cymbalBrightness'] as num?)?.toDouble() ?? 0.60,
       cymbalDecay: (params['cymbalDecay'] as num?)?.toDouble() ?? 0.50,
@@ -434,6 +487,8 @@ class DeviceSnapshot {
       limitCeiling: (params['limitCeiling'] as num?)?.toDouble() ?? 0.85,
       limitRelease: (params['limitRelease'] as num?)?.toDouble() ?? 0.40,
       limitDrive: (params['limitDrive'] as num?)?.toDouble() ?? 0.0,
+      meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
+      meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -532,6 +587,7 @@ class DeviceSnapshot {
     double? clapTone,
     double? clapRoom,
     double? clapDecay,
+    double? clapVelocity,
     double? cymbalMetal,
     double? cymbalBrightness,
     double? cymbalDecay,
@@ -556,6 +612,8 @@ class DeviceSnapshot {
     double? limitCeiling,
     double? limitRelease,
     double? limitDrive,
+    double? meterGainReductionDb,
+    double? meterInputLevel,
   }) {
     return DeviceSnapshot(
       id: id ?? this.id,
@@ -616,6 +674,7 @@ class DeviceSnapshot {
       clapTone: clapTone ?? this.clapTone,
       clapRoom: clapRoom ?? this.clapRoom,
       clapDecay: clapDecay ?? this.clapDecay,
+      clapVelocity: clapVelocity ?? this.clapVelocity,
       cymbalMetal: cymbalMetal ?? this.cymbalMetal,
       cymbalBrightness: cymbalBrightness ?? this.cymbalBrightness,
       cymbalDecay: cymbalDecay ?? this.cymbalDecay,
@@ -640,6 +699,8 @@ class DeviceSnapshot {
       limitCeiling: limitCeiling ?? this.limitCeiling,
       limitRelease: limitRelease ?? this.limitRelease,
       limitDrive: limitDrive ?? this.limitDrive,
+      meterGainReductionDb: meterGainReductionDb ?? this.meterGainReductionDb,
+      meterInputLevel: meterInputLevel ?? this.meterInputLevel,
     );
   }
 
@@ -753,6 +814,8 @@ class DeviceSnapshot {
         return copyWith(clapRoom: value.clamp(0.0, 1.0));
       case 'clapDecay':
         return copyWith(clapDecay: value.clamp(0.0, 1.0));
+      case 'clapVelocity':
+        return copyWith(clapVelocity: value.clamp(0.0, 1.0));
       case 'cymbalMetal':
         return copyWith(cymbalMetal: value.clamp(0.0, 1.0));
       case 'cymbalBrightness':

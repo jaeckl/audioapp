@@ -298,6 +298,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         onAutomateParameter: widget.onAutomateParameter != null
             ? _onAutomateParameter
             : null,
+        gainReductionDb: widget.device.meterGainReductionDb,
+        inputLevel: widget.device.meterInputLevel,
       );
 
   Widget _modulationSidebar() {

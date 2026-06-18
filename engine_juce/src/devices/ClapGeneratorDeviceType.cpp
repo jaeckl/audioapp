@@ -26,6 +26,7 @@ ClapGeneratorInstance instanceFromSnapshot(const DeviceState& state) {
     instance.clapTone = state.clapTone;
     instance.clapRoom = state.clapRoom;
     instance.clapDecay = state.clapDecay;
+    instance.clapVelocity = state.clapVelocity;
     return instance;
 }
 
@@ -35,6 +36,7 @@ void applyInstanceToSnapshot(const ClapGeneratorInstance& instance, DeviceState&
     state.clapTone = instance.clapTone;
     state.clapRoom = instance.clapRoom;
     state.clapDecay = instance.clapDecay;
+    state.clapVelocity = instance.clapVelocity;
 }
 
 } // namespace
@@ -87,6 +89,8 @@ DeviceParameterResult ClapGeneratorDeviceType::setParameter(DeviceSlot& slot,
         instance.clapRoom = clamped;
     } else if (parameterId == "clapDecay") {
         instance.clapDecay = clamped;
+    } else if (parameterId == "clapVelocity") {
+        instance.clapVelocity = clamped;
     } else {
         return result;
     }
@@ -103,7 +107,8 @@ bool ClapGeneratorDeviceType::setStringParameter(DeviceSlot&,
 }
 
 std::vector<std::string_view> ClapGeneratorDeviceType::modulatableParams() const {
-    return {"gain", "pan", "clapBursts", "clapSpread", "clapTone", "clapRoom", "clapDecay"};
+    return {"gain", "pan", "clapBursts", "clapSpread", "clapTone", "clapRoom", "clapDecay",
+            "clapVelocity"};
 }
 
 void ClapGeneratorDeviceType::buildPlaybackNode(const DeviceSlot& slot,

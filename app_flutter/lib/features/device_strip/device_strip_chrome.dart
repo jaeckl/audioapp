@@ -20,6 +20,7 @@ class DeviceStripChromeBindings {
     this.onAutomationLinkTap,
     this.onAutomateParameter,
     this.gainReductionDb = 0,
+    this.inputLevel = 0,
   });
 
   final DeviceSnapshot device;
@@ -33,6 +34,7 @@ class DeviceStripChromeBindings {
   final ValueChanged<String>? onAutomationLinkTap;
   final ValueChanged<String>? onAutomateParameter;
   final double gainReductionDb;
+  final double inputLevel;
 }
 
 /// Per-device input/output strip chrome registry (ADR-0008).
@@ -59,7 +61,10 @@ abstract final class DeviceStripChrome {
     required DeviceStripChromeBindings bindings,
   }) {
     if (!hasInputPanel(deviceType)) return null;
-    return DynamicsInputPanel(accentColor: bindings.accentColor);
+    return DynamicsInputPanel(
+      accentColor: bindings.accentColor,
+      inputLevel: bindings.inputLevel,
+    );
   }
 
   static Widget outputPanel({

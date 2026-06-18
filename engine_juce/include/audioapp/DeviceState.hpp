@@ -64,6 +64,7 @@ struct DeviceState {
     float clapTone = 0.55f;
     float clapRoom = 0.50f;
     float clapDecay = 0.50f;
+    float clapVelocity = 1.0f;
     float cymbalMetal = 0.55f;
     float cymbalBrightness = 0.60f;
     float cymbalDecay = 0.50f;
@@ -88,6 +89,8 @@ struct DeviceState {
     float limitCeiling = 0.85f;
     float limitRelease = 0.40f;
     float limitDrive = 0.0f;
+    float meterGainReductionDb = 0.0f;
+    float meterInputLevel = 0.0f;
 };
 
 } // namespace audioapp

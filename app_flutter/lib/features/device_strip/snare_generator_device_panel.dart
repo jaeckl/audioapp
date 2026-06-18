@@ -184,7 +184,7 @@ class _SnareGeneratorDevicePanelState extends State<SnareGeneratorDevicePanel> {
     return Padding(
       padding: const EdgeInsets.all(8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _knob(
             label: 'Decay',
@@ -192,13 +192,6 @@ class _SnareGeneratorDevicePanelState extends State<SnareGeneratorDevicePanel> {
             paramId: 'snareDecay',
             displayValue: snareDecayLabel(widget.device.snareDecay),
             onChanged: (v) => widget.onParameterChanged('snareDecay', v),
-          ),
-          _knob(
-            label: 'Velocity',
-            value: widget.device.snareVelocity,
-            paramId: 'snareVelocity',
-            displayValue: '${(widget.device.snareVelocity * 100).round()}%',
-            onChanged: (v) => widget.onParameterChanged('snareVelocity', v),
           ),
         ],
       ),
