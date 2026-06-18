@@ -24,14 +24,10 @@ void ProjectEngine::createProject() {
     clipRepo_.clear();
     projectName_ = "Untitled";
     transport_.reset();
-    nextLfoId_ = 1;
+    modulationGraph_.clear();
     activeFrequencyHz_.store(440.0f, std::memory_order_release);
     masterGain_.store(1.0f, std::memory_order_release);
     trackPlaybackCount_.store(0, std::memory_order_release);
-    lfos_.clear();
-    modEdges_.clear();
-    lfoPlaybackCount_.store(0, std::memory_order_release);
-    modEdgePlaybackCount_.store(0, std::memory_order_release);
 }
 
 std::string ProjectEngine::addTrack(const std::string& name) {
@@ -328,8 +324,8 @@ ProjectSnapshot ProjectEngine::snapshot() const {
         snap.tracks.push_back(std::move(ts));
     }
 
-    snap.lfos = lfos_;
-    snap.modEdges = modEdges_;
+    snap.lfos = modulationGraph_.lfos();
+    snap.modEdges = modulationGraph_.modEdges();
 
     return snap;
 }
@@ -431,8 +427,8 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
 
         // Compute per-frame LFO values for gain/pan modulation.
     // DSP-specific params still use frame-0 (block-rate).
-    const int lfoCount = lfoPlaybackCount_.load(std::memory_order_acquire);
-    const int edgeCount = modEdgePlaybackCount_.load(std::memory_order_acquire);
+    const int lfoCount = modulationGraph_.lfoPlaybackCount();
+    const int edgeCount = modulationGraph_.modEdgePlaybackCount();
     // Per-frame LFO buffer: lfoValues[lfoId * framesToProcess + frame]
     // thread_local vector avoids large stack allocation and is allocation-free
     // after the first warm-up call on the audio thread.
@@ -446,7 +442,7 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         const double playheadSeconds = playheadStartBeat * 60.0 / static_cast<double>(std::max(transport_.bpm(), 1));
         const double samplePeriod = 1.0 / std::max(sampleRate, 1.0);
         for (int i = 0; i < lfoCount; ++i) {
-            const auto& lfo = lfoPlayback_[i].state;
+            const auto& lfo = modulationGraph_.lfoPlaybackEntry(i).state;
             for (int frame = 0; frame < framesToProcess; ++frame) {
                 const double frameSeconds = playheadSeconds + static_cast<double>(frame) * samplePeriod;
                 double phase;
@@ -530,7 +526,7 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                            trackPlayback_[trackIndex].subtractiveRuntimes,
                            lfoCount > 0 ? lfoValues.data() : nullptr,
                            lfoCount,
-                           modEdgePlayback_,
+                           modulationGraph_.modEdgePlaybackData(),
                            edgeCount);
         trackPlayback_[trackIndex].oscillatorPhase = oscillatorPhase;
 
@@ -653,8 +649,8 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
         }
         file.tracks.push_back(std::move(ts));
     }
-    file.lfos = lfos_;
-    file.modEdges = modEdges_;
+    file.lfos = modulationGraph_.lfos();
+    file.modEdges = modulationGraph_.modEdges();
     return file;
 }
 
@@ -709,8 +705,8 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
     recomputeIdCountersLocked();
     trackRepo_.ensureTrackGainDevices(deviceRegistry_);
 
-    lfos_ = data.lfos;
-    modEdges_ = data.modEdges;
+    modulationGraph_.load(data.lfos, data.modEdges);
+    modulationGraph_.recomputeIdCounters();
 
     if (data.master.gain > 0.0f) {
         masterGain_.store(std::clamp(data.master.gain, 0.0f, 1.0f), std::memory_order_release);
@@ -721,147 +717,43 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
     transport_.resetPlayhead();
     syncActiveFrequencyLocked();
     rebuildTrackPlaybackLocked();
-    rebuildLfoPlaybackLocked();
+    modulationGraph_.rebuildPlayback();
     return true;
 }
 
 int ProjectEngine::createLfo() {
     std::lock_guard<std::mutex> lock(mutex_);
-    LfoState lfo;
-    lfo.id = nextLfoId_++;
-    lfo.waveform = static_cast<int>(LfoWaveform::Sine);
-    lfo.rate = 1.0f;
-    lfo.syncDivision = 3; // 1/4
-    lfo.phase = 0.0f;
-    lfos_.push_back(std::move(lfo));
-    rebuildLfoPlaybackLocked();
-    return lfo.id;
+    return modulationGraph_.createLfo();
 }
 
 bool ProjectEngine::removeLfo(int lfoId) {
     std::lock_guard<std::mutex> lock(mutex_);
-    for (auto it = lfos_.begin(); it != lfos_.end(); ++it) {
-        if (it->id != lfoId) {
-            continue;
-        }
-        lfos_.erase(it);
-        // Remove all edges referencing this LFO
-        for (auto eit = modEdges_.begin(); eit != modEdges_.end();) {
-            if (eit->lfoId == lfoId) {
-                eit = modEdges_.erase(eit);
-            } else {
-                ++eit;
-            }
-        }
-        rebuildLfoPlaybackLocked();
-        return true;
-    }
-    return false;
+    return modulationGraph_.removeLfo(lfoId);
 }
 
 bool ProjectEngine::updateLfoParam(int lfoId, const std::string& param, float value) {
     std::lock_guard<std::mutex> lock(mutex_);
-    for (auto& lfo : lfos_) {
-        if (lfo.id != lfoId) {
-            continue;
-        }
-        if (param == "waveform") {
-            lfo.waveform = std::clamp(static_cast<int>(value), 0, static_cast<int>(LfoWaveform::Ramp));
-        } else if (param == "rate") {
-            lfo.rate = std::max(0.01f, value);
-        } else if (param == "syncDivision") {
-            lfo.syncDivision = std::clamp(static_cast<int>(value), 0, 5);
-        } else if (param == "phase") {
-            lfo.phase = std::clamp(value, 0.0f, 1.0f);
-        } else {
-            return false;
-        }
-        rebuildLfoPlaybackLocked();
-        return true;
-    }
-    return false;
+    return modulationGraph_.updateLfoParam(lfoId, param, value);
 }
 
 bool ProjectEngine::assignModulation(int lfoId, const std::string& deviceId,
                                      const std::string& paramId, float amount) {
     std::lock_guard<std::mutex> lock(mutex_);
-    // Check LFO exists
-    bool lfoOk = false;
-    for (const auto& lfo : lfos_) {
-        if (lfo.id == lfoId) {
-            lfoOk = true;
-            break;
-        }
-    }
-    if (!lfoOk) {
-        return false;
-    }
-    // Check device exists
     if (findDeviceLocked(deviceId) == nullptr) {
         return false;
     }
-    // Update existing edge or add new one
-    for (auto& edge : modEdges_) {
-        if (edge.lfoId == lfoId && edge.paramId == paramId) {
-            edge.deviceId = deviceId;
-            edge.amount = std::clamp(amount, -1.0f, 1.0f);
-            rebuildLfoPlaybackLocked();
-            return true;
-        }
-    }
-    ModulationEdge edge;
-    edge.lfoId = lfoId;
-    edge.deviceId = deviceId;
-    edge.paramId = paramId;
-    edge.amount = std::clamp(amount, -1.0f, 1.0f);
-    modEdges_.push_back(std::move(edge));
-    rebuildLfoPlaybackLocked();
-    return true;
+    return modulationGraph_.assignModulation(lfoId, deviceId, paramId, amount);
 }
 
 bool ProjectEngine::removeModulation(int lfoId, const std::string& paramId) {
     std::lock_guard<std::mutex> lock(mutex_);
-    for (auto it = modEdges_.begin(); it != modEdges_.end(); ++it) {
-        if (it->lfoId == lfoId && it->paramId == paramId) {
-            modEdges_.erase(it);
-            rebuildLfoPlaybackLocked();
-            return true;
-        }
-    }
-    return false;
-}
-
-void ProjectEngine::rebuildLfoPlaybackLocked() {
-    int lfoIndex = 0;
-    for (const auto& lfo : lfos_) {
-        if (lfoIndex >= kMaxLfos) {
-            break;
-        }
-        lfoPlayback_[lfoIndex].state = lfo;
-        ++lfoIndex;
-    }
-    lfoPlaybackCount_.store(lfoIndex, std::memory_order_release);
-
-    int edgeIndex = 0;
-    for (const auto& edge : modEdges_) {
-        if (edgeIndex >= kMaxModEdges) {
-            break;
-        }
-        modEdgePlayback_[edgeIndex] = edge;
-        ++edgeIndex;
-    }
-    modEdgePlaybackCount_.store(edgeIndex, std::memory_order_release);
+    return modulationGraph_.removeModulation(lfoId, paramId);
 }
 
 void ProjectEngine::recomputeIdCountersLocked() {
     trackRepo_.recomputeIdCounters();
     clipRepo_.recomputeIdCounters();
-
-    int maxLfo = 0;
-    for (const auto& lfo : lfos_) {
-        maxLfo = std::max(maxLfo, lfo.id);
-    }
-    nextLfoId_ = maxLfo + 1;
+    modulationGraph_.recomputeIdCounters();
 }
 
 void ProjectEngine::rebuildTrackPlaybackLocked() {
