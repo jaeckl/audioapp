@@ -39,6 +39,9 @@ milestones:
   - id: M11
     name: Subtractive synth instrument
     theme: 8-voice poly, dual osc, LP12, presets — no LFO
+  - id: M12
+    name: ProjectEngine decomposition
+    theme: per-device classes, domain services, thin ProjectEngine facade
 
 stories:
   # ── M00 Foundation (20) ─────────────────────────────────────────────
@@ -275,3 +278,18 @@ stories:
   - { id: US-11-08, milestone: M11, status: todo, title: Factory presets + content library }
   - { id: US-11-09, milestone: M11, status: todo, title: Glide + velocity sensitivity (no LFO) }
   - { id: US-11-20, milestone: M11, status: todo, title: M11 PO demo — subtractive synth end-to-end }
+
+  # ── M12 ProjectEngine decomposition (12) ─────────────────────────────
+  - { id: US-12-00, milestone: M12, status: in_progress, title: ADR & architecture baseline for ProjectEngine refactor }
+  - { id: US-12-01, milestone: M12, status: todo, title: IDeviceType interface + DeviceRegistry }
+  - { id: US-12-02, milestone: M12, status: todo, title: Per-device control classes (Oscillator, Sampler, TrackGain, SubtractiveSynth) }
+  - { id: US-12-03, milestone: M12, status: todo, title: DeviceSlot variant model — replace flat Device / DeviceState }
+  - { id: US-12-04, milestone: M12, status: todo, title: Extract DeviceParameterService — remove setDeviceParameter god method }
+  - { id: US-12-05, milestone: M12, status: todo, title: Extract TrackRepository + ClipRepository }
+  - { id: US-12-06, milestone: M12, status: todo, title: Extract TransportController }
+  - { id: US-12-07, milestone: M12, status: todo, title: Extract ModulationGraph service }
+  - { id: US-12-08, milestone: M12, status: todo, title: Extract PlaybackSnapshotBuilder }
+  - { id: US-12-09, milestone: M12, status: todo, title: Extract ArrangementMixer }
+  - { id: US-12-10, milestone: M12, status: todo, title: Extract LivePerformanceSession }
+  - { id: US-12-11, milestone: M12, status: todo, title: Slim ProjectEngine facade (≤400 LOC) }
+  - { id: US-12-20, milestone: M12, status: todo, title: M12 regression gate — full engine refactor sign-off }

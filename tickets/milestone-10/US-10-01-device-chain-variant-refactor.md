@@ -37,9 +37,14 @@ Replace the monolithic `DeviceNodePlayback` struct (50 fields, many unused per d
 
 ## Out of scope
 
-- Changing the Flutter bridge or project model (control-thread `Device`/`DeviceState` not affected — this is a playback-only refactor)
+- Changing the Flutter bridge or project model (control-thread `Device`/`DeviceState` not affected — this is a **playback-layer-only** refactor)
+- Refactoring `ProjectEngine` control model — see **M12** ([ADR-0007](../../docs/adr/ADR-0007-project-engine-decomposition.md))
 - Adding new device types (that's a future US)
 - Performance optimization beyond maintaining equivalence
+
+## Follow-up
+
+**M12 — ProjectEngine decomposition** continues this work on the control thread: per-device classes, `DeviceRegistry`, extract transport/modulation/mixer from `ProjectEngine`. US-10-01 is prerequisite step 1 (audio-thread snapshot shape).
 
 ## Acceptance criteria
 
