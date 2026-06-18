@@ -58,6 +58,9 @@ void applyModulation(SubtractiveSynthParams& p, float modAmount, const std::stri
         p.filterCutoff = std::clamp(p.filterCutoff + modAmount, 0.0f, 1.0f);
     } else if (paramId == "filterQ") {
         p.filterQ = std::clamp(p.filterQ + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "filterMode") {
+        p.filterMode = std::clamp(
+            static_cast<int>(std::lround(static_cast<float>(p.filterMode) + modAmount * 4.0f)), 0, 4);
     } else if (paramId == "attack") {
         p.ampAttack = std::clamp(p.ampAttack + modAmount, 0.0f, 1.0f);
     } else if (paramId == "decay") {
@@ -82,10 +85,6 @@ void applyModulation(SubtractiveSynthParams& p, float modAmount, const std::stri
         p.osc2Semi = std::clamp(p.osc2Semi + modAmount, 0.0f, 1.0f);
     } else if (paramId == "osc2Detune") {
         p.osc2Detune = std::clamp(p.osc2Detune + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "osc1Level") {
-        p.osc1Level = std::clamp(p.osc1Level + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "osc2Level") {
-        p.osc2Level = std::clamp(p.osc2Level + modAmount, 0.0f, 1.0f);
     } else if (paramId == "oscMix") {
         p.oscMix = std::clamp(p.oscMix + modAmount, 0.0f, 1.0f);
     } else if (paramId == "osc1Sync") {
@@ -94,6 +93,9 @@ void applyModulation(SubtractiveSynthParams& p, float modAmount, const std::stri
         p.osc2Sync = std::clamp(p.osc2Sync + modAmount, 0.0f, 1.0f);
     } else if (paramId == "noiseLevel") {
         p.noiseLevel = std::clamp(p.noiseLevel + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "oscMixMode") {
+        p.oscMixMode = std::clamp(
+            static_cast<int>(std::lround(static_cast<float>(p.oscMixMode) + modAmount * 4.0f)), 0, 4);
     } else if (paramId == "unisonVoices") {
         p.unisonVoices = std::clamp(p.unisonVoices + modAmount, 0.0f, 1.0f);
     } else if (paramId == "unisonDetune") {

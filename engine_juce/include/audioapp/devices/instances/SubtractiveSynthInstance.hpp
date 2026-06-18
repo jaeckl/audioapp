@@ -6,8 +6,6 @@ namespace audioapp {
 
 struct SubtractiveSynthInstance {
     float gain = 1.0f;
-    int osc1Wave = 2;
-    int osc2Wave = 2;
     float osc1Shape = 0.5f;
     float osc2Shape = 0.5f;
     float osc1Octave = 0.5f;
@@ -16,8 +14,6 @@ struct SubtractiveSynthInstance {
     float osc2Octave = 0.5f;
     float osc2Semi = 0.0f;
     float osc2Detune = 0.5f;
-    float osc1Level = 0.85f;
-    float osc2Level = 0.5f;
     float oscMix = 0.37f;
     float osc1Sync = 0.0f;
     float osc2Sync = 0.0f;
@@ -43,8 +39,6 @@ struct SubtractiveSynthInstance {
     SubtractiveSynthParams toPlaybackParams() const {
         SubtractiveSynthParams params;
         params.gain = gain;
-        params.osc1Wave = osc1Wave;
-        params.osc2Wave = osc2Wave;
         params.osc1Shape = osc1Shape;
         params.osc2Shape = osc2Shape;
         params.osc1Octave = osc1Octave;
@@ -53,8 +47,6 @@ struct SubtractiveSynthInstance {
         params.osc2Octave = osc2Octave;
         params.osc2Semi = osc2Semi;
         params.osc2Detune = osc2Detune;
-        params.osc1Level = osc1Level;
-        params.osc2Level = osc2Level;
         params.oscMix = oscMix;
         params.osc1Sync = osc1Sync;
         params.osc2Sync = osc2Sync;

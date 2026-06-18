@@ -283,7 +283,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   String? get _cardSubtitle => switch (widget.device.type) {
         'simple_sampler' => widget.sample?.name,
         'simple_oscillator' => '${widget.device.frequencyHz.round()} Hz',
-        'subtractive_synth' => 'LP12 · 8 voices',
+        'subtractive_synth' => 'Multimode · 8 voices',
         _ => null,
       };
 

@@ -18,8 +18,6 @@ enum class SubtractiveMixMode : int { Mix = 0, Neg = 1, Am = 2, Sign = 3, Max = 
 
 struct SubtractiveSynthParams {
     float gain = 1.0f;
-    int osc1Wave = 2;
-    int osc2Wave = 2;
     float osc1Shape = 0.5f;
     float osc2Shape = 0.5f;
     float osc1Octave = 0.5f;
@@ -28,8 +26,6 @@ struct SubtractiveSynthParams {
     float osc2Octave = 0.5f;
     float osc2Semi = 0.0f;
     float osc2Detune = 0.5f;
-    float osc1Level = 0.85f;
-    float osc2Level = 0.5f;
     float oscMix = 0.37f;
     float noiseLevel = 0.0f;
     int oscMixMode = 0;
@@ -62,10 +58,12 @@ struct SubtractiveVoiceRuntime {
     double releaseBeat = -1.0;
     float osc1Phases[kSubtractiveMaxUnison]{};
     float osc2Phases[kSubtractiveMaxUnison]{};
+    float osc2FreePhases[kSubtractiveMaxUnison]{};
     float currentHz = 440.0f;
     float targetHz = 440.0f;
     float noiseSeed = 0.123f;
     BiquadState filterState{};
+    CombFilterState combState{};
 };
 
 struct SubtractiveSynthRuntime {

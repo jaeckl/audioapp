@@ -302,18 +302,18 @@
 
 | ID | Summary | Status |
 |----|---------|--------|
-| US-11-01 | Engine MVP — 8-voice poly, saw, amp ADSR, LP12 + filter env | ⬜ |
-| US-11-02 | Device picker, minimal strip, save/load, coexist with oscillator | ⬜ |
-| US-11-03 | Dual oscillators + unison | ⬜ |
-| US-11-04 | Noise + osc mix modes (mix/neg/am/sign/max) | ⬜ |
-| US-11-05 | Osc tab + waveform preview painters | ⬜ |
-| US-11-06 | Mix, Filter, Amp strip tabs | ⬜ |
-| US-11-07 | Fullscreen editor + test note | ⬜ |
-| US-11-08 | Factory presets + content library | ⬜ |
-| US-11-09 | Glide + velocity (no LFO) | ⬜ |
+| US-11-01 | Engine MVP — 8-voice poly, multimode filter, amp ADSR + filter env | ✅ |
+| US-11-02 | Device picker, minimal strip, save/load, coexist with oscillator | ✅ |
+| US-11-03 | Dual oscillators + unison | ✅ |
+| US-11-04 | Noise + osc mix modes (mix/neg/am/sign/max) | ✅ |
+| US-11-05 | Osc tab + waveform preview painters | ✅ |
+| US-11-06 | Mix, Filter, Amp strip tabs | ✅ |
+| US-11-07 | Fullscreen editor + test note | ✅ |
+| US-11-08 | Factory presets + content library | ✅ |
+| US-11-09 | Glide + velocity (no LFO) | ✅ |
 | US-11-20 | M11 PO demo — subtractive synth end-to-end | ⬜ |
 
-**Locked:** poly **8** voices · **LP12 only** · **`subtractive_synth` coexists** with `simple_oscillator` · **no LFO** in M11.
+**Locked:** poly **8** voices · **multimode filter (LP/HP/BP/notch/comb)** · **hard sync** · **`subtractive_synth` coexists** with `simple_oscillator` · **no dedicated synth LFO** in M11.
 
 **PO demo:** Add synth → dual osc pad → filter sweep → preset from library → save/reload → play alongside oscillator on track 2.
 

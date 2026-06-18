@@ -98,4 +98,28 @@ float processBiquadSample(float input,
     return output;
 }
 
+int combDelaySamples(float sampleRate, float cutoffHz) noexcept {
+    if (sampleRate <= 0.0f || cutoffHz <= 0.0f) {
+        return 2;
+    }
+    const int delay =
+        static_cast<int>(std::lround(sampleRate / std::clamp(cutoffHz, 40.0f, 8000.0f)));
+    return std::clamp(delay, 2, kCombMaxDelay - 1);
+}
+
+float processCombSample(float input,
+                        CombFilterState& state,
+                        int delaySamples,
+                        float feedback) noexcept {
+    const int clampedDelay = std::clamp(delaySamples, 2, kCombMaxDelay - 1);
+    const int readIndex =
+        (state.writeIndex - clampedDelay + kCombMaxDelay) % kCombMaxDelay;
+    const float delayed = state.buffer[readIndex];
+    const float clampedFeedback = std::clamp(feedback, 0.0f, 0.98f);
+    const float output = input + clampedFeedback * delayed;
+    state.buffer[state.writeIndex] = output;
+    state.writeIndex = (state.writeIndex + 1) % kCombMaxDelay;
+    return output;
+}
+
 } // namespace audioapp

@@ -69,7 +69,7 @@ class SubtractiveSynthDevicePanel extends StatefulWidget {
   ];
 
   static const _mixModes = ['Mix', 'Neg', 'AM', 'Sign', 'Max'];
-  static const _filterTypes = ['LP 12 dB'];
+  static const _filterTypes = ['LP 12 dB', 'HP 12 dB', 'Band', 'Notch', 'Comb'];
 
   @override
   State<SubtractiveSynthDevicePanel> createState() => _SubtractiveSynthDevicePanelState();

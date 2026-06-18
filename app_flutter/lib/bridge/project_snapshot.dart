@@ -198,8 +198,6 @@ class DeviceSnapshot {
     this.regionStartSec = 0.0,
     this.regionEndSec = 0.0,
     this.bypassed = false,
-    this.osc1Wave = 2,
-    this.osc2Wave = 2,
     this.osc1Shape = 0.5,
     this.osc2Shape = 0.5,
     this.osc1Octave = 0.5,
@@ -208,8 +206,6 @@ class DeviceSnapshot {
     this.osc2Octave = 0.5,
     this.osc2Semi = 0.0,
     this.osc2Detune = 0.5,
-    this.osc1Level = 0.85,
-    this.osc2Level = 0.5,
     this.oscMix = 0.37,
     this.osc1Sync = 0.0,
     this.osc2Sync = 0.0,
@@ -244,8 +240,6 @@ class DeviceSnapshot {
   final double regionStartSec;
   final double regionEndSec;
   final bool bypassed;
-  final int osc1Wave;
-  final int osc2Wave;
   final double osc1Shape;
   final double osc2Shape;
   final double osc1Octave;
@@ -254,8 +248,6 @@ class DeviceSnapshot {
   final double osc2Octave;
   final double osc2Semi;
   final double osc2Detune;
-  final double osc1Level;
-  final double osc2Level;
   final double oscMix;
   final double osc1Sync;
   final double osc2Sync;
@@ -292,25 +284,16 @@ class DeviceSnapshot {
       regionStartSec: (params['regionStartSec'] as num?)?.toDouble() ?? 0.0,
       regionEndSec: (params['regionEndSec'] as num?)?.toDouble() ?? 0.0,
       bypassed: _readBypass(params['bypass']),
-      osc1Wave: (params['osc1Wave'] as num?)?.toInt() ?? 2,
-      osc2Wave: (params['osc2Wave'] as num?)?.toInt() ?? 2,
-      osc1Shape: (params['osc1Shape'] as num?)?.toDouble() ??
-          ((params['osc1Wave'] as num?)?.toInt() ?? 2) / 4.0,
-      osc2Shape: (params['osc2Shape'] as num?)?.toDouble() ??
-          ((params['osc2Wave'] as num?)?.toInt() ?? 2) / 4.0,
+      osc1Shape: _readOscShape(params, 'osc1Shape', 'osc1Wave', 0.5),
+      osc2Shape: _readOscShape(params, 'osc2Shape', 'osc2Wave', 0.5),
       osc1Octave: (params['osc1Octave'] as num?)?.toDouble() ?? 0.5,
       osc1Semi: (params['osc1Semi'] as num?)?.toDouble() ?? 0.0,
       osc1Detune: (params['osc1Detune'] as num?)?.toDouble() ?? 0.5,
       osc2Octave: (params['osc2Octave'] as num?)?.toDouble() ?? 0.5,
       osc2Semi: (params['osc2Semi'] as num?)?.toDouble() ?? 0.0,
       osc2Detune: (params['osc2Detune'] as num?)?.toDouble() ?? 0.5,
-      osc1Level: (params['osc1Level'] as num?)?.toDouble() ?? 0.85,
-      osc2Level: (params['osc2Level'] as num?)?.toDouble() ?? 0.5,
       oscMix: (params['oscMix'] as num?)?.toDouble() ??
-          _deriveOscMix(
-            (params['osc1Level'] as num?)?.toDouble() ?? 0.85,
-            (params['osc2Level'] as num?)?.toDouble() ?? 0.5,
-          ),
+          _deriveOscMixFromLegacyLevels(params),
       osc1Sync: (params['osc1Sync'] as num?)?.toDouble() ?? 0.0,
       osc2Sync: (params['osc2Sync'] as num?)?.toDouble() ?? 0.0,
       noiseLevel: (params['noiseLevel'] as num?)?.toDouble() ?? 0.0,
@@ -327,7 +310,28 @@ class DeviceSnapshot {
     );
   }
 
-  static double _deriveOscMix(double osc1Level, double osc2Level) {
+  static double _readOscShape(
+    Map<dynamic, dynamic> params,
+    String shapeKey,
+    String legacyWaveKey,
+    double fallback,
+  ) {
+    if (params.containsKey(shapeKey)) {
+      return (params[shapeKey] as num?)?.toDouble() ?? fallback;
+    }
+    final legacyWave = (params[legacyWaveKey] as num?)?.toInt();
+    if (legacyWave != null) {
+      return legacyWave / 4.0;
+    }
+    return fallback;
+  }
+
+  static double _deriveOscMixFromLegacyLevels(Map<dynamic, dynamic> params) {
+    if (params.containsKey('oscMix')) {
+      return (params['oscMix'] as num?)?.toDouble() ?? 0.37;
+    }
+    final osc1Level = (params['osc1Level'] as num?)?.toDouble() ?? 0.85;
+    final osc2Level = (params['osc2Level'] as num?)?.toDouble() ?? 0.5;
     final sum = osc1Level + osc2Level;
     if (sum <= 0.001) return 0.37;
     return osc2Level / sum;
@@ -361,8 +365,6 @@ class DeviceSnapshot {
     double? regionStartSec,
     double? regionEndSec,
     bool? bypassed,
-    int? osc1Wave,
-    int? osc2Wave,
     double? osc1Shape,
     double? osc2Shape,
     double? osc1Octave,
@@ -371,8 +373,6 @@ class DeviceSnapshot {
     double? osc2Octave,
     double? osc2Semi,
     double? osc2Detune,
-    double? osc1Level,
-    double? osc2Level,
     double? oscMix,
     double? osc1Sync,
     double? osc2Sync,
@@ -407,8 +407,6 @@ class DeviceSnapshot {
       regionStartSec: regionStartSec ?? this.regionStartSec,
       regionEndSec: regionEndSec ?? this.regionEndSec,
       bypassed: bypassed ?? this.bypassed,
-      osc1Wave: osc1Wave ?? this.osc1Wave,
-      osc2Wave: osc2Wave ?? this.osc2Wave,
       osc1Shape: osc1Shape ?? this.osc1Shape,
       osc2Shape: osc2Shape ?? this.osc2Shape,
       osc1Octave: osc1Octave ?? this.osc1Octave,
@@ -417,8 +415,6 @@ class DeviceSnapshot {
       osc2Octave: osc2Octave ?? this.osc2Octave,
       osc2Semi: osc2Semi ?? this.osc2Semi,
       osc2Detune: osc2Detune ?? this.osc2Detune,
-      osc1Level: osc1Level ?? this.osc1Level,
-      osc2Level: osc2Level ?? this.osc2Level,
       oscMix: oscMix ?? this.oscMix,
       osc1Sync: osc1Sync ?? this.osc1Sync,
       osc2Sync: osc2Sync ?? this.osc2Sync,
@@ -455,7 +451,7 @@ class DeviceSnapshot {
       case 'filterQ':
         return copyWith(filterQ: value);
       case 'filterMode':
-        return copyWith(filterMode: value.round().clamp(0, 3));
+        return copyWith(filterMode: value.round().clamp(0, 4));
       case 'trimStartSec':
         return copyWith(trimStartSec: value);
       case 'trimEndSec':
@@ -466,26 +462,10 @@ class DeviceSnapshot {
         return copyWith(regionEndSec: value);
       case 'bypass':
         return copyWith(bypassed: value >= 0.5);
-      case 'osc1Wave':
-        return copyWith(
-          osc1Wave: value.round().clamp(0, 4),
-          osc1Shape: value.round().clamp(0, 4) / 4.0,
-        );
-      case 'osc2Wave':
-        return copyWith(
-          osc2Wave: value.round().clamp(0, 4),
-          osc2Shape: value.round().clamp(0, 4) / 4.0,
-        );
       case 'osc1Shape':
-        return copyWith(
-          osc1Shape: value.clamp(0.0, 1.0),
-          osc1Wave: (value * 4).round().clamp(0, 4),
-        );
+        return copyWith(osc1Shape: value.clamp(0.0, 1.0));
       case 'osc2Shape':
-        return copyWith(
-          osc2Shape: value.clamp(0.0, 1.0),
-          osc2Wave: (value * 4).round().clamp(0, 4),
-        );
+        return copyWith(osc2Shape: value.clamp(0.0, 1.0));
       case 'osc1Octave':
         return copyWith(osc1Octave: value);
       case 'osc1Semi':
@@ -498,10 +478,6 @@ class DeviceSnapshot {
         return copyWith(osc2Semi: value);
       case 'osc2Detune':
         return copyWith(osc2Detune: value);
-      case 'osc1Level':
-        return copyWith(osc1Level: value);
-      case 'osc2Level':
-        return copyWith(osc2Level: value);
       case 'oscMix':
         return copyWith(oscMix: value.clamp(0.0, 1.0));
       case 'osc1Sync':

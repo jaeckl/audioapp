@@ -49,10 +49,11 @@ int main() {
     if (std::abs(synthDefaults.filterCutoff - 0.75f) > 0.001f) {
         return EXIT_FAILURE;
     }
-    if (!registry.setParameter(synth, "osc1Wave", 3.0f).handled) {
+    if (!registry.setParameter(synth, "osc1Shape", 0.75f).handled) {
         return EXIT_FAILURE;
     }
-    if (std::get<audioapp::SubtractiveSynthInstance>(synth.instance).osc1Wave != 3) {
+    if (std::abs(std::get<audioapp::SubtractiveSynthInstance>(synth.instance).osc1Shape - 0.75f) >
+        0.001f) {
         return EXIT_FAILURE;
     }
 
@@ -82,7 +83,7 @@ int main() {
         return EXIT_FAILURE;
     }
     const auto& synthParams = std::get<audioapp::SubtractiveSynthParams>(synthNode.params);
-    if (synthParams.osc1Wave != 3) {
+    if (std::abs(synthParams.osc1Shape - 0.75f) > 0.001f) {
         return EXIT_FAILURE;
     }
 

@@ -36,7 +36,7 @@ int main() {
     {
         audioapp::SubtractiveSynthParams synthParams;
         synthParams.gain = 1.0f;
-        synthParams.osc1Wave = 2;
+        synthParams.osc1Shape = 0.5f;
         synthParams.filterCutoff = 0.7f;
         devices[0].params = synthParams;
     }
@@ -80,7 +80,7 @@ int main() {
     instrument.kind = audioapp::LiveInstrumentKind::SubtractiveSynth;
     instrument.gain = 1.0f;
     instrument.subtractive.gain = 1.0f;
-    instrument.subtractive.osc1Wave = 2;
+    instrument.subtractive.osc1Shape = 0.5f;
 
     audioapp::LivePerformanceMixer mixer;
     mixer.noteOn(instrument, 60, 100.0f);
