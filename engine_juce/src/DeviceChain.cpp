@@ -5,6 +5,7 @@
 #include "audioapp/MidiUtils.hpp"
 #include "audioapp/SamplePlayback.hpp"
 #include "audioapp/SubtractiveSynth.hpp"
+#include "audioapp/KickGenerator.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -117,6 +118,22 @@ void applyModulation(SubtractiveSynthParams& p, float modAmount, const std::stri
     }
 }
 
+void applyModulation(KickGeneratorParams& p, float modAmount, const std::string& paramId) noexcept {
+    if (paramId == "kickPitch") {
+        p.kickPitch = std::clamp(p.kickPitch + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "kickPunch") {
+        p.kickPunch = std::clamp(p.kickPunch + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "kickDecay") {
+        p.kickDecay = std::clamp(p.kickDecay + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "kickClick") {
+        p.kickClick = std::clamp(p.kickClick + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "kickTone") {
+        p.kickTone = std::clamp(p.kickTone + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "kickVelocity") {
+        p.kickVelocity = std::clamp(p.kickVelocity + modAmount, 0.0f, 1.0f);
+    }
+}
+
 /// Multiply buffer by per-frame gain values.
 void multiplyPerFrameGain(float* buffer, int frames, const float* perFrameGain) noexcept {
     for (int f = 0; f < frames; ++f) {
@@ -168,6 +185,7 @@ void processDeviceChain(float* trackLeft,
                         bool suppressInstruments,
                         BiquadState* samplerFilterStates,
                         SubtractiveSynthRuntime* subtractiveRuntimes,
+                        KickGeneratorRuntime* kickRuntimes,
                         const float* lfoValues,
                         int lfoCount,
                         const ModulationEdge* modEdges,
@@ -350,6 +368,34 @@ void processDeviceChain(float* trackLeft,
                                                  synthParams,
                                                  subtractiveRuntimes != nullptr
                                                      ? subtractiveRuntimes[deviceIndex] : localRuntime);
+                    multiplyPerFrameGain(scratch, framesToProcess, perFrameGain);
+                    mixStereoPerFramePan(trackLeft, trackRight, scratch,
+                                         framesToProcess, perFramePan);
+                }
+            }
+            break;
+        }
+        case DeviceNodeKind::KickGenerator: {
+            if (!suppressInstruments) {
+                const auto& kickParams = std::get<KickGeneratorParams>(modulatedParams);
+                if (noteCount > 0) {
+                    KickMidiNoteRegion regions[32];
+                    const int regionCount = noteCount > 32 ? 32 : noteCount;
+                    for (int i = 0; i < regionCount; ++i) {
+                        const MidiPlaybackNote& note = notes[i];
+                        regions[i] = KickMidiNoteRegion{
+                            note.pitch, i,
+                            note.clipStartBeat, note.clipLengthBeats,
+                            note.noteStartBeat, note.noteDurationBeats,
+                            note.velocity,
+                        };
+                    }
+                    std::memset(scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+                    KickGeneratorRuntime localRuntime{};
+                    mixKickMidiNotesBlock(scratch, framesToProcess, sampleRate, bpm,
+                                          playheadStartBeat, regions, regionCount, kickParams,
+                                          kickRuntimes != nullptr ? kickRuntimes[deviceIndex]
+                                                                  : localRuntime);
                     multiplyPerFrameGain(scratch, framesToProcess, perFrameGain);
                     mixStereoPerFramePan(trackLeft, trackRight, scratch,
                                          framesToProcess, perFramePan);

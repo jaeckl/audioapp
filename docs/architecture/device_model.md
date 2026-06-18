@@ -31,6 +31,8 @@ Each device provides:
 | Pan | Effect | 08 |
 | Simple Filter | Effect | 08 |
 | Simple Sampler | Instrument | 06 |
+| Subtractive Synth | Instrument | 11 |
+| Kick Generator | Instrument | 13 |
 
 ## Parameters
 

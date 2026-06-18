@@ -39,6 +39,9 @@ milestones:
   - id: M11
     name: Subtractive synth instrument
     theme: 8-voice poly, dual osc, multimode filter, presets — no dedicated synth LFO
+  - id: M13
+    name: Drum generators
+    theme: synthesized kick, snare, clap, cymbal — monophonic MIDI devices
   - id: M12
     name: ProjectEngine decomposition
     theme: per-device classes, domain services, thin ProjectEngine facade
@@ -278,6 +281,13 @@ stories:
   - { id: US-11-08, milestone: M11, status: done, title: Factory presets + content library }
   - { id: US-11-09, milestone: M11, status: done, title: Glide + velocity sensitivity (no LFO) }
   - { id: US-11-20, milestone: M11, status: todo, title: M11 PO demo — subtractive synth end-to-end }
+
+  # ── M13 Drum generators (5) ───────────────────────────────────────────
+  - { id: US-13-01, milestone: M13, status: in_progress, title: Kick generator — engine + strip }
+  - { id: US-13-02, milestone: M13, status: todo, title: Snare generator }
+  - { id: US-13-03, milestone: M13, status: todo, title: Clap generator }
+  - { id: US-13-04, milestone: M13, status: todo, title: Cymbal / crash generator }
+  - { id: US-13-20, milestone: M13, status: todo, title: M13 PO demo — drum generators end-to-end }
 
   # ── M12 ProjectEngine decomposition (12) ─────────────────────────────
   - { id: US-12-00, milestone: M12, status: in_progress, title: ADR & architecture baseline for ProjectEngine refactor }

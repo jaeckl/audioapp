@@ -8,10 +8,11 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
     showDragHandle: true,
     builder: (context) {
       return SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
               child: Text(
@@ -34,11 +35,18 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
             ListTile(
               leading: const Icon(Icons.graphic_eq, color: Color(0xFF7B6CF6)),
               title: const Text('Subtractive Synth'),
-              subtitle: const Text('2 osc · LP12 · 8-voice poly'),
+              subtitle: const Text('2 osc · multimode · 8-voice poly'),
               onTap: () => Navigator.pop(context, 'subtractive_synth'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.album, color: Color(0xFFE85D4B)),
+              title: const Text('Kick Generator'),
+              subtitle: const Text('808-style · pitch-drop body'),
+              onTap: () => Navigator.pop(context, 'kick_generator'),
             ),
             const SizedBox(height: 8),
           ],
+        ),
         ),
       );
     },

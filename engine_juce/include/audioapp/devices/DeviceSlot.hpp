@@ -1,5 +1,6 @@
 #pragma once
 
+#include "audioapp/devices/instances/KickGeneratorInstance.hpp"
 #include "audioapp/devices/instances/OscillatorInstance.hpp"
 #include "audioapp/devices/instances/SamplerInstance.hpp"
 #include "audioapp/devices/instances/SubtractiveSynthInstance.hpp"
@@ -13,7 +14,8 @@ namespace audioapp {
 using DeviceInstance = std::variant<OscillatorInstance,
                                     SamplerInstance,
                                     TrackGainInstance,
-                                    SubtractiveSynthInstance>;
+                                    SubtractiveSynthInstance,
+                                    KickGeneratorInstance>;
 
 struct DeviceSlot {
     std::string id;

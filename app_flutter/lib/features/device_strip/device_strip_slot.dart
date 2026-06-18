@@ -11,6 +11,8 @@ import 'device_strip_viewport.dart';
 import 'device_tool_rail.dart';
 import 'lfo_properties_panel.dart';
 import 'modulation_grid.dart';
+import 'kick_generator_device_panel.dart';
+import 'kick_generator_device_strip.dart';
 import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
 import 'subtractive_synth_device_panel.dart';
@@ -284,6 +286,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         'simple_sampler' => widget.sample?.name,
         'simple_oscillator' => '${widget.device.frequencyHz.round()} Hz',
         'subtractive_synth' => 'Multimode · 8 voices',
+        'kick_generator' => 'Mono · synth',
         _ => null,
       };
 
@@ -469,6 +472,28 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             selectedTab: SubtractiveDeviceTab.values[_selectedTabIndex],
             onTabChanged: widget.onSynthTabChanged,
             onOpenFullscreen: widget.onOpenSamplerEditor,
+            modulatedParams: _modulatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
+            onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
+          ),
+        );
+      case 'kick_generator':
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: _cardWidth,
+          designHeight: contentHeight,
+          child: KickGeneratorDeviceStrip(
+            device: widget.device,
+            onParameterChanged: widget.onDeviceParameterChanged,
+            selectedTab: KickDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
             modulatedParams: _modulatedParamIds,
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,

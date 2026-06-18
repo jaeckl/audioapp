@@ -220,6 +220,12 @@ class DeviceSnapshot {
     this.filterRelease = 0.45,
     this.glideMs = 0.0,
     this.velocitySensitivity = 1.0,
+    this.kickPitch = 0.55,
+    this.kickPunch = 0.60,
+    this.kickDecay = 0.50,
+    this.kickClick = 0.35,
+    this.kickTone = 0.50,
+    this.kickVelocity = 1.0,
   });
 
   final String id;
@@ -262,6 +268,12 @@ class DeviceSnapshot {
   final double filterRelease;
   final double glideMs;
   final double velocitySensitivity;
+  final double kickPitch;
+  final double kickPunch;
+  final double kickDecay;
+  final double kickClick;
+  final double kickTone;
+  final double kickVelocity;
 
   factory DeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -307,6 +319,12 @@ class DeviceSnapshot {
       filterRelease: (params['filterRelease'] as num?)?.toDouble() ?? 0.45,
       glideMs: (params['glideMs'] as num?)?.toDouble() ?? 0.0,
       velocitySensitivity: (params['velocitySensitivity'] as num?)?.toDouble() ?? 1.0,
+      kickPitch: (params['kickPitch'] as num?)?.toDouble() ?? 0.55,
+      kickPunch: (params['kickPunch'] as num?)?.toDouble() ?? 0.60,
+      kickDecay: (params['kickDecay'] as num?)?.toDouble() ?? 0.50,
+      kickClick: (params['kickClick'] as num?)?.toDouble() ?? 0.35,
+      kickTone: (params['kickTone'] as num?)?.toDouble() ?? 0.50,
+      kickVelocity: (params['kickVelocity'] as num?)?.toDouble() ?? 1.0,
     );
   }
 
@@ -387,6 +405,12 @@ class DeviceSnapshot {
     double? filterRelease,
     double? glideMs,
     double? velocitySensitivity,
+    double? kickPitch,
+    double? kickPunch,
+    double? kickDecay,
+    double? kickClick,
+    double? kickTone,
+    double? kickVelocity,
   }) {
     return DeviceSnapshot(
       id: id ?? this.id,
@@ -429,6 +453,12 @@ class DeviceSnapshot {
       filterRelease: filterRelease ?? this.filterRelease,
       glideMs: glideMs ?? this.glideMs,
       velocitySensitivity: velocitySensitivity ?? this.velocitySensitivity,
+      kickPitch: kickPitch ?? this.kickPitch,
+      kickPunch: kickPunch ?? this.kickPunch,
+      kickDecay: kickDecay ?? this.kickDecay,
+      kickClick: kickClick ?? this.kickClick,
+      kickTone: kickTone ?? this.kickTone,
+      kickVelocity: kickVelocity ?? this.kickVelocity,
     );
   }
 
@@ -506,6 +536,18 @@ class DeviceSnapshot {
         return copyWith(glideMs: value);
       case 'velocitySensitivity':
         return copyWith(velocitySensitivity: value);
+      case 'kickPitch':
+        return copyWith(kickPitch: value.clamp(0.0, 1.0));
+      case 'kickPunch':
+        return copyWith(kickPunch: value.clamp(0.0, 1.0));
+      case 'kickDecay':
+        return copyWith(kickDecay: value.clamp(0.0, 1.0));
+      case 'kickClick':
+        return copyWith(kickClick: value.clamp(0.0, 1.0));
+      case 'kickTone':
+        return copyWith(kickTone: value.clamp(0.0, 1.0));
+      case 'kickVelocity':
+        return copyWith(kickVelocity: value.clamp(0.0, 1.0));
       default:
         return this;
     }

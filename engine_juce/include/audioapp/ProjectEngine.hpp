@@ -178,6 +178,7 @@ private:
         DeviceNodePlayback devices[kMaxDevicesPerTrack];
         BiquadState samplerFilterStates[kMaxDevicesPerTrack];
         SubtractiveSynthRuntime subtractiveRuntimes[kMaxDevicesPerTrack];
+        KickGeneratorRuntime kickRuntimes[kMaxDevicesPerTrack];
         float oscillatorPhase = 0.0f;
     };
 

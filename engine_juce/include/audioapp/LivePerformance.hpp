@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "audioapp/DeviceChain.hpp"
+#include "audioapp/KickGenerator.hpp"
 #include "audioapp/SamplerFilter.hpp"
 #include "audioapp/SubtractiveSynth.hpp"
 
@@ -16,6 +17,7 @@ enum class LiveInstrumentKind : uint8_t {
     Oscillator,
     Sampler,
     SubtractiveSynth,
+    KickGenerator,
 };
 
 /// Immutable instrument snapshot copied on note-on (control thread writes, audio thread reads).
@@ -39,6 +41,7 @@ struct LiveInstrumentSnapshot {
     int regionStartFrame = 0;
     int regionEndFrame = 0;
     SubtractiveSynthParams subtractive{};
+    KickGeneratorParams kick{};
 };
 
 struct LiveVoiceSlot {
@@ -52,6 +55,7 @@ struct LiveVoiceSlot {
     float oscillatorPhase = 0.0f;
     BiquadState filterState{};
     SubtractiveVoiceRuntime subtractive{};
+    KickVoiceRuntime kick{};
     double subtractiveStartSec = 0.0;
     double subtractiveReleaseSec = -1.0;
 };

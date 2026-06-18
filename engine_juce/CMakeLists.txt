@@ -37,6 +37,7 @@ add_library(audioapp_engine STATIC
   src/SamplePlayback.cpp
   src/SamplerFilter.cpp
   src/SubtractiveSynth.cpp
+  src/KickGenerator.cpp
   src/MasterMix.cpp
   src/DeviceChain.cpp
   src/devices/DeviceRegistry.cpp
@@ -44,6 +45,7 @@ add_library(audioapp_engine STATIC
   src/devices/SamplerDeviceType.cpp
   src/devices/TrackGainDeviceType.cpp
   src/devices/SubtractiveSynthDeviceType.cpp
+  src/devices/KickGeneratorDeviceType.cpp
   src/model/TrackRepository.cpp
   src/model/ClipRepository.cpp
   src/transport/TransportController.cpp
@@ -108,6 +110,7 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/device_chain_test.cpp
     tests/live_performance_test.cpp
     tests/subtractive_synth_test.cpp
+    tests/kick_generator_test.cpp
     tests/lfo_modulation_test.cpp
   )
   target_link_libraries(audioapp_engine_tests PRIVATE audioapp_engine)

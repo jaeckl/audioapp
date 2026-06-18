@@ -46,6 +46,12 @@ struct DeviceState {
     float filterRelease = 0.45f;
     float glideMs = 0.0f;
     float velocitySensitivity = 1.0f;
+    float kickPitch = 0.55f;
+    float kickPunch = 0.60f;
+    float kickDecay = 0.50f;
+    float kickClick = 0.35f;
+    float kickTone = 0.50f;
+    float kickVelocity = 1.0f;
 };
 
 } // namespace audioapp
