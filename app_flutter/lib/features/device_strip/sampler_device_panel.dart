@@ -9,6 +9,7 @@ import 'device_knob_sizes.dart';
 import 'device_tab_bar.dart' show DeviceTabSpec;
 import 'modulator_polarity.dart';
 import 'sampler_envelope_preview.dart';
+import 'sampler_filter_mode_icons.dart';
 import 'sampler_waveform_view.dart';
 
 /// Layout density for sampler controls.
@@ -421,7 +422,11 @@ class _ToneTab extends StatelessWidget {
   final ValueChanged<String>? onAutomationLinkTap;
   final ValueChanged<String>? onAutomateParameter;
 
-  static const _filterModes = ['LP', 'HP', 'BP', 'NT'];
+  static const _toneCellDecoration = BoxDecoration(
+    color: Color(0xFF121218),
+    borderRadius: BorderRadius.all(Radius.circular(6)),
+    border: Border.fromBorderSide(BorderSide(color: Color(0x14FFFFFF))),
+  );
 
   Widget _knob({
     required String label,
@@ -429,11 +434,14 @@ class _ToneTab extends StatelessWidget {
     required double value,
     required String displayValue,
     required ValueChanged<double> onChanged,
+    double? size,
+    bool showLabel = true,
+    double labelGap = 3,
   }) {
     return deviceAutomationKnob(
       label: label,
       value: value,
-      size: knobSize,
+      size: size ?? knobSize,
       displayValue: displayValue,
       onChanged: onChanged,
       paramId: paramId,
@@ -446,137 +454,129 @@ class _ToneTab extends StatelessWidget {
       automationLinkActive: automationLinkActive,
       onAutomationLinkTap: onAutomationLinkTap,
       onAutomateParameter: onAutomateParameter,
+      showLabel: showLabel,
+      labelGap: labelGap,
+    );
+  }
+
+  Widget _toneCell({required Widget child, EdgeInsets padding = const EdgeInsets.all(4)}) {
+    return DecoratedBox(
+      decoration: _toneCellDecoration,
+      child: Padding(padding: padding, child: child),
+    );
+  }
+
+  Widget _previewCell(SamplerEnvelopePreview preview) {
+    return _toneCell(
+      padding: EdgeInsets.zero,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: IgnorePointer(
+          child: preview,
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final modeIndex = device.filterMode.clamp(0, _filterModes.length - 1);
+    final modeIndex = device.filterMode.clamp(0, 3);
+    final maxFilterKnob = editor ? DeviceKnobSizes.editor : DeviceKnobSizes.strip;
+    final leftWidth = editor ? 88.0 : 78.0;
 
-    return Column(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SizedBox(
-          height: 24,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: const Color(0xFF121218),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: SamplerEnvelopePreview(
-                attack: device.attack,
-                decay: device.decay,
-                sustain: device.sustain,
-                release: device.release,
-                accent: SamplerDevicePanel.accent,
-              ),
+          width: leftWidth,
+          child: _toneCell(
+            padding: const EdgeInsets.fromLTRB(4, 2, 4, 2),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: 5,
+                  child: SamplerFilterModeBar(
+                    selectedIndex: modeIndex,
+                    accentColor: SamplerDevicePanel.accent,
+                    onSelected: (index) => onParameterChanged('filterMode', index.toDouble()),
+                  ),
+                ),
+                Expanded(
+                  flex: 4,
+                  child: _filterKnobSlot(
+                    maxKnob: maxFilterKnob,
+                    label: 'Cutoff',
+                    paramId: 'filterCutoff',
+                    value: device.filterCutoff,
+                    displayValue: SamplerDevicePanel.formatCutoffHz(device.filterCutoff),
+                    onChanged: (v) => onParameterChanged('filterCutoff', v),
+                  ),
+                ),
+                Expanded(
+                  flex: 4,
+                  child: _filterKnobSlot(
+                    maxKnob: maxFilterKnob,
+                    label: 'Res',
+                    paramId: 'filterQ',
+                    value: device.filterQ,
+                    displayValue: SamplerDevicePanel.formatQ(device.filterQ),
+                    onChanged: (v) => onParameterChanged('filterQ', v),
+                  ),
+                ),
+                Expanded(
+                  flex: 4,
+                  child: _filterKnobSlot(
+                    maxKnob: maxFilterKnob,
+                    label: 'FEG',
+                    paramId: 'filterEnvAmount',
+                    value: device.filterEnvAmount,
+                    displayValue: SamplerDevicePanel.formatPercent(device.filterEnvAmount),
+                    onChanged: (v) => onParameterChanged('filterEnvAmount', v),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-        const SizedBox(height: 6),
-        _KnobRow(
-          children: [
-            _knob(
-              label: 'Attack',
-              paramId: 'attack',
-              value: device.attack,
-              displayValue: SamplerDevicePanel.formatPercent(device.attack),
-              onChanged: (v) => onParameterChanged('attack', v),
-            ),
-            _knob(
-              label: 'Decay',
-              paramId: 'decay',
-              value: device.decay,
-              displayValue: SamplerDevicePanel.formatPercent(device.decay),
-              onChanged: (v) => onParameterChanged('decay', v),
-            ),
-            _knob(
-              label: 'Sustain',
-              paramId: 'sustain',
-              value: device.sustain,
-              displayValue: SamplerDevicePanel.formatPercent(device.sustain),
-              onChanged: (v) => onParameterChanged('sustain', v),
-            ),
-            _knob(
-              label: 'Release',
-              paramId: 'release',
-              value: device.release,
-              displayValue: SamplerDevicePanel.formatPercent(device.release),
-              onChanged: (v) => onParameterChanged('release', v),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
+        const SizedBox(width: 4),
         Expanded(
-          child: Row(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF121218),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: List.generate(_filterModes.length, (index) {
-                      final selected = index == modeIndex;
-                      return InkWell(
-                        onTap: () => onParameterChanged('filterMode', index.toDouble()),
-                        borderRadius: BorderRadius.circular(4),
-                        child: Container(
-                          width: 36,
-                          height: editor ? 28 : 22,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? SamplerDevicePanel.accent.withValues(alpha: 0.25)
-                                : Colors.white.withValues(alpha: 0.06),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(
-                              color: selected
-                                  ? SamplerDevicePanel.accent.withValues(alpha: 0.7)
-                                  : Colors.white12,
-                            ),
-                          ),
-                          child: Text(
-                            _filterModes[index],
-                            style: TextStyle(
-                              color: selected ? SamplerDevicePanel.accent : Colors.white38,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
+              Expanded(
+                flex: 3,
+                child: _previewCell(
+                  SamplerEnvelopePreview(
+                    attack: device.attack,
+                    decay: device.decay,
+                    sustain: device.sustain,
+                    release: device.release,
+                    accent: SamplerDevicePanel.accent,
+                    label: 'AEG',
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(height: 3),
               Expanded(
-                child: _KnobRow(
-                  children: [
-                    _knob(
-                      label: 'Cutoff',
-                      paramId: 'filterCutoff',
-                      value: device.filterCutoff,
-                      displayValue: SamplerDevicePanel.formatCutoffHz(device.filterCutoff),
-                      onChanged: (v) => onParameterChanged('filterCutoff', v),
-                    ),
-                    _knob(
-                      label: 'Resonance',
-                      paramId: 'filterQ',
-                      value: device.filterQ,
-                      displayValue: SamplerDevicePanel.formatQ(device.filterQ),
-                      onChanged: (v) => onParameterChanged('filterQ', v),
-                    ),
-                  ],
+                flex: 8,
+                child: _toneCell(
+                  padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                  child: _buildAdsrPanel(editor),
+                ),
+              ),
+              const SizedBox(height: 3),
+              Expanded(
+                flex: 3,
+                child: _previewCell(
+                  SamplerEnvelopePreview(
+                    attack: device.filterAttack,
+                    decay: device.filterDecay,
+                    sustain: device.filterSustain,
+                    release: device.filterRelease,
+                    accent: SamplerDevicePanel.wave,
+                    label: 'FEG',
+                  ),
                 ),
               ),
             ],
@@ -585,34 +585,190 @@ class _ToneTab extends StatelessWidget {
       ],
     );
   }
-}
 
-class _KnobRow extends StatelessWidget {
-  const _KnobRow({required this.children});
+  Widget _filterKnobSlot({
+    required double maxKnob,
+    required String label,
+    required String paramId,
+    required double value,
+    required String displayValue,
+    required ValueChanged<double> onChanged,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final knobSize = math.min(constraints.maxHeight, constraints.maxWidth).clamp(28.0, maxKnob);
+        return Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: _knob(
+              label: label,
+              paramId: paramId,
+              value: value,
+              displayValue: displayValue,
+              onChanged: onChanged,
+              size: knobSize,
+              labelGap: 1,
+            ),
+          ),
+        );
+      },
+    );
+  }
 
-  final List<Widget> children;
+  /// Amp + filter ADSR rows with shared A/D/S/R labels centered between them.
+  Widget _buildAdsrPanel(bool editor) {
+    const labels = ['A', 'D', 'S', 'R'];
+    const labelStripHeight = 14.0;
+    final maxKnob = editor ? DeviceKnobSizes.editor : DeviceKnobSizes.strip;
 
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFF121218),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+    final aegKnobs = <({String paramId, double value, String display, ValueChanged<double> onChanged})>[
+      (
+        paramId: 'attack',
+        value: device.attack,
+        display: SamplerDevicePanel.formatPercent(device.attack),
+        onChanged: (v) => onParameterChanged('attack', v),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: children,
-        ),
+      (
+        paramId: 'decay',
+        value: device.decay,
+        display: SamplerDevicePanel.formatPercent(device.decay),
+        onChanged: (v) => onParameterChanged('decay', v),
       ),
+      (
+        paramId: 'sustain',
+        value: device.sustain,
+        display: SamplerDevicePanel.formatPercent(device.sustain),
+        onChanged: (v) => onParameterChanged('sustain', v),
+      ),
+      (
+        paramId: 'release',
+        value: device.release,
+        display: SamplerDevicePanel.formatPercent(device.release),
+        onChanged: (v) => onParameterChanged('release', v),
+      ),
+    ];
+
+    final fegKnobs = <({String paramId, double value, String display, ValueChanged<double> onChanged})>[
+      (
+        paramId: 'filterAttack',
+        value: device.filterAttack,
+        display: SamplerDevicePanel.formatPercent(device.filterAttack),
+        onChanged: (v) => onParameterChanged('filterAttack', v),
+      ),
+      (
+        paramId: 'filterDecay',
+        value: device.filterDecay,
+        display: SamplerDevicePanel.formatPercent(device.filterDecay),
+        onChanged: (v) => onParameterChanged('filterDecay', v),
+      ),
+      (
+        paramId: 'filterSustain',
+        value: device.filterSustain,
+        display: SamplerDevicePanel.formatPercent(device.filterSustain),
+        onChanged: (v) => onParameterChanged('filterSustain', v),
+      ),
+      (
+        paramId: 'filterRelease',
+        value: device.filterRelease,
+        display: SamplerDevicePanel.formatPercent(device.filterRelease),
+        onChanged: (v) => onParameterChanged('filterRelease', v),
+      ),
+    ];
+
+    Widget knobRow({
+      required double knobSize,
+      required List<({String paramId, double value, String display, ValueChanged<double> onChanged})> specs,
+    }) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final fitSize = math
+              .min(
+                knobSize,
+                math.min(constraints.maxHeight - 2, constraints.maxWidth / 4 - 2),
+              )
+              .clamp(28.0, maxKnob);
+          return Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final spec in specs)
+                    _knob(
+                      label: spec.paramId,
+                      paramId: spec.paramId,
+                      value: spec.value,
+                      displayValue: spec.display,
+                      onChanged: spec.onChanged,
+                      size: fitSize,
+                      showLabel: false,
+                    ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final rowHeight = (constraints.maxHeight - labelStripHeight) / 2;
+        final colWidth = constraints.maxWidth / 4;
+        final knobSize = (math.min(rowHeight, colWidth) - 6).clamp(28.0, maxKnob);
+
+        return ClipRect(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                height: rowHeight,
+                child: knobRow(knobSize: knobSize, specs: aegKnobs),
+              ),
+              const SizedBox(
+                height: labelStripHeight,
+                child: _AdsrLabelStrip(labels: labels),
+              ),
+              SizedBox(
+                height: rowHeight,
+                child: knobRow(knobSize: knobSize, specs: fegKnobs),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
 
-/// Collapsed strip summary — waveform peek.
+class _AdsrLabelStrip extends StatelessWidget {
+  const _AdsrLabelStrip({required this.labels});
+
+  final List<String> labels;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (final label in labels)
+          Expanded(
+            child: Center(
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Colors.white54,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.4,
+                    ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class SamplerDeviceStripCollapsed extends StatelessWidget {
   const SamplerDeviceStripCollapsed({
     super.key,

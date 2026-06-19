@@ -80,6 +80,16 @@ void applyModulation(SamplerParams& p, float modAmount, const std::string& param
             static_cast<int>(std::lround(static_cast<float>(p.rootPitch) + modAmount * 12.0f)), 0, 127);
     } else if (paramId == "rootFineTune") {
         p.rootFineTune = std::clamp(p.rootFineTune + modAmount * 100.0f, -100.0f, 100.0f);
+    } else if (paramId == "filterEnvAmount") {
+        p.filterEnvAmount = std::clamp(p.filterEnvAmount + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "filterAttack") {
+        p.filterAttack = std::clamp(p.filterAttack + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "filterDecay") {
+        p.filterDecay = std::clamp(p.filterDecay + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "filterSustain") {
+        p.filterSustain = std::clamp(p.filterSustain + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "filterRelease") {
+        p.filterRelease = std::clamp(p.filterRelease + modAmount, 0.0f, 1.0f);
     }
 }
 
@@ -629,6 +639,7 @@ void processDeviceChain(float* trackLeft,
                         };
                     }
                     std::memset(scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+                    BiquadState noteFilters[32]{};
                     const auto renderSampler = [&](int sub, int subLen, double subBeat,
                                                    const SamplerParams& p) {
                         mixSamplerMidiNotesBlock(scratch + sub, subLen, sampleRate, bpm, subBeat,
@@ -644,12 +655,17 @@ void processDeviceChain(float* trackLeft,
                                                    p.sustain, p.release,
                                                    p.filterCutoff, p.filterQ,
                                                    p.filterMode,
+                                                   p.filterEnvAmount,
+                                                   p.filterAttack,
+                                                   p.filterDecay,
+                                                   p.filterSustain,
+                                                   p.filterRelease,
                                                    p.trimStartFrame, p.trimEndFrame,
                                                    p.regionStartFrame, p.regionEndFrame,
                                                    p.playbackMode,
-                                                   samplerFilterStates != nullptr
-                                                       ? &samplerFilterStates[deviceIndex]
-                                                       : nullptr,
+                                                   nullptr,
+                                                   noteFilters,
+                                                   regionCount,
                                                });
                     };
                     if (dspAutomationSubBlocks) {

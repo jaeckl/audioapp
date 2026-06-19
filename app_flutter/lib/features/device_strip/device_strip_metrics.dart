@@ -13,7 +13,10 @@ class DeviceStripMetrics {
     'crash_generator',
   };
 
-  /// Canonical sampler strip width (landscape does not stretch beyond this).
+  /// Canonical sampler strip width (~⅔ of the original 520).
+  static const double samplerDesignWidth = 348;
+
+  /// Default viewport reference width (legacy alias; sampler uses [samplerDesignWidth]).
   static const double designWidth = 520;
 
   /// Expanded strip + fullscreen chain device row height.
@@ -90,7 +93,7 @@ class DeviceStripMetrics {
       return collapsedDesignWidth;
     }
     return switch (deviceType) {
-      'simple_sampler' => designWidth,
+      'simple_sampler' => samplerDesignWidth,
       'subtractive_synth' => subtractiveSynthDesignWidth,
       'kick_generator' => kickDesignWidth,
       'snare_generator' => kickDesignWidth,

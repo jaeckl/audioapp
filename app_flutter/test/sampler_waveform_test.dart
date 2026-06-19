@@ -1,3 +1,5 @@
+import 'package:audioapp/bridge/project_snapshot.dart';
+import 'package:audioapp/features/device_strip/sampler_device_panel.dart';
 import 'package:audioapp/features/device_strip/sampler_waveform_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -68,6 +70,46 @@ void main() {
     await tester.tap(find.text('Rev'));
     await tester.pump();
     expect(mode, 2);
+  });
+
+  testWidgets('SamplerToneTab shows filter envelope controls', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 400,
+            height: 280,
+            child: SamplerDevicePanel(
+              device: const DeviceSnapshot(
+                id: 'd1',
+                type: 'simple_sampler',
+                frequencyHz: 440,
+                gain: 1,
+                pan: 0.5,
+                sampleId: '',
+                attack: 0,
+                decay: 0,
+                sustain: 0,
+                release: 0,
+                filterCutoff: 1,
+                filterQ: 0.5,
+                filterMode: 0,
+                trimStartSec: 0,
+                trimEndSec: 0,
+              ),
+              sample: null,
+              selectedTab: SamplerDeviceTab.tone,
+              onParameterChanged: (_, __) {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    expect(find.text('A'), findsOneWidget);
+    expect(find.text('FEG'), findsOneWidget);
+    expect(find.text('Attack'), findsNothing);
   });
 
   testWidgets('SamplerWaveformView load sample CTA invokes callback', (tester) async {

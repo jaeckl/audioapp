@@ -37,13 +37,34 @@ struct SamplerInstrumentPlayback {
     float filterCutoff = 1.0f;
     float filterQ = 0.5f;
     int filterMode = 0;
+    float filterEnvAmount = 0.5f;
+    float filterAttack = 0.05f;
+    float filterDecay = 0.35f;
+    float filterSustain = 0.4f;
+    float filterRelease = 0.45f;
     int trimStartFrame = 0;
     int trimEndFrame = 0;
     int regionStartFrame = 0;
     int regionEndFrame = 0;
     int playbackMode = 0;
     BiquadState* filterState = nullptr;
+    BiquadState* noteFilterStates = nullptr;
+    int noteFilterStateCount = 0;
 };
+
+/// Cutoff Hz with filter-envelope depth applied (matches subtractive synth FEG).
+float samplerFilterCutoffHz(float filterCutoffNorm,
+                            float filterEnvGain,
+                            float filterEnvAmount) noexcept;
+
+float processSamplerFilteredSample(float sample,
+                                   BiquadState& filterState,
+                                   int filterMode,
+                                   float outputSampleRate,
+                                   float filterCutoffNorm,
+                                   float filterQNorm,
+                                   float filterEnvGain,
+                                   float filterEnvAmount) noexcept;
 
 /// Pitch ratio from MIDI note, root, and fine tune (cents, ±100).
 double samplerPitchRatio(int notePitch, int rootPitch, float rootFineTuneCents) noexcept;

@@ -31,6 +31,11 @@ SamplerInstance instanceFromSnapshot(const DeviceState& state) {
     instance.filterCutoff = state.filterCutoff;
     instance.filterQ = state.filterQ;
     instance.filterMode = state.filterMode;
+    instance.filterEnvAmount = state.filterEnvAmount;
+    instance.filterAttack = state.filterAttack;
+    instance.filterDecay = state.filterDecay;
+    instance.filterSustain = state.filterSustain;
+    instance.filterRelease = state.filterRelease;
     instance.trimStartSec = state.trimStartSec;
     instance.trimEndSec = state.trimEndSec;
     instance.regionStartSec = state.regionStartSec;
@@ -50,6 +55,11 @@ void applyInstanceToSnapshot(const SamplerInstance& instance, DeviceState& state
     state.filterCutoff = instance.filterCutoff;
     state.filterQ = instance.filterQ;
     state.filterMode = instance.filterMode;
+    state.filterEnvAmount = instance.filterEnvAmount;
+    state.filterAttack = instance.filterAttack;
+    state.filterDecay = instance.filterDecay;
+    state.filterSustain = instance.filterSustain;
+    state.filterRelease = instance.filterRelease;
     state.trimStartSec = instance.trimStartSec;
     state.trimEndSec = instance.trimEndSec;
     state.regionStartSec = instance.regionStartSec;
@@ -197,6 +207,16 @@ DeviceParameterResult SamplerDeviceType::setParameter(DeviceSlot& slot,
         instance.filterQ = std::clamp(value, 0.0f, 1.0f);
     } else if (parameterId == "filterMode") {
         instance.filterMode = std::clamp(static_cast<int>(std::lround(value)), 0, 3);
+    } else if (parameterId == "filterEnvAmount") {
+        instance.filterEnvAmount = std::clamp(value, 0.0f, 1.0f);
+    } else if (parameterId == "filterAttack") {
+        instance.filterAttack = std::clamp(value, 0.0f, 1.0f);
+    } else if (parameterId == "filterDecay") {
+        instance.filterDecay = std::clamp(value, 0.0f, 1.0f);
+    } else if (parameterId == "filterSustain") {
+        instance.filterSustain = std::clamp(value, 0.0f, 1.0f);
+    } else if (parameterId == "filterRelease") {
+        instance.filterRelease = std::clamp(value, 0.0f, 1.0f);
     } else if (parameterId == "trimStartSec") {
         instance.trimStartSec = std::max(0.0f, value);
     } else if (parameterId == "trimEndSec") {
@@ -236,6 +256,7 @@ bool SamplerDeviceType::setStringParameter(DeviceSlot& slot,
 
 std::vector<std::string_view> SamplerDeviceType::modulatableParams() const {
     return {"gain", "pan", "attack", "decay", "sustain", "release", "filterCutoff", "filterQ",
+            "filterEnvAmount", "filterAttack", "filterDecay", "filterSustain", "filterRelease",
             "rootPitch", "rootFineTune"};
 }
 
@@ -251,6 +272,11 @@ void SamplerDeviceType::buildPlaybackNode(const DeviceSlot& slot,
     params.filterCutoff = instance.filterCutoff;
     params.filterQ = instance.filterQ;
     params.filterMode = instance.filterMode;
+    params.filterEnvAmount = instance.filterEnvAmount;
+    params.filterAttack = instance.filterAttack;
+    params.filterDecay = instance.filterDecay;
+    params.filterSustain = instance.filterSustain;
+    params.filterRelease = instance.filterRelease;
     params.rootPitch = static_cast<int>(std::lround(instance.rootPitch));
     params.rootFineTune = instance.rootFineTune;
     params.playbackMode = instance.playbackMode;
@@ -276,6 +302,11 @@ bool SamplerDeviceType::buildLiveInstrument(const DeviceSlot& slot,
     out.filterCutoff = instance.filterCutoff;
     out.filterQ = instance.filterQ;
     out.filterMode = instance.filterMode;
+    out.filterEnvAmount = instance.filterEnvAmount;
+    out.filterAttack = instance.filterAttack;
+    out.filterDecay = instance.filterDecay;
+    out.filterSustain = instance.filterSustain;
+    out.filterRelease = instance.filterRelease;
     resolveLiveSampleFrames(instance, context, out);
     return true;
 }

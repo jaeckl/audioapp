@@ -44,6 +44,7 @@ class SamplerEnvelopePreview extends StatelessWidget {
     required this.sustain,
     required this.release,
     required this.accent,
+    this.label = 'AMP',
   });
 
   final double attack;
@@ -51,6 +52,7 @@ class SamplerEnvelopePreview extends StatelessWidget {
   final double sustain;
   final double release;
   final Color accent;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +63,7 @@ class SamplerEnvelopePreview extends StatelessWidget {
         sustain: sustain,
         release: release,
         accent: accent,
+        label: label,
       ),
       child: const SizedBox.expand(),
     );
@@ -74,6 +77,7 @@ class _SamplerEnvelopePainter extends CustomPainter {
     required this.sustain,
     required this.release,
     required this.accent,
+    required this.label,
   });
 
   final double attack;
@@ -81,6 +85,7 @@ class _SamplerEnvelopePainter extends CustomPainter {
   final double sustain;
   final double release;
   final Color accent;
+  final String label;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -139,9 +144,9 @@ class _SamplerEnvelopePainter extends CustomPainter {
       Paint()..color = accent.withValues(alpha: 0.12),
     );
 
-    final label = TextPainter(
+    final labelPainter = TextPainter(
       text: TextSpan(
-        text: 'AMP',
+        text: label,
         style: TextStyle(
           color: Colors.white.withValues(alpha: 0.22),
           fontSize: 8,
@@ -151,7 +156,7 @@ class _SamplerEnvelopePainter extends CustomPainter {
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-    label.paint(canvas, const Offset(6, 4));
+    labelPainter.paint(canvas, const Offset(6, 4));
   }
 
   @override
@@ -160,6 +165,7 @@ class _SamplerEnvelopePainter extends CustomPainter {
         oldDelegate.decay != decay ||
         oldDelegate.sustain != sustain ||
         oldDelegate.release != release ||
-        oldDelegate.accent != accent;
+        oldDelegate.accent != accent ||
+        oldDelegate.label != label;
   }
 }

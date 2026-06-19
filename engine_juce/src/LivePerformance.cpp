@@ -437,6 +437,24 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                 mix += sample;
             } else if (inst.kind == LiveInstrumentKind::Sampler && inst.samplerPcm != nullptr &&
                        inst.samplerFrameCount > 1) {
+                const float filterAttackSec = adsrNormalizedToSeconds(inst.filterAttack, 2.0f);
+                const float filterDecaySec = adsrNormalizedToSeconds(inst.filterDecay, 2.0f);
+                const float filterReleaseSec = adsrNormalizedToSeconds(inst.filterRelease, 3.0f);
+                const float filterSustainLevel = std::clamp(inst.filterSustain, 0.0f, 1.0f);
+
+                float noteDurationSec = 3600.0f;
+                if (voice.releasing && voice.releaseSample >= voice.startSample) {
+                    noteDurationSec = static_cast<float>(
+                        static_cast<double>(voice.releaseSample - voice.startSample) / sampleRate);
+                }
+
+                const float filterGain = samplerAdsrGain(elapsedSec,
+                                                         noteDurationSec,
+                                                         filterAttackSec,
+                                                         filterDecaySec,
+                                                         filterSustainLevel,
+                                                         filterReleaseSec);
+
                 const int startFrame = inst.trimStartFrame;
                 const int endFrame =
                     inst.trimEndFrame > startFrame ? inst.trimEndFrame : inst.samplerFrameCount;
@@ -466,14 +484,14 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                 const float frac = static_cast<float>(readPos - static_cast<double>(index));
                 const int next = std::min(index + 1, inst.samplerFrameCount - 1);
                 float sample = inst.samplerPcm[index] * (1.0f - frac) + inst.samplerPcm[next] * frac;
-
-                BiquadCoeffs coeffs{};
-                cookSamplerBiquad(coeffs,
-                                  inst.filterMode,
-                                  static_cast<float>(sampleRate),
-                                  normalizedCutoffToHz(inst.filterCutoff),
-                                  normalizedQToValue(inst.filterQ));
-                sample = processBiquadSample(sample, coeffs, voice.filterState);
+                sample = processSamplerFilteredSample(sample,
+                                                      voice.filterState,
+                                                      inst.filterMode,
+                                                      static_cast<float>(sampleRate),
+                                                      inst.filterCutoff,
+                                                      inst.filterQ,
+                                                      filterGain,
+                                                      inst.filterEnvAmount);
                 mix += sample * envGain * velGain;
             }
         }

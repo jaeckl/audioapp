@@ -27,6 +27,33 @@ float adsrNormalizedToSeconds(float normalized, float maxSeconds) noexcept {
     return 0.001f + clamped * maxSeconds;
 }
 
+float samplerFilterCutoffHz(const float filterCutoffNorm,
+                            const float filterEnvGain,
+                            const float filterEnvAmount) noexcept {
+    const float baseCutoff = normalizedCutoffToHz(filterCutoffNorm);
+    const float amount = std::clamp(filterEnvAmount, 0.0f, 1.0f);
+    return std::clamp(baseCutoff * (1.0f + filterEnvGain * amount * 4.0f), 20.0f, 20000.0f);
+}
+
+float processSamplerFilteredSample(const float sample,
+                                   BiquadState& filterState,
+                                   const int filterMode,
+                                   const float outputSampleRate,
+                                   const float filterCutoffNorm,
+                                   const float filterQNorm,
+                                   const float filterEnvGain,
+                                   const float filterEnvAmount) noexcept {
+    const float cutoffHz =
+        samplerFilterCutoffHz(filterCutoffNorm, filterEnvGain, filterEnvAmount);
+    BiquadCoeffs coeffs{};
+    cookSamplerBiquad(coeffs,
+                      filterMode,
+                      outputSampleRate,
+                      cutoffHz,
+                      normalizedQToValue(filterQNorm));
+    return processBiquadSample(sample, coeffs, filterState);
+}
+
 float samplerAdsrGain(float elapsedSec,
                       float noteDurationSec,
                       float attackSec,
@@ -166,16 +193,12 @@ void mixSamplerMidiNotesBlock(float* monoOut,
     const float decaySec = adsrNormalizedToSeconds(sampler.decay, 2.0f);
     const float releaseSec = adsrNormalizedToSeconds(sampler.release, 3.0f);
     const float sustainLevel = std::clamp(sampler.sustain, 0.0f, 1.0f);
-
-    BiquadCoeffs filterCoeffs{};
-    const bool useFilter = sampler.filterState != nullptr;
-    if (useFilter) {
-        cookSamplerBiquad(filterCoeffs,
-                          sampler.filterMode,
-                          static_cast<float>(sampleRate),
-                          normalizedCutoffToHz(sampler.filterCutoff),
-                          normalizedQToValue(sampler.filterQ));
-    }
+    const float filterAttackSec = adsrNormalizedToSeconds(sampler.filterAttack, 2.0f);
+    const float filterDecaySec = adsrNormalizedToSeconds(sampler.filterDecay, 2.0f);
+    const float filterReleaseSec = adsrNormalizedToSeconds(sampler.filterRelease, 3.0f);
+    const float filterSustainLevel = std::clamp(sampler.filterSustain, 0.0f, 1.0f);
+    const bool usePerNoteFilter =
+        sampler.noteFilterStates != nullptr && sampler.noteFilterStateCount > 0;
 
     for (int frame = 0; frame < numFrames; ++frame) {
         const double beat = beatAtFrame(playheadStartBeat, frame, sampleRate, bpm);
@@ -226,9 +249,34 @@ void mixSamplerMidiNotesBlock(float* monoOut,
             const int next = std::min(index + 1, sampler.frameCount - 1);
             const float sample =
                 sampler.pcm[index] * (1.0f - frac) + sampler.pcm[next] * frac;
-            mix += sample * (note.velocity / 100.0f) * envGain;
+            float noteSample = sample * (note.velocity / 100.0f) * envGain;
+
+            if (usePerNoteFilter) {
+                const float filterGain = samplerAdsrGain(elapsedSeconds,
+                                                         noteDurationSec,
+                                                         filterAttackSec,
+                                                         filterDecaySec,
+                                                         filterSustainLevel,
+                                                         filterReleaseSec);
+                auto& noteFilter = sampler.noteFilterStates[noteIndex];
+                noteSample = processSamplerFilteredSample(noteSample,
+                                                          noteFilter,
+                                                          sampler.filterMode,
+                                                          static_cast<float>(sampleRate),
+                                                          sampler.filterCutoff,
+                                                          sampler.filterQ,
+                                                          filterGain,
+                                                          sampler.filterEnvAmount);
+            }
+            mix += noteSample;
         }
-        if (useFilter) {
+        if (!usePerNoteFilter && sampler.filterState != nullptr) {
+            BiquadCoeffs filterCoeffs{};
+            cookSamplerBiquad(filterCoeffs,
+                              sampler.filterMode,
+                              static_cast<float>(sampleRate),
+                              normalizedCutoffToHz(sampler.filterCutoff),
+                              normalizedQToValue(sampler.filterQ));
             mix = processBiquadSample(mix, filterCoeffs, *sampler.filterState);
         }
         monoOut[frame] += mix * sampler.gain;

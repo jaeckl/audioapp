@@ -13,6 +13,11 @@ struct SamplerInstance {
     float filterCutoff = 1.0f;
     float filterQ = 0.35f;
     int filterMode = 0;
+    float filterEnvAmount = 0.5f;
+    float filterAttack = 0.05f;
+    float filterDecay = 0.35f;
+    float filterSustain = 0.4f;
+    float filterRelease = 0.45f;
     float trimStartSec = 0.0f;
     float trimEndSec = 0.0f;
     float regionStartSec = 0.0f;

@@ -45,5 +45,11 @@ int main() {
         return EXIT_FAILURE;
     }
 
+    const float baseCutoff = samplerFilterCutoffHz(0.5f, 0.0f, 1.0f);
+    const float modCutoff = samplerFilterCutoffHz(0.5f, 1.0f, 0.5f);
+    if (!(modCutoff > baseCutoff)) {
+        return EXIT_FAILURE;
+    }
+
     return EXIT_SUCCESS;
 }

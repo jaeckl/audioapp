@@ -73,6 +73,16 @@ void applyAutomationValue(DeviceVariantParams& params,
                 p->sustain = value;
             } else if (paramId == "release") {
                 p->release = value;
+            } else if (paramId == "filterEnvAmount") {
+                p->filterEnvAmount = value;
+            } else if (paramId == "filterAttack") {
+                p->filterAttack = value;
+            } else if (paramId == "filterDecay") {
+                p->filterDecay = value;
+            } else if (paramId == "filterSustain") {
+                p->filterSustain = value;
+            } else if (paramId == "filterRelease") {
+                p->filterRelease = value;
             }
         }
         break;

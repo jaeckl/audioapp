@@ -61,6 +61,7 @@ class RotaryKnob extends StatefulWidget {
     this.onLinkTap,
     this.onAutomateRequest,
     this.labelGap = 3,
+    this.showLabel = true,
   });
 
   final String label;
@@ -81,6 +82,7 @@ class RotaryKnob extends StatefulWidget {
   final VoidCallback? onLinkTap;
   final VoidCallback? onAutomateRequest;
   final double labelGap;
+  final bool showLabel;
 
   @override
   State<RotaryKnob> createState() => _RotaryKnobState();
@@ -331,15 +333,17 @@ class _RotaryKnobState extends State<RotaryKnob>
             ),
           ),
         ),
-        SizedBox(height: widget.labelGap),
-        Text(
-          widget.label,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: Colors.white54,
-            fontSize: labelSize,
-            fontWeight: FontWeight.w600,
+        if (widget.showLabel) ...[
+          SizedBox(height: widget.labelGap),
+          Text(
+            widget.label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: Colors.white54,
+              fontSize: labelSize,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

@@ -21,6 +21,8 @@ RotaryKnob deviceAutomationKnob({
   bool automationLinkActive = false,
   ValueChanged<String>? onAutomationLinkTap,
   ValueChanged<String>? onAutomateParameter,
+  bool showLabel = true,
+  double labelGap = 3,
 }) {
   return RotaryKnob(
     label: label,
@@ -29,6 +31,8 @@ RotaryKnob deviceAutomationKnob({
     displayValue: displayValue,
     size: size ?? DeviceKnobSizes.strip,
     accentColor: accentColor,
+    showLabel: showLabel,
+    labelGap: labelGap,
     modulationActive: modulatedParams.contains(paramId),
     automationActive: automatedParams.contains(paramId),
     modulationAmount: modulationAmounts[paramId] ?? 0.0,
