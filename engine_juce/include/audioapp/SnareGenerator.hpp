@@ -1,5 +1,7 @@
 #pragma once
 
+#include "audioapp/SamplerFilter.hpp"
+
 #include <cstdint>
 
 namespace audioapp {
@@ -19,9 +21,18 @@ struct SnareVoiceRuntime {
     uint8_t active = 0;
     int pitch = 38;
     float velocity = 100.0f;
-    float bodyPhase = 0.0f;
     double elapsedSec = 0.0;
-    float noiseSeed = 0.456f;
+    uint32_t noiseState = 0xC8013EA4u;
+    float bodyPhase = 0.0f;
+    float bodyStartHz = 300.0f;
+    float bodyEndHz = 170.0f;
+    float bodyPitchTau = 0.02f;
+    float bodyDecaySec = 0.06f;
+    float wiresDecaySec = 0.2f;
+    BiquadCoeffs wiresCoeffs{};
+    BiquadCoeffs snapCoeffs{};
+    BiquadState wiresState{};
+    BiquadState snapState{};
 };
 
 struct SnareGeneratorRuntime {
@@ -39,7 +50,13 @@ struct SnareMidiNoteRegion {
     float velocity = 100.0f;
 };
 
+int snareModelIndex(float snareModel) noexcept;
+
 void triggerSnareVoice(SnareVoiceRuntime& voice, int pitch, float velocity) noexcept;
+
+void configureSnareVoice(SnareVoiceRuntime& voice,
+                         const SnareGeneratorParams& params,
+                         float sampleRate) noexcept;
 
 float snareGeneratorSample(SnareVoiceRuntime& voice,
                            const SnareGeneratorParams& params,

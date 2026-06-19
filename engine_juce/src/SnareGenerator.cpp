@@ -17,9 +17,15 @@ float beatAtFrame(double playheadStartBeat, int frameIndex, double sampleRate, i
     return playheadStartBeat + seconds * static_cast<double>(bpm) / 60.0;
 }
 
-float snareNoiseSample(float& seed) noexcept {
-    seed = std::fmod(seed * 16807.0f, 2147483647.0f);
-    return (seed / 1073741823.5f) - 1.0f;
+float xorshiftNoise(uint32_t& state) noexcept {
+    state ^= state << 13;
+    state ^= state >> 17;
+    state ^= state << 5;
+    return static_cast<float>(state) * (1.0f / 2147483648.0f) - 1.0f;
+}
+
+uint32_t seedFromPitch(int pitch) noexcept {
+    return 0x9E3779B9u ^ static_cast<uint32_t>(pitch) * 0x85EBCA6Bu;
 }
 
 bool isSnareNoteAudible(const SnareMidiNoteRegion& note,
@@ -56,14 +62,60 @@ float normalizedToAmpDecaySec(float normalized) noexcept {
     return 0.15f + (1.0f - clamped) * 0.35f;
 }
 
+float pitchTrackRatio(int pitch) noexcept {
+    return std::pow(2.0f, static_cast<float>(pitch - 38) / 12.0f);
+}
+
 } // namespace
+
+int snareModelIndex(float snareModel) noexcept {
+    return std::clamp(static_cast<int>(std::lround(snareModel * 2.0f)), 0, 2);
+}
+
+void configureSnareVoice(SnareVoiceRuntime& voice,
+                         const SnareGeneratorParams& params,
+                         float sampleRate) noexcept {
+    if (sampleRate <= 0.0f) {
+        return;
+    }
+
+    const float bodyNorm = std::clamp(params.snareBody, 0.0f, 1.0f);
+    const float tuneNorm = std::clamp(params.snareTune, 0.0f, 1.0f);
+    const float snaresNorm = std::clamp(params.snareSnares, 0.0f, 1.0f);
+    const float snapNorm = std::clamp(params.snareSnap, 0.0f, 1.0f);
+    const float tuneRatio = pitchTrackRatio(voice.pitch);
+
+    switch (snareModelIndex(params.snareModel)) {
+    case 1: // Tight (stub)
+    case 2: // 909 (stub)
+    case 0:
+    default:
+        voice.bodyStartHz = (270.0f + tuneNorm * 70.0f) * tuneRatio;
+        voice.bodyEndHz = voice.bodyStartHz * (0.46f + (1.0f - bodyNorm) * 0.14f);
+        voice.bodyPitchTau = 0.015f + bodyNorm * 0.013f;
+        voice.bodyDecaySec = 0.038f + bodyNorm * 0.052f;
+        voice.wiresDecaySec = 0.085f + snaresNorm * 0.265f;
+        break;
+    }
+
+    const float wireCenter =
+        std::clamp((1900.0f + tuneNorm * 5100.0f) * std::min(tuneRatio, 1.35f),
+                   400.0f,
+                   sampleRate * 0.42f);
+    const float wireQ = std::clamp(1.1f - snaresNorm * 0.62f, 0.45f, 1.4f);
+    cookSamplerBiquad(voice.wiresCoeffs, 2, sampleRate, wireCenter, wireQ);
+
+    const float snapHp =
+        std::clamp(3600.0f + snapNorm * 4800.0f, 200.0f, sampleRate * 0.42f);
+    cookSamplerBiquad(voice.snapCoeffs, 1, sampleRate, snapHp, 0.72f);
+}
 
 void triggerSnareVoice(SnareVoiceRuntime& voice, int pitch, float velocity) noexcept {
     std::memset(&voice, 0, sizeof(voice));
     voice.active = 1;
     voice.pitch = pitch;
     voice.velocity = velocity;
-    voice.noiseSeed = 0.2f + static_cast<float>(pitch) * 0.011f;
+    voice.noiseState = seedFromPitch(pitch);
 }
 
 float snareGeneratorSample(SnareVoiceRuntime& voice,
@@ -87,32 +139,42 @@ float snareGeneratorSample(SnareVoiceRuntime& voice,
         return 0.0f;
     }
 
-    const float tuneRatio =
-        std::pow(2.0f, static_cast<float>(voice.pitch - 38) / 12.0f);
-    const float bodyHz = (120.0f + tuneNorm * 160.0f) * tuneRatio;
-    const float bodyDecaySec = 0.04f + (1.0f - bodyNorm) * 0.08f;
-    const float bodyEnv = static_cast<float>(std::exp(-t / static_cast<double>(bodyDecaySec)));
+    if (voice.bodyStartHz < 1.0f) {
+        configureSnareVoice(voice, params, static_cast<float>(sampleRate));
+    }
+
+    const float bodyHz =
+        voice.bodyEndHz +
+        (voice.bodyStartHz - voice.bodyEndHz) *
+            static_cast<float>(std::exp(-t / static_cast<double>(voice.bodyPitchTau)));
     voice.bodyPhase += static_cast<float>(kTwoPi * bodyHz / sampleRate);
     if (voice.bodyPhase >= static_cast<float>(kTwoPi)) {
         voice.bodyPhase -= static_cast<float>(kTwoPi);
     }
-    const float body = std::sin(voice.bodyPhase) * bodyEnv * (0.25f + bodyNorm * 0.55f);
 
-    const float noiseDecaySec = 0.12f + (1.0f - snaresNorm) * 0.28f;
-    const float noiseEnv = static_cast<float>(std::exp(-t / static_cast<double>(noiseDecaySec)));
-    const float bpCenter = 600.0f + tuneNorm * 2400.0f;
-    const float rawNoise = snareNoiseSample(voice.noiseSeed);
-    const float ringMod =
-        std::sin(static_cast<float>(kTwoPi * bpCenter * t)) * rawNoise * noiseEnv;
-    const float snares = ringMod * (0.2f + snaresNorm * 0.65f);
+    const float bodyEnv =
+        static_cast<float>(std::exp(-t / static_cast<double>(voice.bodyDecaySec)));
+    const float bodyFund = std::sin(voice.bodyPhase);
+    const float bodyHarm = std::sin(voice.bodyPhase * 2.0f);
+    const float body =
+        (bodyFund * 0.86f + bodyHarm * (0.08f + bodyNorm * 0.10f)) * bodyEnv *
+        (0.24f + bodyNorm * 0.36f);
+
+    const float wiresEnv =
+        static_cast<float>(std::exp(-t / static_cast<double>(voice.wiresDecaySec)));
+    const float rawNoise = xorshiftNoise(voice.noiseState);
+    const float wireNoise = processBiquadSample(rawNoise, voice.wiresCoeffs, voice.wiresState);
+    const float wires = wireNoise * wiresEnv * (0.26f + snaresNorm * 0.52f);
 
     float snap = 0.0f;
-    if (snapNorm > 0.001f && t < 0.006) {
-        snap = rawNoise * static_cast<float>(std::exp(-t / 0.0018)) * snapNorm * 0.85f;
+    if (snapNorm > 0.001f && t < 0.012) {
+        const float snapNoise = processBiquadSample(rawNoise, voice.snapCoeffs, voice.snapState);
+        snap = snapNoise * static_cast<float>(std::exp(-t / 0.0022)) * snapNorm * 0.62f;
     }
 
-    const float sample = (body + snares + snap) * ampEnv * velocityGain;
-    return sample * params.gain * kInstrumentOutputGain;
+    const float mixed = body + wires + snap;
+    const float driven = mixed / (1.0f + std::abs(mixed) * 0.35f);
+    return driven * ampEnv * velocityGain * params.gain * kInstrumentOutputGain;
 }
 
 void mixSnareMidiNotesBlock(float* monoOut,
@@ -159,6 +221,7 @@ void mixSnareMidiNotesBlock(float* monoOut,
 
         if (runtime.lastNoteKey != activeNoteKey || runtime.voice.active == 0) {
             triggerSnareVoice(runtime.voice, activePitch, activeVelocity);
+            configureSnareVoice(runtime.voice, params, static_cast<float>(sampleRate));
             runtime.lastNoteKey = activeNoteKey;
         }
         runtime.voice.elapsedSec = activeElapsed;

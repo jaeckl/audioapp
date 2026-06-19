@@ -120,10 +120,12 @@ def compare_pair(name: str, ref_path: Path, gen_path: Path) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--kind", choices=["crash", "cymbal", "both"], default="both")
+    parser.add_argument("--kind", choices=["crash", "cymbal", "snare", "both"], default="both")
     args = parser.parse_args()
 
     pairs = []
+    if args.kind in ("snare", "both"):
+        pairs.append(("snare", ROOT / "snare.wav", OUT_DIR / "snare_generator_render.wav"))
     if args.kind in ("crash", "both"):
         pairs.append(("crash", ROOT / "crash.wav", OUT_DIR / "crash_generator_render.wav"))
     if args.kind in ("cymbal", "both"):

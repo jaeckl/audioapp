@@ -89,6 +89,7 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
             triggerKickVoice(voice.kick, pitch, voice.velocity);
         } else if (instrument.kind == LiveInstrumentKind::SnareGenerator) {
             triggerSnareVoice(voice.snare, pitch, voice.velocity);
+            configureSnareVoice(voice.snare, instrument.snare, 48000.0f);
         } else if (instrument.kind == LiveInstrumentKind::ClapGenerator) {
             triggerClapVoice(voice.clap, voice.velocity, instrument.clap);
         } else if (instrument.kind == LiveInstrumentKind::CymbalGenerator) {
@@ -129,6 +130,7 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         triggerKickVoice(steal.kick, pitch, steal.velocity);
     } else if (instrument.kind == LiveInstrumentKind::SnareGenerator) {
         triggerSnareVoice(steal.snare, pitch, steal.velocity);
+        configureSnareVoice(steal.snare, instrument.snare, 48000.0f);
     } else if (instrument.kind == LiveInstrumentKind::ClapGenerator) {
         triggerClapVoice(steal.clap, steal.velocity, instrument.clap);
     } else if (instrument.kind == LiveInstrumentKind::CymbalGenerator) {
@@ -206,6 +208,7 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                 }
                 if (sv.active == 0) {
                     triggerSnareVoice(sv, voice.pitch, voice.velocity);
+                    configureSnareVoice(sv, inst.snare, static_cast<float>(sampleRate));
                 }
                 sv.elapsedSec = elapsedSec;
                 const float vel = std::clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
