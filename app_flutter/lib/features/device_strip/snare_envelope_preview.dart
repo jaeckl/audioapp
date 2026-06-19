@@ -7,6 +7,7 @@ class SnareEnvelopePreview extends StatelessWidget {
   const SnareEnvelopePreview({
     super.key,
     required this.body,
+    required this.ring,
     required this.tune,
     required this.snares,
     required this.snap,
@@ -15,6 +16,7 @@ class SnareEnvelopePreview extends StatelessWidget {
   });
 
   final double body;
+  final double ring;
   final double tune;
   final double snares;
   final double snap;
@@ -26,6 +28,7 @@ class SnareEnvelopePreview extends StatelessWidget {
     return CustomPaint(
       painter: _SnareEnvelopePainter(
         body: body,
+        ring: ring,
         tune: tune,
         snares: snares,
         snap: snap,
@@ -40,6 +43,7 @@ class SnareEnvelopePreview extends StatelessWidget {
 class _SnareEnvelopePainter extends CustomPainter {
   _SnareEnvelopePainter({
     required this.body,
+    required this.ring,
     required this.tune,
     required this.snares,
     required this.snap,
@@ -48,6 +52,7 @@ class _SnareEnvelopePainter extends CustomPainter {
   });
 
   final double body;
+  final double ring;
   final double tune;
   final double snares;
   final double snap;
@@ -61,30 +66,36 @@ class _SnareEnvelopePainter extends CustomPainter {
 
     const duration = 0.45;
     const steps = 64;
-    final bodyTau = 0.04 + (1 - body.clamp(0.0, 1.0)) * 0.08;
+    final bodyTau = 0.03 + (1 - body.clamp(0.0, 1.0)) * 0.06;
+    final ringTau = 0.05 + (1 - ring.clamp(0.0, 1.0)) * 0.18;
     final noiseTau = 0.12 + (1 - snares.clamp(0.0, 1.0)) * 0.28;
     final ampTau = 0.15 + (1 - decay.clamp(0.0, 1.0)) * 0.35;
 
     final bodyPath = Path();
+    final ringPath = Path();
     final snaresPath = Path();
     final ampPath = Path();
 
     for (var i = 0; i <= steps; i++) {
       final t = duration * i / steps;
       final x = size.width * i / steps;
-      final bodyEnv = math.exp(-t / bodyTau) * (0.25 + body.clamp(0.0, 1.0) * 0.55);
+      final bodyEnv = math.exp(-t / bodyTau) * (0.18 + body.clamp(0.0, 1.0) * 0.42);
+      final ringEnv = math.exp(-t / ringTau) * (0.12 + ring.clamp(0.0, 1.0) * 0.55);
       final noiseEnv = math.exp(-t / noiseTau) * (0.2 + snares.clamp(0.0, 1.0) * 0.65);
       final amp = math.exp(-t / ampTau);
-      final bodyY = size.height * 0.55 - bodyEnv * size.height * 0.35;
+      final bodyY = size.height * 0.55 - bodyEnv * size.height * 0.28;
+      final ringY = size.height * 0.58 - ringEnv * size.height * 0.24;
       final noiseY = size.height * 0.72 - noiseEnv * size.height * 0.22 +
           math.sin(t * (600 + tune.clamp(0.0, 1.0) * 2400) * 0.02) * 3;
       final ampY = size.height * 0.82 - amp * size.height * 0.55;
       if (i == 0) {
         bodyPath.moveTo(x, bodyY);
+        ringPath.moveTo(x, ringY);
         snaresPath.moveTo(x, noiseY);
         ampPath.moveTo(x, ampY);
       } else {
         bodyPath.lineTo(x, bodyY);
+        ringPath.lineTo(x, ringY);
         snaresPath.lineTo(x, noiseY);
         ampPath.lineTo(x, ampY);
       }
@@ -96,6 +107,13 @@ class _SnareEnvelopePainter extends CustomPainter {
         ..color = Colors.white.withValues(alpha: 0.2)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5,
+    );
+    canvas.drawPath(
+      ringPath,
+      Paint()
+        ..color = accent.withValues(alpha: 0.28)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6,
     );
     canvas.drawPath(
       snaresPath,
@@ -142,6 +160,7 @@ class _SnareEnvelopePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _SnareEnvelopePainter oldDelegate) {
     return oldDelegate.body != body ||
+        oldDelegate.ring != ring ||
         oldDelegate.tune != tune ||
         oldDelegate.snares != snares ||
         oldDelegate.snap != snap ||

@@ -6,7 +6,8 @@ namespace audioapp {
 
 struct SnareGeneratorInstance {
     float snareModel = 0.0f;
-    float snareBody = 0.55f;
+    float snareBody = 0.45f;
+    float snareRing = 0.40f;
     float snareTune = 0.50f;
     float snareSnares = 0.60f;
     float snareSnap = 0.40f;
@@ -18,6 +19,7 @@ struct SnareGeneratorInstance {
         params.gain = gain;
         params.snareModel = snareModel;
         params.snareBody = snareBody;
+        params.snareRing = snareRing;
         params.snareTune = snareTune;
         params.snareSnares = snareSnares;
         params.snareSnap = snareSnap;

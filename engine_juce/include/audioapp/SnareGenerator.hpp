@@ -9,7 +9,8 @@ namespace audioapp {
 struct SnareGeneratorParams {
     float gain = 1.0f;
     float snareModel = 0.0f;
-    float snareBody = 0.55f;
+    float snareBody = 0.45f;
+    float snareRing = 0.40f;
     float snareTune = 0.50f;
     float snareSnares = 0.60f;
     float snareSnap = 0.40f;
@@ -24,15 +25,20 @@ struct SnareVoiceRuntime {
     double elapsedSec = 0.0;
     uint32_t noiseState = 0xC8013EA4u;
     float bodyPhase = 0.0f;
+    float ringPhase = 0.0f;
     float bodyStartHz = 300.0f;
     float bodyEndHz = 170.0f;
     float bodyPitchTau = 0.02f;
     float bodyDecaySec = 0.06f;
+    float ringHz = 220.0f;
+    float ringDecaySec = 0.12f;
     float wiresDecaySec = 0.2f;
     BiquadCoeffs wiresCoeffs{};
     BiquadCoeffs snapCoeffs{};
+    BiquadCoeffs ringCoeffs{};
     BiquadState wiresState{};
     BiquadState snapState{};
+    BiquadState ringState{};
 };
 
 struct SnareGeneratorRuntime {

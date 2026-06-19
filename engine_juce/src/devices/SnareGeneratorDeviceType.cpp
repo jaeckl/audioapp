@@ -23,6 +23,7 @@ SnareGeneratorInstance instanceFromSnapshot(const DeviceState& state) {
     SnareGeneratorInstance instance;
     instance.snareModel = state.snareModel;
     instance.snareBody = state.snareBody;
+    instance.snareRing = state.snareRing;
     instance.snareTune = state.snareTune;
     instance.snareSnares = state.snareSnares;
     instance.snareSnap = state.snareSnap;
@@ -34,6 +35,7 @@ SnareGeneratorInstance instanceFromSnapshot(const DeviceState& state) {
 void applyInstanceToSnapshot(const SnareGeneratorInstance& instance, DeviceState& state) {
     state.snareModel = instance.snareModel;
     state.snareBody = instance.snareBody;
+    state.snareRing = instance.snareRing;
     state.snareTune = instance.snareTune;
     state.snareSnares = instance.snareSnares;
     state.snareSnap = instance.snareSnap;
@@ -85,6 +87,8 @@ DeviceParameterResult SnareGeneratorDeviceType::setParameter(DeviceSlot& slot,
         instance.snareModel = clamped;
     } else if (parameterId == "snareBody") {
         instance.snareBody = clamped;
+    } else if (parameterId == "snareRing") {
+        instance.snareRing = clamped;
     } else if (parameterId == "snareTune") {
         instance.snareTune = clamped;
     } else if (parameterId == "snareSnares") {
@@ -111,8 +115,8 @@ bool SnareGeneratorDeviceType::setStringParameter(DeviceSlot&,
 }
 
 std::vector<std::string_view> SnareGeneratorDeviceType::modulatableParams() const {
-    return {"gain", "pan", "snareModel", "snareBody", "snareTune", "snareSnares", "snareSnap", "snareDecay",
-            "snareVelocity"};
+    return {"gain", "pan", "snareModel", "snareBody", "snareRing", "snareTune", "snareSnares",
+            "snareSnap", "snareDecay", "snareVelocity"};
 }
 
 void SnareGeneratorDeviceType::buildPlaybackNode(const DeviceSlot& slot,

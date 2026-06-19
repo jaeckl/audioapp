@@ -170,6 +170,8 @@ void applyAutomationValue(DeviceVariantParams& params,
                 p->snareModel = value;
             } else if (paramId == "snareBody") {
                 p->snareBody = value;
+            } else if (paramId == "snareRing") {
+                p->snareRing = value;
             } else if (paramId == "snareTune") {
                 p->snareTune = value;
             } else if (paramId == "snareSnares") {

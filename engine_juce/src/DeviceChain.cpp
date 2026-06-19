@@ -167,6 +167,8 @@ void applyModulation(SnareGeneratorParams& p, float modAmount, const std::string
         p.snareModel = std::clamp(p.snareModel + modAmount, 0.0f, 1.0f);
     } else if (paramId == "snareBody") {
         p.snareBody = std::clamp(p.snareBody + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "snareRing") {
+        p.snareRing = std::clamp(p.snareRing + modAmount, 0.0f, 1.0f);
     } else if (paramId == "snareTune") {
         p.snareTune = std::clamp(p.snareTune + modAmount, 0.0f, 1.0f);
     } else if (paramId == "snareSnares") {

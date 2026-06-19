@@ -24,6 +24,12 @@ abstract final class SnareModelUiRegistry {
       format: _percent,
     ),
     SnareKnobSpec(
+      paramId: 'snareRing',
+      label: 'Ring',
+      value: _ring,
+      format: _percent,
+    ),
+    SnareKnobSpec(
       paramId: 'snareTune',
       label: 'Tune',
       value: _tune,
@@ -52,6 +58,7 @@ abstract final class SnareModelUiRegistry {
   static List<SnareKnobSpec> knobsForModelIndex(int modelIndex) => _acousticKnobs;
 
   static double _body(DeviceSnapshot d) => d.snareBody;
+  static double _ring(DeviceSnapshot d) => d.snareRing;
   static double _tune(DeviceSnapshot d) => d.snareTune;
   static double _snares(DeviceSnapshot d) => d.snareSnares;
   static double _snap(DeviceSnapshot d) => d.snareSnap;

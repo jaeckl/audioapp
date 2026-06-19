@@ -51,7 +51,8 @@ int main() {
     audioapp::SnareGeneratorParams params{};
     params.gain = 1.0f;
     params.snareModel = 0.0f;
-    params.snareBody = 0.55f;
+    params.snareBody = 0.45f;
+    params.snareRing = 0.40f;
     params.snareTune = 0.50f;
     params.snareSnares = 0.60f;
     params.snareSnap = 0.40f;

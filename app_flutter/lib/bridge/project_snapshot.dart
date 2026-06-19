@@ -294,7 +294,8 @@ class DeviceSnapshot {
     this.kickVelocity = 1.0,
     this.kickKeyTrack = 1.0,
     this.snareModel = 0.0,
-    this.snareBody = 0.55,
+    this.snareBody = 0.45,
+    this.snareRing = 0.40,
     this.snareTune = 0.50,
     this.snareSnares = 0.60,
     this.snareSnap = 0.40,
@@ -389,6 +390,7 @@ class DeviceSnapshot {
   final double kickKeyTrack;
   final double snareModel;
   final double snareBody;
+  final double snareRing;
   final double snareTune;
   final double snareSnares;
   final double snareSnap;
@@ -486,7 +488,8 @@ class DeviceSnapshot {
       kickVelocity: (params['kickVelocity'] as num?)?.toDouble() ?? 1.0,
       kickKeyTrack: (params['kickKeyTrack'] as num?)?.toDouble() ?? 1.0,
       snareModel: (params['snareModel'] as num?)?.toDouble() ?? 0.0,
-      snareBody: (params['snareBody'] as num?)?.toDouble() ?? 0.55,
+      snareBody: (params['snareBody'] as num?)?.toDouble() ?? 0.45,
+      snareRing: (params['snareRing'] as num?)?.toDouble() ?? 0.40,
       snareTune: (params['snareTune'] as num?)?.toDouble() ?? 0.50,
       snareSnares: (params['snareSnares'] as num?)?.toDouble() ?? 0.60,
       snareSnap: (params['snareSnap'] as num?)?.toDouble() ?? 0.40,
@@ -639,6 +642,7 @@ class DeviceSnapshot {
     double? kickKeyTrack,
     double? snareModel,
     double? snareBody,
+    double? snareRing,
     double? snareTune,
     double? snareSnares,
     double? snareSnap,
@@ -733,6 +737,7 @@ class DeviceSnapshot {
       kickKeyTrack: kickKeyTrack ?? this.kickKeyTrack,
       snareModel: snareModel ?? this.snareModel,
       snareBody: snareBody ?? this.snareBody,
+      snareRing: snareRing ?? this.snareRing,
       snareTune: snareTune ?? this.snareTune,
       snareSnares: snareSnares ?? this.snareSnares,
       snareSnap: snareSnap ?? this.snareSnap,
@@ -872,6 +877,8 @@ class DeviceSnapshot {
         return copyWith(snareModel: value.clamp(0.0, 1.0));
       case 'snareBody':
         return copyWith(snareBody: value.clamp(0.0, 1.0));
+      case 'snareRing':
+        return copyWith(snareRing: value.clamp(0.0, 1.0));
       case 'snareTune':
         return copyWith(snareTune: value.clamp(0.0, 1.0));
       case 'snareSnares':

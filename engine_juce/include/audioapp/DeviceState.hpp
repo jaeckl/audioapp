@@ -55,7 +55,8 @@ struct DeviceState {
     float kickVelocity = 1.0f;
     float kickKeyTrack = 1.0f;
     float snareModel = 0.0f;
-    float snareBody = 0.55f;
+    float snareBody = 0.45f;
+    float snareRing = 0.40f;
     float snareTune = 0.50f;
     float snareSnares = 0.60f;
     float snareSnap = 0.40f;

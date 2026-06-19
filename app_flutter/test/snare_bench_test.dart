@@ -41,7 +41,7 @@ void main() {
         ),
       ),
     );
-    expect(find.text('Body'), findsOneWidget);
+    expect(find.text('Ring'), findsOneWidget);
     expect(find.text('Snares'), findsOneWidget);
     expect(find.text('Acoustic'), findsOneWidget);
   });

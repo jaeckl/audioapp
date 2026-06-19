@@ -80,6 +80,7 @@ void configureSnareVoice(SnareVoiceRuntime& voice,
     }
 
     const float bodyNorm = std::clamp(params.snareBody, 0.0f, 1.0f);
+    const float ringNorm = std::clamp(params.snareRing, 0.0f, 1.0f);
     const float tuneNorm = std::clamp(params.snareTune, 0.0f, 1.0f);
     const float snaresNorm = std::clamp(params.snareSnares, 0.0f, 1.0f);
     const float snapNorm = std::clamp(params.snareSnap, 0.0f, 1.0f);
@@ -93,8 +94,11 @@ void configureSnareVoice(SnareVoiceRuntime& voice,
         voice.bodyStartHz = (270.0f + tuneNorm * 70.0f) * tuneRatio;
         voice.bodyEndHz = voice.bodyStartHz * (0.46f + (1.0f - bodyNorm) * 0.14f);
         voice.bodyPitchTau = 0.015f + bodyNorm * 0.013f;
-        voice.bodyDecaySec = 0.038f + bodyNorm * 0.052f;
+        voice.bodyDecaySec = 0.032f + bodyNorm * 0.045f;
         voice.wiresDecaySec = 0.085f + snaresNorm * 0.265f;
+        voice.ringHz =
+            std::clamp((150.0f + tuneNorm * 170.0f) * tuneRatio, 80.0f, sampleRate * 0.42f);
+        voice.ringDecaySec = 0.048f + ringNorm * 0.17f;
         break;
     }
 
@@ -104,6 +108,9 @@ void configureSnareVoice(SnareVoiceRuntime& voice,
                    sampleRate * 0.42f);
     const float wireQ = std::clamp(1.1f - snaresNorm * 0.62f, 0.45f, 1.4f);
     cookSamplerBiquad(voice.wiresCoeffs, 2, sampleRate, wireCenter, wireQ);
+
+    const float ringQ = std::clamp(0.7f + ringNorm * 2.2f, 0.55f, 3.0f);
+    cookSamplerBiquad(voice.ringCoeffs, 2, sampleRate, voice.ringHz, ringQ);
 
     const float snapHp =
         std::clamp(3600.0f + snapNorm * 4800.0f, 200.0f, sampleRate * 0.42f);
@@ -127,7 +134,7 @@ float snareGeneratorSample(SnareVoiceRuntime& voice,
     }
 
     const float bodyNorm = std::clamp(params.snareBody, 0.0f, 1.0f);
-    const float tuneNorm = std::clamp(params.snareTune, 0.0f, 1.0f);
+    const float ringNorm = std::clamp(params.snareRing, 0.0f, 1.0f);
     const float snaresNorm = std::clamp(params.snareSnares, 0.0f, 1.0f);
     const float snapNorm = std::clamp(params.snareSnap, 0.0f, 1.0f);
 
@@ -157,13 +164,27 @@ float snareGeneratorSample(SnareVoiceRuntime& voice,
     const float bodyFund = std::sin(voice.bodyPhase);
     const float bodyHarm = std::sin(voice.bodyPhase * 2.0f);
     const float body =
-        (bodyFund * 0.86f + bodyHarm * (0.08f + bodyNorm * 0.10f)) * bodyEnv *
-        (0.24f + bodyNorm * 0.36f);
+        (bodyFund * 0.88f + bodyHarm * (0.06f + bodyNorm * 0.08f)) * bodyEnv *
+        (0.08f + bodyNorm * 0.20f);
+
+    const float ringEnv =
+        static_cast<float>(std::exp(-t / static_cast<double>(voice.ringDecaySec)));
+    voice.ringPhase += static_cast<float>(kTwoPi * voice.ringHz / sampleRate);
+    if (voice.ringPhase >= static_cast<float>(kTwoPi)) {
+        voice.ringPhase -= static_cast<float>(kTwoPi);
+    }
 
     const float wiresEnv =
         static_cast<float>(std::exp(-t / static_cast<double>(voice.wiresDecaySec)));
     const float rawNoise = xorshiftNoise(voice.noiseState);
     const float wireNoise = processBiquadSample(rawNoise, voice.wiresCoeffs, voice.wiresState);
+    const float ringNoise = processBiquadSample(rawNoise, voice.ringCoeffs, voice.ringState);
+    const float ringTone = std::sin(voice.ringPhase) * (0.10f + ringNorm * 0.16f);
+    const float ringAm =
+        std::sin(static_cast<float>(kTwoPi * voice.ringHz * t)) * ringNoise *
+        (0.12f + ringNorm * 0.30f);
+    const float ring = (ringNoise * (0.50f + ringNorm * 0.28f) + ringTone + ringAm) * ringEnv *
+                       (0.05f + ringNorm * 0.36f);
     const float wires = wireNoise * wiresEnv * (0.26f + snaresNorm * 0.52f);
 
     float snap = 0.0f;
@@ -172,7 +193,7 @@ float snareGeneratorSample(SnareVoiceRuntime& voice,
         snap = snapNoise * static_cast<float>(std::exp(-t / 0.0022)) * snapNorm * 0.62f;
     }
 
-    const float mixed = body + wires + snap;
+    const float mixed = body + ring + wires + snap;
     const float driven = mixed / (1.0f + std::abs(mixed) * 0.35f);
     return driven * ampEnv * velocityGain * params.gain * kInstrumentOutputGain;
 }

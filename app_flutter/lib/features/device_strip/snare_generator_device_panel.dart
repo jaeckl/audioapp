@@ -59,6 +59,7 @@ class SnareGeneratorDevicePanel extends StatelessWidget {
                   child: _previewBox(
                     child: SnareEnvelopePreview(
                       body: device.snareBody,
+                      ring: device.snareRing,
                       tune: device.snareTune,
                       snares: device.snareSnares,
                       snap: device.snareSnap,
@@ -101,7 +102,6 @@ class SnareGeneratorDevicePanel extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       for (final spec in knobs.skip(3)) _buildKnob(spec),
-                      const SizedBox(width: DeviceKnobSizes.strip),
                     ],
                   ),
                 ),
