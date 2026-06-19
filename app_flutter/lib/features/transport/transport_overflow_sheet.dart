@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../bridge/bridge_parsing.dart';
-
 /// Tap-tempo helper — averages last intervals between taps.
 class TapTempo {
   TapTempo({this.maxSamples = 4, this.minBpm = 40, this.maxBpm = 300});
@@ -37,25 +35,21 @@ class TapTempo {
   void reset() => _taps.clear();
 }
 
-/// Overflow actions for transport (loop length, tap tempo, export).
+/// Overflow actions for transport (tap tempo, loop toggle, export).
 class TransportOverflowSheet extends StatefulWidget {
   const TransportOverflowSheet({
     super.key,
     required this.bpm,
     required this.loopEnabled,
-    required this.loopLengthBeats,
     required this.onBpmChanged,
     required this.onLoopToggled,
-    required this.onLoopLengthChanged,
     this.onExportMix,
   });
 
   final int bpm;
   final bool loopEnabled;
-  final double loopLengthBeats;
   final ValueChanged<int> onBpmChanged;
   final ValueChanged<bool> onLoopToggled;
-  final ValueChanged<double> onLoopLengthChanged;
   final VoidCallback? onExportMix;
 
   @override
@@ -66,13 +60,11 @@ class _TransportOverflowSheetState extends State<TransportOverflowSheet> {
   final _tapTempo = TapTempo();
   String? _tapHint;
   late bool _loopEnabled;
-  late double _loopLengthBars;
 
   @override
   void initState() {
     super.initState();
     _loopEnabled = widget.loopEnabled;
-    _loopLengthBars = _barsFromBeats(widget.loopLengthBeats);
   }
 
   @override
@@ -81,13 +73,6 @@ class _TransportOverflowSheetState extends State<TransportOverflowSheet> {
     if (oldWidget.loopEnabled != widget.loopEnabled) {
       _loopEnabled = widget.loopEnabled;
     }
-    if (oldWidget.loopLengthBeats != widget.loopLengthBeats) {
-      _loopLengthBars = _barsFromBeats(widget.loopLengthBeats);
-    }
-  }
-
-  double _barsFromBeats(double beats) {
-    return readEngineDouble(beats, defaultValue: 16.0) / 4.0;
   }
 
   void _onTapTempo() {
@@ -125,26 +110,12 @@ class _TransportOverflowSheetState extends State<TransportOverflowSheet> {
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Loop playback'),
+                subtitle: const Text('Drag the blue markers in the arrangement to set the region'),
                 value: _loopEnabled,
                 onChanged: (enabled) {
                   setState(() => _loopEnabled = enabled);
                   widget.onLoopToggled(enabled);
                 },
-              ),
-              const SizedBox(height: 8),
-              Text('Loop length (bars)', style: theme.textTheme.labelMedium),
-              Slider(
-                min: 1,
-                max: 64,
-                divisions: 63,
-                label: '${_loopLengthBars.round()} bars',
-                value: _loopLengthBars.clamp(1, 64),
-                onChanged: _loopEnabled
-                    ? (bars) {
-                        setState(() => _loopLengthBars = bars);
-                        widget.onLoopLengthChanged(bars * 4);
-                      }
-                    : null,
               ),
               if (widget.onExportMix != null) ...[
                 const Divider(height: 24),

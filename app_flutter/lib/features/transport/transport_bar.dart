@@ -10,10 +10,8 @@ class TransportBar extends StatelessWidget {
     required this.playheadBeats,
     required this.version,
     required this.loopEnabled,
-    required this.loopLengthBeats,
     this.onBpmChanged,
     this.onLoopToggled,
-    this.onLoopLengthChanged,
     this.onExportMix,
   });
 
@@ -21,10 +19,8 @@ class TransportBar extends StatelessWidget {
   final double playheadBeats;
   final String version;
   final bool loopEnabled;
-  final double loopLengthBeats;
   final ValueChanged<int>? onBpmChanged;
   final ValueChanged<bool>? onLoopToggled;
-  final ValueChanged<double>? onLoopLengthChanged;
   final VoidCallback? onExportMix;
 
   String get _playheadLabel {
@@ -45,10 +41,8 @@ class TransportBar extends StatelessWidget {
       builder: (context) => TransportOverflowSheet(
         bpm: bpm,
         loopEnabled: loopEnabled,
-        loopLengthBeats: loopLengthBeats,
         onBpmChanged: (value) => onBpmChanged?.call(value),
         onLoopToggled: (value) => onLoopToggled?.call(value),
-        onLoopLengthChanged: (value) => onLoopLengthChanged?.call(value),
         onExportMix: onExportMix,
       ),
     );
@@ -119,10 +113,8 @@ class TransportBar extends StatelessWidget {
     required double playheadBeats,
     required String version,
     required bool loopEnabled,
-    required double loopLengthBeats,
     ValueChanged<int>? onBpmChanged,
     ValueChanged<bool>? onLoopToggled,
-    ValueChanged<double>? onLoopLengthChanged,
     VoidCallback? onExportMix,
   }) {
     return Padding(
@@ -132,10 +124,8 @@ class TransportBar extends StatelessWidget {
         playheadBeats: playheadBeats,
         version: version,
         loopEnabled: loopEnabled,
-        loopLengthBeats: loopLengthBeats,
         onBpmChanged: onBpmChanged,
         onLoopToggled: onLoopToggled,
-        onLoopLengthChanged: onLoopLengthChanged,
         onExportMix: onExportMix,
       ),
     );
