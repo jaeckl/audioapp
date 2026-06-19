@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "audioapp/DeviceChain.hpp"
+
 namespace audioapp {
 
 /// Modulators + modulation edge state with audio-thread playback snapshots.
@@ -55,10 +57,9 @@ public:
     }
     const LfoPlaybackEntry& lfoPlaybackEntry(int index) const noexcept { return lfoPlayback_[index]; }
     LfoPlaybackEntry& lfoPlaybackEntryMutable(int index) noexcept { return lfoPlayback_[index]; }
-    const ModulationEdge& modEdgePlaybackEntry(int index) const noexcept {
-        return modEdgePlayback_[index];
-    }
-    const ModulationEdge* modEdgePlaybackData() const noexcept { return modEdgePlayback_; }
+
+    /// Returns playback-modulation-edge data (audio-thread-safe, contains ParamId not strings).
+    const ModulationEdgePlayback* modEdgePlaybackData() const noexcept { return modEdgePlayback_; }
     uint32_t noteRetriggerGeneration() const noexcept {
         return noteRetriggerGeneration_.load(std::memory_order_acquire);
     }
@@ -69,7 +70,7 @@ private:
     int nextLfoId_ = 1;
 
     LfoPlaybackEntry lfoPlayback_[kMaxLfos]{};
-    ModulationEdge modEdgePlayback_[kMaxModEdges]{};
+    ModulationEdgePlayback modEdgePlayback_[kMaxModEdges]{};
     std::atomic<int> lfoPlaybackCount_{0};
     std::atomic<int> modEdgePlaybackCount_{0};
     std::atomic<uint32_t> noteRetriggerGeneration_{0};

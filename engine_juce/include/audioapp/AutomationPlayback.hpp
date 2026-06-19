@@ -16,7 +16,7 @@ float evaluateAutomationEnvelope(const AutomationPointPlayback* points,
 /// Apply an absolute automation value (0..1) to device params for block-rate DSP.
 void applyAutomationValue(DeviceVariantParams& params,
                           DeviceNodeKind kind,
-                          const char* paramId,
+                          ParamId paramId,
                           float value) noexcept;
 
 bool automationClipPlaybackFromClip(const AutomationClip& clip,

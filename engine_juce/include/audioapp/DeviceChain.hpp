@@ -20,6 +20,14 @@ namespace audioapp {
 
 static constexpr int kMaxInstrumentRegions = 32;
 
+/// Audio-thread playback copy of ModulationEdge (no std::string for paramId).
+struct ModulationEdgePlayback {
+    int lfoId = 0;
+    std::string deviceId;        // still const char* compare on audio thread (baked in)
+    ParamId paramId = ParamId::Unknown;
+    float amount = 0.0f;
+};
+
 struct MidiPlaybackNote {
     int pitch = 60;
     double clipStartBeat = 0.0;
@@ -153,7 +161,7 @@ void processDeviceChain(float* trackLeft,
                         int maxDeviceMeters = 0,
                         const float* lfoValues = nullptr,
                         int lfoCount = 0,
-                        const ModulationEdge* modEdges = nullptr,
+                        const ModulationEdgePlayback* modEdges = nullptr,
                         int modEdgeCount = 0,
                         const AutomationClipPlayback* automationClips = nullptr,
                         int automationClipCount = 0) noexcept;

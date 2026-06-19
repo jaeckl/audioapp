@@ -35,7 +35,10 @@ void ModulationGraph::rebuildPlayback() {
         if (edgeIndex >= kMaxModEdges) {
             break;
         }
-        modEdgePlayback_[edgeIndex] = edge;
+        modEdgePlayback_[edgeIndex].lfoId = edge.lfoId;
+        modEdgePlayback_[edgeIndex].deviceId = edge.deviceId;
+        modEdgePlayback_[edgeIndex].paramId = paramIdFromString(edge.paramId.c_str());
+        modEdgePlayback_[edgeIndex].amount = edge.amount;
         ++edgeIndex;
     }
     modEdgePlaybackCount_.store(edgeIndex, std::memory_order_release);

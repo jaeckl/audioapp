@@ -71,38 +71,31 @@ bool isMidiNoteActive(const MidiPlaybackNote& note, double beat) {
     return loopedBeat >= note.noteStartBeat && loopedBeat < noteEnd;
 }
 
-// ---- Realtime-safe helpers (no std::string allocations) ----
+// ---- Realtime-safe helpers ----
 
-/// Compare a char array from AutomationClipPlayback with a std::string (both NUL-terminated).
+/// Compare a char[48] deviceId with a std::string (both NUL-terminated).
 bool deviceIdMatches(const char* clipDeviceId, const std::string& deviceId) noexcept {
     return std::strncmp(clipDeviceId, deviceId.c_str(), 47) == 0;
-}
-
-/// Check if a paramId matches a known name without constructing std::string.
-bool paramIdEquals(const char* clipParamId, const char* name) noexcept {
-    return std::strncmp(clipParamId, name, 47) == 0;
 }
 
 /// True when the deviceId has any non-gain/pan automation clip, OR any modulation edge.
 bool nodeNeedsSubBlocks(const DeviceNodePlayback& node,
                         const AutomationClipPlayback* clips,
                         int clipCount,
-                        const ModulationEdge* modEdges,
+                        const ModulationEdgePlayback* modEdges,
                         int modEdgeCount) noexcept {
-    // Check automation clips
     if (clips != nullptr && clipCount > 0 && !node.deviceId.empty()) {
         for (int a = 0; a < clipCount; ++a) {
             if (!deviceIdMatches(clips[a].deviceId, node.deviceId)) continue;
-            if (!paramIdEquals(clips[a].paramId, "gain") && !paramIdEquals(clips[a].paramId, "pan")) {
+            if (clips[a].paramId != ParamId::Gain && clips[a].paramId != ParamId::Pan) {
                 return true;
             }
         }
     }
-    // Check modulation edges for DSP params
     if (modEdges != nullptr && modEdgeCount > 0 && !node.deviceId.empty()) {
         for (int e = 0; e < modEdgeCount; ++e) {
             if (modEdges[e].deviceId != node.deviceId) continue;
-            if (modEdges[e].paramId != "gain" && modEdges[e].paramId != "pan") {
+            if (modEdges[e].paramId != ParamId::Gain && modEdges[e].paramId != ParamId::Pan) {
                 return true;
             }
         }
@@ -110,282 +103,187 @@ bool nodeNeedsSubBlocks(const DeviceNodePlayback& node,
     return false;
 }
 
-// ---- Per-type modulation overloads (block-rate helpers) ----
-// Keep existing overloads unchanged — they are called inside sub-blocks.
+// ---- Per-type modulation overloads (ParamId enum dispatch) ----
 
-void applyModulation(OscillatorParams& p, float modAmount, const std::string& paramId) noexcept {
-    if (paramId == "frequency") {
+void applyModulation(OscillatorParams& p, float modAmount, ParamId pid) noexcept {
+    if (pid == ParamId::Frequency) {
         p.frequencyHz = std::max(20.0f, p.frequencyHz + modAmount * 440.0f);
     }
 }
 
-void applyModulation(SamplerParams& p, float modAmount, const std::string& paramId) noexcept {
-    if (paramId == "filterCutoff") {
-        p.filterCutoff = std::clamp(p.filterCutoff + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "filterQ") {
-        p.filterQ = std::clamp(p.filterQ + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "attack") {
-        p.attack = std::clamp(p.attack + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "decay") {
-        p.decay = std::clamp(p.decay + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "sustain") {
-        p.sustain = std::clamp(p.sustain + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "release") {
-        p.release = std::clamp(p.release + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "rootPitch") {
-        p.rootPitch = std::clamp(
-            static_cast<int>(std::lround(static_cast<float>(p.rootPitch) + modAmount * 12.0f)), 0, 127);
-    } else if (paramId == "rootFineTune") {
-        p.rootFineTune = std::clamp(p.rootFineTune + modAmount * 100.0f, -100.0f, 100.0f);
-    } else if (paramId == "filterEnvAmount") {
-        p.filterEnvAmount = std::clamp(p.filterEnvAmount + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "filterAttack") {
-        p.filterAttack = std::clamp(p.filterAttack + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "filterDecay") {
-        p.filterDecay = std::clamp(p.filterDecay + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "filterSustain") {
-        p.filterSustain = std::clamp(p.filterSustain + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "filterRelease") {
-        p.filterRelease = std::clamp(p.filterRelease + modAmount, 0.0f, 1.0f);
+void applyModulation(SamplerParams& p, float modAmount, ParamId pid) noexcept {
+    switch (pid) {
+    case ParamId::FilterCutoff:   p.filterCutoff = std::clamp(p.filterCutoff + modAmount, 0.0f, 1.0f); break;
+    case ParamId::FilterQ:        p.filterQ = std::clamp(p.filterQ + modAmount, 0.0f, 1.0f); break;
+    case ParamId::Attack:         p.attack = std::clamp(p.attack + modAmount, 0.0f, 1.0f); break;
+    case ParamId::Decay:          p.decay = std::clamp(p.decay + modAmount, 0.0f, 1.0f); break;
+    case ParamId::Sustain:        p.sustain = std::clamp(p.sustain + modAmount, 0.0f, 1.0f); break;
+    case ParamId::Release:        p.release = std::clamp(p.release + modAmount, 0.0f, 1.0f); break;
+    case ParamId::RootPitch:      p.rootPitch = std::clamp(static_cast<int>(std::lround(static_cast<float>(p.rootPitch) + modAmount * 12.0f)), 0, 127); break;
+    case ParamId::RootFineTune:   p.rootFineTune = std::clamp(p.rootFineTune + modAmount * 100.0f, -100.0f, 100.0f); break;
+    case ParamId::FilterEnvAmount: p.filterEnvAmount = std::clamp(p.filterEnvAmount + modAmount, 0.0f, 1.0f); break;
+    case ParamId::FilterAttack:   p.filterAttack = std::clamp(p.filterAttack + modAmount, 0.0f, 1.0f); break;
+    case ParamId::FilterDecay:    p.filterDecay = std::clamp(p.filterDecay + modAmount, 0.0f, 1.0f); break;
+    case ParamId::FilterSustain:  p.filterSustain = std::clamp(p.filterSustain + modAmount, 0.0f, 1.0f); break;
+    case ParamId::FilterRelease:  p.filterRelease = std::clamp(p.filterRelease + modAmount, 0.0f, 1.0f); break;
+    default: break;
     }
 }
 
-void applyModulation(TrackGainParams&, float, const std::string&) noexcept {}
+void applyModulation(TrackGainParams&, float, ParamId) noexcept {}
 
-void applyModulation(SubtractiveSynthParams& p, float modAmount, const std::string& paramId) noexcept {
-    if (paramId == "filterCutoff") {
-        p.filterCutoff = std::clamp(p.filterCutoff + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "filterQ") {
-        p.filterQ = std::clamp(p.filterQ + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "filterMode") {
-        p.filterMode = std::clamp(
-            static_cast<int>(std::lround(static_cast<float>(p.filterMode) + modAmount * 5.0f)), 0, 5);
-    } else if (paramId == "attack") {
-        p.ampAttack = std::clamp(p.ampAttack + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "decay") {
-        p.ampDecay = std::clamp(p.ampDecay + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "sustain") {
-        p.ampSustain = std::clamp(p.ampSustain + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "release") {
-        p.ampRelease = std::clamp(p.ampRelease + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "osc1Shape") {
-        p.osc1Shape = std::clamp(p.osc1Shape + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "osc2Shape") {
-        p.osc2Shape = std::clamp(p.osc2Shape + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "osc1Octave") {
-        p.osc1Octave = std::clamp(p.osc1Octave + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "osc1Semi") {
-        p.osc1Semi = std::clamp(p.osc1Semi + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "osc1Detune") {
-        p.osc1Detune = std::clamp(p.osc1Detune + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "osc2Octave") {
-        p.osc2Octave = std::clamp(p.osc2Octave + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "osc2Semi") {
-        p.osc2Semi = std::clamp(p.osc2Semi + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "osc2Detune") {
-        p.osc2Detune = std::clamp(p.osc2Detune + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "oscMix") {
-        p.oscMix = std::clamp(p.oscMix + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "osc1Sync") {
-        p.osc1Sync = std::clamp(p.osc1Sync + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "osc2Sync") {
-        p.osc2Sync = std::clamp(p.osc2Sync + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "noiseLevel") {
-        p.noiseLevel = std::clamp(p.noiseLevel + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "oscMixMode") {
-        p.oscMixMode = std::clamp(
-            static_cast<int>(std::lround(static_cast<float>(p.oscMixMode) + modAmount * 4.0f)), 0, 4);
-    } else if (paramId == "unisonVoices") {
-        p.unisonVoices = std::clamp(p.unisonVoices + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "unisonDetune") {
-        p.unisonDetune = std::clamp(p.unisonDetune + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "filterEnvAmount") {
-        p.filterEnvAmount = std::clamp(p.filterEnvAmount + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "filterAttack") {
-        p.filterAttack = std::clamp(p.filterAttack + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "filterDecay") {
-        p.filterDecay = std::clamp(p.filterDecay + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "filterSustain") {
-        p.filterSustain = std::clamp(p.filterSustain + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "filterRelease") {
-        p.filterRelease = std::clamp(p.filterRelease + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "glideMs") {
-        p.glideMs = std::clamp(p.glideMs + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "velocitySensitivity") {
-        p.velocitySensitivity = std::clamp(p.velocitySensitivity + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "preHpCutoff") {
-        p.preHpCutoff = std::clamp(p.preHpCutoff + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "preHpRes") {
-        p.preHpRes = std::clamp(p.preHpRes + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "preDrive") {
-        p.preDrive = std::clamp(p.preDrive + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "mixFeedback") {
-        p.mixFeedback = std::clamp(p.mixFeedback + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "globalPitch") {
-        p.globalPitch = std::clamp(p.globalPitch + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "filterKeyTrack") {
-        p.filterKeyTrack = std::clamp(p.filterKeyTrack + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "filterDrive") {
-        p.filterDrive = std::clamp(p.filterDrive + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "filterShaper") {
-        p.filterShaper = std::clamp(p.filterShaper + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "filterFm") {
-        p.filterFm = std::clamp(p.filterFm + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "filterShaperMode") {
-        p.filterShaperMode = std::clamp(
-            static_cast<int>(std::lround(static_cast<float>(p.filterShaperMode) + modAmount * 3.0f)),
-            0, 3);
-    } else if (paramId == "synthLegato") {
-        p.synthLegato = std::clamp(p.synthLegato + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "synthMono") {
-        p.synthMono = std::clamp(p.synthMono + modAmount, 0.0f, 1.0f);
+void applyModulation(SubtractiveSynthParams& p, float modAmount, ParamId pid) noexcept {
+    switch (pid) {
+    case ParamId::FilterCutoff:      p.filterCutoff = std::clamp(p.filterCutoff + modAmount, 0.0f, 1.0f); break;
+    case ParamId::FilterQ:           p.filterQ = std::clamp(p.filterQ + modAmount, 0.0f, 1.0f); break;
+    case ParamId::Attack:            p.ampAttack = std::clamp(p.ampAttack + modAmount, 0.0f, 1.0f); break;
+    case ParamId::Decay:             p.ampDecay = std::clamp(p.ampDecay + modAmount, 0.0f, 1.0f); break;
+    case ParamId::Sustain:           p.ampSustain = std::clamp(p.ampSustain + modAmount, 0.0f, 1.0f); break;
+    case ParamId::Release:           p.ampRelease = std::clamp(p.ampRelease + modAmount, 0.0f, 1.0f); break;
+    case ParamId::Osc1Shape:         p.osc1Shape = std::clamp(p.osc1Shape + modAmount, 0.0f, 1.0f); break;
+    case ParamId::Osc2Shape:         p.osc2Shape = std::clamp(p.osc2Shape + modAmount, 0.0f, 1.0f); break;
+    case ParamId::Osc1Octave:        p.osc1Octave = std::clamp(p.osc1Octave + modAmount, 0.0f, 1.0f); break;
+    case ParamId::Osc1Semi:          p.osc1Semi = std::clamp(p.osc1Semi + modAmount, 0.0f, 1.0f); break;
+    case ParamId::Osc1Detune:        p.osc1Detune = std::clamp(p.osc1Detune + modAmount, 0.0f, 1.0f); break;
+    case ParamId::Osc2Octave:        p.osc2Octave = std::clamp(p.osc2Octave + modAmount, 0.0f, 1.0f); break;
+    case ParamId::Osc2Semi:          p.osc2Semi = std::clamp(p.osc2Semi + modAmount, 0.0f, 1.0f); break;
+    case ParamId::Osc2Detune:        p.osc2Detune = std::clamp(p.osc2Detune + modAmount, 0.0f, 1.0f); break;
+    case ParamId::OscMix:            p.oscMix = std::clamp(p.oscMix + modAmount, 0.0f, 1.0f); break;
+    case ParamId::Osc1Sync:          p.osc1Sync = std::clamp(p.osc1Sync + modAmount, 0.0f, 1.0f); break;
+    case ParamId::Osc2Sync:          p.osc2Sync = std::clamp(p.osc2Sync + modAmount, 0.0f, 1.0f); break;
+    case ParamId::NoiseLevel:        p.noiseLevel = std::clamp(p.noiseLevel + modAmount, 0.0f, 1.0f); break;
+    case ParamId::OscMixMode:        p.oscMixMode = std::clamp(static_cast<int>(std::lround(static_cast<float>(p.oscMixMode) + modAmount * 4.0f)), 0, 4); break;
+    case ParamId::UnisonVoices:      p.unisonVoices = std::clamp(p.unisonVoices + modAmount, 0.0f, 1.0f); break;
+    case ParamId::UnisonDetune:      p.unisonDetune = std::clamp(p.unisonDetune + modAmount, 0.0f, 1.0f); break;
+    case ParamId::FilterEnvAmount:   p.filterEnvAmount = std::clamp(p.filterEnvAmount + modAmount, 0.0f, 1.0f); break;
+    case ParamId::FilterAttack:      p.filterAttack = std::clamp(p.filterAttack + modAmount, 0.0f, 1.0f); break;
+    case ParamId::FilterDecay:       p.filterDecay = std::clamp(p.filterDecay + modAmount, 0.0f, 1.0f); break;
+    case ParamId::FilterSustain:     p.filterSustain = std::clamp(p.filterSustain + modAmount, 0.0f, 1.0f); break;
+    case ParamId::FilterRelease:     p.filterRelease = std::clamp(p.filterRelease + modAmount, 0.0f, 1.0f); break;
+    case ParamId::GlideMs:           p.glideMs = std::clamp(p.glideMs + modAmount, 0.0f, 1.0f); break;
+    case ParamId::VelocitySensitivity: p.velocitySensitivity = std::clamp(p.velocitySensitivity + modAmount, 0.0f, 1.0f); break;
+    case ParamId::PreHpCutoff:       p.preHpCutoff = std::clamp(p.preHpCutoff + modAmount, 0.0f, 1.0f); break;
+    case ParamId::PreHpRes:          p.preHpRes = std::clamp(p.preHpRes + modAmount, 0.0f, 1.0f); break;
+    case ParamId::PreDrive:          p.preDrive = std::clamp(p.preDrive + modAmount, 0.0f, 1.0f); break;
+    case ParamId::MixFeedback:       p.mixFeedback = std::clamp(p.mixFeedback + modAmount, 0.0f, 1.0f); break;
+    case ParamId::GlobalPitch:       p.globalPitch = std::clamp(p.globalPitch + modAmount, 0.0f, 1.0f); break;
+    case ParamId::FilterKeyTrack:    p.filterKeyTrack = std::clamp(p.filterKeyTrack + modAmount, 0.0f, 1.0f); break;
+    case ParamId::FilterDrive:       p.filterDrive = std::clamp(p.filterDrive + modAmount, 0.0f, 1.0f); break;
+    case ParamId::FilterShaper:      p.filterShaper = std::clamp(p.filterShaper + modAmount, 0.0f, 1.0f); break;
+    case ParamId::FilterFm:          p.filterFm = std::clamp(p.filterFm + modAmount, 0.0f, 1.0f); break;
+    case ParamId::FilterShaperMode:  p.filterShaperMode = std::clamp(static_cast<int>(std::lround(static_cast<float>(p.filterShaperMode) + modAmount * 3.0f)), 0, 3); break;
+    case ParamId::SynthLegato:       p.synthLegato = std::clamp(p.synthLegato + modAmount, 0.0f, 1.0f); break;
+    case ParamId::SynthMono:         p.synthMono = std::clamp(p.synthMono + modAmount, 0.0f, 1.0f); break;
+    case ParamId::FilterMode:        p.filterMode = std::clamp(static_cast<int>(std::lround(static_cast<float>(p.filterMode) + modAmount * 5.0f)), 0, 5); break;
+    default: break;
     }
 }
 
-void applyModulation(KickGeneratorParams& p, float modAmount, const std::string& paramId) noexcept {
-    if (paramId == "kickModel") {
-        p.kickModel = std::clamp(p.kickModel + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "kickPitch") {
-        p.kickPitch = std::clamp(p.kickPitch + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "kickPunch") {
-        p.kickPunch = std::clamp(p.kickPunch + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "kickDecay") {
-        p.kickDecay = std::clamp(p.kickDecay + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "kickClick") {
-        p.kickClick = std::clamp(p.kickClick + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "kickTone") {
-        p.kickTone = std::clamp(p.kickTone + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "kickVelocity") {
-        p.kickVelocity = std::clamp(p.kickVelocity + modAmount, 0.0f, 1.0f);
+void applyModulation(KickGeneratorParams& p, float modAmount, ParamId pid) noexcept {
+    switch (pid) {
+    case ParamId::KickModel:    p.kickModel = std::clamp(p.kickModel + modAmount, 0.0f, 1.0f); break;
+    case ParamId::KickPitch:    p.kickPitch = std::clamp(p.kickPitch + modAmount, 0.0f, 1.0f); break;
+    case ParamId::KickPunch:    p.kickPunch = std::clamp(p.kickPunch + modAmount, 0.0f, 1.0f); break;
+    case ParamId::KickDecay:    p.kickDecay = std::clamp(p.kickDecay + modAmount, 0.0f, 1.0f); break;
+    case ParamId::KickClick:    p.kickClick = std::clamp(p.kickClick + modAmount, 0.0f, 1.0f); break;
+    case ParamId::KickTone:     p.kickTone = std::clamp(p.kickTone + modAmount, 0.0f, 1.0f); break;
+    case ParamId::KickVelocity: p.kickVelocity = std::clamp(p.kickVelocity + modAmount, 0.0f, 1.0f); break;
+    default: break;
     }
 }
 
-void applyModulation(SnareGeneratorParams& p, float modAmount, const std::string& paramId) noexcept {
-    if (paramId == "snareModel") {
-        p.snareModel = std::clamp(p.snareModel + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "snareBody") {
-        p.snareBody = std::clamp(p.snareBody + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "snareRing") {
-        p.snareRing = std::clamp(p.snareRing + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "snareTune") {
-        p.snareTune = std::clamp(p.snareTune + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "snareSnares") {
-        p.snareSnares = std::clamp(p.snareSnares + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "snareSnap") {
-        p.snareSnap = std::clamp(p.snareSnap + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "snareDecay") {
-        p.snareDecay = std::clamp(p.snareDecay + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "snareVelocity") {
-        p.snareVelocity = std::clamp(p.snareVelocity + modAmount, 0.0f, 1.0f);
+void applyModulation(SnareGeneratorParams& p, float modAmount, ParamId pid) noexcept {
+    switch (pid) {
+    case ParamId::SnareModel:   p.snareModel = std::clamp(p.snareModel + modAmount, 0.0f, 1.0f); break;
+    case ParamId::SnareBody:    p.snareBody = std::clamp(p.snareBody + modAmount, 0.0f, 1.0f); break;
+    case ParamId::SnareRing:    p.snareRing = std::clamp(p.snareRing + modAmount, 0.0f, 1.0f); break;
+    case ParamId::SnareTune:    p.snareTune = std::clamp(p.snareTune + modAmount, 0.0f, 1.0f); break;
+    case ParamId::SnareSnares:  p.snareSnares = std::clamp(p.snareSnares + modAmount, 0.0f, 1.0f); break;
+    case ParamId::SnareSnap:    p.snareSnap = std::clamp(p.snareSnap + modAmount, 0.0f, 1.0f); break;
+    case ParamId::SnareDecay:   p.snareDecay = std::clamp(p.snareDecay + modAmount, 0.0f, 1.0f); break;
+    case ParamId::SnareVelocity: p.snareVelocity = std::clamp(p.snareVelocity + modAmount, 0.0f, 1.0f); break;
+    default: break;
     }
 }
 
-void applyModulation(ClapGeneratorParams& p, float modAmount, const std::string& paramId) noexcept {
-    if (paramId == "clapBursts") {
-        p.clapBursts = std::clamp(p.clapBursts + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "clapSpread") {
-        p.clapSpread = std::clamp(p.clapSpread + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "clapTone") {
-        p.clapTone = std::clamp(p.clapTone + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "clapRoom") {
-        p.clapRoom = std::clamp(p.clapRoom + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "clapDecay") {
-        p.clapDecay = std::clamp(p.clapDecay + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "clapVelocity") {
-        p.clapVelocity = std::clamp(p.clapVelocity + modAmount, 0.0f, 1.0f);
+void applyModulation(ClapGeneratorParams& p, float modAmount, ParamId pid) noexcept {
+    switch (pid) {
+    case ParamId::ClapBursts:   p.clapBursts = std::clamp(p.clapBursts + modAmount, 0.0f, 1.0f); break;
+    case ParamId::ClapSpread:   p.clapSpread = std::clamp(p.clapSpread + modAmount, 0.0f, 1.0f); break;
+    case ParamId::ClapTone:     p.clapTone = std::clamp(p.clapTone + modAmount, 0.0f, 1.0f); break;
+    case ParamId::ClapRoom:     p.clapRoom = std::clamp(p.clapRoom + modAmount, 0.0f, 1.0f); break;
+    case ParamId::ClapDecay:    p.clapDecay = std::clamp(p.clapDecay + modAmount, 0.0f, 1.0f); break;
+    case ParamId::ClapVelocity: p.clapVelocity = std::clamp(p.clapVelocity + modAmount, 0.0f, 1.0f); break;
+    default: break;
     }
 }
 
-void applyModulation(CymbalGeneratorParams& p, float modAmount, const std::string& paramId) noexcept {
-    if (paramId == "cymbalColor") {
-        p.cymbalColor = std::clamp(p.cymbalColor + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "cymbalDecay") {
-        p.cymbalDecay = std::clamp(p.cymbalDecay + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "cymbalWidth") {
-        p.cymbalWidth = std::clamp(p.cymbalWidth + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "cymbalVelocity") {
-        p.cymbalVelocity = std::clamp(p.cymbalVelocity + modAmount, 0.0f, 1.0f);
+void applyModulation(CymbalGeneratorParams& p, float modAmount, ParamId pid) noexcept {
+    switch (pid) {
+    case ParamId::CymbalColor:    p.cymbalColor = std::clamp(p.cymbalColor + modAmount, 0.0f, 1.0f); break;
+    case ParamId::CymbalDecay:    p.cymbalDecay = std::clamp(p.cymbalDecay + modAmount, 0.0f, 1.0f); break;
+    case ParamId::CymbalWidth:    p.cymbalWidth = std::clamp(p.cymbalWidth + modAmount, 0.0f, 1.0f); break;
+    case ParamId::CymbalVelocity: p.cymbalVelocity = std::clamp(p.cymbalVelocity + modAmount, 0.0f, 1.0f); break;
+    default: break;
     }
 }
 
-void applyModulation(CrashGeneratorParams& p, float modAmount, const std::string& paramId) noexcept {
-    if (paramId == "crashColor") {
-        p.crashColor = std::clamp(p.crashColor + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "crashSpread") {
-        p.crashSpread = std::clamp(p.crashSpread + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "crashDecay") {
-        p.crashDecay = std::clamp(p.crashDecay + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "crashVelocity") {
-        p.crashVelocity = std::clamp(p.crashVelocity + modAmount, 0.0f, 1.0f);
+void applyModulation(CrashGeneratorParams& p, float modAmount, ParamId pid) noexcept {
+    switch (pid) {
+    case ParamId::CrashColor:    p.crashColor = std::clamp(p.crashColor + modAmount, 0.0f, 1.0f); break;
+    case ParamId::CrashSpread:   p.crashSpread = std::clamp(p.crashSpread + modAmount, 0.0f, 1.0f); break;
+    case ParamId::CrashDecay:    p.crashDecay = std::clamp(p.crashDecay + modAmount, 0.0f, 1.0f); break;
+    case ParamId::CrashVelocity: p.crashVelocity = std::clamp(p.crashVelocity + modAmount, 0.0f, 1.0f); break;
+    default: break;
     }
 }
 
-void applyModulation(GateParams& p, float modAmount, const std::string& paramId) noexcept {
-    if (paramId == "inputGain") {
-        p.inputGain = std::clamp(p.inputGain + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "gateThreshold") {
-        p.gateThreshold = std::clamp(p.gateThreshold + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "gateAttack") {
-        p.gateAttack = std::clamp(p.gateAttack + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "gateRelease") {
-        p.gateRelease = std::clamp(p.gateRelease + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "gateHold") {
-        p.gateHold = std::clamp(p.gateHold + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "gateRange") {
-        p.gateRange = std::clamp(p.gateRange + modAmount, 0.0f, 1.0f);
+void applyModulation(GateParams& p, float modAmount, ParamId pid) noexcept {
+    switch (pid) {
+    case ParamId::InputGain:      p.inputGain = std::clamp(p.inputGain + modAmount, 0.0f, 1.0f); break;
+    case ParamId::Threshold:      p.gateThreshold = std::clamp(p.gateThreshold + modAmount, 0.0f, 1.0f); break;
+    case ParamId::GateHold:       p.gateHold = std::clamp(p.gateHold + modAmount, 0.0f, 1.0f); break;
+    case ParamId::GateRange:      p.gateRange = std::clamp(p.gateRange + modAmount, 0.0f, 1.0f); break;
+    default: break;
     }
+    // Use same gateAttack/gateRelease — they map to Attack/Release in dynamics context.
+    if (pid == ParamId::Attack) { p.gateAttack = std::clamp(p.gateAttack + modAmount, 0.0f, 1.0f); }
+    if (pid == ParamId::Release) { p.gateRelease = std::clamp(p.gateRelease + modAmount, 0.0f, 1.0f); }
 }
 
-void applyModulation(CompressorParams& p, float modAmount, const std::string& paramId) noexcept {
-    if (paramId == "inputGain") {
-        p.inputGain = std::clamp(p.inputGain + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "compThreshold") {
-        p.compThreshold = std::clamp(p.compThreshold + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "compRatio") {
-        p.compRatio = std::clamp(p.compRatio + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "compAttack") {
-        p.compAttack = std::clamp(p.compAttack + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "compRelease") {
-        p.compRelease = std::clamp(p.compRelease + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "compKnee") {
-        p.compKnee = std::clamp(p.compKnee + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "compMakeup") {
-        p.compMakeup = std::clamp(p.compMakeup + modAmount, 0.0f, 1.0f);
+void applyModulation(CompressorParams& p, float modAmount, ParamId pid) noexcept {
+    switch (pid) {
+    case ParamId::InputGain:      p.inputGain = std::clamp(p.inputGain + modAmount, 0.0f, 1.0f); break;
+    case ParamId::Threshold:      p.compThreshold = std::clamp(p.compThreshold + modAmount, 0.0f, 1.0f); break;
+    case ParamId::CompKnee:       p.compKnee = std::clamp(p.compKnee + modAmount, 0.0f, 1.0f); break;
+    case ParamId::CompMakeup:     p.compMakeup = std::clamp(p.compMakeup + modAmount, 0.0f, 1.0f); break;
+    default: break;
     }
+    if (pid == ParamId::Attack) { p.compAttack = std::clamp(p.compAttack + modAmount, 0.0f, 1.0f); }
+    if (pid == ParamId::Release) { p.compRelease = std::clamp(p.compRelease + modAmount, 0.0f, 1.0f); }
 }
 
-void applyModulation(ExpanderParams& p, float modAmount, const std::string& paramId) noexcept {
-    if (paramId == "inputGain") {
-        p.inputGain = std::clamp(p.inputGain + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "expandThreshold") {
-        p.expandThreshold = std::clamp(p.expandThreshold + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "expandRatio") {
-        p.expandRatio = std::clamp(p.expandRatio + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "expandAttack") {
-        p.expandAttack = std::clamp(p.expandAttack + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "expandRelease") {
-        p.expandRelease = std::clamp(p.expandRelease + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "expandRange") {
-        p.expandRange = std::clamp(p.expandRange + modAmount, 0.0f, 1.0f);
+void applyModulation(ExpanderParams& p, float modAmount, ParamId pid) noexcept {
+    switch (pid) {
+    case ParamId::InputGain:      p.inputGain = std::clamp(p.inputGain + modAmount, 0.0f, 1.0f); break;
+    case ParamId::Threshold:      p.expandThreshold = std::clamp(p.expandThreshold + modAmount, 0.0f, 1.0f); break;
+    case ParamId::GateRange:      p.expandRange = std::clamp(p.expandRange + modAmount, 0.0f, 1.0f); break;
+    default: break;
     }
+    if (pid == ParamId::Attack) { p.expandAttack = std::clamp(p.expandAttack + modAmount, 0.0f, 1.0f); }
+    if (pid == ParamId::Release) { p.expandRelease = std::clamp(p.expandRelease + modAmount, 0.0f, 1.0f); }
 }
 
-void applyModulation(LimiterParams& p, float modAmount, const std::string& paramId) noexcept {
-    if (paramId == "inputGain") {
-        p.inputGain = std::clamp(p.inputGain + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "limitCeiling") {
-        p.limitCeiling = std::clamp(p.limitCeiling + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "limitAttack") {
-        p.limitAttack = std::clamp(p.limitAttack + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "limitRelease") {
-        p.limitRelease = std::clamp(p.limitRelease + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "limitKnee") {
-        p.limitKnee = std::clamp(p.limitKnee + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "limitDrive") {
-        p.limitDrive = std::clamp(p.limitDrive + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "limitMakeup") {
-        p.limitMakeup = std::clamp(p.limitMakeup + modAmount, 0.0f, 1.0f);
+void applyModulation(LimiterParams& p, float modAmount, ParamId pid) noexcept {
+    switch (pid) {
+    case ParamId::InputGain:      p.inputGain = std::clamp(p.inputGain + modAmount, 0.0f, 1.0f); break;
+    case ParamId::LimitCeiling:   p.limitCeiling = std::clamp(p.limitCeiling + modAmount, 0.0f, 1.0f); break;
+    case ParamId::LimitDrive:     p.limitDrive = std::clamp(p.limitDrive + modAmount, 0.0f, 1.0f); break;
+    case ParamId::CompMakeup:     p.limitMakeup = std::clamp(p.limitMakeup + modAmount, 0.0f, 1.0f); break;
+    default: break;
     }
+    if (pid == ParamId::Attack) { p.limitAttack = std::clamp(p.limitAttack + modAmount, 0.0f, 1.0f); }
+    if (pid == ParamId::Release) { p.limitRelease = std::clamp(p.limitRelease + modAmount, 0.0f, 1.0f); }
 }
 
 /// Multiply stereo buffers by a scalar gain.
@@ -421,7 +319,7 @@ void applyDspModulationAtFrame(DeviceVariantParams& params,
                                int framesToProcess,
                                const float* lfoValues,
                                int lfoCount,
-                               const ModulationEdge* modEdges,
+                               const ModulationEdgePlayback* modEdges,
                                int modEdgeCount) noexcept {
     if (lfoValues == nullptr || lfoCount <= 0 || modEdges == nullptr || deviceId.empty()) {
         return;
@@ -431,7 +329,7 @@ void applyDspModulationAtFrame(DeviceVariantParams& params,
         if (edge.deviceId != deviceId || edge.lfoId < 0 || edge.lfoId >= lfoCount) {
             continue;
         }
-        if (edge.paramId == "gain" || edge.paramId == "pan") {
+        if (edge.paramId == ParamId::Gain || edge.paramId == ParamId::Pan) {
             continue;
         }
         const float lfoOut = lfoValues[edge.lfoId * framesToProcess + lfoFrame];
@@ -448,7 +346,7 @@ DeviceVariantParams dspParamsAtFrame(const DeviceNodePlayback& node,
                                    int automationClipCount,
                                    const float* lfoValues,
                                    int lfoCount,
-                                   const ModulationEdge* modEdges,
+                                   const ModulationEdgePlayback* modEdges,
                                    int modEdgeCount) {
     auto params = node.params;
     applyDspAutomationAtBeat(params, node.kind, node.deviceId, beat, automationClips,
@@ -466,7 +364,7 @@ bool nodeUsesDspAutomationSubBlocks(const DeviceNodePlayback& node,
     }
     for (int a = 0; a < clipCount; ++a) {
         if (!deviceIdMatches(clips[a].deviceId, node.deviceId)) continue;
-        if (!paramIdEquals(clips[a].paramId, "gain") && !paramIdEquals(clips[a].paramId, "pan")) {
+        if (clips[a].paramId != ParamId::Gain && clips[a].paramId != ParamId::Pan) {
             switch (node.kind) {
             case DeviceNodeKind::Oscillator:
             case DeviceNodeKind::Sampler:
@@ -529,7 +427,7 @@ void processDeviceChain(float* trackLeft,
                         int maxDeviceMeters,
                         const float* lfoValues,
                         int lfoCount,
-                        const ModulationEdge* modEdges,
+                        const ModulationEdgePlayback* modEdges,
                         int modEdgeCount,
                         const AutomationClipPlayback* automationClips,
                         int automationClipCount) noexcept {
@@ -538,7 +436,6 @@ void processDeviceChain(float* trackLeft,
         return;
     }
 
-    // Bound frames to scratch capacity; assert caller does not exceed this.
     const int framesToProcess = numFrames > kScratchFrames ? kScratchFrames : numFrames;
     auto& s = gScratch;
 
@@ -552,7 +449,6 @@ void processDeviceChain(float* trackLeft,
             continue;
         }
 
-        // --- Base params ---
         auto modulatedParams = node.params;
 
         for (int f = 0; f < framesToProcess; ++f) {
@@ -560,18 +456,16 @@ void processDeviceChain(float* trackLeft,
             s.perFramePan[f] = node.pan;
         }
 
-        // Decide if this device needs sub-block DSP parameter updates
         const bool needsSubBlocks = nodeNeedsSubBlocks(
             node, automationClips, automationClipCount, modEdges, modEdgeCount);
 
-        // --- Timeline automation for gain/pan (always per-frame) + DSP params ---
+        // --- Timeline automation ---
         if (automationClips != nullptr && automationClipCount > 0 && !node.deviceId.empty()) {
             for (int a = 0; a < automationClipCount; ++a) {
                 const AutomationClipPlayback& ac = automationClips[a];
                 if (!deviceIdMatches(ac.deviceId, node.deviceId)) continue;
 
-                if (paramIdEquals(ac.paramId, "gain") || paramIdEquals(ac.paramId, "pan")) {
-                    // Per-frame gain/pan automation
+                if (ac.paramId == ParamId::Gain || ac.paramId == ParamId::Pan) {
                     for (int f = 0; f < framesToProcess; ++f) {
                         const double beat =
                             playheadStartBeat + static_cast<double>(f) * beatsPerFrame;
@@ -583,14 +477,13 @@ void processDeviceChain(float* trackLeft,
                             static_cast<float>(beat - static_cast<double>(ac.clipStartBeat));
                         const float value =
                             evaluateAutomationEnvelope(ac.points, ac.pointCount, beatInClip);
-                        if (paramIdEquals(ac.paramId, "gain")) {
+                        if (ac.paramId == ParamId::Gain) {
                             s.perFrameGain[f] = value;
                         } else {
                             s.perFramePan[f] = value;
                         }
                     }
                 } else if (!needsSubBlocks) {
-                    // Block-rate DSP automation (for subtractive synth which is per-sample)
                     if (node.kind == DeviceNodeKind::SubtractiveSynth &&
                         nodeHasDspAutomation(node.deviceId, automationClips, automationClipCount)) {
                         continue;
@@ -616,11 +509,10 @@ void processDeviceChain(float* trackLeft,
                 if (edge.deviceId != node.deviceId || edge.lfoId < 0 || edge.lfoId >= lfoCount) {
                     continue;
                 }
-                if (edge.paramId == "gain" || edge.paramId == "pan") {
-                    continue; // handled below
+                if (edge.paramId == ParamId::Gain || edge.paramId == ParamId::Pan) {
+                    continue;
                 }
                 if (!needsSubBlocks) {
-                    // Block-rate modulation (subtractive synth uses per-sample inside its render)
                     if (node.kind == DeviceNodeKind::SubtractiveSynth &&
                         nodeHasDspAutomation(node.deviceId, automationClips, automationClipCount)) {
                         continue;
@@ -634,19 +526,19 @@ void processDeviceChain(float* trackLeft,
             }
         }
 
-        // Per-frame gain/pan LFO modulation (always per-frame regardless of needsSubBlocks)
+        // Per-frame gain/pan LFO modulation
         if (lfoValues != nullptr && lfoCount > 0 && modEdges != nullptr && modEdgeCount > 0 && !node.deviceId.empty()) {
             for (int e = 0; e < modEdgeCount; ++e) {
                 const auto& edge = modEdges[e];
                 if (edge.deviceId != node.deviceId || edge.lfoId < 0 || edge.lfoId >= lfoCount) {
                     continue;
                 }
-                if (paramIdEquals(edge.paramId.c_str(), "gain")) {
+                if (edge.paramId == ParamId::Gain) {
                     for (int f = 0; f < framesToProcess; ++f) {
                         const float lfoOut = lfoValues[edge.lfoId * framesToProcess + f];
                         s.perFrameGain[f] = std::clamp(s.perFrameGain[f] + edge.amount * lfoOut, 0.0f, 1.0f);
                     }
-                } else if (paramIdEquals(edge.paramId.c_str(), "pan")) {
+                } else if (edge.paramId == ParamId::Pan) {
                     for (int f = 0; f < framesToProcess; ++f) {
                         const float lfoOut = lfoValues[edge.lfoId * framesToProcess + f];
                         s.perFramePan[f] = std::clamp(s.perFramePan[f] + edge.amount * lfoOut, 0.0f, 1.0f);
@@ -705,13 +597,10 @@ void processDeviceChain(float* trackLeft,
                     }
                     std::memset(s.scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
 
-                    // Use persistent per-note filter states when samplerFilterStates is available.
-                    // Each device slot has a contiguous block of kMaxInstrumentRegions states.
                     BiquadState* noteFilterBase = nullptr;
                     if (samplerFilterStates != nullptr) {
                         noteFilterBase = &samplerFilterStates[deviceIndex * kMaxInstrumentRegions];
                     }
-                    // Also cache into scratch for the non-persistent case
                     std::memset(s.samplerNoteFilterStates, 0, sizeof(s.samplerNoteFilterStates));
                     BiquadState* effectiveNoteFilters =
                         noteFilterBase != nullptr ? noteFilterBase : s.samplerNoteFilterStates;
@@ -746,11 +635,9 @@ void processDeviceChain(float* trackLeft,
                     };
                     if (needsSubBlocks) {
                         for (int sub = 0; sub < framesToProcess; sub += kAutomationSubBlockFrames) {
-                            const int subLen =
-                                std::min(kAutomationSubBlockFrames, framesToProcess - sub);
+                            const int subLen = std::min(kAutomationSubBlockFrames, framesToProcess - sub);
                             const double subBeat =
                                 playheadStartBeat + static_cast<double>(sub) * beatsPerFrame;
-                            // Capture by value, not reference-to-temporary
                             auto subParams = dspParamsAtFrame(
                                 node, subBeat, sub, framesToProcess, automationClips,
                                 automationClipCount, lfoValues, lfoCount, modEdges, modEdgeCount);
@@ -901,7 +788,6 @@ void processDeviceChain(float* trackLeft,
                             note.velocity,
                         };
                     }
-                    // Cymbal renders directly into stereo, so we use tempStereoL/R as buffer
                     std::memset(s.tempStereoL, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
                     std::memset(s.tempStereoR, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
                     CymbalGeneratorRuntime localRuntime{};
@@ -912,7 +798,6 @@ void processDeviceChain(float* trackLeft,
                                                       ? cymbalRuntimes[deviceIndex]
                                                       : localRuntime,
                                                   s.perFrameGain);
-                    // Apply per-frame pan
                     for (int f = 0; f < framesToProcess; ++f) {
                         const float angle = std::clamp(s.perFramePan[f], 0.0f, 1.0f) * 1.57079632679f;
                         trackLeft[f] += s.tempStereoL[f] * std::cos(angle) +
@@ -948,13 +833,12 @@ void processDeviceChain(float* trackLeft,
                                                      ? crashRuntimes[deviceIndex]
                                                      : localRuntime,
                                                  s.perFrameGain);
-                    // Apply per-frame pan to stereo crash output
                     for (int f = 0; f < framesToProcess; ++f) {
                         const float angle = std::clamp(s.perFramePan[f], 0.0f, 1.0f) * 1.57079632679f;
-                        const float cosA = std::cos(angle);
-                        const float sinA = std::sin(angle);
-                        trackLeft[f] += s.tempStereoL[f] * cosA + s.tempStereoR[f] * cosA;
-                        trackRight[f] += s.tempStereoR[f] * sinA + s.tempStereoL[f] * sinA;
+                        trackLeft[f] += s.tempStereoL[f] * std::cos(angle) +
+                                        s.tempStereoR[f] * std::cos(angle);
+                        trackRight[f] += s.tempStereoL[f] * std::sin(angle) +
+                                         s.tempStereoR[f] * std::sin(angle);
                     }
                 }
             }
