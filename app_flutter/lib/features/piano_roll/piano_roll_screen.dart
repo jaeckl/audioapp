@@ -1,16 +1,19 @@
 import 'dart:math' as math;
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 
 import '../../bridge/engine_bridge.dart';
 import '../../bridge/project_snapshot.dart';
+import '../editor/clip_editor_transport.dart';
+import '../editor/timeline_marker_layer.dart';
 import '../play/play_deck.dart';
-import '../play/play_deck_layout.dart';
 import '../play/play_deck_layout.dart';
 import 'piano_roll_edit_sheet.dart';
 import 'piano_roll_grid_sheet.dart';
 import 'editor_view_range.dart';
 import 'piano_roll_metrics.dart';
+import 'piano_roll_note_audition.dart';
 import 'piano_roll_note_ops.dart';
 import 'piano_roll_theme.dart';
 import 'piano_roll_tool_dock.dart';
@@ -24,6 +27,7 @@ class PianoRollScreen extends StatefulWidget {
     required this.trackName,
     required this.bpm,
     required this.onSnapshot,
+    required this.savedArrangementPlayhead,
     this.drumAnchorPitch,
   });
 
@@ -32,6 +36,7 @@ class PianoRollScreen extends StatefulWidget {
   final String trackName;
   final int bpm;
   final ValueChanged<ProjectSnapshot> onSnapshot;
+  final double savedArrangementPlayhead;
   /// GM drum pitch for this track (38 snare, 36 kick, …). Locks draw lane + scroll.
   final int? drumAnchorPitch;
 
@@ -39,10 +44,14 @@ class PianoRollScreen extends StatefulWidget {
   State<PianoRollScreen> createState() => _PianoRollScreenState();
 }
 
-class _PianoRollScreenState extends State<PianoRollScreen> {
+class _PianoRollScreenState extends State<PianoRollScreen> with TickerProviderStateMixin {
   late List<MidiNoteSnapshot> _notes;
   late int _initialOctaveOffset;
   late double _clipLengthBeats;
+  late final ClipEditorTransportController _previewTransport;
+  late final PianoRollNoteAudition _noteAudition;
+  final TimelineViewportScrollController _timelineScrollController =
+      TimelineViewportScrollController();
   final List<List<MidiNoteSnapshot>> _undoStack = [];
   final List<List<MidiNoteSnapshot>> _redoStack = [];
 
@@ -56,6 +65,19 @@ class _PianoRollScreenState extends State<PianoRollScreen> {
     super.initState();
     _notes = List.of(widget.clip.notes);
     _clipLengthBeats = widget.clip.lengthBeats;
+    _previewTransport = ClipEditorTransportController(
+      bridge: widget.bridge,
+      clipStartBeat: widget.clip.startBeat,
+      savedArrangementPlayhead: widget.savedArrangementPlayhead,
+      vsync: this,
+      maxClipBeat: _clipLengthBeats,
+    );
+    _previewTransport.addListener(_onPreviewTransportChanged);
+    _noteAudition = PianoRollNoteAudition(
+      bridge: widget.bridge,
+      bpm: widget.bpm,
+      drumAnchorPitch: widget.drumAnchorPitch,
+    );
     _initialOctaveOffset = widget.drumAnchorPitch != null
         ? PianoRollMetrics.octaveOffsetFromPitch(widget.drumAnchorPitch!)
         : PianoRollMetrics.initialOctaveOffset(
@@ -64,8 +86,49 @@ class _PianoRollScreenState extends State<PianoRollScreen> {
     widget.bridge.enterPlayMode();
   }
 
+  void _onPreviewTransportChanged() {
+    if (mounted) setState(() {});
+  }
+
+  bool _previewTransportCommandInFlight = false;
+
+  Future<void> _startPreviewPlay() async {
+    if (_previewTransport.isPlaying || _previewTransportCommandInFlight) return;
+    _previewTransportCommandInFlight = true;
+    try {
+      final beat = _previewTransport.clipLocalBeat;
+      await _previewTransport.play(bpm: widget.bpm);
+      if (mounted) {
+        _timelineScrollController.revealPlayheadAtViewportOrigin(beat);
+      }
+    } finally {
+      _previewTransportCommandInFlight = false;
+    }
+  }
+
+  Future<void> _stopPreviewPlay() async {
+    if (!_previewTransport.isPlaying || _previewTransportCommandInFlight) return;
+    _previewTransportCommandInFlight = true;
+    try {
+      await _previewTransport.stop();
+    } finally {
+      _previewTransportCommandInFlight = false;
+    }
+  }
+
+  Future<void> _togglePreviewPlay() async {
+    if (_previewTransport.isPlaying) {
+      await _stopPreviewPlay();
+    } else {
+      await _startPreviewPlay();
+    }
+  }
+
   @override
   void dispose() {
+    _previewTransport.removeListener(_onPreviewTransportChanged);
+    unawaited(_previewTransport.disposePreview());
+    unawaited(_noteAudition.release());
     widget.bridge.allNotesOff();
     super.dispose();
   }
@@ -293,23 +356,41 @@ class _PianoRollScreenState extends State<PianoRollScreen> {
         child: Column(
           children: [
             Expanded(
-              child: PianoRollViewport(
-                notes: _notes,
-                clipLengthBeats: _clipLengthBeats,
-                virtualLengthBeats: _virtualLengthBeats,
-                minPitch: PianoRollMetrics.gridMinPitch,
-                maxPitch: PianoRollMetrics.gridMaxPitch,
-                drumAnchorPitch: widget.drumAnchorPitch,
-                gridSettings: _grid,
-                tool: _tool,
-                selectedIndex: _selectedIndex,
-                onNotesChanged: _onNotesChanged,
-                onSelectionChanged: (index) => setState(() => _selectedIndex = index),
-                onEditStarted: _onEditStarted,
-                onEditFinished: _onEditFinished,
-                onClipLengthChanged: (length) => setState(() => _clipLengthBeats = length),
-                onClipLengthCommit: _persistClipLength,
-                viewRangeBars: _viewRangeBars,
+              child: ListenableBuilder(
+                listenable: _previewTransport,
+                builder: (context, _) => PianoRollViewport(
+                  timelineScrollController: _timelineScrollController,
+                  notes: _notes,
+                  clipLengthBeats: _clipLengthBeats,
+                  virtualLengthBeats: _virtualLengthBeats,
+                  minPitch: PianoRollMetrics.gridMinPitch,
+                  maxPitch: PianoRollMetrics.gridMaxPitch,
+                  drumAnchorPitch: widget.drumAnchorPitch,
+                  gridSettings: _grid,
+                  tool: _tool,
+                  selectedIndex: _selectedIndex,
+                  onNotesChanged: _onNotesChanged,
+                  onSelectionChanged: (index) => setState(() => _selectedIndex = index),
+                  onEditStarted: _onEditStarted,
+                  onEditFinished: _onEditFinished,
+                  onClipLengthChanged: (length) {
+                    setState(() => _clipLengthBeats = length);
+                    _previewTransport.maxClipBeat = length;
+                  },
+                  onClipLengthCommit: _persistClipLength,
+                  viewRangeBars: _viewRangeBars,
+                  virtualPlayheadBeat: _previewTransport.clipLocalBeat,
+                  onVirtualPlayheadSeek: _previewTransport.seekClipLocal,
+                  previewPlaying: _previewTransport.isPlaying,
+                  onPreviewPlayRequested: _startPreviewPlay,
+                  onPreviewStopRequested: _stopPreviewPlay,
+                  onNotePreview: (note, {hold = false}) {
+                    unawaited(_noteAudition.preview(note, hold: hold));
+                  },
+                  onNotePreviewEnd: () {
+                    unawaited(_noteAudition.release());
+                  },
+                ),
               ),
             ),
             PianoRollToolDock(
@@ -317,6 +398,8 @@ class _PianoRollScreenState extends State<PianoRollScreen> {
               gridLabel: _gridDockLabel,
               canUndo: _undoStack.isNotEmpty,
               canRedo: _redoStack.isNotEmpty,
+              previewPlaying: _previewTransport.isPlaying,
+              onPreviewPlayStop: _togglePreviewPlay,
               onToolChanged: (tool) => setState(() => _tool = tool),
               onGridTap: _openGridSheet,
               onEditTap: _openEditSheet,

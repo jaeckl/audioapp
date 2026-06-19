@@ -6,6 +6,8 @@ import 'package:flutter/scheduler.dart';
 
 import '../../bridge/project_snapshot.dart';
 import '../../bridge/timeline_clip.dart';
+import '../editor/editor_virtual_playhead.dart';
+import '../editor/timeline_marker_layer.dart';
 import 'piano_roll_clip_end_marker.dart';
 import 'piano_roll_grid_painter.dart';
 import 'piano_roll_key_column.dart';
@@ -37,6 +39,15 @@ class PianoRollViewport extends StatefulWidget {
     this.onClipLengthChanged,
     this.onClipLengthCommit,
     this.viewRangeBars = EditorViewRange.defaultBars,
+    this.virtualPlayheadBeat,
+    this.onVirtualPlayheadSeek,
+    this.onVirtualPlayheadTap,
+    this.previewPlaying = false,
+    this.onPreviewPlayRequested,
+    this.onPreviewStopRequested,
+    this.onNotePreview,
+    this.onNotePreviewEnd,
+    this.timelineScrollController,
   });
 
   final List<MidiNoteSnapshot> notes;
@@ -56,12 +67,21 @@ class PianoRollViewport extends StatefulWidget {
   final ValueChanged<double>? onClipLengthChanged;
   final VoidCallback? onClipLengthCommit;
   final int viewRangeBars;
+  final double? virtualPlayheadBeat;
+  final ValueChanged<double>? onVirtualPlayheadSeek;
+  final VoidCallback? onVirtualPlayheadTap;
+  final bool previewPlaying;
+  final VoidCallback? onPreviewPlayRequested;
+  final VoidCallback? onPreviewStopRequested;
+  final TimelineViewportScrollController? timelineScrollController;
+  final void Function(MidiNoteSnapshot note, {bool hold})? onNotePreview;
+  final VoidCallback? onNotePreviewEnd;
 
   @override
-  State<PianoRollViewport> createState() => _PianoRollViewportState();
+  State<PianoRollViewport> createState() => PianoRollViewportState();
 }
 
-class _PianoRollViewportState extends State<PianoRollViewport> {
+class PianoRollViewportState extends State<PianoRollViewport> {
   final GlobalKey _canvasKey = GlobalKey();
   final ScrollController _horizontal = ScrollController();
   final ScrollController _ruler = ScrollController();
@@ -90,6 +110,10 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
   bool _pendingDrawTap = false;
   bool _editCommitted = false;
   bool _draggingClipEnd = false;
+  bool _draggingVirtualPlayhead = false;
+  bool _resizePreviewActive = false;
+  int? _rulerPointer;
+  double _rulerPointerTravel = 0;
   double _drawHorizontalTravel = 0;
   Timer? _longPressTimer;
 
@@ -114,23 +138,72 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
   double get _gridHeight =>
       PianoRollMetrics.gridHeight(widget.minPitch, widget.maxPitch, _rowHeight);
 
+  void _onMarkerOverlayScroll() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
-    _horizontal.addListener(() => _linkScroll(_horizontal, _ruler));
+    _horizontal.addListener(() {
+      _linkScroll(_horizontal, _ruler);
+      _onMarkerOverlayScroll();
+    });
     _vertical.addListener(() {
       _linkScroll(_vertical, _verticalKeys);
       _emitCenterOctave();
+      _onMarkerOverlayScroll();
     });
     _verticalKeys.addListener(() => _linkScroll(_verticalKeys, _vertical));
+    widget.timelineScrollController?.bind(_revealPlayheadAtViewportOrigin);
   }
 
   @override
   void didUpdateWidget(covariant PianoRollViewport oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.timelineScrollController != widget.timelineScrollController) {
+      oldWidget.timelineScrollController?.bind(null);
+      widget.timelineScrollController?.bind(_revealPlayheadAtViewportOrigin);
+    }
     if (widget.viewRangeBars != oldWidget.viewRangeBars) {
       _scheduleApplyViewRange(widget.viewRangeBars);
     }
+  }
+
+  /// Scroll so [beat] (clip-local) aligns to viewport x=0 — unpins sticky playhead.
+  void revealPlayheadAtViewportOrigin(double beat) =>
+      _revealPlayheadAtViewportOrigin(beat);
+
+  void _revealPlayheadAtViewportOrigin(double beat) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!timelinePlayheadIsSticky(
+        beat: beat,
+        pixelsPerBeat: _pixelsPerBeat,
+        scrollOffset: _horizontalScrollOffset,
+      )) {
+        return;
+      }
+      final jumped = jumpTimelineScrollToRevealBeatNow(
+        horizontal: _horizontal,
+        ruler: _ruler,
+        beat: beat,
+        pixelsPerBeat: _pixelsPerBeat,
+      );
+      if (jumped) {
+        if (mounted) setState(() {});
+        return;
+      }
+      jumpTimelineScrollToRevealBeat(
+        horizontal: _horizontal,
+        ruler: _ruler,
+        beat: beat,
+        pixelsPerBeat: _pixelsPerBeat,
+        onComplete: () {
+          if (mounted) setState(() {});
+        },
+      );
+    });
   }
 
   void _scheduleApplyViewRange(int bars) {
@@ -172,6 +245,7 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
 
   @override
   void dispose() {
+    widget.timelineScrollController?.bind(null);
     _longPressTimer?.cancel();
     _horizontal.dispose();
     _ruler.dispose();
@@ -219,36 +293,92 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
   }
 
   void _onRulerPointerDown(PointerDownEvent event) {
-    final canvasDx =
-        event.localPosition.dx + (_horizontal.hasClients ? _horizontal.offset : 0.0);
-    if (!_hitClipEndMarker(Offset(canvasDx, 0))) return;
+    final canvasDx = _rulerCanvasDx(event);
+    _rulerPointer = event.pointer;
+    _rulerPointerTravel = 0;
+    _draggingClipEnd = false;
+    _draggingVirtualPlayhead = false;
 
-    _editPointer = event.pointer;
-    _editStartCanvas = Offset(canvasDx, 0);
-    _lastCanvasPos = _editStartCanvas;
-    _editTravel = 0;
-    _draggingClipEnd = true;
-    _lockScrollForEdit = true;
+    if (widget.virtualPlayheadBeat != null &&
+        widget.onVirtualPlayheadSeek != null &&
+        hitEditorVirtualPlayheadMarker(
+          canvasDx: canvasDx,
+          markerBeat: widget.virtualPlayheadBeat!,
+          pixelsPerBeat: _pixelsPerBeat,
+          scrollOffset: _rulerScrollOffset,
+        )) {
+      _draggingVirtualPlayhead = true;
+      _lockScrollForEdit = true;
+    } else if (_hitClipEndMarker(Offset(canvasDx, 0))) {
+      _editPointer = event.pointer;
+      _editStartCanvas = Offset(canvasDx, 0);
+      _lastCanvasPos = _editStartCanvas;
+      _editTravel = 0;
+      _draggingClipEnd = true;
+      _lockScrollForEdit = true;
+    }
     setState(() {});
   }
 
   void _onRulerPointerMove(PointerMoveEvent event) {
-    if (event.pointer != _editPointer || !_draggingClipEnd) return;
+    if (event.pointer != _rulerPointer) return;
+    final canvasDx = _rulerCanvasDx(event);
+    _rulerPointerTravel += event.delta.distance;
 
-    final canvasDx =
-        event.localPosition.dx + (_horizontal.hasClients ? _horizontal.offset : 0.0);
-    final canvasPos = Offset(canvasDx, 0);
-    final delta = canvasPos - (_lastCanvasPos ?? canvasPos);
-    _lastCanvasPos = canvasPos;
-    _editTravel += delta.distance;
-    widget.onClipLengthChanged?.call(_clampClipLength(_beatFromDx(canvasDx)));
-    setState(() {});
+    if (_draggingClipEnd && event.pointer == _editPointer) {
+      final canvasPos = Offset(canvasDx, 0);
+      final delta = canvasPos - (_lastCanvasPos ?? canvasPos);
+      _lastCanvasPos = canvasPos;
+      _editTravel += delta.distance;
+      widget.onClipLengthChanged?.call(_clampClipLength(_beatFromDx(canvasDx)));
+      setState(() {});
+      return;
+    }
+
+    if (_draggingVirtualPlayhead) {
+      if (_rulerPointerTravel < _tapSlop) return;
+      final beat = clampEditorVirtualPlayheadBeat(
+        beat: _beatFromDx(canvasDx, snap: false),
+        clipLengthBeats: widget.clipLengthBeats,
+      );
+      widget.onVirtualPlayheadSeek?.call(beat);
+      setState(() {});
+      return;
+    }
   }
 
   void _onRulerPointerUp(PointerEvent event) {
-    if (event.pointer != _editPointer || !_draggingClipEnd) return;
-    widget.onClipLengthCommit?.call();
-    _endEditGesture(save: false);
+    if (event.pointer != _rulerPointer) return;
+
+    final canvasDx = _rulerCanvasDx(event);
+    final wasDraggingClipEnd = _draggingClipEnd;
+    final wasDraggingVirtualPlayhead = _draggingVirtualPlayhead;
+    final pointerTravel = _rulerPointerTravel;
+    final editPointer = _editPointer;
+
+    _rulerPointer = null;
+    _rulerPointerTravel = 0;
+    _draggingVirtualPlayhead = false;
+    _lockScrollForEdit = false;
+
+    if (wasDraggingClipEnd && event.pointer == editPointer) {
+      widget.onClipLengthCommit?.call();
+      _endEditGesture(save: false);
+    } else if (wasDraggingVirtualPlayhead && pointerTravel < _tapSlop) {
+      if (widget.previewPlaying) {
+        widget.onPreviewStopRequested?.call();
+      } else {
+        widget.onPreviewPlayRequested?.call();
+      }
+    } else if (!wasDraggingClipEnd &&
+        !wasDraggingVirtualPlayhead &&
+        widget.onVirtualPlayheadSeek != null &&
+        pointerTravel < _tapSlop) {
+      widget.onVirtualPlayheadSeek!(
+        _beatFromDx(canvasDx).clamp(0.0, widget.clipLengthBeats),
+      );
+    }
+
     setState(() {});
   }
 
@@ -292,6 +422,7 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
           });
         } else {
           widget.onSelectionChanged(null);
+          widget.onNotePreviewEnd?.call();
         }
       }
     }
@@ -357,9 +488,21 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
 
     if (_dragMode == _DragMode.draw) {
       widget.onSelectionChanged(null);
+      widget.onNotePreviewEnd?.call();
       _endEditGesture(save: true);
       setState(() {});
       return;
+    }
+
+    if (widget.tool == PianoRollTool.select &&
+        _draggingIndex != null &&
+        _dragMode == _DragMode.none &&
+        _editTravel < _tapSlop) {
+      widget.onNotePreview?.call(widget.notes[_draggingIndex!]);
+    }
+
+    if (_dragMode == _DragMode.resize) {
+      widget.onNotePreviewEnd?.call();
     }
 
     if (widget.tool == PianoRollTool.draw &&
@@ -380,6 +523,10 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
 
   void _cancelEditGesture() {
     _longPressTimer?.cancel();
+    if (_dragMode == _DragMode.draw || _resizePreviewActive) {
+      widget.onNotePreviewEnd?.call();
+    }
+    _resizePreviewActive = false;
     _pendingDrawTap = false;
     _editPointer = null;
     _editStartCanvas = null;
@@ -401,6 +548,10 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
 
   void _endEditGesture({required bool save}) {
     _longPressTimer?.cancel();
+    if (_dragMode == _DragMode.draw || _resizePreviewActive) {
+      widget.onNotePreviewEnd?.call();
+    }
+    _resizePreviewActive = false;
     _pendingDrawTap = false;
     _editPointer = null;
     _editStartCanvas = null;
@@ -438,6 +589,7 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
         velocity: 100,
       ));
     _setNotes(notes);
+    widget.onNotePreview?.call(notes.last, hold: true);
   }
 
   void _updateDraw(Offset canvasPos) {
@@ -483,6 +635,7 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
         velocity: 100,
       ));
     _setNotes(notes);
+    widget.onNotePreview?.call(notes.last);
     widget.onSelectionChanged(null);
     widget.onEditFinished();
   }
@@ -525,6 +678,10 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
         ),
       );
     } else if (_dragMode == _DragMode.resize) {
+      if (!_resizePreviewActive) {
+        _resizePreviewActive = true;
+        widget.onNotePreview?.call(note, hold: true);
+      }
       final newDuration = widget.gridSettings.snapBeat(
         (_dragStartDuration! + delta.dx / _pixelsPerBeat).clamp(
           widget.gridSettings.snapBeats > 0 ? widget.gridSettings.snapBeats : 0.125,
@@ -673,6 +830,117 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
     _setNotes(notes);
   }
 
+  double get _horizontalScrollOffset =>
+      _horizontal.hasClients ? _horizontal.offset : 0.0;
+
+  double get _rulerScrollOffset =>
+      _ruler.hasClients ? _ruler.offset : _horizontalScrollOffset;
+
+  double _rulerCanvasDx(PointerEvent event) =>
+      event.localPosition.dx + _rulerScrollOffset;
+
+  ({List<Widget> behindChrome, List<Widget> inFrontOfChrome}) _buildSyncedMarkerStackLayers() {
+    final scroll = _horizontalScrollOffset;
+    final rulerHeight = PianoRollMetrics.rulerHeight;
+    final behindLines = <Widget>[];
+    final frontLines = <Widget>[];
+    final behindPills = <Widget>[];
+    final frontPills = <Widget>[];
+
+    void addCanvasMarker({
+      required double beat,
+      required Widget pill,
+      required Color lineColor,
+      required double lineWidth,
+    }) {
+      partitionBeatMarker(
+        beat: beat,
+        pixelsPerBeat: _pixelsPerBeat,
+        scrollOffset: scroll,
+        pill: pill,
+        line: TimelineBeatVerticalLineOverlay(
+          left: timelineLocalBeatLineLeft(
+            beat: beat,
+            pixelsPerBeat: _pixelsPerBeat,
+            scrollOffset: scroll,
+            lineWidth: lineWidth,
+          ),
+          rulerHeight: rulerHeight,
+          width: lineWidth,
+          color: lineColor,
+        ),
+        behindPills: behindPills,
+        behindLines: behindLines,
+        frontPills: frontPills,
+        frontLines: frontLines,
+      );
+    }
+
+    addCanvasMarker(
+      beat: widget.clipLengthBeats,
+      lineColor: PianoRollTheme.clipBoundary,
+      lineWidth: PianoRollTheme.clipEndLineWidth,
+      pill: Positioned(
+        left: timelineBeatViewportX(
+              beat: widget.clipLengthBeats,
+              pixelsPerBeat: _pixelsPerBeat,
+              scrollOffset: scroll,
+            ) -
+            PianoRollMetrics.clipEndHitWidth / 2,
+        top: TimelineMarkerLayerMetrics.pillTopInOverlay(
+          rulerHeight: rulerHeight,
+          pillHeight: 22,
+        ),
+        width: PianoRollMetrics.clipEndHitWidth,
+        height: 22,
+        child: const PianoRollClipEndPill(),
+      ),
+    );
+
+    if (widget.virtualPlayheadBeat != null) {
+      final playheadBeat = widget.virtualPlayheadBeat!;
+      final displayX = timelineStickyViewportX(
+        beat: playheadBeat,
+        pixelsPerBeat: _pixelsPerBeat,
+        scrollOffset: scroll,
+      );
+      partitionPlayheadMarker(
+        beat: playheadBeat,
+        pixelsPerBeat: _pixelsPerBeat,
+        scrollOffset: scroll,
+        pill: Positioned(
+          left: displayX - EditorVirtualPlayheadTheme.hitWidth / 2,
+          top: TimelineMarkerLayerMetrics.pillTopInOverlay(
+            rulerHeight: rulerHeight,
+            pillHeight: EditorVirtualPlayheadTheme.pillSize,
+          ),
+          width: EditorVirtualPlayheadTheme.hitWidth,
+          height: EditorVirtualPlayheadTheme.pillSize,
+          child: const EditorVirtualPlayheadPill(),
+        ),
+        line: TimelineBeatVerticalLineOverlay(
+          left: displayX - editorVirtualPlayheadLineWidth / 2,
+          rulerHeight: rulerHeight,
+          width: editorVirtualPlayheadLineWidth,
+          color: EditorVirtualPlayheadTheme.color,
+        ),
+        behindPills: behindPills,
+        behindLines: behindLines,
+        frontPills: frontPills,
+        frontLines: frontLines,
+      );
+    }
+
+    return buildSyncedMarkerStackLayers(
+      sideColumnWidth: PianoRollMetrics.keyColumnWidth,
+      rulerHeight: rulerHeight,
+      behindLines: behindLines,
+      behindPills: behindPills,
+      frontLines: frontLines,
+      frontPills: frontPills,
+    );
+  }
+
   Widget _buildNoteCanvas() {
     return SizedBox(
       key: _canvasKey,
@@ -701,14 +969,6 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
                   rowHeight: _rowHeight,
                   maxPitch: widget.maxPitch,
                 ),
-            Positioned(
-              left: widget.clipLengthBeats * _pixelsPerBeat -
-                  PianoRollTheme.clipEndLineWidth / 2,
-              top: 0,
-              bottom: 0,
-              width: PianoRollTheme.clipEndLineWidth,
-              child: const PianoRollClipEndLine(),
-            ),
           ],
         ),
       ),
@@ -738,50 +998,50 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
     );
   }
 
-  Widget _buildRulerRow() {
-    return SizedBox(
-      height: PianoRollMetrics.rulerHeight,
-      child: Row(
-        children: [
-          const SizedBox(width: PianoRollMetrics.keyColumnWidth),
-          Expanded(
-            child: Listener(
-              onPointerDown: _onRulerPointerDown,
-              onPointerMove: _onRulerPointerMove,
-              onPointerUp: _onRulerPointerUp,
-              onPointerCancel: _onRulerPointerUp,
-              behavior: HitTestBehavior.translucent,
-              child: SingleChildScrollView(
-                controller: _ruler,
-                scrollDirection: Axis.horizontal,
-                physics: const NeverScrollableScrollPhysics(),
-                child: SizedBox(
-                  width: _gridWidth,
-                  height: PianoRollMetrics.rulerHeight,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      PianoRollRuler(
-                        virtualLengthBeats: widget.virtualLengthBeats,
-                        clipLengthBeats: widget.clipLengthBeats,
-                        pixelsPerBeat: _pixelsPerBeat,
-                      ),
-                      Positioned(
-                        left: widget.clipLengthBeats * _pixelsPerBeat -
-                            PianoRollMetrics.clipEndHitWidth / 2,
-                        width: PianoRollMetrics.clipEndHitWidth,
-                        height: PianoRollMetrics.rulerHeight,
-                        child: const PianoRollClipEndPill(),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+  Widget _buildKeyColumn() {
+    return ScrollConfiguration(
+      behavior: const _PianoRollScrollBehavior(),
+      child: SingleChildScrollView(
+        controller: _verticalKeys,
+        physics: _scrollPhysics,
+        child: PianoRollKeyColumn(
+          minPitch: widget.minPitch,
+          maxPitch: widget.maxPitch,
+          rowHeight: _rowHeight,
+          highlightPitch: widget.drumAnchorPitch,
+        ),
       ),
     );
+  }
+
+  Widget _buildTimelineRulerBand() {
+    return ClipRect(
+      child: Listener(
+        onPointerDown: _onRulerPointerDown,
+        onPointerMove: _onRulerPointerMove,
+        onPointerUp: _onRulerPointerUp,
+        onPointerCancel: _onRulerPointerUp,
+        behavior: HitTestBehavior.translucent,
+        child: SingleChildScrollView(
+          controller: _ruler,
+          scrollDirection: Axis.horizontal,
+          physics: const NeverScrollableScrollPhysics(),
+          child: SizedBox(
+            width: _gridWidth,
+            height: PianoRollMetrics.rulerHeight,
+            child: PianoRollRuler(
+              virtualLengthBeats: widget.virtualLengthBeats,
+              clipLengthBeats: widget.clipLengthBeats,
+              pixelsPerBeat: _pixelsPerBeat,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimelineCanvasBand() {
+    return ClipRect(child: _buildNoteCanvasViewport());
   }
 
   @override
@@ -790,37 +1050,46 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
       builder: (context, constraints) {
         _lastViewportHeight = constraints.maxHeight - PianoRollMetrics.rulerHeight;
         _scheduleInitialScroll(_lastViewportHeight);
-        _updateScrollViewportWidth(
-          constraints.maxWidth - PianoRollMetrics.keyColumnWidth,
-        );
+        final timelineWidth = constraints.maxWidth - PianoRollMetrics.keyColumnWidth;
+        _updateScrollViewportWidth(timelineWidth);
 
-        return Column(
+        final rulerHeight = PianoRollMetrics.rulerHeight;
+        final bodyTop = rulerHeight;
+        final markerLayers = _buildSyncedMarkerStackLayers();
+
+        return Stack(
+          clipBehavior: Clip.none,
           children: [
-            _buildRulerRow(),
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: PianoRollMetrics.keyColumnWidth,
-                    child: ScrollConfiguration(
-                      behavior: const _PianoRollScrollBehavior(),
-                      child: SingleChildScrollView(
-                        controller: _verticalKeys,
-                        physics: _scrollPhysics,
-                        child: PianoRollKeyColumn(
-                          minPitch: widget.minPitch,
-                          maxPitch: widget.maxPitch,
-                          rowHeight: _rowHeight,
-                          highlightPitch: widget.drumAnchorPitch,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(child: _buildNoteCanvasViewport()),
-                ],
-              ),
+            Positioned(
+              left: PianoRollMetrics.keyColumnWidth,
+              top: 0,
+              width: timelineWidth,
+              height: rulerHeight,
+              child: _buildTimelineRulerBand(),
             ),
+            Positioned(
+              left: PianoRollMetrics.keyColumnWidth,
+              top: bodyTop,
+              width: timelineWidth,
+              bottom: 0,
+              child: _buildTimelineCanvasBand(),
+            ),
+            ...markerLayers.behindChrome,
+            Positioned(
+              left: 0,
+              top: 0,
+              width: PianoRollMetrics.keyColumnWidth,
+              height: rulerHeight,
+              child: const ColoredBox(color: PianoRollTheme.rulerBackground),
+            ),
+            Positioned(
+              left: 0,
+              top: bodyTop,
+              width: PianoRollMetrics.keyColumnWidth,
+              bottom: 0,
+              child: _buildKeyColumn(),
+            ),
+            ...markerLayers.inFrontOfChrome,
           ],
         );
       },

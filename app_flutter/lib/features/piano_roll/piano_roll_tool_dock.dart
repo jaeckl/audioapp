@@ -15,6 +15,8 @@ class PianoRollToolDock extends StatelessWidget {
     required this.onEditTap,
     required this.onUndo,
     required this.onRedo,
+    required this.previewPlaying,
+    required this.onPreviewPlayStop,
   });
 
   final PianoRollTool tool;
@@ -26,6 +28,8 @@ class PianoRollToolDock extends StatelessWidget {
   final VoidCallback onEditTap;
   final VoidCallback onUndo;
   final VoidCallback onRedo;
+  final bool previewPlaying;
+  final VoidCallback onPreviewPlayStop;
 
   @override
   Widget build(BuildContext context) {
@@ -64,6 +68,14 @@ class PianoRollToolDock extends StatelessWidget {
                 onTap: onEditTap,
               ),
               const Spacer(),
+              _DockButton(
+                icon: Icons.play_arrow,
+                activeIcon: Icons.stop,
+                label: previewPlaying ? 'Stop' : 'Preview',
+                active: previewPlaying,
+                onTap: onPreviewPlayStop,
+                showLabel: false,
+              ),
               _DockButton(
                 icon: Icons.undo,
                 activeIcon: Icons.undo,

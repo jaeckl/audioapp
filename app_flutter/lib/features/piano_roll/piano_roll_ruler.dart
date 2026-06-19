@@ -9,11 +9,15 @@ class PianoRollRuler extends StatelessWidget {
     required this.virtualLengthBeats,
     required this.clipLengthBeats,
     required this.pixelsPerBeat,
+    this.regionStartBeat = 0,
+    this.highlightColor,
   });
 
   final double virtualLengthBeats;
   final double clipLengthBeats;
   final double pixelsPerBeat;
+  final double regionStartBeat;
+  final Color? highlightColor;
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +31,8 @@ class PianoRollRuler extends StatelessWidget {
         painter: _RulerPainter(
           barCount: barCount,
           clipLengthBeats: clipLengthBeats,
+          regionStartBeat: regionStartBeat,
+          highlightColor: highlightColor,
           pixelsPerBeat: pixelsPerBeat,
         ),
       ),
@@ -38,11 +44,15 @@ class _RulerPainter extends CustomPainter {
   _RulerPainter({
     required this.barCount,
     required this.clipLengthBeats,
+    required this.regionStartBeat,
+    required this.highlightColor,
     required this.pixelsPerBeat,
   });
 
   final int barCount;
   final double clipLengthBeats;
+  final double regionStartBeat;
+  final Color? highlightColor;
   final double pixelsPerBeat;
 
   static const double _laneInset = 3.0;
@@ -63,15 +73,17 @@ class _RulerPainter extends CustomPainter {
     final barWidth = pixelsPerBeat * PianoRollMetrics.beatsPerBar;
     if (barWidth <= 0) return;
 
-    final clipPx = (clipLengthBeats * pixelsPerBeat).clamp(0.0, size.width);
+    final regionStartPx = (regionStartBeat * pixelsPerBeat).clamp(0.0, size.width);
+    final regionEndPx = (clipLengthBeats * pixelsPerBeat).clamp(0.0, size.width);
     final radius = const Radius.circular(4);
-    final activeFill = Paint()..color = PianoRollTheme.accent.withValues(alpha: 0.28);
+    final accent = highlightColor ?? PianoRollTheme.accent;
+    final activeFill = Paint()..color = accent.withValues(alpha: 0.28);
     final idleFill = Paint()..color = const Color(0xFF22222A);
-    final activeEdge = Paint()..color = PianoRollTheme.accent.withValues(alpha: 0.18);
+    final activeEdge = Paint()..color = accent.withValues(alpha: 0.18);
 
-    if (clipPx >= _minLaneWidth) {
-      final laneLeft = _laneInset;
-      final laneRight = clipPx - _laneInset;
+    if (regionEndPx - regionStartPx >= _minLaneWidth) {
+      final laneLeft = regionStartPx + _laneInset;
+      final laneRight = regionEndPx - _laneInset;
       if (laneRight > laneLeft) {
         final laneWidth = (laneRight - laneLeft).clamp(0.0, size.width);
         if (laneWidth >= _minLaneWidth) {
@@ -86,8 +98,8 @@ class _RulerPainter extends CustomPainter {
       if (barStart >= size.width) break;
 
       final barEnd = barStart + barWidth;
-      final inClipStart = barStart.clamp(0.0, clipPx);
-      final inClipEnd = barEnd.clamp(0.0, clipPx);
+      final inClipStart = barStart.clamp(regionStartPx, regionEndPx);
+      final inClipEnd = barEnd.clamp(regionStartPx, regionEndPx);
       final inClip = inClipEnd > inClipStart;
 
       double pillLeft;
@@ -119,8 +131,8 @@ class _RulerPainter extends CustomPainter {
         final tp = TextPainter(
           text: TextSpan(
             text: '${bar + 1}',
-            style: const TextStyle(
-              color: PianoRollTheme.accent,
+            style: TextStyle(
+              color: accent,
               fontSize: 10,
               fontWeight: FontWeight.w700,
             ),
@@ -139,6 +151,8 @@ class _RulerPainter extends CustomPainter {
   bool shouldRepaint(covariant _RulerPainter oldDelegate) {
     return oldDelegate.barCount != barCount ||
         oldDelegate.clipLengthBeats != clipLengthBeats ||
+        oldDelegate.regionStartBeat != regionStartBeat ||
+        oldDelegate.highlightColor != highlightColor ||
         oldDelegate.pixelsPerBeat != pixelsPerBeat;
   }
 }
