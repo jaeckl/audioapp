@@ -29,6 +29,7 @@ struct SamplerInstrumentPlayback {
     double pcmSampleRate = 48000.0;
     float gain = 1.0f;
     int rootPitch = 60;
+    float rootFineTune = 0.0f;
     float attack = 0.01f;
     float decay = 0.1f;
     float sustain = 1.0f;
@@ -40,8 +41,23 @@ struct SamplerInstrumentPlayback {
     int trimEndFrame = 0;
     int regionStartFrame = 0;
     int regionEndFrame = 0;
+    int playbackMode = 0;
     BiquadState* filterState = nullptr;
 };
+
+/// Pitch ratio from MIDI note, root, and fine tune (cents, ±100).
+double samplerPitchRatio(int notePitch, int rootPitch, float rootFineTuneCents) noexcept;
+
+/// 0 = one-shot, 1 = loop, 2 = reverse one-shot.
+bool computeSamplerReadPosition(int playbackMode,
+                                int trimStartFrame,
+                                int trimEndFrame,
+                                int regionStartFrame,
+                                int regionEndFrame,
+                                double elapsedSec,
+                                double pcmSampleRate,
+                                double pitchRatio,
+                                double& readPosOut) noexcept;
 
 /// Maps UI-normalized ADSR (0..1) to seconds for envelope stages.
 float adsrNormalizedToSeconds(float normalized, float maxSeconds) noexcept;

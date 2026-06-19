@@ -16,6 +16,12 @@ double beatAtFrame(double playheadStartBeat, int frameIndex, double sampleRate, 
 
 } // namespace
 
+double samplerPitchRatio(int notePitch, int rootPitch, float rootFineTuneCents) noexcept {
+    const double semitones = static_cast<double>(notePitch - rootPitch)
+        + static_cast<double>(std::clamp(rootFineTuneCents, -100.0f, 100.0f)) / 100.0;
+    return std::pow(2.0, semitones / 12.0);
+}
+
 float adsrNormalizedToSeconds(float normalized, float maxSeconds) noexcept {
     const float clamped = std::clamp(normalized, 0.0f, 1.0f);
     return 0.001f + clamped * maxSeconds;
@@ -102,6 +108,45 @@ double samplerMidiNoteElapsedBeats(const SamplerMidiNoteRegion& note, double bea
     return loopedBeat - note.noteStartBeat;
 }
 
+bool computeSamplerReadPosition(const int playbackMode,
+                                const int trimStartFrame,
+                                const int trimEndFrame,
+                                const int regionStartFrame,
+                                const int regionEndFrame,
+                                const double elapsedSec,
+                                const double pcmSampleRate,
+                                const double pitchRatio,
+                                double& readPosOut) noexcept {
+    if (trimEndFrame <= trimStartFrame + 1 || pcmSampleRate <= 0.0 || elapsedSec < 0.0) {
+        return false;
+    }
+
+    const bool hasRegion =
+        regionEndFrame > regionStartFrame && regionEndFrame > trimStartFrame;
+    const int loopStart = hasRegion ? regionStartFrame : trimStartFrame;
+    const int loopEnd = hasRegion ? regionEndFrame : trimEndFrame;
+    const int loopLen = loopEnd - loopStart;
+    const double rateProgress = elapsedSec * pcmSampleRate * pitchRatio;
+
+    switch (playbackMode) {
+    case 1: // loop
+        if (loopLen <= 1) {
+            return false;
+        }
+        readPosOut =
+            static_cast<double>(loopStart) + std::fmod(rateProgress, static_cast<double>(loopLen));
+        return true;
+    case 2: { // reverse one-shot
+        readPosOut = static_cast<double>(trimEndFrame - 1) - rateProgress;
+        return readPosOut >= static_cast<double>(trimStartFrame);
+    }
+    default: { // one-shot forward
+        readPosOut = static_cast<double>(trimStartFrame) + rateProgress;
+        return readPosOut < static_cast<double>(trimEndFrame - 1);
+    }
+    }
+}
+
 void mixSamplerMidiNotesBlock(float* monoOut,
                               int numFrames,
                               double sampleRate,
@@ -162,26 +207,19 @@ void mixSamplerMidiNotesBlock(float* monoOut,
             }
 
             const double pitchRatio =
-                std::pow(2.0, static_cast<double>(note.pitch - sampler.rootPitch) / 12.0);
+                samplerPitchRatio(note.pitch, sampler.rootPitch, sampler.rootFineTune);
 
-            // Determine the loop region within the trimmed sample (valid when regionEndFrame > 0)
-            const bool hasRegion = sampler.regionEndFrame > 0 && sampler.regionEndFrame > sampler.regionStartFrame;
-            const int loopStart = hasRegion ? sampler.regionStartFrame : startFrame;
-            const int loopEnd = hasRegion ? sampler.regionEndFrame : endFrame;
-            const int loopLen = loopEnd - loopStart;
-
-            double readPos;
-            if (hasRegion && loopLen > 1) {
-                // Loop playback within the selected region
-                const double regionProgress = elapsedSeconds * sampler.pcmSampleRate * pitchRatio;
-                readPos = static_cast<double>(loopStart) + std::fmod(regionProgress, static_cast<double>(loopLen));
-            } else {
-                // No region set — linear playback (original behavior)
-                readPos = static_cast<double>(startFrame) + elapsedSeconds * sampler.pcmSampleRate * pitchRatio;
-                if (readPos < static_cast<double>(startFrame) ||
-                    readPos >= static_cast<double>(endFrame - 1)) {
-                    continue;
-                }
+            double readPos = 0.0;
+            if (!computeSamplerReadPosition(sampler.playbackMode,
+                                            startFrame,
+                                            endFrame,
+                                            sampler.regionStartFrame,
+                                            sampler.regionEndFrame,
+                                            elapsedSeconds,
+                                            sampler.pcmSampleRate,
+                                            pitchRatio,
+                                            readPos)) {
+                continue;
             }
             const int index = static_cast<int>(readPos);
             const float frac = static_cast<float>(readPos - static_cast<double>(index));

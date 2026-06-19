@@ -75,6 +75,11 @@ void applyModulation(SamplerParams& p, float modAmount, const std::string& param
         p.sustain = std::clamp(p.sustain + modAmount, 0.0f, 1.0f);
     } else if (paramId == "release") {
         p.release = std::clamp(p.release + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "rootPitch") {
+        p.rootPitch = std::clamp(
+            static_cast<int>(std::lround(static_cast<float>(p.rootPitch) + modAmount * 12.0f)), 0, 127);
+    } else if (paramId == "rootFineTune") {
+        p.rootFineTune = std::clamp(p.rootFineTune + modAmount * 100.0f, -100.0f, 100.0f);
     }
 }
 
@@ -633,13 +638,15 @@ void processDeviceChain(float* trackLeft,
                                                    p.samplerFrameCount,
                                                    p.samplerPcmSampleRate,
                                                    kInstrumentOutputGain,
-                                                   60,
+                                                   p.rootPitch,
+                                                   p.rootFineTune,
                                                    p.attack, p.decay,
                                                    p.sustain, p.release,
                                                    p.filterCutoff, p.filterQ,
                                                    p.filterMode,
                                                    p.trimStartFrame, p.trimEndFrame,
                                                    p.regionStartFrame, p.regionEndFrame,
+                                                   p.playbackMode,
                                                    samplerFilterStates != nullptr
                                                        ? &samplerFilterStates[deviceIndex]
                                                        : nullptr,

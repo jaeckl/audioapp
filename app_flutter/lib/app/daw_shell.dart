@@ -17,7 +17,6 @@ import '../features/content_library/library_catalog.dart';
 import '../features/content_library/library_category.dart';
 import '../features/content_library/library_fly_in_panel.dart';
 import '../features/device_strip/device_strip.dart';
-import '../features/device_strip/sampler_editor_screen.dart';
 import '../features/device_strip/subtractive_synth_editor_screen.dart';
 import '../features/device_strip/subtractive_synth_presets.dart';
 import '../features/mixer/mixer_view.dart';
@@ -839,35 +838,20 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   Future<void> _openSamplerEditor(TrackSnapshot track, DeviceSnapshot device) async {
-    if (device.type == 'subtractive_synth') {
-      await Navigator.of(context).push<void>(
-        MaterialPageRoute<void>(
-          builder: (context) => SubtractiveSynthEditorScreen(
-            trackName: track.name,
-            device: device,
-            bridge: widget.bridge,
-            onParameterChanged: (parameterId, value) =>
-                _setSamplerParameter(device.id, parameterId, value),
-          ),
-        ),
-      );
-    } else if (device.type == 'simple_sampler') {
-      await Navigator.of(context).push<void>(
-        MaterialPageRoute<void>(
-          builder: (context) => SamplerEditorScreen(
-            trackName: track.name,
-            device: device,
-            sample: _sampleForDevice(device),
-            bpm: _snapshot?.bpm ?? 120,
-            onParameterChanged: (parameterId, value) =>
-                _setSamplerParameter(device.id, parameterId, value),
-            onLoadSample: () => _pickSamplerSample(device.id),
-          ),
-        ),
-      );
-    } else {
+    if (device.type != 'subtractive_synth') {
       return;
     }
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (context) => SubtractiveSynthEditorScreen(
+          trackName: track.name,
+          device: device,
+          bridge: widget.bridge,
+          onParameterChanged: (parameterId, value) =>
+              _setSamplerParameter(device.id, parameterId, value),
+        ),
+      ),
+    );
 
     try {
       final snapshot = await widget.bridge.getProjectSnapshot();
@@ -1036,6 +1020,15 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   Future<void> _previewSample(SampleLibraryEntrySnapshot sample) async {
     try {
       await widget.bridge.previewSample(sample.id);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
+  Future<void> _previewSamplerNote(int rootPitch) async {
+    try {
+      await widget.bridge.noteOn(pitch: rootPitch, velocity: 100);
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
@@ -1371,6 +1364,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             onAssignSamplerSample: _assignSamplerSample,
             onOpenSamplerEditor: _openSamplerEditor,
             onPreviewSample: _previewSample,
+            onPreviewSampler: _previewSamplerNote,
             onImportSamples: () async {
               final updated = await widget.bridge.importSample();
               if (updated != null) {

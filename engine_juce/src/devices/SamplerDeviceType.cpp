@@ -35,6 +35,9 @@ SamplerInstance instanceFromSnapshot(const DeviceState& state) {
     instance.trimEndSec = state.trimEndSec;
     instance.regionStartSec = state.regionStartSec;
     instance.regionEndSec = state.regionEndSec;
+    instance.rootPitch = state.rootPitch;
+    instance.rootFineTune = state.rootFineTune;
+    instance.playbackMode = state.playbackMode;
     return instance;
 }
 
@@ -51,6 +54,9 @@ void applyInstanceToSnapshot(const SamplerInstance& instance, DeviceState& state
     state.trimEndSec = instance.trimEndSec;
     state.regionStartSec = instance.regionStartSec;
     state.regionEndSec = instance.regionEndSec;
+    state.rootPitch = instance.rootPitch;
+    state.rootFineTune = instance.rootFineTune;
+    state.playbackMode = instance.playbackMode;
 }
 
 void resolveSampleFrames(const SamplerInstance& instance,
@@ -199,6 +205,12 @@ DeviceParameterResult SamplerDeviceType::setParameter(DeviceSlot& slot,
         instance.regionStartSec = std::max(0.0f, value);
     } else if (parameterId == "regionEndSec") {
         instance.regionEndSec = std::max(0.0f, value);
+    } else if (parameterId == "rootPitch") {
+        instance.rootPitch = std::clamp(value, 0.0f, 127.0f);
+    } else if (parameterId == "rootFineTune") {
+        instance.rootFineTune = std::clamp(value, -100.0f, 100.0f);
+    } else if (parameterId == "playbackMode") {
+        instance.playbackMode = std::clamp(static_cast<int>(std::lround(value)), 0, 2);
     } else {
         return result;
     }
@@ -223,7 +235,8 @@ bool SamplerDeviceType::setStringParameter(DeviceSlot& slot,
 }
 
 std::vector<std::string_view> SamplerDeviceType::modulatableParams() const {
-    return {"gain", "pan", "attack", "decay", "sustain", "release", "filterCutoff", "filterQ"};
+    return {"gain", "pan", "attack", "decay", "sustain", "release", "filterCutoff", "filterQ",
+            "rootPitch", "rootFineTune"};
 }
 
 void SamplerDeviceType::buildPlaybackNode(const DeviceSlot& slot,
@@ -238,6 +251,9 @@ void SamplerDeviceType::buildPlaybackNode(const DeviceSlot& slot,
     params.filterCutoff = instance.filterCutoff;
     params.filterQ = instance.filterQ;
     params.filterMode = instance.filterMode;
+    params.rootPitch = static_cast<int>(std::lround(instance.rootPitch));
+    params.rootFineTune = instance.rootFineTune;
+    params.playbackMode = instance.playbackMode;
     resolveSampleFrames(instance, context, params);
     out.kind = DeviceNodeKind::Sampler;
     out.params = params;
@@ -250,7 +266,9 @@ bool SamplerDeviceType::buildLiveInstrument(const DeviceSlot& slot,
     out = LiveInstrumentSnapshot{};
     out.kind = LiveInstrumentKind::Sampler;
     out.gain = slot.gain;
-    out.rootPitch = 60;
+    out.rootPitch = static_cast<int>(std::lround(instance.rootPitch));
+    out.rootFineTune = instance.rootFineTune;
+    out.playbackMode = instance.playbackMode;
     out.attack = instance.attack;
     out.decay = instance.decay;
     out.sustain = instance.sustain;

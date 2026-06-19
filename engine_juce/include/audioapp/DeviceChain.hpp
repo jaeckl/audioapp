@@ -66,6 +66,9 @@ struct SamplerParams {
     int trimEndFrame = 0;
     int regionStartFrame = 0;
     int regionEndFrame = 0;
+    int rootPitch = 60;
+    float rootFineTune = 0.0f;
+    int playbackMode = 0;
 };
 
 struct TrackGainParams {};

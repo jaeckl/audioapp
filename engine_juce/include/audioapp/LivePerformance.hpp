@@ -37,6 +37,7 @@ struct LiveInstrumentSnapshot {
     int samplerFrameCount = 0;
     double samplerPcmSampleRate = 48000.0;
     int rootPitch = 60;
+    float rootFineTune = 0.0f;
     float attack = 0.01f;
     float decay = 0.3f;
     float sustain = 0.7f;
@@ -48,6 +49,7 @@ struct LiveInstrumentSnapshot {
     int trimEndFrame = 0;
     int regionStartFrame = 0;
     int regionEndFrame = 0;
+    int playbackMode = 0;
     SubtractiveSynthParams subtractive{};
     KickGeneratorParams kick{};
     SnareGeneratorParams snare{};

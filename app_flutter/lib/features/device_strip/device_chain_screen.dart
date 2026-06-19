@@ -205,6 +205,7 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
                       onSynthTabChanged: widget.onSynthTabChanged,
                       onBypassToggle: widget.onBypassToggle == null ? null : _onBypassToggle,
                       onOpenLibrary: _openLibrary,
+                      onPreviewSample: widget.onPreviewAudio,
                       lfos: widget.snapshot.lfos,
                       modEdges: widget.snapshot.modEdges,
                       onModulationBridgeCall: widget.onModulationBridgeCall,

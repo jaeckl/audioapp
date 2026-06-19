@@ -301,6 +301,9 @@ class DeviceSnapshot {
     required this.trimEndSec,
     this.regionStartSec = 0.0,
     this.regionEndSec = 0.0,
+    this.rootPitch = 60.0,
+    this.rootFineTune = 0.0,
+    this.playbackMode = 0,
     this.bypassed = false,
     this.osc1Shape = 0.5,
     this.osc2Shape = 0.5,
@@ -412,6 +415,9 @@ class DeviceSnapshot {
   final double trimEndSec;
   final double regionStartSec;
   final double regionEndSec;
+  final double rootPitch;
+  final double rootFineTune;
+  final int playbackMode;
   final bool bypassed;
   final double osc1Shape;
   final double osc2Shape;
@@ -526,6 +532,11 @@ class DeviceSnapshot {
       trimEndSec: (params['trimEndSec'] as num?)?.toDouble() ?? 0.0,
       regionStartSec: (params['regionStartSec'] as num?)?.toDouble() ?? 0.0,
       regionEndSec: (params['regionEndSec'] as num?)?.toDouble() ?? 0.0,
+      rootPitch: (params['rootPitch'] as num?)?.toDouble() ?? 60.0,
+      rootFineTune: (params['rootFineTune'] as num?)?.toDouble() ?? 0.0,
+      playbackMode: params.containsKey('playbackMode')
+          ? (params['playbackMode'] as num?)?.toInt() ?? 0
+          : (((params['regionEndSec'] as num?)?.toDouble() ?? 0.0) > 0 ? 1 : 0),
       bypassed: _readBypass(params['bypass']),
       osc1Shape: _readOscShape(params, 'osc1Shape', 'osc1Wave', 0.5),
       osc2Shape: _readOscShape(params, 'osc2Shape', 'osc2Wave', 0.5),
@@ -696,6 +707,9 @@ class DeviceSnapshot {
     double? trimEndSec,
     double? regionStartSec,
     double? regionEndSec,
+    double? rootPitch,
+    double? rootFineTune,
+    int? playbackMode,
     bool? bypassed,
     double? osc1Shape,
     double? osc2Shape,
@@ -807,6 +821,9 @@ class DeviceSnapshot {
       trimEndSec: trimEndSec ?? this.trimEndSec,
       regionStartSec: regionStartSec ?? this.regionStartSec,
       regionEndSec: regionEndSec ?? this.regionEndSec,
+      rootPitch: rootPitch ?? this.rootPitch,
+      rootFineTune: rootFineTune ?? this.rootFineTune,
+      playbackMode: playbackMode ?? this.playbackMode,
       bypassed: bypassed ?? this.bypassed,
       osc1Shape: osc1Shape ?? this.osc1Shape,
       osc2Shape: osc2Shape ?? this.osc2Shape,
@@ -930,6 +947,12 @@ class DeviceSnapshot {
         return copyWith(regionStartSec: value);
       case 'regionEndSec':
         return copyWith(regionEndSec: value);
+      case 'rootPitch':
+        return copyWith(rootPitch: value.clamp(0.0, 127.0));
+      case 'rootFineTune':
+        return copyWith(rootFineTune: value.clamp(-100.0, 100.0));
+      case 'playbackMode':
+        return copyWith(playbackMode: value.round().clamp(0, 2));
       case 'bypass':
         return copyWith(bypassed: value >= 0.5);
       case 'osc1Shape':
@@ -1151,6 +1174,7 @@ class LfoSnapshot {
     this.rate = 1.0,
     this.syncDivision = 0,
     this.phase = 0.0,
+    this.polarity = 0,
     this.name = '',
   });
 
@@ -1159,6 +1183,7 @@ class LfoSnapshot {
   final double rate;
   final int syncDivision; // 0=free, 1=1/1, 2=1/2, 3=1/4, 4=1/8, 5=1/16
   final double phase;
+  final int polarity; // 0=bipolar, 1=positive, 2=negative
   final String name;
 
   factory LfoSnapshot.fromMap(Map<dynamic, dynamic> map) {
@@ -1168,6 +1193,7 @@ class LfoSnapshot {
       rate: (map['rate'] as num?)?.toDouble() ?? 1.0,
       syncDivision: (map['syncDivision'] as num?)?.toInt() ?? 0,
       phase: (map['phase'] as num?)?.toDouble() ?? 0.0,
+      polarity: (map['polarity'] as num?)?.toInt() ?? 0,
       name: map['name'] as String? ?? '',
     );
   }
@@ -1186,6 +1212,7 @@ class LfoSnapshot {
     double? rate,
     int? syncDivision,
     double? phase,
+    int? polarity,
     String? name,
   }) {
     return LfoSnapshot(
@@ -1194,6 +1221,7 @@ class LfoSnapshot {
       rate: rate ?? this.rate,
       syncDivision: syncDivision ?? this.syncDivision,
       phase: phase ?? this.phase,
+      polarity: polarity ?? this.polarity,
       name: name ?? this.name,
     );
   }

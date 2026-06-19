@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
+import 'modulator_polarity.dart';
 
 /// Side panel showing properties of the currently selected LFO.
 /// Appears to the right of the modulation grid when an LFO is selected.
@@ -86,6 +87,26 @@ class LfoPropertiesPanel extends StatelessWidget {
             )),
             const SizedBox(height: 6),
             _propRow('Phase', _miniSlider(lfo.phase, 'Phase', (v) => onUpdate('phase', v))),
+            const SizedBox(height: 6),
+            _propRow('Polarity', SizedBox(
+              width: 88,
+              height: 24,
+              child: DropdownButtonFormField<int>(
+                value: lfo.polarity.clamp(0, 2),
+                isDense: true,
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+                  isCollapsed: true,
+                ),
+                style: theme.textTheme.labelSmall?.copyWith(color: Colors.white70, fontSize: 10),
+                items: List.generate(ModulatorPolarityCodec.labels.length, (i) => DropdownMenuItem(
+                  value: i,
+                  child: Text(ModulatorPolarityCodec.labels[i], style: const TextStyle(fontSize: 10)),
+                )),
+                onChanged: (v) { if (v != null) onUpdate('polarity', v.toDouble()); },
+              ),
+            )),
             if (edges.isNotEmpty) ...[
               const SizedBox(height: 10),
               Text(

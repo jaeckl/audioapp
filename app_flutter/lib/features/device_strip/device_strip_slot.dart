@@ -49,7 +49,9 @@ class DeviceStripSlot extends StatefulWidget {
     this.onCollapse,
     this.onBypassToggle,
     this.onOpenLibrary,
-    this.samplerTab = SamplerDeviceTab.sample,
+    this.onPreviewSample,
+    this.onPreviewSampler,
+    this.samplerTab = SamplerDeviceTab.wave,
     this.synthTab = SubtractiveDeviceTab.osc,
     this.lfos = const [],
     this.modEdges = const [],
@@ -75,6 +77,8 @@ class DeviceStripSlot extends StatefulWidget {
   final VoidCallback? onCollapse;
   final VoidCallback? onBypassToggle;
   final VoidCallback? onOpenLibrary;
+  final ValueChanged<SampleLibraryEntrySnapshot>? onPreviewSample;
+  final ValueChanged<int>? onPreviewSampler;
   final SamplerDeviceTab samplerTab;
   final SubtractiveDeviceTab synthTab;
   final List<LfoSnapshot> lfos;
@@ -485,6 +489,9 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             onParameterChanged: widget.onSamplerParameterChanged,
             onTabChanged: widget.onSamplerTabChanged,
             onCollapse: widget.onCollapse,
+            onPreview: widget.sample != null && widget.onPreviewSampler != null
+                ? () => widget.onPreviewSampler!(widget.device.rootPitch.round())
+                : null,
             selectedTab: SamplerDeviceTab.values[_selectedTabIndex],
             modulatedParams: _modulatedParamIds,
             automatedParams: _automatedParamIds,
@@ -498,6 +505,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             onAutomateParameter: widget.onAutomateParameter != null
                 ? _onAutomateParameter
                 : null,
+            lfos: _localLfos,
+            modEdges: _localModEdges,
           ),
         );
       case 'simple_oscillator':

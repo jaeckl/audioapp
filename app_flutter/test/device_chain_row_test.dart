@@ -48,8 +48,8 @@ void main() {
     expect(find.byIcon(Icons.add), findsOneWidget);
     expect(find.byType(DeviceStripCard), findsOneWidget);
     expect(find.byIcon(Icons.power_settings_new), findsOneWidget);
-    expect(find.text('Sample'), findsOneWidget);
-    expect(find.text('Env'), findsOneWidget);
+    expect(find.text('Wave'), findsOneWidget);
+    expect(find.text('Tone'), findsOneWidget);
   });
 
   testWidgets('collapsed strip uses header-only cards and global expand', (tester) async {

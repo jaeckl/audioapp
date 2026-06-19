@@ -29,6 +29,8 @@ class DeviceChainRow extends StatelessWidget {
     this.scrollController,
     this.onBypassToggle,
     this.onOpenLibrary,
+    this.onPreviewSample,
+    this.onPreviewSampler,
     this.lfos = const [],
     this.modEdges = const [],
     this.onModulationBridgeCall,
@@ -57,6 +59,8 @@ class DeviceChainRow extends StatelessWidget {
   final ScrollController? scrollController;
   final void Function(String deviceId, bool bypassed)? onBypassToggle;
   final void Function(DeviceSnapshot device)? onOpenLibrary;
+  final ValueChanged<SampleLibraryEntrySnapshot>? onPreviewSample;
+  final ValueChanged<int>? onPreviewSampler;
   final List<LfoSnapshot> lfos;
   final List<ModulationEdgeSnapshot> modEdges;
   final Future<ProjectSnapshot> Function(String method, Map<String, dynamic> args)?
@@ -111,7 +115,7 @@ class DeviceChainRow extends StatelessWidget {
                   sample: _sampleFor(devices[i]),
                   bpm: bpm,
                   density: density,
-                  samplerTab: samplerTabFor?.call(devices[i].id) ?? SamplerDeviceTab.sample,
+                  samplerTab: samplerTabFor?.call(devices[i].id) ?? SamplerDeviceTab.wave,
                   synthTab: synthTabFor?.call(devices[i].id) ?? SubtractiveDeviceTab.osc,
                   onSamplerParameterChanged: (parameterId, value) =>
                       onSamplerParameterChanged(devices[i].id, parameterId, value),
@@ -132,6 +136,8 @@ class DeviceChainRow extends StatelessWidget {
                       : () => onBypassToggle!(devices[i].id, !devices[i].bypassed),
                   onOpenLibrary:
                       onOpenLibrary == null ? null : () => onOpenLibrary!(devices[i]),
+                  onPreviewSample: onPreviewSample,
+                  onPreviewSampler: onPreviewSampler,
                   lfos: lfos,
                   modEdges: modEdges,
                   onModulationBridgeCall: onModulationBridgeCall,

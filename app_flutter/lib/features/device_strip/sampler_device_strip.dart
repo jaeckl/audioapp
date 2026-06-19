@@ -10,6 +10,7 @@ class SamplerDeviceStrip extends StatelessWidget {
     required this.device,
     required this.sample,
     required this.onParameterChanged,
+    this.onPreview,
     this.onTabChanged,
     this.onCollapse,
     this.embeddedInCard = true,
@@ -23,12 +24,15 @@ class SamplerDeviceStrip extends StatelessWidget {
     this.automationLinkActive = false,
     this.onAutomationLinkTap,
     this.onAutomateParameter,
+    this.lfos = const [],
+    this.modEdges = const [],
   });
 
   final DeviceSnapshot device;
   final SampleLibraryEntrySnapshot? sample;
   final void Function(String parameterId, double value) onParameterChanged;
   final ValueChanged<SamplerDeviceTab>? onTabChanged;
+  final VoidCallback? onPreview;
   final VoidCallback? onCollapse;
   final bool embeddedInCard;
   final SamplerDeviceTab? selectedTab;
@@ -40,6 +44,8 @@ class SamplerDeviceStrip extends StatelessWidget {
   final bool automationLinkActive;
   final ValueChanged<String>? onAutomationLinkTap;
   final ValueChanged<String>? onAutomateParameter;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
   final int bpm;
 
   @override
@@ -50,6 +56,7 @@ class SamplerDeviceStrip extends StatelessWidget {
       bpm: bpm,
       onParameterChanged: onParameterChanged,
       embeddedInCard: embeddedInCard,
+      onPreview: onPreview,
       onTabChanged: onTabChanged,
       onCollapse: onCollapse,
       selectedTab: selectedTab,
@@ -62,6 +69,8 @@ class SamplerDeviceStrip extends StatelessWidget {
       automationLinkActive: automationLinkActive,
       onAutomationLinkTap: onAutomationLinkTap,
       onAutomateParameter: onAutomateParameter,
+      lfos: lfos,
+      modEdges: modEdges,
     );
   }
 }

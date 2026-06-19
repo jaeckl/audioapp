@@ -92,6 +92,8 @@ bool ModulationGraph::updateLfoParam(int lfoId, const std::string& param, float 
             lfo.syncDivision = std::clamp(static_cast<int>(value), 0, 5);
         } else if (param == "phase") {
             lfo.phase = std::clamp(value, 0.0f, 1.0f);
+        } else if (param == "polarity") {
+            lfo.polarity = std::clamp(static_cast<int>(value), 0, 2);
         } else {
             return false;
         }

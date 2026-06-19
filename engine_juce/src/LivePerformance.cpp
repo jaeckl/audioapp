@@ -445,27 +445,22 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                 }
 
                 const double pitchRatio =
-                    std::pow(2.0, static_cast<double>(voice.pitch - inst.rootPitch) / 12.0);
-                const double readPosRaw =
-                    static_cast<double>(startFrame) + elapsedSec * inst.samplerPcmSampleRate * pitchRatio;
+                    samplerPitchRatio(voice.pitch, inst.rootPitch, inst.rootFineTune);
 
-                // Check if a region is set for looping
-                const bool hasRegion = inst.regionEndFrame > 0 && inst.regionEndFrame > inst.regionStartFrame;
-                double readPos;
-                if (hasRegion) {
-                    const int loopLen = inst.regionEndFrame - inst.regionStartFrame;
-                    const double regionProgress = elapsedSec * inst.samplerPcmSampleRate * pitchRatio;
-                    readPos = static_cast<double>(inst.regionStartFrame) +
-                        std::fmod(regionProgress, static_cast<double>(loopLen));
-                } else {
-                    if (readPosRaw < static_cast<double>(startFrame) ||
-                        readPosRaw >= static_cast<double>(endFrame - 1)) {
-                        if (voice.releasing && elapsedSec > noteDurationSec + releaseSec) {
-                            voice.active.store(0, std::memory_order_release);
-                        }
-                        continue;
+                double readPos = 0.0;
+                if (!computeSamplerReadPosition(inst.playbackMode,
+                                                startFrame,
+                                                endFrame,
+                                                inst.regionStartFrame,
+                                                inst.regionEndFrame,
+                                                elapsedSec,
+                                                inst.samplerPcmSampleRate,
+                                                pitchRatio,
+                                                readPos)) {
+                    if (voice.releasing && elapsedSec > noteDurationSec + releaseSec) {
+                        voice.active.store(0, std::memory_order_release);
                     }
-                    readPos = readPosRaw;
+                    continue;
                 }
                 const int index = static_cast<int>(readPos);
                 const float frac = static_cast<float>(readPos - static_cast<double>(index));

@@ -4,17 +4,19 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
 import '../sample_library/sample_library_screen.dart';
-import 'device_knob_sizes.dart';
 import 'device_automation_knob.dart';
-import 'device_tab_bar.dart';
-import 'rotary_knob.dart';
+import 'device_knob_sizes.dart';
+import 'device_tab_bar.dart' show DeviceTabSpec;
+import 'modulator_polarity.dart';
+import 'sampler_envelope_preview.dart';
+import 'sampler_waveform_view.dart';
 
 /// Layout density for sampler controls.
 enum SamplerPanelDensity { strip, editor }
 
-enum SamplerDeviceTab { sample, env, filter }
+enum SamplerDeviceTab { wave, tone }
 
-/// Tabbed sampler UI — one parameter group per tab with large knobs (FLM / Note pattern).
+/// Tabbed sampler UI — Wave (sample + playback) and Tone (env + filter).
 class SamplerDevicePanel extends StatefulWidget {
   const SamplerDevicePanel({
     super.key,
@@ -22,9 +24,8 @@ class SamplerDevicePanel extends StatefulWidget {
     required this.sample,
     required this.onParameterChanged,
     this.density = SamplerPanelDensity.strip,
-    this.showExpandControl = false,
-    this.onOpenFullscreen,
-    this.initialTab = SamplerDeviceTab.sample,
+    this.onPreview,
+    this.initialTab = SamplerDeviceTab.wave,
     this.onTabChanged,
     this.onCollapse,
     this.embeddedInCard = false,
@@ -38,14 +39,15 @@ class SamplerDevicePanel extends StatefulWidget {
     this.automationLinkActive = false,
     this.onAutomationLinkTap,
     this.onAutomateParameter,
+    this.lfos = const [],
+    this.modEdges = const [],
   });
 
   final DeviceSnapshot device;
   final SampleLibraryEntrySnapshot? sample;
   final void Function(String parameterId, double value) onParameterChanged;
   final SamplerPanelDensity density;
-  final bool showExpandControl;
-  final VoidCallback? onOpenFullscreen;
+  final VoidCallback? onPreview;
   final SamplerDeviceTab initialTab;
   final ValueChanged<SamplerDeviceTab>? onTabChanged;
   final VoidCallback? onCollapse;
@@ -59,6 +61,8 @@ class SamplerDevicePanel extends StatefulWidget {
   final bool automationLinkActive;
   final ValueChanged<String>? onAutomationLinkTap;
   final ValueChanged<String>? onAutomateParameter;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
   final int bpm;
 
   static const Color panel = Color(0xFF1C1C24);
@@ -66,12 +70,9 @@ class SamplerDevicePanel extends StatefulWidget {
   static const Color wave = Color(0xFF6EC9A0);
 
   static const containerTabs = <DeviceTabSpec>[
-    DeviceTabSpec(label: 'Sample', icon: Icons.graphic_eq),
-    DeviceTabSpec(label: 'Env', icon: Icons.show_chart),
-    DeviceTabSpec(label: 'Filter', icon: Icons.tune),
+    DeviceTabSpec(label: 'Wave', icon: Icons.graphic_eq),
+    DeviceTabSpec(label: 'Tone', icon: Icons.tune),
   ];
-
-  static const _tabs = containerTabs;
 
   static String formatCutoffHz(double normalized) {
     const minHz = 20.0;
@@ -96,6 +97,8 @@ class SamplerDevicePanel extends StatefulWidget {
   double get _knobSize => density == SamplerPanelDensity.editor
       ? DeviceKnobSizes.editor
       : DeviceKnobSizes.strip;
+
+  bool get _isEditor => density == SamplerPanelDensity.editor;
 
   @override
   State<SamplerDevicePanel> createState() => _SamplerDevicePanelState();
@@ -128,80 +131,37 @@ class _SamplerDevicePanelState extends State<SamplerDevicePanel> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final sampleName = widget.sample?.name ?? 'No sample loaded';
     final peaks = widget.sample?.waveformPeaks ?? const <double>[];
 
     return Material(
       color: widget.embeddedInCard ? Colors.transparent : SamplerDevicePanel.panel,
       child: Padding(
         padding: EdgeInsets.fromLTRB(
-          widget.embeddedInCard ? 10 : 0,
-          widget.embeddedInCard ? 4 : 6,
+          widget.embeddedInCard ? 10 : 12,
+          widget.embeddedInCard ? 4 : 8,
           10,
           6,
         ),
-        child: widget.embeddedInCard
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(child: _buildTabBody(context, theme, peaks)),
-                ],
-              )
-            : Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Container(width: 4, color: SamplerDevicePanel.accent),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _WaveformHeader(
-                          sampleName: sampleName,
-                          showExpandControl: widget.showExpandControl,
-                          onOpenFullscreen: widget.onOpenFullscreen,
-                          onCollapse: widget.onCollapse,
-                        ),
-                        const SizedBox(height: 6),
-                        DeviceTabBar(
-                          tabs: SamplerDevicePanel._tabs,
-                          selectedIndex: _tab.index,
-                          onSelected: (index) {
-                            final tab = SamplerDeviceTab.values[index];
-                            setState(() => _tab = tab);
-                            widget.onTabChanged?.call(tab);
-                          },
-                          accentColor: SamplerDevicePanel.accent,
-                        ),
-                        const SizedBox(height: 8),
-                        Expanded(child: _buildTabBody(context, theme, peaks)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(child: _buildTabBody(peaks)),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildTabBody(BuildContext context, ThemeData theme, List<double> peaks) {
+  Widget _buildTabBody(List<double> peaks) {
     switch (_activeTab) {
-      case SamplerDeviceTab.sample:
-        final durationSec = _durationSec;
-        return _SampleTab(
+      case SamplerDeviceTab.wave:
+        return _WaveTab(
           device: widget.device,
+          sampleName: widget.sample?.name,
           peaks: peaks,
-          durationSec: durationSec,
-          showExpandControl: widget.embeddedInCard ? false : widget.showExpandControl,
-          onOpenFullscreen: widget.onOpenFullscreen,
+          durationSec: _durationSec,
           onParameterChanged: widget.onParameterChanged,
-        );
-      case SamplerDeviceTab.env:
-        return _EnvTab(
-          device: widget.device,
-          knobSize: widget._knobSize,
-          onParameterChanged: widget.onParameterChanged,
+          onPreview: widget.onPreview,
           modulatedParams: widget.modulatedParams,
           automatedParams: widget.automatedParams,
           modulationAmounts: widget.modulationAmounts,
@@ -210,11 +170,14 @@ class _SamplerDevicePanelState extends State<SamplerDevicePanel> {
           automationLinkActive: widget.automationLinkActive,
           onAutomationLinkTap: widget.onAutomationLinkTap,
           onAutomateParameter: widget.onAutomateParameter,
+          lfos: widget.lfos,
+          modEdges: widget.modEdges,
         );
-      case SamplerDeviceTab.filter:
-        return _FilterTab(
+      case SamplerDeviceTab.tone:
+        return _ToneTab(
           device: widget.device,
           knobSize: widget._knobSize,
+          editor: widget._isEditor,
           onParameterChanged: widget.onParameterChanged,
           modulatedParams: widget.modulatedParams,
           automatedParams: widget.automatedParams,
@@ -229,361 +192,32 @@ class _SamplerDevicePanelState extends State<SamplerDevicePanel> {
   }
 }
 
-class _WaveformHeader extends StatelessWidget {
-  const _WaveformHeader({
-    required this.sampleName,
-    required this.showExpandControl,
-    required this.onOpenFullscreen,
-    this.onCollapse,
-  });
-
-  final String sampleName;
-  final bool showExpandControl;
-  final VoidCallback? onOpenFullscreen;
-  final VoidCallback? onCollapse;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      onTap: showExpandControl ? onOpenFullscreen : null,
-      child: Row(
-        children: [
-          Text(
-            'SAMPLER',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: SamplerDevicePanel.accent,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.1,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              sampleName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          if (onCollapse != null)
-            IconButton(
-              tooltip: 'Collapse device',
-              visualDensity: VisualDensity.compact,
-              onPressed: onCollapse,
-              icon: const Icon(Icons.unfold_less, size: 18, color: Colors.white54),
-            ),
-          if (showExpandControl)
-            IconButton(
-              tooltip: 'Open sampler editor',
-              visualDensity: VisualDensity.compact,
-              onPressed: onOpenFullscreen,
-              icon: const Icon(Icons.open_in_full, size: 18, color: Colors.white54),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SampleTab extends StatefulWidget {
-  const _SampleTab({
+class _WaveTab extends StatelessWidget {
+  const _WaveTab({
     required this.device,
+    required this.sampleName,
     required this.peaks,
     required this.durationSec,
-    required this.showExpandControl,
-    required this.onOpenFullscreen,
     required this.onParameterChanged,
-  });
-
-  final DeviceSnapshot device;
-  final List<double> peaks;
-  final double durationSec;
-  final bool showExpandControl;
-  final VoidCallback? onOpenFullscreen;
-  final void Function(String parameterId, double value) onParameterChanged;
-
-  @override
-  State<_SampleTab> createState() => _SampleTabState();
-}
-
-class _SampleTabState extends State<_SampleTab> {
-  static const double _handleWidth = 24;
-  late double _localStart;
-  late double _localEnd;
-  _RegionDrag? _drag;
-
-  @override
-  void initState() {
-    super.initState();
-    _syncLocal();
-  }
-
-  @override
-  void didUpdateWidget(covariant _SampleTab oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (_drag == null) {
-      _syncLocal();
-    }
-  }
-
-  void _syncLocal() {
-    _localStart = widget.device.regionStartSec;
-    _localEnd = widget.device.regionEndSec;
-  }
-
-  double get _regionStart => _drag != null ? _localStart : widget.device.regionStartSec;
-  double get _regionEnd => _drag != null ? _localEnd : widget.device.regionEndSec;
-
-  double _secFromDx(double dx, double width) {
-    final dur = widget.durationSec > 0 ? widget.durationSec : 1.0;
-    return (dx / width * dur).clamp(0, dur);
-  }
-
-  void _commit() {
-    widget.onParameterChanged('regionStartSec', _localStart);
-    widget.onParameterChanged('regionEndSec', _localEnd);
-  }
-
-  bool get _hasRegion => widget.device.regionEndSec > 0;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dur = widget.durationSec > 0 ? widget.durationSec : 1.0;
-
-    return GestureDetector(
-      onTap: widget.showExpandControl ? widget.onOpenFullscreen : null,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: const Color(0xFF121218),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: widget.peaks.isEmpty
-              ? Center(
-                  child: Text(
-                    widget.showExpandControl ? 'Tap to load / trim sample' : 'No sample loaded',
-                    style: theme.textTheme.labelMedium?.copyWith(color: Colors.white38),
-                  ),
-                )
-              : LayoutBuilder(
-                  builder: (context, constraints) {
-                    final w = constraints.maxWidth;
-                    final startX = _regionStart / dur * w;
-                    final endX = _regionEnd / dur * w;
-                    return GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTapUp: _hasRegion
-                          ? null
-                          : (d) {
-                              // Tap to create a default region centered at tap position
-                              final tapSec = _secFromDx(d.localPosition.dx, w);
-                              final halfWidth = dur * 0.1;
-                              final start = (tapSec - halfWidth).clamp(0.0, dur);
-                              var end = (tapSec + halfWidth).clamp(0.0, dur);
-                              if (end - start < 0.05) {
-                                end = (start + 0.05).clamp(0.0, dur);
-                              }
-                              _localStart = start;
-                              _localEnd = end;
-                              _commit();
-                            },
-                      onHorizontalDragStart: (d) {
-                        if (!_hasRegion) return;
-                        final x = d.localPosition.dx;
-                        if ((x - startX).abs() < _handleWidth) {
-                          _drag = _RegionDrag.start;
-                          _localStart = widget.device.regionStartSec;
-                        } else if ((x - endX).abs() < _handleWidth) {
-                          _drag = _RegionDrag.end;
-                          _localEnd = widget.device.regionEndSec;
-                        }
-                      },
-                      onHorizontalDragUpdate: (d) {
-                        if (_drag == null) return;
-                        setState(() {
-                          final sec = _secFromDx(d.localPosition.dx, w);
-                          if (_drag == _RegionDrag.start) {
-                            _localStart = sec.clamp(0, _localEnd - 0.02);
-                          } else {
-                            _localEnd = sec.clamp(_localStart + 0.02, dur);
-                          }
-                        });
-                      },
-                      onHorizontalDragEnd: (_) {
-                        if (_drag == null) return;
-                        _drag = null;
-                        _commit();
-                      },
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          // Base waveform
-                          CustomPaint(
-                            painter: WaveformPainter(peaks: widget.peaks, color: SamplerDevicePanel.wave),
-                          ),
-                          // Region overlay (highlighted band)
-                          if (_hasRegion)
-                            Positioned(
-                              left: startX.clamp(0, w),
-                              width: (endX - startX).clamp(0, w),
-                              top: 0,
-                              bottom: 0,
-                              child: IgnorePointer(
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    color: SamplerDevicePanel.accent.withValues(alpha: 0.15),
-                                    border: Border.symmetric(
-                                      vertical: BorderSide(
-                                        color: SamplerDevicePanel.accent.withValues(alpha: 0.7),
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          // Region handles
-                          if (_hasRegion)
-                            Positioned(
-                              left: (startX - _handleWidth / 2).clamp(0, w - _handleWidth),
-                              top: 4,
-                              bottom: 4,
-                              child: Container(
-                                width: _handleWidth,
-                                decoration: BoxDecoration(
-                                  color: SamplerDevicePanel.accent,
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Container(
-                                      width: 4,
-                                      height: 14,
-                                      decoration: BoxDecoration(
-                                        color: Colors.black54,
-                                        borderRadius: BorderRadius.circular(1),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          if (_hasRegion)
-                            Positioned(
-                              left: (endX - _handleWidth / 2).clamp(0, w - _handleWidth),
-                              top: 4,
-                              bottom: 4,
-                              child: Container(
-                                width: _handleWidth,
-                                decoration: BoxDecoration(
-                                  color: SamplerDevicePanel.accent,
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Container(
-                                      width: 4,
-                                      height: 14,
-                                      decoration: BoxDecoration(
-                                        color: Colors.black54,
-                                        borderRadius: BorderRadius.circular(1),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          // No region hint
-                          if (!_hasRegion)
-                            Positioned(
-                              bottom: 4,
-                              right: 6,
-                              child: Text(
-                                'Tap → set loop region',
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: SamplerDevicePanel.accent.withValues(alpha: 0.5),
-                                  fontSize: 9,
-                                ),
-                              ),
-                            ),
-                          // Region indicator badge with clear button
-                          if (_hasRegion)
-                            Positioned(
-                              top: 3,
-                              left: 4,
-                              child: GestureDetector(
-                                onTap: () {
-                                  widget.onParameterChanged('regionStartSec', 0);
-                                  widget.onParameterChanged('regionEndSec', 0);
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: SamplerDevicePanel.accent.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(
-                                      color: SamplerDevicePanel.accent.withValues(alpha: 0.4),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        'LOOP',
-                                        style: theme.textTheme.labelSmall?.copyWith(
-                                          color: SamplerDevicePanel.accent,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: 0.8,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Icon(Icons.close, size: 10, color: SamplerDevicePanel.accent),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-        ),
-      ),
-    );
-  }
-}
-
-enum _RegionDrag { start, end }
-
-class _EnvTab extends StatelessWidget {
-  const _EnvTab({
-    required this.device,
-    required this.knobSize,
-    required this.onParameterChanged,
-    required this.modulatedParams,
-    required this.automatedParams,
-    required this.modulationAmounts,
-    required this.connectModeLfoId,
-    required this.onModulationAssign,
-    required this.automationLinkActive,
+    this.onPreview,
+    this.modulatedParams = const {},
+    this.automatedParams = const {},
+    this.modulationAmounts = const {},
+    this.connectModeLfoId,
+    this.onModulationAssign,
+    this.automationLinkActive = false,
     this.onAutomationLinkTap,
     this.onAutomateParameter,
+    this.lfos = const [],
+    this.modEdges = const [],
   });
 
   final DeviceSnapshot device;
-  final double knobSize;
+  final String? sampleName;
+  final List<double> peaks;
+  final double durationSec;
   final void Function(String parameterId, double value) onParameterChanged;
+  final VoidCallback? onPreview;
   final Set<String> modulatedParams;
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
@@ -592,88 +226,140 @@ class _EnvTab extends StatelessWidget {
   final bool automationLinkActive;
   final ValueChanged<String>? onAutomationLinkTap;
   final ValueChanged<String>? onAutomateParameter;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
+
+  SpinnerModulationProps get _spinnerModulation => SpinnerModulationProps(
+        modulatedParams: modulatedParams,
+        automatedParams: automatedParams,
+        modulationAmounts: modulationAmounts,
+        connectModeLfoId: connectModeLfoId,
+        onModulationAssign: onModulationAssign,
+        automationLinkActive: automationLinkActive,
+        onAutomationLinkTap: onAutomationLinkTap,
+        onAutomateParameter: onAutomateParameter,
+        rootPitchPolarity: modulatorPolarityForParam(
+          paramId: 'rootPitch',
+          deviceId: device.id,
+          modEdges: modEdges,
+          lfos: lfos,
+          connectModeLfoId: connectModeLfoId,
+        ),
+        rootFineTunePolarity: modulatorPolarityForParam(
+          paramId: 'rootFineTune',
+          deviceId: device.id,
+          modEdges: modEdges,
+          lfos: lfos,
+          connectModeLfoId: connectModeLfoId,
+        ),
+      );
+
+  void _setPlaybackMode(int mode) {
+    onParameterChanged('playbackMode', mode.toDouble());
+    if (mode == 1 && device.regionEndSec <= 0) {
+      final dur = durationSec > 0 ? durationSec : 1.0;
+      onParameterChanged('regionStartSec', 0);
+      onParameterChanged('regionEndSec', (dur * 0.25).clamp(0.05, dur));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return _KnobRow(
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        deviceAutomationKnob(
-          label: 'Attack',
-          value: device.attack,
-          size: knobSize,
-          displayValue: SamplerDevicePanel.formatPercent(device.attack),
-          onChanged: (v) => onParameterChanged('attack', v),
-          paramId: 'attack',
-          accentColor: SamplerDevicePanel.accent,
-          modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-          modulationAmounts: modulationAmounts,
-          connectModeLfoId: connectModeLfoId,
-          onModulationAssign: onModulationAssign,
-          automationLinkActive: automationLinkActive,
-          onAutomationLinkTap: onAutomationLinkTap,
-          onAutomateParameter: onAutomateParameter,
+        Expanded(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0xFF121218),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: SamplerWaveformView(
+                  peaks: peaks,
+                  durationSec: durationSec,
+                  trimStartSec: device.trimStartSec,
+                  trimEndSec: device.trimEndSec,
+                  regionStartSec: device.regionStartSec,
+                  regionEndSec: device.regionEndSec,
+                  density: SamplerWaveformDensity.editor,
+                  waveColor: SamplerDevicePanel.wave,
+                  accentColor: SamplerDevicePanel.accent,
+                  loopRegionEnabled: device.playbackMode == 1,
+                  onPreview: peaks.isEmpty ? null : onPreview,
+                  onTrimChanged: (start, end) {
+                    onParameterChanged('trimStartSec', start);
+                    onParameterChanged('trimEndSec', end);
+                  },
+                  onRegionChanged: device.playbackMode == 1
+                      ? (start, end) {
+                          onParameterChanged('regionStartSec', start);
+                          onParameterChanged('regionEndSec', end);
+                        }
+                      : null,
+                  emptyHint: 'Open library to load audio',
+                ),
+              ),
+            ),
+          ),
         ),
-        deviceAutomationKnob(
-          label: 'Decay',
-          value: device.decay,
-          size: knobSize,
-          displayValue: SamplerDevicePanel.formatPercent(device.decay),
-          onChanged: (v) => onParameterChanged('decay', v),
-          paramId: 'decay',
-          accentColor: SamplerDevicePanel.accent,
-          modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-          modulationAmounts: modulationAmounts,
-          connectModeLfoId: connectModeLfoId,
-          onModulationAssign: onModulationAssign,
-          automationLinkActive: automationLinkActive,
-          onAutomationLinkTap: onAutomationLinkTap,
-          onAutomateParameter: onAutomateParameter,
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                sampleName ?? 'No sample',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            if (peaks.isNotEmpty)
+              Text(
+                formatSamplerPlaybackRange(
+                  playbackMode: device.playbackMode,
+                  durationSec: durationSec,
+                  trimStartSec: device.trimStartSec,
+                  trimEndSec: device.trimEndSec,
+                  regionStartSec: device.regionStartSec,
+                  regionEndSec: device.regionEndSec,
+                ),
+                style: theme.textTheme.labelSmall?.copyWith(color: Colors.white38),
+              ),
+          ],
         ),
-        deviceAutomationKnob(
-          label: 'Sustain',
-          value: device.sustain,
-          size: knobSize,
-          displayValue: SamplerDevicePanel.formatPercent(device.sustain),
-          onChanged: (v) => onParameterChanged('sustain', v),
-          paramId: 'sustain',
+        const SizedBox(height: 4),
+        SamplerPlaybackIdentityBar(
+          rootPitch: device.rootPitch.round(),
+          rootFineTune: device.rootFineTune,
+          playbackMode: device.playbackMode,
           accentColor: SamplerDevicePanel.accent,
-          modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-          modulationAmounts: modulationAmounts,
-          connectModeLfoId: connectModeLfoId,
-          onModulationAssign: onModulationAssign,
-          automationLinkActive: automationLinkActive,
-          onAutomationLinkTap: onAutomationLinkTap,
-          onAutomateParameter: onAutomateParameter,
-        ),
-        deviceAutomationKnob(
-          label: 'Release',
-          value: device.release,
-          size: knobSize,
-          displayValue: SamplerDevicePanel.formatPercent(device.release),
-          onChanged: (v) => onParameterChanged('release', v),
-          paramId: 'release',
-          accentColor: SamplerDevicePanel.accent,
-          modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-          modulationAmounts: modulationAmounts,
-          connectModeLfoId: connectModeLfoId,
-          onModulationAssign: onModulationAssign,
-          automationLinkActive: automationLinkActive,
-          onAutomationLinkTap: onAutomationLinkTap,
-          onAutomateParameter: onAutomateParameter,
+          previewEnabled: peaks.isNotEmpty,
+          onRootPitchChanged: (pitch) => onParameterChanged('rootPitch', pitch.toDouble()),
+          onRootFineTuneChanged: (cents) => onParameterChanged('rootFineTune', cents),
+          onPlaybackModeChanged: _setPlaybackMode,
+          onPreview: onPreview,
+          modulation: _spinnerModulation,
         ),
       ],
     );
   }
 }
 
-class _FilterTab extends StatelessWidget {
-  const _FilterTab({
+class _ToneTab extends StatelessWidget {
+  const _ToneTab({
     required this.device,
     required this.knobSize,
+    required this.editor,
     required this.onParameterChanged,
     required this.modulatedParams,
     required this.automatedParams,
@@ -687,6 +373,7 @@ class _FilterTab extends StatelessWidget {
 
   final DeviceSnapshot device;
   final double knobSize;
+  final bool editor;
   final void Function(String parameterId, double value) onParameterChanged;
   final Set<String> modulatedParams;
   final Set<String> automatedParams;
@@ -697,96 +384,163 @@ class _FilterTab extends StatelessWidget {
   final ValueChanged<String>? onAutomationLinkTap;
   final ValueChanged<String>? onAutomateParameter;
 
-  static const _modes = ['LP', 'HP', 'BP', 'NT'];
+  static const _filterModes = ['LP', 'HP', 'BP', 'NT'];
+
+  Widget _knob({
+    required String label,
+    required String paramId,
+    required double value,
+    required String displayValue,
+    required ValueChanged<double> onChanged,
+  }) {
+    return deviceAutomationKnob(
+      label: label,
+      value: value,
+      size: knobSize,
+      displayValue: displayValue,
+      onChanged: onChanged,
+      paramId: paramId,
+      accentColor: SamplerDevicePanel.accent,
+      modulatedParams: modulatedParams,
+      automatedParams: automatedParams,
+      modulationAmounts: modulationAmounts,
+      connectModeLfoId: connectModeLfoId,
+      onModulationAssign: onModulationAssign,
+      automationLinkActive: automationLinkActive,
+      onAutomationLinkTap: onAutomationLinkTap,
+      onAutomateParameter: onAutomateParameter,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final modeIndex = device.filterMode.clamp(0, _modes.length - 1);
+    final modeIndex = device.filterMode.clamp(0, _filterModes.length - 1);
 
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: const Color(0xFF121218),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: List.generate(_modes.length, (index) {
-                final selected = index == modeIndex;
-                return InkWell(
-                  onTap: () => onParameterChanged('filterMode', index.toDouble()),
-                  borderRadius: BorderRadius.circular(4),
-                  child: Container(
-                    width: 36,
-                    height: 22,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? SamplerDevicePanel.accent.withValues(alpha: 0.25)
-                          : Colors.white.withValues(alpha: 0.06),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: selected
-                            ? SamplerDevicePanel.accent.withValues(alpha: 0.7)
-                            : Colors.white12,
-                      ),
-                    ),
-                    child: Text(
-                      _modes[index],
-                      style: TextStyle(
-                        color: selected ? SamplerDevicePanel.accent : Colors.white38,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                );
-              }),
+        SizedBox(
+          height: 24,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0xFF121218),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: SamplerEnvelopePreview(
+                attack: device.attack,
+                decay: device.decay,
+                sustain: device.sustain,
+                release: device.release,
+                accent: SamplerDevicePanel.accent,
+              ),
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(height: 6),
+        _KnobRow(
+          children: [
+            _knob(
+              label: 'Attack',
+              paramId: 'attack',
+              value: device.attack,
+              displayValue: SamplerDevicePanel.formatPercent(device.attack),
+              onChanged: (v) => onParameterChanged('attack', v),
+            ),
+            _knob(
+              label: 'Decay',
+              paramId: 'decay',
+              value: device.decay,
+              displayValue: SamplerDevicePanel.formatPercent(device.decay),
+              onChanged: (v) => onParameterChanged('decay', v),
+            ),
+            _knob(
+              label: 'Sustain',
+              paramId: 'sustain',
+              value: device.sustain,
+              displayValue: SamplerDevicePanel.formatPercent(device.sustain),
+              onChanged: (v) => onParameterChanged('sustain', v),
+            ),
+            _knob(
+              label: 'Release',
+              paramId: 'release',
+              value: device.release,
+              displayValue: SamplerDevicePanel.formatPercent(device.release),
+              onChanged: (v) => onParameterChanged('release', v),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
         Expanded(
-          child: _KnobRow(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              deviceAutomationKnob(
-                label: 'Cutoff',
-                value: device.filterCutoff,
-                size: knobSize,
-                displayValue: SamplerDevicePanel.formatCutoffHz(device.filterCutoff),
-                onChanged: (v) => onParameterChanged('filterCutoff', v),
-                paramId: 'filterCutoff',
-                accentColor: SamplerDevicePanel.accent,
-                modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-                modulationAmounts: modulationAmounts,
-                connectModeLfoId: connectModeLfoId,
-                onModulationAssign: onModulationAssign,
-                automationLinkActive: automationLinkActive,
-                onAutomationLinkTap: onAutomationLinkTap,
-                onAutomateParameter: onAutomateParameter,
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF121218),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: List.generate(_filterModes.length, (index) {
+                      final selected = index == modeIndex;
+                      return InkWell(
+                        onTap: () => onParameterChanged('filterMode', index.toDouble()),
+                        borderRadius: BorderRadius.circular(4),
+                        child: Container(
+                          width: 36,
+                          height: editor ? 28 : 22,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? SamplerDevicePanel.accent.withValues(alpha: 0.25)
+                                : Colors.white.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: selected
+                                  ? SamplerDevicePanel.accent.withValues(alpha: 0.7)
+                                  : Colors.white12,
+                            ),
+                          ),
+                          child: Text(
+                            _filterModes[index],
+                            style: TextStyle(
+                              color: selected ? SamplerDevicePanel.accent : Colors.white38,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
               ),
-              deviceAutomationKnob(
-                label: 'Resonance',
-                value: device.filterQ,
-                size: knobSize,
-                displayValue: SamplerDevicePanel.formatQ(device.filterQ),
-                onChanged: (v) => onParameterChanged('filterQ', v),
-                paramId: 'filterQ',
-                accentColor: SamplerDevicePanel.accent,
-                modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-                modulationAmounts: modulationAmounts,
-                connectModeLfoId: connectModeLfoId,
-                onModulationAssign: onModulationAssign,
-                automationLinkActive: automationLinkActive,
-                onAutomationLinkTap: onAutomationLinkTap,
-                onAutomateParameter: onAutomateParameter,
+              const SizedBox(width: 12),
+              Expanded(
+                child: _KnobRow(
+                  children: [
+                    _knob(
+                      label: 'Cutoff',
+                      paramId: 'filterCutoff',
+                      value: device.filterCutoff,
+                      displayValue: SamplerDevicePanel.formatCutoffHz(device.filterCutoff),
+                      onChanged: (v) => onParameterChanged('filterCutoff', v),
+                    ),
+                    _knob(
+                      label: 'Resonance',
+                      paramId: 'filterQ',
+                      value: device.filterQ,
+                      displayValue: SamplerDevicePanel.formatQ(device.filterQ),
+                      onChanged: (v) => onParameterChanged('filterQ', v),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -821,7 +575,7 @@ class _KnobRow extends StatelessWidget {
   }
 }
 
-/// Collapsed strip summary — waveform peek + active tab label.
+/// Collapsed strip summary — waveform peek.
 class SamplerDeviceStripCollapsed extends StatelessWidget {
   const SamplerDeviceStripCollapsed({
     super.key,
@@ -844,9 +598,6 @@ class SamplerDeviceStripCollapsed extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(embeddedInCard ? 10 : 0, 4, 8, 4),
         child: Row(
           children: [
-            if (!embeddedInCard)
-              Container(width: 4, height: double.infinity, color: SamplerDevicePanel.accent),
-            if (!embeddedInCard) const SizedBox(width: 10),
             Expanded(
               child: SizedBox(
                 height: 36,
@@ -861,7 +612,10 @@ class SamplerDeviceStripCollapsed extends StatelessWidget {
                       : ClipRRect(
                           borderRadius: BorderRadius.circular(2),
                           child: CustomPaint(
-                            painter: WaveformPainter(peaks: peaks, color: SamplerDevicePanel.wave),
+                            painter: WaveformPainter(
+                              peaks: peaks,
+                              color: SamplerDevicePanel.wave,
+                            ),
                           ),
                         ),
                 ),

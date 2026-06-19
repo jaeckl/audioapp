@@ -23,6 +23,9 @@ struct DeviceState {
     float trimEndSec = 0.0f;
     float regionStartSec = 0.0f;
     float regionEndSec = 0.0f;
+    float rootPitch = 60.0f;
+    float rootFineTune = 0.0f;
+    int playbackMode = 0;
     bool bypassed = false;
     float osc1Shape = 0.5f;
     float osc2Shape = 0.5f;

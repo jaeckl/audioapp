@@ -100,6 +100,9 @@ juce::var deviceToVar(const DeviceState& device) {
         parameters->setProperty("trimEndSec", static_cast<double>(device.trimEndSec));
         parameters->setProperty("regionStartSec", static_cast<double>(device.regionStartSec));
         parameters->setProperty("regionEndSec", static_cast<double>(device.regionEndSec));
+        parameters->setProperty("rootPitch", static_cast<double>(device.rootPitch));
+        parameters->setProperty("rootFineTune", static_cast<double>(device.rootFineTune));
+        parameters->setProperty("playbackMode", device.playbackMode);
     }
     if (device.type == "simple_oscillator") {
         parameters->setProperty("frequency", static_cast<double>(device.frequencyHz));
@@ -262,6 +265,14 @@ DeviceState deviceFromVar(const juce::var& value) {
             device.trimEndSec = varToFloat(params->getProperty("trimEndSec"), 0.0f);
             device.regionStartSec = varToFloat(params->getProperty("regionStartSec"), 0.0f);
             device.regionEndSec = varToFloat(params->getProperty("regionEndSec"), 0.0f);
+            device.rootPitch = varToFloat(params->getProperty("rootPitch"), 60.0f);
+            device.rootFineTune =
+                std::clamp(varToFloat(params->getProperty("rootFineTune"), 0.0f), -100.0f, 100.0f);
+            if (params->hasProperty("playbackMode")) {
+                device.playbackMode = varToInt(params->getProperty("playbackMode"), 0);
+            } else {
+                device.playbackMode = device.regionEndSec > 0.0f ? 1 : 0;
+            }
             device.bypassed = varToFloat(params->getProperty("bypass"), 0.0f) >= 0.5f;
             if (params->hasProperty("osc1Shape")) {
                 device.osc1Shape = varToFloat(params->getProperty("osc1Shape"), 0.5f);
@@ -602,6 +613,7 @@ juce::var lfoToVar(const LfoState& lfo) {
     object->setProperty("rate", static_cast<double>(lfo.rate));
     object->setProperty("syncDivision", lfo.syncDivision);
     object->setProperty("phase", static_cast<double>(lfo.phase));
+    object->setProperty("polarity", lfo.polarity);
     return juce::var(object);
 }
 
@@ -613,6 +625,7 @@ LfoState lfoFromVar(const juce::var& value) {
         lfo.rate = varToFloat(object->getProperty("rate"), 1.0f);
         lfo.syncDivision = varToInt(object->getProperty("syncDivision"), 0);
         lfo.phase = varToFloat(object->getProperty("phase"), 0.0f);
+        lfo.polarity = varToInt(object->getProperty("polarity"), 0);
     }
     return lfo;
 }

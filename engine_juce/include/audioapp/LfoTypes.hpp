@@ -20,6 +20,7 @@ struct LfoState {
     float rate = 1.0f;            // Hz when syncDivision==0
     int syncDivision = 0;         // 0=Hz, 1=1/1, 2=1/2, 3=1/4, 4=1/8, 5=1/16
     float phase = 0.0f;           // initial phase offset 0..1
+    int polarity = 0;             // 0=bipolar, 1=positive, 2=negative
 };
 
 /// A modulation edge: LFO id -> (deviceId, paramId, amount).
