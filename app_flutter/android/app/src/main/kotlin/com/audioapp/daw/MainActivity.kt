@@ -265,6 +265,7 @@ class MainActivity : FlutterFragmentActivity() {
                         "duplicateClip",
                         "setLoopEnabled",
                         "setLoopLengthBeats",
+                        "setLoopRegion",
                         "setRecordArmed",
                         "noteOn",
                         "noteOff",

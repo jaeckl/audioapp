@@ -199,6 +199,14 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         }
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
+    if (method == "setLoopRegion") {
+        const auto startBeat = jsonGetNumberArg(argumentsJson, "startBeat", 0.0);
+        const auto endBeat = jsonGetNumberArg(argumentsJson, "endBeat", 16.0);
+        if (!engine().setLoopRegion(startBeat, endBeat)) {
+            return buildBridgeError("invalid_loop_region");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
     if (method == "setRecordArmed") {
         const auto armed = jsonGetBoolArg(argumentsJson, "armed", false);
         engine().setRecordArmed(armed);

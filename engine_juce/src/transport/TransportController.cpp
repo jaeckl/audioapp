@@ -9,7 +9,8 @@ void TransportController::reset() {
     playing_.store(false, std::memory_order_release);
     playheadBeats_.store(0.0, std::memory_order_release);
     loopEnabled_ = true;
-    loopLengthBeats_ = 16.0;
+    loopRegionStartBeat_ = 0.0;
+    loopRegionEndBeat_ = 16.0;
 }
 
 bool TransportController::setBpm(int bpm) {
@@ -47,8 +48,12 @@ void TransportController::advancePlayhead(int numFrames, double sampleRate) noex
     }
     const double current = playheadBeats_.load(std::memory_order_relaxed);
     double next = advancePlayheadBeats(current, numFrames, sampleRate, bpm_);
-    if (loopEnabled_ && loopLengthBeats_ > 0.0 && next >= loopLengthBeats_) {
-        next = std::fmod(next, loopLengthBeats_);
+    if (loopEnabled_) {
+        const double regionLen = loopRegionEndBeat_ - loopRegionStartBeat_;
+        if (regionLen > 0.0 && next >= loopRegionEndBeat_) {
+            next = loopRegionStartBeat_ +
+                   std::fmod(next - loopRegionStartBeat_, regionLen);
+        }
     }
     playheadBeats_.store(next, std::memory_order_release);
 }
@@ -61,7 +66,17 @@ bool TransportController::setLoopLengthBeats(double lengthBeats) noexcept {
     if (lengthBeats < 1.0) {
         return false;
     }
-    loopLengthBeats_ = lengthBeats;
+    loopRegionStartBeat_ = 0.0;
+    loopRegionEndBeat_ = lengthBeats;
+    return true;
+}
+
+bool TransportController::setLoopRegion(double startBeat, double endBeat) noexcept {
+    if (startBeat < 0.0 || endBeat - startBeat < 1.0) {
+        return false;
+    }
+    loopRegionStartBeat_ = startBeat;
+    loopRegionEndBeat_ = endBeat;
     return true;
 }
 

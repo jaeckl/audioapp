@@ -25,6 +25,15 @@ int main() {
         return EXIT_FAILURE;
     }
 
+    if (!transport.setLoopRegion(4.0, 8.0)) {
+        return EXIT_FAILURE;
+    }
+    transport.setPlayheadBeats(7.5);
+    transport.advancePlayhead(48000, 48000.0);
+    if (std::abs(transport.playheadBeats() - 4.5) > 0.001) {
+        return EXIT_FAILURE;
+    }
+
     transport.reset();
     if (transport.isPlaying() || transport.playheadBeats() != 0.0 || transport.bpm() != 120) {
         return EXIT_FAILURE;

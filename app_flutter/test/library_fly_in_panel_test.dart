@@ -9,7 +9,6 @@ ProjectSnapshot _emptySnapshot() => const ProjectSnapshot(
       playheadBeats: 0,
       playing: false,
       loopEnabled: false,
-      loopLengthBeats: 16,
       recordArmed: false,
       selectedTrackId: '',
       master: MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1),

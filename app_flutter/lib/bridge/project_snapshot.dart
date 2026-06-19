@@ -14,7 +14,8 @@ class ProjectSnapshot {
     required this.playheadBeats,
     required this.playing,
     required this.loopEnabled,
-    required this.loopLengthBeats,
+    this.loopRegionStartBeat = 0,
+    this.loopRegionEndBeat = 16,
     required this.recordArmed,
     required this.master,
     required this.samples,
@@ -28,7 +29,9 @@ class ProjectSnapshot {
   final double playheadBeats;
   final bool playing;
   final bool loopEnabled;
-  final double loopLengthBeats;
+  final double loopRegionStartBeat;
+  final double loopRegionEndBeat;
+  double get loopLengthBeats => loopRegionEndBeat - loopRegionStartBeat;
   final bool recordArmed;
   final MasterTrackSnapshot master;
   final List<SampleLibraryEntrySnapshot> samples;
@@ -42,13 +45,22 @@ class ProjectSnapshot {
     final samplesRaw = snapshot['samples'] as List<dynamic>? ?? [];
     final lfosRaw = snapshot['lfos'] as List<dynamic>? ?? [];
     final modEdgesRaw = snapshot['modEdges'] as List<dynamic>? ?? [];
+    final loopRegionEndRaw = snapshot['loopRegionEndBeat'];
+    final loopRegionStart = readEngineDouble(
+      snapshot['loopRegionStartBeat'],
+      defaultValue: 0.0,
+    );
+    final loopRegionEnd = loopRegionEndRaw != null
+        ? readEngineDouble(loopRegionEndRaw, defaultValue: 16.0)
+        : readEngineDouble(snapshot['loopLengthBeats'], defaultValue: 16.0);
     return ProjectSnapshot(
       bpm: (snapshot['bpm'] as num?)?.toInt() ?? 120,
       selectedTrackId: snapshot['selectedTrackId'] as String? ?? '',
       playheadBeats: (snapshot['playheadBeats'] as num?)?.toDouble() ?? 0.0,
       playing: snapshot['playing'] == true,
       loopEnabled: readEngineBool(snapshot['loopEnabled'], defaultValue: true),
-      loopLengthBeats: readEngineDouble(snapshot['loopLengthBeats'], defaultValue: 16.0),
+      loopRegionStartBeat: loopRegionStart,
+      loopRegionEndBeat: loopRegionEnd,
       recordArmed: snapshot['recordArmed'] == true,
       master: MasterTrackSnapshot.fromMap(snapshot['master'] as Map<dynamic, dynamic>?),
       samples: samplesRaw
@@ -116,7 +128,8 @@ class ProjectSnapshot {
       playheadBeats: playheadBeats,
       playing: playing,
       loopEnabled: loopEnabled,
-      loopLengthBeats: loopLengthBeats,
+      loopRegionStartBeat: loopRegionStartBeat,
+      loopRegionEndBeat: loopRegionEndBeat,
       recordArmed: recordArmed,
       master: master,
       samples: samples,

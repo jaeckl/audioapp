@@ -273,6 +273,11 @@ bool ProjectEngine::setLoopLengthBeats(double lengthBeats) {
     return transport_.setLoopLengthBeats(lengthBeats);
 }
 
+bool ProjectEngine::setLoopRegion(double startBeat, double endBeat) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return transport_.setLoopRegion(startBeat, endBeat);
+}
+
 std::vector<float> ProjectEngine::renderOffline(double lengthBeats, double sampleRate) {
     if (lengthBeats <= 0.0 || sampleRate <= 0.0) {
         return {};
@@ -305,7 +310,8 @@ ProjectSnapshot ProjectEngine::snapshot() const {
     snap.playheadBeats = transport_.playheadBeats();
     snap.playing = transport_.isPlaying();
     snap.loopEnabled = transport_.loopEnabled();
-    snap.loopLengthBeats = transport_.loopLengthBeats();
+    snap.loopRegionStartBeat = transport_.loopRegionStartBeat();
+    snap.loopRegionEndBeat = transport_.loopRegionEndBeat();
     snap.recordArmed = recordArmed_;
     snap.master.id = "master";
     snap.master.name = "Master";
@@ -660,7 +666,8 @@ TransportStateSnapshot ProjectEngine::transportState() const noexcept {
     state.playing = transport_.isPlaying();
     state.bpm = transport_.bpm();
     state.loopEnabled = transport_.loopEnabled();
-    state.loopLengthBeats = transport_.loopLengthBeats();
+    state.loopRegionStartBeat = transport_.loopRegionStartBeat();
+    state.loopRegionEndBeat = transport_.loopRegionEndBeat();
     return state;
 }
 

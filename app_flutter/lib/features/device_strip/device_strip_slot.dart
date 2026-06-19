@@ -105,7 +105,6 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     playheadBeats: 0,
     playing: false,
     loopEnabled: true,
-    loopLengthBeats: 16,
     recordArmed: false,
     master: const MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1.0),
     samples: [],

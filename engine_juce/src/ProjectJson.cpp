@@ -700,7 +700,9 @@ juce::var snapshotToVar(const ProjectSnapshot& snapshot) {
     object->setProperty("playheadBeats", snapshot.playheadBeats);
     object->setProperty("playing", snapshot.playing);
     object->setProperty("loopEnabled", snapshot.loopEnabled);
-    object->setProperty("loopLengthBeats", snapshot.loopLengthBeats);
+    object->setProperty("loopRegionStartBeat", snapshot.loopRegionStartBeat);
+    object->setProperty("loopRegionEndBeat", snapshot.loopRegionEndBeat);
+    object->setProperty("loopLengthBeats", snapshot.loopLengthBeats());
     object->setProperty("recordArmed", snapshot.recordArmed);
     object->setProperty("selectedTrackId", toJuceString(snapshot.selectedTrackId));
     object->setProperty("master", juce::var(master));
@@ -875,7 +877,9 @@ std::string buildBridgeOkTransportState(const TransportStateSnapshot& transport)
     root->setProperty("playing", transport.playing);
     root->setProperty("bpm", transport.bpm);
     root->setProperty("loopEnabled", transport.loopEnabled);
-    root->setProperty("loopLengthBeats", transport.loopLengthBeats);
+    root->setProperty("loopRegionStartBeat", transport.loopRegionStartBeat);
+    root->setProperty("loopRegionEndBeat", transport.loopRegionEndBeat);
+    root->setProperty("loopLengthBeats", transport.loopLengthBeats());
     return toStdString(juce::JSON::toString(juce::var(root), false));
 }
 

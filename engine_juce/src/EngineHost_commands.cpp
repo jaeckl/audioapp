@@ -176,6 +176,10 @@ bool EngineHost::setLoopLengthBeats(double lengthBeats) {
     return project_.setLoopLengthBeats(lengthBeats);
 }
 
+bool EngineHost::setLoopRegion(double startBeat, double endBeat) {
+    return project_.setLoopRegion(startBeat, endBeat);
+}
+
 bool EngineHost::setRecordArmed(bool armed) {
     return project_.setRecordArmed(armed);
 }

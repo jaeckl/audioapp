@@ -62,6 +62,7 @@ public:
     bool duplicateClip(const std::string& clipId);
     bool setLoopEnabled(bool enabled);
     bool setLoopLengthBeats(double lengthBeats);
+    bool setLoopRegion(double startBeat, double endBeat);
     std::vector<float> renderOffline(double lengthBeats, double sampleRate);
     std::string importWavSample(const std::string& displayName, const std::vector<uint8_t>& wavBytes);
     void previewSample(const std::string& sampleId);

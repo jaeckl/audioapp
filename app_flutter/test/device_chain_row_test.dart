@@ -83,7 +83,6 @@ void main() {
       playheadBeats: 0,
       playing: false,
       loopEnabled: false,
-      loopLengthBeats: 16,
       recordArmed: false,
       master: const MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1),
       samples: const [],

@@ -48,7 +48,9 @@ struct ProjectSnapshot {
     double playheadBeats = 0.0;
     bool playing = false;
     bool loopEnabled = true;
-    double loopLengthBeats = 16.0;
+    double loopRegionStartBeat = 0.0;
+    double loopRegionEndBeat = 16.0;
+    double loopLengthBeats() const { return loopRegionEndBeat - loopRegionStartBeat; }
     bool recordArmed = false;
     MasterTrackState master;
     std::vector<SampleLibraryEntryState> samples;
@@ -63,7 +65,9 @@ struct TransportStateSnapshot {
     bool playing = false;
     int bpm = 120;
     bool loopEnabled = true;
-    double loopLengthBeats = 16.0;
+    double loopRegionStartBeat = 0.0;
+    double loopRegionEndBeat = 16.0;
+    double loopLengthBeats() const { return loopRegionEndBeat - loopRegionStartBeat; }
 };
 
 /// Authoritative project model (control thread only).
@@ -108,6 +112,7 @@ public:
                              const std::vector<AutomationPointState>& points);
     bool setLoopEnabled(bool enabled);
     bool setLoopLengthBeats(double lengthBeats);
+    bool setLoopRegion(double startBeat, double endBeat);
     std::vector<float> renderOffline(double lengthBeats, double sampleRate);
 
     bool setRecordArmed(bool armed);

@@ -220,6 +220,16 @@ class EngineBridge {
     return _invokeForSnapshot('setLoopLengthBeats', {'lengthBeats': lengthBeats});
   }
 
+  Future<ProjectSnapshot> setLoopRegion({
+    required double startBeat,
+    required double endBeat,
+  }) async {
+    return _invokeForSnapshot('setLoopRegion', {
+      'startBeat': startBeat,
+      'endBeat': endBeat,
+    });
+  }
+
   Future<void> enterPlayMode() async {
     await _invokeOk('enterPlayMode');
   }
