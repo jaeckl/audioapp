@@ -33,6 +33,7 @@ class RotaryKnob extends StatefulWidget {
     this.linkModeAccent = const Color(0xFFB48CFF),
     this.onLinkTap,
     this.onAutomateRequest,
+    this.labelGap = 3,
   });
 
   final String label;
@@ -51,6 +52,7 @@ class RotaryKnob extends StatefulWidget {
   final Color linkModeAccent;
   final VoidCallback? onLinkTap;
   final VoidCallback? onAutomateRequest;
+  final double labelGap;
 
   @override
   State<RotaryKnob> createState() => _RotaryKnobState();
@@ -252,7 +254,7 @@ class _RotaryKnobState extends State<RotaryKnob>
             ),
           ),
         ),
-        const SizedBox(height: 3),
+        SizedBox(height: widget.labelGap),
         Text(
           widget.label,
           style: theme.textTheme.labelSmall?.copyWith(

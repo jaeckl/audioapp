@@ -135,6 +135,18 @@ juce::var deviceToVar(const DeviceState& device) {
         parameters->setProperty("glideMs", static_cast<double>(device.glideMs));
         parameters->setProperty("velocitySensitivity",
                                 static_cast<double>(device.velocitySensitivity));
+        parameters->setProperty("preHpCutoff", static_cast<double>(device.preHpCutoff));
+        parameters->setProperty("preHpRes", static_cast<double>(device.preHpRes));
+        parameters->setProperty("preDrive", static_cast<double>(device.preDrive));
+        parameters->setProperty("mixFeedback", static_cast<double>(device.mixFeedback));
+        parameters->setProperty("globalPitch", static_cast<double>(device.globalPitch));
+        parameters->setProperty("filterKeyTrack", static_cast<double>(device.filterKeyTrack));
+        parameters->setProperty("filterDrive", static_cast<double>(device.filterDrive));
+        parameters->setProperty("filterShaper", static_cast<double>(device.filterShaper));
+        parameters->setProperty("filterFm", static_cast<double>(device.filterFm));
+        parameters->setProperty("filterShaperMode", device.filterShaperMode);
+        parameters->setProperty("synthLegato", static_cast<double>(device.synthLegato));
+        parameters->setProperty("synthMono", static_cast<double>(device.synthMono));
     }
     if (device.type == "kick_generator") {
         parameters->setProperty("kickModel", static_cast<double>(device.kickModel));
@@ -284,6 +296,18 @@ DeviceState deviceFromVar(const juce::var& value) {
             device.glideMs = varToFloat(params->getProperty("glideMs"), 0.0f);
             device.velocitySensitivity =
                 varToFloat(params->getProperty("velocitySensitivity"), 1.0f);
+            device.preHpCutoff = varToFloat(params->getProperty("preHpCutoff"), 0.0f);
+            device.preHpRes = varToFloat(params->getProperty("preHpRes"), 0.2f);
+            device.preDrive = varToFloat(params->getProperty("preDrive"), 0.0f);
+            device.mixFeedback = varToFloat(params->getProperty("mixFeedback"), 0.0f);
+            device.globalPitch = varToFloat(params->getProperty("globalPitch"), 0.5f);
+            device.filterKeyTrack = varToFloat(params->getProperty("filterKeyTrack"), 0.0f);
+            device.filterDrive = varToFloat(params->getProperty("filterDrive"), 0.0f);
+            device.filterShaper = varToFloat(params->getProperty("filterShaper"), 0.0f);
+            device.filterFm = varToFloat(params->getProperty("filterFm"), 0.0f);
+            device.filterShaperMode = varToInt(params->getProperty("filterShaperMode"), 1);
+            device.synthLegato = varToFloat(params->getProperty("synthLegato"), 0.0f);
+            device.synthMono = varToFloat(params->getProperty("synthMono"), 0.0f);
             device.kickModel = varToFloat(params->getProperty("kickModel"), 0.0f);
             device.kickPitch = varToFloat(params->getProperty("kickPitch"), 0.55f);
             device.kickPunch = varToFloat(params->getProperty("kickPunch"), 0.60f);

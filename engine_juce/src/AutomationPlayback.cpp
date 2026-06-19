@@ -138,6 +138,30 @@ void applyAutomationValue(DeviceVariantParams& params,
                 p->glideMs = value;
             } else if (paramId == "velocitySensitivity") {
                 p->velocitySensitivity = value;
+            } else if (paramId == "preHpCutoff") {
+                p->preHpCutoff = value;
+            } else if (paramId == "preHpRes") {
+                p->preHpRes = value;
+            } else if (paramId == "preDrive") {
+                p->preDrive = value;
+            } else if (paramId == "mixFeedback") {
+                p->mixFeedback = value;
+            } else if (paramId == "globalPitch") {
+                p->globalPitch = value;
+            } else if (paramId == "filterKeyTrack") {
+                p->filterKeyTrack = value;
+            } else if (paramId == "filterDrive") {
+                p->filterDrive = value;
+            } else if (paramId == "filterShaper") {
+                p->filterShaper = value;
+            } else if (paramId == "filterFm") {
+                p->filterFm = value;
+            } else if (paramId == "filterShaperMode") {
+                p->filterShaperMode = std::clamp(static_cast<int>(std::lround(value * 3.0f)), 0, 3);
+            } else if (paramId == "synthLegato") {
+                p->synthLegato = value;
+            } else if (paramId == "synthMono") {
+                p->synthMono = value;
             }
         }
         break;

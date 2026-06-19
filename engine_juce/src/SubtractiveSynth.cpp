@@ -28,6 +28,30 @@ float noiseSample(float& seed) noexcept {
     return (seed / 1073741823.5f) - 1.0f;
 }
 
+float applyFilterShaper(float sample, int mode, float amount) noexcept {
+    const float amt = std::clamp(amount, 0.0f, 1.0f);
+    const int shaperMode = std::clamp(mode, 0, 3);
+    if (amt <= 0.0f || shaperMode == 0) {
+        return sample;
+    }
+
+    float shaped = sample;
+    switch (shaperMode) {
+    case 1:
+        shaped = std::tanh(sample * 2.5f);
+        break;
+    case 2:
+        shaped = std::clamp(sample * 3.0f, -1.0f, 1.0f);
+        break;
+    case 3:
+        shaped = std::sin(sample * kPi * 1.5f);
+        break;
+    default:
+        break;
+    }
+    return sample * (1.0f - amt) + shaped * amt;
+}
+
 bool isSubtractiveNoteAudible(const SubtractiveMidiNoteRegion& note,
                               double beat,
                               int bpm,
@@ -137,20 +161,27 @@ float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
                   float filterGain,
                   double sampleRate,
                   float glideCoeff) noexcept {
+    const int globalSemi =
+        static_cast<int>(std::lround((params.globalPitch - 0.5f) * 24.0f));
+    const int effectivePitch = voice.pitch + globalSemi;
+    const float glideTargetHz =
+        subtractiveOscPitchHz(effectivePitch, 0.5f, 0.0f, 0.5f);
     if (glideCoeff > 0.0f && glideCoeff < 1.0f) {
-        voice.currentHz += (voice.targetHz - voice.currentHz) * glideCoeff;
+        voice.currentHz += (glideTargetHz - voice.currentHz) * glideCoeff;
     } else {
-        voice.currentHz = voice.targetHz;
+        voice.currentHz = glideTargetHz;
     }
+    voice.targetHz = glideTargetHz;
 
     const int unisonCount = subtractiveUnisonCount(params.unisonVoices);
     const float spreadCents = params.unisonDetune * 50.0f;
 
     const float osc1Root =
-        subtractiveOscPitchHz(voice.pitch, params.osc1Octave, params.osc1Semi, params.osc1Detune);
+        subtractiveOscPitchHz(effectivePitch, params.osc1Octave, params.osc1Semi, params.osc1Detune);
     const float osc2Root =
-        subtractiveOscPitchHz(voice.pitch, params.osc2Octave, params.osc2Semi, params.osc2Detune);
-    const float pitchRatio = voice.currentHz / subtractiveOscPitchHz(voice.pitch, 0.5f, 0.0f, 0.5f);
+        subtractiveOscPitchHz(effectivePitch, params.osc2Octave, params.osc2Semi, params.osc2Detune);
+    const float pitchRatio =
+        voice.currentHz / subtractiveOscPitchHz(effectivePitch, 0.5f, 0.0f, 0.5f);
 
     const float mix = std::clamp(params.oscMix, 0.0f, 1.0f);
     const float peakLevel = 0.85f;
@@ -188,14 +219,52 @@ float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
         mixed += subtractiveNoiseSample(voice.noiseSeed) * params.noiseLevel;
     }
 
+    const float fbAmt = std::clamp(params.mixFeedback, 0.0f, 1.0f) * 0.7f;
+    if (fbAmt > 0.0f) {
+        mixed += voice.mixFeedbackSample * fbAmt;
+    }
+
+    const float preDrive = std::clamp(params.preDrive, 0.0f, 1.0f);
+    if (preDrive > 0.0f) {
+        mixed *= 1.0f + preDrive * 5.0f;
+        mixed = std::tanh(mixed);
+    }
+
+    const float preHpCut = std::clamp(params.preHpCutoff, 0.0f, 1.0f);
+    if (preHpCut > 0.02f) {
+        const float hpCutoffHz = std::clamp(normalizedCutoffToHz(preHpCut), 20.0f, 20000.0f);
+        BiquadCoeffs hpCoeffs{};
+        cookSamplerBiquad(hpCoeffs,
+                          1,
+                          static_cast<float>(sampleRate),
+                          hpCutoffHz,
+                          normalizedQToValue(std::clamp(params.preHpRes, 0.0f, 1.0f)));
+        mixed = processBiquadSample(mixed, hpCoeffs, voice.preHpState);
+    }
+
     const float baseCutoff = normalizedCutoffToHz(params.filterCutoff);
-    const float envCutoff = baseCutoff * (1.0f + filterGain * params.filterEnvAmount * 4.0f);
-    const float cutoffHz = std::clamp(envCutoff, 20.0f, 20000.0f);
-    const int filterMode = std::clamp(params.filterMode, 0, 4);
+    float envCutoff = baseCutoff * (1.0f + filterGain * params.filterEnvAmount * 4.0f);
+    const float filterFm = std::clamp(params.filterFm, 0.0f, 1.0f);
+    if (filterFm > 0.0f) {
+        const float fmMod = 1.0f + filterFm * osc2 * 3.0f;
+        envCutoff *= std::clamp(fmMod, 0.2f, 4.0f);
+    }
+    const float keyTrack = std::clamp(params.filterKeyTrack, 0.0f, 1.0f);
+    const float semitonesFromRef = static_cast<float>(effectivePitch - 60);
+    const float keyTrackRatio = std::pow(2.0f, semitonesFromRef * keyTrack / 12.0f);
+    const float cutoffHz =
+        std::clamp(envCutoff * keyTrackRatio, 20.0f, 20000.0f);
+    const int filterMode = std::clamp(params.filterMode, 0, 5);
     if (filterMode == 4) {
         const int delaySamples = combDelaySamples(static_cast<float>(sampleRate), cutoffHz);
         const float feedback = 0.5f + normalizedQToValue(params.filterQ) * 0.06f;
         mixed = processCombSample(mixed, voice.combState, delaySamples, feedback);
+    } else if (filterMode == 5) {
+        BiquadCoeffs coeffs{};
+        const float q = normalizedQToValue(params.filterQ);
+        cookSamplerBiquad(coeffs, 0, static_cast<float>(sampleRate), cutoffHz, q);
+        mixed = processBiquadSample(mixed, coeffs, voice.filterState);
+        mixed = processBiquadSample(mixed, coeffs, voice.filterState2);
     } else {
         BiquadCoeffs coeffs{};
         cookSamplerBiquad(coeffs,
@@ -205,6 +274,15 @@ float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
                           normalizedQToValue(params.filterQ));
         mixed = processBiquadSample(mixed, coeffs, voice.filterState);
     }
+
+    const float filterDrive = std::clamp(params.filterDrive, 0.0f, 1.0f);
+    if (filterDrive > 0.0f) {
+        mixed = std::tanh(mixed * (1.0f + filterDrive * 3.0f));
+    }
+
+    mixed = applyFilterShaper(mixed, params.filterShaperMode, params.filterShaper);
+
+    voice.mixFeedbackSample = mixed;
     return mixed * ampGain;
 }
 
@@ -397,6 +475,11 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
                 static_cast<float>(elapsedSeconds),
                 static_cast<float>(noteDurationSec),
             };
+        }
+
+        if (params.synthMono >= 0.5f && activeCount > 1) {
+            active[0] = active[activeCount - 1];
+            activeCount = 1;
         }
 
         bool slotUsed[kSubtractiveMaxVoices]{};

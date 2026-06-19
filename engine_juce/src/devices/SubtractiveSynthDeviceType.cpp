@@ -52,6 +52,18 @@ SubtractiveSynthInstance instanceFromSnapshot(const DeviceState& state) {
     instance.ampRelease = state.release;
     instance.glideMs = state.glideMs;
     instance.velocitySensitivity = state.velocitySensitivity;
+    instance.preHpCutoff = state.preHpCutoff;
+    instance.preHpRes = state.preHpRes;
+    instance.preDrive = state.preDrive;
+    instance.mixFeedback = state.mixFeedback;
+    instance.globalPitch = state.globalPitch;
+    instance.filterKeyTrack = state.filterKeyTrack;
+    instance.filterDrive = state.filterDrive;
+    instance.filterShaper = state.filterShaper;
+    instance.filterFm = state.filterFm;
+    instance.filterShaperMode = state.filterShaperMode;
+    instance.synthLegato = state.synthLegato;
+    instance.synthMono = state.synthMono;
     return instance;
 }
 
@@ -85,6 +97,18 @@ void applyInstanceToSnapshot(const SubtractiveSynthInstance& instance, DeviceSta
     state.release = instance.ampRelease;
     state.glideMs = instance.glideMs;
     state.velocitySensitivity = instance.velocitySensitivity;
+    state.preHpCutoff = instance.preHpCutoff;
+    state.preHpRes = instance.preHpRes;
+    state.preDrive = instance.preDrive;
+    state.mixFeedback = instance.mixFeedback;
+    state.globalPitch = instance.globalPitch;
+    state.filterKeyTrack = instance.filterKeyTrack;
+    state.filterDrive = instance.filterDrive;
+    state.filterShaper = instance.filterShaper;
+    state.filterFm = instance.filterFm;
+    state.filterShaperMode = instance.filterShaperMode;
+    state.synthLegato = instance.synthLegato;
+    state.synthMono = instance.synthMono;
 }
 
 } // namespace
@@ -163,7 +187,12 @@ DeviceParameterResult SubtractiveSynthDeviceType::setParameter(DeviceSlot& slot,
                parameterId == "osc1Sync" || parameterId == "osc2Sync" ||
                parameterId == "noiseLevel" || parameterId == "unisonVoices" ||
                parameterId == "unisonDetune" || parameterId == "glideMs" ||
-               parameterId == "velocitySensitivity") {
+               parameterId == "velocitySensitivity" || parameterId == "preHpCutoff" ||
+               parameterId == "preHpRes" || parameterId == "preDrive" ||
+               parameterId == "mixFeedback" || parameterId == "globalPitch" ||
+               parameterId == "filterKeyTrack" || parameterId == "filterDrive" ||
+               parameterId == "filterShaper" || parameterId == "filterFm" ||
+               parameterId == "synthLegato" || parameterId == "synthMono") {
         const float clamped = std::clamp(value, 0.0f, 1.0f);
         if (parameterId == "filterCutoff") {
             instance.filterCutoff = clamped;
@@ -205,8 +234,30 @@ DeviceParameterResult SubtractiveSynthDeviceType::setParameter(DeviceSlot& slot,
             instance.unisonDetune = clamped;
         } else if (parameterId == "glideMs") {
             instance.glideMs = clamped;
-        } else {
+        } else if (parameterId == "velocitySensitivity") {
             instance.velocitySensitivity = clamped;
+        } else if (parameterId == "preHpCutoff") {
+            instance.preHpCutoff = clamped;
+        } else if (parameterId == "preHpRes") {
+            instance.preHpRes = clamped;
+        } else if (parameterId == "preDrive") {
+            instance.preDrive = clamped;
+        } else if (parameterId == "mixFeedback") {
+            instance.mixFeedback = clamped;
+        } else if (parameterId == "globalPitch") {
+            instance.globalPitch = clamped;
+        } else if (parameterId == "filterKeyTrack") {
+            instance.filterKeyTrack = clamped;
+        } else if (parameterId == "filterDrive") {
+            instance.filterDrive = clamped;
+        } else if (parameterId == "filterShaper") {
+            instance.filterShaper = clamped;
+        } else if (parameterId == "filterFm") {
+            instance.filterFm = clamped;
+        } else if (parameterId == "synthLegato") {
+            instance.synthLegato = clamped;
+        } else {
+            instance.synthMono = clamped;
         }
     } else if (parameterId == "osc1Shape") {
         instance.osc1Shape = std::clamp(value, 0.0f, 1.0f);
@@ -216,7 +267,9 @@ DeviceParameterResult SubtractiveSynthDeviceType::setParameter(DeviceSlot& slot,
         instance.oscMixMode = std::clamp(static_cast<int>(std::lround(value)), 0, 4);
     } else if (parameterId == "filterMode") {
         instance.filterMode =
-            static_cast<float>(std::clamp(static_cast<int>(std::lround(value)), 0, 4));
+            static_cast<float>(std::clamp(static_cast<int>(std::lround(value)), 0, 5));
+    } else if (parameterId == "filterShaperMode") {
+        instance.filterShaperMode = std::clamp(static_cast<int>(std::lround(value)), 0, 3);
     } else {
         return result;
     }
@@ -238,7 +291,9 @@ std::vector<std::string_view> SubtractiveSynthDeviceType::modulatableParams() co
         "release", "osc1Shape", "osc2Shape", "osc1Octave", "osc1Semi", "osc1Detune", "osc2Octave",
         "osc2Semi", "osc2Detune", "oscMix", "osc1Sync", "osc2Sync", "noiseLevel", "oscMixMode",
         "unisonVoices", "unisonDetune", "filterEnvAmount", "filterAttack", "filterDecay",
-        "filterSustain", "filterRelease", "glideMs", "velocitySensitivity",
+        "filterSustain", "filterRelease", "glideMs", "velocitySensitivity", "preHpCutoff",
+        "preHpRes", "preDrive", "mixFeedback", "globalPitch", "filterKeyTrack", "filterDrive",
+        "filterShaper", "filterFm", "filterShaperMode", "synthLegato", "synthMono",
     };
 }
 

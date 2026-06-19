@@ -35,6 +35,18 @@ struct SubtractiveSynthInstance {
     float ampRelease = 0.4f;
     float glideMs = 0.0f;
     float velocitySensitivity = 1.0f;
+    float preHpCutoff = 0.0f;
+    float preHpRes = 0.2f;
+    float preDrive = 0.0f;
+    float mixFeedback = 0.0f;
+    float globalPitch = 0.5f;
+    float filterKeyTrack = 0.0f;
+    float filterDrive = 0.0f;
+    float filterShaper = 0.0f;
+    float filterFm = 0.0f;
+    int filterShaperMode = 1;
+    float synthLegato = 0.0f;
+    float synthMono = 0.0f;
 
     SubtractiveSynthParams toPlaybackParams() const {
         SubtractiveSynthParams params;
@@ -68,6 +80,18 @@ struct SubtractiveSynthInstance {
         params.ampRelease = ampRelease;
         params.glideMs = glideMs;
         params.velocitySensitivity = velocitySensitivity;
+        params.preHpCutoff = preHpCutoff;
+        params.preHpRes = preHpRes;
+        params.preDrive = preDrive;
+        params.mixFeedback = mixFeedback;
+        params.globalPitch = globalPitch;
+        params.filterKeyTrack = filterKeyTrack;
+        params.filterDrive = filterDrive;
+        params.filterShaper = filterShaper;
+        params.filterFm = filterFm;
+        params.filterShaperMode = filterShaperMode;
+        params.synthLegato = synthLegato;
+        params.synthMono = synthMono;
         return params;
     }
 };

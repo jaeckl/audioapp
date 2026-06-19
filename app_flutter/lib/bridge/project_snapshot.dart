@@ -285,6 +285,18 @@ class DeviceSnapshot {
     this.filterRelease = 0.45,
     this.glideMs = 0.0,
     this.velocitySensitivity = 1.0,
+    this.preHpCutoff = 0.0,
+    this.preHpRes = 0.2,
+    this.preDrive = 0.0,
+    this.mixFeedback = 0.0,
+    this.globalPitch = 0.5,
+    this.filterKeyTrack = 0.0,
+    this.filterDrive = 0.0,
+    this.filterShaper = 0.0,
+    this.filterFm = 0.0,
+    this.filterShaperMode = 1,
+    this.synthLegato = 0.0,
+    this.synthMono = 0.0,
     this.kickModel = 0.0,
     this.kickPitch = 0.55,
     this.kickPunch = 0.60,
@@ -380,6 +392,18 @@ class DeviceSnapshot {
   final double filterRelease;
   final double glideMs;
   final double velocitySensitivity;
+  final double preHpCutoff;
+  final double preHpRes;
+  final double preDrive;
+  final double mixFeedback;
+  final double globalPitch;
+  final double filterKeyTrack;
+  final double filterDrive;
+  final double filterShaper;
+  final double filterFm;
+  final int filterShaperMode;
+  final double synthLegato;
+  final double synthMono;
   final double kickModel;
   final double kickPitch;
   final double kickPunch;
@@ -479,6 +503,18 @@ class DeviceSnapshot {
       filterRelease: (params['filterRelease'] as num?)?.toDouble() ?? 0.45,
       glideMs: (params['glideMs'] as num?)?.toDouble() ?? 0.0,
       velocitySensitivity: (params['velocitySensitivity'] as num?)?.toDouble() ?? 1.0,
+      preHpCutoff: (params['preHpCutoff'] as num?)?.toDouble() ?? 0.0,
+      preHpRes: (params['preHpRes'] as num?)?.toDouble() ?? 0.2,
+      preDrive: (params['preDrive'] as num?)?.toDouble() ?? 0.0,
+      mixFeedback: (params['mixFeedback'] as num?)?.toDouble() ?? 0.0,
+      globalPitch: (params['globalPitch'] as num?)?.toDouble() ?? 0.5,
+      filterKeyTrack: (params['filterKeyTrack'] as num?)?.toDouble() ?? 0.0,
+      filterDrive: (params['filterDrive'] as num?)?.toDouble() ?? 0.0,
+      filterShaper: (params['filterShaper'] as num?)?.toDouble() ?? 0.0,
+      filterFm: (params['filterFm'] as num?)?.toDouble() ?? 0.0,
+      filterShaperMode: (params['filterShaperMode'] as num?)?.toInt() ?? 1,
+      synthLegato: (params['synthLegato'] as num?)?.toDouble() ?? 0.0,
+      synthMono: (params['synthMono'] as num?)?.toDouble() ?? 0.0,
       kickModel: (params['kickModel'] as num?)?.toDouble() ?? 0.0,
       kickPitch: (params['kickPitch'] as num?)?.toDouble() ?? 0.55,
       kickPunch: (params['kickPunch'] as num?)?.toDouble() ?? 0.60,
@@ -632,6 +668,18 @@ class DeviceSnapshot {
     double? filterRelease,
     double? glideMs,
     double? velocitySensitivity,
+    double? preHpCutoff,
+    double? preHpRes,
+    double? preDrive,
+    double? mixFeedback,
+    double? globalPitch,
+    double? filterKeyTrack,
+    double? filterDrive,
+    double? filterShaper,
+    double? filterFm,
+    int? filterShaperMode,
+    double? synthLegato,
+    double? synthMono,
     double? kickModel,
     double? kickPitch,
     double? kickPunch,
@@ -727,6 +775,18 @@ class DeviceSnapshot {
       filterRelease: filterRelease ?? this.filterRelease,
       glideMs: glideMs ?? this.glideMs,
       velocitySensitivity: velocitySensitivity ?? this.velocitySensitivity,
+      preHpCutoff: preHpCutoff ?? this.preHpCutoff,
+      preHpRes: preHpRes ?? this.preHpRes,
+      preDrive: preDrive ?? this.preDrive,
+      mixFeedback: mixFeedback ?? this.mixFeedback,
+      globalPitch: globalPitch ?? this.globalPitch,
+      filterKeyTrack: filterKeyTrack ?? this.filterKeyTrack,
+      filterDrive: filterDrive ?? this.filterDrive,
+      filterShaper: filterShaper ?? this.filterShaper,
+      filterFm: filterFm ?? this.filterFm,
+      filterShaperMode: filterShaperMode ?? this.filterShaperMode,
+      synthLegato: synthLegato ?? this.synthLegato,
+      synthMono: synthMono ?? this.synthMono,
       kickModel: kickModel ?? this.kickModel,
       kickPitch: kickPitch ?? this.kickPitch,
       kickPunch: kickPunch ?? this.kickPunch,
@@ -802,7 +862,7 @@ class DeviceSnapshot {
       case 'filterQ':
         return copyWith(filterQ: value);
       case 'filterMode':
-        return copyWith(filterMode: value.round().clamp(0, 4));
+        return copyWith(filterMode: value.round().clamp(0, 5));
       case 'trimStartSec':
         return copyWith(trimStartSec: value);
       case 'trimEndSec':
@@ -857,6 +917,30 @@ class DeviceSnapshot {
         return copyWith(glideMs: value);
       case 'velocitySensitivity':
         return copyWith(velocitySensitivity: value);
+      case 'preHpCutoff':
+        return copyWith(preHpCutoff: value);
+      case 'preHpRes':
+        return copyWith(preHpRes: value);
+      case 'preDrive':
+        return copyWith(preDrive: value);
+      case 'mixFeedback':
+        return copyWith(mixFeedback: value);
+      case 'globalPitch':
+        return copyWith(globalPitch: value);
+      case 'filterKeyTrack':
+        return copyWith(filterKeyTrack: value);
+      case 'filterDrive':
+        return copyWith(filterDrive: value);
+      case 'filterShaper':
+        return copyWith(filterShaper: value);
+      case 'filterFm':
+        return copyWith(filterFm: value);
+      case 'filterShaperMode':
+        return copyWith(filterShaperMode: value.round().clamp(0, 3));
+      case 'synthLegato':
+        return copyWith(synthLegato: value >= 0.5 ? 1.0 : 0.0);
+      case 'synthMono':
+        return copyWith(synthMono: value >= 0.5 ? 1.0 : 0.0);
       case 'kickModel':
         return copyWith(kickModel: value.clamp(0.0, 1.0));
       case 'kickPitch':

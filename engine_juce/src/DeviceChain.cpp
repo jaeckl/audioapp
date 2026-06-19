@@ -87,7 +87,7 @@ void applyModulation(SubtractiveSynthParams& p, float modAmount, const std::stri
         p.filterQ = std::clamp(p.filterQ + modAmount, 0.0f, 1.0f);
     } else if (paramId == "filterMode") {
         p.filterMode = std::clamp(
-            static_cast<int>(std::lround(static_cast<float>(p.filterMode) + modAmount * 4.0f)), 0, 4);
+            static_cast<int>(std::lround(static_cast<float>(p.filterMode) + modAmount * 5.0f)), 0, 5);
     } else if (paramId == "attack") {
         p.ampAttack = std::clamp(p.ampAttack + modAmount, 0.0f, 1.0f);
     } else if (paramId == "decay") {
@@ -141,6 +141,33 @@ void applyModulation(SubtractiveSynthParams& p, float modAmount, const std::stri
         p.glideMs = std::clamp(p.glideMs + modAmount, 0.0f, 1.0f);
     } else if (paramId == "velocitySensitivity") {
         p.velocitySensitivity = std::clamp(p.velocitySensitivity + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "preHpCutoff") {
+        p.preHpCutoff = std::clamp(p.preHpCutoff + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "preHpRes") {
+        p.preHpRes = std::clamp(p.preHpRes + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "preDrive") {
+        p.preDrive = std::clamp(p.preDrive + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "mixFeedback") {
+        p.mixFeedback = std::clamp(p.mixFeedback + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "globalPitch") {
+        p.globalPitch = std::clamp(p.globalPitch + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "filterKeyTrack") {
+        p.filterKeyTrack = std::clamp(p.filterKeyTrack + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "filterDrive") {
+        p.filterDrive = std::clamp(p.filterDrive + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "filterShaper") {
+        p.filterShaper = std::clamp(p.filterShaper + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "filterFm") {
+        p.filterFm = std::clamp(p.filterFm + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "filterShaperMode") {
+        p.filterShaperMode = std::clamp(
+            static_cast<int>(std::lround(static_cast<float>(p.filterShaperMode) + modAmount * 3.0f)),
+            0,
+            3);
+    } else if (paramId == "synthLegato") {
+        p.synthLegato = std::clamp(p.synthLegato + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "synthMono") {
+        p.synthMono = std::clamp(p.synthMono + modAmount, 0.0f, 1.0f);
     }
 }
 

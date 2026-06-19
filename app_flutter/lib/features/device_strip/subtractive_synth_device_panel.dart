@@ -8,6 +8,8 @@ import 'device_tab_bar.dart';
 import 'draggable_int_value_box.dart';
 import 'rotary_knob.dart';
 import 'sampler_device_panel.dart';
+import 'stereo_gain_pan_panel.dart';
+import 'subtractive_filter_preview.dart';
 import 'subtractive_waveform_preview.dart';
 
 enum SubtractivePanelDensity { strip, editor }
@@ -69,7 +71,14 @@ class SubtractiveSynthDevicePanel extends StatefulWidget {
   ];
 
   static const _mixModes = ['Mix', 'Neg', 'AM', 'Sign', 'Max'];
-  static const _filterTypes = ['LP 12 dB', 'HP 12 dB', 'Band', 'Notch', 'Comb'];
+  static const _filterTypes = ['LP 12', 'HP 12', 'Band', 'Notch', 'FB', 'LP 24'];
+  static const _shaperModes = ['Off', 'Soft', 'Hard', 'Fold'];
+
+  static String formatGlobalPitch(double normalized) {
+    final st = ((normalized - 0.5) * 24).round();
+    if (st == 0) return '0';
+    return st > 0 ? '+$st' : '$st';
+  }
 
   @override
   State<SubtractiveSynthDevicePanel> createState() => _SubtractiveSynthDevicePanelState();
@@ -94,6 +103,7 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
     Map<String, double> modulationAmounts = const {},
     int? connectModeLfoId,
     void Function(String paramId, double amount)? onModulationAssign,
+    double labelGap = 3,
   }) {
     final modAmount = paramId != null ? modulationAmounts[paramId] ?? 0.0 : 0.0;
     return RotaryKnob(
@@ -102,6 +112,7 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
       onChanged: onChanged,
       displayValue: displayValue,
       size: size ?? _knobSize,
+      labelGap: labelGap,
       accentColor: SubtractiveSynthDevicePanel.accent,
       modulationActive: paramId != null && widget.modulatedParams.contains(paramId),
       modulationAmount: modAmount,
@@ -318,137 +329,164 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
   }
 
 Widget _mixTab() {
+    final knobScale = _knobSize * 0.78;
     return Padding(
       padding: const EdgeInsets.all(8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          // Left Group: Unison + Spread (Vertical Column, Shrunk and Aligned Left)
-          SizedBox(
-            width: _knobSize + 24,
-            child: _panelBox(
-              variant: PanelVariant.elevated,
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'UNISON',
-                      style: TextStyle(
-                        color: Colors.white30,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                    const Expanded(child: SizedBox.shrink()),
-                    Expanded(
-                      child: Center(
-                        child: _knob(
-                          label: 'Voices',
-                          value: widget.device.unisonVoices,
-                          size: _knobSize * 0.82,
-                          displayValue: '${1 + (widget.device.unisonVoices * 3).round()}',
-                          onChanged: (v) => widget.onParameterChanged('unisonVoices', v),
-                          paramId: 'unisonVoices',
-                          modulationAmounts: widget.modulationAmounts,
-                          connectModeLfoId: widget.connectModeLfoId,
+          _mixColumn(
+            title: 'UNISON',
+            row1: _knob(
+              label: 'Voices',
+              value: widget.device.unisonVoices,
+              size: knobScale,
+              displayValue: '${1 + (widget.device.unisonVoices * 3).round()}',
+              onChanged: (v) => widget.onParameterChanged('unisonVoices', v),
+              paramId: 'unisonVoices',
+              modulationAmounts: widget.modulationAmounts,
+              connectModeLfoId: widget.connectModeLfoId,
               onModulationAssign: widget.onModulationAssign,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Center(
-                        child: _knob(
-                          label: 'Spread',
-                          value: widget.device.unisonDetune,
-                          size: _knobSize * 0.82,
-                          displayValue: SamplerDevicePanel.formatPercent(widget.device.unisonDetune),
-                          onChanged: (v) => widget.onParameterChanged('unisonDetune', v),
-                          paramId: 'unisonDetune',
-                          modulationAmounts: widget.modulationAmounts,
-                          connectModeLfoId: widget.connectModeLfoId,
+            ),
+            row2: _knob(
+              label: 'Spread',
+              value: widget.device.unisonDetune,
+              size: knobScale,
+              displayValue: SamplerDevicePanel.formatPercent(widget.device.unisonDetune),
+              onChanged: (v) => widget.onParameterChanged('unisonDetune', v),
+              paramId: 'unisonDetune',
+              modulationAmounts: widget.modulationAmounts,
+              connectModeLfoId: widget.connectModeLfoId,
               onModulationAssign: widget.onModulationAssign,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+            ),
+            row3: _knob(
+              label: 'Fine',
+              value: widget.device.osc2Detune,
+              size: knobScale,
+              displayValue:
+                  '${((widget.device.osc2Detune - 0.5) * 100).round()}¢',
+              onChanged: (v) => widget.onParameterChanged('osc2Detune', v),
+              paramId: 'osc2Detune',
+              modulationAmounts: widget.modulationAmounts,
+              connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
             ),
           ),
-          const SizedBox(width: 8),
-          // Right Group: Mix Mode + Mix + Noise (Vertical Column, Shrunk and Aligned Left)
-          SizedBox(
-            width: _knobSize + 24,
-            child: _panelBox(
-              variant: PanelVariant.elevated,
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'MIXER',
-                      style: TextStyle(
-                        color: Colors.white30,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                    Expanded(
-                      child: Center(
-                        child: SizedBox(
-                          width: _knobSize + 4,
-                          height: 24,
-                          child: _borderlessDropdown<int>(
-                            value: widget.device.oscMixMode.clamp(0, SubtractiveSynthDevicePanel._mixModes.length - 1),
-                            items: List.generate(
-                              SubtractiveSynthDevicePanel._mixModes.length,
-                              (i) => DropdownMenuItem(
-                                value: i,
-                                child: Text(SubtractiveSynthDevicePanel._mixModes[i]),
-                              ),
-                            ),
-                            onChanged: (v) {
-                              if (v != null) widget.onParameterChanged('oscMixMode', v.toDouble());
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Center(
-                        child: _knob(
-                          label: 'Mix',
-                          value: widget.device.oscMix,
-                          size: _knobSize * 0.82,
-                          displayValue: SamplerDevicePanel.formatPercent(widget.device.oscMix),
-                          onChanged: (v) => widget.onParameterChanged('oscMix', v),
-                          paramId: 'oscMix',
-                          modulationAmounts: widget.modulationAmounts,
-                          connectModeLfoId: widget.connectModeLfoId,
-              onModulationAssign: widget.onModulationAssign,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Center(
-                        child: _knob(
-                          label: 'Noise',
-                          value: widget.device.noiseLevel,
-                          size: _knobSize * 0.82,
-                          displayValue: SamplerDevicePanel.formatPercent(widget.device.noiseLevel),
-                          onChanged: (v) => widget.onParameterChanged('noiseLevel', v),
-                          paramId: 'noiseLevel',
-                          modulationAmounts: widget.modulationAmounts,
-                          connectModeLfoId: widget.connectModeLfoId,
-              onModulationAssign: widget.onModulationAssign,
-                        ),
-                      ),
-                    ),
-                  ],
+          const SizedBox(width: 6),
+          _mixColumn(
+            title: 'MIXER',
+            row1: _borderlessDropdown<int>(
+              value: widget.device.oscMixMode.clamp(0, SubtractiveSynthDevicePanel._mixModes.length - 1),
+              items: List.generate(
+                SubtractiveSynthDevicePanel._mixModes.length,
+                (i) => DropdownMenuItem(
+                  value: i,
+                  child: Text(SubtractiveSynthDevicePanel._mixModes[i]),
                 ),
+              ),
+              onChanged: (v) {
+                if (v != null) widget.onParameterChanged('oscMixMode', v.toDouble());
+              },
+            ),
+            row2: _knob(
+              label: 'Mix',
+              value: widget.device.oscMix,
+              size: knobScale,
+              displayValue: SamplerDevicePanel.formatPercent(widget.device.oscMix),
+              onChanged: (v) => widget.onParameterChanged('oscMix', v),
+              paramId: 'oscMix',
+              modulationAmounts: widget.modulationAmounts,
+              connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
+            ),
+            row3: _knob(
+              label: 'Noise',
+              value: widget.device.noiseLevel,
+              size: knobScale,
+              displayValue: SamplerDevicePanel.formatPercent(widget.device.noiseLevel),
+              onChanged: (v) => widget.onParameterChanged('noiseLevel', v),
+              paramId: 'noiseLevel',
+              modulationAmounts: widget.modulationAmounts,
+              connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
+            ),
+          ),
+          const SizedBox(width: 6),
+          _mixColumn(
+            title: 'PRE-FILTER',
+            row1: _knob(
+              label: 'HP Cut',
+              value: widget.device.preHpCutoff,
+              size: knobScale,
+              displayValue: widget.device.preHpCutoff <= 0.02
+                  ? 'Off'
+                  : SamplerDevicePanel.formatCutoffHz(widget.device.preHpCutoff),
+              onChanged: (v) => widget.onParameterChanged('preHpCutoff', v),
+              paramId: 'preHpCutoff',
+              modulationAmounts: widget.modulationAmounts,
+              connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
+            ),
+            row2: _knob(
+              label: 'HP Res',
+              value: widget.device.preHpRes,
+              size: knobScale,
+              displayValue: SamplerDevicePanel.formatQ(widget.device.preHpRes),
+              onChanged: (v) => widget.onParameterChanged('preHpRes', v),
+              paramId: 'preHpRes',
+              modulationAmounts: widget.modulationAmounts,
+              connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
+            ),
+            row3: _knob(
+              label: 'Drive',
+              value: widget.device.preDrive,
+              size: knobScale,
+              displayValue: SamplerDevicePanel.formatPercent(widget.device.preDrive),
+              onChanged: (v) => widget.onParameterChanged('preDrive', v),
+              paramId: 'preDrive',
+              modulationAmounts: widget.modulationAmounts,
+              connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
+            ),
+          ),
+          const SizedBox(width: 6),
+          _mixColumn(
+            title: 'GLOBAL',
+            row1: _knob(
+              label: 'Pitch',
+              value: widget.device.globalPitch,
+              size: knobScale,
+              displayValue: SubtractiveSynthDevicePanel.formatGlobalPitch(widget.device.globalPitch),
+              onChanged: (v) => widget.onParameterChanged('globalPitch', v),
+              paramId: 'globalPitch',
+              modulationAmounts: widget.modulationAmounts,
+              connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
+            ),
+            row2: _knob(
+              label: 'Glide',
+              value: widget.device.glideMs,
+              size: knobScale,
+              displayValue: widget.device.glideMs <= 0.001
+                  ? 'Off'
+                  : '${(widget.device.glideMs * 2000).round()} ms',
+              onChanged: (v) => widget.onParameterChanged('glideMs', v),
+              paramId: 'glideMs',
+              modulationAmounts: widget.modulationAmounts,
+              connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
+            ),
+            row3: _knob(
+              label: 'FB',
+              value: widget.device.mixFeedback,
+              size: knobScale,
+              displayValue: SamplerDevicePanel.formatPercent(widget.device.mixFeedback),
+              onChanged: (v) => widget.onParameterChanged('mixFeedback', v),
+              paramId: 'mixFeedback',
+              modulationAmounts: widget.modulationAmounts,
+              connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
             ),
           ),
         ],
@@ -456,41 +494,89 @@ Widget _mixTab() {
     );
   }
 
+  Widget _mixColumn({
+    required String title,
+    required Widget row1,
+    required Widget row2,
+    required Widget row3,
+  }) {
+    return Expanded(
+      child: _panelBox(
+        variant: PanelVariant.elevated,
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white30,
+                fontSize: 8,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+                height: 1.0,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Expanded(child: Center(child: row1)),
+            Expanded(child: Center(child: row2)),
+            Expanded(child: Center(child: row3)),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _filterTab() {
     final mode = widget.device.filterMode.clamp(0, SubtractiveSynthDevicePanel._filterTypes.length - 1);
+    final shaperMode =
+        widget.device.filterShaperMode.clamp(0, SubtractiveSynthDevicePanel._shaperModes.length - 1);
+    final compactKnob = _knobSize * 0.68;
+    final fegKnob = _knobSize * 0.7;
     return Padding(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _panelBox(
-            variant: PanelVariant.elevated,
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'FILTER',
-                  style: TextStyle(
-                    color: Colors.white30,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.0,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
+          SizedBox(
+            height: 24,
+            child: _panelBox(
+              variant: PanelVariant.screen,
+              padding: EdgeInsets.zero,
+              child: SubtractiveFilterPreview(
+                filterMode: mode,
+                filterCutoff: widget.device.filterCutoff,
+                filterQ: widget.device.filterQ,
+                accent: SubtractiveSynthDevicePanel.accent,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Expanded(
+            flex: 6,
+            child: _panelBox(
+              variant: PanelVariant.elevated,
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
                     SizedBox(
-                      width: _knobSize + 24,
-                      height: 24,
+                      width: compactKnob + 10,
+                      height: 22,
                       child: _borderlessDropdown<int>(
                         value: mode,
                         items: List.generate(
                           SubtractiveSynthDevicePanel._filterTypes.length,
                           (i) => DropdownMenuItem(
                             value: i,
-                            child: Text(SubtractiveSynthDevicePanel._filterTypes[i]),
+                            child: Text(
+                              SubtractiveSynthDevicePanel._filterTypes[i],
+                              style: const TextStyle(fontSize: 9),
+                            ),
                           ),
                         ),
                         onChanged: (v) {
@@ -498,73 +584,172 @@ Widget _mixTab() {
                         },
                       ),
                     ),
-                    const Spacer(),
                     _knob(
                       label: 'Cutoff',
                       value: widget.device.filterCutoff,
+                      size: compactKnob,
+                      labelGap: 1,
                       displayValue: SamplerDevicePanel.formatCutoffHz(widget.device.filterCutoff),
                       onChanged: (v) => widget.onParameterChanged('filterCutoff', v),
                       paramId: 'filterCutoff',
                       modulationAmounts: widget.modulationAmounts,
                       connectModeLfoId: widget.connectModeLfoId,
-              onModulationAssign: widget.onModulationAssign,
+                      onModulationAssign: widget.onModulationAssign,
                     ),
-                    const SizedBox(width: 4),
                     _knob(
                       label: 'Res',
                       value: widget.device.filterQ,
+                      size: compactKnob,
                       displayValue: SamplerDevicePanel.formatQ(widget.device.filterQ),
                       onChanged: (v) => widget.onParameterChanged('filterQ', v),
                       paramId: 'filterQ',
                       modulationAmounts: widget.modulationAmounts,
                       connectModeLfoId: widget.connectModeLfoId,
-              onModulationAssign: widget.onModulationAssign,
+                      onModulationAssign: widget.onModulationAssign,
                     ),
-                    const SizedBox(width: 4),
                     _knob(
-                      label: 'Env amt',
+                      label: 'Key',
+                      value: widget.device.filterKeyTrack,
+                      size: compactKnob,
+                      displayValue: SamplerDevicePanel.formatPercent(widget.device.filterKeyTrack),
+                      onChanged: (v) => widget.onParameterChanged('filterKeyTrack', v),
+                      paramId: 'filterKeyTrack',
+                      modulationAmounts: widget.modulationAmounts,
+                      connectModeLfoId: widget.connectModeLfoId,
+                      onModulationAssign: widget.onModulationAssign,
+                    ),
+                    _knob(
+                      label: 'FM',
+                      value: widget.device.filterFm,
+                      size: compactKnob,
+                      displayValue: SamplerDevicePanel.formatPercent(widget.device.filterFm),
+                      onChanged: (v) => widget.onParameterChanged('filterFm', v),
+                      paramId: 'filterFm',
+                      modulationAmounts: widget.modulationAmounts,
+                      connectModeLfoId: widget.connectModeLfoId,
+                      onModulationAssign: widget.onModulationAssign,
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _knob(
+                      label: 'Drive',
+                      value: widget.device.filterDrive,
+                      size: compactKnob,
+                      displayValue: SamplerDevicePanel.formatPercent(widget.device.filterDrive),
+                      onChanged: (v) => widget.onParameterChanged('filterDrive', v),
+                      paramId: 'filterDrive',
+                      modulationAmounts: widget.modulationAmounts,
+                      connectModeLfoId: widget.connectModeLfoId,
+                      onModulationAssign: widget.onModulationAssign,
+                    ),
+                    _knob(
+                      label: 'Shaper',
+                      value: widget.device.filterShaper,
+                      size: compactKnob,
+                      displayValue: SamplerDevicePanel.formatPercent(widget.device.filterShaper),
+                      onChanged: (v) => widget.onParameterChanged('filterShaper', v),
+                      paramId: 'filterShaper',
+                      modulationAmounts: widget.modulationAmounts,
+                      connectModeLfoId: widget.connectModeLfoId,
+                      onModulationAssign: widget.onModulationAssign,
+                    ),
+                    SizedBox(
+                      width: compactKnob + 6,
+                      height: 22,
+                      child: _borderlessDropdown<int>(
+                        value: shaperMode,
+                        items: List.generate(
+                          SubtractiveSynthDevicePanel._shaperModes.length,
+                          (i) => DropdownMenuItem(
+                            value: i,
+                            child: Text(
+                              SubtractiveSynthDevicePanel._shaperModes[i],
+                              style: const TextStyle(fontSize: 9),
+                            ),
+                          ),
+                        ),
+                        onChanged: (v) {
+                          if (v != null) {
+                            widget.onParameterChanged('filterShaperMode', v.toDouble());
+                          }
+                        },
+                      ),
+                    ),
+                    _knob(
+                      label: 'FEG',
                       value: widget.device.filterEnvAmount,
+                      size: compactKnob,
                       displayValue: SamplerDevicePanel.formatPercent(widget.device.filterEnvAmount),
                       onChanged: (v) => widget.onParameterChanged('filterEnvAmount', v),
                       paramId: 'filterEnvAmount',
                       modulationAmounts: widget.modulationAmounts,
                       connectModeLfoId: widget.connectModeLfoId,
-              onModulationAssign: widget.onModulationAssign,
+                      onModulationAssign: widget.onModulationAssign,
                     ),
-                    const SizedBox(width: 4),
                   ],
                 ),
               ],
             ),
           ),
-          const Spacer(),
-          _panelBox(
-            variant: PanelVariant.screen,
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'FEG',
-                  style: TextStyle(
-                    color: Colors.white30,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.0,
-                  ),
-                ),
-                _adsrRow(
+          ),
+          const SizedBox(height: 4),
+          Expanded(
+            flex: 4,
+            child: _panelBox(
+              variant: PanelVariant.screen,
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+              child: Center(
+                child: _adsrRow(
                   attack: widget.device.filterAttack,
                   decay: widget.device.filterDecay,
                   sustain: widget.device.filterSustain,
                   release: widget.device.filterRelease,
                   onChanged: (id, v) => widget.onParameterChanged(id, v),
                   prefix: 'filter',
+                  knobScale: fegKnob,
+                  spacing: 6,
+                  labelGap: 1,
                 ),
-              ],
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _modeChip({
+    required String label,
+    required bool active,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: active
+              ? SubtractiveSynthDevicePanel.accent.withValues(alpha: 0.22)
+              : const Color(0xFF1A1A24),
+          borderRadius: BorderRadius.circular(5),
+          border: Border.all(
+            color: active
+                ? SubtractiveSynthDevicePanel.accent.withValues(alpha: 0.7)
+                : Colors.white.withValues(alpha: 0.12),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: active ? SubtractiveSynthDevicePanel.accent : Colors.white54,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.4,
+          ),
+        ),
       ),
     );
   }
@@ -592,83 +777,90 @@ Widget _mixTab() {
   }
 
   Widget _ampTab() {
+    final knobScale = _knobSize * 0.78;
+    final aegKnob = _knobSize * 0.7;
+    final legatoOn = widget.device.synthLegato >= 0.5;
+    final monoOn = widget.device.synthMono >= 0.5;
     return Padding(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _panelBox(
-            variant: PanelVariant.elevated,
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'AMP',
-                  style: TextStyle(
-                    color: Colors.white30,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.0,
+          Expanded(
+            flex: 4,
+            child: _panelBox(
+              variant: PanelVariant.elevated,
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _knob(
+                        label: 'Velocity',
+                        value: widget.device.velocitySensitivity,
+                        size: knobScale,
+                        labelGap: 1,
+                        displayValue: SamplerDevicePanel.formatPercent(widget.device.velocitySensitivity),
+                        onChanged: (v) => widget.onParameterChanged('velocitySensitivity', v),
+                        paramId: 'velocitySensitivity',
+                        modulationAmounts: widget.modulationAmounts,
+                        connectModeLfoId: widget.connectModeLfoId,
+                        onModulationAssign: widget.onModulationAssign,
+                      ),
+                      _knob(
+                        label: 'Pan',
+                        value: widget.device.pan,
+                        size: knobScale,
+                        labelGap: 1,
+                        displayValue: StereoGainPanPanel.formatPan(widget.device.pan),
+                        onChanged: (v) => widget.onParameterChanged('pan', v),
+                        paramId: 'pan',
+                        modulationAmounts: widget.modulationAmounts,
+                        connectModeLfoId: widget.connectModeLfoId,
+                        onModulationAssign: widget.onModulationAssign,
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    _knob(
-                      label: 'Glide',
-                      value: widget.device.glideMs,
-                      size: _knobSize * 0.9,
-                      displayValue: widget.device.glideMs <= 0.001
-                          ? 'Off'
-                          : '${(widget.device.glideMs * 2000).round()} ms',
-                      onChanged: (v) => widget.onParameterChanged('glideMs', v),
-                      paramId: 'glideMs',
-                      modulationAmounts: widget.modulationAmounts,
-                      connectModeLfoId: widget.connectModeLfoId,
-              onModulationAssign: widget.onModulationAssign,
-                    ),
-                    const SizedBox(width: 8),
-                    _knob(
-                      label: 'Velocity',
-                      value: widget.device.velocitySensitivity,
-                      size: _knobSize * 0.9,
-                      displayValue: SamplerDevicePanel.formatPercent(widget.device.velocitySensitivity),
-                      onChanged: (v) => widget.onParameterChanged('velocitySensitivity', v),
-                      paramId: 'velocitySensitivity',
-                      modulationAmounts: widget.modulationAmounts,
-                      connectModeLfoId: widget.connectModeLfoId,
-              onModulationAssign: widget.onModulationAssign,
-                    ),
-                  ],
-                ),
-              ],
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _modeChip(
+                        label: 'Legato',
+                        active: legatoOn,
+                        onTap: () => widget.onParameterChanged('synthLegato', legatoOn ? 0.0 : 1.0),
+                      ),
+                      const SizedBox(width: 10),
+                      _modeChip(
+                        label: 'Mono',
+                        active: monoOn,
+                        onTap: () => widget.onParameterChanged('synthMono', monoOn ? 0.0 : 1.0),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-          const Spacer(),
-          _panelBox(
-            variant: PanelVariant.screen,
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'AEG',
-                  style: TextStyle(
-                    color: Colors.white30,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.0,
-                  ),
-                ),
-                _adsrRow(
+          const SizedBox(height: 4),
+          Expanded(
+            flex: 5,
+            child: _panelBox(
+              variant: PanelVariant.screen,
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+              child: Center(
+                child: _adsrRow(
                   attack: widget.device.attack,
                   decay: widget.device.decay,
                   sustain: widget.device.sustain,
                   release: widget.device.release,
                   onChanged: widget.onParameterChanged,
+                  knobScale: aegKnob,
+                  spacing: 6,
+                  labelGap: 1,
                 ),
-              ],
+              ),
             ),
           ),
         ],
@@ -683,7 +875,11 @@ Widget _mixTab() {
     required double release,
     required void Function(String id, double value) onChanged,
     String prefix = '',
+    double? knobScale,
+    double spacing = 8,
+    double labelGap = 1,
   }) {
+    final size = knobScale ?? _knobSize * 0.8;
     String id(String name) => prefix.isEmpty ? name : '$prefix${name[0].toUpperCase()}${name.substring(1)}';
     final aId = id('attack');
     final dId = id('decay');
@@ -691,29 +887,31 @@ Widget _mixTab() {
     final rId = id('release');
     return Row(
       mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _knob(label: 'A', value: attack, size: _knobSize * 0.8,
+        _knob(label: 'A', value: attack, size: size, labelGap: labelGap,
           displayValue: SamplerDevicePanel.formatPercent(attack),
           onChanged: (v) => onChanged(aId, v),
           paramId: aId,
           modulationAmounts: widget.modulationAmounts,
           connectModeLfoId: widget.connectModeLfoId),
-        const SizedBox(width: 8),
-        _knob(label: 'D', value: decay, size: _knobSize * 0.8,
+        SizedBox(width: spacing),
+        _knob(label: 'D', value: decay, size: size, labelGap: labelGap,
           displayValue: SamplerDevicePanel.formatPercent(decay),
           onChanged: (v) => onChanged(dId, v),
           paramId: dId,
           modulationAmounts: widget.modulationAmounts,
           connectModeLfoId: widget.connectModeLfoId),
-        const SizedBox(width: 8),
-        _knob(label: 'S', value: sustain, size: _knobSize * 0.8,
+        SizedBox(width: spacing),
+        _knob(label: 'S', value: sustain, size: size, labelGap: labelGap,
           displayValue: SamplerDevicePanel.formatPercent(sustain),
           onChanged: (v) => onChanged(sId, v),
           paramId: sId,
           modulationAmounts: widget.modulationAmounts,
           connectModeLfoId: widget.connectModeLfoId),
-        const SizedBox(width: 8),
-        _knob(label: 'R', value: release, size: _knobSize * 0.8,
+        SizedBox(width: spacing),
+        _knob(label: 'R', value: release, size: size, labelGap: labelGap,
           displayValue: SamplerDevicePanel.formatPercent(release),
           onChanged: (v) => onChanged(rId, v),
           paramId: rId,
