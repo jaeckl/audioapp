@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../bridge/project_snapshot.dart';
+import '../editor/editor_virtual_playhead.dart';
+import '../editor/timeline_marker_layer.dart';
 import '../piano_roll/piano_roll_clip_end_marker.dart';
 import '../piano_roll/piano_roll_metrics.dart';
 import '../piano_roll/piano_roll_ruler.dart';
@@ -32,6 +34,13 @@ class AutomationEditorViewport extends StatefulWidget {
     this.onClipLengthChanged,
     this.onClipLengthCommit,
     this.viewRangeBars = EditorViewRange.defaultBars,
+    this.virtualPlayheadBeat,
+    this.onVirtualPlayheadSeek,
+    this.onVirtualPlayheadTap,
+    this.previewPlaying = false,
+    this.onPreviewPlayRequested,
+    this.onPreviewStopRequested,
+    this.timelineScrollController,
   });
 
   final List<AutomationPointSnapshot> points;
@@ -52,12 +61,19 @@ class AutomationEditorViewport extends StatefulWidget {
   final ValueChanged<double>? onClipLengthChanged;
   final VoidCallback? onClipLengthCommit;
   final int viewRangeBars;
+  final double? virtualPlayheadBeat;
+  final ValueChanged<double>? onVirtualPlayheadSeek;
+  final VoidCallback? onVirtualPlayheadTap;
+  final bool previewPlaying;
+  final VoidCallback? onPreviewPlayRequested;
+  final VoidCallback? onPreviewStopRequested;
+  final TimelineViewportScrollController? timelineScrollController;
 
   @override
-  State<AutomationEditorViewport> createState() => _AutomationEditorViewportState();
+  State<AutomationEditorViewport> createState() => AutomationEditorViewportState();
 }
 
-class _AutomationEditorViewportState extends State<AutomationEditorViewport> {
+class AutomationEditorViewportState extends State<AutomationEditorViewport> {
   final GlobalKey _canvasKey = GlobalKey();
   final ScrollController _horizontal = ScrollController();
   final ScrollController _ruler = ScrollController();
@@ -82,6 +98,9 @@ class _AutomationEditorViewportState extends State<AutomationEditorViewport> {
   int? _pendingTapIndex;
   bool _pendingClearSelection = false;
   bool _draggingClipEnd = false;
+  bool _draggingVirtualPlayhead = false;
+  int? _rulerPointer;
+  double _rulerPointerTravel = 0;
   Offset? _editStartCanvas;
   Offset? _lastCanvasPos;
   double _editTravel = 0;
@@ -99,20 +118,71 @@ class _AutomationEditorViewportState extends State<AutomationEditorViewport> {
   double get _gridWidth =>
       AutomationEditorMetrics.gridWidth(widget.virtualLengthBeats, _pixelsPerBeat);
 
+  void _onMarkerOverlayScroll() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
-    _horizontal.addListener(() => _linkScroll(_horizontal, _ruler));
-    _vertical.addListener(() => _linkScroll(_vertical, _verticalLabels));
+    _horizontal.addListener(() {
+      _linkScroll(_horizontal, _ruler);
+      _onMarkerOverlayScroll();
+    });
+    _vertical.addListener(() {
+      _linkScroll(_vertical, _verticalLabels);
+      _onMarkerOverlayScroll();
+    });
     _verticalLabels.addListener(() => _linkScroll(_verticalLabels, _vertical));
+    widget.timelineScrollController?.bind(_revealPlayheadAtViewportOrigin);
   }
 
   @override
   void didUpdateWidget(covariant AutomationEditorViewport oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.timelineScrollController != widget.timelineScrollController) {
+      oldWidget.timelineScrollController?.bind(null);
+      widget.timelineScrollController?.bind(_revealPlayheadAtViewportOrigin);
+    }
     if (widget.viewRangeBars != oldWidget.viewRangeBars) {
       _scheduleApplyViewRange(widget.viewRangeBars);
     }
+  }
+
+  /// Scroll so [beat] (clip-local) aligns to viewport x=0 — unpins sticky playhead.
+  void revealPlayheadAtViewportOrigin(double beat) =>
+      _revealPlayheadAtViewportOrigin(beat);
+
+  void _revealPlayheadAtViewportOrigin(double beat) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!timelinePlayheadIsSticky(
+        beat: beat,
+        pixelsPerBeat: _pixelsPerBeat,
+        scrollOffset: _horizontalScrollOffset,
+      )) {
+        return;
+      }
+      final jumped = jumpTimelineScrollToRevealBeatNow(
+        horizontal: _horizontal,
+        ruler: _ruler,
+        beat: beat,
+        pixelsPerBeat: _pixelsPerBeat,
+      );
+      if (jumped) {
+        if (mounted) setState(() {});
+        return;
+      }
+      jumpTimelineScrollToRevealBeat(
+        horizontal: _horizontal,
+        ruler: _ruler,
+        beat: beat,
+        pixelsPerBeat: _pixelsPerBeat,
+        onComplete: () {
+          if (mounted) setState(() {});
+        },
+      );
+    });
   }
 
   void _scheduleApplyViewRange(int bars) {
@@ -154,6 +224,7 @@ class _AutomationEditorViewportState extends State<AutomationEditorViewport> {
 
   @override
   void dispose() {
+    widget.timelineScrollController?.bind(null);
     _horizontal.dispose();
     _ruler.dispose();
     _vertical.dispose();
@@ -286,7 +357,7 @@ class _AutomationEditorViewportState extends State<AutomationEditorViewport> {
       if (!mounted) return;
       if (_vertical.hasClients) {
         final maxY = _vertical.position.maxScrollExtent;
-        final valueY = (1.0 - valueAtFocal) * newValueH;
+        final valueY = AutomationEditorMetrics.dyFromValue(valueAtFocal, newValueH);
         final newScrollY = (valueY - focal.dy + scrollY).clamp(0.0, maxY);
         _vertical.jumpTo(newScrollY);
         if (_verticalLabels.hasClients) _verticalLabels.jumpTo(newScrollY);
@@ -301,27 +372,85 @@ class _AutomationEditorViewportState extends State<AutomationEditorViewport> {
   }
 
   void _onRulerPointerDown(PointerDownEvent event) {
-    final canvasDx =
-        event.localPosition.dx + (_horizontal.hasClients ? _horizontal.offset : 0.0);
-    if (!_hitClipEndMarker(Offset(canvasDx, 0))) return;
-    _editPointer = event.pointer;
-    _draggingClipEnd = true;
-    _lockScrollForEdit = true;
+    final canvasDx = _rulerCanvasDx(event);
+    _rulerPointer = event.pointer;
+    _rulerPointerTravel = 0;
+    _draggingClipEnd = false;
+    _draggingVirtualPlayhead = false;
+
+    if (widget.virtualPlayheadBeat != null &&
+        widget.onVirtualPlayheadSeek != null &&
+        hitEditorVirtualPlayheadMarker(
+          canvasDx: canvasDx,
+          markerBeat: widget.virtualPlayheadBeat!,
+          pixelsPerBeat: _pixelsPerBeat,
+          scrollOffset: _rulerScrollOffset,
+        )) {
+      _draggingVirtualPlayhead = true;
+      _lockScrollForEdit = true;
+    } else if (_hitClipEndMarker(Offset(canvasDx, 0))) {
+      _editPointer = event.pointer;
+      _draggingClipEnd = true;
+      _lockScrollForEdit = true;
+    }
     setState(() {});
   }
 
   void _onRulerPointerMove(PointerMoveEvent event) {
-    if (event.pointer != _editPointer || !_draggingClipEnd) return;
-    final canvasDx =
-        event.localPosition.dx + (_horizontal.hasClients ? _horizontal.offset : 0.0);
-    widget.onClipLengthChanged?.call(_clampClipLength(_beatFromDx(canvasDx)));
-    setState(() {});
+    if (event.pointer != _rulerPointer) return;
+    final canvasDx = _rulerCanvasDx(event);
+    _rulerPointerTravel += event.delta.distance;
+
+    if (_draggingClipEnd && event.pointer == _editPointer) {
+      widget.onClipLengthChanged?.call(_clampClipLength(_beatFromDx(canvasDx)));
+      setState(() {});
+      return;
+    }
+
+    if (_draggingVirtualPlayhead) {
+      if (_rulerPointerTravel < _tapSlop) return;
+      final beat = clampEditorVirtualPlayheadBeat(
+        beat: _beatFromDx(canvasDx, snap: false),
+        clipLengthBeats: widget.clipLengthBeats,
+      );
+      widget.onVirtualPlayheadSeek?.call(beat);
+      setState(() {});
+      return;
+    }
   }
 
   void _onRulerPointerUp(PointerEvent event) {
-    if (event.pointer != _editPointer || !_draggingClipEnd) return;
-    widget.onClipLengthCommit?.call();
-    _cancelEditGesture();
+    if (event.pointer != _rulerPointer) return;
+
+    final canvasDx = _rulerCanvasDx(event);
+    final wasDraggingClipEnd = _draggingClipEnd;
+    final wasDraggingVirtualPlayhead = _draggingVirtualPlayhead;
+    final pointerTravel = _rulerPointerTravel;
+    final editPointer = _editPointer;
+
+    _rulerPointer = null;
+    _rulerPointerTravel = 0;
+    _draggingVirtualPlayhead = false;
+    _lockScrollForEdit = false;
+
+    if (wasDraggingClipEnd && event.pointer == editPointer) {
+      widget.onClipLengthCommit?.call();
+      _cancelEditGesture();
+    } else if (wasDraggingVirtualPlayhead && pointerTravel < _tapSlop) {
+      if (widget.previewPlaying) {
+        widget.onPreviewStopRequested?.call();
+      } else {
+        widget.onPreviewPlayRequested?.call();
+      }
+    } else if (!wasDraggingClipEnd &&
+        !wasDraggingVirtualPlayhead &&
+        widget.onVirtualPlayheadSeek != null &&
+        pointerTravel < _tapSlop) {
+      widget.onVirtualPlayheadSeek!(
+        _beatFromDx(canvasDx).clamp(0.0, widget.clipLengthBeats),
+      );
+    }
+
     setState(() {});
   }
 
@@ -460,50 +589,156 @@ class _AutomationEditorViewportState extends State<AutomationEditorViewport> {
     setState(() {});
   }
 
-  Widget _buildRulerRow() {
-    return SizedBox(
-      height: AutomationEditorMetrics.rulerHeight,
-      child: Row(
-        children: [
-          const SizedBox(width: AutomationEditorMetrics.valueColumnWidth),
-          Expanded(
-            child: Listener(
-              onPointerDown: _onRulerPointerDown,
-              onPointerMove: _onRulerPointerMove,
-              onPointerUp: _onRulerPointerUp,
-              onPointerCancel: _onRulerPointerUp,
-              behavior: HitTestBehavior.translucent,
-              child: SingleChildScrollView(
-                controller: _ruler,
-                scrollDirection: Axis.horizontal,
-                physics: const NeverScrollableScrollPhysics(),
-                child: SizedBox(
-                  width: _gridWidth,
-                  height: AutomationEditorMetrics.rulerHeight,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      PianoRollRuler(
-                        virtualLengthBeats: widget.virtualLengthBeats,
-                        clipLengthBeats: widget.clipLengthBeats,
-                        pixelsPerBeat: _pixelsPerBeat,
-                      ),
-                      Positioned(
-                        left: widget.clipLengthBeats * _pixelsPerBeat -
-                            AutomationEditorMetrics.clipEndHitWidth / 2,
-                        width: AutomationEditorMetrics.clipEndHitWidth,
-                        height: AutomationEditorMetrics.rulerHeight,
-                        child: const PianoRollClipEndPill(),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+  double get _horizontalScrollOffset =>
+      _horizontal.hasClients ? _horizontal.offset : 0.0;
+
+  double get _rulerScrollOffset =>
+      _ruler.hasClients ? _ruler.offset : _horizontalScrollOffset;
+
+  double _rulerCanvasDx(PointerEvent event) =>
+      event.localPosition.dx + _rulerScrollOffset;
+
+  ({List<Widget> behindChrome, List<Widget> inFrontOfChrome}) _buildSyncedMarkerStackLayers() {
+    final scroll = _horizontalScrollOffset;
+    final rulerHeight = AutomationEditorMetrics.rulerHeight;
+    final behindLines = <Widget>[];
+    final frontLines = <Widget>[];
+    final behindPills = <Widget>[];
+    final frontPills = <Widget>[];
+
+    void addCanvasMarker({
+      required double beat,
+      required Widget pill,
+      required Color lineColor,
+      required double lineWidth,
+    }) {
+      partitionBeatMarker(
+        beat: beat,
+        pixelsPerBeat: _pixelsPerBeat,
+        scrollOffset: scroll,
+        pill: pill,
+        line: TimelineBeatVerticalLineOverlay(
+          left: timelineLocalBeatLineLeft(
+            beat: beat,
+            pixelsPerBeat: _pixelsPerBeat,
+            scrollOffset: scroll,
+            lineWidth: lineWidth,
           ),
-        ],
+          rulerHeight: rulerHeight,
+          width: lineWidth,
+          color: lineColor,
+        ),
+        behindPills: behindPills,
+        behindLines: behindLines,
+        frontPills: frontPills,
+        frontLines: frontLines,
+      );
+    }
+
+    addCanvasMarker(
+      beat: widget.clipLengthBeats,
+      lineColor: PianoRollTheme.clipBoundary,
+      lineWidth: PianoRollTheme.clipEndLineWidth,
+      pill: Positioned(
+        left: timelineBeatViewportX(
+              beat: widget.clipLengthBeats,
+              pixelsPerBeat: _pixelsPerBeat,
+              scrollOffset: scroll,
+            ) -
+            AutomationEditorMetrics.clipEndHitWidth / 2,
+        top: TimelineMarkerLayerMetrics.pillTopInOverlay(
+          rulerHeight: rulerHeight,
+          pillHeight: 22,
+        ),
+        width: AutomationEditorMetrics.clipEndHitWidth,
+        height: 22,
+        child: const PianoRollClipEndPill(),
       ),
     );
+
+    if (widget.virtualPlayheadBeat != null) {
+      final playheadBeat = widget.virtualPlayheadBeat!;
+      final displayX = timelineStickyViewportX(
+        beat: playheadBeat,
+        pixelsPerBeat: _pixelsPerBeat,
+        scrollOffset: scroll,
+      );
+      partitionPlayheadMarker(
+        beat: playheadBeat,
+        pixelsPerBeat: _pixelsPerBeat,
+        scrollOffset: scroll,
+        pill: Positioned(
+          left: displayX - EditorVirtualPlayheadTheme.hitWidth / 2,
+          top: TimelineMarkerLayerMetrics.pillTopInOverlay(
+            rulerHeight: rulerHeight,
+            pillHeight: EditorVirtualPlayheadTheme.pillSize,
+          ),
+          width: EditorVirtualPlayheadTheme.hitWidth,
+          height: EditorVirtualPlayheadTheme.pillSize,
+          child: const EditorVirtualPlayheadPill(),
+        ),
+        line: TimelineBeatVerticalLineOverlay(
+          left: displayX - editorVirtualPlayheadLineWidth / 2,
+          rulerHeight: rulerHeight,
+          width: editorVirtualPlayheadLineWidth,
+          color: EditorVirtualPlayheadTheme.color,
+        ),
+        behindPills: behindPills,
+        behindLines: behindLines,
+        frontPills: frontPills,
+        frontLines: frontLines,
+      );
+    }
+
+    return buildSyncedMarkerStackLayers(
+      sideColumnWidth: AutomationEditorMetrics.valueColumnWidth,
+      rulerHeight: rulerHeight,
+      behindLines: behindLines,
+      behindPills: behindPills,
+      frontLines: frontLines,
+      frontPills: frontPills,
+    );
+  }
+
+  Widget _buildValueColumn() {
+    return ScrollConfiguration(
+      behavior: const _AutomationScrollBehavior(),
+      child: SingleChildScrollView(
+        controller: _verticalLabels,
+        physics: _scrollPhysics,
+        child: AutomationValueColumn(valueAxisHeight: _valueAxisHeight),
+      ),
+    );
+  }
+
+  Widget _buildTimelineRulerBand() {
+    return ClipRect(
+      child: Listener(
+        onPointerDown: _onRulerPointerDown,
+        onPointerMove: _onRulerPointerMove,
+        onPointerUp: _onRulerPointerUp,
+        onPointerCancel: _onRulerPointerUp,
+        behavior: HitTestBehavior.translucent,
+        child: SingleChildScrollView(
+          controller: _ruler,
+          scrollDirection: Axis.horizontal,
+          physics: const NeverScrollableScrollPhysics(),
+          child: SizedBox(
+            width: _gridWidth,
+            height: AutomationEditorMetrics.rulerHeight,
+            child: PianoRollRuler(
+              virtualLengthBeats: widget.virtualLengthBeats,
+              clipLengthBeats: widget.clipLengthBeats,
+              pixelsPerBeat: _pixelsPerBeat,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimelineCanvasBand() {
+    return ClipRect(child: _buildCanvasViewport());
   }
 
   Widget _buildCanvas() {
@@ -526,14 +761,6 @@ class _AutomationEditorViewportState extends State<AutomationEditorViewport> {
               insertHighlightStartBeat: widget.insertHighlightStartBeat,
               insertHighlightEndBeat: widget.insertHighlightEndBeat,
             ),
-          ),
-          Positioned(
-            left: widget.clipLengthBeats * _pixelsPerBeat -
-                PianoRollTheme.clipEndLineWidth / 2,
-            top: 0,
-            bottom: 0,
-            width: PianoRollTheme.clipEndLineWidth,
-            child: const PianoRollClipEndLine(),
           ),
         ],
       ),
@@ -582,28 +809,45 @@ class _AutomationEditorViewportState extends State<AutomationEditorViewport> {
           constraints.maxWidth - AutomationEditorMetrics.valueColumnWidth,
         );
 
-        return Column(
+        final timelineWidth =
+            constraints.maxWidth - AutomationEditorMetrics.valueColumnWidth;
+        final rulerHeight = AutomationEditorMetrics.rulerHeight;
+        final bodyTop = rulerHeight;
+        final markerLayers = _buildSyncedMarkerStackLayers();
+
+        return Stack(
+          clipBehavior: Clip.none,
           children: [
-            _buildRulerRow(),
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: AutomationEditorMetrics.valueColumnWidth,
-                    child: ScrollConfiguration(
-                      behavior: const _AutomationScrollBehavior(),
-                      child: SingleChildScrollView(
-                        controller: _verticalLabels,
-                        physics: _scrollPhysics,
-                        child: AutomationValueColumn(valueAxisHeight: _valueAxisHeight),
-                      ),
-                    ),
-                  ),
-                  Expanded(child: _buildCanvasViewport()),
-                ],
-              ),
+            Positioned(
+              left: AutomationEditorMetrics.valueColumnWidth,
+              top: 0,
+              width: timelineWidth,
+              height: rulerHeight,
+              child: _buildTimelineRulerBand(),
             ),
+            Positioned(
+              left: AutomationEditorMetrics.valueColumnWidth,
+              top: bodyTop,
+              width: timelineWidth,
+              bottom: 0,
+              child: _buildTimelineCanvasBand(),
+            ),
+            ...markerLayers.behindChrome,
+            Positioned(
+              left: 0,
+              top: 0,
+              width: AutomationEditorMetrics.valueColumnWidth,
+              height: rulerHeight,
+              child: const ColoredBox(color: PianoRollTheme.rulerBackground),
+            ),
+            Positioned(
+              left: 0,
+              top: bodyTop,
+              width: AutomationEditorMetrics.valueColumnWidth,
+              bottom: 0,
+              child: _buildValueColumn(),
+            ),
+            ...markerLayers.inFrontOfChrome,
           ],
         );
       },

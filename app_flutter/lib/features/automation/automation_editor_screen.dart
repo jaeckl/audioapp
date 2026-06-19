@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
 import '../../bridge/engine_bridge.dart';
 import '../../bridge/project_snapshot.dart';
+import '../editor/clip_editor_transport.dart';
+import '../editor/timeline_marker_layer.dart';
 import '../piano_roll/piano_roll_grid_sheet.dart';
 import '../piano_roll/piano_roll_metrics.dart';
 import '../piano_roll/editor_view_range.dart';
@@ -22,20 +25,26 @@ class AutomationEditorScreen extends StatefulWidget {
     required this.clip,
     required this.bridge,
     required this.onSaved,
+    required this.savedArrangementPlayhead,
+    required this.bpm,
   });
 
   final String trackName;
   final AutomationClipSnapshot clip;
   final EngineBridge bridge;
   final ValueChanged<ProjectSnapshot> onSaved;
+  final double savedArrangementPlayhead;
+  final int bpm;
 
   @override
   State<AutomationEditorScreen> createState() => _AutomationEditorScreenState();
 }
 
-class _AutomationEditorScreenState extends State<AutomationEditorScreen> {
+class _AutomationEditorScreenState extends State<AutomationEditorScreen>
+    with TickerProviderStateMixin {
   late List<AutomationPointSnapshot> _points;
   late double _clipLengthBeats;
+  late final ClipEditorTransportController _previewTransport;
   final List<List<AutomationPointSnapshot>> _undoStack = [];
   final List<List<AutomationPointSnapshot>> _redoStack = [];
 
@@ -44,6 +53,8 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen> {
   final Set<int> _selectedIndices = {};
   final Set<int> _deleteMarkedIndices = {};
   int _viewRangeBars = EditorViewRange.defaultBars;
+  final TimelineViewportScrollController _timelineScrollController =
+      TimelineViewportScrollController();
 
   bool _insertPanelOpen = false;
   AutomationCurveShape? _activeShape;
@@ -58,6 +69,60 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen> {
     super.initState();
     _points = _initialPoints(widget.clip);
     _clipLengthBeats = widget.clip.lengthBeats;
+    _previewTransport = ClipEditorTransportController(
+      bridge: widget.bridge,
+      clipStartBeat: widget.clip.startBeat,
+      savedArrangementPlayhead: widget.savedArrangementPlayhead,
+      vsync: this,
+      maxClipBeat: _clipLengthBeats,
+    );
+    _previewTransport.addListener(_onPreviewTransportChanged);
+    unawaited(widget.bridge.enterPlayMode());
+  }
+
+  void _onPreviewTransportChanged() {
+    if (mounted) setState(() {});
+  }
+
+  bool _previewTransportCommandInFlight = false;
+
+  Future<void> _startPreviewPlay() async {
+    if (_previewTransport.isPlaying || _previewTransportCommandInFlight) return;
+    _previewTransportCommandInFlight = true;
+    try {
+      final beat = _previewTransport.clipLocalBeat;
+      await _previewTransport.play(bpm: widget.bpm);
+      if (mounted) {
+        _timelineScrollController.revealPlayheadAtViewportOrigin(beat);
+      }
+    } finally {
+      _previewTransportCommandInFlight = false;
+    }
+  }
+
+  Future<void> _stopPreviewPlay() async {
+    if (!_previewTransport.isPlaying || _previewTransportCommandInFlight) return;
+    _previewTransportCommandInFlight = true;
+    try {
+      await _previewTransport.stop();
+    } finally {
+      _previewTransportCommandInFlight = false;
+    }
+  }
+
+  Future<void> _togglePreviewPlay() async {
+    if (_previewTransport.isPlaying) {
+      await _stopPreviewPlay();
+    } else {
+      await _startPreviewPlay();
+    }
+  }
+
+  @override
+  void dispose() {
+    _previewTransport.removeListener(_onPreviewTransportChanged);
+    unawaited(_previewTransport.disposePreview());
+    super.dispose();
   }
 
   List<AutomationPointSnapshot> _initialPoints(AutomationClipSnapshot clip) {
@@ -402,26 +467,38 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen> {
         child: Column(
           children: [
             Expanded(
-              child: AutomationEditorViewport(
-                points: _points,
-                clipLengthBeats: _clipLengthBeats,
-                virtualLengthBeats: _virtualLengthBeats,
-                gridSettings: _grid,
-                tool: _tool,
-                selectedIndices: _selectedIndices,
-                deleteMarkedIndices: _deleteMarkedIndices,
-                insertHighlightStartBeat:
-                    _insertPanelOpen ? _insertStartBeat : null,
-                insertHighlightEndBeat: _insertPanelOpen ? _insertEndBeat : null,
-                onPointsChanged: _onPointsChanged,
-                onToggleSelect: _toggleSelect,
-                onToggleDeleteMark: _toggleDeleteMark,
-                onClearSelection: () => setState(_selectedIndices.clear),
-                onEditStarted: _onEditStarted,
-                onEditFinished: _persistPoints,
-                onClipLengthChanged: (length) => setState(() => _clipLengthBeats = length),
-                onClipLengthCommit: _persistClipLength,
-                viewRangeBars: _viewRangeBars,
+              child: ListenableBuilder(
+                listenable: _previewTransport,
+                builder: (context, _) => AutomationEditorViewport(
+                  timelineScrollController: _timelineScrollController,
+                  points: _points,
+                  clipLengthBeats: _clipLengthBeats,
+                  virtualLengthBeats: _virtualLengthBeats,
+                  gridSettings: _grid,
+                  tool: _tool,
+                  selectedIndices: _selectedIndices,
+                  deleteMarkedIndices: _deleteMarkedIndices,
+                  insertHighlightStartBeat:
+                      _insertPanelOpen ? _insertStartBeat : null,
+                  insertHighlightEndBeat: _insertPanelOpen ? _insertEndBeat : null,
+                  onPointsChanged: _onPointsChanged,
+                  onToggleSelect: _toggleSelect,
+                  onToggleDeleteMark: _toggleDeleteMark,
+                  onClearSelection: () => setState(_selectedIndices.clear),
+                  onEditStarted: _onEditStarted,
+                  onEditFinished: _persistPoints,
+                  onClipLengthChanged: (length) {
+                    setState(() => _clipLengthBeats = length);
+                    _previewTransport.maxClipBeat = length;
+                  },
+                  onClipLengthCommit: _persistClipLength,
+                  viewRangeBars: _viewRangeBars,
+                  virtualPlayheadBeat: _previewTransport.clipLocalBeat,
+                  onVirtualPlayheadSeek: _previewTransport.seekClipLocal,
+                  previewPlaying: _previewTransport.isPlaying,
+                  onPreviewPlayRequested: _startPreviewPlay,
+                  onPreviewStopRequested: _stopPreviewPlay,
+                ),
               ),
             ),
             AutomationEditorToolDock(
@@ -431,6 +508,8 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen> {
               canRedo: _redoStack.isNotEmpty,
               canInsert: _selectedIndices.length == 2 && !_insertPanelOpen,
               canDeleteMarked: _deleteMarkedIndices.isNotEmpty,
+              previewPlaying: _previewTransport.isPlaying,
+              onPreviewPlayStop: _togglePreviewPlay,
               onToolChanged: _onToolChanged,
               onGridTap: _openGridSheet,
               onInsertTap: _openInsertPanel,

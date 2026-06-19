@@ -18,6 +18,8 @@ class AutomationEditorToolDock extends StatelessWidget {
     required this.onDeleteMarkedTap,
     required this.onUndo,
     required this.onRedo,
+    required this.previewPlaying,
+    required this.onPreviewPlayStop,
   });
 
   final AutomationEditorTool tool;
@@ -32,6 +34,8 @@ class AutomationEditorToolDock extends StatelessWidget {
   final VoidCallback onDeleteMarkedTap;
   final VoidCallback onUndo;
   final VoidCallback onRedo;
+  final bool previewPlaying;
+  final VoidCallback onPreviewPlayStop;
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +87,12 @@ class AutomationEditorToolDock extends StatelessWidget {
               showLabel: true,
             ),
             const Spacer(),
+            _DockButton(
+              icon: Icons.play_arrow,
+              activeIcon: Icons.stop,
+              active: previewPlaying,
+              onTap: onPreviewPlayStop,
+            ),
             _DockButton(
               icon: Icons.undo,
               activeIcon: Icons.undo,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
 import '../piano_roll/piano_roll_metrics.dart';
+import 'automation_editor_metrics.dart';
 import 'automation_editor_theme.dart';
 
 class AutomationCurveGridPainter extends CustomPainter {
@@ -68,8 +69,9 @@ class AutomationCurveGridPainter extends CustomPainter {
     final paint = Paint()
       ..color = AutomationEditorTheme.gridValue
       ..strokeWidth = 0.5;
-    for (var i = 1; i < 4; i++) {
-      final y = size.height * i / 4;
+    for (var i = 0; i <= 4; i++) {
+      final value = 1.0 - i / 4;
+      final y = AutomationEditorMetrics.dyFromValue(value, size.height);
       canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
   }
@@ -99,7 +101,7 @@ class AutomationCurveGridPainter extends CustomPainter {
     for (var i = 0; i < sorted.length; i++) {
       final p = sorted[i];
       final x = p.beat * pixelsPerBeat;
-      final y = size.height - p.value.clamp(0.0, 1.0) * size.height;
+      final y = AutomationEditorMetrics.dyFromValue(p.value, size.height);
       if (i == 0) {
         path.moveTo(x, y);
       } else {
@@ -118,13 +120,13 @@ class AutomationCurveGridPainter extends CustomPainter {
     for (var i = 0; i < points.length; i++) {
       final p = points[i];
       final x = p.beat * pixelsPerBeat;
-      final y = size.height - p.value.clamp(0.0, 1.0) * size.height;
+      final y = AutomationEditorMetrics.dyFromValue(p.value, size.height);
       final selected = selectedIndices.contains(i);
       final markedDelete = deleteMarkedIndices.contains(i);
 
       canvas.drawCircle(
         Offset(x, y),
-        7,
+        AutomationEditorMetrics.nodeRadius,
         Paint()
           ..color = markedDelete
               ? AutomationEditorTheme.saveError
