@@ -97,6 +97,7 @@ void main() {
             track: track,
             samples: const [],
             playing: false,
+            playheadBeats: 0,
             onSamplerParameterChanged: (_, __, ___) {},
             onAssignSamplerSample: (_, __) {},
             onOpenSamplerEditor: (_, __) {},

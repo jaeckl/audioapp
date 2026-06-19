@@ -257,7 +257,9 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
     if (method == "createLfo") {
-        engine().createLfo();
+        const auto modulatorType =
+            static_cast<int>(jsonGetNumberArg(argumentsJson, "modulatorType", 0.0));
+        engine().createLfo(modulatorType);
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
     if (method == "removeLfo") {
@@ -291,6 +293,17 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         const auto paramId = jsonGetStringArg(argumentsJson, "paramId");
         if (!engine().removeModulation(lfoId, paramId)) {
             return buildBridgeError("modulation_remove_failed");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
+    if (method == "applySubtractiveSynthPreset") {
+        SubtractivePresetArgs presetArgs;
+        if (!parseSubtractivePresetArgs(argumentsJson, presetArgs)) {
+            return buildBridgeError("preset_args_invalid");
+        }
+        if (!engine().applySubtractiveSynthPreset(
+                presetArgs.deviceId, presetArgs.params, presetArgs.lfos, presetArgs.mods)) {
+            return buildBridgeError("preset_apply_failed");
         }
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }

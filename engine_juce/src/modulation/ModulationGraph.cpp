@@ -10,6 +10,7 @@ void ModulationGraph::clear() {
     nextLfoId_ = 1;
     lfoPlaybackCount_.store(0, std::memory_order_release);
     modEdgePlaybackCount_.store(0, std::memory_order_release);
+    noteRetriggerGeneration_.store(0, std::memory_order_release);
 }
 
 void ModulationGraph::load(const std::vector<LfoState>& lfos,
@@ -48,13 +49,23 @@ void ModulationGraph::recomputeIdCounters() {
     nextLfoId_ = maxLfo + 1;
 }
 
-int ModulationGraph::createLfo() {
+int ModulationGraph::createLfo(int modulatorType) {
     LfoState lfo;
     lfo.id = nextLfoId_++;
-    lfo.waveform = static_cast<int>(LfoWaveform::Sine);
-    lfo.rate = 1.0f;
-    lfo.syncDivision = 3; // 1/4
-    lfo.phase = 0.0f;
+    lfo.modulatorType = std::clamp(modulatorType, 0, 2);
+    if (lfo.modulatorType == static_cast<int>(ModulatorType::Lfo)) {
+        lfo.waveform = static_cast<int>(LfoWaveform::Sine);
+        lfo.rate = 1.0f;
+        lfo.syncDivision = 3;
+        lfo.retrigger = static_cast<int>(ModulatorRetrigger::Sync);
+    } else {
+        lfo.retrigger = static_cast<int>(ModulatorRetrigger::OnNote);
+        lfo.syncDivision = 3;
+        lfo.attack = 0.08f;
+        lfo.decay = 0.22f;
+        lfo.sustain = 0.65f;
+        lfo.release = 0.28f;
+    }
     lfos_.push_back(std::move(lfo));
     rebuildPlayback();
     return lfos_.back().id;
@@ -84,7 +95,17 @@ bool ModulationGraph::updateLfoParam(int lfoId, const std::string& param, float 
         if (lfo.id != lfoId) {
             continue;
         }
-        if (param == "waveform") {
+        if (param == "modulatorType") {
+            lfo.modulatorType = std::clamp(static_cast<int>(value), 0, 2);
+        } else if (param == "retrigger") {
+            lfo.retrigger = std::clamp(static_cast<int>(value), 0, 2);
+            if (lfo.retrigger == static_cast<int>(ModulatorRetrigger::Free)) {
+                lfo.syncDivision = 0;
+            } else if (lfo.retrigger == static_cast<int>(ModulatorRetrigger::Sync) &&
+                       lfo.syncDivision == 0) {
+                lfo.syncDivision = 3;
+            }
+        } else if (param == "waveform") {
             lfo.waveform = std::clamp(static_cast<int>(value), 0, static_cast<int>(LfoWaveform::Ramp));
         } else if (param == "rate") {
             lfo.rate = std::max(0.01f, value);
@@ -94,6 +115,14 @@ bool ModulationGraph::updateLfoParam(int lfoId, const std::string& param, float 
             lfo.phase = std::clamp(value, 0.0f, 1.0f);
         } else if (param == "polarity") {
             lfo.polarity = std::clamp(static_cast<int>(value), 0, 2);
+        } else if (param == "attack") {
+            lfo.attack = std::clamp(value, 0.0f, 1.0f);
+        } else if (param == "decay") {
+            lfo.decay = std::clamp(value, 0.0f, 1.0f);
+        } else if (param == "sustain") {
+            lfo.sustain = std::clamp(value, 0.0f, 1.0f);
+        } else if (param == "release") {
+            lfo.release = std::clamp(value, 0.0f, 1.0f);
         } else {
             return false;
         }
@@ -164,6 +193,10 @@ void ModulationGraph::removeModulationForDevice(const std::string& deviceId) {
     if (changed) {
         rebuildPlayback();
     }
+}
+
+void ModulationGraph::retriggerOnNote() noexcept {
+    noteRetriggerGeneration_.fetch_add(1, std::memory_order_release);
 }
 
 } // namespace audioapp

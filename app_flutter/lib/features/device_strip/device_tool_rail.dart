@@ -87,6 +87,20 @@ class DeviceToolRail extends StatelessWidget {
                       enabled: onLibrary != null,
                       onPressed: onLibrary,
                     ),
+                ],
+              ),
+            ),
+            Positioned(
+              bottom: 4,
+              left: 0,
+              right: 0,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _ModButton(
+                    active: modActive,
+                    onPressed: onModToggle,
+                  ),
                   if (onDelete != null)
                     _ToolRailButton(
                       icon: Icons.delete_outline,
@@ -95,15 +109,6 @@ class DeviceToolRail extends StatelessWidget {
                       onPressed: onDelete,
                     ),
                 ],
-              ),
-            ),
-            Positioned(
-              bottom: 4,
-              left: 0,
-              right: 0,
-              child: _ModButton(
-                active: modActive,
-                onPressed: onModToggle,
               ),
             ),
           ],

@@ -636,7 +636,9 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       ProjectSnapshot result;
       switch (method) {
         case 'createLfo':
-          result = await widget.bridge.createLfo();
+          result = await widget.bridge.createLfo(
+            modulatorType: (args['modulatorType'] as num?)?.toInt() ?? 0,
+          );
           break;
         case 'removeLfo':
           result = await widget.bridge.removeLfo(
@@ -736,7 +738,52 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   Future<void> _onLibraryMidiTap(LibraryMidiItem item) async {
-    await _openPianoRoll(item.trackId, item.clip);
+    if (item.isFactory) {
+      final track = _snapshot?.selectedTrack;
+      if (track == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Select a track first')),
+        );
+        return;
+      }
+      final startBeat = ArrangementTimelineMetrics.placementStartBeat(
+        desiredStartBeat: _effectivePlayheadBeats,
+        clipLengthBeats: item.clip.lengthBeats,
+        existingClips: ArrangementTimelineMetrics.clipIntervalsForTrack(track),
+      );
+      try {
+        await widget.bridge.selectTrack(track.id);
+        final beforeClipCount = track.midiClips.length;
+        var snapshot = await widget.bridge.createMidiClip(
+          trackId: track.id,
+          startBeat: startBeat,
+          lengthBeats: item.clip.lengthBeats,
+        );
+        final updatedTrack = snapshot.tracks.firstWhere((t) => t.id == track.id);
+        if (updatedTrack.midiClips.length > beforeClipCount) {
+          final clip = updatedTrack.midiClips.last;
+          snapshot = await widget.bridge.setMidiClipNotes(
+            clipId: clip.id,
+            notes: item.clip.notes,
+          );
+        }
+        await _refreshSnapshot(snapshot);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Inserted "${item.title}"')),
+        );
+        await _libraryPanelKey.currentState?.close();
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _projectError = e.toString());
+      }
+      return;
+    }
+    if (item.trackId == null) {
+      return;
+    }
+    await _openPianoRoll(item.trackId!, item.clip);
     await _libraryPanelKey.currentState?.close();
   }
 
@@ -791,16 +838,29 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         );
         return;
       }
-      final params = SubtractiveSynthPresets.presets[item.id];
-      if (params == null) {
+      final preset = SubtractiveSynthPresets.presets[item.id];
+      if (preset == null) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Unknown preset "${item.title}"')),
         );
         return;
       }
-      for (final entry in params.entries) {
-        await _setSamplerParameter(synth.id, entry.key, entry.value);
+      try {
+        final snapshot = await widget.bridge.applySubtractiveSynthPreset(
+          deviceId: synth.id,
+          params: preset.params,
+          lfos: preset.lfos.map((l) => l.toJson()).toList(),
+          mods: preset.mods.map((m) => m.toJson()).toList(),
+        );
+        await _refreshSnapshot(snapshot);
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _projectError = e.toString());
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load preset: $e')),
+        );
+        return;
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1192,10 +1252,6 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     try {
       final snapshot = await widget.bridge.removeDeviceFromTrack(deviceId: device.id);
       await _refreshSnapshot(snapshot);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Removed $label')),
-      );
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
@@ -1410,12 +1466,15 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
           ),
         ),
         if (_tab == _ShellTab.devices)
-          DeviceStrip(
-            snapshot: snapshot,
-            track: snapshot.selectedTrack,
-            samples: snapshot.samples,
-            playing: _playing,
-            onSamplerParameterChanged: _setSamplerParameter,
+          ListenableBuilder(
+            listenable: _playheadNotifier,
+            builder: (context, _) => DeviceStrip(
+              snapshot: snapshot,
+              track: snapshot.selectedTrack,
+              samples: snapshot.samples,
+              playing: _playing,
+              playheadBeats: _effectivePlayheadBeats,
+              onSamplerParameterChanged: _setSamplerParameter,
             onAssignSamplerSample: _assignSamplerSample,
             onOpenSamplerEditor: _openSamplerEditor,
             onPreviewSample: _previewSample,
@@ -1437,6 +1496,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             automationLinkClipId: _automationLinkClipId,
             onAutomationParamSelected: _assignAutomationParam,
             onAutomateParameter: _automateParameter,
+          ),
           )
         else
           LiveInstrumentPanel(

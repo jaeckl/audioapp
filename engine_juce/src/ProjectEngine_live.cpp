@@ -63,6 +63,7 @@ bool ProjectEngine::noteOn(int pitch, float velocity) {
     }
 
     liveMixer_.noteOn(instrument, pitch, velocity);
+    modulationGraph_.retriggerOnNote();
 
     if (recordArmed_) {
         const uint64_t now = liveMixer_.sampleClock();

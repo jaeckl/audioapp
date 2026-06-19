@@ -1,0 +1,242 @@
+{
+  "version": 1,
+  "presets": [
+    {
+      "id": "preset:sampler-warm",
+      "title": "Warm sampler",
+      "subtitle": "Punchy kit · short env",
+      "deviceType": "simple_sampler",
+      "tags": ["keys", "warm", "factory"]
+    },
+    {
+      "id": "preset:sampler-lofi",
+      "title": "Lo-fi keys",
+      "subtitle": "Filtered piano stack",
+      "deviceType": "simple_sampler",
+      "tags": ["keys", "lofi", "factory"]
+    },
+    {
+      "id": "preset:osc-pluck",
+      "title": "Pluck oscillator",
+      "subtitle": "Bright mono lead",
+      "deviceType": "simple_oscillator",
+      "tags": ["pluck", "bright", "factory"]
+    },
+    {
+      "id": "preset:osc-bass",
+      "title": "Sub bass",
+      "subtitle": "Low sine foundation",
+      "deviceType": "simple_oscillator",
+      "tags": ["bass", "dark", "factory"]
+    },
+    {
+      "id": "preset:synth-init",
+      "title": "Init synth",
+      "subtitle": "Saw · open filter",
+      "deviceType": "subtractive_synth",
+      "tags": ["init", "clean", "factory"]
+    },
+    {
+      "id": "preset:synth-pad-warm",
+      "title": "Warm pad",
+      "subtitle": "Unison saws · slow swell",
+      "deviceType": "subtractive_synth",
+      "tags": ["pad", "warm", "factory"]
+    },
+    {
+      "id": "preset:synth-pad-glass",
+      "title": "Glass pad",
+      "subtitle": "Airy sine stack · bright",
+      "deviceType": "subtractive_synth",
+      "tags": ["pad", "bright", "factory"]
+    },
+    {
+      "id": "preset:synth-pad-choir",
+      "title": "Choir pad",
+      "subtitle": "Wide unison · legato",
+      "deviceType": "subtractive_synth",
+      "tags": ["pad", "warm", "factory"]
+    },
+    {
+      "id": "preset:synth-pad-dark",
+      "title": "Dark pad",
+      "subtitle": "Low filter · subtle noise",
+      "deviceType": "subtractive_synth",
+      "tags": ["pad", "dark", "factory"]
+    },
+    {
+      "id": "preset:synth-pad-lofi",
+      "title": "Lo-fi pad",
+      "subtitle": "Dusty · filtered warmth",
+      "deviceType": "subtractive_synth",
+      "tags": ["pad", "lofi", "factory"]
+    },
+    {
+      "id": "preset:synth-pluck",
+      "title": "Pluck",
+      "subtitle": "Short amp · filter sweep",
+      "deviceType": "subtractive_synth",
+      "tags": ["pluck", "bright", "factory"]
+    },
+    {
+      "id": "preset:synth-noise-sweep",
+      "title": "Noise sweep",
+      "subtitle": "Filter env texture",
+      "deviceType": "subtractive_synth",
+      "tags": ["fx", "texture", "factory"]
+    },
+    {
+      "id": "preset:synth-bass-sub-foundation",
+      "title": "Sub foundation",
+      "subtitle": "Sine sub · LP24 · mono",
+      "deviceType": "subtractive_synth",
+      "tags": ["bass", "dark", "factory"]
+    },
+    {
+      "id": "preset:synth-bass-punch",
+      "title": "Punch bass",
+      "subtitle": "Square stack · snappy filter",
+      "deviceType": "subtractive_synth",
+      "tags": ["bass", "aggressive", "factory"]
+    },
+    {
+      "id": "preset:synth-bass-reese",
+      "title": "Reese bass",
+      "subtitle": "Detuned saw unison",
+      "deviceType": "subtractive_synth",
+      "tags": ["bass", "dark", "factory"]
+    },
+    {
+      "id": "preset:synth-bass-warehouse",
+      "title": "Warehouse bass",
+      "subtitle": "AM mix · filter FM",
+      "deviceType": "subtractive_synth",
+      "tags": ["bass", "aggressive", "factory"]
+    },
+    {
+      "id": "preset:synth-bass-acid",
+      "title": "Acid bass",
+      "subtitle": "Sync · resonant sweep",
+      "deviceType": "subtractive_synth",
+      "tags": ["bass", "bright", "factory"]
+    },
+    {
+      "id": "preset:synth-bass-wobble-classic",
+      "title": "Classic wobble",
+      "subtitle": "Dubstep · 1/4 filter LFO",
+      "deviceType": "subtractive_synth",
+      "tags": ["bass", "wobble", "edm", "aggressive", "factory"]
+    },
+    {
+      "id": "preset:synth-bass-wobble-fast",
+      "title": "Fast wobble",
+      "subtitle": "1/16 tri · resonant bass",
+      "deviceType": "subtractive_synth",
+      "tags": ["bass", "wobble", "dnb", "aggressive", "factory"]
+    },
+    {
+      "id": "preset:synth-bass-wobble-dub",
+      "title": "Dub wobble",
+      "subtitle": "Square LFO · driven LP24",
+      "deviceType": "subtractive_synth",
+      "tags": ["bass", "wobble", "edm", "dark", "factory"]
+    },
+    {
+      "id": "preset:synth-bass-wobble-growl",
+      "title": "Growl wobble",
+      "subtitle": "Dual LFO · FM + cutoff",
+      "deviceType": "subtractive_synth",
+      "tags": ["bass", "wobble", "aggressive", "factory"]
+    },
+    {
+      "id": "preset:synth-bass-wobble-talk",
+      "title": "Talk wobble",
+      "subtitle": "Slow LFO · legato filter",
+      "deviceType": "subtractive_synth",
+      "tags": ["bass", "wobble", "groovy", "factory"]
+    },
+    {
+      "id": "preset:synth-lead-saw",
+      "title": "Saw lead",
+      "subtitle": "Classic bright solo",
+      "deviceType": "subtractive_synth",
+      "tags": ["lead", "bright", "factory"]
+    },
+    {
+      "id": "preset:synth-lead-sync",
+      "title": "Sync lead",
+      "subtitle": "Hard sync · cutting",
+      "deviceType": "subtractive_synth",
+      "tags": ["lead", "aggressive", "factory"]
+    },
+    {
+      "id": "preset:synth-lead-silk",
+      "title": "Silk lead",
+      "subtitle": "Soft sine · slow attack",
+      "deviceType": "subtractive_synth",
+      "tags": ["lead", "warm", "factory"]
+    },
+    {
+      "id": "preset:synth-lead-wide",
+      "title": "Wide lead",
+      "subtitle": "Unison saws · glide",
+      "deviceType": "subtractive_synth",
+      "tags": ["lead", "bright", "factory"]
+    },
+    {
+      "id": "preset:synth-lead-bite",
+      "title": "Bite lead",
+      "subtitle": "Square · filter drive",
+      "deviceType": "subtractive_synth",
+      "tags": ["lead", "aggressive", "factory"]
+    },
+    {
+      "id": "preset:synth-lead-wobble",
+      "title": "Wobble lead",
+      "subtitle": "1/8 square · filter motion",
+      "deviceType": "subtractive_synth",
+      "tags": ["lead", "wobble", "edm", "factory"]
+    },
+    {
+      "id": "preset:synth-lead-siren",
+      "title": "Siren lead",
+      "subtitle": "Sync · sweeping LFO",
+      "deviceType": "subtractive_synth",
+      "tags": ["lead", "wobble", "fx", "aggressive", "factory"]
+    },
+    {
+      "id": "preset:synth-fx-riser-noise",
+      "title": "Noise riser",
+      "subtitle": "LFO sweep · build FX",
+      "deviceType": "subtractive_synth",
+      "tags": ["fx", "texture", "progressive", "factory"]
+    }
+  ],
+  "midiClips": [
+    {"id": "midi:edm-bass-offbeat", "title": "Offbeat drive", "subtitle": "EDM · 4 bars · 16 notes", "patternId": "edm-bass-offbeat", "tags": ["bass", "edm", "groovy", "factory"]},
+    {"id": "midi:edm-bass-fourfloor", "title": "Four-on-floor", "subtitle": "EDM · 4 bars · pumping root", "patternId": "edm-bass-fourfloor", "tags": ["bass", "edm", "groovy", "factory"]},
+    {"id": "midi:dnb-bass-roller", "title": "DnB roller", "subtitle": "Drum & bass · 16th bass roll", "patternId": "dnb-bass-roller", "tags": ["bass", "dnb", "groovy", "factory"]},
+    {"id": "midi:dnb-bass-jumpup", "title": "Jump-up stabs", "subtitle": "Drum & bass · syncopated hits", "patternId": "dnb-bass-jumpup", "tags": ["bass", "dnb", "groovy", "factory"]},
+    {"id": "midi:edm-dnb-groove", "title": "Half-time sway", "subtitle": "EDM/DnB · halftime groove", "patternId": "edm-dnb-groove", "tags": ["bass", "edm", "dnb", "groovy", "factory"]},
+    {"id": "midi:prog-chords-cycle", "title": "Cycle stabs", "subtitle": "Progressive · Am-F-C-G", "patternId": "prog-chords-cycle", "tags": ["lead", "chords", "progressive", "factory"]},
+    {"id": "midi:prog-chords-uplift", "title": "Uplift chords", "subtitle": "Progressive · emotional lift", "patternId": "prog-chords-uplift", "tags": ["lead", "chords", "progressive", "factory"]},
+    {"id": "midi:prog-chords-sparse", "title": "Sparse pads-to-lead", "subtitle": "Progressive · wide spacing", "patternId": "prog-chords-sparse", "tags": ["lead", "chords", "progressive", "factory"]},
+    {"id": "midi:prog-chords-rhythm", "title": "Rhythm stabs", "subtitle": "Progressive · 8th chord hits", "patternId": "prog-chords-rhythm", "tags": ["lead", "chords", "progressive", "factory"]},
+    {"id": "midi:prog-chords-wide", "title": "Wide voicings", "subtitle": "Progressive · open chord stack", "patternId": "prog-chords-wide", "tags": ["lead", "chords", "progressive", "factory"]},
+    {"id": "midi:pad-am-warm", "title": "Warm Am pad", "subtitle": "Pad · 4-bar progression", "patternId": "pad-am-warm", "tags": ["pad", "warm", "factory"]},
+    {"id": "midi:pad-fm7-stack", "title": "FM7 stack", "subtitle": "Pad · layered sevenths", "patternId": "pad-fm7-stack", "tags": ["pad", "bright", "factory"]},
+    {"id": "midi:pad-dm-emotional", "title": "Emotional Dm", "subtitle": "Pad · minor wash", "patternId": "pad-dm-emotional", "tags": ["pad", "dark", "factory"]},
+    {"id": "midi:pad-epic-rise", "title": "Epic rise", "subtitle": "Pad · building chords", "patternId": "pad-epic-rise", "tags": ["pad", "progressive", "factory"]},
+    {"id": "midi:pad-ambient-cluster", "title": "Ambient cluster", "subtitle": "Pad · dense held stack", "patternId": "pad-ambient-cluster", "tags": ["pad", "texture", "factory"]},
+    {"id": "midi:edm-melody-anthem", "title": "Anthem lead", "subtitle": "EDM · festival topline", "patternId": "edm-melody-anthem", "tags": ["lead", "melody", "edm", "factory"]},
+    {"id": "midi:edm-melody-hook-a", "title": "Hook A", "subtitle": "EDM · catchy 4-bar hook", "patternId": "edm-melody-hook-a", "tags": ["lead", "melody", "edm", "factory"]},
+    {"id": "midi:edm-melody-hook-b", "title": "Hook B", "subtitle": "EDM · higher register hook", "patternId": "edm-melody-hook-b", "tags": ["lead", "melody", "edm", "factory"]},
+    {"id": "midi:edm-melody-arpeggio", "title": "Arp lead", "subtitle": "EDM · rising arpeggio", "patternId": "edm-melody-arpeggio", "tags": ["lead", "melody", "edm", "factory"]},
+    {"id": "midi:edm-melody-drop", "title": "Drop lead", "subtitle": "EDM · 2-bar drop line", "patternId": "edm-melody-drop", "tags": ["lead", "melody", "edm", "aggressive", "factory"]},
+    {"id": "midi:edm-melody-pluck", "title": "Pluck melody", "subtitle": "EDM · short pluck line", "patternId": "edm-melody-pluck", "tags": ["lead", "melody", "pluck", "edm", "factory"]},
+    {"id": "midi:edm-melody-festival", "title": "Festival lead", "subtitle": "EDM · big-room line", "patternId": "edm-melody-festival", "tags": ["lead", "melody", "edm", "bright", "factory"]},
+    {"id": "midi:edm-melody-night", "title": "Night drive", "subtitle": "EDM · darker minor line", "patternId": "edm-melody-night", "tags": ["lead", "melody", "edm", "dark", "factory"]},
+    {"id": "midi:edm-melody-rise", "title": "Rising lead", "subtitle": "EDM · build-up melody", "patternId": "edm-melody-rise", "tags": ["lead", "melody", "edm", "progressive", "factory"]},
+    {"id": "midi:edm-melody-chant", "title": "Chant motif", "subtitle": "EDM · rhythmic repeat", "patternId": "edm-melody-chant", "tags": ["lead", "melody", "edm", "groovy", "factory"]}
+  ]
+}

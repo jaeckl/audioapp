@@ -9,8 +9,9 @@ import 'device_strip_metrics.dart';
 import 'device_strip_theme.dart';
 import 'device_strip_viewport.dart';
 import 'device_tool_rail.dart';
-import 'lfo_properties_panel.dart';
 import 'modulation_grid.dart';
+import 'modulator_properties_panel.dart';
+import 'modulator_types.dart';
 import 'kick_generator_device_strip.dart';
 import 'kick_model.dart';
 import 'snare_generator_device_panel.dart';
@@ -39,6 +40,8 @@ class DeviceStripSlot extends StatefulWidget {
     required this.device,
     required this.sample,
     required this.bpm,
+    required this.playheadBeat,
+    required this.playing,
     required this.density,
     required this.onSamplerParameterChanged,
     required this.onDeviceParameterChanged,
@@ -68,6 +71,8 @@ class DeviceStripSlot extends StatefulWidget {
   final DeviceSnapshot device;
   final SampleLibraryEntrySnapshot? sample;
   final int bpm;
+  final double playheadBeat;
+  final bool playing;
   final DeviceStripSlotDensity density;
   final void Function(String parameterId, double value) onSamplerParameterChanged;
   final void Function(String parameterId, double value) onDeviceParameterChanged;
@@ -296,7 +301,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       );
 
   double get _modGridWidth => _modStripVisible ? 130.0 : 0.0;
-  double get _modPropsWidth => _modStripVisible && _selectedLfo != null ? 160.0 : 0.0;
+  double get _modPropsWidth => _modStripVisible && _selectedLfo != null ? 188.0 : 0.0;
 
   double get _inputWidth => DeviceStripMetrics.inputPanelWidthFor(widget.device.type);
   double get _outputWidth => DeviceStripMetrics.outputPanelWidthFor(widget.device.type);
@@ -335,11 +340,14 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     return ModulationGrid(
       lfos: _localLfos,
       selectedLfoId: _selectedLfoId,
-      maxLfos: 2,
+      maxLfos: ModulatorTypes.maxCount,
       connectModeLfoId: _connectModeLfoId,
+      playheadBeat: widget.playheadBeat,
+      bpm: widget.bpm,
+      playing: widget.playing,
       onLfoTap: _onLfoTap,
       onLfoLongPress: _onLfoLongPress,
-      onAddLfo: () => _onBridgeCall('createLfo', {}),
+      onAddModulator: (type) => _onBridgeCall('createLfo', {'modulatorType': type}),
       onRemoveLfo: (id) => _onBridgeCall('removeLfo', {'lfoId': id}),
     );
   }
@@ -426,9 +434,9 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                   ),
                 if (_modStripVisible && _selectedLfo != null)
                   SizedBox(
-                    width: 160,
-                    child: LfoPropertiesPanel(
-                      lfo: _selectedLfo!,
+                    width: 188,
+                    child: ModulatorPropertiesPanel(
+                      mod: _selectedLfo!,
                       edges: _localModEdges
                           .where((e) => e.lfoId == _selectedLfo!.id && e.deviceId == widget.device.id)
                           .toList(),

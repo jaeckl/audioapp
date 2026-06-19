@@ -65,58 +65,13 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
     }
     const uint64_t now = sampleClock();
     const bool subtractive = instrument.kind == LiveInstrumentKind::SubtractiveSynth;
-    const bool mono = subtractive && instrument.subtractive.synthMono >= 0.5f;
-    const bool legato = subtractive && instrument.subtractive.synthLegato >= 0.5f;
 
-    if (subtractive && mono) {
-        LiveVoiceSlot* reuse = nullptr;
-        for (auto& voice : voices_) {
-            if (voice.active.load(std::memory_order_acquire) == 0 ||
-                voice.instrument.kind != LiveInstrumentKind::SubtractiveSynth ||
-                voice.releasing) {
-                continue;
-            }
-            reuse = &voice;
-            break;
-        }
+    // Live keyboard stays polyphonic; synthMono only affects clip/arrangement playback.
+    (void)subtractive;
 
-        for (auto& voice : voices_) {
-            if (voice.active.load(std::memory_order_acquire) == 0 ||
-                voice.instrument.kind != LiveInstrumentKind::SubtractiveSynth) {
-                continue;
-            }
-            if (&voice != reuse) {
-                releaseVoice(voice, now);
-            }
-        }
-
-        if (reuse != nullptr) {
-            if (legato) {
-                reuse->instrument = instrument;
-                reuse->pitch = pitch;
-                reuse->velocity = std::clamp(velocity, 1.0f, 127.0f);
-                reuse->subtractive.pitch = pitch;
-                reuse->subtractive.velocity = reuse->velocity;
-                return static_cast<int>(reuse - voices_);
-            }
-
-            reuse->instrument = instrument;
-            reuse->pitch = pitch;
-            reuse->velocity = std::clamp(velocity, 1.0f, 127.0f);
-            reuse->startSample = now;
-            reuse->releaseSample = 0;
-            reuse->releasing = false;
-            reuse->subtractiveStartSec = static_cast<double>(now) / 48000.0;
-            reuse->subtractiveReleaseSec = -1.0;
-            std::memset(&reuse->subtractive, 0, sizeof(reuse->subtractive));
-            initSubtractiveVoice(reuse->subtractive, pitch, reuse->velocity);
-            return static_cast<int>(reuse - voices_);
-        }
-    } else {
-        for (auto& voice : voices_) {
-            if (voice.active.load(std::memory_order_acquire) != 0 && voice.pitch == pitch && !voice.releasing) {
-                releaseVoice(voice, now);
-            }
+    for (auto& voice : voices_) {
+        if (voice.active.load(std::memory_order_acquire) != 0 && voice.pitch == pitch && !voice.releasing) {
+            releaseVoice(voice, now);
         }
     }
 

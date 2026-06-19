@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
 import 'device_strip_theme.dart';
+import 'modulator_types.dart';
 
 /// Collapsible modulation strip that sits below the device header.
 /// Shows LFO cards with waveform/rate/sync controls and a target list.
@@ -12,7 +13,7 @@ class ModulationStrip extends StatelessWidget {
     required this.modEdges,
     required this.deviceId,
     required this.onBridgeCall,
-    this.maxLfos = 2,
+    this.maxLfos = ModulatorTypes.maxCount,
   });
 
   final List<LfoSnapshot> lfos;

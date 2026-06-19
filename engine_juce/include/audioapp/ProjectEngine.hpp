@@ -117,11 +117,33 @@ public:
     std::vector<float> renderOffline(double lengthBeats, double sampleRate);
 
     bool setRecordArmed(bool armed);
-    int createLfo();
+    int createLfo(int modulatorType = 0);
     bool removeLfo(int lfoId);
     bool updateLfoParam(int lfoId, const std::string& param, float value);
     bool assignModulation(int lfoId, const std::string& deviceId, const std::string& paramId, float amount);
     bool removeModulation(int lfoId, const std::string& paramId);
+
+    struct SubtractivePresetLfoSpec {
+        int waveform = 0;
+        float rate = 1.0f;
+        int syncDivision = 0;
+        float phase = 0.0f;
+        int polarity = 0;
+    };
+
+    struct SubtractivePresetModSpec {
+        int lfoIndex = 0;
+        std::string paramId;
+        float amount = 0.0f;
+    };
+
+    /// Replace subtractive synth params and device-local LFO/mod routing (Bitwig-style preset load).
+    bool applySubtractiveSynthPreset(
+        const std::string& deviceId,
+        const std::vector<std::pair<std::string, float>>& params,
+        const std::vector<SubtractivePresetLfoSpec>& lfos,
+        const std::vector<SubtractivePresetModSpec>& mods);
+
     bool noteOn(int pitch, float velocity);
     bool noteOff(int pitch);
     void allNotesOff();

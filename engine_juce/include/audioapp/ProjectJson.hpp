@@ -29,9 +29,30 @@ std::string snapshotToJson(const ProjectSnapshot& snapshot);
 std::vector<MidiNoteState> parseMidiNotesFromArgs(const std::string& argumentsJson);
 std::vector<AutomationPointState> parseAutomationPointsFromArgs(const std::string& argumentsJson);
 
-/// LFO evaluation and helpers.
+struct SubtractivePresetArgs {
+    std::string deviceId;
+    std::vector<std::pair<std::string, float>> params;
+    std::vector<ProjectEngine::SubtractivePresetLfoSpec> lfos;
+    std::vector<ProjectEngine::SubtractivePresetModSpec> mods;
+};
+
+bool parseSubtractivePresetArgs(const std::string& argumentsJson, SubtractivePresetArgs& out);
+
+/// LFO / modulator evaluation helpers.
 float lfoEvaluate(LfoWaveform waveform, float phase) noexcept;
 double lfoSyncBeats(int syncDivision) noexcept;
+float modulatorApplyPolarity(float value, int polarity) noexcept;
+float modulatorEvaluateSynced(const LfoState& state,
+                              double playheadBeat,
+                              int bpm,
+                              double frameSeconds) noexcept;
+float modulatorEvaluateOnNote(const LfoState& state,
+                              double frameSeconds,
+                              uint32_t retriggerGeneration,
+                              uint32_t& lastRetriggerGeneration,
+                              float& envelopeLevel,
+                              int& envelopeStage,
+                              double& segStartSeconds) noexcept;
 
 /// Bridge command JSON helpers (control thread).
 std::string jsonGetStringArg(const std::string& argumentsJson, const std::string& key);

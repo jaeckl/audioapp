@@ -70,11 +70,16 @@ public:
     void ensureAudioOutput();
 
     bool setRecordArmed(bool armed);
-    int createLfo();
+    int createLfo(int modulatorType = 0);
     bool removeLfo(int lfoId);
     bool updateLfoParam(int lfoId, const std::string& param, float value);
     bool assignModulation(int lfoId, const std::string& deviceId, const std::string& paramId, float amount);
     bool removeModulation(int lfoId, const std::string& paramId);
+    bool applySubtractiveSynthPreset(
+        const std::string& deviceId,
+        const std::vector<std::pair<std::string, float>>& params,
+        const std::vector<ProjectEngine::SubtractivePresetLfoSpec>& lfos,
+        const std::vector<ProjectEngine::SubtractivePresetModSpec>& mods);
     bool noteOn(int pitch, float velocity);
     bool noteOff(int pitch);
     void allNotesOff();

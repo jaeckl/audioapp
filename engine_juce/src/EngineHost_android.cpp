@@ -50,8 +50,17 @@ struct EngineHost::Impl {
                 masterLeft, masterRight, framesToProcess, rate, playheadStart);
             self->owner.advancePlayheadForBlock(framesToProcess, rate);
         }
-        self->owner.readPreviewMix(masterLeft, framesToProcess, rate);
-        self->owner.readLiveMix(masterLeft, framesToProcess, rate);
+        float monoScratch[kMaxFrames];
+        self->owner.readPreviewMix(monoScratch, framesToProcess, rate);
+        for (int32_t frame = 0; frame < framesToProcess; ++frame) {
+            masterLeft[frame] += monoScratch[frame];
+            masterRight[frame] += monoScratch[frame];
+        }
+        self->owner.readLiveMix(monoScratch, framesToProcess, rate);
+        for (int32_t frame = 0; frame < framesToProcess; ++frame) {
+            masterLeft[frame] += monoScratch[frame];
+            masterRight[frame] += monoScratch[frame];
+        }
 
         for (int32_t frame = 0; frame < framesToProcess; ++frame) {
             output[frame * 2] = masterLeft[frame];

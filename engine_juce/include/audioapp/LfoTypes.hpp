@@ -13,22 +13,40 @@ enum class LfoWaveform : int {
     Ramp,
 };
 
-/// Persistent LFO state (control thread).
-struct LfoState {
-    int id = 0;
-    int waveform = 0;             // LfoWaveform as int
-    float rate = 1.0f;            // Hz when syncDivision==0
-    int syncDivision = 0;         // 0=Hz, 1=1/1, 2=1/2, 3=1/4, 4=1/8, 5=1/16
-    float phase = 0.0f;           // initial phase offset 0..1
-    int polarity = 0;             // 0=bipolar, 1=positive, 2=negative
+enum class ModulatorType : int {
+    Lfo = 0,
+    Adsr = 1,
+    Adr = 2,
 };
 
-/// A modulation edge: LFO id -> (deviceId, paramId, amount).
+/// 0=free (Hz / per-note clock), 1=sync to project phase, 2=retrigger on note.
+enum class ModulatorRetrigger : int {
+    Free = 0,
+    Sync = 1,
+    OnNote = 2,
+};
+
+/// Persistent modulator state (control thread). Serialized as project "lfos".
+struct LfoState {
+    int id = 0;
+    int modulatorType = 0;
+    int retrigger = 0;
+    int waveform = 0;
+    float rate = 1.0f;
+    int syncDivision = 0;
+    float phase = 0.0f;
+    int polarity = 0;
+    float attack = 0.1f;
+    float decay = 0.25f;
+    float sustain = 0.7f;
+    float release = 0.35f;
+};
+
 struct ModulationEdge {
     int lfoId = 0;
     std::string deviceId;
     std::string paramId;
-    float amount = 0.0f;          // -1..1
+    float amount = 0.0f;
 };
 
 } // namespace audioapp

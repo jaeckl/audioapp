@@ -7,6 +7,7 @@
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/devices/instances/OscillatorInstance.hpp"
+#include "audioapp/devices/instances/SubtractiveSynthInstance.hpp"
 #include "audioapp/devices/instances/TrackGainInstance.hpp"
 
 #include <algorithm>
@@ -541,24 +542,32 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         lfoValues.resize(needed, 0.0f);
         const double playheadSeconds = playheadStartBeat * 60.0 / static_cast<double>(std::max(transport_.bpm(), 1));
         const double samplePeriod = 1.0 / std::max(sampleRate, 1.0);
+        const uint32_t retriggerGeneration = modulationGraph_.noteRetriggerGeneration();
         for (int i = 0; i < lfoCount; ++i) {
-            const auto& lfo = modulationGraph_.lfoPlaybackEntry(i).state;
+            auto& entry = modulationGraph_.lfoPlaybackEntryMutable(i);
+            const auto& lfo = entry.state;
             for (int frame = 0; frame < framesToProcess; ++frame) {
                 const double frameSeconds = playheadSeconds + static_cast<double>(frame) * samplePeriod;
-                double phase;
-                if (lfo.syncDivision == 0) {
-                    // Hz mode: phase derived from wall clock
-                    phase = frameSeconds * static_cast<double>(lfo.rate) + static_cast<double>(lfo.phase);
+                const double frameBeat =
+                    playheadStartBeat +
+                    static_cast<double>(frame) * samplePeriod *
+                        (static_cast<double>(std::max(transport_.bpm(), 1)) / 60.0);
+                float value = 0.0f;
+                if (lfo.retrigger == static_cast<int>(ModulatorRetrigger::OnNote)) {
+                    value = modulatorEvaluateOnNote(lfo,
+                                                    frameSeconds,
+                                                    retriggerGeneration,
+                                                    entry.envelope.lastRetriggerGeneration,
+                                                    entry.envelope.level,
+                                                    entry.envelope.stage,
+                                                    entry.envelope.segStartSeconds);
                 } else {
-                    // Sync mode: derive phase from playhead position
-                    const double beatDuration = lfoSyncBeats(lfo.syncDivision);
-                    const double frameBeat = playheadStartBeat + static_cast<double>(frame) * samplePeriod * (static_cast<double>(std::max(transport_.bpm(), 1)) / 60.0);
-                    phase = (beatDuration > 0.0) ? (frameBeat / beatDuration) : 0.0;
-                    phase += static_cast<double>(lfo.phase);
+                    value = modulatorEvaluateSynced(lfo,
+                                                    frameBeat,
+                                                    transport_.bpm(),
+                                                    frameSeconds - playheadSeconds);
                 }
-                lfoValues[i * framesToProcess + frame] = lfoEvaluate(
-                    static_cast<LfoWaveform>(lfo.waveform),
-                    static_cast<float>(phase));
+                lfoValues[i * framesToProcess + frame] = value;
             }
         }
     }
@@ -868,9 +877,9 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
     return true;
 }
 
-int ProjectEngine::createLfo() {
+int ProjectEngine::createLfo(int modulatorType) {
     std::lock_guard<std::mutex> lock(mutex_);
-    return modulationGraph_.createLfo();
+    return modulationGraph_.createLfo(modulatorType);
 }
 
 bool ProjectEngine::removeLfo(int lfoId) {
@@ -895,6 +904,78 @@ bool ProjectEngine::assignModulation(int lfoId, const std::string& deviceId,
 bool ProjectEngine::removeModulation(int lfoId, const std::string& paramId) {
     std::lock_guard<std::mutex> lock(mutex_);
     return modulationGraph_.removeModulation(lfoId, paramId);
+}
+
+bool ProjectEngine::applySubtractiveSynthPreset(
+    const std::string& deviceId,
+    const std::vector<std::pair<std::string, float>>& params,
+    const std::vector<SubtractivePresetLfoSpec>& lfos,
+    const std::vector<SubtractivePresetModSpec>& mods) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    DeviceSlot* device = findDeviceLocked(deviceId);
+    if (device == nullptr || !std::holds_alternative<SubtractiveSynthInstance>(device->instance)) {
+        return false;
+    }
+
+    std::vector<int> lfosTouchingDevice;
+    for (const auto& edge : modulationGraph_.modEdges()) {
+        if (edge.deviceId == deviceId) {
+            lfosTouchingDevice.push_back(edge.lfoId);
+        }
+    }
+    modulationGraph_.removeModulationForDevice(deviceId);
+    for (int lfoId : lfosTouchingDevice) {
+        bool stillUsed = false;
+        for (const auto& edge : modulationGraph_.modEdges()) {
+            if (edge.lfoId == lfoId) {
+                stillUsed = true;
+                break;
+            }
+        }
+        if (!stillUsed) {
+            modulationGraph_.removeLfo(lfoId);
+        }
+    }
+
+    bool syncFrequency = false;
+    for (const auto& [parameterId, value] : params) {
+        const DeviceParameterResult result =
+            deviceRegistry_.setParameter(*device, parameterId, value);
+        if (!result.handled) {
+            return false;
+        }
+        if (result.syncActiveFrequency) {
+            syncFrequency = true;
+        }
+    }
+
+    std::vector<int> createdLfoIds;
+    createdLfoIds.reserve(lfos.size());
+    for (const auto& spec : lfos) {
+        const int lfoId = modulationGraph_.createLfo();
+        modulationGraph_.updateLfoParam(lfoId, "waveform", static_cast<float>(spec.waveform));
+        modulationGraph_.updateLfoParam(lfoId, "rate", spec.rate);
+        modulationGraph_.updateLfoParam(lfoId, "syncDivision", static_cast<float>(spec.syncDivision));
+        modulationGraph_.updateLfoParam(lfoId, "phase", spec.phase);
+        modulationGraph_.updateLfoParam(lfoId, "polarity", static_cast<float>(spec.polarity));
+        createdLfoIds.push_back(lfoId);
+    }
+
+    for (const auto& mod : mods) {
+        if (mod.lfoIndex < 0 || mod.lfoIndex >= static_cast<int>(createdLfoIds.size())) {
+            return false;
+        }
+        if (!modulationGraph_.assignModulation(
+                createdLfoIds[static_cast<size_t>(mod.lfoIndex)], deviceId, mod.paramId, mod.amount)) {
+            return false;
+        }
+    }
+
+    if (syncFrequency) {
+        syncActiveFrequencyLocked();
+    }
+    rebuildTrackPlaybackLocked();
+    return true;
 }
 
 void ProjectEngine::recomputeIdCountersLocked() {

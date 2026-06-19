@@ -609,11 +609,17 @@ TrackState trackFromVar(const juce::var& value) {
 juce::var lfoToVar(const LfoState& lfo) {
     auto* object = new juce::DynamicObject();
     object->setProperty("id", lfo.id);
+    object->setProperty("modulatorType", lfo.modulatorType);
+    object->setProperty("retrigger", lfo.retrigger);
     object->setProperty("waveform", lfo.waveform);
     object->setProperty("rate", static_cast<double>(lfo.rate));
     object->setProperty("syncDivision", lfo.syncDivision);
     object->setProperty("phase", static_cast<double>(lfo.phase));
     object->setProperty("polarity", lfo.polarity);
+    object->setProperty("attack", static_cast<double>(lfo.attack));
+    object->setProperty("decay", static_cast<double>(lfo.decay));
+    object->setProperty("sustain", static_cast<double>(lfo.sustain));
+    object->setProperty("release", static_cast<double>(lfo.release));
     return juce::var(object);
 }
 
@@ -621,11 +627,17 @@ LfoState lfoFromVar(const juce::var& value) {
     LfoState lfo;
     if (const auto* object = value.getDynamicObject()) {
         lfo.id = varToInt(object->getProperty("id"), 0);
+        lfo.modulatorType = varToInt(object->getProperty("modulatorType"), 0);
+        lfo.retrigger = varToInt(object->getProperty("retrigger"), 0);
         lfo.waveform = varToInt(object->getProperty("waveform"), 0);
         lfo.rate = varToFloat(object->getProperty("rate"), 1.0f);
         lfo.syncDivision = varToInt(object->getProperty("syncDivision"), 0);
         lfo.phase = varToFloat(object->getProperty("phase"), 0.0f);
         lfo.polarity = varToInt(object->getProperty("polarity"), 0);
+        lfo.attack = varToFloat(object->getProperty("attack"), 0.1f);
+        lfo.decay = varToFloat(object->getProperty("decay"), 0.25f);
+        lfo.sustain = varToFloat(object->getProperty("sustain"), 0.7f);
+        lfo.release = varToFloat(object->getProperty("release"), 0.35f);
     }
     return lfo;
 }
@@ -847,6 +859,64 @@ std::vector<AutomationPointState> parseAutomationPointsFromArgs(const std::strin
         }
     }
     return points;
+}
+
+bool parseSubtractivePresetArgs(const std::string& argumentsJson, SubtractivePresetArgs& out) {
+    out = {};
+    const auto root = parseRootVar(argumentsJson);
+    const auto* object = root.getDynamicObject();
+    if (object == nullptr) {
+        return false;
+    }
+
+    out.deviceId = varToString(object->getProperty("deviceId"));
+    if (out.deviceId.empty()) {
+        return false;
+    }
+
+    if (const auto* paramsObject = object->getProperty("params").getDynamicObject()) {
+        for (const auto& prop : paramsObject->getProperties()) {
+            out.params.emplace_back(prop.name.toString().toStdString(),
+                                    varToFloat(prop.value, 0.0f));
+        }
+    }
+
+    if (const auto* lfoArray = varArray(object->getProperty("lfos"))) {
+        out.lfos.reserve(static_cast<size_t>(lfoArray->size()));
+        for (const auto& lfoVar : *lfoArray) {
+            const auto* lfoObject = lfoVar.getDynamicObject();
+            if (lfoObject == nullptr) {
+                continue;
+            }
+            ProjectEngine::SubtractivePresetLfoSpec spec;
+            spec.waveform = varToInt(lfoObject->getProperty("waveform"), 0);
+            spec.rate = varToFloat(lfoObject->getProperty("rate"), 1.0f);
+            spec.syncDivision = varToInt(lfoObject->getProperty("syncDivision"), 0);
+            spec.phase = varToFloat(lfoObject->getProperty("phase"), 0.0f);
+            spec.polarity = varToInt(lfoObject->getProperty("polarity"), 0);
+            out.lfos.push_back(spec);
+        }
+    }
+
+    if (const auto* modArray = varArray(object->getProperty("mods"))) {
+        out.mods.reserve(static_cast<size_t>(modArray->size()));
+        for (const auto& modVar : *modArray) {
+            const auto* modObject = modVar.getDynamicObject();
+            if (modObject == nullptr) {
+                continue;
+            }
+            ProjectEngine::SubtractivePresetModSpec spec;
+            spec.lfoIndex = varToInt(modObject->getProperty("lfoIndex"), 0);
+            spec.paramId = varToString(modObject->getProperty("paramId"));
+            spec.amount = varToFloat(modObject->getProperty("amount"), 0.0f);
+            if (spec.paramId.empty()) {
+                return false;
+            }
+            out.mods.push_back(spec);
+        }
+    }
+
+    return !out.params.empty();
 }
 
 std::string jsonGetStringArg(const std::string& argumentsJson, const std::string& key) {

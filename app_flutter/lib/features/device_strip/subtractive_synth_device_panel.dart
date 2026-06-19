@@ -378,7 +378,7 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                             ),
                             const SizedBox(width: 4),
                             _flatToggle(
-                              label: 'Mono',
+                              label: 'Mono clips',
                               active: monoOn,
                               onTap: () =>
                                   widget.onParameterChanged('synthMono', monoOn ? 0.0 : 1.0),

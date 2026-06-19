@@ -1,17 +1,21 @@
 import '../../bridge/project_snapshot.dart';
 
 import 'library_category.dart';
+import 'library_manifest.dart';
+import 'library_midi_patterns.dart';
 
 sealed class LibraryItem {
   const LibraryItem({
     required this.id,
     required this.title,
     required this.subtitle,
+    this.tags = const [],
   });
 
   final String id;
   final String title;
   final String subtitle;
+  final List<String> tags;
 }
 
 class LibraryAudioItem extends LibraryItem {
@@ -21,6 +25,7 @@ class LibraryAudioItem extends LibraryItem {
     required super.subtitle,
     required this.sample,
     this.isProjectClip = false,
+    super.tags,
   });
 
   final SampleLibraryEntrySnapshot sample;
@@ -32,12 +37,15 @@ class LibraryMidiItem extends LibraryItem {
     required super.id,
     required super.title,
     required super.subtitle,
-    required this.trackId,
     required this.clip,
+    this.trackId,
+    this.isFactory = false,
+    super.tags,
   });
 
-  final String trackId;
+  final String? trackId;
   final MidiClipSnapshot clip;
+  final bool isFactory;
 }
 
 class LibraryAutomationItem extends LibraryItem {
@@ -49,6 +57,7 @@ class LibraryAutomationItem extends LibraryItem {
     this.trackId,
     this.clip,
     this.suggestedParamId,
+    super.tags,
   });
 
   final String parameterLabel;
@@ -63,6 +72,7 @@ class LibraryPresetItem extends LibraryItem {
     required super.title,
     required super.subtitle,
     required this.deviceType,
+    super.tags,
   });
 
   final String deviceType;
@@ -71,14 +81,32 @@ class LibraryPresetItem extends LibraryItem {
 abstract final class LibraryCatalog {
   static List<LibraryItem> itemsFor(
     LibraryCategory category,
-    ProjectSnapshot snapshot,
-  ) {
+    ProjectSnapshot snapshot, {
+    LibraryManifest? manifest,
+  }) {
     return switch (category) {
       LibraryCategory.audioClips => _audioItems(snapshot),
-      LibraryCategory.midiClips => _midiItems(snapshot),
+      LibraryCategory.midiClips => _midiItems(snapshot, manifest),
       LibraryCategory.automationClips => _automationItems(snapshot),
-      LibraryCategory.devicePresets => _presetItems(snapshot),
+      LibraryCategory.devicePresets => presetItems(manifest),
     };
+  }
+
+  static List<LibraryPresetItem> presetItems(LibraryManifest? manifest) {
+    if (manifest == null) {
+      return const [];
+    }
+    return manifest.presets
+        .map(
+          (entry) => LibraryPresetItem(
+            id: entry.id,
+            title: entry.title,
+            subtitle: entry.subtitle,
+            deviceType: entry.deviceType,
+            tags: entry.tags,
+          ),
+        )
+        .toList();
   }
 
   static List<LibraryItem> _audioItems(ProjectSnapshot snapshot) {
@@ -90,6 +118,7 @@ abstract final class LibraryCatalog {
           title: sample.name,
           subtitle: sample.source == 'bundled' ? 'Sample library' : 'Imported audio',
           sample: sample,
+          tags: sample.source == 'bundled' ? const ['factory'] : const ['imported'],
         ),
       );
     }
@@ -108,6 +137,7 @@ abstract final class LibraryCatalog {
               waveformPeaks: clip.waveformPeaks,
             ),
             isProjectClip: true,
+            tags: const ['project'],
           ),
         );
       }
@@ -115,8 +145,35 @@ abstract final class LibraryCatalog {
     return items;
   }
 
-  static List<LibraryItem> _midiItems(ProjectSnapshot snapshot) {
-    final items = <LibraryItem>[];
+  static List<LibraryMidiItem> factoryMidiItems(LibraryManifest? manifest) {
+    if (manifest == null) {
+      return const [];
+    }
+    final items = <LibraryMidiItem>[];
+    for (final entry in manifest.midiClips) {
+      final pattern = LibraryMidiPatterns.patterns[entry.patternId];
+      if (pattern == null) {
+        continue;
+      }
+      items.add(
+        LibraryMidiItem(
+          id: entry.id,
+          title: entry.title,
+          subtitle: entry.subtitle,
+          clip: pattern.toClip(entry.id),
+          isFactory: true,
+          tags: entry.tags,
+        ),
+      );
+    }
+    return items;
+  }
+
+  static List<LibraryItem> _midiItems(
+    ProjectSnapshot snapshot,
+    LibraryManifest? manifest,
+  ) {
+    final items = <LibraryItem>[...factoryMidiItems(manifest)];
     for (final track in snapshot.tracks) {
       for (final clip in track.midiClips) {
         items.add(
@@ -126,6 +183,7 @@ abstract final class LibraryCatalog {
             subtitle: '${track.name} · ${clip.notes.length} notes · ${clip.lengthBeats.round()} beats',
             trackId: track.id,
             clip: clip,
+            tags: const ['project'],
           ),
         );
       }
@@ -174,70 +232,5 @@ abstract final class LibraryCatalog {
       ]);
     }
     return items;
-  }
-
-  static List<LibraryItem> _presetItems(ProjectSnapshot snapshot) {
-    return const [
-      LibraryPresetItem(
-        id: 'preset:sampler-warm',
-        title: 'Warm sampler',
-        subtitle: 'Punchy kit · short env',
-        deviceType: 'simple_sampler',
-      ),
-      LibraryPresetItem(
-        id: 'preset:sampler-lofi',
-        title: 'Lo-fi keys',
-        subtitle: 'Filtered piano stack',
-        deviceType: 'simple_sampler',
-      ),
-      LibraryPresetItem(
-        id: 'preset:osc-pluck',
-        title: 'Pluck oscillator',
-        subtitle: 'Bright mono lead',
-        deviceType: 'simple_oscillator',
-      ),
-      LibraryPresetItem(
-        id: 'preset:osc-bass',
-        title: 'Sub bass',
-        subtitle: 'Low sine foundation',
-        deviceType: 'simple_oscillator',
-      ),
-      LibraryPresetItem(
-        id: 'preset:synth-init',
-        title: 'Init synth',
-        subtitle: 'Saw · open filter',
-        deviceType: 'subtractive_synth',
-      ),
-      LibraryPresetItem(
-        id: 'preset:synth-warm-pad',
-        title: 'Warm pad',
-        subtitle: 'Unison · slow attack',
-        deviceType: 'subtractive_synth',
-      ),
-      LibraryPresetItem(
-        id: 'preset:synth-pluck',
-        title: 'Pluck',
-        subtitle: 'Short amp · filter sweep',
-        deviceType: 'subtractive_synth',
-      ),
-      LibraryPresetItem(
-        id: 'preset:synth-bass',
-        title: 'Synth bass',
-        subtitle: 'Square + saw stack',
-        deviceType: 'subtractive_synth',
-      ),
-      LibraryPresetItem(
-        id: 'preset:synth-lead',
-        title: 'Detuned lead',
-        subtitle: 'AM mix · glide',
-        deviceType: 'subtractive_synth',
-      ),
-      LibraryPresetItem(
-        id: 'preset:synth-noise-sweep',
-        title: 'Noise sweep',
-        subtitle: 'Filter env texture',
-        deviceType: 'subtractive_synth',
-      ),
-    ];
   }
 }

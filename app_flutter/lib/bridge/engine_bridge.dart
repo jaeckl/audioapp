@@ -276,8 +276,8 @@ class EngineBridge {
 
   // ─── LFO & Modulation ─────────────────────────────────
 
-  Future<ProjectSnapshot> createLfo() async {
-    return _invokeForSnapshot('createLfo');
+  Future<ProjectSnapshot> createLfo({int modulatorType = 0}) async {
+    return _invokeForSnapshot('createLfo', {'modulatorType': modulatorType});
   }
 
   Future<ProjectSnapshot> removeLfo(int lfoId) async {
@@ -317,6 +317,20 @@ class EngineBridge {
     return _invokeForSnapshot('removeModulation', {
       'lfoId': lfoId,
       'paramId': paramId,
+    });
+  }
+
+  Future<ProjectSnapshot> applySubtractiveSynthPreset({
+    required String deviceId,
+    required Map<String, double> params,
+    List<Map<String, dynamic>> lfos = const [],
+    List<Map<String, dynamic>> mods = const [],
+  }) async {
+    return _invokeForSnapshot('applySubtractiveSynthPreset', {
+      'deviceId': deviceId,
+      'params': params,
+      'lfos': lfos,
+      'mods': mods,
     });
   }
 

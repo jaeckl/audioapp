@@ -16,6 +16,7 @@ class DeviceStrip extends StatefulWidget {
     required this.track,
     required this.samples,
     required this.playing,
+    required this.playheadBeats,
     required this.onSamplerParameterChanged,
     required this.onAssignSamplerSample,
     required this.onOpenSamplerEditor,
@@ -37,6 +38,7 @@ class DeviceStrip extends StatefulWidget {
   final TrackSnapshot? track;
   final List<SampleLibraryEntrySnapshot> samples;
   final bool playing;
+  final double playheadBeats;
   final void Function(String deviceId, String parameterId, double value)
       onSamplerParameterChanged;
   final void Function(String deviceId, String sampleId) onAssignSamplerSample;
@@ -165,6 +167,7 @@ class _DeviceStripState extends State<DeviceStrip> {
                   samples: widget.samples,
                   playing: widget.playing,
                   bpm: widget.snapshot.bpm,
+                  playheadBeat: widget.playheadBeats,
                   lfos: widget.snapshot.lfos,
                   modEdges: widget.snapshot.modEdges,
                   density: collapsed

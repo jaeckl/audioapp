@@ -281,7 +281,8 @@ class MainActivity : FlutterFragmentActivity() {
                         "removeLfo",
                         "updateLfoParam",
                         "assignModulation",
-                        "removeModulation" -> {
+                        "removeModulation",
+                        "applySubtractiveSynthPreset" -> {
                             val argsJson = when (val args = call.arguments) {
                                 null -> "{}"
                                 is Map<*, *> -> mapToJson(args).toString()

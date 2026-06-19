@@ -1166,34 +1166,52 @@ class SampleLibraryEntrySnapshot {
   }
 }
 
-/// LFO source snapshot from the engine.
+/// Modulator source snapshot from the engine (LFO, ADSR, ADR).
 class LfoSnapshot {
   const LfoSnapshot({
     required this.id,
+    this.modulatorType = 0,
+    this.retrigger = 0,
     this.waveform = 0,
     this.rate = 1.0,
     this.syncDivision = 0,
     this.phase = 0.0,
     this.polarity = 0,
+    this.attack = 0.1,
+    this.decay = 0.25,
+    this.sustain = 0.7,
+    this.release = 0.35,
     this.name = '',
   });
 
   final int id;
-  final int waveform; // 0=Sine, 1=Tri, 2=Saw, 3=Square, 4=Ramp
+  final int modulatorType;
+  final int retrigger;
+  final int waveform;
   final double rate;
-  final int syncDivision; // 0=free, 1=1/1, 2=1/2, 3=1/4, 4=1/8, 5=1/16
+  final int syncDivision;
   final double phase;
-  final int polarity; // 0=bipolar, 1=positive, 2=negative
+  final int polarity;
+  final double attack;
+  final double decay;
+  final double sustain;
+  final double release;
   final String name;
 
   factory LfoSnapshot.fromMap(Map<dynamic, dynamic> map) {
     return LfoSnapshot(
       id: (map['id'] as num?)?.toInt() ?? 0,
+      modulatorType: (map['modulatorType'] as num?)?.toInt() ?? 0,
+      retrigger: (map['retrigger'] as num?)?.toInt() ?? 0,
       waveform: (map['waveform'] as num?)?.toInt() ?? 0,
       rate: (map['rate'] as num?)?.toDouble() ?? 1.0,
       syncDivision: (map['syncDivision'] as num?)?.toInt() ?? 0,
       phase: (map['phase'] as num?)?.toDouble() ?? 0.0,
       polarity: (map['polarity'] as num?)?.toInt() ?? 0,
+      attack: (map['attack'] as num?)?.toDouble() ?? 0.1,
+      decay: (map['decay'] as num?)?.toDouble() ?? 0.25,
+      sustain: (map['sustain'] as num?)?.toDouble() ?? 0.7,
+      release: (map['release'] as num?)?.toDouble() ?? 0.35,
       name: map['name'] as String? ?? '',
     );
   }
@@ -1208,20 +1226,32 @@ class LfoSnapshot {
 
   LfoSnapshot copyWith({
     int? id,
+    int? modulatorType,
+    int? retrigger,
     int? waveform,
     double? rate,
     int? syncDivision,
     double? phase,
     int? polarity,
+    double? attack,
+    double? decay,
+    double? sustain,
+    double? release,
     String? name,
   }) {
     return LfoSnapshot(
       id: id ?? this.id,
+      modulatorType: modulatorType ?? this.modulatorType,
+      retrigger: retrigger ?? this.retrigger,
       waveform: waveform ?? this.waveform,
       rate: rate ?? this.rate,
       syncDivision: syncDivision ?? this.syncDivision,
       phase: phase ?? this.phase,
       polarity: polarity ?? this.polarity,
+      attack: attack ?? this.attack,
+      decay: decay ?? this.decay,
+      sustain: sustain ?? this.sustain,
+      release: release ?? this.release,
       name: name ?? this.name,
     );
   }

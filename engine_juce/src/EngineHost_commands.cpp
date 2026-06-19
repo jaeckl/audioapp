@@ -188,8 +188,8 @@ bool EngineHost::setRecordArmed(bool armed) {
     return project_.setRecordArmed(armed);
 }
 
-int EngineHost::createLfo() {
-    return project_.createLfo();
+int EngineHost::createLfo(int modulatorType) {
+    return project_.createLfo(modulatorType);
 }
 
 bool EngineHost::removeLfo(int lfoId) {
@@ -206,6 +206,14 @@ bool EngineHost::assignModulation(int lfoId, const std::string& deviceId, const 
 
 bool EngineHost::removeModulation(int lfoId, const std::string& paramId) {
     return project_.removeModulation(lfoId, paramId);
+}
+
+bool EngineHost::applySubtractiveSynthPreset(
+    const std::string& deviceId,
+    const std::vector<std::pair<std::string, float>>& params,
+    const std::vector<ProjectEngine::SubtractivePresetLfoSpec>& lfos,
+    const std::vector<ProjectEngine::SubtractivePresetModSpec>& mods) {
+    return project_.applySubtractiveSynthPreset(deviceId, params, lfos, mods);
 }
 
 bool EngineHost::noteOn(int pitch, float velocity) {

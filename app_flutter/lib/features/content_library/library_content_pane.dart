@@ -4,9 +4,12 @@ import '../../bridge/project_snapshot.dart';
 import '../sample_library/sample_library_screen.dart';
 import 'library_catalog.dart';
 import 'library_category.dart';
+import 'library_manifest.dart';
+import 'library_tag_filter_bar.dart';
+import 'library_tags.dart';
 import 'library_theme.dart';
 
-class LibraryContentPane extends StatelessWidget {
+class LibraryContentPane extends StatefulWidget {
   const LibraryContentPane({
     super.key,
     required this.category,
@@ -17,6 +20,7 @@ class LibraryContentPane extends StatelessWidget {
     this.onMidiClipTap,
     this.onAutomationTap,
     this.onPresetTap,
+    this.presetManifest,
   });
 
   final LibraryCategory category;
@@ -28,11 +32,89 @@ class LibraryContentPane extends StatelessWidget {
   final void Function(LibraryAutomationItem item)? onAutomationTap;
   final void Function(LibraryPresetItem item)? onPresetTap;
 
+  /// Optional manifest override (tests). When null, loads from assets.
+  final LibraryManifest? presetManifest;
+
+  @override
+  State<LibraryContentPane> createState() => _LibraryContentPaneState();
+}
+
+class _LibraryContentPaneState extends State<LibraryContentPane> {
+  LibraryManifest? _manifest;
+  final Set<String> _selectedTags = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadManifest();
+  }
+
+  @override
+  void didUpdateWidget(covariant LibraryContentPane oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.presetManifest != oldWidget.presetManifest) {
+      _loadManifest();
+    }
+    if (widget.category != oldWidget.category &&
+        widget.category != LibraryCategory.devicePresets &&
+        widget.category != LibraryCategory.midiClips) {
+      _selectedTags.clear();
+    }
+  }
+
+  Future<void> _loadManifest() async {
+    if (widget.presetManifest != null) {
+      setState(() => _manifest = widget.presetManifest);
+      return;
+    }
+    try {
+      final manifest = await LibraryManifest.load();
+      if (mounted) {
+        setState(() => _manifest = manifest);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _manifest = null);
+      }
+    }
+  }
+
+  void _toggleTag(String tag) {
+    setState(() {
+      if (_selectedTags.contains(tag)) {
+        _selectedTags.remove(tag);
+      } else {
+        _selectedTags.add(tag);
+      }
+    });
+  }
+
+  List<LibraryItem> _visibleItems() {
+    final all = LibraryCatalog.itemsFor(
+      widget.category,
+      widget.snapshot,
+      manifest: _manifest,
+    );
+    if (widget.category != LibraryCategory.devicePresets &&
+        widget.category != LibraryCategory.midiClips) {
+      return all;
+    }
+    return all
+        .where((item) => libraryItemMatchesTagFilter(item.tags, _selectedTags))
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final items = LibraryCatalog.itemsFor(category, snapshot);
+    final items = _visibleItems();
     final theme = Theme.of(context);
-    final accent = LibraryTheme.accentFor(category);
+    final accent = LibraryTheme.accentFor(widget.category);
+    final allPresetItems = widget.category == LibraryCategory.devicePresets
+        ? LibraryCatalog.presetItems(_manifest)
+        : const <LibraryPresetItem>[];
+    final allMidiItems = widget.category == LibraryCategory.midiClips
+        ? LibraryCatalog.factoryMidiItems(_manifest)
+        : const <LibraryMidiItem>[];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -46,7 +128,7 @@ class LibraryContentPane extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _headerTitle(category),
+                      _headerTitle(widget.category),
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
@@ -54,7 +136,7 @@ class LibraryContentPane extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      category.subtitle,
+                      widget.category.subtitle,
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: LibraryTheme.labelMuted,
                       ),
@@ -62,34 +144,69 @@ class LibraryContentPane extends StatelessWidget {
                   ],
                 ),
               ),
-              if (category == LibraryCategory.audioClips)
+              if (widget.category == LibraryCategory.audioClips)
                 IconButton(
                   tooltip: 'Import audio',
-                  onPressed: onImportAudio,
+                  onPressed: widget.onImportAudio,
                   icon: const Icon(Icons.upload_file_outlined, color: Colors.white70),
                 ),
             ],
           ),
         ),
+        if (widget.category == LibraryCategory.devicePresets && allPresetItems.isNotEmpty)
+          LibraryTagFilterBar(
+            itemTagLists: allPresetItems.map((p) => p.tags),
+            selectedTags: _selectedTags,
+            onTagToggled: _toggleTag,
+            onClear: () => setState(_selectedTags.clear),
+            accent: accent,
+          ),
+        if (widget.category == LibraryCategory.midiClips && allMidiItems.isNotEmpty)
+          LibraryTagFilterBar(
+            itemTagLists: allMidiItems.map((m) => m.tags),
+            selectedTags: _selectedTags,
+            onTagToggled: _toggleTag,
+            onClear: () => setState(_selectedTags.clear),
+            accent: accent,
+          ),
         Expanded(
-          child: items.isEmpty
-              ? _EmptyCategoryState(category: category)
-              : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                  itemCount: items.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) => _LibraryItemTile(
-                    item: items[index],
-                    accent: accent,
-                    onPreviewAudio: onPreviewAudio,
-                    onInsertAudio: onInsertAudio,
-                    onMidiClipTap: onMidiClipTap,
-                    onAutomationTap: onAutomationTap,
-                    onPresetTap: onPresetTap,
-                  ),
-                ),
+          child: _buildBody(items, accent),
         ),
       ],
+    );
+  }
+
+  Widget _buildBody(List<LibraryItem> items, Color accent) {
+    if (widget.category == LibraryCategory.devicePresets && _manifest == null) {
+      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+    }
+    if (widget.category == LibraryCategory.midiClips && _manifest == null) {
+      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+    }
+    if (items.isEmpty) {
+      if ((widget.category == LibraryCategory.devicePresets ||
+              widget.category == LibraryCategory.midiClips) &&
+          _selectedTags.isNotEmpty) {
+        return _FilteredEmptyState(
+          onClear: () => setState(_selectedTags.clear),
+          category: widget.category,
+        );
+      }
+      return _EmptyCategoryState(category: widget.category);
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      itemCount: items.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (context, index) => _LibraryItemTile(
+        item: items[index],
+        accent: accent,
+        onPreviewAudio: widget.onPreviewAudio,
+        onInsertAudio: widget.onInsertAudio,
+        onMidiClipTap: widget.onMidiClipTap,
+        onAutomationTap: widget.onAutomationTap,
+        onPresetTap: widget.onPresetTap,
+      ),
     );
   }
 
@@ -101,6 +218,39 @@ class LibraryContentPane extends StatelessWidget {
       };
 }
 
+class _FilteredEmptyState extends StatelessWidget {
+  const _FilteredEmptyState({required this.onClear, required this.category});
+
+  final VoidCallback onClear;
+  final LibraryCategory category;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = category == LibraryCategory.midiClips
+        ? 'No MIDI clips match these filters.'
+        : 'No presets match these filters.';
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: LibraryTheme.labelMuted,
+                  ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(onPressed: onClear, child: const Text('Clear filters')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _EmptyCategoryState extends StatelessWidget {
   const _EmptyCategoryState({required this.category});
 
@@ -110,7 +260,7 @@ class _EmptyCategoryState extends StatelessWidget {
   Widget build(BuildContext context) {
     final message = switch (category) {
       LibraryCategory.audioClips => 'Import audio or add sample clips to the project.',
-      LibraryCategory.midiClips => 'Create MIDI clips in the arrangement to see them here.',
+      LibraryCategory.midiClips => 'Factory loops and project clips appear here.',
       LibraryCategory.automationClips => 'Automation clips will appear here once recorded.',
       LibraryCategory.devicePresets => 'Starter presets will be listed here.',
     };
@@ -220,6 +370,12 @@ class _LibraryItemTile extends StatelessWidget {
           ),
           FilledButton.tonal(
             onPressed: () => onInsertAudio(audio.sample),
+            child: const Text('Insert'),
+          ),
+        ],
+      LibraryMidiItem(:final isFactory) when isFactory => [
+          FilledButton.tonal(
+            onPressed: () => onMidiClipTap?.call(item as LibraryMidiItem),
             child: const Text('Insert'),
           ),
         ],
