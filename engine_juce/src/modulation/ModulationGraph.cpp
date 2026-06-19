@@ -148,4 +148,22 @@ bool ModulationGraph::removeModulation(int lfoId, const std::string& paramId) {
     return false;
 }
 
+void ModulationGraph::removeModulationForDevice(const std::string& deviceId) {
+    if (deviceId.empty()) {
+        return;
+    }
+    bool changed = false;
+    for (auto it = modEdges_.begin(); it != modEdges_.end();) {
+        if (it->deviceId == deviceId) {
+            it = modEdges_.erase(it);
+            changed = true;
+        } else {
+            ++it;
+        }
+    }
+    if (changed) {
+        rebuildPlayback();
+    }
+}
+
 } // namespace audioapp

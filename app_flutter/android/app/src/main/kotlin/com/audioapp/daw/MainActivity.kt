@@ -247,6 +247,7 @@ class MainActivity : FlutterFragmentActivity() {
                         "addTrack",
                         "selectTrack",
                         "addDeviceToTrack",
+                        "removeDeviceFromTrack",
                         "setDeviceParameter",
                         "setDeviceStringParameter",
                         "setMasterGain",

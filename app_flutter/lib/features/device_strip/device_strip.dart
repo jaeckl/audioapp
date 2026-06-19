@@ -25,6 +25,7 @@ class DeviceStrip extends StatefulWidget {
     required this.onFrequencyChanged,
     required this.onAddDevice,
     required this.onBypassToggle,
+    required this.onRemoveDevice,
     required     this.onOpenDeviceLibrary,
     this.onModulationBridgeCall,
     this.automationLinkClipId,
@@ -47,6 +48,7 @@ class DeviceStrip extends StatefulWidget {
   final Future<void> Function(String trackId, String deviceType, int insertIndex)
       onAddDevice;
   final void Function(String deviceId, bool bypassed) onBypassToggle;
+  final Future<void> Function(TrackSnapshot track, DeviceSnapshot device) onRemoveDevice;
   final void Function(DeviceSnapshot device) onOpenDeviceLibrary;
   final Future<ProjectSnapshot> Function(String method, Map<String, dynamic> args)?
       onModulationBridgeCall;
@@ -106,6 +108,7 @@ class _DeviceStripState extends State<DeviceStrip> {
           onSamplerTabChanged: _setSamplerTab,
           onSynthTabChanged: _setSynthTab,
           onBypassToggle: widget.onBypassToggle,
+          onDeleteDevice: (device) => widget.onRemoveDevice(track, device),
           onPreviewAudio: widget.onPreviewSample,
           onAssignSamplerSample: widget.onAssignSamplerSample,
           onImportAudio: () async {
@@ -176,6 +179,7 @@ class _DeviceStripState extends State<DeviceStrip> {
                   onSamplerTabChanged: _setSamplerTab,
                   onSynthTabChanged: _setSynthTab,
                   onBypassToggle: widget.onBypassToggle,
+                  onDeleteDevice: (device) => widget.onRemoveDevice(track, device),
                   onOpenLibrary: widget.onOpenDeviceLibrary,
                   onPreviewSample: widget.onPreviewSample,
                   onPreviewSampler: widget.onPreviewSampler,

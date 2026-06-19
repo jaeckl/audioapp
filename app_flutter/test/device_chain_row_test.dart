@@ -105,6 +105,7 @@ void main() {
             onFrequencyChanged: (_, __) {},
             onAddDevice: (_, __, ___) async {},
             onBypassToggle: (_, __) {},
+            onRemoveDevice: (_, __) async {},
             onOpenDeviceLibrary: (_) {},
           ),
         ),

@@ -1,0 +1,28 @@
+import '../../bridge/project_snapshot.dart';
+
+const fxDeviceTypes = <String>{
+  'gate',
+  'compressor',
+  'expander',
+  'limiter',
+};
+
+extension DeviceStripDeviceKind on DeviceSnapshot {
+  bool get isFxDevice => fxDeviceTypes.contains(type);
+
+  bool get isInstrumentDevice => type != 'track_gain' && !isFxDevice;
+}
+
+extension TrackDeviceStripKind on TrackSnapshot {
+  int get visibleInstrumentCount =>
+      visibleDevices.where((device) => device.isInstrumentDevice).length;
+
+  bool hasLinkedAutomationFor(String deviceId) {
+    for (final clip in automationClips) {
+      if (clip.deviceId == deviceId && clip.isLinked) {
+        return true;
+      }
+    }
+    return false;
+  }
+}

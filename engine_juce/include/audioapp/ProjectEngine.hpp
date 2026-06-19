@@ -79,6 +79,7 @@ public:
     std::string addDeviceToTrack(const std::string& trackId,
                                  const std::string& deviceType,
                                  int insertIndex = -1);
+    bool removeDeviceFromTrack(const std::string& deviceId);
     bool setDeviceParameter(const std::string& deviceId,
                             const std::string& parameterId,
                             float value);

@@ -65,6 +65,14 @@ class EngineBridge {
     });
   }
 
+  Future<ProjectSnapshot> removeDeviceFromTrack({
+    required String deviceId,
+  }) async {
+    return _invokeForSnapshot('removeDeviceFromTrack', {
+      'deviceId': deviceId,
+    });
+  }
+
   Future<ProjectSnapshot> setDeviceParameter({
     required String deviceId,
     required String parameterId,

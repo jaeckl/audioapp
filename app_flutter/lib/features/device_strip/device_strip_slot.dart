@@ -48,6 +48,7 @@ class DeviceStripSlot extends StatefulWidget {
     this.onSynthTabChanged,
     this.onCollapse,
     this.onBypassToggle,
+    this.onDeleteRequest,
     this.onOpenLibrary,
     this.onPreviewSample,
     this.onPreviewSampler,
@@ -76,6 +77,7 @@ class DeviceStripSlot extends StatefulWidget {
   final ValueChanged<SubtractiveDeviceTab>? onSynthTabChanged;
   final VoidCallback? onCollapse;
   final VoidCallback? onBypassToggle;
+  final VoidCallback? onDeleteRequest;
   final VoidCallback? onOpenLibrary;
   final ValueChanged<SampleLibraryEntrySnapshot>? onPreviewSample;
   final ValueChanged<int>? onPreviewSampler;
@@ -374,12 +376,15 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             return SizedBox(
               width: _slotWidth,
               height: cardHeight,
-              child: DeviceStripCard(
-                deviceType: widget.device.type,
-                subtitle: _cardSubtitle,
-                headerOnly: true,
-                bodyHeight: 0,
-                child: const SizedBox.shrink(),
+              child: GestureDetector(
+                onLongPress: widget.onDeleteRequest,
+                child: DeviceStripCard(
+                  deviceType: widget.device.type,
+                  subtitle: _cardSubtitle,
+                  headerOnly: true,
+                  bodyHeight: 0,
+                  child: const SizedBox.shrink(),
+                ),
               ),
             );
           }
@@ -402,6 +407,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                       ? 'Open preset library'
                       : 'Open sample library',
                   onBypassToggle: widget.onBypassToggle ?? () {},
+                  onDelete: widget.onDeleteRequest,
                   onLibrary: widget.onOpenLibrary,
                   modActive: _modStripVisible,
                   onModToggle: () async {

@@ -90,6 +90,43 @@ std::string ProjectEngine::addDeviceToTrack(const std::string& trackId,
     return deviceId;
 }
 
+bool ProjectEngine::removeDeviceFromTrack(const std::string& deviceId) {
+    if (deviceId.empty()) {
+        return false;
+    }
+
+    Track* ownerTrack = nullptr;
+    size_t deviceIndex = 0;
+    for (auto& track : trackRepo_.tracks()) {
+        for (size_t i = 0; i < track.devices.size(); ++i) {
+            if (track.devices[i].id == deviceId) {
+                ownerTrack = &track;
+                deviceIndex = i;
+                break;
+            }
+        }
+        if (ownerTrack != nullptr) {
+            break;
+        }
+    }
+    if (ownerTrack == nullptr) {
+        return false;
+    }
+
+    const auto& slot = ownerTrack->devices[deviceIndex];
+    if (std::holds_alternative<TrackGainInstance>(slot.instance)) {
+        return false;
+    }
+
+    ownerTrack->devices.erase(ownerTrack->devices.begin() + static_cast<std::ptrdiff_t>(deviceIndex));
+    clipRepo_.unlinkAutomationForDevice(deviceId);
+    modulationGraph_.removeModulationForDevice(deviceId);
+    liveMixer_.allNotesOff();
+    syncActiveFrequencyLocked();
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
 bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
                                        const std::string& parameterId,
                                        float value) {

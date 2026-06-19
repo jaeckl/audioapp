@@ -31,6 +31,7 @@ public:
                           const std::string& paramId,
                           float amount);
     bool removeModulation(int lfoId, const std::string& paramId);
+    void removeModulationForDevice(const std::string& deviceId);
     bool hasLfo(int lfoId) const;
 
     const std::vector<LfoState>& lfos() const { return lfos_; }

@@ -310,6 +310,40 @@ void main() {
               ],
             },
           };
+        case 'removeDeviceFromTrack':
+          return {
+            'ok': true,
+            'snapshot': {
+              'bpm': 120,
+              'playheadBeats': 0.0,
+              'playing': false,
+              'selectedTrackId': 'track-1',
+              'tracks': [
+                {
+                  'id': 'track-1',
+                  'name': 'Track 1',
+                  'devices': [
+                    {
+                      'id': 'dev-2',
+                      'type': 'track_gain',
+                      'parameters': {'gain': 1.0},
+                    },
+                  ],
+                  'midiClips': [],
+                  'automationClips': [
+                    {
+                      'id': 'aclip-1',
+                      'startBeat': 0.0,
+                      'lengthBeats': 4.0,
+                      'deviceId': '',
+                      'paramId': '',
+                      'points': [],
+                    },
+                  ],
+                },
+              ],
+            },
+          };
         case 'saveProject':
           return {'ok': true, 'uri': 'file:///tmp/project.audioapp.zip', 'cancelled': false};
         case 'loadProject':
@@ -443,6 +477,13 @@ void main() {
     expect(clip.isLinked, isTrue);
     expect(clip.deviceId, 'dev-1');
     expect(clip.paramId, 'filterCutoff');
+  });
+
+  test('removeDeviceFromTrack returns updated snapshot', () async {
+    await bridge.addTrack(name: 'Track 1');
+    final snapshot = await bridge.removeDeviceFromTrack(deviceId: 'dev-1');
+    expect(snapshot.selectedTrack!.visibleDevices, isEmpty);
+    expect(snapshot.selectedTrack!.automationClips.first.isLinked, isFalse);
   });
 
   test('setAutomationPoints updates curve breakpoints', () async {

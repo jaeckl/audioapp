@@ -36,6 +36,7 @@ public:
                                 const std::string& paramId);
     bool setAutomationPoints(const std::string& clipId,
                              const std::vector<AutomationPointState>& points);
+    void unlinkAutomationForDevice(const std::string& deviceId);
 
     MidiClip* findMidiClip(const std::string& clipId);
     SampleClip* findSampleClip(const std::string& clipId);

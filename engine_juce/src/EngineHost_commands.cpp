@@ -28,6 +28,10 @@ std::string EngineHost::addDeviceToTrack(const std::string& trackId,
     return project_.addDeviceToTrack(trackId, deviceType, insertIndex);
 }
 
+bool EngineHost::removeDeviceFromTrack(const std::string& deviceId) {
+    return project_.removeDeviceFromTrack(deviceId);
+}
+
 bool EngineHost::setDeviceParameter(const std::string& deviceId,
                                     const std::string& parameterId,
                                     float value) {

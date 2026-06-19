@@ -11,7 +11,8 @@ class DeviceToolRail extends StatelessWidget {
     required this.accentColor,
     required this.bypassed,
     required this.showLibrary,
-    required this.onBypassToggle,
+    required     this.onBypassToggle,
+    this.onDelete,
     this.libraryTooltip = 'Open sample library',
     this.onLibrary,
     this.modActive = false,
@@ -23,6 +24,7 @@ class DeviceToolRail extends StatelessWidget {
   final bool bypassed;
   final bool showLibrary;
   final VoidCallback onBypassToggle;
+  final VoidCallback? onDelete;
   final String libraryTooltip;
   final VoidCallback? onLibrary;
   final bool modActive;
@@ -84,6 +86,13 @@ class DeviceToolRail extends StatelessWidget {
                       tooltip: libraryTooltip,
                       enabled: onLibrary != null,
                       onPressed: onLibrary,
+                    ),
+                  if (onDelete != null)
+                    _ToolRailButton(
+                      icon: Icons.delete_outline,
+                      tooltip: 'Delete device',
+                      active: false,
+                      onPressed: onDelete,
                     ),
                 ],
               ),

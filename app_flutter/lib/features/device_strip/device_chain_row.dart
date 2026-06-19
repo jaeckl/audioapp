@@ -28,6 +28,7 @@ class DeviceChainRow extends StatelessWidget {
     this.synthTabFor,
     this.scrollController,
     this.onBypassToggle,
+    this.onDeleteDevice,
     this.onOpenLibrary,
     this.onPreviewSample,
     this.onPreviewSampler,
@@ -58,6 +59,7 @@ class DeviceChainRow extends StatelessWidget {
   final SubtractiveDeviceTab Function(String deviceId)? synthTabFor;
   final ScrollController? scrollController;
   final void Function(String deviceId, bool bypassed)? onBypassToggle;
+  final void Function(DeviceSnapshot device)? onDeleteDevice;
   final void Function(DeviceSnapshot device)? onOpenLibrary;
   final ValueChanged<SampleLibraryEntrySnapshot>? onPreviewSample;
   final ValueChanged<int>? onPreviewSampler;
@@ -134,6 +136,9 @@ class DeviceChainRow extends StatelessWidget {
                   onBypassToggle: onBypassToggle == null
                       ? null
                       : () => onBypassToggle!(devices[i].id, !devices[i].bypassed),
+                  onDeleteRequest: onDeleteDevice == null
+                      ? null
+                      : () => onDeleteDevice!(devices[i]),
                   onOpenLibrary:
                       onOpenLibrary == null ? null : () => onOpenLibrary!(devices[i]),
                   onPreviewSample: onPreviewSample,

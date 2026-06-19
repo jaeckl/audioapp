@@ -17,6 +17,8 @@ import '../features/content_library/library_catalog.dart';
 import '../features/content_library/library_category.dart';
 import '../features/content_library/library_fly_in_panel.dart';
 import '../features/device_strip/device_strip.dart';
+import '../features/device_strip/device_strip_device_kind.dart';
+import '../features/device_strip/device_strip_theme.dart';
 import '../features/device_strip/subtractive_synth_editor_screen.dart';
 import '../features/device_strip/subtractive_synth_presets.dart';
 import '../features/mixer/mixer_view.dart';
@@ -1152,6 +1154,54 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _confirmRemoveDevice(
+    TrackSnapshot track,
+    DeviceSnapshot device,
+  ) async {
+    final label = DeviceStripTheme.labelForDeviceType(device.type);
+    final isLastInstrument =
+        device.isInstrumentDevice && track.visibleInstrumentCount <= 1;
+    final hasAutomation = track.hasLinkedAutomationFor(device.id);
+
+    final message = StringBuffer('Remove $label from this track?');
+    if (hasAutomation) {
+      message.write('\n\nAutomation linked to this device will be unlinked.');
+    }
+    if (isLastInstrument) {
+      message.write(
+        '\n\nThis is the only instrument on the track. MIDI clips will be silent until you add a new device.',
+      );
+    }
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete device?'),
+        content: Text(message.toString()),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    try {
+      final snapshot = await widget.bridge.removeDeviceFromTrack(deviceId: device.id);
+      await _refreshSnapshot(snapshot);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Removed $label')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
   Future<void> _confirmDeleteClip(String clipId) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -1381,6 +1431,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             onFrequencyChanged: _setFrequency,
             onAddDevice: _addDeviceToTrack,
             onBypassToggle: (deviceId, bypassed) => _setDeviceBypass(deviceId, bypassed),
+            onRemoveDevice: _confirmRemoveDevice,
             onOpenDeviceLibrary: _openDeviceLibrary,
             onModulationBridgeCall: _modulationBridgeCall,
             automationLinkClipId: _automationLinkClipId,

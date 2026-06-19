@@ -30,6 +30,7 @@ class DeviceChainScreen extends StatefulWidget {
     this.onSynthTabChanged,
     this.synthTabFor,
     this.onBypassToggle,
+    this.onDeleteDevice,
     this.onModulationBridgeCall,
     this.automationLinkClipId,
     this.onAutomationParamSelected,
@@ -53,6 +54,7 @@ class DeviceChainScreen extends StatefulWidget {
   final void Function(String deviceId, SubtractiveDeviceTab tab)? onSynthTabChanged;
   final SubtractiveDeviceTab Function(String deviceId)? synthTabFor;
   final void Function(String deviceId, bool bypassed)? onBypassToggle;
+  final void Function(DeviceSnapshot device)? onDeleteDevice;
   final Future<ProjectSnapshot> Function(String method, Map<String, dynamic> args)?
       onModulationBridgeCall;
   final String? automationLinkClipId;
@@ -209,6 +211,7 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
                       onSamplerTabChanged: widget.onSamplerTabChanged,
                       onSynthTabChanged: widget.onSynthTabChanged,
                       onBypassToggle: widget.onBypassToggle == null ? null : _onBypassToggle,
+                      onDeleteDevice: widget.onDeleteDevice,
                       onOpenLibrary: _openLibrary,
                       onPreviewSample: widget.onPreviewAudio,
                       lfos: widget.snapshot.lfos,

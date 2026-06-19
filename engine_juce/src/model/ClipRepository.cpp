@@ -137,6 +137,20 @@ bool ClipRepository::setAutomationPoints(const std::string& clipId,
     return true;
 }
 
+void ClipRepository::unlinkAutomationForDevice(const std::string& deviceId) {
+    if (deviceId.empty()) {
+        return;
+    }
+    for (auto& track : tracks_.tracks()) {
+        for (auto& clip : track.automationClips) {
+            if (clip.deviceId == deviceId) {
+                clip.deviceId.clear();
+                clip.paramId.clear();
+            }
+        }
+    }
+}
+
 bool ClipRepository::moveClip(const std::string& clipId,
                               const std::string& targetTrackId,
                               double startBeat) {

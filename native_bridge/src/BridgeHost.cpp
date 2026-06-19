@@ -59,6 +59,13 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         }
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
+    if (method == "removeDeviceFromTrack") {
+        const auto deviceId = jsonGetStringArg(argumentsJson, "deviceId");
+        if (!engine().removeDeviceFromTrack(deviceId)) {
+            return buildBridgeError("device_not_removable");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
     if (method == "setDeviceParameter") {
         const auto deviceId = jsonGetStringArg(argumentsJson, "deviceId");
         const auto parameterId = jsonGetStringArg(argumentsJson, "parameterId");
