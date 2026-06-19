@@ -293,6 +293,7 @@ class DeviceSnapshot {
     this.kickTone = 0.50,
     this.kickVelocity = 1.0,
     this.kickKeyTrack = 1.0,
+    this.snareModel = 0.0,
     this.snareBody = 0.55,
     this.snareTune = 0.50,
     this.snareSnares = 0.60,
@@ -386,6 +387,7 @@ class DeviceSnapshot {
   final double kickTone;
   final double kickVelocity;
   final double kickKeyTrack;
+  final double snareModel;
   final double snareBody;
   final double snareTune;
   final double snareSnares;
@@ -483,6 +485,7 @@ class DeviceSnapshot {
       kickTone: (params['kickTone'] as num?)?.toDouble() ?? 0.50,
       kickVelocity: (params['kickVelocity'] as num?)?.toDouble() ?? 1.0,
       kickKeyTrack: (params['kickKeyTrack'] as num?)?.toDouble() ?? 1.0,
+      snareModel: (params['snareModel'] as num?)?.toDouble() ?? 0.0,
       snareBody: (params['snareBody'] as num?)?.toDouble() ?? 0.55,
       snareTune: (params['snareTune'] as num?)?.toDouble() ?? 0.50,
       snareSnares: (params['snareSnares'] as num?)?.toDouble() ?? 0.60,
@@ -634,6 +637,7 @@ class DeviceSnapshot {
     double? kickTone,
     double? kickVelocity,
     double? kickKeyTrack,
+    double? snareModel,
     double? snareBody,
     double? snareTune,
     double? snareSnares,
@@ -727,6 +731,7 @@ class DeviceSnapshot {
       kickTone: kickTone ?? this.kickTone,
       kickVelocity: kickVelocity ?? this.kickVelocity,
       kickKeyTrack: kickKeyTrack ?? this.kickKeyTrack,
+      snareModel: snareModel ?? this.snareModel,
       snareBody: snareBody ?? this.snareBody,
       snareTune: snareTune ?? this.snareTune,
       snareSnares: snareSnares ?? this.snareSnares,
@@ -863,6 +868,8 @@ class DeviceSnapshot {
         return copyWith(kickVelocity: value.clamp(0.0, 1.0));
       case 'kickKeyTrack':
         return copyWith(kickKeyTrack: value >= 0.5 ? 1.0 : 0.0);
+      case 'snareModel':
+        return copyWith(snareModel: value.clamp(0.0, 1.0));
       case 'snareBody':
         return copyWith(snareBody: value.clamp(0.0, 1.0));
       case 'snareTune':

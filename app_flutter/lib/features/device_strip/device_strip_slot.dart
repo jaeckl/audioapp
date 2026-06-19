@@ -555,7 +555,6 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           child: SnareGeneratorDeviceStrip(
             device: widget.device,
             onParameterChanged: widget.onDeviceParameterChanged,
-            selectedTab: SnareDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
             modulatedParams: _modulatedParamIds,
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,

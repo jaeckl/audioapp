@@ -147,6 +147,7 @@ juce::var deviceToVar(const DeviceState& device) {
         parameters->setProperty("kickKeyTrack", static_cast<double>(device.kickKeyTrack));
     }
     if (device.type == "snare_generator") {
+        parameters->setProperty("snareModel", static_cast<double>(device.snareModel));
         parameters->setProperty("snareBody", static_cast<double>(device.snareBody));
         parameters->setProperty("snareTune", static_cast<double>(device.snareTune));
         parameters->setProperty("snareSnares", static_cast<double>(device.snareSnares));
@@ -290,6 +291,7 @@ DeviceState deviceFromVar(const juce::var& value) {
             device.kickTone = varToFloat(params->getProperty("kickTone"), 0.50f);
             device.kickVelocity = varToFloat(params->getProperty("kickVelocity"), 1.0f);
             device.kickKeyTrack = varToFloat(params->getProperty("kickKeyTrack"), 1.0f);
+            device.snareModel = varToFloat(params->getProperty("snareModel"), 0.0f);
             device.snareBody = varToFloat(params->getProperty("snareBody"), 0.55f);
             device.snareTune = varToFloat(params->getProperty("snareTune"), 0.50f);
             device.snareSnares = varToFloat(params->getProperty("snareSnares"), 0.60f);

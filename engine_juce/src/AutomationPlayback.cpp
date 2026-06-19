@@ -166,6 +166,8 @@ void applyAutomationValue(DeviceVariantParams& params,
         if (auto* p = std::get_if<SnareGeneratorParams>(&params)) {
             if (paramId == "gain") {
                 p->gain = value;
+            } else if (paramId == "snareModel") {
+                p->snareModel = value;
             } else if (paramId == "snareBody") {
                 p->snareBody = value;
             } else if (paramId == "snareTune") {

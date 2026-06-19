@@ -163,7 +163,9 @@ void applyModulation(KickGeneratorParams& p, float modAmount, const std::string&
 }
 
 void applyModulation(SnareGeneratorParams& p, float modAmount, const std::string& paramId) noexcept {
-    if (paramId == "snareBody") {
+    if (paramId == "snareModel") {
+        p.snareModel = std::clamp(p.snareModel + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "snareBody") {
         p.snareBody = std::clamp(p.snareBody + modAmount, 0.0f, 1.0f);
     } else if (paramId == "snareTune") {
         p.snareTune = std::clamp(p.snareTune + modAmount, 0.0f, 1.0f);
