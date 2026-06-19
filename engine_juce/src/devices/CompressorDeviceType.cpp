@@ -21,6 +21,7 @@ DeviceState stripSnapshot(const DeviceSlot& slot, std::string_view typeId) {
 
 CompressorInstance instanceFromSnapshot(const DeviceState& state) {
     CompressorInstance instance;
+    instance.inputGain = state.inputGain;
     instance.compThreshold = state.compThreshold;
     instance.compRatio = state.compRatio;
     instance.compAttack = state.compAttack;
@@ -31,6 +32,7 @@ CompressorInstance instanceFromSnapshot(const DeviceState& state) {
 }
 
 void applyInstanceToSnapshot(const CompressorInstance& instance, DeviceState& state) {
+    state.inputGain = instance.inputGain;
     state.compThreshold = instance.compThreshold;
     state.compRatio = instance.compRatio;
     state.compAttack = instance.compAttack;
@@ -76,7 +78,9 @@ DeviceParameterResult CompressorDeviceType::setParameter(DeviceSlot& slot,
     }
     auto& instance = std::get<CompressorInstance>(slot.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
-    if (parameterId == "compThreshold") {
+    if (parameterId == "inputGain") {
+        instance.inputGain = clamped;
+    } else if (parameterId == "compThreshold") {
         instance.compThreshold = clamped;
     } else if (parameterId == "compRatio") {
         instance.compRatio = clamped;
@@ -103,7 +107,7 @@ bool CompressorDeviceType::setStringParameter(DeviceSlot&,
 }
 
 std::vector<std::string_view> CompressorDeviceType::modulatableParams() const {
-    return {"gain", "pan", "compThreshold", "compRatio", "compAttack", "compRelease", "compKnee",
+    return {"gain", "pan", "inputGain", "compThreshold", "compRatio", "compAttack", "compRelease", "compKnee",
             "compMakeup"};
 }
 

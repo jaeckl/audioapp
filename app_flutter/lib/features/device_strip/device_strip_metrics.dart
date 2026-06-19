@@ -1,3 +1,5 @@
+import 'device_knob_sizes.dart';
+
 /// Device strip layout constants.
 class DeviceStripMetrics {
   const DeviceStripMetrics._();
@@ -38,6 +40,22 @@ class DeviceStripMetrics {
 
   static const double oscillatorDesignWidth = 360;
 
+  /// Subtractive synth: three-tab layout (Osc · Mix · Tone) needs filter+amp in one row.
+  static const double subtractiveSynthDesignWidth = 500;
+
+  /// Dynamics FX knob grid — panel width shrink-wraps to this.
+  static const double dynamicsFxKnobSize = DeviceKnobSizes.strip;
+  static const double dynamicsFxKnobGap = 8;
+  static const double dynamicsFxKnobColumnWidth = 62;
+  static const double dynamicsFxPanelPaddingH = 12;
+
+  static double get dynamicsFxKnobGridWidth =>
+      3 * dynamicsFxKnobColumnWidth + 2 * dynamicsFxKnobGap;
+
+  /// Compact dynamics FX card (2-row knob grid + preview).
+  static double get dynamicsFxDesignWidth =>
+      dynamicsFxKnobGridWidth + dynamicsFxPanelPaddingH;
+
   static const double collapsedDesignWidth = 160;
 
   /// Tool rail prepended to expanded/fullscreen device cards.
@@ -52,8 +70,8 @@ class DeviceStripMetrics {
   /// Mono drum output column (gain + velocity sens).
   static const double drumMonoOutputPanelWidth = 64;
 
-  /// Dynamics FX output column (gain + GR).
-  static const double dynamicsOutputPanelWidth = 72;
+  /// Dynamics FX output column (GR meter + gain) — matches [dynamicsInputPanelWidth].
+  static const double dynamicsOutputPanelWidth = dynamicsInputPanelWidth;
 
   /// Dynamics FX input column (meter).
   static const double dynamicsInputPanelWidth = 64;
@@ -73,16 +91,16 @@ class DeviceStripMetrics {
     }
     return switch (deviceType) {
       'simple_sampler' => designWidth,
-      'subtractive_synth' => oscillatorDesignWidth,
+      'subtractive_synth' => subtractiveSynthDesignWidth,
       'kick_generator' => kickDesignWidth,
       'snare_generator' => kickDesignWidth,
       'clap_generator' => oscillatorDesignWidth,
       'cymbal_generator' => kickDesignWidth,
       'crash_generator' => kickDesignWidth,
-      'gate' => oscillatorDesignWidth,
-      'compressor' => oscillatorDesignWidth,
-      'expander' => oscillatorDesignWidth,
-      'limiter' => oscillatorDesignWidth,
+      'gate' => dynamicsFxDesignWidth,
+      'compressor' => dynamicsFxDesignWidth,
+      'expander' => dynamicsFxDesignWidth,
+      'limiter' => dynamicsFxDesignWidth,
       'simple_oscillator' => oscillatorDesignWidth,
       _ => 280,
     };

@@ -260,7 +260,9 @@ void applyAutomationValue(DeviceVariantParams& params,
         break;
     case DeviceNodeKind::Gate:
         if (auto* p = std::get_if<GateParams>(&params)) {
-            if (paramId == "gateThreshold") {
+            if (paramId == "inputGain") {
+                p->inputGain = value;
+            } else if (paramId == "gateThreshold") {
                 p->gateThreshold = value;
             } else if (paramId == "gateAttack") {
                 p->gateAttack = value;
@@ -275,7 +277,9 @@ void applyAutomationValue(DeviceVariantParams& params,
         break;
     case DeviceNodeKind::Compressor:
         if (auto* p = std::get_if<CompressorParams>(&params)) {
-            if (paramId == "compThreshold") {
+            if (paramId == "inputGain") {
+                p->inputGain = value;
+            } else if (paramId == "compThreshold") {
                 p->compThreshold = value;
             } else if (paramId == "compRatio") {
                 p->compRatio = value;
@@ -292,7 +296,9 @@ void applyAutomationValue(DeviceVariantParams& params,
         break;
     case DeviceNodeKind::Expander:
         if (auto* p = std::get_if<ExpanderParams>(&params)) {
-            if (paramId == "expandThreshold") {
+            if (paramId == "inputGain") {
+                p->inputGain = value;
+            } else if (paramId == "expandThreshold") {
                 p->expandThreshold = value;
             } else if (paramId == "expandRatio") {
                 p->expandRatio = value;
@@ -307,12 +313,20 @@ void applyAutomationValue(DeviceVariantParams& params,
         break;
     case DeviceNodeKind::Limiter:
         if (auto* p = std::get_if<LimiterParams>(&params)) {
-            if (paramId == "limitCeiling") {
+            if (paramId == "inputGain") {
+                p->inputGain = value;
+            } else if (paramId == "limitCeiling") {
                 p->limitCeiling = value;
+            } else if (paramId == "limitAttack") {
+                p->limitAttack = value;
             } else if (paramId == "limitRelease") {
                 p->limitRelease = value;
+            } else if (paramId == "limitKnee") {
+                p->limitKnee = value;
             } else if (paramId == "limitDrive") {
                 p->limitDrive = value;
+            } else if (paramId == "limitMakeup") {
+                p->limitMakeup = value;
             }
         }
         break;

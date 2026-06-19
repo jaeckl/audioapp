@@ -10,6 +10,7 @@ class DraggableIntValueBox extends StatefulWidget {
     this.min = -2,
     this.max = 2,
     this.label = 'Oct',
+    this.showLabel = true,
   });
 
   final int value;
@@ -18,6 +19,7 @@ class DraggableIntValueBox extends StatefulWidget {
   final int min;
   final int max;
   final String label;
+  final bool showLabel;
 
   @override
   State<DraggableIntValueBox> createState() => _DraggableIntValueBoxState();
@@ -66,11 +68,13 @@ class _DraggableIntValueBoxState extends State<DraggableIntValueBox> {
             ),
           ),
         ),
-        const SizedBox(height: 2),
-        Text(
-          widget.label,
-          style: const TextStyle(color: Colors.white54, fontSize: 9, fontWeight: FontWeight.w600),
-        ),
+        if (widget.showLabel) ...[
+          const SizedBox(height: 2),
+          Text(
+            widget.label,
+            style: const TextStyle(color: Colors.white54, fontSize: 9, fontWeight: FontWeight.w600),
+          ),
+        ],
       ],
     );
   }

@@ -243,7 +243,7 @@ void main() {
 
     // Full dynamics chain row
     const rowHeight = DeviceStripMetrics.height;
-    const slotWidth = DeviceStripMetrics.oscillatorDesignWidth;
+    const slotWidth = DeviceStripMetrics.dynamicsFxDesignWidth;
     const rowWidth = slotWidth * 4 + 24;
 
     await tester.binding.setSurfaceSize(Size(rowWidth + 32, rowHeight + 32));

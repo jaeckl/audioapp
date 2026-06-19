@@ -21,6 +21,7 @@ DeviceState stripSnapshot(const DeviceSlot& slot, std::string_view typeId) {
 
 GateInstance instanceFromSnapshot(const DeviceState& state) {
     GateInstance instance;
+    instance.inputGain = state.inputGain;
     instance.gateThreshold = state.gateThreshold;
     instance.gateAttack = state.gateAttack;
     instance.gateRelease = state.gateRelease;
@@ -30,6 +31,7 @@ GateInstance instanceFromSnapshot(const DeviceState& state) {
 }
 
 void applyInstanceToSnapshot(const GateInstance& instance, DeviceState& state) {
+    state.inputGain = instance.inputGain;
     state.gateThreshold = instance.gateThreshold;
     state.gateAttack = instance.gateAttack;
     state.gateRelease = instance.gateRelease;
@@ -74,7 +76,9 @@ DeviceParameterResult GateDeviceType::setParameter(DeviceSlot& slot,
     }
     auto& instance = std::get<GateInstance>(slot.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
-    if (parameterId == "gateThreshold") {
+    if (parameterId == "inputGain") {
+        instance.inputGain = clamped;
+    } else if (parameterId == "gateThreshold") {
         instance.gateThreshold = clamped;
     } else if (parameterId == "gateAttack") {
         instance.gateAttack = clamped;
@@ -99,7 +103,7 @@ bool GateDeviceType::setStringParameter(DeviceSlot&,
 }
 
 std::vector<std::string_view> GateDeviceType::modulatableParams() const {
-    return {"gain", "pan", "gateThreshold", "gateAttack", "gateRelease", "gateHold", "gateRange"};
+    return {"gain", "pan", "inputGain", "gateThreshold", "gateAttack", "gateRelease", "gateHold", "gateRange"};
 }
 
 void GateDeviceType::buildPlaybackNode(const DeviceSlot& slot,

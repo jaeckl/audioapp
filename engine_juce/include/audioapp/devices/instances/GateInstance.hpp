@@ -5,6 +5,7 @@
 namespace audioapp {
 
 struct GateInstance {
+    float inputGain = 1.0f;
     float gateThreshold = 0.45f;
     float gateAttack = 0.25f;
     float gateRelease = 0.50f;
@@ -14,6 +15,7 @@ struct GateInstance {
     GateParams toPlaybackParams() const {
         GateParams params;
         params.gain = 1.0f;
+        params.inputGain = inputGain;
         params.gateThreshold = gateThreshold;
         params.gateAttack = gateAttack;
         params.gateRelease = gateRelease;

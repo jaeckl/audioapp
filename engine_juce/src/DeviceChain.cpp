@@ -250,7 +250,9 @@ void applyModulation(CrashGeneratorParams& p, float modAmount, const std::string
 }
 
 void applyModulation(GateParams& p, float modAmount, const std::string& paramId) noexcept {
-    if (paramId == "gateThreshold") {
+    if (paramId == "inputGain") {
+        p.inputGain = std::clamp(p.inputGain + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "gateThreshold") {
         p.gateThreshold = std::clamp(p.gateThreshold + modAmount, 0.0f, 1.0f);
     } else if (paramId == "gateAttack") {
         p.gateAttack = std::clamp(p.gateAttack + modAmount, 0.0f, 1.0f);
@@ -264,7 +266,9 @@ void applyModulation(GateParams& p, float modAmount, const std::string& paramId)
 }
 
 void applyModulation(CompressorParams& p, float modAmount, const std::string& paramId) noexcept {
-    if (paramId == "compThreshold") {
+    if (paramId == "inputGain") {
+        p.inputGain = std::clamp(p.inputGain + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "compThreshold") {
         p.compThreshold = std::clamp(p.compThreshold + modAmount, 0.0f, 1.0f);
     } else if (paramId == "compRatio") {
         p.compRatio = std::clamp(p.compRatio + modAmount, 0.0f, 1.0f);
@@ -280,7 +284,9 @@ void applyModulation(CompressorParams& p, float modAmount, const std::string& pa
 }
 
 void applyModulation(ExpanderParams& p, float modAmount, const std::string& paramId) noexcept {
-    if (paramId == "expandThreshold") {
+    if (paramId == "inputGain") {
+        p.inputGain = std::clamp(p.inputGain + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "expandThreshold") {
         p.expandThreshold = std::clamp(p.expandThreshold + modAmount, 0.0f, 1.0f);
     } else if (paramId == "expandRatio") {
         p.expandRatio = std::clamp(p.expandRatio + modAmount, 0.0f, 1.0f);
@@ -294,12 +300,28 @@ void applyModulation(ExpanderParams& p, float modAmount, const std::string& para
 }
 
 void applyModulation(LimiterParams& p, float modAmount, const std::string& paramId) noexcept {
-    if (paramId == "limitCeiling") {
+    if (paramId == "inputGain") {
+        p.inputGain = std::clamp(p.inputGain + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "limitCeiling") {
         p.limitCeiling = std::clamp(p.limitCeiling + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "limitAttack") {
+        p.limitAttack = std::clamp(p.limitAttack + modAmount, 0.0f, 1.0f);
     } else if (paramId == "limitRelease") {
         p.limitRelease = std::clamp(p.limitRelease + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "limitKnee") {
+        p.limitKnee = std::clamp(p.limitKnee + modAmount, 0.0f, 1.0f);
     } else if (paramId == "limitDrive") {
         p.limitDrive = std::clamp(p.limitDrive + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "limitMakeup") {
+        p.limitMakeup = std::clamp(p.limitMakeup + modAmount, 0.0f, 1.0f);
+    }
+}
+
+/// Multiply stereo buffers by a scalar gain.
+void applyStereoScalarGain(float* left, float* right, int frames, float gain) noexcept {
+    for (int f = 0; f < frames; ++f) {
+        left[f] *= gain;
+        right[f] *= gain;
     }
 }
 
@@ -701,6 +723,8 @@ void processDeviceChain(float* trackLeft,
             DynamicsRuntime localRuntime{};
             DynamicsRuntime& runtime =
                 dynamicsRuntimes != nullptr ? dynamicsRuntimes[deviceIndex] : localRuntime;
+            const float inputGain = std::clamp(p.inputGain, 0.0f, 1.0f);
+            applyStereoScalarGain(trackLeft, trackRight, framesToProcess, inputGain);
             const float inputPeak = stereoBlockPeak(trackLeft, trackRight, framesToProcess);
             processGateStereoBlock(trackLeft, trackRight, framesToProcess, sampleRate, p, runtime);
             publishDynamicsMeters(node, runtime, inputPeak, deviceMeters, maxDeviceMeters);
@@ -715,6 +739,8 @@ void processDeviceChain(float* trackLeft,
             DynamicsRuntime localRuntime{};
             DynamicsRuntime& runtime =
                 dynamicsRuntimes != nullptr ? dynamicsRuntimes[deviceIndex] : localRuntime;
+            const float inputGain = std::clamp(p.inputGain, 0.0f, 1.0f);
+            applyStereoScalarGain(trackLeft, trackRight, framesToProcess, inputGain);
             const float inputPeak = stereoBlockPeak(trackLeft, trackRight, framesToProcess);
             processCompressorStereoBlock(trackLeft, trackRight, framesToProcess, sampleRate, p,
                                          runtime);
@@ -730,6 +756,8 @@ void processDeviceChain(float* trackLeft,
             DynamicsRuntime localRuntime{};
             DynamicsRuntime& runtime =
                 dynamicsRuntimes != nullptr ? dynamicsRuntimes[deviceIndex] : localRuntime;
+            const float inputGain = std::clamp(p.inputGain, 0.0f, 1.0f);
+            applyStereoScalarGain(trackLeft, trackRight, framesToProcess, inputGain);
             const float inputPeak = stereoBlockPeak(trackLeft, trackRight, framesToProcess);
             processExpanderStereoBlock(trackLeft, trackRight, framesToProcess, sampleRate, p,
                                        runtime);
@@ -745,6 +773,8 @@ void processDeviceChain(float* trackLeft,
             DynamicsRuntime localRuntime{};
             DynamicsRuntime& runtime =
                 dynamicsRuntimes != nullptr ? dynamicsRuntimes[deviceIndex] : localRuntime;
+            const float inputGain = std::clamp(p.inputGain, 0.0f, 1.0f);
+            applyStereoScalarGain(trackLeft, trackRight, framesToProcess, inputGain);
             const float inputPeak = stereoBlockPeak(trackLeft, trackRight, framesToProcess);
             processLimiterStereoBlock(trackLeft, trackRight, framesToProcess, sampleRate, p, runtime);
             publishDynamicsMeters(node, runtime, inputPeak, deviceMeters, maxDeviceMeters);

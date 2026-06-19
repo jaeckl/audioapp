@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
 import 'device_knob_sizes.dart';
+import 'device_strip_metrics.dart';
 import 'device_tab_bar.dart';
 import 'dynamics_envelope_preview.dart';
 import 'rotary_knob.dart';
@@ -13,6 +14,8 @@ enum LimiterDeviceTab { ceiling, time, gain }
 
 typedef DynamicsParameterChanged = void Function(String parameterId, double value);
 typedef DynamicsModulationAssign = void Function(String paramId, double amount)?;
+
+const double _dynamicsKnobRowGap = 10;
 
 class _DynamicsKnob extends StatelessWidget {
   const _DynamicsKnob({
@@ -29,6 +32,7 @@ class _DynamicsKnob extends StatelessWidget {
     required this.onAutomationLinkTap,
     required this.onAutomateParameter,
     this.displayValue,
+    this.size = DeviceStripMetrics.dynamicsFxKnobSize,
   });
 
   final String label;
@@ -44,13 +48,14 @@ class _DynamicsKnob extends StatelessWidget {
   final ValueChanged<String>? onAutomationLinkTap;
   final ValueChanged<String>? onAutomateParameter;
   final String? displayValue;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
     return RotaryKnob(
       label: label,
       value: value.clamp(0.0, 1.0),
-      size: DeviceKnobSizes.strip,
+      size: size,
       displayValue: displayValue,
       accentColor: accent,
       modulationActive: modulatedParams.contains(paramId),
@@ -110,6 +115,52 @@ _DynamicsKnob _knob({
   );
 }
 
+Widget _dynamicsSinglePage({
+  required Widget preview,
+  required List<Widget> rows,
+}) {
+  final hPad = DeviceStripMetrics.dynamicsFxPanelPaddingH / 2;
+  return Padding(
+    padding: EdgeInsets.fromLTRB(hPad, 6, hPad, 4),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(child: _previewBox(preview)),
+        const SizedBox(height: 8),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < rows.length; i++) ...[
+              if (i > 0) const SizedBox(height: _dynamicsKnobRowGap),
+              rows[i],
+            ],
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _knobGridRow(List<_DynamicsKnob?> slots) {
+  assert(slots.length == 3);
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      for (var i = 0; i < slots.length; i++) ...[
+        if (i > 0) const SizedBox(width: DeviceStripMetrics.dynamicsFxKnobGap),
+        SizedBox(
+          width: DeviceStripMetrics.dynamicsFxKnobColumnWidth,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: slots[i],
+          ),
+        ),
+      ],
+    ],
+  );
+}
+
 class GateDevicePanel extends StatelessWidget {
   const GateDevicePanel({
     super.key,
@@ -126,11 +177,7 @@ class GateDevicePanel extends StatelessWidget {
   });
 
   static const accent = Color(0xFF6EC9A8);
-  static const containerTabs = <DeviceTabSpec>[
-    DeviceTabSpec(label: 'Detect', icon: Icons.graphic_eq),
-    DeviceTabSpec(label: 'Time', icon: Icons.timer),
-    DeviceTabSpec(label: 'Range', icon: Icons.vertical_align_bottom),
-  ];
+  static const containerTabs = <DeviceTabSpec>[];
 
   final DeviceSnapshot device;
   final DynamicsParameterChanged onParameterChanged;
@@ -145,72 +192,111 @@ class GateDevicePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tab = selectedTab ?? GateDeviceTab.detect;
-    return switch (tab) {
-      GateDeviceTab.detect => Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            children: [
-              Expanded(
-                flex: 3,
-                child: _previewBox(DynamicsEnvelopePreview(
-                  threshold: device.gateThreshold,
-                  accent: accent,
-                )),
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                flex: 2,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _knob(
-                      label: 'Threshold',
-                      value: device.gateThreshold,
-                      paramId: 'gateThreshold',
-                      accent: accent,
-                      onParameterChanged: onParameterChanged,
-                      modulatedParams: modulatedParams,
-                      modulationAmounts: modulationAmounts,
-                      connectModeLfoId: connectModeLfoId,
-                      onModulationAssign: onModulationAssign,
-                      automationLinkActive: automationLinkActive,
-                      onAutomationLinkTap: onAutomationLinkTap,
-                      onAutomateParameter: onAutomateParameter,
-                      displayValue: dynamicsThresholdLabel(device.gateThreshold),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+    return _dynamicsSinglePage(
+      preview: DynamicsEnvelopePreview(
+        threshold: device.gateThreshold,
+        accent: accent,
+      ),
+      rows: [
+        _knobGridRow([
+          _knob(
+            label: 'Threshold',
+            value: device.gateThreshold,
+            paramId: 'gateThreshold',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: dynamicsThresholdLabel(device.gateThreshold),
           ),
-        ),
-      GateDeviceTab.time => Padding(
-          padding: const EdgeInsets.all(8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _knob(label: 'Attack', value: device.gateAttack, paramId: 'gateAttack', accent: accent, onParameterChanged: onParameterChanged, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter, displayValue: dynamicsTimeLabel(device.gateAttack)),
-              _knob(label: 'Release', value: device.gateRelease, paramId: 'gateRelease', accent: accent, onParameterChanged: onParameterChanged, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter, displayValue: dynamicsTimeLabel(device.gateRelease)),
-              _knob(label: 'Hold', value: device.gateHold, paramId: 'gateHold', accent: accent, onParameterChanged: onParameterChanged, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter, displayValue: dynamicsHoldLabel(device.gateHold)),
-            ],
+          _knob(
+            label: 'Attack',
+            value: device.gateAttack,
+            paramId: 'gateAttack',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: dynamicsTimeLabel(device.gateAttack),
           ),
-        ),
-      GateDeviceTab.range => Padding(
-          padding: const EdgeInsets.all(8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _knob(label: 'Floor', value: device.gateRange, paramId: 'gateRange', accent: accent, onParameterChanged: onParameterChanged, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter, displayValue: dynamicsRangeLabel(device.gateRange)),
-            ],
+          _knob(
+            label: 'Release',
+            value: device.gateRelease,
+            paramId: 'gateRelease',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: dynamicsTimeLabel(device.gateRelease),
           ),
-        ),
-    };
+        ]),
+        _knobGridRow([
+          _knob(
+            label: 'Hold',
+            value: device.gateHold,
+            paramId: 'gateHold',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: dynamicsHoldLabel(device.gateHold),
+          ),
+          _knob(
+            label: 'Floor',
+            value: device.gateRange,
+            paramId: 'gateRange',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: dynamicsRangeLabel(device.gateRange),
+          ),
+          null,
+        ]),
+      ],
+    );
   }
 }
 
 class GateDeviceStrip extends StatelessWidget {
-  const GateDeviceStrip({super.key, required this.device, required this.onParameterChanged, this.selectedTab, this.modulatedParams = const {}, this.modulationAmounts = const {}, this.connectModeLfoId, this.onModulationAssign, this.automationLinkActive = false, this.onAutomationLinkTap, this.onAutomateParameter});
+  const GateDeviceStrip({
+    super.key,
+    required this.device,
+    required this.onParameterChanged,
+    this.selectedTab,
+    this.modulatedParams = const {},
+    this.modulationAmounts = const {},
+    this.connectModeLfoId,
+    this.onModulationAssign,
+    this.automationLinkActive = false,
+    this.onAutomationLinkTap,
+    this.onAutomateParameter,
+  });
   final DeviceSnapshot device;
   final DynamicsParameterChanged onParameterChanged;
   final GateDeviceTab? selectedTab;
@@ -222,17 +308,36 @@ class GateDeviceStrip extends StatelessWidget {
   final ValueChanged<String>? onAutomationLinkTap;
   final ValueChanged<String>? onAutomateParameter;
   @override
-  Widget build(BuildContext context) => GateDevicePanel(device: device, onParameterChanged: onParameterChanged, selectedTab: selectedTab, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter);
+  Widget build(BuildContext context) => GateDevicePanel(
+        device: device,
+        onParameterChanged: onParameterChanged,
+        selectedTab: selectedTab,
+        modulatedParams: modulatedParams,
+        modulationAmounts: modulationAmounts,
+        connectModeLfoId: connectModeLfoId,
+        onModulationAssign: onModulationAssign,
+        automationLinkActive: automationLinkActive,
+        onAutomationLinkTap: onAutomationLinkTap,
+        onAutomateParameter: onAutomateParameter,
+      );
 }
 
 class CompressorDevicePanel extends StatelessWidget {
-  const CompressorDevicePanel({super.key, required this.device, required this.onParameterChanged, this.selectedTab, this.modulatedParams = const {}, this.modulationAmounts = const {}, this.connectModeLfoId, this.onModulationAssign, this.automationLinkActive = false, this.onAutomationLinkTap, this.onAutomateParameter});
+  const CompressorDevicePanel({
+    super.key,
+    required this.device,
+    required this.onParameterChanged,
+    this.selectedTab,
+    this.modulatedParams = const {},
+    this.modulationAmounts = const {},
+    this.connectModeLfoId,
+    this.onModulationAssign,
+    this.automationLinkActive = false,
+    this.onAutomationLinkTap,
+    this.onAutomateParameter,
+  });
   static const accent = Color(0xFFE8A54B);
-  static const containerTabs = <DeviceTabSpec>[
-    DeviceTabSpec(label: 'Comp', icon: Icons.compress),
-    DeviceTabSpec(label: 'Time', icon: Icons.timer),
-    DeviceTabSpec(label: 'Gain', icon: Icons.show_chart),
-  ];
+  static const containerTabs = <DeviceTabSpec>[];
   final DeviceSnapshot device;
   final DynamicsParameterChanged onParameterChanged;
   final CompressorDeviceTab? selectedTab;
@@ -246,17 +351,127 @@ class CompressorDevicePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tab = selectedTab ?? CompressorDeviceTab.comp;
-    return switch (tab) {
-      CompressorDeviceTab.comp => Padding(padding: const EdgeInsets.all(8), child: Column(children: [Expanded(flex: 3, child: _previewBox(DynamicsEnvelopePreview(threshold: device.compThreshold, ratio: device.compRatio, accent: accent, mode: DynamicsPreviewMode.compressor))), const SizedBox(height: 8), Expanded(flex: 2, child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [_knob(label: 'Threshold', value: device.compThreshold, paramId: 'compThreshold', accent: accent, onParameterChanged: onParameterChanged, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter, displayValue: dynamicsThresholdLabel(device.compThreshold)), _knob(label: 'Ratio', value: device.compRatio, paramId: 'compRatio', accent: accent, onParameterChanged: onParameterChanged, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter, displayValue: dynamicsRatioLabel(device.compRatio)), _knob(label: 'Knee', value: device.compKnee, paramId: 'compKnee', accent: accent, onParameterChanged: onParameterChanged, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter, displayValue: '${(device.compKnee * 12).round()} dB')]))])),
-      CompressorDeviceTab.time => Padding(padding: const EdgeInsets.all(8), child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [_knob(label: 'Attack', value: device.compAttack, paramId: 'compAttack', accent: accent, onParameterChanged: onParameterChanged, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter, displayValue: dynamicsTimeLabel(device.compAttack)), _knob(label: 'Release', value: device.compRelease, paramId: 'compRelease', accent: accent, onParameterChanged: onParameterChanged, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter, displayValue: dynamicsTimeLabel(device.compRelease))])),
-      CompressorDeviceTab.gain => Padding(padding: const EdgeInsets.all(8), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [_knob(label: 'Makeup', value: device.compMakeup, paramId: 'compMakeup', accent: accent, onParameterChanged: onParameterChanged, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter, displayValue: dynamicsMakeupLabel(device.compMakeup))])),
-    };
+    return _dynamicsSinglePage(
+      preview: DynamicsEnvelopePreview(
+        threshold: device.compThreshold,
+        ratio: device.compRatio,
+        accent: accent,
+        mode: DynamicsPreviewMode.compressor,
+      ),
+      rows: [
+        _knobGridRow([
+          _knob(
+            label: 'Threshold',
+            value: device.compThreshold,
+            paramId: 'compThreshold',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: dynamicsThresholdLabel(device.compThreshold),
+          ),
+          _knob(
+            label: 'Ratio',
+            value: device.compRatio,
+            paramId: 'compRatio',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: dynamicsRatioLabel(device.compRatio),
+          ),
+          _knob(
+            label: 'Knee',
+            value: device.compKnee,
+            paramId: 'compKnee',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: '${(device.compKnee * 12).round()} dB',
+          ),
+        ]),
+        _knobGridRow([
+          _knob(
+            label: 'Attack',
+            value: device.compAttack,
+            paramId: 'compAttack',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: dynamicsTimeLabel(device.compAttack),
+          ),
+          _knob(
+            label: 'Release',
+            value: device.compRelease,
+            paramId: 'compRelease',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: dynamicsTimeLabel(device.compRelease),
+          ),
+          _knob(
+            label: 'Makeup',
+            value: device.compMakeup,
+            paramId: 'compMakeup',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: dynamicsMakeupLabel(device.compMakeup),
+          ),
+        ]),
+      ],
+    );
   }
 }
 
 class CompressorDeviceStrip extends StatelessWidget {
-  const CompressorDeviceStrip({super.key, required this.device, required this.onParameterChanged, this.selectedTab, this.modulatedParams = const {}, this.modulationAmounts = const {}, this.connectModeLfoId, this.onModulationAssign, this.automationLinkActive = false, this.onAutomationLinkTap, this.onAutomateParameter});
+  const CompressorDeviceStrip({
+    super.key,
+    required this.device,
+    required this.onParameterChanged,
+    this.selectedTab,
+    this.modulatedParams = const {},
+    this.modulationAmounts = const {},
+    this.connectModeLfoId,
+    this.onModulationAssign,
+    this.automationLinkActive = false,
+    this.onAutomationLinkTap,
+    this.onAutomateParameter,
+  });
   final DeviceSnapshot device;
   final DynamicsParameterChanged onParameterChanged;
   final CompressorDeviceTab? selectedTab;
@@ -268,17 +483,36 @@ class CompressorDeviceStrip extends StatelessWidget {
   final ValueChanged<String>? onAutomationLinkTap;
   final ValueChanged<String>? onAutomateParameter;
   @override
-  Widget build(BuildContext context) => CompressorDevicePanel(device: device, onParameterChanged: onParameterChanged, selectedTab: selectedTab, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter);
+  Widget build(BuildContext context) => CompressorDevicePanel(
+        device: device,
+        onParameterChanged: onParameterChanged,
+        selectedTab: selectedTab,
+        modulatedParams: modulatedParams,
+        modulationAmounts: modulationAmounts,
+        connectModeLfoId: connectModeLfoId,
+        onModulationAssign: onModulationAssign,
+        automationLinkActive: automationLinkActive,
+        onAutomationLinkTap: onAutomationLinkTap,
+        onAutomateParameter: onAutomateParameter,
+      );
 }
 
 class ExpanderDevicePanel extends StatelessWidget {
-  const ExpanderDevicePanel({super.key, required this.device, required this.onParameterChanged, this.selectedTab, this.modulatedParams = const {}, this.modulationAmounts = const {}, this.connectModeLfoId, this.onModulationAssign, this.automationLinkActive = false, this.onAutomationLinkTap, this.onAutomateParameter});
+  const ExpanderDevicePanel({
+    super.key,
+    required this.device,
+    required this.onParameterChanged,
+    this.selectedTab,
+    this.modulatedParams = const {},
+    this.modulationAmounts = const {},
+    this.connectModeLfoId,
+    this.onModulationAssign,
+    this.automationLinkActive = false,
+    this.onAutomationLinkTap,
+    this.onAutomateParameter,
+  });
   static const accent = Color(0xFF9AD4E8);
-  static const containerTabs = <DeviceTabSpec>[
-    DeviceTabSpec(label: 'Expand', icon: Icons.unfold_more),
-    DeviceTabSpec(label: 'Time', icon: Icons.timer),
-    DeviceTabSpec(label: 'Range', icon: Icons.vertical_align_bottom),
-  ];
+  static const containerTabs = <DeviceTabSpec>[];
   final DeviceSnapshot device;
   final DynamicsParameterChanged onParameterChanged;
   final ExpanderDeviceTab? selectedTab;
@@ -292,17 +526,113 @@ class ExpanderDevicePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tab = selectedTab ?? ExpanderDeviceTab.expand;
-    return switch (tab) {
-      ExpanderDeviceTab.expand => Padding(padding: const EdgeInsets.all(8), child: Column(children: [Expanded(flex: 3, child: _previewBox(DynamicsEnvelopePreview(threshold: device.expandThreshold, ratio: device.expandRatio, accent: accent, mode: DynamicsPreviewMode.expander))), const SizedBox(height: 8), Expanded(flex: 2, child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [_knob(label: 'Threshold', value: device.expandThreshold, paramId: 'expandThreshold', accent: accent, onParameterChanged: onParameterChanged, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter, displayValue: dynamicsThresholdLabel(device.expandThreshold)), _knob(label: 'Ratio', value: device.expandRatio, paramId: 'expandRatio', accent: accent, onParameterChanged: onParameterChanged, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter, displayValue: dynamicsRatioLabel(device.expandRatio, expander: true))]))])),
-      ExpanderDeviceTab.time => Padding(padding: const EdgeInsets.all(8), child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [_knob(label: 'Attack', value: device.expandAttack, paramId: 'expandAttack', accent: accent, onParameterChanged: onParameterChanged, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter, displayValue: dynamicsTimeLabel(device.expandAttack)), _knob(label: 'Release', value: device.expandRelease, paramId: 'expandRelease', accent: accent, onParameterChanged: onParameterChanged, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter, displayValue: dynamicsTimeLabel(device.expandRelease))])),
-      ExpanderDeviceTab.range => Padding(padding: const EdgeInsets.all(8), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [_knob(label: 'Floor', value: device.expandRange, paramId: 'expandRange', accent: accent, onParameterChanged: onParameterChanged, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter, displayValue: dynamicsRangeLabel(device.expandRange))])),
-    };
+    return _dynamicsSinglePage(
+      preview: DynamicsEnvelopePreview(
+        threshold: device.expandThreshold,
+        ratio: device.expandRatio,
+        accent: accent,
+        mode: DynamicsPreviewMode.expander,
+      ),
+      rows: [
+        _knobGridRow([
+          _knob(
+            label: 'Threshold',
+            value: device.expandThreshold,
+            paramId: 'expandThreshold',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: dynamicsThresholdLabel(device.expandThreshold),
+          ),
+          _knob(
+            label: 'Ratio',
+            value: device.expandRatio,
+            paramId: 'expandRatio',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: dynamicsRatioLabel(device.expandRatio, expander: true),
+          ),
+          _knob(
+            label: 'Attack',
+            value: device.expandAttack,
+            paramId: 'expandAttack',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: dynamicsTimeLabel(device.expandAttack),
+          ),
+        ]),
+        _knobGridRow([
+          _knob(
+            label: 'Release',
+            value: device.expandRelease,
+            paramId: 'expandRelease',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: dynamicsTimeLabel(device.expandRelease),
+          ),
+          _knob(
+            label: 'Floor',
+            value: device.expandRange,
+            paramId: 'expandRange',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: dynamicsRangeLabel(device.expandRange),
+          ),
+          null,
+        ]),
+      ],
+    );
   }
 }
 
 class ExpanderDeviceStrip extends StatelessWidget {
-  const ExpanderDeviceStrip({super.key, required this.device, required this.onParameterChanged, this.selectedTab, this.modulatedParams = const {}, this.modulationAmounts = const {}, this.connectModeLfoId, this.onModulationAssign, this.automationLinkActive = false, this.onAutomationLinkTap, this.onAutomateParameter});
+  const ExpanderDeviceStrip({
+    super.key,
+    required this.device,
+    required this.onParameterChanged,
+    this.selectedTab,
+    this.modulatedParams = const {},
+    this.modulationAmounts = const {},
+    this.connectModeLfoId,
+    this.onModulationAssign,
+    this.automationLinkActive = false,
+    this.onAutomationLinkTap,
+    this.onAutomateParameter,
+  });
   final DeviceSnapshot device;
   final DynamicsParameterChanged onParameterChanged;
   final ExpanderDeviceTab? selectedTab;
@@ -314,17 +644,36 @@ class ExpanderDeviceStrip extends StatelessWidget {
   final ValueChanged<String>? onAutomationLinkTap;
   final ValueChanged<String>? onAutomateParameter;
   @override
-  Widget build(BuildContext context) => ExpanderDevicePanel(device: device, onParameterChanged: onParameterChanged, selectedTab: selectedTab, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter);
+  Widget build(BuildContext context) => ExpanderDevicePanel(
+        device: device,
+        onParameterChanged: onParameterChanged,
+        selectedTab: selectedTab,
+        modulatedParams: modulatedParams,
+        modulationAmounts: modulationAmounts,
+        connectModeLfoId: connectModeLfoId,
+        onModulationAssign: onModulationAssign,
+        automationLinkActive: automationLinkActive,
+        onAutomationLinkTap: onAutomationLinkTap,
+        onAutomateParameter: onAutomateParameter,
+      );
 }
 
 class LimiterDevicePanel extends StatelessWidget {
-  const LimiterDevicePanel({super.key, required this.device, required this.onParameterChanged, this.selectedTab, this.modulatedParams = const {}, this.modulationAmounts = const {}, this.connectModeLfoId, this.onModulationAssign, this.automationLinkActive = false, this.onAutomationLinkTap, this.onAutomateParameter});
+  const LimiterDevicePanel({
+    super.key,
+    required this.device,
+    required this.onParameterChanged,
+    this.selectedTab,
+    this.modulatedParams = const {},
+    this.modulationAmounts = const {},
+    this.connectModeLfoId,
+    this.onModulationAssign,
+    this.automationLinkActive = false,
+    this.onAutomationLinkTap,
+    this.onAutomateParameter,
+  });
   static const accent = Color(0xFFE85D4B);
-  static const containerTabs = <DeviceTabSpec>[
-    DeviceTabSpec(label: 'Ceiling', icon: Icons.horizontal_rule),
-    DeviceTabSpec(label: 'Time', icon: Icons.timer),
-    DeviceTabSpec(label: 'Gain', icon: Icons.show_chart),
-  ];
+  static const containerTabs = <DeviceTabSpec>[];
   final DeviceSnapshot device;
   final DynamicsParameterChanged onParameterChanged;
   final LimiterDeviceTab? selectedTab;
@@ -338,17 +687,127 @@ class LimiterDevicePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tab = selectedTab ?? LimiterDeviceTab.ceiling;
-    return switch (tab) {
-      LimiterDeviceTab.ceiling => Padding(padding: const EdgeInsets.all(8), child: Column(children: [Expanded(flex: 3, child: _previewBox(DynamicsEnvelopePreview(threshold: device.limitCeiling, ceiling: device.limitCeiling, accent: accent, mode: DynamicsPreviewMode.limiter))), const SizedBox(height: 8), Expanded(flex: 2, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [_knob(label: 'Ceiling', value: device.limitCeiling, paramId: 'limitCeiling', accent: accent, onParameterChanged: onParameterChanged, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter, displayValue: dynamicsCeilingLabel(device.limitCeiling))]))])),
-      LimiterDeviceTab.time => Padding(padding: const EdgeInsets.all(8), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [_knob(label: 'Release', value: device.limitRelease, paramId: 'limitRelease', accent: accent, onParameterChanged: onParameterChanged, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter, displayValue: dynamicsTimeLabel(device.limitRelease))])),
-      LimiterDeviceTab.gain => Padding(padding: const EdgeInsets.all(8), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [_knob(label: 'Drive', value: device.limitDrive, paramId: 'limitDrive', accent: accent, onParameterChanged: onParameterChanged, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter, displayValue: dynamicsDriveLabel(device.limitDrive))])),
-    };
+    return _dynamicsSinglePage(
+      preview: DynamicsEnvelopePreview(
+        threshold: device.limitCeiling,
+        ceiling: device.limitCeiling,
+        accent: accent,
+        mode: DynamicsPreviewMode.limiter,
+      ),
+      rows: [
+        _knobGridRow([
+          _knob(
+            label: 'Ceiling',
+            value: device.limitCeiling,
+            paramId: 'limitCeiling',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: dynamicsCeilingLabel(device.limitCeiling),
+          ),
+          _knob(
+            label: 'Attack',
+            value: device.limitAttack,
+            paramId: 'limitAttack',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: dynamicsTimeLabel(device.limitAttack),
+          ),
+          _knob(
+            label: 'Release',
+            value: device.limitRelease,
+            paramId: 'limitRelease',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: dynamicsTimeLabel(device.limitRelease),
+          ),
+        ]),
+        _knobGridRow([
+          _knob(
+            label: 'Knee',
+            value: device.limitKnee,
+            paramId: 'limitKnee',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: '${(device.limitKnee * 12).round()} dB',
+          ),
+          _knob(
+            label: 'Drive',
+            value: device.limitDrive,
+            paramId: 'limitDrive',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: dynamicsDriveLabel(device.limitDrive),
+          ),
+          _knob(
+            label: 'Makeup',
+            value: device.limitMakeup,
+            paramId: 'limitMakeup',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: dynamicsMakeupLabel(device.limitMakeup),
+          ),
+        ]),
+      ],
+    );
   }
 }
 
 class LimiterDeviceStrip extends StatelessWidget {
-  const LimiterDeviceStrip({super.key, required this.device, required this.onParameterChanged, this.selectedTab, this.modulatedParams = const {}, this.modulationAmounts = const {}, this.connectModeLfoId, this.onModulationAssign, this.automationLinkActive = false, this.onAutomationLinkTap, this.onAutomateParameter});
+  const LimiterDeviceStrip({
+    super.key,
+    required this.device,
+    required this.onParameterChanged,
+    this.selectedTab,
+    this.modulatedParams = const {},
+    this.modulationAmounts = const {},
+    this.connectModeLfoId,
+    this.onModulationAssign,
+    this.automationLinkActive = false,
+    this.onAutomationLinkTap,
+    this.onAutomateParameter,
+  });
   final DeviceSnapshot device;
   final DynamicsParameterChanged onParameterChanged;
   final LimiterDeviceTab? selectedTab;
@@ -360,5 +819,16 @@ class LimiterDeviceStrip extends StatelessWidget {
   final ValueChanged<String>? onAutomationLinkTap;
   final ValueChanged<String>? onAutomateParameter;
   @override
-  Widget build(BuildContext context) => LimiterDevicePanel(device: device, onParameterChanged: onParameterChanged, selectedTab: selectedTab, modulatedParams: modulatedParams, modulationAmounts: modulationAmounts, connectModeLfoId: connectModeLfoId, onModulationAssign: onModulationAssign, automationLinkActive: automationLinkActive, onAutomationLinkTap: onAutomationLinkTap, onAutomateParameter: onAutomateParameter);
+  Widget build(BuildContext context) => LimiterDevicePanel(
+        device: device,
+        onParameterChanged: onParameterChanged,
+        selectedTab: selectedTab,
+        modulatedParams: modulatedParams,
+        modulationAmounts: modulationAmounts,
+        connectModeLfoId: connectModeLfoId,
+        onModulationAssign: onModulationAssign,
+        automationLinkActive: automationLinkActive,
+        onAutomationLinkTap: onAutomationLinkTap,
+        onAutomateParameter: onAutomateParameter,
+      );
 }

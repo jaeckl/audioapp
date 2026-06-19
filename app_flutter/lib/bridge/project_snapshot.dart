@@ -346,8 +346,12 @@ class DeviceSnapshot {
     this.expandRelease = 0.55,
     this.expandRange = 0.15,
     this.limitCeiling = 0.85,
+    this.limitAttack = 0.10,
     this.limitRelease = 0.40,
+    this.limitKnee = 0.0,
     this.limitDrive = 0.0,
+    this.limitMakeup = 0.0,
+    this.inputGain = 1.0,
     this.meterGainReductionDb = 0.0,
     this.meterInputLevel = 0.0,
   });
@@ -453,8 +457,12 @@ class DeviceSnapshot {
   final double expandRelease;
   final double expandRange;
   final double limitCeiling;
+  final double limitAttack;
   final double limitRelease;
+  final double limitKnee;
   final double limitDrive;
+  final double limitMakeup;
+  final double inputGain;
   final double meterGainReductionDb;
   final double meterInputLevel;
 
@@ -564,8 +572,12 @@ class DeviceSnapshot {
       expandRelease: (params['expandRelease'] as num?)?.toDouble() ?? 0.55,
       expandRange: (params['expandRange'] as num?)?.toDouble() ?? 0.15,
       limitCeiling: (params['limitCeiling'] as num?)?.toDouble() ?? 0.85,
+      limitAttack: (params['limitAttack'] as num?)?.toDouble() ?? 0.10,
       limitRelease: (params['limitRelease'] as num?)?.toDouble() ?? 0.40,
+      limitKnee: (params['limitKnee'] as num?)?.toDouble() ?? 0.0,
       limitDrive: (params['limitDrive'] as num?)?.toDouble() ?? 0.0,
+      limitMakeup: (params['limitMakeup'] as num?)?.toDouble() ?? 0.0,
+      inputGain: (params['inputGain'] as num?)?.toDouble() ?? 1.0,
       meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
     );
@@ -729,8 +741,12 @@ class DeviceSnapshot {
     double? expandRelease,
     double? expandRange,
     double? limitCeiling,
+    double? limitAttack,
     double? limitRelease,
+    double? limitKnee,
     double? limitDrive,
+    double? limitMakeup,
+    double? inputGain,
     double? meterGainReductionDb,
     double? meterInputLevel,
   }) {
@@ -836,8 +852,12 @@ class DeviceSnapshot {
       expandRelease: expandRelease ?? this.expandRelease,
       expandRange: expandRange ?? this.expandRange,
       limitCeiling: limitCeiling ?? this.limitCeiling,
+      limitAttack: limitAttack ?? this.limitAttack,
       limitRelease: limitRelease ?? this.limitRelease,
+      limitKnee: limitKnee ?? this.limitKnee,
       limitDrive: limitDrive ?? this.limitDrive,
+      limitMakeup: limitMakeup ?? this.limitMakeup,
+      inputGain: inputGain ?? this.inputGain,
       meterGainReductionDb: meterGainReductionDb ?? this.meterGainReductionDb,
       meterInputLevel: meterInputLevel ?? this.meterInputLevel,
     );
@@ -1039,10 +1059,18 @@ class DeviceSnapshot {
         return copyWith(expandRange: value.clamp(0.0, 1.0));
       case 'limitCeiling':
         return copyWith(limitCeiling: value.clamp(0.0, 1.0));
+      case 'limitAttack':
+        return copyWith(limitAttack: value.clamp(0.0, 1.0));
       case 'limitRelease':
         return copyWith(limitRelease: value.clamp(0.0, 1.0));
+      case 'limitKnee':
+        return copyWith(limitKnee: value.clamp(0.0, 1.0));
       case 'limitDrive':
         return copyWith(limitDrive: value.clamp(0.0, 1.0));
+      case 'limitMakeup':
+        return copyWith(limitMakeup: value.clamp(0.0, 1.0));
+      case 'inputGain':
+        return copyWith(inputGain: value.clamp(0.0, 1.0));
       default:
         return this;
     }

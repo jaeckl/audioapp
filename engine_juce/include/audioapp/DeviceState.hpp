@@ -107,8 +107,12 @@ struct DeviceState {
     float expandRelease = 0.55f;
     float expandRange = 0.15f;
     float limitCeiling = 0.85f;
+    float limitAttack = 0.10f;
     float limitRelease = 0.40f;
+    float limitKnee = 0.0f;
     float limitDrive = 0.0f;
+    float limitMakeup = 0.0f;
+    float inputGain = 1.0f;
     float meterGainReductionDb = 0.0f;
     float meterInputLevel = 0.0f;
 };

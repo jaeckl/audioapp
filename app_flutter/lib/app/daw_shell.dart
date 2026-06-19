@@ -20,13 +20,13 @@ import '../features/device_strip/sampler_editor_screen.dart';
 import '../features/device_strip/subtractive_synth_editor_screen.dart';
 import '../features/device_strip/subtractive_synth_presets.dart';
 import '../features/mixer/mixer_view.dart';
-import '../features/play/play_surface_screen.dart';
+import '../features/play/live_instrument_panel.dart';
 import '../features/piano_roll/piano_roll_screen.dart';
 import '../features/sample_library/sample_library_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/transport/transport_bar.dart';
 
-enum _ShellTab { arrangement, play, mixer, library, settings }
+enum _ShellTab { devices, keys, mixer, library, settings }
 
 class DawShell extends StatefulWidget {
   const DawShell({
@@ -54,7 +54,7 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
   bool _syncLoopEnabled = true;
   double _syncLoopLengthBeats = 16;
   bool _transportSyncInFlight = false;
-  _ShellTab _tab = _ShellTab.arrangement;
+  _ShellTab _tab = _ShellTab.devices;
   bool _libraryOpen = false;
   LibraryCategory _libraryCategory = LibraryCategory.audioClips;
   String? _librarySamplerDeviceId;
@@ -194,12 +194,42 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
 
   Future<void> _selectTrack(String trackId) async {
     try {
-      final snapshot = await widget.bridge.selectTrack(trackId);
+      var snapshot = await widget.bridge.selectTrack(trackId);
+      snapshot = await _syncArmWithSelection(snapshot);
       await _refreshSnapshot(snapshot);
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
     }
+  }
+
+  Future<ProjectSnapshot> _syncArmWithSelection(ProjectSnapshot snapshot) async {
+    final hasTrack = snapshot.selectedTrackId.isNotEmpty;
+    if (_tab == _ShellTab.keys && hasTrack && !snapshot.recordArmed) {
+      return widget.bridge.setRecordArmed(true);
+    }
+    if (_tab == _ShellTab.devices && snapshot.recordArmed) {
+      return widget.bridge.setRecordArmed(false);
+    }
+    return snapshot;
+  }
+
+  Future<void> _syncLiveInputForTab(_ShellTab tab) async {
+    try {
+      if (tab == _ShellTab.keys) {
+        await widget.bridge.enterPlayMode();
+        if (_snapshot != null) {
+          final synced = await _syncArmWithSelection(_snapshot!);
+          await _refreshSnapshot(synced);
+        }
+      } else {
+        await widget.bridge.allNotesOff();
+        if (_snapshot?.recordArmed == true) {
+          final updated = await widget.bridge.setRecordArmed(false);
+          await _refreshSnapshot(updated);
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _addMidiClip(String trackId, double startBeat) async {
@@ -879,7 +909,7 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
       );
       await _refreshSnapshot(updated);
       if (!mounted) return;
-      setState(() => _tab = _ShellTab.arrangement);
+      setState(() => _tab = _ShellTab.devices);
       await _libraryPanelKey.currentState?.close();
     } catch (e) {
       if (!mounted) return;
@@ -1099,96 +1129,87 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
     }
 
     if (_tab == tab) return;
-    if (_tab == _ShellTab.play && tab != _ShellTab.play) {
+    if (_tab == _ShellTab.keys || tab == _ShellTab.keys) {
       try {
         await widget.bridge.allNotesOff();
       } catch (_) {}
     }
     setState(() => _tab = tab);
-    if (tab == _ShellTab.play) {
-      try {
-        await widget.bridge.enterPlayMode();
-      } catch (_) {}
-    }
+    await _syncLiveInputForTab(tab);
+  }
+
+  Widget _buildArrangementColumn(ProjectSnapshot snapshot) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: ArrangementView(
+            snapshot: snapshot,
+            playheadBeats: _effectivePlayheadBeats,
+            playing: _playing,
+            onPlayStop: _togglePlay,
+            onPlayheadSeek: _setPlayheadBeats,
+            onTrackSelected: _selectTrack,
+            onAddTrack: _addTrack,
+            onAddMidiClip: _addMidiClip,
+            onAddAudioClip: _addAudioClip,
+            onClipTap: _openPianoRoll,
+            onSampleClipTap: (_, __) {},
+            onMoveClip: _moveClip,
+            onDeleteTrack: _confirmDeleteTrack,
+            onDeleteClip: _confirmDeleteClip,
+            onDuplicateClip: _duplicateClip,
+            onOpenPlay: (trackId) async {
+              await _selectTrack(trackId);
+              await _onTabSelected(_ShellTab.keys);
+            },
+            automationLinkClipId: _automationLinkClipId,
+            onAutomationLinkToggle: _toggleAutomationLink,
+            onAutomationClipDoubleTap: _openAutomationCurveEditor,
+          ),
+        ),
+        if (_tab == _ShellTab.devices)
+          DeviceStrip(
+            snapshot: snapshot,
+            track: snapshot.selectedTrack,
+            samples: snapshot.samples,
+            playing: _playing,
+            onSamplerParameterChanged: _setSamplerParameter,
+            onAssignSamplerSample: _assignSamplerSample,
+            onOpenSamplerEditor: _openSamplerEditor,
+            onPreviewSample: _previewSample,
+            onImportSamples: () async {
+              final updated = await widget.bridge.importSample();
+              if (updated != null) {
+                await _refreshSnapshot(updated);
+                return updated.samples;
+              }
+              return snapshot.samples;
+            },
+            onFrequencyChanged: _setFrequency,
+            onAddDevice: _addDeviceToTrack,
+            onBypassToggle: (deviceId, bypassed) => _setDeviceBypass(deviceId, bypassed),
+            onOpenDeviceLibrary: _openDeviceLibrary,
+            onModulationBridgeCall: _modulationBridgeCall,
+            automationLinkClipId: _automationLinkClipId,
+            onAutomationParamSelected: _assignAutomationParam,
+            onAutomateParameter: _automateParameter,
+          )
+        else
+          LiveInstrumentPanel(
+            bridge: widget.bridge,
+            snapshot: snapshot,
+            onSnapshot: _refreshSnapshot,
+          ),
+      ],
+    );
   }
 
   Widget _buildTabBody(ProjectSnapshot snapshot) {
     switch (_tab) {
-      case _ShellTab.arrangement:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: ArrangementView(
-                snapshot: snapshot,
-                playheadBeats: _effectivePlayheadBeats,
-                playing: _playing,
-                onPlayStop: _togglePlay,
-                onPlayheadSeek: _setPlayheadBeats,
-                onTrackSelected: _selectTrack,
-                onAddTrack: _addTrack,
-                onAddMidiClip: _addMidiClip,
-                onAddAudioClip: _addAudioClip,
-                onClipTap: _openPianoRoll,
-                onSampleClipTap: (_, __) {},
-                onMoveClip: _moveClip,
-                onDeleteTrack: _confirmDeleteTrack,
-                onDeleteClip: _confirmDeleteClip,
-                onDuplicateClip: _duplicateClip,
-                onOpenPlay: (trackId) async {
-                  await _selectTrack(trackId);
-                  await _onTabSelected(_ShellTab.play);
-                },
-                automationLinkClipId: _automationLinkClipId,
-                onAutomationLinkToggle: _toggleAutomationLink,
-                onAutomationClipDoubleTap: _openAutomationCurveEditor,
-              ),
-            ),
-            DeviceStrip(
-              snapshot: snapshot,
-              track: snapshot.selectedTrack,
-              samples: snapshot.samples,
-              playing: _playing,
-              onSamplerParameterChanged: _setSamplerParameter,
-              onAssignSamplerSample: _assignSamplerSample,
-              onOpenSamplerEditor: _openSamplerEditor,
-              onPreviewSample: _previewSample,
-              onImportSamples: () async {
-                final updated = await widget.bridge.importSample();
-                if (updated != null) {
-                  await _refreshSnapshot(updated);
-                  return updated.samples;
-                }
-                return snapshot.samples;
-              },
-              onFrequencyChanged: _setFrequency,
-              onAddDevice: _addDeviceToTrack,
-              onBypassToggle: (deviceId, bypassed) => _setDeviceBypass(deviceId, bypassed),
-              onOpenDeviceLibrary: _openDeviceLibrary,
-              onModulationBridgeCall: _modulationBridgeCall,
-              automationLinkClipId: _automationLinkClipId,
-              onAutomationParamSelected: _assignAutomationParam,
-              onAutomateParameter: _automateParameter,
-            ),
-          ],
-        );
-      case _ShellTab.play:
-        return PlaySurfaceScreen(
-          bridge: widget.bridge,
-          snapshot: snapshot,
-          onSnapshot: _refreshSnapshot,
-          playing: _playing,
-          onPlayStop: _togglePlay,
-          onPlayheadSeek: _setPlayheadBeats,
-          onTrackSelected: _selectTrack,
-          onAddMidiClip: _addMidiClip,
-          onAddAudioClip: _addAudioClip,
-          onClipTap: _openPianoRoll,
-          onSampleClipTap: (_, __) {},
-          onMoveClip: _moveClip,
-          onDeleteClip: _confirmDeleteClip,
-          onDuplicateClip: _duplicateClip,
-        );
+      case _ShellTab.devices:
+      case _ShellTab.keys:
+        return _buildArrangementColumn(snapshot);
       case _ShellTab.mixer:
         return MixerView(
           snapshot: snapshot,

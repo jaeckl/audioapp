@@ -74,7 +74,8 @@ void main() {
     });
     await pumpSlot(tester, device);
 
-    expect(find.text('-6.0 dB'), findsOneWidget);
+    expect(find.text('GR'), findsOneWidget);
     expect(find.text('IN'), findsOneWidget);
+    expect(find.text('Trim'), findsOneWidget);
   });
 }

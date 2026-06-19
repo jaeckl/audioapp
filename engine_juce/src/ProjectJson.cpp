@@ -190,6 +190,10 @@ juce::var deviceToVar(const DeviceState& device) {
         parameters->setProperty("crashDecay", static_cast<double>(device.crashDecay));
         parameters->setProperty("crashVelocity", static_cast<double>(device.crashVelocity));
     }
+    if (device.type == "gate" || device.type == "compressor" || device.type == "expander" ||
+        device.type == "limiter") {
+        parameters->setProperty("inputGain", static_cast<double>(device.inputGain));
+    }
     if (device.type == "gate") {
         parameters->setProperty("gateThreshold", static_cast<double>(device.gateThreshold));
         parameters->setProperty("gateAttack", static_cast<double>(device.gateAttack));
@@ -214,8 +218,11 @@ juce::var deviceToVar(const DeviceState& device) {
     }
     if (device.type == "limiter") {
         parameters->setProperty("limitCeiling", static_cast<double>(device.limitCeiling));
+        parameters->setProperty("limitAttack", static_cast<double>(device.limitAttack));
         parameters->setProperty("limitRelease", static_cast<double>(device.limitRelease));
+        parameters->setProperty("limitKnee", static_cast<double>(device.limitKnee));
         parameters->setProperty("limitDrive", static_cast<double>(device.limitDrive));
+        parameters->setProperty("limitMakeup", static_cast<double>(device.limitMakeup));
     }
 
     auto* object = new juce::DynamicObject();
@@ -369,8 +376,12 @@ DeviceState deviceFromVar(const juce::var& value) {
             device.expandRelease = varToFloat(params->getProperty("expandRelease"), 0.55f);
             device.expandRange = varToFloat(params->getProperty("expandRange"), 0.15f);
             device.limitCeiling = varToFloat(params->getProperty("limitCeiling"), 0.85f);
+            device.limitAttack = varToFloat(params->getProperty("limitAttack"), 0.10f);
             device.limitRelease = varToFloat(params->getProperty("limitRelease"), 0.40f);
+            device.limitKnee = varToFloat(params->getProperty("limitKnee"), 0.0f);
             device.limitDrive = varToFloat(params->getProperty("limitDrive"), 0.0f);
+            device.limitMakeup = varToFloat(params->getProperty("limitMakeup"), 0.0f);
+            device.inputGain = varToFloat(params->getProperty("inputGain"), 1.0f);
         }
     }
     return device;

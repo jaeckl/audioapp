@@ -5,6 +5,7 @@
 namespace audioapp {
 
 struct ExpanderInstance {
+    float inputGain = 1.0f;
     float expandThreshold = 0.40f;
     float expandRatio = 0.45f;
     float expandAttack = 0.25f;
@@ -14,6 +15,7 @@ struct ExpanderInstance {
     ExpanderParams toPlaybackParams() const {
         ExpanderParams params;
         params.gain = 1.0f;
+        params.inputGain = inputGain;
         params.expandThreshold = expandThreshold;
         params.expandRatio = expandRatio;
         params.expandAttack = expandAttack;

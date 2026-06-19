@@ -103,6 +103,20 @@ void processDynamicsEnvelope(float detector,
     runtime.envelope += (detector - runtime.envelope) * coeff;
 }
 
+float limitTargetGrDb(float peakDb, float ceilingDb, float kneeDb) noexcept {
+    if (peakDb <= ceilingDb - kneeDb) {
+        return 0.0f;
+    }
+    if (peakDb >= ceilingDb) {
+        return ceilingDb - peakDb;
+    }
+    if (kneeDb <= 0.001f) {
+        return 0.0f;
+    }
+    const float x = peakDb - (ceilingDb - kneeDb);
+    return -0.5f * x * x / kneeDb;
+}
+
 } // namespace
 
 void processGateStereoBlock(float* trackLeft,
@@ -219,8 +233,12 @@ void processLimiterStereoBlock(float* trackLeft,
     }
 
     const float ceilingDb = normToCeilingDb(params.limitCeiling);
+    const float attackSec = normToAttackSec(params.limitAttack);
     const float releaseSec = normToReleaseSec(params.limitRelease);
+    const float kneeDb = normToKneeDb(params.limitKnee);
     const float driveDb = params.limitDrive * 12.0f;
+    const float makeupLin = dbToLinear(normToMakeupDb(params.limitMakeup));
+    const float attackCoeff = smoothCoeff(attackSec, sampleRate);
     const float releaseCoeff = smoothCoeff(releaseSec, sampleRate);
 
     for (int i = 0; i < numFrames; ++i) {
@@ -229,20 +247,19 @@ void processLimiterStereoBlock(float* trackLeft,
         const float peak = std::max(std::abs(left), std::abs(right));
         const float peakDb = linearToDb(peak);
 
-        float targetGrDb = 0.0f;
-        if (peakDb > ceilingDb) {
-            targetGrDb = ceilingDb - peakDb;
-        }
+        const float targetGrDb = limitTargetGrDb(peakDb, ceilingDb, kneeDb);
 
         if (targetGrDb < runtime.gainReductionDb) {
-            runtime.gainReductionDb = targetGrDb;
+            runtime.gainReductionDb +=
+                (targetGrDb - runtime.gainReductionDb) * attackCoeff;
         } else {
-            runtime.gainReductionDb += (targetGrDb - runtime.gainReductionDb) * releaseCoeff;
+            runtime.gainReductionDb +=
+                (targetGrDb - runtime.gainReductionDb) * releaseCoeff;
         }
 
         applyGainDb(left, right, runtime.gainReductionDb);
-        trackLeft[i] = left * params.gain;
-        trackRight[i] = right * params.gain;
+        trackLeft[i] = left * params.gain * makeupLin;
+        trackRight[i] = right * params.gain * makeupLin;
     }
 }
 

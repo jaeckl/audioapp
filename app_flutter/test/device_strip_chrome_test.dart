@@ -47,9 +47,9 @@ void main() {
       expect(DeviceStripChrome.inputWidth('subtractive_synth'), 0);
     });
 
-    test('dynamics types allocate input and wider output', () {
+    test('dynamics types allocate input and output panels', () {
       expect(DeviceStripChrome.inputWidth('compressor'), 64);
-      expect(DeviceStripChrome.outputWidth('compressor'), 72);
+      expect(DeviceStripChrome.outputWidth('compressor'), 64);
       expect(DeviceStripChrome.hasInputPanel('gate'), isTrue);
     });
 

@@ -21,6 +21,7 @@ DeviceState stripSnapshot(const DeviceSlot& slot, std::string_view typeId) {
 
 ExpanderInstance instanceFromSnapshot(const DeviceState& state) {
     ExpanderInstance instance;
+    instance.inputGain = state.inputGain;
     instance.expandThreshold = state.expandThreshold;
     instance.expandRatio = state.expandRatio;
     instance.expandAttack = state.expandAttack;
@@ -30,6 +31,7 @@ ExpanderInstance instanceFromSnapshot(const DeviceState& state) {
 }
 
 void applyInstanceToSnapshot(const ExpanderInstance& instance, DeviceState& state) {
+    state.inputGain = instance.inputGain;
     state.expandThreshold = instance.expandThreshold;
     state.expandRatio = instance.expandRatio;
     state.expandAttack = instance.expandAttack;
@@ -74,7 +76,9 @@ DeviceParameterResult ExpanderDeviceType::setParameter(DeviceSlot& slot,
     }
     auto& instance = std::get<ExpanderInstance>(slot.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
-    if (parameterId == "expandThreshold") {
+    if (parameterId == "inputGain") {
+        instance.inputGain = clamped;
+    } else if (parameterId == "expandThreshold") {
         instance.expandThreshold = clamped;
     } else if (parameterId == "expandRatio") {
         instance.expandRatio = clamped;
@@ -99,7 +103,7 @@ bool ExpanderDeviceType::setStringParameter(DeviceSlot&,
 }
 
 std::vector<std::string_view> ExpanderDeviceType::modulatableParams() const {
-    return {"gain", "pan", "expandThreshold", "expandRatio", "expandAttack", "expandRelease",
+    return {"gain", "pan", "inputGain", "expandThreshold", "expandRatio", "expandAttack", "expandRelease",
             "expandRange"};
 }
 

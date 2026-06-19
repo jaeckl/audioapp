@@ -5,6 +5,7 @@
 namespace audioapp {
 
 struct CompressorInstance {
+    float inputGain = 1.0f;
     float compThreshold = 0.55f;
     float compRatio = 0.50f;
     float compAttack = 0.20f;
@@ -15,6 +16,7 @@ struct CompressorInstance {
     CompressorParams toPlaybackParams() const {
         CompressorParams params;
         params.gain = 1.0f;
+        params.inputGain = inputGain;
         params.compThreshold = compThreshold;
         params.compRatio = compRatio;
         params.compAttack = compAttack;

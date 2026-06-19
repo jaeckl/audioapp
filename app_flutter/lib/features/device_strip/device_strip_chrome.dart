@@ -64,7 +64,16 @@ abstract final class DeviceStripChrome {
     if (!hasInputPanel(deviceType)) return null;
     return DynamicsInputPanel(
       accentColor: bindings.accentColor,
+      device: bindings.device,
       inputLevel: bindings.inputLevel,
+      onParameterChanged: bindings.onParameterChanged,
+      modulatedParams: bindings.modulatedParams,
+      modulationAmounts: bindings.modulationAmounts,
+      connectModeLfoId: bindings.connectModeLfoId,
+      onModulationAssign: bindings.onModulationAssign,
+      automationLinkActive: bindings.automationLinkActive,
+      onAutomationLinkTap: bindings.onAutomationLinkTap,
+      onAutomateParameter: bindings.onAutomateParameter,
     );
   }
 

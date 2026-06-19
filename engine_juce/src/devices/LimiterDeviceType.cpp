@@ -21,16 +21,24 @@ DeviceState stripSnapshot(const DeviceSlot& slot, std::string_view typeId) {
 
 LimiterInstance instanceFromSnapshot(const DeviceState& state) {
     LimiterInstance instance;
+    instance.inputGain = state.inputGain;
     instance.limitCeiling = state.limitCeiling;
+    instance.limitAttack = state.limitAttack;
     instance.limitRelease = state.limitRelease;
+    instance.limitKnee = state.limitKnee;
     instance.limitDrive = state.limitDrive;
+    instance.limitMakeup = state.limitMakeup;
     return instance;
 }
 
 void applyInstanceToSnapshot(const LimiterInstance& instance, DeviceState& state) {
+    state.inputGain = instance.inputGain;
     state.limitCeiling = instance.limitCeiling;
+    state.limitAttack = instance.limitAttack;
     state.limitRelease = instance.limitRelease;
+    state.limitKnee = instance.limitKnee;
     state.limitDrive = instance.limitDrive;
+    state.limitMakeup = instance.limitMakeup;
 }
 
 } // namespace
@@ -70,12 +78,20 @@ DeviceParameterResult LimiterDeviceType::setParameter(DeviceSlot& slot,
     }
     auto& instance = std::get<LimiterInstance>(slot.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
-    if (parameterId == "limitCeiling") {
+    if (parameterId == "inputGain") {
+        instance.inputGain = clamped;
+    } else if (parameterId == "limitCeiling") {
         instance.limitCeiling = clamped;
+    } else if (parameterId == "limitAttack") {
+        instance.limitAttack = clamped;
     } else if (parameterId == "limitRelease") {
         instance.limitRelease = clamped;
+    } else if (parameterId == "limitKnee") {
+        instance.limitKnee = clamped;
     } else if (parameterId == "limitDrive") {
         instance.limitDrive = clamped;
+    } else if (parameterId == "limitMakeup") {
+        instance.limitMakeup = clamped;
     } else {
         return result;
     }
@@ -91,7 +107,8 @@ bool LimiterDeviceType::setStringParameter(DeviceSlot&,
 }
 
 std::vector<std::string_view> LimiterDeviceType::modulatableParams() const {
-    return {"gain", "pan", "limitCeiling", "limitRelease", "limitDrive"};
+    return {"gain", "pan", "inputGain", "limitCeiling", "limitAttack", "limitRelease", "limitKnee",
+            "limitDrive", "limitMakeup"};
 }
 
 void LimiterDeviceType::buildPlaybackNode(const DeviceSlot& slot,

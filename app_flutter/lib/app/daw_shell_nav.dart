@@ -121,9 +121,9 @@ class DawShellNav extends StatelessWidget {
   static const Color _unselectedColor = Color(0xFF8A8A9A);
 
   static const _destinations = <({IconData icon, IconData selectedIcon, String label})>[
-    (icon: Icons.grid_view_outlined, selectedIcon: Icons.grid_view, label: 'Arrangement'),
-    (icon: Icons.piano_outlined, selectedIcon: Icons.piano, label: 'Play'),
-    (icon: Icons.tune_outlined, selectedIcon: Icons.tune, label: 'Mixer'),
+    (icon: Icons.tune_outlined, selectedIcon: Icons.tune, label: 'Devices'),
+    (icon: Icons.piano_outlined, selectedIcon: Icons.piano, label: 'Keys'),
+    (icon: Icons.graphic_eq_outlined, selectedIcon: Icons.graphic_eq, label: 'Mixer'),
     (icon: Icons.library_music_outlined, selectedIcon: Icons.library_music, label: 'Library'),
     (icon: Icons.folder_open_outlined, selectedIcon: Icons.folder_open, label: 'Project'),
   ];

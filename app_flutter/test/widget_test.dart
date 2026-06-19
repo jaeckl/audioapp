@@ -429,8 +429,8 @@ void main() {
 
     expect(find.text('120'), findsOneWidget);
     expect(find.text('v0.1.0'), findsOneWidget);
-    expect(find.bySemanticsLabel('Arrangement'), findsOneWidget);
-    expect(find.bySemanticsLabel('Play'), findsOneWidget);
+    expect(find.bySemanticsLabel('Devices'), findsOneWidget);
+    expect(find.bySemanticsLabel('Keys'), findsOneWidget);
     expect(find.bySemanticsLabel('Mixer'), findsOneWidget);
     expect(find.bySemanticsLabel('Library'), findsOneWidget);
     expect(find.bySemanticsLabel('Project'), findsOneWidget);
@@ -533,7 +533,7 @@ void main() {
     expect(find.textContaining('Loaded project'), findsOneWidget);
   });
 
-  testWidgets('Play tab shows MPC pads after add track', (tester) async {
+  testWidgets('Keys panel shows MPC pads after add track', (tester) async {
     mockWithSamplerDefault = true;
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
@@ -547,13 +547,13 @@ void main() {
 
     await tester.tap(find.byTooltip('Add track'));
     await tester.pumpAndSettle();
-    await tester.tap(find.bySemanticsLabel('Play'));
+    await tester.tap(find.bySemanticsLabel('Keys'));
     await tester.pumpAndSettle();
 
     expect(find.text('Pads'), findsOneWidget);
     expect(find.text('Perform'), findsOneWidget);
     expect(find.text('Oct 2'), findsOneWidget);
-    expect(find.text('ARM'), findsOneWidget);
+    expect(find.text('ARMED'), findsOneWidget);
     expect(find.byType(MpcPadGrid), findsOneWidget);
     expect(find.text('SAMPLER'), findsNothing);
     expect(find.byTooltip('Track 1'), findsOneWidget);
@@ -573,7 +573,7 @@ void main() {
 
     await tester.tap(find.byTooltip('Add track'));
     await tester.pumpAndSettle();
-    await tester.tap(find.bySemanticsLabel('Play'));
+    await tester.tap(find.bySemanticsLabel('Keys'));
     await tester.pumpAndSettle();
 
     final padGrid = tester.renderObject<RenderBox>(find.byType(MpcPadGrid));
@@ -601,7 +601,7 @@ void main() {
 
     await tester.tap(find.byTooltip('Add track'));
     await tester.pumpAndSettle();
-    await tester.tap(find.bySemanticsLabel('Play'));
+    await tester.tap(find.bySemanticsLabel('Keys'));
     await tester.pumpAndSettle();
 
     final padGrid = tester.renderObject<RenderBox>(find.byType(MpcPadGrid));
