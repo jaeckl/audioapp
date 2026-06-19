@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
@@ -10,6 +11,7 @@ import 'arrangement_clip_drag.dart';
 import 'arrangement_grid_painter.dart';
 import 'arrangement_loop_region_marker.dart';
 import 'arrangement_playhead_marker.dart';
+import 'arrangement_playhead_overlay.dart';
 import 'arrangement_timeline_metrics.dart';
 import '../editor/timeline_marker_layer.dart';
 import 'automation_clip_renderer.dart';
@@ -50,6 +52,7 @@ class ArrangementView extends StatefulWidget {
     this.followPlayheadEnabled = true,
     this.onFollowSuspended,
     this.onFollowResumed,
+    this.playheadListenable,
   });
 
   final ProjectSnapshot snapshot;
@@ -88,6 +91,8 @@ class ArrangementView extends StatefulWidget {
   final bool followPlayheadEnabled;
   final VoidCallback? onFollowSuspended;
   final VoidCallback? onFollowResumed;
+  /// When set, playhead marker layers listen here instead of rebuilding this widget each tick.
+  final ValueListenable<double>? playheadListenable;
 
   @override
   State<ArrangementView> createState() => ArrangementViewState();
@@ -118,6 +123,7 @@ class ArrangementViewState extends State<ArrangementView> {
   bool _programmaticScroll = false;
   DateTime? _lastFollowAnimateAt;
   int _followScrollGeneration = 0;
+  double? _lastListenedPlayheadBeat;
 
   static const double _rulerTapSlop = 12;
   static const Duration _followAnimateMinInterval = Duration(milliseconds: 66);
@@ -297,6 +303,34 @@ class ArrangementViewState extends State<ArrangementView> {
     _horizontalScroll.addListener(_onTimelineScroll);
     _masterScroll.addListener(_syncMasterScrollToTrack);
     _bindTimelineScrollController();
+    widget.playheadListenable?.addListener(_onPlayheadListenableTick);
+  }
+
+  void _onPlayheadListenableTick() {
+    if (!mounted || widget.playheadListenable == null || _scrubPlayheadBeats != null) {
+      return;
+    }
+    final beat = widget.playheadListenable!.value;
+    final oldBeat = _lastListenedPlayheadBeat;
+    _lastListenedPlayheadBeat = beat;
+    if (oldBeat == null) return;
+
+    if (!widget.playing) return;
+
+    final loopWrapped = timelinePlayheadLoopedBackward(
+      oldBeat: oldBeat,
+      newBeat: beat,
+      loopEnabled: widget.snapshot.loopEnabled,
+    );
+    if (loopWrapped && widget.followPlayheadEnabled) {
+      _resumeFollow();
+      _lastFollowAnimateAt = null;
+      _followPlayheadIfNeeded(beat, immediate: true);
+      return;
+    }
+    if (widget.followPlayheadEnabled && !_followSuspended) {
+      _followPlayheadIfNeeded(beat, immediate: false);
+    }
   }
 
   void _bindTimelineScrollController() {
@@ -310,15 +344,44 @@ class ArrangementViewState extends State<ArrangementView> {
   @override
   void didUpdateWidget(covariant ArrangementView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.playheadListenable != widget.playheadListenable) {
+      oldWidget.playheadListenable?.removeListener(_onPlayheadListenableTick);
+      widget.playheadListenable?.addListener(_onPlayheadListenableTick);
+      _lastListenedPlayheadBeat = null;
+    }
     if (oldWidget.timelineScrollController != widget.timelineScrollController) {
       oldWidget.timelineScrollController?.bind();
       _bindTimelineScrollController();
     }
-    _schedulePlaybackFollowUpdate(oldWidget);
+    if (widget.playheadListenable == null) {
+      _schedulePlaybackFollowUpdate(oldWidget);
+    } else {
+      _schedulePlaybackFollowStateChange(oldWidget);
+    }
   }
 
-  /// Follow side-effects must not run synchronously in [didUpdateWidget] — the
-  /// shell rebuilds this widget from a [ListenableBuilder] on every playhead tick.
+  /// Play/pause and follow-toggle side effects when playhead ticks bypass [didUpdateWidget].
+  void _schedulePlaybackFollowStateChange(ArrangementView oldWidget) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!widget.playing && oldWidget.playing) {
+        _cancelFollowScroll();
+        return;
+      }
+      if (widget.playing && !oldWidget.playing && widget.followPlayheadEnabled) {
+        _resumeFollow();
+      }
+      if (widget.followPlayheadEnabled &&
+          !oldWidget.followPlayheadEnabled &&
+          widget.playing) {
+        _resumeFollow();
+        final beat = widget.playheadListenable?.value ?? widget.playheadBeats;
+        _followPlayheadIfNeeded(beat, immediate: true);
+      }
+    });
+  }
+
+  /// Follow side-effects must not run synchronously in [didUpdateWidget].
   void _schedulePlaybackFollowUpdate(ArrangementView oldWidget) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -528,6 +591,7 @@ class ArrangementViewState extends State<ArrangementView> {
   @override
   void dispose() {
     _cancelFollowScroll();
+    widget.playheadListenable?.removeListener(_onPlayheadListenableTick);
     widget.timelineScrollController?.bind();
     _horizontalScroll.removeListener(_onTimelineScroll);
     _masterScroll.removeListener(_syncMasterScrollToTrack);
@@ -1068,45 +1132,48 @@ class ArrangementViewState extends State<ArrangementView> {
                 addRegionMarker(displayRegionStart);
                 addRegionMarker(displayRegionEnd);
 
-                final playheadBeat = _displayPlayheadBeats;
-                final playheadDisplayX = timelineStickyViewportX(
-                  beat: playheadBeat,
-                  pixelsPerBeat: _pixelsPerBeat,
-                  scrollOffset: scrollOffset,
-                );
-                partitionPlayheadMarker(
-                  beat: playheadBeat,
-                  pixelsPerBeat: _pixelsPerBeat,
-                  scrollOffset: scrollOffset,
-                  pill: Positioned(
-                    left: playheadDisplayX -
-                        ArrangementPlayheadMarkerTheme.hitWidth / 2,
-                    top: TimelineMarkerLayerMetrics.pillTopInOverlay(
-                      rulerHeight: rulerHeight,
-                      pillHeight: ArrangementPlayheadMarkerTheme.pillSize,
+                final useIsolatedPlayhead = widget.playheadListenable != null;
+                if (!useIsolatedPlayhead) {
+                  final playheadBeat = _displayPlayheadBeats;
+                  final playheadDisplayX = timelineStickyViewportX(
+                    beat: playheadBeat,
+                    pixelsPerBeat: _pixelsPerBeat,
+                    scrollOffset: scrollOffset,
+                  );
+                  partitionPlayheadMarker(
+                    beat: playheadBeat,
+                    pixelsPerBeat: _pixelsPerBeat,
+                    scrollOffset: scrollOffset,
+                    pill: Positioned(
+                      left: playheadDisplayX -
+                          ArrangementPlayheadMarkerTheme.hitWidth / 2,
+                      top: TimelineMarkerLayerMetrics.pillTopInOverlay(
+                        rulerHeight: rulerHeight,
+                        pillHeight: ArrangementPlayheadMarkerTheme.pillSize,
+                      ),
+                      width: ArrangementPlayheadMarkerTheme.hitWidth,
+                      height: ArrangementPlayheadMarkerTheme.pillSize,
+                      child: ArrangementPlayheadRulerPill(
+                        color: _scrubbingPlayhead
+                            ? theme.colorScheme.tertiary
+                            : theme.colorScheme.secondary,
+                        iconColor: _scrubbingPlayhead
+                            ? theme.colorScheme.onTertiary
+                            : theme.colorScheme.onSecondary,
+                        playing: widget.playing,
+                      ),
                     ),
-                    width: ArrangementPlayheadMarkerTheme.hitWidth,
-                    height: ArrangementPlayheadMarkerTheme.pillSize,
-                    child: ArrangementPlayheadRulerPill(
-                      color: _scrubbingPlayhead
-                          ? theme.colorScheme.tertiary
-                          : theme.colorScheme.secondary,
-                      iconColor: _scrubbingPlayhead
-                          ? theme.colorScheme.onTertiary
-                          : theme.colorScheme.onSecondary,
-                      playing: widget.playing,
+                    line: TimelineBeatFullHeightLineOverlay(
+                      left: playheadDisplayX - 1,
+                      width: 2,
+                      color: theme.colorScheme.secondary,
                     ),
-                  ),
-                  line: TimelineBeatFullHeightLineOverlay(
-                    left: playheadDisplayX - 1,
-                    width: 2,
-                    color: theme.colorScheme.secondary,
-                  ),
-                  behindPills: behindPills,
-                  behindLines: behindLines,
-                  frontPills: frontPills,
-                  frontLines: frontLines,
-                );
+                    behindPills: behindPills,
+                    behindLines: behindLines,
+                    frontPills: frontPills,
+                    frontLines: frontLines,
+                  );
+                }
 
                 final markerLayers = buildSyncedMarkerStackLayers(
                   sideColumnWidth: ArrangementTimelineMetrics.trackHeaderWidth,
@@ -1229,6 +1296,18 @@ class ArrangementViewState extends State<ArrangementView> {
                       ],
                     ),
                     ...markerLayers.behindChrome,
+                    if (widget.playheadListenable != null)
+                      ArrangementPlayheadOverlay(
+                        playheadListenable: widget.playheadListenable!,
+                        fallbackPlayheadBeats: widget.playheadBeats,
+                        scrubPlayheadBeats: _scrubPlayheadBeats,
+                        pixelsPerBeat: _pixelsPerBeat,
+                        horizontalScroll: _horizontalScroll,
+                        masterScroll: _masterScroll,
+                        playing: widget.playing,
+                        scrubbingPlayhead: _scrubbingPlayhead,
+                        inFrontOfChrome: false,
+                      ),
                     Positioned(
                       left: 0,
                       top: 0,
@@ -1250,6 +1329,18 @@ class ArrangementViewState extends State<ArrangementView> {
                         child: _MasterHeader(master: widget.snapshot.master),
                       ),
                     ...markerLayers.inFrontOfChrome,
+                    if (widget.playheadListenable != null)
+                      ArrangementPlayheadOverlay(
+                        playheadListenable: widget.playheadListenable!,
+                        fallbackPlayheadBeats: widget.playheadBeats,
+                        scrubPlayheadBeats: _scrubPlayheadBeats,
+                        pixelsPerBeat: _pixelsPerBeat,
+                        horizontalScroll: _horizontalScroll,
+                        masterScroll: _masterScroll,
+                        playing: widget.playing,
+                        scrubbingPlayhead: _scrubbingPlayhead,
+                        inFrontOfChrome: true,
+                      ),
                     if (clipDrag != null)
                       _ClipDragPreview(
                         stackKey: _arrangementStackKey,

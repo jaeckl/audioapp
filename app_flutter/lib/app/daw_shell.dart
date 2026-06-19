@@ -49,16 +49,16 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   String? _projectError;
   Ticker? _playheadTicker;
   Timer? _transportSyncTimer;
+  Timer? _meterRefreshTimer;
+  final Stopwatch _transportStopwatch = Stopwatch();
   final ValueNotifier<double> _playheadNotifier = ValueNotifier(0);
   double _syncPlayheadBeats = 0;
-  DateTime _syncTime = DateTime.now();
   int _syncBpm = 120;
   bool _syncLoopEnabled = true;
   double _syncLoopRegionStart = 0;
   double _syncLoopRegionEnd = 16;
   bool _transportSyncInFlight = false;
   bool _transportSyncPending = false;
-  DateTime _lastMeterRefresh = DateTime.fromMillisecondsSinceEpoch(0);
   _ShellTab _tab = _ShellTab.devices;
   bool _libraryOpen = false;
   LibraryCategory _libraryCategory = LibraryCategory.audioClips;
@@ -137,11 +137,16 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     _playheadTicker = null;
     _transportSyncTimer?.cancel();
     _transportSyncTimer = null;
+    _meterRefreshTimer?.cancel();
+    _meterRefreshTimer = null;
+    _transportStopwatch.stop();
   }
 
   void _anchorTransport(TransportState transport) {
     _syncPlayheadBeats = transport.playheadBeats;
-    _syncTime = DateTime.now();
+    _transportStopwatch
+      ..reset()
+      ..start();
     _syncBpm = transport.bpm;
     _syncLoopEnabled = transport.loopEnabled;
     _syncLoopRegionStart = transport.loopRegionStartBeat;
@@ -159,7 +164,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   double _extrapolatePlayheadBeats() {
-    final elapsed = DateTime.now().difference(_syncTime).inMicroseconds / 1000000.0;
+    final elapsed = _transportStopwatch.elapsedMicroseconds / 1000000.0;
     var beats = _syncPlayheadBeats + elapsed * (_syncBpm / 60.0);
     beats = _wrapPlayheadInLoop(beats);
     return beats;
@@ -184,13 +189,6 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         setState(() => _playing = transport.playing);
       }
       _publishSyncedPlayhead(transport: transport);
-      if (_playing && _snapshot != null) {
-        final now = DateTime.now();
-        if (now.difference(_lastMeterRefresh).inMilliseconds >= 500) {
-          _lastMeterRefresh = now;
-          unawaited(_refreshLiveMeters());
-        }
-      }
     } catch (_) {
     } finally {
       _transportSyncInFlight = false;
@@ -207,8 +205,13 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       if (!mounted || !_playing) return;
       _publishPlayhead(_extrapolatePlayheadBeats());
     })..start();
-    _transportSyncTimer = Timer.periodic(const Duration(milliseconds: 250), (_) {
+    _transportSyncTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
       unawaited(_syncTransportState());
+    });
+    _meterRefreshTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      if (_playing && _snapshot != null) {
+        unawaited(_refreshLiveMeters());
+      }
     });
     unawaited(_syncTransportState());
   }
@@ -1317,7 +1320,9 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     try {
       if (_playing) {
         _syncPlayheadBeats = beats;
-        _syncTime = DateTime.now();
+        _transportStopwatch
+          ..reset()
+          ..start();
         _publishPlayhead(beats);
       }
       final snapshot = await widget.bridge.setPlayheadBeats(beats);
@@ -1342,7 +1347,9 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     try {
       final beats = _effectivePlayheadBeats;
       _syncPlayheadBeats = beats;
-      _syncTime = DateTime.now();
+      _transportStopwatch
+        ..reset()
+        ..start();
       _syncBpm = _snapshot?.bpm ?? _syncBpm;
       _publishPlayhead(beats);
       await widget.bridge.setPlayheadBeats(beats);
@@ -1433,17 +1440,16 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(
-          child: ListenableBuilder(
-            listenable: _playheadNotifier,
-            builder: (context, _) => ArrangementView(
-              key: const ValueKey('daw-arrangement'),
-              timelineScrollController: _arrangementScrollController,
-              followPlayheadEnabled: _followPlayheadEnabled,
-              onFollowSuspended: _onFollowSuspended,
-              onFollowResumed: _onFollowResumed,
-              snapshot: snapshot,
-              playheadBeats: _effectivePlayheadBeats,
-              playing: _playing,
+          child: ArrangementView(
+            key: const ValueKey('daw-arrangement'),
+            timelineScrollController: _arrangementScrollController,
+            followPlayheadEnabled: _followPlayheadEnabled,
+            onFollowSuspended: _onFollowSuspended,
+            onFollowResumed: _onFollowResumed,
+            playheadListenable: _playheadNotifier,
+            snapshot: snapshot,
+            playheadBeats: _effectivePlayheadBeats,
+            playing: _playing,
               onPlayRequested: _startPlay,
               onStopRequested: _stopPlay,
               onPlayheadSeek: _setPlayheadBeats,
@@ -1462,18 +1468,15 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
               automationLinkClipId: _automationLinkClipId,
               onAutomationLinkToggle: _toggleAutomationLink,
               onAutomationClipDoubleTap: _openAutomationCurveEditor,
-            ),
           ),
         ),
         if (_tab == _ShellTab.devices)
-          ListenableBuilder(
-            listenable: _playheadNotifier,
-            builder: (context, _) => DeviceStrip(
-              snapshot: snapshot,
-              track: snapshot.selectedTrack,
-              samples: snapshot.samples,
-              playing: _playing,
-              playheadBeats: _effectivePlayheadBeats,
+          DeviceStrip(
+            snapshot: snapshot,
+            track: snapshot.selectedTrack,
+            samples: snapshot.samples,
+            playing: _playing,
+            playheadBeatListenable: _playheadNotifier,
               onSamplerParameterChanged: _setSamplerParameter,
             onAssignSamplerSample: _assignSamplerSample,
             onOpenSamplerEditor: _openSamplerEditor,
@@ -1496,7 +1499,6 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             automationLinkClipId: _automationLinkClipId,
             onAutomationParamSelected: _assignAutomationParam,
             onAutomateParameter: _automateParameter,
-          ),
           )
         else
           LiveInstrumentPanel(

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
@@ -17,6 +18,7 @@ class DeviceChainRow extends StatelessWidget {
     required this.playing,
     required this.bpm,
     this.playheadBeat = 0,
+    this.playheadBeatListenable,
     required this.density,
     required this.onSamplerParameterChanged,
     required this.onOpenSamplerEditor,
@@ -48,6 +50,7 @@ class DeviceChainRow extends StatelessWidget {
   final bool playing;
   final int bpm;
   final double playheadBeat;
+  final ValueListenable<double>? playheadBeatListenable;
   final DeviceStripSlotDensity density;
   final void Function(String deviceId, String parameterId, double value)
       onSamplerParameterChanged;
@@ -119,6 +122,7 @@ class DeviceChainRow extends StatelessWidget {
                   sample: _sampleFor(devices[i]),
                   bpm: bpm,
                   playheadBeat: playheadBeat,
+                  playheadBeatListenable: playheadBeatListenable,
                   playing: playing,
                   density: density,
                   samplerTab: samplerTabFor?.call(devices[i].id) ?? SamplerDeviceTab.wave,

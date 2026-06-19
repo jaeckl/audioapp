@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
@@ -16,7 +17,8 @@ class DeviceStrip extends StatefulWidget {
     required this.track,
     required this.samples,
     required this.playing,
-    required this.playheadBeats,
+    this.playheadBeatListenable,
+    this.playheadBeats = 0,
     required this.onSamplerParameterChanged,
     required this.onAssignSamplerSample,
     required this.onOpenSamplerEditor,
@@ -38,6 +40,7 @@ class DeviceStrip extends StatefulWidget {
   final TrackSnapshot? track;
   final List<SampleLibraryEntrySnapshot> samples;
   final bool playing;
+  final ValueListenable<double>? playheadBeatListenable;
   final double playheadBeats;
   final void Function(String deviceId, String parameterId, double value)
       onSamplerParameterChanged;
@@ -168,6 +171,7 @@ class _DeviceStripState extends State<DeviceStrip> {
                   playing: widget.playing,
                   bpm: widget.snapshot.bpm,
                   playheadBeat: widget.playheadBeats,
+                  playheadBeatListenable: widget.playheadBeatListenable,
                   lfos: widget.snapshot.lfos,
                   modEdges: widget.snapshot.modEdges,
                   density: collapsed

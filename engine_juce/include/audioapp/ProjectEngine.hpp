@@ -2,7 +2,8 @@
 
 #include <atomic>
 #include <cstdint>
-#include <mutex>
+#include <memory>
+#include <shared_mutex>
 #include <string>
 #include <vector>
 
@@ -217,7 +218,7 @@ private:
 
     static constexpr int kMaxTracks = 8;
 
-    mutable std::mutex mutex_;
+    mutable std::shared_mutex mutex_;
     std::string projectName_ = "Untitled";
     TransportController transport_;
     TrackRepository trackRepo_;

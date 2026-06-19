@@ -2,6 +2,8 @@
 #include "audioapp/ProjectJson.hpp"
 #include "audioapp/ProjectArchive.hpp"
 
+#include <memory>
+
 namespace audioapp {
 
 void EngineHost::ensureSampleBankReady() {
@@ -88,15 +90,16 @@ void EngineHost::readPreviewMix(float* monoOut, int numFrames, double sampleRate
         return;
     }
 
-    const auto& pcm = previewVoice_.pcm;
-    if (pcm.empty()) {
+    const float* pcm = previewVoice_.pcmData;
+    const int pcmSize = previewVoice_.pcmSize;
+    if (pcm == nullptr || pcmSize <= 0) {
         previewVoice_.active.store(false, std::memory_order_release);
         return;
     }
 
     int position = previewVoice_.position.load(std::memory_order_relaxed);
     for (int frame = 0; frame < numFrames; ++frame) {
-        if (position >= static_cast<int>(pcm.size())) {
+        if (position >= pcmSize) {
             previewVoice_.active.store(false, std::memory_order_release);
             for (int rest = frame; rest < numFrames; ++rest) {
                 monoOut[rest] = 0.0f;
@@ -269,10 +272,14 @@ void EngineHost::previewSample(const std::string& sampleId) {
     if (sample == nullptr || sample->pcm.empty()) {
         return;
     }
-    previewVoice_.pcm = sample->pcm;
+    // Atomically swap in a new shared_ptr so the audio thread never reads freed memory.
+    auto buf = std::make_shared<const std::vector<float>>(sample->pcm);
+    previewVoice_.pcmData = buf->data();
+    previewVoice_.pcmSize = static_cast<int>(buf->size());
     previewVoice_.sampleRate.store(sample->sampleRate, std::memory_order_release);
     previewVoice_.position.store(0, std::memory_order_release);
     previewVoice_.active.store(true, std::memory_order_release);
+    std::atomic_store(&previewBuffer_, std::move(buf));
     ensureAudioOutput();
 }
 

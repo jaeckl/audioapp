@@ -37,12 +37,14 @@ struct EngineHost::Impl {
         const bool shouldPlay = self->playing.load(std::memory_order_acquire);
         const double rate = self->sampleRate.load(std::memory_order_acquire);
         constexpr int32_t kMaxFrames = 4096;
-        float masterLeft[kMaxFrames];
-        float masterRight[kMaxFrames];
+        thread_local float masterLeft[kMaxFrames];
+        thread_local float masterRight[kMaxFrames];
+        thread_local float monoScratch[kMaxFrames];
         const int32_t framesToProcess = numFrames > kMaxFrames ? kMaxFrames : numFrames;
 
         std::memset(masterLeft, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
         std::memset(masterRight, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+        std::memset(monoScratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
 
         const double playheadStart = self->owner.playheadBeats();
         if (shouldPlay) {
@@ -50,7 +52,7 @@ struct EngineHost::Impl {
                 masterLeft, masterRight, framesToProcess, rate, playheadStart);
             self->owner.advancePlayheadForBlock(framesToProcess, rate);
         }
-        float monoScratch[kMaxFrames];
+        std::memset(monoScratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
         self->owner.readPreviewMix(monoScratch, framesToProcess, rate);
         for (int32_t frame = 0; frame < framesToProcess; ++frame) {
             masterLeft[frame] += monoScratch[frame];

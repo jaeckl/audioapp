@@ -123,11 +123,15 @@ private:
     struct PreviewVoice {
         std::atomic<bool> active{false};
         std::atomic<int> position{0};
-        std::vector<float> pcm;
+        const float* pcmData = nullptr;
+        int pcmSize = 0;
         std::atomic<double> sampleRate{48000.0};
     };
 
     PreviewVoice previewVoice_;
+    /// Holds sample PCM data alive while preview is active (shared_ptr prevents UAF
+    /// if a new preview overwrites pcmData while the audio thread is still reading).
+    std::shared_ptr<const std::vector<float>> previewBuffer_;
     void ensureSampleBankReady();
 };
 

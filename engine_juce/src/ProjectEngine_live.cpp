@@ -38,7 +38,7 @@ double ProjectEngine::sampleTimeToCaptureBeat(uint64_t sampleTime) const {
 }
 
 bool ProjectEngine::setRecordArmed(bool armed) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::shared_mutex> lock(mutex_);
     recordArmed_ = armed;
     if (!armed) {
         captureActive_ = false;
@@ -48,7 +48,7 @@ bool ProjectEngine::setRecordArmed(bool armed) {
 }
 
 bool ProjectEngine::noteOn(int pitch, float velocity) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::shared_mutex> lock(mutex_);
     if (trackRepo_.selectedTrackId().empty()) {
         return false;
     }
@@ -79,7 +79,7 @@ bool ProjectEngine::noteOn(int pitch, float velocity) {
 }
 
 bool ProjectEngine::noteOff(int pitch) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::shared_mutex> lock(mutex_);
     liveMixer_.noteOff(pitch);
     if (recordArmed_ && captureActive_) {
         captureEvents_.push_back(CaptureEvent{
@@ -93,7 +93,7 @@ bool ProjectEngine::noteOff(int pitch) {
 }
 
 void ProjectEngine::allNotesOff() {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::shared_mutex> lock(mutex_);
     liveMixer_.allNotesOff();
 }
 
@@ -106,7 +106,7 @@ void ProjectEngine::setLiveModulation(float mod) noexcept {
 }
 
 void ProjectEngine::clearCapture() {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::shared_mutex> lock(mutex_);
     captureEvents_.clear();
     captureActive_ = false;
 }
@@ -118,7 +118,7 @@ bool ProjectEngine::commitCapture() {
     std::vector<MidiNoteState> committed;
 
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<std::shared_mutex> lock(mutex_);
         if (!captureActive_ || captureEvents_.empty() || trackRepo_.selectedTrackId().empty()) {
             return false;
         }

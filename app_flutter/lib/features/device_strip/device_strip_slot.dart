@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
@@ -40,7 +41,8 @@ class DeviceStripSlot extends StatefulWidget {
     required this.device,
     required this.sample,
     required this.bpm,
-    required this.playheadBeat,
+    this.playheadBeat = 0,
+    this.playheadBeatListenable,
     required this.playing,
     required this.density,
     required this.onSamplerParameterChanged,
@@ -72,6 +74,7 @@ class DeviceStripSlot extends StatefulWidget {
   final SampleLibraryEntrySnapshot? sample;
   final int bpm;
   final double playheadBeat;
+  final ValueListenable<double>? playheadBeatListenable;
   final bool playing;
   final DeviceStripSlotDensity density;
   final void Function(String parameterId, double value) onSamplerParameterChanged;
@@ -337,18 +340,27 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       );
 
   Widget _modulationSidebar() {
-    return ModulationGrid(
+    Widget gridFor(double beat) => ModulationGrid(
       lfos: _localLfos,
       selectedLfoId: _selectedLfoId,
       maxLfos: ModulatorTypes.maxCount,
       connectModeLfoId: _connectModeLfoId,
-      playheadBeat: widget.playheadBeat,
+      playheadBeat: beat,
       bpm: widget.bpm,
       playing: widget.playing,
       onLfoTap: _onLfoTap,
       onLfoLongPress: _onLfoLongPress,
       onAddModulator: (type) => _onBridgeCall('createLfo', {'modulatorType': type}),
       onRemoveLfo: (id) => _onBridgeCall('removeLfo', {'lfoId': id}),
+    );
+
+    final listenable = widget.playheadBeatListenable;
+    if (listenable == null) {
+      return gridFor(widget.playheadBeat);
+    }
+    return ValueListenableBuilder<double>(
+      valueListenable: listenable,
+      builder: (context, beat, _) => gridFor(beat),
     );
   }
 
