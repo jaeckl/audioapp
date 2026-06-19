@@ -13,9 +13,12 @@
 #include "audioapp/DynamicsProcessor.hpp"
 #include "audioapp/LfoTypes.hpp"
 #include "audioapp/SamplerFilter.hpp"
+#include "audioapp/SamplePlayback.hpp"
 #include "audioapp/SubtractiveSynth.hpp"
 
 namespace audioapp {
+
+static constexpr int kMaxInstrumentRegions = 32;
 
 struct MidiPlaybackNote {
     int pitch = 60;

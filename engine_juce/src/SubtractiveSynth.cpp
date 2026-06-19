@@ -344,7 +344,7 @@ float subtractiveMixOscPair(float osc1, float osc2, int mixMode, float osc2Level
         return (std::abs(osc1) >= std::abs(osc2) ? osc1 : osc2);
     case 0:
     default:
-        return osc1 * (1.0f - osc2Level) + osc2 * osc2Level;
+        return osc1 + osc2;
     }
 }
 
@@ -452,8 +452,111 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
 
     const double blockStartBeat = playheadStartBeat;
 
+    // --- Phase 1: Voice binding (once per block, O(n) scan to find matching slots) ---
+    // Check note overlap with the entire [blockStartBeat, blockEndBeat) range.
+    const double blockEndBeat = blockStartBeat +
+        static_cast<double>(numFrames) * 60.0 / (static_cast<double>(std::max(bpm, 1)) * sampleRate);
+    int bindingToVoice[kSubtractiveMaxVoices];   // binding index → voice slot
+    int boundNoteKey[kSubtractiveMaxVoices];
+    int boundPitch[kSubtractiveMaxVoices];
+    float boundVelocity[kSubtractiveMaxVoices];
+    int boundNoteIdx[kSubtractiveMaxVoices];
+    int bindingCount = 0;
+    int stolenThisBlock = -1;
+
+    for (int ni = 0; ni < noteCount && bindingCount < kSubtractiveMaxVoices; ++ni) {
+        // Check if note is audible at any point in this block (sample midpoint as proxy)
+        double es, nds;
+        bool ir;
+        const double probeBeat = blockStartBeat + (blockEndBeat - blockStartBeat) * 0.5;
+        if (!isSubtractiveNoteAudible(notes[ni], probeBeat, bpm, ampReleaseSec, es, nds, ir)) {
+            continue;
+        }
+        // Deduplicate by noteKey+pitch
+        bool dup = false;
+        for (int b = 0; b < bindingCount; ++b) {
+            if (boundNoteKey[b] == notes[ni].noteKey && boundPitch[b] == notes[ni].pitch) {
+                dup = true;
+                break;
+            }
+        }
+        if (dup) continue;
+
+        // Find or create a runtime voice slot (same logic as original per-frame code)
+        int vi = -1;
+        // 1. Exact match
+        for (int v = 0; v < kSubtractiveMaxVoices; ++v) {
+            if (runtime.voices[v].active != 0 &&
+                runtime.voices[v].noteKey == notes[ni].noteKey &&
+                runtime.voices[v].pitch == notes[ni].pitch) {
+                vi = v;
+                break;
+            }
+        }
+        // 2. Free slot
+        if (vi < 0) {
+            for (int v = 0; v < kSubtractiveMaxVoices; ++v) {
+                if (runtime.voices[v].active == 0) { vi = v; break; }
+            }
+        }
+        // 3. Steal
+        if (vi < 0) {
+            vi = runtime.stealIndex;
+            runtime.stealIndex = (runtime.stealIndex + 1) % kSubtractiveMaxVoices;
+            stolenThisBlock = vi;
+        }
+
+        auto& voice = runtime.voices[vi];
+        if (voice.active == 0 || voice.noteKey != notes[ni].noteKey || voice.pitch != notes[ni].pitch) {
+            std::memset(&voice, 0, sizeof(voice));
+            voice.active = 1;
+            voice.pitch = notes[ni].pitch;
+            voice.noteKey = notes[ni].noteKey;
+            voice.velocity = notes[ni].velocity;
+            voice.targetHz = subtractiveOscPitchHz(notes[ni].pitch, 0.5f, 0.0f, 0.5f);
+            voice.currentHz = voice.targetHz;
+            voice.noiseSeed = 0.1f + static_cast<float>(notes[ni].noteKey) * 0.013f;
+        } else {
+            voice.active = 1; // ensure not deactivated
+        }
+
+        bindingToVoice[bindingCount] = vi;
+        boundNoteKey[bindingCount] = notes[ni].noteKey;
+        boundPitch[bindingCount] = notes[ni].pitch;
+        boundVelocity[bindingCount] = notes[ni].velocity;
+        boundNoteIdx[bindingCount] = ni;
+        ++bindingCount;
+    }
+
+    // Mono mode: keep only the last voice
+    if (params.synthMono >= 0.5f && bindingCount > 1) {
+        const int last = bindingCount - 1;
+        for (int b = 0; b < last; ++b) {
+            runtime.voices[bindingToVoice[b]].active = 0;
+        }
+        bindingToVoice[0] = bindingToVoice[last];
+        boundNoteKey[0] = boundNoteKey[last];
+        boundPitch[0] = boundPitch[last];
+        boundVelocity[0] = boundVelocity[last];
+        boundNoteIdx[0] = boundNoteIdx[last];
+        bindingCount = 1;
+    }
+
+    // Deactivate any stray voices not in a binding
+    for (int v = 0; v < kSubtractiveMaxVoices; ++v) {
+        bool inUse = false;
+        for (int b = 0; b < bindingCount; ++b) {
+            if (bindingToVoice[b] == v) { inUse = true; break; }
+        }
+        if (!inUse) runtime.voices[v].active = 0;
+    }
+
+    if (bindingCount == 0) return;
+
+    // --- Phase 2: Per-frame rendering with O(1) voice lookup via bindingToVoice ---
     for (int frame = 0; frame < numFrames; ++frame) {
         const double beat = beatAtFrame(blockStartBeat, frame, sampleRate, bpm);
+
         SubtractiveSynthParams frameParams = params;
         if (useAutomation) {
             DeviceVariantParams variant = frameParams;
@@ -467,103 +570,49 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
                 frameParams = *automated;
             }
         }
+
         float mix = 0.0f;
+        for (int b = 0; b < bindingCount; ++b) {
+            auto& voice = runtime.voices[bindingToVoice[b]];
+            if (voice.active == 0) continue;
 
-        struct ActiveNote {
-            int noteKey;
-            int pitch;
-            float velocity;
-            float elapsedSec;
-            float noteDurationSec;
-        };
-        ActiveNote active[kSubtractiveMaxVoices];
-        int activeCount = 0;
-
-        for (int noteIndex = 0; noteIndex < noteCount && activeCount < kSubtractiveMaxVoices; ++noteIndex) {
-            const auto& note = notes[noteIndex];
-            double elapsedSeconds = 0.0;
-            double noteDurationSec = 0.0;
+            const auto& note = notes[boundNoteIdx[b]];
+            double elapsedSec = 0.0, noteDurSec = 0.0;
             bool inRelease = false;
-            if (!isSubtractiveNoteAudible(
-                    note, beat, bpm, ampReleaseSec, elapsedSeconds, noteDurationSec, inRelease)) {
+            if (!isSubtractiveNoteAudible(note, beat, bpm, ampReleaseSec,
+                                           elapsedSec, noteDurSec, inRelease)) {
+                if (inRelease && elapsedSec >= noteDurSec + static_cast<double>(ampReleaseSec)) {
+                    voice.active = 0;
+                }
                 continue;
             }
-            active[activeCount++] = ActiveNote{
-                note.noteKey,
-                note.pitch,
-                note.velocity,
-                static_cast<float>(elapsedSeconds),
-                static_cast<float>(noteDurationSec),
-            };
-        }
 
-        if (params.synthMono >= 0.5f && activeCount > 1) {
-            active[0] = active[activeCount - 1];
-            activeCount = 1;
-        }
-
-        bool slotUsed[kSubtractiveMaxVoices]{};
-        for (int i = 0; i < activeCount; ++i) {
-            const ActiveNote& note = active[i];
-            int voiceIndex = -1;
-            for (int v = 0; v < kSubtractiveMaxVoices; ++v) {
-                auto& voice = runtime.voices[v];
-                if (voice.active != 0 && voice.noteKey == note.noteKey && voice.pitch == note.pitch) {
-                    voiceIndex = v;
-                    break;
+            const float ampGain = samplerAdsrGain(static_cast<float>(elapsedSec),
+                                                  static_cast<float>(noteDurSec),
+                                                  ampAttackSec, ampDecaySec,
+                                                  ampSustain, ampReleaseSec);
+            if (ampGain <= 0.0f) {
+                if (inRelease && elapsedSec >= noteDurSec + static_cast<double>(ampReleaseSec)) {
+                    voice.active = 0;
                 }
-            }
-            if (voiceIndex < 0) {
-                for (int v = 0; v < kSubtractiveMaxVoices; ++v) {
-                    if (runtime.voices[v].active == 0) {
-                        voiceIndex = v;
-                        break;
-                    }
-                }
-            }
-            if (voiceIndex < 0) {
-                voiceIndex = runtime.stealIndex;
-                runtime.stealIndex = (runtime.stealIndex + 1) % kSubtractiveMaxVoices;
+                continue;
             }
 
-            auto& voice = runtime.voices[voiceIndex];
-            if (!slotUsed[voiceIndex]) {
-                if (voice.active == 0 || voice.noteKey != note.noteKey || voice.pitch != note.pitch) {
-                    std::memset(&voice, 0, sizeof(voice));
-                    voice.active = 1;
-                    voice.pitch = note.pitch;
-                    voice.noteKey = note.noteKey;
-                    voice.velocity = note.velocity;
-                    voice.targetHz = subtractiveOscPitchHz(note.pitch, 0.5f, 0.0f, 0.5f);
-                    voice.currentHz = voice.targetHz;
-                    voice.noiseSeed = 0.1f + static_cast<float>(note.noteKey) * 0.013f;
-                }
-                slotUsed[voiceIndex] = true;
-            }
-
-            voice.targetHz = subtractiveOscPitchHz(note.pitch, 0.5f, 0.0f, 0.5f);
-            const float ampGain = samplerAdsrGain(note.elapsedSec,
-                                                  note.noteDurationSec,
-                                                  ampAttackSec,
-                                                  ampDecaySec,
-                                                  ampSustain,
-                                                  ampReleaseSec);
-            const float filterGain = samplerAdsrGain(note.elapsedSec,
-                                                     note.noteDurationSec,
-                                                     filterAttackSec,
-                                                     filterDecaySec,
-                                                     filterSustain,
-                                                     filterReleaseSec);
-            const float vel = std::clamp(note.velocity / 127.0f, 0.0f, 1.0f);
+            const float filterGain = samplerAdsrGain(static_cast<float>(elapsedSec),
+                                                     static_cast<float>(noteDurSec),
+                                                     filterAttackSec, filterDecaySec,
+                                                     filterSustain, filterReleaseSec);
+            const float vel = std::clamp(boundVelocity[b] / 127.0f, 0.0f, 1.0f);
             const float velGain = 1.0f - frameParams.velocitySensitivity * (1.0f - vel);
 
-            mix += subtractiveVoiceSample(voice, frameParams, ampGain * velGain, filterGain, sampleRate, glideCoeff) *
+            mix += subtractiveVoiceSample(voice, frameParams,
+                                           ampGain * velGain,
+                                           filterGain,
+                                           sampleRate, glideCoeff) *
                    frameParams.gain * kInstrumentOutputGain;
-        }
 
-        for (int v = 0; v < kSubtractiveMaxVoices; ++v) {
-            if (!slotUsed[v]) {
-                runtime.voices[v].active = 0;
+            if (inRelease && elapsedSec >= noteDurSec + static_cast<double>(ampReleaseSec)) {
+                voice.active = 0;
             }
         }
 

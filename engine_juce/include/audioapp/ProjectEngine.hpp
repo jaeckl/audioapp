@@ -205,7 +205,7 @@ private:
         SampleRegion regions[8];
         int deviceCount = 0;
         DeviceNodePlayback devices[kMaxDevicesPerTrack];
-        BiquadState samplerFilterStates[kMaxDevicesPerTrack];
+        BiquadState samplerFilterStates[kMaxDevicesPerTrack * kMaxInstrumentRegions];
         SubtractiveSynthRuntime subtractiveRuntimes[kMaxDevicesPerTrack];
         KickGeneratorRuntime kickRuntimes[kMaxDevicesPerTrack];
         SnareGeneratorRuntime snareRuntimes[kMaxDevicesPerTrack];
