@@ -83,6 +83,43 @@ void main() {
     expect(start, 2.0);
   });
 
+  test('virtualLengthBeats pads content like piano roll', () {
+    const snapshot = ProjectSnapshot(
+      bpm: 120,
+      selectedTrackId: 'track-1',
+      playheadBeats: 0,
+      playing: false,
+      loopEnabled: true,
+      recordArmed: false,
+      master: MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1),
+      samples: [],
+      tracks: [
+        TrackSnapshot(
+          id: 'track-1',
+          name: 'Track 1',
+          devices: const [],
+          sampleClips: const [],
+          automationClips: const [],
+          midiClips: [
+            MidiClipSnapshot(
+              id: 'clip-1',
+              startBeat: 0,
+              lengthBeats: 4,
+              notes: const [],
+            ),
+          ],
+        ),
+      ],
+    );
+
+    final virtual = ArrangementTimelineMetrics.virtualLengthBeats(snapshot);
+    expect(virtual, greaterThanOrEqualTo(16 * 4));
+    expect(
+      ArrangementTimelineMetrics.rulerRegionEndBeat(snapshot),
+      16,
+    );
+  });
+
   test('clipIntervalsForTrackExcluding omits moved clip', () {
     final track = TrackSnapshot(
       id: 'track-1',

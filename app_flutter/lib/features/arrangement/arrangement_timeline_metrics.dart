@@ -2,6 +2,7 @@
 import 'dart:math' as math;
 
 import '../../bridge/project_snapshot.dart';
+import '../piano_roll/piano_roll_metrics.dart';
 
 class ArrangementTimelineMetrics {
   static const double defaultPixelsPerBeat = 64;
@@ -9,10 +10,51 @@ class ArrangementTimelineMetrics {
   static const double maxPixelsPerBeat = 200;
   static const double trackHeaderWidth = 44;
   static const double trackLaneHeight = 56;
+  /// Legacy minimum; prefer [virtualLengthBeats] for scroll width.
   static const double timelineBeats = 32;
   static const double minClipDisplayWidthPx = 120;
   static const double gridBeats = 1.0;
   static const double defaultMidiClipLengthBeats = 4.0;
+
+  /// Furthest beat occupied by any clip (or loop length when enabled).
+  static double contentEndBeat(ProjectSnapshot snapshot) {
+    var end = 0.0;
+    for (final track in snapshot.tracks) {
+      for (final clip in track.midiClips) {
+        end = math.max(end, clip.startBeat + clip.lengthBeats);
+      }
+      for (final clip in track.sampleClips) {
+        end = math.max(end, clip.startBeat + clip.lengthBeats);
+      }
+      for (final clip in track.automationClips) {
+        end = math.max(end, clip.startBeat + clip.lengthBeats);
+      }
+    }
+    if (snapshot.loopEnabled) {
+      end = math.max(end, snapshot.loopRegionEndBeat);
+    }
+    return end > 0 ? end : defaultMidiClipLengthBeats;
+  }
+
+  /// Scrollable timeline length — matches piano-roll virtual grid padding.
+  static double virtualLengthBeats(ProjectSnapshot snapshot) {
+    return PianoRollMetrics.virtualLengthBeats(contentEndBeat(snapshot));
+  }
+
+  /// Highlight end for the shared bar ruler (loop region end or song content).
+  static double rulerRegionEndBeat(ProjectSnapshot snapshot) {
+    if (snapshot.loopEnabled) {
+      return snapshot.loopRegionEndBeat;
+    }
+    return contentEndBeat(snapshot);
+  }
+
+  static double rulerRegionStartBeat(ProjectSnapshot snapshot) {
+    if (snapshot.loopEnabled) {
+      return snapshot.loopRegionStartBeat;
+    }
+    return 0;
+  }
 
   static double quantizeBeat(double beat, {double grid = gridBeats}) {
     if (grid <= 0) {
