@@ -12,6 +12,7 @@ import '../bridge/project_snapshot.dart';
 import '../bridge/transport_state.dart';
 import '../features/automation/automation_editor_screen.dart';
 import '../features/arrangement/arrangement_view.dart';
+import '../features/editor/timeline_marker_layer.dart';
 import '../features/content_library/library_catalog.dart';
 import '../features/content_library/library_category.dart';
 import '../features/content_library/library_fly_in_panel.dart';
@@ -40,26 +41,32 @@ class DawShell extends StatefulWidget {
   State<DawShell> createState() => _DawShellState();
 }
 
-class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin {
+class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   bool _playing = false;
   ProjectSnapshot? _snapshot;
   String? _saveStatus;
   String? _projectError;
   Ticker? _playheadTicker;
   Timer? _transportSyncTimer;
-  double? _displayPlayheadBeats;
+  final ValueNotifier<double> _playheadNotifier = ValueNotifier(0);
   double _syncPlayheadBeats = 0;
   DateTime _syncTime = DateTime.now();
   int _syncBpm = 120;
   bool _syncLoopEnabled = true;
-  double _syncLoopLengthBeats = 16;
+  double _syncLoopRegionStart = 0;
+  double _syncLoopRegionEnd = 16;
   bool _transportSyncInFlight = false;
+  bool _transportSyncPending = false;
+  DateTime _lastMeterRefresh = DateTime.fromMillisecondsSinceEpoch(0);
   _ShellTab _tab = _ShellTab.devices;
   bool _libraryOpen = false;
   LibraryCategory _libraryCategory = LibraryCategory.audioClips;
   String? _librarySamplerDeviceId;
   String? _automationLinkClipId;
   final GlobalKey<LibraryFlyInPanelState> _libraryPanelKey = GlobalKey();
+  final TimelineViewportScrollController _arrangementScrollController =
+      TimelineViewportScrollController();
+  double? _frozenArrangementPlayhead;
 
   @override
   void initState() {
@@ -70,11 +77,56 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
   @override
   void dispose() {
     _stopPlayheadAnimation();
+    _playheadNotifier.dispose();
     super.dispose();
   }
 
-  double get _effectivePlayheadBeats =>
-      _displayPlayheadBeats ?? _snapshot?.playheadBeats ?? 0.0;
+  double _wrapPlayheadInLoop(double beats) {
+    if (!_syncLoopEnabled) {
+      return beats;
+    }
+    final len = _syncLoopRegionEnd - _syncLoopRegionStart;
+    if (len <= 0) {
+      return beats;
+    }
+    if (beats >= _syncLoopRegionEnd) {
+      return _syncLoopRegionStart + (beats - _syncLoopRegionStart) % len;
+    }
+    return beats;
+  }
+
+  double get _effectivePlayheadBeats {
+    if (_frozenArrangementPlayhead != null) {
+      return _frozenArrangementPlayhead!;
+    }
+    return _playheadNotifier.value;
+  }
+
+  void _publishPlayhead(double beats) {
+    _playheadNotifier.value = beats;
+  }
+
+  Future<double> _beginClipEditorSession() async {
+    if (_playing) {
+      await widget.bridge.stop();
+      _stopPlayheadAnimation();
+      if (mounted) {
+        setState(() => _playing = false);
+      }
+    }
+    final saved = _effectivePlayheadBeats;
+    if (mounted) {
+      setState(() => _frozenArrangementPlayhead = saved);
+    }
+    return saved;
+  }
+
+  Future<void> _endClipEditorSession() async {
+    if (mounted) {
+      setState(() => _frozenArrangementPlayhead = null);
+    }
+    await _syncTransportState();
+  }
 
   void _stopPlayheadAnimation() {
     _playheadTicker?.stop();
@@ -89,21 +141,33 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
     _syncTime = DateTime.now();
     _syncBpm = transport.bpm;
     _syncLoopEnabled = transport.loopEnabled;
-    _syncLoopLengthBeats = transport.loopLengthBeats;
-    _displayPlayheadBeats = transport.playheadBeats;
+    _syncLoopRegionStart = transport.loopRegionStartBeat;
+    _syncLoopRegionEnd = transport.loopRegionEndBeat;
+  }
+
+  void _publishSyncedPlayhead({TransportState? transport}) {
+    if (_playing) {
+      _publishPlayhead(_extrapolatePlayheadBeats());
+      return;
+    }
+    if (transport != null) {
+      _publishPlayhead(transport.playheadBeats);
+    }
   }
 
   double _extrapolatePlayheadBeats() {
     final elapsed = DateTime.now().difference(_syncTime).inMicroseconds / 1000000.0;
     var beats = _syncPlayheadBeats + elapsed * (_syncBpm / 60.0);
-    if (_syncLoopEnabled && _syncLoopLengthBeats > 0) {
-      beats = beats % _syncLoopLengthBeats;
-    }
+    beats = _wrapPlayheadInLoop(beats);
     return beats;
   }
 
   Future<void> _syncTransportState({bool updatePlaying = false}) async {
-    if (_transportSyncInFlight) return;
+    if (_frozenArrangementPlayhead != null) return;
+    if (_transportSyncInFlight) {
+      _transportSyncPending = true;
+      return;
+    }
     _transportSyncInFlight = true;
     try {
       final transport = await widget.bridge.getTransportState();
@@ -113,18 +177,24 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
         _playing = false;
         _stopPlayheadAnimation();
       }
-      setState(() {
-        if (updatePlaying) {
-          _playing = transport.playing;
-        }
-        _displayPlayheadBeats = transport.playing ? _extrapolatePlayheadBeats() : transport.playheadBeats;
-      });
+      if (updatePlaying) {
+        setState(() => _playing = transport.playing);
+      }
+      _publishSyncedPlayhead(transport: transport);
       if (_playing && _snapshot != null) {
-        unawaited(_refreshLiveMeters());
+        final now = DateTime.now();
+        if (now.difference(_lastMeterRefresh).inMilliseconds >= 500) {
+          _lastMeterRefresh = now;
+          unawaited(_refreshLiveMeters());
+        }
       }
     } catch (_) {
     } finally {
       _transportSyncInFlight = false;
+      if (_transportSyncPending) {
+        _transportSyncPending = false;
+        unawaited(_syncTransportState(updatePlaying: updatePlaying));
+      }
     }
   }
 
@@ -132,7 +202,7 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
     _stopPlayheadAnimation();
     _playheadTicker = createTicker((_) {
       if (!mounted || !_playing) return;
-      setState(() => _displayPlayheadBeats = _extrapolatePlayheadBeats());
+      _publishPlayhead(_extrapolatePlayheadBeats());
     })..start();
     _transportSyncTimer = Timer.periodic(const Duration(milliseconds: 250), (_) {
       unawaited(_syncTransportState());
@@ -143,10 +213,11 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
   void _syncTransportAnchorFromSnapshot(ProjectSnapshot snapshot) {
     _syncBpm = snapshot.bpm;
     _syncLoopEnabled = snapshot.loopEnabled;
-    _syncLoopLengthBeats = snapshot.loopLengthBeats;
+    _syncLoopRegionStart = snapshot.loopRegionStartBeat;
+    _syncLoopRegionEnd = snapshot.loopRegionEndBeat;
     if (!_playing) {
       _syncPlayheadBeats = snapshot.playheadBeats;
-      _displayPlayheadBeats = snapshot.playheadBeats;
+      _publishPlayhead(snapshot.playheadBeats);
     }
   }
 
@@ -468,6 +539,8 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
     }
 
     if (!mounted) return;
+    final savedPlayhead = await _beginClipEditorSession();
+    if (!mounted) return;
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         builder: (context) => AutomationEditorScreen(
@@ -475,9 +548,12 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
           clip: editorClip,
           bridge: widget.bridge,
           onSaved: _refreshSnapshot,
+          savedArrangementPlayhead: savedPlayhead,
+          bpm: _snapshot?.bpm ?? 120,
         ),
       ),
     );
+    await _endClipEditorSession();
   }
 
   Future<void> _addAudioClip(String trackId, double desiredStartBeat) async {
@@ -597,7 +673,6 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
         playheadBeats: 0,
         playing: false,
         loopEnabled: true,
-        loopLengthBeats: 16,
         recordArmed: false,
         master: const MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1.0),
         samples: [],
@@ -975,6 +1050,8 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
     }
     if (track == null) return;
 
+    final savedPlayhead = await _beginClipEditorSession();
+    if (!mounted) return;
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         builder: (context) => PianoRollScreen(
@@ -984,9 +1061,11 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
           bpm: _snapshot?.bpm ?? 120,
           drumAnchorPitch: track.drumAnchorPitch,
           onSnapshot: _refreshSnapshot,
+          savedArrangementPlayhead: savedPlayhead,
         ),
       ),
     );
+    await _endClipEditorSession();
 
     try {
       final snapshot = await widget.bridge.getProjectSnapshot();
@@ -1021,9 +1100,15 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
     }
   }
 
-  Future<void> _setLoopLengthBeats(double beats) async {
+  Future<void> _setLoopRegion({
+    required double startBeat,
+    required double endBeat,
+  }) async {
     try {
-      final snapshot = await widget.bridge.setLoopLengthBeats(beats);
+      final snapshot = await widget.bridge.setLoopRegion(
+        startBeat: startBeat,
+        endBeat: endBeat,
+      );
       await _refreshSnapshot(snapshot);
       _syncTransportAnchorFromSnapshot(snapshot);
       if (_playing) {
@@ -1091,7 +1176,7 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
   Future<void> _exportMix() async {
     try {
       setState(() => _saveStatus = 'Rendering…');
-      final length = _snapshot?.loopLengthBeats ?? 16.0;
+      final length = _snapshot?.loopRegionEndBeat ?? 16.0;
       final uri = await widget.bridge.exportMix(lengthBeats: length);
       if (!mounted) return;
       setState(() => _saveStatus = uri == null ? null : 'Exported mix');
@@ -1124,13 +1209,18 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
 
   Future<void> _setPlayheadBeats(double beats) async {
     try {
+      if (_playing) {
+        _syncPlayheadBeats = beats;
+        _syncTime = DateTime.now();
+        _publishPlayhead(beats);
+      }
       final snapshot = await widget.bridge.setPlayheadBeats(beats);
       await _refreshSnapshot(snapshot);
       if (_playing) {
         await _syncTransportState();
-      } else {
-        if (!mounted) return;
-        setState(() => _displayPlayheadBeats = null);
+      } else if (mounted) {
+        _syncPlayheadBeats = snapshot.playheadBeats;
+        _publishPlayhead(snapshot.playheadBeats);
       }
     } catch (e) {
       if (!mounted) return;
@@ -1138,18 +1228,45 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
     }
   }
 
-  Future<void> _togglePlay() async {
-    if (_playing) {
-      await widget.bridge.stop();
-      _stopPlayheadAnimation();
-      if (!mounted) return;
-      setState(() => _playing = false);
-      await _syncTransportState();
-    } else {
+  bool _transportCommandInFlight = false;
+
+  Future<void> _startPlay() async {
+    if (_playing || _transportCommandInFlight) return;
+    _transportCommandInFlight = true;
+    try {
+      final beats = _effectivePlayheadBeats;
+      _syncPlayheadBeats = beats;
+      _syncTime = DateTime.now();
+      _syncBpm = _snapshot?.bpm ?? _syncBpm;
+      _publishPlayhead(beats);
+      await widget.bridge.setPlayheadBeats(beats);
       await widget.bridge.play();
       if (!mounted) return;
       setState(() => _playing = true);
       _startPlayheadAnimation();
+      _arrangementScrollController.revealPlayheadAtViewportOrigin(beats);
+    } finally {
+      _transportCommandInFlight = false;
+    }
+  }
+
+  Future<void> _stopPlay() async {
+    if (!_playing || _transportCommandInFlight) return;
+    _transportCommandInFlight = true;
+    try {
+      await widget.bridge.stop();
+      _stopPlayheadAnimation();
+      try {
+        final transport = await widget.bridge.getTransportState();
+        if (mounted) {
+          _anchorTransport(transport);
+          _publishPlayhead(transport.playheadBeats);
+        }
+      } catch (_) {}
+      if (!mounted) return;
+      setState(() => _playing = false);
+    } finally {
+      _transportCommandInFlight = false;
     }
   }
 
@@ -1182,26 +1299,32 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(
-          child: ArrangementView(
-            snapshot: snapshot,
-            playheadBeats: _effectivePlayheadBeats,
-            playing: _playing,
-            onPlayStop: _togglePlay,
-            onPlayheadSeek: _setPlayheadBeats,
-            onTrackSelected: _selectTrack,
-            onAddTrack: _addTrack,
-            onAddMidiClip: _addMidiClip,
-            onAddAudioClip: _addAudioClip,
-            onClipTap: _openPianoRoll,
-            onSampleClipTap: (_, __) {},
-            onMoveClip: _moveClip,
-            onDeleteTrack: _confirmDeleteTrack,
-            onDeleteClip: _confirmDeleteClip,
-            onDuplicateClip: _duplicateClip,
-            onAddAutomationClip: _addAutomationClip,
-            automationLinkClipId: _automationLinkClipId,
-            onAutomationLinkToggle: _toggleAutomationLink,
-            onAutomationClipDoubleTap: _openAutomationCurveEditor,
+          child: ListenableBuilder(
+            listenable: _playheadNotifier,
+            builder: (context, _) => ArrangementView(
+              timelineScrollController: _arrangementScrollController,
+              snapshot: snapshot,
+              playheadBeats: _effectivePlayheadBeats,
+              playing: _playing,
+              onPlayRequested: _startPlay,
+              onStopRequested: _stopPlay,
+              onPlayheadSeek: _setPlayheadBeats,
+              onLoopRegionChanged: _setLoopRegion,
+              onTrackSelected: _selectTrack,
+              onAddTrack: _addTrack,
+              onAddMidiClip: _addMidiClip,
+              onAddAudioClip: _addAudioClip,
+              onClipTap: _openPianoRoll,
+              onSampleClipTap: (_, __) {},
+              onMoveClip: _moveClip,
+              onDeleteTrack: _confirmDeleteTrack,
+              onDeleteClip: _confirmDeleteClip,
+              onDuplicateClip: _duplicateClip,
+              onAddAutomationClip: _addAutomationClip,
+              automationLinkClipId: _automationLinkClipId,
+              onAutomationLinkToggle: _toggleAutomationLink,
+              onAutomationClipDoubleTap: _openAutomationCurveEditor,
+            ),
           ),
         ),
         if (_tab == _ShellTab.devices)
@@ -1260,9 +1383,7 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
           onLoadProject: _loadProject,
           onExportMix: _exportMix,
           loopEnabled: snapshot.loopEnabled,
-          loopLengthBeats: snapshot.loopLengthBeats,
           onLoopToggled: _setLoopEnabled,
-          onLoopLengthChanged: _setLoopLengthBeats,
           statusMessage: _saveStatus,
           errorMessage: _projectError,
         );
@@ -1274,17 +1395,18 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (snapshot != null)
-          TransportBar.padded(
-            context: context,
-            bpm: snapshot.bpm,
-            playheadBeats: _effectivePlayheadBeats,
-            version: kAppVersion,
-            loopEnabled: snapshot.loopEnabled,
-            loopLengthBeats: snapshot.loopLengthBeats,
-            onBpmChanged: _setBpm,
-            onLoopToggled: _setLoopEnabled,
-            onLoopLengthChanged: _setLoopLengthBeats,
-            onExportMix: _exportMix,
+          ListenableBuilder(
+            listenable: _playheadNotifier,
+            builder: (context, _) => TransportBar.padded(
+              context: context,
+              bpm: snapshot.bpm,
+              playheadBeats: _effectivePlayheadBeats,
+              version: kAppVersion,
+              loopEnabled: snapshot.loopEnabled,
+              onBpmChanged: _setBpm,
+              onLoopToggled: _setLoopEnabled,
+              onExportMix: _exportMix,
+            ),
           ),
         Expanded(
           child: snapshot == null
