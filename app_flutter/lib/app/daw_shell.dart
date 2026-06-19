@@ -1258,9 +1258,12 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   Future<void> _stopPlay() async {
     if (!_playing || _transportCommandInFlight) return;
     _transportCommandInFlight = true;
+    _stopPlayheadAnimation();
+    if (mounted) {
+      setState(() => _playing = false);
+    }
     try {
       await widget.bridge.stop();
-      _stopPlayheadAnimation();
       try {
         final transport = await widget.bridge.getTransportState();
         if (mounted) {
@@ -1268,8 +1271,6 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
           _publishPlayhead(transport.playheadBeats);
         }
       } catch (_) {}
-      if (!mounted) return;
-      setState(() => _playing = false);
     } finally {
       _transportCommandInFlight = false;
     }
@@ -1331,6 +1332,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
           child: ListenableBuilder(
             listenable: _playheadNotifier,
             builder: (context, _) => ArrangementView(
+              key: const ValueKey('daw-arrangement'),
               timelineScrollController: _arrangementScrollController,
               followPlayheadEnabled: _followPlayheadEnabled,
               onFollowSuspended: _onFollowSuspended,
