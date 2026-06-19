@@ -1,8 +1,10 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 #include "audioapp/SamplerFilter.hpp"
+#include "audioapp/AutomationTypes.hpp"
 #include "audioapp/SamplePlayback.hpp"
 
 namespace audioapp {
@@ -125,7 +127,10 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
                                   const SubtractiveMidiNoteRegion* notes,
                                   int noteCount,
                                   const SubtractiveSynthParams& params,
-                                  SubtractiveSynthRuntime& runtime) noexcept;
+                                  SubtractiveSynthRuntime& runtime,
+                                  const AutomationClipPlayback* automationClips = nullptr,
+                                  int automationClipCount = 0,
+                                  const std::string* automationDeviceId = nullptr) noexcept;
 
 void renderSubtractiveLiveVoice(float& mix,
                                 SubtractiveVoiceRuntime& voice,

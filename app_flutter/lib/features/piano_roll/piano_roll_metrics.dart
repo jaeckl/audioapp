@@ -258,10 +258,6 @@ extension PianoRollSnapLabel on PianoRollSnap {
 
 
 
-enum PianoRollSaveState { saved, saving, error }
-
-
-
 class PianoRollGridSettings {
 
   const PianoRollGridSettings({
@@ -318,6 +314,18 @@ class PianoRollGridSettings {
 
     return (beat / snapBeats).round() * snapBeats;
 
+  }
+
+  /// Duration for a newly inserted or tap-drawn note (not drag-painted length).
+  double get insertNoteDurationBeats {
+    var duration = defaultNoteBeats;
+    if (snap != PianoRollSnap.off && snapBeats > 0) {
+      duration = snapBeat(duration);
+      if (duration < snapBeats) {
+        duration = snapBeats;
+      }
+    }
+    return duration;
   }
 
 }

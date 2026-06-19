@@ -75,6 +75,32 @@ class ProjectSnapshot {
     return tracks.isEmpty ? null : tracks.first;
   }
 
+  Iterable<AutomationClipSnapshot> get allAutomationClips sync* {
+    for (final track in tracks) {
+      yield* track.automationClips;
+    }
+  }
+
+  AutomationClipSnapshot? automationClipById(String clipId) {
+    for (final clip in allAutomationClips) {
+      if (clip.id == clipId) {
+        return clip;
+      }
+    }
+    return null;
+  }
+
+  DeviceSnapshot? deviceById(String deviceId) {
+    for (final track in tracks) {
+      for (final device in track.devices) {
+        if (device.id == deviceId) {
+          return device;
+        }
+      }
+    }
+    return null;
+  }
+
   /// Merge live dynamics meter readouts from [fresh] without replacing other state.
   ProjectSnapshot withMergedDeviceMeters(ProjectSnapshot fresh) {
     final meterByDeviceId = <String, DeviceSnapshot>{};

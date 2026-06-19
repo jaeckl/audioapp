@@ -18,8 +18,9 @@ class AutomationClipRenderer extends ClipRenderer {
   Color get clipContentBackgroundColor =>
       ArrangementClipTheme.contentBackground(clipBackgroundColor);
 
+  /// Target name lives on the floating link chip — not a header row inside the clip.
   @override
-  String? get headerLabel => clip.isLinked ? clip.linkLabel : null;
+  String? get headerLabel => null;
 
   @override
   String? get emptyPlaceholder => clip.isLinked ? null : 'AUTO';
@@ -81,69 +82,49 @@ class AutomationClipRenderer extends ClipRenderer {
   }
 }
 
-/// Floating chip to enter automation Link Mode (tap knob on device strip to assign).
+/// Floating ~ toggle — tap to enter/exit link mode (no target label; clips may drive multiple params).
 class AutomationClipLinkChip extends StatelessWidget {
   const AutomationClipLinkChip({
     super.key,
-    required this.label,
     required this.active,
-    required this.linked,
     required this.onTap,
   });
 
-  final String label;
   final bool active;
-  final bool linked;
   final VoidCallback onTap;
+
+  static const double _circleSize = 26;
+  static const Color _creamFill = Color(0xFFF8F4EC);
 
   @override
   Widget build(BuildContext context) {
     final accent = LibraryTheme.accentAutomation;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: active
-                ? accent.withValues(alpha: 0.35)
-                : linked
-                    ? const Color(0xFF2A2238)
-                    : const Color(0xFF1E1828),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: active ? accent : accent.withValues(alpha: linked ? 0.55 : 0.85),
-              width: active ? 1.5 : 1,
+    final glyphColor = active ? accent : const Color(0xFF6B5A4A);
+
+    return Tooltip(
+      message: active ? 'Link mode on — tap knob to assign' : 'Tap to link parameter',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: Container(
+            width: _circleSize,
+            height: _circleSize,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: _creamFill,
             ),
-            boxShadow: active
-                ? [
-                    BoxShadow(
-                      color: accent.withValues(alpha: 0.35),
-                      blurRadius: 8,
-                    ),
-                  ]
-                : null,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                linked ? Icons.link : Icons.link_off,
-                size: 12,
-                color: accent,
+            child: Text(
+              '~',
+              style: TextStyle(
+                color: glyphColor,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                height: 1,
               ),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.92),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

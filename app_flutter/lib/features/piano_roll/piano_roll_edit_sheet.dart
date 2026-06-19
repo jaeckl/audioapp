@@ -37,14 +37,19 @@ class PianoRollEditSheet extends StatelessWidget {
     required VoidCallback onNudgeUp,
     required VoidCallback onNudgeDown,
     required VoidCallback onDeleteSelected,
+    double bottomInset = 0,
   }) {
     return showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: PianoRollTheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
-      builder: (context) => PianoRollEditSheet(
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: bottomInset),
+        child: PianoRollEditSheet(
         hasSelection: hasSelection,
         noteCount: noteCount,
         onQuantizeSelection: () {
@@ -63,6 +68,7 @@ class PianoRollEditSheet extends StatelessWidget {
           onDeleteSelected();
           Navigator.pop(context);
         },
+        ),
       ),
     );
   }

@@ -29,7 +29,7 @@ class ArrangementView extends StatefulWidget {
     this.onDeleteTrack,
     this.onDeleteClip,
     this.onDuplicateClip,
-    this.onOpenPlay,
+    this.onAddAutomationClip,
     this.automationLinkClipId,
     this.onAutomationLinkToggle,
     this.onAutomationClipDoubleTap,
@@ -56,7 +56,7 @@ class ArrangementView extends StatefulWidget {
   final void Function(String trackId)? onDeleteTrack;
   final void Function(String clipId)? onDeleteClip;
   final void Function(String clipId)? onDuplicateClip;
-  final void Function(String trackId)? onOpenPlay;
+  final void Function(String trackId, double startBeat)? onAddAutomationClip;
   final String? automationLinkClipId;
   final void Function(String clipId)? onAutomationLinkToggle;
   final void Function(String trackId, AutomationClipSnapshot clip)? onAutomationClipDoubleTap;
@@ -400,6 +400,15 @@ class _ArrangementViewState extends State<ArrangementView> {
             title: Text('Add Audio Clip'),
           ),
         ),
+        if (widget.onAddAutomationClip != null)
+          const PopupMenuItem(
+            value: 'automation',
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.show_chart_outlined, size: 22, color: Color(0xFFB48CFF)),
+              title: Text('Add Automation Clip'),
+            ),
+          ),
         if (widget.onDeleteTrack != null)
           const PopupMenuItem(
             value: 'delete_track',
@@ -407,15 +416,6 @@ class _ArrangementViewState extends State<ArrangementView> {
               contentPadding: EdgeInsets.zero,
               leading: Icon(Icons.delete_outline, size: 22, color: Colors.redAccent),
               title: Text('Delete track'),
-            ),
-          ),
-        if (widget.onOpenPlay != null)
-          const PopupMenuItem(
-            value: 'play',
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.piano, size: 22),
-              title: Text('Play instrument'),
             ),
           ),
       ],
@@ -433,10 +433,15 @@ class _ArrangementViewState extends State<ArrangementView> {
       widget.onAddMidiClip(track.id, startBeat);
     } else if (action == 'audio') {
       widget.onAddAudioClip(track.id, desiredBeat);
+    } else if (action == 'automation') {
+      final startBeat = _placementForTrack(
+        track,
+        desiredBeat,
+        ArrangementTimelineMetrics.defaultMidiClipLengthBeats,
+      );
+      widget.onAddAutomationClip!(track.id, startBeat);
     } else if (action == 'delete_track') {
       widget.onDeleteTrack?.call(track.id);
-    } else if (action == 'play') {
-      widget.onOpenPlay?.call(track.id);
     }
   }
 
@@ -981,8 +986,6 @@ class _TrackLane extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final laneHeight = ArrangementTimelineMetrics.trackLaneHeight;
-    final automationLaneTop = laneHeight / 2;
-    final automationHeight = laneHeight / 2 - 4;
     return GestureDetector(
       onLongPressStart: onLongPressStart,
       behavior: HitTestBehavior.opaque,
@@ -1060,9 +1063,9 @@ class _TrackLane extends StatelessWidget {
           for (final clip in track.automationClips)
             Positioned(
               left: clip.startBeat * pixelsPerBeat,
-              top: automationLaneTop,
+              top: 4,
               width: clip.lengthBeats * pixelsPerBeat,
-              height: automationHeight,
+              height: laneHeight - 8,
               child: _AutomationClipBlock(
                 clip: clip,
                 highlighted: draggingClipId == clip.id,
@@ -1070,9 +1073,10 @@ class _TrackLane extends StatelessWidget {
                 onLinkToggle: onAutomationLinkToggle == null
                     ? null
                     : () => onAutomationLinkToggle!(clip.id),
-                onDoubleTap: onAutomationClipDoubleTap == null
+                onTap: onAutomationClipDoubleTap == null
                     ? null
                     : () => onAutomationClipDoubleTap!(track.id, clip),
+                onDoubleTap: onClipMenu == null ? null : () => onClipMenu!(clip.id),
                 onDragStart: (details) => onClipDragStart(
                   trackId: track.id,
                   clipId: clip.id,
@@ -1085,7 +1089,6 @@ class _TrackLane extends StatelessWidget {
                 onDragUpdate: onClipDragUpdate,
                 onDragEnd: onClipDragEnd,
                 onDragCancel: onClipDragCancel,
-                onMenu: onClipMenu == null ? null : () => onClipMenu!(clip.id),
               ),
             ),
         ],
@@ -1101,24 +1104,24 @@ class _AutomationClipBlock extends StatelessWidget {
     required this.highlighted,
     required this.linkActive,
     this.onLinkToggle,
+    this.onTap,
     this.onDoubleTap,
     required this.onDragStart,
     required this.onDragUpdate,
     required this.onDragEnd,
     required this.onDragCancel,
-    this.onMenu,
   });
 
   final AutomationClipSnapshot clip;
   final bool highlighted;
   final bool linkActive;
   final VoidCallback? onLinkToggle;
+  final VoidCallback? onTap;
   final VoidCallback? onDoubleTap;
   final GestureLongPressStartCallback onDragStart;
   final GestureLongPressMoveUpdateCallback onDragUpdate;
   final GestureLongPressEndCallback onDragEnd;
   final VoidCallback onDragCancel;
-  final VoidCallback? onMenu;
 
   @override
   Widget build(BuildContext context) {
@@ -1128,7 +1131,8 @@ class _AutomationClipBlock extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           GestureDetector(
-            onDoubleTap: onDoubleTap ?? onMenu,
+            onTap: highlighted ? null : onTap,
+            onDoubleTap: onDoubleTap,
             onLongPressStart: onDragStart,
             onLongPressMoveUpdate: onDragUpdate,
             onLongPressEnd: onDragEnd,
@@ -1144,16 +1148,10 @@ class _AutomationClipBlock extends StatelessWidget {
           if (onLinkToggle != null)
             Positioned(
               top: -10,
-              left: 0,
-              right: 0,
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: AutomationClipLinkChip(
-                  label: clip.linkLabel,
-                  linked: clip.isLinked,
-                  active: linkActive,
-                  onTap: onLinkToggle!,
-                ),
+              right: 6,
+              child: AutomationClipLinkChip(
+                active: linkActive,
+                onTap: onLinkToggle!,
               ),
             ),
         ],

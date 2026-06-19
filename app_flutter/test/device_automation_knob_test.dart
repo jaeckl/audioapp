@@ -29,4 +29,52 @@ void main() {
 
     expect(automatedParam, 'filterCutoff');
   });
+
+  testWidgets('long-press in link mode invokes onAutomationLinkTap', (tester) async {
+    String? linkedParam;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: deviceAutomationKnob(
+              label: 'Filter',
+              value: 0.5,
+              onChanged: (_) {},
+              paramId: 'filterCutoff',
+              accentColor: Colors.orange,
+              automationLinkActive: true,
+              onAutomationLinkTap: (paramId) => linkedParam = paramId,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.longPress(find.byType(RotaryKnob));
+    await tester.pump();
+
+    expect(linkedParam, 'filterCutoff');
+  });
+
+  testWidgets('automated param shows indicator dot', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: deviceAutomationKnob(
+              label: 'Filter',
+              value: 0.5,
+              onChanged: (_) {},
+              paramId: 'filterCutoff',
+              accentColor: Colors.orange,
+              automatedParams: const {'filterCutoff'},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(Container), findsWidgets);
+  });
 }

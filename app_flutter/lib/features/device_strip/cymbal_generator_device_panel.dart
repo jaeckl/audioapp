@@ -17,6 +17,7 @@ class CymbalGeneratorDevicePanel extends StatelessWidget {
     required this.onParameterChanged,
     this.embeddedInCard = false,
     this.modulatedParams = const {},
+    this.automatedParams = const {},
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
@@ -29,6 +30,7 @@ class CymbalGeneratorDevicePanel extends StatelessWidget {
   final void Function(String parameterId, double value) onParameterChanged;
   final bool embeddedInCard;
   final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
@@ -156,6 +158,7 @@ class CymbalGeneratorDevicePanel extends StatelessWidget {
       displayValue: spec.format(value),
       accentColor: accent,
       modulationActive: modulatedParams.contains(paramId),
+      automationActive: automatedParams.contains(paramId),
       modulationAmount: modulationAmounts[paramId] ?? 0.0,
       connectModeActive: connectModeLfoId != null,
       onModulationAssign: onModulationAssign != null

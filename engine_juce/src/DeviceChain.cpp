@@ -343,6 +343,70 @@ void mixStereoPerFramePan(float* trackLeft, float* trackRight,
     }
 }
 
+constexpr int kAutomationSubBlockFrames = 64;
+
+void applyDspModulationAtFrame(DeviceVariantParams& params,
+                               DeviceNodeKind kind,
+                               const std::string& deviceId,
+                               int lfoFrame,
+                               int framesToProcess,
+                               const float* lfoValues,
+                               int lfoCount,
+                               const ModulationEdge* modEdges,
+                               int modEdgeCount) noexcept {
+    if (lfoValues == nullptr || lfoCount <= 0 || deviceId.empty()) {
+        return;
+    }
+    for (int e = 0; e < modEdgeCount; ++e) {
+        const auto& edge = modEdges[e];
+        if (edge.deviceId != deviceId || edge.lfoId >= lfoCount) {
+            continue;
+        }
+        if (edge.paramId == "gain" || edge.paramId == "pan") {
+            continue;
+        }
+        const float lfoOut = lfoValues[edge.lfoId * framesToProcess + lfoFrame];
+        const float modAmount = edge.amount * lfoOut;
+        std::visit([&](auto& p) { applyModulation(p, modAmount, edge.paramId); }, params);
+    }
+}
+
+DeviceVariantParams dspParamsAtFrame(const DeviceNodePlayback& node,
+                                   double beat,
+                                   int lfoFrame,
+                                   int framesToProcess,
+                                   const AutomationClipPlayback* automationClips,
+                                   int automationClipCount,
+                                   const float* lfoValues,
+                                   int lfoCount,
+                                   const ModulationEdge* modEdges,
+                                   int modEdgeCount) {
+    auto params = node.params;
+    applyDspAutomationAtBeat(params, node.kind, node.deviceId, beat, automationClips,
+                             automationClipCount);
+    applyDspModulationAtFrame(params, node.kind, node.deviceId, lfoFrame, framesToProcess,
+                                lfoValues, lfoCount, modEdges, modEdgeCount);
+    return params;
+}
+
+bool nodeUsesDspAutomationSubBlocks(const DeviceNodePlayback& node,
+                                    const AutomationClipPlayback* clips,
+                                    int clipCount) noexcept {
+    if (!nodeHasDspAutomation(node.deviceId, clips, clipCount)) {
+        return false;
+    }
+    switch (node.kind) {
+    case DeviceNodeKind::Oscillator:
+    case DeviceNodeKind::Sampler:
+        return true;
+    case DeviceNodeKind::SubtractiveSynth:
+        // Filter/osc automation is applied per-sample inside mixSubtractiveMidiNotesBlock.
+        return false;
+    default:
+        return false;
+    }
+}
+
 } // namespace
 
 bool isDynamicsDeviceNodeKind(const DeviceNodeKind kind) noexcept {
@@ -410,8 +474,65 @@ void processDeviceChain(float* trackLeft,
             continue;
         }
 
-        // --- Apply modulation to DSP-specific params (block-rate) ---
+        // --- Base params; timeline automation first, then LFO modulation on top ---
         auto modulatedParams = node.params;
+
+        float perFrameGain[kScratchFrames];
+        float perFramePan[kScratchFrames];
+        for (int f = 0; f < framesToProcess; ++f) {
+            perFrameGain[f] = node.gain;
+            perFramePan[f] = node.pan;
+        }
+
+        const double beatsPerFrame =
+            (static_cast<double>(std::max(bpm, 1)) / 60.0) / sampleRate;
+
+        const bool dspAutomationSubBlocks = nodeUsesDspAutomationSubBlocks(
+            node, automationClips, automationClipCount);
+
+        if (automationClips != nullptr && automationClipCount > 0 && !node.deviceId.empty()) {
+            for (int a = 0; a < automationClipCount; ++a) {
+                const AutomationClipPlayback& ac = automationClips[a];
+                if (std::string(ac.deviceId) != node.deviceId) {
+                    continue;
+                }
+                const std::string paramId(ac.paramId);
+                if (paramId == "gain" || paramId == "pan") {
+                    for (int f = 0; f < framesToProcess; ++f) {
+                        const double beat =
+                            playheadStartBeat + static_cast<double>(f) * beatsPerFrame;
+                        if (beat < static_cast<double>(ac.clipStartBeat) ||
+                            beat >= static_cast<double>(ac.clipStartBeat + ac.clipLengthBeats)) {
+                            continue;
+                        }
+                        const float beatInClip =
+                            static_cast<float>(beat - static_cast<double>(ac.clipStartBeat));
+                        const float value =
+                            evaluateAutomationEnvelope(ac.points, ac.pointCount, beatInClip);
+                        if (paramId == "gain") {
+                            perFrameGain[f] = value;
+                        } else {
+                            perFramePan[f] = value;
+                        }
+                    }
+                } else if (!dspAutomationSubBlocks) {
+                    if (node.kind == DeviceNodeKind::SubtractiveSynth &&
+                        nodeHasDspAutomation(node.deviceId, automationClips, automationClipCount)) {
+                        continue;
+                    }
+                    const double beat = playheadStartBeat;
+                    if (beat < static_cast<double>(ac.clipStartBeat) ||
+                        beat >= static_cast<double>(ac.clipStartBeat + ac.clipLengthBeats)) {
+                        continue;
+                    }
+                    const float beatInClip =
+                        static_cast<float>(beat - static_cast<double>(ac.clipStartBeat));
+                    const float value =
+                        evaluateAutomationEnvelope(ac.points, ac.pointCount, beatInClip);
+                    applyAutomationValue(modulatedParams, node.kind, paramId, value);
+                }
+            }
+        }
 
         if (lfoValues != nullptr && lfoCount > 0 && !node.deviceId.empty()) {
             for (int e = 0; e < modEdgeCount; ++e) {
@@ -420,7 +541,9 @@ void processDeviceChain(float* trackLeft,
                     continue;
                 }
                 if (edge.paramId != "gain" && edge.paramId != "pan") {
-                    // DSP-specific param — block-rate (first-frame LFO value)
+                    if (dspAutomationSubBlocks) {
+                        continue;
+                    }
                     const float lfoOut = lfoValues[edge.lfoId * framesToProcess];
                     const float modAmount = edge.amount * lfoOut;
                     std::visit([&](auto& params) {
@@ -428,15 +551,6 @@ void processDeviceChain(float* trackLeft,
                     }, modulatedParams);
                 }
             }
-        }
-
-        // --- Build per-frame gain/pan arrays ---
-        // Always build them from the base values; edges add modulation per-frame.
-        float perFrameGain[kScratchFrames];
-        float perFramePan[kScratchFrames];
-        for (int f = 0; f < framesToProcess; ++f) {
-            perFrameGain[f] = node.gain;
-            perFramePan[f] = node.pan;
         }
 
         if (lfoValues != nullptr && lfoCount > 0 && !node.deviceId.empty()) {
@@ -459,62 +573,47 @@ void processDeviceChain(float* trackLeft,
             }
         }
 
-        // --- Apply timeline automation (block-rate absolute values) ---
-        if (automationClips != nullptr && automationClipCount > 0 && !node.deviceId.empty()) {
-            for (int a = 0; a < automationClipCount; ++a) {
-                const AutomationClipPlayback& ac = automationClips[a];
-                if (std::string(ac.deviceId) != node.deviceId) {
-                    continue;
-                }
-                const double beat = playheadStartBeat;
-                if (beat < static_cast<double>(ac.clipStartBeat) ||
-                    beat >= static_cast<double>(ac.clipStartBeat + ac.clipLengthBeats)) {
-                    continue;
-                }
-                const float beatInClip =
-                    static_cast<float>(beat - static_cast<double>(ac.clipStartBeat));
-                const float value =
-                    evaluateAutomationEnvelope(ac.points, ac.pointCount, beatInClip);
-                const std::string paramId(ac.paramId);
-                if (paramId == "gain") {
-                    for (int f = 0; f < framesToProcess; ++f) {
-                        perFrameGain[f] = value;
-                    }
-                } else if (paramId == "pan") {
-                    for (int f = 0; f < framesToProcess; ++f) {
-                        perFramePan[f] = value;
-                    }
-                } else {
-                    applyAutomationValue(modulatedParams, node.kind, paramId, value);
-                }
-            }
-        }
-
         // --- Process device and apply per-frame gain/pan ---
         switch (node.kind) {
         case DeviceNodeKind::Oscillator: {
             if (!suppressInstruments) {
-                auto p = std::get<OscillatorParams>(modulatedParams);
-                p.frequencyHz = midiActiveFrequencyHz(notes, noteCount,
-                    playheadStartBeat, p.frequencyHz);
-                // Produce oscillator output at kInstrumentOutputGain scale,
-                // then layer external gain and pan per-frame.
-                const float frequency = p.frequencyHz;
-                if (frequency > 0.0f) {
-                    std::memset(scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
-                    addSineBlock(scratch, framesToProcess, sampleRate, frequency,
-                                 oscillatorPhase, kInstrumentOutputGain);
-                    multiplyPerFrameGain(scratch, framesToProcess, perFrameGain);
-                    mixStereoPerFramePan(trackLeft, trackRight, scratch,
-                                         framesToProcess, perFramePan);
+                std::memset(scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+                if (dspAutomationSubBlocks) {
+                    for (int sub = 0; sub < framesToProcess; sub += kAutomationSubBlockFrames) {
+                        const int subLen = std::min(kAutomationSubBlockFrames, framesToProcess - sub);
+                        const double subBeat =
+                            playheadStartBeat + static_cast<double>(sub) * beatsPerFrame;
+                        auto subParams = dspParamsAtFrame(
+                            node, subBeat, sub, framesToProcess, automationClips,
+                            automationClipCount, lfoValues, lfoCount, modEdges, modEdgeCount);
+                        auto p = std::get<OscillatorParams>(subParams);
+                        p.frequencyHz =
+                            midiActiveFrequencyHz(notes, noteCount, subBeat, p.frequencyHz);
+                        if (p.frequencyHz > 0.0f) {
+                            addSineBlock(scratch + sub, subLen, sampleRate, p.frequencyHz,
+                                         oscillatorPhase, kInstrumentOutputGain);
+                        }
+                    }
+                } else {
+                    auto p = std::get<OscillatorParams>(modulatedParams);
+                    p.frequencyHz = midiActiveFrequencyHz(notes, noteCount,
+                        playheadStartBeat, p.frequencyHz);
+                    const float frequency = p.frequencyHz;
+                    if (frequency > 0.0f) {
+                        addSineBlock(scratch, framesToProcess, sampleRate, frequency,
+                                     oscillatorPhase, kInstrumentOutputGain);
+                    }
                 }
+                multiplyPerFrameGain(scratch, framesToProcess, perFrameGain);
+                mixStereoPerFramePan(trackLeft, trackRight, scratch,
+                                     framesToProcess, perFramePan);
             }
             break;
         }
         case DeviceNodeKind::Sampler: {
             if (!suppressInstruments) {
-                const auto& p = std::get<SamplerParams>(modulatedParams);
-                if (p.samplerPcm != nullptr && noteCount > 0) {
+                const auto& baseParams = std::get<SamplerParams>(modulatedParams);
+                if (baseParams.samplerPcm != nullptr && noteCount > 0) {
                     SamplerMidiNoteRegion regions[32];
                     const int regionCount = noteCount > 32 ? 32 : noteCount;
                     for (int i = 0; i < regionCount; ++i) {
@@ -525,23 +624,41 @@ void processDeviceChain(float* trackLeft,
                         };
                     }
                     std::memset(scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
-                    mixSamplerMidiNotesBlock(scratch, framesToProcess, sampleRate, bpm,
-                                             playheadStartBeat, regions, regionCount,
-                                             SamplerInstrumentPlayback{
-                                                 p.samplerPcm,
-                                                 p.samplerFrameCount,
-                                                 p.samplerPcmSampleRate,
-                                                 kInstrumentOutputGain,
-                                                 60,
-                                                 p.attack, p.decay,
-                                                 p.sustain, p.release,
-                                                 p.filterCutoff, p.filterQ,
-                                                 p.filterMode,
-                                                 p.trimStartFrame, p.trimEndFrame,
-                                                 p.regionStartFrame, p.regionEndFrame,
-                                                 samplerFilterStates != nullptr
-                                                     ? &samplerFilterStates[deviceIndex] : nullptr,
-                                             });
+                    const auto renderSampler = [&](int sub, int subLen, double subBeat,
+                                                   const SamplerParams& p) {
+                        mixSamplerMidiNotesBlock(scratch + sub, subLen, sampleRate, bpm, subBeat,
+                                               regions, regionCount,
+                                               SamplerInstrumentPlayback{
+                                                   p.samplerPcm,
+                                                   p.samplerFrameCount,
+                                                   p.samplerPcmSampleRate,
+                                                   kInstrumentOutputGain,
+                                                   60,
+                                                   p.attack, p.decay,
+                                                   p.sustain, p.release,
+                                                   p.filterCutoff, p.filterQ,
+                                                   p.filterMode,
+                                                   p.trimStartFrame, p.trimEndFrame,
+                                                   p.regionStartFrame, p.regionEndFrame,
+                                                   samplerFilterStates != nullptr
+                                                       ? &samplerFilterStates[deviceIndex]
+                                                       : nullptr,
+                                               });
+                    };
+                    if (dspAutomationSubBlocks) {
+                        for (int sub = 0; sub < framesToProcess; sub += kAutomationSubBlockFrames) {
+                            const int subLen =
+                                std::min(kAutomationSubBlockFrames, framesToProcess - sub);
+                            const double subBeat =
+                                playheadStartBeat + static_cast<double>(sub) * beatsPerFrame;
+                            const auto& p = std::get<SamplerParams>(dspParamsAtFrame(
+                                node, subBeat, sub, framesToProcess, automationClips,
+                                automationClipCount, lfoValues, lfoCount, modEdges, modEdgeCount));
+                            renderSampler(sub, subLen, subBeat, p);
+                        }
+                    } else {
+                        renderSampler(0, framesToProcess, playheadStartBeat, baseParams);
+                    }
                     multiplyPerFrameGain(scratch, framesToProcess, perFrameGain);
                     mixStereoPerFramePan(trackLeft, trackRight, scratch,
                                          framesToProcess, perFramePan);
@@ -551,7 +668,6 @@ void processDeviceChain(float* trackLeft,
         }
         case DeviceNodeKind::SubtractiveSynth: {
             if (!suppressInstruments) {
-                const auto& synthParams = std::get<SubtractiveSynthParams>(modulatedParams);
                 if (noteCount > 0) {
                     SubtractiveMidiNoteRegion regions[32];
                     const int regionCount = noteCount > 32 ? 32 : noteCount;
@@ -566,11 +682,23 @@ void processDeviceChain(float* trackLeft,
                     }
                     std::memset(scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
                     SubtractiveSynthRuntime localRuntime{};
-                    mixSubtractiveMidiNotesBlock(scratch, framesToProcess, sampleRate, bpm,
-                                                 playheadStartBeat, regions, regionCount,
-                                                 synthParams,
-                                                 subtractiveRuntimes != nullptr
-                                                     ? subtractiveRuntimes[deviceIndex] : localRuntime);
+                    SubtractiveSynthRuntime& runtime =
+                        subtractiveRuntimes != nullptr ? subtractiveRuntimes[deviceIndex]
+                                                       : localRuntime;
+                    const bool hasDspAutomation = nodeHasDspAutomation(
+                        node.deviceId, automationClips, automationClipCount);
+                    mixSubtractiveMidiNotesBlock(scratch,
+                                                 framesToProcess,
+                                                 sampleRate,
+                                                 bpm,
+                                                 playheadStartBeat,
+                                                 regions,
+                                                 regionCount,
+                                                 std::get<SubtractiveSynthParams>(modulatedParams),
+                                                 runtime,
+                                                 hasDspAutomation ? automationClips : nullptr,
+                                                 hasDspAutomation ? automationClipCount : 0,
+                                                 hasDspAutomation ? &node.deviceId : nullptr);
                     multiplyPerFrameGain(scratch, framesToProcess, perFrameGain);
                     mixStereoPerFramePan(trackLeft, trackRight, scratch,
                                          framesToProcess, perFramePan);

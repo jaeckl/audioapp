@@ -11,6 +11,7 @@ class ClapGeneratorDeviceStrip extends StatelessWidget {
     this.selectedTab,
     this.onTabChanged,
     this.modulatedParams = const {},
+    this.automatedParams = const {},
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
@@ -24,6 +25,7 @@ class ClapGeneratorDeviceStrip extends StatelessWidget {
   final ClapDeviceTab? selectedTab;
   final ValueChanged<ClapDeviceTab>? onTabChanged;
   final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
@@ -40,6 +42,7 @@ class ClapGeneratorDeviceStrip extends StatelessWidget {
       selectedTab: selectedTab,
       onTabChanged: onTabChanged,
       modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
       modulationAmounts: modulationAmounts,
       connectModeLfoId: connectModeLfoId,
       onModulationAssign: onModulationAssign,

@@ -10,7 +10,7 @@ import 'daw_shell_nav.dart';
 import '../bridge/engine_bridge.dart';
 import '../bridge/project_snapshot.dart';
 import '../bridge/transport_state.dart';
-import '../features/automation/automation_curve_editor_screen.dart';
+import '../features/automation/automation_editor_screen.dart';
 import '../features/arrangement/arrangement_view.dart';
 import '../features/content_library/library_catalog.dart';
 import '../features/content_library/library_category.dart';
@@ -334,24 +334,34 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
     });
   }
 
-  Future<void> _assignAutomationParam(String deviceId, String paramId) async {
+  Future<bool> _assignAutomationParam(String deviceId, String paramId) async {
     final clipId = _automationLinkClipId;
-    if (clipId == null) return;
+    final snapshot = _snapshot;
+    if (clipId == null || snapshot == null) {
+      return false;
+    }
+
+    if (snapshot.deviceById(deviceId) == null) {
+      return false;
+    }
+    if (snapshot.automationClipById(clipId) == null) {
+      return false;
+    }
+
     try {
-      final snapshot = await widget.bridge.assignAutomationTarget(
+      final updated = await widget.bridge.assignAutomationTarget(
         clipId: clipId,
         deviceId: deviceId,
         paramId: paramId,
       );
-      await _refreshSnapshot(snapshot);
-      if (!mounted) return;
+      if (!mounted) return false;
       setState(() => _automationLinkClipId = null);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Linked automation to $paramId')),
-      );
+      await _refreshSnapshot(updated);
+      return true;
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) return false;
       setState(() => _projectError = e.toString());
+      return false;
     }
   }
 
@@ -438,11 +448,31 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
   ) async {
     final track = _trackById(trackId);
     if (track == null) return;
+
+    // Always open with engine-backed points (arrangement [clip] may be stale).
+    AutomationClipSnapshot editorClip = clip;
+    try {
+      final fresh = await widget.bridge.getProjectSnapshot();
+      for (final t in fresh.tracks) {
+        if (t.id != trackId) continue;
+        for (final candidate in t.automationClips) {
+          if (candidate.id == clip.id) {
+            editorClip = candidate;
+            break;
+          }
+        }
+        break;
+      }
+    } catch (_) {
+      // Fall back to the clip snapshot we already have.
+    }
+
+    if (!mounted) return;
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (context) => AutomationCurveEditorScreen(
+        builder: (context) => AutomationEditorScreen(
           trackName: track.name,
-          clip: clip,
+          clip: editorClip,
           bridge: widget.bridge,
           onSaved: _refreshSnapshot,
         ),
@@ -1168,10 +1198,7 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
             onDeleteTrack: _confirmDeleteTrack,
             onDeleteClip: _confirmDeleteClip,
             onDuplicateClip: _duplicateClip,
-            onOpenPlay: (trackId) async {
-              await _selectTrack(trackId);
-              await _onTabSelected(_ShellTab.keys);
-            },
+            onAddAutomationClip: _addAutomationClip,
             automationLinkClipId: _automationLinkClipId,
             onAutomationLinkToggle: _toggleAutomationLink,
             onAutomationClipDoubleTap: _openAutomationCurveEditor,

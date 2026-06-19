@@ -9,6 +9,7 @@ import '../../bridge/timeline_clip.dart';
 import 'piano_roll_clip_end_marker.dart';
 import 'piano_roll_grid_painter.dart';
 import 'piano_roll_key_column.dart';
+import 'editor_view_range.dart';
 import 'piano_roll_metrics.dart';
 import 'piano_roll_note_block.dart';
 import 'piano_roll_ruler.dart';
@@ -35,6 +36,7 @@ class PianoRollViewport extends StatefulWidget {
     this.onCenterOctaveChanged,
     this.onClipLengthChanged,
     this.onClipLengthCommit,
+    this.viewRangeBars = EditorViewRange.defaultBars,
   });
 
   final List<MidiNoteSnapshot> notes;
@@ -53,6 +55,7 @@ class PianoRollViewport extends StatefulWidget {
   final ValueChanged<int>? onCenterOctaveChanged;
   final ValueChanged<double>? onClipLengthChanged;
   final VoidCallback? onClipLengthCommit;
+  final int viewRangeBars;
 
   @override
   State<PianoRollViewport> createState() => _PianoRollViewportState();
@@ -76,6 +79,8 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
   double _rowHeight = PianoRollMetrics.rowHeight;
   double _pinchStartPpb = PianoRollMetrics.pixelsPerBeat;
   double _pinchStartRowH = PianoRollMetrics.rowHeight;
+  double _scrollViewportWidth = 0;
+  int? _appliedViewRangeBeats;
 
   bool _lockScrollForEdit = false;
   int? _editPointer;
@@ -118,6 +123,51 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
       _emitCenterOctave();
     });
     _verticalKeys.addListener(() => _linkScroll(_verticalKeys, _vertical));
+  }
+
+  @override
+  void didUpdateWidget(covariant PianoRollViewport oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.viewRangeBars != oldWidget.viewRangeBars) {
+      _scheduleApplyViewRange(widget.viewRangeBars);
+    }
+  }
+
+  void _scheduleApplyViewRange(int bars) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _applyViewRange(bars);
+    });
+  }
+
+  void _applyViewRange(int bars) {
+    if (_scrollViewportWidth <= 0) return;
+    final ppb = EditorViewRange.pixelsPerBeatForWidth(_scrollViewportWidth, bars);
+    setState(() {
+      _pixelsPerBeat = ppb;
+      _appliedViewRangeBeats = bars;
+    });
+    _jumpScrollToStart();
+  }
+
+  void _jumpScrollToStart() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_horizontal.hasClients) {
+        _horizontal.jumpTo(0);
+      }
+      if (_ruler.hasClients) {
+        _ruler.jumpTo(0);
+      }
+    });
+  }
+
+  void _updateScrollViewportWidth(double width) {
+    if (width <= 0) return;
+    final widthChanged = (_scrollViewportWidth - width).abs() > 0.5;
+    _scrollViewportWidth = width;
+    if (_appliedViewRangeBeats == null || widthChanged) {
+      _scheduleApplyViewRange(widget.viewRangeBars);
+    }
   }
 
   @override
@@ -218,10 +268,7 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
       _editTravel = 0;
       _drawHorizontalTravel = 0;
 
-      if (_hitClipEndMarker(canvasPos)) {
-        _draggingClipEnd = true;
-        _lockScrollForEdit = true;
-      } else if (widget.tool == PianoRollTool.draw) {
+      if (widget.tool == PianoRollTool.draw) {
         final noteIndex = _noteIndexAt(canvasPos);
         if (noteIndex == null) {
           _pendingDrawTap = true;
@@ -272,11 +319,6 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
     _lastCanvasPos = canvasPos;
     _editTravel += delta.distance;
 
-    if (_draggingClipEnd) {
-      widget.onClipLengthChanged?.call(_clampClipLength(_beatFromDx(canvasPos.dx, snap: false)));
-      return;
-    }
-
     if (_editTravel > _tapSlop) {
       _longPressTimer?.cancel();
     }
@@ -309,13 +351,6 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
     }
 
     if (event.pointer != _editPointer) {
-      setState(() {});
-      return;
-    }
-
-    if (_draggingClipEnd) {
-      widget.onClipLengthCommit?.call();
-      _endEditGesture(save: false);
       setState(() {});
       return;
     }
@@ -399,9 +434,7 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
       ..add(MidiNoteSnapshot(
         pitch: pitch,
         startBeat: startBeat,
-        durationBeats: widget.gridSettings.snapBeats > 0
-            ? widget.gridSettings.snapBeats
-            : widget.gridSettings.defaultNoteBeats,
+        durationBeats: widget.gridSettings.insertNoteDurationBeats,
         velocity: 100,
       ));
     _setNotes(notes);
@@ -441,9 +474,7 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
     widget.onEditStarted();
     final pitch = _pitchFromDy(canvasPos.dy);
     final startBeat = _beatFromDx(canvasPos.dx);
-    final dur = widget.gridSettings.snapBeats > 0
-        ? widget.gridSettings.snapBeats
-        : widget.gridSettings.defaultNoteBeats;
+    final dur = widget.gridSettings.insertNoteDurationBeats;
     final notes = List<MidiNoteSnapshot>.of(widget.notes)
       ..add(MidiNoteSnapshot(
         pitch: pitch,
@@ -759,6 +790,9 @@ class _PianoRollViewportState extends State<PianoRollViewport> {
       builder: (context, constraints) {
         _lastViewportHeight = constraints.maxHeight - PianoRollMetrics.rulerHeight;
         _scheduleInitialScroll(_lastViewportHeight);
+        _updateScrollViewportWidth(
+          constraints.maxWidth - PianoRollMetrics.keyColumnWidth,
+        );
 
         return Column(
           children: [

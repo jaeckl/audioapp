@@ -13,6 +13,7 @@ class DeviceStripChromeBindings {
     required this.accentColor,
     required this.onParameterChanged,
     this.modulatedParams = const {},
+    this.automatedParams = const {},
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
@@ -27,6 +28,7 @@ class DeviceStripChromeBindings {
   final Color accentColor;
   final void Function(String parameterId, double value) onParameterChanged;
   final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
@@ -68,6 +70,7 @@ abstract final class DeviceStripChrome {
       inputLevel: bindings.inputLevel,
       onParameterChanged: bindings.onParameterChanged,
       modulatedParams: bindings.modulatedParams,
+        automatedParams: bindings.automatedParams,
       modulationAmounts: bindings.modulationAmounts,
       connectModeLfoId: bindings.connectModeLfoId,
       onModulationAssign: bindings.onModulationAssign,
@@ -87,6 +90,7 @@ abstract final class DeviceStripChrome {
         accentColor: bindings.accentColor,
         onParameterChanged: bindings.onParameterChanged,
         modulatedParams: bindings.modulatedParams,
+        automatedParams: bindings.automatedParams,
         modulationAmounts: bindings.modulationAmounts,
         connectModeLfoId: bindings.connectModeLfoId,
         onModulationAssign: bindings.onModulationAssign,
@@ -102,6 +106,7 @@ abstract final class DeviceStripChrome {
         onParameterChanged: bindings.onParameterChanged,
         gainReductionDb: bindings.gainReductionDb,
         modulatedParams: bindings.modulatedParams,
+        automatedParams: bindings.automatedParams,
         modulationAmounts: bindings.modulationAmounts,
         connectModeLfoId: bindings.connectModeLfoId,
         onModulationAssign: bindings.onModulationAssign,
@@ -115,6 +120,7 @@ abstract final class DeviceStripChrome {
       accentColor: bindings.accentColor,
       onParameterChanged: bindings.onParameterChanged,
       modulatedParams: bindings.modulatedParams,
+        automatedParams: bindings.automatedParams,
       modulationAmounts: bindings.modulationAmounts,
       connectModeLfoId: bindings.connectModeLfoId,
       onModulationAssign: bindings.onModulationAssign,

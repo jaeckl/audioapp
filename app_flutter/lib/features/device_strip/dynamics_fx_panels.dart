@@ -25,6 +25,7 @@ class _DynamicsKnob extends StatelessWidget {
     required this.accent,
     required this.onParameterChanged,
     required this.modulatedParams,
+    required this.automatedParams,
     required this.modulationAmounts,
     required this.connectModeLfoId,
     required this.onModulationAssign,
@@ -41,6 +42,7 @@ class _DynamicsKnob extends StatelessWidget {
   final Color accent;
   final DynamicsParameterChanged onParameterChanged;
   final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final DynamicsModulationAssign onModulationAssign;
@@ -59,6 +61,7 @@ class _DynamicsKnob extends StatelessWidget {
       displayValue: displayValue,
       accentColor: accent,
       modulationActive: modulatedParams.contains(paramId),
+      automationActive: automatedParams.contains(paramId),
       modulationAmount: modulationAmounts[paramId] ?? 0.0,
       connectModeActive: connectModeLfoId != null,
       onModulationAssign:
@@ -90,6 +93,7 @@ _DynamicsKnob _knob({
   required Color accent,
   required DynamicsParameterChanged onParameterChanged,
   required Set<String> modulatedParams,
+  required Set<String> automatedParams,
   required Map<String, double> modulationAmounts,
   required int? connectModeLfoId,
   required DynamicsModulationAssign onModulationAssign,
@@ -105,6 +109,7 @@ _DynamicsKnob _knob({
     accent: accent,
     onParameterChanged: onParameterChanged,
     modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
     modulationAmounts: modulationAmounts,
     connectModeLfoId: connectModeLfoId,
     onModulationAssign: onModulationAssign,
@@ -168,6 +173,7 @@ class GateDevicePanel extends StatelessWidget {
     required this.onParameterChanged,
     this.selectedTab,
     this.modulatedParams = const {},
+    this.automatedParams = const {},
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
@@ -183,6 +189,7 @@ class GateDevicePanel extends StatelessWidget {
   final DynamicsParameterChanged onParameterChanged;
   final GateDeviceTab? selectedTab;
   final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final DynamicsModulationAssign onModulationAssign;
@@ -206,6 +213,7 @@ class GateDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -221,6 +229,7 @@ class GateDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -236,6 +245,7 @@ class GateDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -253,6 +263,7 @@ class GateDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -268,6 +279,7 @@ class GateDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -290,6 +302,7 @@ class GateDeviceStrip extends StatelessWidget {
     required this.onParameterChanged,
     this.selectedTab,
     this.modulatedParams = const {},
+    this.automatedParams = const {},
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
@@ -301,6 +314,7 @@ class GateDeviceStrip extends StatelessWidget {
   final DynamicsParameterChanged onParameterChanged;
   final GateDeviceTab? selectedTab;
   final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final DynamicsModulationAssign onModulationAssign;
@@ -313,6 +327,7 @@ class GateDeviceStrip extends StatelessWidget {
         onParameterChanged: onParameterChanged,
         selectedTab: selectedTab,
         modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
         modulationAmounts: modulationAmounts,
         connectModeLfoId: connectModeLfoId,
         onModulationAssign: onModulationAssign,
@@ -329,6 +344,7 @@ class CompressorDevicePanel extends StatelessWidget {
     required this.onParameterChanged,
     this.selectedTab,
     this.modulatedParams = const {},
+    this.automatedParams = const {},
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
@@ -342,6 +358,7 @@ class CompressorDevicePanel extends StatelessWidget {
   final DynamicsParameterChanged onParameterChanged;
   final CompressorDeviceTab? selectedTab;
   final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final DynamicsModulationAssign onModulationAssign;
@@ -367,6 +384,7 @@ class CompressorDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -382,6 +400,7 @@ class CompressorDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -397,6 +416,7 @@ class CompressorDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -414,6 +434,7 @@ class CompressorDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -429,6 +450,7 @@ class CompressorDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -444,6 +466,7 @@ class CompressorDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -465,6 +488,7 @@ class CompressorDeviceStrip extends StatelessWidget {
     required this.onParameterChanged,
     this.selectedTab,
     this.modulatedParams = const {},
+    this.automatedParams = const {},
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
@@ -476,6 +500,7 @@ class CompressorDeviceStrip extends StatelessWidget {
   final DynamicsParameterChanged onParameterChanged;
   final CompressorDeviceTab? selectedTab;
   final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final DynamicsModulationAssign onModulationAssign;
@@ -488,6 +513,7 @@ class CompressorDeviceStrip extends StatelessWidget {
         onParameterChanged: onParameterChanged,
         selectedTab: selectedTab,
         modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
         modulationAmounts: modulationAmounts,
         connectModeLfoId: connectModeLfoId,
         onModulationAssign: onModulationAssign,
@@ -504,6 +530,7 @@ class ExpanderDevicePanel extends StatelessWidget {
     required this.onParameterChanged,
     this.selectedTab,
     this.modulatedParams = const {},
+    this.automatedParams = const {},
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
@@ -517,6 +544,7 @@ class ExpanderDevicePanel extends StatelessWidget {
   final DynamicsParameterChanged onParameterChanged;
   final ExpanderDeviceTab? selectedTab;
   final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final DynamicsModulationAssign onModulationAssign;
@@ -542,6 +570,7 @@ class ExpanderDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -557,6 +586,7 @@ class ExpanderDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -572,6 +602,7 @@ class ExpanderDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -589,6 +620,7 @@ class ExpanderDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -604,6 +636,7 @@ class ExpanderDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -626,6 +659,7 @@ class ExpanderDeviceStrip extends StatelessWidget {
     required this.onParameterChanged,
     this.selectedTab,
     this.modulatedParams = const {},
+    this.automatedParams = const {},
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
@@ -637,6 +671,7 @@ class ExpanderDeviceStrip extends StatelessWidget {
   final DynamicsParameterChanged onParameterChanged;
   final ExpanderDeviceTab? selectedTab;
   final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final DynamicsModulationAssign onModulationAssign;
@@ -649,6 +684,7 @@ class ExpanderDeviceStrip extends StatelessWidget {
         onParameterChanged: onParameterChanged,
         selectedTab: selectedTab,
         modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
         modulationAmounts: modulationAmounts,
         connectModeLfoId: connectModeLfoId,
         onModulationAssign: onModulationAssign,
@@ -665,6 +701,7 @@ class LimiterDevicePanel extends StatelessWidget {
     required this.onParameterChanged,
     this.selectedTab,
     this.modulatedParams = const {},
+    this.automatedParams = const {},
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
@@ -678,6 +715,7 @@ class LimiterDevicePanel extends StatelessWidget {
   final DynamicsParameterChanged onParameterChanged;
   final LimiterDeviceTab? selectedTab;
   final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final DynamicsModulationAssign onModulationAssign;
@@ -703,6 +741,7 @@ class LimiterDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -718,6 +757,7 @@ class LimiterDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -733,6 +773,7 @@ class LimiterDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -750,6 +791,7 @@ class LimiterDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -765,6 +807,7 @@ class LimiterDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -780,6 +823,7 @@ class LimiterDevicePanel extends StatelessWidget {
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -801,6 +845,7 @@ class LimiterDeviceStrip extends StatelessWidget {
     required this.onParameterChanged,
     this.selectedTab,
     this.modulatedParams = const {},
+    this.automatedParams = const {},
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
@@ -812,6 +857,7 @@ class LimiterDeviceStrip extends StatelessWidget {
   final DynamicsParameterChanged onParameterChanged;
   final LimiterDeviceTab? selectedTab;
   final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final DynamicsModulationAssign onModulationAssign;
@@ -824,6 +870,7 @@ class LimiterDeviceStrip extends StatelessWidget {
         onParameterChanged: onParameterChanged,
         selectedTab: selectedTab,
         modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
         modulationAmounts: modulationAmounts,
         connectModeLfoId: connectModeLfoId,
         onModulationAssign: onModulationAssign,

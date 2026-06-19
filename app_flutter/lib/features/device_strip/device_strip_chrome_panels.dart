@@ -16,6 +16,7 @@ class DrumMonoOutputPanel extends StatelessWidget {
     required this.onParameterChanged,
     this.knobSize = DeviceKnobSizes.compact,
     this.modulatedParams = const {},
+    this.automatedParams = const {},
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
@@ -29,6 +30,7 @@ class DrumMonoOutputPanel extends StatelessWidget {
   final void Function(String parameterId, double value) onParameterChanged;
   final double knobSize;
   final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
@@ -73,6 +75,7 @@ class DrumMonoOutputPanel extends StatelessWidget {
               paramId: velocityParamId,
               accentColor: accentColor,
               modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
               modulationAmounts: modulationAmounts,
               connectModeLfoId: connectModeLfoId,
               onModulationAssign: onModulationAssign,
@@ -91,6 +94,7 @@ class DrumMonoOutputPanel extends StatelessWidget {
             paramId: 'gain',
             accentColor: accentColor,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -114,6 +118,7 @@ class DynamicsInputPanel extends StatelessWidget {
     this.inputLevel = 0,
     this.knobSize = DeviceKnobSizes.compact,
     this.modulatedParams = const {},
+    this.automatedParams = const {},
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
@@ -128,6 +133,7 @@ class DynamicsInputPanel extends StatelessWidget {
   final double inputLevel;
   final double knobSize;
   final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
@@ -153,6 +159,7 @@ class DynamicsInputPanel extends StatelessWidget {
             paramId: 'inputGain',
             accentColor: accentColor,
             modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
@@ -176,6 +183,7 @@ class DynamicsOutputPanel extends StatelessWidget {
     this.gainReductionDb = 0,
     this.knobSize = DeviceKnobSizes.compact,
     this.modulatedParams = const {},
+    this.automatedParams = const {},
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
@@ -190,6 +198,7 @@ class DynamicsOutputPanel extends StatelessWidget {
   final double gainReductionDb;
   final double knobSize;
   final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
@@ -218,6 +227,7 @@ class DynamicsOutputPanel extends StatelessWidget {
           paramId: 'gain',
           accentColor: accentColor,
           modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
           modulationAmounts: modulationAmounts,
           connectModeLfoId: connectModeLfoId,
           onModulationAssign: onModulationAssign,

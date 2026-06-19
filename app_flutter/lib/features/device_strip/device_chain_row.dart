@@ -33,6 +33,8 @@ class DeviceChainRow extends StatelessWidget {
     this.modEdges = const [],
     this.onModulationBridgeCall,
     this.automationLinkActive = false,
+    this.automationLinkClipId,
+    this.projectAutomationClips = const [],
     this.onAutomationParamSelected,
     this.onAutomateParameter,
   });
@@ -60,7 +62,9 @@ class DeviceChainRow extends StatelessWidget {
   final Future<ProjectSnapshot> Function(String method, Map<String, dynamic> args)?
       onModulationBridgeCall;
   final bool automationLinkActive;
-  final void Function(String deviceId, String paramId)? onAutomationParamSelected;
+  final String? automationLinkClipId;
+  final List<AutomationClipSnapshot> projectAutomationClips;
+  final Future<bool> Function(String deviceId, String paramId)? onAutomationParamSelected;
   final void Function(String deviceId, String paramId)? onAutomateParameter;
 
   double get _rowHeight => switch (density) {
@@ -132,6 +136,8 @@ class DeviceChainRow extends StatelessWidget {
                   modEdges: modEdges,
                   onModulationBridgeCall: onModulationBridgeCall,
                   automationLinkActive: automationLinkActive,
+                  automationLinkClipId: automationLinkClipId,
+                  projectAutomationClips: projectAutomationClips,
                   onAutomationParamSelected: onAutomationParamSelected,
                   onAutomateParameter: onAutomateParameter,
                 ),

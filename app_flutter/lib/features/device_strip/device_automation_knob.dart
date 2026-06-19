@@ -14,6 +14,7 @@ RotaryKnob deviceAutomationKnob({
   double? size,
   required Color accentColor,
   Set<String> modulatedParams = const {},
+  Set<String> automatedParams = const {},
   Map<String, double> modulationAmounts = const {},
   int? connectModeLfoId,
   void Function(String paramId, double amount)? onModulationAssign,
@@ -29,6 +30,7 @@ RotaryKnob deviceAutomationKnob({
     size: size ?? DeviceKnobSizes.strip,
     accentColor: accentColor,
     modulationActive: modulatedParams.contains(paramId),
+    automationActive: automatedParams.contains(paramId),
     modulationAmount: modulationAmounts[paramId] ?? 0.0,
     connectModeActive: connectModeLfoId != null,
     onModulationAssign: onModulationAssign != null

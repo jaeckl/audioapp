@@ -31,6 +31,7 @@ class RotaryKnob extends StatefulWidget {
     this.onModulationAssign,
     this.linkModeActive = false,
     this.linkModeAccent = const Color(0xFFB48CFF),
+    this.automationActive = false,
     this.onLinkTap,
     this.onAutomateRequest,
     this.labelGap = 3,
@@ -50,6 +51,7 @@ class RotaryKnob extends StatefulWidget {
   final ValueChanged<double>? onModulationAssign;
   final bool linkModeActive;
   final Color linkModeAccent;
+  final bool automationActive;
   final VoidCallback? onLinkTap;
   final VoidCallback? onAutomateRequest;
   final double labelGap;
@@ -128,15 +130,22 @@ class _RotaryKnobState extends State<RotaryKnob>
 
   // --- Connect-mode long-press modulation assignment ---
 
-  void _onLongPressStart(LongPressStartDetails details) {
-    if (widget.linkModeActive) return;
-    if (!widget.connectModeActive) {
-      if (widget.onAutomateRequest != null) {
+  void _onLongPress() {
+    if (widget.linkModeActive) {
+      if (widget.onLinkTap != null) {
         HapticFeedback.mediumImpact();
-        widget.onAutomateRequest!.call();
+        widget.onLinkTap!.call();
       }
       return;
     }
+    if (!widget.connectModeActive && widget.onAutomateRequest != null) {
+      HapticFeedback.mediumImpact();
+      widget.onAutomateRequest!.call();
+    }
+  }
+
+  void _onLongPressStart(LongPressStartDetails details) {
+    if (!widget.connectModeActive) return;
     HapticFeedback.mediumImpact();
     _pulseController.stop();
     _assignmentAmount = 0.0;
@@ -186,15 +195,25 @@ class _RotaryKnobState extends State<RotaryKnob>
       children: [
         GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: widget.linkModeActive ? widget.onLinkTap : null,
-          onLongPressStart: widget.linkModeActive ? null : _onLongPressStart,
-          onLongPressMoveUpdate: widget.linkModeActive ? null : _onLongPressMoveUpdate,
-          onLongPressEnd: widget.linkModeActive ? null : _onLongPressEnd,
+          onTap: widget.linkModeActive && widget.onLinkTap != null
+              ? () {
+                  HapticFeedback.mediumImpact();
+                  widget.onLinkTap!.call();
+                }
+              : null,
+          onLongPress: widget.linkModeActive || !widget.connectModeActive
+              ? _onLongPress
+              : null,
+          onLongPressStart:
+              widget.connectModeActive ? _onLongPressStart : null,
+          onLongPressMoveUpdate:
+              widget.connectModeActive ? _onLongPressMoveUpdate : null,
+          onLongPressEnd: widget.connectModeActive ? _onLongPressEnd : null,
           onVerticalDragStart: widget.linkModeActive ? null : _onDragStart,
           onVerticalDragUpdate: widget.linkModeActive ? null : _onDragUpdate,
           onVerticalDragEnd: widget.linkModeActive ? null : _onDragEnd,
           onVerticalDragCancel: widget.linkModeActive ? null : _onDragCancel,
-          onDoubleTap: widget.linkModeActive ? null : () => widget.onChanged(0.5),
+          onDoubleTap: () => widget.onChanged(0.5),
           child: SizedBox(
             width: widget.size + 8,
             height: widget.size + 4,
@@ -211,12 +230,14 @@ class _RotaryKnobState extends State<RotaryKnob>
                         )
                       : null,
                   child: Stack(
+                    clipBehavior: Clip.none,
                     alignment: Alignment.center,
                     children: [
                       SizedBox(
                         width: widget.size,
                         height: widget.size,
                         child: CustomPaint(
+                          size: Size(widget.size, widget.size),
                           painter: _KnobPainter(
                             value: widget.value.clamp(0, 1),
                             angle: angle,
@@ -230,6 +251,32 @@ class _RotaryKnobState extends State<RotaryKnob>
                           ),
                         ),
                       ),
+                      if (widget.automationActive)
+                        Positioned(
+                          top: 0,
+                          right: 4,
+                          child: IgnorePointer(
+                            child: Container(
+                              width: 9,
+                              height: 9,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFB48CFF),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: const Color(0xFF14141C),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFB48CFF)
+                                        .withValues(alpha: 0.7),
+                                    blurRadius: 5,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       if (widget.displayValue != null)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 4),

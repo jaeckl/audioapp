@@ -37,6 +37,7 @@ class SubtractiveSynthDevicePanel extends StatefulWidget {
     this.onOpenFullscreen,
     this.showExpandControl = false,
     this.modulatedParams = const {},
+    this.automatedParams = const {},
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
@@ -54,6 +55,7 @@ class SubtractiveSynthDevicePanel extends StatefulWidget {
   final VoidCallback? onOpenFullscreen;
   final bool showExpandControl;
   final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
@@ -115,6 +117,7 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
       labelGap: labelGap,
       accentColor: SubtractiveSynthDevicePanel.accent,
       modulationActive: paramId != null && widget.modulatedParams.contains(paramId),
+      automationActive: paramId != null && widget.automatedParams.contains(paramId),
       modulationAmount: modAmount,
       connectModeActive: paramId != null && connectModeLfoId != null,
       onModulationAssign: paramId != null && onModulationAssign != null

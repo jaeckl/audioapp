@@ -6,8 +6,10 @@ import '../../bridge/engine_bridge.dart';
 import '../../bridge/project_snapshot.dart';
 import '../play/play_deck.dart';
 import '../play/play_deck_layout.dart';
+import '../play/play_deck_layout.dart';
 import 'piano_roll_edit_sheet.dart';
 import 'piano_roll_grid_sheet.dart';
+import 'editor_view_range.dart';
 import 'piano_roll_metrics.dart';
 import 'piano_roll_note_ops.dart';
 import 'piano_roll_theme.dart';
@@ -47,7 +49,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> {
   PianoRollGridSettings _grid = const PianoRollGridSettings();
   PianoRollTool _tool = PianoRollTool.select;
   int? _selectedIndex;
-  PianoRollSaveState _saveState = PianoRollSaveState.saved;
+  int _viewRangeBars = EditorViewRange.defaultBars;
 
   @override
   void initState() {
@@ -180,17 +182,14 @@ class _PianoRollScreenState extends State<PianoRollScreen> {
   }
 
   Future<void> _persistClipLength() async {
-    setState(() => _saveState = PianoRollSaveState.saving);
     try {
       final snapshot = await widget.bridge.setClipLength(
         clipId: widget.clip.id,
         lengthBeats: _clipLengthBeats,
       );
       widget.onSnapshot(snapshot);
-      if (mounted) setState(() => _saveState = PianoRollSaveState.saved);
     } catch (_) {
       if (mounted) {
-        setState(() => _saveState = PianoRollSaveState.error);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Could not update clip length — try again'),
@@ -202,7 +201,6 @@ class _PianoRollScreenState extends State<PianoRollScreen> {
   }
 
   Future<void> _persistNotes() async {
-    setState(() => _saveState = PianoRollSaveState.saving);
     try {
       final notes = widget.drumAnchorPitch != null
           ? _notes
@@ -221,10 +219,8 @@ class _PianoRollScreenState extends State<PianoRollScreen> {
         notes: notes,
       );
       widget.onSnapshot(snapshot);
-      if (mounted) setState(() => _saveState = PianoRollSaveState.saved);
     } catch (_) {
       if (mounted) {
-        setState(() => _saveState = PianoRollSaveState.error);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Could not save notes — try again'),
@@ -240,6 +236,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> {
       context,
       settings: _grid,
       onChanged: (next) => setState(() => _grid = next),
+      bottomInset: PianoRollMetrics.toolDockHeight + PlayDeckLayout.chromeHeight,
     );
   }
 
@@ -255,21 +252,8 @@ class _PianoRollScreenState extends State<PianoRollScreen> {
       onNudgeUp: () => _nudgeSelected(pitchDelta: 1),
       onNudgeDown: () => _nudgeSelected(pitchDelta: -1),
       onDeleteSelected: _deleteSelected,
+      bottomInset: PianoRollMetrics.toolDockHeight + PlayDeckLayout.chromeHeight,
     );
-  }
-
-  Widget _saveIndicator() {
-    return switch (_saveState) {
-      PianoRollSaveState.saved =>
-        const Icon(Icons.circle, size: 10, color: PianoRollTheme.saveOk),
-      PianoRollSaveState.saving => const SizedBox(
-          width: 14,
-          height: 14,
-          child: CircularProgressIndicator(strokeWidth: 2, color: PianoRollTheme.label),
-        ),
-      PianoRollSaveState.error =>
-        const Icon(Icons.error_outline, size: 16, color: PianoRollTheme.saveError),
-    };
   }
 
   @override
@@ -293,8 +277,13 @@ class _PianoRollScreenState extends State<PianoRollScreen> {
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Center(child: _saveIndicator()),
+            padding: const EdgeInsets.only(right: 8),
+            child: Center(
+              child: EditorViewRangeDropdown(
+                value: _viewRangeBars,
+                onChanged: (bars) => setState(() => _viewRangeBars = bars),
+              ),
+            ),
           ),
         ],
       ),
@@ -320,6 +309,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> {
                 onEditFinished: _onEditFinished,
                 onClipLengthChanged: (length) => setState(() => _clipLengthBeats = length),
                 onClipLengthCommit: _persistClipLength,
+                viewRangeBars: _viewRangeBars,
               ),
             ),
             PianoRollToolDock(

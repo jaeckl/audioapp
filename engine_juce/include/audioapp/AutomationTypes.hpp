@@ -11,13 +11,15 @@ struct AutomationPointPlayback {
     float value = 0.0f;
 };
 
+constexpr int kMaxAutomationPlaybackPoints = 256;
+
 struct AutomationClipPlayback {
     char deviceId[48]{};
     char paramId[48]{};
     float clipStartBeat = 0.0f;
     float clipLengthBeats = 4.0f;
     int pointCount = 0;
-    AutomationPointPlayback points[32]{};
+    AutomationPointPlayback points[kMaxAutomationPlaybackPoints]{};
 };
 
 struct AutomationPointState {

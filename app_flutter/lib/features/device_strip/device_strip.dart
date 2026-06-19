@@ -49,7 +49,7 @@ class DeviceStrip extends StatefulWidget {
   final Future<ProjectSnapshot> Function(String method, Map<String, dynamic> args)?
       onModulationBridgeCall;
   final String? automationLinkClipId;
-  final void Function(String deviceId, String paramId)? onAutomationParamSelected;
+  final Future<bool> Function(String deviceId, String paramId)? onAutomationParamSelected;
   final void Function(String deviceId, String paramId)? onAutomateParameter;
 
   @override
@@ -177,6 +177,8 @@ class _DeviceStripState extends State<DeviceStrip> {
                   onOpenLibrary: widget.onOpenDeviceLibrary,
                   onModulationBridgeCall: widget.onModulationBridgeCall,
                   automationLinkActive: widget.automationLinkClipId != null,
+                  automationLinkClipId: widget.automationLinkClipId,
+                  projectAutomationClips: widget.snapshot.allAutomationClips.toList(),
                   onAutomationParamSelected: widget.onAutomationParamSelected,
                   onAutomateParameter: widget.onAutomateParameter,
                 ),

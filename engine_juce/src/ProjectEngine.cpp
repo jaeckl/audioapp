@@ -458,6 +458,7 @@ void ProjectEngine::readMasterMixStereo(float* leftOut,
     if (!transport_.isPlaying()) {
         return;
     }
+    std::lock_guard<std::mutex> lock(mutex_);
     mixAtPlayheadBeatStereo(leftOut, rightOut, numFrames, sampleRate, playheadStartBeat);
 }
 
@@ -629,7 +630,6 @@ void ProjectEngine::setPlaying(bool playing) {
     if (playing) {
         std::lock_guard<std::mutex> lock(mutex_);
         rebuildTrackPlaybackLocked();
-        transport_.resetPlayhead();
     }
     transport_.setPlaying(playing);
 }

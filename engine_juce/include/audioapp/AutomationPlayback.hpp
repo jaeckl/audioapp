@@ -22,4 +22,17 @@ void applyAutomationValue(DeviceVariantParams& params,
 bool automationClipPlaybackFromClip(const AutomationClip& clip,
                                     AutomationClipPlayback& out) noexcept;
 
+/// True when [clips] contains a non-gain/pan automation target for [deviceId].
+bool nodeHasDspAutomation(const std::string& deviceId,
+                          const AutomationClipPlayback* clips,
+                          int clipCount) noexcept;
+
+/// Apply all active automation clips at [beat] (absolute timeline beats).
+void applyDspAutomationAtBeat(DeviceVariantParams& params,
+                              DeviceNodeKind kind,
+                              const std::string& deviceId,
+                              double beat,
+                              const AutomationClipPlayback* clips,
+                              int clipCount) noexcept;
+
 } // namespace audioapp

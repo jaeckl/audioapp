@@ -1,5 +1,6 @@
 #include "audioapp/SubtractiveSynth.hpp"
 
+#include "audioapp/AutomationPlayback.hpp"
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/MidiUtils.hpp"
 #include "audioapp/SamplerFilter.hpp"
@@ -425,10 +426,16 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
                                   const SubtractiveMidiNoteRegion* notes,
                                   int noteCount,
                                   const SubtractiveSynthParams& params,
-                                  SubtractiveSynthRuntime& runtime) noexcept {
+                                  SubtractiveSynthRuntime& runtime,
+                                  const AutomationClipPlayback* automationClips,
+                                  int automationClipCount,
+                                  const std::string* automationDeviceId) noexcept {
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
         return;
     }
+
+    const bool useAutomation = automationClips != nullptr && automationClipCount > 0 &&
+                               automationDeviceId != nullptr && !automationDeviceId->empty();
 
     const float ampReleaseSec = adsrNormalizedToSeconds(params.ampRelease, 3.0f);
     const float ampAttackSec = adsrNormalizedToSeconds(params.ampAttack, 2.0f);
@@ -447,6 +454,19 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
 
     for (int frame = 0; frame < numFrames; ++frame) {
         const double beat = beatAtFrame(blockStartBeat, frame, sampleRate, bpm);
+        SubtractiveSynthParams frameParams = params;
+        if (useAutomation) {
+            DeviceVariantParams variant = frameParams;
+            applyDspAutomationAtBeat(variant,
+                                     DeviceNodeKind::SubtractiveSynth,
+                                     *automationDeviceId,
+                                     beat,
+                                     automationClips,
+                                     automationClipCount);
+            if (const auto* automated = std::get_if<SubtractiveSynthParams>(&variant)) {
+                frameParams = *automated;
+            }
+        }
         float mix = 0.0f;
 
         struct ActiveNote {
@@ -535,10 +555,10 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
                                                      filterSustain,
                                                      filterReleaseSec);
             const float vel = std::clamp(note.velocity / 127.0f, 0.0f, 1.0f);
-            const float velGain = 1.0f - params.velocitySensitivity * (1.0f - vel);
+            const float velGain = 1.0f - frameParams.velocitySensitivity * (1.0f - vel);
 
-            mix += subtractiveVoiceSample(voice, params, ampGain * velGain, filterGain, sampleRate, glideCoeff) *
-                   params.gain * kInstrumentOutputGain;
+            mix += subtractiveVoiceSample(voice, frameParams, ampGain * velGain, filterGain, sampleRate, glideCoeff) *
+                   frameParams.gain * kInstrumentOutputGain;
         }
 
         for (int v = 0; v < kSubtractiveMaxVoices; ++v) {

@@ -55,6 +55,8 @@ class DeviceStripSlot extends StatefulWidget {
     this.modEdges = const [],
     this.onModulationBridgeCall,
     this.automationLinkActive = false,
+    this.automationLinkClipId,
+    this.projectAutomationClips = const [],
     this.onAutomationParamSelected,
     this.onAutomateParameter,
   });
@@ -80,7 +82,9 @@ class DeviceStripSlot extends StatefulWidget {
   final Future<ProjectSnapshot> Function(String method, Map<String, dynamic> args)?
       onModulationBridgeCall;
   final bool automationLinkActive;
-  final void Function(String deviceId, String paramId)? onAutomationParamSelected;
+  final String? automationLinkClipId;
+  final List<AutomationClipSnapshot> projectAutomationClips;
+  final Future<bool> Function(String deviceId, String paramId)? onAutomationParamSelected;
   final void Function(String deviceId, String paramId)? onAutomateParameter;
 
   @override
@@ -141,6 +145,20 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
 
   LfoSnapshot? get _selectedLfo =>
       _selectedLfoId == null ? null : _localLfos.where((l) => l.id == _selectedLfoId).firstOrNull;
+
+  Iterable<AutomationClipSnapshot> get _automationClips =>
+      widget.projectAutomationClips.isNotEmpty
+          ? widget.projectAutomationClips
+          : widget.track.automationClips;
+
+  Set<String> get _automatedParamIds {
+    final ids = <String>{
+      ..._automationClips
+          .where((clip) => clip.deviceId == widget.device.id && clip.isLinked)
+          .map((clip) => clip.paramId),
+    };
+    return ids;
+  }
 
   Set<String> get _modulatedParamIds {
     var edges = _localModEdges
@@ -220,8 +238,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     };
   }
 
-  void _onAutomationLinkTap(String paramId) {
-    widget.onAutomationParamSelected?.call(widget.device.id, paramId);
+  Future<void> _onAutomationLinkTap(String paramId) async {
+    final handler = widget.onAutomationParamSelected;
+    if (handler == null) return;
+    await handler(widget.device.id, paramId);
   }
 
   void _onAutomateParameter(String paramId) {
@@ -291,6 +311,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         accentColor: DeviceStripTheme.accentForDeviceType(widget.device.type),
         onParameterChanged: widget.onDeviceParameterChanged,
         modulatedParams: _modulatedParamIds,
+        automatedParams: _automatedParamIds,
         modulationAmounts: _modulationAmounts,
         connectModeLfoId: _connectModeLfo,
         onModulationAssign: _onModulationForDevice,
@@ -467,6 +488,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             onCollapse: widget.onCollapse,
             selectedTab: SamplerDeviceTab.values[_selectedTabIndex],
             modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
@@ -492,6 +514,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             embeddedInCard: true,
             selectedTab: OscillatorDeviceTab.values[_selectedTabIndex],
             modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _connectModeLfo != null
@@ -518,6 +541,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             onTabChanged: widget.onSynthTabChanged,
             onOpenFullscreen: widget.onOpenSamplerEditor,
             modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
@@ -539,6 +563,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             device: widget.device,
             onParameterChanged: widget.onDeviceParameterChanged,
             modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
@@ -560,6 +585,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             device: widget.device,
             onParameterChanged: widget.onDeviceParameterChanged,
             modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
@@ -582,6 +608,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             onParameterChanged: widget.onDeviceParameterChanged,
             selectedTab: ClapDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
             modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
@@ -603,6 +630,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             device: widget.device,
             onParameterChanged: widget.onDeviceParameterChanged,
             modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
@@ -624,6 +652,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             device: widget.device,
             onParameterChanged: widget.onDeviceParameterChanged,
             modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
@@ -646,6 +675,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             onParameterChanged: widget.onDeviceParameterChanged,
             selectedTab: GateDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
             modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
@@ -664,6 +694,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             onParameterChanged: widget.onDeviceParameterChanged,
             selectedTab: CompressorDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
             modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
@@ -682,6 +713,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             onParameterChanged: widget.onDeviceParameterChanged,
             selectedTab: ExpanderDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
             modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
@@ -700,6 +732,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             onParameterChanged: widget.onDeviceParameterChanged,
             selectedTab: LimiterDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
             modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,

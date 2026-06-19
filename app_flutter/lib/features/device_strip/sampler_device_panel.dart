@@ -31,6 +31,7 @@ class SamplerDevicePanel extends StatefulWidget {
     this.selectedTab,
     this.bpm = 120,
     this.modulatedParams = const {},
+    this.automatedParams = const {},
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
@@ -51,6 +52,7 @@ class SamplerDevicePanel extends StatefulWidget {
   final bool embeddedInCard;
   final SamplerDeviceTab? selectedTab;
   final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
@@ -201,6 +203,7 @@ class _SamplerDevicePanelState extends State<SamplerDevicePanel> {
           knobSize: widget._knobSize,
           onParameterChanged: widget.onParameterChanged,
           modulatedParams: widget.modulatedParams,
+          automatedParams: widget.automatedParams,
           modulationAmounts: widget.modulationAmounts,
           connectModeLfoId: widget.connectModeLfoId,
           onModulationAssign: widget.onModulationAssign,
@@ -214,6 +217,7 @@ class _SamplerDevicePanelState extends State<SamplerDevicePanel> {
           knobSize: widget._knobSize,
           onParameterChanged: widget.onParameterChanged,
           modulatedParams: widget.modulatedParams,
+          automatedParams: widget.automatedParams,
           modulationAmounts: widget.modulationAmounts,
           connectModeLfoId: widget.connectModeLfoId,
           onModulationAssign: widget.onModulationAssign,
@@ -568,6 +572,7 @@ class _EnvTab extends StatelessWidget {
     required this.knobSize,
     required this.onParameterChanged,
     required this.modulatedParams,
+    required this.automatedParams,
     required this.modulationAmounts,
     required this.connectModeLfoId,
     required this.onModulationAssign,
@@ -580,6 +585,7 @@ class _EnvTab extends StatelessWidget {
   final double knobSize;
   final void Function(String parameterId, double value) onParameterChanged;
   final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
@@ -600,6 +606,7 @@ class _EnvTab extends StatelessWidget {
           paramId: 'attack',
           accentColor: SamplerDevicePanel.accent,
           modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
           modulationAmounts: modulationAmounts,
           connectModeLfoId: connectModeLfoId,
           onModulationAssign: onModulationAssign,
@@ -616,6 +623,7 @@ class _EnvTab extends StatelessWidget {
           paramId: 'decay',
           accentColor: SamplerDevicePanel.accent,
           modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
           modulationAmounts: modulationAmounts,
           connectModeLfoId: connectModeLfoId,
           onModulationAssign: onModulationAssign,
@@ -632,6 +640,7 @@ class _EnvTab extends StatelessWidget {
           paramId: 'sustain',
           accentColor: SamplerDevicePanel.accent,
           modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
           modulationAmounts: modulationAmounts,
           connectModeLfoId: connectModeLfoId,
           onModulationAssign: onModulationAssign,
@@ -648,6 +657,7 @@ class _EnvTab extends StatelessWidget {
           paramId: 'release',
           accentColor: SamplerDevicePanel.accent,
           modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
           modulationAmounts: modulationAmounts,
           connectModeLfoId: connectModeLfoId,
           onModulationAssign: onModulationAssign,
@@ -666,6 +676,7 @@ class _FilterTab extends StatelessWidget {
     required this.knobSize,
     required this.onParameterChanged,
     required this.modulatedParams,
+    required this.automatedParams,
     required this.modulationAmounts,
     required this.connectModeLfoId,
     required this.onModulationAssign,
@@ -678,6 +689,7 @@ class _FilterTab extends StatelessWidget {
   final double knobSize;
   final void Function(String parameterId, double value) onParameterChanged;
   final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
@@ -751,6 +763,7 @@ class _FilterTab extends StatelessWidget {
                 paramId: 'filterCutoff',
                 accentColor: SamplerDevicePanel.accent,
                 modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
                 modulationAmounts: modulationAmounts,
                 connectModeLfoId: connectModeLfoId,
                 onModulationAssign: onModulationAssign,
@@ -767,6 +780,7 @@ class _FilterTab extends StatelessWidget {
                 paramId: 'filterQ',
                 accentColor: SamplerDevicePanel.accent,
                 modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
                 modulationAmounts: modulationAmounts,
                 connectModeLfoId: connectModeLfoId,
                 onModulationAssign: onModulationAssign,

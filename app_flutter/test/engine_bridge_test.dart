@@ -1,5 +1,6 @@
 import 'package:audioapp/bridge/engine_bridge.dart';
 import 'package:audioapp/bridge/project_snapshot.dart';
+import 'package:audioapp/features/automation/automation_curve_shapes.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -456,5 +457,25 @@ void main() {
     );
     expect(snapshot.selectedTrack!.automationClips.first.points.length, 2);
     expect(snapshot.selectedTrack!.automationClips.first.points.last.value, 0.2);
+  });
+
+  test('setAutomationPoints round-trips dense saw breakpoints', () async {
+    await bridge.addTrack(name: 'Track 1');
+    await bridge.createAutomationClip(trackId: 'track-1');
+    final sawPoints = generateAutomationShapePoints(
+      shape: AutomationCurveShape.sawUp,
+      params: const AutomationShapeParams(cycles: 4),
+      lengthBeats: 4,
+    );
+    expect(sawPoints.length, greaterThan(2));
+
+    final snapshot = await bridge.setAutomationPoints(
+      clipId: 'aclip-1',
+      points: sawPoints,
+    );
+    expect(
+      snapshot.selectedTrack!.automationClips.first.points.length,
+      sawPoints.length,
+    );
   });
 }

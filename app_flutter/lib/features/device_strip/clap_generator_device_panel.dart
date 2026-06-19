@@ -18,6 +18,7 @@ class ClapGeneratorDevicePanel extends StatefulWidget {
     this.selectedTab,
     this.onTabChanged,
     this.modulatedParams = const {},
+    this.automatedParams = const {},
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
@@ -32,6 +33,7 @@ class ClapGeneratorDevicePanel extends StatefulWidget {
   final ClapDeviceTab? selectedTab;
   final ValueChanged<ClapDeviceTab>? onTabChanged;
   final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
@@ -76,6 +78,7 @@ class _ClapGeneratorDevicePanelState extends State<ClapGeneratorDevicePanel> {
       displayValue: displayValue,
       accentColor: ClapGeneratorDevicePanel.accent,
       modulationActive: widget.modulatedParams.contains(paramId),
+      automationActive: widget.automatedParams.contains(paramId),
       modulationAmount: widget.modulationAmounts[paramId] ?? 0.0,
       connectModeActive: widget.connectModeLfoId != null,
       onModulationAssign: widget.onModulationAssign != null

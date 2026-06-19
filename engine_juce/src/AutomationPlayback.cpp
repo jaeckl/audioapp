@@ -352,12 +352,61 @@ bool automationClipPlaybackFromClip(const AutomationClip& clip,
     out.clipStartBeat = static_cast<float>(clip.startBeat);
     out.clipLengthBeats = static_cast<float>(clip.lengthBeats);
 
-    out.pointCount = static_cast<int>(std::min(clip.points.size(), sizeof(out.points) / sizeof(out.points[0])));
+    out.pointCount = static_cast<int>(
+        std::min(clip.points.size(), static_cast<size_t>(kMaxAutomationPlaybackPoints)));
     for (int i = 0; i < out.pointCount; ++i) {
         out.points[i].beat = static_cast<float>(clip.points[static_cast<size_t>(i)].beat);
         out.points[i].value = clip.points[static_cast<size_t>(i)].value;
     }
     return out.pointCount > 0;
+}
+
+bool nodeHasDspAutomation(const std::string& deviceId,
+                          const AutomationClipPlayback* clips,
+                          int clipCount) noexcept {
+    if (clips == nullptr || deviceId.empty() || clipCount <= 0) {
+        return false;
+    }
+    for (int a = 0; a < clipCount; ++a) {
+        if (std::string(clips[a].deviceId) != deviceId) {
+            continue;
+        }
+        const std::string paramId(clips[a].paramId);
+        if (!paramId.empty() && paramId != "gain" && paramId != "pan") {
+            return true;
+        }
+    }
+    return false;
+}
+
+void applyDspAutomationAtBeat(DeviceVariantParams& params,
+                              DeviceNodeKind kind,
+                              const std::string& deviceId,
+                              double beat,
+                              const AutomationClipPlayback* clips,
+                              int clipCount) noexcept {
+    if (clips == nullptr || deviceId.empty()) {
+        return;
+    }
+    for (int a = 0; a < clipCount; ++a) {
+        const AutomationClipPlayback& ac = clips[a];
+        if (std::string(ac.deviceId) != deviceId) {
+            continue;
+        }
+        const std::string paramId(ac.paramId);
+        if (paramId.empty() || paramId == "gain" || paramId == "pan") {
+            continue;
+        }
+        if (beat < static_cast<double>(ac.clipStartBeat) ||
+            beat >= static_cast<double>(ac.clipStartBeat + ac.clipLengthBeats)) {
+            continue;
+        }
+        const float beatInClip =
+            static_cast<float>(beat - static_cast<double>(ac.clipStartBeat));
+        const float value =
+            evaluateAutomationEnvelope(ac.points, ac.pointCount, beatInClip);
+        applyAutomationValue(params, kind, paramId, value);
+    }
 }
 
 } // namespace audioapp

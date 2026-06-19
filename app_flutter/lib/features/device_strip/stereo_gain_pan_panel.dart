@@ -14,6 +14,7 @@ class StereoGainPanPanel extends StatelessWidget {
     required this.onParameterChanged,
     this.knobSize = DeviceKnobSizes.compact,
     this.modulatedParams = const {},
+    this.automatedParams = const {},
     this.modulationAmounts = const {},
     this.connectModeLfoId,
     this.onModulationAssign,
@@ -27,6 +28,7 @@ class StereoGainPanPanel extends StatelessWidget {
   final void Function(String parameterId, double value) onParameterChanged;
   final double knobSize;
   final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
@@ -77,6 +79,7 @@ class StereoGainPanPanel extends StatelessWidget {
               paramId: 'pan',
               accentColor: accentColor,
               modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
               modulationAmounts: modulationAmounts,
               connectModeLfoId: connectModeLfoId,
               onModulationAssign: onModulationAssign,
@@ -94,6 +97,7 @@ class StereoGainPanPanel extends StatelessWidget {
               paramId: 'gain',
               accentColor: accentColor,
               modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
               modulationAmounts: modulationAmounts,
               connectModeLfoId: connectModeLfoId,
               onModulationAssign: onModulationAssign,
