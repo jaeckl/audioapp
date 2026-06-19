@@ -88,7 +88,92 @@ double timelineScrollOffsetForBeatAtViewportOrigin({
   required double beat,
   required double pixelsPerBeat,
 }) {
-  return beat * pixelsPerBeat;
+  return timelineScrollOffsetForBeatAtViewportX(
+    beat: beat,
+    pixelsPerBeat: pixelsPerBeat,
+    viewportX: 0,
+  );
+}
+
+/// Scroll offset that places [beat] at [viewportX] in the timeline viewport.
+double timelineScrollOffsetForBeatAtViewportX({
+  required double beat,
+  required double pixelsPerBeat,
+  required double viewportX,
+}) {
+  return beat * pixelsPerBeat - viewportX;
+}
+
+/// Default follow-playhead layout for mobile timelines.
+abstract final class TimelineFollowMetrics {
+  /// Playhead sits this fraction from the left edge while following.
+  static const double leadFraction = 0.25;
+
+  /// Follow when the playhead passes this rightward bound.
+  static const double maxVisibleFraction = 0.85;
+}
+
+double timelineLeadViewportX(
+  double viewportWidth, {
+  double leadFraction = TimelineFollowMetrics.leadFraction,
+}) {
+  return viewportWidth * leadFraction;
+}
+
+/// True when horizontal scroll should catch up to keep [beat] in the follow zone.
+bool timelinePlayheadNeedsFollow({
+  required double beat,
+  required double pixelsPerBeat,
+  required double scrollOffset,
+  required double viewportWidth,
+  double leadFraction = TimelineFollowMetrics.leadFraction,
+  double maxVisibleFraction = TimelineFollowMetrics.maxVisibleFraction,
+}) {
+  if (viewportWidth <= 0) {
+    return false;
+  }
+  final natural = timelineNaturalViewportX(
+    beat: beat,
+    pixelsPerBeat: pixelsPerBeat,
+    scrollOffset: scrollOffset,
+  );
+  final leadX = timelineLeadViewportX(viewportWidth, leadFraction: leadFraction);
+  final maxX = viewportWidth * maxVisibleFraction;
+  return natural < leadX || natural > maxX;
+}
+
+/// True when [newBeat] jumped backward far enough to be a loop wrap (not drift).
+bool timelinePlayheadLoopedBackward({
+  required double oldBeat,
+  required double newBeat,
+  required bool loopEnabled,
+  double thresholdBeats = 0.5,
+}) {
+  return loopEnabled && newBeat < oldBeat - thresholdBeats;
+}
+
+/// Binds to a timeline viewport for play-time scroll reveal (avoids [GlobalKey] on rebuilt children).
+class TimelineViewportScrollController {
+  void Function(double beat)? _reveal;
+  void Function(double beat, {required bool immediate})? _catchUpOnPlay;
+  void Function(double beat)? _followIfNeeded;
+
+  void bind({
+    void Function(double beat)? reveal,
+    void Function(double beat, {required bool immediate})? catchUpOnPlay,
+    void Function(double beat)? followIfNeeded,
+  }) {
+    _reveal = reveal;
+    _catchUpOnPlay = catchUpOnPlay;
+    _followIfNeeded = followIfNeeded;
+  }
+
+  void revealPlayheadAtViewportOrigin(double beat) => _reveal?.call(beat);
+
+  void catchUpPlayheadOnPlay(double beat, {bool immediate = true}) =>
+      _catchUpOnPlay?.call(beat, immediate: immediate);
+
+  void followPlayheadIfNeeded(double beat) => _followIfNeeded?.call(beat);
 }
 
 /// Canvas X of a sticky playhead pill center (pinned at viewport x=0 when scrolled past).
@@ -120,29 +205,22 @@ bool hitTimelineStickyPlayheadMarker({
   return (canvasDx - markerX).abs() <= hitWidth / 2;
 }
 
-/// Binds to a timeline viewport for play-time scroll reveal (avoids [GlobalKey] on rebuilt children).
-class TimelineViewportScrollController {
-  void Function(double beat)? _reveal;
-
-  void bind(void Function(double beat)? reveal) => _reveal = reveal;
-
-  void revealPlayheadAtViewportOrigin(double beat) => _reveal?.call(beat);
-}
-
 /// Immediate scroll jump; returns false if [horizontal] is not attached yet.
-bool jumpTimelineScrollToRevealBeatNow({
+bool jumpTimelineScrollToBeatAtViewportXNow({
   required ScrollController horizontal,
   required double beat,
   required double pixelsPerBeat,
+  required double viewportX,
   ScrollController? ruler,
   ScrollController? mirror,
 }) {
   if (!horizontal.hasClients) {
     return false;
   }
-  final target = timelineScrollOffsetForBeatAtViewportOrigin(
+  final target = timelineScrollOffsetForBeatAtViewportX(
     beat: beat,
     pixelsPerBeat: pixelsPerBeat,
+    viewportX: viewportX,
   ).clamp(0.0, horizontal.position.maxScrollExtent);
   horizontal.jumpTo(target);
   if (ruler != null && ruler.hasClients) {
@@ -152,6 +230,42 @@ bool jumpTimelineScrollToRevealBeatNow({
     mirror.jumpTo(target.clamp(0.0, mirror.position.maxScrollExtent));
   }
   return true;
+}
+
+bool jumpTimelineScrollToRevealBeatNow({
+  required ScrollController horizontal,
+  required double beat,
+  required double pixelsPerBeat,
+  ScrollController? ruler,
+  ScrollController? mirror,
+}) {
+  return jumpTimelineScrollToBeatAtViewportXNow(
+    horizontal: horizontal,
+    beat: beat,
+    pixelsPerBeat: pixelsPerBeat,
+    viewportX: 0,
+    ruler: ruler,
+    mirror: mirror,
+  );
+}
+
+Future<void> animateTimelineScrollToBeatAtViewportX({
+  required ScrollController horizontal,
+  required double beat,
+  required double pixelsPerBeat,
+  required double viewportX,
+  Duration duration = const Duration(milliseconds: 120),
+  Curve curve = Curves.easeOut,
+}) async {
+  if (!horizontal.hasClients) {
+    return;
+  }
+  final target = timelineScrollOffsetForBeatAtViewportX(
+    beat: beat,
+    pixelsPerBeat: pixelsPerBeat,
+    viewportX: viewportX,
+  ).clamp(0.0, horizontal.position.maxScrollExtent);
+  await horizontal.animateTo(target, duration: duration, curve: curve);
 }
 
 /// Jump horizontal timeline scroll so [beat] sits at viewport x=0.

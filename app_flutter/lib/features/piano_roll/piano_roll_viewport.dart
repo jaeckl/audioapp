@@ -155,15 +155,15 @@ class PianoRollViewportState extends State<PianoRollViewport> {
       _onMarkerOverlayScroll();
     });
     _verticalKeys.addListener(() => _linkScroll(_verticalKeys, _vertical));
-    widget.timelineScrollController?.bind(_revealPlayheadAtViewportOrigin);
+    widget.timelineScrollController?.bind(reveal: _revealPlayheadAtViewportOrigin);
   }
 
   @override
   void didUpdateWidget(covariant PianoRollViewport oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.timelineScrollController != widget.timelineScrollController) {
-      oldWidget.timelineScrollController?.bind(null);
-      widget.timelineScrollController?.bind(_revealPlayheadAtViewportOrigin);
+      oldWidget.timelineScrollController?.bind();
+      widget.timelineScrollController?.bind(reveal: _revealPlayheadAtViewportOrigin);
     }
     if (widget.viewRangeBars != oldWidget.viewRangeBars) {
       _scheduleApplyViewRange(widget.viewRangeBars);
@@ -245,7 +245,7 @@ class PianoRollViewportState extends State<PianoRollViewport> {
 
   @override
   void dispose() {
-    widget.timelineScrollController?.bind(null);
+    widget.timelineScrollController?.bind();
     _longPressTimer?.cancel();
     _horizontal.dispose();
     _ruler.dispose();

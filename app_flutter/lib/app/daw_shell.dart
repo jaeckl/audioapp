@@ -67,6 +67,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   final TimelineViewportScrollController _arrangementScrollController =
       TimelineViewportScrollController();
   double? _frozenArrangementPlayhead;
+  bool _followPlayheadEnabled = true;
+  bool _followPlayheadSuspended = false;
 
   @override
   void initState() {
@@ -1242,9 +1244,12 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       await widget.bridge.setPlayheadBeats(beats);
       await widget.bridge.play();
       if (!mounted) return;
-      setState(() => _playing = true);
+      setState(() {
+        _playing = true;
+        _followPlayheadSuspended = false;
+      });
       _startPlayheadAnimation();
-      _arrangementScrollController.revealPlayheadAtViewportOrigin(beats);
+      _arrangementScrollController.catchUpPlayheadOnPlay(beats);
     } finally {
       _transportCommandInFlight = false;
     }
@@ -1267,6 +1272,30 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       setState(() => _playing = false);
     } finally {
       _transportCommandInFlight = false;
+    }
+  }
+
+  void _setFollowPlayheadEnabled(bool enabled) {
+    setState(() {
+      _followPlayheadEnabled = enabled;
+      if (enabled) {
+        _followPlayheadSuspended = false;
+      }
+    });
+    if (enabled && _playing) {
+      _arrangementScrollController.catchUpPlayheadOnPlay(_effectivePlayheadBeats);
+    }
+  }
+
+  void _onFollowSuspended() {
+    if (!_followPlayheadSuspended && mounted) {
+      setState(() => _followPlayheadSuspended = true);
+    }
+  }
+
+  void _onFollowResumed() {
+    if (_followPlayheadSuspended && mounted) {
+      setState(() => _followPlayheadSuspended = false);
     }
   }
 
@@ -1303,6 +1332,9 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             listenable: _playheadNotifier,
             builder: (context, _) => ArrangementView(
               timelineScrollController: _arrangementScrollController,
+              followPlayheadEnabled: _followPlayheadEnabled,
+              onFollowSuspended: _onFollowSuspended,
+              onFollowResumed: _onFollowResumed,
               snapshot: snapshot,
               playheadBeats: _effectivePlayheadBeats,
               playing: _playing,
@@ -1403,8 +1435,11 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
               playheadBeats: _effectivePlayheadBeats,
               version: kAppVersion,
               loopEnabled: snapshot.loopEnabled,
+              followPlayheadEnabled: _followPlayheadEnabled,
+              followPlayheadSuspended: _followPlayheadSuspended,
               onBpmChanged: _setBpm,
               onLoopToggled: _setLoopEnabled,
+              onFollowPlayheadToggled: _setFollowPlayheadEnabled,
               onExportMix: _exportMix,
             ),
           ),

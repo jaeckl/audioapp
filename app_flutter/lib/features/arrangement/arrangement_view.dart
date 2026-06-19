@@ -47,6 +47,9 @@ class ArrangementView extends StatefulWidget {
     this.focusTrackId,
     this.compact = false,
     this.timelineScrollController,
+    this.followPlayheadEnabled = true,
+    this.onFollowSuspended,
+    this.onFollowResumed,
   });
 
   final ProjectSnapshot snapshot;
@@ -82,6 +85,9 @@ class ArrangementView extends StatefulWidget {
   /// Hides master/add-track chrome for embedded play-mode timeline.
   final bool compact;
   final TimelineViewportScrollController? timelineScrollController;
+  final bool followPlayheadEnabled;
+  final VoidCallback? onFollowSuspended;
+  final VoidCallback? onFollowResumed;
 
   @override
   State<ArrangementView> createState() => ArrangementViewState();
@@ -107,8 +113,13 @@ class ArrangementViewState extends State<ArrangementView> {
   _RulerDragTarget? _rulerDragTarget;
   double? _previewRegionStart;
   double? _previewRegionEnd;
+  double _timelineViewportWidth = 0;
+  bool _followSuspended = false;
+  bool _programmaticScroll = false;
+  DateTime? _lastFollowAnimateAt;
 
   static const double _rulerTapSlop = 12;
+  static const Duration _followAnimateMinInterval = Duration(milliseconds: 66);
 
   bool get _pinchZoomActive => _activePointerIds.length >= 2;
   bool get _clipDragActive => _clipDrag != null;
@@ -193,6 +204,9 @@ class ArrangementViewState extends State<ArrangementView> {
       if (_rulerPointerTravel < _rulerTapSlop) {
         return;
       }
+      if (widget.followPlayheadEnabled && widget.playing) {
+        _suspendFollow();
+      }
       setState(() => _scrubbingPlayhead = true);
       final beat = _beatFromRulerCanvasDx(canvasDx);
       setState(() => _scrubPlayheadBeats = beat);
@@ -276,15 +290,47 @@ class ArrangementViewState extends State<ArrangementView> {
     super.initState();
     _horizontalScroll.addListener(_onTimelineScroll);
     _masterScroll.addListener(_syncMasterScrollToTrack);
-    widget.timelineScrollController?.bind(_revealPlayheadAtViewportOrigin);
+    _bindTimelineScrollController();
+  }
+
+  void _bindTimelineScrollController() {
+    widget.timelineScrollController?.bind(
+      reveal: _revealPlayheadAtViewportOrigin,
+      catchUpOnPlay: _catchUpPlayheadOnPlay,
+      followIfNeeded: (beat) => _followPlayheadIfNeeded(beat, immediate: false),
+    );
   }
 
   @override
   void didUpdateWidget(covariant ArrangementView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.timelineScrollController != widget.timelineScrollController) {
-      oldWidget.timelineScrollController?.bind(null);
-      widget.timelineScrollController?.bind(_revealPlayheadAtViewportOrigin);
+      oldWidget.timelineScrollController?.bind();
+      _bindTimelineScrollController();
+    }
+    if (widget.playing && !oldWidget.playing && widget.followPlayheadEnabled) {
+      _resumeFollow();
+    }
+    if (widget.followPlayheadEnabled &&
+        !oldWidget.followPlayheadEnabled &&
+        widget.playing) {
+      _resumeFollow();
+      _followPlayheadIfNeeded(widget.playheadBeats, immediate: true);
+    }
+    final loopWrapped = timelinePlayheadLoopedBackward(
+      oldBeat: oldWidget.playheadBeats,
+      newBeat: widget.playheadBeats,
+      loopEnabled: widget.snapshot.loopEnabled,
+    );
+    if (loopWrapped && widget.playing && widget.followPlayheadEnabled) {
+      _resumeFollow();
+      _lastFollowAnimateAt = null;
+      _followPlayheadIfNeeded(widget.playheadBeats, immediate: true);
+    } else if (widget.playing &&
+        widget.followPlayheadEnabled &&
+        !_followSuspended &&
+        widget.playheadBeats != oldWidget.playheadBeats) {
+      _followPlayheadIfNeeded(widget.playheadBeats, immediate: false);
     }
   }
 
@@ -302,33 +348,136 @@ class ArrangementViewState extends State<ArrangementView> {
       )) {
         return;
       }
-      final jumped = jumpTimelineScrollToRevealBeatNow(
-        horizontal: _horizontalScroll,
-        ruler: _rulerScroll,
-        mirror: _masterScroll,
-        beat: beat,
-        pixelsPerBeat: _pixelsPerBeat,
-      );
-      if (jumped) {
-        if (mounted) setState(() {});
+      _jumpScrollToBeat(beat, viewportX: 0);
+    });
+  }
+
+  void _catchUpPlayheadOnPlay(double beat, {required bool immediate}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (widget.followPlayheadEnabled) {
+        _resumeFollow();
+        _followPlayheadIfNeeded(beat, immediate: immediate);
         return;
       }
-      jumpTimelineScrollToRevealBeat(
+      if (!timelinePlayheadIsSticky(
+        beat: beat,
+        pixelsPerBeat: _pixelsPerBeat,
+        scrollOffset: _horizontalScrollOffset,
+      )) {
+        return;
+      }
+      _jumpScrollToBeat(beat, viewportX: 0);
+    });
+  }
+
+  void _followPlayheadIfNeeded(double beat, {required bool immediate}) {
+    if (!widget.followPlayheadEnabled || _followSuspended || !widget.playing) {
+      return;
+    }
+    if (_timelineViewportWidth <= 0) {
+      return;
+    }
+    if (!timelinePlayheadNeedsFollow(
+      beat: beat,
+      pixelsPerBeat: _pixelsPerBeat,
+      scrollOffset: _horizontalScrollOffset,
+      viewportWidth: _timelineViewportWidth,
+    )) {
+      return;
+    }
+    final leadX = timelineLeadViewportX(_timelineViewportWidth);
+    if (immediate) {
+      _jumpScrollToBeat(beat, viewportX: leadX);
+      return;
+    }
+    final now = DateTime.now();
+    if (_lastFollowAnimateAt != null &&
+        now.difference(_lastFollowAnimateAt!) < _followAnimateMinInterval) {
+      return;
+    }
+    _lastFollowAnimateAt = now;
+    _animateScrollToBeat(beat, viewportX: leadX);
+  }
+
+  void _jumpScrollToBeat(double beat, {required double viewportX}) {
+    _programmaticScroll = true;
+    final jumped = jumpTimelineScrollToBeatAtViewportXNow(
+      horizontal: _horizontalScroll,
+      ruler: _rulerScroll,
+      mirror: _masterScroll,
+      beat: beat,
+      pixelsPerBeat: _pixelsPerBeat,
+      viewportX: viewportX,
+    );
+    if (jumped) {
+      _endProgrammaticScroll();
+      if (mounted) setState(() {});
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (jumpTimelineScrollToBeatAtViewportXNow(
         horizontal: _horizontalScroll,
         ruler: _rulerScroll,
         mirror: _masterScroll,
         beat: beat,
         pixelsPerBeat: _pixelsPerBeat,
-        onComplete: () {
-          if (mounted) setState(() {});
-        },
-      );
+        viewportX: viewportX,
+      )) {
+        _endProgrammaticScroll();
+        setState(() {});
+      } else {
+        _programmaticScroll = false;
+      }
     });
+  }
+
+  void _endProgrammaticScroll() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _programmaticScroll = false;
+      }
+    });
+  }
+
+  void _animateScrollToBeat(double beat, {required double viewportX}) {
+    if (!_horizontalScroll.hasClients) {
+      return;
+    }
+    _programmaticScroll = true;
+    unawaited(
+      animateTimelineScrollToBeatAtViewportX(
+        horizontal: _horizontalScroll,
+        beat: beat,
+        pixelsPerBeat: _pixelsPerBeat,
+        viewportX: viewportX,
+      ).whenComplete(() {
+        _endProgrammaticScroll();
+        if (mounted) setState(() {});
+      }),
+    );
+  }
+
+  void _resumeFollow() {
+    if (!_followSuspended) {
+      return;
+    }
+    _followSuspended = false;
+    widget.onFollowResumed?.call();
+  }
+
+  void _suspendFollow() {
+    if (!widget.followPlayheadEnabled || _followSuspended) {
+      return;
+    }
+    _followSuspended = true;
+    widget.onFollowSuspended?.call();
   }
 
   @override
   void dispose() {
-    widget.timelineScrollController?.bind(null);
+    widget.timelineScrollController?.bind();
     _horizontalScroll.removeListener(_onTimelineScroll);
     _masterScroll.removeListener(_syncMasterScrollToTrack);
     _horizontalScroll.dispose();
@@ -338,6 +487,12 @@ class ArrangementViewState extends State<ArrangementView> {
   }
 
   void _onTimelineScroll() {
+    if (!_programmaticScroll &&
+        widget.followPlayheadEnabled &&
+        widget.playing &&
+        !_followSuspended) {
+      _suspendFollow();
+    }
     _syncTrackScrollToMaster();
     if (mounted) {
       setState(() {});
@@ -362,6 +517,12 @@ class ArrangementViewState extends State<ArrangementView> {
   void _syncMasterScrollToTrack() {
     if (_syncingScroll || !_masterScroll.hasClients || !_horizontalScroll.hasClients) {
       return;
+    }
+    if (!_programmaticScroll &&
+        widget.followPlayheadEnabled &&
+        widget.playing &&
+        !_followSuspended) {
+      _suspendFollow();
     }
     _syncingScroll = true;
     final offset = _masterScroll.offset;
@@ -390,6 +551,9 @@ class ArrangementViewState extends State<ArrangementView> {
 
   void _onScaleStart(ScaleStartDetails details) {
     _scaleStartPixelsPerBeat = _pixelsPerBeat;
+    if (widget.followPlayheadEnabled && widget.playing) {
+      _suspendFollow();
+    }
   }
 
   void _onScaleUpdate(ScaleUpdateDetails details) {
@@ -723,6 +887,7 @@ class ArrangementViewState extends State<ArrangementView> {
       child: LayoutBuilder(
           builder: (context, constraints) {
                 final viewportWidth = constraints.maxWidth - ArrangementTimelineMetrics.trackHeaderWidth;
+                _timelineViewportWidth = viewportWidth;
 
                 final laneCount = visibleTracks.length + (widget.compact ? 0 : 1);
                 final lanesHeight =

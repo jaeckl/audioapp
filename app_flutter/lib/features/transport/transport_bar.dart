@@ -10,8 +10,11 @@ class TransportBar extends StatelessWidget {
     required this.playheadBeats,
     required this.version,
     required this.loopEnabled,
+    this.followPlayheadEnabled = true,
+    this.followPlayheadSuspended = false,
     this.onBpmChanged,
     this.onLoopToggled,
+    this.onFollowPlayheadToggled,
     this.onExportMix,
   });
 
@@ -19,8 +22,11 @@ class TransportBar extends StatelessWidget {
   final double playheadBeats;
   final String version;
   final bool loopEnabled;
+  final bool followPlayheadEnabled;
+  final bool followPlayheadSuspended;
   final ValueChanged<int>? onBpmChanged;
   final ValueChanged<bool>? onLoopToggled;
+  final ValueChanged<bool>? onFollowPlayheadToggled;
   final VoidCallback? onExportMix;
 
   String get _playheadLabel {
@@ -41,8 +47,11 @@ class TransportBar extends StatelessWidget {
       builder: (context) => TransportOverflowSheet(
         bpm: bpm,
         loopEnabled: loopEnabled,
+        followPlayheadEnabled: followPlayheadEnabled,
+        followPlayheadSuspended: followPlayheadSuspended,
         onBpmChanged: (value) => onBpmChanged?.call(value),
         onLoopToggled: (value) => onLoopToggled?.call(value),
+        onFollowPlayheadToggled: (value) => onFollowPlayheadToggled?.call(value),
         onExportMix: onExportMix,
       ),
     );
@@ -113,8 +122,11 @@ class TransportBar extends StatelessWidget {
     required double playheadBeats,
     required String version,
     required bool loopEnabled,
+    bool followPlayheadEnabled = true,
+    bool followPlayheadSuspended = false,
     ValueChanged<int>? onBpmChanged,
     ValueChanged<bool>? onLoopToggled,
+    ValueChanged<bool>? onFollowPlayheadToggled,
     VoidCallback? onExportMix,
   }) {
     return Padding(
@@ -124,8 +136,11 @@ class TransportBar extends StatelessWidget {
         playheadBeats: playheadBeats,
         version: version,
         loopEnabled: loopEnabled,
+        followPlayheadEnabled: followPlayheadEnabled,
+        followPlayheadSuspended: followPlayheadSuspended,
         onBpmChanged: onBpmChanged,
         onLoopToggled: onLoopToggled,
+        onFollowPlayheadToggled: onFollowPlayheadToggled,
         onExportMix: onExportMix,
       ),
     );

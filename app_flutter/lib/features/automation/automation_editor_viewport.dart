@@ -134,15 +134,15 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
       _onMarkerOverlayScroll();
     });
     _verticalLabels.addListener(() => _linkScroll(_verticalLabels, _vertical));
-    widget.timelineScrollController?.bind(_revealPlayheadAtViewportOrigin);
+    widget.timelineScrollController?.bind(reveal: _revealPlayheadAtViewportOrigin);
   }
 
   @override
   void didUpdateWidget(covariant AutomationEditorViewport oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.timelineScrollController != widget.timelineScrollController) {
-      oldWidget.timelineScrollController?.bind(null);
-      widget.timelineScrollController?.bind(_revealPlayheadAtViewportOrigin);
+      oldWidget.timelineScrollController?.bind();
+      widget.timelineScrollController?.bind(reveal: _revealPlayheadAtViewportOrigin);
     }
     if (widget.viewRangeBars != oldWidget.viewRangeBars) {
       _scheduleApplyViewRange(widget.viewRangeBars);
@@ -224,7 +224,7 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
 
   @override
   void dispose() {
-    widget.timelineScrollController?.bind(null);
+    widget.timelineScrollController?.bind();
     _horizontal.dispose();
     _ruler.dispose();
     _vertical.dispose();

@@ -41,15 +41,21 @@ class TransportOverflowSheet extends StatefulWidget {
     super.key,
     required this.bpm,
     required this.loopEnabled,
+    required this.followPlayheadEnabled,
+    required this.followPlayheadSuspended,
     required this.onBpmChanged,
     required this.onLoopToggled,
+    required this.onFollowPlayheadToggled,
     this.onExportMix,
   });
 
   final int bpm;
   final bool loopEnabled;
+  final bool followPlayheadEnabled;
+  final bool followPlayheadSuspended;
   final ValueChanged<int> onBpmChanged;
   final ValueChanged<bool> onLoopToggled;
+  final ValueChanged<bool> onFollowPlayheadToggled;
   final VoidCallback? onExportMix;
 
   @override
@@ -60,11 +66,13 @@ class _TransportOverflowSheetState extends State<TransportOverflowSheet> {
   final _tapTempo = TapTempo();
   String? _tapHint;
   late bool _loopEnabled;
+  late bool _followEnabled;
 
   @override
   void initState() {
     super.initState();
     _loopEnabled = widget.loopEnabled;
+    _followEnabled = widget.followPlayheadEnabled;
   }
 
   @override
@@ -72,6 +80,9 @@ class _TransportOverflowSheetState extends State<TransportOverflowSheet> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.loopEnabled != widget.loopEnabled) {
       _loopEnabled = widget.loopEnabled;
+    }
+    if (oldWidget.followPlayheadEnabled != widget.followPlayheadEnabled) {
+      _followEnabled = widget.followPlayheadEnabled;
     }
   }
 
@@ -115,6 +126,20 @@ class _TransportOverflowSheetState extends State<TransportOverflowSheet> {
                 onChanged: (enabled) {
                   setState(() => _loopEnabled = enabled);
                   widget.onLoopToggled(enabled);
+                },
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Follow playhead'),
+                subtitle: Text(
+                  widget.followPlayheadSuspended && _followEnabled
+                      ? 'Paused — scroll the timeline or toggle to resume'
+                      : 'Scroll the arrangement while playing',
+                ),
+                value: _followEnabled,
+                onChanged: (enabled) {
+                  setState(() => _followEnabled = enabled);
+                  widget.onFollowPlayheadToggled(enabled);
                 },
               ),
               if (widget.onExportMix != null) ...[
