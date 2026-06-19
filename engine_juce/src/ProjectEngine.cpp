@@ -532,7 +532,6 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         // Compute per-frame LFO values for gain/pan modulation.
     // DSP-specific params still use frame-0 (block-rate).
     const int lfoCount = modulationGraph_.lfoPlaybackCount();
-    const int edgeCount = modulationGraph_.modEdgePlaybackCount();
     // Per-frame LFO buffer: lfoValues[lfoId * framesToProcess + frame]
     // thread_local vector avoids large stack allocation and is allocation-free
     // after the first warm-up call on the audio thread.
@@ -646,10 +645,10 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                            deviceMeterSlotCount_,
                            lfoCount > 0 ? lfoValues.data() : nullptr,
                            lfoCount,
-                           modulationGraph_.modEdgePlaybackData(),
-                           edgeCount,
-                           automationPlayback_,
-                           automationPlaybackCount_.load(std::memory_order_acquire));
+                           track.modEdgeCount > 0 ? track.modEdges : nullptr,
+                           track.modEdgeCount,
+                           track.automationClipCount > 0 ? track.automationClips : nullptr,
+                           track.automationClipCount);
         trackPlayback_[trackIndex].oscillatorPhase = oscillatorPhase;
 
         for (int frame = 0; frame < framesToProcess; ++frame) {
@@ -1081,26 +1080,49 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
             }
         }
 
+        // Resolve per-track modulation edges — convert deviceId to deviceIndex
+        snap.modEdgeCount = 0;
+        for (const auto& globalEdge : modulationGraph_.modEdges()) {
+            if (snap.modEdgeCount >= 16) break;
+            // Find deviceIndex for this edge's deviceId within this track
+            int di = -1;
+            for (int i = 0; i < snap.deviceCount; ++i) {
+                if (snap.devices[i].deviceId == globalEdge.deviceId) {
+                    di = i;
+                    break;
+                }
+            }
+            if (di < 0) continue; // edge targets a different track
+            ModulationEdgePlayback& me = snap.modEdges[snap.modEdgeCount++];
+            me.deviceIndex = static_cast<uint16_t>(di);
+            me.lfoId = static_cast<uint16_t>(globalEdge.lfoId);
+            me.localParamId = paramIdFromString(globalEdge.paramId.c_str(), snap.devices[di].kind);
+            me.amount = globalEdge.amount;
+        }
+
+        // Resolve per-track automation clips
+        snap.automationClipCount = 0;
+        for (const auto& clip : trackRepo_.tracks()[trackIndex].automationClips) {
+            if (snap.automationClipCount >= 16) break;
+            // Find deviceIndex
+            int di = -1;
+            for (int i = 0; i < snap.deviceCount; ++i) {
+                if (snap.devices[i].deviceId == clip.deviceId) {
+                    di = i;
+                    break;
+                }
+            }
+            if (di < 0) continue;
+            AutomationClipPlayback pb{};
+            if (!automationClipPlaybackFromClip(clip, pb)) continue;
+            pb.deviceIndex = static_cast<uint16_t>(di);
+            pb.localParamId = paramIdFromString(clip.paramId.c_str(), snap.devices[di].kind);
+            snap.automationClips[snap.automationClipCount++] = pb;
+        }
+
         ++trackIndex;
     }
     trackPlaybackCount_.store(trackIndex, std::memory_order_release);
-    rebuildAutomationPlaybackLocked();
-}
-
-void ProjectEngine::rebuildAutomationPlaybackLocked() {
-    int clipIndex = 0;
-    for (const auto& track : trackRepo_.tracks()) {
-        for (const auto& clip : track.automationClips) {
-            if (clipIndex >= kMaxAutomationClips) {
-                break;
-            }
-            AutomationClipPlayback playback{};
-            if (automationClipPlaybackFromClip(clip, playback)) {
-                automationPlayback_[clipIndex++] = playback;
-            }
-        }
-    }
-    automationPlaybackCount_.store(clipIndex, std::memory_order_release);
 }
 
 bool ProjectEngine::trackHasActiveSampleAtPlayhead(const TrackPlaybackSnapshot& track,

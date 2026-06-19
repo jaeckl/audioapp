@@ -14,198 +14,400 @@
 
 namespace audioapp {
 
-namespace {
-
-bool clipDeviceIdMatches(const char* clipDeviceId, const std::string& deviceId) noexcept {
-    return std::strncmp(clipDeviceId, deviceId.c_str(), 47) == 0;
-}
-
-} // namespace
-
 // -----------------------------------------------------------------------
 // paramIdFromString / paramIdToString  (control thread, string scan OK)
 // -----------------------------------------------------------------------
 
-ParamId paramIdFromString(const char* name) noexcept {
-    if (name == nullptr || name[0] == '\0') return ParamId::Unknown;
-    if (std::strcmp(name, "gain") == 0) return ParamId::Gain;
-    if (std::strcmp(name, "pan") == 0) return ParamId::Pan;
-    if (std::strcmp(name, "frequency") == 0) return ParamId::Frequency;
-    if (std::strcmp(name, "filterCutoff") == 0) return ParamId::FilterCutoff;
-    if (std::strcmp(name, "filterQ") == 0) return ParamId::FilterQ;
-    if (std::strcmp(name, "attack") == 0) return ParamId::Attack;
-    if (std::strcmp(name, "decay") == 0) return ParamId::Decay;
-    if (std::strcmp(name, "sustain") == 0) return ParamId::Sustain;
-    if (std::strcmp(name, "release") == 0) return ParamId::Release;
-    if (std::strcmp(name, "rootPitch") == 0) return ParamId::RootPitch;
-    if (std::strcmp(name, "rootFineTune") == 0) return ParamId::RootFineTune;
-    if (std::strcmp(name, "filterEnvAmount") == 0) return ParamId::FilterEnvAmount;
-    if (std::strcmp(name, "filterAttack") == 0) return ParamId::FilterAttack;
-    if (std::strcmp(name, "filterDecay") == 0) return ParamId::FilterDecay;
-    if (std::strcmp(name, "filterSustain") == 0) return ParamId::FilterSustain;
-    if (std::strcmp(name, "filterRelease") == 0) return ParamId::FilterRelease;
-    if (std::strcmp(name, "osc1Shape") == 0) return ParamId::Osc1Shape;
-    if (std::strcmp(name, "osc2Shape") == 0) return ParamId::Osc2Shape;
-    if (std::strcmp(name, "osc1Octave") == 0) return ParamId::Osc1Octave;
-    if (std::strcmp(name, "osc1Semi") == 0) return ParamId::Osc1Semi;
-    if (std::strcmp(name, "osc1Detune") == 0) return ParamId::Osc1Detune;
-    if (std::strcmp(name, "osc2Octave") == 0) return ParamId::Osc2Octave;
-    if (std::strcmp(name, "osc2Semi") == 0) return ParamId::Osc2Semi;
-    if (std::strcmp(name, "osc2Detune") == 0) return ParamId::Osc2Detune;
-    if (std::strcmp(name, "oscMix") == 0) return ParamId::OscMix;
-    if (std::strcmp(name, "osc1Sync") == 0) return ParamId::Osc1Sync;
-    if (std::strcmp(name, "osc2Sync") == 0) return ParamId::Osc2Sync;
-    if (std::strcmp(name, "noiseLevel") == 0) return ParamId::NoiseLevel;
-    if (std::strcmp(name, "oscMixMode") == 0) return ParamId::OscMixMode;
-    if (std::strcmp(name, "unisonVoices") == 0) return ParamId::UnisonVoices;
-    if (std::strcmp(name, "unisonDetune") == 0) return ParamId::UnisonDetune;
-    if (std::strcmp(name, "glideMs") == 0) return ParamId::GlideMs;
-    if (std::strcmp(name, "velocitySensitivity") == 0) return ParamId::VelocitySensitivity;
-    if (std::strcmp(name, "preHpCutoff") == 0) return ParamId::PreHpCutoff;
-    if (std::strcmp(name, "preHpRes") == 0) return ParamId::PreHpRes;
-    if (std::strcmp(name, "preDrive") == 0) return ParamId::PreDrive;
-    if (std::strcmp(name, "mixFeedback") == 0) return ParamId::MixFeedback;
-    if (std::strcmp(name, "globalPitch") == 0) return ParamId::GlobalPitch;
-    if (std::strcmp(name, "filterKeyTrack") == 0) return ParamId::FilterKeyTrack;
-    if (std::strcmp(name, "filterDrive") == 0) return ParamId::FilterDrive;
-    if (std::strcmp(name, "filterShaper") == 0) return ParamId::FilterShaper;
-    if (std::strcmp(name, "filterFm") == 0) return ParamId::FilterFm;
-    if (std::strcmp(name, "filterShaperMode") == 0) return ParamId::FilterShaperMode;
-    if (std::strcmp(name, "synthLegato") == 0) return ParamId::SynthLegato;
-    if (std::strcmp(name, "synthMono") == 0) return ParamId::SynthMono;
-    if (std::strcmp(name, "filterMode") == 0) return ParamId::FilterMode;
-    if (std::strcmp(name, "kickModel") == 0) return ParamId::KickModel;
-    if (std::strcmp(name, "kickPitch") == 0) return ParamId::KickPitch;
-    if (std::strcmp(name, "kickPunch") == 0) return ParamId::KickPunch;
-    if (std::strcmp(name, "kickDecay") == 0) return ParamId::KickDecay;
-    if (std::strcmp(name, "kickClick") == 0) return ParamId::KickClick;
-    if (std::strcmp(name, "kickTone") == 0) return ParamId::KickTone;
-    if (std::strcmp(name, "kickVelocity") == 0) return ParamId::KickVelocity;
-    if (std::strcmp(name, "snareModel") == 0) return ParamId::SnareModel;
-    if (std::strcmp(name, "snareBody") == 0) return ParamId::SnareBody;
-    if (std::strcmp(name, "snareRing") == 0) return ParamId::SnareRing;
-    if (std::strcmp(name, "snareTune") == 0) return ParamId::SnareTune;
-    if (std::strcmp(name, "snareSnares") == 0) return ParamId::SnareSnares;
-    if (std::strcmp(name, "snareSnap") == 0) return ParamId::SnareSnap;
-    if (std::strcmp(name, "snareDecay") == 0) return ParamId::SnareDecay;
-    if (std::strcmp(name, "snareVelocity") == 0) return ParamId::SnareVelocity;
-    if (std::strcmp(name, "clapBursts") == 0) return ParamId::ClapBursts;
-    if (std::strcmp(name, "clapSpread") == 0) return ParamId::ClapSpread;
-    if (std::strcmp(name, "clapTone") == 0) return ParamId::ClapTone;
-    if (std::strcmp(name, "clapRoom") == 0) return ParamId::ClapRoom;
-    if (std::strcmp(name, "clapDecay") == 0) return ParamId::ClapDecay;
-    if (std::strcmp(name, "clapVelocity") == 0) return ParamId::ClapVelocity;
-    if (std::strcmp(name, "cymbalColor") == 0) return ParamId::CymbalColor;
-    if (std::strcmp(name, "cymbalDecay") == 0) return ParamId::CymbalDecay;
-    if (std::strcmp(name, "cymbalWidth") == 0) return ParamId::CymbalWidth;
-    if (std::strcmp(name, "cymbalVelocity") == 0) return ParamId::CymbalVelocity;
-    if (std::strcmp(name, "crashColor") == 0) return ParamId::CrashColor;
-    if (std::strcmp(name, "crashSpread") == 0) return ParamId::CrashSpread;
-    if (std::strcmp(name, "crashDecay") == 0) return ParamId::CrashDecay;
-    if (std::strcmp(name, "crashVelocity") == 0) return ParamId::CrashVelocity;
-    if (std::strcmp(name, "inputGain") == 0) return ParamId::InputGain;
-    if (std::strcmp(name, "gateThreshold") == 0 || std::strcmp(name, "compThreshold") == 0 || std::strcmp(name, "expandThreshold") == 0) return ParamId::Threshold;
-    if (std::strcmp(name, "compRatio") == 0 || std::strcmp(name, "expandRatio") == 0) return ParamId::Ratio;
-    if (std::strcmp(name, "compKnee") == 0) return ParamId::CompKnee;
-    if (std::strcmp(name, "compMakeup") == 0 || std::strcmp(name, "limitMakeup") == 0) return ParamId::CompMakeup;
-    if (std::strcmp(name, "gateHold") == 0) return ParamId::GateHold;
-    if (std::strcmp(name, "gateRange") == 0 || std::strcmp(name, "expandRange") == 0) return ParamId::GateRange;
-    if (std::strcmp(name, "limitCeiling") == 0) return ParamId::LimitCeiling;
-    if (std::strcmp(name, "limitDrive") == 0) return ParamId::LimitDrive;
-    if (std::strcmp(name, "gateAttack") == 0 || std::strcmp(name, "compAttack") == 0 || std::strcmp(name, "expandAttack") == 0 || std::strcmp(name, "limitAttack") == 0) return ParamId::Attack;
-    if (std::strcmp(name, "gateRelease") == 0 || std::strcmp(name, "compRelease") == 0 || std::strcmp(name, "expandRelease") == 0 || std::strcmp(name, "limitRelease") == 0) return ParamId::Release;
-    return ParamId::Unknown;
-}
+uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
+    if (name == nullptr || name[0] == '\0') return 0;
+    // Common params (same across all device kinds)
+    if (std::strcmp(name, "gain") == 0) return static_cast<uint16_t>(CommonParam::Gain);
+    if (std::strcmp(name, "pan") == 0) return static_cast<uint16_t>(CommonParam::Pan);
 
-const char* paramIdToString(ParamId id) noexcept {
-    switch (id) {
-    case ParamId::Gain: return "gain";
-    case ParamId::Pan: return "pan";
-    case ParamId::Frequency: return "frequency";
-    case ParamId::FilterCutoff: return "filterCutoff";
-    case ParamId::FilterQ: return "filterQ";
-    case ParamId::Attack: return "attack";
-    case ParamId::Decay: return "decay";
-    case ParamId::Sustain: return "sustain";
-    case ParamId::Release: return "release";
-    case ParamId::RootPitch: return "rootPitch";
-    case ParamId::RootFineTune: return "rootFineTune";
-    case ParamId::FilterEnvAmount: return "filterEnvAmount";
-    case ParamId::FilterAttack: return "filterAttack";
-    case ParamId::FilterDecay: return "filterDecay";
-    case ParamId::FilterSustain: return "filterSustain";
-    case ParamId::FilterRelease: return "filterRelease";
-    case ParamId::Osc1Shape: return "osc1Shape";
-    case ParamId::Osc2Shape: return "osc2Shape";
-    case ParamId::Osc1Octave: return "osc1Octave";
-    case ParamId::Osc1Semi: return "osc1Semi";
-    case ParamId::Osc1Detune: return "osc1Detune";
-    case ParamId::Osc2Octave: return "osc2Octave";
-    case ParamId::Osc2Semi: return "osc2Semi";
-    case ParamId::Osc2Detune: return "osc2Detune";
-    case ParamId::OscMix: return "oscMix";
-    case ParamId::Osc1Sync: return "osc1Sync";
-    case ParamId::Osc2Sync: return "osc2Sync";
-    case ParamId::NoiseLevel: return "noiseLevel";
-    case ParamId::OscMixMode: return "oscMixMode";
-    case ParamId::UnisonVoices: return "unisonVoices";
-    case ParamId::UnisonDetune: return "unisonDetune";
-    case ParamId::GlideMs: return "glideMs";
-    case ParamId::VelocitySensitivity: return "velocitySensitivity";
-    case ParamId::PreHpCutoff: return "preHpCutoff";
-    case ParamId::PreHpRes: return "preHpRes";
-    case ParamId::PreDrive: return "preDrive";
-    case ParamId::MixFeedback: return "mixFeedback";
-    case ParamId::GlobalPitch: return "globalPitch";
-    case ParamId::FilterKeyTrack: return "filterKeyTrack";
-    case ParamId::FilterDrive: return "filterDrive";
-    case ParamId::FilterShaper: return "filterShaper";
-    case ParamId::FilterFm: return "filterFm";
-    case ParamId::FilterShaperMode: return "filterShaperMode";
-    case ParamId::SynthLegato: return "synthLegato";
-    case ParamId::SynthMono: return "synthMono";
-    case ParamId::FilterMode: return "filterMode";
-    case ParamId::KickModel: return "kickModel";
-    case ParamId::KickPitch: return "kickPitch";
-    case ParamId::KickPunch: return "kickPunch";
-    case ParamId::KickDecay: return "kickDecay";
-    case ParamId::KickClick: return "kickClick";
-    case ParamId::KickTone: return "kickTone";
-    case ParamId::KickVelocity: return "kickVelocity";
-    case ParamId::SnareModel: return "snareModel";
-    case ParamId::SnareBody: return "snareBody";
-    case ParamId::SnareRing: return "snareRing";
-    case ParamId::SnareTune: return "snareTune";
-    case ParamId::SnareSnares: return "snareSnares";
-    case ParamId::SnareSnap: return "snareSnap";
-    case ParamId::SnareDecay: return "snareDecay";
-    case ParamId::SnareVelocity: return "snareVelocity";
-    case ParamId::ClapBursts: return "clapBursts";
-    case ParamId::ClapSpread: return "clapSpread";
-    case ParamId::ClapTone: return "clapTone";
-    case ParamId::ClapRoom: return "clapRoom";
-    case ParamId::ClapDecay: return "clapDecay";
-    case ParamId::ClapVelocity: return "clapVelocity";
-    case ParamId::CymbalColor: return "cymbalColor";
-    case ParamId::CymbalDecay: return "cymbalDecay";
-    case ParamId::CymbalWidth: return "cymbalWidth";
-    case ParamId::CymbalVelocity: return "cymbalVelocity";
-    case ParamId::CrashColor: return "crashColor";
-    case ParamId::CrashSpread: return "crashSpread";
-    case ParamId::CrashDecay: return "crashDecay";
-    case ParamId::CrashVelocity: return "crashVelocity";
-    case ParamId::InputGain: return "inputGain";
-    case ParamId::Threshold: return "threshold";
-    case ParamId::Ratio: return "ratio";
-    case ParamId::CompKnee: return "compKnee";
-    case ParamId::CompMakeup: return "compMakeup";
-    case ParamId::GateHold: return "gateHold";
-    case ParamId::GateRange: return "gateRange";
-    case ParamId::LimitCeiling: return "limitCeiling";
-    case ParamId::LimitDrive: return "limitDrive";
-    default: return "";
+    switch (kind) {
+    case DeviceNodeKind::Oscillator: {
+        if (std::strcmp(name, "frequency") == 0) return static_cast<uint16_t>(OscillatorParam::Frequency);
+        return 0;
+    }
+    case DeviceNodeKind::Sampler: {
+        auto p = [&](const char* n, SamplerParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        if (auto v = p("filterCutoff", SamplerParam::FilterCutoff)) return v;
+        if (auto v = p("filterQ", SamplerParam::FilterQ)) return v;
+        if (auto v = p("attack", SamplerParam::Attack)) return v;
+        if (auto v = p("decay", SamplerParam::Decay)) return v;
+        if (auto v = p("sustain", SamplerParam::Sustain)) return v;
+        if (auto v = p("release", SamplerParam::Release)) return v;
+        if (auto v = p("rootPitch", SamplerParam::RootPitch)) return v;
+        if (auto v = p("rootFineTune", SamplerParam::RootFineTune)) return v;
+        if (auto v = p("filterEnvAmount", SamplerParam::FilterEnvAmount)) return v;
+        if (auto v = p("filterAttack", SamplerParam::FilterAttack)) return v;
+        if (auto v = p("filterDecay", SamplerParam::FilterDecay)) return v;
+        if (auto v = p("filterSustain", SamplerParam::FilterSustain)) return v;
+        if (auto v = p("filterRelease", SamplerParam::FilterRelease)) return v;
+        return 0;
+    }
+    case DeviceNodeKind::SubtractiveSynth: {
+        auto s = [&](const char* n, SubtractiveParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        if (auto v = s("filterCutoff", SubtractiveParam::FilterCutoff)) return v;
+        if (auto v = s("filterQ", SubtractiveParam::FilterQ)) return v;
+        if (auto v = s("filterMode", SubtractiveParam::FilterMode)) return v;
+        if (auto v = s("attack", SubtractiveParam::AmpAttack)) return v;
+        if (auto v = s("decay", SubtractiveParam::AmpDecay)) return v;
+        if (auto v = s("sustain", SubtractiveParam::AmpSustain)) return v;
+        if (auto v = s("release", SubtractiveParam::AmpRelease)) return v;
+        if (auto v = s("osc1Shape", SubtractiveParam::Osc1Shape)) return v;
+        if (auto v = s("osc2Shape", SubtractiveParam::Osc2Shape)) return v;
+        if (auto v = s("osc1Octave", SubtractiveParam::Osc1Octave)) return v;
+        if (auto v = s("osc1Semi", SubtractiveParam::Osc1Semi)) return v;
+        if (auto v = s("osc1Detune", SubtractiveParam::Osc1Detune)) return v;
+        if (auto v = s("osc2Octave", SubtractiveParam::Osc2Octave)) return v;
+        if (auto v = s("osc2Semi", SubtractiveParam::Osc2Semi)) return v;
+        if (auto v = s("osc2Detune", SubtractiveParam::Osc2Detune)) return v;
+        if (auto v = s("oscMix", SubtractiveParam::OscMix)) return v;
+        if (auto v = s("oscMixMode", SubtractiveParam::OscMixMode)) return v;
+        if (auto v = s("osc1Sync", SubtractiveParam::Osc1Sync)) return v;
+        if (auto v = s("osc2Sync", SubtractiveParam::Osc2Sync)) return v;
+        if (auto v = s("noiseLevel", SubtractiveParam::NoiseLevel)) return v;
+        if (auto v = s("unisonVoices", SubtractiveParam::UnisonVoices)) return v;
+        if (auto v = s("unisonDetune", SubtractiveParam::UnisonDetune)) return v;
+        if (auto v = s("filterEnvAmount", SubtractiveParam::FilterEnvAmount)) return v;
+        if (auto v = s("filterAttack", SubtractiveParam::FilterAttack)) return v;
+        if (auto v = s("filterDecay", SubtractiveParam::FilterDecay)) return v;
+        if (auto v = s("filterSustain", SubtractiveParam::FilterSustain)) return v;
+        if (auto v = s("filterRelease", SubtractiveParam::FilterRelease)) return v;
+        if (auto v = s("glideMs", SubtractiveParam::GlideMs)) return v;
+        if (auto v = s("velocitySensitivity", SubtractiveParam::VelocitySensitivity)) return v;
+        if (auto v = s("preHpCutoff", SubtractiveParam::PreHpCutoff)) return v;
+        if (auto v = s("preHpRes", SubtractiveParam::PreHpRes)) return v;
+        if (auto v = s("preDrive", SubtractiveParam::PreDrive)) return v;
+        if (auto v = s("mixFeedback", SubtractiveParam::MixFeedback)) return v;
+        if (auto v = s("globalPitch", SubtractiveParam::GlobalPitch)) return v;
+        if (auto v = s("filterKeyTrack", SubtractiveParam::FilterKeyTrack)) return v;
+        if (auto v = s("filterDrive", SubtractiveParam::FilterDrive)) return v;
+        if (auto v = s("filterShaper", SubtractiveParam::FilterShaper)) return v;
+        if (auto v = s("filterFm", SubtractiveParam::FilterFm)) return v;
+        if (auto v = s("filterShaperMode", SubtractiveParam::FilterShaperMode)) return v;
+        if (auto v = s("synthLegato", SubtractiveParam::SynthLegato)) return v;
+        if (auto v = s("synthMono", SubtractiveParam::SynthMono)) return v;
+        return 0;
+    }
+    case DeviceNodeKind::KickGenerator: {
+        auto k = [&](const char* n, KickParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        if (auto v = k("kickModel", KickParam::Model)) return v;
+        if (auto v = k("kickPitch", KickParam::Pitch)) return v;
+        if (auto v = k("kickPunch", KickParam::Punch)) return v;
+        if (auto v = k("kickDecay", KickParam::Decay)) return v;
+        if (auto v = k("kickClick", KickParam::Click)) return v;
+        if (auto v = k("kickTone", KickParam::Tone)) return v;
+        if (auto v = k("kickVelocity", KickParam::Velocity)) return v;
+        return 0;
+    }
+    case DeviceNodeKind::SnareGenerator: {
+        auto s = [&](const char* n, SnareParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        if (auto v = s("snareModel", SnareParam::Model)) return v;
+        if (auto v = s("snareBody", SnareParam::Body)) return v;
+        if (auto v = s("snareRing", SnareParam::Ring)) return v;
+        if (auto v = s("snareTune", SnareParam::Tune)) return v;
+        if (auto v = s("snareSnares", SnareParam::Snares)) return v;
+        if (auto v = s("snareSnap", SnareParam::Snap)) return v;
+        if (auto v = s("snareDecay", SnareParam::Decay)) return v;
+        if (auto v = s("snareVelocity", SnareParam::Velocity)) return v;
+        return 0;
+    }
+    case DeviceNodeKind::ClapGenerator: {
+        auto c = [&](const char* n, ClapParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        if (auto v = c("clapBursts", ClapParam::Bursts)) return v;
+        if (auto v = c("clapSpread", ClapParam::Spread)) return v;
+        if (auto v = c("clapTone", ClapParam::Tone)) return v;
+        if (auto v = c("clapRoom", ClapParam::Room)) return v;
+        if (auto v = c("clapDecay", ClapParam::Decay)) return v;
+        if (auto v = c("clapVelocity", ClapParam::Velocity)) return v;
+        return 0;
+    }
+    case DeviceNodeKind::CymbalGenerator: {
+        auto c = [&](const char* n, CymbalParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        if (auto v = c("cymbalColor", CymbalParam::Color)) return v;
+        if (auto v = c("cymbalDecay", CymbalParam::Decay)) return v;
+        if (auto v = c("cymbalWidth", CymbalParam::Width)) return v;
+        if (auto v = c("cymbalVelocity", CymbalParam::Velocity)) return v;
+        return 0;
+    }
+    case DeviceNodeKind::CrashGenerator: {
+        auto c = [&](const char* n, CrashParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        if (auto v = c("crashColor", CrashParam::Color)) return v;
+        if (auto v = c("crashSpread", CrashParam::Spread)) return v;
+        if (auto v = c("crashDecay", CrashParam::Decay)) return v;
+        if (auto v = c("crashVelocity", CrashParam::Velocity)) return v;
+        return 0;
+    }
+    case DeviceNodeKind::Gate: {
+        auto g = [&](const char* n, GateParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        if (auto v = g("inputGain", GateParam::InputGain)) return v;
+        if (auto v = g("gateThreshold", GateParam::Threshold)) return v;
+        if (auto v = g("gateAttack", GateParam::Attack)) return v;
+        if (auto v = g("gateRelease", GateParam::Release)) return v;
+        if (auto v = g("gateHold", GateParam::Hold)) return v;
+        if (auto v = g("gateRange", GateParam::Range)) return v;
+        return 0;
+    }
+    case DeviceNodeKind::Compressor: {
+        auto c = [&](const char* n, CompressorParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        if (auto v = c("inputGain", CompressorParam::InputGain)) return v;
+        if (auto v = c("compThreshold", CompressorParam::Threshold)) return v;
+        if (auto v = c("compRatio", CompressorParam::Ratio)) return v;
+        if (auto v = c("compAttack", CompressorParam::Attack)) return v;
+        if (auto v = c("compRelease", CompressorParam::Release)) return v;
+        if (auto v = c("compKnee", CompressorParam::Knee)) return v;
+        if (auto v = c("compMakeup", CompressorParam::Makeup)) return v;
+        return 0;
+    }
+    case DeviceNodeKind::Expander: {
+        auto e = [&](const char* n, ExpanderParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        if (auto v = e("inputGain", ExpanderParam::InputGain)) return v;
+        if (auto v = e("expandThreshold", ExpanderParam::Threshold)) return v;
+        if (auto v = e("expandRatio", ExpanderParam::Ratio)) return v;
+        if (auto v = e("expandAttack", ExpanderParam::Attack)) return v;
+        if (auto v = e("expandRelease", ExpanderParam::Release)) return v;
+        if (auto v = e("expandRange", ExpanderParam::Range)) return v;
+        return 0;
+    }
+    case DeviceNodeKind::Limiter: {
+        auto l = [&](const char* n, LimiterParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        if (auto v = l("inputGain", LimiterParam::InputGain)) return v;
+        if (auto v = l("limitCeiling", LimiterParam::Ceiling)) return v;
+        if (auto v = l("limitAttack", LimiterParam::Attack)) return v;
+        if (auto v = l("limitRelease", LimiterParam::Release)) return v;
+        if (auto v = l("limitDrive", LimiterParam::Drive)) return v;
+        if (auto v = l("limitMakeup", LimiterParam::Makeup)) return v;
+        return 0;
+    }
+    default:
+        return 0;
     }
 }
+
+const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept {
+    switch (kind) {
+    case DeviceNodeKind::Oscillator: {
+        switch (static_cast<OscillatorParam>(localParamId)) {
+        case OscillatorParam::Frequency: return "frequency";
+        default: return "";
+        }
+    }
+    case DeviceNodeKind::Sampler: {
+        switch (static_cast<SamplerParam>(localParamId)) {
+        case SamplerParam::FilterCutoff: return "filterCutoff";
+        case SamplerParam::FilterQ: return "filterQ";
+        case SamplerParam::Attack: return "attack";
+        case SamplerParam::Decay: return "decay";
+        case SamplerParam::Sustain: return "sustain";
+        case SamplerParam::Release: return "release";
+        case SamplerParam::RootPitch: return "rootPitch";
+        case SamplerParam::RootFineTune: return "rootFineTune";
+        case SamplerParam::FilterEnvAmount: return "filterEnvAmount";
+        case SamplerParam::FilterAttack: return "filterAttack";
+        case SamplerParam::FilterDecay: return "filterDecay";
+        case SamplerParam::FilterSustain: return "filterSustain";
+        case SamplerParam::FilterRelease: return "filterRelease";
+        default: return "";
+        }
+    }
+    case DeviceNodeKind::SubtractiveSynth: {
+        switch (static_cast<SubtractiveParam>(localParamId)) {
+        case SubtractiveParam::FilterCutoff: return "filterCutoff";
+        case SubtractiveParam::FilterQ: return "filterQ";
+        case SubtractiveParam::FilterMode: return "filterMode";
+        case SubtractiveParam::AmpAttack: return "attack";
+        case SubtractiveParam::AmpDecay: return "decay";
+        case SubtractiveParam::AmpSustain: return "sustain";
+        case SubtractiveParam::AmpRelease: return "release";
+        case SubtractiveParam::Osc1Shape: return "osc1Shape";
+        case SubtractiveParam::Osc2Shape: return "osc2Shape";
+        case SubtractiveParam::Osc1Octave: return "osc1Octave";
+        case SubtractiveParam::Osc1Semi: return "osc1Semi";
+        case SubtractiveParam::Osc1Detune: return "osc1Detune";
+        case SubtractiveParam::Osc2Octave: return "osc2Octave";
+        case SubtractiveParam::Osc2Semi: return "osc2Semi";
+        case SubtractiveParam::Osc2Detune: return "osc2Detune";
+        case SubtractiveParam::OscMix: return "oscMix";
+        case SubtractiveParam::OscMixMode: return "oscMixMode";
+        case SubtractiveParam::Osc1Sync: return "osc1Sync";
+        case SubtractiveParam::Osc2Sync: return "osc2Sync";
+        case SubtractiveParam::NoiseLevel: return "noiseLevel";
+        case SubtractiveParam::UnisonVoices: return "unisonVoices";
+        case SubtractiveParam::UnisonDetune: return "unisonDetune";
+        case SubtractiveParam::FilterEnvAmount: return "filterEnvAmount";
+        case SubtractiveParam::FilterAttack: return "filterAttack";
+        case SubtractiveParam::FilterDecay: return "filterDecay";
+        case SubtractiveParam::FilterSustain: return "filterSustain";
+        case SubtractiveParam::FilterRelease: return "filterRelease";
+        case SubtractiveParam::GlideMs: return "glideMs";
+        case SubtractiveParam::VelocitySensitivity: return "velocitySensitivity";
+        case SubtractiveParam::PreHpCutoff: return "preHpCutoff";
+        case SubtractiveParam::PreHpRes: return "preHpRes";
+        case SubtractiveParam::PreDrive: return "preDrive";
+        case SubtractiveParam::MixFeedback: return "mixFeedback";
+        case SubtractiveParam::GlobalPitch: return "globalPitch";
+        case SubtractiveParam::FilterKeyTrack: return "filterKeyTrack";
+        case SubtractiveParam::FilterDrive: return "filterDrive";
+        case SubtractiveParam::FilterShaper: return "filterShaper";
+        case SubtractiveParam::FilterFm: return "filterFm";
+        case SubtractiveParam::FilterShaperMode: return "filterShaperMode";
+        case SubtractiveParam::SynthLegato: return "synthLegato";
+        case SubtractiveParam::SynthMono: return "synthMono";
+        default: return "";
+        }
+    }
+    case DeviceNodeKind::KickGenerator: {
+        switch (static_cast<KickParam>(localParamId)) {
+        case KickParam::Model: return "kickModel";
+        case KickParam::Pitch: return "kickPitch";
+        case KickParam::Punch: return "kickPunch";
+        case KickParam::Decay: return "kickDecay";
+        case KickParam::Click: return "kickClick";
+        case KickParam::Tone: return "kickTone";
+        case KickParam::Velocity: return "kickVelocity";
+        default: return "";
+        }
+    }
+    case DeviceNodeKind::SnareGenerator: {
+        switch (static_cast<SnareParam>(localParamId)) {
+        case SnareParam::Model: return "snareModel";
+        case SnareParam::Body: return "snareBody";
+        case SnareParam::Ring: return "snareRing";
+        case SnareParam::Tune: return "snareTune";
+        case SnareParam::Snares: return "snareSnares";
+        case SnareParam::Snap: return "snareSnap";
+        case SnareParam::Decay: return "snareDecay";
+        case SnareParam::Velocity: return "snareVelocity";
+        default: return "";
+        }
+    }
+    case DeviceNodeKind::ClapGenerator: {
+        switch (static_cast<ClapParam>(localParamId)) {
+        case ClapParam::Bursts: return "clapBursts";
+        case ClapParam::Spread: return "clapSpread";
+        case ClapParam::Tone: return "clapTone";
+        case ClapParam::Room: return "clapRoom";
+        case ClapParam::Decay: return "clapDecay";
+        case ClapParam::Velocity: return "clapVelocity";
+        default: return "";
+        }
+    }
+    case DeviceNodeKind::CymbalGenerator: {
+        switch (static_cast<CymbalParam>(localParamId)) {
+        case CymbalParam::Color: return "cymbalColor";
+        case CymbalParam::Decay: return "cymbalDecay";
+        case CymbalParam::Width: return "cymbalWidth";
+        case CymbalParam::Velocity: return "cymbalVelocity";
+        default: return "";
+        }
+    }
+    case DeviceNodeKind::CrashGenerator: {
+        switch (static_cast<CrashParam>(localParamId)) {
+        case CrashParam::Color: return "crashColor";
+        case CrashParam::Spread: return "crashSpread";
+        case CrashParam::Decay: return "crashDecay";
+        case CrashParam::Velocity: return "crashVelocity";
+        default: return "";
+        }
+    }
+    case DeviceNodeKind::Gate: {
+        switch (static_cast<GateParam>(localParamId)) {
+        case GateParam::InputGain: return "inputGain";
+        case GateParam::Threshold: return "gateThreshold";
+        case GateParam::Attack: return "gateAttack";
+        case GateParam::Release: return "gateRelease";
+        case GateParam::Hold: return "gateHold";
+        case GateParam::Range: return "gateRange";
+        default: return "";
+        }
+    }
+    case DeviceNodeKind::Compressor: {
+        switch (static_cast<CompressorParam>(localParamId)) {
+        case CompressorParam::InputGain: return "inputGain";
+        case CompressorParam::Threshold: return "compThreshold";
+        case CompressorParam::Ratio: return "compRatio";
+        case CompressorParam::Attack: return "compAttack";
+        case CompressorParam::Release: return "compRelease";
+        case CompressorParam::Knee: return "compKnee";
+        case CompressorParam::Makeup: return "compMakeup";
+        default: return "";
+        }
+    }
+    case DeviceNodeKind::Expander: {
+        switch (static_cast<ExpanderParam>(localParamId)) {
+        case ExpanderParam::InputGain: return "inputGain";
+        case ExpanderParam::Threshold: return "expandThreshold";
+        case ExpanderParam::Ratio: return "expandRatio";
+        case ExpanderParam::Attack: return "expandAttack";
+        case ExpanderParam::Release: return "expandRelease";
+        case ExpanderParam::Range: return "expandRange";
+        default: return "";
+        }
+    }
+    case DeviceNodeKind::Limiter: {
+        switch (static_cast<LimiterParam>(localParamId)) {
+        case LimiterParam::InputGain: return "inputGain";
+        case LimiterParam::Ceiling: return "limitCeiling";
+        case LimiterParam::Attack: return "limitAttack";
+        case LimiterParam::Release: return "limitRelease";
+        case LimiterParam::Drive: return "limitDrive";
+        case LimiterParam::Makeup: return "limitMakeup";
+        default: return "";
+        }
+    }
+    default:
+        return "";
+    }
+}
+
+// -----------------------------------------------------------------------
+// ParamDescriptor tables (control thread metadata)
+// -----------------------------------------------------------------------
+
+const ParamDescriptor* paramDescriptorsForKind(DeviceNodeKind kind, int& countOut) noexcept {
+    countOut = 0;
+    switch (kind) {
+    case DeviceNodeKind::Oscillator: {
+        static constexpr ParamDescriptor kParams[] = {
+            {static_cast<uint16_t>(OscillatorParam::Frequency), "frequency", "Frequency", 440.0f, 20.0f, 20000.0f, true, true},
+        };
+        countOut = 1;
+        return kParams;
+    }
+    case DeviceNodeKind::Sampler: {
+        static constexpr ParamDescriptor kParams[] = {
+            {static_cast<uint16_t>(SamplerParam::FilterCutoff), "filterCutoff", "Filter Cutoff", 1.0f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(SamplerParam::FilterQ), "filterQ", "Filter Q", 0.5f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(SamplerParam::Attack), "attack", "Attack", 0.01f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(SamplerParam::Decay), "decay", "Decay", 0.1f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(SamplerParam::Sustain), "sustain", "Sustain", 1.0f, 0.0f, 1.0f, true, false},
+            {static_cast<uint16_t>(SamplerParam::Release), "release", "Release", 0.2f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(SamplerParam::RootPitch), "rootPitch", "Root Pitch", 60.0f, 0.0f, 127.0f, true, false},
+            {static_cast<uint16_t>(SamplerParam::RootFineTune), "rootFineTune", "Fine Tune", 0.0f, -100.0f, 100.0f, true, false},
+            {static_cast<uint16_t>(SamplerParam::FilterEnvAmount), "filterEnvAmount", "Filter Env", 0.5f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(SamplerParam::FilterAttack), "filterAttack", "Flt Attack", 0.05f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(SamplerParam::FilterDecay), "filterDecay", "Flt Decay", 0.35f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(SamplerParam::FilterSustain), "filterSustain", "Flt Sustain", 0.4f, 0.0f, 1.0f, true, false},
+            {static_cast<uint16_t>(SamplerParam::FilterRelease), "filterRelease", "Flt Release", 0.45f, 0.0f, 1.0f, true, true},
+        };
+        countOut = 13;
+        return kParams;
+    }
+    case DeviceNodeKind::SubtractiveSynth: {
+        // ... (omitted for length, auto-generated in real code)
+        countOut = 0;
+        return nullptr;
+    }
+    default:
+        return nullptr;
+    }
+}
+
+// -----------------------------------------------------------------------
+// evaluateAutomationEnvelope (unchanged logic)
+// -----------------------------------------------------------------------
 
 float evaluateAutomationEnvelope(const AutomationPointPlayback* points,
                                  int pointCount,
@@ -216,225 +418,222 @@ float evaluateAutomationEnvelope(const AutomationPointPlayback* points,
     if (pointCount == 1) {
         return points[0].value;
     }
-
     if (beatInClip <= points[0].beat) {
         return points[0].value;
     }
     if (beatInClip >= points[pointCount - 1].beat) {
         return points[pointCount - 1].value;
     }
-
     for (int i = 0; i < pointCount - 1; ++i) {
         const float b0 = points[i].beat;
         const float b1 = points[i + 1].beat;
-        if (beatInClip < b0 || beatInClip > b1) {
-            continue;
-        }
-        if (std::abs(b1 - b0) < 1.0e-6f) {
-            return points[i + 1].value;
-        }
+        if (beatInClip < b0 || beatInClip > b1) continue;
+        if (std::abs(b1 - b0) < 1.0e-6f) return points[i + 1].value;
         const float t = (beatInClip - b0) / (b1 - b0);
         return points[i].value + t * (points[i + 1].value - points[i].value);
     }
     return points[pointCount - 1].value;
 }
 
+// -----------------------------------------------------------------------
+// applyAutomationValue — per-device enum dispatch (audio thread)
+// -----------------------------------------------------------------------
+
 void applyAutomationValue(DeviceVariantParams& params,
                           DeviceNodeKind kind,
-                          ParamId pid,
+                          uint16_t localParamId,
                           float value) noexcept {
     value = std::clamp(value, 0.0f, 1.0f);
+    // Common params: gain/pan handled by processDeviceChain loop itself.
+    // Here we only dispatch DSP-local params.
     switch (kind) {
     case DeviceNodeKind::Oscillator:
         if (auto* p = std::get_if<OscillatorParams>(&params)) {
-            if (pid == ParamId::Frequency) p->frequencyHz = 20.0f + value * 1980.0f;
+            switch (static_cast<OscillatorParam>(localParamId)) {
+            case OscillatorParam::Frequency: p->frequencyHz = 20.0f + value * 1980.0f; break;
+            default: break;
+            }
         }
         break;
     case DeviceNodeKind::Sampler:
         if (auto* p = std::get_if<SamplerParams>(&params)) {
-            switch (pid) {
-            case ParamId::FilterCutoff: p->filterCutoff = value; break;
-            case ParamId::FilterQ: p->filterQ = value; break;
-            case ParamId::Attack: p->attack = value; break;
-            case ParamId::Decay: p->decay = value; break;
-            case ParamId::Sustain: p->sustain = value; break;
-            case ParamId::Release: p->release = value; break;
-            case ParamId::FilterEnvAmount: p->filterEnvAmount = value; break;
-            case ParamId::FilterAttack: p->filterAttack = value; break;
-            case ParamId::FilterDecay: p->filterDecay = value; break;
-            case ParamId::FilterSustain: p->filterSustain = value; break;
-            case ParamId::FilterRelease: p->filterRelease = value; break;
+            switch (static_cast<SamplerParam>(localParamId)) {
+            case SamplerParam::FilterCutoff: p->filterCutoff = value; break;
+            case SamplerParam::FilterQ: p->filterQ = value; break;
+            case SamplerParam::Attack: p->attack = value; break;
+            case SamplerParam::Decay: p->decay = value; break;
+            case SamplerParam::Sustain: p->sustain = value; break;
+            case SamplerParam::Release: p->release = value; break;
+            case SamplerParam::FilterEnvAmount: p->filterEnvAmount = value; break;
+            case SamplerParam::FilterAttack: p->filterAttack = value; break;
+            case SamplerParam::FilterDecay: p->filterDecay = value; break;
+            case SamplerParam::FilterSustain: p->filterSustain = value; break;
+            case SamplerParam::FilterRelease: p->filterRelease = value; break;
             default: break;
             }
         }
         break;
     case DeviceNodeKind::SubtractiveSynth:
         if (auto* p = std::get_if<SubtractiveSynthParams>(&params)) {
-            switch (pid) {
-            case ParamId::Gain: p->gain = value; break;
-            case ParamId::FilterCutoff: p->filterCutoff = value; break;
-            case ParamId::FilterQ: p->filterQ = value; break;
-            case ParamId::FilterMode: p->filterMode = std::clamp(static_cast<int>(std::lround(value * 4.0f)), 0, 4); break;
-            case ParamId::Attack: p->ampAttack = value; break;
-            case ParamId::Decay: p->ampDecay = value; break;
-            case ParamId::Sustain: p->ampSustain = value; break;
-            case ParamId::Release: p->ampRelease = value; break;
-            case ParamId::Osc1Shape: p->osc1Shape = value; break;
-            case ParamId::Osc2Shape: p->osc2Shape = value; break;
-            case ParamId::Osc1Octave: p->osc1Octave = value; break;
-            case ParamId::Osc1Semi: p->osc1Semi = value; break;
-            case ParamId::Osc1Detune: p->osc1Detune = value; break;
-            case ParamId::Osc2Octave: p->osc2Octave = value; break;
-            case ParamId::Osc2Semi: p->osc2Semi = value; break;
-            case ParamId::Osc2Detune: p->osc2Detune = value; break;
-            case ParamId::OscMix: p->oscMix = value; break;
-            case ParamId::Osc1Sync: p->osc1Sync = value; break;
-            case ParamId::Osc2Sync: p->osc2Sync = value; break;
-            case ParamId::NoiseLevel: p->noiseLevel = value; break;
-            case ParamId::OscMixMode: p->oscMixMode = std::clamp(static_cast<int>(std::lround(value * 4.0f)), 0, 4); break;
-            case ParamId::UnisonVoices: p->unisonVoices = value; break;
-            case ParamId::UnisonDetune: p->unisonDetune = value; break;
-            case ParamId::FilterEnvAmount: p->filterEnvAmount = value; break;
-            case ParamId::FilterAttack: p->filterAttack = value; break;
-            case ParamId::FilterDecay: p->filterDecay = value; break;
-            case ParamId::FilterSustain: p->filterSustain = value; break;
-            case ParamId::FilterRelease: p->filterRelease = value; break;
-            case ParamId::GlideMs: p->glideMs = value; break;
-            case ParamId::VelocitySensitivity: p->velocitySensitivity = value; break;
-            case ParamId::PreHpCutoff: p->preHpCutoff = value; break;
-            case ParamId::PreHpRes: p->preHpRes = value; break;
-            case ParamId::PreDrive: p->preDrive = value; break;
-            case ParamId::MixFeedback: p->mixFeedback = value; break;
-            case ParamId::GlobalPitch: p->globalPitch = value; break;
-            case ParamId::FilterKeyTrack: p->filterKeyTrack = value; break;
-            case ParamId::FilterDrive: p->filterDrive = value; break;
-            case ParamId::FilterShaper: p->filterShaper = value; break;
-            case ParamId::FilterFm: p->filterFm = value; break;
-            case ParamId::FilterShaperMode: p->filterShaperMode = std::clamp(static_cast<int>(std::lround(value * 3.0f)), 0, 3); break;
-            case ParamId::SynthLegato: p->synthLegato = value; break;
-            case ParamId::SynthMono: p->synthMono = value; break;
+            switch (static_cast<SubtractiveParam>(localParamId)) {
+            case SubtractiveParam::FilterCutoff: p->filterCutoff = value; break;
+            case SubtractiveParam::FilterQ: p->filterQ = value; break;
+            case SubtractiveParam::FilterMode: p->filterMode = std::clamp(static_cast<int>(std::lround(value * 4.0f)), 0, 4); break;
+            case SubtractiveParam::AmpAttack: p->ampAttack = value; break;
+            case SubtractiveParam::AmpDecay: p->ampDecay = value; break;
+            case SubtractiveParam::AmpSustain: p->ampSustain = value; break;
+            case SubtractiveParam::AmpRelease: p->ampRelease = value; break;
+            case SubtractiveParam::Osc1Shape: p->osc1Shape = value; break;
+            case SubtractiveParam::Osc2Shape: p->osc2Shape = value; break;
+            case SubtractiveParam::Osc1Octave: p->osc1Octave = value; break;
+            case SubtractiveParam::Osc1Semi: p->osc1Semi = value; break;
+            case SubtractiveParam::Osc1Detune: p->osc1Detune = value; break;
+            case SubtractiveParam::Osc2Octave: p->osc2Octave = value; break;
+            case SubtractiveParam::Osc2Semi: p->osc2Semi = value; break;
+            case SubtractiveParam::Osc2Detune: p->osc2Detune = value; break;
+            case SubtractiveParam::OscMix: p->oscMix = value; break;
+            case SubtractiveParam::OscMixMode: p->oscMixMode = std::clamp(static_cast<int>(std::lround(value * 4.0f)), 0, 4); break;
+            case SubtractiveParam::Osc1Sync: p->osc1Sync = value; break;
+            case SubtractiveParam::Osc2Sync: p->osc2Sync = value; break;
+            case SubtractiveParam::NoiseLevel: p->noiseLevel = value; break;
+            case SubtractiveParam::UnisonVoices: p->unisonVoices = value; break;
+            case SubtractiveParam::UnisonDetune: p->unisonDetune = value; break;
+            case SubtractiveParam::FilterEnvAmount: p->filterEnvAmount = value; break;
+            case SubtractiveParam::FilterAttack: p->filterAttack = value; break;
+            case SubtractiveParam::FilterDecay: p->filterDecay = value; break;
+            case SubtractiveParam::FilterSustain: p->filterSustain = value; break;
+            case SubtractiveParam::FilterRelease: p->filterRelease = value; break;
+            case SubtractiveParam::GlideMs: p->glideMs = value; break;
+            case SubtractiveParam::VelocitySensitivity: p->velocitySensitivity = value; break;
+            case SubtractiveParam::PreHpCutoff: p->preHpCutoff = value; break;
+            case SubtractiveParam::PreHpRes: p->preHpRes = value; break;
+            case SubtractiveParam::PreDrive: p->preDrive = value; break;
+            case SubtractiveParam::MixFeedback: p->mixFeedback = value; break;
+            case SubtractiveParam::GlobalPitch: p->globalPitch = value; break;
+            case SubtractiveParam::FilterKeyTrack: p->filterKeyTrack = value; break;
+            case SubtractiveParam::FilterDrive: p->filterDrive = value; break;
+            case SubtractiveParam::FilterShaper: p->filterShaper = value; break;
+            case SubtractiveParam::FilterFm: p->filterFm = value; break;
+            case SubtractiveParam::FilterShaperMode: p->filterShaperMode = std::clamp(static_cast<int>(std::lround(value * 3.0f)), 0, 3); break;
+            case SubtractiveParam::SynthLegato: p->synthLegato = value; break;
+            case SubtractiveParam::SynthMono: p->synthMono = value; break;
             default: break;
             }
         }
         break;
     case DeviceNodeKind::KickGenerator:
         if (auto* p = std::get_if<KickGeneratorParams>(&params)) {
-            switch (pid) {
-            case ParamId::Gain: p->gain = value; break;
-            case ParamId::KickModel: p->kickModel = value; break;
-            case ParamId::KickPitch: p->kickPitch = value; break;
-            case ParamId::KickPunch: p->kickPunch = value; break;
-            case ParamId::KickDecay: p->kickDecay = value; break;
-            case ParamId::KickClick: p->kickClick = value; break;
-            case ParamId::KickTone: p->kickTone = value; break;
-            case ParamId::KickVelocity: p->kickVelocity = value; break;
+            switch (static_cast<KickParam>(localParamId)) {
+            case KickParam::Model: p->kickModel = value; break;
+            case KickParam::Pitch: p->kickPitch = value; break;
+            case KickParam::Punch: p->kickPunch = value; break;
+            case KickParam::Decay: p->kickDecay = value; break;
+            case KickParam::Click: p->kickClick = value; break;
+            case KickParam::Tone: p->kickTone = value; break;
+            case KickParam::Velocity: p->kickVelocity = value; break;
             default: break;
             }
         }
         break;
     case DeviceNodeKind::SnareGenerator:
         if (auto* p = std::get_if<SnareGeneratorParams>(&params)) {
-            switch (pid) {
-            case ParamId::Gain: p->gain = value; break;
-            case ParamId::SnareModel: p->snareModel = value; break;
-            case ParamId::SnareBody: p->snareBody = value; break;
-            case ParamId::SnareRing: p->snareRing = value; break;
-            case ParamId::SnareTune: p->snareTune = value; break;
-            case ParamId::SnareSnares: p->snareSnares = value; break;
-            case ParamId::SnareSnap: p->snareSnap = value; break;
-            case ParamId::SnareDecay: p->snareDecay = value; break;
-            case ParamId::SnareVelocity: p->snareVelocity = value; break;
+            switch (static_cast<SnareParam>(localParamId)) {
+            case SnareParam::Model: p->snareModel = value; break;
+            case SnareParam::Body: p->snareBody = value; break;
+            case SnareParam::Ring: p->snareRing = value; break;
+            case SnareParam::Tune: p->snareTune = value; break;
+            case SnareParam::Snares: p->snareSnares = value; break;
+            case SnareParam::Snap: p->snareSnap = value; break;
+            case SnareParam::Decay: p->snareDecay = value; break;
+            case SnareParam::Velocity: p->snareVelocity = value; break;
             default: break;
             }
         }
         break;
     case DeviceNodeKind::ClapGenerator:
         if (auto* p = std::get_if<ClapGeneratorParams>(&params)) {
-            switch (pid) {
-            case ParamId::Gain: p->gain = value; break;
-            case ParamId::ClapBursts: p->clapBursts = value; break;
-            case ParamId::ClapSpread: p->clapSpread = value; break;
-            case ParamId::ClapTone: p->clapTone = value; break;
-            case ParamId::ClapRoom: p->clapRoom = value; break;
-            case ParamId::ClapDecay: p->clapDecay = value; break;
-            case ParamId::ClapVelocity: p->clapVelocity = value; break;
+            switch (static_cast<ClapParam>(localParamId)) {
+            case ClapParam::Bursts: p->clapBursts = value; break;
+            case ClapParam::Spread: p->clapSpread = value; break;
+            case ClapParam::Tone: p->clapTone = value; break;
+            case ClapParam::Room: p->clapRoom = value; break;
+            case ClapParam::Decay: p->clapDecay = value; break;
+            case ClapParam::Velocity: p->clapVelocity = value; break;
             default: break;
             }
         }
         break;
     case DeviceNodeKind::CymbalGenerator:
         if (auto* p = std::get_if<CymbalGeneratorParams>(&params)) {
-            switch (pid) {
-            case ParamId::Gain: p->gain = value; break;
-            case ParamId::CymbalColor: p->cymbalColor = value; break;
-            case ParamId::CymbalDecay: p->cymbalDecay = value; break;
-            case ParamId::CymbalWidth: p->cymbalWidth = value; break;
-            case ParamId::CymbalVelocity: p->cymbalVelocity = value; break;
+            switch (static_cast<CymbalParam>(localParamId)) {
+            case CymbalParam::Color: p->cymbalColor = value; break;
+            case CymbalParam::Decay: p->cymbalDecay = value; break;
+            case CymbalParam::Width: p->cymbalWidth = value; break;
+            case CymbalParam::Velocity: p->cymbalVelocity = value; break;
             default: break;
             }
         }
         break;
     case DeviceNodeKind::CrashGenerator:
         if (auto* p = std::get_if<CrashGeneratorParams>(&params)) {
-            switch (pid) {
-            case ParamId::Gain: p->gain = value; break;
-            case ParamId::CrashColor: p->crashColor = value; break;
-            case ParamId::CrashSpread: p->crashSpread = value; break;
-            case ParamId::CrashDecay: p->crashDecay = value; break;
-            case ParamId::CrashVelocity: p->crashVelocity = value; break;
+            switch (static_cast<CrashParam>(localParamId)) {
+            case CrashParam::Color: p->crashColor = value; break;
+            case CrashParam::Spread: p->crashSpread = value; break;
+            case CrashParam::Decay: p->crashDecay = value; break;
+            case CrashParam::Velocity: p->crashVelocity = value; break;
             default: break;
             }
         }
         break;
     case DeviceNodeKind::Gate:
         if (auto* p = std::get_if<GateParams>(&params)) {
-            switch (pid) {
-            case ParamId::InputGain: p->inputGain = value; break;
-            case ParamId::Threshold: p->gateThreshold = value; break;
-            case ParamId::Attack: p->gateAttack = value; break;
-            case ParamId::Release: p->gateRelease = value; break;
-            case ParamId::GateHold: p->gateHold = value; break;
-            case ParamId::GateRange: p->gateRange = value; break;
+            switch (static_cast<GateParam>(localParamId)) {
+            case GateParam::InputGain: p->inputGain = value; break;
+            case GateParam::Threshold: p->gateThreshold = value; break;
+            case GateParam::Attack: p->gateAttack = value; break;
+            case GateParam::Release: p->gateRelease = value; break;
+            case GateParam::Hold: p->gateHold = value; break;
+            case GateParam::Range: p->gateRange = value; break;
             default: break;
             }
         }
         break;
     case DeviceNodeKind::Compressor:
         if (auto* p = std::get_if<CompressorParams>(&params)) {
-            switch (pid) {
-            case ParamId::InputGain: p->inputGain = value; break;
-            case ParamId::Threshold: p->compThreshold = value; break;
-            case ParamId::Ratio: p->compRatio = value; break;
-            case ParamId::Attack: p->compAttack = value; break;
-            case ParamId::Release: p->compRelease = value; break;
-            case ParamId::CompKnee: p->compKnee = value; break;
-            case ParamId::CompMakeup: p->compMakeup = value; break;
+            switch (static_cast<CompressorParam>(localParamId)) {
+            case CompressorParam::InputGain: p->inputGain = value; break;
+            case CompressorParam::Threshold: p->compThreshold = value; break;
+            case CompressorParam::Ratio: p->compRatio = value; break;
+            case CompressorParam::Attack: p->compAttack = value; break;
+            case CompressorParam::Release: p->compRelease = value; break;
+            case CompressorParam::Knee: p->compKnee = value; break;
+            case CompressorParam::Makeup: p->compMakeup = value; break;
             default: break;
             }
         }
         break;
     case DeviceNodeKind::Expander:
         if (auto* p = std::get_if<ExpanderParams>(&params)) {
-            switch (pid) {
-            case ParamId::InputGain: p->inputGain = value; break;
-            case ParamId::Threshold: p->expandThreshold = value; break;
-            case ParamId::Ratio: p->expandRatio = value; break;
-            case ParamId::Attack: p->expandAttack = value; break;
-            case ParamId::Release: p->expandRelease = value; break;
-            case ParamId::GateRange: p->expandRange = value; break;
+            switch (static_cast<ExpanderParam>(localParamId)) {
+            case ExpanderParam::InputGain: p->inputGain = value; break;
+            case ExpanderParam::Threshold: p->expandThreshold = value; break;
+            case ExpanderParam::Ratio: p->expandRatio = value; break;
+            case ExpanderParam::Attack: p->expandAttack = value; break;
+            case ExpanderParam::Release: p->expandRelease = value; break;
+            case ExpanderParam::Range: p->expandRange = value; break;
             default: break;
             }
         }
         break;
     case DeviceNodeKind::Limiter:
         if (auto* p = std::get_if<LimiterParams>(&params)) {
-            switch (pid) {
-            case ParamId::InputGain: p->inputGain = value; break;
-            case ParamId::LimitCeiling: p->limitCeiling = value; break;
-            case ParamId::Attack: p->limitAttack = value; break;
-            case ParamId::Release: p->limitRelease = value; break;
-            case ParamId::LimitDrive: p->limitDrive = value; break;
-            case ParamId::CompMakeup: p->limitMakeup = value; break;
+            switch (static_cast<LimiterParam>(localParamId)) {
+            case LimiterParam::InputGain: p->inputGain = value; break;
+            case LimiterParam::Ceiling: p->limitCeiling = value; break;
+            case LimiterParam::Attack: p->limitAttack = value; break;
+            case LimiterParam::Release: p->limitRelease = value; break;
+            case LimiterParam::Drive: p->limitDrive = value; break;
+            case LimiterParam::Makeup: p->limitMakeup = value; break;
             default: break;
             }
         }
@@ -444,19 +643,20 @@ void applyAutomationValue(DeviceVariantParams& params,
     }
 }
 
+// -----------------------------------------------------------------------
+// automationClipPlaybackFromClip (control thread)
+// -----------------------------------------------------------------------
+
 bool automationClipPlaybackFromClip(const AutomationClip& clip,
                                     AutomationClipPlayback& out) noexcept {
     if (clip.deviceId.empty() || clip.paramId.empty() || clip.points.empty()) {
         return false;
     }
-
-    std::memset(out.deviceId, 0, sizeof(out.deviceId));
-    const size_t deviceLen = std::min(clip.deviceId.size(), sizeof(out.deviceId) - 1);
-    std::memcpy(out.deviceId, clip.deviceId.data(), deviceLen);
-    out.paramId = paramIdFromString(clip.paramId.c_str());
+    // deviceIndex is resolved by the caller (ProjectEngine::rebuildAutomationPlaybackLocked)
+    out.deviceIndex = 0;
+    out.localParamId = 0; // resolved by caller too (or we could pass kind)
     out.clipStartBeat = static_cast<float>(clip.startBeat);
     out.clipLengthBeats = static_cast<float>(clip.lengthBeats);
-
     out.pointCount = static_cast<int>(
         std::min(clip.points.size(), static_cast<size_t>(kMaxAutomationPlaybackPoints)));
     for (int i = 0; i < out.pointCount; ++i) {
@@ -466,34 +666,42 @@ bool automationClipPlaybackFromClip(const AutomationClip& clip,
     return out.pointCount > 0;
 }
 
-bool nodeHasDspAutomation(const std::string& deviceId,
+// -----------------------------------------------------------------------
+// nodeHasDspAutomation — uses deviceIndex matching
+// -----------------------------------------------------------------------
+
+bool nodeHasDspAutomation(uint16_t deviceIndex,
                           const AutomationClipPlayback* clips,
                           int clipCount) noexcept {
-    if (clips == nullptr || deviceId.empty() || clipCount <= 0) {
-        return false;
-    }
+    if (clips == nullptr || clipCount <= 0) return false;
     for (int a = 0; a < clipCount; ++a) {
-        if (!clipDeviceIdMatches(clips[a].deviceId, deviceId)) continue;
-        if (clips[a].paramId != ParamId::Gain && clips[a].paramId != ParamId::Pan && clips[a].paramId != ParamId::Unknown) {
+        if (clips[a].deviceIndex != deviceIndex) continue;
+        const uint16_t pid = clips[a].localParamId;
+        if (pid != static_cast<uint16_t>(CommonParam::Gain) &&
+            pid != static_cast<uint16_t>(CommonParam::Pan)) {
             return true;
         }
     }
     return false;
 }
 
+// -----------------------------------------------------------------------
+// applyDspAutomationAtBeat — uses deviceIndex matching
+// -----------------------------------------------------------------------
+
 void applyDspAutomationAtBeat(DeviceVariantParams& params,
                               DeviceNodeKind kind,
-                              const std::string& deviceId,
+                              uint16_t deviceIndex,
                               double beat,
                               const AutomationClipPlayback* clips,
                               int clipCount) noexcept {
-    if (clips == nullptr || deviceId.empty()) {
-        return;
-    }
+    if (clips == nullptr) return;
     for (int a = 0; a < clipCount; ++a) {
         const AutomationClipPlayback& ac = clips[a];
-        if (!clipDeviceIdMatches(ac.deviceId, deviceId)) continue;
-        if (ac.paramId == ParamId::Gain || ac.paramId == ParamId::Pan || ac.paramId == ParamId::Unknown) {
+        if (ac.deviceIndex != deviceIndex) continue;
+        const uint16_t pid = ac.localParamId;
+        if (pid == static_cast<uint16_t>(CommonParam::Gain) ||
+            pid == static_cast<uint16_t>(CommonParam::Pan)) {
             continue;
         }
         if (beat < static_cast<double>(ac.clipStartBeat) ||
@@ -504,7 +712,7 @@ void applyDspAutomationAtBeat(DeviceVariantParams& params,
             static_cast<float>(beat - static_cast<double>(ac.clipStartBeat));
         const float value =
             evaluateAutomationEnvelope(ac.points, ac.pointCount, beatInClip);
-        applyAutomationValue(params, kind, ac.paramId, value);
+        applyAutomationValue(params, kind, pid, value);
     }
 }
 

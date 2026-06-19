@@ -20,13 +20,7 @@ namespace audioapp {
 
 static constexpr int kMaxInstrumentRegions = 32;
 
-/// Audio-thread playback copy of ModulationEdge (no std::string for paramId).
-struct ModulationEdgePlayback {
-    int lfoId = 0;
-    std::string deviceId;        // still const char* compare on audio thread (baked in)
-    ParamId paramId = ParamId::Unknown;
-    float amount = 0.0f;
-};
+// ModulationEdgePlayback is defined in AutomationTypes.hpp
 
 struct MidiPlaybackNote {
     int pitch = 60;
@@ -55,8 +49,6 @@ enum class DeviceNodeKind : uint8_t {
 };
 
 // --- Per-device DSP-only parameter structs ---
-// These hold parameters specific to each device's processing logic.
-// Universal properties (gain, pan) live on DeviceNodePlayback itself.
 
 struct OscillatorParams {
     float frequencyHz = 440.0f;
@@ -89,9 +81,6 @@ struct SamplerParams {
 
 struct TrackGainParams {};
 
-// SubtractiveSynthParams is defined in SubtractiveSynth.hpp (includes
-// internal voice-level gain, individual oscillator params, filter, etc.)
-
 using DeviceVariantParams = std::variant<
     OscillatorParams,
     SamplerParams,
@@ -113,9 +102,9 @@ struct DeviceNodePlayback {
     DeviceNodeKind kind = DeviceNodeKind::Unknown;
     std::string deviceId;
     bool bypassed = false;
-    float gain = 1.0f;   // universal output gain (every device has one)
-    float pan = 0.5f;    // universal stereo pan
-    int8_t meterSlot = -1; // dynamics meter index for live UI (-1 = none)
+    float gain = 1.0f;
+    float pan = 0.5f;
+    int8_t meterSlot = -1;
     DeviceVariantParams params;
 };
 
@@ -137,6 +126,8 @@ float midiActiveFrequencyHz(const MidiPlaybackNote* notes,
                             float idleFrequencyHz) noexcept;
 
 /// Process track device chain in order.
+/// modulationEdges and automationClips are expected to be pre-filtered per-track
+/// with deviceIndex matching the devices[] array positions.
 void processDeviceChain(float* trackLeft,
                         float* trackRight,
                         int numFrames,

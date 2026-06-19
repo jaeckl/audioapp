@@ -130,7 +130,7 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
                                   SubtractiveSynthRuntime& runtime,
                                   const AutomationClipPlayback* automationClips = nullptr,
                                   int automationClipCount = 0,
-                                  const std::string* automationDeviceId = nullptr) noexcept;
+                                  const uint16_t* automationDeviceIndex = nullptr) noexcept;
 
 void renderSubtractiveLiveVoice(float& mix,
                                 SubtractiveVoiceRuntime& voice,

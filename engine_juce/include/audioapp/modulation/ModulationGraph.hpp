@@ -7,15 +7,12 @@
 #include <string>
 #include <vector>
 
-#include "audioapp/DeviceChain.hpp"
-
 namespace audioapp {
 
-/// Modulators + modulation edge state with audio-thread playback snapshots.
+/// Modulators + modulation edge state.
 class ModulationGraph {
 public:
     static constexpr int kMaxLfos = 16;
-    static constexpr int kMaxModEdges = 64;
 
     struct EnvelopeRuntime {
         float level = 0.0f;
@@ -52,14 +49,8 @@ public:
     int lfoPlaybackCount() const noexcept {
         return lfoPlaybackCount_.load(std::memory_order_acquire);
     }
-    int modEdgePlaybackCount() const noexcept {
-        return modEdgePlaybackCount_.load(std::memory_order_acquire);
-    }
     const LfoPlaybackEntry& lfoPlaybackEntry(int index) const noexcept { return lfoPlayback_[index]; }
     LfoPlaybackEntry& lfoPlaybackEntryMutable(int index) noexcept { return lfoPlayback_[index]; }
-
-    /// Returns playback-modulation-edge data (audio-thread-safe, contains ParamId not strings).
-    const ModulationEdgePlayback* modEdgePlaybackData() const noexcept { return modEdgePlayback_; }
     uint32_t noteRetriggerGeneration() const noexcept {
         return noteRetriggerGeneration_.load(std::memory_order_acquire);
     }
@@ -70,9 +61,7 @@ private:
     int nextLfoId_ = 1;
 
     LfoPlaybackEntry lfoPlayback_[kMaxLfos]{};
-    ModulationEdgePlayback modEdgePlayback_[kMaxModEdges]{};
     std::atomic<int> lfoPlaybackCount_{0};
-    std::atomic<int> modEdgePlaybackCount_{0};
     std::atomic<uint32_t> noteRetriggerGeneration_{0};
 };
 

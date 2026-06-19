@@ -429,13 +429,13 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
                                   SubtractiveSynthRuntime& runtime,
                                   const AutomationClipPlayback* automationClips,
                                   int automationClipCount,
-                                  const std::string* automationDeviceId) noexcept {
+                                  const uint16_t* automationDeviceIndex) noexcept {
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
         return;
     }
 
     const bool useAutomation = automationClips != nullptr && automationClipCount > 0 &&
-                               automationDeviceId != nullptr && !automationDeviceId->empty();
+                               automationDeviceIndex != nullptr;
 
     const float ampReleaseSec = adsrNormalizedToSeconds(params.ampRelease, 3.0f);
     const float ampAttackSec = adsrNormalizedToSeconds(params.ampAttack, 2.0f);
@@ -562,7 +562,7 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
             DeviceVariantParams variant = frameParams;
             applyDspAutomationAtBeat(variant,
                                      DeviceNodeKind::SubtractiveSynth,
-                                     *automationDeviceId,
+                                     *automationDeviceIndex,
                                      beat,
                                      automationClips,
                                      automationClipCount);

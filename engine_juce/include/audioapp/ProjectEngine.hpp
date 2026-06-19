@@ -214,6 +214,10 @@ private:
         CrashGeneratorRuntime crashRuntimes[kMaxDevicesPerTrack];
         DynamicsRuntime dynamicsRuntimes[kMaxDevicesPerTrack];
         float oscillatorPhase = 0.0f;
+        int modEdgeCount = 0;
+        ModulationEdgePlayback modEdges[16];
+        int automationClipCount = 0;
+        AutomationClipPlayback automationClips[16];
     };
 
     static constexpr int kMaxTracks = 8;
@@ -249,8 +253,9 @@ private:
     int deviceMeterSlotCount_ = 0;
 
     static constexpr int kMaxAutomationClips = 32;
-    AutomationClipPlayback automationPlayback_[kMaxAutomationClips]{};
-    std::atomic<int> automationPlaybackCount_{0};
+    // Global automation playback array (per-track resolution happens in rebuildAutomationPlaybackLocked)
+    // Now per-track: see TrackPlaybackSnapshot::automationClips
+    // ModulationEdgePlayback arrays are also per-track: see TrackPlaybackSnapshot::modEdges
 
     void rebuildTrackPlaybackLocked();
     void rebuildAutomationPlaybackLocked();
