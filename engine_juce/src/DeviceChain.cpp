@@ -195,24 +195,20 @@ void applyModulation(ClapGeneratorParams& p, float modAmount, const std::string&
 }
 
 void applyModulation(CymbalGeneratorParams& p, float modAmount, const std::string& paramId) noexcept {
-    if (paramId == "cymbalMetal") {
-        p.cymbalMetal = std::clamp(p.cymbalMetal + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "cymbalBrightness") {
-        p.cymbalBrightness = std::clamp(p.cymbalBrightness + modAmount, 0.0f, 1.0f);
+    if (paramId == "cymbalColor") {
+        p.cymbalColor = std::clamp(p.cymbalColor + modAmount, 0.0f, 1.0f);
     } else if (paramId == "cymbalDecay") {
         p.cymbalDecay = std::clamp(p.cymbalDecay + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "cymbalChoke") {
-        p.cymbalChoke = std::clamp(p.cymbalChoke + modAmount, 0.0f, 1.0f);
+    } else if (paramId == "cymbalWidth") {
+        p.cymbalWidth = std::clamp(p.cymbalWidth + modAmount, 0.0f, 1.0f);
     } else if (paramId == "cymbalVelocity") {
         p.cymbalVelocity = std::clamp(p.cymbalVelocity + modAmount, 0.0f, 1.0f);
     }
 }
 
 void applyModulation(CrashGeneratorParams& p, float modAmount, const std::string& paramId) noexcept {
-    if (paramId == "crashWash") {
-        p.crashWash = std::clamp(p.crashWash + modAmount, 0.0f, 1.0f);
-    } else if (paramId == "crashBright") {
-        p.crashBright = std::clamp(p.crashBright + modAmount, 0.0f, 1.0f);
+    if (paramId == "crashColor") {
+        p.crashColor = std::clamp(p.crashColor + modAmount, 0.0f, 1.0f);
     } else if (paramId == "crashSpread") {
         p.crashSpread = std::clamp(p.crashSpread + modAmount, 0.0f, 1.0f);
     } else if (paramId == "crashDecay") {
@@ -630,13 +626,13 @@ void processDeviceChain(float* trackLeft,
                     }
                     std::memset(scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
                     CymbalGeneratorRuntime localRuntime{};
-                    mixCymbalMidiNotesBlock(scratch, framesToProcess, sampleRate, bpm,
-                                            playheadStartBeat, regions, regionCount, cymbalParams,
-                                            cymbalRuntimes != nullptr ? cymbalRuntimes[deviceIndex]
-                                                                      : localRuntime);
-                    multiplyPerFrameGain(scratch, framesToProcess, perFrameGain);
-                    mixStereoPerFramePan(trackLeft, trackRight, scratch,
-                                         framesToProcess, perFramePan);
+                    mixCymbalMidiNotesBlockStereo(trackLeft, trackRight, framesToProcess,
+                                                  sampleRate, bpm, playheadStartBeat,
+                                                  regions, regionCount, cymbalParams,
+                                                  cymbalRuntimes != nullptr
+                                                      ? cymbalRuntimes[deviceIndex]
+                                                      : localRuntime,
+                                                  perFrameGain);
                 }
             }
             break;
@@ -658,13 +654,13 @@ void processDeviceChain(float* trackLeft,
                     }
                     std::memset(scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
                     CrashGeneratorRuntime localRuntime{};
-                    mixCrashMidiNotesBlock(scratch, framesToProcess, sampleRate, bpm,
-                                           playheadStartBeat, regions, regionCount, crashParams,
-                                           crashRuntimes != nullptr ? crashRuntimes[deviceIndex]
-                                                                    : localRuntime);
-                    multiplyPerFrameGain(scratch, framesToProcess, perFrameGain);
-                    mixStereoPerFramePan(trackLeft, trackRight, scratch,
-                                         framesToProcess, perFramePan);
+                    mixCrashMidiNotesBlockStereo(trackLeft, trackRight, framesToProcess,
+                                                 sampleRate, bpm, playheadStartBeat,
+                                                 regions, regionCount, crashParams,
+                                                 crashRuntimes != nullptr
+                                                     ? crashRuntimes[deviceIndex]
+                                                     : localRuntime,
+                                                 perFrameGain);
                 }
             }
             break;

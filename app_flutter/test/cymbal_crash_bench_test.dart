@@ -60,11 +60,11 @@ void main() {
         ),
       ),
     );
-    expect(find.text('Metal'), findsOneWidget);
+    expect(find.text('Color'), findsOneWidget);
     expect(find.text('Closed'), findsOneWidget);
   });
 
-  testWidgets('crash bench shows wash and bright knobs', (tester) async {
+  testWidgets('crash bench shows color and spread knobs', (tester) async {
     expect(DeviceStripMetrics.designWidthFor('crash_generator'),
         DeviceStripMetrics.kickDesignWidth);
     await tester.pumpWidget(
@@ -81,7 +81,7 @@ void main() {
         ),
       ),
     );
-    expect(find.text('Wash'), findsOneWidget);
+    expect(find.text('Color'), findsOneWidget);
     expect(find.text('Spread'), findsOneWidget);
     expect(find.text('Classic'), findsOneWidget);
   });

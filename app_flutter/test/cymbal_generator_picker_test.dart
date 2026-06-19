@@ -22,6 +22,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Cymbal Generator'), findsOneWidget);
-    expect(find.text('Metallic noise · hat or crash'), findsOneWidget);
+    expect(find.text('Hi-hat · filtered noise wash'), findsOneWidget);
   });
 }

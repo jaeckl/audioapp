@@ -43,52 +43,57 @@ bool isCrashNoteAudible(const CrashMidiNoteRegion& note,
     return loopedBeat < noteEnd + releaseBeats;
 }
 
-float normalizedToAmpDecaySec(float normalized, float minSec, float maxSec) noexcept {
-    const float clamped = std::clamp(normalized, 0.0f, 1.0f);
-    return minSec + (1.0f - clamped) * (maxSec - minSec);
+/// Crash: 0 = ~0.5s, 1 = ~4s
+float crashDecaySeconds(float decayNorm) noexcept {
+    return 0.45f + std::clamp(decayNorm, 0.0f, 1.0f) * 3.0f;
 }
 
-MetallicNoiseTimbre crashTimbreForModel(int modelIndex,
-                                        const CrashGeneratorParams& params) noexcept {
-    MetallicNoiseTimbre timbre;
-    timbre.metalNorm = params.crashWash;
-    timbre.brightNorm = params.crashBright;
-    timbre.decayNorm = params.crashDecay;
-    timbre.chokeNorm = 0.0f;
-
-    const float spread = std::clamp(params.crashSpread, 0.0f, 1.0f);
+MetallicNoiseTimbre crashTimbre(float colorNorm, float spreadNorm, float decayNorm,
+                                 int modelIndex) noexcept {
+    MetallicNoiseTimbre t{};
+    const float color = std::clamp(colorNorm, 0.0f, 1.0f);
 
     switch (modelIndex) {
     case 1: // Classic
-        timbre.minDecaySec = 0.55f;
-        timbre.maxDecaySec = 2.4f;
-        timbre.hpStartHz = 5200.0f + spread * 2200.0f;
-        timbre.hpEndHz = 500.0f;
-        timbre.sweepTauSec = 0.12f;
-        timbre.washGain = 1.05f;
-        timbre.attackGain = 0.72f;
+        t.decaySec = 0.6f + decayNorm * 3.5f;
+        t.lpSweepTau = 0.42f;
+        t.thwackDecaySec = 0.018f;
         break;
     case 2: // Dark
-        timbre.minDecaySec = 0.75f;
-        timbre.maxDecaySec = 3.0f;
-        timbre.hpStartHz = 3200.0f + spread * 1200.0f;
-        timbre.hpEndHz = 320.0f;
-        timbre.sweepTauSec = 0.18f;
-        timbre.washGain = 0.92f;
-        timbre.attackGain = 0.55f;
+        t.decaySec = 0.7f + decayNorm * 4.0f;
+        t.lpSweepTau = 0.52f;
+        t.thwackDecaySec = 0.020f;
         break;
     case 0:
     default: // Bright
-        timbre.minDecaySec = 0.45f;
-        timbre.maxDecaySec = 2.0f;
-        timbre.hpStartHz = 7600.0f + spread * 2800.0f;
-        timbre.hpEndHz = 900.0f;
-        timbre.sweepTauSec = 0.08f;
-        timbre.washGain = 1.15f;
-        timbre.attackGain = 0.85f;
+        t.decaySec = 0.5f + decayNorm * 3.0f;
+        t.lpSweepTau = 0.36f;
+        t.thwackDecaySec = 0.018f;
         break;
     }
-    return timbre;
+
+    t.bodyAmount = 0.05f * (1.0f - color);
+    t.bodyHz = 320.0f;
+    t.bodyQ = 1.0f;
+    t.midWashHz = 1600.0f + color * 1400.0f;
+    t.midWashQ = 0.58f;
+    t.midWashAmount = 0.26f + color * 0.22f;
+    t.resMinHz = 550.0f;
+    t.resMaxHz = 15000.0f;
+    t.resQ = 0.42f + color * 0.32f;
+    t.resMix = 0.10f + color * 0.18f;
+    t.resExciteRaw = 0.58f;
+    t.lpSweepStartHz = 5500.0f + color * 12000.0f;
+    t.lpSweepEndHz = 400.0f + color * 450.0f;
+    t.hpShimmerHz = 3200.0f + color * 4800.0f;
+    t.hpShimmerAmount = 0.14f + color * 0.32f;
+    t.driverMix = 0.36f + color * 0.24f;
+    t.crashNoiseMix = 0.10f + color * 0.18f;
+    t.thwackAmount = 0.10f + color * 0.12f;
+
+    t.widthAmount = std::clamp(spreadNorm, 0.0f, 1.0f);
+    t.widthDetuneCents = 8.0f + spreadNorm * 14.0f;
+    return t;
 }
 
 } // namespace
@@ -101,30 +106,65 @@ void triggerCrashVoice(CrashVoiceRuntime& voice, int pitch, float velocity) noex
     triggerMetallicNoiseVoice(voice, pitch, velocity);
 }
 
-float crashGeneratorSample(CrashVoiceRuntime& voice,
-                           const CrashGeneratorParams& params,
-                           double sampleRate,
-                           float velocityGain) noexcept {
-    const auto timbre = crashTimbreForModel(crashModelIndex(params.crashModel), params);
-    return metallicNoiseSample(voice, timbre, sampleRate, velocityGain,
-                               params.gain * kInstrumentOutputGain);
+float crashGeneratorSampleL(CrashVoiceRuntime& voice,
+                             const CrashGeneratorParams& params,
+                             double sampleRate,
+                             float velocityGain) noexcept {
+    if (voice.active == 0 || sampleRate <= 0.0) {
+        return 0.0f;
+    }
+
+    const float colorNorm = std::clamp(params.crashColor, 0.0f, 1.0f);
+    const float spreadNorm = std::clamp(params.crashSpread, 0.0f, 1.0f);
+    const float decayNorm = std::clamp(params.crashDecay, 0.0f, 1.0f);
+    const int modelIdx = crashModelIndex(params.crashModel);
+
+    auto timbre = crashTimbre(colorNorm, spreadNorm, decayNorm, modelIdx);
+
+    updateResonatorBank(voice, timbre, colorNorm, spreadNorm, static_cast<float>(sampleRate));
+
+    return metallicNoiseSampleL(voice, timbre, sampleRate, velocityGain,
+                                params.gain * kInstrumentOutputGain);
 }
 
-void mixCrashMidiNotesBlock(float* monoOut,
-                            int numFrames,
-                            double sampleRate,
-                            int bpm,
-                            double playheadStartBeat,
-                            const CrashMidiNoteRegion* notes,
-                            int noteCount,
-                            const CrashGeneratorParams& params,
-                            CrashGeneratorRuntime& runtime) noexcept {
-    if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
+float crashGeneratorSampleR(CrashVoiceRuntime& voice,
+                             const CrashGeneratorParams& params,
+                             double sampleRate,
+                             float velocityGain) noexcept {
+    if (voice.active == 0 || sampleRate <= 0.0) {
+        return 0.0f;
+    }
+
+    const float colorNorm = std::clamp(params.crashColor, 0.0f, 1.0f);
+    const float spreadNorm = std::clamp(params.crashSpread, 0.0f, 1.0f);
+    const float decayNorm = std::clamp(params.crashDecay, 0.0f, 1.0f);
+    const int modelIdx = crashModelIndex(params.crashModel);
+
+    auto timbre = crashTimbre(colorNorm, spreadNorm, decayNorm, modelIdx);
+
+    updateResonatorBank(voice, timbre, colorNorm, spreadNorm, static_cast<float>(sampleRate));
+
+    return metallicNoiseSampleR(voice, timbre, sampleRate, velocityGain,
+                                params.gain * kInstrumentOutputGain);
+}
+
+void mixCrashMidiNotesBlockStereo(float* trackLeftOut,
+                                   float* trackRightOut,
+                                   int numFrames,
+                                   double sampleRate,
+                                   int bpm,
+                                   double playheadStartBeat,
+                                   const CrashMidiNoteRegion* notes,
+                                   int noteCount,
+                                   const CrashGeneratorParams& params,
+                                   CrashGeneratorRuntime& runtime,
+                                   const float* perFrameGain) noexcept {
+    if (trackLeftOut == nullptr || trackRightOut == nullptr ||
+        numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
         return;
     }
 
-    const float releaseSec =
-        normalizedToAmpDecaySec(params.crashDecay, 0.45f, 3.0f) + 0.15f;
+    const float releaseSec = crashDecaySeconds(params.crashDecay) + 0.15f;
 
     for (int frame = 0; frame < numFrames; ++frame) {
         const double beat = beatAtFrame(playheadStartBeat, frame, sampleRate, bpm);
@@ -138,13 +178,12 @@ void mixCrashMidiNotesBlock(float* monoOut,
             const auto& note = notes[noteIndex];
             double elapsedSeconds = 0.0;
             bool inRelease = false;
-            if (!isCrashNoteAudible(note, beat, bpm, releaseSec, elapsedSeconds, inRelease)) {
-                continue;
+            if (isCrashNoteAudible(note, beat, bpm, releaseSec, elapsedSeconds, inRelease)) {
+                activeNoteKey = note.noteKey;
+                activePitch = note.pitch;
+                activeVelocity = note.velocity;
+                activeElapsed = elapsedSeconds;
             }
-            activeNoteKey = note.noteKey;
-            activePitch = note.pitch;
-            activeVelocity = note.velocity;
-            activeElapsed = elapsedSeconds;
         }
 
         if (activeNoteKey < 0) {
@@ -161,7 +200,12 @@ void mixCrashMidiNotesBlock(float* monoOut,
 
         const float vel = std::clamp(runtime.voice.velocity / 127.0f, 0.0f, 1.0f);
         const float velGain = 1.0f - params.crashVelocity * (1.0f - vel);
-        monoOut[frame] += crashGeneratorSample(runtime.voice, params, sampleRate, velGain);
+        const float gain = perFrameGain != nullptr ? perFrameGain[frame] : 1.0f;
+
+        trackLeftOut[frame] +=
+            crashGeneratorSampleL(runtime.voice, params, sampleRate, velGain) * gain;
+        trackRightOut[frame] +=
+            crashGeneratorSampleR(runtime.voice, params, sampleRate, velGain) * gain;
     }
 }
 

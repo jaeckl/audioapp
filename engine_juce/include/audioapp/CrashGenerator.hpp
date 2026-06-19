@@ -9,10 +9,9 @@ namespace audioapp {
 struct CrashGeneratorParams {
     float gain = 1.0f;
     float crashModel = 0.0f;
-    float crashWash = 0.60f;
-    float crashBright = 0.65f;
-    float crashSpread = 0.50f;
-    float crashDecay = 0.55f;
+    float crashColor = 0.62f;       // wash + brightness: 0=dark, 1=bright/explosive
+    float crashSpread = 0.50f;     // stereo width
+    float crashDecay = 0.55f;      // 0=short, 1=long
     float crashVelocity = 1.0f;
 };
 
@@ -37,19 +36,27 @@ int crashModelIndex(float crashModel) noexcept;
 
 void triggerCrashVoice(CrashVoiceRuntime& voice, int pitch, float velocity) noexcept;
 
-float crashGeneratorSample(CrashVoiceRuntime& voice,
-                           const CrashGeneratorParams& params,
-                           double sampleRate,
-                           float velocityGain) noexcept;
-
-void mixCrashMidiNotesBlock(float* monoOut,
-                            int numFrames,
-                            double sampleRate,
-                            int bpm,
-                            double playheadStartBeat,
-                            const CrashMidiNoteRegion* notes,
-                            int noteCount,
+float crashGeneratorSampleL(CrashVoiceRuntime& voice,
                             const CrashGeneratorParams& params,
-                            CrashGeneratorRuntime& runtime) noexcept;
+                            double sampleRate,
+                            float velocityGain) noexcept;
+
+float crashGeneratorSampleR(CrashVoiceRuntime& voice,
+                            const CrashGeneratorParams& params,
+                            double sampleRate,
+                            float velocityGain) noexcept;
+
+/// Mix crash into stereo output.
+void mixCrashMidiNotesBlockStereo(float* trackLeftOut,
+                                  float* trackRightOut,
+                                  int numFrames,
+                                  double sampleRate,
+                                  int bpm,
+                                  double playheadStartBeat,
+                                  const CrashMidiNoteRegion* notes,
+                                  int noteCount,
+                                  const CrashGeneratorParams& params,
+                                  CrashGeneratorRuntime& runtime,
+                                  const float* perFrameGain) noexcept;
 
 } // namespace audioapp

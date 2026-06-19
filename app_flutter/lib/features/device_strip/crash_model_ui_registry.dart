@@ -18,15 +18,9 @@ class CrashKnobSpec {
 abstract final class CrashModelUiRegistry {
   static const _brightKnobs = <CrashKnobSpec>[
     CrashKnobSpec(
-      paramId: 'crashWash',
-      label: 'Wash',
-      value: _wash,
-      format: _percent,
-    ),
-    CrashKnobSpec(
-      paramId: 'crashBright',
-      label: 'Bright',
-      value: _bright,
+      paramId: 'crashColor',
+      label: 'Color',
+      value: _color,
       format: _percent,
     ),
     CrashKnobSpec(
@@ -45,8 +39,7 @@ abstract final class CrashModelUiRegistry {
 
   static List<CrashKnobSpec> knobsForModelIndex(int modelIndex) => _brightKnobs;
 
-  static double _wash(DeviceSnapshot d) => d.crashWash;
-  static double _bright(DeviceSnapshot d) => d.crashBright;
+  static double _color(DeviceSnapshot d) => d.crashColor;
   static double _spread(DeviceSnapshot d) => d.crashSpread;
   static double _decay(DeviceSnapshot d) => d.crashDecay;
 
@@ -54,6 +47,6 @@ abstract final class CrashModelUiRegistry {
 }
 
 String crashDecayLabel(double norm) {
-  final sec = 0.45 + (1 - norm.clamp(0.0, 1.0)) * 2.55;
+  final sec = 0.45 + norm.clamp(0.0, 1.0) * 3.0;
   return sec >= 1.0 ? '${sec.toStringAsFixed(1)}s' : '${(sec * 1000).round()}ms';
 }

@@ -204,14 +204,12 @@ void applyAutomationValue(DeviceVariantParams& params,
         if (auto* p = std::get_if<CymbalGeneratorParams>(&params)) {
             if (paramId == "gain") {
                 p->gain = value;
-            } else if (paramId == "cymbalMetal") {
-                p->cymbalMetal = value;
-            } else if (paramId == "cymbalBrightness") {
-                p->cymbalBrightness = value;
+            } else if (paramId == "cymbalColor") {
+                p->cymbalColor = value;
             } else if (paramId == "cymbalDecay") {
                 p->cymbalDecay = value;
-            } else if (paramId == "cymbalChoke") {
-                p->cymbalChoke = value;
+            } else if (paramId == "cymbalWidth") {
+                p->cymbalWidth = value;
             } else if (paramId == "cymbalVelocity") {
                 p->cymbalVelocity = value;
             }
@@ -221,10 +219,8 @@ void applyAutomationValue(DeviceVariantParams& params,
         if (auto* p = std::get_if<CrashGeneratorParams>(&params)) {
             if (paramId == "gain") {
                 p->gain = value;
-            } else if (paramId == "crashWash") {
-                p->crashWash = value;
-            } else if (paramId == "crashBright") {
-                p->crashBright = value;
+            } else if (paramId == "crashColor") {
+                p->crashColor = value;
             } else if (paramId == "crashSpread") {
                 p->crashSpread = value;
             } else if (paramId == "crashDecay") {

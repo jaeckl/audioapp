@@ -6,8 +6,7 @@ namespace audioapp {
 
 struct CrashGeneratorInstance {
     float crashModel = 0.0f;
-    float crashWash = 0.60f;
-    float crashBright = 0.65f;
+    float crashColor = 0.62f;
     float crashSpread = 0.50f;
     float crashDecay = 0.55f;
     float crashVelocity = 1.0f;
@@ -16,8 +15,7 @@ struct CrashGeneratorInstance {
         CrashGeneratorParams params;
         params.gain = gain;
         params.crashModel = crashModel;
-        params.crashWash = crashWash;
-        params.crashBright = crashBright;
+        params.crashColor = crashColor;
         params.crashSpread = crashSpread;
         params.crashDecay = crashDecay;
         params.crashVelocity = crashVelocity;

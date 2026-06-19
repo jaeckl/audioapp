@@ -306,14 +306,12 @@ class DeviceSnapshot {
     this.clapDecay = 0.50,
     this.clapVelocity = 1.0,
     this.cymbalModel = 0.0,
-    this.cymbalMetal = 0.55,
-    this.cymbalBrightness = 0.60,
+    this.cymbalColor = 0.68,
     this.cymbalDecay = 0.50,
-    this.cymbalChoke = 0.0,
     this.cymbalVelocity = 1.0,
+    this.cymbalWidth = 0.35,
     this.crashModel = 0.0,
-    this.crashWash = 0.60,
-    this.crashBright = 0.65,
+    this.crashColor = 0.62,
     this.crashSpread = 0.50,
     this.crashDecay = 0.55,
     this.crashVelocity = 1.0,
@@ -401,14 +399,12 @@ class DeviceSnapshot {
   final double clapDecay;
   final double clapVelocity;
   final double cymbalModel;
-  final double cymbalMetal;
-  final double cymbalBrightness;
+  final double cymbalColor;
   final double cymbalDecay;
-  final double cymbalChoke;
   final double cymbalVelocity;
+  final double cymbalWidth;
   final double crashModel;
-  final double crashWash;
-  final double crashBright;
+  final double crashColor;
   final double crashSpread;
   final double crashDecay;
   final double crashVelocity;
@@ -500,14 +496,12 @@ class DeviceSnapshot {
       clapDecay: (params['clapDecay'] as num?)?.toDouble() ?? 0.50,
       clapVelocity: (params['clapVelocity'] as num?)?.toDouble() ?? 1.0,
       cymbalModel: (params['cymbalModel'] as num?)?.toDouble() ?? 0.0,
-      cymbalMetal: (params['cymbalMetal'] as num?)?.toDouble() ?? 0.55,
-      cymbalBrightness: (params['cymbalBrightness'] as num?)?.toDouble() ?? 0.60,
+      cymbalColor: _readCymbalColor(params),
       cymbalDecay: (params['cymbalDecay'] as num?)?.toDouble() ?? 0.50,
-      cymbalChoke: (params['cymbalChoke'] as num?)?.toDouble() ?? 0.0,
       cymbalVelocity: (params['cymbalVelocity'] as num?)?.toDouble() ?? 1.0,
+      cymbalWidth: (params['cymbalWidth'] as num?)?.toDouble() ?? 0.35,
       crashModel: (params['crashModel'] as num?)?.toDouble() ?? 0.0,
-      crashWash: (params['crashWash'] as num?)?.toDouble() ?? 0.60,
-      crashBright: (params['crashBright'] as num?)?.toDouble() ?? 0.65,
+      crashColor: _readCrashColor(params),
       crashSpread: (params['crashSpread'] as num?)?.toDouble() ?? 0.50,
       crashDecay: (params['crashDecay'] as num?)?.toDouble() ?? 0.55,
       crashVelocity: (params['crashVelocity'] as num?)?.toDouble() ?? 1.0,
@@ -533,6 +527,26 @@ class DeviceSnapshot {
       meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
     );
+  }
+
+  static double _readCymbalColor(Map<dynamic, dynamic> params) {
+    final color = params['cymbalColor'];
+    if (color is num) {
+      return color.toDouble();
+    }
+    final metal = (params['cymbalMetal'] as num?)?.toDouble() ?? 0.55;
+    final bright = (params['cymbalBrightness'] as num?)?.toDouble() ?? 0.60;
+    return (metal + bright) * 0.5;
+  }
+
+  static double _readCrashColor(Map<dynamic, dynamic> params) {
+    final color = params['crashColor'];
+    if (color is num) {
+      return color.toDouble();
+    }
+    final wash = (params['crashWash'] as num?)?.toDouble() ?? 0.60;
+    final bright = (params['crashBright'] as num?)?.toDouble() ?? 0.65;
+    return (wash + bright) * 0.5;
   }
 
   static double _readOscShape(
@@ -633,14 +647,12 @@ class DeviceSnapshot {
     double? clapDecay,
     double? clapVelocity,
     double? cymbalModel,
-    double? cymbalMetal,
-    double? cymbalBrightness,
+    double? cymbalColor,
     double? cymbalDecay,
-    double? cymbalChoke,
     double? cymbalVelocity,
+    double? cymbalWidth,
     double? crashModel,
-    double? crashWash,
-    double? crashBright,
+    double? crashColor,
     double? crashSpread,
     double? crashDecay,
     double? crashVelocity,
@@ -728,14 +740,12 @@ class DeviceSnapshot {
       clapDecay: clapDecay ?? this.clapDecay,
       clapVelocity: clapVelocity ?? this.clapVelocity,
       cymbalModel: cymbalModel ?? this.cymbalModel,
-      cymbalMetal: cymbalMetal ?? this.cymbalMetal,
-      cymbalBrightness: cymbalBrightness ?? this.cymbalBrightness,
+      cymbalColor: cymbalColor ?? this.cymbalColor,
       cymbalDecay: cymbalDecay ?? this.cymbalDecay,
-      cymbalChoke: cymbalChoke ?? this.cymbalChoke,
       cymbalVelocity: cymbalVelocity ?? this.cymbalVelocity,
+      cymbalWidth: cymbalWidth ?? this.cymbalWidth,
       crashModel: crashModel ?? this.crashModel,
-      crashWash: crashWash ?? this.crashWash,
-      crashBright: crashBright ?? this.crashBright,
+      crashColor: crashColor ?? this.crashColor,
       crashSpread: crashSpread ?? this.crashSpread,
       crashDecay: crashDecay ?? this.crashDecay,
       crashVelocity: crashVelocity ?? this.crashVelocity,
@@ -879,22 +889,18 @@ class DeviceSnapshot {
         return copyWith(clapVelocity: value.clamp(0.0, 1.0));
       case 'cymbalModel':
         return copyWith(cymbalModel: value.clamp(0.0, 1.0));
-      case 'cymbalMetal':
-        return copyWith(cymbalMetal: value.clamp(0.0, 1.0));
-      case 'cymbalBrightness':
-        return copyWith(cymbalBrightness: value.clamp(0.0, 1.0));
+      case 'cymbalColor':
+        return copyWith(cymbalColor: value.clamp(0.0, 1.0));
       case 'cymbalDecay':
         return copyWith(cymbalDecay: value.clamp(0.0, 1.0));
-      case 'cymbalChoke':
-        return copyWith(cymbalChoke: value.clamp(0.0, 1.0));
+      case 'cymbalWidth':
+        return copyWith(cymbalWidth: value.clamp(0.0, 1.0));
       case 'cymbalVelocity':
         return copyWith(cymbalVelocity: value.clamp(0.0, 1.0));
       case 'crashModel':
         return copyWith(crashModel: value.clamp(0.0, 1.0));
-      case 'crashWash':
-        return copyWith(crashWash: value.clamp(0.0, 1.0));
-      case 'crashBright':
-        return copyWith(crashBright: value.clamp(0.0, 1.0));
+      case 'crashColor':
+        return copyWith(crashColor: value.clamp(0.0, 1.0));
       case 'crashSpread':
         return copyWith(crashSpread: value.clamp(0.0, 1.0));
       case 'crashDecay':

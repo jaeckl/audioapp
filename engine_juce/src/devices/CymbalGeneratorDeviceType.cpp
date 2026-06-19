@@ -22,20 +22,18 @@ DeviceState stripSnapshot(const DeviceSlot& slot, std::string_view typeId) {
 CymbalGeneratorInstance instanceFromSnapshot(const DeviceState& state) {
     CymbalGeneratorInstance instance;
     instance.cymbalModel = state.cymbalModel;
-    instance.cymbalMetal = state.cymbalMetal;
-    instance.cymbalBrightness = state.cymbalBrightness;
+    instance.cymbalColor = state.cymbalColor;
     instance.cymbalDecay = state.cymbalDecay;
-    instance.cymbalChoke = state.cymbalChoke;
+    instance.cymbalWidth = state.cymbalWidth;
     instance.cymbalVelocity = state.cymbalVelocity;
     return instance;
 }
 
 void applyInstanceToSnapshot(const CymbalGeneratorInstance& instance, DeviceState& state) {
     state.cymbalModel = instance.cymbalModel;
-    state.cymbalMetal = instance.cymbalMetal;
-    state.cymbalBrightness = instance.cymbalBrightness;
+    state.cymbalColor = instance.cymbalColor;
     state.cymbalDecay = instance.cymbalDecay;
-    state.cymbalChoke = instance.cymbalChoke;
+    state.cymbalWidth = instance.cymbalWidth;
     state.cymbalVelocity = instance.cymbalVelocity;
 }
 
@@ -81,14 +79,12 @@ DeviceParameterResult CymbalGeneratorDeviceType::setParameter(DeviceSlot& slot,
     const float clamped = std::clamp(value, 0.0f, 1.0f);
     if (parameterId == "cymbalModel") {
         instance.cymbalModel = clamped;
-    } else if (parameterId == "cymbalMetal") {
-        instance.cymbalMetal = clamped;
-    } else if (parameterId == "cymbalBrightness") {
-        instance.cymbalBrightness = clamped;
+    } else if (parameterId == "cymbalColor") {
+        instance.cymbalColor = clamped;
     } else if (parameterId == "cymbalDecay") {
         instance.cymbalDecay = clamped;
-    } else if (parameterId == "cymbalChoke") {
-        instance.cymbalChoke = clamped;
+    } else if (parameterId == "cymbalWidth") {
+        instance.cymbalWidth = clamped;
     } else if (parameterId == "cymbalVelocity") {
         instance.cymbalVelocity = clamped;
     } else {
@@ -107,8 +103,7 @@ bool CymbalGeneratorDeviceType::setStringParameter(DeviceSlot&,
 }
 
 std::vector<std::string_view> CymbalGeneratorDeviceType::modulatableParams() const {
-    return {"gain", "pan", "cymbalMetal", "cymbalBrightness", "cymbalDecay", "cymbalChoke",
-            "cymbalVelocity"};
+    return {"gain", "pan", "cymbalColor", "cymbalDecay", "cymbalWidth", "cymbalVelocity"};
 }
 
 void CymbalGeneratorDeviceType::buildPlaybackNode(const DeviceSlot& slot,

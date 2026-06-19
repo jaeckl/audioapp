@@ -22,8 +22,7 @@ DeviceState stripSnapshot(const DeviceSlot& slot, std::string_view typeId) {
 CrashGeneratorInstance instanceFromSnapshot(const DeviceState& state) {
     CrashGeneratorInstance instance;
     instance.crashModel = state.crashModel;
-    instance.crashWash = state.crashWash;
-    instance.crashBright = state.crashBright;
+    instance.crashColor = state.crashColor;
     instance.crashSpread = state.crashSpread;
     instance.crashDecay = state.crashDecay;
     instance.crashVelocity = state.crashVelocity;
@@ -32,8 +31,7 @@ CrashGeneratorInstance instanceFromSnapshot(const DeviceState& state) {
 
 void applyInstanceToSnapshot(const CrashGeneratorInstance& instance, DeviceState& state) {
     state.crashModel = instance.crashModel;
-    state.crashWash = instance.crashWash;
-    state.crashBright = instance.crashBright;
+    state.crashColor = instance.crashColor;
     state.crashSpread = instance.crashSpread;
     state.crashDecay = instance.crashDecay;
     state.crashVelocity = instance.crashVelocity;
@@ -81,10 +79,8 @@ DeviceParameterResult CrashGeneratorDeviceType::setParameter(DeviceSlot& slot,
     const float clamped = std::clamp(value, 0.0f, 1.0f);
     if (parameterId == "crashModel") {
         instance.crashModel = clamped;
-    } else if (parameterId == "crashWash") {
-        instance.crashWash = clamped;
-    } else if (parameterId == "crashBright") {
-        instance.crashBright = clamped;
+    } else if (parameterId == "crashColor") {
+        instance.crashColor = clamped;
     } else if (parameterId == "crashSpread") {
         instance.crashSpread = clamped;
     } else if (parameterId == "crashDecay") {
@@ -107,8 +103,7 @@ bool CrashGeneratorDeviceType::setStringParameter(DeviceSlot&,
 }
 
 std::vector<std::string_view> CrashGeneratorDeviceType::modulatableParams() const {
-    return {"gain", "pan", "crashWash", "crashBright", "crashSpread", "crashDecay",
-            "crashVelocity"};
+    return {"gain", "pan", "crashColor", "crashSpread", "crashDecay", "crashVelocity"};
 }
 
 void CrashGeneratorDeviceType::buildPlaybackNode(const DeviceSlot& slot,

@@ -164,16 +164,14 @@ juce::var deviceToVar(const DeviceState& device) {
     }
     if (device.type == "cymbal_generator") {
         parameters->setProperty("cymbalModel", static_cast<double>(device.cymbalModel));
-        parameters->setProperty("cymbalMetal", static_cast<double>(device.cymbalMetal));
-        parameters->setProperty("cymbalBrightness", static_cast<double>(device.cymbalBrightness));
+        parameters->setProperty("cymbalColor", static_cast<double>(device.cymbalColor));
         parameters->setProperty("cymbalDecay", static_cast<double>(device.cymbalDecay));
-        parameters->setProperty("cymbalChoke", static_cast<double>(device.cymbalChoke));
+        parameters->setProperty("cymbalWidth", static_cast<double>(device.cymbalWidth));
         parameters->setProperty("cymbalVelocity", static_cast<double>(device.cymbalVelocity));
     }
     if (device.type == "crash_generator") {
         parameters->setProperty("crashModel", static_cast<double>(device.crashModel));
-        parameters->setProperty("crashWash", static_cast<double>(device.crashWash));
-        parameters->setProperty("crashBright", static_cast<double>(device.crashBright));
+        parameters->setProperty("crashColor", static_cast<double>(device.crashColor));
         parameters->setProperty("crashSpread", static_cast<double>(device.crashSpread));
         parameters->setProperty("crashDecay", static_cast<double>(device.crashDecay));
         parameters->setProperty("crashVelocity", static_cast<double>(device.crashVelocity));
@@ -305,14 +303,24 @@ DeviceState deviceFromVar(const juce::var& value) {
             device.clapDecay = varToFloat(params->getProperty("clapDecay"), 0.50f);
             device.clapVelocity = varToFloat(params->getProperty("clapVelocity"), 1.0f);
             device.cymbalModel = varToFloat(params->getProperty("cymbalModel"), 0.0f);
-            device.cymbalMetal = varToFloat(params->getProperty("cymbalMetal"), 0.55f);
-            device.cymbalBrightness = varToFloat(params->getProperty("cymbalBrightness"), 0.60f);
+            if (params->hasProperty("cymbalColor")) {
+                device.cymbalColor = varToFloat(params->getProperty("cymbalColor"), 0.68f);
+            } else {
+                const float metal = varToFloat(params->getProperty("cymbalMetal"), 0.55f);
+                const float bright = varToFloat(params->getProperty("cymbalBrightness"), 0.60f);
+                device.cymbalColor = (metal + bright) * 0.5f;
+            }
             device.cymbalDecay = varToFloat(params->getProperty("cymbalDecay"), 0.50f);
-            device.cymbalChoke = varToFloat(params->getProperty("cymbalChoke"), 0.0f);
+            device.cymbalWidth = varToFloat(params->getProperty("cymbalWidth"), 0.35f);
             device.cymbalVelocity = varToFloat(params->getProperty("cymbalVelocity"), 1.0f);
             device.crashModel = varToFloat(params->getProperty("crashModel"), 0.0f);
-            device.crashWash = varToFloat(params->getProperty("crashWash"), 0.60f);
-            device.crashBright = varToFloat(params->getProperty("crashBright"), 0.65f);
+            if (params->hasProperty("crashColor")) {
+                device.crashColor = varToFloat(params->getProperty("crashColor"), 0.62f);
+            } else {
+                const float wash = varToFloat(params->getProperty("crashWash"), 0.60f);
+                const float bright = varToFloat(params->getProperty("crashBright"), 0.65f);
+                device.crashColor = (wash + bright) * 0.5f;
+            }
             device.crashSpread = varToFloat(params->getProperty("crashSpread"), 0.50f);
             device.crashDecay = varToFloat(params->getProperty("crashDecay"), 0.55f);
             device.crashVelocity = varToFloat(params->getProperty("crashVelocity"), 1.0f);

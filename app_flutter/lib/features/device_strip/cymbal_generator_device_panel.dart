@@ -58,8 +58,7 @@ class CymbalGeneratorDevicePanel extends StatelessWidget {
                   flex: 2,
                   child: _previewBox(
                     child: CymbalDecayPreview(
-                      metal: device.cymbalMetal,
-                      brightness: device.cymbalBrightness,
+                      color: device.cymbalColor,
                       decay: device.cymbalDecay,
                       accent: accent,
                     ),

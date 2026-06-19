@@ -9,10 +9,9 @@ namespace audioapp {
 struct CymbalGeneratorParams {
     float gain = 1.0f;
     float cymbalModel = 0.0f;
-    float cymbalMetal = 0.55f;
-    float cymbalBrightness = 0.60f;
-    float cymbalDecay = 0.50f;
-    float cymbalChoke = 0.0f;
+    float cymbalColor = 0.68f;      // spectral tilt: 0=dark/warm, 1=bright/icy
+    float cymbalDecay = 0.50f;      // 0=short (closed hat), 1=long (open hat)
+    float cymbalWidth = 0.35f;      // stereo width (0=mono, 1=max)
     float cymbalVelocity = 1.0f;
 };
 
@@ -37,19 +36,28 @@ int cymbalModelIndex(float cymbalModel) noexcept;
 
 void triggerCymbalVoice(CymbalVoiceRuntime& voice, int pitch, float velocity) noexcept;
 
-float cymbalGeneratorSample(CymbalVoiceRuntime& voice,
-                            const CymbalGeneratorParams& params,
-                            double sampleRate,
-                            float velocityGain) noexcept;
-
-void mixCymbalMidiNotesBlock(float* monoOut,
-                             int numFrames,
-                             double sampleRate,
-                             int bpm,
-                             double playheadStartBeat,
-                             const CymbalMidiNoteRegion* notes,
-                             int noteCount,
+/// Returns left sample; caller calls sampleR for right channel.
+float cymbalGeneratorSampleL(CymbalVoiceRuntime& voice,
                              const CymbalGeneratorParams& params,
-                             CymbalGeneratorRuntime& runtime) noexcept;
+                             double sampleRate,
+                             float velocityGain) noexcept;
+
+float cymbalGeneratorSampleR(CymbalVoiceRuntime& voice,
+                             const CymbalGeneratorParams& params,
+                             double sampleRate,
+                             float velocityGain) noexcept;
+
+/// Mix cymbal into stereo output (trackLeft/trackRight are accumulated into).
+void mixCymbalMidiNotesBlockStereo(float* trackLeftOut,
+                                   float* trackRightOut,
+                                   int numFrames,
+                                   double sampleRate,
+                                   int bpm,
+                                   double playheadStartBeat,
+                                   const CymbalMidiNoteRegion* notes,
+                                   int noteCount,
+                                   const CymbalGeneratorParams& params,
+                                   CymbalGeneratorRuntime& runtime,
+                                   const float* perFrameGain) noexcept;
 
 } // namespace audioapp

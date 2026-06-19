@@ -250,7 +250,8 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                 cyv.elapsedSec = elapsedSec;
                 const float vel = std::clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
                 const float velGain = 1.0f - inst.cymbal.cymbalVelocity * (1.0f - vel);
-                mix += cymbalGeneratorSample(cyv, inst.cymbal, sampleRate, velGain);
+                mix += (cymbalGeneratorSampleL(cyv, inst.cymbal, sampleRate, velGain) +
+                        cymbalGeneratorSampleR(cyv, inst.cymbal, sampleRate, velGain)) * 0.5f;
                 if (cyv.active == 0) {
                     voice.active.store(0, std::memory_order_release);
                 }
@@ -270,7 +271,8 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                 crv.elapsedSec = elapsedSec;
                 const float vel = std::clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
                 const float velGain = 1.0f - inst.crash.crashVelocity * (1.0f - vel);
-                mix += crashGeneratorSample(crv, inst.crash, sampleRate, velGain);
+                mix += (crashGeneratorSampleL(crv, inst.crash, sampleRate, velGain) +
+                        crashGeneratorSampleR(crv, inst.crash, sampleRate, velGain)) * 0.5f;
                 if (crv.active == 0) {
                     voice.active.store(0, std::memory_order_release);
                 }

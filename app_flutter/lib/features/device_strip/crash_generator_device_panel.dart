@@ -58,8 +58,7 @@ class CrashGeneratorDevicePanel extends StatelessWidget {
                   flex: 2,
                   child: _previewBox(
                     child: CymbalDecayPreview(
-                      metal: device.crashWash,
-                      brightness: device.crashBright,
+                      color: device.crashColor,
                       decay: device.crashDecay,
                       accent: accent,
                     ),

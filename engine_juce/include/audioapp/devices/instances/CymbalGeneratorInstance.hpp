@@ -6,20 +6,18 @@ namespace audioapp {
 
 struct CymbalGeneratorInstance {
     float cymbalModel = 0.0f;
-    float cymbalMetal = 0.55f;
-    float cymbalBrightness = 0.60f;
+    float cymbalColor = 0.68f;
     float cymbalDecay = 0.50f;
-    float cymbalChoke = 0.0f;
+    float cymbalWidth = 0.35f;
     float cymbalVelocity = 1.0f;
 
     CymbalGeneratorParams toPlaybackParams(float gain) const {
         CymbalGeneratorParams params;
         params.gain = gain;
         params.cymbalModel = cymbalModel;
-        params.cymbalMetal = cymbalMetal;
-        params.cymbalBrightness = cymbalBrightness;
+        params.cymbalColor = cymbalColor;
         params.cymbalDecay = cymbalDecay;
-        params.cymbalChoke = cymbalChoke;
+        params.cymbalWidth = cymbalWidth;
         params.cymbalVelocity = cymbalVelocity;
         return params;
     }
