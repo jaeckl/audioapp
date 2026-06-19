@@ -580,12 +580,21 @@ class _DawShellState extends State<DawShell> with SingleTickerProviderStateMixin
   }
 
   Future<void> _openDeviceLibrary(DeviceSnapshot device) async {
-    if (device.type != 'simple_sampler') return;
-    setState(() {
-      _libraryOpen = true;
-      _libraryCategory = LibraryCategory.audioClips;
-      _librarySamplerDeviceId = device.id;
-    });
+    if (device.type == 'simple_sampler') {
+      setState(() {
+        _libraryOpen = true;
+        _libraryCategory = LibraryCategory.audioClips;
+        _librarySamplerDeviceId = device.id;
+      });
+      return;
+    }
+    if (device.type == 'subtractive_synth') {
+      setState(() {
+        _libraryOpen = true;
+        _libraryCategory = LibraryCategory.devicePresets;
+        _librarySamplerDeviceId = null;
+      });
+    }
   }
 
   void _closeLibrary() {

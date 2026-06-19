@@ -372,7 +372,11 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                   deviceName: DeviceStripTheme.labelForDeviceType(widget.device.type),
                   accentColor: DeviceStripTheme.accentForDeviceType(widget.device.type),
                   bypassed: widget.device.bypassed,
-                  showLibrary: widget.device.type == 'simple_sampler',
+                  showLibrary: widget.device.type == 'simple_sampler' ||
+                      widget.device.type == 'subtractive_synth',
+                  libraryTooltip: widget.device.type == 'subtractive_synth'
+                      ? 'Open preset library'
+                      : 'Open sample library',
                   onBypassToggle: widget.onBypassToggle ?? () {},
                   onLibrary: widget.onOpenLibrary,
                   modActive: _modStripVisible,

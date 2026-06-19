@@ -12,6 +12,7 @@ class DeviceToolRail extends StatelessWidget {
     required this.bypassed,
     required this.showLibrary,
     required this.onBypassToggle,
+    this.libraryTooltip = 'Open sample library',
     this.onLibrary,
     this.modActive = false,
     this.onModToggle,
@@ -22,6 +23,7 @@ class DeviceToolRail extends StatelessWidget {
   final bool bypassed;
   final bool showLibrary;
   final VoidCallback onBypassToggle;
+  final String libraryTooltip;
   final VoidCallback? onLibrary;
   final bool modActive;
   final VoidCallback? onModToggle;
@@ -79,15 +81,20 @@ class DeviceToolRail extends StatelessWidget {
                   if (showLibrary)
                     _ToolRailButton(
                       icon: Icons.library_music_outlined,
-                      tooltip: 'Open sample library',
+                      tooltip: libraryTooltip,
                       enabled: onLibrary != null,
                       onPressed: onLibrary,
                     ),
-                  _ModButton(
-                    active: modActive,
-                    onPressed: onModToggle,
-                  ),
                 ],
+              ),
+            ),
+            Positioned(
+              bottom: 4,
+              left: 0,
+              right: 0,
+              child: _ModButton(
+                active: modActive,
+                onPressed: onModToggle,
               ),
             ),
           ],

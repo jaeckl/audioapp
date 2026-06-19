@@ -25,7 +25,7 @@ class LiveInstrumentPanel extends StatefulWidget {
 }
 
 class _LiveInstrumentPanelState extends State<LiveInstrumentPanel> {
-  final GlobalKey<PlayDeckState> _deckKey = GlobalKey();
+  GlobalKey<PlayDeckState> _deckKey = GlobalKey();
   bool _busy = false;
 
   PlaySurfaceMode? _preferredSurfaceMode;
@@ -40,7 +40,9 @@ class _LiveInstrumentPanelState extends State<LiveInstrumentPanel> {
   void didUpdateWidget(covariant LiveInstrumentPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.snapshot.selectedTrackId != widget.snapshot.selectedTrackId) {
+      _deckKey = GlobalKey();
       _syncModeFromTrack();
+      setState(() {});
     }
   }
 

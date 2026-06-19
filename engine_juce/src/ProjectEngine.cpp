@@ -40,8 +40,12 @@ std::string ProjectEngine::addTrack(const std::string& name) {
 
 bool ProjectEngine::selectTrack(const std::string& trackId) {
     std::lock_guard<std::mutex> lock(mutex_);
+    const bool selectionChanged = trackRepo_.selectedTrackId() != trackId;
     if (!trackRepo_.selectTrack(trackId)) {
         return false;
+    }
+    if (selectionChanged) {
+        liveMixer_.allNotesOff();
     }
     syncActiveFrequencyLocked();
     rebuildTrackPlaybackLocked();
