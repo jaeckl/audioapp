@@ -20,9 +20,19 @@ float highFrequencyEnergy(const std::vector<float>& samples, int start, int coun
 int main() {
     audioapp::EngineHost host;
     host.createProject();
-    const std::string trackId = host.addTrack("Filter");
+    const std::string trackId = host.addTrack("Sampler");
     host.selectTrack(trackId);
-    const std::string synthId = host.addDeviceToTrack(trackId, "subtractive_synth");
+    const std::string samplerId = host.addDeviceToTrack(trackId, "simple_sampler");
+    if (samplerId.empty()) {
+        return EXIT_FAILURE;
+    }
+    if (!host.setDeviceStringParameter(samplerId, "sampleId", "sample_kick")) {
+        return EXIT_FAILURE;
+    }
+    // Isolate automation — no per-note filter envelope modulation.
+    if (!host.setDeviceParameter(samplerId, "filterEnvAmount", 0.0f)) {
+        return EXIT_FAILURE;
+    }
 
     const std::string midiClipId = host.createMidiClip(trackId, 0.0, 4.0);
     if (midiClipId.empty()) {
@@ -38,11 +48,10 @@ int main() {
     if (clipId.empty()) {
         return EXIT_FAILURE;
     }
-    if (!host.assignAutomationTarget(clipId, synthId, "filterCutoff")) {
+    if (!host.assignAutomationTarget(clipId, samplerId, "filterCutoff")) {
         return EXIT_FAILURE;
     }
 
-    // Open filter at start, nearly closed at end — audible brightness drop.
     std::vector<audioapp::AutomationPointState> points;
     points.push_back({0.0, 1.0f});
     points.push_back({4.0, 0.05f});
@@ -56,7 +65,15 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    const int window = 12000;
+    float peak = 0.0f;
+    for (float sample : block) {
+        peak = std::max(peak, std::abs(sample));
+    }
+    if (peak < 1.0e-4f) {
+        return EXIT_FAILURE;
+    }
+
+    const int window = std::min(12000, static_cast<int>(block.size()) / 4);
     const int earlyStart = static_cast<int>(block.size()) / 20;
     const int lateStart = static_cast<int>(block.size() * 3) / 4;
     const float earlyHf = highFrequencyEnergy(block, earlyStart, window);

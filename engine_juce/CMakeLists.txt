@@ -161,4 +161,20 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
   add_executable(device_types_test tests/device_types_test.cpp)
   target_link_libraries(device_types_test PRIVATE audioapp_engine)
   add_test(NAME device_types_test COMMAND device_types_test)
+
+  add_executable(automation_filter_sweep_test tests/automation_filter_sweep_test.cpp)
+  target_link_libraries(automation_filter_sweep_test PRIVATE audioapp_engine)
+  add_test(NAME automation_filter_sweep_test COMMAND automation_filter_sweep_test)
+
+  add_executable(automation_sampler_filter_sweep_test tests/automation_sampler_filter_sweep_test.cpp)
+  target_link_libraries(automation_sampler_filter_sweep_test PRIVATE audioapp_engine)
+  add_test(NAME automation_sampler_filter_sweep_test COMMAND automation_sampler_filter_sweep_test)
+
+  add_executable(automation_clip_test tests/automation_clip_test.cpp)
+  target_link_libraries(automation_clip_test PRIVATE audioapp_engine)
+  add_test(NAME automation_clip_test COMMAND automation_clip_test)
+
+  add_executable(sampler_playback_mode_test tests/sampler_playback_mode_test.cpp)
+  target_link_libraries(sampler_playback_mode_test PRIVATE audioapp_engine)
+  add_test(NAME sampler_playback_mode_test COMMAND sampler_playback_mode_test)
 endif()

@@ -19,6 +19,8 @@ import 'piano_roll_theme.dart';
 
 enum _DragMode { none, move, resize, draw }
 
+enum _PinchZoomAxis { horizontal, vertical }
+
 class PianoRollViewport extends StatefulWidget {
   const PianoRollViewport({
     super.key,
@@ -93,7 +95,9 @@ class PianoRollViewportState extends State<PianoRollViewport> {
   double _lastViewportHeight = 0;
 
   final Map<int, Offset> _canvasPointers = {};
-  double? _pinchStartSpan;
+  double? _pinchStartSpanX;
+  double? _pinchStartSpanY;
+  _PinchZoomAxis? _pinchZoomAxis;
 
   double _pixelsPerBeat = PianoRollMetrics.pixelsPerBeat;
   double _rowHeight = PianoRollMetrics.rowHeight;
@@ -125,6 +129,8 @@ class PianoRollViewportState extends State<PianoRollViewport> {
 
   static const double _tapSlop = 8;
   static const double _drawPaintThreshold = 12;
+  static const double _pinchMinSpan = 8;
+  static const double _pinchAxisRatio = 1.15;
 
   bool get _canvasPinchActive => _canvasPointers.length >= 2;
 
@@ -276,10 +282,26 @@ class PianoRollViewportState extends State<PianoRollViewport> {
     return beats.clamp(minLen, widget.virtualLengthBeats);
   }
 
-  double _canvasPointerSpan() {
+  double _canvasPointerSpanX() {
     final points = _canvasPointers.values.toList(growable: false);
     if (points.length < 2) return 0;
-    return (points[0] - points[1]).distance;
+    return (points[0].dx - points[1].dx).abs();
+  }
+
+  double _canvasPointerSpanY() {
+    final points = _canvasPointers.values.toList(growable: false);
+    if (points.length < 2) return 0;
+    return (points[0].dy - points[1].dy).abs();
+  }
+
+  _PinchZoomAxis _resolvePinchAxis(double spanX, double spanY) {
+    if (spanX >= spanY * _pinchAxisRatio) {
+      return _PinchZoomAxis.horizontal;
+    }
+    if (spanY >= spanX * _pinchAxisRatio) {
+      return _PinchZoomAxis.vertical;
+    }
+    return spanX >= spanY ? _PinchZoomAxis.horizontal : _PinchZoomAxis.vertical;
   }
 
   Offset _canvasFocalPoint() {
@@ -386,7 +408,9 @@ class PianoRollViewportState extends State<PianoRollViewport> {
     _canvasPointers[event.pointer] = _pointerToCanvas(event);
 
     if (_canvasPointers.length == 2) {
-      _pinchStartSpan = _canvasPointerSpan();
+      _pinchStartSpanX = _canvasPointerSpanX();
+      _pinchStartSpanY = _canvasPointerSpanY();
+      _pinchZoomAxis = _resolvePinchAxis(_pinchStartSpanX!, _pinchStartSpanY!);
       _pinchStartPpb = _pixelsPerBeat;
       _pinchStartRowH = _rowHeight;
       _cancelEditGesture();
@@ -433,12 +457,22 @@ class PianoRollViewportState extends State<PianoRollViewport> {
     if (!_canvasPointers.containsKey(event.pointer)) return;
     _canvasPointers[event.pointer] = _pointerToCanvas(event);
 
-    if (_canvasPointers.length >= 2 &&
-        _pinchStartSpan != null &&
-        _pinchStartSpan! >= 8) {
-      final span = _canvasPointerSpan();
-      if (span >= 8) {
-        _applyPinchZoom(span / _pinchStartSpan!, _canvasFocalPoint());
+    if (_canvasPointers.length >= 2 && _pinchZoomAxis != null) {
+      final focal = _canvasFocalPoint();
+      if (_pinchZoomAxis == _PinchZoomAxis.horizontal &&
+          _pinchStartSpanX != null &&
+          _pinchStartSpanX! >= _pinchMinSpan) {
+        final spanX = _canvasPointerSpanX();
+        if (spanX >= _pinchMinSpan) {
+          _applyHorizontalPinchZoom(spanX / _pinchStartSpanX!, focal);
+        }
+      } else if (_pinchZoomAxis == _PinchZoomAxis.vertical &&
+          _pinchStartSpanY != null &&
+          _pinchStartSpanY! >= _pinchMinSpan) {
+        final spanY = _canvasPointerSpanY();
+        if (spanY >= _pinchMinSpan) {
+          _applyVerticalPinchZoom(spanY / _pinchStartSpanY!, focal);
+        }
       }
       return;
     }
@@ -478,7 +512,9 @@ class PianoRollViewportState extends State<PianoRollViewport> {
     _canvasPointers.remove(event.pointer);
 
     if (_canvasPointers.length < 2) {
-      _pinchStartSpan = null;
+      _pinchStartSpanX = null;
+      _pinchStartSpanY = null;
+      _pinchZoomAxis = null;
     }
 
     if (event.pointer != _editPointer) {
@@ -700,23 +736,42 @@ class PianoRollViewportState extends State<PianoRollViewport> {
     }
   }
 
-  void _applyPinchZoom(double scale, Offset focal) {
+  void _applyHorizontalPinchZoom(double scale, Offset focal) {
     final newPpb = (_pinchStartPpb * scale)
         .clamp(PianoRollMetrics.minPixelsPerBeat, PianoRollMetrics.maxPixelsPerBeat);
-    final newRowH = (_pinchStartRowH * scale)
-        .clamp(PianoRollMetrics.minRowHeight, PianoRollMetrics.maxRowHeight);
 
-    if ((newPpb - _pixelsPerBeat).abs() < 0.15 && (newRowH - _rowHeight).abs() < 0.15) {
+    if ((newPpb - _pixelsPerBeat).abs() < 0.15) {
       return;
     }
 
     final scrollX = _horizontal.hasClients ? _horizontal.offset : 0.0;
-    final scrollY = _vertical.hasClients ? _vertical.offset : 0.0;
     final beatAtFocal = focal.dx / _pixelsPerBeat;
-    final rowAtFocal = focal.dy / _rowHeight;
 
     setState(() {
       _pixelsPerBeat = newPpb;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_horizontal.hasClients) return;
+      final maxX = _horizontal.position.maxScrollExtent;
+      final newScrollX = (beatAtFocal * newPpb - focal.dx + scrollX).clamp(0.0, maxX);
+      _horizontal.jumpTo(newScrollX);
+      if (_ruler.hasClients) _ruler.jumpTo(newScrollX);
+    });
+  }
+
+  void _applyVerticalPinchZoom(double scale, Offset focal) {
+    final newRowH = (_pinchStartRowH * scale)
+        .clamp(PianoRollMetrics.minRowHeight, PianoRollMetrics.maxRowHeight);
+
+    if ((newRowH - _rowHeight).abs() < 0.15) {
+      return;
+    }
+
+    final scrollY = _vertical.hasClients ? _vertical.offset : 0.0;
+    final rowAtFocal = focal.dy / _rowHeight;
+
+    setState(() {
       _rowHeight = newRowH;
     });
 
@@ -726,12 +781,6 @@ class PianoRollViewportState extends State<PianoRollViewport> {
       final newScrollY = (rowAtFocal * newRowH - focal.dy + scrollY).clamp(0.0, maxY);
       _vertical.jumpTo(newScrollY);
       if (_verticalKeys.hasClients) _verticalKeys.jumpTo(newScrollY);
-      if (_horizontal.hasClients) {
-        final maxX = _horizontal.position.maxScrollExtent;
-        final newScrollX = (beatAtFocal * newPpb - focal.dx + scrollX).clamp(0.0, maxX);
-        _horizontal.jumpTo(newScrollX);
-        if (_ruler.hasClients) _ruler.jumpTo(newScrollX);
-      }
     });
   }
 

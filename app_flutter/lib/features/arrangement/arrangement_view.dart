@@ -242,6 +242,16 @@ class ArrangementViewState extends State<ArrangementView> {
     final pointerTravel = _rulerPointerTravel;
     final canvasDx = _rulerCanvasDx(event);
 
+    final draggedPlayhead =
+        dragTarget == _RulerDragTarget.playhead &&
+        pointerTravel >= _rulerTapSlop;
+    final draggedRegion =
+        (dragTarget == _RulerDragTarget.regionStart ||
+            dragTarget == _RulerDragTarget.regionEnd) &&
+        pointerTravel >= _rulerTapSlop;
+    final committedRegionStart = draggedRegion ? _displayRegionStart : null;
+    final committedRegionEnd = draggedRegion ? _displayRegionEnd : null;
+
     // Drop gesture before play/seek side effects so scroll jump cannot re-enter.
     _rulerActivePointer = null;
     _rulerLastCanvasPos = null;
@@ -250,20 +260,15 @@ class ArrangementViewState extends State<ArrangementView> {
     _previewRegionStart = null;
     _previewRegionEnd = null;
 
-    final draggedPlayhead =
-        dragTarget == _RulerDragTarget.playhead &&
-        pointerTravel >= _rulerTapSlop;
-    final draggedRegion =
-        (dragTarget == _RulerDragTarget.regionStart ||
-            dragTarget == _RulerDragTarget.regionEnd) &&
-        pointerTravel >= _rulerTapSlop;
-
-    if (draggedRegion) {
-      final start = _displayRegionStart;
-      final end = _displayRegionEnd;
-      if (start != widget.snapshot.loopRegionStartBeat ||
-          end != widget.snapshot.loopRegionEndBeat) {
-        await widget.onLoopRegionChanged(startBeat: start, endBeat: end);
+    if (draggedRegion &&
+        committedRegionStart != null &&
+        committedRegionEnd != null) {
+      if (committedRegionStart != widget.snapshot.loopRegionStartBeat ||
+          committedRegionEnd != widget.snapshot.loopRegionEndBeat) {
+        await widget.onLoopRegionChanged(
+          startBeat: committedRegionStart,
+          endBeat: committedRegionEnd,
+        );
       }
     } else if (draggedPlayhead) {
       // Scrub already applied during move.
