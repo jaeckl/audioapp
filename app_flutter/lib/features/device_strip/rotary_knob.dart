@@ -13,6 +13,32 @@ abstract final class KnobArcGeometry {
 
   static double indicatorAngle(double value) =>
       start + value.clamp(0.0, 1.0) * sweep;
+
+  static const double _edgeInset = 2.0;
+  static const double _innerDiscInset = 6.0;
+
+  /// Knob arc radius for a square [knobSize] widget.
+  static double radius(double knobSize) => knobSize / 2 - _edgeInset;
+
+  /// Perceived dial center — midpoint between arc apex and inner disc bottom.
+  static Offset visualCenter(Size knobSize) {
+    final geometric = Offset(knobSize.width / 2, knobSize.height / 2);
+    final r = radius(knobSize.width);
+    final arcTopY = geometric.dy - r;
+    final discBottomY = geometric.dy + r - _innerDiscInset;
+    return Offset(geometric.dx, (arcTopY + discBottomY) / 2);
+  }
+
+  /// [visualCenter] mapped into a host where the knob square is centered.
+  static Offset visualCenterInCenteredHost({
+    required double knobSize,
+    required Size hostSize,
+  }) {
+    final knobVisual = visualCenter(Size(knobSize, knobSize));
+    final padX = (hostSize.width - knobSize) / 2;
+    final padY = (hostSize.height - knobSize) / 2;
+    return Offset(padX + knobVisual.dx, padY + knobVisual.dy);
+  }
 }
 
 /// Compact rotary control styled after Bitwig / FL Studio Mobile device knobs.
@@ -227,6 +253,10 @@ class _RotaryKnobState extends State<RotaryKnob>
                           glowColor: pulseAccent
                               .withValues(alpha: _pulseAnimation.value),
                           borderRadius: 8,
+                          center: KnobArcGeometry.visualCenterInCenteredHost(
+                            knobSize: widget.size,
+                            hostSize: Size(widget.size + 8, widget.size + 4),
+                          ),
                         )
                       : null,
                   child: Stack(
@@ -446,14 +476,20 @@ class _BackgroundGlowPainter extends CustomPainter {
   _BackgroundGlowPainter({
     required this.glowColor,
     required this.borderRadius,
+    required this.center,
   });
 
   final Color glowColor;
   final double borderRadius;
+  final Offset center;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = Rect.fromLTWH(2, 2, size.width - 4, size.height - 4);
+    final rect = Rect.fromCenter(
+      center: center,
+      width: size.width - 4,
+      height: size.height - 4,
+    );
     final rrect = RRect.fromRectAndRadius(rect, Radius.circular(borderRadius));
     final paint = Paint()
       ..color = glowColor
@@ -463,6 +499,6 @@ class _BackgroundGlowPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _BackgroundGlowPainter oldDelegate) {
-    return oldDelegate.glowColor != glowColor;
+    return oldDelegate.glowColor != glowColor || oldDelegate.center != center;
   }
 }
