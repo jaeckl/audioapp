@@ -723,6 +723,11 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     if (deviceId != null) {
       await _assignSamplerSample(deviceId, sample.id);
       await _libraryPanelKey.currentState?.close();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Loaded ${sample.name}')),
+        );
+      }
       return;
     }
     await _insertSample(sample);

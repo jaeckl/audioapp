@@ -169,6 +169,11 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
     final device = _libraryDevice;
     if (device != null) {
       _onAssignSamplerSample(device.id, sample.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Loaded ${sample.name}')),
+        );
+      }
     }
     await _libraryPanelKey.currentState?.close();
   }

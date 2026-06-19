@@ -492,6 +492,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             onPreview: widget.sample != null && widget.onPreviewSampler != null
                 ? () => widget.onPreviewSampler!(widget.device.rootPitch.round())
                 : null,
+            onLoadSample: widget.onOpenLibrary,
             selectedTab: SamplerDeviceTab.values[_selectedTabIndex],
             modulatedParams: _modulatedParamIds,
             automatedParams: _automatedParamIds,

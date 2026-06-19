@@ -25,6 +25,7 @@ class SamplerWaveformView extends StatefulWidget {
     this.onPreview,
     this.loopRegionEnabled = false,
     this.emptyHint,
+    this.onLoadSample,
   });
 
   final List<double> peaks;
@@ -41,6 +42,7 @@ class SamplerWaveformView extends StatefulWidget {
   final VoidCallback? onPreview;
   final bool loopRegionEnabled;
   final String? emptyHint;
+  final VoidCallback? onLoadSample;
 
   bool get hasLoop => regionEndSec > 0;
   bool get showLoopBand => loopRegionEnabled && (hasLoop || onRegionChanged != null);
@@ -258,14 +260,11 @@ class _SamplerWaveformViewState extends State<SamplerWaveformView> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     if (widget.peaks.isEmpty) {
-      return Center(
-        child: Text(
-          widget.emptyHint ?? 'Load a sample',
-          style: theme.textTheme.labelMedium?.copyWith(color: Colors.white38),
-          textAlign: TextAlign.center,
-        ),
+      return _SamplerWaveformEmptyState(
+        hint: widget.emptyHint,
+        accentColor: widget.accentColor,
+        onLoadSample: widget.onLoadSample,
       );
     }
 
@@ -410,6 +409,57 @@ enum _WaveformDrag {
 
   bool get affectsTrim => this == trimStart || this == trimEnd;
   bool get affectsRegion => this == regionStart || this == regionEnd;
+}
+
+class _SamplerWaveformEmptyState extends StatelessWidget {
+  const _SamplerWaveformEmptyState({
+    required this.hint,
+    required this.accentColor,
+    this.onLoadSample,
+  });
+
+  final String? hint;
+  final Color accentColor;
+  final VoidCallback? onLoadSample;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.graphic_eq_rounded,
+              size: 28,
+              color: accentColor.withValues(alpha: 0.45),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              hint ?? 'Load a sample to edit trim and playback',
+              style: theme.textTheme.labelMedium?.copyWith(color: Colors.white38),
+              textAlign: TextAlign.center,
+            ),
+            if (onLoadSample != null) ...[
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: onLoadSample,
+                icon: const Icon(Icons.folder_open_rounded, size: 18),
+                label: const Text('Load sample'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: accentColor.withValues(alpha: 0.22),
+                  foregroundColor: accentColor,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _Handle extends StatelessWidget {

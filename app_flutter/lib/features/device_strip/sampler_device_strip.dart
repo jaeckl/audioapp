@@ -11,6 +11,7 @@ class SamplerDeviceStrip extends StatelessWidget {
     required this.sample,
     required this.onParameterChanged,
     this.onPreview,
+    this.onLoadSample,
     this.onTabChanged,
     this.onCollapse,
     this.embeddedInCard = true,
@@ -33,6 +34,7 @@ class SamplerDeviceStrip extends StatelessWidget {
   final void Function(String parameterId, double value) onParameterChanged;
   final ValueChanged<SamplerDeviceTab>? onTabChanged;
   final VoidCallback? onPreview;
+  final VoidCallback? onLoadSample;
   final VoidCallback? onCollapse;
   final bool embeddedInCard;
   final SamplerDeviceTab? selectedTab;
@@ -57,6 +59,7 @@ class SamplerDeviceStrip extends StatelessWidget {
       onParameterChanged: onParameterChanged,
       embeddedInCard: embeddedInCard,
       onPreview: onPreview,
+      onLoadSample: onLoadSample,
       onTabChanged: onTabChanged,
       onCollapse: onCollapse,
       selectedTab: selectedTab,

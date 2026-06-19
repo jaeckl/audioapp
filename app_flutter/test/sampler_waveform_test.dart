@@ -70,6 +70,37 @@ void main() {
     expect(mode, 2);
   });
 
+  testWidgets('SamplerWaveformView load sample CTA invokes callback', (tester) async {
+    var tapped = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 320,
+            height: 140,
+            child: SamplerWaveformView(
+              peaks: const [],
+              durationSec: 1,
+              trimStartSec: 0,
+              trimEndSec: 0,
+              regionStartSec: 0,
+              regionEndSec: 0,
+              density: SamplerWaveformDensity.editor,
+              waveColor: Colors.green,
+              accentColor: Colors.orange,
+              onLoadSample: () => tapped = true,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Load sample'), findsOneWidget);
+    await tester.tap(find.text('Load sample'));
+    await tester.pump();
+    expect(tapped, isTrue);
+  });
+
   testWidgets('SamplerFineTuneChip adjusts cents', (tester) async {
     var cents = 0.0;
     await tester.pumpWidget(

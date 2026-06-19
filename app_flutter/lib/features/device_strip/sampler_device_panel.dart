@@ -25,6 +25,7 @@ class SamplerDevicePanel extends StatefulWidget {
     required this.onParameterChanged,
     this.density = SamplerPanelDensity.strip,
     this.onPreview,
+    this.onLoadSample,
     this.initialTab = SamplerDeviceTab.wave,
     this.onTabChanged,
     this.onCollapse,
@@ -48,6 +49,7 @@ class SamplerDevicePanel extends StatefulWidget {
   final void Function(String parameterId, double value) onParameterChanged;
   final SamplerPanelDensity density;
   final VoidCallback? onPreview;
+  final VoidCallback? onLoadSample;
   final SamplerDeviceTab initialTab;
   final ValueChanged<SamplerDeviceTab>? onTabChanged;
   final VoidCallback? onCollapse;
@@ -162,6 +164,7 @@ class _SamplerDevicePanelState extends State<SamplerDevicePanel> {
           durationSec: _durationSec,
           onParameterChanged: widget.onParameterChanged,
           onPreview: widget.onPreview,
+          onLoadSample: widget.onLoadSample,
           modulatedParams: widget.modulatedParams,
           automatedParams: widget.automatedParams,
           modulationAmounts: widget.modulationAmounts,
@@ -200,6 +203,7 @@ class _WaveTab extends StatelessWidget {
     required this.durationSec,
     required this.onParameterChanged,
     this.onPreview,
+    this.onLoadSample,
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
@@ -218,6 +222,7 @@ class _WaveTab extends StatelessWidget {
   final double durationSec;
   final void Function(String parameterId, double value) onParameterChanged;
   final VoidCallback? onPreview;
+  final VoidCallback? onLoadSample;
   final Set<String> modulatedParams;
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
@@ -293,6 +298,7 @@ class _WaveTab extends StatelessWidget {
                   accentColor: SamplerDevicePanel.accent,
                   loopRegionEnabled: device.playbackMode == 1,
                   onPreview: peaks.isEmpty ? null : onPreview,
+                  onLoadSample: onLoadSample,
                   onTrimChanged: (start, end) {
                     onParameterChanged('trimStartSec', start);
                     onParameterChanged('trimEndSec', end);
@@ -303,7 +309,7 @@ class _WaveTab extends StatelessWidget {
                           onParameterChanged('regionEndSec', end);
                         }
                       : null,
-                  emptyHint: 'Open library to load audio',
+                  emptyHint: 'Choose a sample from your library or import audio',
                 ),
               ),
             ),
@@ -313,15 +319,46 @@ class _WaveTab extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Text(
-                sampleName ?? 'No sample',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              child: onLoadSample == null
+                  ? Text(
+                      sampleName ?? 'No sample',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    )
+                  : Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: onLoadSample,
+                        borderRadius: BorderRadius.circular(4),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  sampleName ?? 'No sample',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.labelLarge?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              Icon(
+                                Icons.folder_open_rounded,
+                                size: 16,
+                                color: Colors.white.withValues(alpha: 0.38),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
             ),
             if (peaks.isNotEmpty)
               Text(
