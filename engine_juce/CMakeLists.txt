@@ -60,6 +60,7 @@ add_library(audioapp_engine STATIC
   src/devices/CompressorDeviceType.cpp
   src/devices/ExpanderDeviceType.cpp
   src/devices/LimiterDeviceType.cpp
+  src/devices/BassSynthDeviceType.cpp
   src/model/TrackRepository.cpp
   src/model/ClipRepository.cpp
   src/model/AutomationClipStore.cpp
@@ -175,6 +176,10 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
   target_link_libraries(automation_clip_test PRIVATE audioapp_engine)
   add_test(NAME automation_clip_test COMMAND automation_clip_test)
 
+  add_executable(automation_clip_drag_test tests/automation_clip_drag_test.cpp)
+  target_link_libraries(automation_clip_drag_test PRIVATE audioapp_engine)
+  add_test(NAME automation_clip_drag_test COMMAND automation_clip_drag_test)
+
   add_executable(remove_device_test tests/remove_device_test.cpp)
   target_link_libraries(remove_device_test PRIVATE audioapp_engine)
   add_test(NAME remove_device_test COMMAND remove_device_test)
@@ -194,4 +199,8 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
   add_executable(modulation_e2e_test tests/modulation_e2e_test.cpp)
   target_link_libraries(modulation_e2e_test PRIVATE audioapp_engine)
   add_test(NAME modulation_e2e_test COMMAND modulation_e2e_test)
+
+  add_executable(bass_synth_test tests/bass_synth_test.cpp)
+  target_link_libraries(bass_synth_test PRIVATE audioapp_engine)
+  add_test(NAME bass_synth_test COMMAND bass_synth_test)
 endif()

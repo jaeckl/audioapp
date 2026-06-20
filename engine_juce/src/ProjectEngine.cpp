@@ -260,9 +260,13 @@ bool ProjectEngine::moveClip(const std::string& clipId,
         rebuildTrackPlaybackLocked();
         return true;
     }
-    // Automation clips live in the global store and ignore targetTrackId.
+    // Automation clips live in the global store. Update both the
+    // visual track lane (homeTrackId) and the beat position.
     if (!automationClipStore_.setStartBeat(clipId, startBeat)) {
         return false;
+    }
+    if (!targetTrackId.empty()) {
+        automationClipStore_.setHomeTrackId(clipId, targetTrackId);
     }
     rebuildTrackPlaybackLocked();
     return true;
@@ -929,6 +933,12 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
 
     modulationGraph_.load(data.lfos, data.modEdges);
     modulationGraph_.recomputeIdCounters();
+    // Rebuild the playback array BEFORE rebuilding the track snapshot.
+    // The snapshot resolver maps each modulation edge's LFO domain id to its
+    // compact playback array index; if rebuildPlayback() hasn't run yet, every
+    // edge is dropped silently and modulation never reaches the audio thread
+    // after a project reload.
+    modulationGraph_.rebuildPlayback();
 
     if (data.master.gain > 0.0f) {
         masterGain_.store(std::clamp(data.master.gain, 0.0f, 1.0f), std::memory_order_release);
@@ -939,7 +949,6 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
     transport_.resetPlayhead();
     syncActiveFrequencyLocked();
     rebuildTrackPlaybackLocked();
-    modulationGraph_.rebuildPlayback();
     return true;
 }
 

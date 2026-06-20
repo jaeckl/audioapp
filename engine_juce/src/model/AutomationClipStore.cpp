@@ -101,6 +101,16 @@ bool AutomationClipStore::setStartBeat(const std::string& clipId, double startBe
     return true;
 }
 
+bool AutomationClipStore::setHomeTrackId(const std::string& clipId,
+                                         const std::string& homeTrackId) {
+    AutomationClip* clip = find(clipId);
+    if (clip == nullptr || homeTrackId.empty()) {
+        return false;
+    }
+    clip->homeTrackId = homeTrackId;
+    return true;
+}
+
 bool AutomationClipStore::remove(const std::string& clipId) {
     auto it = std::find_if(clips_.begin(), clips_.end(),
                            [&clipId](const AutomationClip& c) { return c.id == clipId; });

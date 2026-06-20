@@ -33,6 +33,8 @@ public:
                    const std::vector<AutomationPointState>& points);
     bool setLength(const std::string& clipId, double lengthBeats);
     bool setStartBeat(const std::string& clipId, double startBeat);
+    /// Updates the track lane in which this clip is rendered.
+    bool setHomeTrackId(const std::string& clipId, const std::string& homeTrackId);
     bool remove(const std::string& clipId);
     /// Duplicates a clip; the copy starts immediately after the source and
     /// keeps the same `deviceId`/`paramId` (unlike the old per-track path
