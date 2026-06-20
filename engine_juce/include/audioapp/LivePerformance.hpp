@@ -26,6 +26,7 @@ enum class LiveInstrumentKind : uint8_t {
     ClapGenerator,
     CymbalGenerator,
     CrashGenerator,
+    BassSynth,
 };
 
 /// Immutable instrument snapshot copied on note-on (control thread writes, audio thread reads).

@@ -13,7 +13,9 @@
 #include "audioapp/devices/OscillatorDeviceType.hpp"
 #include "audioapp/devices/SamplerDeviceType.hpp"
 #include "audioapp/devices/SubtractiveSynthDeviceType.hpp"
+#include "audioapp/devices/BassSynthDeviceType.hpp"
 #include "audioapp/devices/TrackGainDeviceType.hpp"
+#include "audioapp/devices/instances/BassSynthInstance.hpp"
 #include "audioapp/devices/instances/KickGeneratorInstance.hpp"
 #include "audioapp/devices/instances/SnareGeneratorInstance.hpp"
 #include "audioapp/devices/instances/ClapGeneratorInstance.hpp"
@@ -96,6 +98,9 @@ const IDeviceType* DeviceRegistry::findForSlot(const DeviceSlot& slot) const {
     }
     if (std::holds_alternative<LimiterInstance>(slot.instance)) {
         return find(device_types::kLimiter);
+    }
+    if (std::holds_alternative<BassSynthInstance>(slot.instance)) {
+        return find(device_types::kBasSynth);
     }
     return nullptr;
 }
@@ -190,6 +195,7 @@ DeviceRegistry DeviceRegistry::createBuiltIn() {
     registry.registerType(std::make_unique<CompressorDeviceType>());
     registry.registerType(std::make_unique<ExpanderDeviceType>());
     registry.registerType(std::make_unique<LimiterDeviceType>());
+    registry.registerType(std::make_unique<BassSynthDeviceType>());
     return registry;
 }
 

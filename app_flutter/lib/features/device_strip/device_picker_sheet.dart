@@ -39,6 +39,12 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
               onTap: () => Navigator.pop(context, 'subtractive_synth'),
             ),
             ListTile(
+              leading: const Icon(Icons.music_note, color: Color(0xFF4ADE80)),
+              title: const Text('Bass Synth'),
+              subtitle: const Text('Mono · sub · analog grunt'),
+              onTap: () => Navigator.pop(context, 'bass_synth'),
+            ),
+            ListTile(
               leading: const Icon(Icons.album, color: Color(0xFFE85D4B)),
               title: const Text('Kick Generator'),
               subtitle: const Text('808-style · pitch-drop body'),

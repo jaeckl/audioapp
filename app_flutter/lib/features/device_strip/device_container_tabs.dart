@@ -9,6 +9,7 @@ import 'crash_generator_device_panel.dart';
 import 'dynamics_fx_panels.dart';
 import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
+import 'bass_synth_device_panel.dart';
 import 'subtractive_synth_device_panel.dart';
 
 /// Device types register container header tabs here (icon + label).
@@ -17,6 +18,7 @@ abstract final class DeviceContainerTabs {
     return switch (deviceType) {
       'simple_sampler' => SamplerDevicePanel.containerTabs,
       'simple_oscillator' => OscillatorDevicePanel.containerTabs,
+      'bass_synth' => BassSynthDevicePanel.containerTabs,
       'subtractive_synth' => SubtractiveSynthDevicePanel.containerTabs,
       'kick_generator' => KickGeneratorDevicePanel.containerTabs,
       'snare_generator' => SnareGeneratorDevicePanel.containerTabs,

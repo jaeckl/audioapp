@@ -61,6 +61,16 @@ struct DeviceState {
     int filterShaperMode = 1;
     float synthLegato = 0.0f;
     float synthMono = 0.0f;
+    // Bass Synth fields
+    float bassOscShape = 0.3f;
+    float bassSubMix = 0.5f;
+    float bassNoise = 0.0f;
+    float bassFilterResonance = 0.25f;
+    float bassDrive = 0.0f;
+    float bassSquash = 0.0f;
+    float bassVelocitySense = 1.0f;
+    int bassSubOctave = 0;
+    int bassOctave = 2;
     float kickModel = 0.0f;
     float kickPitch = 0.55f;
     float kickPunch = 0.60f;

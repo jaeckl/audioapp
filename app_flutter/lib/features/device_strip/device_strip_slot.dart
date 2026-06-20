@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
+import 'bass_synth_device_panel.dart';
+import 'bass_synth_device_strip.dart';
 import 'device_container_tabs.dart';
 import 'device_strip_chrome.dart';
 import 'device_tab_bar.dart';
@@ -51,6 +53,7 @@ class DeviceStripSlot extends StatefulWidget {
     required this.onFrequencyChanged,
     this.onSamplerTabChanged,
     this.onSynthTabChanged,
+    this.onBassTabChanged,
     this.onCollapse,
     this.onBypassToggle,
     this.onDeleteRequest,
@@ -59,6 +62,7 @@ class DeviceStripSlot extends StatefulWidget {
     this.onPreviewSampler,
     this.samplerTab = SamplerDeviceTab.wave,
     this.synthTab = SubtractiveDeviceTab.osc,
+    this.bassTab = BassSynthDeviceTab.tone,
     this.lfos = const [],
     this.modEdges = const [],
     this.onModulationBridgeCall,
@@ -83,6 +87,7 @@ class DeviceStripSlot extends StatefulWidget {
   final void Function(double frequencyHz) onFrequencyChanged;
   final ValueChanged<SamplerDeviceTab>? onSamplerTabChanged;
   final ValueChanged<SubtractiveDeviceTab>? onSynthTabChanged;
+  final ValueChanged<BassSynthDeviceTab>? onBassTabChanged;
   final VoidCallback? onCollapse;
   final VoidCallback? onBypassToggle;
   final VoidCallback? onDeleteRequest;
@@ -91,6 +96,7 @@ class DeviceStripSlot extends StatefulWidget {
   final ValueChanged<int>? onPreviewSampler;
   final SamplerDeviceTab samplerTab;
   final SubtractiveDeviceTab synthTab;
+  final BassSynthDeviceTab bassTab;
   final List<LfoSnapshot> lfos;
   final List<ModulationEdgeSnapshot> modEdges;
   final Future<ProjectSnapshot> Function(String method, Map<String, dynamic> args)?
@@ -145,6 +151,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     if (widget.device.type == 'subtractive_synth' &&
         widget.synthTab != oldWidget.synthTab) {
       _selectedTabIndex = widget.synthTab.index;
+    }
+    if (widget.device.type == 'bass_synth' &&
+        widget.bassTab != oldWidget.bassTab) {
+      _selectedTabIndex = widget.bassTab.index;
     }
     if (widget.device.id != oldWidget.device.id) {
       _selectedTabIndex = _initialTabIndex();
@@ -268,6 +278,9 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     if (widget.device.type == 'subtractive_synth') {
       return widget.synthTab.index;
     }
+    if (widget.device.type == 'bass_synth') {
+      return widget.bassTab.index;
+    }
     return 0;
   }
 
@@ -278,6 +291,9 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     }
     if (widget.device.type == 'subtractive_synth') {
       widget.onSynthTabChanged?.call(SubtractiveDeviceTab.values[index]);
+    }
+    if (widget.device.type == 'bass_synth') {
+      widget.onBassTabChanged?.call(BassSynthDeviceTab.values[index]);
     }
   }
 
@@ -367,6 +383,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   String? get _cardSubtitle => switch (widget.device.type) {
         'simple_sampler' => widget.sample?.name,
         'simple_oscillator' => '${widget.device.frequencyHz.round()} Hz',
+        'bass_synth' => 'Mono · Sub',
         'subtractive_synth' => 'Multimode · 8 voices',
         'kick_generator' => 'Mono · ${KickModel.labelFromValue(widget.device.kickModel)}',
         'snare_generator' => 'Mono · synth',
@@ -422,10 +439,13 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                   accentColor: DeviceStripTheme.accentForDeviceType(widget.device.type),
                   bypassed: widget.device.bypassed,
                   showLibrary: widget.device.type == 'simple_sampler' ||
-                      widget.device.type == 'subtractive_synth',
+                      widget.device.type == 'subtractive_synth' ||
+                      widget.device.type == 'bass_synth',
                   libraryTooltip: widget.device.type == 'subtractive_synth'
                       ? 'Open preset library'
-                      : 'Open sample library',
+                      : widget.device.type == 'bass_synth'
+                          ? 'Open preset library'
+                          : 'Open sample library',
                   onBypassToggle: widget.onBypassToggle ?? () {},
                   onDelete: widget.onDeleteRequest,
                   onLibrary: widget.onOpenLibrary,
@@ -555,6 +575,29 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             onModulationAssign: _connectModeLfo != null
                 ? _onModulationFor('frequency')
                 : null,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
+          ),
+        );
+      case 'bass_synth':
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: _cardWidth,
+          designHeight: contentHeight,
+          child: BassSynthDeviceStrip(
+            device: widget.device,
+            onParameterChanged: widget.onSamplerParameterChanged,
+            selectedTab: BassSynthDeviceTab.values[_selectedTabIndex],
+            modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
+            onModulationAssign: _onModulationForDevice,
             automationLinkActive: widget.automationLinkActive,
             onAutomationLinkTap: widget.onAutomationParamSelected != null
                 ? _onAutomationLinkTap

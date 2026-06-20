@@ -170,6 +170,25 @@ enum class LimiterParam : uint16_t {
     Makeup = 5,
 };
 
+enum class BassSynthParam : uint16_t {
+    FilterCutoff = 0,
+    FilterResonance = 1,
+    FilterEnvAmount = 2,
+    AmpAttack = 3,
+    AmpSustain = 4,
+    AmpRelease = 5,
+    OscShape = 6,
+    SubMix = 7,
+    Noise = 8,
+    Drive = 9,
+    Squash = 10,
+    GlideMs = 11,
+    VelocitySense = 12,
+    FilterDecay = 13,
+    Octave = 14,
+    SubOctave = 15,
+};
+
 // -----------------------------------------------------------------------
 // ParamKind — distinguishes which per-device enum a `localParamId` refers
 // to. Without this tag, multiple device kinds (CommonParam, SubtractiveParam,
@@ -198,6 +217,8 @@ enum class ParamKind : uint16_t {
     Expander         = 11,
     Limiter          = 12,
     TrackGain        = 13,
+    // Bass Synth
+    BassSynth        = 14,
 };
 
 constexpr uint16_t kParamKindShift      = 12;

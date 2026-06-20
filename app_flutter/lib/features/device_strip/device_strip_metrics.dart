@@ -94,6 +94,7 @@ class DeviceStripMetrics {
     }
     return switch (deviceType) {
       'simple_sampler' => samplerDesignWidth,
+      'bass_synth' => oscillatorDesignWidth,
       'subtractive_synth' => subtractiveSynthDesignWidth,
       'kick_generator' => kickDesignWidth,
       'snare_generator' => kickDesignWidth,

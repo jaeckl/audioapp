@@ -53,7 +53,8 @@ void LivePerformanceMixer::releaseVoice(LiveVoiceSlot& voice, uint64_t now) noex
     if (!voice.releasing) {
         voice.releasing = true;
         voice.releaseSample = now;
-        if (voice.instrument.kind == LiveInstrumentKind::SubtractiveSynth) {
+        if (voice.instrument.kind == LiveInstrumentKind::SubtractiveSynth ||
+            voice.instrument.kind == LiveInstrumentKind::BassSynth) {
             voice.subtractiveReleaseSec = static_cast<double>(now) / 48000.0;
         }
     }
@@ -64,7 +65,8 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         return -1;
     }
     const uint64_t now = sampleClock();
-    const bool subtractive = instrument.kind == LiveInstrumentKind::SubtractiveSynth;
+    const bool subtractive = instrument.kind == LiveInstrumentKind::SubtractiveSynth ||
+                             instrument.kind == LiveInstrumentKind::BassSynth;
 
     // Live keyboard stays polyphonic; synthMono only affects clip/arrangement playback.
     (void)subtractive;
@@ -96,7 +98,8 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         voice.crash = CrashVoiceRuntime{};
         voice.subtractiveStartSec = static_cast<double>(now) / 48000.0;
         voice.subtractiveReleaseSec = -1.0;
-        if (instrument.kind == LiveInstrumentKind::SubtractiveSynth) {
+        if (instrument.kind == LiveInstrumentKind::SubtractiveSynth ||
+                instrument.kind == LiveInstrumentKind::BassSynth) {
             initSubtractiveVoice(voice.subtractive, pitch, voice.velocity);
         } else if (instrument.kind == LiveInstrumentKind::KickGenerator) {
             triggerKickVoice(voice.kick, pitch, voice.velocity);
@@ -132,7 +135,8 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
     steal.crash = CrashVoiceRuntime{};
     steal.subtractiveStartSec = static_cast<double>(now) / 48000.0;
     steal.subtractiveReleaseSec = -1.0;
-    if (instrument.kind == LiveInstrumentKind::SubtractiveSynth) {
+    if (instrument.kind == LiveInstrumentKind::SubtractiveSynth ||
+                instrument.kind == LiveInstrumentKind::BassSynth) {
         initSubtractiveVoice(steal.subtractive, pitch, steal.velocity);
     } else if (instrument.kind == LiveInstrumentKind::KickGenerator) {
         triggerKickVoice(steal.kick, pitch, steal.velocity);
@@ -322,7 +326,8 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
 
             const float velGain = (voice.velocity / 100.0f) * inst.gain * kInstrumentOutputGain;
 
-            if (inst.kind == LiveInstrumentKind::SubtractiveSynth) {
+            if (inst.kind == LiveInstrumentKind::SubtractiveSynth ||
+                inst.kind == LiveInstrumentKind::BassSynth) {
                 const auto& params = inst.subtractive;
                 const float ampAttackSec = adsrNormalizedToSeconds(params.ampAttack, 2.0f);
                 const float ampDecaySec = adsrNormalizedToSeconds(params.ampDecay, 2.0f);

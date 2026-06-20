@@ -428,6 +428,15 @@ class DeviceSnapshot {
     this.limitDrive = 0.0,
     this.limitMakeup = 0.0,
     this.inputGain = 1.0,
+    this.bassOscShape = 0.3,
+    this.bassSubMix = 0.5,
+    this.bassSubOctave = 0,
+    this.bassNoise = 0.0,
+    this.bassFilterResonance = 0.25,
+    this.bassDrive = 0.0,
+    this.bassSquash = 0.0,
+    this.bassOctave = 2,
+    this.bassVelocitySense = 1.0,
     this.meterGainReductionDb = 0.0,
     this.meterInputLevel = 0.0,
   });
@@ -542,6 +551,15 @@ class DeviceSnapshot {
   final double limitDrive;
   final double limitMakeup;
   final double inputGain;
+  final double bassOscShape;
+  final double bassSubMix;
+  final int bassSubOctave;
+  final double bassNoise;
+  final double bassFilterResonance;
+  final double bassDrive;
+  final double bassSquash;
+  final int bassOctave;
+  final double bassVelocitySense;
   final double meterGainReductionDb;
   final double meterInputLevel;
 
@@ -662,6 +680,15 @@ class DeviceSnapshot {
       limitDrive: (params['limitDrive'] as num?)?.toDouble() ?? 0.0,
       limitMakeup: (params['limitMakeup'] as num?)?.toDouble() ?? 0.0,
       inputGain: (params['inputGain'] as num?)?.toDouble() ?? 1.0,
+      bassOscShape: (params['bassOscShape'] as num?)?.toDouble() ?? 0.3,
+      bassSubMix: (params['bassSubMix'] as num?)?.toDouble() ?? 0.5,
+      bassSubOctave: (params['bassSubOctave'] as num?)?.toInt() ?? 0,
+      bassNoise: (params['bassNoise'] as num?)?.toDouble() ?? 0.0,
+      bassFilterResonance: (params['bassFilterResonance'] as num?)?.toDouble() ?? 0.25,
+      bassDrive: (params['bassDrive'] as num?)?.toDouble() ?? 0.0,
+      bassSquash: (params['bassSquash'] as num?)?.toDouble() ?? 0.0,
+      bassOctave: (params['bassOctave'] as num?)?.toInt() ?? 2,
+      bassVelocitySense: (params['bassVelocitySense'] as num?)?.toDouble() ?? 1.0,
       meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
     );
@@ -834,6 +861,15 @@ class DeviceSnapshot {
     double? limitDrive,
     double? limitMakeup,
     double? inputGain,
+    double? bassOscShape,
+    double? bassSubMix,
+    int? bassSubOctave,
+    double? bassNoise,
+    double? bassFilterResonance,
+    double? bassDrive,
+    double? bassSquash,
+    int? bassOctave,
+    double? bassVelocitySense,
     double? meterGainReductionDb,
     double? meterInputLevel,
   }) {
@@ -948,6 +984,15 @@ class DeviceSnapshot {
       limitDrive: limitDrive ?? this.limitDrive,
       limitMakeup: limitMakeup ?? this.limitMakeup,
       inputGain: inputGain ?? this.inputGain,
+      bassOscShape: bassOscShape ?? this.bassOscShape,
+      bassSubMix: bassSubMix ?? this.bassSubMix,
+      bassSubOctave: bassSubOctave ?? this.bassSubOctave,
+      bassNoise: bassNoise ?? this.bassNoise,
+      bassFilterResonance: bassFilterResonance ?? this.bassFilterResonance,
+      bassDrive: bassDrive ?? this.bassDrive,
+      bassSquash: bassSquash ?? this.bassSquash,
+      bassOctave: bassOctave ?? this.bassOctave,
+      bassVelocitySense: bassVelocitySense ?? this.bassVelocitySense,
       meterGainReductionDb: meterGainReductionDb ?? this.meterGainReductionDb,
       meterInputLevel: meterInputLevel ?? this.meterInputLevel,
     );
@@ -1167,6 +1212,24 @@ class DeviceSnapshot {
         return copyWith(limitMakeup: value.clamp(0.0, 1.0));
       case 'inputGain':
         return copyWith(inputGain: value.clamp(0.0, 1.0));
+      case 'bassOscShape':
+        return copyWith(bassOscShape: value.clamp(0.0, 1.0));
+      case 'bassSubMix':
+        return copyWith(bassSubMix: value.clamp(0.0, 1.0));
+      case 'bassSubOctave':
+        return copyWith(bassSubOctave: value.round().clamp(0, 2));
+      case 'bassNoise':
+        return copyWith(bassNoise: value.clamp(0.0, 1.0));
+      case 'bassFilterResonance':
+        return copyWith(bassFilterResonance: value.clamp(0.0, 1.0));
+      case 'bassDrive':
+        return copyWith(bassDrive: value.clamp(0.0, 1.0));
+      case 'bassSquash':
+        return copyWith(bassSquash: value.clamp(0.0, 1.0));
+      case 'bassOctave':
+        return copyWith(bassOctave: value.round().clamp(0, 4));
+      case 'bassVelocitySense':
+        return copyWith(bassVelocitySense: value.clamp(0.0, 1.0));
       default:
         return this;
     }

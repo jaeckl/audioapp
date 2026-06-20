@@ -32,6 +32,7 @@ static ParamKind paramKindForDevice(DeviceNodeKind kind) noexcept {
     case DeviceNodeKind::Compressor:       return ParamKind::Compressor;
     case DeviceNodeKind::Expander:         return ParamKind::Expander;
     case DeviceNodeKind::Limiter:          return ParamKind::Limiter;
+    case DeviceNodeKind::BassSynth:        return ParamKind::BassSynth;
     case DeviceNodeKind::TrackGain:        return ParamKind::TrackGain;
     case DeviceNodeKind::Unknown:
     default:                                return ParamKind::Common;
@@ -258,6 +259,30 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         // handled via CommonParam::Gain. Return 0 for any other name.
         return 0;
     }
+    case DeviceNodeKind::BassSynth: {
+        auto b = [&](const char* n, BassSynthParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::BassSynth, static_cast<uint16_t>(pid))
+                : 0;
+        };
+        if (auto v = b("bassOscShape", BassSynthParam::OscShape)) return v;
+        if (auto v = b("bassSubMix", BassSynthParam::SubMix)) return v;
+        if (auto v = b("bassNoise", BassSynthParam::Noise)) return v;
+        if (auto v = b("filterCutoff", BassSynthParam::FilterCutoff)) return v;
+        if (auto v = b("bassFilterResonance", BassSynthParam::FilterResonance)) return v;
+        if (auto v = b("filterEnvAmount", BassSynthParam::FilterEnvAmount)) return v;
+        if (auto v = b("filterDecay", BassSynthParam::FilterDecay)) return v;
+        if (auto v = b("attack", BassSynthParam::AmpAttack)) return v;
+        if (auto v = b("sustain", BassSynthParam::AmpSustain)) return v;
+        if (auto v = b("release", BassSynthParam::AmpRelease)) return v;
+        if (auto v = b("bassDrive", BassSynthParam::Drive)) return v;
+        if (auto v = b("bassSquash", BassSynthParam::Squash)) return v;
+        if (auto v = b("glideMs", BassSynthParam::GlideMs)) return v;
+        if (auto v = b("bassVelocitySense", BassSynthParam::VelocitySense)) return v;
+        if (auto v = b("bassOctave", BassSynthParam::Octave)) return v;
+        if (auto v = b("bassSubOctave", BassSynthParam::SubOctave)) return v;
+        return 0;
+    }
     default:
         return 0;
     }
@@ -438,6 +463,27 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         default: return "";
         }
     }
+    case DeviceNodeKind::BassSynth: {
+        switch (static_cast<BassSynthParam>(rawId)) {
+        case BassSynthParam::FilterCutoff: return "filterCutoff";
+        case BassSynthParam::FilterResonance: return "bassFilterResonance";
+        case BassSynthParam::FilterEnvAmount: return "filterEnvAmount";
+        case BassSynthParam::AmpAttack: return "attack";
+        case BassSynthParam::AmpSustain: return "sustain";
+        case BassSynthParam::AmpRelease: return "release";
+        case BassSynthParam::OscShape: return "bassOscShape";
+        case BassSynthParam::SubMix: return "bassSubMix";
+        case BassSynthParam::Noise: return "bassNoise";
+        case BassSynthParam::Drive: return "bassDrive";
+        case BassSynthParam::Squash: return "bassSquash";
+        case BassSynthParam::GlideMs: return "glideMs";
+        case BassSynthParam::VelocitySense: return "bassVelocitySense";
+        case BassSynthParam::FilterDecay: return "filterDecay";
+        case BassSynthParam::Octave: return "bassOctave";
+        case BassSynthParam::SubOctave: return "bassSubOctave";
+        default: return "";
+        }
+    }
     default:
         return "";
     }
@@ -480,6 +526,28 @@ const ParamDescriptor* paramDescriptorsForKind(DeviceNodeKind kind, int& countOu
         // ... (omitted for length, auto-generated in real code)
         countOut = 0;
         return nullptr;
+    }
+    case DeviceNodeKind::BassSynth: {
+        static constexpr ParamDescriptor kParams[] = {
+            {static_cast<uint16_t>(BassSynthParam::FilterCutoff), "filterCutoff", "Filter Cutoff", 0.85f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(BassSynthParam::FilterResonance), "bassFilterResonance", "Filter Resonance", 0.25f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(BassSynthParam::FilterEnvAmount), "filterEnvAmount", "Env Amount", 0.6f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(BassSynthParam::FilterDecay), "filterDecay", "Filter Decay", 0.4f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(BassSynthParam::AmpAttack), "attack", "Attack", 0.02f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(BassSynthParam::AmpSustain), "sustain", "Sustain", 0.8f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(BassSynthParam::AmpRelease), "release", "Release", 0.35f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(BassSynthParam::OscShape), "bassOscShape", "Osc Shape", 0.3f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(BassSynthParam::SubMix), "bassSubMix", "Sub Mix", 0.5f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(BassSynthParam::Noise), "bassNoise", "Noise", 0.0f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(BassSynthParam::Drive), "bassDrive", "Drive", 0.0f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(BassSynthParam::Squash), "bassSquash", "Squash", 0.0f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(BassSynthParam::GlideMs), "glideMs", "Glide", 0.0f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(BassSynthParam::VelocitySense), "bassVelocitySense", "Velocity Sense", 1.0f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(BassSynthParam::Octave), "bassOctave", "Octave", 2.0f, 0.0f, 4.0f, true, true},
+            {static_cast<uint16_t>(BassSynthParam::SubOctave), "bassSubOctave", "Sub Octave", 0.0f, 0.0f, 2.0f, true, true},
+        };
+        countOut = 14;
+        return kParams;
     }
     default:
         return nullptr;
@@ -720,6 +788,29 @@ void applyAutomationValue(DeviceVariantParams& params,
             case LimiterParam::Release: p->limitRelease = value; break;
             case LimiterParam::Drive: p->limitDrive = value; break;
             case LimiterParam::Makeup: p->limitMakeup = value; break;
+            default: break;
+            }
+        }
+        break;
+    case ParamKind::BassSynth:
+        if (auto* p = std::get_if<SubtractiveSynthParams>(&params)) {
+            switch (static_cast<BassSynthParam>(rawId)) {
+            case BassSynthParam::FilterCutoff: p->filterCutoff = value; break;
+            case BassSynthParam::FilterResonance: p->filterQ = value; break;
+            case BassSynthParam::FilterEnvAmount: p->filterEnvAmount = value; break;
+            case BassSynthParam::FilterDecay: p->filterDecay = value; break;
+            case BassSynthParam::AmpAttack: p->ampAttack = value; break;
+            case BassSynthParam::AmpSustain: p->ampSustain = value; break;
+            case BassSynthParam::AmpRelease: p->ampRelease = value; break;
+            case BassSynthParam::OscShape: p->osc1Shape = value; break;
+            case BassSynthParam::SubMix: p->oscMix = value; break;
+            case BassSynthParam::Noise: p->noiseLevel = value; break;
+            case BassSynthParam::Drive: p->filterDrive = value; p->preDrive = value * 0.5f; break;
+            case BassSynthParam::Squash: p->mixFeedback = value; break;
+            case BassSynthParam::GlideMs: p->glideMs = value; break;
+            case BassSynthParam::VelocitySense: p->velocitySensitivity = value; break;
+            case BassSynthParam::Octave: p->globalPitch = value; break;
+            case BassSynthParam::SubOctave: p->osc2Octave = value; break;
             default: break;
             }
         }

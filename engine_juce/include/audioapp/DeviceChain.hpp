@@ -46,6 +46,7 @@ enum class DeviceNodeKind : uint8_t {
     Expander,
     Limiter,
     TrackGain,
+    BassSynth,
 };
 
 // --- Per-device DSP-only parameter structs ---
@@ -119,6 +120,7 @@ struct DeviceMeterAtomic {
 static constexpr int kMaxDeviceMeters = 128;
 
 bool isDynamicsDeviceNodeKind(DeviceNodeKind kind) noexcept;
+bool isInstrumentDeviceNodeKind(DeviceNodeKind kind) noexcept;
 
 float midiActiveFrequencyHz(const MidiPlaybackNote* notes,
                             int noteCount,
