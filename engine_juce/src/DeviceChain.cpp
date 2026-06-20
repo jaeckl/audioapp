@@ -521,7 +521,8 @@ void processDeviceChain(float* trackLeft,
                 if (pid == kEncodedCommonGain || pid == kEncodedCommonPan) continue;
                 if (!needsSubBlocks) {
                     if (node.kind == DeviceNodeKind::SubtractiveSynth &&
-                        nodeHasDspAutomation(di, automationClips, automationClipCount)) continue;
+                        (nodeHasDspAutomation(di, automationClips, automationClipCount) ||
+                         nodeHasDspModulation(di, modEdges, modEdgeCount))) continue;
                     const float lfoOut = lfoValues[edge.lfoId * framesToProcess];
                     const float modAmount = edge.amount * lfoOut;
                     std::visit([&](auto& params) {

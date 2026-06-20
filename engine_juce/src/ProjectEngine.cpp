@@ -950,12 +950,20 @@ int ProjectEngine::createLfo(int modulatorType) {
 
 bool ProjectEngine::removeLfo(int lfoId) {
     std::lock_guard<std::shared_mutex> lock(mutex_);
-    return modulationGraph_.removeLfo(lfoId);
+    const bool result = modulationGraph_.removeLfo(lfoId);
+    if (result) {
+        rebuildTrackPlaybackLocked();
+    }
+    return result;
 }
 
 bool ProjectEngine::updateLfoParam(int lfoId, const std::string& param, float value) {
     std::lock_guard<std::shared_mutex> lock(mutex_);
-    return modulationGraph_.updateLfoParam(lfoId, param, value);
+    const bool result = modulationGraph_.updateLfoParam(lfoId, param, value);
+    if (result) {
+        rebuildTrackPlaybackLocked();
+    }
+    return result;
 }
 
 bool ProjectEngine::assignModulation(int lfoId, const std::string& deviceId,
@@ -964,12 +972,20 @@ bool ProjectEngine::assignModulation(int lfoId, const std::string& deviceId,
     if (findDeviceLocked(deviceId) == nullptr) {
         return false;
     }
-    return modulationGraph_.assignModulation(lfoId, deviceId, paramId, amount);
+    const bool result = modulationGraph_.assignModulation(lfoId, deviceId, paramId, amount);
+    if (result) {
+        rebuildTrackPlaybackLocked();
+    }
+    return result;
 }
 
 bool ProjectEngine::removeModulation(int lfoId, const std::string& paramId) {
     std::lock_guard<std::shared_mutex> lock(mutex_);
-    return modulationGraph_.removeModulation(lfoId, paramId);
+    const bool result = modulationGraph_.removeModulation(lfoId, paramId);
+    if (result) {
+        rebuildTrackPlaybackLocked();
+    }
+    return result;
 }
 
 bool ProjectEngine::applySubtractiveSynthPreset(

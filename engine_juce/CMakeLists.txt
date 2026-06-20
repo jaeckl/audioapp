@@ -190,4 +190,8 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
   add_executable(param_id_encoding_test tests/param_id_encoding_test.cpp)
   target_link_libraries(param_id_encoding_test PRIVATE audioapp_engine)
   add_test(NAME param_id_encoding_test COMMAND param_id_encoding_test)
+
+  add_executable(modulation_e2e_test tests/modulation_e2e_test.cpp)
+  target_link_libraries(modulation_e2e_test PRIVATE audioapp_engine)
+  add_test(NAME modulation_e2e_test COMMAND modulation_e2e_test)
 endif()

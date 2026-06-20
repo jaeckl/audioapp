@@ -639,8 +639,8 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
                 if (edge.deviceIndex != *modulationDeviceIndex) continue;
                 if (edge.lfoId >= static_cast<uint16_t>(lfoCount)) continue;
                 const uint16_t pid = edge.localParamId;
-                if (pid == static_cast<uint16_t>(CommonParam::Gain) ||
-                    pid == static_cast<uint16_t>(CommonParam::Pan)) {
+                if (pid == kEncodedCommonGain ||
+                    pid == kEncodedCommonPan) {
                     continue;
                 }
                 const float lfoOut = lfoValues[static_cast<size_t>(edge.lfoId) *
