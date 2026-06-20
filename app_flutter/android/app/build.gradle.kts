@@ -18,6 +18,10 @@ android {
         jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+
     defaultConfig {
         applicationId = "com.audioapp.daw"
         minSdk = 26
@@ -60,4 +64,6 @@ flutter {
 
 dependencies {
     implementation("androidx.activity:activity-ktx:1.9.3")
+    implementation("com.google.android.material:material:1.12.0")
+    testImplementation("junit:junit:4.13.2")
 }

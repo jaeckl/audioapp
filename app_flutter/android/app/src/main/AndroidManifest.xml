@@ -20,6 +20,13 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
+            <!-- NEW: declare we handle the audioapp project MIME type -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/vnd.audioapp.project+zip" />
+            </intent-filter>
         </activity>
         <meta-data
             android:name="flutterEmbedding"

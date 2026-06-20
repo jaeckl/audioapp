@@ -1,11 +1,16 @@
 package com.audioapp.daw
 
+import android.content.Context
+import android.content.Intent
+import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Bundle
 import android.os.PowerManager
+import android.provider.DocumentsContract
 import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.WindowCompat
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -31,9 +36,9 @@ class MainActivity : FlutterFragmentActivity() {
         ActivityResultContracts.CreateDocument(ProjectArchiveStore.ARCHIVE_MIME_TYPE),
     ) { documentUri -> onSaveArchivePicked(documentUri) }
 
-    private val openProjectArchive = registerForActivityResult(
-        ActivityResultContracts.OpenDocument(),
-    ) { documentUri -> onLoadArchivePicked(documentUri) }
+    private val openProjectFolder = registerForActivityResult(
+        OpenProjectFolder(),
+    ) { folderUri -> onFolderPicked(folderUri) }
 
     private val openAudioSample = registerForActivityResult(
         ActivityResultContracts.OpenDocument(),
@@ -54,7 +59,7 @@ class MainActivity : FlutterFragmentActivity() {
             return
         }
         pendingLoadResult = result
-        openProjectArchive.launch(ProjectArchiveStore.openArchiveMimeFilter)
+        openProjectFolder.launch(ProjectUriStore.loadLastFolderUri(this))
     }
 
     private fun launchImportSamplePicker(result: MethodChannel.Result) {
@@ -121,6 +126,24 @@ class MainActivity : FlutterFragmentActivity() {
             val projectJson = nativeGetProjectFileJson()
             ProjectArchiveStore.writeProjectArchive(this, documentUri, projectJson)
             ProjectUriStore.saveLastDocumentUri(this, documentUri)
+            // Trigger MediaScanner so the file gets a proper application/zip MIME
+            // in MediaStore. Without this, the SAF picker on Android 11+
+            // (MediaProvider storage backbone) shows an empty list because the
+            // file was written via SAF ContentResolver and never indexed, so
+            // its MediaStore row has mime_type=NULL and the MIME-filtered
+            // picker hides it. Pre-existing saves (before this fix) have
+            // mime_type=NULL and need a one-time manual rescan, e.g.:
+            //   adb shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
+            //       -d file:///sdcard/Projects/nice.audioapp.zip
+            val scanPath = queryDisplayPathFromUri(this, documentUri)
+            if (scanPath != null) {
+                MediaScannerConnection.scanFile(
+                    this,
+                    arrayOf(scanPath),
+                    arrayOf(ProjectArchiveStore.ARCHIVE_MIME_TYPE),
+                    null,
+                )
+            }
             Log.i(logTag, "Saved project archive (${projectJson.length} bytes json) to $documentUri")
             result.success(
                 mapOf(
@@ -404,6 +427,126 @@ class MainActivity : FlutterFragmentActivity() {
             wakeLock = null
         } catch (e: Exception) {
             Log.w(logTag, "Failed to release wake lock: ${e.message}")
+        }
+    }
+
+    /**
+     * Resolves a SAF document [uri] to a filesystem-style path that
+     * [MediaScannerConnection.scanFile] can use.
+     *
+     * Strategy (API 29+): prefer
+     * [android.provider.DocumentsContract.findDocumentPath], which
+     * returns the full user-visible path
+     * (`/storage/emulated/0/Projects/project.audioapp.zip` etc.) as
+     * a list of segments joined with `/`.
+     *
+     * Fallback: query `_display_name` (the bare filename) from
+     * [android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME].
+     * MediaScanner will scan by name on most devices.
+     *
+     * Returns null if the URI cannot be resolved (ephemeral grant,
+     * provider doesn't expose the path, or the query throws).
+     * Callers must handle null gracefully.
+     */
+    private fun queryDisplayPathFromUri(context: Context, uri: Uri): String? {
+        return try {
+            val resolver = context.contentResolver
+            val docPath = DocumentsContract.findDocumentPath(resolver, uri)
+            if (docPath != null) {
+                val path = docPath.path.joinToString(separator = "/")
+                if (path.isNotEmpty()) return path
+            }
+            resolver.query(
+                uri,
+                arrayOf(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME),
+                null, null, null,
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) cursor.getString(0) else null
+            }
+        } catch (e: Exception) {
+            Log.w(logTag, "Could not resolve display path for $uri: ${e.message}")
+            null
+        }
+    }
+
+    private fun onFolderPicked(folderUri: Uri?) {
+        if (folderUri == null) {
+            // User cancelled the folder picker. Same response as today.
+            val result = pendingLoadResult
+            pendingLoadResult = null
+            if (result != null) {
+                result.success(mapOf("ok" to false, "cancelled" to true))
+            }
+            return
+        }
+        // Persist the folder URI for next launch.
+        ProjectUriStore.saveLastFolderUri(this, folderUri)
+        // Take persistable permission so the URI survives reboots.
+        ProjectArchiveStore.takeFolderUriPermission(this, folderUri)
+        // Enumerate matching files.
+        val entries = ProjectArchiveStore.listAudioAppZipsIn(this, folderUri)
+        if (entries.isEmpty()) {
+            showEmptyLoadFolderDialog()
+        } else {
+            showLoadFolderDialog(entries)
+        }
+    }
+
+    private fun showLoadFolderDialog(entries: List<ProjectArchiveStore.LoadFolderEntry>) {
+        val labels = entries.map { it.displayName }.toTypedArray()
+        val builder = MaterialAlertDialogBuilder(this)
+            .setTitle("Open project")
+            .setSingleChoiceItems(labels, -1) { dialog, which ->
+                val picked = entries[which]
+                dialog.dismiss()
+                // Delegate to the existing load path. The MethodChannel
+                // response is unchanged.
+                onLoadArchivePicked(picked.documentUri)
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+                val result = pendingLoadResult
+                pendingLoadResult = null
+                if (result != null) {
+                    result.success(mapOf("ok" to false, "cancelled" to true))
+                }
+            }
+        builder.show()
+    }
+
+    private fun showEmptyLoadFolderDialog() {
+        val builder = MaterialAlertDialogBuilder(this)
+            .setTitle("No .audioapp.zip files")
+            .setMessage(
+                "This folder does not contain any .audioapp.zip files. " +
+                    "Pick a different folder or cancel.",
+            )
+            .setPositiveButton("Pick a different folder") { dialog, _ ->
+                dialog.dismiss()
+                // Re-launch the folder picker. pendingLoadResult is
+                // still held; the user gets another chance.
+                openProjectFolder.launch(ProjectUriStore.loadLastFolderUri(this))
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+                val result = pendingLoadResult
+                pendingLoadResult = null
+                if (result != null) {
+                    result.success(mapOf("ok" to false, "cancelled" to true))
+                }
+            }
+        builder.show()
+    }
+
+    internal class OpenProjectFolder :
+        ActivityResultContracts.OpenDocumentTree() {
+
+        override fun createIntent(context: Context, input: Uri?): Intent {
+            val intent = super.createIntent(context, input)
+            ProjectUriStore.loadLastFolderUri(context)?.let { lastFolderUri ->
+                intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, lastFolderUri)
+            }
+            return intent
         }
     }
 
