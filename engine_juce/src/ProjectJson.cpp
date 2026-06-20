@@ -80,6 +80,7 @@ juce::var deviceToVar(const DeviceState& device) {
     auto* parameters = new juce::DynamicObject();
     if (device.type == "track_gain" || device.type == "simple_sampler" ||
         device.type == "simple_oscillator" || device.type == "subtractive_synth" ||
+        device.type == "bass_synth" ||
         device.type == "gate" || device.type == "compressor" || device.type == "expander" ||
         device.type == "limiter") {
         parameters->setProperty("gain", static_cast<double>(device.gain));
@@ -150,6 +151,24 @@ juce::var deviceToVar(const DeviceState& device) {
         parameters->setProperty("filterShaperMode", device.filterShaperMode);
         parameters->setProperty("synthLegato", static_cast<double>(device.synthLegato));
         parameters->setProperty("synthMono", static_cast<double>(device.synthMono));
+    }
+    if (device.type == "bass_synth") {
+        parameters->setProperty("attack", static_cast<double>(device.attack));
+        parameters->setProperty("sustain", static_cast<double>(device.sustain));
+        parameters->setProperty("release", static_cast<double>(device.release));
+        parameters->setProperty("filterCutoff", static_cast<double>(device.filterCutoff));
+        parameters->setProperty("filterEnvAmount", static_cast<double>(device.filterEnvAmount));
+        parameters->setProperty("filterDecay", static_cast<double>(device.filterDecay));
+        parameters->setProperty("glideMs", static_cast<double>(device.glideMs));
+        parameters->setProperty("bassOscShape", static_cast<double>(device.bassOscShape));
+        parameters->setProperty("bassSubMix", static_cast<double>(device.bassSubMix));
+        parameters->setProperty("bassSubOctave", device.bassSubOctave);
+        parameters->setProperty("bassNoise", static_cast<double>(device.bassNoise));
+        parameters->setProperty("bassFilterResonance", static_cast<double>(device.bassFilterResonance));
+        parameters->setProperty("bassDrive", static_cast<double>(device.bassDrive));
+        parameters->setProperty("bassSquash", static_cast<double>(device.bassSquash));
+        parameters->setProperty("bassOctave", device.bassOctave);
+        parameters->setProperty("bassVelocitySense", static_cast<double>(device.bassVelocitySense));
     }
     if (device.type == "kick_generator") {
         parameters->setProperty("kickModel", static_cast<double>(device.kickModel));
@@ -393,6 +412,16 @@ DeviceState deviceFromVar(const juce::var& value) {
             device.limitDrive = varToFloat(params->getProperty("limitDrive"), 0.0f);
             device.limitMakeup = varToFloat(params->getProperty("limitMakeup"), 0.0f);
             device.inputGain = varToFloat(params->getProperty("inputGain"), 1.0f);
+            // Bass Synth parameters
+            device.bassOscShape = varToFloat(params->getProperty("bassOscShape"), 0.3f);
+            device.bassSubMix = varToFloat(params->getProperty("bassSubMix"), 0.5f);
+            device.bassSubOctave = varToInt(params->getProperty("bassSubOctave"), 0);
+            device.bassNoise = varToFloat(params->getProperty("bassNoise"), 0.0f);
+            device.bassFilterResonance = varToFloat(params->getProperty("bassFilterResonance"), 0.25f);
+            device.bassDrive = varToFloat(params->getProperty("bassDrive"), 0.0f);
+            device.bassSquash = varToFloat(params->getProperty("bassSquash"), 0.0f);
+            device.bassOctave = varToInt(params->getProperty("bassOctave"), 2);
+            device.bassVelocitySense = varToFloat(params->getProperty("bassVelocitySense"), 1.0f);
         }
     }
     return device;
