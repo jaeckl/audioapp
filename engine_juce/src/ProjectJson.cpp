@@ -1,5 +1,6 @@
 #include "audioapp/ProjectJson.hpp"
 #include "audioapp/SampleTypes.hpp"
+#include "audioapp/devices/DeviceRegistry.hpp"
 
 #include <juce_core/juce_core.h>
 
@@ -787,11 +788,20 @@ juce::var snapshotToVar(const ProjectSnapshot& snapshot) {
     return juce::var(object);
 }
 
-juce::var projectFileToVar(const ProjectFileData& project) {
+// --- Persistence-only track serializers (Phase 2) ---
+
+// Forward declarations for persistence track serializers (defined below in this namespace).
+juce::var trackToVarPersistence(const TrackState& track,
+                                 const DeviceRegistry& registry);
+TrackState trackFromVarPersistence(const juce::var& value,
+                                    const DeviceRegistry& registry);
+
+juce::var projectFileToVar(const ProjectFileData& project,
+                            const DeviceRegistry& registry) {
     juce::Array<juce::var> tracks;
     tracks.ensureStorageAllocated(static_cast<int>(project.tracks.size()));
     for (const auto& track : project.tracks) {
-        tracks.add(trackToVar(track));
+        tracks.add(trackToVarPersistence(track, registry));
     }
 
     juce::Array<juce::var> samples;
@@ -851,6 +861,68 @@ DeviceSlot deviceVarToSlotImpl(const juce::var& obj, const DeviceRegistry& regis
     return {};
 }
 
+// --- Persistence-only track serializers (Phase 2) ---
+
+juce::var trackToVarPersistence(const TrackState& track,
+                                 const DeviceRegistry& registry) {
+    juce::Array<juce::var> devices;
+    devices.ensureStorageAllocated(static_cast<int>(track.devices.size()));
+    for (const auto& device : track.devices) {
+        devices.add(audioapp::deviceToVar(device, registry));
+    }
+
+    juce::Array<juce::var> clips;
+    clips.ensureStorageAllocated(static_cast<int>(track.midiClips.size()));
+    for (const auto& clip : track.midiClips) {
+        clips.add(midiClipToVar(clip));
+    }
+
+    juce::Array<juce::var> sampleClips;
+    sampleClips.ensureStorageAllocated(static_cast<int>(track.sampleClips.size()));
+    for (const auto& clip : track.sampleClips) {
+        sampleClips.add(sampleClipToVar(clip));
+    }
+
+    auto* object = new juce::DynamicObject();
+    object->setProperty("id", toJuceString(track.id));
+    object->setProperty("name", toJuceString(track.name));
+    object->setProperty("devices", devices);
+    object->setProperty("midiClips", clips);
+    object->setProperty("sampleClips", sampleClips);
+    return juce::var(object);
+}
+
+TrackState trackFromVarPersistence(const juce::var& value,
+                                    const DeviceRegistry& registry) {
+    TrackState track;
+    if (const auto* object = value.getDynamicObject()) {
+        track.id = varToString(object->getProperty("id"));
+        track.name = varToString(object->getProperty("name"));
+        if (const auto* devices = varArray(object->getProperty("devices"))) {
+            for (const auto& deviceVar : *devices) {
+                track.devices.push_back(
+                    audioapp::deviceFromVar(deviceVar, registry));
+            }
+        }
+        if (const auto* clips = varArray(object->getProperty("midiClips"))) {
+            for (const auto& clipVar : *clips) {
+                track.midiClips.push_back(midiClipFromVar(clipVar));
+            }
+        }
+        if (const auto* sampleClips = varArray(object->getProperty("sampleClips"))) {
+            for (const auto& clipVar : *sampleClips) {
+                track.sampleClips.push_back(sampleClipFromVar(clipVar));
+            }
+        }
+        if (const auto* automationClips = varArray(object->getProperty("automationClips"))) {
+            for (const auto& clipVar : *automationClips) {
+                track.automationClips.push_back(automationClipFromVar(clipVar));
+            }
+        }
+    }
+    return track;
+}
+
 } // namespace
 
 std::string deviceSlotToVar(const DeviceSlot& slot, const DeviceRegistry& registry) {
@@ -878,11 +950,14 @@ std::string snapshotToJson(const ProjectSnapshot& snapshot) {
     return toStdString(juce::JSON::toString(snapshotToVar(snapshot), false));
 }
 
-std::string projectFileToJson(const ProjectFileData& project) {
-    return toStdString(juce::JSON::toString(projectFileToVar(project), true));
+std::string projectFileToJson(const ProjectFileData& project,
+                               const DeviceRegistry& registry) {
+    return toStdString(juce::JSON::toString(projectFileToVar(project, registry), true));
 }
 
-bool parseProjectFileJson(const std::string& json, ProjectFileData& out) {
+bool parseProjectFileJson(const std::string& json,
+                          ProjectFileData& out,
+                          const DeviceRegistry& registry) {
     const auto root = parseRootVar(json);
     const auto* object = root.getDynamicObject();
     if (object == nullptr) {
@@ -918,7 +993,7 @@ bool parseProjectFileJson(const std::string& json, ProjectFileData& out) {
     if (const auto* tracks = varArray(object->getProperty("tracks"))) {
         out.tracks.reserve(static_cast<size_t>(tracks->size()));
         for (const auto& trackVar : *tracks) {
-            out.tracks.push_back(trackFromVar(trackVar));
+            out.tracks.push_back(trackFromVarPersistence(trackVar, registry));
         }
     }
 

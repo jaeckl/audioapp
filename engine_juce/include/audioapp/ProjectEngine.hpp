@@ -177,6 +177,9 @@ public:
 
     void setSampleBank(const SampleBank* bank) { sampleBank_ = bank; }
 
+    /// Expose the device registry for serialization dispatch.
+    const DeviceRegistry& deviceRegistry() const { return deviceRegistry_; }
+
     void setPlaying(bool playing);
     bool isPlaying() const noexcept;
     double playheadBeats() const noexcept;

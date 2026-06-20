@@ -293,12 +293,13 @@ bool EngineHost::loadProject(const std::string& archivePath) {
 }
 
 std::string EngineHost::getProjectFileJson() const {
-    return projectFileToJson(project_.toProjectFileData());
+    return projectFileToJson(project_.toProjectFileData(),
+                             project_.deviceRegistry());
 }
 
 bool EngineHost::loadProjectFileJson(const std::string& json) {
     ProjectFileData data;
-    if (!parseProjectFileJson(json, data)) {
+    if (!parseProjectFileJson(json, data, project_.deviceRegistry())) {
         return false;
     }
     ensureSampleBankReady();

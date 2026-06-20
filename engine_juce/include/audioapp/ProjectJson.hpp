@@ -26,8 +26,11 @@ struct ProjectFileData {
 
 constexpr int kProjectFormatVersion = 1;
 
-std::string projectFileToJson(const ProjectFileData& project);
-bool parseProjectFileJson(const std::string& json, ProjectFileData& out);
+std::string projectFileToJson(const ProjectFileData& project,
+                               const DeviceRegistry& registry);
+bool parseProjectFileJson(const std::string& json,
+                          ProjectFileData& out,
+                          const DeviceRegistry& registry);
 
 /// Registry-aware overload: converts DeviceState to JSON via DeviceSlot dispatch.
 juce::var deviceToVar(const DeviceState& device, const DeviceRegistry& registry);
