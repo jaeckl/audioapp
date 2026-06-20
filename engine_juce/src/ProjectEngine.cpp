@@ -1171,9 +1171,14 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                 }
             }
             if (di < 0) continue; // edge targets a different track
+            // Resolve domain LFO id → compact playback array index.
+            // The audio thread indexes lfoValues[] by this compact index,
+            // not by the domain LFO id (which starts at 1, not 0).
+            const int lfoPlaybackIdx = modulationGraph_.playbackIndexForLfoId(globalEdge.lfoId);
+            if (lfoPlaybackIdx < 0) continue; // LFO has been removed
             ModulationEdgePlayback& me = snap.modEdges[snap.modEdgeCount++];
             me.deviceIndex = static_cast<uint16_t>(di);
-            me.lfoId = static_cast<uint16_t>(globalEdge.lfoId);
+            me.lfoId = static_cast<uint16_t>(lfoPlaybackIdx);
             me.localParamId = paramIdFromString(globalEdge.paramId.c_str(), snap.devices[di].kind);
             me.amount = globalEdge.amount;
         }

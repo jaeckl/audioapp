@@ -51,6 +51,17 @@ public:
     }
     const LfoPlaybackEntry& lfoPlaybackEntry(int index) const noexcept { return lfoPlayback_[index]; }
     LfoPlaybackEntry& lfoPlaybackEntryMutable(int index) noexcept { return lfoPlayback_[index]; }
+
+    /// Maps a domain LFO id (from ModulationEdge.lfoId) to the compact
+    /// playback array index. Returns -1 if the LFO is no longer present.
+    int playbackIndexForLfoId(int lfoId) const noexcept {
+        const int count = lfoPlaybackCount_.load(std::memory_order_acquire);
+        for (int i = 0; i < count; ++i) {
+            if (lfoPlayback_[i].state.id == lfoId) return i;
+        }
+        return -1;
+    }
+
     uint32_t noteRetriggerGeneration() const noexcept {
         return noteRetriggerGeneration_.load(std::memory_order_acquire);
     }
