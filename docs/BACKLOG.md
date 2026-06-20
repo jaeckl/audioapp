@@ -41,6 +41,24 @@ Planning for vertical slices. Product vision: [AGENT.md](../AGENT.md).
 
 **Backlog (should-have):** chord/strum strips, choke groups, hold Y-slide aftertouch, mixer sheet from Play.
 
+## Milestone 16 — Modulation & Automation Test Coverage
+
+| Ticket | Slice | Status |
+|--------|-------|--------|
+| US-16-01 | Stacked LFO modulation test (engine) | Done |
+| US-16-02 | Effect device modulation test (engine) | Done |
+| US-16-03 | Common param gain/pan modulation test (engine) | Done |
+| US-16-04 | Percussion generator modulation test (engine) | Done |
+| US-16-05 | ADSR envelope modulator test (engine) | Done |
+| US-16-06 | LFO polarity test (engine) | Done |
+| US-16-07 | LFO sync-to-BPM test (engine) | Done |
+| US-16-08 | Combined gain/pan mod+auto test (engine) | Done |
+| US-16-09 | Effect device automation test (engine) | Done |
+| US-16-10 | Flutter LFO bridge CRUD test | Done |
+| US-16-11 | Flutter modulation widget test | Done |
+| US-16-12 | Flutter snapshot parsing test | Done |
+| US-16-13 | Flutter modulation persistence test | Done |
+
 ## Other candidates
 
 - Clip resize
