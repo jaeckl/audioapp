@@ -126,9 +126,15 @@ class AutomationPointSnapshot {
 }
 
 /// Parameter automation clip on a track timeline.
+///
+/// The clip is laid out on its [homeTrackId] (independent of where the
+/// target device lives) and automates a parameter on the device identified
+/// by [deviceId] / [paramId]. The two relationships are independent — the
+/// home track is a layout choice, the target device is a routing choice.
 class AutomationClipSnapshot implements ClipTimelineSpan {
   const AutomationClipSnapshot({
     required this.id,
+    required this.homeTrackId,
     required this.startBeat,
     required this.lengthBeats,
     required this.deviceId,
@@ -138,6 +144,11 @@ class AutomationClipSnapshot implements ClipTimelineSpan {
 
   @override
   final String id;
+
+  /// Track the clip is rendered on in the arrangement view. Set at create
+  /// time; the target device (deviceId/paramId) may live on any track,
+  /// including this one.
+  final String homeTrackId;
 
   @override
   final double startBeat;
@@ -178,6 +189,7 @@ class AutomationClipSnapshot implements ClipTimelineSpan {
     final pointsRaw = map['points'] as List<dynamic>? ?? [];
     return AutomationClipSnapshot(
       id: map['id'] as String? ?? '',
+      homeTrackId: map['homeTrackId'] as String? ?? '',
       startBeat: (map['startBeat'] as num?)?.toDouble() ?? 0.0,
       lengthBeats: (map['lengthBeats'] as num?)?.toDouble() ?? 4.0,
       deviceId: map['deviceId'] as String? ?? '',

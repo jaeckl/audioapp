@@ -1948,6 +1948,7 @@ class _ClipDragPreview extends StatelessWidget {
                         session.automationClip ??
                             AutomationClipSnapshot(
                               id: session.clipId,
+                              homeTrackId: session.sourceTrackId,
                               startBeat: session.previewStartBeat,
                               lengthBeats: session.lengthBeats,
                               deviceId: '',

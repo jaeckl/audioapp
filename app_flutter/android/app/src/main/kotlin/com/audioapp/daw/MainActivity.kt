@@ -2,6 +2,7 @@ package com.audioapp.daw
 
 import android.net.Uri
 import android.os.Bundle
+import android.os.PowerManager
 import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.WindowCompat
@@ -18,6 +19,7 @@ class MainActivity : FlutterFragmentActivity() {
 
     private var pendingSaveResult: MethodChannel.Result? = null
     private var pendingLoadResult: MethodChannel.Result? = null
+    private var wakeLock: PowerManager.WakeLock? = null
     private var pendingImportResult: MethodChannel.Result? = null
     private var pendingExportResult: MethodChannel.Result? = null
 
@@ -224,10 +226,12 @@ class MainActivity : FlutterFragmentActivity() {
                     when (call.method) {
                         "ping" -> result.success("pong")
                         "play" -> {
+                            acquirePlaybackWakeLock()
                             nativePlay()
                             result.success(null)
                         }
                         "stop" -> {
+                            releasePlaybackWakeLock()
                             nativeStop()
                             result.success(null)
                         }
@@ -372,6 +376,36 @@ class MainActivity : FlutterFragmentActivity() {
     private external fun nativeRenderOffline(lengthBeats: Double): FloatArray
     private external fun nativePlay()
     private external fun nativeStop()
+
+    private fun acquirePlaybackWakeLock() {
+        try {
+            if (wakeLock == null || wakeLock?.isHeld == false) {
+                val pm = getSystemService(POWER_SERVICE) as PowerManager
+                wakeLock = pm.newWakeLock(
+                    PowerManager.PARTIAL_WAKE_LOCK,
+                    "audioapp:audio_playback"
+                )
+                wakeLock?.acquire()
+                Log.i(logTag, "Acquired PARTIAL_WAKE_LOCK")
+            }
+        } catch (e: Exception) {
+            Log.w(logTag, "Failed to acquire wake lock: ${e.message}")
+        }
+    }
+
+    private fun releasePlaybackWakeLock() {
+        try {
+            wakeLock?.let {
+                if (it.isHeld) {
+                    it.release()
+                    Log.i(logTag, "Released wake lock")
+                }
+            }
+            wakeLock = null
+        } catch (e: Exception) {
+            Log.w(logTag, "Failed to release wake lock: ${e.message}")
+        }
+    }
 
     companion object {
         init {

@@ -58,18 +58,20 @@ void main() {
                 'name': 'Synth',
                 'devices': [],
                 'midiClips': [],
-                'automationClips': [
-                  {
-                    'id': 'aclip-1',
-                    'startBeat': 0.0,
-                    'lengthBeats': 4.0,
-                    'deviceId': 'dev-1',
-                    'paramId': 'filterCutoff',
-                    'points': [
-                      {'beat': 0.0, 'value': 1.0},
-                      {'beat': 4.0, 'value': 0.25},
-                    ],
-                  },
+                'automationClips': [],
+              },
+            ],
+            'automationClips': [
+              {
+                'id': 'aclip-1',
+                'homeTrackId': 'track-1',
+                'startBeat': 0.0,
+                'lengthBeats': 4.0,
+                'deviceId': 'dev-1',
+                'paramId': 'filterCutoff',
+                'points': [
+                  {'beat': 0.0, 'value': 1.0},
+                  {'beat': 4.0, 'value': 0.25},
                 ],
               },
             ],
@@ -81,6 +83,7 @@ void main() {
 
     const clip = AutomationClipSnapshot(
       id: 'aclip-1',
+      homeTrackId: 'track-1',
       startBeat: 0,
       lengthBeats: 4,
       deviceId: 'dev-1',

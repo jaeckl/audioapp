@@ -378,17 +378,21 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }) async {
     try {
       await widget.bridge.selectTrack(trackId);
-      final beforeCount = _trackById(trackId)?.automationClips.length ?? 0;
+      final beforeIds = _snapshot?.automationClips.map((c) => c.id).toSet() ?? <String>{};
       var snapshot = await widget.bridge.createAutomationClip(
         trackId: trackId,
         startBeat: startBeat,
       );
-      final track = snapshot.tracks.firstWhere((t) => t.id == trackId);
-      if (track.automationClips.length <= beforeCount) {
+      // Automation clips are project-global; the new one is the last entry
+      // in the top-level array (regardless of which track it ended up on).
+      final newClips = snapshot.automationClips
+          .where((c) => !beforeIds.contains(c.id))
+          .toList();
+      if (newClips.isEmpty) {
         await _refreshSnapshot(snapshot);
         return;
       }
-      final created = track.automationClips.last;
+      final created = newClips.last;
       if (deviceId != null && paramId != null) {
         snapshot = await widget.bridge.assignAutomationTarget(
           clipId: created.id,
@@ -480,18 +484,20 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
     try {
       await widget.bridge.selectTrack(track.id);
-      final beforeCount = track.automationClips.length;
+      final beforeIds = _snapshot?.automationClips.map((c) => c.id).toSet() ?? <String>{};
       var snapshot = await widget.bridge.createAutomationClip(
         trackId: track.id,
         startBeat: startBeat,
         lengthBeats: lengthBeats,
       );
-      final updatedTrack = snapshot.tracks.firstWhere((t) => t.id == track.id);
-      if (updatedTrack.automationClips.length <= beforeCount) {
+      final newClips = snapshot.automationClips
+          .where((c) => !beforeIds.contains(c.id))
+          .toList();
+      if (newClips.isEmpty) {
         await _refreshSnapshot(snapshot);
         return;
       }
-      final created = updatedTrack.automationClips.last;
+      final created = newClips.last;
       snapshot = await widget.bridge.assignAutomationTarget(
         clipId: created.id,
         deviceId: deviceId,
@@ -530,15 +536,11 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     AutomationClipSnapshot editorClip = clip;
     try {
       final fresh = await widget.bridge.getProjectSnapshot();
-      for (final t in fresh.tracks) {
-        if (t.id != trackId) continue;
-        for (final candidate in t.automationClips) {
-          if (candidate.id == clip.id) {
-            editorClip = candidate;
-            break;
-          }
+      for (final candidate in fresh.automationClips) {
+        if (candidate.id == clip.id) {
+          editorClip = candidate;
+          break;
         }
-        break;
       }
     } catch (_) {
       // Fall back to the clip snapshot we already have.

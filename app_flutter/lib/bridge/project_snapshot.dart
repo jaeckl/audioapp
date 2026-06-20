@@ -22,6 +22,7 @@ class ProjectSnapshot {
     required this.tracks,
     this.lfos = const [],
     this.modEdges = const [],
+    this.automationClips = const [],
   });
 
   final int bpm;
@@ -38,6 +39,11 @@ class ProjectSnapshot {
   final List<TrackSnapshot> tracks;
   final List<LfoSnapshot> lfos;
   final List<ModulationEdgeSnapshot> modEdges;
+  /// Project-global automation clips. This is the authoritative source;
+  /// `TrackSnapshot.automationClips` is kept as an empty shim so existing
+  /// code that iterates per-track still compiles, but new code should read
+  /// from here.
+  final List<AutomationClipSnapshot> automationClips;
 
   factory ProjectSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final snapshot = map['snapshot'] as Map<dynamic, dynamic>? ?? map;
@@ -45,6 +51,9 @@ class ProjectSnapshot {
     final samplesRaw = snapshot['samples'] as List<dynamic>? ?? [];
     final lfosRaw = snapshot['lfos'] as List<dynamic>? ?? [];
     final modEdgesRaw = snapshot['modEdges'] as List<dynamic>? ?? [];
+    // Prefer the new top-level array; fall back to per-track if a legacy
+    // engine (or test mock) only emits the nested form.
+    final automationRaw = snapshot['automationClips'] as List<dynamic>?;
     final loopRegionEndRaw = snapshot['loopRegionEndBeat'];
     final loopRegionStart = readEngineDouble(
       snapshot['loopRegionStartBeat'],
@@ -53,6 +62,11 @@ class ProjectSnapshot {
     final loopRegionEnd = loopRegionEndRaw != null
         ? readEngineDouble(loopRegionEndRaw, defaultValue: 16.0)
         : readEngineDouble(snapshot['loopLengthBeats'], defaultValue: 16.0);
+    final automationClipsList = automationRaw != null
+        ? automationRaw
+            .map((c) => AutomationClipSnapshot.fromMap(c as Map<dynamic, dynamic>))
+            .toList()
+        : <AutomationClipSnapshot>[];
     return ProjectSnapshot(
       bpm: (snapshot['bpm'] as num?)?.toInt() ?? 120,
       selectedTrackId: snapshot['selectedTrackId'] as String? ?? '',
@@ -67,7 +81,10 @@ class ProjectSnapshot {
           .map((s) => SampleLibraryEntrySnapshot.fromMap(s as Map<dynamic, dynamic>))
           .toList(),
       tracks: tracksRaw
-          .map((t) => TrackSnapshot.fromMap(t as Map<dynamic, dynamic>))
+          .map((t) => TrackSnapshot.fromMap(
+                t as Map<dynamic, dynamic>,
+                projectAutomationClips: automationClipsList,
+              ))
           .toList(),
       lfos: lfosRaw
           .map((l) => LfoSnapshot.fromMap(l as Map<dynamic, dynamic>))
@@ -75,6 +92,7 @@ class ProjectSnapshot {
       modEdges: modEdgesRaw
           .map((e) => ModulationEdgeSnapshot.fromMap(e as Map<dynamic, dynamic>))
           .toList(),
+      automationClips: automationClipsList,
     );
   }
 
@@ -88,13 +106,11 @@ class ProjectSnapshot {
   }
 
   Iterable<AutomationClipSnapshot> get allAutomationClips sync* {
-    for (final track in tracks) {
-      yield* track.automationClips;
-    }
+    yield* automationClips;
   }
 
   AutomationClipSnapshot? automationClipById(String clipId) {
-    for (final clip in allAutomationClips) {
+    for (final clip in automationClips) {
       if (clip.id == clipId) {
         return clip;
       }
@@ -156,6 +172,7 @@ class ProjectSnapshot {
           .toList(),
       lfos: lfos,
       modEdges: modEdges,
+      automationClips: automationClips,
     );
   }
 }
@@ -256,13 +273,28 @@ class TrackSnapshot {
   final List<DeviceSnapshot> devices;
   final List<MidiClipSnapshot> midiClips;
   final List<SampleClipSnapshot> sampleClips;
+  /// Per-track view of automation clips whose `homeTrackId` matches this
+  /// track's id. With the move to a global store, the per-track field is
+  /// populated from `ProjectSnapshot.automationClips` for backward
+  /// compatibility with code that iterates tracks. The clip's `deviceId`
+  /// is independent — it can point at a device on any track.
   final List<AutomationClipSnapshot> automationClips;
 
-  factory TrackSnapshot.fromMap(Map<dynamic, dynamic> map) {
+  factory TrackSnapshot.fromMap(
+    Map<dynamic, dynamic> map, {
+    List<AutomationClipSnapshot> projectAutomationClips = const [],
+  }) {
+    final trackId = map['id'] as String? ?? '';
     final devicesRaw = map['devices'] as List<dynamic>? ?? [];
     final clipsRaw = map['midiClips'] as List<dynamic>? ?? [];
     final sampleClipsRaw = map['sampleClips'] as List<dynamic>? ?? [];
-    final automationClipsRaw = map['automationClips'] as List<dynamic>? ?? [];
+    final perTrackAutomation = map['automationClips'] as List<dynamic>? ?? [];
+    // Project-global clips. The clip's homeTrackId is the layout choice —
+    // the track lane it lives in. Unassigned clips (no target yet) are
+    // still laid out on the home track the user picked at create time.
+    final fromGlobal = projectAutomationClips
+        .where((c) => c.homeTrackId == trackId)
+        .toList();
     return TrackSnapshot(
       id: map['id'] as String? ?? '',
       name: map['name'] as String? ?? '',
@@ -275,9 +307,11 @@ class TrackSnapshot {
       sampleClips: sampleClipsRaw
           .map((c) => SampleClipSnapshot.fromMap(c as Map<dynamic, dynamic>))
           .toList(),
-      automationClips: automationClipsRaw
-          .map((c) => AutomationClipSnapshot.fromMap(c as Map<dynamic, dynamic>))
-          .toList(),
+      automationClips: perTrackAutomation.isNotEmpty
+          ? perTrackAutomation
+              .map((c) => AutomationClipSnapshot.fromMap(c as Map<dynamic, dynamic>))
+              .toList()
+          : fromGlobal,
     );
   }
 }
