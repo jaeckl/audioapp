@@ -15,22 +15,54 @@
 namespace audioapp {
 
 // -----------------------------------------------------------------------
+// ParamKind <-> DeviceNodeKind mapping
+// -----------------------------------------------------------------------
+
+static ParamKind paramKindForDevice(DeviceNodeKind kind) noexcept {
+    switch (kind) {
+    case DeviceNodeKind::Oscillator:       return ParamKind::Oscillator;
+    case DeviceNodeKind::Sampler:          return ParamKind::Sampler;
+    case DeviceNodeKind::SubtractiveSynth: return ParamKind::SubtractiveSynth;
+    case DeviceNodeKind::KickGenerator:    return ParamKind::KickGenerator;
+    case DeviceNodeKind::SnareGenerator:   return ParamKind::SnareGenerator;
+    case DeviceNodeKind::ClapGenerator:    return ParamKind::ClapGenerator;
+    case DeviceNodeKind::CymbalGenerator:  return ParamKind::CymbalGenerator;
+    case DeviceNodeKind::CrashGenerator:   return ParamKind::CrashGenerator;
+    case DeviceNodeKind::Gate:             return ParamKind::Gate;
+    case DeviceNodeKind::Compressor:       return ParamKind::Compressor;
+    case DeviceNodeKind::Expander:         return ParamKind::Expander;
+    case DeviceNodeKind::Limiter:          return ParamKind::Limiter;
+    case DeviceNodeKind::TrackGain:        return ParamKind::TrackGain;
+    case DeviceNodeKind::Unknown:
+    default:                                return ParamKind::Common;
+    }
+}
+
+// -----------------------------------------------------------------------
 // paramIdFromString / paramIdToString  (control thread, string scan OK)
+// Returns an encoded (ParamKind, perKindId) uint16_t so the audio thread
+// can disambiguate which per-kind enum to dispatch to (see AutomationTypes.hpp
+// for the pack/unpack helpers).
 // -----------------------------------------------------------------------
 
 uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
     if (name == nullptr || name[0] == '\0') return 0;
     // Common params (same across all device kinds)
-    if (std::strcmp(name, "gain") == 0) return static_cast<uint16_t>(CommonParam::Gain);
-    if (std::strcmp(name, "pan") == 0) return static_cast<uint16_t>(CommonParam::Pan);
+    if (std::strcmp(name, "gain") == 0) return packParamId(ParamKind::Common, static_cast<uint16_t>(CommonParam::Gain));
+    if (std::strcmp(name, "pan") == 0) return packParamId(ParamKind::Common, static_cast<uint16_t>(CommonParam::Pan));
 
     switch (kind) {
     case DeviceNodeKind::Oscillator: {
-        if (std::strcmp(name, "frequency") == 0) return static_cast<uint16_t>(OscillatorParam::Frequency);
+        if (std::strcmp(name, "frequency") == 0)
+            return packParamId(ParamKind::Oscillator, static_cast<uint16_t>(OscillatorParam::Frequency));
         return 0;
     }
     case DeviceNodeKind::Sampler: {
-        auto p = [&](const char* n, SamplerParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        auto p = [&](const char* n, SamplerParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::Sampler, static_cast<uint16_t>(pid))
+                : 0;
+        };
         if (auto v = p("filterCutoff", SamplerParam::FilterCutoff)) return v;
         if (auto v = p("filterQ", SamplerParam::FilterQ)) return v;
         if (auto v = p("attack", SamplerParam::Attack)) return v;
@@ -47,7 +79,11 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         return 0;
     }
     case DeviceNodeKind::SubtractiveSynth: {
-        auto s = [&](const char* n, SubtractiveParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        auto s = [&](const char* n, SubtractiveParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::SubtractiveSynth, static_cast<uint16_t>(pid))
+                : 0;
+        };
         if (auto v = s("filterCutoff", SubtractiveParam::FilterCutoff)) return v;
         if (auto v = s("filterQ", SubtractiveParam::FilterQ)) return v;
         if (auto v = s("filterMode", SubtractiveParam::FilterMode)) return v;
@@ -92,7 +128,11 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         return 0;
     }
     case DeviceNodeKind::KickGenerator: {
-        auto k = [&](const char* n, KickParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        auto k = [&](const char* n, KickParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::KickGenerator, static_cast<uint16_t>(pid))
+                : 0;
+        };
         if (auto v = k("kickModel", KickParam::Model)) return v;
         if (auto v = k("kickPitch", KickParam::Pitch)) return v;
         if (auto v = k("kickPunch", KickParam::Punch)) return v;
@@ -103,7 +143,11 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         return 0;
     }
     case DeviceNodeKind::SnareGenerator: {
-        auto s = [&](const char* n, SnareParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        auto s = [&](const char* n, SnareParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::SnareGenerator, static_cast<uint16_t>(pid))
+                : 0;
+        };
         if (auto v = s("snareModel", SnareParam::Model)) return v;
         if (auto v = s("snareBody", SnareParam::Body)) return v;
         if (auto v = s("snareRing", SnareParam::Ring)) return v;
@@ -115,7 +159,11 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         return 0;
     }
     case DeviceNodeKind::ClapGenerator: {
-        auto c = [&](const char* n, ClapParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        auto c = [&](const char* n, ClapParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::ClapGenerator, static_cast<uint16_t>(pid))
+                : 0;
+        };
         if (auto v = c("clapBursts", ClapParam::Bursts)) return v;
         if (auto v = c("clapSpread", ClapParam::Spread)) return v;
         if (auto v = c("clapTone", ClapParam::Tone)) return v;
@@ -125,7 +173,11 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         return 0;
     }
     case DeviceNodeKind::CymbalGenerator: {
-        auto c = [&](const char* n, CymbalParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        auto c = [&](const char* n, CymbalParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::CymbalGenerator, static_cast<uint16_t>(pid))
+                : 0;
+        };
         if (auto v = c("cymbalColor", CymbalParam::Color)) return v;
         if (auto v = c("cymbalDecay", CymbalParam::Decay)) return v;
         if (auto v = c("cymbalWidth", CymbalParam::Width)) return v;
@@ -133,7 +185,11 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         return 0;
     }
     case DeviceNodeKind::CrashGenerator: {
-        auto c = [&](const char* n, CrashParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        auto c = [&](const char* n, CrashParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::CrashGenerator, static_cast<uint16_t>(pid))
+                : 0;
+        };
         if (auto v = c("crashColor", CrashParam::Color)) return v;
         if (auto v = c("crashSpread", CrashParam::Spread)) return v;
         if (auto v = c("crashDecay", CrashParam::Decay)) return v;
@@ -141,7 +197,11 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         return 0;
     }
     case DeviceNodeKind::Gate: {
-        auto g = [&](const char* n, GateParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        auto g = [&](const char* n, GateParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::Gate, static_cast<uint16_t>(pid))
+                : 0;
+        };
         if (auto v = g("inputGain", GateParam::InputGain)) return v;
         if (auto v = g("gateThreshold", GateParam::Threshold)) return v;
         if (auto v = g("gateAttack", GateParam::Attack)) return v;
@@ -151,7 +211,11 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         return 0;
     }
     case DeviceNodeKind::Compressor: {
-        auto c = [&](const char* n, CompressorParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        auto c = [&](const char* n, CompressorParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::Compressor, static_cast<uint16_t>(pid))
+                : 0;
+        };
         if (auto v = c("inputGain", CompressorParam::InputGain)) return v;
         if (auto v = c("compThreshold", CompressorParam::Threshold)) return v;
         if (auto v = c("compRatio", CompressorParam::Ratio)) return v;
@@ -162,7 +226,11 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         return 0;
     }
     case DeviceNodeKind::Expander: {
-        auto e = [&](const char* n, ExpanderParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        auto e = [&](const char* n, ExpanderParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::Expander, static_cast<uint16_t>(pid))
+                : 0;
+        };
         if (auto v = e("inputGain", ExpanderParam::InputGain)) return v;
         if (auto v = e("expandThreshold", ExpanderParam::Threshold)) return v;
         if (auto v = e("expandRatio", ExpanderParam::Ratio)) return v;
@@ -172,7 +240,11 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         return 0;
     }
     case DeviceNodeKind::Limiter: {
-        auto l = [&](const char* n, LimiterParam pid) { return std::strcmp(name, n) == 0 ? static_cast<uint16_t>(pid) : 0; };
+        auto l = [&](const char* n, LimiterParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::Limiter, static_cast<uint16_t>(pid))
+                : 0;
+        };
         if (auto v = l("inputGain", LimiterParam::InputGain)) return v;
         if (auto v = l("limitCeiling", LimiterParam::Ceiling)) return v;
         if (auto v = l("limitAttack", LimiterParam::Attack)) return v;
@@ -181,21 +253,30 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         if (auto v = l("limitMakeup", LimiterParam::Makeup)) return v;
         return 0;
     }
+    case DeviceNodeKind::TrackGain: {
+        // TrackGain has no DSP-local params; gain is the only one and is
+        // handled via CommonParam::Gain. Return 0 for any other name.
+        return 0;
+    }
     default:
         return 0;
     }
 }
 
 const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept {
+    // localParamId is now an encoded (ParamKind, perKindId) uint16_t. The
+    // caller still passes the device kind, so we use it to switch the
+    // outer dispatch and unpackParamId() to get the raw enum value.
+    const uint16_t rawId = unpackParamId(localParamId);
     switch (kind) {
     case DeviceNodeKind::Oscillator: {
-        switch (static_cast<OscillatorParam>(localParamId)) {
+        switch (static_cast<OscillatorParam>(rawId)) {
         case OscillatorParam::Frequency: return "frequency";
         default: return "";
         }
     }
     case DeviceNodeKind::Sampler: {
-        switch (static_cast<SamplerParam>(localParamId)) {
+        switch (static_cast<SamplerParam>(rawId)) {
         case SamplerParam::FilterCutoff: return "filterCutoff";
         case SamplerParam::FilterQ: return "filterQ";
         case SamplerParam::Attack: return "attack";
@@ -213,7 +294,7 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         }
     }
     case DeviceNodeKind::SubtractiveSynth: {
-        switch (static_cast<SubtractiveParam>(localParamId)) {
+        switch (static_cast<SubtractiveParam>(rawId)) {
         case SubtractiveParam::FilterCutoff: return "filterCutoff";
         case SubtractiveParam::FilterQ: return "filterQ";
         case SubtractiveParam::FilterMode: return "filterMode";
@@ -259,7 +340,7 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         }
     }
     case DeviceNodeKind::KickGenerator: {
-        switch (static_cast<KickParam>(localParamId)) {
+        switch (static_cast<KickParam>(rawId)) {
         case KickParam::Model: return "kickModel";
         case KickParam::Pitch: return "kickPitch";
         case KickParam::Punch: return "kickPunch";
@@ -271,7 +352,7 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         }
     }
     case DeviceNodeKind::SnareGenerator: {
-        switch (static_cast<SnareParam>(localParamId)) {
+        switch (static_cast<SnareParam>(rawId)) {
         case SnareParam::Model: return "snareModel";
         case SnareParam::Body: return "snareBody";
         case SnareParam::Ring: return "snareRing";
@@ -284,7 +365,7 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         }
     }
     case DeviceNodeKind::ClapGenerator: {
-        switch (static_cast<ClapParam>(localParamId)) {
+        switch (static_cast<ClapParam>(rawId)) {
         case ClapParam::Bursts: return "clapBursts";
         case ClapParam::Spread: return "clapSpread";
         case ClapParam::Tone: return "clapTone";
@@ -295,7 +376,7 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         }
     }
     case DeviceNodeKind::CymbalGenerator: {
-        switch (static_cast<CymbalParam>(localParamId)) {
+        switch (static_cast<CymbalParam>(rawId)) {
         case CymbalParam::Color: return "cymbalColor";
         case CymbalParam::Decay: return "cymbalDecay";
         case CymbalParam::Width: return "cymbalWidth";
@@ -304,7 +385,7 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         }
     }
     case DeviceNodeKind::CrashGenerator: {
-        switch (static_cast<CrashParam>(localParamId)) {
+        switch (static_cast<CrashParam>(rawId)) {
         case CrashParam::Color: return "crashColor";
         case CrashParam::Spread: return "crashSpread";
         case CrashParam::Decay: return "crashDecay";
@@ -313,7 +394,7 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         }
     }
     case DeviceNodeKind::Gate: {
-        switch (static_cast<GateParam>(localParamId)) {
+        switch (static_cast<GateParam>(rawId)) {
         case GateParam::InputGain: return "inputGain";
         case GateParam::Threshold: return "gateThreshold";
         case GateParam::Attack: return "gateAttack";
@@ -324,7 +405,7 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         }
     }
     case DeviceNodeKind::Compressor: {
-        switch (static_cast<CompressorParam>(localParamId)) {
+        switch (static_cast<CompressorParam>(rawId)) {
         case CompressorParam::InputGain: return "inputGain";
         case CompressorParam::Threshold: return "compThreshold";
         case CompressorParam::Ratio: return "compRatio";
@@ -336,7 +417,7 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         }
     }
     case DeviceNodeKind::Expander: {
-        switch (static_cast<ExpanderParam>(localParamId)) {
+        switch (static_cast<ExpanderParam>(rawId)) {
         case ExpanderParam::InputGain: return "inputGain";
         case ExpanderParam::Threshold: return "expandThreshold";
         case ExpanderParam::Ratio: return "expandRatio";
@@ -347,7 +428,7 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         }
     }
     case DeviceNodeKind::Limiter: {
-        switch (static_cast<LimiterParam>(localParamId)) {
+        switch (static_cast<LimiterParam>(rawId)) {
         case LimiterParam::InputGain: return "inputGain";
         case LimiterParam::Ceiling: return "limitCeiling";
         case LimiterParam::Attack: return "limitAttack";
@@ -444,20 +525,25 @@ void applyAutomationValue(DeviceVariantParams& params,
                           uint16_t localParamId,
                           float value) noexcept {
     value = std::clamp(value, 0.0f, 1.0f);
-    // Common params: gain/pan handled by processDeviceChain loop itself.
-    // Here we only dispatch DSP-local params.
-    switch (kind) {
-    case DeviceNodeKind::Oscillator:
+    // localParamId is now encoded (ParamKind, perKindId). We dispatch on
+    // the encoded kind so that a SubtractiveSynth::FilterCutoff (encoded
+    // as 0x3000) doesn't collide with CommonParam::Gain (encoded as 0).
+    // We still read `kind` for the std::get_if check.
+    const uint16_t rawId = unpackParamId(localParamId);
+    const ParamKind k = unpackParamKind(localParamId);
+    (void)kind; // kind is the device kind of the params; useful for safety but not required.
+    switch (k) {
+    case ParamKind::Oscillator:
         if (auto* p = std::get_if<OscillatorParams>(&params)) {
-            switch (static_cast<OscillatorParam>(localParamId)) {
+            switch (static_cast<OscillatorParam>(rawId)) {
             case OscillatorParam::Frequency: p->frequencyHz = 20.0f + value * 1980.0f; break;
             default: break;
             }
         }
         break;
-    case DeviceNodeKind::Sampler:
+    case ParamKind::Sampler:
         if (auto* p = std::get_if<SamplerParams>(&params)) {
-            switch (static_cast<SamplerParam>(localParamId)) {
+            switch (static_cast<SamplerParam>(rawId)) {
             case SamplerParam::FilterCutoff: p->filterCutoff = value; break;
             case SamplerParam::FilterQ: p->filterQ = value; break;
             case SamplerParam::Attack: p->attack = value; break;
@@ -473,9 +559,9 @@ void applyAutomationValue(DeviceVariantParams& params,
             }
         }
         break;
-    case DeviceNodeKind::SubtractiveSynth:
+    case ParamKind::SubtractiveSynth:
         if (auto* p = std::get_if<SubtractiveSynthParams>(&params)) {
-            switch (static_cast<SubtractiveParam>(localParamId)) {
+            switch (static_cast<SubtractiveParam>(rawId)) {
             case SubtractiveParam::FilterCutoff: p->filterCutoff = value; break;
             case SubtractiveParam::FilterQ: p->filterQ = value; break;
             case SubtractiveParam::FilterMode: p->filterMode = std::clamp(static_cast<int>(std::lround(value * 4.0f)), 0, 4); break;
@@ -521,9 +607,9 @@ void applyAutomationValue(DeviceVariantParams& params,
             }
         }
         break;
-    case DeviceNodeKind::KickGenerator:
+    case ParamKind::KickGenerator:
         if (auto* p = std::get_if<KickGeneratorParams>(&params)) {
-            switch (static_cast<KickParam>(localParamId)) {
+            switch (static_cast<KickParam>(rawId)) {
             case KickParam::Model: p->kickModel = value; break;
             case KickParam::Pitch: p->kickPitch = value; break;
             case KickParam::Punch: p->kickPunch = value; break;
@@ -535,9 +621,9 @@ void applyAutomationValue(DeviceVariantParams& params,
             }
         }
         break;
-    case DeviceNodeKind::SnareGenerator:
+    case ParamKind::SnareGenerator:
         if (auto* p = std::get_if<SnareGeneratorParams>(&params)) {
-            switch (static_cast<SnareParam>(localParamId)) {
+            switch (static_cast<SnareParam>(rawId)) {
             case SnareParam::Model: p->snareModel = value; break;
             case SnareParam::Body: p->snareBody = value; break;
             case SnareParam::Ring: p->snareRing = value; break;
@@ -550,9 +636,9 @@ void applyAutomationValue(DeviceVariantParams& params,
             }
         }
         break;
-    case DeviceNodeKind::ClapGenerator:
+    case ParamKind::ClapGenerator:
         if (auto* p = std::get_if<ClapGeneratorParams>(&params)) {
-            switch (static_cast<ClapParam>(localParamId)) {
+            switch (static_cast<ClapParam>(rawId)) {
             case ClapParam::Bursts: p->clapBursts = value; break;
             case ClapParam::Spread: p->clapSpread = value; break;
             case ClapParam::Tone: p->clapTone = value; break;
@@ -563,9 +649,9 @@ void applyAutomationValue(DeviceVariantParams& params,
             }
         }
         break;
-    case DeviceNodeKind::CymbalGenerator:
+    case ParamKind::CymbalGenerator:
         if (auto* p = std::get_if<CymbalGeneratorParams>(&params)) {
-            switch (static_cast<CymbalParam>(localParamId)) {
+            switch (static_cast<CymbalParam>(rawId)) {
             case CymbalParam::Color: p->cymbalColor = value; break;
             case CymbalParam::Decay: p->cymbalDecay = value; break;
             case CymbalParam::Width: p->cymbalWidth = value; break;
@@ -574,9 +660,9 @@ void applyAutomationValue(DeviceVariantParams& params,
             }
         }
         break;
-    case DeviceNodeKind::CrashGenerator:
+    case ParamKind::CrashGenerator:
         if (auto* p = std::get_if<CrashGeneratorParams>(&params)) {
-            switch (static_cast<CrashParam>(localParamId)) {
+            switch (static_cast<CrashParam>(rawId)) {
             case CrashParam::Color: p->crashColor = value; break;
             case CrashParam::Spread: p->crashSpread = value; break;
             case CrashParam::Decay: p->crashDecay = value; break;
@@ -585,9 +671,9 @@ void applyAutomationValue(DeviceVariantParams& params,
             }
         }
         break;
-    case DeviceNodeKind::Gate:
+    case ParamKind::Gate:
         if (auto* p = std::get_if<GateParams>(&params)) {
-            switch (static_cast<GateParam>(localParamId)) {
+            switch (static_cast<GateParam>(rawId)) {
             case GateParam::InputGain: p->inputGain = value; break;
             case GateParam::Threshold: p->gateThreshold = value; break;
             case GateParam::Attack: p->gateAttack = value; break;
@@ -598,9 +684,9 @@ void applyAutomationValue(DeviceVariantParams& params,
             }
         }
         break;
-    case DeviceNodeKind::Compressor:
+    case ParamKind::Compressor:
         if (auto* p = std::get_if<CompressorParams>(&params)) {
-            switch (static_cast<CompressorParam>(localParamId)) {
+            switch (static_cast<CompressorParam>(rawId)) {
             case CompressorParam::InputGain: p->inputGain = value; break;
             case CompressorParam::Threshold: p->compThreshold = value; break;
             case CompressorParam::Ratio: p->compRatio = value; break;
@@ -612,9 +698,9 @@ void applyAutomationValue(DeviceVariantParams& params,
             }
         }
         break;
-    case DeviceNodeKind::Expander:
+    case ParamKind::Expander:
         if (auto* p = std::get_if<ExpanderParams>(&params)) {
-            switch (static_cast<ExpanderParam>(localParamId)) {
+            switch (static_cast<ExpanderParam>(rawId)) {
             case ExpanderParam::InputGain: p->inputGain = value; break;
             case ExpanderParam::Threshold: p->expandThreshold = value; break;
             case ExpanderParam::Ratio: p->expandRatio = value; break;
@@ -625,9 +711,9 @@ void applyAutomationValue(DeviceVariantParams& params,
             }
         }
         break;
-    case DeviceNodeKind::Limiter:
+    case ParamKind::Limiter:
         if (auto* p = std::get_if<LimiterParams>(&params)) {
-            switch (static_cast<LimiterParam>(localParamId)) {
+            switch (static_cast<LimiterParam>(rawId)) {
             case LimiterParam::InputGain: p->inputGain = value; break;
             case LimiterParam::Ceiling: p->limitCeiling = value; break;
             case LimiterParam::Attack: p->limitAttack = value; break;
@@ -638,7 +724,11 @@ void applyAutomationValue(DeviceVariantParams& params,
             }
         }
         break;
+    case ParamKind::Common:
+    case ParamKind::TrackGain:
     default:
+        // Common (gain/pan) and TrackGain are handled elsewhere
+        // (processDeviceChain / per-frame gain/pan arrays).
         break;
     }
 }
@@ -677,8 +767,11 @@ bool nodeHasDspAutomation(uint16_t deviceIndex,
     for (int a = 0; a < clipCount; ++a) {
         if (clips[a].deviceIndex != deviceIndex) continue;
         const uint16_t pid = clips[a].localParamId;
-        if (pid != static_cast<uint16_t>(CommonParam::Gain) &&
-            pid != static_cast<uint16_t>(CommonParam::Pan)) {
+        // Skip the Common gain/pan encodings. The encoded values for
+        // Common::Gain and Common::Pan are 0 and 1 (kind tag is 0). The
+        // encoded values for any other param (e.g. SubtractiveSynth::
+        // FilterCutoff) are 0x3000 etc. and never match.
+        if (pid != kEncodedCommonGain && pid != kEncodedCommonPan) {
             return true;
         }
     }
@@ -700,8 +793,11 @@ void applyDspAutomationAtBeat(DeviceVariantParams& params,
         const AutomationClipPlayback& ac = clips[a];
         if (ac.deviceIndex != deviceIndex) continue;
         const uint16_t pid = ac.localParamId;
-        if (pid == static_cast<uint16_t>(CommonParam::Gain) ||
-            pid == static_cast<uint16_t>(CommonParam::Pan)) {
+        // Common gain/pan are handled by the device-chain loop (per-frame
+        // gain/pan arrays). DSP-local params use the encoded kind tag, so
+        // these constants never collide with SubtractiveSynth::FilterCutoff
+        // or any other per-kind value 0.
+        if (pid == kEncodedCommonGain || pid == kEncodedCommonPan) {
             continue;
         }
         if (beat < static_cast<double>(ac.clipStartBeat) ||

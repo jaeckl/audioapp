@@ -92,7 +92,7 @@ bool isSubtractiveNoteAudible(const SubtractiveMidiNoteRegion& note,
 /// need to know about the variant dispatch). The DeviceChain variant is the
 /// source of truth; keep these in sync when adding new params.
 static void applySubtractiveModulation(SubtractiveSynthParams& p, float modAmount, uint16_t localParamId) noexcept {
-    switch (static_cast<SubtractiveParam>(localParamId)) {
+    switch (static_cast<SubtractiveParam>(unpackParamId(localParamId))) {
     case SubtractiveParam::FilterCutoff:      p.filterCutoff = std::clamp(p.filterCutoff + modAmount, 0.0f, 1.0f); break;
     case SubtractiveParam::FilterQ:           p.filterQ = std::clamp(p.filterQ + modAmount, 0.0f, 1.0f); break;
     case SubtractiveParam::FilterMode:        p.filterMode = std::clamp(static_cast<int>(std::lround(static_cast<float>(p.filterMode) + modAmount * 5.0f)), 0, 5); break;

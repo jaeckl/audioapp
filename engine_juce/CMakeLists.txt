@@ -186,4 +186,8 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
   add_executable(autobroken_routing_test tests/autobroken_routing_test.cpp)
   target_link_libraries(autobroken_routing_test PRIVATE audioapp_engine)
   add_test(NAME autobroken_routing_test COMMAND autobroken_routing_test)
+
+  add_executable(param_id_encoding_test tests/param_id_encoding_test.cpp)
+  target_link_libraries(param_id_encoding_test PRIVATE audioapp_engine)
+  add_test(NAME param_id_encoding_test COMMAND param_id_encoding_test)
 endif()

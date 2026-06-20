@@ -171,12 +171,68 @@ enum class LimiterParam : uint16_t {
 };
 
 // -----------------------------------------------------------------------
+// ParamKind — distinguishes which per-device enum a `localParamId` refers
+// to. Without this tag, multiple device kinds (CommonParam, SubtractiveParam,
+// SamplerParam, …) all encode their first parameter as raw value 0, and the
+// runtime's `if (pid == CommonParam::Gain) skip` check accidentally skips
+// every device's "first param" (filterCutoff, attack, etc.) on the audio
+// thread. The fix is to pack `(ParamKind, perKindId)` into the uint16_t so
+// the runtime can disambiguate.
+//
+// Encoding:  bits 12..15 = kind tag (4 bits, 0..15)
+//            bits  0..11 = per-kind enum value (12 bits, 0..4095)
+// -----------------------------------------------------------------------
+
+enum class ParamKind : uint16_t {
+    Common           = 0,
+    Oscillator       = 1,
+    Sampler          = 2,
+    SubtractiveSynth = 3,
+    KickGenerator    = 4,
+    SnareGenerator   = 5,
+    ClapGenerator    = 6,
+    CymbalGenerator  = 7,
+    CrashGenerator   = 8,
+    Gate             = 9,
+    Compressor       = 10,
+    Expander         = 11,
+    Limiter          = 12,
+    TrackGain        = 13,
+};
+
+constexpr uint16_t kParamKindShift      = 12;
+constexpr uint16_t kParamKindMask       = 0xF000;
+constexpr uint16_t kParamIdMask         = 0x0FFF;
+
+constexpr uint16_t packParamId(ParamKind kind, uint16_t perKindId) noexcept {
+    return static_cast<uint16_t>((static_cast<uint16_t>(kind) << kParamKindShift) |
+                                 (perKindId & kParamIdMask));
+}
+
+constexpr ParamKind unpackParamKind(uint16_t localParamId) noexcept {
+    return static_cast<ParamKind>((localParamId & kParamKindMask) >> kParamKindShift);
+}
+
+constexpr uint16_t unpackParamId(uint16_t localParamId) noexcept {
+    return static_cast<uint16_t>(localParamId & kParamIdMask);
+}
+
+// Encoded CommonParam values used in the runtime skip checks
+// (e.g. "is this automation targeting the track gain?").
+// Common kind has tag 0, so the encoded value equals the raw enum value.
+constexpr uint16_t kEncodedCommonGain = 0;  // packParamId(ParamKind::Common, 0)
+constexpr uint16_t kEncodedCommonPan  = 1;  // packParamId(ParamKind::Common, 1)
+
+// -----------------------------------------------------------------------
 // Audio-thread playback structs — zero strings, zero allocations.
 // -----------------------------------------------------------------------
 
 struct AutomationClipPlayback {
     uint16_t deviceIndex = 0;    // index into current track's device chain
-    uint16_t localParamId = 0;   // device-local param (interpreted by kind)
+    // Encoded (ParamKind, perKindId) — see packParamId. The kind tag is
+    // required so that the audio thread can dispatch to the correct
+    // per-kind enum without colliding with other kinds that reuse value 0.
+    uint16_t localParamId = 0;
     float clipStartBeat = 0.0f;
     float clipLengthBeats = 4.0f;
     int pointCount = 0;
@@ -185,7 +241,8 @@ struct AutomationClipPlayback {
 
 struct ModulationEdgePlayback {
     uint16_t deviceIndex = 0;    // index into current track's device chain
-    uint16_t localParamId = 0;   // device-local param id
+    // Encoded (ParamKind, perKindId) — see packParamId.
+    uint16_t localParamId = 0;
     uint16_t lfoId = 0;
     float amount = 0.0f;
 };

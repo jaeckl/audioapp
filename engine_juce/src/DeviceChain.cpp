@@ -74,7 +74,7 @@ bool isMidiNoteActive(const MidiPlaybackNote& note, double beat) {
 // ---- Per-type modulation overloads (uint16_t localParamId, switched by device kind) ----
 
 void applyModulation(OscillatorParams& p, float modAmount, uint16_t localParamId) noexcept {
-    switch (static_cast<OscillatorParam>(localParamId)) {
+    switch (static_cast<OscillatorParam>(unpackParamId(localParamId))) {
     case OscillatorParam::Frequency:
         p.frequencyHz = std::max(20.0f, p.frequencyHz + modAmount * 440.0f);
         break;
@@ -83,7 +83,7 @@ void applyModulation(OscillatorParams& p, float modAmount, uint16_t localParamId
 }
 
 void applyModulation(SamplerParams& p, float modAmount, uint16_t localParamId) noexcept {
-    switch (static_cast<SamplerParam>(localParamId)) {
+    switch (static_cast<SamplerParam>(unpackParamId(localParamId))) {
     case SamplerParam::FilterCutoff:   p.filterCutoff = std::clamp(p.filterCutoff + modAmount, 0.0f, 1.0f); break;
     case SamplerParam::FilterQ:        p.filterQ = std::clamp(p.filterQ + modAmount, 0.0f, 1.0f); break;
     case SamplerParam::Attack:         p.attack = std::clamp(p.attack + modAmount, 0.0f, 1.0f); break;
@@ -104,7 +104,7 @@ void applyModulation(SamplerParams& p, float modAmount, uint16_t localParamId) n
 void applyModulation(TrackGainParams&, float, uint16_t) noexcept {}
 
 void applyModulation(SubtractiveSynthParams& p, float modAmount, uint16_t localParamId) noexcept {
-    switch (static_cast<SubtractiveParam>(localParamId)) {
+    switch (static_cast<SubtractiveParam>(unpackParamId(localParamId))) {
     case SubtractiveParam::FilterCutoff:      p.filterCutoff = std::clamp(p.filterCutoff + modAmount, 0.0f, 1.0f); break;
     case SubtractiveParam::FilterQ:           p.filterQ = std::clamp(p.filterQ + modAmount, 0.0f, 1.0f); break;
     case SubtractiveParam::FilterMode:        p.filterMode = std::clamp(static_cast<int>(std::lround(static_cast<float>(p.filterMode) + modAmount * 5.0f)), 0, 5); break;
@@ -151,7 +151,7 @@ void applyModulation(SubtractiveSynthParams& p, float modAmount, uint16_t localP
 }
 
 void applyModulation(KickGeneratorParams& p, float modAmount, uint16_t localParamId) noexcept {
-    switch (static_cast<KickParam>(localParamId)) {
+    switch (static_cast<KickParam>(unpackParamId(localParamId))) {
     case KickParam::Model:    p.kickModel = std::clamp(p.kickModel + modAmount, 0.0f, 1.0f); break;
     case KickParam::Pitch:    p.kickPitch = std::clamp(p.kickPitch + modAmount, 0.0f, 1.0f); break;
     case KickParam::Punch:    p.kickPunch = std::clamp(p.kickPunch + modAmount, 0.0f, 1.0f); break;
@@ -164,7 +164,7 @@ void applyModulation(KickGeneratorParams& p, float modAmount, uint16_t localPara
 }
 
 void applyModulation(SnareGeneratorParams& p, float modAmount, uint16_t localParamId) noexcept {
-    switch (static_cast<SnareParam>(localParamId)) {
+    switch (static_cast<SnareParam>(unpackParamId(localParamId))) {
     case SnareParam::Model:   p.snareModel = std::clamp(p.snareModel + modAmount, 0.0f, 1.0f); break;
     case SnareParam::Body:    p.snareBody = std::clamp(p.snareBody + modAmount, 0.0f, 1.0f); break;
     case SnareParam::Ring:    p.snareRing = std::clamp(p.snareRing + modAmount, 0.0f, 1.0f); break;
@@ -178,7 +178,7 @@ void applyModulation(SnareGeneratorParams& p, float modAmount, uint16_t localPar
 }
 
 void applyModulation(ClapGeneratorParams& p, float modAmount, uint16_t localParamId) noexcept {
-    switch (static_cast<ClapParam>(localParamId)) {
+    switch (static_cast<ClapParam>(unpackParamId(localParamId))) {
     case ClapParam::Bursts:   p.clapBursts = std::clamp(p.clapBursts + modAmount, 0.0f, 1.0f); break;
     case ClapParam::Spread:   p.clapSpread = std::clamp(p.clapSpread + modAmount, 0.0f, 1.0f); break;
     case ClapParam::Tone:     p.clapTone = std::clamp(p.clapTone + modAmount, 0.0f, 1.0f); break;
@@ -190,7 +190,7 @@ void applyModulation(ClapGeneratorParams& p, float modAmount, uint16_t localPara
 }
 
 void applyModulation(CymbalGeneratorParams& p, float modAmount, uint16_t localParamId) noexcept {
-    switch (static_cast<CymbalParam>(localParamId)) {
+    switch (static_cast<CymbalParam>(unpackParamId(localParamId))) {
     case CymbalParam::Color:    p.cymbalColor = std::clamp(p.cymbalColor + modAmount, 0.0f, 1.0f); break;
     case CymbalParam::Decay:    p.cymbalDecay = std::clamp(p.cymbalDecay + modAmount, 0.0f, 1.0f); break;
     case CymbalParam::Width:    p.cymbalWidth = std::clamp(p.cymbalWidth + modAmount, 0.0f, 1.0f); break;
@@ -200,7 +200,7 @@ void applyModulation(CymbalGeneratorParams& p, float modAmount, uint16_t localPa
 }
 
 void applyModulation(CrashGeneratorParams& p, float modAmount, uint16_t localParamId) noexcept {
-    switch (static_cast<CrashParam>(localParamId)) {
+    switch (static_cast<CrashParam>(unpackParamId(localParamId))) {
     case CrashParam::Color:    p.crashColor = std::clamp(p.crashColor + modAmount, 0.0f, 1.0f); break;
     case CrashParam::Spread:   p.crashSpread = std::clamp(p.crashSpread + modAmount, 0.0f, 1.0f); break;
     case CrashParam::Decay:    p.crashDecay = std::clamp(p.crashDecay + modAmount, 0.0f, 1.0f); break;
@@ -210,7 +210,7 @@ void applyModulation(CrashGeneratorParams& p, float modAmount, uint16_t localPar
 }
 
 void applyModulation(GateParams& p, float modAmount, uint16_t localParamId) noexcept {
-    switch (static_cast<GateParam>(localParamId)) {
+    switch (static_cast<GateParam>(unpackParamId(localParamId))) {
     case GateParam::InputGain:  p.inputGain = std::clamp(p.inputGain + modAmount, 0.0f, 1.0f); break;
     case GateParam::Threshold:  p.gateThreshold = std::clamp(p.gateThreshold + modAmount, 0.0f, 1.0f); break;
     case GateParam::Attack:     p.gateAttack = std::clamp(p.gateAttack + modAmount, 0.0f, 1.0f); break;
@@ -222,7 +222,7 @@ void applyModulation(GateParams& p, float modAmount, uint16_t localParamId) noex
 }
 
 void applyModulation(CompressorParams& p, float modAmount, uint16_t localParamId) noexcept {
-    switch (static_cast<CompressorParam>(localParamId)) {
+    switch (static_cast<CompressorParam>(unpackParamId(localParamId))) {
     case CompressorParam::InputGain:  p.inputGain = std::clamp(p.inputGain + modAmount, 0.0f, 1.0f); break;
     case CompressorParam::Threshold:  p.compThreshold = std::clamp(p.compThreshold + modAmount, 0.0f, 1.0f); break;
     case CompressorParam::Ratio:      p.compRatio = std::clamp(p.compRatio + modAmount, 0.0f, 1.0f); break;
@@ -235,7 +235,7 @@ void applyModulation(CompressorParams& p, float modAmount, uint16_t localParamId
 }
 
 void applyModulation(ExpanderParams& p, float modAmount, uint16_t localParamId) noexcept {
-    switch (static_cast<ExpanderParam>(localParamId)) {
+    switch (static_cast<ExpanderParam>(unpackParamId(localParamId))) {
     case ExpanderParam::InputGain:  p.inputGain = std::clamp(p.inputGain + modAmount, 0.0f, 1.0f); break;
     case ExpanderParam::Threshold:  p.expandThreshold = std::clamp(p.expandThreshold + modAmount, 0.0f, 1.0f); break;
     case ExpanderParam::Ratio:      p.expandRatio = std::clamp(p.expandRatio + modAmount, 0.0f, 1.0f); break;
@@ -247,7 +247,7 @@ void applyModulation(ExpanderParams& p, float modAmount, uint16_t localParamId) 
 }
 
 void applyModulation(LimiterParams& p, float modAmount, uint16_t localParamId) noexcept {
-    switch (static_cast<LimiterParam>(localParamId)) {
+    switch (static_cast<LimiterParam>(unpackParamId(localParamId))) {
     case LimiterParam::InputGain:  p.inputGain = std::clamp(p.inputGain + modAmount, 0.0f, 1.0f); break;
     case LimiterParam::Ceiling:    p.limitCeiling = std::clamp(p.limitCeiling + modAmount, 0.0f, 1.0f); break;
     case LimiterParam::Attack:     p.limitAttack = std::clamp(p.limitAttack + modAmount, 0.0f, 1.0f); break;
@@ -299,8 +299,11 @@ void applyDspModulationAtFrame(DeviceVariantParams& params,
         const auto& edge = modEdges[e];
         if (edge.lfoId >= static_cast<uint16_t>(lfoCount)) continue;
         const uint16_t pid = edge.localParamId;
-        if (pid == static_cast<uint16_t>(CommonParam::Gain) ||
-            pid == static_cast<uint16_t>(CommonParam::Pan)) continue;
+        // Common gain/pan are handled by the device-chain loop. With the
+        // encoded kind tag, the values 0 and 1 only mean Common::Gain/Pan;
+        // SubtractiveSynth::FilterCutoff is 0x3000 etc. and is no longer
+        // accidentally skipped here.
+        if (pid == kEncodedCommonGain || pid == kEncodedCommonPan) continue;
         const float lfoOut = lfoValues[edge.lfoId * framesToProcess + lfoFrame];
         const float modAmount = edge.amount * lfoOut;
         std::visit([&](auto& p) { applyModulation(p, modAmount, pid); }, params);
@@ -337,8 +340,10 @@ bool nodeNeedsSubBlocks(const DeviceNodePlayback& node,
         for (int a = 0; a < clipCount; ++a) {
             if (clips[a].deviceIndex != static_cast<uint16_t>(deviceIndex)) continue;
             const uint16_t pid = clips[a].localParamId;
-            if (pid != static_cast<uint16_t>(CommonParam::Gain) &&
-                pid != static_cast<uint16_t>(CommonParam::Pan)) {
+            // Encoded kind tag prevents CommonParam::Gain (0) from being
+            // confused with SubtractiveSynth::FilterCutoff (0x3000), so
+            // the encoded Common gain/pan are the only ones to skip.
+            if (pid != kEncodedCommonGain && pid != kEncodedCommonPan) {
                 return true;
             }
         }
@@ -348,8 +353,7 @@ bool nodeNeedsSubBlocks(const DeviceNodePlayback& node,
         for (int e = 0; e < modEdgeCount; ++e) {
             if (modEdges[e].deviceIndex != static_cast<uint16_t>(deviceIndex)) continue;
             const uint16_t pid = modEdges[e].localParamId;
-            if (pid != static_cast<uint16_t>(CommonParam::Gain) &&
-                pid != static_cast<uint16_t>(CommonParam::Pan)) {
+            if (pid != kEncodedCommonGain && pid != kEncodedCommonPan) {
                 return true;
             }
         }
@@ -365,8 +369,7 @@ bool nodeUsesDspAutomationSubBlocks(const DeviceNodePlayback& node,
     for (int a = 0; a < clipCount; ++a) {
         if (clips[a].deviceIndex != static_cast<uint16_t>(deviceIndex)) continue;
         const uint16_t pid = clips[a].localParamId;
-        if (pid != static_cast<uint16_t>(CommonParam::Gain) &&
-            pid != static_cast<uint16_t>(CommonParam::Pan)) {
+        if (pid != kEncodedCommonGain && pid != kEncodedCommonPan) {
             switch (node.kind) {
             case DeviceNodeKind::Oscillator:
             case DeviceNodeKind::Sampler:
@@ -388,8 +391,7 @@ bool nodeHasDspModulation(uint16_t deviceIndex,
     for (int e = 0; e < modEdgeCount; ++e) {
         if (modEdges[e].deviceIndex != deviceIndex) continue;
         const uint16_t pid = modEdges[e].localParamId;
-        if (pid != static_cast<uint16_t>(CommonParam::Gain) &&
-            pid != static_cast<uint16_t>(CommonParam::Pan)) {
+        if (pid != kEncodedCommonGain && pid != kEncodedCommonPan) {
             return true;
         }
     }
@@ -479,9 +481,11 @@ void processDeviceChain(float* trackLeft,
                 const auto& ac = automationClips[a];
                 if (ac.deviceIndex != di) continue;
 
-                if (ac.localParamId == static_cast<uint16_t>(CommonParam::Gain) ||
-                    ac.localParamId == static_cast<uint16_t>(CommonParam::Pan)) {
-                    const bool isGain = ac.localParamId == static_cast<uint16_t>(CommonParam::Gain);
+                // Encoded kind tag prevents CommonParam::Gain (0) from
+                // being confused with SubtractiveSynth::FilterCutoff (0x3000).
+                if (ac.localParamId == kEncodedCommonGain ||
+                    ac.localParamId == kEncodedCommonPan) {
+                    const bool isGain = ac.localParamId == kEncodedCommonGain;
                     for (int f = 0; f < framesToProcess; ++f) {
                         const double beat = playheadStartBeat + static_cast<double>(f) * beatsPerFrame;
                         if (beat < static_cast<double>(ac.clipStartBeat) ||
@@ -514,8 +518,7 @@ void processDeviceChain(float* trackLeft,
                 const auto& edge = modEdges[e];
                 if (edge.deviceIndex != di || edge.lfoId >= static_cast<uint16_t>(lfoCount)) continue;
                 const uint16_t pid = edge.localParamId;
-                if (pid == static_cast<uint16_t>(CommonParam::Gain) ||
-                    pid == static_cast<uint16_t>(CommonParam::Pan)) continue;
+                if (pid == kEncodedCommonGain || pid == kEncodedCommonPan) continue;
                 if (!needsSubBlocks) {
                     if (node.kind == DeviceNodeKind::SubtractiveSynth &&
                         nodeHasDspAutomation(di, automationClips, automationClipCount)) continue;
@@ -534,12 +537,12 @@ void processDeviceChain(float* trackLeft,
                 const auto& edge = modEdges[e];
                 if (edge.deviceIndex != di || edge.lfoId >= static_cast<uint16_t>(lfoCount)) continue;
                 const uint16_t pid = edge.localParamId;
-                if (pid == static_cast<uint16_t>(CommonParam::Gain)) {
+                if (pid == kEncodedCommonGain) {
                     for (int f = 0; f < framesToProcess; ++f) {
                         const float lfoOut = lfoValues[edge.lfoId * framesToProcess + f];
                         s.perFrameGain[f] = std::clamp(s.perFrameGain[f] + edge.amount * lfoOut, 0.0f, 1.0f);
                     }
-                } else if (pid == static_cast<uint16_t>(CommonParam::Pan)) {
+                } else if (pid == kEncodedCommonPan) {
                     for (int f = 0; f < framesToProcess; ++f) {
                         const float lfoOut = lfoValues[edge.lfoId * framesToProcess + f];
                         s.perFramePan[f] = std::clamp(s.perFramePan[f] + edge.amount * lfoOut, 0.0f, 1.0f);
