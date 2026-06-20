@@ -1,5 +1,7 @@
 #pragma once
 
+#include <juce_core/juce_core.h>
+
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/DeviceState.hpp"
 #include "audioapp/LivePerformance.hpp"
@@ -45,6 +47,33 @@ public:
     virtual bool buildLiveInstrument(const DeviceSlot& slot,
                                      const PlaybackBuildContext& context,
                                      LiveInstrumentSnapshot& out) const = 0;
+
+    /// Serialize a DeviceSlot to a juce::var suitable for JSON output.
+    /// Default implementation returns an empty var (null), which triggers the
+    /// fallback chain in ProjectJson.cpp.
+    /// Concrete device types should override with proper serialization.
+    /// Called on control thread only.
+    /// Serialize a DeviceSlot to a juce::var suitable for JSON output.
+    /// Default implementation triggers an assertion and returns empty,
+    /// which causes the fallback chain in ProjectJson.cpp.
+    /// Concrete device types MUST override with proper serialization.
+    /// Called on control thread only.
+    virtual juce::var slotToVar(const DeviceSlot& slot) const {
+        juce::ignoreUnused(slot);
+        jassertfalse;
+        return {};
+    }
+
+    /// Deserialize a juce::var to a DeviceSlot.
+    /// Default implementation triggers an assertion and returns empty,
+    /// which causes the fallback chain in ProjectJson.cpp.
+    /// Concrete device types MUST override with proper deserialization.
+    /// Called on control thread only.
+    virtual DeviceSlot varToSlot(const juce::var& obj) const {
+        juce::ignoreUnused(obj);
+        jassertfalse;
+        return {};
+    }
 };
 
 } // namespace audioapp

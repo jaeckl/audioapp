@@ -203,4 +203,8 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
   add_executable(bass_synth_test tests/bass_synth_test.cpp)
   target_link_libraries(bass_synth_test PRIVATE audioapp_engine)
   add_test(NAME bass_synth_test COMMAND bass_synth_test)
+
+  add_executable(device_slot_serialization_test tests/device_slot_serialization_test.cpp)
+  target_link_libraries(device_slot_serialization_test PRIVATE audioapp_engine)
+  add_test(NAME device_slot_serialization_test COMMAND device_slot_serialization_test)
 endif()

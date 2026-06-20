@@ -4,6 +4,8 @@
 #include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/devices/instances/CymbalGeneratorInstance.hpp"
 
+#include <juce_core/juce_core.h>
+
 #include <algorithm>
 
 namespace audioapp {
@@ -123,6 +125,58 @@ bool CymbalGeneratorDeviceType::buildLiveInstrument(const DeviceSlot& slot,
     out.gain = slot.gain;
     out.cymbal = instance.toPlaybackParams(slot.gain);
     return true;
+}
+
+juce::var CymbalGeneratorDeviceType::slotToVar(const DeviceSlot& slot) const {
+    auto* parameters = new juce::DynamicObject();
+    const auto& inst = std::get<CymbalGeneratorInstance>(slot.instance);
+    parameters->setProperty("gain", static_cast<double>(slot.gain));
+    parameters->setProperty("pan", static_cast<double>(slot.pan));
+    parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
+    parameters->setProperty("cymbalModel", static_cast<double>(inst.cymbalModel));
+    parameters->setProperty("cymbalColor", static_cast<double>(inst.cymbalColor));
+    parameters->setProperty("cymbalDecay", static_cast<double>(inst.cymbalDecay));
+    parameters->setProperty("cymbalWidth", static_cast<double>(inst.cymbalWidth));
+    parameters->setProperty("cymbalVelocity", static_cast<double>(inst.cymbalVelocity));
+
+    auto* object = new juce::DynamicObject();
+    object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
+    object->setProperty("type", juce::String::fromUTF8(typeId().c_str()));
+    object->setProperty("parameters", juce::var(parameters));
+    return juce::var(object);
+}
+
+DeviceSlot CymbalGeneratorDeviceType::varToSlot(const juce::var& obj) const {
+    DeviceSlot slot;
+    if (const auto* object = obj.getDynamicObject()) {
+        slot.id = object->getProperty("id").toString().toStdString();
+        const auto params = object->getProperty("parameters");
+        if (const auto* p = params.getDynamicObject()) {
+            auto readFloat = [&](const char* key, float fallback) -> float {
+                const auto v = p->getProperty(key);
+                if (v.isDouble() || v.isInt() || v.isInt64())
+                    return static_cast<float>(static_cast<double>(v));
+                return fallback;
+            };
+            slot.gain = readFloat("gain", 1.0f);
+            slot.pan = readFloat("pan", 0.5f);
+            slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
+            CymbalGeneratorInstance inst;
+            inst.cymbalModel = readFloat("cymbalModel", 0.0f);
+            if (p->hasProperty("cymbalColor")) {
+                inst.cymbalColor = readFloat("cymbalColor", 0.68f);
+            } else {
+                const float metal = readFloat("cymbalMetal", 0.55f);
+                const float bright = readFloat("cymbalBrightness", 0.60f);
+                inst.cymbalColor = (metal + bright) * 0.5f;
+            }
+            inst.cymbalDecay = readFloat("cymbalDecay", 0.50f);
+            inst.cymbalWidth = readFloat("cymbalWidth", 0.35f);
+            inst.cymbalVelocity = readFloat("cymbalVelocity", 1.0f);
+            slot.instance = inst;
+        }
+    }
+    return slot;
 }
 
 } // namespace audioapp

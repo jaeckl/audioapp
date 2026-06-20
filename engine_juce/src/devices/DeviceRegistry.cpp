@@ -59,7 +59,7 @@ std::vector<std::string_view> DeviceRegistry::knownTypes() const {
     return typeIds_;
 }
 
-const IDeviceType* DeviceRegistry::findForSlot(const DeviceSlot& slot) const {
+const IDeviceType* DeviceRegistry::findTypeForSlot(const DeviceSlot& slot) const {
     if (std::holds_alternative<OscillatorInstance>(slot.instance)) {
         return find(device_types::kOscillator);
     }
@@ -115,7 +115,7 @@ DeviceSlot DeviceRegistry::createDefault(std::string_view typeId,
 }
 
 DeviceState DeviceRegistry::toSnapshotState(const DeviceSlot& slot) const {
-    const IDeviceType* type = findForSlot(slot);
+    const IDeviceType* type = findTypeForSlot(slot);
     if (type == nullptr) {
         return {};
     }
@@ -133,7 +133,7 @@ DeviceSlot DeviceRegistry::slotFromSnapshot(const DeviceState& state) const {
 DeviceParameterResult DeviceRegistry::setParameter(DeviceSlot& slot,
                                                    std::string_view parameterId,
                                                    float value) const {
-    const IDeviceType* type = findForSlot(slot);
+    const IDeviceType* type = findTypeForSlot(slot);
     if (type == nullptr) {
         return {};
     }
@@ -144,7 +144,7 @@ bool DeviceRegistry::setStringParameter(DeviceSlot& slot,
                                         std::string_view parameterId,
                                         const std::string& value,
                                         const PlaybackBuildContext& context) const {
-    const IDeviceType* type = findForSlot(slot);
+    const IDeviceType* type = findTypeForSlot(slot);
     if (type == nullptr) {
         return false;
     }
@@ -154,7 +154,7 @@ bool DeviceRegistry::setStringParameter(DeviceSlot& slot,
 void DeviceRegistry::buildPlaybackNode(const DeviceSlot& slot,
                                        const PlaybackBuildContext& context,
                                        DeviceNodePlayback& out) const {
-    const IDeviceType* type = findForSlot(slot);
+    const IDeviceType* type = findTypeForSlot(slot);
     if (type == nullptr) {
         out.kind = DeviceNodeKind::Unknown;
         return;
@@ -165,7 +165,7 @@ void DeviceRegistry::buildPlaybackNode(const DeviceSlot& slot,
 bool DeviceRegistry::buildLiveInstrument(const DeviceSlot& slot,
                                          const PlaybackBuildContext& context,
                                          LiveInstrumentSnapshot& out) const {
-    const IDeviceType* type = findForSlot(slot);
+    const IDeviceType* type = findTypeForSlot(slot);
     if (type == nullptr) {
         return false;
     }

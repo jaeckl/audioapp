@@ -4,6 +4,8 @@
 #include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/devices/instances/CrashGeneratorInstance.hpp"
 
+#include <juce_core/juce_core.h>
+
 #include <algorithm>
 
 namespace audioapp {
@@ -123,6 +125,58 @@ bool CrashGeneratorDeviceType::buildLiveInstrument(const DeviceSlot& slot,
     out.gain = slot.gain;
     out.crash = instance.toPlaybackParams(slot.gain);
     return true;
+}
+
+juce::var CrashGeneratorDeviceType::slotToVar(const DeviceSlot& slot) const {
+    auto* parameters = new juce::DynamicObject();
+    const auto& inst = std::get<CrashGeneratorInstance>(slot.instance);
+    parameters->setProperty("gain", static_cast<double>(slot.gain));
+    parameters->setProperty("pan", static_cast<double>(slot.pan));
+    parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
+    parameters->setProperty("crashModel", static_cast<double>(inst.crashModel));
+    parameters->setProperty("crashColor", static_cast<double>(inst.crashColor));
+    parameters->setProperty("crashSpread", static_cast<double>(inst.crashSpread));
+    parameters->setProperty("crashDecay", static_cast<double>(inst.crashDecay));
+    parameters->setProperty("crashVelocity", static_cast<double>(inst.crashVelocity));
+
+    auto* object = new juce::DynamicObject();
+    object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
+    object->setProperty("type", juce::String::fromUTF8(typeId().c_str()));
+    object->setProperty("parameters", juce::var(parameters));
+    return juce::var(object);
+}
+
+DeviceSlot CrashGeneratorDeviceType::varToSlot(const juce::var& obj) const {
+    DeviceSlot slot;
+    if (const auto* object = obj.getDynamicObject()) {
+        slot.id = object->getProperty("id").toString().toStdString();
+        const auto params = object->getProperty("parameters");
+        if (const auto* p = params.getDynamicObject()) {
+            auto readFloat = [&](const char* key, float fallback) -> float {
+                const auto v = p->getProperty(key);
+                if (v.isDouble() || v.isInt() || v.isInt64())
+                    return static_cast<float>(static_cast<double>(v));
+                return fallback;
+            };
+            slot.gain = readFloat("gain", 1.0f);
+            slot.pan = readFloat("pan", 0.5f);
+            slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
+            CrashGeneratorInstance inst;
+            inst.crashModel = readFloat("crashModel", 0.0f);
+            if (p->hasProperty("crashColor")) {
+                inst.crashColor = readFloat("crashColor", 0.62f);
+            } else {
+                const float wash = readFloat("crashWash", 0.60f);
+                const float bright = readFloat("crashBright", 0.65f);
+                inst.crashColor = (wash + bright) * 0.5f;
+            }
+            inst.crashSpread = readFloat("crashSpread", 0.50f);
+            inst.crashDecay = readFloat("crashDecay", 0.55f);
+            inst.crashVelocity = readFloat("crashVelocity", 1.0f);
+            slot.instance = inst;
+        }
+    }
+    return slot;
 }
 
 } // namespace audioapp

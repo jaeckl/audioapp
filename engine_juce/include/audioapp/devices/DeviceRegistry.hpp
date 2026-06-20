@@ -38,11 +38,13 @@ public:
                              LiveInstrumentSnapshot& out) const;
     std::vector<std::string_view> modulatableParams(std::string_view typeId) const;
 
+    /// Find the IDeviceType* that matches the given DeviceSlot's variant type.
+    /// Returns nullptr if no matching type is registered.
+    const IDeviceType* findTypeForSlot(const DeviceSlot& slot) const;
+
     static DeviceRegistry createBuiltIn();
 
 private:
-    const IDeviceType* findForSlot(const DeviceSlot& slot) const;
-
     std::vector<std::unique_ptr<IDeviceType>> types_;
     std::vector<std::string_view> typeIds_;
 };

@@ -5,6 +5,7 @@
 #include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/devices/instances/SamplerInstance.hpp"
 
+#include <juce_core/juce_core.h>
 #include <algorithm>
 #include <cmath>
 
@@ -309,6 +310,84 @@ bool SamplerDeviceType::buildLiveInstrument(const DeviceSlot& slot,
     out.filterRelease = instance.filterRelease;
     resolveLiveSampleFrames(instance, context, out);
     return true;
+}
+
+juce::var SamplerDeviceType::slotToVar(const DeviceSlot& slot) const {
+    auto* parameters = new juce::DynamicObject();
+    const auto& inst = std::get<SamplerInstance>(slot.instance);
+
+    parameters->setProperty("gain", static_cast<double>(slot.gain));
+    parameters->setProperty("pan", static_cast<double>(slot.pan));
+    parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
+    parameters->setProperty("sampleId", juce::String::fromUTF8(inst.sampleId.c_str()));
+    parameters->setProperty("attack", static_cast<double>(inst.attack));
+    parameters->setProperty("decay", static_cast<double>(inst.decay));
+    parameters->setProperty("sustain", static_cast<double>(inst.sustain));
+    parameters->setProperty("release", static_cast<double>(inst.release));
+    parameters->setProperty("filterCutoff", static_cast<double>(inst.filterCutoff));
+    parameters->setProperty("filterQ", static_cast<double>(inst.filterQ));
+    parameters->setProperty("filterMode", inst.filterMode);
+    parameters->setProperty("trimStartSec", static_cast<double>(inst.trimStartSec));
+    parameters->setProperty("trimEndSec", static_cast<double>(inst.trimEndSec));
+    parameters->setProperty("regionStartSec", static_cast<double>(inst.regionStartSec));
+    parameters->setProperty("regionEndSec", static_cast<double>(inst.regionEndSec));
+    parameters->setProperty("rootPitch", static_cast<double>(inst.rootPitch));
+    parameters->setProperty("rootFineTune", static_cast<double>(inst.rootFineTune));
+    parameters->setProperty("playbackMode", inst.playbackMode);
+
+    auto* object = new juce::DynamicObject();
+    object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
+    object->setProperty("type", juce::String::fromUTF8(typeId().c_str()));
+    object->setProperty("parameters", juce::var(parameters));
+    return juce::var(object);
+}
+
+DeviceSlot SamplerDeviceType::varToSlot(const juce::var& obj) const {
+    DeviceSlot slot;
+    if (const auto* object = obj.getDynamicObject()) {
+        slot.id = object->getProperty("id").toString().toStdString();
+        const auto params = object->getProperty("parameters");
+        if (const auto* p = params.getDynamicObject()) {
+            auto readFloat = [&](const char* key, float fallback) -> float {
+                const auto v = p->getProperty(key);
+                if (v.isDouble() || v.isInt() || v.isInt64())
+                    return static_cast<float>(static_cast<double>(v));
+                return fallback;
+            };
+            auto readString = [&](const char* key) -> std::string {
+                const auto v = p->getProperty(key);
+                if (v.isString())
+                    return v.toString().toStdString();
+                return {};
+            };
+            slot.gain = readFloat("gain", 1.0f);
+            slot.pan = readFloat("pan", 0.5f);
+            slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
+
+            SamplerInstance inst;
+            inst.sampleId = readString("sampleId");
+            inst.attack = readFloat("attack", 0.01f);
+            inst.decay = readFloat("decay", 0.3f);
+            inst.sustain = readFloat("sustain", 0.7f);
+            inst.release = readFloat("release", 0.4f);
+            inst.filterCutoff = readFloat("filterCutoff", 1.0f);
+            inst.filterQ = readFloat("filterQ", 0.35f);
+            inst.filterMode = static_cast<int>(readFloat("filterMode", 0.0f));
+            inst.trimStartSec = readFloat("trimStartSec", 0.0f);
+            inst.trimEndSec = readFloat("trimEndSec", 0.0f);
+            inst.regionStartSec = readFloat("regionStartSec", 0.0f);
+            inst.regionEndSec = readFloat("regionEndSec", 0.0f);
+            inst.rootPitch = readFloat("rootPitch", 60.0f);
+            inst.rootFineTune = std::clamp(readFloat("rootFineTune", 0.0f), -100.0f, 100.0f);
+            if (p->hasProperty("playbackMode")) {
+                inst.playbackMode = static_cast<int>(readFloat("playbackMode", 0.0f));
+            } else {
+                inst.playbackMode = inst.regionEndSec > 0.0f ? 1 : 0;
+            }
+            slot.instance = inst;
+        }
+    }
+    return slot;
 }
 
 } // namespace audioapp

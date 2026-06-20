@@ -124,4 +124,59 @@ bool CompressorDeviceType::buildLiveInstrument(const DeviceSlot&,
     return false;
 }
 
+juce::var CompressorDeviceType::slotToVar(const DeviceSlot& slot) const {
+    auto* parameters = new juce::DynamicObject();
+    const auto& inst = std::get<CompressorInstance>(slot.instance);
+    parameters->setProperty("gain", static_cast<double>(slot.gain));
+    parameters->setProperty("pan", static_cast<double>(slot.pan));
+    parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
+    parameters->setProperty("inputGain", static_cast<double>(inst.inputGain));
+    parameters->setProperty("compThreshold", static_cast<double>(inst.compThreshold));
+    parameters->setProperty("compRatio", static_cast<double>(inst.compRatio));
+    parameters->setProperty("compAttack", static_cast<double>(inst.compAttack));
+    parameters->setProperty("compRelease", static_cast<double>(inst.compRelease));
+    parameters->setProperty("compKnee", static_cast<double>(inst.compKnee));
+    parameters->setProperty("compMakeup", static_cast<double>(inst.compMakeup));
+
+    auto* meters = new juce::DynamicObject();
+    meters->setProperty("gainReductionDb", 0.0);
+    meters->setProperty("inputLevel", 0.0);
+
+    auto* object = new juce::DynamicObject();
+    object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
+    object->setProperty("type", juce::String::fromUTF8(typeId().c_str()));
+    object->setProperty("parameters", juce::var(parameters));
+    object->setProperty("meters", juce::var(meters));
+    return juce::var(object);
+}
+
+DeviceSlot CompressorDeviceType::varToSlot(const juce::var& obj) const {
+    DeviceSlot slot;
+    if (const auto* object = obj.getDynamicObject()) {
+        slot.id = object->getProperty("id").toString().toStdString();
+        const auto params = object->getProperty("parameters");
+        if (const auto* p = params.getDynamicObject()) {
+            auto readFloat = [&](const char* key, float fallback) -> float {
+                const auto v = p->getProperty(key);
+                if (v.isDouble() || v.isInt() || v.isInt64())
+                    return static_cast<float>(static_cast<double>(v));
+                return fallback;
+            };
+            slot.gain = readFloat("gain", 1.0f);
+            slot.pan = readFloat("pan", 0.5f);
+            slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
+            CompressorInstance inst;
+            inst.inputGain = readFloat("inputGain", 1.0f);
+            inst.compThreshold = readFloat("compThreshold", 0.55f);
+            inst.compRatio = readFloat("compRatio", 0.50f);
+            inst.compAttack = readFloat("compAttack", 0.20f);
+            inst.compRelease = readFloat("compRelease", 0.55f);
+            inst.compKnee = readFloat("compKnee", 0.25f);
+            inst.compMakeup = readFloat("compMakeup", 0.35f);
+            slot.instance = inst;
+        }
+    }
+    return slot;
+}
+
 } // namespace audioapp

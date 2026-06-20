@@ -818,7 +818,61 @@ juce::var projectFileToVar(const ProjectFileData& project) {
     return juce::var(object);
 }
 
+// --- DeviceSlot-based serialization dispatch (Package 0) ---
+
+juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& registry) {
+    // Try the device type's own slotToVar first.
+    const IDeviceType* type = registry.findTypeForSlot(slot);
+    if (type != nullptr) {
+        juce::var result = type->slotToVar(slot);
+        if (!result.isVoid() && !result.isUndefined()) {
+            return result;
+        }
+    }
+    // All device types should have migrated slotToVar by now.
+    // Return empty var if not found (should not happen).
+    return {};
+}
+
+DeviceSlot deviceVarToSlotImpl(const juce::var& obj, const DeviceRegistry& registry) {
+    // Try the device type's own varToSlot first.
+    if (const auto* object = obj.getDynamicObject()) {
+        const std::string typeId = varToString(object->getProperty("type"));
+        const IDeviceType* type = registry.find(typeId);
+        if (type != nullptr) {
+            DeviceSlot slot = type->varToSlot(obj);
+            if (!slot.id.empty()) {
+                return slot;
+            }
+        }
+    }
+    // All device types should have migrated varToSlot by now.
+    // Return empty slot if not found (should not happen).
+    return {};
+}
+
 } // namespace
+
+std::string deviceSlotToVar(const DeviceSlot& slot, const DeviceRegistry& registry) {
+    return toStdString(juce::JSON::toString(deviceSlotToVarImpl(slot, registry), false));
+}
+
+DeviceSlot deviceVarToSlot(const std::string& json, const DeviceRegistry& registry) {
+    return deviceVarToSlotImpl(parseRootVar(json), registry);
+}
+
+juce::var deviceToVar(const DeviceState& device, const DeviceRegistry& registry) {
+    // Convert DeviceState -> DeviceSlot via registry, then serialize via dispatch.
+    // This preserves backward compatibility for callers that have DeviceState.
+    DeviceSlot slot = registry.slotFromSnapshot(device);
+    return deviceSlotToVarImpl(slot, registry);
+}
+
+DeviceState deviceFromVar(const juce::var& value, const DeviceRegistry& registry) {
+    // Deserialize via dispatch, then convert DeviceSlot -> DeviceState.
+    DeviceSlot slot = deviceVarToSlotImpl(value, registry);
+    return registry.toSnapshotState(slot);
+}
 
 std::string snapshotToJson(const ProjectSnapshot& snapshot) {
     return toStdString(juce::JSON::toString(snapshotToVar(snapshot), false));
