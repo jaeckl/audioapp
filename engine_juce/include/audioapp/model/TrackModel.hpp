@@ -35,6 +35,10 @@ struct AutomationPoint {
 
 struct AutomationClip {
     std::string id;
+    /// Track the clip is rendered on in the arrangement view. Set at create
+    /// time and never changes — independent of `deviceId` (the device may
+    /// live on any track, including this one).
+    std::string homeTrackId;
     double startBeat = 0.0;
     double lengthBeats = 4.0;
     std::string deviceId;
@@ -48,7 +52,9 @@ struct Track {
     std::vector<DeviceSlot> devices;
     std::vector<MidiClip> midiClips;
     std::vector<SampleClip> sampleClips;
-    std::vector<AutomationClip> automationClips;
+    // Note: automation clips were moved to AutomationClipStore (project-global)
+    // so a single clip can target any device on any track. They are no
+    // longer nested per-track.
 };
 
 } // namespace audioapp

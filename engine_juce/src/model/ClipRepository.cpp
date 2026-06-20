@@ -1,6 +1,7 @@
 #include "audioapp/model/ClipRepository.hpp"
 
 #include <algorithm>
+#include <cstdlib>
 #include <utility>
 
 namespace audioapp {
@@ -10,7 +11,6 @@ ClipRepository::ClipRepository(TrackRepository& tracks) : tracks_(tracks) {}
 void ClipRepository::clear() {
     nextClipNum_ = 1;
     nextSampleClipNum_ = 1;
-    nextAutomationClipNum_ = 1;
 }
 
 std::string ClipRepository::createMidiClip(const std::string& trackId,
@@ -87,70 +87,6 @@ std::string ClipRepository::createSampleClip(const std::string& trackId,
     return track->sampleClips.back().id;
 }
 
-std::string ClipRepository::createAutomationClip(const std::string& trackId,
-                                                 double startBeat,
-                                                 double lengthBeats) {
-    Track* track = tracks_.findTrack(trackId);
-    if (track == nullptr) {
-        return {};
-    }
-
-    AutomationClip clip;
-    clip.id = "aclip-" + std::to_string(nextAutomationClipNum_++);
-    clip.startBeat = startBeat < 0.0 ? 0.0 : startBeat;
-    clip.lengthBeats = lengthBeats > 0.0 ? lengthBeats : 4.0;
-    clip.points.push_back(AutomationPoint{0.0, 1.0f});
-    clip.points.push_back(AutomationPoint{clip.lengthBeats, 0.25f});
-
-    track->automationClips.push_back(std::move(clip));
-    return track->automationClips.back().id;
-}
-
-bool ClipRepository::assignAutomationTarget(const std::string& clipId,
-                                            const std::string& deviceId,
-                                            const std::string& paramId) {
-    AutomationClip* clip = findAutomationClip(clipId);
-    if (clip == nullptr || deviceId.empty() || paramId.empty()) {
-        return false;
-    }
-    clip->deviceId = deviceId;
-    clip->paramId = paramId;
-    return true;
-}
-
-bool ClipRepository::setAutomationPoints(const std::string& clipId,
-                                         const std::vector<AutomationPointState>& points) {
-    AutomationClip* clip = findAutomationClip(clipId);
-    if (clip == nullptr || points.empty()) {
-        return false;
-    }
-    clip->points.clear();
-    clip->points.reserve(points.size());
-    for (const auto& point : points) {
-        AutomationPoint stored;
-        stored.beat = point.beat < 0.0 ? 0.0 : point.beat;
-        stored.value = std::clamp(point.value, 0.0f, 1.0f);
-        clip->points.push_back(stored);
-    }
-    std::sort(clip->points.begin(), clip->points.end(),
-              [](const AutomationPoint& a, const AutomationPoint& b) { return a.beat < b.beat; });
-    return true;
-}
-
-void ClipRepository::unlinkAutomationForDevice(const std::string& deviceId) {
-    if (deviceId.empty()) {
-        return;
-    }
-    for (auto& track : tracks_.tracks()) {
-        for (auto& clip : track.automationClips) {
-            if (clip.deviceId == deviceId) {
-                clip.deviceId.clear();
-                clip.paramId.clear();
-            }
-        }
-    }
-}
-
 bool ClipRepository::moveClip(const std::string& clipId,
                               const std::string& targetTrackId,
                               double startBeat) {
@@ -187,19 +123,6 @@ bool ClipRepository::moveClip(const std::string& clipId,
         }
     }
 
-    for (auto& track : tracks_.tracks()) {
-        for (auto it = track.automationClips.begin(); it != track.automationClips.end(); ++it) {
-            if (it->id != clipId) {
-                continue;
-            }
-            AutomationClip clip = std::move(*it);
-            track.automationClips.erase(it);
-            clip.startBeat = clampedStart;
-            targetTrack->automationClips.push_back(std::move(clip));
-            return true;
-        }
-    }
-
     return false;
 }
 
@@ -212,10 +135,6 @@ bool ClipRepository::setClipLength(const std::string& clipId, double lengthBeats
     }
     if (SampleClip* sample = findSampleClip(clipId)) {
         sample->lengthBeats = len;
-        return true;
-    }
-    if (AutomationClip* automation = findAutomationClip(clipId)) {
-        automation->lengthBeats = len;
         return true;
     }
     return false;
@@ -232,12 +151,6 @@ bool ClipRepository::deleteClip(const std::string& clipId) {
         for (auto it = track.sampleClips.begin(); it != track.sampleClips.end(); ++it) {
             if (it->id == clipId) {
                 track.sampleClips.erase(it);
-                return true;
-            }
-        }
-        for (auto it = track.automationClips.begin(); it != track.automationClips.end(); ++it) {
-            if (it->id == clipId) {
-                track.automationClips.erase(it);
                 return true;
             }
         }
@@ -267,18 +180,6 @@ bool ClipRepository::duplicateClip(const std::string& clipId) {
             track.sampleClips.push_back(std::move(copy));
             return true;
         }
-        for (const auto& clip : track.automationClips) {
-            if (clip.id != clipId) {
-                continue;
-            }
-            AutomationClip copy = clip;
-            copy.id = "aclip-" + std::to_string(nextAutomationClipNum_++);
-            copy.startBeat = clip.startBeat + clip.lengthBeats;
-            copy.deviceId.clear();
-            copy.paramId.clear();
-            track.automationClips.push_back(std::move(copy));
-            return true;
-        }
     }
     return false;
 }
@@ -305,17 +206,6 @@ SampleClip* ClipRepository::findSampleClip(const std::string& clipId) {
     return nullptr;
 }
 
-AutomationClip* ClipRepository::findAutomationClip(const std::string& clipId) {
-    for (auto& track : tracks_.tracks()) {
-        for (auto& clip : track.automationClips) {
-            if (clip.id == clipId) {
-                return &clip;
-            }
-        }
-    }
-    return nullptr;
-}
-
 void ClipRepository::recomputeIdCounters() {
     auto maxSuffix = [](const std::string& id, const std::string& prefix) {
         if (id.rfind(prefix, 0) != 0) {
@@ -327,7 +217,6 @@ void ClipRepository::recomputeIdCounters() {
 
     int maxClip = 0;
     int maxSampleClip = 0;
-    int maxAutomationClip = 0;
     for (const auto& track : tracks_.tracks()) {
         for (const auto& clip : track.midiClips) {
             maxClip = std::max(maxClip, maxSuffix(clip.id, "clip-"));
@@ -335,13 +224,9 @@ void ClipRepository::recomputeIdCounters() {
         for (const auto& clip : track.sampleClips) {
             maxSampleClip = std::max(maxSampleClip, maxSuffix(clip.id, "sclip-"));
         }
-        for (const auto& clip : track.automationClips) {
-            maxAutomationClip = std::max(maxAutomationClip, maxSuffix(clip.id, "aclip-"));
-        }
     }
     nextClipNum_ = maxClip + 1;
     nextSampleClipNum_ = maxSampleClip + 1;
-    nextAutomationClipNum_ = maxAutomationClip + 1;
 }
 
 } // namespace audioapp

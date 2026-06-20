@@ -62,6 +62,7 @@ add_library(audioapp_engine STATIC
   src/devices/LimiterDeviceType.cpp
   src/model/TrackRepository.cpp
   src/model/ClipRepository.cpp
+  src/model/AutomationClipStore.cpp
   src/transport/TransportController.cpp
   src/modulation/ModulationGraph.cpp
   src/AutomationPlayback.cpp
@@ -177,4 +178,12 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
   add_executable(remove_device_test tests/remove_device_test.cpp)
   target_link_libraries(remove_device_test PRIVATE audioapp_engine)
   add_test(NAME remove_device_test COMMAND remove_device_test)
+
+  add_executable(subtractive_lfo_filter_test tests/subtractive_lfo_filter_test.cpp)
+  target_link_libraries(subtractive_lfo_filter_test PRIVATE audioapp_engine)
+  add_test(NAME subtractive_lfo_filter_test COMMAND subtractive_lfo_filter_test)
+
+  add_executable(autobroken_routing_test tests/autobroken_routing_test.cpp)
+  target_link_libraries(autobroken_routing_test PRIVATE audioapp_engine)
+  add_test(NAME autobroken_routing_test COMMAND autobroken_routing_test)
 endif()

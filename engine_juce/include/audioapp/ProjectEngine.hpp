@@ -13,6 +13,7 @@
 #include "audioapp/model/TrackModel.hpp"
 #include "audioapp/model/TrackRepository.hpp"
 #include "audioapp/model/ClipRepository.hpp"
+#include "audioapp/model/AutomationClipStore.hpp"
 #include "audioapp/LfoTypes.hpp"
 #include "audioapp/LivePerformance.hpp"
 #include "audioapp/MidiClipPlayback.hpp"
@@ -58,6 +59,11 @@ struct ProjectSnapshot {
     std::vector<TrackState> tracks;
     std::vector<LfoState> lfos;
     std::vector<ModulationEdge> modEdges;
+    /// Global automation-clip store. The store is authoritative; the
+    /// per-track `TrackState::automationClips` field is still populated for
+    /// backwards compatibility with the Flutter side, but new code should
+    /// read from here.
+    std::vector<AutomationClipState> automationClips;
 };
 
 /// Lightweight transport read for UI polling (no track/device serialization).
@@ -104,7 +110,10 @@ public:
     bool deleteTrack(const std::string& trackId);
     bool deleteClip(const std::string& clipId);
     bool duplicateClip(const std::string& clipId);
-    std::string createAutomationClip(const std::string& trackId,
+    /// Creates a new automation clip in the global store. `homeTrackId`
+    /// is the track the clip is rendered on in the arrangement view — the
+    /// target device can live on any track.
+    std::string createAutomationClip(const std::string& homeTrackId,
                                      double startBeat,
                                      double lengthBeats);
     bool assignAutomationTarget(const std::string& clipId,
@@ -280,6 +289,7 @@ private:
     const SampleBank* sampleBank_ = nullptr;
 
     ModulationGraph modulationGraph_;
+    AutomationClipStore automationClipStore_;
 
     DeviceRegistry deviceRegistry_{DeviceRegistry::createBuiltIn()};
 };

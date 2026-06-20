@@ -18,6 +18,10 @@ struct ProjectFileData {
     std::vector<TrackState> tracks;
     std::vector<LfoState> lfos;
     std::vector<ModulationEdge> modEdges;
+    /// Global automation-clip store. New files write it here. The loader
+    /// will fall back to per-track `tracks[i].automationClips` for legacy
+    /// projects and flatten them into the global store on load.
+    std::vector<AutomationClipState> automationClips;
 };
 
 constexpr int kProjectFormatVersion = 1;

@@ -24,6 +24,7 @@ void ProjectEngine::createProject() {
     std::lock_guard<std::shared_mutex> lock(mutex_);
     trackRepo_.clear();
     clipRepo_.clear();
+    automationClipStore_.clear();
     projectName_ = "Untitled";
     transport_.reset();
     modulationGraph_.clear();
@@ -121,7 +122,7 @@ bool ProjectEngine::removeDeviceFromTrack(const std::string& deviceId) {
     }
 
     ownerTrack->devices.erase(ownerTrack->devices.begin() + static_cast<std::ptrdiff_t>(deviceIndex));
-    clipRepo_.unlinkAutomationForDevice(deviceId);
+    automationClipStore_.unlinkForDevice(deviceId);
     modulationGraph_.removeModulationForDevice(deviceId);
     liveMixer_.allNotesOff();
     syncActiveFrequencyLocked();
@@ -208,11 +209,14 @@ std::string ProjectEngine::createSampleClip(const std::string& trackId,
     return clipId;
 }
 
-std::string ProjectEngine::createAutomationClip(const std::string& trackId,
+std::string ProjectEngine::createAutomationClip(const std::string& homeTrackId,
                                                 double startBeat,
                                                 double lengthBeats) {
     std::lock_guard<std::shared_mutex> lock(mutex_);
-    const std::string clipId = clipRepo_.createAutomationClip(trackId, startBeat, lengthBeats);
+    if (homeTrackId.empty() || trackRepo_.findTrack(homeTrackId) == nullptr) {
+        return {};
+    }
+    const std::string clipId = automationClipStore_.create(homeTrackId, startBeat, lengthBeats);
     if (clipId.empty()) {
         return {};
     }
@@ -227,7 +231,7 @@ bool ProjectEngine::assignAutomationTarget(const std::string& clipId,
     if (findDeviceLocked(deviceId) == nullptr) {
         return false;
     }
-    if (!clipRepo_.assignAutomationTarget(clipId, deviceId, paramId)) {
+    if (!automationClipStore_.assignTarget(clipId, deviceId, paramId)) {
         return false;
     }
     rebuildTrackPlaybackLocked();
@@ -237,7 +241,7 @@ bool ProjectEngine::assignAutomationTarget(const std::string& clipId,
 bool ProjectEngine::setAutomationPoints(const std::string& clipId,
                                         const std::vector<AutomationPointState>& points) {
     std::lock_guard<std::shared_mutex> lock(mutex_);
-    if (!clipRepo_.setAutomationPoints(clipId, points)) {
+    if (!automationClipStore_.setPoints(clipId, points)) {
         return false;
     }
     rebuildTrackPlaybackLocked();
@@ -248,7 +252,16 @@ bool ProjectEngine::moveClip(const std::string& clipId,
                              const std::string& targetTrackId,
                              double startBeat) {
     std::lock_guard<std::shared_mutex> lock(mutex_);
-    if (!clipRepo_.moveClip(clipId, targetTrackId, startBeat)) {
+    if (clipRepo_.findMidiClip(clipId) != nullptr ||
+        clipRepo_.findSampleClip(clipId) != nullptr) {
+        if (!clipRepo_.moveClip(clipId, targetTrackId, startBeat)) {
+            return false;
+        }
+        rebuildTrackPlaybackLocked();
+        return true;
+    }
+    // Automation clips live in the global store and ignore targetTrackId.
+    if (!automationClipStore_.setStartBeat(clipId, startBeat)) {
         return false;
     }
     rebuildTrackPlaybackLocked();
@@ -257,7 +270,15 @@ bool ProjectEngine::moveClip(const std::string& clipId,
 
 bool ProjectEngine::setClipLength(const std::string& clipId, double lengthBeats) {
     std::lock_guard<std::shared_mutex> lock(mutex_);
-    if (!clipRepo_.setClipLength(clipId, lengthBeats)) {
+    if (clipRepo_.findMidiClip(clipId) != nullptr ||
+        clipRepo_.findSampleClip(clipId) != nullptr) {
+        if (!clipRepo_.setClipLength(clipId, lengthBeats)) {
+            return false;
+        }
+        rebuildTrackPlaybackLocked();
+        return true;
+    }
+    if (!automationClipStore_.setLength(clipId, lengthBeats)) {
         return false;
     }
     rebuildTrackPlaybackLocked();
@@ -285,7 +306,15 @@ bool ProjectEngine::deleteTrack(const std::string& trackId) {
 
 bool ProjectEngine::deleteClip(const std::string& clipId) {
     std::lock_guard<std::shared_mutex> lock(mutex_);
-    if (!clipRepo_.deleteClip(clipId)) {
+    if (clipRepo_.findMidiClip(clipId) != nullptr ||
+        clipRepo_.findSampleClip(clipId) != nullptr) {
+        if (!clipRepo_.deleteClip(clipId)) {
+            return false;
+        }
+        rebuildTrackPlaybackLocked();
+        return true;
+    }
+    if (!automationClipStore_.remove(clipId)) {
         return false;
     }
     rebuildTrackPlaybackLocked();
@@ -294,7 +323,15 @@ bool ProjectEngine::deleteClip(const std::string& clipId) {
 
 bool ProjectEngine::duplicateClip(const std::string& clipId) {
     std::lock_guard<std::shared_mutex> lock(mutex_);
-    if (!clipRepo_.duplicateClip(clipId)) {
+    if (clipRepo_.findMidiClip(clipId) != nullptr ||
+        clipRepo_.findSampleClip(clipId) != nullptr) {
+        if (!clipRepo_.duplicateClip(clipId)) {
+            return false;
+        }
+        rebuildTrackPlaybackLocked();
+        return true;
+    }
+    if (!automationClipStore_.duplicate(clipId)) {
         return false;
     }
     rebuildTrackPlaybackLocked();
@@ -407,20 +444,23 @@ ProjectSnapshot ProjectEngine::snapshot() const {
             }
             ts.sampleClips.push_back(std::move(cs));
         }
-        for (const auto& clip : track.automationClips) {
-            AutomationClipState cs;
-            cs.id = clip.id;
-            cs.startBeat = clip.startBeat;
-            cs.lengthBeats = clip.lengthBeats;
-            cs.deviceId = clip.deviceId;
-            cs.paramId = clip.paramId;
-            cs.points.reserve(clip.points.size());
-            for (const auto& point : clip.points) {
-                cs.points.push_back(AutomationPointState{point.beat, point.value});
-            }
-            ts.automationClips.push_back(std::move(cs));
-        }
         snap.tracks.push_back(std::move(ts));
+    }
+
+    snap.automationClips.reserve(automationClipStore_.clips().size());
+    for (const auto& clip : automationClipStore_.clips()) {
+        AutomationClipState cs;
+        cs.id = clip.id;
+        cs.homeTrackId = clip.homeTrackId;
+        cs.startBeat = clip.startBeat;
+        cs.lengthBeats = clip.lengthBeats;
+        cs.deviceId = clip.deviceId;
+        cs.paramId = clip.paramId;
+        cs.points.reserve(clip.points.size());
+        for (const auto& point : clip.points) {
+            cs.points.push_back(AutomationPointState{point.beat, point.value});
+        }
+        snap.automationClips.push_back(std::move(cs));
     }
 
     snap.lfos = modulationGraph_.lfos();
@@ -657,9 +697,21 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         }
     }
 
+    // Simple peak limiter + emergency hard clamp for the master bus.
+    float peak = 0.0f;
     for (int frame = 0; frame < framesToProcess; ++frame) {
-        masterLeft[frame] = std::tanh(masterLeft[frame] * masterGain);
-        masterRight[frame] = std::tanh(masterRight[frame] * masterGain);
+        peak = std::max(peak, std::max(std::abs(masterLeft[frame] * masterGain),
+                                        std::abs(masterRight[frame] * masterGain)));
+    }
+
+    const float limitThreshold = 0.95f;
+    const float limitGain = peak > limitThreshold ? limitThreshold / peak : 1.0f;
+
+    for (int frame = 0; frame < framesToProcess; ++frame) {
+        float l = masterLeft[frame] * masterGain * limitGain;
+        float r = masterRight[frame] * masterGain * limitGain;
+        masterLeft[frame] = std::isfinite(l) ? std::clamp(l, -1.0f, 1.0f) : 0.0f;
+        masterRight[frame] = std::isfinite(r) ? std::clamp(r, -1.0f, 1.0f) : 0.0f;
     }
 }
 
@@ -780,22 +832,24 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
             }
             ts.sampleClips.push_back(std::move(cs));
         }
-        for (const auto& clip : track.automationClips) {
-            AutomationClipState cs;
-            cs.id = clip.id;
-            cs.startBeat = clip.startBeat;
-            cs.lengthBeats = clip.lengthBeats;
-            cs.deviceId = clip.deviceId;
-            cs.paramId = clip.paramId;
-            for (const auto& point : clip.points) {
-                cs.points.push_back(AutomationPointState{point.beat, point.value});
-            }
-            ts.automationClips.push_back(std::move(cs));
-        }
         file.tracks.push_back(std::move(ts));
     }
     file.lfos = modulationGraph_.lfos();
     file.modEdges = modulationGraph_.modEdges();
+    file.automationClips.reserve(automationClipStore_.clips().size());
+    for (const auto& clip : automationClipStore_.clips()) {
+        AutomationClipState cs;
+        cs.id = clip.id;
+        cs.homeTrackId = clip.homeTrackId;
+        cs.startBeat = clip.startBeat;
+        cs.lengthBeats = clip.lengthBeats;
+        cs.deviceId = clip.deviceId;
+        cs.paramId = clip.paramId;
+        for (const auto& point : clip.points) {
+            cs.points.push_back(AutomationPointState{point.beat, point.value});
+        }
+        file.automationClips.push_back(std::move(cs));
+    }
     return file;
 }
 
@@ -844,23 +898,31 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
             clip.lengthBeats = clipState.lengthBeats;
             track.sampleClips.push_back(std::move(clip));
         }
-        for (const auto& clipState : trackState.automationClips) {
-            AutomationClip clip;
-            clip.id = clipState.id;
-            clip.startBeat = clipState.startBeat;
-            clip.lengthBeats = clipState.lengthBeats;
-            clip.deviceId = clipState.deviceId;
-            clip.paramId = clipState.paramId;
-            for (const auto& pointState : clipState.points) {
-                AutomationPoint point;
-                point.beat = pointState.beat;
-                point.value = pointState.value;
-                clip.points.push_back(point);
-            }
-            track.automationClips.push_back(std::move(clip));
-        }
         trackRepo_.tracks().push_back(std::move(track));
     }
+
+    // Automation clips live in the global store; the per-track field on
+    // TrackState is only read for legacy file fallback inside
+    // parseProjectFileJson, never from this entry point.
+    std::vector<AutomationClip> loadedClips;
+    loadedClips.reserve(data.automationClips.size());
+    for (const auto& clipState : data.automationClips) {
+        AutomationClip clip;
+        clip.id = clipState.id;
+        clip.homeTrackId = clipState.homeTrackId;
+        clip.startBeat = clipState.startBeat;
+        clip.lengthBeats = clipState.lengthBeats;
+        clip.deviceId = clipState.deviceId;
+        clip.paramId = clipState.paramId;
+        for (const auto& pointState : clipState.points) {
+            AutomationPoint point;
+            point.beat = pointState.beat;
+            point.value = pointState.value;
+            clip.points.push_back(point);
+        }
+        loadedClips.push_back(std::move(clip));
+    }
+    automationClipStore_.load(loadedClips);
 
     recomputeIdCountersLocked();
     trackRepo_.ensureTrackGainDevices(deviceRegistry_);
@@ -1100,11 +1162,16 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
             me.amount = globalEdge.amount;
         }
 
-        // Resolve per-track automation clips
+        // Resolve per-track automation clips. Clips live in the global
+        // AutomationClipStore; for the **audio** side, we pull in any
+        // clip whose target device is on this track. Layout (where the
+        // clip is rendered in the arrangement view) is determined by the
+        // clip's `homeTrackId` and is handled by the Flutter side — the
+        // audio thread only cares about device matching.
         snap.automationClipCount = 0;
-        for (const auto& clip : trackRepo_.tracks()[trackIndex].automationClips) {
+        for (const auto& clip : automationClipStore_.clips()) {
             if (snap.automationClipCount >= 16) break;
-            // Find deviceIndex
+            if (clip.deviceId.empty()) continue;
             int di = -1;
             for (int i = 0; i < snap.deviceCount; ++i) {
                 if (snap.devices[i].deviceId == clip.deviceId) {
@@ -1112,7 +1179,7 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                     break;
                 }
             }
-            if (di < 0) continue;
+            if (di < 0) continue; // target device lives on another track
             AutomationClipPlayback pb{};
             if (!automationClipPlaybackFromClip(clip, pb)) continue;
             pb.deviceIndex = static_cast<uint16_t>(di);

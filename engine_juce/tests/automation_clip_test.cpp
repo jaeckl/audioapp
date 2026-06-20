@@ -51,11 +51,14 @@ int main() {
     }
 
     const auto parsed = readProjectData(host);
-    if (parsed.tracks.empty() || parsed.tracks[0].automationClips.size() != 1) {
+    if (parsed.automationClips.size() != 1) {
         return EXIT_FAILURE;
     }
-    const auto& clip = parsed.tracks[0].automationClips[0];
+    const auto& clip = parsed.automationClips[0];
     if (clip.deviceId != synthId || clip.paramId != "filterCutoff" || clip.points.size() != 3) {
+        return EXIT_FAILURE;
+    }
+    if (clip.homeTrackId != trackId) {
         return EXIT_FAILURE;
     }
 
@@ -66,7 +69,10 @@ int main() {
         return EXIT_FAILURE;
     }
     const auto reloaded = readProjectData(loaded);
-    if (reloaded.tracks.empty() || reloaded.tracks[0].automationClips.empty()) {
+    if (reloaded.automationClips.empty()) {
+        return EXIT_FAILURE;
+    }
+    if (reloaded.automationClips[0].homeTrackId != trackId) {
         return EXIT_FAILURE;
     }
 

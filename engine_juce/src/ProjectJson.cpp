@@ -476,6 +476,7 @@ juce::var automationClipToVar(const AutomationClipState& clip) {
 
     auto* object = new juce::DynamicObject();
     object->setProperty("id", toJuceString(clip.id));
+    object->setProperty("homeTrackId", toJuceString(clip.homeTrackId));
     object->setProperty("startBeat", clip.startBeat);
     object->setProperty("lengthBeats", clip.lengthBeats);
     object->setProperty("deviceId", toJuceString(clip.deviceId));
@@ -488,6 +489,7 @@ AutomationClipState automationClipFromVar(const juce::var& value) {
     AutomationClipState clip;
     if (const auto* object = value.getDynamicObject()) {
         clip.id = varToString(object->getProperty("id"));
+        clip.homeTrackId = varToString(object->getProperty("homeTrackId"));
         clip.startBeat = varToDouble(object->getProperty("startBeat"), 0.0);
         clip.lengthBeats = varToDouble(object->getProperty("lengthBeats"), 4.0);
         clip.deviceId = varToString(object->getProperty("deviceId"));
@@ -559,19 +561,16 @@ juce::var trackToVar(const TrackState& track) {
         sampleClips.add(sampleClipToVar(clip));
     }
 
-    juce::Array<juce::var> automationClips;
-    automationClips.ensureStorageAllocated(static_cast<int>(track.automationClips.size()));
-    for (const auto& clip : track.automationClips) {
-        automationClips.add(automationClipToVar(clip));
-    }
-
     auto* object = new juce::DynamicObject();
     object->setProperty("id", toJuceString(track.id));
     object->setProperty("name", toJuceString(track.name));
     object->setProperty("devices", devices);
     object->setProperty("midiClips", clips);
     object->setProperty("sampleClips", sampleClips);
-    object->setProperty("automationClips", automationClips);
+    // Automation clips are project-global now; the snapshot writes them
+    // at the top level (see snapshotToVar / projectFileToVar). The legacy
+    // per-track field is only kept for backward-compatible *reads* of
+    // older project files.
     return juce::var(object);
 }
 
@@ -702,6 +701,26 @@ std::vector<ModulationEdge> modEdgeArrayFromVar(const juce::var& value) {
     return result;
 }
 
+juce::var automationClipArrayToVar(const std::vector<AutomationClipState>& clips) {
+    juce::Array<juce::var> result;
+    result.ensureStorageAllocated(static_cast<int>(clips.size()));
+    for (const auto& clip : clips) {
+        result.add(automationClipToVar(clip));
+    }
+    return juce::var(result);
+}
+
+std::vector<AutomationClipState> automationClipArrayFromVar(const juce::var& value) {
+    std::vector<AutomationClipState> result;
+    if (const auto* arr = varArray(value)) {
+        result.reserve(static_cast<size_t>(arr->size()));
+        for (const auto& item : *arr) {
+            result.push_back(automationClipFromVar(item));
+        }
+    }
+    return result;
+}
+
 juce::var snapshotToVar(const ProjectSnapshot& snapshot) {
     juce::Array<juce::var> tracks;
     tracks.ensureStorageAllocated(static_cast<int>(snapshot.tracks.size()));
@@ -735,6 +754,7 @@ juce::var snapshotToVar(const ProjectSnapshot& snapshot) {
     object->setProperty("tracks", tracks);
     object->setProperty("lfos", lfoArrayToVar(snapshot.lfos));
     object->setProperty("modEdges", modEdgeArrayToVar(snapshot.modEdges));
+    object->setProperty("automationClips", automationClipArrayToVar(snapshot.automationClips));
     return juce::var(object);
 }
 
@@ -765,6 +785,7 @@ juce::var projectFileToVar(const ProjectFileData& project) {
     object->setProperty("tracks", tracks);
     object->setProperty("lfos", lfoArrayToVar(project.lfos));
     object->setProperty("modEdges", modEdgeArrayToVar(project.modEdges));
+    object->setProperty("automationClips", automationClipArrayToVar(project.automationClips));
     return juce::var(object);
 }
 
@@ -823,6 +844,32 @@ bool parseProjectFileJson(const std::string& json, ProjectFileData& out) {
     }
     if (object->hasProperty("modEdges")) {
         out.modEdges = modEdgeArrayFromVar(object->getProperty("modEdges"));
+    }
+
+    // Automation clips: prefer the new top-level array. Fall back to the
+    // legacy per-track layout (flatten into the global store, using each
+    // clip's nesting track as its homeTrackId) so older files keep working.
+    out.automationClips.clear();
+    if (object->hasProperty("automationClips")) {
+        out.automationClips = automationClipArrayFromVar(object->getProperty("automationClips"));
+        // Legacy files may have written automationClips at the top level
+        // without a homeTrackId; fall back to the selected track so the
+        // clip is laid out somewhere visible.
+        for (auto& clip : out.automationClips) {
+            if (clip.homeTrackId.empty()) {
+                clip.homeTrackId = out.selectedTrackId;
+            }
+        }
+    } else {
+        for (const auto& track : out.tracks) {
+            for (const auto& clip : track.automationClips) {
+                AutomationClipState flat = clip;
+                if (flat.homeTrackId.empty()) {
+                    flat.homeTrackId = track.id;
+                }
+                out.automationClips.push_back(std::move(flat));
+            }
+        }
     }
 
     return true;

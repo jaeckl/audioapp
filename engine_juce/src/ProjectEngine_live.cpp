@@ -63,7 +63,9 @@ bool ProjectEngine::noteOn(int pitch, float velocity) {
     }
 
     liveMixer_.noteOn(instrument, pitch, velocity);
-    modulationGraph_.retriggerOnNote();
+    // Don't call retriggerOnNote() — live pad input shares the global
+    // retrigger generation with the arrangement LFO render path, causing
+    // unwanted envelope resets on arrangement LFOs (staccato/gate artifacts).
 
     if (recordArmed_) {
         const uint64_t now = liveMixer_.sampleClock();

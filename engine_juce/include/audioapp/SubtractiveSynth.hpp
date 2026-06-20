@@ -73,6 +73,22 @@ struct SubtractiveVoiceRuntime {
     float osc1Phases[kSubtractiveMaxUnison]{};
     float osc2Phases[kSubtractiveMaxUnison]{};
     float osc2FreePhases[kSubtractiveMaxUnison]{};
+    // Precomputed oscillator phase increment scale per unison voice.
+    // phaseInc[u] = kTwoPi * pow(2.0f, cents / 1200.0f) / sampleRate
+    // Then per-sample: inc = rootHz * phaseIncPerUnit[u]  (no pow per sample)
+    float osc1PhaseIncPerUnit[kSubtractiveMaxUnison]{};
+    float osc2PhaseIncPerUnit[kSubtractiveMaxUnison]{};
+    int cachedUnisonCount = 0;
+    // Cached key-track ratio (recomputed on note-on or param change)
+    float cachedKeyTrackRatio = 1.0f;
+    // Cached filter coefficients to avoid per-sample cookSamplerBiquad
+    BiquadCoeffs cachedFilterCoeffs{};
+    float cachedFilterCutoffHz = -1.0f;
+    float cachedFilterQ = -1.0f;
+    int cachedFilterMode = -1;
+    BiquadCoeffs cachedPreHpCoeffs{};
+    float cachedPreHpCutoffHz = -1.0f;
+    float cachedPreHpQ = -1.0f;
     float currentHz = 440.0f;
     float targetHz = 440.0f;
     float noiseSeed = 0.123f;
@@ -130,7 +146,13 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
                                   SubtractiveSynthRuntime& runtime,
                                   const AutomationClipPlayback* automationClips = nullptr,
                                   int automationClipCount = 0,
-                                  const uint16_t* automationDeviceIndex = nullptr) noexcept;
+                                  const uint16_t* automationDeviceIndex = nullptr,
+                                  const float* lfoValues = nullptr,
+                                  int lfoCount = 0,
+                                  int lfoStride = 0,
+                                  const ModulationEdgePlayback* modEdges = nullptr,
+                                  int modEdgeCount = 0,
+                                  const uint16_t* modulationDeviceIndex = nullptr) noexcept;
 
 void renderSubtractiveLiveVoice(float& mix,
                                 SubtractiveVoiceRuntime& voice,

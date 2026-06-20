@@ -9,8 +9,10 @@
 #include <cmath>
 #include <cstring>
 #include <mutex>
+#include <time.h>
 
 #define AUDIOAPP_LOG(...) __android_log_print(ANDROID_LOG_INFO, "audioapp_engine", __VA_ARGS__)
+#define AUDIOAPP_ERR(...) __android_log_print(ANDROID_LOG_ERROR, "audioapp_engine", __VA_ARGS__)
 
 namespace audioapp {
 
@@ -24,6 +26,11 @@ struct EngineHost::Impl {
     AAudioStream* stream = nullptr;
     std::mutex streamMutex;
 
+    // Timing instrumentation (audio-thread safe, atomics)
+    std::atomic<int64_t> maxCallbackNs{0};
+    std::atomic<uint32_t> callbackCount{0};
+    int64_t blockDeadlineNs = 0; // set on stream open
+
     static aaudio_data_callback_result_t dataCallback(AAudioStream* /*stream*/,
                                                         void* userData,
                                                         void* audioData,
@@ -33,6 +40,12 @@ struct EngineHost::Impl {
             return AAUDIO_CALLBACK_RESULT_STOP;
         }
 
+        // --- Timing instrumentation ---
+        timespec t0;
+        clock_gettime(CLOCK_MONOTONIC, &t0);
+        const int64_t deadlineNs = self->blockDeadlineNs;
+
+        // --- Core render ---
         auto* output = static_cast<float*>(audioData);
         const bool shouldPlay = self->playing.load(std::memory_order_acquire);
         const double rate = self->sampleRate.load(std::memory_order_acquire);
@@ -74,6 +87,40 @@ struct EngineHost::Impl {
                         static_cast<size_t>(numFrames - framesToProcess) * 2 * sizeof(float));
         }
 
+        // --- Timing check (post-render, not in hot path) ---
+        timespec t1;
+        clock_gettime(CLOCK_MONOTONIC, &t1);
+        const int64_t elapsedNs = (t1.tv_sec - t0.tv_sec) * 1000000000LL + (t1.tv_nsec - t0.tv_nsec);
+        int64_t prevMax = self->maxCallbackNs.load(std::memory_order_relaxed);
+        while (elapsedNs > prevMax &&
+               !self->maxCallbackNs.compare_exchange_weak(prevMax, elapsedNs, std::memory_order_relaxed)) {}
+
+        // Log peak every ~1000 callbacks (~5-10s at 512 frames)
+        const uint32_t count = self->callbackCount.fetch_add(1, std::memory_order_relaxed);
+        if ((count % 1000) == 0) {
+            const int64_t peak = self->maxCallbackNs.load(std::memory_order_relaxed);
+            const int64_t peakUs = peak / 1000;
+            const int64_t bufUs = deadlineNs / 1000;
+            if (peak > deadlineNs) {
+                AUDIOAPP_ERR("STATS: callbacks=%u peak=%lldus OVER deadline=%lldus by %lldus",
+                             count, peakUs, bufUs, peakUs - bufUs);
+            } else {
+                AUDIOAPP_LOG("STATS: callbacks=%u peak=%lldus deadline=%lldus (%.0f%%)",
+                             count, peakUs, bufUs, 100.0 * peak / deadlineNs);
+            }
+            // Reset peak for next window
+            self->maxCallbackNs.store(0, std::memory_order_relaxed);
+        }
+
+        // Individual overrun log (throttled)
+        if (deadlineNs > 0 && elapsedNs > deadlineNs) {
+            static thread_local int32_t xrunThrottle = 0;
+            if ((++xrunThrottle % 50) == 0) {
+                AUDIOAPP_ERR("XRUN: callback took %lld us (deadline %lld us)",
+                             elapsedNs / 1000, deadlineNs / 1000);
+            }
+        }
+
         return AAUDIO_CALLBACK_RESULT_CONTINUE;
     }
 
@@ -99,7 +146,8 @@ struct EngineHost::Impl {
         }
 
         AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
-        AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
+        AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_NONE);
+        AAudioStreamBuilder_setBufferCapacityInFrames(builder, 1024);
         AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_SHARED);
         AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_FLOAT);
         AAudioStreamBuilder_setChannelCount(builder, 2);
@@ -116,8 +164,14 @@ struct EngineHost::Impl {
         }
 
         sampleRate.store(AAudioStream_getSampleRate(stream), std::memory_order_release);
+        // Compute per-callback deadline: bufferSize / sampleRate in nanoseconds
+        const int32_t actualBufSize = AAudioStream_getBufferSizeInFrames(stream);
+        const int32_t framesPerCallback = AAudioStream_getFramesPerDataCallback(stream);
+        const int32_t effectiveFrames = framesPerCallback > 0 ? framesPerCallback : actualBufSize;
+        blockDeadlineNs = static_cast<int64_t>(static_cast<double>(effectiveFrames) / sampleRate.load(std::memory_order_acquire) * 1e9);
         oscillator.setFrequency(440.0f);
-        AUDIOAPP_LOG("AAudio stream open, sample rate %.1f", sampleRate.load());
+        AUDIOAPP_LOG("AAudio stream open, sampleRate=%.0f bufferFrames=%d callbackFrames=%d deadlineNs=%lld",
+                     sampleRate.load(), actualBufSize, framesPerCallback, blockDeadlineNs);
         return true;
     }
 

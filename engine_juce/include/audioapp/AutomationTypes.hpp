@@ -212,6 +212,10 @@ struct AutomationPointState {
 
 struct AutomationClipState {
     std::string id;
+    /// Track the clip is rendered on in the arrangement view. The clip
+    /// targets `deviceId`/`paramId` for audio routing, but is laid out
+    /// on this track's lane. The two are independent.
+    std::string homeTrackId;
     double startBeat = 0.0;
     double lengthBeats = 4.0;
     std::string deviceId;

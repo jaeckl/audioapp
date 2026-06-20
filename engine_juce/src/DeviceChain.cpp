@@ -381,6 +381,21 @@ bool nodeUsesDspAutomationSubBlocks(const DeviceNodePlayback& node,
     return false;
 }
 
+bool nodeHasDspModulation(uint16_t deviceIndex,
+                          const ModulationEdgePlayback* modEdges,
+                          int modEdgeCount) noexcept {
+    if (modEdges == nullptr || modEdgeCount <= 0) return false;
+    for (int e = 0; e < modEdgeCount; ++e) {
+        if (modEdges[e].deviceIndex != deviceIndex) continue;
+        const uint16_t pid = modEdges[e].localParamId;
+        if (pid != static_cast<uint16_t>(CommonParam::Gain) &&
+            pid != static_cast<uint16_t>(CommonParam::Pan)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 } // namespace
 
 // =======================================================================
@@ -620,7 +635,8 @@ void processDeviceChain(float* trackLeft,
                 const int regionCount = noteCount > kMaxInstrumentRegions ? kMaxInstrumentRegions : noteCount;
                 for (int i = 0; i < regionCount; ++i) {
                     const MidiPlaybackNote& note = notes[i];
-                    s.subtractiveRegions[i] = SubtractiveMidiNoteRegion{note.pitch, i,
+                    // Use pitch as stable voice identifier across block boundaries
+                    s.subtractiveRegions[i] = SubtractiveMidiNoteRegion{note.pitch, note.pitch,
                         note.clipStartBeat, note.clipLengthBeats,
                         note.noteStartBeat, note.noteDurationBeats, note.velocity};
                 }
@@ -628,10 +644,15 @@ void processDeviceChain(float* trackLeft,
                 SubtractiveSynthRuntime localRuntime{};
                 auto& runtime = subtractiveRuntimes != nullptr ? subtractiveRuntimes[deviceIndex] : localRuntime;
                 const bool hasAuto = nodeHasDspAutomation(di, automationClips, automationClipCount);
+                const bool hasMod = lfoValues != nullptr && lfoCount > 0 && modEdges != nullptr && modEdgeCount > 0 &&
+                                    nodeHasDspModulation(di, modEdges, modEdgeCount);
                 mixSubtractiveMidiNotesBlock(s.scratch, framesToProcess, sampleRate, bpm, playheadStartBeat,
                     s.subtractiveRegions, regionCount, std::get<SubtractiveSynthParams>(modulatedParams), runtime,
                     hasAuto ? automationClips : nullptr, hasAuto ? automationClipCount : 0,
-                    hasAuto ? &di : nullptr);
+                    hasAuto ? &di : nullptr,
+                    hasMod ? lfoValues : nullptr, hasMod ? lfoCount : 0, hasMod ? framesToProcess : 0,
+                    hasMod ? modEdges : nullptr, hasMod ? modEdgeCount : 0,
+                    hasMod ? &di : nullptr);
                 multiplyPerFrameGain(s.scratch, framesToProcess, s.perFrameGain);
                 mixStereoPerFramePan(trackLeft, trackRight, s.scratch, framesToProcess, s.perFramePan);
             }
