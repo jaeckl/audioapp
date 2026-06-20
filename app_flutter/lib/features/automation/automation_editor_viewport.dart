@@ -13,6 +13,8 @@ import 'automation_curve_grid_painter.dart';
 import 'automation_editor_metrics.dart';
 import 'automation_value_column.dart';
 
+enum _PinchZoomAxis { horizontal, vertical }
+
 class AutomationEditorViewport extends StatefulWidget {
   const AutomationEditorViewport({
     super.key,
@@ -82,7 +84,9 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
 
   bool _syncingScroll = false;
   final Map<int, Offset> _canvasPointers = {};
-  double? _pinchStartSpan;
+  double? _pinchStartSpanX;
+  double? _pinchStartSpanY;
+  _PinchZoomAxis? _pinchZoomAxis;
 
   double _pixelsPerBeat = AutomationEditorMetrics.pixelsPerBeat;
   double _valueAxisHeight = AutomationEditorMetrics.minValueAxisHeight;
@@ -108,6 +112,7 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
 
   static const double _tapSlop = 8;
   static const double _pinchMinSpan = 8;
+  static const double _pinchAxisRatio = 1.15;
 
   bool get _canvasPinchActive => _canvasPointers.length >= 2;
 
@@ -311,10 +316,26 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
     _lockScrollForEdit = false;
   }
 
-  double _canvasPointerSpan() {
+  double _canvasPointerSpanX() {
     final points = _canvasPointers.values.toList(growable: false);
     if (points.length < 2) return 0;
-    return (points[0] - points[1]).distance;
+    return (points[0].dx - points[1].dx).abs();
+  }
+
+  double _canvasPointerSpanY() {
+    final points = _canvasPointers.values.toList(growable: false);
+    if (points.length < 2) return 0;
+    return (points[0].dy - points[1].dy).abs();
+  }
+
+  _PinchZoomAxis _resolvePinchAxis(double spanX, double spanY) {
+    if (spanX >= spanY * _pinchAxisRatio) {
+      return _PinchZoomAxis.horizontal;
+    }
+    if (spanY >= spanX * _pinchAxisRatio) {
+      return _PinchZoomAxis.vertical;
+    }
+    return spanX >= spanY ? _PinchZoomAxis.horizontal : _PinchZoomAxis.vertical;
   }
 
   Offset _canvasFocalPoint() {
@@ -327,47 +348,57 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
     return sum / points.length.toDouble();
   }
 
-  void _applyPinchZoom(double scale, Offset focal) {
+  void _applyHorizontalPinchZoom(double scale, Offset focal) {
     final newPpb = (_pinchStartPpb * scale).clamp(
       AutomationEditorMetrics.minPixelsPerBeat,
       AutomationEditorMetrics.maxPixelsPerBeat,
     );
+
+    if ((newPpb - _pixelsPerBeat).abs() < 0.15) {
+      return;
+    }
+
+    final scrollX = _horizontal.hasClients ? _horizontal.offset : 0.0;
+    final beatAtFocal = focal.dx / _pixelsPerBeat;
+
+    setState(() {
+      _pixelsPerBeat = newPpb;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_horizontal.hasClients) return;
+      final maxX = _horizontal.position.maxScrollExtent;
+      final newScrollX = (beatAtFocal * newPpb - focal.dx + scrollX).clamp(0.0, maxX);
+      _horizontal.jumpTo(newScrollX);
+      if (_ruler.hasClients) _ruler.jumpTo(newScrollX);
+    });
+  }
+
+  void _applyVerticalPinchZoom(double scale, Offset focal) {
     final newValueH = AutomationEditorMetrics.clampValueAxisHeight(
       _pinchStartValueH * scale,
       _canvasViewportHeight,
     );
 
-    if ((newPpb - _pixelsPerBeat).abs() < 0.15 &&
-        (newValueH - _valueAxisHeight).abs() < 0.15) {
+    if ((newValueH - _valueAxisHeight).abs() < 0.15) {
       return;
     }
 
-    final scrollX = _horizontal.hasClients ? _horizontal.offset : 0.0;
     final scrollY = _vertical.hasClients ? _vertical.offset : 0.0;
-    final beatAtFocal = focal.dx / _pixelsPerBeat;
     final valueAtFocal =
         AutomationEditorMetrics.valueFromDy(focal.dy, _valueAxisHeight);
 
     setState(() {
-      _pixelsPerBeat = newPpb;
       _valueAxisHeight = newValueH;
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (_vertical.hasClients) {
-        final maxY = _vertical.position.maxScrollExtent;
-        final valueY = AutomationEditorMetrics.dyFromValue(valueAtFocal, newValueH);
-        final newScrollY = (valueY - focal.dy + scrollY).clamp(0.0, maxY);
-        _vertical.jumpTo(newScrollY);
-        if (_verticalLabels.hasClients) _verticalLabels.jumpTo(newScrollY);
-      }
-      if (_horizontal.hasClients) {
-        final maxX = _horizontal.position.maxScrollExtent;
-        final newScrollX = (beatAtFocal * newPpb - focal.dx + scrollX).clamp(0.0, maxX);
-        _horizontal.jumpTo(newScrollX);
-        if (_ruler.hasClients) _ruler.jumpTo(newScrollX);
-      }
+      if (!mounted || !_vertical.hasClients) return;
+      final maxY = _vertical.position.maxScrollExtent;
+      final valueY = AutomationEditorMetrics.dyFromValue(valueAtFocal, newValueH);
+      final newScrollY = (valueY - focal.dy + scrollY).clamp(0.0, maxY);
+      _vertical.jumpTo(newScrollY);
+      if (_verticalLabels.hasClients) _verticalLabels.jumpTo(newScrollY);
     });
   }
 
@@ -458,7 +489,9 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
     _canvasPointers[event.pointer] = _pointerToCanvas(event);
 
     if (_canvasPointers.length == 2) {
-      _pinchStartSpan = _canvasPointerSpan();
+      _pinchStartSpanX = _canvasPointerSpanX();
+      _pinchStartSpanY = _canvasPointerSpanY();
+      _pinchZoomAxis = _resolvePinchAxis(_pinchStartSpanX!, _pinchStartSpanY!);
       _pinchStartPpb = _pixelsPerBeat;
       _pinchStartValueH = _valueAxisHeight;
       _cancelEditGesture();
@@ -518,12 +551,22 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
     if (!_canvasPointers.containsKey(event.pointer)) return;
     _canvasPointers[event.pointer] = _pointerToCanvas(event);
 
-    if (_canvasPointers.length >= 2 &&
-        _pinchStartSpan != null &&
-        _pinchStartSpan! >= _pinchMinSpan) {
-      final span = _canvasPointerSpan();
-      if (span >= _pinchMinSpan) {
-        _applyPinchZoom(span / _pinchStartSpan!, _canvasFocalPoint());
+    if (_canvasPointers.length >= 2 && _pinchZoomAxis != null) {
+      final focal = _canvasFocalPoint();
+      if (_pinchZoomAxis == _PinchZoomAxis.horizontal &&
+          _pinchStartSpanX != null &&
+          _pinchStartSpanX! >= _pinchMinSpan) {
+        final spanX = _canvasPointerSpanX();
+        if (spanX >= _pinchMinSpan) {
+          _applyHorizontalPinchZoom(spanX / _pinchStartSpanX!, focal);
+        }
+      } else if (_pinchZoomAxis == _PinchZoomAxis.vertical &&
+          _pinchStartSpanY != null &&
+          _pinchStartSpanY! >= _pinchMinSpan) {
+        final spanY = _canvasPointerSpanY();
+        if (spanY >= _pinchMinSpan) {
+          _applyVerticalPinchZoom(spanY / _pinchStartSpanY!, focal);
+        }
       }
       return;
     }
@@ -555,7 +598,9 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
     _canvasPointers.remove(event.pointer);
 
     if (_canvasPointers.length < 2) {
-      _pinchStartSpan = null;
+      _pinchStartSpanX = null;
+      _pinchStartSpanY = null;
+      _pinchZoomAxis = null;
     }
 
     if (event.pointer != _editPointer) {
