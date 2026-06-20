@@ -375,6 +375,7 @@ bool nodeUsesDspAutomationSubBlocks(const DeviceNodePlayback& node,
             case DeviceNodeKind::Sampler:
                 return true;
             case DeviceNodeKind::SubtractiveSynth:
+            case DeviceNodeKind::BassSynth:
                 return false; // per-sample inside mixSubtractiveMidiNotesBlock
             default:
                 return false;
@@ -407,6 +408,14 @@ bool nodeHasDspModulation(uint16_t deviceIndex,
 bool isDynamicsDeviceNodeKind(const DeviceNodeKind kind) noexcept {
     return kind == DeviceNodeKind::Gate || kind == DeviceNodeKind::Compressor ||
            kind == DeviceNodeKind::Expander || kind == DeviceNodeKind::Limiter;
+}
+
+bool isInstrumentDeviceNodeKind(const DeviceNodeKind kind) noexcept {
+    return kind == DeviceNodeKind::Oscillator || kind == DeviceNodeKind::Sampler ||
+           kind == DeviceNodeKind::SubtractiveSynth || kind == DeviceNodeKind::KickGenerator ||
+           kind == DeviceNodeKind::SnareGenerator || kind == DeviceNodeKind::ClapGenerator ||
+           kind == DeviceNodeKind::CymbalGenerator || kind == DeviceNodeKind::CrashGenerator ||
+           kind == DeviceNodeKind::BassSynth;
 }
 
 float midiActiveFrequencyHz(const MidiPlaybackNote* notes,
@@ -498,7 +507,8 @@ void processDeviceChain(float* trackLeft,
                         else s.perFramePan[f] = val;
                     }
                 } else if (!needsSubBlocks) {
-                    if (node.kind == DeviceNodeKind::SubtractiveSynth &&
+                    if ((node.kind == DeviceNodeKind::SubtractiveSynth ||
+                         node.kind == DeviceNodeKind::BassSynth) &&
                         nodeHasDspAutomation(di, automationClips, automationClipCount)) {
                         continue;
                     }
@@ -520,7 +530,8 @@ void processDeviceChain(float* trackLeft,
                 const uint16_t pid = edge.localParamId;
                 if (pid == kEncodedCommonGain || pid == kEncodedCommonPan) continue;
                 if (!needsSubBlocks) {
-                    if (node.kind == DeviceNodeKind::SubtractiveSynth &&
+                    if ((node.kind == DeviceNodeKind::SubtractiveSynth ||
+                         node.kind == DeviceNodeKind::BassSynth) &&
                         (nodeHasDspAutomation(di, automationClips, automationClipCount) ||
                          nodeHasDspModulation(di, modEdges, modEdgeCount))) continue;
                     const float lfoOut = lfoValues[edge.lfoId * framesToProcess];
@@ -634,6 +645,7 @@ void processDeviceChain(float* trackLeft,
             }
             break;
         }
+        case DeviceNodeKind::BassSynth:
         case DeviceNodeKind::SubtractiveSynth: {
             if (!suppressInstruments && noteCount > 0) {
                 const int regionCount = noteCount > kMaxInstrumentRegions ? kMaxInstrumentRegions : noteCount;
