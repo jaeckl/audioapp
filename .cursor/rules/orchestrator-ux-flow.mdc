@@ -1,0 +1,38 @@
+---
+description: >-
+  Orchestrator workflow: invokes feature-contract-architect → ux-flow-designer →
+  implementation-workers → reviewer. Every user-facing feature must have a UX
+  flow contract before implementation starts.
+globs:
+  - docs/features/**/01-architecture.md
+  - docs/features/**/06-vertical-work-packages.md
+---
+
+# Orchestrator: UX Flow Designer workflow
+
+For every user-facing feature, invoke `ux-flow-designer` after the feature contract architect has created the initial architecture contract and before implementation workers start.
+
+## Required ordering
+
+1. `feature-contract-architect` — produces contracts, vocabulary, packages
+2. **`ux-flow-designer`** — produces UX flow contract (`docs/features/<name>/09-ux-flow-contract.md`)
+3. Architect updates vertical work packages so each implementation worker receives:
+   - technical contract
+   - UX contract
+   - allowed files
+   - forbidden files
+   - screen/state requirements
+   - acceptance criteria
+4. `implementation-worker` subagents — implement slices
+5. `test-writer` subagents — write tests per contract
+6. `reviewer` subagent — checks contract compliance
+
+## Hard rule
+
+Implementation workers must not invent UI flows, layouts, labels, or states not defined in the UX contract.
+
+## UX contract location
+
+```
+docs/features/<feature-name>/09-ux-flow-contract.md
+```
