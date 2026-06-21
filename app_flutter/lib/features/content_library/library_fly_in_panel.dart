@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../../bridge/engine_bridge.dart';
 import '../../bridge/project_snapshot.dart';
 import 'library_catalog.dart';
 import 'library_category.dart';
 import 'library_category_menu.dart';
 import 'library_content_pane.dart';
+import 'library_header.dart';
+import 'library_manifest.dart';
+import 'library_preset_preview_bar.dart';
+import 'library_preview_cache.dart';
 import 'library_theme.dart';
 
 /// Slide-in content library: half width in landscape, full width in portrait.
@@ -17,8 +22,11 @@ class LibraryFlyInPanel extends StatefulWidget {
     required this.onInsertAudio,
     required this.onImportAudio,
     this.initialCategory = LibraryCategory.audioClips,
+    this.fetchClipPreview,
     this.onMidiClipTap,
+    this.onMidiPreviewTap,
     this.onAutomationTap,
+    this.onAutomationPreviewTap,
     this.onPresetTap,
   });
 
@@ -28,8 +36,11 @@ class LibraryFlyInPanel extends StatefulWidget {
   final ValueChanged<SampleLibraryEntrySnapshot> onInsertAudio;
   final VoidCallback onImportAudio;
   final LibraryCategory initialCategory;
+  final Future<ClipPreviewData> Function(String itemId)? fetchClipPreview;
   final void Function(LibraryMidiItem item)? onMidiClipTap;
+  final void Function(LibraryMidiItem item)? onMidiPreviewTap;
   final void Function(LibraryAutomationItem item)? onAutomationTap;
+  final void Function(LibraryAutomationItem item)? onAutomationPreviewTap;
   final void Function(LibraryPresetItem item)? onPresetTap;
 
   @override
@@ -41,6 +52,10 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
   late final AnimationController _controller;
   late final Animation<Offset> _slide;
   late LibraryCategory _category;
+  LibraryManifest? _manifest;
+  String? _selectedItemId;
+  final ClipPreviewCache _previewCache = ClipPreviewCache();
+  bool _presetPreviewLoopEnabled = true;
 
   @override
   void initState() {
@@ -56,21 +71,72 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     _controller.forward();
+    _loadManifest();
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _previewCache.clear();
     super.dispose();
   }
 
+  Future<void> _loadManifest() async {
+    try {
+      final manifest = await LibraryManifest.load();
+      if (mounted) {
+        setState(() => _manifest = manifest);
+      }
+    } catch (_) {
+      // manifest unavailable — non-critical
+    }
+  }
+
   Future<void> close() async {
+    _previewCache.clear();
     await _controller.reverse();
     if (mounted) widget.onClose();
   }
 
   void openCategory(LibraryCategory category) {
-    setState(() => _category = category);
+    setState(() {
+      _category = category;
+      _selectedItemId = null;
+      _presetPreviewLoopEnabled = true;
+    });
+  }
+
+  void _onItemSelected(String? itemId) {
+    setState(() {
+      _selectedItemId = itemId;
+    });
+  }
+
+  void _onInsert() {
+    if (_selectedItemId == null) return;
+    final items = LibraryCatalog.itemsFor(
+      _category,
+      widget.snapshot,
+      manifest: _manifest,
+    );
+    LibraryItem item;
+    try {
+      item = items.firstWhere((i) => i.id == _selectedItemId);
+    } catch (_) {
+      return;
+    }
+    switch (item) {
+      case final LibraryAudioItem audio when !audio.isProjectClip:
+        widget.onInsertAudio(audio.sample);
+      case final LibraryMidiItem midi:
+        widget.onMidiClipTap?.call(midi);
+      case final LibraryAutomationItem automation:
+        widget.onAutomationTap?.call(automation);
+      case final LibraryPresetItem preset:
+        widget.onPresetTap?.call(preset);
+      default:
+        break;
+    }
   }
 
   @override
@@ -78,6 +144,7 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
     final size = MediaQuery.sizeOf(context);
     final landscape = size.width > size.height;
     final panelWidth = landscape ? size.width * 0.5 : size.width;
+    final accent = LibraryTheme.accentFor(_category);
 
     return Stack(
       children: [
@@ -109,14 +176,23 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _LibraryPanelHeader(onClose: close),
+                      LibraryHeader(
+                        onClose: close,
+                        selectedItemId: _selectedItemId,
+                        onInsert: _selectedItemId != null ? _onInsert : null,
+                        accent: accent,
+                      ),
                       Expanded(
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             LibraryCategoryMenu(
                               selected: _category,
-                              onSelected: (category) => setState(() => _category = category),
+                              onSelected: (category) => setState(() {
+                                _category = category;
+                                _selectedItemId = null;
+                                _presetPreviewLoopEnabled = true;
+                              }),
                             ),
                             Expanded(
                               child: LibraryContentPane(
@@ -125,14 +201,32 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
                                 onPreviewAudio: widget.onPreviewAudio,
                                 onInsertAudio: widget.onInsertAudio,
                                 onImportAudio: widget.onImportAudio,
+                                onItemSelected: _onItemSelected,
+                                fetchClipPreview: widget.fetchClipPreview,
                                 onMidiClipTap: widget.onMidiClipTap,
+                                onMidiPreviewTap: widget.onMidiPreviewTap,
                                 onAutomationTap: widget.onAutomationTap,
+                                onAutomationPreviewTap: widget.onAutomationPreviewTap,
                                 onPresetTap: widget.onPresetTap,
+                                previewCache: _previewCache,
                               ),
                             ),
                           ],
                         ),
                       ),
+                      if (_category == LibraryCategory.devicePresets &&
+                          _selectedItemId != null)
+                        PresetPreviewBar(
+                          snapshot: widget.snapshot,
+                          selectedTrackId: widget.snapshot.selectedTrackId,
+                          loopEnabled: _presetPreviewLoopEnabled,
+                          onLoopToggled: (enabled) =>
+                              setState(() => _presetPreviewLoopEnabled = enabled),
+                          onScrub: (beat) {
+                            // Bridge call for preset preview at this beat
+                            // will be wired later (WP-BRIDGE)
+                          },
+                        ),
                     ],
                   ),
                 ),
@@ -141,36 +235,6 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
           ),
         ),
       ],
-    );
-  }
-}
-
-class _LibraryPanelHeader extends StatelessWidget {
-  const _LibraryPanelHeader({required this.onClose});
-
-  final Future<void> Function() onClose;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 4, 4),
-      child: Row(
-        children: [
-          Text(
-            'Library',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-          const Spacer(),
-          IconButton(
-            tooltip: 'Close library',
-            onPressed: onClose,
-            icon: const Icon(Icons.close, color: Colors.white54),
-          ),
-        ],
-      ),
     );
   }
 }

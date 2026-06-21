@@ -45,6 +45,12 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
               onTap: () => Navigator.pop(context, 'bass_synth'),
             ),
             ListTile(
+              leading: const Icon(Icons.account_tree, color: Color(0xFFFF6B35)),
+              title: const Text('Phase Mod Synth'),
+              subtitle: const Text('4-OP · FM/PM · 8 algorithms'),
+              onTap: () => Navigator.pop(context, 'phase_mod_synth'),
+            ),
+            ListTile(
               leading: const Icon(Icons.album, color: Color(0xFFE85D4B)),
               title: const Text('Kick Generator'),
               subtitle: const Text('808-style · pitch-drop body'),
@@ -129,7 +135,7 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
               onTap: () => Navigator.pop(context, 'delay'),
             ),
             ListTile(
-              leading: const Icon(Icons.wave_square, color: Color(0xFF7B6CF6)),
+              leading: const Icon(Icons.waves, color: Color(0xFF7B6CF6)),
               title: const Text('Reverb'),
               subtitle: const Text('Room · hall · shimmer'),
               onTap: () => Navigator.pop(context, 'reverb'),

@@ -76,6 +76,7 @@ add_library(audioapp_engine STATIC
   src/AutomationPlayback.cpp
   src/EngineHost_commands.cpp
   src/LfoEngine.cpp
+  src/FallbackPreviewOscillator.cpp
 )
 
 target_include_directories(audioapp_engine
@@ -174,6 +175,7 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/track_clip_repository_test.cpp
     tests/track_gain_test.cpp
     tests/transport_controller_test.cpp
+    tests/fallback_oscillator_test.cpp
   )
 
   add_executable(audioapp_juce_tests ${AUDIOAPP_TEST_SOURCES})

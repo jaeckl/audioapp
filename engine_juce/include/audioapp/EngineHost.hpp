@@ -1,5 +1,7 @@
 #pragma once
 
+#include "audioapp/FallbackPreviewOscillator.hpp"
+#include "audioapp/MidiClipPlayback.hpp"
 #include "audioapp/ProjectEngine.hpp"
 #include "audioapp/SampleBank.hpp"
 
@@ -70,6 +72,10 @@ public:
     std::vector<float> renderOffline(double lengthBeats, double sampleRate);
     std::string importWavSample(const std::string& displayName, const std::vector<uint8_t>& wavBytes);
     void previewSample(const std::string& sampleId);
+    /// Preview MIDI clip — plays through fallback oscillator.
+    void previewMidi(const std::vector<MidiNoteState>& notes, double lengthBeats, int bpm);
+    /// Stop any active MIDI preview.
+    void stopPreview();
     void ensureAudioOutput();
 
     bool setRecordArmed(bool armed);
@@ -139,6 +145,17 @@ private:
     /// Holds sample PCM data alive while preview is active (shared_ptr prevents UAF
     /// if a new preview overwrites pcmData while the audio thread is still reading).
     std::shared_ptr<const std::vector<float>> previewBuffer_;
+
+    struct PreviewMidiState {
+        std::atomic<bool> active{false};
+        std::vector<MidiNoteState> notes;
+        double lengthBeats = 4.0;
+        int bpm = 120;
+        std::atomic<double> playheadBeats{0.0};
+    };
+
+    PreviewMidiState previewMidi_;
+    FallbackPreviewOscillator fallbackOsc_;
     void ensureSampleBankReady();
 };
 

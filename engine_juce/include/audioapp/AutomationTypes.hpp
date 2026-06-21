@@ -189,6 +189,52 @@ enum class BassSynthParam : uint16_t {
     SubOctave = 15,
 };
 
+enum class PhaseModSynthParam : uint16_t {
+    // Operator 1
+    Op1Level = 0,
+    Op1Fine = 1,
+    Op1Attack = 2,
+    Op1Decay = 3,
+    Op1Sustain = 4,
+    Op1Release = 5,
+    // Operator 2
+    Op2Level = 6,
+    Op2Fine = 7,
+    Op2Attack = 8,
+    Op2Decay = 9,
+    Op2Sustain = 10,
+    Op2Release = 11,
+    // Operator 3
+    Op3Level = 12,
+    Op3Fine = 13,
+    Op3Attack = 14,
+    Op3Decay = 15,
+    Op3Sustain = 16,
+    Op3Release = 17,
+    // Operator 4
+    Op4Level = 18,
+    Op4Fine = 19,
+    Op4Attack = 20,
+    Op4Decay = 21,
+    Op4Sustain = 22,
+    Op4Release = 23,
+    // Filter
+    FilterCutoff = 24,
+    FilterQ = 25,
+    FilterEnvAmount = 26,
+    // Amp
+    AmpAttack = 27,
+    AmpDecay = 28,
+    AmpSustain = 29,
+    AmpRelease = 30,
+    // Global
+    Feedback = 31,
+    MasterVol = 32,
+    LfoRate = 33,
+    LfoAmount = 34,
+    VibratoDepth = 35,
+};
+
 // -----------------------------------------------------------------------
 // ParamKind — distinguishes which per-device enum a `localParamId` refers
 // to. Without this tag, multiple device kinds (CommonParam, SubtractiveParam,
@@ -219,6 +265,8 @@ enum class ParamKind : uint16_t {
     TrackGain        = 13,
     // Bass Synth
     BassSynth        = 14,
+    // Phase Modulation Synth
+    PhaseModSynth    = 15,
 };
 
 constexpr uint16_t kParamKindShift      = 12;

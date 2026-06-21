@@ -57,6 +57,9 @@ void LivePerformanceMixer::releaseVoice(LiveVoiceSlot& voice, uint64_t now) noex
             voice.instrument.kind == LiveInstrumentKind::BassSynth) {
             voice.subtractiveReleaseSec = static_cast<double>(now) / 48000.0;
         }
+        if (voice.instrument.kind == LiveInstrumentKind::PhaseModSynth) {
+            voice.phaseMod.releaseBeat = static_cast<double>(now) / 48000.0;
+        }
     }
 }
 
@@ -91,6 +94,7 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         voice.oscillatorPhase = 0.0f;
         voice.filterState = BiquadState{};
         voice.subtractive = SubtractiveVoiceRuntime{};
+        voice.phaseMod = PhaseModSynthVoiceRuntime{};
         voice.kick = KickVoiceRuntime{};
         voice.snare = SnareVoiceRuntime{};
         voice.clap = ClapVoiceRuntime{};
@@ -112,6 +116,14 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
             triggerCymbalVoice(voice.cymbal, pitch, voice.velocity);
         } else if (instrument.kind == LiveInstrumentKind::CrashGenerator) {
             triggerCrashVoice(voice.crash, pitch, voice.velocity);
+        } else if (instrument.kind == LiveInstrumentKind::PhaseModSynth) {
+            voice.phaseMod.active = 1;
+            voice.phaseMod.pitch = pitch;
+            voice.phaseMod.velocity = voice.velocity;
+            voice.phaseMod.startBeat = static_cast<double>(now) / 48000.0;
+            voice.phaseMod.releaseBeat = -1.0;
+            voice.phaseMod.targetHz = midiNoteToHz(pitch);
+            voice.phaseMod.currentHz = voice.phaseMod.targetHz;
         }
         voice.active.store(1, std::memory_order_release);
         return i;
@@ -128,6 +140,7 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
     steal.oscillatorPhase = 0.0f;
     steal.filterState = BiquadState{};
     steal.subtractive = SubtractiveVoiceRuntime{};
+    steal.phaseMod = PhaseModSynthVoiceRuntime{};
     steal.kick = KickVoiceRuntime{};
     steal.snare = SnareVoiceRuntime{};
     steal.clap = ClapVoiceRuntime{};
@@ -149,6 +162,14 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         triggerCymbalVoice(steal.cymbal, pitch, steal.velocity);
     } else if (instrument.kind == LiveInstrumentKind::CrashGenerator) {
         triggerCrashVoice(steal.crash, pitch, steal.velocity);
+    } else if (instrument.kind == LiveInstrumentKind::PhaseModSynth) {
+        steal.phaseMod.active = 1;
+        steal.phaseMod.pitch = pitch;
+        steal.phaseMod.velocity = steal.velocity;
+        steal.phaseMod.startBeat = static_cast<double>(now) / 48000.0;
+        steal.phaseMod.releaseBeat = -1.0;
+        steal.phaseMod.targetHz = midiNoteToHz(pitch);
+        steal.phaseMod.currentHz = steal.phaseMod.targetHz;
     }
     steal.active.store(1, std::memory_order_release);
     return 0;
@@ -289,6 +310,22 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                 mix += (crashGeneratorSampleL(crv, inst.crash, sampleRate, velGain) +
                         crashGeneratorSampleR(crv, inst.crash, sampleRate, velGain)) * 0.5f;
                 if (crv.active == 0) {
+                    voice.active.store(0, std::memory_order_release);
+                }
+                continue;
+            }
+
+            if (inst.kind == LiveInstrumentKind::PhaseModSynth) {
+                auto& pmv = voice.phaseMod;
+                const uint64_t now = sampleIndex;
+                const double secElapsed =
+                    static_cast<double>(now - voice.startSample) / sampleRate;
+                if (secElapsed < 0.0) {
+                    continue;
+                }
+                renderPhaseModLiveVoice(mix, pmv, inst.phaseMod,
+                                        sampleRate, now, blockStart);
+                if (pmv.active == 0) {
                     voice.active.store(0, std::memory_order_release);
                 }
                 continue;

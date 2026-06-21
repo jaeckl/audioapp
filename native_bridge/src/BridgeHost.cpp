@@ -321,6 +321,20 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         engine().previewSample(sampleId);
         return R"({"ok":true,"previewing":true})";
     }
+    if (method == "previewMidi") {
+        const auto notes = parseMidiNotesFromArgs(argumentsJson);
+        const auto lengthBeats = jsonGetNumberArg(argumentsJson, "lengthBeats", 4.0);
+        const auto bpm = static_cast<int>(jsonGetNumberArg(argumentsJson, "bpm", 120.0));
+        if (notes.empty()) {
+            return R"({"ok":true,"previewing":false})";
+        }
+        engine().previewMidi(notes, lengthBeats, bpm);
+        return R"({"ok":true,"previewing":true})";
+    }
+    if (method == "stopPreview") {
+        engine().stopPreview();
+        return R"({"ok":true})";
+    }
 #ifndef __ANDROID__
     // Desktop bridge hosts: C++ archive I/O (ADR-0006). Android uses Kotlin ProjectArchiveStore.
     if (method == "saveProject") {

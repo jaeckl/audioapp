@@ -13,6 +13,7 @@
 #include "audioapp/devices/instances/CompressorInstance.hpp"
 #include "audioapp/devices/instances/ExpanderInstance.hpp"
 #include "audioapp/devices/instances/BassSynthInstance.hpp"
+#include "audioapp/devices/instances/PhaseModSynthInstance.hpp"
 #include "audioapp/devices/instances/LimiterInstance.hpp"
 #include "audioapp/devices/instances/EffectInstance.hpp"
 
@@ -35,6 +36,7 @@ using DeviceInstance = std::variant<OscillatorInstance,
                                     ExpanderInstance,
                                     LimiterInstance,
                                     BassSynthInstance,
+                                    PhaseModSynthInstance,
                                     DelayInstance,
                                     ReverbInstance,
                                     ChorusInstance,

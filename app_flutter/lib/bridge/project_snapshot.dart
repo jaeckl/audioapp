@@ -437,6 +437,60 @@ class DeviceSnapshot {
     this.bassSquash = 0.0,
     this.bassOctave = 2,
     this.bassVelocitySense = 1.0,
+    this.pmOp1Ratio = 0.0625,
+    this.pmOp1Fine = 0.5,
+    this.pmOp1Level = 0.8,
+    this.pmOp1Wave = 0.0,
+    this.pmOp1Attack = 0.01,
+    this.pmOp1Decay = 0.3,
+    this.pmOp1Sustain = 0.8,
+    this.pmOp1Release = 0.4,
+    this.pmOp1VelSense = 1.0,
+    this.pmOp1KeyTrack = 0.0,
+    this.pmOp2Ratio = 0.4375,
+    this.pmOp2Fine = 0.5,
+    this.pmOp2Level = 0.4,
+    this.pmOp2Wave = 0.0,
+    this.pmOp2Attack = 0.01,
+    this.pmOp2Decay = 0.3,
+    this.pmOp2Sustain = 0.8,
+    this.pmOp2Release = 0.4,
+    this.pmOp2VelSense = 1.0,
+    this.pmOp2KeyTrack = 0.0,
+    this.pmOp3Ratio = 0.75,
+    this.pmOp3Fine = 0.5,
+    this.pmOp3Level = 0.0,
+    this.pmOp3Wave = 0.0,
+    this.pmOp3Attack = 0.01,
+    this.pmOp3Decay = 0.3,
+    this.pmOp3Sustain = 0.8,
+    this.pmOp3Release = 0.4,
+    this.pmOp3VelSense = 1.0,
+    this.pmOp3KeyTrack = 0.0,
+    this.pmOp4Ratio = 0.375,
+    this.pmOp4Fine = 0.5,
+    this.pmOp4Level = 0.0,
+    this.pmOp4Wave = 0.0,
+    this.pmOp4Attack = 0.01,
+    this.pmOp4Decay = 0.3,
+    this.pmOp4Sustain = 0.8,
+    this.pmOp4Release = 0.4,
+    this.pmOp4VelSense = 1.0,
+    this.pmOp4KeyTrack = 0.0,
+    this.pmAlgoIndex = 0,
+    this.pmFeedback = 0.0,
+    this.pmUnisonVoices = 0.0,
+    this.pmUnisonDetune = 0.15,
+    this.pmGlide = 0.0,
+    this.pmMono = 0.0,
+    this.pmLegato = 0.0,
+    this.pmMasterVol = 0.85,
+    this.pmLfoRate = 0.2,
+    this.pmLfoShape = 0.0,
+    this.pmLfoAmount = 0.0,
+    this.pmLfoDest = 0,
+    this.pmVibratoDepth = 0.0,
+    this.pmVibratoRate = 0.3,
     this.meterGainReductionDb = 0.0,
     this.meterInputLevel = 0.0,
   });
@@ -560,6 +614,60 @@ class DeviceSnapshot {
   final double bassSquash;
   final int bassOctave;
   final double bassVelocitySense;
+  final double pmOp1Ratio;
+  final double pmOp1Fine;
+  final double pmOp1Level;
+  final double pmOp1Wave;
+  final double pmOp1Attack;
+  final double pmOp1Decay;
+  final double pmOp1Sustain;
+  final double pmOp1Release;
+  final double pmOp1VelSense;
+  final double pmOp1KeyTrack;
+  final double pmOp2Ratio;
+  final double pmOp2Fine;
+  final double pmOp2Level;
+  final double pmOp2Wave;
+  final double pmOp2Attack;
+  final double pmOp2Decay;
+  final double pmOp2Sustain;
+  final double pmOp2Release;
+  final double pmOp2VelSense;
+  final double pmOp2KeyTrack;
+  final double pmOp3Ratio;
+  final double pmOp3Fine;
+  final double pmOp3Level;
+  final double pmOp3Wave;
+  final double pmOp3Attack;
+  final double pmOp3Decay;
+  final double pmOp3Sustain;
+  final double pmOp3Release;
+  final double pmOp3VelSense;
+  final double pmOp3KeyTrack;
+  final double pmOp4Ratio;
+  final double pmOp4Fine;
+  final double pmOp4Level;
+  final double pmOp4Wave;
+  final double pmOp4Attack;
+  final double pmOp4Decay;
+  final double pmOp4Sustain;
+  final double pmOp4Release;
+  final double pmOp4VelSense;
+  final double pmOp4KeyTrack;
+  final int pmAlgoIndex;
+  final double pmFeedback;
+  final double pmUnisonVoices;
+  final double pmUnisonDetune;
+  final double pmGlide;
+  final double pmMono;
+  final double pmLegato;
+  final double pmMasterVol;
+  final double pmLfoRate;
+  final double pmLfoShape;
+  final double pmLfoAmount;
+  final int pmLfoDest;
+  final double pmVibratoDepth;
+  final double pmVibratoRate;
   final double meterGainReductionDb;
   final double meterInputLevel;
 
@@ -689,6 +797,60 @@ class DeviceSnapshot {
       bassSquash: (params['bassSquash'] as num?)?.toDouble() ?? 0.0,
       bassOctave: (params['bassOctave'] as num?)?.toInt() ?? 2,
       bassVelocitySense: (params['bassVelocitySense'] as num?)?.toDouble() ?? 1.0,
+      pmOp1Ratio: (params['pmOp1Ratio'] as num?)?.toDouble() ?? 0.0625,
+      pmOp1Fine: (params['pmOp1Fine'] as num?)?.toDouble() ?? 0.5,
+      pmOp1Level: (params['pmOp1Level'] as num?)?.toDouble() ?? 0.8,
+      pmOp1Wave: (params['pmOp1Wave'] as num?)?.toDouble() ?? 0.0,
+      pmOp1Attack: (params['pmOp1Attack'] as num?)?.toDouble() ?? 0.01,
+      pmOp1Decay: (params['pmOp1Decay'] as num?)?.toDouble() ?? 0.3,
+      pmOp1Sustain: (params['pmOp1Sustain'] as num?)?.toDouble() ?? 0.8,
+      pmOp1Release: (params['pmOp1Release'] as num?)?.toDouble() ?? 0.4,
+      pmOp1VelSense: (params['pmOp1VelSense'] as num?)?.toDouble() ?? 1.0,
+      pmOp1KeyTrack: (params['pmOp1KeyTrack'] as num?)?.toDouble() ?? 0.0,
+      pmOp2Ratio: (params['pmOp2Ratio'] as num?)?.toDouble() ?? 0.4375,
+      pmOp2Fine: (params['pmOp2Fine'] as num?)?.toDouble() ?? 0.5,
+      pmOp2Level: (params['pmOp2Level'] as num?)?.toDouble() ?? 0.4,
+      pmOp2Wave: (params['pmOp2Wave'] as num?)?.toDouble() ?? 0.0,
+      pmOp2Attack: (params['pmOp2Attack'] as num?)?.toDouble() ?? 0.01,
+      pmOp2Decay: (params['pmOp2Decay'] as num?)?.toDouble() ?? 0.3,
+      pmOp2Sustain: (params['pmOp2Sustain'] as num?)?.toDouble() ?? 0.8,
+      pmOp2Release: (params['pmOp2Release'] as num?)?.toDouble() ?? 0.4,
+      pmOp2VelSense: (params['pmOp2VelSense'] as num?)?.toDouble() ?? 1.0,
+      pmOp2KeyTrack: (params['pmOp2KeyTrack'] as num?)?.toDouble() ?? 0.0,
+      pmOp3Ratio: (params['pmOp3Ratio'] as num?)?.toDouble() ?? 0.75,
+      pmOp3Fine: (params['pmOp3Fine'] as num?)?.toDouble() ?? 0.5,
+      pmOp3Level: (params['pmOp3Level'] as num?)?.toDouble() ?? 0.0,
+      pmOp3Wave: (params['pmOp3Wave'] as num?)?.toDouble() ?? 0.0,
+      pmOp3Attack: (params['pmOp3Attack'] as num?)?.toDouble() ?? 0.01,
+      pmOp3Decay: (params['pmOp3Decay'] as num?)?.toDouble() ?? 0.3,
+      pmOp3Sustain: (params['pmOp3Sustain'] as num?)?.toDouble() ?? 0.8,
+      pmOp3Release: (params['pmOp3Release'] as num?)?.toDouble() ?? 0.4,
+      pmOp3VelSense: (params['pmOp3VelSense'] as num?)?.toDouble() ?? 1.0,
+      pmOp3KeyTrack: (params['pmOp3KeyTrack'] as num?)?.toDouble() ?? 0.0,
+      pmOp4Ratio: (params['pmOp4Ratio'] as num?)?.toDouble() ?? 0.375,
+      pmOp4Fine: (params['pmOp4Fine'] as num?)?.toDouble() ?? 0.5,
+      pmOp4Level: (params['pmOp4Level'] as num?)?.toDouble() ?? 0.0,
+      pmOp4Wave: (params['pmOp4Wave'] as num?)?.toDouble() ?? 0.0,
+      pmOp4Attack: (params['pmOp4Attack'] as num?)?.toDouble() ?? 0.01,
+      pmOp4Decay: (params['pmOp4Decay'] as num?)?.toDouble() ?? 0.3,
+      pmOp4Sustain: (params['pmOp4Sustain'] as num?)?.toDouble() ?? 0.8,
+      pmOp4Release: (params['pmOp4Release'] as num?)?.toDouble() ?? 0.4,
+      pmOp4VelSense: (params['pmOp4VelSense'] as num?)?.toDouble() ?? 1.0,
+      pmOp4KeyTrack: (params['pmOp4KeyTrack'] as num?)?.toDouble() ?? 0.0,
+      pmAlgoIndex: (params['pmAlgoIndex'] as num?)?.toInt() ?? 0,
+      pmFeedback: (params['pmFeedback'] as num?)?.toDouble() ?? 0.0,
+      pmUnisonVoices: (params['pmUnisonVoices'] as num?)?.toDouble() ?? 0.0,
+      pmUnisonDetune: (params['pmUnisonDetune'] as num?)?.toDouble() ?? 0.15,
+      pmGlide: (params['pmGlide'] as num?)?.toDouble() ?? 0.0,
+      pmMono: (params['pmMono'] as num?)?.toDouble() ?? 0.0,
+      pmLegato: (params['pmLegato'] as num?)?.toDouble() ?? 0.0,
+      pmMasterVol: (params['pmMasterVol'] as num?)?.toDouble() ?? 0.85,
+      pmLfoRate: (params['pmLfoRate'] as num?)?.toDouble() ?? 0.2,
+      pmLfoShape: (params['pmLfoShape'] as num?)?.toDouble() ?? 0.0,
+      pmLfoAmount: (params['pmLfoAmount'] as num?)?.toDouble() ?? 0.0,
+      pmLfoDest: (params['pmLfoDest'] as num?)?.toInt() ?? 0,
+      pmVibratoDepth: (params['pmVibratoDepth'] as num?)?.toDouble() ?? 0.0,
+      pmVibratoRate: (params['pmVibratoRate'] as num?)?.toDouble() ?? 0.3,
       meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
     );
@@ -870,6 +1032,60 @@ class DeviceSnapshot {
     double? bassSquash,
     int? bassOctave,
     double? bassVelocitySense,
+    double? pmOp1Ratio,
+    double? pmOp1Fine,
+    double? pmOp1Level,
+    double? pmOp1Wave,
+    double? pmOp1Attack,
+    double? pmOp1Decay,
+    double? pmOp1Sustain,
+    double? pmOp1Release,
+    double? pmOp1VelSense,
+    double? pmOp1KeyTrack,
+    double? pmOp2Ratio,
+    double? pmOp2Fine,
+    double? pmOp2Level,
+    double? pmOp2Wave,
+    double? pmOp2Attack,
+    double? pmOp2Decay,
+    double? pmOp2Sustain,
+    double? pmOp2Release,
+    double? pmOp2VelSense,
+    double? pmOp2KeyTrack,
+    double? pmOp3Ratio,
+    double? pmOp3Fine,
+    double? pmOp3Level,
+    double? pmOp3Wave,
+    double? pmOp3Attack,
+    double? pmOp3Decay,
+    double? pmOp3Sustain,
+    double? pmOp3Release,
+    double? pmOp3VelSense,
+    double? pmOp3KeyTrack,
+    double? pmOp4Ratio,
+    double? pmOp4Fine,
+    double? pmOp4Level,
+    double? pmOp4Wave,
+    double? pmOp4Attack,
+    double? pmOp4Decay,
+    double? pmOp4Sustain,
+    double? pmOp4Release,
+    double? pmOp4VelSense,
+    double? pmOp4KeyTrack,
+    int? pmAlgoIndex,
+    double? pmFeedback,
+    double? pmUnisonVoices,
+    double? pmUnisonDetune,
+    double? pmGlide,
+    double? pmMono,
+    double? pmLegato,
+    double? pmMasterVol,
+    double? pmLfoRate,
+    double? pmLfoShape,
+    double? pmLfoAmount,
+    int? pmLfoDest,
+    double? pmVibratoDepth,
+    double? pmVibratoRate,
     double? meterGainReductionDb,
     double? meterInputLevel,
   }) {
@@ -993,6 +1209,60 @@ class DeviceSnapshot {
       bassSquash: bassSquash ?? this.bassSquash,
       bassOctave: bassOctave ?? this.bassOctave,
       bassVelocitySense: bassVelocitySense ?? this.bassVelocitySense,
+      pmOp1Ratio: pmOp1Ratio ?? this.pmOp1Ratio,
+      pmOp1Fine: pmOp1Fine ?? this.pmOp1Fine,
+      pmOp1Level: pmOp1Level ?? this.pmOp1Level,
+      pmOp1Wave: pmOp1Wave ?? this.pmOp1Wave,
+      pmOp1Attack: pmOp1Attack ?? this.pmOp1Attack,
+      pmOp1Decay: pmOp1Decay ?? this.pmOp1Decay,
+      pmOp1Sustain: pmOp1Sustain ?? this.pmOp1Sustain,
+      pmOp1Release: pmOp1Release ?? this.pmOp1Release,
+      pmOp1VelSense: pmOp1VelSense ?? this.pmOp1VelSense,
+      pmOp1KeyTrack: pmOp1KeyTrack ?? this.pmOp1KeyTrack,
+      pmOp2Ratio: pmOp2Ratio ?? this.pmOp2Ratio,
+      pmOp2Fine: pmOp2Fine ?? this.pmOp2Fine,
+      pmOp2Level: pmOp2Level ?? this.pmOp2Level,
+      pmOp2Wave: pmOp2Wave ?? this.pmOp2Wave,
+      pmOp2Attack: pmOp2Attack ?? this.pmOp2Attack,
+      pmOp2Decay: pmOp2Decay ?? this.pmOp2Decay,
+      pmOp2Sustain: pmOp2Sustain ?? this.pmOp2Sustain,
+      pmOp2Release: pmOp2Release ?? this.pmOp2Release,
+      pmOp2VelSense: pmOp2VelSense ?? this.pmOp2VelSense,
+      pmOp2KeyTrack: pmOp2KeyTrack ?? this.pmOp2KeyTrack,
+      pmOp3Ratio: pmOp3Ratio ?? this.pmOp3Ratio,
+      pmOp3Fine: pmOp3Fine ?? this.pmOp3Fine,
+      pmOp3Level: pmOp3Level ?? this.pmOp3Level,
+      pmOp3Wave: pmOp3Wave ?? this.pmOp3Wave,
+      pmOp3Attack: pmOp3Attack ?? this.pmOp3Attack,
+      pmOp3Decay: pmOp3Decay ?? this.pmOp3Decay,
+      pmOp3Sustain: pmOp3Sustain ?? this.pmOp3Sustain,
+      pmOp3Release: pmOp3Release ?? this.pmOp3Release,
+      pmOp3VelSense: pmOp3VelSense ?? this.pmOp3VelSense,
+      pmOp3KeyTrack: pmOp3KeyTrack ?? this.pmOp3KeyTrack,
+      pmOp4Ratio: pmOp4Ratio ?? this.pmOp4Ratio,
+      pmOp4Fine: pmOp4Fine ?? this.pmOp4Fine,
+      pmOp4Level: pmOp4Level ?? this.pmOp4Level,
+      pmOp4Wave: pmOp4Wave ?? this.pmOp4Wave,
+      pmOp4Attack: pmOp4Attack ?? this.pmOp4Attack,
+      pmOp4Decay: pmOp4Decay ?? this.pmOp4Decay,
+      pmOp4Sustain: pmOp4Sustain ?? this.pmOp4Sustain,
+      pmOp4Release: pmOp4Release ?? this.pmOp4Release,
+      pmOp4VelSense: pmOp4VelSense ?? this.pmOp4VelSense,
+      pmOp4KeyTrack: pmOp4KeyTrack ?? this.pmOp4KeyTrack,
+      pmAlgoIndex: pmAlgoIndex ?? this.pmAlgoIndex,
+      pmFeedback: pmFeedback ?? this.pmFeedback,
+      pmUnisonVoices: pmUnisonVoices ?? this.pmUnisonVoices,
+      pmUnisonDetune: pmUnisonDetune ?? this.pmUnisonDetune,
+      pmGlide: pmGlide ?? this.pmGlide,
+      pmMono: pmMono ?? this.pmMono,
+      pmLegato: pmLegato ?? this.pmLegato,
+      pmMasterVol: pmMasterVol ?? this.pmMasterVol,
+      pmLfoRate: pmLfoRate ?? this.pmLfoRate,
+      pmLfoShape: pmLfoShape ?? this.pmLfoShape,
+      pmLfoAmount: pmLfoAmount ?? this.pmLfoAmount,
+      pmLfoDest: pmLfoDest ?? this.pmLfoDest,
+      pmVibratoDepth: pmVibratoDepth ?? this.pmVibratoDepth,
+      pmVibratoRate: pmVibratoRate ?? this.pmVibratoRate,
       meterGainReductionDb: meterGainReductionDb ?? this.meterGainReductionDb,
       meterInputLevel: meterInputLevel ?? this.meterInputLevel,
     );
@@ -1230,6 +1500,114 @@ class DeviceSnapshot {
         return copyWith(bassOctave: value.round().clamp(0, 4));
       case 'bassVelocitySense':
         return copyWith(bassVelocitySense: value.clamp(0.0, 1.0));
+      case 'pmOp1Ratio':
+        return copyWith(pmOp1Ratio: value.clamp(0.0, 1.0));
+      case 'pmOp1Fine':
+        return copyWith(pmOp1Fine: value.clamp(0.0, 1.0));
+      case 'pmOp1Level':
+        return copyWith(pmOp1Level: value.clamp(0.0, 1.0));
+      case 'pmOp1Wave':
+        return copyWith(pmOp1Wave: value.clamp(0.0, 1.0));
+      case 'pmOp1Attack':
+        return copyWith(pmOp1Attack: value.clamp(0.0, 1.0));
+      case 'pmOp1Decay':
+        return copyWith(pmOp1Decay: value.clamp(0.0, 1.0));
+      case 'pmOp1Sustain':
+        return copyWith(pmOp1Sustain: value.clamp(0.0, 1.0));
+      case 'pmOp1Release':
+        return copyWith(pmOp1Release: value.clamp(0.0, 1.0));
+      case 'pmOp1VelSense':
+        return copyWith(pmOp1VelSense: value.clamp(0.0, 1.0));
+      case 'pmOp1KeyTrack':
+        return copyWith(pmOp1KeyTrack: value.clamp(0.0, 1.0));
+      case 'pmOp2Ratio':
+        return copyWith(pmOp2Ratio: value.clamp(0.0, 1.0));
+      case 'pmOp2Fine':
+        return copyWith(pmOp2Fine: value.clamp(0.0, 1.0));
+      case 'pmOp2Level':
+        return copyWith(pmOp2Level: value.clamp(0.0, 1.0));
+      case 'pmOp2Wave':
+        return copyWith(pmOp2Wave: value.clamp(0.0, 1.0));
+      case 'pmOp2Attack':
+        return copyWith(pmOp2Attack: value.clamp(0.0, 1.0));
+      case 'pmOp2Decay':
+        return copyWith(pmOp2Decay: value.clamp(0.0, 1.0));
+      case 'pmOp2Sustain':
+        return copyWith(pmOp2Sustain: value.clamp(0.0, 1.0));
+      case 'pmOp2Release':
+        return copyWith(pmOp2Release: value.clamp(0.0, 1.0));
+      case 'pmOp2VelSense':
+        return copyWith(pmOp2VelSense: value.clamp(0.0, 1.0));
+      case 'pmOp2KeyTrack':
+        return copyWith(pmOp2KeyTrack: value.clamp(0.0, 1.0));
+      case 'pmOp3Ratio':
+        return copyWith(pmOp3Ratio: value.clamp(0.0, 1.0));
+      case 'pmOp3Fine':
+        return copyWith(pmOp3Fine: value.clamp(0.0, 1.0));
+      case 'pmOp3Level':
+        return copyWith(pmOp3Level: value.clamp(0.0, 1.0));
+      case 'pmOp3Wave':
+        return copyWith(pmOp3Wave: value.clamp(0.0, 1.0));
+      case 'pmOp3Attack':
+        return copyWith(pmOp3Attack: value.clamp(0.0, 1.0));
+      case 'pmOp3Decay':
+        return copyWith(pmOp3Decay: value.clamp(0.0, 1.0));
+      case 'pmOp3Sustain':
+        return copyWith(pmOp3Sustain: value.clamp(0.0, 1.0));
+      case 'pmOp3Release':
+        return copyWith(pmOp3Release: value.clamp(0.0, 1.0));
+      case 'pmOp3VelSense':
+        return copyWith(pmOp3VelSense: value.clamp(0.0, 1.0));
+      case 'pmOp3KeyTrack':
+        return copyWith(pmOp3KeyTrack: value.clamp(0.0, 1.0));
+      case 'pmOp4Ratio':
+        return copyWith(pmOp4Ratio: value.clamp(0.0, 1.0));
+      case 'pmOp4Fine':
+        return copyWith(pmOp4Fine: value.clamp(0.0, 1.0));
+      case 'pmOp4Level':
+        return copyWith(pmOp4Level: value.clamp(0.0, 1.0));
+      case 'pmOp4Wave':
+        return copyWith(pmOp4Wave: value.clamp(0.0, 1.0));
+      case 'pmOp4Attack':
+        return copyWith(pmOp4Attack: value.clamp(0.0, 1.0));
+      case 'pmOp4Decay':
+        return copyWith(pmOp4Decay: value.clamp(0.0, 1.0));
+      case 'pmOp4Sustain':
+        return copyWith(pmOp4Sustain: value.clamp(0.0, 1.0));
+      case 'pmOp4Release':
+        return copyWith(pmOp4Release: value.clamp(0.0, 1.0));
+      case 'pmOp4VelSense':
+        return copyWith(pmOp4VelSense: value.clamp(0.0, 1.0));
+      case 'pmOp4KeyTrack':
+        return copyWith(pmOp4KeyTrack: value.clamp(0.0, 1.0));
+      case 'pmAlgoIndex':
+        return copyWith(pmAlgoIndex: value.round().clamp(0, 7));
+      case 'pmFeedback':
+        return copyWith(pmFeedback: value.clamp(0.0, 1.0));
+      case 'pmUnisonVoices':
+        return copyWith(pmUnisonVoices: value.clamp(0.0, 1.0));
+      case 'pmUnisonDetune':
+        return copyWith(pmUnisonDetune: value.clamp(0.0, 1.0));
+      case 'pmGlide':
+        return copyWith(pmGlide: value.clamp(0.0, 1.0));
+      case 'pmMono':
+        return copyWith(pmMono: value >= 0.5 ? 1.0 : 0.0);
+      case 'pmLegato':
+        return copyWith(pmLegato: value >= 0.5 ? 1.0 : 0.0);
+      case 'pmMasterVol':
+        return copyWith(pmMasterVol: value.clamp(0.0, 1.0));
+      case 'pmLfoRate':
+        return copyWith(pmLfoRate: value.clamp(0.0, 1.0));
+      case 'pmLfoShape':
+        return copyWith(pmLfoShape: value.clamp(0.0, 1.0));
+      case 'pmLfoAmount':
+        return copyWith(pmLfoAmount: value.clamp(0.0, 1.0));
+      case 'pmLfoDest':
+        return copyWith(pmLfoDest: value.round().clamp(0, 4));
+      case 'pmVibratoDepth':
+        return copyWith(pmVibratoDepth: value.clamp(0.0, 1.0));
+      case 'pmVibratoRate':
+        return copyWith(pmVibratoRate: value.clamp(0.0, 1.0));
       default:
         return this;
     }

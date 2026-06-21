@@ -11,6 +11,7 @@ import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
 import 'bass_synth_device_panel.dart';
 import 'subtractive_synth_device_panel.dart';
+import 'phase_mod_synth_device_panel.dart';
 
 /// Device types register container header tabs here (icon + label).
 abstract final class DeviceContainerTabs {
@@ -29,6 +30,7 @@ abstract final class DeviceContainerTabs {
       'compressor' => CompressorDevicePanel.containerTabs,
       'expander' => ExpanderDevicePanel.containerTabs,
       'limiter' => LimiterDevicePanel.containerTabs,
+      'phase_mod_synth' => PhaseModSynthDevicePanel.containerTabs,
       _ => const <DeviceTabSpec>[],
     };
   }

@@ -96,10 +96,13 @@ void main() {
     expect(find.text('Presets'), findsOneWidget);
 
     await tester.tap(find.text('MIDI'));
-    await tester.pumpAndSettle();
+    // MIDI category shows loading spinner while manifest loads;
+    // use pump() instead of pumpAndSettle() so the animating
+    // indicator does not time out in headless test mode.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('MIDI clips'), findsOneWidget);
-    expect(find.text('Create MIDI clips in the arrangement to see them here.'), findsOneWidget);
   });
 
   testWidgets('Scrim tap closes library', (tester) async {

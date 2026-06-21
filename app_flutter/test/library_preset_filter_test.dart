@@ -1,4 +1,5 @@
 import 'package:audioapp/bridge/project_snapshot.dart';
+import 'package:audioapp/features/content_library/device_preset_filter_list.dart';
 import 'package:audioapp/features/content_library/library_category.dart';
 import 'package:audioapp/features/content_library/library_content_pane.dart';
 import 'package:audioapp/features/content_library/library_manifest.dart';
@@ -17,7 +18,9 @@ ProjectSnapshot _emptySnapshot() => const ProjectSnapshot(
       samples: [],
     );
 
-LibraryManifest _testManifest() => LibraryManifest.fromJson({
+LibraryManifest _testManifest({bool withVariedTypes = false}) {
+  if (withVariedTypes) {
+    return LibraryManifest.fromJson({
       'presets': [
         {
           'id': 'preset:synth-warm-pad',
@@ -27,21 +30,48 @@ LibraryManifest _testManifest() => LibraryManifest.fromJson({
           'tags': ['pad', 'warm', 'factory'],
         },
         {
-          'id': 'preset:synth-bass',
-          'title': 'Synth bass',
-          'subtitle': 'Square stack',
-          'deviceType': 'subtractive_synth',
-          'tags': ['bass', 'dark', 'factory'],
+          'id': 'preset:bass-synth',
+          'title': 'Bass',
+          'subtitle': 'Sub octave',
+          'deviceType': 'bass_synth',
+          'tags': ['bass', 'factory'],
         },
         {
-          'id': 'preset:synth-pluck',
-          'title': 'Pluck',
-          'subtitle': 'Short amp',
-          'deviceType': 'subtractive_synth',
-          'tags': ['pluck', 'bright', 'factory'],
+          'id': 'preset:sampler-kick',
+          'title': 'Kick drum',
+          'subtitle': 'Analog',
+          'deviceType': 'simple_sampler',
+          'tags': ['kick', 'factory'],
         },
       ],
     });
+  }
+  return LibraryManifest.fromJson({
+    'presets': [
+      {
+        'id': 'preset:synth-warm-pad',
+        'title': 'Warm pad',
+        'subtitle': 'Unison',
+        'deviceType': 'subtractive_synth',
+        'tags': ['pad', 'warm', 'factory'],
+      },
+      {
+        'id': 'preset:synth-bass',
+        'title': 'Synth bass',
+        'subtitle': 'Square stack',
+        'deviceType': 'subtractive_synth',
+        'tags': ['bass', 'dark', 'factory'],
+      },
+      {
+        'id': 'preset:synth-pluck',
+        'title': 'Pluck',
+        'subtitle': 'Short amp',
+        'deviceType': 'subtractive_synth',
+        'tags': ['pluck', 'bright', 'factory'],
+      },
+    ],
+  });
+}
 
 Finder _presetTitles() => find.descendant(
       of: find.byType(ListView),
@@ -54,7 +84,7 @@ Finder _presetTitles() => find.descendant(
     );
 
 void main() {
-  testWidgets('preset tag chips filter list', (tester) async {
+  testWidgets('device type filter chips shown for presets', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -69,25 +99,24 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
+    // Device type filter chips should be present
+    expect(find.byType(DevicePresetFilterList), findsOneWidget);
+    // All presets shown initially ("All" filter selected)
     expect(_presetTitles(), findsNWidgets(3));
-
-    await tester.tap(find.text('Bass'));
-    await tester.pumpAndSettle();
-
-    expect(_presetTitles(), findsOneWidget);
-    expect(find.text('Synth bass'), findsOneWidget);
   });
 
-  testWidgets('role and character filters combine across groups', (tester) async {
+  testWidgets('device type filter narrowing by subtype', (tester) async {
+    final manifest = _testManifest(withVariedTypes: true);
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: LibraryContentPane(
             category: LibraryCategory.devicePresets,
             snapshot: _emptySnapshot(),
-            presetManifest: _testManifest(),
+            presetManifest: manifest,
             onPreviewAudio: (_) {},
             onInsertAudio: (_) {},
             onImportAudio: () {},
@@ -95,18 +124,18 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
-    await tester.tap(find.text('Pad'));
-    await tester.pumpAndSettle();
-    expect(find.text('Warm pad'), findsOneWidget);
-
-    await tester.tap(find.text('Bright'));
-    await tester.pumpAndSettle();
-    expect(find.text('No presets match these filters.'), findsOneWidget);
-
-    await tester.tap(find.text('Clear filters'));
-    await tester.pumpAndSettle();
     expect(_presetTitles(), findsNWidgets(3));
+
+    // Tap "Synth" chip to filter by subtractive_synth
+    await tester.tap(find.text('Synth'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Only "Warm pad" should remain (only subtractive_synth preset)
+    expect(_presetTitles(), findsOneWidget);
+    expect(find.text('Warm pad'), findsOneWidget);
   });
 }

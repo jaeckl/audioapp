@@ -418,6 +418,33 @@ class EngineBridge {
     }
   }
 
+  Future<void> previewMidi({
+    required List<MidiNoteSnapshot> notes,
+    required double lengthBeats,
+    required int bpm,
+  }) async {
+    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>('previewMidi', {
+      'notes': notes.map((n) => {
+        'pitch': n.pitch,
+        'startBeat': n.startBeat,
+        'durationBeats': n.durationBeats,
+        'velocity': n.velocity,
+      }).toList(),
+      'lengthBeats': lengthBeats,
+      'bpm': bpm,
+    });
+    if (result == null || result['ok'] != true) {
+      throw PlatformException(
+        code: result?['error']?.toString() ?? 'preview_midi_failed',
+        message: 'Failed to preview MIDI',
+      );
+    }
+  }
+
+  Future<void> stopPreview() async {
+    await _invokeOk('stopPreview');
+  }
+
   /// Returns waveform peak data for a library item (MIDI clips, automation clips).
   /// Returns empty ClipPreviewData on failure (caller handles fallback).
   Future<ClipPreviewData> fetchClipPreview(String itemId) async {

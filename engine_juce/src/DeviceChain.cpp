@@ -36,6 +36,7 @@ struct DeviceChainScratch {
     ClapMidiNoteRegion clapRegions[kMaxInstrumentRegions];
     CymbalMidiNoteRegion cymbalRegions[kMaxInstrumentRegions];
     CrashMidiNoteRegion crashRegions[kMaxInstrumentRegions];
+    PhaseModSynthMidiNoteRegion phaseModRegions[kMaxInstrumentRegions];
     BiquadState samplerNoteFilterStates[kMaxInstrumentRegions];
 };
 thread_local DeviceChainScratch gScratch;
@@ -258,6 +259,50 @@ void applyModulation(LimiterParams& p, float modAmount, uint16_t localParamId) n
     }
 }
 
+void applyModulation(PhaseModSynthParams& p, float modAmount, uint16_t localParamId) noexcept {
+    switch (static_cast<PhaseModSynthParam>(unpackParamId(localParamId))) {
+    case PhaseModSynthParam::Op1Level:         p.operators[0].level = std::clamp(p.operators[0].level + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op1Fine:          p.operators[0].fine = std::clamp(p.operators[0].fine + modAmount * 100.0f, -50.0f, 50.0f); break;
+    case PhaseModSynthParam::Op1Attack:        p.operators[0].attack = std::clamp(p.operators[0].attack + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op1Decay:         p.operators[0].decay = std::clamp(p.operators[0].decay + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op1Sustain:       p.operators[0].sustain = std::clamp(p.operators[0].sustain + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op1Release:       p.operators[0].release = std::clamp(p.operators[0].release + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op2Level:         p.operators[1].level = std::clamp(p.operators[1].level + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op2Fine:          p.operators[1].fine = std::clamp(p.operators[1].fine + modAmount * 100.0f, -50.0f, 50.0f); break;
+    case PhaseModSynthParam::Op2Attack:        p.operators[1].attack = std::clamp(p.operators[1].attack + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op2Decay:         p.operators[1].decay = std::clamp(p.operators[1].decay + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op2Sustain:       p.operators[1].sustain = std::clamp(p.operators[1].sustain + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op2Release:       p.operators[1].release = std::clamp(p.operators[1].release + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op3Level:         p.operators[2].level = std::clamp(p.operators[2].level + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op3Fine:          p.operators[2].fine = std::clamp(p.operators[2].fine + modAmount * 100.0f, -50.0f, 50.0f); break;
+    case PhaseModSynthParam::Op3Attack:        p.operators[2].attack = std::clamp(p.operators[2].attack + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op3Decay:         p.operators[2].decay = std::clamp(p.operators[2].decay + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op3Sustain:       p.operators[2].sustain = std::clamp(p.operators[2].sustain + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op3Release:       p.operators[2].release = std::clamp(p.operators[2].release + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op4Level:         p.operators[3].level = std::clamp(p.operators[3].level + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op4Fine:          p.operators[3].fine = std::clamp(p.operators[3].fine + modAmount * 100.0f, -50.0f, 50.0f); break;
+    case PhaseModSynthParam::Op4Attack:        p.operators[3].attack = std::clamp(p.operators[3].attack + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op4Decay:         p.operators[3].decay = std::clamp(p.operators[3].decay + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op4Sustain:       p.operators[3].sustain = std::clamp(p.operators[3].sustain + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op4Release:       p.operators[3].release = std::clamp(p.operators[3].release + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::FilterCutoff:     p.filterCutoff = std::clamp(p.filterCutoff + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::FilterQ:          p.filterQ = std::clamp(p.filterQ + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::FilterEnvAmount:  p.filterEnvAmount = std::clamp(p.filterEnvAmount + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::AmpAttack:        p.ampAttack = std::clamp(p.ampAttack + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::AmpDecay:         p.ampDecay = std::clamp(p.ampDecay + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::AmpSustain:       p.ampSustain = std::clamp(p.ampSustain + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::AmpRelease:       p.ampRelease = std::clamp(p.ampRelease + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Feedback:         p.feedback = std::clamp(p.feedback + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::MasterVol:        p.masterVol = std::clamp(p.masterVol + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::LfoRate:          p.lfoRate = std::clamp(p.lfoRate + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::LfoAmount:        p.lfoAmount = std::clamp(p.lfoAmount + modAmount, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::VibratoDepth:     p.vibratoDepth = std::clamp(p.vibratoDepth + modAmount, 0.0f, 1.0f); break;
+    default: break;
+    }
+}
+
+/// Multiply stereo buffers by a scalar gain.
+
 /// Multiply stereo buffers by a scalar gain.
 void applyStereoScalarGain(float* left, float* right, int frames, float gain) noexcept {
     for (int f = 0; f < frames; ++f) {
@@ -376,7 +421,8 @@ bool nodeUsesDspAutomationSubBlocks(const DeviceNodePlayback& node,
                 return true;
             case DeviceNodeKind::SubtractiveSynth:
             case DeviceNodeKind::BassSynth:
-                return false; // per-sample inside mixSubtractiveMidiNotesBlock
+            case DeviceNodeKind::PhaseModSynth:
+                return false; // per-sample inside mix*MidiNotesBlock
             default:
                 return false;
             }
@@ -415,7 +461,8 @@ bool isInstrumentDeviceNodeKind(const DeviceNodeKind kind) noexcept {
            kind == DeviceNodeKind::SubtractiveSynth || kind == DeviceNodeKind::KickGenerator ||
            kind == DeviceNodeKind::SnareGenerator || kind == DeviceNodeKind::ClapGenerator ||
            kind == DeviceNodeKind::CymbalGenerator || kind == DeviceNodeKind::CrashGenerator ||
-           kind == DeviceNodeKind::BassSynth;
+           kind == DeviceNodeKind::BassSynth ||
+           kind == DeviceNodeKind::PhaseModSynth;
 }
 
 float midiActiveFrequencyHz(const MidiPlaybackNote* notes,
@@ -450,6 +497,7 @@ void processDeviceChain(float* trackLeft,
                         ClapGeneratorRuntime* clapRuntimes,
                         CymbalGeneratorRuntime* cymbalRuntimes,
                         CrashGeneratorRuntime* crashRuntimes,
+                        PhaseModSynthRuntime* phaseModRuntimes,
                         DynamicsRuntime* dynamicsRuntimes,
                         DeviceMeterAtomic* deviceMeters,
                         int maxDeviceMeters,
@@ -508,7 +556,8 @@ void processDeviceChain(float* trackLeft,
                     }
                 } else if (!needsSubBlocks) {
                     if ((node.kind == DeviceNodeKind::SubtractiveSynth ||
-                         node.kind == DeviceNodeKind::BassSynth) &&
+                         node.kind == DeviceNodeKind::BassSynth ||
+                         node.kind == DeviceNodeKind::PhaseModSynth) &&
                         nodeHasDspAutomation(di, automationClips, automationClipCount)) {
                         continue;
                     }
@@ -531,7 +580,8 @@ void processDeviceChain(float* trackLeft,
                 if (pid == kEncodedCommonGain || pid == kEncodedCommonPan) continue;
                 if (!needsSubBlocks) {
                     if ((node.kind == DeviceNodeKind::SubtractiveSynth ||
-                         node.kind == DeviceNodeKind::BassSynth) &&
+                         node.kind == DeviceNodeKind::BassSynth ||
+                         node.kind == DeviceNodeKind::PhaseModSynth) &&
                         (nodeHasDspAutomation(di, automationClips, automationClipCount) ||
                          nodeHasDspModulation(di, modEdges, modEdgeCount))) continue;
                     const float lfoOut = lfoValues[edge.lfoId * framesToProcess];
@@ -779,6 +829,33 @@ void processDeviceChain(float* trackLeft,
                     trackLeft[f] += s.tempStereoL[f] * std::cos(angle) + s.tempStereoR[f] * std::cos(angle);
                     trackRight[f] += s.tempStereoL[f] * std::sin(angle) + s.tempStereoR[f] * std::sin(angle);
                 }
+            }
+            break;
+        }
+        case DeviceNodeKind::PhaseModSynth: {
+            if (!suppressInstruments && noteCount > 0) {
+                const int regionCount = noteCount > kMaxInstrumentRegions ? kMaxInstrumentRegions : noteCount;
+                for (int i = 0; i < regionCount; ++i) {
+                    const MidiPlaybackNote& note = notes[i];
+                    s.phaseModRegions[i] = PhaseModSynthMidiNoteRegion{note.pitch, note.pitch,
+                        note.clipStartBeat, note.clipLengthBeats,
+                        note.noteStartBeat, note.noteDurationBeats, note.velocity};
+                }
+                std::memset(s.scratch, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+                PhaseModSynthRuntime localRuntime{};
+                auto& runtime = phaseModRuntimes != nullptr ? phaseModRuntimes[deviceIndex] : localRuntime;
+                const bool hasAuto = nodeHasDspAutomation(di, automationClips, automationClipCount);
+                const bool hasMod = lfoValues != nullptr && lfoCount > 0 && modEdges != nullptr && modEdgeCount > 0 &&
+                                    nodeHasDspModulation(di, modEdges, modEdgeCount);
+                mixPhaseModMidiNotesBlock(s.scratch, framesToProcess, sampleRate, bpm, playheadStartBeat,
+                    s.phaseModRegions, regionCount, std::get<PhaseModSynthParams>(modulatedParams), runtime,
+                    hasAuto ? automationClips : nullptr, hasAuto ? automationClipCount : 0,
+                    hasAuto ? &di : nullptr,
+                    hasMod ? lfoValues : nullptr, hasMod ? lfoCount : 0, hasMod ? framesToProcess : 0,
+                    hasMod ? modEdges : nullptr, hasMod ? modEdgeCount : 0,
+                    hasMod ? &di : nullptr);
+                multiplyPerFrameGain(s.scratch, framesToProcess, s.perFrameGain);
+                mixStereoPerFramePan(trackLeft, trackRight, s.scratch, framesToProcess, s.perFramePan);
             }
             break;
         }

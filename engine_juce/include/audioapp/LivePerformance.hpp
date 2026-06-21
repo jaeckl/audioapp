@@ -10,6 +10,7 @@
 #include "audioapp/CymbalGenerator.hpp"
 #include "audioapp/CrashGenerator.hpp"
 #include "audioapp/SamplerFilter.hpp"
+#include "audioapp/PhaseModSynth.hpp"
 #include "audioapp/SubtractiveSynth.hpp"
 
 namespace audioapp {
@@ -27,6 +28,7 @@ enum class LiveInstrumentKind : uint8_t {
     CymbalGenerator,
     CrashGenerator,
     BassSynth,
+    PhaseModSynth,
 };
 
 /// Immutable instrument snapshot copied on note-on (control thread writes, audio thread reads).
@@ -62,6 +64,7 @@ struct LiveInstrumentSnapshot {
     ClapGeneratorParams clap{};
     CymbalGeneratorParams cymbal{};
     CrashGeneratorParams crash{};
+    PhaseModSynthParams phaseMod{};
 };
 
 struct LiveVoiceSlot {
@@ -75,6 +78,7 @@ struct LiveVoiceSlot {
     float oscillatorPhase = 0.0f;
     BiquadState filterState{};
     SubtractiveVoiceRuntime subtractive{};
+    PhaseModSynthVoiceRuntime phaseMod{};
     KickVoiceRuntime kick{};
     SnareVoiceRuntime snare{};
     ClapVoiceRuntime clap{};

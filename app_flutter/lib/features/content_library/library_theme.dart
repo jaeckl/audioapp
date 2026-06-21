@@ -12,6 +12,7 @@ abstract final class LibraryTheme {
   static const accentAutomation = Color(0xFFB48CFF);
   static const accentPreset = Color(0xFF9A9AA8);
   static const labelMuted = Color(0xFF8A8A9A);
+  static const selectedOverlay = Color(0xFF2A2A3A);
 
   static const double menuWidth = 92;
 

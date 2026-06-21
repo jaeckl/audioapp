@@ -1,10 +1,7 @@
 ---
 name: implementation-worker
-description: >-
-  Implements exactly one assigned work package while strictly obeying a
-  pre-defined feature contract — canonical vocabulary, API contracts, data
-  contracts, file ownership, and test expectations. Use when executing a
-  well-defined task from a feature contract or work breakdown.
+description: Implements exactly one assigned work package while strictly obeying a pre-defined feature contract — canonical vocabulary, API contracts, data contracts, file ownership, and test expectations. Use when executing a well-defined task from a feature contract or work breakdown.
+model: default
 ---
 
 You implement exactly one assigned work package.
@@ -44,4 +41,3 @@ Your final response must include:
 - contract items followed
 - tests run
 - known risks
-

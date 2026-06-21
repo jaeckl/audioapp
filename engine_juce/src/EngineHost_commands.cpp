@@ -2,6 +2,7 @@
 #include "audioapp/ProjectJson.hpp"
 #include "audioapp/ProjectArchive.hpp"
 
+#include <cmath>
 #include <memory>
 #include <unordered_map>
 
@@ -130,30 +131,56 @@ void EngineHost::readMasterMixStereo(float* leftOut,
 }
 
 void EngineHost::readPreviewMix(float* monoOut, int numFrames, double sampleRate) noexcept {
-    if (monoOut == nullptr || numFrames <= 0 || !previewVoice_.active.load(std::memory_order_acquire)) {
+    if (monoOut == nullptr || numFrames <= 0) {
         return;
     }
 
-    const float* pcm = previewVoice_.pcmData;
-    const int pcmSize = previewVoice_.pcmSize;
-    if (pcm == nullptr || pcmSize <= 0) {
-        previewVoice_.active.store(false, std::memory_order_release);
-        return;
-    }
-
-    int position = previewVoice_.position.load(std::memory_order_relaxed);
-    for (int frame = 0; frame < numFrames; ++frame) {
-        if (position >= pcmSize) {
+    // Sample preview voice
+    const bool sampleActive = previewVoice_.active.load(std::memory_order_acquire);
+    if (sampleActive) {
+        const float* pcm = previewVoice_.pcmData;
+        const int pcmSize = previewVoice_.pcmSize;
+        if (pcm == nullptr || pcmSize <= 0) {
             previewVoice_.active.store(false, std::memory_order_release);
-            for (int rest = frame; rest < numFrames; ++rest) {
-                monoOut[rest] = 0.0f;
+        } else {
+            int position = previewVoice_.position.load(std::memory_order_relaxed);
+            for (int frame = 0; frame < numFrames; ++frame) {
+                if (position >= pcmSize) {
+                    previewVoice_.active.store(false, std::memory_order_release);
+                    for (int rest = frame; rest < numFrames; ++rest) {
+                        monoOut[rest] = 0.0f;
+                    }
+                    previewVoice_.position.store(position, std::memory_order_release);
+                    return;
+                }
+                monoOut[frame] += pcm[static_cast<size_t>(position++)];
             }
             previewVoice_.position.store(position, std::memory_order_release);
-            return;
         }
-        monoOut[frame] += pcm[static_cast<size_t>(position++)];
     }
-    previewVoice_.position.store(position, std::memory_order_release);
+
+    // MIDI preview
+    if (previewMidi_.active.load(std::memory_order_acquire)) {
+        if (!previewMidi_.notes.empty()) {
+            const double beatsPerBlock = (previewMidi_.bpm / 60.0)
+                * (static_cast<double>(numFrames) / sampleRate);
+            double ph = previewMidi_.playheadBeats.load(std::memory_order_relaxed);
+            const double newPh = ph + beatsPerBlock;
+
+            // Loop wrap: retrigger all notes when playhead wraps past lengthBeats
+            if (newPh >= previewMidi_.lengthBeats && previewMidi_.lengthBeats > 0.0) {
+                fallbackOsc_.allNotesOff();
+                for (const auto& note : previewMidi_.notes) {
+                    fallbackOsc_.noteOn(note.pitch, note.velocity,
+                                        note.startBeat, note.durationBeats);
+                }
+            }
+            const double wrappedPh = previewMidi_.lengthBeats > 0.0
+                ? std::fmod(newPh, previewMidi_.lengthBeats) : newPh;
+            previewMidi_.playheadBeats.store(wrappedPh, std::memory_order_release);
+            fallbackOsc_.processBlock(monoOut, numFrames, sampleRate, ph);
+        }
+    }
 }
 
 void EngineHost::readLiveMix(float* monoOut, int numFrames, double sampleRate) noexcept {
@@ -325,6 +352,32 @@ void EngineHost::previewSample(const std::string& sampleId) {
     previewVoice_.active.store(true, std::memory_order_release);
     std::atomic_store(&previewBuffer_, std::move(buf));
     ensureAudioOutput();
+}
+
+void EngineHost::previewMidi(const std::vector<MidiNoteState>& notes, double lengthBeats, int bpm) {
+    // Stop any previous preview
+    allNotesOff();
+    fallbackOsc_.allNotesOff();
+
+    // Store MIDI state
+    previewMidi_.notes = notes;
+    previewMidi_.lengthBeats = lengthBeats;
+    previewMidi_.bpm = bpm;
+    previewMidi_.playheadBeats.store(0.0, std::memory_order_release);
+    previewMidi_.active.store(true, std::memory_order_release);
+
+    // Schedule initial notes (all at beat 0 for simplicity)
+    for (const auto& note : notes) {
+        fallbackOsc_.noteOn(note.pitch, note.velocity, note.startBeat, note.durationBeats);
+    }
+
+    ensureAudioOutput();
+}
+
+void EngineHost::stopPreview() {
+    previewMidi_.active.store(false, std::memory_order_release);
+    fallbackOsc_.allNotesOff();
+    allNotesOff();
 }
 
 bool EngineHost::saveProject(const std::string& archivePath) {

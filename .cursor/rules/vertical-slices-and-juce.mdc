@@ -25,6 +25,6 @@ A vertical slice is **done** when a PO can demo it once on device without follow
 
 If acceptance criteria omit dialogs, error states, or the demo script, **expand the ticket first**, then implement.
 
-**Companion tickets:** every user-facing `US-XX-YY` needs `US-XX-YY-ux-ui.md` and `US-XX-YY-interaction.md` (PROJECT-SPEC.md §14.1). The `feature-contract-architect` subagent generates the architecture contract first; then the `ux-flow-designer` subagent produces `docs/features/<name>/09-ux-flow-contract.md` before implementation begins.
+**Companion tickets:** every user-facing `US-XX-YY` needs `US-XX-YY-ux-ui.md` and `US-XX-YY-interaction.md` (PROJECT-SPEC.md §14.1). The `feature-contract-architect` subagent generates the architecture contract first; then the `layout-contract-designer` subagent produces `docs/features/<name>/09-ux-flow-contract.md` before implementation begins.
 
 **Investor bar (§2.8):** Bold, complete slices; no overengineering; verify on device; mobile UX matters.

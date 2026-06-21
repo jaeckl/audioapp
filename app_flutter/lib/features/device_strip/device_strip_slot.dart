@@ -827,7 +827,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           designHeight: contentHeight,
           child: EffectDeviceStrip(
             type: 'delay',
-            snapshot: widget.device.toJson(),
+            snapshot: {
+              'enabled': !widget.device.bypassed,
+              'params': <String, dynamic>{},
+            },
           ),
         );
       case 'reverb':
@@ -837,7 +840,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           designHeight: contentHeight,
           child: EffectDeviceStrip(
             type: 'reverb',
-            snapshot: widget.device.toJson(),
+            snapshot: {
+              'enabled': !widget.device.bypassed,
+              'params': <String, dynamic>{},
+            },
           ),
         );
       case 'chorus':
@@ -847,7 +853,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           designHeight: contentHeight,
           child: EffectDeviceStrip(
             type: 'chorus',
-            snapshot: widget.device.toJson(),
+            snapshot: {
+              'enabled': !widget.device.bypassed,
+              'params': <String, dynamic>{},
+            },
           ),
         );
       case 'phaser':
@@ -857,7 +866,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           designHeight: contentHeight,
           child: EffectDeviceStrip(
             type: 'phaser',
-            snapshot: widget.device.toJson(),
+            snapshot: {
+              'enabled': !widget.device.bypassed,
+              'params': <String, dynamic>{},
+            },
           ),
         );
       default:

@@ -16,5 +16,6 @@ inline constexpr const char* kCompressor = "compressor";
 inline constexpr const char* kExpander = "expander";
 inline constexpr const char* kLimiter = "limiter";
 inline constexpr const char* kBasSynth = "bass_synth";
+inline constexpr const char* kPhaseModSynth = "phase_mod_synth";
 
 } // namespace audioapp::device_types

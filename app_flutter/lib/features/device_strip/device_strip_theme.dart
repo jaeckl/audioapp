@@ -45,6 +45,7 @@ abstract final class DeviceStripTheme {
   static const reverbAccent = Color(0xFF7B6CF6);
   static const chorusAccent = Color(0xFFE8A54B);
   static const phaserAccent = Color(0xFFE8A0C8);
+  static const phaseModSynthAccent = Color(0xFFFF6B35);
 
   static Color accentForDeviceType(String type) => switch (type) {
         'simple_sampler' => samplerAccent,
@@ -64,6 +65,7 @@ abstract final class DeviceStripTheme {
         'reverb' => reverbAccent,
         'chorus' => chorusAccent,
         'phaser' => phaserAccent,
+        'phase_mod_synth' => phaseModSynthAccent,
         _ => genericAccent,
       };
 
@@ -85,6 +87,7 @@ abstract final class DeviceStripTheme {
         'reverb' => 'Reverb',
         'chorus' => 'Chorus',
         'phaser' => 'Phaser',
+        'phase_mod_synth' => 'Phase Mod Synth',
         _ => type,
       };
 }

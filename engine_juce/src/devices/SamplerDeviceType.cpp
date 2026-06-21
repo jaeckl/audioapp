@@ -254,6 +254,11 @@ juce::var SamplerDeviceType::slotToVar(const DeviceSlot& slot) const {
     parameters->setProperty("filterCutoff", static_cast<double>(inst.filterCutoff));
     parameters->setProperty("filterQ", static_cast<double>(inst.filterQ));
     parameters->setProperty("filterMode", inst.filterMode);
+    parameters->setProperty("filterEnvAmount", static_cast<double>(inst.filterEnvAmount));
+    parameters->setProperty("filterAttack", static_cast<double>(inst.filterAttack));
+    parameters->setProperty("filterDecay", static_cast<double>(inst.filterDecay));
+    parameters->setProperty("filterSustain", static_cast<double>(inst.filterSustain));
+    parameters->setProperty("filterRelease", static_cast<double>(inst.filterRelease));
     parameters->setProperty("trimStartSec", static_cast<double>(inst.trimStartSec));
     parameters->setProperty("trimEndSec", static_cast<double>(inst.trimEndSec));
     parameters->setProperty("regionStartSec", static_cast<double>(inst.regionStartSec));
@@ -300,6 +305,11 @@ DeviceSlot SamplerDeviceType::varToSlot(const juce::var& obj) const {
             inst.filterCutoff = readFloat("filterCutoff", 1.0f);
             inst.filterQ = readFloat("filterQ", 0.35f);
             inst.filterMode = static_cast<int>(readFloat("filterMode", 0.0f));
+            inst.filterEnvAmount = readFloat("filterEnvAmount", 0.5f);
+            inst.filterAttack = readFloat("filterAttack", 0.05f);
+            inst.filterDecay = readFloat("filterDecay", 0.35f);
+            inst.filterSustain = readFloat("filterSustain", 0.4f);
+            inst.filterRelease = readFloat("filterRelease", 0.45f);
             inst.trimStartSec = readFloat("trimStartSec", 0.0f);
             inst.trimEndSec = readFloat("trimEndSec", 0.0f);
             inst.regionStartSec = readFloat("regionStartSec", 0.0f);

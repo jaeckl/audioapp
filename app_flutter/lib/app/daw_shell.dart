@@ -792,6 +792,24 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     await _libraryPanelKey.currentState?.close();
   }
 
+  Future<void> _onLibraryMidiPreviewTap(LibraryMidiItem item) async {
+    final bpm = _snapshot?.bpm ?? 120;
+    try {
+      await widget.bridge.previewMidi(
+        notes: item.clip.notes,
+        lengthBeats: item.clip.lengthBeats,
+        bpm: bpm,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
+  Future<void> _onLibraryAutomationPreviewTap(LibraryAutomationItem item) async {
+    // Automation has no audio preview — no-op.
+  }
+
   Future<void> _onLibraryAutomationTap(LibraryAutomationItem item) async {
     final track = _snapshot?.selectedTrack;
     if (track == null) {
@@ -1597,7 +1615,9 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
               onInsertAudio: _onLibraryInsertAudio,
               onImportAudio: _importSample,
               onMidiClipTap: _onLibraryMidiTap,
+              onMidiPreviewTap: _onLibraryMidiPreviewTap,
               onAutomationTap: _onLibraryAutomationTap,
+              onAutomationPreviewTap: _onLibraryAutomationPreviewTap,
               onPresetTap: _onLibraryPresetTap,
             ),
         ],

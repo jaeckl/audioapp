@@ -14,6 +14,7 @@
 #include "audioapp/LfoTypes.hpp"
 #include "audioapp/SamplerFilter.hpp"
 #include "audioapp/SamplePlayback.hpp"
+#include "audioapp/PhaseModSynth.hpp"
 #include "audioapp/SubtractiveSynth.hpp"
 
 namespace audioapp {
@@ -47,6 +48,7 @@ enum class DeviceNodeKind : uint8_t {
     Limiter,
     TrackGain,
     BassSynth,
+    PhaseModSynth,
 };
 
 // --- Per-device DSP-only parameter structs ---
@@ -86,6 +88,7 @@ using DeviceVariantParams = std::variant<
     OscillatorParams,
     SamplerParams,
     SubtractiveSynthParams,
+    PhaseModSynthParams,
     KickGeneratorParams,
     SnareGeneratorParams,
     ClapGeneratorParams,
@@ -149,6 +152,7 @@ void processDeviceChain(float* trackLeft,
                         ClapGeneratorRuntime* clapRuntimes = nullptr,
                         CymbalGeneratorRuntime* cymbalRuntimes = nullptr,
                         CrashGeneratorRuntime* crashRuntimes = nullptr,
+                        PhaseModSynthRuntime* phaseModRuntimes = nullptr,
                         DynamicsRuntime* dynamicsRuntimes = nullptr,
                         DeviceMeterAtomic* deviceMeters = nullptr,
                         int maxDeviceMeters = 0,

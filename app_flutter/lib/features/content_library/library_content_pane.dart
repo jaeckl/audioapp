@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../../bridge/engine_bridge.dart';
 import '../../bridge/project_snapshot.dart';
-import '../sample_library/sample_library_screen.dart';
+import 'device_preset_filter_list.dart';
 import 'library_catalog.dart';
 import 'library_category.dart';
 import 'library_manifest.dart';
+import 'library_preview_widget.dart';
 import 'library_tag_filter_bar.dart';
 import 'library_tags.dart';
+import 'library_preview_cache.dart';
 import 'library_theme.dart';
 
 class LibraryContentPane extends StatefulWidget {
@@ -17,10 +20,15 @@ class LibraryContentPane extends StatefulWidget {
     required this.onPreviewAudio,
     required this.onInsertAudio,
     required this.onImportAudio,
+    this.onItemSelected,
+    this.fetchClipPreview,
     this.onMidiClipTap,
+    this.onMidiPreviewTap,
     this.onAutomationTap,
+    this.onAutomationPreviewTap,
     this.onPresetTap,
     this.presetManifest,
+    this.previewCache,
   });
 
   final LibraryCategory category;
@@ -28,12 +36,19 @@ class LibraryContentPane extends StatefulWidget {
   final ValueChanged<SampleLibraryEntrySnapshot> onPreviewAudio;
   final ValueChanged<SampleLibraryEntrySnapshot> onInsertAudio;
   final VoidCallback onImportAudio;
+  final ValueChanged<String?>? onItemSelected;
+  final Future<ClipPreviewData> Function(String itemId)? fetchClipPreview;
   final void Function(LibraryMidiItem item)? onMidiClipTap;
+  final void Function(LibraryMidiItem item)? onMidiPreviewTap;
   final void Function(LibraryAutomationItem item)? onAutomationTap;
+  final void Function(LibraryAutomationItem item)? onAutomationPreviewTap;
   final void Function(LibraryPresetItem item)? onPresetTap;
 
   /// Optional manifest override (tests). When null, loads from assets.
   final LibraryManifest? presetManifest;
+
+  /// Optional preview data cache. When set, avoids re-fetching clip previews.
+  final ClipPreviewCache? previewCache;
 
   @override
   State<LibraryContentPane> createState() => _LibraryContentPaneState();
@@ -42,6 +57,8 @@ class LibraryContentPane extends StatefulWidget {
 class _LibraryContentPaneState extends State<LibraryContentPane> {
   LibraryManifest? _manifest;
   final Set<String> _selectedTags = {};
+  String? _selectedItemId;
+  String? _selectedDeviceType; // null = show all
 
   @override
   void initState() {
@@ -55,10 +72,10 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
     if (widget.presetManifest != oldWidget.presetManifest) {
       _loadManifest();
     }
-    if (widget.category != oldWidget.category &&
-        widget.category != LibraryCategory.devicePresets &&
-        widget.category != LibraryCategory.midiClips) {
+    if (widget.category != oldWidget.category) {
       _selectedTags.clear();
+      _selectedItemId = null;
+      _selectedDeviceType = null;
     }
   }
 
@@ -86,6 +103,14 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
       } else {
         _selectedTags.add(tag);
       }
+      _selectedItemId = null;
+    });
+  }
+
+  void _onClearTags() {
+    setState(() {
+      _selectedTags.clear();
+      _selectedItemId = null;
     });
   }
 
@@ -95,13 +120,33 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
       widget.snapshot,
       manifest: _manifest,
     );
-    if (widget.category != LibraryCategory.devicePresets &&
-        widget.category != LibraryCategory.midiClips) {
+    if (widget.category == LibraryCategory.devicePresets) {
+      var filtered = all;
+      if (_selectedDeviceType != null) {
+        filtered = filtered
+            .where((item) =>
+                item is LibraryPresetItem &&
+                item.deviceType == _selectedDeviceType)
+            .toList();
+      }
+      if (_selectedTags.isNotEmpty) {
+        filtered = filtered
+            .where((item) =>
+                libraryItemMatchesTagFilter(item.tags, _selectedTags))
+            .toList();
+      }
+      return filtered;
+    }
+    if (widget.category == LibraryCategory.midiClips) {
+      if (_selectedTags.isNotEmpty) {
+        return all
+            .where((item) =>
+                libraryItemMatchesTagFilter(item.tags, _selectedTags))
+            .toList();
+      }
       return all;
     }
-    return all
-        .where((item) => libraryItemMatchesTagFilter(item.tags, _selectedTags))
-        .toList();
+    return all;
   }
 
   @override
@@ -153,21 +198,23 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
             ],
           ),
         ),
-        if (widget.category == LibraryCategory.devicePresets && allPresetItems.isNotEmpty)
-          LibraryTagFilterBar(
-            itemTagLists: allPresetItems.map((p) => p.tags),
-            selectedTags: _selectedTags,
-            onTagToggled: _toggleTag,
-            onClear: () => setState(_selectedTags.clear),
-            accent: accent,
-          ),
         if (widget.category == LibraryCategory.midiClips && allMidiItems.isNotEmpty)
           LibraryTagFilterBar(
             itemTagLists: allMidiItems.map((m) => m.tags),
             selectedTags: _selectedTags,
             onTagToggled: _toggleTag,
-            onClear: () => setState(_selectedTags.clear),
+            onClear: _onClearTags,
             accent: accent,
+          ),
+        if (widget.category == LibraryCategory.devicePresets && allPresetItems.isNotEmpty)
+          DevicePresetFilterList(
+            selectedType: _selectedDeviceType,
+            onFilterChanged: (type) {
+              setState(() {
+                _selectedDeviceType = type;
+                _selectedItemId = null;
+              });
+            },
           ),
         Expanded(
           child: _buildBody(items, accent),
@@ -186,7 +233,7 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
     if (items.isEmpty) {
       if ((widget.category == LibraryCategory.devicePresets ||
               widget.category == LibraryCategory.midiClips) &&
-          _selectedTags.isNotEmpty) {
+          (_selectedTags.isNotEmpty || _selectedDeviceType != null)) {
         return _FilteredEmptyState(
           onClear: () => setState(_selectedTags.clear),
           category: widget.category,
@@ -198,16 +245,48 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
       itemCount: items.length,
       separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (context, index) => _LibraryItemTile(
-        item: items[index],
-        accent: accent,
-        onPreviewAudio: widget.onPreviewAudio,
-        onInsertAudio: widget.onInsertAudio,
-        onMidiClipTap: widget.onMidiClipTap,
-        onAutomationTap: widget.onAutomationTap,
-        onPresetTap: widget.onPresetTap,
-      ),
+      itemBuilder: (context, index) {
+        final item = items[index];
+        final isSelected = _selectedItemId == item.id;
+        return _LibraryItemTile(
+          item: item,
+          accent: accent,
+          isSelected: isSelected,
+          onTap: () => _onItemTap(item),
+          fetchClipPreview: widget.fetchClipPreview,
+          previewCache: widget.previewCache,
+          onPreviewAudio: widget.onPreviewAudio,
+          onInsertAudio: widget.onInsertAudio,
+          onMidiClipTap: widget.onMidiClipTap,
+          onMidiPreviewTap: widget.onMidiPreviewTap,
+          onAutomationTap: widget.onAutomationTap,
+          onAutomationPreviewTap: widget.onAutomationPreviewTap,
+          onPresetTap: widget.onPresetTap,
+        );
+      },
     );
+  }
+
+  void _onItemTap(LibraryItem item) {
+    // Always select the item
+    setState(() {
+      _selectedItemId = item.id;
+    });
+    widget.onItemSelected?.call(item.id);
+
+    // Dispatch preview per item type (tap always produces audio)
+    switch (item) {
+      case final LibraryAudioItem audio when !audio.isProjectClip:
+        widget.onPreviewAudio(audio.sample);
+      case final LibraryMidiItem midi:
+        widget.onMidiPreviewTap?.call(midi);
+      case final LibraryAutomationItem automation:
+        widget.onAutomationPreviewTap?.call(automation);
+      case final LibraryPresetItem preset:
+        widget.onPresetTap?.call(preset);
+      default:
+        break;
+    }
   }
 
   static String _headerTitle(LibraryCategory category) => switch (category) {
@@ -282,34 +361,46 @@ class _LibraryItemTile extends StatelessWidget {
   const _LibraryItemTile({
     required this.item,
     required this.accent,
+    this.isSelected = false,
+    this.onTap,
+    this.fetchClipPreview,
+    this.previewCache,
     required this.onPreviewAudio,
     required this.onInsertAudio,
     this.onMidiClipTap,
+    this.onMidiPreviewTap,
     this.onAutomationTap,
+    this.onAutomationPreviewTap,
     this.onPresetTap,
   });
 
   final LibraryItem item;
   final Color accent;
+  final bool isSelected;
+  final VoidCallback? onTap;
+  final Future<ClipPreviewData> Function(String itemId)? fetchClipPreview;
+  final ClipPreviewCache? previewCache;
   final ValueChanged<SampleLibraryEntrySnapshot> onPreviewAudio;
   final ValueChanged<SampleLibraryEntrySnapshot> onInsertAudio;
   final void Function(LibraryMidiItem item)? onMidiClipTap;
+  final void Function(LibraryMidiItem item)? onMidiPreviewTap;
   final void Function(LibraryAutomationItem item)? onAutomationTap;
+  final void Function(LibraryAutomationItem item)? onAutomationPreviewTap;
   final void Function(LibraryPresetItem item)? onPresetTap;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: LibraryTheme.cardBackground,
+    final tile = Material(
+      color: isSelected ? accent.withValues(alpha: 0.08) : LibraryTheme.cardBackground,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
-        onTap: () => _handleTap(),
+        onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              _LeadingVisual(item: item, accent: accent),
+              _LeadingVisual(item: item, accent: accent, fetchClipPreview: fetchClipPreview, previewCache: previewCache),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -343,21 +434,18 @@ class _LibraryItemTile extends StatelessWidget {
         ),
       ),
     );
-  }
 
-  void _handleTap() {
-    switch (item) {
-      case final LibraryAudioItem audio when !audio.isProjectClip:
-        onInsertAudio(audio.sample);
-      case final LibraryMidiItem midi:
-        onMidiClipTap?.call(midi);
-      case final LibraryAutomationItem automation:
-        onAutomationTap?.call(automation);
-      case final LibraryPresetItem preset:
-        onPresetTap?.call(preset);
-      default:
-        break;
+    if (!isSelected) {
+      return tile;
     }
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: accent, width: 1.5),
+      ),
+      child: tile,
+    );
   }
 
   List<Widget> _trailingActions() {
@@ -368,15 +456,12 @@ class _LibraryItemTile extends StatelessWidget {
             onPressed: () => onPreviewAudio(audio.sample),
             icon: const Icon(Icons.play_arrow_rounded, color: Colors.white70),
           ),
-          FilledButton.tonal(
-            onPressed: () => onInsertAudio(audio.sample),
-            child: const Text('Insert'),
-          ),
         ],
       LibraryMidiItem(:final isFactory) when isFactory => [
-          FilledButton.tonal(
-            onPressed: () => onMidiClipTap?.call(item as LibraryMidiItem),
-            child: const Text('Insert'),
+          IconButton(
+            tooltip: 'Preview',
+            onPressed: () => onMidiPreviewTap?.call(item as LibraryMidiItem),
+            icon: const Icon(Icons.play_arrow_rounded, color: Colors.white70),
           ),
         ],
       LibraryMidiItem() => [
@@ -386,9 +471,10 @@ class _LibraryItemTile extends StatelessWidget {
           Icon(Icons.timeline, size: 18, color: accent.withValues(alpha: 0.8)),
         ],
       final LibraryPresetItem preset => [
-          FilledButton.tonal(
+          IconButton(
+            tooltip: 'Preview',
             onPressed: () => onPresetTap?.call(preset),
-            child: const Text('Load'),
+            icon: const Icon(Icons.play_arrow_rounded, color: Colors.white70),
           ),
         ],
       _ => const <Widget>[],
@@ -397,65 +483,68 @@ class _LibraryItemTile extends StatelessWidget {
 }
 
 class _LeadingVisual extends StatelessWidget {
-  const _LeadingVisual({required this.item, required this.accent});
+  const _LeadingVisual({
+    required this.item,
+    required this.accent,
+    this.fetchClipPreview,
+    this.previewCache,
+  });
 
   final LibraryItem item;
   final Color accent;
+  final Future<ClipPreviewData> Function(String itemId)? fetchClipPreview;
+  final ClipPreviewCache? previewCache;
 
   @override
   Widget build(BuildContext context) {
     return switch (item) {
-      LibraryAudioItem(:final sample) => SizedBox(
-          width: 96,
+      LibraryAudioItem(:final sample) => LibraryPreviewWidget(
+          width: 52,
           height: 36,
-          child: CustomPaint(
-            painter: WaveformPainter(
-              peaks: sample.waveformPeaks,
-              color: accent,
-            ),
-          ),
+          peaks: sample.waveformPeaks,
+          color: accent,
         ),
-      LibraryMidiItem(:final clip) => _BadgeBox(
-          accent: accent,
-          child: Text(
-            '${clip.notes.length}',
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+      LibraryMidiItem() || LibraryAutomationItem()
+          when fetchClipPreview != null =>
+          FutureBuilder<ClipPreviewData>(
+            future: () {
+              final cached = previewCache?.get(item.id);
+              return cached != null
+                  ? Future.value(cached)
+                  : fetchClipPreview!(item.id).then((data) {
+                      previewCache?.put(item.id, data);
+                      return data;
+                    });
+            }(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return LibraryPreviewWidget(
+                  width: 52, height: 36,
+                  peaks: null,
+                  color: accent,
+                );
+              }
+              final data = snapshot.data;
+              if (data != null && data.peaks.isNotEmpty) {
+                return LibraryPreviewWidget(
+                  width: 52, height: 36,
+                  peaks: data.peaks,
+                  color: accent,
+                );
+              }
+              return LibraryPreviewWidget(
+                width: 52, height: 36,
+                peaks: const [],
+                color: accent,
+              );
+            },
           ),
-        ),
-      LibraryAutomationItem() => _BadgeBox(
-          accent: accent,
-          child: Icon(Icons.show_chart, color: accent, size: 20),
-        ),
-      LibraryPresetItem(:final deviceType) => _BadgeBox(
-          accent: accent,
-          child: Icon(
-            deviceType == 'simple_sampler' ? Icons.album_outlined : Icons.waves,
-            color: accent,
-            size: 20,
-          ),
+      _ => LibraryPreviewWidget(
+          width: 52,
+          height: 36,
+          peaks: null,
+          color: accent,
         ),
     };
-  }
-}
-
-class _BadgeBox extends StatelessWidget {
-  const _BadgeBox({required this.accent, required this.child});
-
-  final Color accent;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 52,
-      height: 36,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: accent.withValues(alpha: 0.35)),
-      ),
-      child: child,
-    );
   }
 }

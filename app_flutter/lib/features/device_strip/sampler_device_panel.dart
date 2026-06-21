@@ -437,6 +437,7 @@ class _ToneTab extends StatelessWidget {
     double? size,
     bool showLabel = true,
     double labelGap = 3,
+    Color accentColor = SamplerDevicePanel.accent,
   }) {
     return deviceAutomationKnob(
       label: label,
@@ -445,7 +446,7 @@ class _ToneTab extends StatelessWidget {
       displayValue: displayValue,
       onChanged: onChanged,
       paramId: paramId,
-      accentColor: SamplerDevicePanel.accent,
+      accentColor: accentColor,
       modulatedParams: modulatedParams,
       automatedParams: automatedParams,
       modulationAmounts: modulationAmounts,
@@ -533,6 +534,7 @@ class _ToneTab extends StatelessWidget {
                     value: device.filterEnvAmount,
                     displayValue: SamplerDevicePanel.formatPercent(device.filterEnvAmount),
                     onChanged: (v) => onParameterChanged('filterEnvAmount', v),
+                    accentColor: SamplerDevicePanel.wave,
                   ),
                 ),
               ],
@@ -593,6 +595,7 @@ class _ToneTab extends StatelessWidget {
     required double value,
     required String displayValue,
     required ValueChanged<double> onChanged,
+    Color accentColor = SamplerDevicePanel.accent,
   }) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -608,6 +611,7 @@ class _ToneTab extends StatelessWidget {
               onChanged: onChanged,
               size: knobSize,
               labelGap: 1,
+              accentColor: accentColor,
             ),
           ),
         );
@@ -678,6 +682,7 @@ class _ToneTab extends StatelessWidget {
     Widget knobRow({
       required double knobSize,
       required List<({String paramId, double value, String display, ValueChanged<double> onChanged})> specs,
+      Color accentColor = SamplerDevicePanel.accent,
     }) {
       return LayoutBuilder(
         builder: (context, constraints) {
@@ -702,6 +707,7 @@ class _ToneTab extends StatelessWidget {
                       onChanged: spec.onChanged,
                       size: fitSize,
                       showLabel: false,
+                      accentColor: accentColor,
                     ),
                 ],
               ),
@@ -731,7 +737,7 @@ class _ToneTab extends StatelessWidget {
               ),
               SizedBox(
                 height: rowHeight,
-                child: knobRow(knobSize: knobSize, specs: fegKnobs),
+                child: knobRow(knobSize: knobSize, specs: fegKnobs, accentColor: SamplerDevicePanel.wave),
               ),
             ],
           ),

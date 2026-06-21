@@ -14,6 +14,7 @@
 #include "audioapp/devices/SamplerDeviceType.hpp"
 #include "audioapp/devices/SubtractiveSynthDeviceType.hpp"
 #include "audioapp/devices/BassSynthDeviceType.hpp"
+#include "audioapp/devices/PhaseModSynthDeviceType.hpp"
 #include "audioapp/devices/TrackGainDeviceType.hpp"
 #include "audioapp/devices/instances/BassSynthInstance.hpp"
 #include "audioapp/devices/instances/KickGeneratorInstance.hpp"
@@ -108,6 +109,9 @@ const IDeviceType* DeviceRegistry::findTypeForSlot(const DeviceSlot& slot) const
     if (std::holds_alternative<BassSynthInstance>(slot.instance)) {
         return find(device_types::kBasSynth);
     }
+    if (std::holds_alternative<PhaseModSynthInstance>(slot.instance)) {
+        return find(device_types::kPhaseModSynth);
+    }
     if (std::holds_alternative<DelayInstance>(slot.instance)) return find("delay");
     if (std::holds_alternative<ReverbInstance>(slot.instance)) return find("reverb");
     if (std::holds_alternative<ChorusInstance>(slot.instance)) return find("chorus");
@@ -190,6 +194,7 @@ DeviceRegistry DeviceRegistry::createBuiltIn() {
     registry.registerType(std::make_unique<ExpanderDeviceType>());
     registry.registerType(std::make_unique<LimiterDeviceType>());
     registry.registerType(std::make_unique<BassSynthDeviceType>());
+    registry.registerType(std::make_unique<PhaseModSynthDeviceType>());
     return registry;
 }
 
