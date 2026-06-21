@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
@@ -10,6 +11,16 @@ typedef TimeFxParameterChanged = void Function(String parameterId, double value)
 typedef TimeFxModulationAssign = void Function(String paramId, double amount)?;
 
 const double _timeFxKnobRowGap = 10;
+
+String _formatHz(double hz) {
+  if (hz >= 10000) {
+    return '${(hz / 1000).toStringAsFixed(1)} kHz';
+  }
+  if (hz >= 1000) {
+    return '${(hz / 1000).toStringAsFixed(2)} kHz';
+  }
+  return '${hz.round()} Hz';
+}
 
 class _TimeFxKnob extends StatelessWidget {
   const _TimeFxKnob({
@@ -183,7 +194,7 @@ class DelayFxPanel extends StatelessWidget {
             value: device.delayTimeMs / 2000,
             paramId: 'timeMs',
             accent: accent,
-            onParameterChanged: onParameterChanged,
+            onParameterChanged: (id, v) => onParameterChanged(id, v * 2000),
             modulatedParams: modulatedParams,
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
@@ -197,7 +208,7 @@ class DelayFxPanel extends StatelessWidget {
           _knob(
             label: 'Feedback',
             value: device.delayFeedback,
-            paramId: 'delayFeedback',
+            paramId: 'feedback',
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
@@ -213,7 +224,7 @@ class DelayFxPanel extends StatelessWidget {
           _knob(
             label: 'Mix',
             value: device.delayMix,
-            paramId: 'delayMix',
+            paramId: 'mix',
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
@@ -511,7 +522,7 @@ class ChorusFxPanel extends StatelessWidget {
             value: (device.chorusRateHz - 0.1) / (5 - 0.1),
             paramId: 'rateHz',
             accent: accent,
-            onParameterChanged: onParameterChanged,
+            onParameterChanged: (id, v) => onParameterChanged(id, 0.1 + v * 4.9),
             modulatedParams: modulatedParams,
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
@@ -525,7 +536,7 @@ class ChorusFxPanel extends StatelessWidget {
           _knob(
             label: 'Mix',
             value: device.chorusMix,
-            paramId: 'chorusMix',
+            paramId: 'mix',
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
@@ -545,7 +556,7 @@ class ChorusFxPanel extends StatelessWidget {
             value: device.chorusCentreDelayMs / 20,
             paramId: 'centreDelayMs',
             accent: accent,
-            onParameterChanged: onParameterChanged,
+            onParameterChanged: (id, v) => onParameterChanged(id, v * 20),
             modulatedParams: modulatedParams,
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
@@ -559,7 +570,7 @@ class ChorusFxPanel extends StatelessWidget {
           _knob(
             label: 'Feedback',
             value: device.chorusFeedback,
-            paramId: 'chorusFeedback',
+            paramId: 'feedback',
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
@@ -651,13 +662,14 @@ class PhaserFxPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double normFreq = math.log(device.phaserCentreFrequencyHz.clamp(20.0, 20000.0) / 20.0) / math.log(1000.0);
     return _timeFxSinglePage(
       rows: [
         _knobGridRow([
           _knob(
             label: 'Depth',
             value: device.phaserDepth,
-            paramId: 'phaserDepth',
+            paramId: 'depth',
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
@@ -673,9 +685,9 @@ class PhaserFxPanel extends StatelessWidget {
           _knob(
             label: 'Rate',
             value: (device.phaserRateHz - 0.1) / (5 - 0.1),
-            paramId: 'phaserRateHz',
+            paramId: 'rateHz',
             accent: accent,
-            onParameterChanged: onParameterChanged,
+            onParameterChanged: (id, v) => onParameterChanged(id, 0.1 + v * 4.9),
             modulatedParams: modulatedParams,
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
@@ -689,7 +701,7 @@ class PhaserFxPanel extends StatelessWidget {
           _knob(
             label: 'Feedback',
             value: device.phaserFeedback,
-            paramId: 'phaserFeedback',
+            paramId: 'feedback',
             accent: accent,
             onParameterChanged: onParameterChanged,
             modulatedParams: modulatedParams,
@@ -706,10 +718,10 @@ class PhaserFxPanel extends StatelessWidget {
         _knobGridRow([
           _knob(
             label: 'Centre',
-            value: device.phaserCentreFrequencyHz,
+            value: normFreq,
             paramId: 'centreFrequencyHz',
             accent: accent,
-            onParameterChanged: onParameterChanged,
+            onParameterChanged: (id, v) => onParameterChanged(id, 20.0 * math.pow(1000.0, v)),
             modulatedParams: modulatedParams,
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
@@ -718,6 +730,7 @@ class PhaserFxPanel extends StatelessWidget {
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
             onAutomateParameter: onAutomateParameter,
+            displayValue: _formatHz(device.phaserCentreFrequencyHz),
           ),
           null,
           null,
