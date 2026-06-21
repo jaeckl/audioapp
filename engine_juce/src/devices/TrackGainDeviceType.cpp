@@ -8,19 +8,6 @@
 #include <algorithm>
 
 namespace audioapp {
-namespace {
-
-DeviceState stripSnapshot(const DeviceSlot& slot, std::string_view typeId) {
-    DeviceState state;
-    state.id = slot.id;
-    state.type = std::string(typeId);
-    state.gain = slot.gain;
-    state.pan = slot.pan;
-    state.bypassed = slot.bypassed;
-    return state;
-}
-
-} // namespace
 
 std::string TrackGainDeviceType::typeId() const {
     return device_types::kTrackGain;
@@ -33,19 +20,6 @@ DeviceSlot TrackGainDeviceType::createDefault(const std::string& deviceId) const
     return slot;
 }
 
-DeviceState TrackGainDeviceType::toSnapshotState(const DeviceSlot& slot) const {
-    return stripSnapshot(slot, device_types::kTrackGain);
-}
-
-DeviceSlot TrackGainDeviceType::slotFromSnapshot(const DeviceState& state) const {
-    DeviceSlot slot;
-    slot.id = state.id;
-    slot.gain = state.gain;
-    slot.pan = state.pan;
-    slot.bypassed = state.bypassed;
-    slot.instance = TrackGainInstance{};
-    return slot;
-}
 
 juce::var TrackGainDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();

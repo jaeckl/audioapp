@@ -7,41 +7,6 @@
 #include <algorithm>
 
 namespace audioapp {
-namespace {
-
-DeviceState stripSnapshot(const DeviceSlot& slot, std::string_view typeId) {
-    DeviceState state;
-    state.id = slot.id;
-    state.type = std::string(typeId);
-    state.gain = slot.gain;
-    state.pan = slot.pan;
-    state.bypassed = slot.bypassed;
-    return state;
-}
-
-CompressorInstance instanceFromSnapshot(const DeviceState& state) {
-    CompressorInstance instance;
-    instance.inputGain = state.inputGain;
-    instance.compThreshold = state.compThreshold;
-    instance.compRatio = state.compRatio;
-    instance.compAttack = state.compAttack;
-    instance.compRelease = state.compRelease;
-    instance.compKnee = state.compKnee;
-    instance.compMakeup = state.compMakeup;
-    return instance;
-}
-
-void applyInstanceToSnapshot(const CompressorInstance& instance, DeviceState& state) {
-    state.inputGain = instance.inputGain;
-    state.compThreshold = instance.compThreshold;
-    state.compRatio = instance.compRatio;
-    state.compAttack = instance.compAttack;
-    state.compRelease = instance.compRelease;
-    state.compKnee = instance.compKnee;
-    state.compMakeup = instance.compMakeup;
-}
-
-} // namespace
 
 std::string CompressorDeviceType::typeId() const { return device_types::kCompressor; }
 
@@ -52,21 +17,6 @@ DeviceSlot CompressorDeviceType::createDefault(const std::string& deviceId) cons
     return slot;
 }
 
-DeviceState CompressorDeviceType::toSnapshotState(const DeviceSlot& slot) const {
-    DeviceState state = stripSnapshot(slot, device_types::kCompressor);
-    applyInstanceToSnapshot(std::get<CompressorInstance>(slot.instance), state);
-    return state;
-}
-
-DeviceSlot CompressorDeviceType::slotFromSnapshot(const DeviceState& state) const {
-    DeviceSlot slot;
-    slot.id = state.id;
-    slot.gain = state.gain;
-    slot.pan = state.pan;
-    slot.bypassed = state.bypassed;
-    slot.instance = instanceFromSnapshot(state);
-    return slot;
-}
 
 DeviceParameterResult CompressorDeviceType::setParameter(DeviceSlot& slot,
                                                          std::string_view parameterId,

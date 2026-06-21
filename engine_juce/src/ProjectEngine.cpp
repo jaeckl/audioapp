@@ -9,6 +9,10 @@
 #include "audioapp/devices/instances/OscillatorInstance.hpp"
 #include "audioapp/devices/instances/SubtractiveSynthInstance.hpp"
 #include "audioapp/devices/instances/TrackGainInstance.hpp"
+#include "audioapp/devices/instances/GateInstance.hpp"
+#include "audioapp/devices/instances/CompressorInstance.hpp"
+#include "audioapp/devices/instances/ExpanderInstance.hpp"
+#include "audioapp/devices/instances/LimiterInstance.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -414,7 +418,7 @@ ProjectSnapshot ProjectEngine::snapshot() const {
         ts.name = track.name;
         ts.devices.reserve(track.devices.size());
         for (const auto& device : track.devices) {
-            ts.devices.push_back(deviceRegistry_.toSnapshotState(device));
+            ts.devices.push_back(device);
         }
         ts.midiClips.reserve(track.midiClips.size());
         for (const auto& clip : track.midiClips) {
@@ -805,7 +809,7 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
         ts.id = track.id;
         ts.name = track.name;
         for (const auto& device : track.devices) {
-            ts.devices.push_back(deviceRegistry_.toSnapshotState(device));
+            ts.devices.push_back(device);
         }
         for (const auto& clip : track.midiClips) {
             MidiClipState cs;
@@ -877,7 +881,7 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
         track.id = trackState.id;
         track.name = trackState.name;
         for (const auto& deviceState : trackState.devices) {
-            track.devices.push_back(deviceRegistry_.slotFromSnapshot(deviceState));
+            track.devices.push_back(deviceState);
         }
         for (const auto& clipState : trackState.midiClips) {
             MidiClip clip;
@@ -1078,10 +1082,12 @@ void ProjectEngine::recomputeIdCountersLocked() {
 void ProjectEngine::applyLiveDeviceMetersLocked(ProjectSnapshot& snap) const {
     for (auto& trackState : snap.tracks) {
         for (auto& device : trackState.devices) {
-            if (device.type != "gate" && device.type != "compressor" &&
-                device.type != "expander" && device.type != "limiter") {
-                continue;
-            }
+            const bool isDynamics =
+                std::holds_alternative<GateInstance>(device.instance) ||
+                std::holds_alternative<CompressorInstance>(device.instance) ||
+                std::holds_alternative<ExpanderInstance>(device.instance) ||
+                std::holds_alternative<LimiterInstance>(device.instance);
+            if (!isDynamics) continue;
             for (int i = 0; i < deviceMeterSlotCount_; ++i) {
                 if (deviceMeterIds_[i] != device.id) {
                     continue;

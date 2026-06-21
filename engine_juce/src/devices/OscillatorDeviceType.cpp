@@ -5,19 +5,6 @@
 #include "audioapp/devices/instances/OscillatorInstance.hpp"
 
 namespace audioapp {
-namespace {
-
-DeviceState stripSnapshot(const DeviceSlot& slot, std::string_view typeId) {
-    DeviceState state;
-    state.id = slot.id;
-    state.type = std::string(typeId);
-    state.gain = slot.gain;
-    state.pan = slot.pan;
-    state.bypassed = slot.bypassed;
-    return state;
-}
-
-} // namespace
 
 std::string OscillatorDeviceType::typeId() const {
     return device_types::kOscillator;
@@ -30,21 +17,6 @@ DeviceSlot OscillatorDeviceType::createDefault(const std::string& deviceId) cons
     return slot;
 }
 
-DeviceState OscillatorDeviceType::toSnapshotState(const DeviceSlot& slot) const {
-    DeviceState state = stripSnapshot(slot, device_types::kOscillator);
-    state.frequencyHz = std::get<OscillatorInstance>(slot.instance).frequencyHz;
-    return state;
-}
-
-DeviceSlot OscillatorDeviceType::slotFromSnapshot(const DeviceState& state) const {
-    DeviceSlot slot;
-    slot.id = state.id;
-    slot.gain = state.gain;
-    slot.pan = state.pan;
-    slot.bypassed = state.bypassed;
-    slot.instance = OscillatorInstance{.frequencyHz = state.frequencyHz};
-    return slot;
-}
 
 DeviceParameterResult OscillatorDeviceType::setParameter(DeviceSlot& slot,
                                                          std::string_view parameterId,

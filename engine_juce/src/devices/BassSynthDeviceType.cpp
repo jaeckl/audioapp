@@ -8,60 +8,6 @@
 #include <cmath>
 
 namespace audioapp {
-namespace {
-
-DeviceState stripSnapshot(const DeviceSlot& slot, std::string_view typeId) {
-    DeviceState state;
-    state.id = slot.id;
-    state.type = std::string(typeId);
-    state.gain = slot.gain;
-    state.pan = slot.pan;
-    state.bypassed = slot.bypassed;
-    return state;
-}
-
-BassSynthInstance instanceFromSnapshot(const DeviceState& state) {
-    BassSynthInstance instance;
-    instance.gain = state.gain;
-    instance.oscShape = state.bassOscShape;
-    instance.subMix = state.bassSubMix;
-    instance.subOctave = state.bassSubOctave;
-    instance.noise = state.bassNoise;
-    instance.ampAttack = state.attack;
-    instance.ampSustain = state.sustain;
-    instance.ampRelease = state.release;
-    instance.octave = state.bassOctave;
-    instance.filterCutoff = state.filterCutoff;
-    instance.filterResonance = state.bassFilterResonance;
-    instance.filterEnvAmount = state.filterEnvAmount;
-    instance.filterDecay = state.filterDecay;
-    instance.drive = state.bassDrive;
-    instance.squash = state.bassSquash;
-    instance.glideMs = state.glideMs;
-    instance.velocitySense = state.bassVelocitySense;
-    return instance;
-}
-
-void applyInstanceToSnapshot(const BassSynthInstance& instance, DeviceState& state) {
-    state.bassOscShape = instance.oscShape;
-    state.bassSubMix = instance.subMix;
-    state.bassSubOctave = instance.subOctave;
-    state.bassNoise = instance.noise;
-    state.attack = instance.ampAttack;
-    state.sustain = instance.ampSustain;
-    state.release = instance.ampRelease;
-    state.bassOctave = instance.octave;
-    state.filterCutoff = instance.filterCutoff;
-    state.bassFilterResonance = instance.filterResonance;
-    state.filterEnvAmount = instance.filterEnvAmount;
-    state.filterDecay = instance.filterDecay;
-    state.bassDrive = instance.drive;
-    state.bassSquash = instance.squash;
-    state.glideMs = instance.glideMs;
-    state.bassVelocitySense = instance.velocitySense;
-}
-
-} // namespace
 
 SubtractiveSynthParams BassSynthInstance::toPlaybackParams() const {
     SubtractiveSynthParams p;
@@ -135,21 +81,6 @@ DeviceSlot BassSynthDeviceType::createDefault(const std::string& deviceId) const
     return slot;
 }
 
-DeviceState BassSynthDeviceType::toSnapshotState(const DeviceSlot& slot) const {
-    DeviceState state = stripSnapshot(slot, device_types::kBasSynth);
-    applyInstanceToSnapshot(std::get<BassSynthInstance>(slot.instance), state);
-    return state;
-}
-
-DeviceSlot BassSynthDeviceType::slotFromSnapshot(const DeviceState& state) const {
-    DeviceSlot slot;
-    slot.id = state.id;
-    slot.gain = state.gain;
-    slot.pan = state.pan;
-    slot.bypassed = state.bypassed;
-    slot.instance = instanceFromSnapshot(state);
-    return slot;
-}
 
 DeviceParameterResult BassSynthDeviceType::setParameter(DeviceSlot& slot,
                                                        std::string_view parameterId,

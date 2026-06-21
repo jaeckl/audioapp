@@ -38,15 +38,15 @@ int main() {
     if (!registry.setParameter(sampler, "attack", 1.5f).handled) {
         return EXIT_FAILURE;
     }
-    const audioapp::DeviceState samplerState = registry.toSnapshotState(sampler);
-    if (std::abs(samplerState.attack - 1.0f) > 0.001f) {
+    const auto& samplerInst = std::get<audioapp::SamplerInstance>(sampler.instance);
+    if (std::abs(samplerInst.attack - 1.0f) > 0.001f) {
         return EXIT_FAILURE;
     }
 
     audioapp::DeviceSlot synth =
         registry.createDefault(audioapp::device_types::kSubtractiveSynth, "dev-synth");
-    const audioapp::DeviceState synthDefaults = registry.toSnapshotState(synth);
-    if (std::abs(synthDefaults.filterCutoff - 0.75f) > 0.001f) {
+    const auto& synthInst = std::get<audioapp::SubtractiveSynthInstance>(synth.instance);
+    if (std::abs(synthInst.filterCutoff - 0.75f) > 0.001f) {
         return EXIT_FAILURE;
     }
     if (!registry.setParameter(synth, "osc1Shape", 0.75f).handled) {
@@ -103,10 +103,11 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    const audioapp::DeviceState roundTrip =
-        registry.toSnapshotState(registry.slotFromSnapshot(registry.toSnapshotState(oscillator)));
-    if (roundTrip.type != audioapp::device_types::kOscillator ||
-        std::abs(roundTrip.frequencyHz - 880.0f) > 0.001f) {
+    // Use slotToVar -> JSON string -> varToSlot round-trip instead
+    const auto roundTripJson = audioapp::deviceSlotToVar(oscillator, registry);
+    const audioapp::DeviceSlot roundTripSlot = audioapp::deviceVarToSlot(roundTripJson, registry);
+    if (roundTripSlot.id != oscillator.id ||
+        std::abs(std::get<audioapp::OscillatorInstance>(roundTripSlot.instance).frequencyHz - 880.0f) > 0.001f) {
         return EXIT_FAILURE;
     }
 

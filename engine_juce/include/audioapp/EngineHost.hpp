@@ -99,6 +99,10 @@ public:
 
     std::string getProjectSnapshotJson() const;
     std::string getTransportStateJson() const;
+    /// Returns JSON for a subset of devices, indexed by their deviceId.
+    /// Used for selective frontend polling.
+    /// Format: { "ok": true, "devices": { "dev-1": { "type":"...", "parameters":{...}, "meters":{...} }, ... } }
+    std::string getDeviceStatesJson(const std::vector<std::string>& deviceIds) const;
 
     void advancePlayheadForBlock(int numFrames, double sampleRate) noexcept;
     float activeOscillatorFrequencyHz() const;

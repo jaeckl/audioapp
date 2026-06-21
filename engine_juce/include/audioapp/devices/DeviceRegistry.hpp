@@ -20,8 +20,6 @@ public:
     std::vector<std::string_view> knownTypes() const;
 
     DeviceSlot createDefault(std::string_view typeId, const std::string& deviceId) const;
-    DeviceState toSnapshotState(const DeviceSlot& slot) const;
-    DeviceSlot slotFromSnapshot(const DeviceState& state) const;
 
     DeviceParameterResult setParameter(DeviceSlot& slot,
                                        std::string_view parameterId,

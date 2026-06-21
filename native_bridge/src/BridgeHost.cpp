@@ -3,6 +3,8 @@
 #include "audioapp/EngineHost.hpp"
 #include "audioapp/ProjectJson.hpp"
 
+#include <juce_core/juce_core.h>
+
 namespace audioapp::bridge {
 
 namespace {
@@ -336,6 +338,20 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
 #endif
+    if (method == "getDeviceStates") {
+        // Parse the deviceIds array from the arguments JSON
+        const auto root = juce::JSON::parse(juce::String::fromUTF8(argumentsJson.c_str()));
+        const auto* rootObj = root.getDynamicObject();
+        if (rootObj == nullptr) return buildBridgeError("invalid_args");
+        const auto& idsVar = rootObj->getProperty("deviceIds");
+        const auto* idsArray = idsVar.getArray();
+        if (idsArray == nullptr) return buildBridgeError("invalid_deviceIds");
+        std::vector<std::string> deviceIds;
+        for (const auto& idVar : *idsArray) {
+            deviceIds.push_back(idVar.toString().toStdString());
+        }
+        return engine().getDeviceStatesJson(deviceIds);
+    }
     return buildBridgeError("unknown_command");
 }
 

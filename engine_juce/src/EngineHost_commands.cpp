@@ -3,6 +3,7 @@
 #include "audioapp/ProjectArchive.hpp"
 
 #include <memory>
+#include <unordered_map>
 
 namespace audioapp {
 
@@ -52,6 +53,49 @@ bool EngineHost::setMasterGain(float gain) {
 
 std::string EngineHost::getProjectSnapshotJson() const {
     return snapshotToJson(project_.snapshot(), project_.deviceRegistry());
+}
+
+std::string EngineHost::getDeviceStatesJson(const std::vector<std::string>& deviceIds) const {
+    auto snap = project_.snapshot();
+    auto* obj = new juce::DynamicObject();
+    auto* devicesObj = new juce::DynamicObject();
+
+    // Build device map: deviceId → (DeviceSlot*, TrackState*)
+    std::unordered_map<std::string, std::pair<const DeviceSlot*, const TrackState*>> deviceMap;
+    for (const auto& track : snap.tracks) {
+        for (const auto& device : track.devices) {
+            deviceMap[device.id] = {&device, &track};
+        }
+    }
+
+    for (const auto& deviceId : deviceIds) {
+        auto it = deviceMap.find(deviceId);
+        if (it == deviceMap.end()) continue;
+        const auto& [slot, track] = it->second;
+
+        // Serialize via registry dispatch (no round-trip)
+        juce::var deviceVar = audioapp::deviceToVar(*slot, project_.deviceRegistry());
+
+        // Inject meters from this track's deviceMeters
+        for (const auto& meter : track->deviceMeters) {
+            if (meter.deviceId == deviceId) {
+                if (auto* devObj = deviceVar.getDynamicObject()) {
+                    auto* metersObj = new juce::DynamicObject();
+                    metersObj->setProperty("gainReductionDb",
+                        static_cast<double>(meter.gainReductionDb));
+                    metersObj->setProperty("inputLevel",
+                        static_cast<double>(meter.inputLevel));
+                    devObj->setProperty("meters", juce::var(metersObj));
+                }
+                break;
+            }
+        }
+        devicesObj->setProperty(juce::String::fromUTF8(deviceId.c_str()), deviceVar);
+    }
+
+    obj->setProperty("ok", true);
+    obj->setProperty("devices", juce::var(devicesObj));
+    return juce::JSON::toString(juce::var(obj), false).toStdString();
 }
 
 std::string EngineHost::getTransportStateJson() const {

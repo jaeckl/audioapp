@@ -9,43 +9,6 @@
 #include <algorithm>
 
 namespace audioapp {
-namespace {
-
-DeviceState stripSnapshot(const DeviceSlot& slot, std::string_view typeId) {
-    DeviceState state;
-    state.id = slot.id;
-    state.type = std::string(typeId);
-    state.gain = slot.gain;
-    state.pan = slot.pan;
-    state.bypassed = slot.bypassed;
-    return state;
-}
-
-KickGeneratorInstance instanceFromSnapshot(const DeviceState& state) {
-    KickGeneratorInstance instance;
-    instance.kickModel = state.kickModel;
-    instance.kickPitch = state.kickPitch;
-    instance.kickPunch = state.kickPunch;
-    instance.kickDecay = state.kickDecay;
-    instance.kickClick = state.kickClick;
-    instance.kickTone = state.kickTone;
-    instance.kickVelocity = state.kickVelocity;
-    instance.kickKeyTrack = state.kickKeyTrack;
-    return instance;
-}
-
-void applyInstanceToSnapshot(const KickGeneratorInstance& instance, DeviceState& state) {
-    state.kickModel = instance.kickModel;
-    state.kickPitch = instance.kickPitch;
-    state.kickPunch = instance.kickPunch;
-    state.kickDecay = instance.kickDecay;
-    state.kickClick = instance.kickClick;
-    state.kickTone = instance.kickTone;
-    state.kickVelocity = instance.kickVelocity;
-    state.kickKeyTrack = instance.kickKeyTrack;
-}
-
-} // namespace
 
 std::string KickGeneratorDeviceType::typeId() const {
     return device_types::kKickGenerator;
@@ -58,21 +21,6 @@ DeviceSlot KickGeneratorDeviceType::createDefault(const std::string& deviceId) c
     return slot;
 }
 
-DeviceState KickGeneratorDeviceType::toSnapshotState(const DeviceSlot& slot) const {
-    DeviceState state = stripSnapshot(slot, device_types::kKickGenerator);
-    applyInstanceToSnapshot(std::get<KickGeneratorInstance>(slot.instance), state);
-    return state;
-}
-
-DeviceSlot KickGeneratorDeviceType::slotFromSnapshot(const DeviceState& state) const {
-    DeviceSlot slot;
-    slot.id = state.id;
-    slot.gain = state.gain;
-    slot.pan = state.pan;
-    slot.bypassed = state.bypassed;
-    slot.instance = instanceFromSnapshot(state);
-    return slot;
-}
 
 DeviceParameterResult KickGeneratorDeviceType::setParameter(DeviceSlot& slot,
                                                             std::string_view parameterId,

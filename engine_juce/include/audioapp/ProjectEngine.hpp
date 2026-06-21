@@ -41,7 +41,7 @@ struct DeviceMeterState {
 struct TrackState {
     std::string id;
     std::string name;
-    std::vector<DeviceState> devices;
+    std::vector<DeviceSlot> devices;
     /// Parallel meter array by deviceId. Only populated for snapshot serialization.
     std::vector<DeviceMeterState> deviceMeters;
     std::vector<MidiClipState> midiClips;

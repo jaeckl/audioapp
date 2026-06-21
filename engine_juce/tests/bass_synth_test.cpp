@@ -1,5 +1,4 @@
 #include "audioapp/DeviceChain.hpp"
-#include "audioapp/DeviceState.hpp"
 #include "audioapp/LivePerformance.hpp"
 #include "audioapp/SubtractiveSynth.hpp"
 #include "audioapp/devices/BassSynthDeviceType.hpp"
@@ -60,65 +59,8 @@ void testDefaultInstance() {
     check(near(inst.velocitySense, 1.0f), "velocitySense == 1.0");
 }
 
-// ── Test 2: ToSnapshotRoundtrip ──
-// Serialize a default slot to DeviceState and back; verify all fields survive.
-void testToSnapshotRoundtrip() {
-    std::cout << "\n[Test 2] ToSnapshotRoundtrip\n";
-
-    audioapp::BassSynthDeviceType type;
-    auto slot = type.createDefault("roundtrip-id");
-    const auto& orig = std::get<audioapp::BassSynthInstance>(slot.instance);
-
-    audioapp::DeviceState state = type.toSnapshotState(slot);
-    check(state.type == audioapp::device_types::kBasSynth,
-          "state.type == bass_synth");
-    check(state.id == "roundtrip-id", "state.id preserved");
-    check(near(state.bassOscShape, orig.oscShape), "state.bassOscShape");
-    check(near(state.bassSubMix, orig.subMix), "state.bassSubMix");
-    check(state.bassSubOctave == orig.subOctave, "state.bassSubOctave");
-    check(near(state.bassNoise, orig.noise), "state.bassNoise");
-    check(near(state.attack, orig.ampAttack), "state.attack (ampAttack)");
-    check(near(state.sustain, orig.ampSustain), "state.sustain (ampSustain)");
-    check(near(state.release, orig.ampRelease), "state.release (ampRelease)");
-    check(state.bassOctave == orig.octave, "state.bassOctave");
-    check(near(state.filterCutoff, orig.filterCutoff), "state.filterCutoff");
-    check(near(state.bassFilterResonance, orig.filterResonance),
-          "state.bassFilterResonance");
-    check(near(state.filterEnvAmount, orig.filterEnvAmount),
-          "state.filterEnvAmount");
-    check(near(state.filterDecay, orig.filterDecay), "state.filterDecay");
-    check(near(state.bassDrive, orig.drive), "state.bassDrive");
-    check(near(state.bassSquash, orig.squash), "state.bassSquash");
-    check(near(state.glideMs, orig.glideMs), "state.glideMs");
-    check(near(state.bassVelocitySense, orig.velocitySense),
-          "state.bassVelocitySense");
-
-    // Roundtrip back to slot
-    audioapp::DeviceSlot restored = type.slotFromSnapshot(state);
-    check(std::holds_alternative<audioapp::BassSynthInstance>(restored.instance),
-          "restored holds BassSynthInstance");
-    const auto& ri = std::get<audioapp::BassSynthInstance>(restored.instance);
-    check(near(ri.oscShape, orig.oscShape), "roundtrip oscShape");
-    check(near(ri.subMix, orig.subMix), "roundtrip subMix");
-    check(ri.subOctave == orig.subOctave, "roundtrip subOctave");
-    check(near(ri.noise, orig.noise), "roundtrip noise");
-    check(near(ri.ampAttack, orig.ampAttack), "roundtrip ampAttack");
-    check(near(ri.ampSustain, orig.ampSustain), "roundtrip ampSustain");
-    check(near(ri.ampRelease, orig.ampRelease), "roundtrip ampRelease");
-    check(ri.octave == orig.octave, "roundtrip octave");
-    check(near(ri.filterCutoff, orig.filterCutoff), "roundtrip filterCutoff");
-    check(near(ri.filterResonance, orig.filterResonance),
-          "roundtrip filterResonance");
-    check(near(ri.filterEnvAmount, orig.filterEnvAmount),
-          "roundtrip filterEnvAmount");
-    check(near(ri.filterDecay, orig.filterDecay), "roundtrip filterDecay");
-    check(near(ri.drive, orig.drive), "roundtrip drive");
-    check(near(ri.squash, orig.squash), "roundtrip squash");
-    check(near(ri.glideMs, orig.glideMs), "roundtrip glideMs");
-    check(near(ri.velocitySense, orig.velocitySense),
-          "roundtrip velocitySense");
-    check(restored.id == state.id, "roundtrip id preserved");
-}
+// ── Test 2: ToSnapshotRoundtrip (removed — DeviceState was deleted, use slotToVar/varToSlot instead)
+// See device_slot_serialization_test for round-trip tests.
 
 // ── Test 3: SetParameter ──
 // Verify that setParameter updates each bass parameter and returns handled=true.
@@ -512,21 +454,18 @@ void testDeviceRegistryIntegration() {
     check(near(inst.oscShape, 0.9f),
           "registry setParameter oscShape == 0.9");
 
-    // Snapshot reflects change
-    audioapp::DeviceState state = registry.toSnapshotState(slot);
-    check(state.type == audioapp::device_types::kBasSynth,
-          "registry state.type == bass_synth");
-    check(near(state.bassOscShape, 0.9f),
-          "registry state.bassOscShape == 0.9");
-
-    // Restore from snapshot
-    auto restored = registry.slotFromSnapshot(state);
-    check(std::holds_alternative<audioapp::BassSynthInstance>(
-              restored.instance),
-          "restored holds BassSynthInstance");
-    const auto& ri =
-        std::get<audioapp::BassSynthInstance>(restored.instance);
-    check(near(ri.oscShape, 0.9f), "restored oscShape == 0.9");
+    // Round-trip via slotToVar/varToSlot
+    {
+        const auto json = audioapp::deviceSlotToVar(slot, registry);
+        const auto restored = audioapp::deviceVarToSlot(json, registry);
+        check(std::holds_alternative<audioapp::BassSynthInstance>(
+                  restored.instance),
+              "restored holds BassSynthInstance");
+        check(restored.id == "reg-id", "restored id preserved");
+        const auto& ri =
+            std::get<audioapp::BassSynthInstance>(restored.instance);
+        check(near(ri.oscShape, 0.9f), "restored oscShape == 0.9");
+    }
 
     // Build playback node via registry
     audioapp::DeviceNodePlayback pbOut{};
@@ -554,7 +493,6 @@ int main() {
     std::cout << "=== bass_synth_test ===\n";
 
     testDefaultInstance();
-    testToSnapshotRoundtrip();
     testSetParameter();
     testSetParameterClamping();
     testBuildPlaybackNode();

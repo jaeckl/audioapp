@@ -9,37 +9,6 @@
 #include <algorithm>
 
 namespace audioapp {
-namespace {
-
-DeviceState stripSnapshot(const DeviceSlot& slot, std::string_view typeId) {
-    DeviceState state;
-    state.id = slot.id;
-    state.type = std::string(typeId);
-    state.gain = slot.gain;
-    state.pan = slot.pan;
-    state.bypassed = slot.bypassed;
-    return state;
-}
-
-CrashGeneratorInstance instanceFromSnapshot(const DeviceState& state) {
-    CrashGeneratorInstance instance;
-    instance.crashModel = state.crashModel;
-    instance.crashColor = state.crashColor;
-    instance.crashSpread = state.crashSpread;
-    instance.crashDecay = state.crashDecay;
-    instance.crashVelocity = state.crashVelocity;
-    return instance;
-}
-
-void applyInstanceToSnapshot(const CrashGeneratorInstance& instance, DeviceState& state) {
-    state.crashModel = instance.crashModel;
-    state.crashColor = instance.crashColor;
-    state.crashSpread = instance.crashSpread;
-    state.crashDecay = instance.crashDecay;
-    state.crashVelocity = instance.crashVelocity;
-}
-
-} // namespace
 
 std::string CrashGeneratorDeviceType::typeId() const {
     return device_types::kCrashGenerator;
@@ -52,21 +21,6 @@ DeviceSlot CrashGeneratorDeviceType::createDefault(const std::string& deviceId) 
     return slot;
 }
 
-DeviceState CrashGeneratorDeviceType::toSnapshotState(const DeviceSlot& slot) const {
-    DeviceState state = stripSnapshot(slot, device_types::kCrashGenerator);
-    applyInstanceToSnapshot(std::get<CrashGeneratorInstance>(slot.instance), state);
-    return state;
-}
-
-DeviceSlot CrashGeneratorDeviceType::slotFromSnapshot(const DeviceState& state) const {
-    DeviceSlot slot;
-    slot.id = state.id;
-    slot.gain = state.gain;
-    slot.pan = state.pan;
-    slot.bypassed = state.bypassed;
-    slot.instance = instanceFromSnapshot(state);
-    return slot;
-}
 
 DeviceParameterResult CrashGeneratorDeviceType::setParameter(DeviceSlot& slot,
                                                              std::string_view parameterId,

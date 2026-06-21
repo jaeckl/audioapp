@@ -12,64 +12,6 @@
 namespace audioapp {
 namespace {
 
-DeviceState stripSnapshot(const DeviceSlot& slot, std::string_view typeId) {
-    DeviceState state;
-    state.id = slot.id;
-    state.type = std::string(typeId);
-    state.gain = slot.gain;
-    state.pan = slot.pan;
-    state.bypassed = slot.bypassed;
-    return state;
-}
-
-SamplerInstance instanceFromSnapshot(const DeviceState& state) {
-    SamplerInstance instance;
-    instance.sampleId = state.sampleId;
-    instance.attack = state.attack;
-    instance.decay = state.decay;
-    instance.sustain = state.sustain;
-    instance.release = state.release;
-    instance.filterCutoff = state.filterCutoff;
-    instance.filterQ = state.filterQ;
-    instance.filterMode = state.filterMode;
-    instance.filterEnvAmount = state.filterEnvAmount;
-    instance.filterAttack = state.filterAttack;
-    instance.filterDecay = state.filterDecay;
-    instance.filterSustain = state.filterSustain;
-    instance.filterRelease = state.filterRelease;
-    instance.trimStartSec = state.trimStartSec;
-    instance.trimEndSec = state.trimEndSec;
-    instance.regionStartSec = state.regionStartSec;
-    instance.regionEndSec = state.regionEndSec;
-    instance.rootPitch = state.rootPitch;
-    instance.rootFineTune = state.rootFineTune;
-    instance.playbackMode = state.playbackMode;
-    return instance;
-}
-
-void applyInstanceToSnapshot(const SamplerInstance& instance, DeviceState& state) {
-    state.sampleId = instance.sampleId;
-    state.attack = instance.attack;
-    state.decay = instance.decay;
-    state.sustain = instance.sustain;
-    state.release = instance.release;
-    state.filterCutoff = instance.filterCutoff;
-    state.filterQ = instance.filterQ;
-    state.filterMode = instance.filterMode;
-    state.filterEnvAmount = instance.filterEnvAmount;
-    state.filterAttack = instance.filterAttack;
-    state.filterDecay = instance.filterDecay;
-    state.filterSustain = instance.filterSustain;
-    state.filterRelease = instance.filterRelease;
-    state.trimStartSec = instance.trimStartSec;
-    state.trimEndSec = instance.trimEndSec;
-    state.regionStartSec = instance.regionStartSec;
-    state.regionEndSec = instance.regionEndSec;
-    state.rootPitch = instance.rootPitch;
-    state.rootFineTune = instance.rootFineTune;
-    state.playbackMode = instance.playbackMode;
-}
-
 void resolveSampleFrames(const SamplerInstance& instance,
                          const PlaybackBuildContext& context,
                          SamplerParams& params) {
@@ -165,21 +107,6 @@ DeviceSlot SamplerDeviceType::createDefault(const std::string& deviceId) const {
     return slot;
 }
 
-DeviceState SamplerDeviceType::toSnapshotState(const DeviceSlot& slot) const {
-    DeviceState state = stripSnapshot(slot, device_types::kSampler);
-    applyInstanceToSnapshot(std::get<SamplerInstance>(slot.instance), state);
-    return state;
-}
-
-DeviceSlot SamplerDeviceType::slotFromSnapshot(const DeviceState& state) const {
-    DeviceSlot slot;
-    slot.id = state.id;
-    slot.gain = state.gain;
-    slot.pan = state.pan;
-    slot.bypassed = state.bypassed;
-    slot.instance = instanceFromSnapshot(state);
-    return slot;
-}
 
 DeviceParameterResult SamplerDeviceType::setParameter(DeviceSlot& slot,
                                                       std::string_view parameterId,

@@ -8,8 +8,6 @@ class TrackGainDeviceType final : public IDeviceType {
 public:
     std::string typeId() const override;
     DeviceSlot createDefault(const std::string& deviceId) const override;
-    DeviceState toSnapshotState(const DeviceSlot& slot) const override;
-    DeviceSlot slotFromSnapshot(const DeviceState& state) const override;
     juce::var slotToVar(const DeviceSlot& slot) const override;
     DeviceSlot varToSlot(const juce::var& obj) const override;
     DeviceParameterResult setParameter(DeviceSlot& slot,

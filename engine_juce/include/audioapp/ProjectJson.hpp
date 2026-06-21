@@ -32,23 +32,21 @@ bool parseProjectFileJson(const std::string& json,
                           ProjectFileData& out,
                           const DeviceRegistry& registry);
 
-/// Registry-aware overload: converts DeviceState to JSON via DeviceSlot dispatch.
-juce::var deviceToVar(const DeviceState& device, const DeviceRegistry& registry);
+/// Registry-aware overload: converts DeviceSlot to JSON via dispatch.
+juce::var deviceToVar(const DeviceSlot& slot, const DeviceRegistry& registry);
 
-/// Registry-aware overload: parses JSON to DeviceState via DeviceSlot dispatch.
-DeviceState deviceFromVar(const juce::var& value, const DeviceRegistry& registry);
+/// Registry-aware overload: parses JSON to DeviceSlot via dispatch.
+DeviceSlot deviceFromVar(const juce::var& value, const DeviceRegistry& registry);
 
 std::string snapshotToJson(const ProjectSnapshot& snapshot,
                             const DeviceRegistry& registry);
 
-/// Serialize a DeviceSlot to JSON string via its registered IDeviceType.
-/// Falls back to the existing DeviceState-based serialization if the device
-/// type hasn't been migrated yet (default IDeviceType::slotToVar).
+/// Serialize a DeviceSlot to JSON string via its registered IDeviceType
+/// (default IDeviceType::slotToVar).
 std::string deviceSlotToVar(const DeviceSlot& slot, const DeviceRegistry& registry);
 
-/// Deserialize a JSON string to a DeviceSlot via its registered IDeviceType.
-/// Falls back to the existing DeviceState-based deserialization if the device
-/// type hasn't been migrated yet (default IDeviceType::varToSlot).
+/// Deserialize a JSON string to a DeviceSlot via its registered IDeviceType
+/// (default IDeviceType::varToSlot).
 DeviceSlot deviceVarToSlot(const std::string& json, const DeviceRegistry& registry);
 
 std::vector<MidiNoteState> parseMidiNotesFromArgs(const std::string& argumentsJson);

@@ -10,110 +10,6 @@
 #include <cmath>
 
 namespace audioapp {
-namespace {
-
-DeviceState stripSnapshot(const DeviceSlot& slot, std::string_view typeId) {
-    DeviceState state;
-    state.id = slot.id;
-    state.type = std::string(typeId);
-    state.gain = slot.gain;
-    state.pan = slot.pan;
-    state.bypassed = slot.bypassed;
-    return state;
-}
-
-SubtractiveSynthInstance instanceFromSnapshot(const DeviceState& state) {
-    SubtractiveSynthInstance instance;
-    instance.gain = state.gain;
-    instance.osc1Shape = state.osc1Shape;
-    instance.osc2Shape = state.osc2Shape;
-    instance.osc1Octave = state.osc1Octave;
-    instance.osc1Semi = state.osc1Semi;
-    instance.osc1Detune = state.osc1Detune;
-    instance.osc2Octave = state.osc2Octave;
-    instance.osc2Semi = state.osc2Semi;
-    instance.osc2Detune = state.osc2Detune;
-    instance.oscMix = state.oscMix;
-    instance.osc1Sync = state.osc1Sync;
-    instance.osc2Sync = state.osc2Sync;
-    instance.noiseLevel = state.noiseLevel;
-    instance.oscMixMode = state.oscMixMode;
-    instance.unisonVoices = state.unisonVoices;
-    instance.unisonDetune = state.unisonDetune;
-    instance.filterMode = static_cast<float>(state.filterMode);
-    instance.filterCutoff = state.filterCutoff;
-    instance.filterQ = state.filterQ;
-    instance.filterEnvAmount = state.filterEnvAmount;
-    instance.filterAttack = state.filterAttack;
-    instance.filterDecay = state.filterDecay;
-    instance.filterSustain = state.filterSustain;
-    instance.filterRelease = state.filterRelease;
-    instance.ampAttack = state.attack;
-    instance.ampDecay = state.decay;
-    instance.ampSustain = state.sustain;
-    instance.ampRelease = state.release;
-    instance.glideMs = state.glideMs;
-    instance.velocitySensitivity = state.velocitySensitivity;
-    instance.preHpCutoff = state.preHpCutoff;
-    instance.preHpRes = state.preHpRes;
-    instance.preDrive = state.preDrive;
-    instance.mixFeedback = state.mixFeedback;
-    instance.globalPitch = state.globalPitch;
-    instance.filterKeyTrack = state.filterKeyTrack;
-    instance.filterDrive = state.filterDrive;
-    instance.filterShaper = state.filterShaper;
-    instance.filterFm = state.filterFm;
-    instance.filterShaperMode = state.filterShaperMode;
-    instance.synthLegato = state.synthLegato;
-    instance.synthMono = state.synthMono;
-    return instance;
-}
-
-void applyInstanceToSnapshot(const SubtractiveSynthInstance& instance, DeviceState& state) {
-    state.osc1Shape = instance.osc1Shape;
-    state.osc2Shape = instance.osc2Shape;
-    state.osc1Octave = instance.osc1Octave;
-    state.osc1Semi = instance.osc1Semi;
-    state.osc1Detune = instance.osc1Detune;
-    state.osc2Octave = instance.osc2Octave;
-    state.osc2Semi = instance.osc2Semi;
-    state.osc2Detune = instance.osc2Detune;
-    state.oscMix = instance.oscMix;
-    state.osc1Sync = instance.osc1Sync;
-    state.osc2Sync = instance.osc2Sync;
-    state.noiseLevel = instance.noiseLevel;
-    state.oscMixMode = instance.oscMixMode;
-    state.unisonVoices = instance.unisonVoices;
-    state.unisonDetune = instance.unisonDetune;
-    state.filterMode = static_cast<int>(instance.filterMode);
-    state.filterCutoff = instance.filterCutoff;
-    state.filterQ = instance.filterQ;
-    state.filterEnvAmount = instance.filterEnvAmount;
-    state.filterAttack = instance.filterAttack;
-    state.filterDecay = instance.filterDecay;
-    state.filterSustain = instance.filterSustain;
-    state.filterRelease = instance.filterRelease;
-    state.attack = instance.ampAttack;
-    state.decay = instance.ampDecay;
-    state.sustain = instance.ampSustain;
-    state.release = instance.ampRelease;
-    state.glideMs = instance.glideMs;
-    state.velocitySensitivity = instance.velocitySensitivity;
-    state.preHpCutoff = instance.preHpCutoff;
-    state.preHpRes = instance.preHpRes;
-    state.preDrive = instance.preDrive;
-    state.mixFeedback = instance.mixFeedback;
-    state.globalPitch = instance.globalPitch;
-    state.filterKeyTrack = instance.filterKeyTrack;
-    state.filterDrive = instance.filterDrive;
-    state.filterShaper = instance.filterShaper;
-    state.filterFm = instance.filterFm;
-    state.filterShaperMode = instance.filterShaperMode;
-    state.synthLegato = instance.synthLegato;
-    state.synthMono = instance.synthMono;
-}
-
-} // namespace
 
 std::string SubtractiveSynthDeviceType::typeId() const {
     return device_types::kSubtractiveSynth;
@@ -141,21 +37,6 @@ DeviceSlot SubtractiveSynthDeviceType::createDefault(const std::string& deviceId
     return slot;
 }
 
-DeviceState SubtractiveSynthDeviceType::toSnapshotState(const DeviceSlot& slot) const {
-    DeviceState state = stripSnapshot(slot, device_types::kSubtractiveSynth);
-    applyInstanceToSnapshot(std::get<SubtractiveSynthInstance>(slot.instance), state);
-    return state;
-}
-
-DeviceSlot SubtractiveSynthDeviceType::slotFromSnapshot(const DeviceState& state) const {
-    DeviceSlot slot;
-    slot.id = state.id;
-    slot.gain = state.gain;
-    slot.pan = state.pan;
-    slot.bypassed = state.bypassed;
-    slot.instance = instanceFromSnapshot(state);
-    return slot;
-}
 
 DeviceParameterResult SubtractiveSynthDeviceType::setParameter(DeviceSlot& slot,
                                                                std::string_view parameterId,

@@ -31,6 +31,27 @@ class EngineBridge {
     return _invokeForSnapshot('getProjectSnapshot');
   }
 
+  /// Fetch state for specific devices by ID. Returns a map of deviceId → DeviceSnapshot.
+  Future<Map<String, DeviceSnapshot>> getDeviceStates(List<String> deviceIds) async {
+    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>('getDeviceStates', {
+      'deviceIds': deviceIds,
+    });
+    if (result == null) {
+      throw PlatformException(code: 'null_response', message: 'No response from engine');
+    }
+    if (result['ok'] != true) {
+      throw PlatformException(
+        code: result['error']?.toString() ?? 'engine_error',
+        message: 'Device states fetch failed',
+      );
+    }
+    final devices = result['devices'] as Map<dynamic, dynamic>? ?? {};
+    return devices.map((key, value) => MapEntry(
+      key as String,
+      DeviceSnapshot.fromMap(value as Map<dynamic, dynamic>),
+    ));
+  }
+
   Future<TransportState> getTransportState() async {
     final result = await _channel.invokeMethod<Map<dynamic, dynamic>>('getTransportState');
     if (result == null) {

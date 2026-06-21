@@ -146,12 +146,9 @@ int main() {
         ++paramTests;
 
         // Verify it round-trips through registry-aware overload
-        const auto state = registry.toSnapshotState(slot);
-        const auto json2 = audioapp::deviceToVar(state, registry);
         const auto parsed2 = juce::JSON::parse(juce::String(audioapp::deviceSlotToVar(slot, registry)));
-        // Convert json2 to DeviceState via registry-aware overload
-        const audioapp::DeviceState restoredState = audioapp::deviceFromVar(parsed2, registry);
-        if (std::abs(restoredState.frequencyHz - 440.0f) > 0.001f) {
+        const audioapp::DeviceSlot restoredSlot = audioapp::deviceFromVar(parsed2, registry);
+        if (std::abs(std::get<audioapp::OscillatorInstance>(restoredSlot.instance).frequencyHz - 440.0f) > 0.001f) {
             std::cerr << "FAIL: oscillator registry-aware round-trip failed" << std::endl;
             ++paramFails;
         }
@@ -348,10 +345,10 @@ int main() {
 
     // deviceToVar with unknown registry type returns empty var
     {
-        audioapp::DeviceState unknownState;
-        unknownState.id = "x";
-        unknownState.type = "nonexistent";
-        const auto result = audioapp::deviceToVar(unknownState, registry);
+        audioapp::DeviceSlot unknownSlot;
+        unknownSlot.id = "x";
+        // Leaving instance as default (empty variant)
+        const auto result = audioapp::deviceToVar(unknownSlot, registry);
         // Should not crash; result could be empty or partial
         ++errorTests;
     }

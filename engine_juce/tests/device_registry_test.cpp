@@ -20,36 +20,32 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    const audioapp::DeviceState oscillator = registry.toSnapshotState(registry.createDefault(
-        audioapp::device_types::kOscillator, "dev-test-1"));
-    if (oscillator.type != audioapp::device_types::kOscillator) {
-        return EXIT_FAILURE;
-    }
+    audioapp::DeviceSlot oscillator = registry.createDefault(
+        audioapp::device_types::kOscillator, "dev-test-1");
     if (oscillator.id != "dev-test-1") {
         return EXIT_FAILURE;
     }
-    if (std::abs(oscillator.frequencyHz - 440.0f) > 0.001f) {
+    if (!std::holds_alternative<audioapp::OscillatorInstance>(oscillator.instance)) {
+        return EXIT_FAILURE;
+    }
+    const auto& oscInst = std::get<audioapp::OscillatorInstance>(oscillator.instance);
+    if (std::abs(oscInst.frequencyHz - 440.0f) > 0.001f) {
         return EXIT_FAILURE;
     }
 
-    const audioapp::DeviceState gain = registry.toSnapshotState(registry.createDefault(
-        audioapp::device_types::kTrackGain, "dev-test-2"));
-    if (gain.type != audioapp::device_types::kTrackGain) {
-        return EXIT_FAILURE;
-    }
+    audioapp::DeviceSlot gain = registry.createDefault(
+        audioapp::device_types::kTrackGain, "dev-test-2");
     if (std::abs(gain.gain - 1.0f) > 0.001f) {
         return EXIT_FAILURE;
     }
 
-    const audioapp::DeviceState synth = registry.toSnapshotState(registry.createDefault(
-        audioapp::device_types::kSubtractiveSynth, "dev-test-3"));
-    if (synth.type != audioapp::device_types::kSubtractiveSynth) {
+    audioapp::DeviceSlot synth = registry.createDefault(
+        audioapp::device_types::kSubtractiveSynth, "dev-test-3");
+    const auto& subInst = std::get<audioapp::SubtractiveSynthInstance>(synth.instance);
+    if (std::abs(subInst.filterCutoff - 0.75f) > 0.001f) {
         return EXIT_FAILURE;
     }
-    if (std::abs(synth.filterCutoff - 0.75f) > 0.001f) {
-        return EXIT_FAILURE;
-    }
-    if (std::abs(synth.osc1Shape - 0.5f) > 0.001f) {
+    if (std::abs(subInst.osc1Shape - 0.5f) > 0.001f) {
         return EXIT_FAILURE;
     }
 

@@ -7,39 +7,6 @@
 #include <algorithm>
 
 namespace audioapp {
-namespace {
-
-DeviceState stripSnapshot(const DeviceSlot& slot, std::string_view typeId) {
-    DeviceState state;
-    state.id = slot.id;
-    state.type = std::string(typeId);
-    state.gain = slot.gain;
-    state.pan = slot.pan;
-    state.bypassed = slot.bypassed;
-    return state;
-}
-
-GateInstance instanceFromSnapshot(const DeviceState& state) {
-    GateInstance instance;
-    instance.inputGain = state.inputGain;
-    instance.gateThreshold = state.gateThreshold;
-    instance.gateAttack = state.gateAttack;
-    instance.gateRelease = state.gateRelease;
-    instance.gateHold = state.gateHold;
-    instance.gateRange = state.gateRange;
-    return instance;
-}
-
-void applyInstanceToSnapshot(const GateInstance& instance, DeviceState& state) {
-    state.inputGain = instance.inputGain;
-    state.gateThreshold = instance.gateThreshold;
-    state.gateAttack = instance.gateAttack;
-    state.gateRelease = instance.gateRelease;
-    state.gateHold = instance.gateHold;
-    state.gateRange = instance.gateRange;
-}
-
-} // namespace
 
 std::string GateDeviceType::typeId() const { return device_types::kGate; }
 
@@ -50,21 +17,6 @@ DeviceSlot GateDeviceType::createDefault(const std::string& deviceId) const {
     return slot;
 }
 
-DeviceState GateDeviceType::toSnapshotState(const DeviceSlot& slot) const {
-    DeviceState state = stripSnapshot(slot, device_types::kGate);
-    applyInstanceToSnapshot(std::get<GateInstance>(slot.instance), state);
-    return state;
-}
-
-DeviceSlot GateDeviceType::slotFromSnapshot(const DeviceState& state) const {
-    DeviceSlot slot;
-    slot.id = state.id;
-    slot.gain = state.gain;
-    slot.pan = state.pan;
-    slot.bypassed = state.bypassed;
-    slot.instance = instanceFromSnapshot(state);
-    return slot;
-}
 
 DeviceParameterResult GateDeviceType::setParameter(DeviceSlot& slot,
                                                    std::string_view parameterId,

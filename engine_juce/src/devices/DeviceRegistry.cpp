@@ -114,22 +114,6 @@ DeviceSlot DeviceRegistry::createDefault(std::string_view typeId,
     return type->createDefault(deviceId);
 }
 
-DeviceState DeviceRegistry::toSnapshotState(const DeviceSlot& slot) const {
-    const IDeviceType* type = findTypeForSlot(slot);
-    if (type == nullptr) {
-        return {};
-    }
-    return type->toSnapshotState(slot);
-}
-
-DeviceSlot DeviceRegistry::slotFromSnapshot(const DeviceState& state) const {
-    const IDeviceType* type = find(state.type);
-    if (type == nullptr) {
-        return {};
-    }
-    return type->slotFromSnapshot(state);
-}
-
 DeviceParameterResult DeviceRegistry::setParameter(DeviceSlot& slot,
                                                    std::string_view parameterId,
                                                    float value) const {

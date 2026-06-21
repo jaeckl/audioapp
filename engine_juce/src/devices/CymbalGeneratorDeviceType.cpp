@@ -9,37 +9,6 @@
 #include <algorithm>
 
 namespace audioapp {
-namespace {
-
-DeviceState stripSnapshot(const DeviceSlot& slot, std::string_view typeId) {
-    DeviceState state;
-    state.id = slot.id;
-    state.type = std::string(typeId);
-    state.gain = slot.gain;
-    state.pan = slot.pan;
-    state.bypassed = slot.bypassed;
-    return state;
-}
-
-CymbalGeneratorInstance instanceFromSnapshot(const DeviceState& state) {
-    CymbalGeneratorInstance instance;
-    instance.cymbalModel = state.cymbalModel;
-    instance.cymbalColor = state.cymbalColor;
-    instance.cymbalDecay = state.cymbalDecay;
-    instance.cymbalWidth = state.cymbalWidth;
-    instance.cymbalVelocity = state.cymbalVelocity;
-    return instance;
-}
-
-void applyInstanceToSnapshot(const CymbalGeneratorInstance& instance, DeviceState& state) {
-    state.cymbalModel = instance.cymbalModel;
-    state.cymbalColor = instance.cymbalColor;
-    state.cymbalDecay = instance.cymbalDecay;
-    state.cymbalWidth = instance.cymbalWidth;
-    state.cymbalVelocity = instance.cymbalVelocity;
-}
-
-} // namespace
 
 std::string CymbalGeneratorDeviceType::typeId() const {
     return device_types::kCymbalGenerator;
@@ -52,21 +21,6 @@ DeviceSlot CymbalGeneratorDeviceType::createDefault(const std::string& deviceId)
     return slot;
 }
 
-DeviceState CymbalGeneratorDeviceType::toSnapshotState(const DeviceSlot& slot) const {
-    DeviceState state = stripSnapshot(slot, device_types::kCymbalGenerator);
-    applyInstanceToSnapshot(std::get<CymbalGeneratorInstance>(slot.instance), state);
-    return state;
-}
-
-DeviceSlot CymbalGeneratorDeviceType::slotFromSnapshot(const DeviceState& state) const {
-    DeviceSlot slot;
-    slot.id = state.id;
-    slot.gain = state.gain;
-    slot.pan = state.pan;
-    slot.bypassed = state.bypassed;
-    slot.instance = instanceFromSnapshot(state);
-    return slot;
-}
 
 DeviceParameterResult CymbalGeneratorDeviceType::setParameter(DeviceSlot& slot,
                                                               std::string_view parameterId,

@@ -8,8 +8,6 @@ class SamplerDeviceType final : public IDeviceType {
 public:
     std::string typeId() const override;
     DeviceSlot createDefault(const std::string& deviceId) const override;
-    DeviceState toSnapshotState(const DeviceSlot& slot) const override;
-    DeviceSlot slotFromSnapshot(const DeviceState& state) const override;
     DeviceParameterResult setParameter(DeviceSlot& slot,
                                        std::string_view parameterId,
                                        float value) const override;

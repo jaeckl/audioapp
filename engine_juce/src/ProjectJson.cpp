@@ -461,7 +461,7 @@ juce::var trackToVarPersistence(const TrackState& track,
     juce::Array<juce::var> devices;
     devices.ensureStorageAllocated(static_cast<int>(track.devices.size()));
     for (const auto& device : track.devices) {
-        devices.add(audioapp::deviceToVar(device, registry));
+        devices.add(deviceSlotToVarImpl(device, registry));
     }
 
     juce::Array<juce::var> clips;
@@ -494,7 +494,7 @@ TrackState trackFromVarPersistence(const juce::var& value,
         if (const auto* devices = varArray(object->getProperty("devices"))) {
             for (const auto& deviceVar : *devices) {
                 track.devices.push_back(
-                    audioapp::deviceFromVar(deviceVar, registry));
+                    deviceVarToSlotImpl(deviceVar, registry));
             }
         }
         if (const auto* clips = varArray(object->getProperty("midiClips"))) {
@@ -524,7 +524,7 @@ juce::var trackToVarSnapshot(const TrackState& track,
     devices.ensureStorageAllocated(static_cast<int>(track.devices.size()));
     for (size_t i = 0; i < track.devices.size(); ++i) {
         // Step 1: Serialize device params via registry dispatch (writes meters=0.0)
-        juce::var deviceVar = audioapp::deviceToVar(track.devices[i], registry);
+        juce::var deviceVar = deviceSlotToVarImpl(track.devices[i], registry);
 
         // Step 2: Inject live meter values from parallel array
         for (const auto& meter : track.deviceMeters) {
@@ -574,17 +574,12 @@ DeviceSlot deviceVarToSlot(const std::string& json, const DeviceRegistry& regist
     return deviceVarToSlotImpl(parseRootVar(json), registry);
 }
 
-juce::var deviceToVar(const DeviceState& device, const DeviceRegistry& registry) {
-    // Convert DeviceState -> DeviceSlot via registry, then serialize via dispatch.
-    // This preserves backward compatibility for callers that have DeviceState.
-    DeviceSlot slot = registry.slotFromSnapshot(device);
+juce::var deviceToVar(const DeviceSlot& slot, const DeviceRegistry& registry) {
     return deviceSlotToVarImpl(slot, registry);
 }
 
-DeviceState deviceFromVar(const juce::var& value, const DeviceRegistry& registry) {
-    // Deserialize via dispatch, then convert DeviceSlot -> DeviceState.
-    DeviceSlot slot = deviceVarToSlotImpl(value, registry);
-    return registry.toSnapshotState(slot);
+DeviceSlot deviceFromVar(const juce::var& value, const DeviceRegistry& registry) {
+    return deviceVarToSlotImpl(value, registry);
 }
 
 std::string snapshotToJson(const ProjectSnapshot& snapshot,

@@ -8,41 +8,6 @@
 #include <juce_core/juce_core.h>
 
 namespace audioapp {
-namespace {
-
-DeviceState stripSnapshot(const DeviceSlot& slot, std::string_view typeId) {
-    DeviceState state;
-    state.id = slot.id;
-    state.type = std::string(typeId);
-    state.gain = slot.gain;
-    state.pan = slot.pan;
-    state.bypassed = slot.bypassed;
-    return state;
-}
-
-LimiterInstance instanceFromSnapshot(const DeviceState& state) {
-    LimiterInstance instance;
-    instance.inputGain = state.inputGain;
-    instance.limitCeiling = state.limitCeiling;
-    instance.limitAttack = state.limitAttack;
-    instance.limitRelease = state.limitRelease;
-    instance.limitKnee = state.limitKnee;
-    instance.limitDrive = state.limitDrive;
-    instance.limitMakeup = state.limitMakeup;
-    return instance;
-}
-
-void applyInstanceToSnapshot(const LimiterInstance& instance, DeviceState& state) {
-    state.inputGain = instance.inputGain;
-    state.limitCeiling = instance.limitCeiling;
-    state.limitAttack = instance.limitAttack;
-    state.limitRelease = instance.limitRelease;
-    state.limitKnee = instance.limitKnee;
-    state.limitDrive = instance.limitDrive;
-    state.limitMakeup = instance.limitMakeup;
-}
-
-} // namespace
 
 std::string LimiterDeviceType::typeId() const { return device_types::kLimiter; }
 
@@ -53,21 +18,6 @@ DeviceSlot LimiterDeviceType::createDefault(const std::string& deviceId) const {
     return slot;
 }
 
-DeviceState LimiterDeviceType::toSnapshotState(const DeviceSlot& slot) const {
-    DeviceState state = stripSnapshot(slot, device_types::kLimiter);
-    applyInstanceToSnapshot(std::get<LimiterInstance>(slot.instance), state);
-    return state;
-}
-
-DeviceSlot LimiterDeviceType::slotFromSnapshot(const DeviceState& state) const {
-    DeviceSlot slot;
-    slot.id = state.id;
-    slot.gain = state.gain;
-    slot.pan = state.pan;
-    slot.bypassed = state.bypassed;
-    slot.instance = instanceFromSnapshot(state);
-    return slot;
-}
 
 DeviceParameterResult LimiterDeviceType::setParameter(DeviceSlot& slot,
                                                       std::string_view parameterId,

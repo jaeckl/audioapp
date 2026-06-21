@@ -3,7 +3,6 @@
 #include <juce_core/juce_core.h>
 
 #include "audioapp/DeviceChain.hpp"
-#include "audioapp/DeviceState.hpp"
 #include "audioapp/LivePerformance.hpp"
 #include "audioapp/devices/DeviceParameterResult.hpp"
 #include "audioapp/devices/DeviceSlot.hpp"
@@ -24,10 +23,6 @@ public:
     virtual std::string typeId() const = 0;
 
     virtual DeviceSlot createDefault(const std::string& deviceId) const = 0;
-
-    virtual DeviceState toSnapshotState(const DeviceSlot& slot) const = 0;
-
-    virtual DeviceSlot slotFromSnapshot(const DeviceState& state) const = 0;
 
     virtual DeviceParameterResult setParameter(DeviceSlot& slot,
                                                std::string_view parameterId,
