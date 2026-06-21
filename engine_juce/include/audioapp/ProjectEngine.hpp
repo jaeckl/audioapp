@@ -21,6 +21,7 @@
 #include "audioapp/SampleTypes.hpp"
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/SubtractiveSynth.hpp"
+#include "audioapp/PhaseModSynth.hpp"
 #include "audioapp/devices/DeviceRegistry.hpp"
 #include "audioapp/transport/TransportController.hpp"
 #include "audioapp/modulation/ModulationGraph.hpp"
@@ -232,6 +233,7 @@ private:
         CymbalGeneratorRuntime cymbalRuntimes[kMaxDevicesPerTrack];
         CrashGeneratorRuntime crashRuntimes[kMaxDevicesPerTrack];
         DynamicsRuntime dynamicsRuntimes[kMaxDevicesPerTrack];
+        PhaseModSynthRuntime phaseModRuntimes[kMaxDevicesPerTrack];
         float oscillatorPhase = 0.0f;
         int modEdgeCount = 0;
         ModulationEdgePlayback modEdges[16];

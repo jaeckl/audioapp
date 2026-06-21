@@ -106,6 +106,7 @@ struct PhaseModSynthVoiceRuntime {
     int cachedFilterMode = -1;
     BiquadState filterState{};
     BiquadState filterState2{};
+    CombFilterState combFilterState{};
 };
 
 /// Voice pool (no heap allocation).
@@ -186,7 +187,7 @@ void renderPhaseModLiveVoice(float& mix,
                              PhaseModSynthVoiceRuntime& voice,
                              const PhaseModSynthParams& params,
                              double sampleRate,
-                             uint64_t sampleIndex,
-                             uint64_t blockStartSample) noexcept;
+                             double elapsedSec,
+                             double noteDurationSec) noexcept;
 
 } // namespace audioapp

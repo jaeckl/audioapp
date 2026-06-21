@@ -688,7 +688,7 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                            trackPlayback_[trackIndex].clapRuntimes,
                            trackPlayback_[trackIndex].cymbalRuntimes,
                            trackPlayback_[trackIndex].crashRuntimes,
-                           nullptr, // phaseModRuntimes
+                           trackPlayback_[trackIndex].phaseModRuntimes,
                            trackPlayback_[trackIndex].dynamicsRuntimes,
                            deviceMeters_,
                            deviceMeterSlotCount_,

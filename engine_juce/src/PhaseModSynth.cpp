@@ -180,7 +180,7 @@ static float pmProcessFilter(float sample,
         // Comb filter mode
         const int delaySamples = combDelaySamples(static_cast<float>(sampleRate), cutoffHz);
         const float feedback = std::min(0.88f, 0.45f + q * 0.08f);
-        return processCombSample(sample, voice.filterState, delaySamples, feedback);
+        return processCombSample(sample, voice.combFilterState, delaySamples, feedback);
     }
 
     if (filterMode == 5) {
@@ -400,9 +400,9 @@ float phaseModVoiceSample(PhaseModSynthVoiceRuntime& voice,
 
             float phase = voice.opPhases[phaseIdx];
 
-            // Add feedback modulation (algorithm 7 has feedback on op1)
-            if (algo == 7 && params.feedback > 0.0f) {
-                phase += voice.prevOpOutput[opIdx] * params.feedback * 4.0f;
+            // Add feedback modulation from Op 4 to Op 1
+            if (params.feedback > 0.0f) {
+                phase += voice.prevOpOutput[3] * params.feedback * 4.0f;
             }
 
             // Read waveform
@@ -433,37 +433,14 @@ float phaseModVoiceSample(PhaseModSynthVoiceRuntime& voice,
             const auto& opParams = params.operators[opIdx];
             const int phaseIdx = u * kPhaseModOpsPerVoice + opIdx;
 
-            // Determine modulation source for this algorithm
+            // Continuous PM matrix modulation routing (Op1->Op2, Op2->Op3, Op3->Op4)
             float modPhase = 0.0f;
-            switch (algo) {
-            case 0: // stack_4: 1→2→3→4 (all carriers)
-                modPhase = modOutput[opIdx - 1];
-                break;
-            case 1: // mod_3_to_1: 1→2→3, 4 carrier
-                if (opIdx < 3) modPhase = modOutput[opIdx - 1];
-                break;
-            case 2: // mod_3_to_2: 1→2→3, 4 carrier
-                if (opIdx < 3) modPhase = modOutput[opIdx - 1];
-                break;
-            case 3: // dual_2_to_1: 1→2, 3→4, 2+4 out
-                if (opIdx == 1) modPhase = modOutput[0];
-                if (opIdx == 3) modPhase = modOutput[2];
-                break;
-            case 4: // chain_4: 1→2→3→4 (carrier)
-                modPhase = opIdx < 3 ? modOutput[opIdx - 1] : modOutput[opIdx - 1];
-                break;
-            case 5: // pair_1_to_2: 1→2, 3→4, 2+4 out
-                if (opIdx == 1) modPhase = modOutput[0];
-                if (opIdx == 3) modPhase = modOutput[2];
-                break;
-            case 6: // one_to_all: 1→2,3,4 all
-                if (opIdx >= 1) modPhase = modOutput[0];
-                break;
-            case 7: // all_mod_fb: 1→2→3→4, feedback on 1
-                modPhase = modOutput[opIdx - 1];
-                break;
-            default:
-                break;
+            if (opIdx == 1) {
+                modPhase = modOutput[0] * params.lfoRate * 4.0f;
+            } else if (opIdx == 2) {
+                modPhase = modOutput[1] * params.lfoAmount * 4.0f;
+            } else if (opIdx == 3) {
+                modPhase = modOutput[2] * params.vibratoDepth * 4.0f;
             }
 
             // Phase accumulation with modulation
@@ -500,37 +477,8 @@ float phaseModVoiceSample(PhaseModSynthVoiceRuntime& voice,
             voice.prevOpOutput[opIdx] = std::tanh(sample);
         }
 
-        // Determine which operators are carriers for this algorithm and sum them
-        float voiceSample = 0.0f;
-        switch (algo) {
-        case 0: // stack_4: all carriers
-            voiceSample = (opOutput[0] + opOutput[1] + opOutput[2] + opOutput[3]) * 0.25f;
-            break;
-        case 1: // mod_3_to_1: 1→2→3, 4 carrier
-            voiceSample = opOutput[3] + (opOutput[0] + opOutput[1] + opOutput[2]) * 0.1f;
-            break;
-        case 2: // mod_3_to_2: 1→2→3, 4 carrier
-            voiceSample = opOutput[3] + (opOutput[0] + opOutput[1] + opOutput[2]) * 0.1f;
-            break;
-        case 3: // dual_2_to_1: 2+4 out
-            voiceSample = (opOutput[1] + opOutput[3]) * 0.5f;
-            break;
-        case 4: // chain_4: op4 carrier
-            voiceSample = opOutput[3];
-            break;
-        case 5: // pair_1_to_2: 2+4 out
-            voiceSample = (opOutput[1] + opOutput[3]) * 0.5f;
-            break;
-        case 6: // one_to_all: all carriers
-            voiceSample = (opOutput[0] + opOutput[1] + opOutput[2] + opOutput[3]) * 0.25f;
-            break;
-        case 7: // all_mod_fb: all carriers (feedback on 1)
-            voiceSample = (opOutput[0] + opOutput[1] + opOutput[2] + opOutput[3]) * 0.25f;
-            break;
-        default:
-            voiceSample = opOutput[3];
-            break;
-        }
+        // Symmetrical output mix: all active operators sum to output
+        float voiceSample = (opOutput[0] + opOutput[1] + opOutput[2] + opOutput[3]) * 0.25f;
 
         mixAccum += voiceSample;
     }
@@ -773,9 +721,12 @@ void renderPhaseModLiveVoice(float& mix,
                              PhaseModSynthVoiceRuntime& voice,
                              const PhaseModSynthParams& params,
                              double sampleRate,
-                             uint64_t sampleIndex,
-                             uint64_t blockStartSample) noexcept {
+                             double elapsedSec,
+                             double noteDurationSec) noexcept {
     if (voice.active == 0) {
+        return;
+    }
+    if (elapsedSec < 0.0) {
         return;
     }
 
@@ -789,35 +740,21 @@ void renderPhaseModLiveVoice(float& mix,
     const float filterReleaseSec = adsrNormalizedToSeconds(params.filterRelease, 3.0f);
     const float filterSustain = safe_clamp(params.filterSustain, 0.0f, 1.0f);
 
-    const double voiceElapsed =
-        static_cast<double>(sampleIndex) / sampleRate - voice.startBeat;
-    if (voiceElapsed < 0.0) {
-        return;
-    }
-
-    float noteDurationSec = 3600.0f;
-    if (voice.releaseBeat >= 0.0) {
-        noteDurationSec = static_cast<float>(voice.releaseBeat - voice.startBeat);
-        if (noteDurationSec < 0.0f) {
-            noteDurationSec = 0.0f;
-        }
-    }
-
-    const float ampGain = samplerAdsrGain(static_cast<float>(voiceElapsed),
-                                          noteDurationSec,
+    const float ampGain = samplerAdsrGain(static_cast<float>(elapsedSec),
+                                          static_cast<float>(noteDurationSec),
                                           ampAttackSec,
                                           ampDecaySec,
                                           ampSustain,
                                           ampReleaseSec);
     if (ampGain <= 0.0f) {
-        if (voice.releaseBeat >= 0.0) {
+        if (noteDurationSec < 3600.0) {
             voice.active = 0;
         }
         return;
     }
 
-    const float filterGain = samplerAdsrGain(static_cast<float>(voiceElapsed),
-                                             noteDurationSec,
+    const float filterGain = samplerAdsrGain(static_cast<float>(elapsedSec),
+                                             static_cast<float>(noteDurationSec),
                                              filterAttackSec,
                                              filterDecaySec,
                                              filterSustain,

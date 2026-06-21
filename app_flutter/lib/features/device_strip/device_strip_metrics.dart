@@ -46,8 +46,8 @@ class DeviceStripMetrics {
   /// Subtractive synth: three-tab layout (Osc · Mix · Tone) needs filter+amp in one row.
   static const double subtractiveSynthDesignWidth = 500;
 
-  /// Phase mod synth: 4-tab layout (ALGO · OP · MOD · TONE).
-  static const double phaseModSynthDesignWidth = 520;
+  /// Phase mod synth: 3-tab layout (ALGO · OP · TONE).
+  static const double phaseModSynthDesignWidth = 420;
 
   /// Dynamics FX knob grid — panel width shrink-wraps to this.
   static const double dynamicsFxKnobSize = DeviceKnobSizes.strip;

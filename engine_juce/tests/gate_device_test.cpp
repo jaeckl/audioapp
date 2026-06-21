@@ -61,7 +61,7 @@ public:
 
             audioapp::processDeviceChain(left, right, kFrames, kSampleRate, 120, 0.0, nullptr, 0, chain, 2,
                                          phase, false, nullptr, nullptr, nullptr, nullptr, nullptr,
-                                         nullptr, nullptr, dynamicsRuntimes);
+                                         nullptr, nullptr, nullptr, dynamicsRuntimes);
 
             expect(audioapp::test::peakAbsStereo(left, right, kFrames) < peakOscOnly * 0.25f,
                    "closed gate attenuates");
@@ -99,7 +99,7 @@ public:
 
             audioapp::processDeviceChain(left, right, kFrames, kSampleRate, 120, 0.0, nullptr, 0, chain, 2,
                                          phase, false, nullptr, nullptr, nullptr, nullptr, nullptr,
-                                         nullptr, nullptr, dynamicsRuntimes);
+                                         nullptr, nullptr, nullptr, dynamicsRuntimes);
 
             expect(audioapp::test::peakAbsStereo(left, right, kFrames) >= peakOscOnly * 0.5f,
                    "open gate passes signal");

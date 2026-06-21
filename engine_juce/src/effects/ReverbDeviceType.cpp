@@ -5,7 +5,7 @@
 #include "audioapp/devices/PlaybackBuildContext.hpp"
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/devices/instances/EffectInstance.hpp"
-#include "juce_audio_processors/juce_audio_processors.h"
+#include <juce_core/juce_core.h>
 
 namespace audioapp {
 

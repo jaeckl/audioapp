@@ -1,20 +1,21 @@
 // Reverb effect device type implementation
 #pragma once
 
-#include "audioapp/effects/TimeBasedEffectDeviceType.hpp"
-#include "audioapp/effects/ReverbParams.hpp"
 #include "audioapp/devices/IDeviceType.hpp"
 #include "audioapp/devices/DeviceSlot.hpp"
-#include "audioapp/devices/DeviceParameterResult.hpp"
-#include "audioapp/devices/PlaybackBuildContext.hpp"
+#include "audioapp/effects/ReverbParams.hpp"
+#include "audioapp/effects/TimeBasedEffectDeviceType.hpp"
 #include "audioapp/DeviceChain.hpp"
-#include "juce_audio_processors/juce_audio_processors.h"
+#include "audioapp/devices/DeviceParameterResult.hpp"
+#include "audioapp/devices/DeviceTypeIds.hpp"
+#include "audioapp/devices/PlaybackBuildContext.hpp"
+#include <juce_core/juce_core.h>
 
 namespace audioapp {
 
 class ReverbDeviceType final : public TimeBasedEffectDeviceType {
 public:
-    std::string typeId() const override { return "reverb"; }
+    std::string typeId() const override { return device_types::kReverb; }
     DeviceSlot createDefault(const std::string& deviceId) const override;
     DeviceParameterResult setParameter(DeviceSlot& slot, std::string_view parameterId, float value) const override;
     bool setStringParameter(DeviceSlot& slot, std::string_view parameterId, const std::string& value, const PlaybackBuildContext& context) const override;

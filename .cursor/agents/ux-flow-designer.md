@@ -222,20 +222,26 @@ For each variant, say:
 
 Check the proposed layout for:
 
-- invented concepts
-- inconsistent terminology
-- inconsistent grouping
-- controls too far from affected data
-- wide unused areas
-- information overflow
-- unclear primary action
-- too many equally prominent actions
-- missing empty/loading/error states
-- bad scroll behavior
-- bad compact-layout behavior
-- unreachable actions
-- destructive action without confirmation or undo
-- mismatch with existing UI patterns
+- **Redundant Device-level Modulators/LFOs**: Never invent per-device LFOs/Modulators if the project provides a unified global modulation system (LFOs, Modulators) that can target any parameter.
+- **Inconsistent Choice Controls (WTF Comboboxes)**: Do not use standard Material dropdown/comboboxes that do not match the DAW's dark, sleek chrome. Use borderless/transparent dropdowns (`_borderlessDropdown` with accent color and small typography) or vertical tactile spinners/draggers like `DraggableIntValueBox` for integer/ratio/octave parameters.
+- **Inconsistent Filter Selection**: Never use dropdowns or text selectors for filter modes. Always use a visual grid of filter magnitude curves painted with `CustomPaint` or mapped from `SamplerFilterModeBar`.
+- **Octave / Discrete Drag Boxes**: Always use `DraggableIntValueBox` (the standard drag-up/down spinner box) for octave controls and integer transpose, matching what other instruments use.
+- **Visual Squeezing & Knobs**: Avoid squeezing more than 12-14 knobs on a single tab or area. Group them symmetrically. Every knob must be standard sized (e.g. `DeviceKnobSizes.strip` or small scale), fully labeled, and aligned in symmetrical rows (e.g. exactly 3 rows of 4 knobs). Avoid varying knob sizes on a single panel. Move global or performance parameters (unison, volume, pan, glide, play mode) to the primary/first tab to keep tone/filter tabs clean and uncluttered.
+- **Device Width & Free Space**: Avoid excessively wide layouts. Align elements horizontally and shrink the device's design width (e.g. 400-440px max) to prevent wasted horizontal screen space.
+- Invented concepts
+- Inconsistent terminology
+- Inconsistent grouping
+- Controls too far from affected data
+- Wide unused areas
+- Information overflow
+- Unclear primary action
+- Too many equally prominent actions
+- Missing empty/loading/error states
+- Bad scroll behavior
+- Bad compact-layout behavior
+- Unreachable actions
+- Destructive action without confirmation or undo
+- Mismatch with existing UI patterns
 
 For every issue found, either fix the layout or list it as a risk.
 

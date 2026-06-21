@@ -323,8 +323,12 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                 if (secElapsed < 0.0) {
                     continue;
                 }
+                double noteDurSec = 3600.0;
+                if (voice.releasing && voice.releaseSample > voice.startSample) {
+                    noteDurSec = static_cast<double>(voice.releaseSample - voice.startSample) / sampleRate;
+                }
                 renderPhaseModLiveVoice(mix, pmv, inst.phaseMod,
-                                        sampleRate, now, blockStart);
+                                        sampleRate, secElapsed, noteDurSec);
                 if (pmv.active == 0) {
                     voice.active.store(0, std::memory_order_release);
                 }

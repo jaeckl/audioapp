@@ -31,6 +31,7 @@
 #include "audioapp/devices/instances/SamplerInstance.hpp"
 #include "audioapp/devices/instances/SubtractiveSynthInstance.hpp"
 #include "audioapp/devices/instances/TrackGainInstance.hpp"
+#include "audioapp/effects/EffectDeviceRegistration.hpp"
 
 namespace audioapp {
 
@@ -112,10 +113,10 @@ const IDeviceType* DeviceRegistry::findTypeForSlot(const DeviceSlot& slot) const
     if (std::holds_alternative<PhaseModSynthInstance>(slot.instance)) {
         return find(device_types::kPhaseModSynth);
     }
-    if (std::holds_alternative<DelayInstance>(slot.instance)) return find("delay");
-    if (std::holds_alternative<ReverbInstance>(slot.instance)) return find("reverb");
-    if (std::holds_alternative<ChorusInstance>(slot.instance)) return find("chorus");
-    if (std::holds_alternative<PhaserInstance>(slot.instance)) return find("phaser");
+    if (std::holds_alternative<DelayInstance>(slot.instance)) return find(device_types::kDelay);
+    if (std::holds_alternative<ReverbInstance>(slot.instance)) return find(device_types::kReverb);
+    if (std::holds_alternative<ChorusInstance>(slot.instance)) return find(device_types::kChorus);
+    if (std::holds_alternative<PhaserInstance>(slot.instance)) return find(device_types::kPhaser);
     return nullptr;
 }
 
@@ -195,6 +196,7 @@ DeviceRegistry DeviceRegistry::createBuiltIn() {
     registry.registerType(std::make_unique<LimiterDeviceType>());
     registry.registerType(std::make_unique<BassSynthDeviceType>());
     registry.registerType(std::make_unique<PhaseModSynthDeviceType>());
+    registerTimeBasedEffects(registry);
     return registry;
 }
 

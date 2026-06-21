@@ -281,14 +281,17 @@ bool PhaseModSynthDeviceType::setStringParameter(DeviceSlot& slot,
 
 std::vector<std::string_view> PhaseModSynthDeviceType::modulatableParams() const {
     return {
-        "gain", "pmFeedback", "pmLfoRate", "pmLfoAmount",
+        "gain", "pan", "pmFeedback", "pmLfoRate", "pmLfoAmount",
         "pmVibratoDepth", "pmVibratoRate",
         "filterCutoff", "filterQ", "filterEnvAmount",
-        "filterAttack", "filterDecay",
+        "filterAttack", "filterDecay", "filterSustain", "filterRelease", "filterKeyTrack",
         "attack", "decay", "sustain", "release",
-        "pmOp1Level", "pmOp2Level", "pmOp3Level", "pmOp4Level",
-        "pmOp1Fine", "pmOp2Fine", "pmOp3Fine", "pmOp4Fine",
-        "pmMasterVol",
+        "pmGlide", "pmUnisonDetune",
+        "pmOp1Ratio", "pmOp1Fine", "pmOp1Level", "pmOp1Wave", "pmOp1Attack", "pmOp1Decay", "pmOp1Sustain", "pmOp1Release", "pmOp1VelSense", "pmOp1KeyTrack",
+        "pmOp2Ratio", "pmOp2Fine", "pmOp2Level", "pmOp2Wave", "pmOp2Attack", "pmOp2Decay", "pmOp2Sustain", "pmOp2Release", "pmOp2VelSense", "pmOp2KeyTrack",
+        "pmOp3Ratio", "pmOp3Fine", "pmOp3Level", "pmOp3Wave", "pmOp3Attack", "pmOp3Decay", "pmOp3Sustain", "pmOp3Release", "pmOp3VelSense", "pmOp3KeyTrack",
+        "pmOp4Ratio", "pmOp4Fine", "pmOp4Level", "pmOp4Wave", "pmOp4Attack", "pmOp4Decay", "pmOp4Sustain", "pmOp4Release", "pmOp4VelSense", "pmOp4KeyTrack",
+        "pmMasterVol"
     };
 }
 

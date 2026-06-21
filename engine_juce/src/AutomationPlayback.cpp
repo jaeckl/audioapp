@@ -318,6 +318,12 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         if (auto v = p("filterCutoff", PhaseModSynthParam::FilterCutoff)) return v;
         if (auto v = p("filterQ", PhaseModSynthParam::FilterQ)) return v;
         if (auto v = p("filterEnvAmount", PhaseModSynthParam::FilterEnvAmount)) return v;
+        if (auto v = p("filterMode", PhaseModSynthParam::FilterMode)) return v;
+        if (auto v = p("filterAttack", PhaseModSynthParam::FilterAttack)) return v;
+        if (auto v = p("filterDecay", PhaseModSynthParam::FilterDecay)) return v;
+        if (auto v = p("filterSustain", PhaseModSynthParam::FilterSustain)) return v;
+        if (auto v = p("filterRelease", PhaseModSynthParam::FilterRelease)) return v;
+        if (auto v = p("filterKeyTrack", PhaseModSynthParam::FilterKeyTrack)) return v;
         if (auto v = p("attack", PhaseModSynthParam::AmpAttack)) return v;
         if (auto v = p("decay", PhaseModSynthParam::AmpDecay)) return v;
         if (auto v = p("sustain", PhaseModSynthParam::AmpSustain)) return v;
@@ -327,6 +333,7 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         if (auto v = p("pmLfoRate", PhaseModSynthParam::LfoRate)) return v;
         if (auto v = p("pmLfoAmount", PhaseModSynthParam::LfoAmount)) return v;
         if (auto v = p("pmVibratoDepth", PhaseModSynthParam::VibratoDepth)) return v;
+        if (auto v = p("pmVibratoRate", PhaseModSynthParam::VibratoRate)) return v;
         return 0;
     }
     default:
@@ -559,6 +566,12 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         case PhaseModSynthParam::FilterCutoff: return "filterCutoff";
         case PhaseModSynthParam::FilterQ: return "filterQ";
         case PhaseModSynthParam::FilterEnvAmount: return "filterEnvAmount";
+        case PhaseModSynthParam::FilterMode: return "filterMode";
+        case PhaseModSynthParam::FilterAttack: return "filterAttack";
+        case PhaseModSynthParam::FilterDecay: return "filterDecay";
+        case PhaseModSynthParam::FilterSustain: return "filterSustain";
+        case PhaseModSynthParam::FilterRelease: return "filterRelease";
+        case PhaseModSynthParam::FilterKeyTrack: return "filterKeyTrack";
         case PhaseModSynthParam::AmpAttack: return "attack";
         case PhaseModSynthParam::AmpDecay: return "decay";
         case PhaseModSynthParam::AmpSustain: return "sustain";
@@ -568,6 +581,7 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         case PhaseModSynthParam::LfoRate: return "pmLfoRate";
         case PhaseModSynthParam::LfoAmount: return "pmLfoAmount";
         case PhaseModSynthParam::VibratoDepth: return "pmVibratoDepth";
+        case PhaseModSynthParam::VibratoRate: return "pmVibratoRate";
         default: return "";
         }
     }
@@ -665,6 +679,12 @@ const ParamDescriptor* paramDescriptorsForKind(DeviceNodeKind kind, int& countOu
             {static_cast<uint16_t>(PhaseModSynthParam::FilterCutoff), "filterCutoff", "Filter Cutoff", 0.85f, 0.0f, 1.0f, true, true},
             {static_cast<uint16_t>(PhaseModSynthParam::FilterQ), "filterQ", "Filter Q", 0.25f, 0.0f, 1.0f, true, true},
             {static_cast<uint16_t>(PhaseModSynthParam::FilterEnvAmount), "filterEnvAmount", "Filter Env", 0.5f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(PhaseModSynthParam::FilterMode), "filterMode", "Filter Mode", 0.0f, 0.0f, 5.0f, true, true},
+            {static_cast<uint16_t>(PhaseModSynthParam::FilterAttack), "filterAttack", "Filter Attack", 0.05f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(PhaseModSynthParam::FilterDecay), "filterDecay", "Filter Decay", 0.35f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(PhaseModSynthParam::FilterSustain), "filterSustain", "Filter Sustain", 0.4f, 0.0f, 1.0f, true, false},
+            {static_cast<uint16_t>(PhaseModSynthParam::FilterRelease), "filterRelease", "Filter Release", 0.45f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(PhaseModSynthParam::FilterKeyTrack), "filterKeyTrack", "Filter Key Track", 0.0f, 0.0f, 1.0f, true, true},
             {static_cast<uint16_t>(PhaseModSynthParam::AmpAttack), "attack", "Attack", 0.01f, 0.0f, 1.0f, true, true},
             {static_cast<uint16_t>(PhaseModSynthParam::AmpDecay), "decay", "Decay", 0.3f, 0.0f, 1.0f, true, true},
             {static_cast<uint16_t>(PhaseModSynthParam::AmpSustain), "sustain", "Sustain", 0.75f, 0.0f, 1.0f, true, false},
@@ -674,8 +694,9 @@ const ParamDescriptor* paramDescriptorsForKind(DeviceNodeKind kind, int& countOu
             {static_cast<uint16_t>(PhaseModSynthParam::LfoRate), "pmLfoRate", "LFO Rate", 0.2f, 0.0f, 1.0f, true, true},
             {static_cast<uint16_t>(PhaseModSynthParam::LfoAmount), "pmLfoAmount", "LFO Amount", 0.0f, 0.0f, 1.0f, true, true},
             {static_cast<uint16_t>(PhaseModSynthParam::VibratoDepth), "pmVibratoDepth", "Vibrato Depth", 0.0f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(PhaseModSynthParam::VibratoRate), "pmVibratoRate", "Vibrato Rate", 0.3f, 0.0f, 1.0f, true, true},
         };
-        countOut = 36;
+        countOut = 43;
         return kParams;
     }
     default:
@@ -951,25 +972,25 @@ void applyAutomationValue(DeviceVariantParams& params,
         if (auto* p = std::get_if<PhaseModSynthParams>(&params)) {
             switch (static_cast<PhaseModSynthParam>(rawId)) {
             case PhaseModSynthParam::Op1Level: p->operators[0].level = value; break;
-            case PhaseModSynthParam::Op1Fine: p->operators[0].fine = value; break;
+            case PhaseModSynthParam::Op1Fine: p->operators[0].fine = phaseModFineNormToCents(value); break;
             case PhaseModSynthParam::Op1Attack: p->operators[0].attack = value; break;
             case PhaseModSynthParam::Op1Decay: p->operators[0].decay = value; break;
             case PhaseModSynthParam::Op1Sustain: p->operators[0].sustain = value; break;
             case PhaseModSynthParam::Op1Release: p->operators[0].release = value; break;
             case PhaseModSynthParam::Op2Level: p->operators[1].level = value; break;
-            case PhaseModSynthParam::Op2Fine: p->operators[1].fine = value; break;
+            case PhaseModSynthParam::Op2Fine: p->operators[1].fine = phaseModFineNormToCents(value); break;
             case PhaseModSynthParam::Op2Attack: p->operators[1].attack = value; break;
             case PhaseModSynthParam::Op2Decay: p->operators[1].decay = value; break;
             case PhaseModSynthParam::Op2Sustain: p->operators[1].sustain = value; break;
             case PhaseModSynthParam::Op2Release: p->operators[1].release = value; break;
             case PhaseModSynthParam::Op3Level: p->operators[2].level = value; break;
-            case PhaseModSynthParam::Op3Fine: p->operators[2].fine = value; break;
+            case PhaseModSynthParam::Op3Fine: p->operators[2].fine = phaseModFineNormToCents(value); break;
             case PhaseModSynthParam::Op3Attack: p->operators[2].attack = value; break;
             case PhaseModSynthParam::Op3Decay: p->operators[2].decay = value; break;
             case PhaseModSynthParam::Op3Sustain: p->operators[2].sustain = value; break;
             case PhaseModSynthParam::Op3Release: p->operators[2].release = value; break;
             case PhaseModSynthParam::Op4Level: p->operators[3].level = value; break;
-            case PhaseModSynthParam::Op4Fine: p->operators[3].fine = value; break;
+            case PhaseModSynthParam::Op4Fine: p->operators[3].fine = phaseModFineNormToCents(value); break;
             case PhaseModSynthParam::Op4Attack: p->operators[3].attack = value; break;
             case PhaseModSynthParam::Op4Decay: p->operators[3].decay = value; break;
             case PhaseModSynthParam::Op4Sustain: p->operators[3].sustain = value; break;
@@ -977,6 +998,12 @@ void applyAutomationValue(DeviceVariantParams& params,
             case PhaseModSynthParam::FilterCutoff: p->filterCutoff = value; break;
             case PhaseModSynthParam::FilterQ: p->filterQ = value; break;
             case PhaseModSynthParam::FilterEnvAmount: p->filterEnvAmount = value; break;
+            case PhaseModSynthParam::FilterMode: p->filterMode = static_cast<int>(value); break;
+            case PhaseModSynthParam::FilterAttack: p->filterAttack = value; break;
+            case PhaseModSynthParam::FilterDecay: p->filterDecay = value; break;
+            case PhaseModSynthParam::FilterSustain: p->filterSustain = value; break;
+            case PhaseModSynthParam::FilterRelease: p->filterRelease = value; break;
+            case PhaseModSynthParam::FilterKeyTrack: p->filterKeyTrack = value; break;
             case PhaseModSynthParam::AmpAttack: p->ampAttack = value; break;
             case PhaseModSynthParam::AmpDecay: p->ampDecay = value; break;
             case PhaseModSynthParam::AmpSustain: p->ampSustain = value; break;
@@ -986,6 +1013,7 @@ void applyAutomationValue(DeviceVariantParams& params,
             case PhaseModSynthParam::LfoRate: p->lfoRate = value; break;
             case PhaseModSynthParam::LfoAmount: p->lfoAmount = value; break;
             case PhaseModSynthParam::VibratoDepth: p->vibratoDepth = value; break;
+            case PhaseModSynthParam::VibratoRate: p->vibratoRate = value; break;
             default: break;
             }
         }

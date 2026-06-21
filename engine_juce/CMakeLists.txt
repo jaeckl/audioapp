@@ -37,6 +37,7 @@ add_library(audioapp_engine STATIC
   src/SamplePlayback.cpp
   src/SamplerFilter.cpp
   src/SubtractiveSynth.cpp
+  src/PhaseModSynth.cpp
   src/KickGenerator.cpp
   src/SnareGenerator.cpp
   src/ClapGenerator.cpp
@@ -61,6 +62,7 @@ add_library(audioapp_engine STATIC
   src/devices/ExpanderDeviceType.cpp
   src/devices/LimiterDeviceType.cpp
   src/devices/BassSynthDeviceType.cpp
+  src/devices/PhaseModSynthDeviceType.cpp
   src/effects/TimeBasedEffectDeviceType.cpp
   src/effects/EffectDeviceRegistration.cpp
   src/effects/EffectSnapshot.cpp
@@ -172,6 +174,7 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/subtractive_lfo_filter_test.cpp
     tests/subtractive_preset_apply_test.cpp
     tests/subtractive_synth_test.cpp
+    tests/phase_mod_synth_test.cpp
     tests/track_clip_repository_test.cpp
     tests/track_gain_test.cpp
     tests/transport_controller_test.cpp

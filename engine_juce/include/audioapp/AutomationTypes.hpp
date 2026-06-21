@@ -222,17 +222,24 @@ enum class PhaseModSynthParam : uint16_t {
     FilterCutoff = 24,
     FilterQ = 25,
     FilterEnvAmount = 26,
+    FilterMode = 27,
+    FilterAttack = 28,
+    FilterDecay = 29,
+    FilterSustain = 30,
+    FilterRelease = 31,
+    FilterKeyTrack = 32,
     // Amp
-    AmpAttack = 27,
-    AmpDecay = 28,
-    AmpSustain = 29,
-    AmpRelease = 30,
+    AmpAttack = 33,
+    AmpDecay = 34,
+    AmpSustain = 35,
+    AmpRelease = 36,
     // Global
-    Feedback = 31,
-    MasterVol = 32,
-    LfoRate = 33,
-    LfoAmount = 34,
-    VibratoDepth = 35,
+    Feedback = 37,
+    MasterVol = 38,
+    LfoRate = 39,
+    LfoAmount = 40,
+    VibratoDepth = 41,
+    VibratoRate = 42,
 };
 
 // -----------------------------------------------------------------------
