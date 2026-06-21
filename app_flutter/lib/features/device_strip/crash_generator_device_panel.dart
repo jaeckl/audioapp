@@ -26,7 +26,7 @@ class CrashGeneratorDevicePanel extends StatelessWidget {
     this.onAutomateParameter,
   });
 
-  final DeviceSnapshot device;
+  final CrashGeneratorDeviceSnapshot device;
   final void Function(String parameterId, double value) onParameterChanged;
   final bool embeddedInCard;
   final Set<String> modulatedParams;

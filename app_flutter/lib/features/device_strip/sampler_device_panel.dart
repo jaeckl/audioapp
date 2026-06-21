@@ -45,7 +45,7 @@ class SamplerDevicePanel extends StatefulWidget {
     this.modEdges = const [],
   });
 
-  final DeviceSnapshot device;
+  final SamplerDeviceSnapshot device;
   final SampleLibraryEntrySnapshot? sample;
   final void Function(String parameterId, double value) onParameterChanged;
   final SamplerPanelDensity density;
@@ -217,7 +217,7 @@ class _WaveTab extends StatelessWidget {
     this.modEdges = const [],
   });
 
-  final DeviceSnapshot device;
+  final SamplerDeviceSnapshot device;
   final String? sampleName;
   final List<double> peaks;
   final double durationSec;
@@ -409,7 +409,7 @@ class _ToneTab extends StatelessWidget {
     this.onAutomateParameter,
   });
 
-  final DeviceSnapshot device;
+  final SamplerDeviceSnapshot device;
   final double knobSize;
   final bool editor;
   final void Function(String parameterId, double value) onParameterChanged;

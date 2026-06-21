@@ -100,6 +100,8 @@ void main() {
           trackName: 'Synth',
           clip: clip,
           bridge: bridge,
+          bpm: 120,
+          savedArrangementPlayhead: 0.0,
           onSaved: (_) {},
         ),
       ),

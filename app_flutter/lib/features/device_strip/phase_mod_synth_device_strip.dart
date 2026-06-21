@@ -22,7 +22,7 @@ class PhaseModSynthDeviceStrip extends StatelessWidget {
     this.onAutomateParameter,
   });
 
-  final DeviceSnapshot device;
+  final PhaseModSynthDeviceSnapshot device;
   final void Function(String parameterId, double value) onParameterChanged;
   final PhaseModSynthDeviceTab? selectedTab;
   final ValueChanged<PhaseModSynthDeviceTab>? onTabChanged;

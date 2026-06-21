@@ -29,7 +29,7 @@ class SamplerDeviceStrip extends StatelessWidget {
     this.modEdges = const [],
   });
 
-  final DeviceSnapshot device;
+  final SamplerDeviceSnapshot device;
   final SampleLibraryEntrySnapshot? sample;
   final void Function(String parameterId, double value) onParameterChanged;
   final ValueChanged<SamplerDeviceTab>? onTabChanged;

@@ -18,7 +18,7 @@ class CrashGeneratorDeviceStrip extends StatelessWidget {
     this.onAutomateParameter,
   });
 
-  final DeviceSnapshot device;
+  final CrashGeneratorDeviceSnapshot device;
   final void Function(String parameterId, double value) onParameterChanged;
   final Set<String> modulatedParams;
   final Set<String> automatedParams;

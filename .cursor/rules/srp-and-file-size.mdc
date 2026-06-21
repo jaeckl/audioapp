@@ -1,0 +1,43 @@
+---
+description: SRP and maintainability — file size, function size, nesting, and code organization
+alwaysApply: true
+---
+
+# SRP & Maintainability
+
+## Size targets
+
+| Scope | Target | Hard review trigger |
+|-------|--------|-------------------|
+| **File** | 150–300 LOC | >300 LOC |
+| **Function** | <40 LOC | >80 LOC |
+| **Class/module** | one clear responsibility | — |
+| **Nesting depth** | ≤3 levels | >3 levels |
+| **Public API** | small and intentional | — |
+
+## Code organization rules
+
+- **Prefer small, cohesive files under 250 lines.**
+- Do **not** split files mechanically just to satisfy the line limit. A 280-line file with one clear responsibility is better than two 140-line files with arbitrary boundaries.
+- If a file exceeds **250 lines**, evaluate whether it has **multiple responsibilities**.
+- If a file exceeds **400 lines**, refactor before adding more behavior unless there is a very specific, documented reason.
+- **Extract by domain responsibility**, not by random helper buckets.
+- **Prefer names that describe concepts in the application domain** (e.g. `MixerBus`, `ClipGrid`, `TransportController`).
+- **Avoid generic dumping grounds** like `utils`, `helpers`, `common`, `manager`, `processor` unless there is a very specific, named reason (e.g. `AudioProcessor` is fine if it wraps a specific processing chain).
+- **After refactoring, run or update tests.**
+
+## Exceptions
+
+Only for:
+
+- Auto-generated files (build outputs, generated Dart/C++/protobuf code, etc.)
+- Third-party / vendored code
+- Golden test files or fixture / data files
+
+All hand-written source code, including tests, must comply.
+
+## Enforcement
+
+- CI lint/analyze steps should flag files exceeding the 300 LOC hard review trigger.
+- Code review must reject PRs that introduce or enlarge files past 400 LOC without a documented exception.
+- Reviewers should also flag functions >80 LOC and nesting >3 levels.

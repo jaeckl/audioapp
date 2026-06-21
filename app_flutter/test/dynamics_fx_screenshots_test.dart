@@ -15,24 +15,73 @@ import 'package:audioapp/features/device_strip/dynamics_fx_panels.dart';
 
 const _outputDir = '../docs/design/dynamics_fx/screenshots';
 
-DeviceSnapshot _mockDevice(String type) {
-  return DeviceSnapshot(
-    id: 'dev-$type',
-    type: type,
-    frequencyHz: 440,
-    gain: 0.8,
-    pan: 0.5,
-    sampleId: '',
-    attack: 0.01,
-    decay: 0.2,
-    sustain: 0.8,
-    release: 0.3,
-    filterCutoff: 0.7,
-    filterQ: 0.3,
-    filterMode: 0,
-    trimStartSec: 0,
-    trimEndSec: 0,
-  );
+DynamicsDeviceSnapshot _mockDevice(String type) {
+  switch (type) {
+    case 'gate':
+      return const GateDeviceSnapshot(
+        id: 'dev-gate',
+        gain: 0.8,
+        pan: 0.5,
+        bypassed: false,
+        meterGainReductionDb: 0.0,
+        meterInputLevel: 0.0,
+        inputGain: 1.0,
+        gateThreshold: 0.45,
+        gateAttack: 0.25,
+        gateRelease: 0.50,
+        gateHold: 0.20,
+        gateRange: 0.0,
+      );
+    case 'compressor':
+      return const CompressorDeviceSnapshot(
+        id: 'dev-compressor',
+        gain: 0.8,
+        pan: 0.5,
+        bypassed: false,
+        meterGainReductionDb: 0.0,
+        meterInputLevel: 0.0,
+        inputGain: 1.0,
+        compThreshold: 0.55,
+        compRatio: 0.50,
+        compAttack: 0.20,
+        compRelease: 0.55,
+        compKnee: 0.25,
+        compMakeup: 0.35,
+      );
+    case 'expander':
+      return const ExpanderDeviceSnapshot(
+        id: 'dev-expander',
+        gain: 0.8,
+        pan: 0.5,
+        bypassed: false,
+        meterGainReductionDb: 0.0,
+        meterInputLevel: 0.0,
+        inputGain: 1.0,
+        expandThreshold: 0.40,
+        expandRatio: 0.45,
+        expandAttack: 0.25,
+        expandRelease: 0.55,
+        expandRange: 0.15,
+      );
+    case 'limiter':
+      return const LimiterDeviceSnapshot(
+        id: 'dev-limiter',
+        gain: 0.8,
+        pan: 0.5,
+        bypassed: false,
+        meterGainReductionDb: 0.0,
+        meterInputLevel: 0.0,
+        inputGain: 1.0,
+        limitCeiling: 0.85,
+        limitAttack: 0.10,
+        limitRelease: 0.40,
+        limitKnee: 0.0,
+        limitDrive: 0.0,
+        limitMakeup: 0.0,
+      );
+    default:
+      throw ArgumentError('Unknown mock dynamics type: $type');
+  }
 }
 
 Future<void> _capturePng(WidgetTester tester, Key boundaryKey, String filename) async {
@@ -170,7 +219,7 @@ void main() {
     );
     await _capturePng(tester, boundaryKey, '01_device_picker_effects.png');
 
-    final device = _mockDevice('gate');
+    final device = _mockDevice('gate') as GateDeviceSnapshot;
 
     // Gate — Detect tab
     await tester.binding.setSurfaceSize(const Size(400, 340));
@@ -198,7 +247,7 @@ void main() {
         child: _dynamicsCard(
           type: 'compressor',
           panel: CompressorDeviceStrip(
-            device: _mockDevice('compressor'),
+            device: _mockDevice('compressor') as CompressorDeviceSnapshot,
             onParameterChanged: noop,
             selectedTab: CompressorDeviceTab.comp,
           ),
@@ -215,7 +264,7 @@ void main() {
         child: _dynamicsCard(
           type: 'expander',
           panel: ExpanderDeviceStrip(
-            device: _mockDevice('expander'),
+            device: _mockDevice('expander') as ExpanderDeviceSnapshot,
             onParameterChanged: noop,
             selectedTab: ExpanderDeviceTab.expand,
           ),
@@ -232,7 +281,7 @@ void main() {
         child: _dynamicsCard(
           type: 'limiter',
           panel: LimiterDeviceStrip(
-            device: _mockDevice('limiter'),
+            device: _mockDevice('limiter') as LimiterDeviceSnapshot,
             onParameterChanged: noop,
             selectedTab: LimiterDeviceTab.ceiling,
           ),
@@ -243,8 +292,8 @@ void main() {
 
     // Full dynamics chain row
     const rowHeight = DeviceStripMetrics.height;
-    const slotWidth = DeviceStripMetrics.dynamicsFxDesignWidth;
-    const rowWidth = slotWidth * 4 + 24;
+    final slotWidth = DeviceStripMetrics.dynamicsFxDesignWidth;
+    final rowWidth = slotWidth * 4 + 24;
 
     await tester.binding.setSurfaceSize(Size(rowWidth + 32, rowHeight + 32));
     await tester.pumpWidget(
@@ -257,7 +306,7 @@ void main() {
             _dynamicsCard(
               type: 'gate',
               panel: GateDeviceStrip(
-                device: _mockDevice('gate'),
+                device: _mockDevice('gate') as GateDeviceSnapshot,
                 onParameterChanged: noop,
                 selectedTab: GateDeviceTab.detect,
               ),
@@ -266,7 +315,7 @@ void main() {
             _dynamicsCard(
               type: 'compressor',
               panel: CompressorDeviceStrip(
-                device: _mockDevice('compressor'),
+                device: _mockDevice('compressor') as CompressorDeviceSnapshot,
                 onParameterChanged: noop,
                 selectedTab: CompressorDeviceTab.comp,
               ),
@@ -275,7 +324,7 @@ void main() {
             _dynamicsCard(
               type: 'expander',
               panel: ExpanderDeviceStrip(
-                device: _mockDevice('expander'),
+                device: _mockDevice('expander') as ExpanderDeviceSnapshot,
                 onParameterChanged: noop,
                 selectedTab: ExpanderDeviceTab.expand,
               ),
@@ -284,7 +333,7 @@ void main() {
             _dynamicsCard(
               type: 'limiter',
               panel: LimiterDeviceStrip(
-                device: _mockDevice('limiter'),
+                device: _mockDevice('limiter') as LimiterDeviceSnapshot,
                 onParameterChanged: noop,
                 selectedTab: LimiterDeviceTab.ceiling,
               ),

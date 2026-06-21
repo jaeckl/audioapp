@@ -377,18 +377,8 @@ float phaseModVoiceSample(PhaseModSynthVoiceRuntime& voice,
         //   6 (one_to_all):    op1→op2,3,4 all
         //   7 (all_mod_fb):    op1→op2→op3→op4, feedback on op1
 
-        // Process op1 first (always a modulator in PM feedback schemes)
-        // For each algorithm, we build a simple process list:
-        //   {opIndex, modulationSourceOp, modulationAmount}
-        //   modulationAmount = output of modulationSourceOp (from modOutput[])
-
-        // Process operators sequentially: for each algorithm, define the
-        // routing for each operator in processing order.
-        // arrays: targetOp -> sourceOp, -1 means no modulation
-
-        // Process op1
-        {
-            const int opIdx = 0;
+        // Process all 4 operators sequentially with full 4x4 PM Matrix Modulation routing
+        for (int opIdx = 0; opIdx < kPhaseModOpsPerVoice; ++opIdx) {
             const auto& opParams = params.operators[opIdx];
             const int phaseIdx = u * kPhaseModOpsPerVoice + opIdx;
 
@@ -400,77 +390,30 @@ float phaseModVoiceSample(PhaseModSynthVoiceRuntime& voice,
 
             float phase = voice.opPhases[phaseIdx];
 
-            // Add feedback modulation from Op 4 to Op 1
-            if (params.feedback > 0.0f) {
-                phase += voice.prevOpOutput[3] * params.feedback * 4.0f;
-            }
-
-            // Read waveform
-            float sample = pmMorphWaveSample(opParams.wave, phase);
-
-            // Apply per-operator envelope
-            const float envSec = adsrNormalizedToSeconds(opParams.attack, 2.0f);
-            const float envDecaySec = adsrNormalizedToSeconds(opParams.decay, 2.0f);
-            const float envRelSec = adsrNormalizedToSeconds(opParams.release, 3.0f);
-            const bool noteActive = voice.envelopePhase[opIdx] < 3;
-            const float env = pmAdvanceEnvelope(voice.envelopeValues[opIdx],
-                                                voice.envelopePhase[opIdx],
-                                                envSec, envDecaySec,
-                                                opParams.sustain,
-                                                envRelSec,
-                                                static_cast<float>(sampleRate),
-                                                noteActive);
-            sample *= env * opParams.level;
-
-            modOutput[opIdx] = sample;
-            opOutput[opIdx] = sample;
-            voice.prevOpOutput[opIdx] = std::tanh(sample);
-        }
-
-        // Process op2, op3, op4 with algorithm-specific routing
-        for (int opOrder = 1; opOrder < kPhaseModOpsPerVoice; ++opOrder) {
-            const int opIdx = opOrder;
-            const auto& opParams = params.operators[opIdx];
-            const int phaseIdx = u * kPhaseModOpsPerVoice + opIdx;
-
-            // Continuous PM matrix modulation routing (Op1->Op2, Op2->Op3, Op3->Op4)
+            // 4x4 PM Matrix Modulation: Sum inputs from all 4 operators
             float modPhase = 0.0f;
-            if (opIdx == 1) {
-                modPhase = modOutput[0] * params.lfoRate * 4.0f;
-            } else if (opIdx == 2) {
-                modPhase = modOutput[1] * params.lfoAmount * 4.0f;
-            } else if (opIdx == 3) {
-                modPhase = modOutput[2] * params.vibratoDepth * 4.0f;
+            for (int srcOp = 0; srcOp < kPhaseModOpsPerVoice; ++srcOp) {
+                const auto& srcParams = params.operators[srcOp];
+                float influence = 0.0f;
+                if (opIdx == 0)      influence = srcParams.attack;  // OP X -> OP 1
+                else if (opIdx == 1) influence = srcParams.decay;   // OP X -> OP 2
+                else if (opIdx == 2) influence = srcParams.sustain; // OP X -> OP 3
+                else if (opIdx == 3) influence = srcParams.release; // OP X -> OP 4
+
+                if (influence > 0.0f) {
+                    // Forward modulation uses current-sample output; feedback/self-feedback uses previous-sample output
+                    float modulatorSample = (srcOp >= opIdx) ? voice.prevOpOutput[srcOp] : modOutput[srcOp];
+                    modPhase += modulatorSample * influence * 4.0f;
+                }
             }
 
-            // Phase accumulation with modulation
-            voice.opPhases[phaseIdx] += opHz[opIdx] * voice.opPhaseIncs[phaseIdx];
-            if (voice.opPhases[phaseIdx] >= kPM_TwoPi) {
-                voice.opPhases[phaseIdx] -= kPM_TwoPi;
-            }
-
-            float phase = voice.opPhases[phaseIdx];
-
-            // Apply modulation from source operator
-            // Modulation amount is the modulator output (scaled by level/envelope already)
             phase += modPhase;
 
             // Read waveform
             float sample = pmMorphWaveSample(opParams.wave, phase);
 
-            // Apply per-operator envelope
-            const float envSec = adsrNormalizedToSeconds(opParams.attack, 2.0f);
-            const float envDecaySec = adsrNormalizedToSeconds(opParams.decay, 2.0f);
-            const float envRelSec = adsrNormalizedToSeconds(opParams.release, 3.0f);
-            const bool noteActive = voice.envelopePhase[opIdx] < 3;
-            const float env = pmAdvanceEnvelope(voice.envelopeValues[opIdx],
-                                                voice.envelopePhase[opIdx],
-                                                envSec, envDecaySec,
-                                                opParams.sustain,
-                                                envRelSec,
-                                                static_cast<float>(sampleRate),
-                                                noteActive);
-            sample *= env * opParams.level;
+            // Apply flat gate envelope (repurposed per-operator ADSR)
+            sample *= opParams.level;
 
             modOutput[opIdx] = sample;
             opOutput[opIdx] = sample;

@@ -18,7 +18,7 @@ class CymbalGeneratorDeviceStrip extends StatelessWidget {
     this.onAutomateParameter,
   });
 
-  final DeviceSnapshot device;
+  final CymbalGeneratorDeviceSnapshot device;
   final void Function(String parameterId, double value) onParameterChanged;
   final Set<String> modulatedParams;
   final Set<String> automatedParams;

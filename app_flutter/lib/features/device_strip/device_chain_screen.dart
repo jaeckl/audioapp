@@ -119,7 +119,7 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
         id: _track.id,
         name: _track.name,
         devices: _track.devices
-            .map((device) => device.id == deviceId
+            .map((device) => device.id == deviceId && device is OscillatorDeviceSnapshot
                 ? device.copyWith(frequencyHz: frequencyHz)
                 : device)
             .toList(),
@@ -142,7 +142,7 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
         name: _track.name,
         devices: _track.devices
             .map((device) =>
-                device.id == deviceId ? device.copyWith(sampleId: sampleId) : device)
+                device.id == deviceId && device is SamplerDeviceSnapshot ? device.copyWith(sampleId: sampleId) : device)
             .toList(),
         midiClips: _track.midiClips,
         sampleClips: _track.sampleClips,

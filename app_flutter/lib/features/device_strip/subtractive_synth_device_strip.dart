@@ -21,7 +21,7 @@ class SubtractiveSynthDeviceStrip extends StatelessWidget {
     this.onAutomateParameter,
   });
 
-  final DeviceSnapshot device;
+  final SubtractiveSynthDeviceSnapshot device;
   final void Function(String parameterId, double value) onParameterChanged;
   final SubtractiveDeviceTab? selectedTab;
   final ValueChanged<SubtractiveDeviceTab>? onTabChanged;

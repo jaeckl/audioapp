@@ -5,6 +5,7 @@ class DeviceStripMetrics {
   const DeviceStripMetrics._();
 
   static const _dynamicsTypes = {'gate', 'compressor', 'expander', 'limiter'};
+  static const _timeFxTypes = {'delay', 'reverb', 'chorus', 'phaser'};
   static const _drumTypes = {
     'kick_generator',
     'snare_generator',
@@ -83,11 +84,12 @@ class DeviceStripMetrics {
   static const double dynamicsInputPanelWidth = 64;
 
   static double inputPanelWidthFor(String deviceType) =>
-      _dynamicsTypes.contains(deviceType) ? dynamicsInputPanelWidth : 0;
+      _dynamicsTypes.contains(deviceType) || _timeFxTypes.contains(deviceType) ? dynamicsInputPanelWidth : 0;
 
   static double outputPanelWidthFor(String deviceType) {
     if (_drumTypes.contains(deviceType)) return drumMonoOutputPanelWidth;
     if (_dynamicsTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
+    if (_timeFxTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
     return stereoOutputPanelWidth;
   }
 
@@ -108,6 +110,10 @@ class DeviceStripMetrics {
       'compressor' => dynamicsFxDesignWidth,
       'expander' => dynamicsFxDesignWidth,
       'limiter' => dynamicsFxDesignWidth,
+      'delay' => dynamicsFxDesignWidth,
+      'reverb' => dynamicsFxDesignWidth,
+      'chorus' => dynamicsFxDesignWidth,
+      'phaser' => dynamicsFxDesignWidth,
       'simple_oscillator' => oscillatorDesignWidth,
       'phase_mod_synth' => phaseModSynthDesignWidth,
       _ => 280,

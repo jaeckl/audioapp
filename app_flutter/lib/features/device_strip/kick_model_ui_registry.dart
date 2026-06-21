@@ -11,7 +11,7 @@ class KickKnobSpec {
 
   final String paramId;
   final String label;
-  final double Function(DeviceSnapshot device) value;
+  final double Function(KickGeneratorDeviceSnapshot device) value;
   final String Function(double normalized) format;
 }
 
@@ -52,11 +52,11 @@ abstract final class KickModelUiRegistry {
 
   static List<KickKnobSpec> knobsForModelIndex(int modelIndex) => _808Knobs;
 
-  static double _kickPitch(DeviceSnapshot d) => d.kickPitch;
-  static double _kickPunch(DeviceSnapshot d) => d.kickPunch;
-  static double _kickTone(DeviceSnapshot d) => d.kickTone;
-  static double _kickClick(DeviceSnapshot d) => d.kickClick;
-  static double _kickDecay(DeviceSnapshot d) => d.kickDecay;
+  static double _kickPitch(KickGeneratorDeviceSnapshot d) => d.kickPitch;
+  static double _kickPunch(KickGeneratorDeviceSnapshot d) => d.kickPunch;
+  static double _kickTone(KickGeneratorDeviceSnapshot d) => d.kickTone;
+  static double _kickClick(KickGeneratorDeviceSnapshot d) => d.kickClick;
+  static double _kickDecay(KickGeneratorDeviceSnapshot d) => d.kickDecay;
 
   static String _percent(double v) => '${(v * 100).round()}%';
 }

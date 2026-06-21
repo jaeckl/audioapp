@@ -7,40 +7,32 @@ import 'package:audioapp/features/device_strip/cymbal_generator_device_panel.dar
 import 'package:audioapp/features/device_strip/device_strip_metrics.dart';
 
 void main() {
-  const cymbal = DeviceSnapshot(
+  const cymbal = CymbalGeneratorDeviceSnapshot(
     id: 'c1',
-    type: 'cymbal_generator',
-    frequencyHz: 440,
-    gain: 1,
+    gain: 1.0,
     pan: 0.5,
-    sampleId: '',
-    attack: 0,
-    decay: 0,
-    sustain: 0,
-    release: 0,
-    filterCutoff: 1,
-    filterQ: 0.5,
-    filterMode: 0,
-    trimStartSec: 0,
-    trimEndSec: 0,
+    bypassed: false,
+    meterGainReductionDb: 0.0,
+    meterInputLevel: 0.0,
+    cymbalModel: 0.0,
+    cymbalColor: 0.5,
+    cymbalDecay: 0.5,
+    cymbalVelocity: 1.0,
+    cymbalWidth: 0.35,
   );
 
-  const crash = DeviceSnapshot(
+  const crash = CrashGeneratorDeviceSnapshot(
     id: 'cr1',
-    type: 'crash_generator',
-    frequencyHz: 440,
-    gain: 1,
+    gain: 1.0,
     pan: 0.5,
-    sampleId: '',
-    attack: 0,
-    decay: 0,
-    sustain: 0,
-    release: 0,
-    filterCutoff: 1,
-    filterQ: 0.5,
-    filterMode: 0,
-    trimStartSec: 0,
-    trimEndSec: 0,
+    bypassed: false,
+    meterGainReductionDb: 0.0,
+    meterInputLevel: 0.0,
+    crashModel: 0.0,
+    crashColor: 0.5,
+    crashSpread: 0.5,
+    crashDecay: 0.55,
+    crashVelocity: 1.0,
   );
 
   testWidgets('cymbal bench uses kick layout width', (tester) async {

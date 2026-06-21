@@ -46,7 +46,7 @@ class SubtractiveSynthDevicePanel extends StatefulWidget {
     this.onAutomateParameter,
   });
 
-  final DeviceSnapshot device;
+  final SubtractiveSynthDeviceSnapshot device;
   final void Function(String parameterId, double value) onParameterChanged;
   final SubtractivePanelDensity density;
   final bool embeddedInCard;
@@ -367,23 +367,26 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _flatToggle(
-                              label: 'Legato',
-                              active: legatoOn,
-                              onTap: () => widget.onParameterChanged(
-                                  'synthLegato', legatoOn ? 0.0 : 1.0),
-                            ),
-                            const SizedBox(width: 4),
-                            _flatToggle(
-                              label: 'Mono clips',
-                              active: monoOn,
-                              onTap: () =>
-                                  widget.onParameterChanged('synthMono', monoOn ? 0.0 : 1.0),
-                            ),
-                          ],
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _flatToggle(
+                                label: 'Legato',
+                                active: legatoOn,
+                                onTap: () => widget.onParameterChanged(
+                                    'synthLegato', legatoOn ? 0.0 : 1.0),
+                              ),
+                              const SizedBox(width: 4),
+                              _flatToggle(
+                                label: 'Mono clips',
+                                active: monoOn,
+                                onTap: () =>
+                                    widget.onParameterChanged('synthMono', monoOn ? 0.0 : 1.0),
+                              ),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Expanded(

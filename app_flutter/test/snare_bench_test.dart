@@ -6,22 +6,21 @@ import 'package:audioapp/features/device_strip/device_strip_metrics.dart';
 import 'package:audioapp/features/device_strip/snare_generator_device_panel.dart';
 
 void main() {
-  const snare = DeviceSnapshot(
+  const snare = SnareGeneratorDeviceSnapshot(
     id: 's1',
-    type: 'snare_generator',
-    frequencyHz: 440,
-    gain: 1,
+    gain: 1.0,
     pan: 0.5,
-    sampleId: '',
-    attack: 0,
-    decay: 0,
-    sustain: 0,
-    release: 0,
-    filterCutoff: 1,
-    filterQ: 0.5,
-    filterMode: 0,
-    trimStartSec: 0,
-    trimEndSec: 0,
+    bypassed: false,
+    meterGainReductionDb: 0.0,
+    meterInputLevel: 0.0,
+    snareModel: 0.0,
+    snareBody: 0.5,
+    snareRing: 0.5,
+    snareTune: 0.5,
+    snareSnares: 0.5,
+    snareSnap: 0.5,
+    snareDecay: 0.5,
+    snareVelocity: 1.0,
   );
 
   testWidgets('snare bench uses kick layout width', (tester) async {

@@ -47,12 +47,12 @@ class DrumMonoOutputPanel extends StatelessWidget {
         _ => null,
       };
 
-  static double velocityFor(DeviceSnapshot device) => switch (device.type) {
-        'kick_generator' => device.kickVelocity,
-        'snare_generator' => device.snareVelocity,
-        'clap_generator' => device.clapVelocity,
-        'cymbal_generator' => device.cymbalVelocity,
-        'crash_generator' => device.crashVelocity,
+  static double velocityFor(DeviceSnapshot device) => switch (device) {
+        KickGeneratorDeviceSnapshot() => device.kickVelocity,
+        SnareGeneratorDeviceSnapshot() => device.snareVelocity,
+        ClapGeneratorDeviceSnapshot() => device.clapVelocity,
+        CymbalGeneratorDeviceSnapshot() => device.cymbalVelocity,
+        CrashGeneratorDeviceSnapshot() => device.crashVelocity,
         _ => 1.0,
       };
 
@@ -127,7 +127,7 @@ class DynamicsInputPanel extends StatelessWidget {
     this.onAutomateParameter,
   });
 
-  final DeviceSnapshot device;
+  final DynamicsDeviceSnapshot device;
   final Color accentColor;
   final void Function(String parameterId, double value) onParameterChanged;
   final double inputLevel;
@@ -192,7 +192,7 @@ class DynamicsOutputPanel extends StatelessWidget {
     this.onAutomateParameter,
   });
 
-  final DeviceSnapshot device;
+  final DynamicsDeviceSnapshot device;
   final Color accentColor;
   final void Function(String parameterId, double value) onParameterChanged;
   final double gainReductionDb;

@@ -26,7 +26,7 @@ class SnareGeneratorDevicePanel extends StatelessWidget {
     this.onAutomateParameter,
   });
 
-  final DeviceSnapshot device;
+  final SnareGeneratorDeviceSnapshot device;
   final void Function(String parameterId, double value) onParameterChanged;
   final bool embeddedInCard;
   final Set<String> modulatedParams;

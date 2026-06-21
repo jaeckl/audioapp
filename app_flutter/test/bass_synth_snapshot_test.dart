@@ -19,7 +19,7 @@ void main() {
           'bassVelocitySense': 0.9,
         },
       };
-      final snapshot = DeviceSnapshot.fromMap(map);
+      final snapshot = DeviceSnapshot.fromMap(map) as BassSynthDeviceSnapshot;
       expect(snapshot.bassOscShape, 0.7);
       expect(snapshot.bassSubMix, 0.3);
       expect(snapshot.bassSubOctave, 1);
@@ -37,7 +37,7 @@ void main() {
         'type': 'bass_synth',
         'parameters': <dynamic, dynamic>{},
       };
-      final snapshot = DeviceSnapshot.fromMap(map);
+      final snapshot = DeviceSnapshot.fromMap(map) as BassSynthDeviceSnapshot;
       expect(snapshot.bassOscShape, 0.3);
       expect(snapshot.bassSubMix, 0.5);
       expect(snapshot.bassSubOctave, 0);
@@ -50,22 +50,30 @@ void main() {
     });
 
     test('CopyWith preserves existing fields and updates bass fields', () {
-      const base = DeviceSnapshot(
+      const base = BassSynthDeviceSnapshot(
         id: 'bass-test',
-        type: 'bass_synth',
-        frequencyHz: 220.0,
         gain: 0.8,
         pan: 0.5,
-        sampleId: '',
+        bypassed: false,
+        meterGainReductionDb: 0.0,
+        meterInputLevel: 0.0,
+        bassOscShape: 0.3,
+        bassSubMix: 0.5,
+        bassSubOctave: 0,
+        bassNoise: 0.0,
+        bassFilterResonance: 0.25,
+        bassDrive: 0.0,
+        bassSquash: 0.0,
+        bassOctave: 2,
+        bassVelocitySense: 1.0,
+        filterCutoff: 0.75,
         attack: 0.01,
         decay: 0.3,
         sustain: 0.7,
         release: 0.4,
-        filterCutoff: 0.75,
-        filterQ: 0.35,
-        filterMode: 0,
-        trimStartSec: 0.0,
-        trimEndSec: 0.0,
+        filterEnvAmount: 0.45,
+        filterDecay: 0.2,
+        glideMs: 15.0,
       );
 
       final updated = base.copyWith(bassOscShape: 0.9);
@@ -81,13 +89,13 @@ void main() {
     });
 
     group('WithParameter routing', () {
-      late DeviceSnapshot base;
+      late BassSynthDeviceSnapshot base;
       setUp(() {
         base = DeviceSnapshot.fromMap(<dynamic, dynamic>{
           'id': 'bass-test',
           'type': 'bass_synth',
           'parameters': <dynamic, dynamic>{},
-        });
+        }) as BassSynthDeviceSnapshot;
       });
 
       test('routes bassOscShape', () {
@@ -139,13 +147,13 @@ void main() {
     });
 
     group('WithParameter clamping', () {
-      late DeviceSnapshot base;
+      late BassSynthDeviceSnapshot base;
       setUp(() {
         base = DeviceSnapshot.fromMap(<dynamic, dynamic>{
           'id': 'bass-test',
           'type': 'bass_synth',
           'parameters': <dynamic, dynamic>{},
-        });
+        }) as BassSynthDeviceSnapshot;
       });
 
       test('clamps bassOscShape to [0..1]', () {

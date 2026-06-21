@@ -18,7 +18,7 @@ class KickGeneratorDeviceStrip extends StatelessWidget {
     this.onAutomateParameter,
   });
 
-  final DeviceSnapshot device;
+  final KickGeneratorDeviceSnapshot device;
   final void Function(String parameterId, double value) onParameterChanged;
   final Set<String> modulatedParams;
   final Set<String> automatedParams;

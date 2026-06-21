@@ -11,7 +11,7 @@ class SnareKnobSpec {
 
   final String paramId;
   final String label;
-  final double Function(DeviceSnapshot device) value;
+  final double Function(SnareGeneratorDeviceSnapshot device) value;
   final String Function(double normalized) format;
 }
 
@@ -57,12 +57,12 @@ abstract final class SnareModelUiRegistry {
 
   static List<SnareKnobSpec> knobsForModelIndex(int modelIndex) => _acousticKnobs;
 
-  static double _body(DeviceSnapshot d) => d.snareBody;
-  static double _ring(DeviceSnapshot d) => d.snareRing;
-  static double _tune(DeviceSnapshot d) => d.snareTune;
-  static double _snares(DeviceSnapshot d) => d.snareSnares;
-  static double _snap(DeviceSnapshot d) => d.snareSnap;
-  static double _decay(DeviceSnapshot d) => d.snareDecay;
+  static double _body(SnareGeneratorDeviceSnapshot d) => d.snareBody;
+  static double _ring(SnareGeneratorDeviceSnapshot d) => d.snareRing;
+  static double _tune(SnareGeneratorDeviceSnapshot d) => d.snareTune;
+  static double _snares(SnareGeneratorDeviceSnapshot d) => d.snareSnares;
+  static double _snap(SnareGeneratorDeviceSnapshot d) => d.snareSnap;
+  static double _decay(SnareGeneratorDeviceSnapshot d) => d.snareDecay;
 
   static String _percent(double v) => '${(v * 100).round()}%';
 }

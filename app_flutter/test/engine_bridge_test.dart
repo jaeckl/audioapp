@@ -419,7 +419,7 @@ void main() {
       parameterId: 'sampleId',
       value: 'sample-1',
     );
-    expect(snapshot.selectedTrack?.devices.first.sampleId, 'sample-1');
+    expect((snapshot.selectedTrack?.devices.first as SamplerDeviceSnapshot).sampleId, 'sample-1');
   });
 
   test('createMidiClip returns snapshot with clip', () async {

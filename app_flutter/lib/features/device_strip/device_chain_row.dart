@@ -85,9 +85,11 @@ class DeviceChainRow extends StatelessWidget {
       };
 
   SampleLibraryEntrySnapshot? _sampleFor(DeviceSnapshot device) {
-    if (device.sampleId.isEmpty) return null;
-    for (final sample in samples) {
-      if (sample.id == device.sampleId) return sample;
+    if (device is SamplerDeviceSnapshot) {
+      if (device.sampleId.isEmpty) return null;
+      for (final sample in samples) {
+        if (sample.id == device.sampleId) return sample;
+      }
     }
     return null;
   }

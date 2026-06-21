@@ -27,7 +27,7 @@ class ClapGeneratorDevicePanel extends StatefulWidget {
     this.onAutomateParameter,
   });
 
-  final DeviceSnapshot device;
+  final ClapGeneratorDeviceSnapshot device;
   final void Function(String parameterId, double value) onParameterChanged;
   final bool embeddedInCard;
   final ClapDeviceTab? selectedTab;

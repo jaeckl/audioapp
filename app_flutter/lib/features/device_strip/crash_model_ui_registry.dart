@@ -11,7 +11,7 @@ class CrashKnobSpec {
 
   final String paramId;
   final String label;
-  final double Function(DeviceSnapshot device) value;
+  final double Function(CrashGeneratorDeviceSnapshot device) value;
   final String Function(double normalized) format;
 }
 
@@ -39,9 +39,9 @@ abstract final class CrashModelUiRegistry {
 
   static List<CrashKnobSpec> knobsForModelIndex(int modelIndex) => _brightKnobs;
 
-  static double _color(DeviceSnapshot d) => d.crashColor;
-  static double _spread(DeviceSnapshot d) => d.crashSpread;
-  static double _decay(DeviceSnapshot d) => d.crashDecay;
+  static double _color(CrashGeneratorDeviceSnapshot d) => d.crashColor;
+  static double _spread(CrashGeneratorDeviceSnapshot d) => d.crashSpread;
+  static double _decay(CrashGeneratorDeviceSnapshot d) => d.crashDecay;
 
   static String _percent(double v) => '${(v * 100).round()}%';
 }

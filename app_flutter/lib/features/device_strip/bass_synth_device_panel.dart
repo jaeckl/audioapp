@@ -30,7 +30,7 @@ class BassSynthDevicePanel extends StatefulWidget {
     this.onAutomateParameter,
   });
 
-  final DeviceSnapshot device;
+  final BassSynthDeviceSnapshot device;
   final void Function(String parameterId, double value) onParameterChanged;
   final BassPanelDensity density;
   final BassSynthDeviceTab? selectedTab;

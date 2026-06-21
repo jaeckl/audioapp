@@ -17,7 +17,7 @@ class SubtractiveSynthEditorScreen extends StatefulWidget {
   });
 
   final String trackName;
-  final DeviceSnapshot device;
+  final SubtractiveSynthDeviceSnapshot device;
   final EngineBridge bridge;
   final Future<void> Function(String parameterId, double value) onParameterChanged;
 
@@ -26,7 +26,7 @@ class SubtractiveSynthEditorScreen extends StatefulWidget {
 }
 
 class _SubtractiveSynthEditorScreenState extends State<SubtractiveSynthEditorScreen> {
-  late DeviceSnapshot _device;
+  late SubtractiveSynthDeviceSnapshot _device;
   SubtractiveDeviceTab _tab = SubtractiveDeviceTab.osc;
   bool _testNoteHeld = false;
 

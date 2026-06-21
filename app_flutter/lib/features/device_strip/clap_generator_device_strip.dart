@@ -20,7 +20,7 @@ class ClapGeneratorDeviceStrip extends StatelessWidget {
     this.onAutomateParameter,
   });
 
-  final DeviceSnapshot device;
+  final ClapGeneratorDeviceSnapshot device;
   final void Function(String parameterId, double value) onParameterChanged;
   final ClapDeviceTab? selectedTab;
   final ValueChanged<ClapDeviceTab>? onTabChanged;

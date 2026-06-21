@@ -27,7 +27,7 @@ import 'cymbal_model.dart';
 import 'crash_generator_device_strip.dart';
 import 'crash_model.dart';
 import 'dynamics_fx_panels.dart';
-import '../../effects/effect_device_strip.dart';
+import 'time_fx_panels.dart';
 import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
 import 'phase_mod_synth_device_panel.dart';
@@ -67,7 +67,7 @@ class DeviceStripSlot extends StatefulWidget {
     this.synthTab = SubtractiveDeviceTab.osc,
     this.bassTab = BassSynthDeviceTab.tone,
     this.onPmTabChanged,
-    this.pmTab = PhaseModSynthDeviceTab.algo,
+    this.pmTab = PhaseModSynthDeviceTab.mix,
     this.lfos = const [],
     this.modEdges = const [],
     this.onModulationBridgeCall,
@@ -397,23 +397,26 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     );
   }
 
-  String? get _cardSubtitle => switch (widget.device.type) {
-        'simple_sampler' => widget.sample?.name,
-        'simple_oscillator' => '${widget.device.frequencyHz.round()} Hz',
-        'bass_synth' => 'Mono · Sub',
-        'phase_mod_synth' => '4-OP · PM',
-        'subtractive_synth' => 'Multimode · 8 voices',
-        'kick_generator' => 'Mono · ${KickModel.labelFromValue(widget.device.kickModel)}',
-        'snare_generator' => 'Mono · synth',
-        'clap_generator' => 'Mono · synth',
-        'cymbal_generator' => 'Mono · ${CymbalModel.labelFromValue(widget.device.cymbalModel)}',
-        'crash_generator' => 'Mono · ${CrashModel.labelFromValue(widget.device.crashModel)}',
-        'gate' => 'Stereo · FX',
-        'compressor' => 'Stereo · FX',
-        'expander' => 'Stereo · FX',
-        'limiter' => 'Stereo · FX',
-        _ => null,
-      };
+  String? get _cardSubtitle {
+    final dev = widget.device;
+    return switch (dev) {
+      SamplerDeviceSnapshot() => widget.sample?.name,
+      OscillatorDeviceSnapshot() => '${dev.frequencyHz.round()} Hz',
+      BassSynthDeviceSnapshot() => 'Mono · Sub',
+      PhaseModSynthDeviceSnapshot() => '4-OP · PM',
+      SubtractiveSynthDeviceSnapshot() => 'Multimode · 8 voices',
+      KickGeneratorDeviceSnapshot() => 'Mono · ${KickModel.labelFromValue(dev.kickModel)}',
+      SnareGeneratorDeviceSnapshot() => 'Mono · synth',
+      ClapGeneratorDeviceSnapshot() => 'Mono · synth',
+      CymbalGeneratorDeviceSnapshot() => 'Mono · ${CymbalModel.labelFromValue(dev.cymbalModel)}',
+      CrashGeneratorDeviceSnapshot() => 'Mono · ${CrashModel.labelFromValue(dev.crashModel)}',
+      GateDeviceSnapshot() => 'Stereo · FX',
+      CompressorDeviceSnapshot() => 'Stereo · FX',
+      ExpanderDeviceSnapshot() => 'Stereo · FX',
+      LimiterDeviceSnapshot() => 'Stereo · FX',
+      _ => null,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -543,19 +546,20 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   Widget _buildDevice(BuildContext context, double contentHeight) {
     switch (widget.device.type) {
       case 'simple_sampler':
+        final dev = widget.device as SamplerDeviceSnapshot;
         return DeviceStripViewport(
           shrinkWrap: true,
           designWidth: _cardWidth,
           designHeight: contentHeight,
           child: SamplerDeviceStrip(
-            device: widget.device,
+            device: dev,
             sample: widget.sample,
             bpm: widget.bpm,
             onParameterChanged: widget.onSamplerParameterChanged,
             onTabChanged: widget.onSamplerTabChanged,
             onCollapse: widget.onCollapse,
             onPreview: widget.sample != null && widget.onPreviewSampler != null
-                ? () => widget.onPreviewSampler!(widget.device.rootPitch.round())
+                ? () => widget.onPreviewSampler!(dev.rootPitch.round())
                 : null,
             onLoadSample: widget.onOpenLibrary,
             selectedTab: SamplerDeviceTab.values[_selectedTabIndex],
@@ -576,13 +580,14 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           ),
         );
       case 'simple_oscillator':
+        final dev = widget.device as OscillatorDeviceSnapshot;
         return DeviceStripViewport(
           shrinkWrap: true,
           designWidth: _cardWidth,
           designHeight: contentHeight,
           child: OscillatorDevicePanel(
             trackName: widget.track.name,
-            frequencyHz: widget.device.frequencyHz,
+            frequencyHz: dev.frequencyHz,
             onFrequencyChanged: widget.onFrequencyChanged,
             onCollapse: widget.onCollapse,
             embeddedInCard: true,
@@ -604,12 +609,13 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           ),
         );
       case 'bass_synth':
+        final dev = widget.device as BassSynthDeviceSnapshot;
         return DeviceStripViewport(
           shrinkWrap: true,
           designWidth: _cardWidth,
           designHeight: contentHeight,
           child: BassSynthDeviceStrip(
-            device: widget.device,
+            device: dev,
             onParameterChanged: widget.onSamplerParameterChanged,
             selectedTab: BassSynthDeviceTab.values[_selectedTabIndex],
             modulatedParams: _modulatedParamIds,
@@ -627,12 +633,13 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           ),
         );
       case 'phase_mod_synth':
+        final dev = widget.device as PhaseModSynthDeviceSnapshot;
         return DeviceStripViewport(
           shrinkWrap: true,
           designWidth: _cardWidth,
           designHeight: contentHeight,
           child: PhaseModSynthDeviceStrip(
-            device: widget.device,
+            device: dev,
             onParameterChanged: widget.onSamplerParameterChanged,
             selectedTab: PhaseModSynthDeviceTab.values[_selectedTabIndex],
             modulatedParams: _modulatedParamIds,
@@ -650,12 +657,13 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           ),
         );
       case 'subtractive_synth':
+        final dev = widget.device as SubtractiveSynthDeviceSnapshot;
         return DeviceStripViewport(
           shrinkWrap: true,
           designWidth: _cardWidth,
           designHeight: contentHeight,
           child: SubtractiveSynthDeviceStrip(
-            device: widget.device,
+            device: dev,
             onParameterChanged: widget.onSamplerParameterChanged,
             selectedTab: SubtractiveDeviceTab.values[_selectedTabIndex],
             onTabChanged: widget.onSynthTabChanged,
@@ -675,12 +683,13 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           ),
         );
       case 'kick_generator':
+        final dev = widget.device as KickGeneratorDeviceSnapshot;
         return DeviceStripViewport(
           shrinkWrap: true,
           designWidth: _cardWidth,
           designHeight: contentHeight,
           child: KickGeneratorDeviceStrip(
-            device: widget.device,
+            device: dev,
             onParameterChanged: widget.onDeviceParameterChanged,
             modulatedParams: _modulatedParamIds,
             automatedParams: _automatedParamIds,
@@ -697,12 +706,13 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           ),
         );
       case 'snare_generator':
+        final dev = widget.device as SnareGeneratorDeviceSnapshot;
         return DeviceStripViewport(
           shrinkWrap: true,
           designWidth: _cardWidth,
           designHeight: contentHeight,
           child: SnareGeneratorDeviceStrip(
-            device: widget.device,
+            device: dev,
             onParameterChanged: widget.onDeviceParameterChanged,
             modulatedParams: _modulatedParamIds,
             automatedParams: _automatedParamIds,
@@ -719,12 +729,13 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           ),
         );
       case 'clap_generator':
+        final dev = widget.device as ClapGeneratorDeviceSnapshot;
         return DeviceStripViewport(
           shrinkWrap: true,
           designWidth: _cardWidth,
           designHeight: contentHeight,
           child: ClapGeneratorDeviceStrip(
-            device: widget.device,
+            device: dev,
             onParameterChanged: widget.onDeviceParameterChanged,
             selectedTab: ClapDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
             modulatedParams: _modulatedParamIds,
@@ -742,12 +753,13 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           ),
         );
       case 'cymbal_generator':
+        final dev = widget.device as CymbalGeneratorDeviceSnapshot;
         return DeviceStripViewport(
           shrinkWrap: true,
           designWidth: _cardWidth,
           designHeight: contentHeight,
           child: CymbalGeneratorDeviceStrip(
-            device: widget.device,
+            device: dev,
             onParameterChanged: widget.onDeviceParameterChanged,
             modulatedParams: _modulatedParamIds,
             automatedParams: _automatedParamIds,
@@ -764,12 +776,13 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           ),
         );
       case 'crash_generator':
+        final dev = widget.device as CrashGeneratorDeviceSnapshot;
         return DeviceStripViewport(
           shrinkWrap: true,
           designWidth: _cardWidth,
           designHeight: contentHeight,
           child: CrashGeneratorDeviceStrip(
-            device: widget.device,
+            device: dev,
             onParameterChanged: widget.onDeviceParameterChanged,
             modulatedParams: _modulatedParamIds,
             automatedParams: _automatedParamIds,
@@ -786,12 +799,13 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           ),
         );
       case 'gate':
+        final dev = widget.device as GateDeviceSnapshot;
         return DeviceStripViewport(
           shrinkWrap: true,
           designWidth: _cardWidth,
           designHeight: contentHeight,
           child: GateDeviceStrip(
-            device: widget.device,
+            device: dev,
             onParameterChanged: widget.onDeviceParameterChanged,
             selectedTab: GateDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
             modulatedParams: _modulatedParamIds,
@@ -805,12 +819,13 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           ),
         );
       case 'compressor':
+        final dev = widget.device as CompressorDeviceSnapshot;
         return DeviceStripViewport(
           shrinkWrap: true,
           designWidth: _cardWidth,
           designHeight: contentHeight,
           child: CompressorDeviceStrip(
-            device: widget.device,
+            device: dev,
             onParameterChanged: widget.onDeviceParameterChanged,
             selectedTab: CompressorDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
             modulatedParams: _modulatedParamIds,
@@ -824,12 +839,13 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           ),
         );
       case 'expander':
+        final dev = widget.device as ExpanderDeviceSnapshot;
         return DeviceStripViewport(
           shrinkWrap: true,
           designWidth: _cardWidth,
           designHeight: contentHeight,
           child: ExpanderDeviceStrip(
-            device: widget.device,
+            device: dev,
             onParameterChanged: widget.onDeviceParameterChanged,
             selectedTab: ExpanderDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
             modulatedParams: _modulatedParamIds,
@@ -843,12 +859,13 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           ),
         );
       case 'limiter':
+        final dev = widget.device as LimiterDeviceSnapshot;
         return DeviceStripViewport(
           shrinkWrap: true,
           designWidth: _cardWidth,
           designHeight: contentHeight,
           child: LimiterDeviceStrip(
-            device: widget.device,
+            device: dev,
             onParameterChanged: widget.onDeviceParameterChanged,
             selectedTab: LimiterDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
             modulatedParams: _modulatedParamIds,
@@ -862,55 +879,79 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           ),
         );
       case 'delay':
+        final dev = widget.device as DelayDeviceSnapshot;
         return DeviceStripViewport(
           shrinkWrap: true,
-          designWidth: 320,
+          designWidth: _cardWidth,
           designHeight: contentHeight,
-          child: EffectDeviceStrip(
-            type: 'delay',
-            snapshot: {
-              'enabled': !widget.device.bypassed,
-              'params': <String, dynamic>{},
-            },
+          child: DelayFxStrip(
+            device: dev,
+            onParameterChanged: widget.onDeviceParameterChanged,
+            modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
+            onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
+            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
           ),
         );
       case 'reverb':
+        final dev = widget.device as ReverbDeviceSnapshot;
         return DeviceStripViewport(
           shrinkWrap: true,
-          designWidth: 320,
+          designWidth: _cardWidth,
           designHeight: contentHeight,
-          child: EffectDeviceStrip(
-            type: 'reverb',
-            snapshot: {
-              'enabled': !widget.device.bypassed,
-              'params': <String, dynamic>{},
-            },
+          child: ReverbFxStrip(
+            device: dev,
+            onParameterChanged: widget.onDeviceParameterChanged,
+            modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
+            onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
+            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
           ),
         );
       case 'chorus':
+        final dev = widget.device as ChorusDeviceSnapshot;
         return DeviceStripViewport(
           shrinkWrap: true,
-          designWidth: 320,
+          designWidth: _cardWidth,
           designHeight: contentHeight,
-          child: EffectDeviceStrip(
-            type: 'chorus',
-            snapshot: {
-              'enabled': !widget.device.bypassed,
-              'params': <String, dynamic>{},
-            },
+          child: ChorusFxStrip(
+            device: dev,
+            onParameterChanged: widget.onDeviceParameterChanged,
+            modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
+            onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
+            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
           ),
         );
       case 'phaser':
+        final dev = widget.device as PhaserDeviceSnapshot;
         return DeviceStripViewport(
           shrinkWrap: true,
-          designWidth: 320,
+          designWidth: _cardWidth,
           designHeight: contentHeight,
-          child: EffectDeviceStrip(
-            type: 'phaser',
-            snapshot: {
-              'enabled': !widget.device.bypassed,
-              'params': <String, dynamic>{},
-            },
+          child: PhaserFxStrip(
+            device: dev,
+            onParameterChanged: widget.onDeviceParameterChanged,
+            modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
+            onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
+            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
           ),
         );
       default:

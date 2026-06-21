@@ -64,7 +64,7 @@ void main() {
           'pmVibratoRate': 0.3,
         },
       };
-      final snapshot = DeviceSnapshot.fromMap(map);
+      final snapshot = DeviceSnapshot.fromMap(map) as PhaseModSynthDeviceSnapshot;
       expect(snapshot.pmOp1Ratio, 0.0625);
       expect(snapshot.pmOp1Fine, 0.5);
       expect(snapshot.pmOp1Level, 0.8);
@@ -127,7 +127,7 @@ void main() {
         'type': 'phase_mod_synth',
         'parameters': <dynamic, dynamic>{},
       };
-      final snapshot = DeviceSnapshot.fromMap(map);
+      final snapshot = DeviceSnapshot.fromMap(map) as PhaseModSynthDeviceSnapshot;
       expect(snapshot.pmOp1Ratio, 0.0625);
       expect(snapshot.pmOp1Fine, 0.5);
       expect(snapshot.pmOp1Level, 0.8);
@@ -185,23 +185,14 @@ void main() {
     });
 
     test('F3: CopyWith preserves existing fields and updates PM fields', () {
-      const base = DeviceSnapshot(
-        id: 'pm-test',
-        type: 'phase_mod_synth',
-        frequencyHz: 440.0,
-        gain: 0.8,
-        pan: 0.5,
-        sampleId: '',
-        attack: 0.01,
-        decay: 0.3,
-        sustain: 0.7,
-        release: 0.4,
-        filterCutoff: 0.75,
-        filterQ: 0.35,
-        filterMode: 0,
-        trimStartSec: 0.0,
-        trimEndSec: 0.0,
-      );
+      final base = DeviceSnapshot.fromMap(<dynamic, dynamic>{
+        'id': 'pm-test',
+        'type': 'phase_mod_synth',
+        'parameters': <dynamic, dynamic>{
+          'gain': 0.8,
+          'pan': 0.5,
+        },
+      }) as PhaseModSynthDeviceSnapshot;
 
       final updated = base.copyWith(pmOp1Level: 0.9);
       expect(updated.pmOp1Level, 0.9);
@@ -226,13 +217,13 @@ void main() {
     });
 
     group('WithParameter routing', () {
-      late DeviceSnapshot base;
+      late PhaseModSynthDeviceSnapshot base;
       setUp(() {
         base = DeviceSnapshot.fromMap(<dynamic, dynamic>{
           'id': 'pm-test',
           'type': 'phase_mod_synth',
           'parameters': <dynamic, dynamic>{},
-        });
+        }) as PhaseModSynthDeviceSnapshot;
       });
 
       test('F4a: routes pmOp1Level', () {
@@ -291,7 +282,7 @@ void main() {
         'id': 'pm-test',
         'type': 'phase_mod_synth',
         'parameters': <dynamic, dynamic>{},
-      });
+      }) as PhaseModSynthDeviceSnapshot;
 
       // Simulate a preset map
       final preset = <String, double>{

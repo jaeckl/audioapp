@@ -25,6 +25,7 @@ void main() {
               device: device,
               sample: null,
               bpm: 120,
+              playing: false,
               density: DeviceStripSlotDensity.fullscreen,
               onSamplerParameterChanged: (_, __) {},
               onDeviceParameterChanged: (_, __) {},

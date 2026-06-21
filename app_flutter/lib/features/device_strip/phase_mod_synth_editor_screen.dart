@@ -17,7 +17,7 @@ class PhaseModSynthEditorScreen extends StatefulWidget {
   });
 
   final String trackName;
-  final DeviceSnapshot device;
+  final PhaseModSynthDeviceSnapshot device;
   final EngineBridge bridge;
   final Future<void> Function(String parameterId, double value) onParameterChanged;
 
@@ -26,8 +26,8 @@ class PhaseModSynthEditorScreen extends StatefulWidget {
 }
 
 class _PhaseModSynthEditorScreenState extends State<PhaseModSynthEditorScreen> {
-  late DeviceSnapshot _device;
-  PhaseModSynthDeviceTab _tab = PhaseModSynthDeviceTab.algo;
+  late PhaseModSynthDeviceSnapshot _device;
+  PhaseModSynthDeviceTab _tab = PhaseModSynthDeviceTab.mix;
   bool _testNoteHeld = false;
 
   @override

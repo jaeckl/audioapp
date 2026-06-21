@@ -19,7 +19,7 @@ class BassSynthDeviceStrip extends StatelessWidget {
     this.onAutomateParameter,
   });
 
-  final DeviceSnapshot device;
+  final BassSynthDeviceSnapshot device;
   final void Function(String parameterId, double value) onParameterChanged;
   final BassSynthDeviceTab? selectedTab;
   final Set<String> modulatedParams;

@@ -502,7 +502,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Track 1'), findsOneWidget);
-    expect(find.textContaining('bars'), findsOneWidget);
+    expect(find.text('4 bars'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.arrow_back));
     await tester.pump();
