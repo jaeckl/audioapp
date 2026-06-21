@@ -507,11 +507,6 @@ TrackState trackFromVarPersistence(const juce::var& value,
                 track.sampleClips.push_back(sampleClipFromVar(clipVar));
             }
         }
-        if (const auto* automationClips = varArray(object->getProperty("automationClips"))) {
-            for (const auto& clipVar : *automationClips) {
-                track.automationClips.push_back(automationClipFromVar(clipVar));
-            }
-        }
     }
     return track;
 }
@@ -641,29 +636,14 @@ bool parseProjectFileJson(const std::string& json,
         out.modEdges = modEdgeArrayFromVar(object->getProperty("modEdges"));
     }
 
-    // Automation clips: prefer the new top-level array. Fall back to the
-    // legacy per-track layout (flatten into the global store, using each
-    // clip's nesting track as its homeTrackId) so older files keep working.
+    // Automation clips live in the top-level array.
     out.automationClips.clear();
     if (object->hasProperty("automationClips")) {
         out.automationClips = automationClipArrayFromVar(object->getProperty("automationClips"));
-        // Legacy files may have written automationClips at the top level
-        // without a homeTrackId; fall back to the selected track so the
-        // clip is laid out somewhere visible.
-        for (auto& clip : out.automationClips) {
-            if (clip.homeTrackId.empty()) {
-                clip.homeTrackId = out.selectedTrackId;
-            }
-        }
-    } else {
-        for (const auto& track : out.tracks) {
-            for (const auto& clip : track.automationClips) {
-                AutomationClipState flat = clip;
-                if (flat.homeTrackId.empty()) {
-                    flat.homeTrackId = track.id;
-                }
-                out.automationClips.push_back(std::move(flat));
-            }
+    }
+    for (auto& clip : out.automationClips) {
+        if (clip.homeTrackId.empty()) {
+            clip.homeTrackId = out.selectedTrackId;
         }
     }
 

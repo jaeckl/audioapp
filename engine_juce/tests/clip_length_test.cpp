@@ -12,6 +12,8 @@ public:
 
     void runTest() override
     {
+        beginTest("Setup and basic snapshot checks");
+        
         auto project = std::make_unique<audioapp::ProjectEngine>();
         project->createProject();
 
@@ -20,7 +22,9 @@ public:
 
         const auto snap = project->snapshot();
         expect(!snap.tracks.empty(), "should have tracks");
+        if (snap.tracks.empty()) return;
         expect(!snap.tracks[0].midiClips.empty(), "track should have MIDI clips");
+        if (snap.tracks[0].midiClips.empty()) return;
 
         const std::string clipId = snap.tracks[0].midiClips[0].id;
 

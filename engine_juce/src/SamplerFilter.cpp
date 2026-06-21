@@ -11,15 +11,24 @@ constexpr float kPi = 3.14159265358979323846f;
 
 } // namespace
 
+static inline float safe_clamp(float v, float lo, float hi) noexcept {
+    if (!std::isfinite(v)) return lo;
+    return std::clamp(v, lo, hi);
+}
+
+static inline int safe_clamp(int v, int lo, int hi) noexcept {
+    return std::clamp(v, lo, hi);
+}
+
 float normalizedCutoffToHz(float normalized) noexcept {
-    const float clamped = std::clamp(normalized, 0.0f, 1.0f);
+    const float clamped = safe_clamp(normalized, 0.0f, 1.0f);
     const float minHz = 40.0f;
     const float maxHz = 16000.0f;
     return minHz * std::pow(maxHz / minHz, clamped);
 }
 
 float normalizedQToValue(float normalized) noexcept {
-    const float clamped = std::clamp(normalized, 0.0f, 1.0f);
+    const float clamped = safe_clamp(normalized, 0.0f, 1.0f);
     return 0.5f + clamped * 7.5f;
 }
 
@@ -33,7 +42,7 @@ void cookSamplerBiquad(BiquadCoeffs& coeffs,
         return;
     }
 
-    const float omega = 2.0f * kPi * std::clamp(cutoffHz, 20.0f, sampleRate * 0.45f) / sampleRate;
+    const float omega = 2.0f * kPi * safe_clamp(cutoffHz, 20.0f, sampleRate * 0.45f) / sampleRate;
     const float sinOmega = std::sin(omega);
     const float cosOmega = std::cos(omega);
     const float alpha = sinOmega / (2.0f * std::max(q, 0.1f));
@@ -91,11 +100,23 @@ void cookSamplerBiquad(BiquadCoeffs& coeffs,
 float processBiquadSample(float input,
                           const BiquadCoeffs& coeffs,
                           BiquadState& state) noexcept {
-    const float output =
-        coeffs.b0 * input + state.z1;
+    float output = coeffs.b0 * input + state.z1;
+    if (!std::isfinite(output)) {
+        state.z1 = 0.0f;
+        state.z2 = 0.0f;
+        output = 0.0f;
+    }
     state.z1 = coeffs.b1 * input - coeffs.a1 * output + state.z2;
     state.z2 = coeffs.b2 * input - coeffs.a2 * output;
-    return output;
+
+    // Hard limits to prevent exponential blow-up during sudden coefficient sweeps.
+    // Ensure values are finite before clamping to satisfy MSVC's clamp assertions.
+    if (!std::isfinite(state.z1)) state.z1 = 0.0f;
+    if (!std::isfinite(state.z2)) state.z2 = 0.0f;
+
+    state.z1 = safe_clamp(state.z1, -100.0f, 100.0f);
+    state.z2 = safe_clamp(state.z2, -100.0f, 100.0f);
+    return safe_clamp(output, -20.0f, 20.0f);
 }
 
 int combDelaySamples(float sampleRate, float cutoffHz) noexcept {
@@ -103,19 +124,19 @@ int combDelaySamples(float sampleRate, float cutoffHz) noexcept {
         return 2;
     }
     const int delay =
-        static_cast<int>(std::lround(sampleRate / std::clamp(cutoffHz, 40.0f, 8000.0f)));
-    return std::clamp(delay, 2, kCombMaxDelay - 1);
+        static_cast<int>(std::lround(sampleRate / safe_clamp(cutoffHz, 40.0f, 8000.0f)));
+    return safe_clamp(delay, 2, kCombMaxDelay - 1);
 }
 
 float processCombSample(float input,
                         CombFilterState& state,
                         int delaySamples,
                         float feedback) noexcept {
-    const int clampedDelay = std::clamp(delaySamples, 2, kCombMaxDelay - 1);
+    const int clampedDelay = safe_clamp(delaySamples, 2, kCombMaxDelay - 1);
     const int readIndex =
         (state.writeIndex - clampedDelay + kCombMaxDelay) % kCombMaxDelay;
     const float delayed = state.buffer[readIndex];
-    const float clampedFeedback = std::clamp(feedback, 0.0f, 0.98f);
+    const float clampedFeedback = safe_clamp(feedback, 0.0f, 0.98f);
     const float output = input + clampedFeedback * delayed;
     state.buffer[state.writeIndex] = output;
     state.writeIndex = (state.writeIndex + 1) % kCombMaxDelay;

@@ -64,7 +64,7 @@ bool buildBrokenProjectFromApi(audioapp::EngineHost& host) {
     if (!host.assignAutomationTarget(aclipId, synthId, "filterCutoff")) return false;
     std::vector<audioapp::AutomationPointState> points = {
         {0.0, 1.0f},
-        {8.0, 0.0f},
+        {8.0, 0.2f},
     };
     if (!host.setAutomationPoints(aclipId, points)) return false;
 
@@ -155,15 +155,16 @@ public:
       ],
       "midiClips": [],
       "sampleClips": [],
-      "automationClips": [
-        {
-          "id": "aclip-1", "startBeat": 0.0, "lengthBeats": 8.0,
-          "deviceId": "dev-2", "paramId": "filterCutoff",
-          "points": [
-            {"beat": 0.0, "value": 1.0},
-            {"beat": 8.0, "value": 0.0}
-          ]
-        }
+      "automationClips": []
+    }
+  ],
+  "automationClips": [
+    {
+      "id": "aclip-1", "startBeat": 0.0, "lengthBeats": 8.0,
+      "deviceId": "dev-2", "paramId": "filterCutoff",
+      "points": [
+        {"beat": 0.0, "value": 1.0},
+        {"beat": 8.0, "value": 0.2}
       ]
     }
   ],

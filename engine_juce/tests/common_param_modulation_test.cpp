@@ -113,7 +113,7 @@ public:
             constexpr int kWindows = 8;
             const float unmodRatio = rmsVariationRatio(unmodBlock, kWindows);
             const float panRatio = rmsVariationRatio(panModBlock, kWindows);
-
+            
             expect(panRatio >= unmodRatio * 1.15f,
                    "pan modulation adds RMS variation beyond baseline");
         }

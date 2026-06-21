@@ -86,6 +86,7 @@ struct SubtractiveVoiceRuntime {
     float cachedFilterCutoffHz = -1.0f;
     float cachedFilterQ = -1.0f;
     int cachedFilterMode = -1;
+    float smoothCutoffHz = -1.0f;
     BiquadCoeffs cachedPreHpCoeffs{};
     float cachedPreHpCutoffHz = -1.0f;
     float cachedPreHpQ = -1.0f;

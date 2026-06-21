@@ -32,17 +32,6 @@ public:
                 expectEquals(static_cast<int>(snap.automationClips.size()), 1);
                 expectEquals(snap.automationClips[0].homeTrackId, track1);
                 expectEquals(snap.automationClips[0].id, aclipId);
-                // Verify per-track refs (backward compat)
-                for (const auto& t : snap.tracks) {
-                    (void)t;
-                }
-                if (snap.tracks.size() >= 1)
-                    expect(static_cast<int>(snap.tracks[0].automationClips.size()) == 1 ||
-                           static_cast<int>(snap.tracks[0].automationClips.size()) == 0,
-                           "track 0 may or may not host the clip's backward compat entry");
-                if (snap.tracks.size() >= 2)
-                    expect(static_cast<int>(snap.tracks[1].automationClips.size()) == 0,
-                           "track 1 should have no backward compat entry");
             }
 
             // Move the automation clip to track 2 at a different beat position.
@@ -55,15 +44,6 @@ public:
                 const auto& clip = moved.automationClips[0];
                 expectEquals(clip.homeTrackId, track2);
                 expectWithinAbsoluteError(clip.startBeat, 8.0, 0.001);
-                if (moved.tracks.size() >= 1)
-                    expect(static_cast<int>(moved.tracks[0].automationClips.size()) == 0,
-                           "track 0 should have no per-track clip after move");
-                if (moved.tracks.size() >= 2) {
-                    expect(static_cast<int>(moved.tracks[1].automationClips.size()) == 1,
-                           "track 1 should have per-track clip after move");
-                    if (moved.tracks[1].automationClips.size() >= 1)
-                        expectEquals(moved.tracks[1].automationClips[0].id, aclipId);
-                }
             }
 
             // Move back to track 1 at the original position.
@@ -75,8 +55,6 @@ public:
                 expectEquals(static_cast<int>(back.automationClips.size()), 1);
                 expectEquals(back.automationClips[0].homeTrackId, track1);
                 expectWithinAbsoluteError(back.automationClips[0].startBeat, 0.0, 0.001);
-                expectEquals(static_cast<int>(back.tracks[0].automationClips.size()), 1);
-                expectEquals(static_cast<int>(back.tracks[1].automationClips.size()), 0);
             }
 
             // Verify that moving a non-existent clip fails gracefully.

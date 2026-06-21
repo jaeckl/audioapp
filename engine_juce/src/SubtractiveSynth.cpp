@@ -16,6 +16,11 @@ constexpr float kSubtractiveTwoPi = 6.28318530718f;
 
 namespace {
 
+static inline float safe_clamp(float v, float lo, float hi) noexcept {
+    if (!std::isfinite(v)) return lo;
+    return std::clamp(v, lo, hi);
+}
+
 constexpr float kPi = kSubtractivePi;
 constexpr float kTwoPi = kSubtractiveTwoPi;
 
@@ -30,8 +35,8 @@ float noiseSample(float& seed) noexcept {
 }
 
 float applyFilterShaper(float sample, int mode, float amount) noexcept {
-    const float amt = std::clamp(amount, 0.0f, 1.0f);
-    const int shaperMode = std::clamp(mode, 0, 3);
+    const float amt = safe_clamp(amount, 0.0f, 1.0f);
+    const int shaperMode = safe_clamp(mode, 0, 3);
     if (amt <= 0.0f || shaperMode == 0) {
         return sample;
     }
@@ -42,7 +47,7 @@ float applyFilterShaper(float sample, int mode, float amount) noexcept {
         shaped = std::tanh(sample * 2.5f);
         break;
     case 2:
-        shaped = std::clamp(sample * 3.0f, -1.0f, 1.0f);
+        shaped = safe_clamp(sample * 3.0f, -1.0f, 1.0f);
         break;
     case 3:
         shaped = std::sin(sample * kPi * 1.5f);
@@ -93,47 +98,47 @@ bool isSubtractiveNoteAudible(const SubtractiveMidiNoteRegion& note,
 /// source of truth; keep these in sync when adding new params.
 static void applySubtractiveModulation(SubtractiveSynthParams& p, float modAmount, uint16_t localParamId) noexcept {
     switch (static_cast<SubtractiveParam>(unpackParamId(localParamId))) {
-    case SubtractiveParam::FilterCutoff:      p.filterCutoff = std::clamp(p.filterCutoff + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::FilterQ:           p.filterQ = std::clamp(p.filterQ + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::FilterMode:        p.filterMode = std::clamp(static_cast<int>(std::lround(static_cast<float>(p.filterMode) + modAmount * 5.0f)), 0, 5); break;
-    case SubtractiveParam::AmpAttack:         p.ampAttack = std::clamp(p.ampAttack + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::AmpDecay:          p.ampDecay = std::clamp(p.ampDecay + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::AmpSustain:        p.ampSustain = std::clamp(p.ampSustain + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::AmpRelease:        p.ampRelease = std::clamp(p.ampRelease + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::Osc1Shape:         p.osc1Shape = std::clamp(p.osc1Shape + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::Osc2Shape:         p.osc2Shape = std::clamp(p.osc2Shape + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::Osc1Octave:        p.osc1Octave = std::clamp(p.osc1Octave + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::Osc1Semi:          p.osc1Semi = std::clamp(p.osc1Semi + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::Osc1Detune:        p.osc1Detune = std::clamp(p.osc1Detune + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::Osc2Octave:        p.osc2Octave = std::clamp(p.osc2Octave + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::Osc2Semi:          p.osc2Semi = std::clamp(p.osc2Semi + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::Osc2Detune:        p.osc2Detune = std::clamp(p.osc2Detune + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::OscMix:            p.oscMix = std::clamp(p.oscMix + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::OscMixMode:        p.oscMixMode = std::clamp(static_cast<int>(std::lround(static_cast<float>(p.oscMixMode) + modAmount * 4.0f)), 0, 4); break;
-    case SubtractiveParam::Osc1Sync:          p.osc1Sync = std::clamp(p.osc1Sync + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::Osc2Sync:          p.osc2Sync = std::clamp(p.osc2Sync + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::NoiseLevel:        p.noiseLevel = std::clamp(p.noiseLevel + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::UnisonVoices:      p.unisonVoices = std::clamp(p.unisonVoices + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::UnisonDetune:      p.unisonDetune = std::clamp(p.unisonDetune + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::FilterEnvAmount:   p.filterEnvAmount = std::clamp(p.filterEnvAmount + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::FilterAttack:      p.filterAttack = std::clamp(p.filterAttack + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::FilterDecay:       p.filterDecay = std::clamp(p.filterDecay + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::FilterSustain:     p.filterSustain = std::clamp(p.filterSustain + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::FilterRelease:     p.filterRelease = std::clamp(p.filterRelease + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::GlideMs:           p.glideMs = std::clamp(p.glideMs + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::VelocitySensitivity: p.velocitySensitivity = std::clamp(p.velocitySensitivity + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::PreHpCutoff:       p.preHpCutoff = std::clamp(p.preHpCutoff + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::PreHpRes:          p.preHpRes = std::clamp(p.preHpRes + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::PreDrive:          p.preDrive = std::clamp(p.preDrive + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::MixFeedback:       p.mixFeedback = std::clamp(p.mixFeedback + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::GlobalPitch:       p.globalPitch = std::clamp(p.globalPitch + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::FilterKeyTrack:    p.filterKeyTrack = std::clamp(p.filterKeyTrack + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::FilterDrive:       p.filterDrive = std::clamp(p.filterDrive + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::FilterShaper:      p.filterShaper = std::clamp(p.filterShaper + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::FilterFm:          p.filterFm = std::clamp(p.filterFm + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::FilterShaperMode:  p.filterShaperMode = std::clamp(static_cast<int>(std::lround(static_cast<float>(p.filterShaperMode) + modAmount * 3.0f)), 0, 3); break;
-    case SubtractiveParam::SynthLegato:       p.synthLegato = std::clamp(p.synthLegato + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::SynthMono:         p.synthMono = std::clamp(p.synthMono + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterCutoff:      p.filterCutoff = safe_clamp(p.filterCutoff + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterQ:           p.filterQ = safe_clamp(p.filterQ + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterMode:        p.filterMode = safe_clamp(static_cast<int>(std::lround(static_cast<float>(p.filterMode) + modAmount * 5.0f)), 0, 5); break;
+    case SubtractiveParam::AmpAttack:         p.ampAttack = safe_clamp(p.ampAttack + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::AmpDecay:          p.ampDecay = safe_clamp(p.ampDecay + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::AmpSustain:        p.ampSustain = safe_clamp(p.ampSustain + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::AmpRelease:        p.ampRelease = safe_clamp(p.ampRelease + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::Osc1Shape:         p.osc1Shape = safe_clamp(p.osc1Shape + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::Osc2Shape:         p.osc2Shape = safe_clamp(p.osc2Shape + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::Osc1Octave:        p.osc1Octave = safe_clamp(p.osc1Octave + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::Osc1Semi:          p.osc1Semi = safe_clamp(p.osc1Semi + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::Osc1Detune:        p.osc1Detune = safe_clamp(p.osc1Detune + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::Osc2Octave:        p.osc2Octave = safe_clamp(p.osc2Octave + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::Osc2Semi:          p.osc2Semi = safe_clamp(p.osc2Semi + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::Osc2Detune:        p.osc2Detune = safe_clamp(p.osc2Detune + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::OscMix:            p.oscMix = safe_clamp(p.oscMix + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::OscMixMode:        p.oscMixMode = safe_clamp(static_cast<int>(std::lround(static_cast<float>(p.oscMixMode) + modAmount * 4.0f)), 0, 4); break;
+    case SubtractiveParam::Osc1Sync:          p.osc1Sync = safe_clamp(p.osc1Sync + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::Osc2Sync:          p.osc2Sync = safe_clamp(p.osc2Sync + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::NoiseLevel:        p.noiseLevel = safe_clamp(p.noiseLevel + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::UnisonVoices:      p.unisonVoices = safe_clamp(p.unisonVoices + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::UnisonDetune:      p.unisonDetune = safe_clamp(p.unisonDetune + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterEnvAmount:   p.filterEnvAmount = safe_clamp(p.filterEnvAmount + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterAttack:      p.filterAttack = safe_clamp(p.filterAttack + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterDecay:       p.filterDecay = safe_clamp(p.filterDecay + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterSustain:     p.filterSustain = safe_clamp(p.filterSustain + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterRelease:     p.filterRelease = safe_clamp(p.filterRelease + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::GlideMs:           p.glideMs = safe_clamp(p.glideMs + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::VelocitySensitivity: p.velocitySensitivity = safe_clamp(p.velocitySensitivity + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::PreHpCutoff:       p.preHpCutoff = safe_clamp(p.preHpCutoff + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::PreHpRes:          p.preHpRes = safe_clamp(p.preHpRes + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::PreDrive:          p.preDrive = safe_clamp(p.preDrive + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::MixFeedback:       p.mixFeedback = safe_clamp(p.mixFeedback + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::GlobalPitch:       p.globalPitch = safe_clamp(p.globalPitch + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterKeyTrack:    p.filterKeyTrack = safe_clamp(p.filterKeyTrack + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterDrive:       p.filterDrive = safe_clamp(p.filterDrive + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterShaper:      p.filterShaper = safe_clamp(p.filterShaper + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterFm:          p.filterFm = safe_clamp(p.filterFm + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterShaperMode:  p.filterShaperMode = safe_clamp(static_cast<int>(std::lround(static_cast<float>(p.filterShaperMode) + modAmount * 3.0f)), 0, 3); break;
+    case SubtractiveParam::SynthLegato:       p.synthLegato = safe_clamp(p.synthLegato + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::SynthMono:         p.synthMono = safe_clamp(p.synthMono + modAmount, 0.0f, 1.0f); break;
     default: break;
     }
 }
@@ -178,7 +183,7 @@ float renderOscBank(float shape,
         return 0.0f;
     }
 
-    const float sync = std::clamp(syncAmount, 0.0f, 1.0f);
+    const float sync = safe_clamp(syncAmount, 0.0f, 1.0f);
     const bool hardSyncSlave = masterWrapped != nullptr && sync > 0.001f;
     float sum = 0.0f;
     for (int u = 0; u < unisonCount; ++u) {
@@ -255,7 +260,7 @@ float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
     const float pitchRatio =
         voice.currentHz / subtractiveOscPitchHz(effectivePitch, 0.5f, 0.0f, 0.5f);
 
-    const float mix = std::clamp(params.oscMix, 0.0f, 1.0f);
+    const float mix = safe_clamp(params.oscMix, 0.0f, 1.0f);
 
     const float osc1Hz = osc1Root * pitchRatio;
     bool osc1Wrapped[kSubtractiveMaxUnison]{};
@@ -267,7 +272,7 @@ float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
                                      voice.osc1Phases,
                                      osc1Wrapped);
     const float syncAmount =
-        std::clamp(params.osc1Sync, 0.0f, 1.0f) * std::clamp(params.osc2Sync, 0.0f, 1.0f);
+        safe_clamp(params.osc1Sync, 0.0f, 1.0f) * safe_clamp(params.osc2Sync, 0.0f, 1.0f);
     const float osc2 = renderOscBank(params.osc2Shape,
                                      osc2Root * pitchRatio,
                                      voice.osc2PhaseIncPerUnit,
@@ -289,21 +294,21 @@ float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
         mixed += subtractiveNoiseSample(voice.noiseSeed) * params.noiseLevel * 0.25f;
     }
 
-    const float fbAmt = std::clamp(params.mixFeedback, 0.0f, 1.0f) * 0.35f;
+    const float fbAmt = safe_clamp(params.mixFeedback, 0.0f, 1.0f) * 0.35f;
     if (fbAmt > 0.0f) {
         mixed += std::tanh(voice.mixFeedbackSample) * fbAmt;
     }
 
-    const float preDrive = std::clamp(params.preDrive, 0.0f, 1.0f);
+    const float preDrive = safe_clamp(params.preDrive, 0.0f, 1.0f);
     if (preDrive > 0.0f) {
         mixed *= 1.0f + preDrive * 5.0f;
         mixed = std::tanh(mixed);
     }
 
-    const float preHpCut = std::clamp(params.preHpCutoff, 0.0f, 1.0f);
+    const float preHpCut = safe_clamp(params.preHpCutoff, 0.0f, 1.0f);
     if (preHpCut > 0.02f) {
-        const float q = normalizedQToValue(std::clamp(params.preHpRes, 0.0f, 1.0f));
-        const float hpCutoffHz = std::clamp(normalizedCutoffToHz(preHpCut), 20.0f, 20000.0f);
+        const float q = normalizedQToValue(safe_clamp(params.preHpRes, 0.0f, 1.0f));
+        const float hpCutoffHz = safe_clamp(normalizedCutoffToHz(preHpCut), 20.0f, 20000.0f);
         // Cache preHP coefficients (rarely change per-block)
         if (std::abs(hpCutoffHz - voice.cachedPreHpCutoffHz) > 0.5f ||
             std::abs(q - voice.cachedPreHpQ) > 0.001f) {
@@ -318,17 +323,24 @@ float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
 
     const float baseCutoff = normalizedCutoffToHz(params.filterCutoff);
     float envCutoff = baseCutoff * (1.0f + filterGain * params.filterEnvAmount * 4.0f);
-    const float filterFm = std::clamp(params.filterFm, 0.0f, 1.0f);
+    const float filterFm = safe_clamp(params.filterFm, 0.0f, 1.0f);
     if (filterFm > 0.0f) {
         const float fmMod = 1.0f + filterFm * osc2 * 3.0f;
-        envCutoff *= std::clamp(fmMod, 0.2f, 4.0f);
+        envCutoff *= safe_clamp(fmMod, 0.2f, 4.0f);
     }
-    const float keyTrack = std::clamp(params.filterKeyTrack, 0.0f, 1.0f);
+    const float keyTrack = safe_clamp(params.filterKeyTrack, 0.0f, 1.0f);
     const float semitonesFromRef = static_cast<float>(effectivePitch - 60);
     const float keyTrackRatio = std::pow(2.0f, semitonesFromRef * keyTrack / 12.0f);
-    const float cutoffHz =
-        std::clamp(envCutoff * keyTrackRatio, 20.0f, 20000.0f);
-    const int filterMode = std::clamp(params.filterMode, 0, 5);
+    const float rawCutoffHz =
+        safe_clamp(envCutoff * keyTrackRatio, 20.0f, 20000.0f);
+
+    if (voice.smoothCutoffHz <= 0.0f) {
+        voice.smoothCutoffHz = rawCutoffHz;
+    } else {
+        voice.smoothCutoffHz += (rawCutoffHz - voice.smoothCutoffHz) * 0.05f;
+    }
+    const float cutoffHz = safe_clamp(voice.smoothCutoffHz, 20.0f, 20000.0f);
+    const int filterMode = safe_clamp(params.filterMode, 0, 5);
     const float rawQ = normalizedQToValue(params.filterQ);
     const float q = filterMode == 4 ? std::min(rawQ, 4.0f) : rawQ;
     // Cache filter coefficients when params haven't changed meaningfully
@@ -364,7 +376,7 @@ float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
 
     mixed = std::tanh(mixed * 0.75f) / 0.75f;
 
-    const float filterDrive = std::clamp(params.filterDrive, 0.0f, 1.0f);
+    const float filterDrive = safe_clamp(params.filterDrive, 0.0f, 1.0f);
     if (filterDrive > 0.0f) {
         mixed = std::tanh(mixed * (1.0f + filterDrive * 3.0f));
     }
@@ -395,7 +407,7 @@ float subtractiveWaveSample(int wave, float phase) noexcept {
 }
 
 float subtractiveMorphWaveSample(float shape, float phase) noexcept {
-    const float scaled = std::clamp(shape, 0.0f, 1.0f) * 4.0f;
+    const float scaled = safe_clamp(shape, 0.0f, 1.0f) * 4.0f;
     const int i0 = std::min(4, static_cast<int>(scaled));
     const int i1 = std::min(4, i0 + 1);
     const float t = scaled - static_cast<float>(i0);
@@ -405,7 +417,7 @@ float subtractiveMorphWaveSample(float shape, float phase) noexcept {
 }
 
 int subtractiveUnisonCount(float normalized) noexcept {
-    const float clamped = std::clamp(normalized, 0.0f, 1.0f);
+    const float clamped = safe_clamp(normalized, 0.0f, 1.0f);
     return 1 + static_cast<int>(std::lround(clamped * static_cast<float>(kSubtractiveMaxUnison - 1)));
 }
 
@@ -453,12 +465,12 @@ void renderSubtractiveLiveVoice(float& mix,
     const float ampAttackSec = adsrNormalizedToSeconds(params.ampAttack, 2.0f);
     const float ampDecaySec = adsrNormalizedToSeconds(params.ampDecay, 2.0f);
     const float ampReleaseSec = adsrNormalizedToSeconds(params.ampRelease, 3.0f);
-    const float ampSustain = std::clamp(params.ampSustain, 0.0f, 1.0f);
+    const float ampSustain = safe_clamp(params.ampSustain, 0.0f, 1.0f);
 
     const float filterAttackSec = adsrNormalizedToSeconds(params.filterAttack, 2.0f);
     const float filterDecaySec = adsrNormalizedToSeconds(params.filterDecay, 2.0f);
     const float filterReleaseSec = adsrNormalizedToSeconds(params.filterRelease, 3.0f);
-    const float filterSustain = std::clamp(params.filterSustain, 0.0f, 1.0f);
+    const float filterSustain = safe_clamp(params.filterSustain, 0.0f, 1.0f);
 
     const double voiceElapsed =
         static_cast<double>(sampleIndex) / sampleRate - voice.startBeat;
@@ -494,7 +506,7 @@ void renderSubtractiveLiveVoice(float& mix,
                                              filterSustain,
                                              filterReleaseSec);
 
-    const float vel = std::clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
+    const float vel = safe_clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
     const float velGain = 1.0f - params.velocitySensitivity * (1.0f - vel);
 
     const float glideMs = params.glideMs * 2000.0f;
@@ -504,6 +516,25 @@ void renderSubtractiveLiveVoice(float& mix,
 
     mix += subtractiveVoiceSample(voice, params, ampGain * velGain, filterGain, sampleRate, glideCoeff) *
            params.gain * kInstrumentOutputGain;
+}
+
+static bool isNoteAudibleInBlock(const SubtractiveMidiNoteRegion& note,
+                                 double blockStartBeat,
+                                 int numFrames,
+                                 double sampleRate,
+                                 int bpm,
+                                 float releaseSec) noexcept {
+    if (bpm <= 0 || sampleRate <= 0.0) return false;
+    const double blockEndBeat = blockStartBeat + static_cast<double>(numFrames) * 
+        (static_cast<double>(bpm) / 60.0) / sampleRate;
+    
+    // Note is active if its span (including release) overlaps with the block span [blockStartBeat, blockEndBeat]
+    const double noteStart = note.clipStartBeat + note.noteStartBeat;
+    const double noteEnd = noteStart + note.noteDurationBeats;
+    const double releaseBeats = static_cast<double>(releaseSec) * static_cast<double>(bpm) / 60.0;
+    const double totalEnd = noteEnd + releaseBeats;
+    
+    return !(blockEndBeat < noteStart || blockStartBeat >= totalEnd);
 }
 
 void mixSubtractiveMidiNotesBlock(float* monoOut,
@@ -537,11 +568,11 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
     const float ampReleaseSec = adsrNormalizedToSeconds(params.ampRelease, 3.0f);
     const float ampAttackSec = adsrNormalizedToSeconds(params.ampAttack, 2.0f);
     const float ampDecaySec = adsrNormalizedToSeconds(params.ampDecay, 2.0f);
-    const float ampSustain = std::clamp(params.ampSustain, 0.0f, 1.0f);
+    const float ampSustain = safe_clamp(params.ampSustain, 0.0f, 1.0f);
     const float filterAttackSec = adsrNormalizedToSeconds(params.filterAttack, 2.0f);
     const float filterDecaySec = adsrNormalizedToSeconds(params.filterDecay, 2.0f);
     const float filterReleaseSec = adsrNormalizedToSeconds(params.filterRelease, 3.0f);
-    const float filterSustain = std::clamp(params.filterSustain, 0.0f, 1.0f);
+    const float filterSustain = safe_clamp(params.filterSustain, 0.0f, 1.0f);
     const float glideMs = params.glideMs * 2000.0f;
     const float glideCoeff =
         glideMs > 0.0f ? 1.0f - std::exp(-1.0f / (static_cast<float>(sampleRate) * glideMs * 0.001f))
@@ -553,6 +584,10 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
     int allocatedVoices = 0;
 
     for (int ni = 0; ni < noteCount && allocatedVoices < kSubtractiveMaxVoices; ++ni) {
+        if (!isNoteAudibleInBlock(notes[ni], blockStartBeat, numFrames, sampleRate, bpm, ampReleaseSec)) {
+            continue;
+        }
+
         // Find or create a runtime voice slot for this note
         int vi = -1;
         // 1. Exact match by pitch
@@ -591,28 +626,14 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
         ++allocatedVoices;
     }
 
-    // Leave all active voices alone — release tails play naturally via per-frame ADSR.
-    if (allocatedVoices == 0) return;
-
-    // Mono mode: keep only the voice for the last allocated pitch
-    if (params.synthMono >= 0.5f && allocatedVoices > 1) {
-        // Find the voice matching the last note in the list
-        int lastPitch = -1;
-        for (int ni = noteCount - 1; ni >= 0; --ni) {
-            for (int v = 0; v < kSubtractiveMaxVoices; ++v) {
-                if (runtime.voices[v].active != 0 && runtime.voices[v].pitch == notes[ni].pitch) {
-                    lastPitch = notes[ni].pitch;
-                    break;
-                }
-            }
-            if (lastPitch >= 0) break;
-        }
-        for (int v = 0; v < kSubtractiveMaxVoices; ++v) {
-            if (runtime.voices[v].active != 0 && runtime.voices[v].pitch != lastPitch) {
-                runtime.voices[v].active = 0;
-            }
+    bool anyVoiceActive = false;
+    for (int v = 0; v < kSubtractiveMaxVoices; ++v) {
+        if (runtime.voices[v].active != 0) {
+            anyVoiceActive = true;
+            break;
         }
     }
+    if (!anyVoiceActive) return;
 
     // --- Phase 2: Per-frame rendering ---
     // Render ALL active voices each frame, matching each to its note by pitch.
@@ -653,9 +674,34 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
 
         float mix = 0.0f;
         int renderedCount = 0;
+
+        // Mono mode: determine the active pitch at this frame
+        int activeMonoPitch = -1;
+        if (frameParams.synthMono >= 0.5f) {
+            // Find the most recently triggered note that is audible at this beat
+            for (int ni = noteCount - 1; ni >= 0; --ni) {
+                double elapsedSec = 0.0, noteDurSec = 0.0;
+                bool inRelease = false;
+                if (isSubtractiveNoteAudible(notes[ni], beat, bpm, ampReleaseSec,
+                                              elapsedSec, noteDurSec, inRelease)) {
+                    activeMonoPitch = notes[ni].pitch;
+                    break;
+                }
+            }
+        }
+
         for (int v = 0; v < kSubtractiveMaxVoices; ++v) {
             auto& voice = runtime.voices[v];
             if (voice.active == 0) continue;
+
+            // In mono mode, skip rendering if this voice's pitch is not the active one
+            if (frameParams.synthMono >= 0.5f && voice.pitch != activeMonoPitch) {
+                // If a new note has cut off this voice, set it to inactive
+                if (activeMonoPitch >= 0) {
+                    voice.active = 0;
+                }
+                continue;
+            }
 
             // Find matching note region by pitch
             int ni = -1;
@@ -690,7 +736,7 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
                                                      static_cast<float>(noteDurSec),
                                                      filterAttackSec, filterDecaySec,
                                                      filterSustain, filterReleaseSec);
-            const float vel = std::clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
+            const float vel = safe_clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
             const float velGain = 1.0f - frameParams.velocitySensitivity * (1.0f - vel);
 
             mix += subtractiveVoiceSample(voice, frameParams,

@@ -13,6 +13,7 @@ struct BiquadCoeffs {
 struct BiquadState {
     float z1 = 0.0f;
     float z2 = 0.0f;
+    float lastCutoffHz = -1.0f;
 };
 
 static constexpr int kCombMaxDelay = 1024;

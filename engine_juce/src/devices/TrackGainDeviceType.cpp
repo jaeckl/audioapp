@@ -29,6 +29,8 @@ juce::var TrackGainDeviceType::slotToVar(const DeviceSlot& slot) const {
     object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
     object->setProperty("type", juce::String::fromUTF8(typeId().c_str()));
     object->setProperty("parameters", juce::var(parameters));
+    object->setProperty("pan", static_cast<double>(slot.pan));
+    object->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
     return juce::var(object);
 }
 
@@ -45,9 +47,15 @@ DeviceSlot TrackGainDeviceType::varToSlot(const juce::var& obj) const {
                 return fallback;
             };
             slot.gain = readFloat("gain", 1.0f);
-            slot.pan = readFloat("pan", 0.5f);
-            slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
         }
+        auto readRootFloat = [&](const char* key, float fallback) -> float {
+            const auto v = object->getProperty(key);
+            if (v.isDouble() || v.isInt() || v.isInt64())
+                return static_cast<float>(static_cast<double>(v));
+            return fallback;
+        };
+        slot.pan = readRootFloat("pan", 0.5f);
+        slot.bypassed = readRootFloat("bypass", 0.0f) >= 0.5f;
         slot.instance = TrackGainInstance{};
     }
     return slot;

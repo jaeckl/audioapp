@@ -46,7 +46,6 @@ struct TrackState {
     std::vector<DeviceMeterState> deviceMeters;
     std::vector<MidiClipState> midiClips;
     std::vector<SampleClipState> sampleClips;
-    std::vector<AutomationClipState> automationClips;
 };
 
 struct MasterTrackState {
@@ -70,10 +69,7 @@ struct ProjectSnapshot {
     std::vector<TrackState> tracks;
     std::vector<LfoState> lfos;
     std::vector<ModulationEdge> modEdges;
-    /// Global automation-clip store. The store is authoritative; the
-    /// per-track `TrackState::automationClips` field is still populated for
-    /// backwards compatibility with the Flutter side, but new code should
-    /// read from here.
+    /// Global automation-clip store.
     std::vector<AutomationClipState> automationClips;
 };
 

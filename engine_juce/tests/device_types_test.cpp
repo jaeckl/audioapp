@@ -86,6 +86,7 @@ public:
             audioapp::DeviceNodePlayback synthNode{};
             audioapp::DeviceSlot synth =
                 registry.createDefault(audioapp::device_types::kSubtractiveSynth, "dev-synth");
+            registry.setParameter(synth, "osc1Shape", 0.75f);
             registry.buildPlaybackNode(synth, context, synthNode);
             expect(synthNode.kind == audioapp::DeviceNodeKind::SubtractiveSynth,
                    "synth node kind should be SubtractiveSynth");

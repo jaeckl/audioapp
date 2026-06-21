@@ -9,44 +9,49 @@ namespace {
 
 constexpr float kEps = 1.0e-10f;
 
+static inline float safe_clamp(float v, float lo, float hi) noexcept {
+    if (!std::isfinite(v)) return lo;
+    return std::clamp(v, lo, hi);
+}
+
 float normToThresholdDb(float norm) noexcept {
-    return -60.0f + std::clamp(norm, 0.0f, 1.0f) * 54.0f;
+    return -60.0f + safe_clamp(norm, 0.0f, 1.0f) * 54.0f;
 }
 
 float normToAttackSec(float norm) noexcept {
-    return 0.0005f + std::clamp(norm, 0.0f, 1.0f) * 0.05f;
+    return 0.0005f + safe_clamp(norm, 0.0f, 1.0f) * 0.05f;
 }
 
 float normToReleaseSec(float norm) noexcept {
-    return 0.005f + std::clamp(norm, 0.0f, 1.0f) * 0.45f;
+    return 0.005f + safe_clamp(norm, 0.0f, 1.0f) * 0.45f;
 }
 
 float normToHoldSec(float norm) noexcept {
-    return std::clamp(norm, 0.0f, 1.0f) * 0.08f;
+    return safe_clamp(norm, 0.0f, 1.0f) * 0.08f;
 }
 
 float normToRatio(float norm) noexcept {
-    return 1.0f + std::clamp(norm, 0.0f, 1.0f) * 19.0f;
+    return 1.0f + safe_clamp(norm, 0.0f, 1.0f) * 19.0f;
 }
 
 float normToExpanderRatio(float norm) noexcept {
-    return 1.0f + std::clamp(norm, 0.0f, 1.0f) * 7.0f;
+    return 1.0f + safe_clamp(norm, 0.0f, 1.0f) * 7.0f;
 }
 
 float normToKneeDb(float norm) noexcept {
-    return std::clamp(norm, 0.0f, 1.0f) * 12.0f;
+    return safe_clamp(norm, 0.0f, 1.0f) * 12.0f;
 }
 
 float normToMakeupDb(float norm) noexcept {
-    return std::clamp(norm, 0.0f, 1.0f) * 18.0f;
+    return safe_clamp(norm, 0.0f, 1.0f) * 18.0f;
 }
 
 float normToRangeDb(float norm) noexcept {
-    return -80.0f + std::clamp(norm, 0.0f, 1.0f) * 80.0f;
+    return -80.0f + safe_clamp(norm, 0.0f, 1.0f) * 80.0f;
 }
 
 float normToCeilingDb(float norm) noexcept {
-    return -12.0f + std::clamp(norm, 0.0f, 1.0f) * 12.0f;
+    return -12.0f + safe_clamp(norm, 0.0f, 1.0f) * 12.0f;
 }
 
 float linearToDb(float linear) noexcept {

@@ -56,7 +56,12 @@ bool DeviceRegistry::isKnownType(std::string_view typeId) const {
 }
 
 std::vector<std::string_view> DeviceRegistry::knownTypes() const {
-    return typeIds_;
+    std::vector<std::string_view> views;
+    views.reserve(typeIds_.size());
+    for (const auto& id : typeIds_) {
+        views.push_back(id);
+    }
+    return views;
 }
 
 const IDeviceType* DeviceRegistry::findTypeForSlot(const DeviceSlot& slot) const {

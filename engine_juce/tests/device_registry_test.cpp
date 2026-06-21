@@ -17,7 +17,7 @@ public:
         beginTest("known types count and lookup");
         {
             const auto known = registry.knownTypes();
-            expect(known.size() == 13, "should have 13 built-in device types");
+            expect(known.size() == 14, "should have 14 built-in device types");
             expect(registry.find("unknown_device") == nullptr,
                    "unknown device should return nullptr");
             expect(registry.isKnownType(audioapp::device_types::kOscillator) == true,

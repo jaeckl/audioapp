@@ -21,8 +21,9 @@ public:
             const std::string samplerId = host.addDeviceToTrack(trackId, "simple_sampler");
             expect(!samplerId.empty());
             expect(host.setDeviceStringParameter(samplerId, "sampleId", "sample_kick"));
-            // Isolate automation — no per-note filter envelope modulation.
             expect(host.setDeviceParameter(samplerId, "filterEnvAmount", 0.0f));
+            expect(host.setDeviceParameter(samplerId, "filterQ", 0.0f)); // flat, completely stable filter response
+            expect(host.setDeviceParameter(samplerId, "playbackMode", 1.0f)); // Loop the sample to test sweep continuously
 
             const std::string midiClipId = host.createMidiClip(trackId, 0.0, 4.0);
             expect(!midiClipId.empty());
@@ -36,7 +37,7 @@ public:
 
             std::vector<audioapp::AutomationPointState> points;
             points.push_back({0.0, 1.0f});
-            points.push_back({4.0, 0.05f});
+            points.push_back({4.0, 0.25f});
             expect(host.setAutomationPoints(clipId, points));
 
             host.setPlaying(true);

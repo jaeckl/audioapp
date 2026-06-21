@@ -44,7 +44,7 @@ public:
 
 private:
     std::vector<std::unique_ptr<IDeviceType>> types_;
-    std::vector<std::string_view> typeIds_;
+    std::vector<std::string> typeIds_;
 };
 
 } // namespace audioapp

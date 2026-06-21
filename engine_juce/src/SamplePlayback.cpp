@@ -9,6 +9,11 @@ namespace audioapp {
 
 namespace {
 
+static inline float safe_clamp(float v, float lo, float hi) noexcept {
+    if (!std::isfinite(v)) return lo;
+    return std::clamp(v, lo, hi);
+}
+
 double beatAtFrame(double playheadStartBeat, int frameIndex, double sampleRate, int bpm) {
     const double seconds = static_cast<double>(frameIndex) / sampleRate;
     return playheadStartBeat + seconds * static_cast<double>(bpm) / 60.0;
@@ -18,12 +23,12 @@ double beatAtFrame(double playheadStartBeat, int frameIndex, double sampleRate, 
 
 double samplerPitchRatio(int notePitch, int rootPitch, float rootFineTuneCents) noexcept {
     const double semitones = static_cast<double>(notePitch - rootPitch)
-        + static_cast<double>(std::clamp(rootFineTuneCents, -100.0f, 100.0f)) / 100.0;
+        + static_cast<double>(safe_clamp(rootFineTuneCents, -100.0f, 100.0f)) / 100.0;
     return std::pow(2.0, semitones / 12.0);
 }
 
 float adsrNormalizedToSeconds(float normalized, float maxSeconds) noexcept {
-    const float clamped = std::clamp(normalized, 0.0f, 1.0f);
+    const float clamped = safe_clamp(normalized, 0.0f, 1.0f);
     return 0.001f + clamped * maxSeconds;
 }
 
@@ -31,8 +36,8 @@ float samplerFilterCutoffHz(const float filterCutoffNorm,
                             const float filterEnvGain,
                             const float filterEnvAmount) noexcept {
     const float baseCutoff = normalizedCutoffToHz(filterCutoffNorm);
-    const float amount = std::clamp(filterEnvAmount, 0.0f, 1.0f);
-    return std::clamp(baseCutoff * (1.0f + filterEnvGain * amount * 4.0f), 20.0f, 20000.0f);
+    const float amount = safe_clamp(filterEnvAmount, 0.0f, 1.0f);
+    return safe_clamp(baseCutoff * (1.0f + filterEnvGain * amount * 4.0f), 20.0f, 20000.0f);
 }
 
 float processSamplerFilteredSample(const float sample,
@@ -43,8 +48,14 @@ float processSamplerFilteredSample(const float sample,
                                    const float filterQNorm,
                                    const float filterEnvGain,
                                    const float filterEnvAmount) noexcept {
-    const float cutoffHz =
+    const float rawCutoffHz =
         samplerFilterCutoffHz(filterCutoffNorm, filterEnvGain, filterEnvAmount);
+    if (filterState.lastCutoffHz <= 0.0f) {
+        filterState.lastCutoffHz = rawCutoffHz;
+    } else {
+        filterState.lastCutoffHz += (rawCutoffHz - filterState.lastCutoffHz) * 0.05f;
+    }
+    const float cutoffHz = safe_clamp(filterState.lastCutoffHz, 20.0f, 20000.0f);
     BiquadCoeffs coeffs{};
     cookSamplerBiquad(coeffs,
                       filterMode,
@@ -64,7 +75,7 @@ float samplerAdsrGain(float elapsedSec,
         return 0.0f;
     }
 
-    const float sustain = std::clamp(sustainLevel, 0.0f, 1.0f);
+    const float sustain = safe_clamp(sustainLevel, 0.0f, 1.0f);
 
     if (elapsedSec < attackSec) {
         return attackSec > 0.0f ? elapsedSec / attackSec : 1.0f;
@@ -192,11 +203,11 @@ void mixSamplerMidiNotesBlock(float* monoOut,
     const float attackSec = adsrNormalizedToSeconds(sampler.attack, 2.0f);
     const float decaySec = adsrNormalizedToSeconds(sampler.decay, 2.0f);
     const float releaseSec = adsrNormalizedToSeconds(sampler.release, 3.0f);
-    const float sustainLevel = std::clamp(sampler.sustain, 0.0f, 1.0f);
+    const float sustainLevel = safe_clamp(sampler.sustain, 0.0f, 1.0f);
     const float filterAttackSec = adsrNormalizedToSeconds(sampler.filterAttack, 2.0f);
     const float filterDecaySec = adsrNormalizedToSeconds(sampler.filterDecay, 2.0f);
     const float filterReleaseSec = adsrNormalizedToSeconds(sampler.filterRelease, 3.0f);
-    const float filterSustainLevel = std::clamp(sampler.filterSustain, 0.0f, 1.0f);
+    const float filterSustainLevel = safe_clamp(sampler.filterSustain, 0.0f, 1.0f);
     const bool usePerNoteFilter =
         sampler.noteFilterStates != nullptr && sampler.noteFilterStateCount > 0;
 
@@ -271,11 +282,17 @@ void mixSamplerMidiNotesBlock(float* monoOut,
             mix += noteSample;
         }
         if (!usePerNoteFilter && sampler.filterState != nullptr) {
+            const float targetCutoffHz = normalizedCutoffToHz(sampler.filterCutoff);
+            if (sampler.filterState->lastCutoffHz <= 0.0f) {
+                sampler.filterState->lastCutoffHz = targetCutoffHz;
+            } else {
+                sampler.filterState->lastCutoffHz += (targetCutoffHz - sampler.filterState->lastCutoffHz) * 0.05f;
+            }
             BiquadCoeffs filterCoeffs{};
             cookSamplerBiquad(filterCoeffs,
                               sampler.filterMode,
                               static_cast<float>(sampleRate),
-                              normalizedCutoffToHz(sampler.filterCutoff),
+                              sampler.filterState->lastCutoffHz,
                               normalizedQToValue(sampler.filterQ));
             mix = processBiquadSample(mix, filterCoeffs, *sampler.filterState);
         }

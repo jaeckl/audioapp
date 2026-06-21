@@ -592,6 +592,9 @@ void applyAutomationValue(DeviceVariantParams& params,
                           DeviceNodeKind kind,
                           uint16_t localParamId,
                           float value) noexcept {
+    if (!std::isfinite(value)) {
+        value = 0.0f;
+    }
     value = std::clamp(value, 0.0f, 1.0f);
     // localParamId is now encoded (ParamKind, perKindId). We dispatch on
     // the encoded kind so that a SubtractiveSynth::FilterCutoff (encoded
