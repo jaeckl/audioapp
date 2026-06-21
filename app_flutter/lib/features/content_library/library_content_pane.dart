@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 
-import '../../bridge/engine_bridge.dart';
 import '../../bridge/project_snapshot.dart';
 import 'device_preset_filter_list.dart';
 import 'library_catalog.dart';
@@ -9,7 +9,6 @@ import 'library_manifest.dart';
 import 'library_preview_widget.dart';
 import 'library_tag_filter_bar.dart';
 import 'library_tags.dart';
-import 'library_preview_cache.dart';
 import 'library_theme.dart';
 
 class LibraryContentPane extends StatefulWidget {
@@ -21,14 +20,12 @@ class LibraryContentPane extends StatefulWidget {
     required this.onInsertAudio,
     required this.onImportAudio,
     this.onItemSelected,
-    this.fetchClipPreview,
     this.onMidiClipTap,
     this.onMidiPreviewTap,
     this.onAutomationTap,
     this.onAutomationPreviewTap,
     this.onPresetTap,
     this.presetManifest,
-    this.previewCache,
   });
 
   final LibraryCategory category;
@@ -37,7 +34,6 @@ class LibraryContentPane extends StatefulWidget {
   final ValueChanged<SampleLibraryEntrySnapshot> onInsertAudio;
   final VoidCallback onImportAudio;
   final ValueChanged<String?>? onItemSelected;
-  final Future<ClipPreviewData> Function(String itemId)? fetchClipPreview;
   final void Function(LibraryMidiItem item)? onMidiClipTap;
   final void Function(LibraryMidiItem item)? onMidiPreviewTap;
   final void Function(LibraryAutomationItem item)? onAutomationTap;
@@ -46,9 +42,6 @@ class LibraryContentPane extends StatefulWidget {
 
   /// Optional manifest override (tests). When null, loads from assets.
   final LibraryManifest? presetManifest;
-
-  /// Optional preview data cache. When set, avoids re-fetching clip previews.
-  final ClipPreviewCache? previewCache;
 
   @override
   State<LibraryContentPane> createState() => _LibraryContentPaneState();
@@ -253,8 +246,6 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
           accent: accent,
           isSelected: isSelected,
           onTap: () => _onItemTap(item),
-          fetchClipPreview: widget.fetchClipPreview,
-          previewCache: widget.previewCache,
           onPreviewAudio: widget.onPreviewAudio,
           onInsertAudio: widget.onInsertAudio,
           onMidiClipTap: widget.onMidiClipTap,
@@ -363,8 +354,6 @@ class _LibraryItemTile extends StatelessWidget {
     required this.accent,
     this.isSelected = false,
     this.onTap,
-    this.fetchClipPreview,
-    this.previewCache,
     required this.onPreviewAudio,
     required this.onInsertAudio,
     this.onMidiClipTap,
@@ -378,8 +367,6 @@ class _LibraryItemTile extends StatelessWidget {
   final Color accent;
   final bool isSelected;
   final VoidCallback? onTap;
-  final Future<ClipPreviewData> Function(String itemId)? fetchClipPreview;
-  final ClipPreviewCache? previewCache;
   final ValueChanged<SampleLibraryEntrySnapshot> onPreviewAudio;
   final ValueChanged<SampleLibraryEntrySnapshot> onInsertAudio;
   final void Function(LibraryMidiItem item)? onMidiClipTap;
@@ -400,7 +387,7 @@ class _LibraryItemTile extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              _LeadingVisual(item: item, accent: accent, fetchClipPreview: fetchClipPreview, previewCache: previewCache),
+              _LeadingVisual(item: item, accent: accent),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -486,14 +473,48 @@ class _LeadingVisual extends StatelessWidget {
   const _LeadingVisual({
     required this.item,
     required this.accent,
-    this.fetchClipPreview,
-    this.previewCache,
   });
 
   final LibraryItem item;
   final Color accent;
-  final Future<ClipPreviewData> Function(String itemId)? fetchClipPreview;
-  final ClipPreviewCache? previewCache;
+
+  static const int _kPreviewPeakCount = 50;
+
+  static List<double> _generateMidiPeaks(
+      List<MidiNoteSnapshot> notes, double lengthBeats) {
+    if (notes.isEmpty || lengthBeats <= 0) return [];
+    final peaks = List.filled(_kPreviewPeakCount, 0.0);
+    for (final note in notes) {
+      final centerBin = ((note.startBeat / lengthBeats) * _kPreviewPeakCount)
+          .round()
+          .clamp(0, _kPreviewPeakCount - 1);
+      final halfWidth =
+          ((note.durationBeats / lengthBeats) * _kPreviewPeakCount * 0.5)
+              .ceil()
+              .clamp(1, _kPreviewPeakCount ~/ 4);
+      final vel = note.velocity / 127.0;
+      for (var b = (centerBin - halfWidth).clamp(0, _kPreviewPeakCount - 1);
+          b <= (centerBin + halfWidth).clamp(0, _kPreviewPeakCount - 1);
+          b++) {
+        final dist = (b - centerBin).abs() / halfWidth;
+        peaks[b] = math.max(peaks[b], vel * (1.0 - dist) * (1.0 - dist));
+      }
+    }
+    return peaks;
+  }
+
+  static List<double> _generateAutomationPeaks(
+      List<AutomationPointSnapshot> points, double lengthBeats) {
+    if (points.isEmpty || lengthBeats <= 0) return [];
+    final peaks = List.filled(_kPreviewPeakCount, 0.0);
+    for (final point in points) {
+      final bin = ((point.beat / lengthBeats) * _kPreviewPeakCount)
+          .round()
+          .clamp(0, _kPreviewPeakCount - 1);
+      peaks[bin] = (point.value + 1.0) / 2.0;
+    }
+    return peaks;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -504,41 +525,28 @@ class _LeadingVisual extends StatelessWidget {
           peaks: sample.waveformPeaks,
           color: accent,
         ),
-      LibraryMidiItem() || LibraryAutomationItem()
-          when fetchClipPreview != null =>
-          FutureBuilder<ClipPreviewData>(
-            future: () {
-              final cached = previewCache?.get(item.id);
-              return cached != null
-                  ? Future.value(cached)
-                  : fetchClipPreview!(item.id).then((data) {
-                      previewCache?.put(item.id, data);
-                      return data;
-                    });
-            }(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return LibraryPreviewWidget(
-                  width: 52, height: 36,
-                  peaks: null,
-                  color: accent,
-                );
-              }
-              final data = snapshot.data;
-              if (data != null && data.peaks.isNotEmpty) {
-                return LibraryPreviewWidget(
-                  width: 52, height: 36,
-                  peaks: data.peaks,
-                  color: accent,
-                );
-              }
-              return LibraryPreviewWidget(
-                width: 52, height: 36,
-                peaks: const [],
-                color: accent,
-              );
-            },
-          ),
+      LibraryMidiItem(:final clip) => LibraryPreviewWidget(
+          width: 52,
+          height: 36,
+          peaks: clip.notes.isNotEmpty
+              ? _generateMidiPeaks(clip.notes, clip.lengthBeats)
+              : const [],
+          color: accent,
+        ),
+      LibraryAutomationItem(:final clip) => clip != null
+          ? LibraryPreviewWidget(
+              width: 52,
+              height: 36,
+              peaks:
+                  _generateAutomationPeaks(clip.points, clip.lengthBeats),
+              color: accent,
+            )
+          : LibraryPreviewWidget(
+              width: 52,
+              height: 36,
+              peaks: const [0.0, 0.3, 0.6, 0.8, 0.6, 0.3, 0.0],
+              color: accent,
+            ),
       _ => LibraryPreviewWidget(
           width: 52,
           height: 36,

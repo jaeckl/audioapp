@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../bridge/engine_bridge.dart';
 import '../../bridge/project_snapshot.dart';
 import 'library_catalog.dart';
 import 'library_category.dart';
@@ -9,7 +8,6 @@ import 'library_content_pane.dart';
 import 'library_header.dart';
 import 'library_manifest.dart';
 import 'library_preset_preview_bar.dart';
-import 'library_preview_cache.dart';
 import 'library_theme.dart';
 
 /// Slide-in content library: half width in landscape, full width in portrait.
@@ -22,7 +20,6 @@ class LibraryFlyInPanel extends StatefulWidget {
     required this.onInsertAudio,
     required this.onImportAudio,
     this.initialCategory = LibraryCategory.audioClips,
-    this.fetchClipPreview,
     this.onMidiClipTap,
     this.onMidiPreviewTap,
     this.onAutomationTap,
@@ -36,7 +33,6 @@ class LibraryFlyInPanel extends StatefulWidget {
   final ValueChanged<SampleLibraryEntrySnapshot> onInsertAudio;
   final VoidCallback onImportAudio;
   final LibraryCategory initialCategory;
-  final Future<ClipPreviewData> Function(String itemId)? fetchClipPreview;
   final void Function(LibraryMidiItem item)? onMidiClipTap;
   final void Function(LibraryMidiItem item)? onMidiPreviewTap;
   final void Function(LibraryAutomationItem item)? onAutomationTap;
@@ -54,7 +50,6 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
   late LibraryCategory _category;
   LibraryManifest? _manifest;
   String? _selectedItemId;
-  final ClipPreviewCache _previewCache = ClipPreviewCache();
   bool _presetPreviewLoopEnabled = true;
 
   @override
@@ -77,7 +72,6 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
   @override
   void dispose() {
     _controller.dispose();
-    _previewCache.clear();
     super.dispose();
   }
 
@@ -93,7 +87,6 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
   }
 
   Future<void> close() async {
-    _previewCache.clear();
     await _controller.reverse();
     if (mounted) widget.onClose();
   }
@@ -202,13 +195,11 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
                                 onInsertAudio: widget.onInsertAudio,
                                 onImportAudio: widget.onImportAudio,
                                 onItemSelected: _onItemSelected,
-                                fetchClipPreview: widget.fetchClipPreview,
                                 onMidiClipTap: widget.onMidiClipTap,
                                 onMidiPreviewTap: widget.onMidiPreviewTap,
                                 onAutomationTap: widget.onAutomationTap,
                                 onAutomationPreviewTap: widget.onAutomationPreviewTap,
                                 onPresetTap: widget.onPresetTap,
-                                previewCache: _previewCache,
                               ),
                             ),
                           ],
