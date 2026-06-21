@@ -1086,10 +1086,13 @@ void ProjectEngine::applyLiveDeviceMetersLocked(ProjectSnapshot& snap) const {
                 if (deviceMeterIds_[i] != device.id) {
                     continue;
                 }
-                device.meterGainReductionDb =
+                DeviceMeterState meter;
+                meter.deviceId = device.id;
+                meter.gainReductionDb =
                     deviceMeters_[i].gainReductionDb.load(std::memory_order_relaxed);
-                device.meterInputLevel =
+                meter.inputLevel =
                     deviceMeters_[i].inputPeak.load(std::memory_order_relaxed);
+                trackState.deviceMeters.push_back(std::move(meter));
                 break;
             }
         }

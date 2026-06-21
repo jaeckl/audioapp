@@ -29,10 +29,21 @@ namespace audioapp {
 
 struct ProjectFileData;
 
+/// Live meter readouts for dynamics devices (gate, compressor, expander, limiter).
+/// Populated by applyLiveDeviceMetersLocked() during snapshot building.
+/// Not persisted to project files — runtime-only.
+struct DeviceMeterState {
+    std::string deviceId;
+    float gainReductionDb = 0.0f;
+    float inputLevel = 0.0f;
+};
+
 struct TrackState {
     std::string id;
     std::string name;
     std::vector<DeviceState> devices;
+    /// Parallel meter array by deviceId. Only populated for snapshot serialization.
+    std::vector<DeviceMeterState> deviceMeters;
     std::vector<MidiClipState> midiClips;
     std::vector<SampleClipState> sampleClips;
     std::vector<AutomationClipState> automationClips;

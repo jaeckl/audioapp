@@ -51,7 +51,7 @@ bool EngineHost::setMasterGain(float gain) {
 }
 
 std::string EngineHost::getProjectSnapshotJson() const {
-    return snapshotToJson(project_.snapshot());
+    return snapshotToJson(project_.snapshot(), project_.deviceRegistry());
 }
 
 std::string EngineHost::getTransportStateJson() const {

@@ -77,357 +77,6 @@ MidiNoteState midiNoteFromVar(const juce::var& value) {
     return note;
 }
 
-juce::var deviceToVar(const DeviceState& device) {
-    auto* parameters = new juce::DynamicObject();
-    if (device.type == "track_gain" || device.type == "simple_sampler" ||
-        device.type == "simple_oscillator" || device.type == "subtractive_synth" ||
-        device.type == "bass_synth" ||
-        device.type == "gate" || device.type == "compressor" || device.type == "expander" ||
-        device.type == "limiter") {
-        parameters->setProperty("gain", static_cast<double>(device.gain));
-    }
-    if (device.type != "track_gain") {
-        parameters->setProperty("pan", static_cast<double>(device.pan));
-    }
-    if (device.type == "simple_sampler") {
-        parameters->setProperty("sampleId", toJuceString(device.sampleId));
-        parameters->setProperty("attack", static_cast<double>(device.attack));
-        parameters->setProperty("decay", static_cast<double>(device.decay));
-        parameters->setProperty("sustain", static_cast<double>(device.sustain));
-        parameters->setProperty("release", static_cast<double>(device.release));
-        parameters->setProperty("filterCutoff", static_cast<double>(device.filterCutoff));
-        parameters->setProperty("filterQ", static_cast<double>(device.filterQ));
-        parameters->setProperty("filterMode", device.filterMode);
-        parameters->setProperty("trimStartSec", static_cast<double>(device.trimStartSec));
-        parameters->setProperty("trimEndSec", static_cast<double>(device.trimEndSec));
-        parameters->setProperty("regionStartSec", static_cast<double>(device.regionStartSec));
-        parameters->setProperty("regionEndSec", static_cast<double>(device.regionEndSec));
-        parameters->setProperty("rootPitch", static_cast<double>(device.rootPitch));
-        parameters->setProperty("rootFineTune", static_cast<double>(device.rootFineTune));
-        parameters->setProperty("playbackMode", device.playbackMode);
-    }
-    if (device.type == "simple_oscillator") {
-        parameters->setProperty("frequency", static_cast<double>(device.frequencyHz));
-    }
-    if (device.type == "subtractive_synth") {
-        parameters->setProperty("attack", static_cast<double>(device.attack));
-        parameters->setProperty("decay", static_cast<double>(device.decay));
-        parameters->setProperty("sustain", static_cast<double>(device.sustain));
-        parameters->setProperty("release", static_cast<double>(device.release));
-        parameters->setProperty("filterCutoff", static_cast<double>(device.filterCutoff));
-        parameters->setProperty("filterQ", static_cast<double>(device.filterQ));
-        parameters->setProperty("filterEnvAmount", static_cast<double>(device.filterEnvAmount));
-        parameters->setProperty("filterAttack", static_cast<double>(device.filterAttack));
-        parameters->setProperty("filterDecay", static_cast<double>(device.filterDecay));
-        parameters->setProperty("filterSustain", static_cast<double>(device.filterSustain));
-        parameters->setProperty("filterRelease", static_cast<double>(device.filterRelease));
-        parameters->setProperty("osc1Shape", static_cast<double>(device.osc1Shape));
-        parameters->setProperty("osc2Shape", static_cast<double>(device.osc2Shape));
-        parameters->setProperty("osc1Octave", static_cast<double>(device.osc1Octave));
-        parameters->setProperty("osc1Semi", static_cast<double>(device.osc1Semi));
-        parameters->setProperty("osc1Detune", static_cast<double>(device.osc1Detune));
-        parameters->setProperty("osc2Octave", static_cast<double>(device.osc2Octave));
-        parameters->setProperty("osc2Semi", static_cast<double>(device.osc2Semi));
-        parameters->setProperty("osc2Detune", static_cast<double>(device.osc2Detune));
-        parameters->setProperty("oscMix", static_cast<double>(device.oscMix));
-        parameters->setProperty("osc1Sync", static_cast<double>(device.osc1Sync));
-        parameters->setProperty("osc2Sync", static_cast<double>(device.osc2Sync));
-        parameters->setProperty("filterMode", device.filterMode);
-        parameters->setProperty("noiseLevel", static_cast<double>(device.noiseLevel));
-        parameters->setProperty("oscMixMode", device.oscMixMode);
-        parameters->setProperty("unisonVoices", static_cast<double>(device.unisonVoices));
-        parameters->setProperty("unisonDetune", static_cast<double>(device.unisonDetune));
-        parameters->setProperty("glideMs", static_cast<double>(device.glideMs));
-        parameters->setProperty("velocitySensitivity",
-                                static_cast<double>(device.velocitySensitivity));
-        parameters->setProperty("preHpCutoff", static_cast<double>(device.preHpCutoff));
-        parameters->setProperty("preHpRes", static_cast<double>(device.preHpRes));
-        parameters->setProperty("preDrive", static_cast<double>(device.preDrive));
-        parameters->setProperty("mixFeedback", static_cast<double>(device.mixFeedback));
-        parameters->setProperty("globalPitch", static_cast<double>(device.globalPitch));
-        parameters->setProperty("filterKeyTrack", static_cast<double>(device.filterKeyTrack));
-        parameters->setProperty("filterDrive", static_cast<double>(device.filterDrive));
-        parameters->setProperty("filterShaper", static_cast<double>(device.filterShaper));
-        parameters->setProperty("filterFm", static_cast<double>(device.filterFm));
-        parameters->setProperty("filterShaperMode", device.filterShaperMode);
-        parameters->setProperty("synthLegato", static_cast<double>(device.synthLegato));
-        parameters->setProperty("synthMono", static_cast<double>(device.synthMono));
-    }
-    if (device.type == "bass_synth") {
-        parameters->setProperty("attack", static_cast<double>(device.attack));
-        parameters->setProperty("sustain", static_cast<double>(device.sustain));
-        parameters->setProperty("release", static_cast<double>(device.release));
-        parameters->setProperty("filterCutoff", static_cast<double>(device.filterCutoff));
-        parameters->setProperty("filterEnvAmount", static_cast<double>(device.filterEnvAmount));
-        parameters->setProperty("filterDecay", static_cast<double>(device.filterDecay));
-        parameters->setProperty("glideMs", static_cast<double>(device.glideMs));
-        parameters->setProperty("bassOscShape", static_cast<double>(device.bassOscShape));
-        parameters->setProperty("bassSubMix", static_cast<double>(device.bassSubMix));
-        parameters->setProperty("bassSubOctave", device.bassSubOctave);
-        parameters->setProperty("bassNoise", static_cast<double>(device.bassNoise));
-        parameters->setProperty("bassFilterResonance", static_cast<double>(device.bassFilterResonance));
-        parameters->setProperty("bassDrive", static_cast<double>(device.bassDrive));
-        parameters->setProperty("bassSquash", static_cast<double>(device.bassSquash));
-        parameters->setProperty("bassOctave", device.bassOctave);
-        parameters->setProperty("bassVelocitySense", static_cast<double>(device.bassVelocitySense));
-    }
-    if (device.type == "kick_generator") {
-        parameters->setProperty("kickModel", static_cast<double>(device.kickModel));
-        parameters->setProperty("kickPitch", static_cast<double>(device.kickPitch));
-        parameters->setProperty("kickPunch", static_cast<double>(device.kickPunch));
-        parameters->setProperty("kickDecay", static_cast<double>(device.kickDecay));
-        parameters->setProperty("kickClick", static_cast<double>(device.kickClick));
-        parameters->setProperty("kickTone", static_cast<double>(device.kickTone));
-        parameters->setProperty("kickVelocity", static_cast<double>(device.kickVelocity));
-        parameters->setProperty("kickKeyTrack", static_cast<double>(device.kickKeyTrack));
-    }
-    if (device.type == "snare_generator") {
-        parameters->setProperty("snareModel", static_cast<double>(device.snareModel));
-        parameters->setProperty("snareBody", static_cast<double>(device.snareBody));
-        parameters->setProperty("snareRing", static_cast<double>(device.snareRing));
-        parameters->setProperty("snareTune", static_cast<double>(device.snareTune));
-        parameters->setProperty("snareSnares", static_cast<double>(device.snareSnares));
-        parameters->setProperty("snareSnap", static_cast<double>(device.snareSnap));
-        parameters->setProperty("snareDecay", static_cast<double>(device.snareDecay));
-        parameters->setProperty("snareVelocity", static_cast<double>(device.snareVelocity));
-    }
-    if (device.type == "clap_generator") {
-        parameters->setProperty("clapBursts", static_cast<double>(device.clapBursts));
-        parameters->setProperty("clapSpread", static_cast<double>(device.clapSpread));
-        parameters->setProperty("clapTone", static_cast<double>(device.clapTone));
-        parameters->setProperty("clapRoom", static_cast<double>(device.clapRoom));
-        parameters->setProperty("clapDecay", static_cast<double>(device.clapDecay));
-        parameters->setProperty("clapVelocity", static_cast<double>(device.clapVelocity));
-    }
-    if (device.type == "cymbal_generator") {
-        parameters->setProperty("cymbalModel", static_cast<double>(device.cymbalModel));
-        parameters->setProperty("cymbalColor", static_cast<double>(device.cymbalColor));
-        parameters->setProperty("cymbalDecay", static_cast<double>(device.cymbalDecay));
-        parameters->setProperty("cymbalWidth", static_cast<double>(device.cymbalWidth));
-        parameters->setProperty("cymbalVelocity", static_cast<double>(device.cymbalVelocity));
-    }
-    if (device.type == "crash_generator") {
-        parameters->setProperty("crashModel", static_cast<double>(device.crashModel));
-        parameters->setProperty("crashColor", static_cast<double>(device.crashColor));
-        parameters->setProperty("crashSpread", static_cast<double>(device.crashSpread));
-        parameters->setProperty("crashDecay", static_cast<double>(device.crashDecay));
-        parameters->setProperty("crashVelocity", static_cast<double>(device.crashVelocity));
-    }
-    if (device.type == "gate" || device.type == "compressor" || device.type == "expander" ||
-        device.type == "limiter") {
-        parameters->setProperty("inputGain", static_cast<double>(device.inputGain));
-    }
-    if (device.type == "gate") {
-        parameters->setProperty("gateThreshold", static_cast<double>(device.gateThreshold));
-        parameters->setProperty("gateAttack", static_cast<double>(device.gateAttack));
-        parameters->setProperty("gateRelease", static_cast<double>(device.gateRelease));
-        parameters->setProperty("gateHold", static_cast<double>(device.gateHold));
-        parameters->setProperty("gateRange", static_cast<double>(device.gateRange));
-    }
-    if (device.type == "compressor") {
-        parameters->setProperty("compThreshold", static_cast<double>(device.compThreshold));
-        parameters->setProperty("compRatio", static_cast<double>(device.compRatio));
-        parameters->setProperty("compAttack", static_cast<double>(device.compAttack));
-        parameters->setProperty("compRelease", static_cast<double>(device.compRelease));
-        parameters->setProperty("compKnee", static_cast<double>(device.compKnee));
-        parameters->setProperty("compMakeup", static_cast<double>(device.compMakeup));
-    }
-    if (device.type == "expander") {
-        parameters->setProperty("expandThreshold", static_cast<double>(device.expandThreshold));
-        parameters->setProperty("expandRatio", static_cast<double>(device.expandRatio));
-        parameters->setProperty("expandAttack", static_cast<double>(device.expandAttack));
-        parameters->setProperty("expandRelease", static_cast<double>(device.expandRelease));
-        parameters->setProperty("expandRange", static_cast<double>(device.expandRange));
-    }
-    if (device.type == "limiter") {
-        parameters->setProperty("limitCeiling", static_cast<double>(device.limitCeiling));
-        parameters->setProperty("limitAttack", static_cast<double>(device.limitAttack));
-        parameters->setProperty("limitRelease", static_cast<double>(device.limitRelease));
-        parameters->setProperty("limitKnee", static_cast<double>(device.limitKnee));
-        parameters->setProperty("limitDrive", static_cast<double>(device.limitDrive));
-        parameters->setProperty("limitMakeup", static_cast<double>(device.limitMakeup));
-    }
-
-    auto* object = new juce::DynamicObject();
-    object->setProperty("id", toJuceString(device.id));
-    object->setProperty("type", toJuceString(device.type));
-    parameters->setProperty("bypass", device.bypassed ? 1.0 : 0.0);
-    object->setProperty("parameters", juce::var(parameters));
-    if (device.type == "gate" || device.type == "compressor" || device.type == "expander" ||
-        device.type == "limiter") {
-        auto* meters = new juce::DynamicObject();
-        meters->setProperty("gainReductionDb", static_cast<double>(device.meterGainReductionDb));
-        meters->setProperty("inputLevel", static_cast<double>(device.meterInputLevel));
-        object->setProperty("meters", juce::var(meters));
-    }
-    return juce::var(object);
-}
-
-DeviceState deviceFromVar(const juce::var& value) {
-    DeviceState device;
-    if (const auto* object = value.getDynamicObject()) {
-        device.id = varToString(object->getProperty("id"));
-        device.type = varToString(object->getProperty("type"));
-        const auto parameters = object->getProperty("parameters");
-        if (const auto* params = parameters.getDynamicObject()) {
-            device.frequencyHz = varToFloat(params->getProperty("frequency"), 440.0f);
-            device.gain = varToFloat(params->getProperty("gain"), 1.0f);
-            device.pan = varToFloat(params->getProperty("pan"), 0.5f);
-            device.sampleId = varToString(params->getProperty("sampleId"));
-            device.attack = varToFloat(params->getProperty("attack"), 0.01f);
-            device.decay = varToFloat(params->getProperty("decay"), 0.3f);
-            device.sustain = varToFloat(params->getProperty("sustain"), 0.7f);
-            device.release = varToFloat(params->getProperty("release"), 0.4f);
-            device.filterCutoff = varToFloat(params->getProperty("filterCutoff"), 1.0f);
-            device.filterQ = varToFloat(params->getProperty("filterQ"), 0.35f);
-            device.filterMode = varToInt(params->getProperty("filterMode"), 0);
-            device.trimStartSec = varToFloat(params->getProperty("trimStartSec"), 0.0f);
-            device.trimEndSec = varToFloat(params->getProperty("trimEndSec"), 0.0f);
-            device.regionStartSec = varToFloat(params->getProperty("regionStartSec"), 0.0f);
-            device.regionEndSec = varToFloat(params->getProperty("regionEndSec"), 0.0f);
-            device.rootPitch = varToFloat(params->getProperty("rootPitch"), 60.0f);
-            device.rootFineTune =
-                std::clamp(varToFloat(params->getProperty("rootFineTune"), 0.0f), -100.0f, 100.0f);
-            if (params->hasProperty("playbackMode")) {
-                device.playbackMode = varToInt(params->getProperty("playbackMode"), 0);
-            } else {
-                device.playbackMode = device.regionEndSec > 0.0f ? 1 : 0;
-            }
-            device.bypassed = varToFloat(params->getProperty("bypass"), 0.0f) >= 0.5f;
-            if (params->hasProperty("osc1Shape")) {
-                device.osc1Shape = varToFloat(params->getProperty("osc1Shape"), 0.5f);
-            } else {
-                const int legacyWave = varToInt(params->getProperty("osc1Wave"), 2);
-                device.osc1Shape = static_cast<float>(legacyWave) / 4.0f;
-            }
-            if (params->hasProperty("osc2Shape")) {
-                device.osc2Shape = varToFloat(params->getProperty("osc2Shape"), 0.5f);
-            } else {
-                const int legacyWave = varToInt(params->getProperty("osc2Wave"), 2);
-                device.osc2Shape = static_cast<float>(legacyWave) / 4.0f;
-            }
-            device.osc1Octave = varToFloat(params->getProperty("osc1Octave"), 0.5f);
-            device.osc1Semi = varToFloat(params->getProperty("osc1Semi"), 0.0f);
-            device.osc1Detune = varToFloat(params->getProperty("osc1Detune"), 0.5f);
-            device.osc2Octave = varToFloat(params->getProperty("osc2Octave"), 0.5f);
-            device.osc2Semi = varToFloat(params->getProperty("osc2Semi"), 0.0f);
-            device.osc2Detune = varToFloat(params->getProperty("osc2Detune"), 0.5f);
-            if (params->hasProperty("oscMix")) {
-                device.oscMix = varToFloat(params->getProperty("oscMix"), 0.37f);
-            } else {
-                const float osc1Level = varToFloat(params->getProperty("osc1Level"), 0.85f);
-                const float osc2Level = varToFloat(params->getProperty("osc2Level"), 0.5f);
-                const float sum = osc1Level + osc2Level;
-                device.oscMix = sum > 0.001f ? osc2Level / sum : 0.37f;
-            }
-            device.osc1Sync = varToFloat(params->getProperty("osc1Sync"), 0.0f);
-            device.osc2Sync = varToFloat(params->getProperty("osc2Sync"), 0.0f);
-            device.noiseLevel = varToFloat(params->getProperty("noiseLevel"), 0.0f);
-            device.oscMixMode = varToInt(params->getProperty("oscMixMode"), 0);
-            device.unisonVoices = varToFloat(params->getProperty("unisonVoices"), 0.0f);
-            device.unisonDetune = varToFloat(params->getProperty("unisonDetune"), 0.35f);
-            device.filterEnvAmount = varToFloat(params->getProperty("filterEnvAmount"), 0.5f);
-            device.filterAttack = varToFloat(params->getProperty("filterAttack"), 0.05f);
-            device.filterDecay = varToFloat(params->getProperty("filterDecay"), 0.35f);
-            device.filterSustain = varToFloat(params->getProperty("filterSustain"), 0.4f);
-            device.filterRelease = varToFloat(params->getProperty("filterRelease"), 0.45f);
-            device.glideMs = varToFloat(params->getProperty("glideMs"), 0.0f);
-            device.velocitySensitivity =
-                varToFloat(params->getProperty("velocitySensitivity"), 1.0f);
-            device.preHpCutoff = varToFloat(params->getProperty("preHpCutoff"), 0.0f);
-            device.preHpRes = varToFloat(params->getProperty("preHpRes"), 0.2f);
-            device.preDrive = varToFloat(params->getProperty("preDrive"), 0.0f);
-            device.mixFeedback = varToFloat(params->getProperty("mixFeedback"), 0.0f);
-            device.globalPitch = varToFloat(params->getProperty("globalPitch"), 0.5f);
-            device.filterKeyTrack = varToFloat(params->getProperty("filterKeyTrack"), 0.0f);
-            device.filterDrive = varToFloat(params->getProperty("filterDrive"), 0.0f);
-            device.filterShaper = varToFloat(params->getProperty("filterShaper"), 0.0f);
-            device.filterFm = varToFloat(params->getProperty("filterFm"), 0.0f);
-            device.filterShaperMode = varToInt(params->getProperty("filterShaperMode"), 1);
-            device.synthLegato = varToFloat(params->getProperty("synthLegato"), 0.0f);
-            device.synthMono = varToFloat(params->getProperty("synthMono"), 0.0f);
-            device.kickModel = varToFloat(params->getProperty("kickModel"), 0.0f);
-            device.kickPitch = varToFloat(params->getProperty("kickPitch"), 0.55f);
-            device.kickPunch = varToFloat(params->getProperty("kickPunch"), 0.60f);
-            device.kickDecay = varToFloat(params->getProperty("kickDecay"), 0.50f);
-            device.kickClick = varToFloat(params->getProperty("kickClick"), 0.35f);
-            device.kickTone = varToFloat(params->getProperty("kickTone"), 0.50f);
-            device.kickVelocity = varToFloat(params->getProperty("kickVelocity"), 1.0f);
-            device.kickKeyTrack = varToFloat(params->getProperty("kickKeyTrack"), 1.0f);
-            device.snareModel = varToFloat(params->getProperty("snareModel"), 0.0f);
-            device.snareBody = varToFloat(params->getProperty("snareBody"), 0.45f);
-            device.snareRing = varToFloat(params->getProperty("snareRing"), 0.40f);
-            device.snareTune = varToFloat(params->getProperty("snareTune"), 0.50f);
-            device.snareSnares = varToFloat(params->getProperty("snareSnares"), 0.60f);
-            device.snareSnap = varToFloat(params->getProperty("snareSnap"), 0.40f);
-            device.snareDecay = varToFloat(params->getProperty("snareDecay"), 0.50f);
-            device.snareVelocity = varToFloat(params->getProperty("snareVelocity"), 1.0f);
-            device.clapBursts = varToFloat(params->getProperty("clapBursts"), 0.50f);
-            device.clapSpread = varToFloat(params->getProperty("clapSpread"), 0.45f);
-            device.clapTone = varToFloat(params->getProperty("clapTone"), 0.55f);
-            device.clapRoom = varToFloat(params->getProperty("clapRoom"), 0.50f);
-            device.clapDecay = varToFloat(params->getProperty("clapDecay"), 0.50f);
-            device.clapVelocity = varToFloat(params->getProperty("clapVelocity"), 1.0f);
-            device.cymbalModel = varToFloat(params->getProperty("cymbalModel"), 0.0f);
-            if (params->hasProperty("cymbalColor")) {
-                device.cymbalColor = varToFloat(params->getProperty("cymbalColor"), 0.68f);
-            } else {
-                const float metal = varToFloat(params->getProperty("cymbalMetal"), 0.55f);
-                const float bright = varToFloat(params->getProperty("cymbalBrightness"), 0.60f);
-                device.cymbalColor = (metal + bright) * 0.5f;
-            }
-            device.cymbalDecay = varToFloat(params->getProperty("cymbalDecay"), 0.50f);
-            device.cymbalWidth = varToFloat(params->getProperty("cymbalWidth"), 0.35f);
-            device.cymbalVelocity = varToFloat(params->getProperty("cymbalVelocity"), 1.0f);
-            device.crashModel = varToFloat(params->getProperty("crashModel"), 0.0f);
-            if (params->hasProperty("crashColor")) {
-                device.crashColor = varToFloat(params->getProperty("crashColor"), 0.62f);
-            } else {
-                const float wash = varToFloat(params->getProperty("crashWash"), 0.60f);
-                const float bright = varToFloat(params->getProperty("crashBright"), 0.65f);
-                device.crashColor = (wash + bright) * 0.5f;
-            }
-            device.crashSpread = varToFloat(params->getProperty("crashSpread"), 0.50f);
-            device.crashDecay = varToFloat(params->getProperty("crashDecay"), 0.55f);
-            device.crashVelocity = varToFloat(params->getProperty("crashVelocity"), 1.0f);
-            device.gateThreshold = varToFloat(params->getProperty("gateThreshold"), 0.45f);
-            device.gateAttack = varToFloat(params->getProperty("gateAttack"), 0.25f);
-            device.gateRelease = varToFloat(params->getProperty("gateRelease"), 0.50f);
-            device.gateHold = varToFloat(params->getProperty("gateHold"), 0.20f);
-            device.gateRange = varToFloat(params->getProperty("gateRange"), 0.0f);
-            device.compThreshold = varToFloat(params->getProperty("compThreshold"), 0.55f);
-            device.compRatio = varToFloat(params->getProperty("compRatio"), 0.50f);
-            device.compAttack = varToFloat(params->getProperty("compAttack"), 0.20f);
-            device.compRelease = varToFloat(params->getProperty("compRelease"), 0.55f);
-            device.compKnee = varToFloat(params->getProperty("compKnee"), 0.25f);
-            device.compMakeup = varToFloat(params->getProperty("compMakeup"), 0.35f);
-            device.expandThreshold = varToFloat(params->getProperty("expandThreshold"), 0.40f);
-            device.expandRatio = varToFloat(params->getProperty("expandRatio"), 0.45f);
-            device.expandAttack = varToFloat(params->getProperty("expandAttack"), 0.25f);
-            device.expandRelease = varToFloat(params->getProperty("expandRelease"), 0.55f);
-            device.expandRange = varToFloat(params->getProperty("expandRange"), 0.15f);
-            device.limitCeiling = varToFloat(params->getProperty("limitCeiling"), 0.85f);
-            device.limitAttack = varToFloat(params->getProperty("limitAttack"), 0.10f);
-            device.limitRelease = varToFloat(params->getProperty("limitRelease"), 0.40f);
-            device.limitKnee = varToFloat(params->getProperty("limitKnee"), 0.0f);
-            device.limitDrive = varToFloat(params->getProperty("limitDrive"), 0.0f);
-            device.limitMakeup = varToFloat(params->getProperty("limitMakeup"), 0.0f);
-            device.inputGain = varToFloat(params->getProperty("inputGain"), 1.0f);
-            // Bass Synth parameters
-            device.bassOscShape = varToFloat(params->getProperty("bassOscShape"), 0.3f);
-            device.bassSubMix = varToFloat(params->getProperty("bassSubMix"), 0.5f);
-            device.bassSubOctave = varToInt(params->getProperty("bassSubOctave"), 0);
-            device.bassNoise = varToFloat(params->getProperty("bassNoise"), 0.0f);
-            device.bassFilterResonance = varToFloat(params->getProperty("bassFilterResonance"), 0.25f);
-            device.bassDrive = varToFloat(params->getProperty("bassDrive"), 0.0f);
-            device.bassSquash = varToFloat(params->getProperty("bassSquash"), 0.0f);
-            device.bassOctave = varToInt(params->getProperty("bassOctave"), 2);
-            device.bassVelocitySense = varToFloat(params->getProperty("bassVelocitySense"), 1.0f);
-        }
-    }
-    return device;
-}
-
 juce::var midiClipToVar(const MidiClipState& clip) {
     juce::Array<juce::var> notes;
     notes.ensureStorageAllocated(static_cast<int>(clip.notes.size()));
@@ -572,67 +221,6 @@ SampleLibraryEntryState sampleLibraryEntryFromVar(const juce::var& value) {
     return entry;
 }
 
-juce::var trackToVar(const TrackState& track) {
-    juce::Array<juce::var> devices;
-    devices.ensureStorageAllocated(static_cast<int>(track.devices.size()));
-    for (const auto& device : track.devices) {
-        devices.add(deviceToVar(device));
-    }
-
-    juce::Array<juce::var> clips;
-    clips.ensureStorageAllocated(static_cast<int>(track.midiClips.size()));
-    for (const auto& clip : track.midiClips) {
-        clips.add(midiClipToVar(clip));
-    }
-
-    juce::Array<juce::var> sampleClips;
-    sampleClips.ensureStorageAllocated(static_cast<int>(track.sampleClips.size()));
-    for (const auto& clip : track.sampleClips) {
-        sampleClips.add(sampleClipToVar(clip));
-    }
-
-    auto* object = new juce::DynamicObject();
-    object->setProperty("id", toJuceString(track.id));
-    object->setProperty("name", toJuceString(track.name));
-    object->setProperty("devices", devices);
-    object->setProperty("midiClips", clips);
-    object->setProperty("sampleClips", sampleClips);
-    // Automation clips are project-global now; the snapshot writes them
-    // at the top level (see snapshotToVar / projectFileToVar). The legacy
-    // per-track field is only kept for backward-compatible *reads* of
-    // older project files.
-    return juce::var(object);
-}
-
-TrackState trackFromVar(const juce::var& value) {
-    TrackState track;
-    if (const auto* object = value.getDynamicObject()) {
-        track.id = varToString(object->getProperty("id"));
-        track.name = varToString(object->getProperty("name"));
-        if (const auto* devices = varArray(object->getProperty("devices"))) {
-            for (const auto& deviceVar : *devices) {
-                track.devices.push_back(deviceFromVar(deviceVar));
-            }
-        }
-        if (const auto* clips = varArray(object->getProperty("midiClips"))) {
-            for (const auto& clipVar : *clips) {
-                track.midiClips.push_back(midiClipFromVar(clipVar));
-            }
-        }
-        if (const auto* sampleClips = varArray(object->getProperty("sampleClips"))) {
-            for (const auto& clipVar : *sampleClips) {
-                track.sampleClips.push_back(sampleClipFromVar(clipVar));
-            }
-        }
-        if (const auto* automationClips = varArray(object->getProperty("automationClips"))) {
-            for (const auto& clipVar : *automationClips) {
-                track.automationClips.push_back(automationClipFromVar(clipVar));
-            }
-        }
-    }
-    return track;
-}
-
 // --- LFO / modulation serialization helpers ---
 
 juce::var lfoToVar(const LfoState& lfo) {
@@ -751,11 +339,16 @@ std::vector<AutomationClipState> automationClipArrayFromVar(const juce::var& val
     return result;
 }
 
-juce::var snapshotToVar(const ProjectSnapshot& snapshot) {
+// Forward declaration — defined below in this namespace.
+juce::var trackToVarSnapshot(const TrackState& track,
+                              const DeviceRegistry& registry);
+
+juce::var snapshotToVar(const ProjectSnapshot& snapshot,
+                         const DeviceRegistry& registry) {
     juce::Array<juce::var> tracks;
     tracks.ensureStorageAllocated(static_cast<int>(snapshot.tracks.size()));
     for (const auto& track : snapshot.tracks) {
-        tracks.add(trackToVar(track));
+        tracks.add(trackToVarSnapshot(track, registry));
     }
 
     juce::Array<juce::var> samples;
@@ -923,6 +516,54 @@ TrackState trackFromVarPersistence(const juce::var& value,
     return track;
 }
 
+// --- Snapshot track serializer (Phase 3) ---
+
+juce::var trackToVarSnapshot(const TrackState& track,
+                              const DeviceRegistry& registry) {
+    juce::Array<juce::var> devices;
+    devices.ensureStorageAllocated(static_cast<int>(track.devices.size()));
+    for (size_t i = 0; i < track.devices.size(); ++i) {
+        // Step 1: Serialize device params via registry dispatch (writes meters=0.0)
+        juce::var deviceVar = audioapp::deviceToVar(track.devices[i], registry);
+
+        // Step 2: Inject live meter values from parallel array
+        for (const auto& meter : track.deviceMeters) {
+            if (meter.deviceId == track.devices[i].id) {
+                if (auto* obj = deviceVar.getDynamicObject()) {
+                    auto* metersObj = new juce::DynamicObject();
+                    metersObj->setProperty("gainReductionDb",
+                        static_cast<double>(meter.gainReductionDb));
+                    metersObj->setProperty("inputLevel",
+                        static_cast<double>(meter.inputLevel));
+                    obj->setProperty("meters", juce::var(metersObj));
+                }
+                break;
+            }
+        }
+        devices.add(deviceVar);
+    }
+
+    juce::Array<juce::var> clips;
+    clips.ensureStorageAllocated(static_cast<int>(track.midiClips.size()));
+    for (const auto& clip : track.midiClips) {
+        clips.add(midiClipToVar(clip));
+    }
+
+    juce::Array<juce::var> sampleClips;
+    sampleClips.ensureStorageAllocated(static_cast<int>(track.sampleClips.size()));
+    for (const auto& clip : track.sampleClips) {
+        sampleClips.add(sampleClipToVar(clip));
+    }
+
+    auto* object = new juce::DynamicObject();
+    object->setProperty("id", toJuceString(track.id));
+    object->setProperty("name", toJuceString(track.name));
+    object->setProperty("devices", devices);
+    object->setProperty("midiClips", clips);
+    object->setProperty("sampleClips", sampleClips);
+    return juce::var(object);
+}
+
 } // namespace
 
 std::string deviceSlotToVar(const DeviceSlot& slot, const DeviceRegistry& registry) {
@@ -946,8 +587,9 @@ DeviceState deviceFromVar(const juce::var& value, const DeviceRegistry& registry
     return registry.toSnapshotState(slot);
 }
 
-std::string snapshotToJson(const ProjectSnapshot& snapshot) {
-    return toStdString(juce::JSON::toString(snapshotToVar(snapshot), false));
+std::string snapshotToJson(const ProjectSnapshot& snapshot,
+                            const DeviceRegistry& registry) {
+    return toStdString(juce::JSON::toString(snapshotToVar(snapshot, registry), false));
 }
 
 std::string projectFileToJson(const ProjectFileData& project,

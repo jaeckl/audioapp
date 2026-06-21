@@ -38,7 +38,8 @@ juce::var deviceToVar(const DeviceState& device, const DeviceRegistry& registry)
 /// Registry-aware overload: parses JSON to DeviceState via DeviceSlot dispatch.
 DeviceState deviceFromVar(const juce::var& value, const DeviceRegistry& registry);
 
-std::string snapshotToJson(const ProjectSnapshot& snapshot);
+std::string snapshotToJson(const ProjectSnapshot& snapshot,
+                            const DeviceRegistry& registry);
 
 /// Serialize a DeviceSlot to JSON string via its registered IDeviceType.
 /// Falls back to the existing DeviceState-based serialization if the device

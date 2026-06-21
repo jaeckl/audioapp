@@ -126,8 +126,6 @@ struct DeviceState {
     float limitDrive = 0.0f;
     float limitMakeup = 0.0f;
     float inputGain = 1.0f;
-    float meterGainReductionDb = 0.0f;
-    float meterInputLevel = 0.0f;
 };
 
 } // namespace audioapp
