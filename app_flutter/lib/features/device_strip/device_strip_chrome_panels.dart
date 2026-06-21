@@ -127,7 +127,7 @@ class DynamicsInputPanel extends StatelessWidget {
     this.onAutomateParameter,
   });
 
-  final DynamicsDeviceSnapshot device;
+  final DeviceSnapshot device;
   final Color accentColor;
   final void Function(String parameterId, double value) onParameterChanged;
   final double inputLevel;
@@ -143,6 +143,7 @@ class DynamicsInputPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dynamicsDevice = device is DynamicsDeviceSnapshot ? device as DynamicsDeviceSnapshot : null;
     return Semantics(
       label: 'Dynamics input panel',
       child: _ChromeInputShell(
@@ -150,23 +151,25 @@ class DynamicsInputPanel extends StatelessWidget {
           label: 'IN',
           meterLevel: inputLevel.clamp(0.0, 1.0),
           accentColor: accentColor,
-          bottomKnob: deviceAutomationKnob(
-            label: 'Trim',
-            value: device.inputGain.clamp(0, 1),
-            size: knobSize,
-            displayValue: StereoGainPanPanel.formatGain(device.inputGain),
-            onChanged: (value) => onParameterChanged('inputGain', value),
-            paramId: 'inputGain',
-            accentColor: accentColor,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-          ),
+          bottomKnob: dynamicsDevice != null
+              ? deviceAutomationKnob(
+                  label: 'Trim',
+                  value: dynamicsDevice.inputGain.clamp(0, 1),
+                  size: knobSize,
+                  displayValue: StereoGainPanPanel.formatGain(dynamicsDevice.inputGain),
+                  onChanged: (value) => onParameterChanged('inputGain', value),
+                  paramId: 'inputGain',
+                  accentColor: accentColor,
+                  modulatedParams: modulatedParams,
+                  automatedParams: automatedParams,
+                  modulationAmounts: modulationAmounts,
+                  connectModeLfoId: connectModeLfoId,
+                  onModulationAssign: onModulationAssign,
+                  automationLinkActive: automationLinkActive,
+                  onAutomationLinkTap: onAutomationLinkTap,
+                  onAutomateParameter: onAutomateParameter,
+                )
+              : SizedBox(height: knobSize, width: knobSize),
         ),
       ),
     );
@@ -192,7 +195,7 @@ class DynamicsOutputPanel extends StatelessWidget {
     this.onAutomateParameter,
   });
 
-  final DynamicsDeviceSnapshot device;
+  final DeviceSnapshot device;
   final Color accentColor;
   final void Function(String parameterId, double value) onParameterChanged;
   final double gainReductionDb;

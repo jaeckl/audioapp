@@ -66,11 +66,11 @@ abstract final class DeviceStripChrome {
     if (!hasInputPanel(deviceType)) return null;
     return DynamicsInputPanel(
       accentColor: bindings.accentColor,
-      device: bindings.device as DynamicsDeviceSnapshot,
+      device: bindings.device,
       inputLevel: bindings.inputLevel,
       onParameterChanged: bindings.onParameterChanged,
       modulatedParams: bindings.modulatedParams,
-        automatedParams: bindings.automatedParams,
+      automatedParams: bindings.automatedParams,
       modulationAmounts: bindings.modulationAmounts,
       connectModeLfoId: bindings.connectModeLfoId,
       onModulationAssign: bindings.onModulationAssign,
@@ -101,7 +101,7 @@ abstract final class DeviceStripChrome {
     }
     if (_dynamicsTypes.contains(deviceType)) {
       return DynamicsOutputPanel(
-        device: bindings.device as DynamicsDeviceSnapshot,
+        device: bindings.device,
         accentColor: bindings.accentColor,
         onParameterChanged: bindings.onParameterChanged,
         gainReductionDb: bindings.gainReductionDb,
