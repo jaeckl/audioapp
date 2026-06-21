@@ -25,6 +25,7 @@
 #include "audioapp/devices/instances/CompressorInstance.hpp"
 #include "audioapp/devices/instances/ExpanderInstance.hpp"
 #include "audioapp/devices/instances/LimiterInstance.hpp"
+#include "audioapp/devices/instances/EffectInstance.hpp"
 #include "audioapp/devices/instances/OscillatorInstance.hpp"
 #include "audioapp/devices/instances/SamplerInstance.hpp"
 #include "audioapp/devices/instances/SubtractiveSynthInstance.hpp"
@@ -107,6 +108,10 @@ const IDeviceType* DeviceRegistry::findTypeForSlot(const DeviceSlot& slot) const
     if (std::holds_alternative<BassSynthInstance>(slot.instance)) {
         return find(device_types::kBasSynth);
     }
+    if (std::holds_alternative<DelayInstance>(slot.instance)) return find("delay");
+    if (std::holds_alternative<ReverbInstance>(slot.instance)) return find("reverb");
+    if (std::holds_alternative<ChorusInstance>(slot.instance)) return find("chorus");
+    if (std::holds_alternative<PhaserInstance>(slot.instance)) return find("phaser");
     return nullptr;
 }
 

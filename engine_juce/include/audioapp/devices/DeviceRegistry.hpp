@@ -1,6 +1,8 @@
 #pragma once
 
 #include "audioapp/devices/IDeviceType.hpp"
+#include "audioapp/effects/EffectTypes.hpp"
+#include "audioapp/effects/TimeBasedEffectDeviceType.hpp"
 #include "audioapp/devices/PlaybackBuildContext.hpp"
 
 #include <memory>

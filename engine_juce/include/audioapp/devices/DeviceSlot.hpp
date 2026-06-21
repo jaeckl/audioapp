@@ -14,6 +14,7 @@
 #include "audioapp/devices/instances/ExpanderInstance.hpp"
 #include "audioapp/devices/instances/BassSynthInstance.hpp"
 #include "audioapp/devices/instances/LimiterInstance.hpp"
+#include "audioapp/devices/instances/EffectInstance.hpp"
 
 #include <string>
 #include <variant>
@@ -33,7 +34,11 @@ using DeviceInstance = std::variant<OscillatorInstance,
                                     CompressorInstance,
                                     ExpanderInstance,
                                     LimiterInstance,
-                                    BassSynthInstance>;
+                                    BassSynthInstance,
+                                    DelayInstance,
+                                    ReverbInstance,
+                                    ChorusInstance,
+                                    PhaserInstance>;
 
 struct DeviceSlot {
     std::string id;

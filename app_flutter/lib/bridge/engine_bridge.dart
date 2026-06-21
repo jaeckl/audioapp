@@ -3,6 +3,24 @@ import 'package:flutter/services.dart';
 import 'project_snapshot.dart';
 import 'transport_state.dart';
 
+/// Waveform data for rendering a miniature clip preview in the library UI.
+class ClipPreviewData {
+  final List<double> peaks; // Normalised amplitude peaks (0.0–1.0), ~100 values
+  final Duration length; // Total clip duration
+
+  const ClipPreviewData({required this.peaks, required this.length});
+
+  factory ClipPreviewData.fromMap(Map<dynamic, dynamic> map) {
+    return ClipPreviewData(
+      peaks: (map['peaks'] as List<dynamic>?)
+              ?.map((p) => (p as num).toDouble())
+              .toList() ??
+          [],
+      length: Duration(milliseconds: (map['lengthMs'] as num?)?.toInt() ?? 0),
+    );
+  }
+}
+
 /// Flutter ↔ native engine bridge (MethodChannel).
 class EngineBridge {
   EngineBridge({MethodChannel? channel})
@@ -397,6 +415,26 @@ class EngineBridge {
         code: result?['error']?.toString() ?? 'preview_failed',
         message: 'Failed to preview sample',
       );
+    }
+  }
+
+  /// Returns waveform peak data for a library item (MIDI clips, automation clips).
+  /// Returns empty ClipPreviewData on failure (caller handles fallback).
+  Future<ClipPreviewData> fetchClipPreview(String itemId) async {
+    try {
+      final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
+        'fetchClipPreview',
+        {'itemId': itemId},
+      );
+      if (result == null) {
+        return const ClipPreviewData(peaks: [], length: Duration.zero);
+      }
+      if (result['ok'] == true && result['peaks'] != null) {
+        return ClipPreviewData.fromMap(result);
+      }
+      return const ClipPreviewData(peaks: [], length: Duration.zero);
+    } on PlatformException {
+      return const ClipPreviewData(peaks: [], length: Duration.zero);
     }
   }
 

@@ -27,6 +27,7 @@ import 'cymbal_model.dart';
 import 'crash_generator_device_strip.dart';
 import 'crash_model.dart';
 import 'dynamics_fx_panels.dart';
+import '../../effects/effect_device_strip.dart';
 import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
 import 'subtractive_synth_device_panel.dart';
@@ -817,6 +818,46 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             automationLinkActive: widget.automationLinkActive,
             onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
             onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+          ),
+        );
+      case 'delay':
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: 320,
+          designHeight: contentHeight,
+          child: EffectDeviceStrip(
+            type: 'delay',
+            snapshot: widget.device.toJson(),
+          ),
+        );
+      case 'reverb':
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: 320,
+          designHeight: contentHeight,
+          child: EffectDeviceStrip(
+            type: 'reverb',
+            snapshot: widget.device.toJson(),
+          ),
+        );
+      case 'chorus':
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: 320,
+          designHeight: contentHeight,
+          child: EffectDeviceStrip(
+            type: 'chorus',
+            snapshot: widget.device.toJson(),
+          ),
+        );
+      case 'phaser':
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: 320,
+          designHeight: contentHeight,
+          child: EffectDeviceStrip(
+            type: 'phaser',
+            snapshot: widget.device.toJson(),
           ),
         );
       default:

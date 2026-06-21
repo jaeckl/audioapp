@@ -41,6 +41,10 @@ abstract final class DeviceStripTheme {
   static const compressorAccent = Color(0xFFE8A54B);
   static const expanderAccent = Color(0xFF9AD4E8);
   static const limiterAccent = Color(0xFFE85D4B);
+  static const delayAccent = Color(0xFF6EC9A8);
+  static const reverbAccent = Color(0xFF7B6CF6);
+  static const chorusAccent = Color(0xFFE8A54B);
+  static const phaserAccent = Color(0xFFE8A0C8);
 
   static Color accentForDeviceType(String type) => switch (type) {
         'simple_sampler' => samplerAccent,
@@ -56,6 +60,10 @@ abstract final class DeviceStripTheme {
         'compressor' => compressorAccent,
         'expander' => expanderAccent,
         'limiter' => limiterAccent,
+        'delay' => delayAccent,
+        'reverb' => reverbAccent,
+        'chorus' => chorusAccent,
+        'phaser' => phaserAccent,
         _ => genericAccent,
       };
 
@@ -73,6 +81,10 @@ abstract final class DeviceStripTheme {
         'compressor' => 'Compressor',
         'expander' => 'Expander',
         'limiter' => 'Limiter',
+        'delay' => 'Delay',
+        'reverb' => 'Reverb',
+        'chorus' => 'Chorus',
+        'phaser' => 'Phaser',
         _ => type,
       };
 }

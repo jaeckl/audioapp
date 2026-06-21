@@ -110,6 +110,42 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
               subtitle: const Text('Brick-wall ceiling · track bus'),
               onTap: () => Navigator.pop(context, 'limiter'),
             ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
+              child: Text(
+                'Time‑Based Effects',
+                style: TextStyle(
+                  color: Color(0xFF9A9AA8),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.timer, color: Color(0xFF6EC9A8)),
+              title: const Text('Delay'),
+              subtitle: const Text('Echo · feedback & filter'),
+              onTap: () => Navigator.pop(context, 'delay'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.wave_square, color: Color(0xFF7B6CF6)),
+              title: const Text('Reverb'),
+              subtitle: const Text('Room · hall · shimmer'),
+              onTap: () => Navigator.pop(context, 'reverb'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.blur_circular, color: Color(0xFFE8A54B)),
+              title: const Text('Chorus'),
+              subtitle: const Text('Thicken · spread · modulate'),
+              onTap: () => Navigator.pop(context, 'chorus'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.flip_to_back, color: Color(0xFFE8A0C8)),
+              title: const Text('Phaser'),
+              subtitle: const Text('Sweep · notches · swirl'),
+              onTap: () => Navigator.pop(context, 'phaser'),
+            ),
             const SizedBox(height: 8),
           ],
         ),

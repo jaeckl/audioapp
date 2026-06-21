@@ -61,6 +61,13 @@ add_library(audioapp_engine STATIC
   src/devices/ExpanderDeviceType.cpp
   src/devices/LimiterDeviceType.cpp
   src/devices/BassSynthDeviceType.cpp
+  src/effects/TimeBasedEffectDeviceType.cpp
+  src/effects/EffectDeviceRegistration.cpp
+  src/effects/EffectSnapshot.cpp
+  src/effects/DelayDeviceType.cpp
+  src/effects/ReverbDeviceType.cpp
+  src/effects/ChorusDeviceType.cpp
+  src/effects/PhaserDeviceType.cpp
   src/model/TrackRepository.cpp
   src/model/ClipRepository.cpp
   src/model/AutomationClipStore.cpp
@@ -130,8 +137,12 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/device_slot_serialization_test.cpp
     tests/device_types_test.cpp
     tests/dynamics_processor_test.cpp
+    tests/effect_chorus_test.cpp
+    tests/effect_delay_test.cpp
     tests/effect_device_automation_test.cpp
     tests/effect_device_modulation_test.cpp
+    tests/effect_phaser_test.cpp
+    tests/effect_reverb_test.cpp
     tests/engine_smoke_test.cpp
     tests/gain_pan_mod_auto_test.cpp
     tests/gate_device_test.cpp
