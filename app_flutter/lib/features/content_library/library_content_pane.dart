@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 
 import '../../bridge/project_snapshot.dart';
 import 'device_preset_filter_list.dart';
@@ -480,29 +479,6 @@ class _LeadingVisual extends StatelessWidget {
 
   static const int _kPreviewPeakCount = 50;
 
-  static List<double> _generateMidiPeaks(
-      List<MidiNoteSnapshot> notes, double lengthBeats) {
-    if (notes.isEmpty || lengthBeats <= 0) return [];
-    final peaks = List.filled(_kPreviewPeakCount, 0.0);
-    for (final note in notes) {
-      final centerBin = ((note.startBeat / lengthBeats) * _kPreviewPeakCount)
-          .round()
-          .clamp(0, _kPreviewPeakCount - 1);
-      final halfWidth =
-          ((note.durationBeats / lengthBeats) * _kPreviewPeakCount * 0.5)
-              .ceil()
-              .clamp(1, _kPreviewPeakCount ~/ 4);
-      final vel = note.velocity / 127.0;
-      for (var b = (centerBin - halfWidth).clamp(0, _kPreviewPeakCount - 1);
-          b <= (centerBin + halfWidth).clamp(0, _kPreviewPeakCount - 1);
-          b++) {
-        final dist = (b - centerBin).abs() / halfWidth;
-        peaks[b] = math.max(peaks[b], vel * (1.0 - dist) * (1.0 - dist));
-      }
-    }
-    return peaks;
-  }
-
   static List<double> _generateAutomationPeaks(
       List<AutomationPointSnapshot> points, double lengthBeats) {
     if (points.isEmpty || lengthBeats <= 0) return [];
@@ -528,9 +504,8 @@ class _LeadingVisual extends StatelessWidget {
       LibraryMidiItem(:final clip) => LibraryPreviewWidget(
           width: 52,
           height: 36,
-          peaks: clip.notes.isNotEmpty
-              ? _generateMidiPeaks(clip.notes, clip.lengthBeats)
-              : const [],
+          notes: clip.notes,
+          lengthBeats: clip.lengthBeats,
           color: accent,
         ),
       LibraryAutomationItem(:final clip) => clip != null
