@@ -86,7 +86,11 @@ serialization must not break the JSON contract.
 ## 7.4 Build Verification
 
 ```bash
+# Linux
 cmake -S engine_juce -B build/engine -G Ninja -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+
+# Windows (activate MSVC first, see docs/guidelines/windows_android_setup.md)
+cmake -S engine_juce -B build/engine -G Ninja
 cmake --build build/engine --target audioapp_engine
 ```
 

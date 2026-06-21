@@ -1,74 +1,101 @@
+#include <juce_core/juce_core.h>
+#include "TestHelpers.h"
 #include "audioapp/EngineHost.hpp"
 #include "audioapp/ProjectJson.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
 
-#include <cstdlib>
 #include <string>
 
-int main() {
-    audioapp::EngineHost host;
-    host.createProject();
-    const std::string trackId = host.addTrack("Keys");
-    host.createMidiClip(trackId, 0.0, 4.0);
+class ProjectSerializationTest : public juce::UnitTest {
+public:
+    ProjectSerializationTest() : juce::UnitTest("ProjectSerialization", "Project") {}
 
-    const std::string oscId =
-        host.addDeviceToTrack(trackId, audioapp::device_types::kOscillator);
-    const std::string samplerId =
-        host.addDeviceToTrack(trackId, audioapp::device_types::kSampler);
-    const std::string synthId =
-        host.addDeviceToTrack(trackId, audioapp::device_types::kSubtractiveSynth);
-    if (oscId.empty() || samplerId.empty() || synthId.empty()) {
-        return EXIT_FAILURE;
-    }
+    void runTest() override
+    {
+        audioapp::EngineHost host;
+        host.createProject();
+        const std::string trackId = host.addTrack("Keys");
+        host.createMidiClip(trackId, 0.0, 4.0);
 
-    host.setDeviceParameter(oscId, "frequency", 523.25f);
-    host.setDeviceParameter(samplerId, "attack", 0.05f);
-    host.setDeviceParameter(synthId, "filterCutoff", 0.6f);
+        beginTest("add devices to track");
+        {
+            const std::string oscId =
+                host.addDeviceToTrack(trackId, audioapp::device_types::kOscillator);
+            const std::string samplerId =
+                host.addDeviceToTrack(trackId, audioapp::device_types::kSampler);
+            const std::string synthId =
+                host.addDeviceToTrack(trackId, audioapp::device_types::kSubtractiveSynth);
+            expect(!oscId.empty(), "should add oscillator");
+            expect(!samplerId.empty(), "should add sampler");
+            expect(!synthId.empty(), "should add subtractive synth");
 
-    const std::string json = host.getProjectFileJson();
-    if (json.find("\"project_format_version\"") == std::string::npos) {
-        return EXIT_FAILURE;
-    }
-    if (json.find("simple_oscillator") == std::string::npos ||
-        json.find("simple_sampler") == std::string::npos ||
-        json.find("subtractive_synth") == std::string::npos ||
-        json.find("track_gain") == std::string::npos) {
-        return EXIT_FAILURE;
-    }
+            host.setDeviceParameter(oscId, "frequency", 523.25f);
+            host.setDeviceParameter(samplerId, "attack", 0.05f);
+            host.setDeviceParameter(synthId, "filterCutoff", 0.6f);
+        }
 
-    audioapp::ProjectFileData parsed;
-    if (!audioapp::parseProjectFileJson(json, parsed)) {
-        return EXIT_FAILURE;
-    }
-    if (parsed.tracks.size() != 1 || parsed.tracks[0].name != "Keys") {
-        return EXIT_FAILURE;
-    }
-    if (parsed.tracks[0].devices.size() < 4) {
-        return EXIT_FAILURE;
-    }
+        beginTest("project JSON contains expected fields");
+        {
+            const std::string json = host.getProjectFileJson();
+            expect(json.find("\"project_format_version\"") != std::string::npos,
+                   "JSON should contain project_format_version");
+            expect(json.find("simple_oscillator") != std::string::npos,
+                   "JSON should reference simple_oscillator");
+            expect(json.find("simple_sampler") != std::string::npos,
+                   "JSON should reference simple_sampler");
+            expect(json.find("subtractive_synth") != std::string::npos,
+                   "JSON should reference subtractive_synth");
+            expect(json.find("track_gain") != std::string::npos,
+                   "JSON should reference track_gain");
+        }
 
-    audioapp::EngineHost loaded;
-    loaded.createProject();
-    if (!loaded.loadProjectFileJson(json)) {
-        return EXIT_FAILURE;
-    }
+        beginTest("parse and load project JSON");
+        {
+            const std::string json = host.getProjectFileJson();
+            audioapp::ProjectFileData parsed;
+            expect(audioapp::test::parseProjectJsonInto(json, parsed),
+                   "should parse project JSON");
+            expect(parsed.tracks.size() == 1, "should have one track");
+            expect(parsed.tracks[0].name == "Keys", "track name should be Keys");
+            expect(parsed.tracks[0].devices.size() >= 4,
+                   "track should have at least 4 devices");
+        }
 
-    const std::string snapshotJson = loaded.getProjectSnapshotJson();
-    if (snapshotJson.find("Keys") == std::string::npos) {
-        return EXIT_FAILURE;
-    }
-    if (snapshotJson.find("523.25") == std::string::npos) {
-        return EXIT_FAILURE;
-    }
+        beginTest("load into new engine host");
+        {
+            const std::string json = host.getProjectFileJson();
 
-    const std::string roundTripJson = loaded.getProjectFileJson();
-    audioapp::ProjectFileData roundTrip;
-    if (!audioapp::parseProjectFileJson(roundTripJson, roundTrip)) {
-        return EXIT_FAILURE;
-    }
-    if (roundTrip.tracks[0].devices.size() != parsed.tracks[0].devices.size()) {
-        return EXIT_FAILURE;
-    }
+            audioapp::EngineHost loaded;
+            loaded.createProject();
+            expect(loaded.loadProjectFileJson(json),
+                   "should load project JSON into new host");
 
-    return EXIT_SUCCESS;
-}
+            const std::string snapshotJson = loaded.getProjectSnapshotJson();
+            expect(snapshotJson.find("Keys") != std::string::npos,
+                   "snapshot should contain track name Keys");
+            expect(snapshotJson.find("523.25") != std::string::npos,
+                   "snapshot should contain frequency 523.25");
+        }
+
+        beginTest("round-trip device count matches");
+        {
+            const std::string json = host.getProjectFileJson();
+            audioapp::ProjectFileData parsed;
+            expect(audioapp::test::parseProjectJsonInto(json, parsed),
+                   "should parse project JSON");
+
+            audioapp::EngineHost loaded;
+            loaded.createProject();
+            loaded.loadProjectFileJson(json);
+
+            const std::string roundTripJson = loaded.getProjectFileJson();
+            audioapp::ProjectFileData roundTrip;
+            expect(audioapp::test::parseProjectJsonInto(roundTripJson, roundTrip),
+                   "should parse round-trip JSON");
+            expect(roundTrip.tracks[0].devices.size() == parsed.tracks[0].devices.size(),
+                   "round-trip device count should match");
+        }
+    }
+};
+
+static ProjectSerializationTest projectSerializationTest;

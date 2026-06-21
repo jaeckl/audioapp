@@ -1,46 +1,34 @@
+#include <juce_core/juce_core.h>
+#include "TestHelpers.h"
 #include "audioapp/EngineHost.hpp"
 #include "audioapp/SampleBank.hpp"
 
-#include <cmath>
-#include <cstring>
-#include <vector>
+class LivePerformanceTest : public juce::UnitTest {
+public:
+    LivePerformanceTest() : juce::UnitTest("LivePerformance", "Engine") {}
+    void runTest() override {
+        beginTest("note on produces audio");
+        {
+            audioapp::EngineHost host;
+            host.createProject();
+            const std::string trackId = host.addTrack("Live");
+            host.selectTrack(trackId);
+            expect(host.setDeviceStringParameter("dev-1", "sampleId", "sample_kick"),
+                   "set sampleId");
+            host.setRecordArmed(false);
 
-namespace {
+            host.enterPlayMode();
+            const bool noteStarted = host.noteOn(60, 110.0f);
+            expect(noteStarted, "noteOn should start");
 
-bool hasNonZeroSample(const std::vector<float>& buffer) {
-    for (float sample : buffer) {
-        if (std::fabs(sample) > 1.0e-5f) {
-            return true;
+            std::vector<float> buffer(2048, 0.0f);
+            host.readLiveMix(buffer.data(), static_cast<int>(buffer.size()), 48000.0);
+            expect(audioapp::test::hasNonZeroSample(buffer),
+                   "live mix should contain audio");
+
+            host.noteOff(60);
+            host.allNotesOff();
         }
     }
-    return false;
-}
-
-} // namespace
-
-int main() {
-    audioapp::EngineHost host;
-    host.createProject();
-    const std::string trackId = host.addTrack("Live");
-    host.selectTrack(trackId);
-    if (!host.setDeviceStringParameter("dev-1", "sampleId", "sample_kick")) {
-        return 1;
-    }
-    host.setRecordArmed(false);
-
-    host.enterPlayMode();
-    const bool noteStarted = host.noteOn(60, 110.0f);
-    if (!noteStarted) {
-        return 1;
-    }
-
-    std::vector<float> buffer(2048, 0.0f);
-    host.readLiveMix(buffer.data(), static_cast<int>(buffer.size()), 48000.0);
-    if (!hasNonZeroSample(buffer)) {
-        return 2;
-    }
-
-    host.noteOff(60);
-    host.allNotesOff();
-    return 0;
-}
+};
+static LivePerformanceTest livePerformanceTest;

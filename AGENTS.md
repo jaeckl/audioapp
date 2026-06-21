@@ -27,7 +27,8 @@ host-managed, KVM-accelerated emulator). The cloud loop below is headless only.
 
 | Unit | Command (from repo root) | Notes |
 |------|--------------------------|-------|
-| Engine build | `cmake -S engine_juce -B build/engine -G Ninja -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++` then `cmake --build build/engine --target audioapp_engine` | Library builds cleanly; first configure fetches JUCE 8.0.4 over the network. |
+| Engine build (Linux) | `cmake -S engine_juce -B build/engine -G Ninja -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++` then `cmake --build build/engine --target audioapp_engine` | Library builds cleanly; first configure fetches JUCE 8.0.4 over the network. |
+| Engine build (Windows) | Activate MSVC (`vcvars64.bat`), then `cmake -S engine_juce -B build/engine -G Ninja` then `cmake --build build/engine --target audioapp_engine` | Requires VS 2022 Build Tools + Windows SDK. MinGW is **not** compatible with JUCE 8. |
 | Flutter tests | `cd app_flutter && flutter test` | 51 widget/bridge unit tests; engine is mocked via `MethodChannel`. |
 | Flutter lint | `cd app_flutter && flutter analyze` | Exits non-zero on pre-existing `info`/`warning` hints; there are **0 errors**. |
 | Android APK | `cd app_flutter && flutter build apk --debug` | Full build incl. native engine via NDK; Gradle auto-installs build-tools 34 + CMake 3.22.1 on first run. |

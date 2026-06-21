@@ -9,6 +9,8 @@
 /// control-thread -> audio-thread path, verifying that common parameter
 /// modulation produces audible variation.
 
+#include <juce_core/juce_core.h>
+#include "TestHelpers.h"
 #include "audioapp/AutomationTypes.hpp"
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/EngineHost.hpp"
@@ -19,23 +21,10 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <cstdlib>
 #include <limits>
 #include <vector>
 
 namespace {
-
-// ---------- audio analysis helpers (same as modulation_e2e_test.cpp) ----------
-
-float rms(const std::vector<float>& samples, int start, int count) {
-    double acc = 0.0;
-    const int end = std::min(start + count, static_cast<int>(samples.size()));
-    for (int i = start; i < end; ++i) {
-        acc += static_cast<double>(samples[static_cast<size_t>(i)]) *
-               static_cast<double>(samples[static_cast<size_t>(i)]);
-    }
-    return end > start ? static_cast<float>(std::sqrt(acc / (end - start))) : 0.0f;
-}
 
 /// Create a basic project with a track, a subtractive synth, and a long MIDI note.
 struct TestSetup {
@@ -65,173 +54,110 @@ struct TestSetup {
     }
 };
 
-/// Compute max/min RMS ratio across N equal windows of a block.
-float rmsVariationRatio(const std::vector<float>& block, int numWindows) {
-    if (block.empty() || numWindows < 2) return 1.0f;
-    const int windowFrames = static_cast<int>(block.size()) / numWindows;
-    float maxRms = 0.0f;
-    float minRms = std::numeric_limits<float>::infinity();
-    for (int w = 0; w < numWindows; ++w) {
-        const int start = w * windowFrames;
-        const float r = rms(block, start, windowFrames);
-        if (r <= 0.0f) continue;
-        maxRms = std::max(maxRms, r);
-        minRms = std::min(minRms, r);
-    }
-    return (minRms > 0.0f) ? (maxRms / minRms) : 1.0f;
-}
-
 } // namespace
 
-int main() {
-    using namespace audioapp;
+class CommonParamModulationTest : public juce::UnitTest {
+public:
+    CommonParamModulationTest() : juce::UnitTest("CommonParamModulation", "Effects") {}
+    void runTest() override {
+        using namespace audioapp;
+        using namespace audioapp::test;
 
-    // =====================================================================
-    // Test 1: LFO → gain → amplitude modulation (RMS variation across windows)
-    //
-    // Create a SubtractiveSynth with sustained MIDI note, add a triangle LFO
-    // modulating "gain" at 0.8 amount. Render 4 beats. The output amplitude
-    // should vary with the LFO frequency, producing different RMS levels in
-    // consecutive windows.
-    // =====================================================================
-    {
-        TestSetup setup;
-        const int lfoId = setup.createLfo(1, 4.0f, 0); // triangle @ 4 Hz, free
-        if (!setup.host.assignModulation(lfoId, setup.synthId, "gain", 0.8f)) {
-            return EXIT_FAILURE;
+        beginTest("LFO->gain amplitude modulation");
+        {
+            TestSetup setup;
+            const int lfoId = setup.createLfo(1, 4.0f, 0); // triangle @ 4 Hz, free
+            expect(setup.host.assignModulation(lfoId, setup.synthId, "gain", 0.8f),
+                   "assign modulation");
+
+            setup.host.setPlaying(true);
+            const std::vector<float> block = setup.host.renderOffline(4.0, 48000.0);
+            expect(block.size() >= 48000, "enough audio frames");
+
+            const float overallRms = rms(block, 1000, 4000);
+            expect(overallRms >= 1.0e-4f, "audible output");
+
+            constexpr int kWindows = 8;
+            const float ratio = rmsVariationRatio(block, kWindows);
+            expect(ratio >= 1.5f, "LFO gain modulation creates RMS variation");
         }
 
-        setup.host.setPlaying(true);
-        const std::vector<float> block = setup.host.renderOffline(4.0, 48000.0);
-        if (block.size() < 48000) return EXIT_FAILURE;
+        beginTest("LFO->pan RMS variation vs unmodulated");
+        {
+            // Render WITHOUT pan modulation first (baseline)
+            audioapp::EngineHost hostUnmod;
+            hostUnmod.createProject();
+            const std::string trackU = hostUnmod.addTrack("Test");
+            hostUnmod.selectTrack(trackU);
+            const std::string synthU = hostUnmod.addDeviceToTrack(trackU, "subtractive_synth");
+            const std::string clipU = hostUnmod.createMidiClip(trackU, 0.0, 4.0);
+            std::vector<MidiNoteState> notesU;
+            notesU.push_back({60, 0.0, 4.0, 100.0f});
+            hostUnmod.setMidiClipNotes(clipU, notesU);
+            hostUnmod.setPlaying(true);
+            const std::vector<float> unmodBlock = hostUnmod.renderOffline(4.0, 48000.0);
 
-        // Verify audio is produced
-        const float overallRms = rms(block, 1000, 4000);
-        if (overallRms < 1.0e-4f) return EXIT_FAILURE;
+            // Render WITH pan modulation
+            TestSetup setupPan;
+            const int lfoPan = setupPan.createLfo(1, 4.0f, 0); // triangle @ 4 Hz
+            expect(setupPan.host.assignModulation(lfoPan, setupPan.synthId, "pan", 0.8f),
+                   "assign pan modulation");
+            setupPan.host.setPlaying(true);
+            const std::vector<float> panModBlock = setupPan.host.renderOffline(4.0, 48000.0);
 
-        // With a 4 Hz triangle LFO at 0.8 bipolar amount modulating gain
-        // (default 1.0), gain varies from ~0.2 to ~1.0. This should produce
-        // clear RMS variation across 8 half-beat windows.
-        constexpr int kWindows = 8;
-        const float ratio = rmsVariationRatio(block, kWindows);
-        // The LFO cycles 16 times in 4 seconds. Multiple windows must
-        // have significantly different RMS levels.
-        if (ratio < 1.5f) return EXIT_FAILURE;
-    }
+            expect(unmodBlock.size() >= 48000, "unmod buffer size");
+            expect(panModBlock.size() >= 48000, "pan mod buffer size");
+            expect(rms(unmodBlock, 1000, 4000) >= 1.0e-4f, "unmod audio");
+            expect(rms(panModBlock, 1000, 4000) >= 1.0e-4f, "pan mod audio");
 
-    // =====================================================================
-    // Test 2: LFO → pan → RMS variation differs from unmodulated case
-    //
-    // Pan modulation affects the mono sum because the stereo mix uses
-    // cos(angle)+sin(angle) as a per-frame factor, which varies from 1.0
-    // to ~1.414 as pan sweeps between extremes. Verify that a pan-modulated
-    // render shows different (higher) RMS window-to-window variation than
-    // an otherwise identical unmodulated render.
-    // =====================================================================
-    {
-        // Render WITHOUT pan modulation first (baseline)
-        audioapp::EngineHost hostUnmod;
-        hostUnmod.createProject();
-        const std::string trackU = hostUnmod.addTrack("Test");
-        hostUnmod.selectTrack(trackU);
-        const std::string synthU = hostUnmod.addDeviceToTrack(trackU, "subtractive_synth");
-        const std::string clipU = hostUnmod.createMidiClip(trackU, 0.0, 4.0);
-        std::vector<MidiNoteState> notesU;
-        notesU.push_back({60, 0.0, 4.0, 100.0f});
-        hostUnmod.setMidiClipNotes(clipU, notesU);
-        hostUnmod.setPlaying(true);
-        const std::vector<float> unmodBlock = hostUnmod.renderOffline(4.0, 48000.0);
+            constexpr int kWindows = 8;
+            const float unmodRatio = rmsVariationRatio(unmodBlock, kWindows);
+            const float panRatio = rmsVariationRatio(panModBlock, kWindows);
 
-        // Render WITH pan modulation
-        TestSetup setupPan;
-        const int lfoPan = setupPan.createLfo(1, 4.0f, 0); // triangle @ 4 Hz
-        if (!setupPan.host.assignModulation(lfoPan, setupPan.synthId, "pan", 0.8f)) {
-            return EXIT_FAILURE;
-        }
-        setupPan.host.setPlaying(true);
-        const std::vector<float> panModBlock = setupPan.host.renderOffline(4.0, 48000.0);
-
-        if (unmodBlock.size() < 48000) return EXIT_FAILURE;
-        if (panModBlock.size() < 48000) return EXIT_FAILURE;
-        if (rms(unmodBlock, 1000, 4000) < 1.0e-4f) return EXIT_FAILURE;
-        if (rms(panModBlock, 1000, 4000) < 1.0e-4f) return EXIT_FAILURE;
-
-        constexpr int kWindows = 8;
-
-        // Compute RMS variation for unmodulated block
-        const float unmodRatio = rmsVariationRatio(unmodBlock, kWindows);
-
-        // Compute RMS variation for pan-modulated block
-        const float panRatio = rmsVariationRatio(panModBlock, kWindows);
-
-        // The pan-modulated block should have more RMS variation than the
-        // unmodulated block. The unmodulated block has some variation from
-        // the amp attack transient, but pan modulation adds additional
-        // variation from the cos+sin factor sweeping between 1.0 and ~1.414.
-        if (panRatio < unmodRatio * 1.15f) return EXIT_FAILURE;
-    }
-
-    // =====================================================================
-    // Test 3: Two LFOs modulating gain + pan simultaneously
-    //
-    // Two independent LFOs modulate gain and pan. The combined effect
-    // should produce even more RMS variation than either alone, and the
-    // pattern should differ from single-parameter modulation.
-    // =====================================================================
-    {
-        TestSetup setup;
-        // LFO 1: triangle, 4 Hz, modulating gain at 0.8
-        const int lfoGain = setup.createLfo(1, 4.0f, 0);
-        if (!setup.host.assignModulation(lfoGain, setup.synthId, "gain", 0.8f)) {
-            return EXIT_FAILURE;
-        }
-        // LFO 2: sine, 7 Hz, modulating pan at 0.6
-        const int lfoPan = setup.host.createLfo(0); // 0 = LFO
-        setup.host.updateLfoParam(lfoPan, "waveform", 0.0f); // sine
-        setup.host.updateLfoParam(lfoPan, "rate", 7.0f);
-        setup.host.updateLfoParam(lfoPan, "syncDivision", 0.0f);
-        if (!setup.host.assignModulation(lfoPan, setup.synthId, "pan", 0.6f)) {
-            return EXIT_FAILURE;
+            expect(panRatio >= unmodRatio * 1.15f,
+                   "pan modulation adds RMS variation beyond baseline");
         }
 
-        setup.host.setPlaying(true);
-        const std::vector<float> block = setup.host.renderOffline(4.0, 48000.0);
-        if (block.size() < 48000) return EXIT_FAILURE;
+        beginTest("two LFOs modulating gain+pan simultaneously");
+        {
+            TestSetup setup;
+            const int lfoGain = setup.createLfo(1, 4.0f, 0);
+            expect(setup.host.assignModulation(lfoGain, setup.synthId, "gain", 0.8f),
+                   "assign gain mod");
+            const int lfoPan = setup.host.createLfo(0);
+            setup.host.updateLfoParam(lfoPan, "waveform", 0.0f); // sine
+            setup.host.updateLfoParam(lfoPan, "rate", 7.0f);
+            setup.host.updateLfoParam(lfoPan, "syncDivision", 0.0f);
+            expect(setup.host.assignModulation(lfoPan, setup.synthId, "pan", 0.6f),
+                   "assign pan mod");
 
-        const float overallRms = rms(block, 1000, 4000);
-        if (overallRms < 1.0e-4f) return EXIT_FAILURE;
+            setup.host.setPlaying(true);
+            const std::vector<float> block = setup.host.renderOffline(4.0, 48000.0);
+            expect(block.size() >= 48000, "enough audio frames");
 
-        constexpr int kWindows = 8;
-        const float ratio = rmsVariationRatio(block, kWindows);
+            const float overallRms = rms(block, 1000, 4000);
+            expect(overallRms >= 1.0e-4f, "audible output");
 
-        // Both LFOs together should produce clear RMS variation.
-        // The gain LFO alone already produces >1.5x ratio; with pan
-        // adding additional amplitude modulation, the ratio should
-        // still be clearly detectable.
-        if (ratio < 1.5f) return EXIT_FAILURE;
+            constexpr int kWindows = 8;
+            const float ratio = rmsVariationRatio(block, kWindows);
+            expect(ratio >= 1.5f, "combined LFOs produce RMS variation");
 
-        // Verify the combined modulation produces RMS values that are
-        // not trivially correlated with a single LFO: the per-window
-        // RMS values should be spread such that at least 3 distinct
-        // windows have RMS > 10% above the minimum (demonstrating
-        // complex modulation interaction rather than a simple on/off).
-        const int windowFrames = static_cast<int>(block.size()) / kWindows;
-        float minRms = std::numeric_limits<float>::infinity();
-        for (int w = 0; w < kWindows; ++w) {
-            const int start = w * windowFrames;
-            minRms = std::min(minRms, rms(block, start, windowFrames));
-        }
-        if (minRms <= 0.0f) return EXIT_FAILURE;
-        int aboveCount = 0;
-        for (int w = 0; w < kWindows; ++w) {
-            const int start = w * windowFrames;
-            if (rms(block, start, windowFrames) > minRms * 1.1f) {
-                ++aboveCount;
+            const int windowFrames = static_cast<int>(block.size()) / kWindows;
+            float minRms = std::numeric_limits<float>::infinity();
+            for (int w = 0; w < kWindows; ++w) {
+                const int start = w * windowFrames;
+                minRms = std::min(minRms, rms(block, start, windowFrames));
             }
-        }
-        // At least 3 windows should be clearly above the quietest window
-        if (aboveCount < 3) return EXIT_FAILURE;
-    }
+            expect(minRms > 0.0f, "no silent windows");
 
-    return EXIT_SUCCESS;
-}
+            int aboveCount = 0;
+            for (int w = 0; w < kWindows; ++w) {
+                const int start = w * windowFrames;
+                if (rms(block, start, windowFrames) > minRms * 1.1f)
+                    ++aboveCount;
+            }
+            expect(aboveCount >= 3, "at least 3 windows clearly above minimum");
+        }
+    }
+};
+static CommonParamModulationTest commonParamModulationTest;

@@ -1,74 +1,73 @@
+#include <juce_core/juce_core.h>
+#include "TestHelpers.h"
 #include "audioapp/devices/DeviceRegistry.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/EngineHost.hpp"
 
 #include <cmath>
-#include <cstdlib>
 
-int main() {
-    const audioapp::DeviceRegistry registry = audioapp::DeviceRegistry::createBuiltIn();
+class DeviceRegistryTest : public juce::UnitTest {
+public:
+    DeviceRegistryTest() : juce::UnitTest("DeviceRegistry", "Devices") {}
 
-    const auto known = registry.knownTypes();
-    if (known.size() != 13) {
-        return EXIT_FAILURE;
-    }
+    void runTest() override
+    {
+        const audioapp::DeviceRegistry registry = audioapp::DeviceRegistry::createBuiltIn();
 
-    if (registry.find("unknown_device") != nullptr) {
-        return EXIT_FAILURE;
-    }
-    if (registry.isKnownType(audioapp::device_types::kOscillator) != true) {
-        return EXIT_FAILURE;
-    }
+        beginTest("known types count and lookup");
+        {
+            const auto known = registry.knownTypes();
+            expect(known.size() == 13, "should have 13 built-in device types");
+            expect(registry.find("unknown_device") == nullptr,
+                   "unknown device should return nullptr");
+            expect(registry.isKnownType(audioapp::device_types::kOscillator) == true,
+                   "oscillator should be known");
+        }
 
-    audioapp::DeviceSlot oscillator = registry.createDefault(
-        audioapp::device_types::kOscillator, "dev-test-1");
-    if (oscillator.id != "dev-test-1") {
-        return EXIT_FAILURE;
-    }
-    if (!std::holds_alternative<audioapp::OscillatorInstance>(oscillator.instance)) {
-        return EXIT_FAILURE;
-    }
-    const auto& oscInst = std::get<audioapp::OscillatorInstance>(oscillator.instance);
-    if (std::abs(oscInst.frequencyHz - 440.0f) > 0.001f) {
-        return EXIT_FAILURE;
-    }
+        beginTest("create default oscillator");
+        {
+            audioapp::DeviceSlot oscillator = registry.createDefault(
+                audioapp::device_types::kOscillator, "dev-test-1");
+            expect(oscillator.id == "dev-test-1", "oscillator id should match");
+            expect(std::holds_alternative<audioapp::OscillatorInstance>(oscillator.instance),
+                   "oscillator should have OscillatorInstance");
+            const auto& oscInst = std::get<audioapp::OscillatorInstance>(oscillator.instance);
+            expectWithinAbsoluteError(oscInst.frequencyHz, 440.0f, 0.001f);
+        }
 
-    audioapp::DeviceSlot gain = registry.createDefault(
-        audioapp::device_types::kTrackGain, "dev-test-2");
-    if (std::abs(gain.gain - 1.0f) > 0.001f) {
-        return EXIT_FAILURE;
-    }
+        beginTest("create default track gain");
+        {
+            audioapp::DeviceSlot gain = registry.createDefault(
+                audioapp::device_types::kTrackGain, "dev-test-2");
+            expectWithinAbsoluteError(gain.gain, 1.0f, 0.001f);
+        }
 
-    audioapp::DeviceSlot synth = registry.createDefault(
-        audioapp::device_types::kSubtractiveSynth, "dev-test-3");
-    const auto& subInst = std::get<audioapp::SubtractiveSynthInstance>(synth.instance);
-    if (std::abs(subInst.filterCutoff - 0.75f) > 0.001f) {
-        return EXIT_FAILURE;
-    }
-    if (std::abs(subInst.osc1Shape - 0.5f) > 0.001f) {
-        return EXIT_FAILURE;
-    }
+        beginTest("create default subtractive synth");
+        {
+            audioapp::DeviceSlot synth = registry.createDefault(
+                audioapp::device_types::kSubtractiveSynth, "dev-test-3");
+            const auto& subInst = std::get<audioapp::SubtractiveSynthInstance>(synth.instance);
+            expectWithinAbsoluteError(subInst.filterCutoff, 0.75f, 0.001f);
+            expectWithinAbsoluteError(subInst.osc1Shape, 0.5f, 0.001f);
+        }
 
-    audioapp::EngineHost host;
-    host.createProject();
-    const std::string trackId = host.addTrack("Test");
-    if (trackId.empty()) {
-        return EXIT_FAILURE;
-    }
+        beginTest("engine integration");
+        {
+            audioapp::EngineHost host;
+            host.createProject();
+            const std::string trackId = host.addTrack("Test");
+            expect(!trackId.empty(), "should create track");
 
-    const std::string oscId = host.addDeviceToTrack(trackId, "simple_oscillator");
-    if (oscId.empty()) {
-        return EXIT_FAILURE;
-    }
+            const std::string oscId = host.addDeviceToTrack(trackId, "simple_oscillator");
+            expect(!oscId.empty(), "should add oscillator to track");
 
-    if (!host.addDeviceToTrack(trackId, "not_a_real_device").empty()) {
-        return EXIT_FAILURE;
-    }
+            expect(host.addDeviceToTrack(trackId, "not_a_real_device").empty(),
+                   "unknown device should fail to add");
 
-    const std::string synthId = host.addDeviceToTrack(trackId, "subtractive_synth");
-    if (synthId.empty()) {
-        return EXIT_FAILURE;
+            const std::string synthId = host.addDeviceToTrack(trackId, "subtractive_synth");
+            expect(!synthId.empty(), "should add subtractive synth to track");
+        }
     }
+};
 
-    return EXIT_SUCCESS;
-}
+static DeviceRegistryTest deviceRegistryTest;

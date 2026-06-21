@@ -216,7 +216,7 @@ struct EngineHost::Impl {
     }
 };
 
-EngineHost::EngineHost() : impl_(std::make_unique<Impl>(*this)) {
+EngineHost::EngineHost() : impl_(std::make_unique<Impl>(*this)), project_(std::make_unique<ProjectEngine>()) {
     ensureSampleBankReady();
 }
 
@@ -234,14 +234,14 @@ void EngineHost::setPlaying(bool shouldPlay) {
     if (shouldPlay) {
         if (!impl_->startStream()) {
             AUDIOAPP_LOG("Failed to start audio stream");
-            project_.setPlaying(false);
+            project_->setPlaying(false);
             return;
         }
     } else {
         impl_->stopStream();
     }
 
-    project_.setPlaying(shouldPlay);
+    project_->setPlaying(shouldPlay);
     impl_->playing.store(shouldPlay, std::memory_order_release);
     impl_->oscillator.setEnabled(shouldPlay);
 }

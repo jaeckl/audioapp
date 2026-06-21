@@ -9,54 +9,54 @@ namespace audioapp {
 
 void EngineHost::ensureSampleBankReady() {
     sampleBank_.registerBundledDefaults();
-    project_.setSampleBank(&sampleBank_);
+    project_->setSampleBank(&sampleBank_);
 }
 
 void EngineHost::createProject() {
     ensureSampleBankReady();
-    project_.createProject();
+    project_->createProject();
 }
 
 std::string EngineHost::addTrack(const std::string& name) {
-    return project_.addTrack(name);
+    return project_->addTrack(name);
 }
 
 bool EngineHost::selectTrack(const std::string& trackId) {
-    return project_.selectTrack(trackId);
+    return project_->selectTrack(trackId);
 }
 
 std::string EngineHost::addDeviceToTrack(const std::string& trackId,
                                          const std::string& deviceType,
                                          int insertIndex) {
-    return project_.addDeviceToTrack(trackId, deviceType, insertIndex);
+    return project_->addDeviceToTrack(trackId, deviceType, insertIndex);
 }
 
 bool EngineHost::removeDeviceFromTrack(const std::string& deviceId) {
-    return project_.removeDeviceFromTrack(deviceId);
+    return project_->removeDeviceFromTrack(deviceId);
 }
 
 bool EngineHost::setDeviceParameter(const std::string& deviceId,
                                     const std::string& parameterId,
                                     float value) {
-    return project_.setDeviceParameter(deviceId, parameterId, value);
+    return project_->setDeviceParameter(deviceId, parameterId, value);
 }
 
 bool EngineHost::setDeviceStringParameter(const std::string& deviceId,
                                           const std::string& parameterId,
                                           const std::string& value) {
-    return project_.setDeviceStringParameter(deviceId, parameterId, value);
+    return project_->setDeviceStringParameter(deviceId, parameterId, value);
 }
 
 bool EngineHost::setMasterGain(float gain) {
-    return project_.setMasterGain(gain);
+    return project_->setMasterGain(gain);
 }
 
 std::string EngineHost::getProjectSnapshotJson() const {
-    return snapshotToJson(project_.snapshot(), project_.deviceRegistry());
+    return snapshotToJson(project_->snapshot(), project_->deviceRegistry());
 }
 
 std::string EngineHost::getDeviceStatesJson(const std::vector<std::string>& deviceIds) const {
-    auto snap = project_.snapshot();
+    auto snap = project_->snapshot();
     auto* obj = new juce::DynamicObject();
     auto* devicesObj = new juce::DynamicObject();
 
@@ -74,7 +74,7 @@ std::string EngineHost::getDeviceStatesJson(const std::vector<std::string>& devi
         const auto& [slot, track] = it->second;
 
         // Serialize via registry dispatch (no round-trip)
-        juce::var deviceVar = audioapp::deviceToVar(*slot, project_.deviceRegistry());
+        juce::var deviceVar = audioapp::deviceToVar(*slot, project_->deviceRegistry());
 
         // Inject meters from this track's deviceMeters
         for (const auto& meter : track->deviceMeters) {
@@ -99,26 +99,26 @@ std::string EngineHost::getDeviceStatesJson(const std::vector<std::string>& devi
 }
 
 std::string EngineHost::getTransportStateJson() const {
-    return buildBridgeOkTransportState(project_.transportState());
+    return buildBridgeOkTransportState(project_->transportState());
 }
 
 float EngineHost::activeOscillatorFrequencyHz() const {
-    return project_.activeOscillatorFrequencyHz();
+    return project_->activeOscillatorFrequencyHz();
 }
 
 double EngineHost::playheadBeats() const noexcept {
-    return project_.playheadBeats();
+    return project_->playheadBeats();
 }
 
 void EngineHost::setPlayheadBeats(double beats) noexcept {
-    project_.setPlayheadBeats(beats);
+    project_->setPlayheadBeats(beats);
 }
 
 void EngineHost::readMasterMix(float* monoOut,
                                int numFrames,
                                double sampleRate,
                                double playheadStartBeat) noexcept {
-    project_.readMasterMix(monoOut, numFrames, sampleRate, playheadStartBeat);
+    project_->readMasterMix(monoOut, numFrames, sampleRate, playheadStartBeat);
 }
 
 void EngineHost::readMasterMixStereo(float* leftOut,
@@ -126,7 +126,7 @@ void EngineHost::readMasterMixStereo(float* leftOut,
                                      int numFrames,
                                      double sampleRate,
                                      double playheadStartBeat) noexcept {
-    project_.readMasterMixStereo(leftOut, rightOut, numFrames, sampleRate, playheadStartBeat);
+    project_->readMasterMixStereo(leftOut, rightOut, numFrames, sampleRate, playheadStartBeat);
 }
 
 void EngineHost::readPreviewMix(float* monoOut, int numFrames, double sampleRate) noexcept {
@@ -157,15 +157,15 @@ void EngineHost::readPreviewMix(float* monoOut, int numFrames, double sampleRate
 }
 
 void EngineHost::readLiveMix(float* monoOut, int numFrames, double sampleRate) noexcept {
-    project_.readLiveMix(monoOut, numFrames, sampleRate);
+    project_->readLiveMix(monoOut, numFrames, sampleRate);
 }
 
 std::string EngineHost::createMidiClip(const std::string& trackId, double startBeat, double lengthBeats) {
-    return project_.createMidiClip(trackId, startBeat, lengthBeats);
+    return project_->createMidiClip(trackId, startBeat, lengthBeats);
 }
 
 bool EngineHost::setMidiClipNotes(const std::string& clipId, const std::vector<MidiNoteState>& notes) {
-    return project_.setMidiClipNotes(clipId, notes);
+    return project_->setMidiClipNotes(clipId, notes);
 }
 
 std::string EngineHost::createSampleClip(const std::string& trackId,
@@ -173,86 +173,86 @@ std::string EngineHost::createSampleClip(const std::string& trackId,
                                          double startBeat,
                                          double lengthBeats) {
     ensureSampleBankReady();
-    return project_.createSampleClip(trackId, sampleId, startBeat, lengthBeats);
+    return project_->createSampleClip(trackId, sampleId, startBeat, lengthBeats);
 }
 
 bool EngineHost::moveClip(const std::string& clipId,
                           const std::string& targetTrackId,
                           double startBeat) {
-    return project_.moveClip(clipId, targetTrackId, startBeat);
+    return project_->moveClip(clipId, targetTrackId, startBeat);
 }
 
 bool EngineHost::setClipLength(const std::string& clipId, double lengthBeats) {
-    return project_.setClipLength(clipId, lengthBeats);
+    return project_->setClipLength(clipId, lengthBeats);
 }
 
 std::string EngineHost::createAutomationClip(const std::string& trackId,
                                              double startBeat,
                                              double lengthBeats) {
-    return project_.createAutomationClip(trackId, startBeat, lengthBeats);
+    return project_->createAutomationClip(trackId, startBeat, lengthBeats);
 }
 
 bool EngineHost::assignAutomationTarget(const std::string& clipId,
                                           const std::string& deviceId,
                                           const std::string& paramId) {
-    return project_.assignAutomationTarget(clipId, deviceId, paramId);
+    return project_->assignAutomationTarget(clipId, deviceId, paramId);
 }
 
 bool EngineHost::setAutomationPoints(const std::string& clipId,
                                      const std::vector<AutomationPointState>& points) {
-    return project_.setAutomationPoints(clipId, points);
+    return project_->setAutomationPoints(clipId, points);
 }
 
 bool EngineHost::setBpm(int bpm) {
-    return project_.setBpm(bpm);
+    return project_->setBpm(bpm);
 }
 
 bool EngineHost::deleteTrack(const std::string& trackId) {
-    return project_.deleteTrack(trackId);
+    return project_->deleteTrack(trackId);
 }
 
 bool EngineHost::deleteClip(const std::string& clipId) {
-    return project_.deleteClip(clipId);
+    return project_->deleteClip(clipId);
 }
 
 bool EngineHost::duplicateClip(const std::string& clipId) {
-    return project_.duplicateClip(clipId);
+    return project_->duplicateClip(clipId);
 }
 
 bool EngineHost::setLoopEnabled(bool enabled) {
-    return project_.setLoopEnabled(enabled);
+    return project_->setLoopEnabled(enabled);
 }
 
 bool EngineHost::setLoopLengthBeats(double lengthBeats) {
-    return project_.setLoopLengthBeats(lengthBeats);
+    return project_->setLoopLengthBeats(lengthBeats);
 }
 
 bool EngineHost::setLoopRegion(double startBeat, double endBeat) {
-    return project_.setLoopRegion(startBeat, endBeat);
+    return project_->setLoopRegion(startBeat, endBeat);
 }
 
 bool EngineHost::setRecordArmed(bool armed) {
-    return project_.setRecordArmed(armed);
+    return project_->setRecordArmed(armed);
 }
 
 int EngineHost::createLfo(int modulatorType) {
-    return project_.createLfo(modulatorType);
+    return project_->createLfo(modulatorType);
 }
 
 bool EngineHost::removeLfo(int lfoId) {
-    return project_.removeLfo(lfoId);
+    return project_->removeLfo(lfoId);
 }
 
 bool EngineHost::updateLfoParam(int lfoId, const std::string& param, float value) {
-    return project_.updateLfoParam(lfoId, param, value);
+    return project_->updateLfoParam(lfoId, param, value);
 }
 
 bool EngineHost::assignModulation(int lfoId, const std::string& deviceId, const std::string& paramId, float amount) {
-    return project_.assignModulation(lfoId, deviceId, paramId, amount);
+    return project_->assignModulation(lfoId, deviceId, paramId, amount);
 }
 
 bool EngineHost::removeModulation(int lfoId, const std::string& paramId) {
-    return project_.removeModulation(lfoId, paramId);
+    return project_->removeModulation(lfoId, paramId);
 }
 
 bool EngineHost::applySubtractiveSynthPreset(
@@ -260,28 +260,28 @@ bool EngineHost::applySubtractiveSynthPreset(
     const std::vector<std::pair<std::string, float>>& params,
     const std::vector<ProjectEngine::SubtractivePresetLfoSpec>& lfos,
     const std::vector<ProjectEngine::SubtractivePresetModSpec>& mods) {
-    return project_.applySubtractiveSynthPreset(deviceId, params, lfos, mods);
+    return project_->applySubtractiveSynthPreset(deviceId, params, lfos, mods);
 }
 
 bool EngineHost::noteOn(int pitch, float velocity) {
     ensureAudioOutput();
-    return project_.noteOn(pitch, velocity);
+    return project_->noteOn(pitch, velocity);
 }
 
 bool EngineHost::noteOff(int pitch) {
-    return project_.noteOff(pitch);
+    return project_->noteOff(pitch);
 }
 
 void EngineHost::allNotesOff() {
-    project_.allNotesOff();
+    project_->allNotesOff();
 }
 
 void EngineHost::clearCapture() {
-    project_.clearCapture();
+    project_->clearCapture();
 }
 
 bool EngineHost::commitCapture() {
-    return project_.commitCapture();
+    return project_->commitCapture();
 }
 
 void EngineHost::enterPlayMode() {
@@ -289,15 +289,15 @@ void EngineHost::enterPlayMode() {
 }
 
 void EngineHost::setPitchBend(float bend) noexcept {
-    project_.setLivePitchBend(bend);
+    project_->setLivePitchBend(bend);
 }
 
 void EngineHost::setModulation(float mod) noexcept {
-    project_.setLiveModulation(mod);
+    project_->setLiveModulation(mod);
 }
 
 std::vector<float> EngineHost::renderOffline(double lengthBeats, double sampleRate) {
-    return project_.renderOffline(lengthBeats, sampleRate);
+    return project_->renderOffline(lengthBeats, sampleRate);
 }
 
 std::string EngineHost::importWavSample(const std::string& displayName,
@@ -328,35 +328,35 @@ void EngineHost::previewSample(const std::string& sampleId) {
 }
 
 bool EngineHost::saveProject(const std::string& archivePath) {
-    return saveProjectToArchive(project_, archivePath);
+    return saveProjectToArchive(*project_, archivePath);
 }
 
 bool EngineHost::loadProject(const std::string& archivePath) {
     ensureSampleBankReady();
-    return loadProjectFromArchive(project_, archivePath);
+    return loadProjectFromArchive(*project_, archivePath);
 }
 
 std::string EngineHost::getProjectFileJson() const {
-    return projectFileToJson(project_.toProjectFileData(),
-                             project_.deviceRegistry());
+    return projectFileToJson(project_->toProjectFileData(),
+                             project_->deviceRegistry());
 }
 
 bool EngineHost::loadProjectFileJson(const std::string& json) {
     ProjectFileData data;
-    if (!parseProjectFileJson(json, data, project_.deviceRegistry())) {
+    if (!parseProjectFileJson(json, data, project_->deviceRegistry())) {
         return false;
     }
     ensureSampleBankReady();
     sampleBank_.clearImported();
     sampleBank_.restoreMetadata(data.sampleLibrary, data.bpm > 0 ? data.bpm : 120);
-    if (!project_.loadFromProjectFileData(data)) {
+    if (!project_->loadFromProjectFileData(data)) {
         return false;
     }
     return true;
 }
 
 void EngineHost::advancePlayheadForBlock(int numFrames, double sampleRate) noexcept {
-    project_.advancePlayhead(numFrames, sampleRate);
+    project_->advancePlayhead(numFrames, sampleRate);
 }
 
 } // namespace audioapp

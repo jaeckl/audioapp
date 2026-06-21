@@ -1,19 +1,21 @@
+#include <juce_core/juce_core.h>
+#include "TestHelpers.h"
 #include "audioapp/SampleBank.hpp"
 
-#include <cstdlib>
-
-int main() {
-    audioapp::SampleBank bank;
-    bank.registerBundledDefaults();
-    const auto samples = bank.listSamples();
-    if (samples.size() < 4) {
-        return EXIT_FAILURE;
+class SampleBankTest : public juce::UnitTest {
+public:
+    SampleBankTest() : juce::UnitTest("SampleBank", "Engine") {}
+    void runTest() override {
+        beginTest("sample bank defaults");
+        {
+            audioapp::SampleBank bank;
+            bank.registerBundledDefaults();
+            const auto samples = bank.listSamples();
+            expect(samples.size() >= 4, "at least 4 bundled samples");
+            expect(bank.findSample("sample_kick") != nullptr, "sample_kick found");
+            expect(bank.beatsForSample("sample_kick", 120) > 0.0,
+                   "sample_kick beatsForSample positive");
+        }
     }
-    if (bank.findSample("sample_kick") == nullptr) {
-        return EXIT_FAILURE;
-    }
-    if (bank.beatsForSample("sample_kick", 120) <= 0.0) {
-        return EXIT_FAILURE;
-    }
-    return EXIT_SUCCESS;
-}
+};
+static SampleBankTest sampleBankTest;

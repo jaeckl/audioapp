@@ -91,7 +91,7 @@ struct EngineHost::Impl : juce::AudioIODeviceCallback {
     }
 };
 
-EngineHost::EngineHost() : impl_(std::make_unique<Impl>(*this)) {
+EngineHost::EngineHost() : impl_(std::make_unique<Impl>(*this)), project_(std::make_unique<ProjectEngine>()) {
     ensureSampleBankReady();
 }
 
@@ -110,12 +110,12 @@ void EngineHost::setPlaying(bool shouldPlay) {
     if (shouldPlay) {
         impl_->ensureAudioInitialized();
         if (!impl_->audioInitialized.load(std::memory_order_acquire)) {
-            project_.setPlaying(false);
+            project_->setPlaying(false);
             return;
         }
     }
 
-    project_.setPlaying(shouldPlay);
+    project_->setPlaying(shouldPlay);
     impl_->playing.store(shouldPlay, std::memory_order_release);
     impl_->oscillator.setEnabled(shouldPlay);
 }

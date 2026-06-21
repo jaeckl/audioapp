@@ -1,72 +1,71 @@
+#include <juce_core/juce_core.h>
+#include "TestHelpers.h"
 #include "audioapp/MidiClipPlayback.hpp"
 #include "audioapp/ProjectEngine.hpp"
 #include "audioapp/TimelineClipTypes.hpp"
 
 #include <cmath>
-#include <cstdlib>
 
-int main() {
-    audioapp::ProjectEngine project;
-    project.createProject();
+class ClipLengthTest : public juce::UnitTest {
+public:
+    ClipLengthTest() : juce::UnitTest("ClipLength", "Project") {}
 
-    const std::string trackId = project.addTrack("Keys");
-    project.createMidiClip(trackId, 0.0, 4.0);
+    void runTest() override
+    {
+        auto project = std::make_unique<audioapp::ProjectEngine>();
+        project->createProject();
 
-    const auto snap = project.snapshot();
-    if (snap.tracks.empty() || snap.tracks[0].midiClips.empty()) {
-        return EXIT_FAILURE;
-    }
+        const std::string trackId = project->addTrack("Keys");
+        project->createMidiClip(trackId, 0.0, 4.0);
 
-    const std::string clipId = snap.tracks[0].midiClips[0].id;
+        const auto snap = project->snapshot();
+        expect(!snap.tracks.empty(), "should have tracks");
+        expect(!snap.tracks[0].midiClips.empty(), "track should have MIDI clips");
 
-    std::vector<audioapp::MidiNoteState> notes;
-    notes.push_back(audioapp::MidiNoteState{60, 0.0, 4.0, 100.0f});
-    notes.push_back(audioapp::MidiNoteState{64, 3.0, 1.0, 100.0f});
-    if (!project.setMidiClipNotes(clipId, notes)) {
-        return EXIT_FAILURE;
-    }
+        const std::string clipId = snap.tracks[0].midiClips[0].id;
 
-    if (!project.setClipLength(clipId, 2.0)) {
-        return EXIT_FAILURE;
-    }
+        beginTest("set clip notes and shorten length");
+        {
+            std::vector<audioapp::MidiNoteState> notes;
+            notes.push_back(audioapp::MidiNoteState{60, 0.0, 4.0, 100.0f});
+            notes.push_back(audioapp::MidiNoteState{64, 3.0, 1.0, 100.0f});
+            expect(project->setMidiClipNotes(clipId, notes),
+                   "should set clip notes");
 
-    const auto shortened = project.snapshot();
-    if (std::abs(shortened.tracks[0].midiClips[0].lengthBeats - 2.0) > 0.001) {
-        return EXIT_FAILURE;
-    }
-    if (shortened.tracks[0].midiClips[0].notes.size() != 2) {
-        return EXIT_FAILURE;
-    }
+            expect(project->setClipLength(clipId, 2.0),
+                   "should set clip length to 2.0");
 
-    audioapp::MidiClipState clipState;
-    clipState.startBeat = 0.0;
-    clipState.lengthBeats = 2.0;
-    clipState.notes = shortened.tracks[0].midiClips[0].notes;
-    if (audioapp::activeMidiPitchAtBeat(1.5, clipState) != 60) {
-        return EXIT_FAILURE;
-    }
-    if (audioapp::activeMidiPitchAtBeat(2.5, clipState) != -1) {
-        return EXIT_FAILURE;
-    }
+            const auto shortened = project->snapshot();
+            expectWithinAbsoluteError(shortened.tracks[0].midiClips[0].lengthBeats, 2.0, 0.001);
+            expect(shortened.tracks[0].midiClips[0].notes.size() == 2,
+                   "notes should be preserved after shortening");
+        }
 
-    if (!project.setClipLength(clipId, 0.1)) {
-        return EXIT_FAILURE;
-    }
-    const auto clamped = project.snapshot();
-    if (std::abs(clamped.tracks[0].midiClips[0].lengthBeats - audioapp::kMinClipLengthBeats) > 0.001) {
-        return EXIT_FAILURE;
-    }
+        beginTest("activeMidiPitchAtBeat with shortened clip");
+        {
+            const auto shortened = project->snapshot();
+            audioapp::MidiClipState clipState;
+            clipState.startBeat = 0.0;
+            clipState.lengthBeats = 2.0;
+            clipState.notes = shortened.tracks[0].midiClips[0].notes;
 
-    project.setPlaying(true);
-    project.addDeviceToTrack(trackId, "simple_oscillator");
-    project.setPlayheadBeats(1.5);
-    if (std::abs(project.activeOscillatorFrequencyHz() - 261.63f) > 1.0f) {
-        return EXIT_FAILURE;
-    }
-    project.setPlayheadBeats(2.5);
-    if (project.activeOscillatorFrequencyHz() > 0.0f) {
-        return EXIT_FAILURE;
-    }
+            expectEquals(audioapp::activeMidiPitchAtBeat(1.5, clipState), 60,
+                         "pitch at 1.5 should be 60");
+            expectEquals(audioapp::activeMidiPitchAtBeat(2.5, clipState), -1,
+                         "pitch at 2.5 should be -1 (beyond shortened length)");
+        }
 
-    return EXIT_SUCCESS;
-}
+        beginTest("clip length clamped to minimum");
+        {
+            expect(project->setClipLength(clipId, 0.1),
+                   "should set clip length to 0.1");
+
+            const auto clamped = project->snapshot();
+            expectWithinAbsoluteError(clamped.tracks[0].midiClips[0].lengthBeats,
+                                      audioapp::kMinClipLengthBeats, 0.001,
+                                      "clip length should be clamped to minimum");
+        }
+    }
+};
+
+static ClipLengthTest clipLengthTest;

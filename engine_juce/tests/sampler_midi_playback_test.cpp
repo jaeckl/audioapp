@@ -1,66 +1,83 @@
+#include <juce_core/juce_core.h>
+#include "TestHelpers.h"
 #include "audioapp/EngineHost.hpp"
 #include "audioapp/SamplePlayback.hpp"
 
-#include <cmath>
-#include <cstdlib>
+class SamplerMidiPlaybackTest : public juce::UnitTest {
+public:
+    SamplerMidiPlaybackTest() : juce::UnitTest("SamplerMidiPlayback", "Engine") {}
+    void runTest() override {
+        beginTest("sampler ADSR gain at zero time");
+        {
+            using namespace audioapp;
+            expect(samplerAdsrGain(0.0f, 1.0f, 0.5f, 0.5f, 1.0f, 0.5f) <= 0.01f,
+                   "ADSR gain at time 0 near zero");
+        }
+        beginTest("sampler ADSR gain mid-attack");
+        {
+            using namespace audioapp;
+            expectWithinAbsoluteError(samplerAdsrGain(0.25f, 1.0f, 0.5f, 0.5f, 1.0f, 0.5f),
+                                      0.5f, 0.01f);
+        }
+        beginTest("silent without sample assigned");
+        {
+            audioapp::EngineHost host;
+            host.createProject();
+            const std::string trackId = host.addTrack("Drums");
+            expect(!trackId.empty(), "track created");
 
-int main() {
-    using namespace audioapp;
+            host.createMidiClip(trackId, 0.0, 4.0);
+            host.setPlaying(true);
 
-    if (samplerAdsrGain(0.0f, 1.0f, 0.5f, 0.5f, 1.0f, 0.5f) > 0.01f) {
-        return EXIT_FAILURE;
-    }
-    if (std::abs(samplerAdsrGain(0.25f, 1.0f, 0.5f, 0.5f, 1.0f, 0.5f) - 0.5f) > 0.01f) {
-        return EXIT_FAILURE;
-    }
+            float silent[512] = {};
+            host.readMasterMix(silent, 512, 48000.0, 0.0);
+            float peakSilent = 0.0f;
+            for (const float sample : silent)
+                peakSilent = std::max(peakSilent, std::abs(sample));
+            expect(peakSilent <= 1.0e-4f, "silent when no sample assigned");
+        }
+        beginTest("audio with sample assigned");
+        {
+            audioapp::EngineHost host;
+            host.createProject();
+            const std::string trackId = host.addTrack("Drums");
+            host.createMidiClip(trackId, 0.0, 4.0);
+            host.setPlaying(true);
 
-    EngineHost host;
-    host.createProject();
-    const std::string trackId = host.addTrack("Drums");
-    if (trackId.empty()) {
-        return EXIT_FAILURE;
-    }
+            expect(host.setDeviceStringParameter("dev-1", "sampleId", "sample_kick"),
+                   "set sampleId");
 
-    host.createMidiClip(trackId, 0.0, 4.0);
-    host.setPlaying(true);
+            float withSample[512] = {};
+            host.readMasterMix(withSample, 512, 48000.0, 0.0);
+            float peakSample = 0.0f;
+            for (const float sample : withSample)
+                peakSample = std::max(peakSample, std::abs(sample));
+            expect(peakSample > 1.0e-4f, "non-zero audio with sample assigned");
+        }
+        beginTest("slow attack reduces peak");
+        {
+            audioapp::EngineHost host;
+            host.createProject();
+            const std::string trackId = host.addTrack("Drums");
+            host.createMidiClip(trackId, 0.0, 4.0);
+            host.setPlaying(true);
+            host.setDeviceStringParameter("dev-1", "sampleId", "sample_kick");
 
-    float silent[512] = {};
-    host.readMasterMix(silent, 512, 48000.0, 0.0);
-    float peakSilent = 0.0f;
-    for (const float sample : silent) {
-        peakSilent = std::max(peakSilent, std::abs(sample));
-    }
-    if (peakSilent > 1.0e-4f) {
-        return EXIT_FAILURE;
-    }
+            float withSample[512] = {};
+            host.readMasterMix(withSample, 512, 48000.0, 0.0);
+            float peakSample = 0.0f;
+            for (const float sample : withSample)
+                peakSample = std::max(peakSample, std::abs(sample));
 
-    if (!host.setDeviceStringParameter("dev-1", "sampleId", "sample_kick")) {
-        return EXIT_FAILURE;
-    }
+            expect(host.setDeviceParameter("dev-1", "attack", 1.0f), "set attack");
 
-    float withSample[512] = {};
-    host.readMasterMix(withSample, 512, 48000.0, 0.0);
-    float peakSample = 0.0f;
-    for (const float sample : withSample) {
-        peakSample = std::max(peakSample, std::abs(sample));
+            float slowAttack[512] = {};
+            host.readMasterMix(slowAttack, 512, 48000.0, 0.0);
+            float peakSlow = 0.0f;
+            for (const float sample : slowAttack)
+                peakSlow = std::max(peakSlow, std::abs(sample));
+            expect(peakSlow < peakSample * 0.95f, "slow attack reduces peak");
+        }
     }
-    if (peakSample <= 1.0e-4f) {
-        return EXIT_FAILURE;
-    }
-
-    if (!host.setDeviceParameter("dev-1", "attack", 1.0f)) {
-        return EXIT_FAILURE;
-    }
-
-    float slowAttack[512] = {};
-    host.readMasterMix(slowAttack, 512, 48000.0, 0.0);
-    float peakSlow = 0.0f;
-    for (const float sample : slowAttack) {
-        peakSlow = std::max(peakSlow, std::abs(sample));
-    }
-    if (peakSlow >= peakSample * 0.95f) {
-        return EXIT_FAILURE;
-    }
-
-    return EXIT_SUCCESS;
-}
+};
+static SamplerMidiPlaybackTest samplerMidiPlaybackTest;

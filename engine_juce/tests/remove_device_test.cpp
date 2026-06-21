@@ -1,72 +1,73 @@
+#include <juce_core/juce_core.h>
+#include "TestHelpers.h"
 #include "audioapp/EngineHost.hpp"
 
-#include <cstdlib>
 #include <string>
 
-namespace {
+class RemoveDeviceTest : public juce::UnitTest {
+public:
+    RemoveDeviceTest() : juce::UnitTest("RemoveDevice", "Devices") {}
+    void runTest() override {
+        beginTest("remove device from track");
+        {
+            audioapp::EngineHost host;
+            host.createProject();
+            const std::string trackId = host.addTrack("Devices");
+            host.selectTrack(trackId);
 
-bool snapshotContainsDevice(const std::string& json, const std::string& deviceId) {
-    return json.find('"' + deviceId + '"') != std::string::npos;
-}
+            const std::string samplerId = host.addDeviceToTrack(trackId, "simple_sampler");
+            const std::string fxId = host.addDeviceToTrack(trackId, "compressor");
+            expect(!samplerId.empty(), "sampler created");
+            expect(!fxId.empty(), "compressor created");
 
-} // namespace
+            const std::string clipId = host.createAutomationClip(trackId, 0.0, 4.0);
+            expect(!clipId.empty(), "auto clip created");
+            expect(host.assignAutomationTarget(clipId, fxId, "threshold"),
+                   "assign auto target");
+            const int lfoId = host.createLfo();
+            expect(lfoId > 0, "LFO created");
+            expect(host.assignModulation(lfoId, fxId, "threshold", 0.5f),
+                   "assign modulation");
 
-int main() {
-    audioapp::EngineHost host;
-    host.createProject();
-    const std::string trackId = host.addTrack("Devices");
-    host.selectTrack(trackId);
+            expect(host.removeDeviceFromTrack(fxId), "remove fx device");
 
-    const std::string samplerId = host.addDeviceToTrack(trackId, "simple_sampler");
-    const std::string fxId = host.addDeviceToTrack(trackId, "compressor");
-    if (samplerId.empty() || fxId.empty()) {
-        return EXIT_FAILURE;
-    }
+            const std::string json = host.getProjectSnapshotJson();
+            expect(!audioapp::test::snapshotContainsDevice(json, fxId),
+                   "removed device not in snapshot");
+            expect(json.find("\"deviceId\":\"" + fxId + "\"") == std::string::npos,
+                   "no auto target referencing removed device");
+            expect(json.find("\"deviceId\":\"" + samplerId + "\"") != std::string::npos,
+                   "sampler still in snapshot");
+        }
+        beginTest("remove missing device returns false");
+        {
+            audioapp::EngineHost host;
+            host.createProject();
+            expect(!host.removeDeviceFromTrack("dev-missing"),
+                   "remove missing returns false");
+        }
+        beginTest("remove track-1 (always-present device) returns false");
+        {
+            audioapp::EngineHost host;
+            host.createProject();
+            host.addTrack("Devices");
+            host.selectTrack("track-1");
+            expect(!host.removeDeviceFromTrack("dev-1"),
+                   "remove track_gain returns false");
+        }
+        beginTest("remove all devices from track");
+        {
+            audioapp::EngineHost host;
+            host.createProject();
+            const std::string trackId = host.addTrack("Devices");
+            host.selectTrack(trackId);
 
-    const std::string clipId = host.createAutomationClip(trackId, 0.0, 4.0);
-    if (clipId.empty()) {
-        return EXIT_FAILURE;
-    }
-    if (!host.assignAutomationTarget(clipId, fxId, "threshold")) {
-        return EXIT_FAILURE;
-    }
+            const std::string samplerId = host.addDeviceToTrack(trackId, "simple_sampler");
+            expect(!samplerId.empty(), "sampler created");
 
-    const int lfoId = host.createLfo();
-    if (lfoId <= 0) {
-        return EXIT_FAILURE;
+            expect(host.removeDeviceFromTrack(samplerId),
+                   "remove sampler device");
+        }
     }
-    if (!host.assignModulation(lfoId, fxId, "threshold", 0.5f)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!host.removeDeviceFromTrack(fxId)) {
-        return EXIT_FAILURE;
-    }
-
-    const std::string json = host.getProjectSnapshotJson();
-    if (snapshotContainsDevice(json, fxId)) {
-        return EXIT_FAILURE;
-    }
-    if (json.find("\"deviceId\":\"" + fxId + "\"") != std::string::npos) {
-        return EXIT_FAILURE;
-    }
-    if (json.find("\"deviceId\":\"" + samplerId + "\"") == std::string::npos) {
-        return EXIT_FAILURE;
-    }
-
-    if (!host.removeDeviceFromTrack("dev-missing")) {
-        // expected
-    } else {
-        return EXIT_FAILURE;
-    }
-
-    if (host.removeDeviceFromTrack("dev-1")) {
-        return EXIT_FAILURE;
-    }
-
-    if (!host.removeDeviceFromTrack(samplerId)) {
-        return EXIT_FAILURE;
-    }
-
-    return EXIT_SUCCESS;
-}
+};
+static RemoveDeviceTest removeDeviceTest;

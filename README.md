@@ -34,16 +34,23 @@ flutter run          # phone or emulator connected
 
 **Physical device** is the best way to test audio. See the guide for USB debugging steps.
 
-### Dev Container (optional)
+### Native engine (host tests)
 
-For Linux/CI parity only — not the primary Windows workflow. See [.devcontainer/README.md](.devcontainer/README.md).
+Requires **Visual Studio 2022 Build Tools** (MSVC x64 + Windows SDK) and **Ninja**.  
+**MinGW is not supported.** Activate MSVC environment before any CMake build:
 
-Native engine (from repo root):
+```powershell
+# Activate MSVC in the current shell
+& "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
 
-```bash
+# Build engine for host testing
 cmake -S engine_juce -B build/engine -G Ninja
 cmake --build build/engine
 ```
+
+### Dev Container (optional)
+
+For Linux/CI parity only — see [.devcontainer/README.md](.devcontainer/README.md).
 
 ## Development modes (Android)
 

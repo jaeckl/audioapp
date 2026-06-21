@@ -11,6 +11,9 @@
 /// signal source followed by an effect device, exercising the complete
 /// control-thread -> audio-thread modulation path.
 
+#include <juce_core/juce_core.h>
+#include "TestHelpers.h"
+
 #include "audioapp/AutomationTypes.hpp"
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/EngineHost.hpp"
@@ -21,50 +24,10 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <cstdlib>
 #include <limits>
 #include <vector>
 
 namespace {
-
-// ---------- audio analysis helpers ----------
-
-float rms(const std::vector<float>& samples, int start, int count) {
-    double acc = 0.0;
-    const int end = std::min(start + count, static_cast<int>(samples.size()));
-    for (int i = start; i < end; ++i) {
-        acc += static_cast<double>(samples[static_cast<size_t>(i)]) *
-               static_cast<double>(samples[static_cast<size_t>(i)]);
-    }
-    return end > start ? static_cast<float>(std::sqrt(acc / static_cast<double>(end - start))) : 0.0f;
-}
-
-float peak(const std::vector<float>& samples, int start, int count) {
-    float p = 0.0f;
-    const int end = std::min(start + count, static_cast<int>(samples.size()));
-    for (int i = start; i < end; ++i) {
-        p = std::max(p, std::abs(samples[static_cast<size_t>(i)]));
-    }
-    return p;
-}
-
-/// RMS variation ratio across N windows (skips first window for attack transient).
-/// Higher ratio = more amplitude variation between windows.
-float rmsVariationRatio(const std::vector<float>& samples, int numWindows) {
-    const int windowFrames = static_cast<int>(samples.size()) / numWindows;
-    float maxRms = 0.0f;
-    float minRms = std::numeric_limits<float>::infinity();
-    int validWindows = 0;
-    for (int w = 1; w < numWindows; ++w) {
-        const int start = w * windowFrames;
-        const float r = rms(samples, start, windowFrames);
-        if (r <= 0.0f) continue;
-        maxRms = std::max(maxRms, r);
-        minRms = std::min(minRms, r);
-        ++validWindows;
-    }
-    return (validWindows >= 2 && minRms > 0.0f && maxRms > 0.0f) ? (maxRms / minRms) : 1.0f;
-}
 
 /// Create a project with oscillator -> effect chain and a sustained MIDI note.
 struct EffectTestSetup {
@@ -98,167 +61,133 @@ struct EffectTestSetup {
 
 } // namespace
 
-int main() {
-    using namespace audioapp;
+class EffectDeviceModulationTest : public juce::UnitTest {
+public:
+    EffectDeviceModulationTest()
+        : juce::UnitTest("Effect Device Modulation", "Effects") {}
 
-    constexpr double kLengthBeats = 4.0;
-    constexpr double kSampleRate = 48000.0;
-    constexpr int kNumWindows = 20; // 5 per beat -> avoids LFO cycle alignment
+    void runTest() override {
+        using namespace audioapp;
 
-    // =====================================================================
-    // Test 1: LFO -> Compressor threshold -> audible gain reduction variation
-    //
-    // Lower the threshold so the compressor is active on the oscillator
-    // signal (~0.2 peak). The LFO sweeps the threshold above and below
-    // the signal level, causing periodic compression -> no compression.
-    // =====================================================================
-    {
-        // Unmodulated baseline
-        EffectTestSetup base("compressor");
-        base.host.setDeviceParameter(base.effectId, "compThreshold", 0.05f);
-        base.host.setPlaying(true);
-        const std::vector<float> unmod = base.host.renderOffline(kLengthBeats, kSampleRate);
-        if (unmod.size() < 48000) return EXIT_FAILURE;
-        const float unmodRatio = rmsVariationRatio(unmod, kNumWindows);
+        constexpr double kLengthBeats = 4.0;
+        constexpr double kSampleRate = 48000.0;
+        constexpr int kNumWindows = 20; // 5 per beat -> avoids LFO cycle alignment
 
-        // With modulation
-        EffectTestSetup mod("compressor");
-        mod.host.setDeviceParameter(mod.effectId, "compThreshold", 0.05f);
-        const int lfoId = mod.createLfo(4.0f);
-        if (!mod.host.assignModulation(lfoId, mod.effectId, "compThreshold", 0.8f)) {
-            return EXIT_FAILURE;
+        beginTest("LFO -> Compressor threshold -> audible gain reduction variation");
+        {
+            // Unmodulated baseline
+            EffectTestSetup base("compressor");
+            base.host.setDeviceParameter(base.effectId, "compThreshold", 0.05f);
+            base.host.setPlaying(true);
+            const std::vector<float> unmod = base.host.renderOffline(kLengthBeats, kSampleRate);
+            expect(unmod.size() >= 48000);
+            const float unmodRatio = audioapp::test::rmsVariationRatio(unmod, kNumWindows);
+
+            // With modulation
+            EffectTestSetup mod("compressor");
+            mod.host.setDeviceParameter(mod.effectId, "compThreshold", 0.05f);
+            const int lfoId = mod.createLfo(4.0f);
+            expect(mod.host.assignModulation(lfoId, mod.effectId, "compThreshold", 0.8f));
+            mod.host.setPlaying(true);
+            const std::vector<float> modAudio = mod.host.renderOffline(kLengthBeats, kSampleRate);
+            expect(modAudio.size() >= 48000);
+            const float modRatio = audioapp::test::rmsVariationRatio(modAudio, kNumWindows);
+
+            // Modulated must show more window-to-window RMS variation
+            expect(modRatio >= 1.5f, "Modulated compressor should have >= 1.5x RMS variation");
+            expect(modRatio >= unmodRatio * 1.5f, "Modulated should have > unmodulated RMS variation");
         }
-        mod.host.setPlaying(true);
-        const std::vector<float> modAudio = mod.host.renderOffline(kLengthBeats, kSampleRate);
-        if (modAudio.size() < 48000) return EXIT_FAILURE;
-        const float modRatio = rmsVariationRatio(modAudio, kNumWindows);
 
-        // Modulated must show more window-to-window RMS variation
-        if (modRatio < 1.5f) return EXIT_FAILURE;
-        if (modRatio < unmodRatio * 1.5f) return EXIT_FAILURE;
-    }
+        beginTest("LFO -> Gate threshold -> periodic opening/closing");
+        {
+            EffectTestSetup base("gate");
+            base.host.setDeviceParameter(base.effectId, "gateThreshold", 0.15f);
+            base.host.setPlaying(true);
+            const std::vector<float> unmod = base.host.renderOffline(kLengthBeats, kSampleRate);
+            expect(unmod.size() >= 48000);
+            const float unmodRatio = audioapp::test::rmsVariationRatio(unmod, kNumWindows);
 
-    // =====================================================================
-    // Test 2: LFO -> Gate threshold -> periodic opening/closing
-    //
-    // Set gate threshold near the oscillator signal level. The LFO sweeps
-    // the threshold above and below, causing the gate to open and close
-    // periodically (amplitude modulation).
-    // =====================================================================
-    {
-        EffectTestSetup base("gate");
-        base.host.setDeviceParameter(base.effectId, "gateThreshold", 0.15f);
-        base.host.setPlaying(true);
-        const std::vector<float> unmod = base.host.renderOffline(kLengthBeats, kSampleRate);
-        if (unmod.size() < 48000) return EXIT_FAILURE;
-        const float unmodRatio = rmsVariationRatio(unmod, kNumWindows);
+            EffectTestSetup mod("gate");
+            mod.host.setDeviceParameter(mod.effectId, "gateThreshold", 0.15f);
+            const int lfoId = mod.createLfo(4.0f);
+            expect(mod.host.assignModulation(lfoId, mod.effectId, "gateThreshold", 0.5f));
+            mod.host.setPlaying(true);
+            const std::vector<float> modAudio = mod.host.renderOffline(kLengthBeats, kSampleRate);
+            expect(modAudio.size() >= 48000);
+            const float modRatio = audioapp::test::rmsVariationRatio(modAudio, kNumWindows);
 
-        EffectTestSetup mod("gate");
-        mod.host.setDeviceParameter(mod.effectId, "gateThreshold", 0.15f);
-        const int lfoId = mod.createLfo(4.0f);
-        if (!mod.host.assignModulation(lfoId, mod.effectId, "gateThreshold", 0.5f)) {
-            return EXIT_FAILURE;
+            expect(modRatio >= 1.5f, "Modulated gate should have >= 1.5x RMS variation");
+            expect(modRatio >= unmodRatio * 1.5f, "Modulated should have > unmodulated RMS variation");
         }
-        mod.host.setPlaying(true);
-        const std::vector<float> modAudio = mod.host.renderOffline(kLengthBeats, kSampleRate);
-        if (modAudio.size() < 48000) return EXIT_FAILURE;
-        const float modRatio = rmsVariationRatio(modAudio, kNumWindows);
 
-        if (modRatio < 1.5f) return EXIT_FAILURE;
-        if (modRatio < unmodRatio * 1.5f) return EXIT_FAILURE;
-    }
+        beginTest("LFO -> Gate range -> partial gating");
+        {
+            EffectTestSetup base("gate");
+            base.host.setDeviceParameter(base.effectId, "gateThreshold", 0.99f);
+            base.host.setDeviceParameter(base.effectId, "gateRange", 0.0f);
+            base.host.setPlaying(true);
+            const std::vector<float> unmod = base.host.renderOffline(kLengthBeats, kSampleRate);
+            expect(unmod.size() >= 48000);
+            const float unmodRatio = audioapp::test::rmsVariationRatio(unmod, kNumWindows);
 
-    // =====================================================================
-    // Test 3: LFO -> Gate range -> partial gating
-    //
-    // Set gate threshold very high (always closed). Modulate gate range
-    // so the amount of attenuation changes periodically, producing
-    // partial gating variation.
-    // =====================================================================
-    {
-        EffectTestSetup base("gate");
-        base.host.setDeviceParameter(base.effectId, "gateThreshold", 0.99f);
-        base.host.setDeviceParameter(base.effectId, "gateRange", 0.0f);
-        base.host.setPlaying(true);
-        const std::vector<float> unmod = base.host.renderOffline(kLengthBeats, kSampleRate);
-        if (unmod.size() < 48000) return EXIT_FAILURE;
-        const float unmodRatio = rmsVariationRatio(unmod, kNumWindows);
+            EffectTestSetup mod("gate");
+            mod.host.setDeviceParameter(mod.effectId, "gateThreshold", 0.99f);
+            mod.host.setDeviceParameter(mod.effectId, "gateRange", 0.0f);
+            const int lfoId = mod.createLfo(4.0f);
+            expect(mod.host.assignModulation(lfoId, mod.effectId, "gateRange", 0.9f));
+            mod.host.setPlaying(true);
+            const std::vector<float> modAudio = mod.host.renderOffline(kLengthBeats, kSampleRate);
+            expect(modAudio.size() >= 48000);
+            const float modRatio = audioapp::test::rmsVariationRatio(modAudio, kNumWindows);
 
-        EffectTestSetup mod("gate");
-        mod.host.setDeviceParameter(mod.effectId, "gateThreshold", 0.99f);
-        mod.host.setDeviceParameter(mod.effectId, "gateRange", 0.0f);
-        const int lfoId = mod.createLfo(4.0f);
-        if (!mod.host.assignModulation(lfoId, mod.effectId, "gateRange", 0.9f)) {
-            return EXIT_FAILURE;
+            expect(modRatio >= 1.5f, "Modulated gate range should have >= 1.5x RMS variation");
+            expect(modRatio >= unmodRatio * 1.5f, "Modulated should have > unmodulated RMS variation");
         }
-        mod.host.setPlaying(true);
-        const std::vector<float> modAudio = mod.host.renderOffline(kLengthBeats, kSampleRate);
-        if (modAudio.size() < 48000) return EXIT_FAILURE;
-        const float modRatio = rmsVariationRatio(modAudio, kNumWindows);
 
-        if (modRatio < 1.5f) return EXIT_FAILURE;
-        if (modRatio < unmodRatio * 1.5f) return EXIT_FAILURE;
-    }
+        beginTest("LFO -> Expander threshold -> amplitude variation");
+        {
+            EffectTestSetup base("expander");
+            base.host.setDeviceParameter(base.effectId, "expandThreshold", 0.05f);
+            base.host.setPlaying(true);
+            const std::vector<float> unmod = base.host.renderOffline(kLengthBeats, kSampleRate);
+            expect(unmod.size() >= 48000);
+            const float unmodRatio = audioapp::test::rmsVariationRatio(unmod, kNumWindows);
 
-    // =====================================================================
-    // Test 4: LFO -> Expander threshold -> amplitude variation
-    //
-    // Lower expander threshold so expansion is active on the oscillator
-    // signal. Modulating the threshold changes how much downward
-    // expansion occurs, producing amplitude variation.
-    // =====================================================================
-    {
-        EffectTestSetup base("expander");
-        base.host.setDeviceParameter(base.effectId, "expandThreshold", 0.05f);
-        base.host.setPlaying(true);
-        const std::vector<float> unmod = base.host.renderOffline(kLengthBeats, kSampleRate);
-        if (unmod.size() < 48000) return EXIT_FAILURE;
-        const float unmodRatio = rmsVariationRatio(unmod, kNumWindows);
+            EffectTestSetup mod("expander");
+            mod.host.setDeviceParameter(mod.effectId, "expandThreshold", 0.05f);
+            const int lfoId = mod.createLfo(4.0f);
+            expect(mod.host.assignModulation(lfoId, mod.effectId, "expandThreshold", 0.8f));
+            mod.host.setPlaying(true);
+            const std::vector<float> modAudio = mod.host.renderOffline(kLengthBeats, kSampleRate);
+            expect(modAudio.size() >= 48000);
+            const float modRatio = audioapp::test::rmsVariationRatio(modAudio, kNumWindows);
 
-        EffectTestSetup mod("expander");
-        mod.host.setDeviceParameter(mod.effectId, "expandThreshold", 0.05f);
-        const int lfoId = mod.createLfo(4.0f);
-        if (!mod.host.assignModulation(lfoId, mod.effectId, "expandThreshold", 0.8f)) {
-            return EXIT_FAILURE;
+            expect(modRatio >= 1.5f, "Modulated expander should have >= 1.5x RMS variation");
+            expect(modRatio >= unmodRatio * 1.5f, "Modulated should have > unmodulated RMS variation");
         }
-        mod.host.setPlaying(true);
-        const std::vector<float> modAudio = mod.host.renderOffline(kLengthBeats, kSampleRate);
-        if (modAudio.size() < 48000) return EXIT_FAILURE;
-        const float modRatio = rmsVariationRatio(modAudio, kNumWindows);
 
-        if (modRatio < 1.5f) return EXIT_FAILURE;
-        if (modRatio < unmodRatio * 1.5f) return EXIT_FAILURE;
-    }
+        beginTest("LFO -> Limiter ceiling -> peak limiting variation");
+        {
+            EffectTestSetup base("limiter");
+            base.host.setDeviceParameter(base.effectId, "limitCeiling", 0.1f);
+            base.host.setPlaying(true);
+            const std::vector<float> unmod = base.host.renderOffline(kLengthBeats, kSampleRate);
+            expect(unmod.size() >= 48000);
+            const float unmodRatio = audioapp::test::rmsVariationRatio(unmod, kNumWindows);
 
-    // =====================================================================
-    // Test 5: LFO -> Limiter ceiling -> peak limiting variation
-    //
-    // Lower the limiter ceiling near the oscillator signal peak.
-    // Modulating the ceiling changes how much peak limiting occurs,
-    // producing amplitude variation.
-    // =====================================================================
-    {
-        EffectTestSetup base("limiter");
-        base.host.setDeviceParameter(base.effectId, "limitCeiling", 0.1f);
-        base.host.setPlaying(true);
-        const std::vector<float> unmod = base.host.renderOffline(kLengthBeats, kSampleRate);
-        if (unmod.size() < 48000) return EXIT_FAILURE;
-        const float unmodRatio = rmsVariationRatio(unmod, kNumWindows);
+            EffectTestSetup mod("limiter");
+            mod.host.setDeviceParameter(mod.effectId, "limitCeiling", 0.1f);
+            const int lfoId = mod.createLfo(4.0f);
+            expect(mod.host.assignModulation(lfoId, mod.effectId, "limitCeiling", 0.6f));
+            mod.host.setPlaying(true);
+            const std::vector<float> modAudio = mod.host.renderOffline(kLengthBeats, kSampleRate);
+            expect(modAudio.size() >= 48000);
+            const float modRatio = audioapp::test::rmsVariationRatio(modAudio, kNumWindows);
 
-        EffectTestSetup mod("limiter");
-        mod.host.setDeviceParameter(mod.effectId, "limitCeiling", 0.1f);
-        const int lfoId = mod.createLfo(4.0f);
-        if (!mod.host.assignModulation(lfoId, mod.effectId, "limitCeiling", 0.6f)) {
-            return EXIT_FAILURE;
+            expect(modRatio >= 1.5f, "Modulated limiter should have >= 1.5x RMS variation");
+            expect(modRatio >= unmodRatio * 1.5f, "Modulated should have > unmodulated RMS variation");
         }
-        mod.host.setPlaying(true);
-        const std::vector<float> modAudio = mod.host.renderOffline(kLengthBeats, kSampleRate);
-        if (modAudio.size() < 48000) return EXIT_FAILURE;
-        const float modRatio = rmsVariationRatio(modAudio, kNumWindows);
-
-        if (modRatio < 1.5f) return EXIT_FAILURE;
-        if (modRatio < unmodRatio * 1.5f) return EXIT_FAILURE;
     }
+};
 
-    return EXIT_SUCCESS;
-}
+static EffectDeviceModulationTest effectDeviceModulationTest;

@@ -123,7 +123,7 @@ public:
 private:
     struct Impl;
     std::unique_ptr<Impl> impl_;
-    ProjectEngine project_;
+    std::unique_ptr<ProjectEngine> project_;
     SampleBank sampleBank_;
     int nextImportSampleNum_ = 1;
 

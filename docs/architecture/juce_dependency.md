@@ -20,12 +20,26 @@ JUCE is integrated via **CMake FetchContent** with a **pinned Git tag**.
 
 ## Build
 
+### Linux (dev container / CI)
+
 ```bash
+cmake -S engine_juce -B build/engine -G Ninja -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+cmake --build build/engine
+```
+
+### Windows (local dev)
+
+Requires **Visual Studio 2022 Build Tools** (MSVC x64 + Windows SDK) and **Ninja**:
+
+```powershell
+# Activate MSVC environment, then:
 cmake -S engine_juce -B build/engine -G Ninja
 cmake --build build/engine
 ```
 
 First configure downloads JUCE into the CMake build directory.
+
+> **MinGW is not supported.** JUCE 8 requires C++20 designated initializers and MSVC-specific features. Use MSVC (VS 2022 Build Tools) on Windows.
 
 ## Modules used (initial)
 
@@ -58,7 +72,7 @@ The Android `.so` links **`juce_core`** (`JUCE_MODULES_ONLY`) for `juce::JSON` o
 | **Android (M01)** | AAudio via `EngineHost_android.cpp` | Same `TestOscillator` DSP; no JUCE CMake on device (avoids `juceaide` cross-compile) |
 | **Desktop / host tests** | JUCE `AudioDeviceManager` via `EngineHost_juce.cpp` | FetchContent JUCE 8.0.4 |
 
-Full JUCE-on-Android CMake linking is planned once host `juceaide` bootstrap is automated (MSVC or documented MinGW path).
+Full JUCE-on-Android CMake linking is available now — `juceaide` bootstraps automatically with **MSVC** (VS 2022 Build Tools) on Windows or **GCC** on Linux.
 
 ## Updating JUCE
 

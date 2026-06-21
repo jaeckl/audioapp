@@ -18,6 +18,32 @@ User environment variables (already set):
 
 **Restart Cursor** (or open a new terminal) so PATH changes apply.
 
+## Windows toolchain for native engine builds
+
+The JUCE/C++ engine builds natively (for host tests) using **MSVC** — no MinGW required.
+
+**Installed components:**
+
+| Tool | Location |
+|------|----------|
+| VS 2022 Build Tools | `C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools` |
+| MSVC x64 compiler | Auto-detected by CMake after calling `vcvars64.bat` |
+| Ninja | `%LOCALAPPDATA%\Programs\ninja` (added to user PATH) |
+| CMake | `C:\Program Files\CMake\bin` |
+
+**Build the engine for host testing:**
+
+```powershell
+# One-time: activate MSVC environment in the current shell
+& "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+
+# Then configure and build
+cmake -S engine_juce -B build/engine -G Ninja -DCMAKE_BUILD_TYPE=Debug -DAUDIOAPP_BUILD_TESTS=ON
+cmake --build build/engine
+```
+
+> **MinGW is not supported.** JUCE 8 requires C++20 features and MSVC on Windows. If you have a previous MinGW install, remove it from `PATH` before building the engine.
+
 ## Verify
 
 ```powershell

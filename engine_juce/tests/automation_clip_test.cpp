@@ -1,94 +1,71 @@
+#include <juce_core/juce_core.h>
+#include "TestHelpers.h"
+
 #include "audioapp/EngineHost.hpp"
 #include "audioapp/ProjectJson.hpp"
 
 #include <cmath>
-#include <cstdlib>
 
-namespace {
+class AutomationClipTest : public juce::UnitTest {
+public:
+    AutomationClipTest()
+        : juce::UnitTest("Automation Clip", "Automation") {}
 
-audioapp::ProjectFileData readProjectData(const audioapp::EngineHost& host) {
-    audioapp::ProjectFileData data;
-    if (!audioapp::parseProjectFileJson(host.getProjectFileJson(), data)) {
-        return {};
-    }
-    return data;
-}
+    void runTest() override {
+        using namespace audioapp;
 
-} // namespace
+        beginTest("Automation clip CRUD and serialization");
+        {
+            audioapp::EngineHost host;
+            host.createProject();
+            const std::string trackId = host.addTrack("Test");
+            host.selectTrack(trackId);
+            const std::string synthId = host.addDeviceToTrack(trackId, "subtractive_synth");
 
-int main() {
-    audioapp::EngineHost host;
-    host.createProject();
-    const std::string trackId = host.addTrack("Test");
-    host.selectTrack(trackId);
-    const std::string synthId = host.addDeviceToTrack(trackId, "subtractive_synth");
+            const std::string midiClipId = host.createMidiClip(trackId, 0.0, 4.0);
+            expect(!midiClipId.empty());
+            std::vector<audioapp::MidiNoteState> notes;
+            notes.push_back({60, 0.0, 4.0, 100.0f});
+            expect(host.setMidiClipNotes(midiClipId, notes));
 
-    const std::string midiClipId = host.createMidiClip(trackId, 0.0, 4.0);
-    if (midiClipId.empty()) {
-        return EXIT_FAILURE;
-    }
-    std::vector<audioapp::MidiNoteState> notes;
-    notes.push_back({60, 0.0, 4.0, 100.0f});
-    if (!host.setMidiClipNotes(midiClipId, notes)) {
-        return EXIT_FAILURE;
-    }
+            const std::string clipId = host.createAutomationClip(trackId, 0.0, 4.0);
+            expect(!clipId.empty());
 
-    const std::string clipId = host.createAutomationClip(trackId, 0.0, 4.0);
-    if (clipId.empty()) {
-        return EXIT_FAILURE;
-    }
+            expect(host.assignAutomationTarget(clipId, synthId, "filterCutoff"));
 
-    if (!host.assignAutomationTarget(clipId, synthId, "filterCutoff")) {
-        return EXIT_FAILURE;
-    }
+            std::vector<audioapp::AutomationPointState> points;
+            points.push_back({0.0, 1.0f});
+            points.push_back({2.0, 0.2f});
+            points.push_back({4.0, 0.9f});
+            expect(host.setAutomationPoints(clipId, points));
 
-    std::vector<audioapp::AutomationPointState> points;
-    points.push_back({0.0, 1.0f});
-    points.push_back({2.0, 0.2f});
-    points.push_back({4.0, 0.9f});
-    if (!host.setAutomationPoints(clipId, points)) {
-        return EXIT_FAILURE;
-    }
+            const auto parsed = audioapp::test::readProjectData(host);
+            expectEquals(static_cast<int>(parsed.automationClips.size()), 1);
+            const auto& clip = parsed.automationClips[0];
+            expect(clip.deviceId == synthId);
+            expect(clip.paramId == "filterCutoff");
+            expectEquals(static_cast<int>(clip.points.size()), 3);
+            expect(clip.homeTrackId == trackId);
 
-    const auto parsed = readProjectData(host);
-    if (parsed.automationClips.size() != 1) {
-        return EXIT_FAILURE;
-    }
-    const auto& clip = parsed.automationClips[0];
-    if (clip.deviceId != synthId || clip.paramId != "filterCutoff" || clip.points.size() != 3) {
-        return EXIT_FAILURE;
-    }
-    if (clip.homeTrackId != trackId) {
-        return EXIT_FAILURE;
-    }
+            const std::string json = host.getProjectFileJson();
+            audioapp::EngineHost loaded;
+            loaded.createProject();
+            expect(loaded.loadProjectFileJson(json));
+            const auto reloaded = audioapp::test::readProjectData(loaded);
+            expect(!reloaded.automationClips.empty());
+            expect(reloaded.automationClips[0].homeTrackId == trackId);
 
-    const std::string json = host.getProjectFileJson();
-    audioapp::EngineHost loaded;
-    loaded.createProject();
-    if (!loaded.loadProjectFileJson(json)) {
-        return EXIT_FAILURE;
-    }
-    const auto reloaded = readProjectData(loaded);
-    if (reloaded.automationClips.empty()) {
-        return EXIT_FAILURE;
-    }
-    if (reloaded.automationClips[0].homeTrackId != trackId) {
-        return EXIT_FAILURE;
-    }
+            host.setPlaying(true);
+            const std::vector<float> block = host.renderOffline(4.0, 48000.0);
+            expect(!block.empty());
 
-    host.setPlaying(true);
-    const std::vector<float> block = host.renderOffline(4.0, 48000.0);
-    if (block.empty()) {
-        return EXIT_FAILURE;
+            float peak = 0.0f;
+            for (float sample : block) {
+                peak = std::max(peak, std::abs(sample));
+            }
+            expect(peak >= 1.0e-4f, "Audio should have non-zero output");
+        }
     }
+};
 
-    float peak = 0.0f;
-    for (float sample : block) {
-        peak = std::max(peak, std::abs(sample));
-    }
-    if (peak < 1.0e-4f) {
-        return EXIT_FAILURE;
-    }
-
-    return EXIT_SUCCESS;
-}
+static AutomationClipTest automationClipTest;
