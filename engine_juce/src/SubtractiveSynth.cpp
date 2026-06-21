@@ -590,10 +590,11 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
 
         // Find or create a runtime voice slot for this note
         int vi = -1;
-        // 1. Exact match by pitch
+        // 1. Exact match by pitch and startBeat
         for (int v = 0; v < kSubtractiveMaxVoices; ++v) {
             if (runtime.voices[v].active != 0 &&
-                runtime.voices[v].pitch == notes[ni].pitch) {
+                runtime.voices[v].pitch == notes[ni].pitch &&
+                runtime.voices[v].startBeat == notes[ni].noteStartBeat) {
                 vi = v;
                 break;
             }
@@ -611,10 +612,11 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
         }
 
         auto& voice = runtime.voices[vi];
-        if (voice.pitch != notes[ni].pitch) {
+        if (voice.pitch != notes[ni].pitch || voice.startBeat != notes[ni].noteStartBeat) {
             std::memset(&voice, 0, sizeof(voice));
             voice.active = 1;
             voice.pitch = notes[ni].pitch;
+            voice.startBeat = notes[ni].noteStartBeat;
             voice.velocity = notes[ni].velocity;
             voice.targetHz = subtractiveOscPitchHz(notes[ni].pitch, 0.5f, 0.0f, 0.5f);
             voice.currentHz = voice.targetHz;
@@ -703,10 +705,10 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
                 continue;
             }
 
-            // Find matching note region by pitch
+            // Find matching note region by pitch and startBeat
             int ni = -1;
             for (int n = 0; n < noteCount; ++n) {
-                if (notes[n].pitch == voice.pitch) { ni = n; break; }
+                if (notes[n].pitch == voice.pitch && notes[n].noteStartBeat == voice.startBeat) { ni = n; break; }
             }
             if (ni < 0) continue;
 
