@@ -103,6 +103,10 @@ void applyModulation(SamplerParams& p, float modAmount, uint16_t localParamId) n
 }
 
 void applyModulation(TrackGainParams&, float, uint16_t) noexcept {}
+void applyModulation(DelayParamsPlayback&, float, uint16_t) noexcept {}
+void applyModulation(ReverbParamsPlayback&, float, uint16_t) noexcept {}
+void applyModulation(ChorusParamsPlayback&, float, uint16_t) noexcept {}
+void applyModulation(PhaserParamsPlayback&, float, uint16_t) noexcept {}
 
 void applyModulation(SubtractiveSynthParams& p, float modAmount, uint16_t localParamId) noexcept {
     switch (static_cast<SubtractiveParam>(unpackParamId(localParamId))) {
@@ -499,6 +503,7 @@ void processDeviceChain(float* trackLeft,
                         CrashGeneratorRuntime* crashRuntimes,
                         PhaseModSynthRuntime* phaseModRuntimes,
                         DynamicsRuntime* dynamicsRuntimes,
+                        TimeBasedEffectRuntime* timeBasedRuntimes,
                         DeviceMeterAtomic* deviceMeters,
                         int maxDeviceMeters,
                         const float* lfoValues,
@@ -909,6 +914,233 @@ void processDeviceChain(float* trackLeft,
             const float inputPeak = stereoBlockPeak(trackLeft, trackRight, framesToProcess);
             processLimiterStereoBlock(trackLeft, trackRight, framesToProcess, sampleRate, p, runtime);
             publishDynamicsMeters(node, runtime, inputPeak, deviceMeters, maxDeviceMeters);
+            for (int f = 0; f < framesToProcess; ++f) {
+                trackLeft[f] *= s.perFrameGain[f];
+                trackRight[f] *= s.perFrameGain[f];
+            }
+            break;
+        }
+        case DeviceNodeKind::Delay: {
+            auto p = std::get<DelayParamsPlayback>(node.params);
+            if (timeBasedRuntimes != nullptr) {
+                auto& rt = timeBasedRuntimes[deviceIndex];
+                applyStereoScalarGain(trackLeft, trackRight, framesToProcess, std::clamp(p.inputGain, 0.0f, 1.0f));
+
+                float delayTimeMs = std::clamp(p.timeMs, 1.0f, 2000.0f);
+                int delaySamples = static_cast<int>(std::round((delayTimeMs / 1000.0f) * sampleRate));
+                delaySamples = std::clamp(delaySamples, 1, TimeBasedEffectRuntime::kBufferSize - 1);
+
+                float fb = std::clamp(p.feedback, 0.0f, 0.95f);
+                float mix = std::clamp(p.mix, 0.0f, 1.0f);
+
+                for (int f = 0; f < framesToProcess; ++f) {
+                    float dryL = trackLeft[f];
+                    float dryR = trackRight[f];
+
+                    int readIdx = (rt.writeIndex - delaySamples + TimeBasedEffectRuntime::kBufferSize) % TimeBasedEffectRuntime::kBufferSize;
+                    float delayedL = rt.bufferLeft[readIdx];
+                    float delayedR = rt.bufferRight[readIdx];
+
+                    trackLeft[f] = (1.0f - mix) * dryL + mix * delayedL;
+                    trackRight[f] = (1.0f - mix) * dryR + mix * delayedR;
+
+                    rt.bufferLeft[rt.writeIndex] = dryL + fb * delayedL;
+                    rt.bufferRight[rt.writeIndex] = dryR + fb * delayedR;
+
+                    rt.writeIndex = (rt.writeIndex + 1) % TimeBasedEffectRuntime::kBufferSize;
+                }
+            }
+            if (deviceMeters != nullptr && node.meterSlot >= 0 && node.meterSlot < maxDeviceMeters) {
+                float inputPeak = stereoBlockPeak(trackLeft, trackRight, framesToProcess);
+                deviceMeters[node.meterSlot].gainReductionDb.store(0.0f, std::memory_order_relaxed);
+                deviceMeters[node.meterSlot].inputPeak.store(inputPeak, std::memory_order_relaxed);
+            }
+            for (int f = 0; f < framesToProcess; ++f) {
+                trackLeft[f] *= s.perFrameGain[f];
+                trackRight[f] *= s.perFrameGain[f];
+            }
+            break;
+        }
+        case DeviceNodeKind::Reverb: {
+            auto p = std::get<ReverbParamsPlayback>(node.params);
+            if (timeBasedRuntimes != nullptr) {
+                auto& rt = timeBasedRuntimes[deviceIndex];
+                applyStereoScalarGain(trackLeft, trackRight, framesToProcess, std::clamp(p.inputGain, 0.0f, 1.0f));
+
+                float roomSize = std::clamp(p.roomSize, 0.0f, 1.0f);
+                float wet = std::clamp(p.wetLevel, 0.0f, 1.0f);
+                float dry = std::clamp(p.dryLevel, 0.0f, 1.0f);
+
+                // Tap delay times in samples
+                int tapsL[4] = { 1601, 2377, 3511, 4999 };
+                int tapsR[4] = { 1867, 2693, 3821, 5413 };
+
+                float sizeScale = 0.5f + 1.5f * roomSize;
+                float fb = 0.7f + 0.25f * roomSize;
+
+                for (int f = 0; f < framesToProcess; ++f) {
+                    float dryL = trackLeft[f];
+                    float dryR = trackRight[f];
+
+                    float wetL = 0.0f;
+                    float wetR = 0.0f;
+
+                    for (int i = 0; i < 4; ++i) {
+                        int dL = static_cast<int>(tapsL[i] * sizeScale);
+                        dL = std::clamp(dL, 10, TimeBasedEffectRuntime::kBufferSize - 1);
+                        int readIdxL = (rt.writeIndex - dL + TimeBasedEffectRuntime::kBufferSize) % TimeBasedEffectRuntime::kBufferSize;
+                        wetL += rt.bufferLeft[readIdxL];
+
+                        int dR = static_cast<int>(tapsR[i] * sizeScale);
+                        dR = std::clamp(dR, 10, TimeBasedEffectRuntime::kBufferSize - 1);
+                        int readIdxR = (rt.writeIndex - dR + TimeBasedEffectRuntime::kBufferSize) % TimeBasedEffectRuntime::kBufferSize;
+                        wetR += rt.bufferRight[readIdxR];
+                    }
+
+                    wetL *= 0.25f;
+                    wetR *= 0.25f;
+
+                    // Simple 1st-order allpass diffusion stages on the wet signal
+                    float apG = 0.6f;
+                    float xApL = wetL;
+                    float yApL = apG * xApL + rt.phaserStateL[0];
+                    rt.phaserStateL[0] = xApL - apG * yApL;
+                    wetL = yApL;
+
+                    float xApR = wetR;
+                    float yApR = apG * xApR + rt.phaserStateR[0];
+                    rt.phaserStateR[0] = xApR - apG * yApR;
+                    wetR = yApR;
+
+                    trackLeft[f] = dry * dryL + wet * wetL;
+                    trackRight[f] = dry * dryR + wet * wetR;
+
+                    rt.bufferLeft[rt.writeIndex] = dryL + fb * wetL;
+                    rt.bufferRight[rt.writeIndex] = dryR + fb * wetR;
+
+                    rt.writeIndex = (rt.writeIndex + 1) % TimeBasedEffectRuntime::kBufferSize;
+                }
+            }
+            if (deviceMeters != nullptr && node.meterSlot >= 0 && node.meterSlot < maxDeviceMeters) {
+                float inputPeak = stereoBlockPeak(trackLeft, trackRight, framesToProcess);
+                deviceMeters[node.meterSlot].gainReductionDb.store(0.0f, std::memory_order_relaxed);
+                deviceMeters[node.meterSlot].inputPeak.store(inputPeak, std::memory_order_relaxed);
+            }
+            for (int f = 0; f < framesToProcess; ++f) {
+                trackLeft[f] *= s.perFrameGain[f];
+                trackRight[f] *= s.perFrameGain[f];
+            }
+            break;
+        }
+        case DeviceNodeKind::Chorus: {
+            auto p = std::get<ChorusParamsPlayback>(node.params);
+            if (timeBasedRuntimes != nullptr) {
+                auto& rt = timeBasedRuntimes[deviceIndex];
+                applyStereoScalarGain(trackLeft, trackRight, framesToProcess, std::clamp(p.inputGain, 0.0f, 1.0f));
+
+                float depth = std::clamp(p.depth, 0.0f, 1.0f);
+                float rateHz = std::clamp(p.rateHz, 0.1f, 5.0f);
+                float mix = std::clamp(p.mix, 0.0f, 1.0f);
+                float centreDelayMs = std::clamp(p.centreDelayMs, 1.0f, 20.0f);
+                float fb = std::clamp(p.feedback, 0.0f, 0.95f);
+
+                for (int f = 0; f < framesToProcess; ++f) {
+                    float dryL = trackLeft[f];
+                    float dryR = trackRight[f];
+
+                    rt.lfoPhase += static_cast<float>((2.0 * 3.1415926535f * rateHz) / sampleRate);
+                    if (rt.lfoPhase > static_cast<float>(2.0 * 3.1415926535f)) {
+                        rt.lfoPhase -= static_cast<float>(2.0 * 3.1415926535f);
+                    }
+
+                    float delayMsL = centreDelayMs + depth * 5.0f * sinf(rt.lfoPhase);
+                    float delayMsR = centreDelayMs + depth * 5.0f * cosf(rt.lfoPhase);
+
+                    float delaySamplesL = (delayMsL / 1000.0f) * static_cast<float>(sampleRate);
+                    float delaySamplesR = (delayMsR / 1000.0f) * static_cast<float>(sampleRate);
+
+                    delaySamplesL = std::clamp(delaySamplesL, 1.0f, static_cast<float>(TimeBasedEffectRuntime::kBufferSize - 2));
+                    delaySamplesR = std::clamp(delaySamplesR, 1.0f, static_cast<float>(TimeBasedEffectRuntime::kBufferSize - 2));
+
+                    auto readInterpolated = [&](float* buf, float delayS) {
+                        int idx1 = (rt.writeIndex - static_cast<int>(delayS) + TimeBasedEffectRuntime::kBufferSize) % TimeBasedEffectRuntime::kBufferSize;
+                        int idx2 = (idx1 - 1 + TimeBasedEffectRuntime::kBufferSize) % TimeBasedEffectRuntime::kBufferSize;
+                        float frac = delayS - floorf(delayS);
+                        return (1.0f - frac) * buf[idx1] + frac * buf[idx2];
+                    };
+
+                    float delayedL = readInterpolated(rt.bufferLeft, delaySamplesL);
+                    float delayedR = readInterpolated(rt.bufferRight, delaySamplesR);
+
+                    trackLeft[f] = (1.0f - mix) * dryL + mix * delayedL;
+                    trackRight[f] = (1.0f - mix) * dryR + mix * delayedR;
+
+                    rt.bufferLeft[rt.writeIndex] = dryL + fb * delayedL;
+                    rt.bufferRight[rt.writeIndex] = dryR + fb * delayedR;
+
+                    rt.writeIndex = (rt.writeIndex + 1) % TimeBasedEffectRuntime::kBufferSize;
+                }
+            }
+            if (deviceMeters != nullptr && node.meterSlot >= 0 && node.meterSlot < maxDeviceMeters) {
+                float inputPeak = stereoBlockPeak(trackLeft, trackRight, framesToProcess);
+                deviceMeters[node.meterSlot].gainReductionDb.store(0.0f, std::memory_order_relaxed);
+                deviceMeters[node.meterSlot].inputPeak.store(inputPeak, std::memory_order_relaxed);
+            }
+            for (int f = 0; f < framesToProcess; ++f) {
+                trackLeft[f] *= s.perFrameGain[f];
+                trackRight[f] *= s.perFrameGain[f];
+            }
+            break;
+        }
+        case DeviceNodeKind::Phaser: {
+            auto p = std::get<PhaserParamsPlayback>(node.params);
+            if (timeBasedRuntimes != nullptr) {
+                auto& rt = timeBasedRuntimes[deviceIndex];
+                applyStereoScalarGain(trackLeft, trackRight, framesToProcess, std::clamp(p.inputGain, 0.0f, 1.0f));
+
+                float depth = std::clamp(p.depth, 0.0f, 1.0f);
+                float rateHz = std::clamp(p.rateHz, 0.1f, 5.0f);
+                float fb = std::clamp(p.feedback, 0.0f, 0.95f);
+                float centreFreq = std::clamp(p.centreFrequencyHz, 20.0f, 20000.0f);
+
+                for (int f = 0; f < framesToProcess; ++f) {
+                    float dryL = trackLeft[f];
+                    float dryR = trackRight[f];
+
+                    rt.lfoPhase += static_cast<float>((2.0 * 3.1415926535f * rateHz) / sampleRate);
+                    if (rt.lfoPhase > static_cast<float>(2.0 * 3.1415926535f)) {
+                        rt.lfoPhase -= static_cast<float>(2.0 * 3.1415926535f);
+                    }
+
+                    float modFreq = centreFreq * powf(2.0f, depth * 2.0f * sinf(rt.lfoPhase));
+                    modFreq = std::clamp(modFreq, 20.0f, static_cast<float>(sampleRate * 0.49));
+
+                    float g = -cosf(3.1415926535f * modFreq / static_cast<float>(sampleRate));
+
+                    float inL = dryL + fb * rt.phaserStateL[3];
+                    float inR = dryR + fb * rt.phaserStateR[3];
+
+                    for (int i = 0; i < 4; ++i) {
+                        float xL = inL;
+                        float yL = g * xL + rt.phaserStateL[i];
+                        rt.phaserStateL[i] = xL - g * yL;
+                        inL = yL;
+
+                        float xR = inR;
+                        float yR = g * xR + rt.phaserStateR[i];
+                        rt.phaserStateR[i] = xR - g * yR;
+                        inR = yR;
+                    }
+
+                    trackLeft[f] = 0.5f * (dryL + inL);
+                    trackRight[f] = 0.5f * (dryR + inR);
+                }
+            }
+            if (deviceMeters != nullptr && node.meterSlot >= 0 && node.meterSlot < maxDeviceMeters) {
+                float inputPeak = stereoBlockPeak(trackLeft, trackRight, framesToProcess);
+                deviceMeters[node.meterSlot].gainReductionDb.store(0.0f, std::memory_order_relaxed);
+                deviceMeters[node.meterSlot].inputPeak.store(inputPeak, std::memory_order_relaxed);
+            }
             for (int f = 0; f < framesToProcess; ++f) {
                 trackLeft[f] *= s.perFrameGain[f];
                 trackRight[f] *= s.perFrameGain[f];

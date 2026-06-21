@@ -1,5 +1,6 @@
 // PhaserDeviceType implementation
 #include "audioapp/effects/PhaserDeviceType.hpp"
+#include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/effects/PhaserParams.hpp"
 #include "audioapp/devices/DeviceSlot.hpp"
 #include "audioapp/devices/DeviceParameterResult.hpp"
@@ -27,6 +28,10 @@ DeviceParameterResult PhaserDeviceType::setParameter(DeviceSlot& slot,
                                                      std::string_view parameterId,
                                                      float value) const {
     DeviceParameterResult result;
+    if (device_strip::setStripParameter(slot, parameterId, value)) {
+        result.handled = true;
+        return result;
+    }
     auto& instance = std::get<PhaserInstance>(slot.instance);
     if (parameterId == "depth") {
         instance.params.depth = juce::jlimit(0.0, 1.0, static_cast<double>(value));
@@ -51,8 +56,16 @@ std::vector<std::string_view> PhaserDeviceType::modulatableParams() const {
     return {"gain", "pan", "depth", "rateHz", "feedback", "centreFrequencyHz"};
 }
 
-void PhaserDeviceType::buildPlaybackNode(const DeviceSlot&, const PlaybackBuildContext&, DeviceNodePlayback& out) const {
-    out.kind = DeviceNodeKind::Unknown;
+void PhaserDeviceType::buildPlaybackNode(const DeviceSlot& slot, const PlaybackBuildContext&, DeviceNodePlayback& out) const {
+    out.kind = DeviceNodeKind::Phaser;
+    const auto& inst = std::get<PhaserInstance>(slot.instance);
+    PhaserParamsPlayback p;
+    p.depth = static_cast<float>(inst.params.depth);
+    p.rateHz = static_cast<float>(inst.params.rateHz);
+    p.feedback = static_cast<float>(inst.params.feedback);
+    p.centreFrequencyHz = static_cast<float>(inst.params.centreFrequencyHz);
+    p.inputGain = 1.0f;
+    out.params = p;
 }
 
 bool PhaserDeviceType::buildLiveInstrument(const DeviceSlot&, const PlaybackBuildContext&, LiveInstrumentSnapshot&) const { return false; }

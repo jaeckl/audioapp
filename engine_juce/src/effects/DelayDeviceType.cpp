@@ -1,5 +1,6 @@
 // DelayDeviceType implementation
 #include "audioapp/effects/DelayDeviceType.hpp"
+#include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceSlot.hpp"
 #include "audioapp/devices/DeviceParameterResult.hpp"
 #include "audioapp/devices/PlaybackBuildContext.hpp"
@@ -24,6 +25,10 @@ DeviceParameterResult DelayDeviceType::setParameter(DeviceSlot& slot,
                                                     std::string_view parameterId,
                                                     float value) const {
     DeviceParameterResult result;
+    if (device_strip::setStripParameter(slot, parameterId, value)) {
+        result.handled = true;
+        return result;
+    }
     auto& instance = std::get<DelayInstance>(slot.instance);
     if (parameterId == "timeMs") {
         instance.params.delayTime = juce::jlimit(1.0, 2000.0, static_cast<double>(value));
@@ -46,8 +51,16 @@ std::vector<std::string_view> DelayDeviceType::modulatableParams() const {
     return {"gain", "pan", "timeMs", "feedback", "mix"};
 }
 
-void DelayDeviceType::buildPlaybackNode(const DeviceSlot&, const PlaybackBuildContext&, DeviceNodePlayback& out) const {
-    out.kind = DeviceNodeKind::Unknown;
+void DelayDeviceType::buildPlaybackNode(const DeviceSlot& slot, const PlaybackBuildContext&, DeviceNodePlayback& out) const {
+    out.kind = DeviceNodeKind::Delay;
+    const auto& inst = std::get<DelayInstance>(slot.instance);
+    DelayParamsPlayback p;
+    p.timeMs = static_cast<float>(inst.params.delayTime);
+    p.feedback = static_cast<float>(inst.params.feedback);
+    p.mix = static_cast<float>(inst.params.mix);
+    // Since Delay snapshot doesn't hold inputGain yet, we can default it to 1.0f
+    p.inputGain = 1.0f;
+    out.params = p;
 }
 
 bool DelayDeviceType::buildLiveInstrument(const DeviceSlot&, const PlaybackBuildContext&, LiveInstrumentSnapshot&) const {

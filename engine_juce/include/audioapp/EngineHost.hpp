@@ -149,6 +149,7 @@ private:
     struct PreviewMidiState {
         std::atomic<bool> active{false};
         std::vector<MidiNoteState> notes;
+        std::vector<bool> noteUsingInstrument;
         double lengthBeats = 4.0;
         int bpm = 120;
         std::atomic<double> playheadBeats{0.0};

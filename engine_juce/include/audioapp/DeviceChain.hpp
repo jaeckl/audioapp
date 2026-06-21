@@ -49,12 +49,49 @@ enum class DeviceNodeKind : uint8_t {
     TrackGain,
     BassSynth,
     PhaseModSynth,
+    Delay,
+    Reverb,
+    Chorus,
+    Phaser,
 };
 
 // --- Per-device DSP-only parameter structs ---
 
 struct OscillatorParams {
     float frequencyHz = 440.0f;
+};
+
+struct DelayParamsPlayback {
+    float timeMs = 250.0f;
+    float feedback = 0.4f;
+    float mix = 0.5f;
+    float inputGain = 1.0f;
+};
+
+struct ReverbParamsPlayback {
+    float roomSize = 0.5f;
+    float damping = 0.5f;
+    float wetLevel = 0.33f;
+    float dryLevel = 0.7f;
+    float width = 1.0f;
+    float inputGain = 1.0f;
+};
+
+struct ChorusParamsPlayback {
+    float depth = 0.25f;
+    float rateHz = 1.5f;
+    float mix = 0.4f;
+    float centreDelayMs = 7.0f;
+    float feedback = 0.0f;
+    float inputGain = 1.0f;
+};
+
+struct PhaserParamsPlayback {
+    float depth = 0.5f;
+    float rateHz = 0.8f;
+    float feedback = 0.3f;
+    float centreFrequencyHz = 1000.0f;
+    float inputGain = 1.0f;
 };
 
 struct SamplerParams {
@@ -98,7 +135,11 @@ using DeviceVariantParams = std::variant<
     CompressorParams,
     ExpanderParams,
     LimiterParams,
-    TrackGainParams
+    TrackGainParams,
+    DelayParamsPlayback,
+    ReverbParamsPlayback,
+    ChorusParamsPlayback,
+    PhaserParamsPlayback
 >;
 
 /// Per-track device chain node (built on control thread, read on audio thread).
@@ -130,6 +171,73 @@ float midiActiveFrequencyHz(const MidiPlaybackNote* notes,
                             double playheadBeat,
                             float idleFrequencyHz) noexcept;
 
+struct TimeBasedEffectRuntime {
+    static constexpr int kBufferSize = 192000; // 4 seconds at 48kHz
+    float* bufferLeft = nullptr;
+    float* bufferRight = nullptr;
+    int writeIndex = 0;
+    float lfoPhase = 0.0f;
+
+    // Allpass filter states for phaser (4 stages for stereo)
+    float phaserStateL[4] = {0.0f};
+    float phaserStateR[4] = {0.0f};
+
+    TimeBasedEffectRuntime() {
+        bufferLeft = new float[kBufferSize]();
+        bufferRight = new float[kBufferSize]();
+    }
+    ~TimeBasedEffectRuntime() {
+        delete[] bufferLeft;
+        delete[] bufferRight;
+    }
+    TimeBasedEffectRuntime(const TimeBasedEffectRuntime& other) {
+        bufferLeft = new float[kBufferSize]();
+        bufferRight = new float[kBufferSize]();
+        std::memcpy(bufferLeft, other.bufferLeft, kBufferSize * sizeof(float));
+        std::memcpy(bufferRight, other.bufferRight, kBufferSize * sizeof(float));
+        writeIndex = other.writeIndex;
+        lfoPhase = other.lfoPhase;
+        std::memcpy(phaserStateL, other.phaserStateL, sizeof(phaserStateL));
+        std::memcpy(phaserStateR, other.phaserStateR, sizeof(phaserStateR));
+    }
+    TimeBasedEffectRuntime& operator=(const TimeBasedEffectRuntime& other) {
+        if (this != &other) {
+            std::memcpy(bufferLeft, other.bufferLeft, kBufferSize * sizeof(float));
+            std::memcpy(bufferRight, other.bufferRight, kBufferSize * sizeof(float));
+            writeIndex = other.writeIndex;
+            lfoPhase = other.lfoPhase;
+            std::memcpy(phaserStateL, other.phaserStateL, sizeof(phaserStateL));
+            std::memcpy(phaserStateR, other.phaserStateR, sizeof(phaserStateR));
+        }
+        return *this;
+    }
+    TimeBasedEffectRuntime(TimeBasedEffectRuntime&& other) noexcept {
+        bufferLeft = other.bufferLeft;
+        bufferRight = other.bufferRight;
+        writeIndex = other.writeIndex;
+        lfoPhase = other.lfoPhase;
+        std::memcpy(phaserStateL, other.phaserStateL, sizeof(phaserStateL));
+        std::memcpy(phaserStateR, other.phaserStateR, sizeof(phaserStateR));
+        other.bufferLeft = nullptr;
+        other.bufferRight = nullptr;
+    }
+    TimeBasedEffectRuntime& operator=(TimeBasedEffectRuntime&& other) noexcept {
+        if (this != &other) {
+            delete[] bufferLeft;
+            delete[] bufferRight;
+            bufferLeft = other.bufferLeft;
+            bufferRight = other.bufferRight;
+            writeIndex = other.writeIndex;
+            lfoPhase = other.lfoPhase;
+            std::memcpy(phaserStateL, other.phaserStateL, sizeof(phaserStateL));
+            std::memcpy(phaserStateR, other.phaserStateR, sizeof(phaserStateR));
+            other.bufferLeft = nullptr;
+            other.bufferRight = nullptr;
+        }
+        return *this;
+    }
+};
+
 /// Process track device chain in order.
 /// modulationEdges and automationClips are expected to be pre-filtered per-track
 /// with deviceIndex matching the devices[] array positions.
@@ -154,6 +262,7 @@ void processDeviceChain(float* trackLeft,
                         CrashGeneratorRuntime* crashRuntimes = nullptr,
                         PhaseModSynthRuntime* phaseModRuntimes = nullptr,
                         DynamicsRuntime* dynamicsRuntimes = nullptr,
+                        TimeBasedEffectRuntime* timeBasedRuntimes = nullptr,
                         DeviceMeterAtomic* deviceMeters = nullptr,
                         int maxDeviceMeters = 0,
                         const float* lfoValues = nullptr,

@@ -1,5 +1,6 @@
 // ReverbDeviceType implementation
 #include "audioapp/effects/ReverbDeviceType.hpp"
+#include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceSlot.hpp"
 #include "audioapp/devices/DeviceParameterResult.hpp"
 #include "audioapp/devices/PlaybackBuildContext.hpp"
@@ -27,6 +28,10 @@ DeviceParameterResult ReverbDeviceType::setParameter(DeviceSlot& slot,
                                                      std::string_view parameterId,
                                                      float value) const {
     DeviceParameterResult result;
+    if (device_strip::setStripParameter(slot, parameterId, value)) {
+        result.handled = true;
+        return result;
+    }
     auto& instance = std::get<ReverbInstance>(slot.instance);
     if (parameterId == "roomSize") {
         instance.params.roomSize = juce::jlimit(0.0, 1.0, static_cast<double>(value));
@@ -53,8 +58,17 @@ std::vector<std::string_view> ReverbDeviceType::modulatableParams() const {
     return {"gain", "pan", "roomSize", "damping", "wetLevel", "dryLevel", "width"};
 }
 
-void ReverbDeviceType::buildPlaybackNode(const DeviceSlot&, const PlaybackBuildContext&, DeviceNodePlayback& out) const {
-    out.kind = DeviceNodeKind::Unknown;
+void ReverbDeviceType::buildPlaybackNode(const DeviceSlot& slot, const PlaybackBuildContext&, DeviceNodePlayback& out) const {
+    out.kind = DeviceNodeKind::Reverb;
+    const auto& inst = std::get<ReverbInstance>(slot.instance);
+    ReverbParamsPlayback p;
+    p.roomSize = static_cast<float>(inst.params.roomSize);
+    p.damping = static_cast<float>(inst.params.damping);
+    p.wetLevel = static_cast<float>(inst.params.wetLevel);
+    p.dryLevel = static_cast<float>(inst.params.dryLevel);
+    p.width = static_cast<float>(inst.params.width);
+    p.inputGain = 1.0f;
+    out.params = p;
 }
 
 bool ReverbDeviceType::buildLiveInstrument(const DeviceSlot&, const PlaybackBuildContext&, LiveInstrumentSnapshot&) const { return false; }

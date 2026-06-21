@@ -233,6 +233,7 @@ private:
         CymbalGeneratorRuntime cymbalRuntimes[kMaxDevicesPerTrack];
         CrashGeneratorRuntime crashRuntimes[kMaxDevicesPerTrack];
         DynamicsRuntime dynamicsRuntimes[kMaxDevicesPerTrack];
+        TimeBasedEffectRuntime timeBasedRuntimes[kMaxDevicesPerTrack];
         PhaseModSynthRuntime phaseModRuntimes[kMaxDevicesPerTrack];
         float oscillatorPhase = 0.0f;
         int modEdgeCount = 0;

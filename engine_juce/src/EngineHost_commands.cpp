@@ -165,16 +165,70 @@ void EngineHost::readPreviewMix(float* monoOut, int numFrames, double sampleRate
             const double beatsPerBlock = (previewMidi_.bpm / 60.0)
                 * (static_cast<double>(numFrames) / sampleRate);
             double ph = previewMidi_.playheadBeats.load(std::memory_order_relaxed);
-            const double newPh = ph + beatsPerBlock;
+            double newPh = ph + beatsPerBlock;
+            bool didWrap = false;
+            double wrappedNewPh = newPh;
 
-            // Loop wrap: retrigger all notes when playhead wraps past lengthBeats
-            if (newPh >= previewMidi_.lengthBeats && previewMidi_.lengthBeats > 0.0) {
-                fallbackOsc_.allNotesOff();
-                for (const auto& note : previewMidi_.notes) {
-                    fallbackOsc_.noteOn(note.pitch, note.velocity,
-                                        note.startBeat, note.durationBeats);
+            if (previewMidi_.lengthBeats > 0.0 && newPh >= previewMidi_.lengthBeats) {
+                didWrap = true;
+                wrappedNewPh = std::fmod(newPh, previewMidi_.lengthBeats);
+            }
+
+            // Real-time sequencing of note-on and note-off events
+            for (size_t i = 0; i < previewMidi_.notes.size(); ++i) {
+                const auto& note = previewMidi_.notes[i];
+                const double endBeat = note.startBeat + note.durationBeats;
+
+                // Check note on
+                bool startTriggered = false;
+                if (!didWrap) {
+                    if (note.startBeat >= ph && note.startBeat < newPh) {
+                        startTriggered = true;
+                    }
+                } else {
+                    if ((note.startBeat >= ph && note.startBeat < previewMidi_.lengthBeats) ||
+                        (note.startBeat >= 0.0 && note.startBeat < wrappedNewPh)) {
+                        startTriggered = true;
+                    }
+                }
+
+                if (startTriggered) {
+                    // Try playing on the selected track's instrument first
+                    bool playedOnInstrument = project_->noteOn(note.pitch, note.velocity);
+                    if (i < previewMidi_.noteUsingInstrument.size()) {
+                        previewMidi_.noteUsingInstrument[i] = playedOnInstrument;
+                    }
+                    if (!playedOnInstrument) {
+                        fallbackOsc_.noteOn(note.pitch, note.velocity, note.startBeat, note.durationBeats);
+                    }
+                }
+
+                // Check note off
+                bool endTriggered = false;
+                if (!didWrap) {
+                    if (endBeat >= ph && endBeat < newPh) {
+                        endTriggered = true;
+                    }
+                } else {
+                    if ((endBeat >= ph && endBeat < previewMidi_.lengthBeats) ||
+                        (endBeat >= 0.0 && endBeat < wrappedNewPh)) {
+                        endTriggered = true;
+                    }
+                }
+
+                if (endTriggered) {
+                    bool wasOnInstrument = false;
+                    if (i < previewMidi_.noteUsingInstrument.size()) {
+                        wasOnInstrument = previewMidi_.noteUsingInstrument[i];
+                    }
+                    if (wasOnInstrument) {
+                        project_->noteOff(note.pitch);
+                    } else {
+                        fallbackOsc_.noteOff(note.pitch);
+                    }
                 }
             }
+
             const double wrappedPh = previewMidi_.lengthBeats > 0.0
                 ? std::fmod(newPh, previewMidi_.lengthBeats) : newPh;
             previewMidi_.playheadBeats.store(wrappedPh, std::memory_order_release);
@@ -361,15 +415,11 @@ void EngineHost::previewMidi(const std::vector<MidiNoteState>& notes, double len
 
     // Store MIDI state
     previewMidi_.notes = notes;
+    previewMidi_.noteUsingInstrument.assign(notes.size(), false);
     previewMidi_.lengthBeats = lengthBeats;
     previewMidi_.bpm = bpm;
     previewMidi_.playheadBeats.store(0.0, std::memory_order_release);
     previewMidi_.active.store(true, std::memory_order_release);
-
-    // Schedule initial notes (all at beat 0 for simplicity)
-    for (const auto& note : notes) {
-        fallbackOsc_.noteOn(note.pitch, note.velocity, note.startBeat, note.durationBeats);
-    }
 
     ensureAudioOutput();
 }

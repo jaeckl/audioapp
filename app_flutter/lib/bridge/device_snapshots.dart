@@ -1,5 +1,3 @@
-import 'bridge_parsing.dart';
-
 sealed class DeviceSnapshot {
   const DeviceSnapshot({
     required this.id,
