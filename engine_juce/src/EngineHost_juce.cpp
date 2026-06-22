@@ -68,6 +68,16 @@ struct EngineHost::Impl : juce::AudioIODeviceCallback {
         if (left == nullptr) {
             return;
         }
+        float* const right = numOutputChannels >= 2 ? outputChannelData[1] : left;
+
+        // Clear all output channels before rendering so no stale samples
+        // remain from the previous block.
+        for (int ch = 0; ch < numOutputChannels; ++ch) {
+            float* const out = outputChannelData[ch];
+            if (out != nullptr) {
+                juce::FloatVectorOperations::clear(out, numSamples);
+            }
+        }
 
         const bool shouldPlay = playing.load(std::memory_order_acquire);
         const double rate = sampleRate.load(std::memory_order_acquire);
@@ -75,18 +85,19 @@ struct EngineHost::Impl : juce::AudioIODeviceCallback {
         if (shouldPlay) {
             owner.readMasterMix(left, numSamples, rate, playheadStart);
             owner.advancePlayheadForBlock(numSamples, rate);
-        } else {
-            juce::FloatVectorOperations::clear(left, numSamples);
-        }
-        owner.readPreviewMix(left, numSamples, rate);
-        owner.readLiveMix(left, numSamples, rate);
-
-        for (int ch = 1; ch < numOutputChannels; ++ch) {
-            float* const out = outputChannelData[ch];
-            if (out == nullptr || out == left) {
-                continue;
+            // Mono master → L=R duplicate so stereo speakers both hear it.
+            if (right != left) {
+                juce::FloatVectorOperations::copy(right, left, numSamples);
             }
-            juce::FloatVectorOperations::copy(out, left, numSamples);
+        }
+        // Preview mix is stereo: the fallback oscillator writes per-voice
+        // panned output to L/R; the preset preview renderers are still mono
+        // and duplicate to L=R inside readPreviewMix.
+        owner.readPreviewMix(left, right, numSamples, rate);
+        owner.readLiveMix(left, numSamples, rate);
+        // readLiveMix is mono: duplicate to right.
+        if (right != left) {
+            juce::FloatVectorOperations::copy(right, left, numSamples);
         }
     }
 };

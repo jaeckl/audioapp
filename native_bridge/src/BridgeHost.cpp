@@ -5,6 +5,14 @@
 
 #include <juce_core/juce_core.h>
 
+#if defined(__ANDROID__)
+#include <android/log.h>
+#define BRIDGE_LOG(...) __android_log_print(ANDROID_LOG_INFO, "audioapp_bridge", __VA_ARGS__)
+#else
+#include <cstdio>
+#define BRIDGE_LOG(...) std::fprintf(stderr, "[audioapp_bridge] " __VA_ARGS__)
+#endif
+
 namespace audioapp::bridge {
 
 namespace {
@@ -325,10 +333,45 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         const auto notes = parseMidiNotesFromArgs(argumentsJson);
         const auto lengthBeats = jsonGetNumberArg(argumentsJson, "lengthBeats", 4.0);
         const auto bpm = static_cast<int>(jsonGetNumberArg(argumentsJson, "bpm", 120.0));
+        const auto startBeat = jsonGetNumberArg(argumentsJson, "startBeat", 0.0);
+        const auto loop = jsonGetBoolArg(argumentsJson, "loop", true);
         if (notes.empty()) {
             return R"({"ok":true,"previewing":false})";
         }
-        engine().previewMidi(notes, lengthBeats, bpm);
+        engine().previewMidi(notes, lengthBeats, bpm, startBeat, loop);
+        return R"({"ok":true,"previewing":true})";
+    }
+    if (method == "previewPreset") {
+        const auto notes = parseMidiNotesFromArgs(argumentsJson);
+        const auto lengthBeats = jsonGetNumberArg(argumentsJson, "lengthBeats", 4.0);
+        const auto bpm = static_cast<int>(jsonGetNumberArg(argumentsJson, "bpm", 120.0));
+        const auto startBeat = jsonGetNumberArg(argumentsJson, "startBeat", 0.0);
+        const auto loop = jsonGetBoolArg(argumentsJson, "loop", true);
+        const auto deviceType = jsonGetStringArg(argumentsJson, "deviceType");
+        BRIDGE_LOG("previewPreset deviceType='%s' notes=%zu length=%.2f bpm=%d start=%.2f loop=%d",
+                   deviceType.c_str(), notes.size(), lengthBeats, bpm, startBeat,
+                   loop ? 1 : 0);
+        if (deviceType.empty()) {
+            BRIDGE_LOG("previewPreset REJECTED: missing deviceType");
+            return R"({"ok":false,"error":"missing_device_type"})";
+        }
+
+        // The bridge is intentionally device-agnostic: it only forwards the parameter map
+        // (id -> float) and lets the engine's DeviceRegistry build a virtual slot for any
+        // registered device type. No per-device name or string mapping here.
+        std::vector<std::pair<std::string, float>> params;
+        const auto root = juce::JSON::parse(argumentsJson);
+        if (const auto* obj = root.getDynamicObject()) {
+            if (const auto* paramsObject = obj->getProperty("params").getDynamicObject()) {
+                for (const auto& prop : paramsObject->getProperties()) {
+                    const float value = static_cast<float>(static_cast<double>(prop.value));
+                    params.emplace_back(prop.name.toString().toStdString(), value);
+                }
+            }
+        }
+
+        engine().previewPreset(deviceType, params, notes, lengthBeats, bpm, startBeat, loop);
+        BRIDGE_LOG("previewPreset dispatched to engine");
         return R"({"ok":true,"previewing":true})";
     }
     if (method == "stopPreview") {

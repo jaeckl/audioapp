@@ -1,9 +1,13 @@
 #pragma once
 
 #include "audioapp/FallbackPreviewOscillator.hpp"
+#include "audioapp/LivePerformance.hpp"
 #include "audioapp/MidiClipPlayback.hpp"
 #include "audioapp/ProjectEngine.hpp"
 #include "audioapp/SampleBank.hpp"
+#include "audioapp/SubtractiveSynth.hpp"
+#include "audioapp/SamplePlayback.hpp"
+#include "audioapp/SamplerFilter.hpp"
 
 #include <atomic>
 #include <cstdint>
@@ -73,7 +77,9 @@ public:
     std::string importWavSample(const std::string& displayName, const std::vector<uint8_t>& wavBytes);
     void previewSample(const std::string& sampleId);
     /// Preview MIDI clip — plays through fallback oscillator.
-    void previewMidi(const std::vector<MidiNoteState>& notes, double lengthBeats, int bpm);
+    void previewMidi(const std::vector<MidiNoteState>& notes, double lengthBeats, int bpm, double startBeat = 0.0, bool loop = true);
+    /// Preview preset — plays through virtual synth.
+    void previewPreset(const std::string& deviceType, const std::vector<std::pair<std::string, float>>& params, const std::vector<MidiNoteState>& notes, double lengthBeats, int bpm, double startBeat = 0.0, bool loop = true);
     /// Stop any active MIDI preview.
     void stopPreview();
     void ensureAudioOutput();
@@ -123,7 +129,7 @@ public:
                              double sampleRate,
                              double playheadStartBeat) noexcept;
     double playheadBeats() const noexcept;
-    void readPreviewMix(float* monoOut, int numFrames, double sampleRate) noexcept;
+    void readPreviewMix(float* leftOut, float* rightOut, int numFrames, double sampleRate) noexcept;
     void readLiveMix(float* monoOut, int numFrames, double sampleRate) noexcept;
 
 private:
@@ -148,14 +154,52 @@ private:
 
     struct PreviewMidiState {
         std::atomic<bool> active{false};
+        bool isPresetPreview = false;
+        bool loop = true;
+        /// For live-keyboard preview (noteOn/noteOff path) — one LiveInstrumentSnapshot
+        /// shared across all voices. Unused for preset preview.
+        LiveInstrumentSnapshot instrument;
         std::vector<MidiNoteState> notes;
         std::vector<bool> noteUsingInstrument;
         double lengthBeats = 4.0;
         int bpm = 120;
         std::atomic<double> playheadBeats{0.0};
+
+        // --- Preset-preview direct-renderer state ---
+        // Mirrors the per-sample renderers used by the arrangement playback
+        // (processDeviceChain → mixSubtractiveMidiNotesBlock / mixSamplerMidiNotesBlock /
+        //  midiActiveFrequencyHz + addSineBlock). All runtimes are written on the
+        // control thread (previewPreset) and read on the audio thread (readPreviewMix).
+
+        /// Which direct renderer the preset preview should use.
+        enum class PresetRenderKind : uint8_t {
+            None = 0,
+            Oscillator,
+            Sampler,
+            SubtractiveSynth,
+        };
+        std::atomic<PresetRenderKind> renderKind{PresetRenderKind::None};
+
+        /// SubtractiveSynth preset params (built from DeviceRegistry + preset params).
+        SubtractiveSynthParams subtractiveParams{};
+        SubtractiveSynthRuntime subtractiveRuntime{};
+
+        /// Oscillator: only frequency + phase continuity.
+        float oscillatorPhase = 0.0f;
+
+        /// Sampler preset params + filter state.
+        SamplerInstrumentPlayback samplerParams{};
+        BiquadState samplerFilterStates[kMaxInstrumentRegions]{};
+        bool samplerHasPcm = false;
+
+        /// All preset-preview notes are projected onto a single "virtual clip" that
+        /// starts at beat 0 and loops over lengthBeats. This matches how the arrangement
+        /// renderer expects note regions (clipStartBeat / clipLengthBeats / noteStartBeat).
+        std::vector<MidiPlaybackNote> playbackNotes;
     };
 
     PreviewMidiState previewMidi_;
+    LivePerformanceMixer previewMixer_;
     FallbackPreviewOscillator fallbackOsc_;
     void ensureSampleBankReady();
 };

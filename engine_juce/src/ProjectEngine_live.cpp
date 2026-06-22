@@ -62,6 +62,12 @@ bool ProjectEngine::noteOn(int pitch, float velocity) {
         return false;
     }
 
+    // A Sampler with no loaded sample is silent — treat as no playable instrument
+    if (instrument.kind == LiveInstrumentKind::Sampler &&
+        (instrument.samplerPcm == nullptr || instrument.samplerFrameCount <= 0)) {
+        return false;
+    }
+
     liveMixer_.noteOn(instrument, pitch, velocity);
     // Don't call retriggerOnNote() — live pad input shares the global
     // retrigger generation with the arrangement LFO render path, causing
