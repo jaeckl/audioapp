@@ -19,6 +19,7 @@ import '../features/content_library/library_fly_in_panel.dart';
 import '../features/device_strip/device_strip.dart';
 import '../features/device_strip/device_strip_device_kind.dart';
 import '../features/device_strip/device_strip_theme.dart';
+import '../features/device_strip/device_preset_store.dart';
 import '../features/device_strip/subtractive_synth_editor_screen.dart';
 import '../features/device_strip/subtractive_synth_presets.dart';
 import '../features/mixer/mixer_view.dart';
@@ -755,6 +756,10 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       _libraryOpen = false;
       _librarySamplerDeviceId = null;
     });
+    // Stop any active preview (preset/midi/sampler) so closing the library
+    // also halts the audio and the visual playhead ticker — not just the
+    // panel UI.
+    widget.bridge.stopPreview().catchError((Object _) {});
   }
 
   Future<void> _openLibrary({LibraryCategory category = LibraryCategory.audioClips}) async {
@@ -890,23 +895,34 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   Future<void> _onLibraryPresetTap(LibraryPresetItem item) async {
-    final synth = _snapshot?.selectedTrack?.subtractiveSynthDevice;
+    final track = _snapshot?.selectedTrack;
+    if (track == null) return;
+
+    var synth = track.subtractiveSynthDevice;
     if (item.deviceType == 'subtractive_synth') {
       if (synth == null) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Select a track with a Subtractive Synth first')),
-        );
-        return;
+        // Automatically add a Subtractive Synth device to the track on insert
+        try {
+          final snapshot = await widget.bridge.addDeviceToTrack(
+            trackId: track.id,
+            deviceType: 'subtractive_synth',
+          );
+          // Find the newly added subtractive synth device
+          final updatedTrack = snapshot.tracks.firstWhere((t) => t.id == track.id);
+          synth = updatedTrack.subtractiveSynthDevice;
+          await _refreshSnapshot(snapshot);
+        } catch (e) {
+          if (!mounted) return;
+          setState(() => _projectError = e.toString());
+          return;
+        }
       }
+
+      if (synth == null) return;
+
       final preset = SubtractiveSynthPresets.presets[item.id];
-      if (preset == null) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Unknown preset "${item.title}"')),
-        );
-        return;
-      }
+      if (preset == null) return;
+
       try {
         final snapshot = await widget.bridge.applySubtractiveSynthPreset(
           deviceId: synth.id,
@@ -918,21 +934,73 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       } catch (e) {
         if (!mounted) return;
         setState(() => _projectError = e.toString());
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load preset: $e')),
-        );
         return;
       }
+
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Loaded preset "${item.title}"')),
-      );
       await _libraryPanelKey.currentState?.close();
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Preset "${item.title}" — coming soon')),
-    );
+  }
+
+  Future<void> _onLibraryPresetPreviewTap(LibraryPresetItem item, {double startBeat = 0.0, bool loop = true}) async {
+    final preset = DevicePresetStore.find(item.deviceType, item.id);
+    debugPrint('[library preset] item.id=${item.id} deviceType=${item.deviceType} startBeat=$startBeat loop=$loop presetFound=${preset != null}');
+    if (preset == null) {
+      // No factory preset registered for this device/preset combo — bail silently.
+      // The UI no longer toasts errors, and the engine still has device defaults
+      // available for non-library-preset selections.
+      return;
+    }
+    if (preset == null) return;
+
+    // Gather selected track's MIDI clip notes in timeline coordinates
+    final track = _snapshot?.selectedTrack;
+    final notes = <MidiNoteSnapshot>[];
+    double maxBeat = 8.0;
+
+    if (track != null) {
+      for (final clip in track.midiClips) {
+        final clipEnd = clip.startBeat + clip.lengthBeats;
+        if (clipEnd > maxBeat) {
+          maxBeat = clipEnd;
+        }
+        for (final note in clip.notes) {
+          notes.add(MidiNoteSnapshot(
+            pitch: note.pitch,
+            startBeat: clip.startBeat + note.startBeat,
+            durationBeats: note.durationBeats,
+            velocity: note.velocity,
+          ));
+        }
+      }
+    }
+
+    // Fallback C arpeggio pattern if there are no notes on the selected track
+    if (notes.isEmpty) {
+      notes.add(const MidiNoteSnapshot(pitch: 48, startBeat: 0.0, durationBeats: 1.0, velocity: 90.0));
+      notes.add(const MidiNoteSnapshot(pitch: 52, startBeat: 1.0, durationBeats: 1.0, velocity: 90.0));
+      notes.add(const MidiNoteSnapshot(pitch: 55, startBeat: 2.0, durationBeats: 1.0, velocity: 90.0));
+      notes.add(const MidiNoteSnapshot(pitch: 60, startBeat: 3.0, durationBeats: 1.0, velocity: 90.0));
+      maxBeat = 4.0;
+    }
+
+    // Preview preset virtually via bridge. The preset's own deviceType is forwarded as-is;
+    // the engine's DeviceRegistry builds the matching virtual slot.
+    final bpm = _snapshot?.bpm ?? 120;
+    try {
+      await widget.bridge.previewPreset(
+        deviceType: item.deviceType,
+        params: preset.params,
+        notes: notes,
+        lengthBeats: maxBeat,
+        bpm: bpm,
+        startBeat: startBeat,
+        loop: loop,
+      );
+    } catch (e) {
+      debugPrint('[library preset] previewPreset FAILED for ${item.id}: $e');
+    }
   }
 
   Future<void> _setSamplerGain(String deviceId, double value) async {
@@ -1657,6 +1725,13 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
               onAutomationTap: _onLibraryAutomationTap,
               onAutomationPreviewTap: _onLibraryAutomationPreviewTap,
               onPresetTap: _onLibraryPresetTap,
+              onPresetPreviewTap: _onLibraryPresetPreviewTap,
+              onStopPreview: () {
+                // Halt the active engine preview without closing the panel.
+                // (The panel's own _stopPreviewAnimation already took care of
+                // the visual ticker; this just kills the audio.)
+                widget.bridge.stopPreview().catchError((Object _) {});
+              },
             ),
         ],
       ),

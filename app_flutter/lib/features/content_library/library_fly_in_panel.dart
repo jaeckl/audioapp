@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
@@ -25,6 +27,8 @@ class LibraryFlyInPanel extends StatefulWidget {
     this.onAutomationTap,
     this.onAutomationPreviewTap,
     this.onPresetTap,
+    this.onPresetPreviewTap,
+    this.onStopPreview,
   });
 
   final ProjectSnapshot snapshot;
@@ -38,6 +42,10 @@ class LibraryFlyInPanel extends StatefulWidget {
   final void Function(LibraryAutomationItem item)? onAutomationTap;
   final void Function(LibraryAutomationItem item)? onAutomationPreviewTap;
   final void Function(LibraryPresetItem item)? onPresetTap;
+  final void Function(LibraryPresetItem item, {double startBeat, bool loop})? onPresetPreviewTap;
+  /// Optional: invoked when the panel wants to halt any active engine preview
+  /// (e.g. when the user toggles auto-play/loop off mid-preview).
+  final VoidCallback? onStopPreview;
 
   @override
   State<LibraryFlyInPanel> createState() => LibraryFlyInPanelState();
@@ -51,6 +59,18 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
   LibraryManifest? _manifest;
   String? _selectedItemId;
   bool _presetPreviewLoopEnabled = true;
+  double _presetScrubBeat = 0.0;
+
+  /// Preview timing state. When [_previewActive] is true the timer tick
+  /// advances [_presetScrubBeat] at the configured BPM so the playhead
+  /// visually moves while the engine plays.
+  bool _previewActive = false;
+  bool _previewLoop = true;
+  double _previewLengthBeats = 0.0;
+  double _previewStartBeat = 0.0;
+  int _previewBpm = 120;
+  DateTime? _previewStartedAt;
+  Timer? _previewTicker;
 
   @override
   void initState() {
@@ -72,7 +92,49 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
   @override
   void dispose() {
     _controller.dispose();
+    _previewTicker?.cancel();
     super.dispose();
+  }
+
+  /// Starts (or restarts) the visual playhead timer so the bar's playhead
+  /// line tracks the engine's preview playhead. The math mirrors the engine:
+  /// beat = startBeat + elapsed_seconds * (bpm / 60).
+  void _startPreviewAnimation({
+    required double startBeat,
+    required double lengthBeats,
+    required int bpm,
+    required bool loop,
+  }) {
+    _previewTicker?.cancel();
+    _previewActive = true;
+    _previewLoop = loop;
+    _previewLengthBeats = lengthBeats;
+    _previewStartBeat = startBeat;
+    _previewBpm = bpm <= 0 ? 120 : bpm;
+    _previewStartedAt = DateTime.now();
+    _presetScrubBeat = startBeat;
+
+    _previewTicker = Timer.periodic(const Duration(milliseconds: 33), (_) {
+      if (!mounted || !_previewActive || _previewStartedAt == null) return;
+      final elapsedMs = DateTime.now().difference(_previewStartedAt!).inMicroseconds / 1000.0;
+      final elapsedBeats = (elapsedMs / 1000.0) * (_previewBpm / 60.0);
+      double beat = _previewStartBeat + elapsedBeats;
+      if (_previewLoop && _previewLengthBeats > 0) {
+        beat = beat % _previewLengthBeats;
+      } else if (beat >= _previewLengthBeats) {
+        beat = _previewLengthBeats;
+        _previewActive = false;
+      }
+      if (beat != _presetScrubBeat) {
+        setState(() => _presetScrubBeat = beat);
+      }
+    });
+  }
+
+  void _stopPreviewAnimation() {
+    _previewTicker?.cancel();
+    _previewTicker = null;
+    _previewActive = false;
   }
 
   Future<void> _loadManifest() async {
@@ -87,6 +149,7 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
   }
 
   Future<void> close() async {
+    _stopPreviewAnimation();
     await _controller.reverse();
     if (mounted) widget.onClose();
   }
@@ -96,10 +159,62 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
       _category = category;
       _selectedItemId = null;
       _presetPreviewLoopEnabled = true;
+      _presetScrubBeat = 0;
+      _stopPreviewAnimation();
     });
   }
 
-  void _onItemSelected(String? itemId) {
+/// Wraps the parent's preset preview callback to:
+///  - inject the current preview-bar scrub beat as the default startBeat
+///  - inject the current auto-play/loop state as the default `loop`
+///  - keep the panel's stored scrub beat in sync with what the user is playing
+///  - animate the visual playhead while the engine is playing
+void _onPresetPreviewTap(LibraryPresetItem item,
+    {double? startBeat, bool? loop}) {
+  final effectiveStart = startBeat ?? _presetScrubBeat;
+  final effectiveLoop = loop ?? _presetPreviewLoopEnabled;
+  if (startBeat != null) {
+    _presetScrubBeat = startBeat;
+  }
+
+  // Start the visual playhead animation so the bar shows the head moving.
+  // Use the project's BPM and a 4-bar default length (matches the C-arpeggio
+  // fallback used in daw_shell._onLibraryPresetPreviewTap).
+  final bpm = widget.snapshot.bpm;
+  final lengthBeats = _computePreviewLengthBeats();
+  setState(() {
+    _startPreviewAnimation(
+      startBeat: effectiveStart,
+      lengthBeats: lengthBeats,
+      bpm: bpm,
+      loop: effectiveLoop,
+    );
+  });
+
+  widget.onPresetPreviewTap?.call(item,
+      startBeat: effectiveStart, loop: effectiveLoop);
+}
+
+double _computePreviewLengthBeats() {
+  // Mirror the logic in daw_shell._onLibraryPresetPreviewTap: longest MIDI
+  // clip on the selected track, with a 4-beat minimum so an empty track
+  // still animates something visible.
+  const minBeats = 4.0;
+  final trackId = widget.snapshot.selectedTrackId;
+  if (trackId == null) return minBeats;
+  for (final t in widget.snapshot.tracks) {
+    if (t.id != trackId) continue;
+    double max = 0;
+    for (final clip in t.midiClips) {
+      final end = clip.startBeat + clip.lengthBeats;
+      if (end > max) max = end;
+    }
+    return max > minBeats ? max : minBeats;
+  }
+  return minBeats;
+}
+
+void _onItemSelected(String? itemId) {
     setState(() {
       _selectedItemId = itemId;
     });
@@ -185,6 +300,8 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
                                 _category = category;
                                 _selectedItemId = null;
                                 _presetPreviewLoopEnabled = true;
+                                _presetScrubBeat = 0;
+                                _stopPreviewAnimation();
                               }),
                             ),
                             Expanded(
@@ -200,6 +317,8 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
                                 onAutomationTap: widget.onAutomationTap,
                                 onAutomationPreviewTap: widget.onAutomationPreviewTap,
                                 onPresetTap: widget.onPresetTap,
+                                onPresetPreviewTap: _onPresetPreviewTap,
+                                autoPlayOnSelect: _presetPreviewLoopEnabled,
                               ),
                             ),
                           ],
@@ -211,11 +330,37 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
                           snapshot: widget.snapshot,
                           selectedTrackId: widget.snapshot.selectedTrackId,
                           loopEnabled: _presetPreviewLoopEnabled,
-                          onLoopToggled: (enabled) =>
-                              setState(() => _presetPreviewLoopEnabled = enabled),
+                          onLoopToggled: (enabled) {
+                            setState(() {
+                              _presetPreviewLoopEnabled = enabled;
+                              // Toggling the loop flag stops any currently
+                              // playing preview — both visually (the ticker)
+                              // and in the engine. The user is signaling
+                              // "stop autoplay; I'll press play manually
+                              // from now on", so the active preview should
+                              // also pause.
+                              if (!enabled) {
+                                _stopPreviewAnimation();
+                                widget.onStopPreview?.call();
+                              }
+                            });
+                          },
+                          playheadBeats: _presetScrubBeat,
                           onScrub: (beat) {
-                            // Bridge call for preset preview at this beat
-                            // will be wired later (WP-BRIDGE)
+                            // Tap-to-seek already updated _presetScrubBeat inside the
+                            // bar; here we just kick off a fresh preview at that beat
+                            // so the user hears audio immediately.
+                            final items = LibraryCatalog.itemsFor(
+                              _category,
+                              widget.snapshot,
+                              manifest: _manifest,
+                            );
+                            try {
+                              final item = items.firstWhere((i) => i.id == _selectedItemId);
+                              if (item is LibraryPresetItem) {
+                                _onPresetPreviewTap(item, startBeat: beat);
+                              }
+                            } catch (_) {}
                           },
                         ),
                     ],

@@ -24,6 +24,8 @@ class LibraryContentPane extends StatefulWidget {
     this.onAutomationTap,
     this.onAutomationPreviewTap,
     this.onPresetTap,
+    this.onPresetPreviewTap,
+    this.autoPlayOnSelect = true,
     this.presetManifest,
   });
 
@@ -38,6 +40,11 @@ class LibraryContentPane extends StatefulWidget {
   final void Function(LibraryAutomationItem item)? onAutomationTap;
   final void Function(LibraryAutomationItem item)? onAutomationPreviewTap;
   final void Function(LibraryPresetItem item)? onPresetTap;
+  final void Function(LibraryPresetItem item, {double startBeat, bool loop})? onPresetPreviewTap;
+
+  /// When true (default), selecting a preset auto-starts preview. When false,
+  /// only the explicit play button on the tile starts preview.
+  final bool autoPlayOnSelect;
 
   /// Optional manifest override (tests). When null, loads from assets.
   final LibraryManifest? presetManifest;
@@ -252,6 +259,8 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
           onAutomationTap: widget.onAutomationTap,
           onAutomationPreviewTap: widget.onAutomationPreviewTap,
           onPresetTap: widget.onPresetTap,
+          onPresetPreviewTap: widget.onPresetPreviewTap,
+          autoPlayOnSelect: widget.autoPlayOnSelect,
         );
       },
     );
@@ -264,7 +273,10 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
     });
     widget.onItemSelected?.call(item.id);
 
-    // Dispatch preview per item type (tap always produces audio)
+    // Dispatch preview per item type, but only auto-play on selection when enabled.
+    // Audio/MIDI/automation tiles are still auto-played (selection IS the action);
+    // preset tiles gate the auto-play behind [autoPlayOnSelect] because the user
+    // might want to insert (via the header) without auditioning.
     switch (item) {
       case final LibraryAudioItem audio when !audio.isProjectClip:
         widget.onPreviewAudio(audio.sample);
@@ -273,7 +285,9 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
       case final LibraryAutomationItem automation:
         widget.onAutomationPreviewTap?.call(automation);
       case final LibraryPresetItem preset:
-        widget.onPresetTap?.call(preset);
+        if (widget.autoPlayOnSelect) {
+          widget.onPresetPreviewTap?.call(preset);
+        }
       default:
         break;
     }
@@ -360,6 +374,8 @@ class _LibraryItemTile extends StatelessWidget {
     this.onAutomationTap,
     this.onAutomationPreviewTap,
     this.onPresetTap,
+    this.onPresetPreviewTap,
+    this.autoPlayOnSelect = true,
   });
 
   final LibraryItem item;
@@ -373,6 +389,8 @@ class _LibraryItemTile extends StatelessWidget {
   final void Function(LibraryAutomationItem item)? onAutomationTap;
   final void Function(LibraryAutomationItem item)? onAutomationPreviewTap;
   final void Function(LibraryPresetItem item)? onPresetTap;
+  final void Function(LibraryPresetItem item, {double startBeat, bool loop})? onPresetPreviewTap;
+  final bool autoPlayOnSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -459,7 +477,7 @@ class _LibraryItemTile extends StatelessWidget {
       final LibraryPresetItem preset => [
           IconButton(
             tooltip: 'Preview',
-            onPressed: () => onPresetTap?.call(preset),
+            onPressed: () => onPresetPreviewTap?.call(preset),
             icon: const Icon(Icons.play_arrow_rounded, color: Colors.white70),
           ),
         ],
