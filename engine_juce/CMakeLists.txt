@@ -48,6 +48,8 @@ add_library(audioapp_engine STATIC
   src/FrequencyFxProcessor.cpp
   src/MasterMix.cpp
   src/DeviceChain.cpp
+  src/DeviceChainAutomationModulation.cpp
+  src/DeviceChainProcessor.cpp
   src/devices/DeviceRegistry.cpp
   src/devices/OscillatorDeviceType.cpp
   src/devices/SamplerDeviceType.cpp
