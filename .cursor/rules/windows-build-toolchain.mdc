@@ -1,0 +1,112 @@
+---
+description: Windows host build toolchain — MSVC + Ninja, never MinGW.
+alwaysApply: true
+---
+
+# Windows build toolchain (MSVC only)
+
+You are running on **Windows**. Before running any CMake, Ninja, or MSBuild
+command that compiles the C++ engine, follow the mandatory pre-flight gate
+below. MinGW silently breaks this build — read this rule before you run
+`cmake` / `ninja`.
+
+> Full guide: [docs/guidelines/windows_android_setup.md](../../docs/guidelines/windows_android_setup.md) §3.
+
+## Pre-flight gate (run before any `cmake` or `ninja` command)
+
+Answer these three questions **in order**. If any answer is "no", fix it
+before proceeding — do not invoke CMake.
+
+1. **Did this PowerShell session run `vcvars64.bat`?**
+   - **No** → run this first, then continue:
+     ```powershell
+     & "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+     ```
+   - If that path does not exist, locate it with:
+     ```powershell
+     Get-ChildItem -Recurse -Path "C:\Program Files (x86)\Microsoft Visual Studio", "C:\Program Files\Microsoft Visual Studio" -Filter vcvars64.bat
+     ```
+2. **Does `where cl.exe` return a path under MSVC's `VC\Tools\MSVC\…\bin\Hostx64\x64\?`**
+   - **No** (returns `mingw`, `git\mingw64`, `msys`, `clang`, or `gcc`) →
+     MinGW is still on PATH ahead of MSVC. Strip it with one of the recipes
+     in [windows_android_setup.md](../../docs/guidelines/windows_android_setup.md) §13.1, then re-run `vcvars64.bat` and re-check.
+3. **Is the build directory `build/engine-msvc/`?**
+   - **No** → use `build/engine-msvc/`, **not** `build/engine/`. The
+     latter is contaminated with a Linux GCC cache from prior sessions.
+     Pick any non-default name if you want isolation from existing builds.
+
+Only after all three are "yes" may you run `cmake -S engine_juce -B build/engine-msvc …`.
+
+## Build / test commands (verified working)
+
+```powershell
+# Configure (MSVC + Ninja, C++20, tests on)
+cmake -S engine_juce -B build/engine-msvc -G Ninja `
+      -DCMAKE_BUILD_TYPE=Debug -DAUDIOAPP_BUILD_TESTS=ON
+
+# Build the JUCE test runner
+cmake --build build/engine-msvc --target audioapp_juce_tests
+
+# Run all tests
+.\build\engine-msvc\Debug\audioapp_juce_tests.exe
+
+# Run a single test by name (substring match)
+.\build\engine-msvc\Debug\audioapp_juce_tests.exe ClipLength
+
+# List available tests
+.\build\engine-msvc\Debug\audioapp_juce_tests.exe --list-tests
+```
+
+## Hard rules — never do these
+
+- **Never** invoke `cmake` or `ninja` without `vcvars64.bat` first. CMake
+  will silently pick `gcc` from a `mingw64\bin` on `PATH` and the build
+  "succeeds" with the wrong toolchain, producing an `.lib` that the Android
+  NDK's MSVC linker cannot consume.
+- **Never** use `build/engine/` as the CMake build directory on Windows.
+  It is contaminated with a Linux GCC cache; CMake will reuse the wrong
+  compiler detection. Use `build/engine-msvc/` (or any non-default name).
+- **Never** append `-DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++` on
+  Windows. That is the Linux build recipe. The Windows recipe lets
+  `vcvars64.bat` set the compiler via `PATH` / `CC` / `CXX` env vars.
+- **Never** try to build the engine with MinGW. JUCE 8 requires C++20
+  features (e.g. `std::format`) that MinGW's libstdc++ lacks.
+
+## Symptom → fix cheat sheet
+
+If a build fails or CMake picks the wrong compiler, look up the symptom:
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `-- The C compiler identification is GNU` | MinGW on PATH | §13.1 (strip MinGW from PATH) |
+| `error: 'std::format' is not a member of 'std'` | MinGW's libstdc++ lacks C++20 | §13.1 |
+| `error: cannot find -lasound` on Windows | GCC picked up (ALSA is Linux) | §13.1 |
+| `undefined reference to juce::*` linker errors | ABI mismatch (mixed MSVC + MinGW objects) | Delete `build/engine-msvc/`, rerun §3.1 + §3.3 |
+| `cl.exe` not found after `vcvars64.bat` | Wrong VS install / non-default path | `Get-ChildItem -Recurse ... vcvars64.bat` |
+
+Full recipes for stripping MinGW from PATH: [windows_android_setup.md](../../docs/guidelines/windows_android_setup.md) §13.1.
+
+## Deploy to phone
+
+After the engine tests are green and Flutter changes are ready:
+
+```powershell
+cd app_flutter
+flutter build apk --debug -d ZY32MCWDJ6
+adb -s ZY32MCWDJ6 install -r build\app\outputs\flutter-apk\app-debug.apk
+```
+
+Or use the wrapper scripts: `.\tools\flutter_deploy.ps1` and `.\tools\flutter_dev.ps1`. See §5 of the guide.
+
+## Toolchain locations (this machine)
+
+| Tool | Path |
+|------|------|
+| Flutter | `C:\Users\ludwi\flutter` |
+| Android SDK | `%LOCALAPPDATA%\Android\Sdk` |
+| MSVC Build Tools | `C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools` |
+| CMake | `C:\Program Files\CMake\bin` |
+| Ninja | `%LOCALAPPDATA%\Programs\ninja` |
+| ADB | `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe` |
+| `vcvars64.bat` | `C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat` |
+| Device serial (this user's phone) | `ZY32MCWDJ6` |
