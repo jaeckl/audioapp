@@ -121,6 +121,7 @@ juce::var sampleClipToVar(const SampleClipState& clip) {
     object->setProperty("sampleName", toJuceString(clip.sampleName));
     object->setProperty("startBeat", clip.startBeat);
     object->setProperty("lengthBeats", clip.lengthBeats);
+    object->setProperty("naturalLengthBeats", clip.naturalLengthBeats);
     object->setProperty("waveformPeaks", peaks);
     return juce::var(object);
 }
@@ -133,6 +134,10 @@ SampleClipState sampleClipFromVar(const juce::var& value) {
         clip.sampleName = varToString(object->getProperty("sampleName"));
         clip.startBeat = varToDouble(object->getProperty("startBeat"), 0.0);
         clip.lengthBeats = varToDouble(object->getProperty("lengthBeats"), 4.0);
+        // Backwards-compatible: legacy projects predate the natural-length
+        // field; default to the current length so the waveform still renders.
+        clip.naturalLengthBeats =
+            varToDouble(object->getProperty("naturalLengthBeats"), clip.lengthBeats);
         if (const auto* peakArray = varArray(object->getProperty("waveformPeaks"))) {
             clip.waveformPeaks.reserve(static_cast<size_t>(peakArray->size()));
             for (const auto& peakVar : *peakArray) {

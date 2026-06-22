@@ -12,7 +12,7 @@ class ArrangementTimelineMetrics {
   static const double trackLaneHeight = 56;
   /// Legacy minimum; prefer [virtualLengthBeats] for scroll width.
   static const double timelineBeats = 32;
-  static const double minClipDisplayWidthPx = 120;
+  static const double minClipDisplayWidthPx = 16;
   static const double gridBeats = 1.0;
   static const double defaultMidiClipLengthBeats = 4.0;
 
@@ -199,5 +199,39 @@ class ArrangementTimelineMetrics {
       }
     }
     return gapEnd;
+  }
+
+  /// Visual width (in px) of a single clip on a track lane. Sample clips use
+  /// the zoom-aware [clipDisplayWidthPx] (which adds a readable minimum and
+  /// optional viewport fill); MIDI and automation clips render beat-accurate.
+  ///
+  /// Use this wherever the resize-handle must track the rendered clip's
+  /// right edge instead of the beat-accurate end.
+  static double renderedClipWidthPx({
+    required ClipContentKind kind,
+    required double startBeat,
+    required double lengthBeats,
+    required double pixelsPerBeat,
+    required List<double> otherClipStarts,
+    required double timelineEndBeat,
+    double? viewportWidthPx,
+  }) {
+    switch (kind) {
+      case ClipContentKind.sample:
+        return clipDisplayWidthPx(
+          startBeat: startBeat,
+          lengthBeats: lengthBeats,
+          pixelsPerBeat: pixelsPerBeat,
+          gapEndBeat: gapEndBeatForClip(
+            clipStartBeat: startBeat,
+            otherClipStarts: otherClipStarts,
+            timelineEndBeat: timelineEndBeat,
+          ),
+          viewportWidthPx: viewportWidthPx,
+        );
+      case ClipContentKind.midi:
+      case ClipContentKind.automation:
+        return lengthBeats * pixelsPerBeat;
+    }
   }
 }

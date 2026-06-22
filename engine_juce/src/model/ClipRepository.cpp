@@ -82,6 +82,14 @@ std::string ClipRepository::createSampleClip(const std::string& trackId,
     } else {
         clip.lengthBeats = 4.0;
     }
+    // The waveform's natural extent is the source sample's duration at the
+    // current BPM. Resize never touches this — it only changes the playback
+    // window. The UI uses it to render the waveform at its natural density.
+    if (sampleBank != nullptr) {
+        clip.naturalLengthBeats = sampleBank->beatsForSample(sampleId, bpm);
+    } else {
+        clip.naturalLengthBeats = clip.lengthBeats;
+    }
 
     track->sampleClips.push_back(std::move(clip));
     return track->sampleClips.back().id;

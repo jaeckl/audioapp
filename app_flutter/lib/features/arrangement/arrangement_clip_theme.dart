@@ -24,4 +24,11 @@ abstract final class ArrangementClipTheme {
   static Color contentBackground(Color clipBackground) {
     return Color.lerp(clipBackground, Colors.black, 0.38)!;
   }
+
+  /// Resize handle idle colors matching each clip's color scheme.
+  /// Bright enough to read against any background.
+  static const Color resizeHandleMidiIdleColor = Color(0xFF8EB4FF);
+  static const Color resizeHandleSampleIdleColor = Color(0xFF9AD4B3);
+  static const Color resizeHandleAutomationIdleColor = Color(0xFFB48CFF);
+  static const Color resizeHandleActiveColor = Color(0xFFFFFFFF);
 }

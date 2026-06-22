@@ -1442,6 +1442,22 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _resizeClip({
+    required String clipId,
+    required double lengthBeats,
+  }) async {
+    try {
+      final snapshot = await widget.bridge.setClipLength(
+        clipId: clipId,
+        lengthBeats: lengthBeats,
+      );
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
   Future<void> _setPlayheadBeats(double beats) async {
     try {
       if (_playing) {
@@ -1587,6 +1603,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
               onClipTap: _openPianoRoll,
               onSampleClipTap: (_, __) {},
               onMoveClip: _moveClip,
+              onResizeClipCommit: _resizeClip,
               onDeleteTrack: _confirmDeleteTrack,
               onDeleteClip: _confirmDeleteClip,
               onDuplicateClip: _duplicateClip,

@@ -103,3 +103,16 @@ No new JSON fields are introduced. The existing `setClipLength` bridge already r
 ## 6. No data model changes
 
 No fields added to `MidiClipSnapshot`, `SampleClipSnapshot`, `AutomationClipSnapshot`, `MidiClip`, `SampleClip`, `AutomationClip`, or `AutomationClipState`. The `lengthBeats` field already exists on all clip types in both Dart and C++.
+
+## 7. Future-proofing for looped clip content (v2)
+
+The resize feature MUST be agnostic to how clip content behaves within `lengthBeats`. In the future, clips may support internal looping (e.g., a sample clip with `loopMode: "loop"` that loops its source region inside the clip's `lengthBeats`). The resize feature:
+
+- **Only touches `lengthBeats`** — does not modify any loop region, source start, or internal content state.
+- **Respects all internal content** — if a sample clip is looped internally, resizing its `lengthBeats` shortens or lengthens the audible playback window but does NOT change the loop region within the source.
+- **No coupling to loop state** — the resize gesture does not read, modify, or branch on any future loop fields. The implementation worker MUST NOT introduce assumptions about looping content.
+
+When loop fields are added in v2 (e.g., `loopStart`, `loopEnd`, `loopMode` on `SampleClip`), the resize implementation will continue to operate correctly without changes because:
+1. Resize only writes `lengthBeats`
+2. The playback layer (`SamplePlayback` / `MidiClipPlayback` / `AutomationClipPlayback`) reads `lengthBeats` to determine clip end
+3. Internal loop fields (when added) will be independent of `lengthBeats`

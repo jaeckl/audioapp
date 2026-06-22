@@ -69,6 +69,80 @@ public:
                                       audioapp::kMinClipLengthBeats, 0.001,
                                       "clip length should be clamped to minimum");
         }
+
+        beginTest("set automation clip length");
+        {
+            auto automationProject = std::make_unique<audioapp::ProjectEngine>();
+            automationProject->createProject();
+
+            const std::string automationTrackId = automationProject->addTrack("Keys");
+            const std::string automationClipId =
+                automationProject->createAutomationClip(automationTrackId, 0.0, 4.0);
+            automationProject->assignAutomationTarget(automationClipId, "dev1", "gain");
+
+            expect(automationProject->setClipLength(automationClipId, 8.0),
+                   "setClipLength on automation clip returns true");
+
+            const auto automationSnap = automationProject->snapshot();
+            expect(!automationSnap.automationClips.empty());
+            if (!automationSnap.automationClips.empty()) {
+                expectWithinAbsoluteError(automationSnap.automationClips[0].lengthBeats,
+                                          8.0, 0.001);
+            }
+        }
+
+        beginTest("automation clip length clamped to minimum");
+        {
+            auto automationProject = std::make_unique<audioapp::ProjectEngine>();
+            automationProject->createProject();
+
+            const std::string automationTrackId = automationProject->addTrack("Keys");
+            const std::string automationClipId =
+                automationProject->createAutomationClip(automationTrackId, 0.0, 4.0);
+
+            expect(automationProject->setClipLength(automationClipId, 0.001),
+                   "setClipLength on automation clip returns true");
+
+            const auto automationSnap = automationProject->snapshot();
+            expect(!automationSnap.automationClips.empty());
+            if (!automationSnap.automationClips.empty()) {
+                expectWithinAbsoluteError(automationSnap.automationClips[0].lengthBeats,
+                                          0.01, 0.001,
+                                          "automation clip length clamped to 0.01");
+            }
+        }
+
+        beginTest("set sample clip length");
+        {
+            auto sampleProject = std::make_unique<audioapp::ProjectEngine>();
+            sampleProject->createProject();
+
+            const std::string sampleTrackId = sampleProject->addTrack("Keys");
+            sampleProject->createSampleClip(sampleTrackId, "sample-1", 0.0, 4.0);
+
+            const auto sampleSnap = sampleProject->snapshot();
+            if (sampleSnap.tracks.empty() || sampleSnap.tracks[0].sampleClips.empty()) return;
+            const std::string sampleClipId = sampleSnap.tracks[0].sampleClips[0].id;
+
+            expect(sampleProject->setClipLength(sampleClipId, 6.0),
+                   "setClipLength on sample clip returns true");
+
+            const auto updated = sampleProject->snapshot();
+            expect(!updated.tracks.empty() && !updated.tracks[0].sampleClips.empty());
+            if (!updated.tracks.empty() && !updated.tracks[0].sampleClips.empty()) {
+                expectWithinAbsoluteError(updated.tracks[0].sampleClips[0].lengthBeats,
+                                          6.0, 0.001);
+            }
+        }
+
+        beginTest("unknown clip id returns false");
+        {
+            auto unknownProject = std::make_unique<audioapp::ProjectEngine>();
+            unknownProject->createProject();
+
+            expect(!unknownProject->setClipLength("nonexistent-clip", 4.0),
+                   "setClipLength on unknown id returns false");
+        }
     }
 };
 

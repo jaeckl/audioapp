@@ -36,6 +36,20 @@ class MidiClipSnapshot implements ClipTimelineSpan {
           .toList(),
     );
   }
+
+  MidiClipSnapshot copyWith({
+    String? id,
+    double? startBeat,
+    double? lengthBeats,
+    List<MidiNoteSnapshot>? notes,
+  }) {
+    return MidiClipSnapshot(
+      id: id ?? this.id,
+      startBeat: startBeat ?? this.startBeat,
+      lengthBeats: lengthBeats ?? this.lengthBeats,
+      notes: notes ?? this.notes,
+    );
+  }
 }
 
 class MidiNoteSnapshot {
@@ -70,6 +84,7 @@ class SampleClipSnapshot implements ClipTimelineSpan {
     required this.startBeat,
     required this.lengthBeats,
     required this.waveformPeaks,
+    this.naturalLengthBeats,
   });
 
   @override
@@ -88,17 +103,53 @@ class SampleClipSnapshot implements ClipTimelineSpan {
   final String sampleName;
   final List<double> waveformPeaks;
 
+  /// Length of the waveform's source region in beats, captured at clip
+  /// creation. Never modified by resize. The arranger uses this to render
+  /// the waveform at its natural density — clipped when the clip is shorter
+  /// than the source, anchored with trailing empty space when longer.
+  ///
+  /// Defaults to [lengthBeats] when not supplied (legacy snapshots / unit
+  /// tests that don't round-trip through the engine).
+  final double? naturalLengthBeats;
+
   double get endBeat => startBeat + lengthBeats;
+
+  /// Resolved natural length — falls back to current length when missing.
+  double get effectiveNaturalLengthBeats =>
+      naturalLengthBeats ?? lengthBeats;
 
   factory SampleClipSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final peaksRaw = map['waveformPeaks'] as List<dynamic>? ?? [];
+    final lengthBeats = (map['lengthBeats'] as num?)?.toDouble() ?? 4.0;
     return SampleClipSnapshot(
       id: map['id'] as String? ?? '',
       sampleId: map['sampleId'] as String? ?? '',
       sampleName: map['sampleName'] as String? ?? '',
       startBeat: (map['startBeat'] as num?)?.toDouble() ?? 0.0,
-      lengthBeats: (map['lengthBeats'] as num?)?.toDouble() ?? 4.0,
+      lengthBeats: lengthBeats,
       waveformPeaks: peaksRaw.map((p) => (p as num).toDouble()).toList(),
+      naturalLengthBeats:
+          (map['naturalLengthBeats'] as num?)?.toDouble() ?? lengthBeats,
+    );
+  }
+
+  SampleClipSnapshot copyWith({
+    String? id,
+    String? sampleId,
+    String? sampleName,
+    double? startBeat,
+    double? lengthBeats,
+    List<double>? waveformPeaks,
+    double? naturalLengthBeats,
+  }) {
+    return SampleClipSnapshot(
+      id: id ?? this.id,
+      sampleId: sampleId ?? this.sampleId,
+      sampleName: sampleName ?? this.sampleName,
+      startBeat: startBeat ?? this.startBeat,
+      lengthBeats: lengthBeats ?? this.lengthBeats,
+      waveformPeaks: waveformPeaks ?? this.waveformPeaks,
+      naturalLengthBeats: naturalLengthBeats ?? this.naturalLengthBeats,
     );
   }
 }
@@ -197,6 +248,26 @@ class AutomationClipSnapshot implements ClipTimelineSpan {
       points: pointsRaw
           .map((p) => AutomationPointSnapshot.fromMap(p as Map<dynamic, dynamic>))
           .toList(),
+    );
+  }
+
+  AutomationClipSnapshot copyWith({
+    String? id,
+    String? homeTrackId,
+    double? startBeat,
+    double? lengthBeats,
+    String? deviceId,
+    String? paramId,
+    List<AutomationPointSnapshot>? points,
+  }) {
+    return AutomationClipSnapshot(
+      id: id ?? this.id,
+      homeTrackId: homeTrackId ?? this.homeTrackId,
+      startBeat: startBeat ?? this.startBeat,
+      lengthBeats: lengthBeats ?? this.lengthBeats,
+      deviceId: deviceId ?? this.deviceId,
+      paramId: paramId ?? this.paramId,
+      points: points ?? this.points,
     );
   }
 }

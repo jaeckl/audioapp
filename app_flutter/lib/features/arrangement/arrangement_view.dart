@@ -8,6 +8,7 @@ import '../piano_roll/piano_roll_metrics.dart';
 import '../piano_roll/piano_roll_ruler.dart';
 import '../piano_roll/piano_roll_theme.dart';
 import 'arrangement_clip_drag.dart';
+import 'arrangement_clip_theme.dart';
 import 'arrangement_grid_painter.dart';
 import 'arrangement_loop_region_marker.dart';
 import 'arrangement_playhead_marker.dart';
@@ -21,6 +22,19 @@ import 'sample_clip_renderer.dart';
 import 'track_lane_icon.dart';
 
 enum _RulerDragTarget { playhead, regionStart, regionEnd }
+
+// Clip resize (WP-1) — keep new code grouped here so it is easy to audit.
+//
+// The handle visual mirrors the sampler trim handle in
+// `device_strip/sampler_waveform_view.dart`:
+//   - 12 px visible bar, rounded on the outer (right) side
+//   - drag_handle icon centered for an obvious grab affordance
+//   - subtle drop shadow + black border so it stands off the clip body
+//   - generous 44 px touch radius outside the bar (handled by hit-width)
+const double kResizeHandleVisualWidth = 12.0;
+const double kResizeHandleHitWidth = 44.0;
+const double resizeGridBeats = 1.0;
+const double _kAutomationMinLengthBeats = 0.01;
 
 class ArrangementView extends StatefulWidget {
   const ArrangementView({
@@ -53,6 +67,7 @@ class ArrangementView extends StatefulWidget {
     this.onFollowSuspended,
     this.onFollowResumed,
     this.playheadListenable,
+    this.onResizeClipCommit,
   });
 
   final ProjectSnapshot snapshot;
@@ -94,6 +109,13 @@ class ArrangementView extends StatefulWidget {
   /// When set, playhead marker layers listen here instead of rebuilding this widget each tick.
   final ValueListenable<double>? playheadListenable;
 
+  /// Called when the user finishes dragging a clip's right-edge resize handle.
+  /// Receives the final preview length in beats; bridge dispatch happens outside.
+  final Future<void> Function({
+    required String clipId,
+    required double lengthBeats,
+  })? onResizeClipCommit;
+
   @override
   State<ArrangementView> createState() => ArrangementViewState();
 }
@@ -112,6 +134,7 @@ class ArrangementViewState extends State<ArrangementView> {
   bool _scrubbingPlayhead = false;
   double? _scrubPlayheadBeats;
   ArrangementClipDragSession? _clipDrag;
+  _ClipResizeSession? _resizeSession;
   int? _rulerActivePointer;
   Offset? _rulerLastCanvasPos;
   double _rulerPointerTravel = 0;
@@ -352,6 +375,12 @@ class ArrangementViewState extends State<ArrangementView> {
     if (oldWidget.timelineScrollController != widget.timelineScrollController) {
       oldWidget.timelineScrollController?.bind();
       _bindTimelineScrollController();
+    }
+    // If the parent re-built with a fresh snapshot, the resize handle may
+    // have caught up to the new clip length — drop the pending session so
+    // the handle returns to the right edge of the rendered clip.
+    if (oldWidget.snapshot != widget.snapshot) {
+      _maybeResolvePendingResize();
     }
     if (widget.playheadListenable == null) {
       _schedulePlaybackFollowUpdate(oldWidget);
@@ -850,6 +879,162 @@ class ArrangementViewState extends State<ArrangementView> {
     setState(() => _clipDrag = null);
   }
 
+  // ────────────────────────────────────────────────────────────────────────
+  // Clip resize (WP-1) — distinct state from clip drag; same follow-playhead
+  // suspend/resume pattern as ruler scrub. Only touches lengthBeats.
+  // ────────────────────────────────────────────────────────────────────────
+
+  double _resizeMinLengthForKind(ClipContentKind kind) {
+    return kind == ClipContentKind.automation
+        ? _kAutomationMinLengthBeats
+        : kMinClipLengthBeats;
+  }
+
+  double _computePreviewLengthBeats(
+    double currentPointerBeat,
+    _ClipResizeSession session,
+    double minLength,
+  ) {
+    final delta = currentPointerBeat - session.pointerBeatAtStart;
+    final rawLength = session.originalLengthBeats + delta;
+    final snapped = ArrangementTimelineMetrics.quantizeBeat(
+      rawLength,
+      grid: resizeGridBeats,
+    );
+    final upper = session.maxLengthBeats;
+    if (!upper.isFinite) {
+      return snapped < minLength ? minLength : snapped;
+    }
+    return snapped.clamp(minLength, upper);
+  }
+
+  void _startClipResize({
+    required String clipId,
+    required String trackId,
+    required double startBeat,
+    required double lengthBeats,
+    required Offset globalPosition,
+    required double adjacentClipStartBeat,
+    required ClipContentKind kind,
+  }) {
+    final pointerBeatAtStart = _beatFromGlobal(globalPosition);
+    final minLength = _resizeMinLengthForKind(kind);
+    final previewLengthBeats = lengthBeats < minLength ? minLength : lengthBeats;
+    final session = _ClipResizeSession(
+      clipId: clipId,
+      trackId: trackId,
+      originalLengthBeats: lengthBeats,
+      startBeat: startBeat,
+      adjacentClipStartBeat: adjacentClipStartBeat,
+      pointerBeatAtStart: pointerBeatAtStart,
+      previewLengthBeats: previewLengthBeats,
+    );
+    HapticFeedback.mediumImpact();
+    if (widget.followPlayheadEnabled && widget.playing) {
+      _suspendFollow();
+    }
+    setState(() => _resizeSession = session);
+  }
+
+  void _updateClipResize(DragUpdateDetails details) {
+    final session = _resizeSession;
+    if (session == null) return;
+    final pointerBeat = _beatFromGlobal(details.globalPosition);
+    // Resize min length depends on clip kind — we stored kind implicitly via
+    // originalLengthBeats and the clip id; lookup the actual kind below.
+    final kind = _clipKindForResize(session.clipId);
+    final minLength = _resizeMinLengthForKind(kind);
+    final preview = _computePreviewLengthBeats(pointerBeat, session, minLength);
+    setState(() => session.previewLengthBeats = preview);
+  }
+
+  void _endClipResize(DragEndDetails details) {
+    final session = _resizeSession;
+    if (session == null) return;
+    final finalLength = session.previewLengthBeats;
+    // Mark the session as committed but keep it alive. The handle stays at
+    // the preview x so the UI does not snap back to the old clip end while
+    // we wait for the engine snapshot to return. The session is cleared in
+    // didUpdateWidget once the new lengthBeats has propagated through.
+    setState(() => session.committed = true);
+    if (widget.followPlayheadEnabled && widget.playing) {
+      _resumeFollow();
+    }
+    final commit = widget.onResizeClipCommit;
+    if (commit != null) {
+      unawaited(commit(clipId: session.clipId, lengthBeats: finalLength));
+    }
+  }
+
+  void _cancelClipResize() {
+    if (_resizeSession == null) return;
+    setState(() => _resizeSession = null);
+    if (widget.followPlayheadEnabled && widget.playing) {
+      _resumeFollow();
+    }
+  }
+
+  /// Called from didUpdateWidget when the parent snapshot changes. If a
+  /// pending resize session has been satisfied (the clip's new lengthBeats
+  /// matches the committed preview), drop the session so the handle stops
+  /// tracking the preview and the clip content re-lays out at the new size.
+  void _maybeResolvePendingResize() {
+    final session = _resizeSession;
+    if (session == null || !session.committed) return;
+    final expected = session.previewLengthBeats;
+    final actual = _lengthBeatsForClip(session.clipId);
+    if (actual == null) {
+      // Clip was removed (e.g. deleted). Drop the session.
+      setState(() => _resizeSession = null);
+      return;
+    }
+    if ((actual - expected).abs() < 1e-6) {
+      setState(() => _resizeSession = null);
+    }
+  }
+
+  /// Find the current lengthBeats of a clip in the latest snapshot, or null
+  /// if the clip no longer exists.
+  double? _lengthBeatsForClip(String clipId) {
+    for (final track in widget.snapshot.tracks) {
+      for (final c in track.midiClips) {
+        if (c.id == clipId) return c.lengthBeats;
+      }
+      for (final c in track.sampleClips) {
+        if (c.id == clipId) return c.lengthBeats;
+      }
+      for (final c in track.automationClips) {
+        if (c.id == clipId) return c.lengthBeats;
+      }
+    }
+    return null;
+  }
+
+  /// Lookup the clip kind for a given clip id during a resize drag.
+  /// The resize session only stores lengthBeats (per future-proofing rule).
+  ClipContentKind _clipKindForResize(String clipId) {
+    for (final track in widget.snapshot.tracks) {
+      for (final c in track.midiClips) {
+        if (c.id == clipId) return ClipContentKind.midi;
+      }
+      for (final c in track.sampleClips) {
+        if (c.id == clipId) return ClipContentKind.sample;
+      }
+      for (final c in track.automationClips) {
+        if (c.id == clipId) return ClipContentKind.automation;
+      }
+    }
+    return ClipContentKind.midi;
+  }
+
+  /// Returns the live preview length for [clipId] during a resize drag, or
+  /// `null` if not resizing. Clip blocks call this to render drag width.
+  double? previewLengthFor(String clipId) {
+    final session = _resizeSession;
+    if (session == null || session.clipId != clipId) return null;
+    return session.previewLengthBeats;
+  }
+
   Future<void> _onTrackLongPress(
     TrackSnapshot track,
     LongPressStartDetails details, {
@@ -1045,6 +1230,11 @@ class ArrangementViewState extends State<ArrangementView> {
                                 details,
                                 lanePress: true,
                               ),
+                              onResizeClipStart: _startClipResize,
+                              onResizeClipUpdate: _updateClipResize,
+                              onResizeClipEnd: _endClipResize,
+                              onResizeClipCancel: _cancelClipResize,
+                              previewLengthFor: previewLengthFor,
                               onDeleteClip: widget.onDeleteClip,
                               onClipMenu: _showClipMenu,
                               automationLinkClipId: widget.automationLinkClipId,
@@ -1552,6 +1742,17 @@ class _AddTrackLane extends StatelessWidget {
   }
 }
 
+/// Lightweight reference used by [_TrackLane.build] to enumerate every clip
+/// on the track when laying out resize handles. Avoids dragging the concrete
+/// clip-snapshot type through the resize-handle loop.
+class _ResizeClipRef {
+  const _ResizeClipRef(this.id, this.startBeat, this.lengthBeats, this.kind);
+  final String id;
+  final double startBeat;
+  final double lengthBeats;
+  final ClipContentKind kind;
+}
+
 class _TrackLane extends StatelessWidget {
   const _TrackLane({
     required this.track,
@@ -1567,6 +1768,11 @@ class _TrackLane extends StatelessWidget {
     required this.onClipDragEnd,
     required this.onClipDragCancel,
     required this.onLongPressStart,
+    required this.onResizeClipStart,
+    required this.onResizeClipUpdate,
+    required this.onResizeClipEnd,
+    required this.onResizeClipCancel,
+    required this.previewLengthFor,
     this.onDeleteClip,
     this.onClipMenu,
     this.automationLinkClipId,
@@ -1597,11 +1803,39 @@ class _TrackLane extends StatelessWidget {
   final GestureLongPressEndCallback onClipDragEnd;
   final VoidCallback onClipDragCancel;
   final GestureLongPressStartCallback onLongPressStart;
+  // Clip resize (WP-1) — track lane forwards callbacks and computes adjacent.
+  final void Function({
+    required String clipId,
+    required String trackId,
+    required double startBeat,
+    required double lengthBeats,
+    required Offset globalPosition,
+    required double adjacentClipStartBeat,
+    required ClipContentKind kind,
+  }) onResizeClipStart;
+  final void Function(DragUpdateDetails details) onResizeClipUpdate;
+  final void Function(DragEndDetails details) onResizeClipEnd;
+  final VoidCallback onResizeClipCancel;
+  final double? Function(String clipId) previewLengthFor;
   final void Function(String clipId)? onDeleteClip;
   final void Function(String clipId)? onClipMenu;
   final String? automationLinkClipId;
   final void Function(String clipId)? onAutomationLinkToggle;
   final void Function(String trackId, AutomationClipSnapshot clip)? onAutomationClipDoubleTap;
+
+  /// Smallest start beat > [clipStartBeat] among all other clips on this track.
+  /// `double.infinity` if none.
+  double _adjacentClipStartBeat(String excludeClipId, double clipStartBeat) {
+    final starts = ArrangementTimelineMetrics.clipIntervalsForTrackExcluding(
+      track,
+      excludeClipId: excludeClipId,
+    )
+        .where((interval) => interval.start > clipStartBeat)
+        .map((interval) => interval.start)
+        .toList()
+      ..sort();
+    return starts.isEmpty ? double.infinity : starts.first;
+  }
 
   List<double> get _clipStarts {
     return [
@@ -1609,6 +1843,47 @@ class _TrackLane extends StatelessWidget {
       ...track.sampleClips.map((c) => c.startBeat),
       ...track.automationClips.map((c) => c.startBeat),
     ];
+  }
+
+  Widget _buildResizeHandle(BuildContext context, _ResizeClipRef clip, double laneHeight) {
+    final preview = previewLengthFor(clip.id);
+    final renderedPx = preview != null
+        ? (preview * pixelsPerBeat)
+        : ArrangementTimelineMetrics.renderedClipWidthPx(
+            kind: clip.kind,
+            startBeat: clip.startBeat,
+            lengthBeats: clip.lengthBeats,
+            pixelsPerBeat: pixelsPerBeat,
+            otherClipStarts: _clipStarts,
+            timelineEndBeat: timelineEndBeat,
+            viewportWidthPx: viewportWidthPx,
+          );
+    return Positioned(
+      // The 12 px visual bar's right edge sits flush on the clip's
+      // rendered right edge. The 28 px Positioned extends 16 px to
+      // the LEFT (into the clip body) so the hit zone is forgiving
+      // without the bar ever appearing to extend past the clip's
+      // right edge.
+      left: clip.startBeat * pixelsPerBeat + renderedPx - kResizeHandleHitWidth,
+      top: 4,
+      width: kResizeHandleHitWidth,
+      height: laneHeight - 8,
+      child: _ClipResizeHandle(
+        clipKind: clip.kind,
+        onResizeStart: (details) => onResizeClipStart(
+          clipId: clip.id,
+          trackId: track.id,
+          startBeat: clip.startBeat,
+          lengthBeats: clip.lengthBeats,
+          globalPosition: details.globalPosition,
+          adjacentClipStartBeat: _adjacentClipStartBeat(clip.id, clip.startBeat),
+          kind: clip.kind,
+        ),
+        onResizeUpdate: onResizeClipUpdate,
+        onResizeEnd: onResizeClipEnd,
+        onResizeCancel: onResizeClipCancel,
+      ),
+    );
   }
 
   @override
@@ -1639,7 +1914,7 @@ class _TrackLane extends StatelessWidget {
               top: 4,
               width: ArrangementTimelineMetrics.clipDisplayWidthPx(
                 startBeat: clip.startBeat,
-                lengthBeats: clip.lengthBeats,
+                lengthBeats: previewLengthFor(clip.id) ?? clip.lengthBeats,
                 pixelsPerBeat: pixelsPerBeat,
                 gapEndBeat: ArrangementTimelineMetrics.gapEndBeatForClip(
                   clipStartBeat: clip.startBeat,
@@ -1650,18 +1925,22 @@ class _TrackLane extends StatelessWidget {
               ),
               height: laneHeight - 8,
               child: _SampleClipBlock(
-                clip: clip,
+                clip: previewLengthFor(clip.id) != null
+                    ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!)
+                    : clip,
                 highlighted: draggingClipId == clip.id,
                 onTap: () => onSampleClipTap(track.id, clip),
                 onDoubleTap: onClipMenu == null ? null : () => onClipMenu!(clip.id),
                 onDragStart: (details) => onClipDragStart(
                   trackId: track.id,
                   clipId: clip.id,
-                  lengthBeats: clip.lengthBeats,
+                  lengthBeats: previewLengthFor(clip.id) ?? clip.lengthBeats,
                   isMidi: false,
                   originalStartBeat: clip.startBeat,
                   globalPosition: details.globalPosition,
-                  sampleClip: clip,
+                  sampleClip: previewLengthFor(clip.id) != null
+                      ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!)
+                      : clip,
                 ),
                 onDragUpdate: onClipDragUpdate,
                 onDragEnd: onClipDragEnd,
@@ -1672,21 +1951,25 @@ class _TrackLane extends StatelessWidget {
             Positioned(
               left: clip.startBeat * pixelsPerBeat,
               top: 4,
-              width: clip.lengthBeats * pixelsPerBeat,
+              width: (previewLengthFor(clip.id) ?? clip.lengthBeats) * pixelsPerBeat,
               height: laneHeight - 8,
               child: _MidiClipBlock(
-                clip: clip,
+                clip: previewLengthFor(clip.id) != null
+                    ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!)
+                    : clip,
                 highlighted: draggingClipId == clip.id,
                 onTap: () => onClipTap(track.id, clip),
                 onDoubleTap: onClipMenu == null ? null : () => onClipMenu!(clip.id),
                 onDragStart: (details) => onClipDragStart(
                   trackId: track.id,
                   clipId: clip.id,
-                  lengthBeats: clip.lengthBeats,
+                  lengthBeats: previewLengthFor(clip.id) ?? clip.lengthBeats,
                   isMidi: true,
                   originalStartBeat: clip.startBeat,
                   globalPosition: details.globalPosition,
-                  midiClip: clip,
+                  midiClip: previewLengthFor(clip.id) != null
+                      ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!)
+                      : clip,
                 ),
                 onDragUpdate: onClipDragUpdate,
                 onDragEnd: onClipDragEnd,
@@ -1697,10 +1980,12 @@ class _TrackLane extends StatelessWidget {
             Positioned(
               left: clip.startBeat * pixelsPerBeat,
               top: 4,
-              width: clip.lengthBeats * pixelsPerBeat,
+              width: (previewLengthFor(clip.id) ?? clip.lengthBeats) * pixelsPerBeat,
               height: laneHeight - 8,
               child: _AutomationClipBlock(
-                clip: clip,
+                clip: previewLengthFor(clip.id) != null
+                    ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!)
+                    : clip,
                 highlighted: draggingClipId == clip.id,
                 linkActive: automationLinkClipId == clip.id,
                 onLinkToggle: onAutomationLinkToggle == null
@@ -1713,17 +1998,36 @@ class _TrackLane extends StatelessWidget {
                 onDragStart: (details) => onClipDragStart(
                   trackId: track.id,
                   clipId: clip.id,
-                  lengthBeats: clip.lengthBeats,
+                  lengthBeats: previewLengthFor(clip.id) ?? clip.lengthBeats,
                   isMidi: false,
                   originalStartBeat: clip.startBeat,
                   globalPosition: details.globalPosition,
-                  automationClip: clip,
+                  automationClip: previewLengthFor(clip.id) != null
+                      ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!)
+                      : clip,
                 ),
                 onDragUpdate: onClipDragUpdate,
                 onDragEnd: onClipDragEnd,
                 onDragCancel: onClipDragCancel,
               ),
             ),
+// Resize handles — one per clip, rendered last so they sit on top.
+// The handle is the end-pill: at rest it lives on the right edge of
+// the clip block; during a resize it moves to the preview x while
+// the clip content stays at its original width (no stretching).
+//
+// The handle position uses the clip's *rendered* width (not beat-accurate
+// length) so it lands on the visible right edge. Sample clips have a
+// zoom-aware minimum display width and may render wider than their natural
+// `lengthBeats * pixelsPerBeat`, which is why MIDI/auto use beat-accurate
+// and sample uses [ArrangementTimelineMetrics.clipDisplayWidthPx].
+          for (final clip in [
+            for (final c in track.sampleClips) _ResizeClipRef(c.id, c.startBeat, c.lengthBeats, ClipContentKind.sample),
+            for (final c in track.midiClips) _ResizeClipRef(c.id, c.startBeat, c.lengthBeats, ClipContentKind.midi),
+            for (final c in track.automationClips) _ResizeClipRef(c.id, c.startBeat, c.lengthBeats, ClipContentKind.automation),
+          ])
+            _buildResizeHandle(context, clip, laneHeight),
+          // ... existing clip block children above ...
         ],
       ),
       ),
@@ -1818,20 +2122,25 @@ class _MidiClipBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      child: GestureDetector(
-        onTap: highlighted ? null : onTap,
-        onDoubleTap: onDoubleTap,
-        onLongPressStart: onDragStart,
-        onLongPressMoveUpdate: onDragUpdate,
-        onLongPressEnd: onDragEnd,
-        onLongPressCancel: onDragCancel,
-        child: Opacity(
-          opacity: highlighted ? 0.35 : 1,
-          child: ArrangementClipChrome(
-            renderer: MidiClipRenderer(clip),
-            highlighted: highlighted,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          GestureDetector(
+            onTap: highlighted ? null : onTap,
+            onDoubleTap: onDoubleTap,
+            onLongPressStart: onDragStart,
+            onLongPressMoveUpdate: onDragUpdate,
+            onLongPressEnd: onDragEnd,
+            onLongPressCancel: onDragCancel,
+            child: Opacity(
+              opacity: highlighted ? 0.35 : 1,
+              child: ArrangementClipChrome(
+                renderer: MidiClipRenderer(clip),
+                highlighted: highlighted,
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -1862,20 +2171,25 @@ class _SampleClipBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      child: GestureDetector(
-        onTap: highlighted ? null : onTap,
-        onDoubleTap: onDoubleTap,
-        onLongPressStart: onDragStart,
-        onLongPressMoveUpdate: onDragUpdate,
-        onLongPressEnd: onDragEnd,
-        onLongPressCancel: onDragCancel,
-        child: Opacity(
-          opacity: highlighted ? 0.35 : 1,
-          child: ArrangementClipChrome(
-            renderer: SampleClipRenderer(clip),
-            highlighted: highlighted,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          GestureDetector(
+            onTap: highlighted ? null : onTap,
+            onDoubleTap: onDoubleTap,
+            onLongPressStart: onDragStart,
+            onLongPressMoveUpdate: onDragUpdate,
+            onLongPressEnd: onDragEnd,
+            onLongPressCancel: onDragCancel,
+            child: Opacity(
+              opacity: highlighted ? 0.35 : 1,
+              child: ArrangementClipChrome(
+                renderer: SampleClipRenderer(clip),
+                highlighted: highlighted,
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -1972,6 +2286,172 @@ class _ClipDragPreview extends StatelessWidget {
                   ),
                   highlighted: true,
                 ),
+        ),
+      ),
+    );
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Clip resize — session + handle widget (WP-1)
+// ────────────────────────────────────────────────────────────────────────────
+
+/// Private session for an in-progress clip resize drag. Mutable so the
+/// pointer-move path can update [previewLengthBeats] without reallocating.
+///
+/// Lifecycle:
+///   1. active drag → previewLengthBeats live
+///   2. gesture ends → session kept around (committed) so the resize handle
+///      still shows at the preview position until the engine snapshot refreshes
+///   3. parent re-renders with the new length → session drops in didUpdateWidget
+class _ClipResizeSession {
+  _ClipResizeSession({
+    required this.clipId,
+    required this.trackId,
+    required this.originalLengthBeats,
+    required this.startBeat,
+    required this.adjacentClipStartBeat,
+    required this.pointerBeatAtStart,
+    required this.previewLengthBeats,
+  });
+
+  final String clipId;
+  final String trackId;
+  final double originalLengthBeats;
+  final double startBeat;
+
+  /// Beat of the next clip's start on the same track lane, or
+  /// `double.infinity` if there is no adjacent clip.
+  final double adjacentClipStartBeat;
+
+  /// Timeline beat under the pointer at drag start (for computing delta).
+  final double pointerBeatAtStart;
+
+  /// Live-updating preview during drag; initially equals [originalLengthBeats].
+  /// After [committed] flips to true this is treated as the target end-pill
+  /// position — the resize handle stays at this x until the engine snapshot
+  /// catches up so the UI does not snap back.
+  double previewLengthBeats;
+
+  /// True once the gesture has ended and we are waiting for the bridge to
+  /// commit. While true, the resize handle continues to render at the
+  /// preview position instead of reverting to the original clip end.
+  bool committed = false;
+
+  /// Maximum allowed length before overlapping the next clip on this track.
+  double get maxLengthBeats =>
+      adjacentClipStartBeat.isFinite
+          ? (adjacentClipStartBeat - startBeat)
+          : double.infinity;
+}
+
+/// Private visual + gesture handle for the right edge of clip blocks.
+/// Sits as the last child of the clip-block Stack so it receives pointer
+/// events before the clip body's drag detector. The parent (_TrackLane)
+/// pre-computes [adjacentClipStartBeat] for this clip and binds it into
+/// [onResizeStart]; this widget does not track track-level layout itself.
+///
+/// The visual mirrors the sampler trim handle — a 12 px bar with rounded
+/// corners on the outer (right) side, a `drag_handle` icon centered, and a
+/// subtle drop shadow + dark border so it stands off the clip body. The
+/// touch target is wider than the visual bar (28 px) for forgiving pickup.
+class _ClipResizeHandle extends StatefulWidget {
+  const _ClipResizeHandle({
+    required this.clipKind,
+    required this.onResizeStart,
+    required this.onResizeUpdate,
+    required this.onResizeEnd,
+    required this.onResizeCancel,
+  });
+
+  final ClipContentKind clipKind;
+  final void Function(DragStartDetails details) onResizeStart;
+  final void Function(DragUpdateDetails details) onResizeUpdate;
+  final void Function(DragEndDetails details) onResizeEnd;
+  final VoidCallback onResizeCancel;
+
+  @override
+  State<_ClipResizeHandle> createState() => _ClipResizeHandleState();
+}
+
+class _ClipResizeHandleState extends State<_ClipResizeHandle> {
+  bool _active = false;
+
+  Color get _idleColor {
+    switch (widget.clipKind) {
+      case ClipContentKind.midi:
+        return ArrangementClipTheme.resizeHandleMidiIdleColor;
+      case ClipContentKind.sample:
+        return ArrangementClipTheme.resizeHandleSampleIdleColor;
+      case ClipContentKind.automation:
+        return ArrangementClipTheme.resizeHandleAutomationIdleColor;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // The handle brightens to full white on touch so the user sees the drag
+    // has begun. Idle uses a dedicated solid bright color matching the
+    // clip type's unique color scheme.
+    final color = _active
+        ? ArrangementClipTheme.resizeHandleActiveColor
+        : _idleColor;
+    return Semantics(
+      label: 'Resize clip',
+      child: SizedBox(
+        width: kResizeHandleHitWidth,
+        height: double.infinity,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onHorizontalDragStart: (details) {
+            setState(() => _active = true);
+            widget.onResizeStart(details);
+          },
+          onHorizontalDragUpdate: widget.onResizeUpdate,
+          onHorizontalDragEnd: (details) {
+            setState(() => _active = false);
+            widget.onResizeEnd(details);
+          },
+          onHorizontalDragCancel: () {
+            setState(() => _active = false);
+            widget.onResizeCancel();
+          },
+          // AlignRight: the 12 px visual bar pins to the right edge of the
+          // 28 px hit zone so the bar lands flush on the clip's right edge
+          // regardless of hit-zone padding.
+          //
+          // The square side faces the clip content (so the bar reads as
+          // attached to the clip) and the rounded side faces outward —
+          // mirrors the right-boundary handle of the sampler trim control.
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Container(
+              width: kResizeHandleVisualWidth,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: const BorderRadius.only(
+                  topRight: Radius.circular(3),
+                  bottomRight: Radius.circular(3),
+                ),
+                border: Border.all(color: Colors.black.withValues(alpha: 0.35)),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x55000000),
+                    blurRadius: 2,
+                    offset: Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.drag_handle,
+                  size: 12,
+                  color: Color(0x8C000000), // black @ 0.55
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

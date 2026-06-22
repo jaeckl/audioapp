@@ -26,6 +26,12 @@ struct SampleClip {
     std::string sampleId;
     double startBeat = 0.0;
     double lengthBeats = 4.0;
+    /// Length of the waveform's source region in beats. Set at clip creation
+    /// to the source sample's natural duration; never modified by resize.
+    /// The arranger view uses this to render the waveform at its natural
+    /// density and either clip it (when shortening) or leave trailing empty
+    /// space (when lengthening).
+    double naturalLengthBeats = 4.0;
 };
 
 struct AutomationPoint {

@@ -31,7 +31,7 @@ void main() {
       gapEndBeat: 32,
       viewportWidthPx: 300,
     );
-    expect(width, greaterThan(16));
+    expect(width, greaterThanOrEqualTo(16));
   });
 
   test('clip display width scales with horizontal zoom', () {

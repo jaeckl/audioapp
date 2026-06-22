@@ -444,6 +444,7 @@ ProjectSnapshot ProjectEngine::snapshot() const {
             cs.sampleId = clip.sampleId;
             cs.startBeat = clip.startBeat;
             cs.lengthBeats = clip.lengthBeats;
+            cs.naturalLengthBeats = clip.naturalLengthBeats;
             if (sampleBank_ != nullptr) {
                 if (const auto* sample = sampleBank_->findSample(clip.sampleId)) {
                     cs.sampleName = sample->name;
@@ -834,6 +835,7 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
             cs.sampleId = clip.sampleId;
             cs.startBeat = clip.startBeat;
             cs.lengthBeats = clip.lengthBeats;
+            cs.naturalLengthBeats = clip.naturalLengthBeats;
             if (sampleBank_ != nullptr) {
                 if (const auto* sample = sampleBank_->findSample(clip.sampleId)) {
                     cs.sampleName = sample->name;
