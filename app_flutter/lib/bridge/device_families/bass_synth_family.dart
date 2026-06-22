@@ -1,4 +1,4 @@
-part of '../device_snapshots.dart';
+part of '../device_snapshot.dart';
 
 /// Bass synth device snapshot.
 class BassSynthDeviceSnapshot extends DeviceSnapshot {

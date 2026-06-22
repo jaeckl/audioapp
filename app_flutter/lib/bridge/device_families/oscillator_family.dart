@@ -1,4 +1,4 @@
-part of '../device_snapshots.dart';
+part of '../device_snapshot.dart';
 
 /// Simple oscillator device snapshot.
 class OscillatorDeviceSnapshot extends DeviceSnapshot {

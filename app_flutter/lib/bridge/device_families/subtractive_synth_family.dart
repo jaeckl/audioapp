@@ -1,4 +1,4 @@
-part of '../device_snapshots.dart';
+part of '../device_snapshot.dart';
 
 /// Subtractive synth device snapshot.
 class SubtractiveSynthDeviceSnapshot extends DeviceSnapshot {

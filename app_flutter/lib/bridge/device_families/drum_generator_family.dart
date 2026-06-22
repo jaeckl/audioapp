@@ -1,4 +1,4 @@
-part of '../device_snapshots.dart';
+part of '../device_snapshot.dart';
 
 sealed class DrumGeneratorDeviceSnapshot extends DeviceSnapshot {
   const DrumGeneratorDeviceSnapshot({

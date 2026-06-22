@@ -1,4 +1,4 @@
-part of '../device_snapshots.dart';
+part of '../device_snapshot.dart';
 
 /// Phase-modulation (FM) synth device snapshot.
 class PhaseModSynthDeviceSnapshot extends DeviceSnapshot {
