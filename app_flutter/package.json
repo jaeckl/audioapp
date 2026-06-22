@@ -1,0 +1,138 @@
+{
+  "name": "audioapp_flutter",
+  "description": "Flutter frontend for the AudioApp audio processing engine",
+  "version": "0.1.0",
+  "repository": "https://github.com/audioapp/audioapp",
+  "issue_tracker": "https://github.com/audioapp/audioapp/issues",
+  "documentation": "https://audioapp.dev/flutter/",
+  
+  "environment": {
+    "sdk": ">=3.8.1 <4.0.0",
+    "flutter": ">=3.32.4 <4.0.0"
+  },
+  
+  "flutter": {
+    "generate": true,
+    "uses-material-design": true,
+    "min-sdk": "21",
+    "target-sdk": "35"
+  },
+  
+  "android": {
+    "compileSdk": 35,
+    "targetSdk": 35,
+    "minSdk": 21,
+    "buildToolsVersion": "35.0.0"
+  },
+  
+  "dependencies": {
+    "flutter": {
+      "sdk": "flutter"
+    },
+    "flutter_local_notifications": "19.3.0",
+    "flutter_svg": "2.0.13",
+    "provider": "6.1.2",
+    "uuid": "4.5.1",
+    "path": "2.0.1",
+    "path_provider": "2.6.1",
+    "http": "1.2.2",
+    "permission_handler": "12.0.2",
+    "audio_session": "0.1.22",
+    "just_audio": "0.9.38",
+    "flutter_sound": "^9.2.0",
+    "awesome_notifications": "^0.15.1",
+    "shared_preferences": "^2.5.0",
+    "device_info_plus": "^11.0.0"
+  },
+  
+  "dev_dependencies": {
+    "flutter_test": {
+      "sdk": "flutter"
+    },
+    "flutter_lints": "^4.0.0",
+    "mockito": "^5.4.4",
+    "flutter_secure_storage": "^9.0.3",
+    "integration_test": {
+      "flutter": "^6.2.0",
+      "sdk": "flutter"
+    },
+    "flutter_driver": {
+      "flutter": "^3.20.0",
+      "sdk": "flutter"
+    },
+    "build_runner": "^2.4.14",
+    "json_serializable": "^6.9.3",
+    "json_annotation": "^4.9.0",
+    "analyzer": "^7.3.0",
+    "coverage": "^0.10.3",
+    "flutter_coverage": "^2.0.0",
+    "test_coverage": "^1.0.0"
+  },
+  
+  "scripts": {
+    "precommit": "flutter analyze && flutter test --coverage && flutter format --dry-run .",
+    "precommit:all": "flutter analyze && flutter test && flutter format . && dart pub run dependency_validator",
+    "build:app": "flutter build apk --debug --flavor development && flutter build apk --debug --flavor staging && flutter build apk --debug --flavor production",
+    "build:ipa": "flutter build ipa --debug --flavor development && flutter build ipa --debug --flavor staging && flutter build ipa --debug --flavor production",
+    "test:unit": "flutter test --test-randomize-sharding",
+    "test:integration": "flutter test integration_test/ --dart-define=FLUTTER_TEST=1",
+    "test:widget": "flutter test widgets/ --dart-define=FLUTTER_TEST=1",
+    "test:cov": "flutter test --coverage --test-randomize-sharding",
+    "analyze:dart": "flutter analyze .",
+    "analyze:flutter": "flutter analyze . --fatal-infos",
+    "format": "flutter format .",
+    "format:check": "flutter format --dry-run .",
+    "lint": "flutter pub run flutter_lints",
+    "pub:deps": "flutter pub outdated",
+    "pub:get": "flutter pub get",
+    "pub:upgrade": "flutter pub upgrade",
+    "pub:offline": "flutter pub get --offline",
+    "clean": "rm -rf .dart_tool .flutter-plugins .flutter-plugins-google-cloud .flutter-plugins-local .flutter/.metadata"
+  },
+  
+  "eslint": {
+    "extends": "@flutter/confidence-level-2"
+  },
+  
+  "publishing": {
+    "exclude": [
+      "**/*.py",
+      "**/.git/**",
+      "**/*.md",
+      "**/*.dart_tool/**",
+      "**/*.flutter-plugins",
+      "**/*.ios **/Podfile.lock",
+      "**/*.android **/gradlew**",
+      "**/*.android **/gradlew*",
+      "**/*.android build.gradle*",
+      "**/*.android app/build.gradle",
+      "**/*.android .android*",
+      "**/*.android .gradle*",
+      "**/*.android .gitignore",
+      "**/*.android .gradle*",
+      "**/*.android /AndroidManifest.xml",
+      "**/*.android /lib/src/main/**",
+      "**/*.ios /Podfile",
+      "**/*.ios /Podfile.lock",
+      "**/*.ios /Frameworks",
+      "**/*.ios /Headers",
+      "**/*.ios /Resources",
+      "**/*.ios /Classes",
+      "**/*.macos **/xcodebuild",
+      "**/*.macos /xcuserdata",
+      "**/*.macos /DerivedData",
+      "**/*.linux /build",
+      "**/*.windows /**.vcxproj",
+      "**/*.windows /**.sln",
+      "**/*.windows /build",
+      "**/*.web /**/node_modules",
+      "**/test/**",
+      "**/example/**",
+      "**/docs/**",
+      "**/coverage/**"
+    ],
+    "authorize": true
+  },
+  
+  "publish_to": "none"
+}

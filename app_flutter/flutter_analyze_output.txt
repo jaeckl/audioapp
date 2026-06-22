@@ -1,0 +1,235 @@
+Resolving dependencies...
+Downloading packages...
+  flutter_lints 5.0.0 (6.0.0 available)
+  lints 5.1.1 (6.1.0 available)
+  matcher 0.12.19 (0.12.20 available)
+  meta 1.18.0 (1.18.3 available)
+  test_api 0.7.11 (0.7.12 available)
+  vector_math 2.2.0 (2.4.0 available)
+Got dependencies!
+6 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing app_flutter...                                        
+
+   info - Dangling library doc comment. Add a 'library' directive after the library comment - examples\example_snapshot_integration.dart:1:1 - dangling_library_doc_comments
+  error - Target of URI doesn't exist: 'bridge/device_snapshots.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - examples\example_snapshot_integration.dart:70:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'bridge/device_snapshot_parser.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - examples\example_snapshot_integration.dart:71:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'bridge/device_exception_helper.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - examples\example_snapshot_integration.dart:72:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'bridge/device_parameter_helper.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - examples\example_snapshot_integration.dart:73:8 - uri_does_not_exist
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:79:5 - avoid_print
+  error - Undefined name 'DeviceSnapshot'. Try correcting the name to one that is defined, or defining the name - examples\example_snapshot_integration.dart:90:24 - undefined_identifier
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:91:7 - avoid_print
+  error - Undefined name 'DeviceType'. Try correcting the name to one that is defined, or defining the name - examples\example_snapshot_integration.dart:94:26 - undefined_identifier
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:95:7 - avoid_print
+  error - The method 'DeviceParameterHelper' isn't defined for the type 'DeviceSnapshotExample'. Try correcting the name to the name of an existing method, or defining a method named 'DeviceParameterHelper' - examples\example_snapshot_integration.dart:98:22 - undefined_method
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:99:7 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:103:7 - avoid_print
+  error - Undefined name 'ParameterId'. Try correcting the name to one that is defined, or defining the name - examples\example_snapshot_integration.dart:107:9 - undefined_identifier
+  error - Undefined name 'DeviceType'. Try correcting the name to one that is defined, or defining the name - examples\example_snapshot_integration.dart:108:9 - undefined_identifier
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:111:9 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:113:9 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:121:7 - avoid_print
+  error - The name 'UnknownDeviceTypeException' isn't a type and can't be used in an on-catch clause. Try correcting the name to match an existing class - examples\example_snapshot_integration.dart:123:10 - non_type_in_catch_clause
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:124:7 - avoid_print
+warning - Dead code: This on-catch block won't be executed because 'InvalidType' is a subtype of 'InvalidType' and hence will have been caught already. Try reordering the catch clauses so that this block can be reached, or removing the unreachable catch clause - examples\example_snapshot_integration.dart:125:7 - dead_code_on_catch_subtype
+  error - The name 'DeviceParseException' isn't a type and can't be used in an on-catch clause. Try correcting the name to match an existing class - examples\example_snapshot_integration.dart:125:10 - non_type_in_catch_clause
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:126:7 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:128:7 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:134:5 - avoid_print
+warning - The value of the local variable 'snapshot' isn't used. Try removing the variable or using it - examples\example_snapshot_integration.dart:144:13 - unused_local_variable
+  error - Undefined name 'DeviceSnapshot'. Try correcting the name to one that is defined, or defining the name - examples\example_snapshot_integration.dart:144:24 - undefined_identifier
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:145:7 - avoid_print
+  error - The name 'UnknownDeviceTypeException' isn't a type and can't be used in an on-catch clause. Try correcting the name to match an existing class - examples\example_snapshot_integration.dart:146:10 - non_type_in_catch_clause
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:147:7 - avoid_print
+warning - The value of the local variable 'snapshot' isn't used. Try removing the variable or using it - examples\example_snapshot_integration.dart:158:13 - unused_local_variable
+  error - Undefined name 'DeviceSnapshot'. Try correcting the name to one that is defined, or defining the name - examples\example_snapshot_integration.dart:158:24 - undefined_identifier
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:159:7 - avoid_print
+  error - The name 'DeviceSnapshotStructureException' isn't a type and can't be used in an on-catch clause. Try correcting the name to match an existing class - examples\example_snapshot_integration.dart:160:10 - non_type_in_catch_clause
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:161:7 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:167:5 - avoid_print
+  error - The method 'DeviceParameterHelper' isn't defined for the type 'DeviceSnapshotExample'. Try correcting the name to the name of an existing method, or defining a method named 'DeviceParameterHelper' - examples\example_snapshot_integration.dart:169:20 - undefined_method
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:172:5 - avoid_print
+  error - Undefined name 'ParameterId'. Try correcting the name to one that is defined, or defining the name - examples\example_snapshot_integration.dart:173:25 - undefined_identifier
+  error - Undefined name 'DeviceType'. Try correcting the name to one that is defined, or defining the name - examples\example_snapshot_integration.dart:174:51 - undefined_identifier
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:175:9 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:179:5 - avoid_print
+  error - Undefined name 'ParameterId'. Try correcting the name to one that is defined, or defining the name - examples\example_snapshot_integration.dart:180:25 - undefined_identifier
+  error - Undefined name 'DeviceType'. Try correcting the name to one that is defined, or defining the name - examples\example_snapshot_integration.dart:181:51 - undefined_identifier
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:182:9 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:186:5 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:188:7 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:191:5 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:193:7 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:199:5 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:201:5 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:202:5 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:203:5 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:204:5 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:205:5 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:206:5 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:209:5 - avoid_print
+  error - Undefined name 'DeviceType'. Try correcting the name to one that is defined, or defining the name - examples\example_snapshot_integration.dart:210:30 - undefined_identifier
+  error - Undefined name 'DeviceType'. Try correcting the name to one that is defined, or defining the name - examples\example_snapshot_integration.dart:212:9 - undefined_identifier
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:213:9 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:215:9 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:222:5 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - examples\example_snapshot_integration.dart:229:5 - avoid_print
+   info - Statements in an if should be enclosed in a block. Try wrapping the statement in a block - lib\app\daw_shell.dart:719:21 - curly_braces_in_flow_control_structures
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\app\daw_shell.dart:719:41 - prefer_const_constructors
+warning - The operand can't be 'null', so the condition is always 'false'. Try removing the condition, an enclosing condition, or the whole conditional statement - lib\app\daw_shell.dart:955:16 - unnecessary_null_comparison
+warning - The declaration '_setSamplerGain' isn't referenced. Try removing the declaration of '_setSamplerGain' - lib\app\daw_shell.dart:1006:16 - unused_element
+warning - The declaration '_sampleForDevice' isn't referenced. Try removing the declaration of '_sampleForDevice' - lib\app\daw_shell.dart:1024:31 - unused_element
+warning - The declaration '_pickSamplerSample' isn't referenced. Try removing the declaration of '_pickSamplerSample' - lib\app\daw_shell.dart:1058:39 - unused_element
+   info - The member 'endBeat' overrides an inherited member but isn't annotated with '@override'. Try adding the '@override' annotation - lib\bridge\clip_snapshots.dart:26:14 - annotate_overrides
+   info - The member 'endBeat' overrides an inherited member but isn't annotated with '@override'. Try adding the '@override' annotation - lib\bridge\clip_snapshots.dart:115:14 - annotate_overrides
+   info - The member 'endBeat' overrides an inherited member but isn't annotated with '@override'. Try adding the '@override' annotation - lib\bridge\clip_snapshots.dart:219:14 - annotate_overrides
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\arrangement\arrangement_loop_region_marker.dart:33:16 - prefer_const_constructors
+warning - Unused import: '../piano_roll/piano_roll_theme.dart'. Try removing the import directive - lib\features\arrangement\arrangement_playhead_overlay.dart:6:8 - unused_import
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\arrangement\arrangement_view.dart:1389:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\arrangement\arrangement_view.dart:1427:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\arrangement\arrangement_view.dart:1462:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\arrangement\arrangement_view.dart:1501:21 - prefer_const_constructors
+warning - The declaration '_onEditFinished' isn't referenced. Try removing the declaration of '_onEditFinished' - lib\features\automation\automation_editor_screen.dart:201:8 - unused_element
+warning - The value of the field '_lastCanvasPos' isn't used. Try removing the field, or using it - lib\features\automation\automation_editor_viewport.dart:109:11 - unused_field
+warning - The operand can't be 'null', so the condition is always 'false'. Try removing the condition, an enclosing condition, or the whole conditional statement - lib\features\content_library\library_fly_in_panel.dart:204:15 - unnecessary_null_comparison
+   info - The import of '../../bridge/clip_snapshots.dart' is unnecessary because all of the used elements are also provided by the import of '../../bridge/project_snapshot.dart'. Try removing the import directive - lib\features\content_library\library_preset_preview_bar.dart:3:8 - unnecessary_import
+   info - The import of '../../bridge/timeline_clip.dart' is unnecessary because all of the used elements are also provided by the import of '../../bridge/project_snapshot.dart'. Try removing the import directive - lib\features\content_library\library_preset_preview_bar.dart:5:8 - unnecessary_import
+warning - The value of the field '_barWidth' isn't used. Try removing the field, or using it - lib\features\content_library\library_preset_preview_bar.dart:54:10 - unused_field
+warning - The declaration '_colorForClip' isn't referenced. Try removing the declaration of '_colorForClip' - lib\features\content_library\library_preset_preview_bar.dart:221:9 - unused_element
+warning - Unused import: 'cymbal_decay_preview.dart'. Try removing the import directive - lib\features\device_strip\crash_model_ui_registry.dart:2:8 - unused_import
+   info - The 'child' argument should be last in widget constructor invocations. Try moving the argument to the end of the argument list - lib\features\device_strip\device_automation_spinner.dart:28:5 - sort_child_properties_last
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\device_chain_minimap.dart:230:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\device_chain_minimap.dart:232:28 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\device_chain_minimap.dart:234:30 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\device_chain_minimap.dart:235:37 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\device_chain_minimap.dart:236:41 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\device_chain_minimap.dart:237:38 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\device_chain_minimap.dart:238:41 - prefer_const_constructors
+warning - Unused import: 'package:flutter/material.dart'. Try removing the import directive - lib\features\device_strip\device_container_tabs.dart:1:8 - unused_import
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\device_strip_card.dart:52:20 - prefer_const_constructors
+warning - A value for optional parameter 'width' isn't ever given. Try removing the unused parameter - lib\features\device_strip\device_strip_chrome_panels.dart:306:10 - unused_element_parameter
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\device_strip_chrome_panels.dart:318:25 - prefer_const_constructors
+warning - Unused import: 'snare_generator_device_panel.dart'. Try removing the import directive - lib\features\device_strip\device_strip_slot.dart:20:8 - unused_import
+warning - Unused import: 'cymbal_generator_device_panel.dart'. Try removing the import directive - lib\features\device_strip\device_strip_slot.dart:24:8 - unused_import
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\device_strip_slot.dart:130:41 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\device_tool_rail.dart:39:24 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\device_vu_meter.dart:100:18 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes. Try adding 'const' before the literal - lib\features\device_strip\device_vu_meter.dart:103:17 - prefer_const_literals_to_create_immutables
+warning - Unused import: 'device_knob_sizes.dart'. Try removing the import directive - lib\features\device_strip\dynamics_fx_panels.dart:4:8 - unused_import
+warning - A value for optional parameter 'size' isn't ever given. Try removing the unused parameter - lib\features\device_strip\dynamics_fx_panels.dart:36:10 - unused_element_parameter
+warning - A value for optional parameter 'size' isn't ever given. Try removing the unused parameter - lib\features\device_strip\frequency_fx_panels.dart:80:10 - unused_element_parameter
+   info - The constant name '_808Knobs' isn't a lowerCamelCase identifier. Try changing the name to follow the lowerCamelCase style - lib\features\device_strip\kick_model_ui_registry.dart:20:16 - constant_identifier_names
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement - lib\features\device_strip\lfo_properties_panel.dart:48:17 - deprecated_member_use
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement - lib\features\device_strip\lfo_properties_panel.dart:73:17 - deprecated_member_use
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement - lib\features\device_strip\lfo_properties_panel.dart:95:17 - deprecated_member_use
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\modulation_grid.dart:183:23 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\modulation_strip.dart:29:19 - prefer_const_constructors
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement - lib\features\device_strip\modulation_strip.dart:204:13 - deprecated_member_use
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\modulation_strip.dart:238:17 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\modulation_strip.dart:269:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\modulation_strip.dart:269:34 - prefer_const_constructors
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement - lib\features\device_strip\modulation_strip.dart:275:17 - deprecated_member_use
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\modulation_strip.dart:291:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\modulation_strip.dart:291:35 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\modulation_strip.dart:306:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\modulation_strip.dart:306:35 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\modulation_strip.dart:315:28 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\modulation_strip.dart:320:26 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\modulation_strip.dart:325:26 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\stereo_gain_pan_panel.dart:56:25 - prefer_const_constructors
+warning - Unused import: 'device_knob_sizes.dart'. Try removing the import directive - lib\features\device_strip\time_fx_panels.dart:5:8 - unused_import
+warning - A value for optional parameter 'size' isn't ever given. Try removing the unused parameter - lib\features\device_strip\time_fx_panels.dart:41:10 - unused_element_parameter
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\device_strip\value_drag_box.dart:133:21 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\editor\editor_virtual_playhead.dart:17:12 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\editor\editor_virtual_playhead.dart:18:14 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\editor\editor_virtual_playhead.dart:22:16 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\piano_roll\piano_roll_edit_sheet.dart:136:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\piano_roll\piano_roll_edit_sheet.dart:139:20 - prefer_const_constructors
+   info - Dangling library doc comment. Add a 'library' directive after the library comment - lib\features\piano_roll\piano_roll_metrics.dart:1:1 - dangling_library_doc_comments
+   info - The import of 'package:flutter/gestures.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart'. Try removing the import directive - lib\features\piano_roll\piano_roll_viewport.dart:3:8 - unnecessary_import
+   info - The import of '../../bridge/timeline_clip.dart' is unnecessary because all of the used elements are also provided by the import of '../../bridge/project_snapshot.dart'. Try removing the import directive - lib\features\piano_roll\piano_roll_viewport.dart:8:8 - unnecessary_import
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\play\octave_panel.dart:57:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\play\octave_panel.dart:84:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\play\octave_panel.dart:98:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\play\octave_panel.dart:124:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\play\octave_panel.dart:138:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\play\perform_panel.dart:213:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\play\perform_panel.dart:227:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\play\perform_panel.dart:252:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\play\perform_panel.dart:266:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\play\performance_panel.dart:40:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - lib\features\play\performance_panel.dart:52:11 - prefer_const_constructors
+   info - The private field _padChokeByColumn could be 'final'. Try making the field 'final' - lib\features\play\play_deck.dart:61:8 - prefer_final_fields
+   info - The private field _padChokeByRow could be 'final'. Try making the field 'final' - lib\features\play\play_deck.dart:62:8 - prefer_final_fields
+   info - The private field _chordMemory could be 'final'. Try making the field 'final' - lib\features\play\play_deck.dart:68:21 - prefer_final_fields
+   info - Unnecessary 'const' keyword. Try removing the keyword - test\arrangement_timeline_metrics_test.dart:100:20 - unnecessary_const
+   info - Unnecessary 'const' keyword. Try removing the keyword - test\arrangement_timeline_metrics_test.dart:101:24 - unnecessary_const
+   info - Unnecessary 'const' keyword. Try removing the keyword - test\arrangement_timeline_metrics_test.dart:102:28 - unnecessary_const
+   info - Unnecessary 'const' keyword. Try removing the keyword - test\arrangement_timeline_metrics_test.dart:108:22 - unnecessary_const
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\arrangement_timeline_metrics_test.dart:124:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\arrangement_timeline_metrics_test.dart:130:9 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\arrangement_timeline_metrics_test.dart:136:9 - prefer_const_constructors
+warning - Unused import: 'package:audioapp/bridge/project_snapshot.dart'. Try removing the import directive - test\automation_clip_drag_e2e_test.dart:3:8 - unused_import
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\automation_editor_pinch_zoom_test.dart:315:18 - prefer_const_constructors
+warning - Unused import: 'package:audioapp/bridge/project_snapshot.dart'. Try removing the import directive - test\device_tool_rail_test.dart:1:8 - unused_import
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\library_ui_test.dart:43:10 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\library_ui_test.dart:136:9 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\library_ui_test.dart:137:17 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\library_ui_test.dart:137:32 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\library_ui_test.dart:148:9 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\library_ui_test.dart:149:17 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\library_ui_test.dart:150:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\library_ui_test.dart:168:9 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\library_ui_test.dart:169:17 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\library_ui_test.dart:170:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\library_ui_test.dart:181:9 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\library_ui_test.dart:182:17 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\library_ui_test.dart:182:32 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\library_ui_test.dart:192:9 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\library_ui_test.dart:193:17 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\library_ui_test.dart:193:32 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\midi_clip_renderer_test.dart:22:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\midi_clip_renderer_test.dart:23:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\midi_clip_renderer_test.dart:24:17 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\midi_clip_renderer_test.dart:27:20 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\midi_clip_renderer_test.dart:28:25 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\midi_clip_renderer_test.dart:39:22 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\midi_clip_renderer_test.dart:55:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\midi_clip_renderer_test.dart:56:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\midi_clip_renderer_test.dart:57:17 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\midi_clip_renderer_test.dart:60:20 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\midi_clip_renderer_test.dart:61:25 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes. Try adding 'const' before the literal - test\modulation_widget_test.dart:40:21 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\modulation_widget_test.dart:41:17 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\modulation_widget_test.dart:42:17 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes. Try adding 'const' before the literal - test\modulation_widget_test.dart:72:21 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\modulation_widget_test.dart:72:22 - prefer_const_constructors
+   info - The local variable '_mockSnapshot' starts with an underscore. Try renaming the variable to not start with an underscore - test\modulation_widget_test.dart:94:21 - no_leading_underscores_for_local_identifiers
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\modulation_widget_test.dart:94:40 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\modulation_widget_test.dart:102:15 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes. Try adding 'const' before the literal - test\modulation_widget_test.dart:113:19 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\modulation_widget_test.dart:114:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\modulation_widget_test.dart:115:15 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes. Try adding 'const' before the literal - test\modulation_widget_test.dart:117:23 - prefer_const_literals_to_create_immutables
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes. Try adding 'const' before the literal - test\modulation_widget_test.dart:135:19 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\modulation_widget_test.dart:135:20 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes. Try adding 'const' before the literal - test\modulation_widget_test.dart:136:23 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\modulation_widget_test.dart:156:18 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\modulation_widget_test.dart:176:18 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\modulation_widget_test.dart:207:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\modulation_widget_test.dart:208:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\modulation_widget_test.dart:209:17 - prefer_const_constructors
+   info - The 'child' argument should be last in widget constructor invocations. Try moving the argument to the end of the argument list - test\modulation_widget_test.dart:214:13 - sort_child_properties_last
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\modulation_widget_test.dart:228:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\modulation_widget_test.dart:229:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\modulation_widget_test.dart:230:17 - prefer_const_constructors
+   info - The 'child' argument should be last in widget constructor invocations. Try moving the argument to the end of the argument list - test\modulation_widget_test.dart:235:13 - sort_child_properties_last
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\piano_roll_note_block_test.dart:17:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\piano_roll_note_block_test.dart:18:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\piano_roll_note_block_test.dart:19:17 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\piano_roll_note_block_test.dart:22:20 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes. Try adding 'const' before the literal - test\piano_roll_note_block_test.dart:23:25 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\piano_roll_note_block_test.dart:24:17 - prefer_const_constructors
+   info - The import of 'package:flutter/rendering.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart'. Try removing the import directive - test\widget_test.dart:5:8 - unnecessary_import
+
+220 issues found. (ran in 2.4s)
