@@ -27,5 +27,18 @@ Introduce a new device category **Frequency FX** — distinct from "Instruments"
 - `SamplerFilter.hpp` — `cookSamplerBiquad()` and `processBiquadSample()` for biquad LP/HP/BP/Notch modes (modes 0-3)
 - `DynamicsProcessor.hpp` — pattern for runtime structs and stereo-block processing functions
 - Dynamics FX panel pattern in `dynamics_fx_panels.dart` — `_dynamicsSinglePage()`, `_knobGridRow()`, `_DynamicsKnob`
-- `DeviceStripChrome` routing — `_dynamicsTypes` set determines input/output panel routing
+- Time-FX panel pattern in `time_fx_panels.dart` — `_timeFxSinglePage()`, `_knobGridRow()`, `_TimeFxKnob` (closer match since frequency FX is also a stereo effect, not a dynamics processor)
+- `DeviceStripChrome` routing — time-based effects already use `DynamicsInputPanel` + `DynamicsOutputPanel` via the `_timeFxTypes` set; we introduce a new `_frequencyFxTypes` set that does the same
+- `EffectDeviceSnapshot` sealed class (`app_flutter/lib/bridge/device_snapshots.dart`) — pattern for sealed FX device hierarchy; we add a sibling `FrequencyFxDeviceSnapshot` sealed class
 - JUCE `juce::dsp` module — for EQ shelf filters and frequency shifter
+- `DeviceSnapshot.fromMap` factory — extends with 3 new type-dispatch cases (`'filter'`, `'four_band_eq'`, `'frequency_shifter'`)
+
+## Architecture Note: Flutter Sealed Class Hierarchy
+
+The `DeviceSnapshot` class is a **sealed class** in `app_flutter/lib/bridge/device_snapshots.dart` (since commit `89fab48`). New devices must:
+
+1. Add a sealed subclass for the device family (we add `FrequencyFxDeviceSnapshot`)
+2. Add concrete subclasses for each device (we add `FilterDeviceSnapshot`, `FourBandEqDeviceSnapshot`, `FrequencyShifterDeviceSnapshot`)
+3. Add cases to `DeviceSnapshot.fromMap()` factory
+
+This replaces the older "flat fields on `DeviceSnapshot`" pattern that the original brief assumed. See `04-data-contracts.md` for the full data layout.

@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <atomic>
+#include <cstring>
 #include <variant>
 
 #include "audioapp/AutomationTypes.hpp"
@@ -16,6 +17,7 @@
 #include "audioapp/SamplePlayback.hpp"
 #include "audioapp/PhaseModSynth.hpp"
 #include "audioapp/SubtractiveSynth.hpp"
+#include "audioapp/FrequencyFxProcessor.hpp"
 
 namespace audioapp {
 
@@ -53,6 +55,9 @@ enum class DeviceNodeKind : uint8_t {
     Reverb,
     Chorus,
     Phaser,
+    Filter,
+    FourBandEq,
+    FrequencyShifter,
 };
 
 // --- Per-device DSP-only parameter structs ---
@@ -139,7 +144,10 @@ using DeviceVariantParams = std::variant<
     DelayParamsPlayback,
     ReverbParamsPlayback,
     ChorusParamsPlayback,
-    PhaserParamsPlayback
+    PhaserParamsPlayback,
+    FilterParams,
+    FourBandEqParams,
+    FrequencyShifterParams
 >;
 
 /// Per-track device chain node (built on control thread, read on audio thread).
@@ -165,6 +173,7 @@ static constexpr int kMaxDeviceMeters = 128;
 
 bool isDynamicsDeviceNodeKind(DeviceNodeKind kind) noexcept;
 bool isInstrumentDeviceNodeKind(DeviceNodeKind kind) noexcept;
+bool isFrequencyFxDeviceNodeKind(DeviceNodeKind kind) noexcept;
 
 float midiActiveFrequencyHz(const MidiPlaybackNote* notes,
                             int noteCount,
@@ -270,6 +279,9 @@ void processDeviceChain(float* trackLeft,
                         const ModulationEdgePlayback* modEdges = nullptr,
                         int modEdgeCount = 0,
                         const AutomationClipPlayback* automationClips = nullptr,
-                        int automationClipCount = 0) noexcept;
+                        int automationClipCount = 0,
+                        FilterRuntime* filterRuntimes = nullptr,
+                        FourBandEqRuntime* fourBandEqRuntimes = nullptr,
+                        FrequencyShifterRuntime* frequencyShifterRuntimes = nullptr) noexcept;
 
 } // namespace audioapp

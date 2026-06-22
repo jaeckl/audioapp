@@ -7,6 +7,7 @@ import 'clap_generator_device_panel.dart';
 import 'cymbal_generator_device_panel.dart';
 import 'crash_generator_device_panel.dart';
 import 'dynamics_fx_panels.dart';
+import 'frequency_fx_panels.dart';
 import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
 import 'bass_synth_device_panel.dart';
@@ -31,6 +32,9 @@ abstract final class DeviceContainerTabs {
       'expander' => ExpanderDevicePanel.containerTabs,
       'limiter' => LimiterDevicePanel.containerTabs,
       'phase_mod_synth' => PhaseModSynthDevicePanel.containerTabs,
+      'filter' => FilterDevicePanel.containerTabs,
+      'four_band_eq' => FourBandEqDevicePanel.containerTabs,
+      'frequency_shifter' => FreqShifterDevicePanel.containerTabs,
       _ => const <DeviceTabSpec>[],
     };
   }

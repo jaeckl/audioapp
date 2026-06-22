@@ -7,8 +7,17 @@ const fxDeviceTypes = <String>{
   'limiter',
 };
 
+const frequencyFxDeviceTypes = <String>{
+  'filter',
+  'four_band_eq',
+  'frequency_shifter',
+};
+
 extension DeviceStripDeviceKind on DeviceSnapshot {
-  bool get isFxDevice => fxDeviceTypes.contains(type);
+  bool get isFxDevice =>
+      fxDeviceTypes.contains(type) || frequencyFxDeviceTypes.contains(type);
+
+  bool get isFrequencyFxDevice => frequencyFxDeviceTypes.contains(type);
 
   bool get isInstrumentDevice => type != 'track_gain' && !isFxDevice;
 }

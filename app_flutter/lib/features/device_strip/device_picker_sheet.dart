@@ -119,6 +119,36 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
               child: Text(
+                'Frequency Effects',
+                style: TextStyle(
+                  color: Color(0xFF9A9AA8),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.equalizer, color: Color(0xFF5BC0EB)),
+              title: const Text('Filter'),
+              subtitle: const Text('Multimode · LP/HP/BP/Notch'),
+              onTap: () => Navigator.pop(context, 'filter'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.tune, color: Color(0xFF78C091)),
+              title: const Text('4-Band EQ'),
+              subtitle: const Text('Low shelf · 2 peaks · high shelf'),
+              onTap: () => Navigator.pop(context, 'four_band_eq'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.swap_horiz, color: Color(0xFFC77DFF)),
+              title: const Text('Ring Mod'),
+              subtitle: const Text('Carrier · -2 kHz to +2 kHz'),
+              onTap: () => Navigator.pop(context, 'frequency_shifter'),
+            ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
+              child: Text(
                 'Time‑Based Effects',
                 style: TextStyle(
                   color: Color(0xFF9A9AA8),

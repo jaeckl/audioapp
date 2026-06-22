@@ -28,6 +28,7 @@ import 'crash_generator_device_strip.dart';
 import 'crash_model.dart';
 import 'dynamics_fx_panels.dart';
 import 'time_fx_panels.dart';
+import 'frequency_fx_panels.dart';
 import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
 import 'phase_mod_synth_device_panel.dart';
@@ -868,6 +869,63 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             device: dev,
             onParameterChanged: widget.onDeviceParameterChanged,
             selectedTab: LimiterDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
+            modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
+            onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
+            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+          ),
+        );
+      case 'filter':
+        final dev = widget.device as FilterDeviceSnapshot;
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: _cardWidth,
+          designHeight: contentHeight,
+          child: FilterDeviceStrip(
+            device: dev,
+            onParameterChanged: widget.onDeviceParameterChanged,
+            modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
+            onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
+            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+          ),
+        );
+      case 'four_band_eq':
+        final dev = widget.device as FourBandEqDeviceSnapshot;
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: _cardWidth,
+          designHeight: contentHeight,
+          child: FourBandEqDeviceStrip(
+            device: dev,
+            onParameterChanged: widget.onDeviceParameterChanged,
+            modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
+            onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
+            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+          ),
+        );
+      case 'frequency_shifter':
+        final dev = widget.device as FrequencyShifterDeviceSnapshot;
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: _cardWidth,
+          designHeight: contentHeight,
+          child: FreqShifterDeviceStrip(
+            device: dev,
+            onParameterChanged: widget.onDeviceParameterChanged,
             modulatedParams: _modulatedParamIds,
             automatedParams: _automatedParamIds,
             modulationAmounts: _modulationAmounts,

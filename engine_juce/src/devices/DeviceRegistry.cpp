@@ -16,6 +16,9 @@
 #include "audioapp/devices/BassSynthDeviceType.hpp"
 #include "audioapp/devices/PhaseModSynthDeviceType.hpp"
 #include "audioapp/devices/TrackGainDeviceType.hpp"
+#include "audioapp/devices/FilterDeviceType.hpp"
+#include "audioapp/devices/FourBandEqDeviceType.hpp"
+#include "audioapp/devices/FrequencyShifterDeviceType.hpp"
 #include "audioapp/devices/instances/BassSynthInstance.hpp"
 #include "audioapp/devices/instances/KickGeneratorInstance.hpp"
 #include "audioapp/devices/instances/SnareGeneratorInstance.hpp"
@@ -31,6 +34,7 @@
 #include "audioapp/devices/instances/SamplerInstance.hpp"
 #include "audioapp/devices/instances/SubtractiveSynthInstance.hpp"
 #include "audioapp/devices/instances/TrackGainInstance.hpp"
+#include "audioapp/devices/instances/FrequencyFxInstance.hpp"
 #include "audioapp/effects/EffectDeviceRegistration.hpp"
 
 namespace audioapp {
@@ -117,6 +121,9 @@ const IDeviceType* DeviceRegistry::findTypeForSlot(const DeviceSlot& slot) const
     if (std::holds_alternative<ReverbInstance>(slot.instance)) return find(device_types::kReverb);
     if (std::holds_alternative<ChorusInstance>(slot.instance)) return find(device_types::kChorus);
     if (std::holds_alternative<PhaserInstance>(slot.instance)) return find(device_types::kPhaser);
+    if (std::holds_alternative<FilterInstance>(slot.instance)) return find(device_types::kFilter);
+    if (std::holds_alternative<FourBandEqInstance>(slot.instance)) return find(device_types::kFourBandEq);
+    if (std::holds_alternative<FrequencyShifterInstance>(slot.instance)) return find(device_types::kFrequencyShifter);
     return nullptr;
 }
 
@@ -196,6 +203,9 @@ DeviceRegistry DeviceRegistry::createBuiltIn() {
     registry.registerType(std::make_unique<LimiterDeviceType>());
     registry.registerType(std::make_unique<BassSynthDeviceType>());
     registry.registerType(std::make_unique<PhaseModSynthDeviceType>());
+    registry.registerType(std::make_unique<FilterDeviceType>());
+    registry.registerType(std::make_unique<FourBandEqDeviceType>());
+    registry.registerType(std::make_unique<FrequencyShifterDeviceType>());
     registerTimeBasedEffects(registry);
     return registry;
 }

@@ -16,6 +16,7 @@
 #include "audioapp/devices/instances/PhaseModSynthInstance.hpp"
 #include "audioapp/devices/instances/LimiterInstance.hpp"
 #include "audioapp/devices/instances/EffectInstance.hpp"
+#include "audioapp/devices/instances/FrequencyFxInstance.hpp"
 
 #include <string>
 #include <variant>
@@ -40,7 +41,10 @@ using DeviceInstance = std::variant<OscillatorInstance,
                                     DelayInstance,
                                     ReverbInstance,
                                     ChorusInstance,
-                                    PhaserInstance>;
+                                    PhaserInstance,
+                                    FilterInstance,
+                                    FourBandEqInstance,
+                                    FrequencyShifterInstance>;
 
 struct DeviceSlot {
     std::string id;

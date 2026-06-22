@@ -21,5 +21,8 @@ inline constexpr const char* kDelay = "delay";
 inline constexpr const char* kReverb = "reverb";
 inline constexpr const char* kChorus = "chorus";
 inline constexpr const char* kPhaser = "phaser";
+inline constexpr const char* kFilter = "filter";
+inline constexpr const char* kFourBandEq = "four_band_eq";
+inline constexpr const char* kFrequencyShifter = "frequency_shifter";
 
 } // namespace audioapp::device_types

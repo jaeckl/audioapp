@@ -2,7 +2,7 @@
 
 ## Architecture Decision
 
-The three frequency FX devices follow the same pattern as dynamics devices (Gate/Compressor/Expander/Limiter):
+The three frequency FX devices follow the same pattern as dynamics devices (Gate/Compressor/Expander/Limiter) and time-based effects (Delay/Reverb/Chorus/Phaser):
 
 - **IDeviceType subclass** per device (like `CompressorDeviceType`)
 - **Instance struct** with control-thread parameters (like `CompressorInstance`)
@@ -13,7 +13,7 @@ The three frequency FX devices follow the same pattern as dynamics devices (Gate
 - **DeviceVariantParams** variant entries
 - **Switch cases** in `processDeviceChain()` body
 - **applyModulation() overloads** for modulation
-- **DynamicsInputPanel + DynamicsOutputPanel** in chrome
+- **DynamicsInputPanel + DynamicsOutputPanel** in chrome (shared with time-based effects)
 
 ## Module Boundaries
 
@@ -23,7 +23,7 @@ engine_juce/
 │   ├── FrequencyFxProcessor.hpp      ← params, runtime, processing functions
 │   └── devices/
 │       ├── instances/
-│       │   └── FrequencyFxInstance.hpp ← instance structs
+│       │   └── FrequencyFxInstance.hpp ← instance structs (Filter, Eq, Shifter)
 │       ├── FilterDeviceType.hpp
 │       ├── FourBandEqDeviceType.hpp
 │       └── FrequencyShifterDeviceType.hpp
@@ -38,12 +38,15 @@ app_flutter/lib/features/device_strip/
 ├── frequency_fx_panels.dart            ← FilterPanel, FourBandEqPanel, FreqShifterPanel
 ├── filter_preview.dart                 ← Filter curve custom painter
 └── eq_preview.dart                     ← EQ curve custom painter
+
+app_flutter/lib/bridge/
+└── device_snapshots.dart               ← ADD sealed FrequencyFxDeviceSnapshot + 3 concrete subclasses + factory cases
 ```
 
 ## Threading/Async Boundaries
 
-- **Control thread**: IDeviceType methods (setParameter, slotToVar, createDefault, buildPlaybackNode)
-- **Audio thread**: processing functions in FrequencyFxProcessor.cpp, called from DeviceChain.cpp
+- **Control thread**: IDeviceType methods (`setParameter`, `slotToVar`, `createDefault`, `buildPlaybackNode`)
+- **Audio thread**: processing functions in `FrequencyFxProcessor.cpp`, called from `DeviceChain.cpp`
 - No JSON parsing on audio thread (parse on control thread, apply snapshot)
 - Runtime structs are per-block state; one per device instance, indexed by device index
 
@@ -66,12 +69,12 @@ case DeviceNodeKind::Filter: {
 
 - Parameter validation via `std::clamp` (normalized 0-1) or `juce::jlimit` (real-world ranges)
 - Runtime structs are default-constructed as local fallback if nullptr is passed
-- Processing functions are noexcept
+- Processing functions are `noexcept`
 - JSON deserialization falls back to defaults on missing keys
 
 ## Persistence Model
 
-Each device follows the existing slotToVar/varToSlot JSON pattern used by dynamics devices:
+Each device follows the existing `slotToVar`/`varToSlot` JSON pattern used by dynamics devices. The Flutter side then deserializes into sealed-class subclasses (see `04-data-contracts.md`).
 
 ```json
 {
@@ -85,9 +88,13 @@ Each device follows the existing slotToVar/varToSlot JSON pattern used by dynami
 }
 ```
 
+## Flutter Side: Sealed Class Hierarchy
+
+As of the `refactor(bridge): introduce polymorphic DeviceSnapshot sealed hierarchy` commit (`89fab48`), the Flutter `DeviceSnapshot` is a sealed class. Each device type has a concrete subclass. We add a new sealed class `FrequencyFxDeviceSnapshot` as a sibling to the existing `EffectDeviceSnapshot` (which holds Delay/Reverb/Chorus/Phaser), plus three concrete subclasses. See `04-data-contracts.md` for full data layout and `05-file-ownership.md` for which files change.
+
 ## UI/State Synchronization
 
-- DeviceSnapshot's flat fields are populated from JSON parameters
-- onDeviceParameterChanged callback writes through to the engine
-- Meter data (inputLevel) published from audio thread via DeviceMeterAtomic array
-- Filter preview and EQ preview are rendered as CustomPainter widgets on the UI thread
+- Flutter sealed `DeviceSnapshot` subclasses are populated from JSON `parameters`
+- `onDeviceParameterChanged` callback writes through to the engine
+- Meter data (`inputLevel`) published from audio thread via `DeviceMeterAtomic` array
+- Filter preview and EQ preview are rendered as `CustomPainter` widgets on the UI thread

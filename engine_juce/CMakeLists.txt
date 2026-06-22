@@ -45,6 +45,7 @@ add_library(audioapp_engine STATIC
   src/CrashGenerator.cpp
   src/MetallicNoiseSynth.cpp
   src/DynamicsProcessor.cpp
+  src/FrequencyFxProcessor.cpp
   src/MasterMix.cpp
   src/DeviceChain.cpp
   src/devices/DeviceRegistry.cpp
@@ -63,6 +64,9 @@ add_library(audioapp_engine STATIC
   src/devices/LimiterDeviceType.cpp
   src/devices/BassSynthDeviceType.cpp
   src/devices/PhaseModSynthDeviceType.cpp
+  src/devices/FilterDeviceType.cpp
+  src/devices/FourBandEqDeviceType.cpp
+  src/devices/FrequencyShifterDeviceType.cpp
   src/effects/TimeBasedEffectDeviceType.cpp
   src/effects/EffectDeviceRegistration.cpp
   src/effects/EffectSnapshot.cpp
@@ -115,6 +119,7 @@ else()
       juce::juce_audio_basics
       juce::juce_audio_devices
       juce::juce_events
+      juce::juce_dsp
   )
 endif()
 
@@ -146,6 +151,10 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/effect_device_modulation_test.cpp
     tests/effect_phaser_test.cpp
     tests/effect_reverb_test.cpp
+    tests/frequency_fx_test.cpp
+    tests/filter_device_test.cpp
+    tests/four_band_eq_test.cpp
+    tests/frequency_shifter_test.cpp
     tests/engine_smoke_test.cpp
     tests/gain_pan_mod_auto_test.cpp
     tests/gate_device_test.cpp

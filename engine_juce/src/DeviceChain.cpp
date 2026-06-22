@@ -11,6 +11,8 @@
 #include "audioapp/CymbalGenerator.hpp"
 #include "audioapp/CrashGenerator.hpp"
 #include "audioapp/DynamicsProcessor.hpp"
+#include "audioapp/FrequencyFxProcessor.hpp"
+#include "audioapp/devices/instances/FrequencyFxInstance.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -107,6 +109,60 @@ void applyModulation(DelayParamsPlayback&, float, uint16_t) noexcept {}
 void applyModulation(ReverbParamsPlayback&, float, uint16_t) noexcept {}
 void applyModulation(ChorusParamsPlayback&, float, uint16_t) noexcept {}
 void applyModulation(PhaserParamsPlayback&, float, uint16_t) noexcept {}
+void applyModulation(FilterParams& p, float modAmount, uint16_t localParamId) noexcept {
+    // The FilterParams playback struct stores physical units (Hz, Q, mode
+    // index). `modAmount` is the LFO output in roughly [-1, 1] multiplied by
+    // the edge amount. Scale each field to physical units so a full-range
+    // LFO produces a musically useful sweep (one octave of cutoff, ±5 Q,
+    // all 4 modes).
+    switch (static_cast<FilterParam>(unpackParamId(localParamId))) {
+    case FilterParam::Cutoff:
+        p.cutoffHz = std::clamp(p.cutoffHz + modAmount * 1000.0f, 20.0f, 20000.0f);
+        break;
+    case FilterParam::Resonance:
+        p.resonance = std::clamp(p.resonance + modAmount * 5.0f, 0.1f, 20.0f);
+        break;
+    case FilterParam::Mode:
+        // Sweep the filter mode. Quantise to the nearest of 4 modes by
+        // treating the int as a continuous "mode position" (0..3), adding
+        // `modAmount * 3` (so a full-range LFO sweeps all 4 modes), then
+        // rounding and clamping. Matches the UI's 4-button quantisation.
+        {
+            const float basePos = static_cast<float>(p.filterMode);
+            const int nextIdx = static_cast<int>(std::clamp(
+                static_cast<float>(std::lround(basePos + modAmount * 3.0f)),
+                0.0f, 3.0f));
+            p.filterMode = nextIdx;
+        }
+        break;
+    }
+}
+
+void applyModulation(FourBandEqParams& p, float modAmount, uint16_t localParamId) noexcept {
+    // Same scaling pattern as Filter: physical-unit fields with full-range
+    // LFO producing a musically useful sweep.
+    switch (static_cast<FourBandEqParam>(unpackParamId(localParamId))) {
+    case FourBandEqParam::Band1Freq: p.bands[0].frequencyHz = std::clamp(p.bands[0].frequencyHz + modAmount * 1000.0f, 20.0f, 20000.0f); break;
+    case FourBandEqParam::Band1Gain: p.bands[0].gainDb      = std::clamp(p.bands[0].gainDb      + modAmount * 12.0f,  -24.0f,  24.0f); break;
+    case FourBandEqParam::Band1Q:    p.bands[0].q           = std::clamp(p.bands[0].q           + modAmount * 5.0f,    0.1f,  20.0f); break;
+    case FourBandEqParam::Band2Freq: p.bands[1].frequencyHz = std::clamp(p.bands[1].frequencyHz + modAmount * 1000.0f, 20.0f, 20000.0f); break;
+    case FourBandEqParam::Band2Gain: p.bands[1].gainDb      = std::clamp(p.bands[1].gainDb      + modAmount * 12.0f,  -24.0f,  24.0f); break;
+    case FourBandEqParam::Band2Q:    p.bands[1].q           = std::clamp(p.bands[1].q           + modAmount * 5.0f,    0.1f,  20.0f); break;
+    case FourBandEqParam::Band3Freq: p.bands[2].frequencyHz = std::clamp(p.bands[2].frequencyHz + modAmount * 1000.0f, 20.0f, 20000.0f); break;
+    case FourBandEqParam::Band3Gain: p.bands[2].gainDb      = std::clamp(p.bands[2].gainDb      + modAmount * 12.0f,  -24.0f,  24.0f); break;
+    case FourBandEqParam::Band3Q:    p.bands[2].q           = std::clamp(p.bands[2].q           + modAmount * 5.0f,    0.1f,  20.0f); break;
+    case FourBandEqParam::Band4Freq: p.bands[3].frequencyHz = std::clamp(p.bands[3].frequencyHz + modAmount * 1000.0f, 20.0f, 20000.0f); break;
+    case FourBandEqParam::Band4Gain: p.bands[3].gainDb      = std::clamp(p.bands[3].gainDb      + modAmount * 12.0f,  -24.0f,  24.0f); break;
+    case FourBandEqParam::Band4Q:    p.bands[3].q           = std::clamp(p.bands[3].q           + modAmount * 5.0f,    0.1f,  20.0f); break;
+    }
+}
+
+void applyModulation(FrequencyShifterParams& p, float modAmount, uint16_t localParamId) noexcept {
+    if (static_cast<FrequencyShifterParam>(unpackParamId(localParamId)) == FrequencyShifterParam::Shift) {
+        // Shift is a signed Hz offset in [-2000, 2000]; full-range LFO sweeps 2 kHz.
+        p.shiftHz = std::clamp(p.shiftHz + modAmount * 1000.0f, -2000.0f, 2000.0f);
+    }
+}
 
 void applyModulation(SubtractiveSynthParams& p, float modAmount, uint16_t localParamId) noexcept {
     switch (static_cast<SubtractiveParam>(unpackParamId(localParamId))) {
@@ -469,6 +525,12 @@ bool isInstrumentDeviceNodeKind(const DeviceNodeKind kind) noexcept {
            kind == DeviceNodeKind::PhaseModSynth;
 }
 
+bool isFrequencyFxDeviceNodeKind(DeviceNodeKind kind) noexcept {
+    return kind == DeviceNodeKind::Filter ||
+           kind == DeviceNodeKind::FourBandEq ||
+           kind == DeviceNodeKind::FrequencyShifter;
+}
+
 float midiActiveFrequencyHz(const MidiPlaybackNote* notes,
                             int noteCount,
                             double playheadBeat,
@@ -511,7 +573,10 @@ void processDeviceChain(float* trackLeft,
                         const ModulationEdgePlayback* modEdges,
                         int modEdgeCount,
                         const AutomationClipPlayback* automationClips,
-                        int automationClipCount) noexcept {
+                        int automationClipCount,
+                        FilterRuntime* filterRuntimes,
+                        FourBandEqRuntime* fourBandEqRuntimes,
+                        FrequencyShifterRuntime* frequencyShifterRuntimes) noexcept {
     if (trackLeft == nullptr || trackRight == nullptr || numFrames <= 0 || devices == nullptr ||
         deviceCount <= 0) {
         return;
@@ -914,6 +979,39 @@ void processDeviceChain(float* trackLeft,
             const float inputPeak = stereoBlockPeak(trackLeft, trackRight, framesToProcess);
             processLimiterStereoBlock(trackLeft, trackRight, framesToProcess, sampleRate, p, runtime);
             publishDynamicsMeters(node, runtime, inputPeak, deviceMeters, maxDeviceMeters);
+            for (int f = 0; f < framesToProcess; ++f) {
+                trackLeft[f] *= s.perFrameGain[f];
+                trackRight[f] *= s.perFrameGain[f];
+            }
+            break;
+        }
+        case DeviceNodeKind::Filter: {
+            auto p = std::get<FilterParams>(modulatedParams);
+            FilterRuntime localRuntime{};
+            auto& runtime = filterRuntimes != nullptr ? filterRuntimes[deviceIndex] : localRuntime;
+            processFilterStereoBlock(trackLeft, trackRight, framesToProcess, sampleRate, p, runtime);
+            for (int f = 0; f < framesToProcess; ++f) {
+                trackLeft[f] *= s.perFrameGain[f];
+                trackRight[f] *= s.perFrameGain[f];
+            }
+            break;
+        }
+        case DeviceNodeKind::FourBandEq: {
+            auto p = std::get<FourBandEqParams>(modulatedParams);
+            FourBandEqRuntime localRuntime{};
+            auto& runtime = fourBandEqRuntimes != nullptr ? fourBandEqRuntimes[deviceIndex] : localRuntime;
+            processFourBandEqStereoBlock(trackLeft, trackRight, framesToProcess, sampleRate, p, runtime);
+            for (int f = 0; f < framesToProcess; ++f) {
+                trackLeft[f] *= s.perFrameGain[f];
+                trackRight[f] *= s.perFrameGain[f];
+            }
+            break;
+        }
+        case DeviceNodeKind::FrequencyShifter: {
+            auto p = std::get<FrequencyShifterParams>(modulatedParams);
+            FrequencyShifterRuntime localRuntime{};
+            auto& runtime = frequencyShifterRuntimes != nullptr ? frequencyShifterRuntimes[deviceIndex] : localRuntime;
+            processFrequencyShifterStereoBlock(trackLeft, trackRight, framesToProcess, sampleRate, p, runtime);
             for (int f = 0; f < framesToProcess; ++f) {
                 trackLeft[f] *= s.perFrameGain[f];
                 trackRight[f] *= s.perFrameGain[f];

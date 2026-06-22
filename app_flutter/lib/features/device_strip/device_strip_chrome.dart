@@ -43,6 +43,7 @@ class DeviceStripChromeBindings {
 abstract final class DeviceStripChrome {
   static const _dynamicsTypes = {'gate', 'compressor', 'expander', 'limiter'};
   static const _timeFxTypes = {'delay', 'reverb', 'chorus', 'phaser'};
+  static const _frequencyFxTypes = {'filter', 'four_band_eq', 'frequency_shifter'};
   static const _drumTypes = {
     'kick_generator',
     'snare_generator',
@@ -100,7 +101,9 @@ abstract final class DeviceStripChrome {
         onAutomateParameter: bindings.onAutomateParameter,
       );
     }
-    if (_dynamicsTypes.contains(deviceType) || _timeFxTypes.contains(deviceType)) {
+    if (_dynamicsTypes.contains(deviceType) ||
+        _timeFxTypes.contains(deviceType) ||
+        _frequencyFxTypes.contains(deviceType)) {
       return DynamicsOutputPanel(
         device: bindings.device,
         accentColor: bindings.accentColor,
