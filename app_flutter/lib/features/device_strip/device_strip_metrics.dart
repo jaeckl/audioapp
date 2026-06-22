@@ -6,6 +6,7 @@ class DeviceStripMetrics {
 
   static const _dynamicsTypes = {'gate', 'compressor', 'expander', 'limiter'};
   static const _timeFxTypes = {'delay', 'reverb', 'chorus', 'phaser'};
+  static const _frequencyFxTypes = {'filter', 'four_band_eq', 'frequency_shifter'};
   static const _drumTypes = {
     'kick_generator',
     'snare_generator',
@@ -63,6 +64,23 @@ class DeviceStripMetrics {
   static double get dynamicsFxDesignWidth =>
       dynamicsFxKnobGridWidth + dynamicsFxPanelPaddingH;
 
+  // ─── Frequency FX EQ — 4 columns × 3 rows of compact ValueDragBoxes ──
+  // With box width ≈ 44 + column gap 6, the band grid is 4 * 44 + 3 * 6 = 194.
+  // Plus padding on both sides we land ~206 — same as the dynamics FX card.
+  static const double eqFxBandColumnWidth = 44;
+  static const double eqFxBandColumnGap = 6;
+  static const double eqFxPanelPaddingH = 12;
+
+  static double get fourBandEqDesignWidth =>
+      4 * eqFxBandColumnWidth +
+      3 * eqFxBandColumnGap +
+      eqFxPanelPaddingH;
+
+  // Ring Mod and Filter use the same compact dynamics-FX-sized card.
+  // Not `const` because they reference the [dynamicsFxDesignWidth] getter.
+  static double get filterDesignWidth => dynamicsFxDesignWidth;
+  static double get freqShifterDesignWidth => dynamicsFxDesignWidth;
+
   static const double collapsedDesignWidth = 160;
 
   /// Tool rail prepended to expanded/fullscreen device cards.
@@ -84,12 +102,17 @@ class DeviceStripMetrics {
   static const double dynamicsInputPanelWidth = 64;
 
   static double inputPanelWidthFor(String deviceType) =>
-      _dynamicsTypes.contains(deviceType) || _timeFxTypes.contains(deviceType) ? dynamicsInputPanelWidth : 0;
+      _dynamicsTypes.contains(deviceType) ||
+      _timeFxTypes.contains(deviceType) ||
+      _frequencyFxTypes.contains(deviceType)
+          ? dynamicsInputPanelWidth
+          : 0;
 
   static double outputPanelWidthFor(String deviceType) {
     if (_drumTypes.contains(deviceType)) return drumMonoOutputPanelWidth;
     if (_dynamicsTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
     if (_timeFxTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
+    if (_frequencyFxTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
     return stereoOutputPanelWidth;
   }
 
@@ -114,6 +137,9 @@ class DeviceStripMetrics {
       'reverb' => dynamicsFxDesignWidth,
       'chorus' => dynamicsFxDesignWidth,
       'phaser' => dynamicsFxDesignWidth,
+      'filter' => filterDesignWidth,
+      'four_band_eq' => fourBandEqDesignWidth,
+      'frequency_shifter' => freqShifterDesignWidth,
       'simple_oscillator' => oscillatorDesignWidth,
       'phase_mod_synth' => phaseModSynthDesignWidth,
       _ => 280,

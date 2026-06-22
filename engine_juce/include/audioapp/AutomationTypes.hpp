@@ -242,6 +242,42 @@ enum class PhaseModSynthParam : uint16_t {
     VibratoRate = 42,
 };
 
+// ─── Frequency FX suite (added for Filter / 4-Band EQ / Ring Mod) ────────────
+//
+// These per-kind enums are used purely for the audio-thread dispatch in
+// `applyModulation(...)` — they share the same uint16_t slot space as the
+// other device kinds via the `ParamKind` tag above, so the audio thread can
+// route by kind without colliding.
+
+enum class FilterParam : uint16_t {
+    Cutoff     = 0,
+    Resonance  = 1,
+    Mode       = 2,
+};
+
+enum class FourBandEqParam : uint16_t {
+    // Band 1 (Low Shelf)
+    Band1Freq  = 0,
+    Band1Gain  = 1,
+    Band1Q     = 2,
+    // Band 2 (Low Mid)
+    Band2Freq  = 3,
+    Band2Gain  = 4,
+    Band2Q     = 5,
+    // Band 3 (High Mid)
+    Band3Freq  = 6,
+    Band3Gain  = 7,
+    Band3Q     = 8,
+    // Band 4 (High Shelf)
+    Band4Freq  = 9,
+    Band4Gain  = 10,
+    Band4Q     = 11,
+};
+
+enum class FrequencyShifterParam : uint16_t {
+    Shift = 0,
+};
+
 // -----------------------------------------------------------------------
 // ParamKind — distinguishes which per-device enum a `localParamId` refers
 // to. Without this tag, multiple device kinds (CommonParam, SubtractiveParam,
@@ -274,6 +310,10 @@ enum class ParamKind : uint16_t {
     BassSynth        = 14,
     // Phase Modulation Synth
     PhaseModSynth    = 15,
+    // Frequency FX suite
+    Filter           = 16,
+    FourBandEq       = 17,
+    FrequencyShifter = 18,
 };
 
 constexpr uint16_t kParamKindShift      = 12;

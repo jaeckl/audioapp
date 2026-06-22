@@ -35,6 +35,9 @@ static ParamKind paramKindForDevice(DeviceNodeKind kind) noexcept {
     case DeviceNodeKind::Limiter:          return ParamKind::Limiter;
     case DeviceNodeKind::BassSynth:        return ParamKind::BassSynth;
     case DeviceNodeKind::PhaseModSynth:    return ParamKind::PhaseModSynth;
+    case DeviceNodeKind::Filter:           return ParamKind::Filter;
+    case DeviceNodeKind::FourBandEq:       return ParamKind::FourBandEq;
+    case DeviceNodeKind::FrequencyShifter: return ParamKind::FrequencyShifter;
     case DeviceNodeKind::TrackGain:        return ParamKind::TrackGain;
     case DeviceNodeKind::Unknown:
     default:                                return ParamKind::Common;
@@ -336,6 +339,46 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         if (auto v = p("pmVibratoRate", PhaseModSynthParam::VibratoRate)) return v;
         return 0;
     }
+    case DeviceNodeKind::Filter: {
+        auto f = [&](const char* n, FilterParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::Filter, static_cast<uint16_t>(pid))
+                : 0;
+        };
+        if (auto v = f("ffxCutoff", FilterParam::Cutoff)) return v;
+        if (auto v = f("ffxResonance", FilterParam::Resonance)) return v;
+        if (auto v = f("ffxFilterMode", FilterParam::Mode)) return v;
+        return 0;
+    }
+    case DeviceNodeKind::FourBandEq: {
+        auto e = [&](const char* n, FourBandEqParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::FourBandEq, static_cast<uint16_t>(pid))
+                : 0;
+        };
+        if (auto v = e("ffxBand1Freq", FourBandEqParam::Band1Freq)) return v;
+        if (auto v = e("ffxBand1Gain", FourBandEqParam::Band1Gain)) return v;
+        if (auto v = e("ffxBand1Q",    FourBandEqParam::Band1Q))    return v;
+        if (auto v = e("ffxBand2Freq", FourBandEqParam::Band2Freq)) return v;
+        if (auto v = e("ffxBand2Gain", FourBandEqParam::Band2Gain)) return v;
+        if (auto v = e("ffxBand2Q",    FourBandEqParam::Band2Q))    return v;
+        if (auto v = e("ffxBand3Freq", FourBandEqParam::Band3Freq)) return v;
+        if (auto v = e("ffxBand3Gain", FourBandEqParam::Band3Gain)) return v;
+        if (auto v = e("ffxBand3Q",    FourBandEqParam::Band3Q))    return v;
+        if (auto v = e("ffxBand4Freq", FourBandEqParam::Band4Freq)) return v;
+        if (auto v = e("ffxBand4Gain", FourBandEqParam::Band4Gain)) return v;
+        if (auto v = e("ffxBand4Q",    FourBandEqParam::Band4Q))    return v;
+        return 0;
+    }
+    case DeviceNodeKind::FrequencyShifter: {
+        auto s = [&](const char* n, FrequencyShifterParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::FrequencyShifter, static_cast<uint16_t>(pid))
+                : 0;
+        };
+        if (auto v = s("ffxShift", FrequencyShifterParam::Shift)) return v;
+        return 0;
+    }
     default:
         return 0;
     }
@@ -585,6 +628,37 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         default: return "";
         }
     }
+    case DeviceNodeKind::Filter: {
+        switch (static_cast<FilterParam>(rawId)) {
+        case FilterParam::Cutoff:    return "ffxCutoff";
+        case FilterParam::Resonance: return "ffxResonance";
+        case FilterParam::Mode:      return "ffxFilterMode";
+        default: return "";
+        }
+    }
+    case DeviceNodeKind::FourBandEq: {
+        switch (static_cast<FourBandEqParam>(rawId)) {
+        case FourBandEqParam::Band1Freq: return "ffxBand1Freq";
+        case FourBandEqParam::Band1Gain: return "ffxBand1Gain";
+        case FourBandEqParam::Band1Q:    return "ffxBand1Q";
+        case FourBandEqParam::Band2Freq: return "ffxBand2Freq";
+        case FourBandEqParam::Band2Gain: return "ffxBand2Gain";
+        case FourBandEqParam::Band2Q:    return "ffxBand2Q";
+        case FourBandEqParam::Band3Freq: return "ffxBand3Freq";
+        case FourBandEqParam::Band3Gain: return "ffxBand3Gain";
+        case FourBandEqParam::Band3Q:    return "ffxBand3Q";
+        case FourBandEqParam::Band4Freq: return "ffxBand4Freq";
+        case FourBandEqParam::Band4Gain: return "ffxBand4Gain";
+        case FourBandEqParam::Band4Q:    return "ffxBand4Q";
+        default: return "";
+        }
+    }
+    case DeviceNodeKind::FrequencyShifter: {
+        switch (static_cast<FrequencyShifterParam>(rawId)) {
+        case FrequencyShifterParam::Shift: return "ffxShift";
+        default: return "";
+        }
+    }
     default:
         return "";
     }
@@ -697,6 +771,40 @@ const ParamDescriptor* paramDescriptorsForKind(DeviceNodeKind kind, int& countOu
             {static_cast<uint16_t>(PhaseModSynthParam::VibratoRate), "pmVibratoRate", "Vibrato Rate", 0.3f, 0.0f, 1.0f, true, true},
         };
         countOut = 43;
+        return kParams;
+    }
+    case DeviceNodeKind::Filter: {
+        static constexpr ParamDescriptor kParams[] = {
+            {static_cast<uint16_t>(FilterParam::Cutoff),    "ffxCutoff",    "Cutoff",    0.6f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FilterParam::Resonance), "ffxResonance", "Resonance", 0.3f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FilterParam::Mode),      "ffxFilterMode","Mode",      0.0f, 0.0f, 1.0f, true, true},
+        };
+        countOut = 3;
+        return kParams;
+    }
+    case DeviceNodeKind::FourBandEq: {
+        static constexpr ParamDescriptor kParams[] = {
+            {static_cast<uint16_t>(FourBandEqParam::Band1Freq), "ffxBand1Freq", "Low Freq",  0.4f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FourBandEqParam::Band1Gain), "ffxBand1Gain", "Low Gain",  0.5f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FourBandEqParam::Band1Q),    "ffxBand1Q",    "Low Q",     0.3f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FourBandEqParam::Band2Freq), "ffxBand2Freq", "LM Freq",   0.5f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FourBandEqParam::Band2Gain), "ffxBand2Gain", "LM Gain",   0.5f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FourBandEqParam::Band2Q),    "ffxBand2Q",    "LM Q",      0.3f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FourBandEqParam::Band3Freq), "ffxBand3Freq", "HM Freq",   0.7f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FourBandEqParam::Band3Gain), "ffxBand3Gain", "HM Gain",   0.5f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FourBandEqParam::Band3Q),    "ffxBand3Q",    "HM Q",      0.3f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FourBandEqParam::Band4Freq), "ffxBand4Freq", "High Freq", 0.8f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FourBandEqParam::Band4Gain), "ffxBand4Gain", "High Gain", 0.5f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FourBandEqParam::Band4Q),    "ffxBand4Q",    "High Q",    0.3f, 0.0f, 1.0f, true, true},
+        };
+        countOut = 12;
+        return kParams;
+    }
+    case DeviceNodeKind::FrequencyShifter: {
+        static constexpr ParamDescriptor kParams[] = {
+            {static_cast<uint16_t>(FrequencyShifterParam::Shift), "ffxShift", "Shift", 0.5f, 0.0f, 1.0f, true, true},
+        };
+        countOut = 1;
         return kParams;
     }
     default:

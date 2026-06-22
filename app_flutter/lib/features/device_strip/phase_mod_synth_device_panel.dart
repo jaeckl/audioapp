@@ -1,13 +1,11 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
-import 'device_automation_spinner.dart';
 import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
 import 'rotary_knob.dart';
+import 'value_drag_box.dart';
 import 'sampler_device_panel.dart';
 
 enum PhaseModSynthPanelDensity { strip, editor }
@@ -267,70 +265,25 @@ class _PhaseModSynthDevicePanelState extends State<PhaseModSynthDevicePanel> {
     required String paramId,
     required ValueChanged<double> onChanged,
   }) {
-    final idx = PhaseModSynthDevicePanel.ratioNormToIndex(value);
-    final display = PhaseModSynthDevicePanel._ratioValues[idx].toString();
-    double dragStartY = 0;
-    int dragStartIdx = 0;
-
-    final inner = GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onVerticalDragStart: (d) {
-        dragStartY = d.localPosition.dy;
-        dragStartIdx = idx;
-      },
-      onVerticalDragUpdate: (d) {
-        final delta = ((dragStartY - d.localPosition.dy) / 12).round();
-        final nextIdx = (dragStartIdx + delta).clamp(0, 8);
-        if (nextIdx != idx) {
-          onChanged(PhaseModSynthDevicePanel.indexToRatioNorm(nextIdx));
-        }
-      },
-      onDoubleTap: () => onChanged(PhaseModSynthDevicePanel.indexToRatioNorm(1)), // Reset to 1.0 (idx 1)
-      child: Container(
-        width: 42,
-        height: 24,
-        alignment: Alignment.center,
-        decoration: const BoxDecoration(
-          color: Color(0xFF14141C),
-          borderRadius: BorderRadius.all(Radius.circular(4)),
-        ),
-        child: Text(
-          display,
-          style: const TextStyle(
-            color: PhaseModSynthDevicePanel.accent,
-            fontSize: 11.5,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        deviceAutomationSpinner(
-          paramId: paramId,
-          width: 44,
-          height: 26,
-          accentColor: PhaseModSynthDevicePanel.accent,
-          borderAlpha: 0.4,
-          modulatedParams: widget.modulatedParams,
-          automatedParams: widget.automatedParams,
-          modulationAmounts: widget.modulationAmounts,
-          connectModeLfoId: widget.connectModeLfoId,
-          onModulationAssign: widget.onModulationAssign,
-          automationLinkActive: widget.automationLinkActive,
-          onAutomationLinkTap: widget.onAutomationLinkTap,
-          onAutomateParameter: widget.onAutomateParameter,
-          child: inner,
-        ),
-        const SizedBox(height: 2),
-        const Text(
-          'Ratio',
-          style: TextStyle(color: Colors.white54, fontSize: 8.5, fontWeight: FontWeight.w600),
-        ),
-      ],
+    // Uses the shared ValueDragBox widget — see value_drag_box.dart.
+    return ValueDragBox(
+      valueNorm: value,
+      values: PhaseModSynthDevicePanel._ratioValues,
+      format: (n) => PhaseModSynthDevicePanel.ratioDisplay(n),
+      accent: PhaseModSynthDevicePanel.accent,
+      paramId: paramId,
+      modulatedParams: widget.modulatedParams,
+      automatedParams: widget.automatedParams,
+      modulationAmounts: widget.modulationAmounts,
+      connectModeLfoId: widget.connectModeLfoId,
+      onModulationAssign: widget.onModulationAssign,
+      automationLinkActive: widget.automationLinkActive,
+      onAutomationLinkTap: widget.onAutomationLinkTap,
+      onAutomateParameter: widget.onAutomateParameter,
+      onChanged: onChanged,
+      resetIndex: 1, // 1.0 ratio
+      dragPixelsPerStep: 12,
+      footerLabel: 'Ratio',
     );
   }
 
