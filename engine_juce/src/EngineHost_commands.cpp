@@ -660,25 +660,25 @@ void EngineHost::previewPreset(const std::string& deviceType, const std::vector<
 
     // Map the device slot → direct-renderer kind + params.
     using Kind = PreviewMidiState::PresetRenderKind;
-    if (std::holds_alternative<SubtractiveSynthInstance>(slot.instance)) {
-        const auto& inst = std::get<SubtractiveSynthInstance>(slot.instance);
-        previewMidi_.subtractiveParams = inst.toPlaybackParams();
+    if (std::holds_alternative<SubtractiveSynthParams>(slot.instance)) {
+        const auto& inst = std::get<SubtractiveSynthParams>(slot.instance);
+        previewMidi_.subtractiveParams = inst;
         previewMidi_.subtractiveParams.gain = slot.gain;
         previewMidi_.renderKind.store(Kind::SubtractiveSynth, std::memory_order_release);
         AUDIOAPP_LOG(
             "previewPreset[ctrl] -> SubtractiveSynth slot.gain=%.3f inst.gain=%.3f "
             "ampSustain=%.3f ampRelease=%.3f filterCutoff=%.3f",
             slot.gain, inst.gain, inst.ampSustain, inst.ampRelease, inst.filterCutoff);
-    } else if (std::holds_alternative<OscillatorInstance>(slot.instance)) {
-        const auto& inst = std::get<OscillatorInstance>(slot.instance);
+    } else if (std::holds_alternative<OscillatorParams>(slot.instance)) {
+        const auto& inst = std::get<OscillatorParams>(slot.instance);
         // Mirror the oscillator arrangement path: a sine at the active note's pitch,
         // gain = slot.gain. The OscillatorParams.frequencyHz is overridden per-frame
         // by midiActiveFrequencyHz(notes, noteCount, playhead, idleHz).
         (void)inst; // oscillator is a single-voice sine — no per-param shape to apply.
         previewMidi_.renderKind.store(Kind::Oscillator, std::memory_order_release);
         AUDIOAPP_LOG("previewPreset[ctrl] -> Oscillator slot.gain=%.3f", slot.gain);
-    } else if (std::holds_alternative<SamplerInstance>(slot.instance)) {
-        const auto& inst = std::get<SamplerInstance>(slot.instance);
+    } else if (std::holds_alternative<SamplerModel>(slot.instance)) {
+        const auto& inst = std::get<SamplerModel>(slot.instance);
         previewMidi_.samplerParams.pcm = previewMidi_.instrument.samplerPcm;
         previewMidi_.samplerParams.frameCount = previewMidi_.instrument.samplerFrameCount;
         previewMidi_.samplerParams.pcmSampleRate = previewMidi_.instrument.samplerPcmSampleRate;

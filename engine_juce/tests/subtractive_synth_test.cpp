@@ -5,6 +5,7 @@
 
 #include <juce_core/juce_core.h>
 #include "TestHelpers.h"
+#include "TestChainHelper.hpp"
 
 #include <cmath>
 #include <cstring>
@@ -41,23 +42,8 @@ public:
             float right[kFrames];
             std::memset(left, 0, sizeof(left));
             std::memset(right, 0, sizeof(right));
-            float phase = 0.0f;
-            audioapp::SubtractiveSynthRuntime runtime{};
 
-            audioapp::processDeviceChain(left,
-                                         right,
-                                         kFrames,
-                                         kSampleRate,
-                                         120,
-                                         0.0,
-                                         notes,
-                                         3,
-                                         devices,
-                                         1,
-                                         phase,
-                                         false,
-                                         nullptr,
-                                         &runtime);
+            audioapp::test::processTestChain(left, right, kFrames, kSampleRate, 120, 0.0, notes, 3, devices, 1, false);
 
             const float peak =
                 (audioapp::test::peakAbs(left, kFrames) + audioapp::test::peakAbs(right, kFrames)) * 0.5f;

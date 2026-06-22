@@ -4,7 +4,7 @@
 #include "audioapp/devices/DeviceRegistry.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/devices/FilterDeviceType.hpp"
-#include "audioapp/devices/instances/FrequencyFxInstance.hpp"
+#include "audioapp/devices/instances/FrequencyFxModel.hpp"
 #include "audioapp/FrequencyFxProcessor.hpp"
 #include "audioapp/ProjectJson.hpp"
 
@@ -32,7 +32,7 @@ public:
             audioapp::DeviceSlot slot = registry.createDefault(
                 audioapp::device_types::kFilter, "filter-default");
             expect(slot.id == "filter-default", "slot id should match");
-            const auto& inst = std::get<audioapp::FilterInstance>(slot.instance);
+            const auto& inst = std::get<audioapp::FilterModel>(slot.instance);
             expectWithinAbsoluteError(inst.ffxCutoff, 0.6f, 0.001f, "default ffxCutoff");
             expectWithinAbsoluteError(inst.ffxResonance, 0.3f, 0.001f, "default ffxResonance");
             expectWithinAbsoluteError(inst.ffxFilterMode, 0.0f, 0.001f, "default ffxFilterMode");
@@ -44,7 +44,7 @@ public:
                 audioapp::device_types::kFilter, "f-cut");
             const audioapp::DeviceParameterResult r = registry.setParameter(slot, "ffxCutoff", 0.5f);
             expect(r.handled, "ffxCutoff should be handled");
-            const auto& inst = std::get<audioapp::FilterInstance>(slot.instance);
+            const auto& inst = std::get<audioapp::FilterModel>(slot.instance);
             expectWithinAbsoluteError(inst.ffxCutoff, 0.5f, 0.001f, "ffxCutoff updated");
         }
 
@@ -53,7 +53,7 @@ public:
             audioapp::DeviceSlot slot = registry.createDefault(
                 audioapp::device_types::kFilter, "f-cut-clamp");
             registry.setParameter(slot, "ffxCutoff", 1.5f);
-            const auto& inst = std::get<audioapp::FilterInstance>(slot.instance);
+            const auto& inst = std::get<audioapp::FilterModel>(slot.instance);
             expectWithinAbsoluteError(inst.ffxCutoff, 1.0f, 0.001f, "ffxCutoff clamped to 1.0");
         }
 
@@ -62,7 +62,7 @@ public:
             audioapp::DeviceSlot slot = registry.createDefault(
                 audioapp::device_types::kFilter, "f-res");
             registry.setParameter(slot, "ffxResonance", 0.7f);
-            const auto& inst = std::get<audioapp::FilterInstance>(slot.instance);
+            const auto& inst = std::get<audioapp::FilterModel>(slot.instance);
             expectWithinAbsoluteError(inst.ffxResonance, 0.7f, 0.001f, "ffxResonance updated");
         }
 
@@ -71,7 +71,7 @@ public:
             audioapp::DeviceSlot slot = registry.createDefault(
                 audioapp::device_types::kFilter, "f-mode");
             registry.setParameter(slot, "ffxFilterMode", 0.5f);
-            const auto& inst = std::get<audioapp::FilterInstance>(slot.instance);
+            const auto& inst = std::get<audioapp::FilterModel>(slot.instance);
             expectWithinAbsoluteError(inst.ffxFilterMode, 0.5f, 0.001f, "ffxFilterMode updated");
         }
 
@@ -126,7 +126,7 @@ public:
             audioapp::DeviceSlot slot = registry.createDefault(
                 audioapp::device_types::kFilter, "f-build-params");
             // ffxCutoff=0.6 → normalizedToFrequency(0.6) = 20 * 1000^0.6 ≈ 6309.57 Hz
-            std::get<audioapp::FilterInstance>(slot.instance).ffxCutoff = 0.6f;
+            std::get<audioapp::FilterModel>(slot.instance).ffxCutoff = 0.6f;
             audioapp::DeviceNodePlayback out;
             registry.buildPlaybackNode(slot, audioapp::PlaybackBuildContext{}, out);
             const auto& params = std::get<audioapp::FilterParams>(out.params);
@@ -149,9 +149,9 @@ public:
         {
             audioapp::DeviceSlot slot = registry.createDefault(
                 audioapp::device_types::kFilter, "f-roundtrip");
-            std::get<audioapp::FilterInstance>(slot.instance).ffxCutoff = 0.42f;
-            std::get<audioapp::FilterInstance>(slot.instance).ffxResonance = 0.77f;
-            std::get<audioapp::FilterInstance>(slot.instance).ffxFilterMode = 0.5f;
+            std::get<audioapp::FilterModel>(slot.instance).ffxCutoff = 0.42f;
+            std::get<audioapp::FilterModel>(slot.instance).ffxResonance = 0.77f;
+            std::get<audioapp::FilterModel>(slot.instance).ffxFilterMode = 0.5f;
             slot.gain = 0.5f;
             slot.pan = 0.3f;
             slot.bypassed = true;
@@ -162,7 +162,7 @@ public:
             expectWithinAbsoluteError(restored.gain, slot.gain, 0.001f, "gain roundtrip");
             expectWithinAbsoluteError(restored.pan, slot.pan, 0.001f, "pan roundtrip");
             expect(restored.bypassed == slot.bypassed, "bypass roundtrip");
-            const auto& inst = std::get<audioapp::FilterInstance>(restored.instance);
+            const auto& inst = std::get<audioapp::FilterModel>(restored.instance);
             expectWithinAbsoluteError(inst.ffxCutoff, 0.42f, 0.001f, "ffxCutoff roundtrip");
             expectWithinAbsoluteError(inst.ffxResonance, 0.77f, 0.001f, "ffxResonance roundtrip");
             expectWithinAbsoluteError(inst.ffxFilterMode, 0.5f, 0.001f, "ffxFilterMode roundtrip");
@@ -205,7 +205,7 @@ public:
                 R"({"id":"f-min","type":"filter","parameters":{}})";
             audioapp::DeviceSlot restored = audioapp::deviceVarToSlot(json, registry);
             expect(restored.id == "f-min", "id preserved");
-            const auto& inst = std::get<audioapp::FilterInstance>(restored.instance);
+            const auto& inst = std::get<audioapp::FilterModel>(restored.instance);
             expectWithinAbsoluteError(inst.ffxCutoff, 0.6f, 0.001f, "default ffxCutoff");
             expectWithinAbsoluteError(inst.ffxResonance, 0.3f, 0.001f, "default ffxResonance");
             expectWithinAbsoluteError(inst.ffxFilterMode, 0.0f, 0.001f, "default ffxFilterMode");

@@ -5,7 +5,7 @@
 #include "audioapp/devices/DeviceParameterResult.hpp"
 #include "audioapp/devices/PlaybackBuildContext.hpp"
 #include "audioapp/DeviceChain.hpp"
-#include "audioapp/devices/instances/EffectInstance.hpp"
+#include "audioapp/effects/DelayParams.hpp"
 #include "juce_dsp/juce_dsp.h"
 
 namespace audioapp {
@@ -13,10 +13,10 @@ namespace audioapp {
 DeviceSlot DelayDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    DelayInstance instance;
-    instance.params.delayTime = 250.0;
-    instance.params.feedback = 0.4;
-    instance.params.mix = 0.5;
+    DelayParams instance;
+    instance.delayTime = 250.0;
+    instance.feedback = 0.4;
+    instance.mix = 0.5;
     slot.instance = std::move(instance);
     return slot;
 }
@@ -29,13 +29,13 @@ DeviceParameterResult DelayDeviceType::setParameter(DeviceSlot& slot,
         result.handled = true;
         return result;
     }
-    auto& instance = std::get<DelayInstance>(slot.instance);
+    auto& instance = std::get<DelayParams>(slot.instance);
     if (parameterId == "timeMs") {
-        instance.params.delayTime = juce::jlimit(1.0, 2000.0, static_cast<double>(value));
+        instance.delayTime = juce::jlimit(1.0, 2000.0, static_cast<double>(value));
     } else if (parameterId == "feedback") {
-        instance.params.feedback = juce::jlimit(0.0, 0.95, static_cast<double>(value));
+        instance.feedback = juce::jlimit(0.0, 0.95, static_cast<double>(value));
     } else if (parameterId == "mix") {
-        instance.params.mix = juce::jlimit(0.0, 1.0, static_cast<double>(value));
+        instance.mix = juce::jlimit(0.0, 1.0, static_cast<double>(value));
     } else {
         return result;
     }
@@ -53,11 +53,11 @@ std::vector<std::string_view> DelayDeviceType::modulatableParams() const {
 
 void DelayDeviceType::buildPlaybackNode(const DeviceSlot& slot, const PlaybackBuildContext&, DeviceNodePlayback& out) const {
     out.kind = DeviceNodeKind::Delay;
-    const auto& inst = std::get<DelayInstance>(slot.instance);
+    const auto& inst = std::get<DelayParams>(slot.instance);
     DelayParamsPlayback p;
-    p.timeMs = static_cast<float>(inst.params.delayTime);
-    p.feedback = static_cast<float>(inst.params.feedback);
-    p.mix = static_cast<float>(inst.params.mix);
+    p.timeMs = static_cast<float>(inst.delayTime);
+    p.feedback = static_cast<float>(inst.feedback);
+    p.mix = static_cast<float>(inst.mix);
     // Since Delay snapshot doesn't hold inputGain yet, we can default it to 1.0f
     p.inputGain = 1.0f;
     out.params = p;
@@ -69,13 +69,13 @@ bool DelayDeviceType::buildLiveInstrument(const DeviceSlot&, const PlaybackBuild
 
 juce::var DelayDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<DelayInstance>(slot.instance);
+    const auto& inst = std::get<DelayParams>(slot.instance);
     parameters->setProperty("gain", static_cast<double>(slot.gain));
     parameters->setProperty("pan", static_cast<double>(slot.pan));
     parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
-    parameters->setProperty("timeMs", inst.params.delayTime);
-    parameters->setProperty("feedback", inst.params.feedback);
-    parameters->setProperty("mix", inst.params.mix);
+    parameters->setProperty("timeMs", inst.delayTime);
+    parameters->setProperty("feedback", inst.feedback);
+    parameters->setProperty("mix", inst.mix);
 
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
@@ -105,11 +105,11 @@ DeviceSlot DelayDeviceType::varToSlot(const juce::var& obj) const {
             slot.gain = readFloat("gain", 1.0f);
             slot.pan = readFloat("pan", 0.5f);
             slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
-            DelayInstance inst;
-            inst.params.delayTime = p->getProperty("timeMs").toString().getDoubleValue();
-            inst.params.feedback = p->getProperty("feedback").toString().getDoubleValue();
-            inst.params.mix = p->getProperty("mix").toString().getDoubleValue();
-            inst.params.clamp();
+            DelayParams inst;
+            inst.delayTime = p->getProperty("timeMs").toString().getDoubleValue();
+            inst.feedback = p->getProperty("feedback").toString().getDoubleValue();
+            inst.mix = p->getProperty("mix").toString().getDoubleValue();
+            inst.clamp();
             slot.instance = inst;
         }
     }

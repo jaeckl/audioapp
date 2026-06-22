@@ -20,6 +20,7 @@
 #include "audioapp/SampleBank.hpp"
 #include "audioapp/SampleTypes.hpp"
 #include "audioapp/DeviceChain.hpp"
+#include "audioapp/dsp/ProcessorArena.hpp"
 #include "audioapp/SubtractiveSynth.hpp"
 #include "audioapp/PhaseModSynth.hpp"
 #include "audioapp/devices/DeviceRegistry.hpp"
@@ -225,21 +226,11 @@ private:
         SampleRegion regions[8];
         int deviceCount = 0;
         DeviceNodePlayback devices[kMaxDevicesPerTrack];
-        BiquadState samplerFilterStates[kMaxDevicesPerTrack * kMaxInstrumentRegions];
-        SubtractiveSynthRuntime subtractiveRuntimes[kMaxDevicesPerTrack];
-        KickGeneratorRuntime kickRuntimes[kMaxDevicesPerTrack];
-        SnareGeneratorRuntime snareRuntimes[kMaxDevicesPerTrack];
-        ClapGeneratorRuntime clapRuntimes[kMaxDevicesPerTrack];
-        CymbalGeneratorRuntime cymbalRuntimes[kMaxDevicesPerTrack];
-        CrashGeneratorRuntime crashRuntimes[kMaxDevicesPerTrack];
-        DynamicsRuntime dynamicsRuntimes[kMaxDevicesPerTrack];
-        TimeBasedEffectRuntime timeBasedRuntimes[kMaxDevicesPerTrack];
-        PhaseModSynthRuntime phaseModRuntimes[kMaxDevicesPerTrack];
-        float oscillatorPhase = 0.0f;
         int modEdgeCount = 0;
         ModulationEdgePlayback modEdges[16];
         int automationClipCount = 0;
         AutomationClipPlayback automationClips[16];
+        ProcessorArena arena;  // processors + runtime state
     };
 
     static constexpr int kMaxTracks = 8;

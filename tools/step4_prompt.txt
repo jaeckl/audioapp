@@ -1,0 +1,54 @@
+You are executing Step 4 (final) of the iterative SRP refactor of DeviceChain.cpp.
+
+Current state after Step 3:
+- DeviceChainProcessor.hpp/cpp: processDeviceNode (22-case switch) + applyCommonGainPanLfo + the 6 helpers (stereoBlockPeak, publishDynamicsMeters, isMidiNoteActive, applyStereoScalarGain, multiplyPerFrameGain, mixStereoPerFramePan)
+- DeviceChainAutomationModulation.hpp/cpp: 22 applyModulation overloads + 5 automation helpers
+- DeviceChainScratch.hpp: POD struct + 2 constexpr
+- DeviceChain.cpp: 284 LOC containing: thread_local gScratch, the 6 helpers (duplicated from DeviceChainProcessor!), using namespace, 3 classifiers (isDynamicsDeviceNodeKind etc), midiActiveFrequencyHz, processDeviceChain body
+
+TASK: Slim DeviceChain.cpp to pure orchestration only (<=80 LOC).
+
+FILES YOU MAY EDIT:
+1. engine_juce/include/audioapp/DeviceChainProcessor.hpp - ADD declarations for the 6 helpers + 3 classifiers + midiActiveFrequencyHz
+2. engine_juce/include/audioapp/DeviceChain.hpp - ADD declarations for the 6 helpers if you want them in the public API (they are called by processDeviceNode already in DeviceChainProcessor.cpp, but they are currently declared there and not in the original header)
+3. engine_juce/src/DeviceChain.cpp - DELETE the 6 helpers (lines 30-85), 3 classifiers (lines 95-113), midiActiveFrequencyHz (lines 115-126), strip unused includes. Keep only: includes, gScratch, using namespace, processDeviceChain body.
+
+IMPORTANT: The 6 helpers are already defined in DeviceChainProcessor.cpp's anonymous namespace. You CANNOT have the same functions defined in both translation units. So either:
+a) Move the helpers to be public functions (in the Processor namespace) declared in Processor.hpp, or  
+b) Remove them from DeviceChain.cpp (they are NOT called by processDeviceChain -- check: the orchestrator only calls nodeNeedsSubBlocks, applyCommonGainPanLfo, processDeviceNode, evaluateAutomationEnvelope, applyAutomationValue, nodeHasDspAutomation -- NONE of the 6 helpers).
+
+Check this: ProcessDeviceChain's body (lines 128-282) calls:
+- nodeNeedsSubBlocks (from AutomationModulation namespace via using)
+- evaluateAutomationEnvelope (from AutomationPlayback.hpp)
+- applyAutomationValue (from AutomationPlayback.hpp)
+- nodeHasDspAutomation (from AutomationPlayback.hpp)
+- nodeHasDspModulation (from AutomationModulation namespace via using)
+- applyModulation (from AutomationModulation namespace via using)
+- DeviceChainProcessor::applyCommonGainPanLfo
+- DeviceChainProcessor::processDeviceNode
+
+It does NOT call: stereoBlockPeak, publishDynamicsMeters, isMidiNoteActive, applyStereoScalarGain, multiplyPerFrameGain, mixStereoPerFramePan, midiActiveFrequencyHz.
+
+The 3 classifiers (isDynamicsDeviceNodeKind etc) are used by OTHER callers (EngineHost, ProjectEngine). So their declarations MUST stay in DeviceChain.hpp. Their definitions can stay in DeviceChain.cpp or move elsewhere.
+
+STRATEGY:
+1. In DeviceChainProcessor.hpp: ADD the 6 helper declarations (stereoBlockPeak, publishDynamicsMeters, isMidiNoteActive, applyStereoScalarGain, multiplyPerFrameGain, mixStereoPerFramePan) as public functions in audioapp::DeviceChainProcessor namespace. They are already defined in DeviceChainProcessor.cpp's anonymous namespace -- MOVE them out of the anonymous namespace into the DeviceChainProcessor namespace.
+2. In DeviceChain.hpp: ADD midiActiveFrequencyHz declaration (it's already there, check). ADD the 3 classifier declarations (they're already there, check).
+3. In DeviceChain.cpp: Keep the 3 classifiers + midiActiveFrequencyHz definitions (they're public API called by other TUs). DELETE the 6 helpers (unused in this TU). Strip includes that are no longer needed.
+4. In DeviceChainProcessor.cpp: MOVE the 6 helpers from anonymous namespace to DeviceChainProcessor namespace (they already take no args that use anonymous state). Remove the anonymous namespace.
+
+COMPILE GATE:
+cmd /c '"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat" && cmake --build build/engine --target audioapp_engine'
+
+TEST GATE:
+python tools/step_gate.py
+python tools/snapshot_test.py build/engine/test_gate/post_step4.txt
+Compare-Object (Get-Content "build/engine/test_gate/baseline.txt") (Get-Content "build/engine/test_gate/post_step4.txt")
+Expected: empty diff.
+
+ACCEPTANCE CRITERIA:
+1. Compile gate passes
+2. Test gate exits 0 with DeviceChain: 0 failures
+3. DeviceChain.cpp <= 80 LOC (or <= 120 if classifiers stay)
+4. No duplicate function definitions across TUs
+5. Baseline diff: empty

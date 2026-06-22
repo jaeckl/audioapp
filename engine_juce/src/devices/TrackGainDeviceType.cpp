@@ -2,7 +2,7 @@
 
 #include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/devices/instances/TrackGainInstance.hpp"
+#include "audioapp/DeviceChain.hpp"
 
 #include <juce_core/juce_core.h>
 #include <algorithm>
@@ -16,7 +16,7 @@ std::string TrackGainDeviceType::typeId() const {
 DeviceSlot TrackGainDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    slot.instance = TrackGainInstance{};
+    slot.instance = TrackGainParams{};
     return slot;
 }
 
@@ -56,7 +56,7 @@ DeviceSlot TrackGainDeviceType::varToSlot(const juce::var& obj) const {
         };
         slot.pan = readRootFloat("pan", 0.5f);
         slot.bypassed = readRootFloat("bypass", 0.0f) >= 0.5f;
-        slot.instance = TrackGainInstance{};
+        slot.instance = TrackGainParams{};
     }
     return slot;
 }

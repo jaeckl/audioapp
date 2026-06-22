@@ -1,9 +1,9 @@
 #include "audioapp/DeviceChain.hpp"
-#include "audioapp/KickGenerator.hpp"
 #include "audioapp/LivePerformance.hpp"
 
 #include <juce_core/juce_core.h>
 #include "TestHelpers.h"
+#include "TestChainHelper.hpp"
 
 #include <cmath>
 #include <cstring>
@@ -32,24 +32,8 @@ public:
             float right[kFrames];
             std::memset(left, 0, sizeof(left));
             std::memset(right, 0, sizeof(right));
-            float phase = 0.0f;
-            audioapp::KickGeneratorRuntime runtime{};
 
-            audioapp::processDeviceChain(left,
-                                         right,
-                                         kFrames,
-                                         kSampleRate,
-                                         120,
-                                         0.0,
-                                         notes,
-                                         1,
-                                         devices,
-                                         1,
-                                         phase,
-                                         false,
-                                         nullptr,
-                                         nullptr,
-                                         &runtime);
+            audioapp::test::processTestChain(left, right, kFrames, kSampleRate, 120, 0.0, notes, 1, devices, 1, false);
 
             expect(audioapp::test::peakAbs(left, kFrames) > 0.001f,
                    "Kick device chain with default params should produce audible output");
@@ -64,24 +48,8 @@ public:
             float right[kFrames];
             std::memset(left, 0, sizeof(left));
             std::memset(right, 0, sizeof(right));
-            float phase = 0.0f;
-            audioapp::KickGeneratorRuntime runtime{};
 
-            audioapp::processDeviceChain(left,
-                                         right,
-                                         kFrames,
-                                         kSampleRate,
-                                         120,
-                                         0.0,
-                                         notes,
-                                         1,
-                                         devices,
-                                         1,
-                                         phase,
-                                         false,
-                                         nullptr,
-                                         nullptr,
-                                         &runtime);
+            audioapp::test::processTestChain(left, right, kFrames, kSampleRate, 120, 0.0, notes, 1, devices, 1, false);
 
             expect(audioapp::test::peakAbs(left, kFrames) > 0.001f,
                    "Kick device chain with kickModel=0.5f should produce audible output");

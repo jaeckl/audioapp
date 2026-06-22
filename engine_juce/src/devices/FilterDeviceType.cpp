@@ -2,7 +2,7 @@
 
 #include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/devices/instances/FrequencyFxInstance.hpp"
+#include "audioapp/devices/instances/FrequencyFxModel.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -15,7 +15,7 @@ std::string FilterDeviceType::typeId() const { return device_types::kFilter; }
 DeviceSlot FilterDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    slot.instance = FilterInstance{};
+    slot.instance = FilterModel{};
     return slot;
 }
 
@@ -28,7 +28,7 @@ DeviceParameterResult FilterDeviceType::setParameter(DeviceSlot& slot,
         result.handled = true;
         return result;
     }
-    auto& instance = std::get<FilterInstance>(slot.instance);
+    auto& instance = std::get<FilterModel>(slot.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
     if (parameterId == "ffxCutoff") {
         instance.ffxCutoff = clamped;
@@ -58,7 +58,7 @@ void FilterDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                          const PlaybackBuildContext&,
                                          DeviceNodePlayback& out) const {
     out.kind = DeviceNodeKind::Filter;
-    out.params = std::get<FilterInstance>(slot.instance).toPlaybackParams();
+    out.params = std::get<FilterModel>(slot.instance).toPlaybackParams();
 }
 
 bool FilterDeviceType::buildLiveInstrument(const DeviceSlot&,
@@ -69,7 +69,7 @@ bool FilterDeviceType::buildLiveInstrument(const DeviceSlot&,
 
 juce::var FilterDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<FilterInstance>(slot.instance);
+    const auto& inst = std::get<FilterModel>(slot.instance);
     parameters->setProperty("gain", static_cast<double>(slot.gain));
     parameters->setProperty("pan", static_cast<double>(slot.pan));
     parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
@@ -104,7 +104,7 @@ DeviceSlot FilterDeviceType::varToSlot(const juce::var& obj) const {
             slot.gain = readFloat("gain", 1.0f);
             slot.pan = readFloat("pan", 0.5f);
             slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
-            FilterInstance inst;
+            FilterModel inst;
             inst.ffxCutoff = readFloat("ffxCutoff", 0.6f);
             inst.ffxResonance = readFloat("ffxResonance", 0.3f);
             inst.ffxFilterMode = readFloat("ffxFilterMode", 0.0f);

@@ -49,7 +49,28 @@ add_library(audioapp_engine STATIC
   src/MasterMix.cpp
   src/DeviceChain.cpp
   src/DeviceChainAutomationModulation.cpp
-  src/DeviceChainProcessor.cpp
+  src/DeviceChainOrchestrator.cpp
+  src/devices/processors/TrackGainProcessor.cpp
+  src/devices/processors/OscillatorProcessor.cpp
+  src/devices/processors/SamplerProcessor.cpp
+  src/devices/processors/SubtractiveSynthProcessor.cpp
+  src/devices/processors/PhaseModSynthProcessor.cpp
+  src/devices/processors/KickProcessor.cpp
+  src/devices/processors/SnareProcessor.cpp
+  src/devices/processors/ClapProcessor.cpp
+  src/devices/processors/CymbalProcessor.cpp
+  src/devices/processors/CrashProcessor.cpp
+  src/devices/processors/GateProcessor.cpp
+  src/devices/processors/CompressorProcessor.cpp
+  src/devices/processors/ExpanderProcessor.cpp
+  src/devices/processors/LimiterProcessor.cpp
+  src/devices/processors/DelayProcessor.cpp
+  src/devices/processors/ReverbProcessor.cpp
+  src/devices/processors/ChorusProcessor.cpp
+  src/devices/processors/PhaserProcessor.cpp
+  src/devices/processors/FilterProcessor.cpp
+  src/devices/processors/FourBandEqProcessor.cpp
+  src/devices/processors/FrequencyShifterProcessor.cpp
   src/devices/DeviceRegistry.cpp
   src/devices/OscillatorDeviceType.cpp
   src/devices/SamplerDeviceType.cpp

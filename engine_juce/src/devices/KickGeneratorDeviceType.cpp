@@ -2,11 +2,7 @@
 
 #include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/devices/instances/KickGeneratorInstance.hpp"
-
-#include <juce_core/juce_core.h>
-
-#include <algorithm>
+#include "audioapp/KickGenerator.hpp"
 
 namespace audioapp {
 
@@ -17,7 +13,7 @@ std::string KickGeneratorDeviceType::typeId() const {
 DeviceSlot KickGeneratorDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    slot.instance = KickGeneratorInstance{};
+    slot.instance = KickGeneratorParams{};
     return slot;
 }
 
@@ -31,7 +27,7 @@ DeviceParameterResult KickGeneratorDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
 
-    auto& instance = std::get<KickGeneratorInstance>(slot.instance);
+    auto& instance = std::get<KickGeneratorParams>(slot.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
     if (parameterId == "kickModel") {
         instance.kickModel = clamped;
@@ -72,25 +68,27 @@ std::vector<std::string_view> KickGeneratorDeviceType::modulatableParams() const
 void KickGeneratorDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                                 const PlaybackBuildContext&,
                                                 DeviceNodePlayback& out) const {
-    const auto& instance = std::get<KickGeneratorInstance>(slot.instance);
+    auto params = std::get<KickGeneratorParams>(slot.instance);
+    params.gain = slot.gain;
     out.kind = DeviceNodeKind::KickGenerator;
-    out.params = instance.toPlaybackParams(slot.gain);
+    out.params = params;
 }
 
 bool KickGeneratorDeviceType::buildLiveInstrument(const DeviceSlot& slot,
                                                   const PlaybackBuildContext&,
                                                   LiveInstrumentSnapshot& out) const {
-    const auto& instance = std::get<KickGeneratorInstance>(slot.instance);
+    auto params = std::get<KickGeneratorParams>(slot.instance);
+    params.gain = slot.gain;
     out = LiveInstrumentSnapshot{};
     out.kind = LiveInstrumentKind::KickGenerator;
     out.gain = slot.gain;
-    out.kick = instance.toPlaybackParams(slot.gain);
+    out.kick = params;
     return true;
 }
 
 juce::var KickGeneratorDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<KickGeneratorInstance>(slot.instance);
+    const auto& inst = std::get<KickGeneratorParams>(slot.instance);
     parameters->setProperty("gain", static_cast<double>(slot.gain));
     parameters->setProperty("pan", static_cast<double>(slot.pan));
     parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
@@ -125,7 +123,7 @@ DeviceSlot KickGeneratorDeviceType::varToSlot(const juce::var& obj) const {
             slot.gain = readFloat("gain", 1.0f);
             slot.pan = readFloat("pan", 0.5f);
             slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
-            KickGeneratorInstance inst;
+            KickGeneratorParams inst;
             inst.kickModel = readFloat("kickModel", 0.0f);
             inst.kickPitch = readFloat("kickPitch", 0.55f);
             inst.kickPunch = readFloat("kickPunch", 0.60f);

@@ -6,8 +6,6 @@
 #include "audioapp/devices/DeviceParameterResult.hpp"
 #include "audioapp/devices/PlaybackBuildContext.hpp"
 #include "audioapp/DeviceChain.hpp"
-#include "audioapp/devices/instances/EffectInstance.hpp"
-#include "audioapp/DeviceChain.hpp"
 #include "juce_dsp/juce_dsp.h"
 
 namespace audioapp {
@@ -15,11 +13,11 @@ namespace audioapp {
 DeviceSlot PhaserDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    PhaserInstance instance;
-    instance.params.depth = 0.5;
-    instance.params.rateHz = 0.8;
-    instance.params.feedback = 0.3;
-    instance.params.centreFrequencyHz = 1000.0;
+    PhaserParams instance;
+    instance.depth = 0.5;
+    instance.rateHz = 0.8;
+    instance.feedback = 0.3;
+    instance.centreFrequencyHz = 1000.0;
     slot.instance = std::move(instance);
     return slot;
 }
@@ -32,15 +30,15 @@ DeviceParameterResult PhaserDeviceType::setParameter(DeviceSlot& slot,
         result.handled = true;
         return result;
     }
-    auto& instance = std::get<PhaserInstance>(slot.instance);
+    auto& instance = std::get<PhaserParams>(slot.instance);
     if (parameterId == "depth") {
-        instance.params.depth = juce::jlimit(0.0, 1.0, static_cast<double>(value));
+        instance.depth = juce::jlimit(0.0, 1.0, static_cast<double>(value));
     } else if (parameterId == "rateHz") {
-        instance.params.rateHz = juce::jlimit(0.1, 5.0, static_cast<double>(value));
+        instance.rateHz = juce::jlimit(0.1, 5.0, static_cast<double>(value));
     } else if (parameterId == "feedback") {
-        instance.params.feedback = juce::jlimit(0.0, 0.95, static_cast<double>(value));
+        instance.feedback = juce::jlimit(0.0, 0.95, static_cast<double>(value));
     } else if (parameterId == "centreFrequencyHz") {
-        instance.params.centreFrequencyHz = juce::jlimit(20.0, 20000.0, static_cast<double>(value));
+        instance.centreFrequencyHz = juce::jlimit(20.0, 20000.0, static_cast<double>(value));
     } else {
         return result;
     }
@@ -58,12 +56,12 @@ std::vector<std::string_view> PhaserDeviceType::modulatableParams() const {
 
 void PhaserDeviceType::buildPlaybackNode(const DeviceSlot& slot, const PlaybackBuildContext&, DeviceNodePlayback& out) const {
     out.kind = DeviceNodeKind::Phaser;
-    const auto& inst = std::get<PhaserInstance>(slot.instance);
+    const auto& inst = std::get<PhaserParams>(slot.instance);
     PhaserParamsPlayback p;
-    p.depth = static_cast<float>(inst.params.depth);
-    p.rateHz = static_cast<float>(inst.params.rateHz);
-    p.feedback = static_cast<float>(inst.params.feedback);
-    p.centreFrequencyHz = static_cast<float>(inst.params.centreFrequencyHz);
+    p.depth = static_cast<float>(inst.depth);
+    p.rateHz = static_cast<float>(inst.rateHz);
+    p.feedback = static_cast<float>(inst.feedback);
+    p.centreFrequencyHz = static_cast<float>(inst.centreFrequencyHz);
     p.inputGain = 1.0f;
     out.params = p;
 }
@@ -72,14 +70,14 @@ bool PhaserDeviceType::buildLiveInstrument(const DeviceSlot&, const PlaybackBuil
 
 juce::var PhaserDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<PhaserInstance>(slot.instance);
+    const auto& inst = std::get<PhaserParams>(slot.instance);
     parameters->setProperty("gain", static_cast<double>(slot.gain));
     parameters->setProperty("pan", static_cast<double>(slot.pan));
     parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
-    parameters->setProperty("depth", inst.params.depth);
-    parameters->setProperty("rateHz", inst.params.rateHz);
-    parameters->setProperty("feedback", inst.params.feedback);
-    parameters->setProperty("centreFrequencyHz", inst.params.centreFrequencyHz);
+    parameters->setProperty("depth", inst.depth);
+    parameters->setProperty("rateHz", inst.rateHz);
+    parameters->setProperty("feedback", inst.feedback);
+    parameters->setProperty("centreFrequencyHz", inst.centreFrequencyHz);
 
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
@@ -109,12 +107,12 @@ DeviceSlot PhaserDeviceType::varToSlot(const juce::var& obj) const {
             slot.gain = readFloat("gain", 1.0f);
             slot.pan = readFloat("pan", 0.5f);
             slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
-            PhaserInstance inst;
-            inst.params.depth = p->getProperty("depth").toString().getDoubleValue();
-            inst.params.rateHz = p->getProperty("rateHz").toString().getDoubleValue();
-            inst.params.feedback = p->getProperty("feedback").toString().getDoubleValue();
-            inst.params.centreFrequencyHz = p->getProperty("centreFrequencyHz").toString().getDoubleValue();
-            inst.params.clamp();
+            PhaserParams inst;
+            inst.depth = p->getProperty("depth").toString().getDoubleValue();
+            inst.rateHz = p->getProperty("rateHz").toString().getDoubleValue();
+            inst.feedback = p->getProperty("feedback").toString().getDoubleValue();
+            inst.centreFrequencyHz = p->getProperty("centreFrequencyHz").toString().getDoubleValue();
+            inst.clamp();
             slot.instance = inst;
         }
     }

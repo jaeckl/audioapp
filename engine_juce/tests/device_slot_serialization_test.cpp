@@ -121,7 +121,7 @@ public:
                 const auto parsed2 = juce::JSON::parse(juce::String(audioapp::deviceSlotToVar(slot, registry)));
                 const audioapp::DeviceSlot restoredSlot = audioapp::deviceFromVar(parsed2, registry);
                 expectWithinAbsoluteError(
-                    std::get<audioapp::OscillatorInstance>(restoredSlot.instance).frequencyHz,
+                    std::get<audioapp::OscillatorParams>(restoredSlot.instance).frequencyHz,
                     440.0f, 0.001f,
                     "oscillator registry-aware round-trip failed");
             }

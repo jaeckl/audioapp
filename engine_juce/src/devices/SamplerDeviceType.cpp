@@ -3,7 +3,7 @@
 #include "audioapp/SampleBank.hpp"
 #include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/devices/instances/SamplerInstance.hpp"
+#include "audioapp/devices/instances/SamplerModel.hpp"
 
 #include <juce_core/juce_core.h>
 #include <algorithm>
@@ -12,7 +12,7 @@
 namespace audioapp {
 namespace {
 
-void resolveSampleFrames(const SamplerInstance& instance,
+void resolveSampleFrames(const SamplerModel& instance,
                          const PlaybackBuildContext& context,
                          SamplerParams& params) {
     params.samplerPcm = nullptr;
@@ -55,7 +55,7 @@ void resolveSampleFrames(const SamplerInstance& instance,
     }
 }
 
-void resolveLiveSampleFrames(const SamplerInstance& instance,
+void resolveLiveSampleFrames(const SamplerModel& instance,
                              const PlaybackBuildContext& context,
                              LiveInstrumentSnapshot& out) {
     out.samplerPcm = nullptr;
@@ -103,7 +103,7 @@ std::string SamplerDeviceType::typeId() const {
 DeviceSlot SamplerDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    slot.instance = SamplerInstance{};
+    slot.instance = SamplerModel{};
     return slot;
 }
 
@@ -117,7 +117,7 @@ DeviceParameterResult SamplerDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
 
-    auto& instance = std::get<SamplerInstance>(slot.instance);
+    auto& instance = std::get<SamplerModel>(slot.instance);
     if (parameterId == "attack" || parameterId == "decay" || parameterId == "release") {
         const float clamped = std::clamp(value, 0.0f, 1.0f);
         if (parameterId == "attack") {
@@ -178,7 +178,7 @@ bool SamplerDeviceType::setStringParameter(DeviceSlot& slot,
         context.sampleBank->findSample(value) == nullptr) {
         return false;
     }
-    std::get<SamplerInstance>(slot.instance).sampleId = value;
+    std::get<SamplerModel>(slot.instance).sampleId = value;
     return true;
 }
 
@@ -191,7 +191,7 @@ std::vector<std::string_view> SamplerDeviceType::modulatableParams() const {
 void SamplerDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                           const PlaybackBuildContext& context,
                                           DeviceNodePlayback& out) const {
-    const auto& instance = std::get<SamplerInstance>(slot.instance);
+    const auto& instance = std::get<SamplerModel>(slot.instance);
     SamplerParams params;
     params.attack = instance.attack;
     params.decay = instance.decay;
@@ -216,7 +216,7 @@ void SamplerDeviceType::buildPlaybackNode(const DeviceSlot& slot,
 bool SamplerDeviceType::buildLiveInstrument(const DeviceSlot& slot,
                                             const PlaybackBuildContext& context,
                                             LiveInstrumentSnapshot& out) const {
-    const auto& instance = std::get<SamplerInstance>(slot.instance);
+    const auto& instance = std::get<SamplerModel>(slot.instance);
     out = LiveInstrumentSnapshot{};
     out.kind = LiveInstrumentKind::Sampler;
     out.gain = slot.gain;
@@ -241,7 +241,7 @@ bool SamplerDeviceType::buildLiveInstrument(const DeviceSlot& slot,
 
 juce::var SamplerDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<SamplerInstance>(slot.instance);
+    const auto& inst = std::get<SamplerModel>(slot.instance);
 
     parameters->setProperty("gain", static_cast<double>(slot.gain));
     parameters->setProperty("pan", static_cast<double>(slot.pan));
@@ -296,7 +296,7 @@ DeviceSlot SamplerDeviceType::varToSlot(const juce::var& obj) const {
             slot.pan = readFloat("pan", 0.5f);
             slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
 
-            SamplerInstance inst;
+            SamplerModel inst;
             inst.sampleId = readString("sampleId");
             inst.attack = readFloat("attack", 0.01f);
             inst.decay = readFloat("decay", 0.3f);

@@ -2,7 +2,7 @@
 
 #include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/devices/instances/LimiterInstance.hpp"
+#include "audioapp/DynamicsProcessor.hpp"
 
 #include <algorithm>
 #include <juce_core/juce_core.h>
@@ -14,7 +14,7 @@ std::string LimiterDeviceType::typeId() const { return device_types::kLimiter; }
 DeviceSlot LimiterDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    slot.instance = LimiterInstance{};
+    slot.instance = LimiterParams{};
     return slot;
 }
 
@@ -27,7 +27,7 @@ DeviceParameterResult LimiterDeviceType::setParameter(DeviceSlot& slot,
         result.handled = true;
         return result;
     }
-    auto& instance = std::get<LimiterInstance>(slot.instance);
+    auto& instance = std::get<LimiterParams>(slot.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
     if (parameterId == "inputGain") {
         instance.inputGain = clamped;
@@ -65,8 +65,9 @@ std::vector<std::string_view> LimiterDeviceType::modulatableParams() const {
 void LimiterDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                           const PlaybackBuildContext&,
                                           DeviceNodePlayback& out) const {
+    auto params = std::get<LimiterParams>(slot.instance);
     out.kind = DeviceNodeKind::Limiter;
-    out.params = std::get<LimiterInstance>(slot.instance).toPlaybackParams();
+    out.params = params;
 }
 
 bool LimiterDeviceType::buildLiveInstrument(const DeviceSlot&,
@@ -77,7 +78,7 @@ bool LimiterDeviceType::buildLiveInstrument(const DeviceSlot&,
 
 juce::var LimiterDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<LimiterInstance>(slot.instance);
+    const auto& inst = std::get<LimiterParams>(slot.instance);
     parameters->setProperty("gain", static_cast<double>(slot.gain));
     parameters->setProperty("pan", static_cast<double>(slot.pan));
     parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
@@ -116,7 +117,7 @@ DeviceSlot LimiterDeviceType::varToSlot(const juce::var& obj) const {
             slot.gain = readFloat("gain", 1.0f);
             slot.pan = readFloat("pan", 0.5f);
             slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
-            LimiterInstance inst;
+            LimiterParams inst;
             inst.inputGain = readFloat("inputGain", 1.0f);
             inst.limitCeiling = readFloat("limitCeiling", 0.85f);
             inst.limitAttack = readFloat("limitAttack", 0.10f);

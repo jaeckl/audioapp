@@ -5,14 +5,27 @@
 #include "audioapp/MasterMix.hpp"
 #include "audioapp/SamplePlayback.hpp"
 #include "audioapp/DeviceChain.hpp"
+#include "audioapp/DeviceChainOrchestrator.hpp"
+#include "audioapp/DeviceChainScratch.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/devices/instances/OscillatorInstance.hpp"
-#include "audioapp/devices/instances/SubtractiveSynthInstance.hpp"
-#include "audioapp/devices/instances/TrackGainInstance.hpp"
-#include "audioapp/devices/instances/GateInstance.hpp"
-#include "audioapp/devices/instances/CompressorInstance.hpp"
-#include "audioapp/devices/instances/ExpanderInstance.hpp"
-#include "audioapp/devices/instances/LimiterInstance.hpp"
+#include "audioapp/DeviceChain.hpp"
+#include "audioapp/DeviceChainOrchestrator.hpp"
+#include "audioapp/DeviceChainScratch.hpp"
+#include "audioapp/devices/instances/BassSynthModel.hpp"
+#include "audioapp/devices/instances/PhaseModSynthModel.hpp"
+#include "audioapp/devices/instances/SamplerModel.hpp"
+#include "audioapp/devices/instances/FrequencyFxModel.hpp"
+#include "audioapp/DynamicsProcessor.hpp"
+#include "audioapp/KickGenerator.hpp"
+#include "audioapp/SnareGenerator.hpp"
+#include "audioapp/ClapGenerator.hpp"
+#include "audioapp/CymbalGenerator.hpp"
+#include "audioapp/CrashGenerator.hpp"
+#include "audioapp/SubtractiveSynth.hpp"
+#include "audioapp/effects/DelayParams.hpp"
+#include "audioapp/effects/ReverbParams.hpp"
+#include "audioapp/effects/ChorusParams.hpp"
+#include "audioapp/effects/PhaserParams.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -23,6 +36,10 @@
 #include <vector>
 
 namespace audioapp {
+
+namespace {
+thread_local DeviceChainScratch gProjectScratch;
+} // namespace
 
 void ProjectEngine::createProject() {
     std::lock_guard<std::shared_mutex> lock(mutex_);
@@ -79,7 +96,7 @@ std::string ProjectEngine::addDeviceToTrack(const std::string& trackId,
 
     size_t gainIndex = track->devices.size();
     for (size_t i = 0; i < track->devices.size(); ++i) {
-        if (std::holds_alternative<TrackGainInstance>(track->devices[i].instance)) {
+        if (std::holds_alternative<TrackGainParams>(track->devices[i].instance)) {
             gainIndex = i;
             break;
         }
@@ -121,7 +138,7 @@ bool ProjectEngine::removeDeviceFromTrack(const std::string& deviceId) {
     }
 
     const auto& slot = ownerTrack->devices[deviceIndex];
-    if (std::holds_alternative<TrackGainInstance>(slot.instance)) {
+    if (std::holds_alternative<TrackGainParams>(slot.instance)) {
         return false;
     }
 
@@ -669,38 +686,26 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
             };
         }
 
-        float oscillatorPhase = track.oscillatorPhase;
-        processDeviceChain(trackLeft,
-                           trackRight,
-                           framesToProcess,
-                           sampleRate,
-                           transport_.bpm(),
-                           playheadStartBeat,
-                           midiNotes,
-                           noteCount,
-                           track.devices,
-                           track.deviceCount,
-                           oscillatorPhase,
-                           suppressInstruments,
-                           trackPlayback_[trackIndex].samplerFilterStates,
-                           trackPlayback_[trackIndex].subtractiveRuntimes,
-                           trackPlayback_[trackIndex].kickRuntimes,
-                           trackPlayback_[trackIndex].snareRuntimes,
-                           trackPlayback_[trackIndex].clapRuntimes,
-                           trackPlayback_[trackIndex].cymbalRuntimes,
-                           trackPlayback_[trackIndex].crashRuntimes,
-                           trackPlayback_[trackIndex].phaseModRuntimes,
-                           trackPlayback_[trackIndex].dynamicsRuntimes,
-                           trackPlayback_[trackIndex].timeBasedRuntimes,
-                           deviceMeters_,
-                           deviceMeterSlotCount_,
-                           lfoCount > 0 ? lfoValues.data() : nullptr,
-                           lfoCount,
-                           track.modEdgeCount > 0 ? track.modEdges : nullptr,
-                           track.modEdgeCount,
-                           track.automationClipCount > 0 ? track.automationClips : nullptr,
-                           track.automationClipCount);
-        trackPlayback_[trackIndex].oscillatorPhase = oscillatorPhase;
+        DeviceChainOrchestrator::Context ctx(trackPlayback_[trackIndex].arena, gProjectScratch);
+        ctx.trackLeft = trackLeft;
+        ctx.trackRight = trackRight;
+        ctx.numFrames = framesToProcess;
+        ctx.sampleRate = sampleRate;
+        ctx.bpm = transport_.bpm();
+        ctx.playheadStartBeat = playheadStartBeat;
+        ctx.notes = midiNotes;
+        ctx.noteCount = noteCount;
+        ctx.suppressInstruments = suppressInstruments;
+        ctx.deviceMeters = deviceMeters_;
+        ctx.maxDeviceMeters = deviceMeterSlotCount_;
+        ctx.lfoValues = lfoCount > 0 ? lfoValues.data() : nullptr;
+        ctx.lfoCount = lfoCount;
+        ctx.modEdges = track.modEdgeCount > 0 ? track.modEdges : nullptr;
+        ctx.modEdgeCount = track.modEdgeCount;
+        ctx.automationClips = track.automationClipCount > 0 ? track.automationClips : nullptr;
+        ctx.automationClipCount = track.automationClipCount;
+
+        DeviceChainOrchestrator::processChain(ctx);
 
         for (int frame = 0; frame < framesToProcess; ++frame) {
             masterLeft[frame] += trackLeft[frame];
@@ -1012,7 +1017,7 @@ bool ProjectEngine::applySubtractiveSynthPreset(
     const std::vector<SubtractivePresetModSpec>& mods) {
     std::lock_guard<std::shared_mutex> lock(mutex_);
     DeviceSlot* device = findDeviceLocked(deviceId);
-    if (device == nullptr || !std::holds_alternative<SubtractiveSynthInstance>(device->instance)) {
+    if (device == nullptr || !std::holds_alternative<SubtractiveSynthParams>(device->instance)) {
         return false;
     }
 
@@ -1087,10 +1092,10 @@ void ProjectEngine::applyLiveDeviceMetersLocked(ProjectSnapshot& snap) const {
     for (auto& trackState : snap.tracks) {
         for (auto& device : trackState.devices) {
             const bool isDynamics =
-                std::holds_alternative<GateInstance>(device.instance) ||
-                std::holds_alternative<CompressorInstance>(device.instance) ||
-                std::holds_alternative<ExpanderInstance>(device.instance) ||
-                std::holds_alternative<LimiterInstance>(device.instance);
+                std::holds_alternative<GateParams>(device.instance) ||
+                std::holds_alternative<CompressorParams>(device.instance) ||
+                std::holds_alternative<ExpanderParams>(device.instance) ||
+                std::holds_alternative<LimiterParams>(device.instance);
             if (!isDynamics) continue;
             for (int i = 0; i < deviceMeterSlotCount_; ++i) {
                 if (deviceMeterIds_[i] != device.id) {
@@ -1144,6 +1149,10 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
             }
             ++snap.deviceCount;
         }
+
+        // Build processor chain from device snapshot into the arena
+        snap.arena.reset();
+        buildProcessorChain(snap.devices, snap.deviceCount, snap.arena);
 
         for (const auto& clip : sourceTrack.midiClips) {
             for (const auto& note : clip.notes) {
@@ -1274,8 +1283,8 @@ void ProjectEngine::syncActiveFrequencyLocked() {
         if (Track* track = trackRepo_.findTrack(selectedId)) {
             bool foundOscillator = false;
             for (const auto& device : track->devices) {
-                if (std::holds_alternative<OscillatorInstance>(device.instance)) {
-                    freq = std::get<OscillatorInstance>(device.instance).frequencyHz;
+                if (std::holds_alternative<OscillatorParams>(device.instance)) {
+                    freq = std::get<OscillatorParams>(device.instance).frequencyHz;
                     foundOscillator = true;
                     break;
                 }

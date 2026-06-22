@@ -2,11 +2,7 @@
 
 #include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/devices/instances/ClapGeneratorInstance.hpp"
-
-#include <juce_core/juce_core.h>
-
-#include <algorithm>
+#include "audioapp/ClapGenerator.hpp"
 
 namespace audioapp {
 
@@ -17,7 +13,7 @@ std::string ClapGeneratorDeviceType::typeId() const {
 DeviceSlot ClapGeneratorDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    slot.instance = ClapGeneratorInstance{};
+    slot.instance = ClapGeneratorParams{};
     return slot;
 }
 
@@ -31,7 +27,7 @@ DeviceParameterResult ClapGeneratorDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
 
-    auto& instance = std::get<ClapGeneratorInstance>(slot.instance);
+    auto& instance = std::get<ClapGeneratorParams>(slot.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
     if (parameterId == "clapBursts") {
         instance.clapBursts = clamped;
@@ -68,25 +64,27 @@ std::vector<std::string_view> ClapGeneratorDeviceType::modulatableParams() const
 void ClapGeneratorDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                                 const PlaybackBuildContext&,
                                                 DeviceNodePlayback& out) const {
-    const auto& instance = std::get<ClapGeneratorInstance>(slot.instance);
+    auto params = std::get<ClapGeneratorParams>(slot.instance);
+    params.gain = slot.gain;
     out.kind = DeviceNodeKind::ClapGenerator;
-    out.params = instance.toPlaybackParams(slot.gain);
+    out.params = params;
 }
 
 bool ClapGeneratorDeviceType::buildLiveInstrument(const DeviceSlot& slot,
                                                   const PlaybackBuildContext&,
                                                   LiveInstrumentSnapshot& out) const {
-    const auto& instance = std::get<ClapGeneratorInstance>(slot.instance);
+    auto params = std::get<ClapGeneratorParams>(slot.instance);
+    params.gain = slot.gain;
     out = LiveInstrumentSnapshot{};
     out.kind = LiveInstrumentKind::ClapGenerator;
     out.gain = slot.gain;
-    out.clap = instance.toPlaybackParams(slot.gain);
+    out.clap = params;
     return true;
 }
 
 juce::var ClapGeneratorDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<ClapGeneratorInstance>(slot.instance);
+    const auto& inst = std::get<ClapGeneratorParams>(slot.instance);
     parameters->setProperty("gain", static_cast<double>(slot.gain));
     parameters->setProperty("pan", static_cast<double>(slot.pan));
     parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
@@ -119,7 +117,7 @@ DeviceSlot ClapGeneratorDeviceType::varToSlot(const juce::var& obj) const {
             slot.gain = readFloat("gain", 1.0f);
             slot.pan = readFloat("pan", 0.5f);
             slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
-            ClapGeneratorInstance inst;
+            ClapGeneratorParams inst;
             inst.clapBursts = readFloat("clapBursts", 0.50f);
             inst.clapSpread = readFloat("clapSpread", 0.45f);
             inst.clapTone = readFloat("clapTone", 0.55f);

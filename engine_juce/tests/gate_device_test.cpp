@@ -1,7 +1,7 @@
 #include <juce_core/juce_core.h>
 #include "TestHelpers.h"
+#include "TestChainHelper.hpp"
 #include "audioapp/DeviceChain.hpp"
-#include "audioapp/DynamicsProcessor.hpp"
 
 class GateDeviceTest : public juce::UnitTest {
 public:
@@ -20,11 +20,9 @@ public:
 
             float left[kFrames] = {};
             float right[kFrames] = {};
-            float phase = 0.0f;
-            audioapp::DynamicsRuntime dynamicsRuntimes[audioapp::kMaxDevicesPerTrack] = {};
 
-            audioapp::processDeviceChain(left, right, kFrames, kSampleRate, 120, 0.0, nullptr, 0, &osc, 1,
-                                         phase, false);
+            audioapp::test::processTestChain(left, right, kFrames, kSampleRate, 120, 0.0, nullptr, 0, &osc, 1,
+                                         false);
 
             const float peakOscOnly = audioapp::test::peakAbsStereo(left, right, kFrames);
             expect(peakOscOnly > 0.001f, "oscillator produces audio");
@@ -39,11 +37,9 @@ public:
 
             float left[kFrames] = {};
             float right[kFrames] = {};
-            float phase = 0.0f;
-            audioapp::DynamicsRuntime dynamicsRuntimes[audioapp::kMaxDevicesPerTrack] = {};
 
-            audioapp::processDeviceChain(left, right, kFrames, kSampleRate, 120, 0.0, nullptr, 0, &osc, 1,
-                                         phase, false);
+            audioapp::test::processTestChain(left, right, kFrames, kSampleRate, 120, 0.0, nullptr, 0, &osc, 1,
+                                         false);
             const float peakOscOnly = audioapp::test::peakAbsStereo(left, right, kFrames);
 
             audioapp::DeviceNodePlayback gate{};
@@ -59,9 +55,8 @@ public:
             std::memset(left, 0, sizeof(left));
             std::memset(right, 0, sizeof(right));
 
-            audioapp::processDeviceChain(left, right, kFrames, kSampleRate, 120, 0.0, nullptr, 0, chain, 2,
-                                         phase, false, nullptr, nullptr, nullptr, nullptr, nullptr,
-                                         nullptr, nullptr, nullptr, dynamicsRuntimes);
+            audioapp::test::processTestChain(left, right, kFrames, kSampleRate, 120, 0.0, nullptr, 0, chain, 2,
+                                         false);
 
             expect(audioapp::test::peakAbsStereo(left, right, kFrames) < peakOscOnly * 0.25f,
                    "closed gate attenuates");
@@ -76,11 +71,9 @@ public:
 
             float left[kFrames] = {};
             float right[kFrames] = {};
-            float phase = 0.0f;
-            audioapp::DynamicsRuntime dynamicsRuntimes[audioapp::kMaxDevicesPerTrack] = {};
 
-            audioapp::processDeviceChain(left, right, kFrames, kSampleRate, 120, 0.0, nullptr, 0, &osc, 1,
-                                         phase, false);
+            audioapp::test::processTestChain(left, right, kFrames, kSampleRate, 120, 0.0, nullptr, 0, &osc, 1,
+                                         false);
             const float peakOscOnly = audioapp::test::peakAbsStereo(left, right, kFrames);
 
             audioapp::DeviceNodePlayback gate{};
@@ -95,11 +88,8 @@ public:
             audioapp::DeviceNodePlayback chain[2] = {osc, gate};
             std::memset(left, 0, sizeof(left));
             std::memset(right, 0, sizeof(right));
-            std::memset(dynamicsRuntimes, 0, sizeof(dynamicsRuntimes));
-
-            audioapp::processDeviceChain(left, right, kFrames, kSampleRate, 120, 0.0, nullptr, 0, chain, 2,
-                                         phase, false, nullptr, nullptr, nullptr, nullptr, nullptr,
-                                         nullptr, nullptr, nullptr, dynamicsRuntimes);
+            audioapp::test::processTestChain(left, right, kFrames, kSampleRate, 120, 0.0, nullptr, 0, chain, 2,
+                                         false);
 
             expect(audioapp::test::peakAbsStereo(left, right, kFrames) >= peakOscOnly * 0.5f,
                    "open gate passes signal");

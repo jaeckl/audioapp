@@ -2,7 +2,7 @@
 
 #include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/devices/instances/GateInstance.hpp"
+#include "audioapp/DynamicsProcessor.hpp"
 
 #include <algorithm>
 
@@ -13,7 +13,7 @@ std::string GateDeviceType::typeId() const { return device_types::kGate; }
 DeviceSlot GateDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    slot.instance = GateInstance{};
+    slot.instance = GateParams{};
     return slot;
 }
 
@@ -26,7 +26,7 @@ DeviceParameterResult GateDeviceType::setParameter(DeviceSlot& slot,
         result.handled = true;
         return result;
     }
-    auto& instance = std::get<GateInstance>(slot.instance);
+    auto& instance = std::get<GateParams>(slot.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
     if (parameterId == "inputGain") {
         instance.inputGain = clamped;
@@ -61,8 +61,9 @@ std::vector<std::string_view> GateDeviceType::modulatableParams() const {
 void GateDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                        const PlaybackBuildContext&,
                                        DeviceNodePlayback& out) const {
+    auto params = std::get<GateParams>(slot.instance);
     out.kind = DeviceNodeKind::Gate;
-    out.params = std::get<GateInstance>(slot.instance).toPlaybackParams();
+    out.params = params;
 }
 
 bool GateDeviceType::buildLiveInstrument(const DeviceSlot&,
@@ -73,7 +74,7 @@ bool GateDeviceType::buildLiveInstrument(const DeviceSlot&,
 
 juce::var GateDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<GateInstance>(slot.instance);
+    const auto& inst = std::get<GateParams>(slot.instance);
     parameters->setProperty("gain", static_cast<double>(slot.gain));
     parameters->setProperty("pan", static_cast<double>(slot.pan));
     parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
@@ -112,7 +113,7 @@ DeviceSlot GateDeviceType::varToSlot(const juce::var& obj) const {
             slot.gain = readFloat("gain", 1.0f);
             slot.pan = readFloat("pan", 0.5f);
             slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
-            GateInstance inst;
+            GateParams inst;
             inst.inputGain = readFloat("inputGain", 1.0f);
             inst.gateThreshold = readFloat("gateThreshold", 0.45f);
             inst.gateAttack = readFloat("gateAttack", 0.25f);

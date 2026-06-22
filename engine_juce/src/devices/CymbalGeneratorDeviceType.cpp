@@ -2,11 +2,7 @@
 
 #include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/devices/instances/CymbalGeneratorInstance.hpp"
-
-#include <juce_core/juce_core.h>
-
-#include <algorithm>
+#include "audioapp/CymbalGenerator.hpp"
 
 namespace audioapp {
 
@@ -17,7 +13,7 @@ std::string CymbalGeneratorDeviceType::typeId() const {
 DeviceSlot CymbalGeneratorDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    slot.instance = CymbalGeneratorInstance{};
+    slot.instance = CymbalGeneratorParams{};
     return slot;
 }
 
@@ -31,7 +27,7 @@ DeviceParameterResult CymbalGeneratorDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
 
-    auto& instance = std::get<CymbalGeneratorInstance>(slot.instance);
+    auto& instance = std::get<CymbalGeneratorParams>(slot.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
     if (parameterId == "cymbalModel") {
         instance.cymbalModel = clamped;
@@ -65,25 +61,27 @@ std::vector<std::string_view> CymbalGeneratorDeviceType::modulatableParams() con
 void CymbalGeneratorDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                                   const PlaybackBuildContext&,
                                                   DeviceNodePlayback& out) const {
-    const auto& instance = std::get<CymbalGeneratorInstance>(slot.instance);
+    auto params = std::get<CymbalGeneratorParams>(slot.instance);
+    params.gain = slot.gain;
     out.kind = DeviceNodeKind::CymbalGenerator;
-    out.params = instance.toPlaybackParams(slot.gain);
+    out.params = params;
 }
 
 bool CymbalGeneratorDeviceType::buildLiveInstrument(const DeviceSlot& slot,
                                                     const PlaybackBuildContext&,
                                                     LiveInstrumentSnapshot& out) const {
-    const auto& instance = std::get<CymbalGeneratorInstance>(slot.instance);
+    auto params = std::get<CymbalGeneratorParams>(slot.instance);
+    params.gain = slot.gain;
     out = LiveInstrumentSnapshot{};
     out.kind = LiveInstrumentKind::CymbalGenerator;
     out.gain = slot.gain;
-    out.cymbal = instance.toPlaybackParams(slot.gain);
+    out.cymbal = params;
     return true;
 }
 
 juce::var CymbalGeneratorDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<CymbalGeneratorInstance>(slot.instance);
+    const auto& inst = std::get<CymbalGeneratorParams>(slot.instance);
     parameters->setProperty("gain", static_cast<double>(slot.gain));
     parameters->setProperty("pan", static_cast<double>(slot.pan));
     parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
@@ -115,7 +113,7 @@ DeviceSlot CymbalGeneratorDeviceType::varToSlot(const juce::var& obj) const {
             slot.gain = readFloat("gain", 1.0f);
             slot.pan = readFloat("pan", 0.5f);
             slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
-            CymbalGeneratorInstance inst;
+            CymbalGeneratorParams inst;
             inst.cymbalModel = readFloat("cymbalModel", 0.0f);
             if (p->hasProperty("cymbalColor")) {
                 inst.cymbalColor = readFloat("cymbalColor", 0.68f);

@@ -19,22 +19,6 @@
 #include "audioapp/devices/FilterDeviceType.hpp"
 #include "audioapp/devices/FourBandEqDeviceType.hpp"
 #include "audioapp/devices/FrequencyShifterDeviceType.hpp"
-#include "audioapp/devices/instances/BassSynthInstance.hpp"
-#include "audioapp/devices/instances/KickGeneratorInstance.hpp"
-#include "audioapp/devices/instances/SnareGeneratorInstance.hpp"
-#include "audioapp/devices/instances/ClapGeneratorInstance.hpp"
-#include "audioapp/devices/instances/CymbalGeneratorInstance.hpp"
-#include "audioapp/devices/instances/CrashGeneratorInstance.hpp"
-#include "audioapp/devices/instances/GateInstance.hpp"
-#include "audioapp/devices/instances/CompressorInstance.hpp"
-#include "audioapp/devices/instances/ExpanderInstance.hpp"
-#include "audioapp/devices/instances/LimiterInstance.hpp"
-#include "audioapp/devices/instances/EffectInstance.hpp"
-#include "audioapp/devices/instances/OscillatorInstance.hpp"
-#include "audioapp/devices/instances/SamplerInstance.hpp"
-#include "audioapp/devices/instances/SubtractiveSynthInstance.hpp"
-#include "audioapp/devices/instances/TrackGainInstance.hpp"
-#include "audioapp/devices/instances/FrequencyFxInstance.hpp"
 #include "audioapp/effects/EffectDeviceRegistration.hpp"
 
 namespace audioapp {
@@ -72,58 +56,58 @@ std::vector<std::string_view> DeviceRegistry::knownTypes() const {
 }
 
 const IDeviceType* DeviceRegistry::findTypeForSlot(const DeviceSlot& slot) const {
-    if (std::holds_alternative<OscillatorInstance>(slot.instance)) {
+    if (std::holds_alternative<OscillatorParams>(slot.instance)) {
         return find(device_types::kOscillator);
     }
-    if (std::holds_alternative<SamplerInstance>(slot.instance)) {
+    if (std::holds_alternative<SamplerModel>(slot.instance)) {
         return find(device_types::kSampler);
     }
-    if (std::holds_alternative<TrackGainInstance>(slot.instance)) {
+    if (std::holds_alternative<TrackGainParams>(slot.instance)) {
         return find(device_types::kTrackGain);
     }
-    if (std::holds_alternative<SubtractiveSynthInstance>(slot.instance)) {
+    if (std::holds_alternative<SubtractiveSynthParams>(slot.instance)) {
         return find(device_types::kSubtractiveSynth);
     }
-    if (std::holds_alternative<KickGeneratorInstance>(slot.instance)) {
+    if (std::holds_alternative<KickGeneratorParams>(slot.instance)) {
         return find(device_types::kKickGenerator);
     }
-    if (std::holds_alternative<SnareGeneratorInstance>(slot.instance)) {
+    if (std::holds_alternative<SnareGeneratorParams>(slot.instance)) {
         return find(device_types::kSnareGenerator);
     }
-    if (std::holds_alternative<ClapGeneratorInstance>(slot.instance)) {
+    if (std::holds_alternative<ClapGeneratorParams>(slot.instance)) {
         return find(device_types::kClapGenerator);
     }
-    if (std::holds_alternative<CymbalGeneratorInstance>(slot.instance)) {
+    if (std::holds_alternative<CymbalGeneratorParams>(slot.instance)) {
         return find(device_types::kCymbalGenerator);
     }
-    if (std::holds_alternative<CrashGeneratorInstance>(slot.instance)) {
+    if (std::holds_alternative<CrashGeneratorParams>(slot.instance)) {
         return find(device_types::kCrashGenerator);
     }
-    if (std::holds_alternative<GateInstance>(slot.instance)) {
+    if (std::holds_alternative<GateParams>(slot.instance)) {
         return find(device_types::kGate);
     }
-    if (std::holds_alternative<CompressorInstance>(slot.instance)) {
+    if (std::holds_alternative<CompressorParams>(slot.instance)) {
         return find(device_types::kCompressor);
     }
-    if (std::holds_alternative<ExpanderInstance>(slot.instance)) {
+    if (std::holds_alternative<ExpanderParams>(slot.instance)) {
         return find(device_types::kExpander);
     }
-    if (std::holds_alternative<LimiterInstance>(slot.instance)) {
+    if (std::holds_alternative<LimiterParams>(slot.instance)) {
         return find(device_types::kLimiter);
     }
-    if (std::holds_alternative<BassSynthInstance>(slot.instance)) {
+    if (std::holds_alternative<BassSynthModel>(slot.instance)) {
         return find(device_types::kBasSynth);
     }
-    if (std::holds_alternative<PhaseModSynthInstance>(slot.instance)) {
+    if (std::holds_alternative<PhaseModSynthModel>(slot.instance)) {
         return find(device_types::kPhaseModSynth);
     }
-    if (std::holds_alternative<DelayInstance>(slot.instance)) return find(device_types::kDelay);
-    if (std::holds_alternative<ReverbInstance>(slot.instance)) return find(device_types::kReverb);
-    if (std::holds_alternative<ChorusInstance>(slot.instance)) return find(device_types::kChorus);
-    if (std::holds_alternative<PhaserInstance>(slot.instance)) return find(device_types::kPhaser);
-    if (std::holds_alternative<FilterInstance>(slot.instance)) return find(device_types::kFilter);
-    if (std::holds_alternative<FourBandEqInstance>(slot.instance)) return find(device_types::kFourBandEq);
-    if (std::holds_alternative<FrequencyShifterInstance>(slot.instance)) return find(device_types::kFrequencyShifter);
+    if (std::holds_alternative<DelayParams>(slot.instance)) return find(device_types::kDelay);
+    if (std::holds_alternative<ReverbParams>(slot.instance)) return find(device_types::kReverb);
+    if (std::holds_alternative<ChorusParams>(slot.instance)) return find(device_types::kChorus);
+    if (std::holds_alternative<PhaserParams>(slot.instance)) return find(device_types::kPhaser);
+    if (std::holds_alternative<FilterModel>(slot.instance)) return find(device_types::kFilter);
+    if (std::holds_alternative<FourBandEqModel>(slot.instance)) return find(device_types::kFourBandEq);
+    if (std::holds_alternative<FrequencyShifterModel>(slot.instance)) return find(device_types::kFrequencyShifter);
     return nullptr;
 }
 

@@ -2,11 +2,7 @@
 
 #include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/devices/instances/SnareGeneratorInstance.hpp"
-
-#include <juce_core/juce_core.h>
-
-#include <algorithm>
+#include "audioapp/SnareGenerator.hpp"
 
 namespace audioapp {
 
@@ -17,7 +13,7 @@ std::string SnareGeneratorDeviceType::typeId() const {
 DeviceSlot SnareGeneratorDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    slot.instance = SnareGeneratorInstance{};
+    slot.instance = SnareGeneratorParams{};
     return slot;
 }
 
@@ -31,7 +27,7 @@ DeviceParameterResult SnareGeneratorDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
 
-    auto& instance = std::get<SnareGeneratorInstance>(slot.instance);
+    auto& instance = std::get<SnareGeneratorParams>(slot.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
     if (parameterId == "snareModel") {
         instance.snareModel = clamped;
@@ -72,25 +68,27 @@ std::vector<std::string_view> SnareGeneratorDeviceType::modulatableParams() cons
 void SnareGeneratorDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                                  const PlaybackBuildContext&,
                                                  DeviceNodePlayback& out) const {
-    const auto& instance = std::get<SnareGeneratorInstance>(slot.instance);
+    auto params = std::get<SnareGeneratorParams>(slot.instance);
+    params.gain = slot.gain;
     out.kind = DeviceNodeKind::SnareGenerator;
-    out.params = instance.toPlaybackParams(slot.gain);
+    out.params = params;
 }
 
 bool SnareGeneratorDeviceType::buildLiveInstrument(const DeviceSlot& slot,
                                                    const PlaybackBuildContext&,
                                                    LiveInstrumentSnapshot& out) const {
-    const auto& instance = std::get<SnareGeneratorInstance>(slot.instance);
+    auto params = std::get<SnareGeneratorParams>(slot.instance);
+    params.gain = slot.gain;
     out = LiveInstrumentSnapshot{};
     out.kind = LiveInstrumentKind::SnareGenerator;
     out.gain = slot.gain;
-    out.snare = instance.toPlaybackParams(slot.gain);
+    out.snare = params;
     return true;
 }
 
 juce::var SnareGeneratorDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<SnareGeneratorInstance>(slot.instance);
+    const auto& inst = std::get<SnareGeneratorParams>(slot.instance);
     parameters->setProperty("gain", static_cast<double>(slot.gain));
     parameters->setProperty("pan", static_cast<double>(slot.pan));
     parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
@@ -125,7 +123,7 @@ DeviceSlot SnareGeneratorDeviceType::varToSlot(const juce::var& obj) const {
             slot.gain = readFloat("gain", 1.0f);
             slot.pan = readFloat("pan", 0.5f);
             slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
-            SnareGeneratorInstance inst;
+            SnareGeneratorParams inst;
             inst.snareModel = readFloat("snareModel", 0.0f);
             inst.snareBody = readFloat("snareBody", 0.45f);
             inst.snareRing = readFloat("snareRing", 0.40f);

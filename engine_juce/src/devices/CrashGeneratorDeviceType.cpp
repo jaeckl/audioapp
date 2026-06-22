@@ -2,11 +2,7 @@
 
 #include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/devices/instances/CrashGeneratorInstance.hpp"
-
-#include <juce_core/juce_core.h>
-
-#include <algorithm>
+#include "audioapp/CrashGenerator.hpp"
 
 namespace audioapp {
 
@@ -17,7 +13,7 @@ std::string CrashGeneratorDeviceType::typeId() const {
 DeviceSlot CrashGeneratorDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    slot.instance = CrashGeneratorInstance{};
+    slot.instance = CrashGeneratorParams{};
     return slot;
 }
 
@@ -31,7 +27,7 @@ DeviceParameterResult CrashGeneratorDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
 
-    auto& instance = std::get<CrashGeneratorInstance>(slot.instance);
+    auto& instance = std::get<CrashGeneratorParams>(slot.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
     if (parameterId == "crashModel") {
         instance.crashModel = clamped;
@@ -65,25 +61,27 @@ std::vector<std::string_view> CrashGeneratorDeviceType::modulatableParams() cons
 void CrashGeneratorDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                                  const PlaybackBuildContext&,
                                                  DeviceNodePlayback& out) const {
-    const auto& instance = std::get<CrashGeneratorInstance>(slot.instance);
+    auto params = std::get<CrashGeneratorParams>(slot.instance);
+    params.gain = slot.gain;
     out.kind = DeviceNodeKind::CrashGenerator;
-    out.params = instance.toPlaybackParams(slot.gain);
+    out.params = params;
 }
 
 bool CrashGeneratorDeviceType::buildLiveInstrument(const DeviceSlot& slot,
                                                    const PlaybackBuildContext&,
                                                    LiveInstrumentSnapshot& out) const {
-    const auto& instance = std::get<CrashGeneratorInstance>(slot.instance);
+    auto params = std::get<CrashGeneratorParams>(slot.instance);
+    params.gain = slot.gain;
     out = LiveInstrumentSnapshot{};
     out.kind = LiveInstrumentKind::CrashGenerator;
     out.gain = slot.gain;
-    out.crash = instance.toPlaybackParams(slot.gain);
+    out.crash = params;
     return true;
 }
 
 juce::var CrashGeneratorDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<CrashGeneratorInstance>(slot.instance);
+    const auto& inst = std::get<CrashGeneratorParams>(slot.instance);
     parameters->setProperty("gain", static_cast<double>(slot.gain));
     parameters->setProperty("pan", static_cast<double>(slot.pan));
     parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
@@ -115,7 +113,7 @@ DeviceSlot CrashGeneratorDeviceType::varToSlot(const juce::var& obj) const {
             slot.gain = readFloat("gain", 1.0f);
             slot.pan = readFloat("pan", 0.5f);
             slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
-            CrashGeneratorInstance inst;
+            CrashGeneratorParams inst;
             inst.crashModel = readFloat("crashModel", 0.0f);
             if (p->hasProperty("crashColor")) {
                 inst.crashColor = readFloat("crashColor", 0.62f);

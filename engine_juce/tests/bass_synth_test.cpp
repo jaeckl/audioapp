@@ -8,7 +8,7 @@
 #include "audioapp/devices/DeviceSlot.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/devices/PlaybackBuildContext.hpp"
-#include "audioapp/devices/instances/BassSynthInstance.hpp"
+#include "audioapp/devices/instances/BassSynthModel.hpp"
 
 #include <cmath>
 
@@ -30,10 +30,10 @@ public:
             auto slot = type.createDefault("test-id");
 
             expect(slot.id == "test-id", "slot.id == test-id");
-            expect(std::holds_alternative<audioapp::BassSynthInstance>(slot.instance),
-                   "slot holds BassSynthInstance");
+            expect(std::holds_alternative<audioapp::BassSynthModel>(slot.instance),
+                   "slot holds BassSynthModel");
 
-            const auto& inst = std::get<audioapp::BassSynthInstance>(slot.instance);
+            const auto& inst = std::get<audioapp::BassSynthModel>(slot.instance);
             expectWithinAbsoluteError(inst.gain, 1.0f, 0.001f);
             expectWithinAbsoluteError(inst.oscShape, 0.3f, 0.001f);
             expectWithinAbsoluteError(inst.subMix, 0.5f, 0.001f);
@@ -74,7 +74,7 @@ public:
                 expect(slot.bypassed, "bypassed == true");
             }
 
-            auto& inst = std::get<audioapp::BassSynthInstance>(slot.instance);
+            auto& inst = std::get<audioapp::BassSynthModel>(slot.instance);
 
             auto r1 = type.setParameter(slot, "bassOscShape", 0.7f);
             expect(r1.handled, "bassOscShape handled");
@@ -148,7 +148,7 @@ public:
         {
             audioapp::BassSynthDeviceType type;
             auto slot = type.createDefault("clamp-id");
-            auto& inst = std::get<audioapp::BassSynthInstance>(slot.instance);
+            auto& inst = std::get<audioapp::BassSynthModel>(slot.instance);
 
             type.setParameter(slot, "bassOscShape", 1.5f);
             expectWithinAbsoluteError(inst.oscShape, 1.0f, 0.001f,
@@ -388,11 +388,11 @@ public:
                    "registry.isKnownType(bass_synth)");
 
             auto slot = registry.createDefault("bass_synth", "reg-id");
-            expect(std::holds_alternative<audioapp::BassSynthInstance>(slot.instance),
-                   "registry slot holds BassSynthInstance");
+            expect(std::holds_alternative<audioapp::BassSynthModel>(slot.instance),
+                   "registry slot holds BassSynthModel");
             expect(slot.id == "reg-id", "registry slot.id == reg-id");
 
-            const auto& inst = std::get<audioapp::BassSynthInstance>(slot.instance);
+            const auto& inst = std::get<audioapp::BassSynthModel>(slot.instance);
             expectWithinAbsoluteError(inst.oscShape, 0.3f, 0.001f,
                                       "registry default oscShape == 0.3");
 
@@ -403,10 +403,10 @@ public:
             {
                 const auto json = audioapp::deviceSlotToVar(slot, registry);
                 const auto restored = audioapp::deviceVarToSlot(json, registry);
-                expect(std::holds_alternative<audioapp::BassSynthInstance>(restored.instance),
-                       "restored holds BassSynthInstance");
+                expect(std::holds_alternative<audioapp::BassSynthModel>(restored.instance),
+                       "restored holds BassSynthModel");
                 expect(restored.id == "reg-id", "restored id preserved");
-                const auto& ri = std::get<audioapp::BassSynthInstance>(restored.instance);
+                const auto& ri = std::get<audioapp::BassSynthModel>(restored.instance);
                 expectWithinAbsoluteError(ri.oscShape, 0.9f, 0.001f,
                                           "restored oscShape == 0.9");
             }

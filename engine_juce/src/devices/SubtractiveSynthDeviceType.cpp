@@ -2,12 +2,7 @@
 
 #include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/devices/instances/SubtractiveSynthInstance.hpp"
-
-#include <juce_core/juce_core.h>
-
-#include <algorithm>
-#include <cmath>
+#include "audioapp/SubtractiveSynth.hpp"
 
 namespace audioapp {
 
@@ -18,7 +13,7 @@ std::string SubtractiveSynthDeviceType::typeId() const {
 DeviceSlot SubtractiveSynthDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    SubtractiveSynthInstance instance;
+    SubtractiveSynthParams instance;
     instance.ampAttack = 0.02f;
     instance.ampDecay = 0.25f;
     instance.ampSustain = 0.75f;
@@ -47,7 +42,7 @@ DeviceParameterResult SubtractiveSynthDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
 
-    auto& instance = std::get<SubtractiveSynthInstance>(slot.instance);
+    auto& instance = std::get<SubtractiveSynthParams>(slot.instance);
     if (parameterId == "attack" || parameterId == "decay" || parameterId == "release" ||
         parameterId == "sustain") {
         const float clamped = std::clamp(value, 0.0f, 1.0f);
@@ -149,8 +144,7 @@ DeviceParameterResult SubtractiveSynthDeviceType::setParameter(DeviceSlot& slot,
     } else if (parameterId == "oscMixMode") {
         instance.oscMixMode = std::clamp(static_cast<int>(std::lround(value)), 0, 4);
     } else if (parameterId == "filterMode") {
-        instance.filterMode =
-            static_cast<float>(std::clamp(static_cast<int>(std::lround(value)), 0, 5));
+        instance.filterMode = std::clamp(static_cast<int>(std::lround(value)), 0, 5);
     } else if (parameterId == "filterShaperMode") {
         instance.filterShaperMode = std::clamp(static_cast<int>(std::lround(value)), 0, 3);
     } else {
@@ -183,8 +177,7 @@ std::vector<std::string_view> SubtractiveSynthDeviceType::modulatableParams() co
 void SubtractiveSynthDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                                    const PlaybackBuildContext&,
                                                    DeviceNodePlayback& out) const {
-    const auto& instance = std::get<SubtractiveSynthInstance>(slot.instance);
-    auto params = instance.toPlaybackParams();
+    auto params = std::get<SubtractiveSynthParams>(slot.instance);
     params.gain = slot.gain;
     out.kind = DeviceNodeKind::SubtractiveSynth;
     out.params = params;
@@ -193,18 +186,18 @@ void SubtractiveSynthDeviceType::buildPlaybackNode(const DeviceSlot& slot,
 bool SubtractiveSynthDeviceType::buildLiveInstrument(const DeviceSlot& slot,
                                                      const PlaybackBuildContext&,
                                                      LiveInstrumentSnapshot& out) const {
-    const auto& instance = std::get<SubtractiveSynthInstance>(slot.instance);
+    auto params = std::get<SubtractiveSynthParams>(slot.instance);
     out = LiveInstrumentSnapshot{};
     out.kind = LiveInstrumentKind::SubtractiveSynth;
     out.gain = slot.gain;
-    out.subtractive = instance.toPlaybackParams();
+    out.subtractive = params;
     out.subtractive.gain = slot.gain;
     return true;
 }
 
 juce::var SubtractiveSynthDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<SubtractiveSynthInstance>(slot.instance);
+    const auto& inst = std::get<SubtractiveSynthParams>(slot.instance);
 
     parameters->setProperty("gain", static_cast<double>(slot.gain));
     parameters->setProperty("pan", static_cast<double>(slot.pan));
@@ -224,7 +217,8 @@ juce::var SubtractiveSynthDeviceType::slotToVar(const DeviceSlot& slot) const {
     parameters->setProperty("filterDecay", static_cast<double>(inst.filterDecay));
     parameters->setProperty("filterSustain", static_cast<double>(inst.filterSustain));
     parameters->setProperty("filterRelease", static_cast<double>(inst.filterRelease));
-    parameters->setProperty("filterMode", static_cast<int>(inst.filterMode));
+    // Filter mode — stored as int, cast to double for JSON
+    parameters->setProperty("filterMode", inst.filterMode);
     parameters->setProperty("filterKeyTrack", static_cast<double>(inst.filterKeyTrack));
     parameters->setProperty("filterDrive", static_cast<double>(inst.filterDrive));
     parameters->setProperty("filterShaper", static_cast<double>(inst.filterShaper));
@@ -297,7 +291,7 @@ DeviceSlot SubtractiveSynthDeviceType::varToSlot(const juce::var& obj) const {
             slot.pan = readFloat("pan", 0.5f);
             slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
 
-            SubtractiveSynthInstance inst;
+            SubtractiveSynthParams inst;
 
             // ADSR
             inst.ampAttack = readFloat("attack", 0.01f);
@@ -313,7 +307,7 @@ DeviceSlot SubtractiveSynthDeviceType::varToSlot(const juce::var& obj) const {
             inst.filterDecay = readFloat("filterDecay", 0.35f);
             inst.filterSustain = readFloat("filterSustain", 0.4f);
             inst.filterRelease = readFloat("filterRelease", 0.45f);
-            inst.filterMode = static_cast<float>(readInt("filterMode", 0));
+            inst.filterMode = readInt("filterMode", 0);
             inst.filterKeyTrack = readFloat("filterKeyTrack", 0.0f);
             inst.filterDrive = readFloat("filterDrive", 0.0f);
             inst.filterShaper = readFloat("filterShaper", 0.0f);

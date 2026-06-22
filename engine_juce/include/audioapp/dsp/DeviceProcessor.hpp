@@ -1,0 +1,33 @@
+#pragma once
+
+#include "audioapp/DeviceChain.hpp"
+#include "audioapp/dsp/AudioBlock.hpp"
+#include "audioapp/dsp/ProcessContext.hpp"
+
+namespace audioapp {
+
+class DeviceProcessor {
+public:
+    virtual void initParams(const DeviceVariantParams& params) noexcept {
+        (void)params;
+    }
+
+    virtual void process(AudioBlock& block, ProcessContext& ctx) noexcept = 0;
+
+    virtual DeviceNodeKind kind() const noexcept {
+        return DeviceNodeKind::Unknown;
+    }
+
+    bool bypassed = false;
+    int8_t meterSlot = -1;
+    float gain = 1.0f;
+    float pan = 0.5f;
+
+protected:
+    DeviceProcessor() = default;
+    ~DeviceProcessor() = default;
+    DeviceProcessor(const DeviceProcessor&) = delete;
+    DeviceProcessor& operator=(const DeviceProcessor&) = delete;
+};
+
+} // namespace audioapp

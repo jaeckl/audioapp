@@ -2,7 +2,7 @@
 
 #include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/devices/instances/FrequencyFxInstance.hpp"
+#include "audioapp/devices/instances/FrequencyFxModel.hpp"
 #include "audioapp/FrequencyFxProcessor.hpp"
 
 #include <algorithm>
@@ -18,7 +18,7 @@ std::string FrequencyShifterDeviceType::typeId() const {
 DeviceSlot FrequencyShifterDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    slot.instance = FrequencyShifterInstance{};
+    slot.instance = FrequencyShifterModel{};
     return slot;
 }
 
@@ -31,7 +31,7 @@ DeviceParameterResult FrequencyShifterDeviceType::setParameter(DeviceSlot& slot,
         result.handled = true;
         return result;
     }
-    auto& instance = std::get<FrequencyShifterInstance>(slot.instance);
+    auto& instance = std::get<FrequencyShifterModel>(slot.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
     if (parameterId == "ffxShift") {
         instance.ffxShift = clamped;
@@ -57,7 +57,7 @@ void FrequencyShifterDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                                    const PlaybackBuildContext&,
                                                    DeviceNodePlayback& out) const {
     out.kind = DeviceNodeKind::FrequencyShifter;
-    out.params = std::get<FrequencyShifterInstance>(slot.instance).toPlaybackParams();
+    out.params = std::get<FrequencyShifterModel>(slot.instance).toPlaybackParams();
 }
 
 bool FrequencyShifterDeviceType::buildLiveInstrument(const DeviceSlot&,
@@ -68,7 +68,7 @@ bool FrequencyShifterDeviceType::buildLiveInstrument(const DeviceSlot&,
 
 juce::var FrequencyShifterDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<FrequencyShifterInstance>(slot.instance);
+    const auto& inst = std::get<FrequencyShifterModel>(slot.instance);
     parameters->setProperty("gain", static_cast<double>(slot.gain));
     parameters->setProperty("pan", static_cast<double>(slot.pan));
     parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
@@ -101,7 +101,7 @@ DeviceSlot FrequencyShifterDeviceType::varToSlot(const juce::var& obj) const {
             slot.gain = readFloat("gain", 1.0f);
             slot.pan = readFloat("pan", 0.5f);
             slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
-            FrequencyShifterInstance inst;
+            FrequencyShifterModel inst;
             inst.ffxShift = readFloat("ffxShift", 0.5f);
             slot.instance = inst;
         }

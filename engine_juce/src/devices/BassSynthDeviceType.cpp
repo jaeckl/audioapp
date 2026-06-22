@@ -2,14 +2,14 @@
 
 #include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/devices/instances/BassSynthInstance.hpp"
+#include "audioapp/devices/instances/BassSynthModel.hpp"
 
 #include <algorithm>
 #include <cmath>
 
 namespace audioapp {
 
-SubtractiveSynthParams BassSynthInstance::toPlaybackParams() const {
+SubtractiveSynthParams BassSynthModel::toPlaybackParams() const {
     SubtractiveSynthParams p;
     p.gain = 1.0f;
     // Osc 1 (main morph)
@@ -76,7 +76,7 @@ std::string BassSynthDeviceType::typeId() const {
 DeviceSlot BassSynthDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    BassSynthInstance instance;
+    BassSynthModel instance;
     slot.instance = std::move(instance);
     return slot;
 }
@@ -91,7 +91,7 @@ DeviceParameterResult BassSynthDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
 
-    auto& instance = std::get<BassSynthInstance>(slot.instance);
+    auto& instance = std::get<BassSynthModel>(slot.instance);
 
     if (parameterId == "attack" || parameterId == "sustain" || parameterId == "release") {
         const float clamped = std::clamp(value, 0.0f, 1.0f);
@@ -169,7 +169,7 @@ std::vector<std::string_view> BassSynthDeviceType::modulatableParams() const {
 void BassSynthDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                             const PlaybackBuildContext&,
                                             DeviceNodePlayback& out) const {
-    const auto& inst = std::get<BassSynthInstance>(slot.instance);
+    const auto& inst = std::get<BassSynthModel>(slot.instance);
     auto params = inst.toPlaybackParams();
     params.gain = slot.gain;
     out.kind = DeviceNodeKind::BassSynth;
@@ -179,7 +179,7 @@ void BassSynthDeviceType::buildPlaybackNode(const DeviceSlot& slot,
 bool BassSynthDeviceType::buildLiveInstrument(const DeviceSlot& slot,
                                               const PlaybackBuildContext&,
                                               LiveInstrumentSnapshot& out) const {
-    const auto& inst = std::get<BassSynthInstance>(slot.instance);
+    const auto& inst = std::get<BassSynthModel>(slot.instance);
     out = LiveInstrumentSnapshot{};
     out.kind = LiveInstrumentKind::BassSynth;
     out.gain = slot.gain;
@@ -190,7 +190,7 @@ bool BassSynthDeviceType::buildLiveInstrument(const DeviceSlot& slot,
 
 juce::var BassSynthDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<BassSynthInstance>(slot.instance);
+    const auto& inst = std::get<BassSynthModel>(slot.instance);
     parameters->setProperty("gain", static_cast<double>(slot.gain));
     parameters->setProperty("pan", static_cast<double>(slot.pan));
     parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
@@ -233,7 +233,7 @@ DeviceSlot BassSynthDeviceType::varToSlot(const juce::var& obj) const {
             slot.gain = readFloat("gain", 1.0f);
             slot.pan = readFloat("pan", 0.5f);
             slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
-            BassSynthInstance inst;
+            BassSynthModel inst;
             inst.oscShape = readFloat("bassOscShape", 0.3f);
             inst.subMix = readFloat("bassSubMix", 0.5f);
             inst.subOctave = static_cast<int>(std::lround(readFloat("bassSubOctave", 0.0f)));

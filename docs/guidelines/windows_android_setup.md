@@ -8,6 +8,46 @@ as the target device.
 
 ---
 
+## 0. TL;DR for agents (read this first)
+
+If you are an automated agent about to run a CMake / Ninja command on Windows,
+stop and answer these three questions **before** running anything:
+
+1. Did the current PowerShell session already run `vcvars64.bat`?
+   - **No** → run it first (exact command in §3.1). Do not skip this.
+2. After `vcvars64.bat`, does `where cl.exe` return a path under
+   `C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\`?
+   - **No** → you are still on MinGW / Clang. Remove MinGW from PATH and
+     re-run `vcvars64.bat`. See §13.
+3. Is `build/engine-msvc/` the build directory you are using?
+   - **No** → use `build/engine-msvc/`, **not** `build/engine/`.
+     The latter is contaminated with Linux GCC cache.
+
+**If any answer is "no", do not run `cmake` or `ninja`.** Fix the env first.
+
+The exact sequence in one copy-paste block:
+
+```powershell
+# Step 1 (MANDATORY): activate MSVC in this shell
+& "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+
+# Step 2 (MANDATORY): verify MSVC is now the compiler
+where cl.exe        # MUST show MSVC's cl.exe, NOT gcc/MinGW/clang
+where ninja.exe     # MUST show Ninja (not a gcc wrapper)
+
+# Step 3: configure + build
+cmake -S engine_juce -B build/engine-msvc -G Ninja -DCMAKE_BUILD_TYPE=Debug -DAUDIOAPP_BUILD_TESTS=ON
+cmake --build build/engine-msvc --target audioapp_juce_tests
+
+# Step 4: run the tests
+.\build\engine-msvc\Debug\audioapp_juce_tests.exe
+```
+
+If `where cl.exe` after step 1 returns anything from `MinGW\`, `Git\mingw64\`,
+`msys\`, `clang\`, or `gcc\` — **stop**, do not proceed, fix PATH (§13).
+
+---
+
 ## 1. Toolchain overview
 
 The mobile DAW is a monorepo with three subprojects:
@@ -68,25 +108,76 @@ adb devices
 
 ## 3. Build the native C++ engine (host / Windows MSVC)
 
+> **STOP — read §0 first.** This section assumes you ran `vcvars64.bat` in
+> the current shell. If you did not, the commands below WILL fail or fall
+> back to MinGW / Clang.
+
 The JUCE engine builds natively on Windows using **MSVC** — MinGW is **not**
 supported (JUCE 8 needs C++20 features that MinGW's libstdc++ lacks).
 
-### One-time environment activation
+### 3.1 Activate MSVC (mandatory, every fresh terminal)
 
-`cl.exe` is not on `PATH` by default. Activate it in the current PowerShell
-session before running CMake:
+`cl.exe` is **not** on `PATH` by default in PowerShell. You must run
+`vcvars64.bat` once at the start of every fresh terminal session before
+running any CMake / Ninja command. It sets `VCINSTALLDIR`, `INCLUDE`, `LIB`,
+and prepends MSVC's `bin` to `PATH` so that `cl.exe` becomes the default C++
+compiler.
 
 ```powershell
+# Activate MSVC in the CURRENT shell (must be run from a regular PowerShell,
+# not from inside `cmd.exe` or a non-interactive shell).
 & "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
 ```
 
-This sets `VCINSTALLDIR`, `INCLUDE`, `LIB`, and prepends MSVC's `bin` to PATH.
-You must re-run it in every fresh terminal.
+After this, your prompt shows environment variables set. **Do not skip this.**
 
-### Configure + build
+If the path above does not exist on the machine, locate the file with:
 
 ```powershell
-# Configure (from repo root)
+Get-ChildItem -Recurse -Path "C:\Program Files (x86)\Microsoft Visual Studio" -Filter vcvars64.bat
+Get-ChildItem -Recurse -Path "C:\Program Files\Microsoft Visual Studio"     -Filter vcvars64.bat
+```
+
+and substitute the discovered path into the `&` command.
+
+### 3.2 Verify MSVC is active (mandatory gate)
+
+Run these checks **immediately after** `vcvars64.bat`. If any of them
+fails, do not proceed — the build will silently fall back to the wrong
+compiler.
+
+```powershell
+# MUST show MSVC's cl.exe
+where cl.exe
+# Expected (example):
+#   C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.40.x\bin\Hostx64\x64\cl.exe
+
+# MUST show Ninja from CMake/Ninja install, NOT a gcc shim
+where ninja.exe
+# Expected (example):
+#   C:\Users\ludwi\AppData\Local\Programs\ninja\ninja.exe
+
+# MUST show a non-empty VCINSTALLDIR
+echo $env:VCINSTALLDIR
+# Expected (example):
+#   C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC
+
+# MUST show MSVC's cl.exe FIRST in PATH, before any MinGW / Git / msys dir
+$env:PATH -split ";" | Select-String -Pattern "Visual Studio|MSVC|MSBuild|BuildTools" | Select-Object -First 3
+$env:PATH -split ";" | Select-String -Pattern "mingw|msys|git\\mingw|clang"     | Select-Object -First 3
+# The first command MUST print ≥1 line. The second MUST print NOTHING.
+```
+
+**If `where cl.exe` returns any path containing `MinGW`, `mingw64`, `msys`,
+`Git\mingw`, `clang`, or `gcc` — stop, remove those dirs from `PATH`, restart
+PowerShell, and start over.** See §13 for the cleanup recipe.
+
+### 3.3 Configure + build
+
+Only run these after §3.2 passes.
+
+```powershell
+# Configure (from repo root). IMPORTANT: build into build/engine-msvc/, NEVER build/engine/.
 cmake -S engine_juce -B build/engine-msvc -G Ninja -DCMAKE_BUILD_TYPE=Debug -DAUDIOAPP_BUILD_TESTS=ON
 
 # Build the engine library only
@@ -108,9 +199,10 @@ Output:
 > The existing `build/engine/` directory was originally created by GCC on
 > Linux and is committed in `.gitignore`-adjacent state. Use a fresh
 > `build/engine-msvc/` (or any non-default name) to keep MSVC artifacts
-> separate and avoid CMake cache contamination between compilers.
+> separate and avoid CMake cache contamination between compilers. **Never
+> let CMake auto-pick a compiler** by omitting `-DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl` — if you do, and MinGW is on `PATH`, CMake will silently choose it.
 
-### Run the engine tests
+### 3.4 Run the engine tests
 
 ```powershell
 # All tests (suite run)
@@ -134,6 +226,19 @@ ClipLength: 0 failures
 Pass / fail is determined by **0 failures**. Memory-leak dumps at exit are
 harmless on Windows Debug builds (JUCE's `juce::String` allocations leak
 intentionally under MSVC debug heap by default).
+
+### 3.5 If you forgot §3.1 — the symptoms
+
+A failed or wrong-compiler engine build typically looks like this in the
+CMake configure output. If you see any of these, jump back to §3.1.
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `The C++ compiler ... is not able to compile a simple test program` (with `gcc` or `g++` mentioned) | MinGW picked up | §3.1 + §13 |
+| `error: 'std::format' is not a member of 'std'` | MinGW's libstdc++ lacks C++20 `format` | §3.1 |
+| `error: cannot find -lasound` on Windows | GCC picked up (ALSA is Linux-only) | §3.1 |
+| `undefined reference to juce::*` (linker errors after a "successful" compile) | Wrong ABI between MSVC and MinGW object files | Delete `build/engine-msvc/`, rerun §3.1 + §3.3 |
+| `cmake` prints `-- The C compiler identification is GNU` | MinGW / gcc on PATH ahead of MSVC | §13 |
 
 > **MinGW is not supported.** If you have a previous MinGW install, remove it
 > from `PATH` before building the engine — its `c++`/`cc` alternatives break
@@ -371,9 +476,72 @@ You do **not** need Android Studio open for daily `flutter run`. Use it for:
 
 ## 13. Common pitfalls
 
+### 13.1 Strip MinGW / Git's mingw / msys from PATH (the #1 cause of failed engine builds)
+
+Git for Windows, MSYS2, Strawberry Perl, and some other installers drop a
+`mingw64\bin` or `usr\bin` directory into your user `PATH` that ships its
+own `gcc.exe`, `g++.exe`, and `ar.exe`. When you skip `vcvars64.bat` (or run
+it in a shell that still has those dirs ahead of MSVC), CMake silently
+picks `gcc` and the build "succeeds" with the wrong toolchain — but the
+resulting `.lib` is incompatible with the Android NDK's MSVC build, and
+the linker fails with cryptic `undefined reference to juce::*` errors.
+
+**Inspect:**
+
+```powershell
+# Show every entry in PATH that contains mingw / msys / git / perl / strawberry
+$env:PATH -split ";" |
+    Where-Object { $_ -match "mingw|msys|git\\|perl\\|strawberry" } |
+    ForEach-Object { $_ }
+```
+
+If this prints anything, follow one of the recipes below.
+
+**Option A — fix the user PATH permanently (recommended):**
+
+1. Win+R → `sysdm.cpl` → Advanced → Environment Variables.
+2. Select `Path` under "User variables" → Edit.
+3. Remove every entry matching `mingw`, `msys`, `Git\mingw64`, `Strawberry`,
+   or `perl\site\bin`.
+4. Click OK, OK, OK.
+5. **Open a fresh PowerShell** (existing shells still have the old PATH
+   cached). Run §3.1 and §3.2 again.
+
+**Option B — strip MinGW from PATH only in the current shell (quick fix
+that does not survive a restart):**
+
+```powershell
+# Run BEFORE `vcvars64.bat`. Removes any PATH component containing
+# mingw / msys / git\mingw / strawberry / perl from the current shell only.
+$env:PATH = ($env:PATH -split ";" |
+    Where-Object { $_ -notmatch "mingw|msys|git\\mingw|strawberry|perl\\" }) -join ";"
+& "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+where cl.exe    # must now show MSVC's cl.exe
+```
+
+**Option C — use an isolated clean shell:**
+
+```powershell
+# Launch a fresh PowerShell with PATH scrubbed of any MinGW/git mingw entries.
+powershell.exe -NoProfile -Command {
+    $env:PATH = ($env:PATH -split ";" |
+        Where-Object { $_ -notmatch "mingw|msys|git\\mingw|strawberry|perl\\" }) -join ";"
+    & "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+    # Now drop into an interactive shell with the clean env:
+    & cmd.exe /k
+}
+```
+
+### 13.2 Other pitfalls
+
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `cmake` picks Clang / MinGW | `gcc`/`g++` not on PATH, or MinGW still on PATH | Remove MinGW dirs from PATH; verify `where cl.exe` returns MSVC after `vcvars64.bat` |
+| `cmake` picks Clang / MinGW | `gcc`/`g++` not on PATH, or MinGW still on PATH | §13.1 |
+| `cl.exe` not found after `vcvars64.bat` | Wrong VS install (Community vs BuildTools vs Preview) | Search with `Get-ChildItem -Recurse ... vcvars64.bat` (§3.1) |
+| `error: 'std::format' is not a member of 'std'` | MinGW picked up (libstdc++ lacks C++20 `format`) | §13.1 |
+| `error: cannot find -lasound` on Windows | GCC picked up (ALSA is Linux-only) | §13.1 |
+| `undefined reference to juce::*` linker errors after a "successful" compile | Wrong ABI between MSVC and MinGW object files | Delete `build/engine-msvc/`, rerun §3.1 + §3.3 |
+| `cmake` prints `-- The C compiler identification is GNU` | MinGW / gcc on PATH ahead of MSVC | §13.1 |
 | `assertion failed: invalid comparator` in MSVC debug | `std::clamp` getting `NaN` from DSP | Already mitigated by `safe_clamp` wrappers in engine; if you write new DSP, never pass unfiltered values to `std::clamp` |
 | `0xC0000005` access violation in a JUCE test | `expect()` called before `beginTest()` | Always call `beginTest("<name>")` at the top of every `runTest()` block before any `expect()` / `expectWithinAbsoluteError()` |
 | Garbage strings in device test output | `DeviceRegistry` stored dangling `string_view` from temporary `typeId()` | Fixed by `std::vector<std::string> typeIds_` (committed). If you add a new device type, ensure `typeId()` returns a `string_view` to a static literal (never a temporary) |

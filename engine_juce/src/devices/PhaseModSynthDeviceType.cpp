@@ -2,14 +2,14 @@
 
 #include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/devices/instances/PhaseModSynthInstance.hpp"
+#include "audioapp/devices/instances/PhaseModSynthModel.hpp"
 
 #include <algorithm>
 #include <cmath>
 
 namespace audioapp {
 
-PhaseModSynthParams PhaseModSynthInstance::toPlaybackParams() const {
+PhaseModSynthParams PhaseModSynthModel::toPlaybackParams() const {
     PhaseModSynthParams p;
     p.masterVol = masterVol;
     p.algoIndex = algoIndex;
@@ -65,7 +65,7 @@ std::string PhaseModSynthDeviceType::typeId() const {
 DeviceSlot PhaseModSynthDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    PhaseModSynthInstance instance;
+    PhaseModSynthModel instance;
 
     // Op 1 — carrier at fundamental
     instance.op[0].ratio = 0.0625f;   // ratio=1
@@ -139,7 +139,7 @@ DeviceParameterResult PhaseModSynthDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
 
-    auto& instance = std::get<PhaseModSynthInstance>(slot.instance);
+    auto& instance = std::get<PhaseModSynthModel>(slot.instance);
 
     // Shared filter/amp fields (same IDs as other devices)
     if (parameterId == "filterCutoff" || parameterId == "filterQ" ||
@@ -271,7 +271,7 @@ bool PhaseModSynthDeviceType::setStringParameter(DeviceSlot& slot,
         else if (value == "all_mod_fb")   algoIdx = 7;
 
         if (algoIdx >= 0) {
-            auto& inst = std::get<PhaseModSynthInstance>(slot.instance);
+            auto& inst = std::get<PhaseModSynthModel>(slot.instance);
             inst.algoIndex = algoIdx;
             return true;
         }
@@ -298,7 +298,7 @@ std::vector<std::string_view> PhaseModSynthDeviceType::modulatableParams() const
 void PhaseModSynthDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                                 const PlaybackBuildContext&,
                                                 DeviceNodePlayback& out) const {
-    const auto& inst = std::get<PhaseModSynthInstance>(slot.instance);
+    const auto& inst = std::get<PhaseModSynthModel>(slot.instance);
     auto params = inst.toPlaybackParams();
     params.gain = slot.gain;
     out.kind = DeviceNodeKind::PhaseModSynth;
@@ -308,7 +308,7 @@ void PhaseModSynthDeviceType::buildPlaybackNode(const DeviceSlot& slot,
 bool PhaseModSynthDeviceType::buildLiveInstrument(const DeviceSlot& slot,
                                                   const PlaybackBuildContext&,
                                                   LiveInstrumentSnapshot& out) const {
-    const auto& inst = std::get<PhaseModSynthInstance>(slot.instance);
+    const auto& inst = std::get<PhaseModSynthModel>(slot.instance);
     out = LiveInstrumentSnapshot{};
     out.kind = LiveInstrumentKind::PhaseModSynth;
     out.gain = slot.gain;
@@ -319,7 +319,7 @@ bool PhaseModSynthDeviceType::buildLiveInstrument(const DeviceSlot& slot,
 
 juce::var PhaseModSynthDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<PhaseModSynthInstance>(slot.instance);
+    const auto& inst = std::get<PhaseModSynthModel>(slot.instance);
     parameters->setProperty("gain", static_cast<double>(slot.gain));
     parameters->setProperty("pan", static_cast<double>(slot.pan));
     parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
@@ -407,7 +407,7 @@ DeviceSlot PhaseModSynthDeviceType::varToSlot(const juce::var& obj) const {
             slot.pan = readFloat("pan", 0.5f);
             slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
 
-            PhaseModSynthInstance inst;
+            PhaseModSynthModel inst;
 
             auto readOpJson = [&](int opIdx, const char* prefix) {
                 const auto r = [&](const char* suffix, float fb) { return readFloat((juce::String(prefix) + suffix).toRawUTF8(), fb); };

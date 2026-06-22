@@ -3,8 +3,7 @@
 #include "audioapp/devices/DeviceRegistry.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/devices/PlaybackBuildContext.hpp"
-#include "audioapp/devices/instances/OscillatorInstance.hpp"
-#include "audioapp/devices/instances/SubtractiveSynthInstance.hpp"
+#include "audioapp/DeviceChain.hpp"
 
 #include <cmath>
 
@@ -29,7 +28,7 @@ public:
             expect(oscResult.handled, "oscillator frequency set should be handled");
             expect(oscResult.syncActiveFrequency, "oscillator frequency should sync active");
             expectWithinAbsoluteError(
-                std::get<audioapp::OscillatorInstance>(oscillator.instance).frequencyHz,
+                std::get<audioapp::OscillatorParams>(oscillator.instance).frequencyHz,
                 880.0f, 0.001f);
 
             expect(expectFalse(registry.setParameter(oscillator, "filterCutoff", 0.5f).handled),
@@ -42,7 +41,7 @@ public:
                 registry.createDefault(audioapp::device_types::kSampler, "dev-sampler");
             expect(registry.setParameter(sampler, "attack", 1.5f).handled,
                    "sampler attack set should be handled");
-            const auto& samplerInst = std::get<audioapp::SamplerInstance>(sampler.instance);
+            const auto& samplerInst = std::get<audioapp::SamplerModel>(sampler.instance);
             expectWithinAbsoluteError(samplerInst.attack, 1.0f, 0.001f);
         }
 
@@ -50,13 +49,13 @@ public:
         {
             audioapp::DeviceSlot synth =
                 registry.createDefault(audioapp::device_types::kSubtractiveSynth, "dev-synth");
-            const auto& synthInst = std::get<audioapp::SubtractiveSynthInstance>(synth.instance);
+            const auto& synthInst = std::get<audioapp::SubtractiveSynthParams>(synth.instance);
             expectWithinAbsoluteError(synthInst.filterCutoff, 0.75f, 0.001f);
 
             expect(registry.setParameter(synth, "osc1Shape", 0.75f).handled,
                    "synth osc1Shape set should be handled");
             expectWithinAbsoluteError(
-                std::get<audioapp::SubtractiveSynthInstance>(synth.instance).osc1Shape,
+                std::get<audioapp::SubtractiveSynthParams>(synth.instance).osc1Shape,
                 0.75f, 0.001f);
         }
 
@@ -131,7 +130,7 @@ public:
             expect(roundTripSlot.id == oscillator.id,
                    "round-trip id should match");
             expectWithinAbsoluteError(
-                std::get<audioapp::OscillatorInstance>(roundTripSlot.instance).frequencyHz,
+                std::get<audioapp::OscillatorParams>(roundTripSlot.instance).frequencyHz,
                 880.0f, 0.001f);
         }
     }

@@ -232,4 +232,4 @@ warning - Unused import: 'package:audioapp/bridge/project_snapshot.dart'. Try re
    info - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation - test\piano_roll_note_block_test.dart:24:17 - prefer_const_constructors
    info - The import of 'package:flutter/rendering.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart'. Try removing the import directive - test\widget_test.dart:5:8 - unnecessary_import
 
-220 issues found. (ran in 2.4s)
+220 issues found. (ran in 2.5s)

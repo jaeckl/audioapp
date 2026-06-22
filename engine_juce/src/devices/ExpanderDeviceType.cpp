@@ -2,7 +2,7 @@
 
 #include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/devices/instances/ExpanderInstance.hpp"
+#include "audioapp/DynamicsProcessor.hpp"
 
 #include <juce_core/juce_core.h>
 
@@ -15,14 +15,14 @@ std::string ExpanderDeviceType::typeId() const { return device_types::kExpander;
 DeviceSlot ExpanderDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    slot.instance = ExpanderInstance{};
+    slot.instance = ExpanderParams{};
     return slot;
 }
 
 
 juce::var ExpanderDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<ExpanderInstance>(slot.instance);
+    const auto& inst = std::get<ExpanderParams>(slot.instance);
     parameters->setProperty("gain", static_cast<double>(slot.gain));
     parameters->setProperty("pan", static_cast<double>(slot.pan));
     parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
@@ -60,7 +60,7 @@ DeviceSlot ExpanderDeviceType::varToSlot(const juce::var& obj) const {
             slot.gain = readFloat("gain", 1.0f);
             slot.pan = readFloat("pan", 0.5f);
             slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
-            ExpanderInstance inst;
+            ExpanderParams inst;
             inst.inputGain = readFloat("inputGain", 1.0f);
             inst.expandThreshold = readFloat("expandThreshold", 0.40f);
             inst.expandRatio = readFloat("expandRatio", 0.45f);
@@ -81,7 +81,7 @@ DeviceParameterResult ExpanderDeviceType::setParameter(DeviceSlot& slot,
         result.handled = true;
         return result;
     }
-    auto& instance = std::get<ExpanderInstance>(slot.instance);
+    auto& instance = std::get<ExpanderParams>(slot.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
     if (parameterId == "inputGain") {
         instance.inputGain = clamped;
@@ -117,8 +117,9 @@ std::vector<std::string_view> ExpanderDeviceType::modulatableParams() const {
 void ExpanderDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                            const PlaybackBuildContext&,
                                            DeviceNodePlayback& out) const {
+    auto params = std::get<ExpanderParams>(slot.instance);
     out.kind = DeviceNodeKind::Expander;
-    out.params = std::get<ExpanderInstance>(slot.instance).toPlaybackParams();
+    out.params = params;
 }
 
 bool ExpanderDeviceType::buildLiveInstrument(const DeviceSlot&,

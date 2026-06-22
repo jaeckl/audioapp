@@ -1,7 +1,7 @@
 #include "audioapp/model/TrackRepository.hpp"
 
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/devices/instances/TrackGainInstance.hpp"
+#include "audioapp/DeviceChain.hpp"
 
 #include <algorithm>
 
@@ -78,7 +78,7 @@ void TrackRepository::ensureTrackGainDevices(const DeviceRegistry& registry) {
     for (auto& track : tracks_) {
         bool hasGain = false;
         for (const auto& device : track.devices) {
-            if (std::holds_alternative<TrackGainInstance>(device.instance)) {
+            if (std::holds_alternative<TrackGainParams>(device.instance)) {
                 hasGain = true;
                 break;
             }

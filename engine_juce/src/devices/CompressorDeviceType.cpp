@@ -2,7 +2,7 @@
 
 #include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/devices/instances/CompressorInstance.hpp"
+#include "audioapp/DynamicsProcessor.hpp"
 
 #include <algorithm>
 
@@ -13,7 +13,7 @@ std::string CompressorDeviceType::typeId() const { return device_types::kCompres
 DeviceSlot CompressorDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    slot.instance = CompressorInstance{};
+    slot.instance = CompressorParams{};
     return slot;
 }
 
@@ -26,7 +26,7 @@ DeviceParameterResult CompressorDeviceType::setParameter(DeviceSlot& slot,
         result.handled = true;
         return result;
     }
-    auto& instance = std::get<CompressorInstance>(slot.instance);
+    auto& instance = std::get<CompressorParams>(slot.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
     if (parameterId == "inputGain") {
         instance.inputGain = clamped;
@@ -64,8 +64,9 @@ std::vector<std::string_view> CompressorDeviceType::modulatableParams() const {
 void CompressorDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                              const PlaybackBuildContext&,
                                              DeviceNodePlayback& out) const {
+    auto params = std::get<CompressorParams>(slot.instance);
     out.kind = DeviceNodeKind::Compressor;
-    out.params = std::get<CompressorInstance>(slot.instance).toPlaybackParams();
+    out.params = params;
 }
 
 bool CompressorDeviceType::buildLiveInstrument(const DeviceSlot&,
@@ -76,7 +77,7 @@ bool CompressorDeviceType::buildLiveInstrument(const DeviceSlot&,
 
 juce::var CompressorDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<CompressorInstance>(slot.instance);
+    const auto& inst = std::get<CompressorParams>(slot.instance);
     parameters->setProperty("gain", static_cast<double>(slot.gain));
     parameters->setProperty("pan", static_cast<double>(slot.pan));
     parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
@@ -115,7 +116,7 @@ DeviceSlot CompressorDeviceType::varToSlot(const juce::var& obj) const {
             slot.gain = readFloat("gain", 1.0f);
             slot.pan = readFloat("pan", 0.5f);
             slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
-            CompressorInstance inst;
+            CompressorParams inst;
             inst.inputGain = readFloat("inputGain", 1.0f);
             inst.compThreshold = readFloat("compThreshold", 0.55f);
             inst.compRatio = readFloat("compRatio", 0.50f);

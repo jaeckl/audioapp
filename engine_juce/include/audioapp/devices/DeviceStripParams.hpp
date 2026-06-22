@@ -8,7 +8,7 @@
 namespace audioapp::device_strip {
 
 inline bool isTrackGain(const DeviceSlot& slot) {
-    return std::holds_alternative<TrackGainInstance>(slot.instance);
+    return std::holds_alternative<TrackGainParams>(slot.instance);
 }
 
 inline bool setGain(DeviceSlot& slot, float value) {

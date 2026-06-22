@@ -1,5 +1,6 @@
 #include <juce_core/juce_core.h>
 #include "TestHelpers.h"
+#include "TestChainHelper.hpp"
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/EngineHost.hpp"
 
@@ -29,9 +30,8 @@ public:
 
             std::memset(left, 0, sizeof(left));
             std::memset(right, 0, sizeof(right));
-            float phase = 0.0f;
-            audioapp::processDeviceChain(left, right, kFrames, kSampleRate, 120, 0.0,
-                                         notes, 1, devices, 1, phase, false);
+            audioapp::test::processTestChain(left, right, kFrames, kSampleRate, 120, 0.0,
+                                         notes, 1, devices, 1, false);
             expect(audioapp::test::peakAbs(left, kFrames) <= 1.0e-6f,
                    "sampler without PCM should produce silence (left)");
             expect(audioapp::test::peakAbs(right, kFrames) <= 1.0e-6f,
@@ -51,9 +51,8 @@ public:
 
             std::memset(left, 0, sizeof(left));
             std::memset(right, 0, sizeof(right));
-            float phase = 0.0f;
-            audioapp::processDeviceChain(left, right, kFrames, kSampleRate, 120, 0.0,
-                                         nullptr, 0, devices, 2, phase, false);
+            audioapp::test::processTestChain(left, right, kFrames, kSampleRate, 120, 0.0,
+                                         nullptr, 0, devices, 2, false);
             const float peak = (audioapp::test::peakAbs(left, kFrames) +
                                 audioapp::test::peakAbs(right, kFrames)) * 0.5f;
             expect(peak > 0.01f, "oscillator should produce non-trivial output");
@@ -71,9 +70,8 @@ public:
 
             std::memset(left, 0, sizeof(left));
             std::memset(right, 0, sizeof(right));
-            float phase = 0.0f;
-            audioapp::processDeviceChain(left, right, kFrames, kSampleRate, 120, 0.0,
-                                         nullptr, 0, devices, 1, phase, false);
+            audioapp::test::processTestChain(left, right, kFrames, kSampleRate, 120, 0.0,
+                                         nullptr, 0, devices, 1, false);
             expect(audioapp::test::peakAbs(left, kFrames) > audioapp::test::peakAbs(right, kFrames),
                    "left channel should have more energy when panned left");
         }

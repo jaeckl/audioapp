@@ -11,8 +11,6 @@
 #include "audioapp/CymbalGenerator.hpp"
 #include "audioapp/CrashGenerator.hpp"
 #include "audioapp/DynamicsProcessor.hpp"
-#include "audioapp/FrequencyFxProcessor.hpp"
-#include "audioapp/devices/instances/FrequencyFxInstance.hpp"
 
 #include <algorithm>
 #include <cmath>

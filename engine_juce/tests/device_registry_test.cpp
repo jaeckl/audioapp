@@ -29,9 +29,9 @@ public:
             audioapp::DeviceSlot oscillator = registry.createDefault(
                 audioapp::device_types::kOscillator, "dev-test-1");
             expect(oscillator.id == "dev-test-1", "oscillator id should match");
-            expect(std::holds_alternative<audioapp::OscillatorInstance>(oscillator.instance),
-                   "oscillator should have OscillatorInstance");
-            const auto& oscInst = std::get<audioapp::OscillatorInstance>(oscillator.instance);
+            expect(std::holds_alternative<audioapp::OscillatorParams>(oscillator.instance),
+                   "oscillator should have OscillatorParams");
+            const auto& oscInst = std::get<audioapp::OscillatorParams>(oscillator.instance);
             expectWithinAbsoluteError(oscInst.frequencyHz, 440.0f, 0.001f);
         }
 
@@ -46,7 +46,7 @@ public:
         {
             audioapp::DeviceSlot synth = registry.createDefault(
                 audioapp::device_types::kSubtractiveSynth, "dev-test-3");
-            const auto& subInst = std::get<audioapp::SubtractiveSynthInstance>(synth.instance);
+            const auto& subInst = std::get<audioapp::SubtractiveSynthParams>(synth.instance);
             expectWithinAbsoluteError(subInst.filterCutoff, 0.75f, 0.001f);
             expectWithinAbsoluteError(subInst.osc1Shape, 0.5f, 0.001f);
         }

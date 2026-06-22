@@ -2,7 +2,7 @@
 
 #include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/devices/instances/OscillatorInstance.hpp"
+#include "audioapp/DeviceChain.hpp"
 
 namespace audioapp {
 
@@ -13,7 +13,7 @@ std::string OscillatorDeviceType::typeId() const {
 DeviceSlot OscillatorDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    slot.instance = OscillatorInstance{.frequencyHz = 440.0f};
+    slot.instance = OscillatorParams{.frequencyHz = 440.0f};
     return slot;
 }
 
@@ -29,7 +29,7 @@ DeviceParameterResult OscillatorDeviceType::setParameter(DeviceSlot& slot,
     if (parameterId != "frequency") {
         return result;
     }
-    std::get<OscillatorInstance>(slot.instance).frequencyHz = value;
+    std::get<OscillatorParams>(slot.instance).frequencyHz = value;
     result.handled = true;
     result.syncActiveFrequency = true;
     return result;
@@ -49,15 +49,15 @@ std::vector<std::string_view> OscillatorDeviceType::modulatableParams() const {
 void OscillatorDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                              const PlaybackBuildContext&,
                                              DeviceNodePlayback& out) const {
-    const auto& instance = std::get<OscillatorInstance>(slot.instance);
+    const auto& instance = std::get<OscillatorParams>(slot.instance);
     out.kind = DeviceNodeKind::Oscillator;
-    out.params = OscillatorParams{.frequencyHz = instance.frequencyHz};
+    out.params = instance;
 }
 
 bool OscillatorDeviceType::buildLiveInstrument(const DeviceSlot& slot,
                                                const PlaybackBuildContext&,
                                                LiveInstrumentSnapshot& out) const {
-    const auto& instance = std::get<OscillatorInstance>(slot.instance);
+    const auto& instance = std::get<OscillatorParams>(slot.instance);
     out = LiveInstrumentSnapshot{};
     out.kind = LiveInstrumentKind::Oscillator;
     out.frequencyHz = instance.frequencyHz;
@@ -67,7 +67,7 @@ bool OscillatorDeviceType::buildLiveInstrument(const DeviceSlot& slot,
 
 juce::var OscillatorDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<OscillatorInstance>(slot.instance);
+    const auto& inst = std::get<OscillatorParams>(slot.instance);
     parameters->setProperty("gain", static_cast<double>(slot.gain));
     parameters->setProperty("pan", static_cast<double>(slot.pan));
     parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
@@ -95,7 +95,7 @@ DeviceSlot OscillatorDeviceType::varToSlot(const juce::var& obj) const {
             slot.gain = readFloat("gain", 1.0f);
             slot.pan = readFloat("pan", 0.5f);
             slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
-            OscillatorInstance inst;
+            OscillatorParams inst;
             inst.frequencyHz = readFloat("frequency", 440.0f);
             slot.instance = inst;
         }
