@@ -475,7 +475,6 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         SubtractiveSynthDeviceSnapshot d => d.decay,
         PhaseModSynthDeviceSnapshot d => d.decay,
         SamplerDeviceSnapshot d => d.decay,
-        BassSynthDeviceSnapshot d => d.decay,
         _ => 0.3,
       }).clamp(0.0, 1.0),
       'sustain' => (switch (device) {
