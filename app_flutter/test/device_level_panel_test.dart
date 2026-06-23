@@ -9,7 +9,8 @@ void main() {
   final device = DeviceSnapshot.fromMap({
     'id': 'dev-1',
     'type': 'simple_sampler',
-    'parameters': {'gain': 0.8, 'pan': 0.25, 'sampleId': ''},
+    'outputPanel': <dynamic, dynamic>{'gain': 0.8, 'pan': 0.25, 'type': 'stereo'},
+    'parameters': {'sampleId': ''},
   });
 
   test('DeviceLevelPanel formats pan labels', () {

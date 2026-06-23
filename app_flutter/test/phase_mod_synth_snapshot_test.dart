@@ -188,10 +188,8 @@ void main() {
       final base = DeviceSnapshot.fromMap(<dynamic, dynamic>{
         'id': 'pm-test',
         'type': 'phase_mod_synth',
-        'parameters': <dynamic, dynamic>{
-          'gain': 0.8,
-          'pan': 0.5,
-        },
+        'outputPanel': <dynamic, dynamic>{'gain': 0.8, 'pan': 0.5, 'type': 'stereo'},
+        'parameters': <dynamic, dynamic>{},
       }) as PhaseModSynthDeviceSnapshot;
 
       final updated = base.copyWith(pmOp1Level: 0.9);

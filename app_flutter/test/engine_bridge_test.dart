@@ -36,7 +36,8 @@ void main() {
             {
               'id': 'dev-1',
               'type': 'track_gain',
-              'parameters': {'gain': 1.0},
+              'outputPanel': <dynamic, dynamic>{'gain': 1.0, 'pan': 0.5, 'type': 'stereo'},
+              'parameters': <dynamic, dynamic>{},
             },
           ],
           'midiClips': [],
@@ -77,7 +78,8 @@ void main() {
                     {
                       'id': 'dev-1',
                       'type': 'simple_sampler',
-                      'parameters': {'gain': 0.5, 'sampleId': 'sample-1'},
+                      'outputPanel': <dynamic, dynamic>{'gain': 0.5, 'pan': 0.5, 'type': 'stereo'},
+                      'parameters': {'sampleId': 'sample-1'},
                     },
                   ],
                   'midiClips': [],
@@ -370,7 +372,8 @@ void main() {
                     {
                       'id': 'dev-1',
                       'type': 'simple_sampler',
-                      'parameters': {'gain': 0.5, 'sampleId': ''},
+                      'outputPanel': <dynamic, dynamic>{'gain': 0.5, 'pan': 0.5, 'type': 'stereo'},
+                      'parameters': {'sampleId': ''},
                     },
                   ],
                   'midiClips': [],
