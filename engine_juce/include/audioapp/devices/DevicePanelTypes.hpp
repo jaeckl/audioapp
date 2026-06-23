@@ -14,7 +14,8 @@ namespace audioapp {
 
 /// Empty input panel — used for devices with no input-stage controls.
 struct EmptyPanel {
-    void enumerate(auto&& /*cb*/) const {
+    template <typename Callback>
+    void enumerate(Callback&& /*cb*/) const {
         // no-op
     }
 };
@@ -23,7 +24,8 @@ struct EmptyPanel {
 struct DynamicsInputPanel {
     float trim = 1.0f;           // input gain trim, [0, 1]
 
-    void enumerate(auto&& cb) const {
+    template <typename Callback>
+    void enumerate(Callback&& cb) const {
         cb("trim", trim);
     }
 };
@@ -34,7 +36,8 @@ struct DynamicsInputPanel {
 struct MonoOutputPanel {
     float gain = 1.0f;           // output gain, [0, 1]
 
-    void enumerate(auto&& cb) const {
+    template <typename Callback>
+    void enumerate(Callback&& cb) const {
         cb("gain", gain);
     }
 
@@ -62,7 +65,8 @@ struct StereoOutputPanel {
     float gain = 1.0f;           // output gain, [0, 1]
     float pan  = 0.5f;           // pan, [0, 1] where 0.5 = centre
 
-    void enumerate(auto&& cb) const {
+    template <typename Callback>
+    void enumerate(Callback&& cb) const {
         cb("gain", gain);
         cb("pan",  pan);
     }
