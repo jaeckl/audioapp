@@ -1,7 +1,7 @@
 #pragma once
 
 #include "audioapp/dsp/DeviceProcessor.hpp"
-#include "audioapp/PhaseModSynth.hpp"
+#include "audioapp/PhaseModSynthAlgorithm.hpp"
 
 namespace audioapp {
 

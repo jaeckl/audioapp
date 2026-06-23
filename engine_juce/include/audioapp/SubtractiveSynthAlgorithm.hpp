@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include "audioapp/AutomationTypes.hpp"
 #include "audioapp/SamplerFilter.hpp"
 
 namespace audioapp {
@@ -111,6 +112,29 @@ struct SubtractiveMidiNoteRegion {
     double noteDurationBeats = 1.0;
     float velocity = 100.0f;
 };
+
+/// Direct-renderer entry point. Called by the arrangement playback path
+/// (SubtractiveSynthProcessor) and by the preset preview in EngineHost_commands.cpp.
+/// The automation/lfo/modulation pointers are optional — pass nullptr/0 to render
+/// without modulation, matching the preset-preview use case.
+void mixSubtractiveMidiNotesBlock(float* monoOut,
+                                  int numFrames,
+                                  double sampleRate,
+                                  int bpm,
+                                  double playheadStartBeat,
+                                  const SubtractiveMidiNoteRegion* notes,
+                                  int noteCount,
+                                  const SubtractiveSynthParams& params,
+                                  SubtractiveSynthRuntime& runtime,
+                                  const AutomationClipPlayback* automationClips = nullptr,
+                                  int automationClipCount = 0,
+                                  const uint16_t* automationDeviceIndex = nullptr,
+                                  const float* lfoValues = nullptr,
+                                  int lfoCount = 0,
+                                  int lfoStride = 0,
+                                  const ModulationEdgePlayback* modEdges = nullptr,
+                                  int modEdgeCount = 0,
+                                  const uint16_t* modulationDeviceIndex = nullptr) noexcept;
 
 float subtractiveNoiseSample(float& seed) noexcept;
 

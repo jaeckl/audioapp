@@ -1,7 +1,7 @@
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/EngineHost.hpp"
 #include "audioapp/LivePerformance.hpp"
-#include "audioapp/SubtractiveSynth.hpp"
+#include "audioapp/SubtractiveSynthAlgorithm.hpp"
 
 #include <juce_core/juce_core.h>
 #include "TestHelpers.h"

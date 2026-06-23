@@ -66,7 +66,7 @@ std::string EngineHost::getProjectSnapshotJson() const {
     return snapshotToJson(project_->snapshot(), project_->deviceRegistry());
 }
 
-std::string EngineHost::getDeviceStatesJson(const std::vector<std::string>& deviceIds) const {
+std::string EngineHost::getDeviceConfigsJson(const std::vector<std::string>& deviceIds) const {
     auto snap = project_->snapshot();
     auto* obj = new juce::DynamicObject();
     auto* devicesObj = new juce::DynamicObject();
@@ -660,29 +660,30 @@ void EngineHost::previewPreset(const std::string& deviceType, const std::vector<
 
     // Map the device slot → direct-renderer kind + params.
     using Kind = PreviewMidiState::PresetRenderKind;
-    if (std::holds_alternative<SubtractiveSynthParams>(slot.instance)) {
-        const auto& inst = std::get<SubtractiveSynthParams>(slot.instance);
+    if (std::holds_alternative<SubtractiveSynthParams>(slot.config.instance)) {
+        const auto& inst = std::get<SubtractiveSynthParams>(slot.config.instance);
         previewMidi_.subtractiveParams = inst;
-        previewMidi_.subtractiveParams.gain = slot.gain;
+        previewMidi_.subtractiveParams.gain = std::get<StereoOutputPanel>(slot.config.outputPanel).gain;
         previewMidi_.renderKind.store(Kind::SubtractiveSynth, std::memory_order_release);
         AUDIOAPP_LOG(
-            "previewPreset[ctrl] -> SubtractiveSynth slot.gain=%.3f inst.gain=%.3f "
+            "previewPreset[ctrl] -> SubtractiveSynth outputGain=%.3f inst.gain=%.3f "
             "ampSustain=%.3f ampRelease=%.3f filterCutoff=%.3f",
-            slot.gain, inst.gain, inst.ampSustain, inst.ampRelease, inst.filterCutoff);
-    } else if (std::holds_alternative<OscillatorParams>(slot.instance)) {
-        const auto& inst = std::get<OscillatorParams>(slot.instance);
+            std::get<StereoOutputPanel>(slot.config.outputPanel).gain, inst.gain, inst.ampSustain, inst.ampRelease, inst.filterCutoff);
+    } else if (std::holds_alternative<OscillatorParams>(slot.config.instance)) {
+        const auto& inst = std::get<OscillatorParams>(slot.config.instance);
         // Mirror the oscillator arrangement path: a sine at the active note's pitch,
-        // gain = slot.gain. The OscillatorParams.frequencyHz is overridden per-frame
+        // gain = output-panel gain. The OscillatorParams.frequencyHz is overridden per-frame
         // by midiActiveFrequencyHz(notes, noteCount, playhead, idleHz).
         (void)inst; // oscillator is a single-voice sine — no per-param shape to apply.
         previewMidi_.renderKind.store(Kind::Oscillator, std::memory_order_release);
-        AUDIOAPP_LOG("previewPreset[ctrl] -> Oscillator slot.gain=%.3f", slot.gain);
-    } else if (std::holds_alternative<SamplerModel>(slot.instance)) {
-        const auto& inst = std::get<SamplerModel>(slot.instance);
+        AUDIOAPP_LOG("previewPreset[ctrl] -> Oscillator outputGain=%.3f",
+                     std::get<StereoOutputPanel>(slot.config.outputPanel).gain);
+    } else if (std::holds_alternative<SamplerModel>(slot.config.instance)) {
+        const auto& inst = std::get<SamplerModel>(slot.config.instance);
         previewMidi_.samplerParams.pcm = previewMidi_.instrument.samplerPcm;
         previewMidi_.samplerParams.frameCount = previewMidi_.instrument.samplerFrameCount;
         previewMidi_.samplerParams.pcmSampleRate = previewMidi_.instrument.samplerPcmSampleRate;
-        previewMidi_.samplerParams.gain = slot.gain * kInstrumentOutputGain;
+        previewMidi_.samplerParams.gain = std::get<StereoOutputPanel>(slot.config.outputPanel).gain * kInstrumentOutputGain;
         previewMidi_.samplerParams.rootPitch = previewMidi_.instrument.rootPitch;
         previewMidi_.samplerParams.rootFineTune = previewMidi_.instrument.rootFineTune;
         previewMidi_.samplerParams.attack = inst.attack;
@@ -712,12 +713,12 @@ void EngineHost::previewPreset(const std::string& deviceType, const std::vector<
             std::memory_order_release);
         AUDIOAPP_LOG(
             "previewPreset[ctrl] -> Sampler hasPcm=%d frameCount=%d pcmSampleRate=%.0f "
-            "rootPitch=%d slot.gain=%.3f",
+            "rootPitch=%d outputGain=%.3f",
             previewMidi_.samplerHasPcm ? 1 : 0,
             previewMidi_.samplerParams.frameCount,
             previewMidi_.samplerParams.pcmSampleRate,
             previewMidi_.samplerParams.rootPitch,
-            slot.gain);
+            std::get<StereoOutputPanel>(slot.config.outputPanel).gain);
     } else {
         // Effects (delay, reverb, …) and unknown devices don't have an instrument
         // renderer — silent is the correct fallback for preset preview.

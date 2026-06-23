@@ -1,7 +1,7 @@
 #include "audioapp/devices/SnareGeneratorDeviceType.hpp"
 
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/SnareGenerator.hpp"
+#include "audioapp/SnareAlgorithm.hpp"
 #include "audioapp/devices/processors/SnareProcessor.hpp"
 
 #include "audioapp/devices/DeviceStripParams.hpp"

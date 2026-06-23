@@ -1,7 +1,7 @@
 #include "audioapp/devices/CymbalGeneratorDeviceType.hpp"
 
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/CymbalGenerator.hpp"
+#include "audioapp/CymbalAlgorithm.hpp"
 #include "audioapp/devices/processors/CymbalProcessor.hpp"
 
 #include "audioapp/devices/DeviceStripParams.hpp"

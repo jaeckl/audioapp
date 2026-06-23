@@ -1,7 +1,7 @@
 #include "audioapp/devices/CrashGeneratorDeviceType.hpp"
 
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/CrashGenerator.hpp"
+#include "audioapp/CrashAlgorithm.hpp"
 #include "audioapp/devices/processors/CrashProcessor.hpp"
 
 #include "audioapp/devices/DeviceStripParams.hpp"

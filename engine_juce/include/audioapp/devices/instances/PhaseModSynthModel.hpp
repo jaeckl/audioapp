@@ -1,6 +1,6 @@
 #pragma once
 
-#include "audioapp/PhaseModSynth.hpp"
+#include "audioapp/PhaseModSynthAlgorithm.hpp"
 
 #include <array>
 

@@ -131,6 +131,10 @@ target_compile_definitions(audioapp_engine
     _SILENCE_CXX20_OLD_SHARED_PTR_ATOMIC_SUPPORT_DEPRECATION_WARNING
 )
 
+if(MSVC)
+  target_compile_options(audioapp_engine PRIVATE /EHsc)
+endif()
+
 if(ANDROID)
   target_sources(audioapp_engine PRIVATE src/EngineHost_android.cpp)
   find_library(aaudio-lib aaudio)
@@ -222,6 +226,7 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
   target_link_libraries(audioapp_juce_tests PRIVATE audioapp_engine)
   if(MSVC)
     target_link_options(audioapp_juce_tests PRIVATE /STACK:16777216)
+    target_compile_options(audioapp_juce_tests PRIVATE /EHsc)
   endif()
   add_test(NAME audioapp_juce_tests COMMAND audioapp_juce_tests)
 endif()

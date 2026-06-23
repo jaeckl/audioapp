@@ -52,6 +52,17 @@ struct SamplerInstrumentPlayback {
     int noteFilterStateCount = 0;
 };
 
+/// Direct-renderer entry point. Called by the arrangement playback path
+/// (SamplerProcessor) and by the preset preview in EngineHost_commands.cpp.
+void mixSamplerMidiNotesBlock(float* monoOut,
+                              int numFrames,
+                              double sampleRate,
+                              int bpm,
+                              double playheadStartBeat,
+                              const SamplerMidiNoteRegion* notes,
+                              int noteCount,
+                              const SamplerInstrumentPlayback& sampler);
+
 /// Cutoff Hz with filter-envelope depth applied (matches subtractive synth FEG).
 float samplerFilterCutoffHz(float filterCutoffNorm,
                             float filterEnvGain,

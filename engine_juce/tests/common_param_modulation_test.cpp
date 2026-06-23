@@ -16,7 +16,7 @@
 #include "audioapp/EngineHost.hpp"
 #include "audioapp/AutomationPlayback.hpp"
 #include "audioapp/ProjectJson.hpp"
-#include "audioapp/SubtractiveSynth.hpp"
+#include "audioapp/SubtractiveSynthAlgorithm.hpp"
 
 #include <algorithm>
 #include <cmath>

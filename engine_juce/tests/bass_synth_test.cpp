@@ -2,7 +2,7 @@
 #include "TestHelpers.h"
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/LivePerformance.hpp"
-#include "audioapp/SubtractiveSynth.hpp"
+#include "audioapp/SubtractiveSynthAlgorithm.hpp"
 #include "audioapp/devices/BassSynthDeviceType.hpp"
 #include "audioapp/devices/DeviceRegistry.hpp"
 #include "audioapp/devices/DeviceSlot.hpp"

@@ -1,7 +1,7 @@
 #include "audioapp/devices/ClapGeneratorDeviceType.hpp"
 
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/ClapGenerator.hpp"
+#include "audioapp/ClapAlgorithm.hpp"
 #include "audioapp/devices/processors/ClapProcessor.hpp"
 
 #include "audioapp/devices/DeviceStripParams.hpp"

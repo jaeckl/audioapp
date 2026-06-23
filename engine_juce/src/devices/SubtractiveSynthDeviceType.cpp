@@ -1,7 +1,7 @@
 #include "audioapp/devices/SubtractiveSynthDeviceType.hpp"
 
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/SubtractiveSynth.hpp"
+#include "audioapp/SubtractiveSynthAlgorithm.hpp"
 #include "audioapp/devices/processors/SubtractiveSynthProcessor.hpp"
 
 #include "audioapp/devices/DeviceStripParams.hpp"

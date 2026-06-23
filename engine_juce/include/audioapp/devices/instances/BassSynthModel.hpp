@@ -1,6 +1,6 @@
 #pragma once
 
-#include "audioapp/SubtractiveSynth.hpp"
+#include "audioapp/SubtractiveSynthAlgorithm.hpp"
 
 namespace audioapp {
 

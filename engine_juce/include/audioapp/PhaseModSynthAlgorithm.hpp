@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "audioapp/SamplerFilter.hpp"
+#include "audioapp/AutomationTypes.hpp"
 
 namespace audioapp {
 
@@ -123,6 +124,27 @@ struct PhaseModSynthMidiNoteRegion {
     double noteDurationBeats = 1.0;
     float velocity = 100.0f;
 };
+
+/// Direct-renderer entry point. Called by the arrangement playback path
+/// (PhaseModSynthProcessor) and by tests/phase_mod_synth_test.cpp.
+void mixPhaseModMidiNotesBlock(float* monoOut,
+                               int numFrames,
+                               double sampleRate,
+                               int bpm,
+                               double playheadStartBeat,
+                               const PhaseModSynthMidiNoteRegion* notes,
+                               int noteCount,
+                               const PhaseModSynthParams& params,
+                               PhaseModSynthRuntime& runtime,
+                               const AutomationClipPlayback* automationClips = nullptr,
+                               int automationClipCount = 0,
+                               const uint16_t* automationDeviceIndex = nullptr,
+                               const float* lfoValues = nullptr,
+                               int lfoCount = 0,
+                               int lfoStride = 0,
+                               const ModulationEdgePlayback* modEdges = nullptr,
+                               int modEdgeCount = 0,
+                               const uint16_t* modulationDeviceIndex = nullptr) noexcept;
 
 // -----------------------------------------------------------------------
 // Helper functions

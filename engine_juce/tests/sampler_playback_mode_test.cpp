@@ -1,6 +1,6 @@
 #include <juce_core/juce_core.h>
 #include "TestHelpers.h"
-#include "audioapp/SamplePlayback.hpp"
+#include "audioapp/SamplePlaybackAlgorithm.hpp"
 
 class SamplerPlaybackModeTest : public juce::UnitTest {
 public:

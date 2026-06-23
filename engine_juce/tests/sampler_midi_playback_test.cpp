@@ -1,7 +1,7 @@
 #include <juce_core/juce_core.h>
 #include "TestHelpers.h"
 #include "audioapp/EngineHost.hpp"
-#include "audioapp/SamplePlayback.hpp"
+#include "audioapp/SamplePlaybackAlgorithm.hpp"
 
 class SamplerMidiPlaybackTest : public juce::UnitTest {
 public:

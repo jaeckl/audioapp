@@ -1,7 +1,7 @@
 #include "audioapp/devices/KickGeneratorDeviceType.hpp"
 
 #include "audioapp/devices/DeviceTypeIds.hpp"
-#include "audioapp/KickGenerator.hpp"
+#include "audioapp/KickAlgorithm.hpp"
 #include "audioapp/devices/processors/KickProcessor.hpp"
 
 #include "audioapp/devices/DeviceStripParams.hpp"

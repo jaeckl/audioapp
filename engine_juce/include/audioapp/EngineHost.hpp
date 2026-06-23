@@ -5,7 +5,7 @@
 #include "audioapp/MidiClipPlayback.hpp"
 #include "audioapp/ProjectEngine.hpp"
 #include "audioapp/SampleBank.hpp"
-#include "audioapp/SamplePlayback.hpp"
+#include "audioapp/SamplePlaybackAlgorithm.hpp"
 #include "audioapp/SubtractiveSynthAlgorithm.hpp"
 #include "audioapp/SamplePlaybackAlgorithm.hpp"
 #include "audioapp/SamplerFilter.hpp"
