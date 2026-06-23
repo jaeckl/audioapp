@@ -3,7 +3,7 @@
 #include "audioapp/TimelineClipTypes.hpp"
 #include "audioapp/MidiUtils.hpp"
 #include "audioapp/MasterMix.hpp"
-#include "audioapp/SamplePlayback.hpp"
+#include "audioapp/SamplePlaybackAlgorithm.hpp"
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/DeviceChainOrchestrator.hpp"
 #include "audioapp/DeviceChainScratch.hpp"
@@ -16,12 +16,12 @@
 #include "audioapp/devices/instances/SamplerModel.hpp"
 #include "audioapp/devices/instances/FrequencyFxModel.hpp"
 #include "audioapp/DynamicsProcessor.hpp"
-#include "audioapp/KickGenerator.hpp"
-#include "audioapp/SnareGenerator.hpp"
-#include "audioapp/ClapGenerator.hpp"
-#include "audioapp/CymbalGenerator.hpp"
-#include "audioapp/CrashGenerator.hpp"
-#include "audioapp/SubtractiveSynth.hpp"
+#include "audioapp/KickAlgorithm.hpp"
+#include "audioapp/SnareAlgorithm.hpp"
+#include "audioapp/ClapAlgorithm.hpp"
+#include "audioapp/CymbalAlgorithm.hpp"
+#include "audioapp/CrashAlgorithm.hpp"
+#include "audioapp/SubtractiveSynthAlgorithm.hpp"
 #include "audioapp/effects/DelayParams.hpp"
 #include "audioapp/effects/ReverbParams.hpp"
 #include "audioapp/effects/ChorusParams.hpp"
@@ -96,7 +96,7 @@ std::string ProjectEngine::addDeviceToTrack(const std::string& trackId,
 
     size_t gainIndex = track->devices.size();
     for (size_t i = 0; i < track->devices.size(); ++i) {
-        if (std::holds_alternative<TrackGainParams>(track->devices[i].instance)) {
+        if (std::holds_alternative<TrackGainParams>(track->devices[i].config.instance)) {
             gainIndex = i;
             break;
         }
@@ -138,7 +138,7 @@ bool ProjectEngine::removeDeviceFromTrack(const std::string& deviceId) {
     }
 
     const auto& slot = ownerTrack->devices[deviceIndex];
-    if (std::holds_alternative<TrackGainParams>(slot.instance)) {
+    if (std::holds_alternative<TrackGainParams>(slot.config.instance)) {
         return false;
     }
 
@@ -489,7 +489,7 @@ ProjectSnapshot ProjectEngine::snapshot() const {
         snap.automationClips.push_back(std::move(cs));
     }
 
-    snap.lfos = modulationGraph_.lfos();
+    snap.lfos = modulationGraph_.toLfoStates();
     snap.modEdges = modulationGraph_.modEdges();
 
     applyLiveDeviceMetersLocked(snap);
@@ -612,30 +612,16 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         const double samplePeriod = 1.0 / std::max(sampleRate, 1.0);
         const uint32_t retriggerGeneration = modulationGraph_.noteRetriggerGeneration();
         for (int i = 0; i < lfoCount; ++i) {
-            auto& entry = modulationGraph_.lfoPlaybackEntryMutable(i);
-            const auto& lfo = entry.state;
+            auto* mod = modulationGraph_.modulator(i);
+            if (mod == nullptr) continue;
             for (int frame = 0; frame < framesToProcess; ++frame) {
                 const double frameSeconds = playheadSeconds + static_cast<double>(frame) * samplePeriod;
                 const double frameBeat =
                     playheadStartBeat +
                     static_cast<double>(frame) * samplePeriod *
                         (static_cast<double>(std::max(transport_.bpm(), 1)) / 60.0);
-                float value = 0.0f;
-                if (lfo.retrigger == static_cast<int>(ModulatorRetrigger::OnNote)) {
-                    value = modulatorEvaluateOnNote(lfo,
-                                                    frameSeconds,
-                                                    retriggerGeneration,
-                                                    entry.envelope.lastRetriggerGeneration,
-                                                    entry.envelope.level,
-                                                    entry.envelope.stage,
-                                                    entry.envelope.segStartSeconds);
-                } else {
-                    value = modulatorEvaluateSynced(lfo,
-                                                    frameBeat,
-                                                    transport_.bpm(),
-                                                    frameSeconds - playheadSeconds);
-                }
-                lfoValues[i * framesToProcess + frame] = value;
+                lfoValues[i * framesToProcess + frame] =
+                    mod->evaluate(frameBeat, transport_.bpm(), frameSeconds, retriggerGeneration);
             }
         }
     }
@@ -851,7 +837,7 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
         }
         file.tracks.push_back(std::move(ts));
     }
-    file.lfos = modulationGraph_.lfos();
+    file.lfos = modulationGraph_.toLfoStates();
     file.modEdges = modulationGraph_.modEdges();
     file.automationClips.reserve(automationClipStore_.clips().size());
     for (const auto& clip : automationClipStore_.clips()) {
@@ -1017,7 +1003,7 @@ bool ProjectEngine::applySubtractiveSynthPreset(
     const std::vector<SubtractivePresetModSpec>& mods) {
     std::lock_guard<std::shared_mutex> lock(mutex_);
     DeviceSlot* device = findDeviceLocked(deviceId);
-    if (device == nullptr || !std::holds_alternative<SubtractiveSynthParams>(device->instance)) {
+    if (device == nullptr || !std::holds_alternative<SubtractiveSynthParams>(device->config.instance)) {
         return false;
     }
 
@@ -1092,10 +1078,10 @@ void ProjectEngine::applyLiveDeviceMetersLocked(ProjectSnapshot& snap) const {
     for (auto& trackState : snap.tracks) {
         for (auto& device : trackState.devices) {
             const bool isDynamics =
-                std::holds_alternative<GateParams>(device.instance) ||
-                std::holds_alternative<CompressorParams>(device.instance) ||
-                std::holds_alternative<ExpanderParams>(device.instance) ||
-                std::holds_alternative<LimiterParams>(device.instance);
+                std::holds_alternative<GateParams>(device.config.instance) ||
+                std::holds_alternative<CompressorParams>(device.config.instance) ||
+                std::holds_alternative<ExpanderParams>(device.config.instance) ||
+                std::holds_alternative<LimiterParams>(device.config.instance);
             if (!isDynamics) continue;
             for (int i = 0; i < deviceMeterSlotCount_; ++i) {
                 if (deviceMeterIds_[i] != device.id) {
@@ -1128,6 +1114,9 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
         snap.regionCount = 0;
         snap.deviceCount = 0;
 
+        // Build processor chain from device snapshot into the arena
+        snap.arena.reset();
+
         for (const auto& device : sourceTrack.devices) {
             if (snap.deviceCount >= kMaxDevicesPerTrack) {
                 break;
@@ -1135,9 +1124,20 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
 
             DeviceNodePlayback& node = snap.devices[snap.deviceCount];
             node.deviceId = device.id;
-            node.bypassed = device.bypassed;
-            node.gain = device.gain;
-            node.pan = device.pan;
+            node.bypassed = device.config.bypassed;
+            std::visit([&](const auto& panel) {
+                using T = std::decay_t<decltype(panel)>;
+                if constexpr (std::is_same_v<T, MonoOutputPanel>) {
+                    node.gain = panel.gain;
+                    node.pan = 0.5f;
+                } else if constexpr (std::is_same_v<T, StereoOutputPanel>) {
+                    node.gain = panel.gain;
+                    node.pan = panel.pan;
+                } else {
+                    node.gain = 1.0f;
+                    node.pan = 0.5f;
+                }
+            }, device.config.outputPanel);
             node.meterSlot = -1;
 
             const PlaybackBuildContext context{sampleBank_};
@@ -1147,12 +1147,22 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                 deviceMeterIds_[deviceMeterSlotCount_] = device.id;
                 ++deviceMeterSlotCount_;
             }
+
+            // Create processor via IDeviceType virtual dispatch
+            const IDeviceType* type = deviceRegistry_.findForSlot(device);
+            if (type != nullptr) {
+                auto* proc = type->createProcessor(snap.arena);
+                if (proc != nullptr) {
+                    proc->bypassed = node.bypassed;
+                    proc->meterSlot = node.meterSlot;
+                    proc->gain = node.gain;
+                    proc->pan = node.pan;
+                    proc->initParams(node.params);
+                }
+            }
+
             ++snap.deviceCount;
         }
-
-        // Build processor chain from device snapshot into the arena
-        snap.arena.reset();
-        buildProcessorChain(snap.devices, snap.deviceCount, snap.arena);
 
         for (const auto& clip : sourceTrack.midiClips) {
             for (const auto& note : clip.notes) {
@@ -1283,8 +1293,8 @@ void ProjectEngine::syncActiveFrequencyLocked() {
         if (Track* track = trackRepo_.findTrack(selectedId)) {
             bool foundOscillator = false;
             for (const auto& device : track->devices) {
-                if (std::holds_alternative<OscillatorParams>(device.instance)) {
-                    freq = std::get<OscillatorParams>(device.instance).frequencyHz;
+                if (std::holds_alternative<OscillatorParams>(device.config.instance)) {
+                    freq = std::get<OscillatorParams>(device.config.instance).frequencyHz;
                     foundOscillator = true;
                     break;
                 }

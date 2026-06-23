@@ -1,5 +1,10 @@
 #pragma once
 
+/// @file Backward-compatible typedefs + inline helpers for the new OOP modulator hierarchy.
+/// New code should use audioapp/modulation/ModulatorParams.hpp etc.
+/// @deprecated Prefer the per-type structs in ModulatorParams.hpp for new code.
+
+#include <cmath>
 #include <string>
 
 namespace audioapp {
@@ -48,5 +53,31 @@ struct ModulationEdge {
     std::string paramId;
     float amount = 0.0f;
 };
+
+/// Evaluate an LFO waveform at a given wrapped phase [0, 1).
+inline float lfoEvaluate(LfoWaveform waveform, float phase) noexcept {
+    phase = phase - std::floor(phase);
+    switch (waveform) {
+    case LfoWaveform::Sine:   return std::sin(phase * 6.283185307f);
+    case LfoWaveform::Tri:    return 1.0f - 4.0f * std::abs(phase - 0.5f);
+    case LfoWaveform::Saw:    return 2.0f * phase - 1.0f;
+    case LfoWaveform::Square: return phase < 0.5f ? 1.0f : -1.0f;
+    case LfoWaveform::Ramp:   return 1.0f - 2.0f * phase;
+    }
+    return 0.0f;
+}
+
+/// Map sync division index to beat multiplier.
+inline double lfoSyncBeats(int syncDivision) noexcept {
+    switch (syncDivision) {
+    case 0:  return 0.0;
+    case 1:  return 1.0;
+    case 2:  return 0.5;
+    case 3:  return 0.25;
+    case 4:  return 0.125;
+    case 5:  return 0.0625;
+    default: return 0.25;
+    }
+}
 
 } // namespace audioapp

@@ -78,26 +78,47 @@ public:
                 audioapp::DeviceSlot restored = audioapp::deviceVarToSlot(json, registry);
 
                 expect(restored.id == original.id, "id mismatch for " + std::string(typeId));
-                expectWithinAbsoluteError(restored.gain, original.gain, 0.001f);
-                expectWithinAbsoluteError(restored.pan, original.pan, 0.001f);
-                expect(restored.bypassed == original.bypassed, "bypass mismatch for " + std::string(typeId));
+                expect(restored.config.bypassed == original.config.bypassed, "bypass mismatch for " + std::string(typeId));
 
                 // Parameter modification round-trip (if modulatable params exist)
                 auto modulatable = registry.modulatableParams(typeId);
                 if (!modulatable.empty()) {
                     audioapp::DeviceSlot modified = original;
-                    modified.gain = 0.5f;
-                    modified.pan = 0.8f;
-                    modified.bypassed = true;
+                    // Set output panel gain/bypass via the device-type setParameter
+                    registry.setParameter(modified, "gain", 0.5f);
+                    bool panSet = false;
+                    if (modulatable.size() > 1 && modulatable[1] == "pan") {
+                        registry.setParameter(modified, "pan", 0.8f);
+                        panSet = true;
+                    }
+                    bool bypassSet = registry.setParameter(modified, "bypass", 1.0f).handled;
 
                     const std::string json2 = audioapp::deviceSlotToVar(modified, registry);
                     audioapp::DeviceSlot restored2 = audioapp::deviceVarToSlot(json2, registry);
 
-                    expectWithinAbsoluteError(restored2.gain, 0.5f, 0.001f,
+                    // Read gain from output panel after round-trip
+                    const auto& op = restored2.config.outputPanel;
+                    const auto restoredGain = std::visit([](const auto& p) -> float {
+                        using T = std::decay_t<decltype(p)>;
+                        if constexpr (std::is_same_v<T, audioapp::MonoOutputPanel> || std::is_same_v<T, audioapp::StereoOutputPanel>)
+                            return p.gain;
+                        return 1.0f;
+                    }, op);
+                    expectWithinAbsoluteError(restoredGain, 0.5f, 0.001f,
                                               "modified gain not preserved for " + std::string(typeId));
-                    expectWithinAbsoluteError(restored2.pan, 0.8f, 0.001f,
-                                              "modified pan not preserved for " + std::string(typeId));
-                    expect(restored2.bypassed, "modified bypass not preserved for " + std::string(typeId));
+                    if (panSet) {
+                        const auto restoredPan = std::visit([](const auto& p) -> float {
+                            using T = std::decay_t<decltype(p)>;
+                            if constexpr (std::is_same_v<T, audioapp::StereoOutputPanel>)
+                                return p.pan;
+                            return 0.5f;
+                        }, op);
+                        expectWithinAbsoluteError(restoredPan, 0.8f, 0.001f,
+                                                  "modified pan not preserved for " + std::string(typeId));
+                    }
+                    if (bypassSet) {
+                        expect(restored2.config.bypassed, "modified bypass not preserved for " + std::string(typeId));
+                    }
                 }
 
                 ++tested;
@@ -121,7 +142,7 @@ public:
                 const auto parsed2 = juce::JSON::parse(juce::String(audioapp::deviceSlotToVar(slot, registry)));
                 const audioapp::DeviceSlot restoredSlot = audioapp::deviceFromVar(parsed2, registry);
                 expectWithinAbsoluteError(
-                    std::get<audioapp::OscillatorParams>(restoredSlot.instance).frequencyHz,
+                    std::get<audioapp::OscillatorParams>(restoredSlot.config.instance).frequencyHz,
                     440.0f, 0.001f,
                     "oscillator registry-aware round-trip failed");
             }

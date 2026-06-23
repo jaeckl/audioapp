@@ -34,7 +34,7 @@ public:
             audioapp::DeviceSlot slot = registry.createDefault(
                 audioapp::device_types::kFourBandEq, "eq-default");
             expect(slot.id == "eq-default", "slot id should match");
-            const auto& inst = std::get<audioapp::FourBandEqModel>(slot.instance);
+            const auto& inst = std::get<audioapp::FourBandEqModel>(slot.config.instance);
             expectWithinAbsoluteError(inst.ffxBand1Freq, 0.15f, 0.001f, "default ffxBand1Freq");
             expectWithinAbsoluteError(inst.ffxBand1Gain, 0.5f, 0.001f, "default ffxBand1Gain");
             expectWithinAbsoluteError(inst.ffxBand1Q, 0.5f, 0.001f, "default ffxBand1Q");
@@ -55,7 +55,7 @@ public:
                 audioapp::device_types::kFourBandEq, "eq-b1f");
             const audioapp::DeviceParameterResult r = registry.setParameter(slot, "ffxBand1Freq", 0.3f);
             expect(r.handled, "ffxBand1Freq should be handled");
-            const auto& inst = std::get<audioapp::FourBandEqModel>(slot.instance);
+            const auto& inst = std::get<audioapp::FourBandEqModel>(slot.config.instance);
             expectWithinAbsoluteError(inst.ffxBand1Freq, 0.3f, 0.001f, "ffxBand1Freq updated");
         }
 
@@ -65,7 +65,7 @@ public:
                 audioapp::device_types::kFourBandEq, "eq-b4g");
             const audioapp::DeviceParameterResult r = registry.setParameter(slot, "ffxBand4Gain", 0.7f);
             expect(r.handled, "ffxBand4Gain should be handled");
-            const auto& inst = std::get<audioapp::FourBandEqModel>(slot.instance);
+            const auto& inst = std::get<audioapp::FourBandEqModel>(slot.config.instance);
             expectWithinAbsoluteError(inst.ffxBand4Gain, 0.7f, 0.001f, "ffxBand4Gain updated");
         }
 
@@ -74,7 +74,7 @@ public:
             audioapp::DeviceSlot slot = registry.createDefault(
                 audioapp::device_types::kFourBandEq, "eq-clamp");
             registry.setParameter(slot, "ffxBand2Freq", 1.5f);
-            const auto& inst = std::get<audioapp::FourBandEqModel>(slot.instance);
+            const auto& inst = std::get<audioapp::FourBandEqModel>(slot.config.instance);
             expectWithinAbsoluteError(inst.ffxBand2Freq, 1.0f, 0.001f,
                                        "ffxBand2Freq clamped to 1.0");
         }
@@ -122,7 +122,7 @@ public:
             audioapp::DeviceSlot slot = registry.createDefault(
                 audioapp::device_types::kFourBandEq, "eq-build-params");
             // ffxBand1Freq=0.15 → normalizedToFrequency(0.15) = 20 * 1000^0.15 ≈ 70.79 Hz
-            std::get<audioapp::FourBandEqModel>(slot.instance).ffxBand1Freq = 0.15f;
+            std::get<audioapp::FourBandEqModel>(slot.config.instance).ffxBand1Freq = 0.15f;
             audioapp::DeviceNodePlayback out;
             registry.buildPlaybackNode(slot, audioapp::PlaybackBuildContext{}, out);
             const auto& params = std::get<audioapp::FourBandEqParams>(out.params);
@@ -145,7 +145,7 @@ public:
         {
             audioapp::DeviceSlot slot = registry.createDefault(
                 audioapp::device_types::kFourBandEq, "eq-roundtrip");
-            auto& inst = std::get<audioapp::FourBandEqModel>(slot.instance);
+            auto& inst = std::get<audioapp::FourBandEqModel>(slot.config.instance);
             inst.ffxBand1Freq = 0.1f;
             inst.ffxBand1Gain = 0.2f;
             inst.ffxBand1Q = 0.3f;
@@ -158,17 +158,19 @@ public:
             inst.ffxBand4Freq = 0.95f;
             inst.ffxBand4Gain = 0.05f;
             inst.ffxBand4Q = 0.15f;
-            slot.gain = 0.5f;
-            slot.pan = 0.3f;
-            slot.bypassed = true;
+            std::get<audioapp::StereoOutputPanel>(slot.config.outputPanel).gain = 0.5f;
+            std::get<audioapp::StereoOutputPanel>(slot.config.outputPanel).pan = 0.3f;
+            slot.config.bypassed = true;
 
             const std::string json = audioapp::deviceSlotToVar(slot, registry);
             audioapp::DeviceSlot restored = audioapp::deviceVarToSlot(json, registry);
             expect(restored.id == slot.id, "id roundtrip");
-            expectWithinAbsoluteError(restored.gain, slot.gain, 0.001f, "gain roundtrip");
-            expectWithinAbsoluteError(restored.pan, slot.pan, 0.001f, "pan roundtrip");
-            expect(restored.bypassed == slot.bypassed, "bypass roundtrip");
-            const auto& ri = std::get<audioapp::FourBandEqModel>(restored.instance);
+            expectWithinAbsoluteError(std::get<audioapp::StereoOutputPanel>(restored.config.outputPanel).gain,
+                                  std::get<audioapp::StereoOutputPanel>(slot.config.outputPanel).gain, 0.001f, "gain roundtrip");
+            expectWithinAbsoluteError(std::get<audioapp::StereoOutputPanel>(restored.config.outputPanel).pan,
+                                  std::get<audioapp::StereoOutputPanel>(slot.config.outputPanel).pan, 0.001f, "pan roundtrip");
+            expect(restored.config.bypassed == slot.config.bypassed, "bypass roundtrip");
+            const auto& ri = std::get<audioapp::FourBandEqModel>(restored.config.instance);
             expectWithinAbsoluteError(ri.ffxBand1Freq, 0.1f, 0.001f, "b1Freq roundtrip");
             expectWithinAbsoluteError(ri.ffxBand1Gain, 0.2f, 0.001f, "b1Gain roundtrip");
             expectWithinAbsoluteError(ri.ffxBand1Q, 0.3f, 0.001f, "b1Q roundtrip");
@@ -223,7 +225,7 @@ public:
                 R"({"id":"eq-min","type":"four_band_eq","parameters":{}})";
             audioapp::DeviceSlot restored = audioapp::deviceVarToSlot(json, registry);
             expect(restored.id == "eq-min", "id preserved");
-            const auto& inst = std::get<audioapp::FourBandEqModel>(restored.instance);
+            const auto& inst = std::get<audioapp::FourBandEqModel>(restored.config.instance);
             expectWithinAbsoluteError(inst.ffxBand1Freq, 0.15f, 0.001f, "default ffxBand1Freq");
             expectWithinAbsoluteError(inst.ffxBand1Gain, 0.5f, 0.001f, "default ffxBand1Gain");
             expectWithinAbsoluteError(inst.ffxBand1Q, 0.5f, 0.001f, "default ffxBand1Q");

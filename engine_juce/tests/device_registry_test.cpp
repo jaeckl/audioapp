@@ -29,9 +29,9 @@ public:
             audioapp::DeviceSlot oscillator = registry.createDefault(
                 audioapp::device_types::kOscillator, "dev-test-1");
             expect(oscillator.id == "dev-test-1", "oscillator id should match");
-            expect(std::holds_alternative<audioapp::OscillatorParams>(oscillator.instance),
+            expect(std::holds_alternative<audioapp::OscillatorParams>(oscillator.config.instance),
                    "oscillator should have OscillatorParams");
-            const auto& oscInst = std::get<audioapp::OscillatorParams>(oscillator.instance);
+            const auto& oscInst = std::get<audioapp::OscillatorParams>(oscillator.config.instance);
             expectWithinAbsoluteError(oscInst.frequencyHz, 440.0f, 0.001f);
         }
 
@@ -39,14 +39,22 @@ public:
         {
             audioapp::DeviceSlot gain = registry.createDefault(
                 audioapp::device_types::kTrackGain, "dev-test-2");
-            expectWithinAbsoluteError(gain.gain, 1.0f, 0.001f);
+            expect(std::holds_alternative<audioapp::TrackGainParams>(gain.config.instance), "track gain should have TrackGainParams");
+            // TrackGain uses MonoOutputPanel with gain=1.0
+            const float defaultGain = std::visit([](const auto& p) -> float {
+                using T = std::decay_t<decltype(p)>;
+                if constexpr (std::is_same_v<T, audioapp::MonoOutputPanel> || std::is_same_v<T, audioapp::StereoOutputPanel>)
+                    return p.gain;
+                return 1.0f;
+            }, gain.config.outputPanel);
+            expectWithinAbsoluteError(defaultGain, 1.0f, 0.001f);
         }
 
         beginTest("create default subtractive synth");
         {
             audioapp::DeviceSlot synth = registry.createDefault(
                 audioapp::device_types::kSubtractiveSynth, "dev-test-3");
-            const auto& subInst = std::get<audioapp::SubtractiveSynthParams>(synth.instance);
+            const auto& subInst = std::get<audioapp::SubtractiveSynthParams>(synth.config.instance);
             expectWithinAbsoluteError(subInst.filterCutoff, 0.75f, 0.001f);
             expectWithinAbsoluteError(subInst.osc1Shape, 0.5f, 0.001f);
         }

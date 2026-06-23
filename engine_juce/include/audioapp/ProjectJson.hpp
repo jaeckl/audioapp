@@ -59,22 +59,6 @@ struct SubtractivePresetArgs {
 
 bool parseSubtractivePresetArgs(const std::string& argumentsJson, SubtractivePresetArgs& out);
 
-/// LFO / modulator evaluation helpers.
-float lfoEvaluate(LfoWaveform waveform, float phase) noexcept;
-double lfoSyncBeats(int syncDivision) noexcept;
-float modulatorApplyPolarity(float value, int polarity) noexcept;
-float modulatorEvaluateSynced(const LfoState& state,
-                              double playheadBeat,
-                              int bpm,
-                              double frameSeconds) noexcept;
-float modulatorEvaluateOnNote(const LfoState& state,
-                              double frameSeconds,
-                              uint32_t retriggerGeneration,
-                              uint32_t& lastRetriggerGeneration,
-                              float& envelopeLevel,
-                              int& envelopeStage,
-                              double& segStartSeconds) noexcept;
-
 /// Bridge command JSON helpers (control thread).
 std::string jsonGetStringArg(const std::string& argumentsJson, const std::string& key);
 double jsonGetNumberArg(const std::string& argumentsJson, const std::string& key, double fallback = 0.0);

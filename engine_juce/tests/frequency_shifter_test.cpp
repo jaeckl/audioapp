@@ -35,7 +35,7 @@ public:
             audioapp::DeviceSlot slot = registry.createDefault(
                 audioapp::device_types::kFrequencyShifter, "shifter-default");
             expect(slot.id == "shifter-default", "slot id should match");
-            const auto& inst = std::get<audioapp::FrequencyShifterModel>(slot.instance);
+            const auto& inst = std::get<audioapp::FrequencyShifterModel>(slot.config.instance);
             expectWithinAbsoluteError(inst.ffxShift, 0.5f, 0.001f, "default ffxShift=0.5");
         }
 
@@ -45,7 +45,7 @@ public:
                 audioapp::device_types::kFrequencyShifter, "shifter-shift");
             const audioapp::DeviceParameterResult r = registry.setParameter(slot, "ffxShift", 0.7f);
             expect(r.handled, "ffxShift should be handled");
-            const auto& inst = std::get<audioapp::FrequencyShifterModel>(slot.instance);
+            const auto& inst = std::get<audioapp::FrequencyShifterModel>(slot.config.instance);
             expectWithinAbsoluteError(inst.ffxShift, 0.7f, 0.001f, "ffxShift updated");
         }
 
@@ -54,7 +54,7 @@ public:
             audioapp::DeviceSlot slot = registry.createDefault(
                 audioapp::device_types::kFrequencyShifter, "shifter-clamp");
             registry.setParameter(slot, "ffxShift", 1.5f);
-            const auto& inst = std::get<audioapp::FrequencyShifterModel>(slot.instance);
+            const auto& inst = std::get<audioapp::FrequencyShifterModel>(slot.config.instance);
             expectWithinAbsoluteError(inst.ffxShift, 1.0f, 0.001f, "ffxShift clamped to 1.0");
         }
 
@@ -97,7 +97,7 @@ public:
             // ffxShift=0.5 → shiftHz = (0.5 - 0.5) * 4000 = 0
             audioapp::DeviceSlot slot = registry.createDefault(
                 audioapp::device_types::kFrequencyShifter, "shifter-center");
-            std::get<audioapp::FrequencyShifterModel>(slot.instance).ffxShift = 0.5f;
+            std::get<audioapp::FrequencyShifterModel>(slot.config.instance).ffxShift = 0.5f;
             audioapp::DeviceNodePlayback out;
             registry.buildPlaybackNode(slot, audioapp::PlaybackBuildContext{}, out);
             const auto& params = std::get<audioapp::FrequencyShifterParams>(out.params);
@@ -110,7 +110,7 @@ public:
             // ffxShift=1.0 → shiftHz = (1.0 - 0.5) * 4000 = 2000
             audioapp::DeviceSlot slot = registry.createDefault(
                 audioapp::device_types::kFrequencyShifter, "shifter-pos");
-            std::get<audioapp::FrequencyShifterModel>(slot.instance).ffxShift = 1.0f;
+            std::get<audioapp::FrequencyShifterModel>(slot.config.instance).ffxShift = 1.0f;
             audioapp::DeviceNodePlayback out;
             registry.buildPlaybackNode(slot, audioapp::PlaybackBuildContext{}, out);
             const auto& params = std::get<audioapp::FrequencyShifterParams>(out.params);
@@ -123,7 +123,7 @@ public:
             // ffxShift=0.0 → shiftHz = (0.0 - 0.5) * 4000 = -2000
             audioapp::DeviceSlot slot = registry.createDefault(
                 audioapp::device_types::kFrequencyShifter, "shifter-neg");
-            std::get<audioapp::FrequencyShifterModel>(slot.instance).ffxShift = 0.0f;
+            std::get<audioapp::FrequencyShifterModel>(slot.config.instance).ffxShift = 0.0f;
             audioapp::DeviceNodePlayback out;
             registry.buildPlaybackNode(slot, audioapp::PlaybackBuildContext{}, out);
             const auto& params = std::get<audioapp::FrequencyShifterParams>(out.params);
@@ -145,18 +145,20 @@ public:
         {
             audioapp::DeviceSlot slot = registry.createDefault(
                 audioapp::device_types::kFrequencyShifter, "shifter-roundtrip");
-            std::get<audioapp::FrequencyShifterModel>(slot.instance).ffxShift = 0.42f;
-            slot.gain = 0.5f;
-            slot.pan = 0.3f;
-            slot.bypassed = true;
+            std::get<audioapp::FrequencyShifterModel>(slot.config.instance).ffxShift = 0.42f;
+            std::get<audioapp::StereoOutputPanel>(slot.config.outputPanel).gain = 0.5f;
+            std::get<audioapp::StereoOutputPanel>(slot.config.outputPanel).pan = 0.3f;
+            slot.config.bypassed = true;
 
             const std::string json = audioapp::deviceSlotToVar(slot, registry);
             audioapp::DeviceSlot restored = audioapp::deviceVarToSlot(json, registry);
             expect(restored.id == slot.id, "id roundtrip");
-            expectWithinAbsoluteError(restored.gain, slot.gain, 0.001f, "gain roundtrip");
-            expectWithinAbsoluteError(restored.pan, slot.pan, 0.001f, "pan roundtrip");
-            expect(restored.bypassed == slot.bypassed, "bypass roundtrip");
-            const auto& inst = std::get<audioapp::FrequencyShifterModel>(restored.instance);
+            expectWithinAbsoluteError(std::get<audioapp::StereoOutputPanel>(restored.config.outputPanel).gain,
+                                  std::get<audioapp::StereoOutputPanel>(slot.config.outputPanel).gain, 0.001f, "gain roundtrip");
+            expectWithinAbsoluteError(std::get<audioapp::StereoOutputPanel>(restored.config.outputPanel).pan,
+                                  std::get<audioapp::StereoOutputPanel>(slot.config.outputPanel).pan, 0.001f, "pan roundtrip");
+            expect(restored.config.bypassed == slot.config.bypassed, "bypass roundtrip");
+            const auto& inst = std::get<audioapp::FrequencyShifterModel>(restored.config.instance);
             expectWithinAbsoluteError(inst.ffxShift, 0.42f, 0.001f, "ffxShift roundtrip");
         }
 
@@ -181,10 +183,9 @@ public:
                 expect(p != nullptr, "parameters should be a DynamicObject");
                 if (p != nullptr) {
                     expect(p->hasProperty("ffxShift"), "parameters should have 'ffxShift'");
-                    expect(p->hasProperty("gain"), "parameters should have 'gain'");
-                    expect(p->hasProperty("pan"), "parameters should have 'pan'");
-                    expect(p->hasProperty("bypass"), "parameters should have 'bypass'");
                 }
+                // gain/pan/bypass are now in outputPanel and root level
+                expect(root->hasProperty("outputPanel"), "should have 'outputPanel' property");
             }
         }
 
@@ -195,7 +196,7 @@ public:
                 R"({"id":"shifter-min","type":"frequency_shifter","parameters":{}})";
             audioapp::DeviceSlot restored = audioapp::deviceVarToSlot(json, registry);
             expect(restored.id == "shifter-min", "id preserved");
-            const auto& inst = std::get<audioapp::FrequencyShifterModel>(restored.instance);
+            const auto& inst = std::get<audioapp::FrequencyShifterModel>(restored.config.instance);
             expectWithinAbsoluteError(inst.ffxShift, 0.5f, 0.001f, "default ffxShift=0.5");
         }
     }

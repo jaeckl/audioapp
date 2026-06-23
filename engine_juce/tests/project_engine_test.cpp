@@ -31,7 +31,14 @@ public:
                    "should set device parameter");
 
             const auto snapAfterGain = project->snapshot();
-            expectWithinAbsoluteError(snapAfterGain.tracks[0].devices[0].gain, 0.5f, 0.01f);
+            const auto& op = snapAfterGain.tracks[0].devices[0].config.outputPanel;
+            const float actualGain = std::visit([](const auto& p) -> float {
+                using T = std::decay_t<decltype(p)>;
+                if constexpr (std::is_same_v<T, audioapp::MonoOutputPanel> || std::is_same_v<T, audioapp::StereoOutputPanel>)
+                    return p.gain;
+                return 1.0f;
+            }, op);
+            expectWithinAbsoluteError(actualGain, 0.5f, 0.01f);
         }
 
         beginTest("select missing track fails");

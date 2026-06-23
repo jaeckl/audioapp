@@ -34,15 +34,15 @@ add_library(audioapp_engine STATIC
   src/MidiClipPlayback.cpp
   src/SampleBank.cpp
   src/WavLoader.cpp
-  src/SamplePlayback.cpp
+  src/SamplePlaybackAlgorithm.cpp
   src/SamplerFilter.cpp
-  src/SubtractiveSynth.cpp
-  src/PhaseModSynth.cpp
-  src/KickGenerator.cpp
-  src/SnareGenerator.cpp
-  src/ClapGenerator.cpp
-  src/CymbalGenerator.cpp
-  src/CrashGenerator.cpp
+  src/KickAlgorithm.cpp
+  src/SubtractiveSynthAlgorithm.cpp
+  src/PhaseModSynthAlgorithm.cpp
+  src/SnareAlgorithm.cpp
+  src/ClapAlgorithm.cpp
+  src/CymbalAlgorithm.cpp
+  src/CrashAlgorithm.cpp
   src/MetallicNoiseSynth.cpp
   src/DynamicsProcessor.cpp
   src/FrequencyFxProcessor.cpp
@@ -102,9 +102,14 @@ add_library(audioapp_engine STATIC
   src/model/AutomationClipStore.cpp
   src/transport/TransportController.cpp
   src/modulation/ModulationGraph.cpp
+  src/modulation/LfoModulator.cpp
+  src/modulation/LfoModulatorType.cpp
+  src/modulation/AdsrModulator.cpp
+  src/modulation/AdsrModulatorType.cpp
+  src/modulation/AdrModulator.cpp
+  src/modulation/AdrModulatorType.cpp
   src/AutomationPlayback.cpp
   src/EngineHost_commands.cpp
-  src/LfoEngine.cpp
   src/FallbackPreviewOscillator.cpp
 )
 

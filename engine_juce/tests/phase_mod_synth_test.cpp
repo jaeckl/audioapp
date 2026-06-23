@@ -2,8 +2,8 @@
 #include "audioapp/EngineHost.hpp"
 #include "audioapp/LivePerformance.hpp"
 #include "audioapp/MidiUtils.hpp"
-#include "audioapp/PhaseModSynth.hpp"
-#include "audioapp/SamplePlayback.hpp"
+#include "audioapp/PhaseModSynthAlgorithm.hpp"
+#include "audioapp/SamplePlaybackAlgorithm.hpp"
 #include "audioapp/devices/DeviceRegistry.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/devices/PhaseModSynthDeviceType.hpp"
@@ -636,10 +636,10 @@ public:
             expectEquals(slot.id, std::string("test-id"),
                          "Slot id should match the provided id");
 
-            const bool isPM = std::holds_alternative<audioapp::PhaseModSynthModel>(slot.instance);
+            const bool isPM = std::holds_alternative<audioapp::PhaseModSynthModel>(slot.config.instance);
             expect(isPM, "Slot instance should be PhaseModSynthModel");
 
-            const auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.instance);
+            const auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.config.instance);
             expectEquals(inst.algoIndex, 0, "Default algoIndex should be 0");
             expectEquals(inst.feedback, 0.0f, "Default feedback should be 0.0");
             expect(std::abs(inst.op[0].ratio - 0.0625f) < 0.001f,
@@ -655,7 +655,7 @@ public:
         {
             auto slot = deviceType.createDefault("test-id");
             {
-                auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.instance);
+                auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.config.instance);
                 inst.op[0].ratio = 0.5f;
                 inst.algoIndex = 3;
                 inst.feedback = 0.5f;
@@ -664,10 +664,10 @@ public:
             const juce::var serialized = deviceType.slotToVar(slot);
             const auto restored = deviceType.varToSlot(serialized);
 
-            const bool isPM = std::holds_alternative<audioapp::PhaseModSynthModel>(restored.instance);
+            const bool isPM = std::holds_alternative<audioapp::PhaseModSynthModel>(restored.config.instance);
             expect(isPM, "Restored slot should be PhaseModSynthModel");
 
-            const auto& inst = std::get<audioapp::PhaseModSynthModel>(restored.instance);
+            const auto& inst = std::get<audioapp::PhaseModSynthModel>(restored.config.instance);
             expect(std::abs(inst.op[0].ratio - 0.5f) < 0.001f,
                    "Restored op[0].ratio should be ~0.5");
             expectEquals(inst.algoIndex, 3, "Restored algoIndex should be 3");
@@ -685,7 +685,7 @@ public:
             auto result = deviceType.setParameter(slot, "pmOp1Level", 0.9f);
             expect(result.handled, "pmOp1Level=0.9 should be handled");
             {
-                const auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.instance);
+                const auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.config.instance);
                 expect(std::abs(inst.op[0].level - 0.9f) < 0.001f,
                        "op[0].level should be ~0.9 after setParameter");
             }
@@ -694,7 +694,7 @@ public:
             result = deviceType.setParameter(slot, "pmAlgoIndex", 5.0f);
             expect(result.handled, "pmAlgoIndex=5 should be handled");
             {
-                const auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.instance);
+                const auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.config.instance);
                 expectEquals(inst.algoIndex, 5, "algoIndex should be 5");
             }
 
@@ -713,7 +713,7 @@ public:
             // pmOp1Level = 1.5 → clamped to 1.0
             deviceType.setParameter(slot, "pmOp1Level", 1.5f);
             {
-                const auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.instance);
+                const auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.config.instance);
                 expectEquals(inst.op[0].level, 1.0f, "pmOp1Level=1.5 should clamp to 1.0");
             }
 
@@ -723,7 +723,7 @@ public:
             // pmOp1Level = -0.5 → clamped to 0.0
             deviceType.setParameter(slot, "pmOp1Level", -0.5f);
             {
-                const auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.instance);
+                const auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.config.instance);
                 expectEquals(inst.op[0].level, 0.0f, "pmOp1Level=-0.5 should clamp to 0.0");
             }
 
@@ -733,7 +733,7 @@ public:
             // pmAlgoIndex = 10 → clamped to 7
             deviceType.setParameter(slot, "pmAlgoIndex", 10.0f);
             {
-                const auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.instance);
+                const auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.config.instance);
                 expectEquals(inst.algoIndex, 7, "pmAlgoIndex=10 should clamp to 7");
             }
         }
@@ -749,7 +749,7 @@ public:
                 const bool handled = deviceType.setStringParameter(
                     slot, "pmAlgo", "stack_4", buildCtx);
                 expect(handled, "setStringParameter 'stack_4' should return true");
-                const auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.instance);
+                const auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.config.instance);
                 expectEquals(inst.algoIndex, 0, "stack_4 → algoIndex 0");
             }
 
@@ -759,7 +759,7 @@ public:
                 const bool handled = deviceType.setStringParameter(
                     slot, "pmAlgo", "mod_3_to_1", buildCtx);
                 expect(handled, "setStringParameter 'mod_3_to_1' should return true");
-                const auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.instance);
+                const auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.config.instance);
                 expectEquals(inst.algoIndex, 1, "mod_3_to_1 → algoIndex 1");
             }
 
@@ -787,7 +787,7 @@ public:
         {
             auto slot = deviceType.createDefault("test-id");
             {
-                auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.instance);
+                auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.config.instance);
                 inst.algoIndex = 3;
                 inst.op[0].level = 0.9f;
             }
@@ -869,14 +869,14 @@ public:
 
             // Create slot via registry
             auto slot = registry.createDefault(audioapp::device_types::kPhaseModSynth, "test-id");
-            const bool isPM = std::holds_alternative<audioapp::PhaseModSynthModel>(slot.instance);
+            const bool isPM = std::holds_alternative<audioapp::PhaseModSynthModel>(slot.config.instance);
             expect(isPM, "Registry-created slot should be PhaseModSynthModel");
 
             // Set parameter via registry
             const auto result = registry.setParameter(slot, "pmOp1Level", 0.9f);
             expect(result.handled, "Registry setParameter(pmOp1Level, 0.9) should be handled");
             {
-                const auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.instance);
+                const auto& inst = std::get<audioapp::PhaseModSynthModel>(slot.config.instance);
                 expect(std::abs(inst.op[0].level - 0.9f) < 0.001f,
                        "After registry setParameter, op[0].level should be ~0.9");
             }
@@ -885,7 +885,7 @@ public:
             const auto serialized = registry.find(audioapp::device_types::kPhaseModSynth)->slotToVar(slot);
             const auto restored = registry.find(audioapp::device_types::kPhaseModSynth)->varToSlot(serialized);
             {
-                const auto& inst = std::get<audioapp::PhaseModSynthModel>(restored.instance);
+                const auto& inst = std::get<audioapp::PhaseModSynthModel>(restored.config.instance);
                 expect(std::abs(inst.op[0].level - 0.9f) < 0.001f,
                        "slotToVar/varToSlot roundtrip should preserve op[0].level ≈ 0.9");
             }
