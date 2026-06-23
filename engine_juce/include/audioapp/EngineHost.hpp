@@ -5,8 +5,9 @@
 #include "audioapp/MidiClipPlayback.hpp"
 #include "audioapp/ProjectEngine.hpp"
 #include "audioapp/SampleBank.hpp"
-#include "audioapp/SubtractiveSynth.hpp"
 #include "audioapp/SamplePlayback.hpp"
+#include "audioapp/SubtractiveSynthAlgorithm.hpp"
+#include "audioapp/SamplePlaybackAlgorithm.hpp"
 #include "audioapp/SamplerFilter.hpp"
 
 #include <atomic>
@@ -114,7 +115,7 @@ public:
     /// Returns JSON for a subset of devices, indexed by their deviceId.
     /// Used for selective frontend polling.
     /// Format: { "ok": true, "devices": { "dev-1": { "type":"...", "parameters":{...}, "meters":{...} }, ... } }
-    std::string getDeviceStatesJson(const std::vector<std::string>& deviceIds) const;
+    std::string getDeviceConfigsJson(const std::vector<std::string>& deviceIds) const;
 
     void advancePlayheadForBlock(int numFrames, double sampleRate) noexcept;
     float activeOscillatorFrequencyHz() const;

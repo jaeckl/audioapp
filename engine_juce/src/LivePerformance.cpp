@@ -2,14 +2,14 @@
 
 #include "audioapp/MasterMix.hpp"
 #include "audioapp/MidiUtils.hpp"
-#include "audioapp/SamplePlayback.hpp"
+#include "audioapp/SamplePlaybackAlgorithm.hpp"
 #include "audioapp/SamplerFilter.hpp"
-#include "audioapp/KickGenerator.hpp"
-#include "audioapp/SnareGenerator.hpp"
-#include "audioapp/ClapGenerator.hpp"
-#include "audioapp/CymbalGenerator.hpp"
-#include "audioapp/CrashGenerator.hpp"
-#include "audioapp/SubtractiveSynth.hpp"
+#include "audioapp/KickAlgorithm.hpp"
+#include "audioapp/SnareAlgorithm.hpp"
+#include "audioapp/ClapAlgorithm.hpp"
+#include "audioapp/CymbalAlgorithm.hpp"
+#include "audioapp/CrashAlgorithm.hpp"
+#include "audioapp/SubtractiveSynthAlgorithm.hpp"
 
 #include <algorithm>
 #include <cmath>

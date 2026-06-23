@@ -24,6 +24,8 @@ public:
     bool buildLiveInstrument(const DeviceSlot& slot, const PlaybackBuildContext& context, LiveInstrumentSnapshot& out) const override;
     juce::var slotToVar(const DeviceSlot& slot) const override;
     DeviceSlot varToSlot(const juce::var& obj) const override;
+
+    DeviceProcessor* createProcessor(ProcessorArena& arena) const override;
 };
 
 } // namespace audioapp

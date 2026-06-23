@@ -1,4 +1,5 @@
 #include "audioapp/DeviceChainOrchestrator.hpp"
+#include "audioapp/devices/DevicePanelTypes.hpp"
 #include "audioapp/DeviceChainScratch.hpp"
 #include "audioapp/DeviceChainAutomationModulation.hpp"
 #include "audioapp/AutomationPlayback.hpp"
@@ -9,7 +10,7 @@ using namespace audioapp::DeviceChainAutomationModulation;
 #include "audioapp/devices/processors/TrackGainProcessor.hpp"
 #include "audioapp/devices/processors/OscillatorProcessor.hpp"
 #include "audioapp/devices/processors/SamplerProcessor.hpp"
-#include "audioapp/devices/processors/SubtractiveSynthProcessor.hpp"
+#include "audioapp/devices/processors/SubtractiveSynthProcessor.hpp" // also defines BassSynthProcessor
 #include "audioapp/devices/processors/PhaseModSynthProcessor.hpp"
 #include "audioapp/devices/processors/KickProcessor.hpp"
 #include "audioapp/devices/processors/SnareProcessor.hpp"
@@ -37,6 +38,34 @@ namespace audioapp {
 // Processor Factory — control thread only
 // =======================================================================
 
+using FactoryFn = DeviceProcessor* (*)(ProcessorArena&);
+static const FactoryFn kProcessorFactories[] = {
+    nullptr,  // Unknown = 0
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<OscillatorProcessor>(); },           // Oscillator = 1
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<SamplerProcessor>(); },             // Sampler = 2
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<SubtractiveSynthProcessor>(); },    // SubtractiveSynth = 3
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<KickProcessor>(); },                 // KickGenerator = 4
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<SnareProcessor>(); },                // SnareGenerator = 5
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<ClapProcessor>(); },                 // ClapGenerator = 6
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<CymbalProcessor>(); },               // CymbalGenerator = 7
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<CrashProcessor>(); },                // CrashGenerator = 8
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<GateProcessor>(); },                 // Gate = 9
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<CompressorProcessor>(); },           // Compressor = 10
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<ExpanderProcessor>(); },             // Expander = 11
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<LimiterProcessor>(); },              // Limiter = 12
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<TrackGainProcessor>(); },            // TrackGain = 13
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<BassSynthProcessor>(); },            // BassSynth = 14
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<PhaseModSynthProcessor>(); },        // PhaseModSynth = 15
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<DelayProcessor>(); },                // Delay = 16
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<ReverbProcessor>(); },               // Reverb = 17
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<ChorusProcessor>(); },               // Chorus = 18
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<PhaserProcessor>(); },               // Phaser = 19
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<FilterProcessor>(); },               // Filter = 20
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<FourBandEqProcessor>(); },           // FourBandEq = 21
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<FrequencyShifterProcessor>(); },     // FrequencyShifter = 22
+};
+static constexpr size_t kNumFactories = sizeof(kProcessorFactories) / sizeof(kProcessorFactories[0]);
+
 int buildProcessorChain(const DeviceNodePlayback* devices, int deviceCount,
                         ProcessorArena& arena) noexcept {
     arena.reset();
@@ -47,75 +76,12 @@ int buildProcessorChain(const DeviceNodePlayback* devices, int deviceCount,
         const auto& node = devices[i];
         DeviceProcessor* proc = nullptr;
 
-        switch (node.kind) {
-        case DeviceNodeKind::Oscillator:
-            proc = arena.emplace<OscillatorProcessor>();
-            break;
-        case DeviceNodeKind::Sampler:
-            proc = arena.emplace<SamplerProcessor>();
-            break;
-        case DeviceNodeKind::SubtractiveSynth:
-            proc = arena.emplace<SubtractiveSynthProcessor>();
-            break;
-        case DeviceNodeKind::BassSynth:
-            proc = arena.emplace<BassSynthProcessor>();
-            break;
-        case DeviceNodeKind::PhaseModSynth:
-            proc = arena.emplace<PhaseModSynthProcessor>();
-            break;
-        case DeviceNodeKind::KickGenerator:
-            proc = arena.emplace<KickProcessor>();
-            break;
-        case DeviceNodeKind::SnareGenerator:
-            proc = arena.emplace<SnareProcessor>();
-            break;
-        case DeviceNodeKind::ClapGenerator:
-            proc = arena.emplace<ClapProcessor>();
-            break;
-        case DeviceNodeKind::CymbalGenerator:
-            proc = arena.emplace<CymbalProcessor>();
-            break;
-        case DeviceNodeKind::CrashGenerator:
-            proc = arena.emplace<CrashProcessor>();
-            break;
-        case DeviceNodeKind::Gate:
-            proc = arena.emplace<GateProcessor>();
-            break;
-        case DeviceNodeKind::Compressor:
-            proc = arena.emplace<CompressorProcessor>();
-            break;
-        case DeviceNodeKind::Expander:
-            proc = arena.emplace<ExpanderProcessor>();
-            break;
-        case DeviceNodeKind::Limiter:
-            proc = arena.emplace<LimiterProcessor>();
-            break;
-        case DeviceNodeKind::Delay:
-            proc = arena.emplace<DelayProcessor>();
-            break;
-        case DeviceNodeKind::Reverb:
-            proc = arena.emplace<ReverbProcessor>();
-            break;
-        case DeviceNodeKind::Chorus:
-            proc = arena.emplace<ChorusProcessor>();
-            break;
-        case DeviceNodeKind::Phaser:
-            proc = arena.emplace<PhaserProcessor>();
-            break;
-        case DeviceNodeKind::Filter:
-            proc = arena.emplace<FilterProcessor>();
-            break;
-        case DeviceNodeKind::FourBandEq:
-            proc = arena.emplace<FourBandEqProcessor>();
-            break;
-        case DeviceNodeKind::FrequencyShifter:
-            proc = arena.emplace<FrequencyShifterProcessor>();
-            break;
-        case DeviceNodeKind::TrackGain:
-            proc = arena.emplace<TrackGainProcessor>();
-            break;
-        default:
-            break;
+        const size_t idx = static_cast<size_t>(node.kind);
+        if (idx < kNumFactories) {
+            auto factory = kProcessorFactories[idx];
+            if (factory != nullptr) {
+                proc = factory(arena);
+            }
         }
 
         if (proc != nullptr) {
@@ -285,10 +251,10 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
         AudioBlock block{ctx.trackLeft, ctx.trackRight, numFrames};
         proc->process(block, pc);
 
-        // --- Apply per-frame gain for non-instrument processors ---
+        // --- Apply per-frame gain/pan for non-instrument processors ---
         if (!isInstrumentDeviceNodeKind(nodeKind) &&
             nodeKind != DeviceNodeKind::TrackGain) {
-            block.applyPerFrameGain(s.perFrameGain);
+            StereoOutputPanel::applyInPlace(block, numFrames, s.perFrameGain);
         }
     }
 }

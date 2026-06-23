@@ -17,7 +17,7 @@ public:
         beginTest("create default delay");
         {
             audioapp::DeviceSlot slot = registry.createDefault("delay", "testDelay");
-            const audioapp::IDeviceType* type = registry.findTypeForSlot(slot);
+            const audioapp::IDeviceType* type = registry.findForSlot(slot);
             expect(type != nullptr, "delay type should be found");
             expect(type->typeId() == "delay", "typeId should be 'delay'");
         }

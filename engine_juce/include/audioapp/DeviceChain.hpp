@@ -6,17 +6,17 @@
 #include <variant>
 
 #include "audioapp/AutomationTypes.hpp"
-#include "audioapp/KickGenerator.hpp"
-#include "audioapp/SnareGenerator.hpp"
-#include "audioapp/ClapGenerator.hpp"
-#include "audioapp/CymbalGenerator.hpp"
-#include "audioapp/CrashGenerator.hpp"
+#include "audioapp/KickAlgorithm.hpp"
+#include "audioapp/SnareAlgorithm.hpp"
+#include "audioapp/ClapAlgorithm.hpp"
+#include "audioapp/CymbalAlgorithm.hpp"
+#include "audioapp/CrashAlgorithm.hpp"
 #include "audioapp/DynamicsProcessor.hpp"
 #include "audioapp/LfoTypes.hpp"
 #include "audioapp/SamplerFilter.hpp"
-#include "audioapp/SamplePlayback.hpp"
-#include "audioapp/PhaseModSynth.hpp"
-#include "audioapp/SubtractiveSynth.hpp"
+#include "audioapp/SamplePlaybackAlgorithm.hpp"
+#include "audioapp/PhaseModSynthAlgorithm.hpp"
+#include "audioapp/SubtractiveSynthAlgorithm.hpp"
 #include "audioapp/FrequencyFxProcessor.hpp"
 
 namespace audioapp {

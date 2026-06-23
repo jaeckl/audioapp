@@ -4,6 +4,105 @@
 #include <algorithm>
 #include <cmath>
 
+namespace {
+
+float beatAtFrame(double playheadStartBeat, int frameIndex, double sampleRate, int bpm) {
+    const double seconds = static_cast<double>(frameIndex) / sampleRate;
+    return static_cast<float>(playheadStartBeat + seconds * static_cast<double>(bpm) / 60.0);
+}
+
+bool isCymbalNoteAudible(const audioapp::CymbalMidiNoteRegion& note,
+                         double beat,
+                         int bpm,
+                         float releaseSec,
+                         double& elapsedSecondsOut,
+                         bool& inReleaseOut) noexcept {
+    if (beat < note.clipStartBeat || beat >= note.clipStartBeat + note.clipLengthBeats || bpm <= 0) {
+        return false;
+    }
+
+    const double posInClip = beat - note.clipStartBeat;
+    const double loopedBeat = std::fmod(posInClip, note.clipLengthBeats);
+    const double noteEnd = note.noteStartBeat + note.noteDurationBeats;
+    const double releaseBeats =
+        static_cast<double>(releaseSec) * static_cast<double>(bpm) / 60.0;
+
+    if (loopedBeat < note.noteStartBeat) {
+        return false;
+    }
+
+    const double elapsedBeats = loopedBeat - note.noteStartBeat;
+    elapsedSecondsOut = elapsedBeats * 60.0 / static_cast<double>(bpm);
+    inReleaseOut = loopedBeat >= noteEnd;
+    if (loopedBeat < noteEnd) {
+        return true;
+    }
+    return loopedBeat < noteEnd + releaseBeats;
+}
+
+void mixCymbalMidiNotesBlockStereo(float* trackLeftOut,
+                                    float* trackRightOut,
+                                    int numFrames,
+                                    double sampleRate,
+                                    int bpm,
+                                    double playheadStartBeat,
+                                    const audioapp::CymbalMidiNoteRegion* notes,
+                                    int noteCount,
+                                    const audioapp::CymbalGeneratorParams& params,
+                                    audioapp::CymbalGeneratorRuntime& runtime,
+                                    const float* perFrameGain) noexcept {
+    if (trackLeftOut == nullptr || trackRightOut == nullptr ||
+        numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
+        return;
+    }
+
+    const float releaseSec = (0.035f + std::clamp(params.cymbalDecay, 0.0f, 1.0f) * 0.70f) + 0.08f;
+
+    for (int frame = 0; frame < numFrames; ++frame) {
+        const double beat = beatAtFrame(playheadStartBeat, frame, sampleRate, bpm);
+
+        int activeNoteKey = -1;
+        int activePitch = 42;
+        float activeVelocity = 100.0f;
+        double activeElapsed = 0.0;
+
+        for (int noteIndex = 0; noteIndex < noteCount; ++noteIndex) {
+            const auto& note = notes[noteIndex];
+            double elapsedSeconds = 0.0;
+            bool inRelease = false;
+            if (isCymbalNoteAudible(note, beat, bpm, releaseSec, elapsedSeconds, inRelease)) {
+                activeNoteKey = note.noteKey;
+                activePitch = note.pitch;
+                activeVelocity = note.velocity;
+                activeElapsed = elapsedSeconds;
+            }
+        }
+
+        if (activeNoteKey < 0) {
+            runtime.voice.active = 0;
+            runtime.lastNoteKey = -1;
+            continue;
+        }
+
+        if (runtime.lastNoteKey != activeNoteKey || runtime.voice.active == 0) {
+            triggerCymbalVoice(runtime.voice, activePitch, activeVelocity);
+            runtime.lastNoteKey = activeNoteKey;
+        }
+        runtime.voice.elapsedSec = activeElapsed;
+
+        const float vel = std::clamp(runtime.voice.velocity / 127.0f, 0.0f, 1.0f);
+        const float velGain = 1.0f - params.cymbalVelocity * (1.0f - vel);
+        const float gain = perFrameGain != nullptr ? perFrameGain[frame] : 1.0f;
+
+        trackLeftOut[frame] +=
+            audioapp::cymbalGeneratorSampleL(runtime.voice, params, sampleRate, velGain) * gain;
+        trackRightOut[frame] +=
+            audioapp::cymbalGeneratorSampleR(runtime.voice, params, sampleRate, velGain) * gain;
+    }
+}
+
+} // anonymous namespace
+
 namespace audioapp {
 
 void CymbalProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {

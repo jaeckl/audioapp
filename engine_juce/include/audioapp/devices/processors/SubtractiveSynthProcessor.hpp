@@ -1,7 +1,7 @@
 #pragma once
 
 #include "audioapp/dsp/DeviceProcessor.hpp"
-#include "audioapp/SubtractiveSynth.hpp"
+#include "audioapp/SubtractiveSynthAlgorithm.hpp"
 
 namespace audioapp {
 

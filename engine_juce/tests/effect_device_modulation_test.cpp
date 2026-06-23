@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <limits>
 #include <vector>
 
@@ -55,6 +56,11 @@ struct EffectTestSetup {
         host.updateLfoParam(lfoId, "waveform", 0.0f);   // sine
         host.updateLfoParam(lfoId, "rate", rate);
         host.updateLfoParam(lfoId, "syncDivision", 0.0f); // free
+        // Start at quarter-cycle so the per-block LFO sample (frame 0) is
+        // at a non-zero value. The orchestrator samples the LFO at the
+        // block start; a phase-0 sine would read 0 for every block and
+        // the modulation amount would be zero.
+        host.updateLfoParam(lfoId, "phase", 0.25f);
         return lfoId;
     }
 };
@@ -94,6 +100,8 @@ public:
             const float modRatio = audioapp::test::rmsVariationRatio(modAudio, kNumWindows);
 
             // Modulated must show more window-to-window RMS variation
+            std::fprintf(stderr, "DBG Comp unmodRatio=%.4f modRatio=%.4f unmodMean=%.6f modMean=%.6f\n",
+                unmodRatio, modRatio, audioapp::test::fullRms(unmod), audioapp::test::fullRms(modAudio));
             expect(modRatio >= 1.5f, "Modulated compressor should have >= 1.5x RMS variation");
             expect(modRatio >= unmodRatio * 1.5f, "Modulated should have > unmodulated RMS variation");
         }

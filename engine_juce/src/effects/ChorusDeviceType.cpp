@@ -1,25 +1,29 @@
-// ChorusDeviceType implementation
-#include "audioapp/effects/ChorusDeviceType.hpp"
 #include "audioapp/devices/DeviceStripParams.hpp"
+#include "audioapp/effects/ChorusDeviceType.hpp"
 #include "audioapp/devices/DeviceSlot.hpp"
 #include "audioapp/devices/DeviceParameterResult.hpp"
 #include "audioapp/devices/PlaybackBuildContext.hpp"
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/effects/ChorusParams.hpp"
 #include "juce_dsp/juce_dsp.h"
+#include "audioapp/devices/processors/ChorusProcessor.hpp"
 
 namespace audioapp {
 
 DeviceSlot ChorusDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
+    slot.config.typeId = typeId();
     ChorusParams instance;
     instance.depth = 0.25;
     instance.rateHz = 1.5;
     instance.mix = 0.4;
     instance.centreDelayMs = 7.0;
     instance.feedback = 0.0;
-    slot.instance = std::move(instance);
+    slot.config.instance = std::move(instance);
+    slot.config.inputPanel = EmptyPanel{};
+    slot.config.outputPanel = StereoOutputPanel{};
+    slot.config.bypassed = false;
     return slot;
 }
 
@@ -31,7 +35,7 @@ DeviceParameterResult ChorusDeviceType::setParameter(DeviceSlot& slot,
         result.handled = true;
         return result;
     }
-    auto& instance = std::get<ChorusParams>(slot.instance);
+    auto& instance = std::get<ChorusParams>(slot.config.instance);
     if (parameterId == "depth") {
         instance.depth = juce::jlimit(0.0, 1.0, static_cast<double>(value));
     } else if (parameterId == "rateHz") {
@@ -59,7 +63,7 @@ std::vector<std::string_view> ChorusDeviceType::modulatableParams() const {
 
 void ChorusDeviceType::buildPlaybackNode(const DeviceSlot& slot, const PlaybackBuildContext&, DeviceNodePlayback& out) const {
     out.kind = DeviceNodeKind::Chorus;
-    const auto& inst = std::get<ChorusParams>(slot.instance);
+    const auto& inst = std::get<ChorusParams>(slot.config.instance);
     ChorusParamsPlayback p;
     p.depth = static_cast<float>(inst.depth);
     p.rateHz = static_cast<float>(inst.rateHz);
@@ -74,10 +78,7 @@ bool ChorusDeviceType::buildLiveInstrument(const DeviceSlot&, const PlaybackBuil
 
 juce::var ChorusDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<ChorusParams>(slot.instance);
-    parameters->setProperty("gain", static_cast<double>(slot.gain));
-    parameters->setProperty("pan", static_cast<double>(slot.pan));
-    parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
+    const auto& inst = std::get<ChorusParams>(slot.config.instance);
     parameters->setProperty("depth", inst.depth);
     parameters->setProperty("rateHz", inst.rateHz);
     parameters->setProperty("mix", inst.mix);
@@ -87,6 +88,19 @@ juce::var ChorusDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
     object->setProperty("type", juce::String::fromUTF8(typeId().c_str()));
+
+    auto* outObj = new juce::DynamicObject();
+    const auto& panel = std::get<StereoOutputPanel>(slot.config.outputPanel);
+    outObj->setProperty("type", "stereo");
+    outObj->setProperty("gain", static_cast<double>(panel.gain));
+    outObj->setProperty("pan", static_cast<double>(panel.pan));
+    object->setProperty("outputPanel", juce::var(outObj));
+
+    auto* inObj = new juce::DynamicObject();
+    inObj->setProperty("type", "empty");
+    object->setProperty("inputPanel", juce::var(inObj));
+
+    object->setProperty("bypass", slot.config.bypassed ? 1.0 : 0.0);
     object->setProperty("parameters", juce::var(parameters));
 
     auto* meters = new juce::DynamicObject();
@@ -101,6 +115,23 @@ DeviceSlot ChorusDeviceType::varToSlot(const juce::var& obj) const {
     DeviceSlot slot;
     if (const auto* object = obj.getDynamicObject()) {
         slot.id = object->getProperty("id").toString().toStdString();
+        slot.config.typeId = object->getProperty("type").toString().toStdString();
+
+        const auto outputPanelVar = object->getProperty("outputPanel");
+        bool hasPanel = outputPanelVar.isObject();
+        if (hasPanel) {
+            const auto* panel = outputPanelVar.getDynamicObject();
+            StereoOutputPanel sp;
+            sp.gain = static_cast<float>(static_cast<double>(panel->getProperty("gain")));
+            sp.pan = static_cast<float>(static_cast<double>(panel->getProperty("pan")));
+            slot.config.outputPanel = sp;
+
+        }
+
+        slot.config.bypassed = object->getProperty("bypass").isDouble()
+            ? (static_cast<float>(static_cast<double>(object->getProperty("bypass"))) >= 0.5f)
+            : false;
+
         const auto params = object->getProperty("parameters");
         if (const auto* p = params.getDynamicObject()) {
             auto readFloat = [&](const char* key, float fallback) -> float {
@@ -109,9 +140,14 @@ DeviceSlot ChorusDeviceType::varToSlot(const juce::var& obj) const {
                     return static_cast<float>(static_cast<double>(v));
                 return fallback;
             };
-            slot.gain = readFloat("gain", 1.0f);
-            slot.pan = readFloat("pan", 0.5f);
-            slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
+
+            if (!hasPanel) {
+                const float oldGain = readFloat("gain", 1.0f);
+                const float oldPan = readFloat("pan", 0.5f);
+                slot.config.outputPanel = StereoOutputPanel{oldGain, oldPan};
+                slot.config.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
+            }
+
             ChorusParams inst;
             inst.depth = p->getProperty("depth").toString().getDoubleValue();
             inst.rateHz = p->getProperty("rateHz").toString().getDoubleValue();
@@ -119,10 +155,15 @@ DeviceSlot ChorusDeviceType::varToSlot(const juce::var& obj) const {
             inst.centreDelayMs = p->getProperty("centreDelayMs").toString().getDoubleValue();
             inst.feedback = p->getProperty("feedback").toString().getDoubleValue();
             inst.clamp();
-            slot.instance = inst;
+            slot.config.instance = inst;
+            
         }
     }
     return slot;
+}
+
+DeviceProcessor* ChorusDeviceType::createProcessor(ProcessorArena& arena) const {
+    return arena.template emplace<ChorusProcessor>();
 }
 
 } // namespace audioapp

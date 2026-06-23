@@ -18,7 +18,7 @@ public:
         p.waveform = 0;       // Sine
         p.rate = 1.0f;
         p.syncDivision = 3;   // Quarter
-        p.retrigger = 1;      // Sync
+        p.retrigger = 0;      // Free (was 1=Sync, but old LfoState default was 0)
         p.phase = 0.0f;
         p.polarity = 0;       // Bipolar
         p.attack = 0.1f;

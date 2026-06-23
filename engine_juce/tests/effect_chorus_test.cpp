@@ -16,7 +16,7 @@ public:
         beginTest("create default chorus");
         {
             audioapp::DeviceSlot slot = registry.createDefault("chorus", "testChorus");
-            const audioapp::IDeviceType* type = registry.findTypeForSlot(slot);
+            const audioapp::IDeviceType* type = registry.findForSlot(slot);
             expect(type != nullptr, "chorus type should be found");
             expect(type->typeId() == "chorus", "typeId should be 'chorus'");
         }

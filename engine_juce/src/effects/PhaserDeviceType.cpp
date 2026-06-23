@@ -1,24 +1,28 @@
-// PhaserDeviceType implementation
-#include "audioapp/effects/PhaserDeviceType.hpp"
 #include "audioapp/devices/DeviceStripParams.hpp"
+#include "audioapp/effects/PhaserDeviceType.hpp"
 #include "audioapp/effects/PhaserParams.hpp"
 #include "audioapp/devices/DeviceSlot.hpp"
 #include "audioapp/devices/DeviceParameterResult.hpp"
 #include "audioapp/devices/PlaybackBuildContext.hpp"
 #include "audioapp/DeviceChain.hpp"
 #include "juce_dsp/juce_dsp.h"
+#include "audioapp/devices/processors/PhaserProcessor.hpp"
 
 namespace audioapp {
 
 DeviceSlot PhaserDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
+    slot.config.typeId = typeId();
     PhaserParams instance;
     instance.depth = 0.5;
     instance.rateHz = 0.8;
     instance.feedback = 0.3;
     instance.centreFrequencyHz = 1000.0;
-    slot.instance = std::move(instance);
+    slot.config.instance = std::move(instance);
+    slot.config.inputPanel = EmptyPanel{};
+    slot.config.outputPanel = StereoOutputPanel{};
+    slot.config.bypassed = false;
     return slot;
 }
 
@@ -30,7 +34,7 @@ DeviceParameterResult PhaserDeviceType::setParameter(DeviceSlot& slot,
         result.handled = true;
         return result;
     }
-    auto& instance = std::get<PhaserParams>(slot.instance);
+    auto& instance = std::get<PhaserParams>(slot.config.instance);
     if (parameterId == "depth") {
         instance.depth = juce::jlimit(0.0, 1.0, static_cast<double>(value));
     } else if (parameterId == "rateHz") {
@@ -56,7 +60,7 @@ std::vector<std::string_view> PhaserDeviceType::modulatableParams() const {
 
 void PhaserDeviceType::buildPlaybackNode(const DeviceSlot& slot, const PlaybackBuildContext&, DeviceNodePlayback& out) const {
     out.kind = DeviceNodeKind::Phaser;
-    const auto& inst = std::get<PhaserParams>(slot.instance);
+    const auto& inst = std::get<PhaserParams>(slot.config.instance);
     PhaserParamsPlayback p;
     p.depth = static_cast<float>(inst.depth);
     p.rateHz = static_cast<float>(inst.rateHz);
@@ -70,10 +74,7 @@ bool PhaserDeviceType::buildLiveInstrument(const DeviceSlot&, const PlaybackBuil
 
 juce::var PhaserDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<PhaserParams>(slot.instance);
-    parameters->setProperty("gain", static_cast<double>(slot.gain));
-    parameters->setProperty("pan", static_cast<double>(slot.pan));
-    parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
+    const auto& inst = std::get<PhaserParams>(slot.config.instance);
     parameters->setProperty("depth", inst.depth);
     parameters->setProperty("rateHz", inst.rateHz);
     parameters->setProperty("feedback", inst.feedback);
@@ -82,6 +83,19 @@ juce::var PhaserDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
     object->setProperty("type", juce::String::fromUTF8(typeId().c_str()));
+
+    auto* outObj = new juce::DynamicObject();
+    const auto& panel = std::get<StereoOutputPanel>(slot.config.outputPanel);
+    outObj->setProperty("type", "stereo");
+    outObj->setProperty("gain", static_cast<double>(panel.gain));
+    outObj->setProperty("pan", static_cast<double>(panel.pan));
+    object->setProperty("outputPanel", juce::var(outObj));
+
+    auto* inObj = new juce::DynamicObject();
+    inObj->setProperty("type", "empty");
+    object->setProperty("inputPanel", juce::var(inObj));
+
+    object->setProperty("bypass", slot.config.bypassed ? 1.0 : 0.0);
     object->setProperty("parameters", juce::var(parameters));
 
     auto* meters = new juce::DynamicObject();
@@ -96,6 +110,23 @@ DeviceSlot PhaserDeviceType::varToSlot(const juce::var& obj) const {
     DeviceSlot slot;
     if (const auto* object = obj.getDynamicObject()) {
         slot.id = object->getProperty("id").toString().toStdString();
+        slot.config.typeId = object->getProperty("type").toString().toStdString();
+
+        const auto outputPanelVar = object->getProperty("outputPanel");
+        bool hasPanel = outputPanelVar.isObject();
+        if (hasPanel) {
+            const auto* panel = outputPanelVar.getDynamicObject();
+            StereoOutputPanel sp;
+            sp.gain = static_cast<float>(static_cast<double>(panel->getProperty("gain")));
+            sp.pan = static_cast<float>(static_cast<double>(panel->getProperty("pan")));
+            slot.config.outputPanel = sp;
+
+        }
+
+        slot.config.bypassed = object->getProperty("bypass").isDouble()
+            ? (static_cast<float>(static_cast<double>(object->getProperty("bypass"))) >= 0.5f)
+            : false;
+
         const auto params = object->getProperty("parameters");
         if (const auto* p = params.getDynamicObject()) {
             auto readFloat = [&](const char* key, float fallback) -> float {
@@ -104,19 +135,29 @@ DeviceSlot PhaserDeviceType::varToSlot(const juce::var& obj) const {
                     return static_cast<float>(static_cast<double>(v));
                 return fallback;
             };
-            slot.gain = readFloat("gain", 1.0f);
-            slot.pan = readFloat("pan", 0.5f);
-            slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
+
+            if (!hasPanel) {
+                const float oldGain = readFloat("gain", 1.0f);
+                const float oldPan = readFloat("pan", 0.5f);
+                slot.config.outputPanel = StereoOutputPanel{oldGain, oldPan};
+                slot.config.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
+            }
+
             PhaserParams inst;
             inst.depth = p->getProperty("depth").toString().getDoubleValue();
             inst.rateHz = p->getProperty("rateHz").toString().getDoubleValue();
             inst.feedback = p->getProperty("feedback").toString().getDoubleValue();
             inst.centreFrequencyHz = p->getProperty("centreFrequencyHz").toString().getDoubleValue();
             inst.clamp();
-            slot.instance = inst;
+            slot.config.instance = inst;
+            
         }
     }
     return slot;
+}
+
+DeviceProcessor* PhaserDeviceType::createProcessor(ProcessorArena& arena) const {
+    return arena.template emplace<PhaserProcessor>();
 }
 
 } // namespace audioapp

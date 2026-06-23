@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <limits>
 #include <vector>
 
@@ -50,6 +51,13 @@ struct TestSetup {
         host.updateLfoParam(lfoId, "waveform", static_cast<float>(waveform));
         host.updateLfoParam(lfoId, "rate", rate);
         host.updateLfoParam(lfoId, "syncDivision", static_cast<float>(syncDivision)); // 0 = free Hz
+        // Sync retrigger (1) uses absolute playhead position to advance phase, so
+        // the LFO sweeps continuously across the rendered buffer. Free retrigger
+        // (0, the default) uses block-relative time and resets phase at every
+        // block boundary, which would only produce intra-block variation —
+        // insufficient for window-based RMS comparison across a multi-second
+        // render. Sync retrigger is the natural choice for offline renders.
+        host.updateLfoParam(lfoId, "retrigger", 1.0f);
         return lfoId;
     }
 };
@@ -78,7 +86,11 @@ public:
             expect(overallRms >= 1.0e-4f, "audible output");
 
             constexpr int kWindows = 8;
+            const std::vector<float> w = windowRMS(block, kWindows);
+            std::printf("\n[Diag3] gain block windows:\n");
+            for (int i = 0; i < kWindows; ++i) std::printf("  w%d: %g\n", i, w[i]);
             const float ratio = rmsVariationRatio(block, kWindows);
+            std::printf("[Diag3] gain ratio=%g\n", ratio);
             expect(ratio >= 1.5f, "LFO gain modulation creates RMS variation");
         }
 
@@ -113,7 +125,9 @@ public:
             constexpr int kWindows = 8;
             const float unmodRatio = rmsVariationRatio(unmodBlock, kWindows);
             const float panRatio = rmsVariationRatio(panModBlock, kWindows);
-            
+            std::printf("\n[Diag3] pan unmodRatio=%g, panRatio=%g, threshold=%g\n",
+                        unmodRatio, panRatio, unmodRatio * 1.15f);
+
             expect(panRatio >= unmodRatio * 1.15f,
                    "pan modulation adds RMS variation beyond baseline");
         }
@@ -140,6 +154,7 @@ public:
 
             constexpr int kWindows = 8;
             const float ratio = rmsVariationRatio(block, kWindows);
+            std::printf("\n[Diag3] combined ratio=%g\n", ratio);
             expect(ratio >= 1.5f, "combined LFOs produce RMS variation");
 
             const int windowFrames = static_cast<int>(block.size()) / kWindows;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "audioapp/dsp/DeviceProcessor.hpp"
-#include "audioapp/CymbalGenerator.hpp"
+#include "audioapp/CymbalAlgorithm.hpp"
 
 namespace audioapp {
 

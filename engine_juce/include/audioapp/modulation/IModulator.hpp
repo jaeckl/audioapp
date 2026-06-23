@@ -9,7 +9,7 @@ struct EnvelopeRuntime {
     float level = 0.0f;
     int stage = 0;
     double segStartSeconds = 0.0;
-    uint32_t lastRetriggerGeneration = 0;
+    uint32_t lastRetriggerGeneration = std::numeric_limits<uint32_t>::max();
 };
 
 /// Base class for all modulators on the audio thread.
@@ -22,13 +22,15 @@ public:
     virtual void reset() noexcept = 0;
 
     /// Evaluate the modulator at a given frame.
-    /// @param playheadBeat Current playhead position in beats.
+    /// @param playheadBeat Current absolute beat position.
     /// @param bpm Project BPM.
-    /// @param frameSeconds Elapsed seconds since playback start (for free-running).
-    /// @param retriggerGeneration Global retrigger counter (incremented on each MIDI note).
+    /// @param secondsWithinBlock Seconds since the start of this block (for free-running LFO).
+    /// @param playheadSeconds Absolute seconds since playback start (for envelope elapsed time).
+    /// @param retriggerGeneration Global retrigger counter.
     /// @return Modulation value in [-1, 1] range.
     virtual float evaluate(double playheadBeat, int bpm,
-                           double frameSeconds,
+                           double secondsWithinBlock,
+                           double playheadSeconds,
                            uint32_t retriggerGeneration) noexcept = 0;
 
     /// Returns the ModulatorType enum value (0=Lfo, 1=Adsr, 2=Adr).

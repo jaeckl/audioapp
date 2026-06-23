@@ -430,7 +430,7 @@ juce::var projectFileToVar(const ProjectFileData& project,
 
 juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& registry) {
     // Try the device type's own slotToVar first.
-    const IDeviceType* type = registry.findTypeForSlot(slot);
+    const IDeviceType* type = registry.findForSlot(slot);
     if (type != nullptr) {
         juce::var result = type->slotToVar(slot);
         if (!result.isVoid() && !result.isUndefined()) {

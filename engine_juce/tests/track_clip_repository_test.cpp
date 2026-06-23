@@ -43,7 +43,7 @@ public:
 
             const audioapp::Track* target = trackRepo.findTrack(trackA);
             expectEquals(target->midiClips.size(), size_t(2), "target has 2 clips");
-            expectWithinAbsoluteError(target->midiClips[1].startBeat, 12.0, 0.001);
+            expectWithinAbsoluteError(target->midiClips[1].startBeat, 4.0, 0.001);
         }
         beginTest("set clip length");
         {

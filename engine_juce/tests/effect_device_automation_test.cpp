@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <limits>
 #include <string>
 #include <vector>
@@ -44,6 +45,7 @@ struct EffectTestSetup {
         // Reduce oscillator gain so the signal sits at ~−10 dBFS, well
         // inside the threshold range [−60 dB, −6 dB] of the dynamics effects.
         host.setDeviceParameter(oscId, "gain", 0.3f);
+        std::fprintf(stderr, "DBG Setup trackId=%s oscId=%s\n", trackId.c_str(), oscId.c_str());
     }
 
     void addMidiNote() {
@@ -103,6 +105,11 @@ public:
             // Late:  threshold higher  →  light compression → louder.
             const float earlySum = audio.windowRms(0) + audio.windowRms(1);
             const float lateSum  = audio.windowRms(6) + audio.windowRms(7);
+            const std::string snapshot = setup.host.getProjectSnapshotJson();
+            std::fprintf(stderr, "DBG Comp compId=%s snapshot=\n%s\n", compId.c_str(), snapshot.c_str());
+            std::fprintf(stderr, "DBG Comp earlySum=%.6f lateSum=%.6f ratio=%.3f r0=%.6f r6=%.6f r7=%.6f\n",
+                earlySum, lateSum, lateSum/earlySum,
+                audio.windowRms(0), audio.windowRms(6), audio.windowRms(7));
             expect(lateSum >= earlySum * 1.05f, "Late RMS should be >= early RMS * 1.05");
         }
 
@@ -159,6 +166,9 @@ public:
             // Late:  expansion active → signal attenuated.
             const float earlySum = audio.windowRms(0) + audio.windowRms(1);
             const float lateSum  = audio.windowRms(6) + audio.windowRms(7);
+            std::fprintf(stderr, "DBG Exp earlySum=%.6f lateSum=%.6f ratio=%.3f r0=%.6f r6=%.6f r7=%.6f\n",
+                earlySum, lateSum, earlySum/lateSum,
+                audio.windowRms(0), audio.windowRms(6), audio.windowRms(7));
             expect(earlySum >= lateSum * 1.02f, "Early RMS should be >= late RMS * 1.02");
         }
 
@@ -185,6 +195,9 @@ public:
             // Late:  high ceiling → peaks pass unclamped → higher peak value.
             const float earlyPk = audio.windowPeak(0) + audio.windowPeak(1);
             const float latePk  = audio.windowPeak(7);
+            std::fprintf(stderr, "DBG Lim earlyPk=%.6f latePk=%.6f ratio=%.3f p0=%.6f p1=%.6f p7=%.6f\n",
+                earlyPk, latePk, latePk/earlyPk,
+                audio.windowPeak(0), audio.windowPeak(1), audio.windowPeak(7));
             expect(earlyPk > 0.0f && latePk > 0.0f);
             expect(latePk >= earlyPk * 1.10f, "Late peak should be >= early peak * 1.10");
         }

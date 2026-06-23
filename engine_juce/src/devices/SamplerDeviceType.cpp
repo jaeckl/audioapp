@@ -1,13 +1,15 @@
 #include "audioapp/devices/SamplerDeviceType.hpp"
 
 #include "audioapp/SampleBank.hpp"
-#include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/devices/instances/SamplerModel.hpp"
+#include "audioapp/devices/processors/SamplerProcessor.hpp"
 
 #include <juce_core/juce_core.h>
 #include <algorithm>
 #include <cmath>
+
+#include "audioapp/devices/DeviceStripParams.hpp"
 
 namespace audioapp {
 namespace {
@@ -103,10 +105,14 @@ std::string SamplerDeviceType::typeId() const {
 DeviceSlot SamplerDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    slot.instance = SamplerModel{};
+    slot.config.typeId = typeId();
+    slot.config.instance = SamplerModel{};
+
+    slot.config.inputPanel = EmptyPanel{};
+    slot.config.outputPanel = StereoOutputPanel{};
+    slot.config.bypassed = false;
     return slot;
 }
-
 
 DeviceParameterResult SamplerDeviceType::setParameter(DeviceSlot& slot,
                                                       std::string_view parameterId,
@@ -117,7 +123,7 @@ DeviceParameterResult SamplerDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
 
-    auto& instance = std::get<SamplerModel>(slot.instance);
+    auto& instance = std::get<SamplerModel>(slot.config.instance);
     if (parameterId == "attack" || parameterId == "decay" || parameterId == "release") {
         const float clamped = std::clamp(value, 0.0f, 1.0f);
         if (parameterId == "attack") {
@@ -178,7 +184,7 @@ bool SamplerDeviceType::setStringParameter(DeviceSlot& slot,
         context.sampleBank->findSample(value) == nullptr) {
         return false;
     }
-    std::get<SamplerModel>(slot.instance).sampleId = value;
+    std::get<SamplerModel>(slot.config.instance).sampleId = value;
     return true;
 }
 
@@ -191,7 +197,7 @@ std::vector<std::string_view> SamplerDeviceType::modulatableParams() const {
 void SamplerDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                           const PlaybackBuildContext& context,
                                           DeviceNodePlayback& out) const {
-    const auto& instance = std::get<SamplerModel>(slot.instance);
+    const auto& instance = std::get<SamplerModel>(slot.config.instance);
     SamplerParams params;
     params.attack = instance.attack;
     params.decay = instance.decay;
@@ -216,10 +222,10 @@ void SamplerDeviceType::buildPlaybackNode(const DeviceSlot& slot,
 bool SamplerDeviceType::buildLiveInstrument(const DeviceSlot& slot,
                                             const PlaybackBuildContext& context,
                                             LiveInstrumentSnapshot& out) const {
-    const auto& instance = std::get<SamplerModel>(slot.instance);
+    const auto& instance = std::get<SamplerModel>(slot.config.instance);
     out = LiveInstrumentSnapshot{};
     out.kind = LiveInstrumentKind::Sampler;
-    out.gain = slot.gain;
+    out.gain = std::get<StereoOutputPanel>(slot.config.outputPanel).gain;
     out.rootPitch = static_cast<int>(std::lround(instance.rootPitch));
     out.rootFineTune = instance.rootFineTune;
     out.playbackMode = instance.playbackMode;
@@ -241,11 +247,8 @@ bool SamplerDeviceType::buildLiveInstrument(const DeviceSlot& slot,
 
 juce::var SamplerDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<SamplerModel>(slot.instance);
+    const auto& inst = std::get<SamplerModel>(slot.config.instance);
 
-    parameters->setProperty("gain", static_cast<double>(slot.gain));
-    parameters->setProperty("pan", static_cast<double>(slot.pan));
-    parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
     parameters->setProperty("sampleId", juce::String::fromUTF8(inst.sampleId.c_str()));
     parameters->setProperty("attack", static_cast<double>(inst.attack));
     parameters->setProperty("decay", static_cast<double>(inst.decay));
@@ -270,6 +273,19 @@ juce::var SamplerDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
     object->setProperty("type", juce::String::fromUTF8(typeId().c_str()));
+
+    auto* outObj = new juce::DynamicObject();
+    const auto& panel = std::get<StereoOutputPanel>(slot.config.outputPanel);
+    outObj->setProperty("type", "stereo");
+    outObj->setProperty("gain", static_cast<double>(panel.gain));
+    outObj->setProperty("pan", static_cast<double>(panel.pan));
+    object->setProperty("outputPanel", juce::var(outObj));
+
+    auto* inObj = new juce::DynamicObject();
+    inObj->setProperty("type", "empty");
+    object->setProperty("inputPanel", juce::var(inObj));
+
+    object->setProperty("bypass", slot.config.bypassed ? 1.0 : 0.0);
     object->setProperty("parameters", juce::var(parameters));
     return juce::var(object);
 }
@@ -278,6 +294,23 @@ DeviceSlot SamplerDeviceType::varToSlot(const juce::var& obj) const {
     DeviceSlot slot;
     if (const auto* object = obj.getDynamicObject()) {
         slot.id = object->getProperty("id").toString().toStdString();
+        slot.config.typeId = object->getProperty("type").toString().toStdString();
+
+        const auto outputPanelVar = object->getProperty("outputPanel");
+        bool hasPanel = outputPanelVar.isObject();
+        if (hasPanel) {
+            const auto* panel = outputPanelVar.getDynamicObject();
+            StereoOutputPanel sp;
+            sp.gain = static_cast<float>(static_cast<double>(panel->getProperty("gain")));
+            sp.pan = static_cast<float>(static_cast<double>(panel->getProperty("pan")));
+            slot.config.outputPanel = sp;
+
+        }
+
+        slot.config.bypassed = object->getProperty("bypass").isDouble()
+            ? (static_cast<float>(static_cast<double>(object->getProperty("bypass"))) >= 0.5f)
+            : false;
+
         const auto params = object->getProperty("parameters");
         if (const auto* p = params.getDynamicObject()) {
             auto readFloat = [&](const char* key, float fallback) -> float {
@@ -292,9 +325,13 @@ DeviceSlot SamplerDeviceType::varToSlot(const juce::var& obj) const {
                     return v.toString().toStdString();
                 return {};
             };
-            slot.gain = readFloat("gain", 1.0f);
-            slot.pan = readFloat("pan", 0.5f);
-            slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
+
+            if (!hasPanel) {
+                const float oldGain = readFloat("gain", 1.0f);
+                const float oldPan = readFloat("pan", 0.5f);
+                slot.config.outputPanel = StereoOutputPanel{oldGain, oldPan};
+                slot.config.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
+            }
 
             SamplerModel inst;
             inst.sampleId = readString("sampleId");
@@ -321,10 +358,14 @@ DeviceSlot SamplerDeviceType::varToSlot(const juce::var& obj) const {
             } else {
                 inst.playbackMode = inst.regionEndSec > 0.0f ? 1 : 0;
             }
-            slot.instance = inst;
+            slot.config.instance = inst;
         }
     }
     return slot;
+}
+
+DeviceProcessor* SamplerDeviceType::createProcessor(ProcessorArena& arena) const {
+    return arena.template emplace<SamplerProcessor>();
 }
 
 } // namespace audioapp

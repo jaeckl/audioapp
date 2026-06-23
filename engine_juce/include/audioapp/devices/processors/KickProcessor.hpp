@@ -1,7 +1,7 @@
 #pragma once
 
 #include "audioapp/dsp/DeviceProcessor.hpp"
-#include "audioapp/KickGenerator.hpp"
+#include "audioapp/KickAlgorithm.hpp"
 
 namespace audioapp {
 

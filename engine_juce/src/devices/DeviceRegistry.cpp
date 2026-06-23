@@ -55,60 +55,9 @@ std::vector<std::string_view> DeviceRegistry::knownTypes() const {
     return views;
 }
 
-const IDeviceType* DeviceRegistry::findTypeForSlot(const DeviceSlot& slot) const {
-    if (std::holds_alternative<OscillatorParams>(slot.instance)) {
-        return find(device_types::kOscillator);
-    }
-    if (std::holds_alternative<SamplerModel>(slot.instance)) {
-        return find(device_types::kSampler);
-    }
-    if (std::holds_alternative<TrackGainParams>(slot.instance)) {
-        return find(device_types::kTrackGain);
-    }
-    if (std::holds_alternative<SubtractiveSynthParams>(slot.instance)) {
-        return find(device_types::kSubtractiveSynth);
-    }
-    if (std::holds_alternative<KickGeneratorParams>(slot.instance)) {
-        return find(device_types::kKickGenerator);
-    }
-    if (std::holds_alternative<SnareGeneratorParams>(slot.instance)) {
-        return find(device_types::kSnareGenerator);
-    }
-    if (std::holds_alternative<ClapGeneratorParams>(slot.instance)) {
-        return find(device_types::kClapGenerator);
-    }
-    if (std::holds_alternative<CymbalGeneratorParams>(slot.instance)) {
-        return find(device_types::kCymbalGenerator);
-    }
-    if (std::holds_alternative<CrashGeneratorParams>(slot.instance)) {
-        return find(device_types::kCrashGenerator);
-    }
-    if (std::holds_alternative<GateParams>(slot.instance)) {
-        return find(device_types::kGate);
-    }
-    if (std::holds_alternative<CompressorParams>(slot.instance)) {
-        return find(device_types::kCompressor);
-    }
-    if (std::holds_alternative<ExpanderParams>(slot.instance)) {
-        return find(device_types::kExpander);
-    }
-    if (std::holds_alternative<LimiterParams>(slot.instance)) {
-        return find(device_types::kLimiter);
-    }
-    if (std::holds_alternative<BassSynthModel>(slot.instance)) {
-        return find(device_types::kBasSynth);
-    }
-    if (std::holds_alternative<PhaseModSynthModel>(slot.instance)) {
-        return find(device_types::kPhaseModSynth);
-    }
-    if (std::holds_alternative<DelayParams>(slot.instance)) return find(device_types::kDelay);
-    if (std::holds_alternative<ReverbParams>(slot.instance)) return find(device_types::kReverb);
-    if (std::holds_alternative<ChorusParams>(slot.instance)) return find(device_types::kChorus);
-    if (std::holds_alternative<PhaserParams>(slot.instance)) return find(device_types::kPhaser);
-    if (std::holds_alternative<FilterModel>(slot.instance)) return find(device_types::kFilter);
-    if (std::holds_alternative<FourBandEqModel>(slot.instance)) return find(device_types::kFourBandEq);
-    if (std::holds_alternative<FrequencyShifterModel>(slot.instance)) return find(device_types::kFrequencyShifter);
-    return nullptr;
+const IDeviceType* DeviceRegistry::findForSlot(const DeviceSlot& slot) const {
+    if (slot.config.typeId.empty()) return nullptr;
+    return find(slot.config.typeId);
 }
 
 DeviceSlot DeviceRegistry::createDefault(std::string_view typeId,
@@ -123,7 +72,7 @@ DeviceSlot DeviceRegistry::createDefault(std::string_view typeId,
 DeviceParameterResult DeviceRegistry::setParameter(DeviceSlot& slot,
                                                    std::string_view parameterId,
                                                    float value) const {
-    const IDeviceType* type = findTypeForSlot(slot);
+    const IDeviceType* type = findForSlot(slot);
     if (type == nullptr) {
         return {};
     }
@@ -134,7 +83,7 @@ bool DeviceRegistry::setStringParameter(DeviceSlot& slot,
                                         std::string_view parameterId,
                                         const std::string& value,
                                         const PlaybackBuildContext& context) const {
-    const IDeviceType* type = findTypeForSlot(slot);
+    const IDeviceType* type = findForSlot(slot);
     if (type == nullptr) {
         return false;
     }
@@ -144,7 +93,7 @@ bool DeviceRegistry::setStringParameter(DeviceSlot& slot,
 void DeviceRegistry::buildPlaybackNode(const DeviceSlot& slot,
                                        const PlaybackBuildContext& context,
                                        DeviceNodePlayback& out) const {
-    const IDeviceType* type = findTypeForSlot(slot);
+    const IDeviceType* type = findForSlot(slot);
     if (type == nullptr) {
         out.kind = DeviceNodeKind::Unknown;
         return;
@@ -155,7 +104,7 @@ void DeviceRegistry::buildPlaybackNode(const DeviceSlot& slot,
 bool DeviceRegistry::buildLiveInstrument(const DeviceSlot& slot,
                                          const PlaybackBuildContext& context,
                                          LiveInstrumentSnapshot& out) const {
-    const IDeviceType* type = findTypeForSlot(slot);
+    const IDeviceType* type = findForSlot(slot);
     if (type == nullptr) {
         return false;
     }

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "audioapp/dsp/DeviceProcessor.hpp"
-#include "audioapp/SnareGenerator.hpp"
+#include "audioapp/SnareAlgorithm.hpp"
 
 namespace audioapp {
 

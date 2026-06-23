@@ -100,10 +100,13 @@ public:
         {
             TestSetup setup;
             const int lfoId = setup.createLfo(0, 4.0f, 0); // sine @ 4 Hz, free
-            expect(setup.host.assignModulation(lfoId, setup.synthId, "filterCutoff", 1.0f));
+            const bool assignOk = setup.host.assignModulation(lfoId, setup.synthId, "filterCutoff", 1.0f);
+            std::fprintf(stderr, "DIAG: assignOk=%d lfoId=%d synthId=%s\n", assignOk, lfoId, setup.synthId.c_str());
+            expect(assignOk);
 
             setup.host.setPlaying(true);
             const std::vector<float> block = setup.host.renderOffline(4.0, 48000.0);
+            std::fprintf(stderr, "DIAG: block.size()=%zu rms=%g\n", block.size(), audioapp::test::rms(block, 1000, 4000));
             expect(block.size() >= 48000);
             expect(audioapp::test::rms(block, 1000, 4000) >= 1.0e-4f);
 
@@ -121,6 +124,7 @@ public:
                 darkest = std::min(darkest, hf);
             }
             expect(darkest > 0.0f);
+            std::fprintf(stderr, "DIAG T1: brightest=%g darkest=%g ratio=%g\n", brightest, darkest, brightest/darkest);
             // The LFO cycles 16 times in 4 seconds. Multiple windows must
             // have the filter open and closed, producing >2x HF energy ratio.
             expect(brightest >= darkest * 2.0f, "LFO should produce >2x HF energy ratio");
@@ -196,6 +200,7 @@ public:
                 darkest = std::min(darkest, hf);
             }
             expect(darkest > 0.0f);
+            std::fprintf(stderr, "DIAG T3: brightest=%g darkest=%g ratio=%g\n", brightest, darkest, brightest/darkest);
             // With a strong LFO, there should still be >1.5x variation
             expect(brightest >= darkest * 1.5f, "Modulation + automation should still produce variation");
         }
@@ -230,6 +235,7 @@ public:
                 darkest = std::min(darkest, hf);
             }
             expect(darkest > 0.0f);
+            std::fprintf(stderr, "DIAG T4: brightest=%g darkest=%g ratio=%g\n", brightest, darkest, brightest/darkest);
             expect(brightest >= darkest * 2.0f, "Two LFOs should produce >2x HF ratio");
         }
 
@@ -335,6 +341,7 @@ public:
                 }
             }
 
+            std::fprintf(stderr, "DIAG T6: unmodMaxRatio=%g modMaxRatio=%g\n", unmodMaxRatio, modMaxRatio);
             // The modulated block should have significantly more spectral variation
             expect(modMaxRatio >= unmodMaxRatio * 2.0f,
                    "Modulated block should have more spectral variation than unmodulated");
@@ -361,9 +368,20 @@ public:
 
             host.setPlaying(true);
             const std::vector<float> block = host.renderOffline(4.0, 48000.0);
+            const float r1000 = audioapp::test::rms(block, 1000, 4000);
+            const float r0 = audioapp::test::rms(block, 0, 1000);
+            const float r1 = audioapp::test::rms(block, 100, 1000);
+            const float r10k = audioapp::test::rms(block, 10000, 4000);
+            std::fprintf(stderr, "DIAG T7: block.size()=%zu rms@0-1000=%g rms@100-1000=%g rms@1000-4999=%g rms@10000-13999=%g s0=%g s500=%g s1000=%g s5000=%g s10000=%g s50000=%g s95999=%g\n",
+                block.size(), r0, r1, r1000, r10k,
+                block[0], block[500], block[1000], block[5000], block[10000], block[50000], block[95999]);
             expect(block.size() >= 48000);
             expect(audioapp::test::rms(block, 1000, 4000) >= 1.0e-4f);
 
+            const float hfA = audioapp::test::highFrequencyEnergy(block, 2000, 4000);
+            const float hfB = audioapp::test::highFrequencyEnergy(block, 20000, 4000);
+            const float rmsA = audioapp::test::rms(block, 2000, 4000);
+            const float rmsB = audioapp::test::rms(block, 20000, 4000);
             // Pitch modulation changes the zero-crossing rate.
             expect(modulationChangedFilter(block, 2000, 20000, 4000),
                    "Frequency modulation should produce spectral variation");
@@ -396,6 +414,7 @@ public:
                 darkest = std::min(darkest, hf);
             }
             expect(darkest > 0.0f);
+            std::fprintf(stderr, "DIAG T8: brightest=%g darkest=%g ratio=%g\n", brightest, darkest, brightest/darkest);
             expect(brightest >= darkest * 2.0f, "Retrigger LFO should produce >2x HF ratio");
         }
 
@@ -429,6 +448,7 @@ public:
                 modBrightest = std::max(modBrightest, hf);
             }
             expect(modDarkest > 0.0f);
+            std::fprintf(stderr, "DIAG T9: modBrightest=%g modDarkest=%g ratio=%g\n", modBrightest, modDarkest, modBrightest/modDarkest);
             expect(modBrightest >= modDarkest * 2.0f, "Modulated block must have >= 2x variation");
         }
 

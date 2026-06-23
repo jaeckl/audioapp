@@ -13,7 +13,11 @@ public:
             host.createProject();
             const std::string trackId = host.addTrack("Live");
             host.selectTrack(trackId);
-            expect(host.setDeviceStringParameter("dev-1", "sampleId", "sample_kick"),
+            // addTrack auto-creates a track_gain device at dev-1; add a sampler
+            // and use the returned id so setDeviceStringParameter hits the right slot.
+            const std::string samplerId = host.addDeviceToTrack(trackId, "simple_sampler");
+            expect(!samplerId.empty(), "sampler added");
+            expect(host.setDeviceStringParameter(samplerId, "sampleId", "sample_kick"),
                    "set sampleId");
             host.setRecordArmed(false);
 

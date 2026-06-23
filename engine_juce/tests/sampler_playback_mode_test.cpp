@@ -43,7 +43,7 @@ public:
             expectWithinAbsoluteError(samplerPitchRatio(60, 60, 0.0f),
                                       1.0, 1.0e-6);
             expectWithinAbsoluteError(samplerPitchRatio(72, 60, 0.0f),
-                                      4.0, 1.0e-6);
+                                      2.0, 1.0e-6);
         }
         beginTest("filter cutoff modulation");
         {

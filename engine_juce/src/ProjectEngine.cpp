@@ -615,13 +615,15 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
             auto* mod = modulationGraph_.modulator(i);
             if (mod == nullptr) continue;
             for (int frame = 0; frame < framesToProcess; ++frame) {
-                const double frameSeconds = playheadSeconds + static_cast<double>(frame) * samplePeriod;
+                const double secondsWithinBlock = static_cast<double>(frame) * samplePeriod;
+                const double frameSeconds = playheadSeconds + secondsWithinBlock;
                 const double frameBeat =
                     playheadStartBeat +
-                    static_cast<double>(frame) * samplePeriod *
+                    secondsWithinBlock *
                         (static_cast<double>(std::max(transport_.bpm(), 1)) / 60.0);
                 lfoValues[i * framesToProcess + frame] =
-                    mod->evaluate(frameBeat, transport_.bpm(), frameSeconds, retriggerGeneration);
+                    mod->evaluate(frameBeat, transport_.bpm(),
+                                  secondsWithinBlock, playheadSeconds, retriggerGeneration);
             }
         }
     }

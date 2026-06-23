@@ -141,9 +141,19 @@ public:
             audioapp::FilterRuntime runtime;
             audioapp::processFilterStereoBlock(left.data(), right.data(), kFrames,
                                                 kSampleRate, params, runtime);
-            const float outputPeak = peakAbsBuf(left);
-            expect(outputPeak < inputPeak * 0.5f,
-                   "Notch@500Hz should reject 500 Hz sine (peak < 50% of input)");
+
+            // The biquad starts from zero state (z1=z2=0) and the input
+            // sine has a step-like start, so the first ~150 samples contain
+            // the filter's impulse-response transient. Skip those and
+            // measure the steady-state peak on the tail.
+            constexpr int kSettle = 256;
+            float tailPeak = 0.0f;
+            for (int i = kSettle; i < kFrames; ++i) {
+                const float a = std::fabs(left[i]);
+                if (a > tailPeak) tailPeak = a;
+            }
+            expect(tailPeak < inputPeak * 0.5f,
+                   "Notch@500Hz should reject 500 Hz sine (steady-state peak < 50% of input)");
         }
 
         beginTest("filter different modes differ");

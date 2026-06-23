@@ -23,7 +23,8 @@ public:
     }
 
     float evaluate(double playheadBeat, int bpm,
-                   double frameSeconds,
+                   double secondsWithinBlock,
+                   double playheadSeconds,
                    uint32_t retriggerGeneration) noexcept override;
 
 private:

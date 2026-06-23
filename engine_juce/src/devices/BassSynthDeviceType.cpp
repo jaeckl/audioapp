@@ -1,11 +1,13 @@
 #include "audioapp/devices/BassSynthDeviceType.hpp"
 
-#include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/devices/instances/BassSynthModel.hpp"
+#include "audioapp/devices/processors/SubtractiveSynthProcessor.hpp"
 
 #include <algorithm>
 #include <cmath>
+
+#include "audioapp/devices/DeviceStripParams.hpp"
 
 namespace audioapp {
 
@@ -15,7 +17,7 @@ SubtractiveSynthParams BassSynthModel::toPlaybackParams() const {
     // Osc 1 (main morph)
     p.osc1Shape = oscShape;
     p.osc1Octave = 0.5f;            // neutral
-    p.osc1Semi = 0.0f;
+    p.osc1Semis = 0.0f;
     p.osc1Detune = 0.5f;
     p.osc1Sync = 0.0f;
     // Osc 2 (sub — always sine)
@@ -23,7 +25,7 @@ SubtractiveSynthParams BassSynthModel::toPlaybackParams() const {
     const float subOctOffsets[] = {-1.0f, -2.0f, -3.0f};
     const float subOctNorm = (subOctOffsets[subOctave] + 4.0f) / 8.0f;
     p.osc2Octave = std::clamp(subOctNorm, 0.0f, 1.0f);
-    p.osc2Semi = 0.0f;
+    p.osc2Semis = 0.0f;
     p.osc2Detune = 0.5f;
     p.osc2Sync = 0.0f;
     // Osc mix
@@ -76,11 +78,15 @@ std::string BassSynthDeviceType::typeId() const {
 DeviceSlot BassSynthDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
+    slot.config.typeId = typeId();
     BassSynthModel instance;
-    slot.instance = std::move(instance);
+    slot.config.instance = std::move(instance);
+
+    slot.config.inputPanel = EmptyPanel{};
+    slot.config.outputPanel = StereoOutputPanel{};
+    slot.config.bypassed = false;
     return slot;
 }
-
 
 DeviceParameterResult BassSynthDeviceType::setParameter(DeviceSlot& slot,
                                                        std::string_view parameterId,
@@ -91,7 +97,7 @@ DeviceParameterResult BassSynthDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
 
-    auto& instance = std::get<BassSynthModel>(slot.instance);
+    auto& instance = std::get<BassSynthModel>(slot.config.instance);
 
     if (parameterId == "attack" || parameterId == "sustain" || parameterId == "release") {
         const float clamped = std::clamp(value, 0.0f, 1.0f);
@@ -169,9 +175,9 @@ std::vector<std::string_view> BassSynthDeviceType::modulatableParams() const {
 void BassSynthDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                             const PlaybackBuildContext&,
                                             DeviceNodePlayback& out) const {
-    const auto& inst = std::get<BassSynthModel>(slot.instance);
+    const auto& inst = std::get<BassSynthModel>(slot.config.instance);
     auto params = inst.toPlaybackParams();
-    params.gain = slot.gain;
+    params.gain = std::get<StereoOutputPanel>(slot.config.outputPanel).gain;
     out.kind = DeviceNodeKind::BassSynth;
     out.params = params;
 }
@@ -179,21 +185,19 @@ void BassSynthDeviceType::buildPlaybackNode(const DeviceSlot& slot,
 bool BassSynthDeviceType::buildLiveInstrument(const DeviceSlot& slot,
                                               const PlaybackBuildContext&,
                                               LiveInstrumentSnapshot& out) const {
-    const auto& inst = std::get<BassSynthModel>(slot.instance);
+    const auto& inst = std::get<BassSynthModel>(slot.config.instance);
     out = LiveInstrumentSnapshot{};
     out.kind = LiveInstrumentKind::BassSynth;
-    out.gain = slot.gain;
+    const auto gain = std::get<StereoOutputPanel>(slot.config.outputPanel).gain;
+    out.gain = gain;
     out.subtractive = inst.toPlaybackParams();
-    out.subtractive.gain = slot.gain;
+    out.subtractive.gain = gain;
     return true;
 }
 
 juce::var BassSynthDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<BassSynthModel>(slot.instance);
-    parameters->setProperty("gain", static_cast<double>(slot.gain));
-    parameters->setProperty("pan", static_cast<double>(slot.pan));
-    parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
+    const auto& inst = std::get<BassSynthModel>(slot.config.instance);
     parameters->setProperty("bassOscShape", static_cast<double>(inst.oscShape));
     parameters->setProperty("bassSubMix", static_cast<double>(inst.subMix));
     parameters->setProperty("bassSubOctave", inst.subOctave);
@@ -214,6 +218,19 @@ juce::var BassSynthDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
     object->setProperty("type", juce::String::fromUTF8(typeId().c_str()));
+
+    auto* outObj = new juce::DynamicObject();
+    const auto& panel = std::get<StereoOutputPanel>(slot.config.outputPanel);
+    outObj->setProperty("type", "stereo");
+    outObj->setProperty("gain", static_cast<double>(panel.gain));
+    outObj->setProperty("pan", static_cast<double>(panel.pan));
+    object->setProperty("outputPanel", juce::var(outObj));
+
+    auto* inObj = new juce::DynamicObject();
+    inObj->setProperty("type", "empty");
+    object->setProperty("inputPanel", juce::var(inObj));
+
+    object->setProperty("bypass", slot.config.bypassed ? 1.0 : 0.0);
     object->setProperty("parameters", juce::var(parameters));
     return juce::var(object);
 }
@@ -222,6 +239,23 @@ DeviceSlot BassSynthDeviceType::varToSlot(const juce::var& obj) const {
     DeviceSlot slot;
     if (const auto* object = obj.getDynamicObject()) {
         slot.id = object->getProperty("id").toString().toStdString();
+        slot.config.typeId = object->getProperty("type").toString().toStdString();
+
+        const auto outputPanelVar = object->getProperty("outputPanel");
+        bool hasPanel = outputPanelVar.isObject();
+        if (hasPanel) {
+            const auto* panel = outputPanelVar.getDynamicObject();
+            StereoOutputPanel sp;
+            sp.gain = static_cast<float>(static_cast<double>(panel->getProperty("gain")));
+            sp.pan = static_cast<float>(static_cast<double>(panel->getProperty("pan")));
+            slot.config.outputPanel = sp;
+
+        }
+
+        slot.config.bypassed = object->getProperty("bypass").isDouble()
+            ? (static_cast<float>(static_cast<double>(object->getProperty("bypass"))) >= 0.5f)
+            : false;
+
         const auto params = object->getProperty("parameters");
         if (const auto* p = params.getDynamicObject()) {
             auto readFloat = [&](const char* key, float fallback) -> float {
@@ -230,9 +264,14 @@ DeviceSlot BassSynthDeviceType::varToSlot(const juce::var& obj) const {
                     return static_cast<float>(static_cast<double>(v));
                 return fallback;
             };
-            slot.gain = readFloat("gain", 1.0f);
-            slot.pan = readFloat("pan", 0.5f);
-            slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
+
+            if (!hasPanel) {
+                const float oldGain = readFloat("gain", 1.0f);
+                const float oldPan = readFloat("pan", 0.5f);
+                slot.config.outputPanel = StereoOutputPanel{oldGain, oldPan};
+                slot.config.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
+            }
+
             BassSynthModel inst;
             inst.oscShape = readFloat("bassOscShape", 0.3f);
             inst.subMix = readFloat("bassSubMix", 0.5f);
@@ -250,10 +289,14 @@ DeviceSlot BassSynthDeviceType::varToSlot(const juce::var& obj) const {
             inst.squash = readFloat("bassSquash", 0.0f);
             inst.glideMs = readFloat("glideMs", 0.0f);
             inst.velocitySense = readFloat("bassVelocitySense", 1.0f);
-            slot.instance = inst;
+            slot.config.instance = inst;
         }
     }
     return slot;
+}
+
+DeviceProcessor* BassSynthDeviceType::createProcessor(ProcessorArena& arena) const {
+    return arena.template emplace<BassSynthProcessor>();
 }
 
 } // namespace audioapp

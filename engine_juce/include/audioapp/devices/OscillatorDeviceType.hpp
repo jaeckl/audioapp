@@ -25,6 +25,8 @@ public:
 
     juce::var slotToVar(const DeviceSlot& slot) const override;
     DeviceSlot varToSlot(const juce::var& obj) const override;
+
+    DeviceProcessor* createProcessor(ProcessorArena& arena) const override;
 };
 
 } // namespace audioapp

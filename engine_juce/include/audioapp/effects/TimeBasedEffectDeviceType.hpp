@@ -21,7 +21,10 @@ public:
     DeviceSlot createDefault(const std::string& deviceId) const override {
         DeviceSlot slot;
         slot.id = deviceId;
-        // Effect‑specific instance will be set by concrete subclass if required.
+        slot.config.typeId = typeId();     // Set by concrete subclass call
+        slot.config.inputPanel = EmptyPanel{};
+        slot.config.outputPanel = StereoOutputPanel{};
+        slot.config.bypassed = false;
         return slot;
     }
 
@@ -45,6 +48,8 @@ public:
     bool buildLiveInstrument(const DeviceSlot&, const PlaybackBuildContext&, LiveInstrumentSnapshot&) const override {
         return false;
     }
+
+    DeviceProcessor* createProcessor(ProcessorArena& arena) const override = 0;
 
     // Optional JSON helpers – default to empty.
     juce::var slotToVar(const DeviceSlot& slot) const override {

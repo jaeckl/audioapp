@@ -61,7 +61,7 @@ Audio and MIDI flow through a directed graph:
 - [Realtime audio rules](realtime_audio_rules.md)
 - [Project model](project_model.md)
 - [Audio graph](audio_graph.md)
-- [Device model](device_model.md)
+- [Engine naming conventions](engine-naming-conventions.md) — type suffix roles, thread safety, MVC analogy
 - [JUCE dependency](juce_dependency.md)
 - [Flutter/native bridge](../bridge/flutter_native_bridge.md)
 

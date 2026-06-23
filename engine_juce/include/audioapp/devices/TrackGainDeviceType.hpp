@@ -24,6 +24,8 @@ public:
     bool buildLiveInstrument(const DeviceSlot& slot,
                              const PlaybackBuildContext& context,
                              LiveInstrumentSnapshot& out) const override;
+
+    DeviceProcessor* createProcessor(ProcessorArena& arena) const override;
 };
 
 } // namespace audioapp

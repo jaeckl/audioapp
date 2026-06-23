@@ -4,6 +4,7 @@
 #include "audioapp/MidiUtils.hpp"
 #include "audioapp/MasterMix.hpp"
 #include "audioapp/devices/processors/ProcessorUtils.hpp"
+#include "audioapp/devices/DevicePanelTypes.hpp"
 #include <algorithm>
 #include <cstring>
 #include <cmath>
@@ -65,8 +66,8 @@ void OscillatorProcessor::process(AudioBlock& block, ProcessContext& ctx) noexce
         }
     }
 
-    multiplyPerFrameGain(ctx.scratch.scratch, block.numSamples, ctx.scratch.perFrameGain);
-    mixStereoPerFramePan(block.channelL, block.channelR, ctx.scratch.scratch, block.numSamples, ctx.scratch.perFramePan);
+    StereoOutputPanel::applyFromScratch(ctx.scratch.scratch, block, block.numSamples,
+                                         ctx.scratch.perFrameGain, ctx.scratch.perFramePan);
 }
 
 } // namespace audioapp

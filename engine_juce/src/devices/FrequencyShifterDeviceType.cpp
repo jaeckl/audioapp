@@ -1,13 +1,15 @@
 #include "audioapp/devices/FrequencyShifterDeviceType.hpp"
 
-#include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/devices/instances/FrequencyFxModel.hpp"
 #include "audioapp/FrequencyFxProcessor.hpp"
+#include "audioapp/devices/processors/FrequencyShifterProcessor.hpp"
 
 #include <algorithm>
 #include <cstring>
 #include <juce_core/juce_core.h>
+
+#include "audioapp/devices/DeviceStripParams.hpp"
 
 namespace audioapp {
 
@@ -18,10 +20,14 @@ std::string FrequencyShifterDeviceType::typeId() const {
 DeviceSlot FrequencyShifterDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    slot.instance = FrequencyShifterModel{};
+    slot.config.typeId = typeId();
+    slot.config.instance = FrequencyShifterModel{};
+
+    slot.config.inputPanel = EmptyPanel{};
+    slot.config.outputPanel = StereoOutputPanel{};
+    slot.config.bypassed = false;
     return slot;
 }
-
 
 DeviceParameterResult FrequencyShifterDeviceType::setParameter(DeviceSlot& slot,
                                                                std::string_view parameterId,
@@ -31,7 +37,7 @@ DeviceParameterResult FrequencyShifterDeviceType::setParameter(DeviceSlot& slot,
         result.handled = true;
         return result;
     }
-    auto& instance = std::get<FrequencyShifterModel>(slot.instance);
+    auto& instance = std::get<FrequencyShifterModel>(slot.config.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
     if (parameterId == "ffxShift") {
         instance.ffxShift = clamped;
@@ -57,7 +63,7 @@ void FrequencyShifterDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                                    const PlaybackBuildContext&,
                                                    DeviceNodePlayback& out) const {
     out.kind = DeviceNodeKind::FrequencyShifter;
-    out.params = std::get<FrequencyShifterModel>(slot.instance).toPlaybackParams();
+    out.params = std::get<FrequencyShifterModel>(slot.config.instance).toPlaybackParams();
 }
 
 bool FrequencyShifterDeviceType::buildLiveInstrument(const DeviceSlot&,
@@ -68,10 +74,7 @@ bool FrequencyShifterDeviceType::buildLiveInstrument(const DeviceSlot&,
 
 juce::var FrequencyShifterDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<FrequencyShifterModel>(slot.instance);
-    parameters->setProperty("gain", static_cast<double>(slot.gain));
-    parameters->setProperty("pan", static_cast<double>(slot.pan));
-    parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
+    const auto& inst = std::get<FrequencyShifterModel>(slot.config.instance);
     parameters->setProperty("ffxShift", static_cast<double>(inst.ffxShift));
 
     auto* meters = new juce::DynamicObject();
@@ -81,6 +84,19 @@ juce::var FrequencyShifterDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String(slot.id));
     object->setProperty("type", juce::String(typeId()));
+
+    auto* outObj = new juce::DynamicObject();
+    const auto& panel = std::get<StereoOutputPanel>(slot.config.outputPanel);
+    outObj->setProperty("type", "stereo");
+    outObj->setProperty("gain", static_cast<double>(panel.gain));
+    outObj->setProperty("pan", static_cast<double>(panel.pan));
+    object->setProperty("outputPanel", juce::var(outObj));
+
+    auto* inObj = new juce::DynamicObject();
+    inObj->setProperty("type", "empty");
+    object->setProperty("inputPanel", juce::var(inObj));
+
+    object->setProperty("bypass", slot.config.bypassed ? 1.0 : 0.0);
     object->setProperty("parameters", juce::var(parameters));
     object->setProperty("meters", juce::var(meters));
     return juce::var(object);
@@ -90,6 +106,23 @@ DeviceSlot FrequencyShifterDeviceType::varToSlot(const juce::var& obj) const {
     DeviceSlot slot;
     if (const auto* object = obj.getDynamicObject()) {
         slot.id = object->getProperty("id").toString().toStdString();
+        slot.config.typeId = object->getProperty("type").toString().toStdString();
+
+        const auto outputPanelVar = object->getProperty("outputPanel");
+        bool hasPanel = outputPanelVar.isObject();
+        if (hasPanel) {
+            const auto* panel = outputPanelVar.getDynamicObject();
+            StereoOutputPanel sp;
+            sp.gain = static_cast<float>(static_cast<double>(panel->getProperty("gain")));
+            sp.pan = static_cast<float>(static_cast<double>(panel->getProperty("pan")));
+            slot.config.outputPanel = sp;
+
+        }
+
+        slot.config.bypassed = object->getProperty("bypass").isDouble()
+            ? (static_cast<float>(static_cast<double>(object->getProperty("bypass"))) >= 0.5f)
+            : false;
+
         const auto params = object->getProperty("parameters");
         if (const auto* p = params.getDynamicObject()) {
             auto readFloat = [&](const char* key, float fallback) -> float {
@@ -98,15 +131,24 @@ DeviceSlot FrequencyShifterDeviceType::varToSlot(const juce::var& obj) const {
                     return static_cast<float>(static_cast<double>(v));
                 return fallback;
             };
-            slot.gain = readFloat("gain", 1.0f);
-            slot.pan = readFloat("pan", 0.5f);
-            slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
+
+            if (!hasPanel) {
+                const float oldGain = readFloat("gain", 1.0f);
+                const float oldPan = readFloat("pan", 0.5f);
+                slot.config.outputPanel = StereoOutputPanel{oldGain, oldPan};
+                slot.config.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
+            }
+
             FrequencyShifterModel inst;
             inst.ffxShift = readFloat("ffxShift", 0.5f);
-            slot.instance = inst;
+            slot.config.instance = inst;
         }
     }
     return slot;
+}
+
+DeviceProcessor* FrequencyShifterDeviceType::createProcessor(ProcessorArena& arena) const {
+    return arena.template emplace<FrequencyShifterProcessor>();
 }
 
 } // namespace audioapp

@@ -16,7 +16,7 @@ public:
         beginTest("create default reverb");
         {
             audioapp::DeviceSlot slot = registry.createDefault("reverb", "testReverb");
-            const audioapp::IDeviceType* type = registry.findTypeForSlot(slot);
+            const audioapp::IDeviceType* type = registry.findForSlot(slot);
             expect(type != nullptr, "reverb type should be found");
             expect(type->typeId() == "reverb", "typeId should be 'reverb'");
         }

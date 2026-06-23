@@ -1,6 +1,128 @@
 #include "audioapp/devices/processors/SnareProcessor.hpp"
 #include "audioapp/devices/processors/ProcessorUtils.hpp"
+#include "audioapp/devices/DevicePanelTypes.hpp"
+#include "audioapp/SnareAlgorithm.hpp"
+
+#include <algorithm>
+#include <cmath>
 #include <cstring>
+
+namespace {
+
+constexpr double kTwoPi = 6.28318530718;
+
+float beatAtFrame(double playheadStartBeat, int frameIndex, double sampleRate, int bpm) {
+    const double seconds = static_cast<double>(frameIndex) / sampleRate;
+    return static_cast<float>(playheadStartBeat + seconds * static_cast<double>(bpm) / 60.0);
+}
+
+float xorshiftNoise(uint32_t& state) noexcept {
+    state ^= state << 13;
+    state ^= state >> 17;
+    state ^= state << 5;
+    return static_cast<float>(state) * (1.0f / 2147483648.0f) - 1.0f;
+}
+
+uint32_t seedFromPitch(int pitch) noexcept {
+    return 0x9E3779B9u ^ static_cast<uint32_t>(pitch) * 0x85EBCA6Bu;
+}
+
+bool isSnareNoteAudible(const audioapp::SnareMidiNoteRegion& note,
+                        double beat,
+                        int bpm,
+                        float releaseSec,
+                        double& elapsedSecondsOut,
+                        bool& inReleaseOut) noexcept {
+    using namespace audioapp;
+    if (beat < note.clipStartBeat || beat >= note.clipStartBeat + note.clipLengthBeats || bpm <= 0) {
+        return false;
+    }
+
+    const double posInClip = beat - note.clipStartBeat;
+    const double loopedBeat = std::fmod(posInClip, note.clipLengthBeats);
+    const double noteEnd = note.noteStartBeat + note.noteDurationBeats;
+    const double releaseBeats =
+        static_cast<double>(releaseSec) * static_cast<double>(bpm) / 60.0;
+
+    if (loopedBeat < note.noteStartBeat) {
+        return false;
+    }
+
+    const double elapsedBeats = loopedBeat - note.noteStartBeat;
+    elapsedSecondsOut = elapsedBeats * 60.0 / static_cast<double>(bpm);
+    inReleaseOut = loopedBeat >= noteEnd;
+    if (loopedBeat < noteEnd) {
+        return true;
+    }
+    return loopedBeat < noteEnd + releaseBeats;
+}
+
+float normalizedToAmpDecaySec(float normalized) noexcept {
+    const float clamped = std::clamp(normalized, 0.0f, 1.0f);
+    return 0.15f + (1.0f - clamped) * 0.35f;
+}
+
+float pitchTrackRatio(int pitch) noexcept {
+    return std::pow(2.0f, static_cast<float>(pitch - 38) / 12.0f);
+}
+
+void mixSnareMidiNotesBlock(float* monoOut,
+                            int numFrames,
+                            double sampleRate,
+                            int bpm,
+                            double playheadStartBeat,
+                            const audioapp::SnareMidiNoteRegion* notes,
+                            int noteCount,
+                            const audioapp::SnareGeneratorParams& params,
+                            audioapp::SnareGeneratorRuntime& runtime) noexcept {
+    using namespace audioapp;
+    if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
+        return;
+    }
+
+    const float releaseSec = normalizedToAmpDecaySec(params.snareDecay) + 0.05f;
+
+    for (int frame = 0; frame < numFrames; ++frame) {
+        const double beat = beatAtFrame(playheadStartBeat, frame, sampleRate, bpm);
+
+        int activeNoteKey = -1;
+        int activePitch = 38;
+        float activeVelocity = 100.0f;
+        double activeElapsed = 0.0;
+
+        for (int noteIndex = 0; noteIndex < noteCount; ++noteIndex) {
+            const auto& note = notes[noteIndex];
+            double elapsedSeconds = 0.0;
+            bool inRelease = false;
+            if (!isSnareNoteAudible(note, beat, bpm, releaseSec, elapsedSeconds, inRelease)) {
+                continue;
+            }
+            activeNoteKey = note.noteKey;
+            activePitch = note.pitch;
+            activeVelocity = note.velocity;
+            activeElapsed = elapsedSeconds;
+        }
+
+        if (activeNoteKey < 0) {
+            runtime.voice.active = 0;
+            runtime.lastNoteKey = -1;
+            continue;
+        }
+
+        if (runtime.lastNoteKey != activeNoteKey || runtime.voice.active == 0) {
+            triggerSnareVoice(runtime.voice, activePitch, activeVelocity);
+            configureSnareVoice(runtime.voice, params, static_cast<float>(sampleRate));
+            runtime.lastNoteKey = activeNoteKey;
+        }
+        runtime.voice.elapsedSec = activeElapsed;
+
+        const float vel = std::clamp(runtime.voice.velocity / 127.0f, 0.0f, 1.0f);
+        const float velGain = 1.0f - params.snareVelocity * (1.0f - vel);
+        monoOut[frame] += snareGeneratorSample(runtime.voice, params, sampleRate, velGain);
+    }
+}
+
+} // namespace
 
 namespace audioapp {
 
@@ -32,8 +154,8 @@ void SnareProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
             sp,
             runtime_
         );
-        multiplyPerFrameGain(ctx.scratch.scratch, block.numSamples, ctx.scratch.perFrameGain);
-        mixStereoPerFramePan(block.channelL, block.channelR, ctx.scratch.scratch, block.numSamples, ctx.scratch.perFramePan);
+        StereoOutputPanel::applyFromScratch(ctx.scratch.scratch, block, block.numSamples,
+                                             ctx.scratch.perFrameGain, ctx.scratch.perFramePan);
     }
 }
 

@@ -1,12 +1,14 @@
 #include "audioapp/devices/FourBandEqDeviceType.hpp"
 
-#include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/devices/instances/FrequencyFxModel.hpp"
+#include "audioapp/devices/processors/FourBandEqProcessor.hpp"
 
 #include <algorithm>
 #include <cstring>
 #include <juce_core/juce_core.h>
+
+#include "audioapp/devices/DeviceStripParams.hpp"
 
 namespace audioapp {
 
@@ -15,10 +17,14 @@ std::string FourBandEqDeviceType::typeId() const { return device_types::kFourBan
 DeviceSlot FourBandEqDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
-    slot.instance = FourBandEqModel{};
+    slot.config.typeId = typeId();
+    slot.config.instance = FourBandEqModel{};
+
+    slot.config.inputPanel = EmptyPanel{};
+    slot.config.outputPanel = StereoOutputPanel{};
+    slot.config.bypassed = false;
     return slot;
 }
-
 
 DeviceParameterResult FourBandEqDeviceType::setParameter(DeviceSlot& slot,
                                                         std::string_view parameterId,
@@ -28,7 +34,7 @@ DeviceParameterResult FourBandEqDeviceType::setParameter(DeviceSlot& slot,
         result.handled = true;
         return result;
     }
-    auto& instance = std::get<FourBandEqModel>(slot.instance);
+    auto& instance = std::get<FourBandEqModel>(slot.config.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
     if (parameterId == "ffxBand1Freq") {
         instance.ffxBand1Freq = clamped;
@@ -80,7 +86,7 @@ void FourBandEqDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                              const PlaybackBuildContext&,
                                              DeviceNodePlayback& out) const {
     out.kind = DeviceNodeKind::FourBandEq;
-    out.params = std::get<FourBandEqModel>(slot.instance).toPlaybackParams();
+    out.params = std::get<FourBandEqModel>(slot.config.instance).toPlaybackParams();
 }
 
 bool FourBandEqDeviceType::buildLiveInstrument(const DeviceSlot&,
@@ -91,10 +97,7 @@ bool FourBandEqDeviceType::buildLiveInstrument(const DeviceSlot&,
 
 juce::var FourBandEqDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<FourBandEqModel>(slot.instance);
-    parameters->setProperty("gain", static_cast<double>(slot.gain));
-    parameters->setProperty("pan", static_cast<double>(slot.pan));
-    parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
+    const auto& inst = std::get<FourBandEqModel>(slot.config.instance);
     parameters->setProperty("ffxBand1Freq", static_cast<double>(inst.ffxBand1Freq));
     parameters->setProperty("ffxBand1Gain", static_cast<double>(inst.ffxBand1Gain));
     parameters->setProperty("ffxBand1Q", static_cast<double>(inst.ffxBand1Q));
@@ -115,6 +118,19 @@ juce::var FourBandEqDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String(slot.id));
     object->setProperty("type", juce::String(typeId()));
+
+    auto* outObj = new juce::DynamicObject();
+    const auto& panel = std::get<StereoOutputPanel>(slot.config.outputPanel);
+    outObj->setProperty("type", "stereo");
+    outObj->setProperty("gain", static_cast<double>(panel.gain));
+    outObj->setProperty("pan", static_cast<double>(panel.pan));
+    object->setProperty("outputPanel", juce::var(outObj));
+
+    auto* inObj = new juce::DynamicObject();
+    inObj->setProperty("type", "empty");
+    object->setProperty("inputPanel", juce::var(inObj));
+
+    object->setProperty("bypass", slot.config.bypassed ? 1.0 : 0.0);
     object->setProperty("parameters", juce::var(parameters));
     object->setProperty("meters", juce::var(meters));
     return juce::var(object);
@@ -124,6 +140,23 @@ DeviceSlot FourBandEqDeviceType::varToSlot(const juce::var& obj) const {
     DeviceSlot slot;
     if (const auto* object = obj.getDynamicObject()) {
         slot.id = object->getProperty("id").toString().toStdString();
+        slot.config.typeId = object->getProperty("type").toString().toStdString();
+
+        const auto outputPanelVar = object->getProperty("outputPanel");
+        bool hasPanel = outputPanelVar.isObject();
+        if (hasPanel) {
+            const auto* panel = outputPanelVar.getDynamicObject();
+            StereoOutputPanel sp;
+            sp.gain = static_cast<float>(static_cast<double>(panel->getProperty("gain")));
+            sp.pan = static_cast<float>(static_cast<double>(panel->getProperty("pan")));
+            slot.config.outputPanel = sp;
+
+        }
+
+        slot.config.bypassed = object->getProperty("bypass").isDouble()
+            ? (static_cast<float>(static_cast<double>(object->getProperty("bypass"))) >= 0.5f)
+            : false;
+
         const auto params = object->getProperty("parameters");
         if (const auto* p = params.getDynamicObject()) {
             auto readFloat = [&](const char* key, float fallback) -> float {
@@ -132,9 +165,14 @@ DeviceSlot FourBandEqDeviceType::varToSlot(const juce::var& obj) const {
                     return static_cast<float>(static_cast<double>(v));
                 return fallback;
             };
-            slot.gain = readFloat("gain", 1.0f);
-            slot.pan = readFloat("pan", 0.5f);
-            slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
+
+            if (!hasPanel) {
+                const float oldGain = readFloat("gain", 1.0f);
+                const float oldPan = readFloat("pan", 0.5f);
+                slot.config.outputPanel = StereoOutputPanel{oldGain, oldPan};
+                slot.config.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
+            }
+
             FourBandEqModel inst;
             inst.ffxBand1Freq = readFloat("ffxBand1Freq", 0.15f);
             inst.ffxBand1Gain = readFloat("ffxBand1Gain", 0.5f);
@@ -148,10 +186,14 @@ DeviceSlot FourBandEqDeviceType::varToSlot(const juce::var& obj) const {
             inst.ffxBand4Freq = readFloat("ffxBand4Freq", 0.85f);
             inst.ffxBand4Gain = readFloat("ffxBand4Gain", 0.5f);
             inst.ffxBand4Q = readFloat("ffxBand4Q", 0.5f);
-            slot.instance = inst;
+            slot.config.instance = inst;
         }
     }
     return slot;
+}
+
+DeviceProcessor* FourBandEqDeviceType::createProcessor(ProcessorArena& arena) const {
+    return arena.template emplace<FourBandEqProcessor>();
 }
 
 } // namespace audioapp

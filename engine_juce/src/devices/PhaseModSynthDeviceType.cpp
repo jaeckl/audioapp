@@ -1,11 +1,13 @@
 #include "audioapp/devices/PhaseModSynthDeviceType.hpp"
 
-#include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/devices/instances/PhaseModSynthModel.hpp"
+#include "audioapp/devices/processors/PhaseModSynthProcessor.hpp"
 
 #include <algorithm>
 #include <cmath>
+
+#include "audioapp/devices/DeviceStripParams.hpp"
 
 namespace audioapp {
 
@@ -65,6 +67,7 @@ std::string PhaseModSynthDeviceType::typeId() const {
 DeviceSlot PhaseModSynthDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
+    slot.config.typeId = typeId();
     PhaseModSynthModel instance;
 
     // Op 1 — carrier at fundamental
@@ -126,7 +129,11 @@ DeviceSlot PhaseModSynthDeviceType::createDefault(const std::string& deviceId) c
     instance.lfoAmount = 0.0f;
     instance.lfoDest = 0;
 
-    slot.instance = std::move(instance);
+    slot.config.instance = std::move(instance);
+
+    slot.config.inputPanel = EmptyPanel{};
+    slot.config.outputPanel = StereoOutputPanel{};
+    slot.config.bypassed = false;
     return slot;
 }
 
@@ -139,7 +146,7 @@ DeviceParameterResult PhaseModSynthDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
 
-    auto& instance = std::get<PhaseModSynthModel>(slot.instance);
+    auto& instance = std::get<PhaseModSynthModel>(slot.config.instance);
 
     // Shared filter/amp fields (same IDs as other devices)
     if (parameterId == "filterCutoff" || parameterId == "filterQ" ||
@@ -271,7 +278,7 @@ bool PhaseModSynthDeviceType::setStringParameter(DeviceSlot& slot,
         else if (value == "all_mod_fb")   algoIdx = 7;
 
         if (algoIdx >= 0) {
-            auto& inst = std::get<PhaseModSynthModel>(slot.instance);
+            auto& inst = std::get<PhaseModSynthModel>(slot.config.instance);
             inst.algoIndex = algoIdx;
             return true;
         }
@@ -298,9 +305,9 @@ std::vector<std::string_view> PhaseModSynthDeviceType::modulatableParams() const
 void PhaseModSynthDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                                 const PlaybackBuildContext&,
                                                 DeviceNodePlayback& out) const {
-    const auto& inst = std::get<PhaseModSynthModel>(slot.instance);
+    const auto& inst = std::get<PhaseModSynthModel>(slot.config.instance);
     auto params = inst.toPlaybackParams();
-    params.gain = slot.gain;
+    params.gain = std::get<StereoOutputPanel>(slot.config.outputPanel).gain;
     out.kind = DeviceNodeKind::PhaseModSynth;
     out.params = params;
 }
@@ -308,21 +315,19 @@ void PhaseModSynthDeviceType::buildPlaybackNode(const DeviceSlot& slot,
 bool PhaseModSynthDeviceType::buildLiveInstrument(const DeviceSlot& slot,
                                                   const PlaybackBuildContext&,
                                                   LiveInstrumentSnapshot& out) const {
-    const auto& inst = std::get<PhaseModSynthModel>(slot.instance);
+    const auto& inst = std::get<PhaseModSynthModel>(slot.config.instance);
     out = LiveInstrumentSnapshot{};
     out.kind = LiveInstrumentKind::PhaseModSynth;
-    out.gain = slot.gain;
+    const auto gain = std::get<StereoOutputPanel>(slot.config.outputPanel).gain;
+    out.gain = gain;
     out.phaseMod = inst.toPlaybackParams();
-    out.phaseMod.gain = slot.gain;
+    out.phaseMod.gain = gain;
     return true;
 }
 
 juce::var PhaseModSynthDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<PhaseModSynthModel>(slot.instance);
-    parameters->setProperty("gain", static_cast<double>(slot.gain));
-    parameters->setProperty("pan", static_cast<double>(slot.pan));
-    parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
+    const auto& inst = std::get<PhaseModSynthModel>(slot.config.instance);
 
     // Operator params (pm-prefixed)
     auto setOpJson = [&](int opIdx, const char* prefix) {
@@ -380,6 +385,19 @@ juce::var PhaseModSynthDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
     object->setProperty("type", juce::String::fromUTF8(typeId().c_str()));
+
+    auto* outObj = new juce::DynamicObject();
+    const auto& panel = std::get<StereoOutputPanel>(slot.config.outputPanel);
+    outObj->setProperty("type", "stereo");
+    outObj->setProperty("gain", static_cast<double>(panel.gain));
+    outObj->setProperty("pan", static_cast<double>(panel.pan));
+    object->setProperty("outputPanel", juce::var(outObj));
+
+    auto* inObj = new juce::DynamicObject();
+    inObj->setProperty("type", "empty");
+    object->setProperty("inputPanel", juce::var(inObj));
+
+    object->setProperty("bypass", slot.config.bypassed ? 1.0 : 0.0);
     object->setProperty("parameters", juce::var(parameters));
     return juce::var(object);
 }
@@ -388,6 +406,23 @@ DeviceSlot PhaseModSynthDeviceType::varToSlot(const juce::var& obj) const {
     DeviceSlot slot;
     if (const auto* object = obj.getDynamicObject()) {
         slot.id = object->getProperty("id").toString().toStdString();
+        slot.config.typeId = object->getProperty("type").toString().toStdString();
+
+        const auto outputPanelVar = object->getProperty("outputPanel");
+        bool hasPanel = outputPanelVar.isObject();
+        if (hasPanel) {
+            const auto* panel = outputPanelVar.getDynamicObject();
+            StereoOutputPanel sp;
+            sp.gain = static_cast<float>(static_cast<double>(panel->getProperty("gain")));
+            sp.pan = static_cast<float>(static_cast<double>(panel->getProperty("pan")));
+            slot.config.outputPanel = sp;
+
+        }
+
+        slot.config.bypassed = object->getProperty("bypass").isDouble()
+            ? (static_cast<float>(static_cast<double>(object->getProperty("bypass"))) >= 0.5f)
+            : false;
+
         const auto params = object->getProperty("parameters");
         if (const auto* p = params.getDynamicObject()) {
             auto readFloat = [&](const char* key, float fallback) -> float {
@@ -403,9 +438,12 @@ DeviceSlot PhaseModSynthDeviceType::varToSlot(const juce::var& obj) const {
                 return fallback;
             };
 
-            slot.gain = readFloat("gain", 1.0f);
-            slot.pan = readFloat("pan", 0.5f);
-            slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
+            if (!hasPanel) {
+                const float oldGain = readFloat("gain", 1.0f);
+                const float oldPan = readFloat("pan", 0.5f);
+                slot.config.outputPanel = StereoOutputPanel{oldGain, oldPan};
+                slot.config.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
+            }
 
             PhaseModSynthModel inst;
 
@@ -462,10 +500,14 @@ DeviceSlot PhaseModSynthDeviceType::varToSlot(const juce::var& obj) const {
             inst.vibratoDepth = readFloat("pmVibratoDepth", 0.0f);
             inst.vibratoRate = readFloat("pmVibratoRate", 0.3f);
 
-            slot.instance = inst;
+            slot.config.instance = inst;
         }
     }
     return slot;
+}
+
+DeviceProcessor* PhaseModSynthDeviceType::createProcessor(ProcessorArena& arena) const {
+    return arena.template emplace<PhaseModSynthProcessor>();
 }
 
 } // namespace audioapp

@@ -407,7 +407,7 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         for (const auto& idVar : *idsArray) {
             deviceIds.push_back(idVar.toString().toStdString());
         }
-        return engine().getDeviceStatesJson(deviceIds);
+        return engine().getDeviceConfigsJson(deviceIds);
     }
     return buildBridgeError("unknown_command");
 }

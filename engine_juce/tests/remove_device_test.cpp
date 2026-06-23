@@ -36,7 +36,7 @@ public:
                    "removed device not in snapshot");
             expect(json.find("\"deviceId\":\"" + fxId + "\"") == std::string::npos,
                    "no auto target referencing removed device");
-            expect(json.find("\"deviceId\":\"" + samplerId + "\"") != std::string::npos,
+            expect(audioapp::test::snapshotContainsDevice(json, samplerId),
                    "sampler still in snapshot");
         }
         beginTest("remove missing device returns false");

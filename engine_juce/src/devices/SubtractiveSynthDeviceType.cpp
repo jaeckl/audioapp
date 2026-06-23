@@ -1,8 +1,10 @@
 #include "audioapp/devices/SubtractiveSynthDeviceType.hpp"
 
-#include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/SubtractiveSynth.hpp"
+#include "audioapp/devices/processors/SubtractiveSynthProcessor.hpp"
+
+#include "audioapp/devices/DeviceStripParams.hpp"
 
 namespace audioapp {
 
@@ -13,6 +15,7 @@ std::string SubtractiveSynthDeviceType::typeId() const {
 DeviceSlot SubtractiveSynthDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
+    slot.config.typeId = typeId();
     SubtractiveSynthParams instance;
     instance.ampAttack = 0.02f;
     instance.ampDecay = 0.25f;
@@ -28,10 +31,13 @@ DeviceSlot SubtractiveSynthDeviceType::createDefault(const std::string& deviceId
     instance.filterSustain = 0.4f;
     instance.filterRelease = 0.45f;
     instance.velocitySensitivity = 1.0f;
-    slot.instance = std::move(instance);
+    slot.config.instance = std::move(instance);
+
+    slot.config.inputPanel = EmptyPanel{};
+    slot.config.outputPanel = StereoOutputPanel{};
+    slot.config.bypassed = false;
     return slot;
 }
-
 
 DeviceParameterResult SubtractiveSynthDeviceType::setParameter(DeviceSlot& slot,
                                                                std::string_view parameterId,
@@ -42,7 +48,7 @@ DeviceParameterResult SubtractiveSynthDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
 
-    auto& instance = std::get<SubtractiveSynthParams>(slot.instance);
+    auto& instance = std::get<SubtractiveSynthParams>(slot.config.instance);
     if (parameterId == "attack" || parameterId == "decay" || parameterId == "release" ||
         parameterId == "sustain") {
         const float clamped = std::clamp(value, 0.0f, 1.0f);
@@ -59,8 +65,8 @@ DeviceParameterResult SubtractiveSynthDeviceType::setParameter(DeviceSlot& slot,
                parameterId == "filterEnvAmount" || parameterId == "filterAttack" ||
                parameterId == "filterDecay" || parameterId == "filterSustain" ||
                parameterId == "filterRelease" || parameterId == "osc1Octave" ||
-               parameterId == "osc1Semi" || parameterId == "osc1Detune" ||
-               parameterId == "osc2Octave" || parameterId == "osc2Semi" ||
+               parameterId == "osc1Semis" || parameterId == "osc1Detune" ||
+               parameterId == "osc2Octave" || parameterId == "osc2Semis" ||
                parameterId == "osc2Detune" || parameterId == "oscMix" ||
                parameterId == "osc1Sync" || parameterId == "osc2Sync" ||
                parameterId == "noiseLevel" || parameterId == "unisonVoices" ||
@@ -88,14 +94,14 @@ DeviceParameterResult SubtractiveSynthDeviceType::setParameter(DeviceSlot& slot,
             instance.filterRelease = clamped;
         } else if (parameterId == "osc1Octave") {
             instance.osc1Octave = clamped;
-        } else if (parameterId == "osc1Semi") {
-            instance.osc1Semi = clamped;
+        } else if (parameterId == "osc1Semis") {
+            instance.osc1Semis = clamped;
         } else if (parameterId == "osc1Detune") {
             instance.osc1Detune = clamped;
         } else if (parameterId == "osc2Octave") {
             instance.osc2Octave = clamped;
-        } else if (parameterId == "osc2Semi") {
-            instance.osc2Semi = clamped;
+        } else if (parameterId == "osc2Semis") {
+            instance.osc2Semis = clamped;
         } else if (parameterId == "osc2Detune") {
             instance.osc2Detune = clamped;
         } else if (parameterId == "oscMix") {
@@ -165,8 +171,8 @@ bool SubtractiveSynthDeviceType::setStringParameter(DeviceSlot&,
 std::vector<std::string_view> SubtractiveSynthDeviceType::modulatableParams() const {
     return {
         "gain", "pan", "filterCutoff", "filterQ", "filterMode", "attack", "decay", "sustain",
-        "release", "osc1Shape", "osc2Shape", "osc1Octave", "osc1Semi", "osc1Detune", "osc2Octave",
-        "osc2Semi", "osc2Detune", "oscMix", "osc1Sync", "osc2Sync", "noiseLevel", "oscMixMode",
+        "release", "osc1Shape", "osc2Shape", "osc1Octave", "osc1Semis", "osc1Detune", "osc2Octave",
+        "osc2Semis", "osc2Detune", "oscMix", "osc1Sync", "osc2Sync", "noiseLevel", "oscMixMode",
         "unisonVoices", "unisonDetune", "filterEnvAmount", "filterAttack", "filterDecay",
         "filterSustain", "filterRelease", "glideMs", "velocitySensitivity", "preHpCutoff",
         "preHpRes", "preDrive", "mixFeedback", "globalPitch", "filterKeyTrack", "filterDrive",
@@ -177,8 +183,8 @@ std::vector<std::string_view> SubtractiveSynthDeviceType::modulatableParams() co
 void SubtractiveSynthDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                                    const PlaybackBuildContext&,
                                                    DeviceNodePlayback& out) const {
-    auto params = std::get<SubtractiveSynthParams>(slot.instance);
-    params.gain = slot.gain;
+    auto params = std::get<SubtractiveSynthParams>(slot.config.instance);
+    params.gain = std::get<StereoOutputPanel>(slot.config.outputPanel).gain;
     out.kind = DeviceNodeKind::SubtractiveSynth;
     out.params = params;
 }
@@ -186,22 +192,19 @@ void SubtractiveSynthDeviceType::buildPlaybackNode(const DeviceSlot& slot,
 bool SubtractiveSynthDeviceType::buildLiveInstrument(const DeviceSlot& slot,
                                                      const PlaybackBuildContext&,
                                                      LiveInstrumentSnapshot& out) const {
-    auto params = std::get<SubtractiveSynthParams>(slot.instance);
+    auto params = std::get<SubtractiveSynthParams>(slot.config.instance);
     out = LiveInstrumentSnapshot{};
     out.kind = LiveInstrumentKind::SubtractiveSynth;
-    out.gain = slot.gain;
+    const auto gain = std::get<StereoOutputPanel>(slot.config.outputPanel).gain;
+    out.gain = gain;
     out.subtractive = params;
-    out.subtractive.gain = slot.gain;
+    out.subtractive.gain = gain;
     return true;
 }
 
 juce::var SubtractiveSynthDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<SubtractiveSynthParams>(slot.instance);
-
-    parameters->setProperty("gain", static_cast<double>(slot.gain));
-    parameters->setProperty("pan", static_cast<double>(slot.pan));
-    parameters->setProperty("bypass", slot.bypassed ? 1.0 : 0.0);
+    const auto& inst = std::get<SubtractiveSynthParams>(slot.config.instance);
 
     // ADSR
     parameters->setProperty("attack", static_cast<double>(inst.ampAttack));
@@ -228,14 +231,14 @@ juce::var SubtractiveSynthDeviceType::slotToVar(const DeviceSlot& slot) const {
     // Osc1
     parameters->setProperty("osc1Shape", static_cast<double>(inst.osc1Shape));
     parameters->setProperty("osc1Octave", static_cast<double>(inst.osc1Octave));
-    parameters->setProperty("osc1Semi", static_cast<double>(inst.osc1Semi));
+    parameters->setProperty("osc1Semis", static_cast<double>(inst.osc1Semis));
     parameters->setProperty("osc1Detune", static_cast<double>(inst.osc1Detune));
     parameters->setProperty("osc1Sync", static_cast<double>(inst.osc1Sync));
 
     // Osc2
     parameters->setProperty("osc2Shape", static_cast<double>(inst.osc2Shape));
     parameters->setProperty("osc2Octave", static_cast<double>(inst.osc2Octave));
-    parameters->setProperty("osc2Semi", static_cast<double>(inst.osc2Semi));
+    parameters->setProperty("osc2Semis", static_cast<double>(inst.osc2Semis));
     parameters->setProperty("osc2Detune", static_cast<double>(inst.osc2Detune));
     parameters->setProperty("osc2Sync", static_cast<double>(inst.osc2Sync));
 
@@ -262,6 +265,19 @@ juce::var SubtractiveSynthDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
     object->setProperty("type", juce::String::fromUTF8(typeId().c_str()));
+
+    auto* outObj = new juce::DynamicObject();
+    const auto& panel = std::get<StereoOutputPanel>(slot.config.outputPanel);
+    outObj->setProperty("type", "stereo");
+    outObj->setProperty("gain", static_cast<double>(panel.gain));
+    outObj->setProperty("pan", static_cast<double>(panel.pan));
+    object->setProperty("outputPanel", juce::var(outObj));
+
+    auto* inObj = new juce::DynamicObject();
+    inObj->setProperty("type", "empty");
+    object->setProperty("inputPanel", juce::var(inObj));
+
+    object->setProperty("bypass", slot.config.bypassed ? 1.0 : 0.0);
     object->setProperty("parameters", juce::var(parameters));
     return juce::var(object);
 }
@@ -270,6 +286,23 @@ DeviceSlot SubtractiveSynthDeviceType::varToSlot(const juce::var& obj) const {
     DeviceSlot slot;
     if (const auto* object = obj.getDynamicObject()) {
         slot.id = object->getProperty("id").toString().toStdString();
+        slot.config.typeId = object->getProperty("type").toString().toStdString();
+
+        const auto outputPanelVar = object->getProperty("outputPanel");
+        bool hasPanel = outputPanelVar.isObject();
+        if (hasPanel) {
+            const auto* panel = outputPanelVar.getDynamicObject();
+            StereoOutputPanel sp;
+            sp.gain = static_cast<float>(static_cast<double>(panel->getProperty("gain")));
+            sp.pan = static_cast<float>(static_cast<double>(panel->getProperty("pan")));
+            slot.config.outputPanel = sp;
+
+        }
+
+        slot.config.bypassed = object->getProperty("bypass").isDouble()
+            ? (static_cast<float>(static_cast<double>(object->getProperty("bypass"))) >= 0.5f)
+            : false;
+
         const auto params = object->getProperty("parameters");
         if (const auto* p = params.getDynamicObject()) {
             auto readFloat = [&](const char* key, float fallback) -> float {
@@ -287,9 +320,12 @@ DeviceSlot SubtractiveSynthDeviceType::varToSlot(const juce::var& obj) const {
                 return fallback;
             };
 
-            slot.gain = readFloat("gain", 1.0f);
-            slot.pan = readFloat("pan", 0.5f);
-            slot.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
+            if (!hasPanel) {
+                const float oldGain = readFloat("gain", 1.0f);
+                const float oldPan = readFloat("pan", 0.5f);
+                slot.config.outputPanel = StereoOutputPanel{oldGain, oldPan};
+                slot.config.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
+            }
 
             SubtractiveSynthParams inst;
 
@@ -322,7 +358,7 @@ DeviceSlot SubtractiveSynthDeviceType::varToSlot(const juce::var& obj) const {
                 inst.osc1Shape = static_cast<float>(legacyWave) / 4.0f;
             }
             inst.osc1Octave = readFloat("osc1Octave", 0.5f);
-            inst.osc1Semi = readFloat("osc1Semi", 0.0f);
+            inst.osc1Semis = readFloat("osc1Semis", 0.0f);
             inst.osc1Detune = readFloat("osc1Detune", 0.5f);
             inst.osc1Sync = readFloat("osc1Sync", 0.0f);
 
@@ -334,7 +370,7 @@ DeviceSlot SubtractiveSynthDeviceType::varToSlot(const juce::var& obj) const {
                 inst.osc2Shape = static_cast<float>(legacyWave) / 4.0f;
             }
             inst.osc2Octave = readFloat("osc2Octave", 0.5f);
-            inst.osc2Semi = readFloat("osc2Semi", 0.0f);
+            inst.osc2Semis = readFloat("osc2Semis", 0.0f);
             inst.osc2Detune = readFloat("osc2Detune", 0.5f);
             inst.osc2Sync = readFloat("osc2Sync", 0.0f);
 
@@ -365,10 +401,14 @@ DeviceSlot SubtractiveSynthDeviceType::varToSlot(const juce::var& obj) const {
             inst.synthLegato = readFloat("synthLegato", 0.0f);
             inst.synthMono = readFloat("synthMono", 0.0f);
 
-            slot.instance = inst;
+            slot.config.instance = inst;
         }
     }
     return slot;
+}
+
+DeviceProcessor* SubtractiveSynthDeviceType::createProcessor(ProcessorArena& arena) const {
+    return arena.template emplace<SubtractiveSynthProcessor>();
 }
 
 } // namespace audioapp

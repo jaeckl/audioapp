@@ -3,14 +3,16 @@
 #include <string>
 #include <variant>
 
+#include "audioapp/devices/DevicePanelTypes.hpp"
+
 // Params types (replacing trivial Instance types)
 #include "audioapp/DynamicsProcessor.hpp"   // GateParams, CompressorParams, ExpanderParams, LimiterParams
-#include "audioapp/KickGenerator.hpp"       // KickGeneratorParams
-#include "audioapp/SnareGenerator.hpp"      // SnareGeneratorParams
-#include "audioapp/ClapGenerator.hpp"       // ClapGeneratorParams
-#include "audioapp/CymbalGenerator.hpp"     // CymbalGeneratorParams
-#include "audioapp/CrashGenerator.hpp"      // CrashGeneratorParams
-#include "audioapp/SubtractiveSynth.hpp"    // SubtractiveSynthParams
+#include "audioapp/KickAlgorithm.hpp"       // KickGeneratorParams
+#include "audioapp/SnareAlgorithm.hpp"      // SnareGeneratorParams
+#include "audioapp/ClapAlgorithm.hpp"       // ClapGeneratorParams
+#include "audioapp/CymbalAlgorithm.hpp"     // CymbalGeneratorParams
+#include "audioapp/CrashAlgorithm.hpp"      // CrashGeneratorParams
+#include "audioapp/SubtractiveSynthAlgorithm.hpp"    // SubtractiveSynthParams
 #include "audioapp/DeviceChain.hpp"         // OscillatorParams, TrackGainParams
 #include "audioapp/effects/DelayParams.hpp" // DelayParams
 #include "audioapp/effects/ReverbParams.hpp" // ReverbParams
@@ -50,12 +52,19 @@ using DeviceInstance = std::variant<
     FrequencyShifterModel       // was FrequencyShifterInstance
 >;
 
+/// Unified device config wrapping params, panels, and bypass.
+/// Used as the single state holder inside DeviceSlot.
+struct DeviceConfig {
+    std::string typeId;            // canonical type identifier (e.g. "kick_generator")
+    DeviceInstance instance;       // device-specific parameters
+    InputPanelParams inputPanel;   // input stage panel (empty, dynamics trim, etc.)
+    OutputPanelParams outputPanel; // output stage panel (mono gain, stereo gain+pan, etc.)
+    bool bypassed = false;
+};
+
 struct DeviceSlot {
     std::string id;
-    float gain = 1.0f;
-    float pan = 0.5f;
-    bool bypassed = false;
-    DeviceInstance instance;
+    DeviceConfig config;
 };
 
 } // namespace audioapp

@@ -1,9 +1,5 @@
 #pragma once
 
-/// @file Backward-compatible typedefs + inline helpers for the new OOP modulator hierarchy.
-/// New code should use audioapp/modulation/ModulatorParams.hpp etc.
-/// @deprecated Prefer the per-type structs in ModulatorParams.hpp for new code.
-
 #include <cmath>
 #include <string>
 

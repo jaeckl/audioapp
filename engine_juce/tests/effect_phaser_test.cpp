@@ -16,7 +16,7 @@ public:
         beginTest("create default phaser");
         {
             audioapp::DeviceSlot slot = registry.createDefault("phaser", "testPhaser");
-            const audioapp::IDeviceType* type = registry.findTypeForSlot(slot);
+            const audioapp::IDeviceType* type = registry.findForSlot(slot);
             expect(type != nullptr, "phaser type should be found");
             expect(type->typeId() == "phaser", "typeId should be 'phaser'");
         }
