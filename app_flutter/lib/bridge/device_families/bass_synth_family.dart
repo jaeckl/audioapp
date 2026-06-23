@@ -20,7 +20,6 @@ class BassSynthDeviceSnapshot extends DeviceSnapshot {
     required this.bassVelocitySense,
     required this.filterCutoff,
     required this.attack,
-    required this.decay,
     required this.sustain,
     required this.release,
     required this.filterEnvAmount,
@@ -39,7 +38,6 @@ class BassSynthDeviceSnapshot extends DeviceSnapshot {
   final double bassVelocitySense;
   final double filterCutoff;
   final double attack;
-  final double decay;
   final double sustain;
   final double release;
   final double filterEnvAmount;
@@ -68,7 +66,6 @@ class BassSynthDeviceSnapshot extends DeviceSnapshot {
       bassVelocitySense: (params['bassVelocitySense'] as num?)?.toDouble() ?? 1.0,
       filterCutoff: (params['filterCutoff'] as num?)?.toDouble() ?? 1.0,
       attack: (params['attack'] as num?)?.toDouble() ?? 0.01,
-      decay: (params['decay'] as num?)?.toDouble() ?? 0.3,
       sustain: (params['sustain'] as num?)?.toDouble() ?? 0.7,
       release: (params['release'] as num?)?.toDouble() ?? 0.4,
       filterEnvAmount: (params['filterEnvAmount'] as num?)?.toDouble() ?? 0.6,
@@ -97,7 +94,6 @@ class BassSynthDeviceSnapshot extends DeviceSnapshot {
     double? bassVelocitySense,
     double? filterCutoff,
     double? attack,
-    double? decay,
     double? sustain,
     double? release,
     double? filterEnvAmount,
@@ -122,7 +118,6 @@ class BassSynthDeviceSnapshot extends DeviceSnapshot {
       bassVelocitySense: bassVelocitySense ?? this.bassVelocitySense,
       filterCutoff: filterCutoff ?? this.filterCutoff,
       attack: attack ?? this.attack,
-      decay: decay ?? this.decay,
       sustain: sustain ?? this.sustain,
       release: release ?? this.release,
       filterEnvAmount: filterEnvAmount ?? this.filterEnvAmount,
@@ -148,7 +143,6 @@ class BassSynthDeviceSnapshot extends DeviceSnapshot {
       'bassVelocitySense' => copyWith(bassVelocitySense: value.clamp(0.0, 1.0)),
       'filterCutoff' => copyWith(filterCutoff: value),
       'attack' => copyWith(attack: value),
-      'decay' => copyWith(decay: value),
       'sustain' => copyWith(sustain: value),
       'release' => copyWith(release: value),
       'filterEnvAmount' => copyWith(filterEnvAmount: value),

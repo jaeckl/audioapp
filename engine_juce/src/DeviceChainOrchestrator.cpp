@@ -201,8 +201,9 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
                         if (isGain) s.perFrameGain[f] = val;
                         else s.perFramePan[f] = val;
                     }
-                } else if (!needsSubBlocks) {
-                    if ((nodeKind == DeviceNodeKind::SubtractiveSynth ||
+                } else if (!needsSubBlocks || !isInstrumentDeviceNodeKind(nodeKind)) {
+                    if (isInstrumentDeviceNodeKind(nodeKind) &&
+                        (nodeKind == DeviceNodeKind::SubtractiveSynth ||
                          nodeKind == DeviceNodeKind::BassSynth ||
                          nodeKind == DeviceNodeKind::PhaseModSynth) &&
                         nodeHasDspAutomation(di, ctx.automationClips, ctx.automationClipCount)) {
@@ -226,8 +227,9 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
                 if (edge.deviceIndex != di || edge.lfoId >= static_cast<uint16_t>(ctx.lfoCount)) continue;
                 const uint16_t pid = edge.localParamId;
                 if (pid == kEncodedCommonGain || pid == kEncodedCommonPan) continue;
-                if (!needsSubBlocks) {
-                    if ((nodeKind == DeviceNodeKind::SubtractiveSynth ||
+                if (!needsSubBlocks || !isInstrumentDeviceNodeKind(nodeKind)) {
+                    if (isInstrumentDeviceNodeKind(nodeKind) &&
+                        (nodeKind == DeviceNodeKind::SubtractiveSynth ||
                          nodeKind == DeviceNodeKind::BassSynth ||
                          nodeKind == DeviceNodeKind::PhaseModSynth) &&
                         (nodeHasDspAutomation(di, ctx.automationClips, ctx.automationClipCount) ||

@@ -238,25 +238,6 @@ class DelayFxPanel extends StatelessWidget {
             displayValue: '${(device.delayMix * 100).round()}%',
           ),
         ]),
-        _knobGridRow([
-          _knob(
-            label: 'Filter',
-            value: device.delayFilterCutoffHz,
-            paramId: 'filterCutoffHz',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-          ),
-          null,
-          null,
-        ]),
       ],
     );
   }

@@ -23,13 +23,11 @@ class DelayDeviceSnapshot extends EffectDeviceSnapshot {
     required this.delayTimeMs,
     required this.delayFeedback,
     required this.delayMix,
-    required this.delayFilterCutoffHz,
   }) : super(type: 'delay');
 
   final double delayTimeMs;
   final double delayFeedback;
   final double delayMix;
-  final double delayFilterCutoffHz;
 
   factory DelayDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -45,7 +43,6 @@ class DelayDeviceSnapshot extends EffectDeviceSnapshot {
       delayTimeMs: (params['timeMs'] as num?)?.toDouble() ?? 250.0,
       delayFeedback: (params['feedback'] as num?)?.toDouble() ?? 0.4,
       delayMix: (params['mix'] as num?)?.toDouble() ?? 0.5,
-      delayFilterCutoffHz: (params['filterCutoffHz'] as num?)?.toDouble() ?? 0.5,
     );
   }
 
@@ -61,7 +58,6 @@ class DelayDeviceSnapshot extends EffectDeviceSnapshot {
     double? delayTimeMs,
     double? delayFeedback,
     double? delayMix,
-    double? delayFilterCutoffHz,
   }) {
     return DelayDeviceSnapshot(
       id: id ?? this.id,
@@ -73,7 +69,6 @@ class DelayDeviceSnapshot extends EffectDeviceSnapshot {
       delayTimeMs: delayTimeMs ?? this.delayTimeMs,
       delayFeedback: delayFeedback ?? this.delayFeedback,
       delayMix: delayMix ?? this.delayMix,
-      delayFilterCutoffHz: delayFilterCutoffHz ?? this.delayFilterCutoffHz,
     );
   }
 
@@ -86,7 +81,6 @@ class DelayDeviceSnapshot extends EffectDeviceSnapshot {
       'timeMs' => copyWith(delayTimeMs: value),
       'feedback' => copyWith(delayFeedback: value),
       'mix' => copyWith(delayMix: value),
-      'filterCutoffHz' => copyWith(delayFilterCutoffHz: value),
       _ => this,
     };
   }

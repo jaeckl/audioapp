@@ -68,7 +68,6 @@ void main() {
         bassVelocitySense: 1.0,
         filterCutoff: 0.75,
         attack: 0.01,
-        decay: 0.3,
         sustain: 0.7,
         release: 0.4,
         filterEnvAmount: 0.45,

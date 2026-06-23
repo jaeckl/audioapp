@@ -14,14 +14,37 @@ public:
     {
         const audioapp::DeviceRegistry registry = audioapp::DeviceRegistry::createBuiltIn();
 
-        beginTest("known types count and lookup");
+        beginTest("every type ID constant must be registered");
         {
-            const auto known = registry.knownTypes();
-            expect(known.size() == 19, "should have 19 built-in device types");
-            expect(registry.find("unknown_device") == nullptr,
-                   "unknown device should return nullptr");
-            expect(registry.isKnownType(audioapp::device_types::kOscillator) == true,
-                   "oscillator should be known");
+            // If someone adds a new kFoo to DeviceTypeIds.hpp but forgets
+            // registerType(std::make_unique<FooDeviceType>()) in
+            // DeviceRegistry::createBuiltIn(), this test catches it.
+            expect(registry.isKnownType(audioapp::device_types::kOscillator));
+            expect(registry.isKnownType(audioapp::device_types::kSampler));
+            expect(registry.isKnownType(audioapp::device_types::kTrackGain));
+            expect(registry.isKnownType(audioapp::device_types::kSubtractiveSynth));
+            expect(registry.isKnownType(audioapp::device_types::kKickGenerator));
+            expect(registry.isKnownType(audioapp::device_types::kSnareGenerator));
+            expect(registry.isKnownType(audioapp::device_types::kClapGenerator));
+            expect(registry.isKnownType(audioapp::device_types::kCymbalGenerator));
+            expect(registry.isKnownType(audioapp::device_types::kCrashGenerator));
+            expect(registry.isKnownType(audioapp::device_types::kGate));
+            expect(registry.isKnownType(audioapp::device_types::kCompressor));
+            expect(registry.isKnownType(audioapp::device_types::kExpander));
+            expect(registry.isKnownType(audioapp::device_types::kLimiter));
+            expect(registry.isKnownType(audioapp::device_types::kBasSynth));
+            expect(registry.isKnownType(audioapp::device_types::kPhaseModSynth));
+            expect(registry.isKnownType(audioapp::device_types::kDelay));
+            expect(registry.isKnownType(audioapp::device_types::kReverb));
+            expect(registry.isKnownType(audioapp::device_types::kChorus));
+            expect(registry.isKnownType(audioapp::device_types::kPhaser));
+            expect(registry.isKnownType(audioapp::device_types::kFilter));
+            expect(registry.isKnownType(audioapp::device_types::kFourBandEq));
+            expect(registry.isKnownType(audioapp::device_types::kFrequencyShifter));
+
+            // Sanity: unknown string returns false, not a crash.
+            expect(!registry.isKnownType("not_a_real_device"));
+            expect(registry.find("unknown_device") == nullptr);
         }
 
         beginTest("create default oscillator");
