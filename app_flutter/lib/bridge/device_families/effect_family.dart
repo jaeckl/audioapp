@@ -33,12 +33,13 @@ class DelayDeviceSnapshot extends EffectDeviceSnapshot {
 
   factory DelayDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
+    final outputPanel = map['outputPanel'] as Map<dynamic, dynamic>? ?? {};
     final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
     return DelayDeviceSnapshot(
       id: map['id'] as String? ?? '',
-      gain: (params['gain'] as num?)?.toDouble() ?? 1.0,
-      pan: (params['pan'] as num?)?.toDouble() ?? 0.5,
-      bypassed: readBypass(params['bypass']),
+      gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
+      pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
+      bypassed: readBypass(map['bypass']),
       meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       delayTimeMs: (params['timeMs'] as num?)?.toDouble() ?? 250.0,
@@ -114,12 +115,13 @@ class ReverbDeviceSnapshot extends EffectDeviceSnapshot {
 
   factory ReverbDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
+    final outputPanel = map['outputPanel'] as Map<dynamic, dynamic>? ?? {};
     final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
     return ReverbDeviceSnapshot(
       id: map['id'] as String? ?? '',
-      gain: (params['gain'] as num?)?.toDouble() ?? 1.0,
-      pan: (params['pan'] as num?)?.toDouble() ?? 0.5,
-      bypassed: readBypass(params['bypass']),
+      gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
+      pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
+      bypassed: readBypass(map['bypass']),
       meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       reverbRoomSize: (params['roomSize'] as num?)?.toDouble() ?? 0.5,
@@ -199,12 +201,13 @@ class ChorusDeviceSnapshot extends EffectDeviceSnapshot {
 
   factory ChorusDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
+    final outputPanel = map['outputPanel'] as Map<dynamic, dynamic>? ?? {};
     final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
     return ChorusDeviceSnapshot(
       id: map['id'] as String? ?? '',
-      gain: (params['gain'] as num?)?.toDouble() ?? 1.0,
-      pan: (params['pan'] as num?)?.toDouble() ?? 0.5,
-      bypassed: readBypass(params['bypass']),
+      gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
+      pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
+      bypassed: readBypass(map['bypass']),
       meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       chorusDepth: (params['depth'] as num?)?.toDouble() ?? 0.3,
@@ -282,12 +285,13 @@ class PhaserDeviceSnapshot extends EffectDeviceSnapshot {
 
   factory PhaserDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
+    final outputPanel = map['outputPanel'] as Map<dynamic, dynamic>? ?? {};
     final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
     return PhaserDeviceSnapshot(
       id: map['id'] as String? ?? '',
-      gain: (params['gain'] as num?)?.toDouble() ?? 1.0,
-      pan: (params['pan'] as num?)?.toDouble() ?? 0.5,
-      bypassed: readBypass(params['bypass']),
+      gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
+      pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
+      bypassed: readBypass(map['bypass']),
       meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       phaserDepth: (params['depth'] as num?)?.toDouble() ?? 0.5,

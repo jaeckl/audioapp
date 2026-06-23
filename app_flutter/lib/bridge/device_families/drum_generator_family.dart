@@ -41,12 +41,13 @@ class KickGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
 
   factory KickGeneratorDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
+    final outputPanel = map['outputPanel'] as Map<dynamic, dynamic>? ?? {};
     final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
     return KickGeneratorDeviceSnapshot(
       id: map['id'] as String? ?? '',
-      gain: (params['gain'] as num?)?.toDouble() ?? 1.0,
-      pan: (params['pan'] as num?)?.toDouble() ?? 0.5,
-      bypassed: readBypass(params['bypass']),
+      gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
+      pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
+      bypassed: readBypass(map['bypass']),
       meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       kickModel: (params['kickModel'] as num?)?.toDouble() ?? 0.0,
@@ -144,12 +145,13 @@ class SnareGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
 
   factory SnareGeneratorDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
+    final outputPanel = map['outputPanel'] as Map<dynamic, dynamic>? ?? {};
     final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
     return SnareGeneratorDeviceSnapshot(
       id: map['id'] as String? ?? '',
-      gain: (params['gain'] as num?)?.toDouble() ?? 1.0,
-      pan: (params['pan'] as num?)?.toDouble() ?? 0.5,
-      bypassed: readBypass(params['bypass']),
+      gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
+      pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
+      bypassed: readBypass(map['bypass']),
       meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       snareModel: (params['snareModel'] as num?)?.toDouble() ?? 0.0,
@@ -243,12 +245,13 @@ class ClapGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
 
   factory ClapGeneratorDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
+    final outputPanel = map['outputPanel'] as Map<dynamic, dynamic>? ?? {};
     final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
     return ClapGeneratorDeviceSnapshot(
       id: map['id'] as String? ?? '',
-      gain: (params['gain'] as num?)?.toDouble() ?? 1.0,
-      pan: (params['pan'] as num?)?.toDouble() ?? 0.5,
-      bypassed: readBypass(params['bypass']),
+      gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
+      pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
+      bypassed: readBypass(map['bypass']),
       meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       clapBursts: (params['clapBursts'] as num?)?.toDouble() ?? 0.50,
@@ -332,12 +335,13 @@ class CymbalGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
 
   factory CymbalGeneratorDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
+    final outputPanel = map['outputPanel'] as Map<dynamic, dynamic>? ?? {};
     final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
     return CymbalGeneratorDeviceSnapshot(
       id: map['id'] as String? ?? '',
-      gain: (params['gain'] as num?)?.toDouble() ?? 1.0,
-      pan: (params['pan'] as num?)?.toDouble() ?? 0.5,
-      bypassed: readBypass(params['bypass']),
+      gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
+      pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
+      bypassed: readBypass(map['bypass']),
       meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       cymbalModel: (params['cymbalModel'] as num?)?.toDouble() ?? 0.0,
@@ -417,12 +421,13 @@ class CrashGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
 
   factory CrashGeneratorDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
+    final outputPanel = map['outputPanel'] as Map<dynamic, dynamic>? ?? {};
     final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
     return CrashGeneratorDeviceSnapshot(
       id: map['id'] as String? ?? '',
-      gain: (params['gain'] as num?)?.toDouble() ?? 1.0,
-      pan: (params['pan'] as num?)?.toDouble() ?? 0.5,
-      bypassed: readBypass(params['bypass']),
+      gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
+      pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
+      bypassed: readBypass(map['bypass']),
       meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       crashModel: (params['crashModel'] as num?)?.toDouble() ?? 0.0,

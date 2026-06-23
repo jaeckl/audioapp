@@ -65,8 +65,8 @@ DeviceParameterResult SubtractiveSynthDeviceType::setParameter(DeviceSlot& slot,
                parameterId == "filterEnvAmount" || parameterId == "filterAttack" ||
                parameterId == "filterDecay" || parameterId == "filterSustain" ||
                parameterId == "filterRelease" || parameterId == "osc1Octave" ||
-               parameterId == "osc1Semis" || parameterId == "osc1Detune" ||
-               parameterId == "osc2Octave" || parameterId == "osc2Semis" ||
+               parameterId == "osc1Semi" || parameterId == "osc1Detune" ||
+               parameterId == "osc2Octave" || parameterId == "osc2Semi" ||
                parameterId == "osc2Detune" || parameterId == "oscMix" ||
                parameterId == "osc1Sync" || parameterId == "osc2Sync" ||
                parameterId == "noiseLevel" || parameterId == "unisonVoices" ||
@@ -94,14 +94,14 @@ DeviceParameterResult SubtractiveSynthDeviceType::setParameter(DeviceSlot& slot,
             instance.filterRelease = clamped;
         } else if (parameterId == "osc1Octave") {
             instance.osc1Octave = clamped;
-        } else if (parameterId == "osc1Semis") {
-            instance.osc1Semis = clamped;
+        } else if (parameterId == "osc1Semi") {
+            instance.osc1Semi = clamped;
         } else if (parameterId == "osc1Detune") {
             instance.osc1Detune = clamped;
         } else if (parameterId == "osc2Octave") {
             instance.osc2Octave = clamped;
-        } else if (parameterId == "osc2Semis") {
-            instance.osc2Semis = clamped;
+        } else if (parameterId == "osc2Semi") {
+            instance.osc2Semi = clamped;
         } else if (parameterId == "osc2Detune") {
             instance.osc2Detune = clamped;
         } else if (parameterId == "oscMix") {
@@ -171,8 +171,8 @@ bool SubtractiveSynthDeviceType::setStringParameter(DeviceSlot&,
 std::vector<std::string_view> SubtractiveSynthDeviceType::modulatableParams() const {
     return {
         "gain", "pan", "filterCutoff", "filterQ", "filterMode", "attack", "decay", "sustain",
-        "release", "osc1Shape", "osc2Shape", "osc1Octave", "osc1Semis", "osc1Detune", "osc2Octave",
-        "osc2Semis", "osc2Detune", "oscMix", "osc1Sync", "osc2Sync", "noiseLevel", "oscMixMode",
+        "release", "osc1Shape", "osc2Shape", "osc1Octave", "osc1Semi", "osc1Detune", "osc2Octave",
+        "osc2Semi", "osc2Detune", "oscMix", "osc1Sync", "osc2Sync", "noiseLevel", "oscMixMode",
         "unisonVoices", "unisonDetune", "filterEnvAmount", "filterAttack", "filterDecay",
         "filterSustain", "filterRelease", "glideMs", "velocitySensitivity", "preHpCutoff",
         "preHpRes", "preDrive", "mixFeedback", "globalPitch", "filterKeyTrack", "filterDrive",
@@ -231,14 +231,14 @@ juce::var SubtractiveSynthDeviceType::slotToVar(const DeviceSlot& slot) const {
     // Osc1
     parameters->setProperty("osc1Shape", static_cast<double>(inst.osc1Shape));
     parameters->setProperty("osc1Octave", static_cast<double>(inst.osc1Octave));
-    parameters->setProperty("osc1Semis", static_cast<double>(inst.osc1Semis));
+    parameters->setProperty("osc1Semi", static_cast<double>(inst.osc1Semi));
     parameters->setProperty("osc1Detune", static_cast<double>(inst.osc1Detune));
     parameters->setProperty("osc1Sync", static_cast<double>(inst.osc1Sync));
 
     // Osc2
     parameters->setProperty("osc2Shape", static_cast<double>(inst.osc2Shape));
     parameters->setProperty("osc2Octave", static_cast<double>(inst.osc2Octave));
-    parameters->setProperty("osc2Semis", static_cast<double>(inst.osc2Semis));
+    parameters->setProperty("osc2Semi", static_cast<double>(inst.osc2Semi));
     parameters->setProperty("osc2Detune", static_cast<double>(inst.osc2Detune));
     parameters->setProperty("osc2Sync", static_cast<double>(inst.osc2Sync));
 
@@ -358,7 +358,7 @@ DeviceSlot SubtractiveSynthDeviceType::varToSlot(const juce::var& obj) const {
                 inst.osc1Shape = static_cast<float>(legacyWave) / 4.0f;
             }
             inst.osc1Octave = readFloat("osc1Octave", 0.5f);
-            inst.osc1Semis = readFloat("osc1Semis", 0.0f);
+            inst.osc1Semi = readFloat("osc1Semi", 0.0f);
             inst.osc1Detune = readFloat("osc1Detune", 0.5f);
             inst.osc1Sync = readFloat("osc1Sync", 0.0f);
 
@@ -370,7 +370,7 @@ DeviceSlot SubtractiveSynthDeviceType::varToSlot(const juce::var& obj) const {
                 inst.osc2Shape = static_cast<float>(legacyWave) / 4.0f;
             }
             inst.osc2Octave = readFloat("osc2Octave", 0.5f);
-            inst.osc2Semis = readFloat("osc2Semis", 0.0f);
+            inst.osc2Semi = readFloat("osc2Semi", 0.0f);
             inst.osc2Detune = readFloat("osc2Detune", 0.5f);
             inst.osc2Sync = readFloat("osc2Sync", 0.0f);
 

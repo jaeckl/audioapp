@@ -17,7 +17,7 @@ SubtractiveSynthParams BassSynthModel::toPlaybackParams() const {
     // Osc 1 (main morph)
     p.osc1Shape = oscShape;
     p.osc1Octave = 0.5f;            // neutral
-    p.osc1Semis = 0.0f;
+    p.osc1Semi = 0.0f;
     p.osc1Detune = 0.5f;
     p.osc1Sync = 0.0f;
     // Osc 2 (sub — always sine)
@@ -25,7 +25,7 @@ SubtractiveSynthParams BassSynthModel::toPlaybackParams() const {
     const float subOctOffsets[] = {-1.0f, -2.0f, -3.0f};
     const float subOctNorm = (subOctOffsets[subOctave] + 4.0f) / 8.0f;
     p.osc2Octave = std::clamp(subOctNorm, 0.0f, 1.0f);
-    p.osc2Semis = 0.0f;
+    p.osc2Semi = 0.0f;
     p.osc2Detune = 0.5f;
     p.osc2Sync = 0.0f;
     // Osc mix

@@ -100,10 +100,10 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         if (auto v = s("osc1Shape", SubtractiveParam::Osc1Shape)) return v;
         if (auto v = s("osc2Shape", SubtractiveParam::Osc2Shape)) return v;
         if (auto v = s("osc1Octave", SubtractiveParam::Osc1Octave)) return v;
-        if (auto v = s("osc1Semis", SubtractiveParam::Osc1Semi)) return v;
+        if (auto v = s("osc1Semi", SubtractiveParam::Osc1Semi)) return v;
         if (auto v = s("osc1Detune", SubtractiveParam::Osc1Detune)) return v;
         if (auto v = s("osc2Octave", SubtractiveParam::Osc2Octave)) return v;
-        if (auto v = s("osc2Semis", SubtractiveParam::Osc2Semi)) return v;
+        if (auto v = s("osc2Semi", SubtractiveParam::Osc2Semi)) return v;
         if (auto v = s("osc2Detune", SubtractiveParam::Osc2Detune)) return v;
         if (auto v = s("oscMix", SubtractiveParam::OscMix)) return v;
         if (auto v = s("oscMixMode", SubtractiveParam::OscMixMode)) return v;
@@ -426,10 +426,10 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         case SubtractiveParam::Osc1Shape: return "osc1Shape";
         case SubtractiveParam::Osc2Shape: return "osc2Shape";
         case SubtractiveParam::Osc1Octave: return "osc1Octave";
-        case SubtractiveParam::Osc1Semi: return "osc1Semis";
+        case SubtractiveParam::Osc1Semi: return "osc1Semi";
         case SubtractiveParam::Osc1Detune: return "osc1Detune";
         case SubtractiveParam::Osc2Octave: return "osc2Octave";
-        case SubtractiveParam::Osc2Semi: return "osc2Semis";
+        case SubtractiveParam::Osc2Semi: return "osc2Semi";
         case SubtractiveParam::Osc2Detune: return "osc2Detune";
         case SubtractiveParam::OscMix: return "oscMix";
         case SubtractiveParam::OscMixMode: return "oscMixMode";
@@ -901,10 +901,10 @@ void applyAutomationValue(DeviceVariantParams& params,
             case SubtractiveParam::Osc1Shape: p->osc1Shape = value; break;
             case SubtractiveParam::Osc2Shape: p->osc2Shape = value; break;
             case SubtractiveParam::Osc1Octave: p->osc1Octave = value; break;
-            case SubtractiveParam::Osc1Semi: p->osc1Semis = value; break;
+            case SubtractiveParam::Osc1Semi: p->osc1Semi = value; break;
             case SubtractiveParam::Osc1Detune: p->osc1Detune = value; break;
             case SubtractiveParam::Osc2Octave: p->osc2Octave = value; break;
-            case SubtractiveParam::Osc2Semi: p->osc2Semis = value; break;
+            case SubtractiveParam::Osc2Semi: p->osc2Semi = value; break;
             case SubtractiveParam::Osc2Detune: p->osc2Detune = value; break;
             case SubtractiveParam::OscMix: p->oscMix = value; break;
             case SubtractiveParam::OscMixMode: p->oscMixMode = std::clamp(static_cast<int>(std::lround(value * 4.0f)), 0, 4); break;

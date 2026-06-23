@@ -88,10 +88,10 @@ static void applySubtractiveModulation(SubtractiveSynthParams& p, float modAmoun
     case SubtractiveParam::Osc1Shape:         p.osc1Shape = safe_clamp(p.osc1Shape + modAmount, 0.0f, 1.0f); break;
     case SubtractiveParam::Osc2Shape:         p.osc2Shape = safe_clamp(p.osc2Shape + modAmount, 0.0f, 1.0f); break;
     case SubtractiveParam::Osc1Octave:        p.osc1Octave = safe_clamp(p.osc1Octave + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::Osc1Semi:          p.osc1Semis = safe_clamp(p.osc1Semis + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::Osc1Semi:          p.osc1Semi = safe_clamp(p.osc1Semi + modAmount, 0.0f, 1.0f); break;
     case SubtractiveParam::Osc1Detune:        p.osc1Detune = safe_clamp(p.osc1Detune + modAmount, 0.0f, 1.0f); break;
     case SubtractiveParam::Osc2Octave:        p.osc2Octave = safe_clamp(p.osc2Octave + modAmount, 0.0f, 1.0f); break;
-    case SubtractiveParam::Osc2Semi:          p.osc2Semis = safe_clamp(p.osc2Semis + modAmount, 0.0f, 1.0f); break;
+    case SubtractiveParam::Osc2Semi:          p.osc2Semi = safe_clamp(p.osc2Semi + modAmount, 0.0f, 1.0f); break;
     case SubtractiveParam::Osc2Detune:        p.osc2Detune = safe_clamp(p.osc2Detune + modAmount, 0.0f, 1.0f); break;
     case SubtractiveParam::OscMix:            p.oscMix = safe_clamp(p.oscMix + modAmount, 0.0f, 1.0f); break;
     case SubtractiveParam::OscMixMode:        p.oscMixMode = safe_clamp(static_cast<int>(std::lround(static_cast<float>(p.oscMixMode) + modAmount * 4.0f)), 0, 4); break;

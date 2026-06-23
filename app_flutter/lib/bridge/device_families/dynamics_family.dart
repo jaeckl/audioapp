@@ -39,12 +39,13 @@ class GateDeviceSnapshot extends DynamicsDeviceSnapshot {
 
   factory GateDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
+    final outputPanel = map['outputPanel'] as Map<dynamic, dynamic>? ?? {};
     final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
     return GateDeviceSnapshot(
       id: map['id'] as String? ?? '',
-      gain: (params['gain'] as num?)?.toDouble() ?? 1.0,
-      pan: (params['pan'] as num?)?.toDouble() ?? 0.5,
-      bypassed: readBypass(params['bypass']),
+      gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
+      pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
+      bypassed: readBypass(map['bypass']),
       meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       inputGain: (params['inputGain'] as num?)?.toDouble() ?? 1.0,
@@ -131,12 +132,13 @@ class CompressorDeviceSnapshot extends DynamicsDeviceSnapshot {
 
   factory CompressorDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
+    final outputPanel = map['outputPanel'] as Map<dynamic, dynamic>? ?? {};
     final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
     return CompressorDeviceSnapshot(
       id: map['id'] as String? ?? '',
-      gain: (params['gain'] as num?)?.toDouble() ?? 1.0,
-      pan: (params['pan'] as num?)?.toDouble() ?? 0.5,
-      bypassed: readBypass(params['bypass']),
+      gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
+      pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
+      bypassed: readBypass(map['bypass']),
       meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       inputGain: (params['inputGain'] as num?)?.toDouble() ?? 1.0,
@@ -225,12 +227,13 @@ class ExpanderDeviceSnapshot extends DynamicsDeviceSnapshot {
 
   factory ExpanderDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
+    final outputPanel = map['outputPanel'] as Map<dynamic, dynamic>? ?? {};
     final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
     return ExpanderDeviceSnapshot(
       id: map['id'] as String? ?? '',
-      gain: (params['gain'] as num?)?.toDouble() ?? 1.0,
-      pan: (params['pan'] as num?)?.toDouble() ?? 0.5,
-      bypassed: readBypass(params['bypass']),
+      gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
+      pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
+      bypassed: readBypass(map['bypass']),
       meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       inputGain: (params['inputGain'] as num?)?.toDouble() ?? 1.0,
@@ -317,12 +320,13 @@ class LimiterDeviceSnapshot extends DynamicsDeviceSnapshot {
 
   factory LimiterDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
+    final outputPanel = map['outputPanel'] as Map<dynamic, dynamic>? ?? {};
     final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
     return LimiterDeviceSnapshot(
       id: map['id'] as String? ?? '',
-      gain: (params['gain'] as num?)?.toDouble() ?? 1.0,
-      pan: (params['pan'] as num?)?.toDouble() ?? 0.5,
-      bypassed: readBypass(params['bypass']),
+      gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
+      pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
+      bypassed: readBypass(map['bypass']),
       meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       inputGain: (params['inputGain'] as num?)?.toDouble() ?? 1.0,

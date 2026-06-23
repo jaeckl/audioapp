@@ -181,7 +181,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
         pc.needsSubBlocks = needsSubBlocks;
 
         // --- Timeline automation ---
-        auto modulatedParams = DeviceVariantParams{}; // start from defaults; will be overridden
+        auto modulatedParams = proc->storedParams(); // start from processor's own params
         if (ctx.automationClips != nullptr && ctx.automationClipCount > 0) {
             for (int a = 0; a < ctx.automationClipCount; ++a) {
                 const auto& ac = ctx.automationClips[a];

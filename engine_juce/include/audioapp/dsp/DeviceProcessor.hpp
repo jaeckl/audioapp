@@ -9,7 +9,7 @@ namespace audioapp {
 class DeviceProcessor {
 public:
     virtual void initParams(const DeviceVariantParams& params) noexcept {
-        (void)params;
+        storedParams_ = params;
     }
 
     virtual void process(AudioBlock& block, ProcessContext& ctx) noexcept = 0;
@@ -17,6 +17,8 @@ public:
     virtual DeviceNodeKind kind() const noexcept {
         return DeviceNodeKind::Unknown;
     }
+
+    const DeviceVariantParams& storedParams() const noexcept { return storedParams_; }
 
     bool bypassed = false;
     int8_t meterSlot = -1;
@@ -28,6 +30,9 @@ protected:
     ~DeviceProcessor() = default;
     DeviceProcessor(const DeviceProcessor&) = delete;
     DeviceProcessor& operator=(const DeviceProcessor&) = delete;
+
+private:
+    DeviceVariantParams storedParams_;
 };
 
 } // namespace audioapp

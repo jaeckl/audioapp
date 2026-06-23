@@ -31,12 +31,13 @@ class FilterDeviceSnapshot extends FrequencyFxDeviceSnapshot {
 
   factory FilterDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
+    final outputPanel = map['outputPanel'] as Map<dynamic, dynamic>? ?? {};
     final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
     return FilterDeviceSnapshot(
       id: map['id'] as String? ?? '',
-      gain: (params['gain'] as num?)?.toDouble() ?? 1.0,
-      pan: (params['pan'] as num?)?.toDouble() ?? 0.5,
-      bypassed: readBypass(params['bypass']),
+      gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
+      pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
+      bypassed: readBypass(map['bypass']),
       meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       ffxCutoff: (params['ffxCutoff'] as num?)?.toDouble() ?? 0.6,
@@ -122,12 +123,13 @@ class FourBandEqDeviceSnapshot extends FrequencyFxDeviceSnapshot {
 
   factory FourBandEqDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
+    final outputPanel = map['outputPanel'] as Map<dynamic, dynamic>? ?? {};
     final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
     return FourBandEqDeviceSnapshot(
       id: map['id'] as String? ?? '',
-      gain: (params['gain'] as num?)?.toDouble() ?? 1.0,
-      pan: (params['pan'] as num?)?.toDouble() ?? 0.5,
-      bypassed: readBypass(params['bypass']),
+      gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
+      pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
+      bypassed: readBypass(map['bypass']),
       meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       ffxBand1Freq: (params['ffxBand1Freq'] as num?)?.toDouble() ?? 0.15,
@@ -227,12 +229,13 @@ class FrequencyShifterDeviceSnapshot extends FrequencyFxDeviceSnapshot {
 
   factory FrequencyShifterDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
+    final outputPanel = map['outputPanel'] as Map<dynamic, dynamic>? ?? {};
     final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
     return FrequencyShifterDeviceSnapshot(
       id: map['id'] as String? ?? '',
-      gain: (params['gain'] as num?)?.toDouble() ?? 1.0,
-      pan: (params['pan'] as num?)?.toDouble() ?? 0.5,
-      bypassed: readBypass(params['bypass']),
+      gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
+      pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
+      bypassed: readBypass(map['bypass']),
       meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       ffxShift: (params['ffxShift'] as num?)?.toDouble() ?? 0.5,

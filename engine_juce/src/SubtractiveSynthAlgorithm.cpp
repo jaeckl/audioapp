@@ -164,9 +164,9 @@ float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
     }
 
     const float osc1Root =
-        subtractiveOscPitchHz(effectivePitch, params.osc1Octave, params.osc1Semis, params.osc1Detune);
+        subtractiveOscPitchHz(effectivePitch, params.osc1Octave, params.osc1Semi, params.osc1Detune);
     const float osc2Root =
-        subtractiveOscPitchHz(effectivePitch, params.osc2Octave, params.osc2Semis, params.osc2Detune);
+        subtractiveOscPitchHz(effectivePitch, params.osc2Octave, params.osc2Semi, params.osc2Detune);
     const float pitchRatio =
         voice.currentHz / subtractiveOscPitchHz(effectivePitch, 0.5f, 0.0f, 0.5f);
 

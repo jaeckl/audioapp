@@ -21,10 +21,10 @@ struct SubtractiveSynthParams {
     float osc1Shape = 0.5f;
     float osc2Shape = 0.5f;
     float osc1Octave = 0.5f;
-    float osc1Semis = 0.0f;
+    float osc1Semi = 0.0f;
     float osc1Detune = 0.5f;
     float osc2Octave = 0.5f;
-    float osc2Semis = 0.0f;
+    float osc2Semi = 0.0f;
     float osc2Detune = 0.5f;
     float oscMix = 0.37f;
     float noiseLevel = 0.0f;

@@ -12,13 +12,13 @@ class TrackGainDeviceSnapshot extends DeviceSnapshot {
   }) : super(type: 'track_gain');
 
   factory TrackGainDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
-    final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
+    final outputPanel = map['outputPanel'] as Map<dynamic, dynamic>? ?? {};
     final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
     return TrackGainDeviceSnapshot(
       id: map['id'] as String? ?? '',
-      gain: (params['gain'] as num?)?.toDouble() ?? 1.0,
-      pan: (params['pan'] as num?)?.toDouble() ?? 0.5,
-      bypassed: readBypass(params['bypass']),
+      gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
+      pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
+      bypassed: readBypass(map['bypass']),
       meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
     );
