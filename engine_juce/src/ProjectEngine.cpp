@@ -168,6 +168,26 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
     if (result.syncActiveFrequency) {
         syncActiveFrequencyLocked();
     }
+
+    // Fast path: update live playback node and processor params in-place,
+    // preserving all runtime state (oscillator phases, filter biquad states,
+    // delay buffers, voice runtime, etc.). Falls back to full rebuild if
+    // the device hasn't been built into playback yet.
+    const PlaybackBuildContext context{sampleBank_};
+    for (int t = 0; t < kMaxTracks; ++t) {
+        auto& snap = trackPlayback_[t];
+        for (int d = 0; d < snap.deviceCount; ++d) {
+            if (snap.devices[d].deviceId != deviceId) continue;
+            deviceRegistry_.buildPlaybackNode(*device, context, snap.devices[d]);
+            auto* proc = snap.arena.get(d);
+            if (proc != nullptr) {
+                proc->initParams(snap.devices[d].params);
+            }
+            return true;
+        }
+    }
+
+    // Fallback: device not in live playback arrays yet (e.g. during initial load)
     rebuildTrackPlaybackLocked();
     return true;
 }
