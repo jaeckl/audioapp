@@ -36,7 +36,6 @@ int main(int argc, char** argv)
         int failures = 0;
         for (int i = 0; i < runner.getNumResults(); ++i) {
             failures += runner.getResult(i)->failures;
-            // Print failure messages
             const auto* result = runner.getResult(i);
             for (int f = 0; f < result->failures; ++f) {
                 std::fprintf(stderr, "  FAIL MSG: %s\n",

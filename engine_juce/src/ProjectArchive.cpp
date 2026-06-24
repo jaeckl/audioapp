@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <fstream>
 #include <vector>
+#include <cstdio>
 
 namespace audioapp {
 namespace {
@@ -219,10 +220,11 @@ bool saveProjectToArchive(const ProjectEngine& engine, const std::string& archiv
     if (archivePath.empty()) {
         return false;
     }
-    const std::string json = projectFileToJson(engine.toProjectFileData(),
-                                                engine.deviceRegistry());
+    const auto fileData = engine.toProjectFileData();
+    const std::string json = projectFileToJson(fileData, engine.deviceRegistry());
     const auto bytes = buildProjectArchiveBytes(json);
-    return writeAllBytes(std::filesystem::path(archivePath), bytes);
+    const bool result = writeAllBytes(std::filesystem::path(archivePath), bytes);
+    return result;
 }
 
 bool loadProjectFromArchive(ProjectEngine& engine, const std::string& archivePath) {
