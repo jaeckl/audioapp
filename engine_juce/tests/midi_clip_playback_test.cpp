@@ -33,7 +33,7 @@ public:
         beginTest("advancePlayheadBeats");
         {
             const double advanced = audioapp::advancePlayheadBeats(0.0, 48000, 48000.0, 120);
-            expectWithinAbsoluteError(advanced, 1.0, 0.001);
+            expectWithinAbsoluteError(advanced, 2.0, 0.001);
         }
     }
 };

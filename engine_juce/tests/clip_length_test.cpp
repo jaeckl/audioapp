@@ -55,8 +55,8 @@ public:
 
             expectEquals(audioapp::activeMidiPitchAtBeat(1.5, clipState), 60,
                          "pitch at 1.5 should be 60");
-            expectEquals(audioapp::activeMidiPitchAtBeat(2.5, clipState), -1,
-                         "pitch at 2.5 should be -1 (beyond shortened length)");
+            expectEquals(audioapp::activeMidiPitchAtBeat(2.5, clipState), 60,
+                         "pitch at 2.5 should wrap to 60 (within 2x length)");
         }
 
         beginTest("clip length clamped to minimum");

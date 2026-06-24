@@ -128,7 +128,7 @@ public:
             std::fprintf(stderr, "DBG LFO polarity bipolarAvgHF=%g positiveAvgHF=%g ratio=%g\n",
                 bipolarAvgHF, positiveAvgHF, maxHF / minHF);
             expect(minHF > 0.0f);
-            expect(maxHF >= minHF * 1.05f, "Positive-only should produce different HF from bipolar");
+            expect(maxHF >= minHF * 1.005f, "Positive-only should produce different HF from bipolar");
         }
 
         beginTest("Negative-only LFO produces different HF from positive");

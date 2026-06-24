@@ -201,14 +201,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
                         if (isGain) s.perFrameGain[f] = val;
                         else s.perFramePan[f] = val;
                     }
-                } else if (!needsSubBlocks || !isInstrumentDeviceNodeKind(nodeKind)) {
-                    if (isInstrumentDeviceNodeKind(nodeKind) &&
-                        (nodeKind == DeviceNodeKind::SubtractiveSynth ||
-                         nodeKind == DeviceNodeKind::BassSynth ||
-                         nodeKind == DeviceNodeKind::PhaseModSynth) &&
-                        nodeHasDspAutomation(di, ctx.automationClips, ctx.automationClipCount)) {
-                        continue;
-                    }
+                } else if (!needsSubBlocks || !handlesOwnModulation(nodeKind)) {
                     const double beat = ctx.playheadStartBeat;
                     if (beat < static_cast<double>(ac.clipStartBeat) ||
                         beat >= static_cast<double>(ac.clipStartBeat + ac.clipLengthBeats)) continue;
@@ -227,14 +220,11 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
                 if (edge.deviceIndex != di || edge.lfoId >= static_cast<uint16_t>(ctx.lfoCount)) continue;
                 const uint16_t pid = edge.localParamId;
                 if (pid == kEncodedCommonGain || pid == kEncodedCommonPan) continue;
-                if (!needsSubBlocks || !isInstrumentDeviceNodeKind(nodeKind)) {
-                    if (isInstrumentDeviceNodeKind(nodeKind) &&
-                        (nodeKind == DeviceNodeKind::SubtractiveSynth ||
-                         nodeKind == DeviceNodeKind::BassSynth ||
-                         nodeKind == DeviceNodeKind::PhaseModSynth) &&
-                        (nodeHasDspAutomation(di, ctx.automationClips, ctx.automationClipCount) ||
-                         nodeHasDspModulation(di, ctx.modEdges, ctx.modEdgeCount))) continue;
-                    const float lfoOut = ctx.lfoValues[edge.lfoId * numFrames];
+                if (!needsSubBlocks || !handlesOwnModulation(nodeKind)) {
+                    // Use mid-block frame for LFO value to avoid zero at frame 0
+                    // (sine/triangle/saw all start at 0 at phase 0).
+                    const int lfoFrame = numFrames / 2;
+                    const float lfoOut = ctx.lfoValues[edge.lfoId * numFrames + lfoFrame];
                     const float modAmount = edge.amount * lfoOut;
                     std::visit([&](auto& params) {
                         applyModulation(params, modAmount, pid);

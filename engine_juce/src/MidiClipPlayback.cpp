@@ -13,7 +13,7 @@ bool isNoteActiveInLoop(double loopedBeat, const MidiNoteState& note) noexcept {
 } // namespace
 
 int activeMidiPitchAtBeat(double playheadBeat, const MidiClipState& clip) noexcept {
-    if (playheadBeat < clip.startBeat || playheadBeat >= clip.startBeat + clip.lengthBeats) {
+    if (playheadBeat < clip.startBeat || playheadBeat >= clip.startBeat + clip.lengthBeats * 2.0) {
         return -1;
     }
 

@@ -28,6 +28,21 @@ bool isFrequencyFxDeviceNodeKind(DeviceNodeKind kind) noexcept {
            kind == DeviceNodeKind::FrequencyShifter;
 }
 
+bool handlesOwnModulation(DeviceNodeKind kind) noexcept {
+    // Returns true for instrument types that implement their own per-frame or
+    // sub-block modulation inside their process() method, either via explicit
+    // sub-block loops (Oscillator, Sampler) or per-frame LFO reads inside
+    // their mix*MidiNotesBlock (SubtractiveSynth, BassSynth, PhaseModSynth).
+    // Percussion generators (Kick, Snare, Clap, Cymbal, Crash) depend on the
+    // orchestrator applying block-rate modulation to ctx.modulatedParams and
+    // so must return false here.
+    return kind == DeviceNodeKind::Oscillator ||
+           kind == DeviceNodeKind::Sampler ||
+           kind == DeviceNodeKind::SubtractiveSynth ||
+           kind == DeviceNodeKind::BassSynth ||
+           kind == DeviceNodeKind::PhaseModSynth;
+}
+
 float midiActiveFrequencyHz(const MidiPlaybackNote* notes,
                             int noteCount,
                             double playheadBeat,

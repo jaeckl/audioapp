@@ -173,6 +173,7 @@ static constexpr int kMaxDeviceMeters = 128;
 
 bool isDynamicsDeviceNodeKind(DeviceNodeKind kind) noexcept;
 bool isInstrumentDeviceNodeKind(DeviceNodeKind kind) noexcept;
+bool handlesOwnModulation(DeviceNodeKind kind) noexcept;
 bool isFrequencyFxDeviceNodeKind(DeviceNodeKind kind) noexcept;
 
 float midiActiveFrequencyHz(const MidiPlaybackNote* notes,

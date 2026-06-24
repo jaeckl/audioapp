@@ -33,7 +33,14 @@ void OscillatorProcessor::process(AudioBlock& block, ProcessContext& ctx) noexce
             if (!noteActive(ctx.notes[i], ctx.playheadBeat)) continue;
             pitch = ctx.notes[i].pitch;
         }
-        if (pitch >= 0) return midiNoteToHz(pitch);
+        if (pitch >= 0) {
+            // MIDI note active: apply modulation offset on top of MIDI note pitch.
+            // idleFrequencyHz already includes LFO/automation modulation from
+            // dspParamsAtFrame. Compute the offset from the base frequency.
+            const float baseHz = std::get<OscillatorParams>(storedParams()).frequencyHz;
+            const float modOffset = idleFrequencyHz - baseHz;
+            return std::max(20.0f, midiNoteToHz(pitch) + modOffset);
+        }
         return idleFrequencyHz;
     };
 
