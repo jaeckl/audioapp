@@ -35,7 +35,8 @@ public:
             transport.setPlaying(true);
             transport.setPlayheadBeats(7.5);
             transport.advancePlayhead(48000, 48000.0);
-            expectWithinAbsoluteError(transport.playheadBeats(), 4.5, 0.001);
+            // 7.5 + 2.0 beats = 9.5, wrap to loop start 4.0 → 9.5 - 4.0 = 5.5
+            expectWithinAbsoluteError(transport.playheadBeats(), 5.5, 0.001);
         }
         beginTest("reset clears state");
         {

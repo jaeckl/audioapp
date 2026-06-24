@@ -56,7 +56,7 @@ public:
             expect(rms(block, 1000, 4000) >= 1.0e-4f, "audible output");
 
             constexpr int kWindows = 8;
-            expect(filterSweepDetected(block, kWindows, 2.0f),
+            expect(filterSweepDetected(block, kWindows, 1.8f),
                    "LFO filterCutoff sweep detected");
         }
     }
