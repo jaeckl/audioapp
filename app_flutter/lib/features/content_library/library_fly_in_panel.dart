@@ -201,7 +201,6 @@ double _computePreviewLengthBeats() {
   // still animates something visible.
   const minBeats = 4.0;
   final trackId = widget.snapshot.selectedTrackId;
-  if (trackId == null) return minBeats;
   for (final t in widget.snapshot.tracks) {
     if (t.id != trackId) continue;
     double max = 0;
@@ -329,27 +328,9 @@ void _onItemSelected(String? itemId) {
                         PresetPreviewBar(
                           snapshot: widget.snapshot,
                           selectedTrackId: widget.snapshot.selectedTrackId,
-                          loopEnabled: _presetPreviewLoopEnabled,
-                          onLoopToggled: (enabled) {
-                            setState(() {
-                              _presetPreviewLoopEnabled = enabled;
-                              // Toggling the loop flag stops any currently
-                              // playing preview — both visually (the ticker)
-                              // and in the engine. The user is signaling
-                              // "stop autoplay; I'll press play manually
-                              // from now on", so the active preview should
-                              // also pause.
-                              if (!enabled) {
-                                _stopPreviewAnimation();
-                                widget.onStopPreview?.call();
-                              }
-                            });
-                          },
-                          playheadBeats: _presetScrubBeat,
-                          onScrub: (beat) {
-                            // Tap-to-seek already updated _presetScrubBeat inside the
-                            // bar; here we just kick off a fresh preview at that beat
-                            // so the user hears audio immediately.
+                          displayPlayhead: _presetPreviewLoopEnabled,
+                          onClipTap: (clip) {
+                            // Jump preview to the tapped clip's start beat
                             final items = LibraryCatalog.itemsFor(
                               _category,
                               widget.snapshot,
@@ -358,7 +339,7 @@ void _onItemSelected(String? itemId) {
                             try {
                               final item = items.firstWhere((i) => i.id == _selectedItemId);
                               if (item is LibraryPresetItem) {
-                                _onPresetPreviewTap(item, startBeat: beat);
+                                _onPresetPreviewTap(item, startBeat: clip.startBeat);
                               }
                             } catch (_) {}
                           },

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 import '../editor/timeline_marker_layer.dart';
 import '../piano_roll/piano_roll_metrics.dart';
-import '../piano_roll/piano_roll_theme.dart';
 import 'arrangement_playhead_marker.dart';
 import 'arrangement_timeline_metrics.dart';
 

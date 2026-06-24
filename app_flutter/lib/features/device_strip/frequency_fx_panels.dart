@@ -77,7 +77,6 @@ class _FrequencyFxKnob extends StatelessWidget {
     required this.onAutomationLinkTap,
     required this.onAutomateParameter,
     this.displayValue,
-    this.size = DeviceStripMetrics.dynamicsFxKnobSize,
   });
 
   final String label;
@@ -94,7 +93,7 @@ class _FrequencyFxKnob extends StatelessWidget {
   final ValueChanged<String>? onAutomationLinkTap;
   final ValueChanged<String>? onAutomateParameter;
   final String? displayValue;
-  final double size;
+  final double size = DeviceStripMetrics.dynamicsFxKnobSize;
 
   @override
   Widget build(BuildContext context) {

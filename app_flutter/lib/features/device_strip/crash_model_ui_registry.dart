@@ -1,5 +1,4 @@
 import '../../bridge/project_snapshot.dart';
-import 'cymbal_decay_preview.dart';
 
 class CrashKnobSpec {
   const CrashKnobSpec({

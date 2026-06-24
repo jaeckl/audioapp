@@ -1,6 +1,5 @@
 import 'package:audioapp/app/daw_shell.dart';
 import 'package:audioapp/bridge/engine_bridge.dart';
-import 'package:audioapp/bridge/project_snapshot.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';

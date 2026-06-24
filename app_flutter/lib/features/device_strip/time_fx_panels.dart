@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
-import 'device_knob_sizes.dart';
 import 'device_strip_metrics.dart';
 import 'device_tab_bar.dart';
 import 'rotary_knob.dart';
@@ -38,7 +37,6 @@ class _TimeFxKnob extends StatelessWidget {
     required this.onAutomationLinkTap,
     required this.onAutomateParameter,
     this.displayValue,
-    this.size = DeviceStripMetrics.dynamicsFxKnobSize,
   });
 
   final String label;
@@ -55,7 +53,7 @@ class _TimeFxKnob extends StatelessWidget {
   final ValueChanged<String>? onAutomationLinkTap;
   final ValueChanged<String>? onAutomateParameter;
   final String? displayValue;
-  final double size;
+  final double size = DeviceStripMetrics.dynamicsFxKnobSize;
 
   @override
   Widget build(BuildContext context) {

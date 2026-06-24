@@ -106,7 +106,6 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
   int? _rulerPointer;
   double _rulerPointerTravel = 0;
   Offset? _editStartCanvas;
-  Offset? _lastCanvasPos;
   double _editTravel = 0;
   bool _editCommitted = false;
 
@@ -310,7 +309,6 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
     _draggingClipEnd = false;
     _editPointer = null;
     _editStartCanvas = null;
-    _lastCanvasPos = null;
     _editTravel = 0;
     _editCommitted = false;
     _lockScrollForEdit = false;
@@ -507,7 +505,6 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
     final canvasPos = _pointerToCanvas(event);
     _editPointer = event.pointer;
     _editStartCanvas = canvasPos;
-    _lastCanvasPos = canvasPos;
     _editTravel = 0;
     _editCommitted = false;
     _pendingClearSelection = false;
@@ -574,7 +571,6 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
     if (event.pointer != _editPointer || _editStartCanvas == null) return;
 
     final canvasPos = _pointerToCanvas(event);
-    _lastCanvasPos = canvasPos;
     _editTravel = (canvasPos - _editStartCanvas!).distance;
 
     final index = _dragIndex;

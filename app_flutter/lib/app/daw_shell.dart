@@ -951,7 +951,6 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       // available for non-library-preset selections.
       return;
     }
-    if (preset == null) return;
 
     // Gather selected track's MIDI clip notes in timeline coordinates
     final track = _snapshot?.selectedTrack;
@@ -1002,10 +1001,6 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _setSamplerGain(String deviceId, double value) async {
-    await _setSamplerParameter(deviceId, 'gain', value);
-  }
-
   Future<void> _assignSamplerSample(String deviceId, String sampleId) async {
     try {
       final snapshot = await widget.bridge.setDeviceStringParameter(
@@ -1018,18 +1013,6 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
     }
-  }
-
-  SampleLibraryEntrySnapshot? _sampleForDevice(DeviceSnapshot device) {
-    if (device is! SamplerDeviceSnapshot || device.sampleId.isEmpty) {
-      return null;
-    }
-    for (final sample in _snapshot?.samples ?? const <SampleLibraryEntrySnapshot>[]) {
-      if (sample.id == device.sampleId) {
-        return sample;
-      }
-    }
-    return null;
   }
 
   Future<void> _openSamplerEditor(TrackSnapshot track, DeviceSnapshot device) async {
@@ -1052,34 +1035,6 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       final snapshot = await widget.bridge.getProjectSnapshot();
       await _refreshSnapshot(snapshot);
     } catch (_) {}
-  }
-
-  Future<SampleLibraryEntrySnapshot?> _pickSamplerSample(String deviceId) async {
-    final sample = await showModalBottomSheet<SampleLibraryEntrySnapshot>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF0E0E14),
-      showDragHandle: true,
-      builder: (context) => SizedBox(
-        height: MediaQuery.of(context).size.height * 0.82,
-        child: SampleLibraryPickerSheet(
-          initialSamples: _snapshot?.samples ?? const [],
-          onPreview: _previewSample,
-          onImportSamples: () async {
-            final updated = await widget.bridge.importSample();
-            if (updated != null) {
-              await _refreshSnapshot(updated);
-              return updated.samples;
-            }
-            return _snapshot?.samples ?? const [];
-          },
-          onSampleSelected: (entry) => Navigator.pop(context, entry),
-        ),
-      ),
-    );
-    if (sample == null) return null;
-    await _assignSamplerSample(deviceId, sample.id);
-    return sample;
   }
 
   Future<void> _setFrequency(String deviceId, double value) async {

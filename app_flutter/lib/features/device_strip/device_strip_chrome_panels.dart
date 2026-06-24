@@ -303,11 +303,10 @@ class _DynamicsSideColumn extends StatelessWidget {
 class _ChromeOutputShell extends StatelessWidget {
   const _ChromeOutputShell({
     required this.child,
-    this.width = DeviceStripMetrics.dynamicsOutputPanelWidth,
   });
 
   final Widget child;
-  final double width;
+  static const double _kPanelWidth = DeviceStripMetrics.dynamicsOutputPanelWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -318,7 +317,7 @@ class _ChromeOutputShell extends StatelessWidget {
     final rightRadius = Radius.circular(DeviceStripTheme.toolRailRadius);
 
     return SizedBox(
-      width: width,
+      width: _kPanelWidth,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: DeviceStripTheme.toolRailBackground,

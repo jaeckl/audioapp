@@ -198,40 +198,6 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen>
     setState(() => _points = points);
   }
 
-  void _onEditFinished() {
-    final selectedSnapshots = _selectedIndices.map((i) => _points[i]).toList();
-    final markedSnapshots = _deleteMarkedIndices.map((i) => _points[i]).toList();
-
-    setState(() {
-      _points = List<AutomationPointSnapshot>.of(_points)
-        ..sort((a, b) => a.beat.compareTo(b.beat));
-      _selectedIndices
-        ..clear()
-        ..addAll(_remapIndices(selectedSnapshots, _points));
-      _deleteMarkedIndices
-        ..clear()
-        ..addAll(_remapIndices(markedSnapshots, _points));
-    });
-    _persistPoints();
-  }
-
-  Iterable<int> _remapIndices(
-    List<AutomationPointSnapshot> markers,
-    List<AutomationPointSnapshot> points,
-  ) sync* {
-    for (final marker in markers) {
-      var index = points.indexWhere(
-        (p) =>
-            (p.beat - marker.beat).abs() < 1.0e-4 &&
-            (p.value - marker.value).abs() < 1.0e-4,
-      );
-      if (index < 0) {
-        index = points.indexWhere((p) => (p.beat - marker.beat).abs() < 1.0e-3);
-      }
-      if (index >= 0) yield index;
-    }
-  }
-
   void _onEditStarted() => setState(_pushUndo);
 
   void _onToolChanged(AutomationEditorTool tool) {

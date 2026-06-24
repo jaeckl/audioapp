@@ -1,4 +1,3 @@
-import 'package:audioapp/bridge/project_snapshot.dart';
 import 'package:audioapp/features/device_strip/device_tool_rail.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

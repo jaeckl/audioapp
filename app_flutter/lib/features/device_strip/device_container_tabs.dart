@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 import 'device_tab_bar.dart';
 import 'kick_generator_device_panel.dart';
 import 'snare_generator_device_panel.dart';
