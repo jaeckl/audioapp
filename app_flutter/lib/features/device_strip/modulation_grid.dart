@@ -22,8 +22,9 @@ class ModulationGrid extends StatefulWidget {
     required this.onLfoLongPress,
     required this.onAddModulator,
     required this.onRemoveLfo,
-    this.visibleTargetsLfoIds = const {},
-    this.onToggleTargets,
+    this.targetsPanelVisible = false,
+    this.onShowTargets,
+    this.onHideTargets,
   });
 
   static const rowCount = 3;
@@ -41,8 +42,9 @@ class ModulationGrid extends StatefulWidget {
   final ValueChanged<int> onLfoLongPress;
   final Future<void> Function(int modulatorType) onAddModulator;
   final ValueChanged<int> onRemoveLfo;
-  final Set<int> visibleTargetsLfoIds;
-  final ValueChanged<int>? onToggleTargets;
+  final bool targetsPanelVisible;
+  final VoidCallback? onShowTargets;
+  final VoidCallback? onHideTargets;
 
   @override
   State<ModulationGrid> createState() => _ModulationGridState();
@@ -206,11 +208,12 @@ class _ModulationGridState extends State<ModulationGrid>
                         playheadBeat: playhead,
                         bpm: widget.bpm,
                         elapsedSeconds: _elapsedSeconds,
-                        visibleTargetsLfoIds: widget.visibleTargetsLfoIds,
+                        targetsPanelVisible: widget.targetsPanelVisible,
                         onLfoTap: widget.onLfoTap,
                         onLfoLongPress: widget.onLfoLongPress,
                         onRemoveLfo: widget.onRemoveLfo,
-                        onToggleTargets: widget.onToggleTargets,
+                        onShowTargets: widget.onShowTargets,
+                        onHideTargets: widget.onHideTargets,
                         onShowAddMenu: _showAddMenu,
                       ),
                     ],
@@ -244,11 +247,12 @@ class _GridColumn extends StatelessWidget {
     required this.playheadBeat,
     required this.bpm,
     required this.elapsedSeconds,
-    required this.visibleTargetsLfoIds,
+    required this.targetsPanelVisible,
     required this.onLfoTap,
     required this.onLfoLongPress,
     required this.onRemoveLfo,
-    required this.onToggleTargets,
+    required this.onShowTargets,
+    required this.onHideTargets,
     required this.onShowAddMenu,
   });
 
@@ -260,11 +264,12 @@ class _GridColumn extends StatelessWidget {
   final double playheadBeat;
   final int bpm;
   final double elapsedSeconds;
-  final Set<int> visibleTargetsLfoIds;
+  final bool targetsPanelVisible;
   final ValueChanged<int> onLfoTap;
   final ValueChanged<int> onLfoLongPress;
   final ValueChanged<int> onRemoveLfo;
-  final ValueChanged<int>? onToggleTargets;
+  final VoidCallback? onShowTargets;
+  final VoidCallback? onHideTargets;
   final VoidCallback onShowAddMenu;
 
   @override
@@ -299,13 +304,12 @@ class _GridColumn extends StatelessWidget {
       elapsedSeconds: elapsedSeconds,
       isSelected: lfo.id == selectedLfoId,
       isConnectMode: lfo.id == connectModeLfoId,
-      targetsVisible: visibleTargetsLfoIds.contains(lfo.id),
+      targetsPanelVisible: targetsPanelVisible,
       onTap: () => onLfoTap(lfo.id),
       onLongPress: () => onLfoLongPress(lfo.id),
       onRemove: () => onRemoveLfo(lfo.id),
-      onToggleTargets: onToggleTargets != null
-          ? () => onToggleTargets!(lfo.id)
-          : null,
+      onShowTargets: onShowTargets,
+      onHideTargets: onHideTargets,
     );
   }
 }
@@ -319,11 +323,12 @@ class _ModulatorTile extends StatefulWidget {
     required this.elapsedSeconds,
     required this.isSelected,
     required this.isConnectMode,
-    required this.targetsVisible,
+    required this.targetsPanelVisible,
     required this.onTap,
     required this.onLongPress,
     required this.onRemove,
-    this.onToggleTargets,
+    this.onShowTargets,
+    this.onHideTargets,
   });
 
   final LfoSnapshot lfo;
@@ -333,11 +338,12 @@ class _ModulatorTile extends StatefulWidget {
   final double elapsedSeconds;
   final bool isSelected;
   final bool isConnectMode;
-  final bool targetsVisible;
+  final bool targetsPanelVisible;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
   final VoidCallback onRemove;
-  final VoidCallback? onToggleTargets;
+  final VoidCallback? onShowTargets;
+  final VoidCallback? onHideTargets;
 
   @override
   State<_ModulatorTile> createState() => _ModulatorTileState();
@@ -366,15 +372,15 @@ class _ModulatorTileState extends State<_ModulatorTile> {
           child: Row(
             children: [
               Icon(
-                widget.targetsVisible ? Icons.visibility : Icons.visibility_off,
+                widget.targetsPanelVisible ? Icons.visibility : Icons.visibility_off,
                 size: 16,
-                color: widget.targetsVisible
+                color: widget.targetsPanelVisible
                     ? const Color(0xFFE8A54B)
                     : Colors.white54,
               ),
               const SizedBox(width: 8),
               Text(
-                widget.targetsVisible ? 'Hide targets' : 'Show targets',
+                widget.targetsPanelVisible ? 'Hide targets' : 'Show targets',
                 style: const TextStyle(color: Colors.white, fontSize: 13),
               ),
             ],
@@ -397,7 +403,11 @@ class _ModulatorTileState extends State<_ModulatorTile> {
       ],
     ).then((value) {
       if (value == 'targets') {
-        widget.onToggleTargets?.call();
+        if (widget.targetsPanelVisible) {
+          widget.onHideTargets?.call();
+        } else {
+          widget.onShowTargets?.call();
+        }
       } else if (value == 'remove') {
         widget.onRemove();
       }

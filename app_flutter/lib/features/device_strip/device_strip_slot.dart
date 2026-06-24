@@ -126,7 +126,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   late List<ModulationEdgeSnapshot> _localModEdges;
   int? _selectedLfoId;
   int? _connectModeLfoId;
-  final Set<int> _showTargetsForLfoIds = {};
+  bool _showTargetsPanel = false;
 
   ProjectSnapshot get _emptySnapshot => ProjectSnapshot(
     bpm: 120,
@@ -180,7 +180,6 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       final ids = _localLfos.map((l) => l.id).toSet();
       if (_selectedLfoId != null && !ids.contains(_selectedLfoId)) _selectedLfoId = null;
       if (_connectModeLfoId != null && !ids.contains(_connectModeLfoId)) _connectModeLfoId = null;
-      _showTargetsForLfoIds.removeWhere((id) => !ids.contains(id));
     }
   }
 
@@ -242,7 +241,6 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           final ids = _localLfos.map((l) => l.id).toSet();
           if (_selectedLfoId != null && !ids.contains(_selectedLfoId)) _selectedLfoId = null;
           if (_connectModeLfoId != null && !ids.contains(_connectModeLfoId)) _connectModeLfoId = null;
-          _showTargetsForLfoIds.removeWhere((id) => !ids.contains(id));
         });
       }
       return snapshot;
@@ -350,7 +348,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
 
   double get _modGridWidth => _modStripVisible ? 130.0 : 0.0;
   double get _modPropsWidth => _modStripVisible && _selectedLfo != null ? 260.0 : 0.0;
-  double get _modTargetsWidth => _modStripVisible && _showTargetsForLfoIds.isNotEmpty && _targetsPanelLfo != null ? 160.0 : 0.0;
+  double get _modTargetsWidth => _modStripVisible && _showTargetsPanel && _selectedLfo != null ? 160.0 : 0.0;
   static const double _targetsPanelWidth = 160.0;
 
   double get _inputWidth => DeviceStripMetrics.inputPanelWidthFor(widget.device.type);
@@ -400,17 +398,12 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       onLfoLongPress: _onLfoLongPress,
       onAddModulator: (type) => _onBridgeCall('createLfo', {'modulatorType': type}),
       onRemoveLfo: (id) => _onBridgeCall('removeLfo', {'lfoId': id}),
-      visibleTargetsLfoIds: _showTargetsForLfoIds,
-      onToggleTargets: (id) {
-        setState(() {
-          if (_showTargetsForLfoIds.contains(id)) {
-            _showTargetsForLfoIds.remove(id);
-          } else {
-            _showTargetsForLfoIds
-              ..clear()
-              ..add(id);
-          }
-        });
+      targetsPanelVisible: _showTargetsPanel,
+      onShowTargets: () {
+        setState(() => _showTargetsPanel = true);
+      },
+      onHideTargets: () {
+        setState(() => _showTargetsPanel = false);
       },
     );
 
@@ -425,10 +418,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   }
 
   LfoSnapshot? get _targetsPanelLfo {
-    if (_showTargetsForLfoIds.isEmpty) return null;
-    // Show targets for the first visible-target LFO
-    final id = _showTargetsForLfoIds.first;
-    return _localLfos.where((l) => l.id == id).firstOrNull;
+    if (!_showTargetsPanel) return null;
+    return _selectedLfo;
   }
 
   Widget _targetsPanel(LfoSnapshot lfo) {
@@ -649,7 +640,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                       child: _modulationSidebar(),
                     ),
                   ),
-                if (_modStripVisible && _showTargetsForLfoIds.isNotEmpty && _targetsPanelLfo != null)
+                if (_modStripVisible && _showTargetsPanel && _selectedLfo != null)
                   _targetsPanel(_targetsPanelLfo!),
                 if (_modStripVisible && _selectedLfo != null)
                   SizedBox(
