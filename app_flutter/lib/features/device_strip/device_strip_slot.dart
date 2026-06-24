@@ -124,6 +124,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   late List<ModulationEdgeSnapshot> _localModEdges;
   int? _selectedLfoId;
   int? _connectModeLfoId;
+  final Set<int> _showTargetsForLfoIds = {};
 
   ProjectSnapshot get _emptySnapshot => ProjectSnapshot(
     bpm: 120,
@@ -173,6 +174,11 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     if (widget.lfos != oldWidget.lfos || widget.modEdges != oldWidget.modEdges) {
       _localLfos = List.of(widget.lfos);
       _localModEdges = List.of(widget.modEdges);
+      // Validate selection IDs against new list
+      final ids = _localLfos.map((l) => l.id).toSet();
+      if (_selectedLfoId != null && !ids.contains(_selectedLfoId)) _selectedLfoId = null;
+      if (_connectModeLfoId != null && !ids.contains(_connectModeLfoId)) _connectModeLfoId = null;
+      _showTargetsForLfoIds.removeWhere((id) => !ids.contains(id));
     }
   }
 
@@ -230,6 +236,11 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         setState(() {
           _localLfos = List.of(snapshot.lfos);
           _localModEdges = List.of(snapshot.modEdges);
+          // Clear stale selection/connect-mode IDs no longer in the list
+          final ids = _localLfos.map((l) => l.id).toSet();
+          if (_selectedLfoId != null && !ids.contains(_selectedLfoId)) _selectedLfoId = null;
+          if (_connectModeLfoId != null && !ids.contains(_connectModeLfoId)) _connectModeLfoId = null;
+          _showTargetsForLfoIds.removeWhere((id) => !ids.contains(id));
         });
       }
       return snapshot;
@@ -336,7 +347,9 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       );
 
   double get _modGridWidth => _modStripVisible ? 130.0 : 0.0;
-  double get _modPropsWidth => _modStripVisible && _selectedLfo != null ? 188.0 : 0.0;
+  double get _modPropsWidth => _modStripVisible && _selectedLfo != null ? 260.0 : 0.0;
+  double get _modTargetsWidth => _modStripVisible && _showTargetsForLfoIds.isNotEmpty && _targetsPanelLfo != null ? 160.0 : 0.0;
+  static const double _targetsPanelWidth = 160.0;
 
   double get _inputWidth => DeviceStripMetrics.inputPanelWidthFor(widget.device.type);
   double get _outputWidth => DeviceStripMetrics.outputPanelWidthFor(widget.device.type);
@@ -348,6 +361,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         _inputWidth +
         _outputWidth +
         _modGridWidth +
+        _modTargetsWidth +
         _modPropsWidth;
   }
 
@@ -384,6 +398,16 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       onLfoLongPress: _onLfoLongPress,
       onAddModulator: (type) => _onBridgeCall('createLfo', {'modulatorType': type}),
       onRemoveLfo: (id) => _onBridgeCall('removeLfo', {'lfoId': id}),
+      visibleTargetsLfoIds: _showTargetsForLfoIds,
+      onToggleTargets: (id) {
+        setState(() {
+          if (_showTargetsForLfoIds.contains(id)) {
+            _showTargetsForLfoIds.remove(id);
+          } else {
+            _showTargetsForLfoIds.add(id);
+          }
+        });
+      },
     );
 
     final listenable = widget.playheadBeatListenable;
@@ -393,6 +417,92 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     return ValueListenableBuilder<double>(
       valueListenable: listenable,
       builder: (context, beat, _) => gridFor(beat),
+    );
+  }
+
+  LfoSnapshot? get _targetsPanelLfo {
+    if (_showTargetsForLfoIds.isEmpty) return null;
+    // Show targets for the first visible-target LFO
+    final id = _showTargetsForLfoIds.first;
+    return _localLfos.where((l) => l.id == id).firstOrNull;
+  }
+
+  Widget _targetsPanel(LfoSnapshot lfo) {
+    const accent = Color(0xFFE8A54B);
+    final edges = _localModEdges
+        .where((e) => e.lfoId == lfo.id && e.deviceId == widget.device.id)
+        .toList();
+    return Container(
+      width: _targetsPanelWidth,
+      decoration: BoxDecoration(
+        color: const Color(0xFF14141E),
+        border: Border(
+          right: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 10, 8, 4),
+            child: Text(
+              'TARGETS',
+              style: TextStyle(
+                color: accent,
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.0,
+              ),
+            ),
+          ),
+          Expanded(
+            child: edges.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No targets',
+                      style: TextStyle(color: Colors.white24, fontSize: 9),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    itemCount: edges.length,
+                    itemBuilder: (context, index) {
+                      final edge = edges[index];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 3),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                edge.paramId,
+                                style: const TextStyle(
+                                  color: Colors.white60,
+                                  fontSize: 9,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Text(
+                              '${(edge.amount * 100).round()}%',
+                              style: TextStyle(color: accent, fontSize: 9),
+                            ),
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () => _onBridgeCall('removeModulation', {
+                                'lfoId': edge.lfoId,
+                                'paramId': edge.paramId,
+                              }),
+                              child: const Icon(Icons.close, size: 12, color: Colors.white30),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -485,23 +595,28 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                     width: 130,
                     child: _modulationSidebar(),
                   ),
+                if (_modStripVisible && _showTargetsForLfoIds.isNotEmpty && _targetsPanelLfo != null)
+                  _targetsPanel(_targetsPanelLfo!),
                 if (_modStripVisible && _selectedLfo != null)
                   SizedBox(
-                    width: 188,
+                    width: 260,
                     child: ModulatorPropertiesPanel(
                       mod: _selectedLfo!,
-                      edges: _localModEdges
-                          .where((e) => e.lfoId == _selectedLfo!.id && e.deviceId == widget.device.id)
-                          .toList(),
-                      onUpdate: (param, value) => _onBridgeCall('updateLfoParam', {
-                        'lfoId': _selectedLfo!.id,
-                        'param': param,
-                        'value': value,
-                      }),
-                      onRemoveEdge: (lfoId, paramId) => _onBridgeCall('removeModulation', {
-                        'lfoId': lfoId,
-                        'paramId': paramId,
-                      }),
+                      onUpdate: (param, value) async {
+                        // Optimistic local update: apply immediately, then sync to engine
+                        final selected = _selectedLfo;
+                        if (selected == null) return;
+                        final updated = selected.applyParamUpdate(param, value);
+                        setState(() {
+                          _localLfos = _localLfos.map((l) =>
+                              l.id == updated.id ? updated : l).toList();
+                        });
+                        await _onBridgeCall('updateLfoParam', {
+                          'lfoId': selected.id,
+                          'param': param,
+                          'value': value,
+                        });
+                      },
                     ),
                   ),
                 if (_inputWidth > 0)

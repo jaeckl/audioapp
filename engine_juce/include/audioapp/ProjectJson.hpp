@@ -1,8 +1,10 @@
 #pragma once
 
 #include "audioapp/ProjectEngine.hpp"
-#include "audioapp/LfoTypes.hpp"
+#include "audioapp/ModulationTypes.hpp"
+#include "audioapp/modulation/IModulatorType.hpp"
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -16,7 +18,7 @@ struct ProjectFileData {
     MasterTrackState master;
     std::vector<SampleLibraryEntryState> sampleLibrary;
     std::vector<TrackState> tracks;
-    std::vector<LfoState> lfos;
+    std::vector<ModulationGraph::ModulatorRecord> lfos;
     std::vector<ModulationEdge> modEdges;
     /// Global automation-clip store.
     std::vector<AutomationClipState> automationClips;
@@ -25,10 +27,12 @@ struct ProjectFileData {
 constexpr int kProjectFormatVersion = 1;
 
 std::string projectFileToJson(const ProjectFileData& project,
-                               const DeviceRegistry& registry);
+                               const DeviceRegistry& registry,
+                               const std::vector<std::unique_ptr<IModulatorType>>& modulatorTypes);
 bool parseProjectFileJson(const std::string& json,
                           ProjectFileData& out,
-                          const DeviceRegistry& registry);
+                          const DeviceRegistry& registry,
+                          const std::vector<std::unique_ptr<IModulatorType>>& modulatorTypes);
 
 /// Registry-aware overload: converts DeviceSlot to JSON via dispatch.
 juce::var deviceToVar(const DeviceSlot& slot, const DeviceRegistry& registry);
@@ -37,7 +41,8 @@ juce::var deviceToVar(const DeviceSlot& slot, const DeviceRegistry& registry);
 DeviceSlot deviceFromVar(const juce::var& value, const DeviceRegistry& registry);
 
 std::string snapshotToJson(const ProjectSnapshot& snapshot,
-                            const DeviceRegistry& registry);
+                            const DeviceRegistry& registry,
+                            const std::vector<std::unique_ptr<IModulatorType>>& modulatorTypes);
 
 /// Serialize a DeviceSlot to JSON string via its registered IDeviceType
 /// (default IDeviceType::slotToVar).
@@ -68,5 +73,18 @@ std::string buildBridgeOkTransportState(const TransportStateSnapshot& transport)
 std::string buildBridgeOkWithPath(const std::string& path);
 std::string buildBridgeOkWithMessage(const std::string& message);
 std::string buildBridgeError(const std::string& errorCode);
+
+/// Serialize modulator records array to juce::var, dispatching through IModulatorType.
+juce::var modulatorRecordsToVar(const std::vector<ModulationGraph::ModulatorRecord>& records,
+                                 const std::vector<std::unique_ptr<IModulatorType>>& modTypes);
+
+/// Deserialize modulator records array from juce::var.
+void modulatorRecordsFromVar(const juce::var& arr,
+                              std::vector<ModulationGraph::ModulatorRecord>& out,
+                              const std::vector<std::unique_ptr<IModulatorType>>& modTypes);
+
+/// Create the default set of modulator types (LfoModulatorType + EnvelopeModulatorType).
+/// Used for parsing project JSON outside of ProjectEngine context (e.g., tests).
+std::vector<std::unique_ptr<IModulatorType>> createDefaultModulatorTypes();
 
 } // namespace audioapp

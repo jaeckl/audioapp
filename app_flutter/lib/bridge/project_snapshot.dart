@@ -346,11 +346,11 @@ class SampleLibraryEntrySnapshot {
   }
 }
 
-/// Modulator source snapshot from the engine (LFO, ADSR, ADR).
+/// Modulator source snapshot from the engine (LFO, envelope).
 class LfoSnapshot {
   const LfoSnapshot({
     required this.id,
-    this.modulatorType = 0,
+    this.type = 'lfo',
     this.retrigger = 0,
     this.waveform = 0,
     this.rate = 1.0,
@@ -362,10 +362,20 @@ class LfoSnapshot {
     this.sustain = 0.7,
     this.release = 0.35,
     this.name = '',
+    this.curveType = 0,
+    this.hold = 0.0,
+    this.delay = 0.0,
+    this.attackCurve = 0.5,
+    this.decayCurve = 0.5,
+    this.releaseCurve = 0.5,
+    this.analogMode = 0,
+    this.morph = 0.0,
+    this.spread = 0.5,
   });
 
   final int id;
-  final int modulatorType;
+  /// "lfo" or "envelope" — type string from engine IModulatorType::typeId().
+  final String type;
   final int retrigger;
   final int waveform;
   final double rate;
@@ -377,11 +387,42 @@ class LfoSnapshot {
   final double sustain;
   final double release;
   final String name;
+  final int curveType;
+  final double hold;
+  final double delay;
+  final double attackCurve;
+  final double decayCurve;
+  final double releaseCurve;
+  final int analogMode;
+  final double morph;
+  final double spread;
+
+  int get modulatorType => type == 'envelope' ? 1 : 0;
 
   factory LfoSnapshot.fromMap(Map<dynamic, dynamic> map) {
+    // New style: type field from IModulatorType::paramsToVar()
+    final typeStr = map['type'] as String? ?? '';
+    if (typeStr == 'envelope') {
+      return LfoSnapshot(
+        id: (map['id'] as num?)?.toInt() ?? 0,
+        type: 'envelope',
+        attack: (map['attack'] as num?)?.toDouble() ?? 0.08,
+        decay: (map['decay'] as num?)?.toDouble() ?? 0.22,
+        sustain: (map['sustain'] as num?)?.toDouble() ?? 0.65,
+        release: (map['release'] as num?)?.toDouble() ?? 0.28,
+        curveType: (map['curveType'] as num?)?.toInt() ?? 0,
+        hold: (map['hold'] as num?)?.toDouble() ?? 0.0,
+        delay: (map['delay'] as num?)?.toDouble() ?? 0.0,
+        attackCurve: (map['attackCurve'] as num?)?.toDouble() ?? 0.5,
+        decayCurve: (map['decayCurve'] as num?)?.toDouble() ?? 0.5,
+        releaseCurve: (map['releaseCurve'] as num?)?.toDouble() ?? 0.5,
+        analogMode: (map['analogMode'] as num?)?.toInt() ?? 0,
+      );
+    }
+    // LFO or default (fallback for old-format JSON with numeric modulatorType)
     return LfoSnapshot(
       id: (map['id'] as num?)?.toInt() ?? 0,
-      modulatorType: (map['modulatorType'] as num?)?.toInt() ?? 0,
+      type: typeStr.isNotEmpty ? typeStr : 'lfo',
       retrigger: (map['retrigger'] as num?)?.toInt() ?? 0,
       waveform: (map['waveform'] as num?)?.toInt() ?? 0,
       rate: (map['rate'] as num?)?.toDouble() ?? 1.0,
@@ -392,7 +433,15 @@ class LfoSnapshot {
       decay: (map['decay'] as num?)?.toDouble() ?? 0.25,
       sustain: (map['sustain'] as num?)?.toDouble() ?? 0.7,
       release: (map['release'] as num?)?.toDouble() ?? 0.35,
-      name: map['name'] as String? ?? '',
+      curveType: (map['curveType'] as num?)?.toInt() ?? 0,
+      hold: (map['hold'] as num?)?.toDouble() ?? 0.0,
+      delay: (map['delay'] as num?)?.toDouble() ?? 0.0,
+      attackCurve: (map['attackCurve'] as num?)?.toDouble() ?? 0.5,
+      decayCurve: (map['decayCurve'] as num?)?.toDouble() ?? 0.5,
+      releaseCurve: (map['releaseCurve'] as num?)?.toDouble() ?? 0.5,
+      analogMode: (map['analogMode'] as num?)?.toInt() ?? 0,
+      morph: (map['morph'] as num?)?.toDouble() ?? 0.0,
+      spread: (map['spread'] as num?)?.toDouble() ?? 0.5,
     );
   }
 
@@ -404,9 +453,36 @@ class LfoSnapshot {
       ? waveformNames[waveform]
       : 'Sine';
 
+  /// Optimistic param update: maps param name → copyWith field.
+  /// Returns a new [LfoSnapshot] with that field changed.
+  LfoSnapshot applyParamUpdate(String param, double value) {
+    switch (param) {
+      case 'retrigger':    return copyWith(retrigger: value.round());
+      case 'waveform':     return copyWith(waveform: value.round());
+      case 'rate':         return copyWith(rate: value);
+      case 'syncDivision': return copyWith(syncDivision: value.round());
+      case 'phase':        return copyWith(phase: value);
+      case 'polarity':     return copyWith(polarity: value.round());
+      case 'attack':       return copyWith(attack: value);
+      case 'decay':        return copyWith(decay: value);
+      case 'sustain':      return copyWith(sustain: value);
+      case 'release':      return copyWith(release: value);
+      case 'curveType':    return copyWith(curveType: value.round());
+      case 'hold':         return copyWith(hold: value);
+      case 'delay':        return copyWith(delay: value);
+      case 'attackCurve':  return copyWith(attackCurve: value);
+      case 'decayCurve':   return copyWith(decayCurve: value);
+      case 'releaseCurve': return copyWith(releaseCurve: value);
+      case 'analogMode':   return copyWith(analogMode: value.round());
+      case 'morph':        return copyWith(morph: value);
+      case 'spread':       return copyWith(spread: value);
+      default:             return this;
+    }
+  }
+
   LfoSnapshot copyWith({
     int? id,
-    int? modulatorType,
+    String? type,
     int? retrigger,
     int? waveform,
     double? rate,
@@ -418,10 +494,19 @@ class LfoSnapshot {
     double? sustain,
     double? release,
     String? name,
+    int? curveType,
+    double? hold,
+    double? delay,
+    double? attackCurve,
+    double? decayCurve,
+    double? releaseCurve,
+    int? analogMode,
+    double? morph,
+    double? spread,
   }) {
     return LfoSnapshot(
       id: id ?? this.id,
-      modulatorType: modulatorType ?? this.modulatorType,
+      type: type ?? this.type,
       retrigger: retrigger ?? this.retrigger,
       waveform: waveform ?? this.waveform,
       rate: rate ?? this.rate,
@@ -433,6 +518,15 @@ class LfoSnapshot {
       sustain: sustain ?? this.sustain,
       release: release ?? this.release,
       name: name ?? this.name,
+      curveType: curveType ?? this.curveType,
+      hold: hold ?? this.hold,
+      delay: delay ?? this.delay,
+      attackCurve: attackCurve ?? this.attackCurve,
+      decayCurve: decayCurve ?? this.decayCurve,
+      releaseCurve: releaseCurve ?? this.releaseCurve,
+      analogMode: analogMode ?? this.analogMode,
+      morph: morph ?? this.morph,
+      spread: spread ?? this.spread,
     );
   }
 }

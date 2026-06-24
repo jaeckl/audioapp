@@ -1,6 +1,8 @@
 #include "audioapp/ProjectJson.hpp"
 #include "audioapp/SampleTypes.hpp"
 #include "audioapp/devices/DeviceRegistry.hpp"
+#include "audioapp/modulation/LfoModulatorType.hpp"
+#include "audioapp/modulation/EnvelopeModulatorType.hpp"
 
 #include <juce_core/juce_core.h>
 
@@ -134,8 +136,6 @@ SampleClipState sampleClipFromVar(const juce::var& value) {
         clip.sampleName = varToString(object->getProperty("sampleName"));
         clip.startBeat = varToDouble(object->getProperty("startBeat"), 0.0);
         clip.lengthBeats = varToDouble(object->getProperty("lengthBeats"), 4.0);
-        // Backwards-compatible: legacy projects predate the natural-length
-        // field; default to the current length so the waveform still renders.
         clip.naturalLengthBeats =
             varToDouble(object->getProperty("naturalLengthBeats"), clip.lengthBeats);
         if (const auto* peakArray = varArray(object->getProperty("waveformPeaks"))) {
@@ -226,43 +226,7 @@ SampleLibraryEntryState sampleLibraryEntryFromVar(const juce::var& value) {
     return entry;
 }
 
-// --- LFO / modulation serialization helpers ---
-
-juce::var lfoToVar(const LfoState& lfo) {
-    auto* object = new juce::DynamicObject();
-    object->setProperty("id", lfo.id);
-    object->setProperty("modulatorType", lfo.modulatorType);
-    object->setProperty("retrigger", lfo.retrigger);
-    object->setProperty("waveform", lfo.waveform);
-    object->setProperty("rate", static_cast<double>(lfo.rate));
-    object->setProperty("syncDivision", lfo.syncDivision);
-    object->setProperty("phase", static_cast<double>(lfo.phase));
-    object->setProperty("polarity", lfo.polarity);
-    object->setProperty("attack", static_cast<double>(lfo.attack));
-    object->setProperty("decay", static_cast<double>(lfo.decay));
-    object->setProperty("sustain", static_cast<double>(lfo.sustain));
-    object->setProperty("release", static_cast<double>(lfo.release));
-    return juce::var(object);
-}
-
-LfoState lfoFromVar(const juce::var& value) {
-    LfoState lfo;
-    if (const auto* object = value.getDynamicObject()) {
-        lfo.id = varToInt(object->getProperty("id"), 0);
-        lfo.modulatorType = varToInt(object->getProperty("modulatorType"), 0);
-        lfo.retrigger = varToInt(object->getProperty("retrigger"), 0);
-        lfo.waveform = varToInt(object->getProperty("waveform"), 0);
-        lfo.rate = varToFloat(object->getProperty("rate"), 1.0f);
-        lfo.syncDivision = varToInt(object->getProperty("syncDivision"), 0);
-        lfo.phase = varToFloat(object->getProperty("phase"), 0.0f);
-        lfo.polarity = varToInt(object->getProperty("polarity"), 0);
-        lfo.attack = varToFloat(object->getProperty("attack"), 0.1f);
-        lfo.decay = varToFloat(object->getProperty("decay"), 0.25f);
-        lfo.sustain = varToFloat(object->getProperty("sustain"), 0.7f);
-        lfo.release = varToFloat(object->getProperty("release"), 0.35f);
-    }
-    return lfo;
-}
+// --- Modulation serialization: dispatch through IModulatorType ---
 
 juce::var modEdgeToVar(const ModulationEdge& edge) {
     auto* object = new juce::DynamicObject();
@@ -282,26 +246,6 @@ ModulationEdge modEdgeFromVar(const juce::var& value) {
         edge.amount = varToFloat(object->getProperty("amount"), 0.0f);
     }
     return edge;
-}
-
-juce::var lfoArrayToVar(const std::vector<LfoState>& lfos) {
-    juce::Array<juce::var> result;
-    result.ensureStorageAllocated(static_cast<int>(lfos.size()));
-    for (const auto& lfo : lfos) {
-        result.add(lfoToVar(lfo));
-    }
-    return juce::var(result);
-}
-
-std::vector<LfoState> lfoArrayFromVar(const juce::var& value) {
-    std::vector<LfoState> result;
-    if (const auto* arr = varArray(value)) {
-        result.reserve(static_cast<size_t>(arr->size()));
-        for (const auto& item : *arr) {
-            result.push_back(lfoFromVar(item));
-        }
-    }
-    return result;
 }
 
 juce::var modEdgeArrayToVar(const std::vector<ModulationEdge>& edges) {
@@ -349,7 +293,8 @@ juce::var trackToVarSnapshot(const TrackState& track,
                               const DeviceRegistry& registry);
 
 juce::var snapshotToVar(const ProjectSnapshot& snapshot,
-                         const DeviceRegistry& registry) {
+                         const DeviceRegistry& registry,
+                         const std::vector<std::unique_ptr<IModulatorType>>& modTypes) {
     juce::Array<juce::var> tracks;
     tracks.ensureStorageAllocated(static_cast<int>(snapshot.tracks.size()));
     for (const auto& track : snapshot.tracks) {
@@ -380,7 +325,7 @@ juce::var snapshotToVar(const ProjectSnapshot& snapshot,
     object->setProperty("master", juce::var(master));
     object->setProperty("samples", samples);
     object->setProperty("tracks", tracks);
-    object->setProperty("lfos", lfoArrayToVar(snapshot.lfos));
+    object->setProperty("lfos", modulatorRecordsToVar(snapshot.lfos, modTypes));
     object->setProperty("modEdges", modEdgeArrayToVar(snapshot.modEdges));
     object->setProperty("automationClips", automationClipArrayToVar(snapshot.automationClips));
     return juce::var(object);
@@ -395,7 +340,8 @@ TrackState trackFromVarPersistence(const juce::var& value,
                                     const DeviceRegistry& registry);
 
 juce::var projectFileToVar(const ProjectFileData& project,
-                            const DeviceRegistry& registry) {
+                            const DeviceRegistry& registry,
+                            const std::vector<std::unique_ptr<IModulatorType>>& modTypes) {
     juce::Array<juce::var> tracks;
     tracks.ensureStorageAllocated(static_cast<int>(project.tracks.size()));
     for (const auto& track : project.tracks) {
@@ -420,7 +366,7 @@ juce::var projectFileToVar(const ProjectFileData& project,
     object->setProperty("master", juce::var(master));
     object->setProperty("samples", samples);
     object->setProperty("tracks", tracks);
-    object->setProperty("lfos", lfoArrayToVar(project.lfos));
+    object->setProperty("lfos", modulatorRecordsToVar(project.lfos, modTypes));
     object->setProperty("modEdges", modEdgeArrayToVar(project.modEdges));
     object->setProperty("automationClips", automationClipArrayToVar(project.automationClips));
     return juce::var(object);
@@ -429,7 +375,6 @@ juce::var projectFileToVar(const ProjectFileData& project,
 // --- DeviceSlot-based serialization dispatch (Package 0) ---
 
 juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& registry) {
-    // Try the device type's own slotToVar first.
     const IDeviceType* type = registry.findForSlot(slot);
     if (type != nullptr) {
         juce::var result = type->slotToVar(slot);
@@ -437,13 +382,10 @@ juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& regi
             return result;
         }
     }
-    // All device types should have migrated slotToVar by now.
-    // Return empty var if not found (should not happen).
     return {};
 }
 
 DeviceSlot deviceVarToSlotImpl(const juce::var& obj, const DeviceRegistry& registry) {
-    // Try the device type's own varToSlot first.
     if (const auto* object = obj.getDynamicObject()) {
         const std::string typeId = varToString(object->getProperty("type"));
         const IDeviceType* type = registry.find(typeId);
@@ -454,8 +396,6 @@ DeviceSlot deviceVarToSlotImpl(const juce::var& obj, const DeviceRegistry& regis
             }
         }
     }
-    // All device types should have migrated varToSlot by now.
-    // Return empty slot if not found (should not happen).
     return {};
 }
 
@@ -523,10 +463,8 @@ juce::var trackToVarSnapshot(const TrackState& track,
     juce::Array<juce::var> devices;
     devices.ensureStorageAllocated(static_cast<int>(track.devices.size()));
     for (size_t i = 0; i < track.devices.size(); ++i) {
-        // Step 1: Serialize device params via registry dispatch (writes meters=0.0)
         juce::var deviceVar = deviceSlotToVarImpl(track.devices[i], registry);
 
-        // Step 2: Inject live meter values from parallel array
         for (const auto& meter : track.deviceMeters) {
             if (meter.deviceId == track.devices[i].id) {
                 if (auto* obj = deviceVar.getDynamicObject()) {
@@ -566,6 +504,13 @@ juce::var trackToVarSnapshot(const TrackState& track,
 
 } // namespace
 
+std::vector<std::unique_ptr<IModulatorType>> createDefaultModulatorTypes() {
+    std::vector<std::unique_ptr<IModulatorType>> types;
+    types.push_back(std::make_unique<LfoModulatorType>());
+    types.push_back(std::make_unique<EnvelopeModulatorType>());
+    return types;
+}
+
 std::string deviceSlotToVar(const DeviceSlot& slot, const DeviceRegistry& registry) {
     return toStdString(juce::JSON::toString(deviceSlotToVarImpl(slot, registry), false));
 }
@@ -582,19 +527,71 @@ DeviceSlot deviceFromVar(const juce::var& value, const DeviceRegistry& registry)
     return deviceVarToSlotImpl(value, registry);
 }
 
+juce::var modulatorRecordsToVar(const std::vector<ModulationGraph::ModulatorRecord>& records,
+                                 const std::vector<std::unique_ptr<IModulatorType>>& modTypes) {
+    juce::Array<juce::var> result;
+    result.ensureStorageAllocated(static_cast<int>(records.size()));
+    for (const auto& rec : records) {
+        if (static_cast<size_t>(rec.typeIndex) >= modTypes.size()) continue;
+        const auto& type = modTypes[static_cast<size_t>(rec.typeIndex)];
+        juce::var paramsVar = type->paramsToVar(rec.params);
+        if (auto* obj = paramsVar.getDynamicObject()) {
+            obj->setProperty("id", rec.id);
+            obj->setProperty("type", juce::String(type->typeId()));
+        }
+        result.add(paramsVar);
+    }
+    return juce::var(result);
+}
+
+void modulatorRecordsFromVar(const juce::var& arr,
+                              std::vector<ModulationGraph::ModulatorRecord>& out,
+                              const std::vector<std::unique_ptr<IModulatorType>>& modTypes) {
+    out.clear();
+    const auto* array = arr.getArray();
+    if (array == nullptr) return;
+
+    out.reserve(static_cast<size_t>(array->size()));
+    for (const auto& item : *array) {
+        const auto* obj = item.getDynamicObject();
+        if (obj == nullptr) continue;
+
+        const int id = varToInt(obj->getProperty("id"), 0);
+        const std::string typeId = varToString(obj->getProperty("type"));
+
+        int typeIndex = -1;
+        for (size_t i = 0; i < modTypes.size(); ++i) {
+            if (modTypes[i]->typeId() == typeId) {
+                typeIndex = static_cast<int>(i);
+                break;
+            }
+        }
+        if (typeIndex < 0) continue;
+
+        ModulationGraph::ModulatorRecord rec;
+        rec.id = id;
+        rec.typeIndex = typeIndex;
+        rec.params = modTypes[static_cast<size_t>(typeIndex)]->varToParams(item);
+        out.push_back(std::move(rec));
+    }
+}
+
 std::string snapshotToJson(const ProjectSnapshot& snapshot,
-                            const DeviceRegistry& registry) {
-    return toStdString(juce::JSON::toString(snapshotToVar(snapshot, registry), false));
+                            const DeviceRegistry& registry,
+                            const std::vector<std::unique_ptr<IModulatorType>>& modulatorTypes) {
+    return toStdString(juce::JSON::toString(snapshotToVar(snapshot, registry, modulatorTypes), false));
 }
 
 std::string projectFileToJson(const ProjectFileData& project,
-                               const DeviceRegistry& registry) {
-    return toStdString(juce::JSON::toString(projectFileToVar(project, registry), true));
+                               const DeviceRegistry& registry,
+                               const std::vector<std::unique_ptr<IModulatorType>>& modulatorTypes) {
+    return toStdString(juce::JSON::toString(projectFileToVar(project, registry, modulatorTypes), true));
 }
 
 bool parseProjectFileJson(const std::string& json,
                           ProjectFileData& out,
-                          const DeviceRegistry& registry) {
+                          const DeviceRegistry& registry,
+                          const std::vector<std::unique_ptr<IModulatorType>>& modulatorTypes) {
     const auto root = parseRootVar(json);
     const auto* object = root.getDynamicObject();
     if (object == nullptr) {
@@ -635,13 +632,12 @@ bool parseProjectFileJson(const std::string& json,
     }
 
     if (object->hasProperty("lfos")) {
-        out.lfos = lfoArrayFromVar(object->getProperty("lfos"));
+        modulatorRecordsFromVar(object->getProperty("lfos"), out.lfos, modulatorTypes);
     }
     if (object->hasProperty("modEdges")) {
         out.modEdges = modEdgeArrayFromVar(object->getProperty("modEdges"));
     }
 
-    // Automation clips live in the top-level array.
     out.automationClips.clear();
     if (object->hasProperty("automationClips")) {
         out.automationClips = automationClipArrayFromVar(object->getProperty("automationClips"));

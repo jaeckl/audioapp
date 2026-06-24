@@ -5,21 +5,22 @@
 
 #include "audioapp/modulation/IModulator.hpp"
 #include "audioapp/modulation/ModulatorParams.hpp"
-#include "audioapp/LfoTypes.hpp"
+#include "audioapp/ModulationTypes.hpp"
 
 namespace audioapp {
 
-/// Modulator implementing a 3-stage ADR envelope (attack-decay-release, no sustain).
-class AdrModulator : public IModulator {
+/// Unified envelope modulator supporting ADSR, ASR, ADR, and AHDSR curves.
+/// Always retriggers on note — no free/sync/rate modes.
+class EnvelopeModulator : public IModulator {
 public:
-    explicit AdrModulator(const AdrParams& params) noexcept : params_(params) {}
+    explicit EnvelopeModulator(const EnvelopeParams& params) noexcept : params_(params) {}
 
     void reset() noexcept override {
         runtime_ = EnvelopeRuntime{};
     }
 
     int modulatorType() const noexcept override {
-        return static_cast<int>(ModulatorType::Adr);
+        return static_cast<int>(ModulatorType::Envelope);
     }
 
     float evaluate(double playheadBeat, int bpm,
@@ -28,7 +29,7 @@ public:
                    uint32_t retriggerGeneration) noexcept override;
 
 private:
-    AdrParams params_;
+    EnvelopeParams params_;
     EnvelopeRuntime runtime_;
 
     static float clamp01(float value) noexcept {
@@ -39,15 +40,8 @@ private:
         return std::max(0.01f, clamp01(normalized)) * 4.0f;
     }
 
-    float applyPolarity(float value, int polarity) const noexcept {
-        switch (polarity) {
-        case 1: return std::max(0.0f, value);
-        case 2: return std::min(0.0f, value);
-        default: return value;
-        }
-    }
-
-    float evaluateOnNoteRetrigger(double frameSeconds, uint32_t retriggerGeneration) noexcept;
+    float evaluateOnNoteRetrigger(double absoluteSeconds,
+                                  uint32_t retriggerGeneration) noexcept;
 };
 
 } // namespace audioapp

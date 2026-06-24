@@ -489,7 +489,7 @@ ProjectSnapshot ProjectEngine::snapshot() const {
         snap.automationClips.push_back(std::move(cs));
     }
 
-    snap.lfos = modulationGraph_.toLfoStates();
+    snap.lfos = modulationGraph_.lfos();
     snap.modEdges = modulationGraph_.modEdges();
 
     applyLiveDeviceMetersLocked(snap);
@@ -839,7 +839,7 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
         }
         file.tracks.push_back(std::move(ts));
     }
-    file.lfos = modulationGraph_.toLfoStates();
+    file.lfos = modulationGraph_.lfos();
     file.modEdges = modulationGraph_.modEdges();
     file.automationClips.reserve(automationClipStore_.clips().size());
     for (const auto& clip : automationClipStore_.clips()) {
@@ -932,14 +932,13 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
     recomputeIdCountersLocked();
     trackRepo_.ensureTrackGainDevices(deviceRegistry_);
 
-    modulationGraph_.load(data.lfos, data.modEdges);
-    modulationGraph_.recomputeIdCounters();
+    modulationGraph_.replaceRecords(data.lfos, data.modEdges);
     // Rebuild the playback array BEFORE rebuilding the track snapshot.
     // The snapshot resolver maps each modulation edge's LFO domain id to its
     // compact playback array index; if rebuildPlayback() hasn't run yet, every
     // edge is dropped silently and modulation never reaches the audio thread
     // after a project reload.
-    modulationGraph_.rebuildPlayback();
+    // Note: replaceRecords() already calls recomputeIdCounters() + rebuildPlayback().
 
     if (data.master.gain > 0.0f) {
         masterGain_.store(std::clamp(data.master.gain, 0.0f, 1.0f), std::memory_order_release);

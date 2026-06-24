@@ -221,7 +221,8 @@ bool saveProjectToArchive(const ProjectEngine& engine, const std::string& archiv
         return false;
     }
     const auto fileData = engine.toProjectFileData();
-    const std::string json = projectFileToJson(fileData, engine.deviceRegistry());
+    const std::string json = projectFileToJson(fileData, engine.deviceRegistry(),
+                                                 engine.modulatorTypes());
     const auto bytes = buildProjectArchiveBytes(json);
     const bool result = writeAllBytes(std::filesystem::path(archivePath), bytes);
     return result;
@@ -240,7 +241,7 @@ bool loadProjectFromArchive(ProjectEngine& engine, const std::string& archivePat
         return false;
     }
     ProjectFileData data;
-    if (!parseProjectFileJson(json, data, engine.deviceRegistry())) {
+    if (!parseProjectFileJson(json, data, engine.deviceRegistry(), engine.modulatorTypes())) {
         return false;
     }
     return engine.loadFromProjectFileData(data);

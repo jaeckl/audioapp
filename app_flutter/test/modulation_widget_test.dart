@@ -56,10 +56,13 @@ void main() {
         ),
       ));
 
-      // Each LFO tile renders a close (Icons.close) button inside _ModulatorTile.
-      expect(find.byIcon(Icons.close), findsNWidgets(2));
+      // 2 LFO tiles render (no overlay close icons, labels are painted via CustomPaint).
+      // The add tile appears because lfos(2) < maxLfos(4).
+      expect(find.byIcon(Icons.add), findsOneWidget);
       // Grid header label.
       expect(find.text('MODULATORS'), findsOneWidget);
+      // Verify no close overlay buttons (removed in favor of double-tap menu)
+      expect(find.byIcon(Icons.close), findsNothing);
     });
 
     testWidgets('add tile is present when lfos < max', (tester) async {

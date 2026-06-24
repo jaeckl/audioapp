@@ -17,7 +17,7 @@ class ModulatorPreview extends StatelessWidget {
     required this.accent,
     this.isSelected = false,
     this.isConnectMode = false,
-    this.innerPadding = 4.0,
+    this.innerPadding = 2.0,
   });
 
   static const tileRadius = 6.0;

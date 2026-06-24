@@ -16,6 +16,33 @@ void main() {
           final args = call.arguments as Map<dynamic, dynamic>? ?? {};
           final modulatorType =
               (args['modulatorType'] as num?)?.toInt() ?? 0;
+          final typeStr = modulatorType == 1 ? 'envelope' : 'lfo';
+          final baseLfo = <String, dynamic>{
+            'id': 1,
+            'type': typeStr,
+            'retrigger': 1,
+            'waveform': 0,
+            'rate': 1.0,
+            'syncDivision': 3,
+            'phase': 0.0,
+            'polarity': 0,
+            'attack': 0.1,
+            'decay': 0.25,
+            'sustain': 0.7,
+            'release': 0.35,
+            'morph': 0.0,
+            'spread': 0.5,
+          };
+          // Envelope type has extra fields
+          if (modulatorType == 1) {
+            baseLfo['curveType'] = 0;
+            baseLfo['hold'] = 0.0;
+            baseLfo['delay'] = 0.0;
+            baseLfo['attackCurve'] = 0.5;
+            baseLfo['decayCurve'] = 0.5;
+            baseLfo['releaseCurve'] = 0.5;
+            baseLfo['analogMode'] = 0;
+          }
           return {
             'ok': true,
             'snapshot': {
@@ -24,23 +51,7 @@ void main() {
               'playing': false,
               'selectedTrackId': '',
               'tracks': [],
-              'lfos': [
-                {
-                  'id': 1,
-                  'modulatorType': modulatorType,
-                  'retrigger': 1,
-                  'waveform': 0,
-                  'rate': 1.0,
-                  'syncDivision': 3,
-                  'phase': 0.0,
-                  'polarity': 0,
-                  'attack': 0.1,
-                  'decay': 0.25,
-                  'sustain': 0.7,
-                  'release': 0.35,
-                  'name': '',
-                },
-              ],
+              'lfos': [baseLfo],
               'modEdges': [],
             },
           };
@@ -64,7 +75,7 @@ void main() {
           final lfoId = (args['lfoId'] as num?)?.toInt() ?? 0;
           final updatedLfo = <String, dynamic>{
             'id': lfoId,
-            'modulatorType': 0,
+            'type': 'lfo',
             'retrigger': 1,
             'waveform': 0,
             'rate': 1.0,
@@ -75,7 +86,8 @@ void main() {
             'decay': 0.25,
             'sustain': 0.7,
             'release': 0.35,
-            'name': '',
+            'morph': 0.0,
+            'spread': 0.5,
           };
           if (param == 'rate') {
             updatedLfo['rate'] = value;
@@ -132,7 +144,7 @@ void main() {
               'lfos': [
                 {
                   'id': lfoId,
-                  'modulatorType': 0,
+                  'type': 'lfo',
                   'retrigger': 1,
                   'waveform': 0,
                   'rate': 1.0,
@@ -143,7 +155,8 @@ void main() {
                   'decay': 0.25,
                   'sustain': 0.7,
                   'release': 0.35,
-                  'name': '',
+                  'morph': 0.0,
+                  'spread': 0.5,
                 },
               ],
               'modEdges': [
@@ -183,7 +196,7 @@ void main() {
               'lfos': [
                 {
                   'id': remLfoId,
-                  'modulatorType': 0,
+                  'type': 'lfo',
                   'retrigger': 1,
                   'waveform': 0,
                   'rate': 1.0,
@@ -194,7 +207,8 @@ void main() {
                   'decay': 0.25,
                   'sustain': 0.7,
                   'release': 0.35,
-                  'name': '',
+                  'morph': 0.0,
+                  'spread': 0.5,
                 },
               ],
               'modEdges': [],
@@ -265,8 +279,5 @@ void main() {
 
     final lfo1 = await bridge.createLfo(modulatorType: 1);
     expect(lfo1.lfos.first.modulatorType, 1);
-
-    final lfo2 = await bridge.createLfo(modulatorType: 2);
-    expect(lfo2.lfos.first.modulatorType, 2);
   });
 }

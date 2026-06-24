@@ -25,6 +25,9 @@ public:
         p.decay = 0.25f;
         p.sustain = 0.70f;
         p.release = 0.35f;
+        p.morph = 0.0f;
+        p.spread = 0.5f;
+        p.analogMode = 0;
         return p;
     }
 
@@ -40,6 +43,9 @@ public:
         if (paramId == "decay") { p.decay = std::clamp(value, 0.0f, 1.0f); return true; }
         if (paramId == "sustain") { p.sustain = std::clamp(value, 0.0f, 1.0f); return true; }
         if (paramId == "release") { p.release = std::clamp(value, 0.0f, 1.0f); return true; }
+        if (paramId == "morph") { p.morph = std::clamp(value, 0.0f, 1.0f); return true; }
+        if (paramId == "spread") { p.spread = std::clamp(value, 0.0f, 1.0f); return true; }
+        if (paramId == "analogMode") { p.analogMode = (value >= 0.5f) ? 1 : 0; return true; }
         return false;
     }
 
@@ -60,6 +66,9 @@ public:
         obj->setProperty("decay", static_cast<double>(p.decay));
         obj->setProperty("sustain", static_cast<double>(p.sustain));
         obj->setProperty("release", static_cast<double>(p.release));
+        obj->setProperty("morph", static_cast<double>(p.morph));
+        obj->setProperty("spread", static_cast<double>(p.spread));
+        obj->setProperty("analogMode", p.analogMode);
         obj->setProperty("type", "lfo");
         return juce::var(obj);
     }
@@ -85,6 +94,9 @@ public:
             p.decay = readFloat("decay", 0.25f);
             p.sustain = readFloat("sustain", 0.7f);
             p.release = readFloat("release", 0.35f);
+            p.morph = readFloat("morph", 0.0f);
+            p.spread = readFloat("spread", 0.5f);
+            p.analogMode = readInt("analogMode", 0);
         }
         return p;
     }

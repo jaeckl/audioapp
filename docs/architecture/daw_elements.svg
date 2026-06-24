@@ -1,1028 +1,4244 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg xmlns="http://www.w3.org/2000/svg"
-     xmlns:svg="http://www.w3.org/2000/svg"
-     xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-     xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-     width="2400" height="2000" viewBox="0 0 2400 2000"
-     style="background-color: #0E0E14; font-family: 'Inter', sans-serif;">
-
-  <sodipodi:namedview id="base" pagecolor="#0e0e14" bordercolor="#666666" borderopacity="1.0" />
-
-  <defs>
+<svg
+   width="2400"
+   height="2000"
+   viewBox="0 0 2400 2000"
+   style="background-color: #0E0E14; font-family: 'Inter', sans-serif;"
+   version="1.1"
+   id="svg229"
+   sodipodi:docname="daw_elements.svg"
+   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#0e0e14"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="2.4183052"
+     inkscape:cx="1418.969"
+     inkscape:cy="1431.7879"
+     inkscape:window-width="1920"
+     inkscape:window-height="1057"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g215-3" />
+  <defs
+     id="defs6">
     <!-- Background Gradients -->
-    <linearGradient id="headerGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#262635" />
-      <stop offset="100%" stop-color="#1A1A24" />
+    <linearGradient
+       id="headerGrad"
+       x1="0"
+       y1="0"
+       x2="0"
+       y2="1">
+      <stop
+         offset="0%"
+         stop-color="#262635"
+         id="stop1" />
+      <stop
+         offset="100%"
+         stop-color="#1A1A24"
+         id="stop2" />
     </linearGradient>
-    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#1A1A24" />
-      <stop offset="100%" stop-color="#14141E" />
+    <linearGradient
+       id="bodyGrad"
+       x1="0"
+       y1="0"
+       x2="0"
+       y2="1">
+      <stop
+         offset="0%"
+         stop-color="#1A1A24"
+         id="stop3" />
+      <stop
+         offset="100%"
+         stop-color="#14141E"
+         id="stop4" />
     </linearGradient>
-    <linearGradient id="visualizerGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#050508" />
-      <stop offset="100%" stop-color="#09090D" />
+    <linearGradient
+       id="visualizerGrad"
+       x1="0"
+       y1="0"
+       x2="0"
+       y2="1">
+      <stop
+         offset="0%"
+         stop-color="#050508"
+         id="stop5" />
+      <stop
+         offset="100%"
+         stop-color="#09090D"
+         id="stop6" />
     </linearGradient>
   </defs>
-
   <!-- ================================================================= -->
   <!-- LAYER 1: FOUNDATIONS & TYPOGRAPHY                                 -->
   <!-- ================================================================= -->
-  <g inkscape:groupmode="layer" inkscape:label="01 Foundations" id="layer_foundations">
-    <text x="50" y="50" font-size="24" font-weight="bold" fill="#FFFFFF" letter-spacing="1">AUDIOAPP DAW DESIGN SYSTEM FOUNDATIONS (REVISED)</text>
-    <text x="50" y="80" font-size="14" fill="#9A9AA8">Vector sheet revised with exact heights (320px expanded), left/right side stripes, exact tab styles, tool rail pane, and VU meters.</text>
-
+  <g
+     inkscape:groupmode="layer"
+     inkscape:label="01 Foundations"
+     id="layer_foundations">
+    <text
+       x="50"
+       y="50"
+       font-size="24"
+       font-weight="bold"
+       fill="#FFFFFF"
+       letter-spacing="1"
+       id="text6">AUDIOAPP DAW DESIGN SYSTEM FOUNDATIONS (REVISED)</text>
+    <text
+       x="50"
+       y="80"
+       font-size="14"
+       fill="#9A9AA8"
+       id="text7">Vector sheet revised with exact heights (320px expanded), left/right side stripes, exact tab styles, tool rail pane, and VU meters.</text>
     <!-- Color Palette Swatches -->
-    <g id="swatches" transform="translate(50, 110)">
-      <text x="0" y="20" font-size="14" font-weight="bold" fill="#FFFFFF">1.1 Theme Colors</text>
-      
-      <rect x="0" y="35" width="70" height="40" rx="4" fill="#121218" stroke="#4A4A5C" stroke-width="1"/>
-      <text x="0" y="90" font-size="10" fill="#9A9AA8">Strip Bg</text>
-      <text x="0" y="102" font-size="10" font-weight="bold" fill="#FFFFFF">#121218</text>
-
-      <rect x="85" y="35" width="70" height="40" rx="4" fill="#1A1A24" stroke="#4A4A5C" stroke-width="1"/>
-      <text x="85" y="90" font-size="10" fill="#9A9AA8">Card Bg</text>
-      <text x="85" y="102" font-size="10" font-weight="bold" fill="#FFFFFF">#1A1A24</text>
-
-      <rect x="170" y="35" width="70" height="40" rx="4" fill="#16161E" stroke="#4A4A5C" stroke-width="1"/>
-      <text x="170" y="90" font-size="10" fill="#9A9AA8">Rail Bg</text>
-      <text x="170" y="102" font-size="10" font-weight="bold" fill="#FFFFFF">#16161E</text>
-
-      <rect x="255" y="35" width="70" height="40" rx="4" fill="#4A4A5C" stroke="#6A6A7C" stroke-width="1"/>
-      <text x="255" y="90" font-size="10" fill="#9A9AA8">Border</text>
-      <text x="255" y="102" font-size="10" font-weight="bold" fill="#FFFFFF">#4A4A5C</text>
-
-      <rect x="340" y="35" width="70" height="40" rx="4" fill="#E85D4B"/>
-      <text x="340" y="90" font-size="10" fill="#9A9AA8">Kick Acc</text>
-      <text x="340" y="102" font-size="10" font-weight="bold" fill="#E85D4B">#E85D4B</text>
-
-      <rect x="425" y="35" width="70" height="40" rx="4" fill="#7B6CF6"/>
-      <text x="425" y="90" font-size="10" fill="#9A9AA8">Synth Acc</text>
-      <text x="425" y="102" font-size="10" font-weight="bold" fill="#7B6CF6">#7B6CF6</text>
-
-      <rect x="510" y="35" width="70" height="40" rx="4" fill="#E8A54B"/>
-      <text x="510" y="90" font-size="10" fill="#9A9AA8">Sample Acc</text>
-      <text x="510" y="102" font-size="10" font-weight="bold" fill="#E8A54B">#E8A54B</text>
-
-      <rect x="595" y="35" width="70" height="40" rx="4" fill="#5BC0EB"/>
-      <text x="595" y="90" font-size="10" fill="#9A9AA8">Filter Acc</text>
-      <text x="595" y="102" font-size="10" font-weight="bold" fill="#5BC0EB">#5BC0EB</text>
+    <g
+       id="swatches"
+       transform="translate(50, 110)">
+      <text
+         x="0"
+         y="20"
+         font-size="14"
+         font-weight="bold"
+         fill="#FFFFFF"
+         id="text8">1.1 Theme Colors</text>
+      <rect
+         x="0"
+         y="35"
+         width="70"
+         height="40"
+         rx="4"
+         fill="#121218"
+         stroke="#4A4A5C"
+         stroke-width="1"
+         id="rect8" />
+      <text
+         x="0"
+         y="90"
+         font-size="10"
+         fill="#9A9AA8"
+         id="text9">Strip Bg</text>
+      <text
+         x="0"
+         y="102"
+         font-size="10"
+         font-weight="bold"
+         fill="#FFFFFF"
+         id="text10">#121218</text>
+      <rect
+         x="85"
+         y="35"
+         width="70"
+         height="40"
+         rx="4"
+         fill="#1A1A24"
+         stroke="#4A4A5C"
+         stroke-width="1"
+         id="rect10" />
+      <text
+         x="85"
+         y="90"
+         font-size="10"
+         fill="#9A9AA8"
+         id="text11">Card Bg</text>
+      <text
+         x="85"
+         y="102"
+         font-size="10"
+         font-weight="bold"
+         fill="#FFFFFF"
+         id="text12">#1A1A24</text>
+      <rect
+         x="170"
+         y="35"
+         width="70"
+         height="40"
+         rx="4"
+         fill="#16161E"
+         stroke="#4A4A5C"
+         stroke-width="1"
+         id="rect12" />
+      <text
+         x="170"
+         y="90"
+         font-size="10"
+         fill="#9A9AA8"
+         id="text13">Rail Bg</text>
+      <text
+         x="170"
+         y="102"
+         font-size="10"
+         font-weight="bold"
+         fill="#FFFFFF"
+         id="text14">#16161E</text>
+      <rect
+         x="255"
+         y="35"
+         width="70"
+         height="40"
+         rx="4"
+         fill="#4A4A5C"
+         stroke="#6A6A7C"
+         stroke-width="1"
+         id="rect14" />
+      <text
+         x="255"
+         y="90"
+         font-size="10"
+         fill="#9A9AA8"
+         id="text15">Border</text>
+      <text
+         x="255"
+         y="102"
+         font-size="10"
+         font-weight="bold"
+         fill="#FFFFFF"
+         id="text16">#4A4A5C</text>
+      <rect
+         x="340"
+         y="35"
+         width="70"
+         height="40"
+         rx="4"
+         fill="#E85D4B"
+         id="rect16" />
+      <text
+         x="340"
+         y="90"
+         font-size="10"
+         fill="#9A9AA8"
+         id="text17">Kick Acc</text>
+      <text
+         x="340"
+         y="102"
+         font-size="10"
+         font-weight="bold"
+         fill="#E85D4B"
+         id="text18">#E85D4B</text>
+      <rect
+         x="425"
+         y="35"
+         width="70"
+         height="40"
+         rx="4"
+         fill="#7B6CF6"
+         id="rect18" />
+      <text
+         x="425"
+         y="90"
+         font-size="10"
+         fill="#9A9AA8"
+         id="text19">Synth Acc</text>
+      <text
+         x="425"
+         y="102"
+         font-size="10"
+         font-weight="bold"
+         fill="#7B6CF6"
+         id="text20">#7B6CF6</text>
+      <rect
+         x="510"
+         y="35"
+         width="70"
+         height="40"
+         rx="4"
+         fill="#E8A54B"
+         id="rect20" />
+      <text
+         x="510"
+         y="90"
+         font-size="10"
+         fill="#9A9AA8"
+         id="text21">Sample Acc</text>
+      <text
+         x="510"
+         y="102"
+         font-size="10"
+         font-weight="bold"
+         fill="#E8A54B"
+         id="text22">#E8A54B</text>
+      <rect
+         x="595"
+         y="35"
+         width="70"
+         height="40"
+         rx="4"
+         fill="#5BC0EB"
+         id="rect22" />
+      <text
+         x="595"
+         y="90"
+         font-size="10"
+         fill="#9A9AA8"
+         id="text23">Filter Acc</text>
+      <text
+         x="595"
+         y="102"
+         font-size="10"
+         font-weight="bold"
+         fill="#5BC0EB"
+         id="text24">#5BC0EB</text>
     </g>
-
     <!-- Typography Styles -->
-    <g id="typography" transform="translate(750, 110)">
-      <text x="0" y="20" font-size="14" font-weight="bold" fill="#FFFFFF">1.2 Typography &amp; Text Specs</text>
-      
-      <text x="0" y="45" font-size="11" font-weight="bold" fill="#FFFFFF">Header/Title — 11px Bold Inter (Uppercase)</text>
-      <text x="0" y="65" font-size="10" font-weight="600" fill="#9A9AA8">Label/Small — 9px Semi-Bold Inter (54% Opacity)</text>
-      <text x="0" y="85" font-size="12" font-weight="bold" fill="#E8A54B">Value/Display — 12px Bold Inter</text>
-      <text x="0" y="105" font-size="10" font-weight="bold" fill="#FFFFFF" letter-spacing="1">TAB_BAR_LABEL — 10px Bold (Uppercase)</text>
+    <g
+       id="typography"
+       transform="translate(750, 110)">
+      <text
+         x="0"
+         y="20"
+         font-size="14"
+         font-weight="bold"
+         fill="#FFFFFF"
+         id="text25">1.2 Typography &amp; Text Specs</text>
+      <text
+         x="0"
+         y="45"
+         font-size="11"
+         font-weight="bold"
+         fill="#FFFFFF"
+         id="text26">Header/Title ï¿½ 11px Bold Inter (Uppercase)</text>
+      <text
+         x="0"
+         y="65"
+         font-size="10"
+         font-weight="600"
+         fill="#9A9AA8"
+         id="text27">Label/Small ï¿½ 9px Semi-Bold Inter (54% Opacity)</text>
+      <text
+         x="0"
+         y="85"
+         font-size="12"
+         font-weight="bold"
+         fill="#E8A54B"
+         id="text28">Value/Display ï¿½ 12px Bold Inter</text>
+      <text
+         x="0"
+         y="105"
+         font-size="10"
+         font-weight="bold"
+         fill="#FFFFFF"
+         letter-spacing="1"
+         id="text29">TAB_BAR_LABEL ï¿½ 10px Bold (Uppercase)</text>
     </g>
   </g>
-
   <!-- ================================================================= -->
   <!-- LAYER 2: REVISED CORE KNOBS & OVERLAY GRAPHICS                    -->
   <!-- ================================================================= -->
-  <g inkscape:groupmode="layer" inkscape:label="02 Core Knobs" id="layer_knobs" transform="translate(0, 260)">
-    <text x="50" y="30" font-size="18" font-weight="bold" fill="#FFFFFF">02 RotaryKnob &amp; Modulated Range Arc (Revised)</text>
-    <text x="50" y="55" font-size="12" fill="#9A9AA8">Revised modulated arc: cream-white (F6F6F6), larger radius wrapping outside the dial.</text>
-
+  <g
+     inkscape:groupmode="layer"
+     inkscape:label="02 Core Knobs"
+     id="layer_knobs"
+     transform="translate(0, 260)">
+    <text
+       x="50"
+       y="30"
+       font-size="18"
+       font-weight="bold"
+       fill="#FFFFFF"
+       id="text30">02 RotaryKnob  Modulated Range Arc (Revised)</text>
+    <text
+       x="50"
+       y="55"
+       font-size="12"
+       fill="#9A9AA8"
+       id="text31">Revised modulated arc: cream-white (F6F6F6), larger radius wrapping outside the dial.</text>
     <!-- Column Headers -->
-    <g transform="translate(180, 80)">
-      <text x="0" y="0" font-size="11" font-weight="bold" fill="#9A9AA8" text-anchor="middle">Default</text>
-      <text x="150" y="0" font-size="11" font-weight="bold" fill="#9A9AA8" text-anchor="middle">Automated (Purple)</text>
-      <text x="300" y="0" font-size="11" font-weight="bold" fill="#9A9AA8" text-anchor="middle">Modulated (Revised Arc)</text>
-      <text x="450" y="0" font-size="11" font-weight="bold" fill="#9A9AA8" text-anchor="middle">Connect (Glow Inset)</text>
+    <g
+       transform="translate(180, 80)"
+       id="g35">
+      <text
+         x="0"
+         y="0"
+         font-size="11"
+         font-weight="bold"
+         fill="#9A9AA8"
+         text-anchor="middle"
+         id="text32">Default</text>
+      <text
+         x="150"
+         y="0"
+         font-size="11"
+         font-weight="bold"
+         fill="#9A9AA8"
+         text-anchor="middle"
+         id="text33">Automated (Purple)</text>
+      <text
+         x="300"
+         y="0"
+         font-size="11"
+         font-weight="bold"
+         fill="#9A9AA8"
+         text-anchor="middle"
+         id="text34">Modulated (Revised Arc)</text>
+      <text
+         x="450"
+         y="0"
+         font-size="11"
+         font-weight="bold"
+         fill="#9A9AA8"
+         text-anchor="middle"
+         id="text35">Connect (Glow Inset)</text>
     </g>
-
     <!-- Row 1: COMPACT KNOB (44px) -->
-    <g id="compact_row" transform="translate(50, 110)">
-      <text x="0" y="30" font-size="12" font-weight="bold" fill="#FFFFFF">Compact (44px)</text>
-      
+    <g
+       id="compact_row"
+       transform="translate(50, 110)">
+      <text
+         x="0"
+         y="30"
+         font-size="12"
+         font-weight="bold"
+         fill="#FFFFFF"
+         id="text36">Compact (44px)</text>
       <!-- Compact Default -->
-      <g id="knob_compact_default" transform="translate(130, 0)">
-        <circle cx="22" cy="20" r="16" fill="#14141C" stroke="#4A4A5C" stroke-width="2.5" />
-        <path d="M 22 20 L 30 10" stroke="#E8A54B" stroke-width="2" stroke-linecap="round" />
-        <text x="22" y="52" font-size="9" fill="#9A9AA8" text-anchor="middle">Pan</text>
+      <g
+         id="knob_compact_default"
+         transform="translate(130, 0)">
+        <circle
+           cx="22"
+           cy="20"
+           r="16"
+           fill="#14141C"
+           stroke="#4A4A5C"
+           stroke-width="2.5"
+           id="circle36" />
+        <path
+           d="M 22 20 L 30 10"
+           stroke="#E8A54B"
+           stroke-width="2"
+           stroke-linecap="round"
+           id="path36" />
+        <text
+           x="22"
+           y="52"
+           font-size="9"
+           fill="#9A9AA8"
+           text-anchor="middle"
+           id="text37">Pan</text>
       </g>
-
       <!-- Compact Automated -->
-      <g id="knob_compact_automated" transform="translate(280, 0)">
-        <circle cx="22" cy="20" r="16" fill="#14141C" stroke="#4A4A5C" stroke-width="2.5" />
-        <path d="M 22 20 L 30 10" stroke="#E8A54B" stroke-width="2" stroke-linecap="round" />
-        <circle cx="34" cy="6" r="3.5" fill="#B48CFF" stroke="#14141C" stroke-width="1" />
-        <text x="22" y="52" font-size="9" fill="#9A9AA8" text-anchor="middle">Pan</text>
+      <g
+         id="knob_compact_automated"
+         transform="translate(280, 0)">
+        <circle
+           cx="22"
+           cy="20"
+           r="16"
+           fill="#14141C"
+           stroke="#4A4A5C"
+           stroke-width="2.5"
+           id="circle37" />
+        <path
+           d="M 22 20 L 30 10"
+           stroke="#E8A54B"
+           stroke-width="2"
+           stroke-linecap="round"
+           id="path37" />
+        <circle
+           cx="34"
+           cy="6"
+           r="3.5"
+           fill="#B48CFF"
+           stroke="#14141C"
+           stroke-width="1"
+           id="circle38" />
+        <text
+           x="22"
+           y="52"
+           font-size="9"
+           fill="#9A9AA8"
+           text-anchor="middle"
+           id="text38">Pan</text>
       </g>
-
       <!-- Compact Modulated (Revised Cream-White Outer Arc) -->
-      <g id="knob_compact_modulated" transform="translate(430, 0)">
-        <circle cx="22" cy="20" r="16" fill="#14141C" stroke="#4A4A5C" stroke-width="2.5" />
+      <g
+         id="knob_compact_modulated"
+         transform="translate(430, 0)">
+        <circle
+           cx="22"
+           cy="20"
+           r="16"
+           fill="#14141C"
+           stroke="#4A4A5C"
+           stroke-width="2.5"
+           id="circle39" />
         <!-- Larger radius arc wrapping OUTSIDE of dial disk (r=20, dial r=16) -->
-        <path d="M 4 14 A 20 20 0 0 1 40 14" fill="none" stroke="#F6F6F6" stroke-opacity="0.95" stroke-width="1.8" stroke-dasharray="1.5,1.5" />
-        <path d="M 22 20 L 30 10" stroke="#E8A54B" stroke-width="2" stroke-linecap="round" />
-        <text x="22" y="52" font-size="9" fill="#9A9AA8" text-anchor="middle">Pan</text>
+        <path
+           d="M 4 14 A 20 20 0 0 1 40 14"
+           fill="none"
+           stroke="#F6F6F6"
+           stroke-opacity="0.95"
+           stroke-width="1.8"
+           stroke-dasharray="1.5,1.5"
+           id="path39" />
+        <path
+           d="M 22 20 L 30 10"
+           stroke="#E8A54B"
+           stroke-width="2"
+           stroke-linecap="round"
+           id="path40" />
+        <text
+           x="22"
+           y="52"
+           font-size="9"
+           fill="#9A9AA8"
+           text-anchor="middle"
+           id="text40">Pan</text>
       </g>
-
       <!-- Compact Connect -->
-      <g id="knob_compact_connect" transform="translate(580, 0)">
-        <rect x="-4" y="-2" width="52" height="48" rx="8" fill="#E8A54B" fill-opacity="0.2" />
-        <circle cx="22" cy="20" r="16" fill="#14141C" stroke="#E8A54B" stroke-opacity="0.85" stroke-width="2.5" />
-        <path d="M 22 20 L 30 10" stroke="#E8A54B" stroke-width="2" stroke-linecap="round" />
-        <text x="22" y="52" font-size="9" fill="#E8A54B" text-anchor="middle">Pan</text>
+      <g
+         id="knob_compact_connect"
+         transform="translate(580, 0)">
+        <rect
+           x="-4"
+           y="-2"
+           width="52"
+           height="48"
+           rx="8"
+           fill="#E8A54B"
+           fill-opacity="0.2"
+           id="rect40" />
+        <circle
+           cx="22"
+           cy="20"
+           r="16"
+           fill="#14141C"
+           stroke="#E8A54B"
+           stroke-opacity="0.85"
+           stroke-width="2.5"
+           id="circle40" />
+        <path
+           d="M 22 20 L 30 10"
+           stroke="#E8A54B"
+           stroke-width="2"
+           stroke-linecap="round"
+           id="path41" />
+        <text
+           x="22"
+           y="52"
+           font-size="9"
+           fill="#E8A54B"
+           text-anchor="middle"
+           id="text41">Pan</text>
       </g>
     </g>
-
     <!-- Row 2: STRIP KNOB (56px) -->
-    <g id="strip_row" transform="translate(50, 200)">
-      <text x="0" y="35" font-size="12" font-weight="bold" fill="#FFFFFF">Strip (56px)</text>
-
+    <g
+       id="strip_row"
+       transform="translate(50, 200)">
+      <text
+         x="0"
+         y="35"
+         font-size="12"
+         font-weight="bold"
+         fill="#FFFFFF"
+         id="text42">Strip (56px)</text>
       <!-- Strip Default -->
-      <g id="knob_strip_default" transform="translate(124, 0)">
-        <circle cx="28" cy="26" r="22" fill="#14141C" stroke="#4A4A5C" stroke-width="3" />
-        <path d="M 28 26 L 39 12" stroke="#E85D4B" stroke-width="2.8" stroke-linecap="round" />
-        <text x="28" y="30" font-size="10" font-weight="bold" fill="#E85D4B" text-anchor="middle">50%</text>
-        <text x="28" y="65" font-size="9" fill="#9A9AA8" text-anchor="middle">Pitch</text>
+      <g
+         id="knob_strip_default"
+         transform="translate(124, 0)">
+        <circle
+           cx="28"
+           cy="26"
+           r="22"
+           fill="#14141C"
+           stroke="#4A4A5C"
+           stroke-width="3"
+           id="circle42" />
+        <path
+           d="M 28 26 L 39 12"
+           stroke="#E85D4B"
+           stroke-width="2.8"
+           stroke-linecap="round"
+           id="path42" />
+        <text
+           x="28"
+           y="30"
+           font-size="10"
+           font-weight="bold"
+           fill="#E85D4B"
+           text-anchor="middle"
+           id="text43">50%</text>
+        <text
+           x="28"
+           y="65"
+           font-size="9"
+           fill="#9A9AA8"
+           text-anchor="middle"
+           id="text44">Pitch</text>
       </g>
-
       <!-- Strip Automated -->
-      <g id="knob_strip_automated" transform="translate(274, 0)">
-        <circle cx="28" cy="26" r="22" fill="#14141C" stroke="#4A4A5C" stroke-width="3" />
-        <path d="M 28 26 L 39 12" stroke="#E85D4B" stroke-width="2.8" stroke-linecap="round" />
-        <circle cx="44" cy="8" r="4.5" fill="#B48CFF" stroke="#14141C" stroke-width="1.2" />
-        <text x="28" y="30" font-size="10" font-weight="bold" fill="#E85D4B" text-anchor="middle">50%</text>
-        <text x="28" y="65" font-size="9" fill="#9A9AA8" text-anchor="middle">Pitch</text>
+      <g
+         id="knob_strip_automated"
+         transform="translate(274, 0)">
+        <circle
+           cx="28"
+           cy="26"
+           r="22"
+           fill="#14141C"
+           stroke="#4A4A5C"
+           stroke-width="3"
+           id="circle44" />
+        <path
+           d="M 28 26 L 39 12"
+           stroke="#E85D4B"
+           stroke-width="2.8"
+           stroke-linecap="round"
+           id="path44" />
+        <circle
+           cx="44"
+           cy="8"
+           r="4.5"
+           fill="#B48CFF"
+           stroke="#14141C"
+           stroke-width="1.2"
+           id="circle45" />
+        <text
+           x="28"
+           y="30"
+           font-size="10"
+           font-weight="bold"
+           fill="#E85D4B"
+           text-anchor="middle"
+           id="text45">50%</text>
+        <text
+           x="28"
+           y="65"
+           font-size="9"
+           fill="#9A9AA8"
+           text-anchor="middle"
+           id="text46">Pitch</text>
       </g>
-
       <!-- Strip Modulated (Revised Cream-White Outer Arc) -->
-      <g id="knob_strip_modulated" transform="translate(424, 0)">
-        <circle cx="28" cy="26" r="22" fill="#14141C" stroke="#4A4A5C" stroke-width="3" />
+      <g
+         id="knob_strip_modulated"
+         transform="translate(424, 0)">
+        <circle
+           cx="28"
+           cy="26"
+           r="22"
+           fill="#14141C"
+           stroke="#4A4A5C"
+           stroke-width="3"
+           id="circle46" />
         <!-- Larger radius outer arc (r=27, dial r=22) wrapping nicely with a clear spacing -->
-        <path d="M 4 20 A 27 27 0 0 1 52 20" fill="none" stroke="#F6F6F6" stroke-opacity="0.95" stroke-width="2.2" stroke-dasharray="2,2" />
-        <path d="M 28 26 L 39 12" stroke="#E85D4B" stroke-width="2.8" stroke-linecap="round" />
-        <text x="28" y="30" font-size="10" font-weight="bold" fill="#E85D4B" text-anchor="middle">50%</text>
-        <text x="28" y="65" font-size="9" fill="#9A9AA8" text-anchor="middle">Pitch</text>
+        <path
+           d="M 4 20 A 27 27 0 0 1 52 20"
+           fill="none"
+           stroke="#F6F6F6"
+           stroke-opacity="0.95"
+           stroke-width="2.2"
+           stroke-dasharray="2,2"
+           id="path46" />
+        <path
+           d="M 28 26 L 39 12"
+           stroke="#E85D4B"
+           stroke-width="2.8"
+           stroke-linecap="round"
+           id="path47" />
+        <text
+           x="28"
+           y="30"
+           font-size="10"
+           font-weight="bold"
+           fill="#E85D4B"
+           text-anchor="middle"
+           id="text47">50%</text>
+        <text
+           x="28"
+           y="65"
+           font-size="9"
+           fill="#9A9AA8"
+           text-anchor="middle"
+           id="text48">Pitch</text>
       </g>
-
       <!-- Strip Connect -->
-      <g id="knob_strip_connect" transform="translate(574, 0)">
-        <rect x="-4" y="-2" width="64" height="60" rx="8" fill="#E85D4B" fill-opacity="0.2" />
-        <circle cx="28" cy="26" r="22" fill="#14141C" stroke="#E85D4B" stroke-opacity="0.85" stroke-width="3" />
-        <path d="M 28 26 L 39 12" stroke="#E85D4B" stroke-width="2.8" stroke-linecap="round" />
-        <text x="28" y="30" font-size="10" font-weight="bold" fill="#E85D4B" text-anchor="middle">50%</text>
-        <text x="28" y="65" font-size="10" font-weight="bold" fill="#E85D4B" text-anchor="middle">Pitch</text>
+      <g
+         id="knob_strip_connect"
+         transform="translate(574, 0)">
+        <rect
+           x="-4"
+           y="-2"
+           width="64"
+           height="60"
+           rx="8"
+           fill="#E85D4B"
+           fill-opacity="0.2"
+           id="rect48" />
+        <circle
+           cx="28"
+           cy="26"
+           r="22"
+           fill="#14141C"
+           stroke="#E85D4B"
+           stroke-opacity="0.85"
+           stroke-width="3"
+           id="circle48" />
+        <path
+           d="M 28 26 L 39 12"
+           stroke="#E85D4B"
+           stroke-width="2.8"
+           stroke-linecap="round"
+           id="path48" />
+        <text
+           x="28"
+           y="30"
+           font-size="10"
+           font-weight="bold"
+           fill="#E85D4B"
+           text-anchor="middle"
+           id="text49">50%</text>
+        <text
+           x="28"
+           y="65"
+           font-size="10"
+           font-weight="bold"
+           fill="#E85D4B"
+           text-anchor="middle"
+           id="text50">Pitch</text>
       </g>
     </g>
   </g>
-
   <!-- ================================================================= -->
   <!-- LAYER 3: REVISED STRUCTURAL SIDE RAILS (LEFT & RIGHT HIGH LINES)  -->
   <!-- ================================================================= -->
-  <g inkscape:groupmode="layer" inkscape:label="03 Side Rails" id="layer_rails" transform="translate(850, 260)">
-    <text x="50" y="30" font-size="18" font-weight="bold" fill="#FFFFFF">03 Structural Side Rails / Sub-Panels (Revised)</text>
-    <text x="50" y="55" font-size="12" fill="#9A9AA8">Highlights are LEFT/RIGHT lines (not top). Dynamic inputs have VU meters.</text>
-
+  <g
+     inkscape:groupmode="layer"
+     inkscape:label="03 Side Rails"
+     id="layer_rails"
+     transform="translate(850, 260)">
+    <text
+       x="50"
+       y="30"
+       font-size="18"
+       font-weight="bold"
+       fill="#FFFFFF"
+       id="text51">03 Structural Side Rails / Sub-Panels (Revised)</text>
+    <text
+       x="50"
+       y="55"
+       font-size="12"
+       fill="#9A9AA8"
+       id="text52">Highlights are LEFT/RIGHT lines (not top). Dynamic inputs have VU meters.</text>
     <!-- 3.1 StereoGainPanPanel (Clipped on right, sharp on left, right-border highlight line) -->
-    <g id="rail_stereo_gain_pan" transform="translate(50, 90)">
-      <path d="M 0 0 L 50 0 A 10 10 0 0 1 60 10 L 60 310 A 10 10 0 0 1 50 320 L 0 320 Z" fill="#16161E" stroke="#4A4A5C" stroke-width="1.5" />
-      
+    <g
+       id="rail_stereo_gain_pan"
+       transform="translate(50, 90)">
+      <path
+         d="M 0 0 L 50 0 A 10 10 0 0 1 60 10 L 60 310 A 10 10 0 0 1 50 320 L 0 320 Z"
+         fill="#16161E"
+         stroke="#4A4A5C"
+         stroke-width="1.5"
+         id="path52" />
       <!-- Right-side border highlight line (vertical) -->
-      <path d="M 59 10 L 59 310" stroke="#6A6A7C" stroke-width="1.5" />
-      
+      <path
+         d="M 59 10 L 59 310"
+         stroke="#6A6A7C"
+         stroke-width="1.5"
+         id="path53" />
       <!-- Compact Pan (Top) -->
-      <g transform="translate(8, 40)">
-        <circle cx="22" cy="20" r="16" fill="#14141C" stroke="#9A9AA8" stroke-width="2.5" />
-        <path d="M 22 20 L 22 6" stroke="#9A9AA8" stroke-width="2" stroke-linecap="round" />
-        <text x="22" y="47" font-size="9" fill="#9A9AA8" text-anchor="middle">Pan: C</text>
+      <g
+         transform="translate(8, 40)"
+         id="g54">
+        <circle
+           cx="22"
+           cy="20"
+           r="16"
+           fill="#14141C"
+           stroke="#9A9AA8"
+           stroke-width="2.5"
+           id="circle53" />
+        <path
+           d="M 22 20 L 22 6"
+           stroke="#9A9AA8"
+           stroke-width="2"
+           stroke-linecap="round"
+           id="path54" />
+        <text
+           x="22"
+           y="47"
+           font-size="9"
+           fill="#9A9AA8"
+           text-anchor="middle"
+           id="text54">Pan: C</text>
       </g>
-      
       <!-- Compact Gain (Below) -->
-      <g transform="translate(8, 160)">
-        <circle cx="22" cy="20" r="16" fill="#14141C" stroke="#9A9AA8" stroke-width="2.5" />
-        <path d="M 22 20 L 32 10" stroke="#9A9AA8" stroke-width="2" stroke-linecap="round" />
-        <text x="22" y="47" font-size="9" fill="#9A9AA8" text-anchor="middle">Gain</text>
+      <g
+         transform="translate(8, 160)"
+         id="g55">
+        <circle
+           cx="22"
+           cy="20"
+           r="16"
+           fill="#14141C"
+           stroke="#9A9AA8"
+           stroke-width="2.5"
+           id="circle54" />
+        <path
+           d="M 22 20 L 32 10"
+           stroke="#9A9AA8"
+           stroke-width="2"
+           stroke-linecap="round"
+           id="path55" />
+        <text
+           x="22"
+           y="47"
+           font-size="9"
+           fill="#9A9AA8"
+           text-anchor="middle"
+           id="text55">Gain</text>
       </g>
-
-      <text x="30" y="335" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Stereo Panel</text>
-      <text x="30" y="348" font-size="9" fill="#9A9AA8" text-anchor="middle">r=64px (Right)</text>
+      <text
+         x="30"
+         y="335"
+         font-size="11"
+         font-weight="bold"
+         fill="#FFFFFF"
+         text-anchor="middle"
+         id="text56">Stereo Panel</text>
+      <text
+         x="30"
+         y="348"
+         font-size="9"
+         fill="#9A9AA8"
+         text-anchor="middle"
+         id="text57">r=64px (Right)</text>
     </g>
-
     <!-- 3.2 DynamicsInputPanel (Clipped on left, sharp on right, VU meter inside, Trim knob below) -->
-    <g id="rail_dynamics_input" transform="translate(180, 90)">
-      <path d="M 60 0 L 10 0 A 10 10 0 0 0 0 10 L 0 310 A 10 10 0 0 0 10 320 L 60 320 Z" fill="#16161E" stroke="#4A4A5C" stroke-width="1.5" />
-      
+    <g
+       id="rail_dynamics_input"
+       transform="translate(180, 90)">
+      <path
+         d="M 60 0 L 10 0 A 10 10 0 0 0 0 10 L 0 310 A 10 10 0 0 0 10 320 L 60 320 Z"
+         fill="#16161E"
+         stroke="#4A4A5C"
+         stroke-width="1.5"
+         id="path57" />
       <!-- Left-side border highlight line (vertical) -->
-      <path d="M 1 10 L 1 310" stroke="#6A6A7C" stroke-width="1.5" />
-      
-      <text x="30" y="24" font-size="9" font-weight="bold" fill="#9A9AA8" text-anchor="middle">IN</text>
-      
+      <path
+         d="M 1 10 L 1 310"
+         stroke="#6A6A7C"
+         stroke-width="1.5"
+         id="path58" />
+      <text
+         x="30"
+         y="24"
+         font-size="9"
+         font-weight="bold"
+         fill="#9A9AA8"
+         text-anchor="middle"
+         id="text58">IN</text>
       <!-- Input VU Meter (Verical bar with active green LED fill) -->
-      <rect x="22" y="36" width="16" height="150" fill="#0A0A0F" />
+      <rect
+         x="22"
+         y="36"
+         width="16"
+         height="150"
+         fill="#0A0A0F"
+         id="rect58" />
       <!-- Symmetrical VU Fill (Green LED) -->
-      <rect x="22" y="90" width="16" height="96" fill="#4ADE80" fill-opacity="0.85" />
-      
+      <rect
+         x="22"
+         y="90"
+         width="16"
+         height="96"
+         fill="#4ADE80"
+         fill-opacity="0.85"
+         id="rect59" />
       <!-- Trim Knob below VU -->
-      <g transform="translate(8, 220)">
-        <circle cx="22" cy="20" r="16" fill="#14141C" stroke="#E8A54B" stroke-width="2.5" />
-        <path d="M 22 20 L 32 10" stroke="#E8A54B" stroke-width="2" stroke-linecap="round" />
-        <text x="22" y="47" font-size="9" fill="#E8A54B" text-anchor="middle">Trim</text>
+      <g
+         transform="translate(8, 220)"
+         id="g59">
+        <circle
+           cx="22"
+           cy="20"
+           r="16"
+           fill="#14141C"
+           stroke="#E8A54B"
+           stroke-width="2.5"
+           id="circle59" />
+        <path
+           d="M 22 20 L 32 10"
+           stroke="#E8A54B"
+           stroke-width="2"
+           stroke-linecap="round"
+           id="path59" />
+        <text
+           x="22"
+           y="47"
+           font-size="9"
+           fill="#E8A54B"
+           text-anchor="middle"
+           id="text59">Trim</text>
       </g>
-
-      <text x="30" y="335" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Dynamics Input</text>
-      <text x="30" y="348" font-size="9" fill="#9A9AA8" text-anchor="middle">r=64px (Left)</text>
+      <text
+         x="30"
+         y="335"
+         font-size="11"
+         font-weight="bold"
+         fill="#FFFFFF"
+         text-anchor="middle"
+         id="text60">Dynamics Input</text>
+      <text
+         x="30"
+         y="348"
+         font-size="9"
+         fill="#9A9AA8"
+         text-anchor="middle"
+         id="text61">r=64px (Left)</text>
     </g>
-
     <!-- 3.3 DynamicsOutputPanel (Clipped on right, GR LED Meter inside, Gain knob below) -->
-    <g id="rail_dynamics_output" transform="translate(310, 90)">
-      <path d="M 0 0 L 50 0 A 10 10 0 0 1 60 10 L 60 310 A 10 10 0 0 1 50 320 L 0 320 Z" fill="#16161E" stroke="#4A4A5C" stroke-width="1.5" />
-      <path d="M 59 10 L 59 310" stroke="#6A6A7C" stroke-width="1.5" />
-      
-      <text x="30" y="24" font-size="9" font-weight="bold" fill="#9A9AA8" text-anchor="middle">GR</text>
-      
+    <g
+       id="rail_dynamics_output"
+       transform="translate(310, 90)">
+      <path
+         d="M 0 0 L 50 0 A 10 10 0 0 1 60 10 L 60 310 A 10 10 0 0 1 50 320 L 0 320 Z"
+         fill="#16161E"
+         stroke="#4A4A5C"
+         stroke-width="1.5"
+         id="path61" />
+      <path
+         d="M 59 10 L 59 310"
+         stroke="#6A6A7C"
+         stroke-width="1.5"
+         id="path62" />
+      <text
+         x="30"
+         y="24"
+         font-size="9"
+         font-weight="bold"
+         fill="#9A9AA8"
+         text-anchor="middle"
+         id="text62">GR</text>
       <!-- Gain Reduction Meter (LED block - orange/red) -->
-      <rect x="22" y="36" width="16" height="150" fill="#0A0A0F" />
-      <rect x="22" y="110" width="16" height="76" fill="#E85D4B" fill-opacity="0.85" />
-      
+      <rect
+         x="22"
+         y="36"
+         width="16"
+         height="150"
+         fill="#0A0A0F"
+         id="rect62" />
+      <rect
+         x="22"
+         y="110"
+         width="16"
+         height="76"
+         fill="#E85D4B"
+         fill-opacity="0.85"
+         id="rect63" />
       <!-- Gain Knob below VU -->
-      <g transform="translate(8, 220)">
-        <circle cx="22" cy="20" r="16" fill="#14141C" stroke="#9A9AA8" stroke-width="2.5" />
-        <path d="M 22 20 L 32 10" stroke="#9A9AA8" stroke-width="2" stroke-linecap="round" />
-        <text x="22" y="47" font-size="9" fill="#9A9AA8" text-anchor="middle">Gain</text>
+      <g
+         transform="translate(8, 220)"
+         id="g63">
+        <circle
+           cx="22"
+           cy="20"
+           r="16"
+           fill="#14141C"
+           stroke="#9A9AA8"
+           stroke-width="2.5"
+           id="circle63" />
+        <path
+           d="M 22 20 L 32 10"
+           stroke="#9A9AA8"
+           stroke-width="2"
+           stroke-linecap="round"
+           id="path63" />
+        <text
+           x="22"
+           y="47"
+           font-size="9"
+           fill="#9A9AA8"
+           text-anchor="middle"
+           id="text63">Gain</text>
       </g>
-
-      <text x="30" y="335" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Dynamics Output</text>
+      <text
+         x="30"
+         y="335"
+         font-size="11"
+         font-weight="bold"
+         fill="#FFFFFF"
+         text-anchor="middle"
+         id="text64">Dynamics Output</text>
     </g>
   </g>
-
   <!-- ================================================================= -->
   <!-- LAYER 4: REVISED CUSTOM WIDGETS, SLIDERS & BUTTON GROUPS          -->
   <!-- ================================================================= -->
-  <g inkscape:groupmode="layer" inkscape:label="04 Previews" id="layer_previews" transform="translate(1420, 260)">
-    <text x="50" y="30" font-size="18" font-weight="bold" fill="#FFFFFF">04 Slider Boxes, Filter Buttons &amp; Previews (Revised)</text>
-    <text x="50" y="55" font-size="12" fill="#9A9AA8">Adds ValueDragBoxes, Sampler RootKey step-spinners, and filter icons.</text>
-
+  <g
+     inkscape:groupmode="layer"
+     inkscape:label="04 Previews"
+     id="layer_previews"
+     transform="translate(1420, 260)">
+    <text
+       x="50"
+       y="30"
+       font-size="18"
+       font-weight="bold"
+       fill="#FFFFFF"
+       id="text65">04 Slider Boxes, Filter Buttons  Previews (Revised)</text>
+    <text
+       x="50"
+       y="55"
+       font-size="12"
+       fill="#9A9AA8"
+       id="text66">Adds ValueDragBoxes, Sampler RootKey step-spinners, and filter icons.</text>
     <!-- 4.1 ValueDragBox (Compact parameter slider readout - width 44, height 26) -->
-    <g id="widget_value_drag_box" transform="translate(50, 90)">
-      <rect x="0" y="0" width="44" height="26" rx="4" fill="#14141C" stroke="#7B6CF6" stroke-opacity="0.45" stroke-width="1"/>
-      <text x="22" y="17" font-size="11" font-weight="bold" fill="#7B6CF6" text-anchor="middle">1.2k</text>
-      <text x="22" y="38" font-size="9" fill="#9A9AA8" text-anchor="middle" font-weight="bold">Freq</text>
-      
-      <text x="22" y="58" font-size="10" fill="#FFFFFF" text-anchor="middle">ValueDragBox</text>
+    <g
+       id="widget_value_drag_box"
+       transform="translate(50, 90)">
+      <rect
+         x="0"
+         y="0"
+         width="44"
+         height="26"
+         rx="4"
+         fill="#14141C"
+         stroke="#7B6CF6"
+         stroke-opacity="0.45"
+         stroke-width="1"
+         id="rect66" />
+      <text
+         x="22"
+         y="17"
+         font-size="11"
+         font-weight="bold"
+         fill="#7B6CF6"
+         text-anchor="middle"
+         id="text67">1.2k</text>
+      <text
+         x="22"
+         y="38"
+         font-size="9"
+         fill="#9A9AA8"
+         text-anchor="middle"
+         font-weight="bold"
+         id="text68">Freq</text>
+      <text
+         x="22"
+         y="58"
+         font-size="10"
+         fill="#FFFFFF"
+         text-anchor="middle"
+         id="text69">ValueDragBox</text>
     </g>
-
     <!-- 4.2 DraggableIntValueBox (Octave stepper) -->
-    <g id="widget_int_drag_box" transform="translate(130, 90)">
-      <rect x="0" y="0" width="44" height="28" rx="4" fill="#14141C" stroke="#7B6CF6" stroke-opacity="0.45" stroke-width="1"/>
-      <text x="22" y="18" font-size="12" font-weight="bold" fill="#7B6CF6" text-anchor="middle">+1</text>
-      <text x="22" y="38" font-size="9" fill="#9A9AA8" text-anchor="middle" font-weight="bold">Oct</text>
-
-      <text x="22" y="58" font-size="10" fill="#FFFFFF" text-anchor="middle">IntValueBox</text>
+    <g
+       id="widget_int_drag_box"
+       transform="translate(130, 90)">
+      <rect
+         x="0"
+         y="0"
+         width="44"
+         height="28"
+         rx="4"
+         fill="#14141C"
+         stroke="#7B6CF6"
+         stroke-opacity="0.45"
+         stroke-width="1"
+         id="rect69" />
+      <text
+         x="22"
+         y="18"
+         font-size="12"
+         font-weight="bold"
+         fill="#7B6CF6"
+         text-anchor="middle"
+         id="text70">+1</text>
+      <text
+         x="22"
+         y="38"
+         font-size="9"
+         fill="#9A9AA8"
+         text-anchor="middle"
+         font-weight="bold"
+         id="text71">Oct</text>
+      <text
+         x="22"
+         y="58"
+         font-size="10"
+         fill="#FFFFFF"
+         text-anchor="middle"
+         id="text72">IntValueBox</text>
     </g>
-
     <!-- 4.3 SamplerRootKeyChip Spinner (With Up/Down Step Hits) -->
-    <g id="widget_sampler_spinner" transform="translate(220, 90)">
+    <g
+       id="widget_sampler_spinner"
+       transform="translate(220, 90)">
       <!-- Automation Spinner Border -->
-      <rect x="0" y="0" width="46" height="48" rx="4" fill="#14141C" stroke="#E8A54B" stroke-opacity="0.5" stroke-width="1"/>
-      
+      <rect
+         x="0"
+         y="0"
+         width="46"
+         height="48"
+         rx="4"
+         fill="#14141C"
+         stroke="#E8A54B"
+         stroke-opacity="0.5"
+         stroke-width="1"
+         id="rect72" />
       <!-- Up Arrow -->
-      <path d="M 18 10 L 23 5 L 28 10" fill="none" stroke="#E8A54B" stroke-opacity="0.55" stroke-width="1.5" stroke-linecap="round"/>
+      <path
+         d="M 18 10 L 23 5 L 28 10"
+         fill="none"
+         stroke="#E8A54B"
+         stroke-opacity="0.55"
+         stroke-width="1.5"
+         stroke-linecap="round"
+         id="path72" />
       <!-- Value Note -->
-      <text x="23" y="27" font-size="11" font-weight="bold" fill="#E8A54B" text-anchor="middle">C3</text>
+      <text
+         x="23"
+         y="27"
+         font-size="11"
+         font-weight="bold"
+         fill="#E8A54B"
+         text-anchor="middle"
+         id="text73">C3</text>
       <!-- Down Arrow -->
-      <path d="M 18 38 L 23 43 L 28 38" fill="none" stroke="#E8A54B" stroke-opacity="0.55" stroke-width="1.5" stroke-linecap="round"/>
-      
-      <text x="23" y="60" font-size="8.5" font-weight="bold" fill="#9A9AA8" text-anchor="middle">ROOT</text>
-      <text x="23" y="74" font-size="10" fill="#FFFFFF" text-anchor="middle">RootSpinner</text>
+      <path
+         d="M 18 38 L 23 43 L 28 38"
+         fill="none"
+         stroke="#E8A54B"
+         stroke-opacity="0.55"
+         stroke-width="1.5"
+         stroke-linecap="round"
+         id="path73" />
+      <text
+         x="23"
+         y="60"
+         font-size="8.5"
+         font-weight="bold"
+         fill="#9A9AA8"
+         text-anchor="middle"
+         id="text74">ROOT</text>
+      <text
+         x="23"
+         y="74"
+         font-size="10"
+         fill="#FFFFFF"
+         text-anchor="middle"
+         id="text75">RootSpinner</text>
     </g>
-
     <!-- 4.4 Filter Mode Icon Button Group (2x2 button grid) -->
-    <g id="widget_filter_mode_bar" transform="translate(330, 90)">
-      <rect x="0" y="0" width="76" height="76" rx="4" fill="#0A0A0F" stroke="#FFFFFF" stroke-opacity="0.1" stroke-width="1" />
-      
+    <g
+       id="widget_filter_mode_bar"
+       transform="translate(330, 90)">
+      <rect
+         x="0"
+         y="0"
+         width="76"
+         height="76"
+         rx="4"
+         fill="#0A0A0F"
+         stroke="#FFFFFF"
+         stroke-opacity="0.1"
+         stroke-width="1"
+         id="rect75" />
       <!-- LP Button (Selected) -->
-      <g transform="translate(3, 3)">
-        <rect x="0" y="0" width="33" height="33" rx="2" fill="#E8A54B" fill-opacity="0.12"/>
-        <path d="M 5 10 L 16 10 Q 25 10 28 28" fill="none" stroke="#E8A54B" stroke-width="2" stroke-linecap="round" />
+      <g
+         transform="translate(3, 3)"
+         id="g76">
+        <rect
+           x="0"
+           y="0"
+           width="33"
+           height="33"
+           rx="2"
+           fill="#E8A54B"
+           fill-opacity="0.12"
+           id="rect76" />
+        <path
+           d="M 5 10 L 16 10 Q 25 10 28 28"
+           fill="none"
+           stroke="#E8A54B"
+           stroke-width="2"
+           stroke-linecap="round"
+           id="path76" />
       </g>
       <!-- HP Button -->
-      <g transform="translate(40, 3)">
-        <path d="M 5 28 Q 9 10 16 10 L 28 10" fill="none" stroke="#FFFFFF" stroke-opacity="0.38" stroke-width="2" stroke-linecap="round" />
+      <g
+         transform="translate(40, 3)"
+         id="g77">
+        <path
+           d="M 5 28 Q 9 10 16 10 L 28 10"
+           fill="none"
+           stroke="#FFFFFF"
+           stroke-opacity="0.38"
+           stroke-width="2"
+           stroke-linecap="round"
+           id="path77" />
       </g>
       <!-- BP Button -->
-      <g transform="translate(3, 40)">
-        <path d="M 5 28 Q 16 8 28 28" fill="none" stroke="#FFFFFF" stroke-opacity="0.38" stroke-width="2" stroke-linecap="round" />
+      <g
+         transform="translate(3, 40)"
+         id="g78">
+        <path
+           d="M 5 28 Q 16 8 28 28"
+           fill="none"
+           stroke="#FFFFFF"
+           stroke-opacity="0.38"
+           stroke-width="2"
+           stroke-linecap="round"
+           id="path78" />
       </g>
       <!-- Notch Button -->
-      <g transform="translate(40, 40)">
-        <path d="M 5 10 L 11 10 Q 16 28 22 10 L 28 10" fill="none" stroke="#FFFFFF" stroke-opacity="0.38" stroke-width="2" stroke-linecap="round" />
+      <g
+         transform="translate(40, 40)"
+         id="g79">
+        <path
+           d="M 5 10 L 11 10 Q 16 28 22 10 L 28 10"
+           fill="none"
+           stroke="#FFFFFF"
+           stroke-opacity="0.38"
+           stroke-width="2"
+           stroke-linecap="round"
+           id="path79" />
       </g>
-
-      <text x="38" y="90" font-size="10" fill="#FFFFFF" text-anchor="middle">FilterModeBar</text>
+      <text
+         x="38"
+         y="90"
+         font-size="10"
+         fill="#FFFFFF"
+         text-anchor="middle"
+         id="text79">FilterModeBar</text>
     </g>
-
     <!-- 4.5 Slider Boxes (Normal Number Sliders) -->
-    <g id="widget_normal_sliders" transform="translate(450, 90)">
+    <g
+       id="widget_normal_sliders"
+       transform="translate(450, 90)">
       <!-- MiniSlider box (Rate / Phase etc.) -->
-      <rect x="0" y="0" width="80" height="24" rx="4" fill="#0D0D14" stroke="#4A4A5C" stroke-width="1" />
+      <rect
+         x="0"
+         y="0"
+         width="80"
+         height="24"
+         rx="4"
+         fill="#0D0D14"
+         stroke="#4A4A5C"
+         stroke-width="1"
+         id="rect79" />
       <!-- Active fill bar representing slider value -->
-      <rect x="4" y="10" width="50" height="4" rx="2" fill="#E8A54B" />
-      <text x="60" y="16" font-size="9" font-weight="bold" fill="#FFFFFF">60%</text>
-      
+      <rect
+         x="4"
+         y="10"
+         width="50"
+         height="4"
+         rx="2"
+         fill="#E8A54B"
+         id="rect80" />
+      <text
+         x="60"
+         y="16"
+         font-size="9"
+         font-weight="bold"
+         fill="#FFFFFF"
+         id="text80">60%</text>
       <!-- Label below -->
-      <text x="40" y="38" font-size="9" fill="#9A9AA8" text-anchor="middle" font-weight="bold">LFO Rate</text>
-      <text x="40" y="58" font-size="10" fill="#FFFFFF" text-anchor="middle">NumberSlider</text>
+      <text
+         x="40"
+         y="38"
+         font-size="9"
+         fill="#9A9AA8"
+         text-anchor="middle"
+         font-weight="bold"
+         id="text81">LFO Rate</text>
+      <text
+         x="40"
+         y="58"
+         font-size="10"
+         fill="#FFFFFF"
+         text-anchor="middle"
+         id="text82">NumberSlider</text>
     </g>
-
     <!-- 4.6 Previews: Waveform, LP Curve, 4-Band, Morpher -->
-    <g transform="translate(0, 200)">
+    <g
+       transform="translate(0, 200)"
+       id="g89">
       <!-- SamplerWaveformView -->
-      <g id="preview_sampler_waveform" transform="translate(50, 0)">
-        <rect x="0" y="0" width="180" height="110" rx="6" fill="#050508" stroke="#4A4A5C" stroke-width="1" />
-        <path d="M 10 50 L 25 15 L 25 85 L 40 30 L 40 70 L 55 5 L 55 95 L 70 10 L 70 90 L 85 40 L 85 60 L 100 20 L 100 80 L 115 5 L 115 95 L 130 30 L 130 70 L 150 40 L 150 60 L 170 50" 
-              fill="none" stroke="#E8A54B" stroke-width="1.5" stroke-linejoin="round" />
-        <rect x="55" y="0" width="60" height="110" fill="#E8A54B" fill-opacity="0.12" stroke="#E8A54B" stroke-opacity="0.5" stroke-width="1.5" />
-        <rect x="55" y="10" width="8" height="90" rx="2" fill="#E8A54B" />
-        <rect x="107" y="10" width="8" height="90" rx="2" fill="#E8A54B" />
-        <line x1="59" y1="45" x2="59" y2="55" stroke="#14141C" stroke-width="1.5" />
-        <line x1="111" y1="45" x2="111" y2="55" stroke="#14141C" stroke-width="1.5" />
-        <text x="90" y="130" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">SamplerWaveform</text>
+      <g
+         id="preview_sampler_waveform"
+         transform="translate(50, 0)">
+        <rect
+           x="0"
+           y="0"
+           width="180"
+           height="110"
+           rx="6"
+           fill="#050508"
+           stroke="#4A4A5C"
+           stroke-width="1"
+           id="rect82" />
+        <path
+           d="M 10 50 L 25 15 L 25 85 L 40 30 L 40 70 L 55 5 L 55 95 L 70 10 L 70 90 L 85 40 L 85 60 L 100 20 L 100 80 L 115 5 L 115 95 L 130 30 L 130 70 L 150 40 L 150 60 L 170 50"
+           fill="none"
+           stroke="#E8A54B"
+           stroke-width="1.5"
+           stroke-linejoin="round"
+           id="path82" />
+        <rect
+           x="55"
+           y="0"
+           width="60"
+           height="110"
+           fill="#E8A54B"
+           fill-opacity="0.12"
+           stroke="#E8A54B"
+           stroke-opacity="0.5"
+           stroke-width="1.5"
+           id="rect83" />
+        <rect
+           x="55"
+           y="10"
+           width="8"
+           height="90"
+           rx="2"
+           fill="#E8A54B"
+           id="rect84" />
+        <rect
+           x="107"
+           y="10"
+           width="8"
+           height="90"
+           rx="2"
+           fill="#E8A54B"
+           id="rect85" />
+        <line
+           x1="59"
+           y1="45"
+           x2="59"
+           y2="55"
+           stroke="#14141C"
+           stroke-width="1.5"
+           id="line85" />
+        <line
+           x1="111"
+           y1="45"
+           x2="111"
+           y2="55"
+           stroke="#14141C"
+           stroke-width="1.5"
+           id="line86" />
+        <text
+           x="90"
+           y="130"
+           font-size="11"
+           font-weight="bold"
+           fill="#FFFFFF"
+           text-anchor="middle"
+           id="text86">SamplerWaveform</text>
       </g>
-
       <!-- FilterPreview -->
-      <g id="preview_filter_response" transform="translate(260, 0)">
-        <rect x="0" y="0" width="180" height="110" rx="6" fill="#050508" stroke="#4A4A5C" stroke-width="1" />
-        <line x1="0" y1="55" x2="180" y2="55" stroke="#FFFFFF" stroke-opacity="0.18" />
-        <path d="M 0 55 L 70 55 Q 100 45 110 55 T 130 95 T 180 110" fill="none" stroke="#5BC0EB" stroke-width="2" />
-        <line x1="110" y1="10" x2="110" y2="100" stroke="#5BC0EB" stroke-opacity="0.5" stroke-width="1"/>
-        <text x="90" y="130" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">FilterPreview</text>
+      <g
+         id="preview_filter_response"
+         transform="translate(260, 0)">
+        <rect
+           x="0"
+           y="0"
+           width="180"
+           height="110"
+           rx="6"
+           fill="#050508"
+           stroke="#4A4A5C"
+           stroke-width="1"
+           id="rect86" />
+        <line
+           x1="0"
+           y1="55"
+           x2="180"
+           y2="55"
+           stroke="#FFFFFF"
+           stroke-opacity="0.18"
+           id="line87" />
+        <path
+           d="M 0 55 L 70 55 Q 100 45 110 55 T 130 95 T 180 110"
+           fill="none"
+           stroke="#5BC0EB"
+           stroke-width="2"
+           id="path87" />
+        <line
+           x1="110"
+           y1="10"
+           x2="110"
+           y2="100"
+           stroke="#5BC0EB"
+           stroke-opacity="0.5"
+           stroke-width="1"
+           id="line88" />
+        <text
+           x="90"
+           y="130"
+           font-size="11"
+           font-weight="bold"
+           fill="#FFFFFF"
+           text-anchor="middle"
+           id="text88">FilterPreview</text>
       </g>
-
       <!-- FourBandEqPreview -->
-      <g id="preview_eq_curve" transform="translate(470, 0)">
-        <rect x="0" y="0" width="180" height="110" rx="6" fill="#050508" stroke="#4A4A5C" stroke-width="1" />
-        <line x1="0" y1="55" x2="180" y2="55" stroke="#FFFFFF" stroke-opacity="0.18" />
-        <path d="M 0 50 Q 25 55 45 45 T 85 20 T 130 50 T 180 30" fill="none" stroke="#78C091" stroke-width="2" />
-        <text x="90" y="130" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">FourBandEqPreview</text>
+      <g
+         id="preview_eq_curve"
+         transform="translate(470, 0)">
+        <rect
+           x="0"
+           y="0"
+           width="180"
+           height="110"
+           rx="6"
+           fill="#050508"
+           stroke="#4A4A5C"
+           stroke-width="1"
+           id="rect88" />
+        <line
+           x1="0"
+           y1="55"
+           x2="180"
+           y2="55"
+           stroke="#FFFFFF"
+           stroke-opacity="0.18"
+           id="line89" />
+        <path
+           d="M 0 50 Q 25 55 45 45 T 85 20 T 130 50 T 180 30"
+           fill="none"
+           stroke="#78C091"
+           stroke-width="2"
+           id="path89" />
+        <text
+           x="90"
+           y="130"
+           font-size="11"
+           font-weight="bold"
+           fill="#FFFFFF"
+           text-anchor="middle"
+           id="text89">FourBandEqPreview</text>
       </g>
     </g>
   </g>
-
   <!-- ================================================================= -->
   <!-- LAYER 5: REVISED ASSEMBLED DEVICE CARDS (320PX EXPANDED HEIGHT)   -->
   <!-- ================================================================= -->
-  <g inkscape:groupmode="layer" inkscape:label="05 Assembled Cards" id="layer_cards" transform="translate(0, 750)">
-    <text x="50" y="30" font-size="20" font-weight="bold" fill="#FFFFFF">05 Composed Device Chassis Cards, Tool Rails &amp; Out-Rails (Revised)</text>
-    <text x="50" y="55" font-size="12" fill="#9A9AA8">Left Tool Rail, sharp-cornered cards, Left/Right accent stripes, and exact header tab fills.</text>
-
+  <g
+     inkscape:groupmode="layer"
+     inkscape:label="05 Assembled Cards"
+     id="layer_cards"
+     transform="translate(0, 750)">
+    <text
+       x="50"
+       y="30"
+       font-size="20"
+       font-weight="bold"
+       fill="#FFFFFF"
+       id="text90">05 Composed Device Chassis Cards, Tool Rails  Out-Rails (Revised)</text>
+    <text
+       x="50"
+       y="55"
+       font-size="12"
+       fill="#9A9AA8"
+       id="text91">Left Tool Rail, sharp-cornered cards, Left/Right accent stripes, and exact header tab fills.</text>
     <!-- COLUMN 1, ROW 1: KICK GENERATOR (Tool Rail + Main Card + Mono Out Rail) -->
     <!-- Total width: 30 (Tool Rail) + 4 (Left Stripe) + 472 (Chassis) + 4 (Right Stripe) + 64 (Out Rail) = 574px -->
-    <g id="group_kick_generator" transform="translate(50, 90)">
-      
+    <g
+       id="group_kick_generator"
+       transform="translate(50, 90)">
       <!-- 1. Left-most DeviceToolRail Pane (width 30, height 320) -->
-      <g id="kick_tool_rail">
-        <path d="M 30 0 L 10 0 A 10 10 0 0 0 0 10 L 0 310 A 10 10 0 0 0 10 320 L 30 320 Z" fill="#16161E" stroke="#4A4A5C" stroke-width="1.5" />
+      <g
+         id="kick_tool_rail">
+        <path
+           d="M 30 0 L 10 0 A 10 10 0 0 0 0 10 L 0 310 A 10 10 0 0 0 10 320 L 30 320 Z"
+           fill="#16161E"
+           stroke="#4A4A5C"
+           stroke-width="1.5"
+           id="path91" />
         <!-- Sharp right boundary, rounded left boundaries -->
-        
         <!-- Power/Bypass Button (Top) -->
-        <g transform="translate(6, 12)">
-          <circle cx="9" cy="9" r="8" fill="#10B981" fill-opacity="0.2" stroke="#10B981" stroke-width="1"/>
-          <path d="M 9 5 L 9 9" stroke="#10B981" stroke-width="1.5" stroke-linecap="round"/>
-          <path d="M 6 7 A 4 4 0 1 0 12 7" fill="none" stroke="#10B981" stroke-width="1.5" stroke-linecap="round"/>
+        <g
+           transform="translate(6, 12)"
+           id="g93">
+          <circle
+             cx="9"
+             cy="9"
+             r="8"
+             fill="#10B981"
+             fill-opacity="0.2"
+             stroke="#10B981"
+             stroke-width="1"
+             id="circle91" />
+          <path
+             d="M 9 5 L 9 9"
+             stroke="#10B981"
+             stroke-width="1.5"
+             stroke-linecap="round"
+             id="path92" />
+          <path
+             d="M 6 7 A 4 4 0 1 0 12 7"
+             fill="none"
+             stroke="#10B981"
+             stroke-width="1.5"
+             stroke-linecap="round"
+             id="path93" />
         </g>
-        
         <!-- Vertical uppercase title rotated -->
-        <g transform="translate(15, 170)">
-          <text transform="rotate(-90)" font-size="9" font-weight="700" fill="#E85D4B" letter-spacing="1.2" text-anchor="middle">KICK GEN</text>
+        <g
+           transform="translate(15, 170)"
+           id="g94">
+          <text
+             transform="rotate(-90)"
+             font-size="9"
+             font-weight="700"
+             fill="#E85D4B"
+             letter-spacing="1.2"
+             text-anchor="middle"
+             id="text93">KICK GEN</text>
         </g>
-
         <!-- Mod Label (Bottom) -->
-        <text x="15" y="280" font-size="8" font-weight="bold" fill="#9A9AA8" text-anchor="middle">Mod</text>
-
+        <text
+           x="15"
+           y="280"
+           font-size="8"
+           font-weight="bold"
+           fill="#9A9AA8"
+           text-anchor="middle"
+           id="text94">Mod</text>
         <!-- Delete Bin Button (Bottommost) -->
-        <g transform="translate(6, 296)">
-          <rect x="1" y="3" width="14" height="2" fill="#E86666" />
-          <path d="M 4 3 L 4 1 L 10 1 L 10 3" fill="none" stroke="#E86666" stroke-width="1" />
-          <path d="M 3 5 L 3 13 A 1 1 0 0 0 4 14 L 10 14 A 1 1 0 0 0 11 13 L 11 5" fill="none" stroke="#E86666" stroke-width="1" />
+        <g
+           transform="translate(6, 296)"
+           id="g95">
+          <rect
+             x="1"
+             y="3"
+             width="14"
+             height="2"
+             fill="#E86666"
+             id="rect94" />
+          <path
+             d="M 4 3 L 4 1 L 10 1 L 10 3"
+             fill="none"
+             stroke="#E86666"
+             stroke-width="1"
+             id="path94" />
+          <path
+             d="M 3 5 L 3 13 A 1 1 0 0 0 4 14 L 10 14 A 1 1 0 0 0 11 13 L 11 5"
+             fill="none"
+             stroke="#E86666"
+             stroke-width="1"
+             id="path95" />
         </g>
       </g>
-
       <!-- 2. Left Highlight Accent Stripe (width 4, height 320) -->
-      <rect x="30" y="0" width="4" height="320" fill="#E85D4B" />
-
+      <rect
+         x="30"
+         y="0"
+         width="4"
+         height="320"
+         fill="#E85D4B"
+         id="rect95" />
       <!-- 3. Main Card Chassis (width 440, height 320) - sharp cornered where rails connect -->
-      <g id="kick_main_card" transform="translate(34, 0)">
-        <rect x="0" y="0" width="440" height="320" fill="#1A1A24" stroke="#4A4A5C" stroke-width="1.5" />
-
+      <g
+         id="kick_main_card"
+         transform="translate(34, 0)">
+        <rect
+           x="0"
+           y="0"
+           width="440"
+           height="320"
+           fill="#1A1A24"
+           stroke="#4A4A5C"
+           stroke-width="1.5"
+           id="rect96" />
         <!-- Header Bar (40px) -->
-        <rect x="0" y="0" width="440" height="40" fill="#22222E" />
-        <text x="12" y="25" font-size="11" font-weight="bold" fill="#FFFFFF" letter-spacing="1">KICK GENERATOR</text>
-
+        <rect
+           x="0"
+           y="0"
+           width="440"
+           height="40"
+           fill="#22222E"
+           id="rect97" />
+        <text
+           x="12"
+           y="25"
+           font-size="11"
+           font-weight="bold"
+           fill="#FFFFFF"
+           letter-spacing="1"
+           id="text97">KICK GENERATOR</text>
         <!-- LEFT: Envelope Visualizer Screen -->
-        <g transform="translate(16, 56)">
-          <rect x="0" y="0" width="180" height="150" rx="6" fill="#050508" stroke="#FFFFFF" stroke-opacity="0.08" />
-          <path d="M 10 120 Q 30 20 50 20 T 110 80 T 170 120" fill="none" stroke="#E85D4B" stroke-width="2.5" />
-          
+        <g
+           transform="translate(16, 56)"
+           id="g103">
+          <rect
+             x="0"
+             y="0"
+             width="180"
+             height="150"
+             rx="6"
+             fill="#050508"
+             stroke="#FFFFFF"
+             stroke-opacity="0.08"
+             id="rect98" />
+          <path
+             d="M 10 120 Q 30 20 50 20 T 110 80 T 170 120"
+             fill="none"
+             stroke="#E85D4B"
+             stroke-width="2.5"
+             id="path98" />
           <!-- Segment Tab Selector Below Visualizer -->
-          <rect x="0" y="165" width="180" height="26" rx="4" fill="#050508" />
-          <rect x="3" y="168" width="44" height="20" rx="3" fill="#E85D4B" />
-          <text x="25" y="181" font-size="9" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Classic</text>
-          <text x="68" y="181" font-size="9" fill="#9A9AA8" text-anchor="middle">Impact</text>
-          <text x="111" y="181" font-size="9" fill="#9A9AA8" text-anchor="middle">Sub</text>
-          <text x="154" y="181" font-size="9" fill="#9A9AA8" text-anchor="middle">Organic</text>
+          <rect
+             x="0"
+             y="165"
+             width="180"
+             height="26"
+             rx="4"
+             fill="#050508"
+             id="rect99" />
+          <rect
+             x="3"
+             y="168"
+             width="44"
+             height="20"
+             rx="3"
+             fill="#E85D4B"
+             id="rect100" />
+          <text
+             x="25"
+             y="181"
+             font-size="9"
+             font-weight="bold"
+             fill="#FFFFFF"
+             text-anchor="middle"
+             id="text100">Classic</text>
+          <text
+             x="68"
+             y="181"
+             font-size="9"
+             fill="#9A9AA8"
+             text-anchor="middle"
+             id="text101">Impact</text>
+          <text
+             x="111"
+             y="181"
+             font-size="9"
+             fill="#9A9AA8"
+             text-anchor="middle"
+             id="text102">Sub</text>
+          <text
+             x="154"
+             y="181"
+             font-size="9"
+             fill="#9A9AA8"
+             text-anchor="middle"
+             id="text103">Organic</text>
         </g>
-
         <!-- RIGHT: Knobs Grid (2 columns of Strip knobs in multiple rows) -->
-        <g transform="translate(220, 56)">
+        <g
+           transform="translate(220, 56)"
+           id="g112">
           <!-- Knob 1: Pitch (Row 1 Col 1) -->
-          <g transform="translate(10, 10)">
-            <circle cx="28" cy="26" r="22" fill="#14141C" stroke="#4A4A5C" stroke-width="3" />
-            <path d="M 28 26 L 39 12" stroke="#E85D4B" stroke-width="2.8" stroke-linecap="round" />
-            <text x="28" y="30" font-size="10" font-weight="bold" fill="#E85D4B" text-anchor="middle">55Hz</text>
-            <text x="28" y="65" font-size="9" fill="#9A9AA8" text-anchor="middle">Pitch</text>
+          <g
+             transform="translate(10, 10)"
+             id="g105">
+            <circle
+               cx="28"
+               cy="26"
+               r="22"
+               fill="#14141C"
+               stroke="#4A4A5C"
+               stroke-width="3"
+               id="circle103" />
+            <path
+               d="M 28 26 L 39 12"
+               stroke="#E85D4B"
+               stroke-width="2.8"
+               stroke-linecap="round"
+               id="path103" />
+            <text
+               x="28"
+               y="30"
+               font-size="10"
+               font-weight="bold"
+               fill="#E85D4B"
+               text-anchor="middle"
+               id="text104">55Hz</text>
+            <text
+               x="28"
+               y="65"
+               font-size="9"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               id="text105">Pitch</text>
           </g>
           <!-- Knob 2: Punch (Row 1 Col 2) -->
-          <g transform="translate(90, 10)">
-            <circle cx="28" cy="26" r="22" fill="#14141C" stroke="#4A4A5C" stroke-width="3" />
-            <path d="M 28 26 L 39 12" stroke="#E85D4B" stroke-width="2.8" stroke-linecap="round" />
-            <text x="28" y="30" font-size="10" font-weight="bold" fill="#E85D4B" text-anchor="middle">70%</text>
-            <text x="28" y="65" font-size="9" fill="#9A9AA8" text-anchor="middle">Punch</text>
+          <g
+             transform="translate(90, 10)"
+             id="g107">
+            <circle
+               cx="28"
+               cy="26"
+               r="22"
+               fill="#14141C"
+               stroke="#4A4A5C"
+               stroke-width="3"
+               id="circle105" />
+            <path
+               d="M 28 26 L 39 12"
+               stroke="#E85D4B"
+               stroke-width="2.8"
+               stroke-linecap="round"
+               id="path105" />
+            <text
+               x="28"
+               y="30"
+               font-size="10"
+               font-weight="bold"
+               fill="#E85D4B"
+               text-anchor="middle"
+               id="text106">70%</text>
+            <text
+               x="28"
+               y="65"
+               font-size="9"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               id="text107">Punch</text>
           </g>
           <!-- Knob 3: Decay (Row 2 Col 1) -->
-          <g transform="translate(10, 110)">
-            <circle cx="28" cy="26" r="22" fill="#14141C" stroke="#4A4A5C" stroke-width="3" />
-            <path d="M 28 26 L 39 12" stroke="#E85D4B" stroke-width="2.8" stroke-linecap="round" />
-            <text x="28" y="30" font-size="10" font-weight="bold" fill="#E85D4B" text-anchor="middle">320ms</text>
-            <text x="28" y="65" font-size="9" fill="#9A9AA8" text-anchor="middle">Decay</text>
+          <g
+             transform="translate(10, 110)"
+             id="g109">
+            <circle
+               cx="28"
+               cy="26"
+               r="22"
+               fill="#14141C"
+               stroke="#4A4A5C"
+               stroke-width="3"
+               id="circle107" />
+            <path
+               d="M 28 26 L 39 12"
+               stroke="#E85D4B"
+               stroke-width="2.8"
+               stroke-linecap="round"
+               id="path107" />
+            <text
+               x="28"
+               y="30"
+               font-size="10"
+               font-weight="bold"
+               fill="#E85D4B"
+               text-anchor="middle"
+               id="text108">320ms</text>
+            <text
+               x="28"
+               y="65"
+               font-size="9"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               id="text109">Decay</text>
           </g>
           <!-- Knob 4: Click (Row 2 Col 2) -->
-          <g transform="translate(90, 110)">
-            <circle cx="28" cy="26" r="22" fill="#14141C" stroke="#4A4A5C" stroke-width="3" />
-            <path d="M 28 26 L 28 10" stroke="#E85D4B" stroke-width="2.8" stroke-linecap="round" />
-            <text x="28" y="30" font-size="10" font-weight="bold" fill="#E85D4B" text-anchor="middle">20%</text>
-            <text x="28" y="65" font-size="9" fill="#9A9AA8" text-anchor="middle">Click</text>
+          <g
+             transform="translate(90, 110)"
+             id="g111">
+            <circle
+               cx="28"
+               cy="26"
+               r="22"
+               fill="#14141C"
+               stroke="#4A4A5C"
+               stroke-width="3"
+               id="circle109" />
+            <path
+               d="M 28 26 L 28 10"
+               stroke="#E85D4B"
+               stroke-width="2.8"
+               stroke-linecap="round"
+               id="path109" />
+            <text
+               x="28"
+               y="30"
+               font-size="10"
+               font-weight="bold"
+               fill="#E85D4B"
+               text-anchor="middle"
+               id="text110">20%</text>
+            <text
+               x="28"
+               y="65"
+               font-size="9"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               id="text111">Click</text>
           </g>
         </g>
       </g>
-
       <!-- 4. Right Highlight Accent Stripe (width 4, height 320) -->
-      <rect x="474" y="0" width="4" height="320" fill="#E85D4B" />
-
+      <rect
+         x="474"
+         y="0"
+         width="4"
+         height="320"
+         fill="#E85D4B"
+         id="rect112" />
       <!-- 5. Right Output Rail: DrumMonoOutputPanel (width 64, height 320) -->
-      <g id="kick_mono_rail" transform="translate(478, 0)">
-        <path d="M 0 0 L 54 0 A 10 10 0 0 1 64 10 L 64 310 A 10 10 0 0 1 54 320 L 0 320 Z" fill="#16161E" stroke="#4A4A5C" stroke-width="1.5" />
-        <path d="M 63 10 L 63 310" stroke="#6A6A7C" stroke-width="1.5" />
-        
+      <g
+         id="kick_mono_rail"
+         transform="translate(478, 0)">
+        <path
+           d="M 0 0 L 54 0 A 10 10 0 0 1 64 10 L 64 310 A 10 10 0 0 1 54 320 L 0 320 Z"
+           fill="#16161E"
+           stroke="#4A4A5C"
+           stroke-width="1.5"
+           id="path112" />
+        <path
+           d="M 63 10 L 63 310"
+           stroke="#6A6A7C"
+           stroke-width="1.5"
+           id="path113" />
         <!-- Vel Sens (Top) -->
-        <g transform="translate(10, 40)">
-          <circle cx="22" cy="20" r="16" fill="#14141C" stroke="#E85D4B" stroke-width="2.5" />
-          <path d="M 22 20 L 32 10" stroke="#E85D4B" stroke-width="2" stroke-linecap="round" />
-          <text x="22" y="47" font-size="9" fill="#E85D4B" text-anchor="middle">Vel sens</text>
+        <g
+           transform="translate(10, 40)"
+           id="g114">
+          <circle
+             cx="22"
+             cy="20"
+             r="16"
+             fill="#14141C"
+             stroke="#E85D4B"
+             stroke-width="2.5"
+             id="circle113" />
+          <path
+             d="M 22 20 L 32 10"
+             stroke="#E85D4B"
+             stroke-width="2"
+             stroke-linecap="round"
+             id="path114" />
+          <text
+             x="22"
+             y="47"
+             font-size="9"
+             fill="#E85D4B"
+             text-anchor="middle"
+             id="text114">Vel sens</text>
         </g>
-        
         <!-- Gain (Below) -->
-        <g transform="translate(10, 160)">
-          <circle cx="22" cy="20" r="16" fill="#14141C" stroke="#9A9AA8" stroke-width="2.5" />
-          <path d="M 22 20 L 32 10" stroke="#9A9AA8" stroke-width="2" stroke-linecap="round" />
-          <text x="22" y="47" font-size="9" fill="#9A9AA8" text-anchor="middle">Gain: 90%</text>
+        <g
+           transform="translate(10, 160)"
+           id="g115">
+          <circle
+             cx="22"
+             cy="20"
+             r="16"
+             fill="#14141C"
+             stroke="#9A9AA8"
+             stroke-width="2.5"
+             id="circle114" />
+          <path
+             d="M 22 20 L 32 10"
+             stroke="#9A9AA8"
+             stroke-width="2"
+             stroke-linecap="round"
+             id="path115" />
+          <text
+             x="22"
+             y="47"
+             font-size="9"
+             fill="#9A9AA8"
+             text-anchor="middle"
+             id="text115">Gain: 90%</text>
         </g>
       </g>
     </g>
-
     <!-- COLUMN 2, ROW 1: COMPRESSOR DYNAMICS CARD (Tool Rail + In-Rail + Main Card + Out-Rail) -->
     <!-- Total width: 30 (Tool Rail) + 4 (Left Stripe) + 64 (In Rail) + 202 (Chassis) + 4 (Right Stripe) + 64 (Out Rail) = 368px -->
-    <g id="group_compressor_full" transform="translate(650, 90)">
-      
+    <g
+       id="group_compressor_full"
+       transform="translate(650, 90)">
       <!-- 1. Left-most Tool Rail -->
-      <g id="comp_tool_rail">
-        <path d="M 30 0 L 10 0 A 10 10 0 0 0 0 10 L 0 310 A 10 10 0 0 0 10 320 L 30 320 Z" fill="#16161E" stroke="#4A4A5C" stroke-width="1.5" />
+      <g
+         id="comp_tool_rail">
+        <path
+           d="M 30 0 L 10 0 A 10 10 0 0 0 0 10 L 0 310 A 10 10 0 0 0 10 320 L 30 320 Z"
+           fill="#16161E"
+           stroke="#4A4A5C"
+           stroke-width="1.5"
+           id="path116" />
         <!-- Power/Bypass Button (Top) -->
-        <g transform="translate(6, 12)">
-          <circle cx="9" cy="9" r="8" fill="#10B981" fill-opacity="0.2" stroke="#10B981" stroke-width="1"/>
-          <path d="M 9 5 L 9 9" stroke="#10B981" stroke-width="1.5" stroke-linecap="round"/>
-          <path d="M 6 7 A 4 4 0 1 0 12 7" fill="none" stroke="#10B981" stroke-width="1.5" stroke-linecap="round"/>
+        <g
+           transform="translate(6, 12)"
+           id="g118">
+          <circle
+             cx="9"
+             cy="9"
+             r="8"
+             fill="#10B981"
+             fill-opacity="0.2"
+             stroke="#10B981"
+             stroke-width="1"
+             id="circle116" />
+          <path
+             d="M 9 5 L 9 9"
+             stroke="#10B981"
+             stroke-width="1.5"
+             stroke-linecap="round"
+             id="path117" />
+          <path
+             d="M 6 7 A 4 4 0 1 0 12 7"
+             fill="none"
+             stroke="#10B981"
+             stroke-width="1.5"
+             stroke-linecap="round"
+             id="path118" />
         </g>
-        
         <!-- Rotated Title -->
-        <g transform="translate(15, 170)">
-          <text transform="rotate(-90)" font-size="9" font-weight="700" fill="#E8A54B" letter-spacing="1.2" text-anchor="middle">COMPRESSOR</text>
+        <g
+           transform="translate(15, 170)"
+           id="g119">
+          <text
+             transform="rotate(-90)"
+             font-size="9"
+             font-weight="700"
+             fill="#E8A54B"
+             letter-spacing="1.2"
+             text-anchor="middle"
+             id="text118">COMPRESSOR</text>
         </g>
-
         <!-- Mod Label (Bottom) -->
-        <text x="15" y="280" font-size="8" font-weight="bold" fill="#9A9AA8" text-anchor="middle">Mod</text>
-
+        <text
+           x="15"
+           y="280"
+           font-size="8"
+           font-weight="bold"
+           fill="#9A9AA8"
+           text-anchor="middle"
+           id="text119">Mod</text>
         <!-- Delete Bin Button (Bottommost) -->
-        <g transform="translate(6, 296)">
-          <rect x="1" y="3" width="14" height="2" fill="#E86666" />
-          <path d="M 4 3 L 4 1 L 10 1 L 10 3" fill="none" stroke="#E86666" stroke-width="1" />
-          <path d="M 3 5 L 3 13 A 1 1 0 0 0 4 14 L 10 14 A 1 1 0 0 0 11 13 L 11 5" fill="none" stroke="#E86666" stroke-width="1" />
+        <g
+           transform="translate(6, 296)"
+           id="g120">
+          <rect
+             x="1"
+             y="3"
+             width="14"
+             height="2"
+             fill="#E86666"
+             id="rect119" />
+          <path
+             d="M 4 3 L 4 1 L 10 1 L 10 3"
+             fill="none"
+             stroke="#E86666"
+             stroke-width="1"
+             id="path119" />
+          <path
+             d="M 3 5 L 3 13 A 1 1 0 0 0 4 14 L 10 14 A 1 1 0 0 0 11 13 L 11 5"
+             fill="none"
+             stroke="#E86666"
+             stroke-width="1"
+             id="path120" />
         </g>
       </g>
-
       <!-- 2. Left Highlight Accent Stripe (width 4) -->
-      <rect x="30" y="0" width="4" height="320" fill="#E8A54B" />
-
+      <rect
+         x="30"
+         y="0"
+         width="4"
+         height="320"
+         fill="#E8A54B"
+         id="rect120" />
       <!-- 3. Dynamics Left Input Rail (width 64) with Sharp edges on both sides -->
-      <g id="comp_trim_rail" transform="translate(34, 0)">
-        <rect x="0" y="0" width="64" height="320" fill="#16161E" stroke="#4A4A5C" stroke-width="1.5" />
-        <text x="32" y="24" font-size="9" font-weight="bold" fill="#9A9AA8" text-anchor="middle">IN</text>
+      <g
+         id="comp_trim_rail"
+         transform="translate(34, 0)">
+        <rect
+           x="0"
+           y="0"
+           width="64"
+           height="320"
+           fill="#16161E"
+           stroke="#4A4A5C"
+           stroke-width="1.5"
+           id="rect121" />
+        <text
+           x="32"
+           y="24"
+           font-size="9"
+           font-weight="bold"
+           fill="#9A9AA8"
+           text-anchor="middle"
+           id="text121">IN</text>
         <!-- VU meter -->
-        <rect x="24" y="36" width="16" height="150" fill="#0A0A0F" />
-        <rect x="24" y="90" width="16" height="96" fill="#4ADE80" fill-opacity="0.85" />
+        <rect
+           x="24"
+           y="36"
+           width="16"
+           height="150"
+           fill="#0A0A0F"
+           id="rect122" />
+        <rect
+           x="24"
+           y="90"
+           width="16"
+           height="96"
+           fill="#4ADE80"
+           fill-opacity="0.85"
+           id="rect123" />
         <!-- Trim knob -->
-        <g transform="translate(10, 220)">
-          <circle cx="22" cy="20" r="16" fill="#14141C" stroke="#E8A54B" stroke-width="2.5" />
-          <path d="M 22 20 L 32 10" stroke="#E8A54B" stroke-width="2" stroke-linecap="round" />
-          <text x="22" y="47" font-size="9" fill="#E8A54B" text-anchor="middle">Trim</text>
+        <g
+           transform="translate(10, 220)"
+           id="g123">
+          <circle
+             cx="22"
+             cy="20"
+             r="16"
+             fill="#14141C"
+             stroke="#E8A54B"
+             stroke-width="2.5"
+             id="circle123" />
+          <path
+             d="M 22 20 L 32 10"
+             stroke="#E8A54B"
+             stroke-width="2"
+             stroke-linecap="round"
+             id="path123" />
+          <text
+             x="22"
+             y="47"
+             font-size="9"
+             fill="#E8A54B"
+             text-anchor="middle"
+             id="text123">Trim</text>
         </g>
       </g>
-
       <!-- 4. Main Card Chassis (width 190) -->
-      <g id="comp_main_card" transform="translate(98, 0)">
-        <rect x="0" y="0" width="190" height="320" fill="#1A1A24" stroke="#4A4A5C" stroke-width="1.5" />
-
+      <g
+         id="comp_main_card"
+         transform="translate(98, 0)">
+        <rect
+           x="0"
+           y="0"
+           width="190"
+           height="320"
+           fill="#1A1A24"
+           stroke="#4A4A5C"
+           stroke-width="1.5"
+           id="rect124" />
         <!-- Header -->
-        <rect x="0" y="0" width="190" height="40" fill="#22222E" />
-        <text x="12" y="25" font-size="11" font-weight="bold" fill="#FFFFFF" letter-spacing="1">COMPRESSOR</text>
-
+        <rect
+           x="0"
+           y="0"
+           width="190"
+           height="40"
+           fill="#22222E"
+           id="rect125" />
+        <text
+           x="12"
+           y="25"
+           font-size="11"
+           font-weight="bold"
+           fill="#FFFFFF"
+           letter-spacing="1"
+           id="text125">COMPRESSOR</text>
         <!-- LEFT: Envelope Curve screen (compact preview) -->
-        <g transform="translate(12, 52)">
-          <rect x="0" y="0" width="166" height="96" rx="6" fill="#050508" stroke="#FFFFFF" stroke-opacity="0.08" />
-          <path d="M 10 80 L 80 40 L 150 30" fill="none" stroke="#E8A54B" stroke-width="2" />
-          <line x1="80" y1="10" x2="80" y2="85" stroke="#E8A54B" stroke-opacity="0.5" stroke-dasharray="2,2" />
+        <g
+           transform="translate(12, 52)"
+           id="g126">
+          <rect
+             x="0"
+             y="0"
+             width="166"
+             height="96"
+             rx="6"
+             fill="#050508"
+             stroke="#FFFFFF"
+             stroke-opacity="0.08"
+             id="rect126" />
+          <path
+             d="M 10 80 L 80 40 L 150 30"
+             fill="none"
+             stroke="#E8A54B"
+             stroke-width="2"
+             id="path126" />
+          <line
+             x1="80"
+             y1="10"
+             x2="80"
+             y2="85"
+             stroke="#E8A54B"
+             stroke-opacity="0.5"
+             stroke-dasharray="2,2"
+             id="line126" />
         </g>
-
         <!-- BOTTOM: Knobs Grid (3 columns, 2 rows of Strip knobs) -->
-        <g transform="translate(6, 160)">
+        <g
+           transform="translate(6, 160)"
+           id="g139">
           <!-- Col 1 Row 1: Thresh -->
-          <g transform="translate(2, 5)">
-            <circle cx="24" cy="22" r="18" fill="#14141C" stroke="#4A4A5C" stroke-width="2.5" />
-            <path d="M 24 22 L 16 33" stroke="#E8A54B" stroke-width="2.2" stroke-linecap="round" />
-            <text x="24" y="25" font-size="8.5" font-weight="bold" fill="#E8A54B" text-anchor="middle">-18dB</text>
-            <text x="24" y="55" font-size="8" fill="#9A9AA8" text-anchor="middle" font-weight="bold">Thresh</text>
+          <g
+             transform="translate(2, 5)"
+             id="g128">
+            <circle
+               cx="24"
+               cy="22"
+               r="18"
+               fill="#14141C"
+               stroke="#4A4A5C"
+               stroke-width="2.5"
+               id="circle126" />
+            <path
+               d="M 24 22 L 16 33"
+               stroke="#E8A54B"
+               stroke-width="2.2"
+               stroke-linecap="round"
+               id="path127" />
+            <text
+               x="24"
+               y="25"
+               font-size="8.5"
+               font-weight="bold"
+               fill="#E8A54B"
+               text-anchor="middle"
+               id="text127">-18dB</text>
+            <text
+               x="24"
+               y="55"
+               font-size="8"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               font-weight="bold"
+               id="text128">Thresh</text>
           </g>
           <!-- Col 2 Row 1: Ratio -->
-          <g transform="translate(60, 5)">
-            <circle cx="24" cy="22" r="18" fill="#14141C" stroke="#4A4A5C" stroke-width="2.5" />
-            <path d="M 24 22 L 32 10" stroke="#E8A54B" stroke-width="2.2" stroke-linecap="round" />
-            <text x="24" y="25" font-size="8.5" font-weight="bold" fill="#E8A54B" text-anchor="middle">4.0:1</text>
-            <text x="24" y="55" font-size="8" fill="#9A9AA8" text-anchor="middle" font-weight="bold">Ratio</text>
+          <g
+             transform="translate(60, 5)"
+             id="g130">
+            <circle
+               cx="24"
+               cy="22"
+               r="18"
+               fill="#14141C"
+               stroke="#4A4A5C"
+               stroke-width="2.5"
+               id="circle128" />
+            <path
+               d="M 24 22 L 32 10"
+               stroke="#E8A54B"
+               stroke-width="2.2"
+               stroke-linecap="round"
+               id="path128" />
+            <text
+               x="24"
+               y="25"
+               font-size="8.5"
+               font-weight="bold"
+               fill="#E8A54B"
+               text-anchor="middle"
+               id="text129">4.0:1</text>
+            <text
+               x="24"
+               y="55"
+               font-size="8"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               font-weight="bold"
+               id="text130">Ratio</text>
           </g>
           <!-- Col 3 Row 1: Knee -->
-          <g transform="translate(118, 5)">
-            <circle cx="24" cy="22" r="18" fill="#14141C" stroke="#4A4A5C" stroke-width="2.5" />
-            <path d="M 24 22 L 32 10" stroke="#E8A54B" stroke-width="2.2" stroke-linecap="round" />
-            <text x="24" y="25" font-size="8.5" font-weight="bold" fill="#E8A54B" text-anchor="middle">6dB</text>
-            <text x="24" y="55" font-size="8" fill="#9A9AA8" text-anchor="middle" font-weight="bold">Knee</text>
+          <g
+             transform="translate(118, 5)"
+             id="g132">
+            <circle
+               cx="24"
+               cy="22"
+               r="18"
+               fill="#14141C"
+               stroke="#4A4A5C"
+               stroke-width="2.5"
+               id="circle130" />
+            <path
+               d="M 24 22 L 32 10"
+               stroke="#E8A54B"
+               stroke-width="2.2"
+               stroke-linecap="round"
+               id="path130" />
+            <text
+               x="24"
+               y="25"
+               font-size="8.5"
+               font-weight="bold"
+               fill="#E8A54B"
+               text-anchor="middle"
+               id="text131">6dB</text>
+            <text
+               x="24"
+               y="55"
+               font-size="8"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               font-weight="bold"
+               id="text132">Knee</text>
           </g>
           <!-- Col 1 Row 2: Attack -->
-          <g transform="translate(2, 80)">
-            <circle cx="24" cy="22" r="18" fill="#14141C" stroke="#4A4A5C" stroke-width="2.5" />
-            <path d="M 24 22 L 32 10" stroke="#E8A54B" stroke-width="2.2" stroke-linecap="round" />
-            <text x="24" y="25" font-size="8.5" font-weight="bold" fill="#E8A54B" text-anchor="middle">10ms</text>
-            <text x="24" y="55" font-size="8" fill="#9A9AA8" text-anchor="middle" font-weight="bold">Attack</text>
+          <g
+             transform="translate(2, 80)"
+             id="g134">
+            <circle
+               cx="24"
+               cy="22"
+               r="18"
+               fill="#14141C"
+               stroke="#4A4A5C"
+               stroke-width="2.5"
+               id="circle132" />
+            <path
+               d="M 24 22 L 32 10"
+               stroke="#E8A54B"
+               stroke-width="2.2"
+               stroke-linecap="round"
+               id="path132" />
+            <text
+               x="24"
+               y="25"
+               font-size="8.5"
+               font-weight="bold"
+               fill="#E8A54B"
+               text-anchor="middle"
+               id="text133">10ms</text>
+            <text
+               x="24"
+               y="55"
+               font-size="8"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               font-weight="bold"
+               id="text134">Attack</text>
           </g>
           <!-- Col 2 Row 2: Release -->
-          <g transform="translate(60, 80)">
-            <circle cx="24" cy="22" r="18" fill="#14141C" stroke="#4A4A5C" stroke-width="2.5" />
-            <path d="M 24 22 L 24 8" stroke="#E8A54B" stroke-width="2.2" stroke-linecap="round" />
-            <text x="24" y="25" font-size="8.5" font-weight="bold" fill="#E8A54B" text-anchor="middle">120ms</text>
-            <text x="24" y="55" font-size="8" fill="#9A9AA8" text-anchor="middle" font-weight="bold">Release</text>
+          <g
+             transform="translate(60, 80)"
+             id="g136">
+            <circle
+               cx="24"
+               cy="22"
+               r="18"
+               fill="#14141C"
+               stroke="#4A4A5C"
+               stroke-width="2.5"
+               id="circle134" />
+            <path
+               d="M 24 22 L 24 8"
+               stroke="#E8A54B"
+               stroke-width="2.2"
+               stroke-linecap="round"
+               id="path134" />
+            <text
+               x="24"
+               y="25"
+               font-size="8.5"
+               font-weight="bold"
+               fill="#E8A54B"
+               text-anchor="middle"
+               id="text135">120ms</text>
+            <text
+               x="24"
+               y="55"
+               font-size="8"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               font-weight="bold"
+               id="text136">Release</text>
           </g>
           <!-- Col 3 Row 2: Makeup -->
-          <g transform="translate(118, 80)">
-            <circle cx="24" cy="22" r="18" fill="#14141C" stroke="#4A4A5C" stroke-width="2.5" />
-            <path d="M 24 22 L 32 10" stroke="#E8A54B" stroke-width="2.2" stroke-linecap="round" />
-            <text x="24" y="25" font-size="8.5" font-weight="bold" fill="#E8A54B" text-anchor="middle">0dB</text>
-            <text x="24" y="55" font-size="8" fill="#9A9AA8" text-anchor="middle" font-weight="bold">Makeup</text>
+          <g
+             transform="translate(118, 80)"
+             id="g138">
+            <circle
+               cx="24"
+               cy="22"
+               r="18"
+               fill="#14141C"
+               stroke="#4A4A5C"
+               stroke-width="2.5"
+               id="circle136" />
+            <path
+               d="M 24 22 L 32 10"
+               stroke="#E8A54B"
+               stroke-width="2.2"
+               stroke-linecap="round"
+               id="path136" />
+            <text
+               x="24"
+               y="25"
+               font-size="8.5"
+               font-weight="bold"
+               fill="#E8A54B"
+               text-anchor="middle"
+               id="text137">0dB</text>
+            <text
+               x="24"
+               y="55"
+               font-size="8"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               font-weight="bold"
+               id="text138">Makeup</text>
           </g>
         </g>
       </g>
-
       <!-- 5. Right Highlight Accent Stripe (width 4) -->
-      <rect x="288" y="0" width="4" height="320" fill="#E8A54B" />
-
+      <rect
+         x="288"
+         y="0"
+         width="4"
+         height="320"
+         fill="#E8A54B"
+         id="rect139" />
       <!-- 6. Dynamics Right Output Rail (width 64) with sharp inner edge, rounded outer edge -->
-      <g id="comp_stereo_rail" transform="translate(292, 0)">
-        <path d="M 0 0 L 54 0 A 10 10 0 0 1 64 10 L 64 310 A 10 10 0 0 1 54 320 L 0 320 Z" fill="#16161E" stroke="#4A4A5C" stroke-width="1.5" />
-        <path d="M 63 10 L 63 310" stroke="#6A6A7C" stroke-width="1.5" />
-        <text x="32" y="24" font-size="9" font-weight="bold" fill="#9A9AA8" text-anchor="middle">GR</text>
-        <rect x="24" y="36" width="16" height="150" fill="#0A0A0F" />
-        <rect x="24" y="110" width="16" height="76" fill="#E85D4B" fill-opacity="0.85" />
-        <g transform="translate(10, 220)">
-          <circle cx="22" cy="20" r="16" fill="#14141C" stroke="#9A9AA8" stroke-width="2.5" />
-          <path d="M 22 20 L 32 10" stroke="#9A9AA8" stroke-width="2" stroke-linecap="round" />
-          <text x="22" y="47" font-size="9" fill="#9A9AA8" text-anchor="middle">Gain</text>
+      <g
+         id="comp_stereo_rail"
+         transform="translate(292, 0)">
+        <path
+           d="M 0 0 L 54 0 A 10 10 0 0 1 64 10 L 64 310 A 10 10 0 0 1 54 320 L 0 320 Z"
+           fill="#16161E"
+           stroke="#4A4A5C"
+           stroke-width="1.5"
+           id="path139" />
+        <path
+           d="M 63 10 L 63 310"
+           stroke="#6A6A7C"
+           stroke-width="1.5"
+           id="path140" />
+        <text
+           x="32"
+           y="24"
+           font-size="9"
+           font-weight="bold"
+           fill="#9A9AA8"
+           text-anchor="middle"
+           id="text140">GR</text>
+        <rect
+           x="24"
+           y="36"
+           width="16"
+           height="150"
+           fill="#0A0A0F"
+           id="rect140" />
+        <rect
+           x="24"
+           y="110"
+           width="16"
+           height="76"
+           fill="#E85D4B"
+           fill-opacity="0.85"
+           id="rect141" />
+        <g
+           transform="translate(10, 220)"
+           id="g141">
+          <circle
+             cx="22"
+             cy="20"
+             r="16"
+             fill="#14141C"
+             stroke="#9A9AA8"
+             stroke-width="2.5"
+             id="circle141" />
+          <path
+             d="M 22 20 L 32 10"
+             stroke="#9A9AA8"
+             stroke-width="2"
+             stroke-linecap="round"
+             id="path141" />
+          <text
+             x="22"
+             y="47"
+             font-size="9"
+             fill="#9A9AA8"
+             text-anchor="middle"
+             id="text141">Gain</text>
         </g>
       </g>
     </g>
-
     <!-- COLUMN 3, ROW 1: FOUR-BAND EQ CARD (Tool Rail + Main Card + Out-Rail) -->
     <!-- Total width: 30 (Tool Rail) + 4 (Left Stripe) + 202 (Chassis) + 4 (Right Stripe) + 64 (Out Rail) = 304px -->
-    <g id="group_eq_full" transform="translate(1040, 90)">
-      
+    <g
+       id="group_eq_full"
+       transform="translate(1040, 90)">
       <!-- 1. Left-most Tool Rail -->
-      <g id="eq_tool_rail">
-        <path d="M 30 0 L 10 0 A 10 10 0 0 0 0 10 L 0 310 A 10 10 0 0 0 10 320 L 30 320 Z" fill="#16161E" stroke="#4A4A5C" stroke-width="1.5" />
+      <g
+         id="eq_tool_rail">
+        <path
+           d="M 30 0 L 10 0 A 10 10 0 0 0 0 10 L 0 310 A 10 10 0 0 0 10 320 L 30 320 Z"
+           fill="#16161E"
+           stroke="#4A4A5C"
+           stroke-width="1.5"
+           id="path142" />
         <!-- Power/Bypass -->
-        <g transform="translate(6, 12)">
-          <circle cx="9" cy="9" r="8" fill="#10B981" fill-opacity="0.2" stroke="#10B981" stroke-width="1"/>
-          <path d="M 9 5 L 9 9" stroke="#10B981" stroke-width="1.5" stroke-linecap="round"/>
-          <path d="M 6 7 A 4 4 0 1 0 12 7" fill="none" stroke="#10B981" stroke-width="1.5" stroke-linecap="round"/>
+        <g
+           transform="translate(6, 12)"
+           id="g144">
+          <circle
+             cx="9"
+             cy="9"
+             r="8"
+             fill="#10B981"
+             fill-opacity="0.2"
+             stroke="#10B981"
+             stroke-width="1"
+             id="circle142" />
+          <path
+             d="M 9 5 L 9 9"
+             stroke="#10B981"
+             stroke-width="1.5"
+             stroke-linecap="round"
+             id="path143" />
+          <path
+             d="M 6 7 A 4 4 0 1 0 12 7"
+             fill="none"
+             stroke="#10B981"
+             stroke-width="1.5"
+             stroke-linecap="round"
+             id="path144" />
         </g>
-        
-        <g transform="translate(15, 170)">
-          <text transform="rotate(-90)" font-size="9" font-weight="700" fill="#78C091" letter-spacing="1.2" text-anchor="middle">4-BAND EQ</text>
+        <g
+           transform="translate(15, 170)"
+           id="g145">
+          <text
+             transform="rotate(-90)"
+             font-size="9"
+             font-weight="700"
+             fill="#78C091"
+             letter-spacing="1.2"
+             text-anchor="middle"
+             id="text144">4-BAND EQ</text>
         </g>
         <!-- Mod Label -->
-        <text x="15" y="280" font-size="8" font-weight="bold" fill="#9A9AA8" text-anchor="middle">Mod</text>
-
+        <text
+           x="15"
+           y="280"
+           font-size="8"
+           font-weight="bold"
+           fill="#9A9AA8"
+           text-anchor="middle"
+           id="text145">Mod</text>
         <!-- Delete Bin -->
-        <g transform="translate(6, 296)">
-          <rect x="1" y="3" width="14" height="2" fill="#E86666" />
-          <path d="M 4 3 L 4 1 L 10 1 L 10 3" fill="none" stroke="#E86666" stroke-width="1" />
-          <path d="M 3 5 L 3 13 A 1 1 0 0 0 4 14 L 10 14 A 1 1 0 0 0 11 13 L 11 5" fill="none" stroke="#E86666" stroke-width="1" />
+        <g
+           transform="translate(6, 296)"
+           id="g146">
+          <rect
+             x="1"
+             y="3"
+             width="14"
+             height="2"
+             fill="#E86666"
+             id="rect145" />
+          <path
+             d="M 4 3 L 4 1 L 10 1 L 10 3"
+             fill="none"
+             stroke="#E86666"
+             stroke-width="1"
+             id="path145" />
+          <path
+             d="M 3 5 L 3 13 A 1 1 0 0 0 4 14 L 10 14 A 1 1 0 0 0 11 13 L 11 5"
+             fill="none"
+             stroke="#E86666"
+             stroke-width="1"
+             id="path146" />
         </g>
       </g>
-
       <!-- 2. Left Highlight Accent Stripe (width 4) -->
-      <rect x="30" y="0" width="4" height="320" fill="#78C091" />
-
+      <rect
+         x="30"
+         y="0"
+         width="4"
+         height="320"
+         fill="#78C091"
+         id="rect146" />
       <!-- 3. Main Card Chassis (width 190) -->
-      <g id="eq_main_card" transform="translate(34, 0)">
-        <rect x="0" y="0" width="190" height="320" fill="#1A1A24" stroke="#4A4A5C" stroke-width="1.5" />
-
+      <g
+         id="eq_main_card"
+         transform="translate(34, 0)">
+        <rect
+           x="0"
+           y="0"
+           width="190"
+           height="320"
+           fill="#1A1A24"
+           stroke="#4A4A5C"
+           stroke-width="1.5"
+           id="rect147" />
         <!-- Header -->
-        <rect x="0" y="0" width="190" height="40" fill="#22222E" />
-        <text x="12" y="25" font-size="11" font-weight="bold" fill="#FFFFFF" letter-spacing="1">4-BAND EQ</text>
-
+        <rect
+           x="0"
+           y="0"
+           width="190"
+           height="40"
+           fill="#22222E"
+           id="rect148" />
+        <text
+           x="12"
+           y="25"
+           font-size="11"
+           font-weight="bold"
+           fill="#FFFFFF"
+           letter-spacing="1"
+           id="text148">4-BAND EQ</text>
         <!-- TOP: EQ Response Screen -->
-        <g transform="translate(12, 52)">
-          <rect x="0" y="0" width="166" height="96" rx="6" fill="#050508" stroke="#FFFFFF" stroke-opacity="0.08" />
-          <line x1="0" y1="48" x2="166" y2="48" stroke="#FFFFFF" stroke-opacity="0.1" />
-          <path d="M 0 55 Q 25 60 45 50 T 80 20 T 120 55 T 166 32" fill="none" stroke="#78C091" stroke-width="2" />
+        <g
+           transform="translate(12, 52)"
+           id="g149">
+          <rect
+             x="0"
+             y="0"
+             width="166"
+             height="96"
+             rx="6"
+             fill="#050508"
+             stroke="#FFFFFF"
+             stroke-opacity="0.08"
+             id="rect149" />
+          <line
+             x1="0"
+             y1="48"
+             x2="166"
+             y2="48"
+             stroke="#FFFFFF"
+             stroke-opacity="0.1"
+             id="line149" />
+          <path
+             d="M 0 55 Q 25 60 45 50 T 80 20 T 120 55 T 166 32"
+             fill="none"
+             stroke="#78C091"
+             stroke-width="2"
+             id="path149" />
         </g>
-
-        <!-- BOTTOM: Grid of 4 columns (Bands 1-4) × 3 rows of ValueDragBoxes (Slider boxes) -->
-        <g transform="translate(6, 160)">
+        <!-- BOTTOM: Grid of 4 columns (Bands 1-4) ï¿½ 3 rows of ValueDragBoxes (Slider boxes) -->
+        <g
+           transform="translate(6, 160)"
+           id="g166">
           <!-- COLUMN 1: Low Shelf Band -->
-          <g transform="translate(2, 0)">
-            <rect x="0" y="5" width="40" height="24" rx="4" fill="#14141C" stroke="#78C091" stroke-opacity="0.4" />
-            <text x="20" y="20" font-size="9" font-weight="bold" fill="#78C091" text-anchor="middle">100Hz</text>
-            <rect x="0" y="40" width="40" height="24" rx="4" fill="#14141C" stroke="#78C091" stroke-opacity="0.4" />
-            <text x="20" y="55" font-size="9" font-weight="bold" fill="#78C091" text-anchor="middle">+3.5</text>
-            <rect x="0" y="75" width="40" height="24" rx="4" fill="#14141C" stroke="#78C091" stroke-opacity="0.4" />
-            <text x="20" y="90" font-size="9" font-weight="bold" fill="#78C091" text-anchor="middle">0.7</text>
-            <text x="20" y="112" font-size="8" fill="#9A9AA8" text-anchor="middle" font-weight="bold">LOW</text>
+          <g
+             transform="translate(2, 0)"
+             id="g153">
+            <rect
+               x="0"
+               y="5"
+               width="40"
+               height="24"
+               rx="4"
+               fill="#14141C"
+               stroke="#78C091"
+               stroke-opacity="0.4"
+               id="rect150" />
+            <text
+               x="20"
+               y="20"
+               font-size="9"
+               font-weight="bold"
+               fill="#78C091"
+               text-anchor="middle"
+               id="text150">100Hz</text>
+            <rect
+               x="0"
+               y="40"
+               width="40"
+               height="24"
+               rx="4"
+               fill="#14141C"
+               stroke="#78C091"
+               stroke-opacity="0.4"
+               id="rect151" />
+            <text
+               x="20"
+               y="55"
+               font-size="9"
+               font-weight="bold"
+               fill="#78C091"
+               text-anchor="middle"
+               id="text151">+3.5</text>
+            <rect
+               x="0"
+               y="75"
+               width="40"
+               height="24"
+               rx="4"
+               fill="#14141C"
+               stroke="#78C091"
+               stroke-opacity="0.4"
+               id="rect152" />
+            <text
+               x="20"
+               y="90"
+               font-size="9"
+               font-weight="bold"
+               fill="#78C091"
+               text-anchor="middle"
+               id="text152">0.7</text>
+            <text
+               x="20"
+               y="112"
+               font-size="8"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               font-weight="bold"
+               id="text153">LOW</text>
           </g>
-
           <!-- COLUMN 2: Mid 1 Band -->
-          <g transform="translate(46, 0)">
-            <rect x="0" y="5" width="40" height="24" rx="4" fill="#14141C" stroke="#78C091" stroke-opacity="0.4" />
-            <text x="20" y="20" font-size="9" font-weight="bold" fill="#78C091" text-anchor="middle">450Hz</text>
-            <rect x="0" y="40" width="40" height="24" rx="4" fill="#14141C" stroke="#78C091" stroke-opacity="0.4" />
-            <text x="20" y="55" font-size="9" font-weight="bold" fill="#78C091" text-anchor="middle">-4.2</text>
-            <rect x="0" y="75" width="40" height="24" rx="4" fill="#14141C" stroke="#78C091" stroke-opacity="0.4" />
-            <text x="20" y="90" font-size="9" font-weight="bold" fill="#78C091" text-anchor="middle">1.2</text>
-            <text x="20" y="112" font-size="8" fill="#9A9AA8" text-anchor="middle" font-weight="bold">MID1</text>
+          <g
+             transform="translate(46, 0)"
+             id="g157">
+            <rect
+               x="0"
+               y="5"
+               width="40"
+               height="24"
+               rx="4"
+               fill="#14141C"
+               stroke="#78C091"
+               stroke-opacity="0.4"
+               id="rect153" />
+            <text
+               x="20"
+               y="20"
+               font-size="9"
+               font-weight="bold"
+               fill="#78C091"
+               text-anchor="middle"
+               id="text154">450Hz</text>
+            <rect
+               x="0"
+               y="40"
+               width="40"
+               height="24"
+               rx="4"
+               fill="#14141C"
+               stroke="#78C091"
+               stroke-opacity="0.4"
+               id="rect154" />
+            <text
+               x="20"
+               y="55"
+               font-size="9"
+               font-weight="bold"
+               fill="#78C091"
+               text-anchor="middle"
+               id="text155">-4.2</text>
+            <rect
+               x="0"
+               y="75"
+               width="40"
+               height="24"
+               rx="4"
+               fill="#14141C"
+               stroke="#78C091"
+               stroke-opacity="0.4"
+               id="rect155" />
+            <text
+               x="20"
+               y="90"
+               font-size="9"
+               font-weight="bold"
+               fill="#78C091"
+               text-anchor="middle"
+               id="text156">1.2</text>
+            <text
+               x="20"
+               y="112"
+               font-size="8"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               font-weight="bold"
+               id="text157">MID1</text>
           </g>
-
           <!-- COLUMN 3: Mid 2 Band -->
-          <g transform="translate(90, 0)">
-            <rect x="0" y="5" width="40" height="24" rx="4" fill="#14141C" stroke="#78C091" stroke-opacity="0.4" />
-            <text x="20" y="20" font-size="9" font-weight="bold" fill="#78C091" text-anchor="middle">1.5k</text>
-            <rect x="0" y="40" width="40" height="24" rx="4" fill="#14141C" stroke="#78C091" stroke-opacity="0.4" />
-            <text x="20" y="55" font-size="9" font-weight="bold" fill="#78C091" text-anchor="middle">+1.8</text>
-            <rect x="0" y="75" width="40" height="24" rx="4" fill="#14141C" stroke="#78C091" stroke-opacity="0.4" />
-            <text x="20" y="90" font-size="9" font-weight="bold" fill="#78C091" text-anchor="middle">1.5</text>
-            <text x="20" y="112" font-size="8" fill="#9A9AA8" text-anchor="middle" font-weight="bold">MID2</text>
+          <g
+             transform="translate(90, 0)"
+             id="g161">
+            <rect
+               x="0"
+               y="5"
+               width="40"
+               height="24"
+               rx="4"
+               fill="#14141C"
+               stroke="#78C091"
+               stroke-opacity="0.4"
+               id="rect157" />
+            <text
+               x="20"
+               y="20"
+               font-size="9"
+               font-weight="bold"
+               fill="#78C091"
+               text-anchor="middle"
+               id="text158">1.5k</text>
+            <rect
+               x="0"
+               y="40"
+               width="40"
+               height="24"
+               rx="4"
+               fill="#14141C"
+               stroke="#78C091"
+               stroke-opacity="0.4"
+               id="rect158" />
+            <text
+               x="20"
+               y="55"
+               font-size="9"
+               font-weight="bold"
+               fill="#78C091"
+               text-anchor="middle"
+               id="text159">+1.8</text>
+            <rect
+               x="0"
+               y="75"
+               width="40"
+               height="24"
+               rx="4"
+               fill="#14141C"
+               stroke="#78C091"
+               stroke-opacity="0.4"
+               id="rect159" />
+            <text
+               x="20"
+               y="90"
+               font-size="9"
+               font-weight="bold"
+               fill="#78C091"
+               text-anchor="middle"
+               id="text160">1.5</text>
+            <text
+               x="20"
+               y="112"
+               font-size="8"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               font-weight="bold"
+               id="text161">MID2</text>
           </g>
-
           <!-- COLUMN 4: High Shelf Band -->
-          <g transform="translate(134, 0)">
-            <rect x="0" y="5" width="40" height="24" rx="4" fill="#14141C" stroke="#78C091" stroke-opacity="0.4" />
-            <text x="20" y="20" font-size="9" font-weight="bold" fill="#78C091" text-anchor="middle">10kHz</text>
-            <rect x="0" y="40" width="40" height="24" rx="4" fill="#14141C" stroke="#78C091" stroke-opacity="0.4" />
-            <text x="20" y="55" font-size="9" font-weight="bold" fill="#78C091" text-anchor="middle">+6.0</text>
-            <rect x="0" y="75" width="40" height="24" rx="4" fill="#14141C" stroke="#78C091" stroke-opacity="0.4" />
-            <text x="20" y="90" font-size="9" font-weight="bold" fill="#78C091" text-anchor="middle">0.7</text>
-            <text x="20" y="112" font-size="8" fill="#9A9AA8" text-anchor="middle" font-weight="bold">HIGH</text>
+          <g
+             transform="translate(134, 0)"
+             id="g165">
+            <rect
+               x="0"
+               y="5"
+               width="40"
+               height="24"
+               rx="4"
+               fill="#14141C"
+               stroke="#78C091"
+               stroke-opacity="0.4"
+               id="rect161" />
+            <text
+               x="20"
+               y="20"
+               font-size="9"
+               font-weight="bold"
+               fill="#78C091"
+               text-anchor="middle"
+               id="text162">10kHz</text>
+            <rect
+               x="0"
+               y="40"
+               width="40"
+               height="24"
+               rx="4"
+               fill="#14141C"
+               stroke="#78C091"
+               stroke-opacity="0.4"
+               id="rect162" />
+            <text
+               x="20"
+               y="55"
+               font-size="9"
+               font-weight="bold"
+               fill="#78C091"
+               text-anchor="middle"
+               id="text163">+6.0</text>
+            <rect
+               x="0"
+               y="75"
+               width="40"
+               height="24"
+               rx="4"
+               fill="#14141C"
+               stroke="#78C091"
+               stroke-opacity="0.4"
+               id="rect163" />
+            <text
+               x="20"
+               y="90"
+               font-size="9"
+               font-weight="bold"
+               fill="#78C091"
+               text-anchor="middle"
+               id="text164">0.7</text>
+            <text
+               x="20"
+               y="112"
+               font-size="8"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               font-weight="bold"
+               id="text165">HIGH</text>
           </g>
         </g>
       </g>
-
       <!-- 4. Right Highlight Accent Stripe (width 4) -->
-      <rect x="224" y="0" width="4" height="320" fill="#78C091" />
-
+      <rect
+         x="224"
+         y="0"
+         width="4"
+         height="320"
+         fill="#78C091"
+         id="rect166" />
       <!-- 5. Right Output Rail (width 64) -->
-      <g id="eq_stereo_rail" transform="translate(228, 0)">
-        <path d="M 0 0 L 54 0 A 10 10 0 0 1 64 10 L 64 310 A 10 10 0 0 1 54 320 L 0 320 Z" fill="#16161E" stroke="#4A4A5C" stroke-width="1.5" />
-        <path d="M 63 10 L 63 310" stroke="#6A6A7C" stroke-width="1.5" />
-        <g transform="translate(10, 40)">
-          <circle cx="22" cy="20" r="16" fill="#14141C" stroke="#9A9AA8" stroke-width="2.5" />
-          <path d="M 22 20 L 22 6" stroke="#9A9AA8" stroke-width="2" stroke-linecap="round" />
-          <text x="22" y="47" font-size="9" fill="#9A9AA8" text-anchor="middle">Pan: C</text>
+      <g
+         id="eq_stereo_rail"
+         transform="translate(228, 0)">
+        <path
+           d="M 0 0 L 54 0 A 10 10 0 0 1 64 10 L 64 310 A 10 10 0 0 1 54 320 L 0 320 Z"
+           fill="#16161E"
+           stroke="#4A4A5C"
+           stroke-width="1.5"
+           id="path166" />
+        <path
+           d="M 63 10 L 63 310"
+           stroke="#6A6A7C"
+           stroke-width="1.5"
+           id="path167" />
+        <g
+           transform="translate(10, 40)"
+           id="g168">
+          <circle
+             cx="22"
+             cy="20"
+             r="16"
+             fill="#14141C"
+             stroke="#9A9AA8"
+             stroke-width="2.5"
+             id="circle167" />
+          <path
+             d="M 22 20 L 22 6"
+             stroke="#9A9AA8"
+             stroke-width="2"
+             stroke-linecap="round"
+             id="path168" />
+          <text
+             x="22"
+             y="47"
+             font-size="9"
+             fill="#9A9AA8"
+             text-anchor="middle"
+             id="text168">Pan: C</text>
         </g>
-        <g transform="translate(10, 160)">
-          <circle cx="22" cy="20" r="16" fill="#14141C" stroke="#9A9AA8" stroke-width="2.5" />
-          <path d="M 22 20 L 32 10" stroke="#9A9AA8" stroke-width="2" stroke-linecap="round" />
-          <text x="22" y="47" font-size="9" fill="#9A9AA8" text-anchor="middle">Gain</text>
+        <g
+           transform="translate(10, 160)"
+           id="g169">
+          <circle
+             cx="22"
+             cy="20"
+             r="16"
+             fill="#14141C"
+             stroke="#9A9AA8"
+             stroke-width="2.5"
+             id="circle168" />
+          <path
+             d="M 22 20 L 32 10"
+             stroke="#9A9AA8"
+             stroke-width="2"
+             stroke-linecap="round"
+             id="path169" />
+          <text
+             x="22"
+             y="47"
+             font-size="9"
+             fill="#9A9AA8"
+             text-anchor="middle"
+             id="text169">Gain</text>
         </g>
       </g>
     </g>
-
     <!-- COLUMN 1-2, ROW 2: SIMPLE SAMPLER (Tool Rail + Left Stripe + Card + Right Stripe + Rail) -->
     <!-- Total width: 30 (Tool Rail) + 4 (Left Stripe) + 310 (Chassis) + 4 (Right Stripe) + 64 (Out Rail) = 412px -->
-    <g id="group_sampler_assembled" transform="translate(50, 450)">
-      
+    <g
+       id="group_sampler_assembled"
+       transform="translate(50, 450)">
       <!-- 1. Left-most Tool Rail -->
-      <g id="sampler_tool_rail">
-        <path d="M 30 0 L 10 0 A 10 10 0 0 0 0 10 L 0 310 A 10 10 0 0 0 10 320 L 30 320 Z" fill="#16161E" stroke="#4A4A5C" stroke-width="1.5" />
+      <g
+         id="sampler_tool_rail">
+        <path
+           d="M 30 0 L 10 0 A 10 10 0 0 0 0 10 L 0 310 A 10 10 0 0 0 10 320 L 30 320 Z"
+           fill="#16161E"
+           stroke="#4A4A5C"
+           stroke-width="1.5"
+           id="path170" />
         <!-- Power/Bypass -->
-        <g transform="translate(6, 12)">
-          <circle cx="9" cy="9" r="8" fill="#10B981" fill-opacity="0.2" stroke="#10B981" stroke-width="1"/>
-          <path d="M 9 5 L 9 9" stroke="#10B981" stroke-width="1.5" stroke-linecap="round"/>
-          <path d="M 6 7 A 4 4 0 1 0 12 7" fill="none" stroke="#10B981" stroke-width="1.5" stroke-linecap="round"/>
+        <g
+           transform="translate(6, 12)"
+           id="g172">
+          <circle
+             cx="9"
+             cy="9"
+             r="8"
+             fill="#10B981"
+             fill-opacity="0.2"
+             stroke="#10B981"
+             stroke-width="1"
+             id="circle170" />
+          <path
+             d="M 9 5 L 9 9"
+             stroke="#10B981"
+             stroke-width="1.5"
+             stroke-linecap="round"
+             id="path171" />
+          <path
+             d="M 6 7 A 4 4 0 1 0 12 7"
+             fill="none"
+             stroke="#10B981"
+             stroke-width="1.5"
+             stroke-linecap="round"
+             id="path172" />
         </g>
         <!-- Library Button (Open Folder Icon) -->
-        <g transform="translate(6, 36)">
-          <path d="M 2 4 L 6 4 L 8 6 L 16 6 L 16 14 L 2 14 Z" fill="none" stroke="#9A9AA8" stroke-width="1" />
+        <g
+           transform="translate(6, 36)"
+           id="g173">
+          <path
+             d="M 2 4 L 6 4 L 8 6 L 16 6 L 16 14 L 2 14 Z"
+             fill="none"
+             stroke="#9A9AA8"
+             stroke-width="1"
+             id="path173" />
         </g>
-        
-        <g transform="translate(15, 170)">
-          <text transform="rotate(-90)" font-size="9" font-weight="700" fill="#E8A54B" letter-spacing="1.2" text-anchor="middle">SAMPLER</text>
+        <g
+           transform="translate(15, 170)"
+           id="g174">
+          <text
+             transform="rotate(-90)"
+             font-size="9"
+             font-weight="700"
+             fill="#E8A54B"
+             letter-spacing="1.2"
+             text-anchor="middle"
+             id="text173">SAMPLER</text>
         </g>
         <!-- Mod Label -->
-        <text x="15" y="280" font-size="8" font-weight="bold" fill="#9A9AA8" text-anchor="middle">Mod</text>
-
+        <text
+           x="15"
+           y="280"
+           font-size="8"
+           font-weight="bold"
+           fill="#9A9AA8"
+           text-anchor="middle"
+           id="text174">Mod</text>
         <!-- Delete Bin -->
-        <g transform="translate(6, 296)">
-          <rect x="1" y="3" width="14" height="2" fill="#E86666" />
-          <path d="M 4 3 L 4 1 L 10 1 L 10 3" fill="none" stroke="#E86666" stroke-width="1" />
-          <path d="M 3 5 L 3 13 A 1 1 0 0 0 4 14 L 10 14 A 1 1 0 0 0 11 13 L 11 5" fill="none" stroke="#E86666" stroke-width="1" />
+        <g
+           transform="translate(6, 296)"
+           id="g175">
+          <rect
+             x="1"
+             y="3"
+             width="14"
+             height="2"
+             fill="#E86666"
+             id="rect174" />
+          <path
+             d="M 4 3 L 4 1 L 10 1 L 10 3"
+             fill="none"
+             stroke="#E86666"
+             stroke-width="1"
+             id="path174" />
+          <path
+             d="M 3 5 L 3 13 A 1 1 0 0 0 4 14 L 10 14 A 1 1 0 0 0 11 13 L 11 5"
+             fill="none"
+             stroke="#E86666"
+             stroke-width="1"
+             id="path175" />
         </g>
       </g>
-
       <!-- 2. Left Highlight Accent Stripe (width 4) -->
-      <rect x="30" y="0" width="4" height="320" fill="#E8A54B" />
-
+      <rect
+         x="30"
+         y="0"
+         width="4"
+         height="320"
+         fill="#E8A54B"
+         id="rect175" />
       <!-- 3. Main Card Chassis (width 310) -->
-      <g id="sampler_main_card" transform="translate(34, 0)">
-        <rect x="0" y="0" width="310" height="320" fill="#1A1A24" stroke="#4A4A5C" stroke-width="1.5" />
-
+      <g
+         id="sampler_main_card"
+         transform="translate(34, 0)">
+        <rect
+           x="0"
+           y="0"
+           width="310"
+           height="320"
+           fill="#1A1A24"
+           stroke="#4A4A5C"
+           stroke-width="1.5"
+           id="rect176" />
         <!-- Header (Wave / Tone Tabs) -->
-        <rect x="0" y="0" width="310" height="40" fill="#22222E" />
-        
+        <rect
+           x="0"
+           y="0"
+           width="310"
+           height="40"
+           fill="#22222E"
+           id="rect177" />
         <!-- Tab Bar implementation inside Header (Selected = Wave, Unselected = Tone) -->
         <!-- Code: selected ? Colors.black.withValues(alpha: 0.38) : Colors.transparent, Radius top 8 -->
-        <g transform="translate(60, 0)">
+        <g
+           transform="translate(60, 0)"
+           id="g180">
           <!-- Selected Tab 'WAVE' -->
-          <path d="M 0 40 L 0 8 A 8 8 0 0 1 8 0 L 72 0 A 8 8 0 0 1 80 8 L 80 40 Z" fill="#000000" fill-opacity="0.38" />
-          <rect x="0" y="0" width="80" height="2" fill="#E8A54B" />
-          <text x="40" y="24" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">WAVE</text>
-
+          <path
+             d="M 0 40 L 0 8 A 8 8 0 0 1 8 0 L 72 0 A 8 8 0 0 1 80 8 L 80 40 Z"
+             fill="#000000"
+             fill-opacity="0.38"
+             id="path177" />
+          <rect
+             x="0"
+             y="0"
+             width="80"
+             height="2"
+             fill="#E8A54B"
+             id="rect178" />
+          <text
+             x="40"
+             y="24"
+             font-size="11"
+             font-weight="bold"
+             fill="#FFFFFF"
+             text-anchor="middle"
+             id="text178">WAVE</text>
           <!-- Unselected Tab 'TONE' has transparent background (no path fill, just text) -->
-          <g transform="translate(90, 0)">
-            <text x="40" y="24" font-size="11" font-weight="bold" fill="#FFFFFF" fill-opacity="0.54" text-anchor="middle">TONE</text>
+          <g
+             transform="translate(90, 0)"
+             id="g179">
+            <text
+               x="40"
+               y="24"
+               font-size="11"
+               font-weight="bold"
+               fill="#FFFFFF"
+               fill-opacity="0.54"
+               text-anchor="middle"
+               id="text179">TONE</text>
           </g>
         </g>
-
         <!-- TOP: Sampler Waveform screen -->
-        <g transform="translate(12, 56)">
-          <rect x="0" y="0" width="286" height="110" rx="6" fill="#050508" stroke="#FFFFFF" stroke-opacity="0.08" />
-          <path d="M 10 55 Q 30 15 50 15 T 90 75 T 130 55 T 170 15 T 210 95 T 270 55" fill="none" stroke="#E8A54B" stroke-width="1.5" />
-          <rect x="60" y="0" width="120" height="110" fill="#E8A54B" fill-opacity="0.10" stroke="#E8A54B" stroke-opacity="0.4" stroke-width="1" />
-          <rect x="60" y="10" width="6" height="90" rx="1.5" fill="#E8A54B" />
-          <rect x="174" y="10" width="6" height="90" rx="1.5" fill="#E8A54B" />
+        <g
+           transform="translate(12, 56)"
+           id="g183">
+          <rect
+             x="0"
+             y="0"
+             width="286"
+             height="110"
+             rx="6"
+             fill="#050508"
+             stroke="#FFFFFF"
+             stroke-opacity="0.08"
+             id="rect180" />
+          <path
+             d="M 10 55 Q 30 15 50 15 T 90 75 T 130 55 T 170 15 T 210 95 T 270 55"
+             fill="none"
+             stroke="#E8A54B"
+             stroke-width="1.5"
+             id="path180" />
+          <rect
+             x="60"
+             y="0"
+             width="120"
+             height="110"
+             fill="#E8A54B"
+             fill-opacity="0.10"
+             stroke="#E8A54B"
+             stroke-opacity="0.4"
+             stroke-width="1"
+             id="rect181" />
+          <rect
+             x="60"
+             y="10"
+             width="6"
+             height="90"
+             rx="1.5"
+             fill="#E8A54B"
+             id="rect182" />
+          <rect
+             x="174"
+             y="10"
+             width="6"
+             height="90"
+             rx="1.5"
+             fill="#E8A54B"
+             id="rect183" />
         </g>
-
         <!-- Wave Name text line -->
-        <text x="14" y="184" font-size="11" font-weight="bold" fill="#FFFFFF">vintage_snare_d1.wav</text>
-        <text x="296" y="184" font-size="9" fill="#9A9AA8" text-anchor="end">1.4s</text>
-
+        <text
+           x="14"
+           y="184"
+           font-size="11"
+           font-weight="bold"
+           fill="#FFFFFF"
+           id="text183">vintage_snare_d1.wav</text>
+        <text
+           x="296"
+           y="184"
+           font-size="9"
+           fill="#9A9AA8"
+           text-anchor="end"
+           id="text184">1.4s</text>
         <!-- BOTTOM: SamplerPlaybackIdentityBar -->
-        <g transform="translate(12, 196)">
-          <rect x="0" y="0" width="286" height="66" rx="6" fill="#121218" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="1" />
-          
+        <g
+           transform="translate(12, 196)"
+           id="g194">
+          <rect
+             x="0"
+             y="0"
+             width="286"
+             height="66"
+             rx="6"
+             fill="#121218"
+             stroke="#FFFFFF"
+             stroke-opacity="0.08"
+             stroke-width="1"
+             id="rect184" />
           <!-- ROOT Chip Spinner -->
-          <g transform="translate(8, 8)">
-            <text x="20" y="10" font-size="8" font-weight="bold" fill="#9A9AA8" text-anchor="middle">ROOT</text>
-            <g transform="translate(0, 14)">
-              <rect x="0" y="0" width="40" height="34" rx="4" fill="#14141C" stroke="#E8A54B" stroke-opacity="0.5" stroke-width="1"/>
-              <path d="M 14 6 L 20 2 L 26 6" fill="none" stroke="#E8A54B" stroke-opacity="0.5" stroke-width="1"/>
-              <text x="20" y="21" font-size="11" font-weight="bold" fill="#E8A54B" text-anchor="middle">C3</text>
-              <path d="M 14 28 L 20 32 L 26 28" fill="none" stroke="#E8A54B" stroke-opacity="0.5" stroke-width="1"/>
+          <g
+             transform="translate(8, 8)"
+             id="g187">
+            <text
+               x="20"
+               y="10"
+               font-size="8"
+               font-weight="bold"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               id="text185">ROOT</text>
+            <g
+               transform="translate(0, 14)"
+               id="g186">
+              <rect
+                 x="0"
+                 y="0"
+                 width="40"
+                 height="34"
+                 rx="4"
+                 fill="#14141C"
+                 stroke="#E8A54B"
+                 stroke-opacity="0.5"
+                 stroke-width="1"
+                 id="rect185" />
+              <path
+                 d="M 14 6 L 20 2 L 26 6"
+                 fill="none"
+                 stroke="#E8A54B"
+                 stroke-opacity="0.5"
+                 stroke-width="1"
+                 id="path185" />
+              <text
+                 x="20"
+                 y="21"
+                 font-size="11"
+                 font-weight="bold"
+                 fill="#E8A54B"
+                 text-anchor="middle"
+                 id="text186">C3</text>
+              <path
+                 d="M 14 28 L 20 32 L 26 28"
+                 fill="none"
+                 stroke="#E8A54B"
+                 stroke-opacity="0.5"
+                 stroke-width="1"
+                 id="path186" />
             </g>
           </g>
-
           <!-- TUNE Chip Spinner -->
-          <g transform="translate(54, 8)">
-            <text x="20" y="10" font-size="8" font-weight="bold" fill="#9A9AA8" text-anchor="middle">TUNE</text>
-            <g transform="translate(0, 14)">
-              <rect x="0" y="0" width="40" height="34" rx="4" fill="#14141C" stroke="#E8A54B" stroke-opacity="0.5" stroke-width="1"/>
-              <path d="M 14 6 L 20 2 L 26 6" fill="none" stroke="#E8A54B" stroke-opacity="0.5" stroke-width="1"/>
-              <text x="20" y="21" font-size="11" font-weight="bold" fill="#E8A54B" text-anchor="middle">+0</text>
-              <path d="M 14 28 L 20 32 L 26 28" fill="none" stroke="#E8A54B" stroke-opacity="0.5" stroke-width="1"/>
+          <g
+             transform="translate(54, 8)"
+             id="g189">
+            <text
+               x="20"
+               y="10"
+               font-size="8"
+               font-weight="bold"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               id="text187">TUNE</text>
+            <g
+               transform="translate(0, 14)"
+               id="g188">
+              <rect
+                 x="0"
+                 y="0"
+                 width="40"
+                 height="34"
+                 rx="4"
+                 fill="#14141C"
+                 stroke="#E8A54B"
+                 stroke-opacity="0.5"
+                 stroke-width="1"
+                 id="rect187" />
+              <path
+                 d="M 14 6 L 20 2 L 26 6"
+                 fill="none"
+                 stroke="#E8A54B"
+                 stroke-opacity="0.5"
+                 stroke-width="1"
+                 id="path187" />
+              <text
+                 x="20"
+                 y="21"
+                 font-size="11"
+                 font-weight="bold"
+                 fill="#E8A54B"
+                 text-anchor="middle"
+                 id="text188">+0</text>
+              <path
+                 d="M 14 28 L 20 32 L 26 28"
+                 fill="none"
+                 stroke="#E8A54B"
+                 stroke-opacity="0.5"
+                 stroke-width="1"
+                 id="path188" />
             </g>
           </g>
-
-          <line x1="102" y1="12" x2="102" y2="54" stroke="#FFFFFF" stroke-opacity="0.1" />
-
+          <line
+             x1="102"
+             y1="12"
+             x2="102"
+             y2="54"
+             stroke="#FFFFFF"
+             stroke-opacity="0.1"
+             id="line189" />
           <!-- PLAY mode segment picker -->
-          <g transform="translate(108, 8)">
-            <text x="4" y="10" font-size="8" font-weight="bold" fill="#9A9AA8">PLAY</text>
-            
-            <g transform="translate(0, 14)">
-              <rect x="0" y="0" width="170" height="34" rx="4" fill="#14141C" />
+          <g
+             transform="translate(108, 8)"
+             id="g193">
+            <text
+               x="4"
+               y="10"
+               font-size="8"
+               font-weight="bold"
+               fill="#9A9AA8"
+               id="text189">PLAY</text>
+            <g
+               transform="translate(0, 14)"
+               id="g192">
+              <rect
+                 x="0"
+                 y="0"
+                 width="170"
+                 height="34"
+                 rx="4"
+                 fill="#14141C"
+                 id="rect189" />
               <!-- Shot -->
-              <rect x="2" y="2" width="54" height="30" rx="3" fill="#E8A54B" />
-              <text x="29" y="20" font-size="10" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Shot</text>
-              <text x="85" y="20" font-size="10" font-weight="bold" fill="#9A9AA8" text-anchor="middle">Loop</text>
-              <text x="141" y="20" font-size="10" font-weight="bold" fill="#9A9AA8" text-anchor="middle">Rev</text>
+              <rect
+                 x="2"
+                 y="2"
+                 width="54"
+                 height="30"
+                 rx="3"
+                 fill="#E8A54B"
+                 id="rect190" />
+              <text
+                 x="29"
+                 y="20"
+                 font-size="10"
+                 font-weight="bold"
+                 fill="#FFFFFF"
+                 text-anchor="middle"
+                 id="text190">Shot</text>
+              <text
+                 x="85"
+                 y="20"
+                 font-size="10"
+                 font-weight="bold"
+                 fill="#9A9AA8"
+                 text-anchor="middle"
+                 id="text191">Loop</text>
+              <text
+                 x="141"
+                 y="20"
+                 font-size="10"
+                 font-weight="bold"
+                 fill="#9A9AA8"
+                 text-anchor="middle"
+                 id="text192">Rev</text>
             </g>
           </g>
         </g>
       </g>
-
       <!-- 4. Right Highlight Accent Stripe (width 4) -->
-      <rect x="344" y="0" width="4" height="320" fill="#E8A54B" />
-
+      <rect
+         x="344"
+         y="0"
+         width="4"
+         height="320"
+         fill="#E8A54B"
+         id="rect194" />
       <!-- 5. Right Output Rail (width 64) -->
-      <g id="sampler_stereo_rail" transform="translate(348, 0)">
-        <path d="M 0 0 L 54 0 A 10 10 0 0 1 64 10 L 64 310 A 10 10 0 0 1 54 320 L 0 320 Z" fill="#16161E" stroke="#4A4A5C" stroke-width="1.5" />
-        <path d="M 63 10 L 63 310" stroke="#6A6A7C" stroke-width="1.5" />
+      <g
+         id="sampler_stereo_rail"
+         transform="translate(348, 0)">
+        <path
+           d="M 0 0 L 54 0 A 10 10 0 0 1 64 10 L 64 310 A 10 10 0 0 1 54 320 L 0 320 Z"
+           fill="#16161E"
+           stroke="#4A4A5C"
+           stroke-width="1.5"
+           id="path194" />
+        <path
+           d="M 63 10 L 63 310"
+           stroke="#6A6A7C"
+           stroke-width="1.5"
+           id="path195" />
         <!-- Pan -->
-        <g transform="translate(10, 40)">
-          <circle cx="22" cy="20" r="16" fill="#14141C" stroke="#9A9AA8" stroke-width="2.5" />
-          <path d="M 22 20 L 22 6" stroke="#9A9AA8" stroke-width="2" stroke-linecap="round" />
-          <text x="22" y="47" font-size="9" fill="#9A9AA8" text-anchor="middle">Pan: C</text>
+        <g
+           transform="translate(10, 40)"
+           id="g196">
+          <circle
+             cx="22"
+             cy="20"
+             r="16"
+             fill="#14141C"
+             stroke="#9A9AA8"
+             stroke-width="2.5"
+             id="circle195" />
+          <path
+             d="M 22 20 L 22 6"
+             stroke="#9A9AA8"
+             stroke-width="2"
+             stroke-linecap="round"
+             id="path196" />
+          <text
+             x="22"
+             y="47"
+             font-size="9"
+             fill="#9A9AA8"
+             text-anchor="middle"
+             id="text196">Pan: C</text>
         </g>
         <!-- Gain -->
-        <g transform="translate(10, 160)">
-          <circle cx="22" cy="20" r="16" fill="#14141C" stroke="#9A9AA8" stroke-width="2.5" />
-          <path d="M 22 20 L 32 10" stroke="#9A9AA8" stroke-width="2" stroke-linecap="round" />
-          <text x="22" y="47" font-size="9" fill="#9A9AA8" text-anchor="middle">Gain</text>
+        <g
+           transform="translate(10, 160)"
+           id="g197">
+          <circle
+             cx="22"
+             cy="20"
+             r="16"
+             fill="#14141C"
+             stroke="#9A9AA8"
+             stroke-width="2.5"
+             id="circle196" />
+          <path
+             d="M 22 20 L 32 10"
+             stroke="#9A9AA8"
+             stroke-width="2"
+             stroke-linecap="round"
+             id="path197" />
+          <text
+             x="22"
+             y="47"
+             font-size="9"
+             fill="#9A9AA8"
+             text-anchor="middle"
+             id="text197">Gain</text>
         </g>
       </g>
     </g>
-
     <!-- COLUMN 3, ROW 2: SUBTRACTIVE SYNTH (Tool Rail + Left Stripe + Card + Right Stripe + Rail) -->
     <!-- Total width: 30 (Tool Rail) + 4 (Left Stripe) + 338 (Chassis) + 4 (Right Stripe) + 64 (Out Rail) = 440px -->
-    <g id="group_subtractive_synth" transform="translate(480, 450)">
-      
+    <g
+       id="group_subtractive_synth"
+       transform="translate(480, 450)">
       <!-- 1. Left-most Tool Rail -->
-      <g id="sub_tool_rail">
-        <path d="M 30 0 L 10 0 A 10 10 0 0 0 0 10 L 0 310 A 10 10 0 0 0 10 320 L 30 320 Z" fill="#16161E" stroke="#4A4A5C" stroke-width="1.5" />
+      <g
+         id="sub_tool_rail">
+        <path
+           d="M 30 0 L 10 0 A 10 10 0 0 0 0 10 L 0 310 A 10 10 0 0 0 10 320 L 30 320 Z"
+           fill="#16161E"
+           stroke="#4A4A5C"
+           stroke-width="1.5"
+           id="path198" />
         <!-- Power/Bypass -->
-        <g transform="translate(6, 12)">
-          <circle cx="9" cy="9" r="8" fill="#10B981" fill-opacity="0.2" stroke="#10B981" stroke-width="1"/>
-          <path d="M 9 5 L 9 9" stroke="#10B981" stroke-width="1.5" stroke-linecap="round"/>
-          <path d="M 6 7 A 4 4 0 1 0 12 7" fill="none" stroke="#10B981" stroke-width="1.5" stroke-linecap="round"/>
+        <g
+           transform="translate(6, 12)"
+           id="g200">
+          <circle
+             cx="9"
+             cy="9"
+             r="8"
+             fill="#10B981"
+             fill-opacity="0.2"
+             stroke="#10B981"
+             stroke-width="1"
+             id="circle198" />
+          <path
+             d="M 9 5 L 9 9"
+             stroke="#10B981"
+             stroke-width="1.5"
+             stroke-linecap="round"
+             id="path199" />
+          <path
+             d="M 6 7 A 4 4 0 1 0 12 7"
+             fill="none"
+             stroke="#10B981"
+             stroke-width="1.5"
+             stroke-linecap="round"
+             id="path200" />
         </g>
-        
-        <g transform="translate(15, 170)">
-          <text transform="rotate(-90)" font-size="9" font-weight="700" fill="#7B6CF6" letter-spacing="1.2" text-anchor="middle">SUB SYNTH</text>
+        <g
+           transform="translate(15, 170)"
+           id="g201">
+          <text
+             transform="rotate(-90)"
+             font-size="9"
+             font-weight="700"
+             fill="#7B6CF6"
+             letter-spacing="1.2"
+             text-anchor="middle"
+             id="text200">SUB SYNTH</text>
         </g>
         <!-- Mod Label -->
-        <text x="15" y="280" font-size="8" font-weight="bold" fill="#9A9AA8" text-anchor="middle">Mod</text>
-
+        <text
+           x="15"
+           y="280"
+           font-size="8"
+           font-weight="bold"
+           fill="#9A9AA8"
+           text-anchor="middle"
+           id="text201">Mod</text>
         <!-- Delete Bin -->
-        <g transform="translate(6, 296)">
-          <rect x="1" y="3" width="14" height="2" fill="#E86666" />
-          <path d="M 4 3 L 4 1 L 10 1 L 10 3" fill="none" stroke="#E86666" stroke-width="1" />
-          <path d="M 3 5 L 3 13 A 1 1 0 0 0 4 14 L 10 14 A 1 1 0 0 0 11 13 L 11 5" fill="none" stroke="#E86666" stroke-width="1" />
+        <g
+           transform="translate(6, 296)"
+           id="g202">
+          <rect
+             x="1"
+             y="3"
+             width="14"
+             height="2"
+             fill="#E86666"
+             id="rect201" />
+          <path
+             d="M 4 3 L 4 1 L 10 1 L 10 3"
+             fill="none"
+             stroke="#E86666"
+             stroke-width="1"
+             id="path201" />
+          <path
+             d="M 3 5 L 3 13 A 1 1 0 0 0 4 14 L 10 14 A 1 1 0 0 0 11 13 L 11 5"
+             fill="none"
+             stroke="#E86666"
+             stroke-width="1"
+             id="path202" />
         </g>
       </g>
-
       <!-- 2. Left Highlight Accent Stripe (width 4) -->
-      <rect x="30" y="0" width="4" height="320" fill="#7B6CF6" />
-
+      <rect
+         x="30"
+         y="0"
+         width="4"
+         height="320"
+         fill="#7B6CF6"
+         id="rect202" />
       <!-- 3. Main Card Chassis (width 338) -->
-      <g id="sub_main_card" transform="translate(34, 0)">
-        <rect x="0" y="0" width="338" height="320" fill="#1A1A24" stroke="#4A4A5C" stroke-width="1.5" />
-
+      <g
+         id="sub_main_card"
+         transform="translate(34, 0)">
+        <rect
+           x="0"
+           y="0"
+           width="338"
+           height="320"
+           fill="#1A1A24"
+           stroke="#4A4A5C"
+           stroke-width="1.5"
+           id="rect203" />
         <!-- Header -->
-        <rect x="0" y="0" width="338" height="40" fill="#22222E" />
-        <text x="16" y="25" font-size="11" font-weight="bold" fill="#FFFFFF" letter-spacing="1">SUBTRACTIVE SYNTH</text>
-
+        <rect
+           x="0"
+           y="0"
+           width="338"
+           height="40"
+           fill="#22222E"
+           id="rect204" />
+        <text
+           x="16"
+           y="25"
+           font-size="11"
+           font-weight="bold"
+           fill="#FFFFFF"
+           letter-spacing="1"
+           id="text204">SUBTRACTIVE SYNTH</text>
         <!-- Row 1: Morph + Sub Mix + Noise Knobs, and 2 Draggable Int Boxes (Oct & Sub Oct) -->
-        <g transform="translate(12, 56)">
+        <g
+           transform="translate(12, 56)"
+           id="g215">
           <!-- Box around the Oscillator Row -->
-          <rect x="0" y="0" width="314" height="114" rx="6" fill="#121218" stroke="#FFFFFF" stroke-opacity="0.08" />
-
+          <rect
+             x="0"
+             y="0"
+             width="314"
+             height="114"
+             rx="6"
+             fill="#121218"
+             stroke="#FFFFFF"
+             stroke-opacity="0.08"
+             id="rect205" />
           <!-- Morph knob (Col 1) -->
-          <g transform="translate(10, 12)">
-            <circle cx="28" cy="26" r="22" fill="#14141C" stroke="#7B6CF6" stroke-width="3" />
-            <path d="M 28 26 L 39 12" stroke="#7B6CF6" stroke-width="2.8" stroke-linecap="round" />
-            <text x="28" y="30" font-size="9" font-weight="bold" fill="#7B6CF6" text-anchor="middle">45%</text>
-            <text x="28" y="62" font-size="8.5" fill="#9A9AA8" text-anchor="middle" font-weight="bold">Morph</text>
+          <g
+             transform="translate(10, 12)"
+             id="g206">
+            <circle
+               cx="28"
+               cy="26"
+               r="22"
+               fill="#14141C"
+               stroke="#7B6CF6"
+               stroke-width="3"
+               id="circle205" />
+            <path
+               d="M 28 26 L 39 12"
+               stroke="#7B6CF6"
+               stroke-width="2.8"
+               stroke-linecap="round"
+               id="path205" />
+            <text
+               x="28"
+               y="30"
+               font-size="9"
+               font-weight="bold"
+               fill="#7B6CF6"
+               text-anchor="middle"
+               id="text205">45%</text>
+            <text
+               x="28"
+               y="62"
+               font-size="8.5"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               font-weight="bold"
+               id="text206">Morph</text>
           </g>
-
           <!-- Sub Mix knob (Col 2) -->
-          <g transform="translate(70, 12)">
-            <circle cx="28" cy="26" r="22" fill="#14141C" stroke="#7B6CF6" stroke-width="3" />
-            <path d="M 28 26 L 28 10" stroke="#7B6CF6" stroke-width="2.8" stroke-linecap="round" />
-            <text x="28" y="30" font-size="9" font-weight="bold" fill="#7B6CF6" text-anchor="middle">50%</text>
-            <text x="28" y="62" font-size="8.5" fill="#9A9AA8" text-anchor="middle" font-weight="bold">Sub Mix</text>
+          <g
+             transform="translate(70, 12)"
+             id="g208">
+            <circle
+               cx="28"
+               cy="26"
+               r="22"
+               fill="#14141C"
+               stroke="#7B6CF6"
+               stroke-width="3"
+               id="circle206" />
+            <path
+               d="M 28 26 L 28 10"
+               stroke="#7B6CF6"
+               stroke-width="2.8"
+               stroke-linecap="round"
+               id="path206" />
+            <text
+               x="28"
+               y="30"
+               font-size="9"
+               font-weight="bold"
+               fill="#7B6CF6"
+               text-anchor="middle"
+               id="text207">50%</text>
+            <text
+               x="28"
+               y="62"
+               font-size="8.5"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               font-weight="bold"
+               id="text208">Sub Mix</text>
           </g>
-
           <!-- Noise knob (Col 3) -->
-          <g transform="translate(130, 12)">
-            <circle cx="28" cy="26" r="22" fill="#14141C" stroke="#7B6CF6" stroke-width="3" />
-            <path d="M 28 26 L 19 39" stroke="#7B6CF6" stroke-width="2.8" stroke-linecap="round" />
-            <text x="28" y="30" font-size="9" font-weight="bold" fill="#7B6CF6" text-anchor="middle">10%</text>
-            <text x="28" y="62" font-size="8.5" fill="#9A9AA8" text-anchor="middle" font-weight="bold">Noise</text>
+          <g
+             transform="translate(130, 12)"
+             id="g210">
+            <circle
+               cx="28"
+               cy="26"
+               r="22"
+               fill="#14141C"
+               stroke="#7B6CF6"
+               stroke-width="3"
+               id="circle208" />
+            <path
+               d="M 28 26 L 19 39"
+               stroke="#7B6CF6"
+               stroke-width="2.8"
+               stroke-linecap="round"
+               id="path208" />
+            <text
+               x="28"
+               y="30"
+               font-size="9"
+               font-weight="bold"
+               fill="#7B6CF6"
+               text-anchor="middle"
+               id="text209">10%</text>
+            <text
+               x="28"
+               y="62"
+               font-size="8.5"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               font-weight="bold"
+               id="text210">Noise</text>
           </g>
-
           <!-- Sub Oct Draggable Int Box (Col 4) -->
-          <g transform="translate(196, 22)">
-            <rect x="0" y="0" width="44" height="28" rx="4" fill="#14141C" stroke="#7B6CF6" stroke-opacity="0.45" stroke-width="1"/>
-            <text x="22" y="18" font-size="12" font-weight="bold" fill="#7B6CF6" text-anchor="middle">-1</text>
-            <text x="22" y="44" font-size="8.5" fill="#9A9AA8" text-anchor="middle" font-weight="bold">Sub Oct</text>
+          <g
+             transform="translate(196, 22)"
+             id="g212">
+            <rect
+               x="0"
+               y="0"
+               width="44"
+               height="28"
+               rx="4"
+               fill="#14141C"
+               stroke="#7B6CF6"
+               stroke-opacity="0.45"
+               stroke-width="1"
+               id="rect210" />
+            <text
+               x="22"
+               y="18"
+               font-size="12"
+               font-weight="bold"
+               fill="#7B6CF6"
+               text-anchor="middle"
+               id="text211">-1</text>
+            <text
+               x="22"
+               y="44"
+               font-size="8.5"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               font-weight="bold"
+               id="text212">Sub Oct</text>
           </g>
-
           <!-- Octave Draggable Int Box (Col 5) -->
-          <g transform="translate(254, 22)">
-            <rect x="0" y="0" width="44" height="28" rx="4" fill="#14141C" stroke="#7B6CF6" stroke-opacity="0.45" stroke-width="1"/>
-            <text x="22" y="18" font-size="12" font-weight="bold" fill="#7B6CF6" text-anchor="middle">0</text>
-            <text x="22" y="44" font-size="8.5" fill="#9A9AA8" text-anchor="middle" font-weight="bold">Oct</text>
+          <g
+             transform="translate(254, 22)"
+             id="g214">
+            <rect
+               x="0"
+               y="0"
+               width="44"
+               height="28"
+               rx="4"
+               fill="#14141C"
+               stroke="#7B6CF6"
+               stroke-opacity="0.45"
+               stroke-width="1"
+               id="rect212" />
+            <text
+               x="22"
+               y="18"
+               font-size="12"
+               font-weight="bold"
+               fill="#7B6CF6"
+               text-anchor="middle"
+               id="text213">0</text>
+            <text
+               x="22"
+               y="44"
+               font-size="8.5"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               font-weight="bold"
+               id="text214">Oct</text>
           </g>
         </g>
-
         <!-- Row 2: Amp AEG and Filter FEG ADSR sections -->
-        <g transform="translate(12, 180)">
-          <rect x="0" y="0" width="314" height="124" rx="6" fill="#121218" stroke="#FFFFFF" stroke-opacity="0.08" />
-
+        <g
+           transform="translate(12, 180)"
+           id="g226">
+          <rect
+             x="0"
+             y="0"
+             width="314"
+             height="124"
+             rx="6"
+             fill="#121218"
+             stroke="#FFFFFF"
+             stroke-opacity="0.08"
+             id="rect215" />
           <!-- LEFT side: ADSR knobs for Amp Envelope -->
-          <g transform="translate(6, 8)">
-            <text x="56" y="10" font-size="8" font-weight="bold" fill="#9A9AA8" text-anchor="middle">AMP ENVELOPE (AEG)</text>
-            
-            <g transform="translate(0, 16)">
-              <circle cx="18" cy="18" r="14" fill="#14141C" stroke="#7B6CF6" stroke-width="2" />
-              <path d="M 18 18 L 27 8" stroke="#7B6CF6" stroke-width="2" stroke-linecap="round" />
-              <text x="18" y="44" font-size="8" fill="#9A9AA8" text-anchor="middle" font-weight="bold">A</text>
+          <g
+             transform="translate(6, 8)"
+             id="g220">
+            <text
+               x="56"
+               y="10"
+               font-size="8"
+               font-weight="bold"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               id="text215">AMP ENVELOPE (AEG)</text>
+            <g
+               transform="translate(0, 16)"
+               id="g216">
+              <circle
+                 cx="18"
+                 cy="18"
+                 r="14"
+                 fill="#14141C"
+                 stroke="#7B6CF6"
+                 stroke-width="2"
+                 id="circle215" />
+              <path
+                 d="M 18 18 L 27 8"
+                 stroke="#7B6CF6"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 id="path215" />
+              <text
+                 x="18"
+                 y="44"
+                 font-size="8"
+                 fill="#9A9AA8"
+                 text-anchor="middle"
+                 font-weight="bold"
+                 id="text216">A</text>
             </g>
-            <g transform="translate(38, 16)">
-              <circle cx="18" cy="18" r="14" fill="#14141C" stroke="#7B6CF6" stroke-width="2" />
-              <path d="M 18 18 L 27 8" stroke="#7B6CF6" stroke-width="2" stroke-linecap="round" />
-              <text x="18" y="44" font-size="8" fill="#9A9AA8" text-anchor="middle" font-weight="bold">D</text>
+            <g
+               transform="translate(38, 16)"
+               id="g217">
+              <circle
+                 cx="18"
+                 cy="18"
+                 r="14"
+                 fill="#14141C"
+                 stroke="#7B6CF6"
+                 stroke-width="2"
+                 id="circle216" />
+              <path
+                 d="M 18 18 L 27 8"
+                 stroke="#7B6CF6"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 id="path216" />
+              <text
+                 x="18"
+                 y="44"
+                 font-size="8"
+                 fill="#9A9AA8"
+                 text-anchor="middle"
+                 font-weight="bold"
+                 id="text217">D</text>
             </g>
-            <g transform="translate(76, 16)">
-              <circle cx="18" cy="18" r="14" fill="#14141C" stroke="#7B6CF6" stroke-width="2" />
-              <path d="M 18 18 L 18 4" stroke="#7B6CF6" stroke-width="2" stroke-linecap="round" />
-              <text x="18" y="44" font-size="8" fill="#9A9AA8" text-anchor="middle" font-weight="bold">S</text>
+            <g
+               transform="translate(76, 16)"
+               id="g218">
+              <circle
+                 cx="18"
+                 cy="18"
+                 r="14"
+                 fill="#14141C"
+                 stroke="#7B6CF6"
+                 stroke-width="2"
+                 id="circle217" />
+              <path
+                 d="M 18 18 L 18 4"
+                 stroke="#7B6CF6"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 id="path217" />
+              <text
+                 x="18"
+                 y="44"
+                 font-size="8"
+                 fill="#9A9AA8"
+                 text-anchor="middle"
+                 font-weight="bold"
+                 id="text218">S</text>
             </g>
-            <g transform="translate(114, 16)">
-              <circle cx="18" cy="18" r="14" fill="#14141C" stroke="#7B6CF6" stroke-width="2" />
-              <path d="M 18 18 L 27 8" stroke="#7B6CF6" stroke-width="2" stroke-linecap="round" />
-              <text x="18" y="44" font-size="8" fill="#9A9AA8" text-anchor="middle" font-weight="bold">R</text>
+            <g
+               transform="translate(114, 16)"
+               id="g219">
+              <circle
+                 cx="18"
+                 cy="18"
+                 r="14"
+                 fill="#14141C"
+                 stroke="#7B6CF6"
+                 stroke-width="2"
+                 id="circle218" />
+              <path
+                 d="M 18 18 L 27 8"
+                 stroke="#7B6CF6"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 id="path218" />
+              <text
+                 x="18"
+                 y="44"
+                 font-size="8"
+                 fill="#9A9AA8"
+                 text-anchor="middle"
+                 font-weight="bold"
+                 id="text219">R</text>
             </g>
           </g>
-
           <!-- Divider line -->
-          <line x1="157" y1="12" x2="157" y2="112" stroke="#FFFFFF" stroke-opacity="0.1" />
-
+          <line
+             x1="157"
+             y1="12"
+             x2="157"
+             y2="112"
+             stroke="#FFFFFF"
+             stroke-opacity="0.1"
+             id="line220" />
           <!-- RIGHT side: ADSR knobs for Filter Envelope -->
-          <g transform="translate(163, 8)">
-            <text x="56" y="10" font-size="8" font-weight="bold" fill="#9A9AA8" text-anchor="middle">FILTER ENVELOPE (FEG)</text>
-            
-            <g transform="translate(0, 16)">
-              <circle cx="18" cy="18" r="14" fill="#14141C" stroke="#4ADE80" stroke-width="2" />
-              <path d="M 18 18 L 27 8" stroke="#4ADE80" stroke-width="2" stroke-linecap="round" />
-              <text x="18" y="44" font-size="8" fill="#9A9AA8" text-anchor="middle" font-weight="bold">A</text>
+          <g
+             transform="translate(163, 8)"
+             id="g225">
+            <text
+               x="56"
+               y="10"
+               font-size="8"
+               font-weight="bold"
+               fill="#9A9AA8"
+               text-anchor="middle"
+               id="text220">FILTER ENVELOPE (FEG)</text>
+            <g
+               transform="translate(0, 16)"
+               id="g221">
+              <circle
+                 cx="18"
+                 cy="18"
+                 r="14"
+                 fill="#14141C"
+                 stroke="#4ADE80"
+                 stroke-width="2"
+                 id="circle220" />
+              <path
+                 d="M 18 18 L 27 8"
+                 stroke="#4ADE80"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 id="path220" />
+              <text
+                 x="18"
+                 y="44"
+                 font-size="8"
+                 fill="#9A9AA8"
+                 text-anchor="middle"
+                 font-weight="bold"
+                 id="text221">A</text>
             </g>
-            <g transform="translate(38, 16)">
-              <circle cx="18" cy="18" r="14" fill="#14141C" stroke="#4ADE80" stroke-width="2" />
-              <path d="M 18 18 L 27 8" stroke="#4ADE80" stroke-width="2" stroke-linecap="round" />
-              <text x="18" y="44" font-size="8" fill="#9A9AA8" text-anchor="middle" font-weight="bold">D</text>
+            <g
+               transform="translate(38, 16)"
+               id="g222">
+              <circle
+                 cx="18"
+                 cy="18"
+                 r="14"
+                 fill="#14141C"
+                 stroke="#4ADE80"
+                 stroke-width="2"
+                 id="circle221" />
+              <path
+                 d="M 18 18 L 27 8"
+                 stroke="#4ADE80"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 id="path221" />
+              <text
+                 x="18"
+                 y="44"
+                 font-size="8"
+                 fill="#9A9AA8"
+                 text-anchor="middle"
+                 font-weight="bold"
+                 id="text222">D</text>
             </g>
-            <g transform="translate(76, 16)">
-              <circle cx="18" cy="18" r="14" fill="#14141C" stroke="#4ADE80" stroke-width="2" />
-              <path d="M 18 18 L 18 4" stroke="#4ADE80" stroke-width="2" stroke-linecap="round" />
-              <text x="18" y="44" font-size="8" fill="#9A9AA8" text-anchor="middle" font-weight="bold">S</text>
+            <g
+               transform="translate(76, 16)"
+               id="g223">
+              <circle
+                 cx="18"
+                 cy="18"
+                 r="14"
+                 fill="#14141C"
+                 stroke="#4ADE80"
+                 stroke-width="2"
+                 id="circle222" />
+              <path
+                 d="M 18 18 L 18 4"
+                 stroke="#4ADE80"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 id="path222" />
+              <text
+                 x="18"
+                 y="44"
+                 font-size="8"
+                 fill="#9A9AA8"
+                 text-anchor="middle"
+                 font-weight="bold"
+                 id="text223">S</text>
             </g>
-            <g transform="translate(114, 16)">
-              <circle cx="18" cy="18" r="14" fill="#14141C" stroke="#4ADE80" stroke-width="2" />
-              <path d="M 18 18 L 27 8" stroke="#4ADE80" stroke-width="2" stroke-linecap="round" />
-              <text x="18" y="44" font-size="8" fill="#9A9AA8" text-anchor="middle" font-weight="bold">R</text>
+            <g
+               transform="translate(114, 16)"
+               id="g224">
+              <circle
+                 cx="18"
+                 cy="18"
+                 r="14"
+                 fill="#14141C"
+                 stroke="#4ADE80"
+                 stroke-width="2"
+                 id="circle223" />
+              <path
+                 d="M 18 18 L 27 8"
+                 stroke="#4ADE80"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 id="path223" />
+              <text
+                 x="18"
+                 y="44"
+                 font-size="8"
+                 fill="#9A9AA8"
+                 text-anchor="middle"
+                 font-weight="bold"
+                 id="text224">R</text>
             </g>
           </g>
         </g>
       </g>
-
       <!-- 4. Right Highlight Accent Stripe (width 4) -->
-      <rect x="372" y="0" width="4" height="320" fill="#7B6CF6" />
-
+      <rect
+         x="372"
+         y="0"
+         width="4"
+         height="320"
+         fill="#7B6CF6"
+         id="rect226" />
       <!-- 5. Right Output Rail (width 64) -->
-      <g id="synth_stereo_rail" transform="translate(376, 0)">
-        <path d="M 0 0 L 54 0 A 10 10 0 0 1 64 10 L 64 310 A 10 10 0 0 1 54 320 L 0 320 Z" fill="#16161E" stroke="#4A4A5C" stroke-width="1.5" />
-        <path d="M 63 10 L 63 310" stroke="#6A6A7C" stroke-width="1.5" />
-        <g transform="translate(10, 40)">
-          <circle cx="22" cy="20" r="16" fill="#14141C" stroke="#9A9AA8" stroke-width="2.5" />
-          <path d="M 22 20 L 22 6" stroke="#9A9AA8" stroke-width="2" stroke-linecap="round" />
-          <text x="22" y="47" font-size="9" fill="#9A9AA8" text-anchor="middle">Pan: C</text>
+      <g
+         id="synth_stereo_rail"
+         transform="translate(376, 0)">
+        <path
+           d="M 0 0 L 54 0 A 10 10 0 0 1 64 10 L 64 310 A 10 10 0 0 1 54 320 L 0 320 Z"
+           fill="#16161E"
+           stroke="#4A4A5C"
+           stroke-width="1.5"
+           id="path226" />
+        <path
+           d="M 63 10 L 63 310"
+           stroke="#6A6A7C"
+           stroke-width="1.5"
+           id="path227" />
+        <g
+           transform="translate(10, 40)"
+           id="g228">
+          <circle
+             cx="22"
+             cy="20"
+             r="16"
+             fill="#14141C"
+             stroke="#9A9AA8"
+             stroke-width="2.5"
+             id="circle227" />
+          <path
+             d="M 22 20 L 22 6"
+             stroke="#9A9AA8"
+             stroke-width="2"
+             stroke-linecap="round"
+             id="path228" />
+          <text
+             x="22"
+             y="47"
+             font-size="9"
+             fill="#9A9AA8"
+             text-anchor="middle"
+             id="text228">Pan: C</text>
         </g>
-        <g transform="translate(10, 160)">
-          <circle cx="22" cy="20" r="16" fill="#14141C" stroke="#9A9AA8" stroke-width="2.5" />
-          <path d="M 22 20 L 32 10" stroke="#9A9AA8" stroke-width="2" stroke-linecap="round" />
-          <text x="22" y="47" font-size="9" fill="#9A9AA8" text-anchor="middle">Gain</text>
+        <g
+           transform="translate(10, 160)"
+           id="g229">
+          <circle
+             cx="22"
+             cy="20"
+             r="16"
+             fill="#14141C"
+             stroke="#9A9AA8"
+             stroke-width="2.5"
+             id="circle228" />
+          <path
+             d="M 22 20 L 32 10"
+             stroke="#9A9AA8"
+             stroke-width="2"
+             stroke-linecap="round"
+             id="path229" />
+          <text
+             x="22"
+             y="47"
+             font-size="9"
+             fill="#9A9AA8"
+             text-anchor="middle"
+             id="text229">Gain</text>
+        </g>
+      </g>
+    </g>
+    <g
+       id="group_subtractive_synth-9"
+       transform="translate(1340.3406,468.12427)"
+       style="font-family:Inter, sans-serif">
+      <!-- 1. Left-most Tool Rail -->
+      <!-- 2. Left Highlight Accent Stripe (width 4) -->
+      <rect
+         x="30"
+         y="0"
+         width="4"
+         height="320"
+         fill="#7b6cf6"
+         id="rect202-7" />
+      <!-- 3. Main Card Chassis (width 338) -->
+      <g
+         id="sub_main_card-6"
+         transform="translate(34)">
+        <rect
+           x="0"
+           y="0"
+           width="338"
+           height="320"
+           fill="#1a1a24"
+           stroke="#4a4a5c"
+           stroke-width="1.5"
+           id="rect203-1" />
+        <!-- Header -->
+        <text
+           x="16"
+           y="25"
+           font-size="11px"
+           font-weight="bold"
+           fill="#ffffff"
+           letter-spacing="1"
+           id="text204-2">SUBTRACTIVE SYNTH</text>
+        <!-- Row 1: Morph + Sub Mix + Noise Knobs, and 2 Draggable Int Boxes (Oct & Sub Oct) -->
+        <g
+           transform="translate(26.035088,231.4386)"
+           id="g215-3">
+          <!-- Box around the Oscillator Row -->
+          <!-- Morph knob (Col 1) -->
+          <g
+             transform="translate(10,12)"
+             id="g206-2">
+            <circle
+               cx="28"
+               cy="26"
+               r="22"
+               fill="#14141c"
+               stroke="#7b6cf6"
+               stroke-width="3"
+               id="circle205-1" />
+            <path
+               d="M 28,26 39,12"
+               stroke="#7b6cf6"
+               stroke-width="2.8"
+               stroke-linecap="round"
+               id="path205-6" />
+            <text
+               x="28"
+               y="30"
+               font-size="9px"
+               font-weight="bold"
+               fill="#7b6cf6"
+               text-anchor="middle"
+               id="text205-8">45%</text>
+            <text
+               x="28"
+               y="62"
+               font-size="8.5px"
+               fill="#9a9aa8"
+               text-anchor="middle"
+               font-weight="bold"
+               id="text206-5">A</text>
+          </g>
+          <!-- Sub Mix knob (Col 2) -->
+          <g
+             transform="translate(70,12)"
+             id="g208-7">
+            <circle
+               cx="28"
+               cy="26"
+               r="22"
+               fill="#14141c"
+               stroke="#7b6cf6"
+               stroke-width="3"
+               id="circle206-6" />
+            <path
+               d="M 28,26 V 10"
+               stroke="#7b6cf6"
+               stroke-width="2.8"
+               stroke-linecap="round"
+               id="path206-1" />
+            <text
+               x="28"
+               y="30"
+               font-size="9px"
+               font-weight="bold"
+               fill="#7b6cf6"
+               text-anchor="middle"
+               id="text207-8">50%</text>
+            <text
+               x="28"
+               y="62"
+               font-size="8.5px"
+               fill="#9a9aa8"
+               text-anchor="middle"
+               font-weight="bold"
+               id="text208-9">D</text>
+          </g>
+          <!-- Noise knob (Col 3) -->
+          <g
+             transform="translate(130,12)"
+             id="g210-2">
+            <circle
+               cx="28"
+               cy="26"
+               r="22"
+               fill="#14141c"
+               stroke="#7b6cf6"
+               stroke-width="3"
+               id="circle208-7" />
+            <path
+               d="M 28,26 19,39"
+               stroke="#7b6cf6"
+               stroke-width="2.8"
+               stroke-linecap="round"
+               id="path208-9" />
+            <text
+               x="28"
+               y="30"
+               font-size="9px"
+               font-weight="bold"
+               fill="#7b6cf6"
+               text-anchor="middle"
+               id="text209-5">10%</text>
+            <text
+               x="28"
+               y="62"
+               font-size="8.5px"
+               fill="#9a9aa8"
+               text-anchor="middle"
+               font-weight="bold"
+               id="text210-4">Noise</text>
+          </g>
+          <!-- Sub Oct Draggable Int Box (Col 4) -->
+          <g
+             transform="translate(196,22)"
+             id="g212-3">
+            <rect
+               x="0"
+               y="0"
+               width="44"
+               height="28"
+               rx="4"
+               fill="#14141c"
+               stroke="#7b6cf6"
+               stroke-opacity="0.45"
+               stroke-width="1"
+               id="rect210-1" />
+            <text
+               x="22"
+               y="18"
+               font-size="12px"
+               font-weight="bold"
+               fill="#7b6cf6"
+               text-anchor="middle"
+               id="text211-2">-1</text>
+            <text
+               x="22"
+               y="44"
+               font-size="8.5px"
+               fill="#9a9aa8"
+               text-anchor="middle"
+               font-weight="bold"
+               id="text212-3">Sub Oct</text>
+          </g>
+          <!-- Octave Draggable Int Box (Col 5) -->
+          <g
+             transform="translate(254,22)"
+             id="g214-3">
+            <rect
+               x="0"
+               y="0"
+               width="44"
+               height="28"
+               rx="4"
+               fill="#14141c"
+               stroke="#7b6cf6"
+               stroke-opacity="0.45"
+               stroke-width="1"
+               id="rect212-4" />
+            <text
+               x="22"
+               y="18"
+               font-size="12px"
+               font-weight="bold"
+               fill="#7b6cf6"
+               text-anchor="middle"
+               id="text213-1">0</text>
+            <text
+               x="22"
+               y="44"
+               font-size="8.5px"
+               fill="#9a9aa8"
+               text-anchor="middle"
+               font-weight="bold"
+               id="text214-1">Oct</text>
+          </g>
+        </g>
+        <!-- Row 2: Amp AEG and Filter FEG ADSR sections -->
+      </g>
+      <!-- 4. Right Highlight Accent Stripe (width 4) -->
+      <!-- 5. Right Output Rail (width 64) -->
+      <g
+         id="synth_stereo_rail-1"
+         transform="translate(376)">
+        <g
+           transform="translate(10,40)"
+           id="g228-9">
+          <circle
+             cx="22"
+             cy="20"
+             r="16"
+             fill="#14141c"
+             stroke="#9a9aa8"
+             stroke-width="2.5"
+             id="circle227-6" />
+          <path
+             d="M 22,20 V 6"
+             stroke="#9a9aa8"
+             stroke-width="2"
+             stroke-linecap="round"
+             id="path228-3" />
+          <text
+             x="22"
+             y="47"
+             font-size="9px"
+             fill="#9a9aa8"
+             text-anchor="middle"
+             id="text228-7">Pan: C</text>
         </g>
       </g>
     </g>

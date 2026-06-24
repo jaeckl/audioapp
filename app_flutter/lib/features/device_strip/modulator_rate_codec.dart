@@ -27,6 +27,22 @@ abstract final class ModulatorRateCodec {
   static String formatPhase(double phase) =>
       '${(phase.clamp(0.0, 1.0) * 360).round()}°';
 
+  static String formatMorph(double morph) {
+    // Map 0..1 → waveform names
+    final v = (morph * 4).round();
+    switch (v) {
+      case 0: return 'Sine';
+      case 1: return 'Tri';
+      case 2: return 'Saw';
+      case 3: return 'Sq';
+      case 4: return 'Ramp';
+      default: return 'Sine';
+    }
+  }
+
+  static String formatSpread(double spread) =>
+      '${(spread * 100).round()}%';
+
   static String formatEnvelope(double value) =>
       '${(value.clamp(0.0, 1.0) * 100).round()}%';
 }

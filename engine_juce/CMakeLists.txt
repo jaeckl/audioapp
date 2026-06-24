@@ -104,10 +104,8 @@ add_library(audioapp_engine STATIC
   src/modulation/ModulationGraph.cpp
   src/modulation/LfoModulator.cpp
   src/modulation/LfoModulatorType.cpp
-  src/modulation/AdsrModulator.cpp
-  src/modulation/AdsrModulatorType.cpp
-  src/modulation/AdrModulator.cpp
-  src/modulation/AdrModulatorType.cpp
+  src/modulation/EnvelopeModulator.cpp
+  src/modulation/EnvelopeModulatorType.cpp
   src/AutomationPlayback.cpp
   src/EngineHost_commands.cpp
   src/FallbackPreviewOscillator.cpp
@@ -160,7 +158,6 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
 
   set(AUDIOAPP_TEST_SOURCES
     tests/JuceTestRunner.cpp
-    tests/adsr_modulator_test.cpp
     tests/autobroken_routing_test.cpp
     tests/automation_clip_drag_test.cpp
     tests/automation_clip_test.cpp

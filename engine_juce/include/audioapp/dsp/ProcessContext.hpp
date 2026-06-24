@@ -3,7 +3,7 @@
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/DeviceChainScratch.hpp"
 #include "audioapp/AutomationTypes.hpp"
-#include "audioapp/LfoTypes.hpp"
+#include "audioapp/ModulationTypes.hpp"
 
 namespace audioapp {
 

@@ -1,13 +1,14 @@
 #include "audioapp/modulation/ModulationGraph.hpp"
 
+#include <juce_core/juce_core.h>
+
 #include <algorithm>
 
 namespace audioapp {
 
 ModulationGraph::ModulationGraph() {
     modulatorTypes_.push_back(std::make_unique<LfoModulatorType>());
-    modulatorTypes_.push_back(std::make_unique<AdsrModulatorType>());
-    modulatorTypes_.push_back(std::make_unique<AdrModulatorType>());
+    modulatorTypes_.push_back(std::make_unique<EnvelopeModulatorType>());
 }
 
 void ModulationGraph::clear() {
@@ -17,49 +18,6 @@ void ModulationGraph::clear() {
     arena_.reset();
     lfoPlaybackCount_.store(0, std::memory_order_release);
     noteRetriggerGeneration_.store(0, std::memory_order_release);
-}
-
-void ModulationGraph::reloadFromLfoStates(const std::vector<LfoState>& lfos,
-                                          const std::vector<ModulationEdge>& modEdges) {
-    lfos_.clear();
-    lfos_.reserve(lfos.size());
-    for (const auto& old : lfos) {
-        ModulatorRecord rec;
-        rec.id = old.id;
-        rec.typeIndex = std::clamp(old.modulatorType, 0, 2);
-        // Convert old LfoState to appropriate ModulatorParams variant
-        if (old.modulatorType == static_cast<int>(ModulatorType::Lfo)) {
-            LfoParams p;
-            p.waveform = old.waveform;
-            p.rate = old.rate;
-            p.syncDivision = old.syncDivision;
-            p.retrigger = old.retrigger;
-            p.phase = old.phase;
-            p.polarity = old.polarity;
-            p.attack = old.attack;
-            p.decay = old.decay;
-            p.sustain = old.sustain;
-            p.release = old.release;
-            rec.params = p;
-        } else if (old.modulatorType == static_cast<int>(ModulatorType::Adsr)) {
-            AdsrParams p;
-            p.attack = old.attack;
-            p.decay = old.decay;
-            p.sustain = old.sustain;
-            p.release = old.release;
-            p.polarity = old.polarity;
-            rec.params = p;
-        } else {
-            AdrParams p;
-            p.attack = old.attack;
-            p.decay = old.decay;
-            p.release = old.release;
-            p.polarity = old.polarity;
-            rec.params = p;
-        }
-        lfos_.push_back(std::move(rec));
-    }
-    modEdges_ = modEdges;
 }
 
 void ModulationGraph::rebuildPlayback() {
@@ -84,7 +42,7 @@ void ModulationGraph::recomputeIdCounters() {
 }
 
 int ModulationGraph::createLfo(int modulatorType) {
-    const int typeIndex = std::clamp(modulatorType, 0, 2);
+    const int typeIndex = std::clamp(modulatorType, 0, 1);
     const auto& type = modulatorTypes_[static_cast<size_t>(typeIndex)];
     ModulatorRecord rec;
     rec.id = nextLfoId_++;
@@ -115,7 +73,7 @@ bool ModulationGraph::updateLfoParam(int lfoId, const std::string& param, float 
 
         // Special case: changing the modulator type
         if (param == "modulatorType") {
-            const int newType = std::clamp(static_cast<int>(value), 0, 2);
+            const int newType = std::clamp(static_cast<int>(value), 0, 1);
             if (newType != rec.typeIndex) {
                 rec.typeIndex = newType;
                 rec.params = modulatorTypes_[static_cast<size_t>(newType)]->createDefault();
@@ -182,47 +140,58 @@ void ModulationGraph::retriggerOnNote() noexcept {
     noteRetriggerGeneration_.fetch_add(1, std::memory_order_release);
 }
 
-std::vector<LfoState> ModulationGraph::toLfoStates() const {
-    std::vector<LfoState> result;
-    result.reserve(lfos_.size());
+juce::var ModulationGraph::recordsToVar() const {
+    juce::Array<juce::var> result;
+    result.ensureStorageAllocated(static_cast<int>(lfos_.size()));
     for (const auto& rec : lfos_) {
-        LfoState s;
-        s.id = rec.id;
-        s.modulatorType = rec.typeIndex;
-        std::visit([&](const auto& params) {
-            using T = std::decay_t<decltype(params)>;
-            if constexpr (std::is_same_v<T, LfoParams>) {
-                s.waveform = params.waveform;
-                s.rate = params.rate;
-                s.syncDivision = params.syncDivision;
-                s.retrigger = params.retrigger;
-                s.phase = params.phase;
-                s.polarity = params.polarity;
-                s.attack = params.attack;
-                s.decay = params.decay;
-                s.sustain = params.sustain;
-                s.release = params.release;
-            } else if constexpr (std::is_same_v<T, AdsrParams>) {
-                s.retrigger = static_cast<int>(ModulatorRetrigger::OnNote);
-                s.syncDivision = 3;
-                s.attack = params.attack;
-                s.decay = params.decay;
-                s.sustain = params.sustain;
-                s.release = params.release;
-                s.polarity = params.polarity;
-            } else {
-                s.retrigger = static_cast<int>(ModulatorRetrigger::OnNote);
-                s.syncDivision = 3;
-                s.attack = params.attack;
-                s.decay = params.decay;
-                s.release = params.release;
-                s.polarity = params.polarity;
-                s.sustain = 0.0f;
-            }
-        }, rec.params);
-        result.push_back(s);
+        const auto& type = modulatorTypes_[static_cast<size_t>(rec.typeIndex)];
+        juce::var paramsVar = type->paramsToVar(rec.params);
+        if (auto* obj = paramsVar.getDynamicObject()) {
+            obj->setProperty("id", rec.id);
+            obj->setProperty("type", juce::String(type->typeId()));
+        }
+        result.add(paramsVar);
     }
-    return result;
+    return juce::var(result);
+}
+
+void ModulationGraph::recordsFromVar(const juce::var& arr) {
+    lfos_.clear();
+    const auto* array = arr.getArray();
+    if (array == nullptr) return;
+
+    lfos_.reserve(static_cast<size_t>(array->size()));
+    for (const auto& item : *array) {
+        const auto* obj = item.getDynamicObject();
+        if (obj == nullptr) continue;
+
+        const int id = static_cast<int>(obj->getProperty("id"));
+        const std::string typeId = obj->getProperty("type").toString().toStdString();
+
+        // Find matching modulator type
+        int typeIndex = -1;
+        for (size_t i = 0; i < modulatorTypes_.size(); ++i) {
+            if (modulatorTypes_[i]->typeId() == typeId) {
+                typeIndex = static_cast<int>(i);
+                break;
+            }
+        }
+        if (typeIndex < 0) continue;
+
+        ModulatorRecord rec;
+        rec.id = id;
+        rec.typeIndex = typeIndex;
+        rec.params = modulatorTypes_[static_cast<size_t>(typeIndex)]->varToParams(item);
+        lfos_.push_back(std::move(rec));
+    }
+}
+
+void ModulationGraph::replaceRecords(const std::vector<ModulatorRecord>& records,
+                                      const std::vector<ModulationEdge>& edges) {
+    lfos_ = records;
+    modEdges_ = edges;
+    recomputeIdCounters();
+    rebuildPlayback();
 }
 
 } // namespace audioapp

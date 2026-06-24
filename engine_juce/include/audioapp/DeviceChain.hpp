@@ -12,7 +12,7 @@
 #include "audioapp/CymbalAlgorithm.hpp"
 #include "audioapp/CrashAlgorithm.hpp"
 #include "audioapp/DynamicsProcessor.hpp"
-#include "audioapp/LfoTypes.hpp"
+#include "audioapp/ModulationTypes.hpp"
 #include "audioapp/SamplerFilter.hpp"
 #include "audioapp/SamplePlaybackAlgorithm.hpp"
 #include "audioapp/PhaseModSynthAlgorithm.hpp"

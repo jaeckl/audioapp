@@ -22,11 +22,13 @@ class ModulationGrid extends StatefulWidget {
     required this.onLfoLongPress,
     required this.onAddModulator,
     required this.onRemoveLfo,
+    this.visibleTargetsLfoIds = const {},
+    this.onToggleTargets,
   });
 
   static const rowCount = 3;
-  static const outerPadding = 6.0;
-  static const cellGap = 4.0;
+  static const outerPadding = 4.0;
+  static const cellGap = 3.0;
 
   final List<LfoSnapshot> lfos;
   final int? selectedLfoId;
@@ -39,6 +41,8 @@ class ModulationGrid extends StatefulWidget {
   final ValueChanged<int> onLfoLongPress;
   final Future<void> Function(int modulatorType) onAddModulator;
   final ValueChanged<int> onRemoveLfo;
+  final Set<int> visibleTargetsLfoIds;
+  final ValueChanged<int>? onToggleTargets;
 
   @override
   State<ModulationGrid> createState() => _ModulationGridState();
@@ -89,21 +93,12 @@ class _ModulationGridState extends State<ModulationGrid>
             ),
             ListTile(
               leading: const Icon(Icons.graphic_eq, color: Color(0xFFE8A54B)),
-              title: const Text('ADSR', style: TextStyle(color: Colors.white)),
+              title: const Text('Envelope', style: TextStyle(color: Colors.white)),
               subtitle: const Text(
-                'Attack · decay · sustain · release',
+                'ADSR · ASR · ADR · AHDSR',
                 style: TextStyle(color: Colors.white54),
               ),
-              onTap: () => Navigator.pop(context, ModulatorTypes.adsr),
-            ),
-            ListTile(
-              leading: const Icon(Icons.timeline, color: Color(0xFFE8A54B)),
-              title: const Text('ADR', style: TextStyle(color: Colors.white)),
-              subtitle: const Text(
-                'Attack · decay · release (no sustain)',
-                style: TextStyle(color: Colors.white54),
-              ),
-              onTap: () => Navigator.pop(context, ModulatorTypes.adr),
+              onTap: () => Navigator.pop(context, ModulatorTypes.envelope),
             ),
           ],
         ),
@@ -198,9 +193,13 @@ class _ModulationGridState extends State<ModulationGrid>
                       elapsedSeconds: _elapsedSeconds,
                       isSelected: lfo.id == widget.selectedLfoId,
                       isConnectMode: lfo.id == widget.connectModeLfoId,
+                      targetsVisible: widget.visibleTargetsLfoIds.contains(lfo.id),
                       onTap: () => widget.onLfoTap(lfo.id),
                       onLongPress: () => widget.onLfoLongPress(lfo.id),
                       onRemove: () => widget.onRemoveLfo(lfo.id),
+                      onToggleTargets: widget.onToggleTargets != null
+                          ? () => widget.onToggleTargets!(lfo.id)
+                          : null,
                     );
                   },
                 ),
@@ -221,7 +220,7 @@ class _GridSlot {
   final bool isAdd;
 }
 
-class _ModulatorTile extends StatelessWidget {
+class _ModulatorTile extends StatefulWidget {
   const _ModulatorTile({
     required this.lfo,
     required this.size,
@@ -230,9 +229,11 @@ class _ModulatorTile extends StatelessWidget {
     required this.elapsedSeconds,
     required this.isSelected,
     required this.isConnectMode,
+    required this.targetsVisible,
     required this.onTap,
     required this.onLongPress,
     required this.onRemove,
+    this.onToggleTargets,
   });
 
   final LfoSnapshot lfo;
@@ -242,49 +243,96 @@ class _ModulatorTile extends StatelessWidget {
   final double elapsedSeconds;
   final bool isSelected;
   final bool isConnectMode;
+  final bool targetsVisible;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
   final VoidCallback onRemove;
+  final VoidCallback? onToggleTargets;
+
+  @override
+  State<_ModulatorTile> createState() => _ModulatorTileState();
+}
+
+class _ModulatorTileState extends State<_ModulatorTile> {
+  void _onDoubleTap() {
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null || !renderBox.hasSize) return;
+    final offset = renderBox.localToGlobal(Offset.zero);
+    final size = renderBox.size;
+
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        offset.dx,
+        offset.dy + size.height,
+        offset.dx + size.width,
+        offset.dy + size.height + 1,
+      ),
+      color: const Color(0xFF1A1A24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+      items: [
+        PopupMenuItem<String>(
+          value: 'targets',
+          child: Row(
+            children: [
+              Icon(
+                widget.targetsVisible ? Icons.visibility : Icons.visibility_off,
+                size: 16,
+                color: widget.targetsVisible
+                    ? const Color(0xFFE8A54B)
+                    : Colors.white54,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                widget.targetsVisible ? 'Hide targets' : 'Show targets',
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem<String>(
+          value: 'remove',
+          child: const Row(
+            children: [
+              Icon(Icons.delete_outline, size: 16, color: Color(0xFFE8554B)),
+              SizedBox(width: 8),
+              Text(
+                'Remove',
+                style: TextStyle(color: Color(0xFFE8554B), fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ).then((value) {
+      if (value == 'targets') {
+        widget.onToggleTargets?.call();
+      } else if (value == 'remove') {
+        widget.onRemove();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     const accent = Color(0xFFE8A54B);
     return SizedBox(
-      width: size,
-      height: size,
+      width: widget.size,
+      height: widget.size,
       child: GestureDetector(
-        onTap: onTap,
-        onLongPress: onLongPress,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            ModulatorPreview(
-              mod: lfo,
-              playheadBeat: playheadBeat,
-              bpm: bpm,
-              elapsedSeconds: elapsedSeconds,
-              accent: accent,
-              isSelected: isSelected,
-              isConnectMode: isConnectMode,
-            ),
-            Positioned(
-              top: 2,
-              right: 2,
-              child: GestureDetector(
-                onTap: onRemove,
-                child: Container(
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2A2A35),
-                    borderRadius: BorderRadius.circular(7),
-                    border: Border.all(color: Colors.white24),
-                  ),
-                  child: const Icon(Icons.close, size: 9, color: Colors.white54),
-                ),
-              ),
-            ),
-          ],
+        onTap: widget.onTap,
+        onDoubleTap: _onDoubleTap,
+        onLongPress: widget.onLongPress,
+        child: ModulatorPreview(
+          mod: widget.lfo,
+          playheadBeat: widget.playheadBeat,
+          bpm: widget.bpm,
+          elapsedSeconds: widget.elapsedSeconds,
+          accent: accent,
+          isSelected: widget.isSelected,
+          isConnectMode: widget.isConnectMode,
+          innerPadding: 2.0,
         ),
       ),
     );

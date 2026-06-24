@@ -1,13 +1,12 @@
 #pragma once
 
-#include "audioapp/LfoTypes.hpp"
+#include "audioapp/ModulationTypes.hpp"
 #include "audioapp/modulation/ModulatorParams.hpp"
 #include "audioapp/modulation/IModulator.hpp"
 #include "audioapp/modulation/IModulatorType.hpp"
 #include "audioapp/modulation/ModulatorArena.hpp"
 #include "audioapp/modulation/LfoModulatorType.hpp"
-#include "audioapp/modulation/AdsrModulatorType.hpp"
-#include "audioapp/modulation/AdrModulatorType.hpp"
+#include "audioapp/modulation/EnvelopeModulatorType.hpp"
 
 #include <atomic>
 #include <cstdint>
@@ -25,15 +24,13 @@ public:
     /// Pair of domain id + modulator params (control thread only).
     struct ModulatorRecord {
         int id = 0;
-        int typeIndex = 0;  // 0=Lfo, 1=Adsr, 2=Adr (index into modulatorTypes_)
+        int typeIndex = 0;  // 0=Lfo, 1=Envelope (index into modulatorTypes_)
         ModulatorParams params;
     };
 
     ModulationGraph();
 
     void clear();
-    void reloadFromLfoStates(const std::vector<LfoState>& lfos,
-                             const std::vector<ModulationEdge>& modEdges);
     void rebuildPlayback();
     void recomputeIdCounters();
 
@@ -79,15 +76,17 @@ public:
 
     const std::vector<std::unique_ptr<IModulatorType>>& modulatorTypes() const { return modulatorTypes_; }
 
-    /// Backward-compat: convert current ModulatorRecord list to LfoState vector
-    /// for ProjectFileData / bridge serialization.
-    std::vector<LfoState> toLfoStates() const;
+    /// Serialize all modulator records to a juce::var array for JSON output.
+    /// Each element: { "id": N, "type": "lfo"|"envelope", ...params }
+    juce::var recordsToVar() const;
 
-    /// Backward-compat: load from old LfoState vector (calls reloadFromLfoStates).
-    void load(const std::vector<LfoState>& lfos,
-              const std::vector<ModulationEdge>& modEdges) {
-        reloadFromLfoStates(lfos, modEdges);
-    }
+    /// Deserialize modulator records from a juce::var array.
+    /// Each element must have "type" matching a registered IModulatorType::typeId().
+    void recordsFromVar(const juce::var& arr);
+
+    /// Replace all records and edges (for project load).
+    void replaceRecords(const std::vector<ModulatorRecord>& records,
+                        const std::vector<ModulationEdge>& edges);
 
 private:
     std::vector<ModulatorRecord> lfos_;

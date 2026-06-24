@@ -14,7 +14,7 @@
 #include "audioapp/model/TrackRepository.hpp"
 #include "audioapp/model/ClipRepository.hpp"
 #include "audioapp/model/AutomationClipStore.hpp"
-#include "audioapp/LfoTypes.hpp"
+#include "audioapp/ModulationTypes.hpp"
 #include "audioapp/LivePerformance.hpp"
 #include "audioapp/MidiClipPlayback.hpp"
 #include "audioapp/SampleBank.hpp"
@@ -69,7 +69,7 @@ struct ProjectSnapshot {
     MasterTrackState master;
     std::vector<SampleLibraryEntryState> samples;
     std::vector<TrackState> tracks;
-    std::vector<LfoState> lfos;
+    std::vector<ModulationGraph::ModulatorRecord> lfos;
     std::vector<ModulationEdge> modEdges;
     /// Global automation-clip store.
     std::vector<AutomationClipState> automationClips;
@@ -188,6 +188,11 @@ public:
 
     /// Expose the device registry for serialization dispatch.
     const DeviceRegistry& deviceRegistry() const { return deviceRegistry_; }
+
+    /// Expose modulator types for serialization dispatch.
+    const std::vector<std::unique_ptr<IModulatorType>>& modulatorTypes() const {
+        return modulationGraph_.modulatorTypes();
+    }
 
     void setPlaying(bool playing);
     bool isPlaying() const noexcept;

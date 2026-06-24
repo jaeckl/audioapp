@@ -5,7 +5,7 @@
 
 #include "audioapp/modulation/IModulator.hpp"
 #include "audioapp/modulation/ModulatorParams.hpp"
-#include "audioapp/LfoTypes.hpp"
+#include "audioapp/ModulationTypes.hpp"
 
 namespace audioapp {
 

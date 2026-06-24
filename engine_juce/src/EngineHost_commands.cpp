@@ -63,7 +63,8 @@ bool EngineHost::setMasterGain(float gain) {
 }
 
 std::string EngineHost::getProjectSnapshotJson() const {
-    return snapshotToJson(project_->snapshot(), project_->deviceRegistry());
+    return snapshotToJson(project_->snapshot(), project_->deviceRegistry(),
+                          project_->modulatorTypes());
 }
 
 std::string EngineHost::getDeviceConfigsJson(const std::vector<std::string>& deviceIds) const {
@@ -749,12 +750,13 @@ bool EngineHost::loadProject(const std::string& archivePath) {
 
 std::string EngineHost::getProjectFileJson() const {
     return projectFileToJson(project_->toProjectFileData(),
-                             project_->deviceRegistry());
+                             project_->deviceRegistry(),
+                             project_->modulatorTypes());
 }
 
 bool EngineHost::loadProjectFileJson(const std::string& json) {
     ProjectFileData data;
-    if (!parseProjectFileJson(json, data, project_->deviceRegistry())) {
+    if (!parseProjectFileJson(json, data, project_->deviceRegistry(), project_->modulatorTypes())) {
         return false;
     }
     ensureSampleBankReady();

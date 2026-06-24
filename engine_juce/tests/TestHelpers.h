@@ -165,7 +165,8 @@ inline audioapp::ProjectFileData readProjectData(const audioapp::EngineHost& hos
 {
     audioapp::ProjectFileData data;
     auto registry = audioapp::DeviceRegistry::createBuiltIn();
-    if (!audioapp::parseProjectFileJson(host.getProjectFileJson(), data, registry))
+    auto modTypes = audioapp::createDefaultModulatorTypes();
+    if (!audioapp::parseProjectFileJson(host.getProjectFileJson(), data, registry, modTypes))
         return {};
     return data;
 }
@@ -175,7 +176,8 @@ inline audioapp::ProjectFileData parseProjectJson(const std::string& json) noexc
 {
     audioapp::ProjectFileData data;
     auto registry = audioapp::DeviceRegistry::createBuiltIn();
-    if (!audioapp::parseProjectFileJson(json, data, registry))
+    auto modTypes = audioapp::createDefaultModulatorTypes();
+    if (!audioapp::parseProjectFileJson(json, data, registry, modTypes))
         return {};
     return data;
 }
@@ -184,7 +186,8 @@ inline audioapp::ProjectFileData parseProjectJson(const std::string& json) noexc
 inline bool parseProjectJsonInto(const std::string& json, audioapp::ProjectFileData& data) noexcept
 {
     auto registry = audioapp::DeviceRegistry::createBuiltIn();
-    return audioapp::parseProjectFileJson(json, data, registry);
+    auto modTypes = audioapp::createDefaultModulatorTypes();
+    return audioapp::parseProjectFileJson(json, data, registry, modTypes);
 }
 
 // =======================================================================
