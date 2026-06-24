@@ -41,10 +41,15 @@ public:
             audioapp::EngineHost host;
             host.createProject();
             const std::string trackId = host.addTrack("Drums");
-            host.createMidiClip(trackId, 0.0, 4.0);
+
+            const std::string samplerId = host.addDeviceToTrack(trackId, "simple_sampler");
+            expect(!samplerId.empty(), "sampler device created");
+
+            const std::string clipId = host.createMidiClip(trackId, 0.0, 4.0);
+            host.setMidiClipNotes(clipId, {{60, 0.0, 4.0, 100.0f}});
             host.setPlaying(true);
 
-            expect(host.setDeviceStringParameter("dev-1", "sampleId", "sample_kick"),
+            expect(host.setDeviceStringParameter(samplerId, "sampleId", "sample_kick"),
                    "set sampleId");
 
             float withSample[512] = {};
@@ -59,9 +64,14 @@ public:
             audioapp::EngineHost host;
             host.createProject();
             const std::string trackId = host.addTrack("Drums");
-            host.createMidiClip(trackId, 0.0, 4.0);
+
+            const std::string samplerId = host.addDeviceToTrack(trackId, "simple_sampler");
+            expect(!samplerId.empty(), "sampler device created");
+
+            const std::string clipId = host.createMidiClip(trackId, 0.0, 4.0);
+            host.setMidiClipNotes(clipId, {{60, 0.0, 4.0, 100.0f}});
             host.setPlaying(true);
-            host.setDeviceStringParameter("dev-1", "sampleId", "sample_kick");
+            host.setDeviceStringParameter(samplerId, "sampleId", "sample_kick");
 
             float withSample[512] = {};
             host.readMasterMix(withSample, 512, 48000.0, 0.0);
@@ -69,7 +79,7 @@ public:
             for (const float sample : withSample)
                 peakSample = std::max(peakSample, std::abs(sample));
 
-            expect(host.setDeviceParameter("dev-1", "attack", 1.0f), "set attack");
+            expect(host.setDeviceParameter(samplerId, "attack", 1.0f), "set attack");
 
             float slowAttack[512] = {};
             host.readMasterMix(slowAttack, 512, 48000.0, 0.0);
