@@ -1,9 +1,9 @@
 /// Shared parsing helpers for device snapshot parameter maps.
 ///
 /// These were originally private top-level functions in
-/// `device_snapshots.dart`. They are now public so that per-family
-/// snapshot files can reuse them without depending on the umbrella
-/// `device_snapshots.dart` library.
+/// the old `device_snapshots.dart` library.
+/// They are now public so that per-family
+/// snapshot files can reuse them without depending on an umbrella library.
 library;
 
 bool readBypass(dynamic value) {

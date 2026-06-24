@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../bridge/device_snapshots.dart';
+import '../../bridge/device_snapshot.dart';
 import 'device_strip_metrics.dart';
 import 'device_tab_bar.dart';
 import 'eq_preview.dart';

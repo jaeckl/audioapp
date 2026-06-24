@@ -1,5 +1,13 @@
 # Device SRP Refactoring — Architecture Contract
 
+> **STATUS: COMPLETED** — All 3 phases (contract, Phase 2 persistence dispatch, Phase 3 snapshot dispatch) are implemented.
+>
+> - Phase 1 (contract foundations): `DeviceSlot` variant, `IDeviceType` interface, `DeviceRegistry`
+> - Phase 2 (persistence): `trackToVarPersistence`/`trackFromVarPersistence` via registry dispatch — commit `2bcaf6b`
+> - Phase 3 (snapshot): `trackToVarSnapshot` via registry dispatch, `DeviceState` eliminated — commit `56eceef` + `4d61807`
+>
+> All tests pass. No further work needed.
+
 > Refactor device serialization out of `ProjectJson.cpp` into each device type, while preserving thread safety, the audio-thread flat snapshot pattern, and backward compatibility.
 
 ---

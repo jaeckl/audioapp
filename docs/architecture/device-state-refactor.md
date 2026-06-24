@@ -1,5 +1,9 @@
 # DeviceState Refactoring: Architecture Contract
 
+> **STATUS: SUPERSEDED** — `DeviceState` has been fully removed from the codebase. `TrackState::devices` now uses `DeviceSlot` directly. `toSnapshotState()` and `slotFromSnapshot()` are gone. The round-trip waste described below no longer exists.
+>
+> See `device-srp-refactor-phase3.md` (completed) for the migration that eliminated DeviceState.
+
 > Replace the monolithic `DeviceState` flat struct with per-device-type snapshot representations, enabling selective frontend polling and eliminating the wasteful `DeviceSlot ↔ DeviceState → DeviceSlot` round-trip during snapshot serialization.
 
 ---

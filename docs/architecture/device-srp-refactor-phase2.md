@@ -1,5 +1,7 @@
 # Device SRP Refactoring — Phase 2: Migrate Persistence to Registry Dispatch
 
+> **STATUS: COMPLETED** — Implemented in commit `2bcaf6b`. `projectFileToJson` and `parseProjectFileJson` now take `const DeviceRegistry&`. Persistence path uses `trackToVarPersistence`/`trackFromVarPersistence`. Snapshot path preserved for Phase 3 migration.
+
 > Eliminate the old if/else-if chain from the persistence (file save/load) path by routing it through the existing `DeviceSlot`-based registry dispatch. The snapshot bridge path is preserved unchanged.
 
 ---

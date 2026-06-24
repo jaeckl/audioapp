@@ -3,11 +3,11 @@ library;
 
 export 'clip_snapshots.dart';
 export 'timeline_clip.dart';
-export 'device_snapshots.dart';
+export 'device_snapshot.dart';
 
 import 'bridge_parsing.dart';
 import 'clip_snapshots.dart';
-import 'device_snapshots.dart';
+import 'device_snapshot.dart';
 
 class ProjectSnapshot {
   const ProjectSnapshot({

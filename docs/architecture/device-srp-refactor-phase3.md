@@ -1,5 +1,15 @@
 # Device SRP Refactoring — Phase 3: Migrate Snapshot Path to Registry Dispatch
 
+> **STATUS: COMPLETED** — Implemented in commits `56eceef` + `4d61807`.
+>
+> - `DeviceMeterState` struct exists in `ProjectEngine.hpp`
+> - `DeviceState` has been **fully removed** from the codebase (struct + `toSnapshotState`/`slotFromSnapshot` eliminated)
+> - `trackToVarSnapshot` uses registry dispatch with live meter injection from parallel `deviceMeters` array
+> - `snapshotToJson` takes `const DeviceRegistry&`
+> - Old if/else-if chain `deviceToVar(DeviceState)`/`deviceFromVar(var)`/`trackToVar`/`trackFromVar` deleted
+>
+> All tests pass. No further work needed.
+
 > Remove meters from `DeviceState`, add parallel `deviceMeters` array on `TrackState`, migrate the snapshot JSON serialization to use registry dispatch (removes the old if/else-if chain), and delete the legacy `deviceToVar(DeviceState)` / `deviceFromVar(var)` functions.
 
 ---

@@ -1,5 +1,16 @@
 # ProjectEngine refactor plan (M12)
 
+> **STATUS: PARTIALLY IMPLEMENTED** — The refactoring has evolved differently from the original plan.
+>
+> - **Done**: `TransportController` extracted, `ModulationGraph` extracted, `Modulator` OOP hierarchy implemented (`5411694`)
+> - **Done**: `DeviceChain` SRP split (`e917dee`), `DeviceRegistry` with per-type dispatch, `DeviceSlot` variant-based model
+> - **Done**: `model/TrackModel.hpp`, `model/TrackRepository.hpp`, `model/ClipRepository.hpp`, `model/AutomationClipStore.hpp` extracted
+> - **Done**: `LivePerformanceSession` extracted, `SampleBank` extracted
+> - **Not done (superseded)**: `PlaybackSnapshotBuilder` and `ArrangementMixer` were not created as separate classes — the flat snapshot pattern was refactored through `DeviceChainOrchestrator` instead
+> - **Not applicable**: The original `ProjectEngine` monolithic `setDeviceParameter` (~210 lines) still exists but now delegates to per-type `IDeviceType::setParameter` through registry dispatch
+>
+> This doc is kept for architectural reference.
+
 ## Problem statement
 
 `ProjectEngine` violates separation of concerns. It mixes **authoritative project state**, **device-specific business rules**, **transport**, **modulation**, **realtime snapshot building**, and **audio rendering orchestration** in one class with duplicated flat device structs.

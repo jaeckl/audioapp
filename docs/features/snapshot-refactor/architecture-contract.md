@@ -1,5 +1,11 @@
 # Architectural Design & Contract: DeviceSnapshot & ProjectSnapshot Sealed-Class Refactoring
 
+> **STATUS: COMPLETED** — All 5 phases implemented in commit `05d7b48` (`refactor(bridge): split DeviceSnapshot monolith into per-family files`).
+>
+> `DeviceSnapshot` is now a Dart 3 `sealed class` with per-family files in `device_families/`. All 20+ concrete subclasses exist. UI panels use typed references (e.g. `KickGeneratorDeviceSnapshot`). The old extension shim has been removed. No further work needed.
+>
+> For the current implementation, see `app_flutter/lib/bridge/device_snapshot.dart` and `app_flutter/lib/bridge/device_families/`.
+
 This document describes the architectural target, serialization/deserialization design, and a safe, multi-phase migration plan to refactor the giant flat `DeviceSnapshot` class in `app_flutter/lib/bridge/project_snapshot.dart` (~1500 lines) into a clean, typed Dart 3 sealed class hierarchy.
 
 ---

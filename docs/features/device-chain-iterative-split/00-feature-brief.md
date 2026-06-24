@@ -1,5 +1,7 @@
 # DeviceChain Iterative Split — Feature Brief
 
+> **STATUS: COMPLETED** — Implemented in commit `e917dee` (`refactor(engine): split DeviceChain into SRP modules`).
+
 ## Goal
 
 Refactor `engine_juce/src/DeviceChain.cpp` (1261 LOC monolith) and the

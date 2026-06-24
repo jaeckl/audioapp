@@ -1,5 +1,7 @@
 # Feature Brief – Library UI Improvements
 
+> **STATUS: SUPERSEDED** — This design predates `library-ui-refinements/` (commit `51e6388`). The refinements feature implements preview playback, MIDI live play, and preset preview bar, but through a different approach. This doc is kept for reference only.
+
 **Goal**: Align the audio library UI with the new UX guidelines by making preview widgets compact, showing real clip previews for MIDI and automation items, adding a global preview‑play button, providing a quick‑filter list of device presets, and separating selection from insertion.
 
 **Scope**:

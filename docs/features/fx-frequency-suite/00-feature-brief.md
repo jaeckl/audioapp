@@ -1,5 +1,7 @@
 # Frequency FX Suite — Feature Brief
 
+> **STATUS: COMPLETED** — Implemented in commits `a5a5268` (`feat(effects): add frequency FX suite`) and `7e9bb67` (`feat(fx): extract ValueDragBox, redesign EQ grid + center filter knobs`).
+
 ## User-Visible Goal
 
 Add three new "Frequency Effects" devices to the DAW's device chain:

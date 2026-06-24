@@ -1,5 +1,7 @@
 # Feature Brief: Clip Resize in Arranger View
 
+> **STATUS: COMPLETED** — Implemented in commit `13acf36` (`feat(arrangement): implement drag-to-resize and live editing for all clip types`).
+
 ## User-visible goal
 
 The user can resize any clip (MIDI, Sample, Automation) from the right edge in the arranger view by dragging a resize handle. Resizing lengthens or shortens the clip visually and commits the new length to the engine model. The resize snaps to the beat grid, respects minimum clip length, and cannot overlap adjacent clips.

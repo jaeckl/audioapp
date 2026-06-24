@@ -1,5 +1,7 @@
 # Library UI Refinements — Feature Brief
 
+> **STATUS: COMPLETED** — Implemented in commit `51e6388` (`feat(library): abstract preset preview, scrubable preview bar, stop on close`).
+
 ## Goals
 
 Deliver four refinements on the existing content library UI to close the gap between item browsing and immediate audio feedback:

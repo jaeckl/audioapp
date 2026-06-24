@@ -1,5 +1,7 @@
 # Feature Brief: Time‑Based Effects Suite
 
+> **STATUS: COMPLETED** — Implemented in commit `d652219` (`feat(effects): implement real-time C++ audio DSP and dynamics panels for time-based FX`).
+
 ## User‑visible goal
 
 Add a unified **Time‑Based Effects Suite** to the DAW, giving users four high‑quality audio processors – **Delay**, **Reverb**, **Chorus**, and **Phaser** – that can be added to any track/device chain. Each effect appears in the Flutter device picker, provides a compact mobile‑first UI, and persists its parameters in project JSON. Users can enable/disable each effect, tweak parameters, automate them, and hear the result instantly.
