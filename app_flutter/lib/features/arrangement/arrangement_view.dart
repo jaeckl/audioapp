@@ -2085,7 +2085,7 @@ class _AutomationClipBlock extends StatelessWidget {
           if (onLinkToggle != null)
             Positioned(
               top: -10,
-              right: 6,
+              left: 6,
               child: AutomationClipLinkChip(
                 active: linkActive,
                 onTap: onLinkToggle!,

@@ -400,8 +400,6 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
           deviceId: deviceId,
           paramId: paramId,
         );
-      } else {
-        setState(() => _automationLinkClipId = created.id);
       }
       await _refreshSnapshot(snapshot);
     } catch (e) {
@@ -1356,6 +1354,10 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     try {
       final snapshot = await widget.bridge.deleteClip(clipId);
       await _refreshSnapshot(snapshot);
+      // If the deleted clip was in link mode, clear it
+      if (_automationLinkClipId == clipId) {
+        setState(() => _automationLinkClipId = null);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());

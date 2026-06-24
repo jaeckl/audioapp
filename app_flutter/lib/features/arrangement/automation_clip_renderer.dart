@@ -93,7 +93,7 @@ class AutomationClipLinkChip extends StatelessWidget {
   final bool active;
   final VoidCallback onTap;
 
-  static const double _circleSize = 26;
+  static const double _circleSize = 36;
   static const Color _creamFill = Color(0xFFF8F4EC);
 
   @override
@@ -112,15 +112,18 @@ class AutomationClipLinkChip extends StatelessWidget {
             width: _circleSize,
             height: _circleSize,
             alignment: Alignment.center,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: _creamFill,
+              border: active
+                  ? Border.all(color: accent, width: 2)
+                  : null,
             ),
             child: Text(
               '~',
               style: TextStyle(
                 color: glyphColor,
-                fontSize: 16,
+                fontSize: 20,
                 fontWeight: FontWeight.w600,
                 height: 1,
               ),
