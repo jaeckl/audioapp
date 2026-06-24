@@ -428,6 +428,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         .where((e) => e.lfoId == lfo.id && e.deviceId == widget.device.id)
         .toList();
     return Container(
+      key: ValueKey('targets_${lfo.id}'),
       width: _targetsPanelWidth,
       decoration: BoxDecoration(
         color: const Color(0xFF14141E),
