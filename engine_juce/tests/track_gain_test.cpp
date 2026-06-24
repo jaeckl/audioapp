@@ -17,11 +17,13 @@ public:
                    "sample clip created");
 
             const std::string json = host.getProjectSnapshotJson();
-            const auto gainPos = json.rfind("\"type\":\"track_gain\"");
+            // Snapshot JSON is pretty-printed ("key": "value" with space after colon)
+            const auto gainPos = json.rfind("\"type\": \"track_gain\"");
             expect(gainPos != std::string::npos, "track_gain in snapshot");
-            const auto idPos = json.rfind("\"id\":\"dev-", gainPos);
+            const auto idPos = json.rfind("\"id\": \"dev-", gainPos);
             expect(idPos != std::string::npos, "device id in snapshot");
-            const auto idStart = idPos + 6;
+            // Skip past "\"id\": \"" (7 chars) to reach "dev-N"
+            const auto idStart = idPos + 7;
             const auto idEnd = json.find('"', idStart);
             const std::string gainDeviceId = json.substr(idStart, idEnd - idStart);
 
@@ -52,12 +54,16 @@ public:
             host.createSampleClip(trackId, "sample_kick", 0.0, 0.0);
 
             const std::string json = host.getProjectSnapshotJson();
-            const auto gainPos = json.rfind("\"type\":\"track_gain\"");
-            const auto idPos = json.rfind("\"id\":\"dev-", gainPos);
-            const auto idStart = idPos + 6;
-            const auto idEnd = json.find('"', idStart);
-            const std::string gainDeviceId = json.substr(idStart, idEnd - idStart);
-            host.setDeviceParameter(gainDeviceId, "gain", 0.5f);
+            const auto gainPos = json.rfind("\"type\": \"track_gain\"");
+            if (gainPos != std::string::npos) {
+                const auto idPos = json.rfind("\"id\": \"dev-", gainPos);
+                if (idPos != std::string::npos) {
+                    const auto idStart = idPos + 7;
+                    const auto idEnd = json.find('"', idStart);
+                    const std::string gainDeviceId = json.substr(idStart, idEnd - idStart);
+                    host.setDeviceParameter(gainDeviceId, "gain", 0.5f);
+                }
+            }
 
             host.setPlaying(true);
             float half[256] = {};
