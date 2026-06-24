@@ -406,7 +406,9 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           if (_showTargetsForLfoIds.contains(id)) {
             _showTargetsForLfoIds.remove(id);
           } else {
-            _showTargetsForLfoIds.add(id);
+            _showTargetsForLfoIds
+              ..clear()
+              ..add(id);
           }
         });
       },
@@ -495,7 +497,13 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                                 'lfoId': edge.lfoId,
                                 'paramId': edge.paramId,
                               }),
-                              child: const Icon(Icons.close, size: 12, color: Colors.white30),
+                              child: SizedBox(
+                                width: 28,
+                                height: 28,
+                                child: Center(
+                                  child: Icon(Icons.close, size: 14, color: Colors.white.withValues(alpha: 0.45)),
+                                ),
+                              ),
                             ),
                           ],
                         ),
