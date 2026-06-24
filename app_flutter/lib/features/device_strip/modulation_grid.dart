@@ -43,8 +43,8 @@ class ModulationGrid extends StatefulWidget {
   final Future<void> Function(int modulatorType) onAddModulator;
   final ValueChanged<int> onRemoveLfo;
   final bool targetsPanelVisible;
-  final VoidCallback? onShowTargets;
-  final VoidCallback? onHideTargets;
+  final ValueChanged<int>? onShowTargets;
+  final ValueChanged<int>? onHideTargets;
 
   @override
   State<ModulationGrid> createState() => _ModulationGridState();
@@ -268,8 +268,8 @@ class _GridColumn extends StatelessWidget {
   final ValueChanged<int> onLfoTap;
   final ValueChanged<int> onLfoLongPress;
   final ValueChanged<int> onRemoveLfo;
-  final VoidCallback? onShowTargets;
-  final VoidCallback? onHideTargets;
+  final ValueChanged<int>? onShowTargets;
+  final ValueChanged<int>? onHideTargets;
   final VoidCallback onShowAddMenu;
 
   @override
@@ -308,8 +308,8 @@ class _GridColumn extends StatelessWidget {
       onTap: () => onLfoTap(lfo.id),
       onLongPress: () => onLfoLongPress(lfo.id),
       onRemove: () => onRemoveLfo(lfo.id),
-      onShowTargets: onShowTargets,
-      onHideTargets: onHideTargets,
+      onShowTargets: onShowTargets != null ? () => onShowTargets!(lfo.id) : null,
+      onHideTargets: onHideTargets != null ? () => onHideTargets!(lfo.id) : null,
     );
   }
 }

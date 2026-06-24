@@ -326,7 +326,14 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
 
   void _onLfoTap(int lfoId) {
     setState(() {
-      _selectedLfoId = _selectedLfoId == lfoId ? null : lfoId;
+      if (_selectedLfoId == lfoId) {
+        // Deselect — close panel too
+        _selectedLfoId = null;
+        _showTargetsPanel = false;
+      } else {
+        // Select different modulator, keep panel open if it was open
+        _selectedLfoId = lfoId;
+      }
     });
   }
 
@@ -399,11 +406,17 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       onAddModulator: (type) => _onBridgeCall('createLfo', {'modulatorType': type}),
       onRemoveLfo: (id) => _onBridgeCall('removeLfo', {'lfoId': id}),
       targetsPanelVisible: _showTargetsPanel,
-      onShowTargets: () {
-        setState(() => _showTargetsPanel = true);
+      onShowTargets: (id) {
+        setState(() {
+          _selectedLfoId = id;
+          _showTargetsPanel = true;
+        });
       },
-      onHideTargets: () {
-        setState(() => _showTargetsPanel = false);
+      onHideTargets: (id) {
+        setState(() {
+          if (_selectedLfoId == id) _selectedLfoId = null;
+          _showTargetsPanel = false;
+        });
       },
     );
 
