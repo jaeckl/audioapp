@@ -224,6 +224,13 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
 
   add_executable(audioapp_juce_tests ${AUDIOAPP_TEST_SOURCES})
   target_link_libraries(audioapp_juce_tests PRIVATE audioapp_engine)
+  target_compile_definitions(audioapp_juce_tests PRIVATE
+    AUDIOAPP_GOLDEN_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/golden"
+  )
+  # Optionally regenerate golden files: cmake -DAUDIOAPP_REGENERATE_GOLDEN=ON
+  if(AUDIOAPP_REGENERATE_GOLDEN)
+    target_compile_definitions(audioapp_juce_tests PRIVATE AUDIOAPP_REGENERATE_GOLDEN)
+  endif()
   if(MSVC)
     target_link_options(audioapp_juce_tests PRIVATE /STACK:16777216)
     target_compile_options(audioapp_juce_tests PRIVATE /EHsc)

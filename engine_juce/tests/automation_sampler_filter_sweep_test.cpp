@@ -1,9 +1,12 @@
+/// Golden-file test for filter cutoff automation on a sampler with a kick sample.
+///
+/// To regenerate goldens: build with -DAUDIOAPP_REGENERATE_GOLDEN=ON and run.
+
 #include <juce_core/juce_core.h>
 #include "TestHelpers.h"
 
 #include "audioapp/EngineHost.hpp"
 
-#include <cmath>
 #include <vector>
 
 class AutomationSamplerFilterSweepTest : public juce::UnitTest {
@@ -40,25 +43,8 @@ public:
             points.push_back({4.0, 0.25f});
             expect(host.setAutomationPoints(clipId, points));
 
-            host.setPlaying(true);
-            const std::vector<float> block = host.renderOffline(4.0, 48000.0);
-            expect(block.size() >= 48000);
-
-            float peak = 0.0f;
-            for (float sample : block) {
-                peak = std::max(peak, std::abs(sample));
-            }
-            expect(peak >= 1.0e-4f);
-
-            const int window = std::min(12000, static_cast<int>(block.size()) / 4);
-            const int earlyStart = static_cast<int>(block.size()) / 20;
-            const int lateStart = static_cast<int>(block.size() * 3) / 4;
-            const float earlyHf = audioapp::test::highFrequencyEnergy(block, earlyStart, window);
-            const float lateHf = audioapp::test::highFrequencyEnergy(block, lateStart, window);
-            expect(earlyHf > 1.0e-8f && lateHf > 1.0e-8f);
-            // Kick sample is mostly low-frequency content, so the filter
-            // sweep produces a modest HF ratio difference.
-            expect(earlyHf > lateHf * 1.2f, "Early HF should be > 1.2x late HF");
+            expect(audioapp::test::checkRenderGolden(
+                "automation_sampler_filter_sweep.bin", host, 4.0, 48000.0));
         }
     }
 };

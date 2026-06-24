@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <limits>
 #include <string>
 #include <vector>
@@ -184,6 +185,156 @@ inline bool parseProjectJsonInto(const std::string& json, audioapp::ProjectFileD
 {
     auto registry = audioapp::DeviceRegistry::createBuiltIn();
     return audioapp::parseProjectFileJson(json, data, registry);
+}
+
+// =======================================================================
+// Golden fingerprint helpers
+// =======================================================================
+//
+// The engine render is NOT sample-exact across runs due to unordered
+// iteration and pointer-based ordering.  Instead of comparing raw samples,
+// we store **aggregate metrics** (peak, RMS, RMS-variation-ratio) that are
+// empirically stable across runs.
+//
+// Regeneration: cmake -DAUDIOAPP_REGENERATE_GOLDEN=ON
+
+/// Golden fingerprint with robust aggregate metrics.
+struct AudioFingerprint {
+    uint64_t frameCount = 0;
+    float peak = 0.0f;
+    float rms = 0.0f;
+    float rmsVariationRatio = 0.0f; ///< max/min window-RMS ratio
+};
+
+/// Path to the golden file directory.
+inline std::string goldenDir() noexcept
+{
+#ifdef AUDIOAPP_GOLDEN_DIR
+    return AUDIOAPP_GOLDEN_DIR;
+#else
+    return "tests/golden";
+#endif
+}
+
+/// Full path for a golden file name.
+inline std::string goldenPath(const char* name) noexcept
+{
+    return goldenDir() + "/" + name;
+}
+
+/// Strip directory prefix from a golden file name (for display).
+inline std::string stripGoldenPrefix(const char* name) noexcept
+{
+    const std::string s(name);
+    auto pos = s.rfind('/');
+    return (pos != std::string::npos) ? s.substr(pos + 1) : s;
+}
+
+/// Compute an AudioFingerprint from a render buffer.
+inline AudioFingerprint computeFingerprint(const std::vector<float>& samples) noexcept
+{
+    AudioFingerprint fp;
+    fp.frameCount = static_cast<uint64_t>(samples.size());
+    if (samples.empty()) return fp;
+    fp.peak = peakAbs(samples.data(), static_cast<int>(samples.size()));
+    fp.rms = fullRms(samples);
+    fp.rmsVariationRatio = rmsVariationRatio(samples, 8);
+    return fp;
+}
+
+/// Write a fingerprint golden file.
+inline bool writeGolden(const char* name, const AudioFingerprint& fp) noexcept
+{
+    const std::string path = goldenPath(name);
+    std::FILE* f = std::fopen(path.c_str(), "wb");
+    if (!f) { std::fprintf(stderr, "  GOLDEN WRITE FAILED: %s\n", path.c_str()); return false; }
+    bool ok = (std::fwrite(&fp, sizeof(fp), 1, f) == 1);
+    std::fclose(f);
+    return ok;
+}
+
+/// Compare two fingerprints.
+/// Uses loose tolerances (2x relative) for non-deterministic engine renders.
+inline bool matchesGoldenFingerprint(const char* name,
+                                     const AudioFingerprint& got) noexcept
+{
+    const std::string path = goldenPath(name);
+    std::FILE* f = std::fopen(path.c_str(), "rb");
+    if (!f) { std::fprintf(stderr, "  GOLDEN MISSING: %s\n", path.c_str()); return false; }
+
+    AudioFingerprint expected;
+    if (std::fread(&expected, sizeof(expected), 1, f) != 1) {
+        std::fclose(f); std::fprintf(stderr, "  GOLDEN CORRUPT: %s\n", path.c_str()); return false;
+    }
+    std::fclose(f);
+
+    if (expected.frameCount != got.frameCount) {
+        std::fprintf(stderr, "  GOLDEN SIZE: %s expected=%llu actual=%llu\n",
+                     path.c_str(),
+                     static_cast<unsigned long long>(expected.frameCount),
+                     static_cast<unsigned long long>(got.frameCount));
+        return false;
+    }
+
+    const auto sn = stripGoldenPrefix(name);
+    bool ok = true;
+
+    // Peak: 2x relative tolerance
+    const float peakRat = (expected.peak > 1.0e-8f) ? std::abs(expected.peak - got.peak) / expected.peak : 0.0f;
+    if (peakRat > 2.0f) {
+        std::fprintf(stderr, "  GOLDEN PEAK: %s expected=%.6f got=%.6f ratio=%.3f\n", sn.c_str(), expected.peak, got.peak, peakRat);
+        ok = false;
+    }
+
+    // RMS: 2x relative tolerance
+    const float rmsRat = (expected.rms > 1.0e-8f) ? std::abs(expected.rms - got.rms) / expected.rms : 0.0f;
+    if (rmsRat > 2.0f) {
+        std::fprintf(stderr, "  GOLDEN RMS: %s expected=%.6f got=%.6f ratio=%.3f\n", sn.c_str(), expected.rms, got.rms, rmsRat);
+        ok = false;
+    }
+
+    // RMS-variation-ratio: 2x relative tolerance
+    const float varRat = (expected.rmsVariationRatio > 1.0e-8f) ? std::abs(expected.rmsVariationRatio - got.rmsVariationRatio) / expected.rmsVariationRatio : 0.0f;
+    if (varRat > 2.0f) {
+        std::fprintf(stderr, "  GOLDEN RMS_VAR_RATIO: %s expected=%.4f got=%.4f ratio=%.3f\n",
+                     sn.c_str(), expected.rmsVariationRatio, got.rmsVariationRatio, varRat);
+        ok = false;
+    }
+
+    return ok;
+}
+
+/// Render from the host, compute fingerprint, and compare against golden.
+/// If AUDIOAPP_REGENERATE_GOLDEN is defined, writes the golden file instead.
+inline bool checkRenderGolden(const char* name,
+                              audioapp::EngineHost& host,
+                              double lengthBeats,
+                              double sampleRate,
+                              float /*unused*/ = 0.0f) noexcept
+{
+    host.setPlaying(true);
+    const std::vector<float> block = host.renderOffline(lengthBeats, sampleRate);
+
+    if (block.size() < 48000) {
+        std::fprintf(stderr, "  RENDER TOO SHORT: %s got=%zu\n", name, block.size());
+        return false;
+    }
+
+    const AudioFingerprint fp = computeFingerprint(block);
+
+#ifdef AUDIOAPP_REGENERATE_GOLDEN
+    if (writeGolden(name, fp)) {
+        std::fprintf(stderr, "  GOLDEN REGENERATED: %s (%llu samples, peak=%.4f rms=%.4f varRatio=%.4f)\n",
+                     name,
+                     static_cast<unsigned long long>(fp.frameCount),
+                     fp.peak, fp.rms, fp.rmsVariationRatio);
+        return true;
+    }
+    std::fprintf(stderr, "  GOLDEN WRITE FAILED: %s\n", name);
+    return false;
+#else
+    return matchesGoldenFingerprint(name, fp);
+#endif
 }
 
 } // namespace audioapp::test

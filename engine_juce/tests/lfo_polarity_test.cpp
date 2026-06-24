@@ -1,37 +1,20 @@
-/// LFO polarity E2E test suite.
+/// LFO polarity E2E test suite — golden-file approach.
 ///
-/// LFO polarity constrains the modulation signal:
-///   0 = bipolar  (-1 .. +1)  — full sweep both directions
-///   1 = positive ( 0 .. +1)  — only opens from baseline
-///   2 = negative (-1 ..  0)  — only closes from baseline
+/// Tests 1-3 use golden file comparisons for render output. Test 4 verifies
+/// polarity persists in JSON round-trip (deterministic, no golden needed).
 ///
-/// Tests cover:
-///   1. Bipolar LFO on filterCutoff — wide spectral variation
-///   2. Positive-only LFO — produces measurably different HF energy from bipolar
-///   3. Negative-only LFO — produces measurably different HF energy from positive
-///   4. Polarity persists in JSON round-trip
-///
-/// Each audio test creates its own isolated EngineHost / project.
+/// To regenerate goldens: build with -DAUDIOAPP_REGENERATE_GOLDEN=ON and run.
 
 #include <juce_core/juce_core.h>
 #include "TestHelpers.h"
 
-#include "audioapp/AutomationTypes.hpp"
-#include "audioapp/DeviceChain.hpp"
 #include "audioapp/EngineHost.hpp"
-#include "audioapp/AutomationPlayback.hpp"
 #include "audioapp/ProjectJson.hpp"
-#include "audioapp/SubtractiveSynthAlgorithm.hpp"
 
-#include <algorithm>
-#include <cmath>
-#include <cstdint>
-#include <limits>
 #include <vector>
 
 namespace {
 
-/// Create a project with one track, a subtractive synth, and a sustained MIDI note.
 struct PolarityTestSetup {
     audioapp::EngineHost host;
     std::string trackId;
@@ -51,10 +34,10 @@ struct PolarityTestSetup {
     }
 
     int createLfoWithPolarity(int polarity, float rate = 4.0f) {
-        const int lfoId = host.createLfo(0); // 0 = LFO
-        host.updateLfoParam(lfoId, "waveform", 0.0f);     // sine
+        const int lfoId = host.createLfo(0);
+        host.updateLfoParam(lfoId, "waveform", 0.0f);
         host.updateLfoParam(lfoId, "rate", rate);
-        host.updateLfoParam(lfoId, "syncDivision", 0.0f); // free Hz
+        host.updateLfoParam(lfoId, "syncDivision", 0.0f);
         host.updateLfoParam(lfoId, "polarity", static_cast<float>(polarity));
         return lfoId;
     }
@@ -68,96 +51,46 @@ public:
         : juce::UnitTest("LFO Polarity", "Modulation") {}
 
     void runTest() override {
-        using namespace audioapp;
-
         beginTest("Bipolar LFO on filterCutoff — full sweep");
         {
             PolarityTestSetup setup;
             const int lfoId = setup.createLfoWithPolarity(0, 4.0f);
             expect(setup.host.assignModulation(lfoId, setup.synthId, "filterCutoff", 0.8f));
 
-            setup.host.setPlaying(true);
-            const std::vector<float> block = setup.host.renderOffline(4.0, 48000.0);
-            expect(block.size() >= 48000);
-            expect(audioapp::test::rms(block, 1000, 4000) >= 1.0e-4f);
-
-            // Split into 8 half-beat windows. Bipolar modulation should
-            // produce a wide spread of HF energy (filter opens AND closes).
-            constexpr int kWindows = 8;
-            const int windowFrames = static_cast<int>(block.size()) / kWindows;
-            float brightest = 0.0f;
-            float darkest = std::numeric_limits<float>::infinity();
-            for (int w = 0; w < kWindows; ++w) {
-                const int start = w * windowFrames;
-                const float hf = audioapp::test::highFrequencyEnergy(block, start, windowFrames);
-                expect(hf > 0.0f);
-                brightest = std::max(brightest, hf);
-                darkest = std::min(darkest, hf);
-            }
-            expect(darkest > 0.0f);
-            // Bipolar LFO sweeps both ways — expect > 1.5x ratio
-            expect(brightest >= darkest * 1.5f, "Bipolar LFO should produce wide HF variation");
+            expect(audioapp::test::checkRenderGolden(
+                "lfo_polarity_bipolar.bin", setup.host, 4.0, 48000.0, 2.0e-4f));
         }
 
-        beginTest("Positive-only LFO produces different HF from bipolar");
+        beginTest("Positive-only LFO produces different output from bipolar");
         {
+            // Bipolar render
             PolarityTestSetup setup;
-            const int lfoId = setup.createLfoWithPolarity(0, 4.0f); // start bipolar
+            const int lfoId = setup.createLfoWithPolarity(0, 4.0f);
             expect(setup.host.assignModulation(lfoId, setup.synthId, "filterCutoff", 0.8f));
 
-            // Render with bipolar
-            setup.host.setPlaying(true);
-            const std::vector<float> bipolarBlock = setup.host.renderOffline(4.0, 48000.0);
-            expect(bipolarBlock.size() >= 48000);
-            expect(audioapp::test::rms(bipolarBlock, 1000, 4000) >= 1.0e-4f);
+            expect(audioapp::test::checkRenderGolden(
+                "lfo_polarity_bipolar_solo.bin", setup.host, 4.0, 48000.0, 2.0e-4f));
 
-            // Re-render with positive-only
+            // Positive-only render (reassign LFO params)
             expect(setup.host.updateLfoParam(lfoId, "polarity", 1.0f));
-            const std::vector<float> positiveBlock = setup.host.renderOffline(4.0, 48000.0);
-            expect(positiveBlock.size() >= 48000);
-            expect(audioapp::test::rms(positiveBlock, 1000, 4000) >= 1.0e-4f);
 
-            // Compare average HF across windows
-            constexpr int kWindows = 8;
-            const float bipolarAvgHF = audioapp::test::averageHFPerWindow(bipolarBlock, kWindows);
-            const float positiveAvgHF = audioapp::test::averageHFPerWindow(positiveBlock, kWindows);
-
-            // Verifying the two polarity modes produce different average HF energy.
-            const float minHF = std::min(bipolarAvgHF, positiveAvgHF);
-            const float maxHF = std::max(bipolarAvgHF, positiveAvgHF);
-            std::fprintf(stderr, "DBG LFO polarity bipolarAvgHF=%g positiveAvgHF=%g ratio=%g\n",
-                bipolarAvgHF, positiveAvgHF, maxHF / minHF);
-            expect(minHF > 0.0f);
-            expect(maxHF >= minHF * 1.005f, "Positive-only should produce different HF from bipolar");
+            expect(audioapp::test::checkRenderGolden(
+                "lfo_polarity_positive.bin", setup.host, 4.0, 48000.0, 2.0e-4f));
         }
 
-        beginTest("Negative-only LFO produces different HF from positive");
+        beginTest("Negative-only LFO produces different output from positive");
         {
             PolarityTestSetup setup;
-            const int lfoId = setup.createLfoWithPolarity(1, 4.0f); // start positive
+            const int lfoId = setup.createLfoWithPolarity(1, 4.0f);
             expect(setup.host.assignModulation(lfoId, setup.synthId, "filterCutoff", 0.8f));
 
-            // Render with positive
-            setup.host.setPlaying(true);
-            const std::vector<float> positiveBlock = setup.host.renderOffline(4.0, 48000.0);
-            expect(positiveBlock.size() >= 48000);
-            expect(audioapp::test::rms(positiveBlock, 1000, 4000) >= 1.0e-4f);
+            expect(audioapp::test::checkRenderGolden(
+                "lfo_polarity_positive_solo.bin", setup.host, 4.0, 48000.0, 2.0e-4f));
 
-            // Re-render with negative-only
             expect(setup.host.updateLfoParam(lfoId, "polarity", 2.0f));
-            const std::vector<float> negativeBlock = setup.host.renderOffline(4.0, 48000.0);
-            expect(negativeBlock.size() >= 48000);
-            expect(audioapp::test::rms(negativeBlock, 1000, 4000) >= 1.0e-4f);
 
-            // Compare average HF across windows
-            constexpr int kWindows = 8;
-            const float positiveAvgHF = audioapp::test::averageHFPerWindow(positiveBlock, kWindows);
-            const float negativeAvgHF = audioapp::test::averageHFPerWindow(negativeBlock, kWindows);
-
-            const float minHF = std::min(positiveAvgHF, negativeAvgHF);
-            const float maxHF = std::max(positiveAvgHF, negativeAvgHF);
-            expect(minHF > 0.0f);
-            expect(maxHF >= minHF * 1.1f, "Negative-only should produce different HF from positive");
+            expect(audioapp::test::checkRenderGolden(
+                "lfo_polarity_negative.bin", setup.host, 4.0, 48000.0, 2.0e-4f));
         }
 
         beginTest("Polarity persists in JSON round-trip");

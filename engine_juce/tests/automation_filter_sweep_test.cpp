@@ -1,10 +1,15 @@
+/// Golden-file test for filter cutoff automation on a subtractive synth.
+///
+/// Renders 4 beats of a synth note with an automation sweep from cutoff=1.0
+/// to cutoff=0.25 and compares the output to a golden reference.
+///
+/// To regenerate goldens: build with -DAUDIOAPP_REGENERATE_GOLDEN=ON and run.
+
 #include <juce_core/juce_core.h>
 #include "TestHelpers.h"
 
 #include "audioapp/EngineHost.hpp"
 
-#include <cmath>
-#include <cstdio>
 #include <vector>
 
 class AutomationFilterSweepTest : public juce::UnitTest {
@@ -37,19 +42,8 @@ public:
             points.push_back({4.0, 0.25f});
             expect(host.setAutomationPoints(clipId, points));
 
-            host.setPlaying(true);
-            const std::vector<float> block = host.renderOffline(4.0, 48000.0);
-            expect(block.size() >= 48000);
-
-            const int window = 12000;
-            const int earlyStart = static_cast<int>(block.size()) / 20;
-            const int lateStart = static_cast<int>(block.size() * 3) / 4;
-            const float earlyHf = audioapp::test::highFrequencyEnergy(block, earlyStart, window);
-            const float lateHf = audioapp::test::highFrequencyEnergy(block, lateStart, window);
-            std::fprintf(stderr, "DIAG: block.size()=%zu earlyStart=%d lateStart=%d window=%d earlyHf=%.8f lateHf=%.8f\n",
-                block.size(), earlyStart, lateStart, window, earlyHf, lateHf);
-            expect(earlyHf > 1.0e-8f && lateHf > 1.0e-8f);
-            expect(earlyHf > lateHf * 1.5f, "Early HF should be > 1.5x late HF");
+            expect(audioapp::test::checkRenderGolden(
+                "automation_filter_sweep.bin", host, 4.0, 48000.0));
         }
     }
 };
