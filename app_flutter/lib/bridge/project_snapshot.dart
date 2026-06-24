@@ -371,6 +371,7 @@ class LfoSnapshot {
     this.analogMode = 0,
     this.morph = 0.0,
     this.spread = 0.5,
+    this.smoothing = 0.0,
   });
 
   final int id;
@@ -396,8 +397,13 @@ class LfoSnapshot {
   final int analogMode;
   final double morph;
   final double spread;
+  final double smoothing;
 
-  int get modulatorType => type == 'envelope' ? 1 : 0;
+  int get modulatorType => type == 'envelope'
+      ? 1
+      : type == 'random_generator'
+          ? 2
+          : 0;
 
   factory LfoSnapshot.fromMap(Map<dynamic, dynamic> map) {
     // New style: type field from IModulatorType::paramsToVar()
@@ -442,6 +448,7 @@ class LfoSnapshot {
       analogMode: (map['analogMode'] as num?)?.toInt() ?? 0,
       morph: (map['morph'] as num?)?.toDouble() ?? 0.0,
       spread: (map['spread'] as num?)?.toDouble() ?? 0.5,
+      smoothing: (map['smoothing'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -476,6 +483,7 @@ class LfoSnapshot {
       case 'analogMode':   return copyWith(analogMode: value.round());
       case 'morph':        return copyWith(morph: value);
       case 'spread':       return copyWith(spread: value);
+      case 'smoothing':    return copyWith(smoothing: value);
       default:             return this;
     }
   }
@@ -503,6 +511,7 @@ class LfoSnapshot {
     int? analogMode,
     double? morph,
     double? spread,
+    double? smoothing,
   }) {
     return LfoSnapshot(
       id: id ?? this.id,
@@ -527,6 +536,7 @@ class LfoSnapshot {
       analogMode: analogMode ?? this.analogMode,
       morph: morph ?? this.morph,
       spread: spread ?? this.spread,
+      smoothing: smoothing ?? this.smoothing,
     );
   }
 }

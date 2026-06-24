@@ -106,6 +106,7 @@ add_library(audioapp_engine STATIC
   src/modulation/LfoModulatorType.cpp
   src/modulation/EnvelopeModulator.cpp
   src/modulation/EnvelopeModulatorType.cpp
+  src/modulation/RandomGeneratorModulator.cpp
   src/AutomationPlayback.cpp
   src/EngineHost_commands.cpp
   src/FallbackPreviewOscillator.cpp

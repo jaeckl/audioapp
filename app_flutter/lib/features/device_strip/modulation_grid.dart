@@ -100,6 +100,15 @@ class _ModulationGridState extends State<ModulationGrid>
               ),
               onTap: () => Navigator.pop(context, ModulatorTypes.envelope),
             ),
+            ListTile(
+              leading: const Icon(Icons.shuffle, color: Color(0xFFE8A54B)),
+              title: const Text('Random Generator', style: TextStyle(color: Colors.white)),
+              subtitle: const Text(
+                'Sample & hold with smoothing',
+                style: TextStyle(color: Colors.white54),
+              ),
+              onTap: () => Navigator.pop(context, ModulatorTypes.randomGenerator),
+            ),
           ],
         ),
       ),
@@ -398,6 +407,51 @@ class _ModulatorTileState extends State<_ModulatorTile> {
   @override
   Widget build(BuildContext context) {
     const accent = Color(0xFFE8A54B);
+
+    // Random generator tiles show a static centered label, not a curve preview.
+    if (widget.lfo.modulatorType == ModulatorTypes.randomGenerator) {
+      return SizedBox(
+        width: widget.size,
+        height: widget.size,
+        child: GestureDetector(
+          onTap: widget.onTap,
+          onDoubleTap: _onDoubleTap,
+          onLongPress: widget.onLongPress,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0xFF101018),
+              borderRadius: BorderRadius.circular(ModulatorPreview.tileRadius),
+              border: widget.isSelected || widget.isConnectMode
+                  ? Border.all(
+                      color: widget.isConnectMode
+                          ? accent
+                          : accent.withValues(alpha: 0.75),
+                      width: widget.isConnectMode ? 1.5 : 1.0,
+                    )
+                  : null,
+            ),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.shuffle, size: 16, color: accent.withValues(alpha: 0.7)),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${ModulatorTypes.labelFor(widget.lfo.modulatorType)} ${widget.lfo.id}',
+                    style: TextStyle(
+                      color: accent.withValues(alpha: 0.85),
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return SizedBox(
       width: widget.size,
       height: widget.size,

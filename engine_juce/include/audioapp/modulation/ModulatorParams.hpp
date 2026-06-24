@@ -36,6 +36,14 @@ struct EnvelopeParams {
     int analogMode = 0;        // 0=digital (adjustable curves), 1=analog (fixed RC-style curves)
 };
 
-using ModulatorParams = std::variant<LfoParams, EnvelopeParams>;
+/// Random generator (sample & hold) parameters.
+struct RandomGeneratorParams {
+    float rate = 0.5f;
+    float smoothing = 0.0f;
+    int retrigger = 1;
+    int polarity = 0;
+};
+
+using ModulatorParams = std::variant<LfoParams, EnvelopeParams, RandomGeneratorParams>;
 
 } // namespace audioapp

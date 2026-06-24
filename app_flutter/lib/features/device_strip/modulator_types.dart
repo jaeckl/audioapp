@@ -2,6 +2,7 @@
 abstract final class ModulatorTypes {
   static const lfo = 0;
   static const envelope = 1;
+  static const randomGenerator = 2;
 
   /// Matches engine [ModulationGraph::kMaxLfos].
   static const maxCount = 16;
@@ -16,8 +17,12 @@ abstract final class ModulatorTypes {
   /// Curve shape labels for the unified envelope modulator.
   static const curveLabels = ['ADSR', 'ASR', 'ADR', 'AHDSR'];
 
-  static String labelFor(int type) =>
-      type >= 0 && type < labels.length ? labels[type] : 'Mod';
+  static String labelFor(int type) => switch (type) {
+    0 => 'LFO',
+    1 => 'ENV',
+    2 => 'RND',
+    _ => '?',
+  };
 
   static String retriggerLabelFor(int mode) =>
       mode >= 0 && mode < retriggerLabels.length ? retriggerLabels[mode] : 'Free';

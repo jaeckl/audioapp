@@ -4,11 +4,14 @@
 
 #include <algorithm>
 
+#include "audioapp/modulation/RandomGeneratorModulatorType.hpp"
+
 namespace audioapp {
 
 ModulationGraph::ModulationGraph() {
     modulatorTypes_.push_back(std::make_unique<LfoModulatorType>());
     modulatorTypes_.push_back(std::make_unique<EnvelopeModulatorType>());
+    modulatorTypes_.push_back(std::make_unique<RandomGeneratorModulatorType>());
 }
 
 void ModulationGraph::clear() {
@@ -42,7 +45,7 @@ void ModulationGraph::recomputeIdCounters() {
 }
 
 int ModulationGraph::createLfo(int modulatorType) {
-    const int typeIndex = std::clamp(modulatorType, 0, 1);
+    const int typeIndex = std::clamp(modulatorType, 0, static_cast<int>(modulatorTypes_.size()) - 1);
     const auto& type = modulatorTypes_[static_cast<size_t>(typeIndex)];
     ModulatorRecord rec;
     rec.id = nextLfoId_++;
@@ -73,7 +76,7 @@ bool ModulationGraph::updateLfoParam(int lfoId, const std::string& param, float 
 
         // Special case: changing the modulator type
         if (param == "modulatorType") {
-            const int newType = std::clamp(static_cast<int>(value), 0, 1);
+            const int newType = std::clamp(static_cast<int>(value), 0, static_cast<int>(modulatorTypes_.size()) - 1);
             if (newType != rec.typeIndex) {
                 rec.typeIndex = newType;
                 rec.params = modulatorTypes_[static_cast<size_t>(newType)]->createDefault();
