@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -558,8 +560,47 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
 
           final innerHeight = cardHeight - DeviceStripTheme.cardBorderWidth * 2;
           final bodyHeight = innerHeight - DeviceStripTheme.cardChromeHeight;
+
+          // Dynamically compute modulation grid width from current LFO count.
+          // ModulationGrid sits outside the card — its total height = cardHeight.
+          double modGridWidthLocal = 0;
+          if (_modStripVisible) {
+            const outerPad = ModulationGrid.outerPadding;
+            const gap = ModulationGrid.cellGap;
+            const rows = ModulationGrid.rowCount;
+            const maxCount = ModulatorTypes.maxCount;
+            // Label section in grid: Padding(top:4, bottom:cellGap) + fontSize 9 ~ 13px line height
+            const labelH = 4.0 + 13.0 + ModulationGrid.cellGap;
+            // Expanded → LayoutBuilder → constraints.maxHeight = cardHeight - labelH
+            // Inside LayoutBuilder: padding bottom = outerPad → contentH = avail - outerPad
+            final availH = cardHeight - labelH;
+            final contentH = availH - outerPad;
+            final cellSize = ((contentH - gap * (rows - 1)) / rows)
+                .clamp(0.0, double.infinity);
+            final lfoCount = _localLfos.length;
+            // _slots() pads to complete each column (3 items per col).
+            int totalSlots;
+            if (lfoCount >= maxCount) {
+              totalSlots = lfoCount;
+            } else {
+              final rem = lfoCount % rows;
+              final fill = rem == 0
+                  ? math.min(rows, maxCount - lfoCount)
+                  : rows - rem;
+              totalSlots = lfoCount + fill;
+            }
+            final totalCols = (totalSlots + rows - 1) ~/ rows;
+            // Last column is narrow (1/3 width) when it contains only add buttons.
+            final hasNarrowCol = lfoCount % rows == 0 && lfoCount < maxCount;
+            final fullColCount = hasNarrowCol ? totalCols - 1 : totalCols;
+            modGridWidthLocal = outerPad * 2 +
+                fullColCount * cellSize +
+                (hasNarrowCol ? cellSize / 3 : 0) +
+                gap * (totalCols - 1);
+          }
+
           return SizedBox(
-            width: _slotWidth,
+            width: _slotWidth + modGridWidthLocal - _modGridWidth,
             height: cardHeight,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -592,8 +633,13 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                 ),
                 if (_modStripVisible)
                   SizedBox(
-                    width: 130,
-                    child: _modulationSidebar(),
+                    width: modGridWidthLocal,
+                    child: DecoratedBox(
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF14141C),
+                      ),
+                      child: _modulationSidebar(),
+                    ),
                   ),
                 if (_modStripVisible && _showTargetsForLfoIds.isNotEmpty && _targetsPanelLfo != null)
                   _targetsPanel(_targetsPanelLfo!),

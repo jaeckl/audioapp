@@ -34,20 +34,23 @@ class ModulatorPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final showBorder = isSelected || isConnectMode;
     final borderColor = isConnectMode
         ? accent
         : isSelected
             ? accent.withValues(alpha: 0.75)
-            : const Color(0xFF2A2A35);
+            : Colors.transparent;
 
     return DecoratedBox(
       decoration: BoxDecoration(
         color: const Color(0xFF101018),
         borderRadius: BorderRadius.circular(tileRadius),
-        border: Border.all(
-          color: borderColor,
-          width: isConnectMode ? 1.5 : 1.0,
-        ),
+        border: showBorder
+            ? Border.all(
+                color: borderColor,
+                width: isConnectMode ? 1.5 : 1.0,
+              )
+            : null,
       ),
       child: Padding(
         padding: EdgeInsets.all(innerPadding),

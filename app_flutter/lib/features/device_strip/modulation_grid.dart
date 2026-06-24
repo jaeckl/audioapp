@@ -27,8 +27,8 @@ class ModulationGrid extends StatefulWidget {
   });
 
   static const rowCount = 3;
-  static const outerPadding = 4.0;
-  static const cellGap = 3.0;
+  static const outerPadding = 6.0;
+  static const cellGap = 5.0;
 
   final List<LfoSnapshot> lfos;
   final int? selectedLfoId;
@@ -110,13 +110,20 @@ class _ModulationGridState extends State<ModulationGrid>
   }
 
   List<_GridSlot> _slots() {
-    final slots = <_GridSlot>[
+    final result = <_GridSlot>[
       for (final lfo in widget.lfos) _GridSlot.modulator(lfo),
     ];
-    if (slots.length < widget.maxLfos) {
-      slots.add(const _GridSlot.add());
+    if (result.length >= widget.maxLfos) return result;
+    // Pad to fill the current column so every column is complete.
+    final remainder = result.length % ModulationGrid.rowCount;
+    final fillCount = remainder == 0
+        ? ModulationGrid.rowCount
+        : ModulationGrid.rowCount - remainder;
+    final addCount = math.min(fillCount, widget.maxLfos - result.length);
+    for (var i = 0; i < addCount; i++) {
+      result.add(const _GridSlot.add());
     }
-    return slots;
+    return result;
   }
 
   @override
@@ -149,18 +156,21 @@ class _ModulationGridState extends State<ModulationGrid>
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final contentW =
-                  constraints.maxWidth - ModulationGrid.outerPadding * 2;
               final contentH =
                   constraints.maxHeight - ModulationGrid.outerPadding;
-              final cellFromHeight = (contentH -
-                      ModulationGrid.cellGap * (ModulationGrid.rowCount - 1)) /
-                  ModulationGrid.rowCount;
-              // Single column: square tiles fill column width, capped to fit 3 rows.
-              final cellSize = math.max(
-                0.0,
-                math.min(contentW, cellFromHeight),
-              );
+              // Square cell sized to fit exactly 3 rows
+              final cellSize = math.max(0.0,
+                  (contentH - ModulationGrid.cellGap * (ModulationGrid.rowCount - 1)) /
+                      ModulationGrid.rowCount);
+
+              // Partition slots into columns (column-major order)
+              final gridColumns = <List<_GridSlot>>[];
+              for (var i = 0; i < slots.length; i += ModulationGrid.rowCount) {
+                gridColumns.add(
+                  slots.sublist(
+                      i, math.min(i + ModulationGrid.rowCount, slots.length)),
+                );
+              }
 
               return Padding(
                 padding: const EdgeInsets.fromLTRB(
@@ -169,39 +179,33 @@ class _ModulationGridState extends State<ModulationGrid>
                   ModulationGrid.outerPadding,
                   ModulationGrid.outerPadding,
                 ),
-                child: ListView.separated(
-                  physics: slots.length > ModulationGrid.rowCount
-                      ? const BouncingScrollPhysics()
-                      : const NeverScrollableScrollPhysics(),
-                  itemCount: slots.length,
-                  separatorBuilder: (_, __) =>
-                      SizedBox(height: ModulationGrid.cellGap),
-                  itemBuilder: (context, index) {
-                    final slot = slots[index];
-                    if (slot.isAdd) {
-                      return _AddModulatorTile(
-                        onPressed: _showAddMenu,
-                        size: cellSize,
-                      );
-                    }
-                    final lfo = slot.lfo!;
-                    return _ModulatorTile(
-                      lfo: lfo,
-                      size: cellSize,
-                      playheadBeat: playhead,
-                      bpm: widget.bpm,
-                      elapsedSeconds: _elapsedSeconds,
-                      isSelected: lfo.id == widget.selectedLfoId,
-                      isConnectMode: lfo.id == widget.connectModeLfoId,
-                      targetsVisible: widget.visibleTargetsLfoIds.contains(lfo.id),
-                      onTap: () => widget.onLfoTap(lfo.id),
-                      onLongPress: () => widget.onLfoLongPress(lfo.id),
-                      onRemove: () => widget.onRemoveLfo(lfo.id),
-                      onToggleTargets: widget.onToggleTargets != null
-                          ? () => widget.onToggleTargets!(lfo.id)
-                          : null,
-                    );
-                  },
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var colIdx = 0;
+                        colIdx < gridColumns.length;
+                        colIdx++) ...[
+                      if (colIdx > 0)
+                        SizedBox(width: ModulationGrid.cellGap),
+                      _GridColumn(
+                        slots: gridColumns[colIdx],
+                        cellSize: cellSize,
+                        isNarrow:
+                            gridColumns[colIdx].every((s) => s.isAdd),
+                        selectedLfoId: widget.selectedLfoId,
+                        connectModeLfoId: widget.connectModeLfoId,
+                        playheadBeat: playhead,
+                        bpm: widget.bpm,
+                        elapsedSeconds: _elapsedSeconds,
+                        visibleTargetsLfoIds: widget.visibleTargetsLfoIds,
+                        onLfoTap: widget.onLfoTap,
+                        onLfoLongPress: widget.onLfoLongPress,
+                        onRemoveLfo: widget.onRemoveLfo,
+                        onToggleTargets: widget.onToggleTargets,
+                        onShowAddMenu: _showAddMenu,
+                      ),
+                    ],
+                  ],
                 ),
               );
             },
@@ -218,6 +222,83 @@ class _GridSlot {
 
   final LfoSnapshot? lfo;
   final bool isAdd;
+}
+
+/// A single column of tiles in the modulator grid.
+class _GridColumn extends StatelessWidget {
+  const _GridColumn({
+    required this.slots,
+    required this.cellSize,
+    required this.isNarrow,
+    required this.selectedLfoId,
+    required this.connectModeLfoId,
+    required this.playheadBeat,
+    required this.bpm,
+    required this.elapsedSeconds,
+    required this.visibleTargetsLfoIds,
+    required this.onLfoTap,
+    required this.onLfoLongPress,
+    required this.onRemoveLfo,
+    required this.onToggleTargets,
+    required this.onShowAddMenu,
+  });
+
+  final List<_GridSlot> slots;
+  final double cellSize;
+  final bool isNarrow;
+  final int? selectedLfoId;
+  final int? connectModeLfoId;
+  final double playheadBeat;
+  final int bpm;
+  final double elapsedSeconds;
+  final Set<int> visibleTargetsLfoIds;
+  final ValueChanged<int> onLfoTap;
+  final ValueChanged<int> onLfoLongPress;
+  final ValueChanged<int> onRemoveLfo;
+  final ValueChanged<int>? onToggleTargets;
+  final VoidCallback onShowAddMenu;
+
+  @override
+  Widget build(BuildContext context) {
+    final tileW = isNarrow ? cellSize / 3 : cellSize;
+    final tileH = cellSize;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < slots.length; i++) ...[
+          if (i > 0) SizedBox(height: ModulationGrid.cellGap),
+          _buildTile(slots[i], tileW, tileH),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildTile(_GridSlot slot, double tileW, double tileH) {
+    if (slot.isAdd) {
+      return _AddModulatorTile(
+        onPressed: onShowAddMenu,
+        width: tileW,
+        height: tileH,
+      );
+    }
+    final lfo = slot.lfo!;
+    return _ModulatorTile(
+      lfo: lfo,
+      size: tileW,
+      playheadBeat: playheadBeat,
+      bpm: bpm,
+      elapsedSeconds: elapsedSeconds,
+      isSelected: lfo.id == selectedLfoId,
+      isConnectMode: lfo.id == connectModeLfoId,
+      targetsVisible: visibleTargetsLfoIds.contains(lfo.id),
+      onTap: () => onLfoTap(lfo.id),
+      onLongPress: () => onLfoLongPress(lfo.id),
+      onRemove: () => onRemoveLfo(lfo.id),
+      onToggleTargets: onToggleTargets != null
+          ? () => onToggleTargets!(lfo.id)
+          : null,
+    );
+  }
 }
 
 class _ModulatorTile extends StatefulWidget {
@@ -342,17 +423,19 @@ class _ModulatorTileState extends State<_ModulatorTile> {
 class _AddModulatorTile extends StatelessWidget {
   const _AddModulatorTile({
     required this.onPressed,
-    required this.size,
+    required this.width,
+    required this.height,
   });
 
   final VoidCallback onPressed;
-  final double size;
+  final double width;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: size,
-      height: size,
+      width: width,
+      height: height,
       child: Material(
         color: const Color(0xFF181821),
         borderRadius: BorderRadius.circular(6),
@@ -362,7 +445,6 @@ class _AddModulatorTile extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: Colors.white24),
             ),
             child: const Center(
               child: Icon(Icons.add, size: 18, color: Colors.white54),

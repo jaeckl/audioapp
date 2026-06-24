@@ -57,7 +57,7 @@ void main() {
       ));
 
       // 2 LFO tiles render (no overlay close icons, labels are painted via CustomPaint).
-      // The add tile appears because lfos(2) < maxLfos(4).
+      // 2 LFOs → padded to 3 tiles (1 add button) to complete the column.
       expect(find.byIcon(Icons.add), findsOneWidget);
       // Grid header label.
       expect(find.text('MODULATORS'), findsOneWidget);
@@ -88,8 +88,9 @@ void main() {
         ),
       ));
 
-      // The _AddModulatorTile renders an Icons.add icon when lfos < maxLfos.
-      expect(find.byIcon(Icons.add), findsOneWidget);
+      // The _AddModulatorTile renders Icons.add icons when lfos < maxLfos.
+      // 1 LFO → padded to 3 tiles (2 add buttons) to complete the column.
+      expect(find.byIcon(Icons.add), findsNWidgets(2));
     });
   });
 
