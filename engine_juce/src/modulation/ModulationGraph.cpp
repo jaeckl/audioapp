@@ -121,6 +121,33 @@ bool ModulationGraph::updateLfoParam(int lfoId, const std::string& param, float 
     return false;
 }
 
+bool ModulationGraph::batchUpdateLfoParams(int lfoId, const std::vector<std::pair<std::string, float>>& params) {
+    for (auto& rec : lfos_) {
+        if (rec.id != lfoId) continue;
+        const auto& type = modulatorTypes_[static_cast<size_t>(rec.typeIndex)];
+        for (const auto& [param, value] : params) {
+            if (param == "modulatorType") {
+                const int newType = std::clamp(static_cast<int>(value), 0, static_cast<int>(modulatorTypes_.size()) - 1);
+                if (newType != rec.typeIndex) {
+                    rec.typeIndex = newType;
+                    rec.params = modulatorTypes_[static_cast<size_t>(newType)]->createDefault();
+                    rebuildPlayback();
+                }
+                continue;
+            }
+            type->setParameter(rec.params, param, value);
+        }
+        const int idx = playbackIndexForLfoId(lfoId);
+        if (idx >= 0) {
+            if (auto* mod = modulator(idx)) {
+                mod->updateParams(rec.params);
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
 bool ModulationGraph::hasLfo(int lfoId) const {
     for (const auto& lfo : lfos_) if (lfo.id == lfoId) return true;
     return false;

@@ -503,6 +503,10 @@ bool EngineHost::updateLfoParam(int lfoId, const std::string& param, float value
     return project_->updateLfoParam(lfoId, param, value);
 }
 
+bool EngineHost::batchUpdateLfoParams(int lfoId, const std::vector<std::pair<std::string, float>>& params) {
+    return project_->batchUpdateLfoParams(lfoId, params);
+}
+
 bool EngineHost::assignModulation(int lfoId, const std::string& deviceId, const std::string& paramId, float amount) {
     return project_->assignModulation(lfoId, deviceId, paramId, amount);
 }

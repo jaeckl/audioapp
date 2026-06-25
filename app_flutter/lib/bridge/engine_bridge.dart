@@ -335,6 +335,18 @@ class EngineBridge {
     });
   }
 
+  /// Batch-update multiple LFO parameters in a single bridge call.
+  /// Each entry: { 'param': String, 'value': double }.
+  Future<ProjectSnapshot> batchUpdateLfoParams({
+    required int lfoId,
+    required List<Map<String, dynamic>> params,
+  }) async {
+    return _invokeForSnapshot('batchUpdateLfoParams', {
+      'lfoId': lfoId,
+      'params': params,
+    });
+  }
+
   Future<ProjectSnapshot> assignModulation({
     required int lfoId,
     required String deviceId,

@@ -89,6 +89,7 @@ public:
     int createLfo(int modulatorType = 0);
     bool removeLfo(int lfoId);
     bool updateLfoParam(int lfoId, const std::string& param, float value);
+    bool batchUpdateLfoParams(int lfoId, const std::vector<std::pair<std::string, float>>& params);
     bool assignModulation(int lfoId, const std::string& deviceId, const std::string& paramId, float amount);
     bool removeModulation(int lfoId, const std::string& paramId);
     bool applySubtractiveSynthPreset(

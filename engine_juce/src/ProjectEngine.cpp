@@ -991,6 +991,11 @@ bool ProjectEngine::updateLfoParam(int lfoId, const std::string& param, float va
     return modulationGraph_.updateLfoParam(lfoId, param, value);
 }
 
+bool ProjectEngine::batchUpdateLfoParams(int lfoId, const std::vector<std::pair<std::string, float>>& params) {
+    std::lock_guard<std::shared_mutex> lock(mutex_);
+    return modulationGraph_.batchUpdateLfoParams(lfoId, params);
+}
+
 bool ProjectEngine::assignModulation(int lfoId, const std::string& deviceId,
                                      const std::string& paramId, float amount) {
     std::lock_guard<std::shared_mutex> lock(mutex_);

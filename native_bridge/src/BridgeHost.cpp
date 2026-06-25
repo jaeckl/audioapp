@@ -288,6 +288,28 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         }
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
+    if (method == "batchUpdateLfoParams") {
+        const auto lfoId = static_cast<int>(jsonGetNumberArg(argumentsJson, "lfoId", 0.0));
+        const auto parsed = juce::JSON::parse(argumentsJson);
+        std::vector<std::pair<std::string, float>> params;
+        if (const auto* obj = parsed.getDynamicObject()) {
+            const auto& arr = obj->getProperty("params");
+            if (auto* arrObj = arr.getArray()) {
+                params.reserve(static_cast<size_t>(arrObj->size()));
+                for (const auto& item : *arrObj) {
+                    if (const auto* itemObj = item.getDynamicObject()) {
+                        const auto p = itemObj->getProperty("param").toString().toStdString();
+                        const auto v = static_cast<float>(static_cast<double>(itemObj->getProperty("value")));
+                        params.emplace_back(p, v);
+                    }
+                }
+            }
+        }
+        if (!engine().batchUpdateLfoParams(lfoId, params)) {
+            return buildBridgeError("lfo_param_failed");
+        }
+        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+    }
     if (method == "assignModulation") {
         const auto lfoId = static_cast<int>(jsonGetNumberArg(argumentsJson, "lfoId", 0.0));
         const auto deviceId = jsonGetStringArg(argumentsJson, "deviceId");
