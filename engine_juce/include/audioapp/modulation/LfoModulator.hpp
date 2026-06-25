@@ -28,6 +28,10 @@ public:
                    double playheadSeconds,
                    uint32_t retriggerGeneration) noexcept override;
 
+    void updateParams(const ModulatorParams& params) noexcept override {
+        params_ = std::get<LfoParams>(params);
+    }
+
 private:
     LfoParams params_;
     EnvelopeRuntime runtime_;
@@ -104,7 +108,7 @@ private:
         return 0.0f;
     }
 
-    float evaluateSynced(double playheadBeat, int bpm, double frameSeconds) noexcept;
+    float evaluateSynced(double playheadBeat, int bpm, double frameSeconds, double playheadSeconds) noexcept;
     float evaluateOnNoteRetrigger(double frameSeconds, uint32_t retriggerGeneration) noexcept;
 };
 

@@ -44,6 +44,10 @@ public:
                    double playheadSeconds,
                    uint32_t retriggerGeneration) noexcept override;
 
+    void updateParams(const ModulatorParams& params) noexcept override {
+        params_ = std::get<RandomGeneratorParams>(params);
+    }
+
 private:
     RandomGeneratorParams params_;
     XorShiftRng rng_;

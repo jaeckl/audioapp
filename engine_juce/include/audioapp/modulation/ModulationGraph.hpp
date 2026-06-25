@@ -54,18 +54,24 @@ public:
     }
 
     IModulator* modulator(int index) const noexcept {
-        return arena_.get(index);
+        const int slot = activeSlot_.load(std::memory_order_acquire);
+        return slots_[slot].arena.get(index);
     }
 
-    ModulatorArena& arena() noexcept { return arena_; }
-    const ModulatorArena& arena() const noexcept { return arena_; }
+    /// Points to the active slot's arena for the audio thread.
+    const ModulatorArena& arenaForAudio() const noexcept {
+        const int slot = activeSlot_.load(std::memory_order_acquire);
+        return slots_[slot].arena;
+    }
 
     /// Maps a domain LFO id (from ModulationEdge.lfoId) to the compact
     /// playback array index. Returns -1 if the LFO is no longer present.
     int playbackIndexForLfoId(int lfoId) const noexcept {
         const int count = lfoPlaybackCount_.load(std::memory_order_acquire);
+        if (count <= 0) return -1;
+        const int slot = activeSlot_.load(std::memory_order_acquire);
         for (int i = 0; i < count; ++i) {
-            if (modulatorIds_[i] == lfoId) return i;
+            if (slots_[slot].ids[i] == lfoId) return i;
         }
         return -1;
     }
@@ -89,14 +95,22 @@ public:
                         const std::vector<ModulationEdge>& edges);
 
 private:
+    /// Double-buffered playback state. The control thread rebuilds into the
+    /// inactive slot, then atomically flips activeSlot_. The audio thread
+    /// reads from the active slot, so placement-new never races with reads.
+    struct PlaybackState {
+        ModulatorArena arena;
+        int ids[kMaxLfos]{};
+    };
+    PlaybackState slots_[2];
+    std::atomic<int> activeSlot_{0};
+    std::atomic<int> lfoPlaybackCount_{0};
+
     std::vector<ModulatorRecord> lfos_;
     std::vector<ModulationEdge> modEdges_;
     std::vector<std::unique_ptr<IModulatorType>> modulatorTypes_;
     int nextLfoId_ = 1;
 
-    ModulatorArena arena_;
-    int modulatorIds_[kMaxLfos]{};
-    std::atomic<int> lfoPlaybackCount_{0};
     std::atomic<uint32_t> noteRetriggerGeneration_{0};
 };
 

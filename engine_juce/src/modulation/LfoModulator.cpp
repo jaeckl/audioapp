@@ -10,15 +10,18 @@ float LfoModulator::evaluate(double playheadBeat, int bpm,
     if (retrigger == ModulatorRetrigger::OnNote) {
         return evaluateOnNoteRetrigger(playheadSeconds + secondsWithinBlock, retriggerGeneration);
     }
-    return evaluateSynced(playheadBeat, bpm, secondsWithinBlock);
+    return evaluateSynced(playheadBeat, bpm, secondsWithinBlock, playheadSeconds);
 }
 
 float LfoModulator::evaluateSynced(double playheadBeat, int bpm,
-                                   double secondsWithinBlock) noexcept {
+                                   double secondsWithinBlock,
+                                   double playheadSeconds) noexcept {
     double phase = static_cast<double>(params_.phase);
     const auto retrigger = static_cast<ModulatorRetrigger>(params_.retrigger);
     if (retrigger == ModulatorRetrigger::Free) {
-        phase += secondsWithinBlock * static_cast<double>(lfoRateToHz(params_.rate));
+        // Use absolute elapsed time so phase accumulates continuously
+        // across block boundaries.
+        phase += (playheadSeconds + secondsWithinBlock) * static_cast<double>(lfoRateToHz(params_.rate));
     } else {
         const double beatDuration = lfoSyncBeats(params_.syncDivision > 0 ? params_.syncDivision : 3);
         const double speedMult = static_cast<double>(lfoRateToSpeedMult(params_.rate));

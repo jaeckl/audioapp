@@ -28,6 +28,10 @@ public:
                    double playheadSeconds,
                    uint32_t retriggerGeneration) noexcept override;
 
+    void updateParams(const ModulatorParams& params) noexcept override {
+        params_ = std::get<EnvelopeParams>(params);
+    }
+
 private:
     EnvelopeParams params_;
     EnvelopeRuntime runtime_;

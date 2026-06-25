@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include "audioapp/modulation/ModulatorParams.hpp"
+
 namespace audioapp {
 
 /// Mutable per-modulator state shared across evaluate() calls.
@@ -36,7 +38,10 @@ public:
     /// Returns the ModulatorType enum value (0=Lfo, 1=Adsr, 2=Adr).
     virtual int modulatorType() const noexcept = 0;
 
-protected:
+/// Update params in-place on an existing live modulator instance,
+    /// preserving all runtime state (envelope stage, smoothed values, etc.).
+    /// Called under exclusive lock on the control thread.
+    virtual void updateParams(const ModulatorParams& params) noexcept = 0;
     IModulator() = default;
 };
 

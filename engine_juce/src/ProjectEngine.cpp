@@ -981,18 +981,14 @@ bool ProjectEngine::removeLfo(int lfoId) {
     std::lock_guard<std::shared_mutex> lock(mutex_);
     const bool result = modulationGraph_.removeLfo(lfoId);
     if (result) {
-        rebuildTrackPlaybackLocked();
+        rebuildModEdgesLocked();
     }
     return result;
 }
 
 bool ProjectEngine::updateLfoParam(int lfoId, const std::string& param, float value) {
     std::lock_guard<std::shared_mutex> lock(mutex_);
-    const bool result = modulationGraph_.updateLfoParam(lfoId, param, value);
-    if (result) {
-        rebuildTrackPlaybackLocked();
-    }
-    return result;
+    return modulationGraph_.updateLfoParam(lfoId, param, value);
 }
 
 bool ProjectEngine::assignModulation(int lfoId, const std::string& deviceId,
@@ -1003,7 +999,7 @@ bool ProjectEngine::assignModulation(int lfoId, const std::string& deviceId,
     }
     const bool result = modulationGraph_.assignModulation(lfoId, deviceId, paramId, amount);
     if (result) {
-        rebuildTrackPlaybackLocked();
+        rebuildModEdgesLocked();
     }
     return result;
 }
@@ -1012,7 +1008,7 @@ bool ProjectEngine::removeModulation(int lfoId, const std::string& paramId) {
     std::lock_guard<std::shared_mutex> lock(mutex_);
     const bool result = modulationGraph_.removeModulation(lfoId, paramId);
     if (result) {
-        rebuildTrackPlaybackLocked();
+        rebuildModEdgesLocked();
     }
     return result;
 }
@@ -1220,30 +1216,7 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
             }
         }
 
-        // Resolve per-track modulation edges — convert deviceId to deviceIndex
-        snap.modEdgeCount = 0;
-        for (const auto& globalEdge : modulationGraph_.modEdges()) {
-            if (snap.modEdgeCount >= 16) break;
-            // Find deviceIndex for this edge's deviceId within this track
-            int di = -1;
-            for (int i = 0; i < snap.deviceCount; ++i) {
-                if (snap.devices[i].deviceId == globalEdge.deviceId) {
-                    di = i;
-                    break;
-                }
-            }
-            if (di < 0) continue; // edge targets a different track
-            // Resolve domain LFO id → compact playback array index.
-            // The audio thread indexes lfoValues[] by this compact index,
-            // not by the domain LFO id (which starts at 1, not 0).
-            const int lfoPlaybackIdx = modulationGraph_.playbackIndexForLfoId(globalEdge.lfoId);
-            if (lfoPlaybackIdx < 0) continue; // LFO has been removed
-            ModulationEdgePlayback& me = snap.modEdges[snap.modEdgeCount++];
-            me.deviceIndex = static_cast<uint16_t>(di);
-            me.lfoId = static_cast<uint16_t>(lfoPlaybackIdx);
-            me.localParamId = paramIdFromString(globalEdge.paramId.c_str(), snap.devices[di].kind);
-            me.amount = globalEdge.amount;
-        }
+        rebuildModEdgesLocked();
 
         // Resolve per-track automation clips. Clips live in the global
         // AutomationClipStore; for the **audio** side, we pull in any
@@ -1327,6 +1300,31 @@ void ProjectEngine::syncActiveFrequencyLocked() {
         }
     }
     activeFrequencyHz_.store(freq, std::memory_order_release);
+}
+
+void ProjectEngine::rebuildModEdgesLocked() {
+    for (int t = 0; t < kMaxTracks; ++t) {
+        auto& snap = trackPlayback_[t];
+        snap.modEdgeCount = 0;
+        for (const auto& globalEdge : modulationGraph_.modEdges()) {
+            if (snap.modEdgeCount >= 16) break;
+            int di = -1;
+            for (int i = 0; i < snap.deviceCount; ++i) {
+                if (snap.devices[i].deviceId == globalEdge.deviceId) {
+                    di = i;
+                    break;
+                }
+            }
+            if (di < 0) continue;
+            const int lfoPlaybackIdx = modulationGraph_.playbackIndexForLfoId(globalEdge.lfoId);
+            if (lfoPlaybackIdx < 0) continue;
+            ModulationEdgePlayback& me = snap.modEdges[snap.modEdgeCount++];
+            me.deviceIndex = static_cast<uint16_t>(di);
+            me.lfoId = static_cast<uint16_t>(lfoPlaybackIdx);
+            me.localParamId = paramIdFromString(globalEdge.paramId.c_str(), snap.devices[di].kind);
+            me.amount = globalEdge.amount;
+        }
+    }
 }
 
 DeviceSlot* ProjectEngine::findDeviceLocked(const std::string& deviceId) {

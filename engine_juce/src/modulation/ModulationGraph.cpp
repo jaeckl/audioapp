@@ -18,23 +18,33 @@ void ModulationGraph::clear() {
     lfos_.clear();
     modEdges_.clear();
     nextLfoId_ = 1;
-    arena_.reset();
+    slots_[0].arena.reset();
+    slots_[0].ids[0] = 0;
+    slots_[1].arena.reset();
+    slots_[1].ids[0] = 0;
+    activeSlot_.store(0, std::memory_order_release);
     lfoPlaybackCount_.store(0, std::memory_order_release);
     noteRetriggerGeneration_.store(0, std::memory_order_release);
 }
 
 void ModulationGraph::rebuildPlayback() {
-    arena_.reset();
+    // Build into the inactive slot
+    const int next = 1 - activeSlot_.load(std::memory_order_acquire);
+    PlaybackState& slot = slots_[next];
+    slot.arena.reset();
     int lfoIndex = 0;
     for (const auto& rec : lfos_) {
         if (lfoIndex >= kMaxLfos) break;
         const auto& type = modulatorTypes_[static_cast<size_t>(rec.typeIndex)];
-        IModulator* mod = type->createModulator(arena_, rec.params);
+        IModulator* mod = type->createModulator(slot.arena, rec.params);
         if (mod) {
-            modulatorIds_[lfoIndex] = rec.id;
+            slot.ids[lfoIndex] = rec.id;
             ++lfoIndex;
         }
     }
+    // Publish in this order: slot first, then count. The audio thread
+    // acquires count after acquiring slot, so it always sees the right slot.
+    activeSlot_.store(next, std::memory_order_release);
     lfoPlaybackCount_.store(lfoIndex, std::memory_order_release);
 }
 
@@ -87,12 +97,22 @@ bool ModulationGraph::updateLfoParam(int lfoId, const std::string& param, float 
 
         // Delegate to the current modulator type's setParameter
         const auto& type = modulatorTypes_[static_cast<size_t>(rec.typeIndex)];
-        if (type->setParameter(rec.params, param, value)) {
-            rebuildPlayback();
-            return true;
+        if (!type->setParameter(rec.params, param, value)) {
+            return false;
         }
 
-        return false;
+        // Fast path: write params directly to the live modulator without
+        // rebuilding the arena. This is safe because the audio thread's
+        // evaluate() reads 32-bit aligned scalar fields which are naturally
+        // atomic on all supported architectures. Runtime state (phase,
+        // envelope stage, smoothed values) is preserved.
+        const int idx = playbackIndexForLfoId(lfoId);
+        if (idx >= 0) {
+            if (auto* mod = modulator(idx)) {
+                mod->updateParams(rec.params);
+            }
+        }
+        return true;
     }
     return false;
 }

@@ -272,10 +272,15 @@ private:
 
     static constexpr int kMaxAutomationClips = 32;
     // Global automation playback array (per-track resolution happens in rebuildAutomationPlaybackLocked)
+    //
     // Now per-track: see TrackPlaybackSnapshot::automationClips
     // ModulationEdgePlayback arrays are also per-track: see TrackPlaybackSnapshot::modEdges
 
     void rebuildTrackPlaybackLocked();
+    /// Lightweight edge re-resolution: re-populates per-track snap.modEdges[]
+    /// from the global modulationGraph_ edge list without touching DSP processors
+    /// or any other playback state. Safe to call during live playback.
+    void rebuildModEdgesLocked();
     void rebuildAutomationPlaybackLocked();
     void mixAtPlayheadBeat(float* monoOut,
                            int numFrames,
