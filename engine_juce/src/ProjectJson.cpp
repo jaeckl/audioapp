@@ -772,6 +772,7 @@ bool jsonGetBoolArg(const std::string& argumentsJson, const std::string& key, bo
 std::string buildBridgeOkWithSnapshot(const std::string& snapshotJson) {
     auto* root = new juce::DynamicObject();
     root->setProperty("ok", true);
+    root->setProperty("protocolVersion", kBridgeProtocolVersion);
     root->setProperty("snapshot", parseRootVar(snapshotJson));
     return toStdString(juce::JSON::toString(juce::var(root), false));
 }
@@ -779,6 +780,7 @@ std::string buildBridgeOkWithSnapshot(const std::string& snapshotJson) {
 std::string buildBridgeOkTransportState(const TransportStateSnapshot& transport) {
     auto* root = new juce::DynamicObject();
     root->setProperty("ok", true);
+    root->setProperty("protocolVersion", kBridgeProtocolVersion);
     root->setProperty("playheadBeats", transport.playheadBeats);
     root->setProperty("playing", transport.playing);
     root->setProperty("bpm", transport.bpm);
@@ -792,6 +794,7 @@ std::string buildBridgeOkTransportState(const TransportStateSnapshot& transport)
 std::string buildBridgeOkWithPath(const std::string& path) {
     auto* root = new juce::DynamicObject();
     root->setProperty("ok", true);
+    root->setProperty("protocolVersion", kBridgeProtocolVersion);
     root->setProperty("path", toJuceString(path));
     return toStdString(juce::JSON::toString(juce::var(root), false));
 }
@@ -799,6 +802,7 @@ std::string buildBridgeOkWithPath(const std::string& path) {
 std::string buildBridgeOkWithMessage(const std::string& message) {
     auto* root = new juce::DynamicObject();
     root->setProperty("ok", true);
+    root->setProperty("protocolVersion", kBridgeProtocolVersion);
     root->setProperty("message", toJuceString(message));
     return toStdString(juce::JSON::toString(juce::var(root), false));
 }
@@ -806,6 +810,7 @@ std::string buildBridgeOkWithMessage(const std::string& message) {
 std::string buildBridgeError(const std::string& errorCode) {
     auto* root = new juce::DynamicObject();
     root->setProperty("ok", false);
+    root->setProperty("protocolVersion", kBridgeProtocolVersion);
     root->setProperty("error", toJuceString(errorCode));
     return toStdString(juce::JSON::toString(juce::var(root), false));
 }

@@ -31,12 +31,12 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
     if (method == "play") {
         playing_ = true;
         engine().setPlaying(true);
-        return R"({"ok":true,"playing":true})";
+        return R"({"ok":true,"playing":true,"protocolVersion":1})";
     }
     if (method == "stop") {
         playing_ = false;
         engine().setPlaying(false);
-        return R"({"ok":true,"playing":false})";
+        return R"({"ok":true,"playing":false,"protocolVersion":1})";
     }
     if (method == "createProject") {
         engine().createProject();

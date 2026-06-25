@@ -10,7 +10,11 @@ import 'clip_snapshots.dart';
 import 'device_snapshot.dart';
 
 class ProjectSnapshot {
+  /// Bridge protocol version from the response. 0 if response has no version field.
+  final int protocolVersion;
+
   const ProjectSnapshot({
+    this.protocolVersion = 0,
     required this.bpm,
     required this.selectedTrackId,
     required this.playheadBeats,
@@ -49,6 +53,14 @@ class ProjectSnapshot {
 
   factory ProjectSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final snapshot = map['snapshot'] as Map<dynamic, dynamic>? ?? map;
+    // Protocol version check — non-fatal warning if mismatch
+    final protocolVersion = (map['protocolVersion'] as num?)?.toInt() ?? 0;
+    final versionWarn = checkBridgeProtocolVersion(map);
+    if (versionWarn != null) {
+      // Non-fatal: log mismatch but parse anyway
+      // ignore: avoid_print
+      print('WARNING: $versionWarn');
+    }
     final tracksRaw = snapshot['tracks'] as List<dynamic>? ?? [];
     final samplesRaw = snapshot['samples'] as List<dynamic>? ?? [];
     final lfosRaw = snapshot['lfos'] as List<dynamic>? ?? [];
@@ -70,6 +82,7 @@ class ProjectSnapshot {
             .toList()
         : <AutomationClipSnapshot>[];
     return ProjectSnapshot(
+      protocolVersion: protocolVersion,
       bpm: (snapshot['bpm'] as num?)?.toInt() ?? 120,
       selectedTrackId: snapshot['selectedTrackId'] as String? ?? '',
       playheadBeats: (snapshot['playheadBeats'] as num?)?.toDouble() ?? 0.0,
@@ -141,6 +154,7 @@ class ProjectSnapshot {
     }
 
     return ProjectSnapshot(
+      protocolVersion: protocolVersion,
       bpm: bpm,
       selectedTrackId: selectedTrackId,
       playheadBeats: playheadBeats,

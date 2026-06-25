@@ -64,6 +64,10 @@ struct SubtractivePresetArgs {
 
 bool parseSubtractivePresetArgs(const std::string& argumentsJson, SubtractivePresetArgs& out);
 
+/// Current bridge protocol version. Increment on breaking bridge schema changes.
+/// Flutter should check this field in every response and warn on mismatch.
+constexpr int kBridgeProtocolVersion = 1;
+
 /// Bridge command JSON helpers (control thread).
 std::string jsonGetStringArg(const std::string& argumentsJson, const std::string& key);
 double jsonGetNumberArg(const std::string& argumentsJson, const std::string& key, double fallback = 0.0);
