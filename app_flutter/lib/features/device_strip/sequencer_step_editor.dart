@@ -22,6 +22,8 @@ class SequencerStepEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ignore: avoid_print
+    print('SEQ STEP EDITOR BUILD START');
     // Bar area fills all height above the small number-label strip.
     return LayoutBuilder(
       builder: (context, constraints) {

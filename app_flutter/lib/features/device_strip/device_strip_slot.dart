@@ -19,6 +19,7 @@ import 'lfo_properties_panel.dart';
 import 'envelope_properties_panel.dart';
 import 'random_properties_panel.dart';
 import 'sequencer_properties_panel.dart';
+import 'sequencer_step_editor.dart';
 import 'modulator_types.dart';
 import 'kick_generator_device_strip.dart';
 import 'kick_model.dart';
@@ -362,7 +363,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     final lfo = _selectedLfo!;
     if (lfo.modulatorType == ModulatorTypes.envelope) return 260.0;
     if (lfo.type == 'random_generator') return 160.0;
-    if (lfo.type == 'sequencer') return 280.0;
+    if (lfo.type == 'sequencer') return 260.0;
     return 260.0;
   }
   double get _modTargetsWidth => _modStripVisible && _showTargetsPanel && _selectedLfo != null ? 160.0 : 0.0;
@@ -1224,11 +1225,51 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         onUpdate: onUpdate,
       );
     } else if (isSeq) {
-      width = 280;
-      panel = SequencerPropertiesPanel(
-        key: ValueKey('seq_panel_${snapshot.id}'),
-        mod: snapshot,
-        onUpdate: onUpdate,
+      width = 260;
+      final isSync = snapshot.retrigger == ModulatorTypes.retriggerSync;
+      panel = Container(
+        color: const Color(0xFF14141C),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+              child: _seqHeader(snapshot, onUpdate),
+            ),
+            const SizedBox(height: 8),
+            // Step bars — fixed height
+            SizedBox(
+              height: 120,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: SequencerStepEditor(
+                  stepValues: snapshot.stepValues,
+                  stepCount: snapshot.sequencerSteps,
+                  onStepChanged: (i, v) => onUpdate('step_$i', v),
+                  currentStep: null,
+                ),
+              ),
+            ),
+            // Retrigger bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+              child: _seqRetriggerBar(snapshot, onUpdate),
+            ),
+            // Sync divisions
+            if (isSync)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+                child: _seqSyncDivisions(snapshot, onUpdate),
+              ),
+            // Knobs
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+              child: _seqKnobs(snapshot, onUpdate),
+            ),
+          ],
+        ),
       );
     } else {
       width = 260;
@@ -1242,6 +1283,179 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     return SizedBox(
       width: width,
       child: panel,
+    );
+  }
+
+  // ---- Inline SEQ panel helpers ----
+  static const _seqAccent = Color(0xFFE8A54B);
+  static const _seqSyncLabels = ['1/1', '1/2', '1/4', '1/8', '1/16'];
+
+  static Widget _seqPolarityToggle(LfoSnapshot mod, Future<void> Function(String, double) onUpdate) {
+    final selected = mod.polarity.clamp(0, 1);
+    return SizedBox(
+      height: 22,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xFF14141C),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: List.generate(2, (i) {
+              final active = selected == i;
+              return Expanded(
+                child: Material(
+                  color: active ? _seqAccent.withValues(alpha: 0.2) : Colors.transparent,
+                  child: InkWell(
+                    onTap: () => onUpdate('polarity', i.toDouble()),
+                    child: Center(
+                      child: Text(
+                        ['\u00B1', '+'][i],
+                        style: TextStyle(
+                          color: active ? _seqAccent : Colors.white38,
+                          fontSize: 9,
+                          fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _seqHeader(LfoSnapshot mod, Future<void> Function(String, double) onUpdate) {
+    final stepOptions = [4, 8, 12, 16, 24, 32];
+    final currentSteps = stepOptions.contains(mod.sequencerSteps) ? mod.sequencerSteps : 16;
+    return Row(
+      children: [
+        Text(
+          'SEQ ${mod.id}',
+          style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w700),
+        ),
+        const Spacer(),
+        SizedBox(width: 44, child: _seqPolarityToggle(mod, onUpdate)),
+        const SizedBox(width: 8),
+        DropdownButton<int>(
+          value: currentSteps,
+          dropdownColor: const Color(0xFF1A1A24),
+          isDense: true,
+          style: const TextStyle(color: _seqAccent, fontSize: 10, fontWeight: FontWeight.w700),
+          underline: const SizedBox(),
+          icon: const Icon(Icons.arrow_drop_down, color: _seqAccent, size: 14),
+          items: stepOptions
+              .map((n) => DropdownMenuItem<int>(
+                    value: n,
+                    child: Text('$n', style: const TextStyle(color: Colors.white, fontSize: 10)),
+                  ))
+              .toList(),
+          onChanged: (v) { if (v != null) onUpdate('steps', v.toDouble()); },
+        ),
+      ],
+    );
+  }
+
+  Widget _seqRetriggerBar(LfoSnapshot mod, Future<void> Function(String, double) onUpdate) {
+    const labels = ['Free', 'Sync', 'On note'];
+    const values = [0, 1, 2];
+    final selected = mod.retrigger.clamp(0, 2);
+    return SizedBox(
+      height: 22,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xFF14141C),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: List.generate(3, (i) {
+              final active = selected == values[i];
+              return Expanded(
+                child: Material(
+                  color: active ? _seqAccent.withValues(alpha: 0.2) : Colors.transparent,
+                  child: InkWell(
+                    onTap: () => onUpdate('retrigger', values[i].toDouble()),
+                    child: Center(
+                      child: Text(
+                        labels[i],
+                        style: TextStyle(
+                          color: active ? _seqAccent : Colors.white38,
+                          fontSize: 9,
+                          fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _seqSyncDivisions(LfoSnapshot mod, Future<void> Function(String, double) onUpdate) {
+    return Row(
+      children: List.generate(5, (i) {
+        final active = (mod.syncDivision.clamp(1, 5) - 1) == i;
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => onUpdate('syncDivision', (i + 1).toDouble()),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              decoration: BoxDecoration(
+                color: active ? _seqAccent.withValues(alpha: 0.2) : const Color(0xFF1A1A24),
+                borderRadius: BorderRadius.circular(3),
+                border: Border.all(
+                  color: active ? _seqAccent : Colors.white24,
+                  width: active ? 1.0 : 0.5,
+                ),
+              ),
+              child: Text(
+                _seqSyncLabels[i],
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: active ? _seqAccent : Colors.white54,
+                  fontSize: 8,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _seqKnobs(LfoSnapshot mod, Future<void> Function(String, double) onUpdate) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _seqKnobWidget(mod, onUpdate),
+      ],
+    );
+  }
+
+  Widget _seqKnobWidget(LfoSnapshot mod, Future<void> Function(String, double) onUpdate) {
+    // Rate label only for debug
+    return Expanded(
+      child: Center(
+        child: Text(
+          'Rate: ${mod.rate.toStringAsFixed(2)}',
+          style: const TextStyle(color: Colors.white54, fontSize: 9),
+        ),
+      ),
     );
   }
 }
