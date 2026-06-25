@@ -21,6 +21,9 @@ import 'random_properties_panel.dart';
 import 'sequencer_properties_panel.dart';
 import 'sequencer_step_editor.dart';
 import 'modulator_types.dart';
+import 'device_knob_sizes.dart';
+import 'modulator_rate_codec.dart';
+import 'rotary_knob.dart';
 import 'kick_generator_device_strip.dart';
 import 'kick_model.dart';
 import 'snare_generator_device_strip.dart';
@@ -1239,9 +1242,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
               child: _seqHeader(snapshot, onUpdate),
             ),
             const SizedBox(height: 8),
-            // Step bars — fixed height
-            SizedBox(
-              height: 120,
+            // Step bars — fill remaining vertical space
+            Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: SequencerStepEditor(
@@ -1252,21 +1254,28 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                 ),
               ),
             ),
-            // Retrigger bar
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
-              child: _seqRetriggerBar(snapshot, onUpdate),
-            ),
-            // Sync divisions
-            if (isSync)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
-                child: _seqSyncDivisions(snapshot, onUpdate),
-              ),
-            // Knobs
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
-              child: _seqKnobs(snapshot, onUpdate),
+            // Bottom controls anchored at bottom
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Retrigger bar
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+                  child: _seqRetriggerBar(snapshot, onUpdate),
+                ),
+                // Sync divisions
+                if (isSync)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+                    child: _seqSyncDivisions(snapshot, onUpdate),
+                  ),
+                // Knobs
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+                  child: _seqKnobs(snapshot, onUpdate),
+                ),
+              ],
             ),
           ],
         ),
@@ -1442,20 +1451,31 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _seqKnobWidget(mod, onUpdate),
-      ],
-    );
-  }
-
-  Widget _seqKnobWidget(LfoSnapshot mod, Future<void> Function(String, double) onUpdate) {
-    // Rate label only for debug
-    return Expanded(
-      child: Center(
-        child: Text(
-          'Rate: ${mod.rate.toStringAsFixed(2)}',
-          style: const TextStyle(color: Colors.white54, fontSize: 9),
+        Expanded(
+          child: Center(
+            child: RotaryKnob(
+              label: 'Rate',
+              value: mod.rate.clamp(0.0, 1.0),
+              displayValue: ModulatorRateCodec.formatRate(mod),
+              size: DeviceKnobSizes.compact,
+              accentColor: _seqAccent,
+              onChanged: (v) => onUpdate('rate', v),
+            ),
+          ),
         ),
-      ),
+        Expanded(
+          child: Center(
+            child: RotaryKnob(
+              label: 'Smooth',
+              value: mod.smoothing.clamp(0.0, 1.0),
+              displayValue: '${(mod.smoothing * 100).round()}%',
+              size: DeviceKnobSizes.compact,
+              accentColor: _seqAccent,
+              onChanged: (v) => onUpdate('smoothing', v),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
