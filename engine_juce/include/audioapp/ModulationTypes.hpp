@@ -19,6 +19,7 @@ enum class ModulatorType : int {
     Lfo = 0,
     Envelope = 1,  // unified envelope replaces old Adsr=1, Adr=2
     RandomGenerator = 2,
+    Sequencer = 3,
 };
 
 /// Curve shapes for the unified envelope modulator.

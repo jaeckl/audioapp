@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <variant>
 
 namespace audioapp {
@@ -44,6 +45,20 @@ struct RandomGeneratorParams {
     int polarity = 0;
 };
 
-using ModulatorParams = std::variant<LfoParams, EnvelopeParams, RandomGeneratorParams>;
+/// Step sequencer modulator parameters.
+struct SequencerParams {
+    int stepCount = 16;                     // [1, 32] active step count
+    float rate = 0.5f;                      // [0, 1] normalized (Free mode Hz)
+    int syncDivision = 3;                   // 0=none, 1=whole, 2=half, 3=quarter, 4=eighth, 5=sixteenth
+    int retrigger = 1;                      // ModulatorRetrigger: 0=Free, 1=Sync, 2=OnNote
+    int direction = 0;                      // SequencerDirection: 0=Forward, 1=Reverse, 2=PingPong, 3=Random
+    int shape = 0;                          // SequencerShape: 0=Hold, 1=Linear, 2=Smooth
+    int polarity = 0;                       // 0=bipolar, 1=unipolar-pos
+    float smoothing = 0.0f;                 // [0, 1] single-pole lowpass coefficient
+    std::array<float, 32> stepValues{};     // [0, 1] per step, initialized to 0.5
+    SequencerParams() { stepValues.fill(0.5f); }
+};
+
+using ModulatorParams = std::variant<LfoParams, EnvelopeParams, RandomGeneratorParams, SequencerParams>;
 
 } // namespace audioapp

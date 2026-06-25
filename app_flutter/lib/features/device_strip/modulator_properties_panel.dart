@@ -7,6 +7,7 @@ import 'lfo_preview_painter.dart';
 import 'modulator_rate_codec.dart';
 import 'modulator_types.dart';
 import 'rotary_knob.dart';
+import 'sequencer_step_editor.dart';
 
 /// Properties panel for the selected modulator.
 /// Shows LFO controls when type is LFO, envelope controls when type is envelope.
@@ -33,6 +34,7 @@ class ModulatorPropertiesPanel extends StatelessWidget {
       return _envelopeLayout(theme);
     }
     if (mod.type == 'random_generator') return _randomGeneratorLayout(theme);
+    if (mod.type == 'sequencer') return _sequencerLayout(theme);
     return _lfoLayout(theme);
   }
 
@@ -183,6 +185,155 @@ class ModulatorPropertiesPanel extends StatelessWidget {
             child: _polarityToggle(),
           ),
         ],
+      ),
+    );
+  }
+
+  // ===== Sequencer-specific helpers =====
+
+  Widget _sequencerLayout(ThemeData theme) {
+    return Container(
+      color: const Color(0xFF14141C),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header: name + polarity + step count
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+            child: _sequencerHeader(theme),
+          ),
+          const SizedBox(height: 8),
+          // Step bars
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: SequencerStepEditor(
+              stepValues: mod.stepValues,
+              stepCount: mod.sequencerSteps,
+              onStepChanged: (i, v) => onUpdate('step_$i', v),
+              currentStep: null, // TODO: wire up from engine snapshot
+            ),
+          ),
+          // Retrigger mode bar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+            child: _lfoSegmentBar(),
+          ),
+          // Sync divisions (only when sync active)
+          if (_isSync)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+              child: _lfoSyncDivisions(),
+            ),
+          // Knobs pinned to bottom
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+            child: _sequencerKnobs(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sequencerHeader(ThemeData theme) {
+    return Row(
+      children: [
+        Text(
+          'SEQ ${mod.id}',
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: Colors.white70,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const Spacer(),
+        _polarityToggle(),
+        const SizedBox(width: 8),
+        // Step count pill dropdown
+        DropdownButton<int>(
+          value: mod.sequencerSteps.clamp(4, 32),
+          dropdownColor: const Color(0xFF1A1A24),
+          style: const TextStyle(
+            color: Color(0xFFE8A54B),
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+          ),
+          underline: const SizedBox(),
+          icon: const Icon(
+            Icons.arrow_drop_down,
+            color: Color(0xFFE8A54B),
+            size: 14,
+          ),
+          items: [4, 8, 12, 16, 24, 32]
+              .map((n) => DropdownMenuItem<int>(
+                    value: n,
+                    child: Text(
+                      '$n',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ))
+              .toList(),
+          onChanged: (v) {
+            if (v != null) onUpdate('steps', v.toDouble());
+          },
+        ),
+      ],
+    );
+  }
+
+  /// 4-knob row: Rate, Direction, Shape, Smoothing
+  Widget _sequencerKnobs() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _seqKnob(
+          'Rate',
+          ModulatorRateCodec.formatRate(mod),
+          mod.rate.clamp(0, 1),
+          (v) => onUpdate('rate', v),
+        ),
+        _seqKnob(
+          'Dir',
+          ModulatorTypes.sequencerDirectionLabels[
+              mod.sequencerDirection.clamp(0, 3)],
+          mod.sequencerDirection.clamp(0, 3) / 3.0,
+          (v) => onUpdate('direction', (v * 3).round().toDouble()),
+        ),
+        _seqKnob(
+          'Shape',
+          ModulatorTypes.sequencerShapeLabels[
+              mod.sequencerShape.clamp(0, 2)],
+          mod.sequencerShape.clamp(0, 2) / 2.0,
+          (v) => onUpdate('shape', (v * 2).round().toDouble()),
+        ),
+        _seqKnob(
+          'Sm',
+          '${(mod.smoothing.clamp(0.0, 1.0) * 100).round()}%',
+          mod.smoothing.clamp(0, 1),
+          (v) => onUpdate('smoothing', v),
+        ),
+      ],
+    );
+  }
+
+  Widget _seqKnob(
+    String label,
+    String displayValue,
+    double value,
+    ValueChanged<double> onChanged,
+  ) {
+    return Expanded(
+      child: Center(
+        child: RotaryKnob(
+          label: label,
+          value: value,
+          displayValue: displayValue,
+          size: DeviceKnobSizes.compact,
+          accentColor: const Color(0xFFE8A54B),
+          onChanged: onChanged,
+        ),
       ),
     );
   }

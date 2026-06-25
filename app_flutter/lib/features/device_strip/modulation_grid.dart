@@ -111,6 +111,15 @@ class _ModulationGridState extends State<ModulationGrid>
               ),
               onTap: () => Navigator.pop(context, ModulatorTypes.randomGenerator),
             ),
+            ListTile(
+              leading: const Icon(Icons.grid_view, color: Color(0xFF4BC8E8)),
+              title: const Text('Sequencer', style: TextStyle(color: Colors.white)),
+              subtitle: const Text(
+                'Step-sequenced modulation pattern',
+                style: TextStyle(color: Colors.white54),
+              ),
+              onTap: () => Navigator.pop(context, ModulatorTypes.sequencer),
+            ),
           ],
         ),
       ),
@@ -455,6 +464,63 @@ class _ModulatorTileState extends State<_ModulatorTile> {
                     ),
                   ),
                 ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Sequencer tiles show a mini step bar preview.
+    if (widget.lfo.modulatorType == ModulatorTypes.sequencer) {
+      return SizedBox(
+        width: widget.size,
+        height: widget.size,
+        child: GestureDetector(
+          onTap: widget.onTap,
+          onDoubleTap: _onDoubleTap,
+          onLongPress: widget.onLongPress,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0xFF101018),
+              borderRadius: BorderRadius.circular(ModulatorPreview.tileRadius),
+              border: widget.isSelected || widget.isConnectMode
+                  ? Border.all(
+                      color: widget.isConnectMode
+                          ? accent
+                          : accent.withValues(alpha: 0.75),
+                      width: widget.isConnectMode ? 1.5 : 1.0,
+                    )
+                  : null,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final steps = widget.lfo.stepValues;
+                  final count = widget.lfo.sequencerSteps.clamp(1, 32);
+                  final barW = (constraints.maxWidth - (count - 1) * 1) / count;
+                  return Row(
+                    children: List.generate(count.clamp(0, 16), (i) {
+                      final val = (steps.length > i ? steps[i] : 0.5);
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 1),
+                        child: Container(
+                          width: barW,
+                          height: constraints.maxHeight,
+                          alignment: Alignment.bottomCenter,
+                          child: Container(
+                            height: val * constraints.maxHeight,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE8A54B).withValues(alpha: 0.7),
+                              borderRadius: BorderRadius.circular(1),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  );
+                },
               ),
             ),
           ),

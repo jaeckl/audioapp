@@ -372,6 +372,10 @@ class LfoSnapshot {
     this.morph = 0.0,
     this.spread = 0.5,
     this.smoothing = 0.0,
+    this.sequencerSteps = 16,
+    this.sequencerDirection = 0,
+    this.sequencerShape = 0,
+    this.stepValues = const [],
   });
 
   final int id;
@@ -398,12 +402,18 @@ class LfoSnapshot {
   final double morph;
   final double spread;
   final double smoothing;
+  final int sequencerSteps;
+  final int sequencerDirection;
+  final int sequencerShape;
+  final List<double> stepValues;
 
   int get modulatorType => type == 'envelope'
       ? 1
       : type == 'random_generator'
           ? 2
-          : 0;
+          : type == 'sequencer'
+              ? 3
+              : 0;
 
   factory LfoSnapshot.fromMap(Map<dynamic, dynamic> map) {
     // New style: type field from IModulatorType::paramsToVar()
@@ -423,6 +433,28 @@ class LfoSnapshot {
         decayCurve: (map['decayCurve'] as num?)?.toDouble() ?? 0.5,
         releaseCurve: (map['releaseCurve'] as num?)?.toDouble() ?? 0.5,
         analogMode: (map['analogMode'] as num?)?.toInt() ?? 0,
+      );
+    }
+    if (typeStr == 'sequencer') {
+      final stepCount = (map['stepCount'] as num?)?.toInt() ?? 16;
+      final steps = <double>[];
+      for (var i = 0; i < stepCount; i++) {
+        final key = 'step_$i';
+        final val = map[key] as num?;
+        steps.add(val?.toDouble() ?? 0.5);
+      }
+      return LfoSnapshot(
+        id: (map['id'] as num?)?.toInt() ?? 0,
+        type: 'sequencer',
+        sequencerSteps: stepCount,
+        sequencerDirection: (map['direction'] as num?)?.toInt() ?? 0,
+        sequencerShape: (map['shape'] as num?)?.toInt() ?? 0,
+        retrigger: (map['retrigger'] as num?)?.toInt() ?? 1,
+        rate: (map['rate'] as num?)?.toDouble() ?? 0.5,
+        syncDivision: (map['syncDivision'] as num?)?.toInt() ?? 3,
+        polarity: (map['polarity'] as num?)?.toInt() ?? 0,
+        smoothing: (map['smoothing'] as num?)?.toDouble() ?? 0.0,
+        stepValues: steps,
       );
     }
     // LFO or default (fallback for old-format JSON with numeric modulatorType)
@@ -482,10 +514,30 @@ class LfoSnapshot {
       case 'releaseCurve': return copyWith(releaseCurve: value);
       case 'analogMode':   return copyWith(analogMode: value.round());
       case 'morph':        return copyWith(morph: value);
-      case 'spread':       return copyWith(spread: value);
-      case 'smoothing':    return copyWith(smoothing: value);
-      default:             return this;
+      case 'spread':        return copyWith(spread: value);
+      case 'smoothing':     return copyWith(smoothing: value);
+      case 'steps':         return copyWith(sequencerSteps: value.round().clamp(1, 32));
+      case 'direction':     return copyWith(sequencerDirection: value.round().clamp(0, 3));
+      case 'shape':         return copyWith(sequencerShape: value.round().clamp(0, 2));
+      default:
+        if (param.startsWith('step_')) {
+          final idx = int.tryParse(param.substring(5));
+          if (idx != null && idx >= 0 && idx < stepValues.length) {
+            final newSteps = [...stepValues];
+            newSteps[idx] = value.clamp(0.0, 1.0);
+            return copyWith(stepValues: newSteps);
+          }
+        }
+        return this;
     }
+  }
+
+  LfoSnapshot withStepValue(int index, double value) {
+    final newList = List<double>.of(stepValues);
+    if (index >= 0 && index < newList.length) {
+      newList[index] = value.clamp(0.0, 1.0);
+    }
+    return copyWith(stepValues: newList);
   }
 
   LfoSnapshot copyWith({
@@ -512,6 +564,10 @@ class LfoSnapshot {
     double? morph,
     double? spread,
     double? smoothing,
+    int? sequencerSteps,
+    int? sequencerDirection,
+    int? sequencerShape,
+    List<double>? stepValues,
   }) {
     return LfoSnapshot(
       id: id ?? this.id,
@@ -537,6 +593,10 @@ class LfoSnapshot {
       morph: morph ?? this.morph,
       spread: spread ?? this.spread,
       smoothing: smoothing ?? this.smoothing,
+      sequencerSteps: sequencerSteps ?? this.sequencerSteps,
+      sequencerDirection: sequencerDirection ?? this.sequencerDirection,
+      sequencerShape: sequencerShape ?? this.sequencerShape,
+      stepValues: stepValues ?? this.stepValues,
     );
   }
 }

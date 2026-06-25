@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "audioapp/modulation/RandomGeneratorModulatorType.hpp"
+#include "audioapp/modulation/SequencerModulatorType.hpp"
 
 namespace audioapp {
 
@@ -12,6 +13,7 @@ ModulationGraph::ModulationGraph() {
     modulatorTypes_.push_back(std::make_unique<LfoModulatorType>());
     modulatorTypes_.push_back(std::make_unique<EnvelopeModulatorType>());
     modulatorTypes_.push_back(std::make_unique<RandomGeneratorModulatorType>());
+    modulatorTypes_.push_back(std::make_unique<SequencerModulatorType>());
 }
 
 void ModulationGraph::clear() {
