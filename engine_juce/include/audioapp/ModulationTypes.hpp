@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cmath>
 #include <string>
 
@@ -20,6 +21,7 @@ enum class ModulatorType : int {
     Envelope = 1,  // unified envelope replaces old Adsr=1, Adr=2
     RandomGenerator = 2,
     Sequencer = 3,
+    Curve = 4,
 };
 
 /// Curve shapes for the unified envelope modulator.
@@ -45,6 +47,7 @@ struct ModulationEdge {
 };
 
 /// Evaluate an LFO waveform at a given wrapped phase [0, 1).
+/// Pure discrete waveform with no morphing.
 inline float lfoEvaluate(LfoWaveform waveform, float phase) noexcept {
     phase = phase - std::floor(phase);
     switch (waveform) {
@@ -55,6 +58,51 @@ inline float lfoEvaluate(LfoWaveform waveform, float phase) noexcept {
     case LfoWaveform::Ramp:   return 1.0f - 2.0f * phase;
     }
     return 0.0f;
+}
+
+/// Evaluate a single waveform shape by index (0–4: Sine, Tri, Saw, Square, Ramp).
+inline float lfoEvaluateIndex(int idx, float phase) noexcept {
+    return lfoEvaluate(static_cast<LfoWaveform>(idx), phase);
+}
+
+/// Apply phase skew via spread [0, 1]. 0.5 = symmetric (no change).
+inline float lfoApplySpread(float phase, float spread) noexcept {
+    phase = phase - std::floor(phase);
+    const float s = std::clamp(spread, 0.0f, 1.0f);
+    if (std::abs(s - 0.5f) <= 0.001f) return phase;
+    if (s < 0.5f) {
+        // Compress rise, expand fall
+        const float split = s * 2.0f; // [0, 1)
+        if (phase < split) {
+            return phase / split * 0.5f;
+        } else {
+            return 0.5f + (phase - split) / (1.0f - split) * 0.5f;
+        }
+    } else {
+        // Expand rise, compress fall
+        const float split = s * 2.0f - 1.0f; // [0, 1)
+        if (phase < 0.5f) {
+            return phase / 0.5f * split;
+        } else {
+            return split + (phase - 0.5f) / 0.5f * (1.0f - split);
+        }
+    }
+}
+
+/// Evaluate LFO waveform with continuous morph [0,1] and phase spread [0,1].
+/// morph: 0=sine, 0.25=tri, 0.5=saw, 0.75=square, 1.0=ramp (linear blend between).
+/// spread: 0.5=symmetric, <0.5 skew left, >0.5 skew right.
+inline float lfoEvaluateMorph(float morph, float spread, float phase) noexcept {
+    phase = lfoApplySpread(phase, spread);
+    const float m = std::clamp(morph, 0.0f, 1.0f);
+    // Map [0,1] to segment index [0,3] for blending between 5 waveforms
+    const float seg = m * 4.0f;
+    const int idx = static_cast<int>(seg);
+    const float frac = seg - static_cast<float>(idx);
+    if (idx >= 4) return lfoEvaluateIndex(4, phase);
+    const float a = lfoEvaluateIndex(idx, phase);
+    const float b = lfoEvaluateIndex(idx + 1, phase);
+    return a + (b - a) * frac;
 }
 
 /// Map sync division index to beat multiplier.

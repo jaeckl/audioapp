@@ -120,6 +120,15 @@ class _ModulationGridState extends State<ModulationGrid>
               ),
               onTap: () => Navigator.pop(context, ModulatorTypes.sequencer),
             ),
+            ListTile(
+              leading: const Icon(Icons.timeline, color: Color(0xFFE8A54B)),
+              title: const Text('Curve', style: TextStyle(color: Colors.white)),
+              subtitle: const Text(
+                'User-drawn breakpoint curve editor',
+                style: TextStyle(color: Colors.white54),
+              ),
+              onTap: () => Navigator.pop(context, ModulatorTypes.curve),
+            ),
           ],
         ),
       ),
@@ -533,6 +542,46 @@ class _ModulatorTileState extends State<_ModulatorTile> {
       );
     }
 
+    // Curve tiles show a mini breakpoint curve preview
+    if (widget.lfo.modulatorType == ModulatorTypes.curve) {
+      final positions = widget.lfo.curveBpPositions;
+      final values = widget.lfo.curveBpValues;
+      return SizedBox(
+        width: widget.size,
+        height: widget.size,
+        child: GestureDetector(
+          onTap: widget.onTap,
+          onDoubleTap: _onDoubleTap,
+          onLongPress: widget.onLongPress,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0xFF101018),
+              borderRadius: BorderRadius.circular(ModulatorPreview.tileRadius),
+              border: widget.isSelected || widget.isConnectMode
+                  ? Border.all(
+                      color: widget.isConnectMode
+                          ? accent
+                          : accent.withValues(alpha: 0.75),
+                      width: widget.isConnectMode ? 1.5 : 1.0,
+                    )
+                  : null,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: CustomPaint(
+                painter: _CurveTilePainter(
+                  positions: positions,
+                  values: values,
+                  accent: accent,
+                ),
+                size: Size.infinite,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return SizedBox(
       width: widget.size,
       height: widget.size,
@@ -589,4 +638,42 @@ class _AddModulatorTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Paints a small breakpoint curve preview for curve modulator tiles.
+class _CurveTilePainter extends CustomPainter {
+  _CurveTilePainter({
+    required this.positions,
+    required this.values,
+    required this.accent,
+  });
+
+  final List<double> positions;
+  final List<double> values;
+  final Color accent;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = accent.withValues(alpha: 0.75)
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+    final count = positions.length;
+    if (count < 2) return;
+    final path = Path();
+    for (var i = 0; i < count; i++) {
+      final x = positions[i].clamp(0.0, 1.0) * size.width;
+      final y = size.height * (0.5 - values[i].clamp(-1.0, 1.0) * 0.5);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_CurveTilePainter old) =>
+      old.positions != positions || old.values != values;
 }

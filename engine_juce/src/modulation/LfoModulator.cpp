@@ -27,7 +27,9 @@ float LfoModulator::evaluateSynced(double playheadBeat, int bpm,
         const double speedMult = static_cast<double>(lfoRateToSpeedMult(params_.rate));
         phase = beatDuration > 0.0 ? (playheadBeat / beatDuration) * speedMult : 0.0;
     }
-    const float raw = evaluateWaveform(static_cast<LfoWaveform>(params_.waveform), static_cast<float>(phase));
+    const float morph = params_.analogMode != 0 ? 0.0f : params_.morph;
+    const float spread = params_.analogMode != 0 ? 0.5f : params_.spread;
+    const float raw = evaluateMorph(morph, spread, static_cast<float>(phase));
     return applyPolarity(raw, params_.polarity);
 }
 
@@ -43,7 +45,9 @@ float LfoModulator::evaluateOnNoteRetrigger(double absoluteSeconds,
     const double elapsed = absoluteSeconds - runtime_.segStartSeconds;
     const float phase = static_cast<float>(elapsed * static_cast<double>(lfoRateToHz(params_.rate))
                                            + static_cast<double>(params_.phase));
-    const float raw = evaluateWaveform(static_cast<LfoWaveform>(params_.waveform), phase);
+    const float morph = params_.analogMode != 0 ? 0.0f : params_.morph;
+    const float spread = params_.analogMode != 0 ? 0.5f : params_.spread;
+    const float raw = evaluateMorph(morph, spread, phase);
     return applyPolarity(raw, params_.polarity);
 }
 

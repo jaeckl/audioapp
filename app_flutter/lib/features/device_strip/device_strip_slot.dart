@@ -19,6 +19,7 @@ import 'lfo_properties_panel.dart';
 import 'envelope_properties_panel.dart';
 import 'random_properties_panel.dart';
 import 'sequencer_properties_panel.dart';
+import 'curve_properties_panel.dart';
 import 'sequencer_step_editor.dart';
 import 'modulator_types.dart';
 import 'device_knob_sizes.dart';
@@ -1192,6 +1193,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     final isEnvelope = snapshot.modulatorType == ModulatorTypes.envelope;
     final isRnd = snapshot.type == 'random_generator';
     final isSeq = snapshot.type == 'sequencer';
+    final isCurve = snapshot.type == 'curve';
 
     // ignore: avoid_print
     print('BUILD PROPERTIES PANEL: id=${snapshot.id} type=${snapshot.type} isSeq=$isSeq isRnd=$isRnd isEnvelope=$isEnvelope');
@@ -1279,6 +1281,16 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             ),
           ],
         ),
+      );
+    } else if (isCurve) {
+      width = 260;
+      panel = CurvePropertiesPanel(
+        key: ValueKey('curve_panel_${snapshot.id}'),
+        mod: snapshot,
+        onUpdate: onUpdate,
+        onOpenEditor: () {
+          // TODO: open curve editor
+        },
       );
     } else {
       width = 260;

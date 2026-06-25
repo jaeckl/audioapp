@@ -76,6 +76,11 @@ private:
         return 0.0f;
     }
 
+    /// Evaluate waveform with continuous morph [0,1] and phase spread [0,1].
+    float evaluateMorph(float morph, float spread, float phase) const noexcept {
+        return lfoEvaluateMorph(morph, spread, phase);
+    }
+
     float applyPolarity(float value, int polarity) const noexcept {
         switch (polarity) {
         case 1: return std::max(0.0f, value);

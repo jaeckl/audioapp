@@ -4,6 +4,7 @@ abstract final class ModulatorTypes {
   static const envelope = 1;
   static const randomGenerator = 2;
   static const sequencer = 3;
+  static const curve = 4;
 
   /// Matches engine [ModulationGraph::kMaxLfos].
   static const maxCount = 16;
@@ -12,7 +13,7 @@ abstract final class ModulatorTypes {
   static const retriggerSync = 1;
   static const retriggerOnNote = 2;
 
-  static const labels = ['LFO', 'Envelope', 'Random Generator'];
+  static const labels = ['LFO', 'Envelope', 'Random Generator', 'Sequencer', 'Curve'];
   static const retriggerLabels = ['Free', 'Sync', 'On note'];
   static const curveLabels = ['ADSR', 'ASR', 'ADR', 'AHDSR'];
 
@@ -24,6 +25,7 @@ abstract final class ModulatorTypes {
     1 => 'ENV',
     2 => 'RND',
     3 => 'SEQ',
+    4 => 'CURVE',
     _ => '?',
   };
 

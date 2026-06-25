@@ -57,6 +57,40 @@ public:
             expectWithinAbsoluteError(v, -0.5f, 0.001f);
         }
 
+        beginTest("LFO morph/spread evaluation");
+        {
+            // morph=0 → pure sine
+            float v = audioapp::lfoEvaluateMorph(0.0f, 0.5f, 0.25f);
+            expectWithinAbsoluteError(v, 1.0f, 0.001f);
+            v = audioapp::lfoEvaluateMorph(0.0f, 0.5f, 0.75f);
+            expectWithinAbsoluteError(v, -1.0f, 0.001f);
+
+            // morph=1.0 → pure ramp
+            v = audioapp::lfoEvaluateMorph(1.0f, 0.5f, 0.0f);
+            expectWithinAbsoluteError(v, 1.0f, 0.001f);
+            v = audioapp::lfoEvaluateMorph(1.0f, 0.5f, 0.5f);
+            expectWithinAbsoluteError(v, 0.0f, 0.001f);
+
+            // morph=0.5 → saw (blend of tri+saw → should be saw at exact 0.5)
+            v = audioapp::lfoEvaluateMorph(0.5f, 0.5f, 0.25f);
+            expectWithinAbsoluteError(v, -0.5f, 0.001f);
+            v = audioapp::lfoEvaluateMorph(0.5f, 0.5f, 0.0f);
+            expectWithinAbsoluteError(v, -1.0f, 0.001f);
+
+            // morph midpoint between sine (0) and tri (0.25): morph=0.125
+            // At phase=0.25: sine=1.0, tri=0.0 → blend=0.5
+            v = audioapp::lfoEvaluateMorph(0.125f, 0.5f, 0.25f);
+            expectWithinAbsoluteError(v, 0.5f, 0.05f);
+
+            // spread skew
+            // spread=0: phase remapped to [0.5, 1.0) → phase=0.25 maps to 0.625
+            v = audioapp::lfoApplySpread(0.25f, 0.0f);
+            expectWithinAbsoluteError(v, 0.625f, 0.001f);
+            // spread=1: [0,0.5) maps linearly to [0,1), [0.5,1) clamped to 1
+            v = audioapp::lfoApplySpread(0.25f, 1.0f);
+            expectWithinAbsoluteError(v, 0.5f, 0.001f);
+        }
+
         beginTest("LFO sync beats");
         {
             expectEquals(audioapp::lfoSyncBeats(0), 0.0);

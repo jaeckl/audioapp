@@ -59,6 +59,27 @@ struct SequencerParams {
     SequencerParams() { stepValues.fill(0.5f); }
 };
 
-using ModulatorParams = std::variant<LfoParams, EnvelopeParams, RandomGeneratorParams, SequencerParams>;
+/// Curve (user-drawn breakpoint) modulator parameters.
+struct CurveBreakpoint {
+    float position = 0.0f;  // [0, 1] normalized position in cycle
+    float value = 0.0f;     // [-1, 1] output value at this point
+    int shape = 0;           // 0=linear, 1=smooth (cubic), 2=step
+};
+
+struct CurveParams {
+    float rate = 0.5f;
+    int retrigger = 1;               // ModulatorRetrigger
+    int syncDivision = 3;             // 1=whole ... 5=16th, 0=none
+    int polarity = 0;                 // 0=bipolar, 1=unipolar-pos
+    float smoothing = 0.0f;          // [0, 1] single-pole lowpass
+    int breakpointCount = 2;
+    std::array<CurveBreakpoint, 32> breakpoints{};
+    CurveParams() {
+        breakpoints[0] = {0.0f, 0.0f, 0};
+        breakpoints[1] = {1.0f, 1.0f, 0};
+    }
+};
+
+using ModulatorParams = std::variant<LfoParams, EnvelopeParams, RandomGeneratorParams, SequencerParams, CurveParams>;
 
 } // namespace audioapp

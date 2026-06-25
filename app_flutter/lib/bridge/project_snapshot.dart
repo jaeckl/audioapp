@@ -376,6 +376,9 @@ class LfoSnapshot {
     this.sequencerDirection = 0,
     this.sequencerShape = 0,
     this.stepValues = const [],
+    this.curveBpPositions = const [0.0, 1.0],
+    this.curveBpValues = const [0.0, 1.0],
+    this.curveBpShapes = const [0, 0],
   });
 
   final int id;
@@ -406,6 +409,9 @@ class LfoSnapshot {
   final int sequencerDirection;
   final int sequencerShape;
   final List<double> stepValues;
+  final List<double> curveBpPositions;
+  final List<double> curveBpValues;
+  final List<int> curveBpShapes;
 
   int get modulatorType => type == 'envelope'
       ? 1
@@ -413,7 +419,9 @@ class LfoSnapshot {
           ? 2
           : type == 'sequencer'
               ? 3
-              : 0;
+              : type == 'curve'
+                  ? 4
+                  : 0;
 
   factory LfoSnapshot.fromMap(Map<dynamic, dynamic> map) {
     // New style: type field from IModulatorType::paramsToVar()
@@ -455,6 +463,32 @@ class LfoSnapshot {
         polarity: (map['polarity'] as num?)?.toInt() ?? 0,
         smoothing: (map['smoothing'] as num?)?.toDouble() ?? 0.0,
         stepValues: steps,
+      );
+    }
+    if (typeStr == 'curve') {
+      final bpCount = (map['breakpointCount'] as num?)?.toInt() ?? 2;
+      final positions = <double>[];
+      final values = <double>[];
+      final shapes = <int>[];
+      for (var i = 0; i < bpCount; i++) {
+        final posKey = 'bp_${i}_pos';
+        final valKey = 'bp_${i}_val';
+        final shapeKey = 'bp_${i}_shape';
+        positions.add((map[posKey] as num?)?.toDouble() ?? (i / (bpCount - 1).clamp(1, bpCount - 1)));
+        values.add((map[valKey] as num?)?.toDouble() ?? 0.0);
+        shapes.add((map[shapeKey] as num?)?.toInt() ?? 0);
+      }
+      return LfoSnapshot(
+        id: (map['id'] as num?)?.toInt() ?? 0,
+        type: 'curve',
+        rate: (map['rate'] as num?)?.toDouble() ?? 0.5,
+        retrigger: (map['retrigger'] as num?)?.toInt() ?? 1,
+        syncDivision: (map['syncDivision'] as num?)?.toInt() ?? 3,
+        polarity: (map['polarity'] as num?)?.toInt() ?? 0,
+        smoothing: (map['smoothing'] as num?)?.toDouble() ?? 0.0,
+        curveBpPositions: positions,
+        curveBpValues: values,
+        curveBpShapes: shapes,
       );
     }
     // LFO or default (fallback for old-format JSON with numeric modulatorType)
@@ -519,7 +553,38 @@ class LfoSnapshot {
       case 'steps':         return copyWith(sequencerSteps: value.round().clamp(1, 32));
       case 'direction':     return copyWith(sequencerDirection: value.round().clamp(0, 3));
       case 'shape':         return copyWith(sequencerShape: value.round().clamp(0, 2));
+      case 'breakpointCount':
+        return copyWith(curveBpPositions: [for (var i = 0; i < value.round().clamp(2, 32); i++)
+          i < curveBpPositions.length ? curveBpPositions[i] : (i / (value - 1))]);
       default:
+        if (param.startsWith('bp_')) {
+          // bp_IDX_pos, bp_IDX_val, bp_IDX_shape
+          final parts = param.split('_');
+          if (parts.length == 3) {
+            final idx = int.tryParse(parts[1]);
+            if (idx != null && idx >= 0 && idx < 32) {
+              final attr = parts[2];
+              if (attr == 'pos') {
+                final newVals = [...curveBpPositions];
+                while (newVals.length <= idx) newVals.add(0.5);
+                newVals[idx] = value.clamp(0.0, 1.0);
+                return copyWith(curveBpPositions: newVals);
+              }
+              if (attr == 'val') {
+                final newVals = [...curveBpValues];
+                while (newVals.length <= idx) newVals.add(0.0);
+                newVals[idx] = value.clamp(-1.0, 1.0);
+                return copyWith(curveBpValues: newVals);
+              }
+              if (attr == 'shape') {
+                final newVals = [...curveBpShapes];
+                while (newVals.length <= idx) newVals.add(0);
+                newVals[idx] = value.round().clamp(0, 2);
+                return copyWith(curveBpShapes: newVals);
+              }
+            }
+          }
+        }
         if (param.startsWith('step_')) {
           final idx = int.tryParse(param.substring(5));
           if (idx != null && idx >= 0 && idx < stepValues.length) {
@@ -568,6 +633,9 @@ class LfoSnapshot {
     int? sequencerDirection,
     int? sequencerShape,
     List<double>? stepValues,
+    List<double>? curveBpPositions,
+    List<double>? curveBpValues,
+    List<int>? curveBpShapes,
   }) {
     return LfoSnapshot(
       id: id ?? this.id,
@@ -597,6 +665,9 @@ class LfoSnapshot {
       sequencerDirection: sequencerDirection ?? this.sequencerDirection,
       sequencerShape: sequencerShape ?? this.sequencerShape,
       stepValues: stepValues ?? this.stepValues,
+      curveBpPositions: curveBpPositions ?? this.curveBpPositions,
+      curveBpValues: curveBpValues ?? this.curveBpValues,
+      curveBpShapes: curveBpShapes ?? this.curveBpShapes,
     );
   }
 }

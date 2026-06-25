@@ -287,8 +287,8 @@ enum class FrequencyShifterParam : uint16_t {
 // thread. The fix is to pack `(ParamKind, perKindId)` into the uint16_t so
 // the runtime can disambiguate.
 //
-// Encoding:  bits 12..15 = kind tag (4 bits, 0..15)
-//            bits  0..11 = per-kind enum value (12 bits, 0..4095)
+// Encoding:  bits 11..15 = kind tag (5 bits, 0..31)
+//            bits  0..10 = per-kind enum value (11 bits, 0..2047)
 // -----------------------------------------------------------------------
 
 enum class ParamKind : uint16_t {
@@ -306,19 +306,16 @@ enum class ParamKind : uint16_t {
     Expander         = 11,
     Limiter          = 12,
     TrackGain        = 13,
-    // Bass Synth
     BassSynth        = 14,
-    // Phase Modulation Synth
     PhaseModSynth    = 15,
-    // Frequency FX suite
     Filter           = 16,
     FourBandEq       = 17,
     FrequencyShifter = 18,
 };
 
-constexpr uint16_t kParamKindShift      = 12;
-constexpr uint16_t kParamKindMask       = 0xF000;
-constexpr uint16_t kParamIdMask         = 0x0FFF;
+constexpr uint16_t kParamKindShift      = 11;
+constexpr uint16_t kParamKindMask       = 0xF800;
+constexpr uint16_t kParamIdMask         = 0x07FF;
 
 constexpr uint16_t packParamId(ParamKind kind, uint16_t perKindId) noexcept {
     return static_cast<uint16_t>((static_cast<uint16_t>(kind) << kParamKindShift) |

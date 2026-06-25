@@ -9,9 +9,8 @@
 /// (the modulation path has the same skip check).
 ///
 /// Fix: packParamId/unpackParamId encode (ParamKind, perKindId) into a single
-/// uint16_t. SubtractiveSynth::FilterCutoff now encodes as 0x3000, which no
-/// longer matches the encoded CommonParam::Gain (0). The audio thread
-/// dispatches on the encoded kind before applying the per-kind enum switch.
+/// uint16_t with a 5-bit kind tag. SubtractiveSynth::FilterCutoff now encodes
+/// as 0x1800, which no longer matches the encoded CommonParam::Gain (0).
 ///
 /// This test exercises the full automation path:
 ///   - create a track with a SubtractiveSynth + a long MIDI clip
