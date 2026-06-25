@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <array>
 #include <cstdint>
 #include <memory>
 #include <shared_mutex>
@@ -257,8 +258,12 @@ private:
         float velocity = 100.0f;
         uint64_t sampleTime = 0;
     };
-    std::vector<CaptureEvent> captureEvents_;
+    static constexpr int kMaxCaptureEvents = 4096;
+    std::array<CaptureEvent, kMaxCaptureEvents> captureEvents_;
+    int captureEventHead_ = 0;
+    int captureEventCount_ = 0;
     uint64_t captureStartSample_ = 0;
+    double captureStartPlayheadBeat_ = 0.0;
     bool captureActive_ = false;
     LivePerformanceMixer liveMixer_;
     std::atomic<float> livePitchBend_{0.0f};

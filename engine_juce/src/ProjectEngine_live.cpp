@@ -42,7 +42,8 @@ bool ProjectEngine::setRecordArmed(bool armed) {
     recordArmed_ = armed;
     if (!armed) {
         captureActive_ = false;
-        captureEvents_.clear();
+        captureEventHead_ = 0;
+        captureEventCount_ = 0;
     }
     return true;
 }
@@ -78,10 +79,15 @@ bool ProjectEngine::noteOn(int pitch, float velocity) {
         if (!captureActive_) {
             captureActive_ = true;
             captureStartSample_ = now;
-            captureEvents_.clear();
+            captureStartPlayheadBeat_ = transport_.playheadBeats();
+            captureEventHead_ = 0;
+            captureEventCount_ = 0;
         }
-        captureEvents_.push_back(
-            CaptureEvent{CaptureEvent::Type::NoteOn, pitch, velocity, now});
+        if (captureEventCount_ < kMaxCaptureEvents) {
+            const int idx = (captureEventHead_ + captureEventCount_) % kMaxCaptureEvents;
+            captureEvents_[idx] = CaptureEvent{CaptureEvent::Type::NoteOn, pitch, velocity, now};
+            ++captureEventCount_;
+        }
     }
     return true;
 }
@@ -90,12 +96,16 @@ bool ProjectEngine::noteOff(int pitch) {
     std::lock_guard<std::shared_mutex> lock(mutex_);
     liveMixer_.noteOff(pitch);
     if (recordArmed_ && captureActive_) {
-        captureEvents_.push_back(CaptureEvent{
-            CaptureEvent::Type::NoteOff,
-            pitch,
-            0.0f,
-            liveMixer_.sampleClock(),
-        });
+        if (captureEventCount_ < kMaxCaptureEvents) {
+            const int idx = (captureEventHead_ + captureEventCount_) % kMaxCaptureEvents;
+            captureEvents_[idx] = CaptureEvent{
+                CaptureEvent::Type::NoteOff,
+                pitch,
+                0.0f,
+                liveMixer_.sampleClock(),
+            };
+            ++captureEventCount_;
+        }
     }
     return true;
 }
@@ -115,7 +125,8 @@ void ProjectEngine::setLiveModulation(float mod) noexcept {
 
 void ProjectEngine::clearCapture() {
     std::lock_guard<std::shared_mutex> lock(mutex_);
-    captureEvents_.clear();
+    captureEventHead_ = 0;
+    captureEventCount_ = 0;
     captureActive_ = false;
 }
 
@@ -127,7 +138,7 @@ bool ProjectEngine::commitCapture() {
 
     {
         std::lock_guard<std::shared_mutex> lock(mutex_);
-        if (!captureActive_ || captureEvents_.empty() || trackRepo_.selectedTrackId().empty()) {
+        if (!captureActive_ || captureEventCount_ == 0 || trackRepo_.selectedTrackId().empty()) {
             return false;
         }
 
@@ -138,7 +149,9 @@ bool ProjectEngine::commitCapture() {
         };
         std::vector<OpenNote> open;
 
-        for (const auto& event : captureEvents_) {
+        for (int i = 0; i < captureEventCount_; ++i) {
+            const int idx = (captureEventHead_ + i) % kMaxCaptureEvents;
+            const auto& event = captureEvents_[idx];
             const double beat = quantizeCaptureBeat(sampleTimeToCaptureBeat(event.sampleTime));
             if (event.type == CaptureEvent::Type::NoteOn) {
                 open.push_back(OpenNote{event.pitch, event.velocity, beat});
@@ -170,7 +183,8 @@ bool ProjectEngine::commitCapture() {
         }
 
         if (committed.empty()) {
-            captureEvents_.clear();
+            captureEventHead_ = 0;
+            captureEventCount_ = 0;
             captureActive_ = false;
             return false;
         }
@@ -180,10 +194,13 @@ bool ProjectEngine::commitCapture() {
             maxEnd = std::max(maxEnd, note.startBeat + note.durationBeats);
         }
         clipLength = std::max(4.0, std::ceil(maxEnd / 4.0) * 4.0);
-        clipStart = transport_.playheadBeats();
+        // Use the playhead position at capture start, not at commit time,
+        // so the recorded clip aligns correctly with the timeline.
+        clipStart = captureStartPlayheadBeat_;
         trackId = trackRepo_.selectedTrackId();
 
-        captureEvents_.clear();
+        captureEventHead_ = 0;
+        captureEventCount_ = 0;
         captureActive_ = false;
     }
 
