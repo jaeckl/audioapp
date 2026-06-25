@@ -6,7 +6,7 @@ import '../../bridge/project_snapshot.dart';
 
 /// Tool modes for the curve editor canvas.
 enum CurveEditorTool {
-  /// Select & drag existing breakpoints.
+  /// Select & drag existing breakpoints, tap segment to highlight for shape insert.
   select,
 
   /// Draw/freehand — add points by dragging across canvas.
@@ -25,9 +25,8 @@ const double _dotRadius = 6.0;
 /// Highlighted (dragged) breakpoint dot radius.
 const double _selectedDotRadius = 9.0;
 
-/// Fullscreen curve modulator editor with toolbar, waveform presets, and
-/// free-draw support.  All changes are flushed to the engine in a single
-/// [batchUpdateLfoParams] call.
+/// Fullscreen curve modulator editor with toolbar, shape-insert mode, and
+/// free-draw support.  All changes are flushed in a single bridge call.
 class CurveEditorScreen extends StatefulWidget {
   const CurveEditorScreen({
     super.key,
@@ -36,13 +35,8 @@ class CurveEditorScreen extends StatefulWidget {
     required this.onBatchUpdate,
   });
 
-  /// The [LfoSnapshot] for the curve modulator being edited.
   final LfoSnapshot mod;
-
-  /// Single-param bridge callback (kept for compatibility with properties panel).
   final Future<void> Function(String param, double value) onUpdate;
-
-  /// Batch bridge callback — receives a list of {param, value} maps.
   final Future<void> Function(List<Map<String, dynamic>> params) onBatchUpdate;
 
   @override
@@ -59,6 +53,11 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
   int _bpCount = 0;
   int? _draggingIndex;
   CurveEditorTool _tool = CurveEditorTool.select;
+  late int _polarity;
+
+  /// When set, the segment between [segmentIdx] and [segmentIdx+1] is selected
+  /// for shape insertion.  -1 = no segment selected.
+  int _segmentIdx = -1;
 
   // ---------------------------------------------------------------------------
   // Lifecycle
@@ -73,9 +72,7 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
   @override
   void didUpdateWidget(CurveEditorScreen old) {
     super.didUpdateWidget(old);
-    if (old.mod.id != widget.mod.id) {
-      _importMod();
-    }
+    if (old.mod.id != widget.mod.id) _importMod();
   }
 
   void _importMod() {
@@ -83,22 +80,21 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
     _values = List<double>.from(widget.mod.curveBpValues);
     _shapes = List<int>.from(widget.mod.curveBpShapes);
     _bpCount = _positions.length;
+    _polarity = widget.mod.polarity;
+    _segmentIdx = -1;
   }
 
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
 
-  int get _polarity => widget.mod.polarity;
+  double _valueClamp(double v) =>
+      _polarity == 0 ? v.clamp(-1.0, 1.0) : v.clamp(0.0, 1.0);
 
-  double _valueClamp(double v) {
-    return _polarity == 0 ? v.clamp(-1.0, 1.0) : v.clamp(0.0, 1.0);
-  }
-
-  /// Collect all param updates into a list for a single batch bridge call.
   List<Map<String, dynamic>> _collectUpdates() {
     final updates = <Map<String, dynamic>>[];
     updates.add({'param': 'breakpointCount', 'value': _bpCount.toDouble()});
+    updates.add({'param': 'polarity', 'value': _polarity.toDouble()});
     for (var i = 0; i < _bpCount; i++) {
       if (i < _positions.length) {
         updates.add({'param': 'bp_${i}_pos', 'value': _positions[i]});
@@ -111,12 +107,10 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
     return updates;
   }
 
-  /// Flush all current breakpoint state to the engine in a single call.
   Future<void> _syncToBridge() async {
     await widget.onBatchUpdate(_collectUpdates());
   }
 
-  /// Bubble-sort all three arrays by position.
   void _mergeSort() {
     for (var i = 0; i < _positions.length; i++) {
       for (var j = i + 1; j < _positions.length; j++) {
@@ -135,8 +129,6 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
     }
   }
 
-  /// Return the breakpoint index whose canvas position is within [_hitRadius]
-  /// of [localPos], or null.
   int? _hitTestPoint(Offset localPos, Size s) {
     for (var i = 0; i < _bpCount; i++) {
       final x = _positions[i] * s.width;
@@ -146,7 +138,6 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
     return null;
   }
 
-  /// Return segment index whose X-range contains the normalized X, or null.
   int? _hitTestSegmentX(Offset localPos, Size s) {
     final nx = (localPos.dx / s.width).clamp(0.0, 1.0);
     for (var i = 0; i < _bpCount - 1; i++) {
@@ -155,68 +146,192 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
     return null;
   }
 
-  /// Normalised canvas X/Y from a local position.
   double _nx(Offset localPos, Size s) =>
       (localPos.dx / s.width).clamp(0.0, 1.0);
   double _ny(Offset localPos, Size s) =>
-      _valueClamp(0.5 - localPos.dy / s.height * 0.5 * 2.0);
+      _valueClamp(1.0 - 2.0 * localPos.dy / s.height);
 
   // ---------------------------------------------------------------------------
-  // Waveform presets
+  // Shape generation for segment insertion
   // ---------------------------------------------------------------------------
 
-  /// Generate breakpoints approximating a standard waveform.
-  /// Returns (positions, values) lists.
-  List<List<double>> _waveformPoints(String name) {
-    switch (name) {
-      case 'sine':
-        return _sampleCurve((t) => math.sin(t * 2 * math.pi));
-      case 'tri':
-        return _sampleCurve((t) {
-          if (t < 0.25) return 4.0 * t;
-          if (t < 0.75) return 2.0 - 4.0 * t;
-          return 4.0 * t - 4.0;
-        });
-      case 'saw':
-        return _sampleCurve((t) => 2.0 * t - 1.0);
-      case 'square':
-        return _sampleCurve((t) => t < 0.5 ? 1.0 : -1.0);
+  /// Generate breakpoints for a shape between two anchors in [0..1] domain.
+  /// Returns (positions, values).
+  List<List<double>> _generateSegmentShape(
+    String shapeName,
+    double posStart,
+    double posEnd,
+    double valStart,
+    double valEnd, {
+    double floor = 0.0,
+    double peak = 1.0,
+    double cycles = 1.0,
+    double duty = 0.5,
+  }) {
+    final span = posEnd - posStart;
+    if (span <= 1e-6) return [<double>[], <double>[]];
+
+    final min = floor;
+    final max = peak;
+    if (min > max) return _generateSegmentShape(shapeName, posStart, posEnd,
+        valStart, valEnd,
+        floor: peak, peak: min, cycles: cycles, duty: duty);
+
+    List<double> pos, val;
+
+    switch (shapeName) {
       case 'ramp':
-        return _sampleCurve((t) => 1.0 - 2.0 * t);
+        pos = [posStart, posEnd];
+        val = [valStart, valEnd];
+        return [pos, val];
+      case 'saw':
+        final pts = _sampleCycles((t) {
+          final lin = t; // 0→1 within cycle
+          return min + (max - min) * lin;
+        }, span, cycles);
+        pos = pts[0];
+        val = pts[1];
+      case 'tri':
+        final pts = _sampleCycles((t) {
+          final halfPhase = t < 0.5;
+          final lin = halfPhase ? 2.0 * t : 2.0 - 2.0 * t;
+          return min + (max - min) * lin;
+        }, span, cycles);
+        pos = pts[0];
+        val = pts[1];
+      case 'square':
+        final pts = _sampleCycles((t) {
+          return t < duty ? max : min;
+        }, span, cycles);
+        pos = pts[0];
+        val = pts[1];
+      case 'sine':
       default:
-        return [
-          [0.0, 1.0],
-          [0.0, 1.0]
-        ];
+        final pts = _sampleCycles((t) {
+          return min +
+              (max - min) * (0.5 + 0.5 * math.sin(2 * math.pi * t));
+        }, span, cycles);
+        pos = pts[0];
+        val = pts[1];
     }
-  }
 
-  /// Sample a function at 16 equidistant points and return [positions, values].
-  List<List<double>> _sampleCurve(double Function(double) fn) {
-    const n = 16;
-    final pos = <double>[];
-    final val = <double>[];
-    for (var i = 0; i < n; i++) {
-      final t = i / (n - 1);
-      pos.add(t);
-      val.add(fn(t));
+    // Map back to absolute positions, replace first/last with anchors exactly.
+    if (pos.isNotEmpty) {
+      // Rebase: first point at posStart, last at posEnd
+      for (var i = 0; i < pos.length; i++) {
+        pos[i] = posStart + pos[i] * span;
+      }
+      pos[0] = posStart;
+      pos[pos.length - 1] = posEnd;
+      val[0] = valStart;
+      val[val.length - 1] = valEnd;
     }
     return [pos, val];
   }
 
-  void _applyWaveform(String name) {
-    final pts = _waveformPoints(name);
+  /// Sample a function across [span] with [cycles] repetitions.
+  /// Returns lists of absolute positions and values in [0,1].
+  List<List<double>> _sampleCycles(
+    double Function(double t) fn,
+    double span,
+    double cycles,
+  ) {
+    const stepsPerCycle = 16;
+    final totalSteps = math.max(2, (stepsPerCycle * cycles).round());
+    final pos = <double>[];
+    final val = <double>[];
+    for (var i = 0; i <= totalSteps; i++) {
+      final t = i / totalSteps; // 0..1 across total cycles
+      pos.add(i / totalSteps); // relative position
+      val.add(fn((t * cycles) % 1.0)); // fn phase within cycle
+    }
+    return [pos, val];
+  }
+
+  /// Replace the segment at [_segmentIdx] with the given shape.
+  void _insertShapeAtSegment(String shapeName,
+      {double floor = 0.0, double peak = 1.0, double cycles = 1.0}) {
+    if (_segmentIdx < 0 || _segmentIdx >= _bpCount - 1) return;
+
+    final i = _segmentIdx;
+    final p0 = _positions[i];
+    final p1 = _positions[i + 1];
+    final v0 = _values[i];
+    final v1 = _values[i + 1];
+
+    final pts = _generateSegmentShape(shapeName, p0, p1, v0, v1,
+        floor: floor, peak: peak, cycles: cycles);
+
+    if (pts[0].length < 2) return;
+
+    // Remove existing interior points (i+1 is the right anchor, keep it).
+    // Remove everything strictly between i and i+1.
+    final removeIndices = <int>[];
+    for (var j = 0; j < _bpCount; j++) {
+      if (j != i && j != i + 1 &&
+          _positions[j] > p0 + 1e-6 && _positions[j] < p1 - 1e-6) {
+        removeIndices.add(j);
+      }
+    }
+    // Remove in reverse order.
+    removeIndices.sort((a, b) => b.compareTo(a));
+    for (final idx in removeIndices) {
+      _positions.removeAt(idx);
+      _values.removeAt(idx);
+      _shapes.removeAt(idx);
+    }
+
+    // Insert new points after index i (but not the first/last which are anchors).
+    final insertPos = <double>[];
+    final insertVal = <double>[];
+    final insertShape = <int>[];
+    for (var k = 1; k < pts[0].length - 1; k++) {
+      insertPos.add(pts[0][k]);
+      insertVal.add(pts[1][k]);
+      insertShape.add(0); // linear segments
+    }
+
+    // Build new arrays: keep anchor i, then insert new points, then anchor i+1, then rest.
+    final seq = <int>[i];
+    // Find where i+1 is now (after any removals).
+    final rightAnchorIdx = _positions.indexOf(p1);
+    for (var k = 0; k < insertPos.length; k++) {
+      seq.add(-1 - k); // sentinel for insert
+    }
+    seq.add(rightAnchorIdx);
+    for (var j = rightAnchorIdx + 1; j < _positions.length; j++) {
+      seq.add(j);
+    }
+
+    // Rebuild.
+    final newPos = <double>[];
+    final newVal = <double>[];
+    final newShape = <int>[];
+    for (final s in seq) {
+      if (s >= 0) {
+        newPos.add(_positions[s]);
+        newVal.add(_values[s]);
+        newShape.add(_shapes[s]);
+      } else {
+        final k = -s - 1;
+        newPos.add(insertPos[k]);
+        newVal.add(insertVal[k]);
+        newShape.add(insertShape[k]);
+      }
+    }
+
     setState(() {
-      _positions = pts[0];
-      _values = pts[1];
-      _shapes = List.filled(_positions.length, 0);
+      _positions = newPos;
+      _values = newVal;
+      _shapes = newShape;
       _bpCount = _positions.length;
+      _segmentIdx = -1; // deselect after insert
     });
     _syncToBridge();
   }
 
   // ---------------------------------------------------------------------------
-  // Gesture handlers (delegated by tool)
+  // Gesture handlers
   // ---------------------------------------------------------------------------
 
   void _onPanStart(DragStartDetails details, Size cs) {
@@ -257,15 +372,12 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
     }
   }
 
-  // --- Select mode: drag breakpoints ---
-
   void _onSelectDrag(DragUpdateDetails details, Size cs) {
     if (_draggingIndex == null) return;
     final i = _draggingIndex!;
     setState(() {
       final dp = details.delta.dx / cs.width;
       final dv = -2.0 * details.delta.dy / cs.height;
-
       if (i == 0) {
         _positions[i] = 0.0;
         _values[i] = _valueClamp(_values[i] + dv);
@@ -282,38 +394,31 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
     });
   }
 
-  // --- Draw mode: freehand curve drawing ---
-
   void _onDrawStart(DragStartDetails details, Size cs) {
     setState(() {
       final nx = _nx(details.localPosition, cs);
-      final ny = _ny(details.localPosition, cs);
       _positions = [nx];
-      _values = [ny];
+      _values = [_ny(details.localPosition, cs)];
       _shapes = [0];
+      _segmentIdx = -1;
     });
   }
 
   void _onDrawUpdate(DragUpdateDetails details, Size cs) {
     final nx = _nx(details.localPosition, cs);
-    final ny = _ny(details.localPosition, cs);
-    // Only add if we've moved far enough (avoids noise).
     if ((nx - _positions.last).abs() < 0.015) return;
     setState(() {
       _positions.add(nx);
-      _values.add(ny);
+      _values.add(_ny(details.localPosition, cs));
       _shapes.add(0);
     });
   }
-
-  // --- Tap (select, draw-finish, erase) ---
 
   void _onTapUp(TapUpDetails details, Size cs) {
     switch (_tool) {
       case CurveEditorTool.select:
         _onSelectTap(details, cs);
       case CurveEditorTool.draw:
-        // In draw mode, tapping clears the curve.
         _resetToDefault();
       case CurveEditorTool.erase:
         _onEraseTap(details, cs);
@@ -323,20 +428,22 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
   void _onSelectTap(TapUpDetails details, Size cs) {
     final pos = details.localPosition;
 
-    // Inside a dot radius → ignore (dragging handles movement).
-    if (_hitTestPoint(pos, cs) != null) return;
-
-    // Inside a segment → cycle shape (linear→smooth→step→linear).
-    final segIdx = _hitTestSegmentX(pos, cs);
-    if (segIdx != null) {
-      setState(() {
-        _shapes[segIdx] = (_shapes[segIdx] + 1) % 3;
-      });
-      _syncToBridge();
+    // Hit a breakpoint? → deselect segment, ignore (dragging handles move).
+    if (_hitTestPoint(pos, cs) != null) {
+      if (_segmentIdx >= 0) setState(() => _segmentIdx = -1);
       return;
     }
 
-    // Otherwise → insert a new breakpoint at tap position.
+    // Hit a segment? → toggle segment selection.
+    final segIdx = _hitTestSegmentX(pos, cs);
+    if (segIdx != null) {
+      setState(() {
+        _segmentIdx = (_segmentIdx == segIdx) ? -1 : segIdx;
+      });
+      return;
+    }
+
+    // Otherwise → insert a new breakpoint.
     final nx = _nx(pos, cs);
     setState(() {
       _positions.add(nx);
@@ -344,11 +451,10 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
       _shapes.add(0);
       _mergeSort();
       _bpCount = _positions.length;
+      _segmentIdx = -1;
     });
     _syncToBridge();
   }
-
-  // --- Erase mode ---
 
   void _onEraseTap(TapUpDetails details, Size cs) {
     if (_bpCount <= 2) return;
@@ -359,19 +465,123 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
       _values.removeAt(hit);
       _shapes.removeAt(hit);
       _bpCount = _positions.length;
+      _segmentIdx = -1;
     });
     _syncToBridge();
   }
 
-  /// Reset to a simple 2-breakpoint linear ramp.
   void _resetToDefault() {
     setState(() {
       _positions = [0.0, 1.0];
       _values = [0.0, 1.0];
       _shapes = [0, 0];
       _bpCount = 2;
+      _segmentIdx = -1;
     });
     _syncToBridge();
+  }
+
+  /// Open shape-parameter bottom sheet and insert shape on confirm.
+  void _openShapeSheet(String shapeName) {
+    double floor = _polarity == 0 ? -1.0 : 0.0;
+    double peak = 1.0;
+    double cycles = 1.0;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1C1C28),
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setSheetState) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Insert ${shapeName.toUpperCase()}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _shapeSlider(ctx, 'Floor', floor, _polarity == 0 ? -1.0 : 0.0,
+                    peak - 0.01, (v) => floor = v),
+                _shapeSlider(
+                    ctx, 'Peak', peak, floor + 0.01, 1.0, (v) => peak = v),
+                _shapeSlider(
+                    ctx, 'Cycles', cycles, 0.25, 8.0, (v) => cycles = v, decimals: 1),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _accent,
+                    foregroundColor: Colors.black,
+                  ),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _insertShapeAtSegment(shapeName,
+                        floor: floor, peak: peak, cycles: cycles);
+                  },
+                  child: const Text('Apply', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ],
+            ),
+          );
+        });
+      },
+    );
+  }
+
+  Widget _shapeSlider(
+    BuildContext ctx,
+    String label,
+    double value,
+    double min,
+    double max,
+    ValueChanged<double> onChanged, {
+    int decimals = 2,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 52,
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.white60, fontSize: 11),
+            ),
+          ),
+          Expanded(
+            child: SliderTheme(
+              data: SliderTheme.of(ctx).copyWith(
+                activeTrackColor: _accent,
+                inactiveTrackColor: Colors.white.withValues(alpha: 0.08),
+                thumbColor: _accent,
+                overlayColor: _accent.withValues(alpha: 0.15),
+                trackHeight: 3,
+              ),
+              child: Slider(
+                value: value.clamp(min, max),
+                min: min,
+                max: max,
+                onChanged: onChanged,
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 44,
+            child: Text(
+              value.toStringAsFixed(decimals),
+              textAlign: TextAlign.end,
+              style: const TextStyle(color: Colors.white70, fontSize: 11),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -384,55 +594,48 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text(
-          'STEPS',
-          style: TextStyle(
-            color: Colors.white38,
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        const Text('STEPS',
+            style: TextStyle(
+                color: Colors.white38,
+                fontSize: 10,
+                fontWeight: FontWeight.w600)),
         const SizedBox(width: 8),
-        _stepperButton(
-          '-',
-          enabled: canMinus,
-          onTap: () {
-            setState(() {
-              _positions.removeAt(_bpCount - 1);
-              _values.removeAt(_bpCount - 1);
-              _shapes.removeAt(_bpCount - 1);
-              _bpCount = _positions.length;
-            });
-            _syncToBridge();
-          },
-        ),
+        _stepperButton('-',
+            enabled: canMinus,
+            onTap: () {
+              setState(() {
+                _positions.removeAt(_bpCount - 1);
+                _values.removeAt(_bpCount - 1);
+                _shapes.removeAt(_bpCount - 1);
+                _bpCount = _positions.length;
+                _segmentIdx = -1;
+              });
+              _syncToBridge();
+            }),
         const SizedBox(width: 6),
-        Text(
-          '$_bpCount',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        Text('$_bpCount',
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w700)),
         const SizedBox(width: 6),
-        _stepperButton(
-          '+',
-          enabled: canPlus,
-          onTap: () {
-            setState(() {
-              final last = _bpCount - 1;
-              final midPos = (_positions[last - 1] + _positions[last]) / 2;
-              final midVal = (_values[last - 1] + _values[last]) / 2;
-              _positions.add(midPos.clamp(0.0, 1.0));
-              _values.add(_valueClamp(midVal));
-              _shapes.add(0);
-              _mergeSort();
-              _bpCount = _positions.length;
-            });
-            _syncToBridge();
-          },
-        ),
+        _stepperButton('+',
+            enabled: canPlus,
+            onTap: () {
+              setState(() {
+                final last = _bpCount - 1;
+                final midPos =
+                    (_positions[last - 1] + _positions[last]) / 2;
+                final midVal =
+                    (_values[last - 1] + _values[last]) / 2;
+                _positions.add(midPos.clamp(0.0, 1.0));
+                _values.add(_valueClamp(midVal));
+                _shapes.add(0);
+                _mergeSort();
+                _bpCount = _positions.length;
+              });
+              _syncToBridge();
+            }),
       ],
     );
   }
@@ -463,14 +666,11 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
             onTap: enabled ? onTap : null,
             borderRadius: BorderRadius.circular(4),
             child: Center(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: enabled ? _accent : Colors.white24,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              child: Text(label,
+                  style: TextStyle(
+                      color: enabled ? _accent : Colors.white24,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700)),
             ),
           ),
         ),
@@ -483,6 +683,7 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
   // ---------------------------------------------------------------------------
 
   Widget _buildToolbar() {
+    final hasSegment = _segmentIdx >= 0 && _segmentIdx < _bpCount - 1;
     return Container(
       height: 48,
       decoration: BoxDecoration(
@@ -499,21 +700,24 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
           _toolButton(Icons.pan_tool_alt_outlined, Icons.pan_tool_alt,
               CurveEditorTool.select),
           _toolButton(Icons.edit_outlined, Icons.edit, CurveEditorTool.draw),
-          _toolButton(
-              Icons.auto_fix_high_outlined, Icons.auto_fix_high, CurveEditorTool.erase),
+          _toolButton(Icons.auto_fix_high_outlined, Icons.auto_fix_high,
+              CurveEditorTool.erase),
           Container(
             width: 1,
             height: 24,
             color: Colors.white.withValues(alpha: 0.08),
             margin: const EdgeInsets.symmetric(horizontal: 4),
           ),
-          // Waveform presets
-          _presetButton('Sin', 'sine'),
-          _presetButton('Tri', 'tri'),
-          _presetButton('Saw', 'saw'),
-          _presetButton('Sqr', 'square'),
-          _presetButton('Rmp', 'ramp'),
+          // Shape buttons (greyed out if no segment selected)
+          _shapeBtn('Sin', 'sine', hasSegment),
+          _shapeBtn('Tri', 'tri', hasSegment),
+          _shapeBtn('Saw', 'saw', hasSegment),
+          _shapeBtn('Sqr', 'square', hasSegment),
+          _shapeBtn('Rmp', 'ramp', hasSegment),
           const Spacer(),
+          // Polarity toggle
+          _polarityToggle(),
+          const SizedBox(width: 4),
           // Reset
           Material(
             color: Colors.transparent,
@@ -527,14 +731,11 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
                   children: [
                     Icon(Icons.refresh, size: 16, color: Colors.white54),
                     const SizedBox(width: 4),
-                    Text(
-                      'Reset',
-                      style: TextStyle(
-                        color: Colors.white54,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    Text('Reset',
+                        style: TextStyle(
+                            color: Colors.white54,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),
@@ -551,7 +752,8 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
     return Material(
       color: active ? _accent.withValues(alpha: 0.15) : Colors.transparent,
       child: InkWell(
-        onTap: () => setState(() => _tool = t),
+        onTap: () =>
+            setState(() { _tool = t; _segmentIdx = -1; }),
         child: SizedBox(
           width: 40,
           height: 48,
@@ -565,11 +767,11 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
     );
   }
 
-  Widget _presetButton(String label, String name) {
+  Widget _shapeBtn(String label, String name, bool enabled) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _applyWaveform(name),
+        onTap: enabled ? () => _openShapeSheet(name) : null,
         borderRadius: BorderRadius.circular(4),
         child: Container(
           constraints: const BoxConstraints(minWidth: 36),
@@ -578,10 +780,54 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
           alignment: Alignment.center,
           child: Text(
             label,
-            style: const TextStyle(
-              color: Colors.white60,
+            style: TextStyle(
+              color: enabled ? Colors.white60 : Colors.white.withValues(alpha: 0.15),
               fontSize: 9,
               fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _polarityToggle() {
+    final isBipolar = _polarity == 0;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _polarity = isBipolar ? 1 : 0;
+            // Clamp values to new range.
+            for (var i = 0; i < _values.length; i++) {
+              _values[i] = _valueClamp(_values[i]);
+            }
+          });
+          _syncToBridge();
+        },
+        borderRadius: BorderRadius.circular(4),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          height: 28,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: isBipolar
+                  ? _accent.withValues(alpha: 0.4)
+                  : Colors.white.withValues(alpha: 0.12),
+            ),
+            color: isBipolar
+                ? _accent.withValues(alpha: 0.12)
+                : Colors.white.withValues(alpha: 0.04),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            isBipolar ? 'Bi' : 'Uni',
+            style: TextStyle(
+              color: isBipolar ? _accent : Colors.white54,
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ),
@@ -595,20 +841,18 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hasSegment = _segmentIdx >= 0 && _segmentIdx < _bpCount - 1;
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: _bgDark,
       appBar: AppBar(
         backgroundColor: _bgDark,
         foregroundColor: Colors.white,
-        title: Text(
-          'CURVE ${widget.mod.id}',
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.2,
-          ),
-        ),
+        title: Text('CURVE ${widget.mod.id}',
+            style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.2)),
         centerTitle: true,
       ),
       body: MediaQuery.removePadding(
@@ -616,27 +860,21 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
         removeBottom: true,
         child: Column(
           children: [
-            // Header row: curve label + steps stepper
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
               child: Row(
                 children: [
-                  Text(
-                    'CURVE ${widget.mod.id}',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                  Text('CURVE ${widget.mod.id}',
+                      style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700)),
                   const Spacer(),
                   _buildStepper(),
                 ],
               ),
             ),
-            // Toolbar
             _buildToolbar(),
-            // Full-height curve editing canvas
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -645,9 +883,7 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final cs = Size(
-                        constraints.maxWidth,
-                        constraints.maxHeight,
-                      );
+                          constraints.maxWidth, constraints.maxHeight);
                       return GestureDetector(
                         onTapUp: (d) => _onTapUp(d, cs),
                         onPanStart: (d) => _onPanStart(d, cs),
@@ -660,6 +896,7 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
                             shapes: _shapes,
                             polarity: _polarity,
                             highlightedIndex: _draggingIndex,
+                            segmentIdx: hasSegment ? _segmentIdx : -1,
                             accent: _accent,
                           ),
                           size: cs,
@@ -688,6 +925,7 @@ class _CurveEditorPainter extends CustomPainter {
     required this.shapes,
     required this.polarity,
     required this.highlightedIndex,
+    required this.segmentIdx,
     required this.accent,
   });
 
@@ -696,20 +934,19 @@ class _CurveEditorPainter extends CustomPainter {
   final List<int> shapes;
   final int polarity;
   final int? highlightedIndex;
+  final int segmentIdx;
   final Color accent;
 
-  /// Number of linear subdivisions per smooth (Hermite) segment.
   static const int _hermiteSteps = 20;
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Background
     canvas.drawRect(
       Rect.fromLTWH(0, 0, size.width, size.height),
       Paint()..color = const Color(0xFF1A1A24),
     );
 
-    // Horizontal grid lines (5 rows).
+    // Grid.
     final gridPaint = Paint()
       ..color = Colors.white.withValues(alpha: 0.05)
       ..strokeWidth = 0.5;
@@ -718,7 +955,6 @@ class _CurveEditorPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
-    // Center line (bipolar only).
     if (polarity == 0) {
       final cy = size.height / 2;
       canvas.drawLine(
@@ -730,6 +966,30 @@ class _CurveEditorPainter extends CustomPainter {
       );
     }
 
+    // Highlight selected segment.
+    if (segmentIdx >= 0 && segmentIdx < positions.length - 1) {
+      final sx = positions[segmentIdx] * size.width;
+      final ex = positions[segmentIdx + 1] * size.width;
+      canvas.drawRect(
+        Rect.fromLTRB(sx, 0, ex, size.height),
+        Paint()..color = accent.withValues(alpha: 0.08),
+      );
+      canvas.drawLine(
+        Offset(sx, 0),
+        Offset(sx, size.height),
+        Paint()
+          ..color = accent.withValues(alpha: 0.3)
+          ..strokeWidth = 1.5,
+      );
+      canvas.drawLine(
+        Offset(ex, 0),
+        Offset(ex, size.height),
+        Paint()
+          ..color = accent.withValues(alpha: 0.3)
+          ..strokeWidth = 1.5,
+      );
+    }
+
     final count = positions.length;
     if (count < 2) return;
 
@@ -737,13 +997,11 @@ class _CurveEditorPainter extends CustomPainter {
     final curvePath = Path();
     final fillPath = Path();
 
-    // First point.
     double px = positions[0].clamp(0.0, 1.0) * size.width;
     double py = size.height * (0.5 - values[0].clamp(-1.0, 1.0) * 0.5);
     curvePath.moveTo(px, py);
     fillPath.moveTo(px, py);
 
-    // Build paths segment by segment.
     for (var i = 0; i < count - 1; i++) {
       final x1 = positions[i + 1].clamp(0.0, 1.0) * size.width;
       final y1 =
@@ -751,10 +1009,10 @@ class _CurveEditorPainter extends CustomPainter {
       final shape = i < shapes.length ? shapes[i] : 0;
 
       switch (shape) {
-        case 0: // Linear
+        case 0:
           curvePath.lineTo(x1, y1);
           fillPath.lineTo(x1, y1);
-        case 1: // Smooth (cubic Hermite)
+        case 1:
           final v0 = values[i];
           final v1 = values[i + 1];
           final m = (v1 - v0) * 0.5;
@@ -778,25 +1036,22 @@ class _CurveEditorPainter extends CustomPainter {
             curvePath.lineTo(ix, iy);
             fillPath.lineTo(ix, iy);
           }
-        case 2: // Step
+        case 2:
           curvePath.lineTo(x1, py);
           curvePath.lineTo(x1, y1);
           fillPath.lineTo(x1, py);
           fillPath.lineTo(x1, y1);
       }
-
       px = x1;
       py = y1;
     }
 
-    // Close fill path to zero line.
     final lastX = positions[count - 1].clamp(0.0, 1.0) * size.width;
     final firstX = positions[0].clamp(0.0, 1.0) * size.width;
     fillPath.lineTo(lastX, zeroY);
     fillPath.lineTo(firstX, zeroY);
     fillPath.close();
 
-    // Fill below curve.
     canvas.drawPath(
       fillPath,
       Paint()
@@ -804,7 +1059,6 @@ class _CurveEditorPainter extends CustomPainter {
         ..style = PaintingStyle.fill,
     );
 
-    // Curve line.
     canvas.drawPath(
       curvePath,
       Paint()
@@ -814,13 +1068,11 @@ class _CurveEditorPainter extends CustomPainter {
         ..strokeCap = StrokeCap.round,
     );
 
-    // Breakpoint dots.
     for (var i = 0; i < count; i++) {
       final x = positions[i].clamp(0.0, 1.0) * size.width;
       final y = size.height * (0.5 - values[i].clamp(-1.0, 1.0) * 0.5);
       final isHighlighted = highlightedIndex == i;
       final r = isHighlighted ? _selectedDotRadius : _dotRadius;
-
       canvas.drawCircle(
         Offset(x, y),
         r,
@@ -830,7 +1082,6 @@ class _CurveEditorPainter extends CustomPainter {
               : accent.withValues(alpha: 0.7)
           ..style = PaintingStyle.fill,
       );
-
       if (isHighlighted) {
         canvas.drawCircle(
           Offset(x, y),
@@ -843,14 +1094,12 @@ class _CurveEditorPainter extends CustomPainter {
       }
     }
 
-    // Shape indicators (L / S / H) near segment midpoints.
     for (var i = 0; i < count - 1; i++) {
       final shape = i < shapes.length ? shapes[i] : 0;
       final label = ['L', 'S', 'H'][shape.clamp(0, 2)];
       final mx = (positions[i] + positions[i + 1]) / 2 * size.width;
       final midV = (values[i] + values[i + 1]) / 2;
       final my = size.height * (0.5 - midV * 0.5);
-
       final tp = TextPainter(
         text: TextSpan(
           text: label,
@@ -871,12 +1120,13 @@ class _CurveEditorPainter extends CustomPainter {
   bool shouldRepaint(_CurveEditorPainter old) {
     if (old.positions.length != positions.length) return true;
     for (var i = 0; i < positions.length; i++) {
-      if (old.positions[i] != positions[i]) return true;
-      if (old.values[i] != values[i]) return true;
-      if (old.shapes[i] != shapes[i]) return true;
+      if (old.positions[i] != positions[i] ||
+          old.values[i] != values[i] ||
+          old.shapes[i] != shapes[i]) return true;
     }
     return old.polarity != polarity ||
         old.highlightedIndex != highlightedIndex ||
+        old.segmentIdx != segmentIdx ||
         old.accent != accent;
   }
 }
