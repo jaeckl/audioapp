@@ -1,197 +1,197 @@
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
-import 'modulator_polarity.dart';
+import 'device_knob_sizes.dart';
+import 'lfo_preview_painter.dart';
+import 'modulator_rate_codec.dart';
+import 'modulator_types.dart';
+import 'rotary_knob.dart';
 
-/// Side panel showing properties of the currently selected LFO.
-/// Appears to the right of the modulation grid when an LFO is selected.
 class LfoPropertiesPanel extends StatelessWidget {
   const LfoPropertiesPanel({
     super.key,
-    required this.lfo,
-    required this.edges,
+    required this.mod,
     required this.onUpdate,
-    required this.onRemoveEdge,
   });
 
-  final LfoSnapshot lfo;
-  final List<ModulationEdgeSnapshot> edges;
+  final LfoSnapshot mod;
   final Future<void> Function(String param, double value) onUpdate;
-  final Future<void> Function(int lfoId, String paramId) onRemoveEdge;
 
-  static const _syncOptions = ['Free', '1/1', '1/2', '1/4', '1/8', '1/16'];
+  static const accent = Color(0xFFE8A54B);
+  static const syncLabels = ['1/1', '1/2', '1/4', '1/8', '1/16'];
+
+  bool get _isSync => mod.retrigger == ModulatorTypes.retriggerSync;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
       color: const Color(0xFF14141C),
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'LFO ${lfo.id}',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: const Color(0xFFE8A54B),
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+            child: Row(
+              children: [
+                Text(
+                  'LFO ${mod.id}',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Preview fills remaining space
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: LfoPreviewWidget(
+                morph: mod.morph,
+                spread: mod.spread,
+                polarity: mod.polarity,
+                analogMode: mod.analogMode,
+                onChanged: (param, value) => onUpdate(param, value),
               ),
             ),
-            const SizedBox(height: 8),
-            _propRow('Waveform', SizedBox(
-              width: 80,
-              height: 24,
-              child: DropdownButtonFormField<int>(
-                value: lfo.waveform.clamp(0, 4),
-                isDense: true,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 0),
-                  isCollapsed: true,
-                ),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: Colors.white70,
-                  fontSize: 10,
-                ),
-                items: List.generate(5, (i) => DropdownMenuItem(
-                  value: i,
-                  child: Text(LfoSnapshot.waveformNames[i], style: const TextStyle(fontSize: 10)),
-                )),
-                onChanged: (v) { if (v != null) onUpdate('waveform', v.toDouble()); },
-              ),
-            )),
-            const SizedBox(height: 6),
-            _propRow('Rate', _miniSlider(lfo.rate, 'Rate', (v) => onUpdate('rate', v))),
-            const SizedBox(height: 6),
-            _propRow('Sync', SizedBox(
-              width: 60,
-              height: 24,
-              child: DropdownButtonFormField<int>(
-                value: lfo.syncDivision.clamp(0, 5),
-                isDense: true,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 0),
-                  isCollapsed: true,
-                ),
-                style: theme.textTheme.labelSmall?.copyWith(color: Colors.white70, fontSize: 10),
-                items: List.generate(_syncOptions.length, (i) => DropdownMenuItem(
-                  value: i,
-                  child: Text(_syncOptions[i], style: const TextStyle(fontSize: 10)),
-                )),
-                onChanged: (v) { if (v != null) onUpdate('syncDivision', v.toDouble()); },
-              ),
-            )),
-            const SizedBox(height: 6),
-            _propRow('Phase', _miniSlider(lfo.phase, 'Phase', (v) => onUpdate('phase', v))),
-            const SizedBox(height: 6),
-            _propRow('Polarity', SizedBox(
-              width: 88,
-              height: 24,
-              child: DropdownButtonFormField<int>(
-                value: lfo.polarity.clamp(0, 2),
-                isDense: true,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 0),
-                  isCollapsed: true,
-                ),
-                style: theme.textTheme.labelSmall?.copyWith(color: Colors.white70, fontSize: 10),
-                items: List.generate(ModulatorPolarityCodec.labels.length, (i) => DropdownMenuItem(
-                  value: i,
-                  child: Text(ModulatorPolarityCodec.labels[i], style: const TextStyle(fontSize: 10)),
-                )),
-                onChanged: (v) { if (v != null) onUpdate('polarity', v.toDouble()); },
-              ),
-            )),
-            if (edges.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Text(
-                'Targets',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: Colors.white38,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 4),
-              ...edges.map((edge) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        edge.paramId,
-                        style: const TextStyle(color: Colors.white60, fontSize: 9),
+          ),
+          // Retrigger mode — segmented button bar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+            child: _lfoSegmentBar(),
+          ),
+          // Sync divisions — segmented bar (only when sync active)
+          if (_isSync)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+              child: _lfoSyncDivisions(),
+            ),
+          // Knobs pinned to bottom
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+            child: _lfoKnobs(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Retrigger mode bar: Free, Sync, On note.
+  Widget _lfoSegmentBar() {
+    const labels = ['Free', 'Sync', 'On note'];
+    const values = [0, 1, 2];
+    final selected = mod.retrigger.clamp(0, 2);
+    return SizedBox(
+      height: 22,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xFF14141C),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < labels.length; i++) ...[
+                if (i > 0)
+                  Container(
+                    width: 1,
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
+                Expanded(
+                  child: Material(
+                    color: selected == values[i]
+                        ? accent.withValues(alpha: 0.2)
+                        : Colors.transparent,
+                    child: InkWell(
+                      onTap: () => onUpdate('retrigger', values[i].toDouble()),
+                      child: Center(
+                        child: Text(
+                          labels[i],
+                          style: TextStyle(
+                            color: selected == values[i] ? accent : Colors.white38,
+                            fontSize: 9,
+                            fontWeight:
+                                selected == values[i] ? FontWeight.w700 : FontWeight.w500,
+                          ),
+                        ),
                       ),
                     ),
-                    Text(
-                      '${(edge.amount * 100).round()}%',
-                      style: const TextStyle(color: Color(0xFFE8A54B), fontSize: 9),
-                    ),
-                    const SizedBox(width: 4),
-                    GestureDetector(
-                      onTap: () => onRemoveEdge(lfo.id, edge.paramId),
-                      child: const Icon(Icons.close, size: 12, color: Colors.white30),
-                    ),
-                  ],
+                  ),
                 ),
-              )),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _propRow(String label, Widget control) {
+  /// Sync division chips — only visible when `_isSync`.
+  Widget _lfoSyncDivisions() {
     return Row(
-      children: [
-        SizedBox(
-          width: 50,
-          child: Text(
-            label,
-            style: const TextStyle(color: Colors.white38, fontSize: 9),
+      children: List.generate(syncLabels.length, (i) {
+        final active = (mod.syncDivision.clamp(1, 5) - 1) == i;
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => onUpdate('syncDivision', (i + 1).toDouble()),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              decoration: BoxDecoration(
+                color: active ? accent.withValues(alpha: 0.2) : const Color(0xFF1A1A24),
+                borderRadius: BorderRadius.circular(3),
+                border: Border.all(
+                  color: active ? accent : Colors.white24,
+                  width: active ? 1.0 : 0.5,
+                ),
+              ),
+              child: Text(
+                syncLabels[i],
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: active ? accent : Colors.white54,
+                  fontSize: 8,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ),
           ),
-        ),
-        const SizedBox(width: 6),
-        control,
+        );
+      }),
+    );
+  }
+
+  Widget _lfoKnobs() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _lfoKnob('Rate', ModulatorRateCodec.formatRate(mod), mod.rate, (v) => onUpdate('rate', v)),
+        _lfoKnob('Phase', '${(mod.phase * 360).round()}\u00B0', mod.phase, (v) => onUpdate('phase', v)),
+        _lfoKnob('Shape', '${(mod.morph * 100).round()}%', mod.morph, (v) => onUpdate('morph', v)),
+        _lfoKnob('Skew', '${(mod.spread * 100).round()}%', mod.spread, (v) => onUpdate('spread', v)),
       ],
     );
   }
 
-  Widget _miniSlider(double value, String label, ValueChanged<double> onChanged) {
-    return SizedBox(
-      width: 60,
-      height: 24,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return GestureDetector(
-            onHorizontalDragUpdate: (details) {
-              final delta = details.delta.dx / constraints.maxWidth;
-              onChanged((value + delta).clamp(0.0, 1.0));
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF0D0D14),
-                borderRadius: BorderRadius.circular(3),
-              ),
-              alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: Container(
-                width: constraints.maxWidth * value,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8A54B),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-          );
-        },
+  Widget _lfoKnob(String label, String displayValue, double value, ValueChanged<double> onChanged) {
+    return Expanded(
+      child: Center(
+        child: RotaryKnob(
+          label: label,
+          value: value.clamp(0.0, 1.0),
+          displayValue: displayValue,
+          size: DeviceKnobSizes.compact,
+          accentColor: accent,
+          onChanged: onChanged,
+        ),
       ),
     );
   }

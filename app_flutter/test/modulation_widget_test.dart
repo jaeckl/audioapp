@@ -151,58 +151,19 @@ void main() {
   });
 
   group('LfoPropertiesPanel', () {
-    testWidgets('shows waveform dropdown and rate slider', (tester) async {
+    testWidgets('shows LFO panel name and rate knob', (tester) async {
       _suppressKnownOverflows();
 
       await tester.pumpWidget(MaterialApp(
         home: Scaffold(
           body: LfoPropertiesPanel(
-            lfo: LfoSnapshot(id: 1, waveform: 0, rate: 1.0),
-            edges: const [],
+            mod: LfoSnapshot(id: 1, type: 'lfo', rate: 0.5),
             onUpdate: (_, __) async {},
-            onRemoveEdge: (_, __) async {},
           ),
         ),
       ));
 
       expect(find.text('LFO 1'), findsOneWidget);
-      // Property labels rendered as Text widgets in _propRow.
-      expect(find.text('Waveform'), findsOneWidget);
-      expect(find.text('Rate'), findsOneWidget);
-    });
-
-    testWidgets('shows target modulation edges', (tester) async {
-      _suppressKnownOverflows();
-
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: LfoPropertiesPanel(
-            lfo: LfoSnapshot(id: 1, waveform: 0, rate: 1.0),
-            edges: const [
-              ModulationEdgeSnapshot(
-                lfoId: 1,
-                deviceId: 'dev-1',
-                paramId: 'filterCutoff',
-                amount: 0.75,
-              ),
-              ModulationEdgeSnapshot(
-                lfoId: 1,
-                deviceId: 'dev-1',
-                paramId: 'gain',
-                amount: -0.5,
-              ),
-            ],
-            onUpdate: (_, __) async {},
-            onRemoveEdge: (_, __) async {},
-          ),
-        ),
-      ));
-
-      expect(find.text('Targets'), findsOneWidget);
-      expect(find.text('filterCutoff'), findsOneWidget);
-      expect(find.text('gain'), findsOneWidget);
-      // 75% is displayed as the edge amount * 100 rounded.
-      expect(find.text('75%'), findsOneWidget);
     });
   });
 

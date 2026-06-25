@@ -499,21 +499,26 @@ class _ModulatorTileState extends State<_ModulatorTile> {
                 builder: (context, constraints) {
                   final steps = widget.lfo.stepValues;
                   final count = widget.lfo.sequencerSteps.clamp(1, 32);
-                  final barW = (constraints.maxWidth - (count - 1) * 1) / count;
+                  // Max 12 bars in preview to keep it readable in a tiny grid tile
+                  final displayCount = count > 12 ? 12 : count;
                   return Row(
-                    children: List.generate(count.clamp(0, 16), (i) {
-                      final val = (steps.length > i ? steps[i] : 0.5);
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 1),
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: List.generate(displayCount, (i) {
+                      // Map index correctly to sample from the full step array
+                      final stepIdx = ((i / displayCount) * count).floor().clamp(0, steps.length - 1);
+                      final val = (steps.isNotEmpty ? steps[stepIdx] : 0.5).clamp(0.0, 1.0);
+                      return Expanded(
                         child: Container(
-                          width: barW,
-                          height: constraints.maxHeight,
+                          margin: const EdgeInsets.symmetric(horizontal: 0.5),
                           alignment: Alignment.bottomCenter,
-                          child: Container(
-                            height: val * constraints.maxHeight,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE8A54B).withValues(alpha: 0.7),
-                              borderRadius: BorderRadius.circular(1),
+                          child: FractionallySizedBox(
+                            heightFactor: val,
+                            widthFactor: 1.0,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: accent.withValues(alpha: 0.75),
+                                borderRadius: BorderRadius.circular(0.5),
+                              ),
                             ),
                           ),
                         ),

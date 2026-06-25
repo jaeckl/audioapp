@@ -15,7 +15,10 @@ import 'device_strip_theme.dart';
 import 'device_strip_viewport.dart';
 import 'device_tool_rail.dart';
 import 'modulation_grid.dart';
-import 'modulator_properties_panel.dart';
+import 'lfo_properties_panel.dart';
+import 'envelope_properties_panel.dart';
+import 'random_properties_panel.dart';
+import 'sequencer_properties_panel.dart';
 import 'modulator_types.dart';
 import 'kick_generator_device_strip.dart';
 import 'kick_model.dart';
@@ -354,7 +357,14 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       );
 
   double get _modGridWidth => _modStripVisible ? 130.0 : 0.0;
-  double get _modPropsWidth => _modStripVisible && _selectedLfo != null ? 260.0 : 0.0;
+  double get _modPropsWidth {
+    if (!_modStripVisible || _selectedLfo == null) return 0.0;
+    final lfo = _selectedLfo!;
+    if (lfo.modulatorType == ModulatorTypes.envelope) return 260.0;
+    if (lfo.type == 'random_generator') return 160.0;
+    if (lfo.type == 'sequencer') return 280.0;
+    return 260.0;
+  }
   double get _modTargetsWidth => _modStripVisible && _showTargetsPanel && _selectedLfo != null ? 160.0 : 0.0;
   static const double _targetsPanelWidth = 160.0;
 
@@ -544,6 +554,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
 
   @override
   Widget build(BuildContext context) {
+    // ignore: avoid_print
+    print('SLOT BUILD: device=${widget.device.type} _modStripVisible=$_modStripVisible _selectedLfo=$_selectedLfo _selectedLfoId=$_selectedLfoId');
     return Padding(
       padding: EdgeInsets.fromLTRB(
         0,
@@ -657,27 +669,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                 if (_modStripVisible && _showTargetsPanel && _selectedLfo != null)
                   _targetsPanel(_targetsPanelLfo!),
                 if (_modStripVisible && _selectedLfo != null)
-                  SizedBox(
-                    width: 260,
-                    child: ModulatorPropertiesPanel(
-                      mod: _selectedLfo!,
-                      onUpdate: (param, value) async {
-                        // Optimistic local update: apply immediately, then sync to engine
-                        final selected = _selectedLfo;
-                        if (selected == null) return;
-                        final updated = selected.applyParamUpdate(param, value);
-                        setState(() {
-                          _localLfos = _localLfos.map((l) =>
-                              l.id == updated.id ? updated : l).toList();
-                        });
-                        await _onBridgeCall('updateLfoParam', {
-                          'lfoId': selected.id,
-                          'param': param,
-                          'value': value,
-                        });
-                      },
-                    ),
-                  ),
+                  _buildModulatorPropertiesPanel(_selectedLfo!, bodyHeight),
                 if (_inputWidth > 0)
                   SizedBox(
                     width: _inputWidth,
@@ -1190,6 +1182,67 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           child: _UnknownDeviceBody(deviceType: widget.device.type),
         );
     }
+  }
+
+  Widget _buildModulatorPropertiesPanel(LfoSnapshot snapshot, double bodyHeight) {
+    final isEnvelope = snapshot.modulatorType == ModulatorTypes.envelope;
+    final isRnd = snapshot.type == 'random_generator';
+    final isSeq = snapshot.type == 'sequencer';
+
+    // ignore: avoid_print
+    print('BUILD PROPERTIES PANEL: id=${snapshot.id} type=${snapshot.type} isSeq=$isSeq isRnd=$isRnd isEnvelope=$isEnvelope');
+
+    double width = 260;
+    Widget panel;
+
+    Future<void> onUpdate(String param, double value) async {
+      final updated = snapshot.applyParamUpdate(param, value);
+      if (mounted) {
+        setState(() {
+          _localLfos = _localLfos.map((l) => l.id == updated.id ? updated : l).toList();
+        });
+      }
+      await _onBridgeCall('updateLfoParam', {
+        'lfoId': snapshot.id,
+        'param': param,
+        'value': value,
+      });
+    }
+
+    if (isEnvelope) {
+      width = 260;
+      panel = EnvelopePropertiesPanel(
+        key: ValueKey('env_panel_${snapshot.id}'),
+        mod: snapshot,
+        onUpdate: onUpdate,
+      );
+    } else if (isRnd) {
+      width = 160;
+      panel = RandomPropertiesPanel(
+        key: ValueKey('rnd_panel_${snapshot.id}'),
+        mod: snapshot,
+        onUpdate: onUpdate,
+      );
+    } else if (isSeq) {
+      width = 280;
+      panel = SequencerPropertiesPanel(
+        key: ValueKey('seq_panel_${snapshot.id}'),
+        mod: snapshot,
+        onUpdate: onUpdate,
+      );
+    } else {
+      width = 260;
+      panel = LfoPropertiesPanel(
+        key: ValueKey('lfo_panel_${snapshot.id}'),
+        mod: snapshot,
+        onUpdate: onUpdate,
+      );
+    }
+
+    return SizedBox(
+      width: width,
+      child: panel,
+    );
   }
 }
 
