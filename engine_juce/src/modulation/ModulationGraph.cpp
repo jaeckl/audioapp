@@ -137,6 +137,7 @@ bool ModulationGraph::batchUpdateLfoParams(int lfoId, const std::vector<std::pai
             }
             type->setParameter(rec.params, param, value);
         }
+
         const int idx = playbackIndexForLfoId(lfoId);
         if (idx >= 0) {
             if (auto* mod = modulator(idx)) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <juce_core/juce_core.h>
 
 #include "audioapp/modulation/IModulatorType.hpp"
@@ -33,11 +34,23 @@ public:
         if (paramId == "syncDivision") { p.syncDivision = std::clamp(static_cast<int>(value), 0, 5); return true; }
         if (paramId == "polarity") { p.polarity = std::clamp(static_cast<int>(value), 0, 1); return true; }
         if (paramId == "smoothing") { p.smoothing = std::clamp(value, 0.0f, 1.0f); return true; }
-        if (paramId == "breakpointCount") { p.breakpointCount = std::clamp(static_cast<int>(value), 2, 32); return true; }
+        if (paramId == "breakpointCount") {
+            const int newCount = std::clamp(static_cast<int>(value), 2, 64);
+            if (newCount > p.breakpointCount) {
+                // Spread new breakpoints evenly so they don't all stack at position 0.0.
+                for (int i = p.breakpointCount; i < newCount; ++i) {
+                    p.breakpoints[i].position = static_cast<float>(i) / static_cast<float>(newCount - 1);
+                    p.breakpoints[i].value = 0.0f;
+                    p.breakpoints[i].shape = 0;
+                }
+            }
+            p.breakpointCount = newCount;
+            return true;
+        }
         if (paramId.size() > 4) {
-            const auto prefix = paramId.substr(0, 4);
+            const auto prefix = paramId.substr(0, 3);
             if (prefix == "bp_") {
-                const auto rest = paramId.substr(4);
+                const auto rest = paramId.substr(3);
                 auto usPos = rest.find('_');
                 if (usPos != std::string_view::npos) {
                     int idx = 0;
@@ -45,7 +58,7 @@ public:
                         if (c < '0' || c > '9') return false;
                         idx = idx * 10 + (c - '0');
                     }
-                    if (idx < 0 || idx >= 32) return false;
+                    if (idx < 0 || idx >= 64) return false;
                     const auto attr = rest.substr(usPos + 1);
                     if (attr == "pos") {
                         p.breakpoints[idx].position = std::clamp(value, 0.0f, 1.0f);
@@ -106,7 +119,7 @@ public:
             p.syncDivision = readInt("syncDivision", 3);
             p.polarity = readInt("polarity", 0);
             p.smoothing = readFloat("smoothing", 0.0f);
-            p.breakpointCount = std::clamp(readInt("breakpointCount", 2), 2, 32);
+            p.breakpointCount = std::clamp(readInt("breakpointCount", 2), 2, 64);
             for (int i = 0; i < p.breakpointCount; ++i) {
                 const auto pk = "bp_" + std::to_string(i) + "_";
                 p.breakpoints[i].position = readFloat((pk + "pos").c_str(),
@@ -114,6 +127,11 @@ public:
                 p.breakpoints[i].value = readFloat((pk + "val").c_str(), 0.0f);
                 p.breakpoints[i].shape = readInt((pk + "shape").c_str(), 0);
             }
+            // Defensive sort: positions must be ascending for audio-thread lookup.
+            std::sort(p.breakpoints.begin(), p.breakpoints.begin() + p.breakpointCount,
+                      [](const CurveBreakpoint& a, const CurveBreakpoint& b) {
+                          return a.position < b.position;
+                      });
         }
         return p;
     }

@@ -59,6 +59,9 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
   // Lifecycle
   // ---------------------------------------------------------------------------
 
+  /// Tracks the pending save future so PopScope can await it before popping.
+  Future<void>? _pendingSave;
+
   @override
   void initState() {
     super.initState();
@@ -75,6 +78,7 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
     _positions = List<double>.from(widget.mod.curveBpPositions);
     _values = List<double>.from(widget.mod.curveBpValues);
     _shapes = List<int>.from(widget.mod.curveBpShapes);
+    _mergeSort();
     _bpCount = _positions.length;
     _polarity = widget.mod.polarity;
     _selectedIndices.clear();
@@ -88,23 +92,60 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
       _polarity == 0 ? v.clamp(-1.0, 1.0) : v.clamp(0.0, 1.0);
 
   List<Map<String, dynamic>> _collectUpdates() {
+    const int maxEngineBp = 64;
+
+    // Always work against the actual current length to avoid stale _bpCount.
+    final bpCount = _positions.length;
+    if (bpCount < 2) return [
+      {'param': 'breakpointCount', 'value': 2.0},
+      {'param': 'polarity', 'value': _polarity.toDouble()},
+      {'param': 'bp_0_pos', 'value': 0.0},
+      {'param': 'bp_0_val', 'value': _polarity == 0 ? 0.0 : 0.5},
+      {'param': 'bp_0_shape', 'value': 0.0},
+      {'param': 'bp_1_pos', 'value': 1.0},
+      {'param': 'bp_1_val', 'value': _polarity == 0 ? 1.0 : 0.5},
+      {'param': 'bp_1_shape', 'value': 0.0},
+    ];
+
+    // Decimate breakpoints to avoid exceeding the engine array size (64).
+    int decimateStep = 1;
+    if (bpCount > maxEngineBp) {
+      decimateStep = (bpCount / maxEngineBp).ceil();
+    }
+
+    // Build decimated index list.
+    final indices = <int>[];
+    for (var i = 0; i < bpCount; i += decimateStep) {
+      indices.add(i);
+    }
+    // Ensure the very last point is included.
+    if (indices.last != bpCount - 1) indices.add(bpCount - 1);
+
+    // Sort decimated indices by position so the engine receives
+    // breakpoints in strictly ascending X-order. Values and shapes
+    // are read through the same indices, keeping the parallel arrays
+    // consistent.
+    indices.sort((a, b) => _positions[a].compareTo(_positions[b]));
+
     final updates = <Map<String, dynamic>>[];
-    updates.add({'param': 'breakpointCount', 'value': _bpCount.toDouble()});
+    updates.add({'param': 'breakpointCount', 'value': indices.length.toDouble()});
     updates.add({'param': 'polarity', 'value': _polarity.toDouble()});
-    for (var i = 0; i < _bpCount; i++) {
-      if (i < _positions.length) {
-        updates.add({'param': 'bp_${i}_pos', 'value': _positions[i]});
-        updates.add({'param': 'bp_${i}_val', 'value': _values[i]});
-      }
-      if (i < _shapes.length) {
-        updates.add({'param': 'bp_${i}_shape', 'value': _shapes[i].toDouble()});
-      }
+    for (var i = 0; i < indices.length; i++) {
+      final src = indices[i];
+      updates.add({'param': 'bp_${i}_pos', 'value': _positions[src]});
+      updates.add({'param': 'bp_${i}_val', 'value': _values[src]});
+      updates.add({'param': 'bp_${i}_shape', 'value': _shapes[src].toDouble()});
     }
     return updates;
   }
 
   Future<void> _syncToBridge() async {
-    await widget.onBatchUpdate(_collectUpdates());
+    _mergeSort();
+    _bpCount = _positions.length;
+    final updates = _collectUpdates();
+    _pendingSave = widget.onBatchUpdate(updates);
+    await _pendingSave;
+    _pendingSave = null;
   }
 
   void _mergeSort() {
@@ -123,6 +164,15 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
         }
       }
     }
+    // Remove duplicate positions (within epsilon).
+    for (var i = _positions.length - 1; i >= 1; i--) {
+      if ((_positions[i] - _positions[i - 1]).abs() < 1e-9) {
+        _positions.removeAt(i);
+        _values.removeAt(i);
+        _shapes.removeAt(i);
+      }
+    }
+    _selectedIndices.clear();
   }
 
   int? _hitTestPoint(Offset localPos, Size s) {
@@ -286,6 +336,7 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
       _positions = newPos;
       _values = newVal;
       _shapes = newShape;
+      _mergeSort();
       _bpCount = _positions.length;
       _selectedIndices.clear();
     });
@@ -360,6 +411,7 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
       case CurveEditorTool.select:
         if (_draggingIndex != null) {
           _draggingIndex = null;
+          _mergeSort();
           _syncToBridge();
         }
       case CurveEditorTool.draw:
@@ -443,9 +495,9 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
     final newVal = <double>[];
     final newShape = <int>[];
 
-    // Points before draw range (including left endpoint).
+    // Points strictly before draw range (left endpoint only if outside draw).
     for (var i = 0; i < _bpCount; i++) {
-      if (_positions[i] < drawMin - 1e-6 || i == 0) {
+      if (_positions[i] < drawMin - 1e-6) {
         newPos.add(_positions[i]);
         newVal.add(_values[i]);
         newShape.add(_shapes[i]);
@@ -459,9 +511,9 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
       newShape.add(0);
     }
 
-    // Points after draw range (including right endpoint).
+    // Points strictly after draw range (right endpoint only if outside draw).
     for (var i = 0; i < _bpCount; i++) {
-      if (_positions[i] > drawMax + 1e-6 || i == _lastIdx) {
+      if (_positions[i] > drawMax + 1e-6) {
         newPos.add(_positions[i]);
         newVal.add(_values[i]);
         newShape.add(_shapes[i]);
@@ -498,6 +550,7 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
       _positions.removeAt(hit);
       _values.removeAt(hit);
       _shapes.removeAt(hit);
+      _mergeSort();
       _bpCount = _positions.length;
       _selectedIndices.clear();
     });
@@ -669,7 +722,15 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (!didPop) {
+          await widget.onBatchUpdate(_collectUpdates());
+          if (context.mounted) Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: _bgDark,
       appBar: AppBar(
@@ -737,6 +798,7 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 }

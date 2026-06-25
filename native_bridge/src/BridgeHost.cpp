@@ -290,6 +290,7 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
     }
     if (method == "batchUpdateLfoParams") {
         const auto lfoId = static_cast<int>(jsonGetNumberArg(argumentsJson, "lfoId", 0.0));
+        BRIDGE_LOG("batchUpdateLfoParams lfoId=%d args=%.200s", lfoId, argumentsJson.c_str());
         const auto parsed = juce::JSON::parse(argumentsJson);
         std::vector<std::pair<std::string, float>> params;
         if (const auto* obj = parsed.getDynamicObject()) {
@@ -305,9 +306,12 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
                 }
             }
         }
+        BRIDGE_LOG("batchUpdateLfoParams parsed %zu params", params.size());
         if (!engine().batchUpdateLfoParams(lfoId, params)) {
+            BRIDGE_LOG("batchUpdateLfoParams FAILED");
             return buildBridgeError("lfo_param_failed");
         }
+        BRIDGE_LOG("batchUpdateLfoParams SUCCESS");
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
     if (method == "assignModulation") {

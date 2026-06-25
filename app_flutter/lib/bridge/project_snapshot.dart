@@ -554,7 +554,7 @@ class LfoSnapshot {
       case 'direction':     return copyWith(sequencerDirection: value.round().clamp(0, 3));
       case 'shape':         return copyWith(sequencerShape: value.round().clamp(0, 2));
       case 'breakpointCount':
-        return copyWith(curveBpPositions: [for (var i = 0; i < value.round().clamp(2, 32); i++)
+        return copyWith(curveBpPositions: [for (var i = 0; i < value.round().clamp(2, 64); i++)
           i < curveBpPositions.length ? curveBpPositions[i] : (i / (value - 1))]);
       default:
         if (param.startsWith('bp_')) {
@@ -562,7 +562,7 @@ class LfoSnapshot {
           final parts = param.split('_');
           if (parts.length == 3) {
             final idx = int.tryParse(parts[1]);
-            if (idx != null && idx >= 0 && idx < 32) {
+            if (idx != null && idx >= 0 && idx < 64) {
               final attr = parts[2];
               if (attr == 'pos') {
                 final newVals = [...curveBpPositions];

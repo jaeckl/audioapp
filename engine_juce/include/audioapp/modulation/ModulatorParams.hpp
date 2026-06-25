@@ -73,7 +73,7 @@ struct CurveParams {
     int polarity = 0;                 // 0=bipolar, 1=unipolar-pos
     float smoothing = 0.0f;          // [0, 1] single-pole lowpass
     int breakpointCount = 2;
-    std::array<CurveBreakpoint, 32> breakpoints{};
+    std::array<CurveBreakpoint, 64> breakpoints{};
     CurveParams() {
         breakpoints[0] = {0.0f, 0.0f, 0};
         breakpoints[1] = {1.0f, 1.0f, 0};

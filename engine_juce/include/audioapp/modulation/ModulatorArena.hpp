@@ -10,7 +10,7 @@
 namespace audioapp {
 
 /// Maximum size of any single Modulator subclass.
-static constexpr size_t kMaxModulatorSize = 512;
+static constexpr size_t kMaxModulatorSize = 1024;
 /// Maximum alignment for modulator storage.
 static constexpr size_t kModulatorAlignment = alignof(std::max_align_t);
 /// Maximum number of modulators per project.

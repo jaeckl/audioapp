@@ -707,6 +707,12 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             paramId: args['paramId'] as String,
           );
           break;
+        case 'batchUpdateLfoParams':
+          result = await widget.bridge.batchUpdateLfoParams(
+            lfoId: (args['lfoId'] as num).toInt(),
+            params: (args['params'] as List<dynamic>).cast<Map<String, dynamic>>(),
+          );
+          break;
         default:
           throw Exception('Unknown modulation bridge method: $method');
       }

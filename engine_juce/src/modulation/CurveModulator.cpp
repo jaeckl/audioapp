@@ -47,7 +47,7 @@ float CurveModulator::evaluate(double playheadBeat, int bpm,
 }
 
 float CurveModulator::evaluateCurve(float t) const noexcept {
-    const int count = std::clamp(params_.breakpointCount, 2, 32);
+    const int count = std::clamp(params_.breakpointCount, 2, 64);
     const auto& bp = params_.breakpoints;
 
     // Wrap t to [0, 1]

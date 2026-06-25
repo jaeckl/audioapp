@@ -310,6 +310,7 @@ class MainActivity : FlutterFragmentActivity() {
                         "createLfo",
                         "removeLfo",
                         "updateLfoParam",
+                        "batchUpdateLfoParams",
                         "assignModulation",
                         "removeModulation",
                         "applySubtractiveSynthPreset" -> {

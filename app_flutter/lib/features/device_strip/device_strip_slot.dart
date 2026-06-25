@@ -241,7 +241,9 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     final bridge = widget.onModulationBridgeCall;
     if (bridge == null) return _emptySnapshot;
     try {
+      debugPrint('DEVICE_SLOT: _onBridgeCall $method args=$args');
       final snapshot = await bridge(method, args);
+      debugPrint('DEVICE_SLOT: _onBridgeCall $method SUCCESS lfos=${snapshot.lfos.length}');
       if (mounted) {
         setState(() {
           _localLfos = List.of(snapshot.lfos);
