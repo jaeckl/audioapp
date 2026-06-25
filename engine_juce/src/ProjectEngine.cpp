@@ -591,7 +591,10 @@ void ProjectEngine::readMasterMixStereo(float* leftOut,
     if (!transport_.isPlaying()) {
         return;
     }
-    std::shared_lock<std::shared_mutex> lock(mutex_);
+    // No shared_lock needed: trackPlaybackCount_ release/acquire ordering
+    // provides happens-before for all trackPlayback_[] writes by the
+    // control thread in rebuildTrackPlaybackLocked. TransportController
+    // and ModulationGraph use their own atomics/double-buffering.
     mixAtPlayheadBeatStereo(leftOut, rightOut, numFrames, sampleRate, playheadStartBeat);
 }
 
