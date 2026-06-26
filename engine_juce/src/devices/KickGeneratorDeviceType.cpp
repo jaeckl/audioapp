@@ -181,4 +181,41 @@ DeviceProcessor* KickGeneratorDeviceType::createProcessor(ProcessorArena& arena)
     return arena.template emplace<KickProcessor>();
 }
 
+DeviceNodeKind KickGeneratorDeviceType::kind() const noexcept { return DeviceNodeKind::KickGenerator; }
+
+uint16_t KickGeneratorDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    auto k = [&](std::string_view n, KickParam pid) -> uint16_t {
+        return name == n ? static_cast<uint16_t>(pid) : 0;
+    };
+    if (auto v = k("kickModel", KickParam::Model)) return v;
+    if (auto v = k("kickPitch", KickParam::Pitch)) return v;
+    if (auto v = k("kickPunch", KickParam::Punch)) return v;
+    if (auto v = k("kickDecay", KickParam::Decay)) return v;
+    if (auto v = k("kickClick", KickParam::Click)) return v;
+    if (auto v = k("kickTone", KickParam::Tone)) return v;
+    if (auto v = k("kickVelocity", KickParam::Velocity)) return v;
+    return 0;
+}
+
+std::string_view KickGeneratorDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (static_cast<KickParam>(localId)) {
+    case KickParam::Model: return "kickModel";
+    case KickParam::Pitch: return "kickPitch";
+    case KickParam::Punch: return "kickPunch";
+    case KickParam::Decay: return "kickDecay";
+    case KickParam::Click: return "kickClick";
+    case KickParam::Tone: return "kickTone";
+    case KickParam::Velocity: return "kickVelocity";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> KickGeneratorDeviceType::paramDescriptors() const noexcept {
+    return {};
+}
+
+bool KickGeneratorDeviceType::usesDspAutomationSubBlocks() const noexcept {
+    return false;
+}
+
 } // namespace audioapp

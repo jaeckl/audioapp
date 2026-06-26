@@ -166,4 +166,33 @@ DeviceProcessor* ChorusDeviceType::createProcessor(ProcessorArena& arena) const 
     return arena.template emplace<ChorusProcessor>();
 }
 
+DeviceNodeKind ChorusDeviceType::kind() const noexcept { return DeviceNodeKind::Chorus; }
+
+uint16_t ChorusDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    auto c = [&](std::string_view n, uint16_t pid) -> uint16_t {
+        return name == n ? pid : 0;
+    };
+    if (auto v = c("chorusDepth", 0)) return v;
+    if (auto v = c("chorusRateHz", 1)) return v;
+    if (auto v = c("chorusMix", 2)) return v;
+    if (auto v = c("chorusCentreDelayMs", 3)) return v;
+    if (auto v = c("chorusFeedback", 4)) return v;
+    return 0;
+}
+
+std::string_view ChorusDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (localId) {
+    case 0: return "chorusDepth";
+    case 1: return "chorusRateHz";
+    case 2: return "chorusMix";
+    case 3: return "chorusCentreDelayMs";
+    case 4: return "chorusFeedback";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> ChorusDeviceType::paramDescriptors() const noexcept { return {}; }
+
+bool ChorusDeviceType::usesDspAutomationSubBlocks() const noexcept { return false; }
+
 } // namespace audioapp

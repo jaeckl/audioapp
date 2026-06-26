@@ -1237,18 +1237,21 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
             if (snap.automationClipCount >= 16) break;
             if (clip.deviceId.empty()) continue;
             int di = -1;
-            for (int i = 0; i < snap.deviceCount; ++i) {
-                if (snap.devices[i].deviceId == clip.deviceId) {
-                    di = i;
-                    break;
-                }
+        for (int i = 0; i < snap.deviceCount; ++i) {
+            if (snap.devices[i].deviceId == clip.deviceId) {
+                di = i;
+                break;
             }
-            if (di < 0) continue; // target device lives on another track
-            AutomationClipPlayback pb{};
-            if (!automationClipPlaybackFromClip(clip, pb)) continue;
-            pb.deviceIndex = static_cast<uint16_t>(di);
-            pb.localParamId = paramIdFromString(clip.paramId.c_str(), snap.devices[di].kind);
-            snap.automationClips[snap.automationClipCount++] = pb;
+        }
+        if (di < 0) continue; // target device lives on another track
+        AutomationClipPlayback pb{};
+        if (!automationClipPlaybackFromClip(clip, pb)) continue;
+        pb.deviceIndex = static_cast<uint16_t>(di);
+        {
+            const auto* type = deviceRegistry_.findByKind(snap.devices[di].kind);
+            pb.localParamId = type ? type->paramIdFromString(clip.paramId) : 0;
+        }
+        snap.automationClips[snap.automationClipCount++] = pb;
         }
 
         ++trackIndex;
@@ -1329,7 +1332,10 @@ void ProjectEngine::rebuildModEdgesLocked() {
             ModulationEdgePlayback& me = snap.modEdges[snap.modEdgeCount++];
             me.deviceIndex = static_cast<uint16_t>(di);
             me.lfoId = static_cast<uint16_t>(lfoPlaybackIdx);
-            me.localParamId = paramIdFromString(globalEdge.paramId.c_str(), snap.devices[di].kind);
+            {
+                const auto* type = deviceRegistry_.findByKind(snap.devices[di].kind);
+                me.localParamId = type ? type->paramIdFromString(globalEdge.paramId) : 0;
+            }
             me.amount = globalEdge.amount;
         }
     }

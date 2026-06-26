@@ -510,4 +510,156 @@ DeviceProcessor* PhaseModSynthDeviceType::createProcessor(ProcessorArena& arena)
     return arena.template emplace<PhaseModSynthProcessor>();
 }
 
+DeviceNodeKind PhaseModSynthDeviceType::kind() const noexcept { return DeviceNodeKind::PhaseModSynth; }
+
+uint16_t PhaseModSynthDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    auto pm = [&](std::string_view n, PhaseModSynthParam pid) -> uint16_t {
+        return name == n ? static_cast<uint16_t>(pid) : 0;
+    };
+    if (auto v = pm("pmOp1Level", PhaseModSynthParam::Op1Level)) return v;
+    if (auto v = pm("pmOp1Fine", PhaseModSynthParam::Op1Fine)) return v;
+    if (auto v = pm("pmOp1Attack", PhaseModSynthParam::Op1Attack)) return v;
+    if (auto v = pm("pmOp1Decay", PhaseModSynthParam::Op1Decay)) return v;
+    if (auto v = pm("pmOp1Sustain", PhaseModSynthParam::Op1Sustain)) return v;
+    if (auto v = pm("pmOp1Release", PhaseModSynthParam::Op1Release)) return v;
+    if (auto v = pm("pmOp2Level", PhaseModSynthParam::Op2Level)) return v;
+    if (auto v = pm("pmOp2Fine", PhaseModSynthParam::Op2Fine)) return v;
+    if (auto v = pm("pmOp2Attack", PhaseModSynthParam::Op2Attack)) return v;
+    if (auto v = pm("pmOp2Decay", PhaseModSynthParam::Op2Decay)) return v;
+    if (auto v = pm("pmOp2Sustain", PhaseModSynthParam::Op2Sustain)) return v;
+    if (auto v = pm("pmOp2Release", PhaseModSynthParam::Op2Release)) return v;
+    if (auto v = pm("pmOp3Level", PhaseModSynthParam::Op3Level)) return v;
+    if (auto v = pm("pmOp3Fine", PhaseModSynthParam::Op3Fine)) return v;
+    if (auto v = pm("pmOp3Attack", PhaseModSynthParam::Op3Attack)) return v;
+    if (auto v = pm("pmOp3Decay", PhaseModSynthParam::Op3Decay)) return v;
+    if (auto v = pm("pmOp3Sustain", PhaseModSynthParam::Op3Sustain)) return v;
+    if (auto v = pm("pmOp3Release", PhaseModSynthParam::Op3Release)) return v;
+    if (auto v = pm("pmOp4Level", PhaseModSynthParam::Op4Level)) return v;
+    if (auto v = pm("pmOp4Fine", PhaseModSynthParam::Op4Fine)) return v;
+    if (auto v = pm("pmOp4Attack", PhaseModSynthParam::Op4Attack)) return v;
+    if (auto v = pm("pmOp4Decay", PhaseModSynthParam::Op4Decay)) return v;
+    if (auto v = pm("pmOp4Sustain", PhaseModSynthParam::Op4Sustain)) return v;
+    if (auto v = pm("pmOp4Release", PhaseModSynthParam::Op4Release)) return v;
+    if (auto v = pm("filterCutoff", PhaseModSynthParam::FilterCutoff)) return v;
+    if (auto v = pm("filterQ", PhaseModSynthParam::FilterQ)) return v;
+    if (auto v = pm("filterEnvAmount", PhaseModSynthParam::FilterEnvAmount)) return v;
+    if (auto v = pm("filterMode", PhaseModSynthParam::FilterMode)) return v;
+    if (auto v = pm("filterAttack", PhaseModSynthParam::FilterAttack)) return v;
+    if (auto v = pm("filterDecay", PhaseModSynthParam::FilterDecay)) return v;
+    if (auto v = pm("filterSustain", PhaseModSynthParam::FilterSustain)) return v;
+    if (auto v = pm("filterRelease", PhaseModSynthParam::FilterRelease)) return v;
+    if (auto v = pm("filterKeyTrack", PhaseModSynthParam::FilterKeyTrack)) return v;
+    if (auto v = pm("attack", PhaseModSynthParam::AmpAttack)) return v;
+    if (auto v = pm("decay", PhaseModSynthParam::AmpDecay)) return v;
+    if (auto v = pm("sustain", PhaseModSynthParam::AmpSustain)) return v;
+    if (auto v = pm("release", PhaseModSynthParam::AmpRelease)) return v;
+    if (auto v = pm("pmFeedback", PhaseModSynthParam::Feedback)) return v;
+    if (auto v = pm("pmMasterVol", PhaseModSynthParam::MasterVol)) return v;
+    if (auto v = pm("pmLfoRate", PhaseModSynthParam::LfoRate)) return v;
+    if (auto v = pm("pmLfoAmount", PhaseModSynthParam::LfoAmount)) return v;
+    if (auto v = pm("pmVibratoDepth", PhaseModSynthParam::VibratoDepth)) return v;
+    if (auto v = pm("pmVibratoRate", PhaseModSynthParam::VibratoRate)) return v;
+    return 0;
+}
+
+std::string_view PhaseModSynthDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (static_cast<PhaseModSynthParam>(localId)) {
+    case PhaseModSynthParam::Op1Level: return "pmOp1Level";
+    case PhaseModSynthParam::Op1Fine: return "pmOp1Fine";
+    case PhaseModSynthParam::Op1Attack: return "pmOp1Attack";
+    case PhaseModSynthParam::Op1Decay: return "pmOp1Decay";
+    case PhaseModSynthParam::Op1Sustain: return "pmOp1Sustain";
+    case PhaseModSynthParam::Op1Release: return "pmOp1Release";
+    case PhaseModSynthParam::Op2Level: return "pmOp2Level";
+    case PhaseModSynthParam::Op2Fine: return "pmOp2Fine";
+    case PhaseModSynthParam::Op2Attack: return "pmOp2Attack";
+    case PhaseModSynthParam::Op2Decay: return "pmOp2Decay";
+    case PhaseModSynthParam::Op2Sustain: return "pmOp2Sustain";
+    case PhaseModSynthParam::Op2Release: return "pmOp2Release";
+    case PhaseModSynthParam::Op3Level: return "pmOp3Level";
+    case PhaseModSynthParam::Op3Fine: return "pmOp3Fine";
+    case PhaseModSynthParam::Op3Attack: return "pmOp3Attack";
+    case PhaseModSynthParam::Op3Decay: return "pmOp3Decay";
+    case PhaseModSynthParam::Op3Sustain: return "pmOp3Sustain";
+    case PhaseModSynthParam::Op3Release: return "pmOp3Release";
+    case PhaseModSynthParam::Op4Level: return "pmOp4Level";
+    case PhaseModSynthParam::Op4Fine: return "pmOp4Fine";
+    case PhaseModSynthParam::Op4Attack: return "pmOp4Attack";
+    case PhaseModSynthParam::Op4Decay: return "pmOp4Decay";
+    case PhaseModSynthParam::Op4Sustain: return "pmOp4Sustain";
+    case PhaseModSynthParam::Op4Release: return "pmOp4Release";
+    case PhaseModSynthParam::FilterCutoff: return "filterCutoff";
+    case PhaseModSynthParam::FilterQ: return "filterQ";
+    case PhaseModSynthParam::FilterEnvAmount: return "filterEnvAmount";
+    case PhaseModSynthParam::FilterMode: return "filterMode";
+    case PhaseModSynthParam::FilterAttack: return "filterAttack";
+    case PhaseModSynthParam::FilterDecay: return "filterDecay";
+    case PhaseModSynthParam::FilterSustain: return "filterSustain";
+    case PhaseModSynthParam::FilterRelease: return "filterRelease";
+    case PhaseModSynthParam::FilterKeyTrack: return "filterKeyTrack";
+    case PhaseModSynthParam::AmpAttack: return "attack";
+    case PhaseModSynthParam::AmpDecay: return "decay";
+    case PhaseModSynthParam::AmpSustain: return "sustain";
+    case PhaseModSynthParam::AmpRelease: return "release";
+    case PhaseModSynthParam::Feedback: return "pmFeedback";
+    case PhaseModSynthParam::MasterVol: return "pmMasterVol";
+    case PhaseModSynthParam::LfoRate: return "pmLfoRate";
+    case PhaseModSynthParam::LfoAmount: return "pmLfoAmount";
+    case PhaseModSynthParam::VibratoDepth: return "pmVibratoDepth";
+    case PhaseModSynthParam::VibratoRate: return "pmVibratoRate";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> PhaseModSynthDeviceType::paramDescriptors() const noexcept {
+    static constexpr ParamDescriptor kParams[] = {
+        {static_cast<uint16_t>(PhaseModSynthParam::Op1Level), "pmOp1Level", "Op1 Level", 0.8f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op1Fine), "pmOp1Fine", "Op1 Fine", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op1Attack), "pmOp1Attack", "Op1 Attack", 0.01f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op1Decay), "pmOp1Decay", "Op1 Decay", 0.3f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op1Sustain), "pmOp1Sustain", "Op1 Sustain", 0.8f, 0.0f, 1.0f, true, false},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op1Release), "pmOp1Release", "Op1 Release", 0.4f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op2Level), "pmOp2Level", "Op2 Level", 0.4f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op2Fine), "pmOp2Fine", "Op2 Fine", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op2Attack), "pmOp2Attack", "Op2 Attack", 0.01f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op2Decay), "pmOp2Decay", "Op2 Decay", 0.3f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op2Sustain), "pmOp2Sustain", "Op2 Sustain", 0.8f, 0.0f, 1.0f, true, false},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op2Release), "pmOp2Release", "Op2 Release", 0.4f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op3Level), "pmOp3Level", "Op3 Level", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op3Fine), "pmOp3Fine", "Op3 Fine", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op3Attack), "pmOp3Attack", "Op3 Attack", 0.01f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op3Decay), "pmOp3Decay", "Op3 Decay", 0.3f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op3Sustain), "pmOp3Sustain", "Op3 Sustain", 0.8f, 0.0f, 1.0f, true, false},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op3Release), "pmOp3Release", "Op3 Release", 0.4f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op4Level), "pmOp4Level", "Op4 Level", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op4Fine), "pmOp4Fine", "Op4 Fine", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op4Attack), "pmOp4Attack", "Op4 Attack", 0.01f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op4Decay), "pmOp4Decay", "Op4 Decay", 0.3f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op4Sustain), "pmOp4Sustain", "Op4 Sustain", 0.8f, 0.0f, 1.0f, true, false},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op4Release), "pmOp4Release", "Op4 Release", 0.4f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::FilterCutoff), "filterCutoff", "Filter Cutoff", 0.85f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::FilterQ), "filterQ", "Filter Q", 0.25f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::FilterEnvAmount), "filterEnvAmount", "Filter Env", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::FilterMode), "filterMode", "Filter Mode", 0.0f, 0.0f, 5.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::FilterAttack), "filterAttack", "Filter Attack", 0.05f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::FilterDecay), "filterDecay", "Filter Decay", 0.35f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::FilterSustain), "filterSustain", "Filter Sustain", 0.4f, 0.0f, 1.0f, true, false},
+        {static_cast<uint16_t>(PhaseModSynthParam::FilterRelease), "filterRelease", "Filter Release", 0.45f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::FilterKeyTrack), "filterKeyTrack", "Filter Key Track", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::AmpAttack), "attack", "Attack", 0.01f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::AmpDecay), "decay", "Decay", 0.3f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::AmpSustain), "sustain", "Sustain", 0.75f, 0.0f, 1.0f, true, false},
+        {static_cast<uint16_t>(PhaseModSynthParam::AmpRelease), "release", "Release", 0.35f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Feedback), "pmFeedback", "Feedback", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::MasterVol), "pmMasterVol", "Master Vol", 0.85f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::LfoRate), "pmLfoRate", "LFO Rate", 0.2f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::LfoAmount), "pmLfoAmount", "LFO Amount", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::VibratoDepth), "pmVibratoDepth", "Vibrato Depth", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::VibratoRate), "pmVibratoRate", "Vibrato Rate", 0.3f, 0.0f, 1.0f, true, true},
+    };
+    return kParams;
+}
+
+bool PhaseModSynthDeviceType::usesDspAutomationSubBlocks() const noexcept { return false; }
+
 } // namespace audioapp

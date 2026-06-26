@@ -157,4 +157,29 @@ DeviceProcessor* DelayDeviceType::createProcessor(ProcessorArena& arena) const {
     return arena.template emplace<DelayProcessor>();
 }
 
+DeviceNodeKind DelayDeviceType::kind() const noexcept { return DeviceNodeKind::Delay; }
+
+uint16_t DelayDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    auto d = [&](std::string_view n, uint16_t pid) -> uint16_t {
+        return name == n ? pid : 0;
+    };
+    if (auto v = d("delayTimeMs", 0)) return v;
+    if (auto v = d("delayFeedback", 1)) return v;
+    if (auto v = d("delayMix", 2)) return v;
+    return 0;
+}
+
+std::string_view DelayDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (localId) {
+    case 0: return "delayTimeMs";
+    case 1: return "delayFeedback";
+    case 2: return "delayMix";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> DelayDeviceType::paramDescriptors() const noexcept { return {}; }
+
+bool DelayDeviceType::usesDspAutomationSubBlocks() const noexcept { return false; }
+
 } // namespace audioapp

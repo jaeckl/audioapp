@@ -299,4 +299,75 @@ DeviceProcessor* BassSynthDeviceType::createProcessor(ProcessorArena& arena) con
     return arena.template emplace<BassSynthProcessor>();
 }
 
+DeviceNodeKind BassSynthDeviceType::kind() const noexcept { return DeviceNodeKind::BassSynth; }
+
+uint16_t BassSynthDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    auto b = [&](std::string_view n, BassSynthParam pid) -> uint16_t {
+        return name == n ? static_cast<uint16_t>(pid) : 0;
+    };
+    if (auto v = b("filterCutoff", BassSynthParam::FilterCutoff)) return v;
+    if (auto v = b("bassFilterResonance", BassSynthParam::FilterResonance)) return v;
+    if (auto v = b("filterEnvAmount", BassSynthParam::FilterEnvAmount)) return v;
+    if (auto v = b("filterDecay", BassSynthParam::FilterDecay)) return v;
+    if (auto v = b("attack", BassSynthParam::AmpAttack)) return v;
+    if (auto v = b("sustain", BassSynthParam::AmpSustain)) return v;
+    if (auto v = b("release", BassSynthParam::AmpRelease)) return v;
+    if (auto v = b("bassOscShape", BassSynthParam::OscShape)) return v;
+    if (auto v = b("bassSubMix", BassSynthParam::SubMix)) return v;
+    if (auto v = b("bassNoise", BassSynthParam::Noise)) return v;
+    if (auto v = b("bassDrive", BassSynthParam::Drive)) return v;
+    if (auto v = b("bassSquash", BassSynthParam::Squash)) return v;
+    if (auto v = b("glideMs", BassSynthParam::GlideMs)) return v;
+    if (auto v = b("bassVelocitySense", BassSynthParam::VelocitySense)) return v;
+    if (auto v = b("bassOctave", BassSynthParam::Octave)) return v;
+    if (auto v = b("bassSubOctave", BassSynthParam::SubOctave)) return v;
+    return 0;
+}
+
+std::string_view BassSynthDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (static_cast<BassSynthParam>(localId)) {
+    case BassSynthParam::FilterCutoff: return "filterCutoff";
+    case BassSynthParam::FilterResonance: return "bassFilterResonance";
+    case BassSynthParam::FilterEnvAmount: return "filterEnvAmount";
+    case BassSynthParam::FilterDecay: return "filterDecay";
+    case BassSynthParam::AmpAttack: return "attack";
+    case BassSynthParam::AmpSustain: return "sustain";
+    case BassSynthParam::AmpRelease: return "release";
+    case BassSynthParam::OscShape: return "bassOscShape";
+    case BassSynthParam::SubMix: return "bassSubMix";
+    case BassSynthParam::Noise: return "bassNoise";
+    case BassSynthParam::Drive: return "bassDrive";
+    case BassSynthParam::Squash: return "bassSquash";
+    case BassSynthParam::GlideMs: return "glideMs";
+    case BassSynthParam::VelocitySense: return "bassVelocitySense";
+    case BassSynthParam::Octave: return "bassOctave";
+    case BassSynthParam::SubOctave: return "bassSubOctave";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> BassSynthDeviceType::paramDescriptors() const noexcept {
+    static constexpr ParamDescriptor kParams[] = {
+        {static_cast<uint16_t>(BassSynthParam::FilterCutoff), "filterCutoff", "Filter Cutoff", 0.85f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(BassSynthParam::FilterResonance), "bassFilterResonance", "Filter Resonance", 0.25f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(BassSynthParam::FilterEnvAmount), "filterEnvAmount", "Env Amount", 0.6f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(BassSynthParam::FilterDecay), "filterDecay", "Filter Decay", 0.4f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(BassSynthParam::AmpAttack), "attack", "Attack", 0.02f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(BassSynthParam::AmpSustain), "sustain", "Sustain", 0.8f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(BassSynthParam::AmpRelease), "release", "Release", 0.35f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(BassSynthParam::OscShape), "bassOscShape", "Osc Shape", 0.3f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(BassSynthParam::SubMix), "bassSubMix", "Sub Mix", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(BassSynthParam::Noise), "bassNoise", "Noise", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(BassSynthParam::Drive), "bassDrive", "Drive", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(BassSynthParam::Squash), "bassSquash", "Squash", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(BassSynthParam::GlideMs), "glideMs", "Glide", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(BassSynthParam::VelocitySense), "bassVelocitySense", "Velocity Sense", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(BassSynthParam::Octave), "bassOctave", "Octave", 2.0f, 0.0f, 4.0f, true, true},
+        {static_cast<uint16_t>(BassSynthParam::SubOctave), "bassSubOctave", "Sub Octave", 0.0f, 0.0f, 2.0f, true, true},
+    };
+    return kParams;
+}
+
+bool BassSynthDeviceType::usesDspAutomationSubBlocks() const noexcept { return false; }
+
 } // namespace audioapp

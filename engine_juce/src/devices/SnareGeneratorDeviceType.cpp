@@ -187,4 +187,43 @@ DeviceProcessor* SnareGeneratorDeviceType::createProcessor(ProcessorArena& arena
     return arena.template emplace<SnareProcessor>();
 }
 
+DeviceNodeKind SnareGeneratorDeviceType::kind() const noexcept { return DeviceNodeKind::SnareGenerator; }
+
+uint16_t SnareGeneratorDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    auto s = [&](std::string_view n, SnareParam pid) -> uint16_t {
+        return name == n ? static_cast<uint16_t>(pid) : 0;
+    };
+    if (auto v = s("snareModel", SnareParam::Model)) return v;
+    if (auto v = s("snareBody", SnareParam::Body)) return v;
+    if (auto v = s("snareRing", SnareParam::Ring)) return v;
+    if (auto v = s("snareTune", SnareParam::Tune)) return v;
+    if (auto v = s("snareSnares", SnareParam::Snares)) return v;
+    if (auto v = s("snareSnap", SnareParam::Snap)) return v;
+    if (auto v = s("snareDecay", SnareParam::Decay)) return v;
+    if (auto v = s("snareVelocity", SnareParam::Velocity)) return v;
+    return 0;
+}
+
+std::string_view SnareGeneratorDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (static_cast<SnareParam>(localId)) {
+    case SnareParam::Model: return "snareModel";
+    case SnareParam::Body: return "snareBody";
+    case SnareParam::Ring: return "snareRing";
+    case SnareParam::Tune: return "snareTune";
+    case SnareParam::Snares: return "snareSnares";
+    case SnareParam::Snap: return "snareSnap";
+    case SnareParam::Decay: return "snareDecay";
+    case SnareParam::Velocity: return "snareVelocity";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> SnareGeneratorDeviceType::paramDescriptors() const noexcept {
+    return {};
+}
+
+bool SnareGeneratorDeviceType::usesDspAutomationSubBlocks() const noexcept {
+    return false;
+}
+
 } // namespace audioapp

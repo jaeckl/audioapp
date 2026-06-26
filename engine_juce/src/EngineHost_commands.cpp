@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstdio>
 #include <memory>
+#include <span>
 #include <unordered_map>
 
 #if defined(__ANDROID__)
@@ -784,8 +785,8 @@ std::string EngineHost::getParamDescriptorsJson(const std::string& deviceType) c
         return R"({"ok":false,"error":"unknown_device_type","protocolVersion":1})";
     }
 
-    int count = 0;
-    const ParamDescriptor* descriptors = paramDescriptorsForKind(kind, count);
+    const auto* type = project_->deviceRegistry().findByKind(kind);
+    const auto descriptors = type ? type->paramDescriptors() : std::span<const ParamDescriptor>{};
 
     // Build JSON string directly — avoids juce::var Array<var>* constructor
     // issues in JUCE 8.
@@ -793,8 +794,8 @@ std::string EngineHost::getParamDescriptorsJson(const std::string& deviceType) c
     json += deviceType;
     json += R"(","protocolVersion":1,"params":[)";
 
-    if (descriptors != nullptr) {
-        for (int i = 0; i < count; ++i) {
+    if (!descriptors.empty()) {
+        for (size_t i = 0; i < descriptors.size(); ++i) {
             if (i > 0) json += ",";
             const auto& d = descriptors[i];
             json += R"({"stableName":")";

@@ -228,4 +228,35 @@ DeviceProcessor* ExpanderDeviceType::createProcessor(ProcessorArena& arena) cons
     return arena.template emplace<ExpanderProcessor>();
 }
 
+DeviceNodeKind ExpanderDeviceType::kind() const noexcept { return DeviceNodeKind::Expander; }
+
+uint16_t ExpanderDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    auto e = [&](std::string_view n, ExpanderParam pid) -> uint16_t {
+        return name == n ? static_cast<uint16_t>(pid) : 0;
+    };
+    if (auto v = e("expInputGain", ExpanderParam::InputGain)) return v;
+    if (auto v = e("expandThreshold", ExpanderParam::Threshold)) return v;
+    if (auto v = e("expandRatio", ExpanderParam::Ratio)) return v;
+    if (auto v = e("expandAttack", ExpanderParam::Attack)) return v;
+    if (auto v = e("expandRelease", ExpanderParam::Release)) return v;
+    if (auto v = e("expandRange", ExpanderParam::Range)) return v;
+    return 0;
+}
+
+std::string_view ExpanderDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (static_cast<ExpanderParam>(localId)) {
+    case ExpanderParam::InputGain: return "expInputGain";
+    case ExpanderParam::Threshold: return "expandThreshold";
+    case ExpanderParam::Ratio: return "expandRatio";
+    case ExpanderParam::Attack: return "expandAttack";
+    case ExpanderParam::Release: return "expandRelease";
+    case ExpanderParam::Range: return "expandRange";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> ExpanderDeviceType::paramDescriptors() const noexcept { return {}; }
+
+bool ExpanderDeviceType::usesDspAutomationSubBlocks() const noexcept { return false; }
+
 } // namespace audioapp

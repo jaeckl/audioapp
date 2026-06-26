@@ -121,4 +121,6 @@ DeviceProcessor* TrackGainDeviceType::createProcessor(ProcessorArena& arena) con
     return arena.template emplace<TrackGainProcessor>();
 }
 
+DeviceNodeKind TrackGainDeviceType::kind() const noexcept { return DeviceNodeKind::TrackGain; }
+
 } // namespace audioapp

@@ -169,4 +169,33 @@ DeviceProcessor* ReverbDeviceType::createProcessor(ProcessorArena& arena) const 
     return arena.template emplace<ReverbProcessor>();
 }
 
+DeviceNodeKind ReverbDeviceType::kind() const noexcept { return DeviceNodeKind::Reverb; }
+
+uint16_t ReverbDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    auto r = [&](std::string_view n, uint16_t pid) -> uint16_t {
+        return name == n ? pid : 0;
+    };
+    if (auto v = r("reverbRoomSize", 0)) return v;
+    if (auto v = r("reverbDamping", 1)) return v;
+    if (auto v = r("reverbWetLevel", 2)) return v;
+    if (auto v = r("reverbDryLevel", 3)) return v;
+    if (auto v = r("reverbWidth", 4)) return v;
+    return 0;
+}
+
+std::string_view ReverbDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (localId) {
+    case 0: return "reverbRoomSize";
+    case 1: return "reverbDamping";
+    case 2: return "reverbWetLevel";
+    case 3: return "reverbDryLevel";
+    case 4: return "reverbWidth";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> ReverbDeviceType::paramDescriptors() const noexcept { return {}; }
+
+bool ReverbDeviceType::usesDspAutomationSubBlocks() const noexcept { return false; }
+
 } // namespace audioapp

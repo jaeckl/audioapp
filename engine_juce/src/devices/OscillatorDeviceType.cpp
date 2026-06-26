@@ -145,4 +145,27 @@ DeviceProcessor* OscillatorDeviceType::createProcessor(ProcessorArena& arena) co
     return arena.template emplace<OscillatorProcessor>();
 }
 
+DeviceNodeKind OscillatorDeviceType::kind() const noexcept { return DeviceNodeKind::Oscillator; }
+
+uint16_t OscillatorDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    if (name == "frequency") return static_cast<uint16_t>(OscillatorParam::Frequency);
+    return 0;
+}
+
+std::string_view OscillatorDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (static_cast<OscillatorParam>(localId)) {
+    case OscillatorParam::Frequency: return "frequency";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> OscillatorDeviceType::paramDescriptors() const noexcept {
+    static constexpr ParamDescriptor kParams[] = {
+        {static_cast<uint16_t>(OscillatorParam::Frequency), "frequency", "Frequency", 440.0f, 20.0f, 20000.0f, true, true},
+    };
+    return kParams;
+}
+
+bool OscillatorDeviceType::usesDspAutomationSubBlocks() const noexcept { return true; }
+
 } // namespace audioapp

@@ -160,4 +160,31 @@ DeviceProcessor* PhaserDeviceType::createProcessor(ProcessorArena& arena) const 
     return arena.template emplace<PhaserProcessor>();
 }
 
+DeviceNodeKind PhaserDeviceType::kind() const noexcept { return DeviceNodeKind::Phaser; }
+
+uint16_t PhaserDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    auto p = [&](std::string_view n, uint16_t pid) -> uint16_t {
+        return name == n ? pid : 0;
+    };
+    if (auto v = p("phaserDepth", 0)) return v;
+    if (auto v = p("phaserRateHz", 1)) return v;
+    if (auto v = p("phaserFeedback", 2)) return v;
+    if (auto v = p("phaserCentreFrequencyHz", 3)) return v;
+    return 0;
+}
+
+std::string_view PhaserDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (localId) {
+    case 0: return "phaserDepth";
+    case 1: return "phaserRateHz";
+    case 2: return "phaserFeedback";
+    case 3: return "phaserCentreFrequencyHz";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> PhaserDeviceType::paramDescriptors() const noexcept { return {}; }
+
+bool PhaserDeviceType::usesDspAutomationSubBlocks() const noexcept { return false; }
+
 } // namespace audioapp

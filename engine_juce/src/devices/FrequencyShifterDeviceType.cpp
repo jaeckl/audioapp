@@ -151,4 +151,25 @@ DeviceProcessor* FrequencyShifterDeviceType::createProcessor(ProcessorArena& are
     return arena.template emplace<FrequencyShifterProcessor>();
 }
 
+DeviceNodeKind FrequencyShifterDeviceType::kind() const noexcept { return DeviceNodeKind::FrequencyShifter; }
+
+uint16_t FrequencyShifterDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    if (name == "ffxShift") return static_cast<uint16_t>(FrequencyShifterParam::Shift);
+    return 0;
+}
+
+std::string_view FrequencyShifterDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (static_cast<FrequencyShifterParam>(localId)) {
+    case FrequencyShifterParam::Shift: return "ffxShift";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> FrequencyShifterDeviceType::paramDescriptors() const noexcept {
+    static constexpr ParamDescriptor kParams[] = {
+        {static_cast<uint16_t>(FrequencyShifterParam::Shift), "ffxShift", "Shift", 0.5f, 0.0f, 1.0f, true, true},
+    };
+    return kParams;
+}
+
 } // namespace audioapp

@@ -42,6 +42,10 @@ public:
     /// Returns nullptr if no matching type is registered.
     const IDeviceType* findForSlot(const DeviceSlot& slot) const;
 
+    /// Find the IDeviceType* that matches the given DeviceNodeKind.
+    /// Returns nullptr if no matching type is registered.
+    const IDeviceType* findByKind(DeviceNodeKind kind) const;
+
     static DeviceRegistry createBuiltIn();
 
 private:

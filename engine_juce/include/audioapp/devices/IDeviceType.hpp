@@ -8,7 +8,9 @@
 #include "audioapp/devices/DeviceSlot.hpp"
 #include "audioapp/devices/PlaybackBuildContext.hpp"
 #include "audioapp/dsp/ProcessorArena.hpp"
+#include "audioapp/AutomationTypes.hpp"
 
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -74,6 +76,27 @@ public:
         jassertfalse;
         return {};
     }
+
+    // ─── Stage 6: Per-device param metadata & dispatch ─────────────────
+    // These methods replace the central switch ladders in
+    // AutomationPlayback.cpp. Control-thread only (noexcept for consistency
+    // with the functions they replace; these are not called on the audio
+    // thread because IDeviceType itself is control-thread-only).
+
+    /// Return the DeviceNodeKind this type implements.
+    virtual DeviceNodeKind kind() const noexcept = 0;
+
+    /// Map a parameter name string to the encoded (ParamKind, localId).
+    virtual uint16_t paramIdFromString(std::string_view name) const noexcept;
+
+    /// Map an unpacked local param ID back to its display name.
+    virtual std::string_view paramIdToString(uint16_t localId) const noexcept;
+
+    /// Return the static array of ParamDescriptors for this device type.
+    virtual std::span<const ParamDescriptor> paramDescriptors() const noexcept;
+
+    /// Whether automation sub-block processing is required for this device.
+    virtual bool usesDspAutomationSubBlocks() const noexcept;
 };
 
 } // namespace audioapp

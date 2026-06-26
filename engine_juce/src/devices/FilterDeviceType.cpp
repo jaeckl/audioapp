@@ -156,4 +156,31 @@ DeviceProcessor* FilterDeviceType::createProcessor(ProcessorArena& arena) const 
     return arena.template emplace<FilterProcessor>();
 }
 
+DeviceNodeKind FilterDeviceType::kind() const noexcept { return DeviceNodeKind::Filter; }
+
+uint16_t FilterDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    if (name == "ffxCutoff") return static_cast<uint16_t>(FilterParam::Cutoff);
+    if (name == "ffxResonance") return static_cast<uint16_t>(FilterParam::Resonance);
+    if (name == "ffxFilterMode") return static_cast<uint16_t>(FilterParam::Mode);
+    return 0;
+}
+
+std::string_view FilterDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (static_cast<FilterParam>(localId)) {
+    case FilterParam::Cutoff: return "ffxCutoff";
+    case FilterParam::Resonance: return "ffxResonance";
+    case FilterParam::Mode: return "ffxFilterMode";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> FilterDeviceType::paramDescriptors() const noexcept {
+    static constexpr ParamDescriptor kParams[] = {
+        {static_cast<uint16_t>(FilterParam::Cutoff), "ffxCutoff", "Cutoff", 0.6f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FilterParam::Resonance), "ffxResonance", "Resonance", 0.3f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FilterParam::Mode), "ffxFilterMode", "Mode", 0.0f, 0.0f, 1.0f, true, true},
+    };
+    return kParams;
+}
+
 } // namespace audioapp

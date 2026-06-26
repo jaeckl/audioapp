@@ -368,4 +368,63 @@ DeviceProcessor* SamplerDeviceType::createProcessor(ProcessorArena& arena) const
     return arena.template emplace<SamplerProcessor>();
 }
 
+DeviceNodeKind SamplerDeviceType::kind() const noexcept { return DeviceNodeKind::Sampler; }
+
+uint16_t SamplerDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    if (name == "filterCutoff") return static_cast<uint16_t>(SamplerParam::FilterCutoff);
+    if (name == "filterQ") return static_cast<uint16_t>(SamplerParam::FilterQ);
+    if (name == "attack") return static_cast<uint16_t>(SamplerParam::Attack);
+    if (name == "decay") return static_cast<uint16_t>(SamplerParam::Decay);
+    if (name == "sustain") return static_cast<uint16_t>(SamplerParam::Sustain);
+    if (name == "release") return static_cast<uint16_t>(SamplerParam::Release);
+    if (name == "rootPitch") return static_cast<uint16_t>(SamplerParam::RootPitch);
+    if (name == "rootFineTune") return static_cast<uint16_t>(SamplerParam::RootFineTune);
+    if (name == "filterEnvAmount") return static_cast<uint16_t>(SamplerParam::FilterEnvAmount);
+    if (name == "filterAttack") return static_cast<uint16_t>(SamplerParam::FilterAttack);
+    if (name == "filterDecay") return static_cast<uint16_t>(SamplerParam::FilterDecay);
+    if (name == "filterSustain") return static_cast<uint16_t>(SamplerParam::FilterSustain);
+    if (name == "filterRelease") return static_cast<uint16_t>(SamplerParam::FilterRelease);
+    return 0;
+}
+
+std::string_view SamplerDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (static_cast<SamplerParam>(localId)) {
+    case SamplerParam::FilterCutoff: return "filterCutoff";
+    case SamplerParam::FilterQ: return "filterQ";
+    case SamplerParam::Attack: return "attack";
+    case SamplerParam::Decay: return "decay";
+    case SamplerParam::Sustain: return "sustain";
+    case SamplerParam::Release: return "release";
+    case SamplerParam::RootPitch: return "rootPitch";
+    case SamplerParam::RootFineTune: return "rootFineTune";
+    case SamplerParam::FilterEnvAmount: return "filterEnvAmount";
+    case SamplerParam::FilterAttack: return "filterAttack";
+    case SamplerParam::FilterDecay: return "filterDecay";
+    case SamplerParam::FilterSustain: return "filterSustain";
+    case SamplerParam::FilterRelease: return "filterRelease";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> SamplerDeviceType::paramDescriptors() const noexcept {
+    static constexpr ParamDescriptor kParams[] = {
+        {static_cast<uint16_t>(SamplerParam::FilterCutoff), "filterCutoff", "Filter Cutoff", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SamplerParam::FilterQ), "filterQ", "Filter Q", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SamplerParam::Attack), "attack", "Attack", 0.01f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SamplerParam::Decay), "decay", "Decay", 0.1f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SamplerParam::Sustain), "sustain", "Sustain", 1.0f, 0.0f, 1.0f, true, false},
+        {static_cast<uint16_t>(SamplerParam::Release), "release", "Release", 0.2f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SamplerParam::RootPitch), "rootPitch", "Root Pitch", 60.0f, 0.0f, 127.0f, true, false},
+        {static_cast<uint16_t>(SamplerParam::RootFineTune), "rootFineTune", "Fine Tune", 0.0f, -100.0f, 100.0f, true, false},
+        {static_cast<uint16_t>(SamplerParam::FilterEnvAmount), "filterEnvAmount", "Filter Env", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SamplerParam::FilterAttack), "filterAttack", "Flt Attack", 0.05f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SamplerParam::FilterDecay), "filterDecay", "Flt Decay", 0.35f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SamplerParam::FilterSustain), "filterSustain", "Flt Sustain", 0.4f, 0.0f, 1.0f, true, false},
+        {static_cast<uint16_t>(SamplerParam::FilterRelease), "filterRelease", "Flt Release", 0.45f, 0.0f, 1.0f, true, true},
+    };
+    return kParams;
+}
+
+bool SamplerDeviceType::usesDspAutomationSubBlocks() const noexcept { return true; }
+
 } // namespace audioapp

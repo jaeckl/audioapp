@@ -231,4 +231,35 @@ DeviceProcessor* LimiterDeviceType::createProcessor(ProcessorArena& arena) const
     return arena.template emplace<LimiterProcessor>();
 }
 
+DeviceNodeKind LimiterDeviceType::kind() const noexcept { return DeviceNodeKind::Limiter; }
+
+uint16_t LimiterDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    auto l = [&](std::string_view n, LimiterParam pid) -> uint16_t {
+        return name == n ? static_cast<uint16_t>(pid) : 0;
+    };
+    if (auto v = l("limitInputGain", LimiterParam::InputGain)) return v;
+    if (auto v = l("limitCeiling", LimiterParam::Ceiling)) return v;
+    if (auto v = l("limitAttack", LimiterParam::Attack)) return v;
+    if (auto v = l("limitRelease", LimiterParam::Release)) return v;
+    if (auto v = l("limitDrive", LimiterParam::Drive)) return v;
+    if (auto v = l("limitMakeup", LimiterParam::Makeup)) return v;
+    return 0;
+}
+
+std::string_view LimiterDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (static_cast<LimiterParam>(localId)) {
+    case LimiterParam::InputGain: return "limitInputGain";
+    case LimiterParam::Ceiling: return "limitCeiling";
+    case LimiterParam::Attack: return "limitAttack";
+    case LimiterParam::Release: return "limitRelease";
+    case LimiterParam::Drive: return "limitDrive";
+    case LimiterParam::Makeup: return "limitMakeup";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> LimiterDeviceType::paramDescriptors() const noexcept { return {}; }
+
+bool LimiterDeviceType::usesDspAutomationSubBlocks() const noexcept { return false; }
+
 } // namespace audioapp

@@ -178,4 +178,39 @@ DeviceProcessor* ClapGeneratorDeviceType::createProcessor(ProcessorArena& arena)
     return arena.template emplace<ClapProcessor>();
 }
 
+DeviceNodeKind ClapGeneratorDeviceType::kind() const noexcept { return DeviceNodeKind::ClapGenerator; }
+
+uint16_t ClapGeneratorDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    auto c = [&](std::string_view n, ClapParam pid) -> uint16_t {
+        return name == n ? static_cast<uint16_t>(pid) : 0;
+    };
+    if (auto v = c("clapBursts", ClapParam::Bursts)) return v;
+    if (auto v = c("clapSpread", ClapParam::Spread)) return v;
+    if (auto v = c("clapTone", ClapParam::Tone)) return v;
+    if (auto v = c("clapRoom", ClapParam::Room)) return v;
+    if (auto v = c("clapDecay", ClapParam::Decay)) return v;
+    if (auto v = c("clapVelocity", ClapParam::Velocity)) return v;
+    return 0;
+}
+
+std::string_view ClapGeneratorDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (static_cast<ClapParam>(localId)) {
+    case ClapParam::Bursts: return "clapBursts";
+    case ClapParam::Spread: return "clapSpread";
+    case ClapParam::Tone: return "clapTone";
+    case ClapParam::Room: return "clapRoom";
+    case ClapParam::Decay: return "clapDecay";
+    case ClapParam::Velocity: return "clapVelocity";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> ClapGeneratorDeviceType::paramDescriptors() const noexcept {
+    return {};
+}
+
+bool ClapGeneratorDeviceType::usesDspAutomationSubBlocks() const noexcept {
+    return false;
+}
+
 } // namespace audioapp

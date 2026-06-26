@@ -230,4 +230,37 @@ DeviceProcessor* CompressorDeviceType::createProcessor(ProcessorArena& arena) co
     return arena.template emplace<CompressorProcessor>();
 }
 
+DeviceNodeKind CompressorDeviceType::kind() const noexcept { return DeviceNodeKind::Compressor; }
+
+uint16_t CompressorDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    auto c = [&](std::string_view n, CompressorParam pid) -> uint16_t {
+        return name == n ? static_cast<uint16_t>(pid) : 0;
+    };
+    if (auto v = c("compInputGain", CompressorParam::InputGain)) return v;
+    if (auto v = c("compThreshold", CompressorParam::Threshold)) return v;
+    if (auto v = c("compRatio", CompressorParam::Ratio)) return v;
+    if (auto v = c("compAttack", CompressorParam::Attack)) return v;
+    if (auto v = c("compRelease", CompressorParam::Release)) return v;
+    if (auto v = c("compKnee", CompressorParam::Knee)) return v;
+    if (auto v = c("compMakeup", CompressorParam::Makeup)) return v;
+    return 0;
+}
+
+std::string_view CompressorDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (static_cast<CompressorParam>(localId)) {
+    case CompressorParam::InputGain: return "compInputGain";
+    case CompressorParam::Threshold: return "compThreshold";
+    case CompressorParam::Ratio: return "compRatio";
+    case CompressorParam::Attack: return "compAttack";
+    case CompressorParam::Release: return "compRelease";
+    case CompressorParam::Knee: return "compKnee";
+    case CompressorParam::Makeup: return "compMakeup";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> CompressorDeviceType::paramDescriptors() const noexcept { return {}; }
+
+bool CompressorDeviceType::usesDspAutomationSubBlocks() const noexcept { return false; }
+
 } // namespace audioapp

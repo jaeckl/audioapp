@@ -179,4 +179,35 @@ DeviceProcessor* CymbalGeneratorDeviceType::createProcessor(ProcessorArena& aren
     return arena.template emplace<CymbalProcessor>();
 }
 
+DeviceNodeKind CymbalGeneratorDeviceType::kind() const noexcept { return DeviceNodeKind::CymbalGenerator; }
+
+uint16_t CymbalGeneratorDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    auto c = [&](std::string_view n, CymbalParam pid) -> uint16_t {
+        return name == n ? static_cast<uint16_t>(pid) : 0;
+    };
+    if (auto v = c("cymbalColor", CymbalParam::Color)) return v;
+    if (auto v = c("cymbalDecay", CymbalParam::Decay)) return v;
+    if (auto v = c("cymbalWidth", CymbalParam::Width)) return v;
+    if (auto v = c("cymbalVelocity", CymbalParam::Velocity)) return v;
+    return 0;
+}
+
+std::string_view CymbalGeneratorDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (static_cast<CymbalParam>(localId)) {
+    case CymbalParam::Color: return "cymbalColor";
+    case CymbalParam::Decay: return "cymbalDecay";
+    case CymbalParam::Width: return "cymbalWidth";
+    case CymbalParam::Velocity: return "cymbalVelocity";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> CymbalGeneratorDeviceType::paramDescriptors() const noexcept {
+    return {};
+}
+
+bool CymbalGeneratorDeviceType::usesDspAutomationSubBlocks() const noexcept {
+    return false;
+}
+
 } // namespace audioapp

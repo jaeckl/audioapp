@@ -227,4 +227,35 @@ DeviceProcessor* GateDeviceType::createProcessor(ProcessorArena& arena) const {
     return arena.template emplace<GateProcessor>();
 }
 
+DeviceNodeKind GateDeviceType::kind() const noexcept { return DeviceNodeKind::Gate; }
+
+uint16_t GateDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    auto g = [&](std::string_view n, GateParam pid) -> uint16_t {
+        return name == n ? static_cast<uint16_t>(pid) : 0;
+    };
+    if (auto v = g("gateInputGain", GateParam::InputGain)) return v;
+    if (auto v = g("gateThreshold", GateParam::Threshold)) return v;
+    if (auto v = g("gateAttack", GateParam::Attack)) return v;
+    if (auto v = g("gateRelease", GateParam::Release)) return v;
+    if (auto v = g("gateHold", GateParam::Hold)) return v;
+    if (auto v = g("gateRange", GateParam::Range)) return v;
+    return 0;
+}
+
+std::string_view GateDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (static_cast<GateParam>(localId)) {
+    case GateParam::InputGain: return "gateInputGain";
+    case GateParam::Threshold: return "gateThreshold";
+    case GateParam::Attack: return "gateAttack";
+    case GateParam::Release: return "gateRelease";
+    case GateParam::Hold: return "gateHold";
+    case GateParam::Range: return "gateRange";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> GateDeviceType::paramDescriptors() const noexcept { return {}; }
+
+bool GateDeviceType::usesDspAutomationSubBlocks() const noexcept { return false; }
+
 } // namespace audioapp

@@ -60,6 +60,15 @@ const IDeviceType* DeviceRegistry::findForSlot(const DeviceSlot& slot) const {
     return find(slot.config.typeId);
 }
 
+const IDeviceType* DeviceRegistry::findByKind(DeviceNodeKind kind) const {
+    for (const auto& type : types_) {
+        if (type->kind() == kind) {
+            return type.get();
+        }
+    }
+    return nullptr;
+}
+
 DeviceSlot DeviceRegistry::createDefault(std::string_view typeId,
                                          const std::string& deviceId) const {
     const IDeviceType* type = find(typeId);

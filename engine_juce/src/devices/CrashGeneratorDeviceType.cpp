@@ -179,4 +179,35 @@ DeviceProcessor* CrashGeneratorDeviceType::createProcessor(ProcessorArena& arena
     return arena.template emplace<CrashProcessor>();
 }
 
+DeviceNodeKind CrashGeneratorDeviceType::kind() const noexcept { return DeviceNodeKind::CrashGenerator; }
+
+uint16_t CrashGeneratorDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    auto c = [&](std::string_view n, CrashParam pid) -> uint16_t {
+        return name == n ? static_cast<uint16_t>(pid) : 0;
+    };
+    if (auto v = c("crashColor", CrashParam::Color)) return v;
+    if (auto v = c("crashSpread", CrashParam::Spread)) return v;
+    if (auto v = c("crashDecay", CrashParam::Decay)) return v;
+    if (auto v = c("crashVelocity", CrashParam::Velocity)) return v;
+    return 0;
+}
+
+std::string_view CrashGeneratorDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (static_cast<CrashParam>(localId)) {
+    case CrashParam::Color: return "crashColor";
+    case CrashParam::Spread: return "crashSpread";
+    case CrashParam::Decay: return "crashDecay";
+    case CrashParam::Velocity: return "crashVelocity";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> CrashGeneratorDeviceType::paramDescriptors() const noexcept {
+    return {};
+}
+
+bool CrashGeneratorDeviceType::usesDspAutomationSubBlocks() const noexcept {
+    return false;
+}
+
 } // namespace audioapp

@@ -196,4 +196,58 @@ DeviceProcessor* FourBandEqDeviceType::createProcessor(ProcessorArena& arena) co
     return arena.template emplace<FourBandEqProcessor>();
 }
 
+DeviceNodeKind FourBandEqDeviceType::kind() const noexcept { return DeviceNodeKind::FourBandEq; }
+
+uint16_t FourBandEqDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    if (name == "ffxBand1Freq") return static_cast<uint16_t>(FourBandEqParam::Band1Freq);
+    if (name == "ffxBand1Gain") return static_cast<uint16_t>(FourBandEqParam::Band1Gain);
+    if (name == "ffxBand1Q") return static_cast<uint16_t>(FourBandEqParam::Band1Q);
+    if (name == "ffxBand2Freq") return static_cast<uint16_t>(FourBandEqParam::Band2Freq);
+    if (name == "ffxBand2Gain") return static_cast<uint16_t>(FourBandEqParam::Band2Gain);
+    if (name == "ffxBand2Q") return static_cast<uint16_t>(FourBandEqParam::Band2Q);
+    if (name == "ffxBand3Freq") return static_cast<uint16_t>(FourBandEqParam::Band3Freq);
+    if (name == "ffxBand3Gain") return static_cast<uint16_t>(FourBandEqParam::Band3Gain);
+    if (name == "ffxBand3Q") return static_cast<uint16_t>(FourBandEqParam::Band3Q);
+    if (name == "ffxBand4Freq") return static_cast<uint16_t>(FourBandEqParam::Band4Freq);
+    if (name == "ffxBand4Gain") return static_cast<uint16_t>(FourBandEqParam::Band4Gain);
+    if (name == "ffxBand4Q") return static_cast<uint16_t>(FourBandEqParam::Band4Q);
+    return 0;
+}
+
+std::string_view FourBandEqDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (static_cast<FourBandEqParam>(localId)) {
+    case FourBandEqParam::Band1Freq: return "ffxBand1Freq";
+    case FourBandEqParam::Band1Gain: return "ffxBand1Gain";
+    case FourBandEqParam::Band1Q: return "ffxBand1Q";
+    case FourBandEqParam::Band2Freq: return "ffxBand2Freq";
+    case FourBandEqParam::Band2Gain: return "ffxBand2Gain";
+    case FourBandEqParam::Band2Q: return "ffxBand2Q";
+    case FourBandEqParam::Band3Freq: return "ffxBand3Freq";
+    case FourBandEqParam::Band3Gain: return "ffxBand3Gain";
+    case FourBandEqParam::Band3Q: return "ffxBand3Q";
+    case FourBandEqParam::Band4Freq: return "ffxBand4Freq";
+    case FourBandEqParam::Band4Gain: return "ffxBand4Gain";
+    case FourBandEqParam::Band4Q: return "ffxBand4Q";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> FourBandEqDeviceType::paramDescriptors() const noexcept {
+    static constexpr ParamDescriptor kParams[] = {
+        {static_cast<uint16_t>(FourBandEqParam::Band1Freq), "ffxBand1Freq", "Low Freq", 0.4f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FourBandEqParam::Band1Gain), "ffxBand1Gain", "Low Gain", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FourBandEqParam::Band1Q), "ffxBand1Q", "Low Q", 0.3f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FourBandEqParam::Band2Freq), "ffxBand2Freq", "LM Freq", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FourBandEqParam::Band2Gain), "ffxBand2Gain", "LM Gain", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FourBandEqParam::Band2Q), "ffxBand2Q", "LM Q", 0.3f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FourBandEqParam::Band3Freq), "ffxBand3Freq", "HM Freq", 0.7f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FourBandEqParam::Band3Gain), "ffxBand3Gain", "HM Gain", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FourBandEqParam::Band3Q), "ffxBand3Q", "HM Q", 0.3f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FourBandEqParam::Band4Freq), "ffxBand4Freq", "High Freq", 0.8f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FourBandEqParam::Band4Gain), "ffxBand4Gain", "High Gain", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FourBandEqParam::Band4Q), "ffxBand4Q", "High Q", 0.3f, 0.0f, 1.0f, true, true},
+    };
+    return kParams;
+}
+
 } // namespace audioapp

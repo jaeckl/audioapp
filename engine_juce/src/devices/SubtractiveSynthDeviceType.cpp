@@ -411,4 +411,107 @@ DeviceProcessor* SubtractiveSynthDeviceType::createProcessor(ProcessorArena& are
     return arena.template emplace<SubtractiveSynthProcessor>();
 }
 
+DeviceNodeKind SubtractiveSynthDeviceType::kind() const noexcept { return DeviceNodeKind::SubtractiveSynth; }
+
+uint16_t SubtractiveSynthDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    auto s = [&](std::string_view n, SubtractiveParam pid) -> uint16_t {
+        return name == n ? static_cast<uint16_t>(pid) : 0;
+    };
+    if (auto v = s("filterCutoff", SubtractiveParam::FilterCutoff)) return v;
+    if (auto v = s("filterQ", SubtractiveParam::FilterQ)) return v;
+    if (auto v = s("filterMode", SubtractiveParam::FilterMode)) return v;
+    if (auto v = s("attack", SubtractiveParam::AmpAttack)) return v;
+    if (auto v = s("decay", SubtractiveParam::AmpDecay)) return v;
+    if (auto v = s("sustain", SubtractiveParam::AmpSustain)) return v;
+    if (auto v = s("release", SubtractiveParam::AmpRelease)) return v;
+    if (auto v = s("osc1Shape", SubtractiveParam::Osc1Shape)) return v;
+    if (auto v = s("osc2Shape", SubtractiveParam::Osc2Shape)) return v;
+    if (auto v = s("osc1Octave", SubtractiveParam::Osc1Octave)) return v;
+    if (auto v = s("osc1Semi", SubtractiveParam::Osc1Semi)) return v;
+    if (auto v = s("osc1Detune", SubtractiveParam::Osc1Detune)) return v;
+    if (auto v = s("osc2Octave", SubtractiveParam::Osc2Octave)) return v;
+    if (auto v = s("osc2Semi", SubtractiveParam::Osc2Semi)) return v;
+    if (auto v = s("osc2Detune", SubtractiveParam::Osc2Detune)) return v;
+    if (auto v = s("oscMix", SubtractiveParam::OscMix)) return v;
+    if (auto v = s("oscMixMode", SubtractiveParam::OscMixMode)) return v;
+    if (auto v = s("osc1Sync", SubtractiveParam::Osc1Sync)) return v;
+    if (auto v = s("osc2Sync", SubtractiveParam::Osc2Sync)) return v;
+    if (auto v = s("noiseLevel", SubtractiveParam::NoiseLevel)) return v;
+    if (auto v = s("unisonVoices", SubtractiveParam::UnisonVoices)) return v;
+    if (auto v = s("unisonDetune", SubtractiveParam::UnisonDetune)) return v;
+    if (auto v = s("filterEnvAmount", SubtractiveParam::FilterEnvAmount)) return v;
+    if (auto v = s("filterAttack", SubtractiveParam::FilterAttack)) return v;
+    if (auto v = s("filterDecay", SubtractiveParam::FilterDecay)) return v;
+    if (auto v = s("filterSustain", SubtractiveParam::FilterSustain)) return v;
+    if (auto v = s("filterRelease", SubtractiveParam::FilterRelease)) return v;
+    if (auto v = s("glideMs", SubtractiveParam::GlideMs)) return v;
+    if (auto v = s("velocitySensitivity", SubtractiveParam::VelocitySensitivity)) return v;
+    if (auto v = s("preHpCutoff", SubtractiveParam::PreHpCutoff)) return v;
+    if (auto v = s("preHpRes", SubtractiveParam::PreHpRes)) return v;
+    if (auto v = s("preDrive", SubtractiveParam::PreDrive)) return v;
+    if (auto v = s("mixFeedback", SubtractiveParam::MixFeedback)) return v;
+    if (auto v = s("globalPitch", SubtractiveParam::GlobalPitch)) return v;
+    if (auto v = s("filterKeyTrack", SubtractiveParam::FilterKeyTrack)) return v;
+    if (auto v = s("filterDrive", SubtractiveParam::FilterDrive)) return v;
+    if (auto v = s("filterShaper", SubtractiveParam::FilterShaper)) return v;
+    if (auto v = s("filterFm", SubtractiveParam::FilterFm)) return v;
+    if (auto v = s("filterShaperMode", SubtractiveParam::FilterShaperMode)) return v;
+    if (auto v = s("synthLegato", SubtractiveParam::SynthLegato)) return v;
+    if (auto v = s("synthMono", SubtractiveParam::SynthMono)) return v;
+    return 0;
+}
+
+std::string_view SubtractiveSynthDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (static_cast<SubtractiveParam>(localId)) {
+    case SubtractiveParam::FilterCutoff: return "filterCutoff";
+    case SubtractiveParam::FilterQ: return "filterQ";
+    case SubtractiveParam::FilterMode: return "filterMode";
+    case SubtractiveParam::AmpAttack: return "attack";
+    case SubtractiveParam::AmpDecay: return "decay";
+    case SubtractiveParam::AmpSustain: return "sustain";
+    case SubtractiveParam::AmpRelease: return "release";
+    case SubtractiveParam::Osc1Shape: return "osc1Shape";
+    case SubtractiveParam::Osc2Shape: return "osc2Shape";
+    case SubtractiveParam::Osc1Octave: return "osc1Octave";
+    case SubtractiveParam::Osc1Semi: return "osc1Semi";
+    case SubtractiveParam::Osc1Detune: return "osc1Detune";
+    case SubtractiveParam::Osc2Octave: return "osc2Octave";
+    case SubtractiveParam::Osc2Semi: return "osc2Semi";
+    case SubtractiveParam::Osc2Detune: return "osc2Detune";
+    case SubtractiveParam::OscMix: return "oscMix";
+    case SubtractiveParam::OscMixMode: return "oscMixMode";
+    case SubtractiveParam::Osc1Sync: return "osc1Sync";
+    case SubtractiveParam::Osc2Sync: return "osc2Sync";
+    case SubtractiveParam::NoiseLevel: return "noiseLevel";
+    case SubtractiveParam::UnisonVoices: return "unisonVoices";
+    case SubtractiveParam::UnisonDetune: return "unisonDetune";
+    case SubtractiveParam::FilterEnvAmount: return "filterEnvAmount";
+    case SubtractiveParam::FilterAttack: return "filterAttack";
+    case SubtractiveParam::FilterDecay: return "filterDecay";
+    case SubtractiveParam::FilterSustain: return "filterSustain";
+    case SubtractiveParam::FilterRelease: return "filterRelease";
+    case SubtractiveParam::GlideMs: return "glideMs";
+    case SubtractiveParam::VelocitySensitivity: return "velocitySensitivity";
+    case SubtractiveParam::PreHpCutoff: return "preHpCutoff";
+    case SubtractiveParam::PreHpRes: return "preHpRes";
+    case SubtractiveParam::PreDrive: return "preDrive";
+    case SubtractiveParam::MixFeedback: return "mixFeedback";
+    case SubtractiveParam::GlobalPitch: return "globalPitch";
+    case SubtractiveParam::FilterKeyTrack: return "filterKeyTrack";
+    case SubtractiveParam::FilterDrive: return "filterDrive";
+    case SubtractiveParam::FilterShaper: return "filterShaper";
+    case SubtractiveParam::FilterFm: return "filterFm";
+    case SubtractiveParam::FilterShaperMode: return "filterShaperMode";
+    case SubtractiveParam::SynthLegato: return "synthLegato";
+    case SubtractiveParam::SynthMono: return "synthMono";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> SubtractiveSynthDeviceType::paramDescriptors() const noexcept {
+    return {};
+}
+
+bool SubtractiveSynthDeviceType::usesDspAutomationSubBlocks() const noexcept { return false; }
+
 } // namespace audioapp
