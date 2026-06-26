@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 
+import 'param_descriptor.dart';
 import 'project_snapshot.dart';
 import 'transport_state.dart';
 
@@ -509,6 +510,22 @@ class EngineBridge {
       return const ClipPreviewData(peaks: [], length: Duration.zero);
     } on PlatformException {
       return const ClipPreviewData(peaks: [], length: Duration.zero);
+    }
+  }
+
+  Future<List<DeviceParamDescriptor>> getParamDescriptors(String deviceType) async {
+    try {
+      final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
+        'getParamDescriptors',
+        {'deviceType': deviceType},
+      );
+      if (result == null || result['ok'] != true) return [];
+      final params = result['params'] as List<dynamic>? ?? [];
+      return params
+          .map((p) => DeviceParamDescriptor.fromMap(p as Map<String, dynamic>))
+          .toList();
+    } on PlatformException {
+      return [];
     }
   }
 

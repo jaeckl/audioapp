@@ -118,6 +118,10 @@ public:
     /// Format: { "ok": true, "devices": { "dev-1": { "type":"...", "parameters":{...}, "meters":{...} }, ... } }
     std::string getDeviceConfigsJson(const std::vector<std::string>& deviceIds) const;
 
+    /// Returns param descriptor metadata for a device type as JSON.
+    /// Format: {"ok":true, "deviceType":"sampler", "params":[...], "protocolVersion":1}
+    std::string getParamDescriptorsJson(const std::string& deviceType) const;
+
     void advancePlayheadForBlock(int numFrames, double sampleRate) noexcept;
     float activeOscillatorFrequencyHz() const;
     void setPlayheadBeats(double beats) noexcept;

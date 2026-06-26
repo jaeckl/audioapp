@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../bridge/param_descriptor.dart';
 import '../../bridge/project_snapshot.dart';
 import 'bass_synth_device_panel.dart';
 import 'bass_synth_device_strip.dart';
@@ -22,6 +23,7 @@ import 'sequencer_properties_panel.dart';
 import 'curve_properties_panel.dart';
 import 'curve_editor_screen.dart';
 import 'sequencer_step_editor.dart';
+import 'generic_param_editor.dart';
 import 'modulator_types.dart';
 import 'device_knob_sizes.dart';
 import 'modulator_rate_codec.dart';
@@ -86,6 +88,7 @@ class DeviceStripSlot extends StatefulWidget {
     this.projectAutomationClips = const [],
     this.onAutomationParamSelected,
     this.onAutomateParameter,
+    this.onGetParamDescriptors,
   });
 
   final TrackSnapshot track;
@@ -124,6 +127,10 @@ class DeviceStripSlot extends StatefulWidget {
   final Future<bool> Function(String deviceId, String paramId)? onAutomationParamSelected;
   final void Function(String deviceId, String paramId)? onAutomateParameter;
 
+  /// Optional: fetch param descriptors for the generic fallback editor.
+  final Future<List<DeviceParamDescriptor>> Function(String deviceType)?
+      onGetParamDescriptors;
+
   @override
   State<DeviceStripSlot> createState() => _DeviceStripSlotState();
 }
@@ -136,6 +143,12 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   int? _selectedLfoId;
   int? _connectModeLfoId;
   bool _showTargetsPanel = false;
+
+  /// Cached param descriptors keyed by device type string.
+  static final Map<String, List<DeviceParamDescriptor>> _paramCache = {};
+
+  /// Resolved param descriptors for the current device (lazy, cached).
+  List<DeviceParamDescriptor>? _cachedParams;
 
   ProjectSnapshot get _emptySnapshot => ProjectSnapshot(
     bpm: 120,
@@ -157,6 +170,41 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     _selectedTabIndex = _initialTabIndex();
     _localLfos = List.of(widget.lfos);
     _localModEdges = List.of(widget.modEdges);
+    _ensureParamDescriptors();
+  }
+
+  /// Fetch param descriptors for device types without custom editors.
+  /// Results are cached statically so we only fetch once per type.
+  void _ensureParamDescriptors() {
+    if (_hasCustomEditor) return;
+    final type = widget.device.type;
+    if (_paramCache.containsKey(type)) {
+      _cachedParams = _paramCache[type];
+      return;
+    }
+    final fetcher = widget.onGetParamDescriptors;
+    if (fetcher == null) return;
+    fetcher(type).then((params) {
+      if (!mounted) return;
+      _paramCache[type] = params;
+      if (widget.device.type == type) {
+        setState(() => _cachedParams = params);
+      }
+    });
+  }
+
+  bool get _hasCustomEditor {
+    // All device types that have dedicated strip widgets.
+    const knownTypes = {
+      'simple_sampler', 'simple_oscillator', 'bass_synth',
+      'phase_mod_synth', 'subtractive_synth',
+      'kick_generator', 'snare_generator', 'clap_generator',
+      'cymbal_generator', 'crash_generator',
+      'gate', 'compressor', 'expander', 'limiter',
+      'filter', 'four_band_eq', 'frequency_shifter',
+      'delay', 'reverb', 'chorus', 'phaser',
+    };
+    return knownTypes.contains(widget.device.type);
   }
 
   @override
@@ -180,6 +228,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     }
     if (widget.device.id != oldWidget.device.id) {
       _selectedTabIndex = _initialTabIndex();
+      _ensureParamDescriptors();
     }
     // Sync local LFO/edge state from parent snapshot
     if (widget.lfos != oldWidget.lfos || widget.modEdges != oldWidget.modEdges) {
@@ -230,6 +279,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     }
     return map;
   }
+
+  /// Current parameter values for the device, used by generic editor.
+  /// Returns empty map for unknown types — the editor shows defaults.
+  Map<String, double> get _deviceCurrentValues => const {};
 
   int? get _connectModeLfo {
     if (_connectModeLfoId == null) return null;
@@ -1185,9 +1238,18 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           ),
         );
       default:
+        final params = _cachedParams ?? [];
         return SizedBox(
           width: _cardWidth - DeviceStripTheme.accentStripeWidth,
-          child: _UnknownDeviceBody(deviceType: widget.device.type),
+          child: params.isEmpty
+              ? _UnknownDeviceBody(deviceType: widget.device.type)
+              : GenericParamEditor(
+                  params: params,
+                  currentValues: _deviceCurrentValues,
+                  modulationAmounts: _modulationAmounts,
+                  onParameterChanged: (paramId, value) =>
+                      widget.onSamplerParameterChanged(paramId, value),
+                ),
         );
     }
   }

@@ -421,6 +421,13 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
     }
 #endif
+    if (method == "getParamDescriptors") {
+        const auto deviceType = jsonGetStringArg(argumentsJson, "deviceType");
+        if (deviceType.empty()) {
+            return buildBridgeError("missing_device_type");
+        }
+        return engine().getParamDescriptorsJson(deviceType);
+    }
     if (method == "getDeviceStates") {
         // Parse the deviceIds array from the arguments JSON
         const auto root = juce::JSON::parse(juce::String::fromUTF8(argumentsJson.c_str()));

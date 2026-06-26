@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../bridge/param_descriptor.dart';
 import '../../bridge/project_snapshot.dart';
 import 'device_chain_row.dart';
 import 'device_chain_screen.dart';
@@ -34,6 +35,7 @@ class DeviceStrip extends StatefulWidget {
     this.automationLinkClipId,
     this.onAutomationParamSelected,
     this.onAutomateParameter,
+    this.onGetParamDescriptors,
   });
 
   final ProjectSnapshot snapshot;
@@ -60,6 +62,10 @@ class DeviceStrip extends StatefulWidget {
   final String? automationLinkClipId;
   final Future<bool> Function(String deviceId, String paramId)? onAutomationParamSelected;
   final void Function(String deviceId, String paramId)? onAutomateParameter;
+
+  /// Optional: fetch param descriptors for the generic fallback editor.
+  final Future<List<DeviceParamDescriptor>> Function(String deviceType)?
+      onGetParamDescriptors;
 
   @override
   State<DeviceStrip> createState() => _DeviceStripState();
@@ -123,6 +129,7 @@ class _DeviceStripState extends State<DeviceStrip> {
           automationLinkClipId: widget.automationLinkClipId,
           onAutomationParamSelected: widget.onAutomationParamSelected,
           onAutomateParameter: widget.onAutomateParameter,
+          onGetParamDescriptors: widget.onGetParamDescriptors,
         ),
       ),
     );
@@ -196,6 +203,7 @@ class _DeviceStripState extends State<DeviceStrip> {
                   projectAutomationClips: widget.snapshot.allAutomationClips.toList(),
                   onAutomationParamSelected: widget.onAutomationParamSelected,
                   onAutomateParameter: widget.onAutomateParameter,
+                  onGetParamDescriptors: widget.onGetParamDescriptors,
                 ),
               ],
             ),

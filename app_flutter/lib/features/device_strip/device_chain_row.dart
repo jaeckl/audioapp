@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../bridge/param_descriptor.dart';
 import '../../bridge/project_snapshot.dart';
 import 'device_chain_separator.dart';
 import 'device_strip_metrics.dart';
@@ -43,6 +44,7 @@ class DeviceChainRow extends StatelessWidget {
     this.projectAutomationClips = const [],
     this.onAutomationParamSelected,
     this.onAutomateParameter,
+    this.onGetParamDescriptors,
   });
 
   final TrackSnapshot track;
@@ -77,6 +79,10 @@ class DeviceChainRow extends StatelessWidget {
   final List<AutomationClipSnapshot> projectAutomationClips;
   final Future<bool> Function(String deviceId, String paramId)? onAutomationParamSelected;
   final void Function(String deviceId, String paramId)? onAutomateParameter;
+
+  /// Optional: fetch param descriptors for the generic fallback editor.
+  final Future<List<DeviceParamDescriptor>> Function(String deviceType)?
+      onGetParamDescriptors;
 
   double get _rowHeight => switch (density) {
         DeviceStripSlotDensity.fullscreen => DeviceStripMetrics.fullscreenHeight,
@@ -161,6 +167,7 @@ class DeviceChainRow extends StatelessWidget {
                   projectAutomationClips: projectAutomationClips,
                   onAutomationParamSelected: onAutomationParamSelected,
                   onAutomateParameter: onAutomateParameter,
+                  onGetParamDescriptors: onGetParamDescriptors,
                 ),
                 DeviceChainSeparator(
                   active: playing,

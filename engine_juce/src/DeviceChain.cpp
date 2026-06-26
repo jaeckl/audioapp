@@ -2,6 +2,7 @@
 
 #include "audioapp/AutomationPlayback.hpp"
 #include "audioapp/MidiUtils.hpp"
+#include "audioapp/devices/DeviceTypeIds.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -63,6 +64,33 @@ float midiActiveFrequencyHz(const MidiPlaybackNote* notes,
     }
     if (pitch >= 0) return midiNoteToHz(pitch);
     return idleFrequencyHz;
+}
+
+DeviceNodeKind deviceNodeKindFromTypeId(const std::string& typeId) noexcept {
+    using namespace device_types;
+    if (typeId == kOscillator)       return DeviceNodeKind::Oscillator;
+    if (typeId == kSampler)          return DeviceNodeKind::Sampler;
+    if (typeId == kSubtractiveSynth) return DeviceNodeKind::SubtractiveSynth;
+    if (typeId == kKickGenerator)    return DeviceNodeKind::KickGenerator;
+    if (typeId == kSnareGenerator)   return DeviceNodeKind::SnareGenerator;
+    if (typeId == kClapGenerator)    return DeviceNodeKind::ClapGenerator;
+    if (typeId == kCymbalGenerator)  return DeviceNodeKind::CymbalGenerator;
+    if (typeId == kCrashGenerator)   return DeviceNodeKind::CrashGenerator;
+    if (typeId == kGate)             return DeviceNodeKind::Gate;
+    if (typeId == kCompressor)       return DeviceNodeKind::Compressor;
+    if (typeId == kExpander)         return DeviceNodeKind::Expander;
+    if (typeId == kLimiter)          return DeviceNodeKind::Limiter;
+    if (typeId == kTrackGain)        return DeviceNodeKind::TrackGain;
+    if (typeId == kBasSynth)         return DeviceNodeKind::BassSynth;
+    if (typeId == kPhaseModSynth)    return DeviceNodeKind::PhaseModSynth;
+    if (typeId == kDelay)            return DeviceNodeKind::Delay;
+    if (typeId == kReverb)           return DeviceNodeKind::Reverb;
+    if (typeId == kChorus)           return DeviceNodeKind::Chorus;
+    if (typeId == kPhaser)           return DeviceNodeKind::Phaser;
+    if (typeId == kFilter)           return DeviceNodeKind::Filter;
+    if (typeId == kFourBandEq)       return DeviceNodeKind::FourBandEq;
+    if (typeId == kFrequencyShifter) return DeviceNodeKind::FrequencyShifter;
+    return DeviceNodeKind::Unknown;
 }
 
 } // namespace audioapp

@@ -3,6 +3,8 @@
 #include "audioapp/MidiUtils.hpp"
 #include "audioapp/ProjectJson.hpp"
 #include "audioapp/ProjectArchive.hpp"
+#include "audioapp/AutomationPlayback.hpp"
+#include "audioapp/DeviceChain.hpp"
 
 #include <cmath>
 #include <cstdio>
@@ -774,6 +776,46 @@ bool EngineHost::loadProjectFileJson(const std::string& json) {
 
 void EngineHost::advancePlayheadForBlock(int numFrames, double sampleRate) noexcept {
     project_->advancePlayhead(numFrames, sampleRate);
+}
+
+std::string EngineHost::getParamDescriptorsJson(const std::string& deviceType) const {
+    const auto kind = deviceNodeKindFromTypeId(deviceType);
+    if (kind == DeviceNodeKind::Unknown) {
+        return R"({"ok":false,"error":"unknown_device_type","protocolVersion":1})";
+    }
+
+    int count = 0;
+    const ParamDescriptor* descriptors = paramDescriptorsForKind(kind, count);
+
+    // Build JSON string directly — avoids juce::var Array<var>* constructor
+    // issues in JUCE 8.
+    std::string json = R"({"ok":true,"deviceType":")";
+    json += deviceType;
+    json += R"(","protocolVersion":1,"params":[)";
+
+    if (descriptors != nullptr) {
+        for (int i = 0; i < count; ++i) {
+            if (i > 0) json += ",";
+            const auto& d = descriptors[i];
+            json += R"({"stableName":")";
+            json += d.stableName;
+            json += R"(","displayName":")";
+            json += d.displayName;
+            json += R"(","defaultValue":)";
+            json += std::to_string(d.defaultValue);
+            json += R"(,"min":)";
+            json += std::to_string(d.minValue);
+            json += R"(,"max":)";
+            json += std::to_string(d.maxValue);
+            json += R"(,"automatable":)";
+            json += (d.automatable ? "true" : "false");
+            json += R"(,"modulatable":)";
+            json += (d.modulatable ? "true" : "false");
+            json += "}";
+        }
+    }
+    json += "]}";
+    return json;
 }
 
 } // namespace audioapp

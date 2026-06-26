@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../bridge/param_descriptor.dart';
 import '../../bridge/project_snapshot.dart';
 import '../content_library/library_category.dart';
 import '../content_library/library_fly_in_panel.dart';
@@ -35,6 +36,7 @@ class DeviceChainScreen extends StatefulWidget {
     this.automationLinkClipId,
     this.onAutomationParamSelected,
     this.onAutomateParameter,
+    this.onGetParamDescriptors,
   });
 
   final ProjectSnapshot snapshot;
@@ -60,6 +62,10 @@ class DeviceChainScreen extends StatefulWidget {
   final String? automationLinkClipId;
   final Future<bool> Function(String deviceId, String paramId)? onAutomationParamSelected;
   final void Function(String deviceId, String paramId)? onAutomateParameter;
+
+  /// Optional: fetch param descriptors for the generic fallback editor.
+  final Future<List<DeviceParamDescriptor>> Function(String deviceType)?
+      onGetParamDescriptors;
 
   @override
   State<DeviceChainScreen> createState() => _DeviceChainScreenState();
@@ -223,6 +229,7 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
                       projectAutomationClips: widget.snapshot.allAutomationClips.toList(),
                       onAutomationParamSelected: widget.onAutomationParamSelected,
                       onAutomateParameter: widget.onAutomateParameter,
+                      onGetParamDescriptors: widget.onGetParamDescriptors,
                     ),
                   ),
                 ),

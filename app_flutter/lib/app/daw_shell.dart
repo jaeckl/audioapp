@@ -1,15 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../features/arrangement/arrangement_timeline_metrics.dart';
 import '../app/app_info.dart';
 import 'daw_shell_nav.dart';
+import 'daw_transport_controller.dart';
 import '../bridge/engine_bridge.dart';
 import '../bridge/project_snapshot.dart';
-import '../bridge/transport_state.dart';
 import '../features/automation/automation_editor_screen.dart';
 import '../features/arrangement/arrangement_view.dart';
 import '../features/editor/timeline_marker_layer.dart';
@@ -44,22 +43,10 @@ class DawShell extends StatefulWidget {
 }
 
 class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
-  bool _playing = false;
+  late final DawTransportController _transport;
   ProjectSnapshot? _snapshot;
   String? _saveStatus;
   String? _projectError;
-  Ticker? _playheadTicker;
-  Timer? _transportSyncTimer;
-  Timer? _meterRefreshTimer;
-  final Stopwatch _transportStopwatch = Stopwatch();
-  final ValueNotifier<double> _playheadNotifier = ValueNotifier(0);
-  double _syncPlayheadBeats = 0;
-  int _syncBpm = 120;
-  bool _syncLoopEnabled = true;
-  double _syncLoopRegionStart = 0;
-  double _syncLoopRegionEnd = 16;
-  bool _transportSyncInFlight = false;
-  bool _transportSyncPending = false;
   _ShellTab _tab = _ShellTab.devices;
   bool _libraryOpen = false;
   LibraryCategory _libraryCategory = LibraryCategory.audioClips;
@@ -69,54 +56,40 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   final TimelineViewportScrollController _arrangementScrollController =
       TimelineViewportScrollController();
   double? _frozenArrangementPlayhead;
-  bool _followPlayheadEnabled = true;
-  bool _followPlayheadSuspended = false;
 
   @override
   void initState() {
     super.initState();
+    _transport = DawTransportController(
+      bridge: widget.bridge,
+      vsync: this,
+    );
+    _transport.onMeterRefreshNeeded = _onMeterRefreshTick;
     _bootstrap();
   }
 
   @override
   void dispose() {
-    _stopPlayheadAnimation();
-    _playheadNotifier.dispose();
+    _transport.dispose();
     super.dispose();
-  }
-
-  double _wrapPlayheadInLoop(double beats) {
-    if (!_syncLoopEnabled) {
-      return beats;
-    }
-    final len = _syncLoopRegionEnd - _syncLoopRegionStart;
-    if (len <= 0) {
-      return beats;
-    }
-    if (beats >= _syncLoopRegionEnd) {
-      return _syncLoopRegionStart + (beats - _syncLoopRegionStart) % len;
-    }
-    return beats;
   }
 
   double get _effectivePlayheadBeats {
     if (_frozenArrangementPlayhead != null) {
       return _frozenArrangementPlayhead!;
     }
-    return _playheadNotifier.value;
+    return _transport.effectivePlayheadBeats;
   }
 
-  void _publishPlayhead(double beats) {
-    _playheadNotifier.value = beats;
+  void _onMeterRefreshTick() {
+    if (_transport.playing && _snapshot != null) {
+      unawaited(_refreshLiveMeters());
+    }
   }
 
   Future<double> _beginClipEditorSession() async {
-    if (_playing) {
-      await widget.bridge.stop();
-      _stopPlayheadAnimation();
-      if (mounted) {
-        setState(() => _playing = false);
-      }
+    if (_transport.playing) {
+      await _transport.stopPlay();
     }
     final saved = _effectivePlayheadBeats;
     if (mounted) {
@@ -129,103 +102,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     if (mounted) {
       setState(() => _frozenArrangementPlayhead = null);
     }
-    await _syncTransportState();
-  }
-
-  void _stopPlayheadAnimation() {
-    _playheadTicker?.stop();
-    _playheadTicker?.dispose();
-    _playheadTicker = null;
-    _transportSyncTimer?.cancel();
-    _transportSyncTimer = null;
-    _meterRefreshTimer?.cancel();
-    _meterRefreshTimer = null;
-    _transportStopwatch.stop();
-  }
-
-  void _anchorTransport(TransportState transport) {
-    _syncPlayheadBeats = transport.playheadBeats;
-    _transportStopwatch
-      ..reset()
-      ..start();
-    _syncBpm = transport.bpm;
-    _syncLoopEnabled = transport.loopEnabled;
-    _syncLoopRegionStart = transport.loopRegionStartBeat;
-    _syncLoopRegionEnd = transport.loopRegionEndBeat;
-  }
-
-  void _publishSyncedPlayhead({TransportState? transport}) {
-    if (_playing) {
-      _publishPlayhead(_extrapolatePlayheadBeats());
-      return;
-    }
-    if (transport != null) {
-      _publishPlayhead(transport.playheadBeats);
-    }
-  }
-
-  double _extrapolatePlayheadBeats() {
-    final elapsed = _transportStopwatch.elapsedMicroseconds / 1000000.0;
-    var beats = _syncPlayheadBeats + elapsed * (_syncBpm / 60.0);
-    beats = _wrapPlayheadInLoop(beats);
-    return beats;
-  }
-
-  Future<void> _syncTransportState({bool updatePlaying = false}) async {
-    if (_frozenArrangementPlayhead != null) return;
-    if (_transportSyncInFlight) {
-      _transportSyncPending = true;
-      return;
-    }
-    _transportSyncInFlight = true;
-    try {
-      final transport = await widget.bridge.getTransportState();
-      if (!mounted) return;
-      _anchorTransport(transport);
-      if (updatePlaying && !transport.playing) {
-        _playing = false;
-        _stopPlayheadAnimation();
-      }
-      if (updatePlaying) {
-        setState(() => _playing = transport.playing);
-      }
-      _publishSyncedPlayhead(transport: transport);
-    } catch (_) {
-    } finally {
-      _transportSyncInFlight = false;
-      if (_transportSyncPending) {
-        _transportSyncPending = false;
-        unawaited(_syncTransportState(updatePlaying: updatePlaying));
-      }
-    }
-  }
-
-  void _startPlayheadAnimation() {
-    _stopPlayheadAnimation();
-    _playheadTicker = createTicker((_) {
-      if (!mounted || !_playing) return;
-      _publishPlayhead(_extrapolatePlayheadBeats());
-    })..start();
-    _transportSyncTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
-      unawaited(_syncTransportState());
-    });
-    _meterRefreshTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
-      if (_playing && _snapshot != null) {
-        unawaited(_refreshLiveMeters());
-      }
-    });
-    unawaited(_syncTransportState());
-  }
-
-  void _syncTransportAnchorFromSnapshot(ProjectSnapshot snapshot) {
-    _syncBpm = snapshot.bpm;
-    _syncLoopEnabled = snapshot.loopEnabled;
-    _syncLoopRegionStart = snapshot.loopRegionStartBeat;
-    _syncLoopRegionEnd = snapshot.loopRegionEndBeat;
-    if (!_playing) {
-      _syncPlayheadBeats = snapshot.playheadBeats;
-      _publishPlayhead(snapshot.playheadBeats);
-    }
+    await _transport.syncTransportState();
   }
 
   Future<void> _bootstrap() async {
@@ -235,7 +112,13 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       final snapshot = await widget.bridge.addTrack(name: 'Track 1');
       await widget.bridge.enterPlayMode();
       if (!mounted) return;
-      _syncTransportAnchorFromSnapshot(snapshot);
+      _transport.syncTransportAnchorFromSnapshot(
+        snapshot.bpm,
+        snapshot.loopEnabled,
+        snapshot.loopRegionStartBeat,
+        snapshot.loopRegionEndBeat,
+        snapshot.playheadBeats,
+      );
       setState(() => _snapshot = snapshot);
     } on MissingPluginException {
       if (!mounted) return;
@@ -252,7 +135,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   Future<void> _refreshLiveMeters() async {
-    if (!_playing || _snapshot == null) return;
+    if (!_transport.playing || _snapshot == null) return;
     try {
       final fresh = await widget.bridge.getProjectSnapshot();
       if (!mounted || _snapshot == null) return;
@@ -950,9 +833,6 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     final preset = DevicePresetStore.find(item.deviceType, item.id);
     debugPrint('[library preset] item.id=${item.id} deviceType=${item.deviceType} startBeat=$startBeat loop=$loop presetFound=${preset != null}');
     if (preset == null) {
-      // No factory preset registered for this device/preset combo — bail silently.
-      // The UI no longer toasts errors, and the engine still has device defaults
-      // available for non-library-preset selections.
       return;
     }
 
@@ -1126,10 +1006,16 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       }
       await _refreshSnapshot(snapshot);
       if (!mounted) return;
+      _transport.syncTransportAnchorFromSnapshot(
+        snapshot.bpm,
+        snapshot.loopEnabled,
+        snapshot.loopRegionStartBeat,
+        snapshot.loopRegionEndBeat,
+        snapshot.playheadBeats,
+      );
       setState(() {
         _saveStatus = 'Loaded project';
         _projectError = null;
-        _playing = false;
       });
     } on PlatformException catch (e) {
       if (!mounted) return;
@@ -1222,12 +1108,14 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     } catch (_) {}
   }
 
+  // ── Transport methods (delegated to controller) ──────────
+
   Future<void> _setBpm(int bpm) async {
     try {
       final snapshot = await widget.bridge.setBpm(bpm);
       await _refreshSnapshot(snapshot);
-      if (_playing) {
-        await _syncTransportState();
+      if (_transport.playing) {
+        await _transport.syncTransportState();
       }
     } catch (e) {
       if (!mounted) return;
@@ -1239,9 +1127,15 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     try {
       final snapshot = await widget.bridge.setLoopEnabled(enabled);
       await _refreshSnapshot(snapshot);
-      _syncTransportAnchorFromSnapshot(snapshot);
-      if (_playing) {
-        await _syncTransportState();
+      _transport.syncTransportAnchorFromSnapshot(
+        snapshot.bpm,
+        snapshot.loopEnabled,
+        snapshot.loopRegionStartBeat,
+        snapshot.loopRegionEndBeat,
+        snapshot.playheadBeats,
+      );
+      if (_transport.playing) {
+        await _transport.syncTransportState();
       }
     } catch (e) {
       if (!mounted) return;
@@ -1259,9 +1153,15 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         endBeat: endBeat,
       );
       await _refreshSnapshot(snapshot);
-      _syncTransportAnchorFromSnapshot(snapshot);
-      if (_playing) {
-        await _syncTransportState();
+      _transport.syncTransportAnchorFromSnapshot(
+        snapshot.bpm,
+        snapshot.loopEnabled,
+        snapshot.loopRegionStartBeat,
+        snapshot.loopRegionEndBeat,
+        snapshot.playheadBeats,
+      );
+      if (_transport.playing) {
+        await _transport.syncTransportState();
       }
     } catch (e) {
       if (!mounted) return;
@@ -1422,96 +1322,52 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
   Future<void> _setPlayheadBeats(double beats) async {
     try {
-      if (_playing) {
-        _syncPlayheadBeats = beats;
-        _transportStopwatch
-          ..reset()
-          ..start();
-        _publishPlayhead(beats);
-      }
-      final snapshot = await widget.bridge.setPlayheadBeats(beats);
+      await _transport.setPlayheadBeats(beats);
+      final snapshot = await widget.bridge.getProjectSnapshot();
       await _refreshSnapshot(snapshot);
-      if (_playing) {
-        await _syncTransportState();
-      } else if (mounted) {
-        _syncPlayheadBeats = snapshot.playheadBeats;
-        _publishPlayhead(snapshot.playheadBeats);
-      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
     }
   }
 
-  bool _transportCommandInFlight = false;
-
   Future<void> _startPlay() async {
-    if (_playing || _transportCommandInFlight) return;
-    _transportCommandInFlight = true;
-    try {
-      final beats = _effectivePlayheadBeats;
-      _syncPlayheadBeats = beats;
-      _transportStopwatch
-        ..reset()
-        ..start();
-      _syncBpm = _snapshot?.bpm ?? _syncBpm;
-      _publishPlayhead(beats);
-      await widget.bridge.setPlayheadBeats(beats);
-      await widget.bridge.play();
-      if (!mounted) return;
-      setState(() {
-        _playing = true;
-        _followPlayheadSuspended = false;
-      });
-      _startPlayheadAnimation();
-      _arrangementScrollController.catchUpPlayheadOnPlay(beats);
-    } finally {
-      _transportCommandInFlight = false;
+    final beats = _effectivePlayheadBeats;
+    await _transport.startPlay(beats);
+    _arrangementScrollController.catchUpPlayheadOnPlay(beats);
+    if (mounted) {
+      setState(() {});
     }
   }
 
   Future<void> _stopPlay() async {
-    if (!_playing || _transportCommandInFlight) return;
-    _transportCommandInFlight = true;
-    _stopPlayheadAnimation();
+    await _transport.stopPlay();
     if (mounted) {
-      setState(() => _playing = false);
-    }
-    try {
-      await widget.bridge.stop();
-      try {
-        final transport = await widget.bridge.getTransportState();
-        if (mounted) {
-          _anchorTransport(transport);
-          _publishPlayhead(transport.playheadBeats);
-        }
-      } catch (_) {}
-    } finally {
-      _transportCommandInFlight = false;
+      setState(() {});
     }
   }
 
   void _setFollowPlayheadEnabled(bool enabled) {
-    setState(() {
-      _followPlayheadEnabled = enabled;
-      if (enabled) {
-        _followPlayheadSuspended = false;
-      }
-    });
-    if (enabled && _playing) {
-      _arrangementScrollController.catchUpPlayheadOnPlay(_effectivePlayheadBeats);
+    _transport.setFollowPlayheadEnabled(enabled);
+    if (enabled && _transport.playing) {
+      _arrangementScrollController.catchUpPlayheadOnPlay(
+        _effectivePlayheadBeats,
+      );
+    }
+    if (mounted) {
+      setState(() {});
     }
   }
 
   void _onFollowSuspended() {
-    if (!_followPlayheadSuspended && mounted) {
-      setState(() => _followPlayheadSuspended = true);
+    if (!_transport.followPlayheadSuspended && mounted) {
+      setState(() => _transport.followPlayheadSuspended = true);
     }
   }
 
   void _onFollowResumed() {
-    if (_followPlayheadSuspended && mounted) {
-      setState(() => _followPlayheadSuspended = false);
+    if (_transport.followPlayheadSuspended && mounted) {
+      setState(() => _transport.followPlayheadSuspended = false);
     }
   }
 
@@ -1547,32 +1403,32 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
           child: ArrangementView(
             key: const ValueKey('daw-arrangement'),
             timelineScrollController: _arrangementScrollController,
-            followPlayheadEnabled: _followPlayheadEnabled,
+            followPlayheadEnabled: _transport.followPlayheadEnabled,
             onFollowSuspended: _onFollowSuspended,
             onFollowResumed: _onFollowResumed,
-            playheadListenable: _playheadNotifier,
+            playheadListenable: _transport.playheadNotifier,
             snapshot: snapshot,
             playheadBeats: _effectivePlayheadBeats,
-            playing: _playing,
-              onPlayRequested: _startPlay,
-              onStopRequested: _stopPlay,
-              onPlayheadSeek: _setPlayheadBeats,
-              onLoopRegionChanged: _setLoopRegion,
-              onTrackSelected: _selectTrack,
-              onAddTrack: _addTrack,
-              onAddMidiClip: _addMidiClip,
-              onAddAudioClip: _addAudioClip,
-              onClipTap: _openPianoRoll,
-              onSampleClipTap: (_, __) {},
-              onMoveClip: _moveClip,
-              onResizeClipCommit: _resizeClip,
-              onDeleteTrack: _confirmDeleteTrack,
-              onDeleteClip: _confirmDeleteClip,
-              onDuplicateClip: _duplicateClip,
-              onAddAutomationClip: _addAutomationClip,
-              automationLinkClipId: _automationLinkClipId,
-              onAutomationLinkToggle: _toggleAutomationLink,
-              onAutomationClipDoubleTap: _openAutomationCurveEditor,
+            playing: _transport.playing,
+            onPlayRequested: _startPlay,
+            onStopRequested: _stopPlay,
+            onPlayheadSeek: _setPlayheadBeats,
+            onLoopRegionChanged: _setLoopRegion,
+            onTrackSelected: _selectTrack,
+            onAddTrack: _addTrack,
+            onAddMidiClip: _addMidiClip,
+            onAddAudioClip: _addAudioClip,
+            onClipTap: _openPianoRoll,
+            onSampleClipTap: (_, __) {},
+            onMoveClip: _moveClip,
+            onResizeClipCommit: _resizeClip,
+            onDeleteTrack: _confirmDeleteTrack,
+            onDeleteClip: _confirmDeleteClip,
+            onDuplicateClip: _duplicateClip,
+            onAddAutomationClip: _addAutomationClip,
+            automationLinkClipId: _automationLinkClipId,
+            onAutomationLinkToggle: _toggleAutomationLink,
+            onAutomationClipDoubleTap: _openAutomationCurveEditor,
           ),
         ),
         if (_tab == _ShellTab.devices)
@@ -1580,9 +1436,9 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             snapshot: snapshot,
             track: snapshot.selectedTrack,
             samples: snapshot.samples,
-            playing: _playing,
-            playheadBeatListenable: _playheadNotifier,
-              onSamplerParameterChanged: _setSamplerParameter,
+            playing: _transport.playing,
+            playheadBeatListenable: _transport.playheadNotifier,
+            onSamplerParameterChanged: _setSamplerParameter,
             onAssignSamplerSample: _assignSamplerSample,
             onOpenSamplerEditor: _openSamplerEditor,
             onPreviewSample: _previewSample,
@@ -1604,6 +1460,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             automationLinkClipId: _automationLinkClipId,
             onAutomationParamSelected: _assignAutomationParam,
             onAutomateParameter: _automateParameter,
+            onGetParamDescriptors: widget.bridge.getParamDescriptors,
           )
         else
           LiveInstrumentPanel(
@@ -1647,15 +1504,15 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       children: [
         if (snapshot != null)
           ListenableBuilder(
-            listenable: _playheadNotifier,
+            listenable: _transport.playheadNotifier,
             builder: (context, _) => TransportBar.padded(
               context: context,
               bpm: snapshot.bpm,
               playheadBeats: _effectivePlayheadBeats,
               version: kAppVersion,
               loopEnabled: snapshot.loopEnabled,
-              followPlayheadEnabled: _followPlayheadEnabled,
-              followPlayheadSuspended: _followPlayheadSuspended,
+              followPlayheadEnabled: _transport.followPlayheadEnabled,
+              followPlayheadSuspended: _transport.followPlayheadSuspended,
               onBpmChanged: _setBpm,
               onLoopToggled: _setLoopEnabled,
               onFollowPlayheadToggled: _setFollowPlayheadEnabled,
@@ -1706,9 +1563,6 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
               onPresetTap: _onLibraryPresetTap,
               onPresetPreviewTap: _onLibraryPresetPreviewTap,
               onStopPreview: () {
-                // Halt the active engine preview without closing the panel.
-                // (The panel's own _stopPreviewAnimation already took care of
-                // the visual ticker; this just kills the audio.)
                 widget.bridge.stopPreview().catchError((Object _) {});
               },
             ),
