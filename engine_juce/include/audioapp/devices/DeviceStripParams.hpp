@@ -2,6 +2,7 @@
 
 #include "audioapp/devices/DeviceSlot.hpp"
 #include "audioapp/devices/DevicePanelTypes.hpp"
+#include "audioapp/DeviceChain.hpp"  // deviceNodeKindFromTypeId, DeviceNodeKind
 
 #include <algorithm>
 #include <string_view>
@@ -9,7 +10,7 @@
 namespace audioapp::device_strip {
 
 inline bool isTrackGain(const DeviceSlot& slot) {
-    return std::holds_alternative<TrackGainParams>(slot.config.instance);
+    return deviceNodeKindFromTypeId(slot.config.typeId) == DeviceNodeKind::TrackGain;
 }
 
 inline bool setGain(DeviceSlot& slot, float value) {

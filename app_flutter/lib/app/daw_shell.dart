@@ -536,12 +536,11 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
   Future<void> _setSamplerParameter(String deviceId, String parameterId, double value) async {
     try {
-      final snapshot = await widget.bridge.setDeviceParameter(
+      await widget.bridge.setDeviceParameter(
         deviceId: deviceId,
         parameterId: parameterId,
         value: value,
       );
-      await _refreshSnapshot(snapshot);
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
@@ -887,12 +886,11 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
   Future<void> _assignSamplerSample(String deviceId, String sampleId) async {
     try {
-      final snapshot = await widget.bridge.setDeviceStringParameter(
+      await widget.bridge.setDeviceStringParameter(
         deviceId: deviceId,
         parameterId: 'sampleId',
         value: sampleId,
       );
-      await _refreshSnapshot(snapshot);
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
@@ -923,12 +921,11 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
   Future<void> _setFrequency(String deviceId, double value) async {
     try {
-      final snapshot = await widget.bridge.setDeviceParameter(
+      await widget.bridge.setDeviceParameter(
         deviceId: deviceId,
         parameterId: 'frequency',
         value: value,
       );
-      await _refreshSnapshot(snapshot);
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
@@ -955,12 +952,11 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
   Future<void> _setTrackGain(String deviceId, double value) async {
     try {
-      final snapshot = await widget.bridge.setDeviceParameter(
+      await widget.bridge.setDeviceParameter(
         deviceId: deviceId,
         parameterId: 'gain',
         value: value,
       );
-      await _refreshSnapshot(snapshot);
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
@@ -969,8 +965,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
   Future<void> _setMasterGain(double value) async {
     try {
-      final snapshot = await widget.bridge.setMasterGain(value);
-      await _refreshSnapshot(snapshot);
+      await widget.bridge.setMasterGain(value);
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());

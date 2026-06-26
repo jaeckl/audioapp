@@ -78,7 +78,7 @@ void TrackRepository::ensureTrackGainDevices(const DeviceRegistry& registry) {
     for (auto& track : tracks_) {
         bool hasGain = false;
         for (const auto& device : track.devices) {
-            if (std::holds_alternative<TrackGainParams>(device.config.instance)) {
+            if (deviceNodeKindFromTypeId(device.config.typeId) == DeviceNodeKind::TrackGain) {
                 hasGain = true;
                 break;
             }

@@ -83,14 +83,14 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         if (!engine().setDeviceParameter(deviceId, parameterId, value)) {
             return buildBridgeError("invalid_parameter");
         }
-        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+        return R"({"ok":true})";
     }
     if (method == "setMasterGain") {
         const auto value = static_cast<float>(jsonGetNumberArg(argumentsJson, "gain", 1.0));
         if (!engine().setMasterGain(value)) {
             return buildBridgeError("invalid_gain");
         }
-        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+        return R"({"ok":true})";
     }
     if (method == "setDeviceStringParameter") {
         const auto deviceId = jsonGetStringArg(argumentsJson, "deviceId");
@@ -99,7 +99,7 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         if (!engine().setDeviceStringParameter(deviceId, parameterId, value)) {
             return buildBridgeError("invalid_parameter");
         }
-        return buildBridgeOkWithSnapshot(engine().getProjectSnapshotJson());
+        return R"({"ok":true})";
     }
     if (method == "setPlayheadBeats") {
         const auto beats = jsonGetNumberArg(argumentsJson, "playheadBeats", 0.0);

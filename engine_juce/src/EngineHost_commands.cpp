@@ -668,7 +668,8 @@ void EngineHost::previewPreset(const std::string& deviceType, const std::vector<
 
     // Map the device slot → direct-renderer kind + params.
     using Kind = PreviewMidiState::PresetRenderKind;
-    if (std::holds_alternative<SubtractiveSynthParams>(slot.config.instance)) {
+    const auto kind = deviceNodeKindFromTypeId(slot.config.typeId);
+    if (kind == DeviceNodeKind::SubtractiveSynth) {
         const auto& inst = std::get<SubtractiveSynthParams>(slot.config.instance);
         previewMidi_.subtractiveParams = inst;
         previewMidi_.subtractiveParams.gain = std::get<StereoOutputPanel>(slot.config.outputPanel).gain;
@@ -677,7 +678,7 @@ void EngineHost::previewPreset(const std::string& deviceType, const std::vector<
             "previewPreset[ctrl] -> SubtractiveSynth outputGain=%.3f inst.gain=%.3f "
             "ampSustain=%.3f ampRelease=%.3f filterCutoff=%.3f",
             std::get<StereoOutputPanel>(slot.config.outputPanel).gain, inst.gain, inst.ampSustain, inst.ampRelease, inst.filterCutoff);
-    } else if (std::holds_alternative<OscillatorParams>(slot.config.instance)) {
+    } else if (kind == DeviceNodeKind::Oscillator) {
         const auto& inst = std::get<OscillatorParams>(slot.config.instance);
         // Mirror the oscillator arrangement path: a sine at the active note's pitch,
         // gain = output-panel gain. The OscillatorParams.frequencyHz is overridden per-frame
@@ -686,7 +687,7 @@ void EngineHost::previewPreset(const std::string& deviceType, const std::vector<
         previewMidi_.renderKind.store(Kind::Oscillator, std::memory_order_release);
         AUDIOAPP_LOG("previewPreset[ctrl] -> Oscillator outputGain=%.3f",
                      std::get<StereoOutputPanel>(slot.config.outputPanel).gain);
-    } else if (std::holds_alternative<SamplerModel>(slot.config.instance)) {
+    } else if (kind == DeviceNodeKind::Sampler) {
         const auto& inst = std::get<SamplerModel>(slot.config.instance);
         previewMidi_.samplerParams.pcm = previewMidi_.instrument.samplerPcm;
         previewMidi_.samplerParams.frameCount = previewMidi_.instrument.samplerFrameCount;

@@ -96,7 +96,7 @@ std::string ProjectEngine::addDeviceToTrack(const std::string& trackId,
 
     size_t gainIndex = track->devices.size();
     for (size_t i = 0; i < track->devices.size(); ++i) {
-        if (std::holds_alternative<TrackGainParams>(track->devices[i].config.instance)) {
+        if (deviceNodeKindFromTypeId(track->devices[i].config.typeId) == DeviceNodeKind::TrackGain) {
             gainIndex = i;
             break;
         }
@@ -138,7 +138,7 @@ bool ProjectEngine::removeDeviceFromTrack(const std::string& deviceId) {
     }
 
     const auto& slot = ownerTrack->devices[deviceIndex];
-    if (std::holds_alternative<TrackGainParams>(slot.config.instance)) {
+    if (deviceNodeKindFromTypeId(slot.config.typeId) == DeviceNodeKind::TrackGain) {
         return false;
     }
 
@@ -1028,7 +1028,7 @@ bool ProjectEngine::applySubtractiveSynthPreset(
     const std::vector<SubtractivePresetModSpec>& mods) {
     std::lock_guard<std::shared_mutex> lock(mutex_);
     DeviceSlot* device = findDeviceLocked(deviceId);
-    if (device == nullptr || !std::holds_alternative<SubtractiveSynthParams>(device->config.instance)) {
+    if (device == nullptr || deviceNodeKindFromTypeId(device->config.typeId) != DeviceNodeKind::SubtractiveSynth) {
         return false;
     }
 
@@ -1103,10 +1103,10 @@ void ProjectEngine::applyLiveDeviceMetersLocked(ProjectSnapshot& snap) const {
     for (auto& trackState : snap.tracks) {
         for (auto& device : trackState.devices) {
             const bool isDynamics =
-                std::holds_alternative<GateParams>(device.config.instance) ||
-                std::holds_alternative<CompressorParams>(device.config.instance) ||
-                std::holds_alternative<ExpanderParams>(device.config.instance) ||
-                std::holds_alternative<LimiterParams>(device.config.instance);
+                deviceNodeKindFromTypeId(device.config.typeId) == DeviceNodeKind::Gate ||
+                deviceNodeKindFromTypeId(device.config.typeId) == DeviceNodeKind::Compressor ||
+                deviceNodeKindFromTypeId(device.config.typeId) == DeviceNodeKind::Expander ||
+                deviceNodeKindFromTypeId(device.config.typeId) == DeviceNodeKind::Limiter;
             if (!isDynamics) continue;
             for (int i = 0; i < deviceMeterSlotCount_; ++i) {
                 if (deviceMeterIds_[i] != device.id) {
@@ -1298,7 +1298,7 @@ void ProjectEngine::syncActiveFrequencyLocked() {
         if (Track* track = trackRepo_.findTrack(selectedId)) {
             bool foundOscillator = false;
             for (const auto& device : track->devices) {
-                if (std::holds_alternative<OscillatorParams>(device.config.instance)) {
+                if (deviceNodeKindFromTypeId(device.config.typeId) == DeviceNodeKind::Oscillator) {
                     freq = std::get<OscillatorParams>(device.config.instance).frequencyHz;
                     foundOscillator = true;
                     break;

@@ -63,30 +63,8 @@ void main() {
           return oneTrackSnapshot;
         case 'setDeviceParameter':
         case 'setDeviceStringParameter':
-          return {
-            'ok': true,
-            'snapshot': {
-              'bpm': 120,
-              'playheadBeats': 0.0,
-              'playing': false,
-              'selectedTrackId': 'track-1',
-              'tracks': [
-                {
-                  'id': 'track-1',
-                  'name': 'Track 1',
-                  'devices': [
-                    {
-                      'id': 'dev-1',
-                      'type': 'simple_sampler',
-                      'outputPanel': <dynamic, dynamic>{'gain': 0.5, 'pan': 0.5, 'type': 'stereo'},
-                      'parameters': {'sampleId': 'sample-1'},
-                    },
-                  ],
-                  'midiClips': [],
-                },
-              ],
-            },
-          };
+        case 'setMasterGain':
+          return {'ok': true};
         case 'createMidiClip':
           return {
             'ok': true,
@@ -407,22 +385,22 @@ void main() {
     expect(snapshot.tracks.first.devices.first.gain, 1.0);
   });
 
-  test('setDeviceParameter updates sampler gain in snapshot', () async {
-    final snapshot = await bridge.setDeviceParameter(
+  test('setDeviceParameter returns ok', () async {
+    await bridge.setDeviceParameter(
       deviceId: 'dev-1',
       parameterId: 'gain',
       value: 0.5,
     );
-    expect(snapshot.selectedTrack?.devices.first.gain, 0.5);
+    // no exception means ok
   });
 
-  test('setDeviceStringParameter updates sampler sample id', () async {
-    final snapshot = await bridge.setDeviceStringParameter(
+  test('setDeviceStringParameter returns ok', () async {
+    await bridge.setDeviceStringParameter(
       deviceId: 'dev-1',
       parameterId: 'sampleId',
       value: 'sample-1',
     );
-    expect((snapshot.selectedTrack?.devices.first as SamplerDeviceSnapshot).sampleId, 'sample-1');
+    // no exception means ok
   });
 
   test('createMidiClip returns snapshot with clip', () async {
