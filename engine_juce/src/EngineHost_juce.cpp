@@ -104,6 +104,7 @@ struct EngineHost::Impl : juce::AudioIODeviceCallback {
 
 EngineHost::EngineHost() : impl_(std::make_unique<Impl>(*this)), project_(std::make_unique<ProjectEngine>()) {
     ensureSampleBankReady();
+    registerAllCommands();
 }
 
 EngineHost::~EngineHost() {

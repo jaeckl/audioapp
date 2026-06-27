@@ -33,26 +33,23 @@ DeviceParameterResult KickGeneratorDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
 
+    const uint16_t localId = paramIdFromString(parameterId);
+    if (localId == static_cast<uint16_t>(-1))
+        return result;
+
     auto& instance = std::get<KickGeneratorParams>(slot.config.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
-    if (parameterId == "kickModel") {
-        instance.kickModel = clamped;
-    } else if (parameterId == "kickPitch") {
-        instance.kickPitch = clamped;
-    } else if (parameterId == "kickPunch") {
-        instance.kickPunch = clamped;
-    } else if (parameterId == "kickDecay") {
-        instance.kickDecay = clamped;
-    } else if (parameterId == "kickClick") {
-        instance.kickClick = clamped;
-    } else if (parameterId == "kickTone") {
-        instance.kickTone = clamped;
-    } else if (parameterId == "kickVelocity") {
-        instance.kickVelocity = clamped;
-    } else if (parameterId == "kickKeyTrack") {
-        instance.kickKeyTrack = clamped >= 0.5f ? 1.0f : 0.0f;
-    } else {
-        return result;
+
+    switch (static_cast<KickParam>(localId)) {
+    case KickParam::Model:    instance.kickModel = clamped; break;
+    case KickParam::Pitch:    instance.kickPitch = clamped; break;
+    case KickParam::Punch:    instance.kickPunch = clamped; break;
+    case KickParam::Decay:    instance.kickDecay = clamped; break;
+    case KickParam::Click:    instance.kickClick = clamped; break;
+    case KickParam::Tone:     instance.kickTone = clamped; break;
+    case KickParam::Velocity: instance.kickVelocity = clamped; break;
+    case KickParam::KeyTrack: instance.kickKeyTrack = clamped >= 0.5f ? 1.0f : 0.0f; break;
+    default: return result;
     }
 
     result.handled = true;
@@ -185,16 +182,17 @@ DeviceNodeKind KickGeneratorDeviceType::kind() const noexcept { return DeviceNod
 
 uint16_t KickGeneratorDeviceType::paramIdFromString(std::string_view name) const noexcept {
     auto k = [&](std::string_view n, KickParam pid) -> uint16_t {
-        return name == n ? static_cast<uint16_t>(pid) : 0;
+        return name == n ? static_cast<uint16_t>(pid) : static_cast<uint16_t>(-1);
     };
-    if (auto v = k("kickModel", KickParam::Model)) return v;
-    if (auto v = k("kickPitch", KickParam::Pitch)) return v;
-    if (auto v = k("kickPunch", KickParam::Punch)) return v;
-    if (auto v = k("kickDecay", KickParam::Decay)) return v;
-    if (auto v = k("kickClick", KickParam::Click)) return v;
-    if (auto v = k("kickTone", KickParam::Tone)) return v;
-    if (auto v = k("kickVelocity", KickParam::Velocity)) return v;
-    return 0;
+    if (auto v = k("kickModel", KickParam::Model); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = k("kickPitch", KickParam::Pitch); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = k("kickPunch", KickParam::Punch); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = k("kickDecay", KickParam::Decay); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = k("kickClick", KickParam::Click); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = k("kickTone", KickParam::Tone); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = k("kickVelocity", KickParam::Velocity); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = k("kickKeyTrack", KickParam::KeyTrack); v != static_cast<uint16_t>(-1)) return v;
+    return static_cast<uint16_t>(-1);
 }
 
 std::string_view KickGeneratorDeviceType::paramIdToString(uint16_t localId) const noexcept {
@@ -206,12 +204,23 @@ std::string_view KickGeneratorDeviceType::paramIdToString(uint16_t localId) cons
     case KickParam::Click: return "kickClick";
     case KickParam::Tone: return "kickTone";
     case KickParam::Velocity: return "kickVelocity";
+    case KickParam::KeyTrack: return "kickKeyTrack";
     default: return "";
     }
 }
 
 std::span<const ParamDescriptor> KickGeneratorDeviceType::paramDescriptors() const noexcept {
-    return {};
+    static constexpr ParamDescriptor kParams[] = {
+        {static_cast<uint16_t>(KickParam::Model), "kickModel", "Model", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(KickParam::Pitch), "kickPitch", "Pitch", 0.55f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(KickParam::Punch), "kickPunch", "Punch", 0.60f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(KickParam::Decay), "kickDecay", "Decay", 0.50f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(KickParam::Click), "kickClick", "Click", 0.35f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(KickParam::Tone), "kickTone", "Tone", 0.50f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(KickParam::Velocity), "kickVelocity", "Velocity", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(KickParam::KeyTrack), "kickKeyTrack", "Key Track", 1.0f, 0.0f, 1.0f, true, true},
+    };
+    return kParams;
 }
 
 bool KickGeneratorDeviceType::usesDspAutomationSubBlocks() const noexcept {

@@ -9,6 +9,7 @@
 #include "audioapp/SubtractiveSynthAlgorithm.hpp"
 #include "audioapp/SamplePlaybackAlgorithm.hpp"
 #include "audioapp/SamplerFilter.hpp"
+#include "audioapp/commands/CommandRegistry.hpp"
 
 #include <atomic>
 #include <cstdint>
@@ -126,6 +127,12 @@ public:
     /// Format: {"ok":true, "deviceType":"sampler", "params":[...], "protocolVersion":1}
     std::string getParamDescriptorsJson(const std::string& deviceType) const;
 
+    /// Access the command registry for bridge dispatch.
+    commands::CommandRegistry& commandRegistry() { return commandRegistry_; }
+    const commands::CommandRegistry& commandRegistry() const { return commandRegistry_; }
+    /// Register all built-in commands. Called once from constructors.
+    void registerAllCommands();
+
     void advancePlayheadForBlock(int numFrames, double sampleRate) noexcept;
     float activeOscillatorFrequencyHz() const;
     void setPlayheadBeats(double beats) noexcept;
@@ -148,6 +155,7 @@ private:
     std::unique_ptr<ProjectEngine> project_;
     SampleBank sampleBank_;
     int nextImportSampleNum_ = 1;
+    commands::CommandRegistry commandRegistry_;
 
     struct PreviewVoice {
         std::atomic<bool> active{false};

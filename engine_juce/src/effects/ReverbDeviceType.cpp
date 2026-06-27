@@ -37,17 +37,27 @@ DeviceParameterResult ReverbDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
     auto& instance = std::get<ReverbParams>(slot.config.instance);
-    if (parameterId == "roomSize") {
+    const uint16_t id = paramIdFromString(parameterId);
+    if (id == static_cast<uint16_t>(-1))
+        return result;
+    const auto localId = static_cast<ReverbParam>(id);
+    switch (localId) {
+    case ReverbParam::RoomSize:
         instance.roomSize = juce::jlimit(0.0, 1.0, static_cast<double>(value));
-    } else if (parameterId == "damping") {
+        break;
+    case ReverbParam::Damping:
         instance.damping = juce::jlimit(0.0, 1.0, static_cast<double>(value));
-    } else if (parameterId == "wetLevel") {
+        break;
+    case ReverbParam::WetLevel:
         instance.wetLevel = juce::jlimit(0.0, 1.0, static_cast<double>(value));
-    } else if (parameterId == "dryLevel") {
+        break;
+    case ReverbParam::DryLevel:
         instance.dryLevel = juce::jlimit(0.0, 1.0, static_cast<double>(value));
-    } else if (parameterId == "width") {
+        break;
+    case ReverbParam::Width:
         instance.width = juce::jlimit(0.0, 1.0, static_cast<double>(value));
-    } else {
+        break;
+    default:
         return result;
     }
     result.handled = true;
@@ -172,29 +182,35 @@ DeviceProcessor* ReverbDeviceType::createProcessor(ProcessorArena& arena) const 
 DeviceNodeKind ReverbDeviceType::kind() const noexcept { return DeviceNodeKind::Reverb; }
 
 uint16_t ReverbDeviceType::paramIdFromString(std::string_view name) const noexcept {
-    auto r = [&](std::string_view n, uint16_t pid) -> uint16_t {
-        return name == n ? pid : 0;
-    };
-    if (auto v = r("reverbRoomSize", 0)) return v;
-    if (auto v = r("reverbDamping", 1)) return v;
-    if (auto v = r("reverbWetLevel", 2)) return v;
-    if (auto v = r("reverbDryLevel", 3)) return v;
-    if (auto v = r("reverbWidth", 4)) return v;
-    return 0;
+    if (name == "roomSize" || name == "reverbRoomSize") return static_cast<uint16_t>(ReverbParam::RoomSize);
+    if (name == "damping" || name == "reverbDamping") return static_cast<uint16_t>(ReverbParam::Damping);
+    if (name == "wetLevel" || name == "reverbWetLevel") return static_cast<uint16_t>(ReverbParam::WetLevel);
+    if (name == "dryLevel" || name == "reverbDryLevel") return static_cast<uint16_t>(ReverbParam::DryLevel);
+    if (name == "width" || name == "reverbWidth") return static_cast<uint16_t>(ReverbParam::Width);
+    return static_cast<uint16_t>(-1);
 }
 
 std::string_view ReverbDeviceType::paramIdToString(uint16_t localId) const noexcept {
-    switch (localId) {
-    case 0: return "reverbRoomSize";
-    case 1: return "reverbDamping";
-    case 2: return "reverbWetLevel";
-    case 3: return "reverbDryLevel";
-    case 4: return "reverbWidth";
+    switch (static_cast<ReverbParam>(localId)) {
+    case ReverbParam::RoomSize: return "reverbRoomSize";
+    case ReverbParam::Damping: return "reverbDamping";
+    case ReverbParam::WetLevel: return "reverbWetLevel";
+    case ReverbParam::DryLevel: return "reverbDryLevel";
+    case ReverbParam::Width: return "reverbWidth";
     default: return "";
     }
 }
 
-std::span<const ParamDescriptor> ReverbDeviceType::paramDescriptors() const noexcept { return {}; }
+std::span<const ParamDescriptor> ReverbDeviceType::paramDescriptors() const noexcept {
+    static constexpr ParamDescriptor kParams[] = {
+        {static_cast<uint16_t>(ReverbParam::RoomSize), "reverbRoomSize", "Room Size", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(ReverbParam::Damping), "reverbDamping", "Damping", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(ReverbParam::WetLevel), "reverbWetLevel", "Wet Level", 0.33f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(ReverbParam::DryLevel), "reverbDryLevel", "Dry Level", 0.7f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(ReverbParam::Width), "reverbWidth", "Width", 1.0f, 0.0f, 1.0f, true, true},
+    };
+    return kParams;
+}
 
 bool ReverbDeviceType::usesDspAutomationSubBlocks() const noexcept { return false; }
 

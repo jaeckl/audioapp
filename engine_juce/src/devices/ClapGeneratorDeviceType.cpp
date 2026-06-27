@@ -33,22 +33,21 @@ DeviceParameterResult ClapGeneratorDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
 
+    const uint16_t localId = paramIdFromString(parameterId);
+    if (localId == static_cast<uint16_t>(-1))
+        return result;
+
     auto& instance = std::get<ClapGeneratorParams>(slot.config.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
-    if (parameterId == "clapBursts") {
-        instance.clapBursts = clamped;
-    } else if (parameterId == "clapSpread") {
-        instance.clapSpread = clamped;
-    } else if (parameterId == "clapTone") {
-        instance.clapTone = clamped;
-    } else if (parameterId == "clapRoom") {
-        instance.clapRoom = clamped;
-    } else if (parameterId == "clapDecay") {
-        instance.clapDecay = clamped;
-    } else if (parameterId == "clapVelocity") {
-        instance.clapVelocity = clamped;
-    } else {
-        return result;
+
+    switch (static_cast<ClapParam>(localId)) {
+    case ClapParam::Bursts:   instance.clapBursts = clamped; break;
+    case ClapParam::Spread:   instance.clapSpread = clamped; break;
+    case ClapParam::Tone:     instance.clapTone = clamped; break;
+    case ClapParam::Room:     instance.clapRoom = clamped; break;
+    case ClapParam::Decay:    instance.clapDecay = clamped; break;
+    case ClapParam::Velocity: instance.clapVelocity = clamped; break;
+    default: return result;
     }
 
     result.handled = true;
@@ -182,15 +181,15 @@ DeviceNodeKind ClapGeneratorDeviceType::kind() const noexcept { return DeviceNod
 
 uint16_t ClapGeneratorDeviceType::paramIdFromString(std::string_view name) const noexcept {
     auto c = [&](std::string_view n, ClapParam pid) -> uint16_t {
-        return name == n ? static_cast<uint16_t>(pid) : 0;
+        return name == n ? static_cast<uint16_t>(pid) : static_cast<uint16_t>(-1);
     };
-    if (auto v = c("clapBursts", ClapParam::Bursts)) return v;
-    if (auto v = c("clapSpread", ClapParam::Spread)) return v;
-    if (auto v = c("clapTone", ClapParam::Tone)) return v;
-    if (auto v = c("clapRoom", ClapParam::Room)) return v;
-    if (auto v = c("clapDecay", ClapParam::Decay)) return v;
-    if (auto v = c("clapVelocity", ClapParam::Velocity)) return v;
-    return 0;
+    if (auto v = c("clapBursts", ClapParam::Bursts); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("clapSpread", ClapParam::Spread); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("clapTone", ClapParam::Tone); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("clapRoom", ClapParam::Room); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("clapDecay", ClapParam::Decay); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("clapVelocity", ClapParam::Velocity); v != static_cast<uint16_t>(-1)) return v;
+    return static_cast<uint16_t>(-1);
 }
 
 std::string_view ClapGeneratorDeviceType::paramIdToString(uint16_t localId) const noexcept {
@@ -206,7 +205,15 @@ std::string_view ClapGeneratorDeviceType::paramIdToString(uint16_t localId) cons
 }
 
 std::span<const ParamDescriptor> ClapGeneratorDeviceType::paramDescriptors() const noexcept {
-    return {};
+    static constexpr ParamDescriptor kParams[] = {
+        {static_cast<uint16_t>(ClapParam::Bursts), "clapBursts", "Bursts", 0.50f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(ClapParam::Spread), "clapSpread", "Spread", 0.45f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(ClapParam::Tone), "clapTone", "Tone", 0.55f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(ClapParam::Room), "clapRoom", "Room", 0.50f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(ClapParam::Decay), "clapDecay", "Decay", 0.50f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(ClapParam::Velocity), "clapVelocity", "Velocity", 1.0f, 0.0f, 1.0f, true, true},
+    };
+    return kParams;
 }
 
 bool ClapGeneratorDeviceType::usesDspAutomationSubBlocks() const noexcept {

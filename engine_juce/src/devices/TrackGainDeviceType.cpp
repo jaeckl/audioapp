@@ -82,12 +82,17 @@ DeviceParameterResult TrackGainDeviceType::setParameter(DeviceSlot& slot,
                                                         std::string_view parameterId,
                                                         float value) const {
     DeviceParameterResult result;
-    if (device_strip::setStripParameter(slot, parameterId, value)) {
-        result.handled = true;
+    const uint16_t id = paramIdFromString(parameterId);
+    switch (static_cast<TrackGainParam>(id)) {
+    case TrackGainParam::Gain:
+    case TrackGainParam::Pan:
+        if (device_strip::setStripParameter(slot, parameterId, value)) {
+            result.handled = true;
+        }
+        return result;
+    default:
         return result;
     }
-    // "pan" and "bypass" explicitly return unhandled
-    return result;
 }
 
 bool TrackGainDeviceType::setStringParameter(DeviceSlot&,
@@ -122,5 +127,29 @@ DeviceProcessor* TrackGainDeviceType::createProcessor(ProcessorArena& arena) con
 }
 
 DeviceNodeKind TrackGainDeviceType::kind() const noexcept { return DeviceNodeKind::TrackGain; }
+
+uint16_t TrackGainDeviceType::paramIdFromString(std::string_view name) const noexcept {
+    if (name == "gain") return static_cast<uint16_t>(TrackGainParam::Gain);
+    if (name == "pan") return static_cast<uint16_t>(TrackGainParam::Pan);
+    return static_cast<uint16_t>(-1);
+}
+
+std::string_view TrackGainDeviceType::paramIdToString(uint16_t localId) const noexcept {
+    switch (static_cast<TrackGainParam>(localId)) {
+    case TrackGainParam::Gain: return "gain";
+    case TrackGainParam::Pan: return "pan";
+    default: return "";
+    }
+}
+
+std::span<const ParamDescriptor> TrackGainDeviceType::paramDescriptors() const noexcept {
+    static constexpr ParamDescriptor kParams[] = {
+        {static_cast<uint16_t>(TrackGainParam::Gain), "gain", "Gain", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(TrackGainParam::Pan), "pan", "Pan", 0.5f, 0.0f, 1.0f, true, true},
+    };
+    return kParams;
+}
+
+bool TrackGainDeviceType::usesDspAutomationSubBlocks() const noexcept { return false; }
 
 } // namespace audioapp

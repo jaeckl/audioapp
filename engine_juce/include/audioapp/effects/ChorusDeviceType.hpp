@@ -13,6 +13,8 @@
 
 namespace audioapp {
 
+enum class ChorusParam : uint16_t { Depth = 0, Rate = 1, Mix = 2, CentreDelay = 3, Feedback = 4 };
+
 class ChorusDeviceType final : public TimeBasedEffectDeviceType {
 public:
     std::string typeId() const override { return device_types::kChorus; }

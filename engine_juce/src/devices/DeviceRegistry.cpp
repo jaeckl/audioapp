@@ -149,6 +149,15 @@ DeviceRegistry DeviceRegistry::createBuiltIn() {
     registry.registerType(std::make_unique<FourBandEqDeviceType>());
     registry.registerType(std::make_unique<FrequencyShifterDeviceType>());
     registerTimeBasedEffects(registry);
+
+    // Register all param descriptors from each device type into the param registry
+    for (const auto& type : registry.types_) {
+        auto descs = type->paramDescriptors();
+        if (!descs.empty()) {
+            registry.paramRegistry_.registerDevice(type->typeId(), descs);
+        }
+    }
+
     return registry;
 }
 

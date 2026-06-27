@@ -32,13 +32,18 @@ DeviceParameterResult OscillatorDeviceType::setParameter(DeviceSlot& slot,
         result.handled = true;
         return result;
     }
-    if (parameterId != "frequency") {
+    const uint16_t id = paramIdFromString(parameterId);
+    if (id == static_cast<uint16_t>(-1))
+        return result;
+    switch (static_cast<OscillatorParam>(id)) {
+    case OscillatorParam::Frequency:
+        std::get<OscillatorParams>(slot.config.instance).frequencyHz = value;
+        result.handled = true;
+        result.syncActiveFrequency = true;
+        return result;
+    default:
         return result;
     }
-    std::get<OscillatorParams>(slot.config.instance).frequencyHz = value;
-    result.handled = true;
-    result.syncActiveFrequency = true;
-    return result;
 }
 
 bool OscillatorDeviceType::setStringParameter(DeviceSlot&,
@@ -149,7 +154,7 @@ DeviceNodeKind OscillatorDeviceType::kind() const noexcept { return DeviceNodeKi
 
 uint16_t OscillatorDeviceType::paramIdFromString(std::string_view name) const noexcept {
     if (name == "frequency") return static_cast<uint16_t>(OscillatorParam::Frequency);
-    return 0;
+    return static_cast<uint16_t>(-1);
 }
 
 std::string_view OscillatorDeviceType::paramIdToString(uint16_t localId) const noexcept {

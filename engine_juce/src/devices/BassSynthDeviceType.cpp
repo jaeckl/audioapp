@@ -97,54 +97,46 @@ DeviceParameterResult BassSynthDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
 
+    const uint16_t localId = paramIdFromString(parameterId);
+    if (localId == static_cast<uint16_t>(-1))
+        return result;
+
     auto& instance = std::get<BassSynthModel>(slot.config.instance);
 
-    if (parameterId == "attack" || parameterId == "sustain" || parameterId == "release") {
-        const float clamped = std::clamp(value, 0.0f, 1.0f);
-        if (parameterId == "attack") {
-            instance.ampAttack = clamped;
-        } else if (parameterId == "release") {
-            instance.ampRelease = clamped;
-        } else {
-            instance.ampSustain = clamped;
-        }
-    } else if (parameterId == "bassOscShape" || parameterId == "bassSubMix" ||
-               parameterId == "bassNoise" || parameterId == "bassFilterResonance" ||
-               parameterId == "bassDrive" || parameterId == "bassSquash" ||
-               parameterId == "bassVelocitySense" || parameterId == "glideMs") {
-        const float clamped = std::clamp(value, 0.0f, 1.0f);
-        if (parameterId == "bassOscShape") {
-            instance.oscShape = clamped;
-        } else if (parameterId == "bassSubMix") {
-            instance.subMix = clamped;
-        } else if (parameterId == "bassNoise") {
-            instance.noise = clamped;
-        } else if (parameterId == "bassFilterResonance") {
-            instance.filterResonance = clamped;
-        } else if (parameterId == "bassDrive") {
-            instance.drive = clamped;
-        } else if (parameterId == "bassSquash") {
-            instance.squash = clamped;
-        } else if (parameterId == "bassVelocitySense") {
-            instance.velocitySense = clamped;
-        } else {
-            instance.glideMs = clamped;
-        }
-    } else if (parameterId == "filterCutoff" || parameterId == "filterEnvAmount" ||
-               parameterId == "filterDecay") {
-        const float clamped = std::clamp(value, 0.0f, 1.0f);
-        if (parameterId == "filterCutoff") {
-            instance.filterCutoff = clamped;
-        } else if (parameterId == "filterEnvAmount") {
-            instance.filterEnvAmount = clamped;
-        } else {
-            instance.filterDecay = clamped;
-        }
-    } else if (parameterId == "bassSubOctave") {
-        instance.subOctave = std::clamp(static_cast<int>(std::lround(value)), 0, 2);
-    } else if (parameterId == "bassOctave") {
-        instance.octave = std::clamp(static_cast<int>(std::lround(value)), 0, 4);
-    } else {
+    switch (static_cast<BassSynthParam>(localId)) {
+    case BassSynthParam::FilterCutoff:
+        instance.filterCutoff = std::clamp(value, 0.0f, 1.0f); break;
+    case BassSynthParam::FilterResonance:
+        instance.filterResonance = std::clamp(value, 0.0f, 1.0f); break;
+    case BassSynthParam::FilterEnvAmount:
+        instance.filterEnvAmount = std::clamp(value, 0.0f, 1.0f); break;
+    case BassSynthParam::FilterDecay:
+        instance.filterDecay = std::clamp(value, 0.0f, 1.0f); break;
+    case BassSynthParam::AmpAttack:
+        instance.ampAttack = std::clamp(value, 0.0f, 1.0f); break;
+    case BassSynthParam::AmpSustain:
+        instance.ampSustain = std::clamp(value, 0.0f, 1.0f); break;
+    case BassSynthParam::AmpRelease:
+        instance.ampRelease = std::clamp(value, 0.0f, 1.0f); break;
+    case BassSynthParam::OscShape:
+        instance.oscShape = std::clamp(value, 0.0f, 1.0f); break;
+    case BassSynthParam::SubMix:
+        instance.subMix = std::clamp(value, 0.0f, 1.0f); break;
+    case BassSynthParam::Noise:
+        instance.noise = std::clamp(value, 0.0f, 1.0f); break;
+    case BassSynthParam::Drive:
+        instance.drive = std::clamp(value, 0.0f, 1.0f); break;
+    case BassSynthParam::Squash:
+        instance.squash = std::clamp(value, 0.0f, 1.0f); break;
+    case BassSynthParam::GlideMs:
+        instance.glideMs = std::clamp(value, 0.0f, 1.0f); break;
+    case BassSynthParam::VelocitySense:
+        instance.velocitySense = std::clamp(value, 0.0f, 1.0f); break;
+    case BassSynthParam::Octave:
+        instance.octave = std::clamp(static_cast<int>(std::lround(value)), 0, 4); break;
+    case BassSynthParam::SubOctave:
+        instance.subOctave = std::clamp(static_cast<int>(std::lround(value)), 0, 2); break;
+    default:
         return result;
     }
 
@@ -303,25 +295,25 @@ DeviceNodeKind BassSynthDeviceType::kind() const noexcept { return DeviceNodeKin
 
 uint16_t BassSynthDeviceType::paramIdFromString(std::string_view name) const noexcept {
     auto b = [&](std::string_view n, BassSynthParam pid) -> uint16_t {
-        return name == n ? static_cast<uint16_t>(pid) : 0;
+        return name == n ? static_cast<uint16_t>(pid) : static_cast<uint16_t>(-1);
     };
-    if (auto v = b("filterCutoff", BassSynthParam::FilterCutoff)) return v;
-    if (auto v = b("bassFilterResonance", BassSynthParam::FilterResonance)) return v;
-    if (auto v = b("filterEnvAmount", BassSynthParam::FilterEnvAmount)) return v;
-    if (auto v = b("filterDecay", BassSynthParam::FilterDecay)) return v;
-    if (auto v = b("attack", BassSynthParam::AmpAttack)) return v;
-    if (auto v = b("sustain", BassSynthParam::AmpSustain)) return v;
-    if (auto v = b("release", BassSynthParam::AmpRelease)) return v;
-    if (auto v = b("bassOscShape", BassSynthParam::OscShape)) return v;
-    if (auto v = b("bassSubMix", BassSynthParam::SubMix)) return v;
-    if (auto v = b("bassNoise", BassSynthParam::Noise)) return v;
-    if (auto v = b("bassDrive", BassSynthParam::Drive)) return v;
-    if (auto v = b("bassSquash", BassSynthParam::Squash)) return v;
-    if (auto v = b("glideMs", BassSynthParam::GlideMs)) return v;
-    if (auto v = b("bassVelocitySense", BassSynthParam::VelocitySense)) return v;
-    if (auto v = b("bassOctave", BassSynthParam::Octave)) return v;
-    if (auto v = b("bassSubOctave", BassSynthParam::SubOctave)) return v;
-    return 0;
+    if (auto v = b("filterCutoff", BassSynthParam::FilterCutoff); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = b("bassFilterResonance", BassSynthParam::FilterResonance); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = b("filterEnvAmount", BassSynthParam::FilterEnvAmount); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = b("filterDecay", BassSynthParam::FilterDecay); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = b("attack", BassSynthParam::AmpAttack); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = b("sustain", BassSynthParam::AmpSustain); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = b("release", BassSynthParam::AmpRelease); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = b("bassOscShape", BassSynthParam::OscShape); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = b("bassSubMix", BassSynthParam::SubMix); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = b("bassNoise", BassSynthParam::Noise); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = b("bassDrive", BassSynthParam::Drive); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = b("bassSquash", BassSynthParam::Squash); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = b("glideMs", BassSynthParam::GlideMs); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = b("bassVelocitySense", BassSynthParam::VelocitySense); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = b("bassOctave", BassSynthParam::Octave); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = b("bassSubOctave", BassSynthParam::SubOctave); v != static_cast<uint16_t>(-1)) return v;
+    return static_cast<uint16_t>(-1);
 }
 
 std::string_view BassSynthDeviceType::paramIdToString(uint16_t localId) const noexcept {

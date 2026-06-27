@@ -49,111 +49,50 @@ DeviceParameterResult SubtractiveSynthDeviceType::setParameter(DeviceSlot& slot,
     }
 
     auto& instance = std::get<SubtractiveSynthParams>(slot.config.instance);
-    if (parameterId == "attack" || parameterId == "decay" || parameterId == "release" ||
-        parameterId == "sustain") {
-        const float clamped = std::clamp(value, 0.0f, 1.0f);
-        if (parameterId == "attack") {
-            instance.ampAttack = clamped;
-        } else if (parameterId == "decay") {
-            instance.ampDecay = clamped;
-        } else if (parameterId == "release") {
-            instance.ampRelease = clamped;
-        } else {
-            instance.ampSustain = clamped;
-        }
-    } else if (parameterId == "filterCutoff" || parameterId == "filterQ" ||
-               parameterId == "filterEnvAmount" || parameterId == "filterAttack" ||
-               parameterId == "filterDecay" || parameterId == "filterSustain" ||
-               parameterId == "filterRelease" || parameterId == "osc1Octave" ||
-               parameterId == "osc1Semi" || parameterId == "osc1Detune" ||
-               parameterId == "osc2Octave" || parameterId == "osc2Semi" ||
-               parameterId == "osc2Detune" || parameterId == "oscMix" ||
-               parameterId == "osc1Sync" || parameterId == "osc2Sync" ||
-               parameterId == "noiseLevel" || parameterId == "unisonVoices" ||
-               parameterId == "unisonDetune" || parameterId == "glideMs" ||
-               parameterId == "velocitySensitivity" || parameterId == "preHpCutoff" ||
-               parameterId == "preHpRes" || parameterId == "preDrive" ||
-               parameterId == "mixFeedback" || parameterId == "globalPitch" ||
-               parameterId == "filterKeyTrack" || parameterId == "filterDrive" ||
-               parameterId == "filterShaper" || parameterId == "filterFm" ||
-               parameterId == "synthLegato" || parameterId == "synthMono") {
-        const float clamped = std::clamp(value, 0.0f, 1.0f);
-        if (parameterId == "filterCutoff") {
-            instance.filterCutoff = clamped;
-        } else if (parameterId == "filterQ") {
-            instance.filterQ = clamped;
-        } else if (parameterId == "filterEnvAmount") {
-            instance.filterEnvAmount = clamped;
-        } else if (parameterId == "filterAttack") {
-            instance.filterAttack = clamped;
-        } else if (parameterId == "filterDecay") {
-            instance.filterDecay = clamped;
-        } else if (parameterId == "filterSustain") {
-            instance.filterSustain = clamped;
-        } else if (parameterId == "filterRelease") {
-            instance.filterRelease = clamped;
-        } else if (parameterId == "osc1Octave") {
-            instance.osc1Octave = clamped;
-        } else if (parameterId == "osc1Semi") {
-            instance.osc1Semi = clamped;
-        } else if (parameterId == "osc1Detune") {
-            instance.osc1Detune = clamped;
-        } else if (parameterId == "osc2Octave") {
-            instance.osc2Octave = clamped;
-        } else if (parameterId == "osc2Semi") {
-            instance.osc2Semi = clamped;
-        } else if (parameterId == "osc2Detune") {
-            instance.osc2Detune = clamped;
-        } else if (parameterId == "oscMix") {
-            instance.oscMix = clamped;
-        } else if (parameterId == "osc1Sync") {
-            instance.osc1Sync = clamped;
-        } else if (parameterId == "osc2Sync") {
-            instance.osc2Sync = clamped;
-        } else if (parameterId == "noiseLevel") {
-            instance.noiseLevel = clamped;
-        } else if (parameterId == "unisonVoices") {
-            instance.unisonVoices = clamped;
-        } else if (parameterId == "unisonDetune") {
-            instance.unisonDetune = clamped;
-        } else if (parameterId == "glideMs") {
-            instance.glideMs = clamped;
-        } else if (parameterId == "velocitySensitivity") {
-            instance.velocitySensitivity = clamped;
-        } else if (parameterId == "preHpCutoff") {
-            instance.preHpCutoff = clamped;
-        } else if (parameterId == "preHpRes") {
-            instance.preHpRes = clamped;
-        } else if (parameterId == "preDrive") {
-            instance.preDrive = clamped;
-        } else if (parameterId == "mixFeedback") {
-            instance.mixFeedback = clamped;
-        } else if (parameterId == "globalPitch") {
-            instance.globalPitch = clamped;
-        } else if (parameterId == "filterKeyTrack") {
-            instance.filterKeyTrack = clamped;
-        } else if (parameterId == "filterDrive") {
-            instance.filterDrive = clamped;
-        } else if (parameterId == "filterShaper") {
-            instance.filterShaper = clamped;
-        } else if (parameterId == "filterFm") {
-            instance.filterFm = clamped;
-        } else if (parameterId == "synthLegato") {
-            instance.synthLegato = clamped;
-        } else {
-            instance.synthMono = clamped;
-        }
-    } else if (parameterId == "osc1Shape") {
-        instance.osc1Shape = std::clamp(value, 0.0f, 1.0f);
-    } else if (parameterId == "osc2Shape") {
-        instance.osc2Shape = std::clamp(value, 0.0f, 1.0f);
-    } else if (parameterId == "oscMixMode") {
-        instance.oscMixMode = std::clamp(static_cast<int>(std::lround(value)), 0, 4);
-    } else if (parameterId == "filterMode") {
-        instance.filterMode = std::clamp(static_cast<int>(std::lround(value)), 0, 5);
-    } else if (parameterId == "filterShaperMode") {
-        instance.filterShaperMode = std::clamp(static_cast<int>(std::lround(value)), 0, 3);
-    } else {
+    const uint16_t id = paramIdFromString(parameterId);
+    switch (static_cast<SubtractiveParam>(id)) {
+    case SubtractiveParam::AmpAttack:   instance.ampAttack = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::AmpDecay:    instance.ampDecay = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::AmpSustain:  instance.ampSustain = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::AmpRelease:  instance.ampRelease = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterCutoff:    instance.filterCutoff = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterQ:         instance.filterQ = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterEnvAmount: instance.filterEnvAmount = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterAttack:    instance.filterAttack = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterDecay:     instance.filterDecay = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterSustain:   instance.filterSustain = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterRelease:   instance.filterRelease = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::Osc1Octave:  instance.osc1Octave = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::Osc1Semi:    instance.osc1Semi = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::Osc1Detune:  instance.osc1Detune = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::Osc2Octave:  instance.osc2Octave = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::Osc2Semi:    instance.osc2Semi = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::Osc2Detune:  instance.osc2Detune = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::OscMix:      instance.oscMix = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::Osc1Sync:    instance.osc1Sync = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::Osc2Sync:    instance.osc2Sync = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::NoiseLevel:  instance.noiseLevel = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::UnisonVoices:    instance.unisonVoices = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::UnisonDetune:    instance.unisonDetune = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::GlideMs:     instance.glideMs = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::VelocitySensitivity: instance.velocitySensitivity = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::PreHpCutoff: instance.preHpCutoff = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::PreHpRes:    instance.preHpRes = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::PreDrive:    instance.preDrive = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::MixFeedback: instance.mixFeedback = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::GlobalPitch: instance.globalPitch = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterKeyTrack:  instance.filterKeyTrack = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterDrive: instance.filterDrive = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterShaper:    instance.filterShaper = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::FilterFm:    instance.filterFm = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::SynthLegato: instance.synthLegato = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::SynthMono:   instance.synthMono = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::Osc1Shape:   instance.osc1Shape = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::Osc2Shape:   instance.osc2Shape = std::clamp(value, 0.0f, 1.0f); break;
+    case SubtractiveParam::OscMixMode:  instance.oscMixMode = std::clamp(static_cast<int>(std::lround(value)), 0, 4); break;
+    case SubtractiveParam::FilterMode:  instance.filterMode = std::clamp(static_cast<int>(std::lround(value)), 0, 5); break;
+    case SubtractiveParam::FilterShaperMode: instance.filterShaperMode = std::clamp(static_cast<int>(std::lround(value)), 0, 3); break;
+    default:
         return result;
     }
 
@@ -415,50 +354,50 @@ DeviceNodeKind SubtractiveSynthDeviceType::kind() const noexcept { return Device
 
 uint16_t SubtractiveSynthDeviceType::paramIdFromString(std::string_view name) const noexcept {
     auto s = [&](std::string_view n, SubtractiveParam pid) -> uint16_t {
-        return name == n ? static_cast<uint16_t>(pid) : 0;
+        return name == n ? static_cast<uint16_t>(pid) : static_cast<uint16_t>(-1);
     };
-    if (auto v = s("filterCutoff", SubtractiveParam::FilterCutoff)) return v;
-    if (auto v = s("filterQ", SubtractiveParam::FilterQ)) return v;
-    if (auto v = s("filterMode", SubtractiveParam::FilterMode)) return v;
-    if (auto v = s("attack", SubtractiveParam::AmpAttack)) return v;
-    if (auto v = s("decay", SubtractiveParam::AmpDecay)) return v;
-    if (auto v = s("sustain", SubtractiveParam::AmpSustain)) return v;
-    if (auto v = s("release", SubtractiveParam::AmpRelease)) return v;
-    if (auto v = s("osc1Shape", SubtractiveParam::Osc1Shape)) return v;
-    if (auto v = s("osc2Shape", SubtractiveParam::Osc2Shape)) return v;
-    if (auto v = s("osc1Octave", SubtractiveParam::Osc1Octave)) return v;
-    if (auto v = s("osc1Semi", SubtractiveParam::Osc1Semi)) return v;
-    if (auto v = s("osc1Detune", SubtractiveParam::Osc1Detune)) return v;
-    if (auto v = s("osc2Octave", SubtractiveParam::Osc2Octave)) return v;
-    if (auto v = s("osc2Semi", SubtractiveParam::Osc2Semi)) return v;
-    if (auto v = s("osc2Detune", SubtractiveParam::Osc2Detune)) return v;
-    if (auto v = s("oscMix", SubtractiveParam::OscMix)) return v;
-    if (auto v = s("oscMixMode", SubtractiveParam::OscMixMode)) return v;
-    if (auto v = s("osc1Sync", SubtractiveParam::Osc1Sync)) return v;
-    if (auto v = s("osc2Sync", SubtractiveParam::Osc2Sync)) return v;
-    if (auto v = s("noiseLevel", SubtractiveParam::NoiseLevel)) return v;
-    if (auto v = s("unisonVoices", SubtractiveParam::UnisonVoices)) return v;
-    if (auto v = s("unisonDetune", SubtractiveParam::UnisonDetune)) return v;
-    if (auto v = s("filterEnvAmount", SubtractiveParam::FilterEnvAmount)) return v;
-    if (auto v = s("filterAttack", SubtractiveParam::FilterAttack)) return v;
-    if (auto v = s("filterDecay", SubtractiveParam::FilterDecay)) return v;
-    if (auto v = s("filterSustain", SubtractiveParam::FilterSustain)) return v;
-    if (auto v = s("filterRelease", SubtractiveParam::FilterRelease)) return v;
-    if (auto v = s("glideMs", SubtractiveParam::GlideMs)) return v;
-    if (auto v = s("velocitySensitivity", SubtractiveParam::VelocitySensitivity)) return v;
-    if (auto v = s("preHpCutoff", SubtractiveParam::PreHpCutoff)) return v;
-    if (auto v = s("preHpRes", SubtractiveParam::PreHpRes)) return v;
-    if (auto v = s("preDrive", SubtractiveParam::PreDrive)) return v;
-    if (auto v = s("mixFeedback", SubtractiveParam::MixFeedback)) return v;
-    if (auto v = s("globalPitch", SubtractiveParam::GlobalPitch)) return v;
-    if (auto v = s("filterKeyTrack", SubtractiveParam::FilterKeyTrack)) return v;
-    if (auto v = s("filterDrive", SubtractiveParam::FilterDrive)) return v;
-    if (auto v = s("filterShaper", SubtractiveParam::FilterShaper)) return v;
-    if (auto v = s("filterFm", SubtractiveParam::FilterFm)) return v;
-    if (auto v = s("filterShaperMode", SubtractiveParam::FilterShaperMode)) return v;
-    if (auto v = s("synthLegato", SubtractiveParam::SynthLegato)) return v;
-    if (auto v = s("synthMono", SubtractiveParam::SynthMono)) return v;
-    return 0;
+    if (auto v = s("filterCutoff", SubtractiveParam::FilterCutoff); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("filterQ", SubtractiveParam::FilterQ); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("filterMode", SubtractiveParam::FilterMode); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("attack", SubtractiveParam::AmpAttack); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("decay", SubtractiveParam::AmpDecay); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("sustain", SubtractiveParam::AmpSustain); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("release", SubtractiveParam::AmpRelease); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("osc1Shape", SubtractiveParam::Osc1Shape); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("osc2Shape", SubtractiveParam::Osc2Shape); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("osc1Octave", SubtractiveParam::Osc1Octave); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("osc1Semi", SubtractiveParam::Osc1Semi); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("osc1Detune", SubtractiveParam::Osc1Detune); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("osc2Octave", SubtractiveParam::Osc2Octave); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("osc2Semi", SubtractiveParam::Osc2Semi); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("osc2Detune", SubtractiveParam::Osc2Detune); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("oscMix", SubtractiveParam::OscMix); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("oscMixMode", SubtractiveParam::OscMixMode); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("osc1Sync", SubtractiveParam::Osc1Sync); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("osc2Sync", SubtractiveParam::Osc2Sync); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("noiseLevel", SubtractiveParam::NoiseLevel); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("unisonVoices", SubtractiveParam::UnisonVoices); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("unisonDetune", SubtractiveParam::UnisonDetune); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("filterEnvAmount", SubtractiveParam::FilterEnvAmount); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("filterAttack", SubtractiveParam::FilterAttack); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("filterDecay", SubtractiveParam::FilterDecay); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("filterSustain", SubtractiveParam::FilterSustain); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("filterRelease", SubtractiveParam::FilterRelease); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("glideMs", SubtractiveParam::GlideMs); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("velocitySensitivity", SubtractiveParam::VelocitySensitivity); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("preHpCutoff", SubtractiveParam::PreHpCutoff); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("preHpRes", SubtractiveParam::PreHpRes); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("preDrive", SubtractiveParam::PreDrive); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("mixFeedback", SubtractiveParam::MixFeedback); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("globalPitch", SubtractiveParam::GlobalPitch); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("filterKeyTrack", SubtractiveParam::FilterKeyTrack); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("filterDrive", SubtractiveParam::FilterDrive); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("filterShaper", SubtractiveParam::FilterShaper); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("filterFm", SubtractiveParam::FilterFm); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("filterShaperMode", SubtractiveParam::FilterShaperMode); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("synthLegato", SubtractiveParam::SynthLegato); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("synthMono", SubtractiveParam::SynthMono); v != static_cast<uint16_t>(-1)) return v;
+    return static_cast<uint16_t>(-1);
 }
 
 std::string_view SubtractiveSynthDeviceType::paramIdToString(uint16_t localId) const noexcept {
@@ -509,7 +448,50 @@ std::string_view SubtractiveSynthDeviceType::paramIdToString(uint16_t localId) c
 }
 
 std::span<const ParamDescriptor> SubtractiveSynthDeviceType::paramDescriptors() const noexcept {
-    return {};
+    static constexpr ParamDescriptor kParams[] = {
+        {static_cast<uint16_t>(SubtractiveParam::FilterCutoff), "filterCutoff", "Filter Cutoff", 0.75f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::FilterQ), "filterQ", "Filter Q", 0.2f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::FilterMode), "filterMode", "Filter Mode", 0.0f, 0.0f, 5.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::AmpAttack), "attack", "Attack", 0.02f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::AmpDecay), "decay", "Decay", 0.25f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::AmpSustain), "sustain", "Sustain", 0.75f, 0.0f, 1.0f, true, false},
+        {static_cast<uint16_t>(SubtractiveParam::AmpRelease), "release", "Release", 0.35f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::Osc1Shape), "osc1Shape", "Osc1 Shape", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::Osc2Shape), "osc2Shape", "Osc2 Shape", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::Osc1Octave), "osc1Octave", "Osc1 Octave", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::Osc1Semi), "osc1Semi", "Osc1 Semi", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::Osc1Detune), "osc1Detune", "Osc1 Detune", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::Osc2Octave), "osc2Octave", "Osc2 Octave", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::Osc2Semi), "osc2Semi", "Osc2 Semi", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::Osc2Detune), "osc2Detune", "Osc2 Detune", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::OscMix), "oscMix", "Osc Mix", 0.37f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::OscMixMode), "oscMixMode", "Osc Mix Mode", 0.0f, 0.0f, 4.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::Osc1Sync), "osc1Sync", "Osc1 Sync", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::Osc2Sync), "osc2Sync", "Osc2 Sync", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::NoiseLevel), "noiseLevel", "Noise Level", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::UnisonVoices), "unisonVoices", "Unison Voices", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::UnisonDetune), "unisonDetune", "Unison Detune", 0.35f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::FilterEnvAmount), "filterEnvAmount", "Filter Env Amt", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::FilterAttack), "filterAttack", "Filter Attack", 0.05f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::FilterDecay), "filterDecay", "Filter Decay", 0.35f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::FilterSustain), "filterSustain", "Filter Sustain", 0.4f, 0.0f, 1.0f, true, false},
+        {static_cast<uint16_t>(SubtractiveParam::FilterRelease), "filterRelease", "Filter Release", 0.45f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::GlideMs), "glideMs", "Glide", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::VelocitySensitivity), "velocitySensitivity", "Vel Sensitivity", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::PreHpCutoff), "preHpCutoff", "Pre HP Cutoff", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::PreHpRes), "preHpRes", "Pre HP Res", 0.2f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::PreDrive), "preDrive", "Pre Drive", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::MixFeedback), "mixFeedback", "Mix Feedback", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::GlobalPitch), "globalPitch", "Global Pitch", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::FilterKeyTrack), "filterKeyTrack", "Filter Key Track", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::FilterDrive), "filterDrive", "Filter Drive", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::FilterShaper), "filterShaper", "Filter Shaper", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::FilterFm), "filterFm", "Filter FM", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::FilterShaperMode), "filterShaperMode", "Filter Shaper Mode", 1.0f, 0.0f, 3.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::SynthLegato), "synthLegato", "Legato", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SubtractiveParam::SynthMono), "synthMono", "Mono", 0.0f, 0.0f, 1.0f, true, true},
+    };
+    return kParams;
 }
 
 bool SubtractiveSynthDeviceType::usesDspAutomationSubBlocks() const noexcept { return false; }

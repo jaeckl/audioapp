@@ -124,48 +124,30 @@ DeviceParameterResult SamplerDeviceType::setParameter(DeviceSlot& slot,
     }
 
     auto& instance = std::get<SamplerModel>(slot.config.instance);
-    if (parameterId == "attack" || parameterId == "decay" || parameterId == "release") {
-        const float clamped = std::clamp(value, 0.0f, 1.0f);
-        if (parameterId == "attack") {
-            instance.attack = clamped;
-        } else if (parameterId == "decay") {
-            instance.decay = clamped;
-        } else {
-            instance.release = clamped;
-        }
-    } else if (parameterId == "sustain") {
-        instance.sustain = std::clamp(value, 0.0f, 1.0f);
-    } else if (parameterId == "filterCutoff") {
-        instance.filterCutoff = std::clamp(value, 0.0f, 1.0f);
-    } else if (parameterId == "filterQ") {
-        instance.filterQ = std::clamp(value, 0.0f, 1.0f);
-    } else if (parameterId == "filterMode") {
-        instance.filterMode = std::clamp(static_cast<int>(std::lround(value)), 0, 3);
-    } else if (parameterId == "filterEnvAmount") {
-        instance.filterEnvAmount = std::clamp(value, 0.0f, 1.0f);
-    } else if (parameterId == "filterAttack") {
-        instance.filterAttack = std::clamp(value, 0.0f, 1.0f);
-    } else if (parameterId == "filterDecay") {
-        instance.filterDecay = std::clamp(value, 0.0f, 1.0f);
-    } else if (parameterId == "filterSustain") {
-        instance.filterSustain = std::clamp(value, 0.0f, 1.0f);
-    } else if (parameterId == "filterRelease") {
-        instance.filterRelease = std::clamp(value, 0.0f, 1.0f);
-    } else if (parameterId == "trimStartSec") {
-        instance.trimStartSec = std::max(0.0f, value);
-    } else if (parameterId == "trimEndSec") {
-        instance.trimEndSec = std::max(0.0f, value);
-    } else if (parameterId == "regionStartSec") {
-        instance.regionStartSec = std::max(0.0f, value);
-    } else if (parameterId == "regionEndSec") {
-        instance.regionEndSec = std::max(0.0f, value);
-    } else if (parameterId == "rootPitch") {
-        instance.rootPitch = std::clamp(value, 0.0f, 127.0f);
-    } else if (parameterId == "rootFineTune") {
-        instance.rootFineTune = std::clamp(value, -100.0f, 100.0f);
-    } else if (parameterId == "playbackMode") {
-        instance.playbackMode = std::clamp(static_cast<int>(std::lround(value)), 0, 2);
-    } else {
+    const uint16_t id = paramIdFromString(parameterId);
+    if (id == static_cast<uint16_t>(-1))
+        return result;
+    switch (static_cast<SamplerParam>(id)) {
+    case SamplerParam::Attack:          instance.attack = std::clamp(value, 0.0f, 1.0f); break;
+    case SamplerParam::Decay:           instance.decay = std::clamp(value, 0.0f, 1.0f); break;
+    case SamplerParam::Release:         instance.release = std::clamp(value, 0.0f, 1.0f); break;
+    case SamplerParam::Sustain:         instance.sustain = std::clamp(value, 0.0f, 1.0f); break;
+    case SamplerParam::FilterCutoff:    instance.filterCutoff = std::clamp(value, 0.0f, 1.0f); break;
+    case SamplerParam::FilterQ:         instance.filterQ = std::clamp(value, 0.0f, 1.0f); break;
+    case SamplerParam::FilterMode:      instance.filterMode = std::clamp(static_cast<int>(std::lround(value)), 0, 3); break;
+    case SamplerParam::FilterEnvAmount: instance.filterEnvAmount = std::clamp(value, 0.0f, 1.0f); break;
+    case SamplerParam::FilterAttack:    instance.filterAttack = std::clamp(value, 0.0f, 1.0f); break;
+    case SamplerParam::FilterDecay:     instance.filterDecay = std::clamp(value, 0.0f, 1.0f); break;
+    case SamplerParam::FilterSustain:   instance.filterSustain = std::clamp(value, 0.0f, 1.0f); break;
+    case SamplerParam::FilterRelease:   instance.filterRelease = std::clamp(value, 0.0f, 1.0f); break;
+    case SamplerParam::TrimStartSec:    instance.trimStartSec = std::max(0.0f, value); break;
+    case SamplerParam::TrimEndSec:      instance.trimEndSec = std::max(0.0f, value); break;
+    case SamplerParam::RegionStartSec:  instance.regionStartSec = std::max(0.0f, value); break;
+    case SamplerParam::RegionEndSec:    instance.regionEndSec = std::max(0.0f, value); break;
+    case SamplerParam::RootPitch:       instance.rootPitch = std::clamp(value, 0.0f, 127.0f); break;
+    case SamplerParam::RootFineTune:    instance.rootFineTune = std::clamp(value, -100.0f, 100.0f); break;
+    case SamplerParam::PlaybackMode:    instance.playbackMode = std::clamp(static_cast<int>(std::lround(value)), 0, 2); break;
+    default:
         return result;
     }
 
@@ -384,7 +366,13 @@ uint16_t SamplerDeviceType::paramIdFromString(std::string_view name) const noexc
     if (name == "filterDecay") return static_cast<uint16_t>(SamplerParam::FilterDecay);
     if (name == "filterSustain") return static_cast<uint16_t>(SamplerParam::FilterSustain);
     if (name == "filterRelease") return static_cast<uint16_t>(SamplerParam::FilterRelease);
-    return 0;
+    if (name == "filterMode") return static_cast<uint16_t>(SamplerParam::FilterMode);
+    if (name == "trimStartSec") return static_cast<uint16_t>(SamplerParam::TrimStartSec);
+    if (name == "trimEndSec") return static_cast<uint16_t>(SamplerParam::TrimEndSec);
+    if (name == "regionStartSec") return static_cast<uint16_t>(SamplerParam::RegionStartSec);
+    if (name == "regionEndSec") return static_cast<uint16_t>(SamplerParam::RegionEndSec);
+    if (name == "playbackMode") return static_cast<uint16_t>(SamplerParam::PlaybackMode);
+    return static_cast<uint16_t>(-1);
 }
 
 std::string_view SamplerDeviceType::paramIdToString(uint16_t localId) const noexcept {
@@ -402,6 +390,12 @@ std::string_view SamplerDeviceType::paramIdToString(uint16_t localId) const noex
     case SamplerParam::FilterDecay: return "filterDecay";
     case SamplerParam::FilterSustain: return "filterSustain";
     case SamplerParam::FilterRelease: return "filterRelease";
+    case SamplerParam::FilterMode: return "filterMode";
+    case SamplerParam::TrimStartSec: return "trimStartSec";
+    case SamplerParam::TrimEndSec: return "trimEndSec";
+    case SamplerParam::RegionStartSec: return "regionStartSec";
+    case SamplerParam::RegionEndSec: return "regionEndSec";
+    case SamplerParam::PlaybackMode: return "playbackMode";
     default: return "";
     }
 }
@@ -421,6 +415,12 @@ std::span<const ParamDescriptor> SamplerDeviceType::paramDescriptors() const noe
         {static_cast<uint16_t>(SamplerParam::FilterDecay), "filterDecay", "Flt Decay", 0.35f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(SamplerParam::FilterSustain), "filterSustain", "Flt Sustain", 0.4f, 0.0f, 1.0f, true, false},
         {static_cast<uint16_t>(SamplerParam::FilterRelease), "filterRelease", "Flt Release", 0.45f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SamplerParam::FilterMode), "filterMode", "Filter Mode", 0.0f, 0.0f, 3.0f, true, true},
+        {static_cast<uint16_t>(SamplerParam::TrimStartSec), "trimStartSec", "Trim Start", 0.0f, 0.0f, 86400.0f, true, false},
+        {static_cast<uint16_t>(SamplerParam::TrimEndSec), "trimEndSec", "Trim End", 0.0f, 0.0f, 86400.0f, true, false},
+        {static_cast<uint16_t>(SamplerParam::RegionStartSec), "regionStartSec", "Region Start", 0.0f, 0.0f, 86400.0f, true, false},
+        {static_cast<uint16_t>(SamplerParam::RegionEndSec), "regionEndSec", "Region End", 0.0f, 0.0f, 86400.0f, true, false},
+        {static_cast<uint16_t>(SamplerParam::PlaybackMode), "playbackMode", "Playback Mode", 0.0f, 0.0f, 2.0f, true, false},
     };
     return kParams;
 }

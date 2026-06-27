@@ -13,6 +13,8 @@
 
 namespace audioapp {
 
+enum class ReverbParam : uint16_t { RoomSize = 0, Damping = 1, WetLevel = 2, DryLevel = 3, Width = 4 };
+
 class ReverbDeviceType final : public TimeBasedEffectDeviceType {
 public:
     std::string typeId() const override { return device_types::kReverb; }

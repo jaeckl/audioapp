@@ -35,20 +35,23 @@ DeviceParameterResult GateDeviceType::setParameter(DeviceSlot& slot,
     }
     auto& instance = std::get<GateParams>(slot.config.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
-    if (parameterId == "inputGain") {
-        instance.inputGain = clamped;
-    } else if (parameterId == "gateThreshold") {
-        instance.gateThreshold = clamped;
-    } else if (parameterId == "gateAttack") {
-        instance.gateAttack = clamped;
-    } else if (parameterId == "gateRelease") {
-        instance.gateRelease = clamped;
-    } else if (parameterId == "gateHold") {
-        instance.gateHold = clamped;
-    } else if (parameterId == "gateRange") {
-        instance.gateRange = clamped;
-    } else {
-        return result;
+
+    uint16_t id = paramIdFromString(parameterId);
+    if (id == static_cast<uint16_t>(-1)) {
+        // Legacy: param was historically "inputGain" before full stable name
+        if (parameterId == "inputGain")
+            id = static_cast<uint16_t>(GateParam::InputGain);
+        else
+            return result;
+    }
+    switch (static_cast<GateParam>(id)) {
+    case GateParam::InputGain: instance.inputGain = clamped; break;
+    case GateParam::Threshold: instance.gateThreshold = clamped; break;
+    case GateParam::Attack: instance.gateAttack = clamped; break;
+    case GateParam::Release: instance.gateRelease = clamped; break;
+    case GateParam::Hold: instance.gateHold = clamped; break;
+    case GateParam::Range: instance.gateRange = clamped; break;
+    default: return result;
     }
     result.handled = true;
     return result;
@@ -231,15 +234,15 @@ DeviceNodeKind GateDeviceType::kind() const noexcept { return DeviceNodeKind::Ga
 
 uint16_t GateDeviceType::paramIdFromString(std::string_view name) const noexcept {
     auto g = [&](std::string_view n, GateParam pid) -> uint16_t {
-        return name == n ? static_cast<uint16_t>(pid) : 0;
+        return name == n ? static_cast<uint16_t>(pid) : static_cast<uint16_t>(-1);
     };
-    if (auto v = g("gateInputGain", GateParam::InputGain)) return v;
-    if (auto v = g("gateThreshold", GateParam::Threshold)) return v;
-    if (auto v = g("gateAttack", GateParam::Attack)) return v;
-    if (auto v = g("gateRelease", GateParam::Release)) return v;
-    if (auto v = g("gateHold", GateParam::Hold)) return v;
-    if (auto v = g("gateRange", GateParam::Range)) return v;
-    return 0;
+    if (auto v = g("gateInputGain", GateParam::InputGain); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = g("gateThreshold", GateParam::Threshold); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = g("gateAttack", GateParam::Attack); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = g("gateRelease", GateParam::Release); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = g("gateHold", GateParam::Hold); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = g("gateRange", GateParam::Range); v != static_cast<uint16_t>(-1)) return v;
+    return static_cast<uint16_t>(-1);
 }
 
 std::string_view GateDeviceType::paramIdToString(uint16_t localId) const noexcept {
@@ -254,7 +257,17 @@ std::string_view GateDeviceType::paramIdToString(uint16_t localId) const noexcep
     }
 }
 
-std::span<const ParamDescriptor> GateDeviceType::paramDescriptors() const noexcept { return {}; }
+std::span<const ParamDescriptor> GateDeviceType::paramDescriptors() const noexcept {
+    static constexpr ParamDescriptor kParams[] = {
+        {static_cast<uint16_t>(GateParam::InputGain), "gateInputGain", "Input Gain", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(GateParam::Threshold), "gateThreshold", "Threshold", 0.45f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(GateParam::Attack), "gateAttack", "Attack", 0.25f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(GateParam::Release), "gateRelease", "Release", 0.50f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(GateParam::Hold), "gateHold", "Hold", 0.20f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(GateParam::Range), "gateRange", "Range", 0.0f, 0.0f, 1.0f, true, true},
+    };
+    return kParams;
+}
 
 bool GateDeviceType::usesDspAutomationSubBlocks() const noexcept { return false; }
 

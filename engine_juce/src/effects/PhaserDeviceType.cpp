@@ -35,15 +35,24 @@ DeviceParameterResult PhaserDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
     auto& instance = std::get<PhaserParams>(slot.config.instance);
-    if (parameterId == "depth") {
+    const uint16_t id = paramIdFromString(parameterId);
+    if (id == static_cast<uint16_t>(-1))
+        return result;
+    const auto localId = static_cast<PhaserParam>(id);
+    switch (localId) {
+    case PhaserParam::Depth:
         instance.depth = juce::jlimit(0.0, 1.0, static_cast<double>(value));
-    } else if (parameterId == "rateHz") {
+        break;
+    case PhaserParam::Rate:
         instance.rateHz = juce::jlimit(0.1, 5.0, static_cast<double>(value));
-    } else if (parameterId == "feedback") {
+        break;
+    case PhaserParam::Feedback:
         instance.feedback = juce::jlimit(0.0, 0.95, static_cast<double>(value));
-    } else if (parameterId == "centreFrequencyHz") {
+        break;
+    case PhaserParam::CentreFrequency:
         instance.centreFrequencyHz = juce::jlimit(20.0, 20000.0, static_cast<double>(value));
-    } else {
+        break;
+    default:
         return result;
     }
     result.handled = true;
@@ -163,27 +172,32 @@ DeviceProcessor* PhaserDeviceType::createProcessor(ProcessorArena& arena) const 
 DeviceNodeKind PhaserDeviceType::kind() const noexcept { return DeviceNodeKind::Phaser; }
 
 uint16_t PhaserDeviceType::paramIdFromString(std::string_view name) const noexcept {
-    auto p = [&](std::string_view n, uint16_t pid) -> uint16_t {
-        return name == n ? pid : 0;
-    };
-    if (auto v = p("phaserDepth", 0)) return v;
-    if (auto v = p("phaserRateHz", 1)) return v;
-    if (auto v = p("phaserFeedback", 2)) return v;
-    if (auto v = p("phaserCentreFrequencyHz", 3)) return v;
-    return 0;
+    if (name == "depth" || name == "phaserDepth") return static_cast<uint16_t>(PhaserParam::Depth);
+    if (name == "rateHz" || name == "phaserRateHz") return static_cast<uint16_t>(PhaserParam::Rate);
+    if (name == "feedback" || name == "phaserFeedback") return static_cast<uint16_t>(PhaserParam::Feedback);
+    if (name == "centreFrequencyHz" || name == "phaserCentreFrequencyHz") return static_cast<uint16_t>(PhaserParam::CentreFrequency);
+    return static_cast<uint16_t>(-1);
 }
 
 std::string_view PhaserDeviceType::paramIdToString(uint16_t localId) const noexcept {
-    switch (localId) {
-    case 0: return "phaserDepth";
-    case 1: return "phaserRateHz";
-    case 2: return "phaserFeedback";
-    case 3: return "phaserCentreFrequencyHz";
+    switch (static_cast<PhaserParam>(localId)) {
+    case PhaserParam::Depth: return "phaserDepth";
+    case PhaserParam::Rate: return "phaserRateHz";
+    case PhaserParam::Feedback: return "phaserFeedback";
+    case PhaserParam::CentreFrequency: return "phaserCentreFrequencyHz";
     default: return "";
     }
 }
 
-std::span<const ParamDescriptor> PhaserDeviceType::paramDescriptors() const noexcept { return {}; }
+std::span<const ParamDescriptor> PhaserDeviceType::paramDescriptors() const noexcept {
+    static constexpr ParamDescriptor kParams[] = {
+        {static_cast<uint16_t>(PhaserParam::Depth), "phaserDepth", "Depth", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaserParam::Rate), "phaserRateHz", "Rate", 0.8f, 0.1f, 5.0f, true, true},
+        {static_cast<uint16_t>(PhaserParam::Feedback), "phaserFeedback", "Feedback", 0.3f, 0.0f, 0.95f, true, true},
+        {static_cast<uint16_t>(PhaserParam::CentreFrequency), "phaserCentreFrequencyHz", "Centre Freq", 1000.0f, 20.0f, 20000.0f, true, true},
+    };
+    return kParams;
+}
 
 bool PhaserDeviceType::usesDspAutomationSubBlocks() const noexcept { return false; }
 

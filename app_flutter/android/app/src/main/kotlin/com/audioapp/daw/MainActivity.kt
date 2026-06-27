@@ -269,52 +269,10 @@ class MainActivity : FlutterFragmentActivity() {
                             }
                             launchExportMixPicker(result, lengthBeats)
                         }
-                        "createProject",
-                        "getProjectSnapshot",
-                        "getTransportState",
-                        "addTrack",
-                        "selectTrack",
-                        "addDeviceToTrack",
-                        "removeDeviceFromTrack",
-                        "setDeviceParameter",
-                        "setDeviceStringParameter",
-                        "setMasterGain",
-                        "setPlayheadBeats",
-                        "createMidiClip",
-                        "setMidiClipNotes",
-                        "createAutomationClip",
-                        "assignAutomationTarget",
-                        "setAutomationPoints",
-                        "createSampleClip",
-                        "moveClip",
-                        "setClipLength",
-                        "setBpm",
-                        "deleteTrack",
-                        "deleteClip",
-                        "duplicateClip",
-                        "setLoopEnabled",
-                        "setLoopLengthBeats",
-                        "setLoopRegion",
-                        "setRecordArmed",
-                        "noteOn",
-                        "noteOff",
-                        "allNotesOff",
-                        "clearCapture",
-                        "commitCapture",
-                        "enterPlayMode",
-                        "setPitchBend",
-                        "setModulation",
-                        "previewSample",
-                        "previewMidi",
-                        "previewPreset",
-                        "stopPreview",
-                        "createLfo",
-                        "removeLfo",
-                        "updateLfoParam",
-                        "batchUpdateLfoParams",
-                        "assignModulation",
-                        "removeModulation",
-                        "applySubtractiveSynthPreset" -> {
+                        // All engine commands route through native_bridge C++ command registry.
+                        // Play/stop need wakelock; file ops need SAF pickers; everything else
+                        // is handled by the C++ CommandRegistry.
+                        else -> {
                             val argsJson = when (val args = call.arguments) {
                                 null -> "{}"
                                 is Map<*, *> -> mapToJson(args).toString()
@@ -324,11 +282,6 @@ class MainActivity : FlutterFragmentActivity() {
                             val response = nativeInvoke(call.method, argsJson)
                             result.success(jsonToMap(response))
                         }
-                        "getDeviceMeters" -> {
-                            val response = nativeInvoke("getDeviceMeters", "{}")
-                            result.success(jsonToMap(response))
-                        }
-                        else -> result.notImplemented()
                     }
                 } catch (e: Exception) {
                     Log.e(logTag, "Engine command failed: ${call.method}", e)

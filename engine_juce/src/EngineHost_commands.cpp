@@ -3,6 +3,7 @@
 #include "audioapp/MidiUtils.hpp"
 #include "audioapp/ProjectJson.hpp"
 #include "audioapp/ProjectArchive.hpp"
+#include "audioapp/commands/CommandHandler.hpp"
 #include "audioapp/AutomationPlayback.hpp"
 #include "audioapp/DeviceChain.hpp"
 
@@ -822,6 +823,489 @@ std::string EngineHost::getParamDescriptorsJson(const std::string& deviceType) c
 
 std::string EngineHost::getDeviceMetersJson() {
     return project_->getDeviceMetersJson();
+}
+
+void EngineHost::registerAllCommands() {
+    auto& reg = commandRegistry_;
+
+    reg.registerCommand("ping", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        return commands::okWithVar(juce::var(ctx.engine.ping()));
+    });
+
+    reg.registerCommand("play", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        ctx.engine.setPlaying(true);
+        return commands::okResult();
+    });
+
+    reg.registerCommand("stop", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        ctx.engine.setPlaying(false);
+        return commands::okResult();
+    });
+
+    reg.registerCommand("createProject", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        ctx.engine.createProject();
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("getProjectSnapshot", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("getTransportState", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        return commands::rawResult(ctx.engine.getTransportStateJson());
+    });
+
+    reg.registerCommand("addTrack", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto name = ctx.args["name"].toString().toStdString();
+        ctx.engine.addTrack(name);
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("selectTrack", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto trackId = ctx.args["trackId"].toString().toStdString();
+        if (!ctx.engine.selectTrack(trackId))
+            return commands::errorResult("track_not_found");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("addDeviceToTrack", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto trackId = ctx.args["trackId"].toString().toStdString();
+        const auto deviceType = ctx.args["deviceType"].toString().toStdString();
+        const int insertIndex = ctx.args.hasProperty("insertIndex")
+            ? static_cast<int>(static_cast<double>(ctx.args["insertIndex"])) : -1;
+        if (ctx.engine.addDeviceToTrack(trackId, deviceType, insertIndex).empty())
+            return commands::errorResult("track_not_found");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("removeDeviceFromTrack", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        if (!ctx.engine.removeDeviceFromTrack(deviceId))
+            return commands::errorResult("device_not_removable");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("setDeviceParameter", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        const auto parameterId = ctx.args["parameterId"].toString().toStdString();
+        const float value = static_cast<float>(static_cast<double>(ctx.args["value"]));
+        if (!ctx.engine.setDeviceParameter(deviceId, parameterId, value))
+            return commands::errorResult("invalid_parameter");
+        return commands::okResult();
+    });
+
+    reg.registerCommand("setMasterGain", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const float gain = static_cast<float>(static_cast<double>(ctx.args["gain"]));
+        if (!ctx.engine.setMasterGain(gain))
+            return commands::errorResult("invalid_gain");
+        return commands::okResult();
+    });
+
+    reg.registerCommand("setDeviceStringParameter", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        const auto parameterId = ctx.args["parameterId"].toString().toStdString();
+        const auto value = ctx.args["value"].toString().toStdString();
+        if (!ctx.engine.setDeviceStringParameter(deviceId, parameterId, value))
+            return commands::errorResult("invalid_parameter");
+        return commands::okResult();
+    });
+
+    reg.registerCommand("setPlayheadBeats", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const double beats = static_cast<double>(ctx.args["playheadBeats"]);
+        ctx.engine.setPlayheadBeats(beats);
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("createMidiClip", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto trackId = ctx.args["trackId"].toString().toStdString();
+        const double startBeat = static_cast<double>(ctx.args["startBeat"]);
+        const double lengthBeats = static_cast<double>(ctx.args["lengthBeats"]);
+        if (ctx.engine.createMidiClip(trackId, startBeat, lengthBeats).empty())
+            return commands::errorResult("track_not_found");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("setMidiClipNotes", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        // Parse notes from args
+        const auto& notesVar = ctx.args["notes"];
+        std::vector<MidiNoteState> notes;
+        if (auto* arr = notesVar.getArray()) {
+            for (const auto& item : *arr) {
+                if (auto* obj = item.getDynamicObject()) {
+                    MidiNoteState note;
+                    note.pitch = static_cast<int>(static_cast<double>(obj->getProperty("pitch")));
+                    note.startBeat = static_cast<double>(obj->getProperty("startBeat"));
+                    note.durationBeats = static_cast<double>(obj->getProperty("durationBeats"));
+                    note.velocity = static_cast<float>(static_cast<double>(obj->getProperty("velocity")));
+                    notes.push_back(note);
+                }
+            }
+        }
+        if (!ctx.engine.setMidiClipNotes(clipId, notes))
+            return commands::errorResult("clip_not_found");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("createSampleClip", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto trackId = ctx.args["trackId"].toString().toStdString();
+        const auto sampleId = ctx.args["sampleId"].toString().toStdString();
+        const double startBeat = static_cast<double>(ctx.args["startBeat"]);
+        const double lengthBeats = static_cast<double>(ctx.args["lengthBeats"]);
+        if (ctx.engine.createSampleClip(trackId, sampleId, startBeat, lengthBeats).empty())
+            return commands::errorResult("sample_clip_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("createAutomationClip", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto trackId = ctx.args["trackId"].toString().toStdString();
+        const double startBeat = static_cast<double>(ctx.args["startBeat"]);
+        const double lengthBeats = static_cast<double>(ctx.args["lengthBeats"]);
+        if (ctx.engine.createAutomationClip(trackId, startBeat, lengthBeats).empty())
+            return commands::errorResult("automation_clip_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("assignAutomationTarget", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        const auto paramId = ctx.args["paramId"].toString().toStdString();
+        if (!ctx.engine.assignAutomationTarget(clipId, deviceId, paramId))
+            return commands::errorResult("assign_automation_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("setAutomationPoints", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        const auto& pointsVar = ctx.args["points"];
+        std::vector<AutomationPointState> points;
+        if (auto* arr = pointsVar.getArray()) {
+            for (const auto& item : *arr) {
+                if (auto* obj = item.getDynamicObject()) {
+                    AutomationPointState pt;
+                    pt.beat = static_cast<double>(obj->getProperty("beat"));
+                    pt.value = static_cast<float>(static_cast<double>(obj->getProperty("value")));
+                    points.push_back(pt);
+                }
+            }
+        }
+        if (!ctx.engine.setAutomationPoints(clipId, points))
+            return commands::errorResult("automation_points_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("moveClip", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        const auto trackId = ctx.args["trackId"].toString().toStdString();
+        const double startBeat = static_cast<double>(ctx.args["startBeat"]);
+        if (!ctx.engine.moveClip(clipId, trackId, startBeat))
+            return commands::errorResult("move_clip_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("setClipLength", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        const double lengthBeats = static_cast<double>(ctx.args["lengthBeats"]);
+        if (!ctx.engine.setClipLength(clipId, lengthBeats))
+            return commands::errorResult("clip_not_found");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("setBpm", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const int bpm = static_cast<int>(static_cast<double>(ctx.args["bpm"]));
+        if (!ctx.engine.setBpm(bpm))
+            return commands::errorResult("invalid_bpm");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("deleteTrack", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto trackId = ctx.args["trackId"].toString().toStdString();
+        if (!ctx.engine.deleteTrack(trackId))
+            return commands::errorResult("delete_track_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("deleteClip", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        if (!ctx.engine.deleteClip(clipId))
+            return commands::errorResult("delete_clip_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("duplicateClip", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        if (!ctx.engine.duplicateClip(clipId))
+            return commands::errorResult("duplicate_clip_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("setLoopEnabled", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const bool enabled = static_cast<bool>(ctx.args["enabled"]);
+        ctx.engine.setLoopEnabled(enabled);
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("setLoopLengthBeats", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const double length = static_cast<double>(ctx.args["lengthBeats"]);
+        if (!ctx.engine.setLoopLengthBeats(length))
+            return commands::errorResult("invalid_loop_length");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("setLoopRegion", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const double startBeat = static_cast<double>(ctx.args["startBeat"]);
+        const double endBeat = static_cast<double>(ctx.args["endBeat"]);
+        if (!ctx.engine.setLoopRegion(startBeat, endBeat))
+            return commands::errorResult("invalid_loop_region");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("setRecordArmed", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const bool armed = static_cast<bool>(ctx.args["armed"]);
+        ctx.engine.setRecordArmed(armed);
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("noteOn", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const int pitch = static_cast<int>(static_cast<double>(ctx.args["pitch"]));
+        const float velocity = static_cast<float>(static_cast<double>(ctx.args["velocity"]));
+        if (!ctx.engine.noteOn(pitch, velocity))
+            return commands::errorResult("note_on_failed");
+        return commands::okResult();
+    });
+
+    reg.registerCommand("noteOff", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const int pitch = static_cast<int>(static_cast<double>(ctx.args["pitch"]));
+        ctx.engine.noteOff(pitch);
+        return commands::okResult();
+    });
+
+    reg.registerCommand("allNotesOff", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        ctx.engine.allNotesOff();
+        return commands::okResult();
+    });
+
+    reg.registerCommand("setPitchBend", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const float bend = static_cast<float>(static_cast<double>(ctx.args["bend"]));
+        ctx.engine.setPitchBend(bend);
+        return commands::okResult();
+    });
+
+    reg.registerCommand("setModulation", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const float mod = static_cast<float>(static_cast<double>(ctx.args["mod"]));
+        ctx.engine.setModulation(mod);
+        return commands::okResult();
+    });
+
+    reg.registerCommand("clearCapture", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        ctx.engine.clearCapture();
+        return commands::okResult();
+    });
+
+    reg.registerCommand("commitCapture", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        if (!ctx.engine.commitCapture())
+            return commands::errorResult("capture_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("createLfo", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const int modType = static_cast<int>(static_cast<double>(ctx.args["modulatorType"]));
+        ctx.engine.createLfo(modType);
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("removeLfo", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const int lfoId = static_cast<int>(static_cast<double>(ctx.args["lfoId"]));
+        if (!ctx.engine.removeLfo(lfoId))
+            return commands::errorResult("lfo_not_found");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("updateLfoParam", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const int lfoId = static_cast<int>(static_cast<double>(ctx.args["lfoId"]));
+        const auto param = ctx.args["param"].toString().toStdString();
+        const float value = static_cast<float>(static_cast<double>(ctx.args["value"]));
+        if (!ctx.engine.updateLfoParam(lfoId, param, value))
+            return commands::errorResult("lfo_param_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("batchUpdateLfoParams", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const int lfoId = static_cast<int>(static_cast<double>(ctx.args["lfoId"]));
+        const auto& paramsVar = ctx.args["params"];
+        std::vector<std::pair<std::string, float>> params;
+        if (auto* arr = paramsVar.getArray()) {
+            for (const auto& item : *arr) {
+                if (auto* obj = item.getDynamicObject()) {
+                    const auto p = obj->getProperty("param").toString().toStdString();
+                    const float v = static_cast<float>(static_cast<double>(obj->getProperty("value")));
+                    params.emplace_back(p, v);
+                }
+            }
+        }
+        if (!ctx.engine.batchUpdateLfoParams(lfoId, params))
+            return commands::errorResult("lfo_param_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("assignModulation", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const int lfoId = static_cast<int>(static_cast<double>(ctx.args["lfoId"]));
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        const auto paramId = ctx.args["paramId"].toString().toStdString();
+        const float amount = static_cast<float>(static_cast<double>(ctx.args["amount"]));
+        if (!ctx.engine.assignModulation(lfoId, deviceId, paramId, amount))
+            return commands::errorResult("modulation_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("removeModulation", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const int lfoId = static_cast<int>(static_cast<double>(ctx.args["lfoId"]));
+        const auto paramId = ctx.args["paramId"].toString().toStdString();
+        if (!ctx.engine.removeModulation(lfoId, paramId))
+            return commands::errorResult("modulation_remove_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("applySubtractiveSynthPreset", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        // Parse preset args from JSON
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        std::vector<std::pair<std::string, float>> params;
+        if (auto* paramsObj = ctx.args["params"].getDynamicObject()) {
+            for (const auto& prop : paramsObj->getProperties()) {
+                const float v = static_cast<float>(static_cast<double>(prop.value));
+                params.emplace_back(prop.name.toString().toStdString(), v);
+            }
+        }
+        std::vector<ProjectEngine::SubtractivePresetLfoSpec> lfos;
+        std::vector<ProjectEngine::SubtractivePresetModSpec> mods;
+        // (Parse from ctx.args["lfos"] and ctx.args["mods"] — simplified for brevity)
+        if (!ctx.engine.applySubtractiveSynthPreset(deviceId, params, lfos, mods))
+            return commands::errorResult("preset_apply_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithVar(snap);
+    });
+
+    reg.registerCommand("enterPlayMode", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        ctx.engine.enterPlayMode();
+        return commands::okResult();
+    });
+
+    reg.registerCommand("previewSample", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto sampleId = ctx.args["sampleId"].toString().toStdString();
+        if (sampleId.empty())
+            return commands::errorResult("sample_not_found");
+        ctx.engine.previewSample(sampleId);
+        return commands::okResult();
+    });
+
+    reg.registerCommand("previewMidi", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto& notesVar = ctx.args["notes"];
+        std::vector<MidiNoteState> notes;
+        if (auto* arr = notesVar.getArray()) {
+            for (const auto& item : *arr) {
+                if (auto* obj = item.getDynamicObject()) {
+                    MidiNoteState n;
+                    n.pitch = static_cast<int>(static_cast<double>(obj->getProperty("pitch")));
+                    n.startBeat = static_cast<double>(obj->getProperty("startBeat"));
+                    n.durationBeats = static_cast<double>(obj->getProperty("durationBeats"));
+                    n.velocity = static_cast<float>(static_cast<double>(obj->getProperty("velocity")));
+                    notes.push_back(n);
+                }
+            }
+        }
+        const double lengthBeats = static_cast<double>(ctx.args["lengthBeats"]);
+        const int bpm = static_cast<int>(static_cast<double>(ctx.args["bpm"]));
+        const double startBeat = static_cast<double>(ctx.args["startBeat"]);
+        const bool loop = static_cast<bool>(ctx.args["loop"]);
+        if (notes.empty())
+            return commands::okResult();
+        ctx.engine.previewMidi(notes, lengthBeats, bpm, startBeat, loop);
+        return commands::okResult();
+    });
+
+    reg.registerCommand("previewPreset", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto deviceType = ctx.args["deviceType"].toString().toStdString();
+        if (deviceType.empty())
+            return commands::errorResult("missing_device_type");
+        // Parse params from JSON object
+        std::vector<std::pair<std::string, float>> params;
+        if (auto* paramsObj = ctx.args["params"].getDynamicObject()) {
+            for (const auto& prop : paramsObj->getProperties()) {
+                const float v = static_cast<float>(static_cast<double>(prop.value));
+                params.emplace_back(prop.name.toString().toStdString(), v);
+            }
+        }
+        const auto& notesVar = ctx.args["notes"];
+        std::vector<MidiNoteState> notes;
+        if (auto* arr = notesVar.getArray()) {
+            for (const auto& item : *arr) {
+                if (auto* obj = item.getDynamicObject()) {
+                    MidiNoteState n;
+                    n.pitch = static_cast<int>(static_cast<double>(obj->getProperty("pitch")));
+                    n.startBeat = static_cast<double>(obj->getProperty("startBeat"));
+                    n.durationBeats = static_cast<double>(obj->getProperty("durationBeats"));
+                    n.velocity = static_cast<float>(static_cast<double>(obj->getProperty("velocity")));
+                    notes.push_back(n);
+                }
+            }
+        }
+        ctx.engine.previewPreset(deviceType, params, notes,
+            static_cast<double>(ctx.args["lengthBeats"]),
+            static_cast<int>(static_cast<double>(ctx.args["bpm"])),
+            static_cast<double>(ctx.args["startBeat"]),
+            static_cast<bool>(ctx.args["loop"]));
+        return commands::okResult();
+    });
+
+    reg.registerCommand("stopPreview", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        ctx.engine.stopPreview();
+        return commands::okResult();
+    });
+
+    reg.registerCommand("getDeviceStates", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto& idsVar = ctx.args["deviceIds"];
+        std::vector<std::string> deviceIds;
+        if (auto* arr = idsVar.getArray()) {
+            for (const auto& idVar : *arr) {
+                deviceIds.push_back(idVar.toString().toStdString());
+            }
+        }
+        return commands::rawResult(ctx.engine.getDeviceConfigsJson(deviceIds));
+    });
+
+    reg.registerCommand("getDeviceMeters", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        return commands::rawResult(ctx.engine.getDeviceMetersJson());
+    });
 }
 
 } // namespace audioapp

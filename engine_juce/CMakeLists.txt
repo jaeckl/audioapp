@@ -113,6 +113,8 @@ add_library(audioapp_engine STATIC
   src/AutomationPlayback.cpp
   src/EngineHost_commands.cpp
   src/FallbackPreviewOscillator.cpp
+  src/params/ParamRegistry.cpp
+  src/commands/CommandRegistry.cpp
 )
 
 target_include_directories(audioapp_engine

@@ -33,26 +33,23 @@ DeviceParameterResult SnareGeneratorDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
 
+    const uint16_t localId = paramIdFromString(parameterId);
+    if (localId == static_cast<uint16_t>(-1))
+        return result;
+
     auto& instance = std::get<SnareGeneratorParams>(slot.config.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
-    if (parameterId == "snareModel") {
-        instance.snareModel = clamped;
-    } else if (parameterId == "snareBody") {
-        instance.snareBody = clamped;
-    } else if (parameterId == "snareRing") {
-        instance.snareRing = clamped;
-    } else if (parameterId == "snareTune") {
-        instance.snareTune = clamped;
-    } else if (parameterId == "snareSnares") {
-        instance.snareSnares = clamped;
-    } else if (parameterId == "snareSnap") {
-        instance.snareSnap = clamped;
-    } else if (parameterId == "snareDecay") {
-        instance.snareDecay = clamped;
-    } else if (parameterId == "snareVelocity") {
-        instance.snareVelocity = clamped;
-    } else {
-        return result;
+
+    switch (static_cast<SnareParam>(localId)) {
+    case SnareParam::Model:    instance.snareModel = clamped; break;
+    case SnareParam::Body:     instance.snareBody = clamped; break;
+    case SnareParam::Ring:     instance.snareRing = clamped; break;
+    case SnareParam::Tune:     instance.snareTune = clamped; break;
+    case SnareParam::Snares:   instance.snareSnares = clamped; break;
+    case SnareParam::Snap:     instance.snareSnap = clamped; break;
+    case SnareParam::Decay:    instance.snareDecay = clamped; break;
+    case SnareParam::Velocity: instance.snareVelocity = clamped; break;
+    default: return result;
     }
 
     result.handled = true;
@@ -191,17 +188,17 @@ DeviceNodeKind SnareGeneratorDeviceType::kind() const noexcept { return DeviceNo
 
 uint16_t SnareGeneratorDeviceType::paramIdFromString(std::string_view name) const noexcept {
     auto s = [&](std::string_view n, SnareParam pid) -> uint16_t {
-        return name == n ? static_cast<uint16_t>(pid) : 0;
+        return name == n ? static_cast<uint16_t>(pid) : static_cast<uint16_t>(-1);
     };
-    if (auto v = s("snareModel", SnareParam::Model)) return v;
-    if (auto v = s("snareBody", SnareParam::Body)) return v;
-    if (auto v = s("snareRing", SnareParam::Ring)) return v;
-    if (auto v = s("snareTune", SnareParam::Tune)) return v;
-    if (auto v = s("snareSnares", SnareParam::Snares)) return v;
-    if (auto v = s("snareSnap", SnareParam::Snap)) return v;
-    if (auto v = s("snareDecay", SnareParam::Decay)) return v;
-    if (auto v = s("snareVelocity", SnareParam::Velocity)) return v;
-    return 0;
+    if (auto v = s("snareModel", SnareParam::Model); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("snareBody", SnareParam::Body); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("snareRing", SnareParam::Ring); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("snareTune", SnareParam::Tune); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("snareSnares", SnareParam::Snares); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("snareSnap", SnareParam::Snap); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("snareDecay", SnareParam::Decay); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("snareVelocity", SnareParam::Velocity); v != static_cast<uint16_t>(-1)) return v;
+    return static_cast<uint16_t>(-1);
 }
 
 std::string_view SnareGeneratorDeviceType::paramIdToString(uint16_t localId) const noexcept {
@@ -219,7 +216,17 @@ std::string_view SnareGeneratorDeviceType::paramIdToString(uint16_t localId) con
 }
 
 std::span<const ParamDescriptor> SnareGeneratorDeviceType::paramDescriptors() const noexcept {
-    return {};
+    static constexpr ParamDescriptor kParams[] = {
+        {static_cast<uint16_t>(SnareParam::Model), "snareModel", "Model", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SnareParam::Body), "snareBody", "Body", 0.45f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SnareParam::Ring), "snareRing", "Ring", 0.40f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SnareParam::Tune), "snareTune", "Tune", 0.50f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SnareParam::Snares), "snareSnares", "Snares", 0.60f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SnareParam::Snap), "snareSnap", "Snap", 0.40f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SnareParam::Decay), "snareDecay", "Decay", 0.50f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SnareParam::Velocity), "snareVelocity", "Velocity", 1.0f, 0.0f, 1.0f, true, true},
+    };
+    return kParams;
 }
 
 bool SnareGeneratorDeviceType::usesDspAutomationSubBlocks() const noexcept {

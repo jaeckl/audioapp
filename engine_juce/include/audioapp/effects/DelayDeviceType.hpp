@@ -13,6 +13,8 @@
 
 namespace audioapp {
 
+enum class DelayParam : uint16_t { Time = 0, Feedback = 1, Mix = 2 };
+
 class DelayDeviceType final : public TimeBasedEffectDeviceType {
 public:
     std::string typeId() const override { return device_types::kDelay; }

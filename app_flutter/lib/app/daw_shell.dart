@@ -529,7 +529,44 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
+  void _optimisticParamUpdate(String deviceId, String parameterId, double value) {
+    final snap = _snapshot;
+    if (snap == null) return;
+    setState(() {
+      _snapshot = ProjectSnapshot(
+        protocolVersion: snap.protocolVersion,
+        bpm: snap.bpm,
+        selectedTrackId: snap.selectedTrackId,
+        playheadBeats: snap.playheadBeats,
+        playing: snap.playing,
+        loopEnabled: snap.loopEnabled,
+        loopRegionStartBeat: snap.loopRegionStartBeat,
+        loopRegionEndBeat: snap.loopRegionEndBeat,
+        recordArmed: snap.recordArmed,
+        master: snap.master,
+        samples: snap.samples,
+        tracks: snap.tracks
+            .map((t) => TrackSnapshot(
+                  id: t.id,
+                  name: t.name,
+                  devices: t.devices
+                      .map((d) =>
+                          d.id == deviceId ? d.withParameter(parameterId, value) : d)
+                      .toList(),
+                  midiClips: t.midiClips,
+                  sampleClips: t.sampleClips,
+                  automationClips: t.automationClips,
+                ))
+            .toList(),
+        lfos: snap.lfos,
+        modEdges: snap.modEdges,
+        automationClips: snap.automationClips,
+      );
+    });
+  }
+
   Future<void> _setSamplerParameter(String deviceId, String parameterId, double value) async {
+    _optimisticParamUpdate(deviceId, parameterId, value);
     try {
       await widget.bridge.setDeviceParameter(
         deviceId: deviceId,
@@ -915,6 +952,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   Future<void> _setFrequency(String deviceId, double value) async {
+    _optimisticParamUpdate(deviceId, 'frequency', value);
     try {
       await widget.bridge.setDeviceParameter(
         deviceId: deviceId,
@@ -946,6 +984,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   Future<void> _setTrackGain(String deviceId, double value) async {
+    _optimisticParamUpdate(deviceId, 'gain', value);
     try {
       await widget.bridge.setDeviceParameter(
         deviceId: deviceId,

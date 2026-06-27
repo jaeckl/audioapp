@@ -37,20 +37,23 @@ DeviceParameterResult ExpanderDeviceType::setParameter(DeviceSlot& slot,
     }
     auto& instance = std::get<ExpanderParams>(slot.config.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
-    if (parameterId == "inputGain") {
-        instance.inputGain = clamped;
-    } else if (parameterId == "expandThreshold") {
-        instance.expandThreshold = clamped;
-    } else if (parameterId == "expandRatio") {
-        instance.expandRatio = clamped;
-    } else if (parameterId == "expandAttack") {
-        instance.expandAttack = clamped;
-    } else if (parameterId == "expandRelease") {
-        instance.expandRelease = clamped;
-    } else if (parameterId == "expandRange") {
-        instance.expandRange = clamped;
-    } else {
-        return result;
+
+    uint16_t id = paramIdFromString(parameterId);
+    if (id == static_cast<uint16_t>(-1)) {
+        // Legacy: param was historically "inputGain" before full stable name
+        if (parameterId == "inputGain")
+            id = static_cast<uint16_t>(ExpanderParam::InputGain);
+        else
+            return result;
+    }
+    switch (static_cast<ExpanderParam>(id)) {
+    case ExpanderParam::InputGain: instance.inputGain = clamped; break;
+    case ExpanderParam::Threshold: instance.expandThreshold = clamped; break;
+    case ExpanderParam::Ratio: instance.expandRatio = clamped; break;
+    case ExpanderParam::Attack: instance.expandAttack = clamped; break;
+    case ExpanderParam::Release: instance.expandRelease = clamped; break;
+    case ExpanderParam::Range: instance.expandRange = clamped; break;
+    default: return result;
     }
     result.handled = true;
     return result;
@@ -232,15 +235,15 @@ DeviceNodeKind ExpanderDeviceType::kind() const noexcept { return DeviceNodeKind
 
 uint16_t ExpanderDeviceType::paramIdFromString(std::string_view name) const noexcept {
     auto e = [&](std::string_view n, ExpanderParam pid) -> uint16_t {
-        return name == n ? static_cast<uint16_t>(pid) : 0;
+        return name == n ? static_cast<uint16_t>(pid) : static_cast<uint16_t>(-1);
     };
-    if (auto v = e("expInputGain", ExpanderParam::InputGain)) return v;
-    if (auto v = e("expandThreshold", ExpanderParam::Threshold)) return v;
-    if (auto v = e("expandRatio", ExpanderParam::Ratio)) return v;
-    if (auto v = e("expandAttack", ExpanderParam::Attack)) return v;
-    if (auto v = e("expandRelease", ExpanderParam::Release)) return v;
-    if (auto v = e("expandRange", ExpanderParam::Range)) return v;
-    return 0;
+    if (auto v = e("expInputGain", ExpanderParam::InputGain); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = e("expandThreshold", ExpanderParam::Threshold); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = e("expandRatio", ExpanderParam::Ratio); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = e("expandAttack", ExpanderParam::Attack); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = e("expandRelease", ExpanderParam::Release); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = e("expandRange", ExpanderParam::Range); v != static_cast<uint16_t>(-1)) return v;
+    return static_cast<uint16_t>(-1);
 }
 
 std::string_view ExpanderDeviceType::paramIdToString(uint16_t localId) const noexcept {
@@ -255,7 +258,17 @@ std::string_view ExpanderDeviceType::paramIdToString(uint16_t localId) const noe
     }
 }
 
-std::span<const ParamDescriptor> ExpanderDeviceType::paramDescriptors() const noexcept { return {}; }
+std::span<const ParamDescriptor> ExpanderDeviceType::paramDescriptors() const noexcept {
+    static constexpr ParamDescriptor kParams[] = {
+        {static_cast<uint16_t>(ExpanderParam::InputGain), "expInputGain", "Input Gain", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(ExpanderParam::Threshold), "expandThreshold", "Threshold", 0.40f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(ExpanderParam::Ratio), "expandRatio", "Ratio", 0.45f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(ExpanderParam::Attack), "expandAttack", "Attack", 0.25f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(ExpanderParam::Release), "expandRelease", "Release", 0.55f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(ExpanderParam::Range), "expandRange", "Range", 0.15f, 0.0f, 1.0f, true, true},
+    };
+    return kParams;
+}
 
 bool ExpanderDeviceType::usesDspAutomationSubBlocks() const noexcept { return false; }
 

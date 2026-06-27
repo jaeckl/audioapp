@@ -33,20 +33,20 @@ DeviceParameterResult CrashGeneratorDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
 
+    const uint16_t localId = paramIdFromString(parameterId);
+    if (localId == static_cast<uint16_t>(-1))
+        return result;
+
     auto& instance = std::get<CrashGeneratorParams>(slot.config.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
-    if (parameterId == "crashModel") {
-        instance.crashModel = clamped;
-    } else if (parameterId == "crashColor") {
-        instance.crashColor = clamped;
-    } else if (parameterId == "crashSpread") {
-        instance.crashSpread = clamped;
-    } else if (parameterId == "crashDecay") {
-        instance.crashDecay = clamped;
-    } else if (parameterId == "crashVelocity") {
-        instance.crashVelocity = clamped;
-    } else {
-        return result;
+
+    switch (static_cast<CrashParam>(localId)) {
+    case CrashParam::Model:    instance.crashModel = clamped; break;
+    case CrashParam::Color:    instance.crashColor = clamped; break;
+    case CrashParam::Spread:   instance.crashSpread = clamped; break;
+    case CrashParam::Decay:    instance.crashDecay = clamped; break;
+    case CrashParam::Velocity: instance.crashVelocity = clamped; break;
+    default: return result;
     }
 
     result.handled = true;
@@ -183,17 +183,19 @@ DeviceNodeKind CrashGeneratorDeviceType::kind() const noexcept { return DeviceNo
 
 uint16_t CrashGeneratorDeviceType::paramIdFromString(std::string_view name) const noexcept {
     auto c = [&](std::string_view n, CrashParam pid) -> uint16_t {
-        return name == n ? static_cast<uint16_t>(pid) : 0;
+        return name == n ? static_cast<uint16_t>(pid) : static_cast<uint16_t>(-1);
     };
-    if (auto v = c("crashColor", CrashParam::Color)) return v;
-    if (auto v = c("crashSpread", CrashParam::Spread)) return v;
-    if (auto v = c("crashDecay", CrashParam::Decay)) return v;
-    if (auto v = c("crashVelocity", CrashParam::Velocity)) return v;
-    return 0;
+    if (auto v = c("crashModel", CrashParam::Model); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("crashColor", CrashParam::Color); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("crashSpread", CrashParam::Spread); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("crashDecay", CrashParam::Decay); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("crashVelocity", CrashParam::Velocity); v != static_cast<uint16_t>(-1)) return v;
+    return static_cast<uint16_t>(-1);
 }
 
 std::string_view CrashGeneratorDeviceType::paramIdToString(uint16_t localId) const noexcept {
     switch (static_cast<CrashParam>(localId)) {
+    case CrashParam::Model: return "crashModel";
     case CrashParam::Color: return "crashColor";
     case CrashParam::Spread: return "crashSpread";
     case CrashParam::Decay: return "crashDecay";
@@ -203,7 +205,14 @@ std::string_view CrashGeneratorDeviceType::paramIdToString(uint16_t localId) con
 }
 
 std::span<const ParamDescriptor> CrashGeneratorDeviceType::paramDescriptors() const noexcept {
-    return {};
+    static constexpr ParamDescriptor kParams[] = {
+        {static_cast<uint16_t>(CrashParam::Model), "crashModel", "Model", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(CrashParam::Color), "crashColor", "Color", 0.62f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(CrashParam::Spread), "crashSpread", "Spread", 0.50f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(CrashParam::Decay), "crashDecay", "Decay", 0.55f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(CrashParam::Velocity), "crashVelocity", "Velocity", 1.0f, 0.0f, 1.0f, true, true},
+    };
+    return kParams;
 }
 
 bool CrashGeneratorDeviceType::usesDspAutomationSubBlocks() const noexcept {

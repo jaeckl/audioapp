@@ -36,22 +36,24 @@ DeviceParameterResult LimiterDeviceType::setParameter(DeviceSlot& slot,
     }
     auto& instance = std::get<LimiterParams>(slot.config.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
-    if (parameterId == "inputGain") {
-        instance.inputGain = clamped;
-    } else if (parameterId == "limitCeiling") {
-        instance.limitCeiling = clamped;
-    } else if (parameterId == "limitAttack") {
-        instance.limitAttack = clamped;
-    } else if (parameterId == "limitRelease") {
-        instance.limitRelease = clamped;
-    } else if (parameterId == "limitKnee") {
-        instance.limitKnee = clamped;
-    } else if (parameterId == "limitDrive") {
-        instance.limitDrive = clamped;
-    } else if (parameterId == "limitMakeup") {
-        instance.limitMakeup = clamped;
-    } else {
-        return result;
+
+    uint16_t id = paramIdFromString(parameterId);
+    if (id == static_cast<uint16_t>(-1)) {
+        // Legacy: param was historically "inputGain" before full stable name
+        if (parameterId == "inputGain")
+            id = static_cast<uint16_t>(LimiterParam::InputGain);
+        else
+            return result;
+    }
+    switch (static_cast<LimiterParam>(id)) {
+    case LimiterParam::InputGain: instance.inputGain = clamped; break;
+    case LimiterParam::Ceiling: instance.limitCeiling = clamped; break;
+    case LimiterParam::Attack: instance.limitAttack = clamped; break;
+    case LimiterParam::Release: instance.limitRelease = clamped; break;
+    case LimiterParam::Knee: instance.limitKnee = clamped; break;
+    case LimiterParam::Drive: instance.limitDrive = clamped; break;
+    case LimiterParam::Makeup: instance.limitMakeup = clamped; break;
+    default: return result;
     }
     result.handled = true;
     return result;
@@ -235,15 +237,16 @@ DeviceNodeKind LimiterDeviceType::kind() const noexcept { return DeviceNodeKind:
 
 uint16_t LimiterDeviceType::paramIdFromString(std::string_view name) const noexcept {
     auto l = [&](std::string_view n, LimiterParam pid) -> uint16_t {
-        return name == n ? static_cast<uint16_t>(pid) : 0;
+        return name == n ? static_cast<uint16_t>(pid) : static_cast<uint16_t>(-1);
     };
-    if (auto v = l("limitInputGain", LimiterParam::InputGain)) return v;
-    if (auto v = l("limitCeiling", LimiterParam::Ceiling)) return v;
-    if (auto v = l("limitAttack", LimiterParam::Attack)) return v;
-    if (auto v = l("limitRelease", LimiterParam::Release)) return v;
-    if (auto v = l("limitDrive", LimiterParam::Drive)) return v;
-    if (auto v = l("limitMakeup", LimiterParam::Makeup)) return v;
-    return 0;
+    if (auto v = l("limitInputGain", LimiterParam::InputGain); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = l("limitCeiling", LimiterParam::Ceiling); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = l("limitAttack", LimiterParam::Attack); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = l("limitRelease", LimiterParam::Release); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = l("limitKnee", LimiterParam::Knee); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = l("limitDrive", LimiterParam::Drive); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = l("limitMakeup", LimiterParam::Makeup); v != static_cast<uint16_t>(-1)) return v;
+    return static_cast<uint16_t>(-1);
 }
 
 std::string_view LimiterDeviceType::paramIdToString(uint16_t localId) const noexcept {
@@ -252,13 +255,25 @@ std::string_view LimiterDeviceType::paramIdToString(uint16_t localId) const noex
     case LimiterParam::Ceiling: return "limitCeiling";
     case LimiterParam::Attack: return "limitAttack";
     case LimiterParam::Release: return "limitRelease";
+    case LimiterParam::Knee: return "limitKnee";
     case LimiterParam::Drive: return "limitDrive";
     case LimiterParam::Makeup: return "limitMakeup";
     default: return "";
     }
 }
 
-std::span<const ParamDescriptor> LimiterDeviceType::paramDescriptors() const noexcept { return {}; }
+std::span<const ParamDescriptor> LimiterDeviceType::paramDescriptors() const noexcept {
+    static constexpr ParamDescriptor kParams[] = {
+        {static_cast<uint16_t>(LimiterParam::InputGain), "limitInputGain", "Input Gain", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(LimiterParam::Ceiling), "limitCeiling", "Ceiling", 0.85f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(LimiterParam::Attack), "limitAttack", "Attack", 0.10f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(LimiterParam::Release), "limitRelease", "Release", 0.40f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(LimiterParam::Knee), "limitKnee", "Knee", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(LimiterParam::Drive), "limitDrive", "Drive", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(LimiterParam::Makeup), "limitMakeup", "Makeup", 0.0f, 0.0f, 1.0f, true, true},
+    };
+    return kParams;
+}
 
 bool LimiterDeviceType::usesDspAutomationSubBlocks() const noexcept { return false; }
 

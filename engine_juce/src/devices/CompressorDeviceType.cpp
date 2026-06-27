@@ -35,22 +35,24 @@ DeviceParameterResult CompressorDeviceType::setParameter(DeviceSlot& slot,
     }
     auto& instance = std::get<CompressorParams>(slot.config.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
-    if (parameterId == "inputGain") {
-        instance.inputGain = clamped;
-    } else if (parameterId == "compThreshold") {
-        instance.compThreshold = clamped;
-    } else if (parameterId == "compRatio") {
-        instance.compRatio = clamped;
-    } else if (parameterId == "compAttack") {
-        instance.compAttack = clamped;
-    } else if (parameterId == "compRelease") {
-        instance.compRelease = clamped;
-    } else if (parameterId == "compKnee") {
-        instance.compKnee = clamped;
-    } else if (parameterId == "compMakeup") {
-        instance.compMakeup = clamped;
-    } else {
-        return result;
+
+    uint16_t id = paramIdFromString(parameterId);
+    if (id == static_cast<uint16_t>(-1)) {
+        // Legacy: param was historically "inputGain" before full stable name
+        if (parameterId == "inputGain")
+            id = static_cast<uint16_t>(CompressorParam::InputGain);
+        else
+            return result;
+    }
+    switch (static_cast<CompressorParam>(id)) {
+    case CompressorParam::InputGain: instance.inputGain = clamped; break;
+    case CompressorParam::Threshold: instance.compThreshold = clamped; break;
+    case CompressorParam::Ratio: instance.compRatio = clamped; break;
+    case CompressorParam::Attack: instance.compAttack = clamped; break;
+    case CompressorParam::Release: instance.compRelease = clamped; break;
+    case CompressorParam::Knee: instance.compKnee = clamped; break;
+    case CompressorParam::Makeup: instance.compMakeup = clamped; break;
+    default: return result;
     }
     result.handled = true;
     return result;
@@ -234,16 +236,16 @@ DeviceNodeKind CompressorDeviceType::kind() const noexcept { return DeviceNodeKi
 
 uint16_t CompressorDeviceType::paramIdFromString(std::string_view name) const noexcept {
     auto c = [&](std::string_view n, CompressorParam pid) -> uint16_t {
-        return name == n ? static_cast<uint16_t>(pid) : 0;
+        return name == n ? static_cast<uint16_t>(pid) : static_cast<uint16_t>(-1);
     };
-    if (auto v = c("compInputGain", CompressorParam::InputGain)) return v;
-    if (auto v = c("compThreshold", CompressorParam::Threshold)) return v;
-    if (auto v = c("compRatio", CompressorParam::Ratio)) return v;
-    if (auto v = c("compAttack", CompressorParam::Attack)) return v;
-    if (auto v = c("compRelease", CompressorParam::Release)) return v;
-    if (auto v = c("compKnee", CompressorParam::Knee)) return v;
-    if (auto v = c("compMakeup", CompressorParam::Makeup)) return v;
-    return 0;
+    if (auto v = c("compInputGain", CompressorParam::InputGain); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("compThreshold", CompressorParam::Threshold); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("compRatio", CompressorParam::Ratio); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("compAttack", CompressorParam::Attack); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("compRelease", CompressorParam::Release); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("compKnee", CompressorParam::Knee); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("compMakeup", CompressorParam::Makeup); v != static_cast<uint16_t>(-1)) return v;
+    return static_cast<uint16_t>(-1);
 }
 
 std::string_view CompressorDeviceType::paramIdToString(uint16_t localId) const noexcept {
@@ -259,7 +261,18 @@ std::string_view CompressorDeviceType::paramIdToString(uint16_t localId) const n
     }
 }
 
-std::span<const ParamDescriptor> CompressorDeviceType::paramDescriptors() const noexcept { return {}; }
+std::span<const ParamDescriptor> CompressorDeviceType::paramDescriptors() const noexcept {
+    static constexpr ParamDescriptor kParams[] = {
+        {static_cast<uint16_t>(CompressorParam::InputGain), "compInputGain", "Input Gain", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(CompressorParam::Threshold), "compThreshold", "Threshold", 0.55f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(CompressorParam::Ratio), "compRatio", "Ratio", 0.50f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(CompressorParam::Attack), "compAttack", "Attack", 0.20f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(CompressorParam::Release), "compRelease", "Release", 0.55f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(CompressorParam::Knee), "compKnee", "Knee", 0.25f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(CompressorParam::Makeup), "compMakeup", "Makeup", 0.35f, 0.0f, 1.0f, true, true},
+    };
+    return kParams;
+}
 
 bool CompressorDeviceType::usesDspAutomationSubBlocks() const noexcept { return false; }
 

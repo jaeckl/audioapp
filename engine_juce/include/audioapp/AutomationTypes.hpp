@@ -43,6 +43,12 @@ enum class SamplerParam : uint16_t {
     FilterDecay = 10,
     FilterSustain = 11,
     FilterRelease = 12,
+    FilterMode = 13,
+    TrimStartSec = 14,
+    TrimEndSec = 15,
+    RegionStartSec = 16,
+    RegionEndSec = 17,
+    PlaybackMode = 18,
 };
 
 enum class SubtractiveParam : uint16_t {
@@ -97,6 +103,7 @@ enum class KickParam : uint16_t {
     Click = 4,
     Tone = 5,
     Velocity = 6,
+    KeyTrack = 7,
 };
 
 enum class SnareParam : uint16_t {
@@ -120,17 +127,19 @@ enum class ClapParam : uint16_t {
 };
 
 enum class CymbalParam : uint16_t {
-    Color = 0,
-    Decay = 1,
-    Width = 2,
-    Velocity = 3,
+    Model = 0,
+    Color = 1,
+    Decay = 2,
+    Width = 3,
+    Velocity = 4,
 };
 
 enum class CrashParam : uint16_t {
-    Color = 0,
-    Spread = 1,
-    Decay = 2,
-    Velocity = 3,
+    Model = 0,
+    Color = 1,
+    Spread = 2,
+    Decay = 3,
+    Velocity = 4,
 };
 
 enum class GateParam : uint16_t {
@@ -168,6 +177,12 @@ enum class LimiterParam : uint16_t {
     Release = 3,
     Drive = 4,
     Makeup = 5,
+    Knee = 6,
+};
+
+enum class TrackGainParam : uint16_t {
+    Gain = 0,
+    Pan = 1,
 };
 
 enum class BassSynthParam : uint16_t {
@@ -197,49 +212,73 @@ enum class PhaseModSynthParam : uint16_t {
     Op1Decay = 3,
     Op1Sustain = 4,
     Op1Release = 5,
+    Op1Ratio = 6,
+    Op1Wave = 7,
+    Op1VelSense = 8,
+    Op1KeyTrack = 9,
     // Operator 2
-    Op2Level = 6,
-    Op2Fine = 7,
-    Op2Attack = 8,
-    Op2Decay = 9,
-    Op2Sustain = 10,
-    Op2Release = 11,
+    Op2Level = 10,
+    Op2Fine = 11,
+    Op2Attack = 12,
+    Op2Decay = 13,
+    Op2Sustain = 14,
+    Op2Release = 15,
+    Op2Ratio = 16,
+    Op2Wave = 17,
+    Op2VelSense = 18,
+    Op2KeyTrack = 19,
     // Operator 3
-    Op3Level = 12,
-    Op3Fine = 13,
-    Op3Attack = 14,
-    Op3Decay = 15,
-    Op3Sustain = 16,
-    Op3Release = 17,
+    Op3Level = 20,
+    Op3Fine = 21,
+    Op3Attack = 22,
+    Op3Decay = 23,
+    Op3Sustain = 24,
+    Op3Release = 25,
+    Op3Ratio = 26,
+    Op3Wave = 27,
+    Op3VelSense = 28,
+    Op3KeyTrack = 29,
     // Operator 4
-    Op4Level = 18,
-    Op4Fine = 19,
-    Op4Attack = 20,
-    Op4Decay = 21,
-    Op4Sustain = 22,
-    Op4Release = 23,
+    Op4Level = 30,
+    Op4Fine = 31,
+    Op4Attack = 32,
+    Op4Decay = 33,
+    Op4Sustain = 34,
+    Op4Release = 35,
+    Op4Ratio = 36,
+    Op4Wave = 37,
+    Op4VelSense = 38,
+    Op4KeyTrack = 39,
     // Filter
-    FilterCutoff = 24,
-    FilterQ = 25,
-    FilterEnvAmount = 26,
-    FilterMode = 27,
-    FilterAttack = 28,
-    FilterDecay = 29,
-    FilterSustain = 30,
-    FilterRelease = 31,
-    FilterKeyTrack = 32,
+    FilterCutoff = 40,
+    FilterQ = 41,
+    FilterEnvAmount = 42,
+    FilterMode = 43,
+    FilterAttack = 44,
+    FilterDecay = 45,
+    FilterSustain = 46,
+    FilterRelease = 47,
+    FilterKeyTrack = 48,
     // Amp
-    AmpAttack = 33,
-    AmpDecay = 34,
-    AmpSustain = 35,
-    AmpRelease = 36,
+    AmpAttack = 49,
+    AmpDecay = 50,
+    AmpSustain = 51,
+    AmpRelease = 52,
     // Global
-    Feedback = 37,
-    MasterVol = 38,
-    LfoRate = 39,
-    LfoAmount = 40,
-    VibratoDepth = 41,
-    VibratoRate = 42,
+    Feedback = 53,
+    MasterVol = 54,
+    LfoRate = 55,
+    LfoAmount = 56,
+    VibratoDepth = 57,
+    VibratoRate = 58,
+    AlgoIndex = 59,
+    UnisonVoices = 60,
+    UnisonDetune = 61,
+    Glide = 62,
+    Mono = 63,
+    Legato = 64,
+    LfoShape = 65,
+    LfoDest = 66,
 };
 
 // ─── Frequency FX suite (added for Filter / 4-Band EQ / Ring Mod) ────────────

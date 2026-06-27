@@ -29,6 +29,10 @@ public:
 
     DeviceProcessor* createProcessor(ProcessorArena& arena) const override;
     DeviceNodeKind kind() const noexcept override;
+    uint16_t paramIdFromString(std::string_view name) const noexcept override;
+    std::string_view paramIdToString(uint16_t localId) const noexcept override;
+    std::span<const ParamDescriptor> paramDescriptors() const noexcept override;
+    bool usesDspAutomationSubBlocks() const noexcept override;
 };
 
 } // namespace audioapp

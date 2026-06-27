@@ -147,114 +147,93 @@ DeviceParameterResult PhaseModSynthDeviceType::setParameter(DeviceSlot& slot,
     }
 
     auto& instance = std::get<PhaseModSynthModel>(slot.config.instance);
-
-    // Shared filter/amp fields (same IDs as other devices)
-    if (parameterId == "filterCutoff" || parameterId == "filterQ" ||
-        parameterId == "filterEnvAmount" || parameterId == "filterAttack" ||
-        parameterId == "filterDecay" || parameterId == "filterSustain" ||
-        parameterId == "filterRelease" || parameterId == "filterKeyTrack") {
-        const float clamped = std::clamp(value, 0.0f, 1.0f);
-        if (parameterId == "filterCutoff")        instance.filterCutoff = clamped;
-        else if (parameterId == "filterQ")         instance.filterQ = clamped;
-        else if (parameterId == "filterEnvAmount") instance.filterEnvAmount = clamped;
-        else if (parameterId == "filterAttack")    instance.filterAttack = clamped;
-        else if (parameterId == "filterDecay")     instance.filterDecay = clamped;
-        else if (parameterId == "filterSustain")   instance.filterSustain = clamped;
-        else if (parameterId == "filterRelease")   instance.filterRelease = clamped;
-        else if (parameterId == "filterKeyTrack")  instance.filterKeyTrack = clamped;
-        result.handled = true;
-        return result;
-    }
-
-    if (parameterId == "attack" || parameterId == "decay" ||
-        parameterId == "sustain" || parameterId == "release") {
-        const float clamped = std::clamp(value, 0.0f, 1.0f);
-        if (parameterId == "attack")       instance.ampAttack = clamped;
-        else if (parameterId == "decay")   instance.ampDecay = clamped;
-        else if (parameterId == "sustain") instance.ampSustain = clamped;
-        else if (parameterId == "release") instance.ampRelease = clamped;
-        result.handled = true;
-        return result;
-    }
-
-    if (parameterId == "filterMode") {
+    const uint16_t id = paramIdFromString(parameterId);
+    switch (static_cast<PhaseModSynthParam>(id)) {
+    // Operator 1
+    case PhaseModSynthParam::Op1Level:    instance.op[0].level = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op1Fine:     instance.op[0].fine = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op1Attack:   instance.op[0].attack = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op1Decay:    instance.op[0].decay = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op1Sustain:  instance.op[0].sustain = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op1Release:  instance.op[0].release = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op1Ratio:    instance.op[0].ratio = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op1Wave:     instance.op[0].wave = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op1VelSense: instance.op[0].velocitySense = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op1KeyTrack: instance.op[0].keyTrack = std::clamp(value, 0.0f, 1.0f); break;
+    // Operator 2
+    case PhaseModSynthParam::Op2Level:    instance.op[1].level = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op2Fine:     instance.op[1].fine = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op2Attack:   instance.op[1].attack = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op2Decay:    instance.op[1].decay = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op2Sustain:  instance.op[1].sustain = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op2Release:  instance.op[1].release = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op2Ratio:    instance.op[1].ratio = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op2Wave:     instance.op[1].wave = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op2VelSense: instance.op[1].velocitySense = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op2KeyTrack: instance.op[1].keyTrack = std::clamp(value, 0.0f, 1.0f); break;
+    // Operator 3
+    case PhaseModSynthParam::Op3Level:    instance.op[2].level = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op3Fine:     instance.op[2].fine = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op3Attack:   instance.op[2].attack = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op3Decay:    instance.op[2].decay = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op3Sustain:  instance.op[2].sustain = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op3Release:  instance.op[2].release = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op3Ratio:    instance.op[2].ratio = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op3Wave:     instance.op[2].wave = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op3VelSense: instance.op[2].velocitySense = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op3KeyTrack: instance.op[2].keyTrack = std::clamp(value, 0.0f, 1.0f); break;
+    // Operator 4
+    case PhaseModSynthParam::Op4Level:    instance.op[3].level = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op4Fine:     instance.op[3].fine = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op4Attack:   instance.op[3].attack = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op4Decay:    instance.op[3].decay = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op4Sustain:  instance.op[3].sustain = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op4Release:  instance.op[3].release = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op4Ratio:    instance.op[3].ratio = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op4Wave:     instance.op[3].wave = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op4VelSense: instance.op[3].velocitySense = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Op4KeyTrack: instance.op[3].keyTrack = std::clamp(value, 0.0f, 1.0f); break;
+    // Filter
+    case PhaseModSynthParam::FilterCutoff:    instance.filterCutoff = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::FilterQ:         instance.filterQ = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::FilterEnvAmount: instance.filterEnvAmount = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::FilterAttack:    instance.filterAttack = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::FilterDecay:     instance.filterDecay = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::FilterSustain:   instance.filterSustain = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::FilterRelease:   instance.filterRelease = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::FilterKeyTrack:  instance.filterKeyTrack = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::FilterMode:
         instance.filterMode = static_cast<float>(std::clamp(
             static_cast<int>(std::lround(value)), 0, 5));
-        result.handled = true;
-        return result;
-    }
-
-    // PM operator params: pmOp{1-4}{ParamName}
-    auto setOpParam = [&](int opIdx, const std::string_view& paramSuffix, float val) {
-        if (opIdx < 0 || opIdx > 3) return false;
-        if (paramSuffix == "Ratio") {
-            instance.op[opIdx].ratio = std::clamp(val, 0.0f, 1.0f);
-        } else if (paramSuffix == "Fine") {
-            instance.op[opIdx].fine = std::clamp(val, 0.0f, 1.0f);
-        } else if (paramSuffix == "Level") {
-            instance.op[opIdx].level = std::clamp(val, 0.0f, 1.0f);
-        } else if (paramSuffix == "Wave") {
-            instance.op[opIdx].wave = std::clamp(val, 0.0f, 1.0f);
-        } else if (paramSuffix == "Attack") {
-            instance.op[opIdx].attack = std::clamp(val, 0.0f, 1.0f);
-        } else if (paramSuffix == "Decay") {
-            instance.op[opIdx].decay = std::clamp(val, 0.0f, 1.0f);
-        } else if (paramSuffix == "Sustain") {
-            instance.op[opIdx].sustain = std::clamp(val, 0.0f, 1.0f);
-        } else if (paramSuffix == "Release") {
-            instance.op[opIdx].release = std::clamp(val, 0.0f, 1.0f);
-        } else if (paramSuffix == "VelSense") {
-            instance.op[opIdx].velocitySense = std::clamp(val, 0.0f, 1.0f);
-        } else if (paramSuffix == "KeyTrack") {
-            instance.op[opIdx].keyTrack = std::clamp(val, 0.0f, 1.0f);
-        } else {
-            return false;
-        }
-        return true;
-    };
-
-    // Check for pmOp{N}{Param} pattern
-    const std::string id(parameterId);
-    if (id.size() > 7 && id.substr(0, 4) == "pmOp") {
-        const int opIdx = id[4] - '1';  // '1'→0, '2'→1, '3'→2, '4'→3
-        const std::string_view suffix(std::next(id.data(), 5), id.size() - 5);
-        if (setOpParam(opIdx, suffix, value)) {
-            result.handled = true;
-            return result;
-        }
-    }
-
-    // PM global params
-    if (parameterId == "pmAlgoIndex") {
+        break;
+    // Amp
+    case PhaseModSynthParam::AmpAttack:   instance.ampAttack = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::AmpDecay:    instance.ampDecay = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::AmpSustain:  instance.ampSustain = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::AmpRelease:  instance.ampRelease = std::clamp(value, 0.0f, 1.0f); break;
+    // Global
+    case PhaseModSynthParam::Feedback:    instance.feedback = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::MasterVol:   instance.masterVol = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::LfoRate:     instance.lfoRate = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::LfoAmount:   instance.lfoAmount = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::VibratoDepth: instance.vibratoDepth = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::VibratoRate:  instance.vibratoRate = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::AlgoIndex:
         instance.algoIndex = std::clamp(static_cast<int>(std::lround(value)), 0, 7);
-    } else if (parameterId == "pmFeedback") {
-        instance.feedback = std::clamp(value, 0.0f, 1.0f);
-    } else if (parameterId == "pmUnisonVoices") {
-        instance.unisonVoices = std::clamp(value, 0.0f, 1.0f);
-    } else if (parameterId == "pmUnisonDetune") {
-        instance.unisonDetune = std::clamp(value, 0.0f, 1.0f);
-    } else if (parameterId == "pmGlide") {
-        instance.glideMs = std::clamp(value, 0.0f, 1.0f);
-    } else if (parameterId == "pmMono") {
-        instance.synthMono = value >= 0.5f ? 1.0f : 0.0f;
-    } else if (parameterId == "pmLegato") {
-        instance.synthLegato = value >= 0.5f ? 1.0f : 0.0f;
-    } else if (parameterId == "pmMasterVol") {
-        instance.masterVol = std::clamp(value, 0.0f, 1.0f);
-    } else if (parameterId == "pmLfoRate") {
-        instance.lfoRate = std::clamp(value, 0.0f, 1.0f);
-    } else if (parameterId == "pmLfoShape") {
+        break;
+    case PhaseModSynthParam::UnisonVoices: instance.unisonVoices = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::UnisonDetune: instance.unisonDetune = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Glide:        instance.glideMs = std::clamp(value, 0.0f, 1.0f); break;
+    case PhaseModSynthParam::Mono:         instance.synthMono = value >= 0.5f ? 1.0f : 0.0f; break;
+    case PhaseModSynthParam::Legato:       instance.synthLegato = value >= 0.5f ? 1.0f : 0.0f; break;
+    case PhaseModSynthParam::LfoShape:
         instance.lfoShape = static_cast<float>(std::clamp(
             static_cast<int>(std::lround(value)), 0, 4));
-    } else if (parameterId == "pmLfoAmount") {
-        instance.lfoAmount = std::clamp(value, 0.0f, 1.0f);
-    } else if (parameterId == "pmLfoDest") {
+        break;
+    case PhaseModSynthParam::LfoDest:
         instance.lfoDest = std::clamp(static_cast<int>(std::lround(value)), 0, 4);
-    } else if (parameterId == "pmVibratoDepth") {
-        instance.vibratoDepth = std::clamp(value, 0.0f, 1.0f);
-    } else if (parameterId == "pmVibratoRate") {
-        instance.vibratoRate = std::clamp(value, 0.0f, 1.0f);
-    } else {
+        break;
+    default:
         return result;
     }
 
@@ -514,52 +493,76 @@ DeviceNodeKind PhaseModSynthDeviceType::kind() const noexcept { return DeviceNod
 
 uint16_t PhaseModSynthDeviceType::paramIdFromString(std::string_view name) const noexcept {
     auto pm = [&](std::string_view n, PhaseModSynthParam pid) -> uint16_t {
-        return name == n ? static_cast<uint16_t>(pid) : 0;
+        return name == n ? static_cast<uint16_t>(pid) : static_cast<uint16_t>(-1);
     };
-    if (auto v = pm("pmOp1Level", PhaseModSynthParam::Op1Level)) return v;
-    if (auto v = pm("pmOp1Fine", PhaseModSynthParam::Op1Fine)) return v;
-    if (auto v = pm("pmOp1Attack", PhaseModSynthParam::Op1Attack)) return v;
-    if (auto v = pm("pmOp1Decay", PhaseModSynthParam::Op1Decay)) return v;
-    if (auto v = pm("pmOp1Sustain", PhaseModSynthParam::Op1Sustain)) return v;
-    if (auto v = pm("pmOp1Release", PhaseModSynthParam::Op1Release)) return v;
-    if (auto v = pm("pmOp2Level", PhaseModSynthParam::Op2Level)) return v;
-    if (auto v = pm("pmOp2Fine", PhaseModSynthParam::Op2Fine)) return v;
-    if (auto v = pm("pmOp2Attack", PhaseModSynthParam::Op2Attack)) return v;
-    if (auto v = pm("pmOp2Decay", PhaseModSynthParam::Op2Decay)) return v;
-    if (auto v = pm("pmOp2Sustain", PhaseModSynthParam::Op2Sustain)) return v;
-    if (auto v = pm("pmOp2Release", PhaseModSynthParam::Op2Release)) return v;
-    if (auto v = pm("pmOp3Level", PhaseModSynthParam::Op3Level)) return v;
-    if (auto v = pm("pmOp3Fine", PhaseModSynthParam::Op3Fine)) return v;
-    if (auto v = pm("pmOp3Attack", PhaseModSynthParam::Op3Attack)) return v;
-    if (auto v = pm("pmOp3Decay", PhaseModSynthParam::Op3Decay)) return v;
-    if (auto v = pm("pmOp3Sustain", PhaseModSynthParam::Op3Sustain)) return v;
-    if (auto v = pm("pmOp3Release", PhaseModSynthParam::Op3Release)) return v;
-    if (auto v = pm("pmOp4Level", PhaseModSynthParam::Op4Level)) return v;
-    if (auto v = pm("pmOp4Fine", PhaseModSynthParam::Op4Fine)) return v;
-    if (auto v = pm("pmOp4Attack", PhaseModSynthParam::Op4Attack)) return v;
-    if (auto v = pm("pmOp4Decay", PhaseModSynthParam::Op4Decay)) return v;
-    if (auto v = pm("pmOp4Sustain", PhaseModSynthParam::Op4Sustain)) return v;
-    if (auto v = pm("pmOp4Release", PhaseModSynthParam::Op4Release)) return v;
-    if (auto v = pm("filterCutoff", PhaseModSynthParam::FilterCutoff)) return v;
-    if (auto v = pm("filterQ", PhaseModSynthParam::FilterQ)) return v;
-    if (auto v = pm("filterEnvAmount", PhaseModSynthParam::FilterEnvAmount)) return v;
-    if (auto v = pm("filterMode", PhaseModSynthParam::FilterMode)) return v;
-    if (auto v = pm("filterAttack", PhaseModSynthParam::FilterAttack)) return v;
-    if (auto v = pm("filterDecay", PhaseModSynthParam::FilterDecay)) return v;
-    if (auto v = pm("filterSustain", PhaseModSynthParam::FilterSustain)) return v;
-    if (auto v = pm("filterRelease", PhaseModSynthParam::FilterRelease)) return v;
-    if (auto v = pm("filterKeyTrack", PhaseModSynthParam::FilterKeyTrack)) return v;
-    if (auto v = pm("attack", PhaseModSynthParam::AmpAttack)) return v;
-    if (auto v = pm("decay", PhaseModSynthParam::AmpDecay)) return v;
-    if (auto v = pm("sustain", PhaseModSynthParam::AmpSustain)) return v;
-    if (auto v = pm("release", PhaseModSynthParam::AmpRelease)) return v;
-    if (auto v = pm("pmFeedback", PhaseModSynthParam::Feedback)) return v;
-    if (auto v = pm("pmMasterVol", PhaseModSynthParam::MasterVol)) return v;
-    if (auto v = pm("pmLfoRate", PhaseModSynthParam::LfoRate)) return v;
-    if (auto v = pm("pmLfoAmount", PhaseModSynthParam::LfoAmount)) return v;
-    if (auto v = pm("pmVibratoDepth", PhaseModSynthParam::VibratoDepth)) return v;
-    if (auto v = pm("pmVibratoRate", PhaseModSynthParam::VibratoRate)) return v;
-    return 0;
+    if (auto v = pm("pmOp1Level", PhaseModSynthParam::Op1Level); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp1Fine", PhaseModSynthParam::Op1Fine); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp1Attack", PhaseModSynthParam::Op1Attack); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp1Decay", PhaseModSynthParam::Op1Decay); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp1Sustain", PhaseModSynthParam::Op1Sustain); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp1Release", PhaseModSynthParam::Op1Release); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp1Ratio", PhaseModSynthParam::Op1Ratio); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp1Wave", PhaseModSynthParam::Op1Wave); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp1VelSense", PhaseModSynthParam::Op1VelSense); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp1KeyTrack", PhaseModSynthParam::Op1KeyTrack); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp2Level", PhaseModSynthParam::Op2Level); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp2Fine", PhaseModSynthParam::Op2Fine); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp2Attack", PhaseModSynthParam::Op2Attack); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp2Decay", PhaseModSynthParam::Op2Decay); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp2Sustain", PhaseModSynthParam::Op2Sustain); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp2Release", PhaseModSynthParam::Op2Release); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp2Ratio", PhaseModSynthParam::Op2Ratio); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp2Wave", PhaseModSynthParam::Op2Wave); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp2VelSense", PhaseModSynthParam::Op2VelSense); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp2KeyTrack", PhaseModSynthParam::Op2KeyTrack); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp3Level", PhaseModSynthParam::Op3Level); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp3Fine", PhaseModSynthParam::Op3Fine); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp3Attack", PhaseModSynthParam::Op3Attack); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp3Decay", PhaseModSynthParam::Op3Decay); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp3Sustain", PhaseModSynthParam::Op3Sustain); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp3Release", PhaseModSynthParam::Op3Release); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp3Ratio", PhaseModSynthParam::Op3Ratio); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp3Wave", PhaseModSynthParam::Op3Wave); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp3VelSense", PhaseModSynthParam::Op3VelSense); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp3KeyTrack", PhaseModSynthParam::Op3KeyTrack); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp4Level", PhaseModSynthParam::Op4Level); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp4Fine", PhaseModSynthParam::Op4Fine); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp4Attack", PhaseModSynthParam::Op4Attack); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp4Decay", PhaseModSynthParam::Op4Decay); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp4Sustain", PhaseModSynthParam::Op4Sustain); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp4Release", PhaseModSynthParam::Op4Release); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp4Ratio", PhaseModSynthParam::Op4Ratio); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp4Wave", PhaseModSynthParam::Op4Wave); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp4VelSense", PhaseModSynthParam::Op4VelSense); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmOp4KeyTrack", PhaseModSynthParam::Op4KeyTrack); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("filterCutoff", PhaseModSynthParam::FilterCutoff); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("filterQ", PhaseModSynthParam::FilterQ); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("filterEnvAmount", PhaseModSynthParam::FilterEnvAmount); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("filterMode", PhaseModSynthParam::FilterMode); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("filterAttack", PhaseModSynthParam::FilterAttack); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("filterDecay", PhaseModSynthParam::FilterDecay); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("filterSustain", PhaseModSynthParam::FilterSustain); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("filterRelease", PhaseModSynthParam::FilterRelease); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("filterKeyTrack", PhaseModSynthParam::FilterKeyTrack); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("attack", PhaseModSynthParam::AmpAttack); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("decay", PhaseModSynthParam::AmpDecay); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("sustain", PhaseModSynthParam::AmpSustain); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("release", PhaseModSynthParam::AmpRelease); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmFeedback", PhaseModSynthParam::Feedback); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmMasterVol", PhaseModSynthParam::MasterVol); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmLfoRate", PhaseModSynthParam::LfoRate); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmLfoAmount", PhaseModSynthParam::LfoAmount); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmVibratoDepth", PhaseModSynthParam::VibratoDepth); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmVibratoRate", PhaseModSynthParam::VibratoRate); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmAlgoIndex", PhaseModSynthParam::AlgoIndex); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmUnisonVoices", PhaseModSynthParam::UnisonVoices); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmUnisonDetune", PhaseModSynthParam::UnisonDetune); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmGlide", PhaseModSynthParam::Glide); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmMono", PhaseModSynthParam::Mono); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmLegato", PhaseModSynthParam::Legato); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmLfoShape", PhaseModSynthParam::LfoShape); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = pm("pmLfoDest", PhaseModSynthParam::LfoDest); v != static_cast<uint16_t>(-1)) return v;
+    return static_cast<uint16_t>(-1);
 }
 
 std::string_view PhaseModSynthDeviceType::paramIdToString(uint16_t localId) const noexcept {
@@ -570,24 +573,40 @@ std::string_view PhaseModSynthDeviceType::paramIdToString(uint16_t localId) cons
     case PhaseModSynthParam::Op1Decay: return "pmOp1Decay";
     case PhaseModSynthParam::Op1Sustain: return "pmOp1Sustain";
     case PhaseModSynthParam::Op1Release: return "pmOp1Release";
+    case PhaseModSynthParam::Op1Ratio: return "pmOp1Ratio";
+    case PhaseModSynthParam::Op1Wave: return "pmOp1Wave";
+    case PhaseModSynthParam::Op1VelSense: return "pmOp1VelSense";
+    case PhaseModSynthParam::Op1KeyTrack: return "pmOp1KeyTrack";
     case PhaseModSynthParam::Op2Level: return "pmOp2Level";
     case PhaseModSynthParam::Op2Fine: return "pmOp2Fine";
     case PhaseModSynthParam::Op2Attack: return "pmOp2Attack";
     case PhaseModSynthParam::Op2Decay: return "pmOp2Decay";
     case PhaseModSynthParam::Op2Sustain: return "pmOp2Sustain";
     case PhaseModSynthParam::Op2Release: return "pmOp2Release";
+    case PhaseModSynthParam::Op2Ratio: return "pmOp2Ratio";
+    case PhaseModSynthParam::Op2Wave: return "pmOp2Wave";
+    case PhaseModSynthParam::Op2VelSense: return "pmOp2VelSense";
+    case PhaseModSynthParam::Op2KeyTrack: return "pmOp2KeyTrack";
     case PhaseModSynthParam::Op3Level: return "pmOp3Level";
     case PhaseModSynthParam::Op3Fine: return "pmOp3Fine";
     case PhaseModSynthParam::Op3Attack: return "pmOp3Attack";
     case PhaseModSynthParam::Op3Decay: return "pmOp3Decay";
     case PhaseModSynthParam::Op3Sustain: return "pmOp3Sustain";
     case PhaseModSynthParam::Op3Release: return "pmOp3Release";
+    case PhaseModSynthParam::Op3Ratio: return "pmOp3Ratio";
+    case PhaseModSynthParam::Op3Wave: return "pmOp3Wave";
+    case PhaseModSynthParam::Op3VelSense: return "pmOp3VelSense";
+    case PhaseModSynthParam::Op3KeyTrack: return "pmOp3KeyTrack";
     case PhaseModSynthParam::Op4Level: return "pmOp4Level";
     case PhaseModSynthParam::Op4Fine: return "pmOp4Fine";
     case PhaseModSynthParam::Op4Attack: return "pmOp4Attack";
     case PhaseModSynthParam::Op4Decay: return "pmOp4Decay";
     case PhaseModSynthParam::Op4Sustain: return "pmOp4Sustain";
     case PhaseModSynthParam::Op4Release: return "pmOp4Release";
+    case PhaseModSynthParam::Op4Ratio: return "pmOp4Ratio";
+    case PhaseModSynthParam::Op4Wave: return "pmOp4Wave";
+    case PhaseModSynthParam::Op4VelSense: return "pmOp4VelSense";
+    case PhaseModSynthParam::Op4KeyTrack: return "pmOp4KeyTrack";
     case PhaseModSynthParam::FilterCutoff: return "filterCutoff";
     case PhaseModSynthParam::FilterQ: return "filterQ";
     case PhaseModSynthParam::FilterEnvAmount: return "filterEnvAmount";
@@ -607,6 +626,14 @@ std::string_view PhaseModSynthDeviceType::paramIdToString(uint16_t localId) cons
     case PhaseModSynthParam::LfoAmount: return "pmLfoAmount";
     case PhaseModSynthParam::VibratoDepth: return "pmVibratoDepth";
     case PhaseModSynthParam::VibratoRate: return "pmVibratoRate";
+    case PhaseModSynthParam::AlgoIndex: return "pmAlgoIndex";
+    case PhaseModSynthParam::UnisonVoices: return "pmUnisonVoices";
+    case PhaseModSynthParam::UnisonDetune: return "pmUnisonDetune";
+    case PhaseModSynthParam::Glide: return "pmGlide";
+    case PhaseModSynthParam::Mono: return "pmMono";
+    case PhaseModSynthParam::Legato: return "pmLegato";
+    case PhaseModSynthParam::LfoShape: return "pmLfoShape";
+    case PhaseModSynthParam::LfoDest: return "pmLfoDest";
     default: return "";
     }
 }
@@ -619,24 +646,40 @@ std::span<const ParamDescriptor> PhaseModSynthDeviceType::paramDescriptors() con
         {static_cast<uint16_t>(PhaseModSynthParam::Op1Decay), "pmOp1Decay", "Op1 Decay", 0.3f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaseModSynthParam::Op1Sustain), "pmOp1Sustain", "Op1 Sustain", 0.8f, 0.0f, 1.0f, true, false},
         {static_cast<uint16_t>(PhaseModSynthParam::Op1Release), "pmOp1Release", "Op1 Release", 0.4f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op1Ratio), "pmOp1Ratio", "Op1 Ratio", 0.0625f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op1Wave), "pmOp1Wave", "Op1 Wave", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op1VelSense), "pmOp1VelSense", "Op1 Vel Sense", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op1KeyTrack), "pmOp1KeyTrack", "Op1 Key Track", 0.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaseModSynthParam::Op2Level), "pmOp2Level", "Op2 Level", 0.4f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaseModSynthParam::Op2Fine), "pmOp2Fine", "Op2 Fine", 0.5f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaseModSynthParam::Op2Attack), "pmOp2Attack", "Op2 Attack", 0.01f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaseModSynthParam::Op2Decay), "pmOp2Decay", "Op2 Decay", 0.3f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaseModSynthParam::Op2Sustain), "pmOp2Sustain", "Op2 Sustain", 0.8f, 0.0f, 1.0f, true, false},
         {static_cast<uint16_t>(PhaseModSynthParam::Op2Release), "pmOp2Release", "Op2 Release", 0.4f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op2Ratio), "pmOp2Ratio", "Op2 Ratio", 0.4375f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op2Wave), "pmOp2Wave", "Op2 Wave", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op2VelSense), "pmOp2VelSense", "Op2 Vel Sense", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op2KeyTrack), "pmOp2KeyTrack", "Op2 Key Track", 0.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaseModSynthParam::Op3Level), "pmOp3Level", "Op3 Level", 0.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaseModSynthParam::Op3Fine), "pmOp3Fine", "Op3 Fine", 0.5f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaseModSynthParam::Op3Attack), "pmOp3Attack", "Op3 Attack", 0.01f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaseModSynthParam::Op3Decay), "pmOp3Decay", "Op3 Decay", 0.3f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaseModSynthParam::Op3Sustain), "pmOp3Sustain", "Op3 Sustain", 0.8f, 0.0f, 1.0f, true, false},
         {static_cast<uint16_t>(PhaseModSynthParam::Op3Release), "pmOp3Release", "Op3 Release", 0.4f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op3Ratio), "pmOp3Ratio", "Op3 Ratio", 0.75f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op3Wave), "pmOp3Wave", "Op3 Wave", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op3VelSense), "pmOp3VelSense", "Op3 Vel Sense", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op3KeyTrack), "pmOp3KeyTrack", "Op3 Key Track", 0.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaseModSynthParam::Op4Level), "pmOp4Level", "Op4 Level", 0.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaseModSynthParam::Op4Fine), "pmOp4Fine", "Op4 Fine", 0.5f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaseModSynthParam::Op4Attack), "pmOp4Attack", "Op4 Attack", 0.01f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaseModSynthParam::Op4Decay), "pmOp4Decay", "Op4 Decay", 0.3f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaseModSynthParam::Op4Sustain), "pmOp4Sustain", "Op4 Sustain", 0.8f, 0.0f, 1.0f, true, false},
         {static_cast<uint16_t>(PhaseModSynthParam::Op4Release), "pmOp4Release", "Op4 Release", 0.4f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op4Ratio), "pmOp4Ratio", "Op4 Ratio", 0.375f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op4Wave), "pmOp4Wave", "Op4 Wave", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op4VelSense), "pmOp4VelSense", "Op4 Vel Sense", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Op4KeyTrack), "pmOp4KeyTrack", "Op4 Key Track", 0.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaseModSynthParam::FilterCutoff), "filterCutoff", "Filter Cutoff", 0.85f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaseModSynthParam::FilterQ), "filterQ", "Filter Q", 0.25f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaseModSynthParam::FilterEnvAmount), "filterEnvAmount", "Filter Env", 0.5f, 0.0f, 1.0f, true, true},
@@ -656,6 +699,14 @@ std::span<const ParamDescriptor> PhaseModSynthDeviceType::paramDescriptors() con
         {static_cast<uint16_t>(PhaseModSynthParam::LfoAmount), "pmLfoAmount", "LFO Amount", 0.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaseModSynthParam::VibratoDepth), "pmVibratoDepth", "Vibrato Depth", 0.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaseModSynthParam::VibratoRate), "pmVibratoRate", "Vibrato Rate", 0.3f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::AlgoIndex), "pmAlgoIndex", "Algorithm", 0.0f, 0.0f, 7.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::UnisonVoices), "pmUnisonVoices", "Unison Voices", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::UnisonDetune), "pmUnisonDetune", "Unison Detune", 0.15f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Glide), "pmGlide", "Glide", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::Mono), "pmMono", "Mono", 0.0f, 0.0f, 1.0f, true, false},
+        {static_cast<uint16_t>(PhaseModSynthParam::Legato), "pmLegato", "Legato", 0.0f, 0.0f, 1.0f, true, false},
+        {static_cast<uint16_t>(PhaseModSynthParam::LfoShape), "pmLfoShape", "LFO Shape", 0.0f, 0.0f, 4.0f, true, true},
+        {static_cast<uint16_t>(PhaseModSynthParam::LfoDest), "pmLfoDest", "LFO Dest", 0.0f, 0.0f, 4.0f, true, true},
     };
     return kParams;
 }

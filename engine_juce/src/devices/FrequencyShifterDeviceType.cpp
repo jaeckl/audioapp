@@ -39,10 +39,13 @@ DeviceParameterResult FrequencyShifterDeviceType::setParameter(DeviceSlot& slot,
     }
     auto& instance = std::get<FrequencyShifterModel>(slot.config.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
-    if (parameterId == "ffxShift") {
-        instance.ffxShift = clamped;
-    } else {
+
+    const uint16_t id = paramIdFromString(parameterId);
+    if (id == static_cast<uint16_t>(-1))
         return result;
+    switch (static_cast<FrequencyShifterParam>(id)) {
+    case FrequencyShifterParam::Shift: instance.ffxShift = clamped; break;
+    default: return result;
     }
     result.handled = true;
     return result;
@@ -155,7 +158,7 @@ DeviceNodeKind FrequencyShifterDeviceType::kind() const noexcept { return Device
 
 uint16_t FrequencyShifterDeviceType::paramIdFromString(std::string_view name) const noexcept {
     if (name == "ffxShift") return static_cast<uint16_t>(FrequencyShifterParam::Shift);
-    return 0;
+    return static_cast<uint16_t>(-1);
 }
 
 std::string_view FrequencyShifterDeviceType::paramIdToString(uint16_t localId) const noexcept {

@@ -4,6 +4,7 @@
 #include "audioapp/effects/EffectTypes.hpp"
 #include "audioapp/effects/TimeBasedEffectDeviceType.hpp"
 #include "audioapp/devices/PlaybackBuildContext.hpp"
+#include "audioapp/params/ParamRegistry.hpp"
 
 #include <memory>
 #include <string>
@@ -48,9 +49,14 @@ public:
 
     static DeviceRegistry createBuiltIn();
 
+    /// Access the parameter registry for this device set.
+    params::ParamRegistry& paramRegistry() { return paramRegistry_; }
+    const params::ParamRegistry& paramRegistry() const { return paramRegistry_; }
+
 private:
     std::vector<std::unique_ptr<IDeviceType>> types_;
     std::vector<std::string> typeIds_;
+    params::ParamRegistry paramRegistry_;
 };
 
 } // namespace audioapp

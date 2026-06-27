@@ -33,20 +33,20 @@ DeviceParameterResult CymbalGeneratorDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
 
+    const uint16_t localId = paramIdFromString(parameterId);
+    if (localId == static_cast<uint16_t>(-1))
+        return result;
+
     auto& instance = std::get<CymbalGeneratorParams>(slot.config.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
-    if (parameterId == "cymbalModel") {
-        instance.cymbalModel = clamped;
-    } else if (parameterId == "cymbalColor") {
-        instance.cymbalColor = clamped;
-    } else if (parameterId == "cymbalDecay") {
-        instance.cymbalDecay = clamped;
-    } else if (parameterId == "cymbalWidth") {
-        instance.cymbalWidth = clamped;
-    } else if (parameterId == "cymbalVelocity") {
-        instance.cymbalVelocity = clamped;
-    } else {
-        return result;
+
+    switch (static_cast<CymbalParam>(localId)) {
+    case CymbalParam::Model:    instance.cymbalModel = clamped; break;
+    case CymbalParam::Color:    instance.cymbalColor = clamped; break;
+    case CymbalParam::Decay:    instance.cymbalDecay = clamped; break;
+    case CymbalParam::Width:    instance.cymbalWidth = clamped; break;
+    case CymbalParam::Velocity: instance.cymbalVelocity = clamped; break;
+    default: return result;
     }
 
     result.handled = true;
@@ -183,17 +183,19 @@ DeviceNodeKind CymbalGeneratorDeviceType::kind() const noexcept { return DeviceN
 
 uint16_t CymbalGeneratorDeviceType::paramIdFromString(std::string_view name) const noexcept {
     auto c = [&](std::string_view n, CymbalParam pid) -> uint16_t {
-        return name == n ? static_cast<uint16_t>(pid) : 0;
+        return name == n ? static_cast<uint16_t>(pid) : static_cast<uint16_t>(-1);
     };
-    if (auto v = c("cymbalColor", CymbalParam::Color)) return v;
-    if (auto v = c("cymbalDecay", CymbalParam::Decay)) return v;
-    if (auto v = c("cymbalWidth", CymbalParam::Width)) return v;
-    if (auto v = c("cymbalVelocity", CymbalParam::Velocity)) return v;
-    return 0;
+    if (auto v = c("cymbalModel", CymbalParam::Model); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("cymbalColor", CymbalParam::Color); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("cymbalDecay", CymbalParam::Decay); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("cymbalWidth", CymbalParam::Width); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("cymbalVelocity", CymbalParam::Velocity); v != static_cast<uint16_t>(-1)) return v;
+    return static_cast<uint16_t>(-1);
 }
 
 std::string_view CymbalGeneratorDeviceType::paramIdToString(uint16_t localId) const noexcept {
     switch (static_cast<CymbalParam>(localId)) {
+    case CymbalParam::Model: return "cymbalModel";
     case CymbalParam::Color: return "cymbalColor";
     case CymbalParam::Decay: return "cymbalDecay";
     case CymbalParam::Width: return "cymbalWidth";
@@ -203,7 +205,14 @@ std::string_view CymbalGeneratorDeviceType::paramIdToString(uint16_t localId) co
 }
 
 std::span<const ParamDescriptor> CymbalGeneratorDeviceType::paramDescriptors() const noexcept {
-    return {};
+    static constexpr ParamDescriptor kParams[] = {
+        {static_cast<uint16_t>(CymbalParam::Model), "cymbalModel", "Model", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(CymbalParam::Color), "cymbalColor", "Color", 0.68f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(CymbalParam::Decay), "cymbalDecay", "Decay", 0.50f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(CymbalParam::Width), "cymbalWidth", "Width", 0.35f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(CymbalParam::Velocity), "cymbalVelocity", "Velocity", 1.0f, 0.0f, 1.0f, true, true},
+    };
+    return kParams;
 }
 
 bool CymbalGeneratorDeviceType::usesDspAutomationSubBlocks() const noexcept {

@@ -36,14 +36,15 @@ DeviceParameterResult FilterDeviceType::setParameter(DeviceSlot& slot,
     }
     auto& instance = std::get<FilterModel>(slot.config.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
-    if (parameterId == "ffxCutoff") {
-        instance.ffxCutoff = clamped;
-    } else if (parameterId == "ffxResonance") {
-        instance.ffxResonance = clamped;
-    } else if (parameterId == "ffxFilterMode") {
-        instance.ffxFilterMode = clamped;
-    } else {
+
+    const uint16_t id = paramIdFromString(parameterId);
+    if (id == static_cast<uint16_t>(-1))
         return result;
+    switch (static_cast<FilterParam>(id)) {
+    case FilterParam::Cutoff: instance.ffxCutoff = clamped; break;
+    case FilterParam::Resonance: instance.ffxResonance = clamped; break;
+    case FilterParam::Mode: instance.ffxFilterMode = clamped; break;
+    default: return result;
     }
     result.handled = true;
     return result;
@@ -162,7 +163,7 @@ uint16_t FilterDeviceType::paramIdFromString(std::string_view name) const noexce
     if (name == "ffxCutoff") return static_cast<uint16_t>(FilterParam::Cutoff);
     if (name == "ffxResonance") return static_cast<uint16_t>(FilterParam::Resonance);
     if (name == "ffxFilterMode") return static_cast<uint16_t>(FilterParam::Mode);
-    return 0;
+    return static_cast<uint16_t>(-1);
 }
 
 std::string_view FilterDeviceType::paramIdToString(uint16_t localId) const noexcept {

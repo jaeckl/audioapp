@@ -34,13 +34,21 @@ DeviceParameterResult DelayDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
     auto& instance = std::get<DelayParams>(slot.config.instance);
-    if (parameterId == "timeMs") {
+    const uint16_t id = paramIdFromString(parameterId);
+    if (id == static_cast<uint16_t>(-1))
+        return result;
+    const auto localId = static_cast<DelayParam>(id);
+    switch (localId) {
+    case DelayParam::Time:
         instance.delayTime = juce::jlimit(1.0, 2000.0, static_cast<double>(value));
-    } else if (parameterId == "feedback") {
+        break;
+    case DelayParam::Feedback:
         instance.feedback = juce::jlimit(0.0, 0.95, static_cast<double>(value));
-    } else if (parameterId == "mix") {
+        break;
+    case DelayParam::Mix:
         instance.mix = juce::jlimit(0.0, 1.0, static_cast<double>(value));
-    } else {
+        break;
+    default:
         return result;
     }
     result.handled = true;
@@ -160,25 +168,29 @@ DeviceProcessor* DelayDeviceType::createProcessor(ProcessorArena& arena) const {
 DeviceNodeKind DelayDeviceType::kind() const noexcept { return DeviceNodeKind::Delay; }
 
 uint16_t DelayDeviceType::paramIdFromString(std::string_view name) const noexcept {
-    auto d = [&](std::string_view n, uint16_t pid) -> uint16_t {
-        return name == n ? pid : 0;
-    };
-    if (auto v = d("delayTimeMs", 0)) return v;
-    if (auto v = d("delayFeedback", 1)) return v;
-    if (auto v = d("delayMix", 2)) return v;
-    return 0;
+    if (name == "timeMs" || name == "delayTimeMs") return static_cast<uint16_t>(DelayParam::Time);
+    if (name == "feedback" || name == "delayFeedback") return static_cast<uint16_t>(DelayParam::Feedback);
+    if (name == "mix" || name == "delayMix") return static_cast<uint16_t>(DelayParam::Mix);
+    return static_cast<uint16_t>(-1);
 }
 
 std::string_view DelayDeviceType::paramIdToString(uint16_t localId) const noexcept {
-    switch (localId) {
-    case 0: return "delayTimeMs";
-    case 1: return "delayFeedback";
-    case 2: return "delayMix";
+    switch (static_cast<DelayParam>(localId)) {
+    case DelayParam::Time: return "delayTimeMs";
+    case DelayParam::Feedback: return "delayFeedback";
+    case DelayParam::Mix: return "delayMix";
     default: return "";
     }
 }
 
-std::span<const ParamDescriptor> DelayDeviceType::paramDescriptors() const noexcept { return {}; }
+std::span<const ParamDescriptor> DelayDeviceType::paramDescriptors() const noexcept {
+    static constexpr ParamDescriptor kParams[] = {
+        {static_cast<uint16_t>(DelayParam::Time), "delayTimeMs", "Time", 250.0f, 1.0f, 2000.0f, true, true},
+        {static_cast<uint16_t>(DelayParam::Feedback), "delayFeedback", "Feedback", 0.4f, 0.0f, 0.95f, true, true},
+        {static_cast<uint16_t>(DelayParam::Mix), "delayMix", "Mix", 0.5f, 0.0f, 1.0f, true, true},
+    };
+    return kParams;
+}
 
 bool DelayDeviceType::usesDspAutomationSubBlocks() const noexcept { return false; }
 

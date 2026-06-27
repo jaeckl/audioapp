@@ -36,32 +36,24 @@ DeviceParameterResult FourBandEqDeviceType::setParameter(DeviceSlot& slot,
     }
     auto& instance = std::get<FourBandEqModel>(slot.config.instance);
     const float clamped = std::clamp(value, 0.0f, 1.0f);
-    if (parameterId == "ffxBand1Freq") {
-        instance.ffxBand1Freq = clamped;
-    } else if (parameterId == "ffxBand1Gain") {
-        instance.ffxBand1Gain = clamped;
-    } else if (parameterId == "ffxBand1Q") {
-        instance.ffxBand1Q = clamped;
-    } else if (parameterId == "ffxBand2Freq") {
-        instance.ffxBand2Freq = clamped;
-    } else if (parameterId == "ffxBand2Gain") {
-        instance.ffxBand2Gain = clamped;
-    } else if (parameterId == "ffxBand2Q") {
-        instance.ffxBand2Q = clamped;
-    } else if (parameterId == "ffxBand3Freq") {
-        instance.ffxBand3Freq = clamped;
-    } else if (parameterId == "ffxBand3Gain") {
-        instance.ffxBand3Gain = clamped;
-    } else if (parameterId == "ffxBand3Q") {
-        instance.ffxBand3Q = clamped;
-    } else if (parameterId == "ffxBand4Freq") {
-        instance.ffxBand4Freq = clamped;
-    } else if (parameterId == "ffxBand4Gain") {
-        instance.ffxBand4Gain = clamped;
-    } else if (parameterId == "ffxBand4Q") {
-        instance.ffxBand4Q = clamped;
-    } else {
+
+    const uint16_t id = paramIdFromString(parameterId);
+    if (id == static_cast<uint16_t>(-1))
         return result;
+    switch (static_cast<FourBandEqParam>(id)) {
+    case FourBandEqParam::Band1Freq: instance.ffxBand1Freq = clamped; break;
+    case FourBandEqParam::Band1Gain: instance.ffxBand1Gain = clamped; break;
+    case FourBandEqParam::Band1Q: instance.ffxBand1Q = clamped; break;
+    case FourBandEqParam::Band2Freq: instance.ffxBand2Freq = clamped; break;
+    case FourBandEqParam::Band2Gain: instance.ffxBand2Gain = clamped; break;
+    case FourBandEqParam::Band2Q: instance.ffxBand2Q = clamped; break;
+    case FourBandEqParam::Band3Freq: instance.ffxBand3Freq = clamped; break;
+    case FourBandEqParam::Band3Gain: instance.ffxBand3Gain = clamped; break;
+    case FourBandEqParam::Band3Q: instance.ffxBand3Q = clamped; break;
+    case FourBandEqParam::Band4Freq: instance.ffxBand4Freq = clamped; break;
+    case FourBandEqParam::Band4Gain: instance.ffxBand4Gain = clamped; break;
+    case FourBandEqParam::Band4Q: instance.ffxBand4Q = clamped; break;
+    default: return result;
     }
     result.handled = true;
     return result;
@@ -211,7 +203,7 @@ uint16_t FourBandEqDeviceType::paramIdFromString(std::string_view name) const no
     if (name == "ffxBand4Freq") return static_cast<uint16_t>(FourBandEqParam::Band4Freq);
     if (name == "ffxBand4Gain") return static_cast<uint16_t>(FourBandEqParam::Band4Gain);
     if (name == "ffxBand4Q") return static_cast<uint16_t>(FourBandEqParam::Band4Q);
-    return 0;
+    return static_cast<uint16_t>(-1);
 }
 
 std::string_view FourBandEqDeviceType::paramIdToString(uint16_t localId) const noexcept {
