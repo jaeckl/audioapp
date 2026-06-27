@@ -4,115 +4,133 @@
 
 namespace audioapp::snapshot {
 
-std::string SnapshotDelta::toJson() const {
-    if (fullRefresh) {
-        auto* root = new juce::DynamicObject();
-        auto* delta = new juce::DynamicObject();
-        delta->setProperty("fullRefresh", true);
-        delta->setProperty("fullSnapshot", fullSnapshot);
-        root->setProperty("delta", juce::var(delta));
-        root->setProperty("ok", true);
-        return juce::JSON::toString(juce::var(root), false).toStdString();
+/// Build an attribute name string from a bool property key.
+/// Returns the key as-is (bool attributes are "1" or absent in XmlElement).
+static void setBoolAttr(juce::XmlElement& elem, const char* name, bool value)
+{
+    if (value)
+        elem.setAttribute(name, 1);
+}
+
+std::string SnapshotDelta::toXml() const
+{
+    if (fullRefresh)
+    {
+        auto delta = std::make_unique<juce::XmlElement>("delta");
+        delta->setAttribute("fullRefresh", 1);
+        // fullRefresh is a rare path (project load/undo) — keep the full
+        // snapshot as a JSON string attribute rather than building a tree.
+        delta->setAttribute("fullSnapshot",
+            juce::JSON::toString(fullSnapshot, false));
+        return delta->toString(juce::XmlElement::TextFormat().withoutHeader()).toStdString();
     }
 
-    auto* root = new juce::DynamicObject();
-    auto* delta = new juce::DynamicObject();
-    juce::Array<juce::var> tracksArr;
+    auto root = std::make_unique<juce::XmlElement>("delta");
 
-    for (const auto& td : tracks) {
-        auto* trackObj = new juce::DynamicObject();
-        trackObj->setProperty("trackId", juce::String(td.trackId));
+    // ── Track deltas ──────────────────────────────────────────
+    if (!tracks.empty())
+    {
+        auto* tracksElem = root->createNewChildElement("tracks");
+        for (const auto& td : tracks)
+        {
+            auto* trackElem = tracksElem->createNewChildElement("track");
+            trackElem->setAttribute("trackId", td.trackId);
+            setBoolAttr(*trackElem, "trackAdded", td.trackAdded);
+            setBoolAttr(*trackElem, "trackRemoved", td.trackRemoved);
+            setBoolAttr(*trackElem, "trackSelected", td.trackSelected);
 
-        juce::Array<juce::var> devicesArr;
-        for (const auto& dd : td.devices) {
-            auto* devObj = new juce::DynamicObject();
-            devObj->setProperty("deviceId", juce::String(dd.deviceId));
+            if (!td.devices.empty())
+            {
+                auto* devsElem = trackElem->createNewChildElement("devices");
+                for (const auto& dd : td.devices)
+                {
+                    auto* devElem = devsElem->createNewChildElement("device");
+                    devElem->setAttribute("deviceId", dd.deviceId);
+                    setBoolAttr(*devElem, "deviceAdded", dd.deviceAdded);
+                    setBoolAttr(*devElem, "deviceRemoved", dd.deviceRemoved);
 
-            juce::Array<juce::var> paramsArr;
-            for (const auto& pd : dd.params) {
-                auto* paramObj = new juce::DynamicObject();
-                paramObj->setProperty("paramId", juce::String(pd.paramId));
-                paramObj->setProperty("newValue", static_cast<double>(pd.newValue));
-                paramsArr.add(juce::var(paramObj));
+                    if (!dd.params.empty())
+                    {
+                        auto* paramsElem = devElem->createNewChildElement("params");
+                        for (const auto& pd : dd.params)
+                        {
+                            auto* pElem = paramsElem->createNewChildElement("param");
+                            pElem->setAttribute("paramId", pd.paramId);
+                            pElem->setAttribute("newValue", static_cast<double>(pd.newValue));
+                        }
+                    }
+                }
             }
-            devObj->setProperty("params", juce::var(paramsArr));
-
-            if (dd.deviceAdded) devObj->setProperty("deviceAdded", true);
-            if (dd.deviceRemoved) devObj->setProperty("deviceRemoved", true);
-
-            devicesArr.add(juce::var(devObj));
         }
-        trackObj->setProperty("devices", juce::var(devicesArr));
-
-        if (td.trackAdded) trackObj->setProperty("trackAdded", true);
-        if (td.trackRemoved) trackObj->setProperty("trackRemoved", true);
-        if (td.trackSelected) trackObj->setProperty("trackSelected", true);
-
-        tracksArr.add(juce::var(trackObj));
     }
 
-    delta->setProperty("tracks", juce::var(tracksArr));
+    // ── Modulator deltas ──────────────────────────────────────
+    if (!modulators.empty())
+    {
+        auto* modsElem = root->createNewChildElement("modulators");
+        for (const auto& md : modulators)
+        {
+            auto* modElem = modsElem->createNewChildElement("modulator");
+            modElem->setAttribute("lfoId", md.lfoId);
+            setBoolAttr(*modElem, "modulatorAdded", md.modulatorAdded);
+            setBoolAttr(*modElem, "modulatorRemoved", md.modulatorRemoved);
 
-    // Modulator deltas
-    juce::Array<juce::var> modsArr;
-    for (const auto& md : modulators) {
-        auto* modObj = new juce::DynamicObject();
-        modObj->setProperty("lfoId", md.lfoId);
-
-        juce::Array<juce::var> paramsArr;
-        for (const auto& pd : md.params) {
-            auto* paramObj = new juce::DynamicObject();
-            paramObj->setProperty("param", juce::String(pd.param));
-            paramObj->setProperty("newValue", static_cast<double>(pd.newValue));
-            paramsArr.add(juce::var(paramObj));
+            if (!md.params.empty())
+            {
+                auto* paramsElem = modElem->createNewChildElement("params");
+                for (const auto& pd : md.params)
+                {
+                    auto* pElem = paramsElem->createNewChildElement("param");
+                    pElem->setAttribute("param", pd.param);
+                    pElem->setAttribute("newValue", static_cast<double>(pd.newValue));
+                }
+            }
         }
-        modObj->setProperty("params", juce::var(paramsArr));
-
-        if (md.modulatorAdded) modObj->setProperty("modulatorAdded", true);
-        if (md.modulatorRemoved) modObj->setProperty("modulatorRemoved", true);
-
-        modsArr.add(juce::var(modObj));
     }
-    delta->setProperty("modulators", juce::var(modsArr));
 
-    // Transport delta
-    if (transport.has_value()) {
-        auto* tObj = new juce::DynamicObject();
+    // ── Transport delta ───────────────────────────────────────
+    if (transport.has_value())
+    {
+        auto* tElem = root->createNewChildElement("transport");
         const auto& t = transport.value();
-        if (t.bpmChanged) {
-            tObj->setProperty("bpmChanged", true);
-            tObj->setProperty("newBpm", t.newBpm);
+        if (t.bpmChanged)
+        {
+            tElem->setAttribute("bpmChanged", 1);
+            tElem->setAttribute("newBpm", t.newBpm);
         }
-        if (t.playingChanged) {
-            tObj->setProperty("playingChanged", true);
-            tObj->setProperty("newPlaying", t.newPlaying);
+        if (t.playingChanged)
+        {
+            tElem->setAttribute("playingChanged", 1);
+            tElem->setAttribute("newPlaying", t.newPlaying ? 1 : 0);
         }
-        if (t.loopEnabledChanged) {
-            tObj->setProperty("loopEnabledChanged", true);
-            tObj->setProperty("newLoopEnabled", t.newLoopEnabled);
+        if (t.loopEnabledChanged)
+        {
+            tElem->setAttribute("loopEnabledChanged", 1);
+            tElem->setAttribute("newLoopEnabled", t.newLoopEnabled ? 1 : 0);
         }
-        if (t.loopStartChanged) {
-            tObj->setProperty("loopRegionStartChanged", true);
-            tObj->setProperty("newLoopRegionStart", t.newLoopStart);
+        if (t.loopStartChanged)
+        {
+            tElem->setAttribute("loopRegionStartChanged", 1);
+            tElem->setAttribute("newLoopRegionStart", t.newLoopStart);
         }
-        if (t.loopEndChanged) {
-            tObj->setProperty("loopRegionEndChanged", true);
-            tObj->setProperty("newLoopRegionEnd", t.newLoopEnd);
+        if (t.loopEndChanged)
+        {
+            tElem->setAttribute("loopRegionEndChanged", 1);
+            tElem->setAttribute("newLoopRegionEnd", t.newLoopEnd);
         }
-        if (t.playheadChanged) {
-            tObj->setProperty("playheadChanged", true);
-            tObj->setProperty("newPlayhead", t.newPlayhead);
+        if (t.playheadChanged)
+        {
+            tElem->setAttribute("playheadChanged", 1);
+            tElem->setAttribute("newPlayhead", t.newPlayhead);
         }
-        if (t.recordArmedChanged) {
-            tObj->setProperty("recordArmedChanged", true);
-            tObj->setProperty("newRecordArmed", t.newRecordArmed);
+        if (t.recordArmedChanged)
+        {
+            tElem->setAttribute("recordArmedChanged", 1);
+            tElem->setAttribute("newRecordArmed", t.newRecordArmed ? 1 : 0);
         }
-        delta->setProperty("transport", juce::var(tObj));
     }
 
-    root->setProperty("delta", juce::var(delta));
-    root->setProperty("ok", true);
-    return juce::JSON::toString(juce::var(root), false).toStdString();
+    return root->toString(juce::XmlElement::TextFormat().withoutHeader()).toStdString();
 }
 
 SnapshotDelta SnapshotDelta::fullRefreshDelta(juce::var snapshot) {

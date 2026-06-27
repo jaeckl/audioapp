@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 
+import 'delta_parser.dart';
 import 'live_meters_dto.dart';
 import 'param_descriptor.dart';
 import 'project_snapshot.dart';
@@ -126,6 +127,11 @@ class EngineBridge {
         code: result['error']?.toString() ?? 'engine_error',
         message: 'Engine command failed: $method',
       );
+    }
+    // Inline deltaXml to delta map so all callers see result['delta'].
+    final deltaXml = result['deltaXml'] as String?;
+    if (deltaXml != null && deltaXml.isNotEmpty) {
+      result['delta'] = parseDeltaXml(deltaXml);
     }
     return result;
   }
@@ -545,6 +551,11 @@ class EngineBridge {
         code: result['error']?.toString() ?? 'engine_error',
         message: 'Engine command failed: $method',
       );
+    }
+    // Parse deltaXml into result['delta'] if present (XML bridge transport).
+    final deltaXml = result['deltaXml'] as String?;
+    if (deltaXml != null && deltaXml.isNotEmpty) {
+      result['delta'] = parseDeltaXml(deltaXml);
     }
     final delta = result['delta'] as Map<dynamic, dynamic>?;
     if (delta != null) {

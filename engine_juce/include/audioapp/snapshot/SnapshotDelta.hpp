@@ -76,8 +76,8 @@ struct SnapshotDelta {
     /// Full snapshot payload, only set when fullRefresh is true.
     juce::var fullSnapshot;
 
-    /// Serialize this delta to a JSON string suitable for bridge transport.
-    std::string toJson() const;
+    /// Serialize this delta to an XML string suitable for bridge transport.
+    std::string toXml() const;
 
     /// Build a "full refresh" delta that includes a complete snapshot.
     static SnapshotDelta fullRefreshDelta(juce::var snapshot);

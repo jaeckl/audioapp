@@ -838,7 +838,12 @@ namespace {
 
 /// Convert any populated SnapshotDelta into a delta CommandResult.
 commands::CommandResult deltaResult(snapshot::SnapshotDelta sd) {
-    return commands::okWithDelta(juce::JSON::parse(sd.toJson()));
+    // Build JSON envelope with XML delta payload.
+    // Format: {"ok": true, "deltaXml": "<delta>...</delta>"}
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("ok", true);
+    obj->setProperty("deltaXml", juce::String(sd.toXml()));
+    return commands::rawResult(juce::JSON::toString(juce::var(obj), false).toStdString());
 }
 
 /// Build a transport-only delta juce::var from a setter lambda.
@@ -859,6 +864,7 @@ commands::CommandResult modulatorParamDelta(
     snapshot::ModulatorDelta md;
     md.lfoId = lfoId;
     md.params.push_back({param, newValue});
+    sd.modulators.push_back(std::move(md));
     return deltaResult(std::move(sd));
 }
 
@@ -872,6 +878,7 @@ commands::CommandResult batchModulatorParamDelta(
     md.lfoId = lfoId;
     for (const auto& [p, v] : params)
         md.params.push_back({p, v});
+    sd.modulators.push_back(std::move(md));
     return deltaResult(std::move(sd));
 }
 
