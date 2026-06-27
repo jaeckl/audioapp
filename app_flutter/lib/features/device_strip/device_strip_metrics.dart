@@ -12,6 +12,7 @@ import 'sampler_device_panel.dart';
 import 'snare_generator_device_panel.dart';
 import 'subtractive_synth_device_panel.dart';
 import 'time_fx_panels.dart';
+import 'mood_fx_panels.dart';
 
 /// Device strip layout constants.
 class DeviceStripMetrics {
@@ -156,6 +157,9 @@ class DeviceStripMetrics {
       'filter' => FilterDevicePanel.designWidth,
       'four_band_eq' => FourBandEqDevicePanel.designWidth,
       'frequency_shifter' => FreqShifterDevicePanel.designWidth,
+      'bitcrusher' => BitcrusherFxPanel.designWidth,
+      'distortion' => DistortionFxPanel.designWidth,
+      'tremolo' => TremoloFxPanel.designWidth,
       'simple_oscillator' => OscillatorDevicePanel.designWidth,
       'phase_mod_synth' => PhaseModSynthDevicePanel.designWidth,
       _ => 280,

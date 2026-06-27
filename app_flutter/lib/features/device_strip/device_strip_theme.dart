@@ -49,6 +49,9 @@ abstract final class DeviceStripTheme {
   static const filterAccent = Color(0xFF5BC0EB);
   static const fourBandEqAccent = Color(0xFF78C091);
   static const frequencyShifterAccent = Color(0xFFC77DFF);
+  static const bitcrusherAccent = Color(0xFF7B6CF6);
+  static const distortionAccent = Color(0xFFE85D4B);
+  static const tremoloAccent = Color(0xFF4ADE80);
 
   static Color accentForDeviceType(String type) => switch (type) {
         'simple_sampler' => samplerAccent,
@@ -72,6 +75,9 @@ abstract final class DeviceStripTheme {
         'filter' => filterAccent,
         'four_band_eq' => fourBandEqAccent,
         'frequency_shifter' => frequencyShifterAccent,
+        'bitcrusher' => bitcrusherAccent,
+        'distortion' => distortionAccent,
+        'tremolo' => tremoloAccent,
         _ => genericAccent,
       };
 
@@ -97,6 +103,9 @@ abstract final class DeviceStripTheme {
         'filter' => 'Filter',
         'four_band_eq' => '4-Band EQ',
         'frequency_shifter' => 'Ring Mod',
+        'bitcrusher' => 'Bitcrusher',
+        'distortion' => 'Distortion',
+        'tremolo' => 'Tremolo',
         _ => type,
       };
 }
