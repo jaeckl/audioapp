@@ -51,6 +51,16 @@ struct TransportDelta {
     int newBpm = 120;
     bool playingChanged = false;
     bool newPlaying = false;
+    bool loopEnabledChanged = false;
+    bool newLoopEnabled = false;
+    bool loopStartChanged = false;
+    double newLoopStart = 0.0;
+    bool loopEndChanged = false;
+    double newLoopEnd = 16.0;
+    bool playheadChanged = false;
+    double newPlayhead = 0.0;
+    bool recordArmedChanged = false;
+    bool newRecordArmed = false;
 };
 
 /// Describes a single mutation delta. Returned by mutation commands

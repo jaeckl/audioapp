@@ -154,8 +154,23 @@ class EngineBridge {
     return _invokeOk('setMasterGain', {'gain': gain});
   }
 
-  Future<ProjectSnapshot> setPlayheadBeats(double playheadBeats) async {
-    return _invokeForSnapshot('setPlayheadBeats', {'playheadBeats': playheadBeats});
+  /// Invoke and return raw result map (used for delta-aware calls).
+  Future<Map<dynamic, dynamic>> invokeRaw(String method, [Map<String, dynamic>? args]) async {
+    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(method, args);
+    if (result == null) {
+      throw PlatformException(code: 'null_response', message: 'No response from engine');
+    }
+    if (result['ok'] != true) {
+      throw PlatformException(
+        code: result['error']?.toString() ?? 'engine_error',
+        message: 'Engine command failed: $method',
+      );
+    }
+    return result;
+  }
+
+  Future<void> setPlayheadBeats(double playheadBeats) async {
+    await invokeRaw('setPlayheadBeats', {'playheadBeats': playheadBeats});
   }
 
   Future<ProjectSnapshot> createMidiClip({
@@ -611,6 +626,17 @@ class EngineBridge {
         code: result['error']?.toString() ?? 'engine_error',
         message: 'Engine command failed: $method',
       );
+    }
+    final delta = result['delta'] as Map<dynamic, dynamic>?;
+    if (delta != null) {
+      if (delta['fullRefresh'] == true) {
+        final full = delta['fullSnapshot'] as Map<dynamic, dynamic>?;
+        if (full != null) {
+          return ProjectSnapshot.fromMap({'snapshot': full, 'ok': true});
+        }
+      }
+      // Non-full-refresh delta — caller must use delta-aware path
+      return getProjectSnapshot();
     }
     return ProjectSnapshot.fromMap(result);
   }

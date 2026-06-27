@@ -41,6 +41,15 @@ inline CommandResult errorResult(std::string msg) { return CommandResult{false, 
 inline CommandResult rawResult(std::string json) { return CommandResult{true, {}, {}, std::move(json), {}}; }
 inline CommandResult okWithDelta(juce::var delta) { return CommandResult{true, {}, {}, {}, std::move(delta)}; }
 
+/// Return a full-refresh delta from a snapshot var. The Dart side can extract
+/// the full snapshot directly, avoiding an extra round-trip.
+inline CommandResult okWithFullRefresh(juce::var fullSnapshot) {
+    auto* delta = new juce::DynamicObject();
+    delta->setProperty("fullRefresh", true);
+    delta->setProperty("fullSnapshot", std::move(fullSnapshot));
+    return CommandResult{true, {}, {}, {}, juce::var(delta)};
+}
+
 /// Command handler signature.
 using HandlerFn = std::function<CommandResult(const CommandContext& ctx)>;
 

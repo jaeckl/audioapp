@@ -1,61 +1,65 @@
-import '../bridge/project_snapshot.dart';
+import 'package:flutter/foundation.dart';
+
 import 'engine_bridge.dart';
+import 'project_snapshot.dart';
 
 /// Cached project snapshot that can merge incremental deltas from the engine,
 /// avoiding full-snapshot serialization on every mutation.
 ///
-/// Usage:
-/// ```dart
-/// final store = SnapshotStore(bridge, initial);
-/// // After mutation:
-/// await store.applyMutation((bridge) => bridge.setBpm(140));
-/// ```
-class SnapshotStore {
-  SnapshotStore(this._bridge, this._cached);
+/// The canonical state holder for the Flutter UI. All mutations go through
+/// [invokeRaw], which auto-merges deltas or falls back to full snapshots.
+class SnapshotStore extends ChangeNotifier {
+  SnapshotStore(this._bridge);
 
   final EngineBridge _bridge;
-  ProjectSnapshot _cached;
+  ProjectSnapshot? _state;
 
-  ProjectSnapshot get snapshot => _cached;
+  /// The current project snapshot. Null until initialized.
+  ProjectSnapshot? get state => _state;
 
-  /// Apply a mutation that returns a delta from the engine.
-  /// Falls back to full snapshot if the response has no delta.
-  Future<void> applyMutation(
-    Future<Map<dynamic, dynamic>> Function(EngineBridge bridge) mutation,
-  ) async {
-    final result = await mutation(_bridge);
-    final delta = result['delta'] as Map<dynamic, dynamic>?;
-    if (delta == null) {
-      // Fallback: parse as full snapshot
-      if (result['snapshot'] != null) {
-        _cached = ProjectSnapshot.fromMap(result);
-      }
-      return;
-    }
-    _mergeDelta(delta);
+  /// Initialize with a snapshot (bootstrap).
+  void replaceSnapshot(ProjectSnapshot snapshot) {
+    _state = snapshot;
+    notifyListeners();
   }
 
-  /// Merge a raw delta map into the cached snapshot.
-  void _mergeDelta(Map<dynamic, dynamic> delta) {
+  /// Call a mutation via [invokeRaw], merge delta or full snapshot into state.
+  Future<void> invokeRaw(String method, [Map<String, dynamic>? args]) async {
+    final result = await _bridge.invokeRaw(method, args);
+    final delta = result['delta'] as Map<dynamic, dynamic>?;
+    if (delta != null && _state != null) {
+      _state = applyDeltaToSnapshot(_state!, delta);
+    } else {
+      _state = ProjectSnapshot.fromMap(result);
+    }
+    notifyListeners();
+  }
+
+  // ── Static delta merge (pure, no store needed) ────────────────
+
+  static ProjectSnapshot applyDeltaToSnapshot(
+    ProjectSnapshot snap,
+    Map<dynamic, dynamic> delta,
+  ) {
     if (delta['fullRefresh'] == true) {
       final full = delta['fullSnapshot'] as Map<dynamic, dynamic>?;
       if (full != null) {
-        _cached = ProjectSnapshot.fromMap({'snapshot': full, 'ok': true});
+        return ProjectSnapshot.fromMap({'snapshot': full, 'ok': true});
       }
-      return;
+      return snap;
     }
 
-    // Transport deltas
     final transport = delta['transport'] as Map<dynamic, dynamic>?;
+    ProjectSnapshot result = snap;
     if (transport != null) {
-      int bpm = _cached.bpm;
-      bool playing = _cached.playing;
-      bool loopEnabled = _cached.loopEnabled;
-      double loopRegionStart = _cached.loopRegionStartBeat;
-      double loopRegionEnd = _cached.loopRegionEndBeat;
-      double playhead = _cached.playheadBeats;
-      bool recordArmed = _cached.recordArmed;
-      String selectedTrackId = _cached.selectedTrackId;
+      int bpm = snap.bpm;
+      bool playing = snap.playing;
+      bool loopEnabled = snap.loopEnabled;
+      double loopRegionStart = snap.loopRegionStartBeat;
+      double loopRegionEnd = snap.loopRegionEndBeat;
+      double playhead = snap.playheadBeats;
+      bool recordArmed = snap.recordArmed;
+      String selectedTrackId = snap.selectedTrackId;
 
       if (transport['bpmChanged'] == true) {
         bpm = (transport['newBpm'] as num).toInt();
@@ -82,8 +86,8 @@ class SnapshotStore {
         selectedTrackId = transport['newSelectedTrackId'] as String;
       }
 
-      _cached = ProjectSnapshot(
-        protocolVersion: _cached.protocolVersion,
+      result = ProjectSnapshot(
+        protocolVersion: snap.protocolVersion,
         bpm: bpm,
         selectedTrackId: selectedTrackId,
         playheadBeats: playhead,
@@ -92,29 +96,29 @@ class SnapshotStore {
         loopRegionStartBeat: loopRegionStart,
         loopRegionEndBeat: loopRegionEnd,
         recordArmed: recordArmed,
-        master: _cached.master,
-        samples: _cached.samples,
-        tracks: _cached.tracks,
-        lfos: _cached.lfos,
-        modEdges: _cached.modEdges,
-        automationClips: _cached.automationClips,
+        master: snap.master,
+        samples: snap.samples,
+        tracks: snap.tracks,
+        lfos: snap.lfos,
+        modEdges: snap.modEdges,
+        automationClips: snap.automationClips,
       );
     }
 
-    // Track/device param deltas
     final tracks = delta['tracks'] as List<dynamic>?;
     if (tracks != null && tracks.isNotEmpty) {
-      _cached = _mergeTrackDeltas(tracks, _cached);
+      result = _mergeTrackDeltas(tracks, result);
     }
 
-    // Modulator deltas
     final mods = delta['modulators'] as List<dynamic>?;
     if (mods != null && mods.isNotEmpty) {
-      _cached = _mergeModulatorDeltas(mods, _cached);
+      result = _mergeModulatorDeltas(mods, result);
     }
+
+    return result;
   }
 
-  ProjectSnapshot _mergeTrackDeltas(
+  static ProjectSnapshot _mergeTrackDeltas(
     List<dynamic> trackDeltas,
     ProjectSnapshot snap,
   ) {
@@ -175,7 +179,7 @@ class SnapshotStore {
     );
   }
 
-  ProjectSnapshot _mergeModulatorDeltas(
+  static ProjectSnapshot _mergeModulatorDeltas(
     List<dynamic> modDeltas,
     ProjectSnapshot snap,
   ) {

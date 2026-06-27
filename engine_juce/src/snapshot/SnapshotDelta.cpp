@@ -87,6 +87,26 @@ std::string SnapshotDelta::toJson() const {
             tObj->setProperty("playingChanged", true);
             tObj->setProperty("newPlaying", t.newPlaying);
         }
+        if (t.loopEnabledChanged) {
+            tObj->setProperty("loopEnabledChanged", true);
+            tObj->setProperty("newLoopEnabled", t.newLoopEnabled);
+        }
+        if (t.loopStartChanged) {
+            tObj->setProperty("loopRegionStartChanged", true);
+            tObj->setProperty("newLoopRegionStart", t.newLoopStart);
+        }
+        if (t.loopEndChanged) {
+            tObj->setProperty("loopRegionEndChanged", true);
+            tObj->setProperty("newLoopRegionEnd", t.newLoopEnd);
+        }
+        if (t.playheadChanged) {
+            tObj->setProperty("playheadChanged", true);
+            tObj->setProperty("newPlayhead", t.newPlayhead);
+        }
+        if (t.recordArmedChanged) {
+            tObj->setProperty("recordArmedChanged", true);
+            tObj->setProperty("newRecordArmed", t.newRecordArmed);
+        }
         delta->setProperty("transport", juce::var(tObj));
     }
 

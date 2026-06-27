@@ -10,6 +10,7 @@ import 'daw_shell_nav.dart';
 import 'daw_transport_controller.dart';
 import '../bridge/engine_bridge.dart';
 import '../bridge/project_snapshot.dart';
+import '../bridge/snapshot_store.dart';
 import '../features/automation/automation_editor_screen.dart';
 import '../features/arrangement/arrangement_view.dart';
 import '../features/editor/timeline_marker_layer.dart';
@@ -45,7 +46,8 @@ class DawShell extends StatefulWidget {
 
 class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   late final DawTransportController _transport;
-  ProjectSnapshot? _snapshot;
+  late final SnapshotStore _store;
+  ProjectSnapshot? get _snapshot => _store.state;
   String? _saveStatus;
   String? _projectError;
   _ShellTab _tab = _ShellTab.devices;
@@ -62,6 +64,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    _store = SnapshotStore(widget.bridge)..addListener(_onStoreChanged);
     _transport = DawTransportController(
       bridge: widget.bridge,
       vsync: this,
@@ -72,16 +75,20 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _store.removeListener(_onStoreChanged);
+    _store.dispose();
     _meterSubscription?.cancel();
     _transport.dispose();
     super.dispose();
   }
 
+  void _onStoreChanged() {
+    if (mounted) setState(() {});
+  }
+
   void _onMetersBatch(LiveMetersBatch batch) {
     if (!mounted || _snapshot == null || !_transport.playing) return;
-    setState(() {
-      _snapshot = _snapshot!.withMergedMeters(batch);
-    });
+    _store.replaceSnapshot(_snapshot!.withMergedMeters(batch));
   }
 
   double get _effectivePlayheadBeats {
@@ -116,6 +123,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       final snapshot = await widget.bridge.addTrack(name: 'Track 1');
       await widget.bridge.enterPlayMode();
       if (!mounted) return;
+      _store.replaceSnapshot(snapshot);
       _transport.syncTransportAnchorFromSnapshot(
         snapshot.bpm,
         snapshot.loopEnabled,
@@ -123,7 +131,6 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         snapshot.loopRegionEndBeat,
         snapshot.playheadBeats,
       );
-      setState(() => _snapshot = snapshot);
     } on MissingPluginException {
       if (!mounted) return;
       setState(() => _projectError = 'Engine: native bridge unavailable');
@@ -134,8 +141,15 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   Future<void> _refreshSnapshot(ProjectSnapshot snapshot) async {
-    if (!mounted) return;
-    setState(() => _snapshot = snapshot);
+    _store.replaceSnapshot(snapshot);
+  }
+
+  /// Call a mutation via [invokeRaw], merge the delta into store.
+  Future<void> _applyDeltaMutation(
+    String method, [
+    Map<String, dynamic>? args,
+  ]) async {
+    await _store.invokeRaw(method, args);
   }
 
   Future<void> _addTrack() async {
@@ -150,24 +164,23 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
   Future<void> _selectTrack(String trackId) async {
     try {
-      var snapshot = await widget.bridge.selectTrack(trackId);
-      snapshot = await _syncArmWithSelection(snapshot);
-      await _refreshSnapshot(snapshot);
+      await _applyDeltaMutation('selectTrack', {'trackId': trackId});
+      await _syncArmWithSelection();
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
     }
   }
 
-  Future<ProjectSnapshot> _syncArmWithSelection(ProjectSnapshot snapshot) async {
-    final hasTrack = snapshot.selectedTrackId.isNotEmpty;
-    if (_tab == _ShellTab.keys && hasTrack && !snapshot.recordArmed) {
-      return widget.bridge.setRecordArmed(true);
+  Future<void> _syncArmWithSelection() async {
+    final snap = _snapshot;
+    if (snap == null) return;
+    final hasTrack = snap.selectedTrackId.isNotEmpty;
+    if (_tab == _ShellTab.keys && hasTrack && !snap.recordArmed) {
+      await _store.invokeRaw('setRecordArmed', {'armed': true});
+    } else if (_tab == _ShellTab.devices && snap.recordArmed) {
+      await _store.invokeRaw('setRecordArmed', {'armed': false});
     }
-    if (_tab == _ShellTab.devices && snapshot.recordArmed) {
-      return widget.bridge.setRecordArmed(false);
-    }
-    return snapshot;
   }
 
   Future<void> _syncLiveInputForTab(_ShellTab tab) async {
@@ -175,8 +188,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       if (tab == _ShellTab.keys) {
         await widget.bridge.enterPlayMode();
         if (_snapshot != null) {
-          final synced = await _syncArmWithSelection(_snapshot!);
-          await _refreshSnapshot(synced);
+          await _syncArmWithSelection();
         }
       } else {
         await widget.bridge.allNotesOff();
@@ -532,8 +544,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   void _optimisticParamUpdate(String deviceId, String parameterId, double value) {
     final snap = _snapshot;
     if (snap == null) return;
-    setState(() {
-      _snapshot = ProjectSnapshot(
+    _store.replaceSnapshot(ProjectSnapshot(
         protocolVersion: snap.protocolVersion,
         bpm: snap.bpm,
         selectedTrackId: snap.selectedTrackId,
@@ -561,8 +572,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         lfos: snap.lfos,
         modEdges: snap.modEdges,
         automationClips: snap.automationClips,
-      );
-    });
+      ));
   }
 
   Future<void> _setSamplerParameter(String deviceId, String parameterId, double value) async {
@@ -600,13 +610,20 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             (args['lfoId'] as num).toInt(),
           );
           break;
-        case 'updateLfoParam':
-          result = await widget.bridge.updateLfoParam(
-            lfoId: (args['lfoId'] as num).toInt(),
-            param: args['param'] as String,
-            value: (args['value'] as num).toDouble(),
-          );
-          break;
+        case 'updateLfoParam': {
+          final raw = await widget.bridge.invokeRaw('updateLfoParam', {
+            'lfoId': (args['lfoId'] as num).toInt(),
+            'param': args['param'] as String,
+            'value': (args['value'] as num).toDouble(),
+          });
+          final delta = raw['delta'] as Map<dynamic, dynamic>?;
+          if (delta != null && _snapshot != null) {
+            _store.replaceSnapshot(SnapshotStore.applyDeltaToSnapshot(_snapshot!, delta));
+          } else {
+            _store.replaceSnapshot(ProjectSnapshot.fromMap(raw));
+          }
+          return _snapshot!;
+        }
         case 'assignModulation':
           result = await widget.bridge.assignModulation(
             lfoId: (args['lfoId'] as num).toInt(),
@@ -621,12 +638,19 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             paramId: args['paramId'] as String,
           );
           break;
-        case 'batchUpdateLfoParams':
-          result = await widget.bridge.batchUpdateLfoParams(
-            lfoId: (args['lfoId'] as num).toInt(),
-            params: (args['params'] as List<dynamic>).cast<Map<String, dynamic>>(),
-          );
-          break;
+        case 'batchUpdateLfoParams': {
+          final raw = await widget.bridge.invokeRaw('batchUpdateLfoParams', {
+            'lfoId': (args['lfoId'] as num).toInt(),
+            'params': args['params'],
+          });
+          final delta = raw['delta'] as Map<dynamic, dynamic>?;
+          if (delta != null && _snapshot != null) {
+            _store.replaceSnapshot(SnapshotStore.applyDeltaToSnapshot(_snapshot!, delta));
+          } else {
+            _store.replaceSnapshot(ProjectSnapshot.fromMap(raw));
+          }
+          return _snapshot!;
+        }
         default:
           throw Exception('Unknown modulation bridge method: $method');
       }
@@ -1141,8 +1165,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
   Future<void> _setBpm(int bpm) async {
     try {
-      final snapshot = await widget.bridge.setBpm(bpm);
-      await _refreshSnapshot(snapshot);
+      await _applyDeltaMutation('setBpm', {'bpm': bpm});
       if (_transport.playing) {
         await _transport.syncTransportState();
       }
@@ -1154,14 +1177,13 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
   Future<void> _setLoopEnabled(bool enabled) async {
     try {
-      final snapshot = await widget.bridge.setLoopEnabled(enabled);
-      await _refreshSnapshot(snapshot);
+      await _applyDeltaMutation('setLoopEnabled', {'enabled': enabled});
       _transport.syncTransportAnchorFromSnapshot(
-        snapshot.bpm,
-        snapshot.loopEnabled,
-        snapshot.loopRegionStartBeat,
-        snapshot.loopRegionEndBeat,
-        snapshot.playheadBeats,
+        _snapshot!.bpm,
+        _snapshot!.loopEnabled,
+        _snapshot!.loopRegionStartBeat,
+        _snapshot!.loopRegionEndBeat,
+        _snapshot!.playheadBeats,
       );
       if (_transport.playing) {
         await _transport.syncTransportState();
@@ -1177,17 +1199,16 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     required double endBeat,
   }) async {
     try {
-      final snapshot = await widget.bridge.setLoopRegion(
-        startBeat: startBeat,
-        endBeat: endBeat,
-      );
-      await _refreshSnapshot(snapshot);
+      await _applyDeltaMutation('setLoopRegion', {
+        'startBeat': startBeat,
+        'endBeat': endBeat,
+      });
       _transport.syncTransportAnchorFromSnapshot(
-        snapshot.bpm,
-        snapshot.loopEnabled,
-        snapshot.loopRegionStartBeat,
-        snapshot.loopRegionEndBeat,
-        snapshot.playheadBeats,
+        _snapshot!.bpm,
+        _snapshot!.loopEnabled,
+        _snapshot!.loopRegionStartBeat,
+        _snapshot!.loopRegionEndBeat,
+        _snapshot!.playheadBeats,
       );
       if (_transport.playing) {
         await _transport.syncTransportState();
@@ -1352,8 +1373,6 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   Future<void> _setPlayheadBeats(double beats) async {
     try {
       await _transport.setPlayheadBeats(beats);
-      final snapshot = await widget.bridge.getProjectSnapshot();
-      await _refreshSnapshot(snapshot);
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());

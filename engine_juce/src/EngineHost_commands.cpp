@@ -4,6 +4,7 @@
 #include "audioapp/ProjectJson.hpp"
 #include "audioapp/ProjectArchive.hpp"
 #include "audioapp/commands/CommandHandler.hpp"
+#include "audioapp/snapshot/SnapshotDelta.hpp"
 #include "audioapp/AutomationPlayback.hpp"
 #include "audioapp/DeviceChain.hpp"
 
@@ -825,6 +826,59 @@ std::string EngineHost::getDeviceMetersJson() {
     return project_->getDeviceMetersJson();
 }
 
+namespace {
+
+/// Convert any populated SnapshotDelta into a delta CommandResult.
+commands::CommandResult deltaResult(snapshot::SnapshotDelta sd) {
+    return commands::okWithDelta(juce::JSON::parse(sd.toJson()));
+}
+
+/// Build a transport-only delta juce::var from a setter lambda.
+template <typename Fn>
+commands::CommandResult transportDeltaResult(Fn&& configure) {
+    snapshot::SnapshotDelta sd;
+    snapshot::TransportDelta td;
+    configure(td);
+    sd.transport = std::move(td);
+    return deltaResult(std::move(sd));
+}
+
+/// Build a single-modulator-param delta (high-frequency LFO slider changes).
+commands::CommandResult modulatorParamDelta(
+    int lfoId, const std::string& param, float newValue)
+{
+    snapshot::SnapshotDelta sd;
+    snapshot::ModulatorDelta md;
+    md.lfoId = lfoId;
+    md.params.push_back({param, newValue});
+    return deltaResult(std::move(sd));
+}
+
+/// Build a batch-modulator-param delta.
+commands::CommandResult batchModulatorParamDelta(
+    int lfoId,
+    const std::vector<std::pair<std::string, float>>& params)
+{
+    snapshot::SnapshotDelta sd;
+    snapshot::ModulatorDelta md;
+    md.lfoId = lfoId;
+    for (const auto& [p, v] : params)
+        md.params.push_back({p, v});
+    return deltaResult(std::move(sd));
+}
+
+/// Build a track-selected delta (changes selectedTrackId in project).
+commands::CommandResult selectTrackDelta(const std::string& trackId) {
+    snapshot::SnapshotDelta sd;
+    snapshot::TrackDelta td;
+    td.trackId = trackId;
+    td.trackSelected = true;
+    sd.tracks.push_back(std::move(td));
+    return deltaResult(std::move(sd));
+}
+
+} // namespace
+
 void EngineHost::registerAllCommands() {
     auto& reg = commandRegistry_;
 
@@ -845,12 +899,12 @@ void EngineHost::registerAllCommands() {
     reg.registerCommand("createProject", [](const commands::CommandContext& ctx) -> commands::CommandResult {
         ctx.engine.createProject();
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("getProjectSnapshot", [](const commands::CommandContext& ctx) -> commands::CommandResult {
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("getTransportState", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -861,15 +915,14 @@ void EngineHost::registerAllCommands() {
         const auto name = ctx.args["name"].toString().toStdString();
         ctx.engine.addTrack(name);
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("selectTrack", [](const commands::CommandContext& ctx) -> commands::CommandResult {
         const auto trackId = ctx.args["trackId"].toString().toStdString();
         if (!ctx.engine.selectTrack(trackId))
             return commands::errorResult("track_not_found");
-        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return selectTrackDelta(trackId);
     });
 
     reg.registerCommand("addDeviceToTrack", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -880,7 +933,7 @@ void EngineHost::registerAllCommands() {
         if (ctx.engine.addDeviceToTrack(trackId, deviceType, insertIndex).empty())
             return commands::errorResult("track_not_found");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("removeDeviceFromTrack", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -888,7 +941,7 @@ void EngineHost::registerAllCommands() {
         if (!ctx.engine.removeDeviceFromTrack(deviceId))
             return commands::errorResult("device_not_removable");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("setDeviceParameter", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -919,8 +972,10 @@ void EngineHost::registerAllCommands() {
     reg.registerCommand("setPlayheadBeats", [](const commands::CommandContext& ctx) -> commands::CommandResult {
         const double beats = static_cast<double>(ctx.args["playheadBeats"]);
         ctx.engine.setPlayheadBeats(beats);
-        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return transportDeltaResult([&](snapshot::TransportDelta& td) {
+            td.playheadChanged = true;
+            td.newPlayhead = beats;
+        });
     });
 
     reg.registerCommand("createMidiClip", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -930,7 +985,7 @@ void EngineHost::registerAllCommands() {
         if (ctx.engine.createMidiClip(trackId, startBeat, lengthBeats).empty())
             return commands::errorResult("track_not_found");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("setMidiClipNotes", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -953,7 +1008,7 @@ void EngineHost::registerAllCommands() {
         if (!ctx.engine.setMidiClipNotes(clipId, notes))
             return commands::errorResult("clip_not_found");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("createSampleClip", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -964,7 +1019,7 @@ void EngineHost::registerAllCommands() {
         if (ctx.engine.createSampleClip(trackId, sampleId, startBeat, lengthBeats).empty())
             return commands::errorResult("sample_clip_failed");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("createAutomationClip", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -974,7 +1029,7 @@ void EngineHost::registerAllCommands() {
         if (ctx.engine.createAutomationClip(trackId, startBeat, lengthBeats).empty())
             return commands::errorResult("automation_clip_failed");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("assignAutomationTarget", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -984,7 +1039,7 @@ void EngineHost::registerAllCommands() {
         if (!ctx.engine.assignAutomationTarget(clipId, deviceId, paramId))
             return commands::errorResult("assign_automation_failed");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("setAutomationPoints", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -1004,7 +1059,7 @@ void EngineHost::registerAllCommands() {
         if (!ctx.engine.setAutomationPoints(clipId, points))
             return commands::errorResult("automation_points_failed");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("moveClip", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -1014,7 +1069,7 @@ void EngineHost::registerAllCommands() {
         if (!ctx.engine.moveClip(clipId, trackId, startBeat))
             return commands::errorResult("move_clip_failed");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("setClipLength", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -1023,15 +1078,17 @@ void EngineHost::registerAllCommands() {
         if (!ctx.engine.setClipLength(clipId, lengthBeats))
             return commands::errorResult("clip_not_found");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("setBpm", [](const commands::CommandContext& ctx) -> commands::CommandResult {
         const int bpm = static_cast<int>(static_cast<double>(ctx.args["bpm"]));
         if (!ctx.engine.setBpm(bpm))
             return commands::errorResult("invalid_bpm");
-        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return transportDeltaResult([&](snapshot::TransportDelta& td) {
+            td.bpmChanged = true;
+            td.newBpm = bpm;
+        });
     });
 
     reg.registerCommand("deleteTrack", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -1039,7 +1096,7 @@ void EngineHost::registerAllCommands() {
         if (!ctx.engine.deleteTrack(trackId))
             return commands::errorResult("delete_track_failed");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("deleteClip", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -1047,7 +1104,7 @@ void EngineHost::registerAllCommands() {
         if (!ctx.engine.deleteClip(clipId))
             return commands::errorResult("delete_clip_failed");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("duplicateClip", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -1055,22 +1112,26 @@ void EngineHost::registerAllCommands() {
         if (!ctx.engine.duplicateClip(clipId))
             return commands::errorResult("duplicate_clip_failed");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("setLoopEnabled", [](const commands::CommandContext& ctx) -> commands::CommandResult {
         const bool enabled = static_cast<bool>(ctx.args["enabled"]);
         ctx.engine.setLoopEnabled(enabled);
-        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return transportDeltaResult([&](snapshot::TransportDelta& td) {
+            td.loopEnabledChanged = true;
+            td.newLoopEnabled = enabled;
+        });
     });
 
     reg.registerCommand("setLoopLengthBeats", [](const commands::CommandContext& ctx) -> commands::CommandResult {
         const double length = static_cast<double>(ctx.args["lengthBeats"]);
         if (!ctx.engine.setLoopLengthBeats(length))
             return commands::errorResult("invalid_loop_length");
-        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return transportDeltaResult([&](snapshot::TransportDelta& td) {
+            td.loopEndChanged = true;
+            td.newLoopEnd = length;
+        });
     });
 
     reg.registerCommand("setLoopRegion", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -1078,15 +1139,21 @@ void EngineHost::registerAllCommands() {
         const double endBeat = static_cast<double>(ctx.args["endBeat"]);
         if (!ctx.engine.setLoopRegion(startBeat, endBeat))
             return commands::errorResult("invalid_loop_region");
-        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return transportDeltaResult([&](snapshot::TransportDelta& td) {
+            td.loopStartChanged = true;
+            td.newLoopStart = startBeat;
+            td.loopEndChanged = true;
+            td.newLoopEnd = endBeat;
+        });
     });
 
     reg.registerCommand("setRecordArmed", [](const commands::CommandContext& ctx) -> commands::CommandResult {
         const bool armed = static_cast<bool>(ctx.args["armed"]);
         ctx.engine.setRecordArmed(armed);
-        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return transportDeltaResult([&](snapshot::TransportDelta& td) {
+            td.recordArmedChanged = true;
+            td.newRecordArmed = armed;
+        });
     });
 
     reg.registerCommand("noteOn", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -1129,14 +1196,14 @@ void EngineHost::registerAllCommands() {
         if (!ctx.engine.commitCapture())
             return commands::errorResult("capture_failed");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("createLfo", [](const commands::CommandContext& ctx) -> commands::CommandResult {
         const int modType = static_cast<int>(static_cast<double>(ctx.args["modulatorType"]));
         ctx.engine.createLfo(modType);
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("removeLfo", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -1144,7 +1211,7 @@ void EngineHost::registerAllCommands() {
         if (!ctx.engine.removeLfo(lfoId))
             return commands::errorResult("lfo_not_found");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("updateLfoParam", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -1153,8 +1220,7 @@ void EngineHost::registerAllCommands() {
         const float value = static_cast<float>(static_cast<double>(ctx.args["value"]));
         if (!ctx.engine.updateLfoParam(lfoId, param, value))
             return commands::errorResult("lfo_param_failed");
-        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return modulatorParamDelta(lfoId, param, value);
     });
 
     reg.registerCommand("batchUpdateLfoParams", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -1172,8 +1238,7 @@ void EngineHost::registerAllCommands() {
         }
         if (!ctx.engine.batchUpdateLfoParams(lfoId, params))
             return commands::errorResult("lfo_param_failed");
-        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return batchModulatorParamDelta(lfoId, params);
     });
 
     reg.registerCommand("assignModulation", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -1184,7 +1249,7 @@ void EngineHost::registerAllCommands() {
         if (!ctx.engine.assignModulation(lfoId, deviceId, paramId, amount))
             return commands::errorResult("modulation_failed");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("removeModulation", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -1193,7 +1258,7 @@ void EngineHost::registerAllCommands() {
         if (!ctx.engine.removeModulation(lfoId, paramId))
             return commands::errorResult("modulation_remove_failed");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("applySubtractiveSynthPreset", [](const commands::CommandContext& ctx) -> commands::CommandResult {
@@ -1212,7 +1277,7 @@ void EngineHost::registerAllCommands() {
         if (!ctx.engine.applySubtractiveSynthPreset(deviceId, params, lfos, mods))
             return commands::errorResult("preset_apply_failed");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
-        return commands::okWithVar(snap);
+        return commands::okWithFullRefresh(snap);
     });
 
     reg.registerCommand("enterPlayMode", [](const commands::CommandContext& ctx) -> commands::CommandResult {
