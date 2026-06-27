@@ -1167,8 +1167,6 @@ void ProjectEngine::applyLiveDeviceMetersLocked(ProjectSnapshot& snap) const {
 
 void ProjectEngine::rebuildTrackPlaybackLocked() {
     if (syncingTree_) return;
-    // Keep ValueTree synced with repos before building audio
-    syncProjectTreeLocked();
     deviceMeterSlotCount_ = 0;
     int trackIndex = 0;
     for (const auto& sourceTrack : trackRepo_.tracks()) {
@@ -1295,6 +1293,9 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
         ++trackIndex;
     }
     trackPlaybackCount_.store(trackIndex, std::memory_order_release);
+
+    // Keep ValueTree in sync (repos→tree) so listener can trust it for undo
+    syncProjectTreeLocked();
 }
 
 bool ProjectEngine::trackHasActiveSampleAtPlayhead(const TrackPlaybackSnapshot& track,
