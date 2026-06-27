@@ -15,6 +15,8 @@
 #include "audioapp/model/TrackRepository.hpp"
 #include "audioapp/model/ClipRepository.hpp"
 #include "audioapp/model/AutomationClipStore.hpp"
+#include "audioapp/state/ProjectTree.hpp"
+#include "audioapp/state/UndoCommands.hpp"
 #include "audioapp/ModulationTypes.hpp"
 #include "audioapp/LivePerformance.hpp"
 #include "audioapp/MidiClipPlayback.hpp"
@@ -88,7 +90,7 @@ struct TransportStateSnapshot {
 };
 
 /// Authoritative project model (control thread only).
-class ProjectEngine {
+class ProjectEngine : private juce::ValueTree::Listener {
 public:
     void createProject();
     std::string addTrack(const std::string& name);
@@ -211,6 +213,11 @@ public:
     ProjectFileData toProjectFileData() const;
     bool loadFromProjectFileData(const ProjectFileData& data);
 
+    /// Undo / redo support.
+    bool undo();
+    bool redo();
+    juce::UndoManager& undoManager() { return undoManager_; }
+
 private:
     struct PlaybackNote {
         int pitch = 60;
@@ -287,6 +294,8 @@ private:
     // ModulationEdgePlayback arrays are also per-track: see TrackPlaybackSnapshot::modEdges
 
     void rebuildTrackPlaybackLocked();
+    void rebuildRepoCacheFromTree();
+    void syncProjectTreeLocked();
     /// Lightweight edge re-resolution: re-populates per-track snap.modEdges[]
     /// from the global modulationGraph_ edge list without touching DSP processors
     /// or any other playback state. Safe to call during live playback.
@@ -311,6 +320,22 @@ private:
     bool buildLiveInstrumentForTrack(const Track& track, LiveInstrumentSnapshot& out) const;
     double sampleTimeToCaptureBeat(uint64_t sampleTime) const;
     const SampleBank* sampleBank_ = nullptr;
+
+    // ── ValueTree::Listener overrides ─────────────────────────
+    void valueTreePropertyChanged(juce::ValueTree& tree,
+                                  const juce::Identifier& property) override;
+    void valueTreeChildAdded(juce::ValueTree& parent,
+                             juce::ValueTree& child) override;
+    void valueTreeChildRemoved(juce::ValueTree& parent,
+                               juce::ValueTree& child,
+                               int oldIndex) override;
+
+    // ── ValueTree state ──────────────────────────────────────
+    juce::ValueTree projectRoot_{state::createProjectTree()};
+    /// Re-entrancy guard: set true during rebuildRepoCacheFromTree() so listener
+    /// callbacks don't trigger recursive rebuilds.
+    bool syncingTree_ = false;
+    juce::UndoManager undoManager_;
 
     ModulationGraph modulationGraph_;
     AutomationClipStore automationClipStore_;

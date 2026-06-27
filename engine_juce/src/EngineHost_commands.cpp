@@ -496,6 +496,14 @@ bool EngineHost::setRecordArmed(bool armed) {
     return project_->setRecordArmed(armed);
 }
 
+bool EngineHost::undo() {
+    return project_->undo();
+}
+
+bool EngineHost::redo() {
+    return project_->redo();
+}
+
 int EngineHost::createLfo(int modulatorType) {
     return project_->createLfo(modulatorType);
 }
@@ -1370,6 +1378,19 @@ void EngineHost::registerAllCommands() {
 
     reg.registerCommand("getDeviceMeters", [](const commands::CommandContext& ctx) -> commands::CommandResult {
         return commands::rawResult(ctx.engine.getDeviceMetersJson());
+    });
+
+    // ── Undo / Redo ──────────────────────────────────────
+    reg.registerCommand("undo", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        ctx.engine.undo();
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("redo", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        ctx.engine.redo();
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
     });
 }
 

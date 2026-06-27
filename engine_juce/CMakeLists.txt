@@ -126,6 +126,7 @@ target_include_directories(audioapp_engine
 target_link_libraries(audioapp_engine
   PUBLIC
     juce::juce_core
+    juce::juce_data_structures
 )
 
 target_compile_definitions(audioapp_engine

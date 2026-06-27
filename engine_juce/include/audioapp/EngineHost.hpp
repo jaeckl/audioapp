@@ -87,6 +87,8 @@ public:
     void ensureAudioOutput();
 
     bool setRecordArmed(bool armed);
+    bool undo();
+    bool redo();
     int createLfo(int modulatorType = 0);
     bool removeLfo(int lfoId);
     bool updateLfoParam(int lfoId, const std::string& param, float value);

@@ -52,6 +52,10 @@ void ProjectEngine::createProject() {
     activeFrequencyHz_.store(440.0f, std::memory_order_release);
     masterGain_.store(1.0f, std::memory_order_release);
     trackPlaybackCount_.store(0, std::memory_order_release);
+
+    // Reset ValueTree root + re-register as listener
+    projectRoot_ = state::createProjectTree();
+    projectRoot_.addListener(this);
 }
 
 std::string ProjectEngine::addTrack(const std::string& name) {
@@ -331,11 +335,20 @@ bool ProjectEngine::setClipLength(const std::string& clipId, double lengthBeats)
 }
 
 bool ProjectEngine::setBpm(int bpm) {
-    if (!transport_.setBpm(bpm)) {
-        return false;
-    }
+    const int oldBpm = transport_.bpm();
+    if (oldBpm == bpm) return false;
+
     std::lock_guard<std::shared_mutex> lock(mutex_);
-    rebuildTrackPlaybackLocked();
+    undoManager_.beginNewTransaction();
+    undoManager_.perform(std::make_unique<CallbackAction>(
+        [this, bpm] {
+            projectRoot_.setProperty(state::props::bpm, bpm, nullptr);
+            rebuildTrackPlaybackLocked();
+        },
+        [this, oldBpm] {
+            projectRoot_.setProperty(state::props::bpm, oldBpm, nullptr);
+            rebuildTrackPlaybackLocked();
+        }).release());
     return true;
 }
 
@@ -1153,6 +1166,9 @@ void ProjectEngine::applyLiveDeviceMetersLocked(ProjectSnapshot& snap) const {
 }
 
 void ProjectEngine::rebuildTrackPlaybackLocked() {
+    if (syncingTree_) return;
+    // Keep ValueTree synced with repos before building audio
+    syncProjectTreeLocked();
     deviceMeterSlotCount_ = 0;
     int trackIndex = 0;
     for (const auto& sourceTrack : trackRepo_.tracks()) {
@@ -1253,12 +1269,7 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
 
         rebuildModEdgesLocked();
 
-        // Resolve per-track automation clips. Clips live in the global
-        // AutomationClipStore; for the **audio** side, we pull in any
-        // clip whose target device is on this track. Layout (where the
-        // clip is rendered in the arrangement view) is determined by the
-        // clip's `homeTrackId` and is handled by the Flutter side — the
-        // audio thread only cares about device matching.
+        // Resolve per-track automation clips
         snap.automationClipCount = 0;
         for (const auto& clip : automationClipStore_.clips()) {
             if (snap.automationClipCount >= 16) break;
@@ -1377,6 +1388,263 @@ DeviceSlot* ProjectEngine::findDeviceLocked(const std::string& deviceId) {
         }
     }
     return nullptr;
+}
+
+// ── ValueTree: rebuild repos from tree ────────────────────────
+
+void ProjectEngine::rebuildRepoCacheFromTree() {
+    syncingTree_ = true;
+
+    // Transport from tree
+    if (projectRoot_.hasProperty(state::props::bpm))
+        transport_.setBpm(static_cast<int>(projectRoot_[state::props::bpm]));
+    if (projectRoot_.hasProperty(state::props::playing))
+        transport_.setPlaying(static_cast<bool>(projectRoot_[state::props::playing]));
+    if (projectRoot_.hasProperty(state::props::loopEnabled))
+        transport_.setLoopEnabled(static_cast<bool>(projectRoot_[state::props::loopEnabled]));
+    if (projectRoot_.hasProperty(state::props::loopStart) && projectRoot_.hasProperty(state::props::loopEnd))
+        transport_.setLoopRegion(static_cast<double>(projectRoot_[state::props::loopStart]),
+                                 static_cast<double>(projectRoot_[state::props::loopEnd]));
+    if (projectRoot_.hasProperty(state::props::recording))
+        recordArmed_ = static_cast<bool>(projectRoot_[state::props::recording]);
+    if (projectRoot_.hasProperty(state::props::masterGain))
+        masterGain_.store(std::clamp(static_cast<float>(static_cast<double>(projectRoot_[state::props::masterGain])),
+                                     0.0f, 1.0f), std::memory_order_release);
+
+    // Tracks from tree → trackRepo_
+    trackRepo_.tracks().clear();
+    for (int ti = 0; ti < projectRoot_.getNumChildren(); ++ti) {
+        auto trackTree = projectRoot_.getChild(ti);
+        if (!trackTree.hasType(state::kTrackType.data())) continue;
+
+        Track track;
+        track.id = trackTree[state::props::id].toString().toStdString();
+        track.name = trackTree[state::props::name].toString().toStdString();
+
+        for (int ci = 0; ci < trackTree.getNumChildren(); ++ci) {
+            auto child = trackTree.getChild(ci);
+
+            if (child.hasType(state::kDeviceType.data())) {
+                DeviceSlot device;
+                device.id = child[state::props::id].toString().toStdString();
+                device.config.typeId = child[state::props::typeId].toString().toStdString();
+                device.config.bypassed = static_cast<bool>(child[state::props::bypassed]);
+                const std::string configJson = child[state::props::configBlob].toString().toStdString();
+                if (!configJson.empty())
+                    device = deviceVarToSlot(configJson, deviceRegistry_);
+                track.devices.push_back(std::move(device));
+            } else if (child.hasType(state::kMidiClipType.data())) {
+                MidiClip clip;
+                clip.id = child[state::props::id].toString().toStdString();
+                clip.startBeat = static_cast<double>(child[state::props::startBeat]);
+                clip.lengthBeats = static_cast<double>(child[state::props::lengthBeats]);
+                for (int ni = 0; ni < child.getNumChildren(); ++ni) {
+                    auto noteTree = child.getChild(ni);
+                    if (!noteTree.hasType(state::kMidiNoteType.data())) continue;
+                    MidiNote note;
+                    note.pitch = static_cast<int>(noteTree[state::props::pitch]);
+                    note.startBeat = static_cast<double>(noteTree[state::props::startBeat]);
+                    note.durationBeats = static_cast<double>(noteTree[state::props::duration]);
+                    note.velocity = static_cast<float>(static_cast<double>(noteTree[state::props::velocity]));
+                    clip.notes.push_back(std::move(note));
+                }
+                track.midiClips.push_back(std::move(clip));
+            } else if (child.hasType(state::kSampleClipType.data())) {
+                SampleClip clip;
+                clip.id = child[state::props::id].toString().toStdString();
+                clip.sampleId = child[state::props::sampleId].toString().toStdString();
+                clip.startBeat = static_cast<double>(child[state::props::startBeat]);
+                clip.lengthBeats = static_cast<double>(child[state::props::lengthBeats]);
+                if (child.hasProperty(state::props::naturalLength))
+                    clip.naturalLengthBeats = static_cast<double>(child[state::props::naturalLength]);
+                track.sampleClips.push_back(std::move(clip));
+            }
+        }
+        trackRepo_.tracks().push_back(std::move(track));
+    }
+    if (projectRoot_.hasProperty(state::props::selectedTrackId))
+        trackRepo_.setSelectedTrackId(projectRoot_[state::props::selectedTrackId].toString().toStdString());
+
+    // Modulators + edges from tree → modulationGraph_
+    modulationGraph_.clear();
+    std::vector<ModulationGraph::ModulatorRecord> lfos;
+    std::vector<ModulationEdge> edges;
+    for (int mi = 0; mi < projectRoot_.getNumChildren(); ++mi) {
+        auto modTree = projectRoot_.getChild(mi);
+
+        if (modTree.hasType(state::kModEdgeType.data())) {
+            ModulationEdge edge;
+            edge.lfoId = static_cast<int>(modTree[state::props::lfoId]);
+            edge.deviceId = modTree[state::props::deviceId].toString().toStdString();
+            edge.paramId = modTree[state::props::paramId].toString().toStdString();
+            edge.amount = static_cast<float>(static_cast<double>(modTree[state::props::amount]));
+            edges.push_back(std::move(edge));
+            continue;
+        }
+        if (!modTree.hasType(state::kModulatorType.data())) continue;
+
+        ModulationGraph::ModulatorRecord rec;
+        rec.id = static_cast<int>(modTree[state::props::lfoId]);
+        rec.typeIndex = static_cast<int>(modTree[state::props::typeIndex]);
+        if (rec.typeIndex >= 0 &&
+            static_cast<size_t>(rec.typeIndex) < modulationGraph_.modulatorTypes().size()) {
+            const auto& type = modulationGraph_.modulatorTypes()[static_cast<size_t>(rec.typeIndex)];
+            const std::string blob = modTree[state::props::modulatorBlob].toString().toStdString();
+            if (!blob.empty()) {
+                auto var = juce::JSON::parse(blob);
+                rec.params = type->varToParams(var);
+            }
+        }
+        lfos.push_back(std::move(rec));
+    }
+    modulationGraph_.replaceRecords(lfos, edges);
+
+    // Automation clips from tree → automationClipStore_
+    automationClipStore_.clear();
+    std::vector<AutomationClip> loadedClips;
+    for (int ai = 0; ai < projectRoot_.getNumChildren(); ++ai) {
+        auto clipTree = projectRoot_.getChild(ai);
+        if (!clipTree.hasType(state::kAutomationType.data())) continue;
+
+        AutomationClip clip;
+        clip.id = clipTree[state::props::id].toString().toStdString();
+        clip.homeTrackId = clipTree[state::props::homeTrackId].toString().toStdString();
+        clip.startBeat = static_cast<double>(clipTree[state::props::startBeat]);
+        clip.lengthBeats = static_cast<double>(clipTree[state::props::lengthBeats]);
+        if (clipTree.hasProperty(state::props::deviceId))
+            clip.deviceId = clipTree[state::props::deviceId].toString().toStdString();
+        if (clipTree.hasProperty(state::props::paramId))
+            clip.paramId = clipTree[state::props::paramId].toString().toStdString();
+        for (int pi = 0; pi < clipTree.getNumChildren(); ++pi) {
+            auto ptTree = clipTree.getChild(pi);
+            if (!ptTree.hasType(state::kAutomationPointType.data())) continue;
+            AutomationPoint pt;
+            pt.beat = static_cast<double>(ptTree[state::props::beat]);
+            pt.value = static_cast<float>(static_cast<double>(ptTree[state::props::value]));
+            clip.points.push_back(std::move(pt));
+        }
+        loadedClips.push_back(std::move(clip));
+    }
+    automationClipStore_.load(loadedClips);
+
+    syncingTree_ = false;
+}
+
+// ── Sync repos -> tree (mirror repos into ValueTree) ───────────
+
+void ProjectEngine::syncProjectTreeLocked() {
+    syncingTree_ = true;
+    projectRoot_.removeAllChildren(nullptr);
+
+    projectRoot_.setProperty(state::props::bpm, transport_.bpm(), nullptr);
+    projectRoot_.setProperty(state::props::selectedTrackId,
+                             juce::String{trackRepo_.selectedTrackId()}, nullptr);
+    projectRoot_.setProperty(state::props::playing, transport_.isPlaying(), nullptr);
+    projectRoot_.setProperty(state::props::loopEnabled, transport_.loopEnabled(), nullptr);
+    projectRoot_.setProperty(state::props::loopStart, transport_.loopRegionStartBeat(), nullptr);
+    projectRoot_.setProperty(state::props::loopEnd, transport_.loopRegionEndBeat(), nullptr);
+    projectRoot_.setProperty(state::props::masterGain,
+                             static_cast<double>(masterGain_.load(std::memory_order_acquire)), nullptr);
+    projectRoot_.setProperty(state::props::recording, recordArmed_, nullptr);
+
+    for (const auto& track : trackRepo_.tracks()) {
+        auto trackTree = state::createTrackTree(track.id, track.name);
+        for (const auto& device : track.devices) {
+            const std::string configJson = deviceSlotToVar(device, deviceRegistry_);
+            auto devTree = state::createDeviceTree(device.id, device.config.typeId, configJson);
+            devTree.setProperty(state::props::bypassed, device.config.bypassed, nullptr);
+            trackTree.addChild(std::move(devTree), -1, nullptr);
+        }
+        for (const auto& clip : track.midiClips) {
+            auto clipTree = state::createMidiClipTree(clip.id, clip.startBeat, clip.lengthBeats);
+            for (const auto& note : clip.notes) {
+                juce::ValueTree noteTree{state::kMidiNoteType.data()};
+                noteTree.setProperty(state::props::pitch, note.pitch, nullptr);
+                noteTree.setProperty(state::props::startBeat, note.startBeat, nullptr);
+                noteTree.setProperty(state::props::duration, note.durationBeats, nullptr);
+                noteTree.setProperty(state::props::velocity, static_cast<double>(note.velocity), nullptr);
+                clipTree.addChild(std::move(noteTree), -1, nullptr);
+            }
+            trackTree.addChild(std::move(clipTree), -1, nullptr);
+        }
+        for (const auto& clip : track.sampleClips) {
+            auto clipTree = state::createSampleClipTree(
+                clip.id, clip.sampleId, clip.startBeat, clip.lengthBeats, clip.naturalLengthBeats);
+            trackTree.addChild(std::move(clipTree), -1, nullptr);
+        }
+        projectRoot_.addChild(std::move(trackTree), -1, nullptr);
+    }
+
+    for (const auto& rec : modulationGraph_.lfos()) {
+        std::string paramsJson = "{}";
+        if (rec.typeIndex >= 0 &&
+            static_cast<size_t>(rec.typeIndex) < modulationGraph_.modulatorTypes().size()) {
+            const auto& type = modulationGraph_.modulatorTypes()[static_cast<size_t>(rec.typeIndex)];
+            paramsJson = juce::JSON::toString(type->paramsToVar(rec.params)).toStdString();
+        }
+        auto modTree = state::createModulatorTree(rec.id, rec.typeIndex, paramsJson);
+        projectRoot_.addChild(std::move(modTree), -1, nullptr);
+    }
+
+    for (const auto& edge : modulationGraph_.modEdges()) {
+        auto edgeTree = state::createModEdgeTree(edge.lfoId, edge.deviceId, edge.paramId, edge.amount);
+        projectRoot_.addChild(std::move(edgeTree), -1, nullptr);
+    }
+
+    for (const auto& clip : automationClipStore_.clips()) {
+        auto clipTree = state::createAutomationClipTree(
+            clip.id, clip.homeTrackId, clip.startBeat, clip.lengthBeats);
+        clipTree.setProperty(state::props::deviceId, juce::String{clip.deviceId}, nullptr);
+        clipTree.setProperty(state::props::paramId, juce::String{clip.paramId}, nullptr);
+        for (const auto& pt : clip.points) {
+            juce::ValueTree ptTree{state::kAutomationPointType.data()};
+            ptTree.setProperty(state::props::beat, pt.beat, nullptr);
+            ptTree.setProperty(state::props::value, static_cast<double>(pt.value), nullptr);
+            clipTree.addChild(std::move(ptTree), -1, nullptr);
+        }
+        projectRoot_.addChild(std::move(clipTree), -1, nullptr);
+    }
+
+    syncingTree_ = false;
+}
+
+// ── Undo / Redo ──────────────────────────────────────────
+
+bool ProjectEngine::undo() {
+    std::lock_guard<std::shared_mutex> lock(mutex_);
+    if (!undoManager_.undo()) return false;
+    // undoManager_ applies property changes → triggers listener → repos rebuilt
+    return true;
+}
+
+bool ProjectEngine::redo() {
+    std::lock_guard<std::shared_mutex> lock(mutex_);
+    if (!undoManager_.redo()) return false;
+    return true;
+}
+
+// ── ValueTree::Listener (tree is source of truth) ─────────────────
+
+void ProjectEngine::valueTreePropertyChanged(juce::ValueTree& tree,
+                                              const juce::Identifier& property) {
+    if (syncingTree_) return;
+    rebuildRepoCacheFromTree();
+    rebuildTrackPlaybackLocked();
+}
+
+void ProjectEngine::valueTreeChildAdded(juce::ValueTree& parent,
+                                         juce::ValueTree& child) {
+    if (syncingTree_) return;
+    rebuildRepoCacheFromTree();
+    rebuildTrackPlaybackLocked();
+}
+
+void ProjectEngine::valueTreeChildRemoved(juce::ValueTree& parent,
+                                           juce::ValueTree& child,
+                                           int oldIndex) {
+    if (syncingTree_) return;
+    rebuildRepoCacheFromTree();
+    rebuildTrackPlaybackLocked();
 }
 
 } // namespace audioapp
