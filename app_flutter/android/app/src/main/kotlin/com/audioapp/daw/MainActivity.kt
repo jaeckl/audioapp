@@ -14,6 +14,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugin.common.EventChannel
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
@@ -323,6 +324,10 @@ class MainActivity : FlutterFragmentActivity() {
                             val response = nativeInvoke(call.method, argsJson)
                             result.success(jsonToMap(response))
                         }
+                        "getDeviceMeters" -> {
+                            val response = nativeInvoke("getDeviceMeters", "{}")
+                            result.success(jsonToMap(response))
+                        }
                         else -> result.notImplemented()
                     }
                 } catch (e: Exception) {
@@ -330,6 +335,36 @@ class MainActivity : FlutterFragmentActivity() {
                     result.error("engine_error", e.message, null)
                 }
             }
+
+        // ── Meters EventChannel ──────────────────────────────────────────
+        val metersChannelName = "com.audioapp.daw/meters"
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, metersChannelName)
+            .setStreamHandler(object : EventChannel.StreamHandler {
+                private var meterTimer: java.util.Timer? = null
+
+                override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
+                    meterTimer?.cancel()
+                    meterTimer = java.util.Timer(true)
+                    meterTimer!!.schedule(object : java.util.TimerTask() {
+                        override fun run() {
+                            try {
+                                val json = nativeInvoke("getDeviceMeters", "{}")
+                                val map = jsonToMap(json)
+                                if (map["ok"] == true) {
+                                    events.success(map)
+                                }
+                            } catch (e: Exception) {
+                                Log.w(logTag, "Meter poll failed: ${e.message}")
+                            }
+                        }
+                    }, 0L, 80L) // ~12Hz
+                }
+
+                override fun onCancel(arguments: Any?) {
+                    meterTimer?.cancel()
+                    meterTimer = null
+                }
+            })
     }
 
     private fun mapToJson(map: Map<*, *>): JSONObject {

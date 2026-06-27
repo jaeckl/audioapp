@@ -22,3 +22,10 @@ target_link_libraries(audioapp_native PRIVATE
     audioapp_engine
     ${log-lib}
 )
+
+# The engine headers (IDeviceType.hpp etc.) use std::span which requires C++20.
+set_target_properties(audioapp_native PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)

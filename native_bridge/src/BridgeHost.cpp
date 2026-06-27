@@ -442,6 +442,9 @@ std::string BridgeHost::handleCommand(const std::string& method, const std::stri
         }
         return engine().getDeviceConfigsJson(deviceIds);
     }
+    if (method == "getDeviceMeters") {
+        return engine().getDeviceMetersJson();
+    }
     return buildBridgeError("unknown_command");
 }
 

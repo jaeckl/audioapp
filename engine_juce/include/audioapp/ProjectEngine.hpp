@@ -191,6 +191,10 @@ public:
     /// Expose the device registry for serialization dispatch.
     const DeviceRegistry& deviceRegistry() const { return deviceRegistry_; }
 
+    /// Lightweight meter-only JSON (no project snapshot).
+    /// Reads atomics directly. Format: {"ok":true,"meters":{"dev-1":{"gr":-3.5,"in":0.85}}}
+    std::string getDeviceMetersJson();
+
     /// Expose modulator types for serialization dispatch.
     const std::vector<std::unique_ptr<IModulatorType>>& modulatorTypes() const {
         return modulationGraph_.modulatorTypes();

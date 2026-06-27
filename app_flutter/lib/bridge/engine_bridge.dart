@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 
+import 'live_meters_dto.dart';
 import 'param_descriptor.dart';
 import 'project_snapshot.dart';
 import 'transport_state.dart';
@@ -22,12 +25,22 @@ class ClipPreviewData {
   }
 }
 
-/// Flutter ↔ native engine bridge (MethodChannel).
+/// Flutter ↔ native engine bridge (MethodChannel + EventChannels).
 class EngineBridge {
-  EngineBridge({MethodChannel? channel})
-      : _channel = channel ?? const MethodChannel('com.audioapp.daw/engine');
+  EngineBridge({MethodChannel? channel, EventChannel? metersChannel})
+      : _channel = channel ?? const MethodChannel('com.audioapp.daw/engine'),
+        _metersChannel =
+            metersChannel ?? const EventChannel('com.audioapp.daw/meters');
 
   final MethodChannel _channel;
+  final EventChannel _metersChannel;
+
+  /// Stream of live meter readings pushed from native engine (~12Hz).
+  /// Each event is a [LiveMetersBatch] containing all active device meters.
+  Stream<LiveMetersBatch> get meterStream =>
+      _metersChannel.receiveBroadcastStream().map(
+            (event) => LiveMetersBatch.fromMap(event as Map<dynamic, dynamic>),
+          );
 
   Future<String> ping() async {
     final result = await _channel.invokeMethod<String>('ping');

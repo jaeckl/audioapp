@@ -72,6 +72,7 @@ add_library(audioapp_engine STATIC
   src/devices/processors/FourBandEqProcessor.cpp
   src/devices/processors/FrequencyShifterProcessor.cpp
   src/devices/DeviceRegistry.cpp
+  src/devices/IDeviceType.cpp
   src/devices/OscillatorDeviceType.cpp
   src/devices/SamplerDeviceType.cpp
   src/devices/TrackGainDeviceType.cpp

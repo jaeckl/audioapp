@@ -118,6 +118,10 @@ public:
     /// Format: { "ok": true, "devices": { "dev-1": { "type":"...", "parameters":{...}, "meters":{...} }, ... } }
     std::string getDeviceConfigsJson(const std::vector<std::string>& deviceIds) const;
 
+    /// Returns lightweight meter-only JSON for streaming.
+    /// Format: {"ok":true,"meters":{"dev-1":{"gr":-3.5,"in":0.85},"dev-2":{...}}}
+    std::string getDeviceMetersJson();
+
     /// Returns param descriptor metadata for a device type as JSON.
     /// Format: {"ok":true, "deviceType":"sampler", "params":[...], "protocolVersion":1}
     std::string getParamDescriptorsJson(const std::string& deviceType) const;

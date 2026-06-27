@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../bridge/engine_bridge.dart';
 import '../bridge/transport_state.dart';
 
-/// Owns transport playback state, playhead ticker, meter polling, and
+/// Owns transport playback state, playhead ticker, and
 /// transport sync. Decoupled from project snapshot — can be tested in
 /// isolation.
 class DawTransportController extends ChangeNotifier {
@@ -32,7 +32,6 @@ class DawTransportController extends ChangeNotifier {
   // --- internal sync state ---
   Ticker? _playheadTicker;
   Timer? _transportSyncTimer;
-  Timer? _meterRefreshTimer;
   final Stopwatch _stopwatch = Stopwatch();
   double _syncPlayheadBeats = 0;
   int _syncBpm = 120;
@@ -126,10 +125,6 @@ class DawTransportController extends ChangeNotifier {
         const Duration(milliseconds: 100), (_) {
       unawaited(syncTransportState());
     });
-    _meterRefreshTimer = Timer.periodic(
-        const Duration(milliseconds: 500), (_) {
-      onMeterRefreshNeeded?.call();
-    });
     unawaited(syncTransportState());
   }
 
@@ -139,8 +134,6 @@ class DawTransportController extends ChangeNotifier {
     _playheadTicker = null;
     _transportSyncTimer?.cancel();
     _transportSyncTimer = null;
-    _meterRefreshTimer?.cancel();
-    _meterRefreshTimer = null;
     _stopwatch.stop();
   }
 

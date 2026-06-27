@@ -820,4 +820,8 @@ std::string EngineHost::getParamDescriptorsJson(const std::string& deviceType) c
     return json;
 }
 
+std::string EngineHost::getDeviceMetersJson() {
+    return project_->getDeviceMetersJson();
+}
+
 } // namespace audioapp

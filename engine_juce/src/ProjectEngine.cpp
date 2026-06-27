@@ -1099,6 +1099,33 @@ void ProjectEngine::recomputeIdCountersLocked() {
     modulationGraph_.recomputeIdCounters();
 }
 
+std::string ProjectEngine::getDeviceMetersJson() {
+    // Shared lock to safely read meter slot assignments alongside the
+    // audio thread (which holds exclusive lock during rebuild).
+    std::shared_lock lock(mutex_);
+    std::string json = R"({"ok":true,"meters":{)";
+    bool first = true;
+    for (int i = 0; i < deviceMeterSlotCount_; ++i) {
+        if (!first) json += ",";
+        first = false;
+        const float gr = deviceMeters_[i].gainReductionDb.load(std::memory_order_relaxed);
+        const float in = deviceMeters_[i].inputPeak.load(std::memory_order_relaxed);
+        json += "\"";
+        json += deviceMeterIds_[i];
+        json += R"({"gr":)";
+        // Format gain reduction as 1 decimal, input level as 3 decimal
+        char buf[64];
+        snprintf(buf, sizeof(buf), "%.1f", static_cast<double>(gr));
+        json += buf;
+        json += R"(,"in":)";
+        snprintf(buf, sizeof(buf), "%.3f", static_cast<double>(in));
+        json += buf;
+        json += "}";
+    }
+    json += "}}";
+    return json;
+}
+
 void ProjectEngine::applyLiveDeviceMetersLocked(ProjectSnapshot& snap) const {
     for (auto& trackState : snap.tracks) {
         for (auto& device : trackState.devices) {

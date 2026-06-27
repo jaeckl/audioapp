@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../bridge/live_meters_dto.dart';
 import '../features/arrangement/arrangement_timeline_metrics.dart';
 import '../app/app_info.dart';
 import 'daw_shell_nav.dart';
@@ -56,6 +57,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   final TimelineViewportScrollController _arrangementScrollController =
       TimelineViewportScrollController();
   double? _frozenArrangementPlayhead;
+  StreamSubscription<LiveMetersBatch>? _meterSubscription;
 
   @override
   void initState() {
@@ -64,14 +66,22 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       bridge: widget.bridge,
       vsync: this,
     );
-    _transport.onMeterRefreshNeeded = _onMeterRefreshTick;
+    _meterSubscription = widget.bridge.meterStream.listen(_onMetersBatch);
     _bootstrap();
   }
 
   @override
   void dispose() {
+    _meterSubscription?.cancel();
     _transport.dispose();
     super.dispose();
+  }
+
+  void _onMetersBatch(LiveMetersBatch batch) {
+    if (!mounted || _snapshot == null || !_transport.playing) return;
+    setState(() {
+      _snapshot = _snapshot!.withMergedMeters(batch);
+    });
   }
 
   double get _effectivePlayheadBeats {
@@ -79,12 +89,6 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       return _frozenArrangementPlayhead!;
     }
     return _transport.effectivePlayheadBeats;
-  }
-
-  void _onMeterRefreshTick() {
-    if (_transport.playing && _snapshot != null) {
-      unawaited(_refreshLiveMeters());
-    }
   }
 
   Future<double> _beginClipEditorSession() async {
@@ -132,15 +136,6 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   Future<void> _refreshSnapshot(ProjectSnapshot snapshot) async {
     if (!mounted) return;
     setState(() => _snapshot = snapshot);
-  }
-
-  Future<void> _refreshLiveMeters() async {
-    if (!_transport.playing || _snapshot == null) return;
-    try {
-      final fresh = await widget.bridge.getProjectSnapshot();
-      if (!mounted || _snapshot == null) return;
-      setState(() => _snapshot = _snapshot!.withMergedDeviceMeters(fresh));
-    } catch (_) {}
   }
 
   Future<void> _addTrack() async {

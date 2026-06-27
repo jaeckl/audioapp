@@ -8,6 +8,7 @@ export 'device_snapshot.dart';
 import 'bridge_parsing.dart';
 import 'clip_snapshots.dart';
 import 'device_snapshot.dart';
+import 'live_meters_dto.dart';
 
 class ProjectSnapshot {
   /// Bridge protocol version from the response. 0 if response has no version field.
@@ -144,14 +145,11 @@ class ProjectSnapshot {
     return null;
   }
 
-  /// Merge live dynamics meter readouts from [fresh] without replacing other state.
-  ProjectSnapshot withMergedDeviceMeters(ProjectSnapshot fresh) {
-    final meterByDeviceId = <String, DeviceSnapshot>{};
-    for (final track in fresh.tracks) {
-      for (final device in track.devices) {
-        meterByDeviceId[device.id] = device;
-      }
-    }
+  /// Merge live dynamics meter readouts from EventChannel stream.
+  ProjectSnapshot withMergedMeters(LiveMetersBatch batch) {
+    final meterById = {
+      for (final m in batch.meters) m.deviceId: m,
+    };
 
     return ProjectSnapshot(
       protocolVersion: protocolVersion,
@@ -172,11 +170,11 @@ class ProjectSnapshot {
               name: track.name,
               devices: track.devices
                   .map((device) {
-                    final meters = meterByDeviceId[device.id];
-                    if (meters == null) return device;
+                    final reading = meterById[device.id];
+                    if (reading == null) return device;
                     return device.copyWith(
-                      meterGainReductionDb: meters.meterGainReductionDb,
-                      meterInputLevel: meters.meterInputLevel,
+                      meterGainReductionDb: reading.gainReductionDb,
+                      meterInputLevel: reading.inputLevel,
                     );
                   })
                   .toList(),
