@@ -9,7 +9,12 @@ sealed class EffectDeviceSnapshot extends DeviceSnapshot {
     required super.bypassed,
     required super.meterGainReductionDb,
     required super.meterInputLevel,
+    this.outputMix = 1.0,
+    this.outputWidth = 1.0,
   });
+
+  final double outputMix;
+  final double outputWidth;
 }
 
 class DelayDeviceSnapshot extends EffectDeviceSnapshot {
@@ -20,14 +25,14 @@ class DelayDeviceSnapshot extends EffectDeviceSnapshot {
     required super.bypassed,
     required super.meterGainReductionDb,
     required super.meterInputLevel,
+    super.outputMix,
+    super.outputWidth,
     required this.delayTimeMs,
     required this.delayFeedback,
-    required this.delayMix,
   }) : super(type: 'delay');
 
   final double delayTimeMs;
   final double delayFeedback;
-  final double delayMix;
 
   factory DelayDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -42,7 +47,8 @@ class DelayDeviceSnapshot extends EffectDeviceSnapshot {
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       delayTimeMs: (params['timeMs'] as num?)?.toDouble() ?? 250.0,
       delayFeedback: (params['feedback'] as num?)?.toDouble() ?? 0.4,
-      delayMix: (params['mix'] as num?)?.toDouble() ?? 0.5,
+      outputMix: (params['outputMix'] as num?)?.toDouble() ?? 1.0,
+      outputWidth: (params['outputWidth'] as num?)?.toDouble() ?? 1.0,
     );
   }
 
@@ -55,9 +61,10 @@ class DelayDeviceSnapshot extends EffectDeviceSnapshot {
     bool? bypassed,
     double? meterGainReductionDb,
     double? meterInputLevel,
+    double? outputMix,
+    double? outputWidth,
     double? delayTimeMs,
     double? delayFeedback,
-    double? delayMix,
   }) {
     return DelayDeviceSnapshot(
       id: id ?? this.id,
@@ -66,9 +73,10 @@ class DelayDeviceSnapshot extends EffectDeviceSnapshot {
       bypassed: bypassed ?? this.bypassed,
       meterGainReductionDb: meterGainReductionDb ?? this.meterGainReductionDb,
       meterInputLevel: meterInputLevel ?? this.meterInputLevel,
+      outputMix: outputMix ?? this.outputMix,
+      outputWidth: outputWidth ?? this.outputWidth,
       delayTimeMs: delayTimeMs ?? this.delayTimeMs,
       delayFeedback: delayFeedback ?? this.delayFeedback,
-      delayMix: delayMix ?? this.delayMix,
     );
   }
 
@@ -78,9 +86,10 @@ class DelayDeviceSnapshot extends EffectDeviceSnapshot {
       'gain' => copyWith(gain: value),
       'pan' => copyWith(pan: value),
       'bypass' => copyWith(bypassed: value >= 0.5),
+      'outputMix' => copyWith(outputMix: value),
+      'outputWidth' => copyWith(outputWidth: value),
       'timeMs' => copyWith(delayTimeMs: value),
       'feedback' => copyWith(delayFeedback: value),
-      'mix' => copyWith(delayMix: value),
       _ => this,
     };
   }
@@ -94,17 +103,17 @@ class ReverbDeviceSnapshot extends EffectDeviceSnapshot {
     required super.bypassed,
     required super.meterGainReductionDb,
     required super.meterInputLevel,
+    super.outputMix,
+    super.outputWidth,
     required this.reverbRoomSize,
     required this.reverbDamping,
-    required this.reverbWetLevel,
-    required this.reverbDryLevel,
+    required this.reverbWet,
     required this.reverbWidth,
   }) : super(type: 'reverb');
 
   final double reverbRoomSize;
   final double reverbDamping;
-  final double reverbWetLevel;
-  final double reverbDryLevel;
+  final double reverbWet;
   final double reverbWidth;
 
   factory ReverbDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
@@ -120,9 +129,10 @@ class ReverbDeviceSnapshot extends EffectDeviceSnapshot {
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       reverbRoomSize: (params['roomSize'] as num?)?.toDouble() ?? 0.5,
       reverbDamping: (params['damping'] as num?)?.toDouble() ?? 0.3,
-      reverbWetLevel: (params['wetLevel'] as num?)?.toDouble() ?? 0.4,
-      reverbDryLevel: (params['dryLevel'] as num?)?.toDouble() ?? 0.6,
+      reverbWet: (params['wet'] as num?)?.toDouble() ?? 0.5,
       reverbWidth: (params['width'] as num?)?.toDouble() ?? 0.5,
+      outputMix: (params['outputMix'] as num?)?.toDouble() ?? 1.0,
+      outputWidth: (params['outputWidth'] as num?)?.toDouble() ?? 1.0,
     );
   }
 
@@ -135,10 +145,11 @@ class ReverbDeviceSnapshot extends EffectDeviceSnapshot {
     bool? bypassed,
     double? meterGainReductionDb,
     double? meterInputLevel,
+    double? outputMix,
+    double? outputWidth,
     double? reverbRoomSize,
     double? reverbDamping,
-    double? reverbWetLevel,
-    double? reverbDryLevel,
+    double? reverbWet,
     double? reverbWidth,
   }) {
     return ReverbDeviceSnapshot(
@@ -148,10 +159,11 @@ class ReverbDeviceSnapshot extends EffectDeviceSnapshot {
       bypassed: bypassed ?? this.bypassed,
       meterGainReductionDb: meterGainReductionDb ?? this.meterGainReductionDb,
       meterInputLevel: meterInputLevel ?? this.meterInputLevel,
+      outputMix: outputMix ?? this.outputMix,
+      outputWidth: outputWidth ?? this.outputWidth,
       reverbRoomSize: reverbRoomSize ?? this.reverbRoomSize,
       reverbDamping: reverbDamping ?? this.reverbDamping,
-      reverbWetLevel: reverbWetLevel ?? this.reverbWetLevel,
-      reverbDryLevel: reverbDryLevel ?? this.reverbDryLevel,
+      reverbWet: reverbWet ?? this.reverbWet,
       reverbWidth: reverbWidth ?? this.reverbWidth,
     );
   }
@@ -162,10 +174,11 @@ class ReverbDeviceSnapshot extends EffectDeviceSnapshot {
       'gain' => copyWith(gain: value),
       'pan' => copyWith(pan: value),
       'bypass' => copyWith(bypassed: value >= 0.5),
+      'outputMix' => copyWith(outputMix: value),
+      'outputWidth' => copyWith(outputWidth: value),
       'roomSize' => copyWith(reverbRoomSize: value),
       'damping' => copyWith(reverbDamping: value),
-      'wetLevel' => copyWith(reverbWetLevel: value),
-      'dryLevel' => copyWith(reverbDryLevel: value),
+      'wet' => copyWith(reverbWet: value),
       'width' => copyWith(reverbWidth: value),
       _ => this,
     };
@@ -180,16 +193,16 @@ class ChorusDeviceSnapshot extends EffectDeviceSnapshot {
     required super.bypassed,
     required super.meterGainReductionDb,
     required super.meterInputLevel,
+    super.outputMix,
+    super.outputWidth,
     required this.chorusDepth,
     required this.chorusRateHz,
-    required this.chorusMix,
     required this.chorusCentreDelayMs,
     required this.chorusFeedback,
   }) : super(type: 'chorus');
 
   final double chorusDepth;
   final double chorusRateHz;
-  final double chorusMix;
   final double chorusCentreDelayMs;
   final double chorusFeedback;
 
@@ -206,9 +219,10 @@ class ChorusDeviceSnapshot extends EffectDeviceSnapshot {
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       chorusDepth: (params['depth'] as num?)?.toDouble() ?? 0.3,
       chorusRateHz: (params['rateHz'] as num?)?.toDouble() ?? 0.5,
-      chorusMix: (params['mix'] as num?)?.toDouble() ?? 0.4,
       chorusCentreDelayMs: (params['centreDelayMs'] as num?)?.toDouble() ?? 0.3,
       chorusFeedback: (params['feedback'] as num?)?.toDouble() ?? 0.3,
+      outputMix: (params['outputMix'] as num?)?.toDouble() ?? 1.0,
+      outputWidth: (params['outputWidth'] as num?)?.toDouble() ?? 1.0,
     );
   }
 
@@ -221,9 +235,10 @@ class ChorusDeviceSnapshot extends EffectDeviceSnapshot {
     bool? bypassed,
     double? meterGainReductionDb,
     double? meterInputLevel,
+    double? outputMix,
+    double? outputWidth,
     double? chorusDepth,
     double? chorusRateHz,
-    double? chorusMix,
     double? chorusCentreDelayMs,
     double? chorusFeedback,
   }) {
@@ -234,9 +249,10 @@ class ChorusDeviceSnapshot extends EffectDeviceSnapshot {
       bypassed: bypassed ?? this.bypassed,
       meterGainReductionDb: meterGainReductionDb ?? this.meterGainReductionDb,
       meterInputLevel: meterInputLevel ?? this.meterInputLevel,
+      outputMix: outputMix ?? this.outputMix,
+      outputWidth: outputWidth ?? this.outputWidth,
       chorusDepth: chorusDepth ?? this.chorusDepth,
       chorusRateHz: chorusRateHz ?? this.chorusRateHz,
-      chorusMix: chorusMix ?? this.chorusMix,
       chorusCentreDelayMs: chorusCentreDelayMs ?? this.chorusCentreDelayMs,
       chorusFeedback: chorusFeedback ?? this.chorusFeedback,
     );
@@ -248,9 +264,10 @@ class ChorusDeviceSnapshot extends EffectDeviceSnapshot {
       'gain' => copyWith(gain: value),
       'pan' => copyWith(pan: value),
       'bypass' => copyWith(bypassed: value >= 0.5),
+      'outputMix' => copyWith(outputMix: value),
+      'outputWidth' => copyWith(outputWidth: value),
       'depth' => copyWith(chorusDepth: value),
       'rateHz' => copyWith(chorusRateHz: value),
-      'mix' => copyWith(chorusMix: value),
       'centreDelayMs' => copyWith(chorusCentreDelayMs: value),
       'feedback' => copyWith(chorusFeedback: value),
       _ => this,
@@ -266,6 +283,8 @@ class PhaserDeviceSnapshot extends EffectDeviceSnapshot {
     required super.bypassed,
     required super.meterGainReductionDb,
     required super.meterInputLevel,
+    super.outputMix,
+    super.outputWidth,
     required this.phaserDepth,
     required this.phaserRateHz,
     required this.phaserFeedback,
@@ -292,6 +311,8 @@ class PhaserDeviceSnapshot extends EffectDeviceSnapshot {
       phaserRateHz: (params['rateHz'] as num?)?.toDouble() ?? 0.5,
       phaserFeedback: (params['feedback'] as num?)?.toDouble() ?? 0.3,
       phaserCentreFrequencyHz: (params['centreFrequencyHz'] as num?)?.toDouble() ?? 0.3,
+      outputMix: (params['outputMix'] as num?)?.toDouble() ?? 1.0,
+      outputWidth: (params['outputWidth'] as num?)?.toDouble() ?? 1.0,
     );
   }
 
@@ -304,6 +325,8 @@ class PhaserDeviceSnapshot extends EffectDeviceSnapshot {
     bool? bypassed,
     double? meterGainReductionDb,
     double? meterInputLevel,
+    double? outputMix,
+    double? outputWidth,
     double? phaserDepth,
     double? phaserRateHz,
     double? phaserFeedback,
@@ -316,6 +339,8 @@ class PhaserDeviceSnapshot extends EffectDeviceSnapshot {
       bypassed: bypassed ?? this.bypassed,
       meterGainReductionDb: meterGainReductionDb ?? this.meterGainReductionDb,
       meterInputLevel: meterInputLevel ?? this.meterInputLevel,
+      outputMix: outputMix ?? this.outputMix,
+      outputWidth: outputWidth ?? this.outputWidth,
       phaserDepth: phaserDepth ?? this.phaserDepth,
       phaserRateHz: phaserRateHz ?? this.phaserRateHz,
       phaserFeedback: phaserFeedback ?? this.phaserFeedback,
@@ -329,6 +354,8 @@ class PhaserDeviceSnapshot extends EffectDeviceSnapshot {
       'gain' => copyWith(gain: value),
       'pan' => copyWith(pan: value),
       'bypass' => copyWith(bypassed: value >= 0.5),
+      'outputMix' => copyWith(outputMix: value),
+      'outputWidth' => copyWith(outputWidth: value),
       'depth' => copyWith(phaserDepth: value),
       'rateHz' => copyWith(phaserRateHz: value),
       'feedback' => copyWith(phaserFeedback: value),
@@ -346,14 +373,14 @@ class BitcrusherDeviceSnapshot extends EffectDeviceSnapshot {
     required super.bypassed,
     required super.meterGainReductionDb,
     required super.meterInputLevel,
+    super.outputMix,
+    super.outputWidth,
     required this.bcRate,
     required this.bcBits,
-    required this.bcMix,
   }) : super(type: 'bitcrusher');
 
   final double bcRate;
   final double bcBits;
-  final double bcMix;
 
   factory BitcrusherDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -368,7 +395,8 @@ class BitcrusherDeviceSnapshot extends EffectDeviceSnapshot {
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       bcRate: (params['rate'] as num?)?.toDouble() ?? 0.5,
       bcBits: (params['bits'] as num?)?.toDouble() ?? 8.0,
-      bcMix: (params['mix'] as num?)?.toDouble() ?? 0.5,
+      outputMix: (params['outputMix'] as num?)?.toDouble() ?? 1.0,
+      outputWidth: (params['outputWidth'] as num?)?.toDouble() ?? 1.0,
     );
   }
 
@@ -381,9 +409,10 @@ class BitcrusherDeviceSnapshot extends EffectDeviceSnapshot {
     bool? bypassed,
     double? meterGainReductionDb,
     double? meterInputLevel,
+    double? outputMix,
+    double? outputWidth,
     double? bcRate,
     double? bcBits,
-    double? bcMix,
   }) {
     return BitcrusherDeviceSnapshot(
       id: id ?? this.id,
@@ -392,9 +421,10 @@ class BitcrusherDeviceSnapshot extends EffectDeviceSnapshot {
       bypassed: bypassed ?? this.bypassed,
       meterGainReductionDb: meterGainReductionDb ?? this.meterGainReductionDb,
       meterInputLevel: meterInputLevel ?? this.meterInputLevel,
+      outputMix: outputMix ?? this.outputMix,
+      outputWidth: outputWidth ?? this.outputWidth,
       bcRate: bcRate ?? this.bcRate,
       bcBits: bcBits ?? this.bcBits,
-      bcMix: bcMix ?? this.bcMix,
     );
   }
 
@@ -404,9 +434,10 @@ class BitcrusherDeviceSnapshot extends EffectDeviceSnapshot {
       'gain' => copyWith(gain: value),
       'pan' => copyWith(pan: value),
       'bypass' => copyWith(bypassed: value >= 0.5),
-      'bcRate' => copyWith(bcRate: value),
-      'bcBits' => copyWith(bcBits: value),
-      'bcMix' => copyWith(bcMix: value),
+      'outputMix' => copyWith(outputMix: value),
+      'outputWidth' => copyWith(outputWidth: value),
+      'rate' => copyWith(bcRate: value),
+      'bits' => copyWith(bcBits: value),
       _ => this,
     };
   }
@@ -420,14 +451,14 @@ class DistortionDeviceSnapshot extends EffectDeviceSnapshot {
     required super.bypassed,
     required super.meterGainReductionDb,
     required super.meterInputLevel,
+    super.outputMix,
+    super.outputWidth,
     required this.distDrive,
     required this.distTone,
-    required this.distMix,
   }) : super(type: 'distortion');
 
   final double distDrive;
   final double distTone;
-  final double distMix;
 
   factory DistortionDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -442,7 +473,8 @@ class DistortionDeviceSnapshot extends EffectDeviceSnapshot {
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       distDrive: (params['drive'] as num?)?.toDouble() ?? 0.5,
       distTone: (params['tone'] as num?)?.toDouble() ?? 0.5,
-      distMix: (params['mix'] as num?)?.toDouble() ?? 0.5,
+      outputMix: (params['outputMix'] as num?)?.toDouble() ?? 1.0,
+      outputWidth: (params['outputWidth'] as num?)?.toDouble() ?? 1.0,
     );
   }
 
@@ -455,9 +487,10 @@ class DistortionDeviceSnapshot extends EffectDeviceSnapshot {
     bool? bypassed,
     double? meterGainReductionDb,
     double? meterInputLevel,
+    double? outputMix,
+    double? outputWidth,
     double? distDrive,
     double? distTone,
-    double? distMix,
   }) {
     return DistortionDeviceSnapshot(
       id: id ?? this.id,
@@ -466,9 +499,10 @@ class DistortionDeviceSnapshot extends EffectDeviceSnapshot {
       bypassed: bypassed ?? this.bypassed,
       meterGainReductionDb: meterGainReductionDb ?? this.meterGainReductionDb,
       meterInputLevel: meterInputLevel ?? this.meterInputLevel,
+      outputMix: outputMix ?? this.outputMix,
+      outputWidth: outputWidth ?? this.outputWidth,
       distDrive: distDrive ?? this.distDrive,
       distTone: distTone ?? this.distTone,
-      distMix: distMix ?? this.distMix,
     );
   }
 
@@ -478,9 +512,10 @@ class DistortionDeviceSnapshot extends EffectDeviceSnapshot {
       'gain' => copyWith(gain: value),
       'pan' => copyWith(pan: value),
       'bypass' => copyWith(bypassed: value >= 0.5),
-      'distDrive' => copyWith(distDrive: value),
-      'distTone' => copyWith(distTone: value),
-      'distMix' => copyWith(distMix: value),
+      'outputMix' => copyWith(outputMix: value),
+      'outputWidth' => copyWith(outputWidth: value),
+      'drive' => copyWith(distDrive: value),
+      'tone' => copyWith(distTone: value),
       _ => this,
     };
   }
@@ -494,6 +529,8 @@ class TremoloDeviceSnapshot extends EffectDeviceSnapshot {
     required super.bypassed,
     required super.meterGainReductionDb,
     required super.meterInputLevel,
+    super.outputMix,
+    super.outputWidth,
     required this.tremDepth,
     required this.tremRate,
     required this.tremShape,
@@ -517,6 +554,8 @@ class TremoloDeviceSnapshot extends EffectDeviceSnapshot {
       tremDepth: (params['depth'] as num?)?.toDouble() ?? 0.5,
       tremRate: (params['rateHz'] as num?)?.toDouble() ?? 5.0,
       tremShape: (params['shape'] as num?)?.toDouble() ?? 0.0,
+      outputMix: (params['outputMix'] as num?)?.toDouble() ?? 1.0,
+      outputWidth: (params['outputWidth'] as num?)?.toDouble() ?? 1.0,
     );
   }
 
@@ -529,6 +568,8 @@ class TremoloDeviceSnapshot extends EffectDeviceSnapshot {
     bool? bypassed,
     double? meterGainReductionDb,
     double? meterInputLevel,
+    double? outputMix,
+    double? outputWidth,
     double? tremDepth,
     double? tremRate,
     double? tremShape,
@@ -540,6 +581,8 @@ class TremoloDeviceSnapshot extends EffectDeviceSnapshot {
       bypassed: bypassed ?? this.bypassed,
       meterGainReductionDb: meterGainReductionDb ?? this.meterGainReductionDb,
       meterInputLevel: meterInputLevel ?? this.meterInputLevel,
+      outputMix: outputMix ?? this.outputMix,
+      outputWidth: outputWidth ?? this.outputWidth,
       tremDepth: tremDepth ?? this.tremDepth,
       tremRate: tremRate ?? this.tremRate,
       tremShape: tremShape ?? this.tremShape,
@@ -552,9 +595,11 @@ class TremoloDeviceSnapshot extends EffectDeviceSnapshot {
       'gain' => copyWith(gain: value),
       'pan' => copyWith(pan: value),
       'bypass' => copyWith(bypassed: value >= 0.5),
-      'tremDepth' => copyWith(tremDepth: value),
-      'tremRate' => copyWith(tremRate: value),
-      'tremShape' => copyWith(tremShape: value),
+      'outputMix' => copyWith(outputMix: value),
+      'outputWidth' => copyWith(outputWidth: value),
+      'depth' => copyWith(tremDepth: value),
+      'rateHz' => copyWith(tremRate: value),
+      'shape' => copyWith(tremShape: value),
       _ => this,
     };
   }

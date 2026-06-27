@@ -60,15 +60,19 @@ struct MonoOutputPanel {
     }
 };
 
-/// Stereo output — gain + pan. Used for all stereo-capable devices.
+/// Stereo output — gain + pan + outputMix + outputWidth.
 struct StereoOutputPanel {
     float gain = 1.0f;           // output gain, [0, 1]
     float pan  = 0.5f;           // pan, [0, 1] where 0.5 = centre
+    float outputMix = 1.0f;      // dry/wet mix, [0, 1]
+    float outputWidth = 1.0f;    // stereo width, [0, 1]
 
     template <typename Callback>
     void enumerate(Callback&& cb) const {
         cb("gain", gain);
         cb("pan",  pan);
+        cb("outputMix", outputMix);
+        cb("outputWidth", outputWidth);
     }
 
     /// Apply per-frame gain + pan from a mono scratch buffer to a stereo AudioBlock.
@@ -142,6 +146,8 @@ inline juce::var outputPanelToVar(const OutputPanelParams& panel) {
             obj->setProperty("type", "stereo");
             obj->setProperty("gain", static_cast<double>(p.gain));
             obj->setProperty("pan", static_cast<double>(p.pan));
+            obj->setProperty("outputMix", static_cast<double>(p.outputMix));
+            obj->setProperty("outputWidth", static_cast<double>(p.outputWidth));
         } else {
             obj->setProperty("type", "empty");
         }
@@ -161,7 +167,12 @@ inline OutputPanelParams outputPanelFromVar(const juce::var& obj, float legacyGa
         if (typeStr == "mono") {
             return MonoOutputPanel{ readFloat("gain", 1.0f) };
         } else if (typeStr == "stereo") {
-            return StereoOutputPanel{ readFloat("gain", 1.0f), readFloat("pan", 0.5f) };
+            StereoOutputPanel sp;
+            sp.gain = readFloat("gain", 1.0f);
+            sp.pan = readFloat("pan", 0.5f);
+            sp.outputMix = readFloat("outputMix", 1.0f);
+            sp.outputWidth = readFloat("outputWidth", 1.0f);
+            return sp;
         }
     }
     // Legacy fallback

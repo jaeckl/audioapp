@@ -49,6 +49,10 @@ abstract final class DeviceStripChrome {
     'cymbal_generator',
     'crash_generator',
   };
+  static const _fxOutputTypes = {
+    'delay', 'reverb', 'chorus', 'phaser',
+    'bitcrusher', 'distortion', 'tremolo',
+  };
 
   static bool hasInputPanel(String deviceType) =>
       DeviceStripMetrics.inputPanelWidthFor(deviceType) > 0;
@@ -105,6 +109,21 @@ abstract final class DeviceStripChrome {
         accentColor: bindings.accentColor,
         onParameterChanged: bindings.onParameterChanged,
         gainReductionDb: bindings.gainReductionDb,
+        modulatedParams: bindings.modulatedParams,
+        automatedParams: bindings.automatedParams,
+        modulationAmounts: bindings.modulationAmounts,
+        connectModeLfoId: bindings.connectModeLfoId,
+        onModulationAssign: bindings.onModulationAssign,
+        automationLinkActive: bindings.automationLinkActive,
+        onAutomationLinkTap: bindings.onAutomationLinkTap,
+        onAutomateParameter: bindings.onAutomateParameter,
+      );
+    }
+    if (_fxOutputTypes.contains(deviceType)) {
+      return FxOutputPanel(
+        device: bindings.device,
+        accentColor: bindings.accentColor,
+        onParameterChanged: bindings.onParameterChanged,
         modulatedParams: bindings.modulatedParams,
         automatedParams: bindings.automatedParams,
         modulationAmounts: bindings.modulationAmounts,

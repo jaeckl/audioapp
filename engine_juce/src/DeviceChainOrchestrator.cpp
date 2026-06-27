@@ -89,6 +89,8 @@ int buildProcessorChain(const DeviceNodePlayback* devices, int deviceCount,
             proc->meterSlot = node.meterSlot;
             proc->gain = node.gain;
             proc->pan = node.pan;
+            proc->outputMix = node.outputMix;
+            proc->outputWidth = node.outputWidth;
             proc->initParams(node.params);
             ++count;
         }
@@ -241,9 +243,33 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
         // --- Process device via virtual dispatch ---
         pc.modulatedParams = &modulatedParams;
         AudioBlock block{ctx.trackLeft, ctx.trackRight, numFrames};
+
+        // Save dry signal for outputMix blend
+        std::copy(block.channelL, block.channelL + numFrames, s.tempStereoL);
+        std::copy(block.channelR, block.channelR + numFrames, s.tempStereoR);
+
         proc->process(block, pc);
 
-        // --- Apply per-frame gain/pan for non-instrument processors ---
+        // --- Apply outputMix (dry/wet blend) ---
+        if (proc->outputMix != 1.0f) {
+            for (int f = 0; f < numFrames; ++f) {
+                block.channelL[f] = s.tempStereoL[f] * (1.0f - proc->outputMix) + block.channelL[f] * proc->outputMix;
+                block.channelR[f] = s.tempStereoR[f] * (1.0f - proc->outputMix) + block.channelR[f] * proc->outputMix;
+            }
+        }
+
+        // --- Apply outputWidth (M/S stereo width) ---
+        if (proc->outputWidth != 1.0f) {
+            const float width = proc->outputWidth;
+            for (int f = 0; f < numFrames; ++f) {
+                const float mid = (block.channelL[f] + block.channelR[f]) * 0.5f;
+                const float side = (block.channelL[f] - block.channelR[f]) * 0.5f * width;
+                block.channelL[f] = mid + side;
+                block.channelR[f] = mid - side;
+            }
+        }
+
+        // --- Apply per-frame gain for non-instrument processors ---
         if (!isInstrumentDeviceNodeKind(nodeKind) &&
             nodeKind != DeviceNodeKind::TrackGain) {
             StereoOutputPanel::applyInPlace(block, numFrames, s.perFrameGain);

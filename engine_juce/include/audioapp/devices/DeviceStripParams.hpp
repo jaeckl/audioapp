@@ -44,6 +44,24 @@ inline bool setBypass(DeviceSlot& slot, float value) {
     return true;
 }
 
+inline bool setOutputMix(DeviceSlot& slot, float value) {
+    auto* panel = std::get_if<StereoOutputPanel>(&slot.config.outputPanel);
+    if (panel) {
+        panel->outputMix = std::clamp(value, 0.0f, 1.0f);
+        return true;
+    }
+    return false;
+}
+
+inline bool setOutputWidth(DeviceSlot& slot, float value) {
+    auto* panel = std::get_if<StereoOutputPanel>(&slot.config.outputPanel);
+    if (panel) {
+        panel->outputWidth = std::clamp(value, 0.0f, 1.0f);
+        return true;
+    }
+    return false;
+}
+
 inline bool setStripParameter(DeviceSlot& slot, std::string_view parameterId, float value) {
     if (parameterId == "gain") {
         return setGain(slot, value);
@@ -53,6 +71,12 @@ inline bool setStripParameter(DeviceSlot& slot, std::string_view parameterId, fl
     }
     if (parameterId == "bypass") {
         return setBypass(slot, value);
+    }
+    if (parameterId == "outputMix") {
+        return setOutputMix(slot, value);
+    }
+    if (parameterId == "outputWidth") {
+        return setOutputWidth(slot, value);
     }
     return false;
 }

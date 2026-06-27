@@ -182,9 +182,21 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
         for (int d = 0; d < snap.deviceCount; ++d) {
             if (snap.devices[d].deviceId != deviceId) continue;
             deviceRegistry_.buildPlaybackNode(*device, context, snap.devices[d]);
+
+            // Propagate outputMix/outputWidth from slot's output panel
+            std::visit([&](const auto& panel) {
+                using T = std::decay_t<decltype(panel)>;
+                if constexpr (std::is_same_v<T, StereoOutputPanel>) {
+                    snap.devices[d].outputMix = panel.outputMix;
+                    snap.devices[d].outputWidth = panel.outputWidth;
+                }
+            }, device->config.outputPanel);
+
             auto* proc = snap.arena.get(d);
             if (proc != nullptr) {
                 proc->initParams(snap.devices[d].params);
+                proc->outputMix = snap.devices[d].outputMix;
+                proc->outputWidth = snap.devices[d].outputWidth;
             }
             return true;
         }
@@ -1195,12 +1207,18 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                 if constexpr (std::is_same_v<T, MonoOutputPanel>) {
                     node.gain = panel.gain;
                     node.pan = 0.5f;
+                    node.outputMix = 1.0f;
+                    node.outputWidth = 1.0f;
                 } else if constexpr (std::is_same_v<T, StereoOutputPanel>) {
                     node.gain = panel.gain;
                     node.pan = panel.pan;
+                    node.outputMix = panel.outputMix;
+                    node.outputWidth = panel.outputWidth;
                 } else {
                     node.gain = 1.0f;
                     node.pan = 0.5f;
+                    node.outputMix = 1.0f;
+                    node.outputWidth = 1.0f;
                 }
             }, device.config.outputPanel);
             node.meterSlot = -1;
@@ -1222,6 +1240,8 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                     proc->meterSlot = node.meterSlot;
                     proc->gain = node.gain;
                     proc->pan = node.pan;
+                    proc->outputMix = node.outputMix;
+                    proc->outputWidth = node.outputWidth;
                     proc->initParams(node.params);
                 }
             }

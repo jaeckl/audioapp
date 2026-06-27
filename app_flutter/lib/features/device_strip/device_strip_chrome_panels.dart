@@ -337,6 +337,88 @@ class _ChromeOutputShell extends StatelessWidget {
   }
 }
 
+/// FX output panel: unified Mix + Width (replaces per-effect Mix knobs).
+class FxOutputPanel extends StatelessWidget {
+  const FxOutputPanel({
+    super.key,
+    required this.device,
+    required this.accentColor,
+    required this.onParameterChanged,
+    this.knobSize = DeviceKnobSizes.compact,
+    this.modulatedParams = const {},
+    this.automatedParams = const {},
+    this.modulationAmounts = const {},
+    this.connectModeLfoId,
+    this.onModulationAssign,
+    this.automationLinkActive = false,
+    this.onAutomationLinkTap,
+    this.onAutomateParameter,
+  });
+
+  final DeviceSnapshot device;
+  final Color accentColor;
+  final void Function(String parameterId, double value) onParameterChanged;
+  final double knobSize;
+  final Set<String> modulatedParams;
+  final Set<String> automatedParams;
+  final Map<String, double> modulationAmounts;
+  final int? connectModeLfoId;
+  final void Function(String paramId, double amount)? onModulationAssign;
+  final bool automationLinkActive;
+  final ValueChanged<String>? onAutomationLinkTap;
+  final ValueChanged<String>? onAutomateParameter;
+
+  @override
+  Widget build(BuildContext context) {
+    final eff = device is EffectDeviceSnapshot ? device as EffectDeviceSnapshot : null;
+    final mix = eff?.outputMix ?? 1.0;
+    final width = eff?.outputWidth ?? 1.0;
+
+    return _ChromeOutputShell(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          deviceAutomationKnob(
+            label: 'Mix',
+            value: mix.clamp(0, 1),
+            size: knobSize,
+            displayValue: '${(mix * 100).round()}%',
+            onChanged: (value) => onParameterChanged('outputMix', value),
+            paramId: 'outputMix',
+            accentColor: accentColor,
+            modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+          ),
+          const SizedBox(height: 8),
+          deviceAutomationKnob(
+            label: 'Width',
+            value: width.clamp(0, 1),
+            size: knobSize,
+            displayValue: '${(width * 100).round()}%',
+            onChanged: (value) => onParameterChanged('outputWidth', value),
+            paramId: 'outputWidth',
+            accentColor: accentColor,
+            modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ChromeInputShell extends StatelessWidget {
   const _ChromeInputShell({required this.child});
 

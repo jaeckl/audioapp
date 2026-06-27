@@ -20,6 +20,7 @@ class DeviceStripMetrics {
 
   static const _dynamicsTypes = {'gate', 'compressor', 'expander', 'limiter'};
   static const _timeFxTypes = {'delay', 'reverb', 'chorus', 'phaser'};
+  static const _moodFxTypes = {'bitcrusher', 'distortion', 'tremolo'};
   static const _frequencyFxTypes = {'filter', 'four_band_eq', 'frequency_shifter'};
   static const _drumTypes = {
     'kick_generator',
@@ -129,6 +130,7 @@ class DeviceStripMetrics {
     if (_drumTypes.contains(deviceType)) return drumMonoOutputPanelWidth;
     if (_dynamicsTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
     if (_timeFxTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
+    if (_moodFxTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
     if (_frequencyFxTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
     return stereoOutputPanelWidth;
   }

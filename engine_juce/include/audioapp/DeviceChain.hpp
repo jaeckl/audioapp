@@ -184,6 +184,8 @@ struct DeviceNodePlayback {
     bool bypassed = false;
     float gain = 1.0f;
     float pan = 0.5f;
+    float outputMix = 1.0f;
+    float outputWidth = 1.0f;
     int8_t meterSlot = -1;
     DeviceVariantParams params;
 };

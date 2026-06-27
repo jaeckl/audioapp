@@ -89,6 +89,8 @@ juce::var TremoloDeviceType::slotToVar(const DeviceSlot& slot) const {
     outObj->setProperty("type", "stereo");
     outObj->setProperty("gain", static_cast<double>(panel.gain));
     outObj->setProperty("pan", static_cast<double>(panel.pan));
+    outObj->setProperty("outputMix", static_cast<double>(panel.outputMix));
+    outObj->setProperty("outputWidth", static_cast<double>(panel.outputWidth));
     object->setProperty("outputPanel", juce::var(outObj));
 
     auto* inObj = new juce::DynamicObject();
@@ -116,9 +118,17 @@ DeviceSlot TremoloDeviceType::varToSlot(const juce::var& obj) const {
         bool hasPanel = outputPanelVar.isObject();
         if (hasPanel) {
             const auto* panel = outputPanelVar.getDynamicObject();
+            auto readPanel = [&](const char* key, float fallback) -> float {
+                const auto v = panel->getProperty(key);
+                if (v.isDouble() || v.isInt() || v.isInt64())
+                    return static_cast<float>(static_cast<double>(v));
+                return fallback;
+            };
             StereoOutputPanel sp;
-            sp.gain = static_cast<float>(static_cast<double>(panel->getProperty("gain")));
-            sp.pan = static_cast<float>(static_cast<double>(panel->getProperty("pan")));
+            sp.gain = readPanel("gain", 1.0f);
+            sp.pan = readPanel("pan", 0.5f);
+            sp.outputMix = readPanel("outputMix", 1.0f);
+            sp.outputWidth = readPanel("outputWidth", 1.0f);
             slot.config.outputPanel = sp;
         }
 
@@ -138,7 +148,12 @@ DeviceSlot TremoloDeviceType::varToSlot(const juce::var& obj) const {
             if (!hasPanel) {
                 const float oldGain = readFloat("gain", 1.0f);
                 const float oldPan = readFloat("pan", 0.5f);
-                slot.config.outputPanel = StereoOutputPanel{oldGain, oldPan};
+                StereoOutputPanel sp;
+                sp.gain = oldGain;
+                sp.pan = oldPan;
+                sp.outputMix = readFloat("outputMix", 1.0f);
+                sp.outputWidth = readFloat("outputWidth", 1.0f);
+                slot.config.outputPanel = sp;
                 slot.config.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
             }
 
