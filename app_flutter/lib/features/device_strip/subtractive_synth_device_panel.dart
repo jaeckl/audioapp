@@ -66,6 +66,9 @@ class SubtractiveSynthDevicePanel extends StatefulWidget {
   static const Color panel = Color(0xFF1C1C24);
   static const Color accent = DeviceStripTheme.subtractiveSynthAccent;
 
+  /// 3-tab subtractive synth layout (Osc · Filter · Amp).
+  static const double designWidth = 500;
+
   static const containerTabs = <DeviceTabSpec>[
     DeviceTabSpec(label: 'Osc', icon: Icons.waves),
     DeviceTabSpec(label: 'Mix', icon: Icons.blender),

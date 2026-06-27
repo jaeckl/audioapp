@@ -50,6 +50,9 @@ class PhaseModSynthDevicePanel extends StatefulWidget {
 
   static const Color accent = DeviceStripTheme.phaseModSynthAccent;
 
+  /// 3-tab PM synth layout (MIX · OP · TONE).
+  static const double designWidth = 420;
+
   static const containerTabs = <DeviceTabSpec>[
     DeviceTabSpec(label: 'MIX', icon: Icons.blender),
     DeviceTabSpec(label: 'OP', icon: Icons.tune),

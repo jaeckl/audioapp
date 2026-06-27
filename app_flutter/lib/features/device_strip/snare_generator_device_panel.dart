@@ -40,6 +40,10 @@ class SnareGeneratorDevicePanel extends StatelessWidget {
 
   static const accent = DeviceStripTheme.snareGeneratorAccent;
 
+  /// Snare bench — same kick width for two-row knob grid.
+  static const double designWidth = 480;
+
+  /// No tabs — single-page layout.
   static const containerTabs = <DeviceTabSpec>[];
 
   @override

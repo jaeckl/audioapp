@@ -1,4 +1,17 @@
+import 'bass_synth_device_panel.dart';
+import 'clap_generator_device_panel.dart';
+import 'crash_generator_device_panel.dart';
+import 'cymbal_generator_device_panel.dart';
 import 'device_knob_sizes.dart';
+import 'dynamics_fx_panels.dart';
+import 'frequency_fx_panels.dart';
+import 'kick_generator_device_panel.dart';
+import 'oscillator_device_panel.dart';
+import 'phase_mod_synth_device_panel.dart';
+import 'sampler_device_panel.dart';
+import 'snare_generator_device_panel.dart';
+import 'subtractive_synth_device_panel.dart';
+import 'time_fx_panels.dart';
 
 /// Device strip layout constants.
 class DeviceStripMetrics {
@@ -44,6 +57,9 @@ class DeviceStripMetrics {
   static const double kickDesignWidth = 480;
 
   static const double oscillatorDesignWidth = 360;
+
+  /// Bass synth: two-column tab layout (left 5/7 + right 2/7).
+  static const double bassSynthDesignWidth = 440;
 
   /// Subtractive synth: three-tab layout (Osc · Mix · Tone) needs filter+amp in one row.
   static const double subtractiveSynthDesignWidth = 500;
@@ -121,27 +137,27 @@ class DeviceStripMetrics {
       return collapsedDesignWidth;
     }
     return switch (deviceType) {
-      'simple_sampler' => samplerDesignWidth,
-      'bass_synth' => oscillatorDesignWidth,
-      'subtractive_synth' => subtractiveSynthDesignWidth,
-      'kick_generator' => kickDesignWidth,
-      'snare_generator' => kickDesignWidth,
-      'clap_generator' => oscillatorDesignWidth,
-      'cymbal_generator' => kickDesignWidth,
-      'crash_generator' => kickDesignWidth,
-      'gate' => dynamicsFxDesignWidth,
-      'compressor' => dynamicsFxDesignWidth,
-      'expander' => dynamicsFxDesignWidth,
-      'limiter' => dynamicsFxDesignWidth,
-      'delay' => dynamicsFxDesignWidth,
-      'reverb' => dynamicsFxDesignWidth,
-      'chorus' => dynamicsFxDesignWidth,
-      'phaser' => dynamicsFxDesignWidth,
-      'filter' => filterDesignWidth,
-      'four_band_eq' => fourBandEqDesignWidth,
-      'frequency_shifter' => freqShifterDesignWidth,
-      'simple_oscillator' => oscillatorDesignWidth,
-      'phase_mod_synth' => phaseModSynthDesignWidth,
+      'simple_sampler' => SamplerDevicePanel.designWidth,
+      'bass_synth' => BassSynthDevicePanel.designWidth,
+      'subtractive_synth' => SubtractiveSynthDevicePanel.designWidth,
+      'kick_generator' => KickGeneratorDevicePanel.designWidth,
+      'snare_generator' => SnareGeneratorDevicePanel.designWidth,
+      'clap_generator' => ClapGeneratorDevicePanel.designWidth,
+      'cymbal_generator' => CymbalGeneratorDevicePanel.designWidth,
+      'crash_generator' => CrashGeneratorDevicePanel.designWidth,
+      'gate' => GateDevicePanel.designWidth,
+      'compressor' => CompressorDevicePanel.designWidth,
+      'expander' => ExpanderDevicePanel.designWidth,
+      'limiter' => LimiterDevicePanel.designWidth,
+      'delay' => DelayFxPanel.designWidth,
+      'reverb' => ReverbFxPanel.designWidth,
+      'chorus' => ChorusFxPanel.designWidth,
+      'phaser' => PhaserFxPanel.designWidth,
+      'filter' => FilterDevicePanel.designWidth,
+      'four_band_eq' => FourBandEqDevicePanel.designWidth,
+      'frequency_shifter' => FreqShifterDevicePanel.designWidth,
+      'simple_oscillator' => OscillatorDevicePanel.designWidth,
+      'phase_mod_synth' => PhaseModSynthDevicePanel.designWidth,
       _ => 280,
     };
   }

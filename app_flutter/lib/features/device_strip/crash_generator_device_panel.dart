@@ -40,6 +40,9 @@ class CrashGeneratorDevicePanel extends StatelessWidget {
 
   static const accent = DeviceStripTheme.crashGeneratorAccent;
 
+  /// Crash bench — wide kick layout.
+  static const double designWidth = 480;
+
   static const containerTabs = <DeviceTabSpec>[];
 
   @override

@@ -334,6 +334,9 @@ class FilterDevicePanel extends StatelessWidget {
   static const accent = Color(0xFF5BC0EB);
   static const containerTabs = <DeviceTabSpec>[];
 
+  /// Filter device — compact dynamics-FX-sized card.
+  static const double designWidth = 216;
+
   final FilterDeviceSnapshot device;
   final FrequencyFxParameterChanged onParameterChanged;
   final Set<String> modulatedParams;
@@ -482,6 +485,9 @@ class FourBandEqDevicePanel extends StatelessWidget {
 
   static const accent = Color(0xFF78C091);
   static const containerTabs = <DeviceTabSpec>[];
+
+  /// 4-band EQ — compact card.
+  static const double designWidth = 216;
 
   final FourBandEqDeviceSnapshot device;
   final FrequencyFxParameterChanged onParameterChanged;
@@ -726,6 +732,9 @@ class FreqShifterDevicePanel extends StatelessWidget {
 
   static const accent = Color(0xFFC77DFF);
   static const containerTabs = <DeviceTabSpec>[];
+
+  /// Ring mod / frequency shifter — compact card.
+  static const double designWidth = 216;
 
   final FrequencyShifterDeviceSnapshot device;
   final FrequencyFxParameterChanged onParameterChanged;

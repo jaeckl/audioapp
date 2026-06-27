@@ -40,6 +40,9 @@ class CymbalGeneratorDevicePanel extends StatelessWidget {
 
   static const accent = DeviceStripTheme.cymbalGeneratorAccent;
 
+  /// Cymbal bench — wide kick layout.
+  static const double designWidth = 480;
+
   static const containerTabs = <DeviceTabSpec>[];
 
   @override

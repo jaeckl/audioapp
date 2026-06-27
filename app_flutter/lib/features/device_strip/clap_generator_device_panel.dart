@@ -43,6 +43,10 @@ class ClapGeneratorDevicePanel extends StatefulWidget {
 
   static const accent = DeviceStripTheme.clapGeneratorAccent;
 
+  /// Clap — oscillator width for single-tab layout.
+  static const double designWidth = 360;
+
+  /// Single Burst tab.
   static const containerTabs = <DeviceTabSpec>[
     DeviceTabSpec(label: 'Burst', icon: Icons.view_column),
     DeviceTabSpec(label: 'Tone', icon: Icons.tune),

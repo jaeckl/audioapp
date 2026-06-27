@@ -171,6 +171,9 @@ class DelayFxPanel extends StatelessWidget {
   static const accent = Color(0xFF6EC9A8);
   static const containerTabs = <DeviceTabSpec>[];
 
+  /// Delay — compact time FX card.
+  static const double designWidth = 216;
+
   final DelayDeviceSnapshot device;
   final TimeFxParameterChanged onParameterChanged;
   final Set<String> modulatedParams;
@@ -299,6 +302,9 @@ class ReverbFxPanel extends StatelessWidget {
 
   static const accent = Color(0xFF7B6CF6);
   static const containerTabs = <DeviceTabSpec>[];
+
+  /// Reverb — compact time FX card.
+  static const double designWidth = 216;
 
   final ReverbDeviceSnapshot device;
   final TimeFxParameterChanged onParameterChanged;
@@ -464,6 +470,9 @@ class ChorusFxPanel extends StatelessWidget {
   static const accent = Color(0xFFE8A54B);
   static const containerTabs = <DeviceTabSpec>[];
 
+  /// Chorus — compact time FX card.
+  static const double designWidth = 216;
+
   final ChorusDeviceSnapshot device;
   final TimeFxParameterChanged onParameterChanged;
   final Set<String> modulatedParams;
@@ -627,6 +636,9 @@ class PhaserFxPanel extends StatelessWidget {
 
   static const accent = Color(0xFFE8A0C8);
   static const containerTabs = <DeviceTabSpec>[];
+
+  /// Phaser — compact time FX card.
+  static const double designWidth = 216;
 
   final PhaserDeviceSnapshot device;
   final TimeFxParameterChanged onParameterChanged;

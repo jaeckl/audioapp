@@ -183,6 +183,9 @@ class GateDevicePanel extends StatelessWidget {
   static const accent = Color(0xFF6EC9A8);
   static const containerTabs = <DeviceTabSpec>[];
 
+  /// Gate — compact dynamics FX card.
+  static const double designWidth = 216;
+
   final GateDeviceSnapshot device;
   final DynamicsParameterChanged onParameterChanged;
   final GateDeviceTab? selectedTab;
@@ -352,6 +355,9 @@ class CompressorDevicePanel extends StatelessWidget {
   });
   static const accent = Color(0xFFE8A54B);
   static const containerTabs = <DeviceTabSpec>[];
+
+  /// Compressor — compact dynamics FX card.
+  static const double designWidth = 216;
   final CompressorDeviceSnapshot device;
   final DynamicsParameterChanged onParameterChanged;
   final CompressorDeviceTab? selectedTab;
@@ -538,6 +544,9 @@ class ExpanderDevicePanel extends StatelessWidget {
   });
   static const accent = Color(0xFF9AD4E8);
   static const containerTabs = <DeviceTabSpec>[];
+
+  /// Expander — compact dynamics FX card.
+  static const double designWidth = 216;
   final ExpanderDeviceSnapshot device;
   final DynamicsParameterChanged onParameterChanged;
   final ExpanderDeviceTab? selectedTab;
@@ -709,6 +718,9 @@ class LimiterDevicePanel extends StatelessWidget {
   });
   static const accent = Color(0xFFE85D4B);
   static const containerTabs = <DeviceTabSpec>[];
+
+  /// Limiter — compact dynamics FX card.
+  static const double designWidth = 216;
   final LimiterDeviceSnapshot device;
   final DynamicsParameterChanged onParameterChanged;
   final LimiterDeviceTab? selectedTab;

@@ -72,6 +72,9 @@ class SamplerDevicePanel extends StatefulWidget {
   static const Color accent = Color(0xFFE8A54B);
   static const Color wave = Color(0xFF6EC9A0);
 
+  /// Design width for sampler's two-tab layout.
+  static const double designWidth = 348;
+
   static const containerTabs = <DeviceTabSpec>[
     DeviceTabSpec(label: 'Wave', icon: Icons.graphic_eq),
     DeviceTabSpec(label: 'Tone', icon: Icons.tune),

@@ -44,6 +44,9 @@ class OscillatorDevicePanel extends StatefulWidget {
   static const Color panel = Color(0xFF1C1C24);
   static const Color accent = Color(0xFF6EC9E8);
 
+  /// Single-tab oscillator panel.
+  static const double designWidth = 360;
+
   static const containerTabs = <DeviceTabSpec>[
     DeviceTabSpec(label: 'Tone', icon: Icons.waves),
   ];

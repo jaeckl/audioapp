@@ -40,6 +40,9 @@ class KickGeneratorDevicePanel extends StatelessWidget {
 
   static const accent = DeviceStripTheme.kickGeneratorAccent;
 
+  /// Kick generator — wide bench layout.
+  static const double designWidth = 480;
+
   /// Kick bench uses header-only chrome — no container tabs.
   static const containerTabs = <DeviceTabSpec>[];
 
