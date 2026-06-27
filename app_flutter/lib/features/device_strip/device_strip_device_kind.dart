@@ -5,6 +5,9 @@ const fxDeviceTypes = <String>{
   'compressor',
   'expander',
   'limiter',
+  'bitcrusher',
+  'distortion',
+  'tremolo',
 };
 
 const frequencyFxDeviceTypes = <String>{

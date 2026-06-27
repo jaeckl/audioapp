@@ -39,6 +39,7 @@ import 'crash_generator_device_strip.dart';
 import 'crash_model.dart';
 import 'dynamics_fx_panels.dart';
 import 'time_fx_panels.dart';
+import 'mood_fx_panels.dart';
 import 'frequency_fx_panels.dart';
 import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
@@ -1225,6 +1226,63 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           designWidth: _cardWidth,
           designHeight: contentHeight,
           child: PhaserFxStrip(
+            device: dev,
+            onParameterChanged: widget.onDeviceParameterChanged,
+            modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
+            onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
+            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+          ),
+        );
+      case 'bitcrusher':
+        final dev = widget.device as BitcrusherDeviceSnapshot;
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: _cardWidth,
+          designHeight: contentHeight,
+          child: BitcrusherFxStrip(
+            device: dev,
+            onParameterChanged: widget.onDeviceParameterChanged,
+            modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
+            onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
+            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+          ),
+        );
+      case 'distortion':
+        final dev = widget.device as DistortionDeviceSnapshot;
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: _cardWidth,
+          designHeight: contentHeight,
+          child: DistortionFxStrip(
+            device: dev,
+            onParameterChanged: widget.onDeviceParameterChanged,
+            modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
+            onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
+            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+          ),
+        );
+      case 'tremolo':
+        final dev = widget.device as TremoloDeviceSnapshot;
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: _cardWidth,
+          designHeight: contentHeight,
+          child: TremoloFxStrip(
             device: dev,
             onParameterChanged: widget.onDeviceParameterChanged,
             modulatedParams: _modulatedParamIds,

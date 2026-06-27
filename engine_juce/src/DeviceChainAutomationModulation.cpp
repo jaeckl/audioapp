@@ -53,6 +53,9 @@ void applyModulation(DelayParamsPlayback&, float, uint16_t) noexcept {}
 void applyModulation(ReverbParamsPlayback&, float, uint16_t) noexcept {}
 void applyModulation(ChorusParamsPlayback&, float, uint16_t) noexcept {}
 void applyModulation(PhaserParamsPlayback&, float, uint16_t) noexcept {}
+void applyModulation(BitcrusherParamsPlayback&, float, uint16_t) noexcept {}
+void applyModulation(DistortionParamsPlayback&, float, uint16_t) noexcept {}
+void applyModulation(TremoloParamsPlayback&, float, uint16_t) noexcept {}
 void applyModulation(FilterParams& p, float modAmount, uint16_t localParamId) noexcept {
     // The FilterParams playback struct stores physical units (Hz, Q, mode
     // index). `modAmount` is the LFO output in roughly [-1, 1] multiplied by

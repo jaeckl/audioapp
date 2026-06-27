@@ -11,6 +11,7 @@ import 'sampler_device_panel.dart';
 import 'bass_synth_device_panel.dart';
 import 'subtractive_synth_device_panel.dart';
 import 'phase_mod_synth_device_panel.dart';
+import 'mood_fx_panels.dart';
 
 /// Device types register container header tabs here (icon + label).
 abstract final class DeviceContainerTabs {
@@ -33,6 +34,9 @@ abstract final class DeviceContainerTabs {
       'filter' => FilterDevicePanel.containerTabs,
       'four_band_eq' => FourBandEqDevicePanel.containerTabs,
       'frequency_shifter' => FreqShifterDevicePanel.containerTabs,
+      'bitcrusher' => BitcrusherFxPanel.containerTabs,
+      'distortion' => DistortionFxPanel.containerTabs,
+      'tremolo' => TremoloFxPanel.containerTabs,
       _ => const <DeviceTabSpec>[],
     };
   }

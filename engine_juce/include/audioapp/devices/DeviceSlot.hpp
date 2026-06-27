@@ -18,6 +18,9 @@
 #include "audioapp/effects/ReverbParams.hpp" // ReverbParams
 #include "audioapp/effects/ChorusParams.hpp" // ChorusParams
 #include "audioapp/effects/PhaserParams.hpp" // PhaserParams
+#include "audioapp/effects/BitcrusherParams.hpp"
+#include "audioapp/effects/DistortionParams.hpp"
+#include "audioapp/effects/TremoloParams.hpp"
 
 // Model types (non-trivial replacements)
 #include "audioapp/devices/instances/SamplerModel.hpp"
@@ -49,7 +52,10 @@ using DeviceInstance = std::variant<
     PhaserParams,               // was PhaserInstance
     FilterModel,                // was FilterInstance
     FourBandEqModel,            // was FourBandEqInstance
-    FrequencyShifterModel       // was FrequencyShifterInstance
+    FrequencyShifterModel,       // was FrequencyShifterInstance
+    BitcrusherParams,
+    DistortionParams,
+    TremoloParams
 >;
 
 /// Unified device config wrapping params, panels, and bypass.

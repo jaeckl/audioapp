@@ -337,3 +337,225 @@ class PhaserDeviceSnapshot extends EffectDeviceSnapshot {
     };
   }
 }
+
+class BitcrusherDeviceSnapshot extends EffectDeviceSnapshot {
+  const BitcrusherDeviceSnapshot({
+    required super.id,
+    required super.gain,
+    required super.pan,
+    required super.bypassed,
+    required super.meterGainReductionDb,
+    required super.meterInputLevel,
+    required this.bcRate,
+    required this.bcBits,
+    required this.bcMix,
+  }) : super(type: 'bitcrusher');
+
+  final double bcRate;
+  final double bcBits;
+  final double bcMix;
+
+  factory BitcrusherDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
+    final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
+    final outputPanel = map['outputPanel'] as Map<dynamic, dynamic>? ?? {};
+    final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
+    return BitcrusherDeviceSnapshot(
+      id: map['id'] as String? ?? '',
+      gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
+      pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
+      bypassed: readBypass(map['bypass']),
+      meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
+      meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
+      bcRate: (params['rate'] as num?)?.toDouble() ?? 0.5,
+      bcBits: (params['bits'] as num?)?.toDouble() ?? 8.0,
+      bcMix: (params['mix'] as num?)?.toDouble() ?? 0.5,
+    );
+  }
+
+  @override
+  BitcrusherDeviceSnapshot copyWith({
+    String? id,
+    String? type,
+    double? gain,
+    double? pan,
+    bool? bypassed,
+    double? meterGainReductionDb,
+    double? meterInputLevel,
+    double? bcRate,
+    double? bcBits,
+    double? bcMix,
+  }) {
+    return BitcrusherDeviceSnapshot(
+      id: id ?? this.id,
+      gain: gain ?? this.gain,
+      pan: pan ?? this.pan,
+      bypassed: bypassed ?? this.bypassed,
+      meterGainReductionDb: meterGainReductionDb ?? this.meterGainReductionDb,
+      meterInputLevel: meterInputLevel ?? this.meterInputLevel,
+      bcRate: bcRate ?? this.bcRate,
+      bcBits: bcBits ?? this.bcBits,
+      bcMix: bcMix ?? this.bcMix,
+    );
+  }
+
+  @override
+  BitcrusherDeviceSnapshot withParameter(String parameterId, double value) {
+    return switch (parameterId) {
+      'gain' => copyWith(gain: value),
+      'pan' => copyWith(pan: value),
+      'bypass' => copyWith(bypassed: value >= 0.5),
+      'bcRate' => copyWith(bcRate: value),
+      'bcBits' => copyWith(bcBits: value),
+      'bcMix' => copyWith(bcMix: value),
+      _ => this,
+    };
+  }
+}
+
+class DistortionDeviceSnapshot extends EffectDeviceSnapshot {
+  const DistortionDeviceSnapshot({
+    required super.id,
+    required super.gain,
+    required super.pan,
+    required super.bypassed,
+    required super.meterGainReductionDb,
+    required super.meterInputLevel,
+    required this.distDrive,
+    required this.distTone,
+    required this.distMix,
+  }) : super(type: 'distortion');
+
+  final double distDrive;
+  final double distTone;
+  final double distMix;
+
+  factory DistortionDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
+    final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
+    final outputPanel = map['outputPanel'] as Map<dynamic, dynamic>? ?? {};
+    final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
+    return DistortionDeviceSnapshot(
+      id: map['id'] as String? ?? '',
+      gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
+      pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
+      bypassed: readBypass(map['bypass']),
+      meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
+      meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
+      distDrive: (params['drive'] as num?)?.toDouble() ?? 0.5,
+      distTone: (params['tone'] as num?)?.toDouble() ?? 0.5,
+      distMix: (params['mix'] as num?)?.toDouble() ?? 0.5,
+    );
+  }
+
+  @override
+  DistortionDeviceSnapshot copyWith({
+    String? id,
+    String? type,
+    double? gain,
+    double? pan,
+    bool? bypassed,
+    double? meterGainReductionDb,
+    double? meterInputLevel,
+    double? distDrive,
+    double? distTone,
+    double? distMix,
+  }) {
+    return DistortionDeviceSnapshot(
+      id: id ?? this.id,
+      gain: gain ?? this.gain,
+      pan: pan ?? this.pan,
+      bypassed: bypassed ?? this.bypassed,
+      meterGainReductionDb: meterGainReductionDb ?? this.meterGainReductionDb,
+      meterInputLevel: meterInputLevel ?? this.meterInputLevel,
+      distDrive: distDrive ?? this.distDrive,
+      distTone: distTone ?? this.distTone,
+      distMix: distMix ?? this.distMix,
+    );
+  }
+
+  @override
+  DistortionDeviceSnapshot withParameter(String parameterId, double value) {
+    return switch (parameterId) {
+      'gain' => copyWith(gain: value),
+      'pan' => copyWith(pan: value),
+      'bypass' => copyWith(bypassed: value >= 0.5),
+      'distDrive' => copyWith(distDrive: value),
+      'distTone' => copyWith(distTone: value),
+      'distMix' => copyWith(distMix: value),
+      _ => this,
+    };
+  }
+}
+
+class TremoloDeviceSnapshot extends EffectDeviceSnapshot {
+  const TremoloDeviceSnapshot({
+    required super.id,
+    required super.gain,
+    required super.pan,
+    required super.bypassed,
+    required super.meterGainReductionDb,
+    required super.meterInputLevel,
+    required this.tremDepth,
+    required this.tremRate,
+    required this.tremShape,
+  }) : super(type: 'tremolo');
+
+  final double tremDepth;
+  final double tremRate;
+  final double tremShape;
+
+  factory TremoloDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
+    final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
+    final outputPanel = map['outputPanel'] as Map<dynamic, dynamic>? ?? {};
+    final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
+    return TremoloDeviceSnapshot(
+      id: map['id'] as String? ?? '',
+      gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
+      pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
+      bypassed: readBypass(map['bypass']),
+      meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
+      meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
+      tremDepth: (params['depth'] as num?)?.toDouble() ?? 0.5,
+      tremRate: (params['rateHz'] as num?)?.toDouble() ?? 5.0,
+      tremShape: (params['shape'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+
+  @override
+  TremoloDeviceSnapshot copyWith({
+    String? id,
+    String? type,
+    double? gain,
+    double? pan,
+    bool? bypassed,
+    double? meterGainReductionDb,
+    double? meterInputLevel,
+    double? tremDepth,
+    double? tremRate,
+    double? tremShape,
+  }) {
+    return TremoloDeviceSnapshot(
+      id: id ?? this.id,
+      gain: gain ?? this.gain,
+      pan: pan ?? this.pan,
+      bypassed: bypassed ?? this.bypassed,
+      meterGainReductionDb: meterGainReductionDb ?? this.meterGainReductionDb,
+      meterInputLevel: meterInputLevel ?? this.meterInputLevel,
+      tremDepth: tremDepth ?? this.tremDepth,
+      tremRate: tremRate ?? this.tremRate,
+      tremShape: tremShape ?? this.tremShape,
+    );
+  }
+
+  @override
+  TremoloDeviceSnapshot withParameter(String parameterId, double value) {
+    return switch (parameterId) {
+      'gain' => copyWith(gain: value),
+      'pan' => copyWith(pan: value),
+      'bypass' => copyWith(bypassed: value >= 0.5),
+      'tremDepth' => copyWith(tremDepth: value),
+      'tremRate' => copyWith(tremRate: value),
+      'tremShape' => copyWith(tremShape: value),
+      _ => this,
+    };
+  }
+}

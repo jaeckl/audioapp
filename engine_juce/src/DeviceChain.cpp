@@ -90,6 +90,9 @@ DeviceNodeKind deviceNodeKindFromTypeId(const std::string& typeId) noexcept {
     if (typeId == kFilter)           return DeviceNodeKind::Filter;
     if (typeId == kFourBandEq)       return DeviceNodeKind::FourBandEq;
     if (typeId == kFrequencyShifter) return DeviceNodeKind::FrequencyShifter;
+    if (typeId == kBitcrusher)       return DeviceNodeKind::Bitcrusher;
+    if (typeId == kDistortion)       return DeviceNodeKind::Distortion;
+    if (typeId == kTremolo)          return DeviceNodeKind::Tremolo;
     return DeviceNodeKind::Unknown;
 }
 

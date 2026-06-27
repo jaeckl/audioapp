@@ -19,6 +19,9 @@
 #include "audioapp/devices/FilterDeviceType.hpp"
 #include "audioapp/devices/FourBandEqDeviceType.hpp"
 #include "audioapp/devices/FrequencyShifterDeviceType.hpp"
+#include "audioapp/effects/BitcrusherDeviceType.hpp"
+#include "audioapp/effects/DistortionDeviceType.hpp"
+#include "audioapp/effects/TremoloDeviceType.hpp"
 #include "audioapp/effects/EffectDeviceRegistration.hpp"
 
 namespace audioapp {
@@ -148,6 +151,9 @@ DeviceRegistry DeviceRegistry::createBuiltIn() {
     registry.registerType(std::make_unique<FilterDeviceType>());
     registry.registerType(std::make_unique<FourBandEqDeviceType>());
     registry.registerType(std::make_unique<FrequencyShifterDeviceType>());
+    registry.registerType(std::make_unique<BitcrusherDeviceType>());
+    registry.registerType(std::make_unique<DistortionDeviceType>());
+    registry.registerType(std::make_unique<TremoloDeviceType>());
     registerTimeBasedEffects(registry);
 
     // Register all param descriptors from each device type into the param registry

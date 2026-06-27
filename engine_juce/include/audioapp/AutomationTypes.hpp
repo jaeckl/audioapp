@@ -317,6 +317,24 @@ enum class FrequencyShifterParam : uint16_t {
     Shift = 0,
 };
 
+enum class BitcrusherParam : uint16_t {
+    Rate = 0,
+    Bits = 1,
+    Mix = 2,
+};
+
+enum class DistortionParam : uint16_t {
+    Drive = 0,
+    Tone = 1,
+    Mix = 2,
+};
+
+enum class TremoloParam : uint16_t {
+    Depth = 0,
+    Rate = 1,
+    Shape = 2,
+};
+
 // -----------------------------------------------------------------------
 // ParamKind — distinguishes which per-device enum a `localParamId` refers
 // to. Without this tag, multiple device kinds (CommonParam, SubtractiveParam,
@@ -350,6 +368,9 @@ enum class ParamKind : uint16_t {
     Filter           = 16,
     FourBandEq       = 17,
     FrequencyShifter = 18,
+    Bitcrusher       = 19,
+    Distortion       = 20,
+    Tremolo          = 21,
 };
 
 constexpr uint16_t kParamKindShift      = 11;

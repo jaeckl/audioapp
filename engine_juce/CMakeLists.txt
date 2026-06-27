@@ -71,6 +71,9 @@ add_library(audioapp_engine STATIC
   src/devices/processors/FilterProcessor.cpp
   src/devices/processors/FourBandEqProcessor.cpp
   src/devices/processors/FrequencyShifterProcessor.cpp
+  src/devices/processors/BitcrusherProcessor.cpp
+  src/devices/processors/DistortionProcessor.cpp
+  src/devices/processors/TremoloProcessor.cpp
   src/devices/DeviceRegistry.cpp
   src/devices/IDeviceType.cpp
   src/devices/OscillatorDeviceType.cpp
@@ -98,6 +101,9 @@ add_library(audioapp_engine STATIC
   src/effects/ReverbDeviceType.cpp
   src/effects/ChorusDeviceType.cpp
   src/effects/PhaserDeviceType.cpp
+  src/effects/BitcrusherDeviceType.cpp
+  src/effects/DistortionDeviceType.cpp
+  src/effects/TremoloDeviceType.cpp
   src/model/TrackRepository.cpp
   src/model/ClipRepository.cpp
   src/model/AutomationClipStore.cpp

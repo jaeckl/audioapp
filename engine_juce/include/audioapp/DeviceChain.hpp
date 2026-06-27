@@ -58,6 +58,9 @@ enum class DeviceNodeKind : uint8_t {
     Filter,
     FourBandEq,
     FrequencyShifter,
+    Bitcrusher,
+    Distortion,
+    Tremolo,
 };
 
 // --- Per-device DSP-only parameter structs ---
@@ -96,6 +99,27 @@ struct PhaserParamsPlayback {
     float rateHz = 0.8f;
     float feedback = 0.3f;
     float centreFrequencyHz = 1000.0f;
+    float inputGain = 1.0f;
+};
+
+struct BitcrusherParamsPlayback {
+    float rate = 0.5f;
+    float bits = 8.0f;
+    float mix = 0.5f;
+    float inputGain = 1.0f;
+};
+
+struct DistortionParamsPlayback {
+    float drive = 0.5f;
+    float tone = 0.5f;
+    float mix = 0.5f;
+    float inputGain = 1.0f;
+};
+
+struct TremoloParamsPlayback {
+    float depth = 0.5f;
+    float rateHz = 5.0f;
+    float shape = 0.0f;
     float inputGain = 1.0f;
 };
 
@@ -147,7 +171,10 @@ using DeviceVariantParams = std::variant<
     PhaserParamsPlayback,
     FilterParams,
     FourBandEqParams,
-    FrequencyShifterParams
+    FrequencyShifterParams,
+    BitcrusherParamsPlayback,
+    DistortionParamsPlayback,
+    TremoloParamsPlayback
 >;
 
 /// Per-track device chain node (built on control thread, read on audio thread).

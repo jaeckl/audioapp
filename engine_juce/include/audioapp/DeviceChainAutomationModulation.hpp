@@ -29,6 +29,9 @@ void applyModulation(CompressorParams& p, float modAmount, uint16_t localParamId
 void applyModulation(ExpanderParams& p, float modAmount, uint16_t localParamId) noexcept;
 void applyModulation(LimiterParams& p, float modAmount, uint16_t localParamId) noexcept;
 void applyModulation(PhaseModSynthParams& p, float modAmount, uint16_t localParamId) noexcept;
+void applyModulation(BitcrusherParamsPlayback&, float, uint16_t) noexcept;
+void applyModulation(DistortionParamsPlayback&, float, uint16_t) noexcept;
+void applyModulation(TremoloParamsPlayback&, float, uint16_t) noexcept;
 
 void applyDspModulationAtFrame(DeviceVariantParams& params,
                                DeviceNodeKind kind,
