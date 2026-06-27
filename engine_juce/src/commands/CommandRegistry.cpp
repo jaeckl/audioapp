@@ -40,7 +40,9 @@ std::string CommandResult::toJson() const {
     if (!error.empty()) {
         obj->setProperty("error", juce::String(error));
     }
-    if (data.isObject() || data.isArray()) {
+    if (deltaData.isObject()) {
+        obj->setProperty("delta", deltaData);
+    } else if (data.isObject() || data.isArray()) {
         obj->setProperty("snapshot", data);
     }
     return juce::JSON::toString(juce::var(obj), false).toStdString();

@@ -115,6 +115,7 @@ add_library(audioapp_engine STATIC
   src/FallbackPreviewOscillator.cpp
   src/params/ParamRegistry.cpp
   src/commands/CommandRegistry.cpp
+  src/snapshot/SnapshotDelta.cpp
 )
 
 target_include_directories(audioapp_engine

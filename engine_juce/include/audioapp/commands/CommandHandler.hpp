@@ -26,15 +26,20 @@ struct CommandResult {
     /// returns a complete bridge response (e.g. getTransportState).
     std::string rawJson;
 
+    /// Delta payload — when set, serialized under "delta" key instead of
+    /// "snapshot". The Dart side merges this into its cached snapshot.
+    juce::var deltaData;
+
     /// Serialize to JSON response string.
     std::string toJson() const;
 };
 
 /// Factory helpers.
-inline CommandResult okResult() { return CommandResult{true, {}, {}, {}}; }
-inline CommandResult okWithVar(juce::var data) { return CommandResult{true, {}, std::move(data), {}}; }
-inline CommandResult errorResult(std::string msg) { return CommandResult{false, std::move(msg), {}, {}}; }
-inline CommandResult rawResult(std::string json) { return CommandResult{true, {}, {}, std::move(json)}; }
+inline CommandResult okResult() { return CommandResult{true, {}, {}, {}, {}}; }
+inline CommandResult okWithVar(juce::var data) { return CommandResult{true, {}, std::move(data), {}, {}}; }
+inline CommandResult errorResult(std::string msg) { return CommandResult{false, std::move(msg), {}, {}, {}}; }
+inline CommandResult rawResult(std::string json) { return CommandResult{true, {}, {}, std::move(json), {}}; }
+inline CommandResult okWithDelta(juce::var delta) { return CommandResult{true, {}, {}, {}, std::move(delta)}; }
 
 /// Command handler signature.
 using HandlerFn = std::function<CommandResult(const CommandContext& ctx)>;
