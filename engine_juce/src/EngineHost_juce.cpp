@@ -6,7 +6,6 @@
 
 #include <atomic>
 #include <cstring>
-#include <mutex>
 
 namespace audioapp {
 
@@ -19,14 +18,14 @@ struct EngineHost::Impl : juce::AudioIODeviceCallback {
     std::atomic<bool> playing{false};
     std::atomic<double> sampleRate{48000.0};
     std::atomic<bool> audioInitialized{false};
-    std::mutex initMutex;
+    juce::CriticalSection initMutex;
 
     void ensureAudioInitialized() {
         if (audioInitialized.load(std::memory_order_acquire)) {
             return;
         }
 
-        std::lock_guard<std::mutex> lock(initMutex);
+        const juce::ScopedLock lock(initMutex);
         if (audioInitialized.load(std::memory_order_relaxed)) {
             return;
         }

@@ -2,7 +2,7 @@
 
 #include "audioapp/SampleTypes.hpp"
 
-#include <mutex>
+#include <juce_core/juce_core.h>
 #include <optional>
 #include <string>
 #include <vector>
@@ -40,7 +40,7 @@ public:
     static std::vector<float> computePeaks(const float* pcm, int frameCount, int binCount);
 
 private:
-    mutable std::mutex mutex_;
+    mutable juce::CriticalSection mutex_;
     std::vector<Sample> samples_;
 
     bool upsertSample(Sample sample);

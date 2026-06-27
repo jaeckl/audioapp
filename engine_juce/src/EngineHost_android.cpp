@@ -8,7 +8,7 @@
 #include <atomic>
 #include <cmath>
 #include <cstring>
-#include <mutex>
+#include <juce_core/juce_core.h>
 #include <time.h>
 
 #define AUDIOAPP_LOG(...) __android_log_print(ANDROID_LOG_INFO, "audioapp_engine", __VA_ARGS__)
@@ -24,7 +24,7 @@ struct EngineHost::Impl {
     std::atomic<bool> playing{false};
     std::atomic<double> sampleRate{48000.0};
     AAudioStream* stream = nullptr;
-    std::mutex streamMutex;
+    juce::CriticalSection streamMutex;
 
     // Timing instrumentation (audio-thread safe, atomics)
     std::atomic<int64_t> maxCallbackNs{0};
@@ -131,7 +131,7 @@ struct EngineHost::Impl {
     }
 
     bool openStream() {
-        std::lock_guard<std::mutex> lock(streamMutex);
+        juce::ScopedLock lock(streamMutex);
         if (stream != nullptr) {
             return true;
         }
@@ -174,7 +174,7 @@ struct EngineHost::Impl {
     }
 
     void closeStream() {
-        std::lock_guard<std::mutex> lock(streamMutex);
+        juce::ScopedLock lock(streamMutex);
         if (stream == nullptr) {
             return;
         }
@@ -188,7 +188,7 @@ struct EngineHost::Impl {
             return false;
         }
 
-        std::lock_guard<std::mutex> lock(streamMutex);
+        juce::ScopedLock lock(streamMutex);
         if (stream == nullptr) {
             return false;
         }
@@ -207,7 +207,7 @@ struct EngineHost::Impl {
     }
 
     void stopStream() {
-        std::lock_guard<std::mutex> lock(streamMutex);
+        juce::ScopedLock lock(streamMutex);
         if (stream != nullptr) {
             AAudioStream_requestStop(stream);
         }

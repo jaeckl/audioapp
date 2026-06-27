@@ -32,7 +32,6 @@
 #include <cmath>
 #include <cstring>
 #include <cstdlib>
-#include <shared_mutex>
 #include <vector>
 
 namespace audioapp {
@@ -42,7 +41,7 @@ thread_local DeviceChainScratch gProjectScratch;
 } // namespace
 
 void ProjectEngine::createProject() {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     trackRepo_.clear();
     clipRepo_.clear();
     automationClipStore_.clear();
@@ -59,7 +58,7 @@ void ProjectEngine::createProject() {
 }
 
 std::string ProjectEngine::addTrack(const std::string& name) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     const std::string trackId = trackRepo_.addTrack(name, deviceRegistry_);
     syncActiveFrequencyLocked();
     rebuildTrackPlaybackLocked();
@@ -67,7 +66,7 @@ std::string ProjectEngine::addTrack(const std::string& name) {
 }
 
 bool ProjectEngine::selectTrack(const std::string& trackId) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     const bool selectionChanged = trackRepo_.selectedTrackId() != trackId;
     if (!trackRepo_.selectTrack(trackId)) {
         return false;
@@ -83,7 +82,7 @@ bool ProjectEngine::selectTrack(const std::string& trackId) {
 std::string ProjectEngine::addDeviceToTrack(const std::string& trackId,
                                             const std::string& deviceType,
                                             int insertIndex) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     Track* track = trackRepo_.findTrack(trackId);
     if (track == nullptr) {
         return {};
@@ -158,7 +157,7 @@ bool ProjectEngine::removeDeviceFromTrack(const std::string& deviceId) {
 bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
                                        const std::string& parameterId,
                                        float value) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     DeviceSlot* device = findDeviceLocked(deviceId);
     if (device == nullptr) {
         return false;
@@ -199,7 +198,7 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
 bool ProjectEngine::setDeviceStringParameter(const std::string& deviceId,
                                              const std::string& parameterId,
                                              const std::string& value) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     DeviceSlot* device = findDeviceLocked(deviceId);
     if (device == nullptr) {
         return false;
@@ -221,7 +220,7 @@ bool ProjectEngine::setMasterGain(float gain) {
 std::string ProjectEngine::createMidiClip(const std::string& trackId,
                                           double startBeat,
                                           double lengthBeats) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     const std::string clipId = clipRepo_.createMidiClip(trackId, startBeat, lengthBeats);
     if (clipId.empty()) {
         return {};
@@ -232,7 +231,7 @@ std::string ProjectEngine::createMidiClip(const std::string& trackId,
 
 bool ProjectEngine::setMidiClipNotes(const std::string& clipId,
                                      const std::vector<MidiNoteState>& notes) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     if (!clipRepo_.setMidiClipNotes(clipId, notes)) {
         return false;
     }
@@ -244,7 +243,7 @@ std::string ProjectEngine::createSampleClip(const std::string& trackId,
                                             const std::string& sampleId,
                                             double startBeat,
                                             double lengthBeats) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     const std::string clipId = clipRepo_.createSampleClip(
         trackId, sampleId, startBeat, lengthBeats, sampleBank_, transport_.bpm());
     if (clipId.empty()) {
@@ -257,7 +256,7 @@ std::string ProjectEngine::createSampleClip(const std::string& trackId,
 std::string ProjectEngine::createAutomationClip(const std::string& homeTrackId,
                                                 double startBeat,
                                                 double lengthBeats) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     if (homeTrackId.empty() || trackRepo_.findTrack(homeTrackId) == nullptr) {
         return {};
     }
@@ -272,7 +271,7 @@ std::string ProjectEngine::createAutomationClip(const std::string& homeTrackId,
 bool ProjectEngine::assignAutomationTarget(const std::string& clipId,
                                            const std::string& deviceId,
                                            const std::string& paramId) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     if (findDeviceLocked(deviceId) == nullptr) {
         return false;
     }
@@ -285,7 +284,7 @@ bool ProjectEngine::assignAutomationTarget(const std::string& clipId,
 
 bool ProjectEngine::setAutomationPoints(const std::string& clipId,
                                         const std::vector<AutomationPointState>& points) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     if (!automationClipStore_.setPoints(clipId, points)) {
         return false;
     }
@@ -296,7 +295,7 @@ bool ProjectEngine::setAutomationPoints(const std::string& clipId,
 bool ProjectEngine::moveClip(const std::string& clipId,
                              const std::string& targetTrackId,
                              double startBeat) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     if (clipRepo_.findMidiClip(clipId) != nullptr ||
         clipRepo_.findSampleClip(clipId) != nullptr) {
         if (!clipRepo_.moveClip(clipId, targetTrackId, startBeat)) {
@@ -318,7 +317,7 @@ bool ProjectEngine::moveClip(const std::string& clipId,
 }
 
 bool ProjectEngine::setClipLength(const std::string& clipId, double lengthBeats) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     if (clipRepo_.findMidiClip(clipId) != nullptr ||
         clipRepo_.findSampleClip(clipId) != nullptr) {
         if (!clipRepo_.setClipLength(clipId, lengthBeats)) {
@@ -338,7 +337,7 @@ bool ProjectEngine::setBpm(int bpm) {
     const int oldBpm = transport_.bpm();
     if (oldBpm == bpm) return false;
 
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     undoManager_.beginNewTransaction();
     undoManager_.perform(std::make_unique<CallbackAction>(
         [this, bpm] {
@@ -353,7 +352,7 @@ bool ProjectEngine::setBpm(int bpm) {
 }
 
 bool ProjectEngine::deleteTrack(const std::string& trackId) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     if (!trackRepo_.deleteTrack(trackId)) {
         return false;
     }
@@ -363,7 +362,7 @@ bool ProjectEngine::deleteTrack(const std::string& trackId) {
 }
 
 bool ProjectEngine::deleteClip(const std::string& clipId) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     if (clipRepo_.findMidiClip(clipId) != nullptr ||
         clipRepo_.findSampleClip(clipId) != nullptr) {
         if (!clipRepo_.deleteClip(clipId)) {
@@ -380,7 +379,7 @@ bool ProjectEngine::deleteClip(const std::string& clipId) {
 }
 
 bool ProjectEngine::duplicateClip(const std::string& clipId) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     if (clipRepo_.findMidiClip(clipId) != nullptr ||
         clipRepo_.findSampleClip(clipId) != nullptr) {
         if (!clipRepo_.duplicateClip(clipId)) {
@@ -397,18 +396,18 @@ bool ProjectEngine::duplicateClip(const std::string& clipId) {
 }
 
 bool ProjectEngine::setLoopEnabled(bool enabled) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     transport_.setLoopEnabled(enabled);
     return true;
 }
 
 bool ProjectEngine::setLoopLengthBeats(double lengthBeats) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     return transport_.setLoopLengthBeats(lengthBeats);
 }
 
 bool ProjectEngine::setLoopRegion(double startBeat, double endBeat) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     return transport_.setLoopRegion(startBeat, endBeat);
 }
 
@@ -416,7 +415,7 @@ std::vector<float> ProjectEngine::renderOffline(double lengthBeats, double sampl
     if (lengthBeats <= 0.0 || sampleRate <= 0.0) {
         return {};
     }
-    std::shared_lock<std::shared_mutex> lock(mutex_);
+    const juce::ScopedReadLock lock(mutex_);
     const int totalFrames =
         static_cast<int>(lengthBeats * sampleRate * 60.0 / static_cast<double>(std::max(transport_.bpm(), 1)));
     if (totalFrames <= 0) {
@@ -437,7 +436,7 @@ std::vector<float> ProjectEngine::renderOffline(double lengthBeats, double sampl
 }
 
 ProjectSnapshot ProjectEngine::snapshot() const {
-    std::shared_lock<std::shared_mutex> lock(mutex_);
+    const juce::ScopedReadLock lock(mutex_);
     ProjectSnapshot snap;
     snap.bpm = transport_.bpm();
     snap.selectedTrackId = trackRepo_.selectedTrackId();
@@ -776,7 +775,7 @@ void ProjectEngine::mixAtPlayheadBeat(float* monoOut,
 
 void ProjectEngine::setPlaying(bool playing) {
     if (playing) {
-        std::lock_guard<std::shared_mutex> lock(mutex_);
+        const juce::ScopedWriteLock lock(mutex_);
         rebuildTrackPlaybackLocked();
     }
     transport_.setPlaying(playing);
@@ -814,7 +813,7 @@ TransportStateSnapshot ProjectEngine::transportState() const noexcept {
 }
 
 ProjectFileData ProjectEngine::toProjectFileData() const {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     ProjectFileData file;
     file.projectFormatVersion = kProjectFormatVersion;
     file.name = projectName_;
@@ -899,7 +898,7 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
         return false;
     }
 
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     projectName_ = data.name.empty() ? "Untitled" : data.name;
     if (data.bpm > 0) {
         transport_.setBpm(data.bpm);
@@ -989,12 +988,12 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
 }
 
 int ProjectEngine::createLfo(int modulatorType) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     return modulationGraph_.createLfo(modulatorType);
 }
 
 bool ProjectEngine::removeLfo(int lfoId) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     const bool result = modulationGraph_.removeLfo(lfoId);
     if (result) {
         rebuildModEdgesLocked();
@@ -1003,18 +1002,18 @@ bool ProjectEngine::removeLfo(int lfoId) {
 }
 
 bool ProjectEngine::updateLfoParam(int lfoId, const std::string& param, float value) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     return modulationGraph_.updateLfoParam(lfoId, param, value);
 }
 
 bool ProjectEngine::batchUpdateLfoParams(int lfoId, const std::vector<std::pair<std::string, float>>& params) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     return modulationGraph_.batchUpdateLfoParams(lfoId, params);
 }
 
 bool ProjectEngine::assignModulation(int lfoId, const std::string& deviceId,
                                      const std::string& paramId, float amount) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     if (findDeviceLocked(deviceId) == nullptr) {
         return false;
     }
@@ -1026,7 +1025,7 @@ bool ProjectEngine::assignModulation(int lfoId, const std::string& deviceId,
 }
 
 bool ProjectEngine::removeModulation(int lfoId, const std::string& paramId) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     const bool result = modulationGraph_.removeModulation(lfoId, paramId);
     if (result) {
         rebuildModEdgesLocked();
@@ -1039,7 +1038,7 @@ bool ProjectEngine::applySubtractiveSynthPreset(
     const std::vector<std::pair<std::string, float>>& params,
     const std::vector<SubtractivePresetLfoSpec>& lfos,
     const std::vector<SubtractivePresetModSpec>& mods) {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     DeviceSlot* device = findDeviceLocked(deviceId);
     if (device == nullptr || deviceNodeKindFromTypeId(device->config.typeId) != DeviceNodeKind::SubtractiveSynth) {
         return false;
@@ -1115,7 +1114,7 @@ void ProjectEngine::recomputeIdCountersLocked() {
 std::string ProjectEngine::getDeviceMetersJson() {
     // Shared lock to safely read meter slot assignments alongside the
     // audio thread (which holds exclusive lock during rebuild).
-    std::shared_lock lock(mutex_);
+    const juce::ScopedReadLock lock(mutex_);
     std::string json = R"({"ok":true,"meters":{)";
     bool first = true;
     for (int i = 0; i < deviceMeterSlotCount_; ++i) {
@@ -1612,14 +1611,14 @@ void ProjectEngine::syncProjectTreeLocked() {
 // ── Undo / Redo ──────────────────────────────────────────
 
 bool ProjectEngine::undo() {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     if (!undoManager_.undo()) return false;
     // undoManager_ applies property changes → triggers listener → repos rebuilt
     return true;
 }
 
 bool ProjectEngine::redo() {
-    std::lock_guard<std::shared_mutex> lock(mutex_);
+    const juce::ScopedWriteLock lock(mutex_);
     if (!undoManager_.redo()) return false;
     return true;
 }

@@ -115,7 +115,7 @@ SampleBank::Sample SampleBank::makeBundledClap() {
 }
 
 void SampleBank::registerBundledDefaults() {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const juce::ScopedLock lock(mutex_);
     samples_.erase(std::remove_if(samples_.begin(),
                                   samples_.end(),
                                   [](const Sample& sample) { return sample.source == "bundled"; }),
@@ -155,12 +155,12 @@ bool SampleBank::loadFromWavBytes(const std::string& id,
     sample.sampleRate = decoded.sampleRate;
     sample.peaks = computePeaks(sample.pcm.data(), static_cast<int>(sample.pcm.size()), kPeakBinCount);
 
-    std::lock_guard<std::mutex> lock(mutex_);
+    const juce::ScopedLock lock(mutex_);
     return upsertSample(std::move(sample));
 }
 
 const SampleBank::Sample* SampleBank::findSample(const std::string& id) const {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const juce::ScopedLock lock(mutex_);
     for (const auto& sample : samples_) {
         if (sample.id == id) {
             return &sample;
@@ -170,7 +170,7 @@ const SampleBank::Sample* SampleBank::findSample(const std::string& id) const {
 }
 
 std::vector<SampleBank::Sample> SampleBank::listSamples() const {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const juce::ScopedLock lock(mutex_);
     return samples_;
 }
 
@@ -184,7 +184,7 @@ double SampleBank::beatsForSample(const std::string& id, int bpm) const {
 }
 
 void SampleBank::clearImported() {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const juce::ScopedLock lock(mutex_);
     samples_.erase(std::remove_if(samples_.begin(),
                                   samples_.end(),
                                   [](const Sample& sample) { return sample.source == "imported"; }),
@@ -192,7 +192,7 @@ void SampleBank::clearImported() {
 }
 
 void SampleBank::restoreMetadata(const std::vector<SampleLibraryEntryState>& entries, int bpm) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const juce::ScopedLock lock(mutex_);
     for (const auto& entry : entries) {
         const bool exists = std::any_of(samples_.begin(), samples_.end(), [&](const Sample& sample) {
             return sample.id == entry.id;
