@@ -11,11 +11,7 @@ import 'device_snapshot.dart';
 import 'live_meters_dto.dart';
 
 class ProjectSnapshot {
-  /// Bridge protocol version from the response. 0 if response has no version field.
-  final int protocolVersion;
-
   const ProjectSnapshot({
-    this.protocolVersion = 0,
     required this.bpm,
     required this.selectedTrackId,
     required this.playheadBeats,
@@ -54,14 +50,6 @@ class ProjectSnapshot {
 
   factory ProjectSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final snapshot = map['snapshot'] as Map<dynamic, dynamic>? ?? map;
-    // Protocol version check — non-fatal warning if mismatch
-    final protocolVersion = (map['protocolVersion'] as num?)?.toInt() ?? 0;
-    final versionWarn = checkBridgeProtocolVersion(map);
-    if (versionWarn != null) {
-      // Non-fatal: log mismatch but parse anyway
-      // ignore: avoid_print
-      print('WARNING: $versionWarn');
-    }
     final tracksRaw = snapshot['tracks'] as List<dynamic>? ?? [];
     final samplesRaw = snapshot['samples'] as List<dynamic>? ?? [];
     final lfosRaw = snapshot['lfos'] as List<dynamic>? ?? [];
@@ -69,21 +57,20 @@ class ProjectSnapshot {
     // Prefer the new top-level array; fall back to per-track if a legacy
     // engine (or test mock) only emits the nested form.
     final automationRaw = snapshot['automationClips'] as List<dynamic>?;
-    final loopRegionEndRaw = snapshot['loopRegionEndBeat'];
     final loopRegionStart = readEngineDouble(
       snapshot['loopRegionStartBeat'],
       defaultValue: 0.0,
     );
-    final loopRegionEnd = loopRegionEndRaw != null
-        ? readEngineDouble(loopRegionEndRaw, defaultValue: 16.0)
-        : readEngineDouble(snapshot['loopLengthBeats'], defaultValue: 16.0);
+    final loopRegionEnd = readEngineDouble(
+      snapshot['loopRegionEndBeat'],
+      defaultValue: 16.0,
+    );
     final automationClipsList = automationRaw != null
         ? automationRaw
             .map((c) => AutomationClipSnapshot.fromMap(c as Map<dynamic, dynamic>))
             .toList()
         : <AutomationClipSnapshot>[];
     return ProjectSnapshot(
-      protocolVersion: protocolVersion,
       bpm: (snapshot['bpm'] as num?)?.toInt() ?? 120,
       selectedTrackId: snapshot['selectedTrackId'] as String? ?? '',
       playheadBeats: (snapshot['playheadBeats'] as num?)?.toDouble() ?? 0.0,
@@ -152,7 +139,6 @@ class ProjectSnapshot {
     };
 
     return ProjectSnapshot(
-      protocolVersion: protocolVersion,
       bpm: bpm,
       selectedTrackId: selectedTrackId,
       playheadBeats: playheadBeats,
@@ -183,6 +169,39 @@ class ProjectSnapshot {
               automationClips: track.automationClips,
             ),
           )
+          .toList(),
+      lfos: lfos,
+      modEdges: modEdges,
+      automationClips: automationClips,
+    );
+  }
+
+  /// Optimistically update a device parameter in the snapshot (no bridge round-trip).
+  /// Used when the engine's setDeviceParameter command returns void (no delta/snapshot).
+  ProjectSnapshot withDeviceParam(String deviceId, String paramId, double value) {
+    return ProjectSnapshot(
+      bpm: bpm,
+      selectedTrackId: selectedTrackId,
+      playheadBeats: playheadBeats,
+      playing: playing,
+      loopEnabled: loopEnabled,
+      loopRegionStartBeat: loopRegionStartBeat,
+      loopRegionEndBeat: loopRegionEndBeat,
+      recordArmed: recordArmed,
+      master: master,
+      samples: samples,
+      tracks: tracks
+          .map((t) => TrackSnapshot(
+                id: t.id,
+                name: t.name,
+                devices: t.devices
+                    .map((d) =>
+                        d.id == deviceId ? d.withParameter(paramId, value) : d)
+                    .toList(),
+                midiClips: t.midiClips,
+                sampleClips: t.sampleClips,
+                automationClips: t.automationClips,
+              ))
           .toList(),
       lfos: lfos,
       modEdges: modEdges,

@@ -7,24 +7,6 @@ import 'param_descriptor.dart';
 import 'project_snapshot.dart';
 import 'transport_state.dart';
 
-/// Waveform data for rendering a miniature clip preview in the library UI.
-class ClipPreviewData {
-  final List<double> peaks; // Normalised amplitude peaks (0.0–1.0), ~100 values
-  final Duration length; // Total clip duration
-
-  const ClipPreviewData({required this.peaks, required this.length});
-
-  factory ClipPreviewData.fromMap(Map<dynamic, dynamic> map) {
-    return ClipPreviewData(
-      peaks: (map['peaks'] as List<dynamic>?)
-              ?.map((p) => (p as num).toDouble())
-              .toList() ??
-          [],
-      length: Duration(milliseconds: (map['lengthMs'] as num?)?.toInt() ?? 0),
-    );
-  }
-}
-
 /// Flutter ↔ native engine bridge (MethodChannel + EventChannels).
 class EngineBridge {
   EngineBridge({MethodChannel? channel, EventChannel? metersChannel})
@@ -61,27 +43,6 @@ class EngineBridge {
 
   Future<ProjectSnapshot> getProjectSnapshot() async {
     return _invokeForSnapshot('getProjectSnapshot');
-  }
-
-  /// Fetch state for specific devices by ID. Returns a map of deviceId → DeviceSnapshot.
-  Future<Map<String, DeviceSnapshot>> getDeviceStates(List<String> deviceIds) async {
-    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>('getDeviceStates', {
-      'deviceIds': deviceIds,
-    });
-    if (result == null) {
-      throw PlatformException(code: 'null_response', message: 'No response from engine');
-    }
-    if (result['ok'] != true) {
-      throw PlatformException(
-        code: result['error']?.toString() ?? 'engine_error',
-        message: 'Device states fetch failed',
-      );
-    }
-    final devices = result['devices'] as Map<dynamic, dynamic>? ?? {};
-    return devices.map((key, value) => MapEntry(
-      key as String,
-      DeviceSnapshot.fromMap(value as Map<dynamic, dynamic>),
-    ));
   }
 
   Future<TransportState> getTransportState() async {
@@ -272,10 +233,6 @@ class EngineBridge {
     });
   }
 
-  Future<ProjectSnapshot> setBpm(int bpm) async {
-    return _invokeForSnapshot('setBpm', {'bpm': bpm});
-  }
-
   Future<ProjectSnapshot> deleteTrack(String trackId) async {
     return _invokeForSnapshot('deleteTrack', {'trackId': trackId});
   }
@@ -286,24 +243,6 @@ class EngineBridge {
 
   Future<ProjectSnapshot> duplicateClip(String clipId) async {
     return _invokeForSnapshot('duplicateClip', {'clipId': clipId});
-  }
-
-  Future<ProjectSnapshot> setLoopEnabled(bool enabled) async {
-    return _invokeForSnapshot('setLoopEnabled', {'enabled': enabled});
-  }
-
-  Future<ProjectSnapshot> setLoopLengthBeats(double lengthBeats) async {
-    return _invokeForSnapshot('setLoopLengthBeats', {'lengthBeats': lengthBeats});
-  }
-
-  Future<ProjectSnapshot> setLoopRegion({
-    required double startBeat,
-    required double endBeat,
-  }) async {
-    return _invokeForSnapshot('setLoopRegion', {
-      'startBeat': startBeat,
-      'endBeat': endBeat,
-    });
   }
 
   Future<void> enterPlayMode() async {
@@ -521,26 +460,6 @@ class EngineBridge {
     await _invokeOk('stopPreview');
   }
 
-  /// Returns waveform peak data for a library item (MIDI clips, automation clips).
-  /// Returns empty ClipPreviewData on failure (caller handles fallback).
-  Future<ClipPreviewData> fetchClipPreview(String itemId) async {
-    try {
-      final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
-        'fetchClipPreview',
-        {'itemId': itemId},
-      );
-      if (result == null) {
-        return const ClipPreviewData(peaks: [], length: Duration.zero);
-      }
-      if (result['ok'] == true && result['peaks'] != null) {
-        return ClipPreviewData.fromMap(result);
-      }
-      return const ClipPreviewData(peaks: [], length: Duration.zero);
-    } on PlatformException {
-      return const ClipPreviewData(peaks: [], length: Duration.zero);
-    }
-  }
-
   Future<List<DeviceParamDescriptor>> getParamDescriptors(String deviceType) async {
     try {
       final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
@@ -635,8 +554,61 @@ class EngineBridge {
           return ProjectSnapshot.fromMap({'snapshot': full, 'ok': true});
         }
       }
-      // Non-full-refresh delta — caller must use delta-aware path
-      return getProjectSnapshot();
+      // Non-full-refresh delta — apply transport fields inline.
+      // Full state rebuilds happen through SnapshotStore.invokeRaw.
+      int bpm = 120;
+      bool playing = false;
+      bool loopEnabled = true;
+      double loopRegionStart = 0.0;
+      double loopRegionEnd = 16.0;
+      double playhead = 0.0;
+      bool recordArmed = false;
+      String selectedTrackId = '';
+
+      final transport = delta['transport'] as Map<dynamic, dynamic>?;
+      if (transport != null) {
+        if (transport['bpmChanged'] == true) {
+          bpm = (transport['newBpm'] as num).toInt();
+        }
+        if (transport['playingChanged'] == true) {
+          playing = transport['newPlaying'] as bool;
+        }
+        if (transport['loopEnabledChanged'] == true) {
+          loopEnabled = transport['newLoopEnabled'] as bool;
+        }
+        if (transport['loopRegionStartChanged'] == true) {
+          loopRegionStart = (transport['newLoopRegionStart'] as num).toDouble();
+        }
+        if (transport['loopRegionEndChanged'] == true) {
+          loopRegionEnd = (transport['newLoopRegionEnd'] as num).toDouble();
+        }
+        if (transport['playheadChanged'] == true) {
+          playhead = (transport['newPlayhead'] as num).toDouble();
+        }
+        if (transport['recordArmedChanged'] == true) {
+          recordArmed = transport['newRecordArmed'] as bool;
+        }
+        if (transport['trackSelectedChanged'] == true) {
+          selectedTrackId = transport['newSelectedTrackId'] as String;
+        }
+      }
+
+      return ProjectSnapshot(
+        bpm: bpm,
+        selectedTrackId: selectedTrackId,
+        playheadBeats: playhead,
+        playing: playing,
+        loopEnabled: loopEnabled,
+        loopRegionStartBeat: loopRegionStart,
+        loopRegionEndBeat: loopRegionEnd,
+        recordArmed: recordArmed,
+        master: const MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1.0),
+        samples: [],
+        tracks: [],
+        lfos: [],
+        modEdges: [],
+        automationClips: [],
+      );
     }
     return ProjectSnapshot.fromMap(result);
   }

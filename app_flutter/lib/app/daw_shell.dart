@@ -542,37 +542,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   void _optimisticParamUpdate(String deviceId, String parameterId, double value) {
-    final snap = _snapshot;
-    if (snap == null) return;
-    _store.replaceSnapshot(ProjectSnapshot(
-        protocolVersion: snap.protocolVersion,
-        bpm: snap.bpm,
-        selectedTrackId: snap.selectedTrackId,
-        playheadBeats: snap.playheadBeats,
-        playing: snap.playing,
-        loopEnabled: snap.loopEnabled,
-        loopRegionStartBeat: snap.loopRegionStartBeat,
-        loopRegionEndBeat: snap.loopRegionEndBeat,
-        recordArmed: snap.recordArmed,
-        master: snap.master,
-        samples: snap.samples,
-        tracks: snap.tracks
-            .map((t) => TrackSnapshot(
-                  id: t.id,
-                  name: t.name,
-                  devices: t.devices
-                      .map((d) =>
-                          d.id == deviceId ? d.withParameter(parameterId, value) : d)
-                      .toList(),
-                  midiClips: t.midiClips,
-                  sampleClips: t.sampleClips,
-                  automationClips: t.automationClips,
-                ))
-            .toList(),
-        lfos: snap.lfos,
-        modEdges: snap.modEdges,
-        automationClips: snap.automationClips,
-      ));
+    _store.replaceSnapshot(_snapshot!.withDeviceParam(deviceId, parameterId, value));
   }
 
   Future<void> _setSamplerParameter(String deviceId, String parameterId, double value) async {
@@ -598,64 +568,15 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     Map<String, dynamic> args,
   ) async {
     try {
-      ProjectSnapshot result;
       switch (method) {
-        case 'createLfo':
-          result = await widget.bridge.createLfo(
-            modulatorType: (args['modulatorType'] as num?)?.toInt() ?? 0,
-          );
-          break;
-        case 'removeLfo':
-          result = await widget.bridge.removeLfo(
-            (args['lfoId'] as num).toInt(),
-          );
-          break;
-        case 'updateLfoParam': {
-          final raw = await widget.bridge.invokeRaw('updateLfoParam', {
-            'lfoId': (args['lfoId'] as num).toInt(),
-            'param': args['param'] as String,
-            'value': (args['value'] as num).toDouble(),
-          });
-          final delta = raw['delta'] as Map<dynamic, dynamic>?;
-          if (delta != null && _snapshot != null) {
-            _store.replaceSnapshot(SnapshotStore.applyDeltaToSnapshot(_snapshot!, delta));
-          } else {
-            _store.replaceSnapshot(ProjectSnapshot.fromMap(raw));
-          }
+        case 'updateLfoParam':
+        case 'batchUpdateLfoParams':
+          await _store.invokeRaw(method, args);
           return _snapshot!;
-        }
-        case 'assignModulation':
-          result = await widget.bridge.assignModulation(
-            lfoId: (args['lfoId'] as num).toInt(),
-            deviceId: args['deviceId'] as String,
-            paramId: args['paramId'] as String,
-            amount: (args['amount'] as num).toDouble(),
-          );
-          break;
-        case 'removeModulation':
-          result = await widget.bridge.removeModulation(
-            lfoId: (args['lfoId'] as num).toInt(),
-            paramId: args['paramId'] as String,
-          );
-          break;
-        case 'batchUpdateLfoParams': {
-          final raw = await widget.bridge.invokeRaw('batchUpdateLfoParams', {
-            'lfoId': (args['lfoId'] as num).toInt(),
-            'params': args['params'],
-          });
-          final delta = raw['delta'] as Map<dynamic, dynamic>?;
-          if (delta != null && _snapshot != null) {
-            _store.replaceSnapshot(SnapshotStore.applyDeltaToSnapshot(_snapshot!, delta));
-          } else {
-            _store.replaceSnapshot(ProjectSnapshot.fromMap(raw));
-          }
-          return _snapshot!;
-        }
         default:
-          throw Exception('Unknown modulation bridge method: $method');
+          await _store.invokeRaw(method, args);
+          return _snapshot!;
       }
-      await _refreshSnapshot(result);
-      return result;
     } catch (e) {
       if (!mounted) return _snapshot ?? ProjectSnapshot(
         bpm: 120,

@@ -87,7 +87,6 @@ class SnapshotStore extends ChangeNotifier {
       }
 
       result = ProjectSnapshot(
-        protocolVersion: snap.protocolVersion,
         bpm: bpm,
         selectedTrackId: selectedTrackId,
         playheadBeats: playhead,
@@ -161,7 +160,6 @@ class SnapshotStore extends ChangeNotifier {
     }).toList();
 
     return ProjectSnapshot(
-      protocolVersion: snap.protocolVersion,
       bpm: snap.bpm,
       selectedTrackId: snap.selectedTrackId,
       playheadBeats: snap.playheadBeats,
@@ -203,7 +201,6 @@ class SnapshotStore extends ChangeNotifier {
     }).toList();
 
     return ProjectSnapshot(
-      protocolVersion: snap.protocolVersion,
       bpm: snap.bpm,
       selectedTrackId: snap.selectedTrackId,
       playheadBeats: snap.playheadBeats,

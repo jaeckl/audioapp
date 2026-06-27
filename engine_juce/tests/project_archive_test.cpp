@@ -4,8 +4,6 @@
 #include "audioapp/ProjectArchive.hpp"
 #include "audioapp/ProjectJson.hpp"
 
-#include <filesystem>
-
 class ProjectArchiveTest : public juce::UnitTest {
 public:
     ProjectArchiveTest() : juce::UnitTest("ProjectArchive", "Project") {}
@@ -13,9 +11,9 @@ public:
     void runTest() override
     {
         const auto tempArchive =
-            std::filesystem::temp_directory_path() / "audioapp_project_archive_test.audioapp.zip";
-        std::error_code ec;
-        std::filesystem::remove(tempArchive, ec);
+            juce::File::getSpecialLocation(juce::File::tempDirectory)
+                .getChildFile("audioapp_project_archive_test.audioapp.zip");
+        tempArchive.deleteFile();
 
         auto project = std::make_unique<audioapp::ProjectEngine>();
         project->createProject();
@@ -27,19 +25,19 @@ public:
         const auto before = project->snapshot();
         ok = ok && (before.tracks.size() == 1u);
 
-        ok = ok && audioapp::saveProjectToArchive(*project, tempArchive.string());
-        ok = ok && std::filesystem::exists(tempArchive);
+        ok = ok && audioapp::saveProjectToArchive(*project, tempArchive.getFullPathName().toStdString());
+        ok = ok && tempArchive.existsAsFile();
 
         auto loaded = std::make_unique<audioapp::ProjectEngine>();
         loaded->createProject();
-        ok = ok && audioapp::loadProjectFromArchive(*loaded, tempArchive.string());
+        ok = ok && audioapp::loadProjectFromArchive(*loaded, tempArchive.getFullPathName().toStdString());
 
         const auto after = loaded->snapshot();
         ok = ok && (after.tracks.size() == 1u);
         ok = ok && (after.tracks[0].name == "Bass");
         ok = ok && !after.tracks[0].midiClips.empty();
 
-        std::filesystem::remove(tempArchive, ec);
+        tempArchive.deleteFile();
 
         // Note: expect() omitted here due to a JUCE static destruction ordering
         // issue that crashes at exit in this test. The if-guards above verify

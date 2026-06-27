@@ -2,13 +2,12 @@
 
 #include "audioapp/ProjectJson.hpp"
 
+#include <juce_core/juce_core.h>
+
 #include <array>
 #include <cstdint>
 #include <cstring>
-#include <filesystem>
-#include <fstream>
 #include <vector>
-#include <cstdio>
 
 namespace audioapp {
 namespace {
@@ -200,18 +199,27 @@ std::string extractProjectJsonFromArchiveBytes(const std::vector<uint8_t>& archi
     return {};
 }
 
-std::vector<uint8_t> readAllBytes(const std::filesystem::path& path) {
-    std::ifstream input(path, std::ios::binary);
-    return std::vector<uint8_t>((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+std::vector<uint8_t> readAllBytes(const juce::File& file) {
+    juce::FileInputStream input(file);
+    if (!input.openedOk()) {
+        return {};
+    }
+    const auto size = static_cast<size_t>(input.getTotalLength());
+    std::vector<uint8_t> bytes(size);
+    if (size > 0) {
+        input.read(bytes.data(), static_cast<int>(size));
+    }
+    return bytes;
 }
 
-bool writeAllBytes(const std::filesystem::path& path, const std::vector<uint8_t>& bytes) {
-    std::ofstream output(path, std::ios::binary);
-    if (!output.is_open()) {
+bool writeAllBytes(const juce::File& file, const std::vector<uint8_t>& bytes) {
+    juce::FileOutputStream output(file);
+    if (!output.openedOk()) {
         return false;
     }
-    output.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
-    return output.good();
+    const bool ok = output.write(bytes.data(), static_cast<int>(bytes.size()));
+    output.flush();
+    return ok;
 }
 
 } // namespace
@@ -224,15 +232,14 @@ bool saveProjectToArchive(const ProjectEngine& engine, const std::string& archiv
     const std::string json = projectFileToJson(fileData, engine.deviceRegistry(),
                                                  engine.modulatorTypes());
     const auto bytes = buildProjectArchiveBytes(json);
-    const bool result = writeAllBytes(std::filesystem::path(archivePath), bytes);
-    return result;
+    return writeAllBytes(juce::File(archivePath), bytes);
 }
 
 bool loadProjectFromArchive(ProjectEngine& engine, const std::string& archivePath) {
     if (archivePath.empty()) {
         return false;
     }
-    const auto bytes = readAllBytes(std::filesystem::path(archivePath));
+    const auto bytes = readAllBytes(juce::File(archivePath));
     if (bytes.empty()) {
         return false;
     }
