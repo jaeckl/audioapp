@@ -55,6 +55,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   LibraryCategory _libraryCategory = LibraryCategory.audioClips;
   String? _librarySamplerDeviceId;
   String? _automationLinkClipId;
+  String? _libraryWavetableDeviceId;
   final GlobalKey<LibraryFlyInPanelState> _libraryPanelKey = GlobalKey();
   final TimelineViewportScrollController _arrangementScrollController =
       TimelineViewportScrollController();
@@ -610,6 +611,14 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         _libraryCategory = LibraryCategory.devicePresets;
         _librarySamplerDeviceId = null;
       });
+      return;
+    }
+    if (device.type == 'wavetable_synth') {
+      setState(() {
+        _libraryOpen = true;
+        _libraryCategory = LibraryCategory.wavetables;
+        _libraryWavetableDeviceId = device.id;
+      });
     }
   }
 
@@ -617,6 +626,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     setState(() {
       _libraryOpen = false;
       _librarySamplerDeviceId = null;
+      _libraryWavetableDeviceId = null;
     });
     // Stop any active preview (preset/midi/sampler) so closing the library
     // also halts the audio and the visual playhead ticker — not just the
@@ -868,6 +878,25 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         parameterId: 'sampleId',
         value: sampleId,
       );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
+  Future<void> _onLibraryWavetableTap(LibraryWavetableItem item) async {
+    final deviceId = _libraryWavetableDeviceId;
+    if (deviceId == null) return;
+    try {
+      await widget.bridge.selectWavetable(deviceId, item.wavetableName);
+      await _libraryPanelKey.currentState?.close();
+      final snapshot = await widget.bridge.getProjectSnapshot();
+      await _refreshSnapshot(snapshot);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Loaded ${item.title}')),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
@@ -1531,6 +1560,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
               onAutomationPreviewTap: _onLibraryAutomationPreviewTap,
               onPresetTap: _onLibraryPresetTap,
               onPresetPreviewTap: _onLibraryPresetPreviewTap,
+              onWavetableTap: _onLibraryWavetableTap,
               onStopPreview: () {
                 widget.bridge.stopPreview().catchError((Object _) {});
               },

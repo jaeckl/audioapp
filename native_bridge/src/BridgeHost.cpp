@@ -5,6 +5,13 @@
 
 #include <juce_core/juce_core.h>
 
+#ifdef __ANDROID__
+#include <android/log.h>
+#define BRIDGE_LOG(...) __android_log_print(ANDROID_LOG_INFO, "audioapp_engine", __VA_ARGS__)
+#else
+#define BRIDGE_LOG(...) ((void)0)
+#endif
+
 namespace audioapp::bridge {
 
 namespace {
@@ -50,6 +57,14 @@ std::string BridgeHost::importWavSample(const std::string& displayName,
     auto args = juce::JSON::parse(juce::String("{}"));
     auto result = engine().commandRegistry().execute("getProjectSnapshot", {engine(), args});
     return result.toJson();
+}
+
+bool BridgeHost::loadWavetableAsset(const std::string& name,
+                                    const std::vector<uint8_t>& wavBytes) {
+    BRIDGE_LOG("loadWavetableAsset name=%s bytes=%zu", name.c_str(), wavBytes.size());
+    auto result = engine().importWavetable(name, wavBytes);
+    BRIDGE_LOG("loadWavetableAsset name=%s result='%s'", name.c_str(), result.c_str());
+    return !result.empty();
 }
 
 std::vector<float> BridgeHost::renderOffline(double lengthBeats, double sampleRate) {

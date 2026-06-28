@@ -20,7 +20,8 @@ bool isInstrumentDeviceNodeKind(const DeviceNodeKind kind) noexcept {
            kind == DeviceNodeKind::SnareGenerator || kind == DeviceNodeKind::ClapGenerator ||
            kind == DeviceNodeKind::CymbalGenerator || kind == DeviceNodeKind::CrashGenerator ||
            kind == DeviceNodeKind::BassSynth ||
-           kind == DeviceNodeKind::PhaseModSynth;
+           kind == DeviceNodeKind::PhaseModSynth ||
+           kind == DeviceNodeKind::WavetableSynth;
 }
 
 bool isFrequencyFxDeviceNodeKind(DeviceNodeKind kind) noexcept {
@@ -93,6 +94,7 @@ DeviceNodeKind deviceNodeKindFromTypeId(const std::string& typeId) noexcept {
     if (typeId == kBitcrusher)       return DeviceNodeKind::Bitcrusher;
     if (typeId == kDistortion)       return DeviceNodeKind::Distortion;
     if (typeId == kTremolo)          return DeviceNodeKind::Tremolo;
+    if (typeId == kWavetableSynth)   return DeviceNodeKind::WavetableSynth;
     return DeviceNodeKind::Unknown;
 }
 

@@ -20,3 +20,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/content_library/manifest.json
+    - assets/wavetables/

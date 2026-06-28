@@ -38,6 +38,8 @@ add_library(audioapp_engine STATIC
   src/SamplerFilter.cpp
   src/KickAlgorithm.cpp
   src/SubtractiveSynthAlgorithm.cpp
+  src/WavetableSynthAlgorithm.cpp
+  src/WavetableBank.cpp
   src/PhaseModSynthAlgorithm.cpp
   src/SnareAlgorithm.cpp
   src/ClapAlgorithm.cpp
@@ -54,6 +56,7 @@ add_library(audioapp_engine STATIC
   src/devices/processors/OscillatorProcessor.cpp
   src/devices/processors/SamplerProcessor.cpp
   src/devices/processors/SubtractiveSynthProcessor.cpp
+  src/devices/processors/WavetableSynthProcessor.cpp
   src/devices/processors/PhaseModSynthProcessor.cpp
   src/devices/processors/KickProcessor.cpp
   src/devices/processors/SnareProcessor.cpp
@@ -80,6 +83,7 @@ add_library(audioapp_engine STATIC
   src/devices/SamplerDeviceType.cpp
   src/devices/TrackGainDeviceType.cpp
   src/devices/SubtractiveSynthDeviceType.cpp
+  src/devices/WavetableSynthDeviceType.cpp
   src/devices/KickGeneratorDeviceType.cpp
   src/devices/SnareGeneratorDeviceType.cpp
   src/devices/ClapGeneratorDeviceType.cpp

@@ -46,6 +46,7 @@ abstract final class DeviceStripTheme {
   static const chorusAccent = Color(0xFFE8A54B);
   static const phaserAccent = Color(0xFFE8A0C8);
   static const phaseModSynthAccent = Color(0xFFFF6B35);
+  static const wavetableSynthAccent = Color(0xFF3B82F6);
   static const filterAccent = Color(0xFF5BC0EB);
   static const fourBandEqAccent = Color(0xFF78C091);
   static const frequencyShifterAccent = Color(0xFFC77DFF);
@@ -72,6 +73,7 @@ abstract final class DeviceStripTheme {
         'chorus' => chorusAccent,
         'phaser' => phaserAccent,
         'phase_mod_synth' => phaseModSynthAccent,
+        'wavetable_synth' => wavetableSynthAccent,
         'filter' => filterAccent,
         'four_band_eq' => fourBandEqAccent,
         'frequency_shifter' => frequencyShifterAccent,
@@ -100,6 +102,7 @@ abstract final class DeviceStripTheme {
         'chorus' => 'Chorus',
         'phaser' => 'Phaser',
         'phase_mod_synth' => 'Phase Mod Synth',
+        'wavetable_synth' => 'Wavetable Synth',
         'filter' => 'Filter',
         'four_band_eq' => '4-Band EQ',
         'frequency_shifter' => 'Ring Mod',

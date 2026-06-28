@@ -318,6 +318,8 @@ class MainActivity : FlutterFragmentActivity() {
                     meterTimer = null
                 }
             })
+
+        loadBundledWavetables()
     }
 
     private fun mapToJson(map: Map<*, *>): JSONObject {
@@ -388,6 +390,7 @@ class MainActivity : FlutterFragmentActivity() {
     private external fun nativeGetProjectFileJson(): String
     private external fun nativeLoadProjectFileJson(projectJson: String): String
     private external fun nativeImportWavSample(displayName: String, wavBytes: ByteArray): String
+    private external fun nativeLoadWavetableAsset(name: String, wavBytes: ByteArray): Boolean
     private external fun nativeRenderOffline(lengthBeats: Double): FloatArray
     private external fun nativePlay()
     private external fun nativeStop()
@@ -539,6 +542,27 @@ class MainActivity : FlutterFragmentActivity() {
                 intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, lastFolderUri)
             }
             return intent
+        }
+    }
+
+    private fun loadBundledWavetables() {
+        try {
+            val assetManager = resources.assets
+            val prefix = "flutter_assets/assets/wavetables"
+            val names = listOf("sine_64", "bass_64", "strings_64", "digital_64", "fm_bells_64")
+            for (name in names) {
+                val path = "$prefix/${name}.wav"
+                try {
+                    val bytes = assetManager.open(path)?.use { it.readBytes() }
+                    if (bytes != null && bytes.isNotEmpty()) {
+                        nativeLoadWavetableAsset(name, bytes)
+                    }
+                } catch (e: Exception) {
+                    Log.w(logTag, "Failed to load wavetable $name: ${e.message}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(logTag, "Failed to load bundled wavetables: ${e.message}")
         }
     }
 

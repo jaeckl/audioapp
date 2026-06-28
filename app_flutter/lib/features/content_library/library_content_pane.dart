@@ -25,6 +25,7 @@ class LibraryContentPane extends StatefulWidget {
     this.onAutomationPreviewTap,
     this.onPresetTap,
     this.onPresetPreviewTap,
+    this.onWavetableTap,
     this.autoPlayOnSelect = true,
     this.presetManifest,
   });
@@ -41,6 +42,7 @@ class LibraryContentPane extends StatefulWidget {
   final void Function(LibraryAutomationItem item)? onAutomationPreviewTap;
   final void Function(LibraryPresetItem item)? onPresetTap;
   final void Function(LibraryPresetItem item, {double startBeat, bool loop})? onPresetPreviewTap;
+  final void Function(LibraryWavetableItem item)? onWavetableTap;
 
   /// When true (default), selecting a preset auto-starts preview. When false,
   /// only the explicit play button on the tile starts preview.
@@ -258,9 +260,10 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
           onMidiPreviewTap: widget.onMidiPreviewTap,
           onAutomationTap: widget.onAutomationTap,
           onAutomationPreviewTap: widget.onAutomationPreviewTap,
-          onPresetTap: widget.onPresetTap,
-          onPresetPreviewTap: widget.onPresetPreviewTap,
-          autoPlayOnSelect: widget.autoPlayOnSelect,
+           onPresetTap: widget.onPresetTap,
+           onPresetPreviewTap: widget.onPresetPreviewTap,
+           onWavetableTap: widget.onWavetableTap,
+           autoPlayOnSelect: widget.autoPlayOnSelect,
         );
       },
     );
@@ -288,6 +291,8 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
         if (widget.autoPlayOnSelect) {
           widget.onPresetPreviewTap?.call(preset);
         }
+      case final LibraryWavetableItem wt:
+        widget.onWavetableTap?.call(wt);
       default:
         break;
     }
@@ -298,6 +303,7 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
         LibraryCategory.midiClips => 'MIDI clips',
         LibraryCategory.automationClips => 'Automation clips',
         LibraryCategory.devicePresets => 'Device presets',
+        LibraryCategory.wavetables => 'Wavetables',
       };
 }
 
@@ -346,6 +352,7 @@ class _EmptyCategoryState extends StatelessWidget {
       LibraryCategory.midiClips => 'Factory loops and project clips appear here.',
       LibraryCategory.automationClips => 'Automation clips will appear here once recorded.',
       LibraryCategory.devicePresets => 'Starter presets will be listed here.',
+      LibraryCategory.wavetables => 'Bundled wavetables will be listed here.',
     };
 
     return Center(
@@ -375,6 +382,7 @@ class _LibraryItemTile extends StatelessWidget {
     this.onAutomationPreviewTap,
     this.onPresetTap,
     this.onPresetPreviewTap,
+    this.onWavetableTap,
     this.autoPlayOnSelect = true,
   });
 
@@ -390,6 +398,7 @@ class _LibraryItemTile extends StatelessWidget {
   final void Function(LibraryAutomationItem item)? onAutomationPreviewTap;
   final void Function(LibraryPresetItem item)? onPresetTap;
   final void Function(LibraryPresetItem item, {double startBeat, bool loop})? onPresetPreviewTap;
+  final void Function(LibraryWavetableItem item)? onWavetableTap;
   final bool autoPlayOnSelect;
 
   @override
@@ -480,6 +489,9 @@ class _LibraryItemTile extends StatelessWidget {
             onPressed: () => onPresetPreviewTap?.call(preset),
             icon: const Icon(Icons.play_arrow_rounded, color: Colors.white70),
           ),
+        ],
+      LibraryWavetableItem() => [
+          Icon(Icons.waves, size: 18, color: accent.withValues(alpha: 0.8)),
         ],
       _ => const <Widget>[],
     };

@@ -93,6 +93,8 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         voice.releasing = false;
         voice.oscillatorPhase = 0.0f;
         voice.filterState = BiquadState{};
+        voice.filterState2 = BiquadState{};
+        voice.wavetableFilterCoeffs = BiquadCoeffs{};
         voice.subtractive = SubtractiveVoiceRuntime{};
         voice.phaseMod = PhaseModSynthVoiceRuntime{};
         voice.kick = KickVoiceRuntime{};
@@ -139,6 +141,8 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
     steal.releasing = false;
     steal.oscillatorPhase = 0.0f;
     steal.filterState = BiquadState{};
+    steal.filterState2 = BiquadState{};
+    steal.wavetableFilterCoeffs = BiquadCoeffs{};
     steal.subtractive = SubtractiveVoiceRuntime{};
     steal.phaseMod = PhaseModSynthVoiceRuntime{};
     steal.kick = KickVoiceRuntime{};
@@ -332,6 +336,72 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                 if (pmv.active == 0) {
                     voice.active.store(0, std::memory_order_release);
                 }
+                continue;
+            }
+
+            if (inst.kind == LiveInstrumentKind::WavetableSynth) {
+                if (inst.wavetablePcm == nullptr || inst.wavetablePcmFrameCount <= 0) {
+                    voice.active.store(0, std::memory_order_release);
+                    continue;
+                }
+                const double elapsedSec =
+                    static_cast<double>(sampleIndex - voice.startSample) / sampleRate;
+                if (elapsedSec < 0.0) {
+                    continue;
+                }
+
+                const float ampAttackSec = adsrNormalizedToSeconds(inst.wavetable.ampAttack, 2.0f);
+                const float ampDecaySec = adsrNormalizedToSeconds(inst.wavetable.ampDecay, 2.0f);
+                const float ampReleaseSec = adsrNormalizedToSeconds(inst.wavetable.ampRelease, 3.0f);
+                const float ampSustain = std::clamp(inst.wavetable.ampSustain, 0.0f, 1.0f);
+
+                const float filterAttackSec = adsrNormalizedToSeconds(inst.wavetable.filterAttack, 2.0f);
+                const float filterDecaySec = adsrNormalizedToSeconds(inst.wavetable.filterDecay, 2.0f);
+                const float filterReleaseSec = adsrNormalizedToSeconds(inst.wavetable.filterRelease, 3.0f);
+                const float filterSustain = std::clamp(inst.wavetable.filterSustain, 0.0f, 1.0f);
+
+                float noteDurationSec = 3600.0f;
+                if (voice.releasing && voice.releaseSample >= voice.startSample) {
+                    noteDurationSec = static_cast<float>(
+                        static_cast<double>(voice.releaseSample - voice.startSample) / sampleRate);
+                }
+
+                const float ampGain = samplerAdsrGain(static_cast<float>(elapsedSec),
+                                                      noteDurationSec,
+                                                      ampAttackSec, ampDecaySec,
+                                                      ampSustain, ampReleaseSec);
+                if (ampGain <= 0.0f) {
+                    if (voice.releasing) {
+                        voice.active.store(0, std::memory_order_release);
+                    }
+                    continue;
+                }
+
+                const float filterGain = samplerAdsrGain(static_cast<float>(elapsedSec),
+                                                         noteDurationSec,
+                                                         filterAttackSec, filterDecaySec,
+                                                         filterSustain, filterReleaseSec);
+
+                const float hz = midiNoteToHz(voice.pitch);
+                const float wtPos = inst.wavetable.wtPosition *
+                    static_cast<float>(std::max(inst.wavetablePcmFrameCount - 1, 1));
+                const float vel = std::clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
+
+                mix += wavetableVoiceSample(inst.wavetable,
+                                            inst.wavetablePcm,
+                                            inst.wavetablePcmFrameCount,
+                                            inst.wavetablePcmFrameLength,
+                                            voice.oscillatorPhase,
+                                            wtPos, hz,
+                                            sampleRate,
+                                            ampGain * vel,
+                                            filterGain,
+                                            voice.wavetableFilterCoeffs,
+                                            voice.filterState,
+                                            voice.filterState2,
+                                            inst.wavetable.filterMode,
+                                            inst.wavetable.filterResonance) *
+                       inst.gain * kInstrumentOutputGain;
                 continue;
             }
 

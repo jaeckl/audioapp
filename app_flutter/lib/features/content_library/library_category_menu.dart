@@ -57,6 +57,7 @@ class _CategoryButton extends StatelessWidget {
       LibraryCategory.midiClips => Icons.piano,
       LibraryCategory.automationClips => Icons.show_chart,
       LibraryCategory.devicePresets => Icons.tune,
+      LibraryCategory.wavetables => Icons.waves,
     };
 
     return Padding(

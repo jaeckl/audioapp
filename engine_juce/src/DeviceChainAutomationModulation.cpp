@@ -11,6 +11,7 @@
 #include "audioapp/CymbalAlgorithm.hpp"
 #include "audioapp/CrashAlgorithm.hpp"
 #include "audioapp/DynamicsProcessor.hpp"
+#include "audioapp/WavetableSynthAlgorithm.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -304,6 +305,29 @@ void applyModulation(PhaseModSynthParams& p, float modAmount, uint16_t localPara
     case PhaseModSynthParam::LfoRate:          p.lfoRate = std::clamp(p.lfoRate + modAmount, 0.0f, 1.0f); break;
     case PhaseModSynthParam::LfoAmount:        p.lfoAmount = std::clamp(p.lfoAmount + modAmount, 0.0f, 1.0f); break;
     case PhaseModSynthParam::VibratoDepth:     p.vibratoDepth = std::clamp(p.vibratoDepth + modAmount, 0.0f, 1.0f); break;
+    default: break;
+    }
+}
+
+void applyModulation(WavetableSynthParams& p, float modAmount, uint16_t localParamId) noexcept {
+    switch (static_cast<WavetableParam>(unpackParamId(localParamId))) {
+    case WavetableParam::WtPosition:      p.wtPosition = std::clamp(p.wtPosition + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::WtOctave:        p.wtOctave = std::clamp(p.wtOctave + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::WtSemitone:      p.wtSemitone = std::clamp(p.wtSemitone + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::WtFine:          p.wtFine = std::clamp(p.wtFine + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::WtUnison:        p.wtUnison = std::clamp(p.wtUnison + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::WtDetune:        p.wtDetune = std::clamp(p.wtDetune + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::FilterCutoff:    p.filterCutoff = std::clamp(p.filterCutoff + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::FilterResonance: p.filterResonance = std::clamp(p.filterResonance + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::FilterEnvAmount: p.filterEnvAmount = std::clamp(p.filterEnvAmount + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::AmpAttack:       p.ampAttack = std::clamp(p.ampAttack + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::AmpDecay:        p.ampDecay = std::clamp(p.ampDecay + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::AmpSustain:      p.ampSustain = std::clamp(p.ampSustain + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::AmpRelease:      p.ampRelease = std::clamp(p.ampRelease + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::FilterAttack:    p.filterAttack = std::clamp(p.filterAttack + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::FilterDecay:     p.filterDecay = std::clamp(p.filterDecay + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::FilterSustain:   p.filterSustain = std::clamp(p.filterSustain + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::FilterRelease:   p.filterRelease = std::clamp(p.filterRelease + modAmount, 0.0f, 1.0f); break;
     default: break;
     }
 }

@@ -176,7 +176,8 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
     // preserving all runtime state (oscillator phases, filter biquad states,
     // delay buffers, voice runtime, etc.). Falls back to full rebuild if
     // the device hasn't been built into playback yet.
-    const PlaybackBuildContext context{sampleBank_};
+    PlaybackBuildContext context{sampleBank_};
+    context.wavetableBank = wavetableBank_;
     for (int t = 0; t < kMaxTracks; ++t) {
         auto& snap = trackPlayback_[t];
         for (int d = 0; d < snap.deviceCount; ++d) {
@@ -216,10 +217,30 @@ bool ProjectEngine::setDeviceStringParameter(const std::string& deviceId,
         return false;
     }
 
-    const PlaybackBuildContext context{sampleBank_};
+    PlaybackBuildContext context{sampleBank_};
+    context.wavetableBank = wavetableBank_;
     if (!deviceRegistry_.setStringParameter(*device, parameterId, value, context)) {
         return false;
     }
+
+    // Fast path: update live playback node and processor in-place,
+    // avoiding full track rebuild (which causes audible glitches).
+    // String parameters (e.g. wavetableId, sampleId) just set runtime
+    // state resolved at process time — no structural change needed.
+    for (int t = 0; t < kMaxTracks; ++t) {
+        auto& snap = trackPlayback_[t];
+        for (int d = 0; d < snap.deviceCount; ++d) {
+            if (snap.devices[d].deviceId != deviceId) continue;
+            deviceRegistry_.buildPlaybackNode(*device, context, snap.devices[d]);
+            auto* proc = snap.arena.get(d);
+            if (proc != nullptr) {
+                proc->initParams(snap.devices[d].params);
+            }
+            return true;
+        }
+    }
+
+    // Fallback: device not in live playback arrays yet
     rebuildTrackPlaybackLocked();
     return true;
 }
@@ -739,6 +760,7 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         ctx.modEdgeCount = track.modEdgeCount;
         ctx.automationClips = track.automationClipCount > 0 ? track.automationClips : nullptr;
         ctx.automationClipCount = track.automationClipCount;
+        ctx.wavetableBank = wavetableBank_;
 
         DeviceChainOrchestrator::processChain(ctx);
 
@@ -1223,7 +1245,8 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
             }, device.config.outputPanel);
             node.meterSlot = -1;
 
-            const PlaybackBuildContext context{sampleBank_};
+            PlaybackBuildContext context{sampleBank_};
+            context.wavetableBank = wavetableBank_;
             deviceRegistry_.buildPlaybackNode(device, context, node);
             if (isDynamicsDeviceNodeKind(node.kind) && deviceMeterSlotCount_ < kMaxDeviceMeters) {
                 node.meterSlot = static_cast<int8_t>(deviceMeterSlotCount_);

@@ -28,6 +28,7 @@ class LibraryFlyInPanel extends StatefulWidget {
     this.onAutomationPreviewTap,
     this.onPresetTap,
     this.onPresetPreviewTap,
+    this.onWavetableTap,
     this.onStopPreview,
   });
 
@@ -43,6 +44,7 @@ class LibraryFlyInPanel extends StatefulWidget {
   final void Function(LibraryAutomationItem item)? onAutomationPreviewTap;
   final void Function(LibraryPresetItem item)? onPresetTap;
   final void Function(LibraryPresetItem item, {double startBeat, bool loop})? onPresetPreviewTap;
+  final void Function(LibraryWavetableItem item)? onWavetableTap;
   /// Optional: invoked when the panel wants to halt any active engine preview
   /// (e.g. when the user toggles auto-play/loop off mid-preview).
   final VoidCallback? onStopPreview;
@@ -317,6 +319,7 @@ void _onItemSelected(String? itemId) {
                                 onAutomationPreviewTap: widget.onAutomationPreviewTap,
                                 onPresetTap: widget.onPresetTap,
                                 onPresetPreviewTap: _onPresetPreviewTap,
+                                onWavetableTap: widget.onWavetableTap,
                                 autoPlayOnSelect: _presetPreviewLoopEnabled,
                               ),
                             ),

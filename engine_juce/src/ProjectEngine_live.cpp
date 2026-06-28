@@ -19,7 +19,8 @@ double quantizeCaptureBeat(double beat, double grid = 0.25) {
 
 bool ProjectEngine::buildLiveInstrumentForTrack(const Track& track,
                                                 LiveInstrumentSnapshot& out) const {
-    const PlaybackBuildContext context{sampleBank_};
+    PlaybackBuildContext context{sampleBank_};
+    context.wavetableBank = wavetableBank_;
     for (const auto& device : track.devices) {
         if (deviceRegistry_.buildLiveInstrument(device, context, out)) {
             return true;

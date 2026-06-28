@@ -27,5 +27,6 @@ inline constexpr const char* kFrequencyShifter = "frequency_shifter";
 inline constexpr const char* kBitcrusher = "bitcrusher";
 inline constexpr const char* kDistortion = "distortion";
 inline constexpr const char* kTremolo = "tremolo";
+inline constexpr const char* kWavetableSynth = "wavetable_synth";
 
 } // namespace audioapp::device_types

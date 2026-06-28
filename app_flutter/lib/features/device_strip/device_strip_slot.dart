@@ -48,6 +48,8 @@ import 'phase_mod_synth_device_strip.dart';
 import 'sampler_device_strip.dart';
 import 'subtractive_synth_device_panel.dart';
 import 'subtractive_synth_device_strip.dart';
+import 'wavetable_synth_device_panel.dart';
+import 'wavetable_synth_device_strip.dart';
 
 enum DeviceStripSlotDensity { strip, collapsed, fullscreen }
 
@@ -79,6 +81,8 @@ class DeviceStripSlot extends StatefulWidget {
     this.samplerTab = SamplerDeviceTab.wave,
     this.synthTab = SubtractiveDeviceTab.osc,
     this.bassTab = BassSynthDeviceTab.tone,
+    this.onWtTabChanged,
+    this.wtTab = WavetableSynthDeviceTab.osc,
     this.onPmTabChanged,
     this.pmTab = PhaseModSynthDeviceTab.mix,
     this.lfos = const [],
@@ -116,6 +120,8 @@ class DeviceStripSlot extends StatefulWidget {
   final SamplerDeviceTab samplerTab;
   final SubtractiveDeviceTab synthTab;
   final BassSynthDeviceTab bassTab;
+  final ValueChanged<WavetableSynthDeviceTab>? onWtTabChanged;
+  final WavetableSynthDeviceTab wtTab;
   final ValueChanged<PhaseModSynthDeviceTab>? onPmTabChanged;
   final PhaseModSynthDeviceTab pmTab;
   final List<LfoSnapshot> lfos;
@@ -198,7 +204,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     // All device types that have dedicated strip widgets.
     const knownTypes = {
       'simple_sampler', 'simple_oscillator', 'bass_synth',
-      'phase_mod_synth', 'subtractive_synth',
+      'phase_mod_synth', 'subtractive_synth', 'wavetable_synth',
       'kick_generator', 'snare_generator', 'clap_generator',
       'cymbal_generator', 'crash_generator',
       'gate', 'compressor', 'expander', 'limiter',
@@ -226,6 +232,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     if (widget.device.type == 'phase_mod_synth' &&
         widget.pmTab != oldWidget.pmTab) {
       _selectedTabIndex = widget.pmTab.index;
+    }
+    if (widget.device.type == 'wavetable_synth' &&
+        widget.wtTab != oldWidget.wtTab) {
+      _selectedTabIndex = widget.wtTab.index;
     }
     if (widget.device.id != oldWidget.device.id) {
       _selectedTabIndex = _initialTabIndex();
@@ -370,6 +380,9 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     if (widget.device.type == 'phase_mod_synth') {
       return widget.pmTab.index;
     }
+    if (widget.device.type == 'wavetable_synth') {
+      return widget.wtTab.index;
+    }
     return 0;
   }
 
@@ -386,6 +399,9 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     }
     if (widget.device.type == 'phase_mod_synth') {
       widget.onPmTabChanged?.call(PhaseModSynthDeviceTab.values[index]);
+    }
+    if (widget.device.type == 'wavetable_synth') {
+      widget.onWtTabChanged?.call(WavetableSynthDeviceTab.values[index]);
     }
   }
 
@@ -600,6 +616,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       OscillatorDeviceSnapshot() => '${dev.frequencyHz.round()} Hz',
       BassSynthDeviceSnapshot() => 'Mono · Sub',
       PhaseModSynthDeviceSnapshot() => '4-OP · PM',
+      WavetableSynthDeviceSnapshot() => 'Wavetable · 8 voices',
       SubtractiveSynthDeviceSnapshot() => 'Multimode · 8 voices',
       KickGeneratorDeviceSnapshot() => 'Mono · ${KickModel.labelFromValue(dev.kickModel)}',
       SnareGeneratorDeviceSnapshot() => 'Mono · synth',
@@ -699,11 +716,13 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                   showLibrary: widget.device.type == 'simple_sampler' ||
                       widget.device.type == 'subtractive_synth' ||
                       widget.device.type == 'bass_synth' ||
-                      widget.device.type == 'phase_mod_synth',
+                      widget.device.type == 'phase_mod_synth' ||
+                      widget.device.type == 'wavetable_synth',
                   libraryTooltip: widget.device.type == 'subtractive_synth' ||
                       widget.device.type == 'bass_synth' ||
-                      widget.device.type == 'phase_mod_synth'
-                          ? 'Open preset library'
+                      widget.device.type == 'phase_mod_synth' ||
+                      widget.device.type == 'wavetable_synth'
+                          ? 'Open wavetable library'
                           : 'Open sample library',
                   onBypassToggle: widget.onBypassToggle ?? () {},
                   onDelete: widget.onDeleteRequest,
@@ -869,6 +888,33 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             device: dev,
             onParameterChanged: widget.onSamplerParameterChanged,
             selectedTab: PhaseModSynthDeviceTab.values[_selectedTabIndex],
+            modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
+            onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
+          ),
+        );
+      case 'wavetable_synth':
+        final dev = widget.device as WavetableSynthDeviceSnapshot;
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: _cardWidth,
+          designHeight: contentHeight,
+          child: WavetableSynthDeviceStrip(
+            device: dev,
+            onParameterChanged: widget.onSamplerParameterChanged,
+            selectedTab: WavetableSynthDeviceTab.values[_selectedTabIndex],
+            onTabChanged: widget.onWtTabChanged,
+            onOpenFullscreen: widget.onOpenSamplerEditor,
+            onOpenWavetableLibrary: widget.onOpenLibrary,
             modulatedParams: _modulatedParamIds,
             automatedParams: _automatedParamIds,
             modulationAmounts: _modulationAmounts,

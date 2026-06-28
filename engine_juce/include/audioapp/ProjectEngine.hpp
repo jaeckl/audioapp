@@ -20,6 +20,7 @@
 #include "audioapp/LivePerformance.hpp"
 #include "audioapp/MidiClipPlayback.hpp"
 #include "audioapp/SampleBank.hpp"
+#include "audioapp/WavetableBank.hpp"
 #include "audioapp/SampleTypes.hpp"
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/dsp/ProcessorArena.hpp"
@@ -188,6 +189,7 @@ public:
                              double playheadStartBeat) noexcept;
 
     void setSampleBank(const SampleBank* bank) { sampleBank_ = bank; }
+    void setWavetableBank(const WavetableBank* bank) { wavetableBank_ = bank; }
 
     /// Expose the device registry for serialization dispatch.
     const DeviceRegistry& deviceRegistry() const { return deviceRegistry_; }
@@ -319,6 +321,7 @@ private:
     bool buildLiveInstrumentForTrack(const Track& track, LiveInstrumentSnapshot& out) const;
     double sampleTimeToCaptureBeat(uint64_t sampleTime) const;
     const SampleBank* sampleBank_ = nullptr;
+    const WavetableBank* wavetableBank_ = nullptr;
 
     // ── ValueTree::Listener overrides ─────────────────────────
     void valueTreePropertyChanged(juce::ValueTree& tree,

@@ -10,6 +10,7 @@
 #include "audioapp/CymbalAlgorithm.hpp"
 #include "audioapp/CrashAlgorithm.hpp"
 #include "audioapp/PhaseModSynthAlgorithm.hpp"
+#include "audioapp/WavetableSynthAlgorithm.hpp"
 #include <utility>
 
 namespace audioapp {
@@ -60,6 +61,7 @@ struct DeviceChainScratch {
     CymbalMidiNoteRegion cymbalRegions[kMaxInstrumentRegions];
     CrashMidiNoteRegion crashRegions[kMaxInstrumentRegions];
     PhaseModSynthMidiNoteRegion phaseModRegions[kMaxInstrumentRegions];
+    WavetableMidiNoteRegion wavetableRegions[kMaxInstrumentRegions];
     BiquadState samplerNoteFilterStates[kMaxInstrumentRegions];
     DeviceChainScratchArena ringBufferArena;
 };

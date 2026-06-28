@@ -51,6 +51,12 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
               onTap: () => Navigator.pop(context, 'phase_mod_synth'),
             ),
             ListTile(
+              leading: const Icon(Icons.view_column, color: Color(0xFF3B82F6)),
+              title: const Text('Wavetable Synth'),
+              subtitle: const Text('Load-your-own wavetables · 8 voices'),
+              onTap: () => Navigator.pop(context, 'wavetable_synth'),
+            ),
+            ListTile(
               leading: const Icon(Icons.album, color: Color(0xFFE85D4B)),
               title: const Text('Kick Generator'),
               subtitle: const Text('808-style · pitch-drop body'),

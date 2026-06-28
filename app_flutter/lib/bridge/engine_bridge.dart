@@ -500,6 +500,15 @@ class EngineBridge {
     return ProjectSnapshot.fromMap(result);
   }
 
+  /// Select a wavetable for a wavetable synth device.
+  Future<void> selectWavetable(String deviceId, String wavetableName) async {
+    await _invokeOk('setDeviceStringParameter', {
+      'deviceId': deviceId,
+      'parameterId': 'wavetable',
+      'value': wavetableName,
+    });
+  }
+
   /// Opens the system save dialog for a `.audioapp.zip` archive.
   /// Returns the saved document URI, or null if the user cancelled.
   Future<String?> saveProject() async {

@@ -12,6 +12,7 @@
 #include "audioapp/SamplerFilter.hpp"
 #include "audioapp/PhaseModSynthAlgorithm.hpp"
 #include "audioapp/SubtractiveSynthAlgorithm.hpp"
+#include "audioapp/WavetableSynthAlgorithm.hpp"
 
 namespace audioapp {
 
@@ -29,6 +30,7 @@ enum class LiveInstrumentKind : uint8_t {
     CrashGenerator,
     BassSynth,
     PhaseModSynth,
+    WavetableSynth,
 };
 
 /// Immutable instrument snapshot copied on note-on (control thread writes, audio thread reads).
@@ -65,6 +67,10 @@ struct LiveInstrumentSnapshot {
     CymbalGeneratorParams cymbal{};
     CrashGeneratorParams crash{};
     PhaseModSynthParams phaseMod{};
+    WavetableSynthParams wavetable{};
+    const float* wavetablePcm = nullptr;
+    int wavetablePcmFrameCount = 0;
+    int wavetablePcmFrameLength = 0;
 };
 
 struct LiveVoiceSlot {
@@ -77,6 +83,8 @@ struct LiveVoiceSlot {
     LiveInstrumentSnapshot instrument{};
     float oscillatorPhase = 0.0f;
     BiquadState filterState{};
+    BiquadState filterState2{};
+    BiquadCoeffs wavetableFilterCoeffs{};
     SubtractiveVoiceRuntime subtractive{};
     PhaseModSynthVoiceRuntime phaseMod{};
     KickVoiceRuntime kick{};

@@ -4,6 +4,7 @@ enum LibraryCategory {
   midiClips,
   automationClips,
   devicePresets,
+  wavetables,
 }
 
 extension LibraryCategoryLabels on LibraryCategory {
@@ -12,6 +13,7 @@ extension LibraryCategoryLabels on LibraryCategory {
         LibraryCategory.midiClips => 'MIDI',
         LibraryCategory.automationClips => 'Automation',
         LibraryCategory.devicePresets => 'Presets',
+        LibraryCategory.wavetables => 'Wavetables',
       };
 
   String get subtitle => switch (this) {
@@ -19,5 +21,6 @@ extension LibraryCategoryLabels on LibraryCategory {
         LibraryCategory.midiClips => 'MIDI patterns',
         LibraryCategory.automationClips => 'Automation lanes',
         LibraryCategory.devicePresets => 'Device chains',
+        LibraryCategory.wavetables => 'Bundled wavetables',
       };
 }

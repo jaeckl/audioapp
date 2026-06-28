@@ -26,6 +26,7 @@ namespace audioapp {
 void EngineHost::ensureSampleBankReady() {
     sampleBank_.registerBundledDefaults();
     project_->setSampleBank(&sampleBank_);
+    project_->setWavetableBank(&wavetableBank_);
 }
 
 void EngineHost::createProject() {
@@ -583,6 +584,19 @@ std::string EngineHost::importWavSample(const std::string& displayName,
         return {};
     }
     return id;
+}
+
+std::string EngineHost::importWavetable(const std::string& name,
+                                        const std::vector<uint8_t>& wavBytes) {
+    AUDIOAPP_LOG("importWavetable name=%s bytes=%zu", name.c_str(), wavBytes.size());
+    if (wavBytes.empty()) {
+        AUDIOAPP_LOG("importWavetable -> empty bytes");
+        return {};
+    }
+    const int index = wavetableBank_.loadFromBytes(name, wavBytes.data(), wavBytes.size());
+    AUDIOAPP_LOG("importWavetable name=%s loadFromBytes -> index=%d bankSize=%d", name.c_str(), index, wavetableBank_.size());
+    if (index < 0) return {};
+    return name;
 }
 
 void EngineHost::previewSample(const std::string& sampleId) {

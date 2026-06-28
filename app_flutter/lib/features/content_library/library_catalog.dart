@@ -78,6 +78,18 @@ class LibraryPresetItem extends LibraryItem {
   final String deviceType;
 }
 
+class LibraryWavetableItem extends LibraryItem {
+  const LibraryWavetableItem({
+    required super.id,
+    required super.title,
+    required super.subtitle,
+    required this.wavetableName,
+    super.tags,
+  });
+
+  final String wavetableName;
+}
+
 abstract final class LibraryCatalog {
   static List<LibraryItem> itemsFor(
     LibraryCategory category,
@@ -89,6 +101,7 @@ abstract final class LibraryCatalog {
       LibraryCategory.midiClips => _midiItems(snapshot, manifest),
       LibraryCategory.automationClips => _automationItems(snapshot),
       LibraryCategory.devicePresets => presetItems(manifest),
+      LibraryCategory.wavetables => wavetableItems(),
     };
   }
 
@@ -107,6 +120,46 @@ abstract final class LibraryCatalog {
           ),
         )
         .toList();
+  }
+
+  static List<LibraryWavetableItem> wavetableItems() {
+    return const [
+      LibraryWavetableItem(
+        id: 'wavetable:sine_64',
+        title: 'Sine',
+        subtitle: 'Pure sine wave',
+        wavetableName: 'sine_64',
+        tags: ['factory'],
+      ),
+      LibraryWavetableItem(
+        id: 'wavetable:bass_64',
+        title: 'Bass',
+        subtitle: 'Deep sawtooth bass',
+        wavetableName: 'bass_64',
+        tags: ['factory', 'bass'],
+      ),
+      LibraryWavetableItem(
+        id: 'wavetable:strings_64',
+        title: 'Strings',
+        subtitle: 'Warm string pad',
+        wavetableName: 'strings_64',
+        tags: ['factory', 'pad'],
+      ),
+      LibraryWavetableItem(
+        id: 'wavetable:digital_64',
+        title: 'Digital',
+        subtitle: 'Bright digital waveform',
+        wavetableName: 'digital_64',
+        tags: ['factory', 'bright'],
+      ),
+      LibraryWavetableItem(
+        id: 'wavetable:fm_bells_64',
+        title: 'FM Bells',
+        subtitle: 'FM synthesis bell tones',
+        wavetableName: 'fm_bells_64',
+        tags: ['factory', 'bright'],
+      ),
+    ];
   }
 
   static List<LibraryItem> _audioItems(ProjectSnapshot snapshot) {

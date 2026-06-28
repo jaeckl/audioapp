@@ -10,6 +10,7 @@ import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
 import 'bass_synth_device_panel.dart';
 import 'subtractive_synth_device_panel.dart';
+import 'wavetable_synth_device_panel.dart';
 import 'phase_mod_synth_device_panel.dart';
 import 'mood_fx_panels.dart';
 
@@ -21,6 +22,7 @@ abstract final class DeviceContainerTabs {
       'simple_oscillator' => OscillatorDevicePanel.containerTabs,
       'bass_synth' => BassSynthDevicePanel.containerTabs,
       'subtractive_synth' => SubtractiveSynthDevicePanel.containerTabs,
+      'wavetable_synth' => WavetableSynthDevicePanel.containerTabs,
       'kick_generator' => KickGeneratorDevicePanel.containerTabs,
       'snare_generator' => SnareGeneratorDevicePanel.containerTabs,
       'clap_generator' => ClapGeneratorDevicePanel.containerTabs,

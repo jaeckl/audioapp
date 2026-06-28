@@ -7,6 +7,7 @@
 using namespace audioapp::DeviceChainAutomationModulation;
 
 // Include all modular processors
+#include "audioapp/devices/processors/WavetableSynthProcessor.hpp"
 #include "audioapp/devices/processors/TrackGainProcessor.hpp"
 #include "audioapp/devices/processors/OscillatorProcessor.hpp"
 #include "audioapp/devices/processors/SamplerProcessor.hpp"
@@ -63,6 +64,10 @@ static const FactoryFn kProcessorFactories[] = {
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<FilterProcessor>(); },               // Filter = 20
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<FourBandEqProcessor>(); },           // FourBandEq = 21
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<FrequencyShifterProcessor>(); },     // FrequencyShifter = 22
+    nullptr,  // Bitcrusher = 23 (handled inline)
+    nullptr,  // Distortion = 24 (handled inline)
+    nullptr,  // Tremolo = 25 (handled inline)
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<WavetableSynthProcessor>(); },        // WavetableSynth = 26
 };
 static constexpr size_t kNumFactories = sizeof(kProcessorFactories) / sizeof(kProcessorFactories[0]);
 
@@ -181,6 +186,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
         pc.maxDeviceMeters = ctx.maxDeviceMeters;
         pc.deviceIndex = deviceIndex;
         pc.needsSubBlocks = needsSubBlocks;
+        pc.wavetableBank = ctx.wavetableBank;
 
         // --- Timeline automation ---
         auto modulatedParams = proc->storedParams(); // start from processor's own params

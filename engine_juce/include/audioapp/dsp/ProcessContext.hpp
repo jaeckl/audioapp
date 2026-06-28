@@ -7,6 +7,8 @@
 
 namespace audioapp {
 
+class WavetableBank;
+
 struct ProcessContext {
     DeviceChainScratch& scratch;
 
@@ -35,6 +37,7 @@ struct ProcessContext {
     bool needsSubBlocks = false;
 
     const DeviceVariantParams* modulatedParams = nullptr;
+    const WavetableBank* wavetableBank = nullptr;
 
     explicit ProcessContext(DeviceChainScratch& s) noexcept : scratch(s) {}
 };

@@ -281,6 +281,29 @@ enum class PhaseModSynthParam : uint16_t {
     LfoDest = 66,
 };
 
+// ─── Wavetable Synth ─────────────────────────────────────────────────────────
+
+enum class WavetableParam : uint16_t {
+    WtPosition   = 0,
+    WtOctave     = 1,
+    WtSemitone   = 2,
+    WtFine       = 3,
+    WtUnison     = 4,
+    WtDetune     = 5,
+    FilterMode   = 6,
+    FilterCutoff = 7,
+    FilterResonance = 8,
+    FilterEnvAmount = 9,
+    FilterAttack = 10,
+    FilterDecay  = 11,
+    FilterSustain = 12,
+    FilterRelease = 13,
+    AmpAttack    = 14,
+    AmpDecay     = 15,
+    AmpSustain   = 16,
+    AmpRelease   = 17,
+};
+
 // ─── Frequency FX suite (added for Filter / 4-Band EQ / Ring Mod) ────────────
 //
 // These per-kind enums are used purely for the audio-thread dispatch in
@@ -371,6 +394,7 @@ enum class ParamKind : uint16_t {
     Bitcrusher       = 19,
     Distortion       = 20,
     Tremolo          = 21,
+    WavetableSynth   = 22,
 };
 
 constexpr uint16_t kParamKindShift      = 11;

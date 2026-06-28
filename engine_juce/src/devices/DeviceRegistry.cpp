@@ -19,6 +19,7 @@
 #include "audioapp/devices/FilterDeviceType.hpp"
 #include "audioapp/devices/FourBandEqDeviceType.hpp"
 #include "audioapp/devices/FrequencyShifterDeviceType.hpp"
+#include "audioapp/devices/WavetableSynthDeviceType.hpp"
 #include "audioapp/effects/BitcrusherDeviceType.hpp"
 #include "audioapp/effects/DistortionDeviceType.hpp"
 #include "audioapp/effects/TremoloDeviceType.hpp"
@@ -148,6 +149,7 @@ DeviceRegistry DeviceRegistry::createBuiltIn() {
     registry.registerType(std::make_unique<LimiterDeviceType>());
     registry.registerType(std::make_unique<BassSynthDeviceType>());
     registry.registerType(std::make_unique<PhaseModSynthDeviceType>());
+    registry.registerType(std::make_unique<WavetableSynthDeviceType>());
     registry.registerType(std::make_unique<FilterDeviceType>());
     registry.registerType(std::make_unique<FourBandEqDeviceType>());
     registry.registerType(std::make_unique<FrequencyShifterDeviceType>());

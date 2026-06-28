@@ -1,0 +1,140 @@
+#include "audioapp/devices/processors/WavetableSynthProcessor.hpp"
+#include "audioapp/WavetableSynthAlgorithm.hpp"
+#include "audioapp/DeviceChainScratch.hpp"
+#include "audioapp/AutomationPlayback.hpp"
+#include "audioapp/DeviceChainAutomationModulation.hpp"
+#include "audioapp/devices/processors/ProcessorUtils.hpp"
+#include "audioapp/devices/DevicePanelTypes.hpp"
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+#ifdef __ANDROID__
+#include <android/log.h>
+#define WT_LOG(...) __android_log_print(ANDROID_LOG_INFO, "audioapp_engine", __VA_ARGS__)
+#else
+#define WT_LOG(...) ((void)0)
+#endif
+
+namespace audioapp {
+
+namespace {
+
+static inline float safe_clamp(float v, float lo, float hi) noexcept {
+    if (!std::isfinite(v)) return lo;
+    return std::clamp(v, lo, hi);
+}
+
+float beatAtFrame(double playheadStartBeat, int frameIndex, double sampleRate, int bpm) {
+    const double seconds = static_cast<double>(frameIndex) / sampleRate;
+    return static_cast<float>(playheadStartBeat + seconds * static_cast<double>(bpm) / 60.0);
+}
+
+bool isWavetableNoteAudible(const WavetableMidiNoteRegion& note,
+                            double beat, int bpm,
+                            float releaseSec,
+                            double& elapsedSecondsOut,
+                            double& noteDurationSecOut,
+                            bool& inReleaseOut) noexcept {
+    if (beat < note.clipStartBeat || beat >= note.clipStartBeat + note.clipLengthBeats || bpm <= 0) {
+        return false;
+    }
+    const double posInClip = beat - note.clipStartBeat;
+    const double loopedBeat = std::fmod(posInClip, note.clipLengthBeats);
+    const double noteStart = note.noteStartBeat;
+    const double noteEnd = note.noteStartBeat + note.noteDurationBeats;
+    const double releaseBeats = static_cast<double>(releaseSec) * static_cast<double>(bpm) / 60.0;
+    if (loopedBeat < noteStart) return false;
+    const double elapsedBeats = loopedBeat - noteStart;
+    elapsedSecondsOut = elapsedBeats * 60.0 / static_cast<double>(bpm);
+    noteDurationSecOut = note.noteDurationBeats * 60.0 / static_cast<double>(bpm);
+    inReleaseOut = loopedBeat >= noteEnd;
+    if (loopedBeat < noteEnd) return true;
+    return loopedBeat < noteEnd + releaseBeats;
+}
+
+bool isNoteAudibleInBlock(const WavetableMidiNoteRegion& note,
+                          double blockStartBeat, int numFrames,
+                          double sampleRate, int bpm, float releaseSec) noexcept {
+    if (bpm <= 0 || sampleRate <= 0.0) return false;
+    const double blockEndBeat = blockStartBeat + static_cast<double>(numFrames) *
+        (static_cast<double>(bpm) / 60.0) / sampleRate;
+    const double noteStart = note.clipStartBeat + note.noteStartBeat;
+    const double noteEnd = noteStart + note.noteDurationBeats;
+    const double releaseBeats = static_cast<double>(releaseSec) * static_cast<double>(bpm) / 60.0;
+    const double totalEnd = noteEnd + releaseBeats;
+    return !(blockEndBeat < noteStart || blockStartBeat >= totalEnd);
+}
+
+} // anonymous namespace
+
+void WavetableSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
+    WT_LOG("process enter suppress=%d noteCount=%d bank=%p", ctx.suppressInstruments, ctx.noteCount, (void*)ctx.wavetableBank);
+    if (ctx.suppressInstruments || ctx.noteCount <= 0) {
+        WT_LOG("process early return suppress=%d noteCount=%d", ctx.suppressInstruments, ctx.noteCount);
+        return;
+    }
+
+    // Resolve wavetable PCM data from bank
+    int pcmFrameCount = 0;
+    int pcmFrameLength = 0;
+    const float* pcmData = nullptr;
+    const auto& params = std::get<WavetableSynthParams>(*ctx.modulatedParams);
+    const auto& wtId = params.wavetableId;
+    WT_LOG("process wtId='%s' bank=%p bankSize=%d", wtId.c_str(), (void*)ctx.wavetableBank, ctx.wavetableBank ? ctx.wavetableBank->size() : -1);
+    if (ctx.wavetableBank != nullptr) {
+        int bankIdx = -1;
+        if (!wtId.empty()) {
+            bankIdx = ctx.wavetableBank->findByName(wtId);
+        }
+        if (bankIdx < 0) {
+            bankIdx = 0;
+        }
+        const auto* entry = ctx.wavetableBank->get(bankIdx);
+        if (entry != nullptr && !entry->pcm.empty()) {
+            pcmData = entry->pcm.data();
+            pcmFrameCount = entry->frameCount;
+            pcmFrameLength = entry->frameLength;
+            WT_LOG("process resolved PCM frameCount=%d frameLength=%d pcmSize=%zu", pcmFrameCount, pcmFrameLength, entry->pcm.size());
+        } else {
+            WT_LOG("process entry null or empty: entry=%p pcmEmpty=%s", (void*)entry, entry ? (entry->pcm.empty() ? "yes" : "no") : "N/A");
+        }
+    }
+    if (pcmData == nullptr) {
+        WT_LOG("process no PCM data -> silence");
+        return;
+    }
+
+    const int regionCount = ctx.noteCount > kMaxInstrumentRegions ? kMaxInstrumentRegions : ctx.noteCount;
+    for (int i = 0; i < regionCount; ++i) {
+        const MidiPlaybackNote& note = ctx.notes[i];
+        ctx.scratch.wavetableRegions[i] = WavetableMidiNoteRegion{
+            note.pitch, note.pitch,
+            note.clipStartBeat, note.clipLengthBeats,
+            note.noteStartBeat, note.noteDurationBeats, note.velocity
+        };
+    }
+
+    std::memset(ctx.scratch.scratch, 0, static_cast<size_t>(block.numSamples) * sizeof(float));
+
+    auto& runtime = runtime_;
+    const uint16_t di = static_cast<uint16_t>(ctx.deviceIndex);
+    const bool hasAuto = nodeHasDspAutomation(di, ctx.automationClips, ctx.automationClipCount);
+    const bool hasMod = ctx.lfoValues != nullptr && ctx.lfoCount > 0 &&
+                        ctx.modEdges != nullptr && ctx.modEdgeCount > 0 &&
+                        DeviceChainAutomationModulation::nodeHasDspModulation(di, ctx.modEdges, ctx.modEdgeCount);
+
+    mixWavetableMidiNotesBlock(ctx.scratch.scratch, block.numSamples, ctx.sampleRate, ctx.bpm, ctx.playheadBeat,
+        ctx.scratch.wavetableRegions, regionCount,
+        params, runtime,
+        pcmData, pcmFrameCount, pcmFrameLength,
+        hasAuto ? ctx.automationClips : nullptr, hasAuto ? ctx.automationClipCount : 0,
+        hasAuto ? &di : nullptr,
+        hasMod ? ctx.lfoValues : nullptr, hasMod ? ctx.lfoCount : 0, hasMod ? block.numSamples : 0,
+        hasMod ? ctx.modEdges : nullptr, hasMod ? ctx.modEdgeCount : 0,
+        hasMod ? &di : nullptr);
+
+    StereoOutputPanel::applyFromScratch(ctx.scratch.scratch, block, block.numSamples,
+                                         ctx.scratch.perFrameGain, ctx.scratch.perFramePan);
+}
+
+} // namespace audioapp

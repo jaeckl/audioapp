@@ -6,6 +6,7 @@
 #include "audioapp/devices/DevicePanelTypes.hpp"
 
 // Params types (replacing trivial Instance types)
+#include "audioapp/WavetableSynthAlgorithm.hpp" // WavetableSynthParams
 #include "audioapp/DynamicsProcessor.hpp"   // GateParams, CompressorParams, ExpanderParams, LimiterParams
 #include "audioapp/KickAlgorithm.hpp"       // KickGeneratorParams
 #include "audioapp/SnareAlgorithm.hpp"      // SnareGeneratorParams
@@ -33,6 +34,7 @@ namespace audioapp {
 using DeviceInstance = std::variant<
     OscillatorParams,           // was OscillatorInstance
     SamplerModel,               // was SamplerInstance
+    WavetableSynthParams,
     TrackGainParams,            // was TrackGainInstance
     SubtractiveSynthParams,     // was SubtractiveSynthInstance
     KickGeneratorParams,        // was KickGeneratorInstance

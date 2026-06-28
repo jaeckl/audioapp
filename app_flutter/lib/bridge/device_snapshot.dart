@@ -9,6 +9,7 @@ part 'device_families/oscillator_family.dart';
 part 'device_families/phase_mod_synth_family.dart';
 part 'device_families/sampler_family.dart';
 part 'device_families/subtractive_synth_family.dart';
+part 'device_families/wavetable_synth_family.dart';
 part 'device_families/track_gain_family.dart';
 
 sealed class DeviceSnapshot {
@@ -50,6 +51,7 @@ sealed class DeviceSnapshot {
       'simple_sampler' => SamplerDeviceSnapshot.fromMap(map),
       'subtractive_synth' => SubtractiveSynthDeviceSnapshot.fromMap(map),
       'phase_mod_synth' => PhaseModSynthDeviceSnapshot.fromMap(map),
+      'wavetable_synth' => WavetableSynthDeviceSnapshot.fromMap(map),
       'bass_synth' => BassSynthDeviceSnapshot.fromMap(map),
       'kick_generator' => KickGeneratorDeviceSnapshot.fromMap(map),
       'snare_generator' => SnareGeneratorDeviceSnapshot.fromMap(map),

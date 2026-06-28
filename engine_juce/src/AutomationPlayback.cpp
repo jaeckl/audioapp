@@ -8,6 +8,7 @@
 #include "audioapp/CymbalAlgorithm.hpp"
 #include "audioapp/CrashAlgorithm.hpp"
 #include "audioapp/PhaseModSynthAlgorithm.hpp"
+#include "audioapp/WavetableSynthAlgorithm.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -1122,6 +1123,30 @@ void applyAutomationValue(DeviceVariantParams& params,
             case PhaseModSynthParam::LfoAmount: p->lfoAmount = value; break;
             case PhaseModSynthParam::VibratoDepth: p->vibratoDepth = value; break;
             case PhaseModSynthParam::VibratoRate: p->vibratoRate = value; break;
+            default: break;
+            }
+        }
+        break;
+    case ParamKind::WavetableSynth:
+        if (auto* p = std::get_if<WavetableSynthParams>(&params)) {
+            switch (static_cast<WavetableParam>(rawId)) {
+            case WavetableParam::WtPosition:      p->wtPosition = value; break;
+            case WavetableParam::WtOctave:        p->wtOctave = value; break;
+            case WavetableParam::WtSemitone:      p->wtSemitone = value; break;
+            case WavetableParam::WtFine:          p->wtFine = value; break;
+            case WavetableParam::WtUnison:        p->wtUnison = value; break;
+            case WavetableParam::WtDetune:        p->wtDetune = value; break;
+            case WavetableParam::FilterCutoff:    p->filterCutoff = value; break;
+            case WavetableParam::FilterResonance: p->filterResonance = value; break;
+            case WavetableParam::FilterEnvAmount: p->filterEnvAmount = value; break;
+            case WavetableParam::FilterAttack:    p->filterAttack = value; break;
+            case WavetableParam::FilterDecay:     p->filterDecay = value; break;
+            case WavetableParam::FilterSustain:   p->filterSustain = value; break;
+            case WavetableParam::FilterRelease:   p->filterRelease = value; break;
+            case WavetableParam::AmpAttack:       p->ampAttack = value; break;
+            case WavetableParam::AmpDecay:        p->ampDecay = value; break;
+            case WavetableParam::AmpSustain:      p->ampSustain = value; break;
+            case WavetableParam::AmpRelease:      p->ampRelease = value; break;
             default: break;
             }
         }

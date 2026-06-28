@@ -5,6 +5,7 @@
 #include "audioapp/MidiClipPlayback.hpp"
 #include "audioapp/ProjectEngine.hpp"
 #include "audioapp/SampleBank.hpp"
+#include "audioapp/WavetableBank.hpp"
 #include "audioapp/SamplePlaybackAlgorithm.hpp"
 #include "audioapp/SubtractiveSynthAlgorithm.hpp"
 #include "audioapp/SamplePlaybackAlgorithm.hpp"
@@ -77,6 +78,11 @@ public:
     bool setLoopRegion(double startBeat, double endBeat);
     std::vector<float> renderOffline(double lengthBeats, double sampleRate);
     std::string importWavSample(const std::string& displayName, const std::vector<uint8_t>& wavBytes);
+    /// Import wavetable from raw .wav bytes. Returns wavetable name on success, empty on failure.
+    std::string importWavetable(const std::string& name, const std::vector<uint8_t>& wavBytes);
+    /// Access the wavetable bank.
+    const WavetableBank& wavetableBank() const noexcept { return wavetableBank_; }
+    WavetableBank& wavetableBank() noexcept { return wavetableBank_; }
     void previewSample(const std::string& sampleId);
     /// Preview MIDI clip — plays through fallback oscillator.
     void previewMidi(const std::vector<MidiNoteState>& notes, double lengthBeats, int bpm, double startBeat = 0.0, bool loop = true);
@@ -156,6 +162,7 @@ private:
     std::unique_ptr<Impl> impl_;
     std::unique_ptr<ProjectEngine> project_;
     SampleBank sampleBank_;
+    WavetableBank wavetableBank_;
     int nextImportSampleNum_ = 1;
     commands::CommandRegistry commandRegistry_;
 

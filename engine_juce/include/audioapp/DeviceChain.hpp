@@ -17,6 +17,7 @@
 #include "audioapp/SamplePlaybackAlgorithm.hpp"
 #include "audioapp/PhaseModSynthAlgorithm.hpp"
 #include "audioapp/SubtractiveSynthAlgorithm.hpp"
+#include "audioapp/WavetableSynthAlgorithm.hpp"
 #include "audioapp/FrequencyFxProcessor.hpp"
 
 namespace audioapp {
@@ -61,6 +62,7 @@ enum class DeviceNodeKind : uint8_t {
     Bitcrusher,
     Distortion,
     Tremolo,
+    WavetableSynth,
 };
 
 // --- Per-device DSP-only parameter structs ---
@@ -154,6 +156,7 @@ using DeviceVariantParams = std::variant<
     OscillatorParams,
     SamplerParams,
     SubtractiveSynthParams,
+    WavetableSynthParams,
     PhaseModSynthParams,
     KickGeneratorParams,
     SnareGeneratorParams,

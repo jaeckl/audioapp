@@ -6,6 +6,7 @@
 #include "audioapp/dsp/ProcessorArena.hpp"
 #include "audioapp/dsp/AudioBlock.hpp"
 #include "audioapp/dsp/ProcessContext.hpp"
+#include "audioapp/WavetableBank.hpp"
 
 namespace audioapp {
 
@@ -32,6 +33,7 @@ struct DeviceChainOrchestrator {
         int modEdgeCount = 0;
         const AutomationClipPlayback* automationClips = nullptr;
         int automationClipCount = 0;
+        const WavetableBank* wavetableBank = nullptr;
 
         Context(ProcessorArena& ar, DeviceChainScratch& s) noexcept
             : arena(ar), scratch(s) {}

@@ -11,6 +11,7 @@ abstract final class LibraryTheme {
   static const accentMidi = Color(0xFF6EC9E8);
   static const accentAutomation = Color(0xFFB48CFF);
   static const accentPreset = Color(0xFF9A9AA8);
+  static const accentWavetable = Color(0xFF3B82F6);
   static const labelMuted = Color(0xFF8A8A9A);
   static const selectedOverlay = Color(0xFF2A2A3A);
 
@@ -21,5 +22,6 @@ abstract final class LibraryTheme {
         LibraryCategory.midiClips => accentMidi,
         LibraryCategory.automationClips => accentAutomation,
         LibraryCategory.devicePresets => accentPreset,
+        LibraryCategory.wavetables => accentWavetable,
       };
 }
