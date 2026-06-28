@@ -138,6 +138,32 @@ void main() {
               ],
             },
           };
+        case 'addGroupTrack':
+          return {
+            'ok': true,
+            'snapshot': {
+              'bpm': 120,
+              'playheadBeats': 0.0,
+              'playing': false,
+              'selectedTrackId': 'track-1',
+              'tracks': [
+                {
+                  'id': 'track-1',
+                  'name': 'Group',
+                  'isGroup': true,
+                  'parentGroupId': '',
+                  'devices': [
+                    {
+                      'id': 'dev-1',
+                      'type': 'track_gain',
+                      'parameters': {'gain': 1.0},
+                    },
+                  ],
+                  'midiClips': [],
+                },
+              ],
+            },
+          };
         case 'addDeviceToTrack':
           return {
             'ok': true,
@@ -583,6 +609,21 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('MIDI'), findsOneWidget);
+  });
+
+  testWidgets('Holding add track can create a group', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(home: DawShell(bridge: EngineBridge(channel: channel))),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.byTooltip('Add track'));
+    await tester.pumpAndSettle();
+    expect(find.text('Add group'), findsOneWidget);
+
+    await tester.tap(find.text('Add group'));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.folder_outlined), findsOneWidget);
   });
 
   testWidgets('Tapping MIDI clip opens piano roll and close returns', (tester) async {

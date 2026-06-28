@@ -38,6 +38,8 @@ inline const juce::Identifier masterGain        = "masterGain";
 
 // Track
 inline const juce::Identifier trackName    = "trackName";
+inline const juce::Identifier isGroup      = "isGroup";
+inline const juce::Identifier parentGroupId = "parentGroupId";
 
 // Device
 inline const juce::Identifier typeId       = "typeId";
@@ -98,10 +100,14 @@ inline juce::ValueTree createProjectTree() {
 
 /// Create a Track child ValueTree.
 inline juce::ValueTree createTrackTree(const std::string& trackId,
-                                       const std::string& trackName) {
+                                       const std::string& trackName,
+                                       bool isGroup = false,
+                                       const std::string& parentGroupId = {}) {
     juce::ValueTree track{kTrackType.data()};
     track.setProperty(props::id, juce::String{trackId}, nullptr);
     track.setProperty(props::name, juce::String{trackName}, nullptr);
+    track.setProperty(props::isGroup, isGroup, nullptr);
+    track.setProperty(props::parentGroupId, juce::String{parentGroupId}, nullptr);
     return track;
 }
 

@@ -41,6 +41,7 @@ struct GraphReceiverDefinition {
 
 struct GraphTrackDefinition {
     std::string_view trackId;
+    int8_t parentGroupTrack = -1;
     std::array<GraphSourceDefinition, kMaxProcessorGraphSourcesPerTrack> sources{};
     std::array<GraphReceiverDefinition, kMaxProcessorGraphReceiversPerTrack> receivers{};
     uint8_t sourceCount = 0;

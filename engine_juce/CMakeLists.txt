@@ -195,6 +195,13 @@ endif()
 if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
   enable_testing()
 
+  add_executable(audioapp_group_track_test tests/group_track_test.cpp)
+  target_link_libraries(audioapp_group_track_test PRIVATE audioapp_engine)
+  if(MSVC)
+    target_compile_options(audioapp_group_track_test PRIVATE /EHsc)
+  endif()
+  add_test(NAME audioapp_group_track_test COMMAND audioapp_group_track_test)
+
   set(AUDIOAPP_TEST_SOURCES
     tests/JuceTestRunner.cpp
     tests/autobroken_routing_test.cpp

@@ -18,6 +18,9 @@ class TrackLaneIcon {
   ];
 
   static IconData iconForTrack(TrackSnapshot track, int index) {
+    if (track.isGroup) {
+      return Icons.folder_outlined;
+    }
     if (track.devices.any((d) => d.type.contains('oscillator'))) {
       return Icons.graphic_eq;
     }

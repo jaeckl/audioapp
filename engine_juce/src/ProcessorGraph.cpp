@@ -85,6 +85,12 @@ ProcessorGraphSnapshot buildProcessorGraph(
     };
     countDependencies(graph.audioEdges, graph.audioEdgeCount);
     countDependencies(graph.midiEdges, graph.midiEdgeCount);
+    for (int track = 0; track < graph.trackCount; ++track) {
+        const int parent = tracks[static_cast<size_t>(track)].parentGroupTrack;
+        if (parent >= 0 && parent < graph.trackCount && parent != track) {
+            ++indegree[static_cast<size_t>(parent)];
+        }
+    }
 
     std::array<bool, kMaxProcessorGraphTracks> emitted{};
     int emittedCount = 0;
@@ -116,6 +122,11 @@ ProcessorGraphSnapshot buildProcessorGraph(
         };
         releaseDependencies(graph.audioEdges, graph.audioEdgeCount);
         releaseDependencies(graph.midiEdges, graph.midiEdgeCount);
+        const int parent = tracks[static_cast<size_t>(next)].parentGroupTrack;
+        if (parent >= 0 && parent < graph.trackCount && parent != next &&
+            indegree[static_cast<size_t>(parent)] > 0) {
+            --indegree[static_cast<size_t>(parent)];
+        }
     }
     return graph;
 }

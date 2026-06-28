@@ -424,6 +424,8 @@ juce::var trackToVarPersistence(const TrackState& track,
     auto* object = new juce::DynamicObject();
     object->setProperty("id", toJuceString(track.id));
     object->setProperty("name", toJuceString(track.name));
+    object->setProperty("isGroup", track.isGroup);
+    object->setProperty("parentGroupId", toJuceString(track.parentGroupId));
     object->setProperty("devices", devices);
     object->setProperty("midiClips", clips);
     object->setProperty("sampleClips", sampleClips);
@@ -436,6 +438,8 @@ TrackState trackFromVarPersistence(const juce::var& value,
     if (const auto* object = value.getDynamicObject()) {
         track.id = varToString(object->getProperty("id"));
         track.name = varToString(object->getProperty("name"));
+        track.isGroup = static_cast<bool>(object->getProperty("isGroup"));
+        track.parentGroupId = varToString(object->getProperty("parentGroupId"));
         if (const auto* devices = varArray(object->getProperty("devices"))) {
             for (const auto& deviceVar : *devices) {
                 track.devices.push_back(
@@ -496,6 +500,8 @@ juce::var trackToVarSnapshot(const TrackState& track,
     auto* object = new juce::DynamicObject();
     object->setProperty("id", toJuceString(track.id));
     object->setProperty("name", toJuceString(track.name));
+    object->setProperty("isGroup", track.isGroup);
+    object->setProperty("parentGroupId", toJuceString(track.parentGroupId));
     object->setProperty("devices", devices);
     object->setProperty("midiClips", clips);
     object->setProperty("sampleClips", sampleClips);

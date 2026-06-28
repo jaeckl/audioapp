@@ -56,6 +56,13 @@ List<RoutingSourceOption> buildRoutingSourceOptions(
   final sourceById = {for (final source in raw) source.id: source};
   final adjacency = <String, Set<String>>{};
   for (final track in tracks) {
+    if (track.parentGroupId.isNotEmpty) {
+      adjacency
+          .putIfAbsent(track.id, () => <String>{})
+          .add(track.parentGroupId);
+    }
+  }
+  for (final track in tracks) {
     for (final device in track.devices) {
       if (device is! RoutingDeviceSnapshot || device.id == receiver.id ||
           device.sourceId.isEmpty) {

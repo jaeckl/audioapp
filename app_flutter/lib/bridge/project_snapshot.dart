@@ -42,6 +42,7 @@ class ProjectSnapshot {
   final List<TrackSnapshot> tracks;
   final List<LfoSnapshot> lfos;
   final List<ModulationEdgeSnapshot> modEdges;
+
   /// Project-global automation clips. This is the authoritative source;
   /// `TrackSnapshot.automationClips` is kept as an empty shim so existing
   /// code that iterates per-track still compiles, but new code should read
@@ -67,7 +68,8 @@ class ProjectSnapshot {
     );
     final automationClipsList = automationRaw != null
         ? automationRaw
-            .map((c) => AutomationClipSnapshot.fromMap(c as Map<dynamic, dynamic>))
+            .map((c) =>
+                AutomationClipSnapshot.fromMap(c as Map<dynamic, dynamic>))
             .toList()
         : <AutomationClipSnapshot>[];
     return ProjectSnapshot(
@@ -79,9 +81,11 @@ class ProjectSnapshot {
       loopRegionStartBeat: loopRegionStart,
       loopRegionEndBeat: loopRegionEnd,
       recordArmed: snapshot['recordArmed'] == true,
-      master: MasterTrackSnapshot.fromMap(snapshot['master'] as Map<dynamic, dynamic>?),
+      master: MasterTrackSnapshot.fromMap(
+          snapshot['master'] as Map<dynamic, dynamic>?),
       samples: samplesRaw
-          .map((s) => SampleLibraryEntrySnapshot.fromMap(s as Map<dynamic, dynamic>))
+          .map((s) =>
+              SampleLibraryEntrySnapshot.fromMap(s as Map<dynamic, dynamic>))
           .toList(),
       tracks: tracksRaw
           .map((t) => TrackSnapshot.fromMap(
@@ -93,7 +97,8 @@ class ProjectSnapshot {
           .map((l) => LfoSnapshot.fromMap(l as Map<dynamic, dynamic>))
           .toList(),
       modEdges: modEdgesRaw
-          .map((e) => ModulationEdgeSnapshot.fromMap(e as Map<dynamic, dynamic>))
+          .map(
+              (e) => ModulationEdgeSnapshot.fromMap(e as Map<dynamic, dynamic>))
           .toList(),
       automationClips: automationClipsList,
     );
@@ -154,16 +159,14 @@ class ProjectSnapshot {
             (track) => TrackSnapshot(
               id: track.id,
               name: track.name,
-              devices: track.devices
-                  .map((device) {
-                    final reading = meterById[device.id];
-                    if (reading == null) return device;
-                    return device.copyWith(
-                      meterGainReductionDb: reading.gainReductionDb,
-                      meterInputLevel: reading.inputLevel,
-                    );
-                  })
-                  .toList(),
+              devices: track.devices.map((device) {
+                final reading = meterById[device.id];
+                if (reading == null) return device;
+                return device.copyWith(
+                  meterGainReductionDb: reading.gainReductionDb,
+                  meterInputLevel: reading.inputLevel,
+                );
+              }).toList(),
               midiClips: track.midiClips,
               sampleClips: track.sampleClips,
               automationClips: track.automationClips,
@@ -178,7 +181,8 @@ class ProjectSnapshot {
 
   /// Optimistically update a device parameter in the snapshot (no bridge round-trip).
   /// Used when the engine's setDeviceParameter command returns void (no delta/snapshot).
-  ProjectSnapshot withDeviceParam(String deviceId, String paramId, double value) {
+  ProjectSnapshot withDeviceParam(
+      String deviceId, String paramId, double value) {
     return ProjectSnapshot(
       bpm: bpm,
       selectedTrackId: selectedTrackId,
@@ -296,6 +300,8 @@ class TrackSnapshot {
   const TrackSnapshot({
     required this.id,
     required this.name,
+    this.isGroup = false,
+    this.parentGroupId = '',
     required this.devices,
     required this.midiClips,
     required this.sampleClips,
@@ -304,9 +310,12 @@ class TrackSnapshot {
 
   final String id;
   final String name;
+  final bool isGroup;
+  final String parentGroupId;
   final List<DeviceSnapshot> devices;
   final List<MidiClipSnapshot> midiClips;
   final List<SampleClipSnapshot> sampleClips;
+
   /// Per-track view of automation clips whose `homeTrackId` matches this
   /// track's id. With the move to a global store, the per-track field is
   /// populated from `ProjectSnapshot.automationClips` for backward
@@ -326,12 +335,13 @@ class TrackSnapshot {
     // Project-global clips. The clip's homeTrackId is the layout choice —
     // the track lane it lives in. Unassigned clips (no target yet) are
     // still laid out on the home track the user picked at create time.
-    final fromGlobal = projectAutomationClips
-        .where((c) => c.homeTrackId == trackId)
-        .toList();
+    final fromGlobal =
+        projectAutomationClips.where((c) => c.homeTrackId == trackId).toList();
     return TrackSnapshot(
       id: map['id'] as String? ?? '',
       name: map['name'] as String? ?? '',
+      isGroup: map['isGroup'] as bool? ?? false,
+      parentGroupId: map['parentGroupId'] as String? ?? '',
       devices: devicesRaw
           .map((d) => DeviceSnapshot.fromMap(d as Map<dynamic, dynamic>))
           .toList(),
@@ -343,7 +353,8 @@ class TrackSnapshot {
           .toList(),
       automationClips: perTrackAutomation.isNotEmpty
           ? perTrackAutomation
-              .map((c) => AutomationClipSnapshot.fromMap(c as Map<dynamic, dynamic>))
+              .map((c) =>
+                  AutomationClipSnapshot.fromMap(c as Map<dynamic, dynamic>))
               .toList()
           : fromGlobal,
     );
@@ -413,6 +424,7 @@ class LfoSnapshot {
   });
 
   final int id;
+
   /// "lfo" or "envelope" — type string from engine IModulatorType::typeId().
   final String type;
   final int retrigger;
@@ -505,7 +517,8 @@ class LfoSnapshot {
         final posKey = 'bp_${i}_pos';
         final valKey = 'bp_${i}_val';
         final shapeKey = 'bp_${i}_shape';
-        positions.add((map[posKey] as num?)?.toDouble() ?? (i / (bpCount - 1).clamp(1, bpCount - 1)));
+        positions.add((map[posKey] as num?)?.toDouble() ??
+            (i / (bpCount - 1).clamp(1, bpCount - 1)));
         values.add((map[valKey] as num?)?.toDouble() ?? 0.0);
         shapes.add((map[shapeKey] as num?)?.toInt() ?? 0);
       }
@@ -550,7 +563,11 @@ class LfoSnapshot {
   }
 
   static const List<String> waveformNames = [
-    'Sine', 'Tri', 'Saw', 'Square', 'Ramp',
+    'Sine',
+    'Tri',
+    'Saw',
+    'Square',
+    'Ramp',
   ];
 
   String get waveformName => waveform >= 0 && waveform < waveformNames.length
@@ -561,32 +578,59 @@ class LfoSnapshot {
   /// Returns a new [LfoSnapshot] with that field changed.
   LfoSnapshot applyParamUpdate(String param, double value) {
     switch (param) {
-      case 'retrigger':    return copyWith(retrigger: value.round());
-      case 'waveform':     return copyWith(waveform: value.round());
-      case 'rate':         return copyWith(rate: value);
-      case 'syncDivision': return copyWith(syncDivision: value.round());
-      case 'phase':        return copyWith(phase: value);
-      case 'polarity':     return copyWith(polarity: value.round());
-      case 'attack':       return copyWith(attack: value);
-      case 'decay':        return copyWith(decay: value);
-      case 'sustain':      return copyWith(sustain: value);
-      case 'release':      return copyWith(release: value);
-      case 'curveType':    return copyWith(curveType: value.round());
-      case 'hold':         return copyWith(hold: value);
-      case 'delay':        return copyWith(delay: value);
-      case 'attackCurve':  return copyWith(attackCurve: value);
-      case 'decayCurve':   return copyWith(decayCurve: value);
-      case 'releaseCurve': return copyWith(releaseCurve: value);
-      case 'analogMode':   return copyWith(analogMode: value.round());
-      case 'morph':        return copyWith(morph: value);
-      case 'spread':        return copyWith(spread: value);
-      case 'smoothing':     return copyWith(smoothing: value);
-      case 'steps':         return copyWith(sequencerSteps: value.round().clamp(1, 32));
-      case 'direction':     return copyWith(sequencerDirection: value.round().clamp(0, 3));
-      case 'shape':         return copyWith(sequencerShape: value.round().clamp(0, 2));
+      case 'retrigger':
+        return copyWith(retrigger: value.round());
+      case 'waveform':
+        return copyWith(waveform: value.round());
+      case 'rate':
+        return copyWith(rate: value);
+      case 'syncDivision':
+        return copyWith(syncDivision: value.round());
+      case 'phase':
+        return copyWith(phase: value);
+      case 'polarity':
+        return copyWith(polarity: value.round());
+      case 'attack':
+        return copyWith(attack: value);
+      case 'decay':
+        return copyWith(decay: value);
+      case 'sustain':
+        return copyWith(sustain: value);
+      case 'release':
+        return copyWith(release: value);
+      case 'curveType':
+        return copyWith(curveType: value.round());
+      case 'hold':
+        return copyWith(hold: value);
+      case 'delay':
+        return copyWith(delay: value);
+      case 'attackCurve':
+        return copyWith(attackCurve: value);
+      case 'decayCurve':
+        return copyWith(decayCurve: value);
+      case 'releaseCurve':
+        return copyWith(releaseCurve: value);
+      case 'analogMode':
+        return copyWith(analogMode: value.round());
+      case 'morph':
+        return copyWith(morph: value);
+      case 'spread':
+        return copyWith(spread: value);
+      case 'smoothing':
+        return copyWith(smoothing: value);
+      case 'steps':
+        return copyWith(sequencerSteps: value.round().clamp(1, 32));
+      case 'direction':
+        return copyWith(sequencerDirection: value.round().clamp(0, 3));
+      case 'shape':
+        return copyWith(sequencerShape: value.round().clamp(0, 2));
       case 'breakpointCount':
-        return copyWith(curveBpPositions: [for (var i = 0; i < value.round().clamp(2, 64); i++)
-          i < curveBpPositions.length ? curveBpPositions[i] : (i / (value - 1))]);
+        return copyWith(curveBpPositions: [
+          for (var i = 0; i < value.round().clamp(2, 64); i++)
+            i < curveBpPositions.length
+                ? curveBpPositions[i]
+                : (i / (value - 1))
+        ]);
       default:
         if (param.startsWith('bp_')) {
           // bp_IDX_pos, bp_IDX_val, bp_IDX_shape

@@ -68,9 +68,11 @@ class EngineBridge {
   }
 
   Future<TransportState> getTransportState() async {
-    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>('getTransportState');
+    final result =
+        await _channel.invokeMethod<Map<dynamic, dynamic>>('getTransportState');
     if (result == null) {
-      throw PlatformException(code: 'null_response', message: 'No response from engine');
+      throw PlatformException(
+          code: 'null_response', message: 'No response from engine');
     }
     if (result['ok'] != true) {
       throw PlatformException(
@@ -83,6 +85,20 @@ class EngineBridge {
 
   Future<ProjectSnapshot> addTrack({String? name}) async {
     return _invokeForSnapshot('addTrack', {'name': name ?? ''});
+  }
+
+  Future<ProjectSnapshot> addGroupTrack({String? name}) async {
+    return _invokeForSnapshot('addGroupTrack', {'name': name ?? ''});
+  }
+
+  Future<ProjectSnapshot> setTrackGroup({
+    required String trackId,
+    String groupTrackId = '',
+  }) async {
+    return _invokeForSnapshot('setTrackGroup', {
+      'trackId': trackId,
+      'groupTrackId': groupTrackId,
+    });
   }
 
   Future<ProjectSnapshot> selectTrack(String trackId) async {
@@ -138,10 +154,13 @@ class EngineBridge {
   }
 
   /// Invoke and return raw result map (used for delta-aware calls).
-  Future<Map<dynamic, dynamic>> invokeRaw(String method, [Map<String, dynamic>? args]) async {
-    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(method, args);
+  Future<Map<dynamic, dynamic>> invokeRaw(String method,
+      [Map<String, dynamic>? args]) async {
+    final result =
+        await _channel.invokeMethod<Map<dynamic, dynamic>>(method, args);
     if (result == null) {
-      throw PlatformException(code: 'null_response', message: 'No response from engine');
+      throw PlatformException(
+          code: 'null_response', message: 'No response from engine');
     }
     if (result['ok'] != true) {
       throw PlatformException(
@@ -381,9 +400,11 @@ class EngineBridge {
   }
 
   Future<void> _invokeOk(String method, [Map<String, dynamic>? args]) async {
-    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(method, args);
+    final result =
+        await _channel.invokeMethod<Map<dynamic, dynamic>>(method, args);
     if (result == null) {
-      throw PlatformException(code: 'null_response', message: 'No response from engine');
+      throw PlatformException(
+          code: 'null_response', message: 'No response from engine');
     }
     if (result['ok'] != true) {
       throw PlatformException(
@@ -395,11 +416,13 @@ class EngineBridge {
 
   /// Renders [lengthBeats] and saves via system dialog. Null if cancelled.
   Future<String?> exportMix({double lengthBeats = 16.0}) async {
-    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>('exportMix', {
+    final result =
+        await _channel.invokeMethod<Map<dynamic, dynamic>>('exportMix', {
       'lengthBeats': lengthBeats,
     });
     if (result == null) {
-      throw PlatformException(code: 'null_response', message: 'No response from engine');
+      throw PlatformException(
+          code: 'null_response', message: 'No response from engine');
     }
     if (result['cancelled'] == true) {
       return null;
@@ -414,7 +437,8 @@ class EngineBridge {
   }
 
   Future<void> previewSample(String sampleId) async {
-    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>('previewSample', {
+    final result =
+        await _channel.invokeMethod<Map<dynamic, dynamic>>('previewSample', {
       'sampleId': sampleId,
     });
     if (result == null || result['ok'] != true) {
@@ -432,13 +456,16 @@ class EngineBridge {
     double startBeat = 0.0,
     bool loop = true,
   }) async {
-    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>('previewMidi', {
-      'notes': notes.map((n) => {
-        'pitch': n.pitch,
-        'startBeat': n.startBeat,
-        'durationBeats': n.durationBeats,
-        'velocity': n.velocity,
-      }).toList(),
+    final result =
+        await _channel.invokeMethod<Map<dynamic, dynamic>>('previewMidi', {
+      'notes': notes
+          .map((n) => {
+                'pitch': n.pitch,
+                'startBeat': n.startBeat,
+                'durationBeats': n.durationBeats,
+                'velocity': n.velocity,
+              })
+          .toList(),
       'lengthBeats': lengthBeats,
       'bpm': bpm,
       'startBeat': startBeat,
@@ -461,15 +488,18 @@ class EngineBridge {
     double startBeat = 0.0,
     bool loop = true,
   }) async {
-    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>('previewPreset', {
+    final result =
+        await _channel.invokeMethod<Map<dynamic, dynamic>>('previewPreset', {
       'deviceType': deviceType,
       'params': params,
-      'notes': notes.map((n) => {
-        'pitch': n.pitch,
-        'startBeat': n.startBeat,
-        'durationBeats': n.durationBeats,
-        'velocity': n.velocity,
-      }).toList(),
+      'notes': notes
+          .map((n) => {
+                'pitch': n.pitch,
+                'startBeat': n.startBeat,
+                'durationBeats': n.durationBeats,
+                'velocity': n.velocity,
+              })
+          .toList(),
       'lengthBeats': lengthBeats,
       'bpm': bpm,
       'startBeat': startBeat,
@@ -487,7 +517,8 @@ class EngineBridge {
     await _invokeOk('stopPreview');
   }
 
-  Future<List<DeviceParamDescriptor>> getParamDescriptors(String deviceType) async {
+  Future<List<DeviceParamDescriptor>> getParamDescriptors(
+      String deviceType) async {
     try {
       final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
         'getParamDescriptors',
@@ -505,9 +536,11 @@ class EngineBridge {
 
   /// Opens SAF picker for a WAV/audio file and imports into the sample library.
   Future<ProjectSnapshot?> importSample() async {
-    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>('importSample');
+    final result =
+        await _channel.invokeMethod<Map<dynamic, dynamic>>('importSample');
     if (result == null) {
-      throw PlatformException(code: 'null_response', message: 'No response from engine');
+      throw PlatformException(
+          code: 'null_response', message: 'No response from engine');
     }
     if (result['cancelled'] == true) {
       return null;
@@ -533,9 +566,11 @@ class EngineBridge {
   /// Opens the system save dialog for a `.audioapp.zip` archive.
   /// Returns the saved document URI, or null if the user cancelled.
   Future<String?> saveProject() async {
-    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>('saveProject');
+    final result =
+        await _channel.invokeMethod<Map<dynamic, dynamic>>('saveProject');
     if (result == null) {
-      throw PlatformException(code: 'null_response', message: 'No response from engine');
+      throw PlatformException(
+          code: 'null_response', message: 'No response from engine');
     }
     if (result['cancelled'] == true) {
       return null;
@@ -552,9 +587,11 @@ class EngineBridge {
   /// Opens the system open dialog for a `.audioapp.zip` archive.
   /// Returns null if the user cancelled.
   Future<ProjectSnapshot?> loadProject() async {
-    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>('loadProject');
+    final result =
+        await _channel.invokeMethod<Map<dynamic, dynamic>>('loadProject');
     if (result == null) {
-      throw PlatformException(code: 'null_response', message: 'No response from engine');
+      throw PlatformException(
+          code: 'null_response', message: 'No response from engine');
     }
     if (result['cancelled'] == true) {
       return null;
@@ -569,12 +606,13 @@ class EngineBridge {
   }
 
   Future<List<RecentProjectEntry>> getRecentProjects() async {
-    final result = await _channel
-        .invokeMethod<Map<dynamic, dynamic>>('getRecentProjects');
+    final result =
+        await _channel.invokeMethod<Map<dynamic, dynamic>>('getRecentProjects');
     if (result == null || result['ok'] != true) return const [];
     final projects = result['projects'] as List<dynamic>? ?? const [];
     return projects
-        .map((item) => RecentProjectEntry.fromMap(item as Map<dynamic, dynamic>))
+        .map(
+            (item) => RecentProjectEntry.fromMap(item as Map<dynamic, dynamic>))
         .where((item) => item.uri.isNotEmpty)
         .toList();
   }
@@ -586,9 +624,11 @@ class EngineBridge {
     String method, [
     Map<String, dynamic>? args,
   ]) async {
-    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(method, args);
+    final result =
+        await _channel.invokeMethod<Map<dynamic, dynamic>>(method, args);
     if (result == null) {
-      throw PlatformException(code: 'null_response', message: 'No response from engine');
+      throw PlatformException(
+          code: 'null_response', message: 'No response from engine');
     }
     if (result['ok'] != true) {
       throw PlatformException(
@@ -657,7 +697,8 @@ class EngineBridge {
         loopRegionStartBeat: loopRegionStart,
         loopRegionEndBeat: loopRegionEnd,
         recordArmed: recordArmed,
-        master: const MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1.0),
+        master:
+            const MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1.0),
         samples: [],
         tracks: [],
         lfos: [],

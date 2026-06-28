@@ -38,6 +38,15 @@ std::string EngineHost::addTrack(const std::string& name) {
     return project_->addTrack(name);
 }
 
+std::string EngineHost::addGroupTrack(const std::string& name) {
+    return project_->addGroupTrack(name);
+}
+
+bool EngineHost::setTrackGroup(const std::string& trackId,
+                               const std::string& groupTrackId) {
+    return project_->setTrackGroup(trackId, groupTrackId);
+}
+
 bool EngineHost::selectTrack(const std::string& trackId) {
     return project_->selectTrack(trackId);
 }
@@ -943,6 +952,22 @@ void EngineHost::registerAllCommands() {
     reg.registerCommand("addTrack", [](const commands::CommandContext& ctx) -> commands::CommandResult {
         const auto name = ctx.args["name"].toString().toStdString();
         ctx.engine.addTrack(name);
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("addGroupTrack", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto name = ctx.args["name"].toString().toStdString();
+        ctx.engine.addGroupTrack(name);
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("setTrackGroup", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto trackId = ctx.args["trackId"].toString().toStdString();
+        const auto groupTrackId = ctx.args["groupTrackId"].toString().toStdString();
+        if (!ctx.engine.setTrackGroup(trackId, groupTrackId))
+            return commands::errorResult("invalid_group_assignment");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
         return commands::okWithFullRefresh(snap);
     });

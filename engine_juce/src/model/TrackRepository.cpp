@@ -27,6 +27,47 @@ std::string TrackRepository::addTrack(const std::string& name, const DeviceRegis
     return selectedTrackId_;
 }
 
+std::string TrackRepository::addGroupTrack(const std::string& name, const DeviceRegistry& registry) {
+    const std::string id = addTrack(name.empty() ? "Group" : name, registry);
+    if (auto* track = findTrack(id)) {
+        track->isGroup = true;
+    }
+    return id;
+}
+
+bool TrackRepository::setTrackGroup(const std::string& trackId,
+                                    const std::string& groupTrackId) {
+    auto sourceIt = std::find_if(tracks_.begin(), tracks_.end(), [&](const Track& track) {
+        return track.id == trackId;
+    });
+    if (sourceIt == tracks_.end() || sourceIt->isGroup) {
+        return false;
+    }
+    if (groupTrackId.empty()) {
+        sourceIt->parentGroupId.clear();
+        return true;
+    }
+    const auto groupIt = std::find_if(tracks_.begin(), tracks_.end(), [&](const Track& track) {
+        return track.id == groupTrackId && track.isGroup;
+    });
+    if (groupIt == tracks_.end()) {
+        return false;
+    }
+
+    Track moved = std::move(*sourceIt);
+    moved.parentGroupId = groupTrackId;
+    tracks_.erase(sourceIt);
+    auto insertion = std::find_if(tracks_.begin(), tracks_.end(), [&](const Track& track) {
+        return track.id == groupTrackId;
+    });
+    ++insertion;
+    while (insertion != tracks_.end() && insertion->parentGroupId == groupTrackId) {
+        ++insertion;
+    }
+    tracks_.insert(insertion, std::move(moved));
+    return true;
+}
+
 bool TrackRepository::deleteTrack(const std::string& trackId) {
     if (tracks_.size() <= 1) {
         return false;
@@ -34,6 +75,13 @@ bool TrackRepository::deleteTrack(const std::string& trackId) {
     for (auto it = tracks_.begin(); it != tracks_.end(); ++it) {
         if (it->id != trackId) {
             continue;
+        }
+        if (it->isGroup) {
+            for (auto& track : tracks_) {
+                if (track.parentGroupId == trackId) {
+                    track.parentGroupId.clear();
+                }
+            }
         }
         tracks_.erase(it);
         if (selectedTrackId_ == trackId) {

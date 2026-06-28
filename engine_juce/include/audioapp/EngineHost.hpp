@@ -34,6 +34,8 @@ public:
 
     void createProject();
     std::string addTrack(const std::string& name);
+    std::string addGroupTrack(const std::string& name);
+    bool setTrackGroup(const std::string& trackId, const std::string& groupTrackId);
     bool selectTrack(const std::string& trackId);
     std::string addDeviceToTrack(const std::string& trackId,
                                  const std::string& deviceType,

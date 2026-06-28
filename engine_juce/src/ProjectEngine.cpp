@@ -65,6 +65,31 @@ std::string ProjectEngine::addTrack(const std::string& name) {
     return trackId;
 }
 
+std::string ProjectEngine::addGroupTrack(const std::string& name) {
+    const juce::ScopedWriteLock lock(mutex_);
+    const std::string trackId = trackRepo_.addGroupTrack(name, deviceRegistry_);
+    syncActiveFrequencyLocked();
+    rebuildTrackPlaybackLocked();
+    return trackId;
+}
+
+bool ProjectEngine::setTrackGroup(const std::string& trackId,
+                                  const std::string& groupTrackId) {
+    const juce::ScopedWriteLock lock(mutex_);
+    const auto previousTracks = trackRepo_.tracks();
+    if (!trackRepo_.setTrackGroup(trackId, groupTrackId)) {
+        return false;
+    }
+    rebuildTrackPlaybackLocked();
+    const int graphIndex = activeProcessorGraph_.load(std::memory_order_acquire);
+    if (!processorGraphs_[graphIndex].valid()) {
+        trackRepo_.tracks() = previousTracks;
+        rebuildTrackPlaybackLocked();
+        return false;
+    }
+    return true;
+}
+
 bool ProjectEngine::selectTrack(const std::string& trackId) {
     const juce::ScopedWriteLock lock(mutex_);
     const bool selectionChanged = trackRepo_.selectedTrackId() != trackId;
@@ -162,6 +187,9 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
     if (device == nullptr) {
         return false;
     }
+    const DeviceSlot previousDevice = *device;
+    const bool routingDevice =
+        isRoutingDeviceNodeKind(deviceNodeKindFromTypeId(device->config.typeId));
 
     const DeviceParameterResult result =
         deviceRegistry_.setParameter(*device, parameterId, value);
@@ -185,10 +213,17 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
             deviceRegistry_.buildPlaybackNode(*device, context, snap.devices[d]);
             snap.devices[d].bypassed = device->config.bypassed;
 
-            // Propagate outputMix/outputWidth from slot's output panel
+            // Common strip controls live in the output panel rather than the
+            // device-specific parameter variant, so buildPlaybackNode cannot
+            // refresh them for the fast path.
             std::visit([&](const auto& panel) {
                 using T = std::decay_t<decltype(panel)>;
-                if constexpr (std::is_same_v<T, StereoOutputPanel>) {
+                if constexpr (std::is_same_v<T, MonoOutputPanel>) {
+                    snap.devices[d].gain = panel.gain;
+                    snap.devices[d].pan = 0.5f;
+                } else if constexpr (std::is_same_v<T, StereoOutputPanel>) {
+                    snap.devices[d].gain = panel.gain;
+                    snap.devices[d].pan = panel.pan;
                     snap.devices[d].outputMix = panel.outputMix;
                     snap.devices[d].outputWidth = panel.outputWidth;
                 }
@@ -198,11 +233,19 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
             if (proc != nullptr) {
                 proc->initParams(snap.devices[d].params);
                 proc->bypassed = snap.devices[d].bypassed;
+                proc->gain = snap.devices[d].gain;
+                proc->pan = snap.devices[d].pan;
                 proc->outputMix = snap.devices[d].outputMix;
                 proc->outputWidth = snap.devices[d].outputWidth;
             }
-            if (isRoutingDeviceNodeKind(snap.devices[d].kind)) {
+            if (routingDevice) {
                 rebuildProcessorGraphLocked(trackPlaybackCount_.load(std::memory_order_acquire));
+                const int graphIndex = activeProcessorGraph_.load(std::memory_order_acquire);
+                if (!processorGraphs_[graphIndex].valid()) {
+                    *device = previousDevice;
+                    rebuildTrackPlaybackLocked();
+                    return false;
+                }
             }
             return true;
         }
@@ -210,6 +253,14 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
 
     // Fallback: device not in live playback arrays yet (e.g. during initial load)
     rebuildTrackPlaybackLocked();
+    if (routingDevice) {
+        const int graphIndex = activeProcessorGraph_.load(std::memory_order_acquire);
+        if (!processorGraphs_[graphIndex].valid()) {
+            *device = previousDevice;
+            rebuildTrackPlaybackLocked();
+            return false;
+        }
+    }
     return true;
 }
 
@@ -221,6 +272,9 @@ bool ProjectEngine::setDeviceStringParameter(const std::string& deviceId,
     if (device == nullptr) {
         return false;
     }
+    const DeviceSlot previousDevice = *device;
+    const bool routingDevice =
+        isRoutingDeviceNodeKind(deviceNodeKindFromTypeId(device->config.typeId));
 
     PlaybackBuildContext context{sampleBank_};
     context.wavetableBank = wavetableBank_;
@@ -241,8 +295,14 @@ bool ProjectEngine::setDeviceStringParameter(const std::string& deviceId,
             if (proc != nullptr) {
                 proc->initParams(snap.devices[d].params);
             }
-            if (isRoutingDeviceNodeKind(snap.devices[d].kind)) {
+            if (routingDevice) {
                 rebuildProcessorGraphLocked(trackPlaybackCount_.load(std::memory_order_acquire));
+                const int graphIndex = activeProcessorGraph_.load(std::memory_order_acquire);
+                if (!processorGraphs_[graphIndex].valid()) {
+                    *device = previousDevice;
+                    rebuildTrackPlaybackLocked();
+                    return false;
+                }
             }
             return true;
         }
@@ -250,6 +310,14 @@ bool ProjectEngine::setDeviceStringParameter(const std::string& deviceId,
 
     // Fallback: device not in live playback arrays yet
     rebuildTrackPlaybackLocked();
+    if (routingDevice) {
+        const int graphIndex = activeProcessorGraph_.load(std::memory_order_acquire);
+        if (!processorGraphs_[graphIndex].valid()) {
+            *device = previousDevice;
+            rebuildTrackPlaybackLocked();
+            return false;
+        }
+    }
     return true;
 }
 
@@ -262,6 +330,10 @@ std::string ProjectEngine::createMidiClip(const std::string& trackId,
                                           double startBeat,
                                           double lengthBeats) {
     const juce::ScopedWriteLock lock(mutex_);
+    const auto* track = trackRepo_.findTrack(trackId);
+    if (track == nullptr || track->isGroup) {
+        return {};
+    }
     const std::string clipId = clipRepo_.createMidiClip(trackId, startBeat, lengthBeats);
     if (clipId.empty()) {
         return {};
@@ -285,6 +357,10 @@ std::string ProjectEngine::createSampleClip(const std::string& trackId,
                                             double startBeat,
                                             double lengthBeats) {
     const juce::ScopedWriteLock lock(mutex_);
+    const auto* track = trackRepo_.findTrack(trackId);
+    if (track == nullptr || track->isGroup) {
+        return {};
+    }
     const std::string clipId = clipRepo_.createSampleClip(
         trackId, sampleId, startBeat, lengthBeats, sampleBank_, transport_.bpm());
     if (clipId.empty()) {
@@ -339,6 +415,10 @@ bool ProjectEngine::moveClip(const std::string& clipId,
     const juce::ScopedWriteLock lock(mutex_);
     if (clipRepo_.findMidiClip(clipId) != nullptr ||
         clipRepo_.findSampleClip(clipId) != nullptr) {
+        const auto* target = trackRepo_.findTrack(targetTrackId);
+        if (target == nullptr || target->isGroup) {
+            return false;
+        }
         if (!clipRepo_.moveClip(clipId, targetTrackId, startBeat)) {
             return false;
         }
@@ -506,6 +586,8 @@ ProjectSnapshot ProjectEngine::snapshot() const {
         TrackState ts;
         ts.id = track.id;
         ts.name = track.name;
+        ts.isGroup = track.isGroup;
+        ts.parentGroupId = track.parentGroupId;
         ts.devices.reserve(track.devices.size());
         for (const auto& device : track.devices) {
             ts.devices.push_back(device);
@@ -794,9 +876,15 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
 
         DeviceChainOrchestrator::processChain(ctx);
 
+        const int parentGroup = track.parentGroupTrackIndex;
         for (int frame = 0; frame < framesToProcess; ++frame) {
-            masterLeft[frame] += trackLeft[trackIndex][frame];
-            masterRight[frame] += trackRight[trackIndex][frame];
+            if (parentGroup >= 0 && parentGroup < trackCount) {
+                trackLeft[parentGroup][frame] += trackLeft[trackIndex][frame];
+                trackRight[parentGroup][frame] += trackRight[trackIndex][frame];
+            } else {
+                masterLeft[frame] += trackLeft[trackIndex][frame];
+                masterRight[frame] += trackRight[trackIndex][frame];
+            }
         }
     }
 
@@ -903,6 +991,8 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
         TrackState ts;
         ts.id = track.id;
         ts.name = track.name;
+        ts.isGroup = track.isGroup;
+        ts.parentGroupId = track.parentGroupId;
         for (const auto& device : track.devices) {
             ts.devices.push_back(device);
         }
@@ -976,6 +1066,8 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
         Track track;
         track.id = trackState.id;
         track.name = trackState.name;
+        track.isGroup = trackState.isGroup;
+        track.parentGroupId = trackState.parentGroupId;
         for (const auto& deviceState : trackState.devices) {
             track.devices.push_back(deviceState);
         }
@@ -1239,6 +1331,16 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
 
         TrackPlaybackSnapshot& snap = trackPlayback_[trackIndex];
         snap.trackId = sourceTrack.id;
+        snap.parentGroupTrackIndex = -1;
+        if (!sourceTrack.parentGroupId.empty()) {
+            for (size_t parentIndex = 0; parentIndex < trackRepo_.tracks().size(); ++parentIndex) {
+                const auto& parent = trackRepo_.tracks()[parentIndex];
+                if (parent.id == sourceTrack.parentGroupId && parent.isGroup) {
+                    snap.parentGroupTrackIndex = static_cast<int>(parentIndex);
+                    break;
+                }
+            }
+        }
         snap.noteCount = 0;
         snap.regionCount = 0;
         snap.deviceCount = 0;
@@ -1379,6 +1481,8 @@ void ProjectEngine::rebuildProcessorGraphLocked(int trackCount) {
         if (trackIndex >= trackCount || trackIndex >= kMaxProcessorGraphTracks) break;
         auto& definition = definitions[static_cast<size_t>(trackIndex)];
         definition.trackId = track.id;
+        definition.parentGroupTrack = static_cast<int8_t>(
+            trackPlayback_[trackIndex].parentGroupTrackIndex);
         midiInputIds[static_cast<size_t>(trackIndex)] = "track-midi:" + track.id;
         definition.sources[definition.sourceCount++] = GraphSourceDefinition{
             midiInputIds[static_cast<size_t>(trackIndex)], GraphSignalType::Midi,
@@ -1540,6 +1644,8 @@ void ProjectEngine::rebuildRepoCacheFromTree() {
         Track track;
         track.id = trackTree[state::props::id].toString().toStdString();
         track.name = trackTree[state::props::name].toString().toStdString();
+        track.isGroup = static_cast<bool>(trackTree[state::props::isGroup]);
+        track.parentGroupId = trackTree[state::props::parentGroupId].toString().toStdString();
 
         for (int ci = 0; ci < trackTree.getNumChildren(); ++ci) {
             auto child = trackTree.getChild(ci);
@@ -1668,7 +1774,8 @@ void ProjectEngine::syncProjectTreeLocked() {
     projectRoot_.setProperty(state::props::recording, recordArmed_, nullptr);
 
     for (const auto& track : trackRepo_.tracks()) {
-        auto trackTree = state::createTrackTree(track.id, track.name);
+        auto trackTree = state::createTrackTree(
+            track.id, track.name, track.isGroup, track.parentGroupId);
         for (const auto& device : track.devices) {
             const std::string configJson = deviceSlotToVar(device, deviceRegistry_);
             auto devTree = state::createDeviceTree(device.id, device.config.typeId, configJson);

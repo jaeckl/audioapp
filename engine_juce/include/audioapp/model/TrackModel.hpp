@@ -55,6 +55,8 @@ struct AutomationClip {
 struct Track {
     std::string id;
     std::string name;
+    bool isGroup = false;
+    std::string parentGroupId;
     std::vector<DeviceSlot> devices;
     std::vector<MidiClip> midiClips;
     std::vector<SampleClip> sampleClips;

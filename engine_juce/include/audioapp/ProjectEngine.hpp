@@ -47,6 +47,8 @@ struct DeviceMeterState {
 struct TrackState {
     std::string id;
     std::string name;
+    bool isGroup = false;
+    std::string parentGroupId;
     std::vector<DeviceSlot> devices;
     /// Parallel meter array by deviceId. Only populated for snapshot serialization.
     std::vector<DeviceMeterState> deviceMeters;
@@ -95,6 +97,8 @@ class ProjectEngine : private juce::ValueTree::Listener {
 public:
     void createProject();
     std::string addTrack(const std::string& name);
+    std::string addGroupTrack(const std::string& name);
+    bool setTrackGroup(const std::string& trackId, const std::string& groupTrackId);
     bool selectTrack(const std::string& trackId);
     std::string addDeviceToTrack(const std::string& trackId,
                                  const std::string& deviceType,
@@ -240,6 +244,7 @@ private:
 
     struct TrackPlaybackSnapshot {
         std::string trackId;
+        int parentGroupTrackIndex = -1;
         int noteCount = 0;
         PlaybackNote notes[32];
         int regionCount = 0;

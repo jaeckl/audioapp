@@ -272,6 +272,29 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _addGroupTrack() async {
+    try {
+      final snapshot = await widget.bridge.addGroupTrack();
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
+  Future<void> _setTrackGroup(String trackId, String? groupTrackId) async {
+    try {
+      final snapshot = await widget.bridge.setTrackGroup(
+        trackId: trackId,
+        groupTrackId: groupTrackId ?? '',
+      );
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
   Future<void> _selectTrack(String trackId) async {
     try {
       await _applyDeltaMutation('selectTrack', {'trackId': trackId});
@@ -387,7 +410,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }) async {
     try {
       await widget.bridge.selectTrack(trackId);
-      final beforeIds = _snapshot?.automationClips.map((c) => c.id).toSet() ?? <String>{};
+      final beforeIds =
+          _snapshot?.automationClips.map((c) => c.id).toSet() ?? <String>{};
       var snapshot = await widget.bridge.createAutomationClip(
         trackId: trackId,
         startBeat: startBeat,
@@ -458,49 +482,56 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       'gain' => device.gain.clamp(0.0, 1.0),
       'pan' => device.pan.clamp(0.0, 1.0),
       'filterCutoff' => (switch (device) {
-        SubtractiveSynthDeviceSnapshot d => d.filterCutoff,
-        PhaseModSynthDeviceSnapshot d => d.filterCutoff,
-        SamplerDeviceSnapshot d => d.filterCutoff,
-        BassSynthDeviceSnapshot d => d.filterCutoff,
-        _ => 1.0,
-      }).clamp(0.0, 1.0),
+          SubtractiveSynthDeviceSnapshot d => d.filterCutoff,
+          PhaseModSynthDeviceSnapshot d => d.filterCutoff,
+          SamplerDeviceSnapshot d => d.filterCutoff,
+          BassSynthDeviceSnapshot d => d.filterCutoff,
+          _ => 1.0,
+        })
+            .clamp(0.0, 1.0),
       'filterQ' => (switch (device) {
-        SubtractiveSynthDeviceSnapshot d => d.filterQ,
-        PhaseModSynthDeviceSnapshot d => d.filterQ,
-        SamplerDeviceSnapshot d => d.filterQ,
-        _ => 0.5,
-      }).clamp(0.0, 1.0),
+          SubtractiveSynthDeviceSnapshot d => d.filterQ,
+          PhaseModSynthDeviceSnapshot d => d.filterQ,
+          SamplerDeviceSnapshot d => d.filterQ,
+          _ => 0.5,
+        })
+            .clamp(0.0, 1.0),
       'attack' => (switch (device) {
-        SubtractiveSynthDeviceSnapshot d => d.attack,
-        PhaseModSynthDeviceSnapshot d => d.attack,
-        SamplerDeviceSnapshot d => d.attack,
-        BassSynthDeviceSnapshot d => d.attack,
-        _ => 0.01,
-      }).clamp(0.0, 1.0),
+          SubtractiveSynthDeviceSnapshot d => d.attack,
+          PhaseModSynthDeviceSnapshot d => d.attack,
+          SamplerDeviceSnapshot d => d.attack,
+          BassSynthDeviceSnapshot d => d.attack,
+          _ => 0.01,
+        })
+            .clamp(0.0, 1.0),
       'decay' => (switch (device) {
-        SubtractiveSynthDeviceSnapshot d => d.decay,
-        PhaseModSynthDeviceSnapshot d => d.decay,
-        SamplerDeviceSnapshot d => d.decay,
-        _ => 0.3,
-      }).clamp(0.0, 1.0),
+          SubtractiveSynthDeviceSnapshot d => d.decay,
+          PhaseModSynthDeviceSnapshot d => d.decay,
+          SamplerDeviceSnapshot d => d.decay,
+          _ => 0.3,
+        })
+            .clamp(0.0, 1.0),
       'sustain' => (switch (device) {
-        SubtractiveSynthDeviceSnapshot d => d.sustain,
-        PhaseModSynthDeviceSnapshot d => d.sustain,
-        SamplerDeviceSnapshot d => d.sustain,
-        BassSynthDeviceSnapshot d => d.sustain,
-        _ => 0.7,
-      }).clamp(0.0, 1.0),
+          SubtractiveSynthDeviceSnapshot d => d.sustain,
+          PhaseModSynthDeviceSnapshot d => d.sustain,
+          SamplerDeviceSnapshot d => d.sustain,
+          BassSynthDeviceSnapshot d => d.sustain,
+          _ => 0.7,
+        })
+            .clamp(0.0, 1.0),
       'release' => (switch (device) {
-        SubtractiveSynthDeviceSnapshot d => d.release,
-        PhaseModSynthDeviceSnapshot d => d.release,
-        SamplerDeviceSnapshot d => d.release,
-        BassSynthDeviceSnapshot d => d.release,
-        _ => 0.4,
-      }).clamp(0.0, 1.0),
+          SubtractiveSynthDeviceSnapshot d => d.release,
+          PhaseModSynthDeviceSnapshot d => d.release,
+          SamplerDeviceSnapshot d => d.release,
+          BassSynthDeviceSnapshot d => d.release,
+          _ => 0.4,
+        })
+            .clamp(0.0, 1.0),
       'frequency' => (switch (device) {
-        OscillatorDeviceSnapshot d => ((d.frequencyHz - 110.0) / 770.0),
-        _ => 0.5,
-      }).clamp(0.0, 1.0),
+          OscillatorDeviceSnapshot d => ((d.frequencyHz - 110.0) / 770.0),
+          _ => 0.5,
+        })
+            .clamp(0.0, 1.0),
       _ => 0.5,
     };
   }
@@ -528,7 +559,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
     try {
       await widget.bridge.selectTrack(track.id);
-      final beforeIds = _snapshot?.automationClips.map((c) => c.id).toSet() ?? <String>{};
+      final beforeIds =
+          _snapshot?.automationClips.map((c) => c.id).toSet() ?? <String>{};
       var snapshot = await widget.bridge.createAutomationClip(
         trackId: track.id,
         startBeat: startBeat,
@@ -659,11 +691,14 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
-  void _optimisticParamUpdate(String deviceId, String parameterId, double value) {
-    _store.replaceSnapshot(_snapshot!.withDeviceParam(deviceId, parameterId, value));
+  void _optimisticParamUpdate(
+      String deviceId, String parameterId, double value) {
+    _store.replaceSnapshot(
+        _snapshot!.withDeviceParam(deviceId, parameterId, value));
   }
 
-  Future<void> _setSamplerParameter(String deviceId, String parameterId, double value) async {
+  Future<void> _setSamplerParameter(
+      String deviceId, String parameterId, double value) async {
     _optimisticParamUpdate(deviceId, parameterId, value);
 
     // Wavetable position can emit dozens/hundreds of drag updates per second.
@@ -724,7 +759,9 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       }
     } finally {
       _wtPositionSendInFlight = false;
-      if (mounted && _pendingWtPositionDeviceId != null && _pendingWtPositionTimer == null) {
+      if (mounted &&
+          _pendingWtPositionDeviceId != null &&
+          _pendingWtPositionTimer == null) {
         _pendingWtPositionTimer = Timer(
           const Duration(milliseconds: 16),
           _flushQueuedWtPositionParameter,
@@ -753,19 +790,21 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       }
     } catch (e) {
       if (!mounted) {
-        return _snapshot ?? const ProjectSnapshot(
-        bpm: 120,
-        selectedTrackId: '',
-        playheadBeats: 0,
-        playing: false,
-        loopEnabled: true,
-        recordArmed: false,
-        master: MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1.0),
-        samples: [],
-        tracks: [],
-        lfos: [],
-        modEdges: [],
-      );
+        return _snapshot ??
+            const ProjectSnapshot(
+              bpm: 120,
+              selectedTrackId: '',
+              playheadBeats: 0,
+              playing: false,
+              loopEnabled: true,
+              recordArmed: false,
+              master:
+                  MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1.0),
+              samples: [],
+              tracks: [],
+              lfos: [],
+              modEdges: [],
+            );
       }
       rethrow;
     }
@@ -809,7 +848,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     widget.bridge.stopPreview().catchError((Object _) {});
   }
 
-  Future<void> _openLibrary({LibraryCategory category = LibraryCategory.audioClips}) async {
+  Future<void> _openLibrary(
+      {LibraryCategory category = LibraryCategory.audioClips}) async {
     setState(() {
       _libraryOpen = true;
       _libraryCategory = category;
@@ -855,7 +895,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
           startBeat: startBeat,
           lengthBeats: item.clip.lengthBeats,
         );
-        final updatedTrack = snapshot.tracks.firstWhere((t) => t.id == track.id);
+        final updatedTrack =
+            snapshot.tracks.firstWhere((t) => t.id == track.id);
         if (updatedTrack.midiClips.length > beforeClipCount) {
           final clip = updatedTrack.midiClips.last;
           snapshot = await widget.bridge.setMidiClipNotes(
@@ -896,7 +937,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _onLibraryAutomationPreviewTap(LibraryAutomationItem item) async {
+  Future<void> _onLibraryAutomationPreviewTap(
+      LibraryAutomationItem item) async {
     // Automation has no audio preview — no-op.
   }
 
@@ -955,7 +997,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             deviceType: 'subtractive_synth',
           );
           // Find the newly added subtractive synth device
-          final updatedTrack = snapshot.tracks.firstWhere((t) => t.id == track.id);
+          final updatedTrack =
+              snapshot.tracks.firstWhere((t) => t.id == track.id);
           synth = updatedTrack.subtractiveSynthDevice;
           await _refreshSnapshot(snapshot);
         } catch (e) {
@@ -990,9 +1033,11 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _onLibraryPresetPreviewTap(LibraryPresetItem item, {double startBeat = 0.0, bool loop = true}) async {
+  Future<void> _onLibraryPresetPreviewTap(LibraryPresetItem item,
+      {double startBeat = 0.0, bool loop = true}) async {
     final preset = DevicePresetStore.find(item.deviceType, item.id);
-    debugPrint('[library preset] item.id=${item.id} deviceType=${item.deviceType} startBeat=$startBeat loop=$loop presetFound=${preset != null}');
+    debugPrint(
+        '[library preset] item.id=${item.id} deviceType=${item.deviceType} startBeat=$startBeat loop=$loop presetFound=${preset != null}');
     if (preset == null) {
       return;
     }
@@ -1021,10 +1066,14 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
     // Fallback C arpeggio pattern if there are no notes on the selected track
     if (notes.isEmpty) {
-      notes.add(const MidiNoteSnapshot(pitch: 48, startBeat: 0.0, durationBeats: 1.0, velocity: 90.0));
-      notes.add(const MidiNoteSnapshot(pitch: 52, startBeat: 1.0, durationBeats: 1.0, velocity: 90.0));
-      notes.add(const MidiNoteSnapshot(pitch: 55, startBeat: 2.0, durationBeats: 1.0, velocity: 90.0));
-      notes.add(const MidiNoteSnapshot(pitch: 60, startBeat: 3.0, durationBeats: 1.0, velocity: 90.0));
+      notes.add(const MidiNoteSnapshot(
+          pitch: 48, startBeat: 0.0, durationBeats: 1.0, velocity: 90.0));
+      notes.add(const MidiNoteSnapshot(
+          pitch: 52, startBeat: 1.0, durationBeats: 1.0, velocity: 90.0));
+      notes.add(const MidiNoteSnapshot(
+          pitch: 55, startBeat: 2.0, durationBeats: 1.0, velocity: 90.0));
+      notes.add(const MidiNoteSnapshot(
+          pitch: 60, startBeat: 3.0, durationBeats: 1.0, velocity: 90.0));
       maxBeat = 4.0;
     }
 
@@ -1093,7 +1142,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _openSamplerEditor(TrackSnapshot track, DeviceSnapshot device) async {
+  Future<void> _openSamplerEditor(
+      TrackSnapshot track, DeviceSnapshot device) async {
     if (device is! SubtractiveSynthDeviceSnapshot) {
       return;
     }
@@ -1184,7 +1234,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       await _refreshRecentProjects();
     } on PlatformException catch (e) {
       if (!mounted) return;
-      setState(() => _projectError = '${e.code}: ${e.message ?? "save failed"}');
+      setState(
+          () => _projectError = '${e.code}: ${e.message ?? "save failed"}');
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
@@ -1378,8 +1429,12 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         title: const Text('Delete track?'),
         content: const Text('Clips on this track will be removed.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete')),
         ],
       ),
     );
@@ -1418,7 +1473,9 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         title: const Text('Delete device?'),
         content: Text(message.toString()),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Delete'),
@@ -1429,7 +1486,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     if (ok != true) return;
 
     try {
-      final snapshot = await widget.bridge.removeDeviceFromTrack(deviceId: device.id);
+      final snapshot =
+          await widget.bridge.removeDeviceFromTrack(deviceId: device.id);
       await _refreshSnapshot(snapshot);
     } catch (e) {
       if (!mounted) return;
@@ -1443,8 +1501,12 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       builder: (context) => AlertDialog(
         title: const Text('Delete clip?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete')),
         ],
       ),
     );
@@ -1618,6 +1680,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             onLoopRegionChanged: _setLoopRegion,
             onTrackSelected: _selectTrack,
             onAddTrack: _addTrack,
+            onAddGroup: _addGroupTrack,
+            onSetTrackGroup: _setTrackGroup,
             onAddMidiClip: _addMidiClip,
             onAddAudioClip: _addAudioClip,
             onClipTap: _openPianoRoll,
@@ -1656,7 +1720,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             },
             onFrequencyChanged: _setFrequency,
             onAddDevice: _addDeviceToTrack,
-            onBypassToggle: (deviceId, bypassed) => _setDeviceBypass(deviceId, bypassed),
+            onBypassToggle: (deviceId, bypassed) =>
+                _setDeviceBypass(deviceId, bypassed),
             onRemoveDevice: _confirmRemoveDevice,
             onOpenDeviceLibrary: _openDeviceLibrary,
             onModulationBridgeCall: _modulationBridgeCall,

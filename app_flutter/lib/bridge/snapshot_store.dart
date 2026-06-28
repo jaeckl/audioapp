@@ -130,9 +130,9 @@ class SnapshotStore extends ChangeNotifier {
     }
     final newTracks = snap.tracks.map((track) {
       final match = trackDeltas.cast<Map<dynamic, dynamic>>().firstWhere(
-        (td) => td['trackId'] == track.id,
-        orElse: () => <dynamic, dynamic>{},
-      );
+            (td) => td['trackId'] == track.id,
+            orElse: () => <dynamic, dynamic>{},
+          );
       if (match.isEmpty) return track;
 
       final deviceDeltas = match['devices'] as List<dynamic>?;
@@ -141,12 +141,14 @@ class SnapshotStore extends ChangeNotifier {
       return TrackSnapshot(
         id: track.id,
         name: track.name,
+        isGroup: track.isGroup,
+        parentGroupId: track.parentGroupId,
         devices: track.devices.map((device) {
           final devMatch =
               deviceDeltas.cast<Map<dynamic, dynamic>>().firstWhere(
-            (dd) => dd['deviceId'] == device.id,
-            orElse: () => <dynamic, dynamic>{},
-          );
+                    (dd) => dd['deviceId'] == device.id,
+                    orElse: () => <dynamic, dynamic>{},
+                  );
           if (devMatch.isEmpty) return device;
 
           final params = devMatch['params'] as List<dynamic>?;
@@ -190,9 +192,9 @@ class SnapshotStore extends ChangeNotifier {
   ) {
     final lfos = snap.lfos.map((lfo) {
       final match = modDeltas.cast<Map<dynamic, dynamic>>().firstWhere(
-        (md) => (md['lfoId'] as num).toInt() == lfo.id,
-        orElse: () => <dynamic, dynamic>{},
-      );
+            (md) => (md['lfoId'] as num).toInt() == lfo.id,
+            orElse: () => <dynamic, dynamic>{},
+          );
       if (match.isEmpty) return lfo;
 
       final params = match['params'] as List<dynamic>?;

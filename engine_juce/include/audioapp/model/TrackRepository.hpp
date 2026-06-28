@@ -14,6 +14,8 @@ public:
     void clear();
 
     std::string addTrack(const std::string& name, const DeviceRegistry& registry);
+    std::string addGroupTrack(const std::string& name, const DeviceRegistry& registry);
+    bool setTrackGroup(const std::string& trackId, const std::string& groupTrackId);
     bool deleteTrack(const std::string& trackId);
     bool selectTrack(const std::string& trackId);
 
