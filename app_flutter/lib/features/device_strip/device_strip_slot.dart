@@ -40,6 +40,7 @@ import 'dynamics_fx_panels.dart';
 import 'time_fx_panels.dart';
 import 'mood_fx_panels.dart';
 import 'frequency_fx_panels.dart';
+import 'resonator_bank_panel.dart';
 import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
 import 'phase_mod_synth_device_panel.dart';
@@ -207,7 +208,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       'kick_generator', 'snare_generator', 'clap_generator',
       'cymbal_generator', 'crash_generator',
       'gate', 'compressor', 'expander', 'limiter',
-      'filter', 'four_band_eq', 'frequency_shifter',
+      'filter', 'four_band_eq', 'frequency_shifter', 'resonator_bank',
       'delay', 'reverb', 'chorus', 'phaser',
     };
     return knownTypes.contains(widget.device.type);
@@ -1195,6 +1196,25 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           designWidth: _cardWidth,
           designHeight: contentHeight,
           child: FreqShifterDeviceStrip(
+            device: dev,
+            onParameterChanged: widget.onDeviceParameterChanged,
+            modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
+            onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
+            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+          ),
+        );
+      case 'resonator_bank':
+        final dev = widget.device as ResonatorBankDeviceSnapshot;
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: _cardWidth,
+          designHeight: contentHeight,
+          child: ResonatorBankPanel(
             device: dev,
             onParameterChanged: widget.onDeviceParameterChanged,
             modulatedParams: _modulatedParamIds,

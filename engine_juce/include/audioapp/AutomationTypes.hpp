@@ -340,6 +340,16 @@ enum class FrequencyShifterParam : uint16_t {
     Shift = 0,
 };
 
+enum class ResonatorBankParam : uint16_t {
+    Root = 0,
+    Spread = 1,
+    Decay = 2,
+    Damping = 3,
+    Color = 4,
+    Width = 5,
+    Mix = 6,
+};
+
 enum class BitcrusherParam : uint16_t {
     Rate = 0,
     Bits = 1,
@@ -395,6 +405,7 @@ enum class ParamKind : uint16_t {
     Distortion       = 20,
     Tremolo          = 21,
     WavetableSynth   = 22,
+    ResonatorBank    = 23,
 };
 
 constexpr uint16_t kParamKindShift      = 11;

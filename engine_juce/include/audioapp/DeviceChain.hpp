@@ -19,6 +19,7 @@
 #include "audioapp/SubtractiveSynthAlgorithm.hpp"
 #include "audioapp/WavetableSynthAlgorithm.hpp"
 #include "audioapp/FrequencyFxProcessor.hpp"
+#include "audioapp/ResonatorBank.hpp"
 
 namespace audioapp {
 
@@ -63,6 +64,7 @@ enum class DeviceNodeKind : uint8_t {
     Distortion,
     Tremolo,
     WavetableSynth,
+    ResonatorBank,
 };
 
 // --- Per-device DSP-only parameter structs ---
@@ -177,7 +179,8 @@ using DeviceVariantParams = std::variant<
     FrequencyShifterParams,
     BitcrusherParamsPlayback,
     DistortionParamsPlayback,
-    TremoloParamsPlayback
+    TremoloParamsPlayback,
+    ResonatorBankParams
 >;
 
 /// Per-track device chain node (built on control thread, read on audio thread).

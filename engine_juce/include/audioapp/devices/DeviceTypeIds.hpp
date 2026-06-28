@@ -24,6 +24,7 @@ inline constexpr const char* kPhaser = "phaser";
 inline constexpr const char* kFilter = "filter";
 inline constexpr const char* kFourBandEq = "four_band_eq";
 inline constexpr const char* kFrequencyShifter = "frequency_shifter";
+inline constexpr const char* kResonatorBank = "resonator_bank";
 inline constexpr const char* kBitcrusher = "bitcrusher";
 inline constexpr const char* kDistortion = "distortion";
 inline constexpr const char* kTremolo = "tremolo";

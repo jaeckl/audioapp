@@ -112,6 +112,25 @@ void applyModulation(FrequencyShifterParams& p, float modAmount, uint16_t localP
     }
 }
 
+void applyModulation(ResonatorBankParams& p, float modAmount, uint16_t localParamId) noexcept {
+    switch (static_cast<ResonatorBankParam>(unpackParamId(localParamId))) {
+    case ResonatorBankParam::Root:
+        p.rootHz = std::clamp(p.rootHz * std::pow(2.0f, modAmount), 32.7032f, 2093.005f); break;
+    case ResonatorBankParam::Spread:
+        p.spread = std::clamp(p.spread + modAmount * 0.5f, 0.5f, 1.5f); break;
+    case ResonatorBankParam::Decay:
+        p.decaySeconds = std::clamp(p.decaySeconds * std::pow(4.0f, modAmount), 0.08f, 12.0f); break;
+    case ResonatorBankParam::Damping:
+        p.damping = std::clamp(p.damping + modAmount, 0.0f, 1.0f); break;
+    case ResonatorBankParam::Color:
+        p.colorDbPerOctave = std::clamp(p.colorDbPerOctave + modAmount * 12.0f, -12.0f, 12.0f); break;
+    case ResonatorBankParam::Width:
+        p.width = std::clamp(p.width + modAmount, 0.0f, 2.0f); break;
+    case ResonatorBankParam::Mix:
+        p.mix = std::clamp(p.mix + modAmount, 0.0f, 1.0f); break;
+    }
+}
+
 void applyModulation(SubtractiveSynthParams& p, float modAmount, uint16_t localParamId) noexcept {
     switch (static_cast<SubtractiveParam>(unpackParamId(localParamId))) {
     case SubtractiveParam::FilterCutoff:      p.filterCutoff = std::clamp(p.filterCutoff + modAmount, 0.0f, 1.0f); break;

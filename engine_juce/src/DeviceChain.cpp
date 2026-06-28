@@ -27,7 +27,8 @@ bool isInstrumentDeviceNodeKind(const DeviceNodeKind kind) noexcept {
 bool isFrequencyFxDeviceNodeKind(DeviceNodeKind kind) noexcept {
     return kind == DeviceNodeKind::Filter ||
            kind == DeviceNodeKind::FourBandEq ||
-           kind == DeviceNodeKind::FrequencyShifter;
+           kind == DeviceNodeKind::FrequencyShifter ||
+           kind == DeviceNodeKind::ResonatorBank;
 }
 
 bool handlesOwnModulation(DeviceNodeKind kind) noexcept {
@@ -95,6 +96,7 @@ DeviceNodeKind deviceNodeKindFromTypeId(const std::string& typeId) noexcept {
     if (typeId == kDistortion)       return DeviceNodeKind::Distortion;
     if (typeId == kTremolo)          return DeviceNodeKind::Tremolo;
     if (typeId == kWavetableSynth)   return DeviceNodeKind::WavetableSynth;
+    if (typeId == kResonatorBank)    return DeviceNodeKind::ResonatorBank;
     return DeviceNodeKind::Unknown;
 }
 

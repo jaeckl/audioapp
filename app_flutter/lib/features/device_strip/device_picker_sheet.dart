@@ -152,6 +152,12 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
               subtitle: const Text('Carrier · -2 kHz to +2 kHz'),
               onTap: () => Navigator.pop(context, 'frequency_shifter'),
             ),
+            ListTile(
+              leading: const Icon(Icons.multiline_chart, color: Color(0xFFFFB454)),
+              title: const Text('RESONATE'),
+              subtitle: const Text('Six tuned modes · decay & stereo body'),
+              onTap: () => Navigator.pop(context, 'resonator_bank'),
+            ),
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
               child: Text(

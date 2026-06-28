@@ -28,6 +28,7 @@
 #include "audioapp/devices/instances/BassSynthModel.hpp"
 #include "audioapp/devices/instances/PhaseModSynthModel.hpp"
 #include "audioapp/devices/instances/FrequencyFxModel.hpp" // FilterModel, FourBandEqModel, FrequencyShifterModel
+#include "audioapp/devices/instances/ResonatorBankModel.hpp"
 
 namespace audioapp {
 
@@ -57,7 +58,8 @@ using DeviceInstance = std::variant<
     FrequencyShifterModel,       // was FrequencyShifterInstance
     BitcrusherParams,
     DistortionParams,
-    TremoloParams
+    TremoloParams,
+    ResonatorBankModel
 >;
 
 /// Unified device config wrapping params, panels, and bypass.

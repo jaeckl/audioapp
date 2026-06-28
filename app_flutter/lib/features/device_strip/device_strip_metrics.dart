@@ -5,6 +5,7 @@ import 'cymbal_generator_device_panel.dart';
 import 'device_knob_sizes.dart';
 import 'dynamics_fx_panels.dart';
 import 'frequency_fx_panels.dart';
+import 'resonator_bank_panel.dart';
 import 'kick_generator_device_panel.dart';
 import 'oscillator_device_panel.dart';
 import 'phase_mod_synth_device_panel.dart';
@@ -22,7 +23,9 @@ class DeviceStripMetrics {
   static const _dynamicsTypes = {'gate', 'compressor', 'expander', 'limiter'};
   static const _timeFxTypes = {'delay', 'reverb', 'chorus', 'phaser'};
   static const _moodFxTypes = {'bitcrusher', 'distortion', 'tremolo'};
-  static const _frequencyFxTypes = {'filter', 'four_band_eq', 'frequency_shifter'};
+  static const _frequencyFxTypes = {
+    'filter', 'four_band_eq', 'frequency_shifter', 'resonator_bank',
+  };
   static const _drumTypes = {
     'kick_generator',
     'snare_generator',
@@ -160,6 +163,7 @@ class DeviceStripMetrics {
       'filter' => FilterDevicePanel.designWidth,
       'four_band_eq' => FourBandEqDevicePanel.designWidth,
       'frequency_shifter' => FreqShifterDevicePanel.designWidth,
+      'resonator_bank' => ResonatorBankPanel.designWidth,
       'bitcrusher' => BitcrusherFxPanel.designWidth,
       'distortion' => DistortionFxPanel.designWidth,
       'tremolo' => TremoloFxPanel.designWidth,

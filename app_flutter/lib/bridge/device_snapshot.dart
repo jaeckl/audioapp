@@ -5,6 +5,7 @@ part 'device_families/drum_generator_family.dart';
 part 'device_families/dynamics_family.dart';
 part 'device_families/effect_family.dart';
 part 'device_families/frequency_fx_family.dart';
+part 'device_families/resonator_bank_family.dart';
 part 'device_families/oscillator_family.dart';
 part 'device_families/phase_mod_synth_family.dart';
 part 'device_families/sampler_family.dart';
@@ -72,6 +73,7 @@ sealed class DeviceSnapshot {
       'filter' => FilterDeviceSnapshot.fromMap(map),
       'four_band_eq' => FourBandEqDeviceSnapshot.fromMap(map),
       'frequency_shifter' => FrequencyShifterDeviceSnapshot.fromMap(map),
+      'resonator_bank' => ResonatorBankDeviceSnapshot.fromMap(map),
       _ => throw ArgumentError('Unknown device type: $type'),
     };
   }

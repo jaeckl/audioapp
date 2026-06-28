@@ -48,6 +48,7 @@ add_library(audioapp_engine STATIC
   src/MetallicNoiseSynth.cpp
   src/DynamicsProcessor.cpp
   src/FrequencyFxProcessor.cpp
+  src/ResonatorBank.cpp
   src/MasterMix.cpp
   src/DeviceChain.cpp
   src/DeviceChainAutomationModulation.cpp
@@ -74,6 +75,7 @@ add_library(audioapp_engine STATIC
   src/devices/processors/FilterProcessor.cpp
   src/devices/processors/FourBandEqProcessor.cpp
   src/devices/processors/FrequencyShifterProcessor.cpp
+  src/devices/processors/ResonatorBankProcessor.cpp
   src/devices/processors/BitcrusherProcessor.cpp
   src/devices/processors/DistortionProcessor.cpp
   src/devices/processors/TremoloProcessor.cpp
@@ -98,6 +100,7 @@ add_library(audioapp_engine STATIC
   src/devices/FilterDeviceType.cpp
   src/devices/FourBandEqDeviceType.cpp
   src/devices/FrequencyShifterDeviceType.cpp
+  src/devices/ResonatorBankDeviceType.cpp
   src/effects/TimeBasedEffectDeviceType.cpp
   src/effects/EffectDeviceRegistration.cpp
   src/effects/EffectSnapshot.cpp
@@ -146,6 +149,13 @@ target_compile_definitions(audioapp_engine
     JUCE_DISPLAY_SPLASH_SCREEN=0
     _SILENCE_CXX20_OLD_SHARED_PTR_ATOMIC_SUPPORT_DEPRECATION_WARNING
 )
+
+if(NOT ANDROID)
+  add_executable(resonator_bank_tests EXCLUDE_FROM_ALL
+    tests/resonator_bank_test.cpp
+  )
+  target_link_libraries(resonator_bank_tests PRIVATE audioapp_engine)
+endif()
 
 if(MSVC)
   target_compile_options(audioapp_engine PRIVATE /EHsc)

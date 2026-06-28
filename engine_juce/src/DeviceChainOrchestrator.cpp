@@ -29,6 +29,7 @@ using namespace audioapp::DeviceChainAutomationModulation;
 #include "audioapp/devices/processors/FilterProcessor.hpp"
 #include "audioapp/devices/processors/FourBandEqProcessor.hpp"
 #include "audioapp/devices/processors/FrequencyShifterProcessor.hpp"
+#include "audioapp/devices/processors/ResonatorBankProcessor.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -68,6 +69,7 @@ static const FactoryFn kProcessorFactories[] = {
     nullptr,  // Distortion = 24 (handled inline)
     nullptr,  // Tremolo = 25 (handled inline)
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<WavetableSynthProcessor>(); },        // WavetableSynth = 26
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<ResonatorBankProcessor>(); },          // ResonatorBank = 27
 };
 static constexpr size_t kNumFactories = sizeof(kProcessorFactories) / sizeof(kProcessorFactories[0]);
 

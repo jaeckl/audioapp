@@ -39,6 +39,7 @@ static ParamKind paramKindForDevice(DeviceNodeKind kind) noexcept {
     case DeviceNodeKind::Filter:           return ParamKind::Filter;
     case DeviceNodeKind::FourBandEq:       return ParamKind::FourBandEq;
     case DeviceNodeKind::FrequencyShifter: return ParamKind::FrequencyShifter;
+    case DeviceNodeKind::ResonatorBank:    return ParamKind::ResonatorBank;
     case DeviceNodeKind::TrackGain:        return ParamKind::TrackGain;
     case DeviceNodeKind::Unknown:
     default:                                return ParamKind::Common;
@@ -380,6 +381,21 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         if (auto v = s("ffxShift", FrequencyShifterParam::Shift)) return v;
         return 0;
     }
+    case DeviceNodeKind::ResonatorBank: {
+        auto r = [&](const char* n, ResonatorBankParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::ResonatorBank, static_cast<uint16_t>(pid))
+                : 0;
+        };
+        if (auto v = r("resRoot", ResonatorBankParam::Root)) return v;
+        if (auto v = r("resSpread", ResonatorBankParam::Spread)) return v;
+        if (auto v = r("resDecay", ResonatorBankParam::Decay)) return v;
+        if (auto v = r("resDamping", ResonatorBankParam::Damping)) return v;
+        if (auto v = r("resColor", ResonatorBankParam::Color)) return v;
+        if (auto v = r("resWidth", ResonatorBankParam::Width)) return v;
+        if (auto v = r("resMix", ResonatorBankParam::Mix)) return v;
+        return 0;
+    }
     default:
         return 0;
     }
@@ -660,6 +676,18 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         default: return "";
         }
     }
+    case DeviceNodeKind::ResonatorBank: {
+        switch (static_cast<ResonatorBankParam>(rawId)) {
+        case ResonatorBankParam::Root: return "resRoot";
+        case ResonatorBankParam::Spread: return "resSpread";
+        case ResonatorBankParam::Decay: return "resDecay";
+        case ResonatorBankParam::Damping: return "resDamping";
+        case ResonatorBankParam::Color: return "resColor";
+        case ResonatorBankParam::Width: return "resWidth";
+        case ResonatorBankParam::Mix: return "resMix";
+        default: return "";
+        }
+    }
     default:
         return "";
     }
@@ -806,6 +834,19 @@ const ParamDescriptor* paramDescriptorsForKind(DeviceNodeKind kind, int& countOu
             {static_cast<uint16_t>(FrequencyShifterParam::Shift), "ffxShift", "Shift", 0.5f, 0.0f, 1.0f, true, true},
         };
         countOut = 1;
+        return kParams;
+    }
+    case DeviceNodeKind::ResonatorBank: {
+        static constexpr ParamDescriptor kParams[] = {
+            {0, "resRoot", "Root", 0.5f, 0.0f, 1.0f, true, true},
+            {1, "resSpread", "Spread", 0.5f, 0.0f, 1.0f, true, true},
+            {2, "resDecay", "Decay", 0.55f, 0.0f, 1.0f, true, true},
+            {3, "resDamping", "Damping", 0.35f, 0.0f, 1.0f, true, true},
+            {4, "resColor", "Color", 0.5f, 0.0f, 1.0f, true, true},
+            {5, "resWidth", "Width", 0.5f, 0.0f, 1.0f, true, true},
+            {6, "resMix", "Mix", 0.5f, 0.0f, 1.0f, true, true},
+        };
+        countOut = 7;
         return kParams;
     }
     default:
@@ -1148,6 +1189,24 @@ void applyAutomationValue(DeviceVariantParams& params,
             case WavetableParam::AmpSustain:      p->ampSustain = value; break;
             case WavetableParam::AmpRelease:      p->ampRelease = value; break;
             default: break;
+            }
+        }
+        break;
+    case ParamKind::ResonatorBank:
+        if (auto* p = std::get_if<ResonatorBankParams>(&params)) {
+            const float normalized = std::clamp(value, 0.0f, 1.0f);
+            switch (static_cast<ResonatorBankParam>(rawId)) {
+            case ResonatorBankParam::Root: {
+                const float note = 24.0f + normalized * 72.0f;
+                p->rootHz = 440.0f * std::pow(2.0f, (note - 69.0f) / 12.0f);
+                break;
+            }
+            case ResonatorBankParam::Spread: p->spread = 0.5f + normalized; break;
+            case ResonatorBankParam::Decay: p->decaySeconds = 0.08f * std::pow(150.0f, normalized); break;
+            case ResonatorBankParam::Damping: p->damping = normalized; break;
+            case ResonatorBankParam::Color: p->colorDbPerOctave = (normalized - 0.5f) * 24.0f; break;
+            case ResonatorBankParam::Width: p->width = normalized * 2.0f; break;
+            case ResonatorBankParam::Mix: p->mix = normalized; break;
             }
         }
         break;
