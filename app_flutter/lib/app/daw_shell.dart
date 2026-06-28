@@ -1655,6 +1655,11 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _jumpToStart() async {
+    await _setPlayheadBeats(0);
+    _arrangementScrollController.revealPlayheadAtViewportOrigin(0);
+  }
+
   Future<void> _startPlay() async {
     final beats = _effectivePlayheadBeats;
     await _transport.startPlay(beats);
@@ -1871,20 +1876,35 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       children: [
         if (snapshot != null)
           ListenableBuilder(
-            listenable: _transport.playheadNotifier,
-            builder: (context, _) => TransportBar.padded(
-              context: context,
-              bpm: snapshot.bpm,
-              playheadBeats: _effectivePlayheadBeats,
-              version: kAppVersion,
-              loopEnabled: snapshot.loopEnabled,
-              followPlayheadEnabled: _transport.followPlayheadEnabled,
-              followPlayheadSuspended: _transport.followPlayheadSuspended,
-              onBpmChanged: _setBpm,
-              onLoopToggled: _setLoopEnabled,
-              onFollowPlayheadToggled: _setFollowPlayheadEnabled,
-              onExportMix: _exportMix,
-            ),
+            listenable: Listenable.merge([
+              _transport.playheadNotifier,
+              _transport,
+            ]),
+            builder: (context, _) {
+              final selectedTrack = _trackById(snapshot.selectedTrackId);
+              return TransportBar.padded(
+                context: context,
+                bpm: snapshot.bpm,
+                playheadBeats: _effectivePlayheadBeats,
+                playing: _transport.playing,
+                loopEnabled: snapshot.loopEnabled,
+                loopRegionStartBeat: snapshot.loopRegionStartBeat,
+                loopRegionEndBeat: snapshot.loopRegionEndBeat,
+                recordArmed: snapshot.recordArmed,
+                followPlayheadEnabled: _transport.followPlayheadEnabled,
+                followPlayheadSuspended: _transport.followPlayheadSuspended,
+                selectedTrackName: selectedTrack?.name,
+                songEndBeat:
+                    ArrangementTimelineMetrics.contentEndBeat(snapshot),
+                onPlayRequested: _startPlay,
+                onStopRequested: _stopPlay,
+                onJumpToStart: _jumpToStart,
+                onBpmChanged: _setBpm,
+                onLoopToggled: _setLoopEnabled,
+                onFollowPlayheadToggled: _setFollowPlayheadEnabled,
+                onExportMix: _exportMix,
+              );
+            },
           ),
         Expanded(
           child: snapshot == null

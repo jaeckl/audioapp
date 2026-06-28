@@ -9,6 +9,6 @@ class ShellInsets {
 
   static EdgeInsets headerPadding(BuildContext context) {
     final top = MediaQuery.viewPaddingOf(context).top;
-    return EdgeInsets.fromLTRB(12, top + 4, 12, 4);
+    return EdgeInsets.fromLTRB(12, top + 3, 12, 3);
   }
 }

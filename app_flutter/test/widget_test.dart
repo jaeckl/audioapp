@@ -471,7 +471,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('120'), findsOneWidget);
-    expect(find.text('v0.1.0'), findsOneWidget);
     expect(find.bySemanticsLabel('Devices'), findsOneWidget);
     expect(find.bySemanticsLabel('Keys'), findsOneWidget);
     expect(find.bySemanticsLabel('Mixer'), findsOneWidget);
