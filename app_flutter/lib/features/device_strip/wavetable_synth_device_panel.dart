@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
@@ -5,8 +7,10 @@ import '../../features/content_library/library_theme.dart';
 import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
+import 'filter_preview.dart';
 import 'rotary_knob.dart';
 import 'sampler_device_panel.dart';
+import 'sampler_envelope_preview.dart';
 import 'wavetable_waveform_preview.dart';
 
 enum WavetablePanelDensity { strip, editor }
@@ -186,156 +190,174 @@ class _WavetableSynthDevicePanelState extends State<WavetableSynthDevicePanel> {
   }
 
   Widget _oscTab() {
-    final knobScale = _knobSize * 0.78;
+    final knobScale = _knobSize * 0.76;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(6, 6, 6, 6),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final availableHeight = constraints.maxHeight.isFinite
+              ? constraints.maxHeight
+              : 260.0;
+          final availableWidth = constraints.maxWidth.isFinite
+              ? constraints.maxWidth
+              : WavetableSynthDevicePanel.designWidth;
+
+          final gap = availableWidth < 360 ? 4.0 : 6.0;
+          final previewHeight = (availableHeight * 0.48).clamp(86.0, 126.0).toDouble();
+          final unisonWidth = (availableWidth * 0.28).clamp(92.0, 118.0).toDouble();
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      height: previewHeight,
+                      child: _panelBox(
+                        padding: EdgeInsets.zero,
+                        child: WavetableWaveformPreview(
+                          accent: WavetableSynthDevicePanel.accent,
+                          showLabel: true,
+                          label: widget.device.wavetableId,
+                          onTap: widget.onOpenWavetableLibrary,
+                          wavetableId: widget.device.wavetableId,
+                          wtPosition: widget.device.wtPosition,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: gap),
+                    Expanded(
+                      child: _panelBox(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+                        child: _knobGridRow(
+                          knobScale: knobScale,
+                          slots: [
+                            _knob(
+                              label: 'Position',
+                              value: widget.device.wtPosition,
+                              size: knobScale,
+                              displayValue: SamplerDevicePanel.formatPercent(widget.device.wtPosition),
+                              onChanged: (v) => widget.onParameterChanged('wtPosition', v),
+                              paramId: 'wtPosition',
+                              modulationAmounts: widget.modulationAmounts,
+                              connectModeLfoId: widget.connectModeLfoId,
+                              onModulationAssign: widget.onModulationAssign,
+                            ),
+                            _knob(
+                              label: 'Octave',
+                              value: widget.device.wtOctave,
+                              size: knobScale,
+                              displayValue: _formatOctave(widget.device.wtOctave),
+                              onChanged: (v) => widget.onParameterChanged('wtOctave', v),
+                              paramId: 'wtOctave',
+                              modulationAmounts: widget.modulationAmounts,
+                              connectModeLfoId: widget.connectModeLfoId,
+                              onModulationAssign: widget.onModulationAssign,
+                            ),
+                            _knob(
+                              label: 'Semi',
+                              value: widget.device.wtSemitone,
+                              size: knobScale,
+                              displayValue: _formatSemitone(widget.device.wtSemitone),
+                              onChanged: (v) => widget.onParameterChanged('wtSemitone', v),
+                              paramId: 'wtSemitone',
+                              modulationAmounts: widget.modulationAmounts,
+                              connectModeLfoId: widget.connectModeLfoId,
+                              onModulationAssign: widget.onModulationAssign,
+                            ),
+                            _knob(
+                              label: 'Fine',
+                              value: widget.device.wtFine,
+                              size: knobScale,
+                              displayValue: _formatFine(widget.device.wtFine),
+                              onChanged: (v) => widget.onParameterChanged('wtFine', v),
+                              paramId: 'wtFine',
+                              modulationAmounts: widget.modulationAmounts,
+                              connectModeLfoId: widget.connectModeLfoId,
+                              onModulationAssign: widget.onModulationAssign,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: gap),
+              SizedBox(
+                width: unisonWidth,
+                child: _unisonColumn(knobScale: knobScale),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _unisonColumn({
+    required double knobScale,
+  }) {
+    return _panelBox(
+      padding: const EdgeInsets.fromLTRB(4, 6, 4, 5),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Tappable wavetable preview
-          SizedBox(
-            height: 150,
-            child: _panelBox(
-              padding: EdgeInsets.zero,
-                child: WavetableWaveformPreview(
-                accent: WavetableSynthDevicePanel.accent,
-                showLabel: true,
-                label: widget.device.wavetableId,
-                onTap: widget.onOpenWavetableLibrary,
-                wavetableId: widget.device.wavetableId,
-                wtPosition: widget.device.wtPosition,
+          const Text(
+            'UNISON',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white30,
+              fontSize: 8,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Expanded(
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: _knob(
+                  label: 'Voices',
+                  value: widget.device.wtUnison,
+                  size: knobScale,
+                  labelGap: 1,
+                  displayValue: '${1 + (widget.device.wtUnison * 7).round()}',
+                  onChanged: (v) => widget.onParameterChanged('wtUnison', v),
+                  paramId: 'wtUnison',
+                  modulationAmounts: widget.modulationAmounts,
+                  connectModeLfoId: widget.connectModeLfoId,
+                  onModulationAssign: widget.onModulationAssign,
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 6),
-          // Position knob + unison column
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  flex: 8,
-                  child: _knobGridRow(
-                    knobScale: knobScale,
-                    slots: [
-                      _knob(
-                        label: 'Position',
-                        value: widget.device.wtPosition,
-                        size: knobScale,
-                        displayValue:
-                            SamplerDevicePanel.formatPercent(widget.device.wtPosition),
-                        onChanged: (v) =>
-                            widget.onParameterChanged('wtPosition', v),
-                        paramId: 'wtPosition',
-                        modulationAmounts: widget.modulationAmounts,
-                        connectModeLfoId: widget.connectModeLfoId,
-                        onModulationAssign: widget.onModulationAssign,
-                      ),
-                      _knob(
-                        label: 'Octave',
-                        value: widget.device.wtOctave,
-                        size: knobScale,
-                        displayValue: _formatOctave(widget.device.wtOctave),
-                        onChanged: (v) =>
-                            widget.onParameterChanged('wtOctave', v),
-                        paramId: 'wtOctave',
-                        modulationAmounts: widget.modulationAmounts,
-                        connectModeLfoId: widget.connectModeLfoId,
-                        onModulationAssign: widget.onModulationAssign,
-                      ),
-                      _knob(
-                        label: 'Semi',
-                        value: widget.device.wtSemitone,
-                        size: knobScale,
-                        displayValue: _formatSemitone(widget.device.wtSemitone),
-                        onChanged: (v) =>
-                            widget.onParameterChanged('wtSemitone', v),
-                        paramId: 'wtSemitone',
-                        modulationAmounts: widget.modulationAmounts,
-                        connectModeLfoId: widget.connectModeLfoId,
-                        onModulationAssign: widget.onModulationAssign,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 6),
-                // Unison column
-                Expanded(
-                  flex: 4,
-                  child: _panelBox(
-                    padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
-                    child: Column(
-                      children: [
-                        const Text(
-                          'UNISON',
-                          style: TextStyle(
-                            color: Colors.white30,
-                            fontSize: 8,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Expanded(
-                          child: _knob(
-                            label: 'Voices',
-                            value: widget.device.wtUnison,
-                            size: knobScale * 0.78,
-                            labelGap: 0,
-                            displayValue:
-                                '${1 + (widget.device.wtUnison * 7).round()}',
-                            onChanged: (v) =>
-                                widget.onParameterChanged('wtUnison', v),
-                            paramId: 'wtUnison',
-                            modulationAmounts: widget.modulationAmounts,
-                            connectModeLfoId: widget.connectModeLfoId,
-                            onModulationAssign: widget.onModulationAssign,
-                          ),
-                        ),
-                        Expanded(
-                          child: _knob(
-                            label: 'Detune',
-                            value: widget.device.wtDetune,
-                            size: knobScale * 0.78,
-                            labelGap: 0,
-                            displayValue:
-                                SamplerDevicePanel.formatPercent(widget.device.wtDetune),
-                            onChanged: (v) =>
-                                widget.onParameterChanged('wtDetune', v),
-                            paramId: 'wtDetune',
-                            modulationAmounts: widget.modulationAmounts,
-                            connectModeLfoId: widget.connectModeLfoId,
-                            onModulationAssign: widget.onModulationAssign,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          Divider(
+            height: 8,
+            thickness: 1,
+            color: Colors.white.withValues(alpha: 0.06),
           ),
-          const SizedBox(height: 4),
-          // Fine knob row
-          SizedBox(
-            height: 36,
-            child: Row(
-              children: [
-                Expanded(
-                  child: _knob(
-                    label: 'Fine',
-                    value: widget.device.wtFine,
-                    size: knobScale,
-                    labelGap: 0,
-                    displayValue: _formatFine(widget.device.wtFine),
-                    onChanged: (v) => widget.onParameterChanged('wtFine', v),
-                    paramId: 'wtFine',
-                    modulationAmounts: widget.modulationAmounts,
-                    connectModeLfoId: widget.connectModeLfoId,
-                    onModulationAssign: widget.onModulationAssign,
-                  ),
+          Expanded(
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: _knob(
+                  label: 'Detune',
+                  value: widget.device.wtDetune,
+                  size: knobScale,
+                  labelGap: 1,
+                  displayValue: SamplerDevicePanel.formatPercent(widget.device.wtDetune),
+                  onChanged: (v) => widget.onParameterChanged('wtDetune', v),
+                  paramId: 'wtDetune',
+                  modulationAmounts: widget.modulationAmounts,
+                  connectModeLfoId: widget.connectModeLfoId,
+                  onModulationAssign: widget.onModulationAssign,
                 ),
-              ],
+              ),
             ),
           ),
         ],
@@ -345,131 +367,142 @@ class _WavetableSynthDevicePanelState extends State<WavetableSynthDevicePanel> {
 
   Widget _filterTab() {
     final mode = widget.device.filterMode.clamp(
-        0, WavetableSynthDevicePanel._filterTypes.length - 1);
-    final knobScale = _knobSize * 0.78;
+      0,
+      WavetableSynthDevicePanel._filterTypes.length - 1,
+    );
+    final knobScale = _knobSize * 0.76;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(6, 6, 6, 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Filter mode buttons
-          SizedBox(
-            height: 26,
-            child: _panelBox(
-              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-              child: Row(
-                children: List.generate(
-                  WavetableSynthDevicePanel._filterTypes.length,
-                  (i) {
-                    final active = mode == i;
-                    return Expanded(
-                      child: GestureDetector(
-                        onTap: () => widget.onParameterChanged('filterMode', i.toDouble()),
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 1),
-                          decoration: BoxDecoration(
-                            color: active
-                                ? WavetableSynthDevicePanel.accent.withValues(alpha: 0.2)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Center(
-                            child: Text(
-                              WavetableSynthDevicePanel._filterTypes[i],
-                              style: TextStyle(
-                                color: active
-                                    ? WavetableSynthDevicePanel.accent
-                                    : Colors.white38,
-                                fontSize: 9,
-                                fontWeight:
-                                    active ? FontWeight.w700 : FontWeight.w500,
-                              ),
-                            ),
-                          ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final availableHeight = constraints.maxHeight.isFinite
+              ? constraints.maxHeight
+              : 240.0;
+          final previewHeight = (availableHeight * 0.36).clamp(56.0, 82.0).toDouble();
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                height: previewHeight,
+                child: _panelBox(
+                  padding: EdgeInsets.zero,
+                  child: FilterPreview(
+                    cutoffHz: _filterCutoffHz(widget.device.filterCutoff),
+                    q: _filterQ(widget.device.filterResonance),
+                    mode: _filterPreviewMode(mode),
+                    accent: WavetableSynthDevicePanel.accent,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Expanded(
+                child: _panelBox(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'FILTER',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white30,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.8,
                         ),
                       ),
-                    );
-                  },
+                      const SizedBox(height: 4),
+                      SizedBox(
+                        height: 24,
+                        child: _filterModeButtons(mode),
+                      ),
+                      const SizedBox(height: 5),
+                      Expanded(
+                        child: _knobGridRow(
+                          knobScale: knobScale,
+                          slots: [
+                            _knob(
+                              label: 'Cutoff',
+                              value: widget.device.filterCutoff,
+                              size: knobScale,
+                              displayValue: SamplerDevicePanel.formatCutoffHz(widget.device.filterCutoff),
+                              onChanged: (v) => widget.onParameterChanged('filterCutoff', v),
+                              paramId: 'filterCutoff',
+                              modulationAmounts: widget.modulationAmounts,
+                              connectModeLfoId: widget.connectModeLfoId,
+                              onModulationAssign: widget.onModulationAssign,
+                            ),
+                            _knob(
+                              label: 'Res',
+                              value: widget.device.filterResonance,
+                              size: knobScale,
+                              displayValue: SamplerDevicePanel.formatQ(widget.device.filterResonance),
+                              onChanged: (v) => widget.onParameterChanged('filterResonance', v),
+                              paramId: 'filterResonance',
+                              modulationAmounts: widget.modulationAmounts,
+                              connectModeLfoId: widget.connectModeLfoId,
+                              onModulationAssign: widget.onModulationAssign,
+                            ),
+                            _knob(
+                              label: 'Env Amt',
+                              value: widget.device.filterEnvAmount,
+                              size: knobScale,
+                              displayValue: SamplerDevicePanel.formatPercent(widget.device.filterEnvAmount),
+                              onChanged: (v) => widget.onParameterChanged('filterEnvAmount', v),
+                              paramId: 'filterEnvAmount',
+                              modulationAmounts: widget.modulationAmounts,
+                              connectModeLfoId: widget.connectModeLfoId,
+                              onModulationAssign: widget.onModulationAssign,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _filterModeButtons(int mode) {
+    return Row(
+      children: List.generate(
+        WavetableSynthDevicePanel._filterTypes.length,
+        (i) {
+          final active = mode == i;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => widget.onParameterChanged('filterMode', i.toDouble()),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 1),
+                decoration: BoxDecoration(
+                  color: active
+                      ? WavetableSynthDevicePanel.accent.withValues(alpha: 0.2)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Center(
+                  child: Text(
+                    WavetableSynthDevicePanel._filterTypes[i],
+                    style: TextStyle(
+                      color: active
+                          ? WavetableSynthDevicePanel.accent
+                          : Colors.white38,
+                      fontSize: 9,
+                      fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 6),
-          // Cutoff + Res + Env Amt
-          Expanded(
-            child: _knobGridRow(
-              knobScale: knobScale,
-              slots: [
-                _knob(
-                  label: 'Cutoff',
-                  value: widget.device.filterCutoff,
-                  size: knobScale,
-                  displayValue:
-                      SamplerDevicePanel.formatCutoffHz(widget.device.filterCutoff),
-                  onChanged: (v) =>
-                      widget.onParameterChanged('filterCutoff', v),
-                  paramId: 'filterCutoff',
-                  modulationAmounts: widget.modulationAmounts,
-                  connectModeLfoId: widget.connectModeLfoId,
-                  onModulationAssign: widget.onModulationAssign,
-                ),
-                _knob(
-                  label: 'Res',
-                  value: widget.device.filterResonance,
-                  size: knobScale,
-                  displayValue:
-                      SamplerDevicePanel.formatQ(widget.device.filterResonance),
-                  onChanged: (v) =>
-                      widget.onParameterChanged('filterResonance', v),
-                  paramId: 'filterResonance',
-                  modulationAmounts: widget.modulationAmounts,
-                  connectModeLfoId: widget.connectModeLfoId,
-                  onModulationAssign: widget.onModulationAssign,
-                ),
-                _knob(
-                  label: 'Env Amt',
-                  value: widget.device.filterEnvAmount,
-                  size: knobScale,
-                  displayValue:
-                      SamplerDevicePanel.formatPercent(widget.device.filterEnvAmount),
-                  onChanged: (v) =>
-                      widget.onParameterChanged('filterEnvAmount', v),
-                  paramId: 'filterEnvAmount',
-                  modulationAmounts: widget.modulationAmounts,
-                  connectModeLfoId: widget.connectModeLfoId,
-                  onModulationAssign: widget.onModulationAssign,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 6),
-          // Filter envelope
-          _panelBox(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'FILTER ENV',
-                  style: TextStyle(
-                    color: Colors.white30,
-                    fontSize: 8,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                _adsrRow(
-                  attack: widget.device.filterAttack,
-                  decay: widget.device.filterDecay,
-                  sustain: widget.device.filterSustain,
-                  release: widget.device.filterRelease,
-                  onChanged: (id, v) => widget.onParameterChanged(id, v),
-                  prefix: 'filter',
-                ),
-              ],
-            ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -477,78 +510,101 @@ class _WavetableSynthDevicePanelState extends State<WavetableSynthDevicePanel> {
   Widget _envTab() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(6, 6, 6, 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Amp envelope
-          Expanded(
-            child: _panelBox(
-              padding: const EdgeInsets.all(6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text(
-                    'AMP ENV',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white30,
-                      fontSize: 8,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Expanded(
-                    child: Center(
-                      child: _adsrRow(
-                        attack: widget.device.attack,
-                        decay: widget.device.decay,
-                        sustain: widget.device.sustain,
-                        release: widget.device.release,
-                        onChanged: widget.onParameterChanged,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final availableHeight = constraints.maxHeight.isFinite
+              ? constraints.maxHeight
+              : 240.0;
+          final gap = availableHeight < 230 ? 4.0 : 6.0;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: _envelopePanel(title: 'AMP ENV', isFilter: false)),
+              SizedBox(height: gap),
+              Expanded(child: _envelopePanel(title: 'FILTER ENV', isFilter: true)),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _envelopePanel({
+    required String title,
+    required bool isFilter,
+  }) {
+    final attack = isFilter ? widget.device.filterAttack : widget.device.attack;
+    final decay = isFilter ? widget.device.filterDecay : widget.device.decay;
+    final sustain = isFilter ? widget.device.filterSustain : widget.device.sustain;
+    final release = isFilter ? widget.device.filterRelease : widget.device.release;
+
+    return _panelBox(
+      padding: const EdgeInsets.fromLTRB(6, 5, 6, 5),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final availableWidth = constraints.maxWidth.isFinite
+              ? constraints.maxWidth
+              : WavetableSynthDevicePanel.designWidth;
+          final compact = availableWidth < 350;
+          final previewWidth = compact
+              ? 76.0
+              : (availableWidth * 0.30).clamp(96.0, 132.0).toDouble();
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white30,
+                  fontSize: 8,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      width: previewWidth,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: SamplerEnvelopePreview(
+                          attack: attack,
+                          decay: decay,
+                          sustain: sustain,
+                          release: release,
+                          accent: WavetableSynthDevicePanel.accent,
+                          label: isFilter ? 'FILTER' : 'AMP',
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          // Filter envelope
-          Expanded(
-            child: _panelBox(
-              padding: const EdgeInsets.all(6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text(
-                    'FILTER ENV',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white30,
-                      fontSize: 8,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Expanded(
-                    child: Center(
-                      child: _adsrRow(
-                        attack: widget.device.filterAttack,
-                        decay: widget.device.filterDecay,
-                        sustain: widget.device.filterSustain,
-                        release: widget.device.filterRelease,
-                        onChanged: (id, v) => widget.onParameterChanged(id, v),
-                        prefix: 'filter',
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Center(
+                        child: _adsrRow(
+                          attack: attack,
+                          decay: decay,
+                          sustain: sustain,
+                          release: release,
+                          spacing: compact ? 3 : 5,
+                          onChanged: isFilter
+                              ? (id, v) => widget.onParameterChanged(id, v)
+                              : widget.onParameterChanged,
+                          prefix: isFilter ? 'filter' : '',
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -563,7 +619,7 @@ class _WavetableSynthDevicePanelState extends State<WavetableSynthDevicePanel> {
         for (final slot in slots)
           Expanded(
             child: Align(
-              alignment: Alignment.topCenter,
+              alignment: Alignment.center,
               child: slot == null
                   ? const SizedBox.shrink()
                   : FittedBox(
@@ -622,6 +678,32 @@ class _WavetableSynthDevicePanelState extends State<WavetableSynthDevicePanel> {
           connectModeLfoId: widget.connectModeLfoId),
       ],
     );
+  }
+
+
+  FilterPreviewMode _filterPreviewMode(int mode) {
+    switch (mode.clamp(0, 3)) {
+      case 1:
+        return FilterPreviewMode.highPass;
+      case 2:
+        return FilterPreviewMode.bandPass;
+      case 3:
+        return FilterPreviewMode.notch;
+      case 0:
+      default:
+        return FilterPreviewMode.lowPass;
+    }
+  }
+
+  double _filterCutoffHz(double normalized) {
+    const minHz = 20.0;
+    const maxHz = 20000.0;
+    final t = normalized.clamp(0.0, 1.0).toDouble();
+    return minHz * math.pow(maxHz / minHz, t).toDouble();
+  }
+
+  double _filterQ(double normalized) {
+    return 0.1 + normalized.clamp(0.0, 1.0).toDouble() * 9.9;
   }
 
   String _formatOctave(double normalized) {
