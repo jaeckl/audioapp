@@ -1,27 +1,29 @@
 # AGENTS.md
 
-Product and engineering rules live in [AGENT.md](AGENT.md). This file adds notes for
-automated agents working in the Cursor Cloud environment.
+### Rules
+DO NOT tell the user how to perform a direct task themselves. Try it on your own first
+DO NOT endlessly retry a failing task. You have max 3 tries before you have to think about other solutions
 
-## Cursor Cloud specific instructions
+Do the requested task, not a substitute task.
 
-This is a mobile DAW monorepo: a **Flutter** Android UI (`app_flutter/`), a **JUCE/C++**
-audio engine (`engine_juce/`), and an Android JNI **native bridge** (`native_bridge/`).
-The "backend" is the local native engine — there is no server.
+Never claim success unless you verified it with a command result.
+Never say "I'll now..." unless the next action is an actual tool command.
+Never replace a requested deploy/run/test with "the file is available".
+If blocked, say exactly what blocked you and the exact command/user action needed.
 
-### No Android emulator / device in cloud
+For every task:
+1. Inspect the current state.
+2. Run the required command.
+3. Read the result. ( not just return code but also shell output)
+4. If it fails, fix or report the concrete blocker.
+5. Verify the final state.
+6. Only then answer.
 
-Do **not** try to run the Android app on an emulator or device in this cloud VM:
-
-- The VM has **no KVM / nested virtualization** (`/dev/kvm` absent, no `vmx`/`svm`).
-- The emulator rejects `arm64-v8a` images on an x86_64 host, and `x86_64` images only
-  run under software TCG, which is too slow and crashes `system_server` (the TCG CPU
-  lacks AVX/f16c). It is not a reliable target here.
-- There are **no integration/e2e tests** yet (`app_flutter/integration_test/` is just a
-  placeholder), so nothing requires a booted device in CI-style runs.
-
-On-device / emulator testing is a **local developer** task (a physical device or a
-host-managed, KVM-accelerated emulator). The cloud loop below is headless only.
+Forbidden behavior:
+- Do not answer with "you can transfer the APK" when the user asked you to deploy.
+- Do not repeat a previous failed answer.
+- Do not say "The build was successful" as the final answer unless the task was only to build.
+- Do not mark the task done unless the requested target device was reached.
 
 ### Headless dev loop (what works here)
 
