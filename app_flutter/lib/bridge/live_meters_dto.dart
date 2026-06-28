@@ -10,7 +10,7 @@ class DeviceMeterReading {
     this.inputLevel = 0,
   });
 
-  factory DeviceMeterReading.fromMap(Map<String, dynamic> map, String id) {
+  factory DeviceMeterReading.fromMap(Map<dynamic, dynamic> map, String id) {
     return DeviceMeterReading(
       deviceId: id,
       gainReductionDb: (map['gr'] as num?)?.toDouble() ?? 0,
@@ -26,14 +26,18 @@ class LiveMetersBatch {
   const LiveMetersBatch({required this.meters});
 
   factory LiveMetersBatch.fromMap(Map<dynamic, dynamic> map) {
-    final raw = map['meters'] as Map<dynamic, dynamic>? ?? {};
-    final list = raw.entries
-        .whereType<MapEntry<dynamic, dynamic>>()
-        .map((e) => DeviceMeterReading.fromMap(
-              e.value as Map<String, dynamic>,
-              e.key.toString(),
-            ))
-        .toList();
+    final raw = map['meters'];
+    if (raw is! Map) {
+      return const LiveMetersBatch(meters: []);
+    }
+
+    final list = <DeviceMeterReading>[];
+    for (final entry in raw.entries) {
+      final value = entry.value;
+      if (value is Map) {
+        list.add(DeviceMeterReading.fromMap(value, entry.key.toString()));
+      }
+    }
     return LiveMetersBatch(meters: list);
   }
 }

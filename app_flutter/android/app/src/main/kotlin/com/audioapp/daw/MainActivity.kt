@@ -5,6 +5,8 @@ import android.content.Intent
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.provider.DocumentsContract
 import android.util.Log
@@ -293,18 +295,25 @@ class MainActivity : FlutterFragmentActivity() {
         val metersChannelName = "com.audioapp.daw/meters"
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, metersChannelName)
             .setStreamHandler(object : EventChannel.StreamHandler {
+                private val mainHandler = Handler(Looper.getMainLooper())
                 private var meterTimer: java.util.Timer? = null
+                @Volatile private var listening = false
 
                 override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
                     meterTimer?.cancel()
-                    meterTimer = java.util.Timer(true)
+                    listening = true
+                    meterTimer = java.util.Timer("audioapp-meter-poll", true)
                     meterTimer!!.schedule(object : java.util.TimerTask() {
                         override fun run() {
                             try {
                                 val json = nativeInvoke("getDeviceMeters", "{}")
                                 val map = jsonToMap(json)
                                 if (map["ok"] == true) {
-                                    events.success(map)
+                                    mainHandler.post {
+                                        if (listening) {
+                                            events.success(map)
+                                        }
+                                    }
                                 }
                             } catch (e: Exception) {
                                 Log.w(logTag, "Meter poll failed: ${e.message}")
@@ -314,6 +323,7 @@ class MainActivity : FlutterFragmentActivity() {
                 }
 
                 override fun onCancel(arguments: Any?) {
+                    listening = false
                     meterTimer?.cancel()
                     meterTimer = null
                 }

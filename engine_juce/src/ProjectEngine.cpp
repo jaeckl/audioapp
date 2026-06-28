@@ -1162,7 +1162,7 @@ std::string ProjectEngine::getDeviceMetersJson() {
         const float in = deviceMeters_[i].inputPeak.load(std::memory_order_relaxed);
         json += "\"";
         json += deviceMeterIds_[i];
-        json += R"({"gr":)";
+        json += R"(":{"gr":)";
         // Format gain reduction as 1 decimal, input level as 3 decimal
         char buf[64];
         snprintf(buf, sizeof(buf), "%.1f", static_cast<double>(gr));
