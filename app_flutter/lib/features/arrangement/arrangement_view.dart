@@ -258,6 +258,7 @@ class ArrangementViewState extends State<ArrangementView> {
       markerBeat: _displayPlayheadBeats,
       pixelsPerBeat: _pixelsPerBeat,
       scrollOffset: _rulerScrollOffset,
+      playing: widget.playing,
     );
   }
 
@@ -281,14 +282,19 @@ class ArrangementViewState extends State<ArrangementView> {
     setState(() {});
   }
 
-  void _onRulerPointerMove(PointerMoveEvent event) {
+  void _onRulerPointerMove(PointerMoveEvent event, [double? canvasDxOverride]) {
     if (event.pointer != _rulerActivePointer) {
       return;
     }
-    final canvasDx = _rulerCanvasDx(event);
+    final canvasDx = canvasDxOverride ?? _rulerCanvasDx(event);
     final current = Offset(canvasDx, event.localPosition.dy);
     final last = _rulerLastCanvasPos ?? current;
-    _rulerPointerTravel += (current - last).distance;
+    if (_rulerDragTarget == _RulerDragTarget.playhead) {
+      // Tall hit layer: ignore vertical wobble so tap ≠ scrub.
+      _rulerPointerTravel += (current.dx - last.dx).abs();
+    } else {
+      _rulerPointerTravel += (current - last).distance;
+    }
     _rulerLastCanvasPos = current;
 
     if (_rulerDragTarget == null) {
@@ -327,14 +333,14 @@ class ArrangementViewState extends State<ArrangementView> {
     }
   }
 
-  Future<void> _onRulerPointerUp(PointerEvent event) async {
+  Future<void> _onRulerPointerUp(PointerEvent event, [double? canvasDxOverride]) async {
     if (event.pointer != _rulerActivePointer) {
       return;
     }
 
     final dragTarget = _rulerDragTarget;
     final pointerTravel = _rulerPointerTravel;
-    final canvasDx = _rulerCanvasDx(event);
+    final canvasDx = canvasDxOverride ?? _rulerCanvasDx(event);
 
     final draggedPlayhead = dragTarget == _RulerDragTarget.playhead &&
         pointerTravel >= _rulerTapSlop;
@@ -381,6 +387,22 @@ class ArrangementViewState extends State<ArrangementView> {
         _scrubPlayheadBeats = null;
       });
     }
+  }
+
+  void _onPlayheadHitPointerDown(PointerDownEvent event, double canvasDx) {
+    _rulerActivePointer = event.pointer;
+    _rulerLastCanvasPos = Offset(canvasDx, 0);
+    _rulerPointerTravel = 0;
+    _rulerDragTarget = _RulerDragTarget.playhead;
+    setState(() {});
+  }
+
+  void _onPlayheadHitPointerMove(PointerMoveEvent event, double canvasDx) {
+    _onRulerPointerMove(event, canvasDx);
+  }
+
+  Future<void> _onPlayheadHitPointerUp(PointerEvent event, double canvasDx) async {
+    await _onRulerPointerUp(event, canvasDx);
   }
 
   @override
@@ -540,7 +562,9 @@ class ArrangementViewState extends State<ArrangementView> {
       if (!mounted) return;
       if (widget.followPlayheadEnabled) {
         _resumeFollow();
-        _followPlayheadIfNeeded(beat, immediate: immediate);
+        if (!_playheadVisibleAtPlaybackStart(beat)) {
+          _followPlayheadIfNeeded(beat, immediate: immediate);
+        }
         return;
       }
       if (!timelinePlayheadIsSticky(
@@ -581,6 +605,25 @@ class ArrangementViewState extends State<ArrangementView> {
     }
     _lastFollowAnimateAt = now;
     _animateScrollToBeat(beat, viewportX: leadX);
+  }
+
+  /// Playhead already on screen (incl. sticky at x=0) — skip play-start scroll jump.
+  bool _playheadVisibleAtPlaybackStart(double beat) {
+    if (_timelineViewportWidth <= 0) {
+      return true;
+    }
+    final natural = timelineNaturalViewportX(
+      beat: beat,
+      pixelsPerBeat: _pixelsPerBeat,
+      scrollOffset: _horizontalScrollOffset,
+    );
+    if (natural <= 0) {
+      return true;
+    }
+    final leadX = timelineLeadViewportX(_timelineViewportWidth);
+    final maxX =
+        _timelineViewportWidth * TimelineFollowMetrics.maxVisibleFraction;
+    return natural >= leadX && natural <= maxX;
   }
 
   void _jumpScrollToBeat(double beat, {required double viewportX}) {
@@ -1908,6 +1951,9 @@ class ArrangementViewState extends State<ArrangementView> {
                   scrubbingPlayhead: _scrubbingPlayhead,
                   inFrontOfChrome: false,
                   sideColumnWidth: headerWidth,
+                  onPlayheadPointerDown: _onPlayheadHitPointerDown,
+                  onPlayheadPointerMove: _onPlayheadHitPointerMove,
+                  onPlayheadPointerUp: _onPlayheadHitPointerUp,
                 ),
               Positioned(
                 left: 0,
@@ -1984,6 +2030,24 @@ class ArrangementViewState extends State<ArrangementView> {
                   scrubbingPlayhead: _scrubbingPlayhead,
                   inFrontOfChrome: true,
                   sideColumnWidth: headerWidth,
+                  onPlayheadPointerDown: _onPlayheadHitPointerDown,
+                  onPlayheadPointerMove: _onPlayheadHitPointerMove,
+                  onPlayheadPointerUp: _onPlayheadHitPointerUp,
+                ),
+              if (widget.playheadListenable == null)
+                ArrangementPlayheadHitTarget(
+                  sideColumnWidth: headerWidth,
+                  playheadDisplayX: timelineStickyViewportX(
+                    beat: _displayPlayheadBeats,
+                    pixelsPerBeat: _pixelsPerBeat,
+                    scrollOffset: scrollOffset,
+                  ),
+                  rulerHeight: PianoRollMetrics.rulerHeight,
+                  scrollOffset: scrollOffset,
+                  playing: widget.playing,
+                  onPointerDown: _onPlayheadHitPointerDown,
+                  onPointerMove: _onPlayheadHitPointerMove,
+                  onPointerUp: _onPlayheadHitPointerUp,
                 ),
               if (clipDrag != null)
                 _ClipDragPreview(

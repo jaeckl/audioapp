@@ -21,6 +21,9 @@ class ArrangementPlayheadOverlay extends StatefulWidget {
     required this.scrubbingPlayhead,
     required this.inFrontOfChrome,
     this.sideColumnWidth = ArrangementTimelineMetrics.trackHeaderWidth,
+    this.onPlayheadPointerDown,
+    this.onPlayheadPointerMove,
+    this.onPlayheadPointerUp,
   });
 
   final ValueListenable<double> playheadListenable;
@@ -33,6 +36,9 @@ class ArrangementPlayheadOverlay extends StatefulWidget {
   final bool scrubbingPlayhead;
   final bool inFrontOfChrome;
   final double sideColumnWidth;
+  final void Function(PointerDownEvent event, double canvasDx)? onPlayheadPointerDown;
+  final void Function(PointerMoveEvent event, double canvasDx)? onPlayheadPointerMove;
+  final void Function(PointerEvent event, double canvasDx)? onPlayheadPointerUp;
 
   @override
   State<ArrangementPlayheadOverlay> createState() =>
@@ -143,11 +149,35 @@ class _ArrangementPlayheadOverlayState extends State<ArrangementPlayheadOverlay>
       frontPills: frontPills,
     );
 
+    final hitTarget = widget.onPlayheadPointerDown == null
+        ? null
+        : ArrangementPlayheadHitTarget(
+            sideColumnWidth: widget.sideColumnWidth,
+            playheadDisplayX: playheadDisplayX,
+            rulerHeight: rulerHeight,
+            scrollOffset: _scrollOffset,
+            playing: widget.playing,
+            onPointerDown: widget.onPlayheadPointerDown!,
+            onPointerMove: widget.onPlayheadPointerMove!,
+            onPointerUp: widget.onPlayheadPointerUp!,
+          );
+
+    final children = widget.inFrontOfChrome
+        ? layers.inFrontOfChrome
+        : layers.behindChrome;
+    if (hitTarget == null) {
+      return Stack(
+        clipBehavior: Clip.none,
+        children: children,
+      );
+    }
+
     return Stack(
       clipBehavior: Clip.none,
-      children: widget.inFrontOfChrome
-          ? layers.inFrontOfChrome
-          : layers.behindChrome,
+      children: [
+        ...children,
+        hitTarget,
+      ],
     );
   }
 }
