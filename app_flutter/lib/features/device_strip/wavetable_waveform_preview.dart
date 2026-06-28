@@ -190,7 +190,7 @@ class _Wavetable3DPainter extends CustomPainter {
       for (int s = 0; s < frameLength; ++s) {
         final x = (s / (frameLength - 1)) * size.width;
         final sample = frames![offset + s];
-        final y = centerY + sample * (frameHeight * 0.35);
+        final y = centerY + sample * (frameHeight * 0.5);
         if (s == 0) {
           path.moveTo(x, y);
         } else {
@@ -208,7 +208,7 @@ class _Wavetable3DPainter extends CustomPainter {
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
     final midY = size.height / 2;
-    final h = size.height * 0.35;
+    final h = size.height * 0.5;
     final path = Path();
     for (int i = 0; i < pts; ++i) {
       final x = (i / (pts - 1)) * size.width;

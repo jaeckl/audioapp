@@ -194,7 +194,7 @@ class _WavetableSynthDevicePanelState extends State<WavetableSynthDevicePanel> {
         children: [
           // Tappable wavetable preview
           SizedBox(
-            height: 100,
+            height: 150,
             child: _panelBox(
               padding: EdgeInsets.zero,
                 child: WavetableWaveformPreview(
@@ -475,7 +475,6 @@ class _WavetableSynthDevicePanelState extends State<WavetableSynthDevicePanel> {
   }
 
   Widget _envTab() {
-    final knobScale = _knobSize * 0.78;
     return Padding(
       padding: const EdgeInsets.fromLTRB(6, 6, 6, 6),
       child: Column(
