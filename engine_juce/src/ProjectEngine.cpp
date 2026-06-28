@@ -96,6 +96,26 @@ bool ProjectEngine::moveTrack(const std::string& trackId,
     return true;
 }
 
+bool ProjectEngine::setTrackMuted(const std::string& trackId, bool muted) {
+    const juce::ScopedWriteLock lock(mutex_);
+    if (!trackRepo_.setTrackMuted(trackId, muted)) {
+        return false;
+    }
+    syncProjectTreeLocked();
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
+bool ProjectEngine::setTrackSoloed(const std::string& trackId, bool soloed) {
+    const juce::ScopedWriteLock lock(mutex_);
+    if (!trackRepo_.setTrackSoloed(trackId, soloed)) {
+        return false;
+    }
+    syncProjectTreeLocked();
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
 bool ProjectEngine::selectTrack(const std::string& trackId) {
     const juce::ScopedWriteLock lock(mutex_);
     const bool selectionChanged = trackRepo_.selectedTrackId() != trackId;
@@ -594,6 +614,8 @@ ProjectSnapshot ProjectEngine::snapshot() const {
         ts.name = track.name;
         ts.iconKey = track.iconKey;
         ts.isGroup = track.isGroup;
+        ts.muted = track.muted;
+        ts.soloed = track.soloed;
         ts.parentGroupId = track.parentGroupId;
         ts.devices.reserve(track.devices.size());
         for (const auto& device : track.devices) {
@@ -776,6 +798,41 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                     static_cast<size_t>(framesToProcess) * sizeof(float));
     }
 
+    bool anySolo = false;
+    for (int i = 0; i < trackCount; ++i) {
+        if (trackPlayback_[i].soloed) {
+            anySolo = true;
+            break;
+        }
+    }
+
+    auto trackAudibleForOutput = [&](int trackIndex) -> bool {
+        const TrackPlaybackSnapshot& track = trackPlayback_[trackIndex];
+        if (track.muted) {
+            return false;
+        }
+        if (!anySolo) {
+            return true;
+        }
+        if (track.soloed) {
+            return true;
+        }
+        for (int childIndex = 0; childIndex < trackCount; ++childIndex) {
+            const TrackPlaybackSnapshot& child = trackPlayback_[childIndex];
+            if (!child.soloed || child.muted) {
+                continue;
+            }
+            int parent = child.parentGroupTrackIndex;
+            while (parent >= 0) {
+                if (parent == trackIndex) {
+                    return true;
+                }
+                parent = trackPlayback_[parent].parentGroupTrackIndex;
+            }
+        }
+        return false;
+    };
+
         // Compute per-frame LFO values for gain/pan modulation.
     // DSP-specific params still use frame-0 (block-rate).
     const int lfoCount = modulationGraph_.lfoPlaybackCount();
@@ -882,6 +939,13 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         ctx.graphMidiEdgeStride = kMaxRoutedMidiNotes;
 
         DeviceChainOrchestrator::processChain(ctx);
+
+        if (!trackAudibleForOutput(trackIndex)) {
+            std::memset(trackLeft[trackIndex], 0,
+                        static_cast<size_t>(framesToProcess) * sizeof(float));
+            std::memset(trackRight[trackIndex], 0,
+                        static_cast<size_t>(framesToProcess) * sizeof(float));
+        }
 
         const int parentGroup = track.parentGroupTrackIndex;
         for (int frame = 0; frame < framesToProcess; ++frame) {
@@ -1000,6 +1064,8 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
         ts.name = track.name;
         ts.iconKey = track.iconKey;
         ts.isGroup = track.isGroup;
+        ts.muted = track.muted;
+        ts.soloed = track.soloed;
         ts.parentGroupId = track.parentGroupId;
         for (const auto& device : track.devices) {
             ts.devices.push_back(device);
@@ -1076,6 +1142,8 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
         track.name = trackState.name;
         track.iconKey = trackState.iconKey;
         track.isGroup = trackState.isGroup;
+        track.muted = trackState.muted;
+        track.soloed = trackState.soloed;
         track.parentGroupId = trackState.parentGroupId;
         for (const auto& deviceState : trackState.devices) {
             track.devices.push_back(deviceState);
@@ -1341,6 +1409,8 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
 
         TrackPlaybackSnapshot& snap = trackPlayback_[trackIndex];
         snap.trackId = sourceTrack.id;
+        snap.muted = sourceTrack.muted;
+        snap.soloed = sourceTrack.soloed;
         snap.parentGroupTrackIndex = -1;
         if (!sourceTrack.parentGroupId.empty()) {
             for (size_t parentIndex = 0; parentIndex < trackRepo_.tracks().size(); ++parentIndex) {
@@ -1656,6 +1726,10 @@ void ProjectEngine::rebuildRepoCacheFromTree() {
         track.name = trackTree[state::props::name].toString().toStdString();
         track.iconKey = trackTree[state::props::iconKey].toString().toStdString();
         track.isGroup = static_cast<bool>(trackTree[state::props::isGroup]);
+        if (trackTree.hasProperty(state::props::muted))
+            track.muted = static_cast<bool>(trackTree[state::props::muted]);
+        if (trackTree.hasProperty(state::props::soloed))
+            track.soloed = static_cast<bool>(trackTree[state::props::soloed]);
         track.parentGroupId = trackTree[state::props::parentGroupId].toString().toStdString();
 
         for (int ci = 0; ci < trackTree.getNumChildren(); ++ci) {
@@ -1787,7 +1861,8 @@ void ProjectEngine::syncProjectTreeLocked() {
 
     for (const auto& track : trackRepo_.tracks()) {
         auto trackTree = state::createTrackTree(
-            track.id, track.name, track.iconKey, track.isGroup, track.parentGroupId);
+            track.id, track.name, track.iconKey, track.isGroup, track.parentGroupId,
+            track.muted, track.soloed);
         for (const auto& device : track.devices) {
             const std::string configJson = deviceSlotToVar(device, deviceRegistry_);
             auto devTree = state::createDeviceTree(device.id, device.config.typeId, configJson);

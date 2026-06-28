@@ -127,6 +127,30 @@ bool TrackRepository::moveTrack(const std::string& trackId,
     return true;
 }
 
+bool TrackRepository::setTrackMuted(const std::string& trackId, bool muted) {
+    auto* track = findTrack(trackId);
+    if (track == nullptr) {
+        return false;
+    }
+    track->muted = muted;
+    return true;
+}
+
+bool TrackRepository::setTrackSoloed(const std::string& trackId, bool soloed) {
+    auto* track = findTrack(trackId);
+    if (track == nullptr) {
+        return false;
+    }
+    if (soloed) {
+        for (auto& candidate : tracks_) {
+            candidate.soloed = candidate.id == trackId;
+        }
+    } else {
+        track->soloed = false;
+    }
+    return true;
+}
+
 bool TrackRepository::deleteTrack(const std::string& trackId) {
     if (tracks_.size() <= 1) {
         return false;

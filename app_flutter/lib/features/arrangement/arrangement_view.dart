@@ -20,6 +20,7 @@ import 'clip_renderer.dart';
 import 'midi_clip_renderer.dart';
 import 'sample_clip_renderer.dart';
 import 'track_lane_icon.dart';
+import 'track_mix_button.dart';
 
 enum _RulerDragTarget { playhead, regionStart, regionEnd }
 
@@ -77,6 +78,8 @@ class ArrangementView extends StatefulWidget {
     this.onAddGroup,
     this.onSetTrackGroup,
     this.onMoveTrack,
+    this.onSetTrackMuted,
+    this.onSetTrackSoloed,
     required this.onAddMidiClip,
     required this.onAddAudioClip,
     required this.playheadBeats,
@@ -116,6 +119,14 @@ class ArrangementView extends StatefulWidget {
     required String parentGroupId,
     required String beforeTrackId,
   })? onMoveTrack;
+  final Future<void> Function({
+    required String trackId,
+    required bool muted,
+  })? onSetTrackMuted;
+  final Future<void> Function({
+    required String trackId,
+    required bool soloed,
+  })? onSetTrackSoloed;
   final void Function(String trackId, double startBeat) onAddMidiClip;
   final void Function(String trackId, double desiredStartBeat) onAddAudioClip;
   final double playheadBeats;
@@ -199,6 +210,7 @@ class ArrangementViewState extends State<ArrangementView> {
   DateTime? _lastFollowAnimateAt;
   int _followScrollGeneration = 0;
   double? _lastListenedPlayheadBeat;
+  double _headerColumnWidth = ArrangementTimelineMetrics.trackHeaderWidth;
 
   static const double _rulerTapSlop = 12;
   static const Duration _followAnimateMinInterval = Duration(milliseconds: 66);
@@ -1413,6 +1425,27 @@ class ArrangementViewState extends State<ArrangementView> {
     );
   }
 
+  void _onHeaderColumnDragUpdate(DragUpdateDetails details) {
+    if (widget.compact) return;
+    setState(() {
+      _headerColumnWidth = (_headerColumnWidth + details.delta.dx).clamp(
+        ArrangementTimelineMetrics.trackHeaderWidth,
+        ArrangementTimelineMetrics.trackHeaderExpandedWidth,
+      );
+    });
+  }
+
+  void _onHeaderColumnDragEnd(DragEndDetails details) {
+    if (widget.compact) return;
+    const compact = ArrangementTimelineMetrics.trackHeaderWidth;
+    const expanded = ArrangementTimelineMetrics.trackHeaderExpandedWidth;
+    final mid = (compact + expanded) / 2;
+    setState(() {
+      _headerColumnWidth =
+          _headerColumnWidth >= mid ? expanded : compact;
+    });
+  }
+
   void _autoScrollTrackDrag(DragUpdateDetails details) {
     if (!_trackVerticalScroll.hasClients) return;
     final stack =
@@ -1489,8 +1522,12 @@ class ArrangementViewState extends State<ArrangementView> {
       color: const Color(0xFF1A1A22),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final viewportWidth = constraints.maxWidth -
-              ArrangementTimelineMetrics.trackHeaderWidth;
+          final headerWidth = widget.compact
+              ? ArrangementTimelineMetrics.trackHeaderWidth
+              : _headerColumnWidth;
+          final showMixControls =
+              ArrangementTimelineMetrics.headerShowsMixControls(headerWidth);
+          final viewportWidth = constraints.maxWidth - headerWidth;
           _timelineViewportWidth = viewportWidth;
 
           final laneCount = visibleTracks.length + (widget.compact ? 0 : 1);
@@ -1580,12 +1617,28 @@ class ArrangementViewState extends State<ArrangementView> {
                     track: visibleTracks[i],
                     index: widget.snapshot.tracks
                         .indexWhere((t) => t.id == visibleTracks[i].id),
+                    headerWidth: headerWidth,
+                    showMixControls: showMixControls,
                     selected:
                         visibleTracks[i].id == widget.snapshot.selectedTrackId,
                     onTap: () => widget.onTrackSelected(
                       visibleTracks[i].id,
                     ),
-                    enableDrag: !widget.compact && widget.onMoveTrack != null,
+                    onToggleMute: widget.onSetTrackMuted == null
+                        ? null
+                        : () => widget.onSetTrackMuted!(
+                              trackId: visibleTracks[i].id,
+                              muted: !visibleTracks[i].muted,
+                            ),
+                    onToggleSolo: widget.onSetTrackSoloed == null
+                        ? null
+                        : () => widget.onSetTrackSoloed!(
+                              trackId: visibleTracks[i].id,
+                              soloed: !visibleTracks[i].soloed,
+                            ),
+                    enableDrag: !widget.compact &&
+                        widget.onMoveTrack != null &&
+                        !showMixControls,
                     onDragUpdate: _autoScrollTrackDrag,
                     collapsed: _collapsedGroupIds.contains(visibleTracks[i].id),
                     onToggleCollapsed: visibleTracks[i].isGroup
@@ -1616,6 +1669,7 @@ class ArrangementViewState extends State<ArrangementView> {
                 ),
               if (!widget.compact)
                 _AddTrackHeader(
+                  width: headerWidth,
                   onTap: widget.onAddTrack,
                   onLongPress: _showAddTrackMenu,
                 ),
@@ -1713,7 +1767,7 @@ class ArrangementViewState extends State<ArrangementView> {
           }
 
           final markerLayers = buildSyncedMarkerStackLayers(
-            sideColumnWidth: ArrangementTimelineMetrics.trackHeaderWidth,
+            sideColumnWidth: headerWidth,
             rulerHeight: rulerHeight,
             behindLines: behindLines,
             behindPills: behindPills,
@@ -1733,8 +1787,8 @@ class ArrangementViewState extends State<ArrangementView> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(
-                          width: ArrangementTimelineMetrics.trackHeaderWidth,
+                        SizedBox(
+                          width: headerWidth,
                         ),
                         Expanded(
                           child: ClipRect(
@@ -1771,8 +1825,8 @@ class ArrangementViewState extends State<ArrangementView> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(
-                          width: ArrangementTimelineMetrics.trackHeaderWidth,
+                        SizedBox(
+                          width: headerWidth,
                         ),
                         Expanded(
                           child: ClipRect(
@@ -1815,8 +1869,8 @@ class ArrangementViewState extends State<ArrangementView> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(
-                          width: ArrangementTimelineMetrics.trackHeaderWidth,
+                        SizedBox(
+                          width: headerWidth,
                         ),
                         Expanded(
                           child: ClipRect(
@@ -1853,11 +1907,12 @@ class ArrangementViewState extends State<ArrangementView> {
                   playing: widget.playing,
                   scrubbingPlayhead: _scrubbingPlayhead,
                   inFrontOfChrome: false,
+                  sideColumnWidth: headerWidth,
                 ),
-              const Positioned(
+              Positioned(
                 left: 0,
                 top: 0,
-                width: ArrangementTimelineMetrics.trackHeaderWidth,
+                width: headerWidth,
                 height: PianoRollMetrics.rulerHeight,
                 child: ColoredBox(color: PianoRollTheme.rulerBackground),
               ),
@@ -1867,7 +1922,7 @@ class ArrangementViewState extends State<ArrangementView> {
                 bottom: widget.compact
                     ? 0
                     : ArrangementTimelineMetrics.trackLaneHeight,
-                width: ArrangementTimelineMetrics.trackHeaderWidth,
+                width: headerWidth,
                 child: ClipRect(
                   child: SingleChildScrollView(
                     controller: _headerVerticalScroll,
@@ -1883,8 +1938,38 @@ class ArrangementViewState extends State<ArrangementView> {
                 Positioned(
                   left: 0,
                   bottom: 0,
-                  width: ArrangementTimelineMetrics.trackHeaderWidth,
-                  child: _MasterHeader(master: widget.snapshot.master),
+                  width: headerWidth,
+                  child: _MasterHeader(
+                    master: widget.snapshot.master,
+                    width: headerWidth,
+                  ),
+                ),
+              if (!widget.compact)
+                Positioned(
+                  left: headerWidth - 5,
+                  top: 0,
+                  bottom: ArrangementTimelineMetrics.trackLaneHeight,
+                  width: 10,
+                  child: GestureDetector(
+                    key: const Key('trackHeaderColumnResize'),
+                    behavior: HitTestBehavior.translucent,
+                    onHorizontalDragUpdate: _onHeaderColumnDragUpdate,
+                    onHorizontalDragEnd: _onHeaderColumnDragEnd,
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.resizeColumn,
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Container(
+                          width: 3,
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ...markerLayers.inFrontOfChrome,
               if (widget.playheadListenable != null)
@@ -1898,6 +1983,7 @@ class ArrangementViewState extends State<ArrangementView> {
                   playing: widget.playing,
                   scrubbingPlayhead: _scrubbingPlayhead,
                   inFrontOfChrome: true,
+                  sideColumnWidth: headerWidth,
                 ),
               if (clipDrag != null)
                 _ClipDragPreview(
@@ -1910,6 +1996,7 @@ class ArrangementViewState extends State<ArrangementView> {
                       ? _trackVerticalScroll.offset
                       : 0,
                   timelineEndBeat: _timelineEndBeat,
+                  headerWidth: headerWidth,
                 ),
             ],
           );
@@ -1920,9 +2007,10 @@ class ArrangementViewState extends State<ArrangementView> {
 }
 
 class _MasterHeader extends StatelessWidget {
-  const _MasterHeader({required this.master});
+  const _MasterHeader({required this.master, required this.width});
 
   final MasterTrackSnapshot master;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
@@ -1932,7 +2020,7 @@ class _MasterHeader extends StatelessWidget {
       child: Semantics(
         label: master.name,
         child: Container(
-          width: ArrangementTimelineMetrics.trackHeaderWidth,
+          width: width,
           height: ArrangementTimelineMetrics.trackLaneHeight,
           alignment: Alignment.center,
           decoration: BoxDecoration(
@@ -2162,8 +2250,12 @@ class _TrackHeader extends StatelessWidget {
   const _TrackHeader({
     required this.track,
     required this.index,
+    required this.headerWidth,
+    required this.showMixControls,
     required this.selected,
     required this.onTap,
+    this.onToggleMute,
+    this.onToggleSolo,
     this.enableDrag = false,
     this.onDragUpdate,
     this.collapsed = false,
@@ -2173,44 +2265,106 @@ class _TrackHeader extends StatelessWidget {
 
   final TrackSnapshot track;
   final int index;
+  final double headerWidth;
+  final bool showMixControls;
   final bool selected;
   final VoidCallback onTap;
+  final VoidCallback? onToggleMute;
+  final VoidCallback? onToggleSolo;
   final bool enableDrag;
   final GestureDragUpdateCallback? onDragUpdate;
   final bool collapsed;
   final VoidCallback? onToggleCollapsed;
   final GestureLongPressStartCallback? onLongPressStart;
 
+  Widget _groupChevron(ThemeData theme) {
+    if (onToggleCollapsed == null) return const SizedBox.shrink();
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onToggleCollapsed,
+      child: SizedBox(
+        width: 15,
+        child: Icon(
+          collapsed ? Icons.chevron_right : Icons.expand_more,
+          size: 15,
+          color: Colors.white70,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final icon = TrackLaneIcon.iconForTrack(track, index);
-    final content = Tooltip(
-      message: track.name,
-      triggerMode: enableDrag ? TooltipTriggerMode.manual : null,
-      child: Semantics(
-        label: track.name,
-        selected: selected,
-        button: true,
-        child: GestureDetector(
-          onTap: onTap,
-          onLongPressStart: onLongPressStart,
-          child: Material(
-            color: selected ? const Color(0xFF2D2D3A) : Colors.transparent,
-            child: InkWell(
-              onTap: null,
-              child: Container(
-                width: ArrangementTimelineMetrics.trackHeaderWidth,
-                height: ArrangementTimelineMetrics.trackLaneHeight,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom:
-                        BorderSide(color: Colors.white.withValues(alpha: 0.06)),
-                    right:
-                        BorderSide(color: Colors.white.withValues(alpha: 0.04)),
+    final iconColor = track.isGroup
+        ? Colors.amber.shade200
+        : selected
+            ? theme.colorScheme.primary
+            : Colors.white70;
+
+    final lane = Material(
+      color: selected ? const Color(0xFF2D2D3A) : Colors.transparent,
+      child: Container(
+        width: headerWidth,
+        height: ArrangementTimelineMetrics.trackLaneHeight,
+        padding: EdgeInsets.only(
+          left: track.parentGroupId.isNotEmpty ? 4 : 2,
+          right: showMixControls ? 4 : 0,
+        ),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+            right: BorderSide(color: Colors.white.withValues(alpha: 0.04)),
+          ),
+        ),
+        child: showMixControls
+            ? Row(
+                children: [
+                  _groupChevron(theme),
+                  Expanded(
+                    child: InkWell(
+                      onTap: onTap,
+                      child: Row(
+                        children: [
+                          Icon(icon, size: 20, color: iconColor),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              track.name,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.92),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                  if (onToggleSolo != null) ...[
+                    TrackMixButton(
+                      label: 'S',
+                      active: track.soloed,
+                      onTap: onToggleSolo!,
+                      color: Colors.amber,
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                  if (onToggleMute != null)
+                    TrackMixButton(
+                      label: 'M',
+                      active: track.muted,
+                      onTap: onToggleMute!,
+                      color: Colors.redAccent,
+                    ),
+                ],
+              )
+            : InkWell(
+                onTap: onTap,
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
@@ -2221,50 +2375,43 @@ class _TrackHeader extends StatelessWidget {
                         bottom: 0,
                         child: Container(
                           width: 2,
-                          color:
-                              theme.colorScheme.primary.withValues(alpha: 0.45),
+                          color: theme.colorScheme.primary
+                              .withValues(alpha: 0.45),
                         ),
                       ),
                     Padding(
                       padding: EdgeInsets.only(
                         left: track.parentGroupId.isNotEmpty ? 7 : 0,
                       ),
-                      child: Icon(
-                        icon,
-                        size: 22,
-                        color: track.isGroup
-                            ? Colors.amber.shade200
-                            : selected
-                                ? theme.colorScheme.primary
-                                : Colors.white70,
-                      ),
+                      child: Icon(icon, size: 22, color: iconColor),
                     ),
                     if (onToggleCollapsed != null)
                       Positioned(
                         left: 0,
                         top: 0,
                         bottom: 0,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: onToggleCollapsed,
-                          child: SizedBox(
-                            width: 15,
-                            child: Icon(
-                              collapsed
-                                  ? Icons.chevron_right
-                                  : Icons.expand_more,
-                              size: 15,
-                              color: Colors.white70,
-                            ),
-                          ),
-                        ),
+                        child: _groupChevron(theme),
                       ),
                   ],
                 ),
               ),
-            ),
-          ),
-        ),
+      ),
+    );
+
+    final content = Tooltip(
+      message: track.name,
+      triggerMode: enableDrag ? TooltipTriggerMode.manual : null,
+      child: Semantics(
+        label: track.name,
+        selected: selected,
+        button: true,
+        child: showMixControls
+            ? lane
+            : GestureDetector(
+                onTap: onTap,
+                onLongPressStart: onLongPressStart,
+                child: lane,
+              ),
       ),
     );
     if (!enableDrag) return content;
@@ -2281,7 +2428,13 @@ class _TrackHeader extends StatelessWidget {
 }
 
 class _AddTrackHeader extends StatelessWidget {
-  const _AddTrackHeader({required this.onTap, this.onLongPress});
+  const _AddTrackHeader({
+    required this.width,
+    required this.onTap,
+    this.onLongPress,
+  });
+
+  final double width;
 
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
@@ -2299,7 +2452,7 @@ class _AddTrackHeader extends StatelessWidget {
             onTap: onTap,
             onLongPress: onLongPress,
             child: Container(
-              width: ArrangementTimelineMetrics.trackHeaderWidth,
+              width: width,
               height: ArrangementTimelineMetrics.trackLaneHeight,
               alignment: Alignment.center,
               decoration: BoxDecoration(
@@ -2817,6 +2970,7 @@ class _ClipDragPreview extends StatelessWidget {
     required this.scrollOffset,
     required this.verticalScrollOffset,
     required this.timelineEndBeat,
+    required this.headerWidth,
   });
 
   final GlobalKey stackKey;
@@ -2826,6 +2980,7 @@ class _ClipDragPreview extends StatelessWidget {
   final double scrollOffset;
   final double verticalScrollOffset;
   final double timelineEndBeat;
+  final double headerWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -2835,7 +2990,7 @@ class _ClipDragPreview extends StatelessWidget {
     }
 
     final laneHeight = ArrangementTimelineMetrics.trackLaneHeight;
-    final left = ArrangementTimelineMetrics.trackHeaderWidth +
+    final left = headerWidth +
         session.previewStartBeat * pixelsPerBeat -
         scrollOffset;
     if (visibleTrackIndex < 0) return const SizedBox.shrink();

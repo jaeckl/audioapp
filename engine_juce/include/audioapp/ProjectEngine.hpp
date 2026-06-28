@@ -49,6 +49,8 @@ struct TrackState {
     std::string name;
     std::string iconKey;
     bool isGroup = false;
+    bool muted = false;
+    bool soloed = false;
     std::string parentGroupId;
     std::vector<DeviceSlot> devices;
     /// Parallel meter array by deviceId. Only populated for snapshot serialization.
@@ -103,6 +105,8 @@ public:
     bool moveTrack(const std::string& trackId,
                    const std::string& parentGroupId,
                    const std::string& beforeTrackId);
+    bool setTrackMuted(const std::string& trackId, bool muted);
+    bool setTrackSoloed(const std::string& trackId, bool soloed);
     bool selectTrack(const std::string& trackId);
     std::string addDeviceToTrack(const std::string& trackId,
                                  const std::string& deviceType,
@@ -249,6 +253,8 @@ private:
     struct TrackPlaybackSnapshot {
         std::string trackId;
         int parentGroupTrackIndex = -1;
+        bool muted = false;
+        bool soloed = false;
         int noteCount = 0;
         PlaybackNote notes[32];
         int regionCount = 0;

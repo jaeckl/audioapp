@@ -313,6 +313,44 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _setTrackMuted({
+    required String trackId,
+    required bool muted,
+  }) async {
+    _store.replaceSnapshot(
+      _snapshot!.withTrackMix(trackId: trackId, muted: muted),
+    );
+    try {
+      final snapshot = await widget.bridge.setTrackMuted(
+        trackId: trackId,
+        muted: muted,
+      );
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
+  Future<void> _setTrackSoloed({
+    required String trackId,
+    required bool soloed,
+  }) async {
+    _store.replaceSnapshot(
+      _snapshot!.withTrackMix(trackId: trackId, soloed: soloed),
+    );
+    try {
+      final snapshot = await widget.bridge.setTrackSoloed(
+        trackId: trackId,
+        soloed: soloed,
+      );
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
   Future<void> _selectTrack(String trackId) async {
     try {
       await _applyDeltaMutation('selectTrack', {'trackId': trackId});
@@ -1701,6 +1739,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             onAddGroup: _addGroupTrack,
             onSetTrackGroup: _setTrackGroup,
             onMoveTrack: _moveTrack,
+            onSetTrackMuted: _setTrackMuted,
+            onSetTrackSoloed: _setTrackSoloed,
             onAddMidiClip: _addMidiClip,
             onAddAudioClip: _addAudioClip,
             onClipTap: _openPianoRoll,

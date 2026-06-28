@@ -20,6 +20,7 @@ class ArrangementPlayheadOverlay extends StatefulWidget {
     required this.playing,
     required this.scrubbingPlayhead,
     required this.inFrontOfChrome,
+    this.sideColumnWidth = ArrangementTimelineMetrics.trackHeaderWidth,
   });
 
   final ValueListenable<double> playheadListenable;
@@ -31,6 +32,7 @@ class ArrangementPlayheadOverlay extends StatefulWidget {
   final bool playing;
   final bool scrubbingPlayhead;
   final bool inFrontOfChrome;
+  final double sideColumnWidth;
 
   @override
   State<ArrangementPlayheadOverlay> createState() =>
@@ -133,7 +135,7 @@ class _ArrangementPlayheadOverlayState extends State<ArrangementPlayheadOverlay>
     );
 
     final layers = buildSyncedMarkerStackLayers(
-      sideColumnWidth: ArrangementTimelineMetrics.trackHeaderWidth,
+      sideColumnWidth: widget.sideColumnWidth,
       rulerHeight: rulerHeight,
       behindLines: behindLines,
       behindPills: behindPills,

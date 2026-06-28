@@ -113,6 +113,26 @@ class EngineBridge {
     });
   }
 
+  Future<ProjectSnapshot> setTrackMuted({
+    required String trackId,
+    required bool muted,
+  }) async {
+    return _invokeForSnapshot('setTrackMuted', {
+      'trackId': trackId,
+      'muted': muted,
+    });
+  }
+
+  Future<ProjectSnapshot> setTrackSoloed({
+    required String trackId,
+    required bool soloed,
+  }) async {
+    return _invokeForSnapshot('setTrackSoloed', {
+      'trackId': trackId,
+      'soloed': soloed,
+    });
+  }
+
   Future<ProjectSnapshot> selectTrack(String trackId) async {
     return _invokeForSnapshot('selectTrack', {'trackId': trackId});
   }
@@ -660,8 +680,7 @@ class EngineBridge {
         if (full != null) {
           return ProjectSnapshot.fromMap({'snapshot': full, 'ok': true});
         }
-      }
-      // Non-full-refresh delta — apply transport fields inline.
+      } else {
       // Full state rebuilds happen through SnapshotStore.invokeRaw.
       int bpm = 120;
       bool playing = false;
@@ -717,6 +736,7 @@ class EngineBridge {
         modEdges: [],
         automationClips: [],
       );
+      }
     }
     return ProjectSnapshot.fromMap(result);
   }

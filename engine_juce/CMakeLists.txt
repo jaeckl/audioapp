@@ -202,6 +202,13 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
   endif()
   add_test(NAME audioapp_group_track_test COMMAND audioapp_group_track_test)
 
+  add_executable(audioapp_track_mute_solo_test tests/track_mute_solo_test.cpp)
+  target_link_libraries(audioapp_track_mute_solo_test PRIVATE audioapp_engine)
+  if(MSVC)
+    target_compile_options(audioapp_track_mute_solo_test PRIVATE /EHsc)
+  endif()
+  add_test(NAME audioapp_track_mute_solo_test COMMAND audioapp_track_mute_solo_test)
+
   set(AUDIOAPP_TEST_SOURCES
     tests/JuceTestRunner.cpp
     tests/autobroken_routing_test.cpp

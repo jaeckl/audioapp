@@ -426,6 +426,8 @@ juce::var trackToVarPersistence(const TrackState& track,
     object->setProperty("name", toJuceString(track.name));
     object->setProperty("iconKey", toJuceString(track.iconKey));
     object->setProperty("isGroup", track.isGroup);
+    object->setProperty("muted", track.muted);
+    object->setProperty("soloed", track.soloed);
     object->setProperty("parentGroupId", toJuceString(track.parentGroupId));
     object->setProperty("devices", devices);
     object->setProperty("midiClips", clips);
@@ -441,6 +443,10 @@ TrackState trackFromVarPersistence(const juce::var& value,
         track.name = varToString(object->getProperty("name"));
         track.iconKey = varToString(object->getProperty("iconKey"));
         track.isGroup = static_cast<bool>(object->getProperty("isGroup"));
+        if (object->hasProperty("muted"))
+            track.muted = static_cast<bool>(object->getProperty("muted"));
+        if (object->hasProperty("soloed"))
+            track.soloed = static_cast<bool>(object->getProperty("soloed"));
         track.parentGroupId = varToString(object->getProperty("parentGroupId"));
         if (const auto* devices = varArray(object->getProperty("devices"))) {
             for (const auto& deviceVar : *devices) {
@@ -504,6 +510,8 @@ juce::var trackToVarSnapshot(const TrackState& track,
     object->setProperty("name", toJuceString(track.name));
     object->setProperty("iconKey", toJuceString(track.iconKey));
     object->setProperty("isGroup", track.isGroup);
+    object->setProperty("muted", track.muted);
+    object->setProperty("soloed", track.soloed);
     object->setProperty("parentGroupId", toJuceString(track.parentGroupId));
     object->setProperty("devices", devices);
     object->setProperty("midiClips", clips);

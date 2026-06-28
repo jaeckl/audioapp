@@ -57,6 +57,8 @@ struct Track {
     std::string name;
     std::string iconKey;
     bool isGroup = false;
+    bool muted = false;
+    bool soloed = false;
     std::string parentGroupId;
     std::vector<DeviceSlot> devices;
     std::vector<MidiClip> midiClips;

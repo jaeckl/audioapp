@@ -39,6 +39,8 @@ public:
     bool moveTrack(const std::string& trackId,
                    const std::string& parentGroupId,
                    const std::string& beforeTrackId);
+    bool setTrackMuted(const std::string& trackId, bool muted);
+    bool setTrackSoloed(const std::string& trackId, bool soloed);
     bool selectTrack(const std::string& trackId);
     std::string addDeviceToTrack(const std::string& trackId,
                                  const std::string& deviceType,

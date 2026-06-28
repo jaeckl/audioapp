@@ -156,9 +156,7 @@ class ProjectSnapshot {
       samples: samples,
       tracks: tracks
           .map(
-            (track) => TrackSnapshot(
-              id: track.id,
-              name: track.name,
+            (track) => track.copyWith(
               devices: track.devices.map((device) {
                 final reading = meterById[device.id];
                 if (reading == null) return device;
@@ -167,11 +165,38 @@ class ProjectSnapshot {
                   meterInputLevel: reading.inputLevel,
                 );
               }).toList(),
-              midiClips: track.midiClips,
-              sampleClips: track.sampleClips,
-              automationClips: track.automationClips,
             ),
           )
+          .toList(),
+      lfos: lfos,
+      modEdges: modEdges,
+      automationClips: automationClips,
+    );
+  }
+
+  /// Optimistically update mute/solo on one track.
+  ProjectSnapshot withTrackMix({
+    required String trackId,
+    bool? muted,
+    bool? soloed,
+  }) {
+    return ProjectSnapshot(
+      bpm: bpm,
+      selectedTrackId: selectedTrackId,
+      playheadBeats: playheadBeats,
+      playing: playing,
+      loopEnabled: loopEnabled,
+      loopRegionStartBeat: loopRegionStartBeat,
+      loopRegionEndBeat: loopRegionEndBeat,
+      recordArmed: recordArmed,
+      master: master,
+      samples: samples,
+      tracks: tracks
+          .map((track) => track.id == trackId
+              ? track.copyWith(muted: muted, soloed: soloed)
+              : soloed == true
+                  ? track.copyWith(soloed: false)
+                  : track)
           .toList(),
       lfos: lfos,
       modEdges: modEdges,
@@ -195,16 +220,11 @@ class ProjectSnapshot {
       master: master,
       samples: samples,
       tracks: tracks
-          .map((t) => TrackSnapshot(
-                id: t.id,
-                name: t.name,
+          .map((t) => t.copyWith(
                 devices: t.devices
                     .map((d) =>
                         d.id == deviceId ? d.withParameter(paramId, value) : d)
                     .toList(),
-                midiClips: t.midiClips,
-                sampleClips: t.sampleClips,
-                automationClips: t.automationClips,
               ))
           .toList(),
       lfos: lfos,
@@ -302,6 +322,8 @@ class TrackSnapshot {
     required this.name,
     this.iconKey = '',
     this.isGroup = false,
+    this.muted = false,
+    this.soloed = false,
     this.parentGroupId = '',
     required this.devices,
     required this.midiClips,
@@ -313,6 +335,8 @@ class TrackSnapshot {
   final String name;
   final String iconKey;
   final bool isGroup;
+  final bool muted;
+  final bool soloed;
   final String parentGroupId;
   final List<DeviceSnapshot> devices;
   final List<MidiClipSnapshot> midiClips;
@@ -324,6 +348,34 @@ class TrackSnapshot {
   /// compatibility with code that iterates tracks. The clip's `deviceId`
   /// is independent — it can point at a device on any track.
   final List<AutomationClipSnapshot> automationClips;
+
+  TrackSnapshot copyWith({
+    String? id,
+    String? name,
+    String? iconKey,
+    bool? isGroup,
+    bool? muted,
+    bool? soloed,
+    String? parentGroupId,
+    List<DeviceSnapshot>? devices,
+    List<MidiClipSnapshot>? midiClips,
+    List<SampleClipSnapshot>? sampleClips,
+    List<AutomationClipSnapshot>? automationClips,
+  }) {
+    return TrackSnapshot(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      iconKey: iconKey ?? this.iconKey,
+      isGroup: isGroup ?? this.isGroup,
+      muted: muted ?? this.muted,
+      soloed: soloed ?? this.soloed,
+      parentGroupId: parentGroupId ?? this.parentGroupId,
+      devices: devices ?? this.devices,
+      midiClips: midiClips ?? this.midiClips,
+      sampleClips: sampleClips ?? this.sampleClips,
+      automationClips: automationClips ?? this.automationClips,
+    );
+  }
 
   factory TrackSnapshot.fromMap(
     Map<dynamic, dynamic> map, {
@@ -344,6 +396,8 @@ class TrackSnapshot {
       name: map['name'] as String? ?? '',
       iconKey: map['iconKey'] as String? ?? '',
       isGroup: map['isGroup'] as bool? ?? false,
+      muted: map['muted'] as bool? ?? false,
+      soloed: map['soloed'] as bool? ?? false,
       parentGroupId: map['parentGroupId'] as String? ?? '',
       devices: devicesRaw
           .map((d) => DeviceSnapshot.fromMap(d as Map<dynamic, dynamic>))

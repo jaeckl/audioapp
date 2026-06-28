@@ -9,7 +9,11 @@ class ArrangementTimelineMetrics {
   static const double minPixelsPerBeat = 28;
   static const double maxPixelsPerBeat = 200;
   static const double trackHeaderWidth = 44;
+  static const double trackHeaderExpandedWidth = 168;
   static const double trackLaneHeight = 56;
+
+  static bool headerShowsMixControls(double columnWidth) =>
+      columnWidth > trackHeaderWidth + 8;
   /// Legacy minimum; prefer [virtualLengthBeats] for scroll width.
   static const double timelineBeats = 32;
   static const double minClipDisplayWidthPx = 16;

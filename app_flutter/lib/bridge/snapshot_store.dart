@@ -143,6 +143,8 @@ class SnapshotStore extends ChangeNotifier {
         name: track.name,
         iconKey: track.iconKey,
         isGroup: track.isGroup,
+        muted: track.muted,
+        soloed: track.soloed,
         parentGroupId: track.parentGroupId,
         devices: track.devices.map((device) {
           final devMatch =

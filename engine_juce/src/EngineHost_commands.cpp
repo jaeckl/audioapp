@@ -53,6 +53,14 @@ bool EngineHost::moveTrack(const std::string& trackId,
     return project_->moveTrack(trackId, parentGroupId, beforeTrackId);
 }
 
+bool EngineHost::setTrackMuted(const std::string& trackId, bool muted) {
+    return project_->setTrackMuted(trackId, muted);
+}
+
+bool EngineHost::setTrackSoloed(const std::string& trackId, bool soloed) {
+    return project_->setTrackSoloed(trackId, soloed);
+}
+
 bool EngineHost::selectTrack(const std::string& trackId) {
     return project_->selectTrack(trackId);
 }
@@ -984,6 +992,24 @@ void EngineHost::registerAllCommands() {
         const auto beforeTrackId = ctx.args["beforeTrackId"].toString().toStdString();
         if (!ctx.engine.moveTrack(trackId, parentGroupId, beforeTrackId))
             return commands::errorResult("invalid_track_move");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("setTrackMuted", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto trackId = ctx.args["trackId"].toString().toStdString();
+        const bool muted = static_cast<bool>(ctx.args["muted"]);
+        if (!ctx.engine.setTrackMuted(trackId, muted))
+            return commands::errorResult("invalid_track");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("setTrackSoloed", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto trackId = ctx.args["trackId"].toString().toStdString();
+        const bool soloed = static_cast<bool>(ctx.args["soloed"]);
+        if (!ctx.engine.setTrackSoloed(trackId, soloed))
+            return commands::errorResult("invalid_track");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
         return commands::okWithFullRefresh(snap);
     });
