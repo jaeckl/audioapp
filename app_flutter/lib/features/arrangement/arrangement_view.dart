@@ -302,6 +302,11 @@ class ArrangementViewState extends State<ArrangementView> {
     }
 
     if (_rulerDragTarget == _RulerDragTarget.playhead) {
+      if (widget.playing) {
+        // Moving playhead + follow scroll shift canvas coords under a held finger.
+        // Pill is stop-only while playing — do not enter scrub from phantom travel.
+        return;
+      }
       if (_rulerPointerTravel < _rulerTapSlop) {
         return;
       }
@@ -368,13 +373,12 @@ class ArrangementViewState extends State<ArrangementView> {
           endBeat: committedRegionEnd,
         );
       }
-    } else if (draggedPlayhead) {
-      // Scrub already applied during move.
-    } else if (dragTarget == _RulerDragTarget.playhead &&
-        pointerTravel < _rulerTapSlop) {
+    } else if (dragTarget == _RulerDragTarget.playhead) {
       if (widget.playing) {
         widget.onStopRequested();
-      } else {
+      } else if (draggedPlayhead) {
+        // Scrub already applied during move.
+      } else if (pointerTravel < _rulerTapSlop) {
         widget.onPlayRequested();
       }
     } else if (dragTarget == null && pointerTravel < _rulerTapSlop) {
