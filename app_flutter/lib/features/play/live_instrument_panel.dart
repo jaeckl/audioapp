@@ -14,11 +14,13 @@ class LiveInstrumentPanel extends StatefulWidget {
     required this.bridge,
     required this.snapshot,
     required this.onSnapshot,
+    required this.onRecordArmed,
   });
 
   final EngineBridge bridge;
   final ProjectSnapshot snapshot;
   final Future<void> Function(ProjectSnapshot snapshot) onSnapshot;
+  final Future<void> Function(bool armed) onRecordArmed;
 
   @override
   State<LiveInstrumentPanel> createState() => _LiveInstrumentPanelState();
@@ -62,8 +64,7 @@ class _LiveInstrumentPanelState extends State<LiveInstrumentPanel> {
 
   Future<void> _setRecordArmed(bool armed) async {
     try {
-      final updated = await widget.bridge.setRecordArmed(armed);
-      await widget.onSnapshot(updated);
+      await widget.onRecordArmed(armed);
     } catch (_) {}
   }
 

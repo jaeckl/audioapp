@@ -51,6 +51,8 @@ abstract final class DeviceStripTheme {
   static const fourBandEqAccent = Color(0xFF78C091);
   static const frequencyShifterAccent = Color(0xFFC77DFF);
   static const resonatorBankAccent = Color(0xFFFFB454);
+  static const audioReceiverAccent = Color(0xFF66D19E);
+  static const midiReceiverAccent = Color(0xFFF08BB4);
   static const bitcrusherAccent = Color(0xFF7B6CF6);
   static const distortionAccent = Color(0xFFE85D4B);
   static const tremoloAccent = Color(0xFF4ADE80);
@@ -79,6 +81,8 @@ abstract final class DeviceStripTheme {
         'four_band_eq' => fourBandEqAccent,
         'frequency_shifter' => frequencyShifterAccent,
         'resonator_bank' => resonatorBankAccent,
+        'audio_receiver' => audioReceiverAccent,
+        'midi_receiver' => midiReceiverAccent,
         'bitcrusher' => bitcrusherAccent,
         'distortion' => distortionAccent,
         'tremolo' => tremoloAccent,
@@ -109,6 +113,8 @@ abstract final class DeviceStripTheme {
         'four_band_eq' => '4-Band EQ',
         'frequency_shifter' => 'Ring Mod',
         'resonator_bank' => 'RESONATE',
+        'audio_receiver' => 'Audio Receiver',
+        'midi_receiver' => 'MIDI Receiver',
         'bitcrusher' => 'Bitcrusher',
         'distortion' => 'Distortion',
         'tremolo' => 'Tremolo',

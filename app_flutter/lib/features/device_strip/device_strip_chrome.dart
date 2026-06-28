@@ -88,6 +88,9 @@ abstract final class DeviceStripChrome {
     required String deviceType,
     required DeviceStripChromeBindings bindings,
   }) {
+    if (deviceType == 'audio_receiver' || deviceType == 'midi_receiver') {
+      return RoutingOutputPanel(accentColor: bindings.accentColor);
+    }
     if (_drumTypes.contains(deviceType)) {
       return DrumMonoOutputPanel(
         device: bindings.device,

@@ -9,12 +9,14 @@ import 'device_strip_slot.dart';
 import 'device_strip_theme.dart';
 import 'sampler_device_panel.dart';
 import 'subtractive_synth_device_panel.dart';
+import 'routing_device_panel.dart';
 
 /// Horizontally scrollable Bitwig/Ableton-style device chain row.
 class DeviceChainRow extends StatelessWidget {
   const DeviceChainRow({
     super.key,
     required this.track,
+    this.routingSources = const [],
     required this.samples,
     required this.playing,
     required this.bpm,
@@ -22,6 +24,7 @@ class DeviceChainRow extends StatelessWidget {
     this.playheadBeatListenable,
     required this.density,
     required this.onSamplerParameterChanged,
+    this.onDeviceStringParameterChanged,
     required this.onOpenSamplerEditor,
     required this.onFrequencyChanged,
     required this.onInsertDevice,
@@ -48,6 +51,7 @@ class DeviceChainRow extends StatelessWidget {
   });
 
   final TrackSnapshot track;
+  final List<RoutingSourceOption> routingSources;
   final List<SampleLibraryEntrySnapshot> samples;
   final bool playing;
   final int bpm;
@@ -56,6 +60,8 @@ class DeviceChainRow extends StatelessWidget {
   final DeviceStripSlotDensity density;
   final void Function(String deviceId, String parameterId, double value)
       onSamplerParameterChanged;
+  final void Function(String deviceId, String parameterId, String value)?
+      onDeviceStringParameterChanged;
   final void Function(TrackSnapshot track, DeviceSnapshot device) onOpenSamplerEditor;
   final void Function(String deviceId, double frequencyHz) onFrequencyChanged;
   final void Function(int insertIndex) onInsertDevice;
@@ -126,6 +132,7 @@ class DeviceChainRow extends StatelessWidget {
               for (var i = 0; i < devices.length; i++) ...[
                 DeviceStripSlot(
                   track: track,
+                  routingSources: routingSources,
                   device: devices[i],
                   sample: _sampleFor(devices[i]),
                   bpm: bpm,
@@ -139,6 +146,9 @@ class DeviceChainRow extends StatelessWidget {
                       onSamplerParameterChanged(devices[i].id, parameterId, value),
                   onDeviceParameterChanged: (parameterId, value) =>
                       onSamplerParameterChanged(devices[i].id, parameterId, value),
+                  onDeviceStringParameterChanged: (parameterId, value) =>
+                      onDeviceStringParameterChanged?.call(
+                          devices[i].id, parameterId, value),
                   onOpenSamplerEditor: () => onOpenSamplerEditor(track, devices[i]),
                   onFrequencyChanged: (value) =>
                       onFrequencyChanged(devices[i].id, value),

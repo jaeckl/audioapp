@@ -1215,6 +1215,7 @@ class ArrangementViewState extends State<ArrangementView> {
                             _TrackLane(
                               track: track,
                               selected: track.id == widget.snapshot.selectedTrackId,
+                              onTap: () => widget.onTrackSelected(track.id),
                               pixelsPerBeat: _pixelsPerBeat,
                               timelineEndBeat: _timelineEndBeat,
                               viewportWidthPx: viewportWidth,
@@ -1662,11 +1663,12 @@ class _TrackHeader extends StatelessWidget {
         selected: selected,
         button: true,
         child: GestureDetector(
+          onTap: onTap,
           onLongPressStart: onLongPressStart,
           child: Material(
             color: selected ? const Color(0xFF2D2D3A) : Colors.transparent,
             child: InkWell(
-              onTap: onTap,
+              onTap: null,
               child: Container(
               width: ArrangementTimelineMetrics.trackHeaderWidth,
               height: ArrangementTimelineMetrics.trackLaneHeight,
@@ -1757,6 +1759,7 @@ class _TrackLane extends StatelessWidget {
   const _TrackLane({
     required this.track,
     required this.selected,
+    required this.onTap,
     required this.pixelsPerBeat,
     required this.timelineEndBeat,
     required this.viewportWidthPx,
@@ -1782,6 +1785,7 @@ class _TrackLane extends StatelessWidget {
 
   final TrackSnapshot track;
   final bool selected;
+  final VoidCallback onTap;
   final double pixelsPerBeat;
   final double timelineEndBeat;
   final double viewportWidthPx;
@@ -1890,6 +1894,8 @@ class _TrackLane extends StatelessWidget {
   Widget build(BuildContext context) {
     final laneHeight = ArrangementTimelineMetrics.trackLaneHeight;
     return GestureDetector(
+      key: ValueKey('track-lane-${track.id}'),
+      onTap: onTap,
       onLongPressStart: onLongPressStart,
       behavior: HitTestBehavior.opaque,
       child: Container(

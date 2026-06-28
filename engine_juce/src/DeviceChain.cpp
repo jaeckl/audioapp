@@ -31,6 +31,11 @@ bool isFrequencyFxDeviceNodeKind(DeviceNodeKind kind) noexcept {
            kind == DeviceNodeKind::ResonatorBank;
 }
 
+bool isRoutingDeviceNodeKind(DeviceNodeKind kind) noexcept {
+    return kind == DeviceNodeKind::AudioReceiver ||
+           kind == DeviceNodeKind::MidiReceiver;
+}
+
 bool handlesOwnModulation(DeviceNodeKind kind) noexcept {
     // Returns true for instrument types that implement their own per-frame or
     // sub-block modulation inside their process() method, either via explicit
@@ -97,6 +102,8 @@ DeviceNodeKind deviceNodeKindFromTypeId(const std::string& typeId) noexcept {
     if (typeId == kTremolo)          return DeviceNodeKind::Tremolo;
     if (typeId == kWavetableSynth)   return DeviceNodeKind::WavetableSynth;
     if (typeId == kResonatorBank)    return DeviceNodeKind::ResonatorBank;
+    if (typeId == kAudioReceiver)    return DeviceNodeKind::AudioReceiver;
+    if (typeId == kMidiReceiver)     return DeviceNodeKind::MidiReceiver;
     return DeviceNodeKind::Unknown;
 }
 

@@ -350,6 +350,10 @@ enum class ResonatorBankParam : uint16_t {
     Mix = 6,
 };
 
+enum class RoutingParam : uint16_t {
+    Mix = 0,
+};
+
 enum class BitcrusherParam : uint16_t {
     Rate = 0,
     Bits = 1,
@@ -406,6 +410,7 @@ enum class ParamKind : uint16_t {
     Tremolo          = 21,
     WavetableSynth   = 22,
     ResonatorBank    = 23,
+    Routing          = 24,
 };
 
 constexpr uint16_t kParamKindShift      = 11;

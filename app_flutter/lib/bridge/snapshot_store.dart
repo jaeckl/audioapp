@@ -121,6 +121,13 @@ class SnapshotStore extends ChangeNotifier {
     List<dynamic> trackDeltas,
     ProjectSnapshot snap,
   ) {
+    var selectedTrackId = snap.selectedTrackId;
+    for (final delta in trackDeltas.cast<Map<dynamic, dynamic>>()) {
+      if (delta['trackSelected'] == true) {
+        selectedTrackId = delta['trackId'] as String? ?? selectedTrackId;
+        break;
+      }
+    }
     final newTracks = snap.tracks.map((track) {
       final match = trackDeltas.cast<Map<dynamic, dynamic>>().firstWhere(
         (td) => td['trackId'] == track.id,
@@ -161,7 +168,7 @@ class SnapshotStore extends ChangeNotifier {
 
     return ProjectSnapshot(
       bpm: snap.bpm,
-      selectedTrackId: snap.selectedTrackId,
+      selectedTrackId: selectedTrackId,
       playheadBeats: snap.playheadBeats,
       playing: snap.playing,
       loopEnabled: snap.loopEnabled,

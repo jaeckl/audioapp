@@ -183,6 +183,7 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
         for (int d = 0; d < snap.deviceCount; ++d) {
             if (snap.devices[d].deviceId != deviceId) continue;
             deviceRegistry_.buildPlaybackNode(*device, context, snap.devices[d]);
+            snap.devices[d].bypassed = device->config.bypassed;
 
             // Propagate outputMix/outputWidth from slot's output panel
             std::visit([&](const auto& panel) {
@@ -196,8 +197,12 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
             auto* proc = snap.arena.get(d);
             if (proc != nullptr) {
                 proc->initParams(snap.devices[d].params);
+                proc->bypassed = snap.devices[d].bypassed;
                 proc->outputMix = snap.devices[d].outputMix;
                 proc->outputWidth = snap.devices[d].outputWidth;
+            }
+            if (isRoutingDeviceNodeKind(snap.devices[d].kind)) {
+                rebuildProcessorGraphLocked(trackPlaybackCount_.load(std::memory_order_acquire));
             }
             return true;
         }
@@ -235,6 +240,9 @@ bool ProjectEngine::setDeviceStringParameter(const std::string& deviceId,
             auto* proc = snap.arena.get(d);
             if (proc != nullptr) {
                 proc->initParams(snap.devices[d].params);
+            }
+            if (isRoutingDeviceNodeKind(snap.devices[d].kind)) {
+                rebuildProcessorGraphLocked(trackPlaybackCount_.load(std::memory_order_acquire));
             }
             return true;
         }
@@ -659,9 +667,23 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
 
     const float masterGain = masterGain_.load(std::memory_order_acquire);
     constexpr int kMaxFrames = 4096;
-    thread_local float trackLeft[kMaxFrames];
-    thread_local float trackRight[kMaxFrames];
+    thread_local float trackLeft[kMaxTracks][kMaxFrames];
+    thread_local float trackRight[kMaxTracks][kMaxFrames];
+    constexpr int kMaxRoutedMidiNotes = 128;
+    thread_local MidiPlaybackNote routedMidi[kMaxTracks][kMaxRoutedMidiNotes];
+    thread_local float graphAudioLeft[kMaxProcessorGraphEdges][kMaxFrames];
+    thread_local float graphAudioRight[kMaxProcessorGraphEdges][kMaxFrames];
+    int routedMidiCount[kMaxTracks]{};
     const int framesToProcess = numFrames > kMaxFrames ? kMaxFrames : numFrames;
+    const int graphIndex = activeProcessorGraph_.load(std::memory_order_acquire);
+    const ProcessorGraphSnapshot graph = processorGraphs_[graphIndex];
+    const bool useGraph = graph.trackCount == trackCount;
+    for (int edgeIndex = 0; edgeIndex < graph.audioEdgeCount; ++edgeIndex) {
+        std::memset(graphAudioLeft[edgeIndex], 0,
+                    static_cast<size_t>(framesToProcess) * sizeof(float));
+        std::memset(graphAudioRight[edgeIndex], 0,
+                    static_cast<size_t>(framesToProcess) * sizeof(float));
+    }
 
         // Compute per-frame LFO values for gain/pan modulation.
     // DSP-specific params still use frame-0 (block-rate).
@@ -698,58 +720,53 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
 
     SampleClipPlaybackRegion regions[8];
 
+    // Prepare each track's own clip and MIDI input before graph execution.
     for (int trackIndex = 0; trackIndex < trackCount; ++trackIndex) {
         const TrackPlaybackSnapshot& track = trackPlayback_[trackIndex];
-        std::memset(trackLeft, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
-        std::memset(trackRight, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
-
+        std::memset(trackLeft[trackIndex], 0,
+                    static_cast<size_t>(framesToProcess) * sizeof(float));
+        std::memset(trackRight[trackIndex], 0,
+                    static_cast<size_t>(framesToProcess) * sizeof(float));
         if (track.regionCount > 0) {
             for (int i = 0; i < track.regionCount; ++i) {
                 const SampleRegion& source = track.regions[i];
                 regions[i] = SampleClipPlaybackRegion{
-                    source.clipStartBeat,
-                    source.clipLengthBeats,
-                    source.pcm,
-                    source.frameCount,
-                    source.pcmSampleRate,
-                };
+                    source.clipStartBeat, source.clipLengthBeats, source.pcm,
+                    source.frameCount, source.pcmSampleRate};
             }
-            mixSampleRegionsBlock(trackLeft,
-                                  framesToProcess,
-                                  sampleRate,
-                                  transport_.bpm(),
-                                  playheadStartBeat,
-                                  regions,
+            mixSampleRegionsBlock(trackLeft[trackIndex], framesToProcess, sampleRate,
+                                  transport_.bpm(), playheadStartBeat, regions,
                                   track.regionCount);
-            for (int frame = 0; frame < framesToProcess; ++frame) {
-                trackRight[frame] = trackLeft[frame];
-            }
+            std::copy(trackLeft[trackIndex], trackLeft[trackIndex] + framesToProcess,
+                      trackRight[trackIndex]);
         }
+        const int ownNoteCount = std::min(track.noteCount, kMaxRoutedMidiNotes);
+        for (int i = 0; i < ownNoteCount; ++i) {
+            const PlaybackNote& note = track.notes[i];
+            routedMidi[trackIndex][i] = MidiPlaybackNote{
+                note.pitch, note.clipStartBeat, note.clipLengthBeats,
+                note.noteStartBeat, note.noteDurationBeats, note.velocity};
+        }
+        routedMidiCount[trackIndex] = ownNoteCount;
+    }
+
+    for (int orderIndex = 0; orderIndex < trackCount; ++orderIndex) {
+        const int trackIndex = useGraph
+            ? static_cast<int>(graph.executionOrder[static_cast<size_t>(orderIndex)])
+            : orderIndex;
+        const TrackPlaybackSnapshot& track = trackPlayback_[trackIndex];
 
         const bool suppressInstruments = trackHasActiveSampleAtPlayhead(track, playheadStartBeat);
-
-        MidiPlaybackNote midiNotes[32];
-        const int noteCount = track.noteCount > 32 ? 32 : track.noteCount;
-        for (int i = 0; i < noteCount; ++i) {
-            const PlaybackNote& note = track.notes[i];
-            midiNotes[i] = MidiPlaybackNote{
-                note.pitch,
-                note.clipStartBeat,
-                note.clipLengthBeats,
-                note.noteStartBeat,
-                note.noteDurationBeats,
-                note.velocity,
-            };
-        }
+        const int noteCount = routedMidiCount[trackIndex];
 
         DeviceChainOrchestrator::Context ctx(trackPlayback_[trackIndex].arena, gProjectScratch);
-        ctx.trackLeft = trackLeft;
-        ctx.trackRight = trackRight;
+        ctx.trackLeft = trackLeft[trackIndex];
+        ctx.trackRight = trackRight[trackIndex];
         ctx.numFrames = framesToProcess;
         ctx.sampleRate = sampleRate;
         ctx.bpm = transport_.bpm();
         ctx.playheadStartBeat = playheadStartBeat;
-        ctx.notes = midiNotes;
+        ctx.notes = routedMidi[trackIndex];
         ctx.noteCount = noteCount;
         ctx.suppressInstruments = suppressInstruments;
         ctx.deviceMeters = deviceMeters_;
@@ -761,12 +778,20 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         ctx.automationClips = track.automationClipCount > 0 ? track.automationClips : nullptr;
         ctx.automationClipCount = track.automationClipCount;
         ctx.wavetableBank = wavetableBank_;
+        ctx.graph = useGraph ? &graph : nullptr;
+        ctx.graphTrackIndex = trackIndex;
+        ctx.graphAudioLeft = &graphAudioLeft[0][0];
+        ctx.graphAudioRight = &graphAudioRight[0][0];
+        ctx.graphAudioStride = kMaxFrames;
+        ctx.graphMidiNotes = &routedMidi[0][0];
+        ctx.graphMidiCounts = routedMidiCount;
+        ctx.graphMidiStride = kMaxRoutedMidiNotes;
 
         DeviceChainOrchestrator::processChain(ctx);
 
         for (int frame = 0; frame < framesToProcess; ++frame) {
-            masterLeft[frame] += trackLeft[frame];
-            masterRight[frame] += trackRight[frame];
+            masterLeft[frame] += trackLeft[trackIndex][frame];
+            masterRight[frame] += trackRight[trackIndex][frame];
         }
     }
 
@@ -1334,10 +1359,53 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
 
         ++trackIndex;
     }
+    rebuildProcessorGraphLocked(trackIndex);
     trackPlaybackCount_.store(trackIndex, std::memory_order_release);
 
     // Keep ValueTree in sync (repos→tree) so listener can trust it for undo
     syncProjectTreeLocked();
+}
+
+void ProjectEngine::rebuildProcessorGraphLocked(int trackCount) {
+    std::array<GraphTrackDefinition, kMaxProcessorGraphTracks> definitions{};
+    std::array<std::string, kMaxProcessorGraphTracks> midiInputIds{};
+    int trackIndex = 0;
+    for (const auto& track : trackRepo_.tracks()) {
+        if (trackIndex >= trackCount || trackIndex >= kMaxProcessorGraphTracks) break;
+        auto& definition = definitions[static_cast<size_t>(trackIndex)];
+        definition.trackId = track.id;
+        midiInputIds[static_cast<size_t>(trackIndex)] = "track-midi:" + track.id;
+        definition.sources[definition.sourceCount++] = GraphSourceDefinition{
+            midiInputIds[static_cast<size_t>(trackIndex)], GraphSignalType::Midi,
+            kGraphTrackMidiInput};
+        int deviceIndex = 0;
+        for (const auto& device : track.devices) {
+            const auto kind = deviceNodeKindFromTypeId(device.config.typeId);
+            if (!isRoutingDeviceNodeKind(kind) &&
+                definition.sourceCount < kMaxProcessorGraphSourcesPerTrack) {
+                definition.sources[definition.sourceCount++] = GraphSourceDefinition{
+                    device.id, GraphSignalType::Audio, static_cast<uint8_t>(deviceIndex)};
+            } else if (isRoutingDeviceNodeKind(kind) && !device.config.bypassed &&
+                       definition.receiverCount < kMaxProcessorGraphReceiversPerTrack) {
+                const auto& model = std::get<RoutingModel>(device.config.instance);
+                GraphReceiverDefinition receiver;
+                receiver.sourceId = model.sourceId;
+                receiver.signalType = kind == DeviceNodeKind::AudioReceiver
+                    ? GraphSignalType::Audio
+                    : GraphSignalType::Midi;
+                receiver.deviceIndex = static_cast<uint8_t>(deviceIndex);
+                receiver.mix = kind == DeviceNodeKind::AudioReceiver ? model.routeMix : 1.0f;
+                definition.receivers[definition.receiverCount++] = receiver;
+            }
+            ++deviceIndex;
+        }
+        ++trackIndex;
+    }
+
+    const int inactive = 1 - activeProcessorGraph_.load(std::memory_order_relaxed);
+    processorGraphs_[inactive] = buildProcessorGraph(
+        std::span<const GraphTrackDefinition>(definitions.data(), static_cast<size_t>(trackCount)));
+    activeProcessorGraph_.store(inactive, std::memory_order_release);
 }
 
 bool ProjectEngine::trackHasActiveSampleAtPlayhead(const TrackPlaybackSnapshot& track,

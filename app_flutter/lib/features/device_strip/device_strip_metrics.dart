@@ -6,6 +6,7 @@ import 'device_knob_sizes.dart';
 import 'dynamics_fx_panels.dart';
 import 'frequency_fx_panels.dart';
 import 'resonator_bank_panel.dart';
+import 'routing_device_panel.dart';
 import 'kick_generator_device_panel.dart';
 import 'oscillator_device_panel.dart';
 import 'phase_mod_synth_device_panel.dart';
@@ -33,6 +34,7 @@ class DeviceStripMetrics {
     'cymbal_generator',
     'crash_generator',
   };
+  static const _routingTypes = {'audio_receiver', 'midi_receiver'};
 
   /// Canonical sampler strip width (~⅔ of the original 520).
   static const double samplerDesignWidth = 348;
@@ -122,6 +124,7 @@ class DeviceStripMetrics {
 
   /// Dynamics FX input column (meter).
   static const double dynamicsInputPanelWidth = 64;
+  static const double routingOutputPanelWidth = 34;
 
   static double inputPanelWidthFor(String deviceType) =>
       _dynamicsTypes.contains(deviceType) ||
@@ -131,6 +134,7 @@ class DeviceStripMetrics {
           : 0;
 
   static double outputPanelWidthFor(String deviceType) {
+    if (_routingTypes.contains(deviceType)) return routingOutputPanelWidth;
     if (_drumTypes.contains(deviceType)) return drumMonoOutputPanelWidth;
     if (_dynamicsTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
     if (_timeFxTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
@@ -164,6 +168,7 @@ class DeviceStripMetrics {
       'four_band_eq' => FourBandEqDevicePanel.designWidth,
       'frequency_shifter' => FreqShifterDevicePanel.designWidth,
       'resonator_bank' => ResonatorBankPanel.designWidth,
+      'audio_receiver' || 'midi_receiver' => RoutingDevicePanel.designWidth,
       'bitcrusher' => BitcrusherFxPanel.designWidth,
       'distortion' => DistortionFxPanel.designWidth,
       'tremolo' => TremoloFxPanel.designWidth,

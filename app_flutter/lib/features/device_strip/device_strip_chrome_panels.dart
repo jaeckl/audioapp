@@ -7,6 +7,20 @@ import 'device_strip_metrics.dart';
 import 'device_strip_theme.dart';
 import 'stereo_gain_pan_panel.dart';
 
+/// Passive right-edge cap for routing receivers, which have no output controls.
+class RoutingOutputPanel extends StatelessWidget {
+  const RoutingOutputPanel({super.key, required this.accentColor});
+
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) => _ChromeOutputShell(
+        child: Center(
+          child: Icon(Icons.chevron_right, size: 18, color: accentColor),
+        ),
+      );
+}
+
 /// Mono drum output rail: gain + velocity sensitivity (no pan).
 class DrumMonoOutputPanel extends StatelessWidget {
   const DrumMonoOutputPanel({

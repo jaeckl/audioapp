@@ -199,11 +199,19 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       } else {
         await widget.bridge.allNotesOff();
         if (_snapshot?.recordArmed == true) {
-          final updated = await widget.bridge.setRecordArmed(false);
-          await _refreshSnapshot(updated);
+          await _store.invokeRaw('setRecordArmed', {'armed': false});
         }
       }
     } catch (_) {}
+  }
+
+  Future<void> _setRecordArmed(bool armed) async {
+    try {
+      await _store.invokeRaw('setRecordArmed', {'armed': armed});
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
   }
 
   Future<void> _addMidiClip(String trackId, double startBeat) async {
@@ -947,6 +955,21 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _setDeviceStringParameter(
+      String deviceId, String parameterId, String value) async {
+    try {
+      await widget.bridge.setDeviceStringParameter(
+        deviceId: deviceId,
+        parameterId: parameterId,
+        value: value,
+      );
+      await _refreshSnapshot(await widget.bridge.getProjectSnapshot());
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
   Future<void> _onLibraryWavetableTap(LibraryWavetableItem item) async {
     final deviceId = _libraryWavetableDeviceId;
     if (deviceId == null) return;
@@ -1500,6 +1523,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             playing: _transport.playing,
             playheadBeatListenable: _transport.playheadNotifier,
             onSamplerParameterChanged: _setSamplerParameter,
+            onDeviceStringParameterChanged: _setDeviceStringParameter,
             onAssignSamplerSample: _assignSamplerSample,
             onOpenSamplerEditor: _openSamplerEditor,
             onPreviewSample: _previewSample,
@@ -1528,6 +1552,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             bridge: widget.bridge,
             snapshot: snapshot,
             onSnapshot: _refreshSnapshot,
+            onRecordArmed: _setRecordArmed,
           ),
       ],
     );

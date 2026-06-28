@@ -40,6 +40,8 @@ static ParamKind paramKindForDevice(DeviceNodeKind kind) noexcept {
     case DeviceNodeKind::FourBandEq:       return ParamKind::FourBandEq;
     case DeviceNodeKind::FrequencyShifter: return ParamKind::FrequencyShifter;
     case DeviceNodeKind::ResonatorBank:    return ParamKind::ResonatorBank;
+    case DeviceNodeKind::AudioReceiver:
+    case DeviceNodeKind::MidiReceiver:     return ParamKind::Routing;
     case DeviceNodeKind::TrackGain:        return ParamKind::TrackGain;
     case DeviceNodeKind::Unknown:
     default:                                return ParamKind::Common;
@@ -396,6 +398,12 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         if (auto v = r("resMix", ResonatorBankParam::Mix)) return v;
         return 0;
     }
+    case DeviceNodeKind::AudioReceiver:
+    case DeviceNodeKind::MidiReceiver: {
+        if (std::strcmp(name, "routeMix") == 0)
+            return packParamId(ParamKind::Routing, static_cast<uint16_t>(RoutingParam::Mix));
+        return 0;
+    }
     default:
         return 0;
     }
@@ -688,6 +696,13 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         default: return "";
         }
     }
+    case DeviceNodeKind::AudioReceiver:
+    case DeviceNodeKind::MidiReceiver: {
+        switch (static_cast<RoutingParam>(rawId)) {
+        case RoutingParam::Mix: return "routeMix";
+        default: return "";
+        }
+    }
     default:
         return "";
     }
@@ -847,6 +862,14 @@ const ParamDescriptor* paramDescriptorsForKind(DeviceNodeKind kind, int& countOu
             {6, "resMix", "Mix", 0.5f, 0.0f, 1.0f, true, true},
         };
         countOut = 7;
+        return kParams;
+    }
+    case DeviceNodeKind::AudioReceiver:
+    case DeviceNodeKind::MidiReceiver: {
+        static constexpr ParamDescriptor kParams[] = {
+            {0, "routeMix", "Mix", 1.0f, 0.0f, 1.0f, true, true},
+        };
+        countOut = kind == DeviceNodeKind::AudioReceiver ? 1 : 0;
         return kParams;
     }
     default:
@@ -1207,6 +1230,16 @@ void applyAutomationValue(DeviceVariantParams& params,
             case ResonatorBankParam::Color: p->colorDbPerOctave = (normalized - 0.5f) * 24.0f; break;
             case ResonatorBankParam::Width: p->width = normalized * 2.0f; break;
             case ResonatorBankParam::Mix: p->mix = normalized; break;
+            }
+        }
+        break;
+    case ParamKind::Routing:
+        if (auto* p = std::get_if<RoutingParams>(&params)) {
+            const float normalized = std::clamp(value, 0.0f, 1.0f);
+            switch (static_cast<RoutingParam>(rawId)) {
+            case RoutingParam::Mix:
+                p->routeMix = normalized;
+                break;
             }
         }
         break;

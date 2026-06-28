@@ -20,6 +20,7 @@
 #include "audioapp/WavetableSynthAlgorithm.hpp"
 #include "audioapp/FrequencyFxProcessor.hpp"
 #include "audioapp/ResonatorBank.hpp"
+#include "audioapp/RoutingDevices.hpp"
 
 namespace audioapp {
 
@@ -65,6 +66,8 @@ enum class DeviceNodeKind : uint8_t {
     Tremolo,
     WavetableSynth,
     ResonatorBank,
+    AudioReceiver,
+    MidiReceiver,
 };
 
 // --- Per-device DSP-only parameter structs ---
@@ -180,7 +183,8 @@ using DeviceVariantParams = std::variant<
     BitcrusherParamsPlayback,
     DistortionParamsPlayback,
     TremoloParamsPlayback,
-    ResonatorBankParams
+    ResonatorBankParams,
+    RoutingParams
 >;
 
 /// Per-track device chain node (built on control thread, read on audio thread).
@@ -210,6 +214,7 @@ bool isDynamicsDeviceNodeKind(DeviceNodeKind kind) noexcept;
 bool isInstrumentDeviceNodeKind(DeviceNodeKind kind) noexcept;
 bool handlesOwnModulation(DeviceNodeKind kind) noexcept;
 bool isFrequencyFxDeviceNodeKind(DeviceNodeKind kind) noexcept;
+bool isRoutingDeviceNodeKind(DeviceNodeKind kind) noexcept;
 
 /// Map a device type string (e.g. "simple_sampler") to its DeviceNodeKind.
 DeviceNodeKind deviceNodeKindFromTypeId(const std::string& typeId) noexcept;

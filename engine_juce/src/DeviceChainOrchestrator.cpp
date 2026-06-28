@@ -30,6 +30,7 @@ using namespace audioapp::DeviceChainAutomationModulation;
 #include "audioapp/devices/processors/FourBandEqProcessor.hpp"
 #include "audioapp/devices/processors/FrequencyShifterProcessor.hpp"
 #include "audioapp/devices/processors/ResonatorBankProcessor.hpp"
+#include "audioapp/devices/processors/RoutingProcessor.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -70,6 +71,8 @@ static const FactoryFn kProcessorFactories[] = {
     nullptr,  // Tremolo = 25 (handled inline)
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<WavetableSynthProcessor>(); },        // WavetableSynth = 26
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<ResonatorBankProcessor>(); },          // ResonatorBank = 27
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<RoutingProcessor>(DeviceNodeKind::AudioReceiver); }, // 28
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<RoutingProcessor>(DeviceNodeKind::MidiReceiver); },  // 29
 };
 static constexpr size_t kNumFactories = sizeof(kProcessorFactories) / sizeof(kProcessorFactories[0]);
 
@@ -150,9 +153,33 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
     const double beatsPerFrame =
         (static_cast<double>(std::max(ctx.bpm, 1)) / 60.0) / ctx.sampleRate;
 
+    constexpr int kMaxActiveNotes = 128;
+    MidiPlaybackNote activeNotes[kMaxActiveNotes];
+    int activeNoteCount = std::min(ctx.noteCount, kMaxActiveNotes);
+    if (ctx.notes != nullptr && activeNoteCount > 0) {
+        std::copy(ctx.notes, ctx.notes + activeNoteCount, activeNotes);
+    }
+
+    auto captureAudioSources = [&](int deviceIndex) noexcept {
+        if (ctx.graph == nullptr || ctx.graphAudioLeft == nullptr ||
+            ctx.graphAudioRight == nullptr || ctx.graphAudioStride <= 0) return;
+        for (int edgeIndex = 0; edgeIndex < ctx.graph->audioEdgeCount; ++edgeIndex) {
+            const auto& edge = ctx.graph->audioEdges[static_cast<size_t>(edgeIndex)];
+            if (edge.sourceTrack != ctx.graphTrackIndex || edge.sourceDevice != deviceIndex) continue;
+            float* tapLeft = ctx.graphAudioLeft + edgeIndex * ctx.graphAudioStride;
+            float* tapRight = ctx.graphAudioRight + edgeIndex * ctx.graphAudioStride;
+            std::copy(ctx.trackLeft, ctx.trackLeft + numFrames, tapLeft);
+            std::copy(ctx.trackRight, ctx.trackRight + numFrames, tapRight);
+        }
+    };
+
     for (int deviceIndex = 0; deviceIndex < ctx.arena.size(); ++deviceIndex) {
         auto* proc = ctx.arena.get(deviceIndex);
-        if (proc == nullptr || proc->bypassed) continue;
+        if (proc == nullptr) continue;
+        if (proc->bypassed) {
+            captureAudioSources(deviceIndex);
+            continue;
+        }
 
         // Initialize per-frame gain/pan from processor instance
         for (int f = 0; f < numFrames; ++f) {
@@ -162,6 +189,20 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
 
         const uint16_t di = static_cast<uint16_t>(deviceIndex);
         const DeviceNodeKind nodeKind = proc->kind();
+
+        if (nodeKind == DeviceNodeKind::MidiReceiver && ctx.graph != nullptr &&
+            ctx.graphMidiNotes != nullptr && ctx.graphMidiCounts != nullptr) {
+            for (int edgeIndex = 0; edgeIndex < ctx.graph->midiEdgeCount; ++edgeIndex) {
+                const auto& edge = ctx.graph->midiEdges[static_cast<size_t>(edgeIndex)];
+                if (edge.destinationTrack != ctx.graphTrackIndex ||
+                    edge.destinationDevice != deviceIndex) continue;
+                const int source = edge.sourceTrack;
+                const auto* sourceNotes = ctx.graphMidiNotes + source * ctx.graphMidiStride;
+                for (int i = 0; i < ctx.graphMidiCounts[source] && activeNoteCount < kMaxActiveNotes; ++i) {
+                    activeNotes[activeNoteCount++] = sourceNotes[i];
+                }
+            }
+        }
 
         // nodeNeedsSubBlocks only uses deviceIndex/clips/edges; pass a dummy node
         const DeviceNodePlayback dummyNode{};
@@ -178,8 +219,8 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
         pc.modEdgeCount = ctx.modEdgeCount;
         pc.automationClips = ctx.automationClips;
         pc.automationClipCount = ctx.automationClipCount;
-        pc.notes = ctx.notes;
-        pc.noteCount = ctx.noteCount;
+        pc.notes = activeNotes;
+        pc.noteCount = activeNoteCount;
         pc.playheadBeat = ctx.playheadStartBeat;
         pc.bpm = ctx.bpm;
         pc.sampleRate = ctx.sampleRate;
@@ -252,6 +293,22 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
         pc.modulatedParams = &modulatedParams;
         AudioBlock block{ctx.trackLeft, ctx.trackRight, numFrames};
 
+        if (nodeKind == DeviceNodeKind::AudioReceiver && ctx.graph != nullptr &&
+            ctx.graphAudioLeft != nullptr && ctx.graphAudioRight != nullptr) {
+            const float mix = std::get<RoutingParams>(modulatedParams).routeMix;
+            for (int edgeIndex = 0; edgeIndex < ctx.graph->audioEdgeCount; ++edgeIndex) {
+                const auto& edge = ctx.graph->audioEdges[static_cast<size_t>(edgeIndex)];
+                if (edge.destinationTrack != ctx.graphTrackIndex ||
+                    edge.destinationDevice != deviceIndex) continue;
+                const float* sourceLeft = ctx.graphAudioLeft + edgeIndex * ctx.graphAudioStride;
+                const float* sourceRight = ctx.graphAudioRight + edgeIndex * ctx.graphAudioStride;
+                for (int frame = 0; frame < numFrames; ++frame) {
+                    block.channelL[frame] = block.channelL[frame] * (1.0f - mix) + sourceLeft[frame] * mix;
+                    block.channelR[frame] = block.channelR[frame] * (1.0f - mix) + sourceRight[frame] * mix;
+                }
+            }
+        }
+
         // Save dry signal for outputMix blend
         std::copy(block.channelL, block.channelL + numFrames, s.tempStereoL);
         std::copy(block.channelR, block.channelR + numFrames, s.tempStereoR);
@@ -282,6 +339,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
             nodeKind != DeviceNodeKind::TrackGain) {
             StereoOutputPanel::applyInPlace(block, numFrames, s.perFrameGain);
         }
+        captureAudioSources(deviceIndex);
     }
 }
 

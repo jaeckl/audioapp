@@ -95,10 +95,18 @@ struct StereoOutputPanel {
     }
 };
 
+/// Visual-only output cap for routing receivers. It deliberately exposes no
+/// DSP parameters; the matching Flutter chrome keeps the card symmetrical.
+struct RoutingOutputPanel {
+    template <typename Callback>
+    void enumerate(Callback&& /*cb*/) const {}
+};
+
 // ── Variant aliases ───────────────────────────────────────────────────
 
 using InputPanelParams  = std::variant<EmptyPanel, DynamicsInputPanel>;
-using OutputPanelParams = std::variant<EmptyPanel, MonoOutputPanel, StereoOutputPanel>;
+using OutputPanelParams = std::variant<EmptyPanel, MonoOutputPanel, StereoOutputPanel,
+                                       RoutingOutputPanel>;
 
 // ── Serialization helpers ─────────────────────────────────────────────
 
@@ -148,6 +156,8 @@ inline juce::var outputPanelToVar(const OutputPanelParams& panel) {
             obj->setProperty("pan", static_cast<double>(p.pan));
             obj->setProperty("outputMix", static_cast<double>(p.outputMix));
             obj->setProperty("outputWidth", static_cast<double>(p.outputWidth));
+        } else if constexpr (std::is_same_v<T, RoutingOutputPanel>) {
+            obj->setProperty("type", "routing");
         } else {
             obj->setProperty("type", "empty");
         }
@@ -173,6 +183,8 @@ inline OutputPanelParams outputPanelFromVar(const juce::var& obj, float legacyGa
             sp.outputMix = readFloat("outputMix", 1.0f);
             sp.outputWidth = readFloat("outputWidth", 1.0f);
             return sp;
+        } else if (typeStr == "routing") {
+            return RoutingOutputPanel{};
         }
     }
     // Legacy fallback

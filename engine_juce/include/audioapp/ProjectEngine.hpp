@@ -23,6 +23,7 @@
 #include "audioapp/WavetableBank.hpp"
 #include "audioapp/SampleTypes.hpp"
 #include "audioapp/DeviceChain.hpp"
+#include "audioapp/ProcessorGraph.hpp"
 #include "audioapp/dsp/ProcessorArena.hpp"
 #include "audioapp/SubtractiveSynthAlgorithm.hpp"
 #include "audioapp/PhaseModSynthAlgorithm.hpp"
@@ -283,6 +284,8 @@ private:
 
     TrackPlaybackSnapshot trackPlayback_[kMaxTracks];
     std::atomic<int> trackPlaybackCount_{0};
+    ProcessorGraphSnapshot processorGraphs_[2];
+    std::atomic<int> activeProcessorGraph_{0};
 
     DeviceMeterAtomic deviceMeters_[kMaxDeviceMeters];
     std::string deviceMeterIds_[kMaxDeviceMeters];
@@ -295,6 +298,7 @@ private:
     // ModulationEdgePlayback arrays are also per-track: see TrackPlaybackSnapshot::modEdges
 
     void rebuildTrackPlaybackLocked();
+    void rebuildProcessorGraphLocked(int trackCount);
     void rebuildRepoCacheFromTree();
     void syncProjectTreeLocked();
     /// Lightweight edge re-resolution: re-populates per-track snap.modEdges[]

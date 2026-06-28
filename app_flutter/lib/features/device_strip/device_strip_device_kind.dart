@@ -15,6 +15,8 @@ const frequencyFxDeviceTypes = <String>{
   'four_band_eq',
   'frequency_shifter',
   'resonator_bank',
+  'audio_receiver',
+  'midi_receiver',
 };
 
 extension DeviceStripDeviceKind on DeviceSnapshot {

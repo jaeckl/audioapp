@@ -20,6 +20,7 @@
 #include "audioapp/devices/FourBandEqDeviceType.hpp"
 #include "audioapp/devices/FrequencyShifterDeviceType.hpp"
 #include "audioapp/devices/ResonatorBankDeviceType.hpp"
+#include "audioapp/devices/RoutingDeviceType.hpp"
 #include "audioapp/devices/WavetableSynthDeviceType.hpp"
 #include "audioapp/effects/BitcrusherDeviceType.hpp"
 #include "audioapp/effects/DistortionDeviceType.hpp"
@@ -155,6 +156,10 @@ DeviceRegistry DeviceRegistry::createBuiltIn() {
     registry.registerType(std::make_unique<FourBandEqDeviceType>());
     registry.registerType(std::make_unique<FrequencyShifterDeviceType>());
     registry.registerType(std::make_unique<ResonatorBankDeviceType>());
+    registry.registerType(std::make_unique<RoutingDeviceType>(device_types::kAudioReceiver,
+                                                               DeviceNodeKind::AudioReceiver));
+    registry.registerType(std::make_unique<RoutingDeviceType>(device_types::kMidiReceiver,
+                                                               DeviceNodeKind::MidiReceiver));
     registry.registerType(std::make_unique<BitcrusherDeviceType>());
     registry.registerType(std::make_unique<DistortionDeviceType>());
     registry.registerType(std::make_unique<TremoloDeviceType>());

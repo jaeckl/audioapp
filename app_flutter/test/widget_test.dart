@@ -2,6 +2,7 @@ import 'package:audioapp/app/daw_shell.dart';
 import 'package:audioapp/bridge/engine_bridge.dart';
 import 'package:audioapp/features/play/mpc_pad_grid.dart';
 import 'package:audioapp/features/device_strip/device_insert_slot.dart';
+import 'package:audioapp/features/device_strip/device_strip_slot.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,6 +19,8 @@ void main() {
   double? peakModulation;
   double? peakPitchBend;
   bool mockWithSamplerDefault = false;
+  bool mockWithTwoTracks = false;
+  String? lastSelectedTrackId;
 
   const bootstrapSnapshot = {
     'ok': true,
@@ -40,6 +43,8 @@ void main() {
     peakModulation = null;
     peakPitchBend = null;
     mockWithSamplerDefault = false;
+    mockWithTwoTracks = false;
+    lastSelectedTrackId = null;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
       switch (call.method) {
@@ -92,6 +97,24 @@ void main() {
                         ],
                   'midiClips': [],
                 },
+                if (mockWithTwoTracks)
+                  {
+                    'id': 'track-2',
+                    'name': 'Track 2',
+                    'devices': [
+                      {
+                        'id': 'dev-track-2-osc',
+                        'type': 'simple_oscillator',
+                        'parameters': {'frequency': 440.0},
+                      },
+                      {
+                        'id': 'dev-track-2-gain',
+                        'type': 'track_gain',
+                        'parameters': {'gain': 1.0},
+                      },
+                    ],
+                    'midiClips': [],
+                  },
               ],
             },
           };
@@ -286,30 +309,15 @@ void main() {
             },
           };
         case 'selectTrack':
+          lastSelectedTrackId =
+              (call.arguments as Map<dynamic, dynamic>?)?['trackId'] as String?;
           return {
             'ok': true,
-            'snapshot': {
-              'bpm': 120,
-              'playheadBeats': 0.0,
-              'playing': false,
-              'selectedTrackId': 'track-1',
+            'delta': {
               'tracks': [
                 {
-                  'id': 'track-1',
-                  'name': 'Track 1',
-                  'devices': [
-                    {
-                      'id': 'dev-1',
-                      'type': 'simple_sampler',
-                      'parameters': {'gain': 1.0, 'sampleId': '', 'bypass': false},
-                    },
-                    {
-                      'id': 'dev-2',
-                      'type': 'track_gain',
-                      'parameters': {'gain': 1.0},
-                    },
-                  ],
-                  'midiClips': [],
+                  'trackId': lastSelectedTrackId,
+                  'trackSelected': true,
                 },
               ],
             },
@@ -348,26 +356,11 @@ void main() {
         case 'setRecordArmed':
           return {
             'ok': true,
-            'snapshot': {
-              'bpm': 120,
-              'playheadBeats': 0.0,
-              'playing': false,
-              'recordArmed': (call.arguments as Map?)?['armed'] == true,
-              'selectedTrackId': 'track-1',
-              'tracks': [
-                {
-                  'id': 'track-1',
-                  'name': 'Track 1',
-                  'devices': [
-                    {
-                      'id': 'dev-1',
-                      'type': 'simple_sampler',
-                      'parameters': {'gain': 1.0, 'sampleId': '', 'bypass': false},
-                    },
-                  ],
-                  'midiClips': [],
-                },
-              ],
+            'delta': {
+              'transport': {
+                'recordArmedChanged': true,
+                'newRecordArmed': (call.arguments as Map?)?['armed'] == true,
+              },
             },
           };
         case 'commitCapture':
@@ -438,6 +431,57 @@ void main() {
     await tester.tap(find.byTooltip('Add track'));
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.play_arrow), findsOneWidget);
+  });
+
+  testWidgets('track header and lane select their track', (tester) async {
+    mockWithTwoTracks = true;
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(home: DawShell(bridge: EngineBridge(channel: channel))),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Track 2'));
+    await tester.pumpAndSettle();
+    expect(lastSelectedTrackId, 'track-2');
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is DeviceStripSlot && widget.device.id == 'dev-track-2-osc',
+      ),
+      findsOneWidget,
+    );
+
+    final firstLane = find.byKey(const ValueKey('track-lane-track-1'));
+    await tester.tapAt(tester.getTopLeft(firstLane) + const Offset(24, 24));
+    await tester.pumpAndSettle();
+    expect(lastSelectedTrackId, 'track-1');
+  });
+
+  testWidgets('switching Keys back to Devices preserves project tracks',
+      (tester) async {
+    mockWithSamplerDefault = true;
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(home: DawShell(bridge: EngineBridge(channel: channel))),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('track-lane-track-1')), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel('Keys'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('Devices'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('track-lane-track-1')), findsOneWidget);
+    expect(find.text('Select a track to show devices'), findsNothing);
   });
 
   testWidgets('Adding track shows no devices initially, can insert a device', (tester) async {

@@ -10,6 +10,8 @@ import 'device_strip_metrics.dart';
 import 'device_strip_slot.dart';
 import 'sampler_device_panel.dart';
 import 'subtractive_synth_device_panel.dart';
+import 'routing_device_panel.dart';
+import 'device_strip_theme.dart';
 
 class DeviceStrip extends StatefulWidget {
   const DeviceStrip({
@@ -21,6 +23,7 @@ class DeviceStrip extends StatefulWidget {
     this.playheadBeatListenable,
     this.playheadBeats = 0,
     required this.onSamplerParameterChanged,
+    this.onDeviceStringParameterChanged,
     required this.onAssignSamplerSample,
     required this.onOpenSamplerEditor,
     required this.onPreviewSample,
@@ -46,6 +49,8 @@ class DeviceStrip extends StatefulWidget {
   final double playheadBeats;
   final void Function(String deviceId, String parameterId, double value)
       onSamplerParameterChanged;
+  final void Function(String deviceId, String parameterId, String value)?
+      onDeviceStringParameterChanged;
   final void Function(String deviceId, String sampleId) onAssignSamplerSample;
   final void Function(TrackSnapshot track, DeviceSnapshot device) onOpenSamplerEditor;
   final ValueChanged<SampleLibraryEntrySnapshot> onPreviewSample;
@@ -75,6 +80,23 @@ class _DeviceStripState extends State<DeviceStrip> {
   bool _expanded = false;
   final Map<String, SamplerDeviceTab> _samplerTabs = {};
   final Map<String, SubtractiveDeviceTab> _synthTabs = {};
+
+  List<RoutingSourceOption> _routingSources(ProjectSnapshot snapshot) => [
+        for (final track in snapshot.tracks)
+          RoutingSourceOption(
+            id: 'track-midi:${track.id}',
+            label: '${track.name} · MIDI',
+            isMidi: true,
+          ),
+        for (final track in snapshot.tracks)
+          for (final device in track.visibleDevices)
+            if (device.type != 'audio_receiver' && device.type != 'midi_receiver')
+              RoutingSourceOption(
+                id: device.id,
+                label: '${track.name} · ${DeviceStripTheme.labelForDeviceType(device.type)}',
+                isMidi: false,
+              ),
+      ];
 
   bool _shouldStartCollapsed(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -108,11 +130,13 @@ class _DeviceStripState extends State<DeviceStrip> {
         builder: (context) => DeviceChainScreen(
           snapshot: widget.snapshot,
           track: track,
+          routingSources: _routingSources(widget.snapshot),
           samples: widget.samples,
           playing: widget.playing,
           samplerTabFor: _samplerTabFor,
           synthTabFor: _synthTabFor,
           onSamplerParameterChanged: widget.onSamplerParameterChanged,
+          onDeviceStringParameterChanged: widget.onDeviceStringParameterChanged,
           onOpenSamplerEditor: widget.onOpenSamplerEditor,
           onFrequencyChanged: widget.onFrequencyChanged,
           onInsertDevice: (insertIndex) => _insertDevice(track, insertIndex),
@@ -174,6 +198,7 @@ class _DeviceStripState extends State<DeviceStrip> {
                 ),
                 DeviceChainRow(
                   track: track,
+                  routingSources: _routingSources(widget.snapshot),
                   samples: widget.samples,
                   playing: widget.playing,
                   bpm: widget.snapshot.bpm,
@@ -187,6 +212,7 @@ class _DeviceStripState extends State<DeviceStrip> {
                   samplerTabFor: _samplerTabFor,
                   synthTabFor: _synthTabFor,
                   onSamplerParameterChanged: widget.onSamplerParameterChanged,
+                  onDeviceStringParameterChanged: widget.onDeviceStringParameterChanged,
                   onOpenSamplerEditor: widget.onOpenSamplerEditor,
                   onFrequencyChanged: widget.onFrequencyChanged,
                   onInsertDevice: (insertIndex) => _insertDevice(track, insertIndex),

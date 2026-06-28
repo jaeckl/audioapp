@@ -160,6 +160,25 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
             ),
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
+              child: Text('Routing', style: TextStyle(
+                color: Color(0xFF9A9AA8), fontSize: 12,
+                fontWeight: FontWeight.w600, letterSpacing: 0.6,
+              )),
+            ),
+            ListTile(
+              leading: const Icon(Icons.call_received, color: Color(0xFF66D19E)),
+              title: const Text('Audio Receiver'),
+              subtitle: const Text('Receive any device audio output'),
+              onTap: () => Navigator.pop(context, 'audio_receiver'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.call_received, color: Color(0xFFF08BB4)),
+              title: const Text('MIDI Receiver'),
+              subtitle: const Text('Receive notes from any track MIDI input'),
+              onTap: () => Navigator.pop(context, 'midi_receiver'),
+            ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
               child: Text(
                 'Time‑Based Effects',
                 style: TextStyle(

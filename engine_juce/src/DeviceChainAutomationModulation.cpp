@@ -131,6 +131,14 @@ void applyModulation(ResonatorBankParams& p, float modAmount, uint16_t localPara
     }
 }
 
+void applyModulation(RoutingParams& p, float modAmount, uint16_t localParamId) noexcept {
+    switch (static_cast<RoutingParam>(unpackParamId(localParamId))) {
+    case RoutingParam::Mix:
+        p.routeMix = std::clamp(p.routeMix + modAmount, 0.0f, 1.0f);
+        break;
+    }
+}
+
 void applyModulation(SubtractiveSynthParams& p, float modAmount, uint16_t localParamId) noexcept {
     switch (static_cast<SubtractiveParam>(unpackParamId(localParamId))) {
     case SubtractiveParam::FilterCutoff:      p.filterCutoff = std::clamp(p.filterCutoff + modAmount, 0.0f, 1.0f); break;

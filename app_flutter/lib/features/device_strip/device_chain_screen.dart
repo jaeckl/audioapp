@@ -10,6 +10,7 @@ import 'device_chain_row.dart';
 import 'device_strip_slot.dart';
 import 'sampler_device_panel.dart';
 import 'subtractive_synth_device_panel.dart';
+import 'routing_device_panel.dart';
 
 /// Fullscreen horizontally scrollable device chain for the selected track.
 class DeviceChainScreen extends StatefulWidget {
@@ -17,9 +18,11 @@ class DeviceChainScreen extends StatefulWidget {
     super.key,
     required this.snapshot,
     required this.track,
+    this.routingSources = const [],
     required this.samples,
     required this.playing,
     required this.onSamplerParameterChanged,
+    this.onDeviceStringParameterChanged,
     required this.onOpenSamplerEditor,
     required this.onFrequencyChanged,
     required this.onInsertDevice,
@@ -41,10 +44,13 @@ class DeviceChainScreen extends StatefulWidget {
 
   final ProjectSnapshot snapshot;
   final TrackSnapshot track;
+  final List<RoutingSourceOption> routingSources;
   final List<SampleLibraryEntrySnapshot> samples;
   final bool playing;
   final void Function(String deviceId, String parameterId, double value)
       onSamplerParameterChanged;
+  final void Function(String deviceId, String parameterId, String value)?
+      onDeviceStringParameterChanged;
   final void Function(TrackSnapshot track, DeviceSnapshot device) onOpenSamplerEditor;
   final void Function(String deviceId, double frequencyHz) onFrequencyChanged;
   final void Function(int insertIndex) onInsertDevice;
@@ -117,6 +123,26 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
   void _onSamplerParameterChanged(String deviceId, String parameterId, double value) {
     setState(() => _track = _trackWithDeviceParameter(deviceId, parameterId, value));
     widget.onSamplerParameterChanged(deviceId, parameterId, value);
+  }
+
+  void _onDeviceStringParameterChanged(
+      String deviceId, String parameterId, String value) {
+    if (parameterId == 'sourceId') {
+      setState(() {
+        _track = TrackSnapshot(
+          id: _track.id,
+          name: _track.name,
+          devices: _track.devices.map((device) =>
+            device.id == deviceId && device is RoutingDeviceSnapshot
+                ? device.withSourceId(value)
+                : device).toList(),
+          midiClips: _track.midiClips,
+          sampleClips: _track.sampleClips,
+          automationClips: _track.automationClips,
+        );
+      });
+    }
+    widget.onDeviceStringParameterChanged?.call(deviceId, parameterId, value);
   }
 
   void _onFrequencyChanged(String deviceId, double frequencyHz) {
@@ -203,6 +229,7 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
                     alignment: Alignment.centerLeft,
                     child: DeviceChainRow(
                       track: _track,
+                      routingSources: widget.routingSources,
                       samples: widget.samples,
                       playing: widget.playing,
                       bpm: widget.snapshot.bpm,
@@ -212,6 +239,7 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
                       samplerTabFor: widget.samplerTabFor,
                       synthTabFor: widget.synthTabFor,
                       onSamplerParameterChanged: _onSamplerParameterChanged,
+                      onDeviceStringParameterChanged: _onDeviceStringParameterChanged,
                       onOpenSamplerEditor: widget.onOpenSamplerEditor,
                       onFrequencyChanged: _onFrequencyChanged,
                       onInsertDevice: widget.onInsertDevice,

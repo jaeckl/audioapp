@@ -27,6 +27,7 @@ FetchContent_MakeAvailable(JUCE)
 add_library(audioapp_engine STATIC
   src/TestOscillator.cpp
   src/ProjectEngine.cpp
+  src/ProcessorGraph.cpp
   src/LivePerformance.cpp
   src/ProjectEngine_live.cpp
   src/ProjectJson.cpp
@@ -101,6 +102,7 @@ add_library(audioapp_engine STATIC
   src/devices/FourBandEqDeviceType.cpp
   src/devices/FrequencyShifterDeviceType.cpp
   src/devices/ResonatorBankDeviceType.cpp
+  src/devices/RoutingDeviceType.cpp
   src/effects/TimeBasedEffectDeviceType.cpp
   src/effects/EffectDeviceRegistration.cpp
   src/effects/EffectSnapshot.cpp
@@ -155,6 +157,14 @@ if(NOT ANDROID)
     tests/resonator_bank_test.cpp
   )
   target_link_libraries(resonator_bank_tests PRIVATE audioapp_engine)
+  add_executable(processor_graph_tests EXCLUDE_FROM_ALL
+    tests/processor_graph_test.cpp
+  )
+  target_link_libraries(processor_graph_tests PRIVATE audioapp_engine)
+  add_executable(routing_device_tests EXCLUDE_FROM_ALL
+    tests/routing_device_test.cpp
+  )
+  target_link_libraries(routing_device_tests PRIVATE audioapp_engine)
 endif()
 
 if(MSVC)

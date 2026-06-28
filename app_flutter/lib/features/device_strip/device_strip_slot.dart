@@ -41,6 +41,7 @@ import 'time_fx_panels.dart';
 import 'mood_fx_panels.dart';
 import 'frequency_fx_panels.dart';
 import 'resonator_bank_panel.dart';
+import 'routing_device_panel.dart';
 import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
 import 'phase_mod_synth_device_panel.dart';
@@ -58,6 +59,7 @@ class DeviceStripSlot extends StatefulWidget {
   const DeviceStripSlot({
     super.key,
     required this.track,
+    this.routingSources = const [],
     required this.device,
     required this.sample,
     required this.bpm,
@@ -67,6 +69,7 @@ class DeviceStripSlot extends StatefulWidget {
     required this.density,
     required this.onSamplerParameterChanged,
     required this.onDeviceParameterChanged,
+    this.onDeviceStringParameterChanged,
     required this.onOpenSamplerEditor,
     required this.onFrequencyChanged,
     this.onSamplerTabChanged,
@@ -97,6 +100,7 @@ class DeviceStripSlot extends StatefulWidget {
   });
 
   final TrackSnapshot track;
+  final List<RoutingSourceOption> routingSources;
   final DeviceSnapshot device;
   final SampleLibraryEntrySnapshot? sample;
   final int bpm;
@@ -106,6 +110,7 @@ class DeviceStripSlot extends StatefulWidget {
   final DeviceStripSlotDensity density;
   final void Function(String parameterId, double value) onSamplerParameterChanged;
   final void Function(String parameterId, double value) onDeviceParameterChanged;
+  final void Function(String parameterId, String value)? onDeviceStringParameterChanged;
   final VoidCallback onOpenSamplerEditor;
   final void Function(double frequencyHz) onFrequencyChanged;
   final ValueChanged<SamplerDeviceTab>? onSamplerTabChanged;
@@ -209,6 +214,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       'cymbal_generator', 'crash_generator',
       'gate', 'compressor', 'expander', 'limiter',
       'filter', 'four_band_eq', 'frequency_shifter', 'resonator_bank',
+      'audio_receiver', 'midi_receiver',
       'delay', 'reverb', 'chorus', 'phaser',
     };
     return knownTypes.contains(widget.device.type);
@@ -1225,6 +1231,35 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             automationLinkActive: widget.automationLinkActive,
             onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
             onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+          ),
+        );
+      case 'audio_receiver':
+      case 'midi_receiver':
+        final dev = widget.device as RoutingDeviceSnapshot;
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: _cardWidth,
+          designHeight: contentHeight,
+          child: RoutingDevicePanel(
+            device: dev,
+            onParameterChanged: widget.onDeviceParameterChanged,
+            sources: widget.routingSources
+                .where((source) => source.isMidi == !dev.isAudioRoute)
+                .toList(),
+            onSourceChanged: (value) =>
+                widget.onDeviceStringParameterChanged?.call('sourceId', value),
+            modulatedParams: _modulatedParamIds,
+            automatedParams: _automatedParamIds,
+            modulationAmounts: _modulationAmounts,
+            connectModeLfoId: _connectModeLfo,
+            onModulationAssign: _onModulationForDevice,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
           ),
         );
       case 'delay':
