@@ -67,10 +67,59 @@ bool isNoteAudibleInBlock(const WavetableMidiNoteRegion& note,
 
 } // anonymous namespace
 
+void WavetableSynthProcessor::initParams(const DeviceVariantParams& params) noexcept {
+    DeviceProcessor::initParams(params);
+    if (const auto* wt = std::get_if<WavetableSynthParams>(&params)) {
+        realtimeWtPosition_.store(safe_clamp(wt->wtPosition, 0.0f, 1.0f), std::memory_order_release);
+        realtimeWtPositionValid_.store(true, std::memory_order_release);
+    }
+}
+
+bool WavetableSynthProcessor::setRealtimeParameter(std::string_view parameterId, float value) noexcept {
+    if (parameterId == "wtPosition") {
+        realtimeWtPosition_.store(safe_clamp(value, 0.0f, 1.0f), std::memory_order_release);
+        realtimeWtPositionValid_.store(true, std::memory_order_release);
+        return true;
+    }
+    return false;
+}
+
+namespace {
+
+bool isWtPositionParam(uint16_t paramId) noexcept {
+    if (paramId == static_cast<uint16_t>(WavetableParam::WtPosition)) return true;
+    return unpackParamKind(paramId) == ParamKind::WavetableSynth &&
+           unpackParamId(paramId) == static_cast<uint16_t>(WavetableParam::WtPosition);
+}
+
+bool blockHasWtPositionAutomation(uint16_t deviceIndex,
+                                  const AutomationClipPlayback* clips,
+                                  int clipCount) noexcept {
+    if (clips == nullptr || clipCount <= 0) return false;
+    for (int i = 0; i < clipCount; ++i) {
+        if (clips[i].deviceIndex == deviceIndex && isWtPositionParam(clips[i].localParamId)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool blockHasWtPositionModulation(uint16_t deviceIndex,
+                                  const ModulationEdgePlayback* edges,
+                                  int edgeCount) noexcept {
+    if (edges == nullptr || edgeCount <= 0) return false;
+    for (int i = 0; i < edgeCount; ++i) {
+        if (edges[i].deviceIndex == deviceIndex && isWtPositionParam(edges[i].localParamId)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+} // anonymous namespace
+
 void WavetableSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
-    WT_LOG("process enter suppress=%d noteCount=%d bank=%p", ctx.suppressInstruments, ctx.noteCount, (void*)ctx.wavetableBank);
-    if (ctx.suppressInstruments || ctx.noteCount <= 0) {
-        WT_LOG("process early return suppress=%d noteCount=%d", ctx.suppressInstruments, ctx.noteCount);
+    if (ctx.suppressInstruments || ctx.noteCount <= 0 || ctx.modulatedParams == nullptr) {
         return;
     }
 
@@ -78,9 +127,14 @@ void WavetableSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) no
     int pcmFrameCount = 0;
     int pcmFrameLength = 0;
     const float* pcmData = nullptr;
-    const auto& params = std::get<WavetableSynthParams>(*ctx.modulatedParams);
+    auto params = std::get<WavetableSynthParams>(*ctx.modulatedParams);
+    const uint16_t di = static_cast<uint16_t>(ctx.deviceIndex);
+    if (realtimeWtPositionValid_.load(std::memory_order_acquire) &&
+        !blockHasWtPositionAutomation(di, ctx.automationClips, ctx.automationClipCount) &&
+        !blockHasWtPositionModulation(di, ctx.modEdges, ctx.modEdgeCount)) {
+        params.wtPosition = realtimeWtPosition_.load(std::memory_order_acquire);
+    }
     const auto& wtId = params.wavetableId;
-    WT_LOG("process wtId='%s' bank=%p bankSize=%d", wtId.c_str(), (void*)ctx.wavetableBank, ctx.wavetableBank ? ctx.wavetableBank->size() : -1);
     if (ctx.wavetableBank != nullptr) {
         int bankIdx = -1;
         if (!wtId.empty()) {
@@ -94,13 +148,9 @@ void WavetableSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) no
             pcmData = entry->pcm.data();
             pcmFrameCount = entry->frameCount;
             pcmFrameLength = entry->frameLength;
-            WT_LOG("process resolved PCM frameCount=%d frameLength=%d pcmSize=%zu", pcmFrameCount, pcmFrameLength, entry->pcm.size());
-        } else {
-            WT_LOG("process entry null or empty: entry=%p pcmEmpty=%s", (void*)entry, entry ? (entry->pcm.empty() ? "yes" : "no") : "N/A");
         }
     }
     if (pcmData == nullptr) {
-        WT_LOG("process no PCM data -> silence");
         return;
     }
 
@@ -117,7 +167,6 @@ void WavetableSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) no
     std::memset(ctx.scratch.scratch, 0, static_cast<size_t>(block.numSamples) * sizeof(float));
 
     auto& runtime = runtime_;
-    const uint16_t di = static_cast<uint16_t>(ctx.deviceIndex);
     const bool hasAuto = nodeHasDspAutomation(di, ctx.automationClips, ctx.automationClipCount);
     const bool hasMod = ctx.lfoValues != nullptr && ctx.lfoCount > 0 &&
                         ctx.modEdges != nullptr && ctx.modEdgeCount > 0 &&

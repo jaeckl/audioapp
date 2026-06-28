@@ -56,6 +56,10 @@ struct WavetableVoiceRuntime {
 struct WavetableSynthRuntime {
     WavetableVoiceRuntime voices[kWavetableMaxVoices]{};
     int stealIndex = 0;
+    /// Smoothed normalized wavetable position used to avoid zipper/clicks when
+    /// UI or automation changes the position during playback.
+    float smoothedWtPosition = 0.0f;
+    uint8_t wtPositionSmoothingInitialized = 0;
     /// Index into WavetableBank (-1 = default)
     int wavetableIndex = -1;
 };

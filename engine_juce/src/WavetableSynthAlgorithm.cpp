@@ -240,6 +240,14 @@ void mixWavetableMidiNotesBlock(float* monoOut,
     }
     if (!anyVoiceActive) return;
 
+    const float wtSmoothingCoeff = sampleRate > 0.0
+        ? static_cast<float>(1.0 - std::exp(-1.0 / (sampleRate * 0.012)))
+        : 1.0f;
+    if (runtime.wtPositionSmoothingInitialized == 0) {
+        runtime.smoothedWtPosition = safe_clamp(params.wtPosition, 0.0f, 1.0f);
+        runtime.wtPositionSmoothingInitialized = 1;
+    }
+
     // Phase 2: Per-frame rendering
     for (int frame = 0; frame < numFrames; ++frame) {
         const double beat = beatAtFrame(blockStartBeat, frame, sampleRate, bpm);
@@ -267,6 +275,12 @@ void mixWavetableMidiNotesBlock(float* monoOut,
                 }
             }
         }
+
+        const float targetWtPosition = safe_clamp(frameParams.wtPosition, 0.0f, 1.0f);
+        runtime.smoothedWtPosition +=
+            (targetWtPosition - runtime.smoothedWtPosition) * wtSmoothingCoeff;
+        const float frameWtPos = runtime.smoothedWtPosition *
+            static_cast<float>(std::max(wavetableFrameCount - 1, 1));
 
         float mix = 0.0f;
         int renderedCount = 0;
@@ -313,7 +327,7 @@ void mixWavetableMidiNotesBlock(float* monoOut,
             const float vel = safe_clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
 
             const float hz = voice.currentHz;
-            const float wtPos = frameParams.wtPosition * static_cast<float>(std::max(wavetableFrameCount - 1, 1));
+            const float wtPos = frameWtPos;
 
             mix += wavetableVoiceSample(frameParams,
                                         wavetablePcm,

@@ -4,6 +4,8 @@
 #include "audioapp/dsp/AudioBlock.hpp"
 #include "audioapp/dsp/ProcessContext.hpp"
 
+#include <string_view>
+
 namespace audioapp {
 
 class DeviceProcessor {
@@ -16,6 +18,15 @@ public:
 
     virtual DeviceNodeKind kind() const noexcept {
         return DeviceNodeKind::Unknown;
+    }
+
+    /// Optional realtime-safe control path for high-rate UI gestures.
+    /// Implementations may update atomics here so the control thread does not
+    /// rewrite storedParams_ while the audio thread is copying it.
+    virtual bool setRealtimeParameter(std::string_view parameterId, float value) noexcept {
+        (void)parameterId;
+        (void)value;
+        return false;
     }
 
     const DeviceVariantParams& storedParams() const noexcept { return storedParams_; }

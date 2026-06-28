@@ -61,6 +61,10 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       TimelineViewportScrollController();
   double? _frozenArrangementPlayhead;
   StreamSubscription<LiveMetersBatch>? _meterSubscription;
+  Timer? _pendingWtPositionTimer;
+  String? _pendingWtPositionDeviceId;
+  double? _pendingWtPositionValue;
+  bool _wtPositionSendInFlight = false;
 
   @override
   void initState() {
@@ -76,6 +80,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _pendingWtPositionTimer?.cancel();
     _store.removeListener(_onStoreChanged);
     _store.dispose();
     _meterSubscription?.cancel();
@@ -548,6 +553,15 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
   Future<void> _setSamplerParameter(String deviceId, String parameterId, double value) async {
     _optimisticParamUpdate(deviceId, parameterId, value);
+
+    // Wavetable position can emit dozens/hundreds of drag updates per second.
+    // Coalesce those MethodChannel calls so the control thread does not keep
+    // touching native playback state faster than the audio callback can consume it.
+    if (parameterId == 'wtPosition') {
+      _queueWtPositionParameter(deviceId, value);
+      return;
+    }
+
     try {
       await widget.bridge.setDeviceParameter(
         deviceId: deviceId,
@@ -557,6 +571,53 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
+    }
+  }
+
+  void _queueWtPositionParameter(String deviceId, double value) {
+    _pendingWtPositionDeviceId = deviceId;
+    _pendingWtPositionValue = value.clamp(0.0, 1.0).toDouble();
+    _pendingWtPositionTimer ??= Timer(
+      const Duration(milliseconds: 16),
+      _flushQueuedWtPositionParameter,
+    );
+  }
+
+  Future<void> _flushQueuedWtPositionParameter() async {
+    _pendingWtPositionTimer = null;
+    if (_wtPositionSendInFlight) {
+      _pendingWtPositionTimer = Timer(
+        const Duration(milliseconds: 16),
+        _flushQueuedWtPositionParameter,
+      );
+      return;
+    }
+
+    final deviceId = _pendingWtPositionDeviceId;
+    final value = _pendingWtPositionValue;
+    _pendingWtPositionDeviceId = null;
+    _pendingWtPositionValue = null;
+    if (deviceId == null || value == null) return;
+
+    _wtPositionSendInFlight = true;
+    try {
+      await widget.bridge.setDeviceParameter(
+        deviceId: deviceId,
+        parameterId: 'wtPosition',
+        value: value,
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _projectError = e.toString());
+      }
+    } finally {
+      _wtPositionSendInFlight = false;
+      if (mounted && _pendingWtPositionDeviceId != null && _pendingWtPositionTimer == null) {
+        _pendingWtPositionTimer = Timer(
+          const Duration(milliseconds: 16),
+          _flushQueuedWtPositionParameter,
+        );
+      }
     }
   }
 
