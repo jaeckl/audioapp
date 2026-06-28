@@ -175,6 +175,8 @@ juce::var automationClipToVar(const AutomationClipState& clip) {
     object->setProperty("homeTrackId", toJuceString(clip.homeTrackId));
     object->setProperty("startBeat", clip.startBeat);
     object->setProperty("lengthBeats", clip.lengthBeats);
+    object->setProperty("naturalLengthBeats", clip.naturalLengthBeats);
+    object->setProperty("loopContent", clip.loopContent);
     object->setProperty("deviceId", toJuceString(clip.deviceId));
     object->setProperty("paramId", toJuceString(clip.paramId));
     object->setProperty("points", points);
@@ -188,6 +190,9 @@ AutomationClipState automationClipFromVar(const juce::var& value) {
         clip.homeTrackId = varToString(object->getProperty("homeTrackId"));
         clip.startBeat = varToDouble(object->getProperty("startBeat"), 0.0);
         clip.lengthBeats = varToDouble(object->getProperty("lengthBeats"), 4.0);
+        clip.naturalLengthBeats =
+            varToDouble(object->getProperty("naturalLengthBeats"), clip.lengthBeats);
+        clip.loopContent = static_cast<bool>(object->getProperty("loopContent"));
         clip.deviceId = varToString(object->getProperty("deviceId"));
         clip.paramId = varToString(object->getProperty("paramId"));
         if (const auto* pointArray = varArray(object->getProperty("points"))) {
@@ -200,6 +205,10 @@ AutomationClipState automationClipFromVar(const juce::var& value) {
                     });
                 }
             }
+        }
+        if (!object->hasProperty("naturalLengthBeats")) {
+            const double pointEnd = automationPointsContentLengthBeats(clip.points, 0.0);
+            clip.naturalLengthBeats = pointEnd > 0.0 ? pointEnd : clip.lengthBeats;
         }
     }
     return clip;

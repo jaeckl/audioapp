@@ -130,7 +130,9 @@ public:
     bool moveClip(const std::string& clipId,
                   const std::string& targetTrackId,
                   double startBeat);
-    bool setClipLength(const std::string& clipId, double lengthBeats);
+    bool setClipLength(const std::string& clipId,
+                       double lengthBeats,
+                       ClipLengthTarget target = ClipLengthTarget::Arrangement);
     bool setClipLoopContent(const std::string& clipId, bool loopContent);
     bool setBpm(int bpm);
     bool deleteTrack(const std::string& trackId);

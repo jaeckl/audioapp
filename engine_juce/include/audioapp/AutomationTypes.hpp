@@ -448,6 +448,8 @@ struct AutomationClipPlayback {
     uint16_t localParamId = 0;
     float clipStartBeat = 0.0f;
     float clipLengthBeats = 4.0f;
+    bool loopContent = false;
+    float contentLengthBeats = 4.0f;
     int pointCount = 0;
     AutomationPointPlayback points[kMaxAutomationPlaybackPoints]{};
 };
@@ -488,6 +490,8 @@ struct AutomationClipState {
     std::string homeTrackId;
     double startBeat = 0.0;
     double lengthBeats = 4.0;
+    double naturalLengthBeats = 4.0;
+    bool loopContent = false;
     std::string deviceId;
     std::string paramId;
     std::vector<AutomationPointState> points;

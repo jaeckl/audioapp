@@ -275,20 +275,18 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
                     const bool isGain = ac.localParamId == kEncodedCommonGain;
                     for (int f = 0; f < numFrames; ++f) {
                         const double beat = ctx.playheadStartBeat + static_cast<double>(f) * beatsPerFrame;
-                        if (beat < static_cast<double>(ac.clipStartBeat) ||
-                            beat >= static_cast<double>(ac.clipStartBeat + ac.clipLengthBeats)) {
+                        float beatInClip = 0.0f;
+                        if (!automationBeatInClip(ac, beat, beatInClip)) {
                             continue;
                         }
-                        const float beatInClip = static_cast<float>(beat - static_cast<double>(ac.clipStartBeat));
                         const float val = evaluateAutomationEnvelope(ac.points, ac.pointCount, beatInClip);
                         if (isGain) s.perFrameGain[f] = val;
                         else s.perFramePan[f] = val;
                     }
                 } else if (!needsSubBlocks || !handlesOwnModulation(nodeKind)) {
                     const double beat = ctx.playheadStartBeat;
-                    if (beat < static_cast<double>(ac.clipStartBeat) ||
-                        beat >= static_cast<double>(ac.clipStartBeat + ac.clipLengthBeats)) continue;
-                    const float beatInClip = static_cast<float>(beat - static_cast<double>(ac.clipStartBeat));
+                    float beatInClip = 0.0f;
+                    if (!automationBeatInClip(ac, beat, beatInClip)) continue;
                     const float val = evaluateAutomationEnvelope(ac.points, ac.pointCount, beatInClip);
                     applyAutomationValue(modulatedParams, nodeKind, ac.localParamId, val);
                 }

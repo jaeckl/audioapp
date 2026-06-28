@@ -53,6 +53,10 @@ struct AutomationClip {
     std::string homeTrackId;
     double startBeat = 0.0;
     double lengthBeats = 4.0;
+    /// Authored automation content length in beats. Set at clip creation;
+    /// updated when points are saved; never modified by resize.
+    double naturalLengthBeats = 4.0;
+    bool loopContent = false;
     std::string deviceId;
     std::string paramId;
     std::vector<AutomationPoint> points;

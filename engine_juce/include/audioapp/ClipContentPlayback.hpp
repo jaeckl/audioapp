@@ -21,13 +21,10 @@ template<typename NoteRange>
 inline double midiClipLoopContentLengthBeats(const NoteRange& notes,
                                                double naturalLengthBeats,
                                                double clipLengthBeats) noexcept {
-    const double noteEnd = midiNotesContentLengthBeats(notes, 0.0);
     if (naturalLengthBeats > 0.0) {
-        if (noteEnd > 0.0 && noteEnd < naturalLengthBeats) {
-            return noteEnd;
-        }
         return naturalLengthBeats;
     }
+    const double noteEnd = midiNotesContentLengthBeats(notes, 0.0);
     if (noteEnd > 0.0) {
         return noteEnd;
     }
@@ -40,6 +37,38 @@ inline double midiClipOneShotContentLengthBeats(const NoteRange& notes,
                                                 double clipLengthBeats) noexcept {
     const double fallback = naturalLengthBeats > 0.0 ? naturalLengthBeats : clipLengthBeats;
     return midiNotesContentLengthBeats(notes, fallback);
+}
+
+template<typename PointRange>
+inline double automationPointsContentLengthBeats(const PointRange& points,
+                                                 double fallback) noexcept {
+    double end = 0.0;
+    for (const auto& point : points) {
+        end = std::max(end, point.beat);
+    }
+    return end > 0.0 ? end : fallback;
+}
+
+template<typename PointRange>
+inline double automationClipLoopContentLengthBeats(const PointRange& points,
+                                                   double naturalLengthBeats,
+                                                   double clipLengthBeats) noexcept {
+    if (naturalLengthBeats > 0.0) {
+        return naturalLengthBeats;
+    }
+    const double pointEnd = automationPointsContentLengthBeats(points, 0.0);
+    if (pointEnd > 0.0) {
+        return pointEnd;
+    }
+    return clipLengthBeats;
+}
+
+template<typename PointRange>
+inline double automationClipOneShotContentLengthBeats(const PointRange& points,
+                                                      double naturalLengthBeats,
+                                                      double clipLengthBeats) noexcept {
+    const double fallback = naturalLengthBeats > 0.0 ? naturalLengthBeats : clipLengthBeats;
+    return automationPointsContentLengthBeats(points, fallback);
 }
 
 inline double beatWithinClipContent(double beat,

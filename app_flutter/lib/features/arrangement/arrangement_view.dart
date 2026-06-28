@@ -66,7 +66,6 @@ class _TrackDropIntent {
 //   - generous 44 px touch radius outside the bar (handled by hit-width)
 const double kResizeHandleVisualWidth = 12.0;
 const double kResizeHandleHitWidth = 44.0;
-const double resizeGridBeats = 1.0;
 const double _kAutomationMinLengthBeats = 0.01;
 
 class ArrangementView extends StatefulWidget {
@@ -961,6 +960,7 @@ class ArrangementViewState extends State<ArrangementView> {
         excludeClipId: session.clipId,
       ),
       timelineEndBeats: _timelineEndBeat,
+      snapStartToGrid: false,
     );
   }
 
@@ -1068,15 +1068,11 @@ class ArrangementViewState extends State<ArrangementView> {
   ) {
     final delta = currentPointerBeat - session.pointerBeatAtStart;
     final rawLength = session.originalLengthBeats + delta;
-    final snapped = ArrangementTimelineMetrics.quantizeBeat(
-      rawLength,
-      grid: resizeGridBeats,
-    );
     final upper = session.maxLengthBeats;
     if (!upper.isFinite) {
-      return snapped < minLength ? minLength : snapped;
+      return rawLength < minLength ? minLength : rawLength;
     }
-    return snapped.clamp(minLength, upper);
+    return rawLength.clamp(minLength, upper);
   }
 
   void _startClipResize({
@@ -1535,6 +1531,11 @@ class ArrangementViewState extends State<ArrangementView> {
         if (clip.id == clipId) {
           return clip.loopContent;
         }
+      }
+    }
+    for (final clip in widget.snapshot.automationClips) {
+      if (clip.id == clipId) {
+        return clip.loopContent;
       }
     }
     return null;

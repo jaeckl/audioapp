@@ -77,24 +77,36 @@ class ArrangementTimelineMetrics {
   }
 
   /// Quantized start beat at or after [desiredStartBeat] that fits without overlapping [existingClips].
+  ///
+  /// When [snapStartToGrid] is true (clip insertion), only the initial start is
+  /// snapped; overlap resolution packs clips to the exact end of blockers so
+  /// sub-beat lengths do not leave gaps or re-overlap.
   static double placementStartBeat({
     required double desiredStartBeat,
     required double clipLengthBeats,
     required List<({double start, double length})> existingClips,
     double timelineEndBeats = timelineBeats,
     double grid = gridBeats,
+    bool snapStartToGrid = true,
   }) {
+    final clampedDesired = desiredStartBeat.clamp(0.0, timelineEndBeats);
     if (clipLengthBeats <= 0) {
-      return quantizeBeat(desiredStartBeat.clamp(0.0, timelineEndBeats), grid: grid);
+      return snapStartToGrid
+          ? quantizeBeat(clampedDesired, grid: grid)
+          : clampedDesired;
     }
 
-    var start = quantizeBeat(desiredStartBeat.clamp(0.0, timelineEndBeats), grid: grid);
+    var start = snapStartToGrid
+        ? quantizeBeat(clampedDesired, grid: grid)
+        : clampedDesired;
     for (var attempt = 0; attempt < 128; attempt++) {
       if (start + clipLengthBeats > timelineEndBeats) {
-        final fallback = quantizeBeat(
-          (timelineEndBeats - clipLengthBeats).clamp(0.0, timelineEndBeats),
-          grid: grid,
-        );
+        final fallback = snapStartToGrid
+            ? quantizeBeat(
+                (timelineEndBeats - clipLengthBeats).clamp(0.0, timelineEndBeats),
+                grid: grid,
+              )
+            : (timelineEndBeats - clipLengthBeats).clamp(0.0, timelineEndBeats);
         final fallbackFree = !existingClips.any(
           (clip) => clipsOverlap(
             aStartBeat: fallback,
@@ -118,10 +130,9 @@ class ArrangementTimelineMetrics {
         return start;
       }
 
-      final nextStart = conflict
+      start = conflict
           .map((clip) => clip.start + clip.length)
           .reduce(math.max);
-      start = quantizeBeat(nextStart, grid: grid);
     }
     return start;
   }

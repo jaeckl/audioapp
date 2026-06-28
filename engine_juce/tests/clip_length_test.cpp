@@ -41,6 +41,9 @@ public:
 
             const auto shortened = project->snapshot();
             expectWithinAbsoluteError(shortened.tracks[0].midiClips[0].lengthBeats, 2.0, 0.001);
+            expectWithinAbsoluteError(shortened.tracks[0].midiClips[0].naturalLengthBeats,
+                                      4.0, 0.001,
+                                      "arrangement resize does not change content length");
             expect(shortened.tracks[0].midiClips[0].notes.size() == 2,
                    "notes should be preserved after shortening");
         }

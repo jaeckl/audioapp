@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/engine_bridge.dart';
 import '../../bridge/project_snapshot.dart';
+import '../../bridge/timeline_clip.dart';
 import '../editor/clip_editor_transport.dart';
 import '../editor/timeline_marker_layer.dart';
 import '../play/play_deck.dart';
@@ -64,7 +65,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with TickerProviderSt
   void initState() {
     super.initState();
     _notes = List.of(widget.clip.notes);
-    _clipLengthBeats = widget.clip.lengthBeats;
+    _clipLengthBeats = widget.clip.editorContentLengthBeats;
     _previewTransport = ClipEditorTransportController(
       bridge: widget.bridge,
       clipStartBeat: widget.clip.startBeat,
@@ -121,6 +122,19 @@ class _PianoRollScreenState extends State<PianoRollScreen> with TickerProviderSt
       await _stopPreviewPlay();
     } else {
       await _startPreviewPlay();
+    }
+  }
+
+  @override
+  void didUpdateWidget(PianoRollScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextSpan = widget.clip.editorContentLengthBeats;
+    if (nextSpan != oldWidget.clip.editorContentLengthBeats &&
+        (nextSpan - _clipLengthBeats).abs() > 0.001) {
+      setState(() {
+        _clipLengthBeats = nextSpan;
+        _previewTransport.maxClipBeat = nextSpan;
+      });
     }
   }
 
@@ -249,6 +263,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with TickerProviderSt
       final snapshot = await widget.bridge.setClipLength(
         clipId: widget.clip.id,
         lengthBeats: _clipLengthBeats,
+        target: ClipLengthTarget.content,
       );
       widget.onSnapshot(snapshot);
     } catch (_) {
@@ -321,7 +336,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with TickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    final barCount = (widget.clip.lengthBeats / PianoRollMetrics.beatsPerBar).ceil();
+    final barCount = (_clipLengthBeats / PianoRollMetrics.beatsPerBar).ceil();
 
     return Scaffold(
       resizeToAvoidBottomInset: false,

@@ -74,6 +74,34 @@ void main() {
     expect(start, 4.0);
   });
 
+  test('placementStartBeat packs after sub-beat clip without grid gap', () {
+    final start = ArrangementTimelineMetrics.placementStartBeat(
+      desiredStartBeat: 3.2,
+      clipLengthBeats: 0.5,
+      existingClips: [(start: 0.0, length: 3.5)],
+    );
+    expect(start, 3.5);
+  });
+
+  test('placementStartBeat does not re-quantize conflict position to grid', () {
+    final start = ArrangementTimelineMetrics.placementStartBeat(
+      desiredStartBeat: 1.0,
+      clipLengthBeats: 1.0,
+      existingClips: [(start: 0.0, length: 2.25)],
+    );
+    expect(start, 2.25);
+  });
+
+  test('placementStartBeat free mode keeps exact beat when dragging', () {
+    final start = ArrangementTimelineMetrics.placementStartBeat(
+      desiredStartBeat: 2.35,
+      clipLengthBeats: 0.5,
+      existingClips: [],
+      snapStartToGrid: false,
+    );
+    expect(start, 2.35);
+  });
+
   test('placementStartBeat uses quantized press position', () {
     final start = ArrangementTimelineMetrics.placementStartBeat(
       desiredStartBeat: 2.7,

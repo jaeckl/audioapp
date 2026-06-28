@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/engine_bridge.dart';
 import '../../bridge/project_snapshot.dart';
+import '../../bridge/timeline_clip.dart';
 import '../editor/clip_editor_transport.dart';
 import '../editor/timeline_marker_layer.dart';
 import '../piano_roll/piano_roll_grid_sheet.dart';
@@ -68,7 +69,7 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen>
   void initState() {
     super.initState();
     _points = _initialPoints(widget.clip);
-    _clipLengthBeats = widget.clip.lengthBeats;
+    _clipLengthBeats = widget.clip.editorContentLengthBeats;
     _previewTransport = ClipEditorTransportController(
       bridge: widget.bridge,
       clipStartBeat: widget.clip.startBeat,
@@ -119,6 +120,19 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen>
   }
 
   @override
+  void didUpdateWidget(AutomationEditorScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextSpan = widget.clip.editorContentLengthBeats;
+    if (nextSpan != oldWidget.clip.editorContentLengthBeats &&
+        (nextSpan - _clipLengthBeats).abs() > 0.001) {
+      setState(() {
+        _clipLengthBeats = nextSpan;
+        _previewTransport.maxClipBeat = nextSpan;
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _previewTransport.removeListener(_onPreviewTransportChanged);
     unawaited(_previewTransport.disposePreview());
@@ -130,7 +144,7 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen>
     if (points.length < 2) {
       return [
         const AutomationPointSnapshot(beat: 0, value: 1),
-        AutomationPointSnapshot(beat: clip.lengthBeats, value: 0.25),
+        AutomationPointSnapshot(beat: clip.editorContentLengthBeats, value: 0.25),
       ];
     }
     return points;
@@ -376,6 +390,7 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen>
       final snapshot = await widget.bridge.setClipLength(
         clipId: widget.clip.id,
         lengthBeats: _clipLengthBeats,
+        target: ClipLengthTarget.content,
       );
       widget.onSaved(snapshot);
     } catch (_) {

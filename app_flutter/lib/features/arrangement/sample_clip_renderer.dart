@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
+import 'arrangement_clip_beat_layout.dart';
+import 'arrangement_clip_loop_visual.dart';
 import 'arrangement_clip_theme.dart';
 import 'clip_renderer.dart';
 
@@ -34,19 +36,53 @@ class SampleClipRenderer extends ClipRenderer {
       return;
     }
 
+    final naturalBeats = clip.effectiveNaturalLengthBeats;
+    final pixelsPerBeat = ArrangementClipBeatLayout.pixelsPerBeat(
+      contentRect: contentRect,
+      lengthBeats: clip.lengthBeats,
+    );
+    final naturalPx = naturalBeats * pixelsPerBeat;
+    final step = naturalPx / peaks.length;
+
+    final looping = clip.loopContent &&
+        naturalBeats > 0 &&
+        clip.lengthBeats > naturalBeats &&
+        naturalPx > 0;
+
+    if (looping) {
+      ArrangementClipLoopVisual.paintRepeatRegions(
+        canvas: canvas,
+        contentRect: contentRect,
+        contentLengthBeats: naturalBeats,
+        clipLengthBeats: clip.lengthBeats,
+        lengthBeats: clip.lengthBeats,
+      );
+    }
+
     final paint = Paint()
-      ..color = ArrangementClipTheme.sampleWaveform
       ..strokeWidth = 1.2
       ..strokeCap = StrokeCap.round;
 
     final midY = contentRect.center.dy;
     final halfHeight = contentRect.height / 2;
-    final naturalBeats = clip.effectiveNaturalLengthBeats;
-    final naturalPx =
-        naturalBeats * (contentRect.width / clip.lengthBeats);
-    final step = naturalPx / peaks.length;
 
-    void paintWaveformAt(double tileLeft, double tileRight) {
+    void paintWaveformAt(
+      double tileOriginBeat,
+      double tileEndBeat, {
+      required bool isRepeat,
+    }) {
+      paint.color =
+          isRepeat ? ArrangementClipTheme.sampleWaveformRepeat : ArrangementClipTheme.sampleWaveform;
+      final tileLeft = ArrangementClipBeatLayout.beatToX(
+        beat: tileOriginBeat,
+        contentRect: contentRect,
+        lengthBeats: clip.lengthBeats,
+      );
+      final tileRight = ArrangementClipBeatLayout.beatToX(
+        beat: tileEndBeat,
+        contentRect: contentRect,
+        lengthBeats: clip.lengthBeats,
+      );
       for (var i = 0; i < peaks.length; i++) {
         final peak = peaks[i].clamp(0.0, 1.0);
         final x = tileLeft + i * step + step / 2;
@@ -61,18 +97,20 @@ class SampleClipRenderer extends ClipRenderer {
       }
     }
 
-    if (clip.loopContent &&
-        naturalBeats > 0 &&
-        clip.lengthBeats > naturalBeats &&
-        naturalPx > 0) {
-      for (var tileLeft = contentRect.left;
-          tileLeft < contentRect.right;
-          tileLeft += naturalPx) {
-        paintWaveformAt(tileLeft, math.min(tileLeft + naturalPx, contentRect.right));
+    if (looping) {
+      for (var tileOriginBeat = 0.0;
+          tileOriginBeat < clip.lengthBeats;
+          tileOriginBeat += naturalBeats) {
+        final tileEndBeat = math.min(tileOriginBeat + naturalBeats, clip.lengthBeats);
+        paintWaveformAt(
+          tileOriginBeat,
+          tileEndBeat,
+          isRepeat: tileOriginBeat > 0,
+        );
       }
       return;
     }
 
-    paintWaveformAt(contentRect.left, contentRect.right);
+    paintWaveformAt(0, clip.lengthBeats, isRepeat: false);
   }
 }

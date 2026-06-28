@@ -464,17 +464,19 @@ bool ProjectEngine::moveClip(const std::string& clipId,
     return true;
 }
 
-bool ProjectEngine::setClipLength(const std::string& clipId, double lengthBeats) {
+bool ProjectEngine::setClipLength(const std::string& clipId,
+                                    double lengthBeats,
+                                    ClipLengthTarget target) {
     const juce::ScopedWriteLock lock(mutex_);
     if (clipRepo_.findMidiClip(clipId) != nullptr ||
         clipRepo_.findSampleClip(clipId) != nullptr) {
-        if (!clipRepo_.setClipLength(clipId, lengthBeats)) {
+        if (!clipRepo_.setClipLength(clipId, lengthBeats, target)) {
             return false;
         }
         rebuildTrackPlaybackLocked();
         return true;
     }
-    if (!automationClipStore_.setLength(clipId, lengthBeats)) {
+    if (!automationClipStore_.setLength(clipId, lengthBeats, target)) {
         return false;
     }
     rebuildTrackPlaybackLocked();
@@ -483,7 +485,11 @@ bool ProjectEngine::setClipLength(const std::string& clipId, double lengthBeats)
 
 bool ProjectEngine::setClipLoopContent(const std::string& clipId, bool loopContent) {
     const juce::ScopedWriteLock lock(mutex_);
-    if (!clipRepo_.setClipLoopContent(clipId, loopContent)) {
+    bool updated = clipRepo_.setClipLoopContent(clipId, loopContent);
+    if (!updated) {
+        updated = automationClipStore_.setLoopContent(clipId, loopContent);
+    }
+    if (!updated) {
         return false;
     }
     syncProjectTreeLocked();
@@ -678,6 +684,8 @@ ProjectSnapshot ProjectEngine::snapshot() const {
         cs.homeTrackId = clip.homeTrackId;
         cs.startBeat = clip.startBeat;
         cs.lengthBeats = clip.lengthBeats;
+        cs.naturalLengthBeats = clip.naturalLengthBeats;
+        cs.loopContent = clip.loopContent;
         cs.deviceId = clip.deviceId;
         cs.paramId = clip.paramId;
         cs.points.reserve(clip.points.size());
@@ -1143,6 +1151,8 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
         cs.homeTrackId = clip.homeTrackId;
         cs.startBeat = clip.startBeat;
         cs.lengthBeats = clip.lengthBeats;
+        cs.naturalLengthBeats = clip.naturalLengthBeats;
+        cs.loopContent = clip.loopContent;
         cs.deviceId = clip.deviceId;
         cs.paramId = clip.paramId;
         for (const auto& point : clip.points) {
@@ -1223,6 +1233,10 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
         clip.homeTrackId = clipState.homeTrackId;
         clip.startBeat = clipState.startBeat;
         clip.lengthBeats = clipState.lengthBeats;
+        clip.naturalLengthBeats = clipState.naturalLengthBeats > 0.0
+            ? clipState.naturalLengthBeats
+            : automationPointsContentLengthBeats(clipState.points, clipState.lengthBeats);
+        clip.loopContent = clipState.loopContent;
         clip.deviceId = clipState.deviceId;
         clip.paramId = clipState.paramId;
         for (const auto& pointState : clipState.points) {
@@ -1888,6 +1902,15 @@ void ProjectEngine::rebuildRepoCacheFromTree() {
         clip.homeTrackId = clipTree[state::props::homeTrackId].toString().toStdString();
         clip.startBeat = static_cast<double>(clipTree[state::props::startBeat]);
         clip.lengthBeats = static_cast<double>(clipTree[state::props::lengthBeats]);
+        if (clipTree.hasProperty(state::props::naturalLength)) {
+            clip.naturalLengthBeats =
+                static_cast<double>(clipTree[state::props::naturalLength]);
+        } else {
+            clip.naturalLengthBeats = clip.lengthBeats;
+        }
+        if (clipTree.hasProperty(state::props::loopContent)) {
+            clip.loopContent = static_cast<bool>(clipTree[state::props::loopContent]);
+        }
         if (clipTree.hasProperty(state::props::deviceId))
             clip.deviceId = clipTree[state::props::deviceId].toString().toStdString();
         if (clipTree.hasProperty(state::props::paramId))
@@ -1899,6 +1922,10 @@ void ProjectEngine::rebuildRepoCacheFromTree() {
             pt.beat = static_cast<double>(ptTree[state::props::beat]);
             pt.value = static_cast<float>(static_cast<double>(ptTree[state::props::value]));
             clip.points.push_back(std::move(pt));
+        }
+        if (!clipTree.hasProperty(state::props::naturalLength)) {
+            const double pointEnd = automationPointsContentLengthBeats(clip.points, 0.0);
+            clip.naturalLengthBeats = pointEnd > 0.0 ? pointEnd : clip.lengthBeats;
         }
         loadedClips.push_back(std::move(clip));
     }
@@ -1975,7 +2002,8 @@ void ProjectEngine::syncProjectTreeLocked() {
 
     for (const auto& clip : automationClipStore_.clips()) {
         auto clipTree = state::createAutomationClipTree(
-            clip.id, clip.homeTrackId, clip.startBeat, clip.lengthBeats);
+            clip.id, clip.homeTrackId, clip.startBeat, clip.lengthBeats, clip.naturalLengthBeats);
+        clipTree.setProperty(state::props::loopContent, clip.loopContent, nullptr);
         clipTree.setProperty(state::props::deviceId, juce::String{clip.deviceId}, nullptr);
         clipTree.setProperty(state::props::paramId, juce::String{clip.paramId}, nullptr);
         for (const auto& pt : clip.points) {

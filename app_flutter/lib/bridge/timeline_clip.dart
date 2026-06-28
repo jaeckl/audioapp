@@ -12,3 +12,6 @@ abstract class ClipTimelineSpan {
 
 /// Minimum clip length in beats (matches engine `kMinClipLengthBeats`).
 const double kMinClipLengthBeats = 0.25;
+
+/// Which span `setClipLength` updates when loop mode is enabled.
+enum ClipLengthTarget { arrangement, content }

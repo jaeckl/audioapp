@@ -1,5 +1,7 @@
 #include "audioapp/model/AutomationClipStore.hpp"
 
+#include "audioapp/ClipContentPlayback.hpp"
+
 #include <algorithm>
 #include <cstdlib>
 #include <utility>
@@ -44,6 +46,7 @@ std::string AutomationClipStore::create(const std::string& homeTrackId,
     clip.homeTrackId = homeTrackId;
     clip.startBeat = startBeat < 0.0 ? 0.0 : startBeat;
     clip.lengthBeats = lengthBeats > 0.0 ? lengthBeats : 4.0;
+    clip.naturalLengthBeats = clip.lengthBeats;
     clip.points.push_back(AutomationPoint{0.0, 1.0f});
     clip.points.push_back(AutomationPoint{clip.lengthBeats, 0.25f});
     clips_.push_back(std::move(clip));
@@ -80,15 +83,26 @@ bool AutomationClipStore::setPoints(const std::string& clipId,
               [](const AutomationPoint& a, const AutomationPoint& b) {
                   return a.beat < b.beat;
               });
+    const double pointEnd = automationPointsContentLengthBeats(clip->points, 0.0);
+    if (!clip->loopContent && pointEnd > clip->naturalLengthBeats) {
+        clip->naturalLengthBeats = pointEnd;
+    }
     return true;
 }
 
-bool AutomationClipStore::setLength(const std::string& clipId, double lengthBeats) {
+bool AutomationClipStore::setLength(const std::string& clipId,
+                                    double lengthBeats,
+                                    ClipLengthTarget target) {
     AutomationClip* clip = find(clipId);
     if (clip == nullptr) {
         return false;
     }
-    clip->lengthBeats = lengthBeats < 0.01 ? 0.01 : lengthBeats;
+    const double len = lengthBeats < 0.01 ? 0.01 : lengthBeats;
+    if (target == ClipLengthTarget::Content) {
+        clip->naturalLengthBeats = len;
+    } else {
+        clip->lengthBeats = len;
+    }
     return true;
 }
 
@@ -131,6 +145,15 @@ bool AutomationClipStore::duplicate(const std::string& clipId) {
     copy.id = "aclip-" + std::to_string(nextNum_++);
     copy.startBeat = it->startBeat + it->lengthBeats;
     clips_.push_back(std::move(copy));
+    return true;
+}
+
+bool AutomationClipStore::setLoopContent(const std::string& clipId, bool loopContent) {
+    AutomationClip* clip = find(clipId);
+    if (clip == nullptr) {
+        return false;
+    }
+    clip->loopContent = loopContent;
     return true;
 }
 

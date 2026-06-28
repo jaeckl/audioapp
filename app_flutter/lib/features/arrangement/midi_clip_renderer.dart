@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
+import 'arrangement_clip_beat_layout.dart';
+import 'arrangement_clip_loop_visual.dart';
 import 'arrangement_clip_theme.dart';
 import 'clip_renderer.dart';
 
@@ -14,7 +16,7 @@ class MidiClipRenderer extends ClipRenderer {
 
   static const double _minNoteWidthPx = 1;
   static const double _minNoteHeightPx = 1;
-  static const double _contentPaddingPx = 1.5;
+  static const double _verticalPaddingPx = 1.5;
 
   @override
   Color get clipBackgroundColor => ArrangementClipTheme.midiClipBackground;
@@ -36,8 +38,28 @@ class MidiClipRenderer extends ClipRenderer {
     final notes = clip.notes;
     if (notes.isEmpty || clip.lengthBeats <= 0) return;
 
-    final inner = contentRect.deflate(_contentPaddingPx);
+    final inner = Rect.fromLTRB(
+      contentRect.left,
+      contentRect.top + _verticalPaddingPx,
+      contentRect.right,
+      contentRect.bottom - _verticalPaddingPx,
+    );
     if (inner.width <= 0 || inner.height <= 0) return;
+
+    final contentLength = _contentLengthBeats;
+    final looping = clip.loopContent &&
+        contentLength > 0 &&
+        clip.lengthBeats > contentLength;
+
+    if (looping) {
+      ArrangementClipLoopVisual.paintRepeatRegions(
+        canvas: canvas,
+        contentRect: contentRect,
+        contentLengthBeats: contentLength,
+        clipLengthBeats: clip.lengthBeats,
+        lengthBeats: clip.lengthBeats,
+      );
+    }
 
     var minPitch = notes.first.pitch;
     var maxPitch = notes.first.pitch;
@@ -48,20 +70,30 @@ class MidiClipRenderer extends ClipRenderer {
 
     final pitchSpan = math.max(1, maxPitch - minPitch + 1);
     final rowHeight = inner.height / pitchSpan;
-    final beatScale = inner.width / clip.lengthBeats;
-    final contentLength = _contentLengthBeats;
-    final tileWidthPx = contentLength * beatScale;
+    final pixelsPerBeat = ArrangementClipBeatLayout.pixelsPerBeat(
+      contentRect: contentRect,
+      lengthBeats: clip.lengthBeats,
+    );
 
     final fill = Paint()..color = ArrangementClipTheme.midiNoteFill;
+    final repeatFill = Paint()..color = ArrangementClipTheme.midiNoteFillRepeat;
     final border = Paint()
       ..color = Colors.white.withValues(alpha: 0.12)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.5;
 
-    void paintNotesInTile(double tileLeft) {
+    void paintNotesInTile(double tileOriginBeat, {required bool isRepeat}) {
+      final noteFill = isRepeat ? repeatFill : fill;
       for (final note in notes) {
-        final left = tileLeft + note.startBeat * beatScale;
-        final width = math.max(_minNoteWidthPx, note.durationBeats * beatScale);
+        final left = ArrangementClipBeatLayout.beatToX(
+          beat: tileOriginBeat + note.startBeat,
+          contentRect: contentRect,
+          lengthBeats: clip.lengthBeats,
+        );
+        final width = math.max(
+          _minNoteWidthPx,
+          note.durationBeats * pixelsPerBeat,
+        );
         final top = inner.top + (maxPitch - note.pitch) * rowHeight;
         final height = math.max(_minNoteHeightPx, rowHeight - 0.5);
 
@@ -70,25 +102,22 @@ class MidiClipRenderer extends ClipRenderer {
 
         final clipped = noteRect.intersect(inner);
         final radius = Radius.circular(math.min(2, clipped.height / 2));
-        canvas.drawRRect(RRect.fromRectAndRadius(clipped, radius), fill);
+        canvas.drawRRect(RRect.fromRectAndRadius(clipped, radius), noteFill);
         if (clipped.width > 2 && clipped.height > 2) {
           canvas.drawRRect(RRect.fromRectAndRadius(clipped, radius), border);
         }
       }
     }
 
-    if (clip.loopContent &&
-        contentLength > 0 &&
-        clip.lengthBeats > contentLength &&
-        tileWidthPx > 0) {
-      for (var tileLeft = inner.left;
-          tileLeft < inner.right;
-          tileLeft += tileWidthPx) {
-        paintNotesInTile(tileLeft);
+    if (looping) {
+      for (var tileOriginBeat = 0.0;
+          tileOriginBeat < clip.lengthBeats;
+          tileOriginBeat += contentLength) {
+        paintNotesInTile(tileOriginBeat, isRepeat: tileOriginBeat > 0);
       }
       return;
     }
 
-    paintNotesInTile(inner.left);
+    paintNotesInTile(0, isRepeat: false);
   }
 }

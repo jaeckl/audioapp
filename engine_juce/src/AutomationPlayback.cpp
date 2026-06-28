@@ -1,5 +1,6 @@
 #include "audioapp/AutomationPlayback.hpp"
 
+#include "audioapp/ClipContentPlayback.hpp"
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/model/TrackModel.hpp"
 #include "audioapp/KickAlgorithm.hpp"
@@ -15,6 +16,22 @@
 #include <cstring>
 
 namespace audioapp {
+
+bool automationBeatInClip(const AutomationClipPlayback& ac,
+                          double beat,
+                          float& beatInClipOut) noexcept {
+    const double inContent = beatWithinClipContent(
+        beat,
+        static_cast<double>(ac.clipStartBeat),
+        static_cast<double>(ac.clipLengthBeats),
+        static_cast<double>(ac.contentLengthBeats),
+        ac.loopContent);
+    if (inContent < 0.0) {
+        return false;
+    }
+    beatInClipOut = static_cast<float>(inContent);
+    return true;
+}
 
 // -----------------------------------------------------------------------
 // ParamKind <-> DeviceNodeKind mapping
@@ -1266,6 +1283,13 @@ bool automationClipPlaybackFromClip(const AutomationClip& clip,
     out.localParamId = 0; // resolved by caller too (or we could pass kind)
     out.clipStartBeat = static_cast<float>(clip.startBeat);
     out.clipLengthBeats = static_cast<float>(clip.lengthBeats);
+    out.loopContent = clip.loopContent;
+    out.contentLengthBeats = static_cast<float>(
+        clip.loopContent
+            ? automationClipLoopContentLengthBeats(
+                  clip.points, clip.naturalLengthBeats, clip.lengthBeats)
+            : automationClipOneShotContentLengthBeats(
+                  clip.points, clip.naturalLengthBeats, clip.lengthBeats));
     out.pointCount = static_cast<int>(
         std::min(clip.points.size(), static_cast<size_t>(kMaxAutomationPlaybackPoints)));
     for (int i = 0; i < out.pointCount; ++i) {
@@ -1319,12 +1343,10 @@ void applyDspAutomationAtBeat(DeviceVariantParams& params,
         if (pid == kEncodedCommonGain || pid == kEncodedCommonPan) {
             continue;
         }
-        if (beat < static_cast<double>(ac.clipStartBeat) ||
-            beat >= static_cast<double>(ac.clipStartBeat + ac.clipLengthBeats)) {
+        float beatInClip = 0.0f;
+        if (!automationBeatInClip(ac, beat, beatInClip)) {
             continue;
         }
-        const float beatInClip =
-            static_cast<float>(beat - static_cast<double>(ac.clipStartBeat));
         const float value =
             evaluateAutomationEnvelope(ac.points, ac.pointCount, beatInClip);
         applyAutomationValue(params, kind, pid, value);

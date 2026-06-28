@@ -1,7 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
 import '../../features/content_library/library_theme.dart';
+import 'arrangement_clip_beat_layout.dart';
+import 'arrangement_clip_loop_visual.dart';
 import 'arrangement_clip_theme.dart';
 import 'clip_renderer.dart';
 
@@ -18,12 +22,16 @@ class AutomationClipRenderer extends ClipRenderer {
   Color get clipContentBackgroundColor =>
       ArrangementClipTheme.contentBackground(clipBackgroundColor);
 
-  /// Target name lives on the floating link chip — not a header row inside the clip.
+  @override
+  bool get loopContentEnabled => clip.loopContent;
+
   @override
   String? get headerLabel => null;
 
   @override
   String? get emptyPlaceholder => clip.isLinked ? null : 'AUTO';
+
+  double get _contentLengthBeats => clip.loopContentLengthBeats;
 
   @override
   void paintContent(Canvas canvas, Rect contentRect) {
@@ -37,48 +45,99 @@ class AutomationClipRenderer extends ClipRenderer {
       return;
     }
 
-    final path = Path();
-    for (var i = 0; i < points.length; i++) {
-      final point = points[i];
-      final x = inner.left + (point.beat / clip.lengthBeats) * inner.width;
-      final y = inner.bottom - point.value.clamp(0.0, 1.0) * inner.height;
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
+    final contentLength = _contentLengthBeats;
+    final looping = clip.loopContent &&
+        contentLength > 0 &&
+        clip.lengthBeats > contentLength;
+
+    if (looping) {
+      ArrangementClipLoopVisual.paintRepeatRegions(
+        canvas: canvas,
+        contentRect: contentRect,
+        contentLengthBeats: contentLength,
+        clipLengthBeats: clip.lengthBeats,
+        lengthBeats: clip.lengthBeats,
+      );
     }
 
     final stroke = Paint()
-      ..color = ArrangementClipTheme.automationCurve
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
-    canvas.drawPath(path, stroke);
+    void paintCurveTile(double tileOriginBeat, {required bool isRepeat}) {
+      stroke.color = isRepeat
+          ? ArrangementClipTheme.automationCurveRepeat
+          : ArrangementClipTheme.automationCurve;
 
-    final fill = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          ArrangementClipTheme.automationCurve.withValues(alpha: 0.28),
-          ArrangementClipTheme.automationCurve.withValues(alpha: 0.02),
-        ],
-      ).createShader(inner);
+      final path = Path();
+      for (var i = 0; i < points.length; i++) {
+        final point = points[i];
+        final x = ArrangementClipBeatLayout.beatToX(
+          beat: tileOriginBeat + point.beat,
+          contentRect: contentRect,
+          lengthBeats: clip.lengthBeats,
+        );
+        final y = inner.bottom - point.value.clamp(0.0, 1.0) * inner.height;
+        if (i == 0) {
+          path.moveTo(x, y);
+        } else {
+          path.lineTo(x, y);
+        }
+      }
 
-    final fillPath = Path.from(path)
-      ..lineTo(inner.right, inner.bottom)
-      ..lineTo(inner.left, inner.bottom)
-      ..close();
-    canvas.drawPath(fillPath, fill);
+      canvas.drawPath(path, stroke);
 
-    final dotPaint = Paint()..color = ArrangementClipTheme.automationCurve;
-    for (final point in points) {
-      final x = inner.left + (point.beat / clip.lengthBeats) * inner.width;
-      final y = inner.bottom - point.value.clamp(0.0, 1.0) * inner.height;
-      canvas.drawCircle(Offset(x, y), 2, dotPaint);
+      final fill = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            stroke.color.withValues(alpha: isRepeat ? 0.16 : 0.28),
+            stroke.color.withValues(alpha: 0.02),
+          ],
+        ).createShader(inner);
+
+      final tileRight = ArrangementClipBeatLayout.beatToX(
+        beat: math.min(tileOriginBeat + contentLength, clip.lengthBeats),
+        contentRect: contentRect,
+        lengthBeats: clip.lengthBeats,
+      );
+      final fillPath = Path.from(path)
+        ..lineTo(tileRight, inner.bottom)
+        ..lineTo(
+          ArrangementClipBeatLayout.beatToX(
+            beat: tileOriginBeat,
+            contentRect: contentRect,
+            lengthBeats: clip.lengthBeats,
+          ),
+          inner.bottom,
+        )
+        ..close();
+      canvas.drawPath(fillPath, fill);
+
+      final dotPaint = Paint()..color = stroke.color;
+      for (final point in points) {
+        final x = ArrangementClipBeatLayout.beatToX(
+          beat: tileOriginBeat + point.beat,
+          contentRect: contentRect,
+          lengthBeats: clip.lengthBeats,
+        );
+        final y = inner.bottom - point.value.clamp(0.0, 1.0) * inner.height;
+        canvas.drawCircle(Offset(x, y), 2, dotPaint);
+      }
     }
+
+    if (looping) {
+      for (var tileOriginBeat = 0.0;
+          tileOriginBeat < clip.lengthBeats;
+          tileOriginBeat += contentLength) {
+        paintCurveTile(tileOriginBeat, isRepeat: tileOriginBeat > 0);
+      }
+      return;
+    }
+
+    paintCurveTile(0, isRepeat: false);
   }
 }
 

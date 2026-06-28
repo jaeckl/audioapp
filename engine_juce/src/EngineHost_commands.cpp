@@ -467,8 +467,10 @@ bool EngineHost::moveClip(const std::string& clipId,
     return project_->moveClip(clipId, targetTrackId, startBeat);
 }
 
-bool EngineHost::setClipLength(const std::string& clipId, double lengthBeats) {
-    return project_->setClipLength(clipId, lengthBeats);
+bool EngineHost::setClipLength(const std::string& clipId,
+                               double lengthBeats,
+                               ClipLengthTarget target) {
+    return project_->setClipLength(clipId, lengthBeats, target);
 }
 
 bool EngineHost::setClipLoopContent(const std::string& clipId, bool loopContent) {
@@ -1175,7 +1177,9 @@ void EngineHost::registerAllCommands() {
     reg.registerCommand("setClipLength", [](const commands::CommandContext& ctx) -> commands::CommandResult {
         const auto clipId = ctx.args["clipId"].toString().toStdString();
         const double lengthBeats = static_cast<double>(ctx.args["lengthBeats"]);
-        if (!ctx.engine.setClipLength(clipId, lengthBeats))
+        const auto target = clipLengthTargetFromString(
+            ctx.args["target"].toString().toStdString());
+        if (!ctx.engine.setClipLength(clipId, lengthBeats, target))
             return commands::errorResult("clip_not_found");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
         return commands::okWithFullRefresh(snap);

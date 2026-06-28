@@ -30,6 +30,11 @@ void applyAutomationValue(DeviceVariantParams& params,
 bool automationClipPlaybackFromClip(const AutomationClip& clip,
                                     AutomationClipPlayback& out) noexcept;
 
+/// Maps global beat to clip-local beat; returns false when outside audible span.
+bool automationBeatInClip(const AutomationClipPlayback& clip,
+                          double beat,
+                          float& beatInClipOut) noexcept;
+
 /// True when [clips] contains a non-gain/pan automation target for [deviceIndex].
 bool nodeHasDspAutomation(uint16_t deviceIndex,
                           const AutomationClipPlayback* clips,

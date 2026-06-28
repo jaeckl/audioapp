@@ -165,12 +165,14 @@ inline juce::ValueTree createSampleClipTree(const std::string& clipId,
 inline juce::ValueTree createAutomationClipTree(const std::string& clipId,
                                                 const std::string& homeTrackId,
                                                 double startBeat,
-                                                double lengthBeats) {
+                                                double lengthBeats,
+                                                double naturalLengthBeats) {
     juce::ValueTree clip{kAutomationType.data()};
     clip.setProperty(props::id, juce::String{clipId}, nullptr);
     clip.setProperty(props::homeTrackId, juce::String{homeTrackId}, nullptr);
     clip.setProperty(props::startBeat, startBeat, nullptr);
     clip.setProperty(props::lengthBeats, lengthBeats, nullptr);
+    clip.setProperty(props::naturalLength, naturalLengthBeats, nullptr);
     return clip;
 }
 

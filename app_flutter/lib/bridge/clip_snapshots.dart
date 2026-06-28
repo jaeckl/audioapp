@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'timeline_clip.dart';
 
 bool snapshotBool(dynamic value, {bool fallback = false}) {
@@ -33,8 +31,8 @@ class MidiClipSnapshot implements ClipTimelineSpan {
 
   final List<MidiNoteSnapshot> notes;
 
-  /// Authored MIDI content length in beats. Set at clip creation; updated
-  /// when notes are saved; never modified by resize.
+  /// Authored content length in beats. Set by editor range slider; not changed
+  /// by arrangement resize (loop or one-shot).
   final double? naturalLengthBeats;
 
   /// When true, MIDI note content repeats within the clip's timeline span.
@@ -47,18 +45,11 @@ class MidiClipSnapshot implements ClipTimelineSpan {
   double get effectiveNaturalLengthBeats =>
       naturalLengthBeats ?? lengthBeats;
 
+  /// Grid span for clip editors — always the authored content length.
+  double get editorContentLengthBeats => effectiveNaturalLengthBeats;
+
   /// Beat span used to tile looped MIDI content in the arranger.
-  double get loopContentLengthBeats {
-    var noteEnd = 0.0;
-    for (final note in notes) {
-      noteEnd = math.max(noteEnd, note.startBeat + note.durationBeats);
-    }
-    final natural = effectiveNaturalLengthBeats;
-    if (noteEnd > 0 && noteEnd < natural) {
-      return noteEnd;
-    }
-    return natural;
-  }
+  double get loopContentLengthBeats => effectiveNaturalLengthBeats;
 
   factory MidiClipSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final notesRaw = map['notes'] as List<dynamic>? ?? [];
@@ -166,6 +157,10 @@ class SampleClipSnapshot implements ClipTimelineSpan {
   double get effectiveNaturalLengthBeats =>
       naturalLengthBeats ?? lengthBeats;
 
+  /// Arrangement playback window for sample clips (waveform source length is
+  /// [effectiveNaturalLengthBeats]).
+  double get editorContentLengthBeats => lengthBeats;
+
   factory SampleClipSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final peaksRaw = map['waveformPeaks'] as List<dynamic>? ?? [];
     final lengthBeats = (map['lengthBeats'] as num?)?.toDouble() ?? 4.0;
@@ -242,6 +237,8 @@ class AutomationClipSnapshot implements ClipTimelineSpan {
     required this.deviceId,
     required this.paramId,
     required this.points,
+    this.naturalLengthBeats,
+    this.loopContent = false,
   });
 
   @override
@@ -265,10 +262,21 @@ class AutomationClipSnapshot implements ClipTimelineSpan {
   final String paramId;
   final List<AutomationPointSnapshot> points;
 
+  final double? naturalLengthBeats;
+  final bool loopContent;
+
   bool get isLinked => deviceId.isNotEmpty && paramId.isNotEmpty;
 
   @override
   double get endBeat => startBeat + lengthBeats;
+
+  double get effectiveNaturalLengthBeats =>
+      naturalLengthBeats ?? lengthBeats;
+
+  /// Grid span for automation editors — authored content length.
+  double get editorContentLengthBeats => effectiveNaturalLengthBeats;
+
+  double get loopContentLengthBeats => effectiveNaturalLengthBeats;
 
   String get linkLabel =>
       isLinked ? _humanizeParamId(paramId) : 'Link';
@@ -290,11 +298,15 @@ class AutomationClipSnapshot implements ClipTimelineSpan {
 
   factory AutomationClipSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final pointsRaw = map['points'] as List<dynamic>? ?? [];
+    final lengthBeats = (map['lengthBeats'] as num?)?.toDouble() ?? 4.0;
     return AutomationClipSnapshot(
       id: map['id'] as String? ?? '',
       homeTrackId: map['homeTrackId'] as String? ?? '',
       startBeat: (map['startBeat'] as num?)?.toDouble() ?? 0.0,
-      lengthBeats: (map['lengthBeats'] as num?)?.toDouble() ?? 4.0,
+      lengthBeats: lengthBeats,
+      naturalLengthBeats:
+          (map['naturalLengthBeats'] as num?)?.toDouble() ?? lengthBeats,
+      loopContent: snapshotBool(map['loopContent']),
       deviceId: map['deviceId'] as String? ?? '',
       paramId: map['paramId'] as String? ?? '',
       points: pointsRaw
@@ -308,6 +320,8 @@ class AutomationClipSnapshot implements ClipTimelineSpan {
     String? homeTrackId,
     double? startBeat,
     double? lengthBeats,
+    double? naturalLengthBeats,
+    bool? loopContent,
     String? deviceId,
     String? paramId,
     List<AutomationPointSnapshot>? points,
@@ -317,6 +331,8 @@ class AutomationClipSnapshot implements ClipTimelineSpan {
       homeTrackId: homeTrackId ?? this.homeTrackId,
       startBeat: startBeat ?? this.startBeat,
       lengthBeats: lengthBeats ?? this.lengthBeats,
+      naturalLengthBeats: naturalLengthBeats ?? this.naturalLengthBeats,
+      loopContent: loopContent ?? this.loopContent,
       deviceId: deviceId ?? this.deviceId,
       paramId: paramId ?? this.paramId,
       points: points ?? this.points,

@@ -58,7 +58,7 @@ bool ClipRepository::setMidiClipNotes(const std::string& clipId,
         clip->notes.push_back(stored);
     }
     const double noteEnd = midiNotesContentLengthBeats(clip->notes, 0.0);
-    if (noteEnd > 0.0) {
+    if (!clip->loopContent && noteEnd > clip->naturalLengthBeats) {
         clip->naturalLengthBeats = noteEnd;
     }
     return true;
@@ -141,11 +141,17 @@ bool ClipRepository::moveClip(const std::string& clipId,
     return false;
 }
 
-bool ClipRepository::setClipLength(const std::string& clipId, double lengthBeats) {
+bool ClipRepository::setClipLength(const std::string& clipId,
+                                   double lengthBeats,
+                                   ClipLengthTarget target) {
     const double len = lengthBeats < kMinClipLengthBeats ? kMinClipLengthBeats : lengthBeats;
 
     if (MidiClip* midi = findMidiClip(clipId)) {
-        midi->lengthBeats = len;
+        if (target == ClipLengthTarget::Content) {
+            midi->naturalLengthBeats = len;
+        } else {
+            midi->lengthBeats = len;
+        }
         return true;
     }
     if (SampleClip* sample = findSampleClip(clipId)) {

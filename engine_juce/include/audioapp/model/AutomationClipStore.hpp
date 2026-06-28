@@ -1,6 +1,7 @@
 #pragma once
 
 #include "audioapp/AutomationTypes.hpp"
+#include "audioapp/TimelineClipTypes.hpp"
 #include "audioapp/model/TrackModel.hpp"
 
 #include <string>
@@ -31,7 +32,9 @@ public:
                       const std::string& paramId);
     bool setPoints(const std::string& clipId,
                    const std::vector<AutomationPointState>& points);
-    bool setLength(const std::string& clipId, double lengthBeats);
+    bool setLength(const std::string& clipId,
+                   double lengthBeats,
+                   ClipLengthTarget target = ClipLengthTarget::Arrangement);
     bool setStartBeat(const std::string& clipId, double startBeat);
     /// Updates the track lane in which this clip is rendered.
     bool setHomeTrackId(const std::string& clipId, const std::string& homeTrackId);
@@ -40,6 +43,7 @@ public:
     /// keeps the same `deviceId`/`paramId` (unlike the old per-track path
     /// that cleared the target on duplicate).
     bool duplicate(const std::string& clipId);
+    bool setLoopContent(const std::string& clipId, bool loopContent);
     void unlinkForDevice(const std::string& deviceId);
 
     AutomationClip* find(const std::string& clipId);

@@ -6,13 +6,13 @@ import 'package:flutter_test/flutter_test.dart';
 // The resize handle is rendered as a sibling Positioned in the track lane
 // (see arrangement_view.dart). At rest the handle's *visual* 12 px bar sits
 // flush on the right edge of the rendered clip:
-//   left = startBeat*ppb + renderedClipWidthPx - kResizeHandleVisualWidth
-// The hit zone is kResizeHandleHitWidth = 28 px (right-aligned in the
+//   left = startBeat*ppb + renderedClipWidthPx - kResizeHandleHitWidth
+// The hit zone is kResizeHandleHitWidth = 44 px (right-aligned in the
 // Positioned) so users get a forgiving touch target.
 //
 // pixelsPerBeat defaults to 64.0.
 
-const double _kResizeHandleHitWidth = 28.0;
+const double _kResizeHandleHitWidth = 44.0;
 
 ProjectSnapshot _baseSnapshot({
   List<TrackSnapshot> Function() tracksBuilder = _threeTracksAllClips,
@@ -292,35 +292,34 @@ void main() {
     expect(_handleLeft(tester, 'midi-clip-1'), 148.0);
   });
 
-  testWidgets('F4: SnapsToBeatGrid — drag 1.25 beats, snaps to 5.0',
+  testWidgets('F4: NoBeatGridSnap — drag 1.25 beats keeps fractional length',
       (tester) async {
     await _pumpArrangement(tester, snapshot: _baseSnapshot());
 
     _triggerStart(tester, 'midi-clip-1');
     await tester.pump();
 
-    // Drag right 80 px (= 1.25 beats). Snaps to +1 beat → 5 beats total.
+    // Drag right 80 px (= 1.25 beats) → 5.25 beats total (no grid snap).
     _triggerMove(tester, 'midi-clip-1', const Offset(80, 0));
     await tester.pump();
 
-    // Handle at 0 + 320 - 44 = 276 px (5 beats, not 5.25).
-    expect(_handleLeft(tester, 'midi-clip-1'), 276.0);
+    // Handle at 0 + 336 - 44 = 292 px (5.25 beats, not snapped to 5.0).
+    expect(_handleLeft(tester, 'midi-clip-1'), 292.0);
   });
 
-  testWidgets('F5: ClampsToMinimumLength — drag left 300 px, clamps to 0.25',
+  testWidgets('F5: ClampsToMinimumLength — drag left until timeline origin',
       (tester) async {
     await _pumpArrangement(tester, snapshot: _baseSnapshot());
 
     _triggerStart(tester, 'midi-clip-1');
     await tester.pump();
 
-    // Drag left 300 px (= 4.6875 beats). Without clamp, length goes negative.
+    // Drag left 300 px from handle origin (~beat 3.3125). Pointer clamps to
+    // beat 0 → length 0.6875 beats (handle hit zone, not kMinClipLengthBeats).
     _triggerMove(tester, 'midi-clip-1', const Offset(-300, 0));
     await tester.pump();
 
-    // Handle at 0 + 16 - 44 = -28 px (clamped to 0.25 beats; Positioned
-    // allows negative left so the bar still renders at the leftmost edge).
-    expect(_handleLeft(tester, 'midi-clip-1'), -28.0);
+    expect(_handleLeft(tester, 'midi-clip-1'), 0.0);
   });
 
   testWidgets('F6: ClampsToAdjacentClip — second clip at 8, clamps to 8.0',
