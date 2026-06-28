@@ -182,11 +182,6 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
         auto& snap = trackPlayback_[t];
         for (int d = 0; d < snap.deviceCount; ++d) {
             if (snap.devices[d].deviceId != deviceId) continue;
-            auto* proc = snap.arena.get(d);
-            if (proc != nullptr && proc->setRealtimeParameter(parameterId, value)) {
-                return true;
-            }
-
             deviceRegistry_.buildPlaybackNode(*device, context, snap.devices[d]);
 
             // Propagate outputMix/outputWidth from slot's output panel
@@ -198,6 +193,7 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
                 }
             }, device->config.outputPanel);
 
+            auto* proc = snap.arena.get(d);
             if (proc != nullptr) {
                 proc->initParams(snap.devices[d].params);
                 proc->outputMix = snap.devices[d].outputMix;
