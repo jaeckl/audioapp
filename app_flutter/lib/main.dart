@@ -37,7 +37,7 @@ class AudioApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: DawShell(bridge: EngineBridge()),
+      home: DawShell(bridge: EngineBridge(), showWelcomeOnLaunch: true),
     );
   }
 }

@@ -8,6 +8,27 @@ import 'param_descriptor.dart';
 import 'project_snapshot.dart';
 import 'transport_state.dart';
 
+class RecentProjectEntry {
+  const RecentProjectEntry({
+    required this.uri,
+    required this.name,
+    required this.openedAt,
+  });
+
+  final String uri;
+  final String name;
+  final DateTime openedAt;
+
+  factory RecentProjectEntry.fromMap(Map<dynamic, dynamic> map) =>
+      RecentProjectEntry(
+        uri: map['uri'] as String? ?? '',
+        name: map['name'] as String? ?? 'Project',
+        openedAt: DateTime.fromMillisecondsSinceEpoch(
+          (map['openedAtMillis'] as num?)?.toInt() ?? 0,
+        ),
+      );
+}
+
 /// Flutter ↔ native engine bridge (MethodChannel + EventChannels).
 class EngineBridge {
   EngineBridge({MethodChannel? channel, EventChannel? metersChannel})
@@ -546,6 +567,20 @@ class EngineBridge {
     }
     return ProjectSnapshot.fromMap(result);
   }
+
+  Future<List<RecentProjectEntry>> getRecentProjects() async {
+    final result = await _channel
+        .invokeMethod<Map<dynamic, dynamic>>('getRecentProjects');
+    if (result == null || result['ok'] != true) return const [];
+    final projects = result['projects'] as List<dynamic>? ?? const [];
+    return projects
+        .map((item) => RecentProjectEntry.fromMap(item as Map<dynamic, dynamic>))
+        .where((item) => item.uri.isNotEmpty)
+        .toList();
+  }
+
+  Future<ProjectSnapshot> loadRecentProject(String uri) =>
+      _invokeForSnapshot('loadRecentProject', {'uri': uri});
 
   Future<ProjectSnapshot> _invokeForSnapshot(
     String method, [

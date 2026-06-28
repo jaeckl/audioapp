@@ -129,6 +129,7 @@ class MainActivity : FlutterFragmentActivity() {
             val projectJson = nativeGetProjectFileJson()
             ProjectArchiveStore.writeProjectArchive(this, documentUri, projectJson)
             ProjectUriStore.saveLastDocumentUri(this, documentUri)
+            ProjectUriStore.recordRecentProject(this, documentUri, projectDisplayName(documentUri))
             // Trigger MediaScanner so the file gets a proper application/zip MIME
             // in MediaStore. Without this, the SAF picker on Android 11+
             // (MediaProvider storage backbone) shows an empty list because the
@@ -175,6 +176,10 @@ class MainActivity : FlutterFragmentActivity() {
             result.success(mapOf("ok" to false, "cancelled" to true))
             return
         }
+        loadArchive(documentUri, result)
+    }
+
+    private fun loadArchive(documentUri: Uri, result: MethodChannel.Result) {
         try {
             val projectJson = ProjectArchiveStore.readProjectArchive(this, documentUri)
             Log.i(logTag, "Loading project archive (${projectJson.length} bytes json) from $documentUri")
@@ -182,6 +187,7 @@ class MainActivity : FlutterFragmentActivity() {
             val map = jsonToMap(response).toMutableMap()
             if (map["ok"] == true) {
                 ProjectUriStore.saveLastDocumentUri(this, documentUri)
+                ProjectUriStore.recordRecentProject(this, documentUri, projectDisplayName(documentUri))
                 map["uri"] = documentUri.toString()
                 map["cancelled"] = false
                 result.success(map)
@@ -196,6 +202,34 @@ class MainActivity : FlutterFragmentActivity() {
             Log.e(logTag, "Load project failed", e)
             result.error("engine_error", e.message, null)
         }
+    }
+
+    private fun projectDisplayName(documentUri: Uri): String =
+        contentResolver.query(documentUri, null, null, null, null)?.use { cursor ->
+            val index = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+            if (index >= 0 && cursor.moveToFirst()) cursor.getString(index) else null
+        } ?: documentUri.lastPathSegment?.substringAfterLast('/') ?: "Project"
+
+    private fun recentProjectsResult(): Map<String, Any> {
+        var projects = ProjectUriStore.loadRecentProjects(this)
+        if (projects.isEmpty()) {
+            ProjectUriStore.loadLastDocumentUri(this)?.let { legacyUri ->
+                ProjectUriStore.recordRecentProject(
+                    this, legacyUri, projectDisplayName(legacyUri),
+                )
+                projects = ProjectUriStore.loadRecentProjects(this)
+            }
+        }
+        return mapOf(
+            "ok" to true,
+            "projects" to projects.map { entry ->
+            mapOf(
+                "uri" to entry.uri,
+                "name" to entry.name,
+                "openedAtMillis" to entry.openedAtMillis,
+            )
+        },
+        )
     }
 
     private fun launchExportMixPicker(result: MethodChannel.Result, lengthBeats: Double) {
@@ -263,6 +297,15 @@ class MainActivity : FlutterFragmentActivity() {
                         }
                         "saveProject" -> launchSaveArchivePicker(result)
                         "loadProject" -> launchLoadArchivePicker(result)
+                        "getRecentProjects" -> result.success(recentProjectsResult())
+                        "loadRecentProject" -> {
+                            val rawUri = (call.arguments as? Map<*, *>)?.get("uri") as? String
+                            if (rawUri.isNullOrBlank()) {
+                                result.error("invalid_uri", "Recent project URI is missing", null)
+                            } else {
+                                loadArchive(Uri.parse(rawUri), result)
+                            }
+                        }
                         "importSample" -> launchImportSamplePicker(result)
                         "exportMix" -> {
                             val lengthBeats = when (val args = call.arguments) {

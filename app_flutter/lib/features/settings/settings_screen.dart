@@ -12,9 +12,9 @@ class SettingsScreen extends StatelessWidget {
     this.errorMessage,
   });
 
-  final VoidCallback onSaveProject;
-  final VoidCallback onLoadProject;
-  final VoidCallback onExportMix;
+  final VoidCallback? onSaveProject;
+  final VoidCallback? onLoadProject;
+  final VoidCallback? onExportMix;
   final bool loopEnabled;
   final ValueChanged<bool>? onLoopToggled;
   final String? statusMessage;

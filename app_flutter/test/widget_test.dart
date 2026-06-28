@@ -21,6 +21,9 @@ void main() {
   bool mockWithSamplerDefault = false;
   bool mockWithTwoTracks = false;
   String? lastSelectedTrackId;
+  int createProjectCalls = 0;
+  bool mockRecentProjects = false;
+  String? lastRecentProjectUri;
 
   const bootstrapSnapshot = {
     'ok': true,
@@ -45,13 +48,30 @@ void main() {
     mockWithSamplerDefault = false;
     mockWithTwoTracks = false;
     lastSelectedTrackId = null;
+    createProjectCalls = 0;
+    mockRecentProjects = false;
+    lastRecentProjectUri = null;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
       switch (call.method) {
         case 'ping':
           return 'pong';
         case 'createProject':
+          createProjectCalls++;
           return bootstrapSnapshot;
+        case 'getRecentProjects':
+          return {
+            'ok': true,
+            'projects': mockRecentProjects
+                ? [
+                    {
+                      'uri': 'content://projects/recent.audioapp.zip',
+                      'name': 'Recent Song.audioapp.zip',
+                      'openedAtMillis': 1700000000000,
+                    },
+                  ]
+                : [],
+          };
         case 'getProjectSnapshot':
           return bootstrapSnapshot;
         case 'getTransportState':
@@ -284,6 +304,11 @@ void main() {
           };
         case 'saveProject':
           return {'ok': true, 'uri': 'file:///tmp/project.audioapp.zip', 'cancelled': false};
+        case 'loadRecentProject':
+          lastRecentProjectUri =
+              (call.arguments as Map<dynamic, dynamic>?)?['uri'] as String?;
+          continue loadProjectResponse;
+        loadProjectResponse:
         case 'loadProject':
           return {
             'ok': true,
@@ -433,6 +458,43 @@ void main() {
     expect(find.byIcon(Icons.play_arrow), findsOneWidget);
   });
 
+  testWidgets('welcome hub waits for explicit project creation', (tester) async {
+    mockRecentProjects = true;
+    await tester.pumpWidget(MaterialApp(
+      home: DawShell(
+        bridge: EngineBridge(channel: channel),
+        showWelcomeOnLaunch: true,
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(createProjectCalls, 0);
+    expect(find.text('AudioApp'), findsOneWidget);
+    expect(find.text('Recent Song.audioapp.zip'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('welcome-new-project')));
+    await tester.pumpAndSettle();
+    expect(createProjectCalls, 1);
+    expect(find.byKey(const ValueKey('track-lane-track-1')), findsOneWidget);
+  });
+
+  testWidgets('welcome hub opens a persisted recent project', (tester) async {
+    mockRecentProjects = true;
+    await tester.pumpWidget(MaterialApp(
+      home: DawShell(
+        bridge: EngineBridge(channel: channel),
+        showWelcomeOnLaunch: true,
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Recent Song.audioapp.zip'));
+    await tester.pumpAndSettle();
+    expect(lastRecentProjectUri, 'content://projects/recent.audioapp.zip');
+    expect(find.byTooltip('Loaded Track'), findsOneWidget);
+  });
+
   testWidgets('track header and lane select their track', (tester) async {
     mockWithTwoTracks = true;
     tester.view.physicalSize = const Size(1080, 2400);
@@ -567,13 +629,15 @@ void main() {
 
     await tester.tap(find.bySemanticsLabel('Project'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Save project'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Saved project'), findsOneWidget);
 
     await tester.tap(find.text('Open project'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Loaded project'), findsOneWidget);
+    expect(find.byTooltip('Loaded Track'), findsOneWidget);
   });
 
   testWidgets('Keys panel shows MPC pads after add track', (tester) async {
