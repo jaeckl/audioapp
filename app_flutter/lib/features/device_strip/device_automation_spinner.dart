@@ -25,7 +25,6 @@ ModulatableSpinnerShell deviceAutomationSpinner({
     height: height,
     accentColor: accentColor,
     borderAlpha: borderAlpha,
-    child: child,
     modulationActive: modulatedParams.contains(paramId),
     automationActive: automatedParams.contains(paramId),
     modulationAmount: modulationAmounts[paramId] ?? 0.0,
@@ -39,5 +38,6 @@ ModulatableSpinnerShell deviceAutomationSpinner({
     onAutomateRequest: onAutomateParameter != null
         ? () => onAutomateParameter(paramId)
         : null,
+    child: child,
   );
 }

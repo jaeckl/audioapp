@@ -314,7 +314,7 @@ class _ChromeOutputShell extends StatelessWidget {
       color: DeviceStripTheme.cardBorder,
       width: DeviceStripTheme.cardBorderWidth,
     );
-    final rightRadius = Radius.circular(DeviceStripTheme.toolRailRadius);
+    final rightRadius = const Radius.circular(DeviceStripTheme.toolRailRadius);
 
     return SizedBox(
       width: _kPanelWidth,

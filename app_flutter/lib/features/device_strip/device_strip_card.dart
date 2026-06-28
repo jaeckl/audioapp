@@ -49,7 +49,7 @@ class DeviceStripCard extends StatelessWidget {
     final theme = Theme.of(context);
     final accent = DeviceStripTheme.accentForDeviceType(deviceType);
     final label = DeviceStripTheme.labelForDeviceType(deviceType);
-    final radius = Radius.circular(DeviceStripTheme.cardRadius);
+    final radius = const Radius.circular(DeviceStripTheme.cardRadius);
 
     const borderSide = BorderSide(
       color: DeviceStripTheme.cardBorder,

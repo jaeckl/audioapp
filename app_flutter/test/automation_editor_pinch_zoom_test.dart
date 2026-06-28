@@ -312,17 +312,17 @@ Future<void> _pumpViewport(WidgetTester tester, {required int bodyHeight}) {
         body: SizedBox(
           width: 600,
           height: bodyHeight.toDouble(),
-          child: AutomationEditorViewport(
-            points: const [
+          child: const AutomationEditorViewport(
+            points: [
               AutomationPointSnapshot(beat: 0, value: 1),
               AutomationPointSnapshot(beat: 4, value: 0.25),
             ],
             clipLengthBeats: 4,
             virtualLengthBeats: 32,
-            gridSettings: const PianoRollGridSettings(),
+            gridSettings: PianoRollGridSettings(),
             tool: AutomationEditorTool.select,
-            selectedIndices: const <int>{},
-            deleteMarkedIndices: const <int>{},
+            selectedIndices: <int>{},
+            deleteMarkedIndices: <int>{},
             onPointsChanged: _noop,
             onToggleSelect: _noopInt,
             onToggleDeleteMark: _noopInt,

@@ -227,7 +227,7 @@ class _MinimapChainPreview extends StatelessWidget {
             children: [
               for (var i = 0; i < devices.length; i++) ...[
                 if (density != DeviceStripSlotDensity.collapsed) ...[
-                  SizedBox(
+                  const SizedBox(
                     width: DeviceStripMetrics.toolRailWidth,
                     child: ColoredBox(
                       color: DeviceStripTheme.toolRailBackground,

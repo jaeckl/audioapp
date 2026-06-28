@@ -19,7 +19,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
+      const MaterialApp(
         home: Scaffold(
           body: SizedBox(
             width: 180,
@@ -36,7 +36,7 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('MIDI'), findsNothing);
 
-    final renderer = MidiClipRenderer(clip);
+    final renderer = const MidiClipRenderer(clip);
     expect(
       renderer.clipContentBackgroundColor,
       ArrangementClipTheme.contentBackground(ArrangementClipTheme.midiClipBackground),
@@ -52,7 +52,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
+      const MaterialApp(
         home: Scaffold(
           body: SizedBox(
             width: 120,

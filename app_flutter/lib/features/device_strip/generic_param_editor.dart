@@ -1,5 +1,6 @@
 /// A generic parameter editor widget that renders controls from metadata.
 /// Falls back when no custom device editor exists.
+library;
 import 'package:flutter/material.dart';
 
 import '../../bridge/param_descriptor.dart';

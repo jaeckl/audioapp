@@ -40,16 +40,16 @@ ProjectSnapshot _emptySnapshot() => const ProjectSnapshot(
     );
 
 ProjectSnapshot _snapshotWithSamples() {
-  return ProjectSnapshot(
+  return const ProjectSnapshot(
     bpm: 120,
     playheadBeats: 0,
     playing: false,
     loopEnabled: false,
     recordArmed: false,
     selectedTrackId: '',
-    master: const MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1),
-    tracks: const [],
-    samples: const [
+    master: MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1),
+    tracks: [],
+    samples: [
       SampleLibraryEntrySnapshot(
         id: 'kick',
         name: 'Kick',
@@ -133,7 +133,7 @@ void main() {
   group('LibraryPreviewWidget — compact size', () {
     testWidgets('renders at 52×36 when no peaks', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(body: LibraryPreviewWidget(peaks: null)),
         ),
       );
@@ -145,9 +145,9 @@ void main() {
 
     testWidgets('renders at 52×36 when peaks provided', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
-            body: LibraryPreviewWidget(peaks: const [0.1, 0.5, 0.9]),
+            body: LibraryPreviewWidget(peaks: [0.1, 0.5, 0.9]),
           ),
         ),
       );
@@ -165,9 +165,9 @@ void main() {
     testWidgets('shows waveform ClipRRect/CustomPaint with peaks',
         (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
-            body: LibraryPreviewWidget(peaks: const [0.1, 0.5, 0.9]),
+            body: LibraryPreviewWidget(peaks: [0.1, 0.5, 0.9]),
           ),
         ),
       );
@@ -178,7 +178,7 @@ void main() {
 
     testWidgets('shows loading spinner when peaks is null', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(body: LibraryPreviewWidget(peaks: null)),
         ),
       );
@@ -189,8 +189,8 @@ void main() {
 
     testWidgets('shows error placeholder when peaks is empty', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: LibraryPreviewWidget(peaks: const [])),
+        const MaterialApp(
+          home: Scaffold(body: LibraryPreviewWidget(peaks: [])),
         ),
       );
 

@@ -23,6 +23,7 @@ class MidiClipSnapshot implements ClipTimelineSpan {
 
   final List<MidiNoteSnapshot> notes;
 
+  @override
   double get endBeat => startBeat + lengthBeats;
 
   factory MidiClipSnapshot.fromMap(Map<dynamic, dynamic> map) {
@@ -112,6 +113,7 @@ class SampleClipSnapshot implements ClipTimelineSpan {
   /// tests that don't round-trip through the engine).
   final double? naturalLengthBeats;
 
+  @override
   double get endBeat => startBeat + lengthBeats;
 
   /// Resolved natural length — falls back to current length when missing.
@@ -216,6 +218,7 @@ class AutomationClipSnapshot implements ClipTimelineSpan {
 
   bool get isLinked => deviceId.isNotEmpty && paramId.isNotEmpty;
 
+  @override
   double get endBeat => startBeat + lengthBeats;
 
   String get linkLabel =>

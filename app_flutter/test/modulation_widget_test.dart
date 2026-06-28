@@ -37,7 +37,7 @@ void main() {
             width: 200,
             height: 400,
             child: ModulationGrid(
-              lfos: [
+              lfos: const [
                 LfoSnapshot(id: 1, waveform: 0, rate: 1.0),
                 LfoSnapshot(id: 2, waveform: 1, rate: 0.5),
               ],
@@ -72,7 +72,7 @@ void main() {
             width: 200,
             height: 400,
             child: ModulationGrid(
-              lfos: [LfoSnapshot(id: 1, waveform: 0, rate: 1.0)],
+              lfos: const [LfoSnapshot(id: 1, waveform: 0, rate: 1.0)],
               selectedLfoId: null,
               maxLfos: 4,
               connectModeLfoId: null,
@@ -95,7 +95,7 @@ void main() {
   });
 
   group('ModulationStrip', () {
-    ProjectSnapshot _mockSnapshot() => ProjectSnapshot(
+    ProjectSnapshot mockSnapshot() => const ProjectSnapshot(
           bpm: 120,
           selectedTrackId: 'track-1',
           playheadBeats: 0,
@@ -114,13 +114,13 @@ void main() {
       await tester.pumpWidget(MaterialApp(
         home: Scaffold(
           body: ModulationStrip(
-            lfos: [
+            lfos: const [
               LfoSnapshot(id: 1, waveform: 0, rate: 1.0),
               LfoSnapshot(id: 2, waveform: 2, rate: 0.25),
             ],
-            modEdges: [],
+            modEdges: const [],
             deviceId: 'test-device',
-            onBridgeCall: (_, __) async => _mockSnapshot(),
+            onBridgeCall: (_, __) async => mockSnapshot(),
           ),
         ),
       ));
@@ -136,11 +136,11 @@ void main() {
       await tester.pumpWidget(MaterialApp(
         home: Scaffold(
           body: ModulationStrip(
-            lfos: [LfoSnapshot(id: 1, waveform: 0, rate: 1.0)],
-            modEdges: [],
+            lfos: const [LfoSnapshot(id: 1, waveform: 0, rate: 1.0)],
+            modEdges: const [],
             deviceId: 'test-device',
             maxLfos: 4,
-            onBridgeCall: (_, __) async => _mockSnapshot(),
+            onBridgeCall: (_, __) async => mockSnapshot(),
           ),
         ),
       ));
@@ -157,7 +157,7 @@ void main() {
       await tester.pumpWidget(MaterialApp(
         home: Scaffold(
           body: LfoPropertiesPanel(
-            mod: LfoSnapshot(id: 1, type: 'lfo', rate: 0.5),
+            mod: const LfoSnapshot(id: 1, type: 'lfo', rate: 0.5),
             onUpdate: (_, __) async {},
           ),
         ),
@@ -169,16 +169,16 @@ void main() {
 
   group('ModulatableSpinnerShell', () {
     testWidgets('shows modulation bar when active', (tester) async {
-      await tester.pumpWidget(MaterialApp(
+      await tester.pumpWidget(const MaterialApp(
         home: Scaffold(
           body: ModulatableSpinnerShell(
             width: 40,
             height: 40,
             accentColor: Colors.amber,
             borderAlpha: 0.5,
-            child: const Text('test'),
             modulationActive: true,
             modulationAmount: 0.5,
+            child: Text('test'),
           ),
         ),
       ));
@@ -190,15 +190,15 @@ void main() {
     });
 
     testWidgets('shows connect-mode pulse', (tester) async {
-      await tester.pumpWidget(MaterialApp(
+      await tester.pumpWidget(const MaterialApp(
         home: Scaffold(
           body: ModulatableSpinnerShell(
             width: 40,
             height: 40,
             accentColor: Colors.amber,
             borderAlpha: 0.5,
-            child: const Text('test'),
             connectModeActive: true,
+            child: Text('test'),
           ),
         ),
       ));

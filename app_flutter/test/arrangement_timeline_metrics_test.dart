@@ -97,15 +97,15 @@ void main() {
         TrackSnapshot(
           id: 'track-1',
           name: 'Track 1',
-          devices: const [],
-          sampleClips: const [],
-          automationClips: const [],
+          devices: [],
+          sampleClips: [],
+          automationClips: [],
           midiClips: [
             MidiClipSnapshot(
               id: 'clip-1',
               startBeat: 0,
               lengthBeats: 4,
-              notes: const [],
+              notes: [],
             ),
           ],
         ),
@@ -121,23 +121,23 @@ void main() {
   });
 
   test('clipIntervalsForTrackExcluding omits moved clip', () {
-    final track = TrackSnapshot(
+    final track = const TrackSnapshot(
       id: 'track-1',
       name: 'Track 1',
-      devices: const [],
-      sampleClips: const [],
+      devices: [],
+      sampleClips: [],
       midiClips: [
         MidiClipSnapshot(
           id: 'clip-1',
           startBeat: 0,
           lengthBeats: 4,
-          notes: const [],
+          notes: [],
         ),
         MidiClipSnapshot(
           id: 'clip-2',
           startBeat: 8,
           lengthBeats: 4,
-          notes: const [],
+          notes: [],
         ),
       ],
     );

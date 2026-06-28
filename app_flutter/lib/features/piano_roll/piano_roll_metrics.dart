@@ -1,4 +1,5 @@
 /// Layout tokens and helpers for the piano roll editor.
+library;
 
 class PianoRollMetrics {
 

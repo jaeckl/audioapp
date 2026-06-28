@@ -54,7 +54,7 @@ class OctavePanel extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
         children: [
-          _SectionTitle(text: 'Octave'),
+          const _SectionTitle(text: 'Octave'),
           Row(
             children: [
               _RoundIconButton(icon: Icons.remove, onTap: () => onOctaveDelta(-1)),
@@ -81,7 +81,7 @@ class OctavePanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          _SectionTitle(text: 'Rows (1–3)'),
+          const _SectionTitle(text: 'Rows (1–3)'),
           Wrap(
             spacing: 6,
             runSpacing: 6,
@@ -95,7 +95,7 @@ class OctavePanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          _SectionTitle(text: 'Scale'),
+          const _SectionTitle(text: 'Scale'),
           Wrap(
             spacing: 6,
             runSpacing: 6,
@@ -121,7 +121,7 @@ class OctavePanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          _SectionTitle(text: 'Velocity curve'),
+          const _SectionTitle(text: 'Velocity curve'),
           Wrap(
             spacing: 6,
             runSpacing: 6,
@@ -135,7 +135,7 @@ class OctavePanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          _SectionTitle(text: 'Capture quantize'),
+          const _SectionTitle(text: 'Capture quantize'),
           Wrap(
             spacing: 6,
             runSpacing: 6,

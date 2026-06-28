@@ -36,7 +36,7 @@ class DeviceToolRail extends StatelessWidget {
       color: DeviceStripTheme.cardBorder,
       width: DeviceStripTheme.cardBorderWidth,
     );
-    final leftRadius = Radius.circular(DeviceStripTheme.toolRailRadius);
+    final leftRadius = const Radius.circular(DeviceStripTheme.toolRailRadius);
 
     return DecoratedBox(
       decoration: BoxDecoration(

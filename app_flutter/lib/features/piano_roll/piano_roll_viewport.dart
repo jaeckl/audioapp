@@ -1,11 +1,9 @@
 import 'dart:async';
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../../bridge/project_snapshot.dart';
-import '../../bridge/timeline_clip.dart';
 import '../editor/editor_virtual_playhead.dart';
 import '../editor/timeline_marker_layer.dart';
 import 'piano_roll_clip_end_marker.dart';

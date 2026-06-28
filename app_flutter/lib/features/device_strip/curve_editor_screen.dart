@@ -96,7 +96,8 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
 
     // Always work against the actual current length to avoid stale _bpCount.
     final bpCount = _positions.length;
-    if (bpCount < 2) return [
+    if (bpCount < 2) {
+      return [
       {'param': 'breakpointCount', 'value': 2.0},
       {'param': 'polarity', 'value': _polarity.toDouble()},
       {'param': 'bp_0_pos', 'value': 0.0},
@@ -106,6 +107,7 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
       {'param': 'bp_1_val', 'value': _polarity == 0 ? 1.0 : 0.5},
       {'param': 'bp_1_shape', 'value': 0.0},
     ];
+    }
 
     // Decimate breakpoints to avoid exceeding the engine array size (64).
     int decimateStep = 1;
@@ -613,15 +615,15 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
             child: InkWell(
               onTap: _resetToDefault,
               borderRadius: BorderRadius.circular(4),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.refresh, size: 16, color: Colors.white54),
-                    const SizedBox(width: 4),
+                    SizedBox(width: 4),
                     Text('Reset',
-                        style: const TextStyle(
+                        style: TextStyle(
                             color: Colors.white54,
                             fontSize: 10,
                             fontWeight: FontWeight.w600)),
@@ -755,7 +757,7 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
                         fontSize: 11,
                         fontWeight: FontWeight.w700)),
                 const Spacer(),
-                Text('${_bpCount} pts',
+                Text('$_bpCount pts',
                     style: const TextStyle(
                         color: Colors.white38,
                         fontSize: 10,
@@ -1144,7 +1146,9 @@ class _CurveEditorPainter extends CustomPainter {
     for (var i = 0; i < positions.length; i++) {
       if (old.positions[i] != positions[i] ||
           old.values[i] != values[i] ||
-          old.shapes[i] != shapes[i]) return true;
+          old.shapes[i] != shapes[i]) {
+        return true;
+      }
     }
     return old.polarity != polarity ||
         old.highlightedIndex != highlightedIndex ||

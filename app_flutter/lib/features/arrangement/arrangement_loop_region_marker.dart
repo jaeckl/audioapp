@@ -30,10 +30,10 @@ class ArrangementLoopRegionPill extends StatelessWidget {
             ),
           ],
         ),
-        child: Icon(
+        child: const Icon(
           Icons.drag_indicator,
           size: ArrangementLoopRegionTheme.pillSize - 2,
-          color: const Color(0xFF1A3A4A),
+          color: Color(0xFF1A3A4A),
         ),
       ),
     );

@@ -210,7 +210,7 @@ class _PerformPanelState extends State<PerformPanel> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
         children: [
-          _SectionTitle(text: 'Chord'),
+          const _SectionTitle(text: 'Chord'),
           Wrap(
             spacing: 6,
             runSpacing: 6,
@@ -224,7 +224,7 @@ class _PerformPanelState extends State<PerformPanel> {
             ],
           ),
           const SizedBox(height: 14),
-          _SectionTitle(text: 'Arpeggiator'),
+          const _SectionTitle(text: 'Arpeggiator'),
           Wrap(
             spacing: 6,
             runSpacing: 6,
@@ -249,7 +249,7 @@ class _PerformPanelState extends State<PerformPanel> {
             ),
           ],
           const SizedBox(height: 14),
-          _SectionTitle(text: 'Range'),
+          const _SectionTitle(text: 'Range'),
           Wrap(
             spacing: 6,
             runSpacing: 6,
@@ -263,7 +263,7 @@ class _PerformPanelState extends State<PerformPanel> {
             ],
           ),
           const SizedBox(height: 14),
-          _SectionTitle(text: 'Hold a key'),
+          const _SectionTitle(text: 'Hold a key'),
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(

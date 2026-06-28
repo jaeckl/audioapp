@@ -133,7 +133,7 @@ class PianoRollEditSheet extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             'Left / right: grid step · Up / down: semitone',
             textAlign: TextAlign.center,
             style: TextStyle(color: PianoRollTheme.labelMuted, fontSize: 11),

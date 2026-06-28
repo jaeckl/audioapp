@@ -793,7 +793,7 @@ class _FilterCurvePainter extends CustomPainter {
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-    labelPainter.paint(canvas, Offset(pad + 4, pad + 3));
+    labelPainter.paint(canvas, const Offset(pad + 4, pad + 3));
   }
 
   @override

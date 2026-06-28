@@ -53,7 +53,7 @@ class StereoGainPanPanel extends StatelessWidget {
       color: DeviceStripTheme.cardBorder,
       width: DeviceStripTheme.cardBorderWidth,
     );
-    final rightRadius = Radius.circular(DeviceStripTheme.toolRailRadius);
+    final rightRadius = const Radius.circular(DeviceStripTheme.toolRailRadius);
 
     return DecoratedBox(
       decoration: BoxDecoration(

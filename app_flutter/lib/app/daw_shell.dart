@@ -579,19 +579,21 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
           return _snapshot!;
       }
     } catch (e) {
-      if (!mounted) return _snapshot ?? ProjectSnapshot(
+      if (!mounted) {
+        return _snapshot ?? const ProjectSnapshot(
         bpm: 120,
         selectedTrackId: '',
         playheadBeats: 0,
         playing: false,
         loopEnabled: true,
         recordArmed: false,
-        master: const MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1.0),
+        master: MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1.0),
         samples: [],
         tracks: [],
         lfos: [],
         modEdges: [],
       );
+      }
       rethrow;
     }
   }

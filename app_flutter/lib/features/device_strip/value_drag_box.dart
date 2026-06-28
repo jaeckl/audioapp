@@ -130,9 +130,9 @@ class ValueDragBox extends StatelessWidget {
         width: width,
         height: height,
         alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: const Color(0xFF14141C),
-          borderRadius: const BorderRadius.all(Radius.circular(4)),
+        decoration: const BoxDecoration(
+          color: Color(0xFF14141C),
+          borderRadius: BorderRadius.all(Radius.circular(4)),
         ),
         child: Text(
           display,

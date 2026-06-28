@@ -58,14 +58,14 @@ class PlayDeckState extends State<PlayDeck> {
 
   VelocityCurve _velocityCurve = VelocityCurve.linear;
   CaptureQuantize _quantize = CaptureQuantize.quarter;
-  bool _padChokeByColumn = true;
-  bool _padChokeByRow = false;
+  final bool _padChokeByColumn = true;
+  final bool _padChokeByRow = false;
 
   bool _latch = false;
   bool _sustain = false;
   bool _repeat = false;
   bool _metronome = false;
-  List<ChordMemory> _chordMemory = [
+  final List<ChordMemory> _chordMemory = [
     ChordMemory(label: 'Maj', quality: ChordQuality.major),
     ChordMemory(label: 'Min', quality: ChordQuality.minor),
     ChordMemory(label: '7', quality: ChordQuality.seventh),

@@ -1386,7 +1386,7 @@ class ArrangementViewState extends State<ArrangementView> {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SizedBox(
+                              const SizedBox(
                                 width: ArrangementTimelineMetrics.trackHeaderWidth,
                               ),
                               Expanded(
@@ -1424,7 +1424,7 @@ class ArrangementViewState extends State<ArrangementView> {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SizedBox(
+                              const SizedBox(
                                 width: ArrangementTimelineMetrics.trackHeaderWidth,
                               ),
                               Expanded(
@@ -1459,7 +1459,7 @@ class ArrangementViewState extends State<ArrangementView> {
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SizedBox(
+                              const SizedBox(
                                 width: ArrangementTimelineMetrics.trackHeaderWidth,
                               ),
                               Expanded(
@@ -1498,12 +1498,12 @@ class ArrangementViewState extends State<ArrangementView> {
                         scrubbingPlayhead: _scrubbingPlayhead,
                         inFrontOfChrome: false,
                       ),
-                    Positioned(
+                    const Positioned(
                       left: 0,
                       top: 0,
                       width: ArrangementTimelineMetrics.trackHeaderWidth,
                       height: PianoRollMetrics.rulerHeight,
-                      child: const ColoredBox(color: PianoRollTheme.rulerBackground),
+                      child: ColoredBox(color: PianoRollTheme.rulerBackground),
                     ),
                     Positioned(
                       left: 0,

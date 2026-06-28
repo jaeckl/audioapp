@@ -37,7 +37,7 @@ class PerformancePanel extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
         children: [
-          _SectionTitle(text: 'Performance'),
+          const _SectionTitle(text: 'Performance'),
           Wrap(
             spacing: 6,
             runSpacing: 6,
@@ -49,7 +49,7 @@ class PerformancePanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          _SectionTitle(text: 'Chord memory'),
+          const _SectionTitle(text: 'Chord memory'),
           Wrap(
             spacing: 6,
             runSpacing: 6,

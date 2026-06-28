@@ -1,12 +1,9 @@
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
 import 'device_knob_sizes.dart';
-import 'modulator_math.dart';
 import 'modulator_rate_codec.dart';
-import 'modulator_types.dart';
 import 'rotary_knob.dart';
 
 /// Properties panel for the Curve (user-drawn breakpoint) modulator.

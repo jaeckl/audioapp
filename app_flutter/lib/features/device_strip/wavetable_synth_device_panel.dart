@@ -587,7 +587,7 @@ class _WavetableSynthDevicePanelState extends State<WavetableSynthDevicePanel> {
   }) {
     final size = _knobSize * 0.78;
     String id(String n) =>
-        prefix.isEmpty ? n : '${prefix}${n[0].toUpperCase()}${n.substring(1)}';
+        prefix.isEmpty ? n : '$prefix${n[0].toUpperCase()}${n.substring(1)}';
     return Row(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,

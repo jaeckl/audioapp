@@ -597,19 +597,25 @@ class LfoSnapshot {
               final attr = parts[2];
               if (attr == 'pos') {
                 final newVals = [...curveBpPositions];
-                while (newVals.length <= idx) newVals.add(0.5);
+                while (newVals.length <= idx) {
+                  newVals.add(0.5);
+                }
                 newVals[idx] = value.clamp(0.0, 1.0);
                 return copyWith(curveBpPositions: newVals);
               }
               if (attr == 'val') {
                 final newVals = [...curveBpValues];
-                while (newVals.length <= idx) newVals.add(0.0);
+                while (newVals.length <= idx) {
+                  newVals.add(0.0);
+                }
                 newVals[idx] = value.clamp(-1.0, 1.0);
                 return copyWith(curveBpValues: newVals);
               }
               if (attr == 'shape') {
                 final newVals = [...curveBpShapes];
-                while (newVals.length <= idx) newVals.add(0);
+                while (newVals.length <= idx) {
+                  newVals.add(0);
+                }
                 newVals[idx] = value.round().clamp(0, 2);
                 return copyWith(curveBpShapes: newVals);
               }

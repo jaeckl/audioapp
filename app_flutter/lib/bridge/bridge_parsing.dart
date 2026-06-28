@@ -1,4 +1,5 @@
 /// Shared parsing helpers for native bridge JSON maps.
+library;
 
 bool readEngineBool(dynamic value, {required bool defaultValue}) {
   if (value is bool) return value;

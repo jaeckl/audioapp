@@ -14,15 +14,15 @@ class EditorVirtualPlayheadPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return const Center(
       child: Material(
         elevation: 4,
         color: EditorVirtualPlayheadTheme.color,
-        shape: const CircleBorder(),
+        shape: CircleBorder(),
         child: SizedBox(
           width: EditorVirtualPlayheadTheme.pillSize,
           height: EditorVirtualPlayheadTheme.pillSize,
-          child: const Icon(Icons.play_arrow, size: 18, color: Color(0xFF1A1408)),
+          child: Icon(Icons.play_arrow, size: 18, color: Color(0xFF1A1408)),
         ),
       ),
     );

@@ -97,11 +97,11 @@ class _DeviceVuMeterPainter extends CustomPainter {
 
     final fillRect = Rect.fromLTWH(0, size.height - fillHeight, size.width, fillHeight);
     final paint = Paint()
-      ..shader = LinearGradient(
+      ..shader = const LinearGradient(
         begin: Alignment.bottomCenter,
         end: Alignment.topCenter,
         colors: [_low, _mid, _high],
-        stops: const [0.0, 0.72, 1.0],
+        stops: [0.0, 0.72, 1.0],
       ).createShader(fillRect);
     canvas.drawRRect(
       RRect.fromRectAndRadius(fillRect, const Radius.circular(3)),

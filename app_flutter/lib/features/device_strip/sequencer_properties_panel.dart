@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
-import 'modulator_types.dart';
 
 class SequencerPropertiesPanel extends StatelessWidget {
   const SequencerPropertiesPanel({

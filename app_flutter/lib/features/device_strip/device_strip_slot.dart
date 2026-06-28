@@ -19,7 +19,6 @@ import 'modulation_grid.dart';
 import 'lfo_properties_panel.dart';
 import 'envelope_properties_panel.dart';
 import 'random_properties_panel.dart';
-import 'sequencer_properties_panel.dart';
 import 'curve_properties_panel.dart';
 import 'curve_editor_screen.dart';
 import 'sequencer_step_editor.dart';
@@ -157,14 +156,14 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   /// Resolved param descriptors for the current device (lazy, cached).
   List<DeviceParamDescriptor>? _cachedParams;
 
-  ProjectSnapshot get _emptySnapshot => ProjectSnapshot(
+  ProjectSnapshot get _emptySnapshot => const ProjectSnapshot(
     bpm: 120,
     selectedTrackId: '',
     playheadBeats: 0,
     playing: false,
     loopEnabled: true,
     recordArmed: false,
-    master: const MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1.0),
+    master: MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1.0),
     samples: [],
     tracks: [],
     lfos: [],
@@ -540,8 +539,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 10, 8, 4),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(8, 10, 8, 4),
             child: Text(
               'TARGETS',
               style: TextStyle(
@@ -582,7 +581,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                             ),
                             Text(
                               '${(edge.amount * 100).round()}%',
-                              style: TextStyle(color: accent, fontSize: 9),
+                              style: const TextStyle(color: accent, fontSize: 9),
                             ),
                             const SizedBox(width: 4),
                             GestureDetector(

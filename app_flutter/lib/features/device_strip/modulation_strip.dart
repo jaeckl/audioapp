@@ -26,9 +26,9 @@ class ModulationStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return DecoratedBox(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: DeviceStripTheme.toolRailBackground,
-        border: const Border(
+        border: Border(
           left: BorderSide(color: DeviceStripTheme.cardBorder, width: DeviceStripTheme.cardBorderWidth),
           right: BorderSide(color: DeviceStripTheme.cardBorder, width: DeviceStripTheme.cardBorderWidth),
           bottom: BorderSide(color: DeviceStripTheme.cardBorder, width: DeviceStripTheme.cardBorderWidth),
@@ -201,7 +201,7 @@ class _LfoCompactRow extends StatelessWidget {
           width: 60,
           height: 22,
           child: DropdownButtonFormField<int>(
-            value: lfo.waveform.clamp(0, 4),
+            initialValue: lfo.waveform.clamp(0, 4),
             isDense: true,
             decoration: const InputDecoration(
               border: InputBorder.none,
@@ -235,7 +235,7 @@ class _LfoCompactRow extends StatelessWidget {
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
           onPressed: onDelete,
-          icon: Icon(Icons.remove_circle_outline, size: 14, color: Colors.white38),
+          icon: const Icon(Icons.remove_circle_outline, size: 14, color: Colors.white38),
         ),
       ],
     );
@@ -266,13 +266,13 @@ class _ExpandedLfoContent extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text('Sync:', style: TextStyle(color: Colors.white38, fontSize: 9)),
+            const Text('Sync:', style: TextStyle(color: Colors.white38, fontSize: 9)),
             const SizedBox(width: 4),
             SizedBox(
               width: 48,
               height: 22,
               child: DropdownButtonFormField<int>(
-                value: lfo.syncDivision.clamp(0, 5),
+                initialValue: lfo.syncDivision.clamp(0, 5),
                 isDense: true,
                 decoration: const InputDecoration(
                   border: InputBorder.none,
@@ -288,7 +288,7 @@ class _ExpandedLfoContent extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            Text('Phase:', style: TextStyle(color: Colors.white38, fontSize: 9)),
+            const Text('Phase:', style: TextStyle(color: Colors.white38, fontSize: 9)),
             const SizedBox(width: 4),
             SizedBox(
               width: 50,
@@ -303,7 +303,7 @@ class _ExpandedLfoContent extends StatelessWidget {
         ),
         if (edges.isNotEmpty) ...[
           const SizedBox(height: 4),
-          Text('Targets:', style: TextStyle(color: Colors.white38, fontSize: 9)),
+          const Text('Targets:', style: TextStyle(color: Colors.white38, fontSize: 9)),
           const SizedBox(height: 2),
           ...edges.map((edge) => Padding(
             padding: const EdgeInsets.symmetric(vertical: 1),
@@ -312,17 +312,17 @@ class _ExpandedLfoContent extends StatelessWidget {
                 Expanded(
                   child: Text(
                     edge.paramId,
-                    style: TextStyle(color: Colors.white60, fontSize: 9),
+                    style: const TextStyle(color: Colors.white60, fontSize: 9),
                   ),
                 ),
                 Text(
                   '${(edge.amount * 100).round()}%',
-                  style: TextStyle(color: const Color(0xFFE8A54B), fontSize: 9),
+                  style: const TextStyle(color: Color(0xFFE8A54B), fontSize: 9),
                 ),
                 const SizedBox(width: 4),
                 GestureDetector(
                   onTap: () => onRemoveEdge(edge),
-                  child: Icon(Icons.close, size: 12, color: Colors.white30),
+                  child: const Icon(Icons.close, size: 12, color: Colors.white30),
                 ),
               ],
             ),

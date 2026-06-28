@@ -14,7 +14,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
+      const MaterialApp(
         home: Scaffold(
           body: SizedBox(
             width: 200,

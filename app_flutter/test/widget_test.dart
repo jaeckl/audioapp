@@ -2,7 +2,6 @@ import 'package:audioapp/app/daw_shell.dart';
 import 'package:audioapp/bridge/engine_bridge.dart';
 import 'package:audioapp/features/play/mpc_pad_grid.dart';
 import 'package:audioapp/features/device_strip/device_insert_slot.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';

@@ -215,7 +215,7 @@ class _ModulationGridState extends State<ModulationGrid>
                         colIdx < gridColumns.length;
                         colIdx++) ...[
                       if (colIdx > 0)
-                        SizedBox(width: ModulationGrid.cellGap),
+                        const SizedBox(width: ModulationGrid.cellGap),
                       _GridColumn(
                         slots: gridColumns[colIdx],
                         cellSize: cellSize,
@@ -298,7 +298,7 @@ class _GridColumn extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (var i = 0; i < slots.length; i++) ...[
-          if (i > 0) SizedBox(height: ModulationGrid.cellGap),
+          if (i > 0) const SizedBox(height: ModulationGrid.cellGap),
           _buildTile(slots[i], tileW, tileH),
         ],
       ],
@@ -405,9 +405,9 @@ class _ModulatorTileState extends State<_ModulatorTile> {
           ),
         ),
         const PopupMenuDivider(),
-        PopupMenuItem<String>(
+        const PopupMenuItem<String>(
           value: 'remove',
-          child: const Row(
+          child: Row(
             children: [
               Icon(Icons.delete_outline, size: 16, color: Color(0xFFE8554B)),
               SizedBox(width: 8),
