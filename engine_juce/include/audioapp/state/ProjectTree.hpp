@@ -56,6 +56,7 @@ inline const juce::Identifier configBlob   = "configBlob";
 inline const juce::Identifier startBeat     = "startBeat";
 inline const juce::Identifier lengthBeats   = "lengthBeats";
 inline const juce::Identifier naturalLength = "naturalLength";
+inline const juce::Identifier loopContent = "loopContent";
 
 // MIDI note
 inline const juce::Identifier pitch       = "pitch";
@@ -135,11 +136,13 @@ inline juce::ValueTree createDeviceTree(const std::string& deviceId,
 /// Create a MidiClip child ValueTree.
 inline juce::ValueTree createMidiClipTree(const std::string& clipId,
                                           double startBeat,
-                                          double lengthBeats) {
+                                          double lengthBeats,
+                                          double naturalLengthBeats) {
     juce::ValueTree clip{kMidiClipType.data()};
     clip.setProperty(props::id, juce::String{clipId}, nullptr);
     clip.setProperty(props::startBeat, startBeat, nullptr);
     clip.setProperty(props::lengthBeats, lengthBeats, nullptr);
+    clip.setProperty(props::naturalLength, naturalLengthBeats, nullptr);
     return clip;
 }
 

@@ -1,4 +1,5 @@
 #include "audioapp/devices/processors/OscillatorProcessor.hpp"
+#include "audioapp/ClipContentPlayback.hpp"
 #include "audioapp/DeviceChainScratch.hpp"
 #include "audioapp/DeviceChainAutomationModulation.hpp"
 #include "audioapp/MidiUtils.hpp"
@@ -20,13 +21,14 @@ void OscillatorProcessor::process(AudioBlock& block, ProcessContext& ctx) noexce
 
     auto midiActiveFrequencyHz = [&](float idleFrequencyHz) noexcept {
         auto noteActive = [](const MidiPlaybackNote& note, double beat) {
-            if (beat < note.clipStartBeat || beat >= note.clipStartBeat + note.clipLengthBeats) {
-                return false;
-            }
-            const double posInClip = beat - note.clipStartBeat;
-            const double loopedBeat = std::fmod(posInClip, note.clipLengthBeats);
-            const double noteEnd = std::min(note.noteStartBeat + note.noteDurationBeats, note.clipLengthBeats);
-            return loopedBeat >= note.noteStartBeat && loopedBeat < noteEnd;
+            return isMidiNoteActiveInClip(
+                beat,
+                note.clipStartBeat,
+                note.clipLengthBeats,
+                note.contentLengthBeats,
+                note.loopContent,
+                note.noteStartBeat,
+                note.noteDurationBeats);
         };
         int pitch = -1;
         for (int i = 0; i < ctx.noteCount; ++i) {

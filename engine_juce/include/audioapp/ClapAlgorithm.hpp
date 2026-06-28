@@ -36,6 +36,8 @@ struct ClapMidiNoteRegion {
     double noteStartBeat = 0.0;
     double noteDurationBeats = 1.0;
     float velocity = 100.0f;
+    bool loopContent = false;
+    double contentLengthBeats = 4.0;
 };
 
 void triggerClapVoice(ClapVoiceRuntime& voice,

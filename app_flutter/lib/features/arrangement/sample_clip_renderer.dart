@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
@@ -18,6 +20,9 @@ class SampleClipRenderer extends ClipRenderer {
       ArrangementClipTheme.contentBackground(clipBackgroundColor);
 
   @override
+  bool get loopContentEnabled => clip.loopContent;
+
+  @override
   String? get headerLabel {
     return clip.sampleName.isNotEmpty ? clip.sampleName : 'Sample';
   }
@@ -36,30 +41,38 @@ class SampleClipRenderer extends ClipRenderer {
 
     final midY = contentRect.center.dy;
     final halfHeight = contentRect.height / 2;
-
-    // The waveform's natural extent is the source sample's beat duration at
-    // capture time. We size each peak to that natural beat-width and anchor
-    // the waveform to the LEFT edge of the clip:
-    //   - clip.lengthBeats <  naturalLengthBeats  →  waveform clips
-    //     (only the prefix that fits is drawn; trailing space is empty)
-    //   - clip.lengthBeats >= naturalLengthBeats  →  trailing empty space
-    //     (waveform keeps its natural density; right side is blank)
-    final naturalPx = clip.effectiveNaturalLengthBeats *
-        (contentRect.width / clip.lengthBeats);
+    final naturalBeats = clip.effectiveNaturalLengthBeats;
+    final naturalPx =
+        naturalBeats * (contentRect.width / clip.lengthBeats);
     final step = naturalPx / peaks.length;
 
-    for (var i = 0; i < peaks.length; i++) {
-      final peak = peaks[i].clamp(0.0, 1.0);
-      final x = contentRect.left + i * step + step / 2;
-      // Skip peaks that fall outside the clip's content rect (clip mode).
-      if (x > contentRect.right) break;
-      if (x < contentRect.left) continue;
-      final half = peak * halfHeight;
-      canvas.drawLine(
-        Offset(x, midY - half),
-        Offset(x, midY + half),
-        paint,
-      );
+    void paintWaveformAt(double tileLeft, double tileRight) {
+      for (var i = 0; i < peaks.length; i++) {
+        final peak = peaks[i].clamp(0.0, 1.0);
+        final x = tileLeft + i * step + step / 2;
+        if (x > tileRight) break;
+        if (x < contentRect.left) continue;
+        final half = peak * halfHeight;
+        canvas.drawLine(
+          Offset(x, midY - half),
+          Offset(x, midY + half),
+          paint,
+        );
+      }
     }
+
+    if (clip.loopContent &&
+        naturalBeats > 0 &&
+        clip.lengthBeats > naturalBeats &&
+        naturalPx > 0) {
+      for (var tileLeft = contentRect.left;
+          tileLeft < contentRect.right;
+          tileLeft += naturalPx) {
+        paintWaveformAt(tileLeft, math.min(tileLeft + naturalPx, contentRect.right));
+      }
+      return;
+    }
+
+    paintWaveformAt(contentRect.left, contentRect.right);
   }
 }

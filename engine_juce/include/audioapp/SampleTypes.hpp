@@ -14,6 +14,7 @@ struct SampleClipState {
     /// Length of the waveform's source region in beats. Set at clip creation;
     /// never modified by resize. See [SampleClip::naturalLengthBeats].
     double naturalLengthBeats = 4.0;
+    bool loopContent = false;
     std::vector<float> waveformPeaks;
 };
 

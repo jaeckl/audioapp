@@ -1,4 +1,12 @@
+import 'dart:math' as math;
+
 import 'timeline_clip.dart';
+
+bool snapshotBool(dynamic value, {bool fallback = false}) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  return fallback;
+}
 
 /// MIDI and sample clip snapshots with shared timeline span fields.
 class MidiClipSnapshot implements ClipTimelineSpan {
@@ -7,6 +15,8 @@ class MidiClipSnapshot implements ClipTimelineSpan {
     required this.startBeat,
     required this.lengthBeats,
     required this.notes,
+    this.naturalLengthBeats,
+    this.loopContent = false,
   });
 
   @override
@@ -23,15 +33,43 @@ class MidiClipSnapshot implements ClipTimelineSpan {
 
   final List<MidiNoteSnapshot> notes;
 
+  /// Authored MIDI content length in beats. Set at clip creation; updated
+  /// when notes are saved; never modified by resize.
+  final double? naturalLengthBeats;
+
+  /// When true, MIDI note content repeats within the clip's timeline span.
+  final bool loopContent;
+
   @override
   double get endBeat => startBeat + lengthBeats;
 
+  /// Resolved natural length — falls back to current length when missing.
+  double get effectiveNaturalLengthBeats =>
+      naturalLengthBeats ?? lengthBeats;
+
+  /// Beat span used to tile looped MIDI content in the arranger.
+  double get loopContentLengthBeats {
+    var noteEnd = 0.0;
+    for (final note in notes) {
+      noteEnd = math.max(noteEnd, note.startBeat + note.durationBeats);
+    }
+    final natural = effectiveNaturalLengthBeats;
+    if (noteEnd > 0 && noteEnd < natural) {
+      return noteEnd;
+    }
+    return natural;
+  }
+
   factory MidiClipSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final notesRaw = map['notes'] as List<dynamic>? ?? [];
+    final lengthBeats = (map['lengthBeats'] as num?)?.toDouble() ?? 4.0;
     return MidiClipSnapshot(
       id: map['id'] as String? ?? '',
       startBeat: (map['startBeat'] as num?)?.toDouble() ?? 0.0,
-      lengthBeats: (map['lengthBeats'] as num?)?.toDouble() ?? 4.0,
+      lengthBeats: lengthBeats,
+      naturalLengthBeats:
+          (map['naturalLengthBeats'] as num?)?.toDouble() ?? lengthBeats,
+      loopContent: snapshotBool(map['loopContent']),
       notes: notesRaw
           .map((n) => MidiNoteSnapshot.fromMap(n as Map<dynamic, dynamic>))
           .toList(),
@@ -42,12 +80,16 @@ class MidiClipSnapshot implements ClipTimelineSpan {
     String? id,
     double? startBeat,
     double? lengthBeats,
+    double? naturalLengthBeats,
+    bool? loopContent,
     List<MidiNoteSnapshot>? notes,
   }) {
     return MidiClipSnapshot(
       id: id ?? this.id,
       startBeat: startBeat ?? this.startBeat,
       lengthBeats: lengthBeats ?? this.lengthBeats,
+      naturalLengthBeats: naturalLengthBeats ?? this.naturalLengthBeats,
+      loopContent: loopContent ?? this.loopContent,
       notes: notes ?? this.notes,
     );
   }
@@ -86,6 +128,7 @@ class SampleClipSnapshot implements ClipTimelineSpan {
     required this.lengthBeats,
     required this.waveformPeaks,
     this.naturalLengthBeats,
+    this.loopContent = false,
   });
 
   @override
@@ -113,6 +156,9 @@ class SampleClipSnapshot implements ClipTimelineSpan {
   /// tests that don't round-trip through the engine).
   final double? naturalLengthBeats;
 
+  /// When true, sample content repeats within the clip's timeline span.
+  final bool loopContent;
+
   @override
   double get endBeat => startBeat + lengthBeats;
 
@@ -132,6 +178,7 @@ class SampleClipSnapshot implements ClipTimelineSpan {
       waveformPeaks: peaksRaw.map((p) => (p as num).toDouble()).toList(),
       naturalLengthBeats:
           (map['naturalLengthBeats'] as num?)?.toDouble() ?? lengthBeats,
+      loopContent: snapshotBool(map['loopContent']),
     );
   }
 
@@ -143,6 +190,7 @@ class SampleClipSnapshot implements ClipTimelineSpan {
     double? lengthBeats,
     List<double>? waveformPeaks,
     double? naturalLengthBeats,
+    bool? loopContent,
   }) {
     return SampleClipSnapshot(
       id: id ?? this.id,
@@ -152,6 +200,7 @@ class SampleClipSnapshot implements ClipTimelineSpan {
       lengthBeats: lengthBeats ?? this.lengthBeats,
       waveformPeaks: waveformPeaks ?? this.waveformPeaks,
       naturalLengthBeats: naturalLengthBeats ?? this.naturalLengthBeats,
+      loopContent: loopContent ?? this.loopContent,
     );
   }
 }

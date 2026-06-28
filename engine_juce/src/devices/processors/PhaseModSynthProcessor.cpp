@@ -1,4 +1,6 @@
 #include "audioapp/devices/processors/PhaseModSynthProcessor.hpp"
+#include "audioapp/ClipContentPlayback.hpp"
+#include "audioapp/PhaseModSynthAlgorithm.hpp"
 #include "audioapp/DeviceChainScratch.hpp"
 #include "audioapp/AutomationPlayback.hpp"
 #include "audioapp/DeviceChainAutomationModulation.hpp"
@@ -36,11 +38,17 @@ static bool isNoteAudibleInBlock(const PhaseModSynthMidiNoteRegion& note,
     if (bpm <= 0 || sampleRate <= 0.0) return false;
     const double blockEndBeat = blockStartBeat + static_cast<double>(numFrames) *
         (static_cast<double>(bpm) / 60.0) / sampleRate;
-    const double noteStart = note.clipStartBeat + note.noteStartBeat;
-    const double noteEnd = noteStart + note.noteDurationBeats;
     const double releaseBeats = static_cast<double>(releaseSec) * static_cast<double>(bpm) / 60.0;
-    const double totalEnd = noteEnd + releaseBeats;
-    return !(blockEndBeat < noteStart || blockStartBeat >= totalEnd);
+    return audioapp::blockMayContainLoopedClipNotes(
+        blockStartBeat,
+        blockEndBeat,
+        note.clipStartBeat,
+        note.clipLengthBeats,
+        note.contentLengthBeats,
+        note.loopContent,
+        note.noteStartBeat,
+        note.noteDurationBeats,
+        releaseBeats);
 }
 
 static bool isNoteAudible(const PhaseModSynthMidiNoteRegion& note,
@@ -50,12 +58,19 @@ static bool isNoteAudible(const PhaseModSynthMidiNoteRegion& note,
                           double& elapsedSecondsOut,
                           double& noteDurationSecOut,
                           bool& inReleaseOut) noexcept {
-    if (beat < note.clipStartBeat || beat >= note.clipStartBeat + note.clipLengthBeats || bpm <= 0) {
+    if (bpm <= 0) {
         return false;
     }
 
-    const double posInClip = beat - note.clipStartBeat;
-    const double loopedBeat = std::fmod(posInClip, note.clipLengthBeats);
+    const double loopedBeat = audioapp::beatWithinClipContent(
+        beat,
+        note.clipStartBeat,
+        note.clipLengthBeats,
+        note.contentLengthBeats,
+        note.loopContent);
+    if (loopedBeat < 0.0) {
+        return false;
+    }
     const double noteStart = note.noteStartBeat;
     const double noteEnd = note.noteStartBeat + note.noteDurationBeats;
     const double releaseBeats =
@@ -304,7 +319,8 @@ void PhaseModSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) noe
         ctx.scratch.phaseModRegions[i] = PhaseModSynthMidiNoteRegion{
             note.pitch, note.pitch,
             note.clipStartBeat, note.clipLengthBeats,
-            note.noteStartBeat, note.noteDurationBeats, note.velocity
+            note.noteStartBeat, note.noteDurationBeats, note.velocity,
+            note.loopContent, note.contentLengthBeats
         };
     }
 

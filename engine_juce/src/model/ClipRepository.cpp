@@ -1,5 +1,7 @@
 #include "audioapp/model/ClipRepository.hpp"
 
+#include "audioapp/ClipContentPlayback.hpp"
+
 #include <algorithm>
 #include <cstdlib>
 #include <utility>
@@ -25,6 +27,7 @@ std::string ClipRepository::createMidiClip(const std::string& trackId,
     clip.id = "clip-" + std::to_string(nextClipNum_++);
     clip.startBeat = startBeat < 0.0 ? 0.0 : startBeat;
     clip.lengthBeats = lengthBeats > 0.0 ? lengthBeats : 4.0;
+    clip.naturalLengthBeats = clip.lengthBeats;
 
     MidiNote seed;
     seed.pitch = 60;
@@ -53,6 +56,10 @@ bool ClipRepository::setMidiClipNotes(const std::string& clipId,
         stored.durationBeats = note.durationBeats > 0.0 ? note.durationBeats : 0.25;
         stored.velocity = note.velocity;
         clip->notes.push_back(stored);
+    }
+    const double noteEnd = midiNotesContentLengthBeats(clip->notes, 0.0);
+    if (noteEnd > 0.0) {
+        clip->naturalLengthBeats = noteEnd;
     }
     return true;
 }
@@ -143,6 +150,18 @@ bool ClipRepository::setClipLength(const std::string& clipId, double lengthBeats
     }
     if (SampleClip* sample = findSampleClip(clipId)) {
         sample->lengthBeats = len;
+        return true;
+    }
+    return false;
+}
+
+bool ClipRepository::setClipLoopContent(const std::string& clipId, bool loopContent) {
+    if (MidiClip* midi = findMidiClip(clipId)) {
+        midi->loopContent = loopContent;
+        return true;
+    }
+    if (SampleClip* sample = findSampleClip(clipId)) {
+        sample->loopContent = loopContent;
         return true;
     }
     return false;

@@ -1,4 +1,5 @@
 #include "audioapp/devices/processors/ClapProcessor.hpp"
+#include "audioapp/ClipContentPlayback.hpp"
 #include "audioapp/devices/processors/ProcessorUtils.hpp"
 #include "audioapp/devices/DevicePanelTypes.hpp"
 
@@ -24,11 +25,18 @@ bool isClapNoteAudible(const audioapp::ClapMidiNoteRegion& note,
                        float releaseSec,
                        double& elapsedSecondsOut,
                        bool& inReleaseOut) noexcept {
-    if (beat < note.clipStartBeat || beat >= note.clipStartBeat + note.clipLengthBeats || bpm <= 0) {
+    if (bpm <= 0) {
         return false;
     }
-    const double posInClip = beat - note.clipStartBeat;
-    const double loopedBeat = std::fmod(posInClip, note.clipLengthBeats);
+    const double loopedBeat = audioapp::beatWithinClipContent(
+        beat,
+        note.clipStartBeat,
+        note.clipLengthBeats,
+        note.contentLengthBeats,
+        note.loopContent);
+    if (loopedBeat < 0.0) {
+        return false;
+    }
     const double noteEnd = note.noteStartBeat + note.noteDurationBeats;
     const double releaseBeats =
         static_cast<double>(releaseSec) * static_cast<double>(bpm) / 60.0;
@@ -106,7 +114,9 @@ void ClapProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
                 note.clipLengthBeats,
                 note.noteStartBeat,
                 note.noteDurationBeats,
-                note.velocity
+                note.velocity,
+                note.loopContent,
+                note.contentLengthBeats,
             };
         }
         std::memset(ctx.scratch.scratch, 0, static_cast<size_t>(block.numSamples) * sizeof(float));

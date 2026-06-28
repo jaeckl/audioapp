@@ -38,6 +38,8 @@ struct KickMidiNoteRegion {
     double noteStartBeat = 0.0;
     double noteDurationBeats = 1.0;
     float velocity = 100.0f;
+    bool loopContent = false;
+    double contentLengthBeats = 4.0;
 };
 
 float drumMidiKeyTrackRatio(int pitch, int referencePitch, float keyTrackNorm) noexcept;

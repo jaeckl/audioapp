@@ -1,6 +1,7 @@
 #include "audioapp/DeviceChain.hpp"
 
 #include "audioapp/AutomationPlayback.hpp"
+#include "audioapp/ClipContentPlayback.hpp"
 #include "audioapp/MidiUtils.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
 
@@ -56,13 +57,14 @@ float midiActiveFrequencyHz(const MidiPlaybackNote* notes,
                             double playheadBeat,
                             float idleFrequencyHz) noexcept {
     auto noteActive = [](const MidiPlaybackNote& note, double beat) noexcept -> bool {
-        if (beat < note.clipStartBeat || beat >= note.clipStartBeat + note.clipLengthBeats) {
-            return false;
-        }
-        const double posInClip = beat - note.clipStartBeat;
-        const double loopedBeat = std::fmod(posInClip, note.clipLengthBeats);
-        const double noteEnd = std::min(note.noteStartBeat + note.noteDurationBeats, note.clipLengthBeats);
-        return loopedBeat >= note.noteStartBeat && loopedBeat < noteEnd;
+        return isMidiNoteActiveInClip(
+            beat,
+            note.clipStartBeat,
+            note.clipLengthBeats,
+            note.contentLengthBeats,
+            note.loopContent,
+            note.noteStartBeat,
+            note.noteDurationBeats);
     };
     int pitch = -1;
     for (int i = 0; i < noteCount; ++i) {

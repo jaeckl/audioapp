@@ -1630,6 +1630,22 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _setClipLoopContent({
+    required String clipId,
+    required bool loopContent,
+  }) async {
+    try {
+      final snapshot = await widget.bridge.setClipLoopContent(
+        clipId: clipId,
+        loopContent: loopContent,
+      );
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
   Future<void> _setPlayheadBeats(double beats) async {
     try {
       await _transport.setPlayheadBeats(beats);
@@ -1750,6 +1766,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             onDeleteTrack: _confirmDeleteTrack,
             onDeleteClip: _confirmDeleteClip,
             onDuplicateClip: _duplicateClip,
+            onSetClipLoopContent: _setClipLoopContent,
             onAddAutomationClip: _addAutomationClip,
             automationLinkClipId: _automationLinkClipId,
             onAutomationLinkToggle: _toggleAutomationLink,

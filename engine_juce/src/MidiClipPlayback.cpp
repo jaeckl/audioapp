@@ -1,5 +1,7 @@
 #include "audioapp/MidiClipPlayback.hpp"
 
+#include "audioapp/ClipContentPlayback.hpp"
+
 #include <cmath>
 
 namespace audioapp {
@@ -13,12 +15,25 @@ bool isNoteActiveInLoop(double loopedBeat, const MidiNoteState& note) noexcept {
 } // namespace
 
 int activeMidiPitchAtBeat(double playheadBeat, const MidiClipState& clip) noexcept {
-    if (playheadBeat < clip.startBeat || playheadBeat >= clip.startBeat + clip.lengthBeats * 2.0) {
+    if (playheadBeat < clip.startBeat || playheadBeat >= clip.startBeat + clip.lengthBeats) {
         return -1;
     }
 
-    const double posInClip = playheadBeat - clip.startBeat;
-    const double loopedBeat = std::fmod(posInClip, clip.lengthBeats);
+    const double contentLength =
+        clip.loopContent
+            ? midiClipLoopContentLengthBeats(
+                  clip.notes, clip.naturalLengthBeats, clip.lengthBeats)
+            : midiClipOneShotContentLengthBeats(
+                  clip.notes, clip.naturalLengthBeats, clip.lengthBeats);
+    const double loopedBeat = beatWithinClipContent(
+        playheadBeat,
+        clip.startBeat,
+        clip.lengthBeats,
+        contentLength,
+        clip.loopContent);
+    if (loopedBeat < 0.0) {
+        return -1;
+    }
 
     int activePitch = -1;
     for (const auto& note : clip.notes) {

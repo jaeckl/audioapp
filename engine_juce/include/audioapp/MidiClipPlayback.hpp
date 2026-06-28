@@ -16,6 +16,8 @@ struct MidiClipState {
     std::string id;
     double startBeat = 0.0;
     double lengthBeats = 4.0;
+    double naturalLengthBeats = 4.0;
+    bool loopContent = false;
     std::vector<MidiNoteState> notes;
 };
 

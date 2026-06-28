@@ -131,6 +131,7 @@ public:
                   const std::string& targetTrackId,
                   double startBeat);
     bool setClipLength(const std::string& clipId, double lengthBeats);
+    bool setClipLoopContent(const std::string& clipId, bool loopContent);
     bool setBpm(int bpm);
     bool deleteTrack(const std::string& trackId);
     bool deleteClip(const std::string& clipId);
@@ -240,6 +241,8 @@ private:
         double noteStartBeat = 0.0;
         double noteDurationBeats = 1.0;
         float velocity = 100.0f;
+        bool loopContent = false;
+        double contentLengthBeats = 4.0;
     };
 
     struct SampleRegion {
@@ -248,6 +251,8 @@ private:
         const float* pcm = nullptr;
         int frameCount = 0;
         double pcmSampleRate = 48000.0;
+        bool loopContent = false;
+        double contentLengthBeats = 4.0;
     };
 
     struct TrackPlaybackSnapshot {

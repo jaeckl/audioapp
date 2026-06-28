@@ -311,6 +311,16 @@ class EngineBridge {
     });
   }
 
+  Future<ProjectSnapshot> setClipLoopContent({
+    required String clipId,
+    required bool loopContent,
+  }) async {
+    return _invokeForSnapshot('setClipLoopContent', {
+      'clipId': clipId,
+      'loopContent': loopContent,
+    });
+  }
+
   Future<ProjectSnapshot> deleteTrack(String trackId) async {
     return _invokeForSnapshot('deleteTrack', {'trackId': trackId});
   }

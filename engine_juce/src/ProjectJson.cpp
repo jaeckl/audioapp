@@ -1,4 +1,5 @@
 #include "audioapp/ProjectJson.hpp"
+#include "audioapp/ClipContentPlayback.hpp"
 #include "audioapp/SampleTypes.hpp"
 #include "audioapp/devices/DeviceRegistry.hpp"
 #include "audioapp/modulation/LfoModulatorType.hpp"
@@ -90,6 +91,8 @@ juce::var midiClipToVar(const MidiClipState& clip) {
     object->setProperty("id", toJuceString(clip.id));
     object->setProperty("startBeat", clip.startBeat);
     object->setProperty("lengthBeats", clip.lengthBeats);
+    object->setProperty("naturalLengthBeats", clip.naturalLengthBeats);
+    object->setProperty("loopContent", clip.loopContent);
     object->setProperty("notes", notes);
     return juce::var(object);
 }
@@ -100,11 +103,18 @@ MidiClipState midiClipFromVar(const juce::var& value) {
         clip.id = varToString(object->getProperty("id"));
         clip.startBeat = varToDouble(object->getProperty("startBeat"), 0.0);
         clip.lengthBeats = varToDouble(object->getProperty("lengthBeats"), 4.0);
+        clip.naturalLengthBeats =
+            varToDouble(object->getProperty("naturalLengthBeats"), clip.lengthBeats);
+        clip.loopContent = static_cast<bool>(object->getProperty("loopContent"));
         if (const auto* notes = varArray(object->getProperty("notes"))) {
             clip.notes.reserve(static_cast<size_t>(notes->size()));
             for (const auto& noteVar : *notes) {
                 clip.notes.push_back(midiNoteFromVar(noteVar));
             }
+        }
+        if (!object->hasProperty("naturalLengthBeats")) {
+            const double noteEnd = midiNotesContentLengthBeats(clip.notes, 0.0);
+            clip.naturalLengthBeats = noteEnd > 0.0 ? noteEnd : clip.lengthBeats;
         }
     }
     return clip;
@@ -124,6 +134,7 @@ juce::var sampleClipToVar(const SampleClipState& clip) {
     object->setProperty("startBeat", clip.startBeat);
     object->setProperty("lengthBeats", clip.lengthBeats);
     object->setProperty("naturalLengthBeats", clip.naturalLengthBeats);
+    object->setProperty("loopContent", clip.loopContent);
     object->setProperty("waveformPeaks", peaks);
     return juce::var(object);
 }
@@ -138,6 +149,7 @@ SampleClipState sampleClipFromVar(const juce::var& value) {
         clip.lengthBeats = varToDouble(object->getProperty("lengthBeats"), 4.0);
         clip.naturalLengthBeats =
             varToDouble(object->getProperty("naturalLengthBeats"), clip.lengthBeats);
+        clip.loopContent = static_cast<bool>(object->getProperty("loopContent"));
         if (const auto* peakArray = varArray(object->getProperty("waveformPeaks"))) {
             clip.waveformPeaks.reserve(static_cast<size_t>(peakArray->size()));
             for (const auto& peakVar : *peakArray) {

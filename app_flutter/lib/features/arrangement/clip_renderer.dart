@@ -18,6 +18,9 @@ abstract class ClipRenderer {
 
   /// Centered fallback when there is nothing to paint in the body.
   String? get emptyPlaceholder => null;
+
+  /// When true, a small loop badge is painted on the clip chrome.
+  bool get loopContentEnabled => false;
 }
 
 /// Shared chrome + [ClipRenderer] body for arrangement clip blocks.
@@ -36,6 +39,9 @@ class ArrangementClipChrome extends StatelessWidget {
   static const double _radius = 6;
   static const double _contentInset = 3;
   static const double _headerHeight = 18;
+
+  /// Horizontal inset between clip border and beat-accurate content area.
+  static const double contentInset = _contentInset;
 
   @override
   Widget build(BuildContext context) {
@@ -130,6 +136,37 @@ class _ClipContentPainter extends CustomPainter {
       Paint()..color = renderer.clipContentBackgroundColor,
     );
     renderer.paintContent(canvas, rect);
+    if (renderer.loopContentEnabled) {
+      _paintLoopBadge(canvas, rect);
+    }
+  }
+
+  void _paintLoopBadge(Canvas canvas, Rect rect) {
+    const size = 10.0;
+    final badgeRect = Rect.fromLTWH(
+      rect.right - size - 2,
+      rect.top + 2,
+      size,
+      size,
+    );
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: '\u21BB',
+        style: TextStyle(
+          color: Color(0xCCFFFFFF),
+          fontSize: 9,
+          height: 1,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    textPainter.paint(
+      canvas,
+      Offset(
+        badgeRect.left + (badgeRect.width - textPainter.width) / 2,
+        badgeRect.top + (badgeRect.height - textPainter.height) / 2,
+      ),
+    );
   }
 
   @override

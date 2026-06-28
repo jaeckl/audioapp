@@ -18,6 +18,11 @@ struct MidiClip {
     std::string id;
     double startBeat = 0.0;
     double lengthBeats = 4.0;
+    /// Authored MIDI content length in beats. Set at clip creation to
+    /// lengthBeats; updated when notes are saved; never modified by resize.
+    /// Loop playback wraps at this boundary (like SampleClip::naturalLengthBeats).
+    double naturalLengthBeats = 4.0;
+    bool loopContent = false;
     std::vector<MidiNote> notes;
 };
 
@@ -32,6 +37,7 @@ struct SampleClip {
     /// density and either clip it (when shortening) or leave trailing empty
     /// space (when lengthening).
     double naturalLengthBeats = 4.0;
+    bool loopContent = false;
 };
 
 struct AutomationPoint {

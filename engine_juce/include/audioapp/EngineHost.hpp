@@ -65,7 +65,7 @@ public:
                   const std::string& targetTrackId,
                   double startBeat);
     bool setClipLength(const std::string& clipId, double lengthBeats);
-    /// `trackId` is the home track the clip is rendered on in the
+    bool setClipLoopContent(const std::string& clipId, bool loopContent);
     /// arrangement view. The target device is set later via
     /// `assignAutomationTarget` and may live on any track.
     std::string createAutomationClip(const std::string& trackId,

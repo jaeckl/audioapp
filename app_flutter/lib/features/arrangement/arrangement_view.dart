@@ -94,6 +94,7 @@ class ArrangementView extends StatefulWidget {
     this.onDeleteTrack,
     this.onDeleteClip,
     this.onDuplicateClip,
+    this.onSetClipLoopContent,
     this.onAddAutomationClip,
     this.automationLinkClipId,
     this.onAutomationLinkToggle,
@@ -148,6 +149,10 @@ class ArrangementView extends StatefulWidget {
   final void Function(String trackId)? onDeleteTrack;
   final void Function(String clipId)? onDeleteClip;
   final void Function(String clipId)? onDuplicateClip;
+  final Future<void> Function({
+    required String clipId,
+    required bool loopContent,
+  })? onSetClipLoopContent;
   final void Function(String trackId, double startBeat)? onAddAutomationClip;
   final String? automationLinkClipId;
   final void Function(String clipId)? onAutomationLinkToggle;
@@ -1519,10 +1524,29 @@ class ArrangementViewState extends State<ArrangementView> {
     }
   }
 
+  bool? _clipLoopContent(String clipId) {
+    for (final track in widget.snapshot.tracks) {
+      for (final clip in track.midiClips) {
+        if (clip.id == clipId) {
+          return clip.loopContent;
+        }
+      }
+      for (final clip in track.sampleClips) {
+        if (clip.id == clipId) {
+          return clip.loopContent;
+        }
+      }
+    }
+    return null;
+  }
+
   Future<void> _showClipMenu(String clipId) async {
-    if (widget.onDeleteClip == null && widget.onDuplicateClip == null) {
+    if (widget.onDeleteClip == null &&
+        widget.onDuplicateClip == null &&
+        widget.onSetClipLoopContent == null) {
       return;
     }
+    final loopContent = _clipLoopContent(clipId);
     final action = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: const Color(0xFF1A1A22),
@@ -1531,6 +1555,17 @@ class ArrangementViewState extends State<ArrangementView> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (loopContent != null && widget.onSetClipLoopContent != null)
+              ListTile(
+                leading: Icon(
+                  loopContent ? Icons.loop : Icons.loop_outlined,
+                ),
+                title: Text(loopContent ? 'Disable loop' : 'Loop content'),
+                onTap: () => Navigator.pop(
+                  context,
+                  loopContent ? 'loop_off' : 'loop_on',
+                ),
+              ),
             if (widget.onDuplicateClip != null)
               ListTile(
                 leading: const Icon(Icons.copy_outlined),
@@ -1548,7 +1583,17 @@ class ArrangementViewState extends State<ArrangementView> {
       ),
     );
     if (!mounted || action == null) return;
-    if (action == 'duplicate') {
+    if (action == 'loop_on') {
+      await widget.onSetClipLoopContent?.call(
+        clipId: clipId,
+        loopContent: true,
+      );
+    } else if (action == 'loop_off') {
+      await widget.onSetClipLoopContent?.call(
+        clipId: clipId,
+        loopContent: false,
+      );
+    } else if (action == 'duplicate') {
       widget.onDuplicateClip?.call(clipId);
     } else if (action == 'delete') {
       widget.onDeleteClip?.call(clipId);

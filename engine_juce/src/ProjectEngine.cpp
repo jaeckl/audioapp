@@ -1,5 +1,6 @@
 #include "audioapp/ProjectEngine.hpp"
 #include "audioapp/ProjectJson.hpp"
+#include "audioapp/ClipContentPlayback.hpp"
 #include "audioapp/TimelineClipTypes.hpp"
 #include "audioapp/MidiUtils.hpp"
 #include "audioapp/MasterMix.hpp"
@@ -480,6 +481,16 @@ bool ProjectEngine::setClipLength(const std::string& clipId, double lengthBeats)
     return true;
 }
 
+bool ProjectEngine::setClipLoopContent(const std::string& clipId, bool loopContent) {
+    const juce::ScopedWriteLock lock(mutex_);
+    if (!clipRepo_.setClipLoopContent(clipId, loopContent)) {
+        return false;
+    }
+    syncProjectTreeLocked();
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
 bool ProjectEngine::setBpm(int bpm) {
     const int oldBpm = transport_.bpm();
     if (oldBpm == bpm) return false;
@@ -627,6 +638,8 @@ ProjectSnapshot ProjectEngine::snapshot() const {
             cs.id = clip.id;
             cs.startBeat = clip.startBeat;
             cs.lengthBeats = clip.lengthBeats;
+            cs.naturalLengthBeats = clip.naturalLengthBeats;
+            cs.loopContent = clip.loopContent;
             cs.notes.reserve(clip.notes.size());
             for (const auto& note : clip.notes) {
                 cs.notes.push_back(MidiNoteState{
@@ -646,6 +659,7 @@ ProjectSnapshot ProjectEngine::snapshot() const {
             cs.startBeat = clip.startBeat;
             cs.lengthBeats = clip.lengthBeats;
             cs.naturalLengthBeats = clip.naturalLengthBeats;
+            cs.loopContent = clip.loopContent;
             if (sampleBank_ != nullptr) {
                 if (const auto* sample = sampleBank_->findSample(clip.sampleId)) {
                     cs.sampleName = sample->name;
@@ -713,6 +727,8 @@ float ProjectEngine::activeOscillatorFrequencyHz() const {
             note.noteStartBeat,
             note.noteDurationBeats,
             note.velocity,
+            note.loopContent,
+            note.contentLengthBeats,
         };
     }
     return midiActiveFrequencyHz(midiNotes, noteCount, playhead,
@@ -879,8 +895,14 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
             for (int i = 0; i < track.regionCount; ++i) {
                 const SampleRegion& source = track.regions[i];
                 regions[i] = SampleClipPlaybackRegion{
-                    source.clipStartBeat, source.clipLengthBeats, source.pcm,
-                    source.frameCount, source.pcmSampleRate};
+                    source.clipStartBeat,
+                    source.clipLengthBeats,
+                    source.pcm,
+                    source.frameCount,
+                    source.pcmSampleRate,
+                    source.loopContent,
+                    source.contentLengthBeats,
+                };
             }
             mixSampleRegionsBlock(trackLeft[trackIndex], framesToProcess, sampleRate,
                                   transport_.bpm(), playheadStartBeat, regions,
@@ -892,8 +914,15 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         for (int i = 0; i < ownNoteCount; ++i) {
             const PlaybackNote& note = track.notes[i];
             routedMidi[trackIndex][i] = MidiPlaybackNote{
-                note.pitch, note.clipStartBeat, note.clipLengthBeats,
-                note.noteStartBeat, note.noteDurationBeats, note.velocity};
+                note.pitch,
+                note.clipStartBeat,
+                note.clipLengthBeats,
+                note.noteStartBeat,
+                note.noteDurationBeats,
+                note.velocity,
+                note.loopContent,
+                note.contentLengthBeats,
+            };
         }
         routedMidiCount[trackIndex] = ownNoteCount;
     }
@@ -1075,6 +1104,8 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
             cs.id = clip.id;
             cs.startBeat = clip.startBeat;
             cs.lengthBeats = clip.lengthBeats;
+            cs.naturalLengthBeats = clip.naturalLengthBeats;
+            cs.loopContent = clip.loopContent;
             for (const auto& note : clip.notes) {
                 cs.notes.push_back(MidiNoteState{
                     note.pitch,
@@ -1092,6 +1123,7 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
             cs.startBeat = clip.startBeat;
             cs.lengthBeats = clip.lengthBeats;
             cs.naturalLengthBeats = clip.naturalLengthBeats;
+            cs.loopContent = clip.loopContent;
             if (sampleBank_ != nullptr) {
                 if (const auto* sample = sampleBank_->findSample(clip.sampleId)) {
                     cs.sampleName = sample->name;
@@ -1153,6 +1185,10 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
             clip.id = clipState.id;
             clip.startBeat = clipState.startBeat;
             clip.lengthBeats = clipState.lengthBeats;
+            clip.naturalLengthBeats = clipState.naturalLengthBeats > 0.0
+                ? clipState.naturalLengthBeats
+                : midiNotesContentLengthBeats(clipState.notes, clipState.lengthBeats);
+            clip.loopContent = clipState.loopContent;
             for (const auto& noteState : clipState.notes) {
                 MidiNote note;
                 note.pitch = noteState.pitch;
@@ -1169,6 +1205,8 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
             clip.sampleId = clipState.sampleId;
             clip.startBeat = clipState.startBeat;
             clip.lengthBeats = clipState.lengthBeats;
+            clip.naturalLengthBeats = clipState.naturalLengthBeats;
+            clip.loopContent = clipState.loopContent;
             track.sampleClips.push_back(std::move(clip));
         }
         trackRepo_.tracks().push_back(std::move(track));
@@ -1485,6 +1523,12 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
         }
 
         for (const auto& clip : sourceTrack.midiClips) {
+            const double contentLengthBeats =
+                clip.loopContent
+                    ? midiClipLoopContentLengthBeats(
+                          clip.notes, clip.naturalLengthBeats, clip.lengthBeats)
+                    : midiClipOneShotContentLengthBeats(
+                          clip.notes, clip.naturalLengthBeats, clip.lengthBeats);
             for (const auto& note : clip.notes) {
                 if (snap.noteCount >= static_cast<int>(sizeof(snap.notes) / sizeof(snap.notes[0]))) {
                     break;
@@ -1496,6 +1540,8 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                     note.startBeat,
                     note.durationBeats,
                     note.velocity,
+                    clip.loopContent,
+                    contentLengthBeats,
                 };
             }
         }
@@ -1515,6 +1561,8 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                     sample->pcm.data(),
                     static_cast<int>(sample->pcm.size()),
                     sample->sampleRate,
+                    clip.loopContent,
+                    clip.naturalLengthBeats,
                 };
             }
         }
@@ -1749,6 +1797,15 @@ void ProjectEngine::rebuildRepoCacheFromTree() {
                 clip.id = child[state::props::id].toString().toStdString();
                 clip.startBeat = static_cast<double>(child[state::props::startBeat]);
                 clip.lengthBeats = static_cast<double>(child[state::props::lengthBeats]);
+                if (child.hasProperty(state::props::naturalLength)) {
+                    clip.naturalLengthBeats =
+                        static_cast<double>(child[state::props::naturalLength]);
+                } else {
+                    clip.naturalLengthBeats = clip.lengthBeats;
+                }
+                if (child.hasProperty(state::props::loopContent)) {
+                    clip.loopContent = static_cast<bool>(child[state::props::loopContent]);
+                }
                 for (int ni = 0; ni < child.getNumChildren(); ++ni) {
                     auto noteTree = child.getChild(ni);
                     if (!noteTree.hasType(state::kMidiNoteType.data())) continue;
@@ -1759,6 +1816,11 @@ void ProjectEngine::rebuildRepoCacheFromTree() {
                     note.velocity = static_cast<float>(static_cast<double>(noteTree[state::props::velocity]));
                     clip.notes.push_back(std::move(note));
                 }
+                if (!child.hasProperty(state::props::naturalLength)) {
+                    const double noteEnd = midiNotesContentLengthBeats(clip.notes, 0.0);
+                    clip.naturalLengthBeats =
+                        noteEnd > 0.0 ? noteEnd : clip.lengthBeats;
+                }
                 track.midiClips.push_back(std::move(clip));
             } else if (child.hasType(state::kSampleClipType.data())) {
                 SampleClip clip;
@@ -1768,6 +1830,9 @@ void ProjectEngine::rebuildRepoCacheFromTree() {
                 clip.lengthBeats = static_cast<double>(child[state::props::lengthBeats]);
                 if (child.hasProperty(state::props::naturalLength))
                     clip.naturalLengthBeats = static_cast<double>(child[state::props::naturalLength]);
+                if (child.hasProperty(state::props::loopContent)) {
+                    clip.loopContent = static_cast<bool>(child[state::props::loopContent]);
+                }
                 track.sampleClips.push_back(std::move(clip));
             }
         }
@@ -1870,7 +1935,9 @@ void ProjectEngine::syncProjectTreeLocked() {
             trackTree.addChild(std::move(devTree), -1, nullptr);
         }
         for (const auto& clip : track.midiClips) {
-            auto clipTree = state::createMidiClipTree(clip.id, clip.startBeat, clip.lengthBeats);
+            auto clipTree = state::createMidiClipTree(
+                clip.id, clip.startBeat, clip.lengthBeats, clip.naturalLengthBeats);
+            clipTree.setProperty(state::props::loopContent, clip.loopContent, nullptr);
             for (const auto& note : clip.notes) {
                 juce::ValueTree noteTree{state::kMidiNoteType.data()};
                 noteTree.setProperty(state::props::pitch, note.pitch, nullptr);
@@ -1884,6 +1951,7 @@ void ProjectEngine::syncProjectTreeLocked() {
         for (const auto& clip : track.sampleClips) {
             auto clipTree = state::createSampleClipTree(
                 clip.id, clip.sampleId, clip.startBeat, clip.lengthBeats, clip.naturalLengthBeats);
+            clipTree.setProperty(state::props::loopContent, clip.loopContent, nullptr);
             trackTree.addChild(std::move(clipTree), -1, nullptr);
         }
         projectRoot_.addChild(std::move(trackTree), -1, nullptr);

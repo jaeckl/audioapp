@@ -12,6 +12,8 @@ struct SampleClipPlaybackRegion {
     const float* pcm = nullptr;
     int frameCount = 0;
     double sampleRate = 48000.0;
+    bool loopContent = false;
+    double contentLengthBeats = 4.0;
 };
 
 struct SamplerMidiNoteRegion {
@@ -21,6 +23,8 @@ struct SamplerMidiNoteRegion {
     double noteStartBeat = 0.0;
     double noteDurationBeats = 1.0;
     float velocity = 100.0f;
+    bool loopContent = false;
+    double contentLengthBeats = 4.0;
 };
 
 struct SamplerInstrumentPlayback {

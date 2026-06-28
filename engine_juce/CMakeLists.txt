@@ -219,6 +219,7 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/bass_synth_test.cpp
     tests/clap_generator_test.cpp
     tests/clip_length_test.cpp
+    tests/clip_loop_content_test.cpp
     tests/common_param_modulation_test.cpp
     tests/crash_generator_test.cpp
     tests/cymbal_generator_test.cpp

@@ -1,5 +1,6 @@
 #include "audioapp/SamplePlaybackAlgorithm.hpp"
 
+#include "audioapp/ClipContentPlayback.hpp"
 #include "audioapp/SamplerFilter.hpp"
 
 #include <algorithm>
@@ -102,19 +103,27 @@ float samplerAdsrGain(float elapsedSec,
 }
 
 bool isSamplerMidiNoteActive(const SamplerMidiNoteRegion& note, double beat) {
-    if (beat < note.clipStartBeat || beat >= note.clipStartBeat + note.clipLengthBeats) {
-        return false;
-    }
-    const double posInClip = beat - note.clipStartBeat;
-    const double loopedBeat = std::fmod(posInClip, note.clipLengthBeats);
-    return loopedBeat >= note.noteStartBeat
-        && loopedBeat < (note.noteStartBeat + note.noteDurationBeats);
+    return isMidiNoteActiveInClip(
+        beat,
+        note.clipStartBeat,
+        note.clipLengthBeats,
+        note.contentLengthBeats,
+        note.loopContent,
+        note.noteStartBeat,
+        note.noteDurationBeats);
 }
 
 double samplerMidiNoteElapsedBeats(const SamplerMidiNoteRegion& note, double beat) {
-    const double posInClip = beat - note.clipStartBeat;
-    const double loopedBeat = std::fmod(posInClip, note.clipLengthBeats);
-    return loopedBeat - note.noteStartBeat;
+    const double inContent = beatWithinClipContent(
+        beat,
+        note.clipStartBeat,
+        note.clipLengthBeats,
+        note.contentLengthBeats,
+        note.loopContent);
+    if (inContent < 0.0) {
+        return 0.0;
+    }
+    return inContent - note.noteStartBeat;
 }
 
 bool computeSamplerReadPosition(const int playbackMode,
@@ -172,15 +181,20 @@ void mixSampleRegionsBlock(float* monoOut,
         float mix = 0.0f;
         for (int regionIndex = 0; regionIndex < regionCount; ++regionIndex) {
             const auto& region = regions[regionIndex];
-            if (region.pcm == nullptr || region.frameCount <= 0 || region.clipLengthBeats <= 0.0) {
+            if (region.pcm == nullptr || region.frameCount <= 0 || region.contentLengthBeats <= 0.0) {
                 continue;
             }
-            const double clipEnd = region.clipStartBeat + region.clipLengthBeats;
-            if (beat < region.clipStartBeat || beat >= clipEnd) {
+            bool active = false;
+            const double progress = sampleContentProgress(
+                beat,
+                region.clipStartBeat,
+                region.clipLengthBeats,
+                region.contentLengthBeats,
+                region.loopContent,
+                active);
+            if (!active) {
                 continue;
             }
-            const double localBeat = beat - region.clipStartBeat;
-            const double progress = localBeat / region.clipLengthBeats;
             const double readPos = progress * static_cast<double>(region.frameCount);
             const int index = static_cast<int>(readPos);
             const float frac = static_cast<float>(readPos - static_cast<double>(index));

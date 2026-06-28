@@ -111,6 +111,8 @@ struct SubtractiveMidiNoteRegion {
     double noteStartBeat = 0.0;
     double noteDurationBeats = 1.0;
     float velocity = 100.0f;
+    bool loopContent = false;
+    double contentLengthBeats = 4.0;
 };
 
 /// Direct-renderer entry point. Called by the arrangement playback path
