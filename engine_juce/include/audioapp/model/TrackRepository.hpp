@@ -16,6 +16,9 @@ public:
     std::string addTrack(const std::string& name, const DeviceRegistry& registry);
     std::string addGroupTrack(const std::string& name, const DeviceRegistry& registry);
     bool setTrackGroup(const std::string& trackId, const std::string& groupTrackId);
+    bool moveTrack(const std::string& trackId,
+                   const std::string& parentGroupId,
+                   const std::string& beforeTrackId);
     bool deleteTrack(const std::string& trackId);
     bool selectTrack(const std::string& trackId);
 
@@ -30,6 +33,7 @@ public:
 
     std::string allocateDeviceId();
     void ensureTrackGainDevices(const DeviceRegistry& registry);
+    void ensureTrackIcons();
     void recomputeIdCounters();
 
     int nextTrackNum() const { return nextTrackNum_; }
@@ -37,6 +41,7 @@ public:
 
 private:
     static int maxIdSuffix(const std::string& id, const std::string& prefix);
+    static std::string defaultIconKey(size_t ordinal);
 
     std::vector<Track> tracks_;
     std::string selectedTrackId_;

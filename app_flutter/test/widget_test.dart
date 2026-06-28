@@ -603,7 +603,10 @@ void main() {
 
     await tester.tap(find.byTooltip('Add track'));
     await tester.pumpAndSettle();
-    await tester.longPress(find.byTooltip('Track 1'));
+    final trackHeader = tester.getRect(find.byTooltip('Track 1'));
+    await tester.longPressAt(
+      Offset(trackHeader.right + 120, trackHeader.center.dy),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Add MIDI Clip'));
     await tester.pumpAndSettle();
@@ -639,7 +642,10 @@ void main() {
 
     await tester.tap(find.byTooltip('Add track'));
     await tester.pumpAndSettle();
-    await tester.longPress(find.byTooltip('Track 1'));
+    final trackHeader = tester.getRect(find.byTooltip('Track 1'));
+    await tester.longPressAt(
+      Offset(trackHeader.right + 120, trackHeader.center.dy),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Add MIDI Clip'));
     await tester.pumpAndSettle();

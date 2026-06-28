@@ -47,6 +47,12 @@ bool EngineHost::setTrackGroup(const std::string& trackId,
     return project_->setTrackGroup(trackId, groupTrackId);
 }
 
+bool EngineHost::moveTrack(const std::string& trackId,
+                           const std::string& parentGroupId,
+                           const std::string& beforeTrackId) {
+    return project_->moveTrack(trackId, parentGroupId, beforeTrackId);
+}
+
 bool EngineHost::selectTrack(const std::string& trackId) {
     return project_->selectTrack(trackId);
 }
@@ -968,6 +974,16 @@ void EngineHost::registerAllCommands() {
         const auto groupTrackId = ctx.args["groupTrackId"].toString().toStdString();
         if (!ctx.engine.setTrackGroup(trackId, groupTrackId))
             return commands::errorResult("invalid_group_assignment");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("moveTrack", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto trackId = ctx.args["trackId"].toString().toStdString();
+        const auto parentGroupId = ctx.args["parentGroupId"].toString().toStdString();
+        const auto beforeTrackId = ctx.args["beforeTrackId"].toString().toStdString();
+        if (!ctx.engine.moveTrack(trackId, parentGroupId, beforeTrackId))
+            return commands::errorResult("invalid_track_move");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
         return commands::okWithFullRefresh(snap);
     });

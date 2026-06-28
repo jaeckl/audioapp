@@ -20,6 +20,10 @@ float rms(const std::vector<float>& audio) {
     return audio.empty() ? 0.0f : static_cast<float>(std::sqrt(sum / audio.size()));
 }
 
+size_t trackPosition(const std::string& json, const std::string& trackId) {
+    return json.find("\"id\": \"" + trackId + "\"");
+}
+
 } // namespace
 
 int main() {
@@ -47,6 +51,8 @@ int main() {
     const std::string snapshot = host.getProjectSnapshotJson();
     expect(snapshot.find("\"isGroup\": true") != std::string::npos,
            "snapshot identifies the group");
+    expect(snapshot.find("\"iconKey\": \"folder\"") != std::string::npos,
+           "snapshot persists group icon metadata");
     expect(snapshot.find("\"parentGroupId\": \"" + group + "\"") != std::string::npos,
            "snapshot exposes child membership");
 
@@ -57,6 +63,8 @@ int main() {
     const std::string restoredSnapshot = restored.getProjectSnapshotJson();
     expect(restoredSnapshot.find("\"isGroup\": true") != std::string::npos,
            "reloaded project keeps the group");
+    expect(restoredSnapshot.find("\"iconKey\": \"folder\"") != std::string::npos,
+           "reloaded project keeps track icon metadata");
     expect(restoredSnapshot.find("\"parentGroupId\": \"" + group + "\"") !=
                std::string::npos,
            "reloaded project keeps child membership");
@@ -65,6 +73,38 @@ int main() {
     expect(!receiver.empty(), "child receiver is created");
     expect(!host.setDeviceStringParameter(receiver, "sourceId", "dev-2"),
            "routing from group back into its child is rejected");
+
+    audioapp::EngineHost orderHost;
+    orderHost.createProject();
+    const auto orderGroup = orderHost.addGroupTrack("Bus");
+    const auto first = orderHost.addTrack("First");
+    const auto second = orderHost.addTrack("Second");
+    const auto outside = orderHost.addTrack("Outside");
+    expect(orderHost.moveTrack(first, orderGroup, ""),
+           "track can be appended to a group");
+    expect(orderHost.moveTrack(second, orderGroup, first),
+           "track can be inserted before a group child");
+    std::string ordered = orderHost.getProjectSnapshotJson();
+    expect(trackPosition(ordered, orderGroup) < trackPosition(ordered, second) &&
+               trackPosition(ordered, second) < trackPosition(ordered, first) &&
+               trackPosition(ordered, first) < trackPosition(ordered, outside),
+           "group child insertion order is reflected in the snapshot");
+
+    expect(orderHost.moveTrack(first, "", orderGroup),
+           "dropping outside removes group membership");
+    ordered = orderHost.getProjectSnapshotJson();
+    expect(trackPosition(ordered, first) < trackPosition(ordered, orderGroup) &&
+               trackPosition(ordered, orderGroup) < trackPosition(ordered, second),
+           "ungrouped track is inserted at its top-level anchor");
+
+    expect(orderHost.moveTrack(orderGroup, "", first),
+           "group track can move as a top-level block");
+    ordered = orderHost.getProjectSnapshotJson();
+    expect(trackPosition(ordered, orderGroup) < trackPosition(ordered, second) &&
+               trackPosition(ordered, second) < trackPosition(ordered, first),
+           "moving a group carries its children");
+    expect(!orderHost.moveTrack(orderGroup, orderGroup, ""),
+           "groups cannot be nested into themselves");
 
     if (failures != 0) return 1;
     std::cout << "All group track tests passed\n";

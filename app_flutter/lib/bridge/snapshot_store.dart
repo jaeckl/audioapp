@@ -141,6 +141,7 @@ class SnapshotStore extends ChangeNotifier {
       return TrackSnapshot(
         id: track.id,
         name: track.name,
+        iconKey: track.iconKey,
         isGroup: track.isGroup,
         parentGroupId: track.parentGroupId,
         devices: track.devices.map((device) {

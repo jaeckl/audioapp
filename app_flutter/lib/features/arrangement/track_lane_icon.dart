@@ -18,12 +18,25 @@ class TrackLaneIcon {
   ];
 
   static IconData iconForTrack(TrackSnapshot track, int index) {
-    if (track.isGroup) {
-      return Icons.folder_outlined;
+    switch (track.iconKey) {
+      case 'folder':
+        return Icons.folder_outlined;
+      case 'piano':
+        return Icons.piano;
+      case 'waveform':
+        return Icons.graphic_eq;
+      case 'microphone':
+        return Icons.mic_external_on;
+      case 'audio':
+        return Icons.audiotrack;
+      case 'album':
+        return Icons.album_outlined;
+      case 'speaker':
+        return Icons.speaker;
     }
-    if (track.devices.any((d) => d.type.contains('oscillator'))) {
-      return Icons.graphic_eq;
-    }
-    return _laneIcons[index % _laneIcons.length];
+    if (track.isGroup) return Icons.folder_outlined;
+    final stableIndex =
+        track.id.codeUnits.fold<int>(0, (sum, unit) => sum + unit);
+    return _laneIcons[stableIndex % _laneIcons.length];
   }
 }

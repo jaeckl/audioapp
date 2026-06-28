@@ -75,9 +75,15 @@ std::string ProjectEngine::addGroupTrack(const std::string& name) {
 
 bool ProjectEngine::setTrackGroup(const std::string& trackId,
                                   const std::string& groupTrackId) {
+    return moveTrack(trackId, groupTrackId, {});
+}
+
+bool ProjectEngine::moveTrack(const std::string& trackId,
+                              const std::string& parentGroupId,
+                              const std::string& beforeTrackId) {
     const juce::ScopedWriteLock lock(mutex_);
     const auto previousTracks = trackRepo_.tracks();
-    if (!trackRepo_.setTrackGroup(trackId, groupTrackId)) {
+    if (!trackRepo_.moveTrack(trackId, parentGroupId, beforeTrackId)) {
         return false;
     }
     rebuildTrackPlaybackLocked();
@@ -586,6 +592,7 @@ ProjectSnapshot ProjectEngine::snapshot() const {
         TrackState ts;
         ts.id = track.id;
         ts.name = track.name;
+        ts.iconKey = track.iconKey;
         ts.isGroup = track.isGroup;
         ts.parentGroupId = track.parentGroupId;
         ts.devices.reserve(track.devices.size());
@@ -991,6 +998,7 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
         TrackState ts;
         ts.id = track.id;
         ts.name = track.name;
+        ts.iconKey = track.iconKey;
         ts.isGroup = track.isGroup;
         ts.parentGroupId = track.parentGroupId;
         for (const auto& device : track.devices) {
@@ -1066,6 +1074,7 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
         Track track;
         track.id = trackState.id;
         track.name = trackState.name;
+        track.iconKey = trackState.iconKey;
         track.isGroup = trackState.isGroup;
         track.parentGroupId = trackState.parentGroupId;
         for (const auto& deviceState : trackState.devices) {
@@ -1122,6 +1131,7 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
 
     recomputeIdCountersLocked();
     trackRepo_.ensureTrackGainDevices(deviceRegistry_);
+    trackRepo_.ensureTrackIcons();
 
     modulationGraph_.replaceRecords(data.lfos, data.modEdges);
     // Rebuild the playback array BEFORE rebuilding the track snapshot.
@@ -1644,6 +1654,7 @@ void ProjectEngine::rebuildRepoCacheFromTree() {
         Track track;
         track.id = trackTree[state::props::id].toString().toStdString();
         track.name = trackTree[state::props::name].toString().toStdString();
+        track.iconKey = trackTree[state::props::iconKey].toString().toStdString();
         track.isGroup = static_cast<bool>(trackTree[state::props::isGroup]);
         track.parentGroupId = trackTree[state::props::parentGroupId].toString().toStdString();
 
@@ -1688,6 +1699,7 @@ void ProjectEngine::rebuildRepoCacheFromTree() {
         }
         trackRepo_.tracks().push_back(std::move(track));
     }
+    trackRepo_.ensureTrackIcons();
     if (projectRoot_.hasProperty(state::props::selectedTrackId))
         trackRepo_.setSelectedTrackId(projectRoot_[state::props::selectedTrackId].toString().toStdString());
 
@@ -1775,7 +1787,7 @@ void ProjectEngine::syncProjectTreeLocked() {
 
     for (const auto& track : trackRepo_.tracks()) {
         auto trackTree = state::createTrackTree(
-            track.id, track.name, track.isGroup, track.parentGroupId);
+            track.id, track.name, track.iconKey, track.isGroup, track.parentGroupId);
         for (const auto& device : track.devices) {
             const std::string configJson = deviceSlotToVar(device, deviceRegistry_);
             auto devTree = state::createDeviceTree(device.id, device.config.typeId, configJson);

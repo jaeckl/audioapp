@@ -300,6 +300,7 @@ class TrackSnapshot {
   const TrackSnapshot({
     required this.id,
     required this.name,
+    this.iconKey = '',
     this.isGroup = false,
     this.parentGroupId = '',
     required this.devices,
@@ -310,6 +311,7 @@ class TrackSnapshot {
 
   final String id;
   final String name;
+  final String iconKey;
   final bool isGroup;
   final String parentGroupId;
   final List<DeviceSnapshot> devices;
@@ -340,6 +342,7 @@ class TrackSnapshot {
     return TrackSnapshot(
       id: map['id'] as String? ?? '',
       name: map['name'] as String? ?? '',
+      iconKey: map['iconKey'] as String? ?? '',
       isGroup: map['isGroup'] as bool? ?? false,
       parentGroupId: map['parentGroupId'] as String? ?? '',
       devices: devicesRaw

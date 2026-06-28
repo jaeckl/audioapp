@@ -101,6 +101,18 @@ class EngineBridge {
     });
   }
 
+  Future<ProjectSnapshot> moveTrack({
+    required String trackId,
+    String parentGroupId = '',
+    String beforeTrackId = '',
+  }) async {
+    return _invokeForSnapshot('moveTrack', {
+      'trackId': trackId,
+      'parentGroupId': parentGroupId,
+      'beforeTrackId': beforeTrackId,
+    });
+  }
+
   Future<ProjectSnapshot> selectTrack(String trackId) async {
     return _invokeForSnapshot('selectTrack', {'trackId': trackId});
   }

@@ -47,6 +47,7 @@ struct DeviceMeterState {
 struct TrackState {
     std::string id;
     std::string name;
+    std::string iconKey;
     bool isGroup = false;
     std::string parentGroupId;
     std::vector<DeviceSlot> devices;
@@ -99,6 +100,9 @@ public:
     std::string addTrack(const std::string& name);
     std::string addGroupTrack(const std::string& name);
     bool setTrackGroup(const std::string& trackId, const std::string& groupTrackId);
+    bool moveTrack(const std::string& trackId,
+                   const std::string& parentGroupId,
+                   const std::string& beforeTrackId);
     bool selectTrack(const std::string& trackId);
     std::string addDeviceToTrack(const std::string& trackId,
                                  const std::string& deviceType,

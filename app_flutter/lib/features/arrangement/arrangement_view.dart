@@ -23,6 +23,38 @@ import 'track_lane_icon.dart';
 
 enum _RulerDragTarget { playhead, regionStart, regionEnd }
 
+enum _TrackDropZone { before, inside, after }
+
+class _TrackDragData {
+  const _TrackDragData(this.track);
+  final TrackSnapshot track;
+}
+
+class _TrackDropIntent {
+  const _TrackDropIntent({
+    required this.trackId,
+    required this.parentGroupId,
+    required this.beforeTrackId,
+    required this.zone,
+  });
+
+  final String trackId;
+  final String parentGroupId;
+  final String beforeTrackId;
+  final _TrackDropZone zone;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _TrackDropIntent &&
+      other.trackId == trackId &&
+      other.parentGroupId == parentGroupId &&
+      other.beforeTrackId == beforeTrackId &&
+      other.zone == zone;
+
+  @override
+  int get hashCode => Object.hash(trackId, parentGroupId, beforeTrackId, zone);
+}
+
 // Clip resize (WP-1) — keep new code grouped here so it is easy to audit.
 //
 // The handle visual mirrors the sampler trim handle in
@@ -44,6 +76,7 @@ class ArrangementView extends StatefulWidget {
     required this.onAddTrack,
     this.onAddGroup,
     this.onSetTrackGroup,
+    this.onMoveTrack,
     required this.onAddMidiClip,
     required this.onAddAudioClip,
     required this.playheadBeats,
@@ -78,6 +111,11 @@ class ArrangementView extends StatefulWidget {
   final VoidCallback? onAddGroup;
   final Future<void> Function(String trackId, String? groupTrackId)?
       onSetTrackGroup;
+  final Future<void> Function({
+    required String trackId,
+    required String parentGroupId,
+    required String beforeTrackId,
+  })? onMoveTrack;
   final void Function(String trackId, double startBeat) onAddMidiClip;
   final void Function(String trackId, double desiredStartBeat) onAddAudioClip;
   final double playheadBeats;
@@ -133,6 +171,8 @@ class ArrangementViewState extends State<ArrangementView> {
   final ScrollController _horizontalScroll = ScrollController();
   final ScrollController _masterScroll = ScrollController();
   final ScrollController _rulerScroll = ScrollController();
+  final ScrollController _trackVerticalScroll = ScrollController();
+  final ScrollController _headerVerticalScroll = ScrollController();
   final GlobalKey _timelineViewportKey = GlobalKey();
   final GlobalKey _trackLanesKey = GlobalKey();
   final GlobalKey _arrangementStackKey = GlobalKey();
@@ -142,6 +182,7 @@ class ArrangementViewState extends State<ArrangementView> {
   final Set<int> _activePointerIds = {};
   final Set<String> _collapsedGroupIds = {};
   bool _syncingScroll = false;
+  bool _syncingVerticalScroll = false;
   bool _scrubbingPlayhead = false;
   double? _scrubPlayheadBeats;
   ArrangementClipDragSession? _clipDrag;
@@ -335,6 +376,8 @@ class ArrangementViewState extends State<ArrangementView> {
     super.initState();
     _horizontalScroll.addListener(_onTimelineScroll);
     _masterScroll.addListener(_syncMasterScrollToTrack);
+    _trackVerticalScroll.addListener(_syncTrackVerticalToHeader);
+    _headerVerticalScroll.addListener(_syncHeaderVerticalToTrack);
     _bindTimelineScrollController();
     widget.playheadListenable?.addListener(_onPlayheadListenableTick);
   }
@@ -640,9 +683,13 @@ class ArrangementViewState extends State<ArrangementView> {
     widget.timelineScrollController?.bind();
     _horizontalScroll.removeListener(_onTimelineScroll);
     _masterScroll.removeListener(_syncMasterScrollToTrack);
+    _trackVerticalScroll.removeListener(_syncTrackVerticalToHeader);
+    _headerVerticalScroll.removeListener(_syncHeaderVerticalToTrack);
     _horizontalScroll.dispose();
     _masterScroll.dispose();
     _rulerScroll.dispose();
+    _trackVerticalScroll.dispose();
+    _headerVerticalScroll.dispose();
     super.dispose();
   }
 
@@ -693,6 +740,32 @@ class ArrangementViewState extends State<ArrangementView> {
       _rulerScroll.jumpTo(offset);
     }
     _syncingScroll = false;
+  }
+
+  void _syncTrackVerticalToHeader() {
+    if (_syncingVerticalScroll || !_trackVerticalScroll.hasClients) return;
+    _syncingVerticalScroll = true;
+    if (_headerVerticalScroll.hasClients) {
+      final target = _trackVerticalScroll.offset.clamp(
+        0.0,
+        _headerVerticalScroll.position.maxScrollExtent,
+      );
+      _headerVerticalScroll.jumpTo(target);
+    }
+    _syncingVerticalScroll = false;
+  }
+
+  void _syncHeaderVerticalToTrack() {
+    if (_syncingVerticalScroll || !_headerVerticalScroll.hasClients) return;
+    _syncingVerticalScroll = true;
+    if (_trackVerticalScroll.hasClients) {
+      final target = _headerVerticalScroll.offset.clamp(
+        0.0,
+        _trackVerticalScroll.position.maxScrollExtent,
+      );
+      _trackVerticalScroll.jumpTo(target);
+    }
+    _syncingVerticalScroll = false;
   }
 
   void _onPointerDown(PointerDownEvent event) {
@@ -791,8 +864,14 @@ class ArrangementViewState extends State<ArrangementView> {
     if (localY < 0) {
       return 0;
     }
-    final index = localY ~/ ArrangementTimelineMetrics.trackLaneHeight;
-    return index.clamp(0, widget.snapshot.tracks.length - 1);
+    final visibleTracks = _visibleTracks();
+    if (visibleTracks.isEmpty) return 0;
+    final visibleIndex = (localY ~/ ArrangementTimelineMetrics.trackLaneHeight)
+        .clamp(0, visibleTracks.length - 1);
+    final trackId = visibleTracks[visibleIndex].id;
+    final snapshotIndex =
+        widget.snapshot.tracks.indexWhere((track) => track.id == trackId);
+    return snapshotIndex < 0 ? 0 : snapshotIndex;
   }
 
   double _desiredBeatForDrag(
@@ -1241,6 +1320,125 @@ class ArrangementViewState extends State<ArrangementView> {
     }).toList();
   }
 
+  TrackSnapshot? _trackSnapshotById(String id) {
+    for (final track in widget.snapshot.tracks) {
+      if (track.id == id) return track;
+    }
+    return null;
+  }
+
+  String _nextTrackIdInScope({
+    required TrackSnapshot target,
+    required String parentGroupId,
+    required TrackSnapshot source,
+  }) {
+    var passedTarget = false;
+    for (final candidate in widget.snapshot.tracks) {
+      if (!passedTarget) {
+        passedTarget = candidate.id == target.id;
+        continue;
+      }
+      if (candidate.parentGroupId != parentGroupId) continue;
+      if (candidate.id == source.id) continue;
+      if (source.isGroup && candidate.parentGroupId == source.id) continue;
+      return candidate.id;
+    }
+    return '';
+  }
+
+  _TrackDropIntent? _trackDropIntent(
+    _TrackDragData data,
+    TrackSnapshot target,
+    _TrackDropZone zone,
+  ) {
+    final source = data.track;
+    if (widget.onMoveTrack == null || source.id == target.id) return null;
+    if (source.isGroup && target.parentGroupId == source.id) return null;
+
+    if (source.isGroup) {
+      final topLevelTarget = target.parentGroupId.isEmpty
+          ? target
+          : _trackSnapshotById(target.parentGroupId);
+      if (topLevelTarget == null || topLevelTarget.id == source.id) return null;
+      final insertBefore = zone == _TrackDropZone.before
+          ? topLevelTarget.id
+          : _nextTrackIdInScope(
+              target: topLevelTarget,
+              parentGroupId: '',
+              source: source,
+            );
+      return _TrackDropIntent(
+        trackId: source.id,
+        parentGroupId: '',
+        beforeTrackId: insertBefore,
+        zone: zone == _TrackDropZone.before
+            ? _TrackDropZone.before
+            : _TrackDropZone.after,
+      );
+    }
+
+    if (target.isGroup && zone == _TrackDropZone.inside) {
+      return _TrackDropIntent(
+        trackId: source.id,
+        parentGroupId: target.id,
+        beforeTrackId: '',
+        zone: _TrackDropZone.inside,
+      );
+    }
+
+    final parentGroupId = target.parentGroupId;
+    final insertBefore = zone == _TrackDropZone.before
+        ? target.id
+        : _nextTrackIdInScope(
+            target: target,
+            parentGroupId: parentGroupId,
+            source: source,
+          );
+    return _TrackDropIntent(
+      trackId: source.id,
+      parentGroupId: parentGroupId,
+      beforeTrackId: insertBefore,
+      zone: zone == _TrackDropZone.before
+          ? _TrackDropZone.before
+          : _TrackDropZone.after,
+    );
+  }
+
+  Future<void> _commitTrackDrop(_TrackDropIntent intent) async {
+    HapticFeedback.mediumImpact();
+    await widget.onMoveTrack?.call(
+      trackId: intent.trackId,
+      parentGroupId: intent.parentGroupId,
+      beforeTrackId: intent.beforeTrackId,
+    );
+  }
+
+  void _autoScrollTrackDrag(DragUpdateDetails details) {
+    if (!_trackVerticalScroll.hasClients) return;
+    final stack =
+        _arrangementStackKey.currentContext?.findRenderObject() as RenderBox?;
+    if (stack == null) return;
+    final localY = stack.globalToLocal(details.globalPosition).dy;
+    final viewportTop = PianoRollMetrics.rulerHeight;
+    final viewportBottom = stack.size.height -
+        (widget.compact ? 0 : ArrangementTimelineMetrics.trackLaneHeight);
+    const edgeSize = 52.0;
+    double delta = 0;
+    if (localY < viewportTop + edgeSize) {
+      delta = -18;
+    } else if (localY > viewportBottom - edgeSize) {
+      delta = 18;
+    }
+    if (delta == 0) return;
+    final target = (_trackVerticalScroll.offset + delta).clamp(
+      0.0,
+      _trackVerticalScroll.position.maxScrollExtent,
+    );
+    if (target != _trackVerticalScroll.offset) {
+      _trackVerticalScroll.jumpTo(target);
+    }
+  }
+
   Future<void> _showClipMenu(String clipId) async {
     if (widget.onDeleteClip == null && widget.onDuplicateClip == null) {
       return;
@@ -1318,36 +1516,41 @@ class ArrangementViewState extends State<ArrangementView> {
                 Column(
                   children: [
                     for (final track in visibleTracks)
-                      _TrackLane(
-                        track: track,
-                        selected: track.id == widget.snapshot.selectedTrackId,
-                        onTap: () => widget.onTrackSelected(track.id),
-                        pixelsPerBeat: _pixelsPerBeat,
-                        timelineEndBeat: _timelineEndBeat,
-                        viewportWidthPx: viewportWidth,
-                        draggingClipId: _clipDrag?.clipId,
-                        onClipTap: widget.onClipTap,
-                        onSampleClipTap: widget.onSampleClipTap,
-                        onClipDragStart: _startClipDrag,
-                        onClipDragUpdate: _updateClipDrag,
-                        onClipDragEnd: _onClipDragEnd,
-                        onClipDragCancel: _cancelClipDrag,
-                        onLongPressStart: (details) => _onTrackLongPress(
-                          track,
-                          details,
-                          lanePress: true,
+                      _TrackDropTarget(
+                        target: track,
+                        intentBuilder: _trackDropIntent,
+                        onDrop: _commitTrackDrop,
+                        child: _TrackLane(
+                          track: track,
+                          selected: track.id == widget.snapshot.selectedTrackId,
+                          onTap: () => widget.onTrackSelected(track.id),
+                          pixelsPerBeat: _pixelsPerBeat,
+                          timelineEndBeat: _timelineEndBeat,
+                          viewportWidthPx: viewportWidth,
+                          draggingClipId: _clipDrag?.clipId,
+                          onClipTap: widget.onClipTap,
+                          onSampleClipTap: widget.onSampleClipTap,
+                          onClipDragStart: _startClipDrag,
+                          onClipDragUpdate: _updateClipDrag,
+                          onClipDragEnd: _onClipDragEnd,
+                          onClipDragCancel: _cancelClipDrag,
+                          onLongPressStart: (details) => _onTrackLongPress(
+                            track,
+                            details,
+                            lanePress: true,
+                          ),
+                          onResizeClipStart: _startClipResize,
+                          onResizeClipUpdate: _updateClipResize,
+                          onResizeClipEnd: _endClipResize,
+                          onResizeClipCancel: _cancelClipResize,
+                          previewLengthFor: previewLengthFor,
+                          onDeleteClip: widget.onDeleteClip,
+                          onClipMenu: _showClipMenu,
+                          automationLinkClipId: widget.automationLinkClipId,
+                          onAutomationLinkToggle: widget.onAutomationLinkToggle,
+                          onAutomationClipDoubleTap:
+                              widget.onAutomationClipDoubleTap,
                         ),
-                        onResizeClipStart: _startClipResize,
-                        onResizeClipUpdate: _updateClipResize,
-                        onResizeClipEnd: _endClipResize,
-                        onResizeClipCancel: _cancelClipResize,
-                        previewLengthFor: previewLengthFor,
-                        onDeleteClip: widget.onDeleteClip,
-                        onClipMenu: _showClipMenu,
-                        automationLinkClipId: widget.automationLinkClipId,
-                        onAutomationLinkToggle: widget.onAutomationLinkToggle,
-                        onAutomationClipDoubleTap:
-                            widget.onAutomationClipDoubleTap,
                       ),
                     if (!widget.compact) const _AddTrackLane(),
                   ],
@@ -1357,44 +1560,59 @@ class ArrangementViewState extends State<ArrangementView> {
           );
 
           final clipDrag = _clipDrag;
+          final clipDragVisibleIndex = clipDrag == null
+              ? -1
+              : visibleTracks.indexWhere(
+                  (track) =>
+                      track.id ==
+                      widget.snapshot.tracks[clipDrag.targetTrackIndex].id,
+                );
 
           final trackHeaders = Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               for (var i = 0; i < visibleTracks.length; i++)
-                _TrackHeader(
-                  track: visibleTracks[i],
-                  index: widget.snapshot.tracks
-                      .indexWhere((t) => t.id == visibleTracks[i].id),
-                  selected:
-                      visibleTracks[i].id == widget.snapshot.selectedTrackId,
-                  onTap: () => widget.onTrackSelected(
-                    visibleTracks[i].id,
+                _TrackDropTarget(
+                  target: visibleTracks[i],
+                  intentBuilder: _trackDropIntent,
+                  onDrop: _commitTrackDrop,
+                  child: _TrackHeader(
+                    track: visibleTracks[i],
+                    index: widget.snapshot.tracks
+                        .indexWhere((t) => t.id == visibleTracks[i].id),
+                    selected:
+                        visibleTracks[i].id == widget.snapshot.selectedTrackId,
+                    onTap: () => widget.onTrackSelected(
+                      visibleTracks[i].id,
+                    ),
+                    enableDrag: !widget.compact && widget.onMoveTrack != null,
+                    onDragUpdate: _autoScrollTrackDrag,
+                    collapsed: _collapsedGroupIds.contains(visibleTracks[i].id),
+                    onToggleCollapsed: visibleTracks[i].isGroup
+                        ? () => setState(() {
+                              final id = visibleTracks[i].id;
+                              final collapsing =
+                                  !_collapsedGroupIds.contains(id);
+                              if (!_collapsedGroupIds.add(id)) {
+                                _collapsedGroupIds.remove(id);
+                              }
+                              if (collapsing &&
+                                  widget.snapshot.selectedTrack
+                                          ?.parentGroupId ==
+                                      id) {
+                                widget.onTrackSelected(id);
+                              }
+                            })
+                        : null,
+                    onLongPressStart:
+                        widget.compact || widget.onMoveTrack != null
+                            ? null
+                            : (details) => _onTrackLongPress(
+                                  visibleTracks[i],
+                                  details,
+                                  lanePress: false,
+                                ),
                   ),
-                  collapsed: _collapsedGroupIds.contains(visibleTracks[i].id),
-                          onToggleCollapsed: visibleTracks[i].isGroup
-                              ? () => setState(() {
-                                    final id = visibleTracks[i].id;
-                                    final collapsing =
-                                        !_collapsedGroupIds.contains(id);
-                                    if (!_collapsedGroupIds.add(id)) {
-                                      _collapsedGroupIds.remove(id);
-                                    }
-                                    if (collapsing &&
-                                        widget.snapshot.selectedTrack
-                                                ?.parentGroupId ==
-                                            id) {
-                                      widget.onTrackSelected(id);
-                                    }
-                                  })
-                              : null,
-                  onLongPressStart: widget.compact
-                      ? null
-                      : (details) => _onTrackLongPress(
-                            visibleTracks[i],
-                            details,
-                            lanePress: false,
-                          ),
                 ),
               if (!widget.compact)
                 _AddTrackHeader(
@@ -1558,25 +1776,33 @@ class ArrangementViewState extends State<ArrangementView> {
                         ),
                         Expanded(
                           child: ClipRect(
-                            child: Listener(
-                              key: _timelineViewportKey,
-                              onPointerDown: _onPointerDown,
-                              onPointerUp: _onPointerUp,
-                              onPointerCancel: _onPointerUp,
-                              child: GestureDetector(
-                                onScaleStart: _onScaleStart,
-                                onScaleUpdate: _onScaleUpdate,
-                                behavior: HitTestBehavior.opaque,
-                                child: SingleChildScrollView(
-                                  controller: _horizontalScroll,
-                                  scrollDirection: Axis.horizontal,
-                                  physics: (_pinchZoomActive || _clipDragActive)
-                                      ? const NeverScrollableScrollPhysics()
-                                      : const ClampingScrollPhysics(
-                                          parent:
-                                              AlwaysScrollableScrollPhysics(),
-                                        ),
-                                  child: lanesChild,
+                            child: SingleChildScrollView(
+                              controller: _trackVerticalScroll,
+                              scrollDirection: Axis.vertical,
+                              physics: const ClampingScrollPhysics(
+                                parent: AlwaysScrollableScrollPhysics(),
+                              ),
+                              child: Listener(
+                                key: _timelineViewportKey,
+                                onPointerDown: _onPointerDown,
+                                onPointerUp: _onPointerUp,
+                                onPointerCancel: _onPointerUp,
+                                child: GestureDetector(
+                                  onScaleStart: _onScaleStart,
+                                  onScaleUpdate: _onScaleUpdate,
+                                  behavior: HitTestBehavior.opaque,
+                                  child: SingleChildScrollView(
+                                    controller: _horizontalScroll,
+                                    scrollDirection: Axis.horizontal,
+                                    physics: (_pinchZoomActive ||
+                                            _clipDragActive)
+                                        ? const NeverScrollableScrollPhysics()
+                                        : const ClampingScrollPhysics(
+                                            parent:
+                                                AlwaysScrollableScrollPhysics(),
+                                          ),
+                                    child: lanesChild,
+                                  ),
                                 ),
                               ),
                             ),
@@ -1638,8 +1864,20 @@ class ArrangementViewState extends State<ArrangementView> {
               Positioned(
                 left: 0,
                 top: PianoRollMetrics.rulerHeight,
+                bottom: widget.compact
+                    ? 0
+                    : ArrangementTimelineMetrics.trackLaneHeight,
                 width: ArrangementTimelineMetrics.trackHeaderWidth,
-                child: trackHeaders,
+                child: ClipRect(
+                  child: SingleChildScrollView(
+                    controller: _headerVerticalScroll,
+                    scrollDirection: Axis.vertical,
+                    physics: const ClampingScrollPhysics(
+                      parent: AlwaysScrollableScrollPhysics(),
+                    ),
+                    child: trackHeaders,
+                  ),
+                ),
               ),
               if (!widget.compact)
                 Positioned(
@@ -1665,8 +1903,12 @@ class ArrangementViewState extends State<ArrangementView> {
                 _ClipDragPreview(
                   stackKey: _arrangementStackKey,
                   session: clipDrag,
+                  visibleTrackIndex: clipDragVisibleIndex,
                   pixelsPerBeat: _pixelsPerBeat,
                   scrollOffset: scrollOffset,
+                  verticalScrollOffset: _trackVerticalScroll.hasClients
+                      ? _trackVerticalScroll.offset
+                      : 0,
                   timelineEndBeat: _timelineEndBeat,
                 ),
             ],
@@ -1767,12 +2009,163 @@ class _MasterLane extends StatelessWidget {
   }
 }
 
+class _TrackDropTarget extends StatefulWidget {
+  const _TrackDropTarget({
+    required this.target,
+    required this.intentBuilder,
+    required this.onDrop,
+    required this.child,
+  });
+
+  final TrackSnapshot target;
+  final _TrackDropIntent? Function(
+    _TrackDragData data,
+    TrackSnapshot target,
+    _TrackDropZone zone,
+  ) intentBuilder;
+  final Future<void> Function(_TrackDropIntent intent) onDrop;
+  final Widget child;
+
+  @override
+  State<_TrackDropTarget> createState() => _TrackDropTargetState();
+}
+
+class _TrackDropTargetState extends State<_TrackDropTarget> {
+  final GlobalKey _targetKey = GlobalKey();
+  _TrackDropIntent? _intent;
+
+  _TrackDropIntent? _intentFor(DragTargetDetails<_TrackDragData> details) {
+    final box = _targetKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return null;
+    final local = box.globalToLocal(details.offset);
+    final fraction = (local.dy / box.size.height).clamp(0.0, 1.0);
+    final sourceIsGroup = details.data.track.isGroup;
+    final zone = widget.target.isGroup &&
+            !sourceIsGroup &&
+            fraction >= 0.25 &&
+            fraction <= 0.75
+        ? _TrackDropZone.inside
+        : fraction < 0.5
+            ? _TrackDropZone.before
+            : _TrackDropZone.after;
+    return widget.intentBuilder(details.data, widget.target, zone);
+  }
+
+  void _updateIntent(DragTargetDetails<_TrackDragData> details) {
+    final next = _intentFor(details);
+    if (next == _intent) return;
+    setState(() => _intent = next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final intent = _intent;
+    final accent = Theme.of(context).colorScheme.primary;
+    return SizedBox(
+      key: _targetKey,
+      child: DragTarget<_TrackDragData>(
+        onWillAcceptWithDetails: (details) {
+          final next = _intentFor(details);
+          if (next == null) return false;
+          setState(() => _intent = next);
+          return true;
+        },
+        onMove: _updateIntent,
+        onLeave: (_) {
+          if (_intent != null) setState(() => _intent = null);
+        },
+        onAcceptWithDetails: (details) {
+          final accepted = _intentFor(details) ?? _intent;
+          setState(() => _intent = null);
+          if (accepted != null) unawaited(widget.onDrop(accepted));
+        },
+        builder: (context, candidateData, rejectedData) => Stack(
+          children: [
+            widget.child,
+            if (intent?.zone == _TrackDropZone.inside)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.14),
+                      border: Border.all(color: accent, width: 2),
+                    ),
+                  ),
+                ),
+              ),
+            if (intent?.zone == _TrackDropZone.before ||
+                intent?.zone == _TrackDropZone.after)
+              Positioned(
+                left: 0,
+                right: 0,
+                top: intent?.zone == _TrackDropZone.before ? 0 : null,
+                bottom: intent?.zone == _TrackDropZone.after ? 0 : null,
+                child: IgnorePointer(
+                  child: Container(height: 3, color: accent),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TrackDragFeedback extends StatelessWidget {
+  const _TrackDragFeedback({required this.track});
+
+  final TrackSnapshot track;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 132, maxWidth: 220),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF30303D),
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: const Color(0xFF8E8CFF), width: 1.5),
+          boxShadow: const [
+            BoxShadow(
+                color: Colors.black54, blurRadius: 10, offset: Offset(0, 5)),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              track.isGroup ? Icons.folder_outlined : Icons.drag_indicator,
+              size: 20,
+              color: track.isGroup ? Colors.amber.shade200 : Colors.white70,
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                track.name,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _TrackHeader extends StatelessWidget {
   const _TrackHeader({
     required this.track,
     required this.index,
     required this.selected,
     required this.onTap,
+    this.enableDrag = false,
+    this.onDragUpdate,
     this.collapsed = false,
     this.onToggleCollapsed,
     this.onLongPressStart,
@@ -1782,6 +2175,8 @@ class _TrackHeader extends StatelessWidget {
   final int index;
   final bool selected;
   final VoidCallback onTap;
+  final bool enableDrag;
+  final GestureDragUpdateCallback? onDragUpdate;
   final bool collapsed;
   final VoidCallback? onToggleCollapsed;
   final GestureLongPressStartCallback? onLongPressStart;
@@ -1790,8 +2185,9 @@ class _TrackHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final icon = TrackLaneIcon.iconForTrack(track, index);
-    return Tooltip(
+    final content = Tooltip(
       message: track.name,
+      triggerMode: enableDrag ? TooltipTriggerMode.manual : null,
       child: Semantics(
         label: track.name,
         selected: selected,
@@ -1870,6 +2266,16 @@ class _TrackHeader extends StatelessWidget {
           ),
         ),
       ),
+    );
+    if (!enableDrag) return content;
+    return LongPressDraggable<_TrackDragData>(
+      data: _TrackDragData(track),
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      feedback: _TrackDragFeedback(track: track),
+      childWhenDragging: Opacity(opacity: 0.28, child: content),
+      onDragStarted: HapticFeedback.selectionClick,
+      onDragUpdate: onDragUpdate,
+      child: content,
     );
   }
 }
@@ -2406,15 +2812,19 @@ class _ClipDragPreview extends StatelessWidget {
   const _ClipDragPreview({
     required this.stackKey,
     required this.session,
+    required this.visibleTrackIndex,
     required this.pixelsPerBeat,
     required this.scrollOffset,
+    required this.verticalScrollOffset,
     required this.timelineEndBeat,
   });
 
   final GlobalKey stackKey;
   final ArrangementClipDragSession session;
+  final int visibleTrackIndex;
   final double pixelsPerBeat;
   final double scrollOffset;
+  final double verticalScrollOffset;
   final double timelineEndBeat;
 
   @override
@@ -2428,7 +2838,11 @@ class _ClipDragPreview extends StatelessWidget {
     final left = ArrangementTimelineMetrics.trackHeaderWidth +
         session.previewStartBeat * pixelsPerBeat -
         scrollOffset;
-    final top = session.targetTrackIndex * laneHeight + 4;
+    if (visibleTrackIndex < 0) return const SizedBox.shrink();
+    final top = PianoRollMetrics.rulerHeight +
+        visibleTrackIndex * laneHeight -
+        verticalScrollOffset +
+        4;
     final height = laneHeight - 8;
     final width = session.isMidi || session.automationClip != null
         ? session.lengthBeats * pixelsPerBeat

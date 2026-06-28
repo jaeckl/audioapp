@@ -295,6 +295,24 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _moveTrack({
+    required String trackId,
+    required String parentGroupId,
+    required String beforeTrackId,
+  }) async {
+    try {
+      final snapshot = await widget.bridge.moveTrack(
+        trackId: trackId,
+        parentGroupId: parentGroupId,
+        beforeTrackId: beforeTrackId,
+      );
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
   Future<void> _selectTrack(String trackId) async {
     try {
       await _applyDeltaMutation('selectTrack', {'trackId': trackId});
@@ -1682,6 +1700,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             onAddTrack: _addTrack,
             onAddGroup: _addGroupTrack,
             onSetTrackGroup: _setTrackGroup,
+            onMoveTrack: _moveTrack,
             onAddMidiClip: _addMidiClip,
             onAddAudioClip: _addAudioClip,
             onClipTap: _openPianoRoll,

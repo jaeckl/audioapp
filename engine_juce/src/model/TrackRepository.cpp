@@ -4,8 +4,16 @@
 #include "audioapp/DeviceChain.hpp"
 
 #include <algorithm>
+#include <iterator>
 
 namespace audioapp {
+
+std::string TrackRepository::defaultIconKey(size_t ordinal) {
+    static constexpr const char* keys[] = {
+        "piano", "waveform", "microphone", "audio", "album", "speaker",
+    };
+    return keys[ordinal % (sizeof(keys) / sizeof(keys[0]))];
+}
 
 void TrackRepository::clear() {
     tracks_.clear();
@@ -18,6 +26,7 @@ std::string TrackRepository::addTrack(const std::string& name, const DeviceRegis
     Track track;
     track.id = "track-" + std::to_string(nextTrackNum_++);
     track.name = name.empty() ? ("Track " + std::to_string(tracks_.size() + 1)) : name;
+    track.iconKey = defaultIconKey(static_cast<size_t>(nextTrackNum_ - 2));
 
     const std::string gainId = allocateDeviceId();
     track.devices.push_back(registry.createDefault(device_types::kTrackGain, gainId));
@@ -31,40 +40,90 @@ std::string TrackRepository::addGroupTrack(const std::string& name, const Device
     const std::string id = addTrack(name.empty() ? "Group" : name, registry);
     if (auto* track = findTrack(id)) {
         track->isGroup = true;
+        track->iconKey = "folder";
     }
     return id;
 }
 
 bool TrackRepository::setTrackGroup(const std::string& trackId,
                                     const std::string& groupTrackId) {
+    return moveTrack(trackId, groupTrackId, {});
+}
+
+bool TrackRepository::moveTrack(const std::string& trackId,
+                                const std::string& parentGroupId,
+                                const std::string& beforeTrackId) {
     auto sourceIt = std::find_if(tracks_.begin(), tracks_.end(), [&](const Track& track) {
         return track.id == trackId;
     });
-    if (sourceIt == tracks_.end() || sourceIt->isGroup) {
+    if (sourceIt == tracks_.end()) {
         return false;
     }
-    if (groupTrackId.empty()) {
-        sourceIt->parentGroupId.clear();
-        return true;
-    }
-    const auto groupIt = std::find_if(tracks_.begin(), tracks_.end(), [&](const Track& track) {
-        return track.id == groupTrackId && track.isGroup;
-    });
-    if (groupIt == tracks_.end()) {
+    const bool movingGroup = sourceIt->isGroup;
+    if (movingGroup && !parentGroupId.empty()) {
         return false;
     }
 
-    Track moved = std::move(*sourceIt);
-    moved.parentGroupId = groupTrackId;
-    tracks_.erase(sourceIt);
-    auto insertion = std::find_if(tracks_.begin(), tracks_.end(), [&](const Track& track) {
-        return track.id == groupTrackId;
-    });
-    ++insertion;
-    while (insertion != tracks_.end() && insertion->parentGroupId == groupTrackId) {
-        ++insertion;
+    if (!parentGroupId.empty()) {
+        const auto groupIt = std::find_if(tracks_.begin(), tracks_.end(), [&](const Track& track) {
+            return track.id == parentGroupId && track.isGroup;
+        });
+        if (groupIt == tracks_.end() || groupIt->id == trackId) {
+            return false;
+        }
     }
-    tracks_.insert(insertion, std::move(moved));
+
+    if (!beforeTrackId.empty()) {
+        const auto anchor = std::find_if(tracks_.begin(), tracks_.end(), [&](const Track& track) {
+            return track.id == beforeTrackId;
+        });
+        if (anchor == tracks_.end() || anchor->id == trackId ||
+            anchor->parentGroupId != parentGroupId ||
+            (movingGroup && anchor->parentGroupId == trackId)) {
+            return false;
+        }
+    }
+
+    std::vector<Track> moving;
+    std::vector<Track> remaining;
+    moving.reserve(movingGroup ? tracks_.size() : 1);
+    remaining.reserve(tracks_.size());
+    for (auto& track : tracks_) {
+        if (track.id == trackId || (movingGroup && track.parentGroupId == trackId)) {
+            moving.push_back(std::move(track));
+        } else {
+            remaining.push_back(std::move(track));
+        }
+    }
+    if (moving.empty()) {
+        return false;
+    }
+    moving.front().parentGroupId = parentGroupId;
+
+    auto insertion = remaining.end();
+    if (!beforeTrackId.empty()) {
+        insertion = std::find_if(remaining.begin(), remaining.end(), [&](const Track& track) {
+            return track.id == beforeTrackId;
+        });
+        if (insertion == remaining.end()) {
+            return false;
+        }
+    } else if (!parentGroupId.empty()) {
+        insertion = std::find_if(remaining.begin(), remaining.end(), [&](const Track& track) {
+            return track.id == parentGroupId;
+        });
+        if (insertion == remaining.end()) {
+            return false;
+        }
+        ++insertion;
+        while (insertion != remaining.end() && insertion->parentGroupId == parentGroupId) {
+            ++insertion;
+        }
+    }
+    remaining.insert(insertion,
+                     std::make_move_iterator(moving.begin()),
+                     std::make_move_iterator(moving.end()));
+    tracks_ = std::move(remaining);
     return true;
 }
 
@@ -136,6 +195,17 @@ void TrackRepository::ensureTrackGainDevices(const DeviceRegistry& registry) {
         }
         track.devices.push_back(
             registry.createDefault(device_types::kTrackGain, allocateDeviceId()));
+    }
+}
+
+void TrackRepository::ensureTrackIcons() {
+    for (size_t index = 0; index < tracks_.size(); ++index) {
+        auto& track = tracks_[index];
+        if (track.isGroup) {
+            track.iconKey = "folder";
+        } else if (track.iconKey.empty()) {
+            track.iconKey = defaultIconKey(index);
+        }
     }
 }
 
