@@ -43,6 +43,9 @@ struct DeviceChainOrchestrator {
         const MidiPlaybackNote* graphMidiNotes = nullptr;
         const int* graphMidiCounts = nullptr;
         int graphMidiStride = 0;
+        MidiPlaybackNote* graphMidiEdgeNotes = nullptr;
+        int* graphMidiEdgeCounts = nullptr;
+        int graphMidiEdgeStride = 0;
 
         Context(ProcessorArena& ar, DeviceChainScratch& s) noexcept
             : arena(ar), scratch(s) {}

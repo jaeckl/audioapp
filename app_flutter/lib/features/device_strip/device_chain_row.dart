@@ -16,7 +16,7 @@ class DeviceChainRow extends StatelessWidget {
   const DeviceChainRow({
     super.key,
     required this.track,
-    this.routingSources = const [],
+    this.routingSnapshot,
     required this.samples,
     required this.playing,
     required this.bpm,
@@ -51,7 +51,7 @@ class DeviceChainRow extends StatelessWidget {
   });
 
   final TrackSnapshot track;
-  final List<RoutingSourceOption> routingSources;
+  final ProjectSnapshot? routingSnapshot;
   final List<SampleLibraryEntrySnapshot> samples;
   final bool playing;
   final int bpm;
@@ -132,7 +132,12 @@ class DeviceChainRow extends StatelessWidget {
               for (var i = 0; i < devices.length; i++) ...[
                 DeviceStripSlot(
                   track: track,
-                  routingSources: routingSources,
+                  routingSources: devices[i] is RoutingDeviceSnapshot &&
+                          routingSnapshot != null
+                      ? buildRoutingSourceOptions(
+                          routingSnapshot!, track,
+                          devices[i] as RoutingDeviceSnapshot)
+                      : const [],
                   device: devices[i],
                   sample: _sampleFor(devices[i]),
                   bpm: bpm,

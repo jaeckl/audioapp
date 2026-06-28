@@ -20,6 +20,7 @@ void applyModulation(FourBandEqParams& p, float modAmount, uint16_t localParamId
 void applyModulation(FrequencyShifterParams& p, float modAmount, uint16_t localParamId) noexcept;
 void applyModulation(ResonatorBankParams& p, float modAmount, uint16_t localParamId) noexcept;
 void applyModulation(RoutingParams& p, float modAmount, uint16_t localParamId) noexcept;
+void applyModulation(MidiDelayParams&, float, uint16_t) noexcept;
 void applyModulation(SubtractiveSynthParams& p, float modAmount, uint16_t localParamId) noexcept;
 void applyModulation(KickGeneratorParams& p, float modAmount, uint16_t localParamId) noexcept;
 void applyModulation(SnareGeneratorParams& p, float modAmount, uint16_t localParamId) noexcept;

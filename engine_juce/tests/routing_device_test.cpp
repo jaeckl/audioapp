@@ -46,6 +46,12 @@ int main() {
            "audio receiver can be bypassed");
     const float bypassed = rms(audioProject->renderOffline(0.5, 48000.0));
     expect(bypassed < routed * 0.8f, "bypassing receiver removes the graph route");
+    expect(audioProject->setDeviceParameter(audioReceiver, "bypass", 0.0f),
+           "audio receiver can be re-enabled");
+    expect(audioProject->setDeviceStringParameter(audioReceiver, "sourceId", ""),
+           "audio receiver can disconnect without rebuilding playback");
+    const float disconnected = rms(audioProject->renderOffline(0.5, 48000.0));
+    expect(disconnected < routed * 0.8f, "disconnect removes the graph edge");
 
     auto midiProject = std::make_unique<ProjectEngine>();
     midiProject->createProject();
@@ -67,6 +73,33 @@ int main() {
     const float midiRouted = rms(midiProject->renderOffline(0.5, 48000.0));
     expect(silent < 1.0e-5f, "destination synth is silent without routed MIDI");
     expect(midiRouted > 0.001f, "MIDI receiver drives the destination synth");
+
+    auto delayedProject = std::make_unique<ProjectEngine>();
+    delayedProject->createProject();
+    const auto delayedSource = delayedProject->addTrack("Delayed MIDI");
+    const auto delayedDestination = delayedProject->addTrack("Delayed Synth");
+    const auto delayClip = delayedProject->createMidiClip(delayedSource, 0.0, 4.0);
+    expect(delayedProject->setMidiClipNotes(delayClip, {{60, 0.0, 1.0, 100.0f}}),
+           "delayed MIDI note is created");
+    const auto midiDelay = delayedProject->addDeviceToTrack(
+        delayedSource, device_types::kMidiDelay, 0);
+    expect(!midiDelay.empty(), "MIDI delay is created");
+    expect(delayedProject->setDeviceParameter(midiDelay, "midiDelayMode", 1.0f),
+           "MIDI delay uses tempo sync");
+    expect(delayedProject->setDeviceParameter(midiDelay, "midiDelayDivision", 1.0f),
+           "MIDI delay uses a quarter-note delay");
+    const auto delayedReceiver = delayedProject->addDeviceToTrack(
+        delayedDestination, device_types::kMidiReceiver, 0);
+    expect(!delayedReceiver.empty(), "delayed MIDI receiver is created");
+    expect(delayedProject->addDeviceToTrack(
+               delayedDestination, device_types::kSubtractiveSynth, 1).size() > 0,
+           "delayed destination synth is created");
+    expect(delayedProject->setDeviceStringParameter(delayedReceiver, "sourceId", midiDelay),
+           "MIDI receiver targets the MIDI delay output");
+    const float beforeDelay = rms(delayedProject->renderOffline(0.45, 48000.0));
+    const float afterDelay = rms(delayedProject->renderOffline(1.5, 48000.0));
+    expect(beforeDelay < 1.0e-5f, "MIDI delay is silent before its sync offset");
+    expect(afterDelay > 0.001f, "MIDI delay publishes delayed notes to the graph");
 
     if (failures != 0) return 1;
     std::cout << "All routing device tests passed\n";

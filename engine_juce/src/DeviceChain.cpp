@@ -104,6 +104,7 @@ DeviceNodeKind deviceNodeKindFromTypeId(const std::string& typeId) noexcept {
     if (typeId == kResonatorBank)    return DeviceNodeKind::ResonatorBank;
     if (typeId == kAudioReceiver)    return DeviceNodeKind::AudioReceiver;
     if (typeId == kMidiReceiver)     return DeviceNodeKind::MidiReceiver;
+    if (typeId == kMidiDelay)        return DeviceNodeKind::MidiDelay;
     return DeviceNodeKind::Unknown;
 }
 

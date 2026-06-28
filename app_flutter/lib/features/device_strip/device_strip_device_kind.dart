@@ -17,6 +17,7 @@ const frequencyFxDeviceTypes = <String>{
   'resonator_bank',
   'audio_receiver',
   'midi_receiver',
+  'midi_delay',
 };
 
 extension DeviceStripDeviceKind on DeviceSnapshot {

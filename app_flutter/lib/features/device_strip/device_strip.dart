@@ -10,8 +10,6 @@ import 'device_strip_metrics.dart';
 import 'device_strip_slot.dart';
 import 'sampler_device_panel.dart';
 import 'subtractive_synth_device_panel.dart';
-import 'routing_device_panel.dart';
-import 'device_strip_theme.dart';
 
 class DeviceStrip extends StatefulWidget {
   const DeviceStrip({
@@ -81,23 +79,6 @@ class _DeviceStripState extends State<DeviceStrip> {
   final Map<String, SamplerDeviceTab> _samplerTabs = {};
   final Map<String, SubtractiveDeviceTab> _synthTabs = {};
 
-  List<RoutingSourceOption> _routingSources(ProjectSnapshot snapshot) => [
-        for (final track in snapshot.tracks)
-          RoutingSourceOption(
-            id: 'track-midi:${track.id}',
-            label: '${track.name} · MIDI',
-            isMidi: true,
-          ),
-        for (final track in snapshot.tracks)
-          for (final device in track.visibleDevices)
-            if (device.type != 'audio_receiver' && device.type != 'midi_receiver')
-              RoutingSourceOption(
-                id: device.id,
-                label: '${track.name} · ${DeviceStripTheme.labelForDeviceType(device.type)}',
-                isMidi: false,
-              ),
-      ];
-
   bool _shouldStartCollapsed(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     return size.height < 720 || size.width < 400;
@@ -130,7 +111,6 @@ class _DeviceStripState extends State<DeviceStrip> {
         builder: (context) => DeviceChainScreen(
           snapshot: widget.snapshot,
           track: track,
-          routingSources: _routingSources(widget.snapshot),
           samples: widget.samples,
           playing: widget.playing,
           samplerTabFor: _samplerTabFor,
@@ -198,7 +178,7 @@ class _DeviceStripState extends State<DeviceStrip> {
                 ),
                 DeviceChainRow(
                   track: track,
-                  routingSources: _routingSources(widget.snapshot),
+                  routingSnapshot: widget.snapshot,
                   samples: widget.samples,
                   playing: widget.playing,
                   bpm: widget.snapshot.bpm,

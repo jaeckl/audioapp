@@ -7,6 +7,7 @@ part 'device_families/effect_family.dart';
 part 'device_families/frequency_fx_family.dart';
 part 'device_families/resonator_bank_family.dart';
 part 'device_families/routing_family.dart';
+part 'device_families/midi_delay_family.dart';
 part 'device_families/oscillator_family.dart';
 part 'device_families/phase_mod_synth_family.dart';
 part 'device_families/sampler_family.dart';
@@ -76,6 +77,7 @@ sealed class DeviceSnapshot {
       'frequency_shifter' => FrequencyShifterDeviceSnapshot.fromMap(map),
       'resonator_bank' => ResonatorBankDeviceSnapshot.fromMap(map),
       'audio_receiver' || 'midi_receiver' => RoutingDeviceSnapshot.fromMap(map),
+      'midi_delay' => MidiDelayDeviceSnapshot.fromMap(map),
       _ => throw ArgumentError('Unknown device type: $type'),
     };
   }

@@ -53,6 +53,7 @@ abstract final class DeviceStripTheme {
   static const resonatorBankAccent = Color(0xFFFFB454);
   static const audioReceiverAccent = Color(0xFF66D19E);
   static const midiReceiverAccent = Color(0xFFF08BB4);
+  static const midiDelayAccent = Color(0xFFA78BFA);
   static const bitcrusherAccent = Color(0xFF7B6CF6);
   static const distortionAccent = Color(0xFFE85D4B);
   static const tremoloAccent = Color(0xFF4ADE80);
@@ -83,6 +84,7 @@ abstract final class DeviceStripTheme {
         'resonator_bank' => resonatorBankAccent,
         'audio_receiver' => audioReceiverAccent,
         'midi_receiver' => midiReceiverAccent,
+        'midi_delay' => midiDelayAccent,
         'bitcrusher' => bitcrusherAccent,
         'distortion' => distortionAccent,
         'tremolo' => tremoloAccent,
@@ -115,6 +117,7 @@ abstract final class DeviceStripTheme {
         'resonator_bank' => 'RESONATE',
         'audio_receiver' => 'Audio Receiver',
         'midi_receiver' => 'MIDI Receiver',
+        'midi_delay' => 'MIDI Delay',
         'bitcrusher' => 'Bitcrusher',
         'distortion' => 'Distortion',
         'tremolo' => 'Tremolo',

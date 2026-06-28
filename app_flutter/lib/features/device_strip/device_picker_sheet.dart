@@ -177,6 +177,12 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
               subtitle: const Text('Receive notes from any track MIDI input'),
               onTap: () => Navigator.pop(context, 'midi_receiver'),
             ),
+            ListTile(
+              leading: const Icon(Icons.schedule, color: Color(0xFFA78BFA)),
+              title: const Text('MIDI Delay'),
+              subtitle: const Text('Delay notes in seconds or tempo divisions'),
+              onTap: () => Navigator.pop(context, 'midi_delay'),
+            ),
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
               child: Text(

@@ -42,6 +42,7 @@ import 'mood_fx_panels.dart';
 import 'frequency_fx_panels.dart';
 import 'resonator_bank_panel.dart';
 import 'routing_device_panel.dart';
+import 'midi_delay_panel.dart';
 import 'oscillator_device_panel.dart';
 import 'sampler_device_panel.dart';
 import 'phase_mod_synth_device_panel.dart';
@@ -215,6 +216,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       'gate', 'compressor', 'expander', 'limiter',
       'filter', 'four_band_eq', 'frequency_shifter', 'resonator_bank',
       'audio_receiver', 'midi_receiver',
+      'midi_delay',
       'delay', 'reverb', 'chorus', 'phaser',
     };
     return knownTypes.contains(widget.device.type);
@@ -1260,6 +1262,16 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             onAutomateParameter: widget.onAutomateParameter != null
                 ? _onAutomateParameter
                 : null,
+          ),
+        );
+      case 'midi_delay':
+        return DeviceStripViewport(
+          shrinkWrap: true,
+          designWidth: _cardWidth,
+          designHeight: contentHeight,
+          child: MidiDelayPanel(
+            device: widget.device as MidiDelayDeviceSnapshot,
+            onParameterChanged: widget.onDeviceParameterChanged,
           ),
         );
       case 'delay':

@@ -7,6 +7,7 @@ import 'dynamics_fx_panels.dart';
 import 'frequency_fx_panels.dart';
 import 'resonator_bank_panel.dart';
 import 'routing_device_panel.dart';
+import 'midi_delay_panel.dart';
 import 'kick_generator_device_panel.dart';
 import 'oscillator_device_panel.dart';
 import 'phase_mod_synth_device_panel.dart';
@@ -34,7 +35,7 @@ class DeviceStripMetrics {
     'cymbal_generator',
     'crash_generator',
   };
-  static const _routingTypes = {'audio_receiver', 'midi_receiver'};
+  static const _routingTypes = {'audio_receiver', 'midi_receiver', 'midi_delay'};
 
   /// Canonical sampler strip width (~⅔ of the original 520).
   static const double samplerDesignWidth = 348;
@@ -169,6 +170,7 @@ class DeviceStripMetrics {
       'frequency_shifter' => FreqShifterDevicePanel.designWidth,
       'resonator_bank' => ResonatorBankPanel.designWidth,
       'audio_receiver' || 'midi_receiver' => RoutingDevicePanel.designWidth,
+      'midi_delay' => MidiDelayPanel.designWidth,
       'bitcrusher' => BitcrusherFxPanel.designWidth,
       'distortion' => DistortionFxPanel.designWidth,
       'tremolo' => TremoloFxPanel.designWidth,

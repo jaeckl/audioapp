@@ -73,6 +73,7 @@ static const FactoryFn kProcessorFactories[] = {
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<ResonatorBankProcessor>(); },          // ResonatorBank = 27
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<RoutingProcessor>(DeviceNodeKind::AudioReceiver); }, // 28
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<RoutingProcessor>(DeviceNodeKind::MidiReceiver); },  // 29
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<RoutingProcessor>(DeviceNodeKind::MidiDelay); },     // 30
 };
 static constexpr size_t kNumFactories = sizeof(kProcessorFactories) / sizeof(kProcessorFactories[0]);
 
@@ -173,11 +174,25 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
         }
     };
 
+    auto captureMidiSources = [&](int deviceIndex) noexcept {
+        if (ctx.graph == nullptr || ctx.graphMidiEdgeNotes == nullptr ||
+            ctx.graphMidiEdgeCounts == nullptr || ctx.graphMidiEdgeStride <= 0) return;
+        for (int edgeIndex = 0; edgeIndex < ctx.graph->midiEdgeCount; ++edgeIndex) {
+            const auto& edge = ctx.graph->midiEdges[static_cast<size_t>(edgeIndex)];
+            if (edge.sourceTrack != ctx.graphTrackIndex || edge.sourceDevice != deviceIndex) continue;
+            const int count = std::min(activeNoteCount, ctx.graphMidiEdgeStride);
+            auto* tap = ctx.graphMidiEdgeNotes + edgeIndex * ctx.graphMidiEdgeStride;
+            std::copy(activeNotes, activeNotes + count, tap);
+            ctx.graphMidiEdgeCounts[edgeIndex] = count;
+        }
+    };
+
     for (int deviceIndex = 0; deviceIndex < ctx.arena.size(); ++deviceIndex) {
         auto* proc = ctx.arena.get(deviceIndex);
         if (proc == nullptr) continue;
         if (proc->bypassed) {
             captureAudioSources(deviceIndex);
+            captureMidiSources(deviceIndex);
             continue;
         }
 
@@ -196,11 +211,28 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
                 const auto& edge = ctx.graph->midiEdges[static_cast<size_t>(edgeIndex)];
                 if (edge.destinationTrack != ctx.graphTrackIndex ||
                     edge.destinationDevice != deviceIndex) continue;
+                const bool trackInput = edge.sourceDevice == kGraphTrackMidiInput;
                 const int source = edge.sourceTrack;
-                const auto* sourceNotes = ctx.graphMidiNotes + source * ctx.graphMidiStride;
-                for (int i = 0; i < ctx.graphMidiCounts[source] && activeNoteCount < kMaxActiveNotes; ++i) {
+                const auto* sourceNotes = trackInput
+                    ? ctx.graphMidiNotes + source * ctx.graphMidiStride
+                    : ctx.graphMidiEdgeNotes + edgeIndex * ctx.graphMidiEdgeStride;
+                const int sourceCount = trackInput
+                    ? ctx.graphMidiCounts[source]
+                    : ctx.graphMidiEdgeCounts[edgeIndex];
+                for (int i = 0; i < sourceCount && activeNoteCount < kMaxActiveNotes; ++i) {
                     activeNotes[activeNoteCount++] = sourceNotes[i];
                 }
+            }
+        }
+
+        if (nodeKind == DeviceNodeKind::MidiDelay) {
+            const auto params = std::get<MidiDelayParams>(proc->storedParams());
+            const double delayBeats = params.mode >= 0.5f
+                ? static_cast<double>(params.division)
+                : static_cast<double>(params.seconds) * static_cast<double>(std::max(ctx.bpm, 1)) / 60.0;
+            for (int i = 0; i < activeNoteCount; ++i) {
+                activeNotes[i].noteStartBeat += delayBeats;
+                activeNotes[i].clipLengthBeats += delayBeats;
             }
         }
 
@@ -340,6 +372,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
             StereoOutputPanel::applyInPlace(block, numFrames, s.perFrameGain);
         }
         captureAudioSources(deviceIndex);
+        captureMidiSources(deviceIndex);
     }
 }
 

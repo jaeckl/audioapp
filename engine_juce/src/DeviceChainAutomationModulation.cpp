@@ -139,6 +139,8 @@ void applyModulation(RoutingParams& p, float modAmount, uint16_t localParamId) n
     }
 }
 
+void applyModulation(MidiDelayParams&, float, uint16_t) noexcept {}
+
 void applyModulation(SubtractiveSynthParams& p, float modAmount, uint16_t localParamId) noexcept {
     switch (static_cast<SubtractiveParam>(unpackParamId(localParamId))) {
     case SubtractiveParam::FilterCutoff:      p.filterCutoff = std::clamp(p.filterCutoff + modAmount, 0.0f, 1.0f); break;

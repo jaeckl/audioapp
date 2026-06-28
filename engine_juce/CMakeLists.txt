@@ -102,7 +102,8 @@ add_library(audioapp_engine STATIC
   src/devices/FourBandEqDeviceType.cpp
   src/devices/FrequencyShifterDeviceType.cpp
   src/devices/ResonatorBankDeviceType.cpp
-  src/devices/RoutingDeviceType.cpp
+    src/devices/RoutingDeviceType.cpp
+    src/devices/MidiDelayDeviceType.cpp
   src/effects/TimeBasedEffectDeviceType.cpp
   src/effects/EffectDeviceRegistration.cpp
   src/effects/EffectSnapshot.cpp

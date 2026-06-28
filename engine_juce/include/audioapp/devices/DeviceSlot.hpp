@@ -30,6 +30,7 @@
 #include "audioapp/devices/instances/FrequencyFxModel.hpp" // FilterModel, FourBandEqModel, FrequencyShifterModel
 #include "audioapp/devices/instances/ResonatorBankModel.hpp"
 #include "audioapp/RoutingDevices.hpp"
+#include "audioapp/MidiDelay.hpp"
 
 namespace audioapp {
 
@@ -61,7 +62,8 @@ using DeviceInstance = std::variant<
     DistortionParams,
     TremoloParams,
     ResonatorBankModel,
-    RoutingModel
+    RoutingModel,
+    MidiDelayModel
 >;
 
 /// Unified device config wrapping params, panels, and bypass.

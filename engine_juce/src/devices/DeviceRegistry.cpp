@@ -21,6 +21,7 @@
 #include "audioapp/devices/FrequencyShifterDeviceType.hpp"
 #include "audioapp/devices/ResonatorBankDeviceType.hpp"
 #include "audioapp/devices/RoutingDeviceType.hpp"
+#include "audioapp/devices/MidiDelayDeviceType.hpp"
 #include "audioapp/devices/WavetableSynthDeviceType.hpp"
 #include "audioapp/effects/BitcrusherDeviceType.hpp"
 #include "audioapp/effects/DistortionDeviceType.hpp"
@@ -160,6 +161,7 @@ DeviceRegistry DeviceRegistry::createBuiltIn() {
                                                                DeviceNodeKind::AudioReceiver));
     registry.registerType(std::make_unique<RoutingDeviceType>(device_types::kMidiReceiver,
                                                                DeviceNodeKind::MidiReceiver));
+    registry.registerType(std::make_unique<MidiDelayDeviceType>());
     registry.registerType(std::make_unique<BitcrusherDeviceType>());
     registry.registerType(std::make_unique<DistortionDeviceType>());
     registry.registerType(std::make_unique<TremoloDeviceType>());

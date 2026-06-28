@@ -27,6 +27,7 @@ inline constexpr const char* kFrequencyShifter = "frequency_shifter";
 inline constexpr const char* kResonatorBank = "resonator_bank";
 inline constexpr const char* kAudioReceiver = "audio_receiver";
 inline constexpr const char* kMidiReceiver = "midi_receiver";
+inline constexpr const char* kMidiDelay = "midi_delay";
 inline constexpr const char* kBitcrusher = "bitcrusher";
 inline constexpr const char* kDistortion = "distortion";
 inline constexpr const char* kTremolo = "tremolo";

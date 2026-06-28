@@ -15,6 +15,7 @@ import 'phase_mod_synth_device_panel.dart';
 import 'mood_fx_panels.dart';
 import 'resonator_bank_panel.dart';
 import 'routing_device_panel.dart';
+import 'midi_delay_panel.dart';
 
 /// Device types register container header tabs here (icon + label).
 abstract final class DeviceContainerTabs {
@@ -40,6 +41,7 @@ abstract final class DeviceContainerTabs {
       'frequency_shifter' => FreqShifterDevicePanel.containerTabs,
       'resonator_bank' => ResonatorBankPanel.containerTabs,
       'audio_receiver' || 'midi_receiver' => RoutingDevicePanel.containerTabs,
+      'midi_delay' => MidiDelayPanel.containerTabs,
       'bitcrusher' => BitcrusherFxPanel.containerTabs,
       'distortion' => DistortionFxPanel.containerTabs,
       'tremolo' => TremoloFxPanel.containerTabs,

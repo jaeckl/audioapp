@@ -671,6 +671,8 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
     thread_local float trackRight[kMaxTracks][kMaxFrames];
     constexpr int kMaxRoutedMidiNotes = 128;
     thread_local MidiPlaybackNote routedMidi[kMaxTracks][kMaxRoutedMidiNotes];
+    thread_local MidiPlaybackNote graphMidiEdges[kMaxProcessorGraphEdges][kMaxRoutedMidiNotes];
+    int graphMidiEdgeCounts[kMaxProcessorGraphEdges]{};
     thread_local float graphAudioLeft[kMaxProcessorGraphEdges][kMaxFrames];
     thread_local float graphAudioRight[kMaxProcessorGraphEdges][kMaxFrames];
     int routedMidiCount[kMaxTracks]{};
@@ -786,6 +788,9 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         ctx.graphMidiNotes = &routedMidi[0][0];
         ctx.graphMidiCounts = routedMidiCount;
         ctx.graphMidiStride = kMaxRoutedMidiNotes;
+        ctx.graphMidiEdgeNotes = &graphMidiEdges[0][0];
+        ctx.graphMidiEdgeCounts = graphMidiEdgeCounts;
+        ctx.graphMidiEdgeStride = kMaxRoutedMidiNotes;
 
         DeviceChainOrchestrator::processChain(ctx);
 
@@ -1381,7 +1386,11 @@ void ProjectEngine::rebuildProcessorGraphLocked(int trackCount) {
         int deviceIndex = 0;
         for (const auto& device : track.devices) {
             const auto kind = deviceNodeKindFromTypeId(device.config.typeId);
-            if (!isRoutingDeviceNodeKind(kind) &&
+            if (kind == DeviceNodeKind::MidiDelay &&
+                definition.sourceCount < kMaxProcessorGraphSourcesPerTrack) {
+                definition.sources[definition.sourceCount++] = GraphSourceDefinition{
+                    device.id, GraphSignalType::Midi, static_cast<uint8_t>(deviceIndex)};
+            } else if (!isRoutingDeviceNodeKind(kind) &&
                 definition.sourceCount < kMaxProcessorGraphSourcesPerTrack) {
                 definition.sources[definition.sourceCount++] = GraphSourceDefinition{
                     device.id, GraphSignalType::Audio, static_cast<uint8_t>(deviceIndex)};

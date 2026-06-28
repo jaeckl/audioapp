@@ -21,6 +21,7 @@
 #include "audioapp/FrequencyFxProcessor.hpp"
 #include "audioapp/ResonatorBank.hpp"
 #include "audioapp/RoutingDevices.hpp"
+#include "audioapp/MidiDelay.hpp"
 
 namespace audioapp {
 
@@ -68,6 +69,7 @@ enum class DeviceNodeKind : uint8_t {
     ResonatorBank,
     AudioReceiver,
     MidiReceiver,
+    MidiDelay,
 };
 
 // --- Per-device DSP-only parameter structs ---
@@ -184,7 +186,8 @@ using DeviceVariantParams = std::variant<
     DistortionParamsPlayback,
     TremoloParamsPlayback,
     ResonatorBankParams,
-    RoutingParams
+    RoutingParams,
+    MidiDelayParams
 >;
 
 /// Per-track device chain node (built on control thread, read on audio thread).
