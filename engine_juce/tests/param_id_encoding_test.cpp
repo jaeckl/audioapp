@@ -95,6 +95,16 @@ public:
                          encSubCutoff);
             expectEquals(paramIdFromString("gain", DeviceNodeKind::SubtractiveSynth),
                          encCommonGain);
+
+            // ProjectEngine must not store raw per-kind ids (filterCutoff raw = 0).
+            expectEquals(encodeAutomationParamId("filterCutoff",
+                                                 DeviceNodeKind::SubtractiveSynth,
+                                                 static_cast<uint16_t>(SubtractiveParam::FilterCutoff)),
+                         encSubCutoff);
+            expect(encodeAutomationParamId("filterCutoff",
+                                           DeviceNodeKind::SubtractiveSynth,
+                                           static_cast<uint16_t>(SubtractiveParam::FilterCutoff))
+                       != kEncodedCommonGain);
         }
 
         beginTest("FilterCutoff automation should sweep the filter");

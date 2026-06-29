@@ -72,6 +72,28 @@ static ParamKind paramKindForDevice(DeviceNodeKind kind) noexcept {
 // for the pack/unpack helpers).
 // -----------------------------------------------------------------------
 
+uint16_t encodeAutomationParamId(const char* name,
+                                 DeviceNodeKind kind,
+                                 uint16_t rawPerKindId) noexcept {
+    if (name == nullptr || name[0] == '\0') {
+        return 0;
+    }
+    // Common gain/pan encode to 0/1 — handle before the encoded!=0 guard.
+    if (std::strcmp(name, "gain") == 0) {
+        return kEncodedCommonGain;
+    }
+    if (std::strcmp(name, "pan") == 0) {
+        return kEncodedCommonPan;
+    }
+    if (const uint16_t encoded = paramIdFromString(name, kind); encoded != 0) {
+        return encoded;
+    }
+    if (rawPerKindId == static_cast<uint16_t>(-1)) {
+        return 0;
+    }
+    return packParamId(paramKindForDevice(kind), rawPerKindId);
+}
+
 uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
     if (name == nullptr || name[0] == '\0') return 0;
     // Common params (same across all device kinds)

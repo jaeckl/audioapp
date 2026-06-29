@@ -10,6 +10,10 @@ namespace audioapp {
 
 /// Resolve a string paramId to a localParamId for a given device kind.
 uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept;
+/// Encode automation/mod targets for the audio thread (never raw per-kind ids).
+uint16_t encodeAutomationParamId(const char* name,
+                                 DeviceNodeKind kind,
+                                 uint16_t rawPerKindId) noexcept;
 /// Reverse: localParamId → stable name for a given device kind.
 const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept;
 

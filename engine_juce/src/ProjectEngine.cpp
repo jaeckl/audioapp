@@ -1,4 +1,5 @@
 #include "audioapp/ProjectEngine.hpp"
+#include "audioapp/AutomationPlayback.hpp"
 #include "audioapp/ProjectJson.hpp"
 #include "audioapp/ClipContentPlayback.hpp"
 #include "audioapp/TimelineClipTypes.hpp"
@@ -1601,7 +1602,13 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
         pb.deviceIndex = static_cast<uint16_t>(di);
         {
             const auto* type = deviceRegistry_.findByKind(snap.devices[di].kind);
-            pb.localParamId = type ? type->paramIdFromString(clip.paramId) : 0;
+            const uint16_t rawPerKindId =
+                type ? type->paramIdFromString(clip.paramId) : static_cast<uint16_t>(-1);
+            pb.localParamId = encodeAutomationParamId(
+                clip.paramId.c_str(), snap.devices[di].kind, rawPerKindId);
+        }
+        if (pb.localParamId == 0 && clip.paramId != "gain") {
+            continue;
         }
         snap.automationClips[snap.automationClipCount++] = pb;
         }
@@ -1738,7 +1745,15 @@ void ProjectEngine::rebuildModEdgesLocked() {
             me.lfoId = static_cast<uint16_t>(lfoPlaybackIdx);
             {
                 const auto* type = deviceRegistry_.findByKind(snap.devices[di].kind);
-                me.localParamId = type ? type->paramIdFromString(globalEdge.paramId) : 0;
+                const uint16_t rawPerKindId =
+                    type ? type->paramIdFromString(globalEdge.paramId)
+                         : static_cast<uint16_t>(-1);
+                me.localParamId = encodeAutomationParamId(
+                    globalEdge.paramId.c_str(), snap.devices[di].kind, rawPerKindId);
+            }
+            if (me.localParamId == 0 && globalEdge.paramId != "gain") {
+                --snap.modEdgeCount;
+                continue;
             }
             me.amount = globalEdge.amount;
         }
