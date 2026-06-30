@@ -25,14 +25,27 @@ public:
         return static_cast<int>(ModulatorType::Sequencer);
     }
 
+    bool usesPerNoteClock() const noexcept override;
+
     void updateParams(const ModulatorParams& params) noexcept override {
         params_ = std::get<SequencerParams>(params);
     }
 
+    struct NoteRuntimeState {
+        float smoothedValue = 0.0f;
+        int randomOrder[32]{};
+        int randomIdx = 0;
+        bool randomInitialized = false;
+        double lastNoteElapsed = -1.0;
+    };
+
+    float evaluateForNote(double noteElapsedSeconds, int bpm, NoteRuntimeState& state) const noexcept;
+
     float evaluate(double playheadBeat, int bpm,
                    double secondsWithinBlock,
                    double playheadSeconds,
-                   uint32_t retriggerGeneration) noexcept override;
+                   uint32_t retriggerGeneration,
+                   double noteElapsedSeconds) noexcept override;
 
 private:
     SequencerParams params_;
@@ -46,6 +59,7 @@ private:
         int randomOrder[32] = {};                                 // pre-shuffled indices (Random direction)
         int randomIdx = 0;                                        // position in randomOrder
         bool randomInitialized = false;                           // whether randomOrder has been shuffled
+        double lastNoteElapsedSeconds = -1.0;
     };
     Runtime rt_;
 

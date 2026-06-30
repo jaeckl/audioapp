@@ -73,7 +73,7 @@ void KickGeneratorDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                                 DeviceNodePlayback& out) const {
     auto params = std::get<KickGeneratorParams>(slot.config.instance);
     const auto& panel = std::get<MonoOutputPanel>(slot.config.outputPanel);
-    params.gain = panel.gain;
+    params.gain = 1.0f; // output-panel gain is applied by the device-chain stage
     out.kind = DeviceNodeKind::KickGenerator;
     out.params = params;
 }

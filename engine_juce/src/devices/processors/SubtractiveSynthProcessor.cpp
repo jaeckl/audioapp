@@ -4,6 +4,7 @@
 #include "audioapp/DeviceChainScratch.hpp"
 #include "audioapp/AutomationPlayback.hpp"
 #include "audioapp/DeviceChainAutomationModulation.hpp"
+#include "audioapp/instruments/PerNoteModulation.hpp"
 #include "audioapp/devices/processors/ProcessorUtils.hpp"
 #include "audioapp/devices/DevicePanelTypes.hpp"
 #include <algorithm>
@@ -157,7 +158,9 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
                                   int lfoStride,
                                   const ModulationEdgePlayback* modEdges,
                                   int modEdgeCount,
-                                  const uint16_t* modulationDeviceIndex) noexcept {
+                                  const uint16_t* modulationDeviceIndex,
+                                  const float* perFramePanelGain,
+                                  const InstrumentModulationContext* instMod) noexcept {
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
         return;
     }
@@ -250,7 +253,18 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
                 frameParams = *automated;
             }
         }
-        if (useModulation) {
+        if (useModulation && instMod != nullptr) {
+            DeviceVariantParams variant = frameParams;
+            applyGlobalDspModulationAtFrame(variant,
+                                            DeviceNodeKind::SubtractiveSynth,
+                                            instMod->deviceIndex,
+                                            frame,
+                                            lfoStride,
+                                            *instMod);
+            if (const auto* automated = std::get_if<SubtractiveSynthParams>(&variant)) {
+                frameParams = *automated;
+            }
+        } else if (useModulation) {
             for (int e = 0; e < modEdgeCount; ++e) {
                 const ModulationEdgePlayback& edge = modEdges[e];
                 if (edge.deviceIndex != *modulationDeviceIndex) continue;
@@ -330,11 +344,36 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
             const float vel = safe_clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
             const float velGain = 1.0f - frameParams.velocitySensitivity * (1.0f - vel);
 
-            mix += subtractiveVoiceSample(voice, frameParams,
+            SubtractiveSynthParams voiceParams = frameParams;
+            float panelGain = perFramePanelGain != nullptr ? perFramePanelGain[frame] : 1.0f;
+            if (instMod != nullptr) {
+                const NoteModKey key =
+                    noteModKeyFromRegion(note.pitch, note.clipStartBeat, note.noteStartBeat);
+                const ModulationEvalContext evalCtx = instMod->evalContextForFrame(frame);
+                DeviceVariantParams variant = voiceParams;
+                applyPerNoteDspModulation(variant,
+                                          DeviceNodeKind::SubtractiveSynth,
+                                          instMod->deviceIndex,
+                                          elapsedSec,
+                                          key,
+                                          evalCtx,
+                                          *instMod);
+                if (const auto* modulated = std::get_if<SubtractiveSynthParams>(&variant)) {
+                    voiceParams = *modulated;
+                }
+                panelGain = applyPerNoteCommonGain(panelGain,
+                                                   instMod->deviceIndex,
+                                                   elapsedSec,
+                                                   key,
+                                                   evalCtx,
+                                                   *instMod);
+            }
+
+            mix += subtractiveVoiceSample(voice, voiceParams,
                                            ampGain * velGain,
                                            filterGain,
                                            sampleRate, glideCoeff) *
-                   frameParams.gain * kInstrumentOutputGain;
+                   voiceParams.gain * panelGain * kInstrumentOutputGain;
 
             if (inRelease && elapsedSec >= noteDurSec + static_cast<double>(ampReleaseSec)) {
                 voice.active = 0;
@@ -371,8 +410,15 @@ void SubtractiveSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) 
     const uint16_t di = static_cast<uint16_t>(ctx.deviceIndex);
     const bool hasAuto = nodeHasDspAutomation(di, ctx.automationClips, ctx.automationClipCount);
     const bool hasMod = ctx.lfoValues != nullptr && ctx.lfoCount > 0 &&
-                        ctx.modEdges != nullptr && ctx.modEdgeCount > 0 &&
-                        DeviceChainAutomationModulation::nodeHasDspModulation(di, ctx.modEdges, ctx.modEdgeCount);
+                        ctx.modEdges != nullptr && ctx.modEdgeCount > 0;
+    const InstrumentModulationContext* instModPtr = nullptr;
+    InstrumentModulationContext instMod;
+    if (hasMod && ctx.modulators != nullptr) {
+        instMod = ctx.instrumentModulation();
+        instModPtr = &instMod;
+    }
+    const bool bakePanelGain = instModPtr != nullptr &&
+        deviceHasPerNoteModEdges(di, ctx.modEdges, ctx.modEdgeCount, ctx.modulators, ctx.lfoCount);
 
     mixSubtractiveMidiNotesBlock(ctx.scratch.scratch, block.numSamples, ctx.sampleRate, ctx.bpm, ctx.playheadBeat,
         ctx.scratch.subtractiveRegions, regionCount,
@@ -381,10 +427,13 @@ void SubtractiveSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) 
         hasAuto ? &di : nullptr,
         hasMod ? ctx.lfoValues : nullptr, hasMod ? ctx.lfoCount : 0, hasMod ? block.numSamples : 0,
         hasMod ? ctx.modEdges : nullptr, hasMod ? ctx.modEdgeCount : 0,
-        hasMod ? &di : nullptr);
+        hasMod ? &di : nullptr,
+        ctx.scratch.perFrameGain,
+        instModPtr);
 
     StereoOutputPanel::applyFromScratch(ctx.scratch.scratch, block, block.numSamples,
-                                         ctx.scratch.perFrameGain, ctx.scratch.perFramePan);
+                                         bakePanelGain ? nullptr : ctx.scratch.perFrameGain,
+                                         ctx.scratch.perFramePan);
 }
 
 void BassSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
@@ -409,8 +458,15 @@ void BassSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcep
     const uint16_t di = static_cast<uint16_t>(ctx.deviceIndex);
     const bool hasAuto = nodeHasDspAutomation(di, ctx.automationClips, ctx.automationClipCount);
     const bool hasMod = ctx.lfoValues != nullptr && ctx.lfoCount > 0 &&
-                        ctx.modEdges != nullptr && ctx.modEdgeCount > 0 &&
-                        DeviceChainAutomationModulation::nodeHasDspModulation(di, ctx.modEdges, ctx.modEdgeCount);
+                        ctx.modEdges != nullptr && ctx.modEdgeCount > 0;
+    const InstrumentModulationContext* instModPtr = nullptr;
+    InstrumentModulationContext instMod;
+    if (hasMod && ctx.modulators != nullptr) {
+        instMod = ctx.instrumentModulation();
+        instModPtr = &instMod;
+    }
+    const bool bakePanelGain = instModPtr != nullptr &&
+        deviceHasPerNoteModEdges(di, ctx.modEdges, ctx.modEdgeCount, ctx.modulators, ctx.lfoCount);
 
     mixSubtractiveMidiNotesBlock(ctx.scratch.scratch, block.numSamples, ctx.sampleRate, ctx.bpm, ctx.playheadBeat,
         ctx.scratch.subtractiveRegions, regionCount,
@@ -419,10 +475,13 @@ void BassSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcep
         hasAuto ? &di : nullptr,
         hasMod ? ctx.lfoValues : nullptr, hasMod ? ctx.lfoCount : 0, hasMod ? block.numSamples : 0,
         hasMod ? ctx.modEdges : nullptr, hasMod ? ctx.modEdgeCount : 0,
-        hasMod ? &di : nullptr);
+        hasMod ? &di : nullptr,
+        ctx.scratch.perFrameGain,
+        instModPtr);
 
     StereoOutputPanel::applyFromScratch(ctx.scratch.scratch, block, block.numSamples,
-                                         ctx.scratch.perFrameGain, ctx.scratch.perFramePan);
+                                         bakePanelGain ? nullptr : ctx.scratch.perFrameGain,
+                                         ctx.scratch.perFramePan);
 }
 
 } // namespace audioapp

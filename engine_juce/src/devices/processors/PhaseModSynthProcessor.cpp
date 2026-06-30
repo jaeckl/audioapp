@@ -4,6 +4,7 @@
 #include "audioapp/DeviceChainScratch.hpp"
 #include "audioapp/AutomationPlayback.hpp"
 #include "audioapp/DeviceChainAutomationModulation.hpp"
+#include "audioapp/instruments/PerNoteModulation.hpp"
 #include "audioapp/MidiUtils.hpp"
 #include "audioapp/devices/processors/ProcessorUtils.hpp"
 #include "audioapp/devices/DevicePanelTypes.hpp"
@@ -114,7 +115,9 @@ void mixPhaseModMidiNotesBlock(float* monoOut,
                                int lfoStride,
                                const ModulationEdgePlayback* modEdges,
                                int modEdgeCount,
-                               const uint16_t* modulationDeviceIndex) noexcept {
+                               const uint16_t* modulationDeviceIndex,
+                               const float* perFramePanelGain,
+                               const InstrumentModulationContext* instMod) noexcept {
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
         return;
     }
@@ -208,18 +211,30 @@ void mixPhaseModMidiNotesBlock(float* monoOut,
             }
         }
 
-        // Compute LFO output for this frame
-        float lfoOut = 0.0f;
-        if (useModulation) {
+        // Graph modulation: global edges at frame rate; per-note edges per voice.
+        if (useModulation && instMod != nullptr) {
+            DeviceVariantParams variant = frameParams;
+            applyGlobalDspModulationAtFrame(variant,
+                                            DeviceNodeKind::PhaseModSynth,
+                                            instMod->deviceIndex,
+                                            frame,
+                                            lfoStride,
+                                            *instMod);
+            if (const auto* automated = std::get_if<PhaseModSynthParams>(&variant)) {
+                frameParams = *automated;
+            }
+        } else if (useModulation) {
             for (int e = 0; e < modEdgeCount; ++e) {
                 const ModulationEdgePlayback& edge = modEdges[e];
                 if (edge.deviceIndex != *modulationDeviceIndex) continue;
                 if (edge.lfoId >= static_cast<uint16_t>(lfoCount)) continue;
                 const uint16_t pid = edge.localParamId;
                 if (pid == kEncodedCommonGain || pid == kEncodedCommonPan) continue;
-                lfoOut = lfoValues[static_cast<size_t>(edge.lfoId) *
+                const float lfoOut = lfoValues[static_cast<size_t>(edge.lfoId) *
                                    static_cast<size_t>(lfoStride) +
                                    static_cast<size_t>(frame)];
+                const float modAmount = edge.amount * lfoOut;
+                DeviceChainAutomationModulation::applyModulation(frameParams, modAmount, pid);
             }
         }
 
@@ -287,11 +302,37 @@ void mixPhaseModMidiNotesBlock(float* monoOut,
             const float vel = safe_clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
             const float velGain = 1.0f - frameParams.velocitySensitivity * (1.0f - vel);
 
-            mix += phaseModVoiceSample(voice, frameParams,
+            PhaseModSynthParams voiceParams = frameParams;
+            float panelGain = perFramePanelGain != nullptr ? perFramePanelGain[frame] : 1.0f;
+            float voiceLfoOut = 0.0f;
+            if (instMod != nullptr) {
+                const NoteModKey key =
+                    noteModKeyFromRegion(note.pitch, note.clipStartBeat, note.noteStartBeat);
+                const ModulationEvalContext evalCtx = instMod->evalContextForFrame(frame);
+                DeviceVariantParams variant = voiceParams;
+                applyPerNoteDspModulation(variant,
+                                          DeviceNodeKind::PhaseModSynth,
+                                          instMod->deviceIndex,
+                                          elapsedSec,
+                                          key,
+                                          evalCtx,
+                                          *instMod);
+                if (const auto* modulated = std::get_if<PhaseModSynthParams>(&variant)) {
+                    voiceParams = *modulated;
+                }
+                panelGain = applyPerNoteCommonGain(panelGain,
+                                                   instMod->deviceIndex,
+                                                   elapsedSec,
+                                                   key,
+                                                   evalCtx,
+                                                   *instMod);
+            }
+
+            mix += phaseModVoiceSample(voice, voiceParams,
                                        ampGain * velGain,
                                        filterGain,
-                                       sampleRate, glideCoeff, lfoOut) *
-                   frameParams.gain * kInstrumentOutputGain * frameParams.masterVol;
+                                       sampleRate, glideCoeff, voiceLfoOut) *
+                   voiceParams.gain * panelGain * kInstrumentOutputGain * voiceParams.masterVol;
 
             if (inRelease && elapsedSec >= noteDurSec + static_cast<double>(ampReleaseSec)) {
                 voice.active = 0;
@@ -330,8 +371,15 @@ void PhaseModSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) noe
     const uint16_t di = static_cast<uint16_t>(ctx.deviceIndex);
     const bool hasAuto = nodeHasDspAutomation(di, ctx.automationClips, ctx.automationClipCount);
     const bool hasMod = ctx.lfoValues != nullptr && ctx.lfoCount > 0 &&
-                        ctx.modEdges != nullptr && ctx.modEdgeCount > 0 &&
-                        DeviceChainAutomationModulation::nodeHasDspModulation(di, ctx.modEdges, ctx.modEdgeCount);
+                        ctx.modEdges != nullptr && ctx.modEdgeCount > 0;
+    const InstrumentModulationContext* instModPtr = nullptr;
+    InstrumentModulationContext instMod;
+    if (hasMod && ctx.modulators != nullptr) {
+        instMod = ctx.instrumentModulation();
+        instModPtr = &instMod;
+    }
+    const bool bakePanelGain = instModPtr != nullptr &&
+        deviceHasPerNoteModEdges(di, ctx.modEdges, ctx.modEdgeCount, ctx.modulators, ctx.lfoCount);
 
     mixPhaseModMidiNotesBlock(ctx.scratch.scratch, block.numSamples, ctx.sampleRate, ctx.bpm, ctx.playheadBeat,
         ctx.scratch.phaseModRegions, regionCount,
@@ -340,10 +388,13 @@ void PhaseModSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) noe
         hasAuto ? &di : nullptr,
         hasMod ? ctx.lfoValues : nullptr, hasMod ? ctx.lfoCount : 0, hasMod ? block.numSamples : 0,
         hasMod ? ctx.modEdges : nullptr, hasMod ? ctx.modEdgeCount : 0,
-        hasMod ? &di : nullptr);
+        hasMod ? &di : nullptr,
+        ctx.scratch.perFrameGain,
+        instModPtr);
 
     StereoOutputPanel::applyFromScratch(ctx.scratch.scratch, block, block.numSamples,
-                                         ctx.scratch.perFrameGain, ctx.scratch.perFramePan);
+                                         bakePanelGain ? nullptr : ctx.scratch.perFrameGain,
+                                         ctx.scratch.perFramePan);
 }
 
 } // namespace audioapp

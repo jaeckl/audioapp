@@ -64,6 +64,8 @@ struct WavetableSynthRuntime {
     int wavetableIndex = -1;
 };
 
+struct InstrumentModulationContext;
+
 struct WavetableMidiNoteRegion {
     int pitch = 60;
     int noteKey = 0;
@@ -96,7 +98,9 @@ void mixWavetableMidiNotesBlock(float* monoOut,
                                 int lfoStride = 0,
                                 const ModulationEdgePlayback* modEdges = nullptr,
                                 int modEdgeCount = 0,
-                                const uint16_t* modulationDeviceIndex = nullptr) noexcept;
+                                const uint16_t* modulationDeviceIndex = nullptr,
+                                const float* perFramePanelGain = nullptr,
+                                const InstrumentModulationContext* instMod = nullptr) noexcept;
 
 float wavetableInterpolatedSample(const float* table,
                                   int frameCount,

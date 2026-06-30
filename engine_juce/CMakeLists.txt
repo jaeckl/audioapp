@@ -53,6 +53,7 @@ add_library(audioapp_engine STATIC
   src/MasterMix.cpp
   src/DeviceChain.cpp
   src/DeviceChainAutomationModulation.cpp
+  src/instruments/PerNoteModulation.cpp
   src/DeviceChainOrchestrator.cpp
   src/devices/processors/TrackGainProcessor.cpp
   src/devices/processors/OscillatorProcessor.cpp

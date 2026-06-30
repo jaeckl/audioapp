@@ -39,14 +39,28 @@ public:
         return static_cast<int>(ModulatorType::RandomGenerator);
     }
 
+    bool usesPerNoteClock() const noexcept override;
+
     float evaluate(double playheadBeat, int bpm,
                    double secondsWithinBlock,
                    double playheadSeconds,
-                   uint32_t retriggerGeneration) noexcept override;
+                   uint32_t retriggerGeneration,
+                   double noteElapsedSeconds) noexcept override;
 
     void updateParams(const ModulatorParams& params) noexcept override {
         params_ = std::get<RandomGeneratorParams>(params);
     }
+
+    struct NoteRuntimeState {
+        float currentValue = 0.0f;
+        float drawStartValue = 0.0f;
+        double lastSampleTime = 0.0;
+        double nextSampleTime = -1.0;
+        int lastDivision = -1;
+        double lastNoteElapsed = -1.0;
+    };
+
+    float evaluateForNote(double noteElapsedSeconds, NoteRuntimeState& state) noexcept;
 
 private:
     RandomGeneratorParams params_;
@@ -59,6 +73,7 @@ private:
         double nextSampleTime = 0.0;
         int lastDivision = -1;
         uint32_t lastRetriggerGeneration = std::numeric_limits<uint32_t>::max();
+        double lastNoteElapsedSeconds = -1.0;
     };
     Runtime rt_;
 

@@ -2,6 +2,7 @@
 #include "audioapp/ClipContentPlayback.hpp"
 #include "audioapp/DeviceChainScratch.hpp"
 #include "audioapp/DeviceChainAutomationModulation.hpp"
+#include "audioapp/instruments/PerNoteModulation.hpp"
 #include "audioapp/devices/processors/ProcessorUtils.hpp"
 #include "audioapp/devices/DevicePanelTypes.hpp"
 #include <algorithm>
@@ -71,7 +72,10 @@ void mixSamplerMidiNotesBlock(float* monoOut,
                               double playheadStartBeat,
                               const SamplerMidiNoteRegion* notes,
                               int noteCount,
-                              const SamplerInstrumentPlayback& sampler) {
+                              const SamplerInstrumentPlayback& sampler,
+                              const InstrumentModulationContext* instMod,
+                              const float* perFramePanelGain,
+                              uint16_t modulationDeviceIndex) {
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
         return;
     }
@@ -158,6 +162,19 @@ void mixSamplerMidiNotesBlock(float* monoOut,
                                                           filterGain,
                                                           sampler.filterEnvAmount);
             }
+            if (instMod != nullptr) {
+                const NoteModKey key = noteModKeyFromRegion(
+                    note.pitch, note.clipStartBeat, note.noteStartBeat);
+                const ModulationEvalContext evalCtx = instMod->evalContextForFrame(frame);
+                const float panelGain =
+                    applyPerNoteCommonGain(perFramePanelGain != nullptr ? perFramePanelGain[frame] : 1.0f,
+                                           modulationDeviceIndex,
+                                           elapsedSeconds,
+                                           key,
+                                           evalCtx,
+                                           *instMod);
+                noteSample *= panelGain;
+            }
             mix += noteSample;
         }
         if (!usePerNoteFilter && sampler.filterState != nullptr) {
@@ -211,6 +228,18 @@ void SamplerProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept 
     std::memset(ctx.scratch.samplerNoteFilterStates, 0, sizeof(ctx.scratch.samplerNoteFilterStates));
     BiquadState* effectiveNoteFilters = samplerFilterStates_;
 
+    const uint16_t di = static_cast<uint16_t>(ctx.deviceIndex);
+    const bool hasMod = ctx.lfoValues != nullptr && ctx.lfoCount > 0 &&
+                        ctx.modEdges != nullptr && ctx.modEdgeCount > 0;
+    const InstrumentModulationContext* instModPtr = nullptr;
+    InstrumentModulationContext instMod;
+    if (hasMod && ctx.modulators != nullptr) {
+        instMod = ctx.instrumentModulation();
+        instModPtr = &instMod;
+    }
+    const bool bakePanelGain = instModPtr != nullptr &&
+        deviceHasPerNoteModEdges(di, ctx.modEdges, ctx.modEdgeCount, ctx.modulators, ctx.lfoCount);
+
     const auto render = [&](int sub, int subLen, double subBeat, const SamplerParams& p) {
         mixSamplerMidiNotesBlock(ctx.scratch.scratch + sub, subLen, ctx.sampleRate, ctx.bpm, subBeat,
             ctx.scratch.samplerRegions, regionCount, SamplerInstrumentPlayback{
@@ -221,7 +250,10 @@ void SamplerProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept 
                 p.filterEnvAmount, p.filterAttack, p.filterDecay, p.filterSustain, p.filterRelease,
                 p.trimStartFrame, p.trimEndFrame, p.regionStartFrame, p.regionEndFrame,
                 p.playbackMode, nullptr, effectiveNoteFilters, regionCount,
-            });
+            },
+            instModPtr,
+            ctx.scratch.perFrameGain,
+            di);
     };
 
     if (ctx.needsSubBlocks) {
@@ -243,7 +275,8 @@ void SamplerProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept 
     }
 
     StereoOutputPanel::applyFromScratch(ctx.scratch.scratch, block, block.numSamples,
-                                         ctx.scratch.perFrameGain, ctx.scratch.perFramePan);
+                                         bakePanelGain ? nullptr : ctx.scratch.perFrameGain,
+                                         ctx.scratch.perFramePan);
 }
 
 } // namespace audioapp

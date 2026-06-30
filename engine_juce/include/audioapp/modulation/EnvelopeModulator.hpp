@@ -10,7 +10,7 @@
 namespace audioapp {
 
 /// Unified envelope modulator supporting ADSR, ASR, ADR, and AHDSR curves.
-/// Always retriggers on note — no free/sync/rate modes.
+/// Always retriggers on note — no free/sync/rate modes. Output is unipolar [0, 1].
 class EnvelopeModulator : public IModulator {
 public:
     explicit EnvelopeModulator(const EnvelopeParams& params) noexcept : params_(params) {}
@@ -23,10 +23,18 @@ public:
         return static_cast<int>(ModulatorType::Envelope);
     }
 
+    bool usesPerNoteClock() const noexcept override { return true; }
+
+    float evaluateOnNoteElapsed(double noteElapsedSeconds) const noexcept;
+
     float evaluate(double playheadBeat, int bpm,
                    double secondsWithinBlock,
                    double playheadSeconds,
-                   uint32_t retriggerGeneration) noexcept override;
+                   uint32_t retriggerGeneration,
+                   double noteElapsedSeconds) noexcept override;
+
+    /// Stateless ADR/ADSR envelope level for `elapsedSeconds` since note on.
+    float levelAtElapsed(double elapsedSeconds) const noexcept;
 
     void updateParams(const ModulatorParams& params) noexcept override {
         params_ = std::get<EnvelopeParams>(params);

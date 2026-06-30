@@ -149,4 +149,70 @@ inline bool blockMayContainLoopedClipNotes(double blockStartBeat,
     return !(blockEndBeat < noteStart || blockStartBeat >= audibleEnd);
 }
 
+/// Absolute beat of the note onset that is active at `beat`, or -1 if none.
+/// For looped clips, returns the most recent loop iteration onset at or before `beat`.
+inline double midiActiveNoteOnsetBeat(double beat,
+                                      double clipStartBeat,
+                                      double clipLengthBeats,
+                                      double contentLengthBeats,
+                                      bool loopContent,
+                                      double noteStartBeat,
+                                      double noteDurationBeats) noexcept {
+    if (!isMidiNoteActiveInClip(beat,
+                                clipStartBeat,
+                                clipLengthBeats,
+                                contentLengthBeats,
+                                loopContent,
+                                noteStartBeat,
+                                noteDurationBeats)) {
+        return -1.0;
+    }
+    const double firstOnset = clipStartBeat + noteStartBeat;
+    if (!loopContent || contentLengthBeats <= 0.0) {
+        return firstOnset;
+    }
+    const double period = contentLengthBeats;
+    double loopIndex = std::floor((beat - firstOnset) / period);
+    if (loopIndex < 0.0) {
+        loopIndex = 0.0;
+    }
+    return firstOnset + loopIndex * period;
+}
+
+/// True when a MIDI note onset (clip-local start) falls inside [blockStartBeat, blockEndBeat).
+inline bool midiNoteOnsetInBlock(double blockStartBeat,
+                                 double blockEndBeat,
+                                 double clipStartBeat,
+                                 double clipLengthBeats,
+                                 double contentLengthBeats,
+                                 bool loopContent,
+                                 double noteStartBeat) noexcept {
+    const double clipEnd = clipStartBeat + clipLengthBeats;
+    if (blockEndBeat <= clipStartBeat || blockStartBeat >= clipEnd) {
+        return false;
+    }
+    const auto inRange = [&](double onsetBeat) noexcept -> bool {
+        return onsetBeat >= blockStartBeat && onsetBeat < blockEndBeat;
+    };
+    if (!loopContent || contentLengthBeats <= 0.0) {
+        return inRange(clipStartBeat + noteStartBeat);
+    }
+    const double firstOnset = clipStartBeat + noteStartBeat;
+    const double period = contentLengthBeats;
+    double loopIndex = std::floor((blockStartBeat - firstOnset) / period);
+    if (loopIndex < 0.0) {
+        loopIndex = 0.0;
+    }
+    for (int i = 0; i < 64; ++i) {
+        const double onset = firstOnset + (loopIndex + static_cast<double>(i)) * period;
+        if (onset >= blockEndBeat) {
+            break;
+        }
+        if (onset >= clipStartBeat && inRange(onset)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 } // namespace audioapp

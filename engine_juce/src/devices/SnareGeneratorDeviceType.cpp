@@ -73,7 +73,7 @@ void SnareGeneratorDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                                  DeviceNodePlayback& out) const {
     auto params = std::get<SnareGeneratorParams>(slot.config.instance);
     const auto& panel = std::get<MonoOutputPanel>(slot.config.outputPanel);
-    params.gain = panel.gain;
+    params.gain = 1.0f; // output-panel gain is applied by the device-chain stage
     out.kind = DeviceNodeKind::SnareGenerator;
     out.params = params;
 }

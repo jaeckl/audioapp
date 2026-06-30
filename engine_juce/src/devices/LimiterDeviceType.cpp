@@ -76,7 +76,7 @@ void LimiterDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                           DeviceNodePlayback& out) const {
     auto params = std::get<LimiterParams>(slot.config.instance);
     const auto& outPanel = std::get<StereoOutputPanel>(slot.config.outputPanel);
-    params.gain = outPanel.gain;
+    params.gain = 1.0f; // output-panel gain is applied by the device-chain stage
     const auto& inPanel = std::get<DynamicsInputPanel>(slot.config.inputPanel);
     params.inputGain = inPanel.trim;
     out.kind = DeviceNodeKind::Limiter;

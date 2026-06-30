@@ -1,5 +1,6 @@
 #include "audioapp/devices/processors/KickProcessor.hpp"
 #include "audioapp/ClipContentPlayback.hpp"
+#include "audioapp/instruments/PerNoteModulation.hpp"
 #include "audioapp/devices/processors/ProcessorUtils.hpp"
 #include "audioapp/devices/DevicePanelTypes.hpp"
 #include <algorithm>
@@ -57,7 +58,10 @@ void mixKickMidiNotesBlock(float* monoOut,
                             const audioapp::KickMidiNoteRegion* notes,
                             int noteCount,
                             const audioapp::KickGeneratorParams& params,
-                            audioapp::KickGeneratorRuntime& runtime) noexcept {
+                            audioapp::KickGeneratorRuntime& runtime,
+                            const audioapp::InstrumentModulationContext* instMod = nullptr,
+                            const float* perFramePanelGain = nullptr,
+                            uint16_t deviceIndex = 0) noexcept {
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
         return;
     }
@@ -68,6 +72,7 @@ void mixKickMidiNotesBlock(float* monoOut,
         const double beat = beatAtFrame(playheadStartBeat, frame, sampleRate, bpm);
 
         int activeNoteKey = -1;
+        int activeNoteIndex = -1;
         int activePitch = 36;
         float activeVelocity = 100.0f;
         double activeElapsed = 0.0;
@@ -80,6 +85,7 @@ void mixKickMidiNotesBlock(float* monoOut,
                 continue;
             }
             activeNoteKey = note.noteKey;
+            activeNoteIndex = noteIndex;
             activePitch = note.pitch;
             activeVelocity = note.velocity;
             activeElapsed = elapsedSeconds;
@@ -99,7 +105,21 @@ void mixKickMidiNotesBlock(float* monoOut,
 
         const float vel = std::clamp(runtime.voice.velocity / 127.0f, 0.0f, 1.0f);
         const float velGain = 1.0f - params.kickVelocity * (1.0f - vel);
-        monoOut[frame] += audioapp::kickGeneratorSample(runtime.voice, params, sampleRate, velGain);
+        float panelGain = perFramePanelGain != nullptr ? perFramePanelGain[frame] : 1.0f;
+        if (instMod != nullptr && activeNoteIndex >= 0) {
+            const auto& note = notes[activeNoteIndex];
+            const audioapp::NoteModKey key = audioapp::noteModKeyFromRegion(
+                note.pitch, note.clipStartBeat, note.noteStartBeat);
+            const audioapp::ModulationEvalContext evalCtx = instMod->evalContextForFrame(frame);
+            panelGain = audioapp::applyPerNoteCommonGain(panelGain,
+                                                         deviceIndex,
+                                                         activeElapsed,
+                                                         key,
+                                                         evalCtx,
+                                                         *instMod);
+        }
+        monoOut[frame] += audioapp::kickGeneratorSample(runtime.voice, params, sampleRate, velGain)
+            * panelGain;
     }
 }
 
@@ -126,6 +146,17 @@ void KickProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
             };
         }
         std::memset(ctx.scratch.scratch, 0, static_cast<size_t>(block.numSamples) * sizeof(float));
+        const uint16_t di = static_cast<uint16_t>(ctx.deviceIndex);
+        const bool hasMod = ctx.lfoValues != nullptr && ctx.lfoCount > 0 &&
+                            ctx.modEdges != nullptr && ctx.modEdgeCount > 0;
+        const InstrumentModulationContext* instModPtr = nullptr;
+        InstrumentModulationContext instMod;
+        if (hasMod && ctx.modulators != nullptr) {
+            instMod = ctx.instrumentModulation();
+            instModPtr = &instMod;
+        }
+        const bool bakePanelGain = instModPtr != nullptr &&
+            deviceHasPerNoteModEdges(di, ctx.modEdges, ctx.modEdgeCount, ctx.modulators, ctx.lfoCount);
         mixKickMidiNotesBlock(
             ctx.scratch.scratch,
             block.numSamples,
@@ -135,10 +166,14 @@ void KickProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
             ctx.scratch.kickRegions,
             regionCount,
             kp,
-            runtime_
+            runtime_,
+            instModPtr,
+            ctx.scratch.perFrameGain,
+            di
         );
         StereoOutputPanel::applyFromScratch(ctx.scratch.scratch, block, block.numSamples,
-                                             ctx.scratch.perFrameGain, ctx.scratch.perFramePan);
+                                             bakePanelGain ? nullptr : ctx.scratch.perFrameGain,
+                                             ctx.scratch.perFramePan);
     }
 }
 

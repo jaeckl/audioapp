@@ -2,6 +2,7 @@
 #include "audioapp/devices/DevicePanelTypes.hpp"
 #include "audioapp/DeviceChainScratch.hpp"
 #include "audioapp/DeviceChainAutomationModulation.hpp"
+#include "audioapp/instruments/PerNoteModulation.hpp"
 #include "audioapp/AutomationPlayback.hpp"
 
 using namespace audioapp::DeviceChainAutomationModulation;
@@ -119,12 +120,16 @@ void DeviceChainOrchestrator::applyCommonGainPanLfo(
     uint16_t deviceIndex,
     int framesToProcess,
     const float* lfoValues, int lfoCount,
-    const ModulationEdgePlayback* modEdges, int modEdgeCount) noexcept {
+    const ModulationEdgePlayback* modEdges, int modEdgeCount,
+    IModulator* const* modulators) noexcept {
 
     if (lfoValues != nullptr && lfoCount > 0 && modEdges != nullptr && modEdgeCount > 0) {
         for (int e = 0; e < modEdgeCount; ++e) {
             const auto& edge = modEdges[e];
             if (edge.deviceIndex != deviceIndex || edge.lfoId >= static_cast<uint16_t>(lfoCount)) continue;
+            if (modulators != nullptr && modulatorUsesPerNoteClock(modulators[edge.lfoId])) {
+                continue;
+            }
             const uint16_t pid = edge.localParamId;
             if (pid == kEncodedCommonGain) {
                 for (int f = 0; f < framesToProcess; ++f) {
@@ -149,6 +154,7 @@ void DeviceChainOrchestrator::applyCommonGainPanLfo(
 
 void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
     auto& s = ctx.scratch;
+    s.perNoteModCache.reset();
     const int numFrames = ctx.numFrames > kScratchFrames ? kScratchFrames : ctx.numFrames;
 
     const double beatsPerFrame =
@@ -262,6 +268,9 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
         pc.deviceIndex = deviceIndex;
         pc.needsSubBlocks = needsSubBlocks;
         pc.wavetableBank = ctx.wavetableBank;
+        pc.modulators = ctx.modulators;
+        pc.retriggerGeneration = ctx.retriggerGeneration;
+        pc.numFrames = numFrames;
 
         // --- Timeline automation ---
         auto modulatedParams = proc->storedParams(); // start from processor's own params
@@ -302,8 +311,10 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
                 const uint16_t pid = edge.localParamId;
                 if (pid == kEncodedCommonGain || pid == kEncodedCommonPan) continue;
                 if (!needsSubBlocks || !handlesOwnModulation(nodeKind)) {
-                    // Use mid-block frame for LFO value to avoid zero at frame 0
-                    // (sine/triangle/saw all start at 0 at phase 0).
+                    if (ctx.modulators != nullptr
+                        && modulatorUsesPerNoteClock(ctx.modulators[edge.lfoId])) {
+                        continue;
+                    }
                     const int lfoFrame = numFrames / 2;
                     const float lfoOut = ctx.lfoValues[edge.lfoId * numFrames + lfoFrame];
                     const float modAmount = edge.amount * lfoOut;
@@ -317,7 +328,8 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
         // --- Per-frame gain/pan LFO modulation ---
         applyCommonGainPanLfo(s, di, numFrames,
                               ctx.lfoValues, ctx.lfoCount,
-                              ctx.modEdges, ctx.modEdgeCount);
+                              ctx.modEdges, ctx.modEdgeCount,
+                              ctx.modulators);
 
         // --- Process device via virtual dispatch ---
         pc.modulatedParams = &modulatedParams;

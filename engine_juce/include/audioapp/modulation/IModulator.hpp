@@ -28,15 +28,21 @@ public:
     /// @param bpm Project BPM.
     /// @param secondsWithinBlock Seconds since the start of this block (for free-running LFO).
     /// @param playheadSeconds Absolute seconds since playback start (for envelope elapsed time).
-    /// @param retriggerGeneration Global retrigger counter.
-    /// @return Modulation value in [-1, 1] range.
+    /// @param retriggerGeneration Global retrigger counter (legacy OnNote path).
+    /// @param noteElapsedSeconds Seconds since the active note onset at this frame,
+    ///        or a negative value when no clip note is sounding.
+    /// @return Modulation value (bipolar [-1,1] or unipolar [0,1] per modulator).
     virtual float evaluate(double playheadBeat, int bpm,
                            double secondsWithinBlock,
                            double playheadSeconds,
-                           uint32_t retriggerGeneration) noexcept = 0;
+                           uint32_t retriggerGeneration,
+                           double noteElapsedSeconds) noexcept = 0;
 
     /// Returns the ModulatorType enum value (0=Lfo, 1=Adsr, 2=Adr).
     virtual int modulatorType() const noexcept = 0;
+
+    /// True when this modulator's clock follows each active MIDI note (On note / envelope).
+    virtual bool usesPerNoteClock() const noexcept = 0;
 
 /// Update params in-place on an existing live modulator instance,
     /// preserving all runtime state (envelope stage, smoothed values, etc.).

@@ -861,9 +861,16 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         // Compute per-frame LFO values for gain/pan modulation.
     // DSP-specific params still use frame-0 (block-rate).
     const int lfoCount = modulationGraph_.lfoPlaybackCount();
-    // Per-frame LFO buffer: lfoValues[lfoId * framesToProcess + frame]
-    // thread_local vector avoids large stack allocation and is allocation-free
-    // after the first warm-up call on the audio thread.
+    const uint32_t retriggerGeneration = modulationGraph_.noteRetriggerGeneration();
+    thread_local std::vector<IModulator*> modulatorPtrs;
+    if (lfoCount > 0) {
+        modulatorPtrs.resize(static_cast<size_t>(lfoCount));
+        for (int i = 0; i < lfoCount; ++i) {
+            modulatorPtrs[static_cast<size_t>(i)] = modulationGraph_.modulator(i);
+        }
+    }
+    const double beatsPerFrame =
+        (static_cast<double>(std::max(transport_.bpm(), 1)) / 60.0) / sampleRate;
     thread_local std::vector<float> lfoValues;
     if (lfoCount > 0) {
         const size_t needed = static_cast<size_t>(lfoCount) * static_cast<size_t>(framesToProcess);
@@ -873,20 +880,45 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         lfoValues.resize(needed, 0.0f);
         const double playheadSeconds = playheadStartBeat * 60.0 / static_cast<double>(std::max(transport_.bpm(), 1));
         const double samplePeriod = 1.0 / std::max(sampleRate, 1.0);
-        const uint32_t retriggerGeneration = modulationGraph_.noteRetriggerGeneration();
+        const auto noteElapsedSecondsAtBeat = [&](double beat) -> double {
+            double latestOnsetBeat = -1.0;
+            for (int trackIndex = 0; trackIndex < trackCount; ++trackIndex) {
+                const TrackPlaybackSnapshot& track = trackPlayback_[trackIndex];
+                for (int noteIndex = 0; noteIndex < track.noteCount; ++noteIndex) {
+                    const PlaybackNote& note = track.notes[noteIndex];
+                    const double onset = midiActiveNoteOnsetBeat(
+                        beat,
+                        note.clipStartBeat,
+                        note.clipLengthBeats,
+                        note.contentLengthBeats,
+                        note.loopContent,
+                        note.noteStartBeat,
+                        note.noteDurationBeats);
+                    if (onset > latestOnsetBeat) {
+                        latestOnsetBeat = onset;
+                    }
+                }
+            }
+            if (latestOnsetBeat < 0.0) {
+                return -1.0;
+            }
+            return (beat - latestOnsetBeat) * 60.0
+                / static_cast<double>(std::max(transport_.bpm(), 1));
+        };
         for (int i = 0; i < lfoCount; ++i) {
             auto* mod = modulationGraph_.modulator(i);
             if (mod == nullptr) continue;
             for (int frame = 0; frame < framesToProcess; ++frame) {
                 const double secondsWithinBlock = static_cast<double>(frame) * samplePeriod;
-                const double frameSeconds = playheadSeconds + secondsWithinBlock;
                 const double frameBeat =
                     playheadStartBeat +
                     secondsWithinBlock *
                         (static_cast<double>(std::max(transport_.bpm(), 1)) / 60.0);
+                const double noteElapsed = noteElapsedSecondsAtBeat(frameBeat);
                 lfoValues[i * framesToProcess + frame] =
                     mod->evaluate(frameBeat, transport_.bpm(),
-                                  secondsWithinBlock, playheadSeconds, retriggerGeneration);
+                                  secondsWithinBlock, playheadSeconds, retriggerGeneration,
+                                  noteElapsed);
             }
         }
     }
@@ -959,6 +991,8 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         ctx.maxDeviceMeters = deviceMeterSlotCount_;
         ctx.lfoValues = lfoCount > 0 ? lfoValues.data() : nullptr;
         ctx.lfoCount = lfoCount;
+        ctx.modulators = lfoCount > 0 ? modulatorPtrs.data() : nullptr;
+        ctx.retriggerGeneration = retriggerGeneration;
         ctx.modEdges = track.modEdgeCount > 0 ? track.modEdges : nullptr;
         ctx.modEdgeCount = track.modEdgeCount;
         ctx.automationClips = track.automationClipCount > 0 ? track.automationClips : nullptr;

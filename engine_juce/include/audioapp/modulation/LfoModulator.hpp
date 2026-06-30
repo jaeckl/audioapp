@@ -23,10 +23,15 @@ public:
         return static_cast<int>(ModulatorType::Lfo);
     }
 
+    bool usesPerNoteClock() const noexcept override;
+
+    float evaluateOnNoteElapsed(double noteElapsedSeconds) const noexcept;
+
     float evaluate(double playheadBeat, int bpm,
                    double secondsWithinBlock,
                    double playheadSeconds,
-                   uint32_t retriggerGeneration) noexcept override;
+                   uint32_t retriggerGeneration,
+                   double noteElapsedSeconds) noexcept override;
 
     void updateParams(const ModulatorParams& params) noexcept override {
         params_ = std::get<LfoParams>(params);

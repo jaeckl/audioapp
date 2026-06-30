@@ -7,6 +7,8 @@
 
 namespace audioapp {
 
+struct InstrumentModulationContext;
+
 static constexpr int kSubtractiveMaxVoices = 8;
 static constexpr int kSubtractiveMaxUnison = 4;
 
@@ -136,7 +138,9 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
                                   int lfoStride = 0,
                                   const ModulationEdgePlayback* modEdges = nullptr,
                                   int modEdgeCount = 0,
-                                  const uint16_t* modulationDeviceIndex = nullptr) noexcept;
+                                  const uint16_t* modulationDeviceIndex = nullptr,
+                                  const float* perFramePanelGain = nullptr,
+                                  const InstrumentModulationContext* instMod = nullptr) noexcept;
 
 float subtractiveNoiseSample(float& seed) noexcept;
 

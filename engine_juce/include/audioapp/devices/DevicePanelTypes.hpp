@@ -45,7 +45,7 @@ struct MonoOutputPanel {
     static void applyFromScratch(float* scratch, AudioBlock& block, int frames,
                                   const float* perFrameGain) noexcept {
         for (int f = 0; f < frames; ++f) {
-            const float g = scratch[f] * perFrameGain[f];
+            const float g = scratch[f] * (perFrameGain != nullptr ? perFrameGain[f] : 1.0f);
             block.channelL[f] += g;
             block.channelR[f] += g;
         }
@@ -54,8 +54,8 @@ struct MonoOutputPanel {
     /// Apply per-frame gain in-place on an already-stereo AudioBlock.
     static void applyInPlace(AudioBlock& block, int frames, const float* perFrameGain) noexcept {
         for (int i = 0; i < frames; ++i) {
-            block.channelL[i] *= perFrameGain[i];
-            block.channelR[i] *= perFrameGain[i];
+            block.channelL[i] *= perFrameGain != nullptr ? perFrameGain[i] : 1.0f;
+            block.channelR[i] *= perFrameGain != nullptr ? perFrameGain[i] : 1.0f;
         }
     }
 };
@@ -79,7 +79,7 @@ struct StereoOutputPanel {
     static void applyFromScratch(float* scratch, AudioBlock& block, int frames,
                                   const float* perFrameGain, const float* perFramePan) noexcept {
         for (int f = 0; f < frames; ++f) {
-            const float g = scratch[f] * perFrameGain[f];
+            const float g = scratch[f] * (perFrameGain != nullptr ? perFrameGain[f] : 1.0f);
             const float angle = std::clamp(perFramePan[f], 0.0f, 1.0f) * 1.57079632679f;
             block.channelL[f] += g * std::cos(angle);
             block.channelR[f] += g * std::sin(angle);
@@ -89,8 +89,8 @@ struct StereoOutputPanel {
     /// Apply per-frame gain in-place on an already-stereo AudioBlock.
     static void applyInPlace(AudioBlock& block, int frames, const float* perFrameGain) noexcept {
         for (int i = 0; i < frames; ++i) {
-            block.channelL[i] *= perFrameGain[i];
-            block.channelR[i] *= perFrameGain[i];
+            block.channelL[i] *= perFrameGain != nullptr ? perFrameGain[i] : 1.0f;
+            block.channelR[i] *= perFrameGain != nullptr ? perFrameGain[i] : 1.0f;
         }
     }
 };

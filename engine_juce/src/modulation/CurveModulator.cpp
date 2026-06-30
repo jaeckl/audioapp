@@ -2,35 +2,43 @@
 
 namespace audioapp {
 
+bool CurveModulator::usesPerNoteClock() const noexcept {
+    return static_cast<ModulatorRetrigger>(params_.retrigger) == ModulatorRetrigger::OnNote;
+}
+
+float CurveModulator::evaluateOnNoteElapsed(double noteElapsedSeconds) const noexcept {
+    if (noteElapsedSeconds < 0.0) {
+        return 0.0f;
+    }
+    const double phase =
+        std::fmod(noteElapsedSeconds * static_cast<double>(rateToHz(params_.rate)), 1.0);
+    return applyPolarity(evaluateCurve(static_cast<float>(phase)), params_.polarity);
+}
+
 float CurveModulator::evaluate(double playheadBeat, int bpm,
                                double secondsWithinBlock,
                                double playheadSeconds,
-                               uint32_t retriggerGeneration) noexcept {
+                               uint32_t retriggerGeneration,
+                               double noteElapsedSeconds) noexcept {
     const auto retrigger = static_cast<ModulatorRetrigger>(params_.retrigger);
 
     if (retrigger == ModulatorRetrigger::Free) {
-        // Phase from absolute elapsed time, linear across frames
         runtime_.phase = std::fmod((playheadSeconds + secondsWithinBlock)
                                    * static_cast<double>(rateToHz(params_.rate)), 1.0);
     } else if (retrigger == ModulatorRetrigger::Sync) {
         const double beatDuration = syncBeats(params_.syncDivision > 0 ? params_.syncDivision : 3);
         const double speedMult = static_cast<double>(rateToSpeedMult(params_.rate));
         if (beatDuration > 0.0) {
-            // Phase from absolute beat position, linear across frames (same as LFO)
             runtime_.phase = std::fmod((playheadBeat / beatDuration) * speedMult, 1.0);
         } else {
             runtime_.phase = 0.0;
         }
+    } else if (noteElapsedSeconds < 0.0) {
+        runtime_.phase = 0.0;
+        runtime_.smoothOut = 0.0f;
     } else {
-        // OnNote retrigger — elapsed time since note-on (like LFO)
-        if (retriggerGeneration != runtime_.lastRetriggerGeneration) {
-            runtime_.lastRetriggerGeneration = retriggerGeneration;
-            runtime_.phase = 0.0;
-            runtime_.smoothOut = 0.0f;
-            runtime_.retriggerStartSeconds = playheadSeconds + secondsWithinBlock;
-        }
-        const double elapsedSec = (playheadSeconds + secondsWithinBlock) - runtime_.retriggerStartSeconds;
-        runtime_.phase = std::fmod(elapsedSec * static_cast<double>(rateToHz(params_.rate)), 1.0);
+        runtime_.phase =
+            std::fmod(noteElapsedSeconds * static_cast<double>(rateToHz(params_.rate)), 1.0);
     }
 
     float raw = evaluateCurve(static_cast<float>(runtime_.phase));

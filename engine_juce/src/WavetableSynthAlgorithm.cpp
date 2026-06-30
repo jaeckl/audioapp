@@ -2,6 +2,7 @@
 #include "audioapp/ClipContentPlayback.hpp"
 #include "audioapp/AutomationPlayback.hpp"
 #include "audioapp/DeviceChainAutomationModulation.hpp"
+#include "audioapp/instruments/PerNoteModulation.hpp"
 #include "audioapp/devices/processors/ProcessorUtils.hpp"
 #include "audioapp/devices/DevicePanelTypes.hpp"
 #include <algorithm>
@@ -181,7 +182,9 @@ void mixWavetableMidiNotesBlock(float* monoOut,
                                 int lfoStride,
                                 const ModulationEdgePlayback* modEdges,
                                 int modEdgeCount,
-                                const uint16_t* modulationDeviceIndex) noexcept {
+                                const uint16_t* modulationDeviceIndex,
+                                const float* perFramePanelGain,
+                                const InstrumentModulationContext* instMod) noexcept {
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0 ||
         wavetablePcm == nullptr || wavetableFrameCount <= 0 || wavetableFrameLength <= 0) {
         return;
@@ -273,20 +276,29 @@ void mixWavetableMidiNotesBlock(float* monoOut,
             // We need the right DeviceNodeKind; but the function might not be template.
             // For now, just use params directly.
         }
-        if (useModulation) {
+        if (useModulation && instMod != nullptr) {
+            DeviceVariantParams variant = frameParams;
+            applyGlobalDspModulationAtFrame(variant,
+                                            DeviceNodeKind::WavetableSynth,
+                                            instMod->deviceIndex,
+                                            frame,
+                                            lfoStride,
+                                            *instMod);
+            if (const auto* automated = std::get_if<WavetableSynthParams>(&variant)) {
+                frameParams = *automated;
+            }
+        } else if (useModulation) {
             for (int e = 0; e < modEdgeCount; ++e) {
                 const ModulationEdgePlayback& edge = modEdges[e];
                 if (edge.deviceIndex != *modulationDeviceIndex) continue;
                 if (edge.lfoId >= static_cast<uint16_t>(lfoCount)) continue;
+                const uint16_t pid = edge.localParamId;
+                if (pid == kEncodedCommonGain || pid == kEncodedCommonPan) continue;
                 const float lfoOut = lfoValues[static_cast<size_t>(edge.lfoId) *
                                                   static_cast<size_t>(lfoStride) +
                                                   static_cast<size_t>(frame)];
                 const float modAmount = edge.amount * lfoOut;
-                // Apply modulation to params
-                const uint16_t pid = edge.localParamId;
-                if (pid != static_cast<uint16_t>(-1)) {
-                    // generic modulation would be applied here per param
-                }
+                DeviceChainAutomationModulation::applyModulation(frameParams, modAmount, pid);
             }
         }
 
@@ -340,10 +352,35 @@ void mixWavetableMidiNotesBlock(float* monoOut,
 
             const float vel = safe_clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
 
+            WavetableSynthParams voiceParams = frameParams;
+            float panelGain = perFramePanelGain != nullptr ? perFramePanelGain[frame] : 1.0f;
+            if (instMod != nullptr) {
+                const NoteModKey key =
+                    noteModKeyFromRegion(note.pitch, note.clipStartBeat, note.noteStartBeat);
+                const ModulationEvalContext evalCtx = instMod->evalContextForFrame(frame);
+                DeviceVariantParams variant = voiceParams;
+                applyPerNoteDspModulation(variant,
+                                          DeviceNodeKind::WavetableSynth,
+                                          instMod->deviceIndex,
+                                          elapsedSec,
+                                          key,
+                                          evalCtx,
+                                          *instMod);
+                if (const auto* modulated = std::get_if<WavetableSynthParams>(&variant)) {
+                    voiceParams = *modulated;
+                }
+                panelGain = applyPerNoteCommonGain(panelGain,
+                                                   instMod->deviceIndex,
+                                                   elapsedSec,
+                                                   key,
+                                                   evalCtx,
+                                                   *instMod);
+            }
+
             const float hz = voice.currentHz;
             const float wtPos = frameWtPos;
 
-            mix += wavetableVoiceSample(frameParams,
+            mix += wavetableVoiceSample(voiceParams,
                                         wavetablePcm,
                                         wavetableFrameCount,
                                         wavetableFrameLength,
@@ -355,9 +392,9 @@ void mixWavetableMidiNotesBlock(float* monoOut,
                                         voice.cachedFilterCoeffs,
                                         voice.filterState,
                                         voice.filterState2,
-                                        frameParams.filterMode,
-                                        frameParams.filterResonance) *
-                   frameParams.gain * kInstrumentOutputGain;
+                                        voiceParams.filterMode,
+                                        voiceParams.filterResonance) *
+                   voiceParams.gain * panelGain * kInstrumentOutputGain;
 
             if (inRelease && elapsedSec >= noteDurSec + static_cast<double>(ampReleaseSec)) {
                 voice.active = 0;

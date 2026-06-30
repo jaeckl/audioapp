@@ -1,10 +1,14 @@
 #pragma once
 
+#include <cstdint>
+
 #include "audioapp/SamplerFilter.hpp"
 
 namespace audioapp {
 
 class SampleBank;
+
+struct InstrumentModulationContext;
 
 struct SampleClipPlaybackRegion {
     double clipStartBeat = 0.0;
@@ -65,7 +69,10 @@ void mixSamplerMidiNotesBlock(float* monoOut,
                               double playheadStartBeat,
                               const SamplerMidiNoteRegion* notes,
                               int noteCount,
-                              const SamplerInstrumentPlayback& sampler);
+                              const SamplerInstrumentPlayback& sampler,
+                              const InstrumentModulationContext* instMod = nullptr,
+                              const float* perFramePanelGain = nullptr,
+                              uint16_t modulationDeviceIndex = 0);
 
 /// Cutoff Hz with filter-envelope depth applied (matches subtractive synth FEG).
 float samplerFilterCutoffHz(float filterCutoffNorm,

@@ -152,6 +152,36 @@ public:
             }
             expect(aboveCount >= 2, "at least 2 windows clearly above minimum");
         }
+
+        beginTest("Envelope->gain at 0% produces plucky output per note");
+        {
+            TestSetup setup;
+            expect(setup.host.setDeviceParameter(setup.synthId, "gain", 0.0f),
+                   "set output gain to 0");
+
+            const int envId = setup.host.createLfo(1);
+            setup.host.updateLfoParam(envId, "curveType", 2.0f); // ADR
+            setup.host.updateLfoParam(envId, "attack", 0.05f);
+            setup.host.updateLfoParam(envId, "decay", 0.2f);
+            setup.host.updateLfoParam(envId, "release", 0.15f);
+            expect(setup.host.assignModulation(envId, setup.synthId, "gain", 1.0f),
+                   "assign full-range envelope to gain");
+
+            std::vector<audioapp::MidiNoteState> notes;
+            notes.push_back({60, 0.0, 0.25, 100.0f});
+            notes.push_back({60, 0.5, 0.25, 100.0f});
+            notes.push_back({60, 1.0, 0.25, 100.0f});
+            expect(setup.host.setMidiClipNotes(setup.midiClipId, notes), "set staccato notes");
+
+            setup.host.setPlaying(true);
+            const std::vector<float> block = setup.host.renderOffline(2.0, 48000.0);
+            expect(block.size() >= 48000, "enough audio frames");
+            expect(rms(block, 0, static_cast<int>(block.size())) >= 1.0e-4f,
+                   "audible plucks with gain base 0 and envelope modulation");
+
+            expect(rmsVariationRatio(block, 16) > 1.5f,
+                   "envelope creates clear pluck-level variation");
+        }
     }
 };
 static CommonParamModulationTest commonParamModulationTest;

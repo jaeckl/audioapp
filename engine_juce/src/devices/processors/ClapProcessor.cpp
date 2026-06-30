@@ -1,5 +1,6 @@
 #include "audioapp/devices/processors/ClapProcessor.hpp"
 #include "audioapp/ClipContentPlayback.hpp"
+#include "audioapp/instruments/PerNoteModulation.hpp"
 #include "audioapp/devices/processors/ProcessorUtils.hpp"
 #include "audioapp/devices/DevicePanelTypes.hpp"
 
@@ -60,7 +61,10 @@ void mixClapMidiNotesBlock(float* monoOut,
                             const audioapp::ClapMidiNoteRegion* notes,
                             int noteCount,
                             const audioapp::ClapGeneratorParams& params,
-                            audioapp::ClapGeneratorRuntime& runtime) noexcept {
+                            audioapp::ClapGeneratorRuntime& runtime,
+                            const audioapp::InstrumentModulationContext* instMod = nullptr,
+                            const float* perFramePanelGain = nullptr,
+                            uint16_t deviceIndex = 0) noexcept {
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
         return;
     }
@@ -68,6 +72,7 @@ void mixClapMidiNotesBlock(float* monoOut,
     for (int frame = 0; frame < numFrames; ++frame) {
         const double beat = beatAtFrame(playheadStartBeat, frame, sampleRate, bpm);
         int activeNoteKey = -1;
+        int activeNoteIndex = -1;
         float activeVelocity = 100.0f;
         double activeElapsed = 0.0;
         for (int noteIndex = 0; noteIndex < noteCount; ++noteIndex) {
@@ -78,6 +83,7 @@ void mixClapMidiNotesBlock(float* monoOut,
                 continue;
             }
             activeNoteKey = note.noteKey;
+            activeNoteIndex = noteIndex;
             activeVelocity = note.velocity;
             activeElapsed = elapsedSeconds;
         }
@@ -93,7 +99,21 @@ void mixClapMidiNotesBlock(float* monoOut,
         runtime.voice.elapsedSec = activeElapsed;
         const float vel = std::clamp(runtime.voice.velocity / 127.0f, 0.0f, 1.0f);
         const float velGain = 1.0f - params.clapVelocity * (1.0f - vel);
-        monoOut[frame] += audioapp::clapGeneratorSample(runtime.voice, params, sampleRate, velGain);
+        float panelGain = perFramePanelGain != nullptr ? perFramePanelGain[frame] : 1.0f;
+        if (instMod != nullptr && activeNoteIndex >= 0) {
+            const auto& note = notes[activeNoteIndex];
+            const audioapp::NoteModKey key = audioapp::noteModKeyFromRegion(
+                note.pitch, note.clipStartBeat, note.noteStartBeat);
+            const audioapp::ModulationEvalContext evalCtx = instMod->evalContextForFrame(frame);
+            panelGain = audioapp::applyPerNoteCommonGain(panelGain,
+                                                         deviceIndex,
+                                                         activeElapsed,
+                                                         key,
+                                                         evalCtx,
+                                                         *instMod);
+        }
+        monoOut[frame] += audioapp::clapGeneratorSample(runtime.voice, params, sampleRate, velGain)
+            * panelGain;
     }
 }
 
@@ -120,6 +140,17 @@ void ClapProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
             };
         }
         std::memset(ctx.scratch.scratch, 0, static_cast<size_t>(block.numSamples) * sizeof(float));
+        const uint16_t di = static_cast<uint16_t>(ctx.deviceIndex);
+        const bool hasMod = ctx.lfoValues != nullptr && ctx.lfoCount > 0 &&
+                            ctx.modEdges != nullptr && ctx.modEdgeCount > 0;
+        const InstrumentModulationContext* instModPtr = nullptr;
+        InstrumentModulationContext instMod;
+        if (hasMod && ctx.modulators != nullptr) {
+            instMod = ctx.instrumentModulation();
+            instModPtr = &instMod;
+        }
+        const bool bakePanelGain = instModPtr != nullptr &&
+            deviceHasPerNoteModEdges(di, ctx.modEdges, ctx.modEdgeCount, ctx.modulators, ctx.lfoCount);
         mixClapMidiNotesBlock(
             ctx.scratch.scratch,
             block.numSamples,
@@ -129,10 +160,14 @@ void ClapProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
             ctx.scratch.clapRegions,
             regionCount,
             cp,
-            runtime_
+            runtime_,
+            instModPtr,
+            ctx.scratch.perFrameGain,
+            di
         );
         StereoOutputPanel::applyFromScratch(ctx.scratch.scratch, block, block.numSamples,
-                                             ctx.scratch.perFrameGain, ctx.scratch.perFramePan);
+                                             bakePanelGain ? nullptr : ctx.scratch.perFrameGain,
+                                             ctx.scratch.perFramePan);
     }
 }
 

@@ -46,6 +46,8 @@ struct DeviceChainOrchestrator {
         MidiPlaybackNote* graphMidiEdgeNotes = nullptr;
         int* graphMidiEdgeCounts = nullptr;
         int graphMidiEdgeStride = 0;
+        IModulator* const* modulators = nullptr;
+        uint32_t retriggerGeneration = 0;
 
         Context(ProcessorArena& ar, DeviceChainScratch& s) noexcept
             : arena(ar), scratch(s) {}
@@ -60,7 +62,8 @@ struct DeviceChainOrchestrator {
         uint16_t deviceIndex,
         int framesToProcess,
         const float* lfoValues, int lfoCount,
-        const ModulationEdgePlayback* modEdges, int modEdgeCount) noexcept;
+        const ModulationEdgePlayback* modEdges, int modEdgeCount,
+        IModulator* const* modulators) noexcept;
 };
 
 /// Build processors in the arena from a device chain snapshot.

@@ -11,6 +11,7 @@
 #include "audioapp/CrashAlgorithm.hpp"
 #include "audioapp/PhaseModSynthAlgorithm.hpp"
 #include "audioapp/WavetableSynthAlgorithm.hpp"
+#include "audioapp/instruments/PerNoteModulation.hpp"
 #include <utility>
 
 namespace audioapp {
@@ -64,6 +65,7 @@ struct DeviceChainScratch {
     WavetableMidiNoteRegion wavetableRegions[kMaxInstrumentRegions];
     BiquadState samplerNoteFilterStates[kMaxInstrumentRegions];
     DeviceChainScratchArena ringBufferArena;
+    PerNoteModCache perNoteModCache;
 };
 
 } // namespace audioapp

@@ -123,7 +123,7 @@ void SubtractiveSynthDeviceType::buildPlaybackNode(const DeviceSlot& slot,
                                                    const PlaybackBuildContext&,
                                                    DeviceNodePlayback& out) const {
     auto params = std::get<SubtractiveSynthParams>(slot.config.instance);
-    params.gain = std::get<StereoOutputPanel>(slot.config.outputPanel).gain;
+    params.gain = 1.0f; // output-panel gain is applied by the device-chain stage
     out.kind = DeviceNodeKind::SubtractiveSynth;
     out.params = params;
 }

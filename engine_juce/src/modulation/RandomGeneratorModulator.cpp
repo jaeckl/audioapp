@@ -2,21 +2,29 @@
 
 namespace audioapp {
 
+bool RandomGeneratorModulator::usesPerNoteClock() const noexcept {
+    return static_cast<ModulatorRetrigger>(params_.retrigger) == ModulatorRetrigger::OnNote;
+}
+
 float RandomGeneratorModulator::evaluate(double playheadBeat, int bpm,
                                          double secondsWithinBlock,
                                          double playheadSeconds,
-                                         uint32_t retriggerGeneration) noexcept {
+                                         uint32_t retriggerGeneration,
+                                         double noteElapsedSeconds) noexcept {
     const auto retrigger = static_cast<ModulatorRetrigger>(params_.retrigger);
 
-    // Handle OnNote retrigger: reset clock state
     if (retrigger == ModulatorRetrigger::OnNote) {
-        if (retriggerGeneration != rt_.lastRetriggerGeneration) {
-            rt_.lastRetriggerGeneration = retriggerGeneration;
+        if (noteElapsedSeconds < 0.0) {
+            return 0.0f;
+        }
+        if (rt_.lastNoteElapsedSeconds < 0.0
+            || noteElapsedSeconds + 1.0e-4 < rt_.lastNoteElapsedSeconds) {
             rt_.nextSampleTime = -1.0;
             rt_.lastDivision = -1;
             rt_.currentValue = 0.0f;
             rt_.drawStartValue = 0.0f;
         }
+        rt_.lastNoteElapsedSeconds = noteElapsedSeconds;
     }
 
     double currentPhase = 0.0;
@@ -42,7 +50,9 @@ float RandomGeneratorModulator::evaluate(double playheadBeat, int bpm,
         currentPhase = effectivePeriod > 0.0 ? divisionElapsed / effectivePeriod : 0.0;
     } else {
         // Free mode (and OnNote after reset): time-based sample & hold
-        const double absTime = playheadSeconds + secondsWithinBlock;
+        const double absTime = retrigger == ModulatorRetrigger::OnNote
+            ? noteElapsedSeconds
+            : (playheadSeconds + secondsWithinBlock);
         const double rateHzVal = rateToHz(params_.rate);
         const double period = 1.0 / rateHzVal;
 
@@ -87,6 +97,63 @@ float RandomGeneratorModulator::evaluate(double playheadBeat, int bpm,
         result = result * 0.5f + 0.5f;
     }
 
+    return result;
+}
+
+float RandomGeneratorModulator::evaluateForNote(double noteElapsedSeconds,
+                                                NoteRuntimeState& state) noexcept {
+    if (noteElapsedSeconds < 0.0) {
+        return 0.0f;
+    }
+    if (state.lastNoteElapsed < 0.0
+        || noteElapsedSeconds + 1.0e-4 < state.lastNoteElapsed) {
+        state.nextSampleTime = -1.0;
+        state.lastDivision = -1;
+        state.currentValue = 0.0f;
+        state.drawStartValue = 0.0f;
+    }
+    state.lastNoteElapsed = noteElapsedSeconds;
+
+    const double absTime = noteElapsedSeconds;
+    const double rateHzVal = rateToHz(params_.rate);
+    const double period = 1.0 / rateHzVal;
+
+    if (state.nextSampleTime <= 0.0) {
+        state.currentValue = drawRandom();
+        state.drawStartValue = state.currentValue;
+        state.lastSampleTime = absTime;
+        state.nextSampleTime = absTime + period;
+    }
+
+    while (absTime >= state.nextSampleTime) {
+        state.drawStartValue = state.currentValue;
+        state.currentValue = drawRandom();
+        state.lastSampleTime = state.nextSampleTime;
+        state.nextSampleTime += period;
+    }
+
+    const double periodElapsed = absTime - state.lastSampleTime;
+    const double periodLength = state.nextSampleTime - state.lastSampleTime;
+    const double currentPhase =
+        periodLength > 0.0 ? periodElapsed / periodLength : 0.0;
+
+    float result;
+    if (params_.smoothing <= 0.0f || currentPhase >= 1.0) {
+        result = state.currentValue;
+    } else {
+        const float slewFraction = std::min(params_.smoothing, 1.0f);
+        const float t = static_cast<float>(currentPhase);
+        if (t < slewFraction) {
+            const float ramp = slewFraction > 0.001f ? t / slewFraction : 1.0f;
+            result = state.drawStartValue + (state.currentValue - state.drawStartValue) * ramp;
+        } else {
+            result = state.currentValue;
+        }
+    }
+
+    if (params_.polarity == 1) {
+        result = result * 0.5f + 0.5f;
+    }
     return result;
 }
 

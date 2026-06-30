@@ -23,11 +23,82 @@ static float easeCurve(float t, float curve) noexcept {
 float EnvelopeModulator::evaluate(double playheadBeat, int bpm,
                                   double secondsWithinBlock,
                                   double playheadSeconds,
-                                  uint32_t retriggerGeneration) noexcept {
+                                  uint32_t retriggerGeneration,
+                                  double noteElapsedSeconds) noexcept {
     (void)playheadBeat;
     (void)bpm;
     (void)secondsWithinBlock;
+    if (noteElapsedSeconds >= 0.0) {
+        return levelAtElapsed(noteElapsedSeconds);
+    }
     return evaluateOnNoteRetrigger(playheadSeconds + secondsWithinBlock, retriggerGeneration);
+}
+
+float EnvelopeModulator::levelAtElapsed(double elapsedSeconds) const noexcept {
+    if (elapsedSeconds <= 0.0) {
+        return 0.0f;
+    }
+    float t = static_cast<float>(elapsedSeconds);
+
+    const float delay = envelopeSegmentSeconds(params_.delay);
+    const float attack = envelopeSegmentSeconds(params_.attack);
+    const float hold = envelopeSegmentSeconds(params_.hold);
+    const float decay = envelopeSegmentSeconds(params_.decay);
+    const float sustainLevel = clamp01(params_.sustain);
+    const float release = envelopeSegmentSeconds(params_.release);
+    const float sustainHold = envelopeSegmentSeconds(params_.sustain);
+    const int curve = params_.curveType;
+    const bool hasSustain = (curve != static_cast<int>(EnvelopeCurve::Adr));
+    const bool hasHold = (curve == static_cast<int>(EnvelopeCurve::Ahdsr));
+    const bool hasDecay = (curve != static_cast<int>(EnvelopeCurve::Asr));
+
+    if (t < delay) {
+        return 0.0f;
+    }
+    t -= delay;
+
+    {
+        const float pct = attack > 0.0f ? std::min(1.0f, t / attack) : 1.0f;
+        const float curveAmt = params_.analogMode ? 0.85f : params_.attackCurve;
+        const float level = easeCurve(pct, curveAmt);
+        if (t < attack) {
+            return level;
+        }
+        t -= attack;
+    }
+
+    if (hasHold) {
+        if (t < hold) {
+            return 1.0f;
+        }
+        t -= hold;
+    }
+
+    if (hasDecay) {
+        const float pct = decay > 0.0f ? std::min(1.0f, t / decay) : 1.0f;
+        const float curveAmt = params_.analogMode ? 0.2f : params_.decayCurve;
+        const float eased = easeCurve(pct, curveAmt);
+        const float level =
+            hasSustain ? 1.0f - (1.0f - sustainLevel) * eased : 1.0f - eased;
+        if (t < decay) {
+            return level;
+        }
+        t -= decay;
+    }
+
+    if (hasSustain) {
+        if (t < sustainHold) {
+            return sustainLevel;
+        }
+        t -= sustainHold;
+    }
+
+    {
+        const float pct = release > 0.0f ? std::min(1.0f, t / release) : 1.0f;
+        const float curveAmt = params_.analogMode ? 0.2f : params_.releaseCurve;
+        const float eased = easeCurve(pct, curveAmt);
+        return hasSustain ? sustainLevel * (1.0f - eased) : 1.0f - eased;
+    }
 }
 
 float EnvelopeModulator::evaluateOnNoteRetrigger(double absoluteSeconds,
@@ -129,8 +200,11 @@ float EnvelopeModulator::evaluateOnNoteRetrigger(double absoluteSeconds,
         runtime_.level = 0.0f;
     }
 
-    // Envelope output is always unipolar [0, 1], mapped to bipolar [-1, 1]
-    return runtime_.level * 2.0f - 1.0f;
+    return runtime_.level;
+}
+
+float EnvelopeModulator::evaluateOnNoteElapsed(double noteElapsedSeconds) const noexcept {
+    return levelAtElapsed(noteElapsedSeconds);
 }
 
 } // namespace audioapp

@@ -2,13 +2,34 @@
 
 namespace audioapp {
 
+bool LfoModulator::usesPerNoteClock() const noexcept {
+    return static_cast<ModulatorRetrigger>(params_.retrigger) == ModulatorRetrigger::OnNote;
+}
+
+float LfoModulator::evaluateOnNoteElapsed(double noteElapsedSeconds) const noexcept {
+    if (noteElapsedSeconds < 0.0) {
+        return applyPolarity(0.0f, params_.polarity);
+    }
+    const float phase = static_cast<float>(
+        noteElapsedSeconds * static_cast<double>(lfoRateToHz(params_.rate))
+        + static_cast<double>(params_.phase));
+    const float morph = params_.analogMode != 0 ? 0.0f : params_.morph;
+    const float spread = params_.analogMode != 0 ? 0.5f : params_.spread;
+    const float raw = evaluateMorph(morph, spread, phase);
+    return applyPolarity(raw, params_.polarity);
+}
+
 float LfoModulator::evaluate(double playheadBeat, int bpm,
                              double secondsWithinBlock,
                              double playheadSeconds,
-                             uint32_t retriggerGeneration) noexcept {
+                             uint32_t retriggerGeneration,
+                             double noteElapsedSeconds) noexcept {
     const auto retrigger = static_cast<ModulatorRetrigger>(params_.retrigger);
     if (retrigger == ModulatorRetrigger::OnNote) {
-        return evaluateOnNoteRetrigger(playheadSeconds + secondsWithinBlock, retriggerGeneration);
+        if (noteElapsedSeconds < 0.0) {
+            return applyPolarity(0.0f, params_.polarity);
+        }
+        return evaluateOnNoteElapsed(noteElapsedSeconds);
     }
     return evaluateSynced(playheadBeat, bpm, secondsWithinBlock, playheadSeconds);
 }

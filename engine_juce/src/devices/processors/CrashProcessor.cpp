@@ -1,5 +1,6 @@
 #include "audioapp/devices/processors/CrashProcessor.hpp"
 #include "audioapp/ClipContentPlayback.hpp"
+#include "audioapp/instruments/PerNoteModulation.hpp"
 #include "audioapp/devices/processors/ProcessorUtils.hpp"
 #include <cstring>
 #include <algorithm>
@@ -62,7 +63,9 @@ void mixCrashMidiNotesBlockStereo(float* trackLeftOut,
                                    int noteCount,
                                    const audioapp::CrashGeneratorParams& params,
                                    audioapp::CrashGeneratorRuntime& runtime,
-                                   const float* perFrameGain) noexcept {
+                                   const float* perFrameGain,
+                                   const audioapp::InstrumentModulationContext* instMod = nullptr,
+                                   uint16_t deviceIndex = 0) noexcept {
     if (trackLeftOut == nullptr || trackRightOut == nullptr ||
         numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
         return;
@@ -74,6 +77,7 @@ void mixCrashMidiNotesBlockStereo(float* trackLeftOut,
         const double beat = beatAtFrame(playheadStartBeat, frame, sampleRate, bpm);
 
         int activeNoteKey = -1;
+        int activeNoteIndex = -1;
         int activePitch = 49;
         float activeVelocity = 100.0f;
         double activeElapsed = 0.0;
@@ -84,6 +88,7 @@ void mixCrashMidiNotesBlockStereo(float* trackLeftOut,
             bool inRelease = false;
             if (isCrashNoteAudible(note, beat, bpm, releaseSec, elapsedSeconds, inRelease)) {
                 activeNoteKey = note.noteKey;
+                activeNoteIndex = noteIndex;
                 activePitch = note.pitch;
                 activeVelocity = note.velocity;
                 activeElapsed = elapsedSeconds;
@@ -104,7 +109,19 @@ void mixCrashMidiNotesBlockStereo(float* trackLeftOut,
 
         const float vel = std::clamp(runtime.voice.velocity / 127.0f, 0.0f, 1.0f);
         const float velGain = 1.0f - params.crashVelocity * (1.0f - vel);
-        const float gain = perFrameGain != nullptr ? perFrameGain[frame] : 1.0f;
+        float gain = perFrameGain != nullptr ? perFrameGain[frame] : 1.0f;
+        if (instMod != nullptr && activeNoteIndex >= 0) {
+            const auto& note = notes[activeNoteIndex];
+            const audioapp::NoteModKey key = audioapp::noteModKeyFromRegion(
+                note.pitch, note.clipStartBeat, note.noteStartBeat);
+            const audioapp::ModulationEvalContext evalCtx = instMod->evalContextForFrame(frame);
+            gain = audioapp::applyPerNoteCommonGain(gain,
+                                                    deviceIndex,
+                                                    activeElapsed,
+                                                    key,
+                                                    evalCtx,
+                                                    *instMod);
+        }
 
         trackLeftOut[frame] +=
             audioapp::crashGeneratorSampleL(runtime.voice, params, sampleRate, velGain) * gain;
@@ -137,6 +154,17 @@ void CrashProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
         }
         std::memset(ctx.scratch.tempStereoL, 0, static_cast<size_t>(block.numSamples) * sizeof(float));
         std::memset(ctx.scratch.tempStereoR, 0, static_cast<size_t>(block.numSamples) * sizeof(float));
+        const uint16_t di = static_cast<uint16_t>(ctx.deviceIndex);
+        const bool hasMod = ctx.lfoValues != nullptr && ctx.lfoCount > 0 &&
+                            ctx.modEdges != nullptr && ctx.modEdgeCount > 0;
+        const InstrumentModulationContext* instModPtr = nullptr;
+        InstrumentModulationContext instMod;
+        if (hasMod && ctx.modulators != nullptr) {
+            instMod = ctx.instrumentModulation();
+            instModPtr = &instMod;
+        }
+        const bool bakePanelGain = instModPtr != nullptr &&
+            deviceHasPerNoteModEdges(di, ctx.modEdges, ctx.modEdgeCount, ctx.modulators, ctx.lfoCount);
         mixCrashMidiNotesBlockStereo(
             ctx.scratch.tempStereoL,
             ctx.scratch.tempStereoR,
@@ -148,7 +176,9 @@ void CrashProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
             regionCount,
             crp,
             runtime_,
-            ctx.scratch.perFrameGain
+            bakePanelGain ? nullptr : ctx.scratch.perFrameGain,
+            instModPtr,
+            di
         );
         for (int f = 0; f < block.numSamples; ++f) {
             const float angle = std::clamp(ctx.scratch.perFramePan[f], 0.0f, 1.0f) * 1.57079632679f;

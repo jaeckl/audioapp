@@ -4,6 +4,7 @@
 #include "audioapp/DeviceChainScratch.hpp"
 #include "audioapp/AutomationPlayback.hpp"
 #include "audioapp/DeviceChainAutomationModulation.hpp"
+#include "audioapp/instruments/PerNoteModulation.hpp"
 #include "audioapp/devices/processors/ProcessorUtils.hpp"
 #include "audioapp/devices/DevicePanelTypes.hpp"
 #include <algorithm>
@@ -184,8 +185,15 @@ void WavetableSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) no
     auto& runtime = runtime_;
     const bool hasAuto = nodeHasDspAutomation(di, ctx.automationClips, ctx.automationClipCount);
     const bool hasMod = ctx.lfoValues != nullptr && ctx.lfoCount > 0 &&
-                        ctx.modEdges != nullptr && ctx.modEdgeCount > 0 &&
-                        DeviceChainAutomationModulation::nodeHasDspModulation(di, ctx.modEdges, ctx.modEdgeCount);
+                        ctx.modEdges != nullptr && ctx.modEdgeCount > 0;
+    const InstrumentModulationContext* instModPtr = nullptr;
+    InstrumentModulationContext instMod;
+    if (hasMod && ctx.modulators != nullptr) {
+        instMod = ctx.instrumentModulation();
+        instModPtr = &instMod;
+    }
+    const bool bakePanelGain = instModPtr != nullptr &&
+        deviceHasPerNoteModEdges(di, ctx.modEdges, ctx.modEdgeCount, ctx.modulators, ctx.lfoCount);
 
     mixWavetableMidiNotesBlock(ctx.scratch.scratch, block.numSamples, ctx.sampleRate, ctx.bpm, ctx.playheadBeat,
         ctx.scratch.wavetableRegions, regionCount,
@@ -195,10 +203,13 @@ void WavetableSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) no
         hasAuto ? &di : nullptr,
         hasMod ? ctx.lfoValues : nullptr, hasMod ? ctx.lfoCount : 0, hasMod ? block.numSamples : 0,
         hasMod ? ctx.modEdges : nullptr, hasMod ? ctx.modEdgeCount : 0,
-        hasMod ? &di : nullptr);
+        hasMod ? &di : nullptr,
+        ctx.scratch.perFrameGain,
+        instModPtr);
 
     StereoOutputPanel::applyFromScratch(ctx.scratch.scratch, block, block.numSamples,
-                                         ctx.scratch.perFrameGain, ctx.scratch.perFramePan);
+                                         bakePanelGain ? nullptr : ctx.scratch.perFrameGain,
+                                         ctx.scratch.perFramePan);
 }
 
 } // namespace audioapp
