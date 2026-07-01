@@ -1,0 +1,1864 @@
+{
+  "project_format_version": 1,
+  "name": "Supersaw Flutter Motif",
+  "bpm": 128,
+  "selectedTrackId": "track-supersaw",
+  "loopEnabled": true,
+  "loopRegionStartBeat": 0.0,
+  "loopRegionEndBeat": 128.0,
+  "master": {
+    "id": "master",
+    "name": "Master",
+    "gain": 0.82
+  },
+  "samples": [],
+  "tracks": [
+    {
+      "id": "track-kick",
+      "name": "Kick - four-on-floor anchor",
+      "devices": [
+        {
+          "id": "sf-kick",
+          "type": "kick_generator",
+          "parameters": {
+            "kickModel": 0.2,
+            "kickPitch": 0.44,
+            "kickPunch": 0.86,
+            "kickDecay": 0.36,
+            "kickClick": 0.6,
+            "kickTone": 0.56,
+            "kickVelocity": 1.0,
+            "kickKeyTrack": 0.0,
+            "gain": 0.94,
+            "bypass": 0.0
+          }
+        },
+        {
+          "id": "sf-kick-gain",
+          "type": "track_gain",
+          "parameters": {
+            "gain": 0.9,
+            "bypass": 0.0
+          }
+        }
+      ],
+      "midiClips": [
+        {
+          "id": "sf-kick-build",
+          "startBeat": 16.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {
+              "pitch": 36,
+              "startBeat": 0.0,
+              "durationBeats": 0.1,
+              "velocity": 104.0
+            },
+            {
+              "pitch": 36,
+              "startBeat": 1.0,
+              "durationBeats": 0.1,
+              "velocity": 96.0
+            },
+            {
+              "pitch": 36,
+              "startBeat": 2.0,
+              "durationBeats": 0.1,
+              "velocity": 100.0
+            },
+            {
+              "pitch": 36,
+              "startBeat": 3.0,
+              "durationBeats": 0.1,
+              "velocity": 96.0
+            }
+          ]
+        },
+        {
+          "id": "sf-kick-drop1",
+          "startBeat": 32.0,
+          "lengthBeats": 32.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {
+              "pitch": 36,
+              "startBeat": 0.0,
+              "durationBeats": 0.1,
+              "velocity": 116.0
+            },
+            {
+              "pitch": 36,
+              "startBeat": 1.0,
+              "durationBeats": 0.1,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 36,
+              "startBeat": 2.0,
+              "durationBeats": 0.1,
+              "velocity": 112.0
+            },
+            {
+              "pitch": 36,
+              "startBeat": 3.0,
+              "durationBeats": 0.1,
+              "velocity": 108.0
+            }
+          ]
+        },
+        {
+          "id": "sf-kick-build2",
+          "startBeat": 80.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {
+              "pitch": 36,
+              "startBeat": 0.0,
+              "durationBeats": 0.1,
+              "velocity": 104.0
+            },
+            {
+              "pitch": 36,
+              "startBeat": 1.0,
+              "durationBeats": 0.1,
+              "velocity": 96.0
+            },
+            {
+              "pitch": 36,
+              "startBeat": 2.0,
+              "durationBeats": 0.1,
+              "velocity": 100.0
+            },
+            {
+              "pitch": 36,
+              "startBeat": 3.0,
+              "durationBeats": 0.1,
+              "velocity": 96.0
+            }
+          ]
+        },
+        {
+          "id": "sf-kick-drop2",
+          "startBeat": 96.0,
+          "lengthBeats": 24.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {
+              "pitch": 36,
+              "startBeat": 0.0,
+              "durationBeats": 0.1,
+              "velocity": 116.0
+            },
+            {
+              "pitch": 36,
+              "startBeat": 1.0,
+              "durationBeats": 0.1,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 36,
+              "startBeat": 2.0,
+              "durationBeats": 0.1,
+              "velocity": 112.0
+            },
+            {
+              "pitch": 36,
+              "startBeat": 3.0,
+              "durationBeats": 0.1,
+              "velocity": 108.0
+            }
+          ]
+        },
+        {
+          "id": "sf-kick-outro",
+          "startBeat": 120.0,
+          "lengthBeats": 8.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {
+              "pitch": 36,
+              "startBeat": 0.0,
+              "durationBeats": 0.1,
+              "velocity": 96.0
+            },
+            {
+              "pitch": 36,
+              "startBeat": 2.0,
+              "durationBeats": 0.1,
+              "velocity": 86.0
+            }
+          ]
+        }
+      ],
+      "sampleClips": []
+    },
+    {
+      "id": "track-snare-hats",
+      "name": "Clap + hat grid for flutter hook",
+      "devices": [
+        {
+          "id": "sf-snare",
+          "type": "snare_generator",
+          "parameters": {
+            "snareModel": 0.52,
+            "snareBody": 0.62,
+            "snareRing": 0.12,
+            "snareTune": 0.58,
+            "snareSnares": 0.78,
+            "snareSnap": 0.82,
+            "snareDecay": 0.34,
+            "snareVelocity": 1.0,
+            "gain": 0.88,
+            "bypass": 0.0
+          }
+        },
+        {
+          "id": "sf-hat",
+          "type": "cymbal_generator",
+          "parameters": {
+            "cymbalModel": 0.05,
+            "cymbalColor": 0.58,
+            "cymbalDecay": 0.14,
+            "cymbalWidth": 0.28,
+            "cymbalVelocity": 0.46,
+            "gain": 0.2,
+            "bypass": 0.0
+          }
+        },
+        {
+          "id": "sf-drum-gain",
+          "type": "track_gain",
+          "parameters": {
+            "gain": 0.76,
+            "bypass": 0.0
+          }
+        }
+      ],
+      "midiClips": [
+        {
+          "id": "sf-snare-build",
+          "startBeat": 16.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {
+              "pitch": 38,
+              "startBeat": 2.0,
+              "durationBeats": 0.1,
+              "velocity": 104.0
+            },
+            {
+              "pitch": 42,
+              "startBeat": 0.0,
+              "durationBeats": 0.05,
+              "velocity": 44.0
+            },
+            {
+              "pitch": 42,
+              "startBeat": 1.0,
+              "durationBeats": 0.05,
+              "velocity": 40.0
+            },
+            {
+              "pitch": 42,
+              "startBeat": 2.0,
+              "durationBeats": 0.05,
+              "velocity": 48.0
+            },
+            {
+              "pitch": 42,
+              "startBeat": 3.0,
+              "durationBeats": 0.05,
+              "velocity": 42.0
+            }
+          ]
+        },
+        {
+          "id": "sf-snare-hat-drop",
+          "startBeat": 32.0,
+          "lengthBeats": 88.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {
+              "pitch": 38,
+              "startBeat": 2.0,
+              "durationBeats": 0.1,
+              "velocity": 112.0
+            },
+            {
+              "pitch": 42,
+              "startBeat": 0.0,
+              "durationBeats": 0.05,
+              "velocity": 52.0
+            },
+            {
+              "pitch": 42,
+              "startBeat": 0.5,
+              "durationBeats": 0.05,
+              "velocity": 38.0
+            },
+            {
+              "pitch": 42,
+              "startBeat": 1.0,
+              "durationBeats": 0.05,
+              "velocity": 48.0
+            },
+            {
+              "pitch": 42,
+              "startBeat": 1.5,
+              "durationBeats": 0.05,
+              "velocity": 36.0
+            },
+            {
+              "pitch": 42,
+              "startBeat": 2.0,
+              "durationBeats": 0.05,
+              "velocity": 56.0
+            },
+            {
+              "pitch": 42,
+              "startBeat": 2.5,
+              "durationBeats": 0.05,
+              "velocity": 40.0
+            },
+            {
+              "pitch": 42,
+              "startBeat": 3.0,
+              "durationBeats": 0.05,
+              "velocity": 48.0
+            },
+            {
+              "pitch": 42,
+              "startBeat": 3.5,
+              "durationBeats": 0.05,
+              "velocity": 38.0
+            }
+          ]
+        }
+      ],
+      "sampleClips": []
+    },
+    {
+      "id": "track-sub",
+      "name": "Sub - roots under flutter motif",
+      "devices": [
+        {
+          "id": "sf-sub",
+          "type": "bass_synth",
+          "parameters": {
+            "bassOscShape": 0.0,
+            "bassSubMix": 0.96,
+            "bassSubOctave": 1,
+            "bassNoise": 0.0,
+            "attack": 0.01,
+            "sustain": 0.82,
+            "release": 0.12,
+            "bassOctave": 2,
+            "filterCutoff": 0.72,
+            "bassFilterResonance": 0.1,
+            "filterEnvAmount": 0.08,
+            "filterDecay": 0.2,
+            "bassDrive": 0.04,
+            "bassSquash": 0.1,
+            "glideMs": 0.05,
+            "bassVelocitySense": 0.75,
+            "gain": 0.94,
+            "pan": 0.5,
+            "bypass": 0.0
+          }
+        },
+        {
+          "id": "sf-sub-gain",
+          "type": "track_gain",
+          "parameters": {
+            "gain": 0.94,
+            "bypass": 0.0
+          }
+        }
+      ],
+      "midiClips": [
+        {
+          "id": "sf-sub-drop1",
+          "startBeat": 32.0,
+          "lengthBeats": 32.0,
+          "naturalLengthBeats": 32.0,
+          "loopContent": false,
+          "notes": [
+            {
+              "pitch": 31,
+              "startBeat": 0.0,
+              "durationBeats": 8.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 29,
+              "startBeat": 8.0,
+              "durationBeats": 8.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 34,
+              "startBeat": 16.0,
+              "durationBeats": 8.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 27,
+              "startBeat": 24.0,
+              "durationBeats": 8.0,
+              "velocity": 108.0
+            }
+          ]
+        },
+        {
+          "id": "sf-sub-break",
+          "startBeat": 64.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 16.0,
+          "loopContent": false,
+          "notes": [
+            {
+              "pitch": 31,
+              "startBeat": 0.0,
+              "durationBeats": 8.0,
+              "velocity": 58.0
+            },
+            {
+              "pitch": 29,
+              "startBeat": 8.0,
+              "durationBeats": 8.0,
+              "velocity": 58.0
+            }
+          ]
+        },
+        {
+          "id": "sf-sub-drop2",
+          "startBeat": 96.0,
+          "lengthBeats": 24.0,
+          "naturalLengthBeats": 24.0,
+          "loopContent": false,
+          "notes": [
+            {
+              "pitch": 31,
+              "startBeat": 0.0,
+              "durationBeats": 4.0,
+              "velocity": 110.0
+            },
+            {
+              "pitch": 34,
+              "startBeat": 4.0,
+              "durationBeats": 4.0,
+              "velocity": 110.0
+            },
+            {
+              "pitch": 38,
+              "startBeat": 8.0,
+              "durationBeats": 4.0,
+              "velocity": 110.0
+            },
+            {
+              "pitch": 29,
+              "startBeat": 12.0,
+              "durationBeats": 4.0,
+              "velocity": 110.0
+            },
+            {
+              "pitch": 31,
+              "startBeat": 16.0,
+              "durationBeats": 4.0,
+              "velocity": 110.0
+            },
+            {
+              "pitch": 27,
+              "startBeat": 20.0,
+              "durationBeats": 4.0,
+              "velocity": 110.0
+            }
+          ]
+        }
+      ],
+      "sampleClips": []
+    },
+    {
+      "id": "track-supersaw",
+      "name": "Supersaw motif - cutoff/gain rhythm",
+      "devices": [
+        {
+          "id": "sf-saw",
+          "type": "wavetable_synth",
+          "parameters": {
+            "wavetableId": "digital_64",
+            "attack": 0.015,
+            "decay": 0.24,
+            "sustain": 0.86,
+            "release": 0.5,
+            "filterCutoff": 0.26,
+            "filterResonance": 0.34,
+            "filterEnvAmount": 0.08,
+            "filterAttack": 0.02,
+            "filterDecay": 0.18,
+            "filterSustain": 0.36,
+            "filterRelease": 0.3,
+            "filterMode": 0,
+            "wtPosition": 0.48,
+            "wtOctave": 0.62,
+            "wtSemitone": 0.5,
+            "wtFine": 0.5,
+            "wtUnison": 0.9,
+            "wtDetune": 0.58,
+            "gain": 0.72,
+            "pan": 0.5,
+            "bypass": 0.0
+          }
+        },
+        {
+          "id": "sf-saw-gain",
+          "type": "track_gain",
+          "parameters": {
+            "gain": 0.7,
+            "bypass": 0.0
+          }
+        }
+      ],
+      "midiClips": [
+        {
+          "id": "sf-saw-intro",
+          "startBeat": 0.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 16.0,
+          "loopContent": false,
+          "notes": [
+            {
+              "pitch": 67,
+              "startBeat": 0.0,
+              "durationBeats": 8.0,
+              "velocity": 58.0
+            },
+            {
+              "pitch": 70,
+              "startBeat": 0.0,
+              "durationBeats": 8.0,
+              "velocity": 58.0
+            },
+            {
+              "pitch": 74,
+              "startBeat": 0.0,
+              "durationBeats": 8.0,
+              "velocity": 58.0
+            },
+            {
+              "pitch": 65,
+              "startBeat": 8.0,
+              "durationBeats": 8.0,
+              "velocity": 58.0
+            },
+            {
+              "pitch": 69,
+              "startBeat": 8.0,
+              "durationBeats": 8.0,
+              "velocity": 58.0
+            },
+            {
+              "pitch": 72,
+              "startBeat": 8.0,
+              "durationBeats": 8.0,
+              "velocity": 58.0
+            }
+          ]
+        },
+        {
+          "id": "sf-saw-build",
+          "startBeat": 16.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 16.0,
+          "loopContent": false,
+          "notes": [
+            {
+              "pitch": 67,
+              "startBeat": 0.0,
+              "durationBeats": 8.0,
+              "velocity": 74.0
+            },
+            {
+              "pitch": 70,
+              "startBeat": 0.0,
+              "durationBeats": 8.0,
+              "velocity": 74.0
+            },
+            {
+              "pitch": 74,
+              "startBeat": 0.0,
+              "durationBeats": 8.0,
+              "velocity": 74.0
+            },
+            {
+              "pitch": 69,
+              "startBeat": 8.0,
+              "durationBeats": 8.0,
+              "velocity": 74.0
+            },
+            {
+              "pitch": 72,
+              "startBeat": 8.0,
+              "durationBeats": 8.0,
+              "velocity": 74.0
+            },
+            {
+              "pitch": 77,
+              "startBeat": 8.0,
+              "durationBeats": 8.0,
+              "velocity": 74.0
+            }
+          ]
+        },
+        {
+          "id": "sf-saw-drop1",
+          "startBeat": 32.0,
+          "lengthBeats": 32.0,
+          "naturalLengthBeats": 32.0,
+          "loopContent": false,
+          "notes": [
+            {
+              "pitch": 67,
+              "startBeat": 0.0,
+              "durationBeats": 8.0,
+              "velocity": 104.0
+            },
+            {
+              "pitch": 70,
+              "startBeat": 0.0,
+              "durationBeats": 8.0,
+              "velocity": 104.0
+            },
+            {
+              "pitch": 74,
+              "startBeat": 0.0,
+              "durationBeats": 8.0,
+              "velocity": 104.0
+            },
+            {
+              "pitch": 65,
+              "startBeat": 8.0,
+              "durationBeats": 8.0,
+              "velocity": 104.0
+            },
+            {
+              "pitch": 69,
+              "startBeat": 8.0,
+              "durationBeats": 8.0,
+              "velocity": 104.0
+            },
+            {
+              "pitch": 72,
+              "startBeat": 8.0,
+              "durationBeats": 8.0,
+              "velocity": 104.0
+            },
+            {
+              "pitch": 70,
+              "startBeat": 16.0,
+              "durationBeats": 8.0,
+              "velocity": 104.0
+            },
+            {
+              "pitch": 74,
+              "startBeat": 16.0,
+              "durationBeats": 8.0,
+              "velocity": 104.0
+            },
+            {
+              "pitch": 77,
+              "startBeat": 16.0,
+              "durationBeats": 8.0,
+              "velocity": 104.0
+            },
+            {
+              "pitch": 62,
+              "startBeat": 24.0,
+              "durationBeats": 8.0,
+              "velocity": 104.0
+            },
+            {
+              "pitch": 65,
+              "startBeat": 24.0,
+              "durationBeats": 8.0,
+              "velocity": 104.0
+            },
+            {
+              "pitch": 69,
+              "startBeat": 24.0,
+              "durationBeats": 8.0,
+              "velocity": 104.0
+            }
+          ]
+        },
+        {
+          "id": "sf-saw-break",
+          "startBeat": 64.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 16.0,
+          "loopContent": false,
+          "notes": [
+            {
+              "pitch": 62,
+              "startBeat": 0.0,
+              "durationBeats": 8.0,
+              "velocity": 62.0
+            },
+            {
+              "pitch": 65,
+              "startBeat": 0.0,
+              "durationBeats": 8.0,
+              "velocity": 62.0
+            },
+            {
+              "pitch": 69,
+              "startBeat": 0.0,
+              "durationBeats": 8.0,
+              "velocity": 62.0
+            },
+            {
+              "pitch": 65,
+              "startBeat": 8.0,
+              "durationBeats": 8.0,
+              "velocity": 62.0
+            },
+            {
+              "pitch": 69,
+              "startBeat": 8.0,
+              "durationBeats": 8.0,
+              "velocity": 62.0
+            },
+            {
+              "pitch": 72,
+              "startBeat": 8.0,
+              "durationBeats": 8.0,
+              "velocity": 62.0
+            }
+          ]
+        },
+        {
+          "id": "sf-saw-build2",
+          "startBeat": 80.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 16.0,
+          "loopContent": false,
+          "notes": [
+            {
+              "pitch": 67,
+              "startBeat": 0.0,
+              "durationBeats": 8.0,
+              "velocity": 82.0
+            },
+            {
+              "pitch": 70,
+              "startBeat": 0.0,
+              "durationBeats": 8.0,
+              "velocity": 82.0
+            },
+            {
+              "pitch": 74,
+              "startBeat": 0.0,
+              "durationBeats": 8.0,
+              "velocity": 82.0
+            },
+            {
+              "pitch": 69,
+              "startBeat": 8.0,
+              "durationBeats": 8.0,
+              "velocity": 82.0
+            },
+            {
+              "pitch": 72,
+              "startBeat": 8.0,
+              "durationBeats": 8.0,
+              "velocity": 82.0
+            },
+            {
+              "pitch": 77,
+              "startBeat": 8.0,
+              "durationBeats": 8.0,
+              "velocity": 82.0
+            }
+          ]
+        },
+        {
+          "id": "sf-saw-drop2",
+          "startBeat": 96.0,
+          "lengthBeats": 24.0,
+          "naturalLengthBeats": 24.0,
+          "loopContent": false,
+          "notes": [
+            {
+              "pitch": 67,
+              "startBeat": 0.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 70,
+              "startBeat": 0.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 74,
+              "startBeat": 0.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 79,
+              "startBeat": 0.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 70,
+              "startBeat": 4.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 74,
+              "startBeat": 4.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 77,
+              "startBeat": 4.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 82,
+              "startBeat": 4.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 65,
+              "startBeat": 8.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 69,
+              "startBeat": 8.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 72,
+              "startBeat": 8.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 77,
+              "startBeat": 8.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 62,
+              "startBeat": 12.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 65,
+              "startBeat": 12.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 69,
+              "startBeat": 12.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 74,
+              "startBeat": 12.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 67,
+              "startBeat": 16.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 70,
+              "startBeat": 16.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 74,
+              "startBeat": 16.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 79,
+              "startBeat": 16.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 65,
+              "startBeat": 20.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 69,
+              "startBeat": 20.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 72,
+              "startBeat": 20.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            },
+            {
+              "pitch": 77,
+              "startBeat": 20.0,
+              "durationBeats": 4.0,
+              "velocity": 108.0
+            }
+          ]
+        }
+      ],
+      "sampleClips": []
+    },
+    {
+      "id": "track-pad-fx",
+      "name": "Pad + transition air",
+      "devices": [
+        {
+          "id": "sf-pad",
+          "type": "wavetable_synth",
+          "parameters": {
+            "wavetableId": "strings_64",
+            "attack": 0.55,
+            "decay": 0.4,
+            "sustain": 0.78,
+            "release": 0.9,
+            "filterCutoff": 0.34,
+            "filterResonance": 0.16,
+            "filterEnvAmount": 0.12,
+            "filterAttack": 0.4,
+            "filterDecay": 0.5,
+            "filterSustain": 0.5,
+            "filterRelease": 0.8,
+            "filterMode": 0,
+            "wtPosition": 0.2,
+            "wtOctave": 0.5,
+            "wtSemitone": 0.5,
+            "wtFine": 0.5,
+            "wtUnison": 0.45,
+            "wtDetune": 0.32,
+            "gain": 0.42,
+            "pan": 0.5,
+            "bypass": 0.0
+          }
+        },
+        {
+          "id": "sf-crash",
+          "type": "crash_generator",
+          "parameters": {
+            "crashModel": 0.46,
+            "crashColor": 0.58,
+            "crashSpread": 0.42,
+            "crashDecay": 0.6,
+            "crashVelocity": 0.48,
+            "gain": 0.18,
+            "bypass": 0.0
+          }
+        },
+        {
+          "id": "sf-pad-gain",
+          "type": "track_gain",
+          "parameters": {
+            "gain": 0.44,
+            "bypass": 0.0
+          }
+        }
+      ],
+      "midiClips": [
+        {
+          "id": "sf-pad-intro-break",
+          "startBeat": 0.0,
+          "lengthBeats": 32.0,
+          "naturalLengthBeats": 8.0,
+          "loopContent": true,
+          "notes": [
+            {
+              "pitch": 55,
+              "startBeat": 0.0,
+              "durationBeats": 4.0,
+              "velocity": 56.0
+            },
+            {
+              "pitch": 58,
+              "startBeat": 0.0,
+              "durationBeats": 4.0,
+              "velocity": 52.0
+            },
+            {
+              "pitch": 62,
+              "startBeat": 0.0,
+              "durationBeats": 4.0,
+              "velocity": 52.0
+            },
+            {
+              "pitch": 53,
+              "startBeat": 4.0,
+              "durationBeats": 4.0,
+              "velocity": 52.0
+            },
+            {
+              "pitch": 57,
+              "startBeat": 4.0,
+              "durationBeats": 4.0,
+              "velocity": 50.0
+            },
+            {
+              "pitch": 60,
+              "startBeat": 4.0,
+              "durationBeats": 4.0,
+              "velocity": 50.0
+            }
+          ]
+        },
+        {
+          "id": "sf-pad-break",
+          "startBeat": 64.0,
+          "lengthBeats": 32.0,
+          "naturalLengthBeats": 8.0,
+          "loopContent": true,
+          "notes": [
+            {
+              "pitch": 55,
+              "startBeat": 0.0,
+              "durationBeats": 4.0,
+              "velocity": 66.0
+            },
+            {
+              "pitch": 58,
+              "startBeat": 0.0,
+              "durationBeats": 4.0,
+              "velocity": 62.0
+            },
+            {
+              "pitch": 62,
+              "startBeat": 0.0,
+              "durationBeats": 4.0,
+              "velocity": 62.0
+            },
+            {
+              "pitch": 50,
+              "startBeat": 4.0,
+              "durationBeats": 4.0,
+              "velocity": 58.0
+            },
+            {
+              "pitch": 53,
+              "startBeat": 4.0,
+              "durationBeats": 4.0,
+              "velocity": 56.0
+            },
+            {
+              "pitch": 57,
+              "startBeat": 4.0,
+              "durationBeats": 4.0,
+              "velocity": 56.0
+            }
+          ]
+        },
+        {
+          "id": "sf-crash-map",
+          "startBeat": 0.0,
+          "lengthBeats": 128.0,
+          "naturalLengthBeats": 128.0,
+          "loopContent": false,
+          "notes": [
+            {
+              "pitch": 49,
+              "startBeat": 0.0,
+              "durationBeats": 3.0,
+              "velocity": 42.0
+            },
+            {
+              "pitch": 49,
+              "startBeat": 16.0,
+              "durationBeats": 2.0,
+              "velocity": 48.0
+            },
+            {
+              "pitch": 49,
+              "startBeat": 31.75,
+              "durationBeats": 0.25,
+              "velocity": 60.0
+            },
+            {
+              "pitch": 49,
+              "startBeat": 32.0,
+              "durationBeats": 4.0,
+              "velocity": 74.0
+            },
+            {
+              "pitch": 49,
+              "startBeat": 64.0,
+              "durationBeats": 5.0,
+              "velocity": 56.0
+            },
+            {
+              "pitch": 49,
+              "startBeat": 95.75,
+              "durationBeats": 0.25,
+              "velocity": 62.0
+            },
+            {
+              "pitch": 49,
+              "startBeat": 96.0,
+              "durationBeats": 4.0,
+              "velocity": 74.0
+            },
+            {
+              "pitch": 49,
+              "startBeat": 120.0,
+              "durationBeats": 6.0,
+              "velocity": 48.0
+            }
+          ]
+        }
+      ],
+      "sampleClips": []
+    }
+  ],
+  "lfos": [],
+  "modEdges": [],
+  "automationClips": [
+    {
+      "id": "sf-build-filter-flutter",
+      "homeTrackId": "track-supersaw",
+      "startBeat": 16.0,
+      "lengthBeats": 16.0,
+      "naturalLengthBeats": 4.0,
+      "loopContent": true,
+      "deviceId": "sf-saw",
+      "paramId": "filterCutoff",
+      "points": [
+        {
+          "beat": 0.0,
+          "value": 0.0
+        },
+        {
+          "beat": 0.5,
+          "value": 1.0
+        },
+        {
+          "beat": 0.5,
+          "value": 0.0
+        },
+        {
+          "beat": 1.0,
+          "value": 1.0
+        },
+        {
+          "beat": 1.0,
+          "value": 0.0
+        },
+        {
+          "beat": 1.25,
+          "value": 0.0
+        },
+        {
+          "beat": 1.531951282051282,
+          "value": 1.0
+        },
+        {
+          "beat": 1.532051282051282,
+          "value": 0.0
+        },
+        {
+          "beat": 1.814002564102564,
+          "value": 1.0
+        },
+        {
+          "beat": 1.814102564102564,
+          "value": 0.0
+        },
+        {
+          "beat": 2.096053846153846,
+          "value": 1.0
+        },
+        {
+          "beat": 2.096153846153846,
+          "value": 0.0
+        },
+        {
+          "beat": 2.378105128205128,
+          "value": 1.0
+        },
+        {
+          "beat": 2.378205128205128,
+          "value": 0.0
+        },
+        {
+          "beat": 2.66015641025641,
+          "value": 1.0
+        },
+        {
+          "beat": 2.66025641025641,
+          "value": 0.0
+        },
+        {
+          "beat": 2.942207692307692,
+          "value": 1.0
+        },
+        {
+          "beat": 2.942307692307692,
+          "value": 0.0
+        },
+        {
+          "beat": 3.224258974358975,
+          "value": 1.0
+        },
+        {
+          "beat": 3.224358974358974,
+          "value": 0.0
+        },
+        {
+          "beat": 3.506310256410256,
+          "value": 1.0
+        },
+        {
+          "beat": 3.506410256410256,
+          "value": 0.0
+        },
+        {
+          "beat": 3.788361538461538,
+          "value": 1.0
+        },
+        {
+          "beat": 3.788461538461538,
+          "value": 0.0
+        },
+        {
+          "beat": 4.0,
+          "value": 0.0
+        }
+      ]
+    },
+    {
+      "id": "sf-build-gain-flutter",
+      "homeTrackId": "track-supersaw",
+      "startBeat": 16.0,
+      "lengthBeats": 16.0,
+      "naturalLengthBeats": 4.0,
+      "loopContent": true,
+      "deviceId": "sf-saw",
+      "paramId": "gain",
+      "points": [
+        {
+          "beat": 0.0,
+          "value": 0.0
+        },
+        {
+          "beat": 0.5,
+          "value": 1.0
+        },
+        {
+          "beat": 0.5,
+          "value": 0.0
+        },
+        {
+          "beat": 1.0,
+          "value": 1.0
+        },
+        {
+          "beat": 1.0,
+          "value": 0.0
+        },
+        {
+          "beat": 1.25,
+          "value": 0.0
+        },
+        {
+          "beat": 1.531951282051282,
+          "value": 1.0
+        },
+        {
+          "beat": 1.532051282051282,
+          "value": 0.0
+        },
+        {
+          "beat": 1.814002564102564,
+          "value": 1.0
+        },
+        {
+          "beat": 1.814102564102564,
+          "value": 0.0
+        },
+        {
+          "beat": 2.096053846153846,
+          "value": 1.0
+        },
+        {
+          "beat": 2.096153846153846,
+          "value": 0.0
+        },
+        {
+          "beat": 2.378105128205128,
+          "value": 1.0
+        },
+        {
+          "beat": 2.378205128205128,
+          "value": 0.0
+        },
+        {
+          "beat": 2.66015641025641,
+          "value": 1.0
+        },
+        {
+          "beat": 2.66025641025641,
+          "value": 0.0
+        },
+        {
+          "beat": 2.942207692307692,
+          "value": 1.0
+        },
+        {
+          "beat": 2.942307692307692,
+          "value": 0.0
+        },
+        {
+          "beat": 3.224258974358975,
+          "value": 1.0
+        },
+        {
+          "beat": 3.224358974358974,
+          "value": 0.0
+        },
+        {
+          "beat": 3.506310256410256,
+          "value": 1.0
+        },
+        {
+          "beat": 3.506410256410256,
+          "value": 0.0
+        },
+        {
+          "beat": 3.788361538461538,
+          "value": 1.0
+        },
+        {
+          "beat": 3.788461538461538,
+          "value": 0.0
+        },
+        {
+          "beat": 4.0,
+          "value": 0.0
+        }
+      ]
+    },
+    {
+      "id": "sf-drop1-filter-hook",
+      "homeTrackId": "track-supersaw",
+      "startBeat": 32.0,
+      "lengthBeats": 32.0,
+      "naturalLengthBeats": 4.0,
+      "loopContent": true,
+      "deviceId": "sf-saw",
+      "paramId": "filterCutoff",
+      "points": [
+        {
+          "beat": 0.0,
+          "value": 0.0
+        },
+        {
+          "beat": 0.5,
+          "value": 1.0
+        },
+        {
+          "beat": 0.5,
+          "value": 0.0
+        },
+        {
+          "beat": 1.0,
+          "value": 1.0
+        },
+        {
+          "beat": 1.0,
+          "value": 0.0
+        },
+        {
+          "beat": 1.25,
+          "value": 0.0
+        },
+        {
+          "beat": 1.531951282051282,
+          "value": 1.0
+        },
+        {
+          "beat": 1.532051282051282,
+          "value": 0.0
+        },
+        {
+          "beat": 1.814002564102564,
+          "value": 1.0
+        },
+        {
+          "beat": 1.814102564102564,
+          "value": 0.0
+        },
+        {
+          "beat": 2.096053846153846,
+          "value": 1.0
+        },
+        {
+          "beat": 2.096153846153846,
+          "value": 0.0
+        },
+        {
+          "beat": 2.378105128205128,
+          "value": 1.0
+        },
+        {
+          "beat": 2.378205128205128,
+          "value": 0.0
+        },
+        {
+          "beat": 2.66015641025641,
+          "value": 1.0
+        },
+        {
+          "beat": 2.66025641025641,
+          "value": 0.0
+        },
+        {
+          "beat": 2.942207692307692,
+          "value": 1.0
+        },
+        {
+          "beat": 2.942307692307692,
+          "value": 0.0
+        },
+        {
+          "beat": 3.224258974358975,
+          "value": 1.0
+        },
+        {
+          "beat": 3.224358974358974,
+          "value": 0.0
+        },
+        {
+          "beat": 3.506310256410256,
+          "value": 1.0
+        },
+        {
+          "beat": 3.506410256410256,
+          "value": 0.0
+        },
+        {
+          "beat": 3.788361538461538,
+          "value": 1.0
+        },
+        {
+          "beat": 3.788461538461538,
+          "value": 0.0
+        },
+        {
+          "beat": 4.0,
+          "value": 0.0
+        }
+      ]
+    },
+    {
+      "id": "sf-drop1-gain-hook",
+      "homeTrackId": "track-supersaw",
+      "startBeat": 32.0,
+      "lengthBeats": 32.0,
+      "naturalLengthBeats": 4.0,
+      "loopContent": true,
+      "deviceId": "sf-saw",
+      "paramId": "gain",
+      "points": [
+        {
+          "beat": 0.0,
+          "value": 0.0
+        },
+        {
+          "beat": 0.5,
+          "value": 1.0
+        },
+        {
+          "beat": 0.5,
+          "value": 0.0
+        },
+        {
+          "beat": 1.0,
+          "value": 1.0
+        },
+        {
+          "beat": 1.0,
+          "value": 0.0
+        },
+        {
+          "beat": 1.25,
+          "value": 0.0
+        },
+        {
+          "beat": 1.531951282051282,
+          "value": 1.0
+        },
+        {
+          "beat": 1.532051282051282,
+          "value": 0.0
+        },
+        {
+          "beat": 1.814002564102564,
+          "value": 1.0
+        },
+        {
+          "beat": 1.814102564102564,
+          "value": 0.0
+        },
+        {
+          "beat": 2.096053846153846,
+          "value": 1.0
+        },
+        {
+          "beat": 2.096153846153846,
+          "value": 0.0
+        },
+        {
+          "beat": 2.378105128205128,
+          "value": 1.0
+        },
+        {
+          "beat": 2.378205128205128,
+          "value": 0.0
+        },
+        {
+          "beat": 2.66015641025641,
+          "value": 1.0
+        },
+        {
+          "beat": 2.66025641025641,
+          "value": 0.0
+        },
+        {
+          "beat": 2.942207692307692,
+          "value": 1.0
+        },
+        {
+          "beat": 2.942307692307692,
+          "value": 0.0
+        },
+        {
+          "beat": 3.224258974358975,
+          "value": 1.0
+        },
+        {
+          "beat": 3.224358974358974,
+          "value": 0.0
+        },
+        {
+          "beat": 3.506310256410256,
+          "value": 1.0
+        },
+        {
+          "beat": 3.506410256410256,
+          "value": 0.0
+        },
+        {
+          "beat": 3.788361538461538,
+          "value": 1.0
+        },
+        {
+          "beat": 3.788461538461538,
+          "value": 0.0
+        },
+        {
+          "beat": 4.0,
+          "value": 0.0
+        }
+      ]
+    },
+    {
+      "id": "sf-drop2-filter-hook",
+      "homeTrackId": "track-supersaw",
+      "startBeat": 96.0,
+      "lengthBeats": 24.0,
+      "naturalLengthBeats": 4.0,
+      "loopContent": true,
+      "deviceId": "sf-saw",
+      "paramId": "filterCutoff",
+      "points": [
+        {
+          "beat": 0.0,
+          "value": 0.0
+        },
+        {
+          "beat": 0.5,
+          "value": 1.0
+        },
+        {
+          "beat": 0.5,
+          "value": 0.0
+        },
+        {
+          "beat": 1.0,
+          "value": 1.0
+        },
+        {
+          "beat": 1.0,
+          "value": 0.0
+        },
+        {
+          "beat": 1.25,
+          "value": 0.0
+        },
+        {
+          "beat": 1.531951282051282,
+          "value": 1.0
+        },
+        {
+          "beat": 1.532051282051282,
+          "value": 0.0
+        },
+        {
+          "beat": 1.814002564102564,
+          "value": 1.0
+        },
+        {
+          "beat": 1.814102564102564,
+          "value": 0.0
+        },
+        {
+          "beat": 2.096053846153846,
+          "value": 1.0
+        },
+        {
+          "beat": 2.096153846153846,
+          "value": 0.0
+        },
+        {
+          "beat": 2.378105128205128,
+          "value": 1.0
+        },
+        {
+          "beat": 2.378205128205128,
+          "value": 0.0
+        },
+        {
+          "beat": 2.66015641025641,
+          "value": 1.0
+        },
+        {
+          "beat": 2.66025641025641,
+          "value": 0.0
+        },
+        {
+          "beat": 2.942207692307692,
+          "value": 1.0
+        },
+        {
+          "beat": 2.942307692307692,
+          "value": 0.0
+        },
+        {
+          "beat": 3.224258974358975,
+          "value": 1.0
+        },
+        {
+          "beat": 3.224358974358974,
+          "value": 0.0
+        },
+        {
+          "beat": 3.506310256410256,
+          "value": 1.0
+        },
+        {
+          "beat": 3.506410256410256,
+          "value": 0.0
+        },
+        {
+          "beat": 3.788361538461538,
+          "value": 1.0
+        },
+        {
+          "beat": 3.788461538461538,
+          "value": 0.0
+        },
+        {
+          "beat": 4.0,
+          "value": 0.0
+        }
+      ]
+    },
+    {
+      "id": "sf-drop2-gain-hook",
+      "homeTrackId": "track-supersaw",
+      "startBeat": 96.0,
+      "lengthBeats": 24.0,
+      "naturalLengthBeats": 4.0,
+      "loopContent": true,
+      "deviceId": "sf-saw",
+      "paramId": "gain",
+      "points": [
+        {
+          "beat": 0.0,
+          "value": 0.0
+        },
+        {
+          "beat": 0.5,
+          "value": 1.0
+        },
+        {
+          "beat": 0.5,
+          "value": 0.0
+        },
+        {
+          "beat": 1.0,
+          "value": 1.0
+        },
+        {
+          "beat": 1.0,
+          "value": 0.0
+        },
+        {
+          "beat": 1.25,
+          "value": 0.0
+        },
+        {
+          "beat": 1.531951282051282,
+          "value": 1.0
+        },
+        {
+          "beat": 1.532051282051282,
+          "value": 0.0
+        },
+        {
+          "beat": 1.814002564102564,
+          "value": 1.0
+        },
+        {
+          "beat": 1.814102564102564,
+          "value": 0.0
+        },
+        {
+          "beat": 2.096053846153846,
+          "value": 1.0
+        },
+        {
+          "beat": 2.096153846153846,
+          "value": 0.0
+        },
+        {
+          "beat": 2.378105128205128,
+          "value": 1.0
+        },
+        {
+          "beat": 2.378205128205128,
+          "value": 0.0
+        },
+        {
+          "beat": 2.66015641025641,
+          "value": 1.0
+        },
+        {
+          "beat": 2.66025641025641,
+          "value": 0.0
+        },
+        {
+          "beat": 2.942207692307692,
+          "value": 1.0
+        },
+        {
+          "beat": 2.942307692307692,
+          "value": 0.0
+        },
+        {
+          "beat": 3.224258974358975,
+          "value": 1.0
+        },
+        {
+          "beat": 3.224358974358974,
+          "value": 0.0
+        },
+        {
+          "beat": 3.506310256410256,
+          "value": 1.0
+        },
+        {
+          "beat": 3.506410256410256,
+          "value": 0.0
+        },
+        {
+          "beat": 3.788361538461538,
+          "value": 1.0
+        },
+        {
+          "beat": 3.788461538461538,
+          "value": 0.0
+        },
+        {
+          "beat": 4.0,
+          "value": 0.0
+        }
+      ]
+    },
+    {
+      "id": "sf-saw-wt-section-motion",
+      "homeTrackId": "track-supersaw",
+      "startBeat": 32.0,
+      "lengthBeats": 88.0,
+      "naturalLengthBeats": 8.0,
+      "loopContent": true,
+      "deviceId": "sf-saw",
+      "paramId": "wtPosition",
+      "points": [
+        {
+          "beat": 0.0,
+          "value": 0.34
+        },
+        {
+          "beat": 2.0,
+          "value": 0.58
+        },
+        {
+          "beat": 4.0,
+          "value": 0.42
+        },
+        {
+          "beat": 6.0,
+          "value": 0.72
+        },
+        {
+          "beat": 8.0,
+          "value": 0.48
+        }
+      ]
+    }
+  ]
+}

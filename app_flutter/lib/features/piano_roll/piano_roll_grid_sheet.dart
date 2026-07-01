@@ -1,23 +1,35 @@
 import 'package:flutter/material.dart';
 
+import '../play/play_deck_layout.dart';
+import '../play/play_scale.dart';
 import 'piano_roll_metrics.dart';
+import 'piano_roll_scale.dart';
 import 'piano_roll_theme.dart';
 
 class PianoRollGridSheet extends StatefulWidget {
   const PianoRollGridSheet({
     super.key,
     required this.initialSettings,
+    required this.initialScaleSettings,
+    required this.showScaleControls,
     required this.onChanged,
+    required this.onScaleChanged,
   });
 
   final PianoRollGridSettings initialSettings;
+  final PianoRollScaleSettings initialScaleSettings;
+  final bool showScaleControls;
   final ValueChanged<PianoRollGridSettings> onChanged;
+  final ValueChanged<PianoRollScaleSettings> onScaleChanged;
 
   /// Opens the grid panel above [bottomInset] px of chrome (e.g. piano-roll PlayDeck).
   static Future<void> show(
     BuildContext context, {
     required PianoRollGridSettings settings,
     required ValueChanged<PianoRollGridSettings> onChanged,
+    PianoRollScaleSettings scaleSettings = const PianoRollScaleSettings(),
+    ValueChanged<PianoRollScaleSettings>? onScaleChanged,
+    bool showScaleControls = false,
     double bottomInset = 0,
   }) {
     return showModalBottomSheet<void>(
@@ -32,7 +44,10 @@ class PianoRollGridSheet extends StatefulWidget {
         padding: EdgeInsets.only(bottom: bottomInset),
         child: PianoRollGridSheet(
           initialSettings: settings,
+          initialScaleSettings: scaleSettings,
+          showScaleControls: showScaleControls,
           onChanged: onChanged,
+          onScaleChanged: onScaleChanged ?? (_) {},
         ),
       ),
     );
@@ -44,16 +59,23 @@ class PianoRollGridSheet extends StatefulWidget {
 
 class _PianoRollGridSheetState extends State<PianoRollGridSheet> {
   late PianoRollGridSettings _settings;
+  late PianoRollScaleSettings _scaleSettings;
 
   @override
   void initState() {
     super.initState();
     _settings = widget.initialSettings;
+    _scaleSettings = widget.initialScaleSettings;
   }
 
   void _update(PianoRollGridSettings next) {
     setState(() => _settings = next);
     widget.onChanged(next);
+  }
+
+  void _updateScale(PianoRollScaleSettings next) {
+    setState(() => _scaleSettings = next);
+    widget.onScaleChanged(next);
   }
 
   @override
@@ -119,25 +141,106 @@ class _PianoRollGridSheetState extends State<PianoRollGridSheet> {
                 _Pill(
                   label: '1/4',
                   active: _settings.defaultNoteBeats == 0.25,
-                  onTap: () => _update(_settings.copyWith(defaultNoteBeats: 0.25)),
+                  onTap: () =>
+                      _update(_settings.copyWith(defaultNoteBeats: 0.25)),
                 ),
                 _Pill(
                   label: '1/2',
                   active: _settings.defaultNoteBeats == 0.5,
-                  onTap: () => _update(_settings.copyWith(defaultNoteBeats: 0.5)),
+                  onTap: () =>
+                      _update(_settings.copyWith(defaultNoteBeats: 0.5)),
                 ),
                 _Pill(
                   label: '1 bar',
                   active: _settings.defaultNoteBeats == 4.0,
-                  onTap: () => _update(_settings.copyWith(defaultNoteBeats: 4.0)),
+                  onTap: () =>
+                      _update(_settings.copyWith(defaultNoteBeats: 4.0)),
                 ),
                 _Pill(
                   label: '2 bars',
                   active: _settings.defaultNoteBeats == 8.0,
-                  onTap: () => _update(_settings.copyWith(defaultNoteBeats: 8.0)),
+                  onTap: () =>
+                      _update(_settings.copyWith(defaultNoteBeats: 8.0)),
                 ),
               ],
             ),
+            if (widget.showScaleControls) ...[
+              const SizedBox(height: 16),
+              const _SectionTitle('Scale'),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (var i = 0; i < PlayScale.noteNames.length; i++)
+                    _Pill(
+                      label: PlayScale.noteNames[i],
+                      active: _scaleSettings.rootPitchClass == i,
+                      onTap: () => _updateScale(
+                        _scaleSettings.copyWith(rootPitchClass: i),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final scale in PlayScale.presets)
+                    _Pill(
+                      label: scale.label,
+                      active: _scaleSettings.scale.id == scale.id,
+                      onTap: () => _updateScale(
+                        _scaleSettings.copyWith(scale: scale),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  _Pill(
+                    label: 'Highlight',
+                    active: _scaleSettings.highlight,
+                    onTap: () => _updateScale(
+                      _scaleSettings.copyWith(
+                        highlight: !_scaleSettings.highlight,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  _Pill(
+                    label: 'Snap pitch',
+                    active: _scaleSettings.snapToScale,
+                    onTap: () => _updateScale(
+                      _scaleSettings.copyWith(
+                        snapToScale: !_scaleSettings.snapToScale,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const _SectionTitle('Chord painter'),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final quality in ChordQuality.values)
+                    _Pill(
+                      label: quality == ChordQuality.off
+                          ? 'Single'
+                          : quality.label,
+                      active: _scaleSettings.chordQuality == quality,
+                      onTap: () => _updateScale(
+                        _scaleSettings.copyWith(chordQuality: quality),
+                      ),
+                    ),
+                ],
+              ),
+            ],
           ],
         ),
       ),

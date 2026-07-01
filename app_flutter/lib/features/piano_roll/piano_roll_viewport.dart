@@ -13,6 +13,7 @@ import 'editor_view_range.dart';
 import 'piano_roll_metrics.dart';
 import 'piano_roll_note_block.dart';
 import 'piano_roll_ruler.dart';
+import 'piano_roll_scale.dart';
 import 'piano_roll_theme.dart';
 
 enum _DragMode { none, move, resize, draw }
@@ -29,6 +30,7 @@ class PianoRollViewport extends StatefulWidget {
     required this.maxPitch,
     this.drumAnchorPitch,
     required this.gridSettings,
+    required this.scaleSettings,
     required this.tool,
     required this.selectedIndex,
     required this.onNotesChanged,
@@ -58,6 +60,7 @@ class PianoRollViewport extends StatefulWidget {
   final int maxPitch;
   final int? drumAnchorPitch;
   final PianoRollGridSettings gridSettings;
+  final PianoRollScaleSettings scaleSettings;
   final PianoRollTool tool;
   final int? selectedIndex;
   final ValueChanged<List<MidiNoteSnapshot>> onNotesChanged;
@@ -127,6 +130,7 @@ class PianoRollViewportState extends State<PianoRollViewport> {
   double? _dragStartBeat;
   double? _dragStartDuration;
   int? _dragStartPitch;
+  List<int> _drawChordIndexes = const [];
 
   static const double _tapSlop = 8;
   static const double _drawPaintThreshold = 12;
@@ -435,6 +439,7 @@ class PianoRollViewportState extends State<PianoRollViewport> {
       _lastCanvasPos = canvasPos;
       _editTravel = 0;
       _drawHorizontalTravel = 0;
+      _drawChordIndexes = const [];
 
       if (widget.tool == PianoRollTool.draw) {
         final noteIndex = _noteIndexAt(canvasPos);
@@ -591,6 +596,7 @@ class PianoRollViewportState extends State<PianoRollViewport> {
     _editCommitted = false;
     _draggingClipEnd = false;
     _drawHorizontalTravel = 0;
+    _drawChordIndexes = const [];
     _lockScrollForEdit = false;
     if (_dragMode != _DragMode.none && _draggingIndex != null) {
       widget.onEditFinished();
@@ -640,15 +646,26 @@ class PianoRollViewportState extends State<PianoRollViewport> {
     _dragStartBeat = startBeat;
     _dragStartPitch = pitch;
     _draggingIndex = widget.notes.length;
+    final chordPitches = widget.scaleSettings.chordPitches(
+      pitch,
+      minPitch: widget.minPitch,
+      maxPitch: widget.maxPitch,
+    );
+    _drawChordIndexes = [
+      for (var i = 0; i < chordPitches.length; i++) widget.notes.length + i,
+    ];
     final notes = List<MidiNoteSnapshot>.of(widget.notes)
-      ..add(MidiNoteSnapshot(
-        pitch: pitch,
-        startBeat: startBeat,
-        durationBeats: widget.gridSettings.insertNoteDurationBeats,
-        velocity: 100,
-      ));
+      ..addAll([
+        for (final chordPitch in chordPitches)
+          MidiNoteSnapshot(
+            pitch: chordPitch,
+            startBeat: startBeat,
+            durationBeats: widget.gridSettings.insertNoteDurationBeats,
+            velocity: 100,
+          ),
+      ]);
     _setNotes(notes);
-    widget.onNotePreview?.call(notes.last, hold: true);
+    widget.onNotePreview?.call(notes[_draggingIndex!], hold: true);
   }
 
   void _updateDraw(Offset canvasPos) {
@@ -670,15 +687,19 @@ class PianoRollViewportState extends State<PianoRollViewport> {
     final duration = widget.gridSettings.snapBeat(
       deltaBeats.clamp(minDur, widget.virtualLengthBeats - note.startBeat),
     );
-    _updateNote(
-      index,
-      MidiNoteSnapshot(
-        pitch: note.pitch,
-        startBeat: note.startBeat,
+    final notes = List<MidiNoteSnapshot>.of(widget.notes);
+    final indexes = _drawChordIndexes.isEmpty ? [index] : _drawChordIndexes;
+    for (final noteIndex in indexes) {
+      if (noteIndex < 0 || noteIndex >= notes.length) continue;
+      final current = notes[noteIndex];
+      notes[noteIndex] = MidiNoteSnapshot(
+        pitch: current.pitch,
+        startBeat: current.startBeat,
         durationBeats: duration,
-        velocity: note.velocity,
-      ),
-    );
+        velocity: current.velocity,
+      );
+    }
+    _setNotes(notes);
   }
 
   void _insertNoteAt(Offset canvasPos) {
@@ -686,13 +707,21 @@ class PianoRollViewportState extends State<PianoRollViewport> {
     final pitch = _pitchFromDy(canvasPos.dy);
     final startBeat = _beatFromDx(canvasPos.dx);
     final dur = widget.gridSettings.insertNoteDurationBeats;
+    final chordPitches = widget.scaleSettings.chordPitches(
+      pitch,
+      minPitch: widget.minPitch,
+      maxPitch: widget.maxPitch,
+    );
     final notes = List<MidiNoteSnapshot>.of(widget.notes)
-      ..add(MidiNoteSnapshot(
-        pitch: pitch,
-        startBeat: startBeat,
-        durationBeats: dur,
-        velocity: 100,
-      ));
+      ..addAll([
+        for (final chordPitch in chordPitches)
+          MidiNoteSnapshot(
+            pitch: chordPitch,
+            startBeat: startBeat,
+            durationBeats: dur,
+            velocity: 100,
+          ),
+      ]);
     _setNotes(notes);
     widget.onNotePreview?.call(notes.last);
     widget.onSelectionChanged(null);
@@ -872,7 +901,11 @@ class PianoRollViewportState extends State<PianoRollViewport> {
       return widget.drumAnchorPitch!;
     }
     final pitch = widget.maxPitch - (dy / _rowHeight).floor();
-    return pitch.clamp(widget.minPitch, widget.maxPitch);
+    return widget.scaleSettings.snapPitch(
+      pitch,
+      minPitch: widget.minPitch,
+      maxPitch: widget.maxPitch,
+    );
   }
 
   double _beatFromDx(double dx, {bool snap = true}) {
@@ -1047,6 +1080,7 @@ class PianoRollViewportState extends State<PianoRollViewport> {
           maxPitch: widget.maxPitch,
           pixelsPerBeat: _pixelsPerBeat,
           rowHeight: _rowHeight,
+          scaleSettings: widget.scaleSettings,
         ),
         child: Stack(
           clipBehavior: Clip.none,

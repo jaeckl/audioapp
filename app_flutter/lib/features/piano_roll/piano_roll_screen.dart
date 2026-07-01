@@ -16,6 +16,7 @@ import 'editor_view_range.dart';
 import 'piano_roll_metrics.dart';
 import 'piano_roll_note_audition.dart';
 import 'piano_roll_note_ops.dart';
+import 'piano_roll_scale.dart';
 import 'piano_roll_theme.dart';
 import 'piano_roll_tool_dock.dart';
 import 'piano_roll_viewport.dart';
@@ -59,14 +60,17 @@ class _PianoRollScreenState extends State<PianoRollScreen>
   final List<List<MidiNoteSnapshot>> _redoStack = [];
 
   PianoRollGridSettings _grid = const PianoRollGridSettings();
+  late PianoRollScaleSettings _scale;
   PianoRollTool _tool = PianoRollTool.select;
   int? _selectedIndex;
   int _viewRangeBars = EditorViewRange.defaultBars;
+  Future<void>? _pendingNoteSave;
 
   @override
   void initState() {
     super.initState();
     _notes = List.of(widget.clip.notes);
+    _scale = PianoRollScaleSettings.fromClip(widget.clip);
     _clipLengthBeats = widget.clip.editorContentLengthBeats;
     _previewTransport = ClipEditorTransportController(
       bridge: widget.bridge,
@@ -160,7 +164,8 @@ class _PianoRollScreenState extends State<PianoRollScreen>
 
   String get _gridDockLabel {
     final base = _grid.snap.shortLabel;
-    return _grid.triplet ? '${base}T' : base;
+    final snap = _grid.triplet ? '${base}T' : base;
+    return _scale.snapToScale ? '$snap · ${_scale.rootLabel}' : snap;
   }
 
   void _pushUndo() {
@@ -186,14 +191,14 @@ class _PianoRollScreenState extends State<PianoRollScreen>
     if (_undoStack.isEmpty) return;
     _redoStack.add(_cloneNotes(_notes));
     setState(() => _notes = _undoStack.removeLast());
-    _persistNotes();
+    _queueNoteSave();
   }
 
   void _redo() {
     if (_redoStack.isEmpty) return;
     _undoStack.add(_cloneNotes(_notes));
     setState(() => _notes = _redoStack.removeLast());
-    _persistNotes();
+    _queueNoteSave();
   }
 
   void _onNotesChanged(List<MidiNoteSnapshot> notes) {
@@ -205,7 +210,7 @@ class _PianoRollScreenState extends State<PianoRollScreen>
   }
 
   void _onEditFinished() {
-    _persistNotes();
+    _queueNoteSave();
   }
 
   void _applyNotes(List<MidiNoteSnapshot> notes, {int? selectedIndex}) {
@@ -214,7 +219,21 @@ class _PianoRollScreenState extends State<PianoRollScreen>
       _notes = notes;
       _selectedIndex = selectedIndex;
     });
-    _persistNotes();
+    _queueNoteSave();
+  }
+
+  void _queueNoteSave() {
+    _pendingNoteSave = _persistNotes();
+  }
+
+  Future<void> _closeEditor() async {
+    final pending = _pendingNoteSave;
+    if (pending != null) {
+      await pending;
+    }
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
   void _quantizeSelection() {
@@ -242,7 +261,7 @@ class _PianoRollScreenState extends State<PianoRollScreen>
     final index = _selectedIndex;
     if (index == null || index < 0 || index >= _notes.length) return;
     final notes = List<MidiNoteSnapshot>.of(_notes);
-    notes[index] = PianoRollNoteOps.nudge(
+    final nudged = PianoRollNoteOps.nudge(
       notes[index],
       beatDelta: beatDelta,
       pitchDelta: pitchDelta,
@@ -250,6 +269,16 @@ class _PianoRollScreenState extends State<PianoRollScreen>
       maxLengthBeats: _clipLengthBeats,
       minPitch: PianoRollMetrics.gridMinPitch,
       maxPitch: PianoRollMetrics.gridMaxPitch,
+    );
+    notes[index] = MidiNoteSnapshot(
+      pitch: _scale.snapPitch(
+        nudged.pitch,
+        minPitch: PianoRollMetrics.gridMinPitch,
+        maxPitch: PianoRollMetrics.gridMaxPitch,
+      ),
+      startBeat: nudged.startBeat,
+      durationBeats: nudged.durationBeats,
+      velocity: nudged.velocity,
     );
     _applyNotes(notes, selectedIndex: index);
   }
@@ -316,10 +345,34 @@ class _PianoRollScreenState extends State<PianoRollScreen>
     PianoRollGridSheet.show(
       context,
       settings: _grid,
+      scaleSettings: _scale,
       onChanged: (next) => setState(() => _grid = next),
+      onScaleChanged: _onScaleChanged,
+      showScaleControls: true,
       bottomInset:
           PianoRollMetrics.toolDockHeight + PlayDeckLayout.chromeHeight,
     );
+  }
+
+  void _onScaleChanged(PianoRollScaleSettings next) {
+    if (next == _scale) return;
+    setState(() => _scale = next);
+    unawaited(_persistScaleSettings(next));
+  }
+
+  Future<void> _persistScaleSettings(PianoRollScaleSettings settings) async {
+    try {
+      await widget.bridge.setMidiClipEditorScale(
+        clipId: widget.clip.id,
+        rootPitchClass: settings.rootPitchClass,
+        scaleId: settings.scale.id,
+        highlight: settings.highlight,
+        snapToScale: settings.snapToScale,
+        chordQuality: settings.chordQuality.name,
+      );
+    } catch (_) {
+      // Editor metadata is non-audio-critical; keep local state if bridge save fails.
+    }
   }
 
   void _openEditSheet() {
@@ -343,113 +396,120 @@ class _PianoRollScreenState extends State<PianoRollScreen>
   Widget build(BuildContext context) {
     final barCount = (_clipLengthBeats / PianoRollMetrics.beatsPerBar).ceil();
 
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      backgroundColor: PianoRollTheme.background,
-      appBar: AppBar(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (!didPop) await _closeEditor();
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
         backgroundColor: PianoRollTheme.background,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          '${widget.trackName} · $barCount bars',
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-        ),
-        actions: [
-          TextButton.icon(
-            style: TextButton.styleFrom(foregroundColor: Colors.white70),
-            icon: const Icon(Icons.grid_4x4, size: 18),
-            label: Text(_gridDockLabel),
-            onPressed: _openGridSheet,
+        appBar: AppBar(
+          backgroundColor: PianoRollTheme.background,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _closeEditor,
           ),
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Center(
-              child: EditorViewRangeDropdown(
-                value: _viewRangeBars,
-                onChanged: (bars) => setState(() => _viewRangeBars = bars),
-              ),
+          title: Text(
+            '${widget.trackName} · $barCount bars',
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          ),
+          actions: [
+            TextButton.icon(
+              style: TextButton.styleFrom(foregroundColor: Colors.white70),
+              icon: const Icon(Icons.grid_4x4, size: 18),
+              label: Text(_gridDockLabel),
+              onPressed: _openGridSheet,
             ),
-          ),
-        ],
-      ),
-      body: MediaQuery.removePadding(
-        context: context,
-        removeBottom: true,
-        child: Column(
-          children: [
-            Expanded(
-              child: ListenableBuilder(
-                listenable: _previewTransport,
-                builder: (context, _) => PianoRollViewport(
-                  timelineScrollController: _timelineScrollController,
-                  notes: _notes,
-                  clipLengthBeats: _clipLengthBeats,
-                  virtualLengthBeats: _virtualLengthBeats,
-                  minPitch: PianoRollMetrics.gridMinPitch,
-                  maxPitch: PianoRollMetrics.gridMaxPitch,
-                  drumAnchorPitch: widget.drumAnchorPitch,
-                  gridSettings: _grid,
-                  tool: _tool,
-                  selectedIndex: _selectedIndex,
-                  onNotesChanged: _onNotesChanged,
-                  onSelectionChanged: (index) =>
-                      setState(() => _selectedIndex = index),
-                  onEditStarted: _onEditStarted,
-                  onEditFinished: _onEditFinished,
-                  onClipLengthChanged: (length) {
-                    setState(() => _clipLengthBeats = length);
-                    _previewTransport.maxClipBeat = length;
-                  },
-                  onClipLengthCommit: _persistClipLength,
-                  viewRangeBars: _viewRangeBars,
-                  virtualPlayheadBeat: _previewTransport.clipLocalBeat,
-                  onVirtualPlayheadSeek: _previewTransport.seekClipLocal,
-                  previewPlaying: _previewTransport.isPlaying,
-                  onPreviewPlayRequested: _startPreviewPlay,
-                  onPreviewStopRequested: _stopPreviewPlay,
-                  onNotePreview: (note, {hold = false}) {
-                    unawaited(_noteAudition.preview(note, hold: hold));
-                  },
-                  onNotePreviewEnd: () {
-                    unawaited(_noteAudition.release());
-                  },
-                  onPitchPreview: (pitch) {
-                    unawaited(
-                      _noteAudition.preview(
-                        MidiNoteSnapshot(
-                          pitch: pitch,
-                          startBeat: 0,
-                          durationBeats: 0.25,
-                          velocity: 100,
-                        ),
-                      ),
-                    );
-                  },
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Center(
+                child: EditorViewRangeDropdown(
+                  value: _viewRangeBars,
+                  onChanged: (bars) => setState(() => _viewRangeBars = bars),
                 ),
               ),
             ),
-            PianoRollToolDock(
-              tool: _tool,
-              canUndo: _undoStack.isNotEmpty,
-              canRedo: _redoStack.isNotEmpty,
-              previewPlaying: _previewTransport.isPlaying,
-              onPreviewPlayStop: _togglePreviewPlay,
-              onToolChanged: (tool) => setState(() => _tool = tool),
-              onEditTap: _openEditSheet,
-              onUndo: _undo,
-              onRedo: _redo,
-            ),
-            PlayDeck(
-              bridge: widget.bridge,
-              initialSurfaceMode: PlaySurfaceMode.keys,
-              initialOctaveOffset: _initialOctaveOffset,
-              padPitchBase: widget.drumAnchorPitch,
-            ),
           ],
+        ),
+        body: MediaQuery.removePadding(
+          context: context,
+          removeBottom: true,
+          child: Column(
+            children: [
+              Expanded(
+                child: ListenableBuilder(
+                  listenable: _previewTransport,
+                  builder: (context, _) => PianoRollViewport(
+                    timelineScrollController: _timelineScrollController,
+                    notes: _notes,
+                    clipLengthBeats: _clipLengthBeats,
+                    virtualLengthBeats: _virtualLengthBeats,
+                    minPitch: PianoRollMetrics.gridMinPitch,
+                    maxPitch: PianoRollMetrics.gridMaxPitch,
+                    drumAnchorPitch: widget.drumAnchorPitch,
+                    gridSettings: _grid,
+                    scaleSettings: _scale,
+                    tool: _tool,
+                    selectedIndex: _selectedIndex,
+                    onNotesChanged: _onNotesChanged,
+                    onSelectionChanged: (index) =>
+                        setState(() => _selectedIndex = index),
+                    onEditStarted: _onEditStarted,
+                    onEditFinished: _onEditFinished,
+                    onClipLengthChanged: (length) {
+                      setState(() => _clipLengthBeats = length);
+                      _previewTransport.maxClipBeat = length;
+                    },
+                    onClipLengthCommit: _persistClipLength,
+                    viewRangeBars: _viewRangeBars,
+                    virtualPlayheadBeat: _previewTransport.clipLocalBeat,
+                    onVirtualPlayheadSeek: _previewTransport.seekClipLocal,
+                    previewPlaying: _previewTransport.isPlaying,
+                    onPreviewPlayRequested: _startPreviewPlay,
+                    onPreviewStopRequested: _stopPreviewPlay,
+                    onNotePreview: (note, {hold = false}) {
+                      unawaited(_noteAudition.preview(note, hold: hold));
+                    },
+                    onNotePreviewEnd: () {
+                      unawaited(_noteAudition.release());
+                    },
+                    onPitchPreview: (pitch) {
+                      unawaited(
+                        _noteAudition.preview(
+                          MidiNoteSnapshot(
+                            pitch: pitch,
+                            startBeat: 0,
+                            durationBeats: 0.25,
+                            velocity: 100,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              PianoRollToolDock(
+                tool: _tool,
+                canUndo: _undoStack.isNotEmpty,
+                canRedo: _redoStack.isNotEmpty,
+                previewPlaying: _previewTransport.isPlaying,
+                onPreviewPlayStop: _togglePreviewPlay,
+                onToolChanged: (tool) => setState(() => _tool = tool),
+                onEditTap: _openEditSheet,
+                onUndo: _undo,
+                onRedo: _redo,
+              ),
+              PlayDeck(
+                bridge: widget.bridge,
+                initialSurfaceMode: PlaySurfaceMode.keys,
+                initialOctaveOffset: _initialOctaveOffset,
+                padPitchBase: widget.drumAnchorPitch,
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -64,6 +64,24 @@ bool ClipRepository::setMidiClipNotes(const std::string& clipId,
     return true;
 }
 
+bool ClipRepository::setMidiClipEditorScale(const std::string& clipId,
+                                            int root,
+                                            const std::string& scaleId,
+                                            bool highlight,
+                                            bool snap,
+                                            const std::string& chordQuality) {
+    MidiClip* clip = findMidiClip(clipId);
+    if (clip == nullptr) {
+        return false;
+    }
+    clip->editorScaleRoot = ((root % 12) + 12) % 12;
+    clip->editorScaleId = scaleId.empty() ? "major" : scaleId;
+    clip->editorScaleHighlight = highlight;
+    clip->editorScaleSnap = snap;
+    clip->editorChordQuality = chordQuality.empty() ? "off" : chordQuality;
+    return true;
+}
+
 std::string ClipRepository::createSampleClip(const std::string& trackId,
                                              const std::string& sampleId,
                                              double startBeat,

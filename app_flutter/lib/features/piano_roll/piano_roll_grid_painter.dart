@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'piano_roll_metrics.dart';
+import 'piano_roll_note_ops.dart';
+import 'piano_roll_scale.dart';
 import 'piano_roll_theme.dart';
 
 class PianoRollGridPainter extends CustomPainter {
@@ -11,6 +13,7 @@ class PianoRollGridPainter extends CustomPainter {
     required this.maxPitch,
     required this.pixelsPerBeat,
     required this.rowHeight,
+    required this.scaleSettings,
   });
 
   final double virtualLengthBeats;
@@ -19,11 +22,14 @@ class PianoRollGridPainter extends CustomPainter {
   final int maxPitch;
   final double pixelsPerBeat;
   final double rowHeight;
+  final PianoRollScaleSettings scaleSettings;
 
   @override
   void paint(Canvas canvas, Size size) {
     _paintCanvasBackground(canvas, size);
     _paintClipRegions(canvas, size);
+    _paintKeyRowGuides(canvas, size);
+    _paintScaleRows(canvas, size);
     _paintVerticalGrid(canvas, size);
     _paintClipBoundaries(canvas, size);
   }
@@ -67,6 +73,51 @@ class PianoRollGridPainter extends CustomPainter {
     }
   }
 
+  void _paintKeyRowGuides(Canvas canvas, Size size) {
+    for (var pitch = minPitch; pitch <= maxPitch; pitch++) {
+      final y = (maxPitch - pitch) * rowHeight;
+      final isBlack = PianoRollNoteOps.isBlackKey(pitch);
+      canvas.drawRect(
+        Rect.fromLTWH(0, y, size.width, rowHeight),
+        Paint()
+          ..color = (isBlack
+                  ? PianoRollTheme.blackKeyRow
+                  : PianoRollTheme.whiteKeyRow)
+              .withValues(alpha: isBlack ? 0.14 : 0.05),
+      );
+      canvas.drawLine(
+        Offset(0, y + rowHeight),
+        Offset(size.width, y + rowHeight),
+        Paint()
+          ..color =
+              (isBlack ? Colors.black : Colors.white).withValues(alpha: 0.05)
+          ..strokeWidth = 0.5,
+      );
+    }
+  }
+
+  void _paintScaleRows(Canvas canvas, Size size) {
+    if (!scaleSettings.highlight) return;
+    final scalePaint = Paint()
+      ..color = PianoRollTheme.accent.withValues(alpha: 0.08);
+    final rootPaint = Paint()
+      ..color = PianoRollTheme.accent.withValues(alpha: 0.13);
+    final rootEdge = Paint()
+      ..color = PianoRollTheme.accent.withValues(alpha: 0.72);
+    for (var pitch = minPitch; pitch <= maxPitch; pitch++) {
+      if (!scaleSettings.isPitchInScale(pitch)) continue;
+      final y = (maxPitch - pitch) * rowHeight;
+      final isRoot = pitch % 12 == scaleSettings.rootPitchClass % 12;
+      canvas.drawRect(
+        Rect.fromLTWH(0, y, size.width, rowHeight),
+        isRoot ? rootPaint : scalePaint,
+      );
+      if (isRoot) {
+        canvas.drawRect(Rect.fromLTWH(0, y, 3, rowHeight), rootEdge);
+      }
+    }
+  }
+
   void _paintClipBoundaries(Canvas canvas, Size size) {
     final boundary = Paint()
       ..color = PianoRollTheme.clipBoundary.withValues(alpha: 0.7)
@@ -83,6 +134,7 @@ class PianoRollGridPainter extends CustomPainter {
         oldDelegate.minPitch != minPitch ||
         oldDelegate.maxPitch != maxPitch ||
         oldDelegate.pixelsPerBeat != pixelsPerBeat ||
-        oldDelegate.rowHeight != rowHeight;
+        oldDelegate.rowHeight != rowHeight ||
+        oldDelegate.scaleSettings != scaleSettings;
   }
 }

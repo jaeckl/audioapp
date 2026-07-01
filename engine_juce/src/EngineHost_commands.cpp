@@ -501,6 +501,16 @@ bool EngineHost::setMidiClipNotes(const std::string& clipId, const std::vector<M
     return project_->setMidiClipNotes(clipId, notes);
 }
 
+bool EngineHost::setMidiClipEditorScale(const std::string& clipId,
+                                        int root,
+                                        const std::string& scaleId,
+                                        bool highlight,
+                                        bool snap,
+                                        const std::string& chordQuality) {
+    return project_->setMidiClipEditorScale(
+        clipId, root, scaleId, highlight, snap, chordQuality);
+}
+
 std::string EngineHost::createSampleClip(const std::string& trackId,
                                          const std::string& sampleId,
                                          double startBeat,
@@ -1207,6 +1217,19 @@ void EngineHost::registerAllCommands() {
             return commands::errorResult("clip_not_found");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
         return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("setMidiClipEditorScale", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        const int root = static_cast<int>(static_cast<double>(ctx.args["rootPitchClass"]));
+        const auto scaleId = ctx.args["scaleId"].toString().toStdString();
+        const bool highlight = static_cast<bool>(ctx.args["highlight"]);
+        const bool snap = static_cast<bool>(ctx.args["snapToScale"]);
+        const auto chordQuality = ctx.args["chordQuality"].toString().toStdString();
+        if (!ctx.engine.setMidiClipEditorScale(
+                clipId, root, scaleId, highlight, snap, chordQuality))
+            return commands::errorResult("clip_not_found");
+        return commands::okResult();
     });
 
     reg.registerCommand("createSampleClip", [](const commands::CommandContext& ctx) -> commands::CommandResult {

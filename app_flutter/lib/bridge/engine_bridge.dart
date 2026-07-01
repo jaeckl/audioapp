@@ -253,6 +253,24 @@ class EngineBridge {
     });
   }
 
+  Future<void> setMidiClipEditorScale({
+    required String clipId,
+    required int rootPitchClass,
+    required String scaleId,
+    required bool highlight,
+    required bool snapToScale,
+    required String chordQuality,
+  }) async {
+    await _invokeOk('setMidiClipEditorScale', {
+      'clipId': clipId,
+      'rootPitchClass': rootPitchClass,
+      'scaleId': scaleId,
+      'highlight': highlight,
+      'snapToScale': snapToScale,
+      'chordQuality': chordQuality,
+    });
+  }
+
   Future<ProjectSnapshot> createAutomationClip({
     required String trackId,
     double startBeat = 0,
@@ -680,6 +698,12 @@ class EngineBridge {
 
   Future<ProjectSnapshot> loadRecentProject(String uri) =>
       _invokeForSnapshot('loadRecentProject', {'uri': uri});
+
+  /// Loads a bundled example project from its raw `project.json` contents.
+  /// Unlike [loadRecentProject], this never touches the OS document picker
+  /// or the native "recent projects" store.
+  Future<ProjectSnapshot> loadExampleProject(String projectJson) =>
+      _invokeForSnapshot('loadExampleProject', {'projectJson': projectJson});
 
   Future<ProjectSnapshot> _invokeForSnapshot(
     String method, [

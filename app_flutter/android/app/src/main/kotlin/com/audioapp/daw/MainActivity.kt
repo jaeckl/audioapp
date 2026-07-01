@@ -204,6 +204,26 @@ class MainActivity : FlutterFragmentActivity() {
         }
     }
 
+    /// Loads a bundled example project shipped as a Flutter asset. Unlike
+    /// [loadArchive], this has no document URI: it never touches SAF or the
+    /// native "recent projects" store, since it isn't a user file.
+    private fun loadExampleProject(projectJson: String, result: MethodChannel.Result) {
+        try {
+            val response = nativeLoadProjectFileJson(projectJson)
+            val map = jsonToMap(response).toMutableMap()
+            if (map["ok"] == true) {
+                map["cancelled"] = false
+                result.success(map)
+            } else {
+                val error = map["error"]?.toString() ?: "load_failed"
+                result.error(error, "Failed to load example project", null)
+            }
+        } catch (e: Exception) {
+            Log.e(logTag, "Load example project failed", e)
+            result.error("engine_error", e.message, null)
+        }
+    }
+
     private fun projectDisplayName(documentUri: Uri): String =
         contentResolver.query(documentUri, null, null, null, null)?.use { cursor ->
             val index = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
@@ -304,6 +324,14 @@ class MainActivity : FlutterFragmentActivity() {
                                 result.error("invalid_uri", "Recent project URI is missing", null)
                             } else {
                                 loadArchive(Uri.parse(rawUri), result)
+                            }
+                        }
+                        "loadExampleProject" -> {
+                            val projectJson = (call.arguments as? Map<*, *>)?.get("projectJson") as? String
+                            if (projectJson.isNullOrBlank()) {
+                                result.error("invalid_project_json", "Example project JSON is missing", null)
+                            } else {
+                                loadExampleProject(projectJson, result)
                             }
                         }
                         "importSample" -> launchImportSamplePicker(result)

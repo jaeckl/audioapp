@@ -62,6 +62,12 @@ public:
                                double startBeat,
                                double lengthBeats);
     bool setMidiClipNotes(const std::string& clipId, const std::vector<MidiNoteState>& notes);
+    bool setMidiClipEditorScale(const std::string& clipId,
+                                int root,
+                                const std::string& scaleId,
+                                bool highlight,
+                                bool snap,
+                                const std::string& chordQuality);
     std::string createSampleClip(const std::string& trackId,
                                  const std::string& sampleId,
                                  double startBeat,

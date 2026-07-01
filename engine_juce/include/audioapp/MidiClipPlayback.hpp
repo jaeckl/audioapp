@@ -18,6 +18,11 @@ struct MidiClipState {
     double lengthBeats = 4.0;
     double naturalLengthBeats = 4.0;
     bool loopContent = false;
+    int editorScaleRoot = 0;
+    std::string editorScaleId = "major";
+    bool editorScaleHighlight = false;
+    bool editorScaleSnap = false;
+    std::string editorChordQuality = "off";
     std::vector<MidiNoteState> notes;
 };
 

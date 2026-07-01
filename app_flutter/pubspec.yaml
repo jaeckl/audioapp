@@ -21,3 +21,4 @@ flutter:
   assets:
     - assets/content_library/manifest.json
     - assets/wavetables/
+    - assets/example_projects/

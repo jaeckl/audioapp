@@ -29,6 +29,7 @@ import '../features/play/live_instrument_panel.dart';
 import '../features/piano_roll/piano_roll_screen.dart';
 import '../features/sample_library/sample_library_screen.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/welcome/example_projects.dart';
 import '../features/welcome/welcome_hub.dart';
 import '../features/transport/transport_bar.dart';
 
@@ -71,8 +72,6 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   double? _pendingWtPositionValue;
   bool _wtPositionSendInFlight = false;
   bool _bootstrapReady = false;
-  bool _welcomeVisible = true;
-  bool _projectActionBusy = false;
   List<RecentProjectEntry> _recentProjects = const [];
   SnapGridResolution _snapGridResolution = SnapGridResolution.adaptive;
   bool _snapGridTriplet = false;
@@ -143,13 +142,10 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         await _createNewProject();
       }
       if (!mounted) return;
-      setState(() {
-        _bootstrapReady = true;
-        if (widget.showWelcomeOnLaunch) {
-          _tab = _ShellTab.settings;
-          _welcomeVisible = true;
-        }
-      });
+      setState(() => _bootstrapReady = true);
+      if (widget.showWelcomeOnLaunch) {
+        await _presentWelcomeHub();
+      }
     } on MissingPluginException {
       if (!mounted) return;
       setState(() => _projectError = 'Engine: native bridge unavailable');
@@ -166,6 +162,29 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     } catch (_) {}
   }
 
+  /// Pushes the welcome/project-picker as a stacked full-screen route on top
+  /// of the shell. It is not reachable from the bottom nav; it pops itself
+  /// once a project becomes active (see [WelcomeHub]).
+  Future<void> _presentWelcomeHub() async {
+    if (!mounted) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) => WelcomeHub(
+          recentProjects: _recentProjects,
+          hasActiveProject: () => _snapshot != null,
+          onNewProject: _requestNewProject,
+          onContinue: (_snapshot != null || _recentProjects.isNotEmpty)
+              ? _continueProject
+              : null,
+          onOpenProject: _loadProject,
+          onOpenRecent: _loadRecentProject,
+          onOpenExample: _loadExampleProject,
+        ),
+      ),
+    );
+  }
+
   Future<void> _activateProject(ProjectSnapshot snapshot) async {
     await widget.bridge.enterPlayMode();
     await _refreshSnapshot(snapshot);
@@ -178,25 +197,19 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     );
     if (!mounted) return;
     setState(() {
-      _welcomeVisible = false;
-      _projectActionBusy = false;
       _tab = _ShellTab.devices;
       _projectError = null;
     });
   }
 
   Future<void> _createNewProject() async {
-    if (mounted) setState(() => _projectActionBusy = true);
     try {
       await widget.bridge.createProject();
       final snapshot = await widget.bridge.addTrack(name: 'Track 1');
       await _activateProject(snapshot);
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _projectActionBusy = false;
-        _projectError = e.toString();
-      });
+      setState(() => _projectError = e.toString());
     }
   }
 
@@ -229,10 +242,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
   Future<void> _continueProject() async {
     if (_snapshot != null) {
-      setState(() {
-        _welcomeVisible = false;
-        _tab = _ShellTab.devices;
-      });
+      setState(() => _tab = _ShellTab.devices);
       return;
     }
     if (_recentProjects.isNotEmpty) {
@@ -241,7 +251,6 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   Future<void> _loadRecentProject(RecentProjectEntry project) async {
-    setState(() => _projectActionBusy = true);
     try {
       final snapshot = await widget.bridge.loadRecentProject(project.uri);
       await _activateProject(snapshot);
@@ -249,10 +258,19 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       if (mounted) setState(() => _saveStatus = 'Loaded ${project.name}');
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _projectActionBusy = false;
-        _projectError = e.toString();
-      });
+      setState(() => _projectError = e.toString());
+    }
+  }
+
+  Future<void> _loadExampleProject(ExampleProject example) async {
+    try {
+      final projectJson = await rootBundle.loadString(example.assetPath);
+      final snapshot = await widget.bridge.loadExampleProject(projectJson);
+      await _activateProject(snapshot);
+      if (mounted) setState(() => _saveStatus = 'Loaded ${example.name}');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
     }
   }
 
@@ -1390,12 +1408,10 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   Future<void> _loadProject() async {
-    if (mounted) setState(() => _projectActionBusy = true);
     try {
       final snapshot = await widget.bridge.loadProject();
       if (!mounted) return;
       if (snapshot == null) {
-        setState(() => _projectActionBusy = false);
         return;
       }
       await _activateProject(snapshot);
@@ -1406,16 +1422,10 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       await _refreshRecentProjects();
     } on PlatformException catch (e) {
       if (!mounted) return;
-      setState(() {
-        _projectActionBusy = false;
-        _projectError = '${e.code}: ${e.message ?? "load failed"}';
-      });
+      setState(() => _projectError = '${e.code}: ${e.message ?? "load failed"}');
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _projectActionBusy = false;
-        _projectError = e.toString();
-      });
+      setState(() => _projectError = e.toString());
     }
   }
 
@@ -1797,14 +1807,6 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   Future<void> _onTabSelected(_ShellTab tab) async {
-    if (tab == _ShellTab.settings) {
-      if (_libraryOpen) _closeLibrary();
-      setState(() {
-        _tab = tab;
-        _welcomeVisible = true;
-      });
-      return;
-    }
     if (_snapshot == null) return;
     if (tab == _ShellTab.library) {
       if (_libraryOpen) {
@@ -1825,10 +1827,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         await widget.bridge.allNotesOff();
       } catch (_) {}
     }
-    setState(() {
-      _tab = tab;
-      _welcomeVisible = false;
-    });
+    setState(() => _tab = tab);
     await _syncLiveInputForTab(tab);
   }
 
@@ -1952,25 +1951,6 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     if (!_bootstrapReady) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (_welcomeVisible) {
-      return WelcomeHub(
-        recentProjects: _recentProjects,
-        hasActiveProject: snapshot != null,
-        busy: _projectActionBusy,
-        onNewProject: _requestNewProject,
-        onContinue: snapshot != null || _recentProjects.isNotEmpty
-            ? _continueProject
-            : null,
-        onOpenProject: _loadProject,
-        onOpenRecent: _loadRecentProject,
-        onSaveProject: snapshot == null ? null : _saveProject,
-        onExportMix: snapshot == null ? null : _exportMix,
-        loopEnabled: snapshot?.loopEnabled ?? true,
-        onLoopToggled: snapshot == null ? null : _setLoopEnabled,
-        statusMessage: _saveStatus,
-        errorMessage: _projectError,
-      );
-    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -2028,9 +2008,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     final snapshot = _snapshot;
     final navGeometry = DawShellNavGeometry.of(context);
     final nav = DawShellNav(
-      selectedIndex: _welcomeVisible
-          ? _ShellTab.settings.index
-          : (_libraryOpen ? _ShellTab.library.index : _tab.index),
+      selectedIndex: _libraryOpen ? _ShellTab.library.index : _tab.index,
       geometry: navGeometry,
       onDestinationSelected: (index) => _onTabSelected(_ShellTab.values[index]),
     );

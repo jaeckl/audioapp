@@ -1,0 +1,842 @@
+{
+  "project_format_version": 1,
+  "name": "Neon Break Pressure",
+  "bpm": 174,
+  "selectedTrackId": "track-mid-bass",
+  "loopEnabled": true,
+  "loopRegionStartBeat": 0.0,
+  "loopRegionEndBeat": 144.0,
+  "master": {"id": "master", "name": "Master", "gain": 0.84},
+  "samples": [],
+  "tracks": [
+    {
+      "id": "track-kick",
+      "name": "Kick - tight DnB anchor",
+      "devices": [
+        {
+          "id": "dev-kick",
+          "type": "kick_generator",
+          "parameters": {
+            "kickModel": 0.25,
+            "kickPitch": 0.46,
+            "kickPunch": 0.78,
+            "kickDecay": 0.34,
+            "kickClick": 0.52,
+            "kickTone": 0.56,
+            "kickVelocity": 1.0,
+            "kickKeyTrack": 0.0,
+            "gain": 0.96,
+            "bypass": 0.0
+          }
+        },
+        {"id": "dev-kick-gain", "type": "track_gain", "parameters": {"gain": 0.92, "bypass": 0.0}}
+      ],
+      "midiClips": [
+        {
+          "id": "kick-build-a",
+          "startBeat": 16.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 36, "startBeat": 0.0, "durationBeats": 0.1, "velocity": 104.0},
+            {"pitch": 36, "startBeat": 2.5, "durationBeats": 0.1, "velocity": 92.0},
+            {"pitch": 36, "startBeat": 3.5, "durationBeats": 0.1, "velocity": 96.0}
+          ]
+        },
+        {
+          "id": "kick-drop-a",
+          "startBeat": 32.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 36, "startBeat": 0.0, "durationBeats": 0.1, "velocity": 118.0},
+            {"pitch": 36, "startBeat": 1.5, "durationBeats": 0.1, "velocity": 94.0},
+            {"pitch": 36, "startBeat": 2.5, "durationBeats": 0.1, "velocity": 108.0},
+            {"pitch": 36, "startBeat": 3.5, "durationBeats": 0.1, "velocity": 100.0}
+          ]
+        },
+        {
+          "id": "kick-drop-b",
+          "startBeat": 48.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 36, "startBeat": 0.0, "durationBeats": 0.1, "velocity": 118.0},
+            {"pitch": 36, "startBeat": 1.75, "durationBeats": 0.1, "velocity": 94.0},
+            {"pitch": 36, "startBeat": 2.5, "durationBeats": 0.1, "velocity": 110.0},
+            {"pitch": 36, "startBeat": 3.25, "durationBeats": 0.1, "velocity": 96.0},
+            {"pitch": 36, "startBeat": 3.75, "durationBeats": 0.1, "velocity": 90.0}
+          ]
+        },
+        {
+          "id": "kick-build-b",
+          "startBeat": 80.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 36, "startBeat": 0.0, "durationBeats": 0.1, "velocity": 108.0},
+            {"pitch": 36, "startBeat": 1.5, "durationBeats": 0.1, "velocity": 88.0},
+            {"pitch": 36, "startBeat": 2.5, "durationBeats": 0.1, "velocity": 96.0},
+            {"pitch": 36, "startBeat": 3.5, "durationBeats": 0.1, "velocity": 102.0}
+          ]
+        },
+        {
+          "id": "kick-drop2-a",
+          "startBeat": 96.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 36, "startBeat": 0.0, "durationBeats": 0.1, "velocity": 120.0},
+            {"pitch": 36, "startBeat": 1.25, "durationBeats": 0.1, "velocity": 92.0},
+            {"pitch": 36, "startBeat": 2.25, "durationBeats": 0.1, "velocity": 108.0},
+            {"pitch": 36, "startBeat": 3.0, "durationBeats": 0.1, "velocity": 95.0},
+            {"pitch": 36, "startBeat": 3.5, "durationBeats": 0.1, "velocity": 102.0}
+          ]
+        },
+        {
+          "id": "kick-drop2-b",
+          "startBeat": 112.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 36, "startBeat": 0.0, "durationBeats": 0.1, "velocity": 120.0},
+            {"pitch": 36, "startBeat": 1.5, "durationBeats": 0.1, "velocity": 96.0},
+            {"pitch": 36, "startBeat": 2.0, "durationBeats": 0.1, "velocity": 104.0},
+            {"pitch": 36, "startBeat": 2.75, "durationBeats": 0.1, "velocity": 100.0},
+            {"pitch": 36, "startBeat": 3.5, "durationBeats": 0.1, "velocity": 100.0}
+          ]
+        },
+        {
+          "id": "kick-outro",
+          "startBeat": 128.0,
+          "lengthBeats": 8.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 36, "startBeat": 0.0, "durationBeats": 0.1, "velocity": 106.0},
+            {"pitch": 36, "startBeat": 2.5, "durationBeats": 0.1, "velocity": 92.0}
+          ]
+        }
+      ],
+      "sampleClips": []
+    },
+    {
+      "id": "track-snare",
+      "name": "Snare + ghosts",
+      "devices": [
+        {
+          "id": "dev-snare",
+          "type": "snare_generator",
+          "parameters": {
+            "snareModel": 0.45,
+            "snareBody": 0.62,
+            "snareRing": 0.18,
+            "snareTune": 0.54,
+            "snareSnares": 0.76,
+            "snareSnap": 0.72,
+            "snareDecay": 0.38,
+            "snareVelocity": 1.0,
+            "gain": 0.92,
+            "bypass": 0.0
+          }
+        },
+        {"id": "dev-snare-gain", "type": "track_gain", "parameters": {"gain": 0.86, "bypass": 0.0}}
+      ],
+      "midiClips": [
+        {
+          "id": "snare-build-a",
+          "startBeat": 16.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 38, "startBeat": 1.0, "durationBeats": 0.1, "velocity": 105.0},
+            {"pitch": 38, "startBeat": 3.0, "durationBeats": 0.1, "velocity": 112.0},
+            {"pitch": 38, "startBeat": 3.75, "durationBeats": 0.1, "velocity": 48.0}
+          ]
+        },
+        {
+          "id": "snare-drop-a",
+          "startBeat": 32.0,
+          "lengthBeats": 32.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 38, "startBeat": 1.0, "durationBeats": 0.1, "velocity": 122.0},
+            {"pitch": 38, "startBeat": 2.75, "durationBeats": 0.1, "velocity": 44.0},
+            {"pitch": 38, "startBeat": 3.0, "durationBeats": 0.1, "velocity": 126.0},
+            {"pitch": 38, "startBeat": 3.75, "durationBeats": 0.1, "velocity": 52.0}
+          ]
+        },
+        {
+          "id": "snare-build-b",
+          "startBeat": 80.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 38, "startBeat": 1.0, "durationBeats": 0.1, "velocity": 112.0},
+            {"pitch": 38, "startBeat": 2.5, "durationBeats": 0.1, "velocity": 55.0},
+            {"pitch": 38, "startBeat": 3.0, "durationBeats": 0.1, "velocity": 116.0},
+            {"pitch": 38, "startBeat": 3.5, "durationBeats": 0.1, "velocity": 62.0},
+            {"pitch": 38, "startBeat": 3.75, "durationBeats": 0.1, "velocity": 70.0}
+          ]
+        },
+        {
+          "id": "snare-drop2",
+          "startBeat": 96.0,
+          "lengthBeats": 32.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 38, "startBeat": 1.0, "durationBeats": 0.1, "velocity": 126.0},
+            {"pitch": 38, "startBeat": 1.875, "durationBeats": 0.1, "velocity": 42.0},
+            {"pitch": 38, "startBeat": 2.75, "durationBeats": 0.1, "velocity": 52.0},
+            {"pitch": 38, "startBeat": 3.0, "durationBeats": 0.1, "velocity": 127.0},
+            {"pitch": 38, "startBeat": 3.625, "durationBeats": 0.1, "velocity": 58.0}
+          ]
+        },
+        {
+          "id": "snare-outro",
+          "startBeat": 128.0,
+          "lengthBeats": 8.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 38, "startBeat": 1.0, "durationBeats": 0.1, "velocity": 112.0},
+            {"pitch": 38, "startBeat": 3.0, "durationBeats": 0.1, "velocity": 114.0}
+          ]
+        }
+      ],
+      "sampleClips": []
+    },
+    {
+      "id": "track-clap",
+      "name": "Wide clap layer",
+      "devices": [
+        {
+          "id": "dev-clap",
+          "type": "clap_generator",
+          "parameters": {
+            "clapBursts": 0.64,
+            "clapSpread": 0.58,
+            "clapTone": 0.6,
+            "clapRoom": 0.28,
+            "clapDecay": 0.36,
+            "clapVelocity": 0.9,
+            "gain": 0.52,
+            "bypass": 0.0
+          }
+        },
+        {"id": "dev-clap-gain", "type": "track_gain", "parameters": {"gain": 0.52, "bypass": 0.0}}
+      ],
+      "midiClips": [
+        {
+          "id": "clap-drop",
+          "startBeat": 32.0,
+          "lengthBeats": 32.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 39, "startBeat": 1.0, "durationBeats": 0.1, "velocity": 88.0},
+            {"pitch": 39, "startBeat": 3.0, "durationBeats": 0.1, "velocity": 92.0}
+          ]
+        },
+        {
+          "id": "clap-drop2",
+          "startBeat": 96.0,
+          "lengthBeats": 32.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 39, "startBeat": 1.0, "durationBeats": 0.1, "velocity": 96.0},
+            {"pitch": 39, "startBeat": 3.0, "durationBeats": 0.1, "velocity": 98.0}
+          ]
+        }
+      ],
+      "sampleClips": []
+    },
+    {
+      "id": "track-hats",
+      "name": "Hats + ride motion",
+      "devices": [
+        {
+          "id": "dev-hat",
+          "type": "cymbal_generator",
+          "parameters": {
+            "cymbalModel": 0.15,
+            "cymbalColor": 0.58,
+            "cymbalDecay": 0.16,
+            "cymbalWidth": 0.28,
+            "cymbalVelocity": 0.5,
+            "gain": 0.24,
+            "bypass": 0.0
+          }
+        },
+        {"id": "dev-hat-gain", "type": "track_gain", "parameters": {"gain": 0.2, "bypass": 0.0}}
+      ],
+      "midiClips": [
+        {
+          "id": "hat-intro",
+          "startBeat": 8.0,
+          "lengthBeats": 8.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 42, "startBeat": 0.5, "durationBeats": 0.05, "velocity": 40.0},
+            {"pitch": 42, "startBeat": 1.5, "durationBeats": 0.05, "velocity": 46.0},
+            {"pitch": 42, "startBeat": 2.5, "durationBeats": 0.05, "velocity": 42.0},
+            {"pitch": 42, "startBeat": 3.5, "durationBeats": 0.05, "velocity": 48.0}
+          ]
+        },
+        {
+          "id": "hat-build",
+          "startBeat": 16.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 2.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 42, "startBeat": 0.0, "durationBeats": 0.05, "velocity": 52.0},
+            {"pitch": 42, "startBeat": 0.5, "durationBeats": 0.05, "velocity": 40.0},
+            {"pitch": 42, "startBeat": 1.0, "durationBeats": 0.05, "velocity": 56.0},
+            {"pitch": 42, "startBeat": 1.5, "durationBeats": 0.05, "velocity": 44.0}
+          ]
+        },
+        {
+          "id": "hat-drop",
+          "startBeat": 32.0,
+          "lengthBeats": 32.0,
+          "naturalLengthBeats": 2.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 42, "startBeat": 0.0, "durationBeats": 0.05, "velocity": 62.0},
+            {"pitch": 42, "startBeat": 0.25, "durationBeats": 0.05, "velocity": 36.0},
+            {"pitch": 42, "startBeat": 0.5, "durationBeats": 0.05, "velocity": 48.0},
+            {"pitch": 42, "startBeat": 0.75, "durationBeats": 0.05, "velocity": 35.0},
+            {"pitch": 42, "startBeat": 1.0, "durationBeats": 0.05, "velocity": 64.0},
+            {"pitch": 42, "startBeat": 1.25, "durationBeats": 0.05, "velocity": 38.0},
+            {"pitch": 42, "startBeat": 1.5, "durationBeats": 0.05, "velocity": 50.0},
+            {"pitch": 42, "startBeat": 1.75, "durationBeats": 0.05, "velocity": 40.0}
+          ]
+        },
+        {
+          "id": "hat-drop2",
+          "startBeat": 96.0,
+          "lengthBeats": 32.0,
+          "naturalLengthBeats": 2.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 42, "startBeat": 0.0, "durationBeats": 0.05, "velocity": 66.0},
+            {"pitch": 42, "startBeat": 0.25, "durationBeats": 0.05, "velocity": 44.0},
+            {"pitch": 42, "startBeat": 0.5, "durationBeats": 0.05, "velocity": 52.0},
+            {"pitch": 42, "startBeat": 0.75, "durationBeats": 0.05, "velocity": 42.0},
+            {"pitch": 42, "startBeat": 1.0, "durationBeats": 0.05, "velocity": 68.0},
+            {"pitch": 42, "startBeat": 1.25, "durationBeats": 0.05, "velocity": 46.0},
+            {"pitch": 42, "startBeat": 1.5, "durationBeats": 0.05, "velocity": 56.0},
+            {"pitch": 42, "startBeat": 1.75, "durationBeats": 0.05, "velocity": 48.0}
+          ]
+        },
+        {
+          "id": "hat-outro",
+          "startBeat": 128.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 4.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 42, "startBeat": 0.0, "durationBeats": 0.05, "velocity": 52.0},
+            {"pitch": 42, "startBeat": 0.5, "durationBeats": 0.05, "velocity": 38.0},
+            {"pitch": 42, "startBeat": 1.0, "durationBeats": 0.05, "velocity": 54.0},
+            {"pitch": 42, "startBeat": 1.5, "durationBeats": 0.05, "velocity": 38.0}
+          ]
+        }
+      ],
+      "sampleClips": []
+    },
+    {
+      "id": "track-crash-fx",
+      "name": "Impacts + transitions",
+      "devices": [
+        {
+          "id": "dev-crash",
+          "type": "crash_generator",
+          "parameters": {
+            "crashModel": 0.35,
+            "crashColor": 0.58,
+            "crashSpread": 0.44,
+            "crashDecay": 0.58,
+            "crashVelocity": 0.52,
+            "gain": 0.24,
+            "bypass": 0.0
+          }
+        },
+        {"id": "dev-crash-gain", "type": "track_gain", "parameters": {"gain": 0.18, "bypass": 0.0}}
+      ],
+      "midiClips": [
+        {
+          "id": "impact-map",
+          "startBeat": 0.0,
+          "lengthBeats": 144.0,
+          "naturalLengthBeats": 144.0,
+          "loopContent": false,
+          "notes": [
+            {"pitch": 49, "startBeat": 0.0, "durationBeats": 2.0, "velocity": 52.0},
+            {"pitch": 49, "startBeat": 16.0, "durationBeats": 2.0, "velocity": 62.0},
+            {"pitch": 49, "startBeat": 31.5, "durationBeats": 0.5, "velocity": 58.0},
+            {"pitch": 49, "startBeat": 32.0, "durationBeats": 4.0, "velocity": 72.0},
+            {"pitch": 49, "startBeat": 48.0, "durationBeats": 2.0, "velocity": 54.0},
+            {"pitch": 49, "startBeat": 64.0, "durationBeats": 4.0, "velocity": 60.0},
+            {"pitch": 49, "startBeat": 80.0, "durationBeats": 2.0, "velocity": 62.0},
+            {"pitch": 49, "startBeat": 95.5, "durationBeats": 0.5, "velocity": 62.0},
+            {"pitch": 49, "startBeat": 96.0, "durationBeats": 4.0, "velocity": 74.0},
+            {"pitch": 49, "startBeat": 112.0, "durationBeats": 2.0, "velocity": 58.0},
+            {"pitch": 49, "startBeat": 128.0, "durationBeats": 6.0, "velocity": 50.0}
+          ]
+        }
+      ],
+      "sampleClips": []
+    },
+    {
+      "id": "track-sub",
+      "name": "Sub - mono F minor",
+      "devices": [
+        {
+          "id": "dev-sub",
+          "type": "bass_synth",
+          "parameters": {
+            "bassOscShape": 0.0,
+            "bassSubMix": 0.92,
+            "bassSubOctave": 1,
+            "bassNoise": 0.0,
+            "attack": 0.01,
+            "sustain": 0.82,
+            "release": 0.12,
+            "bassOctave": 2,
+            "filterCutoff": 0.74,
+            "bassFilterResonance": 0.12,
+            "filterEnvAmount": 0.08,
+            "filterDecay": 0.2,
+            "bassDrive": 0.06,
+            "bassSquash": 0.12,
+            "glideMs": 0.06,
+            "bassVelocitySense": 0.72,
+            "gain": 0.94,
+            "pan": 0.5,
+            "bypass": 0.0
+          }
+        },
+        {"id": "dev-sub-gain", "type": "track_gain", "parameters": {"gain": 0.94, "bypass": 0.0}}
+      ],
+      "midiClips": [
+        {
+          "id": "sub-build",
+          "startBeat": 24.0,
+          "lengthBeats": 8.0,
+          "naturalLengthBeats": 8.0,
+          "loopContent": false,
+          "notes": [
+            {"pitch": 29, "startBeat": 0.0, "durationBeats": 2.0, "velocity": 72.0},
+            {"pitch": 32, "startBeat": 2.0, "durationBeats": 2.0, "velocity": 72.0},
+            {"pitch": 27, "startBeat": 4.0, "durationBeats": 2.0, "velocity": 74.0},
+            {"pitch": 24, "startBeat": 6.0, "durationBeats": 1.5, "velocity": 76.0}
+          ]
+        },
+        {
+          "id": "sub-drop-a",
+          "startBeat": 32.0,
+          "lengthBeats": 32.0,
+          "naturalLengthBeats": 8.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 29, "startBeat": 0.0, "durationBeats": 0.75, "velocity": 104.0},
+            {"pitch": 29, "startBeat": 1.0, "durationBeats": 0.5, "velocity": 88.0},
+            {"pitch": 32, "startBeat": 1.5, "durationBeats": 1.0, "velocity": 98.0},
+            {"pitch": 29, "startBeat": 2.75, "durationBeats": 0.75, "velocity": 94.0},
+            {"pitch": 27, "startBeat": 4.0, "durationBeats": 1.0, "velocity": 100.0},
+            {"pitch": 29, "startBeat": 5.25, "durationBeats": 0.5, "velocity": 86.0},
+            {"pitch": 32, "startBeat": 6.0, "durationBeats": 1.0, "velocity": 96.0},
+            {"pitch": 24, "startBeat": 7.25, "durationBeats": 0.75, "velocity": 98.0}
+          ]
+        },
+        {
+          "id": "sub-break",
+          "startBeat": 72.0,
+          "lengthBeats": 8.0,
+          "naturalLengthBeats": 8.0,
+          "loopContent": false,
+          "notes": [
+            {"pitch": 29, "startBeat": 0.0, "durationBeats": 4.0, "velocity": 62.0},
+            {"pitch": 27, "startBeat": 4.0, "durationBeats": 4.0, "velocity": 58.0}
+          ]
+        },
+        {
+          "id": "sub-drop-b",
+          "startBeat": 96.0,
+          "lengthBeats": 32.0,
+          "naturalLengthBeats": 8.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 29, "startBeat": 0.0, "durationBeats": 0.5, "velocity": 108.0},
+            {"pitch": 36, "startBeat": 0.75, "durationBeats": 0.25, "velocity": 84.0},
+            {"pitch": 32, "startBeat": 1.25, "durationBeats": 0.75, "velocity": 100.0},
+            {"pitch": 29, "startBeat": 2.25, "durationBeats": 0.75, "velocity": 98.0},
+            {"pitch": 27, "startBeat": 3.25, "durationBeats": 0.5, "velocity": 90.0},
+            {"pitch": 29, "startBeat": 4.0, "durationBeats": 0.75, "velocity": 106.0},
+            {"pitch": 32, "startBeat": 5.0, "durationBeats": 0.5, "velocity": 92.0},
+            {"pitch": 24, "startBeat": 6.0, "durationBeats": 1.5, "velocity": 100.0},
+            {"pitch": 27, "startBeat": 7.5, "durationBeats": 0.5, "velocity": 88.0}
+          ]
+        }
+      ],
+      "sampleClips": []
+    },
+    {
+      "id": "track-mid-bass",
+      "name": "Mid bass - talking reese",
+      "devices": [
+        {
+          "id": "dev-mid-bass",
+          "type": "bass_synth",
+          "parameters": {
+            "bassOscShape": 0.68,
+            "bassSubMix": 0.28,
+            "bassSubOctave": 0,
+            "bassNoise": 0.08,
+            "attack": 0.02,
+            "sustain": 0.55,
+            "release": 0.22,
+            "bassOctave": 2,
+            "filterCutoff": 0.52,
+            "bassFilterResonance": 0.36,
+            "filterEnvAmount": 0.58,
+            "filterDecay": 0.28,
+            "bassDrive": 0.52,
+            "bassSquash": 0.42,
+            "glideMs": 0.12,
+            "bassVelocitySense": 0.85,
+            "gain": 0.84,
+            "pan": 0.5,
+            "bypass": 0.0
+          }
+        },
+        {"id": "dev-mid-bass-gain", "type": "track_gain", "parameters": {"gain": 0.84, "bypass": 0.0}}
+      ],
+      "midiClips": [
+        {
+          "id": "midbass-drop-a",
+          "startBeat": 32.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 8.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 41, "startBeat": 0.0, "durationBeats": 0.45, "velocity": 100.0},
+            {"pitch": 41, "startBeat": 0.75, "durationBeats": 0.25, "velocity": 82.0},
+            {"pitch": 44, "startBeat": 1.5, "durationBeats": 0.5, "velocity": 96.0},
+            {"pitch": 41, "startBeat": 2.75, "durationBeats": 0.5, "velocity": 92.0},
+            {"pitch": 39, "startBeat": 4.0, "durationBeats": 0.75, "velocity": 98.0},
+            {"pitch": 41, "startBeat": 5.25, "durationBeats": 0.25, "velocity": 84.0},
+            {"pitch": 44, "startBeat": 6.0, "durationBeats": 0.5, "velocity": 94.0},
+            {"pitch": 36, "startBeat": 7.25, "durationBeats": 0.5, "velocity": 92.0}
+          ]
+        },
+        {
+          "id": "midbass-drop-a-response",
+          "startBeat": 48.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 8.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 41, "startBeat": 0.0, "durationBeats": 0.35, "velocity": 104.0},
+            {"pitch": 48, "startBeat": 0.5, "durationBeats": 0.25, "velocity": 78.0},
+            {"pitch": 44, "startBeat": 1.25, "durationBeats": 0.55, "velocity": 96.0},
+            {"pitch": 41, "startBeat": 2.0, "durationBeats": 0.35, "velocity": 84.0},
+            {"pitch": 39, "startBeat": 3.25, "durationBeats": 0.6, "velocity": 96.0},
+            {"pitch": 41, "startBeat": 4.0, "durationBeats": 0.35, "velocity": 100.0},
+            {"pitch": 44, "startBeat": 5.0, "durationBeats": 0.35, "velocity": 92.0},
+            {"pitch": 48, "startBeat": 5.75, "durationBeats": 0.25, "velocity": 86.0},
+            {"pitch": 36, "startBeat": 6.75, "durationBeats": 0.8, "velocity": 96.0}
+          ]
+        },
+        {
+          "id": "midbass-drop2",
+          "startBeat": 96.0,
+          "lengthBeats": 32.0,
+          "naturalLengthBeats": 8.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 41, "startBeat": 0.0, "durationBeats": 0.3, "velocity": 108.0},
+            {"pitch": 48, "startBeat": 0.5, "durationBeats": 0.25, "velocity": 90.0},
+            {"pitch": 44, "startBeat": 1.0, "durationBeats": 0.45, "velocity": 102.0},
+            {"pitch": 51, "startBeat": 1.75, "durationBeats": 0.2, "velocity": 84.0},
+            {"pitch": 41, "startBeat": 2.25, "durationBeats": 0.5, "velocity": 98.0},
+            {"pitch": 39, "startBeat": 3.25, "durationBeats": 0.45, "velocity": 96.0},
+            {"pitch": 41, "startBeat": 4.0, "durationBeats": 0.3, "velocity": 106.0},
+            {"pitch": 44, "startBeat": 4.75, "durationBeats": 0.35, "velocity": 92.0},
+            {"pitch": 48, "startBeat": 5.25, "durationBeats": 0.25, "velocity": 88.0},
+            {"pitch": 36, "startBeat": 6.0, "durationBeats": 0.75, "velocity": 100.0},
+            {"pitch": 39, "startBeat": 7.25, "durationBeats": 0.35, "velocity": 90.0}
+          ]
+        }
+      ],
+      "sampleClips": []
+    },
+    {
+      "id": "track-hook",
+      "name": "Digital hook",
+      "devices": [
+        {
+          "id": "dev-hook",
+          "type": "wavetable_synth",
+          "parameters": {
+            "wavetableId": "digital_64",
+            "attack": 0.02,
+            "decay": 0.18,
+            "sustain": 0.38,
+            "release": 0.22,
+            "filterCutoff": 0.62,
+            "filterResonance": 0.22,
+            "filterEnvAmount": 0.34,
+            "filterAttack": 0.04,
+            "filterDecay": 0.24,
+            "filterSustain": 0.2,
+            "filterRelease": 0.24,
+            "filterMode": 0,
+            "wtPosition": 0.34,
+            "wtOctave": 0.62,
+            "wtSemitone": 0.5,
+            "wtFine": 0.5,
+            "wtUnison": 0.3,
+            "wtDetune": 0.28,
+            "gain": 0.64,
+            "pan": 0.5,
+            "bypass": 0.0
+          }
+        },
+        {"id": "dev-hook-gain", "type": "track_gain", "parameters": {"gain": 0.64, "bypass": 0.0}}
+      ],
+      "midiClips": [
+        {
+          "id": "hook-intro",
+          "startBeat": 0.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 8.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 65, "startBeat": 0.0, "durationBeats": 0.5, "velocity": 60.0},
+            {"pitch": 68, "startBeat": 1.0, "durationBeats": 0.5, "velocity": 58.0},
+            {"pitch": 63, "startBeat": 2.0, "durationBeats": 0.5, "velocity": 56.0},
+            {"pitch": 60, "startBeat": 3.5, "durationBeats": 1.0, "velocity": 55.0},
+            {"pitch": 65, "startBeat": 5.0, "durationBeats": 0.5, "velocity": 58.0},
+            {"pitch": 68, "startBeat": 5.75, "durationBeats": 0.25, "velocity": 50.0},
+            {"pitch": 72, "startBeat": 6.5, "durationBeats": 0.75, "velocity": 62.0}
+          ]
+        },
+        {
+          "id": "hook-drop-a",
+          "startBeat": 40.0,
+          "lengthBeats": 8.0,
+          "naturalLengthBeats": 8.0,
+          "loopContent": false,
+          "notes": [
+            {"pitch": 77, "startBeat": 0.0, "durationBeats": 0.25, "velocity": 84.0},
+            {"pitch": 75, "startBeat": 0.5, "durationBeats": 0.25, "velocity": 78.0},
+            {"pitch": 72, "startBeat": 1.0, "durationBeats": 0.5, "velocity": 82.0},
+            {"pitch": 68, "startBeat": 2.0, "durationBeats": 0.5, "velocity": 76.0},
+            {"pitch": 65, "startBeat": 3.0, "durationBeats": 1.0, "velocity": 74.0},
+            {"pitch": 77, "startBeat": 4.5, "durationBeats": 0.25, "velocity": 84.0},
+            {"pitch": 80, "startBeat": 5.0, "durationBeats": 0.25, "velocity": 80.0},
+            {"pitch": 75, "startBeat": 6.0, "durationBeats": 0.75, "velocity": 78.0}
+          ]
+        },
+        {
+          "id": "hook-break",
+          "startBeat": 64.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 8.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 65, "startBeat": 0.0, "durationBeats": 1.5, "velocity": 48.0},
+            {"pitch": 68, "startBeat": 2.0, "durationBeats": 1.0, "velocity": 46.0},
+            {"pitch": 72, "startBeat": 4.0, "durationBeats": 2.0, "velocity": 50.0}
+          ]
+        },
+        {
+          "id": "hook-drop2",
+          "startBeat": 104.0,
+          "lengthBeats": 8.0,
+          "naturalLengthBeats": 8.0,
+          "loopContent": false,
+          "notes": [
+            {"pitch": 80, "startBeat": 0.0, "durationBeats": 0.25, "velocity": 90.0},
+            {"pitch": 77, "startBeat": 0.5, "durationBeats": 0.25, "velocity": 82.0},
+            {"pitch": 75, "startBeat": 1.0, "durationBeats": 0.5, "velocity": 84.0},
+            {"pitch": 72, "startBeat": 2.0, "durationBeats": 0.25, "velocity": 78.0},
+            {"pitch": 68, "startBeat": 2.5, "durationBeats": 0.25, "velocity": 74.0},
+            {"pitch": 65, "startBeat": 3.0, "durationBeats": 0.75, "velocity": 76.0},
+            {"pitch": 80, "startBeat": 4.5, "durationBeats": 0.25, "velocity": 90.0},
+            {"pitch": 84, "startBeat": 5.0, "durationBeats": 0.25, "velocity": 84.0},
+            {"pitch": 77, "startBeat": 6.0, "durationBeats": 0.75, "velocity": 82.0}
+          ]
+        }
+      ],
+      "sampleClips": []
+    },
+    {
+      "id": "track-pad",
+      "name": "Atmospheric pad",
+      "devices": [
+        {
+          "id": "dev-pad",
+          "type": "wavetable_synth",
+          "parameters": {
+            "wavetableId": "strings_64",
+            "attack": 0.55,
+            "decay": 0.35,
+            "sustain": 0.78,
+            "release": 0.85,
+            "filterCutoff": 0.38,
+            "filterResonance": 0.16,
+            "filterEnvAmount": 0.12,
+            "filterAttack": 0.45,
+            "filterDecay": 0.35,
+            "filterSustain": 0.55,
+            "filterRelease": 0.75,
+            "filterMode": 0,
+            "wtPosition": 0.18,
+            "wtOctave": 0.5,
+            "wtSemitone": 0.5,
+            "wtFine": 0.5,
+            "wtUnison": 0.48,
+            "wtDetune": 0.34,
+            "gain": 0.46,
+            "pan": 0.5,
+            "bypass": 0.0
+          }
+        },
+        {"id": "dev-pad-gain", "type": "track_gain", "parameters": {"gain": 0.42, "bypass": 0.0}}
+      ],
+      "midiClips": [
+        {
+          "id": "pad-intro-break",
+          "startBeat": 0.0,
+          "lengthBeats": 32.0,
+          "naturalLengthBeats": 8.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 53, "startBeat": 0.0, "durationBeats": 4.0, "velocity": 62.0},
+            {"pitch": 56, "startBeat": 0.0, "durationBeats": 4.0, "velocity": 58.0},
+            {"pitch": 60, "startBeat": 0.0, "durationBeats": 4.0, "velocity": 58.0},
+            {"pitch": 51, "startBeat": 4.0, "durationBeats": 4.0, "velocity": 58.0},
+            {"pitch": 55, "startBeat": 4.0, "durationBeats": 4.0, "velocity": 56.0},
+            {"pitch": 58, "startBeat": 4.0, "durationBeats": 4.0, "velocity": 56.0}
+          ]
+        },
+        {
+          "id": "pad-breakdown",
+          "startBeat": 64.0,
+          "lengthBeats": 32.0,
+          "naturalLengthBeats": 8.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 53, "startBeat": 0.0, "durationBeats": 4.0, "velocity": 72.0},
+            {"pitch": 56, "startBeat": 0.0, "durationBeats": 4.0, "velocity": 68.0},
+            {"pitch": 60, "startBeat": 0.0, "durationBeats": 4.0, "velocity": 68.0},
+            {"pitch": 48, "startBeat": 4.0, "durationBeats": 4.0, "velocity": 62.0},
+            {"pitch": 51, "startBeat": 4.0, "durationBeats": 4.0, "velocity": 60.0},
+            {"pitch": 55, "startBeat": 4.0, "durationBeats": 4.0, "velocity": 60.0}
+          ]
+        },
+        {
+          "id": "pad-outro",
+          "startBeat": 128.0,
+          "lengthBeats": 16.0,
+          "naturalLengthBeats": 8.0,
+          "loopContent": true,
+          "notes": [
+            {"pitch": 53, "startBeat": 0.0, "durationBeats": 4.0, "velocity": 54.0},
+            {"pitch": 56, "startBeat": 0.0, "durationBeats": 4.0, "velocity": 52.0},
+            {"pitch": 60, "startBeat": 0.0, "durationBeats": 4.0, "velocity": 52.0}
+          ]
+        }
+      ],
+      "sampleClips": []
+    }
+  ],
+  "lfos": [],
+  "modEdges": [],
+  "automationClips": [
+    {
+      "id": "auto-mid-filter-build",
+      "homeTrackId": "track-mid-bass",
+      "startBeat": 16.0,
+      "lengthBeats": 16.0,
+      "naturalLengthBeats": 16.0,
+      "loopContent": false,
+      "deviceId": "dev-mid-bass",
+      "paramId": "filterCutoff",
+      "points": [
+        {"beat": 0.0, "value": 0.18},
+        {"beat": 8.0, "value": 0.38},
+        {"beat": 15.5, "value": 0.78},
+        {"beat": 16.0, "value": 0.52}
+      ]
+    },
+    {
+      "id": "auto-mid-drive-drop2",
+      "homeTrackId": "track-mid-bass",
+      "startBeat": 96.0,
+      "lengthBeats": 32.0,
+      "naturalLengthBeats": 8.0,
+      "loopContent": true,
+      "deviceId": "dev-mid-bass",
+      "paramId": "bassDrive",
+      "points": [
+        {"beat": 0.0, "value": 0.5},
+        {"beat": 2.0, "value": 0.7},
+        {"beat": 4.0, "value": 0.54},
+        {"beat": 6.0, "value": 0.74},
+        {"beat": 8.0, "value": 0.58}
+      ]
+    },
+    {
+      "id": "auto-hook-wt-motion",
+      "homeTrackId": "track-hook",
+      "startBeat": 32.0,
+      "lengthBeats": 96.0,
+      "naturalLengthBeats": 16.0,
+      "loopContent": true,
+      "deviceId": "dev-hook",
+      "paramId": "wtPosition",
+      "points": [
+        {"beat": 0.0, "value": 0.24},
+        {"beat": 4.0, "value": 0.52},
+        {"beat": 8.0, "value": 0.36},
+        {"beat": 12.0, "value": 0.68},
+        {"beat": 16.0, "value": 0.42}
+      ]
+    },
+    {
+      "id": "auto-pad-filter",
+      "homeTrackId": "track-pad",
+      "startBeat": 0.0,
+      "lengthBeats": 96.0,
+      "naturalLengthBeats": 96.0,
+      "loopContent": false,
+      "deviceId": "dev-pad",
+      "paramId": "filterCutoff",
+      "points": [
+        {"beat": 0.0, "value": 0.22},
+        {"beat": 16.0, "value": 0.36},
+        {"beat": 32.0, "value": 0.18},
+        {"beat": 64.0, "value": 0.44},
+        {"beat": 95.5, "value": 0.7},
+        {"beat": 96.0, "value": 0.28}
+      ]
+    }
+  ]
+}

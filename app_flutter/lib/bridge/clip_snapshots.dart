@@ -15,6 +15,11 @@ class MidiClipSnapshot implements ClipTimelineSpan {
     required this.notes,
     this.naturalLengthBeats,
     this.loopContent = false,
+    this.editorScaleRoot = 0,
+    this.editorScaleId = 'major',
+    this.editorScaleHighlight = false,
+    this.editorScaleSnap = false,
+    this.editorChordQuality = 'off',
   });
 
   @override
@@ -38,12 +43,17 @@ class MidiClipSnapshot implements ClipTimelineSpan {
   /// When true, MIDI note content repeats within the clip's timeline span.
   final bool loopContent;
 
+  final int editorScaleRoot;
+  final String editorScaleId;
+  final bool editorScaleHighlight;
+  final bool editorScaleSnap;
+  final String editorChordQuality;
+
   @override
   double get endBeat => startBeat + lengthBeats;
 
   /// Resolved natural length — falls back to current length when missing.
-  double get effectiveNaturalLengthBeats =>
-      naturalLengthBeats ?? lengthBeats;
+  double get effectiveNaturalLengthBeats => naturalLengthBeats ?? lengthBeats;
 
   /// Grid span for clip editors — always the authored content length.
   double get editorContentLengthBeats => effectiveNaturalLengthBeats;
@@ -61,6 +71,11 @@ class MidiClipSnapshot implements ClipTimelineSpan {
       naturalLengthBeats:
           (map['naturalLengthBeats'] as num?)?.toDouble() ?? lengthBeats,
       loopContent: snapshotBool(map['loopContent']),
+      editorScaleRoot: (map['editorScaleRoot'] as num?)?.toInt() ?? 0,
+      editorScaleId: map['editorScaleId'] as String? ?? 'major',
+      editorScaleHighlight: snapshotBool(map['editorScaleHighlight']),
+      editorScaleSnap: snapshotBool(map['editorScaleSnap']),
+      editorChordQuality: map['editorChordQuality'] as String? ?? 'off',
       notes: notesRaw
           .map((n) => MidiNoteSnapshot.fromMap(n as Map<dynamic, dynamic>))
           .toList(),
@@ -73,6 +88,11 @@ class MidiClipSnapshot implements ClipTimelineSpan {
     double? lengthBeats,
     double? naturalLengthBeats,
     bool? loopContent,
+    int? editorScaleRoot,
+    String? editorScaleId,
+    bool? editorScaleHighlight,
+    bool? editorScaleSnap,
+    String? editorChordQuality,
     List<MidiNoteSnapshot>? notes,
   }) {
     return MidiClipSnapshot(
@@ -81,6 +101,11 @@ class MidiClipSnapshot implements ClipTimelineSpan {
       lengthBeats: lengthBeats ?? this.lengthBeats,
       naturalLengthBeats: naturalLengthBeats ?? this.naturalLengthBeats,
       loopContent: loopContent ?? this.loopContent,
+      editorScaleRoot: editorScaleRoot ?? this.editorScaleRoot,
+      editorScaleId: editorScaleId ?? this.editorScaleId,
+      editorScaleHighlight: editorScaleHighlight ?? this.editorScaleHighlight,
+      editorScaleSnap: editorScaleSnap ?? this.editorScaleSnap,
+      editorChordQuality: editorChordQuality ?? this.editorChordQuality,
       notes: notes ?? this.notes,
     );
   }
@@ -154,8 +179,7 @@ class SampleClipSnapshot implements ClipTimelineSpan {
   double get endBeat => startBeat + lengthBeats;
 
   /// Resolved natural length — falls back to current length when missing.
-  double get effectiveNaturalLengthBeats =>
-      naturalLengthBeats ?? lengthBeats;
+  double get effectiveNaturalLengthBeats => naturalLengthBeats ?? lengthBeats;
 
   /// Arrangement playback window for sample clips (waveform source length is
   /// [effectiveNaturalLengthBeats]).
@@ -270,16 +294,14 @@ class AutomationClipSnapshot implements ClipTimelineSpan {
   @override
   double get endBeat => startBeat + lengthBeats;
 
-  double get effectiveNaturalLengthBeats =>
-      naturalLengthBeats ?? lengthBeats;
+  double get effectiveNaturalLengthBeats => naturalLengthBeats ?? lengthBeats;
 
   /// Grid span for automation editors — authored content length.
   double get editorContentLengthBeats => effectiveNaturalLengthBeats;
 
   double get loopContentLengthBeats => effectiveNaturalLengthBeats;
 
-  String get linkLabel =>
-      isLinked ? _humanizeParamId(paramId) : 'Link';
+  String get linkLabel => isLinked ? _humanizeParamId(paramId) : 'Link';
 
   static String linkLabelForParam(String paramId) => _humanizeParamId(paramId);
 
@@ -310,7 +332,8 @@ class AutomationClipSnapshot implements ClipTimelineSpan {
       deviceId: map['deviceId'] as String? ?? '',
       paramId: map['paramId'] as String? ?? '',
       points: pointsRaw
-          .map((p) => AutomationPointSnapshot.fromMap(p as Map<dynamic, dynamic>))
+          .map((p) =>
+              AutomationPointSnapshot.fromMap(p as Map<dynamic, dynamic>))
           .toList(),
     );
   }

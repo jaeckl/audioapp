@@ -15,6 +15,9 @@ struct ProjectFileData {
     std::string name = "Untitled";
     int bpm = 120;
     std::string selectedTrackId;
+    bool loopEnabled = true;
+    double loopRegionStartBeat = 0.0;
+    double loopRegionEndBeat = 16.0;
     MasterTrackState master;
     std::vector<SampleLibraryEntryState> sampleLibrary;
     std::vector<TrackState> tracks;

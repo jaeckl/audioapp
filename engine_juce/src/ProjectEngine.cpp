@@ -385,6 +385,17 @@ bool ProjectEngine::setMidiClipNotes(const std::string& clipId,
     return true;
 }
 
+bool ProjectEngine::setMidiClipEditorScale(const std::string& clipId,
+                                           int root,
+                                           const std::string& scaleId,
+                                           bool highlight,
+                                           bool snap,
+                                           const std::string& chordQuality) {
+    const juce::ScopedWriteLock lock(mutex_);
+    return clipRepo_.setMidiClipEditorScale(
+        clipId, root, scaleId, highlight, snap, chordQuality);
+}
+
 std::string ProjectEngine::createSampleClip(const std::string& trackId,
                                             const std::string& sampleId,
                                             double startBeat,
@@ -669,6 +680,11 @@ ProjectSnapshot ProjectEngine::snapshot() const {
             cs.lengthBeats = clip.lengthBeats;
             cs.naturalLengthBeats = clip.naturalLengthBeats;
             cs.loopContent = clip.loopContent;
+            cs.editorScaleRoot = clip.editorScaleRoot;
+            cs.editorScaleId = clip.editorScaleId;
+            cs.editorScaleHighlight = clip.editorScaleHighlight;
+            cs.editorScaleSnap = clip.editorScaleSnap;
+            cs.editorChordQuality = clip.editorChordQuality;
             cs.notes.reserve(clip.notes.size());
             for (const auto& note : clip.notes) {
                 cs.notes.push_back(MidiNoteState{
@@ -1269,6 +1285,9 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
     file.name = projectName_;
     file.bpm = transport_.bpm();
     file.selectedTrackId = trackRepo_.selectedTrackId();
+    file.loopEnabled = transport_.loopEnabled();
+    file.loopRegionStartBeat = transport_.loopRegionStartBeat();
+    file.loopRegionEndBeat = transport_.loopRegionEndBeat();
     file.master.id = "master";
     file.master.name = "Master";
     file.master.gain = masterGain_.load(std::memory_order_relaxed);
@@ -1304,6 +1323,11 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
             cs.lengthBeats = clip.lengthBeats;
             cs.naturalLengthBeats = clip.naturalLengthBeats;
             cs.loopContent = clip.loopContent;
+            cs.editorScaleRoot = clip.editorScaleRoot;
+            cs.editorScaleId = clip.editorScaleId;
+            cs.editorScaleHighlight = clip.editorScaleHighlight;
+            cs.editorScaleSnap = clip.editorScaleSnap;
+            cs.editorChordQuality = clip.editorChordQuality;
             for (const auto& note : clip.notes) {
                 cs.notes.push_back(MidiNoteState{
                     note.pitch,
@@ -1374,6 +1398,10 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
     } else {
         transport_.setBpm(120);
     }
+    transport_.setLoopEnabled(data.loopEnabled);
+    if (!transport_.setLoopRegion(data.loopRegionStartBeat, data.loopRegionEndBeat)) {
+        transport_.setLoopRegion(0.0, 16.0);
+    }
     trackRepo_.setSelectedTrackId(data.selectedTrackId);
     trackRepo_.tracks().clear();
 
@@ -1398,6 +1426,11 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
                 ? clipState.naturalLengthBeats
                 : midiNotesContentLengthBeats(clipState.notes, clipState.lengthBeats);
             clip.loopContent = clipState.loopContent;
+            clip.editorScaleRoot = clipState.editorScaleRoot;
+            clip.editorScaleId = clipState.editorScaleId;
+            clip.editorScaleHighlight = clipState.editorScaleHighlight;
+            clip.editorScaleSnap = clipState.editorScaleSnap;
+            clip.editorChordQuality = clipState.editorChordQuality;
             for (const auto& noteState : clipState.notes) {
                 MidiNote note;
                 note.pitch = noteState.pitch;

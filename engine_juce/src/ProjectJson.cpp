@@ -94,6 +94,11 @@ juce::var midiClipToVar(const MidiClipState& clip) {
     object->setProperty("lengthBeats", clip.lengthBeats);
     object->setProperty("naturalLengthBeats", clip.naturalLengthBeats);
     object->setProperty("loopContent", clip.loopContent);
+    object->setProperty("editorScaleRoot", clip.editorScaleRoot);
+    object->setProperty("editorScaleId", toJuceString(clip.editorScaleId));
+    object->setProperty("editorScaleHighlight", clip.editorScaleHighlight);
+    object->setProperty("editorScaleSnap", clip.editorScaleSnap);
+    object->setProperty("editorChordQuality", toJuceString(clip.editorChordQuality));
     object->setProperty("notes", notes);
     return juce::var(object);
 }
@@ -107,6 +112,20 @@ MidiClipState midiClipFromVar(const juce::var& value) {
         clip.naturalLengthBeats =
             varToDouble(object->getProperty("naturalLengthBeats"), clip.lengthBeats);
         clip.loopContent = static_cast<bool>(object->getProperty("loopContent"));
+        clip.editorScaleRoot = varToInt(object->getProperty("editorScaleRoot"), 0);
+        clip.editorScaleId = varToString(object->getProperty("editorScaleId"));
+        if (clip.editorScaleId.empty()) {
+            clip.editorScaleId = "major";
+        }
+        clip.editorScaleHighlight =
+            object->hasProperty("editorScaleHighlight")
+                ? static_cast<bool>(object->getProperty("editorScaleHighlight"))
+                : false;
+        clip.editorScaleSnap = static_cast<bool>(object->getProperty("editorScaleSnap"));
+        clip.editorChordQuality = varToString(object->getProperty("editorChordQuality"));
+        if (clip.editorChordQuality.empty()) {
+            clip.editorChordQuality = "off";
+        }
         if (const auto* notes = varArray(object->getProperty("notes"))) {
             clip.notes.reserve(static_cast<size_t>(notes->size()));
             for (const auto& noteVar : *notes) {
@@ -381,6 +400,9 @@ juce::var projectFileToVar(const ProjectFileData& project,
     object->setProperty("name", toJuceString(project.name));
     object->setProperty("bpm", project.bpm);
     object->setProperty("selectedTrackId", toJuceString(project.selectedTrackId));
+    object->setProperty("loopEnabled", project.loopEnabled);
+    object->setProperty("loopRegionStartBeat", project.loopRegionStartBeat);
+    object->setProperty("loopRegionEndBeat", project.loopRegionEndBeat);
     auto* master = new juce::DynamicObject();
     master->setProperty("id", toJuceString(project.master.id));
     master->setProperty("name", toJuceString(project.master.name));
@@ -712,6 +734,18 @@ bool parseProjectFileJson(const std::string& json,
     out.name = varToString(object->getProperty("name"));
     out.bpm = varToInt(object->getProperty("bpm"), 120);
     out.selectedTrackId = varToString(object->getProperty("selectedTrackId"));
+    out.loopEnabled = !object->hasProperty("loopEnabled") ||
+                      static_cast<bool>(object->getProperty("loopEnabled"));
+    out.loopRegionStartBeat = varToDouble(
+        object->getProperty("loopRegionStartBeat"),
+        varToDouble(object->getProperty("loopStart"), 0.0));
+    out.loopRegionEndBeat = varToDouble(
+        object->getProperty("loopRegionEndBeat"),
+        varToDouble(object->getProperty("loopEnd"), 16.0));
+    if (out.loopRegionEndBeat <= out.loopRegionStartBeat) {
+        out.loopRegionStartBeat = 0.0;
+        out.loopRegionEndBeat = 16.0;
+    }
     out.tracks.clear();
     out.sampleLibrary.clear();
     out.master.id = "master";

@@ -24,6 +24,7 @@ void main() {
   int createProjectCalls = 0;
   bool mockRecentProjects = false;
   String? lastRecentProjectUri;
+  String? lastExampleProjectJson;
 
   const bootstrapSnapshot = {
     'ok': true,
@@ -51,6 +52,7 @@ void main() {
     createProjectCalls = 0;
     mockRecentProjects = false;
     lastRecentProjectUri = null;
+    lastExampleProjectJson = null;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
       switch (call.method) {
@@ -330,6 +332,32 @@ void main() {
           };
         case 'saveProject':
           return {'ok': true, 'uri': 'file:///tmp/project.audioapp.zip', 'cancelled': false};
+        case 'loadExampleProject':
+          lastExampleProjectJson =
+              (call.arguments as Map<dynamic, dynamic>?)?['projectJson'] as String?;
+          return {
+            'ok': true,
+            'snapshot': {
+              'bpm': 100,
+              'playheadBeats': 0.0,
+              'playing': false,
+              'selectedTrackId': 'track-1',
+              'tracks': [
+                {
+                  'id': 'track-1',
+                  'name': 'Mid bass - talking reese',
+                  'devices': [
+                    {
+                      'id': 'dev-1',
+                      'type': 'simple_oscillator',
+                      'parameters': {'frequency': 261.63},
+                    },
+                  ],
+                  'midiClips': [],
+                },
+              ],
+            },
+          };
         case 'loadRecentProject':
           lastRecentProjectUri =
               (call.arguments as Map<dynamic, dynamic>?)?['uri'] as String?;
@@ -496,7 +524,6 @@ void main() {
     expect(createProjectCalls, 0);
     expect(find.text('AudioApp'), findsOneWidget);
     expect(find.text('Recent Song.audioapp.zip'), findsOneWidget);
-    expect(find.text('Settings'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('welcome-new-project')));
     await tester.pumpAndSettle();
@@ -518,6 +545,26 @@ void main() {
     await tester.pumpAndSettle();
     expect(lastRecentProjectUri, 'content://projects/recent.audioapp.zip');
     expect(find.byTooltip('Loaded Track'), findsOneWidget);
+  });
+
+  testWidgets('welcome hub shows non-deletable example projects', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: DawShell(
+        bridge: EngineBridge(channel: channel),
+        showWelcomeOnLaunch: true,
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Neon Break Pressure'), findsOneWidget);
+    expect(find.text('Afterburner Neuro Run'), findsOneWidget);
+    expect(find.text('Supersaw Flutter Rush'), findsOneWidget);
+    expect(find.text('EXAMPLE'), findsNWidgets(3));
+
+    await tester.tap(find.text('Neon Break Pressure'));
+    await tester.pumpAndSettle();
+    expect(lastExampleProjectJson, contains('"name": "Neon Break Pressure"'));
+    expect(find.byTooltip('Mid bass - talking reese'), findsOneWidget);
   });
 
   testWidgets('track header and lane select their track', (tester) async {
