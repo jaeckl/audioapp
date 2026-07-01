@@ -11,6 +11,7 @@ class DraggableIntValueBox extends StatefulWidget {
     this.max = 2,
     this.label = 'Oct',
     this.showLabel = true,
+    this.controlSize = 56,
   });
 
   final int value;
@@ -20,6 +21,7 @@ class DraggableIntValueBox extends StatefulWidget {
   final int max;
   final String label;
   final bool showLabel;
+  final double controlSize;
 
   @override
   State<DraggableIntValueBox> createState() => _DraggableIntValueBoxState();
@@ -32,47 +34,78 @@ class _DraggableIntValueBoxState extends State<DraggableIntValueBox> {
   @override
   Widget build(BuildContext context) {
     final display = widget.value >= 0 ? '+${widget.value}' : '${widget.value}';
+    final muted = widget.accentColor.withValues(alpha: 0.55);
+
+    void bump(int delta) {
+      final next = (widget.value + delta).clamp(widget.min, widget.max);
+      if (next != widget.value) widget.onChanged(next);
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onVerticalDragStart: (d) {
-            _dragStartY = d.localPosition.dy;
-            _dragStartValue = widget.value;
-          },
-          onVerticalDragUpdate: (d) {
-            final delta = ((_dragStartY - d.localPosition.dy) / 12).round();
-            final next = (_dragStartValue + delta).clamp(widget.min, widget.max);
-            if (next != widget.value) {
-              widget.onChanged(next);
-            }
-          },
-          onDoubleTap: () => widget.onChanged(0),
-          child: Container(
-            width: 44,
-            height: 28,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: const Color(0xFF14141C),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: widget.accentColor.withValues(alpha: 0.45)),
+        Container(
+          width: 46,
+          height: widget.controlSize + 4,
+          decoration: BoxDecoration(
+            color: const Color(0xFF14141C),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: widget.accentColor.withValues(alpha: 0.35),
             ),
-            child: Text(
-              display,
-              style: TextStyle(
-                color: widget.accentColor,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+          ),
+          child: Column(
+            children: [
+              Expanded(
+                child: _StepButton(
+                  icon: Icons.keyboard_arrow_up_rounded,
+                  color: muted,
+                  onTap: () => bump(1),
+                ),
               ),
-            ),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onVerticalDragStart: (d) {
+                  _dragStartY = d.localPosition.dy;
+                  _dragStartValue = widget.value;
+                },
+                onVerticalDragUpdate: (d) {
+                  final delta =
+                      ((_dragStartY - d.localPosition.dy) / 8).round();
+                  final next =
+                      (_dragStartValue + delta).clamp(widget.min, widget.max);
+                  if (next != widget.value) widget.onChanged(next);
+                },
+                onDoubleTap: () => widget.onChanged(0),
+                child: Text(
+                  display,
+                  style: TextStyle(
+                    color: widget.accentColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: _StepButton(
+                  icon: Icons.keyboard_arrow_down_rounded,
+                  color: muted,
+                  onTap: () => bump(-1),
+                ),
+              ),
+            ],
           ),
         ),
         if (widget.showLabel) ...[
-          const SizedBox(height: 2),
+          const SizedBox(height: 3),
           Text(
             widget.label,
-            style: const TextStyle(color: Colors.white54, fontSize: 9, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              color: Colors.white54,
+              fontSize: widget.controlSize >= 56 ? 10 : 9,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ],
@@ -80,6 +113,30 @@ class _DraggableIntValueBoxState extends State<DraggableIntValueBox> {
   }
 }
 
-int subtractiveOctaveFromNorm(double norm) => ((norm - 0.5) * 4).round().clamp(-2, 2);
+class _StepButton extends StatelessWidget {
+  const _StepButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Center(child: Icon(icon, size: 14, color: color)),
+      ),
+    );
+  }
+}
+
+int subtractiveOctaveFromNorm(double norm) =>
+    ((norm - 0.5) * 4).round().clamp(-2, 2);
 
 double subtractiveNormFromOctave(int octave) => (octave / 4.0) + 0.5;

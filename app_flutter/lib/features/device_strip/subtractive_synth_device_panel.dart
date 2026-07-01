@@ -11,14 +11,14 @@ import 'panels/device_section_card.dart';
 import 'panels/filter_mode_selector.dart';
 import 'rotary_knob.dart';
 import 'sampler_device_panel.dart';
+import 'sampler_envelope_preview.dart';
 import 'subtractive_filter_preview.dart';
 import 'subtractive_waveform_preview.dart';
 
 enum SubtractivePanelDensity { strip, editor }
 
-/// Three-tab strip: Osc · Mix · Tone (filter + amp merged).
-/// Four-tab layout preserved in git at commit before the 3-tab redesign.
-enum SubtractiveDeviceTab { osc, mix, tone }
+/// Signal-flow tabs: sound source, spectral shaping, and articulation.
+enum SubtractiveDeviceTab { osc, filter, amp }
 
 /// Visual variant for the panel container.
 ///
@@ -78,12 +78,19 @@ class SubtractiveSynthDevicePanel extends StatefulWidget {
 
   static const containerTabs = <DeviceTabSpec>[
     DeviceTabSpec(label: 'Osc', icon: Icons.waves),
-    DeviceTabSpec(label: 'Mix', icon: Icons.blender),
-    DeviceTabSpec(label: 'Tone', icon: Icons.tune),
+    DeviceTabSpec(label: 'Filter', icon: Icons.filter_alt_outlined),
+    DeviceTabSpec(label: 'Amp', icon: Icons.graphic_eq),
   ];
 
   static const _mixModes = ['Mix', 'Neg', 'AM', 'Sign', 'Max'];
-  static const _filterTypes = ['LP 12', 'HP 12', 'Band', 'Notch', 'FB', 'LP 24'];
+  static const _filterTypes = [
+    'LP 12',
+    'HP 12',
+    'Band',
+    'Notch',
+    'FB',
+    'LP 24'
+  ];
   static const _shaperModes = ['Off', 'Soft', 'Hard', 'Fold'];
 
   static String formatGlobalPitch(double normalized) {
@@ -93,11 +100,14 @@ class SubtractiveSynthDevicePanel extends StatefulWidget {
   }
 
   @override
-  State<SubtractiveSynthDevicePanel> createState() => _SubtractiveSynthDevicePanelState();
+  State<SubtractiveSynthDevicePanel> createState() =>
+      _SubtractiveSynthDevicePanelState();
 }
 
-class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePanel> {
+class _SubtractiveSynthDevicePanelState
+    extends State<SubtractiveSynthDevicePanel> {
   late SubtractiveDeviceTab _tab;
+  int _selectedOscillator = 0;
 
   SubtractiveDeviceTab get _activeTab => widget.selectedTab ?? _tab;
 
@@ -126,8 +136,10 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
       size: size ?? _knobSize,
       labelGap: labelGap,
       accentColor: SubtractiveSynthDevicePanel.accent,
-      modulationActive: paramId != null && widget.modulatedParams.contains(paramId),
-      automationActive: paramId != null && widget.automatedParams.contains(paramId),
+      modulationActive:
+          paramId != null && widget.modulatedParams.contains(paramId),
+      automationActive:
+          paramId != null && widget.automatedParams.contains(paramId),
       modulationAmount: modAmount,
       polarityParamId: paramId,
       deviceId: widget.device.id,
@@ -188,7 +200,8 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
   @override
   void didUpdateWidget(covariant SubtractiveSynthDevicePanel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.selectedTab != null && widget.selectedTab != oldWidget.selectedTab) {
+    if (widget.selectedTab != null &&
+        widget.selectedTab != oldWidget.selectedTab) {
       _tab = widget.selectedTab!;
     }
   }
@@ -196,9 +209,9 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
   @override
   Widget build(BuildContext context) {
     final body = switch (_activeTab) {
-      SubtractiveDeviceTab.osc => _oscTab(),
-      SubtractiveDeviceTab.mix => _mixTab(),
-      SubtractiveDeviceTab.tone => _toneTab(),
+      SubtractiveDeviceTab.osc => _oscTabV2(),
+      SubtractiveDeviceTab.filter => _toneTab(),
+      SubtractiveDeviceTab.amp => _ampTab(),
     };
 
     if (widget.embeddedInCard) {
@@ -223,10 +236,9 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
     );
   }
 
-  Widget _oscTab() {
-    final knobScale = _knobSize * 0.72;
-    final legatoOn = widget.device.synthLegato >= 0.5;
-    final monoOn = widget.device.synthMono >= 0.5;
+  // ignore: unused_element
+  Widget _legacyOscTab() {
+    final knobScale = _knobSize;
     return Padding(
       padding: const EdgeInsets.fromLTRB(6, 6, 6, 6),
       child: Row(
@@ -237,13 +249,32 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
+                SizedBox(
+                  height: 24,
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(
-                        child: _oscBank(
-                          label: 'Osc 1',
+                        child: _oscSelectorButton(
+                          label: 'OSC 1',
+                          selected: _selectedOscillator == 0,
+                          onTap: () => setState(() => _selectedOscillator = 0),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: _oscSelectorButton(
+                          label: 'OSC 2',
+                          selected: _selectedOscillator == 1,
+                          onTap: () => setState(() => _selectedOscillator = 1),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Expanded(
+                  child: _selectedOscillator == 0
+                      ? _oscBank(
                           shape: widget.device.osc1Shape,
                           shapeParam: 'osc1Shape',
                           semi: widget.device.osc1Semi,
@@ -252,15 +283,15 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                           octaveParam: 'osc1Octave',
                           syncValue: widget.device.osc1Sync,
                           syncParam: 'osc1Sync',
-                          syncDisplay:
-                              SamplerDevicePanel.formatPercent(widget.device.osc1Sync),
+                          syncDisplay: SamplerDevicePanel.formatPercent(
+                              widget.device.osc1Sync),
+                          detuneValue: widget.device.osc1Detune,
+                          detuneParam: 'osc1Detune',
+                          detuneDisplay:
+                              '${((widget.device.osc1Detune - 0.5) * 100).round()}¢',
                           knobScale: knobScale,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: _oscBank(
-                          label: 'Osc 2',
+                        )
+                      : _oscBank(
                           shape: widget.device.osc2Shape,
                           shapeParam: 'osc2Shape',
                           semi: widget.device.osc2Semi,
@@ -269,171 +300,85 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                           octaveParam: 'osc2Octave',
                           syncValue: widget.device.osc2Sync,
                           syncParam: 'osc2Sync',
-                          syncDisplay:
-                              SamplerDevicePanel.formatPercent(widget.device.osc2Sync),
+                          syncDisplay: SamplerDevicePanel.formatPercent(
+                              widget.device.osc2Sync),
                           detuneValue: widget.device.osc2Detune,
                           detuneParam: 'osc2Detune',
                           detuneDisplay:
                               '${((widget.device.osc2Detune - 0.5) * 100).round()}¢',
                           knobScale: knobScale,
                         ),
-                      ),
-                    ],
-                  ),
                 ),
                 const SizedBox(height: 4),
-                _oscMixerRow(knobScale),
+                _oscMixerRow(),
               ],
             ),
           ),
           const SizedBox(width: 6),
           Expanded(
             flex: 4,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  flex: 5,
-                  child: _panelBox(
-                    variant: PanelVariant.elevated,
-                    padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
-                    child: Column(
-                      children: [
-                        const Text(
-                          'UNISON',
-                          style: TextStyle(
-                            color: Colors.white30,
-                            fontSize: 8,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Expanded(
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final size =
-                                  (constraints.maxHeight - 18).clamp(18.0, knobScale * 0.88);
-                              return Align(
-                                alignment: Alignment.topCenter,
-                                child: _knob(
-                                  label: 'Voices',
-                                  value: widget.device.unisonVoices,
-                                  size: size,
-                                  labelGap: 0,
-                                  displayValue:
-                                      '${1 + (widget.device.unisonVoices * 3).round()}',
-                                  onChanged: (v) =>
-                                      widget.onParameterChanged('unisonVoices', v),
-                                  paramId: 'unisonVoices',
-                                  modulationAmounts: widget.modulationAmounts,
-                                  connectModeLfoId: widget.connectModeLfoId,
-                                  onModulationAssign: widget.onModulationAssign,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        Expanded(
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final size =
-                                  (constraints.maxHeight - 18).clamp(18.0, knobScale * 0.88);
-                              return Align(
-                                alignment: Alignment.topCenter,
-                                child: _knob(
-                                  label: 'Spread',
-                                  value: widget.device.unisonDetune,
-                                  size: size,
-                                  labelGap: 0,
-                                  displayValue: SamplerDevicePanel.formatPercent(
-                                      widget.device.unisonDetune),
-                                  onChanged: (v) =>
-                                      widget.onParameterChanged('unisonDetune', v),
-                                  paramId: 'unisonDetune',
-                                  modulationAmounts: widget.modulationAmounts,
-                                  connectModeLfoId: widget.connectModeLfoId,
-                                  onModulationAssign: widget.onModulationAssign,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
+            child: _panelBox(
+              variant: PanelVariant.elevated,
+              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 5),
+              child: Column(
+                children: [
+                  const Text('VOICE', style: DevicePanelTheme.sectionLabel),
+                  const Spacer(),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _knob(
+                        label: 'Voices',
+                        value: widget.device.unisonVoices,
+                        size: 44,
+                        displayValue:
+                            '${1 + (widget.device.unisonVoices * 3).round()}',
+                        onChanged: (v) =>
+                            widget.onParameterChanged('unisonVoices', v),
+                        paramId: 'unisonVoices',
+                      ),
+                      _knob(
+                        label: 'Spread',
+                        value: widget.device.unisonDetune,
+                        size: 44,
+                        displayValue: SamplerDevicePanel.formatPercent(
+                            widget.device.unisonDetune),
+                        onChanged: (v) =>
+                            widget.onParameterChanged('unisonDetune', v),
+                        paramId: 'unisonDetune',
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 4),
-                Expanded(
-                  flex: 4,
-                  child: _panelBox(
-                    variant: PanelVariant.subtle,
-                    padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'PLAY',
-                          style: TextStyle(
-                            color: Colors.white30,
-                            fontSize: 8,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _flatToggle(
-                                label: 'Legato',
-                                active: legatoOn,
-                                onTap: () => widget.onParameterChanged(
-                                    'synthLegato', legatoOn ? 0.0 : 1.0),
-                              ),
-                              const SizedBox(width: 4),
-                              _flatToggle(
-                                label: 'Mono clips',
-                                active: monoOn,
-                                onTap: () =>
-                                    widget.onParameterChanged('synthMono', monoOn ? 0.0 : 1.0),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Expanded(
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final size =
-                                  (constraints.maxHeight - 18).clamp(18.0, knobScale * 0.82);
-                              return Align(
-                                alignment: Alignment.topCenter,
-                                child: _knob(
-                                  label: 'Glide',
-                                  value: widget.device.glideMs,
-                                  size: size,
-                                  labelGap: 0,
-                                  displayValue: widget.device.glideMs <= 0.001
-                                      ? 'Off'
-                                      : '${(widget.device.glideMs * 2000).round()} ms',
-                                  onChanged: (v) => widget.onParameterChanged('glideMs', v),
-                                  paramId: 'glideMs',
-                                  modulationAmounts: widget.modulationAmounts,
-                                  connectModeLfoId: widget.connectModeLfoId,
-                                  onModulationAssign: widget.onModulationAssign,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
+                  const Spacer(),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _knob(
+                        label: 'Pitch',
+                        value: widget.device.globalPitch,
+                        size: 44,
+                        displayValue:
+                            SubtractiveSynthDevicePanel.formatGlobalPitch(
+                                widget.device.globalPitch),
+                        onChanged: (v) =>
+                            widget.onParameterChanged('globalPitch', v),
+                        paramId: 'globalPitch',
+                      ),
+                      _knob(
+                        label: 'Feedback',
+                        value: widget.device.mixFeedback,
+                        size: 44,
+                        displayValue: SamplerDevicePanel.formatPercent(
+                            widget.device.mixFeedback),
+                        onChanged: (v) =>
+                            widget.onParameterChanged('mixFeedback', v),
+                        paramId: 'mixFeedback',
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  const Spacer(),
+                ],
+              ),
             ),
           ),
         ],
@@ -441,73 +386,231 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
     );
   }
 
-  Widget _oscMixerRow(double knobScale) {
-    return SizedBox(
-      height: 66,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final mixKnob = (constraints.maxHeight - 16).clamp(38.0, knobScale * 1.08);
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Text(
-                'MIXER',
-                style: TextStyle(
-                  color: Colors.white30,
-                  fontSize: 8,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
+  Widget _oscTabV2() {
+    final knobScale = _knobSize;
+    return Padding(
+      padding: const EdgeInsets.all(6),
+      child: Column(
+        children: [
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(
+                        height: 24,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _oscSelectorButton(
+                                label: 'OSC 1',
+                                selected: _selectedOscillator == 0,
+                                onTap: () =>
+                                    setState(() => _selectedOscillator = 0),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: _oscSelectorButton(
+                                label: 'OSC 2',
+                                selected: _selectedOscillator == 1,
+                                onTap: () =>
+                                    setState(() => _selectedOscillator = 1),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Expanded(
+                        child: _selectedOscillator == 0
+                            ? _oscBank(
+                                shape: widget.device.osc1Shape,
+                                shapeParam: 'osc1Shape',
+                                semi: widget.device.osc1Semi,
+                                semiParam: 'osc1Semi',
+                                octaveNorm: widget.device.osc1Octave,
+                                octaveParam: 'osc1Octave',
+                                syncValue: widget.device.osc1Sync,
+                                syncParam: 'osc1Sync',
+                                syncDisplay: SamplerDevicePanel.formatPercent(
+                                    widget.device.osc1Sync),
+                                detuneValue: widget.device.osc1Detune,
+                                detuneParam: 'osc1Detune',
+                                detuneDisplay:
+                                    '${((widget.device.osc1Detune - 0.5) * 100).round()}¢',
+                                knobScale: knobScale,
+                              )
+                            : _oscBank(
+                                shape: widget.device.osc2Shape,
+                                shapeParam: 'osc2Shape',
+                                semi: widget.device.osc2Semi,
+                                semiParam: 'osc2Semi',
+                                octaveNorm: widget.device.osc2Octave,
+                                octaveParam: 'osc2Octave',
+                                syncValue: widget.device.osc2Sync,
+                                syncParam: 'osc2Sync',
+                                syncDisplay: SamplerDevicePanel.formatPercent(
+                                    widget.device.osc2Sync),
+                                detuneValue: widget.device.osc2Detune,
+                                detuneParam: 'osc2Detune',
+                                detuneDisplay:
+                                    '${((widget.device.osc2Detune - 0.5) * 100).round()}¢',
+                                knobScale: knobScale,
+                              ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 72,
-                height: 22,
-                child: _borderlessDropdown<int>(
-                  value: widget.device.oscMixMode
-                      .clamp(0, SubtractiveSynthDevicePanel._mixModes.length - 1),
-                  items: List.generate(
-                    SubtractiveSynthDevicePanel._mixModes.length,
-                    (i) => DropdownMenuItem(
-                      value: i,
-                      child: Text(SubtractiveSynthDevicePanel._mixModes[i]),
+                const SizedBox(width: 6),
+                SizedBox(
+                  width: 132,
+                  height: 100,
+                  child: _panelBox(
+                    variant: PanelVariant.elevated,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 3, vertical: 5),
+                    child: Column(
+                      children: [
+                        const Text('VOICE',
+                            style: DevicePanelTheme.sectionLabel),
+                        const Spacer(),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _knob(
+                              label: 'Voices',
+                              value: widget.device.unisonVoices,
+                              size: 52,
+                              labelGap: 0,
+                              displayValue:
+                                  '${1 + (widget.device.unisonVoices * 3).round()}',
+                              onChanged: (v) =>
+                                  widget.onParameterChanged('unisonVoices', v),
+                              paramId: 'unisonVoices',
+                            ),
+                            _knob(
+                              label: 'Spread',
+                              value: widget.device.unisonDetune,
+                              size: 52,
+                              labelGap: 0,
+                              displayValue: SamplerDevicePanel.formatPercent(
+                                  widget.device.unisonDetune),
+                              onChanged: (v) =>
+                                  widget.onParameterChanged('unisonDetune', v),
+                              paramId: 'unisonDetune',
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  onChanged: (v) {
-                    if (v != null) widget.onParameterChanged('oscMixMode', v.toDouble());
-                  },
                 ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+          _oscMixerRow(),
+        ],
+      ),
+    );
+  }
+
+  Widget _oscMixerRow() {
+    return SizedBox(
+      height: 68,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(
+              color: SubtractiveSynthDevicePanel.accent.withValues(alpha: 0.35),
+            ),
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Text(
+              'SOURCE MIX',
+              style: DevicePanelTheme.sectionLabel,
+            ),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 72,
+              height: 22,
+              child: _borderlessDropdown<int>(
+                value: widget.device.oscMixMode
+                    .clamp(0, SubtractiveSynthDevicePanel._mixModes.length - 1),
+                items: List.generate(
+                  SubtractiveSynthDevicePanel._mixModes.length,
+                  (i) => DropdownMenuItem(
+                    value: i,
+                    child: Text(SubtractiveSynthDevicePanel._mixModes[i]),
+                  ),
+                ),
+                onChanged: (v) {
+                  if (v != null) {
+                    widget.onParameterChanged('oscMixMode', v.toDouble());
+                  }
+                },
               ),
-              const Spacer(),
-              _knob(
-                label: 'Mix',
-                value: widget.device.oscMix,
-                size: mixKnob,
-                labelGap: 0,
-                displayValue: SamplerDevicePanel.formatPercent(widget.device.oscMix),
-                onChanged: (v) => widget.onParameterChanged('oscMix', v),
-                paramId: 'oscMix',
-                modulationAmounts: widget.modulationAmounts,
-                connectModeLfoId: widget.connectModeLfoId,
-                onModulationAssign: widget.onModulationAssign,
-              ),
-              const SizedBox(width: 12),
-              _knob(
-                label: 'Noise',
-                value: widget.device.noiseLevel,
-                size: mixKnob,
-                labelGap: 0,
-                displayValue: SamplerDevicePanel.formatPercent(widget.device.noiseLevel),
-                onChanged: (v) => widget.onParameterChanged('noiseLevel', v),
-                paramId: 'noiseLevel',
-                modulationAmounts: widget.modulationAmounts,
-                connectModeLfoId: widget.connectModeLfoId,
-                onModulationAssign: widget.onModulationAssign,
-              ),
-              const Spacer(),
-            ],
-          );
-        },
+            ),
+            const Spacer(),
+            _knob(
+              label: 'Mix',
+              value: widget.device.oscMix,
+              size: 48,
+              labelGap: 0,
+              displayValue:
+                  SamplerDevicePanel.formatPercent(widget.device.oscMix),
+              onChanged: (v) => widget.onParameterChanged('oscMix', v),
+              paramId: 'oscMix',
+              modulationAmounts: widget.modulationAmounts,
+              connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
+            ),
+            const SizedBox(width: 12),
+            _knob(
+              label: 'Noise',
+              value: widget.device.noiseLevel,
+              size: 48,
+              labelGap: 0,
+              displayValue:
+                  SamplerDevicePanel.formatPercent(widget.device.noiseLevel),
+              onChanged: (v) => widget.onParameterChanged('noiseLevel', v),
+              paramId: 'noiseLevel',
+              modulationAmounts: widget.modulationAmounts,
+              connectModeLfoId: widget.connectModeLfoId,
+              onModulationAssign: widget.onModulationAssign,
+            ),
+            const SizedBox(width: 12),
+            _knob(
+              label: 'Pitch',
+              value: widget.device.globalPitch,
+              size: 48,
+              labelGap: 0,
+              displayValue: SubtractiveSynthDevicePanel.formatGlobalPitch(
+                  widget.device.globalPitch),
+              onChanged: (v) => widget.onParameterChanged('globalPitch', v),
+              paramId: 'globalPitch',
+            ),
+            const SizedBox(width: 12),
+            _knob(
+              label: 'Feedback',
+              value: widget.device.mixFeedback,
+              size: 48,
+              labelGap: 0,
+              displayValue:
+                  SamplerDevicePanel.formatPercent(widget.device.mixFeedback),
+              onChanged: (v) => widget.onParameterChanged('mixFeedback', v),
+              paramId: 'mixFeedback',
+            ),
+            const Spacer(),
+          ],
+        ),
       ),
     );
   }
@@ -517,35 +620,19 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
     required int octave,
     required String octaveParam,
   }) {
-    const boxHeight = 28.0;
-    final dialHeight = knobScale + 4;
-    final topPad = (dialHeight - boxHeight) / 2;
-    final bottomPad = topPad;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(height: topPad),
-        DraggableIntValueBox(
-          value: octave,
-          showLabel: false,
-          accentColor: SubtractiveSynthDevicePanel.accent,
-          onChanged: (v) => widget.onParameterChanged(
-            octaveParam,
-            subtractiveNormFromOctave(v),
-          ),
-        ),
-        SizedBox(height: bottomPad),
-        const Text(
-          'Oct',
-          style: TextStyle(color: Colors.white54, fontSize: 9, fontWeight: FontWeight.w600),
-        ),
-      ],
+    return DraggableIntValueBox(
+      value: octave,
+      controlSize: knobScale,
+      label: 'Oct',
+      accentColor: SubtractiveSynthDevicePanel.accent,
+      onChanged: (v) => widget.onParameterChanged(
+        octaveParam,
+        subtractiveNormFromOctave(v),
+      ),
     );
   }
 
   Widget _oscBank({
-    required String label,
     required double shape,
     required String shapeParam,
     required double semi,
@@ -561,14 +648,13 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
     String? detuneDisplay,
   }) {
     final octave = subtractiveOctaveFromNorm(octaveNorm);
-    final hasDetune = detuneValue != null && detuneParam != null && detuneDisplay != null;
+    final hasDetune =
+        detuneValue != null && detuneParam != null && detuneDisplay != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
-        const SizedBox(height: 4),
         SizedBox(
-          height: 52,
+          height: 68,
           child: _panelBox(
             variant: PanelVariant.screen,
             padding: EdgeInsets.zero,
@@ -580,87 +666,60 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
         ),
         const SizedBox(height: 6),
         Expanded(
-          child: Column(
-            children: [
-              Expanded(
-                child: _oscKnobGridRow(
-                  knobScale: knobScale,
-                  slots: [
-                    _knob(
-                      label: 'Shape',
-                      value: shape,
-                      size: knobScale,
-                      displayValue: subtractiveShapeLabel(shape),
-                      onChanged: (v) => widget.onParameterChanged(shapeParam, v),
-                      paramId: shapeParam,
-                      modulationAmounts: widget.modulationAmounts,
-                      connectModeLfoId: widget.connectModeLfoId,
-                      onModulationAssign: widget.onModulationAssign,
-                    ),
-                    _knob(
-                      label: 'Pitch',
-                      value: semi,
-                      size: knobScale,
-                      displayValue: '${(semi * 11).round()}',
-                      onChanged: (v) => widget.onParameterChanged(semiParam, v),
-                      paramId: semiParam,
-                      modulationAmounts: widget.modulationAmounts,
-                      connectModeLfoId: widget.connectModeLfoId,
-                      onModulationAssign: widget.onModulationAssign,
-                    ),
-                    _knob(
-                      label: 'Sync',
-                      value: syncValue,
-                      size: knobScale,
-                      displayValue: syncDisplay,
-                      onChanged: (v) => widget.onParameterChanged(syncParam, v),
-                      paramId: syncParam,
-                      modulationAmounts: widget.modulationAmounts,
-                      connectModeLfoId: widget.connectModeLfoId,
-                      onModulationAssign: widget.onModulationAssign,
-                    ),
-                  ],
-                ),
+          child: _oscKnobGridRow(
+            knobScale: knobScale,
+            slots: [
+              _knob(
+                label: 'Shape',
+                value: shape,
+                size: knobScale,
+                displayValue: subtractiveShapeLabel(shape),
+                onChanged: (v) => widget.onParameterChanged(shapeParam, v),
+                paramId: shapeParam,
+                modulationAmounts: widget.modulationAmounts,
+                connectModeLfoId: widget.connectModeLfoId,
+                onModulationAssign: widget.onModulationAssign,
               ),
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Expanded(child: SizedBox.shrink()),
-                    Expanded(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.topCenter,
-                        child: _oscOctaveSlot(
-                          knobScale: knobScale,
-                          octave: octave,
-                          octaveParam: octaveParam,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.topCenter,
-                        child: hasDetune
-                            ? _knob(
-                                label: 'Detune',
-                                value: detuneValue,
-                                size: knobScale,
-                                labelGap: 0,
-                                displayValue: detuneDisplay,
-                                onChanged: (v) =>
-                                    widget.onParameterChanged(detuneParam, v),
-                                paramId: detuneParam,
-                                modulationAmounts: widget.modulationAmounts,
-                                connectModeLfoId: widget.connectModeLfoId,
-                                onModulationAssign: widget.onModulationAssign,
-                              )
-                            : const SizedBox.shrink(),
-                      ),
-                    ),
-                  ],
-                ),
+              _oscOctaveSlot(
+                knobScale: knobScale,
+                octave: octave,
+                octaveParam: octaveParam,
+              ),
+              _knob(
+                label: 'Semi',
+                value: semi,
+                size: knobScale,
+                displayValue: '${(semi * 11).round()}',
+                onChanged: (v) => widget.onParameterChanged(semiParam, v),
+                paramId: semiParam,
+                modulationAmounts: widget.modulationAmounts,
+                connectModeLfoId: widget.connectModeLfoId,
+                onModulationAssign: widget.onModulationAssign,
+              ),
+              hasDetune
+                  ? _knob(
+                      label: 'Fine',
+                      value: detuneValue,
+                      size: knobScale,
+                      displayValue: detuneDisplay,
+                      onChanged: (v) =>
+                          widget.onParameterChanged(detuneParam, v),
+                      paramId: detuneParam,
+                      modulationAmounts: widget.modulationAmounts,
+                      connectModeLfoId: widget.connectModeLfoId,
+                      onModulationAssign: widget.onModulationAssign,
+                    )
+                  : null,
+              _knob(
+                label: 'Sync',
+                value: syncValue,
+                size: knobScale,
+                displayValue: syncDisplay,
+                onChanged: (v) => widget.onParameterChanged(syncParam, v),
+                paramId: syncParam,
+                modulationAmounts: widget.modulationAmounts,
+                connectModeLfoId: widget.connectModeLfoId,
+                onModulationAssign: widget.onModulationAssign,
               ),
             ],
           ),
@@ -669,7 +728,9 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
     );
   }
 
-  Widget _mixTab() {
+  // Kept temporarily as a parameter-layout reference while Filter/Amp migration settles.
+  // ignore: unused_element
+  Widget _legacyMixTab() {
     final knobScale = _knobSize * 0.78;
     final envKnob = _knobSize * 0.76;
     return Padding(
@@ -689,8 +750,10 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                     size: knobScale,
                     displayValue: widget.device.preHpCutoff <= 0.02
                         ? 'Off'
-                        : SamplerDevicePanel.formatCutoffHz(widget.device.preHpCutoff),
-                    onChanged: (v) => widget.onParameterChanged('preHpCutoff', v),
+                        : SamplerDevicePanel.formatCutoffHz(
+                            widget.device.preHpCutoff),
+                    onChanged: (v) =>
+                        widget.onParameterChanged('preHpCutoff', v),
                     paramId: 'preHpCutoff',
                     modulationAmounts: widget.modulationAmounts,
                     connectModeLfoId: widget.connectModeLfoId,
@@ -700,7 +763,8 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                     label: 'HP Res',
                     value: widget.device.preHpRes,
                     size: knobScale,
-                    displayValue: SamplerDevicePanel.formatQ(widget.device.preHpRes),
+                    displayValue:
+                        SamplerDevicePanel.formatQ(widget.device.preHpRes),
                     onChanged: (v) => widget.onParameterChanged('preHpRes', v),
                     paramId: 'preHpRes',
                     modulationAmounts: widget.modulationAmounts,
@@ -711,7 +775,8 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                     label: 'Drive',
                     value: widget.device.preDrive,
                     size: knobScale,
-                    displayValue: SamplerDevicePanel.formatPercent(widget.device.preDrive),
+                    displayValue: SamplerDevicePanel.formatPercent(
+                        widget.device.preDrive),
                     onChanged: (v) => widget.onParameterChanged('preDrive', v),
                     paramId: 'preDrive',
                     modulationAmounts: widget.modulationAmounts,
@@ -726,9 +791,10 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                     label: 'Pitch',
                     value: widget.device.globalPitch,
                     size: knobScale,
-                    displayValue:
-                        SubtractiveSynthDevicePanel.formatGlobalPitch(widget.device.globalPitch),
-                    onChanged: (v) => widget.onParameterChanged('globalPitch', v),
+                    displayValue: SubtractiveSynthDevicePanel.formatGlobalPitch(
+                        widget.device.globalPitch),
+                    onChanged: (v) =>
+                        widget.onParameterChanged('globalPitch', v),
                     paramId: 'globalPitch',
                     modulationAmounts: widget.modulationAmounts,
                     connectModeLfoId: widget.connectModeLfoId,
@@ -738,8 +804,10 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                     label: 'FB',
                     value: widget.device.mixFeedback,
                     size: knobScale,
-                    displayValue: SamplerDevicePanel.formatPercent(widget.device.mixFeedback),
-                    onChanged: (v) => widget.onParameterChanged('mixFeedback', v),
+                    displayValue: SamplerDevicePanel.formatPercent(
+                        widget.device.mixFeedback),
+                    onChanged: (v) =>
+                        widget.onParameterChanged('mixFeedback', v),
                     paramId: 'mixFeedback',
                     modulationAmounts: widget.modulationAmounts,
                     connectModeLfoId: widget.connectModeLfoId,
@@ -749,9 +817,10 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                     label: 'Vel',
                     value: widget.device.velocitySensitivity,
                     size: knobScale,
-                    displayValue:
-                        SamplerDevicePanel.formatPercent(widget.device.velocitySensitivity),
-                    onChanged: (v) => widget.onParameterChanged('velocitySensitivity', v),
+                    displayValue: SamplerDevicePanel.formatPercent(
+                        widget.device.velocitySensitivity),
+                    onChanged: (v) =>
+                        widget.onParameterChanged('velocitySensitivity', v),
                     paramId: 'velocitySensitivity',
                     modulationAmounts: widget.modulationAmounts,
                     connectModeLfoId: widget.connectModeLfoId,
@@ -790,6 +859,127 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _ampTab() {
+    final monoOn = widget.device.synthMono >= 0.5;
+    final legatoOn = widget.device.synthLegato >= 0.5;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(6, 6, 6, 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            flex: 19,
+            child: _panelBox(
+              variant: PanelVariant.screen,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  DevicePreviewFrame(
+                    height: 126,
+                    child: SamplerEnvelopePreview(
+                      attack: widget.device.attack,
+                      decay: widget.device.decay,
+                      sustain: widget.device.sustain,
+                      release: widget.device.release,
+                      accent: SubtractiveSynthDevicePanel.accent,
+                      label: '',
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  _adsrRow(
+                    attack: widget.device.attack,
+                    decay: widget.device.decay,
+                    sustain: widget.device.sustain,
+                    release: widget.device.release,
+                    onChanged: widget.onParameterChanged,
+                    knobScale: _knobSize,
+                    spacing: 8,
+                    labelGap: 2,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            flex: 11,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                height: 144,
+                child: _panelBox(
+                  variant: PanelVariant.elevated,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
+                  child: Column(
+                    children: [
+                      const Text('PERFORMANCE',
+                          style: DevicePanelTheme.sectionLabel),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _flatToggle(
+                              label: monoOn ? 'Mono' : 'Poly',
+                              active: monoOn,
+                              onTap: () => widget.onParameterChanged(
+                                  'synthMono', monoOn ? 0.0 : 1.0),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: _flatToggle(
+                              label: 'Legato',
+                              active: legatoOn,
+                              onTap: () => widget.onParameterChanged(
+                                  'synthLegato', legatoOn ? 0.0 : 1.0),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _knob(
+                            label: 'Glide',
+                            value: widget.device.glideMs,
+                            displayValue: widget.device.glideMs <= 0.001
+                                ? 'Off'
+                                : '${(widget.device.glideMs * 2000).round()} ms',
+                            onChanged: (v) =>
+                                widget.onParameterChanged('glideMs', v),
+                            paramId: 'glideMs',
+                            modulationAmounts: widget.modulationAmounts,
+                            connectModeLfoId: widget.connectModeLfoId,
+                            onModulationAssign: widget.onModulationAssign,
+                          ),
+                          _knob(
+                            label: 'Velocity',
+                            value: widget.device.velocitySensitivity,
+                            displayValue: SamplerDevicePanel.formatPercent(
+                                widget.device.velocitySensitivity),
+                            onChanged: (v) => widget.onParameterChanged(
+                                'velocitySensitivity', v),
+                            paramId: 'velocitySensitivity',
+                            modulationAmounts: widget.modulationAmounts,
+                            connectModeLfoId: widget.connectModeLfoId,
+                            onModulationAssign: widget.onModulationAssign,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -879,20 +1069,21 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
   }
 
   Widget _toneTab() {
-    final mode = widget.device.filterMode.clamp(0, SubtractiveSynthDevicePanel._filterTypes.length - 1);
-    final shaperMode =
-        widget.device.filterShaperMode.clamp(0, SubtractiveSynthDevicePanel._shaperModes.length - 1);
-    final filterKnob = _knobSize * 0.76;
-    final colorKnob = _knobSize * 0.8;
+    final mode = widget.device.filterMode
+        .clamp(0, SubtractiveSynthDevicePanel._filterTypes.length - 1);
+    final shaperMode = widget.device.filterShaperMode
+        .clamp(0, SubtractiveSynthDevicePanel._shaperModes.length - 1);
+    final filterKnob = _knobSize;
+    final colorKnob = _knobSize * 0.86;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
+      padding: const EdgeInsets.all(6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
-            height: DevicePanelTheme.previewStripHeight,
+            height: DevicePanelTheme.previewHeroHeight,
             child: DevicePreviewFrame(
-              height: DevicePanelTheme.previewStripHeight,
+              height: DevicePanelTheme.previewHeroHeight,
               child: SubtractiveFilterPreview(
                 filterMode: mode,
                 filterCutoff: widget.device.filterCutoff,
@@ -907,18 +1098,14 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
+                  flex: 2,
                   child: _panelBox(
                     variant: PanelVariant.elevated,
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Text(
-                          'FILTER',
-                          textAlign: TextAlign.center,
-                          style: DevicePanelTheme.sectionLabel,
-                        ),
-                        const SizedBox(height: 4),
                         FilterModeSelector(
                           selectedIndex: mode,
                           accentColor: SubtractiveSynthDevicePanel.accent,
@@ -926,8 +1113,8 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                             FilterModeOverflowOption(index: 4, label: 'FB'),
                             FilterModeOverflowOption(index: 5, label: 'LP 24'),
                           ],
-                          onSelected: (index) =>
-                              widget.onParameterChanged('filterMode', index.toDouble()),
+                          onSelected: (index) => widget.onParameterChanged(
+                              'filterMode', index.toDouble()),
                         ),
                         const SizedBox(height: 4),
                         Expanded(
@@ -935,70 +1122,70 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  _filterKeyTrackToggle(),
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 22),
+                                    child: Icon(
+                                      Icons.arrow_forward_ios,
+                                      size: 10,
+                                      color: widget.device.filterKeyTrack >
+                                              0.001
+                                          ? SubtractiveSynthDevicePanel.accent
+                                          : Colors.white24,
+                                    ),
+                                  ),
                                   _knob(
                                     label: 'Cutoff',
                                     value: widget.device.filterCutoff,
                                     size: filterKnob,
                                     labelGap: 1,
-                                    displayValue: SamplerDevicePanel.formatCutoffHz(
+                                    displayValue:
+                                        SamplerDevicePanel.formatCutoffHz(
                                       widget.device.filterCutoff,
                                     ),
-                                    onChanged: (v) => widget.onParameterChanged('filterCutoff', v),
+                                    onChanged: (v) => widget.onParameterChanged(
+                                        'filterCutoff', v),
                                     paramId: 'filterCutoff',
                                     modulationAmounts: widget.modulationAmounts,
                                     connectModeLfoId: widget.connectModeLfoId,
-                                    onModulationAssign: widget.onModulationAssign,
+                                    onModulationAssign:
+                                        widget.onModulationAssign,
                                   ),
                                   _knob(
                                     label: 'Res',
                                     value: widget.device.filterQ,
                                     size: filterKnob,
                                     labelGap: 1,
-                                    displayValue: SamplerDevicePanel.formatQ(widget.device.filterQ),
-                                    onChanged: (v) => widget.onParameterChanged('filterQ', v),
+                                    displayValue: SamplerDevicePanel.formatQ(
+                                        widget.device.filterQ),
+                                    onChanged: (v) =>
+                                        widget.onParameterChanged('filterQ', v),
                                     paramId: 'filterQ',
                                     modulationAmounts: widget.modulationAmounts,
                                     connectModeLfoId: widget.connectModeLfoId,
-                                    onModulationAssign: widget.onModulationAssign,
+                                    onModulationAssign:
+                                        widget.onModulationAssign,
                                   ),
                                   _knob(
-                                    label: 'Key',
-                                    value: widget.device.filterKeyTrack,
-                                    size: filterKnob,
-                                    labelGap: 1,
-                                    displayValue: SamplerDevicePanel.formatPercent(
-                                      widget.device.filterKeyTrack,
-                                    ),
-                                    onChanged: (v) =>
-                                        widget.onParameterChanged('filterKeyTrack', v),
-                                    paramId: 'filterKeyTrack',
-                                    modulationAmounts: widget.modulationAmounts,
-                                    connectModeLfoId: widget.connectModeLfoId,
-                                    onModulationAssign: widget.onModulationAssign,
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _knob(
-                                    label: 'FEG',
+                                    label: 'Env',
                                     value: widget.device.filterEnvAmount,
                                     size: filterKnob,
                                     labelGap: 1,
-                                    displayValue: SamplerDevicePanel.formatPercent(
+                                    displayValue:
+                                        SamplerDevicePanel.formatPercent(
                                       widget.device.filterEnvAmount,
                                     ),
-                                    onChanged: (v) =>
-                                        widget.onParameterChanged('filterEnvAmount', v),
+                                    onChanged: (v) => widget.onParameterChanged(
+                                        'filterEnvAmount', v),
                                     paramId: 'filterEnvAmount',
                                     modulationAmounts: widget.modulationAmounts,
                                     connectModeLfoId: widget.connectModeLfoId,
-                                    onModulationAssign: widget.onModulationAssign,
+                                    onModulationAssign:
+                                        widget.onModulationAssign,
                                   ),
                                   _knob(
                                     label: 'FM',
@@ -1006,12 +1193,16 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                                     size: filterKnob,
                                     labelGap: 1,
                                     displayValue:
-                                        SamplerDevicePanel.formatPercent(widget.device.filterFm),
-                                    onChanged: (v) => widget.onParameterChanged('filterFm', v),
+                                        SamplerDevicePanel.formatPercent(
+                                      widget.device.filterFm,
+                                    ),
+                                    onChanged: (v) => widget.onParameterChanged(
+                                        'filterFm', v),
                                     paramId: 'filterFm',
                                     modulationAmounts: widget.modulationAmounts,
                                     connectModeLfoId: widget.connectModeLfoId,
-                                    onModulationAssign: widget.onModulationAssign,
+                                    onModulationAssign:
+                                        widget.onModulationAssign,
                                   ),
                                 ],
                               ),
@@ -1024,9 +1215,11 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                 ),
                 const SizedBox(width: 6),
                 Expanded(
+                  flex: 1,
                   child: _panelBox(
                     variant: PanelVariant.subtle,
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                     child: Stack(
                       clipBehavior: Clip.none,
                       children: [
@@ -1047,7 +1240,8 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                             Expanded(
                               child: Center(
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     _knob(
@@ -1056,12 +1250,16 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                                       size: colorKnob,
                                       labelGap: 1,
                                       displayValue:
-                                          SamplerDevicePanel.formatPercent(widget.device.filterDrive),
-                                      onChanged: (v) => widget.onParameterChanged('filterDrive', v),
+                                          SamplerDevicePanel.formatPercent(
+                                              widget.device.filterDrive),
+                                      onChanged: (v) => widget
+                                          .onParameterChanged('filterDrive', v),
                                       paramId: 'filterDrive',
-                                      modulationAmounts: widget.modulationAmounts,
+                                      modulationAmounts:
+                                          widget.modulationAmounts,
                                       connectModeLfoId: widget.connectModeLfoId,
-                                      onModulationAssign: widget.onModulationAssign,
+                                      onModulationAssign:
+                                          widget.onModulationAssign,
                                     ),
                                     _knob(
                                       label: 'Shaper',
@@ -1069,12 +1267,17 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                                       size: colorKnob,
                                       labelGap: 1,
                                       displayValue:
-                                          SamplerDevicePanel.formatPercent(widget.device.filterShaper),
-                                      onChanged: (v) => widget.onParameterChanged('filterShaper', v),
+                                          SamplerDevicePanel.formatPercent(
+                                              widget.device.filterShaper),
+                                      onChanged: (v) =>
+                                          widget.onParameterChanged(
+                                              'filterShaper', v),
                                       paramId: 'filterShaper',
-                                      modulationAmounts: widget.modulationAmounts,
+                                      modulationAmounts:
+                                          widget.modulationAmounts,
                                       connectModeLfoId: widget.connectModeLfoId,
-                                      onModulationAssign: widget.onModulationAssign,
+                                      onModulationAssign:
+                                          widget.onModulationAssign,
                                     ),
                                   ],
                                 ),
@@ -1102,7 +1305,8 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                               ),
                               onChanged: (v) {
                                 if (v != null) {
-                                  widget.onParameterChanged('filterShaperMode', v.toDouble());
+                                  widget.onParameterChanged(
+                                      'filterShaperMode', v.toDouble());
                                 }
                               },
                             ),
@@ -1171,6 +1375,66 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
     );
   }
 
+  Widget _oscSelectorButton({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: selected
+          ? SubtractiveSynthDevicePanel.accent.withValues(alpha: 0.22)
+          : Colors.white.withValues(alpha: 0.05),
+      borderRadius: BorderRadius.circular(4),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(4),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected
+                  ? SubtractiveSynthDevicePanel.accent
+                  : Colors.white38,
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.7,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _filterKeyTrackToggle() {
+    final active = widget.device.filterKeyTrack > 0.001;
+    final color = active ? SubtractiveSynthDevicePanel.accent : Colors.white38;
+    return Padding(
+      padding: const EdgeInsets.only(top: 13),
+      child: Tooltip(
+        message: active
+            ? 'Keyboard tracking affects filter cutoff'
+            : 'Enable keyboard tracking for filter cutoff',
+        child: Material(
+          color: active
+              ? SubtractiveSynthDevicePanel.accent.withValues(alpha: 0.2)
+              : Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(5),
+          child: InkWell(
+            onTap: () => widget.onParameterChanged(
+              'filterKeyTrack',
+              active ? 0.0 : 1.0,
+            ),
+            borderRadius: BorderRadius.circular(5),
+            child: SizedBox.square(
+              dimension: 30,
+              child: Icon(Icons.piano, size: 20, color: color),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _borderlessDropdown<T>({
     required T value,
     required List<DropdownMenuItem<T>> items,
@@ -1186,7 +1450,8 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
           fontSize: 11,
           fontWeight: FontWeight.w700,
         ),
-        icon: const Icon(Icons.expand_more, color: SubtractiveSynthDevicePanel.accent, size: 14),
+        icon: const Icon(Icons.expand_more,
+            color: SubtractiveSynthDevicePanel.accent, size: 14),
         items: items,
         onChanged: onChanged,
       ),
@@ -1205,7 +1470,9 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
     double labelGap = 1,
   }) {
     final size = knobScale ?? _knobSize * 0.8;
-    String id(String name) => prefix.isEmpty ? name : '$prefix${name[0].toUpperCase()}${name.substring(1)}';
+    String id(String name) => prefix.isEmpty
+        ? name
+        : '$prefix${name[0].toUpperCase()}${name.substring(1)}';
     final aId = id('attack');
     final dId = id('decay');
     final sId = id('sustain');
@@ -1215,35 +1482,50 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _knob(label: 'A', value: attack, size: size, labelGap: labelGap,
-          displayValue: SamplerDevicePanel.formatPercent(attack),
-          onChanged: (v) => onChanged(aId, v),
-          paramId: aId,
-          modulationAmounts: widget.modulationAmounts,
-          connectModeLfoId: widget.connectModeLfoId),
+        _knob(
+            label: 'A',
+            value: attack,
+            size: size,
+            labelGap: labelGap,
+            displayValue: SamplerDevicePanel.formatPercent(attack),
+            onChanged: (v) => onChanged(aId, v),
+            paramId: aId,
+            modulationAmounts: widget.modulationAmounts,
+            connectModeLfoId: widget.connectModeLfoId),
         SizedBox(width: spacing),
-        _knob(label: 'D', value: decay, size: size, labelGap: labelGap,
-          displayValue: SamplerDevicePanel.formatPercent(decay),
-          onChanged: (v) => onChanged(dId, v),
-          paramId: dId,
-          modulationAmounts: widget.modulationAmounts,
-          connectModeLfoId: widget.connectModeLfoId),
+        _knob(
+            label: 'D',
+            value: decay,
+            size: size,
+            labelGap: labelGap,
+            displayValue: SamplerDevicePanel.formatPercent(decay),
+            onChanged: (v) => onChanged(dId, v),
+            paramId: dId,
+            modulationAmounts: widget.modulationAmounts,
+            connectModeLfoId: widget.connectModeLfoId),
         SizedBox(width: spacing),
-        _knob(label: 'S', value: sustain, size: size, labelGap: labelGap,
-          displayValue: SamplerDevicePanel.formatPercent(sustain),
-          onChanged: (v) => onChanged(sId, v),
-          paramId: sId,
-          modulationAmounts: widget.modulationAmounts,
-          connectModeLfoId: widget.connectModeLfoId),
+        _knob(
+            label: 'S',
+            value: sustain,
+            size: size,
+            labelGap: labelGap,
+            displayValue: SamplerDevicePanel.formatPercent(sustain),
+            onChanged: (v) => onChanged(sId, v),
+            paramId: sId,
+            modulationAmounts: widget.modulationAmounts,
+            connectModeLfoId: widget.connectModeLfoId),
         SizedBox(width: spacing),
-        _knob(label: 'R', value: release, size: size, labelGap: labelGap,
-          displayValue: SamplerDevicePanel.formatPercent(release),
-          onChanged: (v) => onChanged(rId, v),
-          paramId: rId,
-          modulationAmounts: widget.modulationAmounts,
-          connectModeLfoId: widget.connectModeLfoId),
+        _knob(
+            label: 'R',
+            value: release,
+            size: size,
+            labelGap: labelGap,
+            displayValue: SamplerDevicePanel.formatPercent(release),
+            onChanged: (v) => onChanged(rId, v),
+            paramId: rId,
+            modulationAmounts: widget.modulationAmounts,
+            connectModeLfoId: widget.connectModeLfoId),
       ],
     );
   }
 }
-

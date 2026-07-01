@@ -60,7 +60,8 @@ void main() {
     });
   });
 
-  testWidgets('synth slot shows pan and gain on stereo output rail', (tester) async {
+  testWidgets('synth slot shows pan and gain on stereo output rail',
+      (tester) async {
     final device = DeviceSnapshot.fromMap({
       'id': 'dev-synth',
       'type': 'subtractive_synth',
@@ -70,6 +71,31 @@ void main() {
 
     expect(find.text('Gain'), findsOneWidget);
     expect(find.text('Pan'), findsOneWidget);
+  });
+
+  testWidgets('subtractive synth signal-flow tabs fit the strip',
+      (tester) async {
+    final device = DeviceSnapshot.fromMap({
+      'id': 'dev-synth-tabs',
+      'type': 'subtractive_synth',
+      'parameters': <String, Object>{},
+    });
+    await pumpSlot(tester, device: device);
+
+    expect(find.text('OSC 1'), findsOneWidget);
+    expect(find.text('OSC 2'), findsOneWidget);
+
+    await tester.tap(find.text('Filter'));
+    await tester.pumpAndSettle();
+    expect(find.text('Cutoff'), findsOneWidget);
+    expect(find.byIcon(Icons.piano), findsOneWidget);
+    expect(find.text('FM'), findsOneWidget);
+    expect(find.text('Key'), findsNothing);
+
+    await tester.tap(find.text('Amp'));
+    await tester.pumpAndSettle();
+    expect(find.text('AMP ENVELOPE'), findsNothing);
+    expect(find.text('PERFORMANCE'), findsOneWidget);
   });
 
   testWidgets('kick slot shows vel sens without pan', (tester) async {
