@@ -10,6 +10,7 @@
 #include "audioapp/CymbalAlgorithm.hpp"
 #include "audioapp/CrashAlgorithm.hpp"
 #include "audioapp/SubtractiveSynthAlgorithm.hpp"
+#include "audioapp/instruments/PerNoteModulation.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -104,6 +105,7 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         voice.crash = CrashVoiceRuntime{};
         voice.subtractiveStartSec = static_cast<double>(now) / 48000.0;
         voice.subtractiveReleaseSec = -1.0;
+        voice.noteModCache.reset();
         if (instrument.kind == LiveInstrumentKind::SubtractiveSynth ||
                 instrument.kind == LiveInstrumentKind::BassSynth) {
             initSubtractiveVoice(voice.subtractive, pitch, voice.velocity);
@@ -198,7 +200,10 @@ void LivePerformanceMixer::allNotesOff() noexcept {
     }
 }
 
-void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleRate) noexcept {
+void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleRate,
+                                   IModulator* const* modulators,
+                                   int modulatorCount,
+                                   int bpm) noexcept {
     if (monoOut == nullptr || numFrames <= 0 || sampleRate <= 0.0) {
         return;
     }
@@ -215,6 +220,28 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
             }
 
             const auto& inst = voice.instrument;
+            const double perNoteElapsed =
+                static_cast<double>(sampleIndex - voice.startSample) / sampleRate;
+            const NoteModKey noteKey{voice.pitch,
+                                     static_cast<double>(voice.startSample), 0.0};
+            InstrumentModulationContext modCtx{};
+            modCtx.lfoCount = modulatorCount;
+            modCtx.modEdges = inst.modEdges;
+            modCtx.modEdgeCount = inst.modEdgeCount;
+            modCtx.deviceIndex = inst.deviceIndex;
+            modCtx.modulators = modulators;
+            modCtx.playheadStartBeat = 0.0;
+            modCtx.bpm = bpm;
+            modCtx.sampleRate = sampleRate;
+            modCtx.noteCache = &voice.noteModCache;
+            ModulationEvalContext evalCtx{};
+            evalCtx.bpm = bpm;
+            evalCtx.sampleRate = sampleRate;
+            evalCtx.playheadSeconds = static_cast<double>(sampleIndex) / sampleRate;
+            evalCtx.frameIndex = frame;
+            evalCtx.numFrames = numFrames;
+            float perNoteGain = applyPerNoteCommonGain(
+                inst.gain, inst.deviceIndex, perNoteElapsed, noteKey, evalCtx, modCtx);
 
             if (inst.kind == LiveInstrumentKind::KickGenerator) {
                 auto& kv = voice.kick;
@@ -331,8 +358,17 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                 if (voice.releasing && voice.releaseSample > voice.startSample) {
                     noteDurSec = static_cast<double>(voice.releaseSample - voice.startSample) / sampleRate;
                 }
-                renderPhaseModLiveVoice(mix, pmv, inst.phaseMod,
+                auto baseParams = inst.phaseMod;
+                baseParams.gain = 1.0f;
+                DeviceVariantParams variant = baseParams;
+                applyPerNoteDspModulation(variant, DeviceNodeKind::PhaseModSynth,
+                                          inst.deviceIndex, secElapsed, noteKey,
+                                          evalCtx, modCtx);
+                const auto params = std::get<PhaseModSynthParams>(variant);
+                float voiceMix = 0.0f;
+                renderPhaseModLiveVoice(voiceMix, pmv, params,
                                         sampleRate, secElapsed, noteDurSec);
+                mix += voiceMix * perNoteGain;
                 if (pmv.active == 0) {
                     voice.active.store(0, std::memory_order_release);
                 }
@@ -350,15 +386,22 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                     continue;
                 }
 
-                const float ampAttackSec = adsrNormalizedToSeconds(inst.wavetable.ampAttack, 2.0f);
-                const float ampDecaySec = adsrNormalizedToSeconds(inst.wavetable.ampDecay, 2.0f);
-                const float ampReleaseSec = adsrNormalizedToSeconds(inst.wavetable.ampRelease, 3.0f);
-                const float ampSustain = std::clamp(inst.wavetable.ampSustain, 0.0f, 1.0f);
+                auto baseParams = inst.wavetable;
+                baseParams.gain = 1.0f;
+                DeviceVariantParams variant = baseParams;
+                applyPerNoteDspModulation(variant, DeviceNodeKind::WavetableSynth,
+                                          inst.deviceIndex, elapsedSec, noteKey,
+                                          evalCtx, modCtx);
+                const auto params = std::get<WavetableSynthParams>(variant);
+                const float ampAttackSec = adsrNormalizedToSeconds(params.ampAttack, 2.0f);
+                const float ampDecaySec = adsrNormalizedToSeconds(params.ampDecay, 2.0f);
+                const float ampReleaseSec = adsrNormalizedToSeconds(params.ampRelease, 3.0f);
+                const float ampSustain = std::clamp(params.ampSustain, 0.0f, 1.0f);
 
-                const float filterAttackSec = adsrNormalizedToSeconds(inst.wavetable.filterAttack, 2.0f);
-                const float filterDecaySec = adsrNormalizedToSeconds(inst.wavetable.filterDecay, 2.0f);
-                const float filterReleaseSec = adsrNormalizedToSeconds(inst.wavetable.filterRelease, 3.0f);
-                const float filterSustain = std::clamp(inst.wavetable.filterSustain, 0.0f, 1.0f);
+                const float filterAttackSec = adsrNormalizedToSeconds(params.filterAttack, 2.0f);
+                const float filterDecaySec = adsrNormalizedToSeconds(params.filterDecay, 2.0f);
+                const float filterReleaseSec = adsrNormalizedToSeconds(params.filterRelease, 3.0f);
+                const float filterSustain = std::clamp(params.filterSustain, 0.0f, 1.0f);
 
                 float noteDurationSec = 3600.0f;
                 if (voice.releasing && voice.releaseSample >= voice.startSample) {
@@ -383,11 +426,11 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                                                          filterSustain, filterReleaseSec);
 
                 const float hz = midiNoteToHz(voice.pitch);
-                const float wtPos = inst.wavetable.wtPosition *
+                const float wtPos = params.wtPosition *
                     static_cast<float>(std::max(inst.wavetablePcmFrameCount - 1, 1));
                 const float vel = std::clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
 
-                mix += wavetableVoiceSample(inst.wavetable,
+                mix += wavetableVoiceSample(params,
                                             inst.wavetablePcm,
                                             inst.wavetablePcmFrameCount,
                                             inst.wavetablePcmFrameLength,
@@ -399,9 +442,9 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                                             voice.wavetableFilterCoeffs,
                                             voice.filterState,
                                             voice.filterState2,
-                                            inst.wavetable.filterMode,
-                                            inst.wavetable.filterResonance) *
-                       inst.gain * kInstrumentOutputGain;
+                                            params.filterMode,
+                                            params.filterResonance) *
+                       perNoteGain * kInstrumentOutputGain;
                 continue;
             }
 
@@ -439,7 +482,16 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
 
             if (inst.kind == LiveInstrumentKind::SubtractiveSynth ||
                 inst.kind == LiveInstrumentKind::BassSynth) {
-                const auto& params = inst.subtractive;
+                auto baseParams = inst.subtractive;
+                baseParams.gain = 1.0f;
+                DeviceVariantParams variant = baseParams;
+                applyPerNoteDspModulation(variant,
+                                          inst.kind == LiveInstrumentKind::BassSynth
+                                              ? DeviceNodeKind::BassSynth
+                                              : DeviceNodeKind::SubtractiveSynth,
+                                          inst.deviceIndex, perNoteElapsed, noteKey,
+                                          evalCtx, modCtx);
+                const auto params = std::get<SubtractiveSynthParams>(variant);
                 const float ampAttackSec = adsrNormalizedToSeconds(params.ampAttack, 2.0f);
                 const float ampDecaySec = adsrNormalizedToSeconds(params.ampDecay, 2.0f);
                 const float ampReleaseSec = adsrNormalizedToSeconds(params.ampRelease, 3.0f);
@@ -496,7 +548,7 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                                                 filterGain,
                                                 sampleRate,
                                                 glideCoeff) *
-                        params.gain * kInstrumentOutputGain;
+                        perNoteGain * kInstrumentOutputGain;
             } else if (inst.kind == LiveInstrumentKind::Oscillator) {
                 const float hz = midiNoteToHz(voice.pitch);
                 const float phaseInc = static_cast<float>(2.0 * 3.14159265358979323846 * hz / sampleRate);
@@ -505,7 +557,7 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                 if (voice.oscillatorPhase > 6.28318530718f) {
                     voice.oscillatorPhase -= 6.28318530718f;
                 }
-                mix += sample;
+                mix += sample * perNoteGain;
             } else if (inst.kind == LiveInstrumentKind::Sampler && inst.samplerPcm != nullptr &&
                        inst.samplerFrameCount > 1) {
                 const float filterAttackSec = adsrNormalizedToSeconds(inst.filterAttack, 2.0f);
@@ -563,7 +615,7 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                                                       inst.filterQ,
                                                       filterGain,
                                                       inst.filterEnvAmount);
-                mix += sample * envGain * velGain;
+                mix += sample * envGain * velGain * perNoteGain;
             }
         }
 

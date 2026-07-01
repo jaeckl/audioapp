@@ -171,6 +171,15 @@ if(NOT ANDROID)
     tests/clip_playback_regression_test.cpp
   )
   target_link_libraries(clip_playback_regression_tests PRIVATE audioapp_engine)
+  add_executable(live_performance_regression_tests EXCLUDE_FROM_ALL
+    tests/JuceTestRunner.cpp
+    tests/live_performance_test.cpp
+  )
+  target_link_libraries(live_performance_regression_tests PRIVATE audioapp_engine)
+  if(MSVC)
+    target_compile_options(live_performance_regression_tests PRIVATE /EHsc)
+    target_link_options(live_performance_regression_tests PRIVATE /STACK:16777216)
+  endif()
 endif()
 
 if(MSVC)

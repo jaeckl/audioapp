@@ -33,6 +33,37 @@ public:
             host.noteOff(60);
             host.allNotesOff();
         }
+
+        beginTest("per-note envelope does not cut overlapping live voice");
+        {
+            audioapp::EngineHost host;
+            host.createProject();
+            const std::string trackId = host.addTrack("Live synth");
+            host.selectTrack(trackId);
+            const std::string synthId = host.addDeviceToTrack(trackId, "subtractive_synth");
+            expect(!synthId.empty(), "synth added");
+            expect(host.setDeviceParameter(synthId, "gain", 0.0f), "base gain at zero");
+            const int envelopeId = host.createLfo(1);
+            host.updateLfoParam(envelopeId, "curveType", 2.0f);
+            host.updateLfoParam(envelopeId, "attack", 0.01f);
+            host.updateLfoParam(envelopeId, "decay", 0.5f);
+            host.updateLfoParam(envelopeId, "release", 0.1f);
+            expect(host.assignModulation(envelopeId, synthId, "gain", 1.0f),
+                   "envelope assigned to gain");
+
+            host.enterPlayMode();
+            expect(host.noteOn(60, 110.0f), "first note starts");
+            std::vector<float> warmup(1024, 0.0f);
+            host.readLiveMix(warmup.data(), static_cast<int>(warmup.size()), 48000.0);
+            expect(host.noteOn(67, 110.0f), "second note starts");
+            host.noteOff(60);
+
+            std::vector<float> overlap(2048, 0.0f);
+            host.readLiveMix(overlap.data(), static_cast<int>(overlap.size()), 48000.0);
+            expect(audioapp::test::hasNonZeroSample(overlap),
+                   "second voice remains audible after first note-off");
+            host.allNotesOff();
+        }
     }
 };
 static LivePerformanceTest livePerformanceTest;

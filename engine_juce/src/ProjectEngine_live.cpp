@@ -21,10 +21,13 @@ bool ProjectEngine::buildLiveInstrumentForTrack(const Track& track,
                                                 LiveInstrumentSnapshot& out) const {
     PlaybackBuildContext context{sampleBank_};
     context.wavetableBank = wavetableBank_;
+    uint16_t deviceIndex = 0;
     for (const auto& device : track.devices) {
         if (deviceRegistry_.buildLiveInstrument(device, context, out)) {
+            out.deviceIndex = deviceIndex;
             return true;
         }
+        ++deviceIndex;
     }
     return false;
 }
@@ -62,6 +65,17 @@ bool ProjectEngine::noteOn(int pitch, float velocity) {
     LiveInstrumentSnapshot instrument{};
     if (!buildLiveInstrumentForTrack(*track, instrument)) {
         return false;
+    }
+
+    rebuildTrackPlaybackLocked();
+    for (int ti = 0; ti < trackPlaybackCount_.load(std::memory_order_acquire); ++ti) {
+        const auto& playback = trackPlayback_[ti];
+        if (playback.trackId != track->id) continue;
+        instrument.modEdgeCount = std::min(playback.modEdgeCount, 16);
+        std::copy(playback.modEdges,
+                  playback.modEdges + instrument.modEdgeCount,
+                  instrument.modEdges);
+        break;
     }
 
     // A Sampler with no loaded sample is silent — treat as no playable instrument
@@ -213,7 +227,10 @@ bool ProjectEngine::commitCapture() {
 }
 
 void ProjectEngine::readLiveMix(float* monoOut, int numFrames, double sampleRate) noexcept {
-    liveMixer_.readMix(monoOut, numFrames, sampleRate);
+    IModulator* modulators[ModulationGraph::kMaxLfos]{};
+    const int count = modulationGraph_.lfoPlaybackCount();
+    for (int i = 0; i < count; ++i) modulators[i] = modulationGraph_.modulator(i);
+    liveMixer_.readMix(monoOut, numFrames, sampleRate, modulators, count, transport_.bpm());
     liveMixer_.advanceSampleClock(numFrames);
 }
 

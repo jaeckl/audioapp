@@ -13,6 +13,7 @@
 #include "audioapp/PhaseModSynthAlgorithm.hpp"
 #include "audioapp/SubtractiveSynthAlgorithm.hpp"
 #include "audioapp/WavetableSynthAlgorithm.hpp"
+#include "audioapp/instruments/PerNoteModulation.hpp"
 
 namespace audioapp {
 
@@ -71,6 +72,9 @@ struct LiveInstrumentSnapshot {
     const float* wavetablePcm = nullptr;
     int wavetablePcmFrameCount = 0;
     int wavetablePcmFrameLength = 0;
+    uint16_t deviceIndex = 0;
+    int modEdgeCount = 0;
+    ModulationEdgePlayback modEdges[16]{};
 };
 
 struct LiveVoiceSlot {
@@ -94,6 +98,7 @@ struct LiveVoiceSlot {
     CrashVoiceRuntime crash{};
     double subtractiveStartSec = 0.0;
     double subtractiveReleaseSec = -1.0;
+    PerNoteModCache noteModCache{};
 };
 
 /// RT-safe live voice mixer + sample clock (control thread configures, audio thread reads).
@@ -107,7 +112,10 @@ public:
     void noteOff(int pitch) noexcept;
     void allNotesOff() noexcept;
 
-    void readMix(float* monoOut, int numFrames, double sampleRate) noexcept;
+    void readMix(float* monoOut, int numFrames, double sampleRate,
+                 IModulator* const* modulators = nullptr,
+                 int modulatorCount = 0,
+                 int bpm = 120) noexcept;
 
 private:
     std::atomic<uint64_t> sampleClock_{0};
