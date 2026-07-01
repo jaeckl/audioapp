@@ -4,12 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'device_knob_sizes.dart';
+import 'modulator_polarity.dart';
+
+import '../../bridge/project_snapshot.dart';
 
 /// Knob dial geometry — 0 at south-west, max at south-east (clockwise over the
 /// top; bottom 120° is empty).
 abstract final class KnobArcGeometry {
   static const double start = math.pi * (5.0 / 6.0); // 150° — south-west
-  static const double sweep = math.pi * (4.0 / 3.0); // +240° clockwise → south-east
+  static const double sweep =
+      math.pi * (4.0 / 3.0); // +240° clockwise → south-east
 
   static double indicatorAngle(double value) =>
       start + value.clamp(0.0, 1.0) * sweep;
@@ -53,6 +57,12 @@ class RotaryKnob extends StatefulWidget {
     this.accentColor = const Color(0xFFE8A54B),
     this.modulationActive = false,
     this.modulationAmount = 0.0,
+    this.modulatorPolarity = ModulatorPolarity.bipolar,
+    this.polarityParamId,
+    this.deviceId,
+    this.lfos = const [],
+    this.modEdges = const [],
+    this.connectModeLfoId,
     this.connectModeActive = false,
     this.onModulationAssign,
     this.linkModeActive = false,
@@ -72,7 +82,14 @@ class RotaryKnob extends StatefulWidget {
   final Color accentColor;
   final bool modulationActive;
   final double modulationAmount;
+  final ModulatorPolarity modulatorPolarity;
+  final String? polarityParamId;
+  final String? deviceId;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
+  final int? connectModeLfoId;
   final bool connectModeActive;
+
   /// Called in connect mode after a long-press drag gesture completes.
   /// The [double] is the modulation amount (-1.0 to 1.0).
   final ValueChanged<double>? onModulationAssign;
@@ -120,7 +137,8 @@ class _RotaryKnobState extends State<RotaryKnob>
   void didUpdateWidget(covariant RotaryKnob oldWidget) {
     super.didUpdateWidget(oldWidget);
     final pulseActive = widget.connectModeActive || widget.linkModeActive;
-    final oldPulseActive = oldWidget.connectModeActive || oldWidget.linkModeActive;
+    final oldPulseActive =
+        oldWidget.connectModeActive || oldWidget.linkModeActive;
     if (pulseActive && !oldPulseActive) {
       _pulseController.repeat(reverse: true);
     } else if (!pulseActive && oldPulseActive) {
@@ -216,7 +234,19 @@ class _RotaryKnobState extends State<RotaryKnob>
     final pulseAccent =
         widget.linkModeActive ? widget.linkModeAccent : widget.accentColor;
     final showConnectPulse =
-        (widget.connectModeActive || widget.linkModeActive) && _highlightsVisible;
+        (widget.connectModeActive || widget.linkModeActive) &&
+            _highlightsVisible;
+    final effectivePolarity =
+        widget.polarityParamId != null && widget.deviceId != null
+            ? modulatorPolarityForParam(
+                paramId: widget.polarityParamId!,
+                deviceId: widget.deviceId!,
+                modEdges: widget.modEdges,
+                lfos: widget.lfos,
+                connectModeLfoId:
+                    widget.connectModeActive ? widget.connectModeLfoId : null,
+              )
+            : widget.modulatorPolarity;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -232,8 +262,7 @@ class _RotaryKnobState extends State<RotaryKnob>
           onLongPress: widget.linkModeActive || !widget.connectModeActive
               ? _onLongPress
               : null,
-          onLongPressStart:
-              widget.connectModeActive ? _onLongPressStart : null,
+          onLongPressStart: widget.connectModeActive ? _onLongPressStart : null,
           onLongPressMoveUpdate:
               widget.connectModeActive ? _onLongPressMoveUpdate : null,
           onLongPressEnd: widget.connectModeActive ? _onLongPressEnd : null,
@@ -252,8 +281,8 @@ class _RotaryKnobState extends State<RotaryKnob>
                 return CustomPaint(
                   painter: showGlow
                       ? _BackgroundGlowPainter(
-                          glowColor: pulseAccent
-                              .withValues(alpha: _pulseAnimation.value),
+                          glowColor: pulseAccent.withValues(
+                              alpha: _pulseAnimation.value),
                           borderRadius: 8,
                           center: KnobArcGeometry.visualCenterInCenteredHost(
                             knobSize: widget.size,
@@ -277,6 +306,7 @@ class _RotaryKnobState extends State<RotaryKnob>
                             strokeWidth: stroke,
                             modulationActive: widget.modulationActive,
                             modulationAmount: widget.modulationAmount,
+                            modulatorPolarity: effectivePolarity,
                             connectModeActive: showConnectPulse,
                             assignmentMode: _assignmentMode,
                             assignmentAmount: _assignmentAmount,
@@ -357,6 +387,7 @@ class _KnobPainter extends CustomPainter {
     this.strokeWidth = 3,
     this.modulationActive = false,
     this.modulationAmount = 0.0,
+    this.modulatorPolarity = ModulatorPolarity.bipolar,
     this.connectModeActive = false,
     this.assignmentMode = false,
     this.assignmentAmount = 0.0,
@@ -368,6 +399,7 @@ class _KnobPainter extends CustomPainter {
   final double strokeWidth;
   final bool modulationActive;
   final double modulationAmount;
+  final ModulatorPolarity modulatorPolarity;
   final bool connectModeActive;
   final bool assignmentMode;
   final double assignmentAmount;
@@ -409,13 +441,16 @@ class _KnobPainter extends CustomPainter {
       arcPaint,
     );
 
-    // --- Modulation range arc (centered on current value) ---
+    // --- Modulation range arc (directional per modulator polarity) ---
     if (modulationActive && modulationAmount != 0.0) {
-      final modLow = (value - modulationAmount.abs()).clamp(0.0, 1.0);
-      final modHigh = (value + modulationAmount.abs()).clamp(0.0, 1.0);
-      final modStartAngle = KnobArcGeometry.indicatorAngle(modLow);
+      final range = modulationKnobRange(
+        polarity: modulatorPolarity,
+        value: value,
+        amount: modulationAmount,
+      );
+      final modStartAngle = KnobArcGeometry.indicatorAngle(range.low);
       final modSweepAngle =
-          KnobArcGeometry.indicatorAngle(modHigh) - modStartAngle;
+          KnobArcGeometry.indicatorAngle(range.high) - modStartAngle;
 
       final modRect = connectModeActive
           ? Rect.fromCircle(center: center, radius: radius + strokeWidth)
@@ -432,11 +467,13 @@ class _KnobPainter extends CustomPainter {
 
     // --- Assignment arc (connect-mode long-press drag visual) ---
     if (assignmentMode && assignmentAmount != 0.0) {
-      final target = (value + assignmentAmount).clamp(0.0, 1.0);
-      final fromAngle = KnobArcGeometry.indicatorAngle(value);
-      final toAngle = KnobArcGeometry.indicatorAngle(target);
-      final startA = math.min(fromAngle, toAngle);
-      final sweepA = (toAngle - fromAngle).abs();
+      final range = modulationKnobRange(
+        polarity: modulatorPolarity,
+        value: value,
+        amount: assignmentAmount,
+      );
+      final startA = KnobArcGeometry.indicatorAngle(range.low);
+      final sweepA = KnobArcGeometry.indicatorAngle(range.high) - startA;
 
       final assignRect = Rect.fromCircle(
         center: center,
@@ -469,6 +506,7 @@ class _KnobPainter extends CustomPainter {
         oldDelegate.angle != angle ||
         oldDelegate.modulationActive != modulationActive ||
         oldDelegate.modulationAmount != modulationAmount ||
+        oldDelegate.modulatorPolarity != modulatorPolarity ||
         oldDelegate.connectModeActive != connectModeActive ||
         oldDelegate.assignmentMode != assignmentMode ||
         oldDelegate.assignmentAmount != assignmentAmount;

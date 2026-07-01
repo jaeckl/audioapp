@@ -8,6 +8,9 @@ import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
 import 'filter_preview.dart';
+import 'panels/device_panel_theme.dart';
+import 'panels/device_section_card.dart';
+import 'panels/filter_mode_selector.dart';
 import 'rotary_knob.dart';
 import 'sampler_device_panel.dart';
 import 'sampler_envelope_preview.dart';
@@ -384,21 +387,18 @@ class _WavetableSynthDevicePanelState extends State<WavetableSynthDevicePanel> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(
+              DevicePreviewFrame(
                 height: previewHeight,
-                child: _panelBox(
-                  padding: EdgeInsets.zero,
-                  child: FilterPreview(
-                    cutoffHz: _filterCutoffHz(widget.device.filterCutoff),
-                    q: _filterQ(widget.device.filterResonance),
-                    mode: _filterPreviewMode(mode),
-                    accent: WavetableSynthDevicePanel.accent,
-                  ),
+                child: FilterPreview(
+                  cutoffHz: _filterCutoffHz(widget.device.filterCutoff),
+                  q: _filterQ(widget.device.filterResonance),
+                  mode: _filterPreviewMode(mode),
+                  accent: WavetableSynthDevicePanel.accent,
                 ),
               ),
               const SizedBox(height: 6),
               Expanded(
-                child: _panelBox(
+                child: DeviceSectionCard(
                   padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -406,17 +406,14 @@ class _WavetableSynthDevicePanelState extends State<WavetableSynthDevicePanel> {
                       const Text(
                         'FILTER',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white30,
-                          fontSize: 8,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.8,
-                        ),
+                        style: DevicePanelTheme.sectionLabel,
                       ),
                       const SizedBox(height: 4),
-                      SizedBox(
-                        height: 24,
-                        child: _filterModeButtons(mode),
+                      FilterModeSelector(
+                        selectedIndex: mode,
+                        accentColor: WavetableSynthDevicePanel.accent,
+                        onSelected: (index) =>
+                            widget.onParameterChanged('filterMode', index.toDouble()),
                       ),
                       const SizedBox(height: 5),
                       Expanded(
@@ -464,43 +461,6 @@ class _WavetableSynthDevicePanelState extends State<WavetableSynthDevicePanel> {
                 ),
               ),
             ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _filterModeButtons(int mode) {
-    return Row(
-      children: List.generate(
-        WavetableSynthDevicePanel._filterTypes.length,
-        (i) {
-          final active = mode == i;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => widget.onParameterChanged('filterMode', i.toDouble()),
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 1),
-                decoration: BoxDecoration(
-                  color: active
-                      ? WavetableSynthDevicePanel.accent.withValues(alpha: 0.2)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Center(
-                  child: Text(
-                    WavetableSynthDevicePanel._filterTypes[i],
-                    style: TextStyle(
-                      color: active
-                          ? WavetableSynthDevicePanel.accent
-                          : Colors.white38,
-                      fontSize: 9,
-                      fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ),
-            ),
           );
         },
       ),

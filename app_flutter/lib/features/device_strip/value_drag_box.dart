@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../bridge/project_snapshot.dart';
 import 'device_automation_spinner.dart';
-import 'modulator_polarity.dart';
 
 /// Reusable compact value-drag box.
 ///
@@ -39,6 +39,9 @@ class ValueDragBox extends StatelessWidget {
     required this.onAutomationLinkTap,
     required this.onAutomateParameter,
     required this.onChanged,
+    this.deviceId,
+    this.lfos = const [],
+    this.modEdges = const [],
     this.resetIndex = 0,
     this.dragPixelsPerStep = 12,
     this.borderAlpha = 0.4,
@@ -72,6 +75,9 @@ class ValueDragBox extends StatelessWidget {
   final ValueChanged<String>? onAutomationLinkTap;
   final ValueChanged<String>? onAutomateParameter;
   final ValueChanged<double> onChanged;
+  final String? deviceId;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
 
   /// Index used when the user double-taps the box. Defaults to 0.
   final int resetIndex;
@@ -158,7 +164,9 @@ class ValueDragBox extends StatelessWidget {
           modulatedParams: modulatedParams,
           automatedParams: automatedParams,
           modulationAmounts: modulationAmounts,
-          modulatorPolarity: ModulatorPolarity.bipolar,
+          lfos: lfos,
+          modEdges: modEdges,
+          deviceId: deviceId,
           connectModeLfoId: connectModeLfoId,
           onModulationAssign: onModulationAssign,
           automationLinkActive: automationLinkActive,

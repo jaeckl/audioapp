@@ -7,9 +7,13 @@ import '../sample_library/sample_library_screen.dart';
 import 'device_automation_knob.dart';
 import 'device_knob_sizes.dart';
 import 'device_tab_bar.dart' show DeviceTabSpec;
+import 'filter_preview.dart';
 import 'modulator_polarity.dart';
+import 'panels/device_panel_theme.dart';
+import 'panels/device_section_card.dart';
+import 'panels/device_param_formatters.dart';
+import 'panels/filter_mode_selector.dart';
 import 'sampler_envelope_preview.dart';
-import 'sampler_filter_mode_icons.dart';
 import 'sampler_waveform_view.dart';
 
 /// Layout density for sampler controls.
@@ -486,58 +490,80 @@ class _ToneTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final modeIndex = device.filterMode.clamp(0, 3);
     final maxFilterKnob = editor ? DeviceKnobSizes.editor : DeviceKnobSizes.strip;
-    final leftWidth = editor ? 88.0 : 78.0;
+    final filterKnob = maxFilterKnob * 0.76;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(
-          width: leftWidth,
-          child: _toneCell(
-            padding: const EdgeInsets.fromLTRB(4, 2, 4, 2),
+        Expanded(
+          flex: 4,
+          child: DeviceSectionCard(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  flex: 5,
-                  child: SamplerFilterModeBar(
-                    selectedIndex: modeIndex,
-                    accentColor: SamplerDevicePanel.accent,
-                    onSelected: (index) => onParameterChanged('filterMode', index.toDouble()),
+                const Text(
+                  'FILTER',
+                  textAlign: TextAlign.center,
+                  style: DevicePanelTheme.sectionLabel,
+                ),
+                const SizedBox(height: 4),
+                DevicePreviewFrame(
+                  height: DevicePanelTheme.previewStripHeight,
+                  child: FilterPreview(
+                    cutoffHz: DeviceParamFormatters.cutoffHzFromNormalized(
+                      device.filterCutoff,
+                    ),
+                    q: DeviceParamFormatters.qFromNormalized(device.filterQ),
+                    mode: _filterPreviewMode(modeIndex),
+                    accent: SamplerDevicePanel.accent,
                   ),
                 ),
-                Expanded(
-                  flex: 4,
-                  child: _filterKnobSlot(
-                    maxKnob: maxFilterKnob,
-                    label: 'Cutoff',
-                    paramId: 'filterCutoff',
-                    value: device.filterCutoff,
-                    displayValue: SamplerDevicePanel.formatCutoffHz(device.filterCutoff),
-                    onChanged: (v) => onParameterChanged('filterCutoff', v),
-                  ),
+                const SizedBox(height: 4),
+                FilterModeSelector(
+                  selectedIndex: modeIndex,
+                  accentColor: SamplerDevicePanel.accent,
+                  onSelected: (index) =>
+                      onParameterChanged('filterMode', index.toDouble()),
                 ),
+                const SizedBox(height: 4),
                 Expanded(
-                  flex: 4,
-                  child: _filterKnobSlot(
-                    maxKnob: maxFilterKnob,
-                    label: 'Res',
-                    paramId: 'filterQ',
-                    value: device.filterQ,
-                    displayValue: SamplerDevicePanel.formatQ(device.filterQ),
-                    onChanged: (v) => onParameterChanged('filterQ', v),
-                  ),
-                ),
-                Expanded(
-                  flex: 4,
-                  child: _filterKnobSlot(
-                    maxKnob: maxFilterKnob,
-                    label: 'FEG',
-                    paramId: 'filterEnvAmount',
-                    value: device.filterEnvAmount,
-                    displayValue: SamplerDevicePanel.formatPercent(device.filterEnvAmount),
-                    onChanged: (v) => onParameterChanged('filterEnvAmount', v),
-                    accentColor: SamplerDevicePanel.wave,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _filterKnobSlot(
+                          maxKnob: filterKnob,
+                          label: 'Cutoff',
+                          paramId: 'filterCutoff',
+                          value: device.filterCutoff,
+                          displayValue: SamplerDevicePanel.formatCutoffHz(device.filterCutoff),
+                          onChanged: (v) => onParameterChanged('filterCutoff', v),
+                        ),
+                      ),
+                      Expanded(
+                        child: _filterKnobSlot(
+                          maxKnob: filterKnob,
+                          label: 'Res',
+                          paramId: 'filterQ',
+                          value: device.filterQ,
+                          displayValue: SamplerDevicePanel.formatQ(device.filterQ),
+                          onChanged: (v) => onParameterChanged('filterQ', v),
+                        ),
+                      ),
+                      Expanded(
+                        child: _filterKnobSlot(
+                          maxKnob: filterKnob,
+                          label: 'FEG',
+                          paramId: 'filterEnvAmount',
+                          value: device.filterEnvAmount,
+                          displayValue: SamplerDevicePanel.formatPercent(device.filterEnvAmount),
+                          onChanged: (v) => onParameterChanged('filterEnvAmount', v),
+                          accentColor: SamplerDevicePanel.wave,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -546,6 +572,7 @@ class _ToneTab extends StatelessWidget {
         ),
         const SizedBox(width: 4),
         Expanded(
+          flex: 5,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -589,6 +616,19 @@ class _ToneTab extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  FilterPreviewMode _filterPreviewMode(int mode) {
+    switch (mode) {
+      case 1:
+        return FilterPreviewMode.highPass;
+      case 2:
+        return FilterPreviewMode.bandPass;
+      case 3:
+        return FilterPreviewMode.notch;
+      default:
+        return FilterPreviewMode.lowPass;
+    }
   }
 
   Widget _filterKnobSlot({

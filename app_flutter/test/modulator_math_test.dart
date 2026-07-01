@@ -137,4 +137,38 @@ void main() {
       expect(asym, isNot(closeTo(sym, 1e-10)));
     });
   });
+
+  group('envelope preview timing', () {
+    test('cycle matches segment sum for ADR', () {
+      const mod = LfoSnapshot(
+        id: 1,
+        type: 'envelope',
+        attack: 0.25,
+        decay: 0.25,
+        release: 0.25,
+        curveType: 2,
+      );
+      final cycle = ModulatorMath.envelopeCycleSeconds(mod, includeSustain: false);
+      expect(cycle, closeTo(3.04, 0.01));
+    });
+
+    test('phase dot uses elapsed envelope seconds not beat sync', () {
+      const mod = LfoSnapshot(
+        id: 1,
+        type: 'envelope',
+        attack: 0.5,
+        decay: 0.5,
+        release: 0.5,
+        curveType: 2,
+      );
+      final dot = ModulatorMath.phaseDot(
+        mod: mod,
+        playheadBeat: 4.0,
+        bpm: 120,
+        elapsedSeconds: 1.0,
+      );
+      expect(dot.y, greaterThan(0.0));
+      expect(dot.x, inInclusiveRange(0.0, 1.0));
+    });
+  });
 }

@@ -4,6 +4,7 @@ import '../../bridge/project_snapshot.dart';
 import 'device_strip_metrics.dart';
 import 'device_tab_bar.dart';
 import 'dynamics_envelope_preview.dart';
+import 'panels/compact_fx_layout.dart';
 import 'rotary_knob.dart';
 
 enum GateDeviceTab { detect, time, range }
@@ -27,6 +28,9 @@ class _DynamicsKnob extends StatelessWidget {
     required this.automatedParams,
     required this.modulationAmounts,
     required this.connectModeLfoId,
+    required this.deviceId,
+    required this.lfos,
+    required this.modEdges,
     required this.onModulationAssign,
     required this.automationLinkActive,
     required this.onAutomationLinkTap,
@@ -43,6 +47,9 @@ class _DynamicsKnob extends StatelessWidget {
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
+  final String deviceId;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
   final DynamicsModulationAssign onModulationAssign;
   final bool automationLinkActive;
   final ValueChanged<String>? onAutomationLinkTap;
@@ -61,6 +68,11 @@ class _DynamicsKnob extends StatelessWidget {
       modulationActive: modulatedParams.contains(paramId),
       automationActive: automatedParams.contains(paramId),
       modulationAmount: modulationAmounts[paramId] ?? 0.0,
+      polarityParamId: paramId,
+      deviceId: deviceId,
+      lfos: lfos,
+      modEdges: modEdges,
+      connectModeLfoId: connectModeLfoId,
       connectModeActive: connectModeLfoId != null,
       onModulationAssign:
           onModulationAssign != null ? (amount) => onModulationAssign!(paramId, amount) : null,
@@ -73,17 +85,6 @@ class _DynamicsKnob extends StatelessWidget {
   }
 }
 
-Widget _previewBox(Widget child) {
-  return DecoratedBox(
-    decoration: BoxDecoration(
-      color: const Color(0xFF0E0E14),
-      borderRadius: BorderRadius.circular(6),
-      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-    ),
-    child: ClipRRect(borderRadius: BorderRadius.circular(6), child: child),
-  );
-}
-
 _DynamicsKnob _knob({
   required String label,
   required double value,
@@ -94,6 +95,9 @@ _DynamicsKnob _knob({
   required Set<String> automatedParams,
   required Map<String, double> modulationAmounts,
   required int? connectModeLfoId,
+  required String deviceId,
+  required List<LfoSnapshot> lfos,
+  required List<ModulationEdgeSnapshot> modEdges,
   required DynamicsModulationAssign onModulationAssign,
   required bool automationLinkActive,
   required ValueChanged<String>? onAutomationLinkTap,
@@ -110,6 +114,9 @@ _DynamicsKnob _knob({
             automatedParams: automatedParams,
     modulationAmounts: modulationAmounts,
     connectModeLfoId: connectModeLfoId,
+    deviceId: deviceId,
+    lfos: lfos,
+    modEdges: modEdges,
     onModulationAssign: onModulationAssign,
     automationLinkActive: automationLinkActive,
     onAutomationLinkTap: onAutomationLinkTap,
@@ -122,47 +129,15 @@ Widget _dynamicsSinglePage({
   required Widget preview,
   required List<Widget> rows,
 }) {
-  final hPad = DeviceStripMetrics.dynamicsFxPanelPaddingH / 2;
-  return Padding(
-    padding: EdgeInsets.fromLTRB(hPad, 6, hPad, 4),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(child: _previewBox(preview)),
-        const SizedBox(height: 8),
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (var i = 0; i < rows.length; i++) ...[
-              if (i > 0) const SizedBox(height: _dynamicsKnobRowGap),
-              rows[i],
-            ],
-          ],
-        ),
-      ],
-    ),
+  return CompactFxPage(
+    preview: preview,
+    expandPreview: true,
+    rows: rows,
+    knobRowGap: _dynamicsKnobRowGap,
   );
 }
 
-Widget _knobGridRow(List<_DynamicsKnob?> slots) {
-  assert(slots.length == 3);
-  return Row(
-    mainAxisSize: MainAxisSize.min,
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      for (var i = 0; i < slots.length; i++) ...[
-        if (i > 0) const SizedBox(width: DeviceStripMetrics.dynamicsFxKnobGap),
-        SizedBox(
-          width: DeviceStripMetrics.dynamicsFxKnobColumnWidth,
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: slots[i],
-          ),
-        ),
-      ],
-    ],
-  );
-}
+Widget _knobGridRow(List<_DynamicsKnob?> slots) => compactFxKnobGridRow(slots);
 
 class GateDevicePanel extends StatelessWidget {
   const GateDevicePanel({
@@ -173,6 +148,8 @@ class GateDevicePanel extends StatelessWidget {
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
+    this.lfos = const [],
+    this.modEdges = const [],
     this.connectModeLfoId,
     this.onModulationAssign,
     this.automationLinkActive = false,
@@ -193,6 +170,8 @@ class GateDevicePanel extends StatelessWidget {
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
   final DynamicsModulationAssign onModulationAssign;
   final bool automationLinkActive;
   final ValueChanged<String>? onAutomationLinkTap;
@@ -217,6 +196,9 @@ class GateDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -233,6 +215,9 @@ class GateDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -249,6 +234,9 @@ class GateDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -267,6 +255,9 @@ class GateDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -283,6 +274,9 @@ class GateDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -305,6 +299,8 @@ class GateDeviceStrip extends StatelessWidget {
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
+    this.lfos = const [],
+    this.modEdges = const [],
     this.connectModeLfoId,
     this.onModulationAssign,
     this.automationLinkActive = false,
@@ -318,6 +314,8 @@ class GateDeviceStrip extends StatelessWidget {
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
   final DynamicsModulationAssign onModulationAssign;
   final bool automationLinkActive;
   final ValueChanged<String>? onAutomationLinkTap;
@@ -330,6 +328,8 @@ class GateDeviceStrip extends StatelessWidget {
         modulatedParams: modulatedParams,
             automatedParams: automatedParams,
         modulationAmounts: modulationAmounts,
+        lfos: lfos,
+        modEdges: modEdges,
         connectModeLfoId: connectModeLfoId,
         onModulationAssign: onModulationAssign,
         automationLinkActive: automationLinkActive,
@@ -347,6 +347,8 @@ class CompressorDevicePanel extends StatelessWidget {
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
+    this.lfos = const [],
+    this.modEdges = const [],
     this.connectModeLfoId,
     this.onModulationAssign,
     this.automationLinkActive = false,
@@ -365,6 +367,8 @@ class CompressorDevicePanel extends StatelessWidget {
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
   final DynamicsModulationAssign onModulationAssign;
   final bool automationLinkActive;
   final ValueChanged<String>? onAutomationLinkTap;
@@ -391,6 +395,9 @@ class CompressorDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -407,6 +414,9 @@ class CompressorDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -423,6 +433,9 @@ class CompressorDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -441,6 +454,9 @@ class CompressorDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -457,6 +473,9 @@ class CompressorDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -473,6 +492,9 @@ class CompressorDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -494,6 +516,8 @@ class CompressorDeviceStrip extends StatelessWidget {
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
+    this.lfos = const [],
+    this.modEdges = const [],
     this.connectModeLfoId,
     this.onModulationAssign,
     this.automationLinkActive = false,
@@ -507,6 +531,8 @@ class CompressorDeviceStrip extends StatelessWidget {
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
   final DynamicsModulationAssign onModulationAssign;
   final bool automationLinkActive;
   final ValueChanged<String>? onAutomationLinkTap;
@@ -519,6 +545,8 @@ class CompressorDeviceStrip extends StatelessWidget {
         modulatedParams: modulatedParams,
             automatedParams: automatedParams,
         modulationAmounts: modulationAmounts,
+        lfos: lfos,
+        modEdges: modEdges,
         connectModeLfoId: connectModeLfoId,
         onModulationAssign: onModulationAssign,
         automationLinkActive: automationLinkActive,
@@ -536,6 +564,8 @@ class ExpanderDevicePanel extends StatelessWidget {
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
+    this.lfos = const [],
+    this.modEdges = const [],
     this.connectModeLfoId,
     this.onModulationAssign,
     this.automationLinkActive = false,
@@ -554,6 +584,8 @@ class ExpanderDevicePanel extends StatelessWidget {
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
   final DynamicsModulationAssign onModulationAssign;
   final bool automationLinkActive;
   final ValueChanged<String>? onAutomationLinkTap;
@@ -580,6 +612,9 @@ class ExpanderDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -596,6 +631,9 @@ class ExpanderDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -612,6 +650,9 @@ class ExpanderDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -630,6 +671,9 @@ class ExpanderDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -646,6 +690,9 @@ class ExpanderDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -668,6 +715,8 @@ class ExpanderDeviceStrip extends StatelessWidget {
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
+    this.lfos = const [],
+    this.modEdges = const [],
     this.connectModeLfoId,
     this.onModulationAssign,
     this.automationLinkActive = false,
@@ -681,6 +730,8 @@ class ExpanderDeviceStrip extends StatelessWidget {
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
   final DynamicsModulationAssign onModulationAssign;
   final bool automationLinkActive;
   final ValueChanged<String>? onAutomationLinkTap;
@@ -693,6 +744,8 @@ class ExpanderDeviceStrip extends StatelessWidget {
         modulatedParams: modulatedParams,
             automatedParams: automatedParams,
         modulationAmounts: modulationAmounts,
+        lfos: lfos,
+        modEdges: modEdges,
         connectModeLfoId: connectModeLfoId,
         onModulationAssign: onModulationAssign,
         automationLinkActive: automationLinkActive,
@@ -710,6 +763,8 @@ class LimiterDevicePanel extends StatelessWidget {
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
+    this.lfos = const [],
+    this.modEdges = const [],
     this.connectModeLfoId,
     this.onModulationAssign,
     this.automationLinkActive = false,
@@ -728,6 +783,8 @@ class LimiterDevicePanel extends StatelessWidget {
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
   final DynamicsModulationAssign onModulationAssign;
   final bool automationLinkActive;
   final ValueChanged<String>? onAutomationLinkTap;
@@ -754,6 +811,9 @@ class LimiterDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -770,6 +830,9 @@ class LimiterDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -786,6 +849,9 @@ class LimiterDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -804,6 +870,9 @@ class LimiterDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -820,6 +889,9 @@ class LimiterDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -836,6 +908,9 @@ class LimiterDevicePanel extends StatelessWidget {
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
             connectModeLfoId: connectModeLfoId,
+            deviceId: device.id,
+            lfos: lfos,
+            modEdges: modEdges,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
@@ -857,6 +932,8 @@ class LimiterDeviceStrip extends StatelessWidget {
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
+    this.lfos = const [],
+    this.modEdges = const [],
     this.connectModeLfoId,
     this.onModulationAssign,
     this.automationLinkActive = false,
@@ -870,6 +947,8 @@ class LimiterDeviceStrip extends StatelessWidget {
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
   final int? connectModeLfoId;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
   final DynamicsModulationAssign onModulationAssign;
   final bool automationLinkActive;
   final ValueChanged<String>? onAutomationLinkTap;
@@ -882,6 +961,8 @@ class LimiterDeviceStrip extends StatelessWidget {
         modulatedParams: modulatedParams,
             automatedParams: automatedParams,
         modulationAmounts: modulationAmounts,
+        lfos: lfos,
+        modEdges: modEdges,
         connectModeLfoId: connectModeLfoId,
         onModulationAssign: onModulationAssign,
         automationLinkActive: automationLinkActive,

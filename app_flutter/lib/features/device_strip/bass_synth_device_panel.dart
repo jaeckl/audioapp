@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
@@ -7,6 +5,10 @@ import 'device_automation_spinner.dart';
 import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
+import 'filter_preview.dart';
+import 'panels/device_panel_theme.dart';
+import 'panels/device_section_card.dart';
+import 'panels/device_param_formatters.dart';
 import 'rotary_knob.dart';
 import 'sampler_device_panel.dart';
 import 'sampler_envelope_preview.dart';
@@ -402,25 +404,29 @@ class _BassSynthDevicePanelState extends State<BassSynthDevicePanel> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _sectionLabel('FILTER CURVE'),
+                  Text('FILTER CURVE', style: DevicePanelTheme.sectionLabel),
                   Expanded(
                     flex: 4,
-                    child: _panelBox(
-                      color: const Color(0xFF16161E),
-                      padding: const EdgeInsets.all(2),
-                      child: _FilterCurvePreview(
-                        cutoff: widget.device.filterCutoff,
-                        resonance: widget.device.bassFilterResonance,
+                    child: DeviceSectionCard(
+                      clipPreview: true,
+                      padding: EdgeInsets.zero,
+                      child: FilterPreview(
+                        cutoffHz: DeviceParamFormatters.cutoffHzFromNormalized(
+                          widget.device.filterCutoff,
+                        ),
+                        q: DeviceParamFormatters.qFromNormalized(
+                          widget.device.bassFilterResonance,
+                        ),
+                        mode: FilterPreviewMode.lowPass,
                         accent: BassSynthDevicePanel.accent,
                       ),
                     ),
                   ),
                   const SizedBox(height: 6),
-                  _sectionLabel('FILTER'),
+                  Text('FILTER', style: DevicePanelTheme.sectionLabel),
                   Expanded(
                     flex: 5,
-                    child: _panelBox(
-                      color: const Color(0xFF1A1A24),
+                    child: DeviceSectionCard(
                       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -643,163 +649,3 @@ class _StepButton extends StatelessWidget {
   }
 }
 
-// ── Filter curve preview ──────────────────────────────────────
-//
-// Shows a low-pass filter response with resonance peak at cutoff.
-class _FilterCurvePreview extends StatelessWidget {
-  const _FilterCurvePreview({
-    required this.cutoff,
-    required this.resonance,
-    required this.accent,
-  });
-
-  final double cutoff;
-  final double resonance;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _FilterCurvePainter(
-        cutoff: cutoff,
-        resonance: resonance,
-        accent: accent,
-      ),
-      child: const SizedBox.expand(),
-    );
-  }
-}
-
-class _FilterCurvePainter extends CustomPainter {
-  _FilterCurvePainter({
-    required this.cutoff,
-    required this.resonance,
-    required this.accent,
-  });
-
-  final double cutoff;
-  final double resonance;
-  final Color accent;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final h = size.height;
-    final w = size.width;
-    const pad = 4.0;
-    final plotH = h - pad * 2;
-    final plotW = w - pad * 2;
-
-    // Background
-    canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFF0E0E14));
-
-    // Grid lines
-    final gridPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.04)
-      ..strokeWidth = 1;
-    for (var i = 1; i < 4; i++) {
-      final y = h * i / 4;
-      canvas.drawLine(Offset(pad, y), Offset(w - pad, y), gridPaint);
-    }
-
-    // Normalized cutoff position along x-axis (0..1 mapped to log-ish scale)
-    final cx = pad + math.min(cutoff, 0.999) * plotW;
-
-    // Draw the filter curve path
-    final path = Path();
-    final steps = 64;
-    for (var i = 0; i <= steps; i++) {
-      final t = i / steps;
-      final x = pad + t * plotW;
-
-      // Simple LP12 response approximation:
-      // - Flat passband (gain ≈ 1) for x < cutoff
-      // - 12dB/oct rolloff after cutoff: gain ~ (cutoff/x)^2
-      // - Resonance peak at cutoff
-      final relCutoff = cutoff.clamp(0.01, 0.999);
-      final normFreq = t.clamp(0.001, 0.999);
-      final ratio = normFreq / relCutoff;
-
-      // Simple resonant LP response
-      final q = 0.5 + resonance * 3.0; // Q range 0.5–3.5
-      final peakGain = q > 0.5 ? 1.0 + (q - 0.5) * 0.8 : 1.0;
-      double gain;
-      if (ratio < 1.0) {
-        // Passband — resonance peak at cutoff
-        gain = peakGain * (1.0 - (1.0 - ratio) * (1.0 - ratio) * 0.5);
-      } else {
-        // Rolloff — 12dB/oct ~ (1/ratio)^2
-        gain = (1.0 / (ratio * ratio)).clamp(0.0, 1.0);
-      }
-      gain = gain.clamp(0.0, 1.0);
-
-      final y = pad + plotH - gain * plotH;
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-
-    // Draw the curve
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = accent
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2
-        ..strokeCap = StrokeCap.round,
-    );
-
-    // Fill under the curve
-    final fillPath = Path.from(path)
-      ..lineTo(pad + plotW, pad + plotH)
-      ..lineTo(pad, pad + plotH)
-      ..close();
-    canvas.drawPath(
-      fillPath,
-      Paint()..color = accent.withValues(alpha: 0.08),
-    );
-
-    // Resonance marker at cutoff position
-    if (resonance > 0.05) {
-      final peakH = pad + plotH - (1.0 + resonance * 0.4).clamp(0.0, 1.0) * plotH;
-      canvas.drawCircle(
-        Offset(cx, peakH),
-        3,
-        Paint()
-          ..color = accent
-          ..style = PaintingStyle.fill,
-      );
-      canvas.drawCircle(
-        Offset(cx, peakH),
-        5,
-        Paint()
-          ..color = accent.withValues(alpha: 0.3)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5,
-      );
-    }
-
-    // Cutoff label
-    final labelPainter = TextPainter(
-      text: TextSpan(
-        text: 'LP12',
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.15),
-          fontSize: 8,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.0,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    labelPainter.paint(canvas, const Offset(pad + 4, pad + 3));
-  }
-
-  @override
-  bool shouldRepaint(covariant _FilterCurvePainter oldDelegate) {
-    return oldDelegate.cutoff != cutoff ||
-        oldDelegate.resonance != resonance ||
-        oldDelegate.accent != accent;
-  }
-}

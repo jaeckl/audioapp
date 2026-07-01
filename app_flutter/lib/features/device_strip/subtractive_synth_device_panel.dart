@@ -6,6 +6,9 @@ import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
 import 'draggable_int_value_box.dart';
+import 'panels/device_panel_theme.dart';
+import 'panels/device_section_card.dart';
+import 'panels/filter_mode_selector.dart';
 import 'rotary_knob.dart';
 import 'sampler_device_panel.dart';
 import 'subtractive_filter_preview.dart';
@@ -39,6 +42,8 @@ class SubtractiveSynthDevicePanel extends StatefulWidget {
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
+    this.lfos = const [],
+    this.modEdges = const [],
     this.connectModeLfoId,
     this.onModulationAssign,
     this.automationLinkActive = false,
@@ -57,6 +62,8 @@ class SubtractiveSynthDevicePanel extends StatefulWidget {
   final Set<String> modulatedParams;
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
   final bool automationLinkActive;
@@ -122,6 +129,11 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
       modulationActive: paramId != null && widget.modulatedParams.contains(paramId),
       automationActive: paramId != null && widget.automatedParams.contains(paramId),
       modulationAmount: modAmount,
+      polarityParamId: paramId,
+      deviceId: widget.device.id,
+      lfos: widget.lfos,
+      modEdges: widget.modEdges,
+      connectModeLfoId: connectModeLfoId,
       connectModeActive: paramId != null && connectModeLfoId != null,
       onModulationAssign: paramId != null && onModulationAssign != null
           ? (a) => onModulationAssign(paramId, a)
@@ -878,10 +890,9 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
-            height: 28,
-            child: _panelBox(
-              variant: PanelVariant.screen,
-              padding: EdgeInsets.zero,
+            height: DevicePanelTheme.previewStripHeight,
+            child: DevicePreviewFrame(
+              height: DevicePanelTheme.previewStripHeight,
               child: SubtractiveFilterPreview(
                 filterMode: mode,
                 filterCutoff: widget.device.filterCutoff,
@@ -899,137 +910,112 @@ class _SubtractiveSynthDevicePanelState extends State<SubtractiveSynthDevicePane
                   child: _panelBox(
                     variant: PanelVariant.elevated,
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                    child: Stack(
-                      clipBehavior: Clip.none,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const Text(
-                              'FILTER',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Colors.white30,
-                                fontSize: 8,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.8,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Expanded(
-                              child: Column(
+                        const Text(
+                          'FILTER',
+                          textAlign: TextAlign.center,
+                          style: DevicePanelTheme.sectionLabel,
+                        ),
+                        const SizedBox(height: 4),
+                        FilterModeSelector(
+                          selectedIndex: mode,
+                          accentColor: SubtractiveSynthDevicePanel.accent,
+                          overflowOptions: const [
+                            FilterModeOverflowOption(index: 4, label: 'FB'),
+                            FilterModeOverflowOption(index: 5, label: 'LP 24'),
+                          ],
+                          onSelected: (index) =>
+                              widget.onParameterChanged('filterMode', index.toDouble()),
+                        ),
+                        const SizedBox(height: 4),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      _knob(
-                                        label: 'Cutoff',
-                                        value: widget.device.filterCutoff,
-                                        size: filterKnob,
-                                        labelGap: 1,
-                                        displayValue: SamplerDevicePanel.formatCutoffHz(
-                                          widget.device.filterCutoff,
-                                        ),
-                                        onChanged: (v) => widget.onParameterChanged('filterCutoff', v),
-                                        paramId: 'filterCutoff',
-                                        modulationAmounts: widget.modulationAmounts,
-                                        connectModeLfoId: widget.connectModeLfoId,
-                                        onModulationAssign: widget.onModulationAssign,
-                                      ),
-                                      _knob(
-                                        label: 'Res',
-                                        value: widget.device.filterQ,
-                                        size: filterKnob,
-                                        labelGap: 1,
-                                        displayValue: SamplerDevicePanel.formatQ(widget.device.filterQ),
-                                        onChanged: (v) => widget.onParameterChanged('filterQ', v),
-                                        paramId: 'filterQ',
-                                        modulationAmounts: widget.modulationAmounts,
-                                        connectModeLfoId: widget.connectModeLfoId,
-                                        onModulationAssign: widget.onModulationAssign,
-                                      ),
-                                      _knob(
-                                        label: 'Key',
-                                        value: widget.device.filterKeyTrack,
-                                        size: filterKnob,
-                                        labelGap: 1,
-                                        displayValue: SamplerDevicePanel.formatPercent(
-                                          widget.device.filterKeyTrack,
-                                        ),
-                                        onChanged: (v) =>
-                                            widget.onParameterChanged('filterKeyTrack', v),
-                                        paramId: 'filterKeyTrack',
-                                        modulationAmounts: widget.modulationAmounts,
-                                        connectModeLfoId: widget.connectModeLfoId,
-                                        onModulationAssign: widget.onModulationAssign,
-                                      ),
-                                    ],
+                                  _knob(
+                                    label: 'Cutoff',
+                                    value: widget.device.filterCutoff,
+                                    size: filterKnob,
+                                    labelGap: 1,
+                                    displayValue: SamplerDevicePanel.formatCutoffHz(
+                                      widget.device.filterCutoff,
+                                    ),
+                                    onChanged: (v) => widget.onParameterChanged('filterCutoff', v),
+                                    paramId: 'filterCutoff',
+                                    modulationAmounts: widget.modulationAmounts,
+                                    connectModeLfoId: widget.connectModeLfoId,
+                                    onModulationAssign: widget.onModulationAssign,
                                   ),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      _knob(
-                                        label: 'FEG',
-                                        value: widget.device.filterEnvAmount,
-                                        size: filterKnob,
-                                        labelGap: 1,
-                                        displayValue: SamplerDevicePanel.formatPercent(
-                                          widget.device.filterEnvAmount,
-                                        ),
-                                        onChanged: (v) =>
-                                            widget.onParameterChanged('filterEnvAmount', v),
-                                        paramId: 'filterEnvAmount',
-                                        modulationAmounts: widget.modulationAmounts,
-                                        connectModeLfoId: widget.connectModeLfoId,
-                                        onModulationAssign: widget.onModulationAssign,
-                                      ),
-                                      _knob(
-                                        label: 'FM',
-                                        value: widget.device.filterFm,
-                                        size: filterKnob,
-                                        labelGap: 1,
-                                        displayValue:
-                                            SamplerDevicePanel.formatPercent(widget.device.filterFm),
-                                        onChanged: (v) => widget.onParameterChanged('filterFm', v),
-                                        paramId: 'filterFm',
-                                        modulationAmounts: widget.modulationAmounts,
-                                        connectModeLfoId: widget.connectModeLfoId,
-                                        onModulationAssign: widget.onModulationAssign,
-                                      ),
-                                    ],
+                                  _knob(
+                                    label: 'Res',
+                                    value: widget.device.filterQ,
+                                    size: filterKnob,
+                                    labelGap: 1,
+                                    displayValue: SamplerDevicePanel.formatQ(widget.device.filterQ),
+                                    onChanged: (v) => widget.onParameterChanged('filterQ', v),
+                                    paramId: 'filterQ',
+                                    modulationAmounts: widget.modulationAmounts,
+                                    connectModeLfoId: widget.connectModeLfoId,
+                                    onModulationAssign: widget.onModulationAssign,
+                                  ),
+                                  _knob(
+                                    label: 'Key',
+                                    value: widget.device.filterKeyTrack,
+                                    size: filterKnob,
+                                    labelGap: 1,
+                                    displayValue: SamplerDevicePanel.formatPercent(
+                                      widget.device.filterKeyTrack,
+                                    ),
+                                    onChanged: (v) =>
+                                        widget.onParameterChanged('filterKeyTrack', v),
+                                    paramId: 'filterKeyTrack',
+                                    modulationAmounts: widget.modulationAmounts,
+                                    connectModeLfoId: widget.connectModeLfoId,
+                                    onModulationAssign: widget.onModulationAssign,
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
-                        ),
-                        Positioned(
-                          top: 0,
-                          left: 0,
-                          child: SizedBox(
-                            width: 58,
-                            height: 22,
-                            child: _borderlessDropdown<int>(
-                              value: mode,
-                              items: List.generate(
-                                SubtractiveSynthDevicePanel._filterTypes.length,
-                                (i) => DropdownMenuItem(
-                                  value: i,
-                                  child: Text(
-                                    SubtractiveSynthDevicePanel._filterTypes[i],
-                                    style: const TextStyle(fontSize: 9),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _knob(
+                                    label: 'FEG',
+                                    value: widget.device.filterEnvAmount,
+                                    size: filterKnob,
+                                    labelGap: 1,
+                                    displayValue: SamplerDevicePanel.formatPercent(
+                                      widget.device.filterEnvAmount,
+                                    ),
+                                    onChanged: (v) =>
+                                        widget.onParameterChanged('filterEnvAmount', v),
+                                    paramId: 'filterEnvAmount',
+                                    modulationAmounts: widget.modulationAmounts,
+                                    connectModeLfoId: widget.connectModeLfoId,
+                                    onModulationAssign: widget.onModulationAssign,
                                   ),
-                                ),
+                                  _knob(
+                                    label: 'FM',
+                                    value: widget.device.filterFm,
+                                    size: filterKnob,
+                                    labelGap: 1,
+                                    displayValue:
+                                        SamplerDevicePanel.formatPercent(widget.device.filterFm),
+                                    onChanged: (v) => widget.onParameterChanged('filterFm', v),
+                                    paramId: 'filterFm',
+                                    modulationAmounts: widget.modulationAmounts,
+                                    connectModeLfoId: widget.connectModeLfoId,
+                                    onModulationAssign: widget.onModulationAssign,
+                                  ),
+                                ],
                               ),
-                              onChanged: (v) {
-                                if (v != null) {
-                                  widget.onParameterChanged('filterMode', v.toDouble());
-                                }
-                              },
-                            ),
+                            ],
                           ),
                         ),
                       ],

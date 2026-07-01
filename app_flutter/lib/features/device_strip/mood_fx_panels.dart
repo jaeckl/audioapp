@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../bridge/device_snapshot.dart';
 import 'device_strip_metrics.dart';
 import 'device_tab_bar.dart';
+import 'panels/compact_fx_layout.dart';
 import 'rotary_knob.dart';
 
 typedef MoodFxParameterChanged = void Function(String parameterId, double value);
@@ -108,59 +109,15 @@ _MoodFxKnob _knob({
 
 // ─── Layout helpers ─────────────────────────────────────────
 
-Widget _previewBox(Widget child) {
-  return DecoratedBox(
-    decoration: BoxDecoration(
-      color: const Color(0xFF0E0E14),
-      borderRadius: BorderRadius.circular(6),
-      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-    ),
-    child: ClipRRect(borderRadius: BorderRadius.circular(6), child: child),
-  );
-}
-
 Widget _moodFxSinglePage({Widget? preview, required List<Widget> rows}) {
-  return Padding(
-    padding: const EdgeInsets.all(6),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (preview != null) ...[
-          SizedBox(
-            height: 92,
-            child: _previewBox(preview),
-          ),
-          const SizedBox(height: 8),
-        ],
-        for (var i = 0; i < rows.length; i++) ...[
-          if (i > 0) const SizedBox(height: _kKnobRowGap),
-          rows[i],
-        ],
-      ],
-    ),
+  return CompactFxPage(
+    preview: preview,
+    rows: rows,
+    knobRowGap: _kKnobRowGap,
   );
 }
 
-Widget _knobGridRow(List<_MoodFxKnob?> slots) {
-  assert(slots.length == 3);
-  return Row(
-    mainAxisSize: MainAxisSize.min,
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      for (var i = 0; i < slots.length; i++) ...[
-        if (i > 0) const SizedBox(width: DeviceStripMetrics.dynamicsFxKnobGap),
-        SizedBox(
-          width: DeviceStripMetrics.dynamicsFxKnobColumnWidth,
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: slots[i],
-          ),
-        ),
-      ],
-    ],
-  );
-}
+Widget _knobGridRow(List<_MoodFxKnob?> slots) => compactFxKnobGridRow(slots);
 
 // ─── Bitcrusher preview painter ──────────────────────────────
 

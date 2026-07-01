@@ -15,6 +15,8 @@ class DeviceStripChromeBindings {
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
+    this.lfos = const [],
+    this.modEdges = const [],
     this.connectModeLfoId,
     this.onModulationAssign,
     this.automationLinkActive = false,
@@ -30,6 +32,8 @@ class DeviceStripChromeBindings {
   final Set<String> modulatedParams;
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
   final bool automationLinkActive;
@@ -76,6 +80,8 @@ abstract final class DeviceStripChrome {
       modulatedParams: bindings.modulatedParams,
       automatedParams: bindings.automatedParams,
       modulationAmounts: bindings.modulationAmounts,
+      lfos: bindings.lfos,
+      modEdges: bindings.modEdges,
       connectModeLfoId: bindings.connectModeLfoId,
       onModulationAssign: bindings.onModulationAssign,
       automationLinkActive: bindings.automationLinkActive,
@@ -100,6 +106,8 @@ abstract final class DeviceStripChrome {
         modulatedParams: bindings.modulatedParams,
         automatedParams: bindings.automatedParams,
         modulationAmounts: bindings.modulationAmounts,
+        lfos: bindings.lfos,
+        modEdges: bindings.modEdges,
         connectModeLfoId: bindings.connectModeLfoId,
         onModulationAssign: bindings.onModulationAssign,
         automationLinkActive: bindings.automationLinkActive,
@@ -116,6 +124,8 @@ abstract final class DeviceStripChrome {
         modulatedParams: bindings.modulatedParams,
         automatedParams: bindings.automatedParams,
         modulationAmounts: bindings.modulationAmounts,
+        lfos: bindings.lfos,
+        modEdges: bindings.modEdges,
         connectModeLfoId: bindings.connectModeLfoId,
         onModulationAssign: bindings.onModulationAssign,
         automationLinkActive: bindings.automationLinkActive,
@@ -131,6 +141,8 @@ abstract final class DeviceStripChrome {
         modulatedParams: bindings.modulatedParams,
         automatedParams: bindings.automatedParams,
         modulationAmounts: bindings.modulationAmounts,
+        lfos: bindings.lfos,
+        modEdges: bindings.modEdges,
         connectModeLfoId: bindings.connectModeLfoId,
         onModulationAssign: bindings.onModulationAssign,
         automationLinkActive: bindings.automationLinkActive,
@@ -145,6 +157,8 @@ abstract final class DeviceStripChrome {
       modulatedParams: bindings.modulatedParams,
         automatedParams: bindings.automatedParams,
       modulationAmounts: bindings.modulationAmounts,
+      lfos: bindings.lfos,
+      modEdges: bindings.modEdges,
       connectModeLfoId: bindings.connectModeLfoId,
       onModulationAssign: bindings.onModulationAssign,
       automationLinkActive: bindings.automationLinkActive,

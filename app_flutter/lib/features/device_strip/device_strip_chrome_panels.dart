@@ -32,6 +32,8 @@ class DrumMonoOutputPanel extends StatelessWidget {
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
+    this.lfos = const [],
+    this.modEdges = const [],
     this.connectModeLfoId,
     this.onModulationAssign,
     this.automationLinkActive = false,
@@ -46,6 +48,8 @@ class DrumMonoOutputPanel extends StatelessWidget {
   final Set<String> modulatedParams;
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
   final bool automationLinkActive;
@@ -91,6 +95,9 @@ class DrumMonoOutputPanel extends StatelessWidget {
               modulatedParams: modulatedParams,
             automatedParams: automatedParams,
               modulationAmounts: modulationAmounts,
+              lfos: lfos,
+              modEdges: modEdges,
+              deviceId: device.id,
               connectModeLfoId: connectModeLfoId,
               onModulationAssign: onModulationAssign,
               automationLinkActive: automationLinkActive,
@@ -110,6 +117,9 @@ class DrumMonoOutputPanel extends StatelessWidget {
             modulatedParams: modulatedParams,
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
+            lfos: lfos,
+            modEdges: modEdges,
+            deviceId: device.id,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
@@ -134,6 +144,8 @@ class DynamicsInputPanel extends StatelessWidget {
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
+    this.lfos = const [],
+    this.modEdges = const [],
     this.connectModeLfoId,
     this.onModulationAssign,
     this.automationLinkActive = false,
@@ -149,6 +161,8 @@ class DynamicsInputPanel extends StatelessWidget {
   final Set<String> modulatedParams;
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
   final bool automationLinkActive;
@@ -202,6 +216,8 @@ class DynamicsOutputPanel extends StatelessWidget {
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
+    this.lfos = const [],
+    this.modEdges = const [],
     this.connectModeLfoId,
     this.onModulationAssign,
     this.automationLinkActive = false,
@@ -217,6 +233,8 @@ class DynamicsOutputPanel extends StatelessWidget {
   final Set<String> modulatedParams;
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
   final bool automationLinkActive;
@@ -362,6 +380,8 @@ class FxOutputPanel extends StatelessWidget {
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
+    this.lfos = const [],
+    this.modEdges = const [],
     this.connectModeLfoId,
     this.onModulationAssign,
     this.automationLinkActive = false,
@@ -376,6 +396,8 @@ class FxOutputPanel extends StatelessWidget {
   final Set<String> modulatedParams;
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
   final bool automationLinkActive;
@@ -403,6 +425,9 @@ class FxOutputPanel extends StatelessWidget {
             modulatedParams: modulatedParams,
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
+            lfos: lfos,
+            modEdges: modEdges,
+            deviceId: device.id,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,
@@ -421,6 +446,9 @@ class FxOutputPanel extends StatelessWidget {
             modulatedParams: modulatedParams,
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
+            lfos: lfos,
+            modEdges: modEdges,
+            deviceId: device.id,
             connectModeLfoId: connectModeLfoId,
             onModulationAssign: onModulationAssign,
             automationLinkActive: automationLinkActive,

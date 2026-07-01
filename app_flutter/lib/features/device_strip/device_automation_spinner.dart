@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'modulatable_spinner_shell.dart';
 import 'modulator_polarity.dart';
 
+import '../../bridge/project_snapshot.dart';
+
 ModulatableSpinnerShell deviceAutomationSpinner({
   required String paramId,
   required double width,
@@ -13,13 +15,27 @@ ModulatableSpinnerShell deviceAutomationSpinner({
   Set<String> modulatedParams = const {},
   Set<String> automatedParams = const {},
   Map<String, double> modulationAmounts = const {},
-  ModulatorPolarity modulatorPolarity = ModulatorPolarity.bipolar,
+  List<LfoSnapshot> lfos = const [],
+  List<ModulationEdgeSnapshot> modEdges = const [],
+  String? deviceId,
+  ModulatorPolarity? modulatorPolarity,
   int? connectModeLfoId,
   void Function(String paramId, double amount)? onModulationAssign,
   bool automationLinkActive = false,
   ValueChanged<String>? onAutomationLinkTap,
   ValueChanged<String>? onAutomateParameter,
 }) {
+  final polarity = modulatorPolarity ??
+      (deviceId != null
+          ? modulatorPolarityForParam(
+              paramId: paramId,
+              deviceId: deviceId,
+              modEdges: modEdges,
+              lfos: lfos,
+              connectModeLfoId: connectModeLfoId,
+            )
+          : ModulatorPolarity.bipolar);
+
   return ModulatableSpinnerShell(
     width: width,
     height: height,
@@ -28,7 +44,7 @@ ModulatableSpinnerShell deviceAutomationSpinner({
     modulationActive: modulatedParams.contains(paramId),
     automationActive: automatedParams.contains(paramId),
     modulationAmount: modulationAmounts[paramId] ?? 0.0,
-    modulatorPolarity: modulatorPolarity,
+    modulatorPolarity: polarity,
     connectModeActive: connectModeLfoId != null,
     onModulationAssign: onModulationAssign != null
         ? (amount) => onModulationAssign(paramId, amount)

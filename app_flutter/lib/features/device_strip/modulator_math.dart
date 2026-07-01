@@ -155,6 +155,27 @@ abstract final class ModulatorMath {
     return 0.0;
   }
 
+  static double envelopeCycleSeconds(LfoSnapshot mod, {required bool includeSustain}) {
+    final delay = _segmentSeconds(mod.delay);
+    final attack = _segmentSeconds(mod.attack);
+    final hold = _hasHold(mod.curveType) ? _segmentSeconds(mod.hold) : 0.0;
+    final decay = _hasDecay(mod.curveType) ? _segmentSeconds(mod.decay) : 0.0;
+    final sustainHold = includeSustain ? _segmentSeconds(mod.sustain) * 0.5 : 0.0;
+    final release = _segmentSeconds(mod.release);
+    return delay + attack + hold + decay + sustainHold + release;
+  }
+
+  static double envelopePreviewProgress({
+    required LfoSnapshot mod,
+    required double elapsedSeconds,
+    required bool includeSustain,
+  }) {
+    final cycle = envelopeCycleSeconds(mod, includeSustain: includeSustain);
+    if (cycle <= 0) return 0.0;
+    final t = elapsedSeconds % cycle;
+    return (t / cycle).clamp(0.0, 1.0);
+  }
+
   static double lfoPhase({
     required LfoSnapshot mod,
     required double playheadBeat,
@@ -199,14 +220,11 @@ abstract final class ModulatorMath {
       return (x: phase, y: y.clamp(0.0, 1.0));
     }
     final includeSustain = _hasSustain(mod.curveType);
-    final progress = mod.retrigger == ModulatorTypes.retriggerOnNote
-        ? ((elapsedSeconds * ModulatorRateCodec.normalizedToHz(mod.rate) * 0.15) % 1.0)
-        : envelopeSyncedProgress(
-            mod: mod,
-            playheadBeat: playheadBeat,
-            bpm: bpm,
-            includeSustain: includeSustain,
-          );
+    final progress = envelopePreviewProgress(
+      mod: mod,
+      elapsedSeconds: elapsedSeconds,
+      includeSustain: includeSustain,
+    );
     final y = envelopeValueAtProgress(progress, mod, includeSustain: includeSustain);
     return (x: progress.clamp(0.0, 1.0), y: y.clamp(0.0, 1.0));
   }

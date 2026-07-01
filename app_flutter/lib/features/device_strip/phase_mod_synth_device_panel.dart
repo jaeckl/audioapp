@@ -4,6 +4,10 @@ import '../../bridge/project_snapshot.dart';
 import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
+import 'panels/device_panel_theme.dart';
+import 'panels/device_section_card.dart';
+import 'panels/filter_mode_icons.dart';
+import 'panels/filter_mode_selector.dart';
 import 'rotary_knob.dart';
 import 'value_drag_box.dart';
 import 'sampler_device_panel.dart';
@@ -827,80 +831,99 @@ class _PhaseModSynthDevicePanelState extends State<PhaseModSynthDevicePanel> {
 
   Widget _toneTab() {
     final kSize = _knobSize;
+    final mode = widget.device.filterMode.clamp(0, 5);
     return Padding(
       padding: const EdgeInsets.all(6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Row 1: Filter Core
           Expanded(
-            child: _panelBox(
-              color: const Color(0xFF16161E),
+            child: DeviceSectionCard(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                crossAxisAlignment: CrossAxisAlignment.center,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(
-                    flex: 5,
-                    child: Center(
-                      child: PhaseModFilterModeBar(
-                        selectedIndex: widget.device.filterMode.clamp(0, 5),
-                        accentColor: PhaseModSynthDevicePanel.accent,
-                        onSelected: (mode) => widget.onParameterChanged('filterMode', mode.toDouble()),
-                      ),
-                    ),
+                  const Text(
+                    'FILTER',
+                    textAlign: TextAlign.center,
+                    style: DevicePanelTheme.sectionLabel,
                   ),
-                  const VerticalDivider(color: Colors.white10, width: 12),
-                  Expanded(
-                    flex: 3,
-                    child: Center(
-                      child: _knob(
-                        label: 'Cutoff',
-                        value: widget.device.filterCutoff,
-                        size: kSize,
-                        labelGap: 0,
-                        displayValue: SamplerDevicePanel.formatCutoffHz(widget.device.filterCutoff),
-                        onChanged: (v) => widget.onParameterChanged('filterCutoff', v),
-                        paramId: 'filterCutoff',
-                        modulationAmounts: widget.modulationAmounts,
-                        connectModeLfoId: widget.connectModeLfoId,
-                        onModulationAssign: widget.onModulationAssign,
-                      ),
-                    ),
+                  const SizedBox(height: 4),
+                  FilterModeSelector(
+                    selectedIndex: mode,
+                    accentColor: PhaseModSynthDevicePanel.accent,
+                    primaryOptions: const [
+                      FilterModePrimaryOption(index: 1, curve: FilterCurveMode.lowPass),
+                      FilterModePrimaryOption(index: 3, curve: FilterCurveMode.highPass),
+                      FilterModePrimaryOption(index: 2, curve: FilterCurveMode.bandPass),
+                      FilterModePrimaryOption(index: 0, curve: FilterCurveMode.lowPass),
+                    ],
+                    overflowOptions: const [
+                      FilterModeOverflowOption(index: 4, label: 'HP24'),
+                      FilterModeOverflowOption(index: 5, label: 'LP6'),
+                    ],
+                    onSelected: (index) =>
+                        widget.onParameterChanged('filterMode', index.toDouble()),
                   ),
+                  const SizedBox(height: 4),
                   Expanded(
-                    flex: 3,
-                    child: Center(
-                      child: _knob(
-                        label: 'Res',
-                        value: widget.device.filterQ,
-                        size: kSize,
-                        labelGap: 0,
-                        displayValue: SamplerDevicePanel.formatQ(widget.device.filterQ),
-                        onChanged: (v) => widget.onParameterChanged('filterQ', v),
-                        paramId: 'filterQ',
-                        modulationAmounts: widget.modulationAmounts,
-                        connectModeLfoId: widget.connectModeLfoId,
-                        onModulationAssign: widget.onModulationAssign,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 3,
-                    child: Center(
-                      child: _knob(
-                        label: 'Env Amt',
-                        value: widget.device.filterEnvAmount,
-                        size: kSize,
-                        labelGap: 0,
-                        displayValue: SamplerDevicePanel.formatPercent(widget.device.filterEnvAmount),
-                        onChanged: (v) => widget.onParameterChanged('filterEnvAmount', v),
-                        paramId: 'filterEnvAmount',
-                        modulationAmounts: widget.modulationAmounts,
-                        connectModeLfoId: widget.connectModeLfoId,
-                        onModulationAssign: widget.onModulationAssign,
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Center(
+                            child: _knob(
+                              label: 'Cutoff',
+                              value: widget.device.filterCutoff,
+                              size: kSize,
+                              labelGap: 0,
+                              displayValue: SamplerDevicePanel.formatCutoffHz(
+                                widget.device.filterCutoff,
+                              ),
+                              onChanged: (v) => widget.onParameterChanged('filterCutoff', v),
+                              paramId: 'filterCutoff',
+                              modulationAmounts: widget.modulationAmounts,
+                              connectModeLfoId: widget.connectModeLfoId,
+                              onModulationAssign: widget.onModulationAssign,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Center(
+                            child: _knob(
+                              label: 'Res',
+                              value: widget.device.filterQ,
+                              size: kSize,
+                              labelGap: 0,
+                              displayValue: SamplerDevicePanel.formatQ(widget.device.filterQ),
+                              onChanged: (v) => widget.onParameterChanged('filterQ', v),
+                              paramId: 'filterQ',
+                              modulationAmounts: widget.modulationAmounts,
+                              connectModeLfoId: widget.connectModeLfoId,
+                              onModulationAssign: widget.onModulationAssign,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Center(
+                            child: _knob(
+                              label: 'Env Amt',
+                              value: widget.device.filterEnvAmount,
+                              size: kSize,
+                              labelGap: 0,
+                              displayValue: SamplerDevicePanel.formatPercent(
+                                widget.device.filterEnvAmount,
+                              ),
+                              onChanged: (v) => widget.onParameterChanged('filterEnvAmount', v),
+                              paramId: 'filterEnvAmount',
+                              modulationAmounts: widget.modulationAmounts,
+                              connectModeLfoId: widget.connectModeLfoId,
+                              onModulationAssign: widget.onModulationAssign,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -908,10 +931,8 @@ class _PhaseModSynthDevicePanelState extends State<PhaseModSynthDevicePanel> {
             ),
           ),
           const SizedBox(height: 4),
-          // Row 2: Filter Envelope ADSR (with clear labeling!)
           Expanded(
-            child: _panelBox(
-              color: const Color(0xFF1A1A24),
+            child: DeviceSectionCard(
               padding: const EdgeInsets.fromLTRB(4, 2, 4, 4),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -920,7 +941,7 @@ class _PhaseModSynthDevicePanelState extends State<PhaseModSynthDevicePanel> {
                   const Text(
                     'Filter Env',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white38, fontSize: 8, fontWeight: FontWeight.w600),
+                    style: DevicePanelTheme.sectionLabel,
                   ),
                   const SizedBox(height: 2),
                   _adsrRow(
@@ -940,215 +961,3 @@ class _PhaseModSynthDevicePanelState extends State<PhaseModSynthDevicePanel> {
   }
 }
 
-// ── CUSTOM FILTER MODE GRID ──────────────────────────────────────────────────
-
-class PhaseModFilterModeBar extends StatelessWidget {
-  const PhaseModFilterModeBar({
-    super.key,
-    required this.selectedIndex,
-    required this.onSelected,
-    required this.accentColor,
-  });
-
-  final int selectedIndex;
-  final ValueChanged<int> onSelected;
-  final Color accentColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            PhaseModFilterModeButton(
-              index: 0,
-              label: 'LP24',
-              selected: selectedIndex == 0,
-              onTap: () => onSelected(0),
-              accentColor: accentColor,
-            ),
-            PhaseModFilterModeButton(
-              index: 1,
-              label: 'LP12',
-              selected: selectedIndex == 1,
-              onTap: () => onSelected(1),
-              accentColor: accentColor,
-            ),
-            PhaseModFilterModeButton(
-              index: 5,
-              label: 'LP6',
-              selected: selectedIndex == 5,
-              onTap: () => onSelected(5),
-              accentColor: accentColor,
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            PhaseModFilterModeButton(
-              index: 4,
-              label: 'HP24',
-              selected: selectedIndex == 4,
-              onTap: () => onSelected(4),
-              accentColor: accentColor,
-            ),
-            PhaseModFilterModeButton(
-              index: 3,
-              label: 'HP12',
-              selected: selectedIndex == 3,
-              onTap: () => onSelected(3),
-              accentColor: accentColor,
-            ),
-            PhaseModFilterModeButton(
-              index: 2,
-              label: 'BP12',
-              selected: selectedIndex == 2,
-              onTap: () => onSelected(2),
-              accentColor: accentColor,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class PhaseModFilterModeButton extends StatelessWidget {
-  const PhaseModFilterModeButton({
-    super.key,
-    required this.index,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    required this.accentColor,
-    this.size = 20, // slightly smaller icon paint for breathing room
-  });
-
-  final int index;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final Color accentColor;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final fg = selected ? accentColor : Colors.white.withValues(alpha: 0.35);
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        width: 36,
-        height: 28,
-        decoration: BoxDecoration(
-          color: selected ? accentColor.withValues(alpha: 0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(
-            color: selected ? accentColor.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.04),
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: size,
-              height: size * 0.45,
-              child: CustomPaint(
-                painter: _PmFilterCurvePainter(
-                  index: index,
-                  color: fg,
-                  strokeWidth: 1.5,
-                ),
-              ),
-            ),
-            const SizedBox(height: 1),
-            Text(
-              label,
-              style: TextStyle(
-                color: selected ? accentColor : Colors.white54,
-                fontSize: 7.2,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PmFilterCurvePainter extends CustomPainter {
-  _PmFilterCurvePainter({
-    required this.index,
-    required this.color,
-    this.strokeWidth = 1.5,
-  });
-
-  final int index;
-  final Color color;
-  final double strokeWidth;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final pad = 1.5;
-    final left = pad;
-    final right = size.width - pad;
-    final top = pad;
-    final bottom = size.height - pad;
-    final midX = (left + right) / 2;
-
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final path = Path();
-    switch (index) {
-      case 0: // LP24 (Steep LP)
-        path.moveTo(left, top + 1);
-        path.lineTo(midX - 3, top + 1);
-        path.quadraticBezierTo(midX + 2, top + 1, right, bottom);
-        break;
-      case 1: // LP12 (Medium LP)
-        path.moveTo(left, top + 1);
-        path.lineTo(midX - 2, top + 1);
-        path.quadraticBezierTo(right - 2, top + 2, right, bottom);
-        break;
-      case 5: // LP6 (Gentle LP)
-        path.moveTo(left, top + 1);
-        path.lineTo(midX - 2, top + 2);
-        path.lineTo(right, bottom - 3);
-        break;
-      case 4: // HP24 (Steep HP)
-        path.moveTo(left, bottom);
-        path.quadraticBezierTo(midX - 2, top + 1, midX + 3, top + 1);
-        path.lineTo(right, top + 1);
-        break;
-      case 3: // HP12 (Medium HP)
-        path.moveTo(left, bottom);
-        path.quadraticBezierTo(left + 2, top + 2, midX + 2, top + 1);
-        path.lineTo(right, top + 1);
-        break;
-      case 2: // BP12 (BP)
-        path.moveTo(left, bottom);
-        path.quadraticBezierTo(midX - 4, top, midX, top + 1);
-        path.quadraticBezierTo(midX + 4, top, right, bottom);
-        break;
-    }
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _PmFilterCurvePainter oldDelegate) {
-    return oldDelegate.index != index ||
-        oldDelegate.color != color ||
-        oldDelegate.strokeWidth != strokeWidth;
-  }
-}

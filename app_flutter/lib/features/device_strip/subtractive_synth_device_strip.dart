@@ -14,6 +14,8 @@ class SubtractiveSynthDeviceStrip extends StatelessWidget {
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
+    this.lfos = const [],
+    this.modEdges = const [],
     this.connectModeLfoId,
     this.onModulationAssign,
     this.automationLinkActive = false,
@@ -29,6 +31,8 @@ class SubtractiveSynthDeviceStrip extends StatelessWidget {
   final Set<String> modulatedParams;
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
   final int? connectModeLfoId;
   final void Function(String paramId, double amount)? onModulationAssign;
   final bool automationLinkActive;
@@ -49,6 +53,8 @@ class SubtractiveSynthDeviceStrip extends StatelessWidget {
       modulatedParams: modulatedParams,
             automatedParams: automatedParams,
       modulationAmounts: modulationAmounts,
+      lfos: lfos,
+      modEdges: modEdges,
       connectModeLfoId: connectModeLfoId,
       onModulationAssign: onModulationAssign,
       automationLinkActive: automationLinkActive,

@@ -7,6 +7,10 @@ import 'device_strip_metrics.dart';
 import 'device_tab_bar.dart';
 import 'eq_preview.dart';
 import 'filter_preview.dart';
+import 'panels/compact_fx_layout.dart';
+import 'panels/filter_mode_selector.dart';
+import 'panels/filter_section_layout.dart';
+import 'panels/filter_mode_icons.dart';
 import 'rotary_knob.dart';
 import 'value_drag_box.dart';
 
@@ -156,162 +160,17 @@ _FrequencyFxKnob _knob({
   );
 }
 
-Widget _previewBox(Widget child) {
-  return DecoratedBox(
-    decoration: BoxDecoration(
-      color: const Color(0xFF0E0E14),
-      borderRadius: BorderRadius.circular(6),
-      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-    ),
-    child: ClipRRect(borderRadius: BorderRadius.circular(6), child: child),
-  );
-}
-
 Widget _freqFxSinglePage({
   Widget? preview,
   Widget? header,
   required List<Widget> rows,
 }) {
-  final hPad = DeviceStripMetrics.dynamicsFxPanelPaddingH / 2;
-  return Padding(
-    padding: EdgeInsets.fromLTRB(hPad, 6, hPad, 4),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (preview != null) ...[
-          SizedBox(
-            height: 92,
-            child: _previewBox(preview),
-          ),
-          const SizedBox(height: 8),
-        ],
-        if (header != null) ...[
-          header,
-          const SizedBox(height: 8),
-        ],
-        for (var i = 0; i < rows.length; i++) ...[
-          if (i > 0) const SizedBox(height: _freqFxKnobRowGap),
-          rows[i],
-        ],
-      ],
-    ),
+  return CompactFxPage(
+    preview: preview,
+    header: header,
+    rows: rows,
+    knobRowGap: _freqFxKnobRowGap,
   );
-}
-
-// ─── Filter mode icon-button row (modulatable) ────────────────────────────────
-
-/// Row of 4 icon-buttons for picking a filter mode (LP / HP / BP / Notch).
-///
-/// Tapping a button commits the new mode by setting `ffxFilterMode` to one of
-/// 4 quantised normalized values. When an LFO is connected, the engine-side
-/// modulation (see `applyModulation(FilterParams&...)`) sweeps through the
-/// 4 modes based on the LFO output value, so the visible selected button
-/// follows the mod amount.
-class _FilterModeButtonRow extends StatelessWidget {
-  const _FilterModeButtonRow({
-    required this.selectedModeIndex,
-    required this.accent,
-    required this.modulated,
-    required this.automated,
-    required this.connectModeLfoId,
-    required this.onParameterChanged,
-  });
-
-  final int selectedModeIndex;
-  final Color accent;
-  final bool modulated;
-  final bool automated;
-  final int? connectModeLfoId;
-  final FrequencyFxParameterChanged onParameterChanged;
-
-  // One of 4 fixed positions on the [0,1] range; matches the engine-side
-  // quantisation in `FilterDeviceType::setParameter`.
-  static const _modeNorm = <double>[0.125, 0.375, 0.625, 0.875];
-
-  static const _modes = <({int index, IconData icon, String label})>[
-    (index: 0, icon: Icons.south_rounded, label: 'LP'),
-    (index: 1, icon: Icons.north_rounded, label: 'HP'),
-    (index: 2, icon: Icons.swap_vert_rounded, label: 'BP'),
-    (index: 3, icon: Icons.block_rounded, label: 'Notch'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 30,
-      decoration: BoxDecoration(
-        color: const Color(0xFF121218),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: modulated
-              ? accent.withValues(alpha: 0.7)
-              : Colors.white.withValues(alpha: 0.08),
-        ),
-      ),
-      child: Row(
-        children: [
-          for (final mode in _modes) ...[
-            Expanded(
-              child: _FilterModeButton(
-                icon: mode.icon,
-                label: mode.label,
-                selected: mode.index == selectedModeIndex,
-                accent: accent,
-                onTap: () => onParameterChanged('ffxFilterMode', _modeNorm[mode.index]),
-              ),
-            ),
-            if (mode.index < _modes.length - 1)
-              Container(
-                width: 1,
-                color: Colors.white.withValues(alpha: 0.06),
-              ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _FilterModeButton extends StatelessWidget {
-  const _FilterModeButton({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.accent,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final Color accent;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = selected ? accent : Colors.white.withValues(alpha: 0.45);
-    final bg = selected
-        ? accent.withValues(alpha: 0.18)
-        : Colors.transparent;
-    return Material(
-      color: bg,
-      child: InkWell(
-        onTap: onTap,
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 14, color: color),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 // ─── Filter device ────────────────────────────────────────────────────────────
@@ -359,68 +218,64 @@ class FilterDevicePanel extends StatelessWidget {
     final modeIndex = (modeNorm * 4.0).round().clamp(0, 3);
     final previewMode = FilterPreviewMode.values[modeIndex];
 
-    return _freqFxSinglePage(
+    return FilterSectionLayout(
       preview: FilterPreview(
         cutoffHz: cutoffHz,
         q: q,
         mode: previewMode,
         accent: accent,
       ),
-      header: _FilterModeButtonRow(
-        selectedModeIndex: modeIndex,
-        accent: accent,
+      modeSelector: FilterModeSelector(
+        selectedIndex: modeIndex,
+        accentColor: accent,
         modulated: modulatedParams.contains('ffxFilterMode'),
         automated: automatedParams.contains('ffxFilterMode'),
-        connectModeLfoId: connectModeLfoId,
-        onParameterChanged: onParameterChanged,
-      ),
-      rows: [
-        // Centered pair of knobs (Cutoff + Resonance) below the mode row.
-        // The strip's knob column width is fixed (~62 px); wrapping in a
-        // Center gives a small visual padding when the pair doesn't fill
-        // the full width.
-        Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _knob(
-                label: 'Cutoff',
-                value: cutoffNorm,
-                paramId: 'ffxCutoff',
-                accent: accent,
-                onParameterChanged: onParameterChanged,
-                modulatedParams: modulatedParams,
-                automatedParams: automatedParams,
-                modulationAmounts: modulationAmounts,
-                connectModeLfoId: connectModeLfoId,
-                onModulationAssign: onModulationAssign,
-                automationLinkActive: automationLinkActive,
-                onAutomationLinkTap: onAutomationLinkTap,
-                onAutomateParameter: onAutomateParameter,
-                displayValue: _formatHz(cutoffHz),
-              ),
-              const SizedBox(width: DeviceStripMetrics.dynamicsFxKnobGap),
-              _knob(
-                label: 'Resonance',
-                value: resNorm,
-                paramId: 'ffxResonance',
-                accent: accent,
-                onParameterChanged: onParameterChanged,
-                modulatedParams: modulatedParams,
-                automatedParams: automatedParams,
-                modulationAmounts: modulationAmounts,
-                connectModeLfoId: connectModeLfoId,
-                onModulationAssign: onModulationAssign,
-                automationLinkActive: automationLinkActive,
-                onAutomationLinkTap: onAutomationLinkTap,
-                onAutomateParameter: onAutomateParameter,
-                displayValue: _formatQ(q),
-              ),
-            ],
-          ),
+        onSelected: (index) => onParameterChanged(
+          'ffxFilterMode',
+          FilterFxModeNorm.values[index],
         ),
-      ],
+      ),
+      controls: Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _knob(
+              label: 'Cutoff',
+              value: cutoffNorm,
+              paramId: 'ffxCutoff',
+              accent: accent,
+              onParameterChanged: onParameterChanged,
+              modulatedParams: modulatedParams,
+              automatedParams: automatedParams,
+              modulationAmounts: modulationAmounts,
+              connectModeLfoId: connectModeLfoId,
+              onModulationAssign: onModulationAssign,
+              automationLinkActive: automationLinkActive,
+              onAutomationLinkTap: onAutomationLinkTap,
+              onAutomateParameter: onAutomateParameter,
+              displayValue: _formatHz(cutoffHz),
+            ),
+            const SizedBox(width: DeviceStripMetrics.dynamicsFxKnobGap),
+            _knob(
+              label: 'Resonance',
+              value: resNorm,
+              paramId: 'ffxResonance',
+              accent: accent,
+              onParameterChanged: onParameterChanged,
+              modulatedParams: modulatedParams,
+              automatedParams: automatedParams,
+              modulationAmounts: modulationAmounts,
+              connectModeLfoId: connectModeLfoId,
+              onModulationAssign: onModulationAssign,
+              automationLinkActive: automationLinkActive,
+              onAutomationLinkTap: onAutomationLinkTap,
+              onAutomateParameter: onAutomateParameter,
+              displayValue: _formatQ(q),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

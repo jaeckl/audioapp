@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../bridge/project_snapshot.dart';
 import 'device_strip_metrics.dart';
 import 'device_tab_bar.dart';
+import 'panels/compact_fx_layout.dart';
 import 'rotary_knob.dart';
 
 typedef TimeFxParameterChanged = void Function(String parameterId, double value);
@@ -115,41 +116,10 @@ _TimeFxKnob _knob({
 Widget _timeFxSinglePage({
   required List<Widget> rows,
 }) {
-  final hPad = DeviceStripMetrics.dynamicsFxPanelPaddingH / 2;
-  return Padding(
-    padding: EdgeInsets.fromLTRB(hPad, 6, hPad, 4),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var i = 0; i < rows.length; i++) ...[
-          if (i > 0) const SizedBox(height: _timeFxKnobRowGap),
-          rows[i],
-        ],
-      ],
-    ),
-  );
+  return CompactFxPage(rows: rows, knobRowGap: _timeFxKnobRowGap);
 }
 
-Widget _knobGridRow(List<_TimeFxKnob?> slots) {
-  assert(slots.length == 3);
-  return Row(
-    mainAxisSize: MainAxisSize.min,
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      for (var i = 0; i < slots.length; i++) ...[
-        if (i > 0) const SizedBox(width: DeviceStripMetrics.dynamicsFxKnobGap),
-        SizedBox(
-          width: DeviceStripMetrics.dynamicsFxKnobColumnWidth,
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: slots[i],
-          ),
-        ),
-      ],
-    ],
-  );
-}
+Widget _knobGridRow(List<_TimeFxKnob?> slots) => compactFxKnobGridRow(slots);
 
 // ── Delay ──────────────────────────────────────────────────────────────────
 

@@ -35,10 +35,13 @@ class ModulationVerticalBar extends StatelessWidget {
         builder: (context, constraints) {
           final innerH = constraints.maxHeight;
           final barH = (innerH * depth).clamp(0.0, innerH);
+          final direction = modulationDisplayDirection(
+            polarity: polarity,
+            amount: amount,
+          );
           final top = switch (polarity) {
             ModulatorPolarity.bipolar => (innerH - barH) / 2,
-            ModulatorPolarity.positive => innerH - barH,
-            ModulatorPolarity.negative => 0.0,
+            _ => direction >= 0 ? innerH - barH : 0.0,
           };
           return Stack(
             clipBehavior: Clip.none,
