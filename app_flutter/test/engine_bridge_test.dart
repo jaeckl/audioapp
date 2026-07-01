@@ -36,7 +36,11 @@ void main() {
             {
               'id': 'dev-1',
               'type': 'track_gain',
-              'outputPanel': <dynamic, dynamic>{'gain': 1.0, 'pan': 0.5, 'type': 'stereo'},
+              'outputPanel': <dynamic, dynamic>{
+                'gain': 1.0,
+                'pan': 0.5,
+                'type': 'stereo'
+              },
               'parameters': <dynamic, dynamic>{},
             },
           ],
@@ -258,6 +262,39 @@ void main() {
               ],
             },
           };
+        case 'unlinkAutomationTarget':
+          return {
+            'ok': true,
+            'snapshot': {
+              'bpm': 120,
+              'playheadBeats': 0.0,
+              'playing': false,
+              'selectedTrackId': 'track-1',
+              'tracks': [
+                {
+                  'id': 'track-1',
+                  'name': 'Track 1',
+                  'devices': [],
+                  'midiClips': [],
+                  'automationClips': [],
+                },
+              ],
+              'automationClips': [
+                {
+                  'id': 'aclip-1',
+                  'homeTrackId': 'track-1',
+                  'startBeat': 0.0,
+                  'lengthBeats': 4.0,
+                  'deviceId': '',
+                  'paramId': '',
+                  'points': [
+                    {'beat': 0.0, 'value': 1.0},
+                    {'beat': 4.0, 'value': 0.25},
+                  ],
+                },
+              ],
+            },
+          };
         case 'setAutomationPoints':
           final args = call.arguments as Map<dynamic, dynamic>;
           final points = args['points'] as List<dynamic>? ?? [];
@@ -333,7 +370,11 @@ void main() {
             },
           };
         case 'saveProject':
-          return {'ok': true, 'uri': 'file:///tmp/project.audioapp.zip', 'cancelled': false};
+          return {
+            'ok': true,
+            'uri': 'file:///tmp/project.audioapp.zip',
+            'cancelled': false
+          };
         case 'loadProject':
           return {
             'ok': true,
@@ -350,7 +391,11 @@ void main() {
                     {
                       'id': 'dev-1',
                       'type': 'simple_sampler',
-                      'outputPanel': <dynamic, dynamic>{'gain': 0.5, 'pan': 0.5, 'type': 'stereo'},
+                      'outputPanel': <dynamic, dynamic>{
+                        'gain': 0.5,
+                        'pan': 0.5,
+                        'type': 'stereo'
+                      },
                       'parameters': {'sampleId': ''},
                     },
                   ],
@@ -416,8 +461,10 @@ void main() {
     final snapshot = await bridge.setMidiClipNotes(
       clipId: 'clip-1',
       notes: const [
-        MidiNoteSnapshot(pitch: 60, startBeat: 0, durationBeats: 1, velocity: 100),
-        MidiNoteSnapshot(pitch: 64, startBeat: 1, durationBeats: 1, velocity: 100),
+        MidiNoteSnapshot(
+            pitch: 60, startBeat: 0, durationBeats: 1, velocity: 100),
+        MidiNoteSnapshot(
+            pitch: 64, startBeat: 1, durationBeats: 1, velocity: 100),
       ],
     );
     expect(snapshot.selectedTrack?.midiClips.first.notes.length, 2);
@@ -427,7 +474,8 @@ void main() {
   test('setClipLength updates clip length in snapshot', () async {
     await bridge.addTrack(name: 'Track 1');
     await bridge.createMidiClip(trackId: 'track-1');
-    final snapshot = await bridge.setClipLength(clipId: 'clip-1', lengthBeats: 2.0);
+    final snapshot =
+        await bridge.setClipLength(clipId: 'clip-1', lengthBeats: 2.0);
     expect(snapshot.selectedTrack?.midiClips.first.lengthBeats, 2.0);
     expect(snapshot.selectedTrack?.midiClips.first.notes.length, 1);
     expect(snapshot.selectedTrack?.midiClips.first.kind, ClipContentKind.midi);
@@ -468,6 +516,13 @@ void main() {
     expect(clip.paramId, 'filterCutoff');
   });
 
+  test('unlinkAutomationTarget preserves the automation clip', () async {
+    final snapshot = await bridge.unlinkAutomationTarget(clipId: 'aclip-1');
+    final clip = snapshot.automationClips.single;
+    expect(clip.isLinked, isFalse);
+    expect(clip.points, hasLength(2));
+  });
+
   test('removeDeviceFromTrack returns updated snapshot', () async {
     await bridge.addTrack(name: 'Track 1');
     final snapshot = await bridge.removeDeviceFromTrack(deviceId: 'dev-1');
@@ -486,7 +541,8 @@ void main() {
       ],
     );
     expect(snapshot.selectedTrack!.automationClips.first.points.length, 2);
-    expect(snapshot.selectedTrack!.automationClips.first.points.last.value, 0.2);
+    expect(
+        snapshot.selectedTrack!.automationClips.first.points.last.value, 0.2);
   });
 
   test('setAutomationPoints round-trips dense saw breakpoints', () async {

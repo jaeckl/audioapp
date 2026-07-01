@@ -30,6 +30,8 @@ public:
     bool assignTarget(const std::string& clipId,
                       const std::string& deviceId,
                       const std::string& paramId);
+    /// Clears the target while preserving the clip, points, timing, and lane.
+    bool unlinkTarget(const std::string& clipId);
     bool setPoints(const std::string& clipId,
                    const std::vector<AutomationPointState>& points);
     bool setLength(const std::string& clipId,

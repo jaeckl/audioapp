@@ -427,6 +427,15 @@ bool ProjectEngine::assignAutomationTarget(const std::string& clipId,
     return true;
 }
 
+bool ProjectEngine::unlinkAutomationTarget(const std::string& clipId) {
+    const juce::ScopedWriteLock lock(mutex_);
+    if (!automationClipStore_.unlinkTarget(clipId)) {
+        return false;
+    }
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
 bool ProjectEngine::setAutomationPoints(const std::string& clipId,
                                         const std::vector<AutomationPointState>& points) {
     const juce::ScopedWriteLock lock(mutex_);

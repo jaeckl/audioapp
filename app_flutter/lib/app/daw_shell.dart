@@ -596,6 +596,33 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   Future<void> _automateParameter(String deviceId, String paramId) async {
+    final linkedClips = _snapshot?.automationClips
+            .where(
+                (clip) => clip.deviceId == deviceId && clip.paramId == paramId)
+            .toList() ??
+        const <AutomationClipSnapshot>[];
+    if (linkedClips.isNotEmpty) {
+      try {
+        ProjectSnapshot? updated;
+        for (final clip in linkedClips) {
+          updated = await widget.bridge.unlinkAutomationTarget(clipId: clip.id);
+        }
+        if (updated != null) await _refreshSnapshot(updated);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Automation unlinked from ${AutomationClipSnapshot.linkLabelForParam(paramId)}',
+            ),
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _projectError = e.toString());
+      }
+      return;
+    }
+
     final track = _snapshot?.selectedTrack;
     if (track == null) return;
 

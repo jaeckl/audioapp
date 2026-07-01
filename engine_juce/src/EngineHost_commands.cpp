@@ -489,6 +489,10 @@ bool EngineHost::assignAutomationTarget(const std::string& clipId,
     return project_->assignAutomationTarget(clipId, deviceId, paramId);
 }
 
+bool EngineHost::unlinkAutomationTarget(const std::string& clipId) {
+    return project_->unlinkAutomationTarget(clipId);
+}
+
 bool EngineHost::setAutomationPoints(const std::string& clipId,
                                      const std::vector<AutomationPointState>& points) {
     return project_->setAutomationPoints(clipId, points);
@@ -1140,6 +1144,14 @@ void EngineHost::registerAllCommands() {
         const auto paramId = ctx.args["paramId"].toString().toStdString();
         if (!ctx.engine.assignAutomationTarget(clipId, deviceId, paramId))
             return commands::errorResult("assign_automation_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("unlinkAutomationTarget", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        if (!ctx.engine.unlinkAutomationTarget(clipId))
+            return commands::errorResult("unlink_automation_failed");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
         return commands::okWithFullRefresh(snap);
     });

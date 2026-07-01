@@ -47,6 +47,13 @@ public:
             expectEquals(static_cast<int>(clip.points.size()), 3);
             expect(clip.homeTrackId == trackId);
 
+            expect(host.unlinkAutomationTarget(clipId));
+            const auto unlinked = audioapp::test::readProjectData(host);
+            expectEquals(static_cast<int>(unlinked.automationClips.size()), 1);
+            expect(unlinked.automationClips[0].deviceId.empty());
+            expect(unlinked.automationClips[0].paramId.empty());
+            expectEquals(static_cast<int>(unlinked.automationClips[0].points.size()), 3);
+
             const std::string json = host.getProjectFileJson();
             audioapp::EngineHost loaded;
             loaded.createProject();

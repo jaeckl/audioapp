@@ -147,6 +147,7 @@ public:
     bool assignAutomationTarget(const std::string& clipId,
                                 const std::string& deviceId,
                                 const std::string& paramId);
+    bool unlinkAutomationTarget(const std::string& clipId);
     bool setAutomationPoints(const std::string& clipId,
                              const std::vector<AutomationPointState>& points);
     bool setLoopEnabled(bool enabled);

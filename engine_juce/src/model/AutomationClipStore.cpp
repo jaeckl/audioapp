@@ -65,6 +65,16 @@ bool AutomationClipStore::assignTarget(const std::string& clipId,
     return true;
 }
 
+bool AutomationClipStore::unlinkTarget(const std::string& clipId) {
+    AutomationClip* clip = find(clipId);
+    if (clip == nullptr) {
+        return false;
+    }
+    clip->deviceId.clear();
+    clip->paramId.clear();
+    return true;
+}
+
 bool AutomationClipStore::setPoints(const std::string& clipId,
                                     const std::vector<AutomationPointState>& points) {
     AutomationClip* clip = find(clipId);
