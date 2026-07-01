@@ -812,23 +812,11 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
 
     if (transport_.isPlaying()) {
         const double prevPlayhead = lastArrangementMixPlayhead_;
-        if (prevPlayhead >= 0.0) {
-            if (playheadStartBeat + 1e-4 < prevPlayhead) {
-                for (int trackIndex = 0; trackIndex < trackCount; ++trackIndex) {
-                    resetPlaybackStateInArena(trackPlayback_[trackIndex].arena);
-                }
-                modulationGraph_.retriggerOnNote();
-            } else {
-                constexpr double kBarBeats = 4.0;
-                const int prevBar = static_cast<int>(std::floor(prevPlayhead / kBarBeats));
-                const int nextBar = static_cast<int>(std::floor(playheadStartBeat / kBarBeats));
-                if (nextBar != prevBar) {
-                    for (int trackIndex = 0; trackIndex < trackCount; ++trackIndex) {
-                        resetInstrumentPlaybackStateInArena(trackPlayback_[trackIndex].arena);
-                    }
-                    modulationGraph_.retriggerOnNote();
-                }
+        if (prevPlayhead >= 0.0 && playheadStartBeat + 1e-4 < prevPlayhead) {
+            for (int trackIndex = 0; trackIndex < trackCount; ++trackIndex) {
+                resetPlaybackStateInArena(trackPlayback_[trackIndex].arena);
             }
+            modulationGraph_.retriggerOnNote();
         }
         lastArrangementMixPlayhead_ = playheadStartBeat;
     } else {
@@ -960,13 +948,26 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
             auto* mod = modulationGraph_.modulator(i);
             if (mod == nullptr) continue;
             const bool perNote = mod->usesPerNoteClock();
+            if (!perNote) {
+                const float value = mod->evaluate(
+                    playheadStartBeat,
+                    transport_.bpm(),
+                    0.0,
+                    playheadSeconds,
+                    retriggerGeneration,
+                    -1.0);
+                for (int frame = 0; frame < framesToProcess; ++frame) {
+                    lfoValues[static_cast<size_t>(i * framesToProcess + frame)] = value;
+                }
+                continue;
+            }
             for (int frame = 0; frame < framesToProcess; ++frame) {
                 const double secondsWithinBlock = static_cast<double>(frame) * samplePeriod;
                 const double frameBeat =
                     playheadStartBeat +
                     secondsWithinBlock *
                         (static_cast<double>(std::max(transport_.bpm(), 1)) / 60.0);
-                const double noteElapsed = perNote && anyPerNoteModulator
+                const double noteElapsed = anyPerNoteModulator
                     ? static_cast<double>(noteElapsedPerFrame[static_cast<size_t>(frame)])
                     : -1.0;
                 lfoValues[static_cast<size_t>(i * framesToProcess + frame)] =
@@ -1046,6 +1047,19 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         const bool suppressInstruments = trackHasActiveSampleAtPlayhead(track, playheadStartBeat);
         const int noteCount = routedMidiCount[trackIndex];
 
+        if (noteCount == 0 && track.regionCount == 0) {
+            bool onlyPassthroughGain = track.deviceCount > 0;
+            for (int deviceIndex = 0; deviceIndex < track.deviceCount; ++deviceIndex) {
+                if (track.devices[deviceIndex].kind != DeviceNodeKind::TrackGain) {
+                    onlyPassthroughGain = false;
+                    break;
+                }
+            }
+            if (onlyPassthroughGain) {
+                continue;
+            }
+        }
+
         DeviceChainOrchestrator::Context ctx(trackPlayback_[trackIndex].arena, gProjectScratch);
         ctx.trackLeft = trackLeft[trackIndex];
         ctx.trackRight = trackRight[trackIndex];
@@ -1056,8 +1070,8 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         ctx.notes = routedMidi[trackIndex];
         ctx.noteCount = noteCount;
         ctx.suppressInstruments = suppressInstruments;
-        ctx.deviceMeters = deviceMeters_;
-        ctx.maxDeviceMeters = deviceMeterSlotCount_;
+        ctx.deviceMeters = nullptr;
+        ctx.maxDeviceMeters = 0;
         ctx.lfoValues = lfoCount > 0 ? lfoValues.data() : nullptr;
         ctx.lfoCount = lfoCount;
         ctx.modulators = lfoCount > 0 ? modulatorPtrs.data() : nullptr;

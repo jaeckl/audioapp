@@ -122,7 +122,7 @@ class DawTransportController extends ChangeNotifier {
       }
     })..start();
     _transportSyncTimer = Timer.periodic(
-        const Duration(milliseconds: 100), (_) {
+        const Duration(milliseconds: 250), (_) {
       unawaited(syncTransportState());
     });
     unawaited(syncTransportState());

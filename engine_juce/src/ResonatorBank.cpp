@@ -107,7 +107,22 @@ void processResonatorBankStereoBlock(float* left,
         runtime.initialized = true;
     }
 
-    const float invFrames = 1.0f / static_cast<float>(numFrames);
+    // Block-rate coefficient smoothing — params are block-constant from the orchestrator.
+    constexpr float kCoeffSmooth = 0.2f;
+    for (int band = 0; band < kResonatorBandCount; ++band) {
+        auto& current = runtime.coefficients[band];
+        const auto& target = targets[band];
+        current.b += (target.b - current.b) * kCoeffSmooth;
+        current.a1 += (target.a1 - current.a1) * kCoeffSmooth;
+        current.a2 += (target.a2 - current.a2) * kCoeffSmooth;
+        current.gainL += (target.gainL - current.gainL) * kCoeffSmooth;
+        current.gainR += (target.gainR - current.gainR) * kCoeffSmooth;
+    }
+    runtime.smoothedMix += (targetMix - runtime.smoothedMix) * kCoeffSmooth;
+    const float mix = std::clamp(runtime.smoothedMix, 0.0f, 1.0f);
+    const float dryGain = std::cos(mix * kPi * 0.5f);
+    const float wetGain = std::sin(mix * kPi * 0.5f);
+
     for (int frame = 0; frame < numFrames; ++frame) {
         const float dryL = std::isfinite(left[frame]) ? left[frame] : 0.0f;
         const float dryR = std::isfinite(right[frame]) ? right[frame] : 0.0f;
@@ -115,22 +130,11 @@ void processResonatorBankStereoBlock(float* left,
         float wetR = 0.0f;
 
         for (int band = 0; band < kResonatorBandCount; ++band) {
-            auto& current = runtime.coefficients[band];
-            const auto& target = targets[band];
-            current.b += (target.b - current.b) * invFrames;
-            current.a1 += (target.a1 - current.a1) * invFrames;
-            current.a2 += (target.a2 - current.a2) * invFrames;
-            current.gainL += (target.gainL - current.gainL) * invFrames;
-            current.gainR += (target.gainR - current.gainR) * invFrames;
-
-            wetL += processMode(dryL, current, runtime.states[band][0]) * current.gainL;
-            wetR += processMode(dryR, current, runtime.states[band][1]) * current.gainR;
+            const auto& coeffs = runtime.coefficients[band];
+            wetL += processMode(dryL, coeffs, runtime.states[band][0]) * coeffs.gainL;
+            wetR += processMode(dryR, coeffs, runtime.states[band][1]) * coeffs.gainR;
         }
 
-        runtime.smoothedMix += (targetMix - runtime.smoothedMix) * invFrames;
-        const float mix = std::clamp(runtime.smoothedMix, 0.0f, 1.0f);
-        const float dryGain = std::cos(mix * kPi * 0.5f);
-        const float wetGain = std::sin(mix * kPi * 0.5f);
         left[frame] = std::clamp(dryL * dryGain + wetL * wetGain, -8.0f, 8.0f);
         right[frame] = std::clamp(dryR * dryGain + wetR * wetGain, -8.0f, 8.0f);
     }

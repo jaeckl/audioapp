@@ -94,29 +94,13 @@ struct EngineHost::Impl {
         while (elapsedNs > prevMax &&
                !self->maxCallbackNs.compare_exchange_weak(prevMax, elapsedNs, std::memory_order_relaxed)) {}
 
-        // Log peak every ~1000 callbacks (~5-10s at 512 frames)
-        const uint32_t count = self->callbackCount.fetch_add(1, std::memory_order_relaxed);
-        if ((count % 1000) == 0) {
-            const int64_t peak = self->maxCallbackNs.load(std::memory_order_relaxed);
-            const int64_t peakUs = peak / 1000;
-            const int64_t bufUs = deadlineNs / 1000;
-            if (peak > deadlineNs) {
-                AUDIOAPP_ERR("STATS: callbacks=%u peak=%lldus OVER deadline=%lldus by %lldus",
-                             count, peakUs, bufUs, peakUs - bufUs);
-            } else {
-                AUDIOAPP_LOG("STATS: callbacks=%u peak=%lldus deadline=%lldus (%.0f%%)",
-                             count, peakUs, bufUs, 100.0 * peak / deadlineNs);
-            }
-            // Reset peak for next window
-            self->maxCallbackNs.store(0, std::memory_order_relaxed);
-        }
-
-        // Individual overrun log (throttled)
+        // Log overruns only — STATS logging on the audio thread can itself cause XRUNs.
         if (deadlineNs > 0 && elapsedNs > deadlineNs) {
             static thread_local int32_t xrunThrottle = 0;
-            if ((++xrunThrottle % 50) == 0) {
-                AUDIOAPP_ERR("XRUN: callback took %lld us (deadline %lld us)",
-                             elapsedNs / 1000, deadlineNs / 1000);
+            if ((++xrunThrottle % 20) == 0) {
+                AUDIOAPP_ERR("XRUN: callback took %lld us (deadline %lld us) ph=%.2f",
+                             elapsedNs / 1000, deadlineNs / 1000,
+                             static_cast<double>(self->owner.playheadBeats()));
             }
         }
 
@@ -145,8 +129,9 @@ struct EngineHost::Impl {
         }
 
         AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
-        AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_NONE);
-        AAudioStreamBuilder_setBufferCapacityInFrames(builder, 1024);
+        AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_POWER_SAVING);
+        AAudioStreamBuilder_setBufferCapacityInFrames(builder, 8192);
+        AAudioStreamBuilder_setFramesPerDataCallback(builder, 1024);
         AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_SHARED);
         AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_FLOAT);
         AAudioStreamBuilder_setChannelCount(builder, 2);
