@@ -69,6 +69,7 @@ struct SubtractiveVoiceRuntime {
     int noteKey = -1;
     float velocity = 100.0f;
     double startBeat = 0.0;
+    double clipStartBeat = 0.0;
     double releaseBeat = -1.0;
     float osc1Phases[kSubtractiveMaxUnison]{};
     float osc2Phases[kSubtractiveMaxUnison]{};

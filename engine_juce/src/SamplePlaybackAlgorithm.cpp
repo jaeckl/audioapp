@@ -1,6 +1,7 @@
 #include "audioapp/SamplePlaybackAlgorithm.hpp"
 
 #include "audioapp/ClipContentPlayback.hpp"
+#include "audioapp/playback/Clip.hpp"
 #include "audioapp/SamplerFilter.hpp"
 
 #include <algorithm>
@@ -185,13 +186,11 @@ void mixSampleRegionsBlock(float* monoOut,
                 continue;
             }
             bool active = false;
-            const double progress = sampleContentProgress(
-                beat,
-                region.clipStartBeat,
-                region.clipLengthBeats,
-                region.contentLengthBeats,
-                region.loopContent,
-                active);
+            const playback::AudioClip clip{region.clipStartBeat,
+                                           region.clipLengthBeats,
+                                           region.contentLengthBeats,
+                                           region.loopContent};
+            const double progress = clip.progressAt(beat, active);
             if (!active) {
                 continue;
             }

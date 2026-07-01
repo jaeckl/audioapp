@@ -167,6 +167,10 @@ if(NOT ANDROID)
     tests/routing_device_test.cpp
   )
   target_link_libraries(routing_device_tests PRIVATE audioapp_engine)
+  add_executable(clip_playback_regression_tests EXCLUDE_FROM_ALL
+    tests/clip_playback_regression_test.cpp
+  )
+  target_link_libraries(clip_playback_regression_tests PRIVATE audioapp_engine)
 endif()
 
 if(MSVC)

@@ -196,7 +196,8 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
         for (int v = 0; v < kSubtractiveMaxVoices; ++v) {
             if (runtime.voices[v].active != 0 &&
                 runtime.voices[v].pitch == notes[ni].pitch &&
-                runtime.voices[v].startBeat == notes[ni].noteStartBeat) {
+                runtime.voices[v].startBeat == notes[ni].noteStartBeat &&
+                runtime.voices[v].clipStartBeat == notes[ni].clipStartBeat) {
                 vi = v;
                 break;
             }
@@ -212,11 +213,13 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
         }
 
         auto& voice = runtime.voices[vi];
-        if (voice.pitch != notes[ni].pitch || voice.startBeat != notes[ni].noteStartBeat) {
+        if (voice.pitch != notes[ni].pitch || voice.startBeat != notes[ni].noteStartBeat ||
+            voice.clipStartBeat != notes[ni].clipStartBeat) {
             std::memset(&voice, 0, sizeof(voice));
             voice.active = 1;
             voice.pitch = notes[ni].pitch;
             voice.startBeat = notes[ni].noteStartBeat;
+            voice.clipStartBeat = notes[ni].clipStartBeat;
             voice.velocity = notes[ni].velocity;
             voice.targetHz = subtractiveOscPitchHz(notes[ni].pitch, 0.5f, 0.0f, 0.5f);
             voice.currentHz = voice.targetHz;
@@ -311,7 +314,8 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
 
             int ni = -1;
             for (int n = 0; n < noteCount; ++n) {
-                if (notes[n].pitch == voice.pitch && notes[n].noteStartBeat == voice.startBeat) { ni = n; break; }
+                if (notes[n].pitch == voice.pitch && notes[n].noteStartBeat == voice.startBeat &&
+                    notes[n].clipStartBeat == voice.clipStartBeat) { ni = n; break; }
             }
             if (ni < 0) continue;
 

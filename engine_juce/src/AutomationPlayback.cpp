@@ -1,6 +1,7 @@
 #include "audioapp/AutomationPlayback.hpp"
 
 #include "audioapp/ClipContentPlayback.hpp"
+#include "audioapp/playback/Clip.hpp"
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/model/TrackModel.hpp"
 #include "audioapp/KickAlgorithm.hpp"
@@ -20,12 +21,15 @@ namespace audioapp {
 bool automationBeatInClip(const AutomationClipPlayback& ac,
                           double beat,
                           float& beatInClipOut) noexcept {
-    const double inContent = beatWithinClipContent(
-        beat,
+    const playback::AutomationClip<AutomationPointPlayback> clip{
         static_cast<double>(ac.clipStartBeat),
         static_cast<double>(ac.clipLengthBeats),
         static_cast<double>(ac.contentLengthBeats),
-        ac.loopContent);
+        ac.loopContent,
+        playback::AutomationData<AutomationPointPlayback>{
+            std::span<const AutomationPointPlayback>(ac.points,
+                                                     static_cast<size_t>(ac.pointCount))}};
+    const double inContent = clip.sourceBeatAt(beat);
     if (inContent < 0.0) {
         return false;
     }

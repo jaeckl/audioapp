@@ -1,47 +1,23 @@
 #include "audioapp/MidiClipPlayback.hpp"
 
 #include "audioapp/ClipContentPlayback.hpp"
+#include "audioapp/playback/Clip.hpp"
 
 #include <cmath>
 
 namespace audioapp {
 
-namespace {
-
-bool isNoteActiveInLoop(double loopedBeat, const MidiNoteState& note) noexcept {
-    return loopedBeat >= note.startBeat && loopedBeat < (note.startBeat + note.durationBeats);
-}
-
-} // namespace
-
 int activeMidiPitchAtBeat(double playheadBeat, const MidiClipState& clip) noexcept {
-    if (playheadBeat < clip.startBeat || playheadBeat >= clip.startBeat + clip.lengthBeats) {
-        return -1;
-    }
-
     const double contentLength =
         clip.loopContent
             ? midiClipLoopContentLengthBeats(
                   clip.notes, clip.naturalLengthBeats, clip.lengthBeats)
             : midiClipOneShotContentLengthBeats(
                   clip.notes, clip.naturalLengthBeats, clip.lengthBeats);
-    const double loopedBeat = beatWithinClipContent(
-        playheadBeat,
-        clip.startBeat,
-        clip.lengthBeats,
-        contentLength,
-        clip.loopContent);
-    if (loopedBeat < 0.0) {
-        return -1;
-    }
-
-    int activePitch = -1;
-    for (const auto& note : clip.notes) {
-        if (isNoteActiveInLoop(loopedBeat, note)) {
-            activePitch = note.pitch;
-        }
-    }
-    return activePitch;
+    const playback::MidiClip<MidiNoteState> playable{
+        clip.startBeat, clip.lengthBeats, contentLength, clip.loopContent,
+        playback::MidiData<MidiNoteState>{clip.notes}};
+    return playable.activePitchAt(playheadBeat);
 }
 
 double advancePlayheadBeats(double playheadBeat,

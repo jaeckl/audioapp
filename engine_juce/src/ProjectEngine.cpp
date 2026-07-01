@@ -814,7 +814,7 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
     constexpr int kMaxFrames = 4096;
     thread_local float trackLeft[kMaxTracks][kMaxFrames];
     thread_local float trackRight[kMaxTracks][kMaxFrames];
-    constexpr int kMaxRoutedMidiNotes = 128;
+    constexpr int kMaxRoutedMidiNotes = 256;
     thread_local MidiPlaybackNote routedMidi[kMaxTracks][kMaxRoutedMidiNotes];
     thread_local MidiPlaybackNote graphMidiEdges[kMaxProcessorGraphEdges][kMaxRoutedMidiNotes];
     int graphMidiEdgeCounts[kMaxProcessorGraphEdges]{};

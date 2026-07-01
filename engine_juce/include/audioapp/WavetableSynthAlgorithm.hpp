@@ -39,6 +39,7 @@ struct WavetableVoiceRuntime {
     int noteKey = -1;
     float velocity = 100.0f;
     double startBeat = 0.0;
+    double clipStartBeat = 0.0;
     double releaseBeat = -1.0;
     float phase = 0.0f;
     float targetHz = 440.0f;

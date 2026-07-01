@@ -264,7 +264,7 @@ private:
         bool muted = false;
         bool soloed = false;
         int noteCount = 0;
-        PlaybackNote notes[32];
+        PlaybackNote notes[256];
         int regionCount = 0;
         SampleRegion regions[8];
         int deviceCount = 0;

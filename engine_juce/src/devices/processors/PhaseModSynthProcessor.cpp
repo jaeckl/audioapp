@@ -155,7 +155,8 @@ void mixPhaseModMidiNotesBlock(float* monoOut,
         for (int v = 0; v < kPhaseModMaxVoices; ++v) {
             if (runtime.voices[v].active != 0 &&
                 runtime.voices[v].pitch == notes[ni].pitch &&
-                runtime.voices[v].startBeat == notes[ni].noteStartBeat) {
+                runtime.voices[v].startBeat == notes[ni].noteStartBeat &&
+                runtime.voices[v].clipStartBeat == notes[ni].clipStartBeat) {
                 vi = v;
                 break;
             }
@@ -173,11 +174,13 @@ void mixPhaseModMidiNotesBlock(float* monoOut,
         }
 
         auto& voice = runtime.voices[vi];
-        if (voice.pitch != notes[ni].pitch || voice.startBeat != notes[ni].noteStartBeat) {
+        if (voice.pitch != notes[ni].pitch || voice.startBeat != notes[ni].noteStartBeat ||
+            voice.clipStartBeat != notes[ni].clipStartBeat) {
             std::memset(&voice, 0, sizeof(voice));
             voice.active = 1;
             voice.pitch = notes[ni].pitch;
             voice.startBeat = notes[ni].noteStartBeat;
+            voice.clipStartBeat = notes[ni].clipStartBeat;
             voice.velocity = notes[ni].velocity;
             voice.targetHz = midiNoteToHz(notes[ni].pitch);
             voice.currentHz = voice.targetHz;
@@ -266,7 +269,8 @@ void mixPhaseModMidiNotesBlock(float* monoOut,
 
             int ni = -1;
             for (int n = 0; n < noteCount; ++n) {
-                if (notes[n].pitch == voice.pitch && notes[n].noteStartBeat == voice.startBeat) {
+                if (notes[n].pitch == voice.pitch && notes[n].noteStartBeat == voice.startBeat &&
+                    notes[n].clipStartBeat == voice.clipStartBeat) {
                     ni = n;
                     break;
                 }
