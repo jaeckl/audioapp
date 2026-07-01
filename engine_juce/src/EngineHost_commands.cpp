@@ -27,6 +27,7 @@ void EngineHost::ensureSampleBankReady() {
     sampleBank_.registerBundledDefaults();
     project_->setSampleBank(&sampleBank_);
     project_->setWavetableBank(&wavetableBank_);
+    project_->setFreezeAssetStore(&freezeAssetStore_);
 }
 
 void EngineHost::createProject() {
@@ -59,6 +60,22 @@ bool EngineHost::setTrackMuted(const std::string& trackId, bool muted) {
 
 bool EngineHost::setTrackSoloed(const std::string& trackId, bool soloed) {
     return project_->setTrackSoloed(trackId, soloed);
+}
+
+bool EngineHost::freezeTrack(const std::string& trackId) {
+    return project_->freezeTrack(trackId, freezeAssetStore_);
+}
+
+bool EngineHost::unfreezeTrack(const std::string& trackId) {
+    return project_->unfreezeTrack(trackId, freezeAssetStore_);
+}
+
+bool EngineHost::refreshTrackFreeze(const std::string& trackId) {
+    return project_->refreshTrackFreeze(trackId, freezeAssetStore_);
+}
+
+bool EngineHost::isTrackFrozen(const std::string& trackId) const {
+    return project_->isTrackFrozen(trackId);
 }
 
 bool EngineHost::selectTrack(const std::string& trackId) {
@@ -825,7 +842,11 @@ bool EngineHost::saveProject(const std::string& archivePath) {
 
 bool EngineHost::loadProject(const std::string& archivePath) {
     ensureSampleBankReady();
-    return loadProjectFromArchive(*project_, archivePath);
+    if (!loadProjectFromArchive(*project_, archivePath)) {
+        return false;
+    }
+    project_->ensureFrozenAssets(freezeAssetStore_);
+    return true;
 }
 
 std::string EngineHost::getProjectFileJson() const {
@@ -845,6 +866,7 @@ bool EngineHost::loadProjectFileJson(const std::string& json) {
     if (!project_->loadFromProjectFileData(data)) {
         return false;
     }
+    project_->ensureFrozenAssets(freezeAssetStore_);
     return true;
 }
 
@@ -1039,6 +1061,30 @@ void EngineHost::registerAllCommands() {
         return commands::okWithFullRefresh(snap);
     });
 
+    reg.registerCommand("freezeTrack", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto trackId = ctx.args["trackId"].toString().toStdString();
+        if (!ctx.engine.freezeTrack(trackId))
+            return commands::errorResult("freeze_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("unfreezeTrack", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto trackId = ctx.args["trackId"].toString().toStdString();
+        if (!ctx.engine.unfreezeTrack(trackId))
+            return commands::errorResult("unfreeze_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("refreshTrackFreeze", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto trackId = ctx.args["trackId"].toString().toStdString();
+        if (!ctx.engine.refreshTrackFreeze(trackId))
+            return commands::errorResult("refresh_freeze_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
     reg.registerCommand("selectTrack", [](const commands::CommandContext& ctx) -> commands::CommandResult {
         const auto trackId = ctx.args["trackId"].toString().toStdString();
         if (!ctx.engine.selectTrack(trackId))
@@ -1103,6 +1149,8 @@ void EngineHost::registerAllCommands() {
         const auto trackId = ctx.args["trackId"].toString().toStdString();
         const double startBeat = static_cast<double>(ctx.args["startBeat"]);
         const double lengthBeats = static_cast<double>(ctx.args["lengthBeats"]);
+        if (ctx.engine.isTrackFrozen(trackId))
+            return commands::errorResult("track_frozen");
         if (ctx.engine.createMidiClip(trackId, startBeat, lengthBeats).empty())
             return commands::errorResult("track_not_found");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
@@ -1137,6 +1185,8 @@ void EngineHost::registerAllCommands() {
         const auto sampleId = ctx.args["sampleId"].toString().toStdString();
         const double startBeat = static_cast<double>(ctx.args["startBeat"]);
         const double lengthBeats = static_cast<double>(ctx.args["lengthBeats"]);
+        if (ctx.engine.isTrackFrozen(trackId))
+            return commands::errorResult("track_frozen");
         if (ctx.engine.createSampleClip(trackId, sampleId, startBeat, lengthBeats).empty())
             return commands::errorResult("sample_clip_failed");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
@@ -1147,6 +1197,8 @@ void EngineHost::registerAllCommands() {
         const auto trackId = ctx.args["trackId"].toString().toStdString();
         const double startBeat = static_cast<double>(ctx.args["startBeat"]);
         const double lengthBeats = static_cast<double>(ctx.args["lengthBeats"]);
+        if (ctx.engine.isTrackFrozen(trackId))
+            return commands::errorResult("track_frozen");
         if (ctx.engine.createAutomationClip(trackId, startBeat, lengthBeats).empty())
             return commands::errorResult("automation_clip_failed");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());

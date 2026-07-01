@@ -62,6 +62,18 @@ struct AutomationClip {
     std::vector<AutomationPoint> points;
 };
 
+struct TrackFreezeData {
+    bool enabled = false;
+    bool stale = false;
+    std::string assetId;
+    double startBeat = 0.0;
+    double lengthBeats = 0.0;
+    double sampleRate = 48000.0;
+    int bpmAtFreeze = 120;
+    uint64_t contentSignature = 0;
+    std::vector<float> waveformPeaks;
+};
+
 struct Track {
     std::string id;
     std::string name;
@@ -73,6 +85,7 @@ struct Track {
     std::vector<DeviceSlot> devices;
     std::vector<MidiClip> midiClips;
     std::vector<SampleClip> sampleClips;
+    TrackFreezeData freeze;
     // Note: automation clips were moved to AutomationClipStore (project-global)
     // so a single clip can target any device on any track. They are no
     // longer nested per-track.

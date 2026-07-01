@@ -20,6 +20,7 @@
 #include "audioapp/LivePerformance.hpp"
 #include "audioapp/MidiClipPlayback.hpp"
 #include "audioapp/SampleBank.hpp"
+#include "audioapp/TrackFreezeAssetStore.hpp"
 #include "audioapp/WavetableBank.hpp"
 #include "audioapp/SampleTypes.hpp"
 #include "audioapp/DeviceChain.hpp"
@@ -44,6 +45,16 @@ struct DeviceMeterState {
     float inputLevel = 0.0f;
 };
 
+struct TrackFreezeState {
+    bool enabled = false;
+    bool stale = false;
+    std::string assetId;
+    double startBeat = 0.0;
+    double lengthBeats = 0.0;
+    double sampleRate = 48000.0;
+    std::vector<float> waveformPeaks;
+};
+
 struct TrackState {
     std::string id;
     std::string name;
@@ -57,6 +68,7 @@ struct TrackState {
     std::vector<DeviceMeterState> deviceMeters;
     std::vector<MidiClipState> midiClips;
     std::vector<SampleClipState> sampleClips;
+    TrackFreezeState freeze;
 };
 
 struct MasterTrackState {
@@ -154,6 +166,11 @@ public:
     bool setLoopLengthBeats(double lengthBeats);
     bool setLoopRegion(double startBeat, double endBeat);
     std::vector<float> renderOffline(double lengthBeats, double sampleRate);
+    bool freezeTrack(const std::string& trackId, TrackFreezeAssetStore& assets);
+    bool unfreezeTrack(const std::string& trackId, TrackFreezeAssetStore& assets);
+    bool refreshTrackFreeze(const std::string& trackId, TrackFreezeAssetStore& assets);
+    void ensureFrozenAssets(TrackFreezeAssetStore& assets);
+    bool isTrackFrozen(const std::string& trackId) const;
 
     bool setRecordArmed(bool armed);
     int createLfo(int modulatorType = 0);
@@ -208,6 +225,7 @@ public:
 
     void setSampleBank(const SampleBank* bank) { sampleBank_ = bank; }
     void setWavetableBank(const WavetableBank* bank) { wavetableBank_ = bank; }
+    void setFreezeAssetStore(const TrackFreezeAssetStore* store) { freezeAssetStore_ = store; }
 
     /// Expose the device registry for serialization dispatch.
     const DeviceRegistry& deviceRegistry() const { return deviceRegistry_; }
@@ -275,6 +293,16 @@ private:
         int automationClipCount = 0;
         AutomationClipPlayback automationClips[16];
         ProcessorArena arena;  // processors + runtime state
+        struct FreezePlayback {
+            bool active = false;
+            const float* pcmL = nullptr;
+            const float* pcmR = nullptr;
+            int frameCount = 0;
+            double pcmSampleRate = 48000.0;
+            double startBeat = 0.0;
+            double lengthBeats = 0.0;
+        } freeze;
+        int trackGainDeviceIndex = -1;
     };
 
     static constexpr int kMaxTracks = 8;
@@ -339,6 +367,16 @@ private:
                                  int numFrames,
                                  double sampleRate,
                                  double playheadStartBeat) noexcept;
+    void mixTrackPreGainStereo(int trackIndex,
+                               float* trackLeft,
+                               float* trackRight,
+                               int numFrames,
+                               double sampleRate,
+                               double playheadStartBeat,
+                               const float* lfoValues,
+                               int lfoCount,
+                               IModulator* const* modulators,
+                               uint32_t retriggerGeneration) noexcept;
     bool trackHasActiveSampleAtPlayhead(const TrackPlaybackSnapshot& track, double playheadBeat) const noexcept;
     int selectedTrackPlaybackIndex() const noexcept;
     void syncActiveFrequencyLocked();
@@ -348,8 +386,12 @@ private:
     DeviceSlot* findDeviceLocked(const std::string& deviceId);
     bool buildLiveInstrumentForTrack(const Track& track, LiveInstrumentSnapshot& out) const;
     double sampleTimeToCaptureBeat(uint64_t sampleTime) const;
+    bool freezeTrackLocked(Track& track, int trackIndex, TrackFreezeAssetStore& assets);
+    void reconcileTrackFreezeStaleLocked();
+    void markDeviceOwnerFreezeStaleLocked(const std::string& deviceId);
     const SampleBank* sampleBank_ = nullptr;
     const WavetableBank* wavetableBank_ = nullptr;
+    const TrackFreezeAssetStore* freezeAssetStore_ = nullptr;
 
     // ── ValueTree::Listener overrides ─────────────────────────
     void valueTreePropertyChanged(juce::ValueTree& tree,

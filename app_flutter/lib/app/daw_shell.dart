@@ -357,6 +357,38 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _toggleTrackFreeze({
+    required String trackId,
+    required bool enabled,
+    required bool stale,
+  }) async {
+    try {
+      final ProjectSnapshot snapshot;
+      if (enabled && stale) {
+        snapshot = await widget.bridge.refreshTrackFreeze(trackId);
+      } else if (enabled) {
+        snapshot = await widget.bridge.unfreezeTrack(trackId);
+      } else {
+        snapshot = await widget.bridge.freezeTrack(trackId);
+      }
+      await _refreshSnapshot(snapshot);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
+  bool _trackFrozen(String trackId) {
+    return _trackById(trackId)?.freeze.enabled ?? false;
+  }
+
+  void _showFrozenTrackSnack() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Unfreeze track to add clips')),
+    );
+  }
+
   Future<void> _selectTrack(String trackId) async {
     try {
       await _applyDeltaMutation('selectTrack', {'trackId': trackId});
@@ -370,10 +402,12 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   Future<void> _syncArmWithSelection() async {
     final snap = _snapshot;
     if (snap == null) return;
+    final track = _trackById(snap.selectedTrackId);
     final hasTrack = snap.selectedTrackId.isNotEmpty;
-    if (_tab == _ShellTab.keys && hasTrack && !snap.recordArmed) {
+    final frozen = track?.freeze.enabled ?? false;
+    if (_tab == _ShellTab.keys && hasTrack && !snap.recordArmed && !frozen) {
       await _store.invokeRaw('setRecordArmed', {'armed': true});
-    } else if (_tab == _ShellTab.devices && snap.recordArmed) {
+    } else if ((_tab == _ShellTab.devices || frozen) && snap.recordArmed) {
       await _store.invokeRaw('setRecordArmed', {'armed': false});
     }
   }
@@ -404,6 +438,10 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   Future<void> _addMidiClip(String trackId, double startBeat) async {
+    if (_trackFrozen(trackId)) {
+      _showFrozenTrackSnack();
+      return;
+    }
     try {
       await widget.bridge.selectTrack(trackId);
       final before = _trackById(trackId);
@@ -470,6 +508,10 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     String? deviceId,
     String? paramId,
   }) async {
+    if (_trackFrozen(trackId)) {
+      _showFrozenTrackSnack();
+      return;
+    }
     try {
       await widget.bridge.selectTrack(trackId);
       final beforeIds =
@@ -759,6 +801,10 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
     final track = _trackById(trackId);
     if (track == null) return;
+    if (track.freeze.enabled) {
+      _showFrozenTrackSnack();
+      return;
+    }
 
     final startBeat = ArrangementTimelineMetrics.placementStartBeat(
       desiredStartBeat: desiredStartBeat,
@@ -969,6 +1015,10 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Select a track first')),
         );
+        return;
+      }
+      if (track.freeze.enabled) {
+        _showFrozenTrackSnack();
         return;
       }
       final startBeat = ArrangementTimelineMetrics.placementStartBeat(
@@ -1377,6 +1427,10 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   Future<void> _insertSample(SampleLibraryEntrySnapshot sample) async {
     final trackId = _snapshot?.selectedTrackId;
     if (trackId == null || trackId.isEmpty) return;
+    if (_trackFrozen(trackId)) {
+      _showFrozenTrackSnack();
+      return;
+    }
     try {
       final updated = await widget.bridge.createSampleClip(
         trackId: trackId,
@@ -1798,6 +1852,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             onMoveTrack: _moveTrack,
             onSetTrackMuted: _setTrackMuted,
             onSetTrackSoloed: _setTrackSoloed,
+            onToggleTrackFreeze: _toggleTrackFreeze,
             onAddMidiClip: _addMidiClip,
             onAddAudioClip: _addAudioClip,
             onClipTap: _openPianoRoll,

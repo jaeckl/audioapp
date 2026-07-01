@@ -54,7 +54,9 @@ struct DeviceChainOrchestrator {
     };
 
     /// Main orchestrator loop — replaces the switch-case in processDeviceNode.
-    static void processChain(Context& ctx) noexcept;
+  static void processChain(Context& ctx,
+                           int startDeviceIndex = 0,
+                           int exclusiveEndDeviceIndex = -1) noexcept;
 
     /// Apply common gain/pan LFO modulation to per-frame arrays.
     static void applyCommonGainPanLfo(

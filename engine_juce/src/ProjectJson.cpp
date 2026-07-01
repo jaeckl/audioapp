@@ -453,6 +453,22 @@ juce::var trackToVarPersistence(const TrackState& track,
     object->setProperty("devices", devices);
     object->setProperty("midiClips", clips);
     object->setProperty("sampleClips", sampleClips);
+    if (track.freeze.enabled || !track.freeze.assetId.empty()) {
+        auto* freezeObj = new juce::DynamicObject();
+        freezeObj->setProperty("enabled", track.freeze.enabled);
+        freezeObj->setProperty("stale", track.freeze.stale);
+        freezeObj->setProperty("assetId", toJuceString(track.freeze.assetId));
+        freezeObj->setProperty("startBeat", track.freeze.startBeat);
+        freezeObj->setProperty("lengthBeats", track.freeze.lengthBeats);
+        freezeObj->setProperty("sampleRate", track.freeze.sampleRate);
+        juce::Array<juce::var> peaks;
+        peaks.ensureStorageAllocated(static_cast<int>(track.freeze.waveformPeaks.size()));
+        for (float peak : track.freeze.waveformPeaks) {
+            peaks.add(static_cast<double>(peak));
+        }
+        freezeObj->setProperty("waveformPeaks", peaks);
+        object->setProperty("freeze", juce::var(freezeObj));
+    }
     return juce::var(object);
 }
 
@@ -483,6 +499,21 @@ TrackState trackFromVarPersistence(const juce::var& value,
         if (const auto* sampleClips = varArray(object->getProperty("sampleClips"))) {
             for (const auto& clipVar : *sampleClips) {
                 track.sampleClips.push_back(sampleClipFromVar(clipVar));
+            }
+        }
+        if (const auto* freezeVar = object->getProperty("freeze").getDynamicObject()) {
+            track.freeze.enabled = static_cast<bool>(freezeVar->getProperty("enabled"));
+            if (freezeVar->hasProperty("stale")) {
+                track.freeze.stale = static_cast<bool>(freezeVar->getProperty("stale"));
+            }
+            track.freeze.assetId = varToString(freezeVar->getProperty("assetId"));
+            track.freeze.startBeat = static_cast<double>(freezeVar->getProperty("startBeat"));
+            track.freeze.lengthBeats = static_cast<double>(freezeVar->getProperty("lengthBeats"));
+            track.freeze.sampleRate = static_cast<double>(freezeVar->getProperty("sampleRate"));
+            if (const auto* peaks = varArray(freezeVar->getProperty("waveformPeaks"))) {
+                for (const auto& peakVar : *peaks) {
+                    track.freeze.waveformPeaks.push_back(static_cast<float>(static_cast<double>(peakVar)));
+                }
             }
         }
     }
@@ -537,6 +568,22 @@ juce::var trackToVarSnapshot(const TrackState& track,
     object->setProperty("devices", devices);
     object->setProperty("midiClips", clips);
     object->setProperty("sampleClips", sampleClips);
+    if (track.freeze.enabled || !track.freeze.waveformPeaks.empty()) {
+        auto* freezeObj = new juce::DynamicObject();
+        freezeObj->setProperty("enabled", track.freeze.enabled);
+        freezeObj->setProperty("stale", track.freeze.stale);
+        freezeObj->setProperty("assetId", toJuceString(track.freeze.assetId));
+        freezeObj->setProperty("startBeat", track.freeze.startBeat);
+        freezeObj->setProperty("lengthBeats", track.freeze.lengthBeats);
+        freezeObj->setProperty("sampleRate", track.freeze.sampleRate);
+        juce::Array<juce::var> peaks;
+        peaks.ensureStorageAllocated(static_cast<int>(track.freeze.waveformPeaks.size()));
+        for (float peak : track.freeze.waveformPeaks) {
+            peaks.add(static_cast<double>(peak));
+        }
+        freezeObj->setProperty("waveformPeaks", peaks);
+        object->setProperty("freeze", juce::var(freezeObj));
+    }
     return juce::var(object);
 }
 

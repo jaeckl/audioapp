@@ -152,10 +152,17 @@ void DeviceChainOrchestrator::applyCommonGainPanLfo(
 // Main orchestrator loop — virtual dispatch instead of switch
 // =======================================================================
 
-void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
+void DeviceChainOrchestrator::processChain(Context& ctx,
+                                           int startDeviceIndex,
+                                           int exclusiveEndDeviceIndex) noexcept {
     auto& s = ctx.scratch;
     s.perNoteModCache.reset();
     const int numFrames = ctx.numFrames > kScratchFrames ? kScratchFrames : ctx.numFrames;
+    const int arenaSize = ctx.arena.size();
+    const int start = std::max(0, startDeviceIndex);
+    const int end = exclusiveEndDeviceIndex < 0
+        ? arenaSize
+        : std::min(exclusiveEndDeviceIndex, arenaSize);
 
     const double beatsPerFrame =
         (static_cast<double>(std::max(ctx.bpm, 1)) / 60.0) / ctx.sampleRate;
@@ -193,7 +200,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
         }
     };
 
-    for (int deviceIndex = 0; deviceIndex < ctx.arena.size(); ++deviceIndex) {
+    for (int deviceIndex = start; deviceIndex < end; ++deviceIndex) {
         auto* proc = ctx.arena.get(deviceIndex);
         if (proc == nullptr) continue;
         if (proc->bypassed) {

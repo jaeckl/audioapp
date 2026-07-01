@@ -316,6 +316,36 @@ class MasterTrackSnapshot {
   }
 }
 
+class TrackFreezeSnapshot {
+  const TrackFreezeSnapshot({
+    this.enabled = false,
+    this.stale = false,
+    this.startBeat = 0.0,
+    this.lengthBeats = 0.0,
+    this.waveformPeaks = const [],
+  });
+
+  final bool enabled;
+  final bool stale;
+  final double startBeat;
+  final double lengthBeats;
+  final List<double> waveformPeaks;
+
+  factory TrackFreezeSnapshot.fromMap(Map<dynamic, dynamic>? map) {
+    if (map == null) {
+      return const TrackFreezeSnapshot();
+    }
+    final peaksRaw = map['waveformPeaks'] as List<dynamic>? ?? [];
+    return TrackFreezeSnapshot(
+      enabled: map['enabled'] == true,
+      stale: map['stale'] == true,
+      startBeat: (map['startBeat'] as num?)?.toDouble() ?? 0.0,
+      lengthBeats: (map['lengthBeats'] as num?)?.toDouble() ?? 0.0,
+      waveformPeaks: peaksRaw.map((p) => (p as num).toDouble()).toList(),
+    );
+  }
+}
+
 class TrackSnapshot {
   const TrackSnapshot({
     required this.id,
@@ -329,6 +359,7 @@ class TrackSnapshot {
     required this.midiClips,
     required this.sampleClips,
     this.automationClips = const [],
+    this.freeze = const TrackFreezeSnapshot(),
   });
 
   final String id;
@@ -348,6 +379,7 @@ class TrackSnapshot {
   /// compatibility with code that iterates tracks. The clip's `deviceId`
   /// is independent — it can point at a device on any track.
   final List<AutomationClipSnapshot> automationClips;
+  final TrackFreezeSnapshot freeze;
 
   TrackSnapshot copyWith({
     String? id,
@@ -361,6 +393,7 @@ class TrackSnapshot {
     List<MidiClipSnapshot>? midiClips,
     List<SampleClipSnapshot>? sampleClips,
     List<AutomationClipSnapshot>? automationClips,
+    TrackFreezeSnapshot? freeze,
   }) {
     return TrackSnapshot(
       id: id ?? this.id,
@@ -374,6 +407,7 @@ class TrackSnapshot {
       midiClips: midiClips ?? this.midiClips,
       sampleClips: sampleClips ?? this.sampleClips,
       automationClips: automationClips ?? this.automationClips,
+      freeze: freeze ?? this.freeze,
     );
   }
 
@@ -414,6 +448,9 @@ class TrackSnapshot {
                   AutomationClipSnapshot.fromMap(c as Map<dynamic, dynamic>))
               .toList()
           : fromGlobal,
+      freeze: TrackFreezeSnapshot.fromMap(
+        map['freeze'] as Map<dynamic, dynamic>?,
+      ),
     );
   }
 }

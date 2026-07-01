@@ -117,6 +117,9 @@ class ArrangementClipChrome extends StatelessWidget {
     if (renderer.clipBackgroundColor == ArrangementClipTheme.automationClipBackground) {
       return ArrangementClipTheme.automationClipBorder;
     }
+    if (renderer.clipBackgroundColor == ArrangementClipTheme.freezeClipBackground) {
+      return ArrangementClipTheme.freezeClipBorder;
+    }
     return ArrangementClipTheme.midiClipBorder;
   }
 }

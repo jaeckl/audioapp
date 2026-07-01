@@ -27,6 +27,7 @@ FetchContent_MakeAvailable(JUCE)
 add_library(audioapp_engine STATIC
   src/TestOscillator.cpp
   src/ProjectEngine.cpp
+  src/ProjectEngine_freeze.cpp
   src/ProcessorGraph.cpp
   src/LivePerformance.cpp
   src/ProjectEngine_live.cpp
@@ -34,6 +35,8 @@ add_library(audioapp_engine STATIC
   src/ProjectArchive.cpp
   src/MidiClipPlayback.cpp
   src/SampleBank.cpp
+  src/TrackFreeze.cpp
+  src/TrackFreezeAssetStore.cpp
   src/WavLoader.cpp
   src/SamplePlaybackAlgorithm.cpp
   src/SamplerFilter.cpp
@@ -220,8 +223,17 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
   target_link_libraries(audioapp_track_mute_solo_test PRIVATE audioapp_engine)
   if(MSVC)
     target_compile_options(audioapp_track_mute_solo_test PRIVATE /EHsc)
+    target_link_options(audioapp_track_mute_solo_test PRIVATE /STACK:16777216)
   endif()
   add_test(NAME audioapp_track_mute_solo_test COMMAND audioapp_track_mute_solo_test)
+
+  add_executable(audioapp_track_freeze_test tests/track_freeze_test.cpp)
+  target_link_libraries(audioapp_track_freeze_test PRIVATE audioapp_engine)
+  if(MSVC)
+    target_compile_options(audioapp_track_freeze_test PRIVATE /EHsc)
+    target_link_options(audioapp_track_freeze_test PRIVATE /STACK:16777216)
+  endif()
+  add_test(NAME audioapp_track_freeze_test COMMAND audioapp_track_freeze_test)
 
   set(AUDIOAPP_TEST_SOURCES
     tests/JuceTestRunner.cpp

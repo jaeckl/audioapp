@@ -27,6 +27,10 @@ abstract final class ArrangementClipTheme {
   static const midiNoteFillRepeat = Color(0x78A8C0E0);
   static const sampleWaveformRepeat = Color(0x809AD4B3);
 
+  static const freezeClipBackground = Color(0xFF3A3A52);
+  static const freezeClipBorder = Color(0xFF9AA8FF);
+  static const freezeWaveform = Color(0xFFB8C4FF);
+
   /// Darker fill behind condensed clip content (notes, waveform).
   static Color contentBackground(Color clipBackground) {
     return Color.lerp(clipBackground, Colors.black, 0.38)!;

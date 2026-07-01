@@ -43,6 +43,12 @@ double ProjectEngine::sampleTimeToCaptureBeat(uint64_t sampleTime) const {
 
 bool ProjectEngine::setRecordArmed(bool armed) {
     const juce::ScopedWriteLock lock(mutex_);
+    if (armed) {
+        Track* track = trackRepo_.findTrack(trackRepo_.selectedTrackId());
+        if (track != nullptr && track->freeze.enabled) {
+            return false;
+        }
+    }
     recordArmed_ = armed;
     if (!armed) {
         captureActive_ = false;
@@ -58,7 +64,7 @@ bool ProjectEngine::noteOn(int pitch, float velocity) {
         return false;
     }
     Track* track = trackRepo_.findTrack(trackRepo_.selectedTrackId());
-    if (track == nullptr) {
+    if (track == nullptr || track->freeze.enabled) {
         return false;
     }
 

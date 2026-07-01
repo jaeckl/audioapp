@@ -17,6 +17,7 @@ import 'arrangement_timeline_metrics.dart';
 import '../editor/timeline_marker_layer.dart';
 import 'automation_clip_renderer.dart';
 import 'clip_renderer.dart';
+import 'freeze_clip_renderer.dart';
 import 'midi_clip_renderer.dart';
 import 'sample_clip_renderer.dart';
 import 'snap_grid_resolution.dart';
@@ -80,6 +81,7 @@ class ArrangementView extends StatefulWidget {
     this.onMoveTrack,
     this.onSetTrackMuted,
     this.onSetTrackSoloed,
+    this.onToggleTrackFreeze,
     required this.onAddMidiClip,
     required this.onAddAudioClip,
     required this.playheadBeats,
@@ -132,6 +134,11 @@ class ArrangementView extends StatefulWidget {
     required String trackId,
     required bool soloed,
   })? onSetTrackSoloed;
+  final Future<void> Function({
+    required String trackId,
+    required bool enabled,
+    required bool stale,
+  })? onToggleTrackFreeze;
   final void Function(String trackId, double startBeat) onAddMidiClip;
   final void Function(String trackId, double desiredStartBeat) onAddAudioClip;
   final double playheadBeats;
@@ -1236,6 +1243,9 @@ class ArrangementViewState extends State<ArrangementView> {
     if (_clipDragActive) {
       return;
     }
+    if (lanePress && track.freeze.enabled) {
+      return;
+    }
     final desiredBeat = lanePress
         ? _beatFromGlobal(details.globalPosition)
         : widget.playheadBeats;
@@ -1263,7 +1273,7 @@ class ArrangementViewState extends State<ArrangementView> {
       position: menuPosition,
       color: const Color(0xFF1A1A22),
       items: [
-        if (!track.isGroup)
+        if (!track.isGroup && !track.freeze.enabled)
           const PopupMenuItem(
             value: 'midi',
             child: ListTile(
@@ -1272,7 +1282,7 @@ class ArrangementViewState extends State<ArrangementView> {
               title: Text('Add MIDI Clip'),
             ),
           ),
-        if (!track.isGroup)
+        if (!track.isGroup && !track.freeze.enabled)
           const PopupMenuItem(
             value: 'audio',
             child: ListTile(
@@ -1281,7 +1291,7 @@ class ArrangementViewState extends State<ArrangementView> {
               title: Text('Add Audio Clip'),
             ),
           ),
-        if (widget.onAddAutomationClip != null)
+        if (widget.onAddAutomationClip != null && !track.freeze.enabled)
           const PopupMenuItem(
             value: 'automation',
             child: ListTile(
@@ -1753,6 +1763,14 @@ class ArrangementViewState extends State<ArrangementView> {
                         : () => widget.onSetTrackSoloed!(
                               trackId: visibleTracks[i].id,
                               soloed: !visibleTracks[i].soloed,
+                            ),
+                    onToggleFreeze: widget.onToggleTrackFreeze == null ||
+                            visibleTracks[i].isGroup
+                        ? null
+                        : () => widget.onToggleTrackFreeze!(
+                              trackId: visibleTracks[i].id,
+                              enabled: visibleTracks[i].freeze.enabled,
+                              stale: visibleTracks[i].freeze.stale,
                             ),
                     enableDrag: !widget.compact &&
                         widget.onMoveTrack != null &&
@@ -2396,6 +2414,7 @@ class _TrackHeader extends StatelessWidget {
     required this.onTap,
     this.onToggleMute,
     this.onToggleSolo,
+    this.onToggleFreeze,
     this.enableDrag = false,
     this.onDragUpdate,
     this.collapsed = false,
@@ -2411,6 +2430,7 @@ class _TrackHeader extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback? onToggleMute;
   final VoidCallback? onToggleSolo;
+  final VoidCallback? onToggleFreeze;
   final bool enableDrag;
   final GestureDragUpdateCallback? onDragUpdate;
   final bool collapsed;
@@ -2501,6 +2521,32 @@ class _TrackHeader extends StatelessWidget {
                       onTap: onToggleMute!,
                       color: Colors.redAccent,
                     ),
+                  if (onToggleFreeze != null) ...[
+                    const SizedBox(width: 4),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        TrackMixButton(
+                          label: 'F',
+                          active: track.freeze.enabled,
+                          onTap: onToggleFreeze!,
+                          color: track.freeze.stale
+                              ? Colors.amber
+                              : const Color(0xFF8EB4FF),
+                        ),
+                        if (track.freeze.enabled && track.freeze.stale)
+                          const Positioned(
+                            right: -1,
+                            top: -1,
+                            child: Icon(
+                              Icons.circle,
+                              size: 7,
+                              color: Colors.amberAccent,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
                 ],
               )
             : InkWell(
@@ -2802,6 +2848,15 @@ class _TrackLane extends StatelessWidget {
                   color: const Color(0xFF22222C).withValues(alpha: 0.55),
                 ),
               ),
+            if (track.freeze.enabled)
+              Positioned(
+                left: track.freeze.startBeat * pixelsPerBeat,
+                top: 4,
+                width: track.freeze.lengthBeats * pixelsPerBeat,
+                height: laneHeight - 8,
+                child: _FreezeClipBlock(freeze: track.freeze),
+              )
+            else ...[
             for (final clip in track.sampleClips)
               Positioned(
                 left: clip.startBeat * pixelsPerBeat,
@@ -2933,7 +2988,7 @@ class _TrackLane extends StatelessWidget {
                     ClipContentKind.automation),
             ])
               _buildResizeHandle(context, clip, laneHeight),
-            // ... existing clip block children above ...
+            ],
           ],
         ),
       ),
@@ -3047,6 +3102,22 @@ class _MidiClipBlock extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FreezeClipBlock extends StatelessWidget {
+  const _FreezeClipBlock({required this.freeze});
+
+  final TrackFreezeSnapshot freeze;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: ArrangementClipChrome(
+        renderer: FreezeClipRenderer(freeze),
+        highlighted: false,
       ),
     );
   }

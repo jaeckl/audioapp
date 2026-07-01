@@ -133,6 +133,18 @@ class EngineBridge {
     });
   }
 
+  Future<ProjectSnapshot> freezeTrack(String trackId) async {
+    return _invokeForSnapshot('freezeTrack', {'trackId': trackId});
+  }
+
+  Future<ProjectSnapshot> unfreezeTrack(String trackId) async {
+    return _invokeForSnapshot('unfreezeTrack', {'trackId': trackId});
+  }
+
+  Future<ProjectSnapshot> refreshTrackFreeze(String trackId) async {
+    return _invokeForSnapshot('refreshTrackFreeze', {'trackId': trackId});
+  }
+
   Future<ProjectSnapshot> selectTrack(String trackId) async {
     return _invokeForSnapshot('selectTrack', {'trackId': trackId});
   }

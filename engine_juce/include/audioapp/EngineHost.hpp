@@ -5,6 +5,7 @@
 #include "audioapp/MidiClipPlayback.hpp"
 #include "audioapp/ProjectEngine.hpp"
 #include "audioapp/SampleBank.hpp"
+#include "audioapp/TrackFreezeAssetStore.hpp"
 #include "audioapp/WavetableBank.hpp"
 #include "audioapp/SamplePlaybackAlgorithm.hpp"
 #include "audioapp/SubtractiveSynthAlgorithm.hpp"
@@ -41,6 +42,10 @@ public:
                    const std::string& beforeTrackId);
     bool setTrackMuted(const std::string& trackId, bool muted);
     bool setTrackSoloed(const std::string& trackId, bool soloed);
+    bool freezeTrack(const std::string& trackId);
+    bool unfreezeTrack(const std::string& trackId);
+    bool refreshTrackFreeze(const std::string& trackId);
+    bool isTrackFrozen(const std::string& trackId) const;
     bool selectTrack(const std::string& trackId);
     std::string addDeviceToTrack(const std::string& trackId,
                                  const std::string& deviceType,
@@ -175,6 +180,7 @@ private:
     std::unique_ptr<ProjectEngine> project_;
     SampleBank sampleBank_;
     WavetableBank wavetableBank_;
+    TrackFreezeAssetStore freezeAssetStore_;
     int nextImportSampleNum_ = 1;
     commands::CommandRegistry commandRegistry_;
 

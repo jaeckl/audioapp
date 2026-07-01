@@ -27,13 +27,14 @@
 #include "audioapp/effects/DelayParams.hpp"
 #include "audioapp/effects/ReverbParams.hpp"
 #include "audioapp/effects/ChorusParams.hpp"
-#include "audioapp/effects/PhaserParams.hpp"
+#include "audioapp/TrackFreeze.hpp"
 
 #include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <cstring>
 #include <cstdlib>
+#include <unordered_map>
 #include <vector>
 
 namespace audioapp {
@@ -275,6 +276,7 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
                     return false;
                 }
             }
+            markDeviceOwnerFreezeStaleLocked(deviceId);
             return true;
         }
     }
@@ -289,6 +291,7 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
             return false;
         }
     }
+    markDeviceOwnerFreezeStaleLocked(deviceId);
     return true;
 }
 
@@ -332,6 +335,7 @@ bool ProjectEngine::setDeviceStringParameter(const std::string& deviceId,
                     return false;
                 }
             }
+            markDeviceOwnerFreezeStaleLocked(deviceId);
             return true;
         }
     }
@@ -346,6 +350,7 @@ bool ProjectEngine::setDeviceStringParameter(const std::string& deviceId,
             return false;
         }
     }
+    markDeviceOwnerFreezeStaleLocked(deviceId);
     return true;
 }
 
@@ -359,7 +364,7 @@ std::string ProjectEngine::createMidiClip(const std::string& trackId,
                                           double lengthBeats) {
     const juce::ScopedWriteLock lock(mutex_);
     const auto* track = trackRepo_.findTrack(trackId);
-    if (track == nullptr || track->isGroup) {
+    if (track == nullptr || track->isGroup || track->freeze.enabled) {
         return {};
     }
     const std::string clipId = clipRepo_.createMidiClip(trackId, startBeat, lengthBeats);
@@ -386,7 +391,7 @@ std::string ProjectEngine::createSampleClip(const std::string& trackId,
                                             double lengthBeats) {
     const juce::ScopedWriteLock lock(mutex_);
     const auto* track = trackRepo_.findTrack(trackId);
-    if (track == nullptr || track->isGroup) {
+    if (track == nullptr || track->isGroup || track->freeze.enabled) {
         return {};
     }
     const std::string clipId = clipRepo_.createSampleClip(
@@ -402,7 +407,11 @@ std::string ProjectEngine::createAutomationClip(const std::string& homeTrackId,
                                                 double startBeat,
                                                 double lengthBeats) {
     const juce::ScopedWriteLock lock(mutex_);
-    if (homeTrackId.empty() || trackRepo_.findTrack(homeTrackId) == nullptr) {
+    if (homeTrackId.empty()) {
+        return {};
+    }
+    const auto* track = trackRepo_.findTrack(homeTrackId);
+    if (track == nullptr || track->freeze.enabled) {
         return {};
     }
     const std::string clipId = automationClipStore_.create(homeTrackId, startBeat, lengthBeats);
@@ -453,7 +462,7 @@ bool ProjectEngine::moveClip(const std::string& clipId,
     if (clipRepo_.findMidiClip(clipId) != nullptr ||
         clipRepo_.findSampleClip(clipId) != nullptr) {
         const auto* target = trackRepo_.findTrack(targetTrackId);
-        if (target == nullptr || target->isGroup) {
+        if (target == nullptr || target->isGroup || target->freeze.enabled) {
             return false;
         }
         if (!clipRepo_.moveClip(clipId, targetTrackId, startBeat)) {
@@ -468,6 +477,10 @@ bool ProjectEngine::moveClip(const std::string& clipId,
         return false;
     }
     if (!targetTrackId.empty()) {
+        const auto* target = trackRepo_.findTrack(targetTrackId);
+        if (target != nullptr && target->freeze.enabled) {
+            return false;
+        }
         automationClipStore_.setHomeTrackId(clipId, targetTrackId);
     }
     rebuildTrackPlaybackLocked();
@@ -684,6 +697,13 @@ ProjectSnapshot ProjectEngine::snapshot() const {
             }
             ts.sampleClips.push_back(std::move(cs));
         }
+        ts.freeze.enabled = track.freeze.enabled;
+        ts.freeze.stale = track.freeze.stale;
+        ts.freeze.assetId = track.freeze.assetId;
+        ts.freeze.startBeat = track.freeze.startBeat;
+        ts.freeze.lengthBeats = track.freeze.lengthBeats;
+        ts.freeze.sampleRate = track.freeze.sampleRate;
+        ts.freeze.waveformPeaks = track.freeze.waveformPeaks;
         snap.tracks.push_back(std::move(ts));
     }
 
@@ -987,6 +1007,9 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                     static_cast<size_t>(framesToProcess) * sizeof(float));
         std::memset(trackRight[trackIndex], 0,
                     static_cast<size_t>(framesToProcess) * sizeof(float));
+        if (track.freeze.active) {
+            continue;
+        }
         if (track.regionCount > 0) {
             for (int i = 0; i < track.regionCount; ++i) {
                 const SampleRegion& source = track.regions[i];
@@ -1044,6 +1067,48 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
             : orderIndex;
         const TrackPlaybackSnapshot& track = trackPlayback_[trackIndex];
 
+        if (track.freeze.active) {
+            FreezePlaybackRegion region{
+                track.freeze.startBeat,
+                track.freeze.lengthBeats,
+                track.freeze.pcmL,
+                track.freeze.pcmR,
+                track.freeze.frameCount,
+                track.freeze.pcmSampleRate,
+            };
+            mixFreezeStereoBlock(trackLeft[trackIndex],
+                                 trackRight[trackIndex],
+                                 framesToProcess,
+                                 sampleRate,
+                                 transport_.bpm(),
+                                 playheadStartBeat,
+                                 region);
+            if (track.trackGainDeviceIndex >= 0) {
+                DeviceChainOrchestrator::Context ctx(trackPlayback_[trackIndex].arena,
+                                                       gProjectScratch);
+                ctx.trackLeft = trackLeft[trackIndex];
+                ctx.trackRight = trackRight[trackIndex];
+                ctx.numFrames = framesToProcess;
+                ctx.sampleRate = sampleRate;
+                ctx.bpm = transport_.bpm();
+                ctx.playheadStartBeat = playheadStartBeat;
+                ctx.notes = nullptr;
+                ctx.noteCount = 0;
+                ctx.deviceMeters = nullptr;
+                ctx.maxDeviceMeters = 0;
+                ctx.lfoValues = lfoCount > 0 ? lfoValues.data() : nullptr;
+                ctx.lfoCount = lfoCount;
+                ctx.modulators = lfoCount > 0 ? modulatorPtrs.data() : nullptr;
+                ctx.retriggerGeneration = retriggerGeneration;
+                ctx.modEdges = track.modEdgeCount > 0 ? track.modEdges : nullptr;
+                ctx.modEdgeCount = track.modEdgeCount;
+                ctx.automationClips = track.automationClipCount > 0 ? track.automationClips : nullptr;
+                ctx.automationClipCount = track.automationClipCount;
+                ctx.wavetableBank = wavetableBank_;
+                DeviceChainOrchestrator::processChain(
+                    ctx, track.trackGainDeviceIndex, track.trackGainDeviceIndex + 1);
+            }
+        } else {
         const bool suppressInstruments = trackHasActiveSampleAtPlayhead(track, playheadStartBeat);
         const int noteCount = routedMidiCount[trackIndex];
 
@@ -1094,6 +1159,8 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         ctx.graphMidiEdgeStride = kMaxRoutedMidiNotes;
 
         DeviceChainOrchestrator::processChain(ctx);
+
+        } // !track.freeze.active
 
         if (!trackAudibleForOutput(trackIndex)) {
             std::memset(trackLeft[trackIndex], 0,
@@ -1258,6 +1325,13 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
             }
             ts.sampleClips.push_back(std::move(cs));
         }
+        ts.freeze.enabled = track.freeze.enabled;
+        ts.freeze.stale = track.freeze.stale;
+        ts.freeze.assetId = track.freeze.assetId;
+        ts.freeze.startBeat = track.freeze.startBeat;
+        ts.freeze.lengthBeats = track.freeze.lengthBeats;
+        ts.freeze.sampleRate = track.freeze.sampleRate;
+        ts.freeze.waveformPeaks = track.freeze.waveformPeaks;
         file.tracks.push_back(std::move(ts));
     }
     file.lfos = modulationGraph_.lfos();
@@ -1337,6 +1411,12 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
             clip.loopContent = clipState.loopContent;
             track.sampleClips.push_back(std::move(clip));
         }
+        track.freeze.enabled = trackState.freeze.enabled;
+        track.freeze.assetId = trackState.freeze.assetId;
+        track.freeze.startBeat = trackState.freeze.startBeat;
+        track.freeze.lengthBeats = trackState.freeze.lengthBeats;
+        track.freeze.sampleRate = trackState.freeze.sampleRate;
+        track.freeze.waveformPeaks = trackState.freeze.waveformPeaks;
         trackRepo_.tracks().push_back(std::move(track));
     }
 
@@ -1654,6 +1734,28 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
             ++snap.deviceCount;
         }
 
+        snap.trackGainDeviceIndex = -1;
+        for (int i = 0; i < snap.deviceCount; ++i) {
+            if (snap.devices[i].kind == DeviceNodeKind::TrackGain) {
+                snap.trackGainDeviceIndex = i;
+                break;
+            }
+        }
+
+        snap.freeze = {};
+        if (sourceTrack.freeze.enabled && freezeAssetStore_ != nullptr) {
+            if (const FreezeAsset* asset = freezeAssetStore_->find(sourceTrack.freeze.assetId)) {
+                snap.freeze.active = true;
+                snap.freeze.pcmL = asset->pcmL.data();
+                snap.freeze.pcmR = asset->pcmR.data();
+                snap.freeze.frameCount = static_cast<int>(asset->pcmL.size());
+                snap.freeze.pcmSampleRate = asset->sampleRate;
+                snap.freeze.startBeat = sourceTrack.freeze.startBeat;
+                snap.freeze.lengthBeats = sourceTrack.freeze.lengthBeats;
+            }
+        }
+
+        if (!sourceTrack.freeze.enabled) {
         for (const auto& clip : sourceTrack.midiClips) {
             const double contentLengthBeats =
                 clip.loopContent
@@ -1698,6 +1800,7 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                 };
             }
         }
+        }
 
         rebuildModEdgesLocked();
 
@@ -1733,6 +1836,7 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
         ++trackIndex;
     }
     rebuildProcessorGraphLocked(trackIndex);
+    reconcileTrackFreezeStaleLocked();
     trackPlaybackCount_.store(trackIndex, std::memory_order_release);
 
     // Keep ValueTree in sync (repos→tree) so listener can trust it for undo
@@ -1910,6 +2014,12 @@ void ProjectEngine::rebuildRepoCacheFromTree() {
                                      0.0f, 1.0f), std::memory_order_release);
 
     // Tracks from tree → trackRepo_
+    std::unordered_map<std::string, TrackFreezeData> preservedFreeze;
+    for (const auto& existing : trackRepo_.tracks()) {
+        if (existing.freeze.enabled) {
+            preservedFreeze[existing.id] = existing.freeze;
+        }
+    }
     trackRepo_.tracks().clear();
     for (int ti = 0; ti < projectRoot_.getNumChildren(); ++ti) {
         auto trackTree = projectRoot_.getChild(ti);
@@ -1981,6 +2091,10 @@ void ProjectEngine::rebuildRepoCacheFromTree() {
                 }
                 track.sampleClips.push_back(std::move(clip));
             }
+        }
+        if (const auto preserved = preservedFreeze.find(track.id);
+            preserved != preservedFreeze.end()) {
+            track.freeze = preserved->second;
         }
         trackRepo_.tracks().push_back(std::move(track));
     }
@@ -2163,6 +2277,119 @@ bool ProjectEngine::redo() {
     const juce::ScopedWriteLock lock(mutex_);
     if (!undoManager_.redo()) return false;
     return true;
+}
+
+void ProjectEngine::mixTrackPreGainStereo(int trackIndex,
+                                          float* trackLeft,
+                                          float* trackRight,
+                                          int numFrames,
+                                          double sampleRate,
+                                          double playheadStartBeat,
+                                          const float* lfoValues,
+                                          int lfoCount,
+                                          IModulator* const* modulators,
+                                          uint32_t retriggerGeneration) noexcept {
+    if (trackLeft == nullptr || trackRight == nullptr || numFrames <= 0 || trackIndex < 0) {
+        return;
+    }
+    const int trackCount = trackPlaybackCount_.load(std::memory_order_acquire);
+    if (trackIndex >= trackCount) {
+        return;
+    }
+
+    constexpr int kMaxFrames = 4096;
+    const int framesToProcess = numFrames > kMaxFrames ? kMaxFrames : numFrames;
+    const TrackPlaybackSnapshot& track = trackPlayback_[trackIndex];
+    const int gainIndex = track.trackGainDeviceIndex;
+    if (gainIndex < 0) {
+        return;
+    }
+
+    std::memset(trackLeft, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+    std::memset(trackRight, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+
+    SampleClipPlaybackRegion regions[8];
+    if (track.regionCount > 0) {
+        for (int i = 0; i < track.regionCount; ++i) {
+            const SampleRegion& source = track.regions[i];
+            regions[i] = SampleClipPlaybackRegion{
+                source.clipStartBeat,
+                source.clipLengthBeats,
+                source.pcm,
+                source.frameCount,
+                source.pcmSampleRate,
+                source.loopContent,
+                source.contentLengthBeats,
+            };
+        }
+        mixSampleRegionsBlock(trackLeft,
+                              framesToProcess,
+                              sampleRate,
+                              transport_.bpm(),
+                              playheadStartBeat,
+                              regions,
+                              track.regionCount);
+        std::copy(trackLeft, trackLeft + framesToProcess, trackRight);
+    }
+
+    const double beatsPerFrame =
+        (static_cast<double>(std::max(transport_.bpm(), 1)) / 60.0) / sampleRate;
+    const double blockEndBeat =
+        playheadStartBeat + static_cast<double>(framesToProcess) * beatsPerFrame;
+    constexpr int kMaxRoutedMidiNotes = 256;
+    MidiPlaybackNote routedMidi[kMaxRoutedMidiNotes];
+    const int ownNoteCount = std::min(track.noteCount, kMaxRoutedMidiNotes);
+    constexpr double kRouteReleaseBeats = 4.0;
+    int routedCount = 0;
+    for (int i = 0; i < ownNoteCount; ++i) {
+        const PlaybackNote& note = track.notes[i];
+        if (!blockMayContainLoopedClipNotes(playheadStartBeat,
+                                            blockEndBeat,
+                                            note.clipStartBeat,
+                                            note.clipLengthBeats,
+                                            note.contentLengthBeats,
+                                            note.loopContent,
+                                            note.noteStartBeat,
+                                            note.noteDurationBeats,
+                                            kRouteReleaseBeats)) {
+            continue;
+        }
+        routedMidi[routedCount++] = MidiPlaybackNote{
+            note.pitch,
+            note.clipStartBeat,
+            note.clipLengthBeats,
+            note.noteStartBeat,
+            note.noteDurationBeats,
+            note.velocity,
+            note.loopContent,
+            note.contentLengthBeats,
+        };
+    }
+
+    DeviceChainOrchestrator::Context ctx(trackPlayback_[trackIndex].arena, gProjectScratch);
+    ctx.trackLeft = trackLeft;
+    ctx.trackRight = trackRight;
+    ctx.numFrames = framesToProcess;
+    ctx.sampleRate = sampleRate;
+    ctx.bpm = transport_.bpm();
+    ctx.playheadStartBeat = playheadStartBeat;
+    ctx.notes = routedMidi;
+    ctx.noteCount = routedCount;
+    ctx.suppressInstruments = trackHasActiveSampleAtPlayhead(track, playheadStartBeat);
+    ctx.deviceMeters = nullptr;
+    ctx.maxDeviceMeters = 0;
+    ctx.lfoValues = lfoCount > 0 ? lfoValues : nullptr;
+    ctx.lfoCount = lfoCount;
+    ctx.modulators = lfoCount > 0 ? modulators : nullptr;
+    ctx.retriggerGeneration = retriggerGeneration;
+    ctx.modEdges = track.modEdgeCount > 0 ? track.modEdges : nullptr;
+    ctx.modEdgeCount = track.modEdgeCount;
+    ctx.automationClips = track.automationClipCount > 0 ? track.automationClips : nullptr;
+    ctx.automationClipCount = track.automationClipCount;
+    ctx.wavetableBank = wavetableBank_;
+    if (gainIndex > 0) {
+        DeviceChainOrchestrator::processChain(ctx, 0, gainIndex);
+    }
 }
 
 // ── ValueTree::Listener (tree is source of truth) ─────────────────
