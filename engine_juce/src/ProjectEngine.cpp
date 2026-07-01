@@ -826,6 +826,9 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
     if (masterLeft == nullptr || masterRight == nullptr || numFrames <= 0) {
         return;
     }
+    if (freezeBakeActive_.load(std::memory_order_acquire)) {
+        return;
+    }
 
     const int trackCount = trackPlaybackCount_.load(std::memory_order_acquire);
     if (trackCount <= 0) {

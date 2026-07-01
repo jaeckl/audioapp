@@ -389,6 +389,23 @@ private:
     bool buildLiveInstrumentForTrack(const Track& track, LiveInstrumentSnapshot& out) const;
     double sampleTimeToCaptureBeat(uint64_t sampleTime) const;
     bool freezeTrackLocked(Track& track, int trackIndex, TrackFreezeAssetStore& assets);
+    void beginFreezeBakeLocked();
+    void endFreezeBakeLocked() noexcept;
+
+    class FreezeBakeScope {
+    public:
+        explicit FreezeBakeScope(ProjectEngine& engine) : engine_(engine) {
+            engine.beginFreezeBakeLocked();
+        }
+        ~FreezeBakeScope() { engine_.endFreezeBakeLocked(); }
+
+        FreezeBakeScope(const FreezeBakeScope&) = delete;
+        FreezeBakeScope& operator=(const FreezeBakeScope&) = delete;
+
+    private:
+        ProjectEngine& engine_;
+    };
+
     void reconcileTrackFreezeStaleLocked();
     void markDeviceOwnerFreezeStaleLocked(const std::string& deviceId);
     const SampleBank* sampleBank_ = nullptr;
@@ -416,6 +433,9 @@ private:
 
     /// Previous arrangement-mix playhead (audio thread). Used to detect loop wrap.
     double lastArrangementMixPlayhead_ = -1.0;
+
+    /// Blocks arrangement RT mix while offline freeze bake uses shared processor arenas.
+    std::atomic<bool> freezeBakeActive_{false};
 
     DeviceRegistry deviceRegistry_{DeviceRegistry::createBuiltIn()};
 };

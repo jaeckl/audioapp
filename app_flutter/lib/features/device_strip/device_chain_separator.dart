@@ -11,12 +11,12 @@ class DeviceChainSeparator extends StatelessWidget {
     super.key,
     required this.active,
     required this.gain,
-    required this.onInsert,
+    this.onInsert,
   });
 
   final bool active;
   final double gain;
-  final VoidCallback onInsert;
+  final VoidCallback? onInsert;
 
   @override
   Widget build(BuildContext context) {

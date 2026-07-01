@@ -12,6 +12,7 @@ import 'device_container_tabs.dart';
 import 'device_strip_chrome.dart';
 import 'device_tab_bar.dart';
 import 'device_strip_card.dart';
+import 'device_strip_device_kind.dart';
 import 'device_strip_metrics.dart';
 import 'device_strip_theme.dart';
 import 'device_strip_viewport.dart';
@@ -666,7 +667,9 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   Widget build(BuildContext context) {
     // ignore: avoid_print
     print('SLOT BUILD: device=${widget.device.type} _modStripVisible=$_modStripVisible _selectedLfo=$_selectedLfo _selectedLfoId=$_selectedLfoId');
-    return Padding(
+    return DeviceStripTheme.wrapFrozenPreGainDimmed(
+      dimmed: widget.track.isPreGainDeviceDimmed(widget.device),
+      child: Padding(
       padding: EdgeInsets.fromLTRB(
         0,
         _collapsed ? DeviceStripTheme.collapsedSlotTopPadding : DeviceStripTheme.slotVerticalPadding,
@@ -823,6 +826,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           );
         },
       ),
+    ),
     );
   }
 

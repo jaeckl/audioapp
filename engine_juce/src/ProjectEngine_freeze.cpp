@@ -2,10 +2,13 @@
 #include "audioapp/TrackFreeze.hpp"
 #include "audioapp/TrackFreezeAssetStore.hpp"
 #include "audioapp/ClipContentPlayback.hpp"
+#include "audioapp/DeviceChainOrchestrator.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstring>
+#include <thread>
 #include <vector>
 
 namespace audioapp {
@@ -13,13 +16,27 @@ namespace {
 
 constexpr double kFreezeRenderSampleRate = 48000.0;
 constexpr int kFreezeRenderBlock = 512;
+constexpr auto kFreezeBakeDrainDelay = std::chrono::milliseconds(30);
 
 } // namespace
+
+void ProjectEngine::beginFreezeBakeLocked() {
+    freezeBakeActive_.store(true, std::memory_order_release);
+    lastArrangementMixPlayhead_ = -1.0;
+    std::this_thread::sleep_for(kFreezeBakeDrainDelay);
+}
+
+void ProjectEngine::endFreezeBakeLocked() noexcept {
+    freezeBakeActive_.store(false, std::memory_order_release);
+}
 
 bool ProjectEngine::freezeTrackLocked(Track& track,
                                       int trackIndex,
                                       TrackFreezeAssetStore& assets) {
     if (track.isGroup || trackHasRoutingReceivers(track)) {
+        return false;
+    }
+    if (captureActive_) {
         return false;
     }
     const double endBeat = trackContentEndBeat(track);
@@ -59,23 +76,45 @@ bool ProjectEngine::freezeTrackLocked(Track& track,
     }
     const uint32_t retriggerGeneration = modulationGraph_.noteRetriggerGeneration();
 
+    const FreezeBakeScope suspendBake(*this);
+    resetPlaybackStateInArena(trackPlayback_[trackIndex].arena);
+    modulationGraph_.retriggerOnNote();
+
+    const int bpm = transport_.bpm();
+    const double beatsPerFrame =
+        (static_cast<double>(std::max(bpm, 1)) / 60.0) / kFreezeRenderSampleRate;
+    const double samplePeriod = 1.0 / kFreezeRenderSampleRate;
+
     for (int offset = 0; offset < totalFrames; offset += kFreezeRenderBlock) {
         const int frames = std::min(kFreezeRenderBlock, totalFrames - offset);
         const double beat = static_cast<double>(offset) / kFreezeRenderSampleRate *
-                            static_cast<double>(transport_.bpm()) / 60.0;
+                            static_cast<double>(bpm) / 60.0;
         if (lfoCount > 0) {
             lfoValues.assign(static_cast<size_t>(lfoCount) * static_cast<size_t>(frames), 0.0f);
-            const double playheadSeconds =
-                beat * 60.0 / static_cast<double>(std::max(transport_.bpm(), 1));
+            const double playheadSeconds = beat * 60.0 / static_cast<double>(std::max(bpm, 1));
             for (int i = 0; i < lfoCount; ++i) {
                 auto* mod = modulationGraph_.modulator(i);
                 if (mod == nullptr) {
                     continue;
                 }
-                const float value = mod->evaluate(
-                    beat, transport_.bpm(), 0.0, playheadSeconds, retriggerGeneration, -1.0);
+                if (!mod->usesPerNoteClock()) {
+                    const float value = mod->evaluate(
+                        beat, bpm, 0.0, playheadSeconds, retriggerGeneration, -1.0);
+                    for (int frame = 0; frame < frames; ++frame) {
+                        lfoValues[static_cast<size_t>(i * frames + frame)] = value;
+                    }
+                    continue;
+                }
                 for (int frame = 0; frame < frames; ++frame) {
-                    lfoValues[static_cast<size_t>(i * frames + frame)] = value;
+                    const double secondsWithinBlock = static_cast<double>(frame) * samplePeriod;
+                    const double frameBeat = beat + static_cast<double>(frame) * beatsPerFrame;
+                    lfoValues[static_cast<size_t>(i * frames + frame)] =
+                        mod->evaluate(frameBeat,
+                                      bpm,
+                                      secondsWithinBlock,
+                                      playheadSeconds,
+                                      retriggerGeneration,
+                                      -1.0);
                 }
             }
         }

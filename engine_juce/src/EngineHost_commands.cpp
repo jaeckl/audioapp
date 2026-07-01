@@ -63,7 +63,15 @@ bool EngineHost::setTrackSoloed(const std::string& trackId, bool soloed) {
 }
 
 bool EngineHost::freezeTrack(const std::string& trackId) {
-    return project_->freezeTrack(trackId, freezeAssetStore_);
+    const bool wasPlaying = isPlaying();
+    if (wasPlaying) {
+        setPlaying(false);
+    }
+    const bool ok = project_->freezeTrack(trackId, freezeAssetStore_);
+    if (wasPlaying && ok) {
+        setPlaying(true);
+    }
+    return ok;
 }
 
 bool EngineHost::unfreezeTrack(const std::string& trackId) {
@@ -71,7 +79,15 @@ bool EngineHost::unfreezeTrack(const std::string& trackId) {
 }
 
 bool EngineHost::refreshTrackFreeze(const std::string& trackId) {
-    return project_->refreshTrackFreeze(trackId, freezeAssetStore_);
+    const bool wasPlaying = isPlaying();
+    if (wasPlaying) {
+        setPlaying(false);
+    }
+    const bool ok = project_->refreshTrackFreeze(trackId, freezeAssetStore_);
+    if (wasPlaying && ok) {
+        setPlaying(true);
+    }
+    return ok;
 }
 
 bool EngineHost::isTrackFrozen(const std::string& trackId) const {

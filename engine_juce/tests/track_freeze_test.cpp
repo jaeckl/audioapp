@@ -71,6 +71,12 @@ int main() {
     const float frozen = rms(host.renderOffline(2.0, 48000.0));
     expect(frozen > 0.001f, "frozen track still audible");
 
+    host.setPlaying(true);
+    expect(host.refreshTrackFreeze(trackA), "refresh while playing succeeds");
+    const float refreshedWhilePlaying = rms(host.renderOffline(2.0, 48000.0));
+    expect(refreshedWhilePlaying > 0.001f, "refreshed freeze still audible after playing bake");
+    host.setPlaying(false);
+
     expect(host.createMidiClip(trackA, 4.0, 2.0).empty(), "cannot add midi clip to frozen track");
 
     const auto archivePath =

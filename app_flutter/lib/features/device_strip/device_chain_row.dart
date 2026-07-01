@@ -5,6 +5,7 @@ import '../../bridge/param_descriptor.dart';
 import '../../bridge/live_meters_dto.dart';
 import '../../bridge/project_snapshot.dart';
 import 'device_chain_separator.dart';
+import 'device_strip_device_kind.dart';
 import 'device_strip_metrics.dart';
 import 'device_strip_slot.dart';
 import 'device_strip_theme.dart';
@@ -191,9 +192,9 @@ class DeviceChainRow extends StatelessWidget {
                 DeviceChainSeparator(
                   active: playing,
                   gain: devices[i].chainVuGain,
-                  onInsert: () => onInsertDevice(
-                    deviceInsertIndexAfter(track, i),
-                  ),
+                  onInsert: track.canInsertDevices
+                      ? () => onInsertDevice(deviceInsertIndexAfter(track, i))
+                      : null,
                 ),
               ],
           ],
@@ -218,7 +219,7 @@ class DeviceChainRow extends StatelessWidget {
           DeviceChainSeparator(
             active: playing,
             gain: 0.35,
-            onInsert: () => onInsertDevice(0),
+            onInsert: track.canInsertDevices ? () => onInsertDevice(0) : null,
           ),
         ],
       ),

@@ -3,6 +3,7 @@ import 'package:audioapp/features/device_strip/device_chain_row.dart';
 import 'package:audioapp/features/device_strip/device_strip.dart';
 import 'package:audioapp/features/device_strip/device_strip_card.dart';
 import 'package:audioapp/features/device_strip/device_strip_slot.dart';
+import 'package:audioapp/features/device_strip/device_strip_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -116,5 +117,62 @@ void main() {
     expect(find.byIcon(Icons.unfold_more), findsOneWidget);
     expect(find.byIcon(Icons.unfold_less), findsNothing);
     expect(find.text('SAMPLER'), findsOneWidget);
+  });
+
+  testWidgets('frozen track dims pre-gain devices and disables insert', (tester) async {
+    var insertCalls = 0;
+    final track = TrackSnapshot(
+      id: 'track-1',
+      name: 'Track 1',
+      devices: [
+        DeviceSnapshot.fromMap({
+          'id': 'dev-1',
+          'type': 'simple_sampler',
+          'parameters': {'gain': 1.0, 'sampleId': ''},
+        }),
+        DeviceSnapshot.fromMap({
+          'id': 'dev-2',
+          'type': 'track_gain',
+          'parameters': {'gain': 1.0},
+        }),
+      ],
+      midiClips: [],
+      sampleClips: [],
+      freeze: const TrackFreezeSnapshot(enabled: true),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DeviceChainRow(
+            track: track,
+            samples: const [],
+            playing: false,
+            bpm: 120,
+            density: DeviceStripSlotDensity.strip,
+            onSamplerParameterChanged: (_, __, ___) {},
+            onOpenSamplerEditor: (_, __) {},
+            onFrequencyChanged: (_, __) {},
+            onInsertDevice: (_) => insertCalls++,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.add), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pump();
+    expect(insertCalls, 0);
+
+    final dimmed = tester.widgetList<Opacity>(
+      find.descendant(
+        of: find.byType(DeviceStripSlot),
+        matching: find.byType(Opacity),
+      ),
+    );
+    expect(
+      dimmed.where((o) => o.opacity == DeviceStripTheme.frozenPreGainOpacity).length,
+      1,
+    );
   });
 }

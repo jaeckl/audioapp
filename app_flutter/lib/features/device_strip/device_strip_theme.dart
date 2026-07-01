@@ -123,4 +123,20 @@ abstract final class DeviceStripTheme {
         'tremolo' => 'Tremolo',
         _ => type,
       };
+
+  /// Opacity for pre-gain devices while a track is frozen (track_gain stays full).
+  static const double frozenPreGainOpacity = 0.38;
+
+  static Widget wrapFrozenPreGainDimmed({
+    required bool dimmed,
+    required Widget child,
+  }) {
+    if (!dimmed) {
+      return child;
+    }
+    return Opacity(
+      opacity: frozenPreGainOpacity,
+      child: IgnorePointer(child: child),
+    );
+  }
 }

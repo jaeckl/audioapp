@@ -255,6 +255,10 @@ class _DeviceStripHeader extends StatelessWidget {
                 ),
           ),
           const SizedBox(width: 8),
+          if (track.freeze.enabled) ...[
+            _FreezeStripBadge(stale: track.freeze.stale),
+            const SizedBox(width: 6),
+          ],
           Expanded(
             child: Text(
               '${track.name} · $deviceCount',
@@ -284,6 +288,35 @@ class _DeviceStripHeader extends StatelessWidget {
             icon: const Icon(Icons.open_in_full, size: 20, color: Colors.white54),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FreezeStripBadge extends StatelessWidget {
+  const _FreezeStripBadge({required this.stale});
+
+  final bool stale;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = stale ? Colors.amber : const Color(0xFF8EB4FF);
+    final label = stale ? 'STALE' : 'FROZEN';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(color: color.withValues(alpha: 0.55)),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.6,
+              fontSize: 9,
+            ),
       ),
     );
   }
