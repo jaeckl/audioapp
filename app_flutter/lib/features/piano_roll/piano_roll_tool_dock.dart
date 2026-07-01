@@ -7,11 +7,9 @@ class PianoRollToolDock extends StatelessWidget {
   const PianoRollToolDock({
     super.key,
     required this.tool,
-    required this.gridLabel,
     required this.canUndo,
     required this.canRedo,
     required this.onToolChanged,
-    required this.onGridTap,
     required this.onEditTap,
     required this.onUndo,
     required this.onRedo,
@@ -20,11 +18,9 @@ class PianoRollToolDock extends StatelessWidget {
   });
 
   final PianoRollTool tool;
-  final String gridLabel;
   final bool canUndo;
   final bool canRedo;
   final ValueChanged<PianoRollTool> onToolChanged;
-  final VoidCallback onGridTap;
   final VoidCallback onEditTap;
   final VoidCallback onUndo;
   final VoidCallback onRedo;
@@ -38,60 +34,53 @@ class PianoRollToolDock extends StatelessWidget {
       child: SizedBox(
         height: PianoRollMetrics.toolDockHeight,
         child: Row(
-            children: [
-              _DockButton(
-                icon: Icons.pan_tool_alt_outlined,
-                activeIcon: Icons.pan_tool_alt,
-                label: 'Select',
-                active: tool == PianoRollTool.select,
-                onTap: () => onToolChanged(PianoRollTool.select),
-              ),
-              _DockButton(
-                icon: Icons.edit_outlined,
-                activeIcon: Icons.edit,
-                label: 'Draw',
-                active: tool == PianoRollTool.draw,
-                onTap: () => onToolChanged(PianoRollTool.draw),
-              ),
-              _DockButton(
-                icon: Icons.grid_on_outlined,
-                activeIcon: Icons.grid_on,
-                label: gridLabel,
-                active: false,
-                onTap: onGridTap,
-              ),
-              _DockButton(
-                icon: Icons.tune_outlined,
-                activeIcon: Icons.tune,
-                label: 'Edit',
-                active: false,
-                onTap: onEditTap,
-              ),
-              const Spacer(),
-              _DockButton(
-                icon: Icons.play_arrow,
-                activeIcon: Icons.stop,
-                label: previewPlaying ? 'Stop' : 'Preview',
-                active: previewPlaying,
-                onTap: onPreviewPlayStop,
-                showLabel: false,
-              ),
-              _DockButton(
-                icon: Icons.undo,
-                activeIcon: Icons.undo,
-                label: 'Undo',
-                active: false,
-                enabled: canUndo,
-                onTap: onUndo,
-              ),
-              _DockButton(
-                icon: Icons.redo,
-                activeIcon: Icons.redo,
-                label: 'Redo',
-                active: false,
-                enabled: canRedo,
-                onTap: onRedo,
-              ),
+          children: [
+            _DockButton(
+              icon: Icons.pan_tool_alt_outlined,
+              activeIcon: Icons.pan_tool_alt,
+              label: 'Select',
+              active: tool == PianoRollTool.select,
+              onTap: () => onToolChanged(PianoRollTool.select),
+            ),
+            _DockButton(
+              icon: Icons.edit_outlined,
+              activeIcon: Icons.edit,
+              label: 'Draw',
+              active: tool == PianoRollTool.draw,
+              onTap: () => onToolChanged(PianoRollTool.draw),
+            ),
+            _DockButton(
+              icon: Icons.tune_outlined,
+              activeIcon: Icons.tune,
+              label: 'Edit',
+              active: false,
+              onTap: onEditTap,
+            ),
+            const Spacer(),
+            _DockButton(
+              icon: Icons.play_arrow,
+              activeIcon: Icons.stop,
+              label: previewPlaying ? 'Stop' : 'Preview',
+              active: previewPlaying,
+              onTap: onPreviewPlayStop,
+              showLabel: false,
+            ),
+            _DockButton(
+              icon: Icons.undo,
+              activeIcon: Icons.undo,
+              label: 'Undo',
+              active: false,
+              enabled: canUndo,
+              onTap: onUndo,
+            ),
+            _DockButton(
+              icon: Icons.redo,
+              activeIcon: Icons.redo,
+              label: 'Redo',
+              active: false,
+              enabled: canRedo,
+              onTap: onRedo,
+            ),
             const SizedBox(width: 4),
           ],
         ),
@@ -135,7 +124,9 @@ class _DockButton extends StatelessWidget {
                 active ? activeIcon : icon,
                 size: 22,
                 color: enabled
-                    ? (active ? PianoRollTheme.dockIconActive : PianoRollTheme.dockIcon)
+                    ? (active
+                        ? PianoRollTheme.dockIconActive
+                        : PianoRollTheme.dockIcon)
                     : PianoRollTheme.labelMuted,
               ),
               if (showLabel) ...[
@@ -145,7 +136,9 @@ class _DockButton extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w600,
-                    color: enabled ? PianoRollTheme.dockIcon : PianoRollTheme.labelMuted,
+                    color: enabled
+                        ? PianoRollTheme.dockIcon
+                        : PianoRollTheme.labelMuted,
                   ),
                 ),
               ],

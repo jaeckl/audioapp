@@ -139,6 +139,16 @@ class PianoRollViewportState extends State<PianoRollViewport> {
   double get _gridWidth =>
       PianoRollMetrics.gridWidth(widget.virtualLengthBeats, _pixelsPerBeat);
 
+  double get _minimumPixelsPerBeat {
+    if (_scrollViewportWidth <= 0 || widget.virtualLengthBeats <= 0) {
+      return PianoRollMetrics.minPixelsPerBeat;
+    }
+    return (_scrollViewportWidth / widget.virtualLengthBeats).clamp(
+      1.0,
+      PianoRollMetrics.minPixelsPerBeat,
+    );
+  }
+
   double get _gridHeight =>
       PianoRollMetrics.gridHeight(widget.minPitch, widget.maxPitch, _rowHeight);
 
@@ -159,7 +169,8 @@ class PianoRollViewportState extends State<PianoRollViewport> {
       _onMarkerOverlayScroll();
     });
     _verticalKeys.addListener(() => _linkScroll(_verticalKeys, _vertical));
-    widget.timelineScrollController?.bind(reveal: _revealPlayheadAtViewportOrigin);
+    widget.timelineScrollController
+        ?.bind(reveal: _revealPlayheadAtViewportOrigin);
   }
 
   @override
@@ -167,7 +178,8 @@ class PianoRollViewportState extends State<PianoRollViewport> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.timelineScrollController != widget.timelineScrollController) {
       oldWidget.timelineScrollController?.bind();
-      widget.timelineScrollController?.bind(reveal: _revealPlayheadAtViewportOrigin);
+      widget.timelineScrollController
+          ?.bind(reveal: _revealPlayheadAtViewportOrigin);
     }
     if (widget.viewRangeBars != oldWidget.viewRangeBars) {
       _scheduleApplyViewRange(widget.viewRangeBars);
@@ -218,7 +230,8 @@ class PianoRollViewportState extends State<PianoRollViewport> {
 
   void _applyViewRange(int bars) {
     if (_scrollViewportWidth <= 0) return;
-    final ppb = EditorViewRange.pixelsPerBeatForWidth(_scrollViewportWidth, bars);
+    final ppb =
+        EditorViewRange.pixelsPerBeatForWidth(_scrollViewportWidth, bars);
     setState(() {
       _pixelsPerBeat = ppb;
       _appliedViewRangeBeats = bars;
@@ -488,7 +501,8 @@ class PianoRollViewportState extends State<PianoRollViewport> {
 
     if (widget.tool == PianoRollTool.draw && _pendingDrawTap) {
       _drawHorizontalTravel += delta.dx.abs();
-      if (_drawHorizontalTravel > _drawPaintThreshold && _dragMode == _DragMode.none) {
+      if (_drawHorizontalTravel > _drawPaintThreshold &&
+          _dragMode == _DragMode.none) {
         _beginDrawAt(_editStartCanvas!);
       }
       if (_dragMode == _DragMode.draw) {
@@ -718,7 +732,9 @@ class PianoRollViewportState extends State<PianoRollViewport> {
       }
       final newDuration = widget.gridSettings.snapBeat(
         (_dragStartDuration! + delta.dx / _pixelsPerBeat).clamp(
-          widget.gridSettings.snapBeats > 0 ? widget.gridSettings.snapBeats : 0.125,
+          widget.gridSettings.snapBeats > 0
+              ? widget.gridSettings.snapBeats
+              : 0.125,
           widget.virtualLengthBeats - note.startBeat,
         ),
       );
@@ -735,8 +751,10 @@ class PianoRollViewportState extends State<PianoRollViewport> {
   }
 
   void _applyHorizontalPinchZoom(double scale, Offset focal) {
-    final newPpb = (_pinchStartPpb * scale)
-        .clamp(PianoRollMetrics.minPixelsPerBeat, PianoRollMetrics.maxPixelsPerBeat);
+    final newPpb = (_pinchStartPpb * scale).clamp(
+      _minimumPixelsPerBeat,
+      PianoRollMetrics.maxPixelsPerBeat,
+    );
 
     if ((newPpb - _pixelsPerBeat).abs() < 0.15) {
       return;
@@ -752,7 +770,8 @@ class PianoRollViewportState extends State<PianoRollViewport> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_horizontal.hasClients) return;
       final maxX = _horizontal.position.maxScrollExtent;
-      final newScrollX = (beatAtFocal * newPpb - focal.dx + scrollX).clamp(0.0, maxX);
+      final newScrollX =
+          (beatAtFocal * newPpb - focal.dx + scrollX).clamp(0.0, maxX);
       _horizontal.jumpTo(newScrollX);
       if (_ruler.hasClients) _ruler.jumpTo(newScrollX);
     });
@@ -776,7 +795,8 @@ class PianoRollViewportState extends State<PianoRollViewport> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_vertical.hasClients) return;
       final maxY = _vertical.position.maxScrollExtent;
-      final newScrollY = (rowAtFocal * newRowH - focal.dy + scrollY).clamp(0.0, maxY);
+      final newScrollY =
+          (rowAtFocal * newRowH - focal.dy + scrollY).clamp(0.0, maxY);
       _vertical.jumpTo(newScrollY);
       if (_verticalKeys.hasClients) _verticalKeys.jumpTo(newScrollY);
     });
@@ -791,7 +811,8 @@ class PianoRollViewportState extends State<PianoRollViewport> {
   }
 
   void _emitCenterOctave() {
-    if (widget.onCenterOctaveChanged == null || _lastViewportHeight <= 0) return;
+    if (widget.onCenterOctaveChanged == null || _lastViewportHeight <= 0)
+      return;
     if (!_vertical.hasClients) return;
     final centerY = _vertical.offset + _lastViewportHeight / 2;
     final pitch = (widget.maxPitch - centerY / _rowHeight).round();
@@ -839,7 +860,8 @@ class PianoRollViewportState extends State<PianoRollViewport> {
   int? _noteIndexAt(Offset canvasPos) {
     for (var i = widget.notes.length - 1; i >= 0; i--) {
       final note = widget.notes[i];
-      if (note.pitch < widget.minPitch || note.pitch > widget.maxPitch) continue;
+      if (note.pitch < widget.minPitch || note.pitch > widget.maxPitch)
+        continue;
       final left = note.startBeat * _pixelsPerBeat;
       final top = (widget.maxPitch - note.pitch) * _rowHeight;
       final width = note.durationBeats * _pixelsPerBeat;
@@ -886,7 +908,8 @@ class PianoRollViewportState extends State<PianoRollViewport> {
   double _rulerCanvasDx(PointerEvent event) =>
       event.localPosition.dx + _rulerScrollOffset;
 
-  ({List<Widget> behindChrome, List<Widget> inFrontOfChrome}) _buildSyncedMarkerStackLayers() {
+  ({List<Widget> behindChrome, List<Widget> inFrontOfChrome})
+      _buildSyncedMarkerStackLayers() {
     final scroll = _horizontalScrollOffset;
     final rulerHeight = PianoRollMetrics.rulerHeight;
     final behindLines = <Widget>[];
@@ -1095,9 +1118,11 @@ class PianoRollViewportState extends State<PianoRollViewport> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        _lastViewportHeight = constraints.maxHeight - PianoRollMetrics.rulerHeight;
+        _lastViewportHeight =
+            constraints.maxHeight - PianoRollMetrics.rulerHeight;
         _scheduleInitialScroll(_lastViewportHeight);
-        final timelineWidth = constraints.maxWidth - PianoRollMetrics.keyColumnWidth;
+        final timelineWidth =
+            constraints.maxWidth - PianoRollMetrics.keyColumnWidth;
         _updateScrollViewportWidth(timelineWidth);
 
         final rulerHeight = PianoRollMetrics.rulerHeight;

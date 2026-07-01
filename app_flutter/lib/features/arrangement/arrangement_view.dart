@@ -19,6 +19,7 @@ import 'automation_clip_renderer.dart';
 import 'clip_renderer.dart';
 import 'midi_clip_renderer.dart';
 import 'sample_clip_renderer.dart';
+import 'snap_grid_resolution.dart';
 import 'track_lane_icon.dart';
 import 'track_mix_button.dart';
 
@@ -106,9 +107,13 @@ class ArrangementView extends StatefulWidget {
     this.onFollowResumed,
     this.playheadListenable,
     this.onResizeClipCommit,
+    this.snapGridResolution = SnapGridResolution.adaptive,
+    this.snapGridTriplet = false,
   });
 
   final ProjectSnapshot snapshot;
+  final SnapGridResolution snapGridResolution;
+  final bool snapGridTriplet;
   final ValueChanged<String> onTrackSelected;
   final VoidCallback onAddTrack;
   final VoidCallback? onAddGroup;
@@ -228,6 +233,21 @@ class ArrangementViewState extends State<ArrangementView> {
   double get _timelineEndBeat =>
       ArrangementTimelineMetrics.virtualLengthBeats(widget.snapshot);
 
+  double get _minimumPixelsPerBeat {
+    if (_timelineViewportWidth <= 0 || _timelineEndBeat <= 0) {
+      return ArrangementTimelineMetrics.minPixelsPerBeat;
+    }
+    return (_timelineViewportWidth / _timelineEndBeat).clamp(
+      1.0,
+      ArrangementTimelineMetrics.minPixelsPerBeat,
+    );
+  }
+
+  double get _snapGridBeats => widget.snapGridResolution.beatsForZoom(
+        _pixelsPerBeat,
+        triplet: widget.snapGridTriplet,
+      );
+
   double get _displayRegionStart =>
       _previewRegionStart ?? widget.snapshot.loopRegionStartBeat;
 
@@ -326,6 +346,7 @@ class ArrangementViewState extends State<ArrangementView> {
 
     final beat = ArrangementTimelineMetrics.quantizeBeat(
       _beatFromRulerCanvasDx(canvasDx),
+      grid: _snapGridBeats,
     );
     if (_rulerDragTarget == _RulerDragTarget.regionStart) {
       final maxStart = _displayRegionEnd - 1;
@@ -342,7 +363,8 @@ class ArrangementViewState extends State<ArrangementView> {
     }
   }
 
-  Future<void> _onRulerPointerUp(PointerEvent event, [double? canvasDxOverride]) async {
+  Future<void> _onRulerPointerUp(PointerEvent event,
+      [double? canvasDxOverride]) async {
     if (event.pointer != _rulerActivePointer) {
       return;
     }
@@ -409,7 +431,8 @@ class ArrangementViewState extends State<ArrangementView> {
     _onRulerPointerMove(event, canvasDx);
   }
 
-  Future<void> _onPlayheadHitPointerUp(PointerEvent event, double canvasDx) async {
+  Future<void> _onPlayheadHitPointerUp(
+      PointerEvent event, double canvasDx) async {
     await _onRulerPointerUp(event, canvasDx);
   }
 
@@ -859,8 +882,9 @@ class ArrangementViewState extends State<ArrangementView> {
       return;
     }
 
-    final next = ArrangementTimelineMetrics.clampPixelsPerBeat(
-      _scaleStartPixelsPerBeat * details.scale,
+    final next = (_scaleStartPixelsPerBeat * details.scale).clamp(
+      _minimumPixelsPerBeat,
+      ArrangementTimelineMetrics.maxPixelsPerBeat,
     );
     if ((next - _pixelsPerBeat).abs() < 0.25) {
       return;
@@ -960,7 +984,8 @@ class ArrangementViewState extends State<ArrangementView> {
         excludeClipId: session.clipId,
       ),
       timelineEndBeats: _timelineEndBeat,
-      snapStartToGrid: false,
+      grid: _snapGridBeats,
+      snapStartToGrid: true,
     );
   }
 
@@ -1489,8 +1514,7 @@ class ArrangementViewState extends State<ArrangementView> {
     const expanded = ArrangementTimelineMetrics.trackHeaderExpandedWidth;
     final mid = (compact + expanded) / 2;
     setState(() {
-      _headerColumnWidth =
-          _headerColumnWidth >= mid ? expanded : compact;
+      _headerColumnWidth = _headerColumnWidth >= mid ? expanded : compact;
     });
   }
 
@@ -1638,6 +1662,7 @@ class ArrangementViewState extends State<ArrangementView> {
                   painter: ArrangementGridPainter(
                     virtualLengthBeats: _timelineEndBeat,
                     pixelsPerBeat: _pixelsPerBeat,
+                    gridBeats: _snapGridBeats,
                     regionStartBeat: displayRegionStart,
                     regionEndBeat: displayRegionEnd,
                     showRegionShading: widget.snapshot.loopEnabled,
@@ -2183,6 +2208,7 @@ class _MasterLane extends StatelessWidget {
             painter: ArrangementGridPainter(
               virtualLengthBeats: timelineEndBeat,
               pixelsPerBeat: pixelsPerBeat,
+              gridBeats: 1,
               regionStartBeat: regionStartBeat,
               regionEndBeat: regionEndBeat,
               showRegionShading: showRegionShading,
@@ -2489,8 +2515,8 @@ class _TrackHeader extends StatelessWidget {
                         bottom: 0,
                         child: Container(
                           width: 2,
-                          color: theme.colorScheme.primary
-                              .withValues(alpha: 0.45),
+                          color:
+                              theme.colorScheme.primary.withValues(alpha: 0.45),
                         ),
                       ),
                     Padding(
@@ -3104,9 +3130,8 @@ class _ClipDragPreview extends StatelessWidget {
     }
 
     final laneHeight = ArrangementTimelineMetrics.trackLaneHeight;
-    final left = headerWidth +
-        session.previewStartBeat * pixelsPerBeat -
-        scrollOffset;
+    final left =
+        headerWidth + session.previewStartBeat * pixelsPerBeat - scrollOffset;
     if (visibleTrackIndex < 0) return const SizedBox.shrink();
     final top = PianoRollMetrics.rulerHeight +
         visibleTrackIndex * laneHeight -

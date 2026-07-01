@@ -8,6 +8,7 @@ class ArrangementGridPainter extends CustomPainter {
   const ArrangementGridPainter({
     required this.virtualLengthBeats,
     required this.pixelsPerBeat,
+    required this.gridBeats,
     this.regionStartBeat = 0,
     this.regionEndBeat = 0,
     this.showRegionShading = false,
@@ -15,6 +16,7 @@ class ArrangementGridPainter extends CustomPainter {
 
   final double virtualLengthBeats;
   final double pixelsPerBeat;
+  final double gridBeats;
   final double regionStartBeat;
   final double regionEndBeat;
   final bool showRegionShading;
@@ -30,7 +32,8 @@ class ArrangementGridPainter extends CustomPainter {
       final regionStartPx = regionStartBeat * pixelsPerBeat;
       final regionEndPx = regionEndBeat * pixelsPerBeat;
       canvas.drawRect(
-        Rect.fromLTWH(regionStartPx, 0, regionEndPx - regionStartPx, size.height),
+        Rect.fromLTWH(
+            regionStartPx, 0, regionEndPx - regionStartPx, size.height),
         Paint()..color = PianoRollTheme.clipRegionFill,
       );
       if (regionStartPx > 0) {
@@ -53,7 +56,7 @@ class ArrangementGridPainter extends CustomPainter {
   void _paintVerticalGrid(Canvas canvas, Size size) {
     final barStep = PianoRollMetrics.beatsPerBar.toDouble();
 
-    for (var beat = 0.0; beat <= virtualLengthBeats; beat += 1.0) {
+    for (var beat = 0.0; beat <= virtualLengthBeats; beat += gridBeats) {
       final x = beat * pixelsPerBeat;
       if (x > size.width) break;
 
@@ -72,6 +75,7 @@ class ArrangementGridPainter extends CustomPainter {
   bool shouldRepaint(covariant ArrangementGridPainter oldDelegate) {
     return oldDelegate.virtualLengthBeats != virtualLengthBeats ||
         oldDelegate.pixelsPerBeat != pixelsPerBeat ||
+        oldDelegate.gridBeats != gridBeats ||
         oldDelegate.regionStartBeat != regionStartBeat ||
         oldDelegate.regionEndBeat != regionEndBeat ||
         oldDelegate.showRegionShading != showRegionShading;

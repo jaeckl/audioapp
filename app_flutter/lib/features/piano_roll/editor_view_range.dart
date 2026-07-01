@@ -16,7 +16,7 @@ abstract final class EditorViewRange {
     }
     final visibleBeats = visibleBeatsForBars(visibleBars);
     return (viewportWidth / visibleBeats).clamp(
-      PianoRollMetrics.minPixelsPerBeat,
+      1.0,
       PianoRollMetrics.maxPixelsPerBeat,
     );
   }

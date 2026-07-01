@@ -72,7 +72,8 @@ class AutomationEditorViewport extends StatefulWidget {
   final TimelineViewportScrollController? timelineScrollController;
 
   @override
-  State<AutomationEditorViewport> createState() => AutomationEditorViewportState();
+  State<AutomationEditorViewport> createState() =>
+      AutomationEditorViewportState();
 }
 
 class AutomationEditorViewportState extends State<AutomationEditorViewport> {
@@ -119,8 +120,18 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
       ? const NeverScrollableScrollPhysics()
       : const ClampingScrollPhysics(parent: AlwaysScrollableScrollPhysics());
 
-  double get _gridWidth =>
-      AutomationEditorMetrics.gridWidth(widget.virtualLengthBeats, _pixelsPerBeat);
+  double get _gridWidth => AutomationEditorMetrics.gridWidth(
+      widget.virtualLengthBeats, _pixelsPerBeat);
+
+  double get _minimumPixelsPerBeat {
+    if (_scrollViewportWidth <= 0 || widget.virtualLengthBeats <= 0) {
+      return AutomationEditorMetrics.minPixelsPerBeat;
+    }
+    return (_scrollViewportWidth / widget.virtualLengthBeats).clamp(
+      1.0,
+      AutomationEditorMetrics.minPixelsPerBeat,
+    );
+  }
 
   void _onMarkerOverlayScroll() {
     if (mounted) setState(() {});
@@ -138,7 +149,8 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
       _onMarkerOverlayScroll();
     });
     _verticalLabels.addListener(() => _linkScroll(_verticalLabels, _vertical));
-    widget.timelineScrollController?.bind(reveal: _revealPlayheadAtViewportOrigin);
+    widget.timelineScrollController
+        ?.bind(reveal: _revealPlayheadAtViewportOrigin);
   }
 
   @override
@@ -146,7 +158,8 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.timelineScrollController != widget.timelineScrollController) {
       oldWidget.timelineScrollController?.bind();
-      widget.timelineScrollController?.bind(reveal: _revealPlayheadAtViewportOrigin);
+      widget.timelineScrollController
+          ?.bind(reveal: _revealPlayheadAtViewportOrigin);
     }
     if (widget.viewRangeBars != oldWidget.viewRangeBars) {
       _scheduleApplyViewRange(widget.viewRangeBars);
@@ -197,7 +210,8 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
 
   void _applyViewRange(int bars) {
     if (_scrollViewportWidth <= 0) return;
-    final ppb = EditorViewRange.pixelsPerBeatForWidth(_scrollViewportWidth, bars);
+    final ppb =
+        EditorViewRange.pixelsPerBeatForWidth(_scrollViewportWidth, bars);
     setState(() {
       _pixelsPerBeat = ppb;
       _appliedViewRangeBeats = bars;
@@ -246,7 +260,9 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
 
   void _ensureValueAxisHeight() {
     _valueAxisHeight = AutomationEditorMetrics.clampValueAxisHeight(
-      _valueAxisHeight < _canvasViewportHeight ? _canvasViewportHeight : _valueAxisHeight,
+      _valueAxisHeight < _canvasViewportHeight
+          ? _canvasViewportHeight
+          : _valueAxisHeight,
       _canvasViewportHeight,
     );
   }
@@ -269,7 +285,8 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
 
   bool _hitClipEndMarker(Offset canvasPos) {
     final endX = widget.clipLengthBeats * _pixelsPerBeat;
-    return (canvasPos.dx - endX).abs() <= AutomationEditorMetrics.clipEndHitWidth / 2;
+    return (canvasPos.dx - endX).abs() <=
+        AutomationEditorMetrics.clipEndHitWidth / 2;
   }
 
   double _clampClipLength(double beats) {
@@ -293,7 +310,8 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
     return null;
   }
 
-  List<AutomationPointSnapshot> _sortedPoints(List<AutomationPointSnapshot> points) {
+  List<AutomationPointSnapshot> _sortedPoints(
+      List<AutomationPointSnapshot> points) {
     return List<AutomationPointSnapshot>.of(points)
       ..sort((a, b) => a.beat.compareTo(b.beat));
   }
@@ -348,7 +366,7 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
 
   void _applyHorizontalPinchZoom(double scale, Offset focal) {
     final newPpb = (_pinchStartPpb * scale).clamp(
-      AutomationEditorMetrics.minPixelsPerBeat,
+      _minimumPixelsPerBeat,
       AutomationEditorMetrics.maxPixelsPerBeat,
     );
 
@@ -366,7 +384,8 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_horizontal.hasClients) return;
       final maxX = _horizontal.position.maxScrollExtent;
-      final newScrollX = (beatAtFocal * newPpb - focal.dx + scrollX).clamp(0.0, maxX);
+      final newScrollX =
+          (beatAtFocal * newPpb - focal.dx + scrollX).clamp(0.0, maxX);
       _horizontal.jumpTo(newScrollX);
       if (_ruler.hasClients) _ruler.jumpTo(newScrollX);
     });
@@ -393,7 +412,8 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_vertical.hasClients) return;
       final maxY = _vertical.position.maxScrollExtent;
-      final valueY = AutomationEditorMetrics.dyFromValue(valueAtFocal, newValueH);
+      final valueY =
+          AutomationEditorMetrics.dyFromValue(valueAtFocal, newValueH);
       final newScrollY = (valueY - focal.dy + scrollY).clamp(0.0, maxY);
       _vertical.jumpTo(newScrollY);
       if (_verticalLabels.hasClients) _verticalLabels.jumpTo(newScrollY);
@@ -518,7 +538,8 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
       widget.onEditStarted();
       _editCommitted = true;
       final beat = _beatFromDx(canvasPos.dx).clamp(0.0, widget.clipLengthBeats);
-      final value = AutomationEditorMetrics.valueFromDy(canvasPos.dy, _valueAxisHeight);
+      final value =
+          AutomationEditorMetrics.valueFromDy(canvasPos.dy, _valueAxisHeight);
       final next = List<AutomationPointSnapshot>.of(widget.points)
         ..add(AutomationPointSnapshot(beat: beat, value: value));
       _setPoints(_sortedPoints(next));
@@ -582,7 +603,8 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
         _editCommitted = true;
       }
       final beat = _beatFromDx(canvasPos.dx).clamp(0.0, widget.clipLengthBeats);
-      final value = AutomationEditorMetrics.valueFromDy(canvasPos.dy, _valueAxisHeight);
+      final value =
+          AutomationEditorMetrics.valueFromDy(canvasPos.dy, _valueAxisHeight);
       final next = List<AutomationPointSnapshot>.of(widget.points);
       next[index] = AutomationPointSnapshot(beat: beat, value: value);
       widget.onPointsChanged(next);
@@ -621,7 +643,8 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
           widget.onToggleDeleteMark(tapIndex);
           HapticFeedback.selectionClick();
         }
-      } else if (_pendingClearSelection && widget.tool == AutomationEditorTool.select) {
+      } else if (_pendingClearSelection &&
+          widget.tool == AutomationEditorTool.select) {
         widget.onClearSelection();
       }
     }
@@ -639,7 +662,8 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
   double _rulerCanvasDx(PointerEvent event) =>
       event.localPosition.dx + _rulerScrollOffset;
 
-  ({List<Widget> behindChrome, List<Widget> inFrontOfChrome}) _buildSyncedMarkerStackLayers() {
+  ({List<Widget> behindChrome, List<Widget> inFrontOfChrome})
+      _buildSyncedMarkerStackLayers() {
     final scroll = _horizontalScrollOffset;
     final rulerHeight = AutomationEditorMetrics.rulerHeight;
     final behindLines = <Widget>[];
@@ -835,8 +859,10 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final canvasHeight = constraints.maxHeight - AutomationEditorMetrics.rulerHeight;
-        if (canvasHeight > 0 && (_canvasViewportHeight - canvasHeight).abs() > 0.5) {
+        final canvasHeight =
+            constraints.maxHeight - AutomationEditorMetrics.rulerHeight;
+        if (canvasHeight > 0 &&
+            (_canvasViewportHeight - canvasHeight).abs() > 0.5) {
           _canvasViewportHeight = canvasHeight;
           _valueAxisHeight = AutomationEditorMetrics.clampValueAxisHeight(
             canvasHeight,

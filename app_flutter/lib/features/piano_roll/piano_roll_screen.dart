@@ -38,6 +38,7 @@ class PianoRollScreen extends StatefulWidget {
   final int bpm;
   final ValueChanged<ProjectSnapshot> onSnapshot;
   final double savedArrangementPlayhead;
+
   /// GM drum pitch for this track (38 snare, 36 kick, …). Locks draw lane + scroll.
   final int? drumAnchorPitch;
 
@@ -45,7 +46,8 @@ class PianoRollScreen extends StatefulWidget {
   State<PianoRollScreen> createState() => _PianoRollScreenState();
 }
 
-class _PianoRollScreenState extends State<PianoRollScreen> with TickerProviderStateMixin {
+class _PianoRollScreenState extends State<PianoRollScreen>
+    with TickerProviderStateMixin {
   late List<MidiNoteSnapshot> _notes;
   late int _initialOctaveOffset;
   late double _clipLengthBeats;
@@ -108,7 +110,8 @@ class _PianoRollScreenState extends State<PianoRollScreen> with TickerProviderSt
   }
 
   Future<void> _stopPreviewPlay() async {
-    if (!_previewTransport.isPlaying || _previewTransportCommandInFlight) return;
+    if (!_previewTransport.isPlaying || _previewTransportCommandInFlight)
+      return;
     _previewTransportCommandInFlight = true;
     try {
       await _previewTransport.stop();
@@ -314,7 +317,8 @@ class _PianoRollScreenState extends State<PianoRollScreen> with TickerProviderSt
       context,
       settings: _grid,
       onChanged: (next) => setState(() => _grid = next),
-      bottomInset: PianoRollMetrics.toolDockHeight + PlayDeckLayout.chromeHeight,
+      bottomInset:
+          PianoRollMetrics.toolDockHeight + PlayDeckLayout.chromeHeight,
     );
   }
 
@@ -330,7 +334,8 @@ class _PianoRollScreenState extends State<PianoRollScreen> with TickerProviderSt
       onNudgeUp: () => _nudgeSelected(pitchDelta: 1),
       onNudgeDown: () => _nudgeSelected(pitchDelta: -1),
       onDeleteSelected: _deleteSelected,
-      bottomInset: PianoRollMetrics.toolDockHeight + PlayDeckLayout.chromeHeight,
+      bottomInset:
+          PianoRollMetrics.toolDockHeight + PlayDeckLayout.chromeHeight,
     );
   }
 
@@ -354,6 +359,12 @@ class _PianoRollScreenState extends State<PianoRollScreen> with TickerProviderSt
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
         actions: [
+          TextButton.icon(
+            style: TextButton.styleFrom(foregroundColor: Colors.white70),
+            icon: const Icon(Icons.grid_4x4, size: 18),
+            label: Text(_gridDockLabel),
+            onPressed: _openGridSheet,
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: Center(
@@ -385,7 +396,8 @@ class _PianoRollScreenState extends State<PianoRollScreen> with TickerProviderSt
                   tool: _tool,
                   selectedIndex: _selectedIndex,
                   onNotesChanged: _onNotesChanged,
-                  onSelectionChanged: (index) => setState(() => _selectedIndex = index),
+                  onSelectionChanged: (index) =>
+                      setState(() => _selectedIndex = index),
                   onEditStarted: _onEditStarted,
                   onEditFinished: _onEditFinished,
                   onClipLengthChanged: (length) {
@@ -410,13 +422,11 @@ class _PianoRollScreenState extends State<PianoRollScreen> with TickerProviderSt
             ),
             PianoRollToolDock(
               tool: _tool,
-              gridLabel: _gridDockLabel,
               canUndo: _undoStack.isNotEmpty,
               canRedo: _redoStack.isNotEmpty,
               previewPlaying: _previewTransport.isPlaying,
               onPreviewPlayStop: _togglePreviewPlay,
               onToolChanged: (tool) => setState(() => _tool = tool),
-              onGridTap: _openGridSheet,
               onEditTap: _openEditSheet,
               onUndo: _undo,
               onRedo: _redo,

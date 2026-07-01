@@ -1,10 +1,129 @@
 import 'package:flutter/material.dart';
 
 import '../../app/shell_insets.dart';
+import '../arrangement/snap_grid_resolution.dart';
 import 'transport_bar_theme.dart';
 import 'transport_bpm_box.dart';
-import 'transport_overflow_sheet.dart';
 import 'transport_position_format.dart';
+
+class _SnapGridMenu extends StatefulWidget {
+  const _SnapGridMenu({
+    required this.resolution,
+    required this.triplet,
+    required this.onResolutionChanged,
+    required this.onTripletChanged,
+  });
+
+  final SnapGridResolution resolution;
+  final bool triplet;
+  final ValueChanged<SnapGridResolution> onResolutionChanged;
+  final ValueChanged<bool> onTripletChanged;
+
+  @override
+  State<_SnapGridMenu> createState() => _SnapGridMenuState();
+}
+
+class _SnapGridMenuState extends State<_SnapGridMenu> {
+  late SnapGridResolution _resolution = widget.resolution;
+  late bool _triplet = widget.triplet;
+
+  void _setResolution(SnapGridResolution resolution) {
+    setState(() => _resolution = resolution);
+    widget.onResolutionChanged(resolution);
+  }
+
+  void _setTriplet(bool triplet) {
+    setState(() => _triplet = triplet);
+    widget.onTripletChanged(triplet);
+  }
+
+  Widget _tile({
+    required String label,
+    required bool active,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: active ? const Color(0xFF4B4B68) : const Color(0xFF30303C),
+      borderRadius: BorderRadius.circular(7),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(7),
+        onTap: onTap,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 10),
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: active ? Colors.white : Colors.white70,
+                fontSize: 11,
+                fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final resolutions = SnapGridResolution.values.skip(1).toList();
+    return SizedBox(
+      width: 246,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: _tile(
+              label: 'Adaptive',
+              active: _resolution == SnapGridResolution.adaptive,
+              onTap: () => _setResolution(SnapGridResolution.adaptive),
+            ),
+          ),
+          const SizedBox(height: 8),
+          GridView.count(
+            crossAxisCount: 3,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: 1.9,
+            children: [
+              for (final resolution in resolutions)
+                _tile(
+                  label: resolution.label,
+                  active: _resolution == resolution,
+                  onTap: () => _setResolution(resolution),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _tile(
+                  label: 'Straight',
+                  active: !_triplet,
+                  onTap: () => _setTriplet(false),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _tile(
+                  label: 'Triplets',
+                  active: _triplet,
+                  onTap: () => _setTriplet(true),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class TransportBar extends StatelessWidget {
   const TransportBar({
@@ -27,6 +146,10 @@ class TransportBar extends StatelessWidget {
     this.onLoopToggled,
     this.onFollowPlayheadToggled,
     this.onExportMix,
+    this.snapGridResolution = SnapGridResolution.adaptive,
+    this.snapGridTriplet = false,
+    this.onSnapGridResolutionChanged,
+    this.onSnapGridTripletChanged,
   });
 
   final int bpm;
@@ -47,29 +170,17 @@ class TransportBar extends StatelessWidget {
   final ValueChanged<bool>? onLoopToggled;
   final ValueChanged<bool>? onFollowPlayheadToggled;
   final VoidCallback? onExportMix;
-
-  void _openOverflow(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xFF1A1A22),
-      showDragHandle: true,
-      builder: (context) => TransportOverflowSheet(
-        bpm: bpm,
-        loopEnabled: loopEnabled,
-        followPlayheadEnabled: followPlayheadEnabled,
-        followPlayheadSuspended: followPlayheadSuspended,
-        onBpmChanged: (value) => onBpmChanged?.call(value),
-        onLoopToggled: (value) => onLoopToggled?.call(value),
-        onFollowPlayheadToggled: (value) => onFollowPlayheadToggled?.call(value),
-        onExportMix: onExportMix,
-      ),
-    );
-  }
+  final SnapGridResolution snapGridResolution;
+  final bool snapGridTriplet;
+  final ValueChanged<SnapGridResolution>? onSnapGridResolutionChanged;
+  final ValueChanged<bool>? onSnapGridTripletChanged;
 
   @override
   Widget build(BuildContext context) {
-    final positionPrimary = TransportPositionFormat.playheadCompact(playheadBeats);
-    final positionSecondary = TransportPositionFormat.elapsedClock(playheadBeats, bpm);
+    final positionPrimary =
+        TransportPositionFormat.playheadCompact(playheadBeats);
+    final positionSecondary =
+        TransportPositionFormat.elapsedClock(playheadBeats, bpm);
     final loopTooltip = loopEnabled
         ? 'Loop ${TransportPositionFormat.loopBarRange(loopRegionStartBeat, loopRegionEndBeat)} — tap to disable'
         : 'Loop off — tap to enable';
@@ -88,15 +199,15 @@ class TransportBar extends StatelessWidget {
       child: SizedBox(
         height: TransportBarTheme.rowHeight,
         child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          TransportBarTheme.barPaddingH,
-          TransportBarTheme.barPaddingV,
-          4,
-          TransportBarTheme.barPaddingV,
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+          padding: const EdgeInsets.fromLTRB(
+            TransportBarTheme.barPaddingH,
+            TransportBarTheme.barPaddingV,
+            4,
+            TransportBarTheme.barPaddingV,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
               Expanded(
                 child: _PositionPanel(
                   playing: playing,
@@ -107,7 +218,8 @@ class TransportBar extends StatelessWidget {
                   positionSecondary: positionSecondary,
                   loopEnabled: loopEnabled,
                   recordArmed: recordArmed,
-                  followActive: followPlayheadEnabled && !followPlayheadSuspended,
+                  followActive:
+                      followPlayheadEnabled && !followPlayheadSuspended,
                   followEnabled: followPlayheadEnabled,
                   loopTooltip: loopTooltip,
                   followTooltip: followTooltip,
@@ -121,11 +233,27 @@ class TransportBar extends StatelessWidget {
                 enabled: onBpmChanged != null,
                 onChanged: onBpmChanged,
               ),
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                tooltip: 'More transport options',
-                onPressed: onBpmChanged == null ? null : () => _openOverflow(context),
-                icon: const Icon(Icons.more_horiz, size: 22, color: Colors.white54),
+              PopupMenuButton<void>(
+                tooltip:
+                    'Snap grid: ${snapGridResolution.label}${snapGridTriplet ? ' triplet' : ''}',
+                enabled: onSnapGridResolutionChanged != null,
+                color: const Color(0xFF24242E),
+                icon:
+                    const Icon(Icons.grid_4x4, size: 20, color: Colors.white70),
+                itemBuilder: (context) => [
+                  PopupMenuItem<void>(
+                    enabled: false,
+                    padding: const EdgeInsets.all(10),
+                    child: _SnapGridMenu(
+                      resolution: snapGridResolution,
+                      triplet: snapGridTriplet,
+                      onResolutionChanged: (resolution) =>
+                          onSnapGridResolutionChanged?.call(resolution),
+                      onTripletChanged: (triplet) =>
+                          onSnapGridTripletChanged?.call(triplet),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -154,6 +282,10 @@ class TransportBar extends StatelessWidget {
     ValueChanged<bool>? onLoopToggled,
     ValueChanged<bool>? onFollowPlayheadToggled,
     VoidCallback? onExportMix,
+    SnapGridResolution snapGridResolution = SnapGridResolution.adaptive,
+    bool snapGridTriplet = false,
+    ValueChanged<SnapGridResolution>? onSnapGridResolutionChanged,
+    ValueChanged<bool>? onSnapGridTripletChanged,
   }) {
     return Padding(
       padding: ShellInsets.headerPadding(context).copyWith(bottom: 1),
@@ -176,6 +308,10 @@ class TransportBar extends StatelessWidget {
         onLoopToggled: onLoopToggled,
         onFollowPlayheadToggled: onFollowPlayheadToggled,
         onExportMix: onExportMix,
+        snapGridResolution: snapGridResolution,
+        snapGridTriplet: snapGridTriplet,
+        onSnapGridResolutionChanged: onSnapGridResolutionChanged,
+        onSnapGridTripletChanged: onSnapGridTripletChanged,
       ),
     );
   }
@@ -265,17 +401,21 @@ class _PositionPanel extends StatelessWidget {
                       children: [
                         Text(
                           'POSITION',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                color: TransportBarTheme.textMuted,
-                                fontSize: 9,
-                                letterSpacing: 0.6,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: TransportBarTheme.textMuted,
+                                    fontSize: 9,
+                                    letterSpacing: 0.6,
+                                  ),
                         ),
                         Row(
                           children: [
                             Text(
                               positionPrimary,
-                              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelLarge
+                                  ?.copyWith(
                                     color: TransportBarTheme.textPrimary,
                                     fontFamily: 'monospace',
                                     fontWeight: FontWeight.w600,
@@ -285,7 +425,10 @@ class _PositionPanel extends StatelessWidget {
                             const SizedBox(width: 8),
                             Text(
                               positionSecondary,
-                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
                                     color: TransportBarTheme.textSecondary,
                                     fontFamily: 'monospace',
                                   ),
@@ -364,7 +507,9 @@ class _InlinePlayStop extends StatelessWidget {
             height: double.infinity,
             child: Icon(
               active ? Icons.stop_rounded : Icons.play_arrow_rounded,
-              color: active ? TransportBarTheme.accentPlay : TransportBarTheme.textPrimary,
+              color: active
+                  ? TransportBarTheme.accentPlay
+                  : TransportBarTheme.textPrimary,
               size: 24,
             ),
           ),
@@ -402,7 +547,8 @@ class _StatusIconColumn extends StatelessWidget {
         icon: loopEnabled ? Icons.loop : Icons.loop_outlined,
         tooltip: loopTooltip,
         accent: loopEnabled ? TransportBarTheme.accentLoop : null,
-        onTap: onLoopToggled == null ? null : () => onLoopToggled!(!loopEnabled),
+        onTap:
+            onLoopToggled == null ? null : () => onLoopToggled!(!loopEnabled),
       ),
       if (recordArmed)
         const _StatusIconButton(
@@ -446,11 +592,14 @@ class _StatusIconButton extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: accent != null ? accent!.withValues(alpha: 0.12) : Colors.transparent,
+        color: accent != null
+            ? accent!.withValues(alpha: 0.12)
+            : Colors.transparent,
         child: InkWell(
           onTap: onTap,
           child: Center(
-            child: Icon(icon, size: TransportBarTheme.statusIconSize, color: color),
+            child: Icon(icon,
+                size: TransportBarTheme.statusIconSize, color: color),
           ),
         ),
       ),

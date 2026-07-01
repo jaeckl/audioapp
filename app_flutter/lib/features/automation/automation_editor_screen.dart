@@ -102,7 +102,8 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen>
   }
 
   Future<void> _stopPreviewPlay() async {
-    if (!_previewTransport.isPlaying || _previewTransportCommandInFlight) return;
+    if (!_previewTransport.isPlaying || _previewTransportCommandInFlight)
+      return;
     _previewTransportCommandInFlight = true;
     try {
       await _previewTransport.stop();
@@ -144,7 +145,8 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen>
     if (points.length < 2) {
       return [
         const AutomationPointSnapshot(beat: 0, value: 1),
-        AutomationPointSnapshot(beat: clip.editorContentLengthBeats, value: 0.25),
+        AutomationPointSnapshot(
+            beat: clip.editorContentLengthBeats, value: 0.25),
       ];
     }
     return points;
@@ -164,14 +166,13 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen>
   }
 
   String get _title {
-    final link = widget.clip.isLinked
-        ? widget.clip.linkLabel
-        : 'Automation';
+    final link = widget.clip.isLinked ? widget.clip.linkLabel : 'Automation';
     final bars = (_clipLengthBeats / PianoRollMetrics.beatsPerBar).ceil();
     return '${widget.trackName} · $link · $bars bars';
   }
 
-  List<AutomationPointSnapshot> _clonePoints(List<AutomationPointSnapshot> points) {
+  List<AutomationPointSnapshot> _clonePoints(
+      List<AutomationPointSnapshot> points) {
     return points
         .map((p) => AutomationPointSnapshot(beat: p.beat, value: p.value))
         .toList();
@@ -431,6 +432,12 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen>
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
         actions: [
+          TextButton.icon(
+            style: TextButton.styleFrom(foregroundColor: Colors.white70),
+            icon: const Icon(Icons.grid_4x4, size: 18),
+            label: Text(_gridDockLabel),
+            onPressed: _openGridSheet,
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: Center(
@@ -461,7 +468,8 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen>
                   deleteMarkedIndices: _deleteMarkedIndices,
                   insertHighlightStartBeat:
                       _insertPanelOpen ? _insertStartBeat : null,
-                  insertHighlightEndBeat: _insertPanelOpen ? _insertEndBeat : null,
+                  insertHighlightEndBeat:
+                      _insertPanelOpen ? _insertEndBeat : null,
                   onPointsChanged: _onPointsChanged,
                   onToggleSelect: _toggleSelect,
                   onToggleDeleteMark: _toggleDeleteMark,
@@ -484,7 +492,6 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen>
             ),
             AutomationEditorToolDock(
               tool: _tool,
-              gridLabel: _gridDockLabel,
               canUndo: _undoStack.isNotEmpty,
               canRedo: _redoStack.isNotEmpty,
               canInsert: _selectedIndices.length == 2 && !_insertPanelOpen,
@@ -492,7 +499,6 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen>
               previewPlaying: _previewTransport.isPlaying,
               onPreviewPlayStop: _togglePreviewPlay,
               onToolChanged: _onToolChanged,
-              onGridTap: _openGridSheet,
               onInsertTap: _openInsertPanel,
               onDeleteMarkedTap: _deleteMarkedNodes,
               onUndo: _undo,

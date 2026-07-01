@@ -7,13 +7,11 @@ class AutomationEditorToolDock extends StatelessWidget {
   const AutomationEditorToolDock({
     super.key,
     required this.tool,
-    required this.gridLabel,
     required this.canUndo,
     required this.canRedo,
     required this.canInsert,
     required this.canDeleteMarked,
     required this.onToolChanged,
-    required this.onGridTap,
     required this.onInsertTap,
     required this.onDeleteMarkedTap,
     required this.onUndo,
@@ -23,13 +21,11 @@ class AutomationEditorToolDock extends StatelessWidget {
   });
 
   final AutomationEditorTool tool;
-  final String gridLabel;
   final bool canUndo;
   final bool canRedo;
   final bool canInsert;
   final bool canDeleteMarked;
   final ValueChanged<AutomationEditorTool> onToolChanged;
-  final VoidCallback onGridTap;
   final VoidCallback onInsertTap;
   final VoidCallback onDeleteMarkedTap;
   final VoidCallback onUndo;
@@ -78,14 +74,6 @@ class AutomationEditorToolDock extends StatelessWidget {
                 enabled: canDeleteMarked,
                 onTap: onDeleteMarkedTap,
               ),
-            _DockButton(
-              icon: Icons.grid_on_outlined,
-              activeIcon: Icons.grid_on,
-              active: false,
-              onTap: onGridTap,
-              label: gridLabel,
-              showLabel: true,
-            ),
             const Spacer(),
             _DockButton(
               icon: Icons.play_arrow,
@@ -122,16 +110,12 @@ class _DockButton extends StatelessWidget {
     required this.active,
     required this.onTap,
     this.enabled = true,
-    this.label,
-    this.showLabel = false,
   });
 
   final IconData icon;
   final IconData activeIcon;
   final bool active;
   final bool enabled;
-  final String? label;
-  final bool showLabel;
   final VoidCallback onTap;
 
   @override
@@ -141,7 +125,7 @@ class _DockButton extends StatelessWidget {
       child: InkWell(
         onTap: enabled ? onTap : null,
         child: SizedBox(
-          width: showLabel ? 72 : 52,
+          width: 52,
           height: AutomationEditorMetrics.toolDockHeight,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -155,19 +139,6 @@ class _DockButton extends StatelessWidget {
                         : AutomationEditorTheme.dockIcon)
                     : AutomationEditorTheme.labelMuted,
               ),
-              if (showLabel && label != null) ...[
-                const SizedBox(height: 2),
-                Text(
-                  label!,
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600,
-                    color: enabled
-                        ? AutomationEditorTheme.dockIcon
-                        : AutomationEditorTheme.labelMuted,
-                  ),
-                ),
-              ],
             ],
           ),
         ),

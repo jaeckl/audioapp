@@ -13,6 +13,7 @@ import '../bridge/project_snapshot.dart';
 import '../bridge/snapshot_store.dart';
 import '../features/automation/automation_editor_screen.dart';
 import '../features/arrangement/arrangement_view.dart';
+import '../features/arrangement/snap_grid_resolution.dart';
 import '../features/editor/timeline_marker_layer.dart';
 import '../features/content_library/library_catalog.dart';
 import '../features/content_library/library_category.dart';
@@ -72,6 +73,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   bool _welcomeVisible = true;
   bool _projectActionBusy = false;
   List<RecentProjectEntry> _recentProjects = const [];
+  SnapGridResolution _snapGridResolution = SnapGridResolution.adaptive;
+  bool _snapGridTriplet = false;
 
   @override
   void initState() {
@@ -1749,6 +1752,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             onFollowResumed: _onFollowResumed,
             playheadListenable: _transport.playheadNotifier,
             snapshot: snapshot,
+            snapGridResolution: _snapGridResolution,
+            snapGridTriplet: _snapGridTriplet,
             playheadBeats: _effectivePlayheadBeats,
             playing: _transport.playing,
             onPlayRequested: _startPlay,
@@ -1903,6 +1908,14 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
                 onLoopToggled: _setLoopEnabled,
                 onFollowPlayheadToggled: _setFollowPlayheadEnabled,
                 onExportMix: _exportMix,
+                snapGridResolution: _snapGridResolution,
+                snapGridTriplet: _snapGridTriplet,
+                onSnapGridResolutionChanged: (resolution) {
+                  setState(() => _snapGridResolution = resolution);
+                },
+                onSnapGridTripletChanged: (triplet) {
+                  setState(() => _snapGridTriplet = triplet);
+                },
               );
             },
           ),
