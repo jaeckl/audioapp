@@ -21,6 +21,7 @@ public:
     bool upsert(FreezeAsset asset);
     void remove(const std::string& id);
     void clear();
+    std::vector<FreezeAsset> listAssets() const;
 
 private:
     mutable juce::CriticalSection mutex_;

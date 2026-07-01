@@ -132,6 +132,8 @@ public:
 
     bool saveProject(const std::string& archivePath);
     bool loadProject(const std::string& archivePath);
+    std::vector<uint8_t> buildProjectArchiveBytes() const;
+    bool loadProjectArchiveBytes(const std::vector<uint8_t>& archiveBytes);
     std::string getProjectFileJson() const;
     bool loadProjectFileJson(const std::string& json);
 

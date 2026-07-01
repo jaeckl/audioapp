@@ -12,6 +12,9 @@ public:
 
     /// Serialize in-memory project for on-disk `project.json` (no file I/O). Used by Android JNI.
     std::string getProjectFileJson();
+    std::vector<uint8_t> buildProjectArchiveBytes();
+    /// Load a full `.audioapp.zip` archive into the engine; returns bridge JSON response.
+    std::string loadProjectArchiveBytes(const std::vector<uint8_t>& archiveBytes);
     /// Parse `project.json` content into the engine; returns bridge JSON response. Used by Android JNI.
     std::string loadProjectFileJson(const std::string& projectJson);
     std::string importWavSample(const std::string& displayName, const std::vector<uint8_t>& wavBytes);

@@ -126,8 +126,8 @@ class MainActivity : FlutterFragmentActivity() {
             return
         }
         try {
-            val projectJson = nativeGetProjectFileJson()
-            ProjectArchiveStore.writeProjectArchive(this, documentUri, projectJson)
+            val archiveBytes = nativeBuildProjectArchiveBytes()
+            ProjectArchiveStore.writeArchiveBytes(this, documentUri, archiveBytes)
             ProjectUriStore.saveLastDocumentUri(this, documentUri)
             ProjectUriStore.recordRecentProject(this, documentUri, projectDisplayName(documentUri))
             // Trigger MediaScanner so the file gets a proper application/zip MIME
@@ -148,7 +148,7 @@ class MainActivity : FlutterFragmentActivity() {
                     null,
                 )
             }
-            Log.i(logTag, "Saved project archive (${projectJson.length} bytes json) to $documentUri")
+            Log.i(logTag, "Saved project archive (${archiveBytes.size} bytes) to $documentUri")
             result.success(
                 mapOf(
                     "ok" to true,
@@ -181,9 +181,9 @@ class MainActivity : FlutterFragmentActivity() {
 
     private fun loadArchive(documentUri: Uri, result: MethodChannel.Result) {
         try {
-            val projectJson = ProjectArchiveStore.readProjectArchive(this, documentUri)
-            Log.i(logTag, "Loading project archive (${projectJson.length} bytes json) from $documentUri")
-            val response = nativeLoadProjectFileJson(projectJson)
+            val archiveBytes = ProjectArchiveStore.readArchiveBytes(this, documentUri)
+            Log.i(logTag, "Loading project archive (${archiveBytes.size} bytes) from $documentUri")
+            val response = nativeLoadProjectArchiveBytes(archiveBytes)
             val map = jsonToMap(response).toMutableMap()
             if (map["ok"] == true) {
                 ProjectUriStore.saveLastDocumentUri(this, documentUri)
@@ -441,6 +441,8 @@ class MainActivity : FlutterFragmentActivity() {
 
     private external fun nativeInvoke(method: String, argsJson: String): String
     private external fun nativeGetProjectFileJson(): String
+    private external fun nativeBuildProjectArchiveBytes(): ByteArray
+    private external fun nativeLoadProjectArchiveBytes(archiveBytes: ByteArray): String
     private external fun nativeLoadProjectFileJson(projectJson: String): String
     private external fun nativeImportWavSample(displayName: String, wavBytes: ByteArray): String
     private external fun nativeLoadWavetableAsset(name: String, wavBytes: ByteArray): Boolean

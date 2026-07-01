@@ -1,4 +1,7 @@
 #include "audioapp/EngineHost.hpp"
+#include "audioapp/ProjectArchive.hpp"
+
+#include <juce_core/juce_core.h>
 
 #include <cmath>
 #include <iostream>
@@ -70,8 +73,24 @@ int main() {
 
     expect(host.createMidiClip(trackA, 4.0, 2.0).empty(), "cannot add midi clip to frozen track");
 
+    const auto archivePath =
+        juce::File::getSpecialLocation(juce::File::tempDirectory)
+            .getChildFile("audioapp_track_freeze_archive_test.audioapp.zip");
+    archivePath.deleteFile();
+    expect(host.saveProject(archivePath.getFullPathName().toStdString()), "archive save succeeds");
+
+    audioapp::EngineHost reloaded;
+    reloaded.createProject();
+    expect(reloaded.loadProject(archivePath.getFullPathName().toStdString()), "archive load succeeds");
+    const float reloadedFrozen = rms(reloaded.renderOffline(2.0, 48000.0));
+    expect(reloadedFrozen > 0.001f, "frozen audio survives archive roundtrip");
+    expect(reloaded.getProjectSnapshotJson().find("\"freeze\"") != std::string::npos,
+           "freeze metadata survives archive roundtrip");
+
     expect(host.unfreezeTrack(trackA), "unfreeze succeeds");
     expect(!host.createMidiClip(trackA, 4.0, 2.0).empty(), "clip add works after unfreeze");
+
+    archivePath.deleteFile();
 
     if (failures != 0) return 1;
     std::cout << "All track freeze tests passed\n";

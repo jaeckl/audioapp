@@ -703,6 +703,8 @@ ProjectSnapshot ProjectEngine::snapshot() const {
         ts.freeze.startBeat = track.freeze.startBeat;
         ts.freeze.lengthBeats = track.freeze.lengthBeats;
         ts.freeze.sampleRate = track.freeze.sampleRate;
+        ts.freeze.bpmAtFreeze = track.freeze.bpmAtFreeze;
+        ts.freeze.contentSignature = track.freeze.contentSignature;
         ts.freeze.waveformPeaks = track.freeze.waveformPeaks;
         snap.tracks.push_back(std::move(ts));
     }
@@ -1331,6 +1333,8 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
         ts.freeze.startBeat = track.freeze.startBeat;
         ts.freeze.lengthBeats = track.freeze.lengthBeats;
         ts.freeze.sampleRate = track.freeze.sampleRate;
+        ts.freeze.bpmAtFreeze = track.freeze.bpmAtFreeze;
+        ts.freeze.contentSignature = track.freeze.contentSignature;
         ts.freeze.waveformPeaks = track.freeze.waveformPeaks;
         file.tracks.push_back(std::move(ts));
     }
@@ -1412,10 +1416,13 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
             track.sampleClips.push_back(std::move(clip));
         }
         track.freeze.enabled = trackState.freeze.enabled;
+        track.freeze.stale = trackState.freeze.stale;
         track.freeze.assetId = trackState.freeze.assetId;
         track.freeze.startBeat = trackState.freeze.startBeat;
         track.freeze.lengthBeats = trackState.freeze.lengthBeats;
         track.freeze.sampleRate = trackState.freeze.sampleRate;
+        track.freeze.bpmAtFreeze = trackState.freeze.bpmAtFreeze;
+        track.freeze.contentSignature = trackState.freeze.contentSignature;
         track.freeze.waveformPeaks = trackState.freeze.waveformPeaks;
         trackRepo_.tracks().push_back(std::move(track));
     }

@@ -17,6 +17,7 @@ import java.util.zip.ZipOutputStream
  * Archive layout:
  * - project.json
  * - assets/samples/
+ * - assets/freeze/
  * - metadata/
  *
  * C++ owns JSON schema; this class builds/opens zip bytes via SAF document URIs.
@@ -146,6 +147,9 @@ object ProjectArchiveStore {
                 zip.putNextEntry(ZipEntry("assets/samples/"))
                 zip.closeEntry()
 
+                zip.putNextEntry(ZipEntry("assets/freeze/"))
+                zip.closeEntry()
+
                 zip.putNextEntry(ZipEntry("metadata/"))
                 zip.closeEntry()
             }
@@ -180,6 +184,26 @@ object ProjectArchiveStore {
         } catch (_: SecurityException) {
             // Session grant is sufficient for one-shot create/open.
         }
+    }
+
+    @Throws(IOException::class)
+    fun writeArchiveBytes(context: Context, documentUri: Uri, archiveBytes: ByteArray) {
+        persistDocumentUri(context, documentUri, writable = true)
+        context.contentResolver.openOutputStream(documentUri)?.use { stream ->
+            stream.write(archiveBytes)
+        } ?: throw IOException("Could not open archive for writing")
+    }
+
+    @Throws(IOException::class)
+    fun readArchiveBytes(context: Context, documentUri: Uri): ByteArray {
+        persistDocumentUri(context, documentUri, writable = false)
+        val bytes = context.contentResolver.openInputStream(documentUri)?.use { stream ->
+            stream.readBytes()
+        } ?: throw IOException("Could not open archive for reading")
+        if (bytes.isEmpty()) {
+            throw IOException("Archive is empty")
+        }
+        return bytes
     }
 
     @Throws(IOException::class)

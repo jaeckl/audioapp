@@ -52,6 +52,8 @@ struct TrackFreezeState {
     double startBeat = 0.0;
     double lengthBeats = 0.0;
     double sampleRate = 48000.0;
+    int bpmAtFreeze = 120;
+    uint64_t contentSignature = 0;
     std::vector<float> waveformPeaks;
 };
 

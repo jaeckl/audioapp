@@ -1,8 +1,11 @@
 #pragma once
 
 #include "audioapp/model/TrackModel.hpp"
+#include "audioapp/TrackFreezeAssetStore.hpp"
 
 #include <cstddef>
+#include <cstdint>
+#include <string>
 #include <vector>
 
 namespace audioapp {
@@ -27,6 +30,12 @@ void mixFreezeStereoBlock(float* leftOut,
                           int bpm,
                           double playheadStartBeat,
                           const FreezePlaybackRegion& region) noexcept;
+
+std::string freezeWavArchivePath(const std::string& assetId);
+bool loadFreezeAssetFromWavBytes(const std::string& assetId,
+                                 const std::vector<uint8_t>& wavBytes,
+                                 FreezeAsset& out);
+std::vector<uint8_t> encodeFreezeAssetWav(const FreezeAsset& asset);
 
 int freezeWaveformBinCount(int frameCount, double lengthBeats) noexcept;
 

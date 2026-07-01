@@ -198,4 +198,108 @@ bool decodeWavMonoFloat(const std::vector<uint8_t>& bytes, WavPcmData& out) {
     return true;
 }
 
+bool decodeWavStereoFloat(const std::vector<uint8_t>& bytes, WavStereoPcmData& out) {
+    out = {};
+
+    WavInfo wav;
+    if (!parseWav(bytes, wav) || wav.numChannels < 1) {
+        return false;
+    }
+
+    const size_t bytesPerSample = wav.bitsPerSample / 8;
+    if (bytesPerSample == 0) {
+        return false;
+    }
+
+    const size_t frameCount = wav.dataSize / (bytesPerSample * wav.numChannels);
+    if (frameCount == 0) {
+        return false;
+    }
+
+    out.sampleRate = static_cast<double>(wav.sampleRate);
+    out.left.resize(frameCount, 0.0f);
+    out.right.resize(frameCount, 0.0f);
+
+    for (size_t frame = 0; frame < frameCount; ++frame) {
+        float channelValues[2] = {0.0f, 0.0f};
+        const uint16_t channelsToRead = std::min<uint16_t>(wav.numChannels, 2);
+        for (uint16_t channel = 0; channel < channelsToRead; ++channel) {
+            const size_t sampleOffset =
+                (frame * wav.numChannels + static_cast<size_t>(channel)) * bytesPerSample;
+            if (sampleOffset + bytesPerSample > wav.dataSize) {
+                return false;
+            }
+            float value = 0.0f;
+            if (!decodeSample(wav.data + sampleOffset, wav.audioFormat, wav.bitsPerSample, value)) {
+                return false;
+            }
+            channelValues[channel] = clampSample(value);
+        }
+        out.left[frame] = channelValues[0];
+        out.right[frame] = channelsToRead > 1 ? channelValues[1] : channelValues[0];
+    }
+
+    return true;
+}
+
+namespace {
+
+void writeU32LE(std::vector<uint8_t>& out, uint32_t value) {
+    out.push_back(static_cast<uint8_t>(value & 0xFF));
+    out.push_back(static_cast<uint8_t>((value >> 8) & 0xFF));
+    out.push_back(static_cast<uint8_t>((value >> 16) & 0xFF));
+    out.push_back(static_cast<uint8_t>((value >> 24) & 0xFF));
+}
+
+void writeU16LE(std::vector<uint8_t>& out, uint16_t value) {
+    out.push_back(static_cast<uint8_t>(value & 0xFF));
+    out.push_back(static_cast<uint8_t>((value >> 8) & 0xFF));
+}
+
+} // namespace
+
+std::vector<uint8_t> encodeStereoWavFloat32(const float* left,
+                                            const float* right,
+                                            int frameCount,
+                                            double sampleRate) {
+    if (left == nullptr || right == nullptr || frameCount <= 0 || sampleRate <= 0.0) {
+        return {};
+    }
+
+    const uint16_t numChannels = 2;
+    const uint16_t bitsPerSample = 32;
+    const uint16_t audioFormat = 3; // IEEE float
+    const uint32_t sampleRateU = static_cast<uint32_t>(sampleRate);
+    const uint16_t blockAlign = static_cast<uint16_t>(numChannels * (bitsPerSample / 8));
+    const uint32_t byteRate = sampleRateU * blockAlign;
+    const uint32_t dataSize = static_cast<uint32_t>(frameCount) * blockAlign;
+    const uint32_t riffSize = 36 + dataSize;
+
+    std::vector<uint8_t> bytes;
+    bytes.reserve(44 + dataSize);
+    bytes.insert(bytes.end(), {'R', 'I', 'F', 'F'});
+    writeU32LE(bytes, riffSize);
+    bytes.insert(bytes.end(), {'W', 'A', 'V', 'E'});
+    bytes.insert(bytes.end(), {'f', 'm', 't', ' '});
+    writeU32LE(bytes, 16);
+    writeU16LE(bytes, audioFormat);
+    writeU16LE(bytes, numChannels);
+    writeU32LE(bytes, sampleRateU);
+    writeU32LE(bytes, byteRate);
+    writeU16LE(bytes, blockAlign);
+    writeU16LE(bytes, bitsPerSample);
+    bytes.insert(bytes.end(), {'d', 'a', 't', 'a'});
+    writeU32LE(bytes, dataSize);
+
+    for (int frame = 0; frame < frameCount; ++frame) {
+        const float channels[2] = {clampSample(left[frame]), clampSample(right[frame])};
+        for (float sample : channels) {
+            const auto* raw = reinterpret_cast<const uint8_t*>(&sample);
+            bytes.insert(bytes.end(), raw, raw + sizeof(float));
+        }
+    }
+
+    return bytes;
+}
+
 } // namespace audioapp

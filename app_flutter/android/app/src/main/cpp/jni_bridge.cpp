@@ -72,6 +72,30 @@ Java_com_audioapp_daw_MainActivity_nativeGetProjectFileJson(JNIEnv* env, jobject
     return env->NewStringUTF(json.c_str());
 }
 
+extern "C" JNIEXPORT jbyteArray JNICALL
+Java_com_audioapp_daw_MainActivity_nativeBuildProjectArchiveBytes(JNIEnv* env, jobject /*thiz*/) {
+    const auto bytes = bridge().buildProjectArchiveBytes();
+    if (bytes.empty()) {
+        return env->NewByteArray(0);
+    }
+    jbyteArray array = env->NewByteArray(static_cast<jsize>(bytes.size()));
+    if (array == nullptr) {
+        return nullptr;
+    }
+    env->SetByteArrayRegion(array, 0, static_cast<jsize>(bytes.size()),
+                            reinterpret_cast<const jbyte*>(bytes.data()));
+    return array;
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_audioapp_daw_MainActivity_nativeLoadProjectArchiveBytes(JNIEnv* env,
+                                                               jobject /*thiz*/,
+                                                               jbyteArray archiveBytes) {
+    const auto bytes = jbyteArrayToVector(env, archiveBytes);
+    const auto response = bridge().loadProjectArchiveBytes(bytes);
+    return env->NewStringUTF(response.c_str());
+}
+
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_audioapp_daw_MainActivity_nativeLoadProjectFileJson(JNIEnv* env,
                                                              jobject /*thiz*/,

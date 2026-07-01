@@ -6,6 +6,8 @@
 #include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/playback/Clip.hpp"
 #include "audioapp/SampleBank.hpp"
+#include "audioapp/TrackFreezeAssetStore.hpp"
+#include "audioapp/WavLoader.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -178,6 +180,42 @@ std::vector<float> computeFreezeWaveformPeaks(const float* pcmL,
             std::max(std::abs(pcmL[i]), std::abs(pcmR[i]));
     }
     return SampleBank::computePeaks(mono.data(), frameCount, binCount);
+}
+
+std::string freezeWavArchivePath(const std::string& assetId) {
+    return "assets/freeze/" + assetId + ".wav";
+}
+
+bool loadFreezeAssetFromWavBytes(const std::string& assetId,
+                                 const std::vector<uint8_t>& wavBytes,
+                                 FreezeAsset& out) {
+    WavStereoPcmData pcm;
+    if (!decodeWavStereoFloat(wavBytes, pcm) || pcm.left.empty()) {
+        return false;
+    }
+    out.id = assetId;
+    out.pcmL = std::move(pcm.left);
+    out.pcmR = std::move(pcm.right);
+    if (out.pcmR.size() != out.pcmL.size()) {
+        out.pcmR.resize(out.pcmL.size(), 0.0f);
+    }
+    out.sampleRate = pcm.sampleRate;
+    const int frameCount = static_cast<int>(out.pcmL.size());
+    out.peaks = computeFreezeWaveformPeaks(
+        out.pcmL.data(),
+        out.pcmR.data(),
+        frameCount,
+        freezeWaveformBinCount(frameCount, 1.0));
+    return true;
+}
+
+std::vector<uint8_t> encodeFreezeAssetWav(const FreezeAsset& asset) {
+    if (asset.pcmL.empty() || asset.pcmR.empty()) {
+        return {};
+    }
+    const int frameCount = static_cast<int>(std::min(asset.pcmL.size(), asset.pcmR.size()));
+    return encodeStereoWavFloat32(
+        asset.pcmL.data(), asset.pcmR.data(), frameCount, asset.sampleRate);
 }
 
 } // namespace audioapp

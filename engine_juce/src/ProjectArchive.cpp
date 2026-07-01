@@ -1,12 +1,15 @@
 #include "audioapp/ProjectArchive.hpp"
 
 #include "audioapp/ProjectJson.hpp"
+#include "audioapp/TrackFreeze.hpp"
+#include "audioapp/TrackFreezeAssetStore.hpp"
 
 #include <juce_core/juce_core.h>
 
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <unordered_map>
 #include <vector>
 
 namespace audioapp {
@@ -16,6 +19,7 @@ constexpr uint32_t kZipLocalFileHeaderSignature = 0x04034b50;
 constexpr uint32_t kZipCentralDirectorySignature = 0x02014b50;
 constexpr uint32_t kZipEndOfCentralDirectorySignature = 0x06054b50;
 constexpr uint16_t kZipCompressionStored = 0;
+constexpr const char* kFreezeAssetsDir = "assets/freeze/";
 
 uint32_t crc32Update(uint32_t crc, uint8_t byte) {
     crc ^= byte;
@@ -59,15 +63,15 @@ void appendLocalEntry(std::vector<uint8_t>& archive, const ZipEntry& entry) {
     const uint32_t size = entry.isDirectory ? 0 : static_cast<uint32_t>(data.size());
 
     writeU32(archive, kZipLocalFileHeaderSignature);
-    writeU16(archive, 20); // version needed to extract
+    writeU16(archive, 20);
     writeU16(archive, kZipCompressionStored);
-    writeU16(archive, 0); // mod time
-    writeU16(archive, 0); // mod date
+    writeU16(archive, 0);
+    writeU16(archive, 0);
     writeU32(archive, crc);
     writeU32(archive, size);
     writeU32(archive, size);
     writeU16(archive, static_cast<uint16_t>(name.size()));
-    writeU16(archive, 0); // extra length
+    writeU16(archive, 0);
     archive.insert(archive.end(), name.begin(), name.end());
     archive.insert(archive.end(), data.begin(), data.end());
 }
@@ -81,8 +85,8 @@ void appendCentralEntry(std::vector<uint8_t>& central,
     const uint32_t size = entry.isDirectory ? 0 : static_cast<uint32_t>(data.size());
 
     writeU32(central, kZipCentralDirectorySignature);
-    writeU16(central, 20); // version made by
-    writeU16(central, 20); // version needed
+    writeU16(central, 20);
+    writeU16(central, 20);
     writeU16(central, kZipCompressionStored);
     writeU16(central, 0);
     writeU16(central, 0);
@@ -99,18 +103,12 @@ void appendCentralEntry(std::vector<uint8_t>& central,
     central.insert(central.end(), name.begin(), name.end());
 }
 
-std::vector<uint8_t> buildProjectArchiveBytes(const std::string& projectJson) {
-    const std::array<ZipEntry, 3> entries = {
-        ZipEntry{kProjectJsonEntryPath, projectJson, false},
-        ZipEntry{"assets/samples/", {}, true},
-        ZipEntry{"metadata/", {}, true},
-    };
-
+std::vector<uint8_t> buildArchiveBytes(const std::vector<ZipEntry>& entries) {
     std::vector<uint8_t> archive;
     std::vector<uint8_t> central;
     std::vector<uint32_t> localOffsets;
-    archive.reserve(projectJson.size() + 512);
-    central.reserve(256);
+    archive.reserve(1024);
+    central.reserve(512);
 
     for (const auto& entry : entries) {
         localOffsets.push_back(static_cast<uint32_t>(archive.size()));
@@ -126,13 +124,13 @@ std::vector<uint8_t> buildProjectArchiveBytes(const std::string& projectJson) {
     const uint32_t centralSize = static_cast<uint32_t>(central.size());
 
     writeU32(archive, kZipEndOfCentralDirectorySignature);
-    writeU16(archive, 0); // disk number
-    writeU16(archive, 0); // central dir disk
+    writeU16(archive, 0);
+    writeU16(archive, 0);
     writeU16(archive, static_cast<uint16_t>(entries.size()));
     writeU16(archive, static_cast<uint16_t>(entries.size()));
     writeU32(archive, centralSize);
     writeU32(archive, centralOffset);
-    writeU16(archive, 0); // comment length
+    writeU16(archive, 0);
 
     return archive;
 }
@@ -156,7 +154,9 @@ bool readU32(const std::vector<uint8_t>& data, size_t& pos, uint32_t& out) {
     return true;
 }
 
-std::string extractProjectJsonFromArchiveBytes(const std::vector<uint8_t>& archive) {
+std::unordered_map<std::string, std::string> extractArchiveEntries(
+    const std::vector<uint8_t>& archive) {
+    std::unordered_map<std::string, std::string> entries;
     size_t pos = 0;
     while (pos + 30 <= archive.size()) {
         uint32_t signature = 0;
@@ -167,20 +167,20 @@ std::string extractProjectJsonFromArchiveBytes(const std::vector<uint8_t>& archi
         uint16_t nameLength = 0;
         uint16_t extraLength = 0;
         uint32_t compressedSize = 0;
-        pos += 2; // version
+        pos += 2;
         if (!readU16(archive, pos, compression)) {
-            return {};
+            break;
         }
-        pos += 8; // time, date, crc
+        pos += 8;
         if (!readU32(archive, pos, compressedSize)) {
-            return {};
+            break;
         }
-        pos += 4; // uncompressed size
+        pos += 4;
         if (!readU16(archive, pos, nameLength) || !readU16(archive, pos, extraLength)) {
-            return {};
+            break;
         }
         if (pos + nameLength > archive.size()) {
-            return {};
+            break;
         }
         const std::string name(reinterpret_cast<const char*>(&archive[pos]), nameLength);
         pos += nameLength + extraLength;
@@ -189,14 +189,14 @@ std::string extractProjectJsonFromArchiveBytes(const std::vector<uint8_t>& archi
             continue;
         }
         if (pos + compressedSize > archive.size()) {
-            return {};
+            break;
         }
-        if (name == kProjectJsonEntryPath) {
-            return std::string(reinterpret_cast<const char*>(&archive[pos]), compressedSize);
+        if (!name.empty() && name.back() != '/') {
+            entries[name] = std::string(reinterpret_cast<const char*>(&archive[pos]), compressedSize);
         }
         pos += compressedSize;
     }
-    return {};
+    return entries;
 }
 
 std::vector<uint8_t> readAllBytes(const juce::File& file) {
@@ -222,36 +222,111 @@ bool writeAllBytes(const juce::File& file, const std::vector<uint8_t>& bytes) {
     return ok;
 }
 
+std::vector<ZipEntry> buildProjectArchiveEntries(const std::string& projectJson,
+                                                 const TrackFreezeAssetStore& freezeAssets) {
+    std::vector<ZipEntry> entries;
+    entries.push_back(ZipEntry{kProjectJsonEntryPath, projectJson, false});
+    entries.push_back(ZipEntry{"assets/samples/", {}, true});
+    entries.push_back(ZipEntry{kFreezeAssetsDir, {}, true});
+    entries.push_back(ZipEntry{"metadata/", {}, true});
+
+    for (const auto& asset : freezeAssets.listAssets()) {
+        const auto wavBytes = encodeFreezeAssetWav(asset);
+        if (wavBytes.empty()) {
+            continue;
+        }
+        ZipEntry entry;
+        entry.name = freezeWavArchivePath(asset.id);
+        entry.data.assign(reinterpret_cast<const char*>(wavBytes.data()),
+                          reinterpret_cast<const char*>(wavBytes.data() + wavBytes.size()));
+        entries.push_back(std::move(entry));
+    }
+
+    return entries;
+}
+
+bool loadFreezeAssetsFromArchiveEntries(const std::unordered_map<std::string, std::string>& entries,
+                                        TrackFreezeAssetStore& freezeAssets) {
+    bool loadedAny = false;
+    for (const auto& [name, data] : entries) {
+        if (name.rfind(kFreezeAssetsDir, 0) != 0 || name.size() <= 5) {
+            continue;
+        }
+        if (name.size() < 5 || name.substr(name.size() - 4) != ".wav") {
+            continue;
+        }
+        const std::string assetId = name.substr(std::strlen(kFreezeAssetsDir),
+                                                name.size() - std::strlen(kFreezeAssetsDir) - 4);
+        if (assetId.empty()) {
+            continue;
+        }
+        const std::vector<uint8_t> wavBytes(data.begin(), data.end());
+        FreezeAsset asset;
+        if (!loadFreezeAssetFromWavBytes(assetId, wavBytes, asset)) {
+            continue;
+        }
+        if (!freezeAssets.upsert(std::move(asset))) {
+            continue;
+        }
+        loadedAny = true;
+    }
+    return loadedAny;
+}
+
 } // namespace
 
-bool saveProjectToArchive(const ProjectEngine& engine, const std::string& archivePath) {
+std::vector<uint8_t> buildProjectArchiveBytes(const ProjectEngine& engine,
+                                              const TrackFreezeAssetStore& freezeAssets) {
+    const auto fileData = engine.toProjectFileData();
+    const std::string json = projectFileToJson(fileData, engine.deviceRegistry(),
+                                               engine.modulatorTypes());
+    return buildArchiveBytes(buildProjectArchiveEntries(json, freezeAssets));
+}
+
+bool loadProjectFromArchiveBytes(ProjectEngine& engine,
+                                 TrackFreezeAssetStore& freezeAssets,
+                                 const std::vector<uint8_t>& archiveBytes) {
+    if (archiveBytes.empty()) {
+        return false;
+    }
+    const auto entries = extractArchiveEntries(archiveBytes);
+    const auto jsonIt = entries.find(kProjectJsonEntryPath);
+    if (jsonIt == entries.end() || jsonIt->second.empty()) {
+        return false;
+    }
+
+    freezeAssets.clear();
+    loadFreezeAssetsFromArchiveEntries(entries, freezeAssets);
+
+    ProjectFileData data;
+    if (!parseProjectFileJson(jsonIt->second, data, engine.deviceRegistry(), engine.modulatorTypes())) {
+        return false;
+    }
+    if (!engine.loadFromProjectFileData(data)) {
+        return false;
+    }
+    engine.ensureFrozenAssets(freezeAssets);
+    return true;
+}
+
+bool saveProjectToArchive(const ProjectEngine& engine,
+                          const TrackFreezeAssetStore& freezeAssets,
+                          const std::string& archivePath) {
     if (archivePath.empty()) {
         return false;
     }
-    const auto fileData = engine.toProjectFileData();
-    const std::string json = projectFileToJson(fileData, engine.deviceRegistry(),
-                                                 engine.modulatorTypes());
-    const auto bytes = buildProjectArchiveBytes(json);
+    const auto bytes = buildProjectArchiveBytes(engine, freezeAssets);
     return writeAllBytes(juce::File(archivePath), bytes);
 }
 
-bool loadProjectFromArchive(ProjectEngine& engine, const std::string& archivePath) {
+bool loadProjectFromArchive(ProjectEngine& engine,
+                            TrackFreezeAssetStore& freezeAssets,
+                            const std::string& archivePath) {
     if (archivePath.empty()) {
         return false;
     }
     const auto bytes = readAllBytes(juce::File(archivePath));
-    if (bytes.empty()) {
-        return false;
-    }
-    const std::string json = extractProjectJsonFromArchiveBytes(bytes);
-    if (json.empty()) {
-        return false;
-    }
-    ProjectFileData data;
-    if (!parseProjectFileJson(json, data, engine.deviceRegistry(), engine.modulatorTypes())) {
-        return false;
-    }
-    return engine.loadFromProjectFileData(data);
+    return loadProjectFromArchiveBytes(engine, freezeAssets, bytes);
 }
 
 } // namespace audioapp

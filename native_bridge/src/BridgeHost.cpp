@@ -40,6 +40,19 @@ std::string BridgeHost::getProjectFileJson() {
     return engine().getProjectFileJson();
 }
 
+std::vector<uint8_t> BridgeHost::buildProjectArchiveBytes() {
+    return engine().buildProjectArchiveBytes();
+}
+
+std::string BridgeHost::loadProjectArchiveBytes(const std::vector<uint8_t>& archiveBytes) {
+    if (archiveBytes.empty() || !engine().loadProjectArchiveBytes(archiveBytes)) {
+        return buildBridgeError("load_failed");
+    }
+    auto args = juce::JSON::parse(juce::String("{}"));
+    auto result = engine().commandRegistry().execute("getProjectSnapshot", {engine(), args});
+    return result.toJson();
+}
+
 std::string BridgeHost::loadProjectFileJson(const std::string& projectJson) {
     if (projectJson.empty() || !engine().loadProjectFileJson(projectJson)) {
         return buildBridgeError("load_failed");

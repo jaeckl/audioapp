@@ -1,6 +1,7 @@
 #include "audioapp/ProjectJson.hpp"
 #include "audioapp/ClipContentPlayback.hpp"
 #include "audioapp/SampleTypes.hpp"
+#include "audioapp/TrackFreeze.hpp"
 #include "audioapp/devices/DeviceRegistry.hpp"
 #include "audioapp/modulation/LfoModulatorType.hpp"
 #include "audioapp/modulation/EnvelopeModulatorType.hpp"
@@ -461,6 +462,12 @@ juce::var trackToVarPersistence(const TrackState& track,
         freezeObj->setProperty("startBeat", track.freeze.startBeat);
         freezeObj->setProperty("lengthBeats", track.freeze.lengthBeats);
         freezeObj->setProperty("sampleRate", track.freeze.sampleRate);
+        freezeObj->setProperty("bpmAtFreeze", track.freeze.bpmAtFreeze);
+        freezeObj->setProperty("contentSignature",
+                               juce::String(static_cast<juce::int64>(track.freeze.contentSignature)));
+        if (!track.freeze.assetId.empty()) {
+            freezeObj->setProperty("wavPath", toJuceString(freezeWavArchivePath(track.freeze.assetId)));
+        }
         juce::Array<juce::var> peaks;
         peaks.ensureStorageAllocated(static_cast<int>(track.freeze.waveformPeaks.size()));
         for (float peak : track.freeze.waveformPeaks) {
@@ -510,6 +517,14 @@ TrackState trackFromVarPersistence(const juce::var& value,
             track.freeze.startBeat = static_cast<double>(freezeVar->getProperty("startBeat"));
             track.freeze.lengthBeats = static_cast<double>(freezeVar->getProperty("lengthBeats"));
             track.freeze.sampleRate = static_cast<double>(freezeVar->getProperty("sampleRate"));
+            if (freezeVar->hasProperty("bpmAtFreeze")) {
+                track.freeze.bpmAtFreeze =
+                    static_cast<int>(static_cast<double>(freezeVar->getProperty("bpmAtFreeze")));
+            }
+            if (freezeVar->hasProperty("contentSignature")) {
+                track.freeze.contentSignature = static_cast<uint64_t>(static_cast<juce::int64>(
+                    freezeVar->getProperty("contentSignature")));
+            }
             if (const auto* peaks = varArray(freezeVar->getProperty("waveformPeaks"))) {
                 for (const auto& peakVar : *peaks) {
                     track.freeze.waveformPeaks.push_back(static_cast<float>(static_cast<double>(peakVar)));
@@ -576,6 +591,12 @@ juce::var trackToVarSnapshot(const TrackState& track,
         freezeObj->setProperty("startBeat", track.freeze.startBeat);
         freezeObj->setProperty("lengthBeats", track.freeze.lengthBeats);
         freezeObj->setProperty("sampleRate", track.freeze.sampleRate);
+        freezeObj->setProperty("bpmAtFreeze", track.freeze.bpmAtFreeze);
+        freezeObj->setProperty("contentSignature",
+                               juce::String(static_cast<juce::int64>(track.freeze.contentSignature)));
+        if (!track.freeze.assetId.empty()) {
+            freezeObj->setProperty("wavPath", toJuceString(freezeWavArchivePath(track.freeze.assetId)));
+        }
         juce::Array<juce::var> peaks;
         peaks.ensureStorageAllocated(static_cast<int>(track.freeze.waveformPeaks.size()));
         for (float peak : track.freeze.waveformPeaks) {

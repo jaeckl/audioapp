@@ -48,4 +48,9 @@ void TrackFreezeAssetStore::clear() {
     assets_.clear();
 }
 
+std::vector<FreezeAsset> TrackFreezeAssetStore::listAssets() const {
+    const juce::ScopedLock lock(mutex_);
+    return assets_;
+}
+
 } // namespace audioapp

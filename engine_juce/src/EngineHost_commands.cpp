@@ -837,15 +837,28 @@ void EngineHost::stopPreview() {
 }
 
 bool EngineHost::saveProject(const std::string& archivePath) {
-    return saveProjectToArchive(*project_, archivePath);
+    return audioapp::saveProjectToArchive(*project_, freezeAssetStore_, archivePath);
 }
 
 bool EngineHost::loadProject(const std::string& archivePath) {
     ensureSampleBankReady();
-    if (!loadProjectFromArchive(*project_, archivePath)) {
+    freezeAssetStore_.clear();
+    if (!audioapp::loadProjectFromArchive(*project_, freezeAssetStore_, archivePath)) {
         return false;
     }
-    project_->ensureFrozenAssets(freezeAssetStore_);
+    return true;
+}
+
+std::vector<uint8_t> EngineHost::buildProjectArchiveBytes() const {
+    return audioapp::buildProjectArchiveBytes(*project_, freezeAssetStore_);
+}
+
+bool EngineHost::loadProjectArchiveBytes(const std::vector<uint8_t>& archiveBytes) {
+    ensureSampleBankReady();
+    freezeAssetStore_.clear();
+    if (!audioapp::loadProjectFromArchiveBytes(*project_, freezeAssetStore_, archiveBytes)) {
+        return false;
+    }
     return true;
 }
 
