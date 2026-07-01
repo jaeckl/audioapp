@@ -402,11 +402,9 @@ const WavetableEntry* WavetableBank::get(int index) const noexcept {
 int WavetableBank::findByName(const std::string& name) const noexcept {
     for (size_t i = 0; i < entries_.size(); ++i) {
         if (entries_[i].name == name) {
-            WT_LOG("findByName[%s] -> %zu", name.c_str(), i);
             return static_cast<int>(i);
         }
     }
-    WT_LOG("findByName[%s] -> NOT FOUND (entries=%zu)", name.c_str(), entries_.size());
     return -1;
 }
 

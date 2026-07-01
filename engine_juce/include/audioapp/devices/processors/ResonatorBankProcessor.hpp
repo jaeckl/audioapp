@@ -9,6 +9,7 @@ class ResonatorBankProcessor final : public DeviceProcessor {
 public:
     void process(AudioBlock& block, ProcessContext& ctx) noexcept override;
     DeviceNodeKind kind() const noexcept override { return DeviceNodeKind::ResonatorBank; }
+    void resetPlaybackState() noexcept override { runtime_ = {}; }
 
 private:
     ResonatorBankRuntime runtime_{};

@@ -65,14 +65,15 @@ struct EngineHost::Impl {
                 masterLeft, masterRight, framesToProcess, rate, playheadStart);
             self->owner.advancePlayheadForBlock(framesToProcess, rate);
         }
-        // readPreviewMix now writes stereo: the fallback oscillator's per-voice
-        // panning goes directly into masterLeft/masterRight; the preset
-        // renderers are mono and get duplicated to L=R inside the function.
-        self->owner.readPreviewMix(masterLeft, masterRight, framesToProcess, rate);
-        self->owner.readLiveMix(monoScratch, framesToProcess, rate);
-        for (int32_t frame = 0; frame < framesToProcess; ++frame) {
-            masterLeft[frame] += monoScratch[frame];
-            masterRight[frame] += monoScratch[frame];
+        if (self->owner.hasPreviewActivity()) {
+            self->owner.readPreviewMix(masterLeft, masterRight, framesToProcess, rate);
+        }
+        if (self->owner.hasLiveVoices()) {
+            self->owner.readLiveMix(monoScratch, framesToProcess, rate);
+            for (int32_t frame = 0; frame < framesToProcess; ++frame) {
+                masterLeft[frame] += monoScratch[frame];
+                masterRight[frame] += monoScratch[frame];
+            }
         }
 
         for (int32_t frame = 0; frame < framesToProcess; ++frame) {

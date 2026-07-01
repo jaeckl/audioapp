@@ -92,11 +92,15 @@ struct EngineHost::Impl : juce::AudioIODeviceCallback {
         // Preview mix is stereo: the fallback oscillator writes per-voice
         // panned output to L/R; the preset preview renderers are still mono
         // and duplicate to L=R inside readPreviewMix.
-        owner.readPreviewMix(left, right, numSamples, rate);
-        owner.readLiveMix(left, numSamples, rate);
-        // readLiveMix is mono: duplicate to right.
-        if (right != left) {
-            juce::FloatVectorOperations::copy(right, left, numSamples);
+        if (owner.hasPreviewActivity()) {
+            owner.readPreviewMix(left, right, numSamples, rate);
+        }
+        if (owner.hasLiveVoices()) {
+            owner.readLiveMix(left, numSamples, rate);
+            // readLiveMix is mono: duplicate to right.
+            if (right != left) {
+                juce::FloatVectorOperations::copy(right, left, numSamples);
+            }
         }
     }
 };

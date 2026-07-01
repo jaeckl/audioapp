@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../bridge/param_descriptor.dart';
+import '../../bridge/live_meters_dto.dart';
 import '../../bridge/project_snapshot.dart';
 import 'device_chain_row.dart';
 import 'device_chain_screen.dart';
@@ -20,6 +21,7 @@ class DeviceStrip extends StatefulWidget {
     required this.playing,
     this.playheadBeatListenable,
     this.playheadBeats = 0,
+    this.liveMetersListenable,
     required this.onSamplerParameterChanged,
     this.onDeviceStringParameterChanged,
     required this.onAssignSamplerSample,
@@ -45,6 +47,7 @@ class DeviceStrip extends StatefulWidget {
   final bool playing;
   final ValueListenable<double>? playheadBeatListenable;
   final double playheadBeats;
+  final ValueListenable<Map<String, DeviceMeterReading>>? liveMetersListenable;
   final void Function(String deviceId, String parameterId, double value)
       onSamplerParameterChanged;
   final void Function(String deviceId, String parameterId, String value)?
@@ -184,6 +187,7 @@ class _DeviceStripState extends State<DeviceStrip> {
                   bpm: widget.snapshot.bpm,
                   playheadBeat: widget.playheadBeats,
                   playheadBeatListenable: widget.playheadBeatListenable,
+                  liveMetersListenable: widget.liveMetersListenable,
                   lfos: widget.snapshot.lfos,
                   modEdges: widget.snapshot.modEdges,
                   density: collapsed

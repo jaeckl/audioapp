@@ -12,6 +12,7 @@ public:
     DeviceNodeKind kind() const noexcept override { return DeviceNodeKind::ClapGenerator; }
 
     ClapGeneratorRuntime* runtimePtr() noexcept { return &runtime_; }
+    void resetPlaybackState() noexcept override { runtime_ = {}; }
 };
 
 } // namespace audioapp

@@ -12,6 +12,7 @@ public:
     DeviceNodeKind kind() const noexcept override { return DeviceNodeKind::SubtractiveSynth; }
 
     SubtractiveSynthRuntime* runtimePtr() noexcept { return &runtime_; }
+    void resetPlaybackState() noexcept override { runtime_ = {}; }
 };
 
 class BassSynthProcessor : public DeviceProcessor {
@@ -21,6 +22,7 @@ public:
     DeviceNodeKind kind() const noexcept override { return DeviceNodeKind::BassSynth; }
 
     SubtractiveSynthRuntime* runtimePtr() noexcept { return &runtime_; }
+    void resetPlaybackState() noexcept override { runtime_ = {}; }
 };
 
 } // namespace audioapp

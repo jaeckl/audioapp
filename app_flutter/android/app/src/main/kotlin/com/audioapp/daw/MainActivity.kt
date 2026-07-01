@@ -362,7 +362,7 @@ class MainActivity : FlutterFragmentActivity() {
                                 Log.w(logTag, "Meter poll failed: ${e.message}")
                             }
                         }
-                    }, 0L, 80L) // ~12Hz
+                    }, 0L, 83L) // ~12 Hz per performance budget
                 }
 
                 override fun onCancel(arguments: Any?) {

@@ -117,6 +117,8 @@ public:
                  int modulatorCount = 0,
                  int bpm = 120) noexcept;
 
+    bool hasActiveVoices() const noexcept;
+
 private:
     std::atomic<uint64_t> sampleClock_{0};
     LiveVoiceSlot voices_[kLiveMaxVoices];

@@ -20,6 +20,7 @@ public:
             dst[i] = samplerFilterStates_[i];
     }
     BiquadState* filterStatesPtr() noexcept { return samplerFilterStates_; }
+    void resetPlaybackState() noexcept override;
 };
 
 } // namespace audioapp

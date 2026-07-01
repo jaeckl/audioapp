@@ -74,4 +74,8 @@ int buildProcessorChain(
     int deviceCount,
     ProcessorArena& arena) noexcept;
 
+void resetPlaybackStateInArena(ProcessorArena& arena) noexcept;
+
+void resetInstrumentPlaybackStateInArena(ProcessorArena& arena) noexcept;
+
 } // namespace audioapp

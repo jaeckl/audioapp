@@ -234,4 +234,8 @@ void ProjectEngine::readLiveMix(float* monoOut, int numFrames, double sampleRate
     liveMixer_.advanceSampleClock(numFrames);
 }
 
+bool ProjectEngine::hasLiveVoices() const noexcept {
+    return liveMixer_.hasActiveVoices();
+}
+
 } // namespace audioapp

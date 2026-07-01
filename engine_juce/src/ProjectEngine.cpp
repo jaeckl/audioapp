@@ -810,6 +810,31 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         return;
     }
 
+    if (transport_.isPlaying()) {
+        const double prevPlayhead = lastArrangementMixPlayhead_;
+        if (prevPlayhead >= 0.0) {
+            if (playheadStartBeat + 1e-4 < prevPlayhead) {
+                for (int trackIndex = 0; trackIndex < trackCount; ++trackIndex) {
+                    resetPlaybackStateInArena(trackPlayback_[trackIndex].arena);
+                }
+                modulationGraph_.retriggerOnNote();
+            } else {
+                constexpr double kBarBeats = 4.0;
+                const int prevBar = static_cast<int>(std::floor(prevPlayhead / kBarBeats));
+                const int nextBar = static_cast<int>(std::floor(playheadStartBeat / kBarBeats));
+                if (nextBar != prevBar) {
+                    for (int trackIndex = 0; trackIndex < trackCount; ++trackIndex) {
+                        resetInstrumentPlaybackStateInArena(trackPlayback_[trackIndex].arena);
+                    }
+                    modulationGraph_.retriggerOnNote();
+                }
+            }
+        }
+        lastArrangementMixPlayhead_ = playheadStartBeat;
+    } else {
+        lastArrangementMixPlayhead_ = -1.0;
+    }
+
     const float masterGain = masterGain_.load(std::memory_order_acquire);
     constexpr int kMaxFrames = 4096;
     thread_local float trackLeft[kMaxTracks][kMaxFrames];
@@ -822,6 +847,10 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
     thread_local float graphAudioRight[kMaxProcessorGraphEdges][kMaxFrames];
     int routedMidiCount[kMaxTracks]{};
     const int framesToProcess = numFrames > kMaxFrames ? kMaxFrames : numFrames;
+    const double beatsPerFrame =
+        (static_cast<double>(std::max(transport_.bpm(), 1)) / 60.0) / sampleRate;
+    const double blockEndBeat =
+        playheadStartBeat + static_cast<double>(framesToProcess) * beatsPerFrame;
     const int graphIndex = activeProcessorGraph_.load(std::memory_order_acquire);
     const ProcessorGraphSnapshot graph = processorGraphs_[graphIndex];
     const bool useGraph = graph.trackCount == trackCount;
@@ -872,14 +901,17 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
     const int lfoCount = modulationGraph_.lfoPlaybackCount();
     const uint32_t retriggerGeneration = modulationGraph_.noteRetriggerGeneration();
     thread_local std::vector<IModulator*> modulatorPtrs;
+    bool anyPerNoteModulator = false;
     if (lfoCount > 0) {
         modulatorPtrs.resize(static_cast<size_t>(lfoCount));
         for (int i = 0; i < lfoCount; ++i) {
             modulatorPtrs[static_cast<size_t>(i)] = modulationGraph_.modulator(i);
+            if (!anyPerNoteModulator && modulatorPtrs[static_cast<size_t>(i)] != nullptr &&
+                modulatorPtrs[static_cast<size_t>(i)]->usesPerNoteClock()) {
+                anyPerNoteModulator = true;
+            }
         }
     }
-    const double beatsPerFrame =
-        (static_cast<double>(std::max(transport_.bpm(), 1)) / 60.0) / sampleRate;
     thread_local std::vector<float> lfoValues;
     if (lfoCount > 0) {
         const size_t needed = static_cast<size_t>(lfoCount) * static_cast<size_t>(framesToProcess);
@@ -889,42 +921,55 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         lfoValues.resize(needed, 0.0f);
         const double playheadSeconds = playheadStartBeat * 60.0 / static_cast<double>(std::max(transport_.bpm(), 1));
         const double samplePeriod = 1.0 / std::max(sampleRate, 1.0);
-        const auto noteElapsedSecondsAtBeat = [&](double beat) -> double {
-            double latestOnsetBeat = -1.0;
-            for (int trackIndex = 0; trackIndex < trackCount; ++trackIndex) {
-                const TrackPlaybackSnapshot& track = trackPlayback_[trackIndex];
-                for (int noteIndex = 0; noteIndex < track.noteCount; ++noteIndex) {
-                    const PlaybackNote& note = track.notes[noteIndex];
-                    const double onset = midiActiveNoteOnsetBeat(
-                        beat,
-                        note.clipStartBeat,
-                        note.clipLengthBeats,
-                        note.contentLengthBeats,
-                        note.loopContent,
-                        note.noteStartBeat,
-                        note.noteDurationBeats);
-                    if (onset > latestOnsetBeat) {
-                        latestOnsetBeat = onset;
+        thread_local std::vector<float> noteElapsedPerFrame;
+        if (anyPerNoteModulator) {
+            const double invBpmSeconds = 60.0 / static_cast<double>(std::max(transport_.bpm(), 1));
+            const auto noteElapsedSecondsAtBeat = [&](double beat) -> double {
+                double latestOnsetBeat = -1.0;
+                for (int trackIndex = 0; trackIndex < trackCount; ++trackIndex) {
+                    const TrackPlaybackSnapshot& track = trackPlayback_[trackIndex];
+                    for (int noteIndex = 0; noteIndex < track.noteCount; ++noteIndex) {
+                        const PlaybackNote& note = track.notes[noteIndex];
+                        const double onset = midiActiveNoteOnsetBeat(
+                            beat,
+                            note.clipStartBeat,
+                            note.clipLengthBeats,
+                            note.contentLengthBeats,
+                            note.loopContent,
+                            note.noteStartBeat,
+                            note.noteDurationBeats);
+                        if (onset > latestOnsetBeat) {
+                            latestOnsetBeat = onset;
+                        }
                     }
                 }
+                if (latestOnsetBeat < 0.0) {
+                    return -1.0;
+                }
+                return (beat - latestOnsetBeat) * invBpmSeconds;
+            };
+            noteElapsedPerFrame.resize(static_cast<size_t>(framesToProcess));
+            for (int frame = 0; frame < framesToProcess; ++frame) {
+                const double frameBeat = playheadStartBeat
+                    + static_cast<double>(frame) * beatsPerFrame;
+                noteElapsedPerFrame[static_cast<size_t>(frame)] =
+                    static_cast<float>(noteElapsedSecondsAtBeat(frameBeat));
             }
-            if (latestOnsetBeat < 0.0) {
-                return -1.0;
-            }
-            return (beat - latestOnsetBeat) * 60.0
-                / static_cast<double>(std::max(transport_.bpm(), 1));
-        };
+        }
         for (int i = 0; i < lfoCount; ++i) {
             auto* mod = modulationGraph_.modulator(i);
             if (mod == nullptr) continue;
+            const bool perNote = mod->usesPerNoteClock();
             for (int frame = 0; frame < framesToProcess; ++frame) {
                 const double secondsWithinBlock = static_cast<double>(frame) * samplePeriod;
                 const double frameBeat =
                     playheadStartBeat +
                     secondsWithinBlock *
                         (static_cast<double>(std::max(transport_.bpm(), 1)) / 60.0);
-                const double noteElapsed = noteElapsedSecondsAtBeat(frameBeat);
-                lfoValues[i * framesToProcess + frame] =
+                const double noteElapsed = perNote && anyPerNoteModulator
+                    ? static_cast<double>(noteElapsedPerFrame[static_cast<size_t>(frame)])
+                    : -1.0;
+                lfoValues[static_cast<size_t>(i * framesToProcess + frame)] =
                     mod->evaluate(frameBeat, transport_.bpm(),
                                   secondsWithinBlock, playheadSeconds, retriggerGeneration,
                                   noteElapsed);
@@ -961,9 +1006,23 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                       trackRight[trackIndex]);
         }
         const int ownNoteCount = std::min(track.noteCount, kMaxRoutedMidiNotes);
+        constexpr double kRouteReleaseBeats = 4.0;
+        int routedCount = 0;
         for (int i = 0; i < ownNoteCount; ++i) {
             const PlaybackNote& note = track.notes[i];
-            routedMidi[trackIndex][i] = MidiPlaybackNote{
+            if (!blockMayContainLoopedClipNotes(
+                    playheadStartBeat,
+                    blockEndBeat,
+                    note.clipStartBeat,
+                    note.clipLengthBeats,
+                    note.contentLengthBeats,
+                    note.loopContent,
+                    note.noteStartBeat,
+                    note.noteDurationBeats,
+                    kRouteReleaseBeats)) {
+                continue;
+            }
+            routedMidi[trackIndex][routedCount] = MidiPlaybackNote{
                 note.pitch,
                 note.clipStartBeat,
                 note.clipLengthBeats,
@@ -973,8 +1032,9 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                 note.loopContent,
                 note.contentLengthBeats,
             };
+            ++routedCount;
         }
-        routedMidiCount[trackIndex] = ownNoteCount;
+        routedMidiCount[trackIndex] = routedCount;
     }
 
     for (int orderIndex = 0; orderIndex < trackCount; ++orderIndex) {

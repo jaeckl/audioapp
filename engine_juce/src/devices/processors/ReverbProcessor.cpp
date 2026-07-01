@@ -2,6 +2,7 @@
 #include "audioapp/devices/processors/ProcessorUtils.hpp"
 #include "audioapp/DeviceChainScratch.hpp"
 #include <cmath>
+#include <cstring>
 
 namespace audioapp {
 
@@ -14,6 +15,19 @@ bool ReverbProcessor::ensureBuffers(ProcessContext& ctx) noexcept {
     std::memset(bufferLeft_, 0, DeviceChainScratchArena::kBufferSize * sizeof(float));
     std::memset(bufferRight_, 0, DeviceChainScratchArena::kBufferSize * sizeof(float));
     return true;
+}
+
+void ReverbProcessor::resetPlaybackState() noexcept {
+    writeIndex_ = 0;
+    lfoPhase_ = 0.0f;
+    std::memset(phaserStateL_, 0, sizeof(phaserStateL_));
+    std::memset(phaserStateR_, 0, sizeof(phaserStateR_));
+    if (bufferLeft_ != nullptr) {
+        std::memset(bufferLeft_, 0, DeviceChainScratchArena::kBufferSize * sizeof(float));
+    }
+    if (bufferRight_ != nullptr) {
+        std::memset(bufferRight_, 0, DeviceChainScratchArena::kBufferSize * sizeof(float));
+    }
 }
 
 void ReverbProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {

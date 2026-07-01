@@ -164,6 +164,8 @@ public:
                              double sampleRate,
                              double playheadStartBeat) noexcept;
     double playheadBeats() const noexcept;
+    bool hasPreviewActivity() const noexcept;
+    bool hasLiveVoices() const noexcept;
     void readPreviewMix(float* leftOut, float* rightOut, int numFrames, double sampleRate) noexcept;
     void readLiveMix(float* monoOut, int numFrames, double sampleRate) noexcept;
 

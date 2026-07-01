@@ -190,6 +190,7 @@ public:
     void clearCapture();
     bool commitCapture();
     void readLiveMix(float* monoOut, int numFrames, double sampleRate) noexcept;
+    bool hasLiveVoices() const noexcept;
     void setLivePitchBend(float bend) noexcept;
     void setLiveModulation(float mod) noexcept;
 
@@ -368,6 +369,9 @@ private:
 
     ModulationGraph modulationGraph_;
     AutomationClipStore automationClipStore_;
+
+    /// Previous arrangement-mix playhead (audio thread). Used to detect loop wrap.
+    double lastArrangementMixPlayhead_ = -1.0;
 
     DeviceRegistry deviceRegistry_{DeviceRegistry::createBuiltIn()};
 };

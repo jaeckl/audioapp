@@ -11,6 +11,10 @@
 
 namespace audioapp {
 
+void SamplerProcessor::resetPlaybackState() noexcept {
+    std::memset(samplerFilterStates_, 0, sizeof(samplerFilterStates_));
+}
+
 namespace {
 
 static inline float safe_clamp(float v, float lo, float hi) noexcept {

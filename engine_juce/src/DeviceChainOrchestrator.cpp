@@ -386,4 +386,21 @@ void DeviceChainOrchestrator::processChain(Context& ctx) noexcept {
     }
 }
 
+void resetPlaybackStateInArena(ProcessorArena& arena) noexcept {
+    for (int i = 0; i < arena.size(); ++i) {
+        if (DeviceProcessor* proc = arena.get(i)) {
+            proc->resetPlaybackState();
+        }
+    }
+}
+
+void resetInstrumentPlaybackStateInArena(ProcessorArena& arena) noexcept {
+    for (int i = 0; i < arena.size(); ++i) {
+        DeviceProcessor* proc = arena.get(i);
+        if (proc != nullptr && isInstrumentDeviceNodeKind(proc->kind())) {
+            proc->resetPlaybackState();
+        }
+    }
+}
+
 } // namespace audioapp

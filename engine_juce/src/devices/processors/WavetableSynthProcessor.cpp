@@ -10,12 +10,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
-#ifdef __ANDROID__
-#include <android/log.h>
-#define WT_LOG(...) __android_log_print(ANDROID_LOG_INFO, "audioapp_engine", __VA_ARGS__)
-#else
-#define WT_LOG(...) ((void)0)
-#endif
 
 namespace audioapp {
 
@@ -87,6 +81,8 @@ void WavetableSynthProcessor::initParams(const DeviceVariantParams& params) noex
     if (const auto* wt = std::get_if<WavetableSynthParams>(&params)) {
         realtimeWtPosition_.store(safe_clamp(wt->wtPosition, 0.0f, 1.0f), std::memory_order_release);
         realtimeWtPositionValid_.store(true, std::memory_order_release);
+        cachedWtId_.clear();
+        runtime_.wavetableIndex = -1;
     }
 }
 
@@ -97,6 +93,18 @@ bool WavetableSynthProcessor::setRealtimeParameter(std::string_view parameterId,
         return true;
     }
     return false;
+}
+
+void WavetableSynthProcessor::resetPlaybackState() noexcept {
+    const int bankIdx = runtime_.wavetableIndex;
+    const std::string wtId = cachedWtId_;
+    const float smoothedWt = runtime_.smoothedWtPosition;
+    const uint8_t wtInit = runtime_.wtPositionSmoothingInitialized;
+    runtime_ = WavetableSynthRuntime{};
+    runtime_.wavetableIndex = bankIdx;
+    cachedWtId_ = wtId;
+    runtime_.smoothedWtPosition = smoothedWt;
+    runtime_.wtPositionSmoothingInitialized = wtInit;
 }
 
 namespace {
@@ -151,12 +159,17 @@ void WavetableSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) no
     }
     const auto& wtId = params.wavetableId;
     if (ctx.wavetableBank != nullptr) {
-        int bankIdx = -1;
-        if (!wtId.empty()) {
-            bankIdx = ctx.wavetableBank->findByName(wtId);
-        }
-        if (bankIdx < 0) {
-            bankIdx = 0;
+        int bankIdx = runtime_.wavetableIndex;
+        if (bankIdx < 0 || cachedWtId_ != wtId) {
+            cachedWtId_ = wtId;
+            bankIdx = -1;
+            if (!wtId.empty()) {
+                bankIdx = ctx.wavetableBank->findByName(wtId);
+            }
+            if (bankIdx < 0) {
+                bankIdx = 0;
+            }
+            runtime_.wavetableIndex = bankIdx;
         }
         const auto* entry = ctx.wavetableBank->get(bankIdx);
         if (entry != nullptr && !entry->pcm.empty()) {

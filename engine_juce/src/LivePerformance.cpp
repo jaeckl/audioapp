@@ -47,6 +47,15 @@ uint64_t LivePerformanceMixer::sampleClock() const noexcept {
     return sampleClock_.load(std::memory_order_acquire);
 }
 
+bool LivePerformanceMixer::hasActiveVoices() const noexcept {
+    for (const auto& voice : voices_) {
+        if (voice.active.load(std::memory_order_acquire) != 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void LivePerformanceMixer::releaseVoice(LiveVoiceSlot& voice, uint64_t now) noexcept {
     if (voice.active.load(std::memory_order_acquire) == 0) {
         return;

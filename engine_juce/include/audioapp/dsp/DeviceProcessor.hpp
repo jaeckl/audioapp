@@ -29,6 +29,10 @@ public:
         return false;
     }
 
+    /// Clear per-processor runtime state (voices, FX buffers, phases).
+    /// Called when transport loops or playhead seeks backward.
+    virtual void resetPlaybackState() noexcept {}
+
     const DeviceVariantParams& storedParams() const noexcept { return storedParams_; }
 
     bool bypassed = false;

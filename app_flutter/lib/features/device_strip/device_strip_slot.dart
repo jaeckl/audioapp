@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../bridge/param_descriptor.dart';
+import '../../bridge/live_meters_dto.dart';
 import '../../bridge/project_snapshot.dart';
 import 'bass_synth_device_panel.dart';
 import 'bass_synth_device_strip.dart';
@@ -66,6 +67,7 @@ class DeviceStripSlot extends StatefulWidget {
     required this.bpm,
     this.playheadBeat = 0,
     this.playheadBeatListenable,
+    this.liveMetersListenable,
     required this.playing,
     required this.density,
     required this.onSamplerParameterChanged,
@@ -107,6 +109,7 @@ class DeviceStripSlot extends StatefulWidget {
   final int bpm;
   final double playheadBeat;
   final ValueListenable<double>? playheadBeatListenable;
+  final ValueListenable<Map<String, DeviceMeterReading>>? liveMetersListenable;
   final bool playing;
   final DeviceStripSlotDensity density;
   final void Function(String parameterId, double value) onSamplerParameterChanged;
@@ -468,7 +471,9 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         _modPropsWidth;
   }
 
-  DeviceStripChromeBindings get _chromeBindings => DeviceStripChromeBindings(
+  DeviceStripChromeBindings _chromeBindings([DeviceMeterReading? liveMeter]) {
+    final reading = liveMeter;
+    return DeviceStripChromeBindings(
         device: widget.device,
         accentColor: DeviceStripTheme.accentForDeviceType(widget.device.type),
         onParameterChanged: widget.onDeviceParameterChanged,
@@ -486,9 +491,25 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         onAutomateParameter: widget.onAutomateParameter != null
             ? _onAutomateParameter
             : null,
-        gainReductionDb: widget.device.meterGainReductionDb,
-        inputLevel: widget.device.meterInputLevel,
+        gainReductionDb:
+            reading?.gainReductionDb ?? widget.device.meterGainReductionDb,
+        inputLevel: reading?.inputLevel ?? widget.device.meterInputLevel,
       );
+  }
+
+  Widget _meterAwareChromePanel(
+    Widget Function(DeviceStripChromeBindings bindings) buildPanel,
+  ) {
+    final listenable = widget.liveMetersListenable;
+    if (listenable == null) {
+      return buildPanel(_chromeBindings());
+    }
+    return ValueListenableBuilder<Map<String, DeviceMeterReading>>(
+      valueListenable: listenable,
+      builder: (context, meters, _) =>
+          buildPanel(_chromeBindings(meters[widget.device.id])),
+    );
+  }
 
   Widget _modulationSidebar() {
     Widget gridFor(double beat) => ModulationGrid(
@@ -764,9 +785,13 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                 if (_inputWidth > 0)
                   SizedBox(
                     width: _inputWidth,
-                    child: DeviceStripChrome.inputPanel(
-                      deviceType: widget.device.type,
-                      bindings: _chromeBindings,
+                    child: _meterAwareChromePanel(
+                      (bindings) =>
+                          DeviceStripChrome.inputPanel(
+                            deviceType: widget.device.type,
+                            bindings: bindings,
+                          ) ??
+                          const SizedBox.shrink(),
                     ),
                   ),
                 SizedBox(
@@ -786,9 +811,11 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                 ),
                 SizedBox(
                   width: _outputWidth,
-                  child: DeviceStripChrome.outputPanel(
-                    deviceType: widget.device.type,
-                    bindings: _chromeBindings,
+                  child: _meterAwareChromePanel(
+                    (bindings) => DeviceStripChrome.outputPanel(
+                      deviceType: widget.device.type,
+                      bindings: bindings,
+                    ),
                   ),
                 ),
               ],

@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../bridge/live_meters_dto.dart';
+import '../bridge/live_meters_store.dart';
 import '../features/arrangement/arrangement_timeline_metrics.dart';
-import '../app/app_info.dart';
 import 'daw_shell_nav.dart';
 import 'daw_transport_controller.dart';
 import '../bridge/engine_bridge.dart';
@@ -51,6 +51,7 @@ class DawShell extends StatefulWidget {
 class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   late final DawTransportController _transport;
   late final SnapshotStore _store;
+  late final LiveMetersStore _liveMeters;
   ProjectSnapshot? get _snapshot => _store.state;
   String? _saveStatus;
   String? _projectError;
@@ -80,6 +81,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _store = SnapshotStore(widget.bridge)..addListener(_onStoreChanged);
+    _liveMeters = LiveMetersStore();
     _transport = DawTransportController(
       bridge: widget.bridge,
       vsync: this,
@@ -93,6 +95,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     _pendingWtPositionTimer?.cancel();
     _store.removeListener(_onStoreChanged);
     _store.dispose();
+    _liveMeters.dispose();
     _meterSubscription?.cancel();
     _transport.dispose();
     super.dispose();
@@ -103,8 +106,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   void _onMetersBatch(LiveMetersBatch batch) {
-    if (!mounted || _snapshot == null || !_transport.playing) return;
-    _store.replaceSnapshot(_snapshot!.withMergedMeters(batch));
+    if (!mounted || !_transport.playing) return;
+    _liveMeters.applyBatch(batch);
   }
 
   double get _effectivePlayheadBeats {
@@ -1701,6 +1704,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
   Future<void> _stopPlay() async {
     await _transport.stopPlay();
+    _liveMeters.clear();
     if (mounted) {
       setState(() {});
     }
@@ -1817,6 +1821,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             samples: snapshot.samples,
             playing: _transport.playing,
             playheadBeatListenable: _transport.playheadNotifier,
+            liveMetersListenable: _liveMeters,
             onSamplerParameterChanged: _setSamplerParameter,
             onDeviceStringParameterChanged: _setDeviceStringParameter,
             onAssignSamplerSample: _assignSamplerSample,

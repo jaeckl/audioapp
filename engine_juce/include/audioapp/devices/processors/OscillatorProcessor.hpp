@@ -13,6 +13,7 @@ public:
     /// Accessors for back-to-back persistence across callbacks.
     float phase() const noexcept { return oscillatorPhase_; }
     void setPhase(float p) noexcept { oscillatorPhase_ = p; }
+    void resetPlaybackState() noexcept override { oscillatorPhase_ = 0.0f; }
 };
 
 } // namespace audioapp

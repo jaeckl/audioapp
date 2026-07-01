@@ -17,6 +17,7 @@ class ReverbProcessor : public DeviceProcessor {
 public:
     void process(AudioBlock& block, ProcessContext& ctx) noexcept override;
     DeviceNodeKind kind() const noexcept override { return DeviceNodeKind::Reverb; }
+    void resetPlaybackState() noexcept override;
 
     // No external runtime to copy — ring buffer lives in scratch arena
 };

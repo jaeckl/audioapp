@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../bridge/param_descriptor.dart';
+import '../../bridge/live_meters_dto.dart';
 import '../../bridge/project_snapshot.dart';
 import 'device_chain_separator.dart';
 import 'device_strip_metrics.dart';
@@ -22,6 +23,7 @@ class DeviceChainRow extends StatelessWidget {
     required this.bpm,
     this.playheadBeat = 0,
     this.playheadBeatListenable,
+    this.liveMetersListenable,
     required this.density,
     required this.onSamplerParameterChanged,
     this.onDeviceStringParameterChanged,
@@ -57,6 +59,7 @@ class DeviceChainRow extends StatelessWidget {
   final int bpm;
   final double playheadBeat;
   final ValueListenable<double>? playheadBeatListenable;
+  final ValueListenable<Map<String, DeviceMeterReading>>? liveMetersListenable;
   final DeviceStripSlotDensity density;
   final void Function(String deviceId, String parameterId, double value)
       onSamplerParameterChanged;
@@ -143,6 +146,7 @@ class DeviceChainRow extends StatelessWidget {
                   bpm: bpm,
                   playheadBeat: playheadBeat,
                   playheadBeatListenable: playheadBeatListenable,
+                  liveMetersListenable: liveMetersListenable,
                   playing: playing,
                   density: density,
                   samplerTab: samplerTabFor?.call(devices[i].id) ?? SamplerDeviceTab.wave,

@@ -174,6 +174,9 @@ void EngineHost::readPreviewMix(float* leftOut, float* rightOut, int numFrames, 
     if (leftOut == nullptr || rightOut == nullptr || numFrames <= 0) {
         return;
     }
+    if (!hasPreviewActivity()) {
+        return;
+    }
 
     // Local mono scratch: the instrument renderers (mixSubtractiveMidiNotesBlock,
     // mixSamplerMidiNotesBlock, addSineBlock, fallbackOsc mono path) are mono.
@@ -442,7 +445,19 @@ duplicateMonoToStereo:
 }
 
 void EngineHost::readLiveMix(float* monoOut, int numFrames, double sampleRate) noexcept {
+    if (!hasLiveVoices()) {
+        return;
+    }
     project_->readLiveMix(monoOut, numFrames, sampleRate);
+}
+
+bool EngineHost::hasPreviewActivity() const noexcept {
+    return previewVoice_.active.load(std::memory_order_acquire)
+        || previewMidi_.active.load(std::memory_order_acquire);
+}
+
+bool EngineHost::hasLiveVoices() const noexcept {
+    return project_->hasLiveVoices();
 }
 
 std::string EngineHost::createMidiClip(const std::string& trackId, double startBeat, double lengthBeats) {
