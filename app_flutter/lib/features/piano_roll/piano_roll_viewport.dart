@@ -47,6 +47,7 @@ class PianoRollViewport extends StatefulWidget {
     this.onPreviewStopRequested,
     this.onNotePreview,
     this.onNotePreviewEnd,
+    this.onPitchPreview,
     this.timelineScrollController,
   });
 
@@ -76,6 +77,7 @@ class PianoRollViewport extends StatefulWidget {
   final TimelineViewportScrollController? timelineScrollController;
   final void Function(MidiNoteSnapshot note, {bool hold})? onNotePreview;
   final VoidCallback? onNotePreviewEnd;
+  final ValueChanged<int>? onPitchPreview;
 
   @override
   State<PianoRollViewport> createState() => PianoRollViewportState();
@@ -114,6 +116,7 @@ class PianoRollViewportState extends State<PianoRollViewport> {
   bool _draggingClipEnd = false;
   bool _draggingVirtualPlayhead = false;
   bool _resizePreviewActive = false;
+  int? _movePreviewPitch;
   int? _rulerPointer;
   double _rulerPointerTravel = 0;
   double _drawHorizontalTravel = 0;
@@ -443,6 +446,7 @@ class PianoRollViewportState extends State<PianoRollViewport> {
         if (noteIndex != null) {
           _lockScrollForEdit = true;
           widget.onSelectionChanged(noteIndex);
+          widget.onNotePreview?.call(widget.notes[noteIndex]);
           _draggingIndex = noteIndex;
           _dragMode = _dragModeAt(canvasPos, noteIndex);
           _dragStartBeat = widget.notes[noteIndex].startBeat;
@@ -549,9 +553,10 @@ class PianoRollViewportState extends State<PianoRollViewport> {
       widget.onNotePreview?.call(widget.notes[_draggingIndex!]);
     }
 
-    if (_dragMode == _DragMode.resize) {
+    if (_dragMode == _DragMode.resize || _movePreviewPitch != null) {
       widget.onNotePreviewEnd?.call();
     }
+    _movePreviewPitch = null;
 
     if (widget.tool == PianoRollTool.draw &&
         _pendingDrawTap &&
@@ -571,10 +576,13 @@ class PianoRollViewportState extends State<PianoRollViewport> {
 
   void _cancelEditGesture() {
     _longPressTimer?.cancel();
-    if (_dragMode == _DragMode.draw || _resizePreviewActive) {
+    if (_dragMode == _DragMode.draw ||
+        _resizePreviewActive ||
+        _movePreviewPitch != null) {
       widget.onNotePreviewEnd?.call();
     }
     _resizePreviewActive = false;
+    _movePreviewPitch = null;
     _pendingDrawTap = false;
     _editPointer = null;
     _editStartCanvas = null;
@@ -596,10 +604,13 @@ class PianoRollViewportState extends State<PianoRollViewport> {
 
   void _endEditGesture({required bool save}) {
     _longPressTimer?.cancel();
-    if (_dragMode == _DragMode.draw || _resizePreviewActive) {
+    if (_dragMode == _DragMode.draw ||
+        _resizePreviewActive ||
+        _movePreviewPitch != null) {
       widget.onNotePreviewEnd?.call();
     }
     _resizePreviewActive = false;
+    _movePreviewPitch = null;
     _pendingDrawTap = false;
     _editPointer = null;
     _editStartCanvas = null;
@@ -716,6 +727,18 @@ class PianoRollViewportState extends State<PianoRollViewport> {
       final newPitch = _pitchFromDy(
         (widget.maxPitch - _dragStartPitch!) * _rowHeight + delta.dy,
       );
+      if (newPitch != note.pitch && newPitch != _movePreviewPitch) {
+        _movePreviewPitch = newPitch;
+        widget.onNotePreview?.call(
+          MidiNoteSnapshot(
+            pitch: newPitch,
+            startBeat: newBeat,
+            durationBeats: note.durationBeats,
+            velocity: note.velocity,
+          ),
+          hold: true,
+        );
+      }
       _updateNote(
         index,
         MidiNoteSnapshot(
@@ -1079,6 +1102,7 @@ class PianoRollViewportState extends State<PianoRollViewport> {
           maxPitch: widget.maxPitch,
           rowHeight: _rowHeight,
           highlightPitch: widget.drumAnchorPitch,
+          onPitchTap: widget.onPitchPreview,
         ),
       ),
     );

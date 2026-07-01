@@ -417,6 +417,18 @@ class _PianoRollScreenState extends State<PianoRollScreen>
                   onNotePreviewEnd: () {
                     unawaited(_noteAudition.release());
                   },
+                  onPitchPreview: (pitch) {
+                    unawaited(
+                      _noteAudition.preview(
+                        MidiNoteSnapshot(
+                          pitch: pitch,
+                          startBeat: 0,
+                          durationBeats: 0.25,
+                          velocity: 100,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
