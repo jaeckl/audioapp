@@ -12,6 +12,12 @@ abstract final class TransportBarTheme {
   static const textSecondary = Color(0xFF9A9AA8);
   static const textMuted = Color(0xFF5C5C6A);
 
+  /// Popup menus anchored from the transport bar (grid snap, etc.).
+  static const menuBackground = chipFill;
+  static const menuPillIdle = Color(0xFF22222C);
+  static const menuPillActiveFill = Color(0xFF3A3A50);
+  static const menuPillActiveText = textPrimary;
+
   static const double rowHeight = 56;
   static const double barPaddingV = 2;
   static const double barPaddingH = 8;

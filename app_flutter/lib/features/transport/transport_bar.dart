@@ -47,28 +47,30 @@ class _SnapGridMenuState extends State<_SnapGridMenu> {
     widget.onTripletChanged(triplet);
   }
 
-  Widget _tile({
+  Widget _pill({
     required String label,
     required bool active,
     required VoidCallback onTap,
   }) {
     return Material(
-      color: active ? const Color(0xFF4B4B68) : const Color(0xFF30303C),
-      borderRadius: BorderRadius.circular(7),
+      color: active
+          ? TransportBarTheme.menuPillActiveFill
+          : TransportBarTheme.menuPillIdle,
+      borderRadius: BorderRadius.circular(6),
       child: InkWell(
-        borderRadius: BorderRadius.circular(7),
+        borderRadius: BorderRadius.circular(6),
         onTap: onTap,
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 10),
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: active ? Colors.white : Colors.white70,
-                fontSize: 11,
-                fontWeight: active ? FontWeight.w600 : FontWeight.normal,
-              ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: active
+                  ? TransportBarTheme.menuPillActiveText
+                  : TransportBarTheme.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -80,74 +82,169 @@ class _SnapGridMenuState extends State<_SnapGridMenu> {
   Widget build(BuildContext context) {
     final resolutions = SnapGridResolution.values.skip(1).toList();
     return SizedBox(
-      width: 246,
+      width: 260,
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const Text(
+            'Grid',
+            style: TextStyle(
+              color: TransportBarTheme.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const _SnapGridSectionTitle('Clip snap'),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
-                child: _tile(
-                  label: 'Snap clips off',
+                child: _pill(
+                  label: 'Off',
                   active: !_snapClips,
                   onTap: () => _setSnapClips(false),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Expanded(
-                child: _tile(
-                  label: 'Snap clips on',
+                child: _pill(
+                  label: 'On',
                   active: _snapClips,
                   onTap: () => _setSnapClips(true),
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          const _SnapGridSectionTitle('Resolution'),
           const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: _tile(
-              label: 'Adaptive',
-              active: _resolution == SnapGridResolution.adaptive,
-              onTap: () => _setResolution(SnapGridResolution.adaptive),
-            ),
+          _pill(
+            label: 'Adaptive',
+            active: _resolution == SnapGridResolution.adaptive,
+            onTap: () => _setResolution(SnapGridResolution.adaptive),
           ),
-          const SizedBox(height: 8),
-          GridView.count(
-            crossAxisCount: 3,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
-            childAspectRatio: 1.9,
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
             children: [
               for (final resolution in resolutions)
-                _tile(
+                _pill(
                   label: resolution.label,
                   active: _resolution == resolution,
                   onTap: () => _setResolution(resolution),
                 ),
             ],
           ),
+          const SizedBox(height: 12),
+          const _SnapGridSectionTitle('Triplet'),
           const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
-                child: _tile(
+                child: _pill(
                   label: 'Straight',
                   active: !_triplet,
                   onTap: () => _setTriplet(false),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Expanded(
-                child: _tile(
+                child: _pill(
                   label: 'Triplets',
                   active: _triplet,
                   onTap: () => _setTriplet(true),
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SnapGridSectionTitle extends StatelessWidget {
+  const _SnapGridSectionTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: TransportBarTheme.textMuted,
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.4,
+      ),
+    );
+  }
+}
+
+class _SnapGridMenuButton extends StatelessWidget {
+  const _SnapGridMenuButton({
+    required this.snapClipsEnabled,
+    required this.snapGridResolution,
+    required this.snapGridTriplet,
+    required this.enabled,
+    this.onSnapClipsEnabledChanged,
+    this.onSnapGridResolutionChanged,
+    this.onSnapGridTripletChanged,
+  });
+
+  final bool snapClipsEnabled;
+  final SnapGridResolution snapGridResolution;
+  final bool snapGridTriplet;
+  final bool enabled;
+  final ValueChanged<bool>? onSnapClipsEnabledChanged;
+  final ValueChanged<SnapGridResolution>? onSnapGridResolutionChanged;
+  final ValueChanged<bool>? onSnapGridTripletChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final tooltip =
+        '${snapClipsEnabled ? 'Clip snap on' : 'Clip snap off'} · ${snapGridResolution.label}${snapGridTriplet ? ' triplet' : ''}';
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: TransportBarTheme.chipFill,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: PopupMenuButton<void>(
+        tooltip: tooltip,
+        enabled: enabled,
+        padding: EdgeInsets.zero,
+        color: TransportBarTheme.menuBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: const BorderSide(color: TransportBarTheme.chipBorder),
+        ),
+        icon: Icon(
+          Icons.grid_4x4,
+          size: 20,
+          color: enabled
+              ? TransportBarTheme.textSecondary
+              : TransportBarTheme.textMuted,
+        ),
+        itemBuilder: (context) => [
+          PopupMenuItem<void>(
+            enabled: false,
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+            child: _SnapGridMenu(
+              snapClips: snapClipsEnabled,
+              resolution: snapGridResolution,
+              triplet: snapGridTriplet,
+              onSnapClipsChanged: (value) =>
+                  onSnapClipsEnabledChanged?.call(value),
+              onResolutionChanged: (value) =>
+                  onSnapGridResolutionChanged?.call(value),
+              onTripletChanged: (value) =>
+                  onSnapGridTripletChanged?.call(value),
+            ),
           ),
         ],
       ),
@@ -267,30 +364,14 @@ class TransportBar extends StatelessWidget {
                 enabled: onBpmChanged != null,
                 onChanged: onBpmChanged,
               ),
-              PopupMenuButton<void>(
-                tooltip:
-                    '${snapClipsEnabled ? 'Clip snap on' : 'Clip snap off'} · ${snapGridResolution.label}${snapGridTriplet ? ' triplet' : ''}',
+              _SnapGridMenuButton(
+                snapClipsEnabled: snapClipsEnabled,
+                snapGridResolution: snapGridResolution,
+                snapGridTriplet: snapGridTriplet,
                 enabled: onSnapGridResolutionChanged != null,
-                color: const Color(0xFF24242E),
-                icon:
-                    const Icon(Icons.grid_4x4, size: 20, color: Colors.white70),
-                itemBuilder: (context) => [
-                  PopupMenuItem<void>(
-                    enabled: false,
-                    padding: const EdgeInsets.all(10),
-                    child: _SnapGridMenu(
-                      snapClips: snapClipsEnabled,
-                      resolution: snapGridResolution,
-                      triplet: snapGridTriplet,
-                      onSnapClipsChanged: (enabled) =>
-                          onSnapClipsEnabledChanged?.call(enabled),
-                      onResolutionChanged: (resolution) =>
-                          onSnapGridResolutionChanged?.call(resolution),
-                      onTripletChanged: (triplet) =>
-                          onSnapGridTripletChanged?.call(triplet),
-                    ),
-                  ),
-                ],
+                onSnapClipsEnabledChanged: onSnapClipsEnabledChanged,
+                onSnapGridResolutionChanged: onSnapGridResolutionChanged,
+                onSnapGridTripletChanged: onSnapGridTripletChanged,
               ),
             ],
           ),
