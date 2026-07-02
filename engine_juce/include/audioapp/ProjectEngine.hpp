@@ -248,6 +248,7 @@ public:
     /// Lightweight meter-only JSON (no project snapshot).
     /// Reads atomics directly. Format: {"ok":true,"meters":{"dev-1":{"gr":-3.5,"in":0.85}}}
     std::string getDeviceMetersJson();
+    void setMeterSubscriptions(const std::vector<std::string>& deviceIds);
 
     /// Expose modulator types for serialization dispatch.
     const std::vector<std::unique_ptr<IModulatorType>>& modulatorTypes() const {
@@ -356,6 +357,7 @@ private:
 
     DeviceMeterAtomic deviceMeters_[kMaxDeviceMeters];
     std::string deviceMeterIds_[kMaxDeviceMeters];
+    std::array<bool, kMaxDeviceMeters> meterSlotSubscribed_{};
     int deviceMeterSlotCount_ = 0;
 
     static constexpr int kMaxAutomationClips = 32;

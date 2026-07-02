@@ -35,6 +35,7 @@ struct ProcessContext {
 
     DeviceMeterAtomic* deviceMeters = nullptr;
     int maxDeviceMeters = 0;
+    const bool* meterSlotSubscribed = nullptr;
 
     int deviceIndex = 0;
     bool needsSubBlocks = false;

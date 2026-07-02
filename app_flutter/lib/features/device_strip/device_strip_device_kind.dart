@@ -18,6 +18,10 @@ const frequencyFxDeviceTypes = <String>{
   'audio_receiver',
   'midi_receiver',
   'midi_delay',
+  'oscilloscope',
+  'spectrum_analyzer',
+  'loudness_meter',
+  'stereo_imager',
 };
 
 extension DeviceStripDeviceKind on DeviceSnapshot {

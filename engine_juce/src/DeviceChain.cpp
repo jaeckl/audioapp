@@ -38,6 +38,13 @@ bool isRoutingDeviceNodeKind(DeviceNodeKind kind) noexcept {
            kind == DeviceNodeKind::MidiReceiver;
 }
 
+bool isAnalysisDeviceNodeKind(DeviceNodeKind kind) noexcept {
+    return kind == DeviceNodeKind::Oscilloscope ||
+           kind == DeviceNodeKind::SpectrumAnalyzer ||
+           kind == DeviceNodeKind::LoudnessMeter ||
+           kind == DeviceNodeKind::StereoImager;
+}
+
 bool handlesOwnModulation(DeviceNodeKind kind) noexcept {
     // Returns true for instrument types that implement their own per-frame or
     // sub-block modulation inside their process() method, either via explicit
@@ -109,6 +116,10 @@ DeviceNodeKind deviceNodeKindFromTypeId(const std::string& typeId) noexcept {
     if (typeId == kMidiReceiver)     return DeviceNodeKind::MidiReceiver;
     if (typeId == kMidiDelay)        return DeviceNodeKind::MidiDelay;
     if (typeId == kDrumMachine)      return DeviceNodeKind::DrumMachine;
+    if (typeId == kOscilloscope)     return DeviceNodeKind::Oscilloscope;
+    if (typeId == kSpectrumAnalyzer) return DeviceNodeKind::SpectrumAnalyzer;
+    if (typeId == kLoudnessMeter)    return DeviceNodeKind::LoudnessMeter;
+    if (typeId == kStereoImager)     return DeviceNodeKind::StereoImager;
     return DeviceNodeKind::Unknown;
 }
 

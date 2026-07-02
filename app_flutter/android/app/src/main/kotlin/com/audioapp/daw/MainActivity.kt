@@ -390,7 +390,7 @@ class MainActivity : FlutterFragmentActivity() {
                                 Log.w(logTag, "Meter poll failed: ${e.message}")
                             }
                         }
-                    }, 0L, 200L) // 5 Hz — keep control thread off audio cores during playback
+                    }, 0L, 16L) // ~60 Hz UI meter refresh
                 }
 
                 override fun onCancel(arguments: Any?) {

@@ -1209,8 +1209,9 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         ctx.notes = routedMidi[trackIndex];
         ctx.noteCount = noteCount;
         ctx.suppressInstruments = suppressInstruments;
-        ctx.deviceMeters = nullptr;
-        ctx.maxDeviceMeters = 0;
+        ctx.deviceMeters = deviceMeters_;
+        ctx.maxDeviceMeters = kMaxDeviceMeters;
+        ctx.meterSlotSubscribed = meterSlotSubscribed_.data();
         ctx.lfoValues = lfoCount > 0 ? lfoValues.data() : nullptr;
         ctx.lfoCount = lfoCount;
         ctx.modulators = lfoCount > 0 ? modulatorPtrs.data() : nullptr;
@@ -1698,6 +1699,9 @@ std::string ProjectEngine::getDeviceMetersJson() {
     std::string json = R"({"ok":true,"meters":{)";
     bool first = true;
     for (int i = 0; i < deviceMeterSlotCount_; ++i) {
+        if (!meterSlotSubscribed_[i]) {
+            continue;
+        }
         if (!first) json += ",";
         first = false;
         const float gr = deviceMeters_[i].gainReductionDb.load(std::memory_order_relaxed);
@@ -1712,10 +1716,34 @@ std::string ProjectEngine::getDeviceMetersJson() {
         json += R"(,"in":)";
         snprintf(buf, sizeof(buf), "%.3f", static_cast<double>(in));
         json += buf;
+        json += R"(,"lufs":)";
+        snprintf(buf, sizeof(buf), "%.1f", static_cast<double>(deviceMeters_[i].loudness.load(std::memory_order_relaxed)));
+        json += buf;
+        json += R"(,"corr":)";
+        snprintf(buf, sizeof(buf), "%.3f", static_cast<double>(deviceMeters_[i].correlation.load(std::memory_order_relaxed)));
+        json += buf;
+        json += R"(,"wave":[)";
+        for (int n = 0; n < 32; ++n) { if (n) json += ","; snprintf(buf, sizeof(buf), "%.3f", static_cast<double>(deviceMeters_[i].waveform[n].load(std::memory_order_relaxed))); json += buf; }
+        json += R"(],"spectrum":[)";
+        for (int n = 0; n < 24; ++n) { if (n) json += ","; snprintf(buf, sizeof(buf), "%.3f", static_cast<double>(deviceMeters_[i].spectrum[n].load(std::memory_order_relaxed))); json += buf; }
+        json += "]";
         json += "}";
     }
     json += "}}";
     return json;
+}
+
+void ProjectEngine::setMeterSubscriptions(const std::vector<std::string>& deviceIds) {
+    const juce::ScopedWriteLock lock(mutex_);
+    meterSlotSubscribed_.fill(false);
+    for (const auto& id : deviceIds) {
+        for (int i = 0; i < deviceMeterSlotCount_; ++i) {
+            if (deviceMeterIds_[i] == id) {
+                meterSlotSubscribed_[i] = true;
+                break;
+            }
+        }
+    }
 }
 
 void ProjectEngine::applyLiveDeviceMetersLocked(ProjectSnapshot& snap) const {
@@ -1807,7 +1835,7 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
             context.wavetableBank = wavetableBank_;
             context.deviceRegistry = &deviceRegistry_;
             deviceRegistry_.buildPlaybackNode(device, context, node);
-            if (isDynamicsDeviceNodeKind(node.kind) && deviceMeterSlotCount_ < kMaxDeviceMeters) {
+            if ((isDynamicsDeviceNodeKind(node.kind) || isAnalysisDeviceNodeKind(node.kind)) && deviceMeterSlotCount_ < kMaxDeviceMeters) {
                 node.meterSlot = static_cast<int8_t>(deviceMeterSlotCount_);
                 deviceMeterIds_[deviceMeterSlotCount_] = device.id;
                 ++deviceMeterSlotCount_;

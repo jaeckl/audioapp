@@ -183,6 +183,47 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
                       letterSpacing: 0.6,
                     )),
               ),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
+                child: Text('Analysis & Metering',
+                    style: TextStyle(
+                        color: Color(0xFF9A9AA8),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.6)),
+              ),
+              for (final item in const [
+                (
+                  'oscilloscope',
+                  'Oscilloscope',
+                  'Waveform · trigger view',
+                  Icons.monitor_heart_outlined
+                ),
+                (
+                  'spectrum_analyzer',
+                  'Spectrum Analyzer',
+                  'Frequency energy · 20 Hz–20 kHz',
+                  Icons.equalizer
+                ),
+                (
+                  'loudness_meter',
+                  'Loudness Meter',
+                  'LUFS · integrated · true peak',
+                  Icons.speed
+                ),
+                (
+                  'stereo_imager',
+                  'Stereo Imager',
+                  'Vectorscope · phase correlation',
+                  Icons.blur_circular
+                ),
+              ])
+                ListTile(
+                  leading: Icon(item.$4, color: const Color(0xFF57D3C4)),
+                  title: Text(item.$2),
+                  subtitle: Text(item.$3),
+                  onTap: () => Navigator.pop(context, item.$1),
+                ),
               ListTile(
                 leading:
                     const Icon(Icons.call_received, color: Color(0xFF66D19E)),

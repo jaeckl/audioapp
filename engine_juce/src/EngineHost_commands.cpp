@@ -974,6 +974,10 @@ std::string EngineHost::getDeviceMetersJson() {
     return project_->getDeviceMetersJson();
 }
 
+void EngineHost::setMeterSubscriptions(const std::vector<std::string>& deviceIds) {
+    project_->setMeterSubscriptions(deviceIds);
+}
+
 namespace {
 
 /// Convert any populated SnapshotDelta into a delta CommandResult.
@@ -1665,6 +1669,18 @@ void EngineHost::registerAllCommands() {
 
     reg.registerCommand("getDeviceMeters", [](const commands::CommandContext& ctx) -> commands::CommandResult {
         return commands::rawResult(ctx.engine.getDeviceMetersJson());
+    });
+
+    reg.registerCommand("setMeterSubscriptions", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto& idsVar = ctx.args["deviceIds"];
+        std::vector<std::string> deviceIds;
+        if (auto* arr = idsVar.getArray()) {
+            for (const auto& idVar : *arr) {
+                deviceIds.push_back(idVar.toString().toStdString());
+            }
+        }
+        ctx.engine.setMeterSubscriptions(deviceIds);
+        return commands::okResult();
     });
 
     // ── Undo / Redo ──────────────────────────────────────

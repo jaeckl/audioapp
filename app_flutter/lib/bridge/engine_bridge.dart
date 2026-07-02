@@ -39,12 +39,21 @@ class EngineBridge {
   final MethodChannel _channel;
   final EventChannel _metersChannel;
 
-  /// Stream of live meter readings pushed from native engine (~12Hz).
-  /// Each event is a [LiveMetersBatch] containing all active device meters.
+  /// Stream of live meter readings pushed from native engine (~60Hz when subscribed).
+  /// Each event is a [LiveMetersBatch] containing subscribed device meters only.
   Stream<LiveMetersBatch> get meterStream =>
       _metersChannel.receiveBroadcastStream().map(
             (event) => LiveMetersBatch.fromMap(event as Map<dynamic, dynamic>),
           );
+
+  /// Tells the engine which device IDs should publish live meter / analyzer data.
+  /// Pass an empty list when the device strip is hidden or nothing is in view.
+  Future<void> setMeterSubscriptions(List<String> deviceIds) async {
+    await _channel.invokeMethod<void>(
+      'setMeterSubscriptions',
+      {'deviceIds': deviceIds},
+    );
+  }
 
   Future<String> ping() async {
     final result = await _channel.invokeMethod<String>('ping');

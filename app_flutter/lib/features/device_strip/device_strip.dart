@@ -40,6 +40,7 @@ class DeviceStrip extends StatefulWidget {
     this.onAutomationParamSelected,
     this.onAutomateParameter,
     this.onGetParamDescriptors,
+    this.onMeterSubscriptionsChanged,
   });
 
   final ProjectSnapshot snapshot;
@@ -78,6 +79,7 @@ class DeviceStrip extends StatefulWidget {
   /// Optional: fetch param descriptors for the generic fallback editor.
   final Future<List<DeviceParamDescriptor>> Function(String deviceType)?
       onGetParamDescriptors;
+  final ValueChanged<List<String>>? onMeterSubscriptionsChanged;
 
   @override
   State<DeviceStrip> createState() => _DeviceStripState();
@@ -85,6 +87,7 @@ class DeviceStrip extends StatefulWidget {
 
 class _DeviceStripState extends State<DeviceStrip> {
   bool _expanded = false;
+  bool _fullscreenChainOpen = false;
   final Map<String, SamplerDeviceTab> _samplerTabs = {};
   final Map<String, SubtractiveDeviceTab> _synthTabs = {};
   final Map<String, int> _drumSelectedNotes = {};
@@ -117,6 +120,7 @@ class _DeviceStripState extends State<DeviceStrip> {
   }
 
   Future<void> _openDeviceChain(TrackSnapshot track) async {
+    setState(() => _fullscreenChainOpen = true);
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         fullscreenDialog: true,
@@ -146,9 +150,11 @@ class _DeviceStripState extends State<DeviceStrip> {
           onAutomationParamSelected: widget.onAutomationParamSelected,
           onAutomateParameter: widget.onAutomateParameter,
           onGetParamDescriptors: widget.onGetParamDescriptors,
+          onMeterSubscriptionsChanged: widget.onMeterSubscriptionsChanged,
         ),
       ),
     );
+    if (mounted) setState(() => _fullscreenChainOpen = false);
   }
 
   @override
@@ -233,6 +239,9 @@ class _DeviceStripState extends State<DeviceStrip> {
                   onAutomationParamSelected: widget.onAutomationParamSelected,
                   onAutomateParameter: widget.onAutomateParameter,
                   onGetParamDescriptors: widget.onGetParamDescriptors,
+                  onMeterSubscriptionsChanged: _fullscreenChainOpen
+                      ? null
+                      : widget.onMeterSubscriptionsChanged,
                   drumSelectedNoteFor: (id) => _drumSelectedNotes[id] ?? 36,
                   drumBankStartFor: (id) => _drumBankStarts[id] ?? 36,
                   drumChainExpandedFor: (id) => _drumChainExpanded[id] ?? true,

@@ -1,5 +1,6 @@
 import 'package:audioapp/bridge/project_snapshot.dart';
 import 'package:audioapp/features/device_strip/device_strip_chrome.dart';
+import 'package:audioapp/features/device_strip/device_strip_chrome_panels.dart';
 import 'package:audioapp/features/device_strip/device_strip_metrics.dart';
 import 'package:audioapp/features/device_strip/device_strip_slot.dart';
 import 'package:flutter/material.dart';
@@ -57,6 +58,11 @@ void main() {
     test('mono drums use drum output width without input', () {
       expect(DeviceStripChrome.inputWidth('kick_generator'), 0);
       expect(DeviceStripChrome.outputWidth('kick_generator'), 64);
+    });
+
+    test('analysis devices keep empty output chrome width', () {
+      expect(DeviceStripChrome.outputWidth('oscilloscope'), 64);
+      expect(DeviceStripChrome.outputWidth('spectrum_analyzer'), 64);
     });
   });
 
@@ -122,5 +128,19 @@ void main() {
     expect(find.text('IN'), findsOneWidget);
     expect(find.text('GR'), findsOneWidget);
     expect(find.text('Pan'), findsNothing);
+  });
+
+  testWidgets('oscilloscope slot shows empty output chrome rail',
+      (tester) async {
+    final device = DeviceSnapshot.fromMap({
+      'id': 'dev-scope',
+      'type': 'oscilloscope',
+      'parameters': <String, Object>{},
+    });
+    await pumpSlot(tester, device: device);
+
+    expect(find.text('Gain'), findsNothing);
+    expect(find.text('Pan'), findsNothing);
+    expect(find.byType(EmptyChromeOutputPanel), findsOneWidget);
   });
 }

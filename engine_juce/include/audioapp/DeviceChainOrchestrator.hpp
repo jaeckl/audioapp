@@ -28,6 +28,7 @@ struct DeviceChainOrchestrator {
         bool suppressInstruments = false;
         DeviceMeterAtomic* deviceMeters = nullptr;
         int maxDeviceMeters = 0;
+        const bool* meterSlotSubscribed = nullptr;
         const float* lfoValues = nullptr;
         int lfoCount = 0;
         const ModulationEdgePlayback* modEdges = nullptr;

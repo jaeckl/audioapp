@@ -57,6 +57,12 @@ abstract final class DeviceStripChrome {
     'delay', 'reverb', 'chorus', 'phaser',
     'bitcrusher', 'distortion', 'tremolo',
   };
+  static const _emptyOutputTypes = {
+    'oscilloscope',
+    'spectrum_analyzer',
+    'loudness_meter',
+    'stereo_imager',
+  };
 
   static bool hasInputPanel(String deviceType) =>
       DeviceStripMetrics.inputPanelWidthFor(deviceType) > 0;
@@ -94,6 +100,11 @@ abstract final class DeviceStripChrome {
     required String deviceType,
     required DeviceStripChromeBindings bindings,
   }) {
+    if (_emptyOutputTypes.contains(deviceType)) {
+      return EmptyChromeOutputPanel(
+        width: outputWidth(deviceType),
+      );
+    }
     if (deviceType == 'audio_receiver' || deviceType == 'midi_receiver' ||
         deviceType == 'midi_delay') {
       return RoutingOutputPanel(accentColor: bindings.accentColor);

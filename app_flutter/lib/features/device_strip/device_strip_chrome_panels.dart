@@ -7,6 +7,17 @@ import 'device_strip_metrics.dart';
 import 'device_strip_theme.dart';
 import 'stereo_gain_pan_panel.dart';
 
+/// Right-edge chrome cap with no controls — mirrors the tool rail layout.
+class EmptyChromeOutputPanel extends StatelessWidget {
+  const EmptyChromeOutputPanel({super.key, required this.width});
+
+  final double width;
+
+  @override
+  Widget build(BuildContext context) =>
+      _ChromeOutputShell(width: width, child: const SizedBox.shrink());
+}
+
 /// Passive right-edge cap for routing receivers, which have no output controls.
 class RoutingOutputPanel extends StatelessWidget {
   const RoutingOutputPanel({super.key, required this.accentColor});
@@ -15,6 +26,7 @@ class RoutingOutputPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => _ChromeOutputShell(
+        width: DeviceStripMetrics.routingOutputPanelWidth,
         child: Center(
           child: Icon(Icons.chevron_right, size: 18, color: accentColor),
         ),
@@ -80,6 +92,7 @@ class DrumMonoOutputPanel extends StatelessWidget {
     final velocity = velocityFor(device);
 
     return _ChromeOutputShell(
+      width: DeviceStripMetrics.drumMonoOutputPanelWidth,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -249,6 +262,7 @@ class DynamicsOutputPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _ChromeOutputShell(
+      width: DeviceStripMetrics.dynamicsOutputPanelWidth,
       child: _DynamicsSideColumn(
         label: 'GR',
         meterLevel: gainReductionMeterLevel(gainReductionDb),
@@ -334,11 +348,12 @@ class _DynamicsSideColumn extends StatelessWidget {
 
 class _ChromeOutputShell extends StatelessWidget {
   const _ChromeOutputShell({
+    required this.width,
     required this.child,
   });
 
+  final double width;
   final Widget child;
-  static const double _kPanelWidth = DeviceStripMetrics.dynamicsOutputPanelWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -349,7 +364,7 @@ class _ChromeOutputShell extends StatelessWidget {
     final rightRadius = const Radius.circular(DeviceStripTheme.toolRailRadius);
 
     return SizedBox(
-      width: _kPanelWidth,
+      width: width,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: DeviceStripTheme.toolRailBackground,
@@ -411,6 +426,7 @@ class FxOutputPanel extends StatelessWidget {
     final width = eff?.outputWidth ?? 1.0;
 
     return _ChromeOutputShell(
+      width: DeviceStripMetrics.dynamicsOutputPanelWidth,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

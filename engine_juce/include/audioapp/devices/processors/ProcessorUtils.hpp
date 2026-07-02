@@ -4,8 +4,19 @@
 #include <cmath>
 #include <atomic>
 #include "audioapp/DeviceChain.hpp"
+#include "audioapp/dsp/ProcessContext.hpp"
 
 namespace audioapp {
+
+inline bool isMeterSlotSubscribed(const ProcessContext& ctx, int8_t slot) noexcept {
+    if (slot < 0 || slot >= ctx.maxDeviceMeters) {
+        return false;
+    }
+    if (ctx.meterSlotSubscribed == nullptr) {
+        return true;
+    }
+    return ctx.meterSlotSubscribed[slot];
+}
 
 inline float stereoBlockPeak(const float* left, const float* right, int frameCount) noexcept {
     float peak = 0.0f;
@@ -19,8 +30,12 @@ inline void publishDynamicsMeters(const DeviceNodePlayback& n,
                                  const DynamicsRuntime& runtime,
                                  float inputPeak,
                                  DeviceMeterAtomic* meters,
-                                 int maxMeters) noexcept {
+                                 int maxMeters,
+                                 const bool* meterSlotSubscribed = nullptr) noexcept {
     if (meters == nullptr || n.meterSlot < 0 || n.meterSlot >= maxMeters) {
+        return;
+    }
+    if (meterSlotSubscribed != nullptr && !meterSlotSubscribed[n.meterSlot]) {
         return;
     }
     meters[n.meterSlot].gainReductionDb.store(runtime.gainReductionDb,

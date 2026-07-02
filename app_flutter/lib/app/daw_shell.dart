@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -79,6 +80,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   bool _snapClipsEnabled = true;
   SnapGridResolution _snapGridResolution = SnapGridResolution.adaptive;
   bool _snapGridTriplet = false;
+  List<String> _meterSubscriptionIds = const [];
 
   @override
   void initState() {
@@ -109,8 +111,19 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   void _onMetersBatch(LiveMetersBatch batch) {
-    if (!mounted || !_transport.playing) return;
+    if (!mounted) return;
     _liveMeters.applyBatch(batch);
+  }
+
+  Future<void> _updateMeterSubscriptions(List<String> deviceIds) async {
+    if (_tab != _ShellTab.devices) {
+      deviceIds = const [];
+    }
+    if (listEquals(deviceIds, _meterSubscriptionIds)) return;
+    _meterSubscriptionIds = deviceIds;
+    try {
+      await widget.bridge.setMeterSubscriptions(deviceIds);
+    } catch (_) {}
   }
 
   double get _effectivePlayheadBeats {
@@ -1941,6 +1954,9 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       } catch (_) {}
     }
     setState(() => _tab = tab);
+    if (tab != _ShellTab.devices) {
+      unawaited(_updateMeterSubscriptions(const []));
+    }
     await _syncLiveInputForTab(tab);
   }
 
@@ -2024,6 +2040,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             onAutomationParamSelected: _assignAutomationParam,
             onAutomateParameter: _automateParameter,
             onGetParamDescriptors: widget.bridge.getParamDescriptors,
+            onMeterSubscriptionsChanged: _updateMeterSubscriptions,
           )
         else
           LiveInstrumentPanel(

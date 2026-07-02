@@ -84,6 +84,10 @@ enum class DeviceNodeKind : uint8_t {
     MidiReceiver,
     MidiDelay,
     DrumMachine,
+    Oscilloscope,
+    SpectrumAnalyzer,
+    LoudnessMeter,
+    StereoImager,
 };
 
 // --- Per-device DSP-only parameter structs ---
@@ -243,6 +247,10 @@ static constexpr float kInstrumentOutputGain = 0.2f;
 struct DeviceMeterAtomic {
     std::atomic<float> gainReductionDb{0.0f};
     std::atomic<float> inputPeak{0.0f};
+    std::atomic<float> loudness{ -70.0f };
+    std::atomic<float> correlation{0.0f};
+    std::atomic<float> waveform[32]{};
+    std::atomic<float> spectrum[24]{};
 };
 
 static constexpr int kMaxDeviceMeters = 128;
@@ -252,6 +260,7 @@ bool isInstrumentDeviceNodeKind(DeviceNodeKind kind) noexcept;
 bool handlesOwnModulation(DeviceNodeKind kind) noexcept;
 bool isFrequencyFxDeviceNodeKind(DeviceNodeKind kind) noexcept;
 bool isRoutingDeviceNodeKind(DeviceNodeKind kind) noexcept;
+bool isAnalysisDeviceNodeKind(DeviceNodeKind kind) noexcept;
 
 /// Map a device type string (e.g. "simple_sampler") to its DeviceNodeKind.
 DeviceNodeKind deviceNodeKindFromTypeId(const std::string& typeId) noexcept;

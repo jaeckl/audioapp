@@ -55,6 +55,7 @@ import 'subtractive_synth_device_panel.dart';
 import 'subtractive_synth_device_strip.dart';
 import 'wavetable_synth_device_panel.dart';
 import 'wavetable_synth_device_strip.dart';
+import 'analysis_device_panel.dart';
 
 enum DeviceStripSlotDensity { strip, collapsed, fullscreen }
 
@@ -260,6 +261,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       'reverb',
       'chorus',
       'phaser',
+      'oscilloscope',
+      'spectrum_analyzer',
+      'loudness_meter',
+      'stereo_imager',
     };
     return knownTypes.contains(widget.device.type);
   }
@@ -873,7 +878,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                       subtitle: _cardSubtitle,
                       attachToolRail: true,
                       attachInputPanel: _inputWidth > 0,
-                      attachOutputPanel: true,
+                      attachOutputPanel: _outputWidth > 0,
                       tabs: _containerTabs,
                       selectedTabIndex: _selectedTabIndex,
                       onTabSelected: _onTabSelected,
@@ -881,15 +886,16 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                       child: _buildDevice(context, bodyHeight),
                     ),
                   ),
-                  SizedBox(
-                    width: _outputWidth,
-                    child: _meterAwareChromePanel(
-                      (bindings) => DeviceStripChrome.outputPanel(
-                        deviceType: widget.device.type,
-                        bindings: bindings,
+                  if (_outputWidth > 0)
+                    SizedBox(
+                      width: _outputWidth,
+                      child: _meterAwareChromePanel(
+                        (bindings) => DeviceStripChrome.outputPanel(
+                          deviceType: widget.device.type,
+                          bindings: bindings,
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
             );
@@ -901,6 +907,23 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
 
   Widget _buildDevice(BuildContext context, double contentHeight) {
     switch (widget.device.type) {
+      case 'oscilloscope':
+      case 'spectrum_analyzer':
+      case 'loudness_meter':
+      case 'stereo_imager':
+        Widget panel(DeviceMeterReading? reading) => DeviceStripViewport(
+              shrinkWrap: true,
+              designWidth: _cardWidth,
+              designHeight: contentHeight,
+              child: AnalysisDevicePanel(
+                  type: widget.device.type, reading: reading),
+            );
+        final listenable = widget.liveMetersListenable;
+        if (listenable == null) return panel(null);
+        return ValueListenableBuilder<Map<String, DeviceMeterReading>>(
+          valueListenable: listenable,
+          builder: (_, meters, __) => panel(meters[widget.device.id]),
+        );
       case 'drum_machine':
         return DrumMachineDevicePanel(
           device: widget.device as DrumMachineDeviceSnapshot,

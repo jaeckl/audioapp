@@ -38,6 +38,7 @@ class DeviceChainScreen extends StatefulWidget {
     this.onAutomationParamSelected,
     this.onAutomateParameter,
     this.onGetParamDescriptors,
+    this.onMeterSubscriptionsChanged,
   });
 
   final ProjectSnapshot snapshot;
@@ -69,6 +70,7 @@ class DeviceChainScreen extends StatefulWidget {
   /// Optional: fetch param descriptors for the generic fallback editor.
   final Future<List<DeviceParamDescriptor>> Function(String deviceType)?
       onGetParamDescriptors;
+  final ValueChanged<List<String>>? onMeterSubscriptionsChanged;
 
   @override
   State<DeviceChainScreen> createState() => _DeviceChainScreenState();
@@ -255,6 +257,8 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
                       onAutomationParamSelected: widget.onAutomationParamSelected,
                       onAutomateParameter: widget.onAutomateParameter,
                       onGetParamDescriptors: widget.onGetParamDescriptors,
+                      onMeterSubscriptionsChanged:
+                          widget.onMeterSubscriptionsChanged,
                     ),
                   ),
                 ),

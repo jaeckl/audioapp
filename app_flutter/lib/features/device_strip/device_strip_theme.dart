@@ -58,6 +58,7 @@ abstract final class DeviceStripTheme {
   static const distortionAccent = Color(0xFFE85D4B);
   static const tremoloAccent = Color(0xFF4ADE80);
   static const drumMachineAccent = Color(0xFF8B7CF6);
+  static const analysisAccent = Color(0xFF57D3C4);
 
   static Color accentForDeviceType(String type) => switch (type) {
         'simple_sampler' => samplerAccent,
@@ -90,6 +91,11 @@ abstract final class DeviceStripTheme {
         'distortion' => distortionAccent,
         'tremolo' => tremoloAccent,
         'drum_machine' => drumMachineAccent,
+        'oscilloscope' ||
+        'spectrum_analyzer' ||
+        'loudness_meter' ||
+        'stereo_imager' =>
+          analysisAccent,
         _ => genericAccent,
       };
 
@@ -124,6 +130,10 @@ abstract final class DeviceStripTheme {
         'distortion' => 'Distortion',
         'tremolo' => 'Tremolo',
         'drum_machine' => 'Drum Machine',
+        'oscilloscope' => 'Oscilloscope',
+        'spectrum_analyzer' => 'Spectrum Analyzer',
+        'loudness_meter' => 'Loudness Meter',
+        'stereo_imager' => 'Stereo Imager',
         _ => type,
       };
 
