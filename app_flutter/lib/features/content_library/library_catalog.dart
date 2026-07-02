@@ -4,6 +4,7 @@ import 'library_category.dart';
 import 'curve_library_store.dart';
 import 'library_manifest.dart';
 import 'library_midi_patterns.dart';
+import 'user_device_preset_store.dart';
 
 sealed class LibraryItem {
   const LibraryItem({
@@ -73,10 +74,14 @@ class LibraryPresetItem extends LibraryItem {
     required super.title,
     required super.subtitle,
     required this.deviceType,
+    this.isUser = false,
+    this.presetJson,
     super.tags,
   });
 
   final String deviceType;
+  final bool isUser;
+  final String? presetJson;
 }
 
 class LibraryWavetableItem extends LibraryItem {
@@ -135,10 +140,7 @@ abstract final class LibraryCatalog {
           .toList();
 
   static List<LibraryPresetItem> presetItems(LibraryManifest? manifest) {
-    if (manifest == null) {
-      return const [];
-    }
-    return manifest.presets
+    final factory = (manifest?.presets ?? const <LibraryPresetManifestEntry>[])
         .map(
           (entry) => LibraryPresetItem(
             id: entry.id,
@@ -149,6 +151,17 @@ abstract final class LibraryCatalog {
           ),
         )
         .toList();
+    return [
+      ...UserDevicePresetStore.cached.map((preset) => LibraryPresetItem(
+          id: preset.id,
+          title: preset.name,
+          subtitle: 'User preset',
+          deviceType: preset.deviceType,
+          isUser: true,
+          presetJson: preset.presetJson,
+          tags: const ['user'])),
+      ...factory,
+    ];
   }
 
   static List<LibraryWavetableItem> wavetableItems() {

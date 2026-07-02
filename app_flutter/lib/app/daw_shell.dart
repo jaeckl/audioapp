@@ -66,6 +66,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   int? _libraryDrumNote;
   String? _automationLinkClipId;
   String? _libraryWavetableDeviceId;
+  String? _libraryPresetDeviceId;
+  String? _libraryPresetDeviceType;
   final GlobalKey<LibraryFlyInPanelState> _libraryPanelKey = GlobalKey();
   final TimelineViewportScrollController _arrangementScrollController =
       TimelineViewportScrollController();
@@ -989,37 +991,14 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   Future<void> _openDeviceLibrary(DeviceSnapshot device) async {
-    if (device.type == 'simple_sampler') {
-      setState(() {
-        _libraryOpen = true;
-        _libraryCategory = LibraryCategory.audioClips;
-        _librarySamplerDeviceId = device.id;
-      });
-      return;
-    }
-    if (device.type == 'subtractive_synth') {
-      setState(() {
-        _libraryOpen = true;
-        _libraryCategory = LibraryCategory.devicePresets;
-        _librarySamplerDeviceId = null;
-      });
-      return;
-    }
-    if (device.type == 'wavetable_synth') {
-      setState(() {
-        _libraryOpen = true;
-        _libraryCategory = LibraryCategory.wavetables;
-        _libraryWavetableDeviceId = device.id;
-      });
-      return;
-    }
-    if (device.type == 'drum_machine') {
-      setState(() {
-        _libraryOpen = true;
-        _libraryCategory = LibraryCategory.audioClips;
-        _librarySamplerDeviceId = null;
-      });
-    }
+    setState(() {
+      _libraryOpen = true;
+      _libraryCategory = LibraryCategory.devicePresets;
+      _libraryPresetDeviceId = device.id;
+      _libraryPresetDeviceType = device.type;
+      _librarySamplerDeviceId = null;
+      _libraryWavetableDeviceId = null;
+    });
   }
 
   void _openDrumPadLibrary(DrumMachineDeviceSnapshot device, int note) {
@@ -1039,6 +1018,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       _libraryWavetableDeviceId = null;
       _libraryDrumMachineId = null;
       _libraryDrumNote = null;
+      _libraryPresetDeviceId = null;
+      _libraryPresetDeviceType = null;
     });
     // Stop any active preview (preset/midi/sampler) so closing the library
     // also halts the audio and the visual playhead ticker — not just the
@@ -1210,6 +1191,34 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   Future<void> _onLibraryPresetTap(LibraryPresetItem item) async {
+    final presetTarget = _libraryPresetDeviceId;
+    if (item.isUser && item.presetJson != null && presetTarget != null) {
+      try {
+        final updated = await widget.bridge.applyDevicePreset(
+          deviceId: presetTarget,
+          presetJson: item.presetJson!,
+        );
+        await _refreshSnapshot(updated);
+        await _libraryPanelKey.currentState?.close();
+      } catch (e) {
+        if (mounted) setState(() => _projectError = e.toString());
+      }
+      return;
+    }
+    if (presetTarget != null && item.deviceType != 'subtractive_synth') {
+      final preset = DevicePresetStore.find(item.deviceType, item.id);
+      if (preset == null) return;
+      for (final entry in preset.params.entries) {
+        await widget.bridge.setDeviceParameter(
+          deviceId: presetTarget,
+          parameterId: entry.key,
+          value: entry.value,
+        );
+      }
+      await _refreshSnapshot(await widget.bridge.getProjectSnapshot());
+      await _libraryPanelKey.currentState?.close();
+      return;
+    }
     final drumMachineId = _libraryDrumMachineId;
     final drumNote = _libraryDrumNote;
     if (drumMachineId != null && drumNote != null) {
@@ -2164,6 +2173,12 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
               snapshot: snapshot,
               initialCategory: _libraryCategory,
               percussionOnly: _libraryDrumMachineId != null,
+              presetDeviceId: _libraryPresetDeviceId,
+              presetDeviceType: _libraryPresetDeviceType,
+              onCaptureDevicePreset: _libraryPresetDeviceId == null
+                  ? null
+                  : () =>
+                      widget.bridge.getDevicePreset(_libraryPresetDeviceId!),
               onClose: _closeLibrary,
               onPreviewAudio: _previewSample,
               onInsertAudio: _onLibraryInsertAudio,

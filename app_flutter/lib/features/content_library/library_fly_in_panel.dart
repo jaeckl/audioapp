@@ -11,6 +11,7 @@ import 'library_header.dart';
 import 'library_manifest.dart';
 import 'library_preset_preview_bar.dart';
 import 'library_theme.dart';
+import 'user_device_preset_store.dart';
 
 /// Slide-in content library: half width in landscape, full width in portrait.
 class LibraryFlyInPanel extends StatefulWidget {
@@ -31,6 +32,9 @@ class LibraryFlyInPanel extends StatefulWidget {
     this.onWavetableTap,
     this.onStopPreview,
     this.percussionOnly = false,
+    this.presetDeviceId,
+    this.presetDeviceType,
+    this.onCaptureDevicePreset,
   });
 
   final ProjectSnapshot snapshot;
@@ -52,6 +56,8 @@ class LibraryFlyInPanel extends StatefulWidget {
   /// (e.g. when the user toggles auto-play/loop off mid-preview).
   final VoidCallback? onStopPreview;
   final bool percussionOnly;
+  final String? presetDeviceId, presetDeviceType;
+  final Future<String> Function()? onCaptureDevicePreset;
 
   @override
   State<LibraryFlyInPanel> createState() => LibraryFlyInPanelState();
@@ -93,6 +99,9 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     _controller.forward();
     _loadManifest();
+    UserDevicePresetStore.load().then((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -253,6 +262,121 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
     }
   }
 
+  LibraryPresetItem? get _selectedUserPreset {
+    if (_selectedItemId == null) return null;
+    return LibraryCatalog.presetItems(_manifest)
+        .where((p) => p.id == _selectedItemId && p.isUser)
+        .firstOrNull;
+  }
+
+  Future<void> _savePreset() async {
+    final capture = widget.onCaptureDevicePreset;
+    final type = widget.presetDeviceType;
+    if (capture == null || type == null) return;
+    final selected = _selectedUserPreset;
+    if (selected != null) {
+      final json = await capture();
+      await UserDevicePresetStore.save(UserDevicePreset(
+          id: selected.id,
+          name: selected.title,
+          deviceType: type,
+          presetJson: json,
+          updatedAt: DateTime.now().millisecondsSinceEpoch));
+      if (mounted) setState(() {});
+      return;
+    }
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+                backgroundColor: LibraryTheme.panelBackground,
+                title: const Text('Save device preset'),
+                content: TextField(
+                    controller: controller,
+                    autofocus: true,
+                    decoration:
+                        const InputDecoration(labelText: 'Preset name')),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel')),
+                  FilledButton(
+                      onPressed: () {
+                        final value = controller.text.trim();
+                        if (value.isNotEmpty) Navigator.pop(context, value);
+                      },
+                      child: const Text('Save'))
+                ]));
+    controller.dispose();
+    if (name == null) return;
+    final json = await capture();
+    final id = 'user-preset:${DateTime.now().microsecondsSinceEpoch}';
+    await UserDevicePresetStore.save(UserDevicePreset(
+        id: id,
+        name: name,
+        deviceType: type,
+        presetJson: json,
+        updatedAt: DateTime.now().millisecondsSinceEpoch));
+    if (mounted) setState(() => _selectedItemId = id);
+  }
+
+  Future<void> _manageUserPreset(LibraryPresetItem preset) async {
+    final action = await showModalBottomSheet<String>(
+        context: context,
+        backgroundColor: LibraryTheme.panelBackground,
+        builder: (context) => SafeArea(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+              ListTile(
+                  leading: const Icon(Icons.edit_outlined),
+                  title: const Text('Rename'),
+                  onTap: () => Navigator.pop(context, 'rename')),
+              ListTile(
+                  leading: const Icon(Icons.save_as_outlined),
+                  title: const Text('Overwrite'),
+                  onTap: () => Navigator.pop(context, 'overwrite')),
+              ListTile(
+                  leading:
+                      const Icon(Icons.delete_outline, color: Colors.redAccent),
+                  title: const Text('Delete',
+                      style: TextStyle(color: Colors.redAccent)),
+                  onTap: () => Navigator.pop(context, 'delete')),
+            ])));
+    if (action == 'delete') {
+      await UserDevicePresetStore.delete(preset.id);
+      if (mounted)
+        setState(() {
+          if (_selectedItemId == preset.id) _selectedItemId = null;
+        });
+    } else if (action == 'overwrite') {
+      setState(() => _selectedItemId = preset.id);
+      await _savePreset();
+    } else if (action == 'rename') {
+      final controller = TextEditingController(text: preset.title);
+      final name = await showDialog<String>(
+          context: context,
+          builder: (context) => AlertDialog(
+                  backgroundColor: LibraryTheme.panelBackground,
+                  title: const Text('Rename preset'),
+                  content: TextField(controller: controller, autofocus: true),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancel')),
+                    FilledButton(
+                        onPressed: () {
+                          final v = controller.text.trim();
+                          if (v.isNotEmpty) Navigator.pop(context, v);
+                        },
+                        child: const Text('Rename'))
+                  ]));
+      controller.dispose();
+      if (name != null) {
+        await UserDevicePresetStore.rename(preset.id, name);
+        if (mounted) setState(() {});
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -298,6 +422,18 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
                         selectedItemId: _selectedItemId,
                         onInsert: _selectedItemId != null ? _onInsert : null,
                         accent: accent,
+                        title: widget.presetDeviceType == null
+                            ? 'Library'
+                            : 'Presets',
+                        onSavePreset:
+                            _category == LibraryCategory.devicePresets &&
+                                    widget.onCaptureDevicePreset != null
+                                ? _savePreset
+                                : null,
+                        updatePreset: _selectedUserPreset != null,
+                        actionLabel: _category == LibraryCategory.devicePresets
+                            ? 'Load'
+                            : 'Insert',
                       ),
                       Expanded(
                         child: Row(
@@ -337,6 +473,8 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
                                 onWavetableTap: widget.onWavetableTap,
                                 autoPlayOnSelect: _presetPreviewLoopEnabled,
                                 percussionOnly: widget.percussionOnly,
+                                presetDeviceType: widget.presetDeviceType,
+                                onUserPresetLongPress: _manageUserPreset,
                               ),
                             ),
                           ],

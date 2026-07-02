@@ -8,12 +8,20 @@ class LibraryHeader extends StatelessWidget {
     this.selectedItemId,
     this.onInsert,
     required this.accent,
+    this.title = 'Library',
+    this.onSavePreset,
+    this.updatePreset = false,
+    this.actionLabel = 'Insert',
   });
 
   final Future<void> Function() onClose;
   final String? selectedItemId;
   final VoidCallback? onInsert;
   final Color accent;
+  final String title;
+  final VoidCallback? onSavePreset;
+  final bool updatePreset;
+  final String actionLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -23,17 +31,25 @@ class LibraryHeader extends StatelessWidget {
       child: Row(
         children: [
           Text(
-            'Library',
+            title,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
                 ),
           ),
           const Spacer(),
+          if (onSavePreset != null)
+            IconButton(
+              tooltip: updatePreset ? 'Update preset' : 'Save device preset',
+              onPressed: onSavePreset,
+              color: accent,
+              icon: Icon(
+                  updatePreset ? Icons.save_as_outlined : Icons.save_outlined),
+            ),
           FilledButton(
             onPressed: hasSelection ? onInsert : null,
             child: Text(
-              'Insert',
+              actionLabel,
               style: TextStyle(
                 color: hasSelection ? Colors.white : Colors.white38,
               ),

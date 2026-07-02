@@ -134,6 +134,8 @@ public:
     std::string addDeviceToChain(const std::string& chainId, const std::string& deviceType,
                                  int insertIndex = -1);
     bool removeDeviceFromChain(const std::string& chainId, const std::string& deviceId);
+    std::string getDevicePresetJson(const std::string& deviceId) const;
+    bool applyDevicePresetJson(const std::string& deviceId, const std::string& presetJson);
     bool setDrumPadParameter(const std::string& drumMachineId, int note,
                              const std::string& parameterId, float value);
     bool setDeviceParameter(const std::string& deviceId,

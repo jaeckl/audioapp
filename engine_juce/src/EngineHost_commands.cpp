@@ -129,6 +129,14 @@ bool EngineHost::removeDeviceFromChain(const std::string& chainId, const std::st
     return project_ != nullptr && project_->removeDeviceFromChain(chainId, deviceId);
 }
 
+std::string EngineHost::getDevicePresetJson(const std::string& deviceId) const {
+    return project_ != nullptr ? project_->getDevicePresetJson(deviceId) : std::string{};
+}
+
+bool EngineHost::applyDevicePresetJson(const std::string& deviceId, const std::string& presetJson) {
+    return project_ != nullptr && project_->applyDevicePresetJson(deviceId, presetJson);
+}
+
 bool EngineHost::setDrumPadParameter(const std::string& drumMachineId, int note,
                                      const std::string& parameterId, float value) {
     return project_ != nullptr && project_->setDrumPadParameter(drumMachineId, note, parameterId, value);
@@ -1227,6 +1235,22 @@ void EngineHost::registerAllCommands() {
         const auto deviceId = ctx.args["deviceId"].toString().toStdString();
         if (!ctx.engine.removeDeviceFromChain(chainId, deviceId))
             return commands::errorResult("chain_device_not_found");
+        return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
+    });
+
+    reg.registerCommand("getDevicePreset", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto json = ctx.engine.getDevicePresetJson(ctx.args["deviceId"].toString().toStdString());
+        if (json.empty()) return commands::errorResult("device_not_found");
+        auto* data = new juce::DynamicObject();
+        data->setProperty("presetJson", juce::String(json));
+        return commands::okWithVar(juce::var(data));
+    });
+
+    reg.registerCommand("applyDevicePreset", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        const auto json = ctx.args["presetJson"].toString().toStdString();
+        if (!ctx.engine.applyDevicePresetJson(deviceId, json))
+            return commands::errorResult("invalid_device_preset");
         return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
     });
 

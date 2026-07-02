@@ -34,6 +34,7 @@
 #include <cmath>
 #include <cstring>
 #include <cstdlib>
+#include <functional>
 #include <unordered_map>
 #include <vector>
 
@@ -275,6 +276,72 @@ bool ProjectEngine::removeDeviceFromChain(const std::string& chainId,
     devices.erase(it);
     automationClipStore_.unlinkForDevice(deviceId);
     modulationGraph_.removeModulationForDevice(deviceId);
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
+std::string ProjectEngine::getDevicePresetJson(const std::string& deviceId) const {
+    const juce::ScopedReadLock lock(mutex_);
+    std::function<const DeviceSlot*(const DeviceSlot&)> find = [&](const DeviceSlot& slot) -> const DeviceSlot* {
+        if (slot.id == deviceId) return &slot;
+        if (slot.config.typeId == device_types::kChain) {
+            for (const auto& child : std::get<ChainModel>(slot.config.instance).devices) {
+                if (child) if (const auto* found = find(*child)) return found;
+            }
+        } else if (slot.config.typeId == device_types::kDrumMachine) {
+            for (const auto& pad : std::get<DrumMachineModel>(slot.config.instance).pads)
+                for (const auto& child : pad.devices)
+                    if (child) if (const auto* found = find(*child)) return found;
+        }
+        return nullptr;
+    };
+    for (const auto& track : trackRepo_.tracks())
+        for (const auto& slot : track.devices)
+            if (const auto* found = find(slot)) return deviceSlotToVar(*found, deviceRegistry_);
+    return {};
+}
+
+bool ProjectEngine::applyDevicePresetJson(const std::string& deviceId,
+                                          const std::string& presetJson) {
+    const juce::ScopedWriteLock lock(mutex_);
+    DeviceSlot* target = findDeviceLocked(deviceId);
+    if (target == nullptr) return false;
+    DeviceSlot loaded = deviceVarToSlot(presetJson, deviceRegistry_);
+    if (loaded.id.empty() || loaded.config.typeId != target->config.typeId) return false;
+
+    std::vector<std::string> removedChildIds;
+    std::function<void(const DeviceSlot&)> collectChildren = [&](const DeviceSlot& slot) {
+        if (slot.id != deviceId) removedChildIds.push_back(slot.id);
+        if (slot.config.typeId == device_types::kChain) {
+            for (const auto& child : std::get<ChainModel>(slot.config.instance).devices)
+                if (child) collectChildren(*child);
+        } else if (slot.config.typeId == device_types::kDrumMachine) {
+            for (const auto& pad : std::get<DrumMachineModel>(slot.config.instance).pads)
+                for (const auto& child : pad.devices) if (child) collectChildren(*child);
+        }
+    };
+    collectChildren(*target);
+
+    std::function<void(DeviceSlot&, bool)> renewIds = [&](DeviceSlot& slot, bool root) {
+        slot.id = root ? deviceId : trackRepo_.allocateDeviceId();
+        if (slot.config.typeId == device_types::kChain) {
+            for (auto& child : std::get<ChainModel>(slot.config.instance).devices)
+                if (child) renewIds(*child, false);
+        } else if (slot.config.typeId == device_types::kDrumMachine) {
+            for (auto& pad : std::get<DrumMachineModel>(slot.config.instance).pads)
+                for (auto& child : pad.devices) if (child) renewIds(*child, false);
+        }
+    };
+    const bool bypassed = target->config.bypassed;
+    renewIds(loaded, true);
+    loaded.config.bypassed = bypassed;
+    *target = std::move(loaded);
+    for (const auto& childId : removedChildIds) {
+        automationClipStore_.unlinkForDevice(childId);
+        modulationGraph_.removeModulationForDevice(childId);
+    }
+    liveMixer_.allNotesOff();
+    syncProjectTreeLocked();
     rebuildTrackPlaybackLocked();
     return true;
 }

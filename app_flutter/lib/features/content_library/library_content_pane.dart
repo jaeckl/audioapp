@@ -10,6 +10,7 @@ import 'library_preview_widget.dart';
 import 'library_tag_filter_bar.dart';
 import 'library_tags.dart';
 import 'library_theme.dart';
+import 'user_device_preset_store.dart';
 
 class LibraryContentPane extends StatefulWidget {
   const LibraryContentPane({
@@ -30,6 +31,8 @@ class LibraryContentPane extends StatefulWidget {
     this.autoPlayOnSelect = true,
     this.presetManifest,
     this.percussionOnly = false,
+    this.presetDeviceType,
+    this.onUserPresetLongPress,
   });
 
   final LibraryCategory category;
@@ -54,6 +57,8 @@ class LibraryContentPane extends StatefulWidget {
   /// Optional manifest override (tests). When null, loads from assets.
   final LibraryManifest? presetManifest;
   final bool percussionOnly;
+  final String? presetDeviceType;
+  final ValueChanged<LibraryPresetItem>? onUserPresetLongPress;
 
   @override
   State<LibraryContentPane> createState() => _LibraryContentPaneState();
@@ -71,6 +76,12 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
     super.initState();
     _loadManifest();
     _loadCurves();
+    _loadUserPresets();
+  }
+
+  Future<void> _loadUserPresets() async {
+    await UserDevicePresetStore.load();
+    if (mounted) setState(() {});
   }
 
   @override
@@ -138,11 +149,11 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
     );
     if (widget.category == LibraryCategory.devicePresets) {
       var filtered = all;
-      if (_selectedDeviceType != null) {
+      final typeFilter = widget.presetDeviceType ?? _selectedDeviceType;
+      if (typeFilter != null) {
         filtered = filtered
             .where((item) =>
-                item is LibraryPresetItem &&
-                item.deviceType == _selectedDeviceType)
+                item is LibraryPresetItem && item.deviceType == typeFilter)
             .toList();
       }
       if (widget.percussionOnly) {
@@ -241,7 +252,8 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
             accent: accent,
           ),
         if (widget.category == LibraryCategory.devicePresets &&
-            allPresetItems.isNotEmpty)
+            allPresetItems.isNotEmpty &&
+            widget.presetDeviceType == null)
           DevicePresetFilterList(
             selectedType: _selectedDeviceType,
             onFilterChanged: (type) {
@@ -288,6 +300,9 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
           accent: accent,
           isSelected: isSelected,
           onTap: () => _onItemTap(item),
+          onLongPress: item is LibraryPresetItem && item.isUser
+              ? () => widget.onUserPresetLongPress?.call(item)
+              : null,
           onPreviewAudio: widget.onPreviewAudio,
           onInsertAudio: widget.onInsertAudio,
           onMidiClipTap: widget.onMidiClipTap,
@@ -429,12 +444,14 @@ class _LibraryItemTile extends StatelessWidget {
     this.onPresetPreviewTap,
     this.onWavetableTap,
     this.autoPlayOnSelect = true,
+    this.onLongPress,
   });
 
   final LibraryItem item;
   final Color accent;
   final bool isSelected;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final ValueChanged<SampleLibraryEntrySnapshot> onPreviewAudio;
   final ValueChanged<SampleLibraryEntrySnapshot> onInsertAudio;
   final void Function(LibraryMidiItem item)? onMidiClipTap;
@@ -456,6 +473,7 @@ class _LibraryItemTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.all(12),

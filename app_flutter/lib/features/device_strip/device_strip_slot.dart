@@ -834,17 +834,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                     accentColor: DeviceStripTheme.accentForDeviceType(
                         widget.device.type),
                     bypassed: widget.device.bypassed,
-                    showLibrary: widget.device.type == 'simple_sampler' ||
-                        widget.device.type == 'subtractive_synth' ||
-                        widget.device.type == 'bass_synth' ||
-                        widget.device.type == 'phase_mod_synth' ||
-                        widget.device.type == 'wavetable_synth',
-                    libraryTooltip: widget.device.type == 'subtractive_synth' ||
-                            widget.device.type == 'bass_synth' ||
-                            widget.device.type == 'phase_mod_synth' ||
-                            widget.device.type == 'wavetable_synth'
-                        ? 'Open wavetable library'
-                        : 'Open sample library',
+                    showLibrary: widget.onOpenLibrary != null,
+                    libraryTooltip: 'Device presets',
                     onBypassToggle: widget.onBypassToggle ?? () {},
                     onDelete: widget.onDeleteRequest,
                     onLibrary: widget.onOpenLibrary,
