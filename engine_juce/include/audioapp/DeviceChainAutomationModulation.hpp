@@ -37,6 +37,7 @@ void applyModulation(BitcrusherParamsPlayback&, float, uint16_t) noexcept;
 void applyModulation(DistortionParamsPlayback&, float, uint16_t) noexcept;
 void applyModulation(TremoloParamsPlayback&, float, uint16_t) noexcept;
 inline void applyModulation(DrumMachineParams&, float, uint16_t) noexcept {}
+inline void applyModulation(ChainParams&, float, uint16_t) noexcept {}
 
 void applyDspModulationAtFrame(DeviceVariantParams& params,
                                DeviceNodeKind kind,

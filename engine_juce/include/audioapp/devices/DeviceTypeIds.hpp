@@ -37,5 +37,6 @@ inline constexpr const char* kOscilloscope = "oscilloscope";
 inline constexpr const char* kSpectrumAnalyzer = "spectrum_analyzer";
 inline constexpr const char* kLoudnessMeter = "loudness_meter";
 inline constexpr const char* kStereoImager = "stereo_imager";
+inline constexpr const char* kChain = "device_chain";
 
 } // namespace audioapp::device_types

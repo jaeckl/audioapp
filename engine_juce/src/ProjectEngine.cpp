@@ -1835,6 +1835,22 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
             context.wavetableBank = wavetableBank_;
             context.deviceRegistry = &deviceRegistry_;
             deviceRegistry_.buildPlaybackNode(device, context, node);
+            node.automationTargetIndex = static_cast<uint16_t>(snap.deviceCount);
+            if (node.kind == DeviceNodeKind::DrumMachine) {
+                auto playback = std::get<DrumMachineParams>(node.params).playback;
+                if (playback != nullptr) {
+                    auto mutablePlayback = std::const_pointer_cast<DrumMachinePlayback>(playback);
+                    for (int note = 0; note < 128; ++note) {
+                        auto& pad = mutablePlayback->pads[note];
+                        for (int child = 0; child < pad.deviceCount; ++child) {
+                            pad.devices[child].automationTargetIndex = static_cast<uint16_t>(
+                                0x8000u | (static_cast<uint16_t>(snap.deviceCount) << 9u) |
+                                (static_cast<uint16_t>(note) << 2u) |
+                                static_cast<uint16_t>(child));
+                        }
+                    }
+                }
+            }
             if ((isDynamicsDeviceNodeKind(node.kind) || isAnalysisDeviceNodeKind(node.kind)) && deviceMeterSlotCount_ < kMaxDeviceMeters) {
                 node.meterSlot = static_cast<int8_t>(deviceMeterSlotCount_);
                 deviceMeterIds_[deviceMeterSlotCount_] = device.id;
@@ -1934,23 +1950,44 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
         for (const auto& clip : automationClipStore_.clips()) {
             if (snap.automationClipCount >= 16) break;
             if (clip.deviceId.empty()) continue;
-            int di = -1;
+        int di = -1;
+        uint16_t targetIndex = 0;
+        DeviceNodeKind targetKind = DeviceNodeKind::Unknown;
+        const IDeviceType* targetType = nullptr;
         for (int i = 0; i < snap.deviceCount; ++i) {
             if (snap.devices[i].deviceId == clip.deviceId) {
                 di = i;
+                targetIndex = static_cast<uint16_t>(i);
+                targetKind = snap.devices[i].kind;
+                targetType = deviceRegistry_.findByKind(targetKind);
                 break;
+            }
+            if (snap.devices[i].kind == DeviceNodeKind::DrumMachine) {
+                const auto playback = std::get<DrumMachineParams>(snap.devices[i].params).playback;
+                if (playback == nullptr) continue;
+                for (int note = 0; note < 128 && di < 0; ++note) {
+                    const auto& pad = playback->pads[note];
+                    for (int child = 0; child < pad.deviceCount; ++child) {
+                        const auto& childNode = pad.devices[child];
+                        if (childNode.deviceId != clip.deviceId) continue;
+                        di = i;
+                        targetIndex = childNode.automationTargetIndex;
+                        targetKind = childNode.kind;
+                        targetType = deviceRegistry_.findByKind(targetKind);
+                        break;
+                    }
+                }
             }
         }
         if (di < 0) continue; // target device lives on another track
         AutomationClipPlayback pb{};
         if (!automationClipPlaybackFromClip(clip, pb)) continue;
-        pb.deviceIndex = static_cast<uint16_t>(di);
+        pb.deviceIndex = targetIndex;
         {
-            const auto* type = deviceRegistry_.findByKind(snap.devices[di].kind);
             const uint16_t rawPerKindId =
-                type ? type->paramIdFromString(clip.paramId) : static_cast<uint16_t>(-1);
+                targetType ? targetType->paramIdFromString(clip.paramId) : static_cast<uint16_t>(-1);
             pb.localParamId = encodeAutomationParamId(
-                clip.paramId.c_str(), snap.devices[di].kind, rawPerKindId);
+                clip.paramId.c_str(), targetKind, rawPerKindId);
         }
         if (pb.localParamId == 0 && clip.paramId != "gain") {
             continue;

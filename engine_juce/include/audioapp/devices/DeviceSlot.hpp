@@ -32,6 +32,7 @@
 #include "audioapp/devices/instances/DrumMachineModel.hpp"
 #include "audioapp/RoutingDevices.hpp"
 #include "audioapp/MidiDelay.hpp"
+#include "audioapp/devices/instances/ChainModel.hpp"
 
 namespace audioapp {
 
@@ -65,7 +66,8 @@ using DeviceInstance = std::variant<
     ResonatorBankModel,
     RoutingModel,
     MidiDelayModel,
-    DrumMachineModel
+    DrumMachineModel,
+    ChainModel
 >;
 
 /// Unified device config wrapping params, panels, and bypass.

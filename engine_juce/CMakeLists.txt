@@ -86,10 +86,13 @@ add_library(audioapp_engine STATIC
   src/devices/processors/DistortionProcessor.cpp
   src/devices/processors/TremoloProcessor.cpp
   src/devices/processors/AnalysisProcessor.cpp
+  src/devices/processors/ChainProcessor.cpp
   src/devices/DeviceRegistry.cpp
   src/devices/DrumMachineModel.cpp
+  src/devices/ChainModel.cpp
   src/devices/DrumMachineDeviceType.cpp
   src/devices/AnalysisDeviceType.cpp
+  src/devices/ChainDeviceType.cpp
   src/devices/IDeviceType.cpp
   src/devices/OscillatorDeviceType.cpp
   src/devices/SamplerDeviceType.cpp

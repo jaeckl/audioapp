@@ -27,6 +27,7 @@
 namespace audioapp {
 
 struct DrumMachinePlayback;
+struct ChainPlayback;
 
 static constexpr int kMaxInstrumentRegions = 32;
 
@@ -88,6 +89,7 @@ enum class DeviceNodeKind : uint8_t {
     SpectrumAnalyzer,
     LoudnessMeter,
     StereoImager,
+    Chain,
 };
 
 // --- Per-device DSP-only parameter structs ---
@@ -179,6 +181,7 @@ struct TrackGainParams {};
 struct DrumMachineParams {
     std::shared_ptr<const DrumMachinePlayback> playback;
 };
+struct ChainParams { std::shared_ptr<const ChainPlayback> playback; };
 
 using DeviceVariantParams = std::variant<
     OscillatorParams,
@@ -210,6 +213,7 @@ using DeviceVariantParams = std::variant<
     RoutingParams,
     MidiDelayParams,
     DrumMachineParams
+    ,ChainParams
 >;
 
 /// Per-track device chain node (built on control thread, read on audio thread).
@@ -222,8 +226,16 @@ struct DeviceNodePlayback {
     float outputMix = 1.0f;
     float outputWidth = 1.0f;
     int8_t meterSlot = -1;
+    uint16_t automationTargetIndex = 0;
     InstrumentVoicePolicy voicePolicy{};
     DeviceVariantParams params;
+};
+
+struct ChainPlayback {
+    float mix = 1.0f;
+    float gain = 1.0f;
+    int deviceCount = 0;
+    DeviceNodePlayback devices[8]{};
 };
 
 struct DrumPadPlayback {

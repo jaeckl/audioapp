@@ -148,6 +148,7 @@ class DeviceStripMetrics {
           : 0;
 
   static double outputPanelWidthFor(String deviceType) {
+    if (_analysisTypes.contains(deviceType)) return stereoOutputPanelWidth;
     if (_routingTypes.contains(deviceType)) return routingOutputPanelWidth;
     if (_drumTypes.contains(deviceType)) return drumMonoOutputPanelWidth;
     if (_dynamicsTypes.contains(deviceType)) return dynamicsOutputPanelWidth;

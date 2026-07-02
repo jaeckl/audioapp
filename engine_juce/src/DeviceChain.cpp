@@ -120,6 +120,7 @@ DeviceNodeKind deviceNodeKindFromTypeId(const std::string& typeId) noexcept {
     if (typeId == kSpectrumAnalyzer) return DeviceNodeKind::SpectrumAnalyzer;
     if (typeId == kLoudnessMeter)    return DeviceNodeKind::LoudnessMeter;
     if (typeId == kStereoImager)     return DeviceNodeKind::StereoImager;
+    if (typeId == kChain)            return DeviceNodeKind::Chain;
     return DeviceNodeKind::Unknown;
 }
 

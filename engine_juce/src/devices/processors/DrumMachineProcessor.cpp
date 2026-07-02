@@ -89,6 +89,22 @@ void DrumMachineProcessor::process(AudioBlock& block, ProcessContext& ctx) noexc
         sub.noteCount = routedCount;
         sub.wavetableBank = ctx.wavetableBank;
         sub.suppressInstruments = ctx.suppressInstruments;
+        AutomationClipPlayback padAutomation[16]{};
+        int padAutomationCount = 0;
+        if (ctx.automationClips != nullptr) {
+            for (int a = 0; a < ctx.automationClipCount && padAutomationCount < 16; ++a) {
+                for (int child = 0; child < pad.deviceCount; ++child) {
+                    if (ctx.automationClips[a].deviceIndex !=
+                        pad.devices[child].automationTargetIndex) continue;
+                    padAutomation[padAutomationCount] = ctx.automationClips[a];
+                    padAutomation[padAutomationCount].deviceIndex = static_cast<uint16_t>(child);
+                    ++padAutomationCount;
+                    break;
+                }
+            }
+        }
+        sub.automationClips = padAutomationCount > 0 ? padAutomation : nullptr;
+        sub.automationClipCount = padAutomationCount;
         DeviceChainOrchestrator::processChain(sub);
 
         runtime.tailActive = false;

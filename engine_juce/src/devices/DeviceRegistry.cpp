@@ -25,6 +25,7 @@
 #include "audioapp/devices/WavetableSynthDeviceType.hpp"
 #include "audioapp/devices/DrumMachineDeviceType.hpp"
 #include "audioapp/devices/AnalysisDeviceType.hpp"
+#include "audioapp/devices/ChainDeviceType.hpp"
 #include "audioapp/effects/BitcrusherDeviceType.hpp"
 #include "audioapp/effects/DistortionDeviceType.hpp"
 #include "audioapp/effects/TremoloDeviceType.hpp"
@@ -173,6 +174,7 @@ DeviceRegistry DeviceRegistry::createBuiltIn() {
     registry.registerType(std::make_unique<AnalysisDeviceType>(device_types::kSpectrumAnalyzer, DeviceNodeKind::SpectrumAnalyzer));
     registry.registerType(std::make_unique<AnalysisDeviceType>(device_types::kLoudnessMeter, DeviceNodeKind::LoudnessMeter));
     registry.registerType(std::make_unique<AnalysisDeviceType>(device_types::kStereoImager, DeviceNodeKind::StereoImager));
+    registry.registerType(std::make_unique<ChainDeviceType>());
 
     // Register all param descriptors from each device type into the param registry
     for (const auto& type : registry.types_) {
