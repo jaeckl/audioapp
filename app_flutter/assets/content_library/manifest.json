@@ -1,6 +1,12 @@
 {
   "version": 1,
   "presets": [
+    {"id":"preset:grain-glass-choir","title":"Glass Choir","subtitle":"Wide frozen voices","deviceType":"granular_formant_synth","tags":["granular","choir","pad","factory"]},
+    {"id":"preset:grain-liquid-air","title":"Liquid Air","subtitle":"Breathy drifting cloud","deviceType":"granular_formant_synth","tags":["granular","air","pad","factory"]},
+    {"id":"preset:grain-talking-bass","title":"Talking Bass","subtitle":"Low vowel motion","deviceType":"granular_formant_synth","tags":["granular","bass","vocal","factory"]},
+    {"id":"preset:grain-metal-bloom","title":"Metal Bloom","subtitle":"Slow metallic expansion","deviceType":"granular_formant_synth","tags":["granular","metallic","texture","factory"]},
+    {"id":"preset:grain-vox-motion","title":"Vox Motion","subtitle":"Rhythmic vocal grains","deviceType":"granular_formant_synth","tags":["granular","vocal","motion","factory"]},
+    {"id":"preset:grain-sine-freeze","title":"Sine Freeze","subtitle":"Soft suspended harmonic","deviceType":"granular_formant_synth","tags":["granular","soft","pad","factory"]},
     {
       "id": "preset:sampler-warm",
       "title": "Warm sampler",

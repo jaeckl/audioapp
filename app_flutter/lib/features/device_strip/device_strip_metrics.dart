@@ -20,6 +20,7 @@ import 'mood_fx_panels.dart';
 import 'drum_machine_device_panel.dart';
 import 'analysis_device_panel.dart';
 import 'chain_device_panel.dart';
+import 'granular_device_panel.dart';
 
 /// Device strip layout constants.
 class DeviceStripMetrics {
@@ -196,6 +197,7 @@ class DeviceStripMetrics {
       'phase_mod_synth' => PhaseModSynthDevicePanel.designWidth,
       'drum_machine' => DrumMachineDevicePanel.designWidth,
       'device_chain' => ChainDevicePanel.designWidth,
+      'granular_formant_synth' => GranularDevicePanel.designWidth,
       'oscilloscope' ||
       'spectrum_analyzer' ||
       'loudness_meter' ||

@@ -457,6 +457,96 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                 continue;
             }
 
+            if (inst.kind == LiveInstrumentKind::Granular) {
+                const double elapsed =
+                    static_cast<double>(sampleIndex - voice.startSample) / sampleRate;
+                if (elapsed < 0.0) continue;
+                auto params = inst.granular;
+                DeviceVariantParams variant = params;
+                applyPerNoteDspModulation(variant, DeviceNodeKind::Granular,
+                                          inst.deviceIndex, elapsed, noteKey,
+                                          evalCtx, modCtx);
+                params = std::get<GranularParams>(variant);
+                if (params.pcm == nullptr || params.frameCount < 4) {
+                    voice.active.store(0, std::memory_order_release);
+                    continue;
+                }
+                double noteDuration = 3600.0;
+                if (voice.releasing && voice.releaseSample >= voice.startSample) {
+                    noteDuration = static_cast<double>(voice.releaseSample - voice.startSample) /
+                                   sampleRate;
+                }
+                const float attackSec = .002f + params.attack * params.attack * 1.5f;
+                const float releaseSec = .015f + params.release * params.release * 2.0f;
+                const float envelope = elapsed < attackSec
+                    ? static_cast<float>(elapsed / attackSec)
+                    : (elapsed <= noteDuration ? 1.0f
+                       : std::max(0.0f, 1.0f - static_cast<float>((elapsed-noteDuration)/releaseSec)));
+                if (envelope <= 0.0f) {
+                    if (voice.releasing) voice.active.store(0, std::memory_order_release);
+                    continue;
+                }
+                constexpr float pi = 3.14159265358979323846f;
+                constexpr float vowels[6][3] = {
+                    {800,1150,2900},{400,1700,2600},{350,2000,2800},
+                    {450,800,2830},{325,700,2530},{500,1200,2400}};
+                constexpr float formPoints[6][2] = {
+                    {.5f,.05f},{.88f,.25f},{.88f,.75f},{.12f,.25f},{.12f,.75f},{.5f,.95f}};
+                float blendedFormants[3]{};
+                float formWeightSum=0.0f;
+                for(int form=0;form<6;++form){const float dx=params.formX-formPoints[form][0];const float dy=params.formY-formPoints[form][1];const float weight=std::exp(-(dx*dx+dy*dy)/.075f);formWeightSum+=weight;for(int band=0;band<3;++band)blendedFormants[band]+=vowels[form][band]*weight;}
+                for(auto& frequency:blendedFormants)frequency/=std::max(formWeightSum,.0001f);
+                const double regionStart = std::clamp(static_cast<double>(params.regionStart),0.0,.98);
+                const double regionEnd = std::clamp(static_cast<double>(params.regionEnd),regionStart+.02,1.0);
+                const double regionLength = regionEnd-regionStart;
+                const float density = 5.0f+params.density*39.0f;
+                const float grainSec = .012f+params.size*.18f;
+                const double ratio = std::pow(2.0,((voice.pitch-60)+(params.pitch-.5f)*48.0f)/12.0)
+                    * params.pcmRate/sampleRate;
+                float source = 0.0f;
+                int activeGrains = 0;
+                const auto newestGrain=static_cast<int64_t>(std::floor(elapsed*density));
+                for (int grain=0;grain<8;++grain) {
+                    const int64_t number=newestGrain-grain;
+                    if(number<0) continue;
+                    const double spawnTime=number/density;
+                    const double age=elapsed-spawnTime;
+                    if(age<0.0||age>=grainSec) continue;
+                    const double phase=age/grainSec;
+                    const double random=std::sin((number+voice.pitch*17.0)*12.9898);
+                    const double scan=regionStart+regionLength*std::fmod(
+                        params.position+spawnTime*(params.scan-.5f)*.35+4.0,1.0);
+                    const double start=std::clamp(scan+random*params.spray*regionLength*.14,
+                                                  regionStart,regionEnd)*params.frameCount;
+                    const double first=regionStart*(params.frameCount-1);
+                    const double span=std::max(2.0,regionLength*(params.frameCount-1));
+                    double pos=first+std::fmod(std::max(0.0,start+phase*grainSec*sampleRate*ratio-first),span);
+                    const int index=std::min(static_cast<int>(pos),params.frameCount-2);
+                    const float fraction=static_cast<float>(pos-index);
+                    const float sample=params.pcm[index]*(1.0f-fraction)+params.pcm[index+1]*fraction;
+                    source+=sample*(.5f-.5f*std::cos(static_cast<float>(phase)*2.0f*pi));
+                    ++activeGrains;
+                }
+                if(activeGrains>0) source*=.7f/std::sqrt(static_cast<float>(activeGrains));
+                float shaped=0.0f;
+                const float shift=std::pow(2.0f,(params.formant-.5f)*2.0f);
+                for (int band=0;band<3;++band) {
+                    const float hz=std::min(blendedFormants[band]*shift,static_cast<float>(sampleRate)*.42f);
+                    const float radius=.94f+params.character*.045f;
+                    const float coefficient=2.0f*radius*std::cos(2.0f*pi*hz/static_cast<float>(sampleRate));
+                    const float value=(1.0f-radius)*source+coefficient*voice.granularZ1[band]
+                        -radius*radius*voice.granularZ2[band];
+                    voice.granularZ2[band]=voice.granularZ1[band];
+                    voice.granularZ1[band]=value;
+                    shaped+=value;
+                }
+                const float velocity=std::clamp(voice.velocity/127.0f,0.0f,1.0f);
+                const float formWet=std::sqrt(std::clamp(params.character,0.0f,1.0f));
+                mix+=(source*(1-formWet)+shaped*formWet*2.1f)
+                    * envelope*velocity*perNoteGain*.36f;
+                continue;
+            }
+
             const double elapsedSec =
                 static_cast<double>(sampleIndex - voice.startSample) / sampleRate;
             if (elapsedSec < 0.0) {

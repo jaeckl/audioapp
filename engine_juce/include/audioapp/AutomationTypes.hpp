@@ -412,6 +412,7 @@ enum class ParamKind : uint16_t {
     ResonatorBank    = 23,
     Routing          = 24,
     Chain            = 25,
+    Granular         = 26,
 };
 
 constexpr uint16_t kParamKindShift      = 11;

@@ -24,6 +24,7 @@
 #include "audioapp/devices/MidiDelayDeviceType.hpp"
 #include "audioapp/devices/WavetableSynthDeviceType.hpp"
 #include "audioapp/devices/DrumMachineDeviceType.hpp"
+#include "audioapp/devices/GranularDeviceType.hpp"
 #include "audioapp/devices/AnalysisDeviceType.hpp"
 #include "audioapp/devices/ChainDeviceType.hpp"
 #include "audioapp/effects/BitcrusherDeviceType.hpp"
@@ -142,6 +143,7 @@ DeviceRegistry DeviceRegistry::createBuiltIn() {
     DeviceRegistry registry;
     registry.registerType(std::make_unique<OscillatorDeviceType>());
     registry.registerType(std::make_unique<DrumMachineDeviceType>());
+    registry.registerType(std::make_unique<GranularDeviceType>());
     registry.registerType(std::make_unique<SamplerDeviceType>());
     registry.registerType(std::make_unique<TrackGainDeviceType>());
     registry.registerType(std::make_unique<SubtractiveSynthDeviceType>());

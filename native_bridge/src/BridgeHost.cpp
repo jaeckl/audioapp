@@ -72,6 +72,17 @@ std::string BridgeHost::importWavSample(const std::string& displayName,
     return result.toJson();
 }
 
+std::string BridgeHost::registerDemoWavSample(const std::string& id,
+                                              const std::string& displayName,
+                                              const std::vector<uint8_t>& wavBytes) {
+    if (!engine().registerDemoWavSample(id, displayName, wavBytes)) {
+        return buildBridgeError("demo_sample_failed");
+    }
+    auto args = juce::JSON::parse(juce::String("{}"));
+    auto result = engine().commandRegistry().execute("getProjectSnapshot", {engine(), args});
+    return result.toJson();
+}
+
 bool BridgeHost::loadWavetableAsset(const std::string& name,
                                     const std::vector<uint8_t>& wavBytes) {
     BRIDGE_LOG("loadWavetableAsset name=%s bytes=%zu", name.c_str(), wavBytes.size());

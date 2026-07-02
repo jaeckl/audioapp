@@ -715,6 +715,16 @@ std::string EngineHost::importWavSample(const std::string& displayName,
     return id;
 }
 
+bool EngineHost::registerDemoWavSample(const std::string& id,
+                                       const std::string& displayName,
+                                       const std::vector<uint8_t>& wavBytes) {
+    ensureSampleBankReady();
+    if (id.empty() || wavBytes.empty()) return false;
+    return sampleBank_.loadFromWavBytes(id,
+        displayName.empty() ? "Demo sample" : displayName,
+        "demo", wavBytes, 120);
+}
+
 std::string EngineHost::importWavetable(const std::string& name,
                                         const std::vector<uint8_t>& wavBytes) {
     AUDIOAPP_LOG("importWavetable name=%s bytes=%zu", name.c_str(), wavBytes.size());

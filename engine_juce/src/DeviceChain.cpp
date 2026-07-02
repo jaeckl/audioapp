@@ -23,7 +23,7 @@ bool isInstrumentDeviceNodeKind(const DeviceNodeKind kind) noexcept {
            kind == DeviceNodeKind::BassSynth ||
            kind == DeviceNodeKind::PhaseModSynth ||
            kind == DeviceNodeKind::WavetableSynth ||
-           kind == DeviceNodeKind::DrumMachine;
+           kind == DeviceNodeKind::DrumMachine || kind == DeviceNodeKind::Granular;
 }
 
 bool isFrequencyFxDeviceNodeKind(DeviceNodeKind kind) noexcept {
@@ -116,6 +116,7 @@ DeviceNodeKind deviceNodeKindFromTypeId(const std::string& typeId) noexcept {
     if (typeId == kMidiReceiver)     return DeviceNodeKind::MidiReceiver;
     if (typeId == kMidiDelay)        return DeviceNodeKind::MidiDelay;
     if (typeId == kDrumMachine)      return DeviceNodeKind::DrumMachine;
+    if (typeId == kGranular)         return DeviceNodeKind::Granular;
     if (typeId == kOscilloscope)     return DeviceNodeKind::Oscilloscope;
     if (typeId == kSpectrumAnalyzer) return DeviceNodeKind::SpectrumAnalyzer;
     if (typeId == kLoudnessMeter)    return DeviceNodeKind::LoudnessMeter;

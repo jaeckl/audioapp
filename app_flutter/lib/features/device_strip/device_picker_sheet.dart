@@ -104,6 +104,12 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
                 subtitle: const Text('Virtual device strip · mix & gain'),
                 onTap: () => Navigator.pop(context, 'device_chain'),
               ),
+              ListTile(
+                leading: const Icon(Icons.blur_on, color: Color(0xFFDA70D6)),
+                title: const Text('Grain Form'),
+                subtitle: const Text('Granular sample · vowel formants'),
+                onTap: () => Navigator.pop(context, 'granular_formant_synth'),
+              ),
               const Padding(
                 padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
                 child: Text(

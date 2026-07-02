@@ -32,6 +32,7 @@ enum class LiveInstrumentKind : uint8_t {
     BassSynth,
     PhaseModSynth,
     WavetableSynth,
+    Granular,
 };
 
 /// Immutable instrument snapshot copied on note-on (control thread writes, audio thread reads).
@@ -69,6 +70,7 @@ struct LiveInstrumentSnapshot {
     CrashGeneratorParams crash{};
     PhaseModSynthParams phaseMod{};
     WavetableSynthParams wavetable{};
+    GranularParams granular{};
     const float* wavetablePcm = nullptr;
     int wavetablePcmFrameCount = 0;
     int wavetablePcmFrameLength = 0;
@@ -96,6 +98,8 @@ struct LiveVoiceSlot {
     ClapVoiceRuntime clap{};
     CymbalVoiceRuntime cymbal{};
     CrashVoiceRuntime crash{};
+    float granularZ1[3]{};
+    float granularZ2[3]{};
     double subtractiveStartSec = 0.0;
     double subtractiveReleaseSec = -1.0;
     PerNoteModCache noteModCache{};

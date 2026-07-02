@@ -13,15 +13,38 @@ class DevicePresetFilter {
 }
 
 const List<DevicePresetFilter> kDevicePresetFilters = [
-  DevicePresetFilter(deviceType: 'simple_sampler', label: 'Sampler', icon: Icons.album_outlined),
-  DevicePresetFilter(deviceType: 'subtractive_synth', label: 'Synth', icon: Icons.waves),
-  DevicePresetFilter(deviceType: 'kick_generator', label: 'Kick', icon: Icons.circle),
-  DevicePresetFilter(deviceType: 'snare_generator', label: 'Snare', icon: Icons.circle_outlined),
-  DevicePresetFilter(deviceType: 'clap_generator', label: 'Clap', icon: Icons.pan_tool_outlined),
-  DevicePresetFilter(deviceType: 'cymbal_generator', label: 'Cymbal', icon: Icons.music_note_outlined),
-  DevicePresetFilter(deviceType: 'hi_hat_generator', label: 'Hi-hat', icon: Icons.timer_outlined),
-  DevicePresetFilter(deviceType: 'bass_synth', label: 'Bass Synth', icon: Icons.waves),
-  DevicePresetFilter(deviceType: 'dynamics_fx', label: 'Dynamics', icon: Icons.tune),
+  DevicePresetFilter(
+      deviceType: 'simple_sampler',
+      label: 'Sampler',
+      icon: Icons.album_outlined),
+  DevicePresetFilter(
+      deviceType: 'granular_formant_synth',
+      label: 'Granular',
+      icon: Icons.blur_on),
+  DevicePresetFilter(
+      deviceType: 'subtractive_synth', label: 'Synth', icon: Icons.waves),
+  DevicePresetFilter(
+      deviceType: 'kick_generator', label: 'Kick', icon: Icons.circle),
+  DevicePresetFilter(
+      deviceType: 'snare_generator',
+      label: 'Snare',
+      icon: Icons.circle_outlined),
+  DevicePresetFilter(
+      deviceType: 'clap_generator',
+      label: 'Clap',
+      icon: Icons.pan_tool_outlined),
+  DevicePresetFilter(
+      deviceType: 'cymbal_generator',
+      label: 'Cymbal',
+      icon: Icons.music_note_outlined),
+  DevicePresetFilter(
+      deviceType: 'hi_hat_generator',
+      label: 'Hi-hat',
+      icon: Icons.timer_outlined),
+  DevicePresetFilter(
+      deviceType: 'bass_synth', label: 'Bass Synth', icon: Icons.waves),
+  DevicePresetFilter(
+      deviceType: 'dynamics_fx', label: 'Dynamics', icon: Icons.tune),
 ];
 
 class DevicePresetFilterList extends StatelessWidget {
@@ -103,7 +126,8 @@ class _DeviceChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = const Color(0xFF9A9AA8);
     return Material(
-      color: selected ? accent.withValues(alpha: 0.22) : const Color(0xFF1C1C26),
+      color:
+          selected ? accent.withValues(alpha: 0.22) : const Color(0xFF1C1C26),
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,

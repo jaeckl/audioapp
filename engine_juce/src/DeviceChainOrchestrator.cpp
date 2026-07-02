@@ -35,6 +35,7 @@ using namespace audioapp::DeviceChainAutomationModulation;
 #include "audioapp/devices/processors/DrumMachineProcessor.hpp"
 #include "audioapp/devices/processors/AnalysisProcessor.hpp"
 #include "audioapp/devices/processors/ChainProcessor.hpp"
+#include "audioapp/devices/processors/GranularProcessor.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -84,6 +85,7 @@ static const FactoryFn kProcessorFactories[] = {
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<AnalysisProcessor>(DeviceNodeKind::LoudnessMeter); },
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<AnalysisProcessor>(DeviceNodeKind::StereoImager); },
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<ChainProcessor>(); },
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<GranularProcessor>(); },
 };
 static constexpr size_t kNumFactories = sizeof(kProcessorFactories) / sizeof(kProcessorFactories[0]);
 

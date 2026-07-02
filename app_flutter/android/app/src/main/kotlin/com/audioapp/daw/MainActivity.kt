@@ -335,6 +335,17 @@ class MainActivity : FlutterFragmentActivity() {
                             }
                         }
                         "importSample" -> launchImportSamplePicker(result)
+                        "registerDemoSample" -> {
+                            val args = call.arguments as? Map<*, *>
+                            val id = args?.get("id") as? String
+                            val name = args?.get("name") as? String
+                            val bytes = args?.get("bytes") as? ByteArray
+                            if (id.isNullOrBlank() || name.isNullOrBlank() || bytes == null || bytes.isEmpty()) {
+                                result.error("invalid_demo_sample", "Demo sample data is incomplete", null)
+                            } else {
+                                result.success(jsonToMap(nativeRegisterDemoWavSample(id, name, bytes)))
+                            }
+                        }
                         "exportMix" -> {
                             val lengthBeats = when (val args = call.arguments) {
                                 is Map<*, *> -> (args["lengthBeats"] as? Number)?.toDouble() ?: 16.0
@@ -473,6 +484,7 @@ class MainActivity : FlutterFragmentActivity() {
     private external fun nativeLoadProjectArchiveBytes(archiveBytes: ByteArray): String
     private external fun nativeLoadProjectFileJson(projectJson: String): String
     private external fun nativeImportWavSample(displayName: String, wavBytes: ByteArray): String
+    private external fun nativeRegisterDemoWavSample(sampleId: String, displayName: String, wavBytes: ByteArray): String
     private external fun nativeLoadWavetableAsset(name: String, wavBytes: ByteArray): Boolean
     private external fun nativeRenderOffline(lengthBeats: Double): FloatArray
     private external fun nativePlay()

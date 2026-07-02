@@ -90,6 +90,7 @@ enum class DeviceNodeKind : uint8_t {
     LoudnessMeter,
     StereoImager,
     Chain,
+    Granular,
 };
 
 // --- Per-device DSP-only parameter structs ---
@@ -182,6 +183,10 @@ struct DrumMachineParams {
     std::shared_ptr<const DrumMachinePlayback> playback;
 };
 struct ChainParams { std::shared_ptr<const ChainPlayback> playback; float mix=1.0f; float gain=1.0f; };
+struct GranularParams { const float* pcm=nullptr; int frameCount=0; double pcmRate=48000.0;
+ float position=.25f,scan=.15f,size=.35f,density=.35f,spray=.1f,pitch=.5f,formant=.5f,character=.45f;
+ float regionStart=0.f,regionEnd=1.f,attack=.02f,release=.25f,spread=.35f;
+ float formX=.5f,formY=.05f; int vowel=0; };
 
 using DeviceVariantParams = std::variant<
     OscillatorParams,
@@ -213,7 +218,8 @@ using DeviceVariantParams = std::variant<
     RoutingParams,
     MidiDelayParams,
     DrumMachineParams
-    ,ChainParams
+    ,ChainParams,
+    GranularParams
 >;
 
 /// Per-track device chain node (built on control thread, read on audio thread).

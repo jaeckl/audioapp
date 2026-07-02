@@ -192,10 +192,14 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
       };
 
   SampleLibraryEntrySnapshot? _sampleFor(DeviceSnapshot device) {
-    if (device is SamplerDeviceSnapshot) {
-      if (device.sampleId.isEmpty) return null;
+    final sampleId = switch (device) {
+      SamplerDeviceSnapshot d => d.sampleId,
+      GranularDeviceSnapshot d => d.sampleId,
+      _ => '',
+    };
+    if (sampleId.isNotEmpty) {
       for (final sample in widget.samples) {
-        if (sample.id == device.sampleId) return sample;
+        if (sample.id == sampleId) return sample;
       }
     }
     return null;

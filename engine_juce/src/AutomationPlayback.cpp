@@ -64,6 +64,7 @@ static ParamKind paramKindForDevice(DeviceNodeKind kind) noexcept {
     case DeviceNodeKind::AudioReceiver:
     case DeviceNodeKind::MidiReceiver:     return ParamKind::Routing;
     case DeviceNodeKind::Chain:            return ParamKind::Chain;
+    case DeviceNodeKind::Granular:         return ParamKind::Granular;
     case DeviceNodeKind::TrackGain:        return ParamKind::TrackGain;
     case DeviceNodeKind::Unknown:
     default:                                return ParamKind::Common;
@@ -1292,6 +1293,9 @@ void applyAutomationValue(DeviceVariantParams& params,
             if (rawId == 0) p->mix = value;
             else if (rawId == 1) p->gain = value * 2.0f;
         }
+        break;
+    case ParamKind::Granular:
+        if(auto*p=std::get_if<GranularParams>(&params)){float* values[]={&p->position,&p->scan,&p->size,&p->density,&p->spray,&p->pitch,&p->formant,&p->character,&p->regionStart,&p->regionEnd,&p->attack,&p->release,&p->spread,&p->formX,&p->formY};if(rawId<15)*values[rawId]=value;else if(rawId==15)p->vowel=std::clamp((int)std::lround(value*5.f),0,5);}
         break;
     case ParamKind::Common:
     case ParamKind::TrackGain:

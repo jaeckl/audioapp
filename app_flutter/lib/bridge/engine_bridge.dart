@@ -740,6 +740,17 @@ class EngineBridge {
     return ProjectSnapshot.fromMap(result);
   }
 
+  Future<ProjectSnapshot> registerDemoSample({
+    required String id,
+    required String name,
+    required Uint8List bytes,
+  }) =>
+      _invokeForSnapshot('registerDemoSample', {
+        'id': id,
+        'name': name,
+        'bytes': bytes,
+      });
+
   /// Select a wavetable for a wavetable synth device.
   Future<void> selectWavetable(String deviceId, String wavetableName) async {
     await _invokeOk('setDeviceStringParameter', {

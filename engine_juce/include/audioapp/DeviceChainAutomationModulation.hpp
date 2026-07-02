@@ -43,6 +43,10 @@ inline void applyModulation(ChainParams& p, float amount, uint16_t localParamId)
     if (rawId == 0) p.mix = std::clamp(p.mix + amount, 0.0f, 1.0f);
     else if (rawId == 1) p.gain = std::clamp(p.gain + amount * 2.0f, 0.0f, 2.0f);
 }
+inline void applyModulation(GranularParams& p,float amount,uint16_t localParamId) noexcept {
+ const auto id=unpackParamId(localParamId);float* values[]={&p.position,&p.scan,&p.size,&p.density,&p.spray,&p.pitch,&p.formant,&p.character,&p.regionStart,&p.regionEnd,&p.attack,&p.release,&p.spread,&p.formX,&p.formY};
+ if(id<15)*values[id]=std::clamp(*values[id]+amount,0.f,1.f);
+}
 
 void applyDspModulationAtFrame(DeviceVariantParams& params,
                                DeviceNodeKind kind,

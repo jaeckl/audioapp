@@ -30,6 +30,7 @@
 #include "audioapp/devices/instances/FrequencyFxModel.hpp" // FilterModel, FourBandEqModel, FrequencyShifterModel
 #include "audioapp/devices/instances/ResonatorBankModel.hpp"
 #include "audioapp/devices/instances/DrumMachineModel.hpp"
+#include "audioapp/devices/instances/GranularModel.hpp"
 #include "audioapp/RoutingDevices.hpp"
 #include "audioapp/MidiDelay.hpp"
 #include "audioapp/devices/instances/ChainModel.hpp"
@@ -67,6 +68,7 @@ using DeviceInstance = std::variant<
     RoutingModel,
     MidiDelayModel,
     DrumMachineModel,
+    GranularModel,
     ChainModel
 >;
 

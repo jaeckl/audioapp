@@ -114,6 +114,25 @@ SampleBank::Sample SampleBank::makeBundledClap() {
     return makeSample("sample_clap", "Clap", std::move(pcm), sr);
 }
 
+SampleBank::Sample SampleBank::makeBundledFormSource() {
+    constexpr double sr = 48000.0;
+    constexpr double duration = 1.0;
+    constexpr double fundamental = 130.81278265; // C3
+    const int frames = static_cast<int>(sr * duration);
+    std::vector<float> pcm(static_cast<size_t>(frames), 0.0f);
+    for (int i = 0; i < frames; ++i) {
+        const double t = static_cast<double>(i) / sr;
+        double value = 0.0;
+        for (int harmonic = 1; harmonic <= 18; ++harmonic) {
+            const double amplitude = 1.0 / std::pow(static_cast<double>(harmonic), 1.18);
+            value += std::sin(2.0 * kPi * fundamental * harmonic * t) * amplitude;
+        }
+        const double edge = std::min({1.0, t / 0.012, (duration - t) / 0.012});
+        pcm[static_cast<size_t>(i)] = static_cast<float>(value * edge * 0.32);
+    }
+    return makeSample("sample_form_source", "Form Source", std::move(pcm), sr);
+}
+
 void SampleBank::registerBundledDefaults() {
     const juce::ScopedLock lock(mutex_);
     samples_.erase(std::remove_if(samples_.begin(),
@@ -124,6 +143,7 @@ void SampleBank::registerBundledDefaults() {
     upsertSample(makeBundledSnare());
     upsertSample(makeBundledHat());
     upsertSample(makeBundledClap());
+    upsertSample(makeBundledFormSource());
 }
 
 bool SampleBank::upsertSample(Sample sample) {

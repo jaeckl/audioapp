@@ -43,6 +43,7 @@ import 'time_fx_panels.dart';
 import 'drum_machine_device_panel.dart';
 import 'modulation_connect_mode.dart';
 import 'chain_device_panel.dart';
+import 'granular_device_panel.dart';
 import 'mood_fx_panels.dart';
 import 'frequency_fx_panels.dart';
 import 'resonator_bank_panel.dart';
@@ -281,6 +282,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       'loudness_meter',
       'stereo_imager',
       'device_chain',
+      'granular_formant_synth',
     };
     return knownTypes.contains(widget.device.type);
   }
@@ -945,6 +947,28 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       case 'device_chain':
         return ChainDevicePanel(
           device: widget.device as ChainDeviceSnapshot,
+          onChanged: widget.onDeviceParameterChanged,
+          modulatedParams: _modulatedParamIds,
+          automatedParams: _automatedParamIds,
+          modulationAmounts: _modulationAmounts,
+          lfos: _localLfos,
+          modEdges: _localModEdges,
+          connectModeLfoId: _connectModeLfo,
+          onModulationAssign: _onModulationForDevice,
+          automationLinkActive: widget.automationLinkActive,
+          onAutomationLinkTap: widget.onAutomationParamSelected != null
+              ? _onAutomationLinkTap
+              : null,
+          onAutomateParameter:
+              widget.onAutomateParameter != null ? _onAutomateParameter : null,
+        );
+      case 'granular_formant_synth':
+        return GranularDevicePanel(
+          device: widget.device as GranularDeviceSnapshot,
+          sample: widget.sample,
+          tab: _selectedTabIndex.clamp(0, 2),
+          playing: widget.playing,
+          playheadBeat: widget.playheadBeat,
           onChanged: widget.onDeviceParameterChanged,
           modulatedParams: _modulatedParamIds,
           automatedParams: _automatedParamIds,

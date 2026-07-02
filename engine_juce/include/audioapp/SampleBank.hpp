@@ -48,6 +48,7 @@ private:
     static Sample makeBundledSnare();
     static Sample makeBundledHat();
     static Sample makeBundledClap();
+    static Sample makeBundledFormSource();
 };
 
 } // namespace audioapp

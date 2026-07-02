@@ -112,6 +112,8 @@ public:
     bool setLoopRegion(double startBeat, double endBeat);
     std::vector<float> renderOffline(double lengthBeats, double sampleRate);
     std::string importWavSample(const std::string& displayName, const std::vector<uint8_t>& wavBytes);
+    bool registerDemoWavSample(const std::string& id, const std::string& displayName,
+                               const std::vector<uint8_t>& wavBytes);
     /// Import wavetable from raw .wav bytes. Returns wavetable name on success, empty on failure.
     std::string importWavetable(const std::string& name, const std::vector<uint8_t>& wavBytes);
     /// Access the wavetable bank.

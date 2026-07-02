@@ -37,6 +37,16 @@ import '../features/transport/transport_bar.dart';
 
 enum _ShellTab { devices, keys, mixer, library, settings }
 
+const _demoSamples = <(String, String, String)>[
+  ('demo_form_basic_e', 'Basic E', 'form_basic_e.wav'),
+  ('demo_form_evolving_sines', 'Evolving Sines', 'form_evolving_sines.wav'),
+  ('demo_form_vowel_sustain', 'Vowel Sustain', 'form_vowel_sustain.wav'),
+  ('demo_form_lost_choir', 'Lost Choir', 'form_lost_choir.wav'),
+  ('demo_form_metal_hollow', 'Metal Hollow', 'form_metal_hollow.wav'),
+  ('demo_form_vox_riders', 'Vox Riders', 'form_vox_riders.wav'),
+  ('demo_form_liquid_air', 'Liquid Air', 'form_liquid_air.wav'),
+];
+
 class DawShell extends StatefulWidget {
   const DawShell({
     super.key,
@@ -208,6 +218,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   Future<void> _activateProject(ProjectSnapshot snapshot) async {
+    snapshot = await _registerDemoSamples(snapshot);
     await widget.bridge.enterPlayMode();
     await _refreshSnapshot(snapshot);
     _transport.syncTransportAnchorFromSnapshot(
@@ -222,6 +233,26 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       _tab = _ShellTab.devices;
       _projectError = null;
     });
+  }
+
+  Future<ProjectSnapshot> _registerDemoSamples(ProjectSnapshot snapshot) async {
+    try {
+      var current = snapshot;
+      for (final (id, name, file) in _demoSamples) {
+        final data = await rootBundle.load('assets/demo_samples/$file');
+        current = await widget.bridge.registerDemoSample(
+          id: id,
+          name: name,
+          bytes:
+              data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+        );
+      }
+      return current;
+    } on MissingPluginException {
+      return snapshot;
+    } catch (_) {
+      return snapshot;
+    }
   }
 
   Future<void> _createNewProject() async {
@@ -999,7 +1030,10 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       _libraryCategory = LibraryCategory.devicePresets;
       _libraryPresetDeviceId = device.id;
       _libraryPresetDeviceType = device.type;
-      _librarySamplerDeviceId = null;
+      _librarySamplerDeviceId = device.type == 'simple_sampler' ||
+              device.type == 'granular_formant_synth'
+          ? device.id
+          : null;
       _libraryWavetableDeviceId = null;
     });
   }
@@ -1218,6 +1252,13 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
           value: entry.value,
         );
       }
+      for (final entry in preset.stringParams.entries) {
+        await widget.bridge.setDeviceStringParameter(
+          deviceId: presetTarget,
+          parameterId: entry.key,
+          value: entry.value,
+        );
+      }
       await _refreshSnapshot(await widget.bridge.getProjectSnapshot());
       await _libraryPanelKey.currentState?.close();
       return;
@@ -1250,6 +1291,13 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         if (preset != null) {
           for (final entry in preset.params.entries) {
             await widget.bridge.setDeviceParameter(
+              deviceId: child.id,
+              parameterId: entry.key,
+              value: entry.value,
+            );
+          }
+          for (final entry in preset.stringParams.entries) {
+            await widget.bridge.setDeviceStringParameter(
               deviceId: child.id,
               parameterId: entry.key,
               value: entry.value,

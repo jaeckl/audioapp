@@ -116,6 +116,19 @@ Java_com_audioapp_daw_MainActivity_nativeImportWavSample(JNIEnv* env,
     return env->NewStringUTF(response.c_str());
 }
 
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_audioapp_daw_MainActivity_nativeRegisterDemoWavSample(JNIEnv* env,
+                                                                jobject /*thiz*/,
+                                                                jstring sampleId,
+                                                                jstring displayName,
+                                                                jbyteArray wavBytes) {
+    const auto id = jstringToUtf8(env, sampleId);
+    const auto name = jstringToUtf8(env, displayName);
+    const auto bytes = jbyteArrayToVector(env, wavBytes);
+    const auto response = bridge().registerDemoWavSample(id, name, bytes);
+    return env->NewStringUTF(response.c_str());
+}
+
 extern "C" JNIEXPORT jboolean JNICALL
 Java_com_audioapp_daw_MainActivity_nativeLoadWavetableAsset(JNIEnv* env,
                                                             jobject /*thiz*/,
