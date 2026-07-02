@@ -574,6 +574,17 @@ class EngineBridge {
     });
   }
 
+  Future<void> setMetronome({
+    required bool enabled,
+    required double level,
+    required int countInBars,
+  }) =>
+      _invokeOk('setMetronome', {
+        'enabled': enabled,
+        'level': level,
+        'countInBars': countInBars,
+      });
+
   Future<void> _invokeOk(String method, [Map<String, dynamic>? args]) async {
     final result =
         await _channel.invokeMethod<Map<dynamic, dynamic>>(method, args);

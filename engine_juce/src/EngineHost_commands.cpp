@@ -158,6 +158,10 @@ bool EngineHost::setMasterGain(float gain) {
     return project_->setMasterGain(gain);
 }
 
+void EngineHost::setMetronome(bool enabled, float level, int countInBars) noexcept {
+    project_->setMetronome(enabled, level, countInBars);
+}
+
 std::string EngineHost::getProjectSnapshotJson() const {
     return snapshotToJson(project_->snapshot(), project_->deviceRegistry(),
                           project_->modulatorTypes());
@@ -1267,6 +1271,13 @@ void EngineHost::registerAllCommands() {
         const float gain = static_cast<float>(static_cast<double>(ctx.args["gain"]));
         if (!ctx.engine.setMasterGain(gain))
             return commands::errorResult("invalid_gain");
+        return commands::okResult();
+    });
+
+    reg.registerCommand("setMetronome", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        ctx.engine.setMetronome(static_cast<bool>(ctx.args["enabled"]),
+            static_cast<float>(static_cast<double>(ctx.args["level"])),
+            static_cast<int>(static_cast<double>(ctx.args["countInBars"])));
         return commands::okResult();
     });
 

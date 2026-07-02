@@ -109,7 +109,7 @@ bool ProjectEngine::noteOn(int pitch, float velocity) {
     // retrigger generation with the arrangement LFO render path, causing
     // unwanted envelope resets on arrangement LFOs (staccato/gate artifacts).
 
-    if (recordArmed_) {
+    if (recordArmed_ && countInRemainingBeats_.load(std::memory_order_acquire) <= 0.0) {
         const uint64_t now = liveMixer_.sampleClock();
         if (!captureActive_) {
             captureActive_ = true;

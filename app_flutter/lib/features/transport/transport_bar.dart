@@ -252,6 +252,122 @@ class _SnapGridMenuButton extends StatelessWidget {
   }
 }
 
+class _MetronomeMenu extends StatefulWidget {
+  const _MetronomeMenu(
+      {required this.enabled,
+      required this.level,
+      required this.countInBars,
+      required this.onChanged});
+  final bool enabled;
+  final double level;
+  final int countInBars;
+  final void Function(bool enabled, double level, int countInBars) onChanged;
+  @override
+  State<_MetronomeMenu> createState() => _MetronomeMenuState();
+}
+
+class _MetronomeMenuState extends State<_MetronomeMenu> {
+  late bool enabled = widget.enabled;
+  late double level = widget.level;
+  late int countInBars = widget.countInBars;
+  void commit() => widget.onChanged(enabled, level, countInBars);
+  @override
+  Widget build(BuildContext context) => SizedBox(
+      width: 250,
+      child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(children: [
+              const Expanded(
+                  child: Text('Metronome',
+                      style: TextStyle(
+                          color: TransportBarTheme.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600))),
+              Switch(
+                  value: enabled,
+                  onChanged: (v) {
+                    setState(() => enabled = v);
+                    commit();
+                  })
+            ]),
+            const SizedBox(height: 8),
+            const _SnapGridSectionTitle('Click level'),
+            Slider(
+                value: level,
+                min: 0,
+                max: 1,
+                onChanged: (v) {
+                  setState(() => level = v);
+                  commit();
+                }),
+            const _SnapGridSectionTitle('Count-in'),
+            const SizedBox(height: 8),
+            Row(children: [
+              for (final bars in const [0, 1, 2, 4])
+                Expanded(
+                    child: Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: Material(
+                            color: countInBars == bars
+                                ? TransportBarTheme.menuPillActiveFill
+                                : TransportBarTheme.menuPillIdle,
+                            borderRadius: BorderRadius.circular(6),
+                            child: InkWell(
+                                onTap: () {
+                                  setState(() => countInBars = bars);
+                                  commit();
+                                },
+                                child: Padding(
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 8),
+                                    child: Text(bars == 0 ? 'Off' : '$bars',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                            color: countInBars == bars
+                                                ? TransportBarTheme
+                                                    .menuPillActiveText
+                                                : TransportBarTheme
+                                                    .textSecondary)))))))
+            ])
+          ]));
+}
+
+class _MetronomeMenuButton extends StatelessWidget {
+  const _MetronomeMenuButton(
+      {required this.enabled,
+      required this.level,
+      required this.countInBars,
+      this.onChanged});
+  final bool enabled;
+  final double level;
+  final int countInBars;
+  final void Function(bool, double, int)? onChanged;
+  @override
+  Widget build(BuildContext context) => PopupMenuButton<void>(
+      tooltip: enabled ? 'Metronome on' : 'Metronome off',
+      color: TransportBarTheme.menuBackground,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: const BorderSide(color: TransportBarTheme.chipBorder)),
+      icon: Icon(Icons.timer_outlined,
+          size: 20,
+          color: enabled
+              ? Theme.of(context).colorScheme.primary
+              : TransportBarTheme.textSecondary),
+      itemBuilder: (_) => [
+            PopupMenuItem<void>(
+                enabled: false,
+                padding: const EdgeInsets.all(14),
+                child: _MetronomeMenu(
+                    enabled: enabled,
+                    level: level,
+                    countInBars: countInBars,
+                    onChanged: onChanged ?? (_, __, ___) {}))
+          ]);
+}
+
 class TransportBar extends StatelessWidget {
   const TransportBar({
     super.key,
@@ -279,6 +395,10 @@ class TransportBar extends StatelessWidget {
     this.onSnapClipsEnabledChanged,
     this.onSnapGridResolutionChanged,
     this.onSnapGridTripletChanged,
+    this.metronomeEnabled = false,
+    this.metronomeLevel = 0.65,
+    this.countInBars = 1,
+    this.onMetronomeChanged,
   });
 
   final int bpm;
@@ -305,6 +425,11 @@ class TransportBar extends StatelessWidget {
   final ValueChanged<bool>? onSnapClipsEnabledChanged;
   final ValueChanged<SnapGridResolution>? onSnapGridResolutionChanged;
   final ValueChanged<bool>? onSnapGridTripletChanged;
+  final bool metronomeEnabled;
+  final double metronomeLevel;
+  final int countInBars;
+  final void Function(bool enabled, double level, int countInBars)?
+      onMetronomeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -364,6 +489,11 @@ class TransportBar extends StatelessWidget {
                 enabled: onBpmChanged != null,
                 onChanged: onBpmChanged,
               ),
+              _MetronomeMenuButton(
+                  enabled: metronomeEnabled,
+                  level: metronomeLevel,
+                  countInBars: countInBars,
+                  onChanged: onMetronomeChanged),
               _SnapGridMenuButton(
                 snapClipsEnabled: snapClipsEnabled,
                 snapGridResolution: snapGridResolution,
@@ -406,6 +536,11 @@ class TransportBar extends StatelessWidget {
     ValueChanged<bool>? onSnapClipsEnabledChanged,
     ValueChanged<SnapGridResolution>? onSnapGridResolutionChanged,
     ValueChanged<bool>? onSnapGridTripletChanged,
+    bool metronomeEnabled = false,
+    double metronomeLevel = 0.65,
+    int countInBars = 1,
+    void Function(bool enabled, double level, int countInBars)?
+        onMetronomeChanged,
   }) {
     return Padding(
       padding: ShellInsets.headerPadding(context).copyWith(bottom: 1),
@@ -434,6 +569,10 @@ class TransportBar extends StatelessWidget {
         onSnapClipsEnabledChanged: onSnapClipsEnabledChanged,
         onSnapGridResolutionChanged: onSnapGridResolutionChanged,
         onSnapGridTripletChanged: onSnapGridTripletChanged,
+        metronomeEnabled: metronomeEnabled,
+        metronomeLevel: metronomeLevel,
+        countInBars: countInBars,
+        onMetronomeChanged: onMetronomeChanged,
       ),
     );
   }

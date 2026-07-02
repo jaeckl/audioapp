@@ -167,6 +167,7 @@ public:
                        ClipLengthTarget target = ClipLengthTarget::Arrangement);
     bool setClipLoopContent(const std::string& clipId, bool loopContent);
     bool setBpm(int bpm);
+    void setMetronome(bool enabled, float level, int countInBars) noexcept;
     bool deleteTrack(const std::string& trackId);
     bool deleteClip(const std::string& clipId);
     bool duplicateClip(const std::string& clipId);
@@ -335,6 +336,10 @@ private:
     ClipRepository clipRepo_{trackRepo_};
     std::atomic<float> activeFrequencyHz_{440.0f};
     std::atomic<float> masterGain_{1.0f};
+    std::atomic<bool> metronomeEnabled_{false};
+    std::atomic<float> metronomeLevel_{0.65f};
+    std::atomic<int> countInBars_{1};
+    std::atomic<double> countInRemainingBeats_{0.0};
     bool recordArmed_ = false;
 
     struct CaptureEvent {

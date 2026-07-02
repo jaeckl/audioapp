@@ -42,6 +42,26 @@ namespace audioapp {
 
 namespace {
 thread_local DeviceChainScratch gProjectScratch;
+
+void addMetronomeClick(float* left, float* right, int frames, double sampleRate,
+                       double startBeat, int bpm, float level) noexcept {
+    if (!left || !right || frames <= 0 || sampleRate <= 0.0 || bpm <= 0 || level <= 0.0f) return;
+    const double beatsPerFrame = (static_cast<double>(bpm) / 60.0) / sampleRate;
+    for (int frame = 0; frame < frames; ++frame) {
+        const double beat = startBeat + static_cast<double>(frame) * beatsPerFrame;
+        const double whole = std::floor(beat + 1.0e-9);
+        const double seconds = (beat - whole) * 60.0 / static_cast<double>(bpm);
+        if (seconds < 0.0 || seconds >= 0.045) continue;
+        const int beatIndex = static_cast<int>(whole);
+        const bool accent = ((beatIndex % 4) + 4) % 4 == 0;
+        const double hz = accent ? 1760.0 : 1200.0;
+        const float envelope = static_cast<float>(std::exp(-seconds * 95.0));
+        const float click = std::sin(static_cast<float>(seconds * hz * 2.0 * juce::MathConstants<double>::pi))
+            * envelope * level * (accent ? 0.42f : 0.30f);
+        left[frame] += click;
+        right[frame] += click;
+    }
+}
 } // namespace
 
 void ProjectEngine::createProject() {
@@ -54,6 +74,7 @@ void ProjectEngine::createProject() {
     modulationGraph_.clear();
     activeFrequencyHz_.store(440.0f, std::memory_order_release);
     masterGain_.store(1.0f, std::memory_order_release);
+    countInRemainingBeats_.store(0.0, std::memory_order_release);
     trackPlaybackCount_.store(0, std::memory_order_release);
 
     // Reset ValueTree root + re-register as listener
@@ -704,6 +725,14 @@ bool ProjectEngine::setBpm(int bpm) {
     return true;
 }
 
+void ProjectEngine::setMetronome(bool enabled, float level, int countInBars) noexcept {
+    metronomeEnabled_.store(enabled, std::memory_order_release);
+    metronomeLevel_.store(std::clamp(level, 0.0f, 1.0f), std::memory_order_release);
+    const int bars = countInBars == 1 || countInBars == 2 || countInBars == 4
+        ? countInBars : 0;
+    countInBars_.store(bars, std::memory_order_release);
+}
+
 bool ProjectEngine::deleteTrack(const std::string& trackId) {
     const juce::ScopedWriteLock lock(mutex_);
     if (!trackRepo_.deleteTrack(trackId)) {
@@ -982,11 +1011,32 @@ void ProjectEngine::readMasterMixStereo(float* leftOut,
     if (!transport_.isPlaying()) {
         return;
     }
+    const double remaining = countInRemainingBeats_.load(std::memory_order_acquire);
+    if (remaining > 0.0) {
+        const int bpm = transport_.bpm();
+        const double beatsPerFrame = (static_cast<double>(bpm) / 60.0) / sampleRate;
+        const int preRollFrames = std::min(numFrames,
+            static_cast<int>(std::ceil(remaining / beatsPerFrame)));
+        const double totalBeats = static_cast<double>(countInBars_.load(std::memory_order_acquire) * 4);
+        addMetronomeClick(leftOut, rightOut, preRollFrames, sampleRate,
+                          totalBeats - remaining, bpm,
+                          metronomeLevel_.load(std::memory_order_acquire));
+        if (preRollFrames < numFrames) {
+            mixAtPlayheadBeatStereo(leftOut + preRollFrames, rightOut + preRollFrames,
+                numFrames - preRollFrames, sampleRate, playheadStartBeat);
+        }
+        return;
+    }
     // No shared_lock needed: trackPlaybackCount_ release/acquire ordering
     // provides happens-before for all trackPlayback_[] writes by the
     // control thread in rebuildTrackPlaybackLocked. TransportController
     // and ModulationGraph use their own atomics/double-buffering.
     mixAtPlayheadBeatStereo(leftOut, rightOut, numFrames, sampleRate, playheadStartBeat);
+    if (trackPlaybackCount_.load(std::memory_order_acquire) <= 0 &&
+        metronomeEnabled_.load(std::memory_order_acquire)) {
+        addMetronomeClick(leftOut, rightOut, numFrames, sampleRate, playheadStartBeat,
+                          transport_.bpm(), metronomeLevel_.load(std::memory_order_acquire));
+    }
 }
 
 void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
@@ -1354,6 +1404,12 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         }
     }
 
+    if (metronomeEnabled_.load(std::memory_order_acquire)) {
+        addMetronomeClick(masterLeft, masterRight, framesToProcess, sampleRate,
+                          playheadStartBeat, transport_.bpm(),
+                          metronomeLevel_.load(std::memory_order_acquire));
+    }
+
     // Simple peak limiter + emergency hard clamp for the master bus.
     float peak = 0.0f;
     for (int frame = 0; frame < framesToProcess; ++frame) {
@@ -1396,6 +1452,13 @@ void ProjectEngine::setPlaying(bool playing) {
         const juce::ScopedWriteLock lock(mutex_);
         rebuildTrackPlaybackLocked();
     }
+    if (playing && recordArmed_) {
+        countInRemainingBeats_.store(
+            static_cast<double>(countInBars_.load(std::memory_order_acquire) * 4),
+            std::memory_order_release);
+    } else if (!playing) {
+        countInRemainingBeats_.store(0.0, std::memory_order_release);
+    }
     transport_.setPlaying(playing);
 }
 
@@ -1416,6 +1479,21 @@ void ProjectEngine::resetPlayhead() noexcept {
 }
 
 void ProjectEngine::advancePlayhead(int numFrames, double sampleRate) noexcept {
+    const double remaining = countInRemainingBeats_.load(std::memory_order_acquire);
+    if (remaining > 0.0 && sampleRate > 0.0) {
+        const double blockBeats = static_cast<double>(numFrames) / sampleRate *
+            static_cast<double>(transport_.bpm()) / 60.0;
+        if (blockBeats < remaining) {
+            countInRemainingBeats_.store(remaining - blockBeats, std::memory_order_release);
+            return;
+        }
+        countInRemainingBeats_.store(0.0, std::memory_order_release);
+        const double leftoverBeats = blockBeats - remaining;
+        const int leftoverFrames = static_cast<int>(std::lround(
+            leftoverBeats * sampleRate * 60.0 / static_cast<double>(transport_.bpm())));
+        if (leftoverFrames > 0) transport_.advancePlayhead(leftoverFrames, sampleRate);
+        return;
+    }
     transport_.advancePlayhead(numFrames, sampleRate);
 }
 

@@ -80,6 +80,9 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   bool _bootstrapReady = false;
   List<RecentProjectEntry> _recentProjects = const [];
   bool _snapClipsEnabled = true;
+  bool _metronomeEnabled = false;
+  double _metronomeLevel = 0.65;
+  int _countInBars = 1;
   SnapGridResolution _snapGridResolution = SnapGridResolution.adaptive;
   bool _snapGridTriplet = false;
   List<String> _meterSubscriptionIds = const [];
@@ -1909,6 +1912,21 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _setMetronome(
+      bool enabled, double level, int countInBars) async {
+    setState(() {
+      _metronomeEnabled = enabled;
+      _metronomeLevel = level;
+      _countInBars = countInBars;
+    });
+    try {
+      await widget.bridge.setMetronome(
+          enabled: enabled, level: level, countInBars: countInBars);
+    } catch (e) {
+      if (mounted) setState(() => _projectError = e.toString());
+    }
+  }
+
   Future<void> _stopPlay() async {
     await _transport.stopPlay();
     _liveMeters.clear();
@@ -2136,6 +2154,10 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
                 onSnapGridTripletChanged: (triplet) {
                   setState(() => _snapGridTriplet = triplet);
                 },
+                metronomeEnabled: _metronomeEnabled,
+                metronomeLevel: _metronomeLevel,
+                countInBars: _countInBars,
+                onMetronomeChanged: _setMetronome,
               );
             },
           ),

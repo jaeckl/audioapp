@@ -103,6 +103,7 @@ public:
     bool setAutomationPoints(const std::string& clipId,
                              const std::vector<AutomationPointState>& points);
     bool setBpm(int bpm);
+    void setMetronome(bool enabled, float level, int countInBars) noexcept;
     bool deleteTrack(const std::string& trackId);
     bool deleteClip(const std::string& clipId);
     bool duplicateClip(const std::string& clipId);
