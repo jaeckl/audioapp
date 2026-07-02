@@ -24,6 +24,7 @@ struct DrumMachineModel {
     static constexpr int kMidiNoteCount = 128;
     static constexpr int kVisiblePadCount = 16;
     static constexpr int kDefaultVisibleNote = 36;
+    static constexpr int kMaxDevicesPerPad = 4;
     std::array<DrumPadModel, kMidiNoteCount> pads{};
 
     DrumMachineModel() {

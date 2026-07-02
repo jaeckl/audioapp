@@ -3,6 +3,7 @@
 #include "audioapp/SampleTypes.hpp"
 #include "audioapp/TrackFreeze.hpp"
 #include "audioapp/devices/DeviceRegistry.hpp"
+#include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/modulation/LfoModulatorType.hpp"
 #include "audioapp/modulation/EnvelopeModulatorType.hpp"
 
@@ -418,7 +419,41 @@ juce::var projectFileToVar(const ProjectFileData& project,
 
 // --- DeviceSlot-based serialization dispatch (Package 0) ---
 
+DeviceSlot deviceVarToSlotImpl(const juce::var& obj, const DeviceRegistry& registry);
+
 juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& registry) {
+    if (slot.config.typeId == device_types::kDrumMachine) {
+        const auto& machine = std::get<DrumMachineModel>(slot.config.instance);
+        juce::Array<juce::var> pads;
+        for (const auto& pad : machine.pads) {
+            if (pad.devices.empty() && pad.name.empty() && pad.gain == 1.0f &&
+                pad.pan == 0.5f && !pad.muted && !pad.solo && pad.chokeGroup == 0) {
+                continue;
+            }
+            auto* padObject = new juce::DynamicObject();
+            padObject->setProperty("note", pad.note);
+            padObject->setProperty("name", toJuceString(pad.name));
+            padObject->setProperty("gain", static_cast<double>(pad.gain));
+            padObject->setProperty("pan", static_cast<double>(pad.pan));
+            padObject->setProperty("muted", pad.muted);
+            padObject->setProperty("solo", pad.solo);
+            padObject->setProperty("chokeGroup", pad.chokeGroup);
+            juce::Array<juce::var> devices;
+            for (const auto& device : pad.devices) {
+                if (device != nullptr && device->config.typeId != device_types::kDrumMachine) {
+                    devices.add(deviceSlotToVarImpl(*device, registry));
+                }
+            }
+            padObject->setProperty("devices", devices);
+            pads.add(juce::var(padObject));
+        }
+        auto* object = new juce::DynamicObject();
+        object->setProperty("id", toJuceString(slot.id));
+        object->setProperty("type", device_types::kDrumMachine);
+        object->setProperty("bypass", slot.config.bypassed);
+        object->setProperty("pads", pads);
+        return juce::var(object);
+    }
     const IDeviceType* type = registry.findForSlot(slot);
     if (type != nullptr) {
         juce::var result = type->slotToVar(slot);
@@ -432,6 +467,42 @@ juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& regi
 DeviceSlot deviceVarToSlotImpl(const juce::var& obj, const DeviceRegistry& registry) {
     if (const auto* object = obj.getDynamicObject()) {
         const std::string typeId = varToString(object->getProperty("type"));
+        if (typeId == device_types::kDrumMachine) {
+            DeviceSlot slot = registry.createDefault(
+                typeId, varToString(object->getProperty("id")));
+            if (slot.id.empty()) return {};
+            slot.config.bypassed = static_cast<bool>(object->getProperty("bypass"));
+            auto& machine = std::get<DrumMachineModel>(slot.config.instance);
+            if (const auto* padValues = varArray(object->getProperty("pads"))) {
+                for (const auto& padValue : *padValues) {
+                    const auto* padObject = padValue.getDynamicObject();
+                    if (padObject == nullptr) continue;
+                    const int note = std::clamp(
+                        static_cast<int>(padObject->getProperty("note")), 0,
+                        DrumMachineModel::kMidiNoteCount - 1);
+                    auto& pad = machine.pads[static_cast<size_t>(note)];
+                    pad.name = varToString(padObject->getProperty("name"));
+                    pad.gain = std::clamp(static_cast<float>(
+                        static_cast<double>(padObject->getProperty("gain"))), 0.0f, 2.0f);
+                    pad.pan = std::clamp(static_cast<float>(
+                        static_cast<double>(padObject->getProperty("pan"))), 0.0f, 1.0f);
+                    pad.muted = static_cast<bool>(padObject->getProperty("muted"));
+                    pad.solo = static_cast<bool>(padObject->getProperty("solo"));
+                    pad.chokeGroup = std::clamp(
+                        static_cast<int>(padObject->getProperty("chokeGroup")), 0, 16);
+                    if (const auto* devices = varArray(padObject->getProperty("devices"))) {
+                        for (const auto& deviceValue : *devices) {
+                            if (pad.devices.size() >= DrumMachineModel::kMaxDevicesPerPad) break;
+                            DeviceSlot child = deviceVarToSlotImpl(deviceValue, registry);
+                            if (!child.id.empty() && child.config.typeId != device_types::kDrumMachine) {
+                                pad.devices.push_back(std::make_shared<DeviceSlot>(std::move(child)));
+                            }
+                        }
+                    }
+                }
+            }
+            return slot;
+        }
         const IDeviceType* type = registry.find(typeId);
         if (type != nullptr) {
             DeviceSlot slot = type->varToSlot(obj);
