@@ -29,6 +29,7 @@
 #include "audioapp/devices/instances/PhaseModSynthModel.hpp"
 #include "audioapp/devices/instances/FrequencyFxModel.hpp" // FilterModel, FourBandEqModel, FrequencyShifterModel
 #include "audioapp/devices/instances/ResonatorBankModel.hpp"
+#include "audioapp/devices/instances/DrumMachineModel.hpp"
 #include "audioapp/RoutingDevices.hpp"
 #include "audioapp/MidiDelay.hpp"
 
@@ -63,7 +64,8 @@ using DeviceInstance = std::variant<
     TremoloParams,
     ResonatorBankModel,
     RoutingModel,
-    MidiDelayModel
+    MidiDelayModel,
+    DrumMachineModel
 >;
 
 /// Unified device config wrapping params, panels, and bypass.
