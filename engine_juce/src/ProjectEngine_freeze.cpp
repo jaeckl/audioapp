@@ -5,30 +5,17 @@
 #include "audioapp/DeviceChainOrchestrator.hpp"
 
 #include <algorithm>
-#include <chrono>
 #include <cmath>
 #include <cstring>
-#include <thread>
 #include <vector>
 
 namespace audioapp {
 namespace {
 
 constexpr double kFreezeRenderSampleRate = 48000.0;
-constexpr int kFreezeRenderBlock = 512;
-constexpr auto kFreezeBakeDrainDelay = std::chrono::milliseconds(30);
+constexpr int kFreezeRenderBlock = kScratchFrames;
 
 } // namespace
-
-void ProjectEngine::beginFreezeBakeLocked() {
-    freezeBakeActive_.store(true, std::memory_order_release);
-    lastArrangementMixPlayhead_ = -1.0;
-    std::this_thread::sleep_for(kFreezeBakeDrainDelay);
-}
-
-void ProjectEngine::endFreezeBakeLocked() noexcept {
-    freezeBakeActive_.store(false, std::memory_order_release);
-}
 
 bool ProjectEngine::freezeTrackLocked(Track& track,
                                       int trackIndex,
@@ -52,8 +39,6 @@ bool ProjectEngine::freezeTrackLocked(Track& track,
         return false;
     }
 
-    rebuildTrackPlaybackLocked();
-
     const double lengthBeats = endBeat;
     const int totalFrames = static_cast<int>(
         std::ceil(lengthBeats * kFreezeRenderSampleRate * 60.0 /
@@ -69,16 +54,34 @@ bool ProjectEngine::freezeTrackLocked(Track& track,
     thread_local std::vector<float> lfoValues;
     thread_local std::vector<IModulator*> modulatorPtrs;
 
-    const int lfoCount = modulationGraph_.lfoPlaybackCount();
-    modulatorPtrs.resize(static_cast<size_t>(lfoCount));
-    for (int i = 0; i < lfoCount; ++i) {
-        modulatorPtrs[static_cast<size_t>(i)] = modulationGraph_.modulator(i);
-    }
-    const uint32_t retriggerGeneration = modulationGraph_.noteRetriggerGeneration();
+    const auto& playback = trackPlayback_[trackIndex];
+    auto freezeArena = std::make_unique<ProcessorArena>();
+    buildProcessorChain(playback.devices, playback.trackGainDeviceIndex, *freezeArena);
+    resetPlaybackStateInArena(*freezeArena);
 
-    const FreezeBakeScope suspendBake(*this);
-    resetPlaybackStateInArena(trackPlayback_[trackIndex].arena);
-    modulationGraph_.retriggerOnNote();
+    const int lfoCount = modulationGraph_.lfoPlaybackCount();
+    std::vector<bool> relevantLfos(static_cast<size_t>(lfoCount), false);
+    for (int edge = 0; edge < playback.modEdgeCount; ++edge) {
+        const int index = static_cast<int>(playback.modEdges[edge].lfoId);
+        if (index >= 0 && index < lfoCount) relevantLfos[static_cast<size_t>(index)] = true;
+    }
+    modulatorPtrs.resize(static_cast<size_t>(lfoCount));
+    ModulatorArena freezeModulators;
+    const auto& records = modulationGraph_.lfos();
+    const auto& types = modulationGraph_.modulatorTypes();
+    for (int i = 0; i < lfoCount; ++i) {
+        IModulator* modulator = nullptr;
+        if (i < static_cast<int>(records.size())) {
+            const auto& record = records[static_cast<size_t>(i)];
+            if (record.typeIndex >= 0 && record.typeIndex < static_cast<int>(types.size())) {
+                modulator = types[static_cast<size_t>(record.typeIndex)]->createModulator(
+                    freezeModulators, record.params);
+            }
+        }
+        modulatorPtrs[static_cast<size_t>(i)] = modulator;
+    }
+    const uint32_t retriggerGeneration = modulationGraph_.noteRetriggerGeneration() + 1u;
+    lfoValues.resize(static_cast<size_t>(lfoCount) * kFreezeRenderBlock);
 
     const int bpm = transport_.bpm();
     const double beatsPerFrame =
@@ -90,10 +93,13 @@ bool ProjectEngine::freezeTrackLocked(Track& track,
         const double beat = static_cast<double>(offset) / kFreezeRenderSampleRate *
                             static_cast<double>(bpm) / 60.0;
         if (lfoCount > 0) {
-            lfoValues.assign(static_cast<size_t>(lfoCount) * static_cast<size_t>(frames), 0.0f);
+            std::fill(lfoValues.begin(),
+                      lfoValues.begin() + static_cast<std::ptrdiff_t>(lfoCount * frames),
+                      0.0f);
             const double playheadSeconds = beat * 60.0 / static_cast<double>(std::max(bpm, 1));
             for (int i = 0; i < lfoCount; ++i) {
-                auto* mod = modulationGraph_.modulator(i);
+                if (!relevantLfos[static_cast<size_t>(i)]) continue;
+                auto* mod = modulatorPtrs[static_cast<size_t>(i)];
                 if (mod == nullptr) {
                     continue;
                 }
@@ -120,16 +126,17 @@ bool ProjectEngine::freezeTrackLocked(Track& track,
         }
         std::memset(blockL, 0, static_cast<size_t>(frames) * sizeof(float));
         std::memset(blockR, 0, static_cast<size_t>(frames) * sizeof(float));
-        mixTrackPreGainStereo(trackIndex,
-                              blockL,
-                              blockR,
-                              frames,
-                              kFreezeRenderSampleRate,
-                              beat,
-                              lfoCount > 0 ? lfoValues.data() : nullptr,
-                              lfoCount,
-                              lfoCount > 0 ? modulatorPtrs.data() : nullptr,
-                              retriggerGeneration);
+        mixTrackPreGainStereoWithArena(playback,
+                                       *freezeArena,
+                                       blockL,
+                                       blockR,
+                                       frames,
+                                       kFreezeRenderSampleRate,
+                                       beat,
+                                       lfoCount > 0 ? lfoValues.data() : nullptr,
+                                       lfoCount,
+                                       lfoCount > 0 ? modulatorPtrs.data() : nullptr,
+                                       retriggerGeneration);
         std::memcpy(pcmL.data() + offset, blockL, static_cast<size_t>(frames) * sizeof(float));
         std::memcpy(pcmR.data() + offset, blockR, static_cast<size_t>(frames) * sizeof(float));
     }

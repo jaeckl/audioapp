@@ -930,10 +930,6 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
     if (masterLeft == nullptr || masterRight == nullptr || numFrames <= 0) {
         return;
     }
-    if (freezeBakeActive_.load(std::memory_order_acquire)) {
-        return;
-    }
-
     const int trackCount = trackPlaybackCount_.load(std::memory_order_acquire);
     if (trackCount <= 0) {
         return;
@@ -2548,9 +2544,29 @@ void ProjectEngine::mixTrackPreGainStereo(int trackIndex,
         return;
     }
 
+    mixTrackPreGainStereoWithArena(trackPlayback_[trackIndex],
+                                   trackPlayback_[trackIndex].arena,
+                                   trackLeft, trackRight, numFrames, sampleRate,
+                                   playheadStartBeat, lfoValues, lfoCount,
+                                   modulators, retriggerGeneration);
+}
+
+void ProjectEngine::mixTrackPreGainStereoWithArena(
+    const TrackPlaybackSnapshot& track,
+    ProcessorArena& arena,
+    float* trackLeft,
+    float* trackRight,
+    int numFrames,
+    double sampleRate,
+    double playheadStartBeat,
+    const float* lfoValues,
+    int lfoCount,
+    IModulator* const* modulators,
+    uint32_t retriggerGeneration) noexcept {
+    if (trackLeft == nullptr || trackRight == nullptr || numFrames <= 0) return;
+
     constexpr int kMaxFrames = 4096;
     const int framesToProcess = numFrames > kMaxFrames ? kMaxFrames : numFrames;
-    const TrackPlaybackSnapshot& track = trackPlayback_[trackIndex];
     const int gainIndex = track.trackGainDeviceIndex;
     if (gainIndex < 0) {
         return;
@@ -2617,7 +2633,7 @@ void ProjectEngine::mixTrackPreGainStereo(int trackIndex,
         };
     }
 
-    DeviceChainOrchestrator::Context ctx(trackPlayback_[trackIndex].arena, gProjectScratch);
+    DeviceChainOrchestrator::Context ctx(arena, gProjectScratch);
     ctx.trackLeft = trackLeft;
     ctx.trackRight = trackRight;
     ctx.numFrames = framesToProcess;
