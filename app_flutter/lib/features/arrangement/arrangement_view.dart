@@ -1519,23 +1519,16 @@ class ArrangementViewState extends State<ArrangementView> {
     );
   }
 
-  void _onHeaderColumnDragUpdate(DragUpdateDetails details) {
-    if (widget.compact) return;
-    setState(() {
-      _headerColumnWidth = (_headerColumnWidth + details.delta.dx).clamp(
-        ArrangementTimelineMetrics.trackHeaderWidth,
-        ArrangementTimelineMetrics.trackHeaderExpandedWidth,
-      );
-    });
-  }
-
-  void _onHeaderColumnDragEnd(DragEndDetails details) {
+  void _onTrackHeaderTap(TrackSnapshot track) {
+    if (track.id != widget.snapshot.selectedTrackId) {
+      widget.onTrackSelected(track.id);
+      return;
+    }
     if (widget.compact) return;
     const compact = ArrangementTimelineMetrics.trackHeaderWidth;
     const expanded = ArrangementTimelineMetrics.trackHeaderExpandedWidth;
-    final mid = (compact + expanded) / 2;
     setState(() {
-      _headerColumnWidth = _headerColumnWidth >= mid ? expanded : compact;
+      _headerColumnWidth = _headerColumnWidth == expanded ? compact : expanded;
     });
   }
 
@@ -1760,9 +1753,7 @@ class ArrangementViewState extends State<ArrangementView> {
                     showMixControls: showMixControls,
                     selected:
                         visibleTracks[i].id == widget.snapshot.selectedTrackId,
-                    onTap: () => widget.onTrackSelected(
-                      visibleTracks[i].id,
-                    ),
+                    onTap: () => _onTrackHeaderTap(visibleTracks[i]),
                     onToggleMute: widget.onSetTrackMuted == null
                         ? null
                         : () => widget.onSetTrackMuted!(
@@ -2092,33 +2083,6 @@ class ArrangementViewState extends State<ArrangementView> {
                   child: _MasterHeader(
                     master: widget.snapshot.master,
                     width: headerWidth,
-                  ),
-                ),
-              if (!widget.compact)
-                Positioned(
-                  left: headerWidth - 5,
-                  top: 0,
-                  bottom: ArrangementTimelineMetrics.trackLaneHeight,
-                  width: 10,
-                  child: GestureDetector(
-                    key: const Key('trackHeaderColumnResize'),
-                    behavior: HitTestBehavior.translucent,
-                    onHorizontalDragUpdate: _onHeaderColumnDragUpdate,
-                    onHorizontalDragEnd: _onHeaderColumnDragEnd,
-                    child: MouseRegion(
-                      cursor: SystemMouseCursors.resizeColumn,
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: Container(
-                          width: 3,
-                          margin: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.18),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ),
-                    ),
                   ),
                 ),
               ...markerLayers.inFrontOfChrome,

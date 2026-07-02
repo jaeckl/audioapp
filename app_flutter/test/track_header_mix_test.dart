@@ -53,7 +53,8 @@ Future<void> _pumpArrangement(WidgetTester tester) async {
           onPlayRequested: () {},
           onStopRequested: () {},
           onPlayheadSeek: (_) {},
-          onLoopRegionChanged: ({required startBeat, required endBeat}) async {},
+          onLoopRegionChanged: (
+              {required startBeat, required endBeat}) async {},
           onClipTap: (_, __) {},
           onSampleClipTap: (_, __) {},
           onMoveClip: ({
@@ -71,16 +72,14 @@ Future<void> _pumpArrangement(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('expanded header shows title and mix controls', (tester) async {
+  testWidgets('second touch on selected header expands mix controls',
+      (tester) async {
     await _pumpArrangement(tester);
 
     expect(find.text('Kick'), findsNothing);
+    expect(find.byKey(const Key('trackHeaderColumnResize')), findsNothing);
 
-    final handle = find.byKey(const Key('trackHeaderColumnResize'));
-    final center = tester.getCenter(handle);
-    final gesture = await tester.startGesture(center);
-    await gesture.moveBy(const Offset(140, 0));
-    await gesture.up();
+    await tester.tap(find.byTooltip('Kick'));
     await tester.pumpAndSettle();
 
     expect(find.text('Kick'), findsOneWidget);
