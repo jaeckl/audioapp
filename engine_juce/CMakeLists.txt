@@ -69,6 +69,7 @@ add_library(audioapp_engine STATIC
   src/devices/processors/ClapProcessor.cpp
   src/devices/processors/CymbalProcessor.cpp
   src/devices/processors/CrashProcessor.cpp
+  src/devices/processors/DrumMachineProcessor.cpp
   src/devices/processors/GateProcessor.cpp
   src/devices/processors/CompressorProcessor.cpp
   src/devices/processors/ExpanderProcessor.cpp

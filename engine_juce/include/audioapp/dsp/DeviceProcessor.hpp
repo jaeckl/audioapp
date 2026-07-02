@@ -10,6 +10,7 @@ namespace audioapp {
 
 class DeviceProcessor {
 public:
+    virtual ~DeviceProcessor() = default;
     virtual void initParams(const DeviceVariantParams& params) noexcept {
         storedParams_ = params;
     }
@@ -49,7 +50,6 @@ public:
 
 protected:
     DeviceProcessor() = default;
-    ~DeviceProcessor() = default;
     DeviceProcessor(const DeviceProcessor&) = delete;
     DeviceProcessor& operator=(const DeviceProcessor&) = delete;
 

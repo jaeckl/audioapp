@@ -19,6 +19,7 @@ static constexpr size_t kMaxDeviceStorage = kMaxDevicesPerTrack * kMaxProcessorS
 class ProcessorArena {
 public:
     ProcessorArena() noexcept = default;
+    ~ProcessorArena() { reset(); }
 
     template<typename T, typename... Args>
     T* emplace(Args&&... args) noexcept {
@@ -29,6 +30,9 @@ public:
         if (size_ >= kMaxDevicesPerTrack) return nullptr;
         void* ptr = storage_ + size_ * kMaxProcessorSize;
         auto* proc = ::new (ptr) T(std::forward<Args>(args)...);
+        destructors_[size_] = [](void* object) noexcept {
+            static_cast<DeviceProcessor*>(static_cast<T*>(object))->~DeviceProcessor();
+        };
         ++size_;
         return proc;
     }
@@ -41,10 +45,20 @@ public:
 
     int size() const noexcept { return size_; }
 
-    void reset() noexcept { size_ = 0; }
+    void reset() noexcept {
+        while (size_ > 0) {
+            --size_;
+            if (destructors_[size_] != nullptr) {
+                destructors_[size_](storage_ + size_ * kMaxProcessorSize);
+                destructors_[size_] = nullptr;
+            }
+        }
+    }
 
 private:
     alignas(kProcessorAlignment) char storage_[kMaxDeviceStorage]{};
+    using Destructor = void (*)(void*) noexcept;
+    Destructor destructors_[kMaxDevicesPerTrack]{};
     int size_ = 0;
 };
 
