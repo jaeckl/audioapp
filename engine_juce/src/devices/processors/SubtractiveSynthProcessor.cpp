@@ -160,11 +160,17 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
                                   int modEdgeCount,
                                   const uint16_t* modulationDeviceIndex,
                                   const float* perFramePanelGain,
-                                  const InstrumentModulationContext* instMod) noexcept {
+                                  const InstrumentModulationContext* instMod,
+                                  int voiceLimit,
+                                  bool retriggerReplacesVoice) noexcept {
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
         return;
     }
 
+    const int maxVoices = safe_clamp(voiceLimit, 1, kSubtractiveMaxVoices);
+    if (retriggerReplacesVoice && maxVoices == 1) {
+        for (int v = 1; v < kSubtractiveMaxVoices; ++v) runtime.voices[v].active = 0;
+    }
     const bool useAutomation = automationClips != nullptr && automationClipCount > 0 &&
                                automationDeviceIndex != nullptr;
     const bool useModulation = lfoValues != nullptr && lfoCount > 0 && lfoStride > 0 &&
@@ -188,12 +194,14 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
 
     // --- Phase 1: Voice allocation ---
     int allocatedVoices = 0;
-    for (int ni = 0; ni < noteCount && allocatedVoices < kSubtractiveMaxVoices; ++ni) {
+    for (int ni = retriggerReplacesVoice && maxVoices == 1 ? noteCount - 1 : 0;
+         ni >= 0 && ni < noteCount && allocatedVoices < maxVoices;
+         ni += retriggerReplacesVoice && maxVoices == 1 ? -1 : 1) {
         if (!isNoteAudibleInBlock(notes[ni], blockStartBeat, numFrames, sampleRate, bpm, ampReleaseSec)) {
             continue;
         }
         int vi = -1;
-        for (int v = 0; v < kSubtractiveMaxVoices; ++v) {
+        for (int v = 0; v < maxVoices; ++v) {
             if (runtime.voices[v].active != 0 &&
                 runtime.voices[v].pitch == notes[ni].pitch &&
                 runtime.voices[v].startBeat == notes[ni].noteStartBeat &&
@@ -203,13 +211,13 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
             }
         }
         if (vi < 0) {
-            for (int v = 0; v < kSubtractiveMaxVoices; ++v) {
+            for (int v = 0; v < maxVoices; ++v) {
                 if (runtime.voices[v].active == 0) { vi = v; break; }
             }
         }
         if (vi < 0) {
             vi = runtime.stealIndex;
-            runtime.stealIndex = (runtime.stealIndex + 1) % kSubtractiveMaxVoices;
+            runtime.stealIndex = (runtime.stealIndex + 1) % maxVoices;
         }
 
         auto& voice = runtime.voices[vi];
@@ -231,7 +239,7 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
     }
 
     bool anyVoiceActive = false;
-    for (int v = 0; v < kSubtractiveMaxVoices; ++v) {
+    for (int v = 0; v < maxVoices; ++v) {
         if (runtime.voices[v].active != 0) {
             anyVoiceActive = true;
             break;
@@ -301,7 +309,7 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
             }
         }
 
-        for (int v = 0; v < kSubtractiveMaxVoices; ++v) {
+        for (int v = 0; v < maxVoices; ++v) {
             auto& voice = runtime.voices[v];
             if (voice.active == 0) continue;
 
@@ -433,7 +441,9 @@ void SubtractiveSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) 
         hasMod ? ctx.modEdges : nullptr, hasMod ? ctx.modEdgeCount : 0,
         hasMod ? &di : nullptr,
         ctx.scratch.perFrameGain,
-        instModPtr);
+        instModPtr,
+        ctx.voicePolicy.maxVoices > 0 ? ctx.voicePolicy.maxVoices : kSubtractiveMaxVoices,
+        ctx.voicePolicy.retriggerReplacesVoice);
 
     StereoOutputPanel::applyFromScratch(ctx.scratch.scratch, block, block.numSamples,
                                          bakePanelGain ? nullptr : ctx.scratch.perFrameGain,

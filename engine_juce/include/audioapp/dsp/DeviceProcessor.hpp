@@ -33,6 +33,10 @@ public:
     /// Called when transport loops or playhead seeks backward.
     virtual void resetPlaybackState() noexcept {}
 
+    /// True while an effect can still emit audio with silent input. Containers
+    /// use this to sleep inactive internal chains without cutting delay/reverb tails.
+    virtual bool hasActiveTail() const noexcept { return false; }
+
     const DeviceVariantParams& storedParams() const noexcept { return storedParams_; }
 
     bool bypassed = false;
@@ -41,6 +45,7 @@ public:
     float pan = 0.5f;
     float outputMix = 1.0f;
     float outputWidth = 1.0f;
+    InstrumentVoicePolicy voicePolicy{};
 
 protected:
     DeviceProcessor() = default;

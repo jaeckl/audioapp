@@ -184,12 +184,18 @@ void mixWavetableMidiNotesBlock(float* monoOut,
                                 int modEdgeCount,
                                 const uint16_t* modulationDeviceIndex,
                                 const float* perFramePanelGain,
-                                const InstrumentModulationContext* instMod) noexcept {
+                                const InstrumentModulationContext* instMod,
+                                int voiceLimit,
+                                bool retriggerReplacesVoice) noexcept {
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0 ||
         wavetablePcm == nullptr || wavetableFrameCount <= 0 || wavetableFrameLength <= 0) {
         return;
     }
 
+    const int maxVoices = safe_clamp(voiceLimit, 1, kWavetableMaxVoices);
+    if (retriggerReplacesVoice && maxVoices == 1) {
+        for (int v = 1; v < kWavetableMaxVoices; ++v) runtime.voices[v].active = 0;
+    }
     const bool useAutomation = automationClips != nullptr && automationClipCount > 0 &&
                                automationDeviceIndex != nullptr;
     const bool useModulation = lfoValues != nullptr && lfoCount > 0 && lfoStride > 0 &&
@@ -209,12 +215,14 @@ void mixWavetableMidiNotesBlock(float* monoOut,
 
     // Phase 1: Voice allocation
     int allocatedVoices = 0;
-    for (int ni = 0; ni < noteCount && allocatedVoices < kWavetableMaxVoices; ++ni) {
+    for (int ni = retriggerReplacesVoice && maxVoices == 1 ? noteCount - 1 : 0;
+         ni >= 0 && ni < noteCount && allocatedVoices < maxVoices;
+         ni += retriggerReplacesVoice && maxVoices == 1 ? -1 : 1) {
         if (!isNoteAudibleInBlock(notes[ni], blockStartBeat, numFrames, sampleRate, bpm, ampReleaseSec)) {
             continue;
         }
         int vi = -1;
-        for (int v = 0; v < kWavetableMaxVoices; ++v) {
+        for (int v = 0; v < maxVoices; ++v) {
             if (runtime.voices[v].active != 0 &&
                 runtime.voices[v].pitch == notes[ni].pitch &&
                 runtime.voices[v].startBeat == notes[ni].noteStartBeat &&
@@ -224,13 +232,13 @@ void mixWavetableMidiNotesBlock(float* monoOut,
             }
         }
         if (vi < 0) {
-            for (int v = 0; v < kWavetableMaxVoices; ++v) {
+            for (int v = 0; v < maxVoices; ++v) {
                 if (runtime.voices[v].active == 0) { vi = v; break; }
             }
         }
         if (vi < 0) {
             vi = runtime.stealIndex;
-            runtime.stealIndex = (runtime.stealIndex + 1) % kWavetableMaxVoices;
+            runtime.stealIndex = (runtime.stealIndex + 1) % maxVoices;
         }
 
         auto& voice = runtime.voices[vi];
@@ -252,7 +260,7 @@ void mixWavetableMidiNotesBlock(float* monoOut,
     }
 
     bool anyVoiceActive = false;
-    for (int v = 0; v < kWavetableMaxVoices; ++v) {
+    for (int v = 0; v < maxVoices; ++v) {
         if (runtime.voices[v].active != 0) {
             anyVoiceActive = true;
             break;
@@ -314,7 +322,7 @@ void mixWavetableMidiNotesBlock(float* monoOut,
         float mix = 0.0f;
         int renderedCount = 0;
 
-        for (int v = 0; v < kWavetableMaxVoices; ++v) {
+        for (int v = 0; v < maxVoices; ++v) {
             auto& voice = runtime.voices[v];
             if (voice.active == 0) continue;
 

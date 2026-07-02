@@ -103,6 +103,7 @@ int buildProcessorChain(const DeviceNodePlayback* devices, int deviceCount,
             proc->pan = node.pan;
             proc->outputMix = node.outputMix;
             proc->outputWidth = node.outputWidth;
+            proc->voicePolicy = node.voicePolicy;
             proc->initParams(node.params);
             ++count;
         }
@@ -270,6 +271,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         pc.bpm = ctx.bpm;
         pc.sampleRate = ctx.sampleRate;
         pc.suppressInstruments = ctx.suppressInstruments;
+        pc.voicePolicy = proc->voicePolicy;
         pc.deviceMeters = ctx.deviceMeters;
         pc.maxDeviceMeters = ctx.maxDeviceMeters;
         pc.deviceIndex = deviceIndex;

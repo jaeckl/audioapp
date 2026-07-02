@@ -218,7 +218,9 @@ void WavetableSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) no
         hasMod ? ctx.modEdges : nullptr, hasMod ? ctx.modEdgeCount : 0,
         hasMod ? &di : nullptr,
         ctx.scratch.perFrameGain,
-        instModPtr);
+        instModPtr,
+        ctx.voicePolicy.maxVoices > 0 ? ctx.voicePolicy.maxVoices : kWavetableMaxVoices,
+        ctx.voicePolicy.retriggerReplacesVoice);
 
     StereoOutputPanel::applyFromScratch(ctx.scratch.scratch, block, block.numSamples,
                                          bakePanelGain ? nullptr : ctx.scratch.perFrameGain,

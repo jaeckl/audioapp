@@ -20,6 +20,7 @@ bool ReverbProcessor::ensureBuffers(ProcessContext& ctx) noexcept {
 void ReverbProcessor::resetPlaybackState() noexcept {
     writeIndex_ = 0;
     lfoPhase_ = 0.0f;
+    tailPeak_ = 0.0f;
     std::memset(phaserStateL_, 0, sizeof(phaserStateL_));
     std::memset(phaserStateR_, 0, sizeof(phaserStateR_));
     if (bufferLeft_ != nullptr) {
@@ -48,6 +49,7 @@ void ReverbProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
     float sizeScale = 0.5f + 1.5f * roomSize;
     float fb = 0.7f + 0.25f * roomSize;
 
+    float blockTailPeak = 0.0f;
     for (int f = 0; f < block.numSamples; ++f) {
         float dryL = block.channelL[f];
         float dryR = block.channelR[f];
@@ -89,9 +91,12 @@ void ReverbProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
 
         bufferLeft_[writeIndex_] = dryL + fb * wetL;
         bufferRight_[writeIndex_] = dryR + fb * wetR;
+        blockTailPeak = std::max(blockTailPeak,
+            std::max(std::abs(bufferLeft_[writeIndex_]), std::abs(bufferRight_[writeIndex_])));
 
         writeIndex_ = (writeIndex_ + 1) % DeviceChainScratchArena::kBufferSize;
     }
+    tailPeak_ = blockTailPeak;
 
     if (ctx.deviceMeters != nullptr && meterSlot >= 0 && meterSlot < ctx.maxDeviceMeters) {
         float inputPeak = stereoBlockPeak(block.channelL, block.channelR, block.numSamples);

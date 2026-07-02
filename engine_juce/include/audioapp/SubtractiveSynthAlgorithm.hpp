@@ -141,7 +141,9 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
                                   int modEdgeCount = 0,
                                   const uint16_t* modulationDeviceIndex = nullptr,
                                   const float* perFramePanelGain = nullptr,
-                                  const InstrumentModulationContext* instMod = nullptr) noexcept;
+                                  const InstrumentModulationContext* instMod = nullptr,
+                                  int voiceLimit = kSubtractiveMaxVoices,
+                                  bool retriggerReplacesVoice = false) noexcept;
 
 float subtractiveNoiseSample(float& seed) noexcept;
 

@@ -27,6 +27,14 @@ namespace audioapp {
 
 static constexpr int kMaxInstrumentRegions = 32;
 
+/// Runtime voice constraints supplied by a hosting container. Standalone
+/// instruments retain their native polyphony; drum-pad chains can request a
+/// single replacing voice without changing the device's saved parameters.
+struct InstrumentVoicePolicy {
+    int maxVoices = 0; // 0 = use the instrument's native limit
+    bool retriggerReplacesVoice = false;
+};
+
 // ModulationEdgePlayback is defined in AutomationTypes.hpp
 
 struct MidiPlaybackNote {
@@ -202,6 +210,7 @@ struct DeviceNodePlayback {
     float outputMix = 1.0f;
     float outputWidth = 1.0f;
     int8_t meterSlot = -1;
+    InstrumentVoicePolicy voicePolicy{};
     DeviceVariantParams params;
 };
 

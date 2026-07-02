@@ -20,6 +20,7 @@ bool DelayProcessor::ensureBuffers(ProcessContext& ctx) noexcept {
 void DelayProcessor::resetPlaybackState() noexcept {
     writeIndex_ = 0;
     lfoPhase_ = 0.0f;
+    tailPeak_ = 0.0f;
     if (bufferLeft_ != nullptr) {
         std::memset(bufferLeft_, 0, DeviceChainScratchArena::kBufferSize * sizeof(float));
     }
@@ -42,6 +43,7 @@ void DelayProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
     float fb = std::clamp(p.feedback, 0.0f, 0.95f);
     float mix = std::clamp(p.mix, 0.0f, 1.0f);
 
+    float blockTailPeak = 0.0f;
     for (int f = 0; f < block.numSamples; ++f) {
         float dryL = block.channelL[f];
         float dryR = block.channelR[f];
@@ -56,9 +58,12 @@ void DelayProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
 
         bufferLeft_[writeIndex_] = dryL + fb * delayedL;
         bufferRight_[writeIndex_] = dryR + fb * delayedR;
+        blockTailPeak = std::max(blockTailPeak,
+            std::max(std::abs(bufferLeft_[writeIndex_]), std::abs(bufferRight_[writeIndex_])));
 
         writeIndex_ = (writeIndex_ + 1) % DeviceChainScratchArena::kBufferSize;
     }
+    tailPeak_ = blockTailPeak;
 
     if (ctx.deviceMeters != nullptr && meterSlot >= 0 && meterSlot < ctx.maxDeviceMeters) {
         float inputPeak = stereoBlockPeak(block.channelL, block.channelR, block.numSamples);

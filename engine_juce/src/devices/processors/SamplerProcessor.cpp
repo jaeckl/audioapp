@@ -79,7 +79,9 @@ void mixSamplerMidiNotesBlock(float* monoOut,
                               const SamplerInstrumentPlayback& sampler,
                               const InstrumentModulationContext* instMod,
                               const float* perFramePanelGain,
-                              uint16_t modulationDeviceIndex) {
+                              uint16_t modulationDeviceIndex,
+                              int voiceLimit,
+                              bool retriggerReplacesVoice) {
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
         return;
     }
@@ -101,7 +103,20 @@ void mixSamplerMidiNotesBlock(float* monoOut,
     for (int frame = 0; frame < numFrames; ++frame) {
         const double beat = beatAtFrame(playheadStartBeat, frame, sampleRate, bpm);
         float mix = 0.0f;
+        int selectedNoteIndex = -1;
+        if (retriggerReplacesVoice && voiceLimit == 1) {
+            for (int i = noteCount - 1; i >= 0; --i) {
+                double ignoredElapsed = 0.0;
+                if (isSamplerMidiNoteAudible(notes[i], beat, bpm, releaseSec, ignoredElapsed)) {
+                    selectedNoteIndex = i;
+                    break;
+                }
+            }
+        }
+        int renderedVoices = 0;
         for (int noteIndex = 0; noteIndex < noteCount; ++noteIndex) {
+            if (selectedNoteIndex >= 0 && noteIndex != selectedNoteIndex) continue;
+            if (voiceLimit > 0 && renderedVoices >= voiceLimit) break;
             const auto& note = notes[noteIndex];
             double elapsedSeconds = 0.0;
             if (!isSamplerMidiNoteAudible(note, beat, bpm, releaseSec, elapsedSeconds)) {
@@ -180,6 +195,7 @@ void mixSamplerMidiNotesBlock(float* monoOut,
                 noteSample *= panelGain;
             }
             mix += noteSample;
+            ++renderedVoices;
         }
         if (!usePerNoteFilter && sampler.filterState != nullptr) {
             const float targetCutoffHz = normalizedCutoffToHz(sampler.filterCutoff);
@@ -257,7 +273,9 @@ void SamplerProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept 
             },
             instModPtr,
             ctx.scratch.perFrameGain,
-            di);
+            di,
+            ctx.voicePolicy.maxVoices > 0 ? ctx.voicePolicy.maxVoices : kMaxInstrumentRegions,
+            ctx.voicePolicy.retriggerReplacesVoice);
     };
 
     if (ctx.needsSubBlocks) {

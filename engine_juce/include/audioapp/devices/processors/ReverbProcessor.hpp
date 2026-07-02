@@ -11,6 +11,7 @@ class ReverbProcessor : public DeviceProcessor {
     float lfoPhase_ = 0.0f;
     float phaserStateL_[4] = {};
     float phaserStateR_[4] = {};
+    float tailPeak_ = 0.0f;
 
     bool ensureBuffers(ProcessContext& ctx) noexcept;
 
@@ -18,6 +19,7 @@ public:
     void process(AudioBlock& block, ProcessContext& ctx) noexcept override;
     DeviceNodeKind kind() const noexcept override { return DeviceNodeKind::Reverb; }
     void resetPlaybackState() noexcept override;
+    bool hasActiveTail() const noexcept override { return tailPeak_ > 1.0e-5f; }
 
     // No external runtime to copy — ring buffer lives in scratch arena
 };

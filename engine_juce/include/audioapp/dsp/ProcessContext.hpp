@@ -31,6 +31,7 @@ struct ProcessContext {
     double sampleRate = 48000.0;
 
     bool suppressInstruments = false;
+    InstrumentVoicePolicy voicePolicy{};
 
     DeviceMeterAtomic* deviceMeters = nullptr;
     int maxDeviceMeters = 0;
