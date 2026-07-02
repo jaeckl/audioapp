@@ -73,8 +73,10 @@ class _RulerPainter extends CustomPainter {
     final barWidth = pixelsPerBeat * PianoRollMetrics.beatsPerBar;
     if (barWidth <= 0) return;
 
-    final regionStartPx = (regionStartBeat * pixelsPerBeat).clamp(0.0, size.width);
-    final regionEndPx = (clipLengthBeats * pixelsPerBeat).clamp(0.0, size.width);
+    final regionStartPx =
+        (regionStartBeat * pixelsPerBeat).clamp(0.0, size.width);
+    final regionEndPx =
+        (clipLengthBeats * pixelsPerBeat).clamp(0.0, size.width);
     final radius = const Radius.circular(4);
     final accent = highlightColor ?? PianoRollTheme.accent;
     final activeFill = Paint()..color = accent.withValues(alpha: 0.28);
@@ -87,8 +89,10 @@ class _RulerPainter extends CustomPainter {
       if (laneRight > laneLeft) {
         final laneWidth = (laneRight - laneLeft).clamp(0.0, size.width);
         if (laneWidth >= _minLaneWidth) {
-          final laneRect = Rect.fromLTWH(laneLeft, _laneVInset, laneWidth, barHeight);
-          canvas.drawRRect(RRect.fromRectAndRadius(laneRect, radius), activeEdge);
+          final laneRect =
+              Rect.fromLTWH(laneLeft, _laneVInset, laneWidth, barHeight);
+          canvas.drawRRect(
+              RRect.fromRectAndRadius(laneRect, radius), activeEdge);
         }
       }
     }
@@ -121,7 +125,8 @@ class _RulerPainter extends CustomPainter {
       }
       if (pillWidth <= 0 || pillLeft < 0 || pillLeft >= size.width) continue;
 
-      final pillRect = Rect.fromLTWH(pillLeft, _laneVInset, pillWidth, barHeight);
+      final pillRect =
+          Rect.fromLTWH(pillLeft, _laneVInset, pillWidth, barHeight);
       canvas.drawRRect(
         RRect.fromRectAndRadius(pillRect, radius),
         inClip ? activeFill : idleFill,

@@ -13,6 +13,7 @@ import '../play/play_deck_layout.dart';
 import 'piano_roll_edit_sheet.dart';
 import 'piano_roll_grid_sheet.dart';
 import 'editor_view_range.dart';
+import 'midi_lane_layout.dart';
 import 'piano_roll_metrics.dart';
 import 'piano_roll_note_audition.dart';
 import 'piano_roll_note_ops.dart';
@@ -31,6 +32,7 @@ class PianoRollScreen extends StatefulWidget {
     required this.onSnapshot,
     required this.savedArrangementPlayhead,
     this.drumAnchorPitch,
+    this.drumLaneLayout,
   });
 
   final EngineBridge bridge;
@@ -42,6 +44,7 @@ class PianoRollScreen extends StatefulWidget {
 
   /// GM drum pitch for this track (38 snare, 36 kick, …). Locks draw lane + scroll.
   final int? drumAnchorPitch;
+  final MidiLaneLayout? drumLaneLayout;
 
   @override
   State<PianoRollScreen> createState() => _PianoRollScreenState();
@@ -62,6 +65,8 @@ class _PianoRollScreenState extends State<PianoRollScreen>
   PianoRollGridSettings _grid = const PianoRollGridSettings();
   late PianoRollScaleSettings _scale;
   PianoRollTool _tool = PianoRollTool.select;
+  PianoRollDrawPattern _drawPattern = PianoRollDrawPattern.single;
+  late MidiEditorMode _editorMode;
   int? _selectedIndex;
   int _viewRangeBars = EditorViewRange.defaultBars;
   Future<void>? _pendingNoteSave;
@@ -70,6 +75,9 @@ class _PianoRollScreenState extends State<PianoRollScreen>
   void initState() {
     super.initState();
     _notes = List.of(widget.clip.notes);
+    _editorMode = widget.drumLaneLayout == null
+        ? MidiEditorMode.piano
+        : MidiEditorMode.drums;
     _scale = PianoRollScaleSettings.fromClip(widget.clip);
     _clipLengthBeats = widget.clip.editorContentLengthBeats;
     _previewTransport = ClipEditorTransportController(
@@ -346,9 +354,28 @@ class _PianoRollScreenState extends State<PianoRollScreen>
       context,
       settings: _grid,
       scaleSettings: _scale,
+      onChanged: (next) => setState(() {
+        _grid = _editorMode == MidiEditorMode.drums && next.snapBeats > 0
+            ? next.copyWith(defaultNoteBeats: next.snapBeats)
+            : next;
+      }),
+      onScaleChanged: _onScaleChanged,
+      showScaleControls: _editorMode == MidiEditorMode.piano,
+      bottomInset:
+          PianoRollMetrics.toolDockHeight + PlayDeckLayout.chromeHeight,
+    );
+  }
+
+  void _openDrawSheet() {
+    PianoRollGridSheet.showDraw(
+      context,
+      settings: _grid,
+      scaleSettings: _scale,
       onChanged: (next) => setState(() => _grid = next),
       onScaleChanged: _onScaleChanged,
-      showScaleControls: true,
+      showScaleControls: _editorMode == MidiEditorMode.piano,
+      drawPattern: _drawPattern,
+      onDrawPatternChanged: (value) => setState(() => _drawPattern = value),
       bottomInset:
           PianoRollMetrics.toolDockHeight + PlayDeckLayout.chromeHeight,
     );
@@ -450,9 +477,13 @@ class _PianoRollScreenState extends State<PianoRollScreen>
                     minPitch: PianoRollMetrics.gridMinPitch,
                     maxPitch: PianoRollMetrics.gridMaxPitch,
                     drumAnchorPitch: widget.drumAnchorPitch,
+                    laneLayout: _editorMode == MidiEditorMode.drums
+                        ? widget.drumLaneLayout
+                        : null,
                     gridSettings: _grid,
                     scaleSettings: _scale,
                     tool: _tool,
+                    drawPattern: _drawPattern,
                     selectedIndex: _selectedIndex,
                     onNotesChanged: _onNotesChanged,
                     onSelectionChanged: (index) =>
@@ -501,6 +532,13 @@ class _PianoRollScreenState extends State<PianoRollScreen>
                 onEditTap: _openEditSheet,
                 onUndo: _undo,
                 onRedo: _redo,
+                editorMode: _editorMode,
+                canUseDrumMode: widget.drumLaneLayout != null,
+                onEditorModeChanged: (mode) => setState(() {
+                  _editorMode = mode;
+                  _selectedIndex = null;
+                }),
+                onDrawSettings: _openDrawSheet,
               ),
               PlayDeck(
                 bridge: widget.bridge,

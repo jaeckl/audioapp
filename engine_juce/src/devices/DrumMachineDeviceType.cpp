@@ -58,6 +58,12 @@ void DrumMachineDeviceType::buildPlaybackNode(
                 }
             }, child->config.outputPanel);
             context.deviceRegistry->buildPlaybackNode(*child, context, node);
+            // A drum pad selects its child by MIDI note; it must not also
+            // transpose a nested sampler. Match live audition by treating the
+            // pad note as that sampler's effective root pitch.
+            if (node.kind == DeviceNodeKind::Sampler) {
+                std::get<SamplerParams>(node.params).rootPitch = note;
+            }
         }
     }
     out.kind = DeviceNodeKind::DrumMachine;

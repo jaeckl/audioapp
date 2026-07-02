@@ -14,6 +14,7 @@ class PianoRollNoteBlock extends StatelessWidget {
     required this.pixelsPerBeat,
     required this.rowHeight,
     required this.maxPitch,
+    this.top,
   });
 
   final MidiNoteSnapshot note;
@@ -21,17 +22,17 @@ class PianoRollNoteBlock extends StatelessWidget {
   final double pixelsPerBeat;
   final double rowHeight;
   final int maxPitch;
+  final double? top;
 
   @override
   Widget build(BuildContext context) {
     final inset = PianoRollMetrics.noteVerticalInset;
     final width = note.durationBeats * pixelsPerBeat;
-    final handleW =
-        math.min(PianoRollMetrics.noteResizeHandle, width / 2);
+    final handleW = math.min(PianoRollMetrics.noteResizeHandle, width / 2);
 
     return Positioned(
       left: note.startBeat * pixelsPerBeat,
-      top: (maxPitch - note.pitch) * rowHeight + inset,
+      top: (top ?? (maxPitch - note.pitch) * rowHeight) + inset,
       width: width,
       height: rowHeight - inset * 2,
       child: Stack(
@@ -40,10 +41,13 @@ class PianoRollNoteBlock extends StatelessWidget {
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: selected ? PianoRollTheme.noteSelected : PianoRollTheme.noteFill,
+                color: selected
+                    ? PianoRollTheme.noteSelected
+                    : PianoRollTheme.noteFill,
                 borderRadius: BorderRadius.circular(6),
                 border: selected
-                    ? Border.all(color: PianoRollTheme.noteBorderSelected, width: 1.5)
+                    ? Border.all(
+                        color: PianoRollTheme.noteBorderSelected, width: 1.5)
                     : Border.all(color: PianoRollTheme.noteBorder, width: 0.5),
               ),
             ),
@@ -57,10 +61,12 @@ class PianoRollNoteBlock extends StatelessWidget {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.35),
-                  borderRadius: const BorderRadius.horizontal(right: Radius.circular(6)),
+                  borderRadius:
+                      const BorderRadius.horizontal(right: Radius.circular(6)),
                 ),
                 child: const Center(
-                  child: Icon(Icons.drag_handle, size: 14, color: Colors.white70),
+                  child:
+                      Icon(Icons.drag_handle, size: 14, color: Colors.white70),
                 ),
               ),
             ),

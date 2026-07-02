@@ -52,7 +52,8 @@ public:
                                  int insertIndex = -1);
     bool removeDeviceFromTrack(const std::string& deviceId);
     std::string addDeviceToDrumPad(const std::string& drumMachineId, int note,
-                                   const std::string& deviceType, int insertIndex = -1);
+                                   const std::string& deviceType, int insertIndex = -1,
+                                   const std::string& padName = {});
     bool removeDeviceFromDrumPad(const std::string& drumMachineId, int note,
                                  const std::string& deviceId);
     bool setDrumPadParameter(const std::string& drumMachineId, int note,

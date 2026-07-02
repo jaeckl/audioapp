@@ -15,7 +15,8 @@ class PianoRollClipEndPill extends StatelessWidget {
         decoration: BoxDecoration(
           color: PianoRollTheme.clipBoundary,
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.85), width: 1.5),
+          border: Border.all(
+              color: Colors.white.withValues(alpha: 0.85), width: 1.5),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.45),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'piano_roll_metrics.dart';
+import 'midi_lane_layout.dart';
 import 'piano_roll_theme.dart';
 
 class PianoRollToolDock extends StatelessWidget {
@@ -15,6 +16,10 @@ class PianoRollToolDock extends StatelessWidget {
     required this.onRedo,
     required this.previewPlaying,
     required this.onPreviewPlayStop,
+    required this.editorMode,
+    required this.canUseDrumMode,
+    required this.onEditorModeChanged,
+    required this.onDrawSettings,
   });
 
   final PianoRollTool tool;
@@ -26,6 +31,10 @@ class PianoRollToolDock extends StatelessWidget {
   final VoidCallback onRedo;
   final bool previewPlaying;
   final VoidCallback onPreviewPlayStop;
+  final MidiEditorMode editorMode;
+  final bool canUseDrumMode;
+  final ValueChanged<MidiEditorMode> onEditorModeChanged;
+  final VoidCallback onDrawSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +57,7 @@ class PianoRollToolDock extends StatelessWidget {
               label: 'Draw',
               active: tool == PianoRollTool.draw,
               onTap: () => onToolChanged(PianoRollTool.draw),
+              onLongPress: onDrawSettings,
             ),
             _DockButton(
               icon: Icons.tune_outlined,
@@ -55,7 +65,22 @@ class PianoRollToolDock extends StatelessWidget {
               label: 'Edit',
               active: false,
               onTap: onEditTap,
+              enabled: editorMode == MidiEditorMode.piano,
             ),
+            if (canUseDrumMode)
+              _DockButton(
+                icon: editorMode == MidiEditorMode.drums
+                    ? Icons.piano
+                    : Icons.grid_view_rounded,
+                activeIcon: Icons.grid_view_rounded,
+                label: editorMode == MidiEditorMode.drums ? 'Piano' : 'Drums',
+                active: editorMode == MidiEditorMode.drums,
+                onTap: () => onEditorModeChanged(
+                  editorMode == MidiEditorMode.drums
+                      ? MidiEditorMode.piano
+                      : MidiEditorMode.drums,
+                ),
+              ),
             const Spacer(),
             _DockButton(
               icon: Icons.play_arrow,
@@ -98,6 +123,7 @@ class _DockButton extends StatelessWidget {
     required this.onTap,
     this.enabled = true,
     this.showLabel = false,
+    this.onLongPress,
   });
 
   final IconData icon;
@@ -107,6 +133,7 @@ class _DockButton extends StatelessWidget {
   final bool enabled;
   final bool showLabel;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -114,6 +141,7 @@ class _DockButton extends StatelessWidget {
       color: active ? PianoRollTheme.dockActive : Colors.transparent,
       child: InkWell(
         onTap: enabled ? onTap : null,
+        onLongPress: enabled ? onLongPress : null,
         child: SizedBox(
           width: showLabel ? 72 : 52,
           height: PianoRollMetrics.toolDockHeight,

@@ -137,6 +137,8 @@ class PianoRollMetrics {
 
 enum PianoRollTool { select, draw }
 
+enum PianoRollDrawPattern { single, repeat }
+
 enum PianoRollSnap {
   off,
 

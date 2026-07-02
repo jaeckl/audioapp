@@ -11,6 +11,7 @@ import 'piano_roll_grid_painter.dart';
 import 'piano_roll_key_column.dart';
 import 'editor_view_range.dart';
 import 'piano_roll_metrics.dart';
+import 'midi_lane_layout.dart';
 import 'piano_roll_note_block.dart';
 import 'piano_roll_ruler.dart';
 import 'piano_roll_scale.dart';
@@ -29,9 +30,11 @@ class PianoRollViewport extends StatefulWidget {
     required this.minPitch,
     required this.maxPitch,
     this.drumAnchorPitch,
+    this.laneLayout,
     required this.gridSettings,
     required this.scaleSettings,
     required this.tool,
+    this.drawPattern = PianoRollDrawPattern.single,
     required this.selectedIndex,
     required this.onNotesChanged,
     required this.onSelectionChanged,
@@ -59,9 +62,11 @@ class PianoRollViewport extends StatefulWidget {
   final int minPitch;
   final int maxPitch;
   final int? drumAnchorPitch;
+  final MidiLaneLayout? laneLayout;
   final PianoRollGridSettings gridSettings;
   final PianoRollScaleSettings scaleSettings;
   final PianoRollTool tool;
+  final PianoRollDrawPattern drawPattern;
   final int? selectedIndex;
   final ValueChanged<List<MidiNoteSnapshot>> onNotesChanged;
   final ValueChanged<int?> onSelectionChanged;
@@ -96,6 +101,7 @@ class PianoRollViewportState extends State<PianoRollViewport> {
   bool _syncingScroll = false;
   bool _didInitialScroll = false;
   double _lastViewportHeight = 0;
+  double _drumViewportHeight = -1;
 
   final Map<int, Offset> _canvasPointers = {};
   double? _pinchStartSpanX;
@@ -156,8 +162,30 @@ class PianoRollViewportState extends State<PianoRollViewport> {
     );
   }
 
-  double get _gridHeight =>
-      PianoRollMetrics.gridHeight(widget.minPitch, widget.maxPitch, _rowHeight);
+  List<int> get _visiblePitches =>
+      widget.laneLayout?.lanes
+          .map((lane) => lane.pitch)
+          .toList(growable: false) ??
+      [
+        for (var pitch = widget.maxPitch; pitch >= widget.minPitch; pitch--)
+          pitch
+      ];
+
+  double get _gridHeight => _visiblePitches.length * _rowHeight;
+
+  int _rowForPitch(int pitch) => _visiblePitches.indexOf(pitch);
+
+  double? _topForPitch(int pitch) {
+    final row = _rowForPitch(pitch);
+    return row < 0 ? null : row * _rowHeight;
+  }
+
+  bool _isEditablePitch(int pitch) =>
+      widget.laneLayout == null ||
+      widget.laneLayout!.lanes
+          .any((lane) => lane.pitch == pitch && lane.enabled);
+
+  double get _insertDuration => widget.gridSettings.insertNoteDurationBeats;
 
   void _onMarkerOverlayScroll() {
     if (mounted) setState(() {});
@@ -190,6 +218,12 @@ class PianoRollViewportState extends State<PianoRollViewport> {
     }
     if (widget.viewRangeBars != oldWidget.viewRangeBars) {
       _scheduleApplyViewRange(widget.viewRangeBars);
+    }
+    if ((oldWidget.laneLayout == null) != (widget.laneLayout == null)) {
+      _rowHeight = PianoRollMetrics.rowHeight;
+      _pinchStartRowH = _rowHeight;
+      _didInitialScroll = false;
+      _drumViewportHeight = -1;
     }
   }
 
@@ -641,16 +675,19 @@ class PianoRollViewportState extends State<PianoRollViewport> {
     widget.onEditStarted();
     _editCommitted = true;
     final pitch = _pitchFromDy(canvasPos.dy);
+    if (!_isEditablePitch(pitch)) return;
     final startBeat = _beatFromDx(canvasPos.dx);
     _dragMode = _DragMode.draw;
     _dragStartBeat = startBeat;
     _dragStartPitch = pitch;
     _draggingIndex = widget.notes.length;
-    final chordPitches = widget.scaleSettings.chordPitches(
-      pitch,
-      minPitch: widget.minPitch,
-      maxPitch: widget.maxPitch,
-    );
+    final chordPitches = widget.laneLayout != null
+        ? [pitch]
+        : widget.scaleSettings.chordPitches(
+            pitch,
+            minPitch: widget.minPitch,
+            maxPitch: widget.maxPitch,
+          );
     _drawChordIndexes = [
       for (var i = 0; i < chordPitches.length; i++) widget.notes.length + i,
     ];
@@ -660,7 +697,7 @@ class PianoRollViewportState extends State<PianoRollViewport> {
           MidiNoteSnapshot(
             pitch: chordPitch,
             startBeat: startBeat,
-            durationBeats: widget.gridSettings.insertNoteDurationBeats,
+            durationBeats: _insertDuration,
             velocity: 100,
           ),
       ]);
@@ -676,6 +713,36 @@ class PianoRollViewportState extends State<PianoRollViewport> {
         _dragMode != _DragMode.draw) {
       return;
     }
+
+    if (widget.drawPattern == PianoRollDrawPattern.repeat) {
+      final startBeat = _beatFromDx(canvasPos.dx);
+      final source = widget.notes[index];
+      final chordPitches = widget.laneLayout != null
+          ? [source.pitch]
+          : widget.scaleSettings.chordPitches(
+              source.pitch,
+              minPitch: widget.minPitch,
+              maxPitch: widget.maxPitch,
+            );
+      final notes = List<MidiNoteSnapshot>.of(widget.notes);
+      var changed = false;
+      for (final pitch in chordPitches) {
+        final exists = notes.any((note) =>
+            note.pitch == pitch && (note.startBeat - startBeat).abs() < 0.0001);
+        if (exists) continue;
+        notes.add(MidiNoteSnapshot(
+          pitch: pitch,
+          startBeat: startBeat,
+          durationBeats: _insertDuration,
+          velocity: 100,
+        ));
+        changed = true;
+      }
+      if (changed) _setNotes(notes);
+      return;
+    }
+
+    if (widget.laneLayout != null) return;
 
     final note = widget.notes[index];
     final minDur = widget.gridSettings.snapBeats > 0
@@ -705,13 +772,16 @@ class PianoRollViewportState extends State<PianoRollViewport> {
   void _insertNoteAt(Offset canvasPos) {
     widget.onEditStarted();
     final pitch = _pitchFromDy(canvasPos.dy);
+    if (!_isEditablePitch(pitch)) return;
     final startBeat = _beatFromDx(canvasPos.dx);
-    final dur = widget.gridSettings.insertNoteDurationBeats;
-    final chordPitches = widget.scaleSettings.chordPitches(
-      pitch,
-      minPitch: widget.minPitch,
-      maxPitch: widget.maxPitch,
-    );
+    final dur = _insertDuration;
+    final chordPitches = widget.laneLayout != null
+        ? [pitch]
+        : widget.scaleSettings.chordPitches(
+            pitch,
+            minPitch: widget.minPitch,
+            maxPitch: widget.maxPitch,
+          );
     final notes = List<MidiNoteSnapshot>.of(widget.notes)
       ..addAll([
         for (final chordPitch in chordPitches)
@@ -753,9 +823,10 @@ class PianoRollViewportState extends State<PianoRollViewport> {
         (_dragStartBeat! + delta.dx / _pixelsPerBeat)
             .clamp(0.0, widget.virtualLengthBeats - note.durationBeats),
       );
-      final newPitch = _pitchFromDy(
-        (widget.maxPitch - _dragStartPitch!) * _rowHeight + delta.dy,
-      );
+      final startTop = _topForPitch(_dragStartPitch!);
+      if (startTop == null) return;
+      final newPitch = _pitchFromDy(startTop + delta.dy);
+      if (!_isEditablePitch(newPitch)) return;
       if (newPitch != note.pitch && newPitch != _movePreviewPitch) {
         _movePreviewPitch = newPitch;
         widget.onNotePreview?.call(
@@ -867,7 +938,7 @@ class PianoRollViewportState extends State<PianoRollViewport> {
       return;
     if (!_vertical.hasClients) return;
     final centerY = _vertical.offset + _lastViewportHeight / 2;
-    final pitch = (widget.maxPitch - centerY / _rowHeight).round();
+    final pitch = _pitchFromDy(centerY);
     widget.onCenterOctaveChanged!(
       PianoRollMetrics.octaveOffsetFromPitch(pitch),
     );
@@ -879,15 +950,17 @@ class PianoRollViewportState extends State<PianoRollViewport> {
       if (!mounted || _didInitialScroll) return;
       if (!_vertical.hasClients) return;
       _didInitialScroll = true;
-      final y = PianoRollMetrics.initialVerticalScrollOffset(
-        pitches: widget.drumAnchorPitch != null && widget.notes.isEmpty
-            ? [widget.drumAnchorPitch!]
-            : widget.notes.map((n) => n.pitch),
-        minPitch: widget.minPitch,
-        maxPitch: widget.maxPitch,
-        rowHeight: _rowHeight,
-        viewportHeight: viewportHeight,
-      );
+      final y = widget.laneLayout != null
+          ? 0.0
+          : PianoRollMetrics.initialVerticalScrollOffset(
+              pitches: widget.drumAnchorPitch != null && widget.notes.isEmpty
+                  ? [widget.drumAnchorPitch!]
+                  : widget.notes.map((n) => n.pitch),
+              minPitch: widget.minPitch,
+              maxPitch: widget.maxPitch,
+              rowHeight: _rowHeight,
+              viewportHeight: viewportHeight,
+            );
       _vertical.jumpTo(y);
       if (_verticalKeys.hasClients) _verticalKeys.jumpTo(y);
       if (_horizontal.hasClients) _horizontal.jumpTo(0);
@@ -897,6 +970,11 @@ class PianoRollViewportState extends State<PianoRollViewport> {
   }
 
   int _pitchFromDy(double dy) {
+    if (widget.laneLayout != null) {
+      final pitches = _visiblePitches;
+      final row = (dy / _rowHeight).floor().clamp(0, pitches.length - 1);
+      return pitches[row];
+    }
     if (widget.drumAnchorPitch != null) {
       return widget.drumAnchorPitch!;
     }
@@ -916,10 +994,9 @@ class PianoRollViewportState extends State<PianoRollViewport> {
   int? _noteIndexAt(Offset canvasPos) {
     for (var i = widget.notes.length - 1; i >= 0; i--) {
       final note = widget.notes[i];
-      if (note.pitch < widget.minPitch || note.pitch > widget.maxPitch)
-        continue;
+      final top = _topForPitch(note.pitch);
+      if (top == null) continue;
       final left = note.startBeat * _pixelsPerBeat;
-      final top = (widget.maxPitch - note.pitch) * _rowHeight;
       final width = note.durationBeats * _pixelsPerBeat;
       final rect = Rect.fromLTWH(left, top, width, _rowHeight);
       if (rect.contains(canvasPos)) return i;
@@ -928,6 +1005,7 @@ class PianoRollViewportState extends State<PianoRollViewport> {
   }
 
   _DragMode _dragModeAt(Offset canvasPos, int index) {
+    if (widget.laneLayout != null) return _DragMode.move;
     final note = widget.notes[index];
     final left = note.startBeat * _pixelsPerBeat;
     final width = note.durationBeats * _pixelsPerBeat;
@@ -1081,13 +1159,14 @@ class PianoRollViewportState extends State<PianoRollViewport> {
           pixelsPerBeat: _pixelsPerBeat,
           rowHeight: _rowHeight,
           scaleSettings: widget.scaleSettings,
+          lanes: widget.laneLayout?.lanes,
         ),
         child: Stack(
           clipBehavior: Clip.none,
           children: [
             for (var i = 0; i < widget.notes.length; i++)
-              if (widget.notes[i].pitch >= widget.minPitch &&
-                  widget.notes[i].pitch <= widget.maxPitch)
+              if (_topForPitch(widget.notes[i].pitch) != null &&
+                  _isEditablePitch(widget.notes[i].pitch))
                 PianoRollNoteBlock(
                   note: widget.notes[i],
                   selected: _dragMode != _DragMode.draw &&
@@ -1095,6 +1174,7 @@ class PianoRollViewportState extends State<PianoRollViewport> {
                   pixelsPerBeat: _pixelsPerBeat,
                   rowHeight: _rowHeight,
                   maxPitch: widget.maxPitch,
+                  top: _topForPitch(widget.notes[i].pitch),
                 ),
           ],
         ),
@@ -1136,6 +1216,7 @@ class PianoRollViewportState extends State<PianoRollViewport> {
           maxPitch: widget.maxPitch,
           rowHeight: _rowHeight,
           highlightPitch: widget.drumAnchorPitch,
+          lanes: widget.laneLayout?.lanes,
           onPitchTap: widget.onPitchPreview,
         ),
       ),
@@ -1178,6 +1259,12 @@ class PianoRollViewportState extends State<PianoRollViewport> {
       builder: (context, constraints) {
         _lastViewportHeight =
             constraints.maxHeight - PianoRollMetrics.rulerHeight;
+        if (widget.laneLayout != null &&
+            (_lastViewportHeight - _drumViewportHeight).abs() > 0.5) {
+          _drumViewportHeight = _lastViewportHeight;
+          _rowHeight = _lastViewportHeight / 8;
+          _pinchStartRowH = _rowHeight;
+        }
         _scheduleInitialScroll(_lastViewportHeight);
         final timelineWidth =
             constraints.maxWidth - PianoRollMetrics.keyColumnWidth;

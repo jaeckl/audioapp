@@ -209,13 +209,15 @@ bool ProjectEngine::removeDeviceFromTrack(const std::string& deviceId) {
 }
 
 std::string ProjectEngine::addDeviceToDrumPad(const std::string& drumMachineId, int note,
-                                              const std::string& deviceType, int insertIndex) {
+                                              const std::string& deviceType, int insertIndex,
+                                              const std::string& padName) {
     const juce::ScopedWriteLock lock(mutex_);
     DeviceSlot* machineSlot = findDeviceLocked(drumMachineId);
     if (machineSlot == nullptr || machineSlot->config.typeId != device_types::kDrumMachine ||
         note < 0 || note >= DrumMachineModel::kMidiNoteCount ||
         deviceType == device_types::kDrumMachine || !deviceRegistry_.isKnownType(deviceType)) return {};
     auto& pad = std::get<DrumMachineModel>(machineSlot->config.instance).pads[static_cast<size_t>(note)];
+    if (!padName.empty()) pad.name = padName;
     if (pad.devices.size() >= DrumMachineModel::kMaxDevicesPerPad) return {};
     const std::string id = trackRepo_.allocateDeviceId();
     auto child = std::make_shared<DeviceSlot>(deviceRegistry_.createDefault(deviceType, id));

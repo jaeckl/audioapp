@@ -11,6 +11,7 @@ abstract final class PianoRollTheme {
 
   static const whiteKey = PlayDeckTheme.keyWhite;
   static const blackKey = PlayDeckTheme.keyBlack;
+
   /// Key-column row stripes — ivory whites for white keys only (not the note canvas).
   static const whiteKeyRow = Color(0xFFF5F0E6);
   static const blackKeyRow = Color(0xFF35353F);

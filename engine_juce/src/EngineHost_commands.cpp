@@ -109,9 +109,10 @@ bool EngineHost::removeDeviceFromTrack(const std::string& deviceId) {
 }
 
 std::string EngineHost::addDeviceToDrumPad(const std::string& drumMachineId, int note,
-                                           const std::string& deviceType, int insertIndex) {
+                                           const std::string& deviceType, int insertIndex,
+                                           const std::string& padName) {
     return project_ != nullptr
-        ? project_->addDeviceToDrumPad(drumMachineId, note, deviceType, insertIndex) : std::string{};
+        ? project_->addDeviceToDrumPad(drumMachineId, note, deviceType, insertIndex, padName) : std::string{};
 }
 
 bool EngineHost::removeDeviceFromDrumPad(const std::string& drumMachineId, int note,
@@ -1172,7 +1173,9 @@ void EngineHost::registerAllCommands() {
         const int note = static_cast<int>(static_cast<double>(ctx.args["note"]));
         const int insertIndex = ctx.args.hasProperty("insertIndex")
             ? static_cast<int>(static_cast<double>(ctx.args["insertIndex"])) : -1;
-        if (ctx.engine.addDeviceToDrumPad(machineId, note, deviceType, insertIndex).empty())
+        const auto padName = ctx.args.hasProperty("padName")
+            ? ctx.args["padName"].toString().toStdString() : std::string{};
+        if (ctx.engine.addDeviceToDrumPad(machineId, note, deviceType, insertIndex, padName).empty())
             return commands::errorResult("invalid_drum_pad_device");
         return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
     });

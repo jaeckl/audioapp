@@ -27,6 +27,7 @@ import '../features/device_strip/subtractive_synth_presets.dart';
 import '../features/mixer/mixer_view.dart';
 import '../features/play/live_instrument_panel.dart';
 import '../features/piano_roll/piano_roll_screen.dart';
+import '../features/piano_roll/midi_lane_layout.dart';
 import '../features/sample_library/sample_library_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/welcome/example_projects.dart';
@@ -1049,6 +1050,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         drumMachineId: drumMachineId,
         note: drumNote,
         deviceType: 'simple_sampler',
+        padName: sample.name,
       );
       final machine = updated.deviceById(drumMachineId);
       if (machine is DrumMachineDeviceSnapshot) {
@@ -1211,6 +1213,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         drumMachineId: drumMachineId,
         note: drumNote,
         deviceType: item.deviceType,
+        padName: item.title,
       );
       final machine = updated.deviceById(drumMachineId);
       final children = machine is DrumMachineDeviceSnapshot
@@ -1229,7 +1232,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
           }
         }
       }
-      await _refreshSnapshot(updated);
+      await _refreshSnapshot(await widget.bridge.getProjectSnapshot());
       await _libraryPanelKey.currentState?.close();
       return;
     }
@@ -1580,6 +1583,26 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
     if (track == null) return;
 
+    DrumMachineDeviceSnapshot? drumMachine;
+    for (final device in track.visibleDevices) {
+      if (device is DrumMachineDeviceSnapshot) {
+        drumMachine = device;
+        break;
+      }
+    }
+    final drumLaneLayout = drumMachine == null
+        ? null
+        : MidiLaneLayout(
+            drumMachine.pads
+                .where((pad) => pad.devices.isNotEmpty)
+                .map((pad) => MidiLaneDefinition(
+                      pitch: pad.note,
+                      name: pad.name.isNotEmpty
+                          ? pad.name
+                          : MidiLaneLayout.defaultName(pad.note),
+                    )),
+          );
+
     final savedPlayhead = await _beginClipEditorSession();
     if (!mounted) return;
     await Navigator.of(context).push<void>(
@@ -1590,6 +1613,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
           trackName: track!.name,
           bpm: _snapshot?.bpm ?? 120,
           drumAnchorPitch: track.drumAnchorPitch,
+          drumLaneLayout:
+              drumLaneLayout?.isNotEmpty == true ? drumLaneLayout : null,
           onSnapshot: _refreshSnapshot,
           savedArrangementPlayhead: savedPlayhead,
         ),

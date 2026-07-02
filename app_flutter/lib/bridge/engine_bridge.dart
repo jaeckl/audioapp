@@ -174,12 +174,14 @@ class EngineBridge {
     required int note,
     required String deviceType,
     int? insertIndex,
+    String? padName,
   }) =>
       _invokeForSnapshot('addDeviceToDrumPad', {
         'drumMachineId': drumMachineId,
         'note': note,
         'deviceType': deviceType,
         if (insertIndex != null) 'insertIndex': insertIndex,
+        if (padName != null && padName.isNotEmpty) 'padName': padName,
       });
 
   Future<ProjectSnapshot> removeDeviceFromDrumPad({

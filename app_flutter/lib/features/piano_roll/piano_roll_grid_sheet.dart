@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../play/play_deck_layout.dart';
 import '../play/play_scale.dart';
+import '../play/play_deck_layout.dart';
 import 'piano_roll_metrics.dart';
 import 'piano_roll_scale.dart';
 import 'piano_roll_theme.dart';
@@ -14,15 +14,20 @@ class PianoRollGridSheet extends StatefulWidget {
     required this.showScaleControls,
     required this.onChanged,
     required this.onScaleChanged,
+    this.drawControls = false,
+    this.initialDrawPattern = PianoRollDrawPattern.single,
+    this.onDrawPatternChanged,
   });
 
   final PianoRollGridSettings initialSettings;
   final PianoRollScaleSettings initialScaleSettings;
   final bool showScaleControls;
+  final bool drawControls;
+  final PianoRollDrawPattern initialDrawPattern;
+  final ValueChanged<PianoRollDrawPattern>? onDrawPatternChanged;
   final ValueChanged<PianoRollGridSettings> onChanged;
   final ValueChanged<PianoRollScaleSettings> onScaleChanged;
 
-  /// Opens the grid panel above [bottomInset] px of chrome (e.g. piano-roll PlayDeck).
   static Future<void> show(
     BuildContext context, {
     required PianoRollGridSettings settings,
@@ -31,17 +36,10 @@ class PianoRollGridSheet extends StatefulWidget {
     ValueChanged<PianoRollScaleSettings>? onScaleChanged,
     bool showScaleControls = false,
     double bottomInset = 0,
-  }) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useRootNavigator: true,
-      backgroundColor: PianoRollTheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-      ),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: bottomInset),
+  }) =>
+      _showPopup(
+        context,
+        alignBottom: false,
         child: PianoRollGridSheet(
           initialSettings: settings,
           initialScaleSettings: scaleSettings,
@@ -49,7 +47,60 @@ class PianoRollGridSheet extends StatefulWidget {
           onChanged: onChanged,
           onScaleChanged: onScaleChanged ?? (_) {},
         ),
+      );
+
+  static Future<void> showDraw(
+    BuildContext context, {
+    required PianoRollGridSettings settings,
+    required ValueChanged<PianoRollGridSettings> onChanged,
+    required PianoRollScaleSettings scaleSettings,
+    required ValueChanged<PianoRollScaleSettings> onScaleChanged,
+    required bool showScaleControls,
+    PianoRollDrawPattern drawPattern = PianoRollDrawPattern.single,
+    ValueChanged<PianoRollDrawPattern>? onDrawPatternChanged,
+    double bottomInset = 0,
+  }) =>
+      _showPopup(
+        context,
+        alignBottom: true,
+        child: PianoRollGridSheet(
+          initialSettings: settings,
+          initialScaleSettings: scaleSettings,
+          showScaleControls: showScaleControls,
+          drawControls: true,
+          initialDrawPattern: drawPattern,
+          onDrawPatternChanged: onDrawPatternChanged,
+          onChanged: onChanged,
+          onScaleChanged: onScaleChanged,
+        ),
+      );
+
+  static Future<void> _showPopup(
+    BuildContext context, {
+    required bool alignBottom,
+    required Widget child,
+  }) {
+    final overlay =
+        Overlay.of(context).context.findRenderObject()! as RenderBox;
+    final size = overlay.size;
+    final position = alignBottom
+        ? RelativeRect.fromLTRB(8, size.height - 390, size.width - 292, 56)
+        : RelativeRect.fromLTRB(size.width - 292, 52, 8, size.height - 52);
+    return showMenu<void>(
+      context: context,
+      position: position,
+      color: const Color(0xFF1A1A22),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: const BorderSide(color: Color(0xFF343442)),
       ),
+      items: [
+        PopupMenuItem<void>(
+          enabled: false,
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+          child: SizedBox(width: 260, child: child),
+        ),
+      ],
     );
   }
 
@@ -58,211 +109,232 @@ class PianoRollGridSheet extends StatefulWidget {
 }
 
 class _PianoRollGridSheetState extends State<PianoRollGridSheet> {
-  late PianoRollGridSettings _settings;
-  late PianoRollScaleSettings _scaleSettings;
+  late PianoRollGridSettings _settings = widget.initialSettings;
+  late PianoRollScaleSettings _scale = widget.initialScaleSettings;
+  late PianoRollDrawPattern _drawPattern = widget.initialDrawPattern;
 
-  @override
-  void initState() {
-    super.initState();
-    _settings = widget.initialSettings;
-    _scaleSettings = widget.initialScaleSettings;
+  void _setGrid(PianoRollGridSettings value) {
+    setState(() => _settings = value);
+    widget.onChanged(value);
   }
 
-  void _update(PianoRollGridSettings next) {
-    setState(() => _settings = next);
-    widget.onChanged(next);
-  }
-
-  void _updateScale(PianoRollScaleSettings next) {
-    setState(() => _scaleSettings = next);
-    widget.onScaleChanged(next);
+  void _setScale(PianoRollScaleSettings value) {
+    setState(() => _scale = value);
+    widget.onScaleChanged(value);
   }
 
   @override
-  Widget build(BuildContext context) {
-    final bottomSafe = MediaQuery.paddingOf(context).bottom;
+  Widget build(BuildContext context) =>
+      widget.drawControls ? _drawPanel() : _gridPanel();
 
-    return SafeArea(
-      top: false,
-      child: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(16, 12, 16, 16 + bottomSafe),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'Grid',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+  Widget _gridPanel() => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _Title('Grid'),
+          const SizedBox(height: 12),
+          const _SectionTitle('Note snap'),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+              child: _Pill(
+                label: 'Off',
+                active: _settings.snap == PianoRollSnap.off,
+                onTap: () => _setGrid(
+                  _settings.copyWith(snap: PianoRollSnap.off),
+                ),
               ),
             ),
-            const SizedBox(height: 16),
-            const _SectionTitle('Snap'),
+            const SizedBox(width: 6),
+            Expanded(
+              child: _Pill(
+                label: 'On',
+                active: _settings.snap != PianoRollSnap.off,
+                onTap: () => _setGrid(
+                  _settings.copyWith(snap: PianoRollSnap.sixteenth),
+                ),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 12),
+          _DropdownRow<PianoRollSnap>(
+            label: 'Resolution',
+            value: _settings.snap == PianoRollSnap.off
+                ? PianoRollSnap.sixteenth
+                : _settings.snap,
+            values: PianoRollSnap.values
+                .where((value) => value != PianoRollSnap.off)
+                .toList(),
+            text: (value) => value.shortLabel,
+            onChanged: (value) => _setGrid(_settings.copyWith(snap: value)),
+          ),
+          const SizedBox(height: 12),
+          const _SectionTitle('Grid feel'),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+              child: _Pill(
+                label: 'Straight',
+                active: !_settings.triplet,
+                onTap: () => _setGrid(_settings.copyWith(triplet: false)),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: _Pill(
+                label: 'Triplets',
+                active: _settings.triplet,
+                onTap: () => _setGrid(_settings.copyWith(triplet: true)),
+              ),
+            ),
+          ]),
+          if (widget.showScaleControls) ...[
+            const SizedBox(height: 14),
+            const Divider(height: 1, color: Color(0xFF343442)),
+            const SizedBox(height: 12),
+            const _SectionTitle('Scale'),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final snap in PianoRollSnap.values)
-                  _Pill(
-                    label: snap.shortLabel,
-                    active: _settings.snap == snap,
-                    onTap: () => _update(_settings.copyWith(snap: snap)),
+            Row(children: [
+              Expanded(
+                child: _DropdownRow<int>(
+                  label: 'Root',
+                  value: _scale.rootPitchClass,
+                  values: List.generate(12, (index) => index),
+                  text: (value) => PlayScale.noteNames[value],
+                  onChanged: (value) =>
+                      _setScale(_scale.copyWith(rootPitchClass: value)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _DropdownRow<PlayScale>(
+                  label: 'Type',
+                  value: _scale.scale,
+                  values: PlayScale.presets,
+                  text: (value) => value.label,
+                  onChanged: (value) =>
+                      _setScale(_scale.copyWith(scale: value)),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 10),
+            Row(children: [
+              Expanded(
+                child: _Pill(
+                  label: 'Highlight',
+                  active: _scale.highlight,
+                  onTap: () =>
+                      _setScale(_scale.copyWith(highlight: !_scale.highlight)),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: _Pill(
+                  label: 'Snap pitch',
+                  active: _scale.snapToScale,
+                  onTap: () => _setScale(
+                    _scale.copyWith(snapToScale: !_scale.snapToScale),
                   ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const _SectionTitle('Triplet'),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                _Pill(
-                  label: 'Off',
-                  active: !_settings.triplet,
-                  onTap: () => _update(_settings.copyWith(triplet: false)),
                 ),
-                const SizedBox(width: 6),
-                _Pill(
-                  label: 'On',
-                  active: _settings.triplet,
-                  onTap: () => _update(_settings.copyWith(triplet: true)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const _SectionTitle('Default note length'),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                _Pill(
-                  label: '1/4',
-                  active: _settings.defaultNoteBeats == 0.25,
-                  onTap: () =>
-                      _update(_settings.copyWith(defaultNoteBeats: 0.25)),
-                ),
-                _Pill(
-                  label: '1/2',
-                  active: _settings.defaultNoteBeats == 0.5,
-                  onTap: () =>
-                      _update(_settings.copyWith(defaultNoteBeats: 0.5)),
-                ),
-                _Pill(
-                  label: '1 bar',
-                  active: _settings.defaultNoteBeats == 4.0,
-                  onTap: () =>
-                      _update(_settings.copyWith(defaultNoteBeats: 4.0)),
-                ),
-                _Pill(
-                  label: '2 bars',
-                  active: _settings.defaultNoteBeats == 8.0,
-                  onTap: () =>
-                      _update(_settings.copyWith(defaultNoteBeats: 8.0)),
-                ),
-              ],
-            ),
-            if (widget.showScaleControls) ...[
-              const SizedBox(height: 16),
-              const _SectionTitle('Scale'),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (var i = 0; i < PlayScale.noteNames.length; i++)
-                    _Pill(
-                      label: PlayScale.noteNames[i],
-                      active: _scaleSettings.rootPitchClass == i,
-                      onTap: () => _updateScale(
-                        _scaleSettings.copyWith(rootPitchClass: i),
-                      ),
-                    ),
-                ],
               ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (final scale in PlayScale.presets)
-                    _Pill(
-                      label: scale.label,
-                      active: _scaleSettings.scale.id == scale.id,
-                      onTap: () => _updateScale(
-                        _scaleSettings.copyWith(scale: scale),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  _Pill(
-                    label: 'Highlight',
-                    active: _scaleSettings.highlight,
-                    onTap: () => _updateScale(
-                      _scaleSettings.copyWith(
-                        highlight: !_scaleSettings.highlight,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  _Pill(
-                    label: 'Snap pitch',
-                    active: _scaleSettings.snapToScale,
-                    onTap: () => _updateScale(
-                      _scaleSettings.copyWith(
-                        snapToScale: !_scaleSettings.snapToScale,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              const _SectionTitle('Chord painter'),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (final quality in ChordQuality.values)
-                    _Pill(
-                      label: quality == ChordQuality.off
-                          ? 'Single'
-                          : quality.label,
-                      active: _scaleSettings.chordQuality == quality,
-                      onTap: () => _updateScale(
-                        _scaleSettings.copyWith(chordQuality: quality),
-                      ),
-                    ),
-                ],
-              ),
-            ],
+            ]),
           ],
-        ),
-      ),
-    );
+        ],
+      );
+
+  Widget _drawPanel() => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _Title('Draw settings'),
+          const SizedBox(height: 12),
+          _DropdownRow<double>(
+            label: 'Note length',
+            value: _noteLengthValue,
+            values: const [0.125, 0.25, 0.5, 1, 2, 4, 8],
+            text: _noteLengthLabel,
+            onChanged: (value) =>
+                _setGrid(_settings.copyWith(defaultNoteBeats: value)),
+          ),
+          if (widget.showScaleControls) ...[
+            const SizedBox(height: 12),
+            _DropdownRow<ChordQuality>(
+              label: 'Chord mode',
+              value: _scale.chordQuality,
+              values: ChordQuality.values,
+              text: (value) =>
+                  value == ChordQuality.off ? 'Single note' : value.label,
+              onChanged: (value) =>
+                  _setScale(_scale.copyWith(chordQuality: value)),
+            ),
+          ],
+          const SizedBox(height: 12),
+          _DropdownRow<PianoRollDrawPattern>(
+            label: 'Pattern',
+            value: _drawPattern,
+            values: PianoRollDrawPattern.values,
+            text: (value) => value == PianoRollDrawPattern.single
+                ? 'Single / drag length'
+                : 'Repeat on grid',
+            onChanged: (value) {
+              setState(() => _drawPattern = value);
+              widget.onDrawPatternChanged?.call(value);
+            },
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Long-press Draw to return here.',
+            style: TextStyle(color: PianoRollTheme.labelMuted, fontSize: 11),
+          ),
+        ],
+      );
+
+  double get _noteLengthValue {
+    const values = [0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0];
+    return values.reduce((a, b) => (a - _settings.defaultNoteBeats).abs() <
+            (b - _settings.defaultNoteBeats).abs()
+        ? a
+        : b);
   }
+
+  static String _noteLengthLabel(double value) => switch (value) {
+        0.125 => '1/32',
+        0.25 => '1/16',
+        0.5 => '1/8',
+        1.0 => '1/4',
+        2.0 => '1/2',
+        4.0 => '1 bar',
+        _ => '2 bars',
+      };
+}
+
+class _Title extends StatelessWidget {
+  const _Title(this.text);
+  final String text;
+  @override
+  Widget build(BuildContext context) => Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+      );
 }
 
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle(this.text);
   final String text;
-
   @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        color: PianoRollTheme.label,
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Text(
+        text,
+        style: const TextStyle(
+          color: PianoRollTheme.labelMuted,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.4,
+        ),
+      );
 }
 
 class _Pill extends StatelessWidget {
@@ -271,31 +343,74 @@ class _Pill extends StatelessWidget {
     required this.active,
     required this.onTap,
   });
-
   final String label;
   final bool active;
   final VoidCallback onTap;
-
   @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: active ? const Color(0xFF3A3A50) : const Color(0xFF22222C),
-      borderRadius: BorderRadius.circular(6),
-      child: InkWell(
-        onTap: onTap,
+  Widget build(BuildContext context) => Material(
+        color: active ? const Color(0xFF3A3A50) : const Color(0xFF22222C),
         borderRadius: BorderRadius.circular(6),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: active ? Colors.white : PianoRollTheme.labelMuted,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(6),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: active ? Colors.white : PianoRollTheme.labelMuted,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
+}
+
+class _DropdownRow<T> extends StatelessWidget {
+  const _DropdownRow({
+    required this.label,
+    required this.value,
+    required this.values,
+    required this.text,
+    this.onChanged,
+  });
+  final String label;
+  final T value;
+  final List<T> values;
+  final String Function(T) text;
+  final ValueChanged<T>? onChanged;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _SectionTitle(label),
+          const SizedBox(height: 5),
+          DropdownButtonFormField<T>(
+            initialValue: value,
+            isDense: true,
+            isExpanded: true,
+            dropdownColor: const Color(0xFF22222C),
+            decoration: const InputDecoration(
+              filled: true,
+              fillColor: Color(0xFF22222C),
+              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              border: OutlineInputBorder(borderSide: BorderSide.none),
+            ),
+            style: const TextStyle(color: Colors.white, fontSize: 12),
+            items: [
+              for (final item in values)
+                DropdownMenuItem(value: item, child: Text(text(item))),
+            ],
+            onChanged: onChanged == null
+                ? null
+                : (item) {
+                    if (item != null) onChanged!(item);
+                  },
+          ),
+        ],
+      );
 }

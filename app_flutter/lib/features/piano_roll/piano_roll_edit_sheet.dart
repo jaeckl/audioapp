@@ -50,24 +50,24 @@ class PianoRollEditSheet extends StatelessWidget {
       builder: (context) => Padding(
         padding: EdgeInsets.only(bottom: bottomInset),
         child: PianoRollEditSheet(
-        hasSelection: hasSelection,
-        noteCount: noteCount,
-        onQuantizeSelection: () {
-          onQuantizeSelection();
-          Navigator.pop(context);
-        },
-        onQuantizeAll: () {
-          onQuantizeAll();
-          Navigator.pop(context);
-        },
-        onNudgeLeft: onNudgeLeft,
-        onNudgeRight: onNudgeRight,
-        onNudgeUp: onNudgeUp,
-        onNudgeDown: onNudgeDown,
-        onDeleteSelected: () {
-          onDeleteSelected();
-          Navigator.pop(context);
-        },
+          hasSelection: hasSelection,
+          noteCount: noteCount,
+          onQuantizeSelection: () {
+            onQuantizeSelection();
+            Navigator.pop(context);
+          },
+          onQuantizeAll: () {
+            onQuantizeAll();
+            Navigator.pop(context);
+          },
+          onNudgeLeft: onNudgeLeft,
+          onNudgeRight: onNudgeRight,
+          onNudgeUp: onNudgeUp,
+          onNudgeDown: onNudgeDown,
+          onDeleteSelected: () {
+            onDeleteSelected();
+            Navigator.pop(context);
+          },
         ),
       ),
     );
@@ -125,11 +125,13 @@ class PianoRollEditSheet extends StatelessWidget {
                 children: [
                   _NudgeButton(icon: Icons.keyboard_arrow_up, onTap: onNudgeUp),
                   const SizedBox(height: 8),
-                  _NudgeButton(icon: Icons.keyboard_arrow_down, onTap: onNudgeDown),
+                  _NudgeButton(
+                      icon: Icons.keyboard_arrow_down, onTap: onNudgeDown),
                 ],
               ),
               const SizedBox(width: 8),
-              _NudgeButton(icon: Icons.keyboard_arrow_right, onTap: onNudgeRight),
+              _NudgeButton(
+                  icon: Icons.keyboard_arrow_right, onTap: onNudgeRight),
             ],
           ),
           const SizedBox(height: 8),
