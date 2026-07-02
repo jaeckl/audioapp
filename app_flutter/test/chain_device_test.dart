@@ -21,6 +21,8 @@ void main() {
     expect(chain.mix, 0.6);
     expect(chain.chainGain, 1.25);
     expect(chain.devices.single.id, 'osc-1');
-    expect(DeviceStripMetrics.designWidthFor('device_chain'), 152);
+    expect(DeviceStripMetrics.designWidthFor('device_chain'), 82);
+    expect(DeviceStripMetrics.outputPanelWidthFor('device_chain'),
+        DeviceStripMetrics.toolRailWidth);
   });
 }

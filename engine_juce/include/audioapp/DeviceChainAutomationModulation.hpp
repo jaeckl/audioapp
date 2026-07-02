@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <algorithm>
 #include <variant>
 
 #include "audioapp/AutomationTypes.hpp"
@@ -37,7 +38,11 @@ void applyModulation(BitcrusherParamsPlayback&, float, uint16_t) noexcept;
 void applyModulation(DistortionParamsPlayback&, float, uint16_t) noexcept;
 void applyModulation(TremoloParamsPlayback&, float, uint16_t) noexcept;
 inline void applyModulation(DrumMachineParams&, float, uint16_t) noexcept {}
-inline void applyModulation(ChainParams&, float, uint16_t) noexcept {}
+inline void applyModulation(ChainParams& p, float amount, uint16_t localParamId) noexcept {
+    const auto rawId = unpackParamId(localParamId);
+    if (rawId == 0) p.mix = std::clamp(p.mix + amount, 0.0f, 1.0f);
+    else if (rawId == 1) p.gain = std::clamp(p.gain + amount * 2.0f, 0.0f, 2.0f);
+}
 
 void applyDspModulationAtFrame(DeviceVariantParams& params,
                                DeviceNodeKind kind,

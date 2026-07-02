@@ -181,7 +181,7 @@ struct TrackGainParams {};
 struct DrumMachineParams {
     std::shared_ptr<const DrumMachinePlayback> playback;
 };
-struct ChainParams { std::shared_ptr<const ChainPlayback> playback; };
+struct ChainParams { std::shared_ptr<const ChainPlayback> playback; float mix=1.0f; float gain=1.0f; };
 
 using DeviceVariantParams = std::variant<
     OscillatorParams,

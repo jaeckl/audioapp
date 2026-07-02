@@ -2173,25 +2173,41 @@ void ProjectEngine::rebuildModEdgesLocked() {
         for (const auto& globalEdge : modulationGraph_.modEdges()) {
             if (snap.modEdgeCount >= 16) break;
             int di = -1;
+            uint16_t targetIndex = 0;
+            DeviceNodeKind targetKind = DeviceNodeKind::Unknown;
             for (int i = 0; i < snap.deviceCount; ++i) {
                 if (snap.devices[i].deviceId == globalEdge.deviceId) {
                     di = i;
+                    targetIndex = static_cast<uint16_t>(i);
+                    targetKind = snap.devices[i].kind;
                     break;
                 }
+                if (snap.devices[i].kind == DeviceNodeKind::Chain) {
+                    const auto playback = std::get<ChainParams>(snap.devices[i].params).playback;
+                    if (playback == nullptr) continue;
+                    for (int child = 0; child < playback->deviceCount; ++child) {
+                        if (playback->devices[child].deviceId != globalEdge.deviceId) continue;
+                        di = i;
+                        targetIndex = playback->devices[child].automationTargetIndex;
+                        targetKind = playback->devices[child].kind;
+                        break;
+                    }
+                }
+                if (di >= 0) break;
             }
             if (di < 0) continue;
             const int lfoPlaybackIdx = modulationGraph_.playbackIndexForLfoId(globalEdge.lfoId);
             if (lfoPlaybackIdx < 0) continue;
             ModulationEdgePlayback& me = snap.modEdges[snap.modEdgeCount++];
-            me.deviceIndex = static_cast<uint16_t>(di);
+            me.deviceIndex = targetIndex;
             me.lfoId = static_cast<uint16_t>(lfoPlaybackIdx);
             {
-                const auto* type = deviceRegistry_.findByKind(snap.devices[di].kind);
+                const auto* type = deviceRegistry_.findByKind(targetKind);
                 const uint16_t rawPerKindId =
                     type ? type->paramIdFromString(globalEdge.paramId)
                          : static_cast<uint16_t>(-1);
                 me.localParamId = encodeAutomationParamId(
-                    globalEdge.paramId.c_str(), snap.devices[di].kind, rawPerKindId);
+                    globalEdge.paramId.c_str(), targetKind, rawPerKindId);
             }
             if (me.localParamId == 0 && globalEdge.paramId != "gain") {
                 --snap.modEdgeCount;

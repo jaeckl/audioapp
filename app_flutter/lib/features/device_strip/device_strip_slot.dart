@@ -41,6 +41,7 @@ import 'crash_model.dart';
 import 'dynamics_fx_panels.dart';
 import 'time_fx_panels.dart';
 import 'drum_machine_device_panel.dart';
+import 'modulation_connect_mode.dart';
 import 'chain_device_panel.dart';
 import 'mood_fx_panels.dart';
 import 'frequency_fx_panels.dart';
@@ -210,7 +211,20 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     _selectedTabIndex = _initialTabIndex();
     _localLfos = List.of(widget.lfos);
     _localModEdges = List.of(widget.modEdges);
+    _connectModeLfoId = deviceModulationConnectMode.value;
+    deviceModulationConnectMode.addListener(_syncGlobalConnectMode);
     _ensureParamDescriptors();
+  }
+
+  void _syncGlobalConnectMode() {
+    if (!mounted) return;
+    setState(() => _connectModeLfoId = deviceModulationConnectMode.value);
+  }
+
+  @override
+  void dispose() {
+    deviceModulationConnectMode.removeListener(_syncGlobalConnectMode);
+    super.dispose();
   }
 
   /// Fetch param descriptors for device types without custom editors.
@@ -266,6 +280,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       'spectrum_analyzer',
       'loudness_meter',
       'stereo_imager',
+      'device_chain',
     };
     return knownTypes.contains(widget.device.type);
   }
@@ -485,10 +500,9 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   }
 
   void _onLfoLongPress(int lfoId) {
-    setState(() {
-      _connectModeLfoId = _connectModeLfoId == lfoId ? null : lfoId;
-      _selectedLfoId = lfoId;
-    });
+    _selectedLfoId = lfoId;
+    deviceModulationConnectMode.value =
+        deviceModulationConnectMode.value == lfoId ? null : lfoId;
   }
 
   bool get _collapsed => widget.density == DeviceStripSlotDensity.collapsed;
@@ -941,6 +955,19 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         return ChainDevicePanel(
           device: widget.device as ChainDeviceSnapshot,
           onChanged: widget.onDeviceParameterChanged,
+          modulatedParams: _modulatedParamIds,
+          automatedParams: _automatedParamIds,
+          modulationAmounts: _modulationAmounts,
+          lfos: _localLfos,
+          modEdges: _localModEdges,
+          connectModeLfoId: _connectModeLfo,
+          onModulationAssign: _onModulationForDevice,
+          automationLinkActive: widget.automationLinkActive,
+          onAutomationLinkTap: widget.onAutomationParamSelected != null
+              ? _onAutomationLinkTap
+              : null,
+          onAutomateParameter:
+              widget.onAutomateParameter != null ? _onAutomateParameter : null,
         );
       case 'simple_sampler':
         final dev = widget.device as SamplerDeviceSnapshot;

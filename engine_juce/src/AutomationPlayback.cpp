@@ -1288,10 +1288,9 @@ void applyAutomationValue(DeviceVariantParams& params,
         }
         break;
     case ParamKind::Chain:
-        if (auto* p = std::get_if<ChainParams>(&params); p != nullptr && p->playback != nullptr) {
-            auto playback = std::const_pointer_cast<ChainPlayback>(p->playback);
-            if (rawId == 0) playback->mix = value;
-            else if (rawId == 1) playback->gain = value * 2.0f;
+        if (auto* p = std::get_if<ChainParams>(&params)) {
+            if (rawId == 0) p->mix = value;
+            else if (rawId == 1) p->gain = value * 2.0f;
         }
         break;
     case ParamKind::Common:
