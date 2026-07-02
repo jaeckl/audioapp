@@ -32,5 +32,6 @@ inline constexpr const char* kBitcrusher = "bitcrusher";
 inline constexpr const char* kDistortion = "distortion";
 inline constexpr const char* kTremolo = "tremolo";
 inline constexpr const char* kWavetableSynth = "wavetable_synth";
+inline constexpr const char* kDrumMachine = "drum_machine";
 
 } // namespace audioapp::device_types

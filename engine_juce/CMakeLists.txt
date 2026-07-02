@@ -86,6 +86,7 @@ add_library(audioapp_engine STATIC
   src/devices/processors/TremoloProcessor.cpp
   src/devices/DeviceRegistry.cpp
   src/devices/DrumMachineModel.cpp
+  src/devices/DrumMachineDeviceType.cpp
   src/devices/IDeviceType.cpp
   src/devices/OscillatorDeviceType.cpp
   src/devices/SamplerDeviceType.cpp

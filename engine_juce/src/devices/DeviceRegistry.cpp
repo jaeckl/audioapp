@@ -23,6 +23,7 @@
 #include "audioapp/devices/RoutingDeviceType.hpp"
 #include "audioapp/devices/MidiDelayDeviceType.hpp"
 #include "audioapp/devices/WavetableSynthDeviceType.hpp"
+#include "audioapp/devices/DrumMachineDeviceType.hpp"
 #include "audioapp/effects/BitcrusherDeviceType.hpp"
 #include "audioapp/effects/DistortionDeviceType.hpp"
 #include "audioapp/effects/TremoloDeviceType.hpp"
@@ -138,6 +139,7 @@ std::vector<std::string_view> DeviceRegistry::modulatableParams(std::string_view
 DeviceRegistry DeviceRegistry::createBuiltIn() {
     DeviceRegistry registry;
     registry.registerType(std::make_unique<OscillatorDeviceType>());
+    registry.registerType(std::make_unique<DrumMachineDeviceType>());
     registry.registerType(std::make_unique<SamplerDeviceType>());
     registry.registerType(std::make_unique<TrackGainDeviceType>());
     registry.registerType(std::make_unique<SubtractiveSynthDeviceType>());

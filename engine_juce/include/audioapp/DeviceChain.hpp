@@ -80,6 +80,7 @@ enum class DeviceNodeKind : uint8_t {
     AudioReceiver,
     MidiReceiver,
     MidiDelay,
+    DrumMachine,
 };
 
 // --- Per-device DSP-only parameter structs ---
@@ -168,6 +169,7 @@ struct SamplerParams {
 };
 
 struct TrackGainParams {};
+struct DrumMachineParams {};
 
 using DeviceVariantParams = std::variant<
     OscillatorParams,
@@ -197,7 +199,8 @@ using DeviceVariantParams = std::variant<
     TremoloParamsPlayback,
     ResonatorBankParams,
     RoutingParams,
-    MidiDelayParams
+    MidiDelayParams,
+    DrumMachineParams
 >;
 
 /// Per-track device chain node (built on control thread, read on audio thread).
