@@ -126,6 +126,12 @@ public:
                                  const std::string& deviceType,
                                  int insertIndex = -1);
     bool removeDeviceFromTrack(const std::string& deviceId);
+    std::string addDeviceToDrumPad(const std::string& drumMachineId, int note,
+                                   const std::string& deviceType, int insertIndex = -1);
+    bool removeDeviceFromDrumPad(const std::string& drumMachineId, int note,
+                                 const std::string& deviceId);
+    bool setDrumPadParameter(const std::string& drumMachineId, int note,
+                             const std::string& parameterId, float value);
     bool setDeviceParameter(const std::string& deviceId,
                             const std::string& parameterId,
                             float value);

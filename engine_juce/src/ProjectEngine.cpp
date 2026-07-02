@@ -208,6 +208,57 @@ bool ProjectEngine::removeDeviceFromTrack(const std::string& deviceId) {
     return true;
 }
 
+std::string ProjectEngine::addDeviceToDrumPad(const std::string& drumMachineId, int note,
+                                              const std::string& deviceType, int insertIndex) {
+    const juce::ScopedWriteLock lock(mutex_);
+    DeviceSlot* machineSlot = findDeviceLocked(drumMachineId);
+    if (machineSlot == nullptr || machineSlot->config.typeId != device_types::kDrumMachine ||
+        note < 0 || note >= DrumMachineModel::kMidiNoteCount ||
+        deviceType == device_types::kDrumMachine || !deviceRegistry_.isKnownType(deviceType)) return {};
+    auto& pad = std::get<DrumMachineModel>(machineSlot->config.instance).pads[static_cast<size_t>(note)];
+    if (pad.devices.size() >= DrumMachineModel::kMaxDevicesPerPad) return {};
+    const std::string id = trackRepo_.allocateDeviceId();
+    auto child = std::make_shared<DeviceSlot>(deviceRegistry_.createDefault(deviceType, id));
+    size_t at = insertIndex < 0 ? pad.devices.size()
+        : std::min(static_cast<size_t>(insertIndex), pad.devices.size());
+    pad.devices.insert(pad.devices.begin() + static_cast<std::ptrdiff_t>(at), std::move(child));
+    rebuildTrackPlaybackLocked();
+    return id;
+}
+
+bool ProjectEngine::removeDeviceFromDrumPad(const std::string& drumMachineId, int note,
+                                            const std::string& deviceId) {
+    const juce::ScopedWriteLock lock(mutex_);
+    DeviceSlot* machineSlot = findDeviceLocked(drumMachineId);
+    if (machineSlot == nullptr || machineSlot->config.typeId != device_types::kDrumMachine ||
+        note < 0 || note >= DrumMachineModel::kMidiNoteCount) return false;
+    auto& pad = std::get<DrumMachineModel>(machineSlot->config.instance).pads[static_cast<size_t>(note)];
+    const auto it = std::find_if(pad.devices.begin(), pad.devices.end(), [&](const auto& child) {
+        return child != nullptr && child->id == deviceId;
+    });
+    if (it == pad.devices.end()) return false;
+    pad.devices.erase(it);
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
+bool ProjectEngine::setDrumPadParameter(const std::string& drumMachineId, int note,
+                                        const std::string& parameterId, float value) {
+    const juce::ScopedWriteLock lock(mutex_);
+    DeviceSlot* machineSlot = findDeviceLocked(drumMachineId);
+    if (machineSlot == nullptr || machineSlot->config.typeId != device_types::kDrumMachine ||
+        note < 0 || note >= DrumMachineModel::kMidiNoteCount) return false;
+    auto& pad = std::get<DrumMachineModel>(machineSlot->config.instance).pads[static_cast<size_t>(note)];
+    if (parameterId == "gain") pad.gain = std::clamp(value, 0.0f, 2.0f);
+    else if (parameterId == "pan") pad.pan = std::clamp(value, 0.0f, 1.0f);
+    else if (parameterId == "mute") pad.muted = value >= 0.5f;
+    else if (parameterId == "solo") pad.solo = value >= 0.5f;
+    else if (parameterId == "chokeGroup") pad.chokeGroup = std::clamp(static_cast<int>(std::lround(value)), 0, 16);
+    else return false;
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
 bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
                                        const std::string& parameterId,
                                        float value) {
@@ -2030,6 +2081,14 @@ DeviceSlot* ProjectEngine::findDeviceLocked(const std::string& deviceId) {
         for (auto& device : track.devices) {
             if (device.id == deviceId) {
                 return &device;
+            }
+            if (device.config.typeId == device_types::kDrumMachine) {
+                auto& machine = std::get<DrumMachineModel>(device.config.instance);
+                for (auto& pad : machine.pads) {
+                    for (auto& child : pad.devices) {
+                        if (child != nullptr && child->id == deviceId) return child.get();
+                    }
+                }
             }
         }
     }

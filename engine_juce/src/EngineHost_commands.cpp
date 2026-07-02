@@ -108,6 +108,22 @@ bool EngineHost::removeDeviceFromTrack(const std::string& deviceId) {
     return project_->removeDeviceFromTrack(deviceId);
 }
 
+std::string EngineHost::addDeviceToDrumPad(const std::string& drumMachineId, int note,
+                                           const std::string& deviceType, int insertIndex) {
+    return project_ != nullptr
+        ? project_->addDeviceToDrumPad(drumMachineId, note, deviceType, insertIndex) : std::string{};
+}
+
+bool EngineHost::removeDeviceFromDrumPad(const std::string& drumMachineId, int note,
+                                         const std::string& deviceId) {
+    return project_ != nullptr && project_->removeDeviceFromDrumPad(drumMachineId, note, deviceId);
+}
+
+bool EngineHost::setDrumPadParameter(const std::string& drumMachineId, int note,
+                                     const std::string& parameterId, float value) {
+    return project_ != nullptr && project_->setDrumPadParameter(drumMachineId, note, parameterId, value);
+}
+
 bool EngineHost::setDeviceParameter(const std::string& deviceId,
                                     const std::string& parameterId,
                                     float value) {
@@ -1148,6 +1164,36 @@ void EngineHost::registerAllCommands() {
             return commands::errorResult("device_not_removable");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
         return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("addDeviceToDrumPad", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto machineId = ctx.args["drumMachineId"].toString().toStdString();
+        const auto deviceType = ctx.args["deviceType"].toString().toStdString();
+        const int note = static_cast<int>(static_cast<double>(ctx.args["note"]));
+        const int insertIndex = ctx.args.hasProperty("insertIndex")
+            ? static_cast<int>(static_cast<double>(ctx.args["insertIndex"])) : -1;
+        if (ctx.engine.addDeviceToDrumPad(machineId, note, deviceType, insertIndex).empty())
+            return commands::errorResult("invalid_drum_pad_device");
+        return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
+    });
+
+    reg.registerCommand("removeDeviceFromDrumPad", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto machineId = ctx.args["drumMachineId"].toString().toStdString();
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        const int note = static_cast<int>(static_cast<double>(ctx.args["note"]));
+        if (!ctx.engine.removeDeviceFromDrumPad(machineId, note, deviceId))
+            return commands::errorResult("drum_pad_device_not_found");
+        return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
+    });
+
+    reg.registerCommand("setDrumPadParameter", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto machineId = ctx.args["drumMachineId"].toString().toStdString();
+        const auto parameterId = ctx.args["parameterId"].toString().toStdString();
+        const int note = static_cast<int>(static_cast<double>(ctx.args["note"]));
+        const float value = static_cast<float>(static_cast<double>(ctx.args["value"]));
+        if (!ctx.engine.setDrumPadParameter(machineId, note, parameterId, value))
+            return commands::errorResult("invalid_drum_pad_parameter");
+        return commands::okResult();
     });
 
     reg.registerCommand("setDeviceParameter", [](const commands::CommandContext& ctx) -> commands::CommandResult {

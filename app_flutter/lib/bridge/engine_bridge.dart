@@ -169,6 +169,43 @@ class EngineBridge {
     });
   }
 
+  Future<ProjectSnapshot> addDeviceToDrumPad({
+    required String drumMachineId,
+    required int note,
+    required String deviceType,
+    int? insertIndex,
+  }) =>
+      _invokeForSnapshot('addDeviceToDrumPad', {
+        'drumMachineId': drumMachineId,
+        'note': note,
+        'deviceType': deviceType,
+        if (insertIndex != null) 'insertIndex': insertIndex,
+      });
+
+  Future<ProjectSnapshot> removeDeviceFromDrumPad({
+    required String drumMachineId,
+    required int note,
+    required String deviceId,
+  }) =>
+      _invokeForSnapshot('removeDeviceFromDrumPad', {
+        'drumMachineId': drumMachineId,
+        'note': note,
+        'deviceId': deviceId,
+      });
+
+  Future<void> setDrumPadParameter({
+    required String drumMachineId,
+    required int note,
+    required String parameterId,
+    required double value,
+  }) =>
+      _invokeOk('setDrumPadParameter', {
+        'drumMachineId': drumMachineId,
+        'note': note,
+        'parameterId': parameterId,
+        'value': value,
+      });
+
   Future<void> setDeviceParameter({
     required String deviceId,
     required String parameterId,
