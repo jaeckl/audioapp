@@ -73,6 +73,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   bool _wtPositionSendInFlight = false;
   bool _bootstrapReady = false;
   List<RecentProjectEntry> _recentProjects = const [];
+  bool _snapClipsEnabled = true;
   SnapGridResolution _snapGridResolution = SnapGridResolution.adaptive;
   bool _snapGridTriplet = false;
 
@@ -1422,7 +1423,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       await _refreshRecentProjects();
     } on PlatformException catch (e) {
       if (!mounted) return;
-      setState(() => _projectError = '${e.code}: ${e.message ?? "load failed"}');
+      setState(
+          () => _projectError = '${e.code}: ${e.message ?? "load failed"}');
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
@@ -1844,6 +1846,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             onFollowResumed: _onFollowResumed,
             playheadListenable: _transport.playheadNotifier,
             snapshot: snapshot,
+            snapClipsEnabled: _snapClipsEnabled,
             snapGridResolution: _snapGridResolution,
             snapGridTriplet: _snapGridTriplet,
             playheadBeats: _effectivePlayheadBeats,
@@ -1983,8 +1986,12 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
                 onLoopToggled: _setLoopEnabled,
                 onFollowPlayheadToggled: _setFollowPlayheadEnabled,
                 onExportMix: _exportMix,
+                snapClipsEnabled: _snapClipsEnabled,
                 snapGridResolution: _snapGridResolution,
                 snapGridTriplet: _snapGridTriplet,
+                onSnapClipsEnabledChanged: (enabled) {
+                  setState(() => _snapClipsEnabled = enabled);
+                },
                 onSnapGridResolutionChanged: (resolution) {
                   setState(() => _snapGridResolution = resolution);
                 },

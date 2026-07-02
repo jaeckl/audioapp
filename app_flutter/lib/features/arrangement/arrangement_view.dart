@@ -109,6 +109,7 @@ class ArrangementView extends StatefulWidget {
     this.onFollowResumed,
     this.playheadListenable,
     this.onResizeClipCommit,
+    this.snapClipsEnabled = true,
     this.snapGridResolution = SnapGridResolution.adaptive,
     this.snapGridTriplet = false,
   });
@@ -189,6 +190,7 @@ class ArrangementView extends StatefulWidget {
     required String clipId,
     required double lengthBeats,
   })? onResizeClipCommit;
+  final bool snapClipsEnabled;
 
   @override
   State<ArrangementView> createState() => ArrangementViewState();
@@ -992,7 +994,7 @@ class ArrangementViewState extends State<ArrangementView> {
       ),
       timelineEndBeats: _timelineEndBeat,
       grid: _snapGridBeats,
-      snapStartToGrid: true,
+      snapStartToGrid: widget.snapClipsEnabled,
     );
   }
 
@@ -1101,10 +1103,19 @@ class ArrangementViewState extends State<ArrangementView> {
     final delta = currentPointerBeat - session.pointerBeatAtStart;
     final rawLength = session.originalLengthBeats + delta;
     final upper = session.maxLengthBeats;
-    if (!upper.isFinite) {
-      return rawLength < minLength ? minLength : rawLength;
+    final clamped = upper.isFinite
+        ? rawLength.clamp(minLength, upper)
+        : (rawLength < minLength ? minLength : rawLength);
+    if (!widget.snapClipsEnabled) {
+      return clamped.toDouble();
     }
-    return rawLength.clamp(minLength, upper);
+    final snappedEnd = ArrangementTimelineMetrics.quantizeBeat(
+      session.startBeat + clamped,
+      grid: _snapGridBeats,
+    );
+    final snappedLength = snappedEnd - session.startBeat;
+    final snappedUpper = upper.isFinite ? upper : double.infinity;
+    return snappedLength.clamp(minLength, snappedUpper).toDouble();
   }
 
   void _startClipResize({
@@ -2857,115 +2868,122 @@ class _TrackLane extends StatelessWidget {
                 child: _FreezeClipBlock(freeze: track.freeze),
               )
             else ...[
-            for (final clip in track.sampleClips)
-              Positioned(
-                left: clip.startBeat * pixelsPerBeat,
-                top: 4,
-                width: ArrangementTimelineMetrics.clipDisplayWidthPx(
-                  startBeat: clip.startBeat,
-                  lengthBeats: previewLengthFor(clip.id) ?? clip.lengthBeats,
-                  pixelsPerBeat: pixelsPerBeat,
-                  gapEndBeat: ArrangementTimelineMetrics.gapEndBeatForClip(
-                    clipStartBeat: clip.startBeat,
-                    otherClipStarts:
-                        _clipStarts.where((s) => s != clip.startBeat).toList(),
-                    timelineEndBeat: timelineEndBeat,
-                  ),
-                  viewportWidthPx: viewportWidthPx,
-                ),
-                height: laneHeight - 8,
-                child: _SampleClipBlock(
-                  clip: previewLengthFor(clip.id) != null
-                      ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!)
-                      : clip,
-                  highlighted: draggingClipId == clip.id,
-                  onTap: () => onSampleClipTap(track.id, clip),
-                  onDoubleTap:
-                      onClipMenu == null ? null : () => onClipMenu!(clip.id),
-                  onDragStart: (details) => onClipDragStart(
-                    trackId: track.id,
-                    clipId: clip.id,
+              for (final clip in track.sampleClips)
+                Positioned(
+                  left: clip.startBeat * pixelsPerBeat,
+                  top: 4,
+                  width: ArrangementTimelineMetrics.clipDisplayWidthPx(
+                    startBeat: clip.startBeat,
                     lengthBeats: previewLengthFor(clip.id) ?? clip.lengthBeats,
-                    isMidi: false,
-                    originalStartBeat: clip.startBeat,
-                    globalPosition: details.globalPosition,
-                    sampleClip: previewLengthFor(clip.id) != null
+                    pixelsPerBeat: pixelsPerBeat,
+                    gapEndBeat: ArrangementTimelineMetrics.gapEndBeatForClip(
+                      clipStartBeat: clip.startBeat,
+                      otherClipStarts: _clipStarts
+                          .where((s) => s != clip.startBeat)
+                          .toList(),
+                      timelineEndBeat: timelineEndBeat,
+                    ),
+                    viewportWidthPx: viewportWidthPx,
+                  ),
+                  height: laneHeight - 8,
+                  child: _SampleClipBlock(
+                    clip: previewLengthFor(clip.id) != null
                         ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!)
                         : clip,
+                    highlighted: draggingClipId == clip.id,
+                    onTap: () => onSampleClipTap(track.id, clip),
+                    onDoubleTap:
+                        onClipMenu == null ? null : () => onClipMenu!(clip.id),
+                    onDragStart: (details) => onClipDragStart(
+                      trackId: track.id,
+                      clipId: clip.id,
+                      lengthBeats:
+                          previewLengthFor(clip.id) ?? clip.lengthBeats,
+                      isMidi: false,
+                      originalStartBeat: clip.startBeat,
+                      globalPosition: details.globalPosition,
+                      sampleClip: previewLengthFor(clip.id) != null
+                          ? clip.copyWith(
+                              lengthBeats: previewLengthFor(clip.id)!)
+                          : clip,
+                    ),
+                    onDragUpdate: onClipDragUpdate,
+                    onDragEnd: onClipDragEnd,
+                    onDragCancel: onClipDragCancel,
                   ),
-                  onDragUpdate: onClipDragUpdate,
-                  onDragEnd: onClipDragEnd,
-                  onDragCancel: onClipDragCancel,
                 ),
-              ),
-            for (final clip in track.midiClips)
-              Positioned(
-                left: clip.startBeat * pixelsPerBeat,
-                top: 4,
-                width: (previewLengthFor(clip.id) ?? clip.lengthBeats) *
-                    pixelsPerBeat,
-                height: laneHeight - 8,
-                child: _MidiClipBlock(
-                  clip: previewLengthFor(clip.id) != null
-                      ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!)
-                      : clip,
-                  highlighted: draggingClipId == clip.id,
-                  onTap: () => onClipTap(track.id, clip),
-                  onDoubleTap:
-                      onClipMenu == null ? null : () => onClipMenu!(clip.id),
-                  onDragStart: (details) => onClipDragStart(
-                    trackId: track.id,
-                    clipId: clip.id,
-                    lengthBeats: previewLengthFor(clip.id) ?? clip.lengthBeats,
-                    isMidi: true,
-                    originalStartBeat: clip.startBeat,
-                    globalPosition: details.globalPosition,
-                    midiClip: previewLengthFor(clip.id) != null
+              for (final clip in track.midiClips)
+                Positioned(
+                  left: clip.startBeat * pixelsPerBeat,
+                  top: 4,
+                  width: (previewLengthFor(clip.id) ?? clip.lengthBeats) *
+                      pixelsPerBeat,
+                  height: laneHeight - 8,
+                  child: _MidiClipBlock(
+                    clip: previewLengthFor(clip.id) != null
                         ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!)
                         : clip,
+                    highlighted: draggingClipId == clip.id,
+                    onTap: () => onClipTap(track.id, clip),
+                    onDoubleTap:
+                        onClipMenu == null ? null : () => onClipMenu!(clip.id),
+                    onDragStart: (details) => onClipDragStart(
+                      trackId: track.id,
+                      clipId: clip.id,
+                      lengthBeats:
+                          previewLengthFor(clip.id) ?? clip.lengthBeats,
+                      isMidi: true,
+                      originalStartBeat: clip.startBeat,
+                      globalPosition: details.globalPosition,
+                      midiClip: previewLengthFor(clip.id) != null
+                          ? clip.copyWith(
+                              lengthBeats: previewLengthFor(clip.id)!)
+                          : clip,
+                    ),
+                    onDragUpdate: onClipDragUpdate,
+                    onDragEnd: onClipDragEnd,
+                    onDragCancel: onClipDragCancel,
                   ),
-                  onDragUpdate: onClipDragUpdate,
-                  onDragEnd: onClipDragEnd,
-                  onDragCancel: onClipDragCancel,
                 ),
-              ),
-            for (final clip in track.automationClips)
-              Positioned(
-                left: clip.startBeat * pixelsPerBeat,
-                top: 4,
-                width: (previewLengthFor(clip.id) ?? clip.lengthBeats) *
-                    pixelsPerBeat,
-                height: laneHeight - 8,
-                child: _AutomationClipBlock(
-                  clip: previewLengthFor(clip.id) != null
-                      ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!)
-                      : clip,
-                  highlighted: draggingClipId == clip.id,
-                  linkActive: automationLinkClipId == clip.id,
-                  onLinkToggle: onAutomationLinkToggle == null
-                      ? null
-                      : () => onAutomationLinkToggle!(clip.id),
-                  onTap: onAutomationClipDoubleTap == null
-                      ? null
-                      : () => onAutomationClipDoubleTap!(track.id, clip),
-                  onDoubleTap:
-                      onClipMenu == null ? null : () => onClipMenu!(clip.id),
-                  onDragStart: (details) => onClipDragStart(
-                    trackId: track.id,
-                    clipId: clip.id,
-                    lengthBeats: previewLengthFor(clip.id) ?? clip.lengthBeats,
-                    isMidi: false,
-                    originalStartBeat: clip.startBeat,
-                    globalPosition: details.globalPosition,
-                    automationClip: previewLengthFor(clip.id) != null
+              for (final clip in track.automationClips)
+                Positioned(
+                  left: clip.startBeat * pixelsPerBeat,
+                  top: 4,
+                  width: (previewLengthFor(clip.id) ?? clip.lengthBeats) *
+                      pixelsPerBeat,
+                  height: laneHeight - 8,
+                  child: _AutomationClipBlock(
+                    clip: previewLengthFor(clip.id) != null
                         ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!)
                         : clip,
+                    highlighted: draggingClipId == clip.id,
+                    linkActive: automationLinkClipId == clip.id,
+                    onLinkToggle: onAutomationLinkToggle == null
+                        ? null
+                        : () => onAutomationLinkToggle!(clip.id),
+                    onTap: onAutomationClipDoubleTap == null
+                        ? null
+                        : () => onAutomationClipDoubleTap!(track.id, clip),
+                    onDoubleTap:
+                        onClipMenu == null ? null : () => onClipMenu!(clip.id),
+                    onDragStart: (details) => onClipDragStart(
+                      trackId: track.id,
+                      clipId: clip.id,
+                      lengthBeats:
+                          previewLengthFor(clip.id) ?? clip.lengthBeats,
+                      isMidi: false,
+                      originalStartBeat: clip.startBeat,
+                      globalPosition: details.globalPosition,
+                      automationClip: previewLengthFor(clip.id) != null
+                          ? clip.copyWith(
+                              lengthBeats: previewLengthFor(clip.id)!)
+                          : clip,
+                    ),
+                    onDragUpdate: onClipDragUpdate,
+                    onDragEnd: onClipDragEnd,
+                    onDragCancel: onClipDragCancel,
                   ),
-                  onDragUpdate: onClipDragUpdate,
-                  onDragEnd: onClipDragEnd,
-                  onDragCancel: onClipDragCancel,
                 ),
-              ),
 // Resize handles — one per clip, rendered last so they sit on top.
 // The handle is the end-pill: at rest it lives on the right edge of
 // the clip block; during a resize it moves to the preview x while
@@ -2976,18 +2994,18 @@ class _TrackLane extends StatelessWidget {
 // zoom-aware minimum display width and may render wider than their natural
 // `lengthBeats * pixelsPerBeat`, which is why MIDI/auto use beat-accurate
 // and sample uses [ArrangementTimelineMetrics.clipDisplayWidthPx].
-            for (final clip in [
-              for (final c in track.sampleClips)
-                _ResizeClipRef(
-                    c.id, c.startBeat, c.lengthBeats, ClipContentKind.sample),
-              for (final c in track.midiClips)
-                _ResizeClipRef(
-                    c.id, c.startBeat, c.lengthBeats, ClipContentKind.midi),
-              for (final c in track.automationClips)
-                _ResizeClipRef(c.id, c.startBeat, c.lengthBeats,
-                    ClipContentKind.automation),
-            ])
-              _buildResizeHandle(context, clip, laneHeight),
+              for (final clip in [
+                for (final c in track.sampleClips)
+                  _ResizeClipRef(
+                      c.id, c.startBeat, c.lengthBeats, ClipContentKind.sample),
+                for (final c in track.midiClips)
+                  _ResizeClipRef(
+                      c.id, c.startBeat, c.lengthBeats, ClipContentKind.midi),
+                for (final c in track.automationClips)
+                  _ResizeClipRef(c.id, c.startBeat, c.lengthBeats,
+                      ClipContentKind.automation),
+              ])
+                _buildResizeHandle(context, clip, laneHeight),
             ],
           ],
         ),

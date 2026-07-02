@@ -8,14 +8,18 @@ import 'transport_position_format.dart';
 
 class _SnapGridMenu extends StatefulWidget {
   const _SnapGridMenu({
+    required this.snapClips,
     required this.resolution,
     required this.triplet,
+    required this.onSnapClipsChanged,
     required this.onResolutionChanged,
     required this.onTripletChanged,
   });
 
+  final bool snapClips;
   final SnapGridResolution resolution;
   final bool triplet;
+  final ValueChanged<bool> onSnapClipsChanged;
   final ValueChanged<SnapGridResolution> onResolutionChanged;
   final ValueChanged<bool> onTripletChanged;
 
@@ -24,8 +28,14 @@ class _SnapGridMenu extends StatefulWidget {
 }
 
 class _SnapGridMenuState extends State<_SnapGridMenu> {
+  late bool _snapClips = widget.snapClips;
   late SnapGridResolution _resolution = widget.resolution;
   late bool _triplet = widget.triplet;
+
+  void _setSnapClips(bool enabled) {
+    setState(() => _snapClips = enabled);
+    widget.onSnapClipsChanged(enabled);
+  }
 
   void _setResolution(SnapGridResolution resolution) {
     setState(() => _resolution = resolution);
@@ -74,6 +84,26 @@ class _SnapGridMenuState extends State<_SnapGridMenu> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Row(
+            children: [
+              Expanded(
+                child: _tile(
+                  label: 'Snap clips off',
+                  active: !_snapClips,
+                  onTap: () => _setSnapClips(false),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _tile(
+                  label: 'Snap clips on',
+                  active: _snapClips,
+                  onTap: () => _setSnapClips(true),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
             child: _tile(
@@ -146,8 +176,10 @@ class TransportBar extends StatelessWidget {
     this.onLoopToggled,
     this.onFollowPlayheadToggled,
     this.onExportMix,
+    this.snapClipsEnabled = true,
     this.snapGridResolution = SnapGridResolution.adaptive,
     this.snapGridTriplet = false,
+    this.onSnapClipsEnabledChanged,
     this.onSnapGridResolutionChanged,
     this.onSnapGridTripletChanged,
   });
@@ -170,8 +202,10 @@ class TransportBar extends StatelessWidget {
   final ValueChanged<bool>? onLoopToggled;
   final ValueChanged<bool>? onFollowPlayheadToggled;
   final VoidCallback? onExportMix;
+  final bool snapClipsEnabled;
   final SnapGridResolution snapGridResolution;
   final bool snapGridTriplet;
+  final ValueChanged<bool>? onSnapClipsEnabledChanged;
   final ValueChanged<SnapGridResolution>? onSnapGridResolutionChanged;
   final ValueChanged<bool>? onSnapGridTripletChanged;
 
@@ -235,7 +269,7 @@ class TransportBar extends StatelessWidget {
               ),
               PopupMenuButton<void>(
                 tooltip:
-                    'Snap grid: ${snapGridResolution.label}${snapGridTriplet ? ' triplet' : ''}',
+                    '${snapClipsEnabled ? 'Clip snap on' : 'Clip snap off'} · ${snapGridResolution.label}${snapGridTriplet ? ' triplet' : ''}',
                 enabled: onSnapGridResolutionChanged != null,
                 color: const Color(0xFF24242E),
                 icon:
@@ -245,8 +279,11 @@ class TransportBar extends StatelessWidget {
                     enabled: false,
                     padding: const EdgeInsets.all(10),
                     child: _SnapGridMenu(
+                      snapClips: snapClipsEnabled,
                       resolution: snapGridResolution,
                       triplet: snapGridTriplet,
+                      onSnapClipsChanged: (enabled) =>
+                          onSnapClipsEnabledChanged?.call(enabled),
                       onResolutionChanged: (resolution) =>
                           onSnapGridResolutionChanged?.call(resolution),
                       onTripletChanged: (triplet) =>
@@ -282,8 +319,10 @@ class TransportBar extends StatelessWidget {
     ValueChanged<bool>? onLoopToggled,
     ValueChanged<bool>? onFollowPlayheadToggled,
     VoidCallback? onExportMix,
+    bool snapClipsEnabled = true,
     SnapGridResolution snapGridResolution = SnapGridResolution.adaptive,
     bool snapGridTriplet = false,
+    ValueChanged<bool>? onSnapClipsEnabledChanged,
     ValueChanged<SnapGridResolution>? onSnapGridResolutionChanged,
     ValueChanged<bool>? onSnapGridTripletChanged,
   }) {
@@ -308,8 +347,10 @@ class TransportBar extends StatelessWidget {
         onLoopToggled: onLoopToggled,
         onFollowPlayheadToggled: onFollowPlayheadToggled,
         onExportMix: onExportMix,
+        snapClipsEnabled: snapClipsEnabled,
         snapGridResolution: snapGridResolution,
         snapGridTriplet: snapGridTriplet,
+        onSnapClipsEnabledChanged: onSnapClipsEnabledChanged,
         onSnapGridResolutionChanged: onSnapGridResolutionChanged,
         onSnapGridTripletChanged: onSnapGridTripletChanged,
       ),
