@@ -30,6 +30,7 @@ class LibraryFlyInPanel extends StatefulWidget {
     this.onPresetPreviewTap,
     this.onWavetableTap,
     this.onStopPreview,
+    this.percussionOnly = false,
   });
 
   final ProjectSnapshot snapshot;
@@ -43,11 +44,14 @@ class LibraryFlyInPanel extends StatefulWidget {
   final void Function(LibraryAutomationItem item)? onAutomationTap;
   final void Function(LibraryAutomationItem item)? onAutomationPreviewTap;
   final void Function(LibraryPresetItem item)? onPresetTap;
-  final void Function(LibraryPresetItem item, {double startBeat, bool loop})? onPresetPreviewTap;
+  final void Function(LibraryPresetItem item, {double startBeat, bool loop})?
+      onPresetPreviewTap;
   final void Function(LibraryWavetableItem item)? onWavetableTap;
+
   /// Optional: invoked when the panel wants to halt any active engine preview
   /// (e.g. when the user toggles auto-play/loop off mid-preview).
   final VoidCallback? onStopPreview;
+  final bool percussionOnly;
 
   @override
   State<LibraryFlyInPanel> createState() => LibraryFlyInPanelState();
@@ -118,7 +122,8 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
 
     _previewTicker = Timer.periodic(const Duration(milliseconds: 33), (_) {
       if (!mounted || !_previewActive || _previewStartedAt == null) return;
-      final elapsedMs = DateTime.now().difference(_previewStartedAt!).inMicroseconds / 1000.0;
+      final elapsedMs =
+          DateTime.now().difference(_previewStartedAt!).inMicroseconds / 1000.0;
       final elapsedBeats = (elapsedMs / 1000.0) * (_previewBpm / 60.0);
       double beat = _previewStartBeat + elapsedBeats;
       if (_previewLoop && _previewLengthBeats > 0) {
@@ -166,56 +171,56 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
     });
   }
 
-/// Wraps the parent's preset preview callback to:
-///  - inject the current preview-bar scrub beat as the default startBeat
-///  - inject the current auto-play/loop state as the default `loop`
-///  - keep the panel's stored scrub beat in sync with what the user is playing
-///  - animate the visual playhead while the engine is playing
-void _onPresetPreviewTap(LibraryPresetItem item,
-    {double? startBeat, bool? loop}) {
-  final effectiveStart = startBeat ?? _presetScrubBeat;
-  final effectiveLoop = loop ?? _presetPreviewLoopEnabled;
-  if (startBeat != null) {
-    _presetScrubBeat = startBeat;
-  }
-
-  // Start the visual playhead animation so the bar shows the head moving.
-  // Use the project's BPM and a 4-bar default length (matches the C-arpeggio
-  // fallback used in daw_shell._onLibraryPresetPreviewTap).
-  final bpm = widget.snapshot.bpm;
-  final lengthBeats = _computePreviewLengthBeats();
-  setState(() {
-    _startPreviewAnimation(
-      startBeat: effectiveStart,
-      lengthBeats: lengthBeats,
-      bpm: bpm,
-      loop: effectiveLoop,
-    );
-  });
-
-  widget.onPresetPreviewTap?.call(item,
-      startBeat: effectiveStart, loop: effectiveLoop);
-}
-
-double _computePreviewLengthBeats() {
-  // Mirror the logic in daw_shell._onLibraryPresetPreviewTap: longest MIDI
-  // clip on the selected track, with a 4-beat minimum so an empty track
-  // still animates something visible.
-  const minBeats = 4.0;
-  final trackId = widget.snapshot.selectedTrackId;
-  for (final t in widget.snapshot.tracks) {
-    if (t.id != trackId) continue;
-    double max = 0;
-    for (final clip in t.midiClips) {
-      final end = clip.startBeat + clip.lengthBeats;
-      if (end > max) max = end;
+  /// Wraps the parent's preset preview callback to:
+  ///  - inject the current preview-bar scrub beat as the default startBeat
+  ///  - inject the current auto-play/loop state as the default `loop`
+  ///  - keep the panel's stored scrub beat in sync with what the user is playing
+  ///  - animate the visual playhead while the engine is playing
+  void _onPresetPreviewTap(LibraryPresetItem item,
+      {double? startBeat, bool? loop}) {
+    final effectiveStart = startBeat ?? _presetScrubBeat;
+    final effectiveLoop = loop ?? _presetPreviewLoopEnabled;
+    if (startBeat != null) {
+      _presetScrubBeat = startBeat;
     }
-    return max > minBeats ? max : minBeats;
-  }
-  return minBeats;
-}
 
-void _onItemSelected(String? itemId) {
+    // Start the visual playhead animation so the bar shows the head moving.
+    // Use the project's BPM and a 4-bar default length (matches the C-arpeggio
+    // fallback used in daw_shell._onLibraryPresetPreviewTap).
+    final bpm = widget.snapshot.bpm;
+    final lengthBeats = _computePreviewLengthBeats();
+    setState(() {
+      _startPreviewAnimation(
+        startBeat: effectiveStart,
+        lengthBeats: lengthBeats,
+        bpm: bpm,
+        loop: effectiveLoop,
+      );
+    });
+
+    widget.onPresetPreviewTap
+        ?.call(item, startBeat: effectiveStart, loop: effectiveLoop);
+  }
+
+  double _computePreviewLengthBeats() {
+    // Mirror the logic in daw_shell._onLibraryPresetPreviewTap: longest MIDI
+    // clip on the selected track, with a 4-beat minimum so an empty track
+    // still animates something visible.
+    const minBeats = 4.0;
+    final trackId = widget.snapshot.selectedTrackId;
+    for (final t in widget.snapshot.tracks) {
+      if (t.id != trackId) continue;
+      double max = 0;
+      for (final clip in t.midiClips) {
+        final end = clip.startBeat + clip.lengthBeats;
+        if (end > max) max = end;
+      }
+      return max > minBeats ? max : minBeats;
+    }
+    return minBeats;
+  }
+
+  void _onItemSelected(String? itemId) {
     setState(() {
       _selectedItemId = itemId;
     });
@@ -262,7 +267,9 @@ void _onItemSelected(String? itemId) {
             onTap: close,
             behavior: HitTestBehavior.opaque,
             child: Container(
-              color: landscape ? Colors.black.withValues(alpha: 0.18) : Colors.black54,
+              color: landscape
+                  ? Colors.black.withValues(alpha: 0.18)
+                  : Colors.black54,
             ),
           ),
         ),
@@ -280,7 +287,8 @@ void _onItemSelected(String? itemId) {
                 right: false,
                 child: DecoratedBox(
                   decoration: const BoxDecoration(
-                    border: Border(right: BorderSide(color: LibraryTheme.border)),
+                    border:
+                        Border(right: BorderSide(color: LibraryTheme.border)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -297,6 +305,12 @@ void _onItemSelected(String? itemId) {
                           children: [
                             LibraryCategoryMenu(
                               selected: _category,
+                              categories: widget.percussionOnly
+                                  ? const [
+                                      LibraryCategory.audioClips,
+                                      LibraryCategory.devicePresets
+                                    ]
+                                  : LibraryCategory.values,
                               onSelected: (category) => setState(() {
                                 _category = category;
                                 _selectedItemId = null;
@@ -316,11 +330,13 @@ void _onItemSelected(String? itemId) {
                                 onMidiClipTap: widget.onMidiClipTap,
                                 onMidiPreviewTap: widget.onMidiPreviewTap,
                                 onAutomationTap: widget.onAutomationTap,
-                                onAutomationPreviewTap: widget.onAutomationPreviewTap,
+                                onAutomationPreviewTap:
+                                    widget.onAutomationPreviewTap,
                                 onPresetTap: widget.onPresetTap,
                                 onPresetPreviewTap: _onPresetPreviewTap,
                                 onWavetableTap: widget.onWavetableTap,
                                 autoPlayOnSelect: _presetPreviewLoopEnabled,
+                                percussionOnly: widget.percussionOnly,
                               ),
                             ),
                           ],
@@ -340,9 +356,11 @@ void _onItemSelected(String? itemId) {
                               manifest: _manifest,
                             );
                             try {
-                              final item = items.firstWhere((i) => i.id == _selectedItemId);
+                              final item = items
+                                  .firstWhere((i) => i.id == _selectedItemId);
                               if (item is LibraryPresetItem) {
-                                _onPresetPreviewTap(item, startBeat: clip.startBeat);
+                                _onPresetPreviewTap(item,
+                                    startBeat: clip.startBeat);
                               }
                             } catch (_) {}
                           },

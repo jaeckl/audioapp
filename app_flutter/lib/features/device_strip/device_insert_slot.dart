@@ -7,9 +7,11 @@ class DeviceInsertSlot extends StatelessWidget {
   const DeviceInsertSlot({
     super.key,
     this.onPressed,
+    this.accentColor,
   });
 
   final VoidCallback? onPressed;
+  final Color? accentColor;
 
   @override
   Widget build(BuildContext context) {
@@ -20,8 +22,8 @@ class DeviceInsertSlot extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: const Color(0xFF25252E),
-        border: Border.all(color: Colors.white24),
+        color: accentColor?.withValues(alpha: 0.22) ?? const Color(0xFF25252E),
+        border: Border.all(color: accentColor ?? Colors.white24),
         boxShadow: const [
           BoxShadow(
             color: Color(0x66000000),
@@ -33,7 +35,7 @@ class DeviceInsertSlot extends StatelessWidget {
       child: Icon(
         Icons.add,
         size: 18,
-        color: enabled ? Colors.white70 : Colors.white30,
+        color: enabled ? (accentColor ?? Colors.white70) : Colors.white30,
       ),
     );
 

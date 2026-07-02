@@ -60,6 +60,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   bool _libraryOpen = false;
   LibraryCategory _libraryCategory = LibraryCategory.audioClips;
   String? _librarySamplerDeviceId;
+  String? _libraryDrumMachineId;
+  int? _libraryDrumNote;
   String? _automationLinkClipId;
   String? _libraryWavetableDeviceId;
   final GlobalKey<LibraryFlyInPanelState> _libraryPanelKey = GlobalKey();
@@ -995,7 +997,25 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         _libraryCategory = LibraryCategory.wavetables;
         _libraryWavetableDeviceId = device.id;
       });
+      return;
     }
+    if (device.type == 'drum_machine') {
+      setState(() {
+        _libraryOpen = true;
+        _libraryCategory = LibraryCategory.audioClips;
+        _librarySamplerDeviceId = null;
+      });
+    }
+  }
+
+  void _openDrumPadLibrary(DrumMachineDeviceSnapshot device, int note) {
+    setState(() {
+      _libraryOpen = true;
+      _libraryCategory = LibraryCategory.audioClips;
+      _librarySamplerDeviceId = null;
+      _libraryDrumMachineId = device.id;
+      _libraryDrumNote = note;
+    });
   }
 
   void _closeLibrary() {
@@ -1003,6 +1023,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       _libraryOpen = false;
       _librarySamplerDeviceId = null;
       _libraryWavetableDeviceId = null;
+      _libraryDrumMachineId = null;
+      _libraryDrumNote = null;
     });
     // Stop any active preview (preset/midi/sampler) so closing the library
     // also halts the audio and the visual playhead ticker — not just the
@@ -1020,6 +1042,29 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   Future<void> _onLibraryInsertAudio(SampleLibraryEntrySnapshot sample) async {
+    final drumMachineId = _libraryDrumMachineId;
+    final drumNote = _libraryDrumNote;
+    if (drumMachineId != null && drumNote != null) {
+      final updated = await widget.bridge.addDeviceToDrumPad(
+        drumMachineId: drumMachineId,
+        note: drumNote,
+        deviceType: 'simple_sampler',
+      );
+      final machine = updated.deviceById(drumMachineId);
+      if (machine is DrumMachineDeviceSnapshot) {
+        final samplers = machine
+            .padForNote(drumNote)
+            .devices
+            .whereType<SamplerDeviceSnapshot>()
+            .toList();
+        if (samplers.isNotEmpty) {
+          await _refreshSnapshot(updated);
+          await _assignSamplerSample(samplers.last.id, sample.id);
+        }
+      }
+      await _libraryPanelKey.currentState?.close();
+      return;
+    }
     final deviceId = _librarySamplerDeviceId;
     if (deviceId != null) {
       await _assignSamplerSample(deviceId, sample.id);
@@ -1150,6 +1195,44 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   Future<void> _onLibraryPresetTap(LibraryPresetItem item) async {
+    final drumMachineId = _libraryDrumMachineId;
+    final drumNote = _libraryDrumNote;
+    if (drumMachineId != null && drumNote != null) {
+      const allowed = {
+        'simple_sampler',
+        'kick_generator',
+        'snare_generator',
+        'clap_generator',
+        'cymbal_generator',
+        'crash_generator',
+      };
+      if (!allowed.contains(item.deviceType)) return;
+      final updated = await widget.bridge.addDeviceToDrumPad(
+        drumMachineId: drumMachineId,
+        note: drumNote,
+        deviceType: item.deviceType,
+      );
+      final machine = updated.deviceById(drumMachineId);
+      final children = machine is DrumMachineDeviceSnapshot
+          ? machine.padForNote(drumNote).devices
+          : const <DeviceSnapshot>[];
+      if (children.isNotEmpty) {
+        final child = children.last;
+        final preset = DevicePresetStore.find(item.deviceType, item.id);
+        if (preset != null) {
+          for (final entry in preset.params.entries) {
+            await widget.bridge.setDeviceParameter(
+              deviceId: child.id,
+              parameterId: entry.key,
+              value: entry.value,
+            );
+          }
+        }
+      }
+      await _refreshSnapshot(updated);
+      await _libraryPanelKey.currentState?.close();
+      return;
+    }
     final track = _snapshot?.selectedTrack;
     if (track == null) return;
 
@@ -1268,6 +1351,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         parameterId: 'sampleId',
         value: sampleId,
       );
+      await _refreshSnapshot(await widget.bridge.getProjectSnapshot());
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
@@ -1478,6 +1562,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   Future<void> _previewSamplerNote(int rootPitch) async {
     try {
       await widget.bridge.noteOn(pitch: rootPitch, velocity: 100);
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+      await widget.bridge.noteOff(pitch: rootPitch);
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
@@ -1907,6 +1993,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
                 _setDeviceBypass(deviceId, bypassed),
             onRemoveDevice: _confirmRemoveDevice,
             onOpenDeviceLibrary: _openDeviceLibrary,
+            onOpenDrumPadLibrary: _openDrumPadLibrary,
             onModulationBridgeCall: _modulationBridgeCall,
             automationLinkClipId: _automationLinkClipId,
             onAutomationParamSelected: _assignAutomationParam,
@@ -2034,6 +2121,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
               key: _libraryPanelKey,
               snapshot: snapshot,
               initialCategory: _libraryCategory,
+              percussionOnly: _libraryDrumMachineId != null,
               onClose: _closeLibrary,
               onPreviewAudio: _previewSample,
               onInsertAudio: _onLibraryInsertAudio,

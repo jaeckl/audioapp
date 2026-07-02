@@ -8,10 +8,12 @@ class LibraryCategoryMenu extends StatelessWidget {
     super.key,
     required this.selected,
     required this.onSelected,
+    this.categories = LibraryCategory.values,
   });
 
   final LibraryCategory selected;
   final ValueChanged<LibraryCategory> onSelected;
+  final List<LibraryCategory> categories;
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +27,7 @@ class LibraryCategoryMenu extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 8),
           children: [
-            for (final category in LibraryCategory.values)
+            for (final category in categories)
               _CategoryButton(
                 category: category,
                 selected: category == selected,
@@ -83,8 +85,10 @@ class _CategoryButton extends StatelessWidget {
                   category.title,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: selected ? Colors.white : LibraryTheme.labelMuted,
-                        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                        color:
+                            selected ? Colors.white : LibraryTheme.labelMuted,
+                        fontWeight:
+                            selected ? FontWeight.w700 : FontWeight.w500,
                         fontSize: 10,
                         height: 1.1,
                       ),

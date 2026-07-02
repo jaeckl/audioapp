@@ -398,7 +398,8 @@ private:
     void applyLiveDeviceMetersLocked(ProjectSnapshot& snap) const;
     const DeviceNodePlayback* findOscillatorNode(const TrackPlaybackSnapshot& track) const noexcept;
     DeviceSlot* findDeviceLocked(const std::string& deviceId);
-    bool buildLiveInstrumentForTrack(const Track& track, LiveInstrumentSnapshot& out) const;
+    bool buildLiveInstrumentForTrack(const Track& track, int pitch,
+                                     LiveInstrumentSnapshot& out) const;
     double sampleTimeToCaptureBeat(uint64_t sampleTime) const;
     bool freezeTrackLocked(Track& track, int trackIndex, TrackFreezeAssetStore& assets);
     void beginFreezeBakeLocked();

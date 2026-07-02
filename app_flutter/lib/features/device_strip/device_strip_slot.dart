@@ -40,6 +40,7 @@ import 'crash_generator_device_strip.dart';
 import 'crash_model.dart';
 import 'dynamics_fx_panels.dart';
 import 'time_fx_panels.dart';
+import 'drum_machine_device_panel.dart';
 import 'mood_fx_panels.dart';
 import 'frequency_fx_panels.dart';
 import 'resonator_bank_panel.dart';
@@ -101,6 +102,14 @@ class DeviceStripSlot extends StatefulWidget {
     this.onAutomationParamSelected,
     this.onAutomateParameter,
     this.onGetParamDescriptors,
+    this.drumSelectedNote = 36,
+    this.drumBankStart = 36,
+    this.drumChainExpanded = true,
+    this.onDrumPadSelected,
+    this.onDrumBankChanged,
+    this.onDrumChainToggle,
+    this.onDrumTriggerNote,
+    this.onEmptyDrumPadTap,
   });
 
   final TrackSnapshot track;
@@ -113,9 +122,12 @@ class DeviceStripSlot extends StatefulWidget {
   final ValueListenable<Map<String, DeviceMeterReading>>? liveMetersListenable;
   final bool playing;
   final DeviceStripSlotDensity density;
-  final void Function(String parameterId, double value) onSamplerParameterChanged;
-  final void Function(String parameterId, double value) onDeviceParameterChanged;
-  final void Function(String parameterId, String value)? onDeviceStringParameterChanged;
+  final void Function(String parameterId, double value)
+      onSamplerParameterChanged;
+  final void Function(String parameterId, double value)
+      onDeviceParameterChanged;
+  final void Function(String parameterId, String value)?
+      onDeviceStringParameterChanged;
   final VoidCallback onOpenSamplerEditor;
   final void Function(double frequencyHz) onFrequencyChanged;
   final ValueChanged<SamplerDeviceTab>? onSamplerTabChanged;
@@ -136,17 +148,26 @@ class DeviceStripSlot extends StatefulWidget {
   final PhaseModSynthDeviceTab pmTab;
   final List<LfoSnapshot> lfos;
   final List<ModulationEdgeSnapshot> modEdges;
-  final Future<ProjectSnapshot> Function(String method, Map<String, dynamic> args)?
-      onModulationBridgeCall;
+  final Future<ProjectSnapshot> Function(
+      String method, Map<String, dynamic> args)? onModulationBridgeCall;
   final bool automationLinkActive;
   final String? automationLinkClipId;
   final List<AutomationClipSnapshot> projectAutomationClips;
-  final Future<bool> Function(String deviceId, String paramId)? onAutomationParamSelected;
+  final Future<bool> Function(String deviceId, String paramId)?
+      onAutomationParamSelected;
   final void Function(String deviceId, String paramId)? onAutomateParameter;
 
   /// Optional: fetch param descriptors for the generic fallback editor.
   final Future<List<DeviceParamDescriptor>> Function(String deviceType)?
       onGetParamDescriptors;
+  final int drumSelectedNote;
+  final int drumBankStart;
+  final bool drumChainExpanded;
+  final ValueChanged<int>? onDrumPadSelected;
+  final ValueChanged<int>? onDrumBankChanged;
+  final VoidCallback? onDrumChainToggle;
+  final ValueChanged<int>? onDrumTriggerNote;
+  final ValueChanged<int>? onEmptyDrumPadTap;
 
   @override
   State<DeviceStripSlot> createState() => _DeviceStripSlotState();
@@ -168,18 +189,18 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   List<DeviceParamDescriptor>? _cachedParams;
 
   ProjectSnapshot get _emptySnapshot => const ProjectSnapshot(
-    bpm: 120,
-    selectedTrackId: '',
-    playheadBeats: 0,
-    playing: false,
-    loopEnabled: true,
-    recordArmed: false,
-    master: MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1.0),
-    samples: [],
-    tracks: [],
-    lfos: [],
-    modEdges: [],
-  );
+        bpm: 120,
+        selectedTrackId: '',
+        playheadBeats: 0,
+        playing: false,
+        loopEnabled: true,
+        recordArmed: false,
+        master: MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1.0),
+        samples: [],
+        tracks: [],
+        lfos: [],
+        modEdges: [],
+      );
 
   @override
   void initState() {
@@ -213,15 +234,32 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   bool get _hasCustomEditor {
     // All device types that have dedicated strip widgets.
     const knownTypes = {
-      'simple_sampler', 'simple_oscillator', 'bass_synth',
-      'phase_mod_synth', 'subtractive_synth', 'wavetable_synth',
-      'kick_generator', 'snare_generator', 'clap_generator',
-      'cymbal_generator', 'crash_generator',
-      'gate', 'compressor', 'expander', 'limiter',
-      'filter', 'four_band_eq', 'frequency_shifter', 'resonator_bank',
-      'audio_receiver', 'midi_receiver',
+      'simple_sampler',
+      'simple_oscillator',
+      'bass_synth',
+      'phase_mod_synth',
+      'subtractive_synth',
+      'wavetable_synth',
+      'kick_generator',
+      'snare_generator',
+      'clap_generator',
+      'cymbal_generator',
+      'crash_generator',
+      'gate',
+      'compressor',
+      'expander',
+      'limiter',
+      'filter',
+      'four_band_eq',
+      'frequency_shifter',
+      'resonator_bank',
+      'audio_receiver',
+      'midi_receiver',
       'midi_delay',
-      'delay', 'reverb', 'chorus', 'phaser',
+      'delay',
+      'reverb',
+      'chorus',
+      'phaser',
     };
     return knownTypes.contains(widget.device.type);
   }
@@ -254,18 +292,22 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       _ensureParamDescriptors();
     }
     // Sync local LFO/edge state from parent snapshot
-    if (widget.lfos != oldWidget.lfos || widget.modEdges != oldWidget.modEdges) {
+    if (widget.lfos != oldWidget.lfos ||
+        widget.modEdges != oldWidget.modEdges) {
       _localLfos = List.of(widget.lfos);
       _localModEdges = List.of(widget.modEdges);
       // Validate selection IDs against new list
       final ids = _localLfos.map((l) => l.id).toSet();
-      if (_selectedLfoId != null && !ids.contains(_selectedLfoId)) _selectedLfoId = null;
-      if (_connectModeLfoId != null && !ids.contains(_connectModeLfoId)) _connectModeLfoId = null;
+      if (_selectedLfoId != null && !ids.contains(_selectedLfoId))
+        _selectedLfoId = null;
+      if (_connectModeLfoId != null && !ids.contains(_connectModeLfoId))
+        _connectModeLfoId = null;
     }
   }
 
-  LfoSnapshot? get _selectedLfo =>
-      _selectedLfoId == null ? null : _localLfos.where((l) => l.id == _selectedLfoId).firstOrNull;
+  LfoSnapshot? get _selectedLfo => _selectedLfoId == null
+      ? null
+      : _localLfos.where((l) => l.id == _selectedLfoId).firstOrNull;
 
   Iterable<AutomationClipSnapshot> get _automationClips =>
       widget.projectAutomationClips.isNotEmpty
@@ -282,8 +324,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   }
 
   Set<String> get _modulatedParamIds {
-    var edges = _localModEdges
-        .where((e) => e.deviceId == widget.device.id);
+    var edges = _localModEdges.where((e) => e.deviceId == widget.device.id);
     if (_connectModeLfoId != null) {
       edges = edges.where((e) => e.lfoId == _connectModeLfoId);
     }
@@ -291,8 +332,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   }
 
   Map<String, double> get _modulationAmounts {
-    var edges = _localModEdges
-        .where((e) => e.deviceId == widget.device.id);
+    var edges = _localModEdges.where((e) => e.deviceId == widget.device.id);
     if (_connectModeLfoId != null) {
       edges = edges.where((e) => e.lfoId == _connectModeLfoId);
     }
@@ -309,39 +349,47 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
 
   int? get _connectModeLfo {
     if (_connectModeLfoId == null) return null;
-    if (_localLfos.any((l) => l.id == _connectModeLfoId)) return _connectModeLfoId;
+    if (_localLfos.any((l) => l.id == _connectModeLfoId))
+      return _connectModeLfoId;
     return null;
   }
 
-  Future<ProjectSnapshot> _onBridgeCall(String method, Map<String, dynamic> args) async {
+  Future<ProjectSnapshot> _onBridgeCall(
+      String method, Map<String, dynamic> args) async {
     final bridge = widget.onModulationBridgeCall;
     if (bridge == null) return _emptySnapshot;
     try {
       debugPrint('DEVICE_SLOT: _onBridgeCall $method args=$args');
       final snapshot = await bridge(method, args);
-      debugPrint('DEVICE_SLOT: _onBridgeCall $method SUCCESS lfos=${snapshot.lfos.length}');
+      debugPrint(
+          'DEVICE_SLOT: _onBridgeCall $method SUCCESS lfos=${snapshot.lfos.length}');
       if (mounted) {
         setState(() {
           _localLfos = List.of(snapshot.lfos);
           _localModEdges = List.of(snapshot.modEdges);
           // Clear stale selection/connect-mode IDs no longer in the list
           final ids = _localLfos.map((l) => l.id).toSet();
-          if (_selectedLfoId != null && !ids.contains(_selectedLfoId)) _selectedLfoId = null;
-          if (_connectModeLfoId != null && !ids.contains(_connectModeLfoId)) _connectModeLfoId = null;
+          if (_selectedLfoId != null && !ids.contains(_selectedLfoId))
+            _selectedLfoId = null;
+          if (_connectModeLfoId != null && !ids.contains(_connectModeLfoId))
+            _connectModeLfoId = null;
         });
       }
       return snapshot;
     } catch (e) {
       if (mounted && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Modulation error: $e'), duration: const Duration(seconds: 3)),
+          SnackBar(
+              content: Text('Modulation error: $e'),
+              duration: const Duration(seconds: 3)),
         );
       }
       return _emptySnapshot;
     }
   }
 
-  List<DeviceTabSpec> get _containerTabs => DeviceContainerTabs.forDeviceType(widget.device.type);
+  List<DeviceTabSpec> get _containerTabs =>
+      DeviceContainerTabs.forDeviceType(widget.device.type);
 
   ValueChanged<double> _onModulationFor(String paramId) {
     final lfoId = _connectModeLfo;
@@ -455,11 +503,17 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     if (lfo.type == 'sequencer') return 260.0;
     return 260.0;
   }
-  double get _modTargetsWidth => _modStripVisible && _showTargetsPanel && _selectedLfo != null ? 160.0 : 0.0;
+
+  double get _modTargetsWidth =>
+      _modStripVisible && _showTargetsPanel && _selectedLfo != null
+          ? 160.0
+          : 0.0;
   static const double _targetsPanelWidth = 160.0;
 
-  double get _inputWidth => DeviceStripMetrics.inputPanelWidthFor(widget.device.type);
-  double get _outputWidth => DeviceStripMetrics.outputPanelWidthFor(widget.device.type);
+  double get _inputWidth =>
+      DeviceStripMetrics.inputPanelWidthFor(widget.device.type);
+  double get _outputWidth =>
+      DeviceStripMetrics.outputPanelWidthFor(widget.device.type);
 
   double get _slotWidth {
     if (!_showsToolRail) return _cardWidth;
@@ -475,27 +529,26 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   DeviceStripChromeBindings _chromeBindings([DeviceMeterReading? liveMeter]) {
     final reading = liveMeter;
     return DeviceStripChromeBindings(
-        device: widget.device,
-        accentColor: DeviceStripTheme.accentForDeviceType(widget.device.type),
-        onParameterChanged: widget.onDeviceParameterChanged,
-        modulatedParams: _modulatedParamIds,
-        automatedParams: _automatedParamIds,
-        modulationAmounts: _modulationAmounts,
-        lfos: _localLfos,
-        modEdges: _localModEdges,
-        connectModeLfoId: _connectModeLfo,
-        onModulationAssign: _onModulationForDevice,
-        automationLinkActive: widget.automationLinkActive,
-        onAutomationLinkTap: widget.onAutomationParamSelected != null
-            ? _onAutomationLinkTap
-            : null,
-        onAutomateParameter: widget.onAutomateParameter != null
-            ? _onAutomateParameter
-            : null,
-        gainReductionDb:
-            reading?.gainReductionDb ?? widget.device.meterGainReductionDb,
-        inputLevel: reading?.inputLevel ?? widget.device.meterInputLevel,
-      );
+      device: widget.device,
+      accentColor: DeviceStripTheme.accentForDeviceType(widget.device.type),
+      onParameterChanged: widget.onDeviceParameterChanged,
+      modulatedParams: _modulatedParamIds,
+      automatedParams: _automatedParamIds,
+      modulationAmounts: _modulationAmounts,
+      lfos: _localLfos,
+      modEdges: _localModEdges,
+      connectModeLfoId: _connectModeLfo,
+      onModulationAssign: _onModulationForDevice,
+      automationLinkActive: widget.automationLinkActive,
+      onAutomationLinkTap: widget.onAutomationParamSelected != null
+          ? _onAutomationLinkTap
+          : null,
+      onAutomateParameter:
+          widget.onAutomateParameter != null ? _onAutomateParameter : null,
+      gainReductionDb:
+          reading?.gainReductionDb ?? widget.device.meterGainReductionDb,
+      inputLevel: reading?.inputLevel ?? widget.device.meterInputLevel,
+    );
   }
 
   Widget _meterAwareChromePanel(
@@ -514,31 +567,32 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
 
   Widget _modulationSidebar() {
     Widget gridFor(double beat) => ModulationGrid(
-      lfos: _localLfos,
-      selectedLfoId: _selectedLfoId,
-      maxLfos: ModulatorTypes.maxCount,
-      connectModeLfoId: _connectModeLfoId,
-      playheadBeat: beat,
-      bpm: widget.bpm,
-      playing: widget.playing,
-      onLfoTap: _onLfoTap,
-      onLfoLongPress: _onLfoLongPress,
-      onAddModulator: (type) => _onBridgeCall('createLfo', {'modulatorType': type}),
-      onRemoveLfo: (id) => _onBridgeCall('removeLfo', {'lfoId': id}),
-      targetsPanelVisible: _showTargetsPanel,
-      onShowTargets: (id) {
-        setState(() {
-          _selectedLfoId = id;
-          _showTargetsPanel = true;
-        });
-      },
-      onHideTargets: (id) {
-        setState(() {
-          if (_selectedLfoId == id) _selectedLfoId = null;
-          _showTargetsPanel = false;
-        });
-      },
-    );
+          lfos: _localLfos,
+          selectedLfoId: _selectedLfoId,
+          maxLfos: ModulatorTypes.maxCount,
+          connectModeLfoId: _connectModeLfoId,
+          playheadBeat: beat,
+          bpm: widget.bpm,
+          playing: widget.playing,
+          onLfoTap: _onLfoTap,
+          onLfoLongPress: _onLfoLongPress,
+          onAddModulator: (type) =>
+              _onBridgeCall('createLfo', {'modulatorType': type}),
+          onRemoveLfo: (id) => _onBridgeCall('removeLfo', {'lfoId': id}),
+          targetsPanelVisible: _showTargetsPanel,
+          onShowTargets: (id) {
+            setState(() {
+              _selectedLfoId = id;
+              _showTargetsPanel = true;
+            });
+          },
+          onHideTargets: (id) {
+            setState(() {
+              if (_selectedLfoId == id) _selectedLfoId = null;
+              _showTargetsPanel = false;
+            });
+          },
+        );
 
     final listenable = widget.playheadBeatListenable;
     if (listenable == null) {
@@ -593,7 +647,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                     ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     itemCount: edges.length,
                     itemBuilder: (context, index) {
                       final edge = edges[index];
@@ -614,7 +669,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                             ),
                             Text(
                               '${(edge.amount * 100).round()}%',
-                              style: const TextStyle(color: accent, fontSize: 9),
+                              style:
+                                  const TextStyle(color: accent, fontSize: 9),
                             ),
                             const SizedBox(width: 4),
                             GestureDetector(
@@ -626,7 +682,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                                 width: 28,
                                 height: 28,
                                 child: Center(
-                                  child: Icon(Icons.close, size: 14, color: Colors.white.withValues(alpha: 0.45)),
+                                  child: Icon(Icons.close,
+                                      size: 14,
+                                      color:
+                                          Colors.white.withValues(alpha: 0.45)),
                                 ),
                               ),
                             ),
@@ -650,11 +709,14 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       PhaseModSynthDeviceSnapshot() => '4-OP · PM',
       WavetableSynthDeviceSnapshot() => 'Wavetable · 8 voices',
       SubtractiveSynthDeviceSnapshot() => 'Multimode · 8 voices',
-      KickGeneratorDeviceSnapshot() => 'Mono · ${KickModel.labelFromValue(dev.kickModel)}',
+      KickGeneratorDeviceSnapshot() =>
+        'Mono · ${KickModel.labelFromValue(dev.kickModel)}',
       SnareGeneratorDeviceSnapshot() => 'Mono · synth',
       ClapGeneratorDeviceSnapshot() => 'Mono · synth',
-      CymbalGeneratorDeviceSnapshot() => 'Mono · ${CymbalModel.labelFromValue(dev.cymbalModel)}',
-      CrashGeneratorDeviceSnapshot() => 'Mono · ${CrashModel.labelFromValue(dev.crashModel)}',
+      CymbalGeneratorDeviceSnapshot() =>
+        'Mono · ${CymbalModel.labelFromValue(dev.cymbalModel)}',
+      CrashGeneratorDeviceSnapshot() =>
+        'Mono · ${CrashModel.labelFromValue(dev.crashModel)}',
       GateDeviceSnapshot() => 'Stereo · FX',
       CompressorDeviceSnapshot() => 'Stereo · FX',
       ExpanderDeviceSnapshot() => 'Stereo · FX',
@@ -666,172 +728,191 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   @override
   Widget build(BuildContext context) {
     // ignore: avoid_print
-    print('SLOT BUILD: device=${widget.device.type} _modStripVisible=$_modStripVisible _selectedLfo=$_selectedLfo _selectedLfoId=$_selectedLfoId');
+    print(
+        'SLOT BUILD: device=${widget.device.type} _modStripVisible=$_modStripVisible _selectedLfo=$_selectedLfo _selectedLfoId=$_selectedLfoId');
     return DeviceStripTheme.wrapFrozenPreGainDimmed(
       dimmed: widget.track.isPreGainDeviceDimmed(widget.device),
       child: Padding(
-      padding: EdgeInsets.fromLTRB(
-        0,
-        _collapsed ? DeviceStripTheme.collapsedSlotTopPadding : DeviceStripTheme.slotVerticalPadding,
-        0,
-        DeviceStripTheme.slotVerticalPadding,
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final cardHeight = constraints.maxHeight;
-          if (_collapsed) {
-            return SizedBox(
-              width: _slotWidth,
-              height: cardHeight,
-              child: GestureDetector(
-                onLongPress: widget.onDeleteRequest,
-                child: DeviceStripCard(
-                  deviceType: widget.device.type,
-                  subtitle: _cardSubtitle,
-                  headerOnly: true,
-                  bodyHeight: 0,
-                  child: const SizedBox.shrink(),
-                ),
-              ),
-            );
-          }
-
-          final innerHeight = cardHeight - DeviceStripTheme.cardBorderWidth * 2;
-          final bodyHeight = innerHeight - DeviceStripTheme.cardChromeHeight;
-
-          // Dynamically compute modulation grid width from current LFO count.
-          // ModulationGrid sits outside the card — its total height = cardHeight.
-          double modGridWidthLocal = 0;
-          if (_modStripVisible) {
-            const outerPad = ModulationGrid.outerPadding;
-            const gap = ModulationGrid.cellGap;
-            const rows = ModulationGrid.rowCount;
-            const maxCount = ModulatorTypes.maxCount;
-            // Label section in grid: Padding(top:4, bottom:cellGap) + fontSize 9 ~ 13px line height
-            const labelH = 4.0 + 13.0 + ModulationGrid.cellGap;
-            // Expanded → LayoutBuilder → constraints.maxHeight = cardHeight - labelH
-            // Inside LayoutBuilder: padding bottom = outerPad → contentH = avail - outerPad
-            final availH = cardHeight - labelH;
-            final contentH = availH - outerPad;
-            final cellSize = ((contentH - gap * (rows - 1)) / rows)
-                .clamp(0.0, double.infinity);
-            final lfoCount = _localLfos.length;
-            // _slots() pads to complete each column (3 items per col).
-            int totalSlots;
-            if (lfoCount >= maxCount) {
-              totalSlots = lfoCount;
-            } else {
-              final rem = lfoCount % rows;
-              final fill = rem == 0
-                  ? math.min(rows, maxCount - lfoCount)
-                  : rows - rem;
-              totalSlots = lfoCount + fill;
-            }
-            final totalCols = (totalSlots + rows - 1) ~/ rows;
-            // Last column is narrow (1/3 width) when it contains only add buttons.
-            final hasNarrowCol = lfoCount % rows == 0 && lfoCount < maxCount;
-            final fullColCount = hasNarrowCol ? totalCols - 1 : totalCols;
-            modGridWidthLocal = outerPad * 2 +
-                fullColCount * cellSize +
-                (hasNarrowCol ? cellSize / 3 : 0) +
-                gap * (totalCols - 1);
-          }
-
-          return SizedBox(
-            width: _slotWidth + modGridWidthLocal - _modGridWidth,
-            height: cardHeight,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                DeviceToolRail(
-                  deviceName: DeviceStripTheme.labelForDeviceType(widget.device.type),
-                  accentColor: DeviceStripTheme.accentForDeviceType(widget.device.type),
-                  bypassed: widget.device.bypassed,
-                  showLibrary: widget.device.type == 'simple_sampler' ||
-                      widget.device.type == 'subtractive_synth' ||
-                      widget.device.type == 'bass_synth' ||
-                      widget.device.type == 'phase_mod_synth' ||
-                      widget.device.type == 'wavetable_synth',
-                  libraryTooltip: widget.device.type == 'subtractive_synth' ||
-                      widget.device.type == 'bass_synth' ||
-                      widget.device.type == 'phase_mod_synth' ||
-                      widget.device.type == 'wavetable_synth'
-                          ? 'Open wavetable library'
-                          : 'Open sample library',
-                  onBypassToggle: widget.onBypassToggle ?? () {},
-                  onDelete: widget.onDeleteRequest,
-                  onLibrary: widget.onOpenLibrary,
-                  modActive: _modStripVisible,
-                  onModToggle: () async {
-                    if (!_modStripVisible && _localLfos.isEmpty) {
-                      // Auto-create first LFO so the strip isn't empty
-                      await _onBridgeCall('createLfo', {});
-                      if (!mounted) return;
-                    }
-                    setState(() => _modStripVisible = !_modStripVisible);
-                  },
-                ),
-                if (_modStripVisible)
-                  SizedBox(
-                    width: modGridWidthLocal,
-                    child: DecoratedBox(
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF14141C),
-                      ),
-                      child: _modulationSidebar(),
-                    ),
-                  ),
-                if (_modStripVisible && _showTargetsPanel && _selectedLfo != null)
-                  _targetsPanel(_targetsPanelLfo!),
-                if (_modStripVisible && _selectedLfo != null)
-                  _buildModulatorPropertiesPanel(_selectedLfo!, bodyHeight),
-                if (_inputWidth > 0)
-                  SizedBox(
-                    width: _inputWidth,
-                    child: _meterAwareChromePanel(
-                      (bindings) =>
-                          DeviceStripChrome.inputPanel(
-                            deviceType: widget.device.type,
-                            bindings: bindings,
-                          ) ??
-                          const SizedBox.shrink(),
-                    ),
-                  ),
-                SizedBox(
-                  width: _cardWidth,
+        padding: EdgeInsets.fromLTRB(
+          0,
+          _collapsed
+              ? DeviceStripTheme.collapsedSlotTopPadding
+              : DeviceStripTheme.slotVerticalPadding,
+          0,
+          DeviceStripTheme.slotVerticalPadding,
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final cardHeight = constraints.maxHeight;
+            if (_collapsed) {
+              return SizedBox(
+                width: _slotWidth,
+                height: cardHeight,
+                child: GestureDetector(
+                  onLongPress: widget.onDeleteRequest,
                   child: DeviceStripCard(
                     deviceType: widget.device.type,
                     subtitle: _cardSubtitle,
-                    attachToolRail: true,
-                    attachInputPanel: _inputWidth > 0,
-                    attachOutputPanel: true,
-                    tabs: _containerTabs,
-                    selectedTabIndex: _selectedTabIndex,
-                    onTabSelected: _onTabSelected,
-                    bodyHeight: bodyHeight,
-                    child: _buildDevice(context, bodyHeight),
+                    headerOnly: true,
+                    bodyHeight: 0,
+                    child: const SizedBox.shrink(),
                   ),
                 ),
-                SizedBox(
-                  width: _outputWidth,
-                  child: _meterAwareChromePanel(
-                    (bindings) => DeviceStripChrome.outputPanel(
+              );
+            }
+
+            final innerHeight =
+                cardHeight - DeviceStripTheme.cardBorderWidth * 2;
+            final bodyHeight = innerHeight - DeviceStripTheme.cardChromeHeight;
+
+            // Dynamically compute modulation grid width from current LFO count.
+            // ModulationGrid sits outside the card — its total height = cardHeight.
+            double modGridWidthLocal = 0;
+            if (_modStripVisible) {
+              const outerPad = ModulationGrid.outerPadding;
+              const gap = ModulationGrid.cellGap;
+              const rows = ModulationGrid.rowCount;
+              const maxCount = ModulatorTypes.maxCount;
+              // Label section in grid: Padding(top:4, bottom:cellGap) + fontSize 9 ~ 13px line height
+              const labelH = 4.0 + 13.0 + ModulationGrid.cellGap;
+              // Expanded → LayoutBuilder → constraints.maxHeight = cardHeight - labelH
+              // Inside LayoutBuilder: padding bottom = outerPad → contentH = avail - outerPad
+              final availH = cardHeight - labelH;
+              final contentH = availH - outerPad;
+              final cellSize = ((contentH - gap * (rows - 1)) / rows)
+                  .clamp(0.0, double.infinity);
+              final lfoCount = _localLfos.length;
+              // _slots() pads to complete each column (3 items per col).
+              int totalSlots;
+              if (lfoCount >= maxCount) {
+                totalSlots = lfoCount;
+              } else {
+                final rem = lfoCount % rows;
+                final fill =
+                    rem == 0 ? math.min(rows, maxCount - lfoCount) : rows - rem;
+                totalSlots = lfoCount + fill;
+              }
+              final totalCols = (totalSlots + rows - 1) ~/ rows;
+              // Last column is narrow (1/3 width) when it contains only add buttons.
+              final hasNarrowCol = lfoCount % rows == 0 && lfoCount < maxCount;
+              final fullColCount = hasNarrowCol ? totalCols - 1 : totalCols;
+              modGridWidthLocal = outerPad * 2 +
+                  fullColCount * cellSize +
+                  (hasNarrowCol ? cellSize / 3 : 0) +
+                  gap * (totalCols - 1);
+            }
+
+            return SizedBox(
+              width: _slotWidth + modGridWidthLocal - _modGridWidth,
+              height: cardHeight,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  DeviceToolRail(
+                    deviceName:
+                        DeviceStripTheme.labelForDeviceType(widget.device.type),
+                    accentColor: DeviceStripTheme.accentForDeviceType(
+                        widget.device.type),
+                    bypassed: widget.device.bypassed,
+                    showLibrary: widget.device.type == 'simple_sampler' ||
+                        widget.device.type == 'subtractive_synth' ||
+                        widget.device.type == 'bass_synth' ||
+                        widget.device.type == 'phase_mod_synth' ||
+                        widget.device.type == 'wavetable_synth',
+                    libraryTooltip: widget.device.type == 'subtractive_synth' ||
+                            widget.device.type == 'bass_synth' ||
+                            widget.device.type == 'phase_mod_synth' ||
+                            widget.device.type == 'wavetable_synth'
+                        ? 'Open wavetable library'
+                        : 'Open sample library',
+                    onBypassToggle: widget.onBypassToggle ?? () {},
+                    onDelete: widget.onDeleteRequest,
+                    onLibrary: widget.onOpenLibrary,
+                    modActive: _modStripVisible,
+                    onModToggle: () async {
+                      if (!_modStripVisible && _localLfos.isEmpty) {
+                        // Auto-create first LFO so the strip isn't empty
+                        await _onBridgeCall('createLfo', {});
+                        if (!mounted) return;
+                      }
+                      setState(() => _modStripVisible = !_modStripVisible);
+                    },
+                  ),
+                  if (_modStripVisible)
+                    SizedBox(
+                      width: modGridWidthLocal,
+                      child: DecoratedBox(
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF14141C),
+                        ),
+                        child: _modulationSidebar(),
+                      ),
+                    ),
+                  if (_modStripVisible &&
+                      _showTargetsPanel &&
+                      _selectedLfo != null)
+                    _targetsPanel(_targetsPanelLfo!),
+                  if (_modStripVisible && _selectedLfo != null)
+                    _buildModulatorPropertiesPanel(_selectedLfo!, bodyHeight),
+                  if (_inputWidth > 0)
+                    SizedBox(
+                      width: _inputWidth,
+                      child: _meterAwareChromePanel(
+                        (bindings) =>
+                            DeviceStripChrome.inputPanel(
+                              deviceType: widget.device.type,
+                              bindings: bindings,
+                            ) ??
+                            const SizedBox.shrink(),
+                      ),
+                    ),
+                  SizedBox(
+                    width: _cardWidth,
+                    child: DeviceStripCard(
                       deviceType: widget.device.type,
-                      bindings: bindings,
+                      subtitle: _cardSubtitle,
+                      attachToolRail: true,
+                      attachInputPanel: _inputWidth > 0,
+                      attachOutputPanel: true,
+                      tabs: _containerTabs,
+                      selectedTabIndex: _selectedTabIndex,
+                      onTabSelected: _onTabSelected,
+                      bodyHeight: bodyHeight,
+                      child: _buildDevice(context, bodyHeight),
                     ),
                   ),
-                ),
-              ],
-            ),
-          );
-        },
+                  SizedBox(
+                    width: _outputWidth,
+                    child: _meterAwareChromePanel(
+                      (bindings) => DeviceStripChrome.outputPanel(
+                        deviceType: widget.device.type,
+                        bindings: bindings,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
-    ),
     );
   }
 
   Widget _buildDevice(BuildContext context, double contentHeight) {
     switch (widget.device.type) {
+      case 'drum_machine':
+        return DrumMachineDevicePanel(
+          device: widget.device as DrumMachineDeviceSnapshot,
+          selectedNote: widget.drumSelectedNote,
+          bankStart: widget.drumBankStart,
+          chainExpanded: widget.drumChainExpanded,
+          onSelectNote: widget.onDrumPadSelected ?? (_) {},
+          onBankChanged: widget.onDrumBankChanged ?? (_) {},
+          onToggleChain: widget.onDrumChainToggle ?? () {},
+          onTriggerNote: widget.onDrumTriggerNote ?? (_) {},
+          onEmptyPadTap: widget.onEmptyDrumPadTap ?? (_) {},
+        );
       case 'simple_sampler':
         final dev = widget.device as SamplerDeviceSnapshot;
         return DeviceStripViewport(
@@ -883,9 +964,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             automatedParams: _automatedParamIds,
             modulationAmounts: _modulationAmounts,
             connectModeLfoId: _connectModeLfo,
-            onModulationAssign: _connectModeLfo != null
-                ? _onModulationFor('frequency')
-                : null,
+            onModulationAssign:
+                _connectModeLfo != null ? _onModulationFor('frequency') : null,
             automationLinkActive: widget.automationLinkActive,
             onAutomationLinkTap: widget.onAutomationParamSelected != null
                 ? _onAutomationLinkTap
@@ -1132,8 +1212,12 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
             automationLinkActive: widget.automationLinkActive,
-            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
-            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
           ),
         );
       case 'compressor':
@@ -1145,7 +1229,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           child: CompressorDeviceStrip(
             device: dev,
             onParameterChanged: widget.onDeviceParameterChanged,
-            selectedTab: CompressorDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
+            selectedTab:
+                CompressorDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
             modulatedParams: _modulatedParamIds,
             automatedParams: _automatedParamIds,
             modulationAmounts: _modulationAmounts,
@@ -1154,8 +1239,12 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
             automationLinkActive: widget.automationLinkActive,
-            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
-            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
           ),
         );
       case 'expander':
@@ -1167,7 +1256,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           child: ExpanderDeviceStrip(
             device: dev,
             onParameterChanged: widget.onDeviceParameterChanged,
-            selectedTab: ExpanderDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
+            selectedTab:
+                ExpanderDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
             modulatedParams: _modulatedParamIds,
             automatedParams: _automatedParamIds,
             modulationAmounts: _modulationAmounts,
@@ -1176,8 +1266,12 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
             automationLinkActive: widget.automationLinkActive,
-            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
-            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
           ),
         );
       case 'limiter':
@@ -1198,8 +1292,12 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
             automationLinkActive: widget.automationLinkActive,
-            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
-            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
           ),
         );
       case 'filter':
@@ -1217,8 +1315,12 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
             automationLinkActive: widget.automationLinkActive,
-            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
-            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
           ),
         );
       case 'four_band_eq':
@@ -1236,8 +1338,12 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
             automationLinkActive: widget.automationLinkActive,
-            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
-            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
           ),
         );
       case 'frequency_shifter':
@@ -1255,8 +1361,12 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
             automationLinkActive: widget.automationLinkActive,
-            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
-            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
           ),
         );
       case 'resonator_bank':
@@ -1274,8 +1384,12 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
             automationLinkActive: widget.automationLinkActive,
-            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
-            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
           ),
         );
       case 'audio_receiver':
@@ -1332,8 +1446,12 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
             automationLinkActive: widget.automationLinkActive,
-            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
-            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
           ),
         );
       case 'reverb':
@@ -1351,8 +1469,12 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
             automationLinkActive: widget.automationLinkActive,
-            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
-            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
           ),
         );
       case 'chorus':
@@ -1370,8 +1492,12 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
             automationLinkActive: widget.automationLinkActive,
-            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
-            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
           ),
         );
       case 'phaser':
@@ -1389,8 +1515,12 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
             automationLinkActive: widget.automationLinkActive,
-            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
-            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
           ),
         );
       case 'bitcrusher':
@@ -1408,8 +1538,12 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
             automationLinkActive: widget.automationLinkActive,
-            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
-            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
           ),
         );
       case 'distortion':
@@ -1427,8 +1561,12 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
             automationLinkActive: widget.automationLinkActive,
-            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
-            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
           ),
         );
       case 'tremolo':
@@ -1446,8 +1584,12 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             connectModeLfoId: _connectModeLfo,
             onModulationAssign: _onModulationForDevice,
             automationLinkActive: widget.automationLinkActive,
-            onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
-            onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+            onAutomationLinkTap: widget.onAutomationParamSelected != null
+                ? _onAutomationLinkTap
+                : null,
+            onAutomateParameter: widget.onAutomateParameter != null
+                ? _onAutomateParameter
+                : null,
           ),
         );
       default:
@@ -1467,14 +1609,16 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     }
   }
 
-  Widget _buildModulatorPropertiesPanel(LfoSnapshot snapshot, double bodyHeight) {
+  Widget _buildModulatorPropertiesPanel(
+      LfoSnapshot snapshot, double bodyHeight) {
     final isEnvelope = snapshot.modulatorType == ModulatorTypes.envelope;
     final isRnd = snapshot.type == 'random_generator';
     final isSeq = snapshot.type == 'sequencer';
     final isCurve = snapshot.type == 'curve';
 
     // ignore: avoid_print
-    print('BUILD PROPERTIES PANEL: id=${snapshot.id} type=${snapshot.type} isSeq=$isSeq isRnd=$isRnd isEnvelope=$isEnvelope');
+    print(
+        'BUILD PROPERTIES PANEL: id=${snapshot.id} type=${snapshot.type} isSeq=$isSeq isRnd=$isRnd isEnvelope=$isEnvelope');
 
     double width = 260;
     Widget panel;
@@ -1483,7 +1627,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       final updated = snapshot.applyParamUpdate(param, value);
       if (mounted) {
         setState(() {
-          _localLfos = _localLfos.map((l) => l.id == updated.id ? updated : l).toList();
+          _localLfos =
+              _localLfos.map((l) => l.id == updated.id ? updated : l).toList();
         });
       }
       await _onBridgeCall('updateLfoParam', {
@@ -1602,7 +1747,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   static const _seqAccent = Color(0xFFE8A54B);
   static const _seqSyncLabels = ['1/1', '1/2', '1/4', '1/8', '1/16'];
 
-  static Widget _seqPolarityToggle(LfoSnapshot mod, Future<void> Function(String, double) onUpdate) {
+  static Widget _seqPolarityToggle(
+      LfoSnapshot mod, Future<void> Function(String, double) onUpdate) {
     final selected = mod.polarity.clamp(0, 1);
     return SizedBox(
       height: 22,
@@ -1620,7 +1766,9 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
               final active = selected == i;
               return Expanded(
                 child: Material(
-                  color: active ? _seqAccent.withValues(alpha: 0.2) : Colors.transparent,
+                  color: active
+                      ? _seqAccent.withValues(alpha: 0.2)
+                      : Colors.transparent,
                   child: InkWell(
                     onTap: () => onUpdate('polarity', i.toDouble()),
                     child: Center(
@@ -1629,7 +1777,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                         style: TextStyle(
                           color: active ? _seqAccent : Colors.white38,
                           fontSize: 9,
-                          fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight:
+                              active ? FontWeight.w700 : FontWeight.w500,
                         ),
                       ),
                     ),
@@ -1643,14 +1792,17 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     );
   }
 
-  Widget _seqHeader(LfoSnapshot mod, Future<void> Function(String, double) onUpdate) {
+  Widget _seqHeader(
+      LfoSnapshot mod, Future<void> Function(String, double) onUpdate) {
     final stepOptions = [4, 8, 12, 16, 24, 32];
-    final currentSteps = stepOptions.contains(mod.sequencerSteps) ? mod.sequencerSteps : 16;
+    final currentSteps =
+        stepOptions.contains(mod.sequencerSteps) ? mod.sequencerSteps : 16;
     return Row(
       children: [
         Text(
           'SEQ ${mod.id}',
-          style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w700),
+          style: const TextStyle(
+              color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w700),
         ),
         const Spacer(),
         SizedBox(width: 44, child: _seqPolarityToggle(mod, onUpdate)),
@@ -1659,22 +1811,28 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           value: currentSteps,
           dropdownColor: const Color(0xFF1A1A24),
           isDense: true,
-          style: const TextStyle(color: _seqAccent, fontSize: 10, fontWeight: FontWeight.w700),
+          style: const TextStyle(
+              color: _seqAccent, fontSize: 10, fontWeight: FontWeight.w700),
           underline: const SizedBox(),
           icon: const Icon(Icons.arrow_drop_down, color: _seqAccent, size: 14),
           items: stepOptions
               .map((n) => DropdownMenuItem<int>(
                     value: n,
-                    child: Text('$n', style: const TextStyle(color: Colors.white, fontSize: 10)),
+                    child: Text('$n',
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 10)),
                   ))
               .toList(),
-          onChanged: (v) { if (v != null) onUpdate('steps', v.toDouble()); },
+          onChanged: (v) {
+            if (v != null) onUpdate('steps', v.toDouble());
+          },
         ),
       ],
     );
   }
 
-  Widget _seqRetriggerBar(LfoSnapshot mod, Future<void> Function(String, double) onUpdate) {
+  Widget _seqRetriggerBar(
+      LfoSnapshot mod, Future<void> Function(String, double) onUpdate) {
     const labels = ['Free', 'Sync', 'On note'];
     const values = [0, 1, 2];
     final selected = mod.retrigger.clamp(0, 2);
@@ -1694,7 +1852,9 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
               final active = selected == values[i];
               return Expanded(
                 child: Material(
-                  color: active ? _seqAccent.withValues(alpha: 0.2) : Colors.transparent,
+                  color: active
+                      ? _seqAccent.withValues(alpha: 0.2)
+                      : Colors.transparent,
                   child: InkWell(
                     onTap: () => onUpdate('retrigger', values[i].toDouble()),
                     child: Center(
@@ -1703,7 +1863,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                         style: TextStyle(
                           color: active ? _seqAccent : Colors.white38,
                           fontSize: 9,
-                          fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight:
+                              active ? FontWeight.w700 : FontWeight.w500,
                         ),
                       ),
                     ),
@@ -1717,7 +1878,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     );
   }
 
-  Widget _seqSyncDivisions(LfoSnapshot mod, Future<void> Function(String, double) onUpdate) {
+  Widget _seqSyncDivisions(
+      LfoSnapshot mod, Future<void> Function(String, double) onUpdate) {
     return Row(
       children: List.generate(5, (i) {
         final active = (mod.syncDivision.clamp(1, 5) - 1) == i;
@@ -1727,7 +1889,9 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 2),
               decoration: BoxDecoration(
-                color: active ? _seqAccent.withValues(alpha: 0.2) : const Color(0xFF1A1A24),
+                color: active
+                    ? _seqAccent.withValues(alpha: 0.2)
+                    : const Color(0xFF1A1A24),
                 borderRadius: BorderRadius.circular(3),
                 border: Border.all(
                   color: active ? _seqAccent : Colors.white24,
@@ -1750,7 +1914,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     );
   }
 
-  Widget _seqKnobs(LfoSnapshot mod, Future<void> Function(String, double) onUpdate) {
+  Widget _seqKnobs(
+      LfoSnapshot mod, Future<void> Function(String, double) onUpdate) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
@@ -1793,7 +1958,10 @@ class _UnknownDeviceBody extends StatelessWidget {
     return Center(
       child: Text(
         deviceType,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white54),
+        style: Theme.of(context)
+            .textTheme
+            .labelMedium
+            ?.copyWith(color: Colors.white54),
       ),
     );
   }

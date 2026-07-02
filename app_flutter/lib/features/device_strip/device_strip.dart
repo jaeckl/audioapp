@@ -33,7 +33,8 @@ class DeviceStrip extends StatefulWidget {
     required this.onAddDevice,
     required this.onBypassToggle,
     required this.onRemoveDevice,
-    required     this.onOpenDeviceLibrary,
+    required this.onOpenDeviceLibrary,
+    this.onOpenDrumPadLibrary,
     this.onModulationBridgeCall,
     this.automationLinkClipId,
     this.onAutomationParamSelected,
@@ -53,20 +54,25 @@ class DeviceStrip extends StatefulWidget {
   final void Function(String deviceId, String parameterId, String value)?
       onDeviceStringParameterChanged;
   final void Function(String deviceId, String sampleId) onAssignSamplerSample;
-  final void Function(TrackSnapshot track, DeviceSnapshot device) onOpenSamplerEditor;
+  final void Function(TrackSnapshot track, DeviceSnapshot device)
+      onOpenSamplerEditor;
   final ValueChanged<SampleLibraryEntrySnapshot> onPreviewSample;
   final ValueChanged<int>? onPreviewSampler;
   final Future<List<SampleLibraryEntrySnapshot>> Function() onImportSamples;
   final void Function(String deviceId, double frequencyHz) onFrequencyChanged;
-  final Future<void> Function(String trackId, String deviceType, int insertIndex)
-      onAddDevice;
+  final Future<void> Function(
+      String trackId, String deviceType, int insertIndex) onAddDevice;
   final void Function(String deviceId, bool bypassed) onBypassToggle;
-  final Future<void> Function(TrackSnapshot track, DeviceSnapshot device) onRemoveDevice;
+  final Future<void> Function(TrackSnapshot track, DeviceSnapshot device)
+      onRemoveDevice;
   final void Function(DeviceSnapshot device) onOpenDeviceLibrary;
-  final Future<ProjectSnapshot> Function(String method, Map<String, dynamic> args)?
-      onModulationBridgeCall;
+  final void Function(DrumMachineDeviceSnapshot device, int note)?
+      onOpenDrumPadLibrary;
+  final Future<ProjectSnapshot> Function(
+      String method, Map<String, dynamic> args)? onModulationBridgeCall;
   final String? automationLinkClipId;
-  final Future<bool> Function(String deviceId, String paramId)? onAutomationParamSelected;
+  final Future<bool> Function(String deviceId, String paramId)?
+      onAutomationParamSelected;
   final void Function(String deviceId, String paramId)? onAutomateParameter;
 
   /// Optional: fetch param descriptors for the generic fallback editor.
@@ -81,6 +87,9 @@ class _DeviceStripState extends State<DeviceStrip> {
   bool _expanded = false;
   final Map<String, SamplerDeviceTab> _samplerTabs = {};
   final Map<String, SubtractiveDeviceTab> _synthTabs = {};
+  final Map<String, int> _drumSelectedNotes = {};
+  final Map<String, int> _drumBankStarts = {};
+  final Map<String, bool> _drumChainExpanded = {};
 
   bool _shouldStartCollapsed(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -145,8 +154,9 @@ class _DeviceStripState extends State<DeviceStrip> {
   @override
   Widget build(BuildContext context) {
     final collapsed = !_expanded && _shouldStartCollapsed(context);
-    final stripHeight =
-        collapsed ? DeviceStripMetrics.collapsedHeight : DeviceStripMetrics.height;
+    final stripHeight = collapsed
+        ? DeviceStripMetrics.collapsedHeight
+        : DeviceStripMetrics.height;
     final track = widget.track;
 
     return DecoratedBox(
@@ -160,7 +170,10 @@ class _DeviceStripState extends State<DeviceStrip> {
               child: Center(
                 child: Text(
                   'Select a track to show devices',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white38),
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelMedium
+                      ?.copyWith(color: Colors.white38),
                 ),
               ),
             )
@@ -174,7 +187,8 @@ class _DeviceStripState extends State<DeviceStrip> {
                   collapsed: collapsed,
                   showCollapse: _shouldStartCollapsed(context),
                   onOpenFullscreen: () => _openDeviceChain(track),
-                  onExpand: collapsed ? () => setState(() => _expanded = true) : null,
+                  onExpand:
+                      collapsed ? () => setState(() => _expanded = true) : null,
                   onCollapse: !collapsed && _shouldStartCollapsed(context)
                       ? () => setState(() => _expanded = false)
                       : null,
@@ -196,24 +210,41 @@ class _DeviceStripState extends State<DeviceStrip> {
                   samplerTabFor: _samplerTabFor,
                   synthTabFor: _synthTabFor,
                   onSamplerParameterChanged: widget.onSamplerParameterChanged,
-                  onDeviceStringParameterChanged: widget.onDeviceStringParameterChanged,
+                  onDeviceStringParameterChanged:
+                      widget.onDeviceStringParameterChanged,
                   onOpenSamplerEditor: widget.onOpenSamplerEditor,
                   onFrequencyChanged: widget.onFrequencyChanged,
-                  onInsertDevice: (insertIndex) => _insertDevice(track, insertIndex),
+                  onInsertDevice: (insertIndex) =>
+                      _insertDevice(track, insertIndex),
                   onSamplerTabChanged: _setSamplerTab,
                   onSynthTabChanged: _setSynthTab,
                   onBypassToggle: widget.onBypassToggle,
-                  onDeleteDevice: (device) => widget.onRemoveDevice(track, device),
+                  onDeleteDevice: (device) =>
+                      widget.onRemoveDevice(track, device),
                   onOpenLibrary: widget.onOpenDeviceLibrary,
+                  onOpenDrumPadLibrary: widget.onOpenDrumPadLibrary,
                   onPreviewSample: widget.onPreviewSample,
                   onPreviewSampler: widget.onPreviewSampler,
                   onModulationBridgeCall: widget.onModulationBridgeCall,
                   automationLinkActive: widget.automationLinkClipId != null,
                   automationLinkClipId: widget.automationLinkClipId,
-                  projectAutomationClips: widget.snapshot.allAutomationClips.toList(),
+                  projectAutomationClips:
+                      widget.snapshot.allAutomationClips.toList(),
                   onAutomationParamSelected: widget.onAutomationParamSelected,
                   onAutomateParameter: widget.onAutomateParameter,
                   onGetParamDescriptors: widget.onGetParamDescriptors,
+                  drumSelectedNoteFor: (id) => _drumSelectedNotes[id] ?? 36,
+                  drumBankStartFor: (id) => _drumBankStarts[id] ?? 36,
+                  drumChainExpandedFor: (id) => _drumChainExpanded[id] ?? true,
+                  onDrumPadSelected: (id, note) => setState(() {
+                    _drumSelectedNotes[id] = note;
+                    _drumChainExpanded.putIfAbsent(id, () => true);
+                  }),
+                  onDrumBankChanged: (id, start) =>
+                      setState(() => _drumBankStarts[id] = start),
+                  onDrumChainToggle: (id) => setState(() =>
+                      _drumChainExpanded[id] =
+                          !(_drumChainExpanded[id] ?? true)),
                 ),
               ],
             ),
@@ -264,7 +295,10 @@ class _DeviceStripHeader extends StatelessWidget {
               '${track.name} · $deviceCount',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white70),
+              style: Theme.of(context)
+                  .textTheme
+                  .labelMedium
+                  ?.copyWith(color: Colors.white70),
             ),
           ),
           if (collapsed && onExpand != null)
@@ -272,20 +306,23 @@ class _DeviceStripHeader extends StatelessWidget {
               tooltip: 'Expand device strip',
               visualDensity: VisualDensity.compact,
               onPressed: onExpand,
-              icon: const Icon(Icons.unfold_more, size: 20, color: Colors.white54),
+              icon: const Icon(Icons.unfold_more,
+                  size: 20, color: Colors.white54),
             ),
           if (!collapsed && showCollapse && onCollapse != null)
             IconButton(
               tooltip: 'Collapse device strip',
               visualDensity: VisualDensity.compact,
               onPressed: onCollapse,
-              icon: const Icon(Icons.unfold_less, size: 20, color: Colors.white54),
+              icon: const Icon(Icons.unfold_less,
+                  size: 20, color: Colors.white54),
             ),
           IconButton(
             tooltip: 'Open device chain',
             visualDensity: VisualDensity.compact,
             onPressed: onOpenFullscreen,
-            icon: const Icon(Icons.open_in_full, size: 20, color: Colors.white54),
+            icon:
+                const Icon(Icons.open_in_full, size: 20, color: Colors.white54),
           ),
         ],
       ),

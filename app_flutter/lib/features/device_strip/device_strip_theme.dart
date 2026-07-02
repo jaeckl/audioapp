@@ -57,6 +57,7 @@ abstract final class DeviceStripTheme {
   static const bitcrusherAccent = Color(0xFF7B6CF6);
   static const distortionAccent = Color(0xFFE85D4B);
   static const tremoloAccent = Color(0xFF4ADE80);
+  static const drumMachineAccent = Color(0xFF8B7CF6);
 
   static Color accentForDeviceType(String type) => switch (type) {
         'simple_sampler' => samplerAccent,
@@ -88,6 +89,7 @@ abstract final class DeviceStripTheme {
         'bitcrusher' => bitcrusherAccent,
         'distortion' => distortionAccent,
         'tremolo' => tremoloAccent,
+        'drum_machine' => drumMachineAccent,
         _ => genericAccent,
       };
 
@@ -121,6 +123,7 @@ abstract final class DeviceStripTheme {
         'bitcrusher' => 'Bitcrusher',
         'distortion' => 'Distortion',
         'tremolo' => 'Tremolo',
+        'drum_machine' => 'Drum Machine',
         _ => type,
       };
 

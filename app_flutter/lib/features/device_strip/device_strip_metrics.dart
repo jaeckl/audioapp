@@ -17,6 +17,7 @@ import 'subtractive_synth_device_panel.dart';
 import 'wavetable_synth_device_panel.dart';
 import 'time_fx_panels.dart';
 import 'mood_fx_panels.dart';
+import 'drum_machine_device_panel.dart';
 
 /// Device strip layout constants.
 class DeviceStripMetrics {
@@ -26,7 +27,10 @@ class DeviceStripMetrics {
   static const _timeFxTypes = {'delay', 'reverb', 'chorus', 'phaser'};
   static const _moodFxTypes = {'bitcrusher', 'distortion', 'tremolo'};
   static const _frequencyFxTypes = {
-    'filter', 'four_band_eq', 'frequency_shifter', 'resonator_bank',
+    'filter',
+    'four_band_eq',
+    'frequency_shifter',
+    'resonator_bank',
   };
   static const _drumTypes = {
     'kick_generator',
@@ -35,7 +39,11 @@ class DeviceStripMetrics {
     'cymbal_generator',
     'crash_generator',
   };
-  static const _routingTypes = {'audio_receiver', 'midi_receiver', 'midi_delay'};
+  static const _routingTypes = {
+    'audio_receiver',
+    'midi_receiver',
+    'midi_delay'
+  };
 
   /// Canonical sampler strip width (~⅔ of the original 520).
   static const double samplerDesignWidth = 348;
@@ -97,9 +105,7 @@ class DeviceStripMetrics {
   static const double eqFxPanelPaddingH = 12;
 
   static double get fourBandEqDesignWidth =>
-      4 * eqFxBandColumnWidth +
-      3 * eqFxBandColumnGap +
-      eqFxPanelPaddingH;
+      4 * eqFxBandColumnWidth + 3 * eqFxBandColumnGap + eqFxPanelPaddingH;
 
   // Ring Mod and Filter use the same compact dynamics-FX-sized card.
   // Not `const` because they reference the [dynamicsFxDesignWidth] getter.
@@ -129,8 +135,8 @@ class DeviceStripMetrics {
 
   static double inputPanelWidthFor(String deviceType) =>
       _dynamicsTypes.contains(deviceType) ||
-      _timeFxTypes.contains(deviceType) ||
-      _frequencyFxTypes.contains(deviceType)
+              _timeFxTypes.contains(deviceType) ||
+              _frequencyFxTypes.contains(deviceType)
           ? dynamicsInputPanelWidth
           : 0;
 
@@ -177,6 +183,7 @@ class DeviceStripMetrics {
       'wavetable_synth' => WavetableSynthDevicePanel.designWidth,
       'simple_oscillator' => OscillatorDevicePanel.designWidth,
       'phase_mod_synth' => PhaseModSynthDevicePanel.designWidth,
+      'drum_machine' => DrumMachineDevicePanel.designWidth,
       _ => 280,
     };
   }

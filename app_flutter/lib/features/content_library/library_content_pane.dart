@@ -28,6 +28,7 @@ class LibraryContentPane extends StatefulWidget {
     this.onWavetableTap,
     this.autoPlayOnSelect = true,
     this.presetManifest,
+    this.percussionOnly = false,
   });
 
   final LibraryCategory category;
@@ -41,7 +42,8 @@ class LibraryContentPane extends StatefulWidget {
   final void Function(LibraryAutomationItem item)? onAutomationTap;
   final void Function(LibraryAutomationItem item)? onAutomationPreviewTap;
   final void Function(LibraryPresetItem item)? onPresetTap;
-  final void Function(LibraryPresetItem item, {double startBeat, bool loop})? onPresetPreviewTap;
+  final void Function(LibraryPresetItem item, {double startBeat, bool loop})?
+      onPresetPreviewTap;
   final void Function(LibraryWavetableItem item)? onWavetableTap;
 
   /// When true (default), selecting a preset auto-starts preview. When false,
@@ -50,6 +52,7 @@ class LibraryContentPane extends StatefulWidget {
 
   /// Optional manifest override (tests). When null, loads from assets.
   final LibraryManifest? presetManifest;
+  final bool percussionOnly;
 
   @override
   State<LibraryContentPane> createState() => _LibraryContentPaneState();
@@ -130,10 +133,26 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
                 item.deviceType == _selectedDeviceType)
             .toList();
       }
-      if (_selectedTags.isNotEmpty) {
+      if (widget.percussionOnly) {
+        const percussionTypes = {
+          'simple_sampler',
+          'kick_generator',
+          'snare_generator',
+          'clap_generator',
+          'cymbal_generator',
+          'crash_generator',
+          'hi_hat_generator',
+        };
         filtered = filtered
             .where((item) =>
-                libraryItemMatchesTagFilter(item.tags, _selectedTags))
+                item is LibraryPresetItem &&
+                percussionTypes.contains(item.deviceType))
+            .toList();
+      }
+      if (_selectedTags.isNotEmpty) {
+        filtered = filtered
+            .where(
+                (item) => libraryItemMatchesTagFilter(item.tags, _selectedTags))
             .toList();
       }
       return filtered;
@@ -141,8 +160,8 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
     if (widget.category == LibraryCategory.midiClips) {
       if (_selectedTags.isNotEmpty) {
         return all
-            .where((item) =>
-                libraryItemMatchesTagFilter(item.tags, _selectedTags))
+            .where(
+                (item) => libraryItemMatchesTagFilter(item.tags, _selectedTags))
             .toList();
       }
       return all;
@@ -194,12 +213,14 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
                 IconButton(
                   tooltip: 'Import audio',
                   onPressed: widget.onImportAudio,
-                  icon: const Icon(Icons.upload_file_outlined, color: Colors.white70),
+                  icon: const Icon(Icons.upload_file_outlined,
+                      color: Colors.white70),
                 ),
             ],
           ),
         ),
-        if (widget.category == LibraryCategory.midiClips && allMidiItems.isNotEmpty)
+        if (widget.category == LibraryCategory.midiClips &&
+            allMidiItems.isNotEmpty)
           LibraryTagFilterBar(
             itemTagLists: allMidiItems.map((m) => m.tags),
             selectedTags: _selectedTags,
@@ -207,7 +228,8 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
             onClear: _onClearTags,
             accent: accent,
           ),
-        if (widget.category == LibraryCategory.devicePresets && allPresetItems.isNotEmpty)
+        if (widget.category == LibraryCategory.devicePresets &&
+            allPresetItems.isNotEmpty)
           DevicePresetFilterList(
             selectedType: _selectedDeviceType,
             onFilterChanged: (type) {
@@ -260,10 +282,10 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
           onMidiPreviewTap: widget.onMidiPreviewTap,
           onAutomationTap: widget.onAutomationTap,
           onAutomationPreviewTap: widget.onAutomationPreviewTap,
-           onPresetTap: widget.onPresetTap,
-           onPresetPreviewTap: widget.onPresetPreviewTap,
-           onWavetableTap: widget.onWavetableTap,
-           autoPlayOnSelect: widget.autoPlayOnSelect,
+          onPresetTap: widget.onPresetTap,
+          onPresetPreviewTap: widget.onPresetPreviewTap,
+          onWavetableTap: widget.onWavetableTap,
+          autoPlayOnSelect: widget.autoPlayOnSelect,
         );
       },
     );
@@ -348,9 +370,12 @@ class _EmptyCategoryState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final message = switch (category) {
-      LibraryCategory.audioClips => 'Import audio or add sample clips to the project.',
-      LibraryCategory.midiClips => 'Factory loops and project clips appear here.',
-      LibraryCategory.automationClips => 'Automation clips will appear here once recorded.',
+      LibraryCategory.audioClips =>
+        'Import audio or add sample clips to the project.',
+      LibraryCategory.midiClips =>
+        'Factory loops and project clips appear here.',
+      LibraryCategory.automationClips =>
+        'Automation clips will appear here once recorded.',
       LibraryCategory.devicePresets => 'Starter presets will be listed here.',
       LibraryCategory.wavetables => 'Bundled wavetables will be listed here.',
     };
@@ -361,7 +386,10 @@ class _EmptyCategoryState extends StatelessWidget {
         child: Text(
           message,
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: LibraryTheme.labelMuted),
+          style: Theme.of(context)
+              .textTheme
+              .bodyMedium
+              ?.copyWith(color: LibraryTheme.labelMuted),
         ),
       ),
     );
@@ -397,14 +425,17 @@ class _LibraryItemTile extends StatelessWidget {
   final void Function(LibraryAutomationItem item)? onAutomationTap;
   final void Function(LibraryAutomationItem item)? onAutomationPreviewTap;
   final void Function(LibraryPresetItem item)? onPresetTap;
-  final void Function(LibraryPresetItem item, {double startBeat, bool loop})? onPresetPreviewTap;
+  final void Function(LibraryPresetItem item, {double startBeat, bool loop})?
+      onPresetPreviewTap;
   final void Function(LibraryWavetableItem item)? onWavetableTap;
   final bool autoPlayOnSelect;
 
   @override
   Widget build(BuildContext context) {
     final tile = Material(
-      color: isSelected ? accent.withValues(alpha: 0.08) : LibraryTheme.cardBackground,
+      color: isSelected
+          ? accent.withValues(alpha: 0.08)
+          : LibraryTheme.cardBackground,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: onTap,
@@ -478,7 +509,8 @@ class _LibraryItemTile extends StatelessWidget {
           ),
         ],
       LibraryMidiItem() => [
-          Icon(Icons.north_west, size: 18, color: accent.withValues(alpha: 0.8)),
+          Icon(Icons.north_west,
+              size: 18, color: accent.withValues(alpha: 0.8)),
         ],
       LibraryAutomationItem() => [
           Icon(Icons.timeline, size: 18, color: accent.withValues(alpha: 0.8)),
@@ -542,8 +574,7 @@ class _LeadingVisual extends StatelessWidget {
           ? LibraryPreviewWidget(
               width: 52,
               height: 36,
-              peaks:
-                  _generateAutomationPeaks(clip.points, clip.lengthBeats),
+              peaks: _generateAutomationPeaks(clip.points, clip.lengthBeats),
               color: accent,
             )
           : LibraryPreviewWidget(

@@ -1,5 +1,6 @@
 #include "audioapp/MidiClipPlayback.hpp"
 #include "audioapp/ProjectEngine.hpp"
+#include "audioapp/devices/DeviceTypeIds.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -18,11 +19,24 @@ double quantizeCaptureBeat(double beat, double grid = 0.25) {
 } // namespace
 
 bool ProjectEngine::buildLiveInstrumentForTrack(const Track& track,
+                                                int pitch,
                                                 LiveInstrumentSnapshot& out) const {
     PlaybackBuildContext context{sampleBank_};
     context.wavetableBank = wavetableBank_;
     uint16_t deviceIndex = 0;
     for (const auto& device : track.devices) {
+        if (device.config.typeId == device_types::kDrumMachine &&
+            pitch >= 0 && pitch < DrumMachineModel::kMidiNoteCount) {
+            const auto& machine = std::get<DrumMachineModel>(device.config.instance);
+            const auto& pad = machine.pads[static_cast<size_t>(pitch)];
+            for (const auto& child : pad.devices) {
+                if (child != nullptr && deviceRegistry_.buildLiveInstrument(*child, context, out)) {
+                    if (out.kind == LiveInstrumentKind::Sampler) out.rootPitch = pitch;
+                    out.deviceIndex = deviceIndex;
+                    return true;
+                }
+            }
+        }
         if (deviceRegistry_.buildLiveInstrument(device, context, out)) {
             out.deviceIndex = deviceIndex;
             return true;
@@ -69,7 +83,7 @@ bool ProjectEngine::noteOn(int pitch, float velocity) {
     }
 
     LiveInstrumentSnapshot instrument{};
-    if (!buildLiveInstrumentForTrack(*track, instrument)) {
+    if (!buildLiveInstrumentForTrack(*track, pitch, instrument)) {
         return false;
     }
 
