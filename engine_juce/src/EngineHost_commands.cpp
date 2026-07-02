@@ -120,6 +120,15 @@ bool EngineHost::removeDeviceFromDrumPad(const std::string& drumMachineId, int n
     return project_ != nullptr && project_->removeDeviceFromDrumPad(drumMachineId, note, deviceId);
 }
 
+std::string EngineHost::addDeviceToChain(const std::string& chainId,
+                                          const std::string& deviceType, int insertIndex) {
+    return project_ != nullptr ? project_->addDeviceToChain(chainId, deviceType, insertIndex) : std::string{};
+}
+
+bool EngineHost::removeDeviceFromChain(const std::string& chainId, const std::string& deviceId) {
+    return project_ != nullptr && project_->removeDeviceFromChain(chainId, deviceId);
+}
+
 bool EngineHost::setDrumPadParameter(const std::string& drumMachineId, int note,
                                      const std::string& parameterId, float value) {
     return project_ != nullptr && project_->setDrumPadParameter(drumMachineId, note, parameterId, value);
@@ -1201,6 +1210,24 @@ void EngineHost::registerAllCommands() {
         if (!ctx.engine.setDrumPadParameter(machineId, note, parameterId, value))
             return commands::errorResult("invalid_drum_pad_parameter");
         return commands::okResult();
+    });
+
+    reg.registerCommand("addDeviceToChain", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto chainId = ctx.args["chainId"].toString().toStdString();
+        const auto deviceType = ctx.args["deviceType"].toString().toStdString();
+        const int insertIndex = ctx.args.hasProperty("insertIndex")
+            ? static_cast<int>(static_cast<double>(ctx.args["insertIndex"])) : -1;
+        if (ctx.engine.addDeviceToChain(chainId, deviceType, insertIndex).empty())
+            return commands::errorResult("invalid_chain_device");
+        return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
+    });
+
+    reg.registerCommand("removeDeviceFromChain", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto chainId = ctx.args["chainId"].toString().toStdString();
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        if (!ctx.engine.removeDeviceFromChain(chainId, deviceId))
+            return commands::errorResult("chain_device_not_found");
+        return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
     });
 
     reg.registerCommand("setDeviceParameter", [](const commands::CommandContext& ctx) -> commands::CommandResult {

@@ -63,6 +63,7 @@ static ParamKind paramKindForDevice(DeviceNodeKind kind) noexcept {
     case DeviceNodeKind::ResonatorBank:    return ParamKind::ResonatorBank;
     case DeviceNodeKind::AudioReceiver:
     case DeviceNodeKind::MidiReceiver:     return ParamKind::Routing;
+    case DeviceNodeKind::Chain:            return ParamKind::Chain;
     case DeviceNodeKind::TrackGain:        return ParamKind::TrackGain;
     case DeviceNodeKind::Unknown:
     default:                                return ParamKind::Common;
@@ -1284,6 +1285,13 @@ void applyAutomationValue(DeviceVariantParams& params,
                 p->routeMix = normalized;
                 break;
             }
+        }
+        break;
+    case ParamKind::Chain:
+        if (auto* p = std::get_if<ChainParams>(&params); p != nullptr && p->playback != nullptr) {
+            auto playback = std::const_pointer_cast<ChainPlayback>(p->playback);
+            if (rawId == 0) playback->mix = value;
+            else if (rawId == 1) playback->gain = value * 2.0f;
         }
         break;
     case ParamKind::Common:

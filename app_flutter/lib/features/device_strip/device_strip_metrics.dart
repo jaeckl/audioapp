@@ -19,6 +19,7 @@ import 'time_fx_panels.dart';
 import 'mood_fx_panels.dart';
 import 'drum_machine_device_panel.dart';
 import 'analysis_device_panel.dart';
+import 'chain_device_panel.dart';
 
 /// Device strip layout constants.
 class DeviceStripMetrics {
@@ -49,7 +50,8 @@ class DeviceStripMetrics {
     'oscilloscope',
     'spectrum_analyzer',
     'loudness_meter',
-    'stereo_imager'
+    'stereo_imager',
+    'device_chain',
   };
 
   /// Canonical sampler strip width (~⅔ of the original 520).
@@ -192,6 +194,7 @@ class DeviceStripMetrics {
       'simple_oscillator' => OscillatorDevicePanel.designWidth,
       'phase_mod_synth' => PhaseModSynthDevicePanel.designWidth,
       'drum_machine' => DrumMachineDevicePanel.designWidth,
+      'device_chain' => ChainDevicePanel.designWidth,
       'oscilloscope' ||
       'spectrum_analyzer' ||
       'loudness_meter' ||

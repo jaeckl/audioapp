@@ -244,6 +244,41 @@ bool ProjectEngine::removeDeviceFromDrumPad(const std::string& drumMachineId, in
     return true;
 }
 
+std::string ProjectEngine::addDeviceToChain(const std::string& chainId,
+                                             const std::string& deviceType,
+                                             int insertIndex) {
+    const juce::ScopedWriteLock lock(mutex_);
+    DeviceSlot* slot = findDeviceLocked(chainId);
+    if (slot == nullptr || slot->config.typeId != device_types::kChain ||
+        deviceType == device_types::kChain || !deviceRegistry_.isKnownType(deviceType)) return {};
+    auto& devices = std::get<ChainModel>(slot->config.instance).devices;
+    if (devices.size() >= 8) return {};
+    const std::string id = trackRepo_.allocateDeviceId();
+    auto child = std::make_shared<DeviceSlot>(deviceRegistry_.createDefault(deviceType, id));
+    const size_t at = insertIndex < 0 ? devices.size()
+        : std::min(static_cast<size_t>(insertIndex), devices.size());
+    devices.insert(devices.begin() + static_cast<std::ptrdiff_t>(at), std::move(child));
+    rebuildTrackPlaybackLocked();
+    return id;
+}
+
+bool ProjectEngine::removeDeviceFromChain(const std::string& chainId,
+                                           const std::string& deviceId) {
+    const juce::ScopedWriteLock lock(mutex_);
+    DeviceSlot* slot = findDeviceLocked(chainId);
+    if (slot == nullptr || slot->config.typeId != device_types::kChain) return false;
+    auto& devices = std::get<ChainModel>(slot->config.instance).devices;
+    const auto it = std::find_if(devices.begin(), devices.end(), [&](const auto& child) {
+        return child != nullptr && child->id == deviceId;
+    });
+    if (it == devices.end()) return false;
+    devices.erase(it);
+    automationClipStore_.unlinkForDevice(deviceId);
+    modulationGraph_.removeModulationForDevice(deviceId);
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
 bool ProjectEngine::setDrumPadParameter(const std::string& drumMachineId, int note,
                                         const std::string& parameterId, float value) {
     const juce::ScopedWriteLock lock(mutex_);
@@ -1851,6 +1886,17 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                     }
                 }
             }
+            if (node.kind == DeviceNodeKind::Chain) {
+                auto playback = std::get<ChainParams>(node.params).playback;
+                if (playback != nullptr) {
+                    auto mutablePlayback = std::const_pointer_cast<ChainPlayback>(playback);
+                    for (int child = 0; child < mutablePlayback->deviceCount; ++child) {
+                        mutablePlayback->devices[child].automationTargetIndex = static_cast<uint16_t>(
+                            0x4000u | (static_cast<uint16_t>(snap.deviceCount) << 4u) |
+                            static_cast<uint16_t>(child));
+                    }
+                }
+            }
             if ((isDynamicsDeviceNodeKind(node.kind) || isAnalysisDeviceNodeKind(node.kind)) && deviceMeterSlotCount_ < kMaxDeviceMeters) {
                 node.meterSlot = static_cast<int8_t>(deviceMeterSlotCount_);
                 deviceMeterIds_[deviceMeterSlotCount_] = device.id;
@@ -1976,6 +2022,19 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                         targetType = deviceRegistry_.findByKind(targetKind);
                         break;
                     }
+                }
+            }
+            if (snap.devices[i].kind == DeviceNodeKind::Chain) {
+                const auto playback = std::get<ChainParams>(snap.devices[i].params).playback;
+                if (playback == nullptr) continue;
+                for (int child = 0; child < playback->deviceCount; ++child) {
+                    const auto& childNode = playback->devices[child];
+                    if (childNode.deviceId != clip.deviceId) continue;
+                    di = i;
+                    targetIndex = childNode.automationTargetIndex;
+                    targetKind = childNode.kind;
+                    targetType = deviceRegistry_.findByKind(targetKind);
+                    break;
                 }
             }
         }
@@ -2155,6 +2214,12 @@ DeviceSlot* ProjectEngine::findDeviceLocked(const std::string& deviceId) {
                     for (auto& child : pad.devices) {
                         if (child != nullptr && child->id == deviceId) return child.get();
                     }
+                }
+            }
+            if (device.config.typeId == device_types::kChain) {
+                auto& chain = std::get<ChainModel>(device.config.instance);
+                for (auto& child : chain.devices) {
+                    if (child != nullptr && child->id == deviceId) return child.get();
                 }
             }
         }

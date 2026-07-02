@@ -411,6 +411,7 @@ enum class ParamKind : uint16_t {
     WavetableSynth   = 22,
     ResonatorBank    = 23,
     Routing          = 24,
+    Chain            = 25,
 };
 
 constexpr uint16_t kParamKindShift      = 11;

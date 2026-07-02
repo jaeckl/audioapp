@@ -422,6 +422,21 @@ juce::var projectFileToVar(const ProjectFileData& project,
 DeviceSlot deviceVarToSlotImpl(const juce::var& obj, const DeviceRegistry& registry);
 
 juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& registry) {
+    if (slot.config.typeId == device_types::kChain) {
+        const auto& chain = std::get<ChainModel>(slot.config.instance);
+        const IDeviceType* type = registry.findForSlot(slot);
+        juce::var result = type != nullptr ? type->slotToVar(slot) : juce::var{};
+        if (auto* object = result.getDynamicObject()) {
+            juce::Array<juce::var> devices;
+            for (const auto& device : chain.devices) {
+                if (device != nullptr && device->config.typeId != device_types::kChain) {
+                    devices.add(deviceSlotToVarImpl(*device, registry));
+                }
+            }
+            object->setProperty("devices", devices);
+        }
+        return result;
+    }
     if (slot.config.typeId == device_types::kDrumMachine) {
         const auto& machine = std::get<DrumMachineModel>(slot.config.instance);
         juce::Array<juce::var> pads;
@@ -467,6 +482,24 @@ juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& regi
 DeviceSlot deviceVarToSlotImpl(const juce::var& obj, const DeviceRegistry& registry) {
     if (const auto* object = obj.getDynamicObject()) {
         const std::string typeId = varToString(object->getProperty("type"));
+        if (typeId == device_types::kChain) {
+            const IDeviceType* type = registry.find(typeId);
+            if (type == nullptr) return {};
+            DeviceSlot slot = type->varToSlot(obj);
+            if (slot.id.empty()) return {};
+            slot.config.bypassed = static_cast<bool>(object->getProperty("bypass"));
+            auto& chain = std::get<ChainModel>(slot.config.instance);
+            if (const auto* devices = varArray(object->getProperty("devices"))) {
+                for (const auto& value : *devices) {
+                    if (chain.devices.size() >= 8) break;
+                    DeviceSlot child = deviceVarToSlotImpl(value, registry);
+                    if (!child.id.empty() && child.config.typeId != device_types::kChain) {
+                        chain.devices.push_back(std::make_shared<DeviceSlot>(std::move(child)));
+                    }
+                }
+            }
+            return slot;
+        }
         if (typeId == device_types::kDrumMachine) {
             DeviceSlot slot = registry.createDefault(
                 typeId, varToString(object->getProperty("id")));

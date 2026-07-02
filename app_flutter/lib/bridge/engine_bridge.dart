@@ -204,6 +204,26 @@ class EngineBridge {
         'deviceId': deviceId,
       });
 
+  Future<ProjectSnapshot> addDeviceToChain({
+    required String chainId,
+    required String deviceType,
+    int? insertIndex,
+  }) =>
+      _invokeForSnapshot('addDeviceToChain', {
+        'chainId': chainId,
+        'deviceType': deviceType,
+        if (insertIndex != null) 'insertIndex': insertIndex,
+      });
+
+  Future<ProjectSnapshot> removeDeviceFromChain({
+    required String chainId,
+    required String deviceId,
+  }) =>
+      _invokeForSnapshot('removeDeviceFromChain', {
+        'chainId': chainId,
+        'deviceId': deviceId,
+      });
+
   Future<void> setDrumPadParameter({
     required String drumMachineId,
     required int note,

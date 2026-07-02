@@ -16,6 +16,7 @@ part 'device_families/wavetable_synth_family.dart';
 part 'device_families/track_gain_family.dart';
 part 'device_families/drum_machine_family.dart';
 part 'device_families/analysis_family.dart';
+part 'device_families/chain_family.dart';
 
 sealed class DeviceSnapshot {
   const DeviceSnapshot({
@@ -81,6 +82,7 @@ sealed class DeviceSnapshot {
       'audio_receiver' || 'midi_receiver' => RoutingDeviceSnapshot.fromMap(map),
       'midi_delay' => MidiDelayDeviceSnapshot.fromMap(map),
       'drum_machine' => DrumMachineDeviceSnapshot.fromMap(map),
+      'device_chain' => ChainDeviceSnapshot.fromMap(map),
       'oscilloscope' ||
       'spectrum_analyzer' ||
       'loudness_meter' ||

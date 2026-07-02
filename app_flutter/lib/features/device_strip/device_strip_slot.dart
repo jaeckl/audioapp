@@ -41,6 +41,7 @@ import 'crash_model.dart';
 import 'dynamics_fx_panels.dart';
 import 'time_fx_panels.dart';
 import 'drum_machine_device_panel.dart';
+import 'chain_device_panel.dart';
 import 'mood_fx_panels.dart';
 import 'frequency_fx_panels.dart';
 import 'resonator_bank_panel.dart';
@@ -935,6 +936,11 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           onToggleChain: widget.onDrumChainToggle ?? () {},
           onTriggerNote: widget.onDrumTriggerNote ?? (_) {},
           onEmptyPadTap: widget.onEmptyDrumPadTap ?? (_) {},
+        );
+      case 'device_chain':
+        return ChainDevicePanel(
+          device: widget.device as ChainDeviceSnapshot,
+          onChanged: widget.onDeviceParameterChanged,
         );
       case 'simple_sampler':
         final dev = widget.device as SamplerDeviceSnapshot;

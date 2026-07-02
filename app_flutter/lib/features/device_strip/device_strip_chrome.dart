@@ -62,6 +62,7 @@ abstract final class DeviceStripChrome {
     'spectrum_analyzer',
     'loudness_meter',
     'stereo_imager',
+    'device_chain',
   };
 
   static bool hasInputPanel(String deviceType) =>

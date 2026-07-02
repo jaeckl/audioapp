@@ -97,6 +97,13 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
                 subtitle: const Text('128 MIDI-note pad chains'),
                 onTap: () => Navigator.pop(context, 'drum_machine'),
               ),
+              ListTile(
+                leading: const Icon(Icons.account_tree_outlined,
+                    color: Color(0xFF62C7B5)),
+                title: const Text('Chain'),
+                subtitle: const Text('Virtual device strip · mix & gain'),
+                onTap: () => Navigator.pop(context, 'device_chain'),
+              ),
               const Padding(
                 padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
                 child: Text(

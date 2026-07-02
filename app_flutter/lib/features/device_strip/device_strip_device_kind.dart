@@ -8,6 +8,7 @@ const fxDeviceTypes = <String>{
   'bitcrusher',
   'distortion',
   'tremolo',
+  'device_chain',
 };
 
 const frequencyFxDeviceTypes = <String>{

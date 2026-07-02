@@ -91,6 +91,7 @@ abstract final class DeviceStripTheme {
         'distortion' => distortionAccent,
         'tremolo' => tremoloAccent,
         'drum_machine' => drumMachineAccent,
+        'device_chain' => const Color(0xFF62C7B5),
         'oscilloscope' ||
         'spectrum_analyzer' ||
         'loudness_meter' ||
@@ -130,6 +131,7 @@ abstract final class DeviceStripTheme {
         'distortion' => 'Distortion',
         'tremolo' => 'Tremolo',
         'drum_machine' => 'Drum Machine',
+        'device_chain' => 'Chain',
         'oscilloscope' => 'Oscilloscope',
         'spectrum_analyzer' => 'Spectrum Analyzer',
         'loudness_meter' => 'Loudness Meter',

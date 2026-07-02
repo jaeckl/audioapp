@@ -56,6 +56,9 @@ public:
                                    const std::string& padName = {});
     bool removeDeviceFromDrumPad(const std::string& drumMachineId, int note,
                                  const std::string& deviceId);
+    std::string addDeviceToChain(const std::string& chainId, const std::string& deviceType,
+                                 int insertIndex = -1);
+    bool removeDeviceFromChain(const std::string& chainId, const std::string& deviceId);
     bool setDrumPadParameter(const std::string& drumMachineId, int note,
                              const std::string& parameterId, float value);
     bool setDeviceParameter(const std::string& deviceId,
