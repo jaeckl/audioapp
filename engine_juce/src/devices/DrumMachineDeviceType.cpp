@@ -1,6 +1,7 @@
 #include "audioapp/devices/DrumMachineDeviceType.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/devices/processors/DrumMachineProcessor.hpp"
+#include "audioapp/devices/DeviceRegistry.hpp"
 
 namespace audioapp {
 
@@ -25,9 +26,42 @@ bool DrumMachineDeviceType::setStringParameter(
 }
 
 void DrumMachineDeviceType::buildPlaybackNode(
-    const DeviceSlot&, const PlaybackBuildContext&, DeviceNodePlayback& out) const {
+    const DeviceSlot& slot, const PlaybackBuildContext& context, DeviceNodePlayback& out) const {
+    auto playback = std::make_shared<DrumMachinePlayback>();
+    const auto& machine = std::get<DrumMachineModel>(slot.config.instance);
+    for (int note = 0; note < DrumMachineModel::kMidiNoteCount; ++note) {
+        const auto& source = machine.pads[static_cast<size_t>(note)];
+        auto& pad = playback->pads[note];
+        pad.note = note;
+        pad.gain = source.gain;
+        pad.pan = source.pan;
+        pad.muted = source.muted;
+        pad.solo = source.solo;
+        pad.chokeGroup = source.chokeGroup;
+        if (context.deviceRegistry == nullptr) continue;
+        for (const auto& child : source.devices) {
+            if (child == nullptr || child->config.typeId == device_types::kDrumMachine ||
+                pad.deviceCount >= DrumMachineModel::kMaxDevicesPerPad) continue;
+            auto& node = pad.devices[pad.deviceCount++];
+            node.deviceId = child->id;
+            node.bypassed = child->config.bypassed;
+            node.voicePolicy = InstrumentVoicePolicy{1, true};
+            std::visit([&](const auto& panel) {
+                using T = std::decay_t<decltype(panel)>;
+                if constexpr (std::is_same_v<T, MonoOutputPanel>) {
+                    node.gain = panel.gain;
+                } else if constexpr (std::is_same_v<T, StereoOutputPanel>) {
+                    node.gain = panel.gain;
+                    node.pan = panel.pan;
+                    node.outputMix = panel.outputMix;
+                    node.outputWidth = panel.outputWidth;
+                }
+            }, child->config.outputPanel);
+            context.deviceRegistry->buildPlaybackNode(*child, context, node);
+        }
+    }
     out.kind = DeviceNodeKind::DrumMachine;
-    out.params = DrumMachineParams{};
+    out.params = DrumMachineParams{std::move(playback)};
 }
 
 juce::var DrumMachineDeviceType::slotToVar(const DeviceSlot& slot) const {

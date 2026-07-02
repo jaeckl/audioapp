@@ -1752,6 +1752,7 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
 
             PlaybackBuildContext context{sampleBank_};
             context.wavetableBank = wavetableBank_;
+            context.deviceRegistry = &deviceRegistry_;
             deviceRegistry_.buildPlaybackNode(device, context, node);
             if (isDynamicsDeviceNodeKind(node.kind) && deviceMeterSlotCount_ < kMaxDeviceMeters) {
                 node.meterSlot = static_cast<int8_t>(deviceMeterSlotCount_);

@@ -4,6 +4,7 @@
 #include <atomic>
 #include <cstring>
 #include <variant>
+#include <memory>
 
 #include "audioapp/AutomationTypes.hpp"
 #include "audioapp/KickAlgorithm.hpp"
@@ -24,6 +25,8 @@
 #include "audioapp/MidiDelay.hpp"
 
 namespace audioapp {
+
+struct DrumMachinePlayback;
 
 static constexpr int kMaxInstrumentRegions = 32;
 
@@ -169,7 +172,9 @@ struct SamplerParams {
 };
 
 struct TrackGainParams {};
-struct DrumMachineParams {};
+struct DrumMachineParams {
+    std::shared_ptr<const DrumMachinePlayback> playback;
+};
 
 using DeviceVariantParams = std::variant<
     OscillatorParams,
@@ -215,6 +220,21 @@ struct DeviceNodePlayback {
     int8_t meterSlot = -1;
     InstrumentVoicePolicy voicePolicy{};
     DeviceVariantParams params;
+};
+
+struct DrumPadPlayback {
+    int note = 0;
+    float gain = 1.0f;
+    float pan = 0.5f;
+    bool muted = false;
+    bool solo = false;
+    int chokeGroup = 0;
+    int deviceCount = 0;
+    DeviceNodePlayback devices[4]{};
+};
+
+struct DrumMachinePlayback {
+    DrumPadPlayback pads[128]{};
 };
 
 static constexpr int kMaxDevicesPerTrack = 16;
