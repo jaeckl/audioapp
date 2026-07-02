@@ -74,7 +74,10 @@ void mixSamplerMidiNotesBlock(float* monoOut,
                               const float* perFramePanelGain = nullptr,
                               uint16_t modulationDeviceIndex = 0,
                               int voiceLimit = 32,
-                              bool retriggerReplacesVoice = false);
+                              bool retriggerReplacesVoice = false,
+                              const int* activeNoteIndices = nullptr,
+                              const int* activeVoiceSlots = nullptr,
+                              BiquadState* persistentVoiceFilters = nullptr);
 
 /// Cutoff Hz with filter-envelope depth applied (matches subtractive synth FEG).
 float samplerFilterCutoffHz(float filterCutoffNorm,

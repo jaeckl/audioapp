@@ -12,7 +12,8 @@
 namespace audioapp {
 
 void SamplerProcessor::resetPlaybackState() noexcept {
-    std::memset(samplerFilterStates_, 0, sizeof(samplerFilterStates_));
+    std::memset(voices_, 0, sizeof(voices_));
+    activeVoiceCount_ = 0;
 }
 
 namespace {
@@ -81,7 +82,10 @@ void mixSamplerMidiNotesBlock(float* monoOut,
                               const float* perFramePanelGain,
                               uint16_t modulationDeviceIndex,
                               int voiceLimit,
-                              bool retriggerReplacesVoice) {
+                              bool retriggerReplacesVoice,
+                              const int* activeNoteIndices,
+                              const int* activeVoiceSlots,
+                              BiquadState* persistentVoiceFilters) {
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
         return;
     }
@@ -114,7 +118,10 @@ void mixSamplerMidiNotesBlock(float* monoOut,
             }
         }
         int renderedVoices = 0;
-        for (int noteIndex = 0; noteIndex < noteCount; ++noteIndex) {
+        const int iterationCount = activeNoteIndices != nullptr ? voiceLimit : noteCount;
+        for (int iteration = 0; iteration < iterationCount; ++iteration) {
+            const int noteIndex = activeNoteIndices != nullptr ? activeNoteIndices[iteration] : iteration;
+            if (noteIndex < 0 || noteIndex >= noteCount) continue;
             if (selectedNoteIndex >= 0 && noteIndex != selectedNoteIndex) continue;
             if (voiceLimit > 0 && renderedVoices >= voiceLimit) break;
             const auto& note = notes[noteIndex];
@@ -171,7 +178,9 @@ void mixSamplerMidiNotesBlock(float* monoOut,
                                                          filterDecaySec,
                                                          filterSustainLevel,
                                                          filterReleaseSec);
-                auto& noteFilter = sampler.noteFilterStates[noteIndex];
+                BiquadState& noteFilter = persistentVoiceFilters != nullptr && activeVoiceSlots != nullptr
+                    ? persistentVoiceFilters[activeVoiceSlots[iteration]]
+                    : sampler.noteFilterStates[noteIndex];
                 noteSample = processSamplerFilteredSample(noteSample,
                                                           noteFilter,
                                                           sampler.filterMode,
@@ -243,10 +252,71 @@ void SamplerProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept 
         };
     }
 
+    const auto& baseParamsForVoices = std::get<SamplerParams>(*ctx.modulatedParams);
+    const float releaseSecForVoices = adsrNormalizedToSeconds(baseParamsForVoices.release, 3.0f);
+    const double blockEndBeat = ctx.playheadBeat +
+        static_cast<double>(block.numSamples - 1) * (static_cast<double>(std::max(ctx.bpm, 1)) / 60.0) / ctx.sampleRate;
+    bool candidate[kMaxInstrumentRegions]{};
+    for (int i = 0; i < regionCount; ++i) {
+        double elapsed = 0.0;
+        candidate[i] = isSamplerMidiNoteAudible(ctx.scratch.samplerRegions[i], ctx.playheadBeat,
+                                                ctx.bpm, releaseSecForVoices, elapsed) ||
+                       isSamplerMidiNoteAudible(ctx.scratch.samplerRegions[i], blockEndBeat,
+                                                ctx.bpm, releaseSecForVoices, elapsed);
+    }
+
+    const int voiceLimit = safe_clamp(ctx.voicePolicy.maxVoices > 0
+        ? ctx.voicePolicy.maxVoices : kMaxInstrumentRegions, 1, kMaxInstrumentRegions);
+    bool slotSeen[kMaxInstrumentRegions]{};
+    activeVoiceCount_ = 0;
+    const bool replacingMono = ctx.voicePolicy.retriggerReplacesVoice && voiceLimit == 1;
+    for (int i = replacingMono ? regionCount - 1 : 0;
+         i >= 0 && i < regionCount && activeVoiceCount_ < voiceLimit;
+         i += replacingMono ? -1 : 1) {
+        if (!candidate[i]) continue;
+        const auto& note = ctx.scratch.samplerRegions[i];
+        int slot = -1;
+        for (int v = 0; v < voiceLimit; ++v) {
+            if (voices_[v].active && voices_[v].pitch == note.pitch &&
+                voices_[v].clipStartBeat == note.clipStartBeat &&
+                voices_[v].noteStartBeat == note.noteStartBeat) {
+                slot = v;
+                break;
+            }
+        }
+        if (slot < 0) {
+            for (int v = 0; v < voiceLimit; ++v) {
+                if (!voices_[v].active) { slot = v; break; }
+            }
+            if (slot < 0) {
+                for (int v = 0; v < voiceLimit; ++v) {
+                    if (!slotSeen[v]) { slot = v; break; }
+                }
+            }
+            if (slot < 0) slot = 0;
+            voices_[slot].filter = {};
+            voices_[slot].active = true;
+            voices_[slot].pitch = note.pitch;
+            voices_[slot].clipStartBeat = note.clipStartBeat;
+            voices_[slot].noteStartBeat = note.noteStartBeat;
+        }
+        voices_[slot].noteIndex = i;
+        slotSeen[slot] = true;
+        activeVoiceSlots_[activeVoiceCount_++] = slot;
+    }
+    for (int v = 0; v < kMaxInstrumentRegions; ++v) {
+        if (!slotSeen[v]) voices_[v].active = false;
+    }
+    int activeNoteIndices[kMaxInstrumentRegions]{};
+    for (int i = 0; i < activeVoiceCount_; ++i) {
+        activeNoteIndices[i] = voices_[activeVoiceSlots_[i]].noteIndex;
+    }
+
     std::memset(ctx.scratch.scratch, 0, static_cast<size_t>(block.numSamples) * sizeof(float));
 
     std::memset(ctx.scratch.samplerNoteFilterStates, 0, sizeof(ctx.scratch.samplerNoteFilterStates));
-    BiquadState* effectiveNoteFilters = samplerFilterStates_;
+    BiquadState persistentFilters[kMaxInstrumentRegions]{};
+    for (int i = 0; i < kMaxInstrumentRegions; ++i) persistentFilters[i] = voices_[i].filter;
 
     const uint16_t di = static_cast<uint16_t>(ctx.deviceIndex);
     const bool hasMod = ctx.lfoValues != nullptr && ctx.lfoCount > 0 &&
@@ -269,13 +339,13 @@ void SamplerProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept 
                 p.filterCutoff, p.filterQ, p.filterMode,
                 p.filterEnvAmount, p.filterAttack, p.filterDecay, p.filterSustain, p.filterRelease,
                 p.trimStartFrame, p.trimEndFrame, p.regionStartFrame, p.regionEndFrame,
-                p.playbackMode, nullptr, effectiveNoteFilters, regionCount,
+                p.playbackMode, nullptr, persistentFilters, regionCount,
             },
             instModPtr,
             ctx.scratch.perFrameGain,
             di,
-            ctx.voicePolicy.maxVoices > 0 ? ctx.voicePolicy.maxVoices : kMaxInstrumentRegions,
-            ctx.voicePolicy.retriggerReplacesVoice);
+            activeVoiceCount_, false,
+            activeNoteIndices, activeVoiceSlots_, persistentFilters);
     };
 
     if (ctx.needsSubBlocks) {
@@ -295,6 +365,8 @@ void SamplerProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept 
     } else {
         render(0, block.numSamples, ctx.playheadBeat, baseParams);
     }
+
+    for (int i = 0; i < kMaxInstrumentRegions; ++i) voices_[i].filter = persistentFilters[i];
 
     StereoOutputPanel::applyFromScratch(ctx.scratch.scratch, block, block.numSamples,
                                          bakePanelGain ? nullptr : ctx.scratch.perFrameGain,
