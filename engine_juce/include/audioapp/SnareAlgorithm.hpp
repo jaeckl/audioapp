@@ -26,6 +26,9 @@ struct SnareVoiceRuntime {
     uint32_t noiseState = 0xC8013EA4u;
     float bodyPhase = 0.0f;
     float ringPhase = 0.0f;
+    float membranePhase[3]{};
+    float membraneHz[3]{};
+    float membraneDecaySec[3]{};
     float bodyStartHz = 300.0f;
     float bodyEndHz = 170.0f;
     float bodyPitchTau = 0.02f;

@@ -68,7 +68,7 @@ void mixClapMidiNotesBlock(float* monoOut,
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
         return;
     }
-    const float releaseSec = 0.12f + (1.0f - std::clamp(params.clapDecay, 0.0f, 1.0f)) * 0.38f + 0.08f;
+    const float releaseSec = 0.18f + std::clamp(params.clapDecay, 0.0f, 1.0f) * 0.52f;
     for (int frame = 0; frame < numFrames; ++frame) {
         const double beat = beatAtFrame(playheadStartBeat, frame, sampleRate, bpm);
         int activeNoteKey = -1;

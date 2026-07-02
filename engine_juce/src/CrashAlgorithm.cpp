@@ -4,114 +4,101 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 
 namespace audioapp {
-
 namespace {
 
-/// Crash: 0 = ~0.5s, 1 = ~4s
-float crashDecaySeconds(float decayNorm) noexcept {
-    return 0.45f + std::clamp(decayNorm, 0.0f, 1.0f) * 3.0f;
+constexpr float kTwoPi = 6.28318530718f;
+constexpr float kModeRatio[kCrashModeCount] = {
+    1.00f, 1.34f, 1.73f, 2.11f, 2.64f, 3.40f, 4.40f, 5.70f,
+    7.30f, 9.40f, 12.0f, 15.0f, 19.0f, 24.0f, 30.0f, 38.0f};
+constexpr float kStereoShape[kCrashModeCount] = {
+    0.00f, 0.83f, -0.93f, 0.22f, 0.68f, -0.98f, 0.43f, 0.50f,
+    -0.99f, 0.61f, 0.31f, -0.96f, 0.77f, 0.08f, -0.86f, 0.89f};
+
+float noise(uint32_t& state) noexcept {
+    state ^= state << 13; state ^= state >> 17; state ^= state << 5;
+    return static_cast<float>(state) * (1.0f / 2147483648.0f) - 1.0f;
 }
 
-MetallicNoiseTimbre crashTimbre(float colorNorm, float spreadNorm, float decayNorm,
-                                 int modelIndex) noexcept {
-    MetallicNoiseTimbre t{};
-    const float color = std::clamp(colorNorm, 0.0f, 1.0f);
+float decaySeconds(float norm, int mode) noexcept {
+    const float base = mode == 2 ? 0.85f : (mode == 1 ? 0.70f : 0.55f);
+    return base + norm * (mode == 2 ? 4.0f : 3.3f);
+}
 
-    switch (modelIndex) {
-    case 1: // Classic
-        t.decaySec = 0.6f + decayNorm * 3.5f;
-        t.lpSweepTau = 0.42f;
-        t.thwackDecaySec = 0.018f;
-        break;
-    case 2: // Dark
-        t.decaySec = 0.7f + decayNorm * 4.0f;
-        t.lpSweepTau = 0.52f;
-        t.thwackDecaySec = 0.020f;
-        break;
-    case 0:
-    default: // Bright
-        t.decaySec = 0.5f + decayNorm * 3.0f;
-        t.lpSweepTau = 0.36f;
-        t.thwackDecaySec = 0.018f;
-        break;
+void advance(CrashVoiceRuntime& voice, float color, double sampleRate) noexcept {
+    const float baseHz = 235.0f + color * 115.0f;
+    for (int i = 0; i < kCrashModeCount; ++i) {
+        const float slowChaos = 1.0f + 0.0035f * std::sin(
+            static_cast<float>(voice.elapsedSec) * (2.1f + i * 0.37f) + i);
+        const float hz = std::min(baseHz * kModeRatio[i] * slowChaos,
+                                  static_cast<float>(sampleRate) * 0.43f);
+        voice.modalPhase[i] += kTwoPi * hz / static_cast<float>(sampleRate);
+        if (voice.modalPhase[i] >= kTwoPi) voice.modalPhase[i] -= kTwoPi;
+        voice.modalSample[i] = std::sin(voice.modalPhase[i]);
     }
+    voice.strikeSample = noise(voice.strikeNoiseState);
+}
 
-    t.bodyAmount = 0.05f * (1.0f - color);
-    t.bodyHz = 320.0f;
-    t.bodyQ = 1.0f;
-    t.midWashHz = 1600.0f + color * 1400.0f;
-    t.midWashQ = 0.58f;
-    t.midWashAmount = 0.26f + color * 0.22f;
-    t.resMinHz = 550.0f;
-    t.resMaxHz = 15000.0f;
-    t.resQ = 0.42f + color * 0.32f;
-    t.resMix = 0.10f + color * 0.18f;
-    t.resExciteRaw = 0.58f;
-    t.lpSweepStartHz = 5500.0f + color * 12000.0f;
-    t.lpSweepEndHz = 400.0f + color * 450.0f;
-    t.hpShimmerHz = 3200.0f + color * 4800.0f;
-    t.hpShimmerAmount = 0.14f + color * 0.32f;
-    t.driverMix = 0.36f + color * 0.24f;
-    t.crashNoiseMix = 0.10f + color * 0.18f;
-    t.thwackAmount = 0.10f + color * 0.12f;
+float render(CrashVoiceRuntime& voice, const CrashGeneratorParams& params,
+             double sampleRate, float velocityGain, bool right) noexcept {
+    const float color = std::clamp(params.crashColor, 0.0f, 1.0f);
+    const float spread = std::clamp(params.crashSpread, 0.0f, 1.0f);
+    const float totalDecay = decaySeconds(std::clamp(params.crashDecay, 0.0f, 1.0f),
+                                          crashModelIndex(params.crashModel));
+    if (!right) advance(voice, color, sampleRate);
+    const double t = voice.elapsedSec;
+    if (std::exp(-t / totalDecay) < 0.00001) { voice.active = 0; return 0.0f; }
 
-    t.widthAmount = std::clamp(spreadNorm, 0.0f, 1.0f);
-    t.widthDetuneCents = 8.0f + spreadNorm * 14.0f;
-    return t;
+    const float lowEnv = static_cast<float>(std::exp(-t / (totalDecay * 1.10f)));
+    const float midEnv = static_cast<float>(std::exp(-t / (totalDecay * 0.82f)));
+    const float highEnv = static_cast<float>(std::exp(
+        -t / (totalDecay * (0.48f + color * 0.24f))));
+    float low = 0.0f, mid = 0.0f, high = 0.0f;
+    for (int i = 0; i < kCrashModeCount; ++i) {
+        const float stereoWeight = right
+            ? (1.0f + spread * 0.24f * kStereoShape[i])
+            : (1.0f - spread * 0.24f * kStereoShape[i]);
+        const float amp = stereoWeight / std::sqrt(1.0f + i * 0.72f);
+        if (i < 4) low += voice.modalSample[i] * amp * lowEnv;
+        else if (i < 10) mid += voice.modalSample[i] * amp * midEnv;
+        else high += voice.modalSample[i] * amp * highEnv;
+    }
+    const float attack = static_cast<float>(std::exp(-t / 0.018));
+    const float bloom = 1.0f - static_cast<float>(std::exp(-t / 0.035));
+    float out = low * (0.10f + (1.0f - color) * 0.06f) +
+                mid * (0.105f + color * 0.035f) * bloom +
+                high * (0.075f + color * 0.075f) * bloom +
+                voice.strikeSample * attack * 0.16f;
+    out = std::tanh(out * 1.4f) * 0.78f;
+    return out * velocityGain * params.gain * kInstrumentOutputGain;
 }
 
 } // namespace
 
-int crashModelIndex(float crashModel) noexcept {
-    return std::clamp(static_cast<int>(std::lround(crashModel * 2.0f)), 0, 2);
+int crashModelIndex(float model) noexcept {
+    return std::clamp(static_cast<int>(std::lround(model * 2.0f)), 0, 2);
 }
 
-float crashGeneratorSampleL(CrashVoiceRuntime& voice,
-                             const CrashGeneratorParams& params,
-                             double sampleRate,
-                             float velocityGain) noexcept {
-    if (voice.active == 0 || sampleRate <= 0.0) {
-        return 0.0f;
-    }
-
-    const float colorNorm = std::clamp(params.crashColor, 0.0f, 1.0f);
-    const float spreadNorm = std::clamp(params.crashSpread, 0.0f, 1.0f);
-    const float decayNorm = std::clamp(params.crashDecay, 0.0f, 1.0f);
-    const int modelIdx = crashModelIndex(params.crashModel);
-
-    auto timbre = crashTimbre(colorNorm, spreadNorm, decayNorm, modelIdx);
-
-    updateResonatorBank(voice, timbre, colorNorm, spreadNorm, static_cast<float>(sampleRate));
-
-    return metallicNoiseSampleL(voice, timbre, sampleRate, velocityGain,
-                                params.gain * kInstrumentOutputGain);
+float crashGeneratorSampleL(CrashVoiceRuntime& voice, const CrashGeneratorParams& params,
+                            double sampleRate, float velocityGain) noexcept {
+    if (voice.active == 0 || sampleRate <= 0.0) return 0.0f;
+    return render(voice, params, sampleRate, velocityGain, false);
 }
 
-float crashGeneratorSampleR(CrashVoiceRuntime& voice,
-                             const CrashGeneratorParams& params,
-                             double sampleRate,
-                             float velocityGain) noexcept {
-    if (voice.active == 0 || sampleRate <= 0.0) {
-        return 0.0f;
-    }
-
-    const float colorNorm = std::clamp(params.crashColor, 0.0f, 1.0f);
-    const float spreadNorm = std::clamp(params.crashSpread, 0.0f, 1.0f);
-    const float decayNorm = std::clamp(params.crashDecay, 0.0f, 1.0f);
-    const int modelIdx = crashModelIndex(params.crashModel);
-
-    auto timbre = crashTimbre(colorNorm, spreadNorm, decayNorm, modelIdx);
-
-    updateResonatorBank(voice, timbre, colorNorm, spreadNorm, static_cast<float>(sampleRate));
-
-    return metallicNoiseSampleR(voice, timbre, sampleRate, velocityGain,
-                                params.gain * kInstrumentOutputGain);
+float crashGeneratorSampleR(CrashVoiceRuntime& voice, const CrashGeneratorParams& params,
+                            double sampleRate, float velocityGain) noexcept {
+    if (voice.active == 0 || sampleRate <= 0.0) return 0.0f;
+    return render(voice, params, sampleRate, velocityGain, true);
 }
 
 void triggerCrashVoice(CrashVoiceRuntime& voice, int pitch, float velocity) noexcept {
-    triggerMetallicNoiseVoice(voice, pitch, velocity);
+    std::memset(&voice, 0, sizeof(voice));
+    voice.active = 1; voice.pitch = pitch; voice.velocity = velocity;
+    voice.strikeNoiseState = 0x5A17C9E3u ^ static_cast<uint32_t>(pitch) * 0x9E3779B9u;
+    for (int i = 0; i < kCrashModeCount; ++i)
+        voice.modalPhase[i] = 0.19f * i + 0.013f * static_cast<float>(pitch);
 }
 
 } // namespace audioapp

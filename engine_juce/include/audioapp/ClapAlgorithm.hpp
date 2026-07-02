@@ -1,5 +1,7 @@
 #pragma once
 
+#include "audioapp/SamplerFilter.hpp"
+
 #include <cstdint>
 
 namespace audioapp {
@@ -21,6 +23,12 @@ struct ClapVoiceRuntime {
     float noiseSeed = 0.789f;
     int burstCount = 3;
     float burstOffsets[5] = {};
+    BiquadCoeffs palmCoeffs{};
+    BiquadCoeffs airCoeffs{};
+    BiquadState palmState{};
+    BiquadState airState{};
+    float configuredTone = -1.0f;
+    float configuredSampleRate = 0.0f;
 };
 
 struct ClapGeneratorRuntime {

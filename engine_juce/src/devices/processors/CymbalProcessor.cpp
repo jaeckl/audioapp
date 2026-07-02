@@ -67,7 +67,7 @@ void mixCymbalMidiNotesBlockStereo(float* trackLeftOut,
         return;
     }
 
-    const float releaseSec = (0.035f + std::clamp(params.cymbalDecay, 0.0f, 1.0f) * 0.70f) + 0.08f;
+    const float releaseSec = 0.18f + std::clamp(params.cymbalDecay, 0.0f, 1.0f) * 1.25f;
 
     for (int frame = 0; frame < numFrames; ++frame) {
         const double beat = beatAtFrame(playheadStartBeat, frame, sampleRate, bpm);

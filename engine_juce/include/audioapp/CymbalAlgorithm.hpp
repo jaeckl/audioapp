@@ -15,7 +15,22 @@ struct CymbalGeneratorParams {
     float cymbalVelocity = 1.0f;
 };
 
-struct CymbalVoiceRuntime : MetallicNoiseVoiceRuntime {};
+struct CymbalVoiceRuntime : MetallicNoiseVoiceRuntime {
+    float oscillatorPhase[6]{};
+    float metallicSampleL = 0.0f;
+    float metallicSampleR = 0.0f;
+    BiquadCoeffs bodyCoeffs{};
+    BiquadCoeffs sizzleCoeffs{};
+    BiquadCoeffs highpassCoeffs{};
+    BiquadState bodyStateL{};
+    BiquadState bodyStateR{};
+    BiquadState sizzleStateL{};
+    BiquadState sizzleStateR{};
+    BiquadState highpassStateL{};
+    BiquadState highpassStateR{};
+    float configuredColor = -1.0f;
+    float configuredSampleRate = 0.0f;
+};
 
 struct CymbalGeneratorRuntime {
     CymbalVoiceRuntime voice{};

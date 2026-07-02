@@ -68,7 +68,7 @@ bool isSnareNoteAudible(const audioapp::SnareMidiNoteRegion& note,
 
 float normalizedToAmpDecaySec(float normalized) noexcept {
     const float clamped = std::clamp(normalized, 0.0f, 1.0f);
-    return 0.15f + (1.0f - clamped) * 0.35f;
+    return 0.16f + clamped * 0.46f;
 }
 
 float pitchTrackRatio(int pitch) noexcept {

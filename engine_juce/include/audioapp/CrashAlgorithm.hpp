@@ -15,7 +15,14 @@ struct CrashGeneratorParams {
     float crashVelocity = 1.0f;
 };
 
-struct CrashVoiceRuntime : MetallicNoiseVoiceRuntime {};
+static constexpr int kCrashModeCount = 16;
+
+struct CrashVoiceRuntime : MetallicNoiseVoiceRuntime {
+    float modalPhase[kCrashModeCount]{};
+    float modalSample[kCrashModeCount]{};
+    float strikeSample = 0.0f;
+    uint32_t strikeNoiseState = 0x5A17C9E3u;
+};
 
 struct CrashGeneratorRuntime {
     CrashVoiceRuntime voice{};
