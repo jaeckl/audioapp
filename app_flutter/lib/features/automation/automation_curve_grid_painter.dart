@@ -10,6 +10,7 @@ class AutomationCurveGridPainter extends CustomPainter {
     required this.virtualLengthBeats,
     required this.clipLengthBeats,
     required this.pixelsPerBeat,
+    required this.gridStepBeats,
     required this.points,
     required this.selectedIndices,
     required this.deleteMarkedIndices,
@@ -20,6 +21,7 @@ class AutomationCurveGridPainter extends CustomPainter {
   final double virtualLengthBeats;
   final double clipLengthBeats;
   final double pixelsPerBeat;
+  final double gridStepBeats;
   final List<AutomationPointSnapshot> points;
   final Set<int> selectedIndices;
   final Set<int> deleteMarkedIndices;
@@ -59,9 +61,17 @@ class AutomationCurveGridPainter extends CustomPainter {
 
     final left = start * pixelsPerBeat;
     final width = (end - start) * pixelsPerBeat;
+    final region = Rect.fromLTWH(left, 0, width, size.height);
     canvas.drawRect(
-      Rect.fromLTWH(left, 0, width, size.height),
+      region,
       Paint()..color = AutomationEditorTheme.accent.withValues(alpha: 0.1),
+    );
+    canvas.drawRect(
+      region,
+      Paint()
+        ..color = AutomationEditorTheme.accent.withValues(alpha: 0.8)
+        ..strokeWidth = 1.5
+        ..style = PaintingStyle.stroke,
     );
   }
 
@@ -78,15 +88,21 @@ class AutomationCurveGridPainter extends CustomPainter {
 
   void _paintBeatGrid(Canvas canvas, Size size) {
     final barStep = PianoRollMetrics.beatsPerBar.toDouble();
-    for (var beat = 0.0; beat <= virtualLengthBeats; beat += 1.0) {
+    final step = gridStepBeats > 0 ? gridStepBeats : 1.0;
+    for (var beat = 0.0; beat <= virtualLengthBeats + 0.0001; beat += step) {
       final x = beat * pixelsPerBeat;
       if (x > size.width) break;
       final isBar = (beat % barStep).abs() < 0.001;
+      final isBeat = (beat - beat.roundToDouble()).abs() < 0.001;
       canvas.drawLine(
         Offset(x, 0),
         Offset(x, size.height),
         Paint()
-          ..color = isBar ? AutomationEditorTheme.gridBar : AutomationEditorTheme.gridBeat
+          ..color = isBar
+              ? AutomationEditorTheme.gridBar
+              : isBeat
+                  ? AutomationEditorTheme.gridBeat
+                  : AutomationEditorTheme.gridSubdivision
           ..strokeWidth = isBar ? 1 : 0.5,
       );
     }
@@ -136,9 +152,8 @@ class AutomationCurveGridPainter extends CustomPainter {
         Offset(x, y),
         selected ? 5 : 4,
         Paint()
-          ..color = selected
-              ? AutomationEditorTheme.nodeSelected
-              : Colors.white,
+          ..color =
+              selected ? AutomationEditorTheme.nodeSelected : Colors.white,
       );
     }
   }
@@ -159,6 +174,7 @@ class AutomationCurveGridPainter extends CustomPainter {
     return oldDelegate.virtualLengthBeats != virtualLengthBeats ||
         oldDelegate.clipLengthBeats != clipLengthBeats ||
         oldDelegate.pixelsPerBeat != pixelsPerBeat ||
+        oldDelegate.gridStepBeats != gridStepBeats ||
         oldDelegate.points != points ||
         oldDelegate.selectedIndices != selectedIndices ||
         oldDelegate.deleteMarkedIndices != deleteMarkedIndices ||

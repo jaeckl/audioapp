@@ -58,6 +58,7 @@ class _CategoryButton extends StatelessWidget {
       LibraryCategory.audioClips => Icons.graphic_eq,
       LibraryCategory.midiClips => Icons.piano,
       LibraryCategory.automationClips => Icons.show_chart,
+      LibraryCategory.curves => Icons.gesture_rounded,
       LibraryCategory.devicePresets => Icons.tune,
       LibraryCategory.wavetables => Icons.waves,
     };

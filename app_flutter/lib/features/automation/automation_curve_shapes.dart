@@ -157,9 +157,7 @@ List<AutomationPointSnapshot> _generateSaw(
     if (endBeat > startBeat && endBeat <= lengthBeats) {
       points.add(AutomationPointSnapshot(beat: endBeat, value: endValue));
     }
-    if (resetBeat > endBeat &&
-        resetBeat <= lengthBeats &&
-        c < cycleCount - 1) {
+    if (resetBeat > endBeat && resetBeat <= lengthBeats && c < cycleCount - 1) {
       points.add(
         AutomationPointSnapshot(beat: resetBeat, value: startValue),
       );
@@ -267,7 +265,8 @@ List<AutomationPointSnapshot> _generateSine(
     final beat = t * lengthBeats;
     final angle = 2 * math.pi * (t * cycles + phase);
     final value = min + span * (0.5 + 0.5 * math.sin(angle));
-    points.add(AutomationPointSnapshot(beat: beat, value: value.clamp(0.0, 1.0)));
+    points
+        .add(AutomationPointSnapshot(beat: beat, value: value.clamp(0.0, 1.0)));
   }
   return _dedupePoints(points);
 }
@@ -276,7 +275,8 @@ double _clampBeat(double beat, double lengthBeats) {
   return beat.clamp(0.0, lengthBeats);
 }
 
-List<AutomationPointSnapshot> _dedupePoints(List<AutomationPointSnapshot> points) {
+List<AutomationPointSnapshot> _dedupePoints(
+    List<AutomationPointSnapshot> points) {
   if (points.isEmpty) return points;
   final sorted = List<AutomationPointSnapshot>.of(points)
     ..sort((a, b) => a.beat.compareTo(b.beat));
@@ -337,4 +337,51 @@ List<AutomationPointSnapshot> insertAutomationShapeBetween({
   );
 
   return _dedupePoints([...kept, ...mapped]);
+}
+
+/// Replaces a snapped region with one shape cycle per [stepBeats].
+///
+/// [baseline] and [peak] preserve drag polarity, so dragging downward
+/// naturally inverts the selected shape without a separate command.
+List<AutomationPointSnapshot> paintRepeatedAutomationShape({
+  required List<AutomationPointSnapshot> points,
+  required double startBeat,
+  required double endBeat,
+  required double stepBeats,
+  required double baseline,
+  required double peak,
+  required AutomationCurveShape shape,
+  double valueMin = 0,
+  double valueMax = 1,
+}) {
+  final left = math.min(startBeat, endBeat);
+  final right = math.max(startBeat, endBeat);
+  if (right - left <= 1.0e-6 || stepBeats <= 0) {
+    return List<AutomationPointSnapshot>.of(points);
+  }
+
+  final generated = <AutomationPointSnapshot>[];
+  var cellStart = left;
+  while (cellStart < right - 1.0e-6) {
+    final cellEnd = math.min(cellStart + stepBeats, right);
+    final local = generateAutomationShapePoints(
+      shape: shape,
+      params: const AutomationShapeParams(min: 0, max: 1),
+      lengthBeats: cellEnd - cellStart,
+    );
+    for (final point in local) {
+      final normalized = point.value.clamp(0.0, 1.0);
+      generated.add(AutomationPointSnapshot(
+        beat: cellStart + point.beat,
+        value: (baseline + (peak - baseline) * normalized)
+            .clamp(valueMin, valueMax),
+      ));
+    }
+    cellStart = cellEnd;
+  }
+
+  final kept = points.where(
+    (point) => point.beat < left - 1.0e-4 || point.beat > right + 1.0e-4,
+  );
+  return _dedupePoints([...kept, ...generated]);
 }

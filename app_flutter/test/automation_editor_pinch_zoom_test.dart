@@ -188,7 +188,7 @@ void main() {
         after.width,
         lessThanOrEqualTo(
           AutomationEditorMetrics.virtualLengthBeats(4) *
-              PianoRollMetrics.maxPixelsPerBeat +
+                  PianoRollMetrics.maxPixelsPerBeat +
               0.5,
         ),
       );
@@ -228,7 +228,8 @@ void main() {
       expect(after.height, greaterThan(before.height));
       expect(
         after.height,
-        lessThanOrEqualTo(viewportHeight * AutomationEditorMetrics.maxValueAxisScale + 0.5),
+        lessThanOrEqualTo(
+            viewportHeight * AutomationEditorMetrics.maxValueAxisScale + 0.5),
       );
 
       await top.up();
@@ -306,34 +307,36 @@ void main() {
 // ---------------------------------------------------------------------------
 
 Future<void> _pumpViewport(WidgetTester tester, {required int bodyHeight}) {
-  return tester.pumpWidget(
-    MaterialApp(
-      home: Scaffold(
-        body: SizedBox(
-          width: 600,
-          height: bodyHeight.toDouble(),
-          child: const AutomationEditorViewport(
-            points: [
-              AutomationPointSnapshot(beat: 0, value: 1),
-              AutomationPointSnapshot(beat: 4, value: 0.25),
-            ],
-            clipLengthBeats: 4,
-            virtualLengthBeats: 32,
-            gridSettings: PianoRollGridSettings(),
-            tool: AutomationEditorTool.select,
-            selectedIndices: <int>{},
-            deleteMarkedIndices: <int>{},
-            onPointsChanged: _noop,
-            onToggleSelect: _noopInt,
-            onToggleDeleteMark: _noopInt,
-            onClearSelection: _noopVoid,
-            onEditStarted: _noopVoid,
-            onEditFinished: _noopVoid,
+  return tester
+      .pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 600,
+              height: bodyHeight.toDouble(),
+              child: const AutomationEditorViewport(
+                points: [
+                  AutomationPointSnapshot(beat: 0, value: 1),
+                  AutomationPointSnapshot(beat: 4, value: 0.25),
+                ],
+                clipLengthBeats: 4,
+                virtualLengthBeats: 32,
+                gridSettings: PianoRollGridSettings(),
+                tool: AutomationEditorTool.select,
+                selectedIndices: <int>{},
+                deleteMarkedIndices: <int>{},
+                onPointsChanged: _noop,
+                onToggleSelect: _noopInt,
+                onToggleDeleteMark: _noopInt,
+                onClearSelection: _noopVoid,
+                onEditStarted: _noopVoid,
+                onEditFinished: _noopVoid,
+              ),
+            ),
           ),
         ),
-      ),
-    ),
-  ).then((_) => tester.pumpAndSettle());
+      )
+      .then((_) => tester.pumpAndSettle());
 }
 
 Finder _findCanvas(WidgetTester tester) {

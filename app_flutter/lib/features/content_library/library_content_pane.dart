@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
 import 'device_preset_filter_list.dart';
+import 'curve_library_store.dart';
 import 'library_catalog.dart';
 import 'library_category.dart';
 import 'library_manifest.dart';
@@ -60,6 +61,7 @@ class LibraryContentPane extends StatefulWidget {
 
 class _LibraryContentPaneState extends State<LibraryContentPane> {
   LibraryManifest? _manifest;
+  List<CurveLibraryResource> _curves = const [];
   final Set<String> _selectedTags = {};
   String? _selectedItemId;
   String? _selectedDeviceType; // null = show all
@@ -68,6 +70,7 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
   void initState() {
     super.initState();
     _loadManifest();
+    _loadCurves();
   }
 
   @override
@@ -80,7 +83,13 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
       _selectedTags.clear();
       _selectedItemId = null;
       _selectedDeviceType = null;
+      if (widget.category == LibraryCategory.curves) _loadCurves();
     }
+  }
+
+  Future<void> _loadCurves() async {
+    final curves = await CurveLibraryStore.load();
+    if (mounted) setState(() => _curves = curves);
   }
 
   Future<void> _loadManifest() async {
@@ -119,6 +128,9 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
   }
 
   List<LibraryItem> _visibleItems() {
+    if (widget.category == LibraryCategory.curves) {
+      return LibraryCatalog.curveItems(_curves);
+    }
     final all = LibraryCatalog.itemsFor(
       widget.category,
       widget.snapshot,
@@ -315,6 +327,8 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
         }
       case final LibraryWavetableItem wt:
         widget.onWavetableTap?.call(wt);
+      case LibraryCurveItem():
+        break;
       default:
         break;
     }
@@ -324,6 +338,7 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
         LibraryCategory.audioClips => 'Audio clips',
         LibraryCategory.midiClips => 'MIDI clips',
         LibraryCategory.automationClips => 'Automation clips',
+        LibraryCategory.curves => 'Curves',
         LibraryCategory.devicePresets => 'Device presets',
         LibraryCategory.wavetables => 'Wavetables',
       };
@@ -376,6 +391,8 @@ class _EmptyCategoryState extends StatelessWidget {
         'Factory loops and project clips appear here.',
       LibraryCategory.automationClips =>
         'Automation clips will appear here once recorded.',
+      LibraryCategory.curves =>
+        'Saved automation and modulation curves appear here.',
       LibraryCategory.devicePresets => 'Starter presets will be listed here.',
       LibraryCategory.wavetables => 'Bundled wavetables will be listed here.',
     };
@@ -525,6 +542,10 @@ class _LibraryItemTile extends StatelessWidget {
       LibraryWavetableItem() => [
           Icon(Icons.waves, size: 18, color: accent.withValues(alpha: 0.8)),
         ],
+      LibraryCurveItem() => [
+          Icon(Icons.gesture_rounded,
+              size: 18, color: accent.withValues(alpha: 0.8)),
+        ],
       _ => const <Widget>[],
     };
   }
@@ -583,6 +604,12 @@ class _LeadingVisual extends StatelessWidget {
               peaks: const [0.0, 0.3, 0.6, 0.8, 0.6, 0.3, 0.0],
               color: accent,
             ),
+      LibraryCurveItem(:final resource) => LibraryPreviewWidget(
+          width: 52,
+          height: 36,
+          peaks: resource.values,
+          color: accent,
+        ),
       _ => LibraryPreviewWidget(
           width: 52,
           height: 36,

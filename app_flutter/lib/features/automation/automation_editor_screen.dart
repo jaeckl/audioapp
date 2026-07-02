@@ -8,6 +8,8 @@ import '../../bridge/project_snapshot.dart';
 import '../../bridge/timeline_clip.dart';
 import '../editor/clip_editor_transport.dart';
 import '../editor/timeline_marker_layer.dart';
+import '../content_library/curve_library_dialog.dart';
+import '../content_library/curve_library_store.dart';
 import '../piano_roll/piano_roll_grid_sheet.dart';
 import '../piano_roll/piano_roll_metrics.dart';
 import '../piano_roll/editor_view_range.dart';
@@ -218,11 +220,22 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen>
   void _onToolChanged(AutomationEditorTool tool) {
     setState(() {
       _tool = tool;
+      _activeShape = null;
       _selectedIndices.clear();
       _deleteMarkedIndices.clear();
       if (tool != AutomationEditorTool.select) {
         _closeInsertPanel(notify: false);
       }
+    });
+  }
+
+  void _selectShapeTool(AutomationCurveShape shape) {
+    _closeInsertPanel(notify: false);
+    setState(() {
+      _tool = AutomationEditorTool.select;
+      _activeShape = shape;
+      _selectedIndices.clear();
+      _deleteMarkedIndices.clear();
     });
   }
 
@@ -414,6 +427,45 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen>
     );
   }
 
+  Future<void> _saveCurveResource() async {
+    final name = await CurveLibraryDialog.requestName(context);
+    if (name == null || !mounted) return;
+    final length = math.max(_clipLengthBeats, 1.0e-6);
+    await CurveLibraryStore.save(CurveLibraryResource(
+      id: 'curve:user:${DateTime.now().microsecondsSinceEpoch}',
+      name: name,
+      positions: _points
+          .map((point) => (point.beat / length).clamp(0.0, 1.0))
+          .toList(),
+      values: _points.map((point) => point.value.clamp(0.0, 1.0)).toList(),
+      shapes: List<int>.filled(_points.length, 0),
+    ));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Saved curve “$name”')),
+      );
+    }
+  }
+
+  Future<void> _loadCurveResource() async {
+    final resource = await CurveLibraryDialog.pick(context);
+    if (resource == null || !mounted || resource.positions.length < 2) return;
+    _pushUndo();
+    setState(() {
+      _points = [
+        for (var i = 0;
+            i < resource.positions.length && i < resource.values.length;
+            i++)
+          AutomationPointSnapshot(
+            beat: resource.positions[i].clamp(0.0, 1.0) * _clipLengthBeats,
+            value: resource.values[i].clamp(0.0, 1.0),
+          ),
+      ]..sort((a, b) => a.beat.compareTo(b.beat));
+      _clearTransientSelection();
+    });
+    await _persistPoints();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -432,6 +484,16 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen>
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
         actions: [
+          IconButton(
+            tooltip: 'Load curve',
+            onPressed: _loadCurveResource,
+            icon: const Icon(Icons.folder_open_outlined),
+          ),
+          IconButton(
+            tooltip: 'Save curve',
+            onPressed: _saveCurveResource,
+            icon: const Icon(Icons.bookmark_add_outlined),
+          ),
           TextButton.icon(
             style: TextButton.styleFrom(foregroundColor: Colors.white70),
             icon: const Icon(Icons.grid_4x4, size: 18),
@@ -454,6 +516,22 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen>
         removeBottom: true,
         child: Column(
           children: [
+            AutomationEditorToolDock(
+              tool: _tool,
+              canUndo: _undoStack.isNotEmpty,
+              canRedo: _redoStack.isNotEmpty,
+              canInsert: _selectedIndices.length == 2 && !_insertPanelOpen,
+              canDeleteMarked: _deleteMarkedIndices.isNotEmpty,
+              previewPlaying: _previewTransport.isPlaying,
+              onPreviewPlayStop: _togglePreviewPlay,
+              activeShape: _activeShape,
+              onShapeSelected: _selectShapeTool,
+              onToolChanged: _onToolChanged,
+              onInsertTap: _openInsertPanel,
+              onDeleteMarkedTap: _deleteMarkedNodes,
+              onUndo: _undo,
+              onRedo: _redo,
+            ),
             Expanded(
               child: ListenableBuilder(
                 listenable: _previewTransport,
@@ -464,6 +542,7 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen>
                   virtualLengthBeats: _virtualLengthBeats,
                   gridSettings: _grid,
                   tool: _tool,
+                  paintShape: _activeShape,
                   selectedIndices: _selectedIndices,
                   deleteMarkedIndices: _deleteMarkedIndices,
                   insertHighlightStartBeat:
@@ -489,20 +568,6 @@ class _AutomationEditorScreenState extends State<AutomationEditorScreen>
                   onPreviewStopRequested: _stopPreviewPlay,
                 ),
               ),
-            ),
-            AutomationEditorToolDock(
-              tool: _tool,
-              canUndo: _undoStack.isNotEmpty,
-              canRedo: _redoStack.isNotEmpty,
-              canInsert: _selectedIndices.length == 2 && !_insertPanelOpen,
-              canDeleteMarked: _deleteMarkedIndices.isNotEmpty,
-              previewPlaying: _previewTransport.isPlaying,
-              onPreviewPlayStop: _togglePreviewPlay,
-              onToolChanged: _onToolChanged,
-              onInsertTap: _openInsertPanel,
-              onDeleteMarkedTap: _deleteMarkedNodes,
-              onUndo: _undo,
-              onRedo: _redo,
             ),
             if (_insertPanelOpen)
               AutomationShapePanel(

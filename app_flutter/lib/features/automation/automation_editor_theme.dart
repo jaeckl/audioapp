@@ -7,12 +7,13 @@ import '../piano_roll/piano_roll_theme.dart';
 abstract final class AutomationEditorTheme {
   static const accent = LibraryTheme.accentAutomation;
   static const background = PianoRollTheme.background;
-  static const surface = PianoRollTheme.surface;
+  static const surface = Color(0xFF1A1A24);
   static const rulerBackground = PianoRollTheme.rulerBackground;
   static const valueColumnBackground = PianoRollTheme.keyColumnBackground;
-  static const gridBar = PianoRollTheme.gridBar;
-  static const gridBeat = PianoRollTheme.gridBeat;
-  static const gridValue = Color(0x14FFFFFF);
+  static const gridBar = Color(0x1AFFFFFF);
+  static const gridBeat = Color(0x0DFFFFFF);
+  static const gridSubdivision = Color(0x08FFFFFF);
+  static const gridValue = Color(0x0DFFFFFF);
   static const clipRegionFill = Color(0x0AB48CFF);
   static const outsideClipDim = PianoRollTheme.outsideClipDim;
   static const clipBoundary = accent;

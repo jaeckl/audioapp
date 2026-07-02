@@ -3,6 +3,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
+import '../automation/automation_curve_shapes.dart';
+import '../automation/automation_shape_icon.dart';
+import '../content_library/curve_library_dialog.dart';
+import '../content_library/curve_library_store.dart';
 
 /// Tool modes for the curve editor canvas.
 enum CurveEditorTool {
@@ -48,7 +52,15 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
   int _bpCount = 0;
   int? _draggingIndex;
   CurveEditorTool _tool = CurveEditorTool.select;
+  AutomationCurveShape? _paintShape;
   late int _polarity;
+  List<double>? _shapeSourcePositions;
+  List<double>? _shapeSourceValues;
+  List<int>? _shapeSourceKinds;
+  double? _shapeStart;
+  double? _shapeEnd;
+  double? _shapeBaseline;
+  static const int _gridDivisions = 8;
 
   /// Selected point indices (max 2) for shape insertion.
   final Set<int> _selectedIndices = {};
@@ -98,15 +110,15 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
     final bpCount = _positions.length;
     if (bpCount < 2) {
       return [
-      {'param': 'breakpointCount', 'value': 2.0},
-      {'param': 'polarity', 'value': _polarity.toDouble()},
-      {'param': 'bp_0_pos', 'value': 0.0},
-      {'param': 'bp_0_val', 'value': _polarity == 0 ? 0.0 : 0.5},
-      {'param': 'bp_0_shape', 'value': 0.0},
-      {'param': 'bp_1_pos', 'value': 1.0},
-      {'param': 'bp_1_val', 'value': _polarity == 0 ? 1.0 : 0.5},
-      {'param': 'bp_1_shape', 'value': 0.0},
-    ];
+        {'param': 'breakpointCount', 'value': 2.0},
+        {'param': 'polarity', 'value': _polarity.toDouble()},
+        {'param': 'bp_0_pos', 'value': 0.0},
+        {'param': 'bp_0_val', 'value': _polarity == 0 ? 0.0 : 0.5},
+        {'param': 'bp_0_shape', 'value': 0.0},
+        {'param': 'bp_1_pos', 'value': 1.0},
+        {'param': 'bp_1_val', 'value': _polarity == 0 ? 1.0 : 0.5},
+        {'param': 'bp_1_shape', 'value': 0.0},
+      ];
     }
 
     // Decimate breakpoints to avoid exceeding the engine array size (64).
@@ -130,7 +142,8 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
     indices.sort((a, b) => _positions[a].compareTo(_positions[b]));
 
     final updates = <Map<String, dynamic>>[];
-    updates.add({'param': 'breakpointCount', 'value': indices.length.toDouble()});
+    updates
+        .add({'param': 'breakpointCount', 'value': indices.length.toDouble()});
     updates.add({'param': 'polarity', 'value': _polarity.toDouble()});
     for (var i = 0; i < indices.length; i++) {
       final src = indices[i];
@@ -190,6 +203,93 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
       (localPos.dx / s.width).clamp(0.0, 1.0);
   double _ny(Offset localPos, Size s) =>
       _valueClamp(1.0 - 2.0 * localPos.dy / s.height);
+
+  double _snapPhase(double value) =>
+      (value * _gridDivisions).round() / _gridDivisions;
+
+  void _startShapePaint(Offset position, Size size) {
+    _shapeSourcePositions = List<double>.of(_positions);
+    _shapeSourceValues = List<double>.of(_values);
+    _shapeSourceKinds = List<int>.of(_shapes);
+    _shapeStart = _snapPhase(_nx(position, size));
+    _shapeEnd = (_shapeStart! + 1 / _gridDivisions).clamp(0.0, 1.0);
+    _shapeBaseline = _ny(position, size);
+    _selectedIndices.clear();
+    setState(() {});
+  }
+
+  void _updateShapePaint(Offset position, Size size) {
+    final shape = _paintShape;
+    final sourcePositions = _shapeSourcePositions;
+    final sourceValues = _shapeSourceValues;
+    final sourceKinds = _shapeSourceKinds;
+    final start = _shapeStart;
+    final baseline = _shapeBaseline;
+    if (shape == null ||
+        sourcePositions == null ||
+        sourceValues == null ||
+        sourceKinds == null ||
+        start == null ||
+        baseline == null) {
+      return;
+    }
+    const step = 1 / _gridDivisions;
+    var end = _snapPhase(_nx(position, size));
+    if ((end - start).abs() < 1.0e-6) {
+      end = (start + step).clamp(0.0, 1.0);
+    }
+    final source = <AutomationPointSnapshot>[
+      for (var i = 0; i < sourcePositions.length; i++)
+        AutomationPointSnapshot(
+          beat: sourcePositions[i],
+          value: sourceValues[i],
+        ),
+    ];
+    final painted = paintRepeatedAutomationShape(
+      points: source,
+      startBeat: start,
+      endBeat: end,
+      stepBeats: step,
+      baseline: baseline,
+      peak: _ny(position, size),
+      shape: shape,
+      valueMin: _polarity == 0 ? -1 : 0,
+      valueMax: 1,
+    );
+    final left = math.min(start, end);
+    final right = math.max(start, end);
+    setState(() {
+      _shapeEnd = end;
+      _positions = painted.map((point) => point.beat).toList();
+      _values = painted.map((point) => point.value).toList();
+      _shapes = [
+        for (final point in painted)
+          if (point.beat < left - 1.0e-6 || point.beat > right + 1.0e-6)
+            (() {
+              final index = sourcePositions.indexWhere(
+                (position) => (position - point.beat).abs() < 1.0e-9,
+              );
+              return index < 0 ? 0 : sourceKinds[index];
+            })()
+          else
+            0,
+      ];
+      _bpCount = _positions.length;
+    });
+  }
+
+  void _endShapePaint() {
+    _shapeSourcePositions = null;
+    _shapeSourceValues = null;
+    _shapeSourceKinds = null;
+    _shapeStart = null;
+    _shapeEnd = null;
+    _shapeBaseline = null;
+    _mergeSort();
+    _bpCount = _positions.length;
+    _syncToBridge();
+    setState(() {});
+  }
 
   // ---------------------------------------------------------------------------
   // Point selection
@@ -252,7 +352,9 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
         case 'saw':
           v = lo + (hi - lo) * phase;
         case 'tri':
-          v = phase < 0.5 ? lo + (hi - lo) * 2.0 * phase : lo + (hi - lo) * (2.0 - 2.0 * phase);
+          v = phase < 0.5
+              ? lo + (hi - lo) * 2.0 * phase
+              : lo + (hi - lo) * (2.0 - 2.0 * phase);
         case 'square':
           v = phase < 0.5 ? hi : lo;
         case 'sine':
@@ -286,8 +388,8 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
   }) {
     if (posEnd - posStart <= 1e-6) return;
 
-    final pts = _generateSegmentShape(shapeName, posStart, posEnd,
-        valStart, valEnd,
+    final pts = _generateSegmentShape(
+        shapeName, posStart, posEnd, valStart, valEnd,
         floor: floor, peak: peak, cycles: cycles);
     if (pts[0].length < 2) return;
 
@@ -385,6 +487,10 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
   // ---------------------------------------------------------------------------
 
   void _onPanStart(DragStartDetails details, Size cs) {
+    if (_paintShape != null) {
+      _startShapePaint(details.localPosition, cs);
+      return;
+    }
     switch (_tool) {
       case CurveEditorTool.select:
         setState(() {
@@ -398,6 +504,10 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
   }
 
   void _onPanUpdate(DragUpdateDetails details, Size cs) {
+    if (_paintShape != null && _shapeStart != null) {
+      _updateShapePaint(details.localPosition, cs);
+      return;
+    }
     switch (_tool) {
       case CurveEditorTool.select:
         _onSelectDrag(details, cs);
@@ -409,6 +519,10 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
   }
 
   void _onPanEnd(DragEndDetails details) {
+    if (_paintShape != null && _shapeStart != null) {
+      _endShapePaint();
+      return;
+    }
     switch (_tool) {
       case CurveEditorTool.select:
         if (_draggingIndex != null) {
@@ -532,6 +646,7 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
   // --- Tap dispatch ---
 
   void _onTapUp(TapUpDetails details, Size cs) {
+    if (_paintShape != null) return;
     switch (_tool) {
       case CurveEditorTool.select:
         _onSelectTap(details, cs);
@@ -570,12 +685,55 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
     _syncToBridge();
   }
 
+  Future<void> _saveCurveResource() async {
+    final name = await CurveLibraryDialog.requestName(context);
+    if (name == null || !mounted) return;
+    await CurveLibraryStore.save(CurveLibraryResource(
+      id: 'curve:user:${DateTime.now().microsecondsSinceEpoch}',
+      name: name,
+      positions: _positions.map((value) => value.clamp(0.0, 1.0)).toList(),
+      values: _values
+          .map((value) => _polarity == 0
+              ? ((value + 1) * 0.5).clamp(0.0, 1.0)
+              : value.clamp(0.0, 1.0))
+          .toList(),
+      shapes: List<int>.of(_shapes),
+    ));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Saved curve “$name”')),
+      );
+    }
+  }
+
+  Future<void> _loadCurveResource() async {
+    final resource = await CurveLibraryDialog.pick(context);
+    if (resource == null || !mounted || resource.positions.length < 2) return;
+    final count = math.min(resource.positions.length, resource.values.length);
+    setState(() {
+      _positions = resource.positions
+          .take(count)
+          .map((value) => value.clamp(0.0, 1.0))
+          .toList();
+      _values = resource.values.take(count).map((value) {
+        final normalized = value.clamp(0.0, 1.0);
+        return _polarity == 0 ? normalized * 2 - 1 : normalized;
+      }).toList();
+      _shapes = [
+        for (var i = 0; i < count; i++)
+          i < resource.shapes.length ? resource.shapes[i].clamp(0, 2) : 0,
+      ];
+      _mergeSort();
+      _bpCount = _positions.length;
+    });
+    await _syncToBridge();
+  }
+
   // ---------------------------------------------------------------------------
   // Toolbar
   // ---------------------------------------------------------------------------
 
   Widget _buildToolbar() {
-    final canInsert = _selectedIndices.length == 2;
     return Container(
       height: 48,
       decoration: BoxDecoration(
@@ -601,12 +759,14 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
             color: Colors.white.withValues(alpha: 0.08),
           ),
           const SizedBox(width: 4),
-          // Insert shape button (waves icon, active when 2 selected)
-          _iconBtn(
-            canInsert ? Icons.waves : Icons.waves_outlined,
-            canInsert,
-            canInsert ? _openShapeSheet : null,
-          ),
+          for (final shape in const [
+            AutomationCurveShape.rampUp,
+            AutomationCurveShape.sine,
+            AutomationCurveShape.triangle,
+            AutomationCurveShape.sawUp,
+            AutomationCurveShape.square,
+          ])
+            _shapeBtn(shape),
           const Spacer(),
           _polarityToggle(),
           const SizedBox(width: 4),
@@ -645,6 +805,7 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
       child: InkWell(
         onTap: () => setState(() {
           _tool = t;
+          _paintShape = null;
           _selectedIndices.clear();
         }),
         child: SizedBox(
@@ -652,6 +813,31 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
           height: 48,
           child: Icon(active ? activeIcon : icon,
               size: 20, color: active ? _accent : Colors.white54),
+        ),
+      ),
+    );
+  }
+
+  Widget _shapeBtn(AutomationCurveShape shape) {
+    final active = _paintShape == shape;
+    final color = active ? _accent : Colors.white54;
+    return Tooltip(
+      message: shape.accessibilityLabel,
+      child: Material(
+        color: active ? _accent.withValues(alpha: 0.15) : Colors.transparent,
+        child: InkWell(
+          onTap: () => setState(() {
+            _paintShape = shape;
+            _tool = CurveEditorTool.select;
+            _selectedIndices.clear();
+          }),
+          child: SizedBox(
+            width: 38,
+            height: 48,
+            child: Center(
+              child: AutomationShapeIcon(shape: shape, color: color),
+            ),
+          ),
         ),
       ),
     );
@@ -667,9 +853,7 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
           height: 48,
           child: Icon(icon,
               size: 20,
-              color: enabled
-                  ? _accent
-                  : Colors.white.withValues(alpha: 0.2)),
+              color: enabled ? _accent : Colors.white.withValues(alpha: 0.2)),
         ),
       ),
     );
@@ -733,74 +917,88 @@ class _CurveEditorScreenState extends State<CurveEditorScreen> {
         }
       },
       child: Scaffold(
-      resizeToAvoidBottomInset: false,
-      backgroundColor: _bgDark,
-      appBar: AppBar(
+        resizeToAvoidBottomInset: false,
         backgroundColor: _bgDark,
-        foregroundColor: Colors.white,
-        title: Text('CURVE ${widget.mod.id}',
-            style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.2)),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Row(
-              children: [
-                Text('CURVE ${widget.mod.id}',
-                    style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700)),
-                const Spacer(),
-                Text('$_bpCount pts',
-                    style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600)),
-              ],
+        appBar: AppBar(
+          backgroundColor: _bgDark,
+          foregroundColor: Colors.white,
+          title: Text('CURVE ${widget.mod.id}',
+              style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2)),
+          centerTitle: true,
+          actions: [
+            IconButton(
+              tooltip: 'Load curve',
+              onPressed: _loadCurveResource,
+              icon: const Icon(Icons.folder_open_outlined),
             ),
-          ),
-          _buildToolbar(),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final cs =
-                        Size(constraints.maxWidth, constraints.maxHeight);
-                    return GestureDetector(
-                      onTapUp: (d) => _onTapUp(d, cs),
-                      onPanStart: (d) => _onPanStart(d, cs),
-                      onPanUpdate: (d) => _onPanUpdate(d, cs),
-                      onPanEnd: _onPanEnd,
-                      child: CustomPaint(
-                        painter: _CurveEditorPainter(
-                          positions: _positions,
-                          values: _values,
-                          shapes: _shapes,
-                          polarity: _polarity,
-                          highlightedIndex: _draggingIndex,
-                          selectedIndices: _selectedIndices,
-                          accent: _accent,
+            IconButton(
+              tooltip: 'Save curve',
+              onPressed: _saveCurveResource,
+              icon: const Icon(Icons.bookmark_add_outlined),
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Row(
+                children: [
+                  Text('CURVE ${widget.mod.id}',
+                      style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700)),
+                  const Spacer(),
+                  Text('$_bpCount pts',
+                      style: const TextStyle(
+                          color: Colors.white38,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+            _buildToolbar(),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final cs =
+                          Size(constraints.maxWidth, constraints.maxHeight);
+                      return GestureDetector(
+                        onTapUp: (d) => _onTapUp(d, cs),
+                        onPanStart: (d) => _onPanStart(d, cs),
+                        onPanUpdate: (d) => _onPanUpdate(d, cs),
+                        onPanEnd: _onPanEnd,
+                        child: CustomPaint(
+                          painter: _CurveEditorPainter(
+                            positions: _positions,
+                            values: _values,
+                            shapes: _shapes,
+                            polarity: _polarity,
+                            highlightedIndex: _draggingIndex,
+                            selectedIndices: _selectedIndices,
+                            shapeHighlightStart: _shapeStart,
+                            shapeHighlightEnd: _shapeEnd,
+                            accent: _accent,
+                          ),
+                          size: cs,
                         ),
-                        size: cs,
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
     );
   }
 }
@@ -822,8 +1020,8 @@ class _ShapeInsertSheet extends StatefulWidget {
   final int polarity;
   final double startVal;
   final double endVal;
-  final void Function(String shapeName, double floor, double peak, double cycles)
-      onApply;
+  final void Function(
+      String shapeName, double floor, double peak, double cycles) onApply;
 
   @override
   State<_ShapeInsertSheet> createState() => _ShapeInsertSheetState();
@@ -870,8 +1068,9 @@ class _ShapeInsertSheetState extends State<_ShapeInsertSheet> {
             ),
           ),
           const SizedBox(height: 8),
-          _slider('Floor', _floor,
-              widget.polarity == 0 ? -1.0 : 0.0, _peak - 0.01, (v) {
+          _slider(
+              'Floor', _floor, widget.polarity == 0 ? -1.0 : 0.0, _peak - 0.01,
+              (v) {
             setState(() => _floor = v);
           }),
           _slider('Peak', _peak, _floor + 0.01, 1.0, (v) {
@@ -943,8 +1142,7 @@ class _ShapeInsertSheetState extends State<_ShapeInsertSheet> {
           SizedBox(
             width: 52,
             child: Text(label,
-                style:
-                    const TextStyle(color: Colors.white60, fontSize: 11)),
+                style: const TextStyle(color: Colors.white60, fontSize: 11)),
           ),
           Expanded(
             child: SliderTheme(
@@ -989,6 +1187,8 @@ class _CurveEditorPainter extends CustomPainter {
     required this.polarity,
     required this.highlightedIndex,
     required this.selectedIndices,
+    required this.shapeHighlightStart,
+    required this.shapeHighlightEnd,
     required this.accent,
   });
 
@@ -998,6 +1198,8 @@ class _CurveEditorPainter extends CustomPainter {
   final int polarity;
   final int? highlightedIndex;
   final Set<int> selectedIndices;
+  final double? shapeHighlightStart;
+  final double? shapeHighlightEnd;
   final Color accent;
 
   static const int _hermiteSteps = 20;
@@ -1016,6 +1218,10 @@ class _CurveEditorPainter extends CustomPainter {
       final y = size.height * i / 5;
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
+    for (var i = 1; i < _CurveEditorScreenState._gridDivisions; i++) {
+      final x = size.width * i / _CurveEditorScreenState._gridDivisions;
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
+    }
 
     if (polarity == 0) {
       final cy = size.height / 2;
@@ -1025,6 +1231,25 @@ class _CurveEditorPainter extends CustomPainter {
         Paint()
           ..color = Colors.white.withValues(alpha: 0.1)
           ..strokeWidth = 0.5,
+      );
+    }
+
+    final shapeStart = shapeHighlightStart;
+    final shapeEnd = shapeHighlightEnd;
+    if (shapeStart != null && shapeEnd != null) {
+      final left = math.min(shapeStart, shapeEnd) * size.width;
+      final right = math.max(shapeStart, shapeEnd) * size.width;
+      final region = Rect.fromLTRB(left, 0, right, size.height);
+      canvas.drawRect(
+        region,
+        Paint()..color = accent.withValues(alpha: 0.1),
+      );
+      canvas.drawRect(
+        region,
+        Paint()
+          ..color = accent.withValues(alpha: 0.65)
+          ..strokeWidth = 1.5
+          ..style = PaintingStyle.stroke,
       );
     }
 
@@ -1038,10 +1263,18 @@ class _CurveEditorPainter extends CustomPainter {
         Rect.fromLTRB(sx, 0, ex, size.height),
         Paint()..color = accent.withValues(alpha: 0.08),
       );
-      canvas.drawLine(Offset(sx, 0), Offset(sx, size.height),
-          Paint()..color = accent.withValues(alpha: 0.3)..strokeWidth = 1.5);
-      canvas.drawLine(Offset(ex, 0), Offset(ex, size.height),
-          Paint()..color = accent.withValues(alpha: 0.3)..strokeWidth = 1.5);
+      canvas.drawLine(
+          Offset(sx, 0),
+          Offset(sx, size.height),
+          Paint()
+            ..color = accent.withValues(alpha: 0.3)
+            ..strokeWidth = 1.5);
+      canvas.drawLine(
+          Offset(ex, 0),
+          Offset(ex, size.height),
+          Paint()
+            ..color = accent.withValues(alpha: 0.3)
+            ..strokeWidth = 1.5);
     }
 
     final count = positions.length;
@@ -1074,8 +1307,16 @@ class _CurveEditorPainter extends CustomPainter {
             final t = s / _hermiteSteps;
             final t2 = t * t;
             final t3 = t2 * t;
-            final v = 2 * t3 * v0 - 3 * t2 * v0 + v0 + t3 * m - 2 * t2 * m +
-                t * m + -2 * t3 * v1 + 3 * t2 * v1 + t3 * m - t2 * m;
+            final v = 2 * t3 * v0 -
+                3 * t2 * v0 +
+                v0 +
+                t3 * m -
+                2 * t2 * m +
+                t * m +
+                -2 * t3 * v1 +
+                3 * t2 * v1 +
+                t3 * m -
+                t2 * m;
             final ix = px + segWidth * t;
             final iy = size.height * (0.5 - v * 0.5);
             curvePath.lineTo(ix, iy);
@@ -1097,11 +1338,18 @@ class _CurveEditorPainter extends CustomPainter {
     fillPath.lineTo(firstX, zeroY);
     fillPath.close();
 
-    canvas.drawPath(fillPath,
-        Paint()..color = accent.withValues(alpha: 0.12)..style = PaintingStyle.fill);
-    canvas.drawPath(curvePath,
-        Paint()..color = accent.withValues(alpha: 0.9)..strokeWidth = 2.0
-          ..style = PaintingStyle.stroke..strokeCap = StrokeCap.round);
+    canvas.drawPath(
+        fillPath,
+        Paint()
+          ..color = accent.withValues(alpha: 0.12)
+          ..style = PaintingStyle.fill);
+    canvas.drawPath(
+        curvePath,
+        Paint()
+          ..color = accent.withValues(alpha: 0.9)
+          ..strokeWidth = 2.0
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round);
 
     for (var i = 0; i < count; i++) {
       final x = positions[i].clamp(0.0, 1.0) * size.width;
@@ -1109,13 +1357,22 @@ class _CurveEditorPainter extends CustomPainter {
       final isSel = selectedIndices.contains(i);
       final isDrag = highlightedIndex == i;
       final r = (isSel || isDrag) ? _selectedDotRadius : _dotRadius;
-      final dotColor = (isSel || isDrag) ? accent : accent.withValues(alpha: 0.7);
-      canvas.drawCircle(Offset(x, y), r,
-          Paint()..color = dotColor..style = PaintingStyle.fill);
+      final dotColor =
+          (isSel || isDrag) ? accent : accent.withValues(alpha: 0.7);
+      canvas.drawCircle(
+          Offset(x, y),
+          r,
+          Paint()
+            ..color = dotColor
+            ..style = PaintingStyle.fill);
       if (isSel || isDrag) {
-        canvas.drawCircle(Offset(x, y), r,
-            Paint()..color = Colors.white.withValues(alpha: 0.3)
-              ..style = PaintingStyle.stroke..strokeWidth = 1.5);
+        canvas.drawCircle(
+            Offset(x, y),
+            r,
+            Paint()
+              ..color = Colors.white.withValues(alpha: 0.3)
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1.5);
       }
     }
 
@@ -1152,6 +1409,8 @@ class _CurveEditorPainter extends CustomPainter {
     }
     return old.polarity != polarity ||
         old.highlightedIndex != highlightedIndex ||
+        old.shapeHighlightStart != shapeHighlightStart ||
+        old.shapeHighlightEnd != shapeHighlightEnd ||
         old.selectedIndices.length != selectedIndices.length ||
         !old.selectedIndices.every(selectedIndices.contains) ||
         old.accent != accent;

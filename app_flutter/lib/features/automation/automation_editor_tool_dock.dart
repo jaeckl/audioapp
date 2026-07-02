@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'automation_editor_metrics.dart';
 import 'automation_editor_theme.dart';
+import 'automation_curve_shapes.dart';
+import 'automation_shape_icon.dart';
 
 class AutomationEditorToolDock extends StatelessWidget {
   const AutomationEditorToolDock({
@@ -18,6 +20,8 @@ class AutomationEditorToolDock extends StatelessWidget {
     required this.onRedo,
     required this.previewPlaying,
     required this.onPreviewPlayStop,
+    required this.activeShape,
+    required this.onShapeSelected,
   });
 
   final AutomationEditorTool tool;
@@ -32,11 +36,19 @@ class AutomationEditorToolDock extends StatelessWidget {
   final VoidCallback onRedo;
   final bool previewPlaying;
   final VoidCallback onPreviewPlayStop;
+  final AutomationCurveShape? activeShape;
+  final ValueChanged<AutomationCurveShape> onShapeSelected;
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: AutomationEditorTheme.dockBackground,
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A26),
+        border: Border(
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+      ),
       child: SizedBox(
         height: AutomationEditorMetrics.toolDockHeight,
         child: Row(
@@ -48,23 +60,28 @@ class AutomationEditorToolDock extends StatelessWidget {
               onTap: () => onToolChanged(AutomationEditorTool.select),
             ),
             _DockButton(
-              icon: Icons.add_circle_outline,
-              activeIcon: Icons.add_circle,
+              icon: Icons.gesture,
+              activeIcon: Icons.gesture,
               active: tool == AutomationEditorTool.draw,
               onTap: () => onToolChanged(AutomationEditorTool.draw),
             ),
+            for (final shape in const [
+              AutomationCurveShape.rampUp,
+              AutomationCurveShape.sine,
+              AutomationCurveShape.triangle,
+              AutomationCurveShape.sawUp,
+              AutomationCurveShape.square,
+            ])
+              _ShapeDockButton(
+                shape: shape,
+                active: activeShape == shape,
+                onTap: () => onShapeSelected(shape),
+              ),
             _DockButton(
               icon: Icons.delete_sweep_outlined,
               activeIcon: Icons.delete_sweep,
               active: tool == AutomationEditorTool.multiErase,
               onTap: () => onToolChanged(AutomationEditorTool.multiErase),
-            ),
-            _DockButton(
-              icon: Icons.waves_outlined,
-              activeIcon: Icons.waves,
-              active: false,
-              enabled: canInsert,
-              onTap: onInsertTap,
             ),
             if (tool == AutomationEditorTool.multiErase)
               _DockButton(
@@ -125,7 +142,7 @@ class _DockButton extends StatelessWidget {
       child: InkWell(
         onTap: enabled ? onTap : null,
         child: SizedBox(
-          width: 52,
+          width: 40,
           height: AutomationEditorMetrics.toolDockHeight,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -140,6 +157,38 @@ class _DockButton extends StatelessWidget {
                     : AutomationEditorTheme.labelMuted,
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShapeDockButton extends StatelessWidget {
+  const _ShapeDockButton({
+    required this.shape,
+    required this.active,
+    required this.onTap,
+  });
+
+  final AutomationCurveShape shape;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active
+        ? AutomationEditorTheme.dockIconActive
+        : AutomationEditorTheme.dockIcon;
+    return Material(
+      color: active ? AutomationEditorTheme.dockActive : Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: SizedBox(
+          width: 38,
+          height: AutomationEditorMetrics.toolDockHeight,
+          child: Center(
+            child: AutomationShapeIcon(shape: shape, color: color),
           ),
         ),
       ),

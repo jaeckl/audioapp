@@ -33,18 +33,21 @@ void main() {
     expect(result.last.beat, 4);
     expect(result.last.value, 0.25);
     expect(
-      result.any((p) => (p.beat - 2).abs() < 1e-4 && (p.value - 0.5).abs() < 1e-4),
+      result.any(
+          (p) => (p.beat - 2).abs() < 1e-4 && (p.value - 0.5).abs() < 1e-4),
       isFalse,
     );
   });
 
-  testWidgets('Automation editor hides shape panel until insert mode', (tester) async {
+  testWidgets('Automation editor hides shape panel until insert mode',
+      (tester) async {
     const channel = MethodChannel('com.audioapp.daw/engine');
     final bridge = EngineBridge(channel: channel);
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-      if (call.method == 'setAutomationPoints' || call.method == 'setClipLength') {
+      if (call.method == 'setAutomationPoints' ||
+          call.method == 'setClipLength') {
         return {
           'ok': true,
           'snapshot': {
@@ -109,7 +112,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Insert shape'), findsNothing);
-    expect(find.byType(AutomationShapeIcon), findsNothing);
+    expect(find.byType(AutomationShapeIcon), findsNWidgets(5));
     expect(find.text('Floor'), findsNothing);
     expect(find.text('1/16'), findsOneWidget);
   });

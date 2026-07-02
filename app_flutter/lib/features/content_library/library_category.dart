@@ -3,6 +3,7 @@ enum LibraryCategory {
   audioClips,
   midiClips,
   automationClips,
+  curves,
   devicePresets,
   wavetables,
 }
@@ -12,6 +13,7 @@ extension LibraryCategoryLabels on LibraryCategory {
         LibraryCategory.audioClips => 'Audio',
         LibraryCategory.midiClips => 'MIDI',
         LibraryCategory.automationClips => 'Automation',
+        LibraryCategory.curves => 'Curves',
         LibraryCategory.devicePresets => 'Presets',
         LibraryCategory.wavetables => 'Wavetables',
       };
@@ -20,6 +22,7 @@ extension LibraryCategoryLabels on LibraryCategory {
         LibraryCategory.audioClips => 'Samples & audio clips',
         LibraryCategory.midiClips => 'MIDI patterns',
         LibraryCategory.automationClips => 'Automation lanes',
+        LibraryCategory.curves => 'Automation & modulation shapes',
         LibraryCategory.devicePresets => 'Device chains',
         LibraryCategory.wavetables => 'Bundled wavetables',
       };

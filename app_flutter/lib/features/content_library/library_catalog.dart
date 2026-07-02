@@ -1,6 +1,7 @@
 import '../../bridge/project_snapshot.dart';
 
 import 'library_category.dart';
+import 'curve_library_store.dart';
 import 'library_manifest.dart';
 import 'library_midi_patterns.dart';
 
@@ -90,6 +91,18 @@ class LibraryWavetableItem extends LibraryItem {
   final String wavetableName;
 }
 
+class LibraryCurveItem extends LibraryItem {
+  const LibraryCurveItem({
+    required super.id,
+    required super.title,
+    required super.subtitle,
+    required this.resource,
+    super.tags,
+  });
+
+  final CurveLibraryResource resource;
+}
+
 abstract final class LibraryCatalog {
   static List<LibraryItem> itemsFor(
     LibraryCategory category,
@@ -100,10 +113,26 @@ abstract final class LibraryCatalog {
       LibraryCategory.audioClips => _audioItems(snapshot),
       LibraryCategory.midiClips => _midiItems(snapshot, manifest),
       LibraryCategory.automationClips => _automationItems(snapshot),
+      LibraryCategory.curves => const [],
       LibraryCategory.devicePresets => presetItems(manifest),
       LibraryCategory.wavetables => wavetableItems(),
     };
   }
+
+  static List<LibraryCurveItem> curveItems(
+    Iterable<CurveLibraryResource> resources,
+  ) =>
+      resources
+          .map(
+            (resource) => LibraryCurveItem(
+              id: resource.id,
+              title: resource.name,
+              subtitle: resource.factory ? 'Factory curve' : 'User curve',
+              resource: resource,
+              tags: [resource.factory ? 'factory' : 'user'],
+            ),
+          )
+          .toList();
 
   static List<LibraryPresetItem> presetItems(LibraryManifest? manifest) {
     if (manifest == null) {
@@ -169,9 +198,12 @@ abstract final class LibraryCatalog {
         LibraryAudioItem(
           id: 'sample:${sample.id}',
           title: sample.name,
-          subtitle: sample.source == 'bundled' ? 'Sample library' : 'Imported audio',
+          subtitle:
+              sample.source == 'bundled' ? 'Sample library' : 'Imported audio',
           sample: sample,
-          tags: sample.source == 'bundled' ? const ['factory'] : const ['imported'],
+          tags: sample.source == 'bundled'
+              ? const ['factory']
+              : const ['imported'],
         ),
       );
     }
@@ -233,7 +265,8 @@ abstract final class LibraryCatalog {
           LibraryMidiItem(
             id: 'midi:${clip.id}',
             title: 'MIDI clip',
-            subtitle: '${track.name} · ${clip.notes.length} notes · ${clip.lengthBeats.round()} beats',
+            subtitle:
+                '${track.name} · ${clip.notes.length} notes · ${clip.lengthBeats.round()} beats',
             trackId: track.id,
             clip: clip,
             tags: const ['project'],

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -10,6 +12,7 @@ import '../piano_roll/piano_roll_ruler.dart';
 import '../piano_roll/piano_roll_theme.dart';
 import '../piano_roll/editor_view_range.dart';
 import 'automation_curve_grid_painter.dart';
+import 'automation_curve_shapes.dart';
 import 'automation_editor_metrics.dart';
 import 'automation_value_column.dart';
 
@@ -23,6 +26,7 @@ class AutomationEditorViewport extends StatefulWidget {
     required this.virtualLengthBeats,
     required this.gridSettings,
     required this.tool,
+    this.paintShape,
     required this.selectedIndices,
     required this.deleteMarkedIndices,
     this.insertHighlightStartBeat,
@@ -50,6 +54,7 @@ class AutomationEditorViewport extends StatefulWidget {
   final double virtualLengthBeats;
   final PianoRollGridSettings gridSettings;
   final AutomationEditorTool tool;
+  final AutomationCurveShape? paintShape;
   final Set<int> selectedIndices;
   final Set<int> deleteMarkedIndices;
   final double? insertHighlightStartBeat;
@@ -100,6 +105,13 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
   bool _lockScrollForEdit = false;
   int? _editPointer;
   int? _dragIndex;
+  bool _paintingShape = false;
+  List<AutomationPointSnapshot>? _shapeSourcePoints;
+  double? _shapeStartBeat;
+  double? _shapeEndBeat;
+  double? _shapeBaseline;
+  List<AutomationPointSnapshot>? _freehandSourcePoints;
+  final List<AutomationPointSnapshot> _freehandPoints = [];
   int? _pendingTapIndex;
   bool _pendingClearSelection = false;
   bool _draggingClipEnd = false;
@@ -283,6 +295,64 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
     return snap ? widget.gridSettings.snapBeat(beat) : beat;
   }
 
+  void _updateShapePaint(Offset canvasPos) {
+    final source = _shapeSourcePoints;
+    final startBeat = _shapeStartBeat;
+    final baseline = _shapeBaseline;
+    final shape = widget.paintShape;
+    if (source == null ||
+        startBeat == null ||
+        baseline == null ||
+        shape == null) {
+      return;
+    }
+    final step = widget.gridSettings.snapBeats > 0
+        ? widget.gridSettings.snapBeats
+        : 0.25;
+    var endBeat = _beatFromDx(canvasPos.dx).clamp(0.0, widget.clipLengthBeats);
+    if ((endBeat - startBeat).abs() < 1.0e-6) {
+      endBeat = (startBeat + step).clamp(0.0, widget.clipLengthBeats);
+    }
+    _shapeEndBeat = endBeat;
+    final peak = AutomationEditorMetrics.valueFromDy(
+      canvasPos.dy,
+      _valueAxisHeight,
+    );
+    widget.onPointsChanged(paintRepeatedAutomationShape(
+      points: source,
+      startBeat: startBeat,
+      endBeat: endBeat,
+      stepBeats: step,
+      baseline: baseline,
+      peak: peak,
+      shape: shape,
+    ));
+  }
+
+  void _updateFreehand(Offset canvasPos) {
+    final source = _freehandSourcePoints;
+    if (source == null) return;
+    final point = AutomationPointSnapshot(
+      beat: _beatFromDx(canvasPos.dx, snap: false)
+          .clamp(0.0, widget.clipLengthBeats),
+      value: AutomationEditorMetrics.valueFromDy(
+        canvasPos.dy,
+        _valueAxisHeight,
+      ),
+    );
+    if (_freehandPoints.isNotEmpty) {
+      final previous = _freehandPoints.last;
+      if ((previous.beat - point.beat).abs() * _pixelsPerBeat < 3) return;
+    }
+    _freehandPoints.add(point);
+    final firstBeat = _freehandPoints.map((item) => item.beat).reduce(math.min);
+    final lastBeat = _freehandPoints.map((item) => item.beat).reduce(math.max);
+    final kept = source.where(
+      (item) => item.beat < firstBeat || item.beat > lastBeat,
+    );
+    widget.onPointsChanged(_sortedPoints([...kept, ..._freehandPoints]));
+  }
+
   bool _hitClipEndMarker(Offset canvasPos) {
     final endX = widget.clipLengthBeats * _pixelsPerBeat;
     return (canvasPos.dx - endX).abs() <=
@@ -316,10 +386,6 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
       ..sort((a, b) => a.beat.compareTo(b.beat));
   }
 
-  void _setPoints(List<AutomationPointSnapshot> points) {
-    widget.onPointsChanged(_sortedPoints(points));
-  }
-
   void _cancelEditGesture() {
     _dragIndex = null;
     _pendingTapIndex = null;
@@ -330,6 +396,13 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
     _editTravel = 0;
     _editCommitted = false;
     _lockScrollForEdit = false;
+    _paintingShape = false;
+    _shapeSourcePoints = null;
+    _shapeStartBeat = null;
+    _shapeEndBeat = null;
+    _shapeBaseline = null;
+    _freehandSourcePoints = null;
+    _freehandPoints.clear();
   }
 
   double _canvasPointerSpanX() {
@@ -533,20 +606,34 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
 
     final hit = _hitTestPoint(canvasPos);
 
-    if (widget.tool == AutomationEditorTool.draw && hit == null) {
+    if (widget.paintShape != null) {
+      _lockScrollForEdit = true;
+      _paintingShape = true;
+      _editCommitted = true;
+      _shapeSourcePoints = List<AutomationPointSnapshot>.of(widget.points);
+      _shapeStartBeat =
+          _beatFromDx(canvasPos.dx).clamp(0.0, widget.clipLengthBeats);
+      final step = widget.gridSettings.snapBeats > 0
+          ? widget.gridSettings.snapBeats
+          : 0.25;
+      _shapeEndBeat =
+          (_shapeStartBeat! + step).clamp(0.0, widget.clipLengthBeats);
+      _shapeBaseline = AutomationEditorMetrics.valueFromDy(
+        canvasPos.dy,
+        _valueAxisHeight,
+      );
+      widget.onEditStarted();
+      setState(() {});
+      return;
+    }
+
+    if (widget.tool == AutomationEditorTool.draw) {
       _lockScrollForEdit = true;
       widget.onEditStarted();
       _editCommitted = true;
-      final beat = _beatFromDx(canvasPos.dx).clamp(0.0, widget.clipLengthBeats);
-      final value =
-          AutomationEditorMetrics.valueFromDy(canvasPos.dy, _valueAxisHeight);
-      final next = List<AutomationPointSnapshot>.of(widget.points)
-        ..add(AutomationPointSnapshot(beat: beat, value: value));
-      _setPoints(_sortedPoints(next));
-      widget.onEditFinished();
-      HapticFeedback.selectionClick();
-      _canvasPointers.remove(event.pointer);
-      _cancelEditGesture();
+      _freehandSourcePoints = List<AutomationPointSnapshot>.of(widget.points);
+      _freehandPoints.clear();
+      _updateFreehand(canvasPos);
       setState(() {});
       return;
     }
@@ -594,6 +681,19 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
     final canvasPos = _pointerToCanvas(event);
     _editTravel = (canvasPos - _editStartCanvas!).distance;
 
+    if (_paintingShape) {
+      _updateShapePaint(canvasPos);
+      setState(() {});
+      return;
+    }
+
+    if (widget.tool == AutomationEditorTool.draw &&
+        _freehandSourcePoints != null) {
+      _updateFreehand(canvasPos);
+      setState(() {});
+      return;
+    }
+
     final index = _dragIndex;
     if (index == null || widget.tool != AutomationEditorTool.select) return;
 
@@ -622,6 +722,26 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
     }
 
     if (event.pointer != _editPointer) {
+      setState(() {});
+      return;
+    }
+
+    if (_paintingShape) {
+      if (_editTravel <= _tapSlop) {
+        _updateShapePaint(_pointerToCanvas(event));
+      }
+      widget.onEditFinished();
+      HapticFeedback.selectionClick();
+      _cancelEditGesture();
+      setState(() {});
+      return;
+    }
+
+    if (widget.tool == AutomationEditorTool.draw &&
+        _freehandSourcePoints != null) {
+      widget.onEditFinished();
+      HapticFeedback.selectionClick();
+      _cancelEditGesture();
       setState(() {});
       return;
     }
@@ -820,11 +940,16 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
               virtualLengthBeats: widget.virtualLengthBeats,
               clipLengthBeats: widget.clipLengthBeats,
               pixelsPerBeat: _pixelsPerBeat,
+              gridStepBeats: widget.gridSettings.snapBeats,
               points: widget.points,
               selectedIndices: widget.selectedIndices,
               deleteMarkedIndices: widget.deleteMarkedIndices,
-              insertHighlightStartBeat: widget.insertHighlightStartBeat,
-              insertHighlightEndBeat: widget.insertHighlightEndBeat,
+              insertHighlightStartBeat: _paintingShape
+                  ? math.min(_shapeStartBeat!, _shapeEndBeat!)
+                  : widget.insertHighlightStartBeat,
+              insertHighlightEndBeat: _paintingShape
+                  ? math.max(_shapeStartBeat!, _shapeEndBeat!)
+                  : widget.insertHighlightEndBeat,
             ),
           ),
         ],
