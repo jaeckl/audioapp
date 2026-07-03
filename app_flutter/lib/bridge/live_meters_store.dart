@@ -30,7 +30,9 @@ class LiveMetersStore extends ChangeNotifier
       final prev = next[reading.deviceId];
       if (prev != null &&
           prev.gainReductionDb == reading.gainReductionDb &&
-          prev.inputLevel == reading.inputLevel) {
+          prev.inputLevel == reading.inputLevel &&
+          prev.leftLevel == reading.leftLevel &&
+          prev.rightLevel == reading.rightLevel) {
         // Analyzer arrays are intentionally compared by identity: every
         // native meter event carries a fresh visualization frame.
         if (identical(prev.waveform, reading.waveform) &&

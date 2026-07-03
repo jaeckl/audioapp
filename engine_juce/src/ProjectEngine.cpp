@@ -1316,8 +1316,9 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                 ctx.playheadStartBeat = playheadStartBeat;
                 ctx.notes = nullptr;
                 ctx.noteCount = 0;
-                ctx.deviceMeters = nullptr;
-                ctx.maxDeviceMeters = 0;
+                ctx.deviceMeters = deviceMeters_;
+                ctx.maxDeviceMeters = kMaxDeviceMeters;
+                ctx.meterSlotSubscribed = meterSlotSubscribed_.data();
                 ctx.lfoValues = lfoCount > 0 ? lfoValues.data() : nullptr;
                 ctx.lfoCount = lfoCount;
                 ctx.modulators = lfoCount > 0 ? modulatorPtrs.data() : nullptr;
@@ -1882,12 +1883,20 @@ std::string ProjectEngine::getDeviceMetersJson() {
         first = false;
         const float gr = deviceMeters_[i].gainReductionDb.load(std::memory_order_relaxed);
         const float in = deviceMeters_[i].inputPeak.load(std::memory_order_relaxed);
+        const float inL = deviceMeters_[i].inputPeakL.load(std::memory_order_relaxed);
+        const float inR = deviceMeters_[i].inputPeakR.load(std::memory_order_relaxed);
         json += "\"";
         json += deviceMeterIds_[i];
         json += R"(":{"gr":)";
         // Format gain reduction as 1 decimal, input level as 3 decimal
         char buf[64];
         snprintf(buf, sizeof(buf), "%.1f", static_cast<double>(gr));
+        json += buf;
+        json += R"(,"left":)";
+        snprintf(buf, sizeof(buf), "%.3f", static_cast<double>(inL));
+        json += buf;
+        json += R"(,"right":)";
+        snprintf(buf, sizeof(buf), "%.3f", static_cast<double>(inR));
         json += buf;
         json += R"(,"in":)";
         snprintf(buf, sizeof(buf), "%.3f", static_cast<double>(in));

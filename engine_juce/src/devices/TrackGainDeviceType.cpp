@@ -21,7 +21,7 @@ DeviceSlot TrackGainDeviceType::createDefault(const std::string& deviceId) const
     slot.config.typeId = typeId();
     slot.config.instance = TrackGainParams{};
     slot.config.inputPanel = EmptyPanel{};
-    slot.config.outputPanel = MonoOutputPanel{};
+    slot.config.outputPanel = StereoOutputPanel{};
     slot.config.bypassed = false;  // TrackGain cannot be bypassed
     return slot;
 }
@@ -29,12 +29,16 @@ DeviceSlot TrackGainDeviceType::createDefault(const std::string& deviceId) const
 juce::var TrackGainDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
     parameters->setProperty("gain", static_cast<double>(
-        std::get<MonoOutputPanel>(slot.config.outputPanel).gain));
+        std::get<StereoOutputPanel>(slot.config.outputPanel).gain));
+    parameters->setProperty("pan", static_cast<double>(
+        std::get<StereoOutputPanel>(slot.config.outputPanel).pan));
 
     auto* outputPanelObj = new juce::DynamicObject();
-    outputPanelObj->setProperty("type", "mono");
+    outputPanelObj->setProperty("type", "stereo");
     outputPanelObj->setProperty("gain", static_cast<double>(
-        std::get<MonoOutputPanel>(slot.config.outputPanel).gain));
+        std::get<StereoOutputPanel>(slot.config.outputPanel).gain));
+    outputPanelObj->setProperty("pan", static_cast<double>(
+        std::get<StereoOutputPanel>(slot.config.outputPanel).pan));
 
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
@@ -60,6 +64,7 @@ DeviceSlot TrackGainDeviceType::varToSlot(const juce::var& obj) const {
         // Read outputPanel (new format) with legacy fallback
         const auto outputPanelVar = object->getProperty("outputPanel");
         float gain = 1.0f;  // fallback to legacy
+        float pan = 0.5f;
         if (const auto* op = outputPanelVar.getDynamicObject()) {
             auto readFloat = [&](const char* key, float fallback) -> float {
                 const auto v = op->getProperty(key);
@@ -68,8 +73,9 @@ DeviceSlot TrackGainDeviceType::varToSlot(const juce::var& obj) const {
                 return fallback;
             };
             gain = readFloat("gain", 1.0f);
+            pan = readFloat("pan", 0.5f);
         }
-        slot.config.outputPanel = MonoOutputPanel{gain};
+        slot.config.outputPanel = StereoOutputPanel{gain,pan,1.0f,1.0f};
 
         slot.config.instance = TrackGainParams{};
         slot.config.inputPanel = EmptyPanel{};
@@ -103,7 +109,7 @@ bool TrackGainDeviceType::setStringParameter(DeviceSlot&,
 }
 
 std::vector<std::string_view> TrackGainDeviceType::modulatableParams() const {
-    return {"gain"};
+    return {"gain", "pan"};
 }
 
 void TrackGainDeviceType::buildPlaybackNode(const DeviceSlot& slot,

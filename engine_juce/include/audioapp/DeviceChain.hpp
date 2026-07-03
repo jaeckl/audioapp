@@ -265,6 +265,8 @@ static constexpr float kInstrumentOutputGain = 0.2f;
 struct DeviceMeterAtomic {
     std::atomic<float> gainReductionDb{0.0f};
     std::atomic<float> inputPeak{0.0f};
+    std::atomic<float> inputPeakL{0.0f};
+    std::atomic<float> inputPeakR{0.0f};
     std::atomic<float> loudness{ -70.0f };
     std::atomic<float> correlation{0.0f};
     std::atomic<float> waveform[32]{};

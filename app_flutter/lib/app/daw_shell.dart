@@ -123,6 +123,9 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
   void _onStoreChanged() {
     if (mounted) setState(() {});
+    if (_tab == _ShellTab.mixer) {
+      unawaited(_updateMeterSubscriptions(const []));
+    }
   }
 
   void _onMetersBatch(LiveMetersBatch batch) {
@@ -131,7 +134,12 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   Future<void> _updateMeterSubscriptions(List<String> deviceIds) async {
-    if (_tab != _ShellTab.devices) {
+    if (_tab == _ShellTab.mixer) {
+      deviceIds = [
+        for (final track in _snapshot?.tracks ?? const <TrackSnapshot>[])
+          if (track.trackGainDevice != null) track.trackGainDevice!.id,
+      ];
+    } else if (_tab != _ShellTab.devices) {
       deviceIds = const [];
     }
     if (listEquals(deviceIds, _meterSubscriptionIds)) return;
@@ -1537,6 +1545,20 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _setTrackPan(String deviceId, double value) async {
+    _optimisticParamUpdate(deviceId, 'pan', value);
+    try {
+      await widget.bridge.setDeviceParameter(
+        deviceId: deviceId,
+        parameterId: 'pan',
+        value: value,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
   Future<void> _setMasterGain(double value) async {
     try {
       await widget.bridge.setMasterGain(value);
@@ -2117,7 +2139,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             onGetParamDescriptors: widget.bridge.getParamDescriptors,
             onMeterSubscriptionsChanged: _updateMeterSubscriptions,
           )
-        else
+        else if (_tab == _ShellTab.keys)
           LiveInstrumentPanel(
             bridge: widget.bridge,
             snapshot: snapshot,
@@ -2134,10 +2156,22 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       case _ShellTab.keys:
         return _buildArrangementColumn(snapshot);
       case _ShellTab.mixer:
-        return MixerView(
-          snapshot: snapshot,
-          onTrackGainChanged: _setTrackGain,
-          onMasterGainChanged: _setMasterGain,
+        return Column(
+          children: [
+            Expanded(child: _buildArrangementColumn(snapshot)),
+            MixerView(
+              snapshot: snapshot,
+              liveMeters: _liveMeters,
+              onTrackGainChanged: _setTrackGain,
+              onTrackPanChanged: _setTrackPan,
+              onTrackMuted: (trackId, muted) =>
+                  _setTrackMuted(trackId: trackId, muted: muted),
+              onTrackSoloed: (trackId, soloed) =>
+                  _setTrackSoloed(trackId: trackId, soloed: soloed),
+              onTrackSelected: _selectTrack,
+              onMasterGainChanged: _setMasterGain,
+            ),
+          ],
         );
       case _ShellTab.library:
         return const SizedBox.shrink();
