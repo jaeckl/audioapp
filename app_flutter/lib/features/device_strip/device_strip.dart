@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../bridge/param_descriptor.dart';
 import '../../bridge/live_meters_dto.dart';
 import '../../bridge/project_snapshot.dart';
+import '../clip_drag/sample_clip_drag_data.dart';
 import 'device_chain_row.dart';
 import 'device_chain_screen.dart';
 import 'device_picker_sheet.dart';
@@ -41,6 +42,8 @@ class DeviceStrip extends StatefulWidget {
     this.onAutomateParameter,
     this.onGetParamDescriptors,
     this.onMeterSubscriptionsChanged,
+    this.onCreateSamplerFromDroppedSample,
+    this.onAssignDroppedSampleToDevice,
   });
 
   final ProjectSnapshot snapshot;
@@ -80,6 +83,13 @@ class DeviceStrip extends StatefulWidget {
   final Future<List<DeviceParamDescriptor>> Function(String deviceType)?
       onGetParamDescriptors;
   final ValueChanged<List<String>>? onMeterSubscriptionsChanged;
+  final Future<void> Function(
+    TrackSnapshot track,
+    SampleClipDragData sample,
+    int insertIndex,
+  )? onCreateSamplerFromDroppedSample;
+  final Future<void> Function(DeviceSnapshot device, SampleClipDragData sample)?
+      onAssignDroppedSampleToDevice;
 
   @override
   State<DeviceStrip> createState() => _DeviceStripState();
@@ -242,6 +252,17 @@ class _DeviceStripState extends State<DeviceStrip> {
                   onMeterSubscriptionsChanged: _fullscreenChainOpen
                       ? null
                       : widget.onMeterSubscriptionsChanged,
+                  onCreateSamplerFromDroppedSample:
+                      widget.onCreateSamplerFromDroppedSample == null
+                          ? null
+                          : (sample, insertIndex) =>
+                              widget.onCreateSamplerFromDroppedSample!(
+                                track,
+                                sample,
+                                insertIndex,
+                              ),
+                  onAssignDroppedSampleToDevice:
+                      widget.onAssignDroppedSampleToDevice,
                   drumSelectedNoteFor: (id) => _drumSelectedNotes[id] ?? 36,
                   drumBankStartFor: (id) => _drumBankStarts[id] ?? 36,
                   drumChainExpandedFor: (id) => _drumChainExpanded[id] ?? true,

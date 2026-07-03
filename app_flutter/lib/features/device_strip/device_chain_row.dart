@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../bridge/param_descriptor.dart';
 import '../../bridge/live_meters_dto.dart';
 import '../../bridge/project_snapshot.dart';
+import '../clip_drag/sample_clip_drag_data.dart';
 import 'device_chain_separator.dart';
 import 'device_strip_device_kind.dart';
 import 'device_strip_metrics.dart';
@@ -63,6 +64,8 @@ class DeviceChainRow extends StatefulWidget {
     this.onDrumBankChanged,
     this.onDrumChainToggle,
     this.onMeterSubscriptionsChanged,
+    this.onCreateSamplerFromDroppedSample,
+    this.onAssignDroppedSampleToDevice,
   });
 
   final TrackSnapshot track;
@@ -118,6 +121,10 @@ class DeviceChainRow extends StatefulWidget {
   final void Function(String deviceId, int start)? onDrumBankChanged;
   final ValueChanged<String>? onDrumChainToggle;
   final ValueChanged<List<String>>? onMeterSubscriptionsChanged;
+  final Future<void> Function(SampleClipDragData sample, int insertIndex)?
+      onCreateSamplerFromDroppedSample;
+  final Future<void> Function(DeviceSnapshot device, SampleClipDragData sample)?
+      onAssignDroppedSampleToDevice;
 
   @override
   State<DeviceChainRow> createState() => _DeviceChainRowState();
@@ -205,6 +212,38 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
     return null;
   }
 
+  bool _canAcceptSampleDrop(DeviceSnapshot device) =>
+      device is SamplerDeviceSnapshot || device is GranularDeviceSnapshot;
+
+  Widget _sampleDropTarget({
+    required Widget child,
+    required bool enabled,
+    required Future<void> Function(SampleClipDragData sample) onAccept,
+  }) {
+    if (!enabled) return child;
+    return DragTarget<SampleClipDragData>(
+      onWillAcceptWithDetails: (details) => details.data.sampleId.isNotEmpty,
+      onAcceptWithDetails: (details) => onAccept(details.data),
+      builder: (context, candidates, _) {
+        final active = candidates.isNotEmpty;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          decoration: active
+              ? BoxDecoration(
+                  borderRadius:
+                      BorderRadius.circular(DeviceStripTheme.cardRadius + 4),
+                  border: Border.all(
+                    color: DeviceStripTheme.samplerAccent,
+                    width: 2,
+                  ),
+                )
+              : null,
+          child: child,
+        );
+      },
+    );
+  }
+
   Widget _automationAwareDevice(
     DeviceSnapshot device,
     Widget Function(DeviceSnapshot displayDevice) builder,
@@ -243,95 +282,108 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
               : const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           children: [
             if (devices.isEmpty)
-              _leadingInsert(context)
+              _sampleDropTarget(
+                enabled: widget.track.canInsertDevices &&
+                    widget.onCreateSamplerFromDroppedSample != null,
+                onAccept: (sample) =>
+                    widget.onCreateSamplerFromDroppedSample!(sample, 0),
+                child: _leadingInsert(context),
+              )
             else
               for (var i = 0; i < devices.length; i++) ...[
                 _automationAwareDevice(
                   devices[i],
-                  (displayDevice) => DeviceStripSlot(
-                    track: widget.track,
-                    routingSources: devices[i] is RoutingDeviceSnapshot &&
-                            widget.routingSnapshot != null
-                        ? buildRoutingSourceOptions(widget.routingSnapshot!,
-                            widget.track, devices[i] as RoutingDeviceSnapshot)
-                        : const [],
-                    device: displayDevice,
-                    sample: _sampleFor(devices[i]),
-                    bpm: widget.bpm,
-                    playheadBeat: widget.playheadBeat,
-                    playheadBeatListenable: widget.playheadBeatListenable,
-                    liveMetersListenable: widget.liveMetersListenable,
-                    playing: widget.playing,
-                    density: widget.density,
-                    samplerTab: widget.samplerTabFor?.call(devices[i].id) ??
-                        SamplerDeviceTab.wave,
-                    synthTab: widget.synthTabFor?.call(devices[i].id) ??
-                        SubtractiveDeviceTab.osc,
-                    onSamplerParameterChanged: (parameterId, value) =>
-                        widget.onSamplerParameterChanged(
-                            devices[i].id, parameterId, value),
-                    onDeviceParameterChanged: (parameterId, value) =>
-                        widget.onSamplerParameterChanged(
-                            devices[i].id, parameterId, value),
-                    onDeviceStringParameterChanged: (parameterId, value) =>
-                        widget.onDeviceStringParameterChanged
-                            ?.call(devices[i].id, parameterId, value),
-                    onOpenSamplerEditor: () =>
-                        widget.onOpenSamplerEditor(widget.track, devices[i]),
-                    onFrequencyChanged: (value) =>
-                        widget.onFrequencyChanged(devices[i].id, value),
-                    onSamplerTabChanged: widget.onSamplerTabChanged == null
-                        ? null
-                        : (tab) =>
-                            widget.onSamplerTabChanged!(devices[i].id, tab),
-                    onSynthTabChanged: widget.onSynthTabChanged == null
-                        ? null
-                        : (tab) =>
-                            widget.onSynthTabChanged!(devices[i].id, tab),
-                    onCollapse: widget.density == DeviceStripSlotDensity.strip
-                        ? widget.onCollapse
-                        : null,
-                    onBypassToggle: widget.onBypassToggle == null
-                        ? null
-                        : () => widget.onBypassToggle!(
-                            devices[i].id, !devices[i].bypassed),
-                    onDeleteRequest: widget.onDeleteDevice == null
-                        ? null
-                        : () => widget.onDeleteDevice!(devices[i]),
-                    onOpenLibrary: widget.onOpenLibrary == null
-                        ? null
-                        : () => widget.onOpenLibrary!(devices[i]),
-                    onPreviewSample: widget.onPreviewSample,
-                    onPreviewSampler: widget.onPreviewSampler,
-                    lfos: widget.lfos,
-                    modEdges: widget.modEdges,
-                    onModulationBridgeCall: widget.onModulationBridgeCall,
-                    automationLinkActive: widget.automationLinkActive,
-                    automationLinkClipId: widget.automationLinkClipId,
-                    projectAutomationClips: widget.projectAutomationClips,
-                    onAutomationParamSelected: widget.onAutomationParamSelected,
-                    onAutomateParameter: widget.onAutomateParameter,
-                    onGetParamDescriptors: widget.onGetParamDescriptors,
-                    drumSelectedNote:
-                        widget.drumSelectedNoteFor?.call(devices[i].id) ?? 36,
-                    drumBankStart:
-                        widget.drumBankStartFor?.call(devices[i].id) ?? 36,
-                    drumChainExpanded:
-                        widget.drumChainExpandedFor?.call(devices[i].id) ??
-                            true,
-                    onDrumPadSelected: (note) =>
-                        widget.onDrumPadSelected?.call(devices[i].id, note),
-                    onDrumBankChanged: (start) =>
-                        widget.onDrumBankChanged?.call(devices[i].id, start),
-                    onDrumChainToggle: () =>
-                        widget.onDrumChainToggle?.call(devices[i].id),
-                    onDrumTriggerNote: (note) =>
-                        widget.onPreviewSampler?.call(note),
-                    onEmptyDrumPadTap: (note) {
-                      widget.onDrumPadSelected?.call(devices[i].id, note);
-                      widget.onOpenDrumPadLibrary
-                          ?.call(devices[i] as DrumMachineDeviceSnapshot, note);
-                    },
+                  (displayDevice) => _sampleDropTarget(
+                    enabled: _canAcceptSampleDrop(devices[i]) &&
+                        widget.onAssignDroppedSampleToDevice != null,
+                    onAccept: (sample) => widget.onAssignDroppedSampleToDevice!(
+                        devices[i], sample),
+                    child: DeviceStripSlot(
+                      track: widget.track,
+                      routingSources: devices[i] is RoutingDeviceSnapshot &&
+                              widget.routingSnapshot != null
+                          ? buildRoutingSourceOptions(widget.routingSnapshot!,
+                              widget.track, devices[i] as RoutingDeviceSnapshot)
+                          : const [],
+                      device: displayDevice,
+                      sample: _sampleFor(devices[i]),
+                      bpm: widget.bpm,
+                      playheadBeat: widget.playheadBeat,
+                      playheadBeatListenable: widget.playheadBeatListenable,
+                      liveMetersListenable: widget.liveMetersListenable,
+                      playing: widget.playing,
+                      density: widget.density,
+                      samplerTab: widget.samplerTabFor?.call(devices[i].id) ??
+                          SamplerDeviceTab.wave,
+                      synthTab: widget.synthTabFor?.call(devices[i].id) ??
+                          SubtractiveDeviceTab.osc,
+                      onSamplerParameterChanged: (parameterId, value) =>
+                          widget.onSamplerParameterChanged(
+                              devices[i].id, parameterId, value),
+                      onDeviceParameterChanged: (parameterId, value) =>
+                          widget.onSamplerParameterChanged(
+                              devices[i].id, parameterId, value),
+                      onDeviceStringParameterChanged: (parameterId, value) =>
+                          widget.onDeviceStringParameterChanged
+                              ?.call(devices[i].id, parameterId, value),
+                      onOpenSamplerEditor: () =>
+                          widget.onOpenSamplerEditor(widget.track, devices[i]),
+                      onFrequencyChanged: (value) =>
+                          widget.onFrequencyChanged(devices[i].id, value),
+                      onSamplerTabChanged: widget.onSamplerTabChanged == null
+                          ? null
+                          : (tab) =>
+                              widget.onSamplerTabChanged!(devices[i].id, tab),
+                      onSynthTabChanged: widget.onSynthTabChanged == null
+                          ? null
+                          : (tab) =>
+                              widget.onSynthTabChanged!(devices[i].id, tab),
+                      onCollapse: widget.density == DeviceStripSlotDensity.strip
+                          ? widget.onCollapse
+                          : null,
+                      onBypassToggle: widget.onBypassToggle == null
+                          ? null
+                          : () => widget.onBypassToggle!(
+                              devices[i].id, !devices[i].bypassed),
+                      onDeleteRequest: widget.onDeleteDevice == null
+                          ? null
+                          : () => widget.onDeleteDevice!(devices[i]),
+                      onOpenLibrary: widget.onOpenLibrary == null
+                          ? null
+                          : () => widget.onOpenLibrary!(devices[i]),
+                      onPreviewSample: widget.onPreviewSample,
+                      onPreviewSampler: widget.onPreviewSampler,
+                      lfos: widget.lfos,
+                      modEdges: widget.modEdges,
+                      onModulationBridgeCall: widget.onModulationBridgeCall,
+                      automationLinkActive: widget.automationLinkActive,
+                      automationLinkClipId: widget.automationLinkClipId,
+                      projectAutomationClips: widget.projectAutomationClips,
+                      onAutomationParamSelected:
+                          widget.onAutomationParamSelected,
+                      onAutomateParameter: widget.onAutomateParameter,
+                      onGetParamDescriptors: widget.onGetParamDescriptors,
+                      drumSelectedNote:
+                          widget.drumSelectedNoteFor?.call(devices[i].id) ?? 36,
+                      drumBankStart:
+                          widget.drumBankStartFor?.call(devices[i].id) ?? 36,
+                      drumChainExpanded:
+                          widget.drumChainExpandedFor?.call(devices[i].id) ??
+                              true,
+                      onDrumPadSelected: (note) =>
+                          widget.onDrumPadSelected?.call(devices[i].id, note),
+                      onDrumBankChanged: (start) =>
+                          widget.onDrumBankChanged?.call(devices[i].id, start),
+                      onDrumChainToggle: () =>
+                          widget.onDrumChainToggle?.call(devices[i].id),
+                      onDrumTriggerNote: (note) =>
+                          widget.onPreviewSampler?.call(note),
+                      onEmptyDrumPadTap: (note) {
+                        widget.onDrumPadSelected?.call(devices[i].id, note);
+                        widget.onOpenDrumPadLibrary?.call(
+                            devices[i] as DrumMachineDeviceSnapshot, note);
+                      },
+                    ),
                   ),
                 ),
                 if (devices[i] is DrumMachineDeviceSnapshot &&
@@ -341,13 +393,22 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                 if (devices[i] is ChainDeviceSnapshot)
                   _virtualDeviceChain(
                       context, devices[i] as ChainDeviceSnapshot),
-                DeviceChainSeparator(
-                  active: widget.playing,
-                  gain: devices[i].chainVuGain,
-                  onInsert: widget.track.canInsertDevices
-                      ? () => widget.onInsertDevice(
-                          deviceInsertIndexAfter(widget.track, i))
-                      : null,
+                _sampleDropTarget(
+                  enabled: widget.track.canInsertDevices &&
+                      widget.onCreateSamplerFromDroppedSample != null,
+                  onAccept: (sample) =>
+                      widget.onCreateSamplerFromDroppedSample!(
+                    sample,
+                    deviceInsertIndexAfter(widget.track, i),
+                  ),
+                  child: DeviceChainSeparator(
+                    active: widget.playing,
+                    gain: devices[i].chainVuGain,
+                    onInsert: widget.track.canInsertDevices
+                        ? () => widget.onInsertDevice(
+                            deviceInsertIndexAfter(widget.track, i))
+                        : null,
+                  ),
                 ),
               ],
           ],
@@ -388,7 +449,12 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
               for (final child in chain.devices) ...[
                 _automationAwareDevice(
                     child,
-                    (displayChild) => DeviceStripSlot(
+                    (displayChild) => _sampleDropTarget(
+                        enabled: _canAcceptSampleDrop(child) &&
+                            widget.onAssignDroppedSampleToDevice != null,
+                        onAccept: (sample) => widget
+                            .onAssignDroppedSampleToDevice!(child, sample),
+                        child: DeviceStripSlot(
                           track: widget.track,
                           routingSources: const [],
                           device: displayChild,
@@ -436,7 +502,7 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                               widget.onAutomationParamSelected,
                           onAutomateParameter: widget.onAutomateParameter,
                           onGetParamDescriptors: widget.onGetParamDescriptors,
-                        )),
+                        ))),
                 const SizedBox(width: 5),
               ],
               if (chain.devices.length < 8)
@@ -500,57 +566,63 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                 for (final child in pad.devices) ...[
                   _automationAwareDevice(
                     child,
-                    (displayChild) => DeviceStripSlot(
-                      track: widget.track,
-                      routingSources: const [],
-                      device: displayChild,
-                      sample: _sampleFor(child),
-                      bpm: widget.bpm,
-                      playheadBeat: widget.playheadBeat,
-                      playheadBeatListenable: widget.playheadBeatListenable,
-                      liveMetersListenable: widget.liveMetersListenable,
-                      playing: widget.playing,
-                      density: widget.density,
-                      samplerTab: widget.samplerTabFor?.call(child.id) ??
-                          SamplerDeviceTab.wave,
-                      synthTab: widget.synthTabFor?.call(child.id) ??
-                          SubtractiveDeviceTab.osc,
-                      onSamplerParameterChanged: (id, value) =>
-                          widget.onSamplerParameterChanged(child.id, id, value),
-                      onDeviceParameterChanged: (id, value) =>
-                          widget.onSamplerParameterChanged(child.id, id, value),
-                      onDeviceStringParameterChanged: (id, value) => widget
-                          .onDeviceStringParameterChanged
-                          ?.call(child.id, id, value),
-                      onOpenSamplerEditor: () =>
-                          widget.onOpenSamplerEditor(widget.track, child),
-                      onFrequencyChanged: (value) =>
-                          widget.onFrequencyChanged(child.id, value),
-                      onBypassToggle: widget.onBypassToggle == null
-                          ? null
-                          : () =>
-                              widget.onBypassToggle!(child.id, !child.bypassed),
-                      onDeleteRequest: () => widget.onModulationBridgeCall
-                          ?.call('removeDeviceFromDrumPad', {
-                        'drumMachineId': machine.id,
-                        'note': note,
-                        'deviceId': child.id,
-                      }),
-                      onOpenLibrary: widget.onOpenLibrary == null
-                          ? null
-                          : () => widget.onOpenLibrary!(child),
-                      onPreviewSample: widget.onPreviewSample,
-                      onPreviewSampler: widget.onPreviewSampler,
-                      lfos: widget.lfos,
-                      modEdges: widget.modEdges,
-                      onModulationBridgeCall: widget.onModulationBridgeCall,
-                      automationLinkActive: widget.automationLinkActive,
-                      automationLinkClipId: widget.automationLinkClipId,
-                      projectAutomationClips: widget.projectAutomationClips,
-                      onAutomationParamSelected:
-                          widget.onAutomationParamSelected,
-                      onAutomateParameter: widget.onAutomateParameter,
-                      onGetParamDescriptors: widget.onGetParamDescriptors,
+                    (displayChild) => _sampleDropTarget(
+                      enabled: _canAcceptSampleDrop(child) &&
+                          widget.onAssignDroppedSampleToDevice != null,
+                      onAccept: (sample) =>
+                          widget.onAssignDroppedSampleToDevice!(child, sample),
+                      child: DeviceStripSlot(
+                        track: widget.track,
+                        routingSources: const [],
+                        device: displayChild,
+                        sample: _sampleFor(child),
+                        bpm: widget.bpm,
+                        playheadBeat: widget.playheadBeat,
+                        playheadBeatListenable: widget.playheadBeatListenable,
+                        liveMetersListenable: widget.liveMetersListenable,
+                        playing: widget.playing,
+                        density: widget.density,
+                        samplerTab: widget.samplerTabFor?.call(child.id) ??
+                            SamplerDeviceTab.wave,
+                        synthTab: widget.synthTabFor?.call(child.id) ??
+                            SubtractiveDeviceTab.osc,
+                        onSamplerParameterChanged: (id, value) => widget
+                            .onSamplerParameterChanged(child.id, id, value),
+                        onDeviceParameterChanged: (id, value) => widget
+                            .onSamplerParameterChanged(child.id, id, value),
+                        onDeviceStringParameterChanged: (id, value) => widget
+                            .onDeviceStringParameterChanged
+                            ?.call(child.id, id, value),
+                        onOpenSamplerEditor: () =>
+                            widget.onOpenSamplerEditor(widget.track, child),
+                        onFrequencyChanged: (value) =>
+                            widget.onFrequencyChanged(child.id, value),
+                        onBypassToggle: widget.onBypassToggle == null
+                            ? null
+                            : () => widget.onBypassToggle!(
+                                child.id, !child.bypassed),
+                        onDeleteRequest: () => widget.onModulationBridgeCall
+                            ?.call('removeDeviceFromDrumPad', {
+                          'drumMachineId': machine.id,
+                          'note': note,
+                          'deviceId': child.id,
+                        }),
+                        onOpenLibrary: widget.onOpenLibrary == null
+                            ? null
+                            : () => widget.onOpenLibrary!(child),
+                        onPreviewSample: widget.onPreviewSample,
+                        onPreviewSampler: widget.onPreviewSampler,
+                        lfos: widget.lfos,
+                        modEdges: widget.modEdges,
+                        onModulationBridgeCall: widget.onModulationBridgeCall,
+                        automationLinkActive: widget.automationLinkActive,
+                        automationLinkClipId: widget.automationLinkClipId,
+                        projectAutomationClips: widget.projectAutomationClips,
+                        onAutomationParamSelected:
+                            widget.onAutomationParamSelected,
+                        onAutomateParameter: widget.onAutomateParameter,
+                        onGetParamDescriptors: widget.onGetParamDescriptors,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 5),

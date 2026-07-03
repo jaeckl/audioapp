@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'dart:async';
 
 import '../../bridge/project_snapshot.dart';
+import '../clip_drag/sample_clip_drag_data.dart';
 import '../piano_roll/piano_roll_metrics.dart';
 import '../piano_roll/piano_roll_ruler.dart';
 import '../piano_roll/piano_roll_theme.dart';
@@ -1045,13 +1046,17 @@ class ArrangementViewState extends State<ArrangementView> {
   }
 
   void _updateClipDrag(LongPressMoveUpdateDetails details) {
+    _updateClipDragAt(details.globalPosition);
+  }
+
+  void _updateClipDragAt(Offset globalPosition) {
     final session = _clipDrag;
     if (session == null) {
       return;
     }
-    final targetIndex = _trackIndexFromGlobal(details.globalPosition);
+    final targetIndex = _trackIndexFromGlobal(globalPosition);
     final targetTrack = widget.snapshot.tracks[targetIndex];
-    final desiredBeat = _desiredBeatForDrag(details.globalPosition, session);
+    final desiredBeat = _desiredBeatForDrag(globalPosition, session);
     final previewStart =
         _previewStartBeatForTrack(targetTrack, session, desiredBeat);
     setState(() {
@@ -1063,6 +1068,14 @@ class ArrangementViewState extends State<ArrangementView> {
   }
 
   void _onClipDragEnd(LongPressEndDetails details) {
+    unawaited(_endClipDrag());
+  }
+
+  void _onSampleClipDragEnd({required bool wasAccepted}) {
+    if (wasAccepted) {
+      _cancelClipDrag();
+      return;
+    }
     unawaited(_endClipDrag());
   }
 
@@ -1710,6 +1723,8 @@ class ArrangementViewState extends State<ArrangementView> {
                           onClipDragStart: _startClipDrag,
                           onClipDragUpdate: _updateClipDrag,
                           onClipDragEnd: _onClipDragEnd,
+                          onSampleClipDragUpdate: _updateClipDragAt,
+                          onSampleClipDragEnd: _onSampleClipDragEnd,
                           onClipDragCancel: _cancelClipDrag,
                           onLongPressStart: (details) => _onTrackLongPress(
                             track,
@@ -2710,6 +2725,8 @@ class _TrackLane extends StatelessWidget {
     required this.onClipDragStart,
     required this.onClipDragUpdate,
     required this.onClipDragEnd,
+    required this.onSampleClipDragUpdate,
+    required this.onSampleClipDragEnd,
     required this.onClipDragCancel,
     required this.onLongPressStart,
     required this.onResizeClipStart,
@@ -2747,6 +2764,8 @@ class _TrackLane extends StatelessWidget {
   }) onClipDragStart;
   final GestureLongPressMoveUpdateCallback onClipDragUpdate;
   final GestureLongPressEndCallback onClipDragEnd;
+  final ValueChanged<Offset> onSampleClipDragUpdate;
+  final void Function({required bool wasAccepted}) onSampleClipDragEnd;
   final VoidCallback onClipDragCancel;
   final GestureLongPressStartCallback onLongPressStart;
   // Clip resize (WP-1) — track lane forwards callbacks and computes adjacent.
@@ -2894,21 +2913,21 @@ class _TrackLane extends StatelessWidget {
                     onTap: () => onSampleClipTap(track.id, clip),
                     onDoubleTap:
                         onClipMenu == null ? null : () => onClipMenu!(clip.id),
-                    onDragStart: (details) => onClipDragStart(
+                    onDragStart: (globalPosition) => onClipDragStart(
                       trackId: track.id,
                       clipId: clip.id,
                       lengthBeats:
                           previewLengthFor(clip.id) ?? clip.lengthBeats,
                       isMidi: false,
                       originalStartBeat: clip.startBeat,
-                      globalPosition: details.globalPosition,
+                      globalPosition: globalPosition,
                       sampleClip: previewLengthFor(clip.id) != null
                           ? clip.copyWith(
                               lengthBeats: previewLengthFor(clip.id)!)
                           : clip,
                     ),
-                    onDragUpdate: onClipDragUpdate,
-                    onDragEnd: onClipDragEnd,
+                    onDragUpdate: onSampleClipDragUpdate,
+                    onDragEnd: onSampleClipDragEnd,
                     onDragCancel: onClipDragCancel,
                   ),
                 ),
@@ -3142,7 +3161,7 @@ class _FreezeClipBlock extends StatelessWidget {
   }
 }
 
-class _SampleClipBlock extends StatelessWidget {
+class _SampleClipBlock extends StatefulWidget {
   const _SampleClipBlock({
     required this.clip,
     required this.highlighted,
@@ -3158,34 +3177,73 @@ class _SampleClipBlock extends StatelessWidget {
   final bool highlighted;
   final VoidCallback onTap;
   final VoidCallback? onDoubleTap;
-  final GestureLongPressStartCallback onDragStart;
-  final GestureLongPressMoveUpdateCallback onDragUpdate;
-  final GestureLongPressEndCallback onDragEnd;
+  final ValueChanged<Offset> onDragStart;
+  final ValueChanged<Offset> onDragUpdate;
+  final void Function({required bool wasAccepted}) onDragEnd;
   final VoidCallback onDragCancel;
+
+  @override
+  State<_SampleClipBlock> createState() => _SampleClipBlockState();
+}
+
+class _SampleClipBlockState extends State<_SampleClipBlock> {
+  bool _started = false;
+
+  void _ensureStarted(Offset globalPosition) {
+    if (_started) return;
+    _started = true;
+    widget.onDragStart(globalPosition);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          GestureDetector(
-            onTap: highlighted ? null : onTap,
-            onDoubleTap: onDoubleTap,
-            onLongPressStart: onDragStart,
-            onLongPressMoveUpdate: onDragUpdate,
-            onLongPressEnd: onDragEnd,
-            onLongPressCancel: onDragCancel,
-            child: Opacity(
-              opacity: highlighted ? 0.35 : 1,
-              child: ArrangementClipChrome(
-                renderer: SampleClipRenderer(clip),
-                highlighted: highlighted,
-              ),
+      child: LongPressDraggable<SampleClipDragData>(
+        data: SampleClipDragData(
+          clipId: widget.clip.id,
+          sampleId: widget.clip.sampleId,
+          sampleName: widget.clip.sampleName,
+        ),
+        dragAnchorStrategy: pointerDragAnchorStrategy,
+        feedback: SizedBox(
+          width: 160,
+          height: ArrangementTimelineMetrics.trackLaneHeight - 8,
+          child: Material(
+            color: Colors.transparent,
+            child: ArrangementClipChrome(
+              renderer: SampleClipRenderer(widget.clip),
+              highlighted: true,
             ),
           ),
-        ],
+        ),
+        onDragUpdate: (details) {
+          _ensureStarted(details.globalPosition);
+          widget.onDragUpdate(details.globalPosition);
+        },
+        onDragEnd: (details) {
+          if (!_started) return;
+          _started = false;
+          widget.onDragEnd(wasAccepted: details.wasAccepted);
+        },
+        childWhenDragging: Opacity(
+          opacity: 0.35,
+          child: ArrangementClipChrome(
+            renderer: SampleClipRenderer(widget.clip),
+            highlighted: true,
+          ),
+        ),
+        child: GestureDetector(
+          onTap: widget.highlighted ? null : widget.onTap,
+          onDoubleTap: widget.onDoubleTap,
+          child: Opacity(
+            opacity: widget.highlighted ? 0.35 : 1,
+            child: ArrangementClipChrome(
+              renderer: SampleClipRenderer(widget.clip),
+              highlighted: widget.highlighted,
+            ),
+          ),
+        ),
       ),
     );
   }

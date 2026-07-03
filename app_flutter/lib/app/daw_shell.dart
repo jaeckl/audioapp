@@ -16,6 +16,7 @@ import '../bridge/snapshot_store.dart';
 import '../features/automation/automation_editor_screen.dart';
 import '../features/arrangement/arrangement_view.dart';
 import '../features/arrangement/snap_grid_resolution.dart';
+import '../features/clip_drag/sample_clip_drag_data.dart';
 import '../features/editor/timeline_marker_layer.dart';
 import '../features/content_library/library_catalog.dart';
 import '../features/content_library/library_category.dart';
@@ -1478,6 +1479,45 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _createSamplerFromDroppedSample(
+    TrackSnapshot track,
+    SampleClipDragData sample,
+    int insertIndex,
+  ) async {
+    try {
+      final beforeIds = track.devices.map((device) => device.id).toSet();
+      final snapshot = await widget.bridge.addDeviceToTrack(
+        trackId: track.id,
+        deviceType: 'simple_sampler',
+        insertIndex: insertIndex,
+      );
+      final updatedTrack = snapshot.tracks.firstWhere((t) => t.id == track.id);
+      SamplerDeviceSnapshot? sampler;
+      for (final device in updatedTrack.devices) {
+        if (device is SamplerDeviceSnapshot && !beforeIds.contains(device.id)) {
+          sampler = device;
+          break;
+        }
+      }
+      await _refreshSnapshot(snapshot);
+      if (sampler == null) return;
+      await _setDeviceStringParameter(sampler.id, 'sampleId', sample.sampleId);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _projectError = e.toString());
+    }
+  }
+
+  Future<void> _assignDroppedSampleToDevice(
+    DeviceSnapshot device,
+    SampleClipDragData sample,
+  ) async {
+    if (device is! SamplerDeviceSnapshot && device is! GranularDeviceSnapshot) {
+      return;
+    }
+    await _setDeviceStringParameter(device.id, 'sampleId', sample.sampleId);
+  }
+
   Future<void> _setDeviceStringParameter(
       String deviceId, String parameterId, String value) async {
     try {
@@ -2451,6 +2491,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             onAutomateParameter: _automateParameter,
             onGetParamDescriptors: widget.bridge.getParamDescriptors,
             onMeterSubscriptionsChanged: _updateMeterSubscriptions,
+            onCreateSamplerFromDroppedSample: _createSamplerFromDroppedSample,
+            onAssignDroppedSampleToDevice: _assignDroppedSampleToDevice,
           )
         else if (_tab == _ShellTab.keys)
           LiveInstrumentPanel(
