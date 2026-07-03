@@ -147,6 +147,8 @@ juce::var sampleClipToVar(const SampleClipState& clip) {
     for (const auto peak : clip.waveformPeaks) {
         peaks.add(static_cast<double>(peak));
     }
+    juce::Array<juce::var> slices;
+    for (const auto marker : clip.sliceMarkers) slices.add(marker);
 
     auto* object = new juce::DynamicObject();
     object->setProperty("id", toJuceString(clip.id));
@@ -156,6 +158,16 @@ juce::var sampleClipToVar(const SampleClipState& clip) {
     object->setProperty("lengthBeats", clip.lengthBeats);
     object->setProperty("naturalLengthBeats", clip.naturalLengthBeats);
     object->setProperty("loopContent", clip.loopContent);
+    object->setProperty("sourceStart", clip.sourceStart);
+    object->setProperty("sourceEnd", clip.sourceEnd);
+    object->setProperty("gain", clip.gain);
+    object->setProperty("fadeIn", clip.fadeIn);
+    object->setProperty("fadeOut", clip.fadeOut);
+    object->setProperty("fadeInCurve", clip.fadeInCurve);
+    object->setProperty("fadeOutCurve", clip.fadeOutCurve);
+    object->setProperty("reversed", clip.reversed);
+    object->setProperty("warpRepitch", clip.warpRepitch);
+    object->setProperty("sliceMarkers", slices);
     object->setProperty("waveformPeaks", peaks);
     return juce::var(object);
 }
@@ -171,6 +183,19 @@ SampleClipState sampleClipFromVar(const juce::var& value) {
         clip.naturalLengthBeats =
             varToDouble(object->getProperty("naturalLengthBeats"), clip.lengthBeats);
         clip.loopContent = static_cast<bool>(object->getProperty("loopContent"));
+        clip.sourceStart = varToFloat(object->getProperty("sourceStart"), 0.0f);
+        clip.sourceEnd = varToFloat(object->getProperty("sourceEnd"), 1.0f);
+        clip.gain = varToFloat(object->getProperty("gain"), 1.0f);
+        clip.fadeIn = varToFloat(object->getProperty("fadeIn"), 0.0f);
+        clip.fadeOut = varToFloat(object->getProperty("fadeOut"), 0.0f);
+        clip.fadeInCurve = varToFloat(object->getProperty("fadeInCurve"), 0.5f);
+        clip.fadeOutCurve = varToFloat(object->getProperty("fadeOutCurve"), 0.5f);
+        clip.reversed = static_cast<bool>(object->getProperty("reversed"));
+        clip.warpRepitch = static_cast<bool>(object->getProperty("warpRepitch"));
+        if (const auto* markers = varArray(object->getProperty("sliceMarkers"))) {
+            for (const auto& marker : *markers)
+                clip.sliceMarkers.push_back(varToFloat(marker, 0.0f));
+        }
         if (const auto* peakArray = varArray(object->getProperty("waveformPeaks"))) {
             clip.waveformPeaks.reserve(static_cast<size_t>(peakArray->size()));
             for (const auto& peakVar : *peakArray) {

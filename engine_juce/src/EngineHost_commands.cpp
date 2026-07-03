@@ -573,6 +573,29 @@ bool EngineHost::setClipLoopContent(const std::string& clipId, bool loopContent)
     return project_->setClipLoopContent(clipId, loopContent);
 }
 
+bool EngineHost::setSampleClipProperties(const std::string& clipId,
+                                         float sourceStart, float sourceEnd,
+                                         float gain, float fadeIn,
+                                         float fadeOut, float fadeInCurve,
+                                         float fadeOutCurve, bool reversed) {
+    return project_->setSampleClipProperties(clipId, sourceStart, sourceEnd,
+                                             gain, fadeIn, fadeOut, fadeInCurve,
+                                             fadeOutCurve, reversed);
+}
+
+bool EngineHost::setSampleClipWarp(const std::string& clipId, bool warpRepitch) {
+    return project_->setSampleClipWarp(clipId, warpRepitch);
+}
+
+bool EngineHost::setSampleClipSlices(const std::string& clipId,
+                                     const std::vector<float>& markers) {
+    return project_->setSampleClipSlices(clipId, markers);
+}
+
+std::string EngineHost::exportSampleClipSlices(const std::string& clipId, int firstNote) {
+    return project_->exportSampleClipSlices(clipId, firstNote);
+}
+
 std::string EngineHost::createAutomationClip(const std::string& trackId,
                                              double startBeat,
                                              double lengthBeats) {
@@ -751,6 +774,26 @@ void EngineHost::previewSample(const std::string& sampleId) {
     previewVoice_.position.store(0, std::memory_order_release);
     previewVoice_.active.store(true, std::memory_order_release);
     std::atomic_store(&previewBuffer_, std::move(buf));
+    ensureAudioOutput();
+}
+
+void EngineHost::previewSampleRegion(const std::string& sampleId, float start,
+                                     float end, bool reversed) {
+    const auto* sample = sampleBank_.findSample(sampleId);
+    if (sample == nullptr || sample->pcm.empty()) return;
+    const int frameCount = static_cast<int>(sample->pcm.size());
+    const int first = std::clamp(static_cast<int>(start * frameCount), 0, frameCount - 1);
+    const int last = std::clamp(static_cast<int>(end * frameCount), first + 1, frameCount);
+    auto region = std::make_shared<std::vector<float>>(
+        sample->pcm.begin() + first, sample->pcm.begin() + last);
+    if (reversed) std::reverse(region->begin(), region->end());
+    auto immutable = std::const_pointer_cast<const std::vector<float>>(region);
+    previewVoice_.pcmData = immutable->data();
+    previewVoice_.pcmSize = static_cast<int>(immutable->size());
+    previewVoice_.sampleRate.store(sample->sampleRate, std::memory_order_release);
+    previewVoice_.position.store(0, std::memory_order_release);
+    previewVoice_.active.store(true, std::memory_order_release);
+    std::atomic_store(&previewBuffer_, std::move(immutable));
     ensureAudioOutput();
 }
 
@@ -1452,6 +1495,59 @@ void EngineHost::registerAllCommands() {
         return commands::okWithFullRefresh(snap);
     });
 
+    reg.registerCommand("setSampleClipProperties", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        const auto number = [&](const char* key, double fallback) {
+            const auto& value = ctx.args[key];
+            return value.isVoid() ? fallback : static_cast<double>(value);
+        };
+        const auto& reverseVar = ctx.args["reversed"];
+        const bool reversed = reverseVar.isBool() && static_cast<bool>(reverseVar);
+        if (!ctx.engine.setSampleClipProperties(
+                clipId, static_cast<float>(number("sourceStart", 0.0)),
+                static_cast<float>(number("sourceEnd", 1.0)),
+                static_cast<float>(number("gain", 1.0)),
+                static_cast<float>(number("fadeIn", 0.0)),
+                static_cast<float>(number("fadeOut", 0.0)),
+                static_cast<float>(number("fadeInCurve", 0.5)),
+                static_cast<float>(number("fadeOutCurve", 0.5)), reversed))
+            return commands::errorResult("sample_clip_not_found");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("setSampleClipWarp", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        const auto& value = ctx.args["warpRepitch"];
+        const bool enabled = value.isBool() && static_cast<bool>(value);
+        if (!ctx.engine.setSampleClipWarp(clipId, enabled))
+            return commands::errorResult("sample_clip_not_found");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("setSampleClipSlices", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        std::vector<float> markers;
+        if (const auto* array = ctx.args["markers"].getArray()) {
+            markers.reserve(static_cast<size_t>(array->size()));
+            for (const auto& value : *array) markers.push_back(static_cast<float>(static_cast<double>(value)));
+        }
+        if (!ctx.engine.setSampleClipSlices(clipId, markers))
+            return commands::errorResult("sample_clip_not_found");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("exportSampleClipSlices", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        const int firstNote = static_cast<int>(ctx.args["firstNote"]);
+        const auto machineId = ctx.engine.exportSampleClipSlices(clipId, firstNote);
+        if (machineId.empty()) return commands::errorResult("slice_export_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
     reg.registerCommand("setBpm", [](const commands::CommandContext& ctx) -> commands::CommandResult {
         const int bpm = static_cast<int>(static_cast<double>(ctx.args["bpm"]));
         if (!ctx.engine.setBpm(bpm))
@@ -1661,6 +1757,16 @@ void EngineHost::registerAllCommands() {
         if (sampleId.empty())
             return commands::errorResult("sample_not_found");
         ctx.engine.previewSample(sampleId);
+        return commands::okResult();
+    });
+
+    reg.registerCommand("previewSampleRegion", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto sampleId = ctx.args["sampleId"].toString().toStdString();
+        const float start = static_cast<float>(static_cast<double>(ctx.args["start"]));
+        const float end = static_cast<float>(static_cast<double>(ctx.args["end"]));
+        const auto& reversedVar = ctx.args["reversed"];
+        const bool reversed = reversedVar.isBool() && static_cast<bool>(reversedVar);
+        ctx.engine.previewSampleRegion(sampleId, start, end, reversed);
         return commands::okResult();
     });
 

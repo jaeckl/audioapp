@@ -39,6 +39,12 @@ public:
                        double lengthBeats,
                        ClipLengthTarget target = ClipLengthTarget::Arrangement);
     bool setClipLoopContent(const std::string& clipId, bool loopContent);
+    bool setSampleClipProperties(const std::string& clipId, float sourceStart,
+                                 float sourceEnd, float gain, float fadeIn,
+                                 float fadeOut, float fadeInCurve,
+                                 float fadeOutCurve, bool reversed);
+    bool setSampleClipWarp(const std::string& clipId, bool warpRepitch);
+    bool setSampleClipSlices(const std::string& clipId, const std::vector<float>& markers);
     bool deleteClip(const std::string& clipId);
     bool duplicateClip(const std::string& clipId);
 

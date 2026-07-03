@@ -194,13 +194,30 @@ void mixSampleRegionsBlock(float* monoOut,
             if (!active) {
                 continue;
             }
-            const double readPos = progress * static_cast<double>(region.frameCount);
+            const double window = std::max(0.001, static_cast<double>(region.sourceEnd - region.sourceStart));
+            const double phase = region.reversed ? 1.0 - progress : progress;
+            const double sourceProgress = static_cast<double>(region.sourceStart) + phase * window;
+            const double readPos = std::clamp(sourceProgress, 0.0, 1.0) *
+                                   static_cast<double>(region.frameCount - 1);
             const int index = static_cast<int>(readPos);
             const float frac = static_cast<float>(readPos - static_cast<double>(index));
             const int next = std::min(index + 1, region.frameCount - 1);
             const float sample =
                 region.pcm[index] * (1.0f - frac) + region.pcm[next] * frac;
-            mix += sample;
+            const double edgePhase = std::clamp(progress, 0.0, 1.0);
+            float envelope = 1.0f;
+            const auto cubicFade = [](double value, double curve) {
+                const double t = std::clamp(value, 0.0, 1.0);
+                const double bend = std::clamp(curve, 0.0, 1.0);
+                const double control1 = bend;
+                const double control2 = 1.0 - bend;
+                const double inv = 1.0 - t;
+                return 3.0 * inv * inv * t * control1 +
+                       3.0 * inv * t * t * control2 + t * t * t;
+            };
+            if (region.fadeIn > 0.0f) envelope *= static_cast<float>(cubicFade(edgePhase / region.fadeIn, region.fadeInCurve));
+            if (region.fadeOut > 0.0f) envelope *= static_cast<float>(cubicFade((1.0 - edgePhase) / region.fadeOut, region.fadeOutCurve));
+            mix += sample * region.gain * envelope;
         }
         monoOut[frame] += mix;
     }

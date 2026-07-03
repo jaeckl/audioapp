@@ -18,6 +18,14 @@ struct SampleClipPlaybackRegion {
     double sampleRate = 48000.0;
     bool loopContent = false;
     double contentLengthBeats = 4.0;
+    float sourceStart = 0.0f;
+    float sourceEnd = 1.0f;
+    float gain = 1.0f;
+    float fadeIn = 0.0f;
+    float fadeOut = 0.0f;
+    float fadeInCurve = 0.5f;
+    float fadeOutCurve = 0.5f;
+    bool reversed = false;
 };
 
 struct SamplerMidiNoteRegion {

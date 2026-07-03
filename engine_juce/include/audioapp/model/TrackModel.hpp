@@ -43,6 +43,16 @@ struct SampleClip {
     /// space (when lengthening).
     double naturalLengthBeats = 4.0;
     bool loopContent = false;
+    float sourceStart = 0.0f;
+    float sourceEnd = 1.0f;
+    float gain = 1.0f;
+    float fadeIn = 0.0f;
+    float fadeOut = 0.0f;
+    float fadeInCurve = 0.5f;
+    float fadeOutCurve = 0.5f;
+    bool reversed = false;
+    bool warpRepitch = false;
+    std::vector<float> sliceMarkers;
 };
 
 struct AutomationPoint {

@@ -91,6 +91,13 @@ public:
                        double lengthBeats,
                        ClipLengthTarget target = ClipLengthTarget::Arrangement);
     bool setClipLoopContent(const std::string& clipId, bool loopContent);
+    bool setSampleClipProperties(const std::string& clipId, float sourceStart,
+                                 float sourceEnd, float gain, float fadeIn,
+                                 float fadeOut, float fadeInCurve,
+                                 float fadeOutCurve, bool reversed);
+    bool setSampleClipWarp(const std::string& clipId, bool warpRepitch);
+    bool setSampleClipSlices(const std::string& clipId, const std::vector<float>& markers);
+    std::string exportSampleClipSlices(const std::string& clipId, int firstNote);
     /// arrangement view. The target device is set later via
     /// `assignAutomationTarget` and may live on any track.
     std::string createAutomationClip(const std::string& trackId,
@@ -120,6 +127,8 @@ public:
     const WavetableBank& wavetableBank() const noexcept { return wavetableBank_; }
     WavetableBank& wavetableBank() noexcept { return wavetableBank_; }
     void previewSample(const std::string& sampleId);
+    void previewSampleRegion(const std::string& sampleId, float start, float end,
+                             bool reversed);
     /// Preview MIDI clip — plays through fallback oscillator.
     void previewMidi(const std::vector<MidiNoteState>& notes, double lengthBeats, int bpm, double startBeat = 0.0, bool loop = true);
     /// Preview preset — plays through virtual synth.

@@ -145,6 +145,16 @@ class SampleClipSnapshot implements ClipTimelineSpan {
     required this.waveformPeaks,
     this.naturalLengthBeats,
     this.loopContent = false,
+    this.sourceStart = 0,
+    this.sourceEnd = 1,
+    this.gain = 1,
+    this.fadeIn = 0,
+    this.fadeOut = 0,
+    this.fadeInCurve = .5,
+    this.fadeOutCurve = .5,
+    this.reversed = false,
+    this.warpRepitch = false,
+    this.sliceMarkers = const [],
   });
 
   @override
@@ -174,6 +184,16 @@ class SampleClipSnapshot implements ClipTimelineSpan {
 
   /// When true, sample content repeats within the clip's timeline span.
   final bool loopContent;
+  final double sourceStart;
+  final double sourceEnd;
+  final double gain;
+  final double fadeIn;
+  final double fadeOut;
+  final double fadeInCurve;
+  final double fadeOutCurve;
+  final bool reversed;
+  final bool warpRepitch;
+  final List<double> sliceMarkers;
 
   @override
   double get endBeat => startBeat + lengthBeats;
@@ -184,6 +204,20 @@ class SampleClipSnapshot implements ClipTimelineSpan {
   /// Arrangement playback window for sample clips (waveform source length is
   /// [effectiveNaturalLengthBeats]).
   double get editorContentLengthBeats => lengthBeats;
+
+  /// Beats consumed playing the current trim window once at native rate.
+  double playbackContentLengthBeats({
+    double? sourceStart,
+    double? sourceEnd,
+    bool? warpRepitch,
+  }) =>
+      sampleClipPlaybackContentLengthBeats(
+        lengthBeats: lengthBeats,
+        naturalLengthBeats: effectiveNaturalLengthBeats,
+        sourceStart: sourceStart ?? this.sourceStart,
+        sourceEnd: sourceEnd ?? this.sourceEnd,
+        warpRepitch: warpRepitch ?? this.warpRepitch,
+      );
 
   factory SampleClipSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final peaksRaw = map['waveformPeaks'] as List<dynamic>? ?? [];
@@ -198,6 +232,18 @@ class SampleClipSnapshot implements ClipTimelineSpan {
       naturalLengthBeats:
           (map['naturalLengthBeats'] as num?)?.toDouble() ?? lengthBeats,
       loopContent: snapshotBool(map['loopContent']),
+      sourceStart: (map['sourceStart'] as num?)?.toDouble() ?? 0,
+      sourceEnd: (map['sourceEnd'] as num?)?.toDouble() ?? 1,
+      gain: (map['gain'] as num?)?.toDouble() ?? 1,
+      fadeIn: (map['fadeIn'] as num?)?.toDouble() ?? 0,
+      fadeOut: (map['fadeOut'] as num?)?.toDouble() ?? 0,
+      fadeInCurve: (map['fadeInCurve'] as num?)?.toDouble() ?? .5,
+      fadeOutCurve: (map['fadeOutCurve'] as num?)?.toDouble() ?? .5,
+      reversed: snapshotBool(map['reversed']),
+      warpRepitch: snapshotBool(map['warpRepitch']),
+      sliceMarkers: (map['sliceMarkers'] as List<dynamic>? ?? const [])
+          .map((value) => (value as num).toDouble())
+          .toList(),
     );
   }
 
@@ -210,6 +256,16 @@ class SampleClipSnapshot implements ClipTimelineSpan {
     List<double>? waveformPeaks,
     double? naturalLengthBeats,
     bool? loopContent,
+    double? sourceStart,
+    double? sourceEnd,
+    double? gain,
+    double? fadeIn,
+    double? fadeOut,
+    double? fadeInCurve,
+    double? fadeOutCurve,
+    bool? reversed,
+    bool? warpRepitch,
+    List<double>? sliceMarkers,
   }) {
     return SampleClipSnapshot(
       id: id ?? this.id,
@@ -220,6 +276,16 @@ class SampleClipSnapshot implements ClipTimelineSpan {
       waveformPeaks: waveformPeaks ?? this.waveformPeaks,
       naturalLengthBeats: naturalLengthBeats ?? this.naturalLengthBeats,
       loopContent: loopContent ?? this.loopContent,
+      sourceStart: sourceStart ?? this.sourceStart,
+      sourceEnd: sourceEnd ?? this.sourceEnd,
+      gain: gain ?? this.gain,
+      fadeIn: fadeIn ?? this.fadeIn,
+      fadeOut: fadeOut ?? this.fadeOut,
+      fadeInCurve: fadeInCurve ?? this.fadeInCurve,
+      fadeOutCurve: fadeOutCurve ?? this.fadeOutCurve,
+      reversed: reversed ?? this.reversed,
+      warpRepitch: warpRepitch ?? this.warpRepitch,
+      sliceMarkers: sliceMarkers ?? this.sliceMarkers,
     );
   }
 }
@@ -361,4 +427,16 @@ class AutomationClipSnapshot implements ClipTimelineSpan {
       points: points ?? this.points,
     );
   }
+}
+
+double sampleClipPlaybackContentLengthBeats({
+  required double lengthBeats,
+  required double naturalLengthBeats,
+  required double sourceStart,
+  required double sourceEnd,
+  required bool warpRepitch,
+}) {
+  if (warpRepitch) return lengthBeats;
+  final window = (sourceEnd - sourceStart).clamp(0.001, 1.0);
+  return naturalLengthBeats * window;
 }

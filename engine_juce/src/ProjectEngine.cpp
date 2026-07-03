@@ -35,6 +35,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <functional>
+#include <sstream>
 #include <unordered_map>
 #include <vector>
 
@@ -707,6 +708,102 @@ bool ProjectEngine::setClipLoopContent(const std::string& clipId, bool loopConte
     return true;
 }
 
+bool ProjectEngine::setSampleClipProperties(const std::string& clipId,
+                                            float sourceStart, float sourceEnd,
+                                            float gain, float fadeIn,
+                                            float fadeOut, float fadeInCurve,
+                                            float fadeOutCurve, bool reversed) {
+    const juce::ScopedWriteLock lock(mutex_);
+    if (!clipRepo_.setSampleClipProperties(clipId, sourceStart, sourceEnd,
+                                           gain, fadeIn, fadeOut, fadeInCurve,
+                                           fadeOutCurve, reversed)) {
+        return false;
+    }
+    syncProjectTreeLocked();
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
+bool ProjectEngine::setSampleClipWarp(const std::string& clipId, bool warpRepitch) {
+    const juce::ScopedWriteLock lock(mutex_);
+    if (!clipRepo_.setSampleClipWarp(clipId, warpRepitch)) return false;
+    syncProjectTreeLocked();
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
+bool ProjectEngine::setSampleClipSlices(const std::string& clipId,
+                                        const std::vector<float>& markers) {
+    const juce::ScopedWriteLock lock(mutex_);
+    if (!clipRepo_.setSampleClipSlices(clipId, markers)) return false;
+    syncProjectTreeLocked();
+    return true;
+}
+
+std::string ProjectEngine::exportSampleClipSlices(const std::string& clipId, int firstNote) {
+    const juce::ScopedWriteLock lock(mutex_);
+    Track* owner = nullptr;
+    SampleClip* sourceClip = nullptr;
+    for (auto& track : trackRepo_.tracks()) {
+        if (auto clip = std::find_if(track.sampleClips.begin(), track.sampleClips.end(),
+                [&](const SampleClip& candidate) { return candidate.id == clipId; });
+            clip != track.sampleClips.end()) {
+            owner = &track;
+            sourceClip = &*clip;
+            break;
+        }
+    }
+    if (owner == nullptr || sourceClip == nullptr || sampleBank_ == nullptr) return {};
+    const auto* sample = sampleBank_->findSample(sourceClip->sampleId);
+    if (sample == nullptr || sample->pcm.empty() || sample->sampleRate <= 0.0) return {};
+
+    const int baseNote = std::clamp(firstNote, 0, 127);
+    const int maxSlices = 128 - baseNote;
+    std::vector<float> bounds{0.0f};
+    for (float marker : sourceClip->sliceMarkers) {
+        if (static_cast<int>(bounds.size()) >= maxSlices) break;
+        bounds.push_back(std::clamp(marker, 0.001f, 0.999f));
+    }
+    bounds.push_back(1.0f);
+    if (bounds.size() < 2) return {};
+
+    const std::string machineId = trackRepo_.allocateDeviceId();
+    DeviceSlot machine = deviceRegistry_.createDefault(device_types::kDrumMachine, machineId);
+    auto& model = std::get<DrumMachineModel>(machine.config.instance);
+    const double durationSec = static_cast<double>(sample->pcm.size()) / sample->sampleRate;
+    const double sourceWindow = std::max(0.001, static_cast<double>(sourceClip->sourceEnd - sourceClip->sourceStart));
+    for (size_t i = 0; i + 1 < bounds.size() && baseNote + static_cast<int>(i) < 128; ++i) {
+        auto& pad = model.pads[static_cast<size_t>(baseNote + static_cast<int>(i))];
+        pad.name = sample->name + " " + std::to_string(i + 1);
+        const std::string samplerId = trackRepo_.allocateDeviceId();
+        auto sampler = std::make_shared<DeviceSlot>(
+            deviceRegistry_.createDefault(device_types::kSampler, samplerId));
+        auto& samplerModel = std::get<SamplerModel>(sampler->config.instance);
+        samplerModel.sampleId = sourceClip->sampleId;
+        const double sliceStart = sourceClip->reversed ? 1.0 - bounds[i + 1] : bounds[i];
+        const double sliceEnd = sourceClip->reversed ? 1.0 - bounds[i] : bounds[i + 1];
+        samplerModel.trimStartSec = static_cast<float>(
+            (sourceClip->sourceStart + sliceStart * sourceWindow) * durationSec);
+        samplerModel.trimEndSec = static_cast<float>(
+            (sourceClip->sourceStart + sliceEnd * sourceWindow) * durationSec);
+        samplerModel.rootPitch = static_cast<float>(pad.note);
+        samplerModel.playbackMode = sourceClip->reversed ? 2 : 0;
+        pad.devices.push_back(std::move(sampler));
+    }
+
+    size_t gainIndex = owner->devices.size();
+    for (size_t i = 0; i < owner->devices.size(); ++i) {
+        if (deviceNodeKindFromTypeId(owner->devices[i].config.typeId) == DeviceNodeKind::TrackGain) {
+            gainIndex = i; break;
+        }
+    }
+    owner->devices.insert(owner->devices.begin() + static_cast<std::ptrdiff_t>(gainIndex),
+                          std::move(machine));
+    syncProjectTreeLocked();
+    rebuildTrackPlaybackLocked();
+    return machineId;
+}
+
 bool ProjectEngine::setBpm(int bpm) {
     const int oldBpm = transport_.bpm();
     if (oldBpm == bpm) return false;
@@ -889,6 +986,12 @@ ProjectSnapshot ProjectEngine::snapshot() const {
             cs.lengthBeats = clip.lengthBeats;
             cs.naturalLengthBeats = clip.naturalLengthBeats;
             cs.loopContent = clip.loopContent;
+            cs.sourceStart = clip.sourceStart; cs.sourceEnd = clip.sourceEnd;
+            cs.gain = clip.gain; cs.fadeIn = clip.fadeIn; cs.fadeOut = clip.fadeOut;
+            cs.fadeInCurve = clip.fadeInCurve; cs.fadeOutCurve = clip.fadeOutCurve;
+            cs.reversed = clip.reversed;
+            cs.warpRepitch = clip.warpRepitch;
+            cs.sliceMarkers = clip.sliceMarkers;
             if (sampleBank_ != nullptr) {
                 if (const auto* sample = sampleBank_->findSample(clip.sampleId)) {
                     cs.sampleName = sample->name;
@@ -1243,6 +1346,9 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                     source.pcmSampleRate,
                     source.loopContent,
                     source.contentLengthBeats,
+                    source.sourceStart, source.sourceEnd, source.gain,
+                    source.fadeIn, source.fadeOut, source.fadeInCurve,
+                    source.fadeOutCurve, source.reversed,
                 };
             }
             mixSampleRegionsBlock(trackLeft[trackIndex], framesToProcess, sampleRate,
@@ -1577,6 +1683,12 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
             cs.lengthBeats = clip.lengthBeats;
             cs.naturalLengthBeats = clip.naturalLengthBeats;
             cs.loopContent = clip.loopContent;
+            cs.sourceStart = clip.sourceStart; cs.sourceEnd = clip.sourceEnd;
+            cs.gain = clip.gain; cs.fadeIn = clip.fadeIn; cs.fadeOut = clip.fadeOut;
+            cs.fadeInCurve = clip.fadeInCurve; cs.fadeOutCurve = clip.fadeOutCurve;
+            cs.reversed = clip.reversed;
+            cs.warpRepitch = clip.warpRepitch;
+            cs.sliceMarkers = clip.sliceMarkers;
             if (sampleBank_ != nullptr) {
                 if (const auto* sample = sampleBank_->findSample(clip.sampleId)) {
                     cs.sampleName = sample->name;
@@ -1680,6 +1792,12 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
             clip.lengthBeats = clipState.lengthBeats;
             clip.naturalLengthBeats = clipState.naturalLengthBeats;
             clip.loopContent = clipState.loopContent;
+            clip.sourceStart = clipState.sourceStart; clip.sourceEnd = clipState.sourceEnd;
+            clip.gain = clipState.gain; clip.fadeIn = clipState.fadeIn;
+            clip.fadeOut = clipState.fadeOut; clip.reversed = clipState.reversed;
+            clip.warpRepitch = clipState.warpRepitch;
+            clip.sliceMarkers = clipState.sliceMarkers;
+            clip.fadeInCurve = clipState.fadeInCurve; clip.fadeOutCurve = clipState.fadeOutCurve;
             track.sampleClips.push_back(std::move(clip));
         }
         track.freeze.enabled = trackState.freeze.enabled;
@@ -2133,7 +2251,14 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                     static_cast<int>(sample->pcm.size()),
                     sample->sampleRate,
                     clip.loopContent,
-                    clip.naturalLengthBeats,
+                    sampleClipContentLengthBeats(clip.naturalLengthBeats,
+                                                 clip.lengthBeats,
+                                                 clip.sourceStart,
+                                                 clip.sourceEnd,
+                                                 clip.warpRepitch),
+                    clip.sourceStart, clip.sourceEnd, clip.gain,
+                    clip.fadeIn, clip.fadeOut, clip.fadeInCurve,
+                    clip.fadeOutCurve, clip.reversed,
                 };
             }
         }
@@ -2490,6 +2615,22 @@ void ProjectEngine::rebuildRepoCacheFromTree() {
                 if (child.hasProperty(state::props::loopContent)) {
                     clip.loopContent = static_cast<bool>(child[state::props::loopContent]);
                 }
+                if (child.hasProperty("sourceStart")) clip.sourceStart = static_cast<float>(child["sourceStart"]);
+                if (child.hasProperty("sourceEnd")) clip.sourceEnd = static_cast<float>(child["sourceEnd"]);
+                if (child.hasProperty("gain")) clip.gain = static_cast<float>(child["gain"]);
+                if (child.hasProperty("fadeIn")) clip.fadeIn = static_cast<float>(child["fadeIn"]);
+                if (child.hasProperty("fadeOut")) clip.fadeOut = static_cast<float>(child["fadeOut"]);
+                if (child.hasProperty("fadeInCurve")) clip.fadeInCurve = static_cast<float>(child["fadeInCurve"]);
+                if (child.hasProperty("fadeOutCurve")) clip.fadeOutCurve = static_cast<float>(child["fadeOutCurve"]);
+                if (child.hasProperty("reversed")) clip.reversed = static_cast<bool>(child["reversed"]);
+                if (child.hasProperty("warpRepitch")) clip.warpRepitch = static_cast<bool>(child["warpRepitch"]);
+                if (child.hasProperty("sliceMarkers")) {
+                    std::stringstream stream(child["sliceMarkers"].toString().toStdString());
+                    std::string token;
+                    while (std::getline(stream, token, ',')) {
+                        try { clip.sliceMarkers.push_back(std::stof(token)); } catch (...) {}
+                    }
+                }
                 track.sampleClips.push_back(std::move(clip));
             }
         }
@@ -2626,6 +2767,21 @@ void ProjectEngine::syncProjectTreeLocked() {
             auto clipTree = state::createSampleClipTree(
                 clip.id, clip.sampleId, clip.startBeat, clip.lengthBeats, clip.naturalLengthBeats);
             clipTree.setProperty(state::props::loopContent, clip.loopContent, nullptr);
+            clipTree.setProperty("sourceStart", clip.sourceStart, nullptr);
+            clipTree.setProperty("sourceEnd", clip.sourceEnd, nullptr);
+            clipTree.setProperty("gain", clip.gain, nullptr);
+            clipTree.setProperty("fadeIn", clip.fadeIn, nullptr);
+            clipTree.setProperty("fadeOut", clip.fadeOut, nullptr);
+            clipTree.setProperty("fadeInCurve", clip.fadeInCurve, nullptr);
+            clipTree.setProperty("fadeOutCurve", clip.fadeOutCurve, nullptr);
+            clipTree.setProperty("reversed", clip.reversed, nullptr);
+            clipTree.setProperty("warpRepitch", clip.warpRepitch, nullptr);
+            std::string markerText;
+            for (float marker : clip.sliceMarkers) {
+                if (!markerText.empty()) markerText += ',';
+                markerText += std::to_string(marker);
+            }
+            clipTree.setProperty("sliceMarkers", juce::String(markerText), nullptr);
             trackTree.addChild(std::move(clipTree), -1, nullptr);
         }
         projectRoot_.addChild(std::move(trackTree), -1, nullptr);
@@ -2741,6 +2897,9 @@ void ProjectEngine::mixTrackPreGainStereoWithArena(
                 source.pcmSampleRate,
                 source.loopContent,
                 source.contentLengthBeats,
+                source.sourceStart, source.sourceEnd, source.gain,
+                source.fadeIn, source.fadeOut, source.fadeInCurve,
+                source.fadeOutCurve, source.reversed,
             };
         }
         mixSampleRegionsBlock(trackLeft,

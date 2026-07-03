@@ -454,6 +454,56 @@ class EngineBridge {
     });
   }
 
+  Future<ProjectSnapshot> setSampleClipProperties({
+    required String clipId,
+    required double sourceStart,
+    required double sourceEnd,
+    required double gain,
+    required double fadeIn,
+    required double fadeOut,
+    required double fadeInCurve,
+    required double fadeOutCurve,
+    required bool reversed,
+  }) =>
+      _invokeForSnapshot('setSampleClipProperties', {
+        'clipId': clipId,
+        'sourceStart': sourceStart,
+        'sourceEnd': sourceEnd,
+        'gain': gain,
+        'fadeIn': fadeIn,
+        'fadeOut': fadeOut,
+        'fadeInCurve': fadeInCurve,
+        'fadeOutCurve': fadeOutCurve,
+        'reversed': reversed,
+      });
+
+  Future<ProjectSnapshot> setSampleClipWarp({
+    required String clipId,
+    required bool warpRepitch,
+  }) =>
+      _invokeForSnapshot('setSampleClipWarp', {
+        'clipId': clipId,
+        'warpRepitch': warpRepitch,
+      });
+
+  Future<ProjectSnapshot> setSampleClipSlices({
+    required String clipId,
+    required List<double> markers,
+  }) =>
+      _invokeForSnapshot('setSampleClipSlices', {
+        'clipId': clipId,
+        'markers': markers,
+      });
+
+  Future<ProjectSnapshot> exportSampleClipSlices({
+    required String clipId,
+    int firstNote = 36,
+  }) =>
+      _invokeForSnapshot('exportSampleClipSlices', {
+        'clipId': clipId,
+        'firstNote': firstNote,
+      });
+
   Future<ProjectSnapshot> deleteTrack(String trackId) async {
     return _invokeForSnapshot('deleteTrack', {'trackId': trackId});
   }
@@ -634,6 +684,19 @@ class EngineBridge {
       );
     }
   }
+
+  Future<void> previewSampleRegion({
+    required String sampleId,
+    required double start,
+    required double end,
+    required bool reversed,
+  }) =>
+      _invokeOk('previewSampleRegion', {
+        'sampleId': sampleId,
+        'start': start,
+        'end': end,
+        'reversed': reversed,
+      });
 
   Future<void> previewMidi({
     required List<MidiNoteSnapshot> notes,

@@ -11,7 +11,7 @@ namespace audioapp {
 
 class SampleBank {
 public:
-    static constexpr int kPeakBinCount = 48;
+    static constexpr int kPeakBinCount = 256;
 
     struct Sample {
         std::string id;

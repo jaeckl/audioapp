@@ -1,5 +1,7 @@
 #include "audioapp/model/ClipRepository.hpp"
 
+#include <algorithm>
+
 #include "audioapp/ClipContentPlayback.hpp"
 
 #include <algorithm>
@@ -189,6 +191,51 @@ bool ClipRepository::setClipLoopContent(const std::string& clipId, bool loopCont
         return true;
     }
     return false;
+}
+
+bool ClipRepository::setSampleClipProperties(const std::string& clipId,
+                                             float sourceStart,
+                                             float sourceEnd,
+                                             float gain,
+                                             float fadeIn,
+                                             float fadeOut,
+                                             float fadeInCurve,
+                                             float fadeOutCurve,
+                                             bool reversed) {
+    auto* clip = findSampleClip(clipId);
+    if (clip == nullptr) return false;
+    clip->sourceStart = std::clamp(sourceStart, 0.0f, 0.999f);
+    clip->sourceEnd = std::clamp(sourceEnd, clip->sourceStart + 0.001f, 1.0f);
+    clip->gain = std::clamp(gain, 0.0f, 4.0f);
+    clip->fadeIn = std::clamp(fadeIn, 0.0f, 1.0f);
+    clip->fadeOut = std::clamp(fadeOut, 0.0f, 1.0f);
+    clip->fadeInCurve = std::clamp(fadeInCurve, 0.0f, 1.0f);
+    clip->fadeOutCurve = std::clamp(fadeOutCurve, 0.0f, 1.0f);
+    clip->reversed = reversed;
+    return true;
+}
+
+bool ClipRepository::setSampleClipWarp(const std::string& clipId, bool warpRepitch) {
+    auto* clip = findSampleClip(clipId);
+    if (clip == nullptr) return false;
+    clip->warpRepitch = warpRepitch;
+    return true;
+}
+
+bool ClipRepository::setSampleClipSlices(const std::string& clipId,
+                                         const std::vector<float>& markers) {
+    auto* clip = findSampleClip(clipId);
+    if (clip == nullptr) return false;
+    auto sorted = markers;
+    std::sort(sorted.begin(), sorted.end());
+    clip->sliceMarkers.clear();
+    clip->sliceMarkers.reserve(std::min<size_t>(sorted.size(), 126));
+    for (float marker : sorted) {
+        const float value = std::clamp(marker, 0.001f, 0.999f);
+        if (clip->sliceMarkers.empty() || value - clip->sliceMarkers.back() >= 0.001f)
+            clip->sliceMarkers.push_back(value);
+    }
+    return true;
 }
 
 bool ClipRepository::deleteClip(const std::string& clipId) {

@@ -30,6 +30,7 @@ import '../features/play/live_instrument_panel.dart';
 import '../features/piano_roll/piano_roll_screen.dart';
 import '../features/piano_roll/midi_lane_layout.dart';
 import '../features/sample_library/sample_library_screen.dart';
+import '../features/sample_editor/sample_editor_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/welcome/example_projects.dart';
 import '../features/welcome/welcome_hub.dart';
@@ -1723,6 +1724,34 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     } catch (_) {}
   }
 
+  Future<void> _openSampleEditor(
+      String trackId, SampleClipSnapshot clip) async {
+    TrackSnapshot? track;
+    for (final candidate in _snapshot?.tracks ?? const <TrackSnapshot>[]) {
+      if (candidate.id == trackId) {
+        track = candidate;
+        break;
+      }
+    }
+    if (track == null) return;
+    final savedPlayhead = await _beginClipEditorSession();
+    if (!mounted) return;
+    await Navigator.of(context).push<void>(MaterialPageRoute<void>(
+      builder: (_) => SampleEditorScreen(
+        bridge: widget.bridge,
+        clip: clip,
+        trackName: track!.name,
+        onSnapshot: _refreshSnapshot,
+        bpm: _snapshot?.bpm ?? 120,
+        savedArrangementPlayhead: savedPlayhead,
+      ),
+    ));
+    await _endClipEditorSession();
+    try {
+      await _refreshSnapshot(await widget.bridge.getProjectSnapshot());
+    } catch (_) {}
+  }
+
   // ── Transport methods (delegated to controller) ──────────
 
   Future<void> _setBpm(int bpm) async {
@@ -2090,7 +2119,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             onAddMidiClip: _addMidiClip,
             onAddAudioClip: _addAudioClip,
             onClipTap: _openPianoRoll,
-            onSampleClipTap: (_, __) {},
+            onSampleClipTap: _openSampleEditor,
             onMoveClip: _moveClip,
             onResizeClipCommit: _resizeClip,
             onDeleteTrack: _confirmDeleteTrack,

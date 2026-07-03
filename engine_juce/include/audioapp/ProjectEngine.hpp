@@ -166,6 +166,13 @@ public:
                        double lengthBeats,
                        ClipLengthTarget target = ClipLengthTarget::Arrangement);
     bool setClipLoopContent(const std::string& clipId, bool loopContent);
+    bool setSampleClipProperties(const std::string& clipId, float sourceStart,
+                                 float sourceEnd, float gain, float fadeIn,
+                                 float fadeOut, float fadeInCurve,
+                                 float fadeOutCurve, bool reversed);
+    bool setSampleClipWarp(const std::string& clipId, bool warpRepitch);
+    bool setSampleClipSlices(const std::string& clipId, const std::vector<float>& markers);
+    std::string exportSampleClipSlices(const std::string& clipId, int firstNote);
     bool setBpm(int bpm);
     void setMetronome(bool enabled, float level, int countInBars) noexcept;
     bool deleteTrack(const std::string& trackId);
@@ -297,6 +304,14 @@ private:
         double pcmSampleRate = 48000.0;
         bool loopContent = false;
         double contentLengthBeats = 4.0;
+        float sourceStart = 0.0f;
+        float sourceEnd = 1.0f;
+        float gain = 1.0f;
+        float fadeIn = 0.0f;
+        float fadeOut = 0.0f;
+        float fadeInCurve = 0.5f;
+        float fadeOutCurve = 0.5f;
+        bool reversed = false;
     };
 
     struct TrackPlaybackSnapshot {

@@ -124,6 +124,23 @@ inline double sampleContentProgress(double beat,
     return inContent / contentLengthBeats;
 }
 
+/// Timeline beats consumed by one pass through the trimmed source window.
+/// When warp is off, shorter trims play at 1:1 sample rate (shorter audible span).
+/// When warp is on, the trim window is stretched to [clipLengthBeats].
+inline double sampleClipContentLengthBeats(double naturalLengthBeats,
+                                           double clipLengthBeats,
+                                           float sourceStart,
+                                           float sourceEnd,
+                                           bool warpRepitch) noexcept {
+    if (warpRepitch) {
+        return clipLengthBeats;
+    }
+    const double window =
+        std::max(0.001, static_cast<double>(sourceEnd - sourceStart));
+    const double natural = naturalLengthBeats > 0.0 ? naturalLengthBeats : clipLengthBeats;
+    return natural * window;
+}
+
 /// Returns true when a render block may contain audible clip notes.
 /// Used to avoid skipping whole blocks for looped clips.
 inline bool blockMayContainLoopedClipNotes(double blockStartBeat,
