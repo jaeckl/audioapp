@@ -17,6 +17,34 @@ enum _SampleTool { navigate, trim, fade, slice, process }
 
 enum _SampleMenuAction { loop, warp, reverse, normalize }
 
+enum _SliceAutoMode { transient, even, grid }
+
+enum _SliceTab { auto, edit, map }
+
+enum _FadeCurveKind { linear, quadratic, cubic, smooth }
+
+extension _FadeCurveKindX on _FadeCurveKind {
+  double get value => switch (this) {
+        _FadeCurveKind.linear => 0.0,
+        _FadeCurveKind.quadratic => 0.33,
+        _FadeCurveKind.cubic => 0.66,
+        _FadeCurveKind.smooth => 1.0,
+      };
+
+  static _FadeCurveKind fromValue(double value) {
+    var closest = _FadeCurveKind.linear;
+    var distance = (value - closest.value).abs();
+    for (final kind in _FadeCurveKind.values.skip(1)) {
+      final next = (value - kind.value).abs();
+      if (next < distance) {
+        closest = kind;
+        distance = next;
+      }
+    }
+    return closest;
+  }
+}
+
 class SampleEditorScreen extends StatefulWidget {
   const SampleEditorScreen(
       {super.key,
@@ -57,8 +85,15 @@ class _SampleEditorScreenState extends State<SampleEditorScreen>
   late bool warpRepitch = widget.clip.warpRepitch;
   late List<double> sliceMarkers = List.of(widget.clip.sliceMarkers);
   double transientSensitivity = .5;
+  double sliceMinGap = .04;
+  bool sliceReplaceExisting = true;
+  _SliceAutoMode sliceAutoMode = _SliceAutoMode.transient;
+  int sliceEvenDivisions = 8;
+  SampleEditSnap sliceGridDivision = SampleEditSnap.sixteenth;
   int sliceFirstNote = 36;
   int? selectedSlice;
+  int? selectedMarker;
+  String? sliceStatus;
   bool saving = false;
   late final ClipEditorTransportController transport;
   Timer? saveDebounce;
@@ -162,18 +197,46 @@ class _SampleEditorScreenState extends State<SampleEditorScreen>
         .setSampleClipSlices(clipId: widget.clip.id, markers: sliceMarkers));
   }
 
+  List<double> _sanitizeMarkers(Iterable<double> markers) {
+    final sorted = markers
+        .map((marker) => marker.clamp(.001, .999))
+        .toSet()
+        .toList()
+      ..sort();
+    final kept = <double>[];
+    for (final marker in sorted) {
+      if (kept.isEmpty || marker - kept.last >= sliceMinGap) {
+        kept.add(marker);
+      }
+      if (kept.length >= 31) break;
+    }
+    return kept;
+  }
+
   void _toggleSlice(double position) {
     position = _snapSource(position);
     final nearest =
         sliceMarkers.indexWhere((marker) => (marker - position).abs() < .025);
     setState(() {
-      if (nearest >= 0)
+      if (nearest >= 0) {
         sliceMarkers.removeAt(nearest);
-      else if (sliceMarkers.length < 31)
+        if (selectedMarker == nearest) selectedMarker = null;
+      } else if (sliceMarkers.length < 31) {
         sliceMarkers.add(position.clamp(.001, .999));
+        selectedMarker = sliceMarkers.length - 1;
+      }
       sliceMarkers.sort();
     });
     unawaited(_saveSlices());
+  }
+
+  void _selectSliceMarker(int index) {
+    if (index < 0 || index >= sliceMarkers.length) return;
+    setState(() {
+      selectedMarker = index;
+      selectedSlice = index;
+    });
+    unawaited(_auditionSlice(sliceMarkers[index]));
   }
 
   void _moveSlice(int index, double position) {
@@ -184,6 +247,40 @@ class _SampleEditorScreenState extends State<SampleEditorScreen>
         ? .995
         : sliceMarkers[index + 1] - .005;
     setState(() => sliceMarkers[index] = position.clamp(minimum, maximum));
+  }
+
+  void _deleteSelectedSliceMarker() {
+    final index = selectedMarker;
+    if (index == null || index < 0 || index >= sliceMarkers.length) return;
+    setState(() {
+      sliceMarkers.removeAt(index);
+      selectedMarker = null;
+      selectedSlice = null;
+    });
+    unawaited(_saveSlices());
+  }
+
+  void _nudgeSelectedSliceMarker(int direction) {
+    final index = selectedMarker;
+    if (index == null || index < 0 || index >= sliceMarkers.length) return;
+    final step = editSnap.snap == SampleEditSnap.off
+        ? .01
+        : math.max(.001, editSnap.snap.sourceStep);
+    final minimum = index == 0 ? .005 : sliceMarkers[index - 1] + .005;
+    final maximum = index == sliceMarkers.length - 1
+        ? .995
+        : sliceMarkers[index + 1] - .005;
+    setState(() {
+      sliceMarkers[index] =
+          (sliceMarkers[index] + step * direction).clamp(minimum, maximum);
+    });
+    unawaited(_saveSlices());
+  }
+
+  void _auditionSelectedSliceMarker() {
+    final index = selectedMarker;
+    if (index == null || index < 0 || index >= sliceMarkers.length) return;
+    unawaited(_auditionSlice(sliceMarkers[index]));
   }
 
   Future<void> _auditionSlice(double position) async {
@@ -204,9 +301,9 @@ class _SampleEditorScreenState extends State<SampleEditorScreen>
     );
   }
 
-  void _detectTransients() {
+  List<double> _detectTransientMarkers() {
     final peaks = widget.clip.waveformPeaks;
-    if (peaks.length < 3) return;
+    if (peaks.length < 3) return const [];
     final average =
         peaks.fold<double>(0, (sum, value) => sum + value.abs()) / peaks.length;
     final threshold = average * (1.05 + transientSensitivity * 1.8);
@@ -222,18 +319,83 @@ class _SampleEditorScreenState extends State<SampleEditorScreen>
       if (value > threshold &&
           value >= peaks[i - 1].abs() &&
           value > peaks[i + 1].abs() &&
-          forward - lastForward > .04) {
+          forward - lastForward > sliceMinGap) {
         found.add(position);
         lastForward = forward;
       }
     }
-    found.sort();
-    final snapped = editSnap.snap == SampleEditSnap.off
-        ? found
-        : found.map(editSnap.snapSource).toList();
+    return found;
+  }
+
+  List<double> _evenSliceMarkers() {
+    final divisions = sliceEvenDivisions.clamp(2, 32);
+    return List.generate(divisions - 1, (index) => (index + 1) / divisions);
+  }
+
+  List<double> _gridSliceMarkers() {
+    final stepBeats = switch (sliceGridDivision) {
+      SampleEditSnap.off => .25,
+      SampleEditSnap.half => 2.0,
+      SampleEditSnap.quarter => 1.0,
+      SampleEditSnap.eighth => .5,
+      SampleEditSnap.sixteenth => .25,
+      SampleEditSnap.thirtySecond => .125,
+    };
+    final natural = math.max(.001, widget.clip.effectiveNaturalLengthBeats);
+    final startBeat = start * natural;
+    final endBeat = end * natural;
+    final markers = <double>[];
+    final window = math.max(.001, end - start);
+    final firstBeat = (startBeat / stepBeats).ceil() * stepBeats;
+    for (var beat = firstBeat; beat < endBeat - .0001; beat += stepBeats) {
+      if (beat <= startBeat + .0001) continue;
+      final sourcePosition = (beat / natural).clamp(start, end);
+      markers.add(((sourcePosition - start) / window).clamp(.001, .999));
+    }
+    return markers;
+  }
+
+  void _autoSlice() {
+    var usedFallback = false;
+    var generated = switch (sliceAutoMode) {
+      _SliceAutoMode.transient => _detectTransientMarkers(),
+      _SliceAutoMode.even => _evenSliceMarkers(),
+      _SliceAutoMode.grid => _gridSliceMarkers(),
+    };
+    if (sliceAutoMode == _SliceAutoMode.transient && generated.length < 2) {
+      generated = _evenSliceMarkers();
+      usedFallback = true;
+    }
+    final shouldSnapGenerated =
+        sliceAutoMode == _SliceAutoMode.transient &&
+        editSnap.snap != SampleEditSnap.off;
+    final snapped = !shouldSnapGenerated
+        ? generated
+        : generated.map(editSnap.snapSource).toList();
+    final next = sliceReplaceExisting
+        ? _sanitizeMarkers(snapped)
+        : _sanitizeMarkers([...sliceMarkers, ...snapped]);
+    final cutCount = next.length;
     setState(() {
-      sliceMarkers = snapped;
+      sliceMarkers = next;
       tool = _SampleTool.slice;
+      selectedMarker = null;
+      selectedSlice = null;
+      sliceStatus = usedFallback
+          ? 'Few transients found. Used even slices.'
+          : cutCount == 0
+              ? 'No slice markers created.'
+              : 'Created $cutCount slice markers.';
+    });
+    unawaited(_saveSlices());
+  }
+
+  void _resetSlices() {
+    setState(() {
+      sliceMarkers.clear();
+      selectedMarker = null;
+      selectedSlice = null;
+      sliceStatus = 'Slices reset.';
     });
     unawaited(_saveSlices());
   }
@@ -290,12 +452,6 @@ class _SampleEditorScreenState extends State<SampleEditorScreen>
               style:
                   const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
           actions: [
-            if (tool == _SampleTool.slice)
-              IconButton(
-                tooltip: 'Send slices to Drum Machine',
-                onPressed: _exportSlices,
-                icon: const Icon(Icons.grid_view_rounded),
-              ),
             TextButton.icon(
               onPressed: _openSnapSettings,
               icon: const Icon(Icons.crop_free, size: 17),
@@ -390,7 +546,9 @@ class _SampleEditorScreenState extends State<SampleEditorScreen>
               sliceToolActive: tool == _SampleTool.slice,
               sliceMarkers: List.of(sliceMarkers),
               onSliceToggle: _toggleSlice,
+              onSliceSelect: _selectSliceMarker,
               selectedSlice: selectedSlice,
+              selectedMarker: selectedMarker,
               onSliceMove: _moveSlice,
               onSliceMoveEnd: _saveSlices,
               onSliceAudition: _auditionSlice,
@@ -438,20 +596,37 @@ class _SampleEditorScreenState extends State<SampleEditorScreen>
                   ),
                 _SampleTool.slice => _SlicePanel(
                     sensitivity: transientSensitivity,
-                    sliceCount: sliceMarkers.length + 1,
+                    autoMode: sliceAutoMode,
+                    minGap: sliceMinGap,
+                    replaceExisting: sliceReplaceExisting,
+                    evenDivisions: sliceEvenDivisions,
+                    gridDivision: sliceGridDivision,
                     firstNote: sliceFirstNote,
+                    status: sliceStatus,
+                    selectedMarkerPosition: selectedMarker == null ||
+                            selectedMarker! < 0 ||
+                            selectedMarker! >= sliceMarkers.length
+                        ? null
+                        : sliceMarkers[selectedMarker!],
                     onSensitivityChanged: (value) =>
                         setState(() => transientSensitivity = value),
+                    onAutoModeChanged: (value) =>
+                        setState(() => sliceAutoMode = value),
+                    onMinGapChanged: (value) => setState(() => sliceMinGap = value),
+                    onReplaceExistingChanged: (value) =>
+                        setState(() => sliceReplaceExisting = value),
+                    onEvenDivisionsChanged: (value) =>
+                        setState(() => sliceEvenDivisions = value),
+                    onGridDivisionChanged: (value) =>
+                        setState(() => sliceGridDivision = value),
                     onFirstNoteChanged: (value) =>
                         setState(() => sliceFirstNote = value),
-                    onDetect: _detectTransients,
-                    onClear: () {
-                      setState(() {
-                        sliceMarkers.clear();
-                        selectedSlice = null;
-                      });
-                      unawaited(_saveSlices());
-                    },
+                    onAutoSlice: _autoSlice,
+                    onReset: _resetSlices,
+                    onDeleteSelected: _deleteSelectedSliceMarker,
+                    onNudgeSelected: _nudgeSelectedSliceMarker,
+                    onAuditionSelected: _auditionSelectedSliceMarker,
+                    onExport: _exportSlices,
                   ),
                 _ => _ClipEditPanel(
                     tool: tool,
@@ -460,8 +635,17 @@ class _SampleEditorScreenState extends State<SampleEditorScreen>
                     end: end,
                     fadeIn: fadeIn,
                     fadeOut: fadeOut,
+                    fadeInCurve: fadeInCurve,
+                    fadeOutCurve: fadeOutCurve,
                     onGainChanged: (value) {
                       setState(() => gain = value);
+                      _scheduleSave();
+                    },
+                    onCurveChanged: (nextIn, nextOut) {
+                      setState(() {
+                        fadeInCurve = nextIn;
+                        fadeOutCurve = nextOut;
+                      });
                       _scheduleSave();
                     },
                   ),
@@ -518,7 +702,9 @@ class _SampleTimeline extends StatefulWidget {
       required this.sliceToolActive,
       required this.sliceMarkers,
       required this.onSliceToggle,
+      required this.onSliceSelect,
       required this.selectedSlice,
+      required this.selectedMarker,
       required this.onSliceMove,
       required this.onSliceMoveEnd,
       required this.onSliceAudition,
@@ -552,7 +738,9 @@ class _SampleTimeline extends StatefulWidget {
   final bool sliceToolActive;
   final List<double> sliceMarkers;
   final ValueChanged<double> onSliceToggle;
+  final ValueChanged<int> onSliceSelect;
   final int? selectedSlice;
+  final int? selectedMarker;
   final void Function(int, double) onSliceMove;
   final VoidCallback onSliceMoveEnd;
   final ValueChanged<double> onSliceAudition;
@@ -570,7 +758,7 @@ class _SampleTimeline extends StatefulWidget {
 
 class _SampleTimelineState extends State<_SampleTimeline> {
   static const _preRollBeats = 8.0;
-  static const _waveformInsetH = 8.0;
+  static const _waveformInsetH = 0.0;
   final ScrollController _scroll = ScrollController();
   double? _dragPlayheadBeat;
   bool _draggingPlayhead = false;
@@ -578,8 +766,8 @@ class _SampleTimelineState extends State<_SampleTimeline> {
 
   double get _sourceSpan => math.max(.001, widget.end - widget.start);
 
-  double _usableClipWidth(double clipWidth) =>
-      math.max(1.0, clipWidth - _waveformInsetH * 2);
+  double _usableSourceWidth(double sourceWidth) =>
+      math.max(1.0, sourceWidth - _waveformInsetH * 2);
 
   double _sourceFromPlayheadBeat(double beat) {
     final contentLen = widget.playbackContentLengthBeats;
@@ -600,10 +788,10 @@ class _SampleTimelineState extends State<_SampleTimeline> {
     return progress.clamp(0.0, 1.0) * contentLen;
   }
 
-  double _playheadX(double originX, double clipWidth, double beat) =>
+  double _playheadX(double originX, double sourceWidth, double beat) =>
       originX +
       _waveformInsetH +
-      _usableClipWidth(clipWidth) * _sourceFromPlayheadBeat(beat);
+      _usableSourceWidth(sourceWidth) * _sourceFromPlayheadBeat(beat);
 
   @override
   void initState() {
@@ -642,15 +830,18 @@ class _SampleTimelineState extends State<_SampleTimeline> {
         const rulerHeight = 24.0;
         final clipWidth =
             math.max(64.0, widget.clipLengthBeats * widget.pixelsPerBeat);
+        final sourceWidth =
+            math.max(64.0, widget.naturalLengthBeats * widget.pixelsPerBeat);
+        final timelineWidth = math.max(clipWidth, sourceWidth);
         final originX = _preRollBeats * widget.pixelsPerBeat;
         final canvasWidth = math.max(
           box.maxWidth,
-          originX + clipWidth + widget.pixelsPerBeat * 8,
+          originX + timelineWidth + widget.pixelsPerBeat * 8,
         );
         final playheadBeat = (_dragPlayheadBeat ?? widget.playhead)
             .clamp(0.0, widget.playbackContentLengthBeats);
-        final playheadX = _playheadX(originX, clipWidth, playheadBeat);
-        final usableWidth = _usableClipWidth(clipWidth);
+        final playheadX = _playheadX(originX, sourceWidth, playheadBeat);
+        final usableWidth = _usableSourceWidth(sourceWidth);
         return _RawPinchZoom(
           onStart: widget.onZoomStart,
           onScale: widget.onZoomScale,
@@ -696,12 +887,12 @@ class _SampleTimelineState extends State<_SampleTimeline> {
                             child: Stack(children: [
                               Positioned(
                                 left: originX,
-                                width: clipWidth,
+                                width: sourceWidth,
                                 top: 0,
                                 bottom: 0,
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 12),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
                                   child: EditableWaveform(
                                       peaks: widget.peaks,
                                       start: widget.start,
@@ -796,7 +987,7 @@ class _SampleTimelineState extends State<_SampleTimeline> {
                         width: ArrangementLoopRegionTheme.hitWidth,
                         child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
-                          onTap: () => widget.onSliceToggle(entry.$2),
+                          onTap: () => widget.onSliceSelect(entry.$1),
                           onHorizontalDragStart: (_) =>
                               _dragSliceValue = entry.$2,
                           onHorizontalDragUpdate: (details) {
@@ -819,10 +1010,29 @@ class _SampleTimelineState extends State<_SampleTimeline> {
                               bottom: 0,
                               width: 2,
                               child: ColoredBox(
-                                  color: ArrangementLoopRegionTheme.color),
+                                  color: widget.selectedMarker == entry.$1
+                                      ? Colors.white
+                                      : ArrangementLoopRegionTheme.color),
                             ),
                             const ArrangementLoopRegionPill(),
                           ]),
+                        ),
+                      ),
+                  if (!widget.sliceToolActive && widget.sliceMarkers.isNotEmpty)
+                    for (final marker in widget.sliceMarkers)
+                      Positioned(
+                        left: originX +
+                            _waveformInsetH +
+                            usableWidth *
+                                (widget.start +
+                                    (widget.end - widget.start) * marker) -
+                            .5,
+                        top: rulerHeight,
+                        bottom: 0,
+                        width: 1,
+                        child: ColoredBox(
+                          color: ArrangementLoopRegionTheme.color
+                              .withValues(alpha: .65),
                         ),
                       ),
                   Positioned(
@@ -1087,7 +1297,7 @@ class _SampleToolCard extends StatelessWidget {
   const _SampleToolCard({required this.child});
   final Widget child;
 
-  static const height = 196.0;
+  static const height = 236.0;
   static const _borderColor = Color(0xff3b3b49);
 
   @override
@@ -1145,11 +1355,15 @@ class _ClipEditPanel extends StatelessWidget {
     required this.end,
     required this.fadeIn,
     required this.fadeOut,
+    required this.fadeInCurve,
+    required this.fadeOutCurve,
     required this.onGainChanged,
+    required this.onCurveChanged,
   });
   final _SampleTool tool;
-  final double gain, start, end, fadeIn, fadeOut;
+  final double gain, start, end, fadeIn, fadeOut, fadeInCurve, fadeOutCurve;
   final ValueChanged<double> onGainChanged;
+  final void Function(double, double) onCurveChanged;
 
   ({String title, String hint}) get _copy => switch (tool) {
         _SampleTool.navigate => (
@@ -1174,72 +1388,265 @@ class _ClipEditPanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _ToolCardHeader(title: copy.title, hint: copy.hint),
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(
-                width: 68,
-                child: Center(
-                  child: RotaryKnob(
-                    label: 'GAIN',
-                    value: (gain / 4).clamp(0, 1),
-                    size: 56,
-                    accentColor: AutomationEditorTheme.accent,
-                    displayValue: '${(gain * 100).round()}%',
-                    onChanged: (value) => onGainChanged(value * 4),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: _ProcessGroup(
-                  title: 'BOUNDS',
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _InlineReadout(
-                              label: 'START',
-                              value: '${(start * 100).round()}%'),
-                        ),
-                        Expanded(
-                          child: _InlineReadout(
-                              label: 'END', value: '${(end * 100).round()}%'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: _ProcessGroup(
-                  title: 'FADES',
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _InlineReadout(
-                              label: 'FADE IN',
-                              value: '${(fadeIn * 100).round()}%'),
-                        ),
-                        Expanded(
-                          child: _InlineReadout(
-                              label: 'FADE OUT',
-                              value: '${(fadeOut * 100).round()}%'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+        Expanded(child: tool == _SampleTool.fade ? _fadeBody() : _defaultBody()),
       ],
     );
   }
+
+  Widget _defaultBody() => Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 68,
+            child: Center(
+              child: RotaryKnob(
+                label: 'GAIN',
+                value: (gain / 4).clamp(0, 1),
+                size: 56,
+                accentColor: AutomationEditorTheme.accent,
+                displayValue: '${(gain * 100).round()}%',
+                onChanged: (value) => onGainChanged(value * 4),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _ProcessGroup(
+              title: 'BOUNDS',
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _InlineReadout(
+                          label: 'START', value: '${(start * 100).round()}%'),
+                    ),
+                    Expanded(
+                      child: _InlineReadout(
+                          label: 'END', value: '${(end * 100).round()}%'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _ProcessGroup(
+              title: 'FADES',
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _InlineReadout(
+                          label: 'FADE IN',
+                          value: '${(fadeIn * 100).round()}%'),
+                    ),
+                    Expanded(
+                      child: _InlineReadout(
+                          label: 'FADE OUT',
+                          value: '${(fadeOut * 100).round()}%'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+
+  Widget _fadeBody() => Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _FadeCurveSelector(
+              label: 'Fade In',
+              percent: fadeIn,
+              value: _FadeCurveKindX.fromValue(fadeInCurve),
+              fadeOut: false,
+              onChanged: (kind) => onCurveChanged(kind.value, fadeOutCurve),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _FadeCurveSelector(
+              label: 'Fade Out',
+              percent: fadeOut,
+              value: _FadeCurveKindX.fromValue(fadeOutCurve),
+              fadeOut: true,
+              onChanged: (kind) => onCurveChanged(fadeInCurve, kind.value),
+            ),
+          ),
+        ],
+      );
+}
+
+class _FadeCurveSelector extends StatelessWidget {
+  const _FadeCurveSelector({
+    required this.label,
+    required this.percent,
+    required this.value,
+    required this.fadeOut,
+    required this.onChanged,
+  });
+  final String label;
+  final double percent;
+  final _FadeCurveKind value;
+  final bool fadeOut;
+  final ValueChanged<_FadeCurveKind> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.fromLTRB(8, 7, 8, 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: .035),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(children: [
+              Text(label,
+                  style: const TextStyle(
+                      color: AutomationEditorTheme.labelMuted,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: .35)),
+              const Spacer(),
+              Text('${(percent * 100).round()}%',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700)),
+            ]),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Column(children: [
+                Expanded(
+                  child: Row(children: [
+                    Expanded(child: _curveButton(_FadeCurveKind.linear)),
+                    const SizedBox(width: 6),
+                    Expanded(child: _curveButton(_FadeCurveKind.quadratic)),
+                  ]),
+                ),
+                const SizedBox(height: 6),
+                Expanded(
+                  child: Row(children: [
+                    Expanded(child: _curveButton(_FadeCurveKind.cubic)),
+                    const SizedBox(width: 6),
+                    Expanded(child: _curveButton(_FadeCurveKind.smooth)),
+                  ]),
+                ),
+              ]),
+            ),
+          ],
+        ),
+      );
+
+  Widget _curveButton(_FadeCurveKind kind) => _FadeCurveIconButton(
+        kind: kind,
+        active: kind == value,
+        fadeOut: fadeOut,
+        onTap: () => onChanged(kind),
+      );
+}
+
+class _FadeCurveIconButton extends StatelessWidget {
+  const _FadeCurveIconButton({
+    required this.kind,
+    required this.active,
+    required this.fadeOut,
+    required this.onTap,
+  });
+  final _FadeCurveKind kind;
+  final bool active;
+  final bool fadeOut;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: active
+            ? AutomationEditorTheme.accent.withValues(alpha: .16)
+            : Colors.white.withValues(alpha: .04),
+        borderRadius: BorderRadius.circular(7),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(7),
+          onTap: onTap,
+          child: Container(
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(7),
+              border: Border.all(
+                color: active
+                    ? AutomationEditorTheme.accent.withValues(alpha: .55)
+                    : Colors.white.withValues(alpha: .08),
+              ),
+            ),
+            child: CustomPaint(
+              painter: _FadeCurveIconPainter(
+                kind: kind,
+                fadeOut: fadeOut,
+                color: active ? AutomationEditorTheme.accent : Colors.white60,
+              ),
+              child: const SizedBox.expand(),
+            ),
+          ),
+        ),
+      );
+}
+
+class _FadeCurveIconPainter extends CustomPainter {
+  const _FadeCurveIconPainter({
+    required this.kind,
+    required this.fadeOut,
+    required this.color,
+  });
+  final _FadeCurveKind kind;
+  final bool fadeOut;
+  final Color color;
+
+  double _shape(double value) => switch (kind) {
+        _FadeCurveKind.linear => value,
+        _FadeCurveKind.quadratic => value * value,
+        _FadeCurveKind.cubic => value * value * value,
+        _FadeCurveKind.smooth => value * value * (3 - 2 * value),
+      };
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(8, 6, size.width - 16, size.height - 12);
+    final grid = Paint()
+      ..color = Colors.white.withValues(alpha: .10)
+      ..strokeWidth = 1;
+    canvas.drawLine(rect.bottomLeft, rect.bottomRight, grid);
+    canvas.drawLine(rect.bottomLeft, rect.topLeft, grid);
+
+    final path = Path();
+    for (var i = 0; i <= 24; i++) {
+      final t = i / 24;
+      final x = rect.left + rect.width * t;
+      final shaped = fadeOut ? 1 - _shape(1 - t) : _shape(t);
+      final y = rect.bottom - rect.height * shaped;
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = color
+        ..strokeWidth = 2
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _FadeCurveIconPainter oldDelegate) =>
+      oldDelegate.kind != kind ||
+      oldDelegate.fadeOut != fadeOut ||
+      oldDelegate.color != color;
 }
 
 class _InlineReadout extends StatelessWidget {
@@ -1474,166 +1881,578 @@ class _ProcessTabChip extends StatelessWidget {
       );
 }
 
-class _SlicePanel extends StatelessWidget {
+class _SlicePanel extends StatefulWidget {
   const _SlicePanel({
     required this.sensitivity,
-    required this.sliceCount,
+    required this.autoMode,
+    required this.minGap,
+    required this.replaceExisting,
+    required this.evenDivisions,
+    required this.gridDivision,
     required this.firstNote,
+    required this.status,
+    required this.selectedMarkerPosition,
     required this.onSensitivityChanged,
+    required this.onAutoModeChanged,
+    required this.onMinGapChanged,
+    required this.onReplaceExistingChanged,
+    required this.onEvenDivisionsChanged,
+    required this.onGridDivisionChanged,
     required this.onFirstNoteChanged,
-    required this.onDetect,
-    required this.onClear,
+    required this.onAutoSlice,
+    required this.onReset,
+    required this.onDeleteSelected,
+    required this.onNudgeSelected,
+    required this.onAuditionSelected,
+    required this.onExport,
   });
   final double sensitivity;
-  final int sliceCount;
+  final _SliceAutoMode autoMode;
+  final double minGap;
+  final bool replaceExisting;
+  final int evenDivisions;
+  final SampleEditSnap gridDivision;
   final int firstNote;
+  final String? status;
+  final double? selectedMarkerPosition;
   final ValueChanged<double> onSensitivityChanged;
+  final ValueChanged<_SliceAutoMode> onAutoModeChanged;
+  final ValueChanged<double> onMinGapChanged;
+  final ValueChanged<bool> onReplaceExistingChanged;
+  final ValueChanged<int> onEvenDivisionsChanged;
+  final ValueChanged<SampleEditSnap> onGridDivisionChanged;
   final ValueChanged<int> onFirstNoteChanged;
-  final VoidCallback onDetect, onClear;
+  final VoidCallback onAutoSlice, onReset, onDeleteSelected;
+  final ValueChanged<int> onNudgeSelected;
+  final VoidCallback onAuditionSelected, onExport;
+
+  @override
+  State<_SlicePanel> createState() => _SlicePanelState();
+}
+
+class _SlicePanelState extends State<_SlicePanel> {
+  _SliceTab _tab = _SliceTab.auto;
 
   @override
   Widget build(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const _ToolCardHeader(
-            title: 'TRANSIENT SLICING',
-            hint: 'TAP TO ADD  •  DRAG TO MOVE  •  TAP MARKER TO REMOVE',
+            title: 'SLICING',
+            hint: 'TAP TO ADD  •  TAP MARKER TO SELECT  •  DRAG TO MOVE',
+          ),
+          const SizedBox(height: 6),
+          _SliceTabBar(
+            selected: _tab,
+            onSelected: (tab) => setState(() => _tab = tab),
+          ),
+          const SizedBox(height: 10),
+          Expanded(child: _buildBody()),
+        ],
+      );
+
+  Widget _buildBody() => switch (_tab) {
+        _SliceTab.auto => _autoBody(),
+        _SliceTab.edit => _editBody(),
+        _SliceTab.map => _mapBody(),
+      };
+
+  Widget _autoBody() => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(children: [
+            _SliceChoiceChip(
+                label: 'Transient',
+                active: widget.autoMode == _SliceAutoMode.transient,
+                onTap: () =>
+                    widget.onAutoModeChanged(_SliceAutoMode.transient)),
+            const SizedBox(width: 5),
+            _SliceChoiceChip(
+                label: 'Even',
+                active: widget.autoMode == _SliceAutoMode.even,
+                onTap: () => widget.onAutoModeChanged(_SliceAutoMode.even)),
+            const SizedBox(width: 5),
+            _SliceChoiceChip(
+                label: 'Grid',
+                active: widget.autoMode == _SliceAutoMode.grid,
+                onTap: () => widget.onAutoModeChanged(_SliceAutoMode.grid)),
+          ]),
+          const SizedBox(height: 10),
+          Expanded(child: _autoControl()),
+          Row(children: [
+            Expanded(
+              child: _SliceCommandButton(
+                label: 'Auto Slice',
+                icon: Icons.auto_fix_high,
+                primary: true,
+                onTap: widget.onAutoSlice,
+              ),
+            ),
+            const SizedBox(width: 6),
+            _SliceChoiceChip(
+              label: widget.replaceExisting ? 'Replace' : 'Add',
+              active: widget.replaceExisting,
+              onTap: () =>
+                  widget.onReplaceExistingChanged(!widget.replaceExisting),
+            ),
+          ]),
+          if (widget.status != null) ...[
+            const SizedBox(height: 7),
+            Text(widget.status!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: AutomationEditorTheme.labelMuted
+                        .withValues(alpha: .95),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600)),
+          ],
+        ],
+      );
+
+  Widget _autoControl() => switch (widget.autoMode) {
+        _SliceAutoMode.transient => Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _SliceSliderRow(
+                label: 'Sensitivity',
+                valueLabel: '${(widget.sensitivity * 100).round()}%',
+                value: widget.sensitivity,
+                onChanged: widget.onSensitivityChanged,
+              ),
+              _SliceSliderRow(
+                label: 'Min gap',
+                valueLabel: '${(widget.minGap * 100).round()}%',
+                value: widget.minGap,
+                onChanged: (value) =>
+                    widget.onMinGapChanged(value.clamp(.01, .20)),
+              ),
+            ],
+          ),
+        _SliceAutoMode.even => Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _SliceSliderRow(
+                label: 'Divisions',
+                valueLabel: '${widget.evenDivisions}',
+                value: (widget.evenDivisions - 2) / 30,
+                onChanged: (value) =>
+                    widget.onEvenDivisionsChanged((2 + value * 30).round()),
+              ),
+            ],
+          ),
+        _SliceAutoMode.grid => Center(
+            child: Row(children: [
+              const Text('Grid division',
+                  style: TextStyle(
+                      color: AutomationEditorTheme.labelMuted,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700)),
+              const Spacer(),
+              DropdownButton<SampleEditSnap>(
+                value: widget.gridDivision,
+                underline: const SizedBox.shrink(),
+                dropdownColor: AutomationEditorTheme.panelBackground,
+                style: const TextStyle(fontSize: 12, color: Colors.white),
+                items: SampleEditSnap.values
+                    .where((value) => value != SampleEditSnap.off)
+                    .map((value) => DropdownMenuItem(
+                        value: value, child: Text(value.shortLabel)))
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) widget.onGridDivisionChanged(value);
+                },
+              ),
+            ]),
+          ),
+      };
+
+  Widget _editBody() {
+    final selected = widget.selectedMarkerPosition;
+    final enabled = selected != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          enabled
+              ? 'Selected marker ${(selected * 100).round()}%'
+              : 'Select a marker on the waveform to edit it.',
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+              color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+        ),
+        const Spacer(),
+        Row(children: [
+          Expanded(
+            child: _SliceCommandButton(
+              label: 'Audition',
+              icon: Icons.play_arrow,
+              onTap: enabled ? widget.onAuditionSelected : null,
+            ),
+          ),
+          const SizedBox(width: 6),
+          _SliceIconButton(
+              icon: Icons.chevron_left,
+              tooltip: 'Nudge left',
+              onTap: enabled ? () => widget.onNudgeSelected(-1) : null),
+          const SizedBox(width: 5),
+          _SliceIconButton(
+              icon: Icons.chevron_right,
+              tooltip: 'Nudge right',
+              onTap: enabled ? () => widget.onNudgeSelected(1) : null),
+        ]),
+        const SizedBox(height: 6),
+        Row(children: [
+          Expanded(
+            child: _SliceCommandButton(
+              label: 'Delete Marker',
+              icon: Icons.delete_outline,
+              onTap: enabled ? widget.onDeleteSelected : null,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _SliceCommandButton(
+              label: 'Reset Slices',
+              icon: Icons.restart_alt,
+              onTap: widget.onReset,
+            ),
+          ),
+        ]),
+      ],
+    );
+  }
+
+  Widget _mapBody() => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(children: [
+            const Text('First pad',
+                style: TextStyle(
+                    color: AutomationEditorTheme.labelMuted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700)),
+            const Spacer(),
+            DropdownButton<int>(
+              isDense: true,
+              value: widget.firstNote,
+              underline: const SizedBox.shrink(),
+              dropdownColor: AutomationEditorTheme.panelBackground,
+              style: const TextStyle(fontSize: 13, color: Colors.white),
+              items: [24, 36, 48, 60]
+                  .map((note) => DropdownMenuItem(
+                      value: note, child: Text(_midiNoteName(note))))
+                  .toList(),
+              onChanged: (value) {
+                if (value != null) widget.onFirstNoteChanged(value);
+              },
+            ),
+          ]),
+          const SizedBox(height: 8),
+          Text(
+            'Exports the current slice regions upward from ${_midiNoteName(widget.firstNote)}.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontSize: 10,
+                height: 1.3,
+                color: AutomationEditorTheme.labelMuted.withValues(alpha: .9)),
           ),
           Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  flex: 5,
-                  child: _ProcessGroup(
-                    title: 'SENSITIVITY',
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: SliderTheme(
-                              data: SliderTheme.of(context).copyWith(
-                                trackHeight: 3,
-                                thumbShape: const RoundSliderThumbShape(
-                                    enabledThumbRadius: 6),
-                                overlayShape: SliderComponentShape.noOverlay,
-                              ),
-                              child: Slider(
-                                value: sensitivity,
-                                activeColor: ArrangementLoopRegionTheme.color,
-                                onChanged: onSensitivityChanged,
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            width: 32,
-                            child: Text(
-                              '${(sensitivity * 100).round()}%',
-                              textAlign: TextAlign.end,
-                              style: const TextStyle(
-                                  fontSize: 10, color: Colors.white70),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  flex: 2,
-                  child: _ProcessGroup(
-                    title: 'SLICES',
-                    centered: true,
-                    children: [
-                      Text(
-                        '$sliceCount',
-                        style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  flex: 2,
-                  child: _ProcessGroup(
-                    title: 'FIRST PAD',
-                    centered: true,
-                    children: [
-                      DropdownButton<int>(
-                        isDense: true,
-                        isExpanded: true,
-                        value: firstNote,
-                        underline: const SizedBox.shrink(),
-                        dropdownColor: AutomationEditorTheme.panelBackground,
-                        style:
-                            const TextStyle(fontSize: 13, color: Colors.white),
-                        items: [24, 36, 48, 60]
-                            .map((note) => DropdownMenuItem(
-                                value: note,
-                                child: Text(_midiNoteName(note))))
-                            .toList(),
-                        onChanged: (value) {
-                          if (value != null) onFirstNoteChanged(value);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  flex: 2,
-                  child: _ProcessGroup(
-                    title: 'ACTIONS',
-                    centered: true,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _SliceAction(
-                              tooltip: 'Detect transients',
-                              icon: Icons.auto_fix_high,
-                              onTap: onDetect),
-                          const SizedBox(width: 4),
-                          _SliceAction(
-                              tooltip: 'Clear markers',
-                              icon: Icons.clear_all,
-                              onTap: onClear),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            child: Center(
+              child: _SliceCommandButton(
+                label: 'Send to Drum Machine',
+                icon: Icons.grid_view_rounded,
+                primary: true,
+                onTap: widget.onExport,
+              ),
             ),
           ),
         ],
       );
 }
 
-class _SliceAction extends StatelessWidget {
-  const _SliceAction(
-      {required this.tooltip, required this.icon, required this.onTap});
-  final String tooltip;
+class _SliceTabBar extends StatelessWidget {
+  const _SliceTabBar({required this.selected, required this.onSelected});
+  final _SliceTab selected;
+  final ValueChanged<_SliceTab> onSelected;
+
+  static const _tabs = <(_SliceTab, String, IconData)>[
+    (_SliceTab.auto, 'Auto', Icons.auto_fix_high),
+    (_SliceTab.edit, 'Edit', Icons.edit),
+    (_SliceTab.map, 'Map', Icons.grid_view_rounded),
+  ];
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        height: 38,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: .035),
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(color: Colors.white.withValues(alpha: .08)),
+          ),
+          child: Row(children: [
+            for (var i = 0; i < _tabs.length; i++)
+              Expanded(
+                child: _SliceTabButton(
+                  label: _tabs[i].$2,
+                  icon: _tabs[i].$3,
+                  active: selected == _tabs[i].$1,
+                  onTap: () => onSelected(_tabs[i].$1),
+                ),
+              ),
+          ]),
+        ),
+      );
+}
+
+class _SliceTabButton extends StatelessWidget {
+  const _SliceTabButton({
+    required this.label,
+    required this.icon,
+    required this.active,
+    required this.onTap,
+  });
+  final String label;
   final IconData icon;
+  final bool active;
   final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: active
+            ? ArrangementLoopRegionTheme.color.withValues(alpha: .16)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          child: Container(
+            alignment: Alignment.center,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon,
+                        size: 14,
+                        color: active
+                            ? ArrangementLoopRegionTheme.color
+                            : Colors.white54),
+                    const SizedBox(width: 5),
+                    Text(label,
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: .25,
+                            color: active
+                                ? ArrangementLoopRegionTheme.color
+                                : Colors.white60)),
+                  ],
+                ),
+                Positioned(
+                  left: 10,
+                  right: 10,
+                  bottom: 0,
+                  child: Container(
+                    height: 2,
+                    decoration: BoxDecoration(
+                      color: active
+                          ? ArrangementLoopRegionTheme.color
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(1),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
+class _SliceChoiceChip extends StatelessWidget {
+  const _SliceChoiceChip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: active
+            ? ArrangementLoopRegionTheme.color.withValues(alpha: .18)
+            : Colors.white.withValues(alpha: .04),
+        borderRadius: BorderRadius.circular(7),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(7),
+          onTap: onTap,
+          child: Container(
+            height: 34,
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(7),
+              border: Border.all(
+                color: active
+                    ? ArrangementLoopRegionTheme.color.withValues(alpha: .55)
+                    : Colors.white.withValues(alpha: .08),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(label,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: .2,
+                        color: active
+                            ? ArrangementLoopRegionTheme.color
+                            : Colors.white54)),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
+class _SliceSliderRow extends StatelessWidget {
+  const _SliceSliderRow({
+    required this.label,
+    required this.valueLabel,
+    required this.value,
+    required this.onChanged,
+  });
+  final String label, valueLabel;
+  final double value;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Row(children: [
+        SizedBox(
+          width: 84,
+          child: Text(label,
+              style: const TextStyle(
+                  color: AutomationEditorTheme.labelMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700)),
+        ),
+        Expanded(
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 4,
+              thumbShape:
+                  const RoundSliderThumbShape(enabledThumbRadius: 8),
+              overlayShape: SliderComponentShape.noOverlay,
+            ),
+            child: Slider(
+              value: value.clamp(0.0, 1.0),
+              activeColor: ArrangementLoopRegionTheme.color,
+              onChanged: onChanged,
+            ),
+          ),
+        ),
+        SizedBox(
+          width: 42,
+          child: Text(valueLabel,
+              textAlign: TextAlign.end,
+              style: const TextStyle(fontSize: 11, color: Colors.white70)),
+        ),
+      ]);
+}
+
+class _SliceCommandButton extends StatelessWidget {
+  const _SliceCommandButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.primary = false,
+  });
+  final String label;
+  final IconData icon;
+  final VoidCallback? onTap;
+  final bool primary;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    final accent = ArrangementLoopRegionTheme.color;
+    return Material(
+      color: !enabled
+          ? Colors.white.withValues(alpha: .025)
+          : primary
+              ? accent.withValues(alpha: .20)
+              : Colors.white.withValues(alpha: .05),
+      borderRadius: BorderRadius.circular(7),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(7),
+        onTap: onTap,
+        child: Container(
+          height: 38,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon,
+                  size: 16,
+                  color: !enabled
+                      ? Colors.white24
+                      : primary
+                          ? accent
+                          : Colors.white60),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(label,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: !enabled
+                            ? Colors.white24
+                            : primary
+                                ? accent
+                                : Colors.white70)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SliceIconButton extends StatelessWidget {
+  const _SliceIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) => Tooltip(
         message: tooltip,
         child: Material(
-          color: Colors.white.withValues(alpha: .04),
-          borderRadius: BorderRadius.circular(6),
+          color: Colors.white.withValues(alpha: onTap == null ? .025 : .05),
+          borderRadius: BorderRadius.circular(7),
           child: InkWell(
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(7),
             onTap: onTap,
             child: SizedBox(
-              width: 30,
-              height: 28,
-              child: Icon(icon, size: 16, color: Colors.white60),
+              width: 34,
+              height: 36,
+              child: Icon(icon,
+                  size: 18, color: onTap == null ? Colors.white24 : Colors.white70),
             ),
           ),
         ),
@@ -1641,11 +2460,9 @@ class _SliceAction extends StatelessWidget {
 }
 
 class _ProcessGroup extends StatelessWidget {
-  const _ProcessGroup(
-      {required this.title, required this.children, this.centered = false});
+  const _ProcessGroup({required this.title, required this.children});
   final String title;
   final List<Widget> children;
-  final bool centered;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -1655,9 +2472,7 @@ class _ProcessGroup extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
-          crossAxisAlignment: centered
-              ? CrossAxisAlignment.center
-              : CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(title,
                 style: const TextStyle(
@@ -1669,9 +2484,7 @@ class _ProcessGroup extends StatelessWidget {
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: centered
-                    ? CrossAxisAlignment.center
-                    : CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: children,
               ),
             ),

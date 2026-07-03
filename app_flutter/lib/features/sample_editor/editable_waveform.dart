@@ -5,11 +5,7 @@ enum _WaveHandle {
   trimStart,
   trimEnd,
   fadeIn,
-  fadeOut,
-  fadeInCurveA,
-  fadeInCurveB,
-  fadeOutCurveA,
-  fadeOutCurveB
+  fadeOut
 }
 
 class EditableWaveform extends StatefulWidget {
@@ -80,8 +76,8 @@ class _EditableWaveformState extends State<EditableWaveform> {
         .clamp(0.0, 1.0);
   }
 
-  void _begin(Offset position, Size size) {
-    final top = 10.0, bottom = size.height - 10.0;
+  bool _begin(Offset position, Size size) {
+    const top = 10.0;
     final inStart = widget.start * size.width;
     final outEnd = widget.end * size.width;
     final inEnd = (widget.start + (widget.end - widget.start) * widget.fadeIn) *
@@ -98,26 +94,20 @@ class _EditableWaveformState extends State<EditableWaveform> {
       points.addAll({
         _WaveHandle.fadeIn: Offset(inEnd, top),
         _WaveHandle.fadeOut: Offset(outStart, top),
-        _WaveHandle.fadeInCurveA: Offset(inStart + (inEnd - inStart) * .35,
-            bottom - (bottom - top) * widget.fadeInCurve),
-        _WaveHandle.fadeInCurveB: Offset(inStart + (inEnd - inStart) * .65,
-            top + (bottom - top) * widget.fadeInCurve),
-        _WaveHandle.fadeOutCurveA: Offset(outStart + (outEnd - outStart) * .35,
-            top + (bottom - top) * widget.fadeOutCurve),
-        _WaveHandle.fadeOutCurveB: Offset(outStart + (outEnd - outStart) * .65,
-            bottom - (bottom - top) * widget.fadeOutCurve),
       });
     }
     if (points.isEmpty) {
       drag = null;
-      return;
+      return false;
     }
-    drag = points.entries
-        .reduce((a, b) =>
-            (a.value - position).distance < (b.value - position).distance
-                ? a
-                : b)
-        .key;
+    final nearest = points.entries.reduce((a, b) =>
+        (a.value - position).distance < (b.value - position).distance ? a : b);
+    if ((nearest.value - position).distance > 24) {
+      drag = null;
+      return false;
+    }
+    drag = nearest.key;
+    return true;
   }
 
   void _update(Offset position, Size size) {
@@ -135,23 +125,6 @@ class _EditableWaveformState extends State<EditableWaveform> {
       case _WaveHandle.fadeOut:
         widget.onFadesChanged(
             widget.fadeIn, ((widget.end - value) / span).clamp(0.0, 1.0));
-      case _WaveHandle.fadeInCurveA:
-      case _WaveHandle.fadeOutCurveB:
-        final curve =
-            ((size.height - 10 - position.dy) / math.max(1, size.height - 20))
-                .clamp(0.0, 1.0);
-        if (drag == _WaveHandle.fadeInCurveA)
-          widget.onCurvesChanged(curve, widget.fadeOutCurve);
-        else
-          widget.onCurvesChanged(widget.fadeInCurve, curve);
-      case _WaveHandle.fadeInCurveB:
-      case _WaveHandle.fadeOutCurveA:
-        final curve = ((position.dy - 10) / math.max(1, size.height - 20))
-            .clamp(0.0, 1.0);
-        if (drag == _WaveHandle.fadeInCurveB)
-          widget.onCurvesChanged(curve, widget.fadeOutCurve);
-        else
-          widget.onCurvesChanged(widget.fadeInCurve, curve);
       case null:
         break;
     }
@@ -171,10 +144,10 @@ class _EditableWaveformState extends State<EditableWaveform> {
                 pointer = null;
                 return;
               }
-              pointer = event.pointer;
-              pointerStart = event.localPosition;
-              widget.onInteractionChanged(true);
               if (widget.sliceToolActive) {
+                pointer = event.pointer;
+                pointerStart = event.localPosition;
+                widget.onInteractionChanged(true);
                 final position =
                     _slicePosition(event.localPosition, box.biggest);
                 var bestDistance = 22 /
@@ -189,7 +162,15 @@ class _EditableWaveformState extends State<EditableWaveform> {
                 }
                 sliceMoved = false;
               } else {
-                _begin(event.localPosition, box.biggest);
+                if (!_begin(event.localPosition, box.biggest)) {
+                  pointer = null;
+                  pointerStart = null;
+                  activePointers.remove(event.pointer);
+                  return;
+                }
+                pointer = event.pointer;
+                pointerStart = event.localPosition;
+                widget.onInteractionChanged(true);
               }
             },
             onPointerMove: (event) {
@@ -303,12 +284,12 @@ class _WaveformPainter extends CustomPainter {
     return (peaks[lo] + (peaks[hi] - peaks[lo]) * smooth).abs().clamp(0.0, 1.0);
   }
 
-  double _cubic(double t, double curve) {
+  double _fadeShape(double t, double curve) {
     final value = t.clamp(0.0, 1.0);
-    final inv = 1.0 - value;
-    return 3 * inv * inv * value * curve +
-        3 * inv * value * value * (1 - curve) +
-        value * value * value;
+    if (curve < .165) return value;
+    if (curve < .495) return value * value;
+    if (curve < .83) return value * value * value;
+    return value * value * (3 - 2 * value);
   }
 
   double _peakAt(double position) {
@@ -318,9 +299,39 @@ class _WaveformPainter extends CustomPainter {
     final progress = ((position - start) / (end - start)).clamp(0.0, 1.0);
     final sourcePosition = reversed ? end - progress * (end - start) : position;
     var envelope = 1.0;
-    if (fadeIn > 0) envelope *= _cubic(progress / fadeIn, fadeInCurve);
-    if (fadeOut > 0) envelope *= _cubic((1 - progress) / fadeOut, fadeOutCurve);
+    if (fadeIn > 0) envelope *= _fadeShape(progress / fadeIn, fadeInCurve);
+    if (fadeOut > 0) {
+      envelope *= _fadeShape((1 - progress) / fadeOut, fadeOutCurve);
+    }
     return (_rawPeakAt(sourcePosition) * gain * envelope).clamp(0.0, 1.0);
+  }
+
+  Path _fadeInPath(Rect selected, double top, double bottom) {
+    final path = Path()..moveTo(selected.left, bottom);
+    final width = selected.width * fadeIn;
+    if (width <= 0) return path;
+    for (var i = 0; i <= 24; i++) {
+      final t = i / 24;
+      final x = selected.left + width * t;
+      final y = bottom - (bottom - top) * _fadeShape(t, fadeInCurve);
+      path.lineTo(x, y);
+    }
+    return path;
+  }
+
+  Path _fadeOutPath(Rect selected, double top, double bottom) {
+    final path = Path();
+    final width = selected.width * fadeOut;
+    if (width <= 0) return path;
+    final startX = selected.right - width;
+    path.moveTo(startX, top);
+    for (var i = 0; i <= 24; i++) {
+      final t = i / 24;
+      final x = startX + width * t;
+      final y = top + (bottom - top) * (1 - _fadeShape(1 - t, fadeOutCurve));
+      path.lineTo(x, y);
+    }
+    return path;
   }
 
   @override
@@ -370,53 +381,11 @@ class _WaveformPainter extends CustomPainter {
     final outX = selected.right - selected.width * fadeOut;
     const top = 10.0;
     final bottom = size.height - 10.0;
-    final inA = Offset(selected.left + (inX - selected.left) * .35,
-        bottom - (bottom - top) * fadeInCurve);
-    final inB = Offset(selected.left + (inX - selected.left) * .65,
-        top + (bottom - top) * fadeInCurve);
-    final outA = Offset(outX + (selected.right - outX) * .35,
-        top + (bottom - top) * fadeOutCurve);
-    final outB = Offset(outX + (selected.right - outX) * .65,
-        bottom - (bottom - top) * fadeOutCurve);
     if (fadeIn > 0)
-      canvas.drawPath(
-          Path()
-            ..moveTo(selected.left, bottom)
-            ..cubicTo(inA.dx, inA.dy, inB.dx, inB.dy, inX, top),
-          curve);
+      canvas.drawPath(_fadeInPath(selected, top, bottom), curve);
     if (fadeOut > 0)
-      canvas.drawPath(
-          Path()
-            ..moveTo(outX, top)
-            ..cubicTo(
-                outA.dx, outA.dy, outB.dx, outB.dy, selected.right, bottom),
-          curve);
+      canvas.drawPath(_fadeOutPath(selected, top, bottom), curve);
     final handle = Paint()..color = const Color(0xffb5a7ff);
-    final guides = Paint()
-      ..color = const Color(0x66b5a7ff)
-      ..strokeWidth = 2;
-    if (fadeToolActive && fadeIn > 0) {
-      canvas.drawLine(Offset(selected.left, bottom), inA, guides);
-      canvas.drawLine(Offset(inX, top), inB, guides);
-      canvas.drawCircle(
-          inA,
-          9,
-          handle
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 3);
-      canvas.drawCircle(inB, 9, handle);
-    }
-    if (fadeToolActive && fadeOut > 0) {
-      canvas.drawLine(Offset(outX, top), outA, guides);
-      canvas.drawLine(Offset(selected.right, bottom), outB, guides);
-      canvas.drawCircle(
-          outA,
-          9,
-          handle
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 3);
-      canvas.drawCircle(outB, 9, handle);
-    }
     if (fadeToolActive) {
       handle.style = PaintingStyle.fill;
       canvas.drawCircle(Offset(inX, top), 11, handle);

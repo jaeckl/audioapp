@@ -206,17 +206,15 @@ void mixSampleRegionsBlock(float* monoOut,
                 region.pcm[index] * (1.0f - frac) + region.pcm[next] * frac;
             const double edgePhase = std::clamp(progress, 0.0, 1.0);
             float envelope = 1.0f;
-            const auto cubicFade = [](double value, double curve) {
+            const auto fadeShape = [](double value, double curve) {
                 const double t = std::clamp(value, 0.0, 1.0);
-                const double bend = std::clamp(curve, 0.0, 1.0);
-                const double control1 = bend;
-                const double control2 = 1.0 - bend;
-                const double inv = 1.0 - t;
-                return 3.0 * inv * inv * t * control1 +
-                       3.0 * inv * t * t * control2 + t * t * t;
+                if (curve < 0.165) return t;             // Linear
+                if (curve < 0.495) return t * t;         // Quadratic
+                if (curve < 0.83) return t * t * t;      // Cubic
+                return t * t * (3.0 - 2.0 * t);          // Smooth
             };
-            if (region.fadeIn > 0.0f) envelope *= static_cast<float>(cubicFade(edgePhase / region.fadeIn, region.fadeInCurve));
-            if (region.fadeOut > 0.0f) envelope *= static_cast<float>(cubicFade((1.0 - edgePhase) / region.fadeOut, region.fadeOutCurve));
+            if (region.fadeIn > 0.0f) envelope *= static_cast<float>(fadeShape(edgePhase / region.fadeIn, region.fadeInCurve));
+            if (region.fadeOut > 0.0f) envelope *= static_cast<float>(fadeShape((1.0 - edgePhase) / region.fadeOut, region.fadeOutCurve));
             mix += sample * region.gain * envelope;
         }
         monoOut[frame] += mix;
