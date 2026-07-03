@@ -738,6 +738,72 @@ std::string EngineHost::importWavSample(const std::string& displayName,
     return id;
 }
 
+EngineHost::AudioRecordingSession EngineHost::beginAudioRecordingSession(
+    const std::string& trackId,
+    double startBeat,
+    double sampleRate,
+    const std::string& displayName) {
+    ensureSampleBankReady();
+    if (trackId.empty() || sampleRate <= 0.0 || project_->isTrackFrozen(trackId)) {
+        return {};
+    }
+    const std::string sampleId = "sample_recording_" + std::to_string(nextRecordingSampleNum_++);
+    const std::string name = displayName.empty() ? "Recorded take" : displayName;
+    if (!sampleBank_.createRecordingSample(sampleId, name, sampleRate)) {
+        return {};
+    }
+    const std::string clipId = project_->createSampleClip(trackId, sampleId, startBeat, 0.25);
+    if (clipId.empty()) {
+        sampleBank_.removeSample(sampleId);
+        return {};
+    }
+    return {sampleId, clipId};
+}
+
+bool EngineHost::appendAudioRecordingPcm(const std::string& sampleId,
+                                         const std::string& clipId,
+                                         const std::vector<float>& pcm) {
+    if (sampleId.empty() || clipId.empty() || pcm.empty()) {
+        return false;
+    }
+    if (!sampleBank_.appendPcmToSample(sampleId, pcm.data(), static_cast<int>(pcm.size()))) {
+        return false;
+    }
+    const auto* sample = sampleBank_.findSample(sampleId);
+    if (sample == nullptr || sample->sampleRate <= 0.0) {
+        return false;
+    }
+    const double lengthBeats = (static_cast<double>(sample->pcm.size()) / sample->sampleRate) *
+        static_cast<double>(project_->bpm()) / 60.0;
+    return project_->updateSampleClipRecordedLength(clipId, lengthBeats);
+}
+
+bool EngineHost::finishAudioRecordingSession(const std::string& sampleId,
+                                             const std::string& clipId) {
+    if (sampleId.empty() || clipId.empty()) {
+        return false;
+    }
+    const auto* sample = sampleBank_.findSample(sampleId);
+    if (sample == nullptr || sample->pcm.empty()) {
+        return false;
+    }
+    const double lengthBeats = (static_cast<double>(sample->pcm.size()) / sample->sampleRate) *
+        static_cast<double>(project_->bpm()) / 60.0;
+    return project_->updateSampleClipRecordedLength(clipId, lengthBeats);
+}
+
+bool EngineHost::cancelAudioRecordingSession(const std::string& sampleId,
+                                             const std::string& clipId) {
+    bool ok = true;
+    if (!clipId.empty()) {
+        ok = project_->deleteClip(clipId) && ok;
+    }
+    if (!sampleId.empty()) {
+        ok = sampleBank_.removeSample(sampleId) && ok;
+    }
+    return ok;
+}
+
 bool EngineHost::registerDemoWavSample(const std::string& id,
                                        const std::string& displayName,
                                        const std::vector<uint8_t>& wavBytes) {
@@ -1409,6 +1475,43 @@ void EngineHost::registerAllCommands() {
             return commands::errorResult("track_frozen");
         if (ctx.engine.createSampleClip(trackId, sampleId, startBeat, lengthBeats).empty())
             return commands::errorResult("sample_clip_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("beginAudioRecordingSession", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto trackId = ctx.args["trackId"].toString().toStdString();
+        const double startBeat = static_cast<double>(ctx.args["startBeat"]);
+        const double sampleRate = static_cast<double>(ctx.args["sampleRate"]);
+        const auto displayName = ctx.args["displayName"].toString().toStdString();
+        auto session = ctx.engine.beginAudioRecordingSession(trackId, startBeat, sampleRate, displayName);
+        if (session.sampleId.empty() || session.clipId.empty())
+            return commands::errorResult("recording_session_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        auto* obj = new juce::DynamicObject();
+        obj->setProperty("ok", true);
+        obj->setProperty("sampleId", juce::String(session.sampleId));
+        obj->setProperty("clipId", juce::String(session.clipId));
+        auto* delta = new juce::DynamicObject();
+        delta->setProperty("fullRefresh", true);
+        delta->setProperty("fullSnapshot", snap);
+        obj->setProperty("delta", juce::var(delta));
+        return commands::rawResult(juce::JSON::toString(juce::var(obj), false).toStdString());
+    });
+
+    reg.registerCommand("finishAudioRecordingSession", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto sampleId = ctx.args["sampleId"].toString().toStdString();
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        if (!ctx.engine.finishAudioRecordingSession(sampleId, clipId))
+            return commands::errorResult("recording_finish_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("cancelAudioRecordingSession", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto sampleId = ctx.args["sampleId"].toString().toStdString();
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        ctx.engine.cancelAudioRecordingSession(sampleId, clipId);
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
         return commands::okWithFullRefresh(snap);
     });

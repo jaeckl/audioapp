@@ -378,6 +378,9 @@ class TransportBar extends StatelessWidget {
     required this.loopRegionStartBeat,
     required this.loopRegionEndBeat,
     required this.recordArmed,
+    this.recordingActive = false,
+    this.recordingStartBeat = 0,
+    this.recordingInputLevel = 0,
     required this.followPlayheadEnabled,
     required this.followPlayheadSuspended,
     this.selectedTrackName,
@@ -387,6 +390,8 @@ class TransportBar extends StatelessWidget {
     this.onJumpToStart,
     this.onBpmChanged,
     this.onLoopToggled,
+    this.onRecordArmedChanged,
+    this.onCancelRecording,
     this.onFollowPlayheadToggled,
     this.onExportMix,
     this.snapClipsEnabled = true,
@@ -408,6 +413,9 @@ class TransportBar extends StatelessWidget {
   final double loopRegionStartBeat;
   final double loopRegionEndBeat;
   final bool recordArmed;
+  final bool recordingActive;
+  final double recordingStartBeat;
+  final double recordingInputLevel;
   final bool followPlayheadEnabled;
   final bool followPlayheadSuspended;
   final String? selectedTrackName;
@@ -417,6 +425,8 @@ class TransportBar extends StatelessWidget {
   final VoidCallback? onJumpToStart;
   final ValueChanged<int>? onBpmChanged;
   final ValueChanged<bool>? onLoopToggled;
+  final ValueChanged<bool>? onRecordArmedChanged;
+  final VoidCallback? onCancelRecording;
   final ValueChanged<bool>? onFollowPlayheadToggled;
   final VoidCallback? onExportMix;
   final bool snapClipsEnabled;
@@ -445,6 +455,12 @@ class TransportBar extends StatelessWidget {
         : (followPlayheadEnabled
             ? 'Follow on — tap to disable'
             : 'Follow off — tap to enable');
+    final recordingBeats = recordingActive
+        ? (playheadBeats - recordingStartBeat).clamp(0.0, double.infinity)
+        : 0.0;
+    final recordingLabel = recordingActive
+        ? 'REC ${TransportPositionFormat.elapsedClock(recordingBeats, bpm)}'
+        : null;
 
     return Container(
       width: double.infinity,
@@ -472,14 +488,20 @@ class TransportBar extends StatelessWidget {
                   onJumpToStart: onJumpToStart,
                   positionPrimary: positionPrimary,
                   positionSecondary: positionSecondary,
+                  recordingLabel: recordingLabel,
+                  recordingTrackName: selectedTrackName,
+                  recordingInputLevel: recordingInputLevel,
                   loopEnabled: loopEnabled,
                   recordArmed: recordArmed,
+                  recordingActive: recordingActive,
                   followActive:
                       followPlayheadEnabled && !followPlayheadSuspended,
                   followEnabled: followPlayheadEnabled,
                   loopTooltip: loopTooltip,
                   followTooltip: followTooltip,
                   onLoopToggled: onLoopToggled,
+                  onRecordArmedChanged: onRecordArmedChanged,
+                  onCancelRecording: onCancelRecording,
                   onFollowPlayheadToggled: onFollowPlayheadToggled,
                 ),
               ),
@@ -519,6 +541,9 @@ class TransportBar extends StatelessWidget {
     required double loopRegionStartBeat,
     required double loopRegionEndBeat,
     required bool recordArmed,
+    bool recordingActive = false,
+    double recordingStartBeat = 0,
+    double recordingInputLevel = 0,
     bool followPlayheadEnabled = true,
     bool followPlayheadSuspended = false,
     String? selectedTrackName,
@@ -528,6 +553,8 @@ class TransportBar extends StatelessWidget {
     VoidCallback? onJumpToStart,
     ValueChanged<int>? onBpmChanged,
     ValueChanged<bool>? onLoopToggled,
+    ValueChanged<bool>? onRecordArmedChanged,
+    VoidCallback? onCancelRecording,
     ValueChanged<bool>? onFollowPlayheadToggled,
     VoidCallback? onExportMix,
     bool snapClipsEnabled = true,
@@ -552,6 +579,9 @@ class TransportBar extends StatelessWidget {
         loopRegionStartBeat: loopRegionStartBeat,
         loopRegionEndBeat: loopRegionEndBeat,
         recordArmed: recordArmed,
+        recordingActive: recordingActive,
+        recordingStartBeat: recordingStartBeat,
+        recordingInputLevel: recordingInputLevel,
         followPlayheadEnabled: followPlayheadEnabled,
         followPlayheadSuspended: followPlayheadSuspended,
         selectedTrackName: selectedTrackName,
@@ -561,6 +591,8 @@ class TransportBar extends StatelessWidget {
         onJumpToStart: onJumpToStart,
         onBpmChanged: onBpmChanged,
         onLoopToggled: onLoopToggled,
+        onRecordArmedChanged: onRecordArmedChanged,
+        onCancelRecording: onCancelRecording,
         onFollowPlayheadToggled: onFollowPlayheadToggled,
         onExportMix: onExportMix,
         snapClipsEnabled: snapClipsEnabled,
@@ -583,8 +615,12 @@ class _PositionPanel extends StatelessWidget {
     required this.playing,
     required this.positionPrimary,
     required this.positionSecondary,
+    this.recordingLabel,
+    this.recordingTrackName,
+    this.recordingInputLevel = 0,
     required this.loopEnabled,
     required this.recordArmed,
+    required this.recordingActive,
     required this.followActive,
     required this.followEnabled,
     required this.loopTooltip,
@@ -593,14 +629,20 @@ class _PositionPanel extends StatelessWidget {
     this.onStop,
     this.onJumpToStart,
     this.onLoopToggled,
+    this.onRecordArmedChanged,
+    this.onCancelRecording,
     this.onFollowPlayheadToggled,
   });
 
   final bool playing;
   final String positionPrimary;
   final String positionSecondary;
+  final String? recordingLabel;
+  final String? recordingTrackName;
+  final double recordingInputLevel;
   final bool loopEnabled;
   final bool recordArmed;
+  final bool recordingActive;
   final bool followActive;
   final bool followEnabled;
   final String loopTooltip;
@@ -609,6 +651,8 @@ class _PositionPanel extends StatelessWidget {
   final VoidCallback? onStop;
   final VoidCallback? onJumpToStart;
   final ValueChanged<bool>? onLoopToggled;
+  final ValueChanged<bool>? onRecordArmedChanged;
+  final VoidCallback? onCancelRecording;
   final ValueChanged<bool>? onFollowPlayheadToggled;
 
   @override
@@ -631,11 +675,14 @@ class _PositionPanel extends StatelessWidget {
               child: _StatusIconColumn(
                 loopEnabled: loopEnabled,
                 recordArmed: recordArmed,
+                recordingActive: recordingActive,
                 followActive: followActive,
                 followEnabled: followEnabled,
                 loopTooltip: loopTooltip,
                 followTooltip: followTooltip,
                 onLoopToggled: onLoopToggled,
+                onRecordArmedChanged: onRecordArmedChanged,
+                onCancelRecording: onCancelRecording,
                 onFollowPlayheadToggled: onFollowPlayheadToggled,
               ),
             ),
@@ -672,12 +719,14 @@ class _PositionPanel extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              positionPrimary,
+                              recordingLabel ?? positionPrimary,
                               style: Theme.of(context)
                                   .textTheme
                                   .labelLarge
                                   ?.copyWith(
-                                    color: TransportBarTheme.textPrimary,
+                                    color: recordingActive
+                                        ? TransportBarTheme.accentRecord
+                                        : TransportBarTheme.textPrimary,
                                     fontFamily: 'monospace',
                                     fontWeight: FontWeight.w600,
                                     fontSize: 13,
@@ -685,7 +734,9 @@ class _PositionPanel extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              positionSecondary,
+                              recordingActive
+                                  ? (recordingTrackName ?? 'Recording')
+                                  : positionSecondary,
                               style: Theme.of(context)
                                   .textTheme
                                   .labelSmall
@@ -696,6 +747,21 @@ class _PositionPanel extends StatelessWidget {
                             ),
                           ],
                         ),
+                        if (recordingActive) ...[
+                          const SizedBox(height: 3),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(2),
+                            child: LinearProgressIndicator(
+                              minHeight: 3,
+                              value: recordingInputLevel.clamp(0.0, 1.0),
+                              backgroundColor:
+                                  Colors.white.withValues(alpha: 0.08),
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                TransportBarTheme.accentRecord,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -784,21 +850,27 @@ class _StatusIconColumn extends StatelessWidget {
   const _StatusIconColumn({
     required this.loopEnabled,
     required this.recordArmed,
+    required this.recordingActive,
     required this.followActive,
     required this.followEnabled,
     required this.loopTooltip,
     required this.followTooltip,
     this.onLoopToggled,
+    this.onRecordArmedChanged,
+    this.onCancelRecording,
     this.onFollowPlayheadToggled,
   });
 
   final bool loopEnabled;
   final bool recordArmed;
+  final bool recordingActive;
   final bool followActive;
   final bool followEnabled;
   final String loopTooltip;
   final String followTooltip;
   final ValueChanged<bool>? onLoopToggled;
+  final ValueChanged<bool>? onRecordArmedChanged;
+  final VoidCallback? onCancelRecording;
   final ValueChanged<bool>? onFollowPlayheadToggled;
 
   @override
@@ -811,12 +883,26 @@ class _StatusIconColumn extends StatelessWidget {
         onTap:
             onLoopToggled == null ? null : () => onLoopToggled!(!loopEnabled),
       ),
-      if (recordArmed)
-        const _StatusIconButton(
-          icon: Icons.fiber_manual_record,
-          tooltip: 'Record armed',
-          accent: TransportBarTheme.accentRecord,
-        ),
+      _StatusIconButton(
+        icon: recordingActive
+            ? Icons.cancel_rounded
+            : recordArmed
+                ? Icons.fiber_manual_record
+                : Icons.radio_button_unchecked,
+        tooltip: recordingActive
+            ? 'Cancel recording'
+            : recordArmed
+                ? 'Record armed — tap to disarm'
+                : 'Arm selected track',
+        accent: recordArmed || recordingActive
+            ? TransportBarTheme.accentRecord
+            : null,
+        onTap: recordingActive
+            ? onCancelRecording
+            : onRecordArmedChanged == null
+                ? null
+                : () => onRecordArmedChanged!(!recordArmed),
+      ),
       _StatusIconButton(
         icon: followEnabled ? Icons.my_location : Icons.location_searching,
         tooltip: followTooltip,

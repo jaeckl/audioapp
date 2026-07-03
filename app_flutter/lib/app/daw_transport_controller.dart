@@ -38,6 +38,8 @@ class DawTransportController extends ChangeNotifier {
   bool _transportSyncInFlight = false;
   bool _transportSyncPending = false;
   bool _transportCommandInFlight = false;
+  bool _holdPlayheadForCountIn = false;
+  double _countInStartBeat = 0;
 
   ValueNotifier<double> get playheadNotifier => playheadBeats;
 
@@ -70,6 +72,14 @@ class DawTransportController extends ChangeNotifier {
   }
 
   void publishSyncedPlayhead({TransportState? transport}) {
+    if (_holdPlayheadForCountIn) {
+      if (transport == null ||
+          transport.playheadBeats <= _countInStartBeat + 0.001) {
+        publishPlayhead(_countInStartBeat);
+        return;
+      }
+      _holdPlayheadForCountIn = false;
+    }
     if (playing) {
       publishPlayhead(extrapolatePlayheadBeats());
       return;
@@ -118,11 +128,14 @@ class DawTransportController extends ChangeNotifier {
     stopPlayheadAnimation();
     _playheadTicker = _vsync.createTicker((_) {
       if (playing) {
-        publishPlayhead(extrapolatePlayheadBeats());
+        publishPlayhead(_holdPlayheadForCountIn
+            ? _countInStartBeat
+            : extrapolatePlayheadBeats());
       }
-    })..start();
-    _transportSyncTimer = Timer.periodic(
-        const Duration(milliseconds: 250), (_) {
+    })
+      ..start();
+    _transportSyncTimer =
+        Timer.periodic(const Duration(milliseconds: 250), (_) {
       unawaited(syncTransportState());
     });
     unawaited(syncTransportState());
@@ -135,6 +148,12 @@ class DawTransportController extends ChangeNotifier {
     _transportSyncTimer?.cancel();
     _transportSyncTimer = null;
     _stopwatch.stop();
+  }
+
+  void holdPlayheadForCountIn(double startBeat) {
+    _holdPlayheadForCountIn = true;
+    _countInStartBeat = startBeat;
+    publishPlayhead(startBeat);
   }
 
   void syncTransportAnchorFromSnapshot(
@@ -154,7 +173,8 @@ class DawTransportController extends ChangeNotifier {
   /// Callback for external meter refresh logic.
   VoidCallback? onMeterRefreshNeeded;
 
-  Future<void> startPlay(double startBeat) async {
+  Future<void> startPlay(double startBeat,
+      {bool holdForCountIn = false}) async {
     if (playing || _transportCommandInFlight) return;
     _transportCommandInFlight = true;
     try {
@@ -165,6 +185,11 @@ class DawTransportController extends ChangeNotifier {
       publishPlayhead(startBeat);
       await _bridge.setPlayheadBeats(startBeat);
       await _bridge.play();
+      if (holdForCountIn) {
+        holdPlayheadForCountIn(startBeat);
+      } else {
+        _holdPlayheadForCountIn = false;
+      }
       playing = true;
       notifyListeners();
       startPlayheadAnimation();
@@ -177,6 +202,7 @@ class DawTransportController extends ChangeNotifier {
     if (!playing || _transportCommandInFlight) return;
     _transportCommandInFlight = true;
     stopPlayheadAnimation();
+    _holdPlayheadForCountIn = false;
     playing = false;
     notifyListeners();
     try {
@@ -202,6 +228,7 @@ class DawTransportController extends ChangeNotifier {
   /// Set playhead beats and optionally sync with engine.
   Future<void> setPlayheadBeats(double beats) async {
     try {
+      _holdPlayheadForCountIn = false;
       _syncPlayheadBeats = beats;
       _stopwatch
         ..reset()

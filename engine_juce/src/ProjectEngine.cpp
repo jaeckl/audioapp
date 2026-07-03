@@ -740,6 +740,15 @@ bool ProjectEngine::setSampleClipSlices(const std::string& clipId,
     return true;
 }
 
+bool ProjectEngine::updateSampleClipRecordedLength(const std::string& clipId,
+                                                   double lengthBeats) {
+    const juce::ScopedWriteLock lock(mutex_);
+    if (!clipRepo_.updateSampleClipRecordedLength(clipId, lengthBeats)) return false;
+    rebuildTrackPlaybackLocked();
+    syncProjectTreeLocked();
+    return true;
+}
+
 std::string ProjectEngine::exportSampleClipSlices(const std::string& clipId, int firstNote) {
     const juce::ScopedWriteLock lock(mutex_);
     Track* owner = nullptr;
@@ -820,6 +829,10 @@ bool ProjectEngine::setBpm(int bpm) {
             rebuildTrackPlaybackLocked();
         }).release());
     return true;
+}
+
+int ProjectEngine::bpm() const noexcept {
+    return transport_.bpm();
 }
 
 void ProjectEngine::setMetronome(bool enabled, float level, int countInBars) noexcept {

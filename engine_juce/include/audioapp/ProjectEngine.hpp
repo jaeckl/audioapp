@@ -172,8 +172,10 @@ public:
                                  float fadeOutCurve, bool reversed);
     bool setSampleClipWarp(const std::string& clipId, bool warpRepitch);
     bool setSampleClipSlices(const std::string& clipId, const std::vector<float>& markers);
+    bool updateSampleClipRecordedLength(const std::string& clipId, double lengthBeats);
     std::string exportSampleClipSlices(const std::string& clipId, int firstNote);
     bool setBpm(int bpm);
+    int bpm() const noexcept;
     void setMetronome(bool enabled, float level, int countInBars) noexcept;
     bool deleteTrack(const std::string& trackId);
     bool deleteClip(const std::string& clipId);
@@ -251,7 +253,9 @@ public:
                              double sampleRate,
                              double playheadStartBeat) noexcept;
 
-    void setSampleBank(const SampleBank* bank) { sampleBank_ = bank; }
+    void setSampleBank(SampleBank* bank) { sampleBank_ = bank; }
+    const SampleBank* sampleBank() const noexcept { return sampleBank_; }
+    SampleBank* sampleBank() noexcept { return sampleBank_; }
     void setWavetableBank(const WavetableBank* bank) { wavetableBank_ = bank; }
     void setFreezeAssetStore(const TrackFreezeAssetStore* store) { freezeAssetStore_ = store; }
 
@@ -444,7 +448,7 @@ private:
 
     void reconcileTrackFreezeStaleLocked();
     void markDeviceOwnerFreezeStaleLocked(const std::string& deviceId);
-    const SampleBank* sampleBank_ = nullptr;
+    SampleBank* sampleBank_ = nullptr;
     const WavetableBank* wavetableBank_ = nullptr;
     const TrackFreezeAssetStore* freezeAssetStore_ = nullptr;
 

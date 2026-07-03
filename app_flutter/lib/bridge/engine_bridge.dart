@@ -29,6 +29,18 @@ class RecentProjectEntry {
       );
 }
 
+class AudioRecordingSession {
+  const AudioRecordingSession({
+    required this.snapshot,
+    required this.sampleId,
+    required this.clipId,
+  });
+
+  final ProjectSnapshot snapshot;
+  final String sampleId;
+  final String clipId;
+}
+
 /// Flutter ↔ native engine bridge (MethodChannel + EventChannels).
 class EngineBridge {
   EngineBridge({MethodChannel? channel, EventChannel? metersChannel})
@@ -803,6 +815,91 @@ class EngineBridge {
     return ProjectSnapshot.fromMap(result);
   }
 
+  Future<AudioRecordingSession> beginAudioRecordingSession({
+    required String trackId,
+    required double startBeat,
+    required double sampleRate,
+    required String displayName,
+  }) async {
+    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
+      'beginAudioRecordingSession',
+      {
+        'trackId': trackId,
+        'startBeat': startBeat,
+        'sampleRate': sampleRate,
+        'displayName': displayName,
+      },
+    );
+    if (result == null || result['ok'] != true) {
+      throw PlatformException(
+        code: result?['error']?.toString() ?? 'recording_session_failed',
+        message: 'Failed to begin audio recording session',
+      );
+    }
+    return AudioRecordingSession(
+      snapshot: _snapshotFromResult(result),
+      sampleId: result['sampleId'] as String? ?? '',
+      clipId: result['clipId'] as String? ?? '',
+    );
+  }
+
+  Future<void> startTrackAudioRecording({
+    required String sampleId,
+    required String clipId,
+  }) async {
+    await _channel.invokeMethod<Map<dynamic, dynamic>>(
+      'startTrackAudioRecording',
+      {
+        'sampleId': sampleId,
+        'clipId': clipId,
+      },
+    );
+  }
+
+  Future<void> stopTrackAudioRecording() async {
+    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
+      'stopTrackAudioRecording',
+    );
+    if (result == null || result['ok'] != true) {
+      throw PlatformException(
+        code: result?['error']?.toString() ?? 'recording_failed',
+        message: 'Failed to stop audio recording',
+      );
+    }
+  }
+
+  Future<void> cancelTrackAudioRecording() async {
+    await _channel.invokeMethod<Map<dynamic, dynamic>>(
+      'cancelTrackAudioRecording',
+    );
+  }
+
+  Future<double> getTrackAudioRecordingLevel() async {
+    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
+      'getTrackAudioRecordingLevel',
+    );
+    if (result == null || result['ok'] != true) return 0;
+    return (result['level'] as num?)?.toDouble().clamp(0.0, 1.0) ?? 0;
+  }
+
+  Future<ProjectSnapshot> finishAudioRecordingSession({
+    required String sampleId,
+    required String clipId,
+  }) =>
+      _invokeForSnapshot('finishAudioRecordingSession', {
+        'sampleId': sampleId,
+        'clipId': clipId,
+      });
+
+  Future<ProjectSnapshot> cancelAudioRecordingSession({
+    required String sampleId,
+    required String clipId,
+  }) =>
+      _invokeForSnapshot('cancelAudioRecordingSession', {
+        'sampleId': sampleId,
+        'clipId': clipId,
+      });
+
   Future<ProjectSnapshot> registerDemoSample({
     required String id,
     required String name,
@@ -902,7 +999,10 @@ class EngineBridge {
         message: 'Engine command failed: $method',
       );
     }
-    // Parse deltaXml into result['delta'] if present (XML bridge transport).
+    return _snapshotFromResult(result);
+  }
+
+  ProjectSnapshot _snapshotFromResult(Map<dynamic, dynamic> result) {
     final deltaXml = result['deltaXml'] as String?;
     if (deltaXml != null && deltaXml.isNotEmpty) {
       result['delta'] = parseDeltaXml(deltaXml);

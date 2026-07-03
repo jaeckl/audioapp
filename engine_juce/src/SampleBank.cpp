@@ -179,6 +179,54 @@ bool SampleBank::loadFromWavBytes(const std::string& id,
     return upsertSample(std::move(sample));
 }
 
+bool SampleBank::createRecordingSample(const std::string& id,
+                                       const std::string& name,
+                                       double sampleRate) {
+    if (id.empty() || sampleRate <= 0.0) {
+        return false;
+    }
+    Sample sample;
+    sample.id = id;
+    sample.name = name.empty() ? "Recording" : name;
+    sample.source = "recording";
+    sample.sampleRate = sampleRate;
+    sample.pcm.reserve(static_cast<size_t>(sampleRate * 120.0));
+    sample.peaks = {};
+
+    const juce::ScopedLock lock(mutex_);
+    return upsertSample(std::move(sample));
+}
+
+bool SampleBank::appendPcmToSample(const std::string& id,
+                                   const float* pcm,
+                                   int frameCount) {
+    if (id.empty() || pcm == nullptr || frameCount <= 0) {
+        return false;
+    }
+    const juce::ScopedLock lock(mutex_);
+    for (auto& sample : samples_) {
+        if (sample.id != id) {
+            continue;
+        }
+        const auto oldSize = sample.pcm.size();
+        sample.pcm.resize(oldSize + static_cast<size_t>(frameCount));
+        std::copy(pcm, pcm + frameCount, sample.pcm.data() + oldSize);
+        sample.peaks = computePeaks(sample.pcm.data(), static_cast<int>(sample.pcm.size()), kPeakBinCount);
+        return true;
+    }
+    return false;
+}
+
+bool SampleBank::removeSample(const std::string& id) {
+    const juce::ScopedLock lock(mutex_);
+    const auto oldSize = samples_.size();
+    samples_.erase(std::remove_if(samples_.begin(),
+                                  samples_.end(),
+                                  [&](const Sample& sample) { return sample.id == id; }),
+                   samples_.end());
+    return samples_.size() != oldSize;
+}
+
 const SampleBank::Sample* SampleBank::findSample(const std::string& id) const {
     const juce::ScopedLock lock(mutex_);
     for (const auto& sample : samples_) {
@@ -194,6 +242,11 @@ std::vector<SampleBank::Sample> SampleBank::listSamples() const {
     return samples_;
 }
 
+int SampleBank::frameCountForSample(const std::string& id) const {
+    const auto* sample = findSample(id);
+    return sample == nullptr ? 0 : static_cast<int>(sample->pcm.size());
+}
+
 double SampleBank::beatsForSample(const std::string& id, int bpm) const {
     const auto* sample = findSample(id);
     if (sample == nullptr || sample->pcm.empty() || bpm <= 0) {
@@ -207,7 +260,10 @@ void SampleBank::clearImported() {
     const juce::ScopedLock lock(mutex_);
     samples_.erase(std::remove_if(samples_.begin(),
                                   samples_.end(),
-                                  [](const Sample& sample) { return sample.source == "imported"; }),
+                                  [](const Sample& sample) {
+                                      return sample.source == "imported" ||
+                                          sample.source == "recording";
+                                  }),
                    samples_.end());
 }
 

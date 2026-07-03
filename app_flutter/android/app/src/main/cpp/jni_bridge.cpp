@@ -43,6 +43,19 @@ std::vector<uint8_t> jbyteArrayToVector(JNIEnv* env, jbyteArray array) {
     return bytes;
 }
 
+std::vector<float> jfloatArrayToVector(JNIEnv* env, jfloatArray array) {
+    if (array == nullptr) {
+        return {};
+    }
+    const auto length = env->GetArrayLength(array);
+    if (length <= 0) {
+        return {};
+    }
+    std::vector<float> values(static_cast<size_t>(length));
+    env->GetFloatArrayRegion(array, 0, length, values.data());
+    return values;
+}
+
 } // namespace
 
 extern "C" JNIEXPORT jstring JNICALL
@@ -114,6 +127,18 @@ Java_com_audioapp_daw_MainActivity_nativeImportWavSample(JNIEnv* env,
     const auto bytes = jbyteArrayToVector(env, wavBytes);
     const auto response = bridge().importWavSample(name, bytes);
     return env->NewStringUTF(response.c_str());
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_audioapp_daw_MainActivity_nativeAppendAudioRecordingPcm(JNIEnv* env,
+                                                                 jobject /*thiz*/,
+                                                                 jstring sampleId,
+                                                                 jstring clipId,
+                                                                 jfloatArray pcm) {
+    const auto sample = jstringToUtf8(env, sampleId);
+    const auto clip = jstringToUtf8(env, clipId);
+    const auto frames = jfloatArrayToVector(env, pcm);
+    return bridge().appendAudioRecordingPcm(sample, clip, frames) ? JNI_TRUE : JNI_FALSE;
 }
 
 extern "C" JNIEXPORT jstring JNICALL

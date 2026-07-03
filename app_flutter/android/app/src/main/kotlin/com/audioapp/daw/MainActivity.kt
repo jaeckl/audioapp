@@ -1,7 +1,9 @@
 package com.audioapp.daw
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Bundle
@@ -11,6 +13,7 @@ import android.os.PowerManager
 import android.provider.DocumentsContract
 import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.flutter.embedding.android.FlutterFragmentActivity
@@ -30,6 +33,10 @@ class MainActivity : FlutterFragmentActivity() {
     private var wakeLock: PowerManager.WakeLock? = null
     private var pendingImportResult: MethodChannel.Result? = null
     private var pendingExportResult: MethodChannel.Result? = null
+    private var pendingRecordStartResult: MethodChannel.Result? = null
+    private var pendingRecordSampleId: String = ""
+    private var pendingRecordClipId: String = ""
+    private val audioRecorder = AudioSampleRecorder()
 
     private val createWavExport = registerForActivityResult(
         ActivityResultContracts.CreateDocument(WavEncoder.MIME_TYPE),
@@ -46,6 +53,23 @@ class MainActivity : FlutterFragmentActivity() {
     private val openAudioSample = registerForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { documentUri -> onImportSamplePicked(documentUri) }
+
+    private val requestRecordAudio = registerForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        val result = pendingRecordStartResult
+        val sampleId = pendingRecordSampleId
+        val clipId = pendingRecordClipId
+        pendingRecordStartResult = null
+        pendingRecordSampleId = ""
+        pendingRecordClipId = ""
+        if (result == null) return@registerForActivityResult
+        if (granted) {
+            startTrackAudioRecording(result, sampleId, clipId)
+        } else {
+            result.error("mic_permission_denied", "Microphone permission denied", null)
+        }
+    }
 
     private fun launchSaveArchivePicker(result: MethodChannel.Result) {
         if (pendingSaveResult != null || pendingLoadResult != null || pendingImportResult != null || pendingExportResult != null) {
@@ -112,6 +136,64 @@ class MainActivity : FlutterFragmentActivity() {
             Log.e(logTag, "Import sample failed", e)
             result.error("engine_error", e.message, null)
         }
+    }
+
+    private fun requestOrStartTrackAudioRecording(args: Map<*, *>?, result: MethodChannel.Result) {
+        val sampleId = args?.get("sampleId") as? String ?: ""
+        val clipId = args?.get("clipId") as? String ?: ""
+        if (sampleId.isBlank() || clipId.isBlank()) {
+            result.error("invalid_recording_session", "Recording session ids are missing", null)
+            return
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED) {
+            startTrackAudioRecording(result, sampleId, clipId)
+            return
+        }
+        if (pendingRecordStartResult != null) {
+            result.error("busy", "Recording permission request already active", null)
+            return
+        }
+        pendingRecordStartResult = result
+        pendingRecordSampleId = sampleId
+        pendingRecordClipId = clipId
+        requestRecordAudio.launch(Manifest.permission.RECORD_AUDIO)
+    }
+
+    private fun startTrackAudioRecording(result: MethodChannel.Result, sampleId: String, clipId: String) {
+        audioRecorder.start { chunk ->
+            nativeAppendAudioRecordingPcm(sampleId, clipId, chunk)
+        }
+        result.success(mapOf("ok" to true))
+    }
+
+    private fun stopTrackAudioRecording(result: MethodChannel.Result) {
+        val pcm = audioRecorder.stop()
+        result.success(
+            mapOf(
+                "ok" to true,
+                "durationSeconds" to pcm.size.toDouble() / AudioSampleRecorder.SAMPLE_RATE.toDouble(),
+            ),
+        )
+    }
+
+    private fun cancelTrackAudioRecording(result: MethodChannel.Result) {
+        audioRecorder.cancel()
+        result.success(mapOf("ok" to true))
+    }
+
+    private fun findSampleIdByName(map: Map<String, Any?>, displayName: String): String {
+        val snapshot = (map["snapshot"] as? Map<*, *>)
+            ?: ((map["delta"] as? Map<*, *>)?.get("fullSnapshot") as? Map<*, *>)
+            ?: return ""
+        val samples = snapshot["samples"] as? List<*> ?: return ""
+        for (sample in samples.asReversed()) {
+            val sampleMap = sample as? Map<*, *> ?: continue
+            if (sampleMap["name"] == displayName) {
+                return sampleMap["id"] as? String ?: ""
+            }
+        }
+        return ""
     }
 
     private fun onSaveArchivePicked(documentUri: Uri?) {
@@ -335,6 +417,12 @@ class MainActivity : FlutterFragmentActivity() {
                             }
                         }
                         "importSample" -> launchImportSamplePicker(result)
+                        "startTrackAudioRecording" -> requestOrStartTrackAudioRecording(call.arguments as? Map<*, *>, result)
+                        "stopTrackAudioRecording" -> stopTrackAudioRecording(result)
+                        "cancelTrackAudioRecording" -> cancelTrackAudioRecording(result)
+                        "getTrackAudioRecordingLevel" -> result.success(
+                            mapOf("ok" to true, "level" to audioRecorder.inputLevel()),
+                        )
                         "registerDemoSample" -> {
                             val args = call.arguments as? Map<*, *>
                             val id = args?.get("id") as? String
@@ -484,6 +572,7 @@ class MainActivity : FlutterFragmentActivity() {
     private external fun nativeLoadProjectArchiveBytes(archiveBytes: ByteArray): String
     private external fun nativeLoadProjectFileJson(projectJson: String): String
     private external fun nativeImportWavSample(displayName: String, wavBytes: ByteArray): String
+    private external fun nativeAppendAudioRecordingPcm(sampleId: String, clipId: String, pcm: FloatArray): Boolean
     private external fun nativeRegisterDemoWavSample(sampleId: String, displayName: String, wavBytes: ByteArray): String
     private external fun nativeLoadWavetableAsset(name: String, wavBytes: ByteArray): Boolean
     private external fun nativeRenderOffline(lengthBeats: Double): FloatArray

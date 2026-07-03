@@ -98,6 +98,21 @@ public:
     bool setSampleClipWarp(const std::string& clipId, bool warpRepitch);
     bool setSampleClipSlices(const std::string& clipId, const std::vector<float>& markers);
     std::string exportSampleClipSlices(const std::string& clipId, int firstNote);
+    struct AudioRecordingSession {
+        std::string sampleId;
+        std::string clipId;
+    };
+    AudioRecordingSession beginAudioRecordingSession(const std::string& trackId,
+                                                     double startBeat,
+                                                     double sampleRate,
+                                                     const std::string& displayName);
+    bool appendAudioRecordingPcm(const std::string& sampleId,
+                                 const std::string& clipId,
+                                 const std::vector<float>& pcm);
+    bool finishAudioRecordingSession(const std::string& sampleId,
+                                     const std::string& clipId);
+    bool cancelAudioRecordingSession(const std::string& sampleId,
+                                     const std::string& clipId);
     /// arrangement view. The target device is set later via
     /// `assignAutomationTarget` and may live on any track.
     std::string createAutomationClip(const std::string& trackId,
@@ -215,6 +230,7 @@ private:
     WavetableBank wavetableBank_;
     TrackFreezeAssetStore freezeAssetStore_;
     int nextImportSampleNum_ = 1;
+    int nextRecordingSampleNum_ = 1;
     commands::CommandRegistry commandRegistry_;
 
     struct PreviewVoice {

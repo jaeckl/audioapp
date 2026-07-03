@@ -81,6 +81,7 @@ class ArrangementView extends StatefulWidget {
     this.onMoveTrack,
     this.onSetTrackMuted,
     this.onSetTrackSoloed,
+    this.onSetTrackRecordArmed,
     this.onToggleTrackFreeze,
     required this.onAddMidiClip,
     required this.onAddAudioClip,
@@ -99,6 +100,7 @@ class ArrangementView extends StatefulWidget {
     this.onSetClipLoopContent,
     this.onAddAutomationClip,
     this.automationLinkClipId,
+    this.highlightedClipId,
     this.onAutomationLinkToggle,
     this.onAutomationClipDoubleTap,
     this.focusTrackId,
@@ -137,6 +139,10 @@ class ArrangementView extends StatefulWidget {
   })? onSetTrackSoloed;
   final Future<void> Function({
     required String trackId,
+    required bool armed,
+  })? onSetTrackRecordArmed;
+  final Future<void> Function({
+    required String trackId,
     required bool enabled,
     required bool stale,
   })? onToggleTrackFreeze;
@@ -167,6 +173,7 @@ class ArrangementView extends StatefulWidget {
   })? onSetClipLoopContent;
   final void Function(String trackId, double startBeat)? onAddAutomationClip;
   final String? automationLinkClipId;
+  final String? highlightedClipId;
   final void Function(String clipId)? onAutomationLinkToggle;
   final void Function(String trackId, AutomationClipSnapshot clip)?
       onAutomationClipDoubleTap;
@@ -1697,6 +1704,7 @@ class ArrangementViewState extends State<ArrangementView> {
                           timelineEndBeat: _timelineEndBeat,
                           viewportWidthPx: viewportWidth,
                           draggingClipId: _clipDrag?.clipId,
+                          highlightedClipId: widget.highlightedClipId,
                           onClipTap: widget.onClipTap,
                           onSampleClipTap: widget.onSampleClipTap,
                           onClipDragStart: _startClipDrag,
@@ -1765,6 +1773,19 @@ class ArrangementViewState extends State<ArrangementView> {
                         : () => widget.onSetTrackSoloed!(
                               trackId: visibleTracks[i].id,
                               soloed: !visibleTracks[i].soloed,
+                            ),
+                    recordArmed: visibleTracks[i].id ==
+                            widget.snapshot.selectedTrackId &&
+                        widget.snapshot.recordArmed,
+                    onToggleRecordArmed: widget.onSetTrackRecordArmed == null ||
+                            visibleTracks[i].isGroup ||
+                            visibleTracks[i].freeze.enabled
+                        ? null
+                        : () => widget.onSetTrackRecordArmed!(
+                              trackId: visibleTracks[i].id,
+                              armed: !(visibleTracks[i].id ==
+                                      widget.snapshot.selectedTrackId &&
+                                  widget.snapshot.recordArmed),
                             ),
                     onToggleFreeze: widget.onToggleTrackFreeze == null ||
                             visibleTracks[i].isGroup
@@ -2387,8 +2408,10 @@ class _TrackHeader extends StatelessWidget {
     required this.showMixControls,
     required this.selected,
     required this.onTap,
+    this.recordArmed = false,
     this.onToggleMute,
     this.onToggleSolo,
+    this.onToggleRecordArmed,
     this.onToggleFreeze,
     this.enableDrag = false,
     this.onDragUpdate,
@@ -2403,8 +2426,10 @@ class _TrackHeader extends StatelessWidget {
   final bool showMixControls;
   final bool selected;
   final VoidCallback onTap;
+  final bool recordArmed;
   final VoidCallback? onToggleMute;
   final VoidCallback? onToggleSolo;
+  final VoidCallback? onToggleRecordArmed;
   final VoidCallback? onToggleFreeze;
   final bool enableDrag;
   final GestureDragUpdateCallback? onDragUpdate;
@@ -2480,6 +2505,15 @@ class _TrackHeader extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (onToggleRecordArmed != null) ...[
+                    TrackMixButton(
+                      label: 'R',
+                      active: recordArmed,
+                      onTap: onToggleRecordArmed!,
+                      color: Colors.redAccent,
+                    ),
+                    const SizedBox(width: 4),
+                  ],
                   if (onToggleSolo != null) ...[
                     TrackMixButton(
                       label: 'S',
@@ -2670,6 +2704,7 @@ class _TrackLane extends StatelessWidget {
     required this.timelineEndBeat,
     required this.viewportWidthPx,
     required this.draggingClipId,
+    this.highlightedClipId,
     required this.onClipTap,
     required this.onSampleClipTap,
     required this.onClipDragStart,
@@ -2696,6 +2731,7 @@ class _TrackLane extends StatelessWidget {
   final double timelineEndBeat;
   final double viewportWidthPx;
   final String? draggingClipId;
+  final String? highlightedClipId;
   final void Function(String trackId, MidiClipSnapshot clip) onClipTap;
   final void Function(String trackId, SampleClipSnapshot clip) onSampleClipTap;
   final void Function({
@@ -2887,7 +2923,8 @@ class _TrackLane extends StatelessWidget {
                     clip: previewLengthFor(clip.id) != null
                         ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!)
                         : clip,
-                    highlighted: draggingClipId == clip.id,
+                    highlighted: draggingClipId == clip.id ||
+                        highlightedClipId == clip.id,
                     onTap: () => onClipTap(track.id, clip),
                     onDoubleTap:
                         onClipMenu == null ? null : () => onClipMenu!(clip.id),

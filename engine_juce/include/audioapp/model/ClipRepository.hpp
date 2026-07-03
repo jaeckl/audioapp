@@ -45,6 +45,7 @@ public:
                                  float fadeOutCurve, bool reversed);
     bool setSampleClipWarp(const std::string& clipId, bool warpRepitch);
     bool setSampleClipSlices(const std::string& clipId, const std::vector<float>& markers);
+    bool updateSampleClipRecordedLength(const std::string& clipId, double lengthBeats);
     bool deleteClip(const std::string& clipId);
     bool duplicateClip(const std::string& clipId);
 

@@ -28,9 +28,17 @@ public:
                           const std::string& source,
                           const std::vector<uint8_t>& wavBytes,
                           int bpm);
+    bool createRecordingSample(const std::string& id,
+                               const std::string& name,
+                               double sampleRate);
+    bool appendPcmToSample(const std::string& id,
+                           const float* pcm,
+                           int frameCount);
+    bool removeSample(const std::string& id);
 
     const Sample* findSample(const std::string& id) const;
     std::vector<Sample> listSamples() const;
+    int frameCountForSample(const std::string& id) const;
 
     double beatsForSample(const std::string& id, int bpm) const;
 

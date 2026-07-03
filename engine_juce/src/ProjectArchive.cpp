@@ -1,6 +1,7 @@
 #include "audioapp/ProjectArchive.hpp"
 
 #include "audioapp/ProjectJson.hpp"
+#include "audioapp/SampleBank.hpp"
 #include "audioapp/TrackFreeze.hpp"
 #include "audioapp/TrackFreezeAssetStore.hpp"
 
@@ -20,6 +21,7 @@ constexpr uint32_t kZipCentralDirectorySignature = 0x02014b50;
 constexpr uint32_t kZipEndOfCentralDirectorySignature = 0x06054b50;
 constexpr uint16_t kZipCompressionStored = 0;
 constexpr const char* kFreezeAssetsDir = "assets/freeze/";
+constexpr const char* kSampleAssetsDir = "assets/samples/";
 
 uint32_t crc32Update(uint32_t crc, uint8_t byte) {
     crc ^= byte;
@@ -48,6 +50,37 @@ void writeU32(std::vector<uint8_t>& out, uint32_t value) {
     out.push_back(static_cast<uint8_t>((value >> 8) & 0xFF));
     out.push_back(static_cast<uint8_t>((value >> 16) & 0xFF));
     out.push_back(static_cast<uint8_t>((value >> 24) & 0xFF));
+}
+
+std::vector<uint8_t> encodeMonoWav16(const float* pcm, int frameCount, double sampleRate) {
+    if (pcm == nullptr || frameCount <= 0 || sampleRate <= 0.0) {
+        return {};
+    }
+    const uint32_t dataSize = static_cast<uint32_t>(frameCount * 2);
+    std::vector<uint8_t> out;
+    out.reserve(44 + dataSize);
+    const auto writeBytes = [&](const char* text) {
+        out.insert(out.end(), text, text + 4);
+    };
+    writeBytes("RIFF");
+    writeU32(out, 36 + dataSize);
+    writeBytes("WAVE");
+    writeBytes("fmt ");
+    writeU32(out, 16);
+    writeU16(out, 1);
+    writeU16(out, 1);
+    writeU32(out, static_cast<uint32_t>(sampleRate));
+    writeU32(out, static_cast<uint32_t>(sampleRate * 2.0));
+    writeU16(out, 2);
+    writeU16(out, 16);
+    writeBytes("data");
+    writeU32(out, dataSize);
+    for (int i = 0; i < frameCount; ++i) {
+        const float clamped = std::clamp(pcm[i], -1.0f, 1.0f);
+        const auto value = static_cast<int16_t>(clamped * 32767.0f);
+        writeU16(out, static_cast<uint16_t>(value));
+    }
+    return out;
 }
 
 struct ZipEntry {
@@ -223,12 +256,31 @@ bool writeAllBytes(const juce::File& file, const std::vector<uint8_t>& bytes) {
 }
 
 std::vector<ZipEntry> buildProjectArchiveEntries(const std::string& projectJson,
+                                                 const SampleBank* sampleBank,
                                                  const TrackFreezeAssetStore& freezeAssets) {
     std::vector<ZipEntry> entries;
     entries.push_back(ZipEntry{kProjectJsonEntryPath, projectJson, false});
-    entries.push_back(ZipEntry{"assets/samples/", {}, true});
+    entries.push_back(ZipEntry{kSampleAssetsDir, {}, true});
     entries.push_back(ZipEntry{kFreezeAssetsDir, {}, true});
     entries.push_back(ZipEntry{"metadata/", {}, true});
+
+    if (sampleBank != nullptr) {
+        for (const auto& sample : sampleBank->listSamples()) {
+            if ((sample.source != "imported" && sample.source != "recording") || sample.pcm.empty()) {
+                continue;
+            }
+            const auto wavBytes = encodeMonoWav16(
+                sample.pcm.data(), static_cast<int>(sample.pcm.size()), sample.sampleRate);
+            if (wavBytes.empty()) {
+                continue;
+            }
+            ZipEntry entry;
+            entry.name = std::string(kSampleAssetsDir) + sample.id + ".wav";
+            entry.data.assign(reinterpret_cast<const char*>(wavBytes.data()),
+                              reinterpret_cast<const char*>(wavBytes.data() + wavBytes.size()));
+            entries.push_back(std::move(entry));
+        }
+    }
 
     for (const auto& asset : freezeAssets.listAssets()) {
         const auto wavBytes = encodeFreezeAssetWav(asset);
@@ -273,6 +325,25 @@ bool loadFreezeAssetsFromArchiveEntries(const std::unordered_map<std::string, st
     return loadedAny;
 }
 
+void loadSampleAssetsFromArchiveEntries(const std::unordered_map<std::string, std::string>& entries,
+                                        const ProjectFileData& data,
+                                        SampleBank* sampleBank) {
+    if (sampleBank == nullptr) {
+        return;
+    }
+    for (const auto& entry : data.sampleLibrary) {
+        if (entry.source != "imported" && entry.source != "recording") {
+            continue;
+        }
+        const auto assetIt = entries.find(std::string(kSampleAssetsDir) + entry.id + ".wav");
+        if (assetIt == entries.end() || assetIt->second.empty()) {
+            continue;
+        }
+        const std::vector<uint8_t> wavBytes(assetIt->second.begin(), assetIt->second.end());
+        sampleBank->loadFromWavBytes(entry.id, entry.name, entry.source, wavBytes, data.bpm);
+    }
+}
+
 } // namespace
 
 std::vector<uint8_t> buildProjectArchiveBytes(const ProjectEngine& engine,
@@ -280,7 +351,7 @@ std::vector<uint8_t> buildProjectArchiveBytes(const ProjectEngine& engine,
     const auto fileData = engine.toProjectFileData();
     const std::string json = projectFileToJson(fileData, engine.deviceRegistry(),
                                                engine.modulatorTypes());
-    return buildArchiveBytes(buildProjectArchiveEntries(json, freezeAssets));
+    return buildArchiveBytes(buildProjectArchiveEntries(json, engine.sampleBank(), freezeAssets));
 }
 
 bool loadProjectFromArchiveBytes(ProjectEngine& engine,
@@ -301,6 +372,10 @@ bool loadProjectFromArchiveBytes(ProjectEngine& engine,
     ProjectFileData data;
     if (!parseProjectFileJson(jsonIt->second, data, engine.deviceRegistry(), engine.modulatorTypes())) {
         return false;
+    }
+    if (auto* sampleBank = engine.sampleBank()) {
+        sampleBank->clearImported();
+        loadSampleAssetsFromArchiveEntries(entries, data, sampleBank);
     }
     if (!engine.loadFromProjectFileData(data)) {
         return false;

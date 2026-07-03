@@ -72,6 +72,12 @@ std::string BridgeHost::importWavSample(const std::string& displayName,
     return result.toJson();
 }
 
+bool BridgeHost::appendAudioRecordingPcm(const std::string& sampleId,
+                                         const std::string& clipId,
+                                         const std::vector<float>& pcm) {
+    return engine().appendAudioRecordingPcm(sampleId, clipId, pcm);
+}
+
 std::string BridgeHost::registerDemoWavSample(const std::string& id,
                                               const std::string& displayName,
                                               const std::vector<uint8_t>& wavBytes) {

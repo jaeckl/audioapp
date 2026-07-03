@@ -238,6 +238,18 @@ bool ClipRepository::setSampleClipSlices(const std::string& clipId,
     return true;
 }
 
+bool ClipRepository::updateSampleClipRecordedLength(const std::string& clipId,
+                                                    double lengthBeats) {
+    auto* clip = findSampleClip(clipId);
+    if (clip == nullptr) {
+        return false;
+    }
+    const double len = lengthBeats < kMinClipLengthBeats ? kMinClipLengthBeats : lengthBeats;
+    clip->lengthBeats = len;
+    clip->naturalLengthBeats = len;
+    return true;
+}
+
 bool ClipRepository::deleteClip(const std::string& clipId) {
     for (auto& track : tracks_.tracks()) {
         for (auto it = track.midiClips.begin(); it != track.midiClips.end(); ++it) {
