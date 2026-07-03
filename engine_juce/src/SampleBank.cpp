@@ -247,6 +247,21 @@ int SampleBank::frameCountForSample(const std::string& id) const {
     return sample == nullptr ? 0 : static_cast<int>(sample->pcm.size());
 }
 
+bool SampleBank::sampleInfo(const std::string& id, int& frameCount, double& sampleRate) const {
+    const juce::ScopedLock lock(mutex_);
+    for (const auto& sample : samples_) {
+        if (sample.id != id) {
+            continue;
+        }
+        frameCount = static_cast<int>(sample.pcm.size());
+        sampleRate = sample.sampleRate;
+        return true;
+    }
+    frameCount = 0;
+    sampleRate = 0.0;
+    return false;
+}
+
 double SampleBank::beatsForSample(const std::string& id, int bpm) const {
     const auto* sample = findSample(id);
     if (sample == nullptr || sample->pcm.empty() || bpm <= 0) {

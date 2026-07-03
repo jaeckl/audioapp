@@ -97,6 +97,19 @@ public:
                                  float fadeOutCurve, bool reversed);
     bool setSampleClipWarp(const std::string& clipId, bool warpRepitch);
     bool setSampleClipSlices(const std::string& clipId, const std::vector<float>& markers);
+    bool setSampleClipTakeRegionTake(const std::string& clipId,
+                                     int regionIndex,
+                                     const std::string& takeId);
+    bool setSampleClipTakeAtBeat(const std::string& clipId,
+                                 double beat,
+                                 const std::string& takeId);
+    bool splitSampleClipTakeRegionAtBeat(const std::string& clipId,
+                                         double beat);
+    bool moveSampleClipTakeMarker(const std::string& clipId,
+                                  int markerIndex,
+                                  double beat);
+    bool deleteSampleClipTakeMarker(const std::string& clipId,
+                                    int markerIndex);
     std::string exportSampleClipSlices(const std::string& clipId, int firstNote);
     struct AudioRecordingSession {
         std::string sampleId;
@@ -105,7 +118,8 @@ public:
     AudioRecordingSession beginAudioRecordingSession(const std::string& trackId,
                                                      double startBeat,
                                                      double sampleRate,
-                                                     const std::string& displayName);
+                                                     const std::string& displayName,
+                                                     const std::string& targetClipId = {});
     bool appendAudioRecordingPcm(const std::string& sampleId,
                                  const std::string& clipId,
                                  const std::vector<float>& pcm);

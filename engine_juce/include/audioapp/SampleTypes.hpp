@@ -5,6 +5,21 @@
 
 namespace audioapp {
 
+struct SampleClipTakeState {
+    std::string id;
+    std::string sampleId;
+    std::string name;
+    double startBeatOffset = 0.0;
+    double lengthBeats = 4.0;
+};
+
+struct SampleClipTakeRegionState {
+    double startBeat = 0.0;
+    double endBeat = 4.0;
+    std::string takeId;
+    double sourceStart = 0.0;
+};
+
 struct SampleClipState {
     std::string id;
     std::string sampleId;
@@ -26,6 +41,8 @@ struct SampleClipState {
     bool warpRepitch = false;
     std::vector<float> sliceMarkers;
     std::vector<float> waveformPeaks;
+    std::vector<SampleClipTakeState> takes;
+    std::vector<SampleClipTakeRegionState> activeTakeRegions;
 };
 
 struct SampleLibraryEntryState {

@@ -507,6 +507,57 @@ class EngineBridge {
         'markers': markers,
       });
 
+  Future<ProjectSnapshot> setSampleClipTakeRegionTake({
+    required String clipId,
+    required int regionIndex,
+    required String takeId,
+  }) =>
+      _invokeForSnapshot('setSampleClipTakeRegionTake', {
+        'clipId': clipId,
+        'regionIndex': regionIndex,
+        'takeId': takeId,
+      });
+
+  Future<ProjectSnapshot> setSampleClipTakeAtBeat({
+    required String clipId,
+    required double beat,
+    required String takeId,
+  }) =>
+      _invokeForSnapshot('setSampleClipTakeAtBeat', {
+        'clipId': clipId,
+        'beat': beat,
+        'takeId': takeId,
+      });
+
+  Future<ProjectSnapshot> splitSampleClipTakeRegionAtBeat({
+    required String clipId,
+    required double beat,
+  }) =>
+      _invokeForSnapshot('splitSampleClipTakeRegionAtBeat', {
+        'clipId': clipId,
+        'beat': beat,
+      });
+
+  Future<ProjectSnapshot> moveSampleClipTakeMarker({
+    required String clipId,
+    required int markerIndex,
+    required double beat,
+  }) =>
+      _invokeForSnapshot('moveSampleClipTakeMarker', {
+        'clipId': clipId,
+        'markerIndex': markerIndex,
+        'beat': beat,
+      });
+
+  Future<ProjectSnapshot> deleteSampleClipTakeMarker({
+    required String clipId,
+    required int markerIndex,
+  }) =>
+      _invokeForSnapshot('deleteSampleClipTakeMarker', {
+        'clipId': clipId,
+        'markerIndex': markerIndex,
+      });
+
   Future<ProjectSnapshot> exportSampleClipSlices({
     required String clipId,
     int firstNote = 36,
@@ -820,6 +871,7 @@ class EngineBridge {
     required double startBeat,
     required double sampleRate,
     required String displayName,
+    String? targetClipId,
   }) async {
     final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
       'beginAudioRecordingSession',
@@ -828,6 +880,7 @@ class EngineBridge {
         'startBeat': startBeat,
         'sampleRate': sampleRate,
         'displayName': displayName,
+        'targetClipId': targetClipId ?? '',
       },
     );
     if (result == null || result['ok'] != true) {
@@ -849,6 +902,31 @@ class EngineBridge {
   }) async {
     await _channel.invokeMethod<Map<dynamic, dynamic>>(
       'startTrackAudioRecording',
+      {
+        'sampleId': sampleId,
+        'clipId': clipId,
+      },
+    );
+  }
+
+  Future<void> ensureRecordAudioPermission() async {
+    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
+      'ensureRecordAudioPermission',
+    );
+    if (result == null || result['ok'] != true) {
+      throw PlatformException(
+        code: result?['error']?.toString() ?? 'mic_permission_failed',
+        message: 'Microphone permission was not granted',
+      );
+    }
+  }
+
+  Future<void> retargetTrackAudioRecording({
+    required String sampleId,
+    required String clipId,
+  }) async {
+    await _channel.invokeMethod<Map<dynamic, dynamic>>(
+      'retargetTrackAudioRecording',
       {
         'sampleId': sampleId,
         'clipId': clipId,

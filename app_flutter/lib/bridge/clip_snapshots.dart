@@ -135,6 +135,53 @@ class MidiNoteSnapshot {
 }
 
 /// Arrangement clip with sample/audio payload.
+class SampleClipTakeSnapshot {
+  const SampleClipTakeSnapshot({
+    required this.id,
+    required this.sampleId,
+    required this.name,
+    required this.startBeatOffset,
+    required this.lengthBeats,
+  });
+
+  final String id;
+  final String sampleId;
+  final String name;
+  final double startBeatOffset;
+  final double lengthBeats;
+
+  factory SampleClipTakeSnapshot.fromMap(Map<dynamic, dynamic> map) =>
+      SampleClipTakeSnapshot(
+        id: map['id'] as String? ?? '',
+        sampleId: map['sampleId'] as String? ?? '',
+        name: map['name'] as String? ?? 'Take',
+        startBeatOffset: (map['startBeatOffset'] as num?)?.toDouble() ?? 0.0,
+        lengthBeats: (map['lengthBeats'] as num?)?.toDouble() ?? 0.0,
+      );
+}
+
+class SampleClipTakeRegionSnapshot {
+  const SampleClipTakeRegionSnapshot({
+    required this.startBeat,
+    required this.endBeat,
+    required this.takeId,
+    required this.sourceStart,
+  });
+
+  final double startBeat;
+  final double endBeat;
+  final String takeId;
+  final double sourceStart;
+
+  factory SampleClipTakeRegionSnapshot.fromMap(Map<dynamic, dynamic> map) =>
+      SampleClipTakeRegionSnapshot(
+        startBeat: (map['startBeat'] as num?)?.toDouble() ?? 0.0,
+        endBeat: (map['endBeat'] as num?)?.toDouble() ?? 0.0,
+        takeId: map['takeId'] as String? ?? '',
+        sourceStart: (map['sourceStart'] as num?)?.toDouble() ?? 0.0,
+      );
+}
+
 class SampleClipSnapshot implements ClipTimelineSpan {
   const SampleClipSnapshot({
     required this.id,
@@ -155,6 +202,8 @@ class SampleClipSnapshot implements ClipTimelineSpan {
     this.reversed = false,
     this.warpRepitch = false,
     this.sliceMarkers = const [],
+    this.takes = const [],
+    this.activeTakeRegions = const [],
   });
 
   @override
@@ -194,6 +243,8 @@ class SampleClipSnapshot implements ClipTimelineSpan {
   final bool reversed;
   final bool warpRepitch;
   final List<double> sliceMarkers;
+  final List<SampleClipTakeSnapshot> takes;
+  final List<SampleClipTakeRegionSnapshot> activeTakeRegions;
 
   @override
   double get endBeat => startBeat + lengthBeats;
@@ -221,6 +272,9 @@ class SampleClipSnapshot implements ClipTimelineSpan {
 
   factory SampleClipSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final peaksRaw = map['waveformPeaks'] as List<dynamic>? ?? [];
+    final takesRaw = map['takes'] as List<dynamic>? ?? const [];
+    final takeRegionsRaw =
+        map['activeTakeRegions'] as List<dynamic>? ?? const [];
     final lengthBeats = (map['lengthBeats'] as num?)?.toDouble() ?? 4.0;
     return SampleClipSnapshot(
       id: map['id'] as String? ?? '',
@@ -244,6 +298,14 @@ class SampleClipSnapshot implements ClipTimelineSpan {
       sliceMarkers: (map['sliceMarkers'] as List<dynamic>? ?? const [])
           .map((value) => (value as num).toDouble())
           .toList(),
+      takes: takesRaw
+          .map((value) =>
+              SampleClipTakeSnapshot.fromMap(value as Map<dynamic, dynamic>))
+          .toList(),
+      activeTakeRegions: takeRegionsRaw
+          .map((value) => SampleClipTakeRegionSnapshot.fromMap(
+              value as Map<dynamic, dynamic>))
+          .toList(),
     );
   }
 
@@ -266,6 +328,8 @@ class SampleClipSnapshot implements ClipTimelineSpan {
     bool? reversed,
     bool? warpRepitch,
     List<double>? sliceMarkers,
+    List<SampleClipTakeSnapshot>? takes,
+    List<SampleClipTakeRegionSnapshot>? activeTakeRegions,
   }) {
     return SampleClipSnapshot(
       id: id ?? this.id,
@@ -286,6 +350,8 @@ class SampleClipSnapshot implements ClipTimelineSpan {
       reversed: reversed ?? this.reversed,
       warpRepitch: warpRepitch ?? this.warpRepitch,
       sliceMarkers: sliceMarkers ?? this.sliceMarkers,
+      takes: takes ?? this.takes,
+      activeTakeRegions: activeTakeRegions ?? this.activeTakeRegions,
     );
   }
 }

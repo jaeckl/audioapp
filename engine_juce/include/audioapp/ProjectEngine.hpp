@@ -159,6 +159,10 @@ public:
                                  const std::string& sampleId,
                                  double startBeat,
                                  double lengthBeats);
+    std::string createRecordingSampleClipModelOnly(const std::string& trackId,
+                                                   const std::string& sampleId,
+                                                   double startBeat,
+                                                   double lengthBeats);
     bool moveClip(const std::string& clipId,
                   const std::string& targetTrackId,
                   double startBeat);
@@ -173,6 +177,32 @@ public:
     bool setSampleClipWarp(const std::string& clipId, bool warpRepitch);
     bool setSampleClipSlices(const std::string& clipId, const std::vector<float>& markers);
     bool updateSampleClipRecordedLength(const std::string& clipId, double lengthBeats);
+    bool addRecordingTakeToSampleClip(const std::string& clipId,
+                                      const std::string& sampleId,
+                                      const std::string& name,
+                                      double recordStartBeat,
+                                      double lengthBeats);
+    bool updateSampleClipRecordedTakeLength(const std::string& clipId,
+                                            const std::string& sampleId,
+                                            double lengthBeats);
+    bool updateSampleClipRecordedTakeLengthModelOnly(const std::string& clipId,
+                                                     const std::string& sampleId,
+                                                     double lengthBeats);
+    bool removeRecordingTakeFromSampleClip(const std::string& clipId,
+                                           const std::string& sampleId);
+    bool setSampleClipTakeRegionTake(const std::string& clipId,
+                                     int regionIndex,
+                                     const std::string& takeId);
+    bool setSampleClipTakeAtBeat(const std::string& clipId,
+                                 double beat,
+                                 const std::string& takeId);
+    bool splitSampleClipTakeRegionAtBeat(const std::string& clipId,
+                                         double beat);
+    bool moveSampleClipTakeMarker(const std::string& clipId,
+                                  int markerIndex,
+                                  double beat);
+    bool deleteSampleClipTakeMarker(const std::string& clipId,
+                                    int markerIndex);
     std::string exportSampleClipSlices(const std::string& clipId, int firstNote);
     bool setBpm(int bpm);
     int bpm() const noexcept;

@@ -39,6 +39,7 @@ public:
     const Sample* findSample(const std::string& id) const;
     std::vector<Sample> listSamples() const;
     int frameCountForSample(const std::string& id) const;
+    bool sampleInfo(const std::string& id, int& frameCount, double& sampleRate) const;
 
     double beatsForSample(const std::string& id, int bpm) const;
 

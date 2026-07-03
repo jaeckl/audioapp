@@ -12,8 +12,9 @@ import '../device_strip/rotary_knob.dart';
 import 'editable_waveform.dart';
 import 'sample_editor_snap.dart';
 import 'sample_editor_snap_sheet.dart';
+import 'sample_editor_take_panel.dart';
 
-enum _SampleTool { navigate, trim, fade, slice, process }
+enum _SampleTool { navigate, trim, fade, slice, take, process }
 
 enum _SampleMenuAction { loop, warp, reverse, normalize }
 
@@ -51,12 +52,14 @@ class SampleEditorScreen extends StatefulWidget {
       required this.bridge,
       required this.clip,
       required this.trackName,
+      required this.samples,
       required this.onSnapshot,
       required this.bpm,
       required this.savedArrangementPlayhead});
   final EngineBridge bridge;
   final SampleClipSnapshot clip;
   final String trackName;
+  final List<SampleLibraryEntrySnapshot> samples;
   final Future<void> Function(ProjectSnapshot snapshot) onSnapshot;
   final int bpm;
   final double savedArrangementPlayhead;
@@ -94,15 +97,60 @@ class _SampleEditorScreenState extends State<SampleEditorScreen>
   int? selectedSlice;
   int? selectedMarker;
   String? sliceStatus;
+  late List<SampleClipTakeRegionSnapshot> takeRegions =
+      List.of(widget.clip.activeTakeRegions);
+  int? selectedTakeMarker;
   bool saving = false;
   late final ClipEditorTransportController transport;
   Timer? saveDebounce;
 
-  double get _playbackContentLengthBeats => widget.clip.playbackContentLengthBeats(
+  double get _playbackContentLengthBeats =>
+      widget.clip.playbackContentLengthBeats(
         sourceStart: start,
         sourceEnd: end,
         warpRepitch: warpRepitch,
       );
+
+  List<double> get _displayWaveformPeaks {
+    if (widget.clip.takes.isEmpty || takeRegions.isEmpty) {
+      return widget.clip.waveformPeaks;
+    }
+    final samplesById = {
+      for (final sample in widget.samples) sample.id: sample
+    };
+    final takesById = {for (final take in widget.clip.takes) take.id: take};
+    final outputCount = math.max(widget.clip.waveformPeaks.length, 256);
+    if (widget.clip.lengthBeats <= 0 || outputCount <= 1) {
+      return widget.clip.waveformPeaks;
+    }
+    double peakAt(List<double> peaks, double position) {
+      if (peaks.isEmpty) return 0;
+      final source = position.clamp(0.0, 1.0) * (peaks.length - 1);
+      final lo = source.floor();
+      final hi = math.min(peaks.length - 1, lo + 1);
+      final t = source - lo;
+      return (peaks[lo] + (peaks[hi] - peaks[lo]) * t).abs();
+    }
+
+    final result = List<double>.filled(outputCount, 0);
+    var regionIndex = 0;
+    for (var i = 0; i < outputCount; i++) {
+      final beat = i / (outputCount - 1) * widget.clip.lengthBeats;
+      while (regionIndex + 1 < takeRegions.length &&
+          beat >= takeRegions[regionIndex].endBeat) {
+        regionIndex++;
+      }
+      final region = takeRegions[regionIndex];
+      if (beat < region.startBeat || beat > region.endBeat) continue;
+      final take = takesById[region.takeId];
+      if (take == null || take.lengthBeats <= 0) continue;
+      final sample = samplesById[take.sampleId];
+      final sourceBeat = region.sourceStart + beat - region.startBeat;
+      result[i] = peakAt(sample?.waveformPeaks ?? const [],
+          sourceBeat / math.max(0.001, take.lengthBeats));
+    }
+    return result;
+  }
 
   void _syncPreviewTransportSpan() {
     transport.maxClipBeat = _playbackContentLengthBeats;
@@ -366,8 +414,7 @@ class _SampleEditorScreenState extends State<SampleEditorScreen>
       generated = _evenSliceMarkers();
       usedFallback = true;
     }
-    final shouldSnapGenerated =
-        sliceAutoMode == _SliceAutoMode.transient &&
+    final shouldSnapGenerated = sliceAutoMode == _SliceAutoMode.transient &&
         editSnap.snap != SampleEditSnap.off;
     final snapped = !shouldSnapGenerated
         ? generated
@@ -408,6 +455,142 @@ class _SampleEditorScreenState extends State<SampleEditorScreen>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
               'Created Drum Machine with ${sliceMarkers.length + 1} slices')));
+  }
+
+  int? _takeRegionIndexAtBeat(double beat) {
+    for (var i = 0; i < takeRegions.length; i++) {
+      final region = takeRegions[i];
+      final isLast = i == takeRegions.length - 1;
+      if (beat >= region.startBeat &&
+          (beat < region.endBeat || (isLast && beat <= region.endBeat))) {
+        return i;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _setTakeAtBeat(double beat, String takeId) async {
+    final regionIndex = _takeRegionIndexAtBeat(beat);
+    if (regionIndex == null) return;
+    if (takeRegions[regionIndex].takeId == takeId) return;
+    final snapshot = await widget.bridge.setSampleClipTakeRegionTake(
+      clipId: widget.clip.id,
+      regionIndex: regionIndex,
+      takeId: takeId,
+    );
+    await widget.onSnapshot(snapshot);
+    if (!mounted) return;
+    final refreshed = _findClipInSnapshot(snapshot, widget.clip.id);
+    if (refreshed != null) {
+      setState(() => takeRegions = List.of(refreshed.activeTakeRegions));
+    }
+  }
+
+  List<double> get _takeMarkerBeats =>
+      takeRegions.skip(1).map((region) => region.startBeat).toList();
+
+  void _selectTakeMarker(int index) {
+    if (index < 0 || index >= _takeMarkerBeats.length) return;
+    setState(() => selectedTakeMarker = index);
+  }
+
+  void _moveTakeMarker(int index, double beat) {
+    if (index < 0 || index + 1 >= takeRegions.length) return;
+    final left = takeRegions[index];
+    final right = takeRegions[index + 1];
+    final nextBeat = beat.clamp(left.startBeat + .001, right.endBeat - .001);
+    setState(() {
+      takeRegions[index] = SampleClipTakeRegionSnapshot(
+        startBeat: left.startBeat,
+        endBeat: nextBeat,
+        takeId: left.takeId,
+        sourceStart: left.sourceStart,
+      );
+      takeRegions[index + 1] = SampleClipTakeRegionSnapshot(
+        startBeat: nextBeat,
+        endBeat: right.endBeat,
+        takeId: right.takeId,
+        sourceStart: right.sourceStart + nextBeat - right.startBeat,
+      );
+      selectedTakeMarker = index;
+    });
+  }
+
+  Future<void> _saveTakeMarkerMove(int index, double beat) async {
+    if (index < 0 || index >= _takeMarkerBeats.length) return;
+    final snapshot = await widget.bridge.moveSampleClipTakeMarker(
+      clipId: widget.clip.id,
+      markerIndex: index,
+      beat: beat,
+    );
+    await widget.onSnapshot(snapshot);
+    if (!mounted) return;
+    final refreshed = _findClipInSnapshot(snapshot, widget.clip.id);
+    if (refreshed != null) {
+      setState(() {
+        takeRegions = List.of(refreshed.activeTakeRegions);
+        selectedTakeMarker = index.clamp(0, takeRegions.length - 2);
+      });
+    }
+  }
+
+  Future<void> _deleteSelectedTakeMarker() async {
+    final index = selectedTakeMarker;
+    if (index == null || index < 0 || index >= _takeMarkerBeats.length) return;
+    final snapshot = await widget.bridge.deleteSampleClipTakeMarker(
+      clipId: widget.clip.id,
+      markerIndex: index,
+    );
+    await widget.onSnapshot(snapshot);
+    if (!mounted) return;
+    final refreshed = _findClipInSnapshot(snapshot, widget.clip.id);
+    if (refreshed != null) {
+      setState(() {
+        takeRegions = List.of(refreshed.activeTakeRegions);
+        selectedTakeMarker = null;
+      });
+    }
+  }
+
+  void _nudgeSelectedTakeMarker(int direction) {
+    final index = selectedTakeMarker;
+    final markers = _takeMarkerBeats;
+    if (index == null || index < 0 || index >= markers.length) return;
+    final step = editSnap.snap == SampleEditSnap.off
+        ? 0.125
+        : math.max(0.125, editSnap.snap.sourceStep * widget.clip.lengthBeats);
+    final next = markers[index] + direction * step;
+    _moveTakeMarker(index, next);
+    unawaited(_saveTakeMarkerMove(index, next));
+  }
+
+  Future<void> _splitTakeAtPlayhead() async {
+    final beat = transport.clipLocalBeat.clamp(0.0, widget.clip.lengthBeats);
+    final snapshot = await widget.bridge.splitSampleClipTakeRegionAtBeat(
+      clipId: widget.clip.id,
+      beat: beat,
+    );
+    await widget.onSnapshot(snapshot);
+    if (!mounted) return;
+    final refreshed = _findClipInSnapshot(snapshot, widget.clip.id);
+    if (refreshed != null) {
+      setState(() {
+        takeRegions = List.of(refreshed.activeTakeRegions);
+        selectedTakeMarker = _takeMarkerBeats.indexWhere(
+          (marker) => (marker - beat).abs() < .01,
+        );
+        if (selectedTakeMarker == -1) selectedTakeMarker = null;
+      });
+    }
+  }
+
+  SampleClipSnapshot? _findClipInSnapshot(ProjectSnapshot snapshot, String id) {
+    for (final track in snapshot.tracks) {
+      for (final clip in track.sampleClips) {
+        if (clip.id == id) return clip;
+      }
+    }
+    return null;
   }
 
   String get _snapLabel => editSnap.snap.shortLabel;
@@ -498,6 +681,12 @@ class _SampleEditorScreenState extends State<SampleEditorScreen>
                     active: tool == _SampleTool.slice,
                     onTap: () => setState(() => tool = _SampleTool.slice)),
                 _ToolButton(
+                    icon: Icons.layers_outlined,
+                    label: 'TAKES',
+                    tooltip: 'Take comping',
+                    active: tool == _SampleTool.take,
+                    onTap: () => setState(() => tool = _SampleTool.take)),
+                _ToolButton(
                     icon: Icons.tune,
                     label: 'PROCESS',
                     tooltip: 'Clip processing',
@@ -516,7 +705,7 @@ class _SampleEditorScreenState extends State<SampleEditorScreen>
             Expanded(
                 child: _SampleTimeline(
               clipName: widget.clip.sampleName,
-              peaks: widget.clip.waveformPeaks,
+              peaks: _displayWaveformPeaks,
               clipLengthBeats: widget.clip.lengthBeats,
               naturalLengthBeats: widget.clip.effectiveNaturalLengthBeats,
               playbackContentLengthBeats: _playbackContentLengthBeats,
@@ -543,6 +732,15 @@ class _SampleEditorScreenState extends State<SampleEditorScreen>
               },
               trimToolActive: tool == _SampleTool.trim,
               fadeToolActive: tool == _SampleTool.fade,
+              takeToolActive: tool == _SampleTool.take,
+              takes: widget.clip.takes,
+              takeRegions: takeRegions,
+              selectedTakeMarker: selectedTakeMarker,
+              samples: widget.samples,
+              onTakeAtBeat: _setTakeAtBeat,
+              onTakeMarkerSelect: _selectTakeMarker,
+              onTakeMarkerMove: _moveTakeMarker,
+              onTakeMarkerMoveEnd: _saveTakeMarkerMove,
               sliceToolActive: tool == _SampleTool.slice,
               sliceMarkers: List.of(sliceMarkers),
               onSliceToggle: _toggleSlice,
@@ -578,6 +776,17 @@ class _SampleEditorScreenState extends State<SampleEditorScreen>
             )),
             _SampleToolCard(
               child: switch (tool) {
+                _SampleTool.take => SampleEditorTakeToolsPanel(
+                    playheadBeat: transport.clipLocalBeat,
+                    selectedMarkerBeat: selectedTakeMarker == null ||
+                            selectedTakeMarker! < 0 ||
+                            selectedTakeMarker! >= _takeMarkerBeats.length
+                        ? null
+                        : _takeMarkerBeats[selectedTakeMarker!],
+                    onSplitAtPlayhead: _splitTakeAtPlayhead,
+                    onDeleteSelected: _deleteSelectedTakeMarker,
+                    onNudgeSelected: _nudgeSelectedTakeMarker,
+                  ),
                 _SampleTool.process => _ProcessPanel(
                     gain: gain,
                     loop: loopContent,
@@ -612,7 +821,8 @@ class _SampleEditorScreenState extends State<SampleEditorScreen>
                         setState(() => transientSensitivity = value),
                     onAutoModeChanged: (value) =>
                         setState(() => sliceAutoMode = value),
-                    onMinGapChanged: (value) => setState(() => sliceMinGap = value),
+                    onMinGapChanged: (value) =>
+                        setState(() => sliceMinGap = value),
                     onReplaceExistingChanged: (value) =>
                         setState(() => sliceReplaceExisting = value),
                     onEvenDivisionsChanged: (value) =>
@@ -699,6 +909,15 @@ class _SampleTimeline extends StatefulWidget {
       required this.onPinchInteractionChanged,
       required this.trimToolActive,
       required this.fadeToolActive,
+      required this.takeToolActive,
+      required this.takes,
+      required this.takeRegions,
+      required this.selectedTakeMarker,
+      required this.samples,
+      required this.onTakeAtBeat,
+      required this.onTakeMarkerSelect,
+      required this.onTakeMarkerMove,
+      required this.onTakeMarkerMoveEnd,
       required this.sliceToolActive,
       required this.sliceMarkers,
       required this.onSliceToggle,
@@ -735,6 +954,15 @@ class _SampleTimeline extends StatefulWidget {
   final bool pinchInteracting;
   final ValueChanged<bool> onPinchInteractionChanged;
   final bool trimToolActive, fadeToolActive;
+  final bool takeToolActive;
+  final List<SampleClipTakeSnapshot> takes;
+  final List<SampleClipTakeRegionSnapshot> takeRegions;
+  final int? selectedTakeMarker;
+  final List<SampleLibraryEntrySnapshot> samples;
+  final void Function(double beat, String takeId) onTakeAtBeat;
+  final ValueChanged<int> onTakeMarkerSelect;
+  final void Function(int markerIndex, double beat) onTakeMarkerMove;
+  final void Function(int markerIndex, double beat) onTakeMarkerMoveEnd;
   final bool sliceToolActive;
   final List<double> sliceMarkers;
   final ValueChanged<double> onSliceToggle;
@@ -763,6 +991,7 @@ class _SampleTimelineState extends State<_SampleTimeline> {
   double? _dragPlayheadBeat;
   bool _draggingPlayhead = false;
   double? _dragSliceValue;
+  double? _dragTakeMarkerBeat;
 
   double get _sourceSpan => math.max(.001, widget.end - widget.start);
 
@@ -842,6 +1071,22 @@ class _SampleTimelineState extends State<_SampleTimeline> {
             .clamp(0.0, widget.playbackContentLengthBeats);
         final playheadX = _playheadX(originX, sourceWidth, playheadBeat);
         final usableWidth = _usableSourceWidth(sourceWidth);
+        final showTakeLanes = widget.takeToolActive && widget.takes.isNotEmpty;
+        final takeMarkerBeats = widget.takeRegions
+            .skip(1)
+            .map((region) => region.startBeat)
+            .toList();
+        final trackAreaHeight = math.max(1.0, box.maxHeight - rulerHeight);
+        final mainWaveformHeight = showTakeLanes
+            ? math.max(86.0, math.min(132.0, trackAreaHeight * .44))
+            : trackAreaHeight;
+        final takeStackHeight = showTakeLanes
+            ? widget.takes.length * (sampleEditorTakeLaneHeight + 6)
+            : 0.0;
+        final trackContentHeight = math.max(
+          trackAreaHeight,
+          mainWaveformHeight + (showTakeLanes ? 10.0 : 0.0) + takeStackHeight,
+        );
         return _RawPinchZoom(
           onStart: widget.onZoomStart,
           onScale: widget.onZoomScale,
@@ -863,7 +1108,9 @@ class _SampleTimelineState extends State<_SampleTimeline> {
                       behavior: HitTestBehavior.opaque,
                       onTapDown: (details) => widget.onPlayheadSeek(
                         _playheadBeatFromSource(
-                          ((details.localPosition.dx - originX - _waveformInsetH) /
+                          ((details.localPosition.dx -
+                                      originX -
+                                      _waveformInsetH) /
                                   usableWidth)
                               .clamp(0.0, 1.0),
                         ),
@@ -879,17 +1126,23 @@ class _SampleTimelineState extends State<_SampleTimeline> {
                       ),
                     ),
                     Expanded(
-                        child: CustomPaint(
-                            painter: _SampleLanePainter(
-                                pixelsPerBeat: widget.pixelsPerBeat,
-                                originX: originX,
-                                gridStepBeats: widget.gridStepBeats),
+                      child: CustomPaint(
+                        painter: _SampleLanePainter(
+                            pixelsPerBeat: widget.pixelsPerBeat,
+                            originX: originX,
+                            gridStepBeats: widget.gridStepBeats),
+                        child: SingleChildScrollView(
+                          physics: showTakeLanes
+                              ? const ClampingScrollPhysics()
+                              : const NeverScrollableScrollPhysics(),
+                          child: SizedBox(
+                            height: trackContentHeight,
                             child: Stack(children: [
                               Positioned(
                                 left: originX,
                                 width: sourceWidth,
                                 top: 0,
-                                bottom: 0,
+                                height: mainWaveformHeight,
                                 child: Padding(
                                   padding:
                                       const EdgeInsets.symmetric(vertical: 12),
@@ -912,7 +1165,8 @@ class _SampleTimelineState extends State<_SampleTimeline> {
                                       onSliceMove: widget.onSliceMove,
                                       onSliceMoveEnd: widget.onSliceMoveEnd,
                                       onSliceAudition: widget.onSliceAudition,
-                                      playhead: _sourceFromPlayheadBeat(playheadBeat),
+                                      playhead:
+                                          _sourceFromPlayheadBeat(playheadBeat),
                                       onTrimChanged: widget.onTrimChanged,
                                       onFadesChanged: widget.onFadesChanged,
                                       onCurvesChanged: widget.onCurvesChanged,
@@ -921,7 +1175,24 @@ class _SampleTimelineState extends State<_SampleTimeline> {
                                       onEditEnd: widget.onEditEnd),
                                 ),
                               ),
-                            ]))),
+                              if (showTakeLanes)
+                                Positioned(
+                                  left: originX,
+                                  top: mainWaveformHeight + 10,
+                                  width: clipWidth,
+                                  child: SampleEditorTakeTrackLanes(
+                                    takes: widget.takes,
+                                    regions: widget.takeRegions,
+                                    clipLengthBeats: widget.clipLengthBeats,
+                                    samples: widget.samples,
+                                    onTakeAtBeat: widget.onTakeAtBeat,
+                                  ),
+                                ),
+                            ]),
+                          ),
+                        ),
+                      ),
+                    ),
                   ]),
                   if (widget.trimToolActive)
                     for (final edge in [
@@ -1035,6 +1306,56 @@ class _SampleTimelineState extends State<_SampleTimeline> {
                               .withValues(alpha: .65),
                         ),
                       ),
+                  if (widget.takeToolActive)
+                    for (final entry in takeMarkerBeats.indexed)
+                      Positioned(
+                        left: originX +
+                            (entry.$2 / widget.clipLengthBeats)
+                                    .clamp(0.0, 1.0) *
+                                clipWidth -
+                            ArrangementLoopRegionTheme.hitWidth / 2,
+                        top: (rulerHeight -
+                                ArrangementLoopRegionTheme.pillSize) /
+                            2,
+                        bottom: 0,
+                        width: ArrangementLoopRegionTheme.hitWidth,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => widget.onTakeMarkerSelect(entry.$1),
+                          onHorizontalDragStart: (_) {
+                            _dragTakeMarkerBeat = entry.$2;
+                            widget.onTakeMarkerSelect(entry.$1);
+                          },
+                          onHorizontalDragUpdate: (details) {
+                            final next = ((_dragTakeMarkerBeat ?? entry.$2) +
+                                    details.delta.dx / widget.pixelsPerBeat)
+                                .clamp(0.0, widget.clipLengthBeats);
+                            _dragTakeMarkerBeat = next;
+                            widget.onTakeMarkerMove(entry.$1, next);
+                          },
+                          onHorizontalDragEnd: (_) {
+                            final next = _dragTakeMarkerBeat ?? entry.$2;
+                            _dragTakeMarkerBeat = null;
+                            widget.onTakeMarkerMoveEnd(entry.$1, next);
+                          },
+                          onHorizontalDragCancel: () =>
+                              _dragTakeMarkerBeat = null,
+                          child:
+                              Stack(alignment: Alignment.topCenter, children: [
+                            Positioned(
+                              top: ArrangementLoopRegionTheme.pillSize / 2,
+                              bottom: 0,
+                              width: 2,
+                              child: ColoredBox(
+                                color: widget.selectedTakeMarker == entry.$1
+                                    ? Colors.white
+                                    : ArrangementLoopRegionTheme.color,
+                              ),
+                            ),
+                            const ArrangementLoopRegionPill(),
+                          ]),
+                        ),
+                      ),
                   Positioned(
                     left: playheadX - editorVirtualPlayheadLineWidth / 2,
                     top: rulerHeight / 2,
@@ -1057,16 +1378,17 @@ class _SampleTimelineState extends State<_SampleTimeline> {
                       }),
                       onHorizontalDragUpdate: (details) {
                         final beatDelta = widget.reversed
-                            ? -details.delta.dx / usableWidth *
+                            ? -details.delta.dx /
+                                usableWidth *
                                 widget.playbackContentLengthBeats /
                                 _sourceSpan
                             : details.delta.dx /
                                 usableWidth *
                                 widget.playbackContentLengthBeats /
                                 _sourceSpan;
-                        final next = ((_dragPlayheadBeat ?? playheadBeat) +
-                                beatDelta)
-                            .clamp(0.0, widget.playbackContentLengthBeats);
+                        final next =
+                            ((_dragPlayheadBeat ?? playheadBeat) + beatDelta)
+                                .clamp(0.0, widget.playbackContentLengthBeats);
                         setState(() => _dragPlayheadBeat = next);
                         widget.onPlayheadSeek(next);
                       },
@@ -1335,7 +1657,8 @@ class _ToolCardHeader extends StatelessWidget {
                 style: TextStyle(
                     fontSize: 8,
                     fontWeight: FontWeight.w600,
-                    color: ArrangementLoopRegionTheme.color.withValues(alpha: .85),
+                    color:
+                        ArrangementLoopRegionTheme.color.withValues(alpha: .85),
                     letterSpacing: .25)),
           ],
           const SizedBox(height: 4),
@@ -1388,7 +1711,8 @@ class _ClipEditPanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _ToolCardHeader(title: copy.title, hint: copy.hint),
-        Expanded(child: tool == _SampleTool.fade ? _fadeBody() : _defaultBody()),
+        Expanded(
+            child: tool == _SampleTool.fade ? _fadeBody() : _defaultBody()),
       ],
     );
   }
@@ -1862,9 +2186,8 @@ class _ProcessTabChip extends StatelessWidget {
               children: [
                 Icon(icon,
                     size: 12,
-                    color: active
-                        ? AutomationEditorTheme.accent
-                        : Colors.white38),
+                    color:
+                        active ? AutomationEditorTheme.accent : Colors.white38),
                 const SizedBox(width: 3),
                 Text(label,
                     style: TextStyle(
@@ -2001,8 +2324,8 @@ class _SlicePanelState extends State<_SlicePanel> {
             Text(widget.status!,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: AutomationEditorTheme.labelMuted
-                        .withValues(alpha: .95),
+                    color:
+                        AutomationEditorTheme.labelMuted.withValues(alpha: .95),
                     fontSize: 10,
                     fontWeight: FontWeight.w600)),
           ],
@@ -2348,8 +2671,7 @@ class _SliceSliderRow extends StatelessWidget {
           child: SliderTheme(
             data: SliderTheme.of(context).copyWith(
               trackHeight: 4,
-              thumbShape:
-                  const RoundSliderThumbShape(enabledThumbRadius: 8),
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
               overlayShape: SliderComponentShape.noOverlay,
             ),
             child: Slider(
@@ -2452,7 +2774,8 @@ class _SliceIconButton extends StatelessWidget {
               width: 34,
               height: 36,
               child: Icon(icon,
-                  size: 18, color: onTap == null ? Colors.white24 : Colors.white70),
+                  size: 18,
+                  color: onTap == null ? Colors.white24 : Colors.white70),
             ),
           ),
         ),

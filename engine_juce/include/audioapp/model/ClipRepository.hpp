@@ -46,6 +46,28 @@ public:
     bool setSampleClipWarp(const std::string& clipId, bool warpRepitch);
     bool setSampleClipSlices(const std::string& clipId, const std::vector<float>& markers);
     bool updateSampleClipRecordedLength(const std::string& clipId, double lengthBeats);
+    bool addSampleClipTake(const std::string& clipId,
+                           const std::string& sampleId,
+                           const std::string& name,
+                           double startBeatOffset,
+                           double lengthBeats);
+    bool updateSampleClipRecordedTakeLength(const std::string& clipId,
+                                            const std::string& sampleId,
+                                            double lengthBeats);
+    bool removeSampleClipTake(const std::string& clipId, const std::string& sampleId);
+    bool setSampleClipTakeRegionTake(const std::string& clipId,
+                                     int regionIndex,
+                                     const std::string& takeId);
+    bool setSampleClipTakeAtBeat(const std::string& clipId,
+                                 double beat,
+                                 const std::string& takeId);
+    bool splitSampleClipTakeRegionAtBeat(const std::string& clipId,
+                                         double beat);
+    bool moveSampleClipTakeMarker(const std::string& clipId,
+                                  int markerIndex,
+                                  double beat);
+    bool deleteSampleClipTakeMarker(const std::string& clipId,
+                                    int markerIndex);
     bool deleteClip(const std::string& clipId);
     bool duplicateClip(const std::string& clipId);
 

@@ -33,9 +33,12 @@ class MainActivity : FlutterFragmentActivity() {
     private var wakeLock: PowerManager.WakeLock? = null
     private var pendingImportResult: MethodChannel.Result? = null
     private var pendingExportResult: MethodChannel.Result? = null
+    private var pendingRecordPermissionResult: MethodChannel.Result? = null
     private var pendingRecordStartResult: MethodChannel.Result? = null
     private var pendingRecordSampleId: String = ""
     private var pendingRecordClipId: String = ""
+    @Volatile private var activeRecordSampleId: String = ""
+    @Volatile private var activeRecordClipId: String = ""
     private val audioRecorder = AudioSampleRecorder()
 
     private val createWavExport = registerForActivityResult(
@@ -57,12 +60,22 @@ class MainActivity : FlutterFragmentActivity() {
     private val requestRecordAudio = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
+        val permissionOnlyResult = pendingRecordPermissionResult
         val result = pendingRecordStartResult
         val sampleId = pendingRecordSampleId
         val clipId = pendingRecordClipId
+        pendingRecordPermissionResult = null
         pendingRecordStartResult = null
         pendingRecordSampleId = ""
         pendingRecordClipId = ""
+        if (permissionOnlyResult != null) {
+            if (granted) {
+                permissionOnlyResult.success(mapOf("ok" to true))
+            } else {
+                permissionOnlyResult.error("mic_permission_denied", "Microphone permission denied", null)
+            }
+            return@registerForActivityResult
+        }
         if (result == null) return@registerForActivityResult
         if (granted) {
             startTrackAudioRecording(result, sampleId, clipId)
@@ -160,15 +173,49 @@ class MainActivity : FlutterFragmentActivity() {
         requestRecordAudio.launch(Manifest.permission.RECORD_AUDIO)
     }
 
-    private fun startTrackAudioRecording(result: MethodChannel.Result, sampleId: String, clipId: String) {
-        audioRecorder.start { chunk ->
-            nativeAppendAudioRecordingPcm(sampleId, clipId, chunk)
+    private fun ensureRecordAudioPermission(result: MethodChannel.Result) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED) {
+            result.success(mapOf("ok" to true))
+            return
         }
+        if (pendingRecordPermissionResult != null || pendingRecordStartResult != null) {
+            result.error("busy", "Recording permission request already active", null)
+            return
+        }
+        pendingRecordPermissionResult = result
+        requestRecordAudio.launch(Manifest.permission.RECORD_AUDIO)
+    }
+
+    private fun startTrackAudioRecording(result: MethodChannel.Result, sampleId: String, clipId: String) {
+        activeRecordSampleId = sampleId
+        activeRecordClipId = clipId
+        audioRecorder.start { chunk ->
+            val targetSampleId = activeRecordSampleId
+            val targetClipId = activeRecordClipId
+            if (targetSampleId.isNotBlank() && targetClipId.isNotBlank()) {
+                nativeAppendAudioRecordingPcm(targetSampleId, targetClipId, chunk)
+            }
+        }
+        result.success(mapOf("ok" to true))
+    }
+
+    private fun retargetTrackAudioRecording(args: Map<*, *>?, result: MethodChannel.Result) {
+        val sampleId = args?.get("sampleId") as? String ?: ""
+        val clipId = args?.get("clipId") as? String ?: ""
+        if (sampleId.isBlank() || clipId.isBlank()) {
+            result.error("invalid_recording_session", "Recording session ids are missing", null)
+            return
+        }
+        activeRecordSampleId = sampleId
+        activeRecordClipId = clipId
         result.success(mapOf("ok" to true))
     }
 
     private fun stopTrackAudioRecording(result: MethodChannel.Result) {
         val pcm = audioRecorder.stop()
+        activeRecordSampleId = ""
+        activeRecordClipId = ""
         result.success(
             mapOf(
                 "ok" to true,
@@ -179,6 +226,8 @@ class MainActivity : FlutterFragmentActivity() {
 
     private fun cancelTrackAudioRecording(result: MethodChannel.Result) {
         audioRecorder.cancel()
+        activeRecordSampleId = ""
+        activeRecordClipId = ""
         result.success(mapOf("ok" to true))
     }
 
@@ -417,7 +466,9 @@ class MainActivity : FlutterFragmentActivity() {
                             }
                         }
                         "importSample" -> launchImportSamplePicker(result)
+                        "ensureRecordAudioPermission" -> ensureRecordAudioPermission(result)
                         "startTrackAudioRecording" -> requestOrStartTrackAudioRecording(call.arguments as? Map<*, *>, result)
+                        "retargetTrackAudioRecording" -> retargetTrackAudioRecording(call.arguments as? Map<*, *>, result)
                         "stopTrackAudioRecording" -> stopTrackAudioRecording(result)
                         "cancelTrackAudioRecording" -> cancelTrackAudioRecording(result)
                         "getTrackAudioRecordingLevel" -> result.success(

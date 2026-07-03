@@ -31,6 +31,21 @@ struct MidiClip {
     std::vector<MidiNote> notes;
 };
 
+struct SampleClipTake {
+    std::string id;
+    std::string sampleId;
+    std::string name;
+    double startBeatOffset = 0.0;
+    double lengthBeats = 4.0;
+};
+
+struct SampleClipTakeRegion {
+    double startBeat = 0.0;
+    double endBeat = 4.0;
+    std::string takeId;
+    double sourceStart = 0.0;
+};
+
 struct SampleClip {
     std::string id;
     std::string sampleId;
@@ -53,6 +68,8 @@ struct SampleClip {
     bool reversed = false;
     bool warpRepitch = false;
     std::vector<float> sliceMarkers;
+    std::vector<SampleClipTake> takes;
+    std::vector<SampleClipTakeRegion> activeTakeRegions;
 };
 
 struct AutomationPoint {
