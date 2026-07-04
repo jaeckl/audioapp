@@ -6,6 +6,22 @@
 class LivePerformanceTest : public juce::UnitTest {
 public:
     LivePerformanceTest() : juce::UnitTest("LivePerformance", "Engine") {}
+
+    static juce::var firstMidiClipVar(const audioapp::EngineHost& host) {
+        auto root = juce::JSON::parse(host.getProjectSnapshotJson());
+        auto* rootObj = root.getDynamicObject();
+        if (rootObj == nullptr) return {};
+        auto tracks = rootObj->getProperty("tracks");
+        auto* tracksArray = tracks.getArray();
+        if (tracksArray == nullptr || tracksArray->isEmpty()) return {};
+        auto* trackObj = tracksArray->getReference(0).getDynamicObject();
+        if (trackObj == nullptr) return {};
+        auto clips = trackObj->getProperty("midiClips");
+        auto* clipsArray = clips.getArray();
+        if (clipsArray == nullptr || clipsArray->isEmpty()) return {};
+        return clipsArray->getReference(0);
+    }
+
     void runTest() override {
         beginTest("note on produces audio");
         {
@@ -63,6 +79,68 @@ public:
             expect(audioapp::test::hasNonZeroSample(overlap),
                    "second voice remains audible after first note-off");
             host.allNotesOff();
+        }
+
+        beginTest("transport MIDI session commits at explicit beat span");
+        {
+            audioapp::EngineHost host;
+            host.createProject();
+            const std::string trackId = host.addTrack("Recorded MIDI");
+            host.selectTrack(trackId);
+            const std::string synthId = host.addDeviceToTrack(trackId, "subtractive_synth");
+            expect(!synthId.empty(), "synth added");
+
+            expect(host.beginMidiRecordingSession(trackId, 2.0, 0.25),
+                   "midi recording session starts");
+            expect(host.noteOn(60, 100.0f), "note starts");
+            std::vector<float> oneBeat(24000, 0.0f);
+            host.readLiveMix(oneBeat.data(), static_cast<int>(oneBeat.size()), 48000.0);
+            expect(host.noteOff(60), "note off accepted");
+            expect(host.finishMidiRecordingSession(4.0),
+                   "midi recording session commits");
+
+            auto clip = firstMidiClipVar(host);
+            auto* clipObj = clip.getDynamicObject();
+            expect(clipObj != nullptr, "snapshot has recorded MIDI clip");
+            if (clipObj == nullptr) return;
+            expectWithinAbsoluteError(static_cast<double>(clipObj->getProperty("startBeat")),
+                                      2.0, 0.001, "clip starts at session start");
+            expectWithinAbsoluteError(static_cast<double>(clipObj->getProperty("lengthBeats")),
+                                      2.0, 0.001, "clip length uses explicit end beat");
+            auto notes = clipObj->getProperty("notes");
+            auto* notesArray = notes.getArray();
+            expect(notesArray != nullptr && notesArray->size() == 1,
+                   "clip has one recorded note");
+            if (notesArray == nullptr || notesArray->isEmpty()) return;
+            auto* noteObj = notesArray->getReference(0).getDynamicObject();
+            expect(noteObj != nullptr, "note object exists");
+            if (noteObj == nullptr) return;
+            expectEquals(static_cast<int>(noteObj->getProperty("pitch")), 60);
+            expectWithinAbsoluteError(static_cast<double>(noteObj->getProperty("startBeat")),
+                                      0.0, 0.001, "note is clip-relative");
+            expectWithinAbsoluteError(static_cast<double>(noteObj->getProperty("durationBeats")),
+                                      1.0, 0.001, "note duration follows sample clock");
+
+            audioapp::EngineHost restored;
+            restored.createProject();
+            expect(restored.loadProjectFileJson(host.getProjectFileJson()),
+                   "recorded MIDI project reloads");
+            expect(firstMidiClipVar(restored).getDynamicObject() != nullptr,
+                   "recorded MIDI survives project-file roundtrip");
+        }
+
+        beginTest("empty MIDI session discards predictably");
+        {
+            audioapp::EngineHost host;
+            host.createProject();
+            const std::string trackId = host.addTrack("Empty MIDI");
+            host.selectTrack(trackId);
+            expect(host.beginMidiRecordingSession(trackId, 1.0, 0.25),
+                   "empty session starts");
+            expect(!host.finishMidiRecordingSession(2.0),
+                   "empty session reports no recorded clip");
+            expect(firstMidiClipVar(host).getDynamicObject() == nullptr,
+                   "empty session creates no MIDI clip");
         }
     }
 };

@@ -548,6 +548,7 @@ std::string ProjectEngine::createMidiClip(const std::string& trackId,
     if (clipId.empty()) {
         return {};
     }
+    syncProjectTreeLocked();
     rebuildTrackPlaybackLocked();
     return clipId;
 }
@@ -558,6 +559,7 @@ bool ProjectEngine::setMidiClipNotes(const std::string& clipId,
     if (!clipRepo_.setMidiClipNotes(clipId, notes)) {
         return false;
     }
+    syncProjectTreeLocked();
     rebuildTrackPlaybackLocked();
     return true;
 }
@@ -569,8 +571,12 @@ bool ProjectEngine::setMidiClipEditorScale(const std::string& clipId,
                                            bool snap,
                                            const std::string& chordQuality) {
     const juce::ScopedWriteLock lock(mutex_);
-    return clipRepo_.setMidiClipEditorScale(
-        clipId, root, scaleId, highlight, snap, chordQuality);
+    if (!clipRepo_.setMidiClipEditorScale(
+            clipId, root, scaleId, highlight, snap, chordQuality)) {
+        return false;
+    }
+    syncProjectTreeLocked();
+    return true;
 }
 
 std::string ProjectEngine::createSampleClip(const std::string& trackId,

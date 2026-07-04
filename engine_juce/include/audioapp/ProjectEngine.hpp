@@ -266,6 +266,11 @@ public:
     void allNotesOff();
     void clearCapture();
     bool commitCapture();
+    bool beginMidiRecordingSession(const std::string& trackId,
+                                   double startBeat,
+                                   double quantizeStep);
+    bool finishMidiRecordingSession(double endBeat = -1.0);
+    void cancelMidiRecordingSession();
     void readLiveMix(float* monoOut, int numFrames, double sampleRate) noexcept;
     bool hasLiveVoices() const noexcept;
     void setLivePitchBend(float bend) noexcept;
@@ -404,6 +409,8 @@ private:
     int captureEventCount_ = 0;
     uint64_t captureStartSample_ = 0;
     double captureStartPlayheadBeat_ = 0.0;
+    double captureQuantizeStep_ = 0.25;
+    std::string captureTrackId_;
     bool captureActive_ = false;
     LivePerformanceMixer liveMixer_;
     std::atomic<float> livePitchBend_{0.0f};

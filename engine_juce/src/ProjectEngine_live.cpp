@@ -68,6 +68,7 @@ bool ProjectEngine::setRecordArmed(bool armed) {
         captureActive_ = false;
         captureEventHead_ = 0;
         captureEventCount_ = 0;
+        captureTrackId_.clear();
     }
     return true;
 }
@@ -115,6 +116,8 @@ bool ProjectEngine::noteOn(int pitch, float velocity) {
             captureActive_ = true;
             captureStartSample_ = now;
             captureStartPlayheadBeat_ = transport_.playheadBeats();
+            captureQuantizeStep_ = 0.25;
+            captureTrackId_ = track->id;
             captureEventHead_ = 0;
             captureEventCount_ = 0;
         }
@@ -163,9 +166,32 @@ void ProjectEngine::clearCapture() {
     captureEventHead_ = 0;
     captureEventCount_ = 0;
     captureActive_ = false;
+    captureTrackId_.clear();
 }
 
-bool ProjectEngine::commitCapture() {
+bool ProjectEngine::beginMidiRecordingSession(const std::string& trackId,
+                                              double startBeat,
+                                              double quantizeStep) {
+    const juce::ScopedWriteLock lock(mutex_);
+    Track* track = trackRepo_.findTrack(trackId);
+    if (track == nullptr || track->isGroup || track->freeze.enabled) {
+        return false;
+    }
+    captureActive_ = true;
+    captureStartSample_ = liveMixer_.sampleClock();
+    captureStartPlayheadBeat_ = startBeat < 0.0 ? 0.0 : startBeat;
+    captureQuantizeStep_ = quantizeStep < 0.0 ? 0.0 : quantizeStep;
+    captureTrackId_ = trackId;
+    captureEventHead_ = 0;
+    captureEventCount_ = 0;
+    return true;
+}
+
+void ProjectEngine::cancelMidiRecordingSession() {
+    clearCapture();
+}
+
+bool ProjectEngine::finishMidiRecordingSession(double endBeat) {
     std::string trackId;
     double clipStart = 0.0;
     double clipLength = 4.0;
@@ -173,9 +199,17 @@ bool ProjectEngine::commitCapture() {
 
     {
         const juce::ScopedWriteLock lock(mutex_);
-        if (!captureActive_ || captureEventCount_ == 0 || trackRepo_.selectedTrackId().empty()) {
+        if (!captureActive_ || captureEventCount_ == 0) {
+            captureEventHead_ = 0;
+            captureEventCount_ = 0;
+            captureActive_ = false;
+            captureTrackId_.clear();
             return false;
         }
+        const bool hasExplicitEnd = endBeat >= captureStartPlayheadBeat_;
+        const double explicitEndBeat = hasExplicitEnd
+            ? quantizeCaptureBeat(endBeat - captureStartPlayheadBeat_, captureQuantizeStep_)
+            : -1.0;
 
         struct OpenNote {
             int pitch = 60;
@@ -187,19 +221,31 @@ bool ProjectEngine::commitCapture() {
         for (int i = 0; i < captureEventCount_; ++i) {
             const int idx = (captureEventHead_ + i) % kMaxCaptureEvents;
             const auto& event = captureEvents_[idx];
-            const double beat = quantizeCaptureBeat(sampleTimeToCaptureBeat(event.sampleTime));
+            double beat = quantizeCaptureBeat(
+                sampleTimeToCaptureBeat(event.sampleTime), captureQuantizeStep_);
+            if (hasExplicitEnd) {
+                beat = std::clamp(beat, 0.0, explicitEndBeat);
+            }
             if (event.type == CaptureEvent::Type::NoteOn) {
+                if (hasExplicitEnd && beat >= explicitEndBeat) {
+                    continue;
+                }
                 open.push_back(OpenNote{event.pitch, event.velocity, beat});
             } else {
                 for (auto it = open.begin(); it != open.end(); ++it) {
                     if (it->pitch != event.pitch) {
                         continue;
                     }
-                    const double endBeat =
-                        quantizeCaptureBeat(sampleTimeToCaptureBeat(event.sampleTime));
-                    double duration = endBeat - it->startBeat;
-                    if (duration < 0.25) {
-                        duration = 0.25;
+                    double noteEndBeat =
+                        quantizeCaptureBeat(
+                            sampleTimeToCaptureBeat(event.sampleTime), captureQuantizeStep_);
+                    if (hasExplicitEnd) {
+                        noteEndBeat = std::clamp(noteEndBeat, 0.0, explicitEndBeat);
+                    }
+                    double duration = noteEndBeat - it->startBeat;
+                    const double minDuration = captureQuantizeStep_ > 0.0 ? captureQuantizeStep_ : 0.05;
+                    if (duration < minDuration) {
+                        duration = minDuration;
                     }
                     committed.push_back(MidiNoteState{
                         it->pitch,
@@ -214,13 +260,22 @@ bool ProjectEngine::commitCapture() {
         }
 
         for (const auto& note : open) {
-            committed.push_back(MidiNoteState{note.pitch, note.startBeat, 0.5, note.velocity});
+            const double fallbackEnd = hasExplicitEnd
+                ? explicitEndBeat
+                : note.startBeat + 0.5;
+            double duration = fallbackEnd - note.startBeat;
+            const double minDuration = captureQuantizeStep_ > 0.0 ? captureQuantizeStep_ : 0.05;
+            if (duration < minDuration) {
+                duration = minDuration;
+            }
+            committed.push_back(MidiNoteState{note.pitch, note.startBeat, duration, note.velocity});
         }
 
         if (committed.empty()) {
             captureEventHead_ = 0;
             captureEventCount_ = 0;
             captureActive_ = false;
+            captureTrackId_.clear();
             return false;
         }
 
@@ -228,15 +283,27 @@ bool ProjectEngine::commitCapture() {
         for (const auto& note : committed) {
             maxEnd = std::max(maxEnd, note.startBeat + note.durationBeats);
         }
-        clipLength = std::max(4.0, std::ceil(maxEnd / 4.0) * 4.0);
+        if (hasExplicitEnd) {
+            clipLength = std::max(0.25, explicitEndBeat);
+        } else {
+            clipLength = std::max(4.0, std::ceil(maxEnd / 4.0) * 4.0);
+        }
         // Use the playhead position at capture start, not at commit time,
         // so the recorded clip aligns correctly with the timeline.
         clipStart = captureStartPlayheadBeat_;
-        trackId = trackRepo_.selectedTrackId();
+        trackId = captureTrackId_.empty() ? trackRepo_.selectedTrackId() : captureTrackId_;
+        if (trackId.empty()) {
+            captureEventHead_ = 0;
+            captureEventCount_ = 0;
+            captureActive_ = false;
+            captureTrackId_.clear();
+            return false;
+        }
 
         captureEventHead_ = 0;
         captureEventCount_ = 0;
         captureActive_ = false;
+        captureTrackId_.clear();
     }
 
     const std::string clipId = createMidiClip(trackId, clipStart, clipLength);
@@ -244,6 +311,10 @@ bool ProjectEngine::commitCapture() {
         return false;
     }
     return setMidiClipNotes(clipId, committed);
+}
+
+bool ProjectEngine::commitCapture() {
+    return finishMidiRecordingSession(-1.0);
 }
 
 void ProjectEngine::readLiveMix(float* monoOut, int numFrames, double sampleRate) noexcept {

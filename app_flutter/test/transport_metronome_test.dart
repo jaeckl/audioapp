@@ -40,4 +40,43 @@ void main() {
     expect(bars, 2);
     expect(level, 0.65);
   });
+
+  testWidgets('recording mode label appears while recording', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+            body: TransportBar(
+                bpm: 120,
+                playheadBeats: 2,
+                playing: true,
+                loopEnabled: false,
+                loopRegionStartBeat: 0,
+                loopRegionEndBeat: 4,
+                recordArmed: true,
+                recordingActive: true,
+                recordingStartBeat: 0,
+                recordingModeLabel: 'REC MIDI',
+                followPlayheadEnabled: true,
+                followPlayheadSuspended: false))));
+
+    expect(find.text('REC MIDI'), findsOneWidget);
+    expect(find.textContaining('+ AUTO'), findsNothing);
+  });
+
+  testWidgets('armed transport keeps compact position readout', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+            body: TransportBar(
+                bpm: 120,
+                playheadBeats: 0,
+                playing: false,
+                loopEnabled: false,
+                loopRegionStartBeat: 0,
+                loopRegionEndBeat: 4,
+                recordArmed: true,
+                followPlayheadEnabled: true,
+                followPlayheadSuspended: false))));
+
+    expect(find.textContaining('+ AUTO'), findsNothing);
+    expect(find.textContaining('REC AUDIO'), findsNothing);
+  });
 }

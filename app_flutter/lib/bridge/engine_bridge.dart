@@ -615,6 +615,28 @@ class EngineBridge {
     return _invokeForSnapshot('commitCapture');
   }
 
+  Future<void> beginMidiRecordingSession({
+    required String trackId,
+    required double startBeat,
+    double quantizeStep = 0.25,
+  }) async {
+    await _invokeOk('beginMidiRecordingSession', {
+      'trackId': trackId,
+      'startBeat': startBeat,
+      'quantizeStep': quantizeStep,
+    });
+  }
+
+  Future<ProjectSnapshot> finishMidiRecordingSession({double? endBeat}) async {
+    return _invokeForSnapshot('finishMidiRecordingSession', {
+      if (endBeat != null) 'endBeat': endBeat,
+    });
+  }
+
+  Future<void> cancelMidiRecordingSession() async {
+    await _invokeOk('cancelMidiRecordingSession');
+  }
+
   // ─── LFO & Modulation ─────────────────────────────────
 
   Future<ProjectSnapshot> createLfo({int modulatorType = 0}) async {

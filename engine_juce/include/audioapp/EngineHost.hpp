@@ -185,6 +185,11 @@ public:
     void allNotesOff();
     void clearCapture();
     bool commitCapture();
+    bool beginMidiRecordingSession(const std::string& trackId,
+                                   double startBeat,
+                                   double quantizeStep);
+    bool finishMidiRecordingSession(double endBeat = -1.0);
+    void cancelMidiRecordingSession();
     void enterPlayMode();
     void setPitchBend(float bend) noexcept;
     void setModulation(float mod) noexcept;

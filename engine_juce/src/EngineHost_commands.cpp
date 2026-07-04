@@ -739,6 +739,20 @@ bool EngineHost::commitCapture() {
     return project_->commitCapture();
 }
 
+bool EngineHost::beginMidiRecordingSession(const std::string& trackId,
+                                           double startBeat,
+                                           double quantizeStep) {
+    return project_->beginMidiRecordingSession(trackId, startBeat, quantizeStep);
+}
+
+bool EngineHost::finishMidiRecordingSession(double endBeat) {
+    return project_->finishMidiRecordingSession(endBeat);
+}
+
+void EngineHost::cancelMidiRecordingSession() {
+    project_->cancelMidiRecordingSession();
+}
+
 void EngineHost::enterPlayMode() {
     ensureAudioOutput();
 }
@@ -1864,6 +1878,30 @@ void EngineHost::registerAllCommands() {
             return commands::errorResult("capture_failed");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
         return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("beginMidiRecordingSession", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto trackId = ctx.args["trackId"].toString().toStdString();
+        const double startBeat = static_cast<double>(ctx.args["startBeat"]);
+        const double quantizeStep = ctx.args.hasProperty("quantizeStep")
+            ? static_cast<double>(ctx.args["quantizeStep"]) : 0.25;
+        if (!ctx.engine.beginMidiRecordingSession(trackId, startBeat, quantizeStep))
+            return commands::errorResult("midi_recording_start_failed");
+        return commands::okResult();
+    });
+
+    reg.registerCommand("finishMidiRecordingSession", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const double endBeat = ctx.args.hasProperty("endBeat")
+            ? static_cast<double>(ctx.args["endBeat"]) : -1.0;
+        if (!ctx.engine.finishMidiRecordingSession(endBeat))
+            return commands::errorResult("midi_recording_empty");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("cancelMidiRecordingSession", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        ctx.engine.cancelMidiRecordingSession();
+        return commands::okResult();
     });
 
     reg.registerCommand("createLfo", [](const commands::CommandContext& ctx) -> commands::CommandResult {

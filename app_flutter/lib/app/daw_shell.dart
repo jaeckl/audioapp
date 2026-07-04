@@ -37,6 +37,8 @@ import '../features/settings/settings_screen.dart';
 import '../features/welcome/example_projects.dart';
 import '../features/welcome/welcome_hub.dart';
 import '../features/transport/transport_bar.dart';
+import 'automation_recording_session.dart';
+import 'recording_session_decision.dart';
 
 enum _ShellTab { devices, keys, mixer, library, settings }
 
@@ -107,10 +109,34 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   final List<AudioRecordingSession> _audioRecordingSessions = [];
   double? _lastAudioRecordingPlayhead;
   bool _audioRecordingRollBusy = false;
+  String? _midiRecordingTrackId;
+  double _midiRecordingStartBeat = 0.0;
+  final AutomationRecordingSessionBuffer _automationRecording =
+      AutomationRecordingSessionBuffer();
   String? _highlightedClipId;
   Timer? _audioRecordingSnapshotTimer;
 
   bool get _audioRecordingActive => _audioRecordingTrackId != null;
+  bool get _midiRecordingActive => _midiRecordingTrackId != null;
+  bool get _automationRecordingActive => _automationRecording.isActive;
+  bool get _anyRecordingActive =>
+      _audioRecordingActive ||
+      _midiRecordingActive ||
+      _automationRecordingActive;
+  double get _recordingStartBeat {
+    if (_audioRecordingActive) return _audioRecordingStartBeat;
+    if (_midiRecordingActive) return _midiRecordingStartBeat;
+    if (_automationRecordingActive) return _automationRecording.startBeat;
+    return 0.0;
+  }
+
+  String? get _recordingModeLabel {
+    final modes = <String>[
+      if (_audioRecordingActive) 'AUDIO',
+      if (_midiRecordingActive) 'MIDI',
+    ];
+    return modes.isEmpty ? null : 'REC ${modes.join(' + ')}';
+  }
 
   @override
   void initState() {
@@ -956,9 +982,44 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         _snapshot!.withDeviceParam(deviceId, parameterId, value));
   }
 
+  TrackSnapshot? _trackOwningDevice(String deviceId) {
+    final snapshot = _snapshot;
+    if (snapshot == null) return null;
+    bool containsDevice(Iterable<DeviceSnapshot> devices) {
+      for (final device in devices) {
+        if (device.id == deviceId) return true;
+        if (device is ChainDeviceSnapshot && containsDevice(device.devices)) {
+          return true;
+        }
+        if (device is DrumMachineDeviceSnapshot) {
+          for (final pad in device.pads) {
+            if (containsDevice(pad.devices)) return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    for (final track in snapshot.tracks) {
+      if (containsDevice(track.devices)) return track;
+    }
+    return null;
+  }
+
+  void _captureAutomationForDeviceParam(
+    String deviceId,
+    String parameterId,
+    double value,
+  ) {
+    final track = _trackOwningDevice(deviceId);
+    if (track == null) return;
+    _recordAutomationPoint(track.id, deviceId, parameterId, value);
+  }
+
   Future<void> _setSamplerParameter(
       String deviceId, String parameterId, double value) async {
     _optimisticParamUpdate(deviceId, parameterId, value);
+    _captureAutomationForDeviceParam(deviceId, parameterId, value);
 
     // Wavetable position can emit dozens/hundreds of drag updates per second.
     // Coalesce those MethodChannel calls so the control thread does not keep
@@ -1577,6 +1638,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
   Future<void> _setFrequency(String deviceId, double value) async {
     _optimisticParamUpdate(deviceId, 'frequency', value);
+    _captureAutomationForDeviceParam(deviceId, 'frequency', value);
     try {
       await widget.bridge.setDeviceParameter(
         deviceId: deviceId,
@@ -1609,6 +1671,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
   Future<void> _setTrackGain(String deviceId, double value) async {
     _optimisticParamUpdate(deviceId, 'gain', value);
+    _captureAutomationForDeviceParam(deviceId, 'gain', value);
     try {
       await widget.bridge.setDeviceParameter(
         deviceId: deviceId,
@@ -1623,6 +1686,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
   Future<void> _setTrackPan(String deviceId, double value) async {
     _optimisticParamUpdate(deviceId, 'pan', value);
+    _captureAutomationForDeviceParam(deviceId, 'pan', value);
     try {
       await widget.bridge.setDeviceParameter(
         deviceId: deviceId,
@@ -2081,11 +2145,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   Future<void> _startPlay() async {
     final beats = _effectivePlayheadBeats;
     final snap = _snapshot;
-    final armedTrack = snap?.selectedTrack;
-    final shouldRecordAudio = snap?.recordArmed == true &&
-        armedTrack != null &&
-        !armedTrack.isGroup &&
-        !armedTrack.freeze.enabled;
+    final recordingDecision = decideRecordingSession(snap);
     try {
       await _transport.startPlay(
         beats,
@@ -2097,8 +2157,14 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       }
       return;
     }
-    if (shouldRecordAudio) {
-      unawaited(_beginAudioRecordingAfterCountIn(armedTrack.id, beats));
+    if (recordingDecision != null) {
+      unawaited(_beginRecordingAfterCountIn(
+        recordingDecision.trackId,
+        beats,
+        recordAudio: recordingDecision.recordAudio,
+        recordMidi: recordingDecision.recordMidi,
+        recordAutomation: recordingDecision.recordAutomation,
+      ));
     }
     _arrangementScrollController.catchUpPlayheadOnPlay(beats);
     if (mounted) {
@@ -2106,56 +2172,84 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _beginAudioRecordingAfterCountIn(
+  Future<void> _beginRecordingAfterCountIn(
     String trackId,
-    double requestedStartBeat,
-  ) async {
+    double requestedStartBeat, {
+    required bool recordAudio,
+    required bool recordMidi,
+    required bool recordAutomation,
+  }) async {
     try {
       var startBeat = requestedStartBeat;
       if (_countInBars > 0) {
         startBeat = await _waitForCountInToFinish(requestedStartBeat);
       }
       if (!_transport.playing || _snapshot?.selectedTrackId != trackId) return;
-      final displayName =
-          'Recorded take ${DateTime.now().millisecondsSinceEpoch}';
-      final targetClipId = _recordingTargetClipId(trackId, startBeat);
-      final session = await widget.bridge.beginAudioRecordingSession(
-        trackId: trackId,
-        startBeat: startBeat,
-        sampleRate: 48000,
-        displayName: displayName,
-        targetClipId: targetClipId,
-      );
-      if (session.sampleId.isEmpty || session.clipId.isEmpty) {
-        throw Exception('Recording session did not return ids');
-      }
-      await _refreshSnapshot(session.snapshot);
-      try {
-        await widget.bridge.startTrackAudioRecording(
-          sampleId: session.sampleId,
-          clipId: session.clipId,
+
+      if (recordMidi) {
+        await widget.bridge.beginMidiRecordingSession(
+          trackId: trackId,
+          startBeat: startBeat,
+          quantizeStep: 0.25,
         );
-      } catch (_) {
-        final snapshot = await widget.bridge.cancelAudioRecordingSession(
-          sampleId: session.sampleId,
-          clipId: session.clipId,
-        );
-        await _refreshSnapshot(snapshot);
-        rethrow;
+        _midiRecordingTrackId = trackId;
+        _midiRecordingStartBeat = startBeat;
       }
-      _audioRecordingTrackId = trackId;
-      _audioRecordingSampleId = session.sampleId;
-      _audioRecordingClipId = session.clipId;
-      _audioRecordingStartBeat = startBeat;
-      _audioRecordingSessions
-        ..clear()
-        ..add(session);
-      _lastAudioRecordingPlayhead = startBeat;
-      _highlightedClipId = session.clipId;
-      _arrangementScrollController.revealPlayheadAtViewportOrigin(startBeat);
-      _startAudioRecordingSnapshotRefresh();
+
+      if (recordAutomation) {
+        _automationRecording.begin(trackId: trackId, startBeat: startBeat);
+      }
+
+      if (recordAudio) {
+        final displayName =
+            'Recorded take ${DateTime.now().millisecondsSinceEpoch}';
+        final targetClipId = _recordingTargetClipId(trackId, startBeat);
+        final session = await widget.bridge.beginAudioRecordingSession(
+          trackId: trackId,
+          startBeat: startBeat,
+          sampleRate: 48000,
+          displayName: displayName,
+          targetClipId: targetClipId,
+        );
+        if (session.sampleId.isEmpty || session.clipId.isEmpty) {
+          throw Exception('Recording session did not return ids');
+        }
+        await _refreshSnapshot(session.snapshot);
+        try {
+          await widget.bridge.startTrackAudioRecording(
+            sampleId: session.sampleId,
+            clipId: session.clipId,
+          );
+        } catch (_) {
+          final snapshot = await widget.bridge.cancelAudioRecordingSession(
+            sampleId: session.sampleId,
+            clipId: session.clipId,
+          );
+          await _refreshSnapshot(snapshot);
+          rethrow;
+        }
+        _audioRecordingTrackId = trackId;
+        _audioRecordingSampleId = session.sampleId;
+        _audioRecordingClipId = session.clipId;
+        _audioRecordingStartBeat = startBeat;
+        _audioRecordingSessions
+          ..clear()
+          ..add(session);
+        _highlightedClipId = session.clipId;
+      }
+
+      if (_anyRecordingActive) {
+        _lastAudioRecordingPlayhead = startBeat;
+        _arrangementScrollController.revealPlayheadAtViewportOrigin(startBeat);
+        _startAudioRecordingSnapshotRefresh();
+      }
       if (mounted) setState(() {});
     } catch (e) {
+      if (recordMidi) {
+        try {
+          await widget.bridge.cancelMidiRecordingSession();
+        } catch (_) {}
+      }
       if (!mounted) return;
       setState(() => _projectError = e.toString());
     }
@@ -2195,14 +2289,16 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     _audioRecordingSnapshotTimer = Timer.periodic(
       const Duration(milliseconds: 250),
       (_) async {
-        if (!_audioRecordingActive) return;
+        if (!_anyRecordingActive) return;
         try {
           final transport = await widget.bridge.getTransportState();
           await _rollLoopRecordingIfNeeded(transport);
           await _refreshSnapshot(await widget.bridge.getProjectSnapshot());
-          final level = await widget.bridge.getTrackAudioRecordingLevel();
-          if (mounted) {
-            setState(() => _audioRecordingInputLevel = level);
+          if (_audioRecordingActive) {
+            final level = await widget.bridge.getTrackAudioRecordingLevel();
+            if (mounted) {
+              setState(() => _audioRecordingInputLevel = level);
+            }
           }
         } catch (_) {}
       },
@@ -2211,7 +2307,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
   Future<void> _rollLoopRecordingIfNeeded(TransportState transport) async {
     if (_audioRecordingRollBusy ||
-        !_audioRecordingActive ||
+        !_anyRecordingActive ||
         transport.loopEnabled != true ||
         transport.loopRegionEndBeat <= transport.loopRegionStartBeat) {
       _lastAudioRecordingPlayhead = transport.playheadBeats;
@@ -2223,6 +2319,34 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     _lastAudioRecordingPlayhead = current;
     if (!didWrap) return;
 
+    final loopStart = transport.loopRegionStartBeat;
+    if (_midiRecordingActive) {
+      final trackId = _midiRecordingTrackId;
+      try {
+        await _finishMidiRecordingSession(endBeat: transport.loopRegionEndBeat);
+      } catch (_) {}
+      if (trackId != null) {
+        try {
+          await widget.bridge.beginMidiRecordingSession(
+            trackId: trackId,
+            startBeat: loopStart,
+            quantizeStep: 0.25,
+          );
+          _midiRecordingTrackId = trackId;
+          _midiRecordingStartBeat = loopStart;
+        } catch (_) {
+          _midiRecordingTrackId = null;
+        }
+      }
+    }
+    if (_automationRecordingActive) {
+      await _finishAutomationRecordingSegment(
+        endBeat: transport.loopRegionEndBeat,
+        keepSessionActive: true,
+        nextStartBeat: loopStart,
+      );
+    }
+
     final trackId = _audioRecordingTrackId;
     final oldSampleId = _audioRecordingSampleId;
     final clipId = _audioRecordingClipId;
@@ -2230,7 +2354,6 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
     _audioRecordingRollBusy = true;
     try {
-      final loopStart = transport.loopRegionStartBeat;
       final displayName =
           'Recorded take ${DateTime.now().millisecondsSinceEpoch}';
       final nextSession = await widget.bridge.beginAudioRecordingSession(
@@ -2261,6 +2384,72 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
+  void _recordAutomationPoint(
+    String trackId,
+    String deviceId,
+    String paramId,
+    double value,
+  ) {
+    if (!_transport.playing) return;
+    _automationRecording.recordPoint(
+      trackId: trackId,
+      deviceId: deviceId,
+      paramId: paramId,
+      value: value,
+      beat: _effectivePlayheadBeats,
+    );
+  }
+
+  Future<ProjectSnapshot?> _finishMidiRecordingSession(
+      {double? endBeat}) async {
+    final trackId = _midiRecordingTrackId;
+    if (trackId == null) return null;
+    _midiRecordingTrackId = null;
+    try {
+      return await widget.bridge.finishMidiRecordingSession(endBeat: endBeat);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<ProjectSnapshot?> _finishAutomationRecordingSegment({
+    required double endBeat,
+    required bool keepSessionActive,
+    double? nextStartBeat,
+  }) async {
+    if (!_automationRecordingActive) return null;
+    final commits = _automationRecording.finishSegment(
+      endBeat: endBeat,
+      keepActive: keepSessionActive,
+      nextStartBeat: nextStartBeat,
+    );
+    ProjectSnapshot? snapshot;
+    for (final commit in commits) {
+      final beforeIds =
+          _snapshot?.automationClips.map((clip) => clip.id).toSet() ??
+              <String>{};
+      snapshot = await widget.bridge.createAutomationClip(
+        trackId: commit.trackId,
+        startBeat: commit.startBeat,
+        lengthBeats: commit.lengthBeats,
+      );
+      final created = snapshot.automationClips.lastWhere(
+        (clip) => !beforeIds.contains(clip.id),
+        orElse: () => snapshot!.automationClips.last,
+      );
+      snapshot = await widget.bridge.assignAutomationTarget(
+        clipId: created.id,
+        deviceId: commit.deviceId,
+        paramId: commit.paramId,
+      );
+      snapshot = await widget.bridge.setAutomationPoints(
+        clipId: created.id,
+        points: commit.points,
+      );
+    }
+    return snapshot;
+  }
+
   Future<void> _setMetronome(
       bool enabled, double level, int countInBars) async {
     setState(() {
@@ -2279,6 +2468,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   Future<void> _stopPlay() async {
     final sessions = List<AudioRecordingSession>.of(_audioRecordingSessions);
     final clipId = _audioRecordingClipId;
+    final automationEndBeat = _effectivePlayheadBeats;
     _audioRecordingTrackId = null;
     _audioRecordingSampleId = null;
     _audioRecordingClipId = null;
@@ -2288,6 +2478,20 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     _audioRecordingSnapshotTimer?.cancel();
     await _transport.stopPlay();
     _liveMeters.clear();
+    try {
+      final midiSnapshot =
+          await _finishMidiRecordingSession(endBeat: automationEndBeat);
+      if (midiSnapshot != null) await _refreshSnapshot(midiSnapshot);
+      final automationSnapshot = await _finishAutomationRecordingSegment(
+        endBeat: automationEndBeat,
+        keepSessionActive: false,
+      );
+      if (automationSnapshot != null) {
+        await _refreshSnapshot(automationSnapshot);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _projectError = e.toString());
+    }
     if (sessions.isNotEmpty) {
       try {
         await widget.bridge.stopTrackAudioRecording();
@@ -2319,18 +2523,23 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   }
 
   Future<void> _cancelAudioRecording() async {
-    if (!_audioRecordingActive) return;
+    if (!_anyRecordingActive) return;
     final sessions = List<AudioRecordingSession>.of(_audioRecordingSessions);
     _audioRecordingTrackId = null;
     _audioRecordingSampleId = null;
     _audioRecordingClipId = null;
+    _midiRecordingTrackId = null;
+    _automationRecording.cancel();
     _audioRecordingSessions.clear();
     _lastAudioRecordingPlayhead = null;
     _audioRecordingInputLevel = 0.0;
     _highlightedClipId = null;
     _audioRecordingSnapshotTimer?.cancel();
     try {
-      await widget.bridge.cancelTrackAudioRecording();
+      await widget.bridge.cancelMidiRecordingSession();
+      if (sessions.isNotEmpty) {
+        await widget.bridge.cancelTrackAudioRecording();
+      }
       ProjectSnapshot? lastSnapshot;
       final cancelled = <String>{};
       for (final session in sessions.reversed) {
@@ -2567,9 +2776,10 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
                 loopRegionStartBeat: snapshot.loopRegionStartBeat,
                 loopRegionEndBeat: snapshot.loopRegionEndBeat,
                 recordArmed: snapshot.recordArmed,
-                recordingActive: _audioRecordingActive,
-                recordingStartBeat: _audioRecordingStartBeat,
+                recordingActive: _anyRecordingActive,
+                recordingStartBeat: _recordingStartBeat,
                 recordingInputLevel: _audioRecordingInputLevel,
+                recordingModeLabel: _recordingModeLabel,
                 followPlayheadEnabled: _transport.followPlayheadEnabled,
                 followPlayheadSuspended: _transport.followPlayheadSuspended,
                 selectedTrackName: selectedTrack?.name,

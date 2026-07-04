@@ -334,40 +334,6 @@ class _MetronomeMenuState extends State<_MetronomeMenu> {
           ]));
 }
 
-class _MetronomeMenuButton extends StatelessWidget {
-  const _MetronomeMenuButton(
-      {required this.enabled,
-      required this.level,
-      required this.countInBars,
-      this.onChanged});
-  final bool enabled;
-  final double level;
-  final int countInBars;
-  final void Function(bool, double, int)? onChanged;
-  @override
-  Widget build(BuildContext context) => PopupMenuButton<void>(
-      tooltip: enabled ? 'Metronome on' : 'Metronome off',
-      color: TransportBarTheme.menuBackground,
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-          side: const BorderSide(color: TransportBarTheme.chipBorder)),
-      icon: Icon(Icons.timer_outlined,
-          size: 20,
-          color: enabled
-              ? Theme.of(context).colorScheme.primary
-              : TransportBarTheme.textSecondary),
-      itemBuilder: (_) => [
-            PopupMenuItem<void>(
-                enabled: false,
-                padding: const EdgeInsets.all(14),
-                child: _MetronomeMenu(
-                    enabled: enabled,
-                    level: level,
-                    countInBars: countInBars,
-                    onChanged: onChanged ?? (_, __, ___) {}))
-          ]);
-}
-
 class TransportBar extends StatelessWidget {
   const TransportBar({
     super.key,
@@ -381,6 +347,7 @@ class TransportBar extends StatelessWidget {
     this.recordingActive = false,
     this.recordingStartBeat = 0,
     this.recordingInputLevel = 0,
+    this.recordingModeLabel,
     required this.followPlayheadEnabled,
     required this.followPlayheadSuspended,
     this.selectedTrackName,
@@ -416,6 +383,7 @@ class TransportBar extends StatelessWidget {
   final bool recordingActive;
   final double recordingStartBeat;
   final double recordingInputLevel;
+  final String? recordingModeLabel;
   final bool followPlayheadEnabled;
   final bool followPlayheadSuspended;
   final String? selectedTrackName;
@@ -455,13 +423,6 @@ class TransportBar extends StatelessWidget {
         : (followPlayheadEnabled
             ? 'Follow on — tap to disable'
             : 'Follow off — tap to enable');
-    final recordingBeats = recordingActive
-        ? (playheadBeats - recordingStartBeat).clamp(0.0, double.infinity)
-        : 0.0;
-    final recordingLabel = recordingActive
-        ? 'REC ${TransportPositionFormat.elapsedClock(recordingBeats, bpm)}'
-        : null;
-
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -488,12 +449,15 @@ class TransportBar extends StatelessWidget {
                   onJumpToStart: onJumpToStart,
                   positionPrimary: positionPrimary,
                   positionSecondary: positionSecondary,
-                  recordingLabel: recordingLabel,
                   recordingTrackName: selectedTrackName,
                   recordingInputLevel: recordingInputLevel,
+                  metronomeEnabled: metronomeEnabled,
+                  metronomeLevel: metronomeLevel,
+                  countInBars: countInBars,
                   loopEnabled: loopEnabled,
                   recordArmed: recordArmed,
                   recordingActive: recordingActive,
+                  recordingModeLabel: recordingModeLabel,
                   followActive:
                       followPlayheadEnabled && !followPlayheadSuspended,
                   followEnabled: followPlayheadEnabled,
@@ -503,19 +467,15 @@ class TransportBar extends StatelessWidget {
                   onRecordArmedChanged: onRecordArmedChanged,
                   onCancelRecording: onCancelRecording,
                   onFollowPlayheadToggled: onFollowPlayheadToggled,
+                  onMetronomeChanged: onMetronomeChanged,
                 ),
               ),
-              SizedBox(width: TransportBarTheme.cardGap),
+              const SizedBox(width: TransportBarTheme.cardGap),
               TransportBpmBox(
                 bpm: bpm,
                 enabled: onBpmChanged != null,
                 onChanged: onBpmChanged,
               ),
-              _MetronomeMenuButton(
-                  enabled: metronomeEnabled,
-                  level: metronomeLevel,
-                  countInBars: countInBars,
-                  onChanged: onMetronomeChanged),
               _SnapGridMenuButton(
                 snapClipsEnabled: snapClipsEnabled,
                 snapGridResolution: snapGridResolution,
@@ -544,6 +504,7 @@ class TransportBar extends StatelessWidget {
     bool recordingActive = false,
     double recordingStartBeat = 0,
     double recordingInputLevel = 0,
+    String? recordingModeLabel,
     bool followPlayheadEnabled = true,
     bool followPlayheadSuspended = false,
     String? selectedTrackName,
@@ -582,6 +543,7 @@ class TransportBar extends StatelessWidget {
         recordingActive: recordingActive,
         recordingStartBeat: recordingStartBeat,
         recordingInputLevel: recordingInputLevel,
+        recordingModeLabel: recordingModeLabel,
         followPlayheadEnabled: followPlayheadEnabled,
         followPlayheadSuspended: followPlayheadSuspended,
         selectedTrackName: selectedTrackName,
@@ -615,12 +577,15 @@ class _PositionPanel extends StatelessWidget {
     required this.playing,
     required this.positionPrimary,
     required this.positionSecondary,
-    this.recordingLabel,
     this.recordingTrackName,
     this.recordingInputLevel = 0,
+    required this.metronomeEnabled,
+    required this.metronomeLevel,
+    required this.countInBars,
     required this.loopEnabled,
     required this.recordArmed,
     required this.recordingActive,
+    this.recordingModeLabel,
     required this.followActive,
     required this.followEnabled,
     required this.loopTooltip,
@@ -632,17 +597,21 @@ class _PositionPanel extends StatelessWidget {
     this.onRecordArmedChanged,
     this.onCancelRecording,
     this.onFollowPlayheadToggled,
+    this.onMetronomeChanged,
   });
 
   final bool playing;
   final String positionPrimary;
   final String positionSecondary;
-  final String? recordingLabel;
   final String? recordingTrackName;
   final double recordingInputLevel;
+  final bool metronomeEnabled;
+  final double metronomeLevel;
+  final int countInBars;
   final bool loopEnabled;
   final bool recordArmed;
   final bool recordingActive;
+  final String? recordingModeLabel;
   final bool followActive;
   final bool followEnabled;
   final String loopTooltip;
@@ -654,6 +623,7 @@ class _PositionPanel extends StatelessWidget {
   final ValueChanged<bool>? onRecordArmedChanged;
   final VoidCallback? onCancelRecording;
   final ValueChanged<bool>? onFollowPlayheadToggled;
+  final void Function(bool, double, int)? onMetronomeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -694,9 +664,15 @@ class _PositionPanel extends StatelessWidget {
                   onPlay: onPlay,
                   onStop: onStop,
                 ),
+                _InlineMetronomeButton(
+                  enabled: metronomeEnabled,
+                  level: metronomeLevel,
+                  countInBars: countInBars,
+                  onChanged: onMetronomeChanged,
+                ),
                 Expanded(
                   child: Padding(
-                    padding: EdgeInsets.fromLTRB(
+                    padding: const EdgeInsets.fromLTRB(
                       TransportBarTheme.cardInnerPaddingH,
                       TransportBarTheme.cardInnerPaddingV,
                       TransportBarTheme.statusIconHit + 4,
@@ -719,14 +695,12 @@ class _PositionPanel extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              recordingLabel ?? positionPrimary,
+                              positionPrimary,
                               style: Theme.of(context)
                                   .textTheme
                                   .labelLarge
                                   ?.copyWith(
-                                    color: recordingActive
-                                        ? TransportBarTheme.accentRecord
-                                        : TransportBarTheme.textPrimary,
+                                    color: TransportBarTheme.textPrimary,
                                     fontFamily: 'monospace',
                                     fontWeight: FontWeight.w600,
                                     fontSize: 13,
@@ -735,7 +709,9 @@ class _PositionPanel extends StatelessWidget {
                             const SizedBox(width: 8),
                             Text(
                               recordingActive
-                                  ? (recordingTrackName ?? 'Recording')
+                                  ? (recordingModeLabel ??
+                                      recordingTrackName ??
+                                      'REC')
                                   : positionSecondary,
                               style: Theme.of(context)
                                   .textTheme
@@ -841,6 +817,57 @@ class _InlinePlayStop extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _InlineMetronomeButton extends StatelessWidget {
+  const _InlineMetronomeButton({
+    required this.enabled,
+    required this.level,
+    required this.countInBars,
+    this.onChanged,
+  });
+
+  final bool enabled;
+  final double level;
+  final int countInBars;
+  final void Function(bool, double, int)? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 32,
+      height: double.infinity,
+      child: PopupMenuButton<void>(
+        tooltip: enabled ? 'Metronome on' : 'Metronome off',
+        enabled: onChanged != null,
+        padding: EdgeInsets.zero,
+        color: TransportBarTheme.menuBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: const BorderSide(color: TransportBarTheme.chipBorder),
+        ),
+        icon: Icon(
+          enabled ? Icons.timer : Icons.timer_outlined,
+          size: 19,
+          color: enabled
+              ? Theme.of(context).colorScheme.primary
+              : TransportBarTheme.textSecondary,
+        ),
+        itemBuilder: (_) => [
+          PopupMenuItem<void>(
+            enabled: false,
+            padding: const EdgeInsets.all(14),
+            child: _MetronomeMenu(
+              enabled: enabled,
+              level: level,
+              countInBars: countInBars,
+              onChanged: onChanged ?? (_, __, ___) {},
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -219,12 +219,12 @@ class _CaptureStrip extends StatelessWidget {
               onTap: onMetronomeToggle,
             ),
             Expanded(
-              child: FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFB0414E),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white70,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
                   shape: const RoundedRectangleBorder(),
+                  side: const BorderSide(color: Color(0xFF6A3A42)),
                 ),
                 onPressed: busy ? null : onCapture,
                 icon: busy
@@ -234,7 +234,7 @@ class _CaptureStrip extends StatelessWidget {
                         child: CircularProgressIndicator(strokeWidth: 1.5),
                       )
                     : const Icon(Icons.check, size: 18),
-                label: const Text('Capture'),
+                label: const Text('Commit'),
               ),
             ),
             _SimpleTextButton(
@@ -278,7 +278,8 @@ class _SimpleTextButton extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 label,
-                style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    fontSize: 11, color: color, fontWeight: FontWeight.w600),
               ),
             ],
           ),
