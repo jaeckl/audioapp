@@ -38,6 +38,8 @@ class AutomationSegmentCommit {
   final double startBeat;
   final double lengthBeats;
   final List<AutomationPointSnapshot> points;
+
+  String get laneKey => '$trackId:$deviceId:$paramId';
 }
 
 class AutomationRecordingSessionBuffer {
@@ -103,14 +105,26 @@ class AutomationRecordingSessionBuffer {
 
     return [
       for (final lane in lanes)
-        if (_commitForLane(lane, endBeat) case final commit?) commit,
+        if (_commitForLane(lane, endBeat, provisional: false)
+            case final commit?)
+          commit,
+    ];
+  }
+
+  List<AutomationSegmentCommit> previewSegments({required double endBeat}) {
+    if (!isActive) return const [];
+    return [
+      for (final lane in _lanes.values)
+        if (_commitForLane(lane, endBeat, provisional: true) case final commit?)
+          commit,
     ];
   }
 
   AutomationSegmentCommit? _commitForLane(
     AutomationRecordingLane lane,
-    double endBeat,
-  ) {
+    double endBeat, {
+    required bool provisional,
+  }) {
     final lengthBeats = (endBeat - lane.startBeat).clamp(0.25, 1024.0);
     final sorted = lane.points
         .where((point) =>
@@ -118,7 +132,7 @@ class AutomationRecordingSessionBuffer {
             point.beat <= endBeat + 0.001)
         .toList()
       ..sort((a, b) => a.beat.compareTo(b.beat));
-    if (sorted.length < 2) return null;
+    if (sorted.isEmpty || (!provisional && sorted.length < 2)) return null;
 
     var minValue = sorted.first.value;
     var maxValue = sorted.first.value;
@@ -126,7 +140,7 @@ class AutomationRecordingSessionBuffer {
       minValue = point.value < minValue ? point.value : minValue;
       maxValue = point.value > maxValue ? point.value : maxValue;
     }
-    if ((maxValue - minValue).abs() < 0.003) return null;
+    if (!provisional && (maxValue - minValue).abs() < 0.003) return null;
 
     final points = <AutomationPointSnapshot>[
       AutomationPointSnapshot(beat: 0, value: sorted.first.value),

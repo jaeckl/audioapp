@@ -109,6 +109,27 @@ void main() {
     expect(secondPass.single.points.last.value, 0.3);
   });
 
+  test('preview segment can show live clip after first gesture point', () {
+    final session = AutomationRecordingSessionBuffer()
+      ..begin(trackId: 'track-1', startBeat: 4.0)
+      ..recordPoint(
+        trackId: 'track-1',
+        deviceId: 'dev-1',
+        paramId: 'cutoff',
+        value: 0.42,
+        beat: 4.25,
+      );
+
+    final previews = session.previewSegments(endBeat: 4.5);
+
+    expect(previews, hasLength(1));
+    expect(previews.single.startBeat, 4.0);
+    expect(previews.single.lengthBeats, 0.5);
+    expect(previews.single.points.first.value, 0.42);
+    expect(previews.single.points.last.value, 0.42);
+    expect(session.isActive, isTrue);
+  });
+
   test('cancel discards active automation recording', () {
     final session = AutomationRecordingSessionBuffer()
       ..begin(trackId: 'track-1', startBeat: 0.0)
