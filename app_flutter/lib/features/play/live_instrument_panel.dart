@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/engine_bridge.dart';
 import '../../bridge/project_snapshot.dart';
+import '../../app/record_write_mode.dart';
 import 'play_deck.dart';
 import 'play_deck_layout.dart';
 
@@ -13,14 +14,16 @@ class LiveInstrumentPanel extends StatefulWidget {
     super.key,
     required this.bridge,
     required this.snapshot,
-    required this.onSnapshot,
     required this.onRecordArmed,
+    required this.recordWriteMode,
+    required this.onRecordWriteModeChanged,
   });
 
   final EngineBridge bridge;
   final ProjectSnapshot snapshot;
-  final Future<void> Function(ProjectSnapshot snapshot) onSnapshot;
   final Future<void> Function(bool armed) onRecordArmed;
+  final RecordWriteMode recordWriteMode;
+  final ValueChanged<RecordWriteMode> onRecordWriteModeChanged;
 
   @override
   State<LiveInstrumentPanel> createState() => _LiveInstrumentPanelState();
@@ -28,8 +31,6 @@ class LiveInstrumentPanel extends StatefulWidget {
 
 class _LiveInstrumentPanelState extends State<LiveInstrumentPanel> {
   GlobalKey<PlayDeckState> _deckKey = GlobalKey();
-  bool _busy = false;
-
   PlaySurfaceMode? _preferredSurfaceMode;
 
   @override
@@ -68,44 +69,6 @@ class _LiveInstrumentPanelState extends State<LiveInstrumentPanel> {
     } catch (_) {}
   }
 
-  Future<void> _commitCapture() async {
-    if (_busy) return;
-    final deck = _deckKey.currentState;
-    if (deck == null) return;
-    if (deck.quantize != CaptureQuantize.off) {
-      deck.setMetronome(true);
-      setState(() {});
-      await Future<void>.delayed(const Duration(milliseconds: 800));
-      if (!mounted) return;
-      deck.setMetronome(false);
-      setState(() {});
-    }
-    setState(() => _busy = true);
-    try {
-      final updated = await widget.bridge.commitCapture();
-      await widget.onSnapshot(updated);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Captured to MIDI clip at playhead')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Capture failed: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _clearCapture() async {
-    try {
-      await widget.bridge.clearCapture();
-    } catch (_) {}
-  }
-
   @override
   Widget build(BuildContext context) {
     final track = widget.snapshot.selectedTrack;
@@ -120,13 +83,12 @@ class _LiveInstrumentPanelState extends State<LiveInstrumentPanel> {
         if (hasTrack)
           _CaptureStrip(
             armed: armed,
-            busy: _busy,
+            recordWriteMode: widget.recordWriteMode,
             quantize: deck?.quantize ?? CaptureQuantize.quarter,
             latch: deck?.latch ?? false,
             metronome: deck?.metronome ?? false,
             onArmToggle: () => _setRecordArmed(!armed),
-            onCapture: _commitCapture,
-            onClear: _clearCapture,
+            onRecordWriteModeChanged: widget.onRecordWriteModeChanged,
             onLatchToggle: () {
               _deckKey.currentState?.toggleLatch();
               setState(() {});
@@ -153,25 +115,23 @@ class _LiveInstrumentPanelState extends State<LiveInstrumentPanel> {
 class _CaptureStrip extends StatelessWidget {
   const _CaptureStrip({
     required this.armed,
-    required this.busy,
+    required this.recordWriteMode,
     required this.quantize,
     required this.latch,
     required this.metronome,
     required this.onArmToggle,
-    required this.onCapture,
-    required this.onClear,
+    required this.onRecordWriteModeChanged,
     required this.onLatchToggle,
     required this.onMetronomeToggle,
   });
 
   final bool armed;
-  final bool busy;
+  final RecordWriteMode recordWriteMode;
   final CaptureQuantize quantize;
   final bool latch;
   final bool metronome;
   final VoidCallback onArmToggle;
-  final VoidCallback onCapture;
-  final VoidCallback onClear;
+  final ValueChanged<RecordWriteMode> onRecordWriteModeChanged;
   final VoidCallback onLatchToggle;
   final VoidCallback onMetronomeToggle;
 
@@ -219,30 +179,60 @@ class _CaptureStrip extends StatelessWidget {
               onTap: onMetronomeToggle,
             ),
             Expanded(
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white70,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  shape: const RoundedRectangleBorder(),
-                  side: const BorderSide(color: Color(0xFF6A3A42)),
-                ),
-                onPressed: busy ? null : onCapture,
-                icon: busy
-                    ? const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 1.5),
-                      )
-                    : const Icon(Icons.check, size: 18),
-                label: const Text('Commit'),
+              child: _RecordModeSelector(
+                mode: recordWriteMode,
+                onChanged: onRecordWriteModeChanged,
               ),
             ),
-            _SimpleTextButton(
-              icon: Icons.close,
-              color: Colors.white70,
-              label: 'Clear',
-              onTap: onClear,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RecordModeSelector extends StatelessWidget {
+  const _RecordModeSelector({
+    required this.mode,
+    required this.onChanged,
+  });
+
+  final RecordWriteMode mode;
+  final ValueChanged<RecordWriteMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<RecordWriteMode>(
+      tooltip: 'Record mode',
+      initialValue: mode,
+      onSelected: onChanged,
+      itemBuilder: (context) => [
+        for (final value in RecordWriteMode.values)
+          PopupMenuItem(value: value, child: Text(value.label)),
+      ],
+      child: Container(
+        height: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        alignment: Alignment.center,
+        decoration: const BoxDecoration(
+          border: Border(left: BorderSide(color: Color(0xFF5A2A30))),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.fiber_smart_record,
+                size: 14, color: Colors.white70),
+            const SizedBox(width: 6),
+            Text(
+              mode.label,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Colors.white70,
+                fontWeight: FontWeight.w700,
+              ),
             ),
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_drop_down, size: 16, color: Colors.white54),
           ],
         ),
       ),

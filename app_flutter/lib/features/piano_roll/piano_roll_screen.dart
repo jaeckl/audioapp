@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/engine_bridge.dart';
 import '../../bridge/project_snapshot.dart';
-import '../../bridge/timeline_clip.dart';
 import '../editor/clip_editor_transport.dart';
 import '../editor/timeline_marker_layer.dart';
 import '../play/play_deck.dart';
@@ -53,8 +52,10 @@ class PianoRollScreen extends StatefulWidget {
 class _PianoRollScreenState extends State<PianoRollScreen>
     with TickerProviderStateMixin {
   late List<MidiNoteSnapshot> _notes;
+  late List<MidiClipTakeSnapshot> _takes;
   late int _initialOctaveOffset;
   late double _clipLengthBeats;
+  late List<MidiClipTakeRegionSnapshot> _takeRegions;
   late final ClipEditorTransportController _previewTransport;
   late final PianoRollNoteAudition _noteAudition;
   final TimelineViewportScrollController _timelineScrollController =
@@ -67,7 +68,9 @@ class _PianoRollScreenState extends State<PianoRollScreen>
   PianoRollTool _tool = PianoRollTool.select;
   PianoRollDrawPattern _drawPattern = PianoRollDrawPattern.single;
   late MidiEditorMode _editorMode;
+  bool _showTakes = false;
   int? _selectedIndex;
+  int? _selectedTakeMarker;
   int _viewRangeBars = EditorViewRange.defaultBars;
   Future<void>? _pendingNoteSave;
 
@@ -75,6 +78,8 @@ class _PianoRollScreenState extends State<PianoRollScreen>
   void initState() {
     super.initState();
     _notes = List.of(widget.clip.notes);
+    _takes = List.of(widget.clip.takes);
+    _takeRegions = List.of(widget.clip.activeTakeRegions);
     _editorMode = widget.drumLaneLayout == null
         ? MidiEditorMode.piano
         : MidiEditorMode.drums;
@@ -122,8 +127,9 @@ class _PianoRollScreenState extends State<PianoRollScreen>
   }
 
   Future<void> _stopPreviewPlay() async {
-    if (!_previewTransport.isPlaying || _previewTransportCommandInFlight)
+    if (!_previewTransport.isPlaying || _previewTransportCommandInFlight) {
       return;
+    }
     _previewTransportCommandInFlight = true;
     try {
       await _previewTransport.stop();
@@ -150,6 +156,11 @@ class _PianoRollScreenState extends State<PianoRollScreen>
         _clipLengthBeats = nextSpan;
         _previewTransport.maxClipBeat = nextSpan;
       });
+    }
+    if (widget.clip.takes != oldWidget.clip.takes ||
+        widget.clip.activeTakeRegions != oldWidget.clip.activeTakeRegions) {
+      _takes = List.of(widget.clip.takes);
+      _takeRegions = List.of(widget.clip.activeTakeRegions);
     }
   }
 
@@ -349,6 +360,99 @@ class _PianoRollScreenState extends State<PianoRollScreen>
     }
   }
 
+  List<double> get _takeMarkerBeats =>
+      _takeRegions.skip(1).map((region) => region.startBeat).toList();
+
+  MidiClipSnapshot? _findClipInSnapshot(ProjectSnapshot snapshot, String id) {
+    for (final track in snapshot.tracks) {
+      for (final clip in track.midiClips) {
+        if (clip.id == id) return clip;
+      }
+    }
+    return null;
+  }
+
+  void _applyRefreshedClip(MidiClipSnapshot clip) {
+    setState(() {
+      _notes = List.of(clip.notes);
+      _takes = List.of(clip.takes);
+      _takeRegions = List.of(clip.activeTakeRegions);
+      _clipLengthBeats = clip.editorContentLengthBeats;
+      _selectedIndex = null;
+    });
+    _previewTransport.maxClipBeat = _clipLengthBeats;
+  }
+
+  Future<void> _withMidiTakeSnapshot(
+    Future<ProjectSnapshot> Function() action,
+  ) async {
+    final snapshot = await action();
+    widget.onSnapshot(snapshot);
+    if (!mounted) return;
+    final refreshed = _findClipInSnapshot(snapshot, widget.clip.id);
+    if (refreshed != null) {
+      _applyRefreshedClip(refreshed);
+    }
+  }
+
+  Future<void> _setMidiTakeAtPlayhead(String takeId) async {
+    final beat = _previewTransport.clipLocalBeat.clamp(0.0, _clipLengthBeats);
+    await _withMidiTakeSnapshot(
+      () => widget.bridge.setMidiClipTakeAtBeat(
+        clipId: widget.clip.id,
+        beat: beat,
+        takeId: takeId,
+      ),
+    );
+  }
+
+  Future<void> _splitMidiTakeAtPlayhead() async {
+    final beat = _previewTransport.clipLocalBeat.clamp(0.0, _clipLengthBeats);
+    await _withMidiTakeSnapshot(
+      () => widget.bridge.splitMidiClipTakeRegionAtBeat(
+        clipId: widget.clip.id,
+        beat: beat,
+      ),
+    );
+    if (!mounted) return;
+    setState(() {
+      _selectedTakeMarker = _takeMarkerBeats.indexWhere(
+        (marker) => (marker - beat).abs() < .01,
+      );
+      if (_selectedTakeMarker == -1) _selectedTakeMarker = null;
+    });
+  }
+
+  Future<void> _deleteSelectedMidiTakeMarker() async {
+    final index = _selectedTakeMarker;
+    if (index == null || index < 0 || index >= _takeMarkerBeats.length) {
+      return;
+    }
+    await _withMidiTakeSnapshot(
+      () => widget.bridge.deleteMidiClipTakeMarker(
+        clipId: widget.clip.id,
+        markerIndex: index,
+      ),
+    );
+    if (mounted) setState(() => _selectedTakeMarker = null);
+  }
+
+  Future<void> _nudgeSelectedMidiTakeMarker(int direction) async {
+    final index = _selectedTakeMarker;
+    final markers = _takeMarkerBeats;
+    if (index == null || index < 0 || index >= markers.length) return;
+    final step = math.max(0.125, _grid.snapBeats);
+    final next = markers[index] + direction * step;
+    await _withMidiTakeSnapshot(
+      () => widget.bridge.moveMidiClipTakeMarker(
+        clipId: widget.clip.id,
+        markerIndex: index,
+        beat: next,
+      ),
+    );
+    if (mounted) setState(() => _selectedTakeMarker = index);
+  }
+
   void _openGridSheet() {
     PianoRollGridSheet.show(
       context,
@@ -444,6 +548,19 @@ class _PianoRollScreenState extends State<PianoRollScreen>
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           ),
           actions: [
+            if (_takes.isNotEmpty)
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                  foregroundColor:
+                      _showTakes ? const Color(0xFFFF6D8A) : Colors.white70,
+                ),
+                icon: Icon(
+                  _showTakes ? Icons.splitscreen : Icons.splitscreen_outlined,
+                  size: 18,
+                ),
+                label: const Text('TAKES'),
+                onPressed: () => setState(() => _showTakes = !_showTakes),
+              ),
             TextButton.icon(
               style: TextButton.styleFrom(foregroundColor: Colors.white70),
               icon: const Icon(Icons.grid_4x4, size: 18),
@@ -540,6 +657,20 @@ class _PianoRollScreenState extends State<PianoRollScreen>
                 }),
                 onDrawSettings: _openDrawSheet,
               ),
+              if (_showTakes && _takes.isNotEmpty)
+                _MidiTakeLaneStack(
+                  takes: _takes,
+                  regions: _takeRegions,
+                  clipLengthBeats: _clipLengthBeats,
+                  playheadBeat: _previewTransport.clipLocalBeat,
+                  selectedMarker: _selectedTakeMarker,
+                  onMarkerSelected: (index) =>
+                      setState(() => _selectedTakeMarker = index),
+                  onTakeTap: _setMidiTakeAtPlayhead,
+                  onSplit: _splitMidiTakeAtPlayhead,
+                  onDeleteMarker: _deleteSelectedMidiTakeMarker,
+                  onNudgeMarker: _nudgeSelectedMidiTakeMarker,
+                ),
               PlayDeck(
                 bridge: widget.bridge,
                 initialSurfaceMode: PlaySurfaceMode.keys,
@@ -547,6 +678,338 @@ class _PianoRollScreenState extends State<PianoRollScreen>
                 padPitchBase: widget.drumAnchorPitch,
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MidiTakeLaneStack extends StatelessWidget {
+  const _MidiTakeLaneStack({
+    required this.takes,
+    required this.regions,
+    required this.clipLengthBeats,
+    required this.playheadBeat,
+    required this.selectedMarker,
+    required this.onMarkerSelected,
+    required this.onTakeTap,
+    required this.onSplit,
+    required this.onDeleteMarker,
+    required this.onNudgeMarker,
+  });
+
+  final List<MidiClipTakeSnapshot> takes;
+  final List<MidiClipTakeRegionSnapshot> regions;
+  final double clipLengthBeats;
+  final double playheadBeat;
+  final int? selectedMarker;
+  final ValueChanged<int> onMarkerSelected;
+  final ValueChanged<String> onTakeTap;
+  final VoidCallback onSplit;
+  final VoidCallback onDeleteMarker;
+  final ValueChanged<int> onNudgeMarker;
+
+  @override
+  Widget build(BuildContext context) {
+    final activeTakeIds = regions.map((r) => r.takeId).toSet();
+    return Container(
+      height: 156,
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: const BoxDecoration(
+        color: PianoRollTheme.background,
+        border: Border(top: BorderSide(color: Color(0xFF2D3038))),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 88,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'MIDI TAKES',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _TakeActionButton(
+                  label: 'SPLIT',
+                  icon: Icons.call_split,
+                  onTap: onSplit,
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    _MiniCompButton(
+                      icon: Icons.chevron_left,
+                      onTap: selectedMarker == null
+                          ? null
+                          : () => onNudgeMarker(-1),
+                    ),
+                    const SizedBox(width: 6),
+                    _MiniCompButton(
+                      icon: Icons.chevron_right,
+                      onTap: selectedMarker == null
+                          ? null
+                          : () => onNudgeMarker(1),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                _TakeActionButton(
+                  label: 'DELETE',
+                  icon: Icons.delete_outline,
+                  onTap: selectedMarker == null ? null : onDeleteMarker,
+                ),
+                const Spacer(),
+                Text(
+                  selectedMarker == null ? 'tap marker' : 'marker selected',
+                  style: const TextStyle(
+                    color: Colors.white38,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, box) {
+                final width = math.max(1.0, box.maxWidth);
+                final length = math.max(0.25, clipLengthBeats);
+                return Stack(
+                  children: [
+                    CustomPaint(
+                      painter: _MidiTakeGridPainter(
+                        rowCount: takes.length,
+                        lengthBeats: length,
+                      ),
+                      child: const SizedBox.expand(),
+                    ),
+                    ListView.separated(
+                      padding: EdgeInsets.zero,
+                      itemCount: takes.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 0),
+                      itemBuilder: (context, index) {
+                        final take = takes[index];
+                        final active = activeTakeIds.contains(take.id);
+                        return GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => onTakeTap(take.id),
+                          child: _MidiTakeLane(
+                            take: take,
+                            width: width,
+                            lengthBeats: length,
+                            active: active,
+                            rowIndex: index,
+                          ),
+                        );
+                      },
+                    ),
+                    for (final entry in regions.skip(1).indexed)
+                      Positioned(
+                        left: (entry.$2.startBeat / length) * width - 8,
+                        top: 0,
+                        bottom: 0,
+                        width: 16,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => onMarkerSelected(entry.$1),
+                          child: Center(
+                            child: Container(
+                              width: selectedMarker == entry.$1 ? 3 : 2,
+                              color: selectedMarker == entry.$1
+                                  ? Colors.white
+                                  : const Color(0xFFFF6D8A),
+                            ),
+                          ),
+                        ),
+                      ),
+                    Positioned(
+                      left: (playheadBeat.clamp(0.0, length) / length) * width,
+                      top: 0,
+                      bottom: 0,
+                      child: Container(width: 1, color: Colors.white54),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MidiTakeLane extends StatelessWidget {
+  const _MidiTakeLane({
+    required this.take,
+    required this.width,
+    required this.lengthBeats,
+    required this.active,
+    required this.rowIndex,
+  });
+
+  final MidiClipTakeSnapshot take;
+  final double width;
+  final double lengthBeats;
+  final bool active;
+  final int rowIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 32,
+      child: Stack(
+        children: [
+          if (active)
+            Positioned.fill(
+              child: ColoredBox(
+                color: const Color(0xFFFF6D8A).withValues(alpha: 0.10),
+              ),
+            ),
+          Positioned(
+            left: 8,
+            top: 5,
+            child: Text(
+              take.name,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          for (final note in take.notes)
+            Positioned(
+              left: (note.startBeat / lengthBeats) * width,
+              width: math.max(2.0, note.durationBeats / lengthBeats * width),
+              top: 20,
+              height: 7,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: active
+                      ? const Color(0xFFFFD1DC)
+                      : const Color(0xFF7F8799),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MidiTakeGridPainter extends CustomPainter {
+  const _MidiTakeGridPainter({
+    required this.rowCount,
+    required this.lengthBeats,
+  });
+
+  final int rowCount;
+  final double lengthBeats;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rowPaint = Paint()..color = const Color(0xFF2B2E36);
+    final beatPaint = Paint()..color = const Color(0x223F4656);
+    final barPaint = Paint()..color = const Color(0x334F5668);
+    const rowHeight = 32.0;
+    for (var i = 0; i <= rowCount; i++) {
+      final y = i * rowHeight;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), rowPaint);
+    }
+    final beats = lengthBeats.ceil();
+    for (var beat = 0; beat <= beats; beat++) {
+      final x = beat / lengthBeats * size.width;
+      canvas.drawLine(
+        Offset(x, 0),
+        Offset(x, size.height),
+        beat % 4 == 0 ? barPaint : beatPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _MidiTakeGridPainter oldDelegate) =>
+      oldDelegate.rowCount != rowCount ||
+      oldDelegate.lengthBeats != lengthBeats;
+}
+
+class _TakeActionButton extends StatelessWidget {
+  const _TakeActionButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: onTap == null ? const Color(0xFF23242A) : const Color(0xFF2C2F38),
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: SizedBox(
+          height: 28,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: onTap == null ? Colors.white24 : Colors.white70,
+                size: 14,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: TextStyle(
+                  color: onTap == null ? Colors.white24 : Colors.white70,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniCompButton extends StatelessWidget {
+  const _MiniCompButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Material(
+        color:
+            onTap == null ? const Color(0xFF23242A) : const Color(0xFF2C2F38),
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Icon(
+            icon,
+            color: onTap == null ? Colors.white24 : Colors.white70,
+            size: 18,
           ),
         ),
       ),

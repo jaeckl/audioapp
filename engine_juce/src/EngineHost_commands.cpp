@@ -539,6 +539,42 @@ bool EngineHost::setMidiClipNotes(const std::string& clipId, const std::vector<M
     return project_->setMidiClipNotes(clipId, notes);
 }
 
+bool EngineHost::addMidiClipTake(const std::string& clipId,
+                                 const std::string& name,
+                                 double startBeatOffset,
+                                 double lengthBeats,
+                                 const std::vector<MidiNoteState>& notes) {
+    return project_->addMidiClipTake(clipId, name, startBeatOffset, lengthBeats, notes);
+}
+
+bool EngineHost::setMidiClipTakeRegionTake(const std::string& clipId,
+                                           int regionIndex,
+                                           const std::string& takeId) {
+    return project_->setMidiClipTakeRegionTake(clipId, regionIndex, takeId);
+}
+
+bool EngineHost::setMidiClipTakeAtBeat(const std::string& clipId,
+                                       double beat,
+                                       const std::string& takeId) {
+    return project_->setMidiClipTakeAtBeat(clipId, beat, takeId);
+}
+
+bool EngineHost::splitMidiClipTakeRegionAtBeat(const std::string& clipId,
+                                               double beat) {
+    return project_->splitMidiClipTakeRegionAtBeat(clipId, beat);
+}
+
+bool EngineHost::moveMidiClipTakeMarker(const std::string& clipId,
+                                        int markerIndex,
+                                        double beat) {
+    return project_->moveMidiClipTakeMarker(clipId, markerIndex, beat);
+}
+
+bool EngineHost::deleteMidiClipTakeMarker(const std::string& clipId,
+                                          int markerIndex) {
+    return project_->deleteMidiClipTakeMarker(clipId, markerIndex);
+}
+
 bool EngineHost::setMidiClipEditorScale(const std::string& clipId,
                                         int root,
                                         const std::string& scaleId,
@@ -1510,6 +1546,80 @@ void EngineHost::registerAllCommands() {
         }
         if (!ctx.engine.setMidiClipNotes(clipId, notes))
             return commands::errorResult("clip_not_found");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("addMidiClipTake", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        const auto name = ctx.args.hasProperty("name")
+            ? ctx.args["name"].toString().toStdString() : std::string{};
+        const double startBeatOffset = static_cast<double>(ctx.args["startBeatOffset"]);
+        const double lengthBeats = static_cast<double>(ctx.args["lengthBeats"]);
+        const auto& notesVar = ctx.args["notes"];
+        std::vector<MidiNoteState> notes;
+        if (auto* arr = notesVar.getArray()) {
+            for (const auto& item : *arr) {
+                if (auto* obj = item.getDynamicObject()) {
+                    MidiNoteState note;
+                    note.pitch = static_cast<int>(static_cast<double>(obj->getProperty("pitch")));
+                    note.startBeat = static_cast<double>(obj->getProperty("startBeat"));
+                    note.durationBeats = static_cast<double>(obj->getProperty("durationBeats"));
+                    note.velocity = static_cast<float>(static_cast<double>(obj->getProperty("velocity")));
+                    notes.push_back(note);
+                }
+            }
+        }
+        if (!ctx.engine.addMidiClipTake(clipId, name, startBeatOffset, lengthBeats, notes))
+            return commands::errorResult("midi_take_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("setMidiClipTakeRegionTake", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        const int regionIndex = static_cast<int>(ctx.args["regionIndex"]);
+        const auto takeId = ctx.args["takeId"].toString().toStdString();
+        if (!ctx.engine.setMidiClipTakeRegionTake(clipId, regionIndex, takeId))
+            return commands::errorResult("midi_take_region_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("setMidiClipTakeAtBeat", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        const double beat = static_cast<double>(ctx.args["beat"]);
+        const auto takeId = ctx.args["takeId"].toString().toStdString();
+        if (!ctx.engine.setMidiClipTakeAtBeat(clipId, beat, takeId))
+            return commands::errorResult("midi_take_marker_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("splitMidiClipTakeRegionAtBeat", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        const double beat = static_cast<double>(ctx.args["beat"]);
+        if (!ctx.engine.splitMidiClipTakeRegionAtBeat(clipId, beat))
+            return commands::errorResult("midi_take_split_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("moveMidiClipTakeMarker", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        const int markerIndex = static_cast<int>(ctx.args["markerIndex"]);
+        const double beat = static_cast<double>(ctx.args["beat"]);
+        if (!ctx.engine.moveMidiClipTakeMarker(clipId, markerIndex, beat))
+            return commands::errorResult("midi_take_marker_move_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("deleteMidiClipTakeMarker", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        const int markerIndex = static_cast<int>(ctx.args["markerIndex"]);
+        if (!ctx.engine.deleteMidiClipTakeMarker(clipId, markerIndex))
+            return commands::errorResult("midi_take_marker_delete_failed");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
         return commands::okWithFullRefresh(snap);
     });

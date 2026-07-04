@@ -13,6 +13,8 @@ class MidiClipSnapshot implements ClipTimelineSpan {
     required this.startBeat,
     required this.lengthBeats,
     required this.notes,
+    this.takes = const [],
+    this.activeTakeRegions = const [],
     this.naturalLengthBeats,
     this.loopContent = false,
     this.editorScaleRoot = 0,
@@ -35,6 +37,8 @@ class MidiClipSnapshot implements ClipTimelineSpan {
   ClipContentKind get kind => ClipContentKind.midi;
 
   final List<MidiNoteSnapshot> notes;
+  final List<MidiClipTakeSnapshot> takes;
+  final List<MidiClipTakeRegionSnapshot> activeTakeRegions;
 
   /// Authored content length in beats. Set by editor range slider; not changed
   /// by arrangement resize (loop or one-shot).
@@ -63,6 +67,8 @@ class MidiClipSnapshot implements ClipTimelineSpan {
 
   factory MidiClipSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final notesRaw = map['notes'] as List<dynamic>? ?? [];
+    final takesRaw = map['takes'] as List<dynamic>? ?? [];
+    final regionsRaw = map['activeTakeRegions'] as List<dynamic>? ?? [];
     final lengthBeats = (map['lengthBeats'] as num?)?.toDouble() ?? 4.0;
     return MidiClipSnapshot(
       id: map['id'] as String? ?? '',
@@ -79,6 +85,13 @@ class MidiClipSnapshot implements ClipTimelineSpan {
       notes: notesRaw
           .map((n) => MidiNoteSnapshot.fromMap(n as Map<dynamic, dynamic>))
           .toList(),
+      takes: takesRaw
+          .map((t) => MidiClipTakeSnapshot.fromMap(t as Map<dynamic, dynamic>))
+          .toList(),
+      activeTakeRegions: regionsRaw
+          .map((r) =>
+              MidiClipTakeRegionSnapshot.fromMap(r as Map<dynamic, dynamic>))
+          .toList(),
     );
   }
 
@@ -94,6 +107,8 @@ class MidiClipSnapshot implements ClipTimelineSpan {
     bool? editorScaleSnap,
     String? editorChordQuality,
     List<MidiNoteSnapshot>? notes,
+    List<MidiClipTakeSnapshot>? takes,
+    List<MidiClipTakeRegionSnapshot>? activeTakeRegions,
   }) {
     return MidiClipSnapshot(
       id: id ?? this.id,
@@ -107,8 +122,61 @@ class MidiClipSnapshot implements ClipTimelineSpan {
       editorScaleSnap: editorScaleSnap ?? this.editorScaleSnap,
       editorChordQuality: editorChordQuality ?? this.editorChordQuality,
       notes: notes ?? this.notes,
+      takes: takes ?? this.takes,
+      activeTakeRegions: activeTakeRegions ?? this.activeTakeRegions,
     );
   }
+}
+
+class MidiClipTakeSnapshot {
+  const MidiClipTakeSnapshot({
+    required this.id,
+    required this.name,
+    required this.startBeatOffset,
+    required this.lengthBeats,
+    required this.notes,
+  });
+
+  final String id;
+  final String name;
+  final double startBeatOffset;
+  final double lengthBeats;
+  final List<MidiNoteSnapshot> notes;
+
+  factory MidiClipTakeSnapshot.fromMap(Map<dynamic, dynamic> map) {
+    final notesRaw = map['notes'] as List<dynamic>? ?? [];
+    return MidiClipTakeSnapshot(
+      id: map['id'] as String? ?? '',
+      name: map['name'] as String? ?? 'Take',
+      startBeatOffset: (map['startBeatOffset'] as num?)?.toDouble() ?? 0.0,
+      lengthBeats: (map['lengthBeats'] as num?)?.toDouble() ?? 0.0,
+      notes: notesRaw
+          .map((n) => MidiNoteSnapshot.fromMap(n as Map<dynamic, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+class MidiClipTakeRegionSnapshot {
+  const MidiClipTakeRegionSnapshot({
+    required this.startBeat,
+    required this.endBeat,
+    required this.takeId,
+    required this.sourceStart,
+  });
+
+  final double startBeat;
+  final double endBeat;
+  final String takeId;
+  final double sourceStart;
+
+  factory MidiClipTakeRegionSnapshot.fromMap(Map<dynamic, dynamic> map) =>
+      MidiClipTakeRegionSnapshot(
+        startBeat: (map['startBeat'] as num?)?.toDouble() ?? 0.0,
+        endBeat: (map['endBeat'] as num?)?.toDouble() ?? 0.0,
+        takeId: map['takeId'] as String? ?? '',
+        sourceStart: (map['sourceStart'] as num?)?.toDouble() ?? 0.0,
+      );
 }
 
 class MidiNoteSnapshot {

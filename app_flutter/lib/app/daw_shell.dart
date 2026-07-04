@@ -37,10 +37,40 @@ import '../features/settings/settings_screen.dart';
 import '../features/welcome/example_projects.dart';
 import '../features/welcome/welcome_hub.dart';
 import '../features/transport/transport_bar.dart';
+import 'automation_recording_merge.dart';
 import 'automation_recording_session.dart';
+import 'midi_recording_merge.dart';
 import 'recording_session_decision.dart';
+import 'record_write_mode.dart';
 
 enum _ShellTab { devices, keys, mixer, library, settings }
+
+class _MidiRecordingPreviewNote {
+  const _MidiRecordingPreviewNote({
+    required this.pitch,
+    required this.startBeat,
+    required this.velocity,
+  });
+
+  final int pitch;
+  final double startBeat;
+  final double velocity;
+}
+
+class _PendingMidiRecordingTake {
+  const _PendingMidiRecordingTake({
+    required this.startBeat,
+    required this.endBeat,
+    required this.notes,
+  });
+
+  final double startBeat;
+  final double endBeat;
+  final List<MidiNoteSnapshot> notes;
+
+  double get lengthBeats =>
+      (endBeat - startBeat).clamp(0.25, 1024.0).toDouble();
+}
 
 const _demoSamples = <(String, String, String)>[
   ('demo_form_basic_e', 'Basic E', 'form_basic_e.wav'),
@@ -88,6 +118,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       TimelineViewportScrollController();
   double? _frozenArrangementPlayhead;
   StreamSubscription<LiveMetersBatch>? _meterSubscription;
+  StreamSubscription<LiveMidiNoteEvent>? _midiNoteSubscription;
   Timer? _pendingWtPositionTimer;
   String? _pendingWtPositionDeviceId;
   double? _pendingWtPositionValue;
@@ -95,6 +126,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   bool _bootstrapReady = false;
   List<RecentProjectEntry> _recentProjects = const [];
   bool _snapClipsEnabled = true;
+  RecordWriteMode _recordWriteMode = RecordWriteMode.take;
   bool _metronomeEnabled = false;
   double _metronomeLevel = 0.65;
   int _countInBars = 1;
@@ -111,11 +143,17 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   bool _audioRecordingRollBusy = false;
   String? _midiRecordingTrackId;
   String? _midiRecordingPreviewClipId;
+  MidiClipSnapshot? _midiRecordingTargetClip;
   double _midiRecordingStartBeat = 0.0;
-  double _lastMidiRecordingPreviewLength = 0.0;
+  final Map<int, _MidiRecordingPreviewNote> _midiRecordingOpenNotes = {};
+  final List<MidiNoteSnapshot> _midiRecordingPreviewNotes = [];
+  final List<_PendingMidiRecordingTake> _pendingMidiRecordingTakes = [];
   final AutomationRecordingSessionBuffer _automationRecording =
       AutomationRecordingSessionBuffer();
   final Map<String, String> _automationRecordingClipIds = {};
+  final Map<String, AutomationClipSnapshot> _automationRecordingOriginalClips =
+      {};
+  final Map<String, double> _liveClipStartBeats = {};
   String? _highlightedClipId;
   Timer? _audioRecordingSnapshotTimer;
 
@@ -141,6 +179,51 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     return modes.isEmpty ? null : 'REC ${modes.join(' + ')}';
   }
 
+  Map<String, List<MidiNoteSnapshot>> get _liveMidiPreviewNotes {
+    final clipId = _midiRecordingPreviewClipId;
+    if (clipId == null) return const {};
+    final target = _midiRecordingTargetClip;
+    if (target != null) {
+      return {
+        clipId: mergeMidiRecordingNotes(
+          existingNotes: target.notes,
+          recordedNotes:
+              _currentMidiRecordingPreviewNotes(_effectivePlayheadBeats),
+          targetClipStartBeat: target.startBeat,
+          recordingStartBeat: _midiRecordingStartBeat,
+          recordingEndBeat: _effectivePlayheadBeats,
+          mode: _recordWriteMode == RecordWriteMode.take
+              ? RecordWriteMode.replace
+              : _recordWriteMode,
+        ),
+      };
+    }
+    return {
+      clipId: _currentMidiRecordingPreviewNotes(_effectivePlayheadBeats),
+    };
+  }
+
+  Map<String, List<MidiClipSnapshot>> get _liveMidiPreviewClips {
+    final clipId = _midiRecordingPreviewClipId;
+    final trackId = _midiRecordingTrackId;
+    if (clipId == null || trackId == null || _midiRecordingTargetClip != null) {
+      return const {};
+    }
+    final length =
+        (_effectivePlayheadBeats - _midiRecordingStartBeat).clamp(0.25, 1024.0);
+    return {
+      trackId: [
+        MidiClipSnapshot(
+          id: clipId,
+          startBeat: _midiRecordingStartBeat,
+          lengthBeats: length.toDouble(),
+          naturalLengthBeats: length.toDouble(),
+          notes: _currentMidiRecordingPreviewNotes(_effectivePlayheadBeats),
+        ),
+      ],
+    };
+  }
+
   @override
   void initState() {
     super.initState();
@@ -151,6 +234,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       vsync: this,
     );
     _meterSubscription = widget.bridge.meterStream.listen(_onMetersBatch);
+    _midiNoteSubscription = widget.bridge.noteEvents.listen(_onLiveMidiNote);
     _bootstrap();
   }
 
@@ -162,6 +246,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     _store.dispose();
     _liveMeters.dispose();
     _meterSubscription?.cancel();
+    _midiNoteSubscription?.cancel();
     _transport.dispose();
     super.dispose();
   }
@@ -570,6 +655,11 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
     }
+  }
+
+  void _setRecordWriteMode(RecordWriteMode mode) {
+    if (_recordWriteMode == mode) return;
+    setState(() => _recordWriteMode = mode);
   }
 
   Future<void> _setTrackRecordArmed({
@@ -2190,19 +2280,14 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       if (!_transport.playing || _snapshot?.selectedTrackId != trackId) return;
 
       if (recordMidi) {
-        await widget.bridge.beginMidiRecordingSession(
-          trackId: trackId,
-          startBeat: startBeat,
-          quantizeStep: 0.25,
-        );
-        _midiRecordingTrackId = trackId;
-        _midiRecordingStartBeat = startBeat;
-        await _createMidiRecordingPreviewClip(trackId, startBeat);
+        _pendingMidiRecordingTakes.clear();
+        await _beginMidiRecordingPass(trackId: trackId, startBeat: startBeat);
       }
 
       if (recordAutomation) {
         _automationRecording.begin(trackId: trackId, startBeat: startBeat);
         _automationRecordingClipIds.clear();
+        _automationRecordingOriginalClips.clear();
       }
 
       if (recordAudio) {
@@ -2241,6 +2326,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
           ..clear()
           ..add(session);
         _highlightedClipId = session.clipId;
+        _liveClipStartBeats[session.clipId] = startBeat;
       }
 
       if (_anyRecordingActive) {
@@ -2263,6 +2349,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   String? _recordingTargetClipId(String trackId, double startBeat) {
     final snap = _snapshot;
     if (snap == null) return null;
+    if (_recordWriteMode != RecordWriteMode.take) return null;
     for (final track in snap.tracks) {
       if (track.id != trackId) continue;
       for (final clip in track.sampleClips) {
@@ -2272,6 +2359,55 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       }
     }
     return null;
+  }
+
+  MidiClipSnapshot? _midiRecordingTargetForMode(
+    String trackId,
+    double startBeat, {
+    ProjectSnapshot? snapshot,
+  }) {
+    if (_recordWriteMode == RecordWriteMode.fresh) return null;
+    TrackSnapshot? track;
+    for (final candidate in snapshot?.tracks ?? _snapshot?.tracks ?? const []) {
+      if (candidate.id == trackId) {
+        track = candidate;
+        break;
+      }
+    }
+    if (track == null) return null;
+    for (final clip in track.midiClips) {
+      if (startBeat >= clip.startBeat && startBeat < clip.endBeat) {
+        return clip;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _beginMidiRecordingPass({
+    required String trackId,
+    required double startBeat,
+    ProjectSnapshot? snapshot,
+  }) async {
+    await widget.bridge.beginMidiRecordingSession(
+      trackId: trackId,
+      startBeat: startBeat,
+      quantizeStep: 0.25,
+    );
+    _midiRecordingTrackId = trackId;
+    _midiRecordingStartBeat = startBeat;
+    _midiRecordingOpenNotes.clear();
+    _midiRecordingPreviewNotes.clear();
+    _midiRecordingTargetClip = _midiRecordingTargetForMode(
+      trackId,
+      startBeat,
+      snapshot: snapshot,
+    );
+    if (_midiRecordingTargetClip case final target?) {
+      _midiRecordingPreviewClipId = target.id;
+      _highlightedClipId = target.id;
+    } else {
+      await _createMidiRecordingPreviewClip(trackId, startBeat);
+    }
   }
 
   Future<double> _waitForCountInToFinish(double requestedStartBeat) async {
@@ -2293,30 +2429,11 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     String trackId,
     double startBeat,
   ) async {
-    final beforeIds = _snapshot?.tracks
-            .expand((track) => track.midiClips)
-            .map((clip) => clip.id)
-            .toSet() ??
-        <String>{};
-    var snapshot = await widget.bridge.createMidiClip(
-      trackId: trackId,
-      startBeat: startBeat,
-      lengthBeats: 0.25,
-    );
-    final newClips = snapshot.tracks
-        .expand((track) => track.midiClips)
-        .where((clip) => !beforeIds.contains(clip.id))
-        .toList();
-    final created = newClips.isEmpty ? null : newClips.last;
-    if (created == null) return;
-    snapshot = await widget.bridge.setMidiClipNotes(
-      clipId: created.id,
-      notes: const [],
-    );
-    _midiRecordingPreviewClipId = created.id;
-    _lastMidiRecordingPreviewLength = 0.25;
-    _highlightedClipId = created.id;
-    await _refreshSnapshot(snapshot);
+    _midiRecordingPreviewClipId =
+        'midi-record-preview-${DateTime.now().microsecondsSinceEpoch}';
+    _highlightedClipId = _midiRecordingPreviewClipId;
+    _liveClipStartBeats[_midiRecordingPreviewClipId!] = startBeat;
+    if (mounted) setState(() {});
   }
 
   Future<void> _updateLiveRecordingPreviews(TransportState transport) async {
@@ -2331,14 +2448,23 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   Future<void> _updateMidiRecordingPreview(double endBeat) async {
     final clipId = _midiRecordingPreviewClipId;
     if (clipId == null) return;
-    final length = (endBeat - _midiRecordingStartBeat).clamp(0.25, 1024.0);
-    if ((length - _lastMidiRecordingPreviewLength).abs() < 0.05) return;
-    _lastMidiRecordingPreviewLength = length.toDouble();
-    final snapshot = await widget.bridge.setClipLength(
-      clipId: clipId,
-      lengthBeats: _lastMidiRecordingPreviewLength,
-    );
-    await _refreshSnapshot(snapshot);
+    if (mounted) setState(() {});
+  }
+
+  List<MidiNoteSnapshot> _currentMidiRecordingPreviewNotes(double endBeat) {
+    final notes = List<MidiNoteSnapshot>.of(_midiRecordingPreviewNotes);
+    final localEnd = (endBeat - _midiRecordingStartBeat).clamp(0.0, 1024.0);
+    for (final open in _midiRecordingOpenNotes.values) {
+      final duration = (localEnd - open.startBeat).clamp(0.05, 1024.0);
+      notes.add(MidiNoteSnapshot(
+        pitch: open.pitch,
+        startBeat: open.startBeat,
+        durationBeats: duration.toDouble(),
+        velocity: open.velocity,
+      ));
+    }
+    notes.sort((a, b) => a.startBeat.compareTo(b.startBeat));
+    return notes;
   }
 
   Future<void> _updateAutomationRecordingPreviews(double endBeat) async {
@@ -2349,11 +2475,11 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       if (clipId == null) continue;
       snapshot = await widget.bridge.setClipLength(
         clipId: clipId,
-        lengthBeats: commit.lengthBeats,
+        lengthBeats: _automationPreviewLength(clipId, commit),
       );
       snapshot = await widget.bridge.setAutomationPoints(
         clipId: clipId,
-        points: commit.points,
+        points: _automationPreviewPoints(clipId, commit),
       );
     }
     if (snapshot != null) {
@@ -2366,6 +2492,13 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   ) async {
     final existing = _automationRecordingClipIds[commit.laneKey];
     if (existing != null) return existing;
+    final target = _automationRecordingTargetForMode(commit);
+    if (target != null) {
+      _automationRecordingClipIds[commit.laneKey] = target.id;
+      _automationRecordingOriginalClips[target.id] = target;
+      _highlightedClipId = target.id;
+      return target.id;
+    }
     final beforeIds =
         _snapshot?.automationClips.map((clip) => clip.id).toSet() ?? <String>{};
     var snapshot = await widget.bridge.createAutomationClip(
@@ -2375,7 +2508,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     );
     final created = snapshot.automationClips.lastWhere(
       (clip) => !beforeIds.contains(clip.id),
-      orElse: () => snapshot!.automationClips.last,
+      orElse: () => snapshot.automationClips.last,
     );
     snapshot = await widget.bridge.assignAutomationTarget(
       clipId: created.id,
@@ -2384,8 +2517,29 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     );
     _automationRecordingClipIds[commit.laneKey] = created.id;
     _highlightedClipId = created.id;
+    _liveClipStartBeats[created.id] = commit.startBeat;
     await _refreshSnapshot(snapshot);
     return created.id;
+  }
+
+  AutomationClipSnapshot? _automationRecordingTargetForMode(
+    AutomationSegmentCommit commit,
+  ) {
+    if (!_recordWriteMode.targetsExisting) return null;
+    final clips =
+        _snapshot?.automationClips ?? const <AutomationClipSnapshot>[];
+    for (final clip in clips) {
+      if (clip.homeTrackId != commit.trackId ||
+          clip.deviceId != commit.deviceId ||
+          clip.paramId != commit.paramId) {
+        continue;
+      }
+      if (commit.startBeat >= clip.startBeat &&
+          commit.startBeat < clip.endBeat) {
+        return clip;
+      }
+    }
+    return null;
   }
 
   void _startAudioRecordingSnapshotRefresh() {
@@ -2427,21 +2581,30 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     final loopStart = transport.loopRegionStartBeat;
     if (_midiRecordingActive) {
       final trackId = _midiRecordingTrackId;
-      try {
-        await _finishMidiRecordingSession(endBeat: transport.loopRegionEndBeat);
-      } catch (_) {}
+      final targetSnapshot = _snapshot;
       if (trackId != null) {
         try {
-          await widget.bridge.beginMidiRecordingSession(
+          if (_recordWriteMode == RecordWriteMode.take) {
+            _stashCurrentMidiRecordingTake(
+                endBeat: transport.loopRegionEndBeat);
+            await widget.bridge.cancelMidiRecordingSession();
+          } else {
+            final committedSnapshot = await _finishMidiRecordingSession(
+                endBeat: transport.loopRegionEndBeat);
+            if (committedSnapshot != null) {
+              await _refreshSnapshot(committedSnapshot);
+            }
+          }
+          await _beginMidiRecordingPass(
             trackId: trackId,
             startBeat: loopStart,
-            quantizeStep: 0.25,
+            snapshot: targetSnapshot,
           );
-          _midiRecordingTrackId = trackId;
-          _midiRecordingStartBeat = loopStart;
-          await _createMidiRecordingPreviewClip(trackId, loopStart);
-        } catch (_) {
+        } catch (e) {
           _midiRecordingTrackId = null;
+          if (mounted) {
+            setState(() => _projectError = 'MIDI take restart failed: $e');
+          }
         }
       }
     }
@@ -2451,6 +2614,9 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         keepSessionActive: true,
         nextStartBeat: loopStart,
       );
+      for (final clipId in _automationRecordingClipIds.values) {
+        _liveClipStartBeats.remove(clipId);
+      }
       _automationRecordingClipIds.clear();
     }
 
@@ -2485,6 +2651,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       _audioRecordingStartBeat = loopStart;
       _audioRecordingSessions.add(nextSession);
       _highlightedClipId = nextSession.clipId;
+      _liveClipStartBeats[nextSession.clipId] = loopStart;
       if (mounted) setState(() {});
     } finally {
       _audioRecordingRollBusy = false;
@@ -2507,29 +2674,222 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     );
   }
 
+  void _onLiveMidiNote(LiveMidiNoteEvent event) {
+    if (!_midiRecordingActive) return;
+    final localBeat =
+        (_effectivePlayheadBeats - _midiRecordingStartBeat).clamp(0.0, 1024.0);
+    if (event.allOff) {
+      for (final open in _midiRecordingOpenNotes.values) {
+        _midiRecordingPreviewNotes.add(MidiNoteSnapshot(
+          pitch: open.pitch,
+          startBeat: open.startBeat,
+          durationBeats:
+              (localBeat - open.startBeat).clamp(0.05, 1024.0).toDouble(),
+          velocity: open.velocity,
+        ));
+      }
+      _midiRecordingOpenNotes.clear();
+      if (mounted) setState(() {});
+      return;
+    }
+    if (event.isNoteOn) {
+      _midiRecordingOpenNotes[event.pitch] = _MidiRecordingPreviewNote(
+        pitch: event.pitch,
+        startBeat: localBeat.toDouble(),
+        velocity: event.velocity,
+      );
+      if (mounted) setState(() {});
+      return;
+    }
+    final open = _midiRecordingOpenNotes.remove(event.pitch);
+    if (open == null) return;
+    _midiRecordingPreviewNotes.add(MidiNoteSnapshot(
+      pitch: open.pitch,
+      startBeat: open.startBeat,
+      durationBeats:
+          (localBeat - open.startBeat).clamp(0.05, 1024.0).toDouble(),
+      velocity: open.velocity,
+    ));
+    if (mounted) setState(() {});
+  }
+
+  void _stashCurrentMidiRecordingTake({required double endBeat}) {
+    final notes = _currentMidiRecordingPreviewNotes(endBeat);
+    if (notes.isNotEmpty) {
+      _pendingMidiRecordingTakes.add(_PendingMidiRecordingTake(
+        startBeat: _midiRecordingStartBeat,
+        endBeat: endBeat,
+        notes: notes,
+      ));
+    }
+    final previewClipId = _midiRecordingPreviewClipId;
+    if (previewClipId != null &&
+        previewClipId.startsWith('midi-record-preview-')) {
+      _liveClipStartBeats.remove(previewClipId);
+    }
+    _midiRecordingOpenNotes.clear();
+    _midiRecordingPreviewNotes.clear();
+  }
+
   Future<ProjectSnapshot?> _finishMidiRecordingSession(
       {double? endBeat}) async {
     final trackId = _midiRecordingTrackId;
     if (trackId == null) return null;
     final previewClipId = _midiRecordingPreviewClipId;
+    final targetClip = _midiRecordingTargetClip;
+    final finishBeat = endBeat ?? _effectivePlayheadBeats;
+    final recordedNotes = _currentMidiRecordingPreviewNotes(finishBeat);
+    final takePasses = [
+      ..._pendingMidiRecordingTakes,
+      if (recordedNotes.isNotEmpty)
+        _PendingMidiRecordingTake(
+          startBeat: _midiRecordingStartBeat,
+          endBeat: finishBeat,
+          notes: recordedNotes,
+        ),
+    ];
+    _pendingMidiRecordingTakes.clear();
     _midiRecordingTrackId = null;
     _midiRecordingPreviewClipId = null;
-    _lastMidiRecordingPreviewLength = 0.0;
+    _midiRecordingTargetClip = null;
+    _midiRecordingOpenNotes.clear();
+    _midiRecordingPreviewNotes.clear();
+    if (previewClipId != null) {
+      _liveClipStartBeats.remove(previewClipId);
+    }
     try {
+      if (_recordWriteMode == RecordWriteMode.take && takePasses.isEmpty) {
+        await widget.bridge.cancelMidiRecordingSession();
+        return null;
+      }
+      if (targetClip != null) {
+        await widget.bridge.cancelMidiRecordingSession();
+        if (_recordWriteMode == RecordWriteMode.take) {
+          ProjectSnapshot? snapshot;
+          for (final entry in takePasses.indexed) {
+            final pass = entry.$2;
+            snapshot = await widget.bridge.addMidiClipTake(
+              clipId: targetClip.id,
+              name: 'Take ${targetClip.takes.length + 1 + entry.$1}',
+              startBeatOffset: (pass.startBeat - targetClip.startBeat)
+                  .clamp(0.0, targetClip.lengthBeats)
+                  .toDouble(),
+              lengthBeats: pass.lengthBeats,
+              notes: pass.notes,
+            );
+          }
+          _highlightedClipId = targetClip.id;
+          return snapshot;
+        }
+        var snapshot = await widget.bridge.setMidiClipNotes(
+          clipId: targetClip.id,
+          notes: mergeMidiRecordingNotes(
+            existingNotes: targetClip.notes,
+            recordedNotes: recordedNotes,
+            targetClipStartBeat: targetClip.startBeat,
+            recordingStartBeat: _midiRecordingStartBeat,
+            recordingEndBeat: finishBeat,
+            mode: _recordWriteMode,
+          ),
+        );
+        final requiredLength = (finishBeat - targetClip.startBeat)
+            .clamp(targetClip.lengthBeats, 1024.0)
+            .toDouble();
+        if (requiredLength > targetClip.lengthBeats + 0.001) {
+          snapshot = await widget.bridge.setClipLength(
+            clipId: targetClip.id,
+            lengthBeats: requiredLength,
+          );
+        }
+        return snapshot;
+      }
+      if (_recordWriteMode == RecordWriteMode.take) {
+        await widget.bridge.cancelMidiRecordingSession();
+        final created = await _createMidiTakeAnchorClip(
+          trackId: trackId,
+          finishBeat: finishBeat,
+          firstPass: takePasses.first,
+        );
+        var snapshot = created.snapshot;
+        for (var i = 1; i < takePasses.length; i++) {
+          final pass = takePasses[i];
+          snapshot = await widget.bridge.addMidiClipTake(
+            clipId: created.clipId,
+            name: 'Take ${i + 1}',
+            startBeatOffset: (pass.startBeat - created.anchorStartBeat)
+                .clamp(0.0, created.anchorLengthBeats)
+                .toDouble(),
+            lengthBeats: pass.lengthBeats,
+            notes: pass.notes,
+          );
+        }
+        return snapshot;
+      }
       var snapshot =
           await widget.bridge.finishMidiRecordingSession(endBeat: endBeat);
-      if (previewClipId != null) {
-        snapshot = await widget.bridge.deleteClip(previewClipId);
-      }
       return snapshot;
     } catch (_) {
-      if (previewClipId != null) {
-        try {
-          return await widget.bridge.deleteClip(previewClipId);
-        } catch (_) {}
-      }
       return null;
     }
+  }
+
+  Future<
+      ({
+        ProjectSnapshot snapshot,
+        String clipId,
+        double anchorStartBeat,
+        double anchorLengthBeats,
+      })> _createMidiTakeAnchorClip({
+    required String trackId,
+    required double finishBeat,
+    required _PendingMidiRecordingTake firstPass,
+  }) async {
+    final snap = _snapshot;
+    final useLoopAnchor = snap?.loopEnabled == true &&
+        firstPass.startBeat >= snap!.loopRegionStartBeat &&
+        firstPass.startBeat < snap.loopRegionEndBeat &&
+        finishBeat >= snap.loopRegionEndBeat - 0.001;
+    final anchorStart =
+        useLoopAnchor ? snap.loopRegionStartBeat : firstPass.startBeat;
+    final anchorLength = useLoopAnchor
+        ? (snap.loopRegionEndBeat - snap.loopRegionStartBeat)
+            .clamp(0.25, 1024.0)
+            .toDouble()
+        : firstPass.lengthBeats;
+    final takeOffset =
+        (firstPass.startBeat - anchorStart).clamp(0.0, anchorLength);
+    final beforeIds =
+        _trackById(trackId)?.midiClips.map((clip) => clip.id).toSet() ??
+            <String>{};
+    var snapshot = await widget.bridge.createMidiClip(
+      trackId: trackId,
+      startBeat: anchorStart,
+      lengthBeats: anchorLength,
+    );
+    final track = snapshot.tracks.firstWhere((track) => track.id == trackId);
+    final created = track.midiClips.lastWhere(
+      (clip) => !beforeIds.contains(clip.id),
+      orElse: () => track.midiClips.last,
+    );
+    snapshot = await widget.bridge.setMidiClipNotes(
+      clipId: created.id,
+      notes: const [],
+    );
+    snapshot = await widget.bridge.addMidiClipTake(
+      clipId: created.id,
+      name: 'Take 1',
+      startBeatOffset: takeOffset.toDouble(),
+      lengthBeats: firstPass.lengthBeats,
+      notes: firstPass.notes,
+    );
+    _highlightedClipId = created.id;
+    _liveClipStartBeats.remove(_midiRecordingPreviewClipId);
+    return (
+      snapshot: snapshot,
+      clipId: created.id,
+      anchorStartBeat: anchorStart,
+      anchorLengthBeats: anchorLength,
+    );
   }
 
   Future<ProjectSnapshot?> _finishAutomationRecordingSegment({
@@ -2543,23 +2903,75 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       keepActive: keepSessionActive,
       nextStartBeat: nextStartBeat,
     );
+    final liveClipIds = Map<String, String>.of(_automationRecordingClipIds);
+    final originalClips = Map<String, AutomationClipSnapshot>.of(
+        _automationRecordingOriginalClips);
+    final committedClipIds = <String>{};
     ProjectSnapshot? snapshot;
     for (final commit in commits) {
       final clipId = await _ensureAutomationRecordingClip(commit);
       if (clipId == null) continue;
+      committedClipIds.add(clipId);
       snapshot = await widget.bridge.setClipLength(
         clipId: clipId,
-        lengthBeats: commit.lengthBeats,
+        lengthBeats: _automationPreviewLength(clipId, commit),
       );
       snapshot = await widget.bridge.setAutomationPoints(
         clipId: clipId,
-        points: commit.points,
+        points: _automationPreviewPoints(clipId, commit),
       );
     }
+    for (final clipId in liveClipIds.values) {
+      if (committedClipIds.contains(clipId)) continue;
+      final original = originalClips[clipId];
+      if (original != null) {
+        snapshot = await widget.bridge.setClipLength(
+          clipId: clipId,
+          lengthBeats: original.lengthBeats,
+        );
+        snapshot = await widget.bridge.setAutomationPoints(
+          clipId: clipId,
+          points: original.points,
+        );
+      } else {
+        snapshot = await widget.bridge.deleteClip(clipId);
+      }
+      _liveClipStartBeats.remove(clipId);
+    }
     if (!keepSessionActive) {
+      for (final clipId in _automationRecordingClipIds.values) {
+        _liveClipStartBeats.remove(clipId);
+      }
       _automationRecordingClipIds.clear();
+      _automationRecordingOriginalClips.clear();
+    } else {
+      _automationRecordingOriginalClips.clear();
     }
     return snapshot;
+  }
+
+  double _automationPreviewLength(
+    String clipId,
+    AutomationSegmentCommit commit,
+  ) {
+    final original = _automationRecordingOriginalClips[clipId];
+    if (original == null) return commit.lengthBeats;
+    return (commit.startBeat + commit.lengthBeats - original.startBeat)
+        .clamp(original.lengthBeats, 1024.0)
+        .toDouble();
+  }
+
+  List<AutomationPointSnapshot> _automationPreviewPoints(
+    String clipId,
+    AutomationSegmentCommit commit,
+  ) {
+    final original = _automationRecordingOriginalClips[clipId];
+    if (original == null) return commit.points;
+    return mergeAutomationRecordingPoints(
+      targetClip: original,
+      commit: commit,
+      mode: _recordWriteMode,
+    );
   }
 
   Future<void> _setMetronome(
@@ -2613,6 +3025,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
           final key = '${session.sampleId}:${session.clipId}';
           if (finished.contains(key)) continue;
           finished.add(key);
+          _liveClipStartBeats.remove(session.clipId);
           lastSnapshot = await widget.bridge.finishAudioRecordingSession(
             sampleId: session.sampleId,
             clipId: session.clipId,
@@ -2638,15 +3051,22 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     if (!_anyRecordingActive) return;
     final sessions = List<AudioRecordingSession>.of(_audioRecordingSessions);
     final midiPreviewClipId = _midiRecordingPreviewClipId;
+    final midiTargetClip = _midiRecordingTargetClip;
     final automationPreviewClipIds = _automationRecordingClipIds.values.toSet();
+    final automationOriginalClips = Map<String, AutomationClipSnapshot>.of(
+        _automationRecordingOriginalClips);
     _audioRecordingTrackId = null;
     _audioRecordingSampleId = null;
     _audioRecordingClipId = null;
     _midiRecordingTrackId = null;
     _midiRecordingPreviewClipId = null;
-    _lastMidiRecordingPreviewLength = 0.0;
+    _midiRecordingTargetClip = null;
+    _midiRecordingOpenNotes.clear();
+    _midiRecordingPreviewNotes.clear();
+    _pendingMidiRecordingTakes.clear();
     _automationRecording.cancel();
     _automationRecordingClipIds.clear();
+    _automationRecordingOriginalClips.clear();
     _audioRecordingSessions.clear();
     _lastAudioRecordingPlayhead = null;
     _audioRecordingInputLevel = 0.0;
@@ -2655,11 +3075,24 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     try {
       await widget.bridge.cancelMidiRecordingSession();
       ProjectSnapshot? lastSnapshot;
-      if (midiPreviewClipId != null) {
-        lastSnapshot = await widget.bridge.deleteClip(midiPreviewClipId);
+      if (midiPreviewClipId != null && midiTargetClip == null) {
+        _liveClipStartBeats.remove(midiPreviewClipId);
       }
       for (final clipId in automationPreviewClipIds) {
-        lastSnapshot = await widget.bridge.deleteClip(clipId);
+        _liveClipStartBeats.remove(clipId);
+        final original = automationOriginalClips[clipId];
+        if (original != null) {
+          lastSnapshot = await widget.bridge.setClipLength(
+            clipId: clipId,
+            lengthBeats: original.lengthBeats,
+          );
+          lastSnapshot = await widget.bridge.setAutomationPoints(
+            clipId: clipId,
+            points: original.points,
+          );
+        } else {
+          lastSnapshot = await widget.bridge.deleteClip(clipId);
+        }
       }
       if (sessions.isNotEmpty) {
         await widget.bridge.cancelTrackAudioRecording();
@@ -2669,6 +3102,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         final key = '${session.sampleId}:${session.clipId}';
         if (cancelled.contains(key)) continue;
         cancelled.add(key);
+        _liveClipStartBeats.remove(session.clipId);
         lastSnapshot = await widget.bridge.cancelAudioRecordingSession(
           sampleId: session.sampleId,
           clipId: session.clipId,
@@ -2786,6 +3220,9 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             highlightedClipId: _highlightedClipId,
             onAutomationLinkToggle: _toggleAutomationLink,
             onAutomationClipDoubleTap: _openAutomationCurveEditor,
+            liveClipStartBeats: _liveClipStartBeats,
+            liveMidiPreviewNotes: _liveMidiPreviewNotes,
+            liveMidiPreviewClips: _liveMidiPreviewClips,
           ),
         ),
         if (_tab == _ShellTab.devices)
@@ -2830,8 +3267,9 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
           LiveInstrumentPanel(
             bridge: widget.bridge,
             snapshot: snapshot,
-            onSnapshot: _refreshSnapshot,
             onRecordArmed: _setRecordArmed,
+            recordWriteMode: _recordWriteMode,
+            onRecordWriteModeChanged: _setRecordWriteMode,
           ),
       ],
     );

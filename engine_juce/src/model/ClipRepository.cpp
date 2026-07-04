@@ -41,6 +41,97 @@ void normalizeCompRegions(SampleClip& clip) {
     regions = std::move(merged);
 }
 
+void normalizeMidiCompRegions(MidiClip& clip) {
+    auto& regions = clip.activeTakeRegions;
+    regions.erase(std::remove_if(regions.begin(), regions.end(),
+                                 [](const MidiClipTakeRegion& region) {
+                                     return region.endBeat <= region.startBeat + kMinTakeRegionBeats;
+                                 }),
+                  regions.end());
+    std::sort(regions.begin(), regions.end(), [](const auto& a, const auto& b) {
+        return a.startBeat < b.startBeat;
+    });
+}
+
+void rebuildMidiCompNotes(MidiClip& clip) {
+    if (clip.takes.empty() || clip.activeTakeRegions.empty()) {
+        return;
+    }
+    std::vector<MidiNote> notes;
+    for (const auto& region : clip.activeTakeRegions) {
+        const auto take = std::find_if(clip.takes.begin(), clip.takes.end(),
+                                       [&](const MidiClipTake& candidate) {
+                                           return candidate.id == region.takeId;
+                                       });
+        if (take == clip.takes.end()) {
+            continue;
+        }
+        const double regionLength = region.endBeat - region.startBeat;
+        for (const auto& note : take->notes) {
+            const double noteStart = note.startBeat;
+            const double noteEnd = note.startBeat + note.durationBeats;
+            const double srcStart = region.sourceStart;
+            const double srcEnd = region.sourceStart + regionLength;
+            if (noteStart >= srcEnd || noteEnd <= srcStart) {
+                continue;
+            }
+            MidiNote out = note;
+            const double clippedStart = std::max(noteStart, srcStart);
+            const double clippedEnd = std::min(noteEnd, srcEnd);
+            out.startBeat = region.startBeat + (clippedStart - srcStart);
+            out.durationBeats = std::max(0.01, clippedEnd - clippedStart);
+            notes.push_back(out);
+        }
+    }
+    std::sort(notes.begin(), notes.end(), [](const auto& a, const auto& b) {
+        if (a.startBeat != b.startBeat) return a.startBeat < b.startBeat;
+        return a.pitch < b.pitch;
+    });
+    clip.notes = std::move(notes);
+}
+
+void replaceMidiCompRegion(MidiClip& clip,
+                           const std::string& takeId,
+                           double startBeat,
+                           double endBeat,
+                           double sourceStart) {
+    const double start = std::clamp(startBeat, 0.0, clip.lengthBeats);
+    const double end = std::clamp(endBeat, start, clip.lengthBeats);
+    if (end <= start + kMinTakeRegionBeats) {
+        return;
+    }
+
+    std::vector<MidiClipTakeRegion> next;
+    next.reserve(clip.activeTakeRegions.size() + 2);
+    for (const auto& region : clip.activeTakeRegions) {
+        if (region.endBeat <= start || region.startBeat >= end) {
+            next.push_back(region);
+            continue;
+        }
+        if (region.startBeat < start) {
+            auto left = region;
+            left.endBeat = start;
+            next.push_back(left);
+        }
+        if (region.endBeat > end) {
+            auto right = region;
+            right.startBeat = end;
+            right.sourceStart += end - region.startBeat;
+            next.push_back(right);
+        }
+    }
+
+    MidiClipTakeRegion inserted;
+    inserted.startBeat = start;
+    inserted.endBeat = end;
+    inserted.takeId = takeId;
+    inserted.sourceStart = sourceStart;
+    next.push_back(inserted);
+    clip.activeTakeRegions = std::move(next);
+    normalizeMidiCompRegions(clip);
+    rebuildMidiCompNotes(clip);
+}
+
 void replaceCompRegion(SampleClip& clip,
                        const std::string& takeId,
                        double startBeat,
@@ -114,6 +205,17 @@ std::string ClipRepository::createMidiClip(const std::string& trackId,
     seed.durationBeats = 1.0;
     seed.velocity = 100.0f;
     clip.notes.push_back(seed);
+    MidiClipTake take;
+    take.id = clip.id + "-take-1";
+    take.name = "Take 1";
+    take.lengthBeats = clip.naturalLengthBeats;
+    take.notes.push_back(seed);
+    clip.takes.push_back(take);
+    MidiClipTakeRegion region;
+    region.startBeat = 0.0;
+    region.endBeat = clip.lengthBeats;
+    region.takeId = take.id;
+    clip.activeTakeRegions.push_back(region);
 
     track->midiClips.push_back(std::move(clip));
     return track->midiClips.back().id;
@@ -140,6 +242,236 @@ bool ClipRepository::setMidiClipNotes(const std::string& clipId,
     if (!clip->loopContent && noteEnd > clip->naturalLengthBeats) {
         clip->naturalLengthBeats = noteEnd;
     }
+    if (clip->takes.size() <= 1) {
+        if (clip->takes.empty()) {
+            MidiClipTake take;
+            take.id = clip->id + "-take-1";
+            take.name = "Take 1";
+            clip->takes.push_back(take);
+        }
+        clip->takes.front().lengthBeats = clip->naturalLengthBeats;
+        clip->takes.front().notes = clip->notes;
+        clip->activeTakeRegions.clear();
+        MidiClipTakeRegion region;
+        region.startBeat = 0.0;
+        region.endBeat = clip->lengthBeats;
+        region.takeId = clip->takes.front().id;
+        clip->activeTakeRegions.push_back(region);
+    }
+    return true;
+}
+
+bool ClipRepository::addMidiClipTake(const std::string& clipId,
+                                     const std::string& name,
+                                     double startBeatOffset,
+                                     double lengthBeats,
+                                     const std::vector<MidiNoteState>& notes) {
+    auto* clip = findMidiClip(clipId);
+    if (clip == nullptr) {
+        return false;
+    }
+    if (clip->takes.empty()) {
+        MidiClipTake original;
+        original.id = clip->id + "-take-1";
+        original.name = "Take 1";
+        original.lengthBeats = clip->naturalLengthBeats > 0.0
+            ? clip->naturalLengthBeats : clip->lengthBeats;
+        original.notes = clip->notes;
+        clip->takes.push_back(original);
+        MidiClipTakeRegion region;
+        region.startBeat = 0.0;
+        region.endBeat = clip->lengthBeats;
+        region.takeId = original.id;
+        clip->activeTakeRegions.push_back(region);
+    }
+    const double offset = std::clamp(startBeatOffset, 0.0, clip->lengthBeats);
+    const double len = lengthBeats < kMinClipLengthBeats ? kMinClipLengthBeats : lengthBeats;
+    if (clip->takes.size() == 1 && clip->takes.front().notes.empty()) {
+        auto& firstTake = clip->takes.front();
+        firstTake.name = name.empty() ? "Take 1" : name;
+        firstTake.startBeatOffset = offset;
+        firstTake.lengthBeats = len;
+        firstTake.notes.clear();
+        firstTake.notes.reserve(notes.size());
+        for (const auto& note : notes) {
+            MidiNote stored;
+            stored.pitch = note.pitch;
+            stored.startBeat = std::max(0.0, note.startBeat);
+            stored.durationBeats = note.durationBeats > 0.0 ? note.durationBeats : 0.25;
+            stored.velocity = note.velocity;
+            firstTake.notes.push_back(stored);
+        }
+        replaceMidiCompRegion(*clip, firstTake.id, offset, offset + len, 0.0);
+        const double takeEnd = offset + len;
+        if (takeEnd > clip->naturalLengthBeats) {
+            clip->naturalLengthBeats = takeEnd;
+        }
+        return true;
+    }
+    MidiClipTake take;
+    take.id = clip->id + "-take-" + std::to_string(clip->takes.size() + 1);
+    take.name = name.empty() ? ("Take " + std::to_string(clip->takes.size() + 1)) : name;
+    take.startBeatOffset = offset;
+    take.lengthBeats = len;
+    take.notes.reserve(notes.size());
+    for (const auto& note : notes) {
+        MidiNote stored;
+        stored.pitch = note.pitch;
+        stored.startBeat = std::max(0.0, note.startBeat);
+        stored.durationBeats = note.durationBeats > 0.0 ? note.durationBeats : 0.25;
+        stored.velocity = note.velocity;
+        take.notes.push_back(stored);
+    }
+    clip->takes.push_back(take);
+    replaceMidiCompRegion(*clip, take.id, offset, offset + len, 0.0);
+    const double takeEnd = offset + len;
+    if (takeEnd > clip->naturalLengthBeats) {
+        clip->naturalLengthBeats = takeEnd;
+    }
+    return true;
+}
+
+bool ClipRepository::setMidiClipTakeRegionTake(const std::string& clipId,
+                                               int regionIndex,
+                                               const std::string& takeId) {
+    auto* clip = findMidiClip(clipId);
+    if (clip == nullptr || regionIndex < 0 ||
+        regionIndex >= static_cast<int>(clip->activeTakeRegions.size())) {
+        return false;
+    }
+    const auto take = std::find_if(clip->takes.begin(), clip->takes.end(),
+                                   [&](const MidiClipTake& candidate) {
+                                       return candidate.id == takeId;
+                                   });
+    if (take == clip->takes.end()) {
+        return false;
+    }
+    auto& region = clip->activeTakeRegions[static_cast<size_t>(regionIndex)];
+    region.takeId = takeId;
+    region.sourceStart = std::clamp(region.startBeat - take->startBeatOffset,
+                                    0.0, take->lengthBeats);
+    normalizeMidiCompRegions(*clip);
+    rebuildMidiCompNotes(*clip);
+    return true;
+}
+
+bool ClipRepository::setMidiClipTakeAtBeat(const std::string& clipId,
+                                           double beat,
+                                           const std::string& takeId) {
+    auto* clip = findMidiClip(clipId);
+    if (clip == nullptr || takeId.empty()) {
+        return false;
+    }
+    const auto take = std::find_if(clip->takes.begin(), clip->takes.end(),
+                                   [&](const MidiClipTake& candidate) {
+                                       return candidate.id == takeId;
+                                   });
+    if (take == clip->takes.end()) {
+        return false;
+    }
+    const double localBeat = std::clamp(beat, 0.0, clip->lengthBeats);
+    for (auto it = clip->activeTakeRegions.begin(); it != clip->activeTakeRegions.end(); ++it) {
+        if (localBeat < it->startBeat || localBeat >= it->endBeat) {
+            continue;
+        }
+        if (takeId == it->takeId && localBeat <= it->startBeat + kMinTakeRegionBeats) {
+            return true;
+        }
+        const auto oldRegion = *it;
+        const auto insertIndex = static_cast<size_t>(
+            std::distance(clip->activeTakeRegions.begin(), it));
+        if (localBeat <= oldRegion.startBeat + kMinTakeRegionBeats) {
+            clip->activeTakeRegions[insertIndex].takeId = takeId;
+            clip->activeTakeRegions[insertIndex].sourceStart =
+                std::clamp(localBeat - take->startBeatOffset, 0.0, take->lengthBeats);
+            normalizeMidiCompRegions(*clip);
+            rebuildMidiCompNotes(*clip);
+            return true;
+        }
+        MidiClipTakeRegion right = oldRegion;
+        right.startBeat = localBeat;
+        right.takeId = takeId;
+        right.sourceStart =
+            std::clamp(localBeat - take->startBeatOffset, 0.0, take->lengthBeats);
+        clip->activeTakeRegions[insertIndex].endBeat = localBeat;
+        clip->activeTakeRegions.insert(clip->activeTakeRegions.begin() +
+                                           static_cast<std::ptrdiff_t>(insertIndex + 1),
+                                       right);
+        normalizeMidiCompRegions(*clip);
+        rebuildMidiCompNotes(*clip);
+        return true;
+    }
+    replaceMidiCompRegion(*clip, takeId, localBeat, clip->lengthBeats,
+                          std::clamp(localBeat - take->startBeatOffset, 0.0, take->lengthBeats));
+    return true;
+}
+
+bool ClipRepository::splitMidiClipTakeRegionAtBeat(const std::string& clipId,
+                                                   double beat) {
+    auto* clip = findMidiClip(clipId);
+    if (clip == nullptr) {
+        return false;
+    }
+    const double localBeat = std::clamp(beat, 0.0, clip->lengthBeats);
+    for (auto it = clip->activeTakeRegions.begin(); it != clip->activeTakeRegions.end(); ++it) {
+        if (localBeat <= it->startBeat + kMinTakeRegionBeats ||
+            localBeat >= it->endBeat - kMinTakeRegionBeats) {
+            continue;
+        }
+        const auto insertIndex = static_cast<size_t>(
+            std::distance(clip->activeTakeRegions.begin(), it));
+        MidiClipTakeRegion right = *it;
+        right.startBeat = localBeat;
+        right.sourceStart += localBeat - it->startBeat;
+        clip->activeTakeRegions[insertIndex].endBeat = localBeat;
+        clip->activeTakeRegions.insert(clip->activeTakeRegions.begin() +
+                                           static_cast<std::ptrdiff_t>(insertIndex + 1),
+                                       right);
+        rebuildMidiCompNotes(*clip);
+        return true;
+    }
+    return false;
+}
+
+bool ClipRepository::moveMidiClipTakeMarker(const std::string& clipId,
+                                            int markerIndex,
+                                            double beat) {
+    auto* clip = findMidiClip(clipId);
+    const int rightIndex = markerIndex + 1;
+    if (clip == nullptr || markerIndex < 0 ||
+        rightIndex >= static_cast<int>(clip->activeTakeRegions.size())) {
+        return false;
+    }
+    auto& left = clip->activeTakeRegions[static_cast<size_t>(markerIndex)];
+    auto& right = clip->activeTakeRegions[static_cast<size_t>(rightIndex)];
+    const double minimum = left.startBeat + kMinTakeRegionBeats;
+    const double maximum = right.endBeat - kMinTakeRegionBeats;
+    if (maximum <= minimum) {
+        return false;
+    }
+    const double oldRightStart = right.startBeat;
+    const double nextBeat = std::clamp(beat, minimum, maximum);
+    left.endBeat = nextBeat;
+    right.startBeat = nextBeat;
+    right.sourceStart += nextBeat - oldRightStart;
+    rebuildMidiCompNotes(*clip);
+    return true;
+}
+
+bool ClipRepository::deleteMidiClipTakeMarker(const std::string& clipId,
+                                              int markerIndex) {
+    auto* clip = findMidiClip(clipId);
+    const int rightIndex = markerIndex + 1;
+    if (clip == nullptr || markerIndex < 0 ||
+        rightIndex >= static_cast<int>(clip->activeTakeRegions.size())) {
+        return false;
+    }
+    auto& left = clip->activeTakeRegions[static_cast<size_t>(markerIndex)];
+    const auto& right = clip->activeTakeRegions[static_cast<size_t>(rightIndex)];
+    left.endBeat = right.endBeat;
+    clip->activeTakeRegions.erase(clip->activeTakeRegions.begin() + rightIndex);
+    normalizeMidiCompRegions(*clip);
+    rebuildMidiCompNotes(*clip);
     return true;
 }
 

@@ -88,6 +88,32 @@ juce::var midiClipToVar(const MidiClipState& clip) {
     for (const auto& note : clip.notes) {
         notes.add(midiNoteToVar(note));
     }
+    juce::Array<juce::var> takes;
+    takes.ensureStorageAllocated(static_cast<int>(clip.takes.size()));
+    for (const auto& take : clip.takes) {
+        juce::Array<juce::var> takeNotes;
+        takeNotes.ensureStorageAllocated(static_cast<int>(take.notes.size()));
+        for (const auto& note : take.notes) {
+            takeNotes.add(midiNoteToVar(note));
+        }
+        auto* takeObject = new juce::DynamicObject();
+        takeObject->setProperty("id", toJuceString(take.id));
+        takeObject->setProperty("name", toJuceString(take.name));
+        takeObject->setProperty("startBeatOffset", take.startBeatOffset);
+        takeObject->setProperty("lengthBeats", take.lengthBeats);
+        takeObject->setProperty("notes", takeNotes);
+        takes.add(juce::var(takeObject));
+    }
+    juce::Array<juce::var> takeRegions;
+    takeRegions.ensureStorageAllocated(static_cast<int>(clip.activeTakeRegions.size()));
+    for (const auto& region : clip.activeTakeRegions) {
+        auto* regionObject = new juce::DynamicObject();
+        regionObject->setProperty("startBeat", region.startBeat);
+        regionObject->setProperty("endBeat", region.endBeat);
+        regionObject->setProperty("takeId", toJuceString(region.takeId));
+        regionObject->setProperty("sourceStart", region.sourceStart);
+        takeRegions.add(juce::var(regionObject));
+    }
 
     auto* object = new juce::DynamicObject();
     object->setProperty("id", toJuceString(clip.id));
@@ -101,6 +127,8 @@ juce::var midiClipToVar(const MidiClipState& clip) {
     object->setProperty("editorScaleSnap", clip.editorScaleSnap);
     object->setProperty("editorChordQuality", toJuceString(clip.editorChordQuality));
     object->setProperty("notes", notes);
+    object->setProperty("takes", takes);
+    object->setProperty("activeTakeRegions", takeRegions);
     return juce::var(object);
 }
 
@@ -131,6 +159,37 @@ MidiClipState midiClipFromVar(const juce::var& value) {
             clip.notes.reserve(static_cast<size_t>(notes->size()));
             for (const auto& noteVar : *notes) {
                 clip.notes.push_back(midiNoteFromVar(noteVar));
+            }
+        }
+        if (const auto* takes = varArray(object->getProperty("takes"))) {
+            clip.takes.reserve(static_cast<size_t>(takes->size()));
+            for (const auto& takeVar : *takes) {
+                if (const auto* takeObject = takeVar.getDynamicObject()) {
+                    MidiClipTakeState take;
+                    take.id = varToString(takeObject->getProperty("id"));
+                    take.name = varToString(takeObject->getProperty("name"));
+                    take.startBeatOffset = varToDouble(takeObject->getProperty("startBeatOffset"), 0.0);
+                    take.lengthBeats = varToDouble(takeObject->getProperty("lengthBeats"), clip.lengthBeats);
+                    if (const auto* takeNotes = varArray(takeObject->getProperty("notes"))) {
+                        for (const auto& noteVar : *takeNotes) {
+                            take.notes.push_back(midiNoteFromVar(noteVar));
+                        }
+                    }
+                    clip.takes.push_back(std::move(take));
+                }
+            }
+        }
+        if (const auto* regions = varArray(object->getProperty("activeTakeRegions"))) {
+            clip.activeTakeRegions.reserve(static_cast<size_t>(regions->size()));
+            for (const auto& regionVar : *regions) {
+                if (const auto* regionObject = regionVar.getDynamicObject()) {
+                    MidiClipTakeRegionState region;
+                    region.startBeat = varToDouble(regionObject->getProperty("startBeat"), 0.0);
+                    region.endBeat = varToDouble(regionObject->getProperty("endBeat"), clip.lengthBeats);
+                    region.takeId = varToString(regionObject->getProperty("takeId"));
+                    region.sourceStart = varToDouble(regionObject->getProperty("sourceStart"), 0.0);
+                    clip.activeTakeRegions.push_back(std::move(region));
+                }
             }
         }
         if (!object->hasProperty("naturalLengthBeats")) {

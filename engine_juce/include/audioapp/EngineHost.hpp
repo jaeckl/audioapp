@@ -74,6 +74,24 @@ public:
                                double startBeat,
                                double lengthBeats);
     bool setMidiClipNotes(const std::string& clipId, const std::vector<MidiNoteState>& notes);
+    bool addMidiClipTake(const std::string& clipId,
+                         const std::string& name,
+                         double startBeatOffset,
+                         double lengthBeats,
+                         const std::vector<MidiNoteState>& notes);
+    bool setMidiClipTakeRegionTake(const std::string& clipId,
+                                   int regionIndex,
+                                   const std::string& takeId);
+    bool setMidiClipTakeAtBeat(const std::string& clipId,
+                               double beat,
+                               const std::string& takeId);
+    bool splitMidiClipTakeRegionAtBeat(const std::string& clipId,
+                                       double beat);
+    bool moveMidiClipTakeMarker(const std::string& clipId,
+                                int markerIndex,
+                                double beat);
+    bool deleteMidiClipTakeMarker(const std::string& clipId,
+                                  int markerIndex);
     bool setMidiClipEditorScale(const std::string& clipId,
                                 int root,
                                 const std::string& scaleId,

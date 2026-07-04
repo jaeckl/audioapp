@@ -111,6 +111,9 @@ class ArrangementView extends StatefulWidget {
     this.onFollowSuspended,
     this.onFollowResumed,
     this.playheadListenable,
+    this.liveClipStartBeats = const {},
+    this.liveMidiPreviewNotes = const {},
+    this.liveMidiPreviewClips = const {},
     this.onResizeClipCommit,
     this.snapClipsEnabled = true,
     this.snapGridResolution = SnapGridResolution.adaptive,
@@ -191,6 +194,9 @@ class ArrangementView extends StatefulWidget {
 
   /// When set, playhead marker layers listen here instead of rebuilding this widget each tick.
   final ValueListenable<double>? playheadListenable;
+  final Map<String, double> liveClipStartBeats;
+  final Map<String, List<MidiNoteSnapshot>> liveMidiPreviewNotes;
+  final Map<String, List<MidiClipSnapshot>> liveMidiPreviewClips;
 
   /// Called when the user finishes dragging a clip's right-edge resize handle.
   /// Receives the final preview length in beats; bridge dispatch happens outside.
@@ -471,6 +477,9 @@ class ArrangementViewState extends State<ArrangementView> {
       return;
     }
     final beat = widget.playheadListenable!.value;
+    if (widget.liveClipStartBeats.isNotEmpty) {
+      setState(() {});
+    }
     final oldBeat = _lastListenedPlayheadBeat;
     _lastListenedPlayheadBeat = beat;
     if (oldBeat == null) return;
@@ -1262,8 +1271,13 @@ class ArrangementViewState extends State<ArrangementView> {
   /// `null` if not resizing. Clip blocks call this to render drag width.
   double? previewLengthFor(String clipId) {
     final session = _resizeSession;
-    if (session == null || session.clipId != clipId) return null;
-    return session.previewLengthBeats;
+    if (session != null && session.clipId == clipId) {
+      return session.previewLengthBeats;
+    }
+    final liveStart = widget.liveClipStartBeats[clipId];
+    if (liveStart == null) return null;
+    final playhead = widget.playheadListenable?.value ?? widget.playheadBeats;
+    return (playhead - liveStart).clamp(0.25, 1024.0).toDouble();
   }
 
   Future<void> _onTrackLongPress(
@@ -1736,6 +1750,9 @@ class ArrangementViewState extends State<ArrangementView> {
                           onResizeClipEnd: _endClipResize,
                           onResizeClipCancel: _cancelClipResize,
                           previewLengthFor: previewLengthFor,
+                          liveMidiPreviewNotes: widget.liveMidiPreviewNotes,
+                          liveMidiPreviewClips:
+                              widget.liveMidiPreviewClips[track.id] ?? const [],
                           onDeleteClip: widget.onDeleteClip,
                           onClipMenu: _showClipMenu,
                           automationLinkClipId: widget.automationLinkClipId,
@@ -2734,6 +2751,8 @@ class _TrackLane extends StatelessWidget {
     required this.onResizeClipEnd,
     required this.onResizeClipCancel,
     required this.previewLengthFor,
+    required this.liveMidiPreviewNotes,
+    required this.liveMidiPreviewClips,
     this.onDeleteClip,
     this.onClipMenu,
     this.automationLinkClipId,
@@ -2782,6 +2801,8 @@ class _TrackLane extends StatelessWidget {
   final void Function(DragEndDetails details) onResizeClipEnd;
   final VoidCallback onResizeClipCancel;
   final double? Function(String clipId) previewLengthFor;
+  final Map<String, List<MidiNoteSnapshot>> liveMidiPreviewNotes;
+  final List<MidiClipSnapshot> liveMidiPreviewClips;
   final void Function(String clipId)? onDeleteClip;
   final void Function(String clipId)? onClipMenu;
   final String? automationLinkClipId;
@@ -2806,6 +2827,7 @@ class _TrackLane extends StatelessWidget {
   List<double> get _clipStarts {
     return [
       ...track.midiClips.map((c) => c.startBeat),
+      ...liveMidiPreviewClips.map((c) => c.startBeat),
       ...track.sampleClips.map((c) => c.startBeat),
       ...track.automationClips.map((c) => c.startBeat),
     ];
@@ -2870,7 +2892,7 @@ class _TrackLane extends StatelessWidget {
           ),
         ),
         child: Stack(
-          clipBehavior: Clip.none,
+          clipBehavior: Clip.hardEdge,
           children: [
             if (selected)
               Positioned.fill(
@@ -2931,7 +2953,7 @@ class _TrackLane extends StatelessWidget {
                     onDragCancel: onClipDragCancel,
                   ),
                 ),
-              for (final clip in track.midiClips)
+              for (final clip in [...track.midiClips, ...liveMidiPreviewClips])
                 Positioned(
                   left: clip.startBeat * pixelsPerBeat,
                   top: 4,
@@ -2939,14 +2961,22 @@ class _TrackLane extends StatelessWidget {
                       pixelsPerBeat,
                   height: laneHeight - 8,
                   child: _MidiClipBlock(
-                    clip: previewLengthFor(clip.id) != null
-                        ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!)
+                    clip: previewLengthFor(clip.id) != null ||
+                            liveMidiPreviewNotes[clip.id] != null
+                        ? clip.copyWith(
+                            lengthBeats:
+                                previewLengthFor(clip.id) ?? clip.lengthBeats,
+                            notes: liveMidiPreviewNotes[clip.id],
+                          )
                         : clip,
-                    highlighted: draggingClipId == clip.id ||
-                        highlightedClipId == clip.id,
-                    onTap: () => onClipTap(track.id, clip),
-                    onDoubleTap:
-                        onClipMenu == null ? null : () => onClipMenu!(clip.id),
+                    highlighted: draggingClipId == clip.id,
+                    onTap: liveMidiPreviewClips.any((c) => c.id == clip.id)
+                        ? () {}
+                        : () => onClipTap(track.id, clip),
+                    onDoubleTap: onClipMenu == null ||
+                            liveMidiPreviewClips.any((c) => c.id == clip.id)
+                        ? null
+                        : () => onClipMenu!(clip.id),
                     onDragStart: (details) => onClipDragStart(
                       trackId: track.id,
                       clipId: clip.id,

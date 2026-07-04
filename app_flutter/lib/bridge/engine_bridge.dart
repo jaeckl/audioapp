@@ -41,6 +41,27 @@ class AudioRecordingSession {
   final String clipId;
 }
 
+class LiveMidiNoteEvent {
+  const LiveMidiNoteEvent.noteOn({
+    required this.pitch,
+    required this.velocity,
+  }) : allOff = false;
+
+  const LiveMidiNoteEvent.noteOff({required this.pitch})
+      : velocity = 0,
+        allOff = false;
+
+  const LiveMidiNoteEvent.allOff()
+      : pitch = -1,
+        velocity = 0,
+        allOff = true;
+
+  final int pitch;
+  final double velocity;
+  final bool allOff;
+  bool get isNoteOn => !allOff && velocity > 0;
+}
+
 /// Flutter ↔ native engine bridge (MethodChannel + EventChannels).
 class EngineBridge {
   EngineBridge({MethodChannel? channel, EventChannel? metersChannel})
@@ -50,6 +71,10 @@ class EngineBridge {
 
   final MethodChannel _channel;
   final EventChannel _metersChannel;
+  final StreamController<LiveMidiNoteEvent> _noteEvents =
+      StreamController<LiveMidiNoteEvent>.broadcast();
+
+  Stream<LiveMidiNoteEvent> get noteEvents => _noteEvents.stream;
 
   /// Stream of live meter readings pushed from native engine (~60Hz when subscribed).
   /// Each event is a [LiveMetersBatch] containing subscribed device meters only.
@@ -361,6 +386,80 @@ class EngineBridge {
     });
   }
 
+  Future<ProjectSnapshot> addMidiClipTake({
+    required String clipId,
+    required String name,
+    required double startBeatOffset,
+    required double lengthBeats,
+    required List<MidiNoteSnapshot> notes,
+  }) async {
+    return _invokeForSnapshot('addMidiClipTake', {
+      'clipId': clipId,
+      'name': name,
+      'startBeatOffset': startBeatOffset,
+      'lengthBeats': lengthBeats,
+      'notes': notes
+          .map((n) => {
+                'pitch': n.pitch,
+                'startBeat': n.startBeat,
+                'durationBeats': n.durationBeats,
+                'velocity': n.velocity,
+              })
+          .toList(),
+    });
+  }
+
+  Future<ProjectSnapshot> setMidiClipTakeRegionTake({
+    required String clipId,
+    required int regionIndex,
+    required String takeId,
+  }) =>
+      _invokeForSnapshot('setMidiClipTakeRegionTake', {
+        'clipId': clipId,
+        'regionIndex': regionIndex,
+        'takeId': takeId,
+      });
+
+  Future<ProjectSnapshot> setMidiClipTakeAtBeat({
+    required String clipId,
+    required double beat,
+    required String takeId,
+  }) =>
+      _invokeForSnapshot('setMidiClipTakeAtBeat', {
+        'clipId': clipId,
+        'beat': beat,
+        'takeId': takeId,
+      });
+
+  Future<ProjectSnapshot> splitMidiClipTakeRegionAtBeat({
+    required String clipId,
+    required double beat,
+  }) =>
+      _invokeForSnapshot('splitMidiClipTakeRegionAtBeat', {
+        'clipId': clipId,
+        'beat': beat,
+      });
+
+  Future<ProjectSnapshot> moveMidiClipTakeMarker({
+    required String clipId,
+    required int markerIndex,
+    required double beat,
+  }) =>
+      _invokeForSnapshot('moveMidiClipTakeMarker', {
+        'clipId': clipId,
+        'markerIndex': markerIndex,
+        'beat': beat,
+      });
+
+  Future<ProjectSnapshot> deleteMidiClipTakeMarker({
+    required String clipId,
+    required int markerIndex,
+  }) =>
+      _invokeForSnapshot('deleteMidiClipTakeMarker', {
+        'clipId': clipId,
+        'markerIndex': markerIndex,
+      });
+
   Future<void> setMidiClipEditorScale({
     required String clipId,
     required int rootPitchClass,
@@ -588,14 +687,20 @@ class EngineBridge {
   }
 
   Future<void> noteOn({required int pitch, required double velocity}) async {
+    _noteEvents.add(LiveMidiNoteEvent.noteOn(
+      pitch: pitch,
+      velocity: velocity,
+    ));
     await _invokeOk('noteOn', {'pitch': pitch, 'velocity': velocity});
   }
 
   Future<void> noteOff({required int pitch}) async {
+    _noteEvents.add(LiveMidiNoteEvent.noteOff(pitch: pitch));
     await _invokeOk('noteOff', {'pitch': pitch});
   }
 
   Future<void> allNotesOff() async {
+    _noteEvents.add(const LiveMidiNoteEvent.allOff());
     await _invokeOk('allNotesOff');
   }
 

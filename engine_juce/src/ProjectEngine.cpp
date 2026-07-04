@@ -564,6 +564,78 @@ bool ProjectEngine::setMidiClipNotes(const std::string& clipId,
     return true;
 }
 
+bool ProjectEngine::addMidiClipTake(const std::string& clipId,
+                                    const std::string& name,
+                                    double startBeatOffset,
+                                    double lengthBeats,
+                                    const std::vector<MidiNoteState>& notes) {
+    const juce::ScopedWriteLock lock(mutex_);
+    if (!clipRepo_.addMidiClipTake(clipId, name, startBeatOffset, lengthBeats, notes)) {
+        return false;
+    }
+    syncProjectTreeLocked();
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
+bool ProjectEngine::setMidiClipTakeRegionTake(const std::string& clipId,
+                                              int regionIndex,
+                                              const std::string& takeId) {
+    const juce::ScopedWriteLock lock(mutex_);
+    if (!clipRepo_.setMidiClipTakeRegionTake(clipId, regionIndex, takeId)) {
+        return false;
+    }
+    syncProjectTreeLocked();
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
+bool ProjectEngine::setMidiClipTakeAtBeat(const std::string& clipId,
+                                          double beat,
+                                          const std::string& takeId) {
+    const juce::ScopedWriteLock lock(mutex_);
+    if (!clipRepo_.setMidiClipTakeAtBeat(clipId, beat, takeId)) {
+        return false;
+    }
+    syncProjectTreeLocked();
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
+bool ProjectEngine::splitMidiClipTakeRegionAtBeat(const std::string& clipId,
+                                                  double beat) {
+    const juce::ScopedWriteLock lock(mutex_);
+    if (!clipRepo_.splitMidiClipTakeRegionAtBeat(clipId, beat)) {
+        return false;
+    }
+    syncProjectTreeLocked();
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
+bool ProjectEngine::moveMidiClipTakeMarker(const std::string& clipId,
+                                           int markerIndex,
+                                           double beat) {
+    const juce::ScopedWriteLock lock(mutex_);
+    if (!clipRepo_.moveMidiClipTakeMarker(clipId, markerIndex, beat)) {
+        return false;
+    }
+    syncProjectTreeLocked();
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
+bool ProjectEngine::deleteMidiClipTakeMarker(const std::string& clipId,
+                                             int markerIndex) {
+    const juce::ScopedWriteLock lock(mutex_);
+    if (!clipRepo_.deleteMidiClipTakeMarker(clipId, markerIndex)) {
+        return false;
+    }
+    syncProjectTreeLocked();
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
 bool ProjectEngine::setMidiClipEditorScale(const std::string& clipId,
                                            int root,
                                            const std::string& scaleId,
@@ -1122,6 +1194,26 @@ ProjectSnapshot ProjectEngine::snapshot() const {
                     note.durationBeats,
                     note.velocity,
                 });
+            }
+            for (const auto& take : clip.takes) {
+                MidiClipTakeState takeState;
+                takeState.id = take.id;
+                takeState.name = take.name;
+                takeState.startBeatOffset = take.startBeatOffset;
+                takeState.lengthBeats = take.lengthBeats;
+                for (const auto& note : take.notes) {
+                    takeState.notes.push_back(MidiNoteState{
+                        note.pitch,
+                        note.startBeat,
+                        note.durationBeats,
+                        note.velocity,
+                    });
+                }
+                cs.takes.push_back(std::move(takeState));
+            }
+            for (const auto& region : clip.activeTakeRegions) {
+                cs.activeTakeRegions.push_back({region.startBeat, region.endBeat,
+                                                region.takeId, region.sourceStart});
             }
             ts.midiClips.push_back(std::move(cs));
         }
@@ -1829,6 +1921,26 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
                     note.velocity,
                 });
             }
+            for (const auto& take : clip.takes) {
+                MidiClipTakeState takeState;
+                takeState.id = take.id;
+                takeState.name = take.name;
+                takeState.startBeatOffset = take.startBeatOffset;
+                takeState.lengthBeats = take.lengthBeats;
+                for (const auto& note : take.notes) {
+                    takeState.notes.push_back(MidiNoteState{
+                        note.pitch,
+                        note.startBeat,
+                        note.durationBeats,
+                        note.velocity,
+                    });
+                }
+                cs.takes.push_back(std::move(takeState));
+            }
+            for (const auto& region : clip.activeTakeRegions) {
+                cs.activeTakeRegions.push_back({region.startBeat, region.endBeat,
+                                                region.takeId, region.sourceStart});
+            }
             ts.midiClips.push_back(std::move(cs));
         }
         for (const auto& clip : track.sampleClips) {
@@ -1945,6 +2057,30 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
                 note.durationBeats = noteState.durationBeats;
                 note.velocity = noteState.velocity;
                 clip.notes.push_back(note);
+            }
+            for (const auto& takeState : clipState.takes) {
+                MidiClipTake take;
+                take.id = takeState.id;
+                take.name = takeState.name;
+                take.startBeatOffset = takeState.startBeatOffset;
+                take.lengthBeats = takeState.lengthBeats;
+                for (const auto& noteState : takeState.notes) {
+                    MidiNote note;
+                    note.pitch = noteState.pitch;
+                    note.startBeat = noteState.startBeat;
+                    note.durationBeats = noteState.durationBeats;
+                    note.velocity = noteState.velocity;
+                    take.notes.push_back(note);
+                }
+                clip.takes.push_back(std::move(take));
+            }
+            for (const auto& regionState : clipState.activeTakeRegions) {
+                MidiClipTakeRegion region;
+                region.startBeat = regionState.startBeat;
+                region.endBeat = regionState.endBeat;
+                region.takeId = regionState.takeId;
+                region.sourceStart = regionState.sourceStart;
+                clip.activeTakeRegions.push_back(std::move(region));
             }
             track.midiClips.push_back(std::move(clip));
         }

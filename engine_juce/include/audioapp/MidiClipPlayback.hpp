@@ -12,6 +12,21 @@ struct MidiNoteState {
     float velocity = 100.0f;
 };
 
+struct MidiClipTakeState {
+    std::string id;
+    std::string name;
+    double startBeatOffset = 0.0;
+    double lengthBeats = 4.0;
+    std::vector<MidiNoteState> notes;
+};
+
+struct MidiClipTakeRegionState {
+    double startBeat = 0.0;
+    double endBeat = 4.0;
+    std::string takeId;
+    double sourceStart = 0.0;
+};
+
 struct MidiClipState {
     std::string id;
     double startBeat = 0.0;
@@ -24,6 +39,8 @@ struct MidiClipState {
     bool editorScaleSnap = false;
     std::string editorChordQuality = "off";
     std::vector<MidiNoteState> notes;
+    std::vector<MidiClipTakeState> takes;
+    std::vector<MidiClipTakeRegionState> activeTakeRegions;
 };
 
 int activeMidiPitchAtBeat(double playheadBeat, const MidiClipState& clip) noexcept;
