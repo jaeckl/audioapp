@@ -162,14 +162,14 @@ class PianoRollViewportState extends State<PianoRollViewport> {
     );
   }
 
-  List<int> get _visiblePitches =>
-      widget.laneLayout?.lanes
-          .map((lane) => lane.pitch)
-          .toList(growable: false) ??
-      [
-        for (var pitch = widget.maxPitch; pitch >= widget.minPitch; pitch--)
-          pitch
-      ];
+  List<int> get _visiblePitches {
+    if (widget.laneLayout != null) {
+      return widget.laneLayout!.lanes.map((lane) => lane.pitch).toList();
+    }
+    return [
+      for (var pitch = widget.maxPitch; pitch >= widget.minPitch; pitch--) pitch
+    ];
+  }
 
   double get _gridHeight => _visiblePitches.length * _rowHeight;
 
@@ -934,8 +934,9 @@ class PianoRollViewportState extends State<PianoRollViewport> {
   }
 
   void _emitCenterOctave() {
-    if (widget.onCenterOctaveChanged == null || _lastViewportHeight <= 0)
+    if (widget.onCenterOctaveChanged == null || _lastViewportHeight <= 0) {
       return;
+    }
     if (!_vertical.hasClients) return;
     final centerY = _vertical.offset + _lastViewportHeight / 2;
     final pitch = _pitchFromDy(centerY);

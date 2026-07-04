@@ -13,6 +13,7 @@ import 'piano_roll_edit_sheet.dart';
 import 'piano_roll_grid_sheet.dart';
 import 'editor_view_range.dart';
 import 'midi_lane_layout.dart';
+import 'midi_take_comp_view.dart';
 import 'piano_roll_metrics.dart';
 import 'piano_roll_note_audition.dart';
 import 'piano_roll_note_ops.dart';
@@ -20,6 +21,7 @@ import 'piano_roll_scale.dart';
 import 'piano_roll_theme.dart';
 import 'piano_roll_tool_dock.dart';
 import 'piano_roll_viewport.dart';
+import '../sample_editor/sample_editor_take_panel.dart';
 
 class PianoRollScreen extends StatefulWidget {
   const PianoRollScreen({
@@ -363,6 +365,13 @@ class _PianoRollScreenState extends State<PianoRollScreen>
   List<double> get _takeMarkerBeats =>
       _takeRegions.skip(1).map((region) => region.startBeat).toList();
 
+  double? get _selectedTakeMarkerBeat {
+    final index = _selectedTakeMarker;
+    final markers = _takeMarkerBeats;
+    if (index == null || index < 0 || index >= markers.length) return null;
+    return markers[index];
+  }
+
   MidiClipSnapshot? _findClipInSnapshot(ProjectSnapshot snapshot, String id) {
     for (final track in snapshot.tracks) {
       for (final clip in track.midiClips) {
@@ -395,12 +404,26 @@ class _PianoRollScreenState extends State<PianoRollScreen>
     }
   }
 
-  Future<void> _setMidiTakeAtPlayhead(String takeId) async {
-    final beat = _previewTransport.clipLocalBeat.clamp(0.0, _clipLengthBeats);
+  int? _takeRegionIndexAtBeat(double beat) {
+    for (var i = 0; i < _takeRegions.length; i++) {
+      final region = _takeRegions[i];
+      final isLast = i == _takeRegions.length - 1;
+      if (beat >= region.startBeat &&
+          (beat < region.endBeat || (isLast && beat <= region.endBeat))) {
+        return i;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _setMidiTakeAtBeat(String takeId, double beat) async {
+    final regionIndex = _takeRegionIndexAtBeat(beat.clamp(0.0, _clipLengthBeats));
+    if (regionIndex == null) return;
+    if (_takeRegions[regionIndex].takeId == takeId) return;
     await _withMidiTakeSnapshot(
-      () => widget.bridge.setMidiClipTakeAtBeat(
+      () => widget.bridge.setMidiClipTakeRegionTake(
         clipId: widget.clip.id,
-        beat: beat,
+        regionIndex: regionIndex,
         takeId: takeId,
       ),
     );
@@ -561,12 +584,13 @@ class _PianoRollScreenState extends State<PianoRollScreen>
                 label: const Text('TAKES'),
                 onPressed: () => setState(() => _showTakes = !_showTakes),
               ),
-            TextButton.icon(
-              style: TextButton.styleFrom(foregroundColor: Colors.white70),
-              icon: const Icon(Icons.grid_4x4, size: 18),
-              label: Text(_gridDockLabel),
-              onPressed: _openGridSheet,
-            ),
+            if (!_showTakes)
+              TextButton.icon(
+                style: TextButton.styleFrom(foregroundColor: Colors.white70),
+                icon: const Icon(Icons.grid_4x4, size: 18),
+                label: Text(_gridDockLabel),
+                onPressed: _openGridSheet,
+              ),
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: Center(
@@ -586,430 +610,122 @@ class _PianoRollScreenState extends State<PianoRollScreen>
               Expanded(
                 child: ListenableBuilder(
                   listenable: _previewTransport,
-                  builder: (context, _) => PianoRollViewport(
-                    timelineScrollController: _timelineScrollController,
-                    notes: _notes,
-                    clipLengthBeats: _clipLengthBeats,
-                    virtualLengthBeats: _virtualLengthBeats,
-                    minPitch: PianoRollMetrics.gridMinPitch,
-                    maxPitch: PianoRollMetrics.gridMaxPitch,
-                    drumAnchorPitch: widget.drumAnchorPitch,
-                    laneLayout: _editorMode == MidiEditorMode.drums
-                        ? widget.drumLaneLayout
-                        : null,
-                    gridSettings: _grid,
-                    scaleSettings: _scale,
-                    tool: _tool,
-                    drawPattern: _drawPattern,
-                    selectedIndex: _selectedIndex,
-                    onNotesChanged: _onNotesChanged,
-                    onSelectionChanged: (index) =>
-                        setState(() => _selectedIndex = index),
-                    onEditStarted: _onEditStarted,
-                    onEditFinished: _onEditFinished,
-                    onClipLengthChanged: (length) {
-                      setState(() => _clipLengthBeats = length);
-                      _previewTransport.maxClipBeat = length;
-                    },
-                    onClipLengthCommit: _persistClipLength,
-                    viewRangeBars: _viewRangeBars,
-                    virtualPlayheadBeat: _previewTransport.clipLocalBeat,
-                    onVirtualPlayheadSeek: _previewTransport.seekClipLocal,
-                    previewPlaying: _previewTransport.isPlaying,
-                    onPreviewPlayRequested: _startPreviewPlay,
-                    onPreviewStopRequested: _stopPreviewPlay,
-                    onNotePreview: (note, {hold = false}) {
-                      unawaited(_noteAudition.preview(note, hold: hold));
-                    },
-                    onNotePreviewEnd: () {
-                      unawaited(_noteAudition.release());
-                    },
-                    onPitchPreview: (pitch) {
-                      unawaited(
-                        _noteAudition.preview(
-                          MidiNoteSnapshot(
-                            pitch: pitch,
-                            startBeat: 0,
-                            durationBeats: 0.25,
-                            velocity: 100,
-                          ),
+                  builder: (context, _) => _showTakes && _takes.isNotEmpty
+                      ? MidiTakeCompView(
+                          compNotes: _notes,
+                          takes: _takes,
+                          regions: _takeRegions,
+                          clipLengthBeats: _clipLengthBeats,
+                          virtualLengthBeats: _virtualLengthBeats,
+                          playheadBeat: _previewTransport.clipLocalBeat,
+                          selectedMarker: _selectedTakeMarker,
+                          onPlayheadSeek: _previewTransport.seekClipLocal,
+                          onMarkerSelected: (index) =>
+                              setState(() => _selectedTakeMarker = index),
+                          onTakeAtBeat: _setMidiTakeAtBeat,
+                        )
+                      : PianoRollViewport(
+                          timelineScrollController: _timelineScrollController,
+                          notes: _notes,
+                          clipLengthBeats: _clipLengthBeats,
+                          virtualLengthBeats: _virtualLengthBeats,
+                          minPitch: PianoRollMetrics.gridMinPitch,
+                          maxPitch: PianoRollMetrics.gridMaxPitch,
+                          drumAnchorPitch: widget.drumAnchorPitch,
+                          laneLayout: _editorMode == MidiEditorMode.drums
+                              ? widget.drumLaneLayout
+                              : null,
+                          gridSettings: _grid,
+                          scaleSettings: _scale,
+                          tool: _tool,
+                          drawPattern: _drawPattern,
+                          selectedIndex: _selectedIndex,
+                          onNotesChanged: _onNotesChanged,
+                          onSelectionChanged: (index) =>
+                              setState(() => _selectedIndex = index),
+                          onEditStarted: _onEditStarted,
+                          onEditFinished: _onEditFinished,
+                          onClipLengthChanged: (length) {
+                            setState(() => _clipLengthBeats = length);
+                            _previewTransport.maxClipBeat = length;
+                          },
+                          onClipLengthCommit: _persistClipLength,
+                          viewRangeBars: _viewRangeBars,
+                          virtualPlayheadBeat: _previewTransport.clipLocalBeat,
+                          onVirtualPlayheadSeek:
+                              _previewTransport.seekClipLocal,
+                          previewPlaying: _previewTransport.isPlaying,
+                          onPreviewPlayRequested: _startPreviewPlay,
+                          onPreviewStopRequested: _stopPreviewPlay,
+                          onNotePreview: (note, {hold = false}) {
+                            unawaited(_noteAudition.preview(note, hold: hold));
+                          },
+                          onNotePreviewEnd: () {
+                            unawaited(_noteAudition.release());
+                          },
+                          onPitchPreview: (pitch) {
+                            unawaited(
+                              _noteAudition.preview(
+                                MidiNoteSnapshot(
+                                  pitch: pitch,
+                                  startBeat: 0,
+                                  durationBeats: 0.25,
+                                  velocity: 100,
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
                 ),
-              ),
-              PianoRollToolDock(
-                tool: _tool,
-                canUndo: _undoStack.isNotEmpty,
-                canRedo: _redoStack.isNotEmpty,
-                previewPlaying: _previewTransport.isPlaying,
-                onPreviewPlayStop: _togglePreviewPlay,
-                onToolChanged: (tool) => setState(() => _tool = tool),
-                onEditTap: _openEditSheet,
-                onUndo: _undo,
-                onRedo: _redo,
-                editorMode: _editorMode,
-                canUseDrumMode: widget.drumLaneLayout != null,
-                onEditorModeChanged: (mode) => setState(() {
-                  _editorMode = mode;
-                  _selectedIndex = null;
-                }),
-                onDrawSettings: _openDrawSheet,
               ),
               if (_showTakes && _takes.isNotEmpty)
-                _MidiTakeLaneStack(
-                  takes: _takes,
-                  regions: _takeRegions,
-                  clipLengthBeats: _clipLengthBeats,
-                  playheadBeat: _previewTransport.clipLocalBeat,
-                  selectedMarker: _selectedTakeMarker,
-                  onMarkerSelected: (index) =>
-                      setState(() => _selectedTakeMarker = index),
-                  onTakeTap: _setMidiTakeAtPlayhead,
-                  onSplit: _splitMidiTakeAtPlayhead,
-                  onDeleteMarker: _deleteSelectedMidiTakeMarker,
-                  onNudgeMarker: _nudgeSelectedMidiTakeMarker,
-                ),
-              PlayDeck(
-                bridge: widget.bridge,
-                initialSurfaceMode: PlaySurfaceMode.keys,
-                initialOctaveOffset: _initialOctaveOffset,
-                padPitchBase: widget.drumAnchorPitch,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MidiTakeLaneStack extends StatelessWidget {
-  const _MidiTakeLaneStack({
-    required this.takes,
-    required this.regions,
-    required this.clipLengthBeats,
-    required this.playheadBeat,
-    required this.selectedMarker,
-    required this.onMarkerSelected,
-    required this.onTakeTap,
-    required this.onSplit,
-    required this.onDeleteMarker,
-    required this.onNudgeMarker,
-  });
-
-  final List<MidiClipTakeSnapshot> takes;
-  final List<MidiClipTakeRegionSnapshot> regions;
-  final double clipLengthBeats;
-  final double playheadBeat;
-  final int? selectedMarker;
-  final ValueChanged<int> onMarkerSelected;
-  final ValueChanged<String> onTakeTap;
-  final VoidCallback onSplit;
-  final VoidCallback onDeleteMarker;
-  final ValueChanged<int> onNudgeMarker;
-
-  @override
-  Widget build(BuildContext context) {
-    final activeTakeIds = regions.map((r) => r.takeId).toSet();
-    return Container(
-      height: 156,
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-      decoration: const BoxDecoration(
-        color: PianoRollTheme.background,
-        border: Border(top: BorderSide(color: Color(0xFF2D3038))),
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 88,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'MIDI TAKES',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.1,
+                Container(
+                  height: 236,
+                  margin: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+                  decoration: BoxDecoration(
+                    color: PianoRollTheme.dockBackground,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF3B3B49)),
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    child: SampleEditorTakeToolsPanel(
+                      playheadBeat: _previewTransport.clipLocalBeat,
+                      selectedMarkerBeat: _selectedTakeMarkerBeat,
+                      onSplitAtPlayhead: _splitMidiTakeAtPlayhead,
+                      onDeleteSelected: _deleteSelectedMidiTakeMarker,
+                      onNudgeSelected: _nudgeSelectedMidiTakeMarker,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                _TakeActionButton(
-                  label: 'SPLIT',
-                  icon: Icons.call_split,
-                  onTap: onSplit,
+              if (!_showTakes) ...[
+                PianoRollToolDock(
+                  tool: _tool,
+                  canUndo: _undoStack.isNotEmpty,
+                  canRedo: _redoStack.isNotEmpty,
+                  previewPlaying: _previewTransport.isPlaying,
+                  onPreviewPlayStop: _togglePreviewPlay,
+                  onToolChanged: (tool) => setState(() => _tool = tool),
+                  onEditTap: _openEditSheet,
+                  onUndo: _undo,
+                  onRedo: _redo,
+                  editorMode: _editorMode,
+                  canUseDrumMode: widget.drumLaneLayout != null,
+                  onEditorModeChanged: (mode) => setState(() {
+                    _editorMode = mode;
+                    _selectedIndex = null;
+                  }),
+                  onDrawSettings: _openDrawSheet,
                 ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    _MiniCompButton(
-                      icon: Icons.chevron_left,
-                      onTap: selectedMarker == null
-                          ? null
-                          : () => onNudgeMarker(-1),
-                    ),
-                    const SizedBox(width: 6),
-                    _MiniCompButton(
-                      icon: Icons.chevron_right,
-                      onTap: selectedMarker == null
-                          ? null
-                          : () => onNudgeMarker(1),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                _TakeActionButton(
-                  label: 'DELETE',
-                  icon: Icons.delete_outline,
-                  onTap: selectedMarker == null ? null : onDeleteMarker,
-                ),
-                const Spacer(),
-                Text(
-                  selectedMarker == null ? 'tap marker' : 'marker selected',
-                  style: const TextStyle(
-                    color: Colors.white38,
-                    fontSize: 10,
-                  ),
+                PlayDeck(
+                  bridge: widget.bridge,
+                  initialSurfaceMode: PlaySurfaceMode.keys,
+                  initialOctaveOffset: _initialOctaveOffset,
+                  padPitchBase: widget.drumAnchorPitch,
                 ),
               ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, box) {
-                final width = math.max(1.0, box.maxWidth);
-                final length = math.max(0.25, clipLengthBeats);
-                return Stack(
-                  children: [
-                    CustomPaint(
-                      painter: _MidiTakeGridPainter(
-                        rowCount: takes.length,
-                        lengthBeats: length,
-                      ),
-                      child: const SizedBox.expand(),
-                    ),
-                    ListView.separated(
-                      padding: EdgeInsets.zero,
-                      itemCount: takes.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 0),
-                      itemBuilder: (context, index) {
-                        final take = takes[index];
-                        final active = activeTakeIds.contains(take.id);
-                        return GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => onTakeTap(take.id),
-                          child: _MidiTakeLane(
-                            take: take,
-                            width: width,
-                            lengthBeats: length,
-                            active: active,
-                            rowIndex: index,
-                          ),
-                        );
-                      },
-                    ),
-                    for (final entry in regions.skip(1).indexed)
-                      Positioned(
-                        left: (entry.$2.startBeat / length) * width - 8,
-                        top: 0,
-                        bottom: 0,
-                        width: 16,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => onMarkerSelected(entry.$1),
-                          child: Center(
-                            child: Container(
-                              width: selectedMarker == entry.$1 ? 3 : 2,
-                              color: selectedMarker == entry.$1
-                                  ? Colors.white
-                                  : const Color(0xFFFF6D8A),
-                            ),
-                          ),
-                        ),
-                      ),
-                    Positioned(
-                      left: (playheadBeat.clamp(0.0, length) / length) * width,
-                      top: 0,
-                      bottom: 0,
-                      child: Container(width: 1, color: Colors.white54),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MidiTakeLane extends StatelessWidget {
-  const _MidiTakeLane({
-    required this.take,
-    required this.width,
-    required this.lengthBeats,
-    required this.active,
-    required this.rowIndex,
-  });
-
-  final MidiClipTakeSnapshot take;
-  final double width;
-  final double lengthBeats;
-  final bool active;
-  final int rowIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 32,
-      child: Stack(
-        children: [
-          if (active)
-            Positioned.fill(
-              child: ColoredBox(
-                color: const Color(0xFFFF6D8A).withValues(alpha: 0.10),
-              ),
-            ),
-          Positioned(
-            left: 8,
-            top: 5,
-            child: Text(
-              take.name,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          for (final note in take.notes)
-            Positioned(
-              left: (note.startBeat / lengthBeats) * width,
-              width: math.max(2.0, note.durationBeats / lengthBeats * width),
-              top: 20,
-              height: 7,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: active
-                      ? const Color(0xFFFFD1DC)
-                      : const Color(0xFF7F8799),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MidiTakeGridPainter extends CustomPainter {
-  const _MidiTakeGridPainter({
-    required this.rowCount,
-    required this.lengthBeats,
-  });
-
-  final int rowCount;
-  final double lengthBeats;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rowPaint = Paint()..color = const Color(0xFF2B2E36);
-    final beatPaint = Paint()..color = const Color(0x223F4656);
-    final barPaint = Paint()..color = const Color(0x334F5668);
-    const rowHeight = 32.0;
-    for (var i = 0; i <= rowCount; i++) {
-      final y = i * rowHeight;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), rowPaint);
-    }
-    final beats = lengthBeats.ceil();
-    for (var beat = 0; beat <= beats; beat++) {
-      final x = beat / lengthBeats * size.width;
-      canvas.drawLine(
-        Offset(x, 0),
-        Offset(x, size.height),
-        beat % 4 == 0 ? barPaint : beatPaint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _MidiTakeGridPainter oldDelegate) =>
-      oldDelegate.rowCount != rowCount ||
-      oldDelegate.lengthBeats != lengthBeats;
-}
-
-class _TakeActionButton extends StatelessWidget {
-  const _TakeActionButton({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: onTap == null ? const Color(0xFF23242A) : const Color(0xFF2C2F38),
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: SizedBox(
-          height: 28,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                color: onTap == null ? Colors.white24 : Colors.white70,
-                size: 14,
-              ),
-              const SizedBox(width: 5),
-              Text(
-                label,
-                style: TextStyle(
-                  color: onTap == null ? Colors.white24 : Colors.white70,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MiniCompButton extends StatelessWidget {
-  const _MiniCompButton({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Material(
-        color:
-            onTap == null ? const Color(0xFF23242A) : const Color(0xFF2C2F38),
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
-          child: Icon(
-            icon,
-            color: onTap == null ? Colors.white24 : Colors.white70,
-            size: 18,
           ),
         ),
       ),
