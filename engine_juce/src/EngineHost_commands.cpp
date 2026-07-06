@@ -570,6 +570,20 @@ bool EngineHost::moveMidiClipTakeMarker(const std::string& clipId,
     return project_->moveMidiClipTakeMarker(clipId, markerIndex, beat);
 }
 
+bool EngineHost::setMidiClipTakeMarkerMode(const std::string& clipId,
+                                           int markerIndex,
+                                           bool holdPrevious) {
+    return project_->setMidiClipTakeMarkerMode(clipId, markerIndex, holdPrevious);
+}
+
+bool EngineHost::flattenMidiComp(const std::string& clipId) {
+    return project_->flattenMidiComp(clipId);
+}
+
+bool EngineHost::reopenMidiComp(const std::string& clipId) {
+    return project_->reopenMidiComp(clipId);
+}
+
 bool EngineHost::deleteMidiClipTakeMarker(const std::string& clipId,
                                           int markerIndex) {
     return project_->deleteMidiClipTakeMarker(clipId, markerIndex);
@@ -1615,11 +1629,37 @@ void EngineHost::registerAllCommands() {
         return commands::okWithFullRefresh(snap);
     });
 
+    reg.registerCommand("setMidiClipTakeMarkerMode", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        const int markerIndex = static_cast<int>(ctx.args["markerIndex"]);
+        const bool holdPrevious = static_cast<bool>(ctx.args["holdPrevious"]);
+        if (!ctx.engine.setMidiClipTakeMarkerMode(clipId, markerIndex, holdPrevious))
+            return commands::errorResult("midi_take_marker_mode_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
     reg.registerCommand("deleteMidiClipTakeMarker", [](const commands::CommandContext& ctx) -> commands::CommandResult {
         const auto clipId = ctx.args["clipId"].toString().toStdString();
         const int markerIndex = static_cast<int>(ctx.args["markerIndex"]);
         if (!ctx.engine.deleteMidiClipTakeMarker(clipId, markerIndex))
             return commands::errorResult("midi_take_marker_delete_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("flattenMidiComp", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        if (!ctx.engine.flattenMidiComp(clipId))
+            return commands::errorResult("midi_comp_flatten_failed");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("reopenMidiComp", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto clipId = ctx.args["clipId"].toString().toStdString();
+        if (!ctx.engine.reopenMidiComp(clipId))
+            return commands::errorResult("midi_comp_reopen_failed");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
         return commands::okWithFullRefresh(snap);
     });

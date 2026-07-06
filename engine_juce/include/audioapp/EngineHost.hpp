@@ -90,6 +90,11 @@ public:
     bool moveMidiClipTakeMarker(const std::string& clipId,
                                 int markerIndex,
                                 double beat);
+    bool setMidiClipTakeMarkerMode(const std::string& clipId,
+                                   int markerIndex,
+                                   bool holdPrevious);
+    bool flattenMidiComp(const std::string& clipId);
+    bool reopenMidiComp(const std::string& clipId);
     bool deleteMidiClipTakeMarker(const std::string& clipId,
                                   int markerIndex);
     bool setMidiClipEditorScale(const std::string& clipId,

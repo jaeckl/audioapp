@@ -451,6 +451,23 @@ class EngineBridge {
         'beat': beat,
       });
 
+  Future<ProjectSnapshot> setMidiClipTakeMarkerMode({
+    required String clipId,
+    required int markerIndex,
+    required bool holdPrevious,
+  }) =>
+      _invokeForSnapshot('setMidiClipTakeMarkerMode', {
+        'clipId': clipId,
+        'markerIndex': markerIndex,
+        'holdPrevious': holdPrevious,
+      });
+
+  Future<ProjectSnapshot> flattenMidiComp({required String clipId}) =>
+      _invokeForSnapshot('flattenMidiComp', {'clipId': clipId});
+
+  Future<ProjectSnapshot> reopenMidiComp({required String clipId}) =>
+      _invokeForSnapshot('reopenMidiComp', {'clipId': clipId});
+
   Future<ProjectSnapshot> deleteMidiClipTakeMarker({
     required String clipId,
     required int markerIndex,

@@ -25,6 +25,7 @@ struct MidiClipTakeRegionState {
     double endBeat = 4.0;
     std::string takeId;
     double sourceStart = 0.0;
+    bool holdPrevious = true;
 };
 
 struct MidiClipState {
@@ -41,6 +42,7 @@ struct MidiClipState {
     std::vector<MidiNoteState> notes;
     std::vector<MidiClipTakeState> takes;
     std::vector<MidiClipTakeRegionState> activeTakeRegions;
+    bool compFlattened = false;
 };
 
 int activeMidiPitchAtBeat(double playheadBeat, const MidiClipState& clip) noexcept;

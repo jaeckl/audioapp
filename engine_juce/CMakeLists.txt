@@ -284,6 +284,7 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/live_performance_test.cpp
     tests/master_mix_test.cpp
     tests/midi_clip_notes_test.cpp
+    tests/midi_comp_flatten_test.cpp
     tests/midi_clip_playback_test.cpp
     tests/modulation_e2e_test.cpp
     tests/oscillator_output_test.cpp

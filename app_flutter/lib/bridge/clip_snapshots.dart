@@ -15,6 +15,7 @@ class MidiClipSnapshot implements ClipTimelineSpan {
     required this.notes,
     this.takes = const [],
     this.activeTakeRegions = const [],
+    this.compFlattened = false,
     this.naturalLengthBeats,
     this.loopContent = false,
     this.editorScaleRoot = 0,
@@ -39,6 +40,10 @@ class MidiClipSnapshot implements ClipTimelineSpan {
   final List<MidiNoteSnapshot> notes;
   final List<MidiClipTakeSnapshot> takes;
   final List<MidiClipTakeRegionSnapshot> activeTakeRegions;
+
+  /// When true the comp is flattened: [notes] is authoritative and
+  /// hand-editable, and the comp derivation no longer overwrites it.
+  final bool compFlattened;
 
   /// Authored content length in beats. Set by editor range slider; not changed
   /// by arrangement resize (loop or one-shot).
@@ -92,6 +97,7 @@ class MidiClipSnapshot implements ClipTimelineSpan {
           .map((r) =>
               MidiClipTakeRegionSnapshot.fromMap(r as Map<dynamic, dynamic>))
           .toList(),
+      compFlattened: map['compFlattened'] as bool? ?? false,
     );
   }
 
@@ -109,6 +115,7 @@ class MidiClipSnapshot implements ClipTimelineSpan {
     List<MidiNoteSnapshot>? notes,
     List<MidiClipTakeSnapshot>? takes,
     List<MidiClipTakeRegionSnapshot>? activeTakeRegions,
+    bool? compFlattened,
   }) {
     return MidiClipSnapshot(
       id: id ?? this.id,
@@ -124,6 +131,7 @@ class MidiClipSnapshot implements ClipTimelineSpan {
       notes: notes ?? this.notes,
       takes: takes ?? this.takes,
       activeTakeRegions: activeTakeRegions ?? this.activeTakeRegions,
+      compFlattened: compFlattened ?? this.compFlattened,
     );
   }
 }
@@ -163,6 +171,7 @@ class MidiClipTakeRegionSnapshot {
     required this.endBeat,
     required this.takeId,
     required this.sourceStart,
+    this.holdPrevious = true,
   });
 
   final double startBeat;
@@ -170,12 +179,17 @@ class MidiClipTakeRegionSnapshot {
   final String takeId;
   final double sourceStart;
 
+  /// This region's start-boundary handoff: true = ring the previous take's
+  /// notes out to their natural length, false = hard cut at the boundary.
+  final bool holdPrevious;
+
   factory MidiClipTakeRegionSnapshot.fromMap(Map<dynamic, dynamic> map) =>
       MidiClipTakeRegionSnapshot(
         startBeat: (map['startBeat'] as num?)?.toDouble() ?? 0.0,
         endBeat: (map['endBeat'] as num?)?.toDouble() ?? 0.0,
         takeId: map['takeId'] as String? ?? '',
         sourceStart: (map['sourceStart'] as num?)?.toDouble() ?? 0.0,
+        holdPrevious: map['holdPrevious'] as bool? ?? true,
       );
 }
 

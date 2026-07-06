@@ -112,6 +112,7 @@ juce::var midiClipToVar(const MidiClipState& clip) {
         regionObject->setProperty("endBeat", region.endBeat);
         regionObject->setProperty("takeId", toJuceString(region.takeId));
         regionObject->setProperty("sourceStart", region.sourceStart);
+        regionObject->setProperty("holdPrevious", region.holdPrevious);
         takeRegions.add(juce::var(regionObject));
     }
 
@@ -129,6 +130,7 @@ juce::var midiClipToVar(const MidiClipState& clip) {
     object->setProperty("notes", notes);
     object->setProperty("takes", takes);
     object->setProperty("activeTakeRegions", takeRegions);
+    object->setProperty("compFlattened", clip.compFlattened);
     return juce::var(object);
 }
 
@@ -188,9 +190,17 @@ MidiClipState midiClipFromVar(const juce::var& value) {
                     region.endBeat = varToDouble(regionObject->getProperty("endBeat"), clip.lengthBeats);
                     region.takeId = varToString(regionObject->getProperty("takeId"));
                     region.sourceStart = varToDouble(regionObject->getProperty("sourceStart"), 0.0);
+                    if (regionObject->hasProperty("holdPrevious")) {
+                        region.holdPrevious =
+                            static_cast<bool>(regionObject->getProperty("holdPrevious"));
+                    }
                     clip.activeTakeRegions.push_back(std::move(region));
                 }
             }
+        }
+        if (object->hasProperty("compFlattened")) {
+            clip.compFlattened =
+                static_cast<bool>(object->getProperty("compFlattened"));
         }
         if (!object->hasProperty("naturalLengthBeats")) {
             const double noteEnd = midiNotesContentLengthBeats(clip.notes, 0.0);

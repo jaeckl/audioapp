@@ -52,13 +52,26 @@ class SampleEditorTakeToolsPanel extends StatelessWidget {
     required this.onSplitAtPlayhead,
     required this.onDeleteSelected,
     required this.onNudgeSelected,
+    this.selectedMarkerHold,
+    this.onMarkerModeChanged,
+    this.enabled = true,
   });
+
+  /// When false the comp editing controls are frozen (e.g. a flattened MIDI
+  /// comp, where the derived notes are no longer authoritative).
+  final bool enabled;
 
   final double playheadBeat;
   final double? selectedMarkerBeat;
   final VoidCallback onSplitAtPlayhead;
   final VoidCallback onDeleteSelected;
   final ValueChanged<int> onNudgeSelected;
+
+  /// MIDI-only: current boundary handoff of the selected marker (true = ring,
+  /// false = cut). When [onMarkerModeChanged] is null the toggle is hidden
+  /// (e.g. the sample editor, where audio crossfades naturally).
+  final bool? selectedMarkerHold;
+  final ValueChanged<bool>? onMarkerModeChanged;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -69,30 +82,37 @@ class SampleEditorTakeToolsPanel extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(children: [
-                  const Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('COMPING',
+                      const Text('COMPING',
                           style: TextStyle(
                               color: Colors.white,
                               fontSize: 13,
                               fontWeight: FontWeight.w900,
                               letterSpacing: .7)),
-                      SizedBox(height: 3),
-                      Text('Edit comp markers, then tap take lane for segment.',
-                          style:
-                              TextStyle(color: Colors.white54, fontSize: 11)),
+                      const SizedBox(height: 3),
+                      Text(
+                          enabled
+                              ? 'Edit comp markers, then tap take lane for segment.'
+                              : 'Comp flattened — re-open to edit markers.',
+                          style: const TextStyle(
+                              color: Colors.white54, fontSize: 11)),
                     ],
                   ),
                   const Spacer(),
                   _BeatBadge(label: '${playheadBeat.toStringAsFixed(2)}b'),
                 ]),
                 const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
+                IgnorePointer(
+                  ignoring: !enabled,
+                  child: Opacity(
+                    opacity: enabled ? 1 : 0.4,
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
                     _TakeSplitButton(
                       beatLabel: '${playheadBeat.toStringAsFixed(2)}b',
                       onTap: onSplitAtPlayhead,
@@ -116,7 +136,15 @@ class SampleEditorTakeToolsPanel extends StatelessWidget {
                       enabled: selectedMarkerBeat != null,
                       onTap: onDeleteSelected,
                     ),
-                  ],
+                    if (onMarkerModeChanged != null)
+                      _BoundaryModeTile(
+                        hold: selectedMarkerHold ?? true,
+                        enabled: selectedMarkerBeat != null,
+                        onChanged: onMarkerModeChanged!,
+                      ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -288,6 +316,77 @@ class _SmallTakeButton extends StatelessWidget {
                             fontSize: 10,
                             fontWeight: FontWeight.w900)),
                   ]),
+            ),
+          ),
+        ),
+      );
+}
+
+class _BoundaryModeTile extends StatelessWidget {
+  const _BoundaryModeTile({
+    required this.hold,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final bool hold;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 150,
+        height: 66,
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: enabled ? .04 : .02),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+                color: Colors.white.withValues(alpha: enabled ? .07 : .03)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('BOUNDARY',
+                  style: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: .5)),
+              const SizedBox(height: 6),
+              Expanded(
+                child: Row(children: [
+                  _seg('CUT', !hold, enabled, () => onChanged(false)),
+                  const SizedBox(width: 6),
+                  _seg('RING', hold, enabled, () => onChanged(true)),
+                ]),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _seg(String label, bool active, bool enabled, VoidCallback onTap) =>
+      Expanded(
+        child: Material(
+          color: active
+              ? ArrangementLoopRegionTheme.color.withValues(alpha: .30)
+              : Colors.white.withValues(alpha: .05),
+          borderRadius: BorderRadius.circular(8),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: enabled ? onTap : null,
+            child: Center(
+              child: Text(label,
+                  style: TextStyle(
+                      color: !enabled
+                          ? Colors.white24
+                          : active
+                              ? Colors.white
+                              : Colors.white60,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900)),
             ),
           ),
         ),

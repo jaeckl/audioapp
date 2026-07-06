@@ -27,6 +27,11 @@ struct MidiClipTakeRegion {
     double endBeat = 4.0;
     std::string takeId;
     double sourceStart = 0.0;
+    /// Governs this region's *start* boundary handoff. When true (Ring), the
+    /// previous region's notes that started before this boundary ring out to
+    /// their natural length; when false (Cut), they are truncated at the
+    /// boundary. Ignored for the first region (no incoming boundary).
+    bool holdPrevious = true;
 };
 
 struct MidiClip {
@@ -46,6 +51,11 @@ struct MidiClip {
     std::vector<MidiNote> notes;
     std::vector<MidiClipTake> takes;
     std::vector<MidiClipTakeRegion> activeTakeRegions;
+    /// When true the comp has been flattened: `notes` is authoritative and
+    /// hand-editable, and the comp derivation no longer overwrites it. Recorded
+    /// takes/regions are preserved so the comp can be re-opened (discarding the
+    /// manual edits) via reopenMidiComp.
+    bool compFlattened = false;
 };
 
 struct SampleClipTake {

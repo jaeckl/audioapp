@@ -54,11 +54,31 @@ void normalizeMidiCompRegions(MidiClip& clip) {
 }
 
 void rebuildMidiCompNotes(MidiClip& clip) {
+    // Once flattened, `notes` is authoritative and hand-editable; the comp
+    // derivation must not overwrite the user's manual edits.
+    if (clip.compFlattened) {
+        return;
+    }
     if (clip.takes.empty() || clip.activeTakeRegions.empty()) {
         return;
     }
+    const auto& regions = clip.activeTakeRegions;
+
+    // First comp-time boundary strictly after [beat] that is marked Cut.
+    // A ringing note is truncated at the earliest such boundary (or clip end).
+    const auto firstCutBoundaryAfter = [&](double beat) {
+        double limit = clip.lengthBeats;
+        for (const auto& r : regions) {
+            if (r.startBeat > beat + kMinTakeRegionBeats && !r.holdPrevious) {
+                limit = std::min(limit, r.startBeat);
+                break;
+            }
+        }
+        return limit;
+    };
+
     std::vector<MidiNote> notes;
-    for (const auto& region : clip.activeTakeRegions) {
+    for (const auto& region : regions) {
         const auto take = std::find_if(clip.takes.begin(), clip.takes.end(),
                                        [&](const MidiClipTake& candidate) {
                                            return candidate.id == region.takeId;
@@ -67,27 +87,87 @@ void rebuildMidiCompNotes(MidiClip& clip) {
             continue;
         }
         const double regionLength = region.endBeat - region.startBeat;
+        const double srcStart = region.sourceStart;
+        const double srcEnd = region.sourceStart + regionLength;
         for (const auto& note : take->notes) {
             const double noteStart = note.startBeat;
-            const double noteEnd = note.startBeat + note.durationBeats;
-            const double srcStart = region.sourceStart;
-            const double srcEnd = region.sourceStart + regionLength;
-            if (noteStart >= srcEnd || noteEnd <= srcStart) {
+            // Onset ownership: a note belongs to the region whose source
+            // window contains its onset. Prevents duplication and honors the
+            // performance the user chose up to each boundary.
+            if (noteStart < srcStart || noteStart >= srcEnd) {
                 continue;
             }
+            const double noteEnd = noteStart + note.durationBeats;
             MidiNote out = note;
-            const double clippedStart = std::max(noteStart, srcStart);
-            const double clippedEnd = std::min(noteEnd, srcEnd);
-            out.startBeat = region.startBeat + (clippedStart - srcStart);
-            out.durationBeats = std::max(0.01, clippedEnd - clippedStart);
+            out.startBeat = region.startBeat + (noteStart - srcStart);
+            const double naturalEnd = region.startBeat + (noteEnd - srcStart);
+            // Cut boundary => truncate at region end; Ring => let it ring to
+            // the natural end, clamped at the first subsequent Cut boundary.
+            const double limit = firstCutBoundaryAfter(out.startBeat);
+            const double outEnd = std::min(naturalEnd, limit);
+            out.durationBeats = std::max(0.01, outEnd - out.startBeat);
             notes.push_back(out);
         }
     }
+
     std::sort(notes.begin(), notes.end(), [](const auto& a, const auto& b) {
         if (a.startBeat != b.startBeat) return a.startBeat < b.startBeat;
         return a.pitch < b.pitch;
     });
+
+    // Same-pitch overlap resolution: trim an earlier note so it ends just
+    // before the next note of the same pitch begins (avoids stuck notes when
+    // a ringing note collides with the incoming take).
+    for (size_t a = 0; a < notes.size(); ++a) {
+        const double aEnd = notes[a].startBeat + notes[a].durationBeats;
+        for (size_t b = a + 1; b < notes.size(); ++b) {
+            if (notes[b].startBeat >= aEnd) {
+                break;
+            }
+            if (notes[b].pitch == notes[a].pitch) {
+                const double trimmed = notes[b].startBeat - 0.001;
+                notes[a].durationBeats =
+                    std::max(0.01, trimmed - notes[a].startBeat);
+                break;
+            }
+        }
+    }
+
     clip.notes = std::move(notes);
+}
+
+std::string nextCompTakeName(const MidiClip& clip) {
+    int maxN = 0;
+    for (const auto& take : clip.takes) {
+        if (take.name.size() >= 5 && take.name.compare(0, 5, "Comp ") == 0) {
+            const auto suffix = take.name.substr(5);
+            char* end = nullptr;
+            const long n = std::strtol(suffix.c_str(), &end, 10);
+            if (end != suffix.c_str() && *end == '\0' && n > maxN) {
+                maxN = static_cast<int>(n);
+            }
+        }
+    }
+    return "Comp " + std::to_string(maxN + 1);
+}
+
+void archiveFlattenedNotesAsTake(MidiClip& clip) {
+    if (clip.notes.empty()) {
+        return;
+    }
+    size_t compTakeCount = 0;
+    for (const auto& take : clip.takes) {
+        if (take.name.size() >= 5 && take.name.compare(0, 5, "Comp ") == 0) {
+            ++compTakeCount;
+        }
+    }
+    MidiClipTake take;
+    take.id = clip.id + "-comp-" + std::to_string(compTakeCount + 1);
+    take.name = nextCompTakeName(clip);
+    take.lengthBeats = clip.naturalLengthBeats > 0.0
+        ? clip.naturalLengthBeats : clip.lengthBeats;
+    take.notes = clip.notes;
+    clip.takes.push_back(std::move(take));
 }
 
 void replaceMidiCompRegion(MidiClip& clip,
@@ -257,6 +337,10 @@ bool ClipRepository::setMidiClipNotes(const std::string& clipId,
         region.endBeat = clip->lengthBeats;
         region.takeId = clip->takes.front().id;
         clip->activeTakeRegions.push_back(region);
+    } else if (!clip->compFlattened) {
+        // Hand-editing a multi-take comp is destructive; auto-flatten so later
+        // comp ops cannot silently overwrite the user's notes.
+        clip->compFlattened = true;
     }
     return true;
 }
@@ -391,6 +475,7 @@ bool ClipRepository::setMidiClipTakeAtBeat(const std::string& clipId,
         MidiClipTakeRegion right = oldRegion;
         right.startBeat = localBeat;
         right.takeId = takeId;
+        right.holdPrevious = true;
         right.sourceStart =
             std::clamp(localBeat - take->startBeatOffset, 0.0, take->lengthBeats);
         clip->activeTakeRegions[insertIndex].endBeat = localBeat;
@@ -422,6 +507,7 @@ bool ClipRepository::splitMidiClipTakeRegionAtBeat(const std::string& clipId,
             std::distance(clip->activeTakeRegions.begin(), it));
         MidiClipTakeRegion right = *it;
         right.startBeat = localBeat;
+        right.holdPrevious = true;
         right.sourceStart += localBeat - it->startBeat;
         clip->activeTakeRegions[insertIndex].endBeat = localBeat;
         clip->activeTakeRegions.insert(clip->activeTakeRegions.begin() +
@@ -454,6 +540,49 @@ bool ClipRepository::moveMidiClipTakeMarker(const std::string& clipId,
     left.endBeat = nextBeat;
     right.startBeat = nextBeat;
     right.sourceStart += nextBeat - oldRightStart;
+    rebuildMidiCompNotes(*clip);
+    return true;
+}
+
+bool ClipRepository::setMidiClipTakeMarkerMode(const std::string& clipId,
+                                               int markerIndex,
+                                               bool holdPrevious) {
+    auto* clip = findMidiClip(clipId);
+    const int rightIndex = markerIndex + 1;
+    if (clip == nullptr || markerIndex < 0 ||
+        rightIndex >= static_cast<int>(clip->activeTakeRegions.size())) {
+        return false;
+    }
+    // markerIndex indexes boundaries (regions after the first); the boundary
+    // is the start of the region to its right.
+    clip->activeTakeRegions[static_cast<size_t>(rightIndex)].holdPrevious =
+        holdPrevious;
+    rebuildMidiCompNotes(*clip);
+    return true;
+}
+
+bool ClipRepository::flattenMidiComp(const std::string& clipId) {
+    auto* clip = findMidiClip(clipId);
+    if (clip == nullptr) {
+        return false;
+    }
+    // `clip->notes` already holds the latest comp result (rebuilt on every comp
+    // edit). Freeze it as authoritative, hand-editable content; recorded takes
+    // and regions are kept so the comp can be re-opened later.
+    clip->compFlattened = true;
+    return true;
+}
+
+bool ClipRepository::reopenMidiComp(const std::string& clipId) {
+    auto* clip = findMidiClip(clipId);
+    if (clip == nullptr) {
+        return false;
+    }
+    if (clip->compFlattened) {
+        // Preserve manual edits as an archived take before re-deriving.
+        archiveFlattenedNotesAsTake(*clip);
+    }
+    clip->compFlattened = false;
     rebuildMidiCompNotes(*clip);
     return true;
 }

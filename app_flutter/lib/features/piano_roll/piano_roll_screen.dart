@@ -71,6 +71,9 @@ class _PianoRollScreenState extends State<PianoRollScreen>
   PianoRollDrawPattern _drawPattern = PianoRollDrawPattern.single;
   late MidiEditorMode _editorMode;
   bool _showTakes = false;
+  late bool _compFlattened;
+  bool _autoFlattenNotified = false;
+  Future<void>? _flattenInFlight;
   int? _selectedIndex;
   int? _selectedTakeMarker;
   int _viewRangeBars = EditorViewRange.defaultBars;
@@ -82,6 +85,7 @@ class _PianoRollScreenState extends State<PianoRollScreen>
     _notes = List.of(widget.clip.notes);
     _takes = List.of(widget.clip.takes);
     _takeRegions = List.of(widget.clip.activeTakeRegions);
+    _compFlattened = widget.clip.compFlattened;
     _editorMode = widget.drumLaneLayout == null
         ? MidiEditorMode.piano
         : MidiEditorMode.drums;
@@ -228,6 +232,9 @@ class _PianoRollScreenState extends State<PianoRollScreen>
 
   void _onEditStarted() {
     setState(_pushUndo);
+    if (_needsCompFlatten && !_showTakes) {
+      unawaited(_ensureCompFlattened(showToast: true));
+    }
   }
 
   void _onEditFinished() {
@@ -331,8 +338,38 @@ class _PianoRollScreenState extends State<PianoRollScreen>
     }
   }
 
+  bool get _needsCompFlatten => !_compFlattened && _takes.length > 1;
+
+  Future<void> _ensureCompFlattened({bool showToast = false}) async {
+    if (!_needsCompFlatten) return;
+    if (_flattenInFlight != null) {
+      await _flattenInFlight;
+      if (!_needsCompFlatten) return;
+    }
+    _flattenInFlight = _withMidiTakeSnapshot(
+      () => widget.bridge.flattenMidiComp(clipId: widget.clip.id),
+    );
+    try {
+      await _flattenInFlight;
+      if (showToast && mounted && !_autoFlattenNotified) {
+        _autoFlattenNotified = true;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            duration: Duration(seconds: 3),
+            content: Text(
+              'Comp auto-flattened — notes are now hand-editable.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      _flattenInFlight = null;
+    }
+  }
+
   Future<void> _persistNotes() async {
     try {
+      await _ensureCompFlattened(showToast: true);
       final notes = widget.drumAnchorPitch != null
           ? _notes
               .map(
@@ -372,6 +409,27 @@ class _PianoRollScreenState extends State<PianoRollScreen>
     return markers[index];
   }
 
+  bool? get _selectedTakeMarkerHold {
+    final index = _selectedTakeMarker;
+    if (index == null || index < 0 || index + 1 >= _takeRegions.length) {
+      return null;
+    }
+    return _takeRegions[index + 1].holdPrevious;
+  }
+
+  Future<void> _setSelectedMidiTakeMarkerMode(bool holdPrevious) async {
+    final index = _selectedTakeMarker;
+    if (index == null || index < 0 || index >= _takeMarkerBeats.length) return;
+    await _withMidiTakeSnapshot(
+      () => widget.bridge.setMidiClipTakeMarkerMode(
+        clipId: widget.clip.id,
+        markerIndex: index,
+        holdPrevious: holdPrevious,
+      ),
+    );
+    if (mounted) setState(() => _selectedTakeMarker = index);
+  }
+
   MidiClipSnapshot? _findClipInSnapshot(ProjectSnapshot snapshot, String id) {
     for (final track in snapshot.tracks) {
       for (final clip in track.midiClips) {
@@ -386,10 +444,63 @@ class _PianoRollScreenState extends State<PianoRollScreen>
       _notes = List.of(clip.notes);
       _takes = List.of(clip.takes);
       _takeRegions = List.of(clip.activeTakeRegions);
+      _compFlattened = clip.compFlattened;
       _clipLengthBeats = clip.editorContentLengthBeats;
       _selectedIndex = null;
     });
     _previewTransport.maxClipBeat = _clipLengthBeats;
+  }
+
+  Future<void> _flattenMidiComp() async {
+    await _withMidiTakeSnapshot(
+      () => widget.bridge.flattenMidiComp(clipId: widget.clip.id),
+    );
+    if (!mounted) return;
+    setState(() {
+      _showTakes = false;
+      _selectedTakeMarker = null;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        duration: Duration(seconds: 3),
+        content: Text(
+          'Comp flattened — notes are now hand-editable. Recorded takes kept.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _reopenMidiComp() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: PianoRollTheme.dockBackground,
+        title: const Text('Re-open comp?'),
+        content: const Text(
+          'Your edited notes will be saved as a new Comp take. Playback '
+          're-derives from the recorded takes and regions.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Re-open comp'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await _withMidiTakeSnapshot(
+      () => widget.bridge.reopenMidiComp(clipId: widget.clip.id),
+    );
+    if (!mounted) return;
+    setState(() {
+      _showTakes = true;
+      _selectedTakeMarker = null;
+    });
   }
 
   Future<void> _withMidiTakeSnapshot(
@@ -427,6 +538,43 @@ class _PianoRollScreenState extends State<PianoRollScreen>
         takeId: takeId,
       ),
     );
+  }
+
+  void _moveMidiTakeMarker(int index, double beat) {
+    if (index < 0 || index + 1 >= _takeRegions.length) return;
+    final left = _takeRegions[index];
+    final right = _takeRegions[index + 1];
+    final nextBeat = beat.clamp(left.startBeat + .001, right.endBeat - .001);
+    setState(() {
+      _takeRegions[index] = MidiClipTakeRegionSnapshot(
+        startBeat: left.startBeat,
+        endBeat: nextBeat,
+        takeId: left.takeId,
+        sourceStart: left.sourceStart,
+      );
+      _takeRegions[index + 1] = MidiClipTakeRegionSnapshot(
+        startBeat: nextBeat,
+        endBeat: right.endBeat,
+        takeId: right.takeId,
+        sourceStart: right.sourceStart,
+      );
+      _selectedTakeMarker = index;
+    });
+  }
+
+  Future<void> _saveMidiTakeMarkerMove(int index, double beat) async {
+    if (index < 0 || index >= _takeMarkerBeats.length) return;
+    await _withMidiTakeSnapshot(
+      () => widget.bridge.moveMidiClipTakeMarker(
+        clipId: widget.clip.id,
+        markerIndex: index,
+        beat: beat,
+      ),
+    );
+    if (mounted) {
+      setState(() => _selectedTakeMarker =
+          index.clamp(0, math.max(0, _takeRegions.length - 2)));
+    }
   }
 
   Future<void> _splitMidiTakeAtPlayhead() async {
@@ -571,6 +719,24 @@ class _PianoRollScreenState extends State<PianoRollScreen>
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           ),
           actions: [
+            if (_compFlattened)
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFFFFB86B),
+                ),
+                icon: const Icon(Icons.call_split, size: 18),
+                label: const Text('REOPEN'),
+                onPressed: _reopenMidiComp,
+              )
+            else if (_takes.length > 1)
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF7CE0A0),
+                ),
+                icon: const Icon(Icons.merge_type, size: 18),
+                label: const Text('FLATTEN'),
+                onPressed: _flattenMidiComp,
+              ),
             if (_takes.isNotEmpty)
               TextButton.icon(
                 style: TextButton.styleFrom(
@@ -618,10 +784,14 @@ class _PianoRollScreenState extends State<PianoRollScreen>
                           clipLengthBeats: _clipLengthBeats,
                           virtualLengthBeats: _virtualLengthBeats,
                           playheadBeat: _previewTransport.clipLocalBeat,
+                          readOnly: _compFlattened,
                           selectedMarker: _selectedTakeMarker,
                           onPlayheadSeek: _previewTransport.seekClipLocal,
                           onMarkerSelected: (index) =>
                               setState(() => _selectedTakeMarker = index),
+                          onMarkerMove: _moveMidiTakeMarker,
+                          onMarkerMoveEnd: (index, beat) =>
+                              _saveMidiTakeMarkerMove(index, beat),
                           onTakeAtBeat: _setMidiTakeAtBeat,
                         )
                       : PianoRollViewport(
@@ -691,11 +861,14 @@ class _PianoRollScreenState extends State<PianoRollScreen>
                   child: SafeArea(
                     top: false,
                     child: SampleEditorTakeToolsPanel(
+                      enabled: !_compFlattened,
                       playheadBeat: _previewTransport.clipLocalBeat,
                       selectedMarkerBeat: _selectedTakeMarkerBeat,
                       onSplitAtPlayhead: _splitMidiTakeAtPlayhead,
                       onDeleteSelected: _deleteSelectedMidiTakeMarker,
                       onNudgeSelected: _nudgeSelectedMidiTakeMarker,
+                      selectedMarkerHold: _selectedTakeMarkerHold,
+                      onMarkerModeChanged: _setSelectedMidiTakeMarkerMode,
                     ),
                   ),
                 ),

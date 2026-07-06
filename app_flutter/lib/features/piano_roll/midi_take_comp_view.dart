@@ -21,7 +21,10 @@ class MidiTakeCompView extends StatefulWidget {
     required this.selectedMarker,
     required this.onPlayheadSeek,
     required this.onMarkerSelected,
+    required this.onMarkerMove,
+    required this.onMarkerMoveEnd,
     required this.onTakeAtBeat,
+    this.readOnly = false,
   });
 
   final List<MidiNoteSnapshot> compNotes;
@@ -33,7 +36,13 @@ class MidiTakeCompView extends StatefulWidget {
   final int? selectedMarker;
   final ValueChanged<double> onPlayheadSeek;
   final ValueChanged<int> onMarkerSelected;
+  final void Function(int index, double beat) onMarkerMove;
+  final void Function(int index, double beat) onMarkerMoveEnd;
   final void Function(String takeId, double beat) onTakeAtBeat;
+
+  /// When true the comp is flattened: marker drag/select and take reassignment
+  /// are frozen (the derived notes are no longer authoritative).
+  final bool readOnly;
 
   @override
   State<MidiTakeCompView> createState() => _MidiTakeCompViewState();
@@ -52,6 +61,8 @@ class _MidiTakeCompViewState extends State<MidiTakeCompView> {
   final ScrollController _vertical = ScrollController();
   bool _syncingRuler = false;
   double? _dragBeat;
+  int? _dragMarkerIndex;
+  double? _dragMarkerBeat;
 
   @override
   void initState() {
@@ -181,17 +192,10 @@ class _MidiTakeCompViewState extends State<MidiTakeCompView> {
                                   notes: entry.$2.notes,
                                   pitchRows: pitchRows,
                                   activeTakeId: entry.$2.id,
-                                  onTapBeat: (beat) =>
-                                      widget.onTakeAtBeat(entry.$2.id, beat),
-                                ),
-                              for (final marker
-                                  in widget.regions.skip(1).indexed)
-                                _CompMarkerLine(
-                                  x: marker.$2.startBeat * _pixelsPerBeat,
-                                  height: _contentHeight,
-                                  selected: widget.selectedMarker == marker.$1,
-                                  onTap: () =>
-                                      widget.onMarkerSelected(marker.$1),
+                                  onTapBeat: widget.readOnly
+                                      ? null
+                                      : (beat) =>
+                                          widget.onTakeAtBeat(entry.$2.id, beat),
                                 ),
                             ],
                           ),
@@ -215,7 +219,7 @@ class _MidiTakeCompViewState extends State<MidiTakeCompView> {
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _horizontal,
-              builder: (context, _) => _playheadOverlay(effectiveBeat),
+              builder: (context, _) => _overlay(effectiveBeat),
             ),
           ),
         ],
@@ -223,43 +227,118 @@ class _MidiTakeCompViewState extends State<MidiTakeCompView> {
     );
   }
 
-  Widget _playheadOverlay(double beat) {
+  Widget _overlay(double beat) {
     final scroll = _horizontal.hasClients ? _horizontal.offset : 0.0;
-    final viewportX = _labelRailWidth + beat * _pixelsPerBeat - scroll;
-    if (viewportX < _labelRailWidth - 0.5) return const SizedBox.shrink();
     return Stack(
       children: [
-        Positioned(
-          left: viewportX - editorVirtualPlayheadLineWidth / 2,
-          top: _rulerHeight / 2,
-          bottom: 0,
-          width: editorVirtualPlayheadLineWidth,
-          child: const IgnorePointer(
-            child: ColoredBox(color: EditorVirtualPlayheadTheme.color),
-          ),
-        ),
-        Positioned(
-          left: viewportX - EditorVirtualPlayheadTheme.hitWidth / 2,
-          top: 0,
-          width: EditorVirtualPlayheadTheme.hitWidth,
-          height: EditorVirtualPlayheadTheme.pillSize,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onHorizontalDragStart: (_) => setState(() => _dragBeat = beat),
-            onHorizontalDragUpdate: (details) {
-              final next = ((_dragBeat ?? beat) +
-                      details.delta.dx / _pixelsPerBeat)
-                  .clamp(0.0, widget.clipLengthBeats);
-              setState(() => _dragBeat = next);
-              widget.onPlayheadSeek(next);
-            },
-            onHorizontalDragEnd: (_) => setState(() => _dragBeat = null),
-            onHorizontalDragCancel: () => setState(() => _dragBeat = null),
-            child: const EditorVirtualPlayheadPill(),
-          ),
-        ),
+        for (final marker in widget.regions.skip(1).indexed)
+          _markerHandle(index: marker.$1, region: marker.$2, scroll: scroll),
+        ..._playheadWidgets(beat, scroll),
       ],
     );
+  }
+
+  Widget _markerHandle({
+    required int index,
+    required MidiClipTakeRegionSnapshot region,
+    required double scroll,
+  }) {
+    final beat =
+        index == _dragMarkerIndex ? _dragMarkerBeat! : region.startBeat;
+    final viewportX = _labelRailWidth + beat * _pixelsPerBeat - scroll;
+    if (viewportX < _labelRailWidth - 0.5) return const SizedBox.shrink();
+    final selected = widget.selectedMarker == index;
+    return Positioned(
+      left: viewportX - ArrangementLoopRegionTheme.hitWidth / 2,
+      top: (_rulerHeight - ArrangementLoopRegionTheme.pillSize) / 2,
+      bottom: 0,
+      width: ArrangementLoopRegionTheme.hitWidth,
+      child: IgnorePointer(
+        ignoring: widget.readOnly,
+        child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => widget.onMarkerSelected(index),
+        onHorizontalDragStart: (_) {
+          setState(() {
+            _dragMarkerIndex = index;
+            _dragMarkerBeat = region.startBeat;
+          });
+          widget.onMarkerSelected(index);
+        },
+        onHorizontalDragUpdate: (details) {
+          final next = ((_dragMarkerBeat ?? region.startBeat) +
+                  details.delta.dx / _pixelsPerBeat)
+              .clamp(0.0, widget.clipLengthBeats);
+          setState(() => _dragMarkerBeat = next);
+          widget.onMarkerMove(index, next);
+        },
+        onHorizontalDragEnd: (_) {
+          final next = _dragMarkerBeat ?? region.startBeat;
+          setState(() {
+            _dragMarkerIndex = null;
+            _dragMarkerBeat = null;
+          });
+          widget.onMarkerMoveEnd(index, next);
+        },
+        onHorizontalDragCancel: () => setState(() {
+          _dragMarkerIndex = null;
+          _dragMarkerBeat = null;
+        }),
+        child: Stack(
+          alignment: Alignment.topCenter,
+          children: [
+            Positioned(
+              top: ArrangementLoopRegionTheme.pillSize / 2,
+              bottom: 0,
+              width: 2,
+              child: ColoredBox(
+                color: selected
+                    ? Colors.white
+                    : ArrangementLoopRegionTheme.color,
+              ),
+            ),
+            const ArrangementLoopRegionPill(),
+          ],
+        ),
+      ),
+      ),
+    );
+  }
+
+  List<Widget> _playheadWidgets(double beat, double scroll) {
+    final viewportX = _labelRailWidth + beat * _pixelsPerBeat - scroll;
+    if (viewportX < _labelRailWidth - 0.5) return const [];
+    return [
+      Positioned(
+        left: viewportX - editorVirtualPlayheadLineWidth / 2,
+        top: _rulerHeight / 2,
+        bottom: 0,
+        width: editorVirtualPlayheadLineWidth,
+        child: const IgnorePointer(
+          child: ColoredBox(color: EditorVirtualPlayheadTheme.color),
+        ),
+      ),
+      Positioned(
+        left: viewportX - EditorVirtualPlayheadTheme.hitWidth / 2,
+        top: 0,
+        width: EditorVirtualPlayheadTheme.hitWidth,
+        height: EditorVirtualPlayheadTheme.pillSize,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onHorizontalDragStart: (_) => setState(() => _dragBeat = beat),
+          onHorizontalDragUpdate: (details) {
+            final next =
+                ((_dragBeat ?? beat) + details.delta.dx / _pixelsPerBeat)
+                    .clamp(0.0, widget.clipLengthBeats);
+            setState(() => _dragBeat = next);
+            widget.onPlayheadSeek(next);
+          },
+          onHorizontalDragEnd: (_) => setState(() => _dragBeat = null),
+          onHorizontalDragCancel: () => setState(() => _dragBeat = null),
+          child: const EditorVirtualPlayheadPill(),
+        ),
+      ),
+    ];
   }
 
   Widget _lane({
@@ -375,42 +454,6 @@ class _MidiTakeLabelRail extends StatelessWidget {
               fontWeight: FontWeight.w900,
               letterSpacing: 0.5,
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CompMarkerLine extends StatelessWidget {
-  const _CompMarkerLine({
-    required this.x,
-    required this.height,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final double x;
-  final double height;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      left: x - 8,
-      top: 0,
-      width: 16,
-      height: height,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Center(
-          child: Container(
-            width: selected ? 3 : 2,
-            color: selected
-                ? Colors.white
-                : ArrangementLoopRegionTheme.color.withValues(alpha: 0.9),
           ),
         ),
       ),

@@ -625,6 +625,38 @@ bool ProjectEngine::moveMidiClipTakeMarker(const std::string& clipId,
     return true;
 }
 
+bool ProjectEngine::setMidiClipTakeMarkerMode(const std::string& clipId,
+                                              int markerIndex,
+                                              bool holdPrevious) {
+    const juce::ScopedWriteLock lock(mutex_);
+    if (!clipRepo_.setMidiClipTakeMarkerMode(clipId, markerIndex, holdPrevious)) {
+        return false;
+    }
+    syncProjectTreeLocked();
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
+bool ProjectEngine::flattenMidiComp(const std::string& clipId) {
+    const juce::ScopedWriteLock lock(mutex_);
+    if (!clipRepo_.flattenMidiComp(clipId)) {
+        return false;
+    }
+    syncProjectTreeLocked();
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
+bool ProjectEngine::reopenMidiComp(const std::string& clipId) {
+    const juce::ScopedWriteLock lock(mutex_);
+    if (!clipRepo_.reopenMidiComp(clipId)) {
+        return false;
+    }
+    syncProjectTreeLocked();
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
 bool ProjectEngine::deleteMidiClipTakeMarker(const std::string& clipId,
                                              int markerIndex) {
     const juce::ScopedWriteLock lock(mutex_);
@@ -1213,8 +1245,10 @@ ProjectSnapshot ProjectEngine::snapshot() const {
             }
             for (const auto& region : clip.activeTakeRegions) {
                 cs.activeTakeRegions.push_back({region.startBeat, region.endBeat,
-                                                region.takeId, region.sourceStart});
+                                                region.takeId, region.sourceStart,
+                                                region.holdPrevious});
             }
+            cs.compFlattened = clip.compFlattened;
             ts.midiClips.push_back(std::move(cs));
         }
         ts.sampleClips.reserve(track.sampleClips.size());
@@ -1939,8 +1973,10 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
             }
             for (const auto& region : clip.activeTakeRegions) {
                 cs.activeTakeRegions.push_back({region.startBeat, region.endBeat,
-                                                region.takeId, region.sourceStart});
+                                                region.takeId, region.sourceStart,
+                                                region.holdPrevious});
             }
+            cs.compFlattened = clip.compFlattened;
             ts.midiClips.push_back(std::move(cs));
         }
         for (const auto& clip : track.sampleClips) {
@@ -2080,8 +2116,10 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
                 region.endBeat = regionState.endBeat;
                 region.takeId = regionState.takeId;
                 region.sourceStart = regionState.sourceStart;
+                region.holdPrevious = regionState.holdPrevious;
                 clip.activeTakeRegions.push_back(std::move(region));
             }
+            clip.compFlattened = clipState.compFlattened;
             track.midiClips.push_back(std::move(clip));
         }
         for (const auto& clipState : trackState.sampleClips) {

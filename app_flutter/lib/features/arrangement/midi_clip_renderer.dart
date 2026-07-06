@@ -29,6 +29,13 @@ class MidiClipRenderer extends ClipRenderer {
   bool get loopContentEnabled => clip.loopContent;
 
   @override
+  String? get contentBadgeLabel {
+    if (clip.compFlattened) return 'EDIT';
+    if (clip.takes.length > 1) return 'COMP';
+    return null;
+  }
+
+  @override
   String? get emptyPlaceholder => clip.notes.isEmpty ? 'MIDI' : null;
 
   double get _contentLengthBeats => clip.loopContentLengthBeats;
