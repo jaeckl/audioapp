@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../play/play_scale.dart';
 import '../play/play_deck_layout.dart';
+import 'editor_view_range.dart';
 import 'piano_roll_metrics.dart';
 import 'piano_roll_scale.dart';
 import 'piano_roll_theme.dart';
@@ -14,6 +15,9 @@ class PianoRollGridSheet extends StatefulWidget {
     required this.showScaleControls,
     required this.onChanged,
     required this.onScaleChanged,
+    this.showViewRange = false,
+    this.initialViewRangeBars = EditorViewRange.defaultBars,
+    this.onViewRangeChanged,
     this.drawControls = false,
     this.initialDrawPattern = PianoRollDrawPattern.single,
     this.onDrawPatternChanged,
@@ -22,6 +26,9 @@ class PianoRollGridSheet extends StatefulWidget {
   final PianoRollGridSettings initialSettings;
   final PianoRollScaleSettings initialScaleSettings;
   final bool showScaleControls;
+  final bool showViewRange;
+  final int initialViewRangeBars;
+  final ValueChanged<int>? onViewRangeChanged;
   final bool drawControls;
   final PianoRollDrawPattern initialDrawPattern;
   final ValueChanged<PianoRollDrawPattern>? onDrawPatternChanged;
@@ -37,13 +44,39 @@ class PianoRollGridSheet extends StatefulWidget {
     bool showScaleControls = false,
     double bottomInset = 0,
   }) =>
+      showView(
+        context,
+        settings: settings,
+        onChanged: onChanged,
+        scaleSettings: scaleSettings,
+        onScaleChanged: onScaleChanged,
+        showScaleControls: showScaleControls,
+        viewRangeBars: EditorViewRange.defaultBars,
+        onViewRangeChanged: null,
+      );
+
+  /// Unified view sheet: zoom range, grid snap, and scale controls.
+  static Future<void> showView(
+    BuildContext context, {
+    required PianoRollGridSettings settings,
+    required ValueChanged<PianoRollGridSettings> onChanged,
+    PianoRollScaleSettings scaleSettings = const PianoRollScaleSettings(),
+    ValueChanged<PianoRollScaleSettings>? onScaleChanged,
+    bool showScaleControls = false,
+    required int viewRangeBars,
+    ValueChanged<int>? onViewRangeChanged,
+  }) =>
       _showPopup(
         context,
         alignBottom: false,
+        panelHeight: showScaleControls ? 460 : 380,
         child: PianoRollGridSheet(
           initialSettings: settings,
           initialScaleSettings: scaleSettings,
           showScaleControls: showScaleControls,
+          showViewRange: onViewRangeChanged != null,
+          initialViewRangeBars: viewRangeBars,
+          onViewRangeChanged: onViewRangeChanged,
           onChanged: onChanged,
           onScaleChanged: onScaleChanged ?? (_) {},
         ),
@@ -79,12 +112,13 @@ class PianoRollGridSheet extends StatefulWidget {
     BuildContext context, {
     required bool alignBottom,
     required Widget child,
+    double panelHeight = 390,
   }) {
     final overlay =
         Overlay.of(context).context.findRenderObject()! as RenderBox;
     final size = overlay.size;
     final position = alignBottom
-        ? RelativeRect.fromLTRB(8, size.height - 390, size.width - 292, 56)
+        ? RelativeRect.fromLTRB(8, size.height - panelHeight, size.width - 292, 56)
         : RelativeRect.fromLTRB(size.width - 292, 52, 8, size.height - 52);
     return showMenu<void>(
       context: context,
@@ -112,6 +146,7 @@ class _PianoRollGridSheetState extends State<PianoRollGridSheet> {
   late PianoRollGridSettings _settings = widget.initialSettings;
   late PianoRollScaleSettings _scale = widget.initialScaleSettings;
   late PianoRollDrawPattern _drawPattern = widget.initialDrawPattern;
+  late int _viewRangeBars = widget.initialViewRangeBars;
 
   void _setGrid(PianoRollGridSettings value) {
     setState(() => _settings = value);
@@ -131,7 +166,29 @@ class _PianoRollGridSheetState extends State<PianoRollGridSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _Title('Grid'),
+          _Title(widget.showViewRange ? 'View' : 'Grid'),
+          if (widget.showViewRange) ...[
+            const SizedBox(height: 12),
+            const _SectionTitle('Visible range'),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final bars in EditorViewRange.bars)
+                  _Pill(
+                    label: '$bars bar${bars == 1 ? '' : 's'}',
+                    active: _viewRangeBars == bars,
+                    onTap: () {
+                      setState(() => _viewRangeBars = bars);
+                      widget.onViewRangeChanged?.call(bars);
+                    },
+                  ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            const Divider(height: 1, color: Color(0xFF343442)),
+          ],
           const SizedBox(height: 12),
           const _SectionTitle('Note snap'),
           const SizedBox(height: 8),

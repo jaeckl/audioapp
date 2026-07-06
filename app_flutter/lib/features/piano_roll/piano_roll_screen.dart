@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../bridge/engine_bridge.dart';
 import '../../bridge/project_snapshot.dart';
@@ -9,10 +10,15 @@ import '../editor/clip_editor_transport.dart';
 import '../editor/timeline_marker_layer.dart';
 import '../play/play_deck.dart';
 import '../play/play_deck_layout.dart';
+import 'piano_roll_context_strip.dart';
 import 'piano_roll_edit_sheet.dart';
 import 'piano_roll_grid_sheet.dart';
 import 'editor_view_range.dart';
 import 'midi_lane_layout.dart';
+import 'midi_comp_context_bar.dart';
+import 'midi_comp_mode_hints.dart';
+import 'midi_comp_tool.dart';
+import 'midi_comp_tool_dock.dart';
 import 'midi_take_comp_view.dart';
 import 'piano_roll_metrics.dart';
 import 'piano_roll_note_audition.dart';
@@ -21,7 +27,6 @@ import 'piano_roll_scale.dart';
 import 'piano_roll_theme.dart';
 import 'piano_roll_tool_dock.dart';
 import 'piano_roll_viewport.dart';
-import '../sample_editor/sample_editor_take_panel.dart';
 
 class PianoRollScreen extends StatefulWidget {
   const PianoRollScreen({
@@ -72,6 +77,7 @@ class _PianoRollScreenState extends State<PianoRollScreen>
   late MidiEditorMode _editorMode;
   bool _showTakes = false;
   late bool _compFlattened;
+  MidiCompTool _compTool = MidiCompTool.comp;
   bool _autoFlattenNotified = false;
   Future<void>? _flattenInFlight;
   int? _selectedIndex;
@@ -187,10 +193,28 @@ class _PianoRollScreenState extends State<PianoRollScreen>
     return PianoRollMetrics.virtualLengthBeats(contentEnd);
   }
 
-  String get _gridDockLabel {
+  String get _snapChipLabel {
     final base = _grid.snap.shortLabel;
-    final snap = _grid.triplet ? '${base}T' : base;
-    return _scale.snapToScale ? '$snap · ${_scale.rootLabel}' : snap;
+    return _grid.triplet ? '${base}T' : base;
+  }
+
+  String? get _scaleChipLabel {
+    if (_editorMode != MidiEditorMode.piano) return null;
+    final scale = _scale.scale.label;
+    return '${_scale.rootLabel} $scale';
+  }
+
+  String? get _modeChip {
+    if (_takes.length <= 1) return null;
+    return _compFlattened ? 'EDIT' : 'COMP';
+  }
+
+  String _appBarSubtitle(int barCount) {
+    final bars = '$barCount bar${barCount == 1 ? '' : 's'}';
+    if (_takes.length > 1) {
+      return '$bars · ${_takes.length} takes';
+    }
+    return '$bars · MIDI';
   }
 
   void _pushUndo() {
@@ -528,13 +552,14 @@ class _PianoRollScreenState extends State<PianoRollScreen>
   }
 
   Future<void> _setMidiTakeAtBeat(String takeId, double beat) async {
-    final regionIndex = _takeRegionIndexAtBeat(beat.clamp(0.0, _clipLengthBeats));
+    final clampedBeat = beat.clamp(0.0, _clipLengthBeats);
+    final regionIndex = _takeRegionIndexAtBeat(clampedBeat);
     if (regionIndex == null) return;
     if (_takeRegions[regionIndex].takeId == takeId) return;
     await _withMidiTakeSnapshot(
-      () => widget.bridge.setMidiClipTakeRegionTake(
+      () => widget.bridge.setMidiClipTakeAtBeat(
         clipId: widget.clip.id,
-        regionIndex: regionIndex,
+        beat: clampedBeat,
         takeId: takeId,
       ),
     );
@@ -579,6 +604,7 @@ class _PianoRollScreenState extends State<PianoRollScreen>
 
   Future<void> _splitMidiTakeAtPlayhead() async {
     final beat = _previewTransport.clipLocalBeat.clamp(0.0, _clipLengthBeats);
+    final regionCountBefore = _takeRegions.length;
     await _withMidiTakeSnapshot(
       () => widget.bridge.splitMidiClipTakeRegionAtBeat(
         clipId: widget.clip.id,
@@ -586,12 +612,15 @@ class _PianoRollScreenState extends State<PianoRollScreen>
       ),
     );
     if (!mounted) return;
+    final markerIndex = _takeMarkerBeats.indexWhere(
+      (marker) => (marker - beat).abs() < .01,
+    );
     setState(() {
-      _selectedTakeMarker = _takeMarkerBeats.indexWhere(
-        (marker) => (marker - beat).abs() < .01,
-      );
-      if (_selectedTakeMarker == -1) _selectedTakeMarker = null;
+      _selectedTakeMarker = markerIndex == -1 ? null : markerIndex;
     });
+    if (_takeRegions.length > regionCountBefore || markerIndex != -1) {
+      HapticFeedback.lightImpact();
+    }
   }
 
   Future<void> _deleteSelectedMidiTakeMarker() async {
@@ -624,8 +653,8 @@ class _PianoRollScreenState extends State<PianoRollScreen>
     if (mounted) setState(() => _selectedTakeMarker = index);
   }
 
-  void _openGridSheet() {
-    PianoRollGridSheet.show(
+  void _openViewSheet() {
+    PianoRollGridSheet.showView(
       context,
       settings: _grid,
       scaleSettings: _scale,
@@ -636,10 +665,12 @@ class _PianoRollScreenState extends State<PianoRollScreen>
       }),
       onScaleChanged: _onScaleChanged,
       showScaleControls: _editorMode == MidiEditorMode.piano,
-      bottomInset:
-          PianoRollMetrics.toolDockHeight + PlayDeckLayout.chromeHeight,
+      viewRangeBars: _viewRangeBars,
+      onViewRangeChanged: (bars) => setState(() => _viewRangeBars = bars),
     );
   }
+
+  void _openGridSheet() => _openViewSheet();
 
   void _openDrawSheet() {
     PianoRollGridSheet.showDraw(
@@ -714,58 +745,65 @@ class _PianoRollScreenState extends State<PianoRollScreen>
             icon: const Icon(Icons.arrow_back),
             onPressed: _closeEditor,
           ),
-          title: Text(
-            '${widget.trackName} · $barCount bars',
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                widget.trackName,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                _appBarSubtitle(barCount),
+                style: const TextStyle(
+                  color: PianoRollTheme.labelMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
           actions: [
-            if (_compFlattened)
-              TextButton.icon(
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFFFFB86B),
-                ),
-                icon: const Icon(Icons.call_split, size: 18),
-                label: const Text('REOPEN'),
-                onPressed: _reopenMidiComp,
-              )
-            else if (_takes.length > 1)
-              TextButton.icon(
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF7CE0A0),
-                ),
-                icon: const Icon(Icons.merge_type, size: 18),
-                label: const Text('FLATTEN'),
-                onPressed: _flattenMidiComp,
-              ),
-            if (_takes.isNotEmpty)
-              TextButton.icon(
-                style: TextButton.styleFrom(
-                  foregroundColor:
-                      _showTakes ? const Color(0xFFFF6D8A) : Colors.white70,
-                ),
-                icon: Icon(
-                  _showTakes ? Icons.splitscreen : Icons.splitscreen_outlined,
-                  size: 18,
-                ),
-                label: const Text('TAKES'),
-                onPressed: () => setState(() => _showTakes = !_showTakes),
-              ),
-            if (!_showTakes)
-              TextButton.icon(
-                style: TextButton.styleFrom(foregroundColor: Colors.white70),
-                icon: const Icon(Icons.grid_4x4, size: 18),
-                label: Text(_gridDockLabel),
-                onPressed: _openGridSheet,
-              ),
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Center(
-                child: EditorViewRangeDropdown(
-                  value: _viewRangeBars,
-                  onChanged: (bars) => setState(() => _viewRangeBars = bars),
-                ),
-              ),
+            IconButton(
+              tooltip: 'View',
+              icon: const Icon(Icons.grid_view_rounded, size: 22),
+              color: Colors.white70,
+              onPressed: _openViewSheet,
             ),
+            if (_takes.length > 1)
+              PopupMenuButton<String>(
+              tooltip: 'More',
+              icon: const Icon(Icons.more_vert, color: Colors.white70),
+              color: const Color(0xFF1A1A22),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: const BorderSide(color: Color(0xFF343442)),
+              ),
+              onSelected: (value) {
+                switch (value) {
+                  case 'flatten':
+                    unawaited(_flattenMidiComp());
+                  case 'reopen':
+                    unawaited(_reopenMidiComp());
+                }
+              },
+              itemBuilder: (context) => [
+                if (_takes.length > 1 && !_compFlattened)
+                  const PopupMenuItem(
+                    value: 'flatten',
+                    child: Text('Flatten comp'),
+                  ),
+                if (_compFlattened)
+                  const PopupMenuItem(
+                    value: 'reopen',
+                    child: Text('Re-open comp'),
+                  ),
+              ],
+            ),
+            const SizedBox(width: 4),
           ],
         ),
         body: MediaQuery.removePadding(
@@ -773,6 +811,25 @@ class _PianoRollScreenState extends State<PianoRollScreen>
           removeBottom: true,
           child: Column(
             children: [
+              PianoRollContextStrip(
+                showCompSegment: _takes.length > 1,
+                notesMode: !_showTakes,
+                onModeChanged: (notesMode) {
+                  setState(() {
+                    _showTakes = !notesMode;
+                    if (!notesMode) _compTool = MidiCompTool.comp;
+                  });
+                  if (!notesMode) {
+                    unawaited(
+                      MidiCompModeHints.maybeShow(context, MidiCompTool.comp),
+                    );
+                  }
+                },
+                snapLabel: _snapChipLabel,
+                scaleLabel: _scaleChipLabel,
+                onViewTap: _openViewSheet,
+                modeChip: _modeChip,
+              ),
               Expanded(
                 child: ListenableBuilder(
                   listenable: _previewTransport,
@@ -783,6 +840,8 @@ class _PianoRollScreenState extends State<PianoRollScreen>
                           regions: _takeRegions,
                           clipLengthBeats: _clipLengthBeats,
                           virtualLengthBeats: _virtualLengthBeats,
+                          viewRangeBars: _viewRangeBars,
+                          compTool: _compTool,
                           playheadBeat: _previewTransport.clipLocalBeat,
                           readOnly: _compFlattened,
                           selectedMarker: _selectedTakeMarker,
@@ -849,28 +908,48 @@ class _PianoRollScreenState extends State<PianoRollScreen>
                 ),
               ),
               if (_showTakes && _takes.isNotEmpty)
-                Container(
-                  height: 236,
-                  margin: const EdgeInsets.fromLTRB(8, 4, 8, 8),
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-                  decoration: BoxDecoration(
-                    color: PianoRollTheme.dockBackground,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF3B3B49)),
-                  ),
-                  child: SafeArea(
-                    top: false,
-                    child: SampleEditorTakeToolsPanel(
-                      enabled: !_compFlattened,
-                      playheadBeat: _previewTransport.clipLocalBeat,
-                      selectedMarkerBeat: _selectedTakeMarkerBeat,
-                      onSplitAtPlayhead: _splitMidiTakeAtPlayhead,
-                      onDeleteSelected: _deleteSelectedMidiTakeMarker,
-                      onNudgeSelected: _nudgeSelectedMidiTakeMarker,
-                      selectedMarkerHold: _selectedTakeMarkerHold,
-                      onMarkerModeChanged: _setSelectedMidiTakeMarkerMode,
-                    ),
-                  ),
+                ListenableBuilder(
+                  listenable: _previewTransport,
+                  builder: (context, _) {
+                    if (_compFlattened) {
+                      return const MidiCompLockedBar();
+                    }
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_compTool == MidiCompTool.markers)
+                          MidiCompContextBar(
+                            playheadBeat: _previewTransport.clipLocalBeat,
+                            selectedMarkerBeat: _selectedTakeMarkerBeat,
+                            holdPrevious: _selectedTakeMarkerHold,
+                            onSplitAtPlayhead: _splitMidiTakeAtPlayhead,
+                            onDeleteSelected: _deleteSelectedMidiTakeMarker,
+                            onNudgeSelected: _nudgeSelectedMidiTakeMarker,
+                            onMarkerModeChanged: _setSelectedMidiTakeMarkerMode,
+                          )
+                        else if (_compTool == MidiCompTool.comp)
+                          MidiCompRegionBar(
+                            playheadBeat: _previewTransport.clipLocalBeat,
+                            takes: _takes,
+                            regions: _takeRegions,
+                          ),
+                        MidiCompToolDock(
+                          tool: _compTool,
+                          previewPlaying: _previewTransport.isPlaying,
+                          onToolChanged: (tool) {
+                            setState(() {
+                              _compTool = tool;
+                              if (tool == MidiCompTool.markers) {
+                                _selectedTakeMarker = null;
+                              }
+                            });
+                            unawaited(MidiCompModeHints.maybeShow(context, tool));
+                          },
+                          onPreviewPlayStop: _togglePreviewPlay,
+                        ),
+                      ],
+                    );
+                  },
                 ),
               if (!_showTakes) ...[
                 PianoRollToolDock(

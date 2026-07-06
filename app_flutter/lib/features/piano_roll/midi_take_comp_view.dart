@@ -4,7 +4,11 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
 import '../arrangement/arrangement_loop_region_marker.dart';
+import '../editor/editor_beat_tap.dart';
+import '../editor/editor_pinch_zoom.dart';
 import '../editor/editor_virtual_playhead.dart';
+import 'editor_view_range.dart';
+import 'midi_comp_tool.dart';
 import 'piano_roll_metrics.dart';
 import 'piano_roll_ruler.dart';
 import 'piano_roll_theme.dart';
@@ -25,6 +29,8 @@ class MidiTakeCompView extends StatefulWidget {
     required this.onMarkerMoveEnd,
     required this.onTakeAtBeat,
     this.readOnly = false,
+    this.viewRangeBars = EditorViewRange.defaultBars,
+    this.compTool = MidiCompTool.comp,
   });
 
   final List<MidiNoteSnapshot> compNotes;
@@ -43,6 +49,12 @@ class MidiTakeCompView extends StatefulWidget {
   /// When true the comp is flattened: marker drag/select and take reassignment
   /// are frozen (the derived notes are no longer authoritative).
   final bool readOnly;
+
+  /// Horizontal zoom preset — kept in sync with the Notes editor View sheet.
+  final int viewRangeBars;
+
+  /// Bottom-dock interaction mode (Move / Comp / Markers).
+  final MidiCompTool compTool;
 
   @override
   State<MidiTakeCompView> createState() => _MidiTakeCompViewState();
@@ -63,6 +75,10 @@ class _MidiTakeCompViewState extends State<MidiTakeCompView> {
   double? _dragBeat;
   int? _dragMarkerIndex;
   double? _dragMarkerBeat;
+  double _pixelsPerBeat = PianoRollMetrics.pixelsPerBeat;
+  double _zoomStartPpb = PianoRollMetrics.pixelsPerBeat;
+  bool _pinchInteracting = false;
+  double _viewportWidth = 0;
 
   @override
   void initState() {
@@ -77,6 +93,70 @@ class _MidiTakeCompViewState extends State<MidiTakeCompView> {
     _ruler.dispose();
     _vertical.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(MidiTakeCompView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.viewRangeBars != widget.viewRangeBars && _viewportWidth > 0) {
+      _applyViewRangePpb(_viewportWidth, widget.viewRangeBars);
+    }
+  }
+
+  void _applyViewRangePpb(double viewportWidth, int bars) {
+    final ppb = EditorViewRange.pixelsPerBeatForWidth(viewportWidth, bars);
+    _setPixelsPerBeat(ppb);
+  }
+
+  void _setPixelsPerBeat(double next, {Offset? focal}) {
+    final clamped = next.clamp(
+      PianoRollMetrics.minPixelsPerBeat,
+      PianoRollMetrics.maxPixelsPerBeat,
+    );
+    if ((clamped - _pixelsPerBeat).abs() < 0.15) return;
+
+    final oldPpb = _pixelsPerBeat;
+    final scrollX = _horizontal.hasClients ? _horizontal.offset : 0.0;
+    final focalDx = focal?.dx ??
+        (_horizontal.hasClients ? _horizontal.position.viewportDimension / 2 : 0);
+    final beatAtFocal = (scrollX + focalDx) / oldPpb;
+
+    setState(() => _pixelsPerBeat = clamped);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_horizontal.hasClients) return;
+      final maxX = _horizontal.position.maxScrollExtent;
+      final newScrollX =
+          (beatAtFocal * clamped - focalDx).clamp(0.0, maxX);
+      _horizontal.jumpTo(newScrollX);
+      if (_ruler.hasClients) _ruler.jumpTo(newScrollX);
+    });
+  }
+
+  ScrollPhysics get _horizontalScrollPhysics =>
+      _pinchInteracting || _dragMarkerIndex != null
+          ? const NeverScrollableScrollPhysics()
+          : const ClampingScrollPhysics();
+
+  bool get _canCompLane =>
+      !widget.readOnly && widget.compTool == MidiCompTool.comp;
+
+  bool get _canSelectMarker => !widget.readOnly;
+
+  bool get _canDragMarker => !widget.readOnly;
+
+  String? get _takeIdAtPlayhead {
+    final beat =
+        widget.playheadBeat.clamp(0.0, widget.clipLengthBeats);
+    for (var i = 0; i < widget.regions.length; i++) {
+      final region = widget.regions[i];
+      final isLast = i == widget.regions.length - 1;
+      if (beat >= region.startBeat &&
+          (beat < region.endBeat || (isLast && beat <= region.endBeat))) {
+        return region.takeId;
+      }
+    }
+    return null;
   }
 
   void _syncRuler() {
@@ -97,8 +177,6 @@ class _MidiTakeCompViewState extends State<MidiTakeCompView> {
     return pitches.isEmpty ? [60] : pitches;
   }
 
-  double get _pixelsPerBeat => PianoRollMetrics.pixelsPerBeat;
-
   double get _laneHeight =>
       _laneTopChrome + _visiblePitches.length * _pitchRowHeight + _laneBottomPad;
 
@@ -115,7 +193,6 @@ class _MidiTakeCompViewState extends State<MidiTakeCompView> {
     final pitchRows = _visiblePitches;
     final effectiveBeat =
         (_dragBeat ?? widget.playheadBeat).clamp(0.0, widget.clipLengthBeats);
-    final playheadX = effectiveBeat * _pixelsPerBeat;
     final body = ColoredBox(
       color: PianoRollTheme.background,
       child: Column(
@@ -133,12 +210,11 @@ class _MidiTakeCompViewState extends State<MidiTakeCompView> {
                     controller: _ruler,
                     scrollDirection: Axis.horizontal,
                     physics: const NeverScrollableScrollPhysics(),
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTapDown: (details) => widget.onPlayheadSeek(
-                        (details.localPosition.dx / _pixelsPerBeat)
-                            .clamp(0.0, widget.clipLengthBeats),
-                      ),
+                    child: EditorBeatTapSurface(
+                      pixelsPerBeat: _pixelsPerBeat,
+                      maxBeat: widget.clipLengthBeats,
+                      enabled: !_pinchInteracting,
+                      onBeat: widget.onPlayheadSeek,
                       child: SizedBox(
                         width: _timelineWidth,
                         height: _rulerHeight,
@@ -155,56 +231,87 @@ class _MidiTakeCompViewState extends State<MidiTakeCompView> {
             ),
           ),
           Expanded(
-            child: SingleChildScrollView(
-              controller: _vertical,
-              physics: const ClampingScrollPhysics(),
-              child: SizedBox(
-                height: _contentHeight,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _MidiTakeLabelRail(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                if (_viewportWidth != constraints.maxWidth) {
+                  final firstLayout = _viewportWidth <= 0;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (!mounted) return;
+                    if (firstLayout) {
+                      _applyViewRangePpb(
+                        constraints.maxWidth,
+                        widget.viewRangeBars,
+                      );
+                    }
+                    setState(() => _viewportWidth = constraints.maxWidth);
+                  });
+                }
+                return EditorPinchZoom(
+                  onStart: () => _zoomStartPpb = _pixelsPerBeat,
+                  onScale: (scale) =>
+                      _setPixelsPerBeat(_zoomStartPpb * scale),
+                  onPinchChanged: (active) {
+                    if (_pinchInteracting != active) {
+                      setState(() => _pinchInteracting = active);
+                    }
+                  },
+                  child: SingleChildScrollView(
+                    controller: _vertical,
+                    physics: const ClampingScrollPhysics(),
+                    child: SizedBox(
                       height: _contentHeight,
-                      laneHeight: _laneHeight,
-                      laneGap: _laneGap,
-                      takes: widget.takes,
-                    ),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        controller: _horizontal,
-                        scrollDirection: Axis.horizontal,
-                        physics: const ClampingScrollPhysics(),
-                        child: SizedBox(
-                          width: _timelineWidth,
-                          height: _contentHeight,
-                          child: Stack(
-                            children: [
-                              _lane(
-                                top: 0,
-                                notes: widget.compNotes,
-                                pitchRows: pitchRows,
-                                activeTakeId: null,
-                              ),
-                              for (final entry in widget.takes.indexed)
-                                _lane(
-                                  top:
-                                      (entry.$1 + 1) * (_laneHeight + _laneGap),
-                                  notes: entry.$2.notes,
-                                  pitchRows: pitchRows,
-                                  activeTakeId: entry.$2.id,
-                                  onTapBeat: widget.readOnly
-                                      ? null
-                                      : (beat) =>
-                                          widget.onTakeAtBeat(entry.$2.id, beat),
-                                ),
-                            ],
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _MidiTakeLabelRail(
+                            height: _contentHeight,
+                            laneHeight: _laneHeight,
+                            laneGap: _laneGap,
+                            takes: widget.takes,
+                            compMode: widget.compTool == MidiCompTool.comp,
+                            activeTakeIdAtPlayhead: _takeIdAtPlayhead,
                           ),
-                        ),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              controller: _horizontal,
+                              scrollDirection: Axis.horizontal,
+                              physics: _horizontalScrollPhysics,
+                              child: SizedBox(
+                                width: _timelineWidth,
+                                height: _contentHeight,
+                                child: Stack(
+                                  children: [
+                                    _lane(
+                                      top: 0,
+                                      notes: widget.compNotes,
+                                      pitchRows: pitchRows,
+                                      activeTakeId: null,
+                                    ),
+                                    for (final entry in widget.takes.indexed)
+                                      _lane(
+                                        top: (entry.$1 + 1) *
+                                            (_laneHeight + _laneGap),
+                                        notes: entry.$2.notes,
+                                        pitchRows: pitchRows,
+                                        activeTakeId: entry.$2.id,
+                                        onTapBeat: _canCompLane
+                                            ? (beat) => widget.onTakeAtBeat(
+                                                  entry.$2.id,
+                                                  beat,
+                                                )
+                                            : null,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -248,42 +355,51 @@ class _MidiTakeCompViewState extends State<MidiTakeCompView> {
     final viewportX = _labelRailWidth + beat * _pixelsPerBeat - scroll;
     if (viewportX < _labelRailWidth - 0.5) return const SizedBox.shrink();
     final selected = widget.selectedMarker == index;
+    final interactive = _canSelectMarker || _canDragMarker;
     return Positioned(
       left: viewportX - ArrangementLoopRegionTheme.hitWidth / 2,
       top: (_rulerHeight - ArrangementLoopRegionTheme.pillSize) / 2,
       bottom: 0,
       width: ArrangementLoopRegionTheme.hitWidth,
       child: IgnorePointer(
-        ignoring: widget.readOnly,
+        ignoring: !interactive,
         child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () => widget.onMarkerSelected(index),
-        onHorizontalDragStart: (_) {
-          setState(() {
-            _dragMarkerIndex = index;
-            _dragMarkerBeat = region.startBeat;
-          });
-          widget.onMarkerSelected(index);
-        },
-        onHorizontalDragUpdate: (details) {
-          final next = ((_dragMarkerBeat ?? region.startBeat) +
-                  details.delta.dx / _pixelsPerBeat)
-              .clamp(0.0, widget.clipLengthBeats);
-          setState(() => _dragMarkerBeat = next);
-          widget.onMarkerMove(index, next);
-        },
-        onHorizontalDragEnd: (_) {
-          final next = _dragMarkerBeat ?? region.startBeat;
-          setState(() {
-            _dragMarkerIndex = null;
-            _dragMarkerBeat = null;
-          });
-          widget.onMarkerMoveEnd(index, next);
-        },
-        onHorizontalDragCancel: () => setState(() {
-          _dragMarkerIndex = null;
-          _dragMarkerBeat = null;
-        }),
+        onTap: _canSelectMarker ? () => widget.onMarkerSelected(index) : null,
+        onHorizontalDragStart: _canDragMarker
+            ? (_) {
+                setState(() {
+                  _dragMarkerIndex = index;
+                  _dragMarkerBeat = region.startBeat;
+                });
+                widget.onMarkerSelected(index);
+              }
+            : null,
+        onHorizontalDragUpdate: _canDragMarker
+            ? (details) {
+                final next = ((_dragMarkerBeat ?? region.startBeat) +
+                        details.delta.dx / _pixelsPerBeat)
+                    .clamp(0.0, widget.clipLengthBeats);
+                setState(() => _dragMarkerBeat = next);
+                widget.onMarkerMove(index, next);
+              }
+            : null,
+        onHorizontalDragEnd: _canDragMarker
+            ? (_) {
+                final next = _dragMarkerBeat ?? region.startBeat;
+                setState(() {
+                  _dragMarkerIndex = null;
+                  _dragMarkerBeat = null;
+                });
+                widget.onMarkerMoveEnd(index, next);
+              }
+            : null,
+        onHorizontalDragCancel: _canDragMarker
+            ? () => setState(() {
+                  _dragMarkerIndex = null;
+                  _dragMarkerBeat = null;
+                })
+            : null,
         child: Stack(
           alignment: Alignment.topCenter,
           children: [
@@ -348,24 +464,39 @@ class _MidiTakeCompViewState extends State<MidiTakeCompView> {
     required String? activeTakeId,
     ValueChanged<double>? onTapBeat,
   }) {
+    final compMode = widget.compTool == MidiCompTool.comp;
+    final winningTake = _takeIdAtPlayhead;
+    final isWinningLane =
+        compMode && activeTakeId != null && activeTakeId == winningTake;
+    final isCompLane = compMode && activeTakeId != null;
+    final laneBorder = isWinningLane
+        ? ArrangementLoopRegionTheme.color.withValues(alpha: 0.72)
+        : isCompLane
+            ? Colors.white.withValues(alpha: 0.16)
+            : Colors.white.withValues(alpha: 0.052);
+    final laneFill = isWinningLane
+        ? ArrangementLoopRegionTheme.color.withValues(alpha: 0.12)
+        : isCompLane
+            ? Colors.white.withValues(alpha: 0.04)
+            : Colors.white.withValues(alpha: 0.018);
     return Positioned(
       left: 0,
       top: top,
       width: _timelineWidth,
       height: _laneHeight,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: onTapBeat == null
-            ? null
-            : (details) => onTapBeat(
-                  (details.localPosition.dx / _pixelsPerBeat)
-                      .clamp(0.0, widget.clipLengthBeats),
-                ),
+      child: EditorBeatTapSurface(
+        pixelsPerBeat: _pixelsPerBeat,
+        maxBeat: widget.clipLengthBeats,
+        enabled: onTapBeat != null && !_pinchInteracting,
+        onBeat: onTapBeat ?? (_) {},
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.018),
+            color: laneFill,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.052)),
+            border: Border.all(
+              color: laneBorder,
+              width: isWinningLane ? 1.5 : 1,
+            ),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
@@ -395,12 +526,16 @@ class _MidiTakeLabelRail extends StatelessWidget {
     required this.laneHeight,
     required this.laneGap,
     required this.takes,
+    this.compMode = false,
+    this.activeTakeIdAtPlayhead,
   });
 
   final double height;
   final double laneHeight;
   final double laneGap;
   final List<MidiClipTakeSnapshot> takes;
+  final bool compMode;
+  final String? activeTakeIdAtPlayhead;
 
   @override
   Widget build(BuildContext context) {
@@ -417,6 +552,7 @@ class _MidiTakeLabelRail extends StatelessWidget {
                 top: (entry.$1 + 1) * (laneHeight + laneGap),
                 height: laneHeight,
                 text: entry.$2.name,
+                highlighted: compMode && entry.$2.id == activeTakeIdAtPlayhead,
               ),
           ],
         ),
@@ -428,6 +564,7 @@ class _MidiTakeLabelRail extends StatelessWidget {
     required double top,
     required double height,
     required String text,
+    bool highlighted = false,
   }) {
     return Positioned(
       left: 0,
@@ -438,8 +575,19 @@ class _MidiTakeLabelRail extends StatelessWidget {
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
+          color: highlighted
+              ? ArrangementLoopRegionTheme.color.withValues(alpha: 0.14)
+              : null,
           border: Border(
             bottom: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+            left: highlighted
+                ? BorderSide(
+                    color: ArrangementLoopRegionTheme.color.withValues(
+                      alpha: 0.85,
+                    ),
+                    width: 2,
+                  )
+                : BorderSide.none,
           ),
         ),
         child: RotatedBox(
@@ -448,8 +596,8 @@ class _MidiTakeLabelRail extends StatelessWidget {
             text,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white70,
+            style: TextStyle(
+              color: highlighted ? Colors.white : Colors.white70,
               fontSize: 10,
               fontWeight: FontWeight.w900,
               letterSpacing: 0.5,
