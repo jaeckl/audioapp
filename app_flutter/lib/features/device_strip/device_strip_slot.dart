@@ -450,6 +450,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     widget.onAutomateParameter?.call(widget.device.id, paramId);
   }
 
+  void _onBypassModulationAssign(double amount) {
+    _onModulationForDevice?.call('bypass', amount);
+  }
+
   int _initialTabIndex() {
     if (widget.device.type == 'simple_sampler') {
       return widget.samplerTab.index;
@@ -839,6 +843,22 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                     showLibrary: widget.onOpenLibrary != null,
                     libraryTooltip: 'Device presets',
                     onBypassToggle: widget.onBypassToggle ?? () {},
+                    bypassModulationActive:
+                        _modulatedParamIds.contains('bypass'),
+                    bypassAutomationActive:
+                        _automatedParamIds.contains('bypass'),
+                    bypassConnectModeActive: _connectModeLfo != null,
+                    bypassLinkModeActive: widget.automationLinkActive,
+                    onBypassModulationAssign: _connectModeLfo == null
+                        ? null
+                        : _onBypassModulationAssign,
+                    onBypassAutomationLinkTap:
+                        widget.onAutomationParamSelected == null
+                            ? null
+                            : () => _onAutomationLinkTap('bypass'),
+                    onAutomateBypass: widget.onAutomateParameter == null
+                        ? null
+                        : () => _onAutomateParameter('bypass'),
                     onDelete: widget.onDeleteRequest,
                     onLibrary: widget.onOpenLibrary,
                     modActive: _modStripVisible,

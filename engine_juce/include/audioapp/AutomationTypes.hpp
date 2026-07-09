@@ -437,6 +437,7 @@ constexpr uint16_t unpackParamId(uint16_t localParamId) noexcept {
 // Common kind has tag 0, so the encoded value equals the raw enum value.
 constexpr uint16_t kEncodedCommonGain = 0;  // packParamId(ParamKind::Common, 0)
 constexpr uint16_t kEncodedCommonPan  = 1;  // packParamId(ParamKind::Common, 1)
+constexpr uint16_t kEncodedCommonBypass = 2; // packParamId(ParamKind::Common, 2)
 
 // -----------------------------------------------------------------------
 // Audio-thread playback structs — zero strings, zero allocations.

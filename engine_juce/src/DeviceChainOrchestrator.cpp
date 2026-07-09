@@ -124,7 +124,7 @@ int buildProcessorChain(const DeviceNodePlayback* devices, int deviceCount,
 }
 
 // =======================================================================
-// LFO gain/pan modulation
+// Common parameter modulation
 // =======================================================================
 
 void DeviceChainOrchestrator::applyCommonGainPanLfo(
@@ -158,6 +158,59 @@ void DeviceChainOrchestrator::applyCommonGainPanLfo(
             }
         }
     }
+}
+
+static bool evaluateCommonBypass(
+    bool baseBypassed,
+    uint16_t deviceIndex,
+    double playheadBeat,
+    int framesToProcess,
+    const AutomationClipPlayback* automationClips,
+    int automationClipCount,
+    const float* lfoValues,
+    int lfoCount,
+    const ModulationEdgePlayback* modEdges,
+    int modEdgeCount,
+    IModulator* const* modulators) noexcept {
+
+    float bypassValue = baseBypassed ? 1.0f : 0.0f;
+
+    if (automationClips != nullptr && automationClipCount > 0) {
+        for (int a = 0; a < automationClipCount; ++a) {
+            const auto& ac = automationClips[a];
+            if (ac.deviceIndex != deviceIndex ||
+                ac.localParamId != kEncodedCommonBypass) {
+                continue;
+            }
+            float beatInClip = 0.0f;
+            if (!automationBeatInClip(ac, playheadBeat, beatInClip)) {
+                continue;
+            }
+            bypassValue = evaluateAutomationEnvelope(
+                ac.points, ac.pointCount, beatInClip);
+        }
+    }
+
+    if (lfoValues != nullptr && lfoCount > 0 &&
+        modEdges != nullptr && modEdgeCount > 0) {
+        const int lfoFrame = std::max(0, framesToProcess / 2);
+        for (int e = 0; e < modEdgeCount; ++e) {
+            const auto& edge = modEdges[e];
+            if (edge.deviceIndex != deviceIndex ||
+                edge.localParamId != kEncodedCommonBypass ||
+                edge.lfoId >= static_cast<uint16_t>(lfoCount)) {
+                continue;
+            }
+            if (modulators != nullptr &&
+                modulatorUsesPerNoteClock(modulators[edge.lfoId])) {
+                continue;
+            }
+            const float lfoOut = lfoValues[edge.lfoId * framesToProcess + lfoFrame];
+            bypassValue += edge.amount * lfoOut;
+        }
+    }
+
+    return std::clamp(bypassValue, 0.0f, 1.0f) >= 0.5f;
 }
 
 // =======================================================================
@@ -215,7 +268,20 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
     for (int deviceIndex = start; deviceIndex < end; ++deviceIndex) {
         auto* proc = ctx.arena.get(deviceIndex);
         if (proc == nullptr) continue;
-        if (proc->bypassed) {
+        const uint16_t di = static_cast<uint16_t>(deviceIndex);
+        const bool effectiveBypass = evaluateCommonBypass(
+            proc->bypassed,
+            di,
+            ctx.playheadStartBeat,
+            numFrames,
+            ctx.automationClips,
+            ctx.automationClipCount,
+            ctx.lfoValues,
+            ctx.lfoCount,
+            ctx.modEdges,
+            ctx.modEdgeCount,
+            ctx.modulators);
+        if (effectiveBypass) {
             captureAudioSources(deviceIndex);
             captureMidiSources(deviceIndex);
             continue;
@@ -227,7 +293,6 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
             s.perFramePan[f] = proc->pan;
         }
 
-        const uint16_t di = static_cast<uint16_t>(deviceIndex);
         const DeviceNodeKind nodeKind = proc->kind();
 
         if (nodeKind == DeviceNodeKind::MidiReceiver && ctx.graph != nullptr &&
@@ -313,6 +378,8 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                         if (isGain) s.perFrameGain[f] = val;
                         else s.perFramePan[f] = val;
                     }
+                } else if (ac.localParamId == kEncodedCommonBypass) {
+                    continue;
                 } else if (!needsSubBlocks || !handlesOwnModulation(nodeKind)) {
                     const double beat = ctx.playheadStartBeat;
                     float beatInClip = 0.0f;
@@ -330,7 +397,9 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                 const auto& edge = ctx.modEdges[e];
                 if (edge.deviceIndex != di || edge.lfoId >= static_cast<uint16_t>(ctx.lfoCount)) continue;
                 const uint16_t pid = edge.localParamId;
-                if (pid == kEncodedCommonGain || pid == kEncodedCommonPan) continue;
+                if (pid == kEncodedCommonGain ||
+                    pid == kEncodedCommonPan ||
+                    pid == kEncodedCommonBypass) continue;
                 if (!needsSubBlocks || !handlesOwnModulation(nodeKind)) {
                     if (ctx.modulators != nullptr
                         && modulatorUsesPerNoteClock(ctx.modulators[edge.lfoId])) {

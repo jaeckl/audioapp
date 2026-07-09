@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'device_strip_metrics.dart';
 import 'device_strip_theme.dart';
@@ -11,12 +12,19 @@ class DeviceToolRail extends StatelessWidget {
     required this.accentColor,
     required this.bypassed,
     required this.showLibrary,
-    required     this.onBypassToggle,
+    required this.onBypassToggle,
     this.onDelete,
     this.libraryTooltip = 'Open sample library',
     this.onLibrary,
     this.modActive = false,
     this.onModToggle,
+    this.bypassModulationActive = false,
+    this.bypassAutomationActive = false,
+    this.bypassConnectModeActive = false,
+    this.bypassLinkModeActive = false,
+    this.onBypassModulationAssign,
+    this.onBypassAutomationLinkTap,
+    this.onAutomateBypass,
   });
 
   final String deviceName;
@@ -29,6 +37,13 @@ class DeviceToolRail extends StatelessWidget {
   final VoidCallback? onLibrary;
   final bool modActive;
   final VoidCallback? onModToggle;
+  final bool bypassModulationActive;
+  final bool bypassAutomationActive;
+  final bool bypassConnectModeActive;
+  final bool bypassLinkModeActive;
+  final ValueChanged<double>? onBypassModulationAssign;
+  final VoidCallback? onBypassAutomationLinkTap;
+  final VoidCallback? onAutomateBypass;
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +56,8 @@ class DeviceToolRail extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: DeviceStripTheme.toolRailBackground,
-        borderRadius: BorderRadius.only(topLeft: leftRadius, bottomLeft: leftRadius),
+        borderRadius:
+            BorderRadius.only(topLeft: leftRadius, bottomLeft: leftRadius),
         border: const Border(
           top: borderSide,
           left: borderSide,
@@ -79,6 +95,13 @@ class DeviceToolRail extends StatelessWidget {
                     tooltip: bypassed ? 'Enable device' : 'Bypass device',
                     active: !bypassed,
                     onPressed: onBypassToggle,
+                    modulationActive: bypassModulationActive,
+                    automationActive: bypassAutomationActive,
+                    connectModeActive: bypassConnectModeActive,
+                    linkModeActive: bypassLinkModeActive,
+                    onModulationAssign: onBypassModulationAssign,
+                    onLinkTap: onBypassAutomationLinkTap,
+                    onAutomateRequest: onAutomateBypass,
                   ),
                   if (showLibrary)
                     _ToolRailButton(
@@ -118,13 +141,20 @@ class DeviceToolRail extends StatelessWidget {
   }
 }
 
-class _ToolRailButton extends StatelessWidget {
+class _ToolRailButton extends StatefulWidget {
   const _ToolRailButton({
     required this.icon,
     required this.tooltip,
     required this.onPressed,
     this.active = true,
     this.enabled = true,
+    this.modulationActive = false,
+    this.automationActive = false,
+    this.connectModeActive = false,
+    this.linkModeActive = false,
+    this.onModulationAssign,
+    this.onLinkTap,
+    this.onAutomateRequest,
   });
 
   final IconData icon;
@@ -132,22 +162,167 @@ class _ToolRailButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool active;
   final bool enabled;
+  final bool modulationActive;
+  final bool automationActive;
+  final bool connectModeActive;
+  final bool linkModeActive;
+  final ValueChanged<double>? onModulationAssign;
+  final VoidCallback? onLinkTap;
+  final VoidCallback? onAutomateRequest;
+
+  @override
+  State<_ToolRailButton> createState() => _ToolRailButtonState();
+}
+
+class _ToolRailButtonState extends State<_ToolRailButton> {
+  double _dragStartY = 0;
+  double _assignmentAmount = 0;
+  bool _assignmentMode = false;
+
+  void _onTap() {
+    if (widget.linkModeActive && widget.onLinkTap != null) {
+      HapticFeedback.mediumImpact();
+      widget.onLinkTap!.call();
+      return;
+    }
+    widget.onPressed?.call();
+  }
+
+  void _onLongPress() {
+    if (widget.linkModeActive && widget.onLinkTap != null) {
+      HapticFeedback.mediumImpact();
+      widget.onLinkTap!.call();
+      return;
+    }
+    if (!widget.connectModeActive && widget.onAutomateRequest != null) {
+      HapticFeedback.mediumImpact();
+      widget.onAutomateRequest!.call();
+    }
+  }
+
+  void _onLongPressStart(LongPressStartDetails details) {
+    if (!widget.connectModeActive) return;
+    HapticFeedback.mediumImpact();
+    _dragStartY = details.localPosition.dy;
+    setState(() {
+      _assignmentAmount = 0;
+      _assignmentMode = true;
+    });
+  }
+
+  void _onLongPressMoveUpdate(LongPressMoveUpdateDetails details) {
+    if (!_assignmentMode) return;
+    const sensitivity = 120.0;
+    final amount = ((_dragStartY - details.localPosition.dy) / sensitivity)
+        .clamp(-1.0, 1.0);
+    setState(() => _assignmentAmount = amount);
+  }
+
+  void _onLongPressEnd(LongPressEndDetails details) {
+    if (!_assignmentMode) return;
+    widget.onModulationAssign?.call(_assignmentAmount);
+    setState(() {
+      _assignmentAmount = 0;
+      _assignmentMode = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final color = !enabled
+    final color = !widget.enabled
         ? Colors.white24
-        : active
+        : widget.active
             ? Colors.white70
             : const Color(0xFFE86A6A);
+    final highlight = widget.linkModeActive
+        ? const Color(0xFFB48CFF)
+        : const Color(0xFFE8A54B);
 
-    return IconButton(
-      tooltip: tooltip,
-      visualDensity: VisualDensity.compact,
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(minWidth: 28, minHeight: 24),
-      onPressed: enabled ? onPressed : null,
-      icon: Icon(icon, size: 18, color: color),
+    return Tooltip(
+      message: widget.tooltip,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.enabled ? _onTap : null,
+        onLongPress: widget.enabled &&
+                (widget.linkModeActive || !widget.connectModeActive)
+            ? _onLongPress
+            : null,
+        onLongPressStart: widget.enabled && widget.connectModeActive
+            ? _onLongPressStart
+            : null,
+        onLongPressMoveUpdate: widget.enabled && widget.connectModeActive
+            ? _onLongPressMoveUpdate
+            : null,
+        onLongPressEnd:
+            widget.enabled && widget.connectModeActive ? _onLongPressEnd : null,
+        child: SizedBox(
+          width: 28,
+          height: 24,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              if (widget.connectModeActive || widget.linkModeActive)
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: highlight.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(5),
+                      border: Border.all(
+                        color: highlight.withValues(alpha: 0.45),
+                      ),
+                    ),
+                  ),
+                ),
+              Icon(widget.icon, size: 18, color: color),
+              if (widget.modulationActive)
+                Positioned(
+                  left: 5,
+                  bottom: 3,
+                  child: _StatusDot(color: const Color(0xFFE8A54B)),
+                ),
+              if (widget.automationActive)
+                Positioned(
+                  right: 5,
+                  top: 3,
+                  child: _StatusDot(color: const Color(0xFFB48CFF)),
+                ),
+              if (_assignmentMode)
+                Positioned(
+                  bottom: -11,
+                  child: Text(
+                    '${(_assignmentAmount * 100).round()}%',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 8,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusDot extends StatelessWidget {
+  const _StatusDot({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(color: const Color(0xFF14141C), width: 1),
+        ),
+        child: const SizedBox(width: 7, height: 7),
+      ),
     );
   }
 }

@@ -84,12 +84,15 @@ uint16_t encodeAutomationParamId(const char* name,
     if (name == nullptr || name[0] == '\0') {
         return 0;
     }
-    // Common gain/pan encode to 0/1 — handle before the encoded!=0 guard.
+    // Common params encode to 0/1/2 — handle before the encoded!=0 guard.
     if (std::strcmp(name, "gain") == 0) {
         return kEncodedCommonGain;
     }
     if (std::strcmp(name, "pan") == 0) {
         return kEncodedCommonPan;
+    }
+    if (std::strcmp(name, "bypass") == 0) {
+        return kEncodedCommonBypass;
     }
     if (const uint16_t encoded = paramIdFromString(name, kind); encoded != 0) {
         return encoded;
@@ -105,6 +108,7 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
     // Common params (same across all device kinds)
     if (std::strcmp(name, "gain") == 0) return packParamId(ParamKind::Common, static_cast<uint16_t>(CommonParam::Gain));
     if (std::strcmp(name, "pan") == 0) return packParamId(ParamKind::Common, static_cast<uint16_t>(CommonParam::Pan));
+    if (std::strcmp(name, "bypass") == 0) return packParamId(ParamKind::Common, static_cast<uint16_t>(CommonParam::Bypass));
 
     switch (kind) {
     case DeviceNodeKind::Oscillator: {
@@ -458,6 +462,14 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
     // localParamId is now an encoded (ParamKind, perKindId) uint16_t. The
     // caller still passes the device kind, so we use it to switch the
     // outer dispatch and unpackParamId() to get the raw enum value.
+    if (unpackParamKind(localParamId) == ParamKind::Common) {
+        switch (static_cast<CommonParam>(unpackParamId(localParamId))) {
+        case CommonParam::Gain: return "gain";
+        case CommonParam::Pan: return "pan";
+        case CommonParam::Bypass: return "bypass";
+        default: return "";
+        }
+    }
     const uint16_t rawId = unpackParamId(localParamId);
     switch (kind) {
     case DeviceNodeKind::Oscillator: {
@@ -1347,11 +1359,13 @@ bool nodeHasDspAutomation(uint16_t deviceIndex,
     for (int a = 0; a < clipCount; ++a) {
         if (clips[a].deviceIndex != deviceIndex) continue;
         const uint16_t pid = clips[a].localParamId;
-        // Skip the Common gain/pan encodings. The encoded values for
-        // Common::Gain and Common::Pan are 0 and 1 (kind tag is 0). The
+        // Skip common encodings. The encoded values for common params are
+        // 0, 1, and 2 (kind tag is 0). The
         // encoded values for any other param (e.g. SubtractiveSynth::
         // FilterCutoff) are 0x3000 etc. and never match.
-        if (pid != kEncodedCommonGain && pid != kEncodedCommonPan) {
+        if (pid != kEncodedCommonGain &&
+            pid != kEncodedCommonPan &&
+            pid != kEncodedCommonBypass) {
             return true;
         }
     }
@@ -1373,11 +1387,13 @@ void applyDspAutomationAtBeat(DeviceVariantParams& params,
         const AutomationClipPlayback& ac = clips[a];
         if (ac.deviceIndex != deviceIndex) continue;
         const uint16_t pid = ac.localParamId;
-        // Common gain/pan are handled by the device-chain loop (per-frame
-        // gain/pan arrays). DSP-local params use the encoded kind tag, so
+        // Common params are handled by the device-chain loop. DSP-local
+        // params use the encoded kind tag, so
         // these constants never collide with SubtractiveSynth::FilterCutoff
         // or any other per-kind value 0.
-        if (pid == kEncodedCommonGain || pid == kEncodedCommonPan) {
+        if (pid == kEncodedCommonGain ||
+            pid == kEncodedCommonPan ||
+            pid == kEncodedCommonBypass) {
             continue;
         }
         float beatInClip = 0.0f;

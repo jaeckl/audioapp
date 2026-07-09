@@ -376,11 +376,13 @@ void applyDspModulationAtFrame(DeviceVariantParams& params,
         const auto& edge = modEdges[e];
         if (edge.lfoId >= static_cast<uint16_t>(lfoCount)) continue;
         const uint16_t pid = edge.localParamId;
-        // Common gain/pan are handled by the device-chain loop. With the
-        // encoded kind tag, the values 0 and 1 only mean Common::Gain/Pan;
+        // Common params are handled by the device-chain loop. With the
+        // encoded kind tag, the low values only mean Common params;
         // SubtractiveSynth::FilterCutoff is 0x3000 etc. and is no longer
         // accidentally skipped here.
-        if (pid == kEncodedCommonGain || pid == kEncodedCommonPan) continue;
+        if (pid == kEncodedCommonGain ||
+            pid == kEncodedCommonPan ||
+            pid == kEncodedCommonBypass) continue;
         const float lfoOut = lfoValues[edge.lfoId * framesToProcess + lfoFrame];
         const float modAmount = edge.amount * lfoOut;
         std::visit([&](auto& p) { applyModulation(p, modAmount, pid); }, params);
@@ -419,8 +421,10 @@ bool nodeNeedsSubBlocks(const DeviceNodePlayback& node,
             const uint16_t pid = clips[a].localParamId;
             // Encoded kind tag prevents CommonParam::Gain (0) from being
             // confused with SubtractiveSynth::FilterCutoff (0x3000), so
-            // the encoded Common gain/pan are the only ones to skip.
-            if (pid != kEncodedCommonGain && pid != kEncodedCommonPan) {
+            // the encoded Common params are the only ones to skip.
+            if (pid != kEncodedCommonGain &&
+                pid != kEncodedCommonPan &&
+                pid != kEncodedCommonBypass) {
                 return true;
             }
         }
@@ -430,7 +434,9 @@ bool nodeNeedsSubBlocks(const DeviceNodePlayback& node,
         for (int e = 0; e < modEdgeCount; ++e) {
             if (modEdges[e].deviceIndex != static_cast<uint16_t>(deviceIndex)) continue;
             const uint16_t pid = modEdges[e].localParamId;
-            if (pid != kEncodedCommonGain && pid != kEncodedCommonPan) {
+            if (pid != kEncodedCommonGain &&
+                pid != kEncodedCommonPan &&
+                pid != kEncodedCommonBypass) {
                 return true;
             }
         }
@@ -446,7 +452,9 @@ bool nodeUsesDspAutomationSubBlocks(const DeviceNodePlayback& node,
     for (int a = 0; a < clipCount; ++a) {
         if (clips[a].deviceIndex != static_cast<uint16_t>(deviceIndex)) continue;
         const uint16_t pid = clips[a].localParamId;
-        if (pid != kEncodedCommonGain && pid != kEncodedCommonPan) {
+        if (pid != kEncodedCommonGain &&
+            pid != kEncodedCommonPan &&
+            pid != kEncodedCommonBypass) {
             switch (node.kind) {
             case DeviceNodeKind::Oscillator:
             case DeviceNodeKind::Sampler:
@@ -470,7 +478,9 @@ bool nodeHasDspModulation(uint16_t deviceIndex,
     for (int e = 0; e < modEdgeCount; ++e) {
         if (modEdges[e].deviceIndex != deviceIndex) continue;
         const uint16_t pid = modEdges[e].localParamId;
-        if (pid != kEncodedCommonGain && pid != kEncodedCommonPan) {
+        if (pid != kEncodedCommonGain &&
+            pid != kEncodedCommonPan &&
+            pid != kEncodedCommonBypass) {
             return true;
         }
     }

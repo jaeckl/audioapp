@@ -215,7 +215,9 @@ void applyGlobalDspModulationAtFrame(DeviceVariantParams& params,
             continue;
         }
         const uint16_t pid = edge.localParamId;
-        if (pid == kEncodedCommonGain || pid == kEncodedCommonPan) {
+        if (pid == kEncodedCommonGain ||
+            pid == kEncodedCommonPan ||
+            pid == kEncodedCommonBypass) {
             continue;
         }
         if (modulatorUsesPerNoteClock(modCtx.modulators[edge.lfoId])) {
@@ -249,7 +251,9 @@ void applyPerNoteDspModulation(DeviceVariantParams& params,
             continue;
         }
         const uint16_t pid = edge.localParamId;
-        if (pid == kEncodedCommonGain || pid == kEncodedCommonPan) {
+        if (pid == kEncodedCommonGain ||
+            pid == kEncodedCommonPan ||
+            pid == kEncodedCommonBypass) {
             continue;
         }
         auto* mod = modCtx.modulators[edge.lfoId];

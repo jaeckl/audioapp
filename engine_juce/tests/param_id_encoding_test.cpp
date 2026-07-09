@@ -84,10 +84,11 @@ public:
             expect(encSubCutoff != encKickModel);
 
             // CommonParam gain/pan should still equal their old raw values
-            // (kEncodedCommonGain = 0, kEncodedCommonPan = 1) so the audio-thread
-            // skip checks behave identically for real gain/pan automation.
+            // (kEncodedCommonGain = 0, kEncodedCommonPan = 1) and bypass
+            // follows as 2, so audio-thread common-param checks stay explicit.
             expect(kEncodedCommonGain == 0u);
             expect(kEncodedCommonPan == 1u);
+            expect(kEncodedCommonBypass == 2u);
 
             // Round-trip: paramIdFromString("filterCutoff", SubtractiveSynth)
             // should resolve to the encoded SubtractiveSynth::FilterCutoff.
@@ -95,6 +96,10 @@ public:
                          encSubCutoff);
             expectEquals(paramIdFromString("gain", DeviceNodeKind::SubtractiveSynth),
                          encCommonGain);
+            expectEquals(paramIdFromString("bypass", DeviceNodeKind::SubtractiveSynth),
+                         kEncodedCommonBypass);
+            expect(std::string(paramIdToString(kEncodedCommonBypass,
+                                               DeviceNodeKind::SubtractiveSynth)) == "bypass");
 
             // ProjectEngine must not store raw per-kind ids (filterCutoff raw = 0).
             expectEquals(encodeAutomationParamId("filterCutoff",
@@ -105,6 +110,10 @@ public:
                                            DeviceNodeKind::SubtractiveSynth,
                                            static_cast<uint16_t>(SubtractiveParam::FilterCutoff))
                        != kEncodedCommonGain);
+            expectEquals(encodeAutomationParamId("bypass",
+                                                 DeviceNodeKind::SubtractiveSynth,
+                                                 static_cast<uint16_t>(-1)),
+                         kEncodedCommonBypass);
         }
 
         beginTest("FilterCutoff automation should sweep the filter");
@@ -149,6 +158,43 @@ public:
             // The filter-cutoff sweep should produce meaningfully more HF energy
             // in the open-half vs the closed-half.
             expect(hfStart >= 2.0f * hfEnd, "Filter cutoff sweep should produce >2x HF ratio");
+        }
+
+        beginTest("Bypass automation should silence the device");
+        {
+            EngineHost host;
+            host.createProject();
+            const std::string trackId = host.addTrack("Test");
+            host.selectTrack(trackId);
+            const std::string oscId = host.addDeviceToTrack(trackId, "simple_oscillator");
+
+            const std::string midiClipId = host.createMidiClip(trackId, 0.0, 4.0);
+            expect(!midiClipId.empty());
+            std::vector<MidiNoteState> notes;
+            notes.push_back({60, 0.0, 4.0, 100.0f});
+            expect(host.setMidiClipNotes(midiClipId, notes));
+
+            const std::string clipId = host.createAutomationClip(trackId, 0.0, 4.0);
+            expect(!clipId.empty());
+            expect(host.assignAutomationTarget(clipId, oscId, "bypass"));
+            std::vector<AutomationPointState> points;
+            points.push_back({0.0, 0.0f});
+            points.push_back({1.9, 0.0f});
+            points.push_back({2.0, 1.0f});
+            points.push_back({4.0, 1.0f});
+            expect(host.setAutomationPoints(clipId, points));
+
+            host.setPlaying(true);
+            const std::vector<float> block = host.renderOffline(4.0, 48000.0);
+            expect(block.size() >= 96000);
+
+            const int frameCount = static_cast<int>(block.size());
+            const int quarter = frameCount / 4;
+            const float early = audioapp::test::rms(block, quarter / 2, quarter);
+            const float late = audioapp::test::rms(block, frameCount - quarter, quarter);
+
+            expect(early >= 1.0e-4f, "Pre-bypass window should be audible");
+            expect(late <= early * 0.05f, "Post-bypass window should be near silence");
         }
     }
 };

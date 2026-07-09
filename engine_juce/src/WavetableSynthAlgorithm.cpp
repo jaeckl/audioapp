@@ -304,7 +304,9 @@ void mixWavetableMidiNotesBlock(float* monoOut,
                 if (edge.deviceIndex != *modulationDeviceIndex) continue;
                 if (edge.lfoId >= static_cast<uint16_t>(lfoCount)) continue;
                 const uint16_t pid = edge.localParamId;
-                if (pid == kEncodedCommonGain || pid == kEncodedCommonPan) continue;
+                if (pid == kEncodedCommonGain ||
+                    pid == kEncodedCommonPan ||
+                    pid == kEncodedCommonBypass) continue;
                 const float lfoOut = lfoValues[static_cast<size_t>(edge.lfoId) *
                                                   static_cast<size_t>(lfoStride) +
                                                   static_cast<size_t>(frame)];
