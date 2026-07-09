@@ -774,11 +774,16 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
 
     try {
-      final updated = await widget.bridge.assignAutomationTarget(
-        clipId: clipId,
-        deviceId: deviceId,
-        paramId: paramId,
-      );
+      final clip = snapshot.automationClipById(clipId);
+      final alreadyLinked =
+          clip?.deviceId == deviceId && clip?.paramId == paramId;
+      final updated = alreadyLinked
+          ? await widget.bridge.unlinkAutomationTarget(clipId: clipId)
+          : await widget.bridge.assignAutomationTarget(
+              clipId: clipId,
+              deviceId: deviceId,
+              paramId: paramId,
+            );
       if (!mounted) return false;
       setState(() => _automationLinkClipId = null);
       await _refreshSnapshot(updated);

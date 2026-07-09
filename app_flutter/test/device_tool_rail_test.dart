@@ -55,7 +55,7 @@ void main() {
     expect(automateCount, 1);
   });
 
-  testWidgets('bypass button links automation when link mode is active',
+  testWidgets('bypass button links automation on long press in link mode',
       (tester) async {
     var toggleCount = 0;
     var linkCount = 0;
@@ -80,6 +80,10 @@ void main() {
     );
 
     await tester.tap(find.byIcon(Icons.power_settings_new));
+    expect(linkCount, 0);
+    expect(toggleCount, 0);
+
+    await tester.longPress(find.byIcon(Icons.power_settings_new));
     expect(linkCount, 1);
     expect(toggleCount, 0);
   });
@@ -121,6 +125,27 @@ void main() {
         find.byKey(const ValueKey('tool_rail_modulation_dot')), findsNothing);
 
     await tester.pumpWidget(buildRail(linkModeActive: true));
+    expect(
+        find.byKey(const ValueKey('tool_rail_modulation_dot')), findsNothing);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 120,
+            child: DeviceToolRail(
+              deviceName: 'Sampler',
+              accentColor: const Color(0xFFE8A54B),
+              bypassed: false,
+              showLibrary: false,
+              onBypassToggle: () {},
+              bypassAutomationActive: true,
+              bypassLinkModeActive: true,
+            ),
+          ),
+        ),
+      ),
+    );
     expect(
         find.byKey(const ValueKey('tool_rail_modulation_dot')), findsOneWidget);
   });

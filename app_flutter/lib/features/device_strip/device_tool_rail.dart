@@ -218,9 +218,7 @@ class _ToolRailButtonState extends State<_ToolRailButton>
   bool get _pulseActive => widget.connectModeActive || widget.linkModeActive;
 
   void _onTap() {
-    if (widget.linkModeActive && widget.onLinkTap != null) {
-      HapticFeedback.mediumImpact();
-      widget.onLinkTap!.call();
+    if (widget.linkModeActive) {
       return;
     }
     widget.onPressed?.call();
@@ -273,8 +271,9 @@ class _ToolRailButtonState extends State<_ToolRailButton>
     final highlight = widget.linkModeActive
         ? const Color(0xFFB48CFF)
         : const Color(0xFFE8A54B);
-    final showModulationDot = widget.modulationActive || widget.linkModeActive;
-    final modulationDotColor = widget.linkModeActive
+    final showModulationDot = widget.modulationActive ||
+        (widget.linkModeActive && widget.automationActive);
+    final modulationDotColor = widget.linkModeActive && widget.automationActive
         ? const Color(0xFFB48CFF)
         : const Color(0xFFE8A54B);
 
