@@ -129,9 +129,9 @@ struct EngineHost::Impl {
         }
 
         AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
-        AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_POWER_SAVING);
-        AAudioStreamBuilder_setBufferCapacityInFrames(builder, 8192);
-        AAudioStreamBuilder_setFramesPerDataCallback(builder, 1024);
+        AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
+        AAudioStreamBuilder_setBufferCapacityInFrames(builder, 1024);
+        AAudioStreamBuilder_setFramesPerDataCallback(builder, 256);
         AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_SHARED);
         AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_FLOAT);
         AAudioStreamBuilder_setChannelCount(builder, 2);
@@ -148,6 +148,10 @@ struct EngineHost::Impl {
         }
 
         sampleRate.store(AAudioStream_getSampleRate(stream), std::memory_order_release);
+        const int32_t requestedCallbackFrames = AAudioStream_getFramesPerDataCallback(stream);
+        if (requestedCallbackFrames > 0) {
+            AAudioStream_setBufferSizeInFrames(stream, requestedCallbackFrames * 2);
+        }
         // Compute per-callback deadline: bufferSize / sampleRate in nanoseconds
         const int32_t actualBufSize = AAudioStream_getBufferSizeInFrames(stream);
         const int32_t framesPerCallback = AAudioStream_getFramesPerDataCallback(stream);
@@ -222,10 +226,9 @@ void EngineHost::setPlaying(bool shouldPlay) {
             project_->setPlaying(false);
             return;
         }
-    } else {
-        impl_->stopStream();
     }
 
+    // Keep the stream warm after stop; callbacks output silence while not playing.
     project_->setPlaying(shouldPlay);
     impl_->playing.store(shouldPlay, std::memory_order_release);
     impl_->oscillator.setEnabled(shouldPlay);
