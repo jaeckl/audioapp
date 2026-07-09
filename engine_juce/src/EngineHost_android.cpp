@@ -130,8 +130,8 @@ struct EngineHost::Impl {
 
         AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
         AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
-        AAudioStreamBuilder_setBufferCapacityInFrames(builder, 1024);
-        AAudioStreamBuilder_setFramesPerDataCallback(builder, 256);
+        AAudioStreamBuilder_setBufferCapacityInFrames(builder, 8192);
+        AAudioStreamBuilder_setFramesPerDataCallback(builder, 1024);
         AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_SHARED);
         AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_FLOAT);
         AAudioStreamBuilder_setChannelCount(builder, 2);
@@ -226,9 +226,10 @@ void EngineHost::setPlaying(bool shouldPlay) {
             project_->setPlaying(false);
             return;
         }
+    } else {
+        impl_->stopStream();
     }
 
-    // Keep the stream warm after stop; callbacks output silence while not playing.
     project_->setPlaying(shouldPlay);
     impl_->playing.store(shouldPlay, std::memory_order_release);
     impl_->oscillator.setEnabled(shouldPlay);
