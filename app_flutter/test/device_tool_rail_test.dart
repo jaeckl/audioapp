@@ -115,6 +115,39 @@ void main() {
     await gesture.up();
 
     expect(assignedAmount, isNotNull);
-    expect(assignedAmount!, greaterThan(0));
+    expect(assignedAmount, 1.0);
+  });
+
+  testWidgets('bypass connect mode drag down assigns negative binary state',
+      (tester) async {
+    double? assignedAmount;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 120,
+            child: DeviceToolRail(
+              deviceName: 'Sampler',
+              accentColor: const Color(0xFFE8A54B),
+              bypassed: false,
+              showLibrary: false,
+              onBypassToggle: () {},
+              bypassConnectModeActive: true,
+              onBypassModulationAssign: (amount) => assignedAmount = amount,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final center = tester.getCenter(find.byIcon(Icons.power_settings_new));
+    final gesture = await tester.startGesture(center);
+    await tester.pump(kLongPressTimeout + const Duration(milliseconds: 20));
+    await gesture.moveBy(const Offset(0, 60));
+    await tester.pump();
+    await gesture.up();
+
+    expect(assignedAmount, -1.0);
   });
 }

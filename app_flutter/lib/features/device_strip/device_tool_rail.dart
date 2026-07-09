@@ -174,10 +174,48 @@ class _ToolRailButton extends StatefulWidget {
   State<_ToolRailButton> createState() => _ToolRailButtonState();
 }
 
-class _ToolRailButtonState extends State<_ToolRailButton> {
+class _ToolRailButtonState extends State<_ToolRailButton>
+    with SingleTickerProviderStateMixin {
   double _dragStartY = 0;
   double _assignmentAmount = 0;
   bool _assignmentMode = false;
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1300),
+    );
+    _pulseAnimation = Tween<double>(begin: 0.18, end: 0.42).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+    if (_pulseActive) {
+      _pulseController.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _ToolRailButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final wasActive = oldWidget.connectModeActive || oldWidget.linkModeActive;
+    if (_pulseActive && !wasActive) {
+      _pulseController.repeat(reverse: true);
+    } else if (!_pulseActive && wasActive) {
+      _pulseController.stop();
+      _pulseController.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  bool get _pulseActive => widget.connectModeActive || widget.linkModeActive;
 
   void _onTap() {
     if (widget.linkModeActive && widget.onLinkTap != null) {
@@ -212,9 +250,7 @@ class _ToolRailButtonState extends State<_ToolRailButton> {
 
   void _onLongPressMoveUpdate(LongPressMoveUpdateDetails details) {
     if (!_assignmentMode) return;
-    const sensitivity = 120.0;
-    final amount = ((_dragStartY - details.localPosition.dy) / sensitivity)
-        .clamp(-1.0, 1.0);
+    final amount = details.localPosition.dy <= _dragStartY ? 1.0 : -1.0;
     setState(() => _assignmentAmount = amount);
   }
 
@@ -258,48 +294,56 @@ class _ToolRailButtonState extends State<_ToolRailButton> {
         child: SizedBox(
           width: 28,
           height: 24,
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
-            children: [
-              if (widget.connectModeActive || widget.linkModeActive)
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: highlight.withValues(alpha: 0.16),
-                      borderRadius: BorderRadius.circular(5),
-                      border: Border.all(
-                        color: highlight.withValues(alpha: 0.45),
+          child: AnimatedBuilder(
+            animation: _pulseAnimation,
+            builder: (context, child) {
+              final assignmentColor = _assignmentAmount >= 0
+                  ? const Color(0xFFE86A6A)
+                  : const Color(0xFF6BCB8B);
+              return Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.center,
+                children: [
+                  if (_pulseActive)
+                    Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: highlight.withValues(
+                          alpha: _pulseAnimation.value,
+                        ),
+                        shape: BoxShape.circle,
                       ),
                     ),
-                  ),
-                ),
-              Icon(widget.icon, size: 18, color: color),
-              if (widget.modulationActive)
-                Positioned(
-                  left: 5,
-                  bottom: 3,
-                  child: _StatusDot(color: const Color(0xFFE8A54B)),
-                ),
-              if (widget.automationActive)
-                Positioned(
-                  right: 5,
-                  top: 3,
-                  child: _StatusDot(color: const Color(0xFFB48CFF)),
-                ),
-              if (_assignmentMode)
-                Positioned(
-                  bottom: -11,
-                  child: Text(
-                    '${(_assignmentAmount * 100).round()}%',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 8,
-                      fontWeight: FontWeight.w700,
+                  Icon(widget.icon, size: 18, color: color),
+                  if (widget.modulationActive)
+                    Positioned(
+                      left: 5,
+                      bottom: 3,
+                      child: _StatusDot(color: const Color(0xFFE8A54B)),
                     ),
-                  ),
-                ),
-            ],
+                  if (widget.automationActive)
+                    Positioned(
+                      right: 5,
+                      top: 3,
+                      child: _StatusDot(color: const Color(0xFFB48CFF)),
+                    ),
+                  if (_assignmentMode)
+                    Positioned(
+                      top: _assignmentAmount >= 0 ? -4 : null,
+                      bottom: _assignmentAmount < 0 ? -4 : null,
+                      child: Container(
+                        width: 18,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          color: assignmentColor,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ),
       ),
