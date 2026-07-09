@@ -626,6 +626,8 @@ class StutterDeviceSnapshot extends EffectDeviceSnapshot {
     super.outputWidth,
     required this.trigger,
     required this.captureMs,
+    required this.rateSync,
+    required this.rateBeats,
     required this.rateMs,
     required this.windowMs,
     required this.position,
@@ -639,6 +641,8 @@ class StutterDeviceSnapshot extends EffectDeviceSnapshot {
 
   final double trigger;
   final double captureMs;
+  final double rateSync;
+  final double rateBeats;
   final double rateMs;
   final double windowMs;
   final double position;
@@ -663,6 +667,8 @@ class StutterDeviceSnapshot extends EffectDeviceSnapshot {
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       trigger: (params['trigger'] as num?)?.toDouble() ?? 0.0,
       captureMs: (params['captureMs'] as num?)?.toDouble() ?? 500.0,
+      rateSync: (params['rateSync'] as num?)?.toDouble() ?? 1.0,
+      rateBeats: (params['rateBeats'] as num?)?.toDouble() ?? 0.25,
       rateMs: (params['rateMs'] as num?)?.toDouble() ?? 125.0,
       windowMs: (params['windowMs'] as num?)?.toDouble() ?? 80.0,
       position: (params['position'] as num?)?.toDouble() ?? 0.0,
@@ -690,6 +696,8 @@ class StutterDeviceSnapshot extends EffectDeviceSnapshot {
     double? outputWidth,
     double? trigger,
     double? captureMs,
+    double? rateSync,
+    double? rateBeats,
     double? rateMs,
     double? windowMs,
     double? position,
@@ -711,6 +719,8 @@ class StutterDeviceSnapshot extends EffectDeviceSnapshot {
       outputWidth: outputWidth ?? this.outputWidth,
       trigger: trigger ?? this.trigger,
       captureMs: captureMs ?? this.captureMs,
+      rateSync: rateSync ?? this.rateSync,
+      rateBeats: rateBeats ?? this.rateBeats,
       rateMs: rateMs ?? this.rateMs,
       windowMs: windowMs ?? this.windowMs,
       position: position ?? this.position,
@@ -733,6 +743,8 @@ class StutterDeviceSnapshot extends EffectDeviceSnapshot {
       'outputWidth' => copyWith(outputWidth: value),
       'trigger' => copyWith(trigger: value),
       'captureMs' => copyWith(captureMs: value),
+      'rateSync' => copyWith(rateSync: value),
+      'rateBeats' => copyWith(rateBeats: value),
       'rateMs' => copyWith(rateMs: value),
       'windowMs' => copyWith(windowMs: value),
       'position' => copyWith(position: value),

@@ -375,15 +375,17 @@ enum class TremoloParam : uint16_t {
 enum class StutterParam : uint16_t {
     Trigger = 0,
     CaptureMs = 1,
-    RateMs = 2,
-    WindowMs = 3,
-    Position = 4,
-    Gate = 5,
-    FadeMs = 6,
-    Direction = 7,
-    Mix = 8,
-    Duck = 9,
-    OutputGain = 10,
+    RateSync = 2,
+    RateBeats = 3,
+    RateMs = 4,
+    WindowMs = 5,
+    Position = 6,
+    Gate = 7,
+    FadeMs = 8,
+    Direction = 9,
+    Mix = 10,
+    Duck = 11,
+    OutputGain = 12,
 };
 
 // -----------------------------------------------------------------------

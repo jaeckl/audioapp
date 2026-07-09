@@ -54,6 +54,8 @@ DeviceParameterResult StutterDeviceType::setParameter(DeviceSlot& slot,
     switch (static_cast<StutterParam>(id)) {
         case StutterParam::Trigger: instance.trigger = juce::jlimit(0.0f, 1.0f, value); break;
         case StutterParam::CaptureMs: instance.captureMs = juce::jlimit(1.0f, 4000.0f, value); break;
+        case StutterParam::RateSync: instance.rateSync = juce::jlimit(0.0f, 1.0f, value); break;
+        case StutterParam::RateBeats: instance.rateBeats = juce::jlimit(0.03125f, 4.0f, value); break;
         case StutterParam::RateMs: instance.rateMs = juce::jlimit(1.0f, 5000.0f, value); break;
         case StutterParam::WindowMs: instance.windowMs = juce::jlimit(1.0f, 5000.0f, value); break;
         case StutterParam::Position: instance.position = juce::jlimit(0.0f, 1.0f, value); break;
@@ -73,7 +75,7 @@ bool StutterDeviceType::setStringParameter(DeviceSlot&, std::string_view, const 
 }
 
 std::vector<std::string_view> StutterDeviceType::modulatableParams() const {
-    return {"gain", "pan", "trigger", "captureMs", "rateMs", "windowMs", "position", "gate", "fadeMs", "direction", "mix", "duck", "outputGain"};
+    return {"gain", "pan", "trigger", "captureMs", "rateSync", "rateBeats", "rateMs", "windowMs", "position", "gate", "fadeMs", "direction", "mix", "duck", "outputGain"};
 }
 
 void StutterDeviceType::buildPlaybackNode(const DeviceSlot& slot, const PlaybackBuildContext&, DeviceNodePlayback& out) const {
@@ -82,6 +84,8 @@ void StutterDeviceType::buildPlaybackNode(const DeviceSlot& slot, const Playback
     StutterParamsPlayback p;
     p.trigger = static_cast<float>(inst.trigger);
     p.captureMs = static_cast<float>(inst.captureMs);
+    p.rateSync = static_cast<float>(inst.rateSync);
+    p.rateBeats = static_cast<float>(inst.rateBeats);
     p.rateMs = static_cast<float>(inst.rateMs);
     p.windowMs = static_cast<float>(inst.windowMs);
     p.position = static_cast<float>(inst.position);
@@ -103,6 +107,8 @@ juce::var StutterDeviceType::slotToVar(const DeviceSlot& slot) const {
     const auto& inst = std::get<StutterParams>(slot.config.instance);
     parameters->setProperty("trigger", inst.trigger);
     parameters->setProperty("captureMs", inst.captureMs);
+    parameters->setProperty("rateSync", inst.rateSync);
+    parameters->setProperty("rateBeats", inst.rateBeats);
     parameters->setProperty("rateMs", inst.rateMs);
     parameters->setProperty("windowMs", inst.windowMs);
     parameters->setProperty("position", inst.position);
@@ -154,6 +160,8 @@ DeviceSlot StutterDeviceType::varToSlot(const juce::var& obj) const {
         if (const auto* p = object->getProperty("parameters").getDynamicObject()) {
             inst.trigger = readFloatProperty(p, "trigger", 0.0f);
             inst.captureMs = readFloatProperty(p, "captureMs", 500.0f);
+            inst.rateSync = readFloatProperty(p, "rateSync", 1.0f);
+            inst.rateBeats = readFloatProperty(p, "rateBeats", 0.25f);
             inst.rateMs = readFloatProperty(p, "rateMs", 125.0f);
             inst.windowMs = readFloatProperty(p, "windowMs", 80.0f);
             inst.position = readFloatProperty(p, "position", 0.0f);
@@ -179,6 +187,8 @@ DeviceNodeKind StutterDeviceType::kind() const noexcept { return DeviceNodeKind:
 uint16_t StutterDeviceType::paramIdFromString(std::string_view name) const noexcept {
     if (name == "trigger") return static_cast<uint16_t>(StutterParam::Trigger);
     if (name == "captureMs") return static_cast<uint16_t>(StutterParam::CaptureMs);
+    if (name == "rateSync") return static_cast<uint16_t>(StutterParam::RateSync);
+    if (name == "rateBeats") return static_cast<uint16_t>(StutterParam::RateBeats);
     if (name == "rateMs") return static_cast<uint16_t>(StutterParam::RateMs);
     if (name == "windowMs") return static_cast<uint16_t>(StutterParam::WindowMs);
     if (name == "position") return static_cast<uint16_t>(StutterParam::Position);
@@ -195,6 +205,8 @@ std::string_view StutterDeviceType::paramIdToString(uint16_t localId) const noex
     switch (static_cast<StutterParam>(localId)) {
         case StutterParam::Trigger: return "trigger";
         case StutterParam::CaptureMs: return "captureMs";
+        case StutterParam::RateSync: return "rateSync";
+        case StutterParam::RateBeats: return "rateBeats";
         case StutterParam::RateMs: return "rateMs";
         case StutterParam::WindowMs: return "windowMs";
         case StutterParam::Position: return "position";
@@ -212,6 +224,8 @@ std::span<const ParamDescriptor> StutterDeviceType::paramDescriptors() const noe
     static constexpr ParamDescriptor kParams[] = {
         {static_cast<uint16_t>(StutterParam::Trigger), "trigger", "Trigger", 0.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(StutterParam::CaptureMs), "captureMs", "Capture", 500.0f, 1.0f, 4000.0f, true, true},
+        {static_cast<uint16_t>(StutterParam::RateSync), "rateSync", "Sync", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(StutterParam::RateBeats), "rateBeats", "Rate Beats", 0.25f, 0.03125f, 4.0f, true, true},
         {static_cast<uint16_t>(StutterParam::RateMs), "rateMs", "Rate", 125.0f, 1.0f, 5000.0f, true, true},
         {static_cast<uint16_t>(StutterParam::WindowMs), "windowMs", "Window", 80.0f, 1.0f, 5000.0f, true, true},
         {static_cast<uint16_t>(StutterParam::Position), "position", "Position", 0.0f, 0.0f, 1.0f, true, true},

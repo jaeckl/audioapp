@@ -61,6 +61,8 @@ void applyModulation(StutterParamsPlayback& p, float modAmount, uint16_t localPa
     switch (static_cast<StutterParam>(unpackParamId(localParamId))) {
     case StutterParam::Trigger: p.trigger = std::clamp(p.trigger + modAmount, 0.0f, 1.0f); break;
     case StutterParam::CaptureMs: p.captureMs = std::clamp(p.captureMs + modAmount * 1000.0f, 1.0f, 4000.0f); break;
+    case StutterParam::RateSync: p.rateSync = std::clamp(p.rateSync + modAmount, 0.0f, 1.0f); break;
+    case StutterParam::RateBeats: p.rateBeats = std::clamp(p.rateBeats + modAmount, 0.03125f, 4.0f); break;
     case StutterParam::RateMs: p.rateMs = std::clamp(p.rateMs + modAmount * 500.0f, 1.0f, 5000.0f); break;
     case StutterParam::WindowMs: p.windowMs = std::clamp(p.windowMs + modAmount * 500.0f, 1.0f, 5000.0f); break;
     case StutterParam::Position: p.position = std::clamp(p.position + modAmount, 0.0f, 1.0f); break;

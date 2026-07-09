@@ -158,6 +158,8 @@ struct TremoloParamsPlayback {
 struct StutterParamsPlayback {
     float trigger = 0.0f;
     float captureMs = 500.0f;
+    float rateSync = 1.0f;
+    float rateBeats = 0.25f;
     float rateMs = 125.0f;
     float windowMs = 80.0f;
     float position = 0.0f;

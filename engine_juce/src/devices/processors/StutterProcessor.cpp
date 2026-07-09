@@ -61,8 +61,10 @@ void StutterProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept 
     const int captureSamples = std::clamp(
         static_cast<int>(std::round((std::clamp(p.captureMs, 1.0f, 4000.0f) / 1000.0f) * ctx.sampleRate)),
         1, maxBuffer - 1);
-    const int rateSamples = std::max(1, static_cast<int>(
-        std::round((std::clamp(p.rateMs, 1.0f, 5000.0f) / 1000.0f) * ctx.sampleRate)));
+    const float rateSeconds = p.rateSync >= 0.5f
+        ? (std::clamp(p.rateBeats, 0.03125f, 4.0f) * 60.0f / static_cast<float>(std::max(1, ctx.bpm)))
+        : (std::clamp(p.rateMs, 1.0f, 5000.0f) / 1000.0f);
+    const int rateSamples = std::max(1, static_cast<int>(std::round(rateSeconds * ctx.sampleRate)));
     const int windowSamples = std::clamp(
         static_cast<int>(std::round((std::clamp(p.windowMs, 1.0f, 5000.0f) / 1000.0f) * ctx.sampleRate)),
         1, captureSamples);

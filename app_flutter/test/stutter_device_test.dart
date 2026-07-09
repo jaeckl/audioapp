@@ -13,6 +13,8 @@ void main() {
       'parameters': {
         'trigger': 1.0,
         'captureMs': 750.0,
+        'rateSync': 1.0,
+        'rateBeats': 0.125,
         'rateMs': 62.5,
         'windowMs': 48.0,
         'position': 0.35,
@@ -38,6 +40,8 @@ void main() {
     expect(snapshot.id, 'stutter-1');
     expect(snapshot.trigger, 1.0);
     expect(snapshot.captureMs, 750.0);
+    expect(snapshot.rateSync, 1.0);
+    expect(snapshot.rateBeats, 0.125);
     expect(snapshot.rateMs, 62.5);
     expect(snapshot.windowMs, 48.0);
     expect(snapshot.position, 0.35);
@@ -58,6 +62,8 @@ void main() {
     }) as StutterDeviceSnapshot;
 
     expect(base.withParameter('trigger', 1.0).trigger, 1.0);
+    expect(base.withParameter('rateSync', 0.0).rateSync, 0.0);
+    expect(base.withParameter('rateBeats', 0.125).rateBeats, 0.125);
     expect(base.withParameter('rateMs', 250.0).rateMs, 250.0);
     expect(base.withParameter('windowMs', 120.0).windowMs, 120.0);
     expect(base.withParameter('position', 0.8).position, 0.8);
@@ -98,9 +104,11 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('Hold'), findsOneWidget);
-    expect(find.text('Off'), findsOneWidget);
+    expect(find.text('HOLD'), findsOneWidget);
+    expect(find.text('Sync'), findsOneWidget);
+    expect(find.text('1/4'), findsWidgets);
 
-    await tester.tap(find.text('Off'));
+    await tester.tap(find.text('HOLD'));
     await tester.pump();
 
     expect(changes['trigger'], 1.0);

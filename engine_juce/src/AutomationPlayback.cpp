@@ -462,6 +462,8 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         };
         if (auto v = s("trigger", StutterParam::Trigger)) return v;
         if (auto v = s("captureMs", StutterParam::CaptureMs)) return v;
+        if (auto v = s("rateSync", StutterParam::RateSync)) return v;
+        if (auto v = s("rateBeats", StutterParam::RateBeats)) return v;
         if (auto v = s("rateMs", StutterParam::RateMs)) return v;
         if (auto v = s("windowMs", StutterParam::WindowMs)) return v;
         if (auto v = s("position", StutterParam::Position)) return v;
@@ -784,6 +786,8 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         switch (static_cast<StutterParam>(rawId)) {
         case StutterParam::Trigger: return "trigger";
         case StutterParam::CaptureMs: return "captureMs";
+        case StutterParam::RateSync: return "rateSync";
+        case StutterParam::RateBeats: return "rateBeats";
         case StutterParam::RateMs: return "rateMs";
         case StutterParam::WindowMs: return "windowMs";
         case StutterParam::Position: return "position";
@@ -969,6 +973,8 @@ const ParamDescriptor* paramDescriptorsForKind(DeviceNodeKind kind, int& countOu
         static constexpr ParamDescriptor kParams[] = {
             {static_cast<uint16_t>(StutterParam::Trigger), "trigger", "Trigger", 0.0f, 0.0f, 1.0f, true, true},
             {static_cast<uint16_t>(StutterParam::CaptureMs), "captureMs", "Capture", 500.0f, 1.0f, 4000.0f, true, true},
+            {static_cast<uint16_t>(StutterParam::RateSync), "rateSync", "Sync", 1.0f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(StutterParam::RateBeats), "rateBeats", "Rate Beats", 0.25f, 0.03125f, 4.0f, true, true},
             {static_cast<uint16_t>(StutterParam::RateMs), "rateMs", "Rate", 125.0f, 1.0f, 5000.0f, true, true},
             {static_cast<uint16_t>(StutterParam::WindowMs), "windowMs", "Window", 80.0f, 1.0f, 5000.0f, true, true},
             {static_cast<uint16_t>(StutterParam::Position), "position", "Position", 0.0f, 0.0f, 1.0f, true, true},
@@ -1367,6 +1373,8 @@ void applyAutomationValue(DeviceVariantParams& params,
             switch (static_cast<StutterParam>(rawId)) {
             case StutterParam::Trigger: p->trigger = value; break;
             case StutterParam::CaptureMs: p->captureMs = 1.0f + value * 3999.0f; break;
+            case StutterParam::RateSync: p->rateSync = value; break;
+            case StutterParam::RateBeats: p->rateBeats = 0.03125f + value * (4.0f - 0.03125f); break;
             case StutterParam::RateMs: p->rateMs = 1.0f + value * 4999.0f; break;
             case StutterParam::WindowMs: p->windowMs = 1.0f + value * 4999.0f; break;
             case StutterParam::Position: p->position = value; break;

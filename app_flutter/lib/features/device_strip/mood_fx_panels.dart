@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../bridge/device_snapshot.dart';
 import 'device_strip_metrics.dart';
@@ -113,15 +114,40 @@ _MoodFxKnob _knob({
 
 // ─── Layout helpers ─────────────────────────────────────────
 
-Widget _moodFxSinglePage({Widget? preview, required List<Widget> rows}) {
+Widget _moodFxSinglePage({
+  Widget? preview,
+  double? previewHeight,
+  double knobRowGap = _kKnobRowGap,
+  required List<Widget> rows,
+}) {
   return CompactFxPage(
     preview: preview,
+    previewHeight: previewHeight,
     rows: rows,
-    knobRowGap: _kKnobRowGap,
+    knobRowGap: knobRowGap,
   );
 }
 
 Widget _knobGridRow(List<Widget?> slots) => compactFxKnobGridRow(slots);
+
+Widget _stutterTopRow(Widget hold, Widget rateMode) {
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      SizedBox(
+        width: DeviceStripMetrics.dynamicsFxKnobColumnWidth,
+        child: Align(alignment: Alignment.topCenter, child: hold),
+      ),
+      const SizedBox(width: DeviceStripMetrics.dynamicsFxKnobGap),
+      SizedBox(
+        width: DeviceStripMetrics.dynamicsFxKnobColumnWidth * 2 +
+            DeviceStripMetrics.dynamicsFxKnobGap,
+        child: rateMode,
+      ),
+    ],
+  );
+}
 
 // ─── Bitcrusher preview painter ──────────────────────────────
 
@@ -843,6 +869,8 @@ class StutterFxPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _moodFxSinglePage(
+      previewHeight: 44,
+      knobRowGap: 6,
       preview: CustomPaint(
         painter: _StutterPreviewPainter(
           rateNorm: _rateNorm,
@@ -853,7 +881,7 @@ class StutterFxPanel extends StatelessWidget {
         child: const SizedBox.expand(),
       ),
       rows: [
-        _knobGridRow([
+        _stutterTopRow(
           _StutterHoldButton(
             active: device.trigger >= 0.5,
             automationActive: automatedParams.contains('trigger'),
@@ -874,6 +902,38 @@ class StutterFxPanel extends StatelessWidget {
                 ? (amount) => onModulationAssign!('trigger', amount)
                 : null,
           ),
+          _StutterRateModeBox(
+            sync: _rateSync,
+            rateBeats: _selectedRateBeats,
+            rateMs: device.rateMs,
+            accent: accent,
+            onSyncChanged: (sync) =>
+                onParameterChanged('rateSync', sync ? 1.0 : 0.0),
+            onRateBeatsChanged: (beats) =>
+                onParameterChanged('rateBeats', beats),
+          ),
+        ),
+        _knobGridRow([
+          _knob(
+            label: 'Rate',
+            value: _rateNorm,
+            paramId: _rateSync ? 'rateBeats' : 'rateMs',
+            onParameterChanged: (id, v) => _rateSync
+                ? onParameterChanged('rateBeats', _beatsFromNorm(v))
+                : onParameterChanged('rateMs', _msFromNorm(v, 1, 5000)),
+            accent: accent,
+            modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: _rateSync
+                ? _labelForBeats(_selectedRateBeats)
+                : '${device.rateMs.round()} ms',
+          ),
           _knob(
             label: 'Pos',
             value: device.position,
@@ -891,10 +951,11 @@ class StutterFxPanel extends StatelessWidget {
             displayValue: '${(device.position * 100).round()}%',
           ),
           _knob(
-            label: 'Gate',
-            value: device.gate,
-            paramId: 'gate',
-            onParameterChanged: onParameterChanged,
+            label: 'Cap',
+            value: _captureNorm,
+            paramId: 'captureMs',
+            onParameterChanged: (id, v) =>
+                onParameterChanged(id, _msFromNorm(v, 1, 4000)),
             accent: accent,
             modulatedParams: modulatedParams,
             automatedParams: automatedParams,
@@ -904,27 +965,10 @@ class StutterFxPanel extends StatelessWidget {
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
             onAutomateParameter: onAutomateParameter,
-            displayValue: '${(device.gate * 100).round()}%',
+            displayValue: '${device.captureMs.round()} ms',
           ),
         ]),
         _knobGridRow([
-          _knob(
-            label: 'Rate',
-            value: _rateNorm,
-            paramId: 'rateMs',
-            onParameterChanged: (id, v) =>
-                onParameterChanged(id, _msFromNorm(v, 1, 5000)),
-            accent: accent,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${device.rateMs.round()} ms',
-          ),
           _knob(
             label: 'Size',
             value: _windowNorm,
@@ -941,6 +985,22 @@ class StutterFxPanel extends StatelessWidget {
             onAutomationLinkTap: onAutomationLinkTap,
             onAutomateParameter: onAutomateParameter,
             displayValue: '${device.windowMs.round()} ms',
+          ),
+          _knob(
+            label: 'Gate',
+            value: device.gate,
+            paramId: 'gate',
+            onParameterChanged: onParameterChanged,
+            accent: accent,
+            modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: '${(device.gate * 100).round()}%',
           ),
           _knob(
             label: 'Duck',
@@ -963,14 +1023,66 @@ class StutterFxPanel extends StatelessWidget {
     );
   }
 
-  double get _rateNorm => _normFromMs(device.rateMs, 1, 5000);
+  bool get _rateSync => device.rateSync >= 0.5;
+  double get _selectedRateBeats => _nearestRateBeats(device.rateBeats);
+  double get _rateNorm => _rateSync
+      ? _normFromBeats(device.rateBeats)
+      : _normFromMs(device.rateMs, 1, 5000);
   double get _windowNorm => _normFromMs(device.windowMs, 1, 5000);
+  double get _captureNorm => _normFromMs(device.captureMs, 1, 4000);
 
   static double _normFromMs(double value, double min, double max) =>
       ((value.clamp(min, max) - min) / (max - min)).clamp(0.0, 1.0);
 
   static double _msFromNorm(double value, double min, double max) =>
       min + value.clamp(0.0, 1.0) * (max - min);
+
+  static const _rateDivisions = <double>[
+    4.0,
+    2.0,
+    1.0,
+    0.5,
+    0.25,
+    0.125,
+    0.0625,
+    0.03125,
+  ];
+
+  static double _nearestRateBeats(double value) {
+    var best = _rateDivisions.first;
+    var bestDistance = (value - best).abs();
+    for (final candidate in _rateDivisions.skip(1)) {
+      final distance = (value - candidate).abs();
+      if (distance < bestDistance) {
+        best = candidate;
+        bestDistance = distance;
+      }
+    }
+    return best;
+  }
+
+  static double _normFromBeats(double value) {
+    final selected = _nearestRateBeats(value);
+    final index = _rateDivisions.indexOf(selected);
+    return index < 0 ? 0.5 : index / (_rateDivisions.length - 1);
+  }
+
+  static double _beatsFromNorm(double value) {
+    final index = (value.clamp(0.0, 1.0) * (_rateDivisions.length - 1)).round();
+    return _rateDivisions[index.clamp(0, _rateDivisions.length - 1)];
+  }
+
+  static String _labelForBeats(double beats) =>
+      switch (_nearestRateBeats(beats)) {
+        4.0 => '4/1',
+        2.0 => '2/1',
+        1.0 => '1/1',
+        0.5 => '1/2',
+        0.25 => '1/4',
+        0.125 => '1/8',
+        0.0625 => '1/16',
+        _ => '1/32',
+      };
 }
 
 class StutterFxStrip extends StatelessWidget {
@@ -1065,6 +1177,181 @@ class _StutterPreviewPainter extends CustomPainter {
       old.accent != accent;
 }
 
+class _StutterRateModeBox extends StatelessWidget {
+  const _StutterRateModeBox({
+    required this.sync,
+    required this.rateBeats,
+    required this.rateMs,
+    required this.accent,
+    required this.onSyncChanged,
+    required this.onRateBeatsChanged,
+  });
+
+  final bool sync;
+  final double rateBeats;
+  final double rateMs;
+  final Color accent;
+  final ValueChanged<bool> onSyncChanged;
+  final ValueChanged<double> onRateBeatsChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final border = Border.all(color: Colors.white.withValues(alpha: 0.10));
+    return SizedBox(
+      height: 57,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xFF12121A),
+          borderRadius: BorderRadius.circular(7),
+          border: border,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(5),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _StutterMiniToggle(
+                      label: 'Sync',
+                      active: sync,
+                      accent: accent,
+                      onTap: () => onSyncChanged(true),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: _StutterMiniToggle(
+                      label: 'Ms',
+                      active: !sync,
+                      accent: accent,
+                      onTap: () => onSyncChanged(false),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Expanded(
+                child: sync
+                    ? PopupMenuButton<double>(
+                        tooltip: 'Rate division',
+                        padding: EdgeInsets.zero,
+                        initialValue: rateBeats,
+                        onSelected: onRateBeatsChanged,
+                        itemBuilder: (context) => [
+                          for (final beats in StutterFxPanel._rateDivisions)
+                            PopupMenuItem<double>(
+                              value: beats,
+                              child: Text(StutterFxPanel._labelForBeats(beats)),
+                            ),
+                        ],
+                        child: _StutterSelectFace(
+                          label: StutterFxPanel._labelForBeats(rateBeats),
+                          accent: accent,
+                        ),
+                      )
+                    : Center(
+                        child: Text(
+                          '${rateMs.round()} ms',
+                          maxLines: 1,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: Colors.white70,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            height: 1,
+                          ),
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StutterMiniToggle extends StatelessWidget {
+  const _StutterMiniToggle({
+    required this.label,
+    required this.active,
+    required this.accent,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool active;
+  final Color accent;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: active
+              ? accent.withValues(alpha: 0.20)
+              : Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 3),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: active ? accent : Colors.white54,
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                height: 1,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StutterSelectFace extends StatelessWidget {
+  const _StutterSelectFace({
+    required this.label,
+    required this.accent,
+  });
+
+  final String label;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: accent,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              height: 1,
+            ),
+          ),
+          const SizedBox(width: 2),
+          Icon(Icons.keyboard_arrow_down_rounded, color: accent, size: 14),
+        ],
+      ),
+    );
+  }
+}
+
 class _StutterHoldButton extends StatefulWidget {
   const _StutterHoldButton({
     required this.active,
@@ -1141,7 +1428,6 @@ class _StutterHoldButtonState extends State<_StutterHoldButton>
 
   void _handleTap() {
     if (widget.linkModeActive) {
-      widget.onAutomationLinkTap?.call();
       return;
     }
     widget.onTap();
@@ -1149,14 +1435,17 @@ class _StutterHoldButtonState extends State<_StutterHoldButton>
 
   void _handleLongPress() {
     if (widget.linkModeActive) {
+      HapticFeedback.mediumImpact();
       widget.onAutomationLinkTap?.call();
     } else if (!widget.connectModeActive) {
+      HapticFeedback.mediumImpact();
       widget.onAutomateRequest?.call();
     }
   }
 
   void _handleLongPressStart(LongPressStartDetails details) {
     if (!widget.connectModeActive) return;
+    HapticFeedback.mediumImpact();
     _pulseController.stop();
     _dragStartY = details.localPosition.dy;
     setState(() {
@@ -1167,9 +1456,7 @@ class _StutterHoldButtonState extends State<_StutterHoldButton>
 
   void _handleLongPressMove(LongPressMoveUpdateDetails details) {
     if (!_assignmentMode) return;
-    const sensitivity = 200.0;
-    final amount = (-(details.localPosition.dy - _dragStartY) / sensitivity)
-        .clamp(-1.0, 1.0);
+    final amount = details.localPosition.dy <= _dragStartY ? 1.0 : -1.0;
     setState(() => _assignmentAmount = amount);
   }
 
@@ -1208,50 +1495,80 @@ class _StutterHoldButtonState extends State<_StutterHoldButton>
             builder: (context, child) {
               final pulseAlpha = _pulseActive ? _pulseAnimation.value : 0.0;
               final fill = widget.active
-                  ? widget.accent.withValues(alpha: 0.24)
-                  : Colors.white.withValues(alpha: 0.05);
+                  ? widget.accent.withValues(alpha: 0.18)
+                  : const Color(0xFF12121A);
               final stroke = widget.active
-                  ? widget.accent.withValues(alpha: 0.95)
-                  : Colors.white.withValues(alpha: 0.18);
+                  ? widget.accent.withValues(alpha: 0.85)
+                  : Colors.white.withValues(alpha: 0.11);
               return SizedBox(
                 width: DeviceStripMetrics.dynamicsFxKnobColumnWidth,
-                height: 52,
+                height: 50,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     color: Color.alphaBlend(
                       widget.accent.withValues(alpha: pulseAlpha),
                       fill,
                     ),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(7),
                     border: Border.all(color: stroke, width: 1.2),
+                    boxShadow: widget.active
+                        ? [
+                            BoxShadow(
+                              color: widget.accent.withValues(alpha: 0.14),
+                              blurRadius: 10,
+                            ),
+                          ]
+                        : null,
                   ),
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            widget.active
-                                ? Icons.pause_rounded
-                                : Icons.play_arrow_rounded,
-                            color:
-                                widget.active ? widget.accent : Colors.white70,
-                            size: 18,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            widget.active ? 'On' : 'Off',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: widget.active
-                                  ? widget.accent
-                                  : Colors.white60,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              height: 1,
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(7, 7, 7, 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 7,
+                                  height: 7,
+                                  decoration: BoxDecoration(
+                                    color: widget.active
+                                        ? widget.accent
+                                        : Colors.white24,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 5),
+                                Expanded(
+                                  child: Text(
+                                    'HOLD',
+                                    maxLines: 1,
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: widget.active
+                                          ? widget.accent
+                                          : Colors.white54,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w900,
+                                      height: 1,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
+                            const Spacer(),
+                            Container(
+                              height: 3,
+                              decoration: BoxDecoration(
+                                color: widget.active
+                                    ? widget.accent
+                                    : Colors.white.withValues(alpha: 0.16),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       if (widget.modulationActive || _assignmentMode)
                         Positioned(

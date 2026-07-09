@@ -9,6 +9,7 @@ class CompactFxPage extends StatelessWidget {
   const CompactFxPage({
     super.key,
     this.preview,
+    this.previewHeight,
     this.expandPreview = false,
     this.header,
     required this.rows,
@@ -16,6 +17,7 @@ class CompactFxPage extends StatelessWidget {
   });
 
   final Widget? preview;
+  final double? previewHeight;
   final bool expandPreview;
   final Widget? header;
   final List<Widget> rows;
@@ -39,7 +41,10 @@ class CompactFxPage extends StatelessWidget {
                 ),
               )
             else
-              DevicePreviewFrame(child: preview!),
+              DevicePreviewFrame(
+                height: previewHeight ?? DevicePanelTheme.previewHeroHeight,
+                child: preview!,
+              ),
             const SizedBox(height: DevicePanelTheme.sectionGap),
           ],
           if (header != null) ...[

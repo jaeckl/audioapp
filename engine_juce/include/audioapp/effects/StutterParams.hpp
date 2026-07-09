@@ -7,6 +7,8 @@ namespace audioapp {
 struct StutterParams {
     double trigger = 0.0;
     double captureMs = 500.0;
+    double rateSync = 1.0;
+    double rateBeats = 0.25;
     double rateMs = 125.0;
     double windowMs = 80.0;
     double position = 0.0;
@@ -20,6 +22,8 @@ struct StutterParams {
     void clamp() {
         trigger = juce::jlimit(0.0, 1.0, trigger);
         captureMs = juce::jlimit(1.0, 4000.0, captureMs);
+        rateSync = juce::jlimit(0.0, 1.0, rateSync);
+        rateBeats = juce::jlimit(0.03125, 4.0, rateBeats);
         rateMs = juce::jlimit(1.0, 5000.0, rateMs);
         windowMs = juce::jlimit(1.0, 5000.0, windowMs);
         position = juce::jlimit(0.0, 1.0, position);
