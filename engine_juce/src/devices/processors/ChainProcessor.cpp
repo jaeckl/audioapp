@@ -8,7 +8,8 @@ void ChainProcessor::initParams(const DeviceVariantParams& params) noexcept {
     DeviceProcessor::initParams(params);
     playback_ = std::get<ChainParams>(params).playback;
     try {
-        arena_ = std::make_unique<ProcessorArena>();
+        arena_ = std::make_unique<ProcessorArena>(
+            playback_ ? playback_->deviceCount : 1);
         if (playback_) buildProcessorChain(playback_->devices, playback_->deviceCount, *arena_);
     } catch (...) { arena_.reset(); }
 }

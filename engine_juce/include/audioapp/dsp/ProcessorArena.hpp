@@ -2,6 +2,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <algorithm>
+#include <memory>
 #include <new>
 #include <type_traits>
 
@@ -18,7 +20,13 @@ static constexpr size_t kMaxDeviceStorage = kMaxDevicesPerTrack * kMaxProcessorS
 
 class ProcessorArena {
 public:
-    ProcessorArena() noexcept = default;
+    explicit ProcessorArena(int maxDevices = kMaxDevicesPerTrack)
+        : capacity_(std::clamp(maxDevices, 1, kMaxDevicesPerTrack)),
+          storage_(std::make_unique<char[]>(
+              static_cast<size_t>(capacity_) * kMaxProcessorSize)),
+          destructors_(std::make_unique<Destructor[]>(
+              static_cast<size_t>(capacity_))) {}
+
     ~ProcessorArena() { reset(); }
 
     template<typename T, typename... Args>
@@ -27,8 +35,8 @@ public:
                       "Processor subclass exceeds kMaxProcessorSize");
         static_assert(std::is_base_of_v<DeviceProcessor, T>,
                       "T must derive from DeviceProcessor");
-        if (size_ >= kMaxDevicesPerTrack) return nullptr;
-        void* ptr = storage_ + size_ * kMaxProcessorSize;
+        if (size_ >= capacity_) return nullptr;
+        void* ptr = storage_.get() + size_ * kMaxProcessorSize;
         auto* proc = ::new (ptr) T(std::forward<Args>(args)...);
         destructors_[size_] = [](void* object) noexcept {
             static_cast<DeviceProcessor*>(static_cast<T*>(object))->~DeviceProcessor();
@@ -40,25 +48,28 @@ public:
     DeviceProcessor* get(int index) const noexcept {
         if (index < 0 || index >= size_) return nullptr;
         return reinterpret_cast<DeviceProcessor*>(
-            const_cast<char*>(storage_) + index * kMaxProcessorSize);
+            storage_.get() + index * kMaxProcessorSize);
     }
 
     int size() const noexcept { return size_; }
+    int capacity() const noexcept { return capacity_; }
 
     void reset() noexcept {
         while (size_ > 0) {
             --size_;
             if (destructors_[size_] != nullptr) {
-                destructors_[size_](storage_ + size_ * kMaxProcessorSize);
+                destructors_[size_](
+                    storage_.get() + size_ * kMaxProcessorSize);
                 destructors_[size_] = nullptr;
             }
         }
     }
 
 private:
-    alignas(kProcessorAlignment) char storage_[kMaxDeviceStorage]{};
     using Destructor = void (*)(void*) noexcept;
-    Destructor destructors_[kMaxDevicesPerTrack]{};
+    int capacity_ = kMaxDevicesPerTrack;
+    std::unique_ptr<char[]> storage_;
+    std::unique_ptr<Destructor[]> destructors_;
     int size_ = 0;
 };
 

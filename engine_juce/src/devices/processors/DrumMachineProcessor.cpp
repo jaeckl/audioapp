@@ -19,7 +19,7 @@ void DrumMachineProcessor::initParams(const DeviceVariantParams& params) noexcep
             PadRuntime runtime;
             runtime.note = note;
             runtime.padIndex = note;
-            runtime.arena = std::make_unique<ProcessorArena>();
+            runtime.arena = std::make_unique<ProcessorArena>(pad.deviceCount);
             buildProcessorChain(pad.devices, pad.deviceCount, *runtime.arena);
             pads_.push_back(std::move(runtime));
         }
