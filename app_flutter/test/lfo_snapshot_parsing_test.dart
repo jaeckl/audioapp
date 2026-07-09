@@ -56,6 +56,7 @@ void main() {
         'attackCurve': 0.3,
         'decayCurve': 0.7,
         'releaseCurve': 0.2,
+        'noteFollow': 1,
       };
       final lfo = LfoSnapshot.fromMap(map);
 
@@ -72,6 +73,7 @@ void main() {
       expect(lfo.decayCurve, 0.7);
       expect(lfo.releaseCurve, 0.2);
       expect(lfo.analogMode, 0);
+      expect(lfo.noteFollow, 1);
       expect(lfo.polarity, 0); // envelope polarity always defaults to 0
     });
 

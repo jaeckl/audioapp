@@ -198,6 +198,7 @@ void mixSamplerMidiNotesBlock(float* monoOut,
                     applyPerNoteCommonGain(perFramePanelGain != nullptr ? perFramePanelGain[frame] : 1.0f,
                                            modulationDeviceIndex,
                                            elapsedSeconds,
+                                           noteDurationSec,
                                            key,
                                            evalCtx,
                                            *instMod);

@@ -141,6 +141,7 @@ void mixSnareMidiNotesBlock(float* monoOut,
             panelGain = applyPerNoteCommonGain(panelGain,
                                                deviceIndex,
                                                activeElapsed,
+                                               -1.0,
                                                key,
                                                evalCtx,
                                                *instMod);

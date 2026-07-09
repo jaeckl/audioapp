@@ -114,6 +114,7 @@ void mixCymbalMidiNotesBlockStereo(float* trackLeftOut,
             gain = audioapp::applyPerNoteCommonGain(gain,
                                                     deviceIndex,
                                                     activeElapsed,
+                                                    -1.0,
                                                     key,
                                                     evalCtx,
                                                     *instMod);

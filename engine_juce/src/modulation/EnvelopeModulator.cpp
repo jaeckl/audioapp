@@ -34,7 +34,8 @@ float EnvelopeModulator::evaluate(double playheadBeat, int bpm,
     return evaluateOnNoteRetrigger(playheadSeconds + secondsWithinBlock, retriggerGeneration);
 }
 
-float EnvelopeModulator::levelAtElapsed(double elapsedSeconds) const noexcept {
+float EnvelopeModulator::levelAtElapsed(double elapsedSeconds,
+                                        double noteDurationSeconds) const noexcept {
     if (elapsedSeconds <= 0.0) {
         return 0.0f;
     }
@@ -51,6 +52,18 @@ float EnvelopeModulator::levelAtElapsed(double elapsedSeconds) const noexcept {
     const bool hasSustain = (curve != static_cast<int>(EnvelopeCurve::Adr));
     const bool hasHold = (curve == static_cast<int>(EnvelopeCurve::Ahdsr));
     const bool hasDecay = (curve != static_cast<int>(EnvelopeCurve::Asr));
+    const bool followsNoteOff = params_.noteFollow != 0 && noteDurationSeconds >= 0.0;
+
+    if (followsNoteOff && elapsedSeconds >= noteDurationSeconds) {
+        const double releaseElapsed = elapsedSeconds - noteDurationSeconds;
+        const float releaseStart = levelAtElapsed(noteDurationSeconds, -1.0);
+        const float pct = release > 0.0f
+            ? std::min(1.0f, static_cast<float>(releaseElapsed) / release)
+            : 1.0f;
+        const float curveAmt = params_.analogMode ? 0.2f : params_.releaseCurve;
+        const float eased = easeCurve(pct, curveAmt);
+        return releaseStart * (1.0f - eased);
+    }
 
     if (t < delay) {
         return 0.0f;
@@ -203,8 +216,9 @@ float EnvelopeModulator::evaluateOnNoteRetrigger(double absoluteSeconds,
     return runtime_.level;
 }
 
-float EnvelopeModulator::evaluateOnNoteElapsed(double noteElapsedSeconds) const noexcept {
-    return levelAtElapsed(noteElapsedSeconds);
+float EnvelopeModulator::evaluateOnNoteElapsed(double noteElapsedSeconds,
+                                               double noteDurationSeconds) const noexcept {
+    return levelAtElapsed(noteElapsedSeconds, noteDurationSeconds);
 }
 
 } // namespace audioapp

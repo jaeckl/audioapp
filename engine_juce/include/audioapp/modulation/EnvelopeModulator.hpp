@@ -25,7 +25,8 @@ public:
 
     bool usesPerNoteClock() const noexcept override { return true; }
 
-    float evaluateOnNoteElapsed(double noteElapsedSeconds) const noexcept;
+    float evaluateOnNoteElapsed(double noteElapsedSeconds,
+                                double noteDurationSeconds = -1.0) const noexcept;
 
     float evaluate(double playheadBeat, int bpm,
                    double secondsWithinBlock,
@@ -34,7 +35,8 @@ public:
                    double noteElapsedSeconds) noexcept override;
 
     /// Stateless ADR/ADSR envelope level for `elapsedSeconds` since note on.
-    float levelAtElapsed(double elapsedSeconds) const noexcept;
+    float levelAtElapsed(double elapsedSeconds,
+                         double noteDurationSeconds = -1.0) const noexcept;
 
     void updateParams(const ModulatorParams& params) noexcept override {
         params_ = std::get<EnvelopeParams>(params);

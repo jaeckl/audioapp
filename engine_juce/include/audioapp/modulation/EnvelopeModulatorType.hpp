@@ -26,6 +26,7 @@ public:
         p.releaseCurve = 0.5f;
         p.analogMode = 0;
         p.curveType = 0; // ADSR
+        p.noteFollow = 0;
         return p;
     }
 
@@ -41,6 +42,7 @@ public:
         if (paramId == "decayCurve") { p.decayCurve = std::clamp(value, 0.0f, 1.0f); return true; }
         if (paramId == "releaseCurve") { p.releaseCurve = std::clamp(value, 0.0f, 1.0f); return true; }
         if (paramId == "analogMode") { p.analogMode = (value >= 0.5f) ? 1 : 0; return true; }
+        if (paramId == "noteFollow") { p.noteFollow = (value >= 0.5f) ? 1 : 0; return true; }
         if (paramId == "curveType") { p.curveType = std::clamp(static_cast<int>(value), 0, 3); return true; }
         return false;
     }
@@ -64,6 +66,7 @@ public:
         obj->setProperty("decayCurve", static_cast<double>(p.decayCurve));
         obj->setProperty("releaseCurve", static_cast<double>(p.releaseCurve));
         obj->setProperty("analogMode", p.analogMode);
+        obj->setProperty("noteFollow", p.noteFollow);
         return juce::var(obj);
     }
 
@@ -89,6 +92,7 @@ public:
             p.decayCurve = readFloat("decayCurve", 0.5f);
             p.releaseCurve = readFloat("releaseCurve", 0.5f);
             p.analogMode = readInt("analogMode", 0);
+            p.noteFollow = readInt("noteFollow", 0);
         }
         return p;
     }

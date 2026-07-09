@@ -122,6 +122,8 @@ void OscillatorProcessor::process(AudioBlock& block, ProcessContext& ctx) noexce
             const float panelGain = applyPerNoteCommonGain(ctx.scratch.perFrameGain[frame],
                                                            di,
                                                            elapsedSec,
+                                                           activeNote->noteDurationBeats * 60.0 /
+                                                               static_cast<double>(std::max(ctx.bpm, 1)),
                                                            key,
                                                            evalCtx,
                                                            *instModPtr);

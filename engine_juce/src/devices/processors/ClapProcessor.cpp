@@ -108,6 +108,7 @@ void mixClapMidiNotesBlock(float* monoOut,
             panelGain = audioapp::applyPerNoteCommonGain(panelGain,
                                                          deviceIndex,
                                                          activeElapsed,
+                                                         -1.0,
                                                          key,
                                                          evalCtx,
                                                          *instMod);

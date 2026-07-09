@@ -140,6 +140,8 @@ class EnvelopePropertiesPanel extends StatelessWidget {
           },
         ),
         const SizedBox(width: 6),
+        _noteFollowToggle(),
+        const SizedBox(width: 6),
         Text(
           'Mod ${mod.id}',
           style: theme.textTheme.labelSmall?.copyWith(
@@ -149,6 +151,38 @@ class EnvelopePropertiesPanel extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _noteFollowToggle() {
+    final enabled = mod.noteFollow != 0;
+    return Tooltip(
+      message: 'Note follow',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(5),
+        onTap: () => onUpdate('noteFollow', enabled ? 0.0 : 1.0),
+        child: Container(
+          height: 24,
+          padding: const EdgeInsets.symmetric(horizontal: 7),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: enabled ? accent.withValues(alpha: 0.18) : Colors.white10,
+            borderRadius: BorderRadius.circular(5),
+            border: Border.all(
+              color: enabled ? accent : Colors.white24,
+              width: 1,
+            ),
+          ),
+          child: Text(
+            'NF',
+            style: TextStyle(
+              color: enabled ? accent : Colors.white54,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ),
     );
   }
 

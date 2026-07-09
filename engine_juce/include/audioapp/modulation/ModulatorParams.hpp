@@ -35,6 +35,7 @@ struct EnvelopeParams {
     float releaseCurve = 0.5f;
     int curveType = 0;         // EnvelopeCurve enum: 0=ADSR, 1=ASR, 2=ADR, 3=AHDSR
     int analogMode = 0;        // 0=digital (adjustable curves), 1=analog (fixed RC-style curves)
+    int noteFollow = 0;        // 1 = release follows note-off / MIDI note end
 };
 
 /// Random generator (sample & hold) parameters.

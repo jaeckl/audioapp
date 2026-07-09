@@ -97,6 +97,7 @@ float evaluateModulatorForNote(IModulator* mod,
                                int modPlaybackIndex,
                                const NoteModKey& key,
                                double noteElapsedSeconds,
+                               double noteDurationSeconds,
                                const ModulationEvalContext& ctx,
                                PerNoteModCache& cache) noexcept {
     if (mod == nullptr || noteElapsedSeconds < 0.0) {
@@ -108,7 +109,8 @@ float evaluateModulatorForNote(IModulator* mod,
 
     switch (static_cast<ModulatorType>(mod->modulatorType())) {
     case ModulatorType::Envelope:
-        return static_cast<EnvelopeModulator*>(mod)->evaluateOnNoteElapsed(noteElapsedSeconds);
+        return static_cast<EnvelopeModulator*>(mod)->evaluateOnNoteElapsed(
+            noteElapsedSeconds, noteDurationSeconds);
     case ModulatorType::Lfo:
         return static_cast<LfoModulator*>(mod)->evaluateOnNoteElapsed(noteElapsedSeconds);
     case ModulatorType::Curve:
@@ -138,6 +140,7 @@ float evaluateModulatorForNote(IModulator* mod,
 float applyPerNoteCommonGain(float baseGain,
                              uint16_t deviceIndex,
                              double noteElapsedSeconds,
+                             double noteDurationSeconds,
                              const NoteModKey& key,
                              const ModulationEvalContext& ctx,
                              const InstrumentModulationContext& modCtx) noexcept {
@@ -158,7 +161,7 @@ float applyPerNoteCommonGain(float baseGain,
             continue;
         }
         const float lfoOut = evaluateModulatorForNote(
-            mod, edge.lfoId, key, noteElapsedSeconds, ctx, *modCtx.noteCache);
+            mod, edge.lfoId, key, noteElapsedSeconds, noteDurationSeconds, ctx, *modCtx.noteCache);
         gain = std::clamp(gain + edge.amount * lfoOut, 0.0f, 1.0f);
     }
     return gain;
@@ -167,6 +170,7 @@ float applyPerNoteCommonGain(float baseGain,
 float applyPerNoteCommonPan(float basePan,
                             uint16_t deviceIndex,
                             double noteElapsedSeconds,
+                            double noteDurationSeconds,
                             const NoteModKey& key,
                             const ModulationEvalContext& ctx,
                             const InstrumentModulationContext& modCtx) noexcept {
@@ -187,7 +191,7 @@ float applyPerNoteCommonPan(float basePan,
             continue;
         }
         const float lfoOut = evaluateModulatorForNote(
-            mod, edge.lfoId, key, noteElapsedSeconds, ctx, *modCtx.noteCache);
+            mod, edge.lfoId, key, noteElapsedSeconds, noteDurationSeconds, ctx, *modCtx.noteCache);
         pan = std::clamp(pan + edge.amount * lfoOut, 0.0f, 1.0f);
     }
     return pan;
@@ -229,6 +233,7 @@ void applyPerNoteDspModulation(DeviceVariantParams& params,
                                DeviceNodeKind kind,
                                uint16_t deviceIndex,
                                double noteElapsedSeconds,
+                               double noteDurationSeconds,
                                const NoteModKey& key,
                                const ModulationEvalContext& ctx,
                                const InstrumentModulationContext& modCtx) noexcept {
@@ -252,7 +257,7 @@ void applyPerNoteDspModulation(DeviceVariantParams& params,
             continue;
         }
         const float lfoOut = evaluateModulatorForNote(
-            mod, edge.lfoId, key, noteElapsedSeconds, ctx, *modCtx.noteCache);
+            mod, edge.lfoId, key, noteElapsedSeconds, noteDurationSeconds, ctx, *modCtx.noteCache);
         const float modAmount = edge.amount * lfoOut;
         std::visit([&](auto& p) { DeviceChainAutomationModulation::applyModulation(p, modAmount, pid); },
                    params);

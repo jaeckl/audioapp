@@ -547,6 +547,7 @@ class LfoSnapshot {
     this.decayCurve = 0.5,
     this.releaseCurve = 0.5,
     this.analogMode = 0,
+    this.noteFollow = 0,
     this.morph = 0.0,
     this.spread = 0.5,
     this.smoothing = 0.0,
@@ -581,6 +582,7 @@ class LfoSnapshot {
   final double decayCurve;
   final double releaseCurve;
   final int analogMode;
+  final int noteFollow;
   final double morph;
   final double spread;
   final double smoothing;
@@ -620,6 +622,7 @@ class LfoSnapshot {
         decayCurve: (map['decayCurve'] as num?)?.toDouble() ?? 0.5,
         releaseCurve: (map['releaseCurve'] as num?)?.toDouble() ?? 0.5,
         analogMode: (map['analogMode'] as num?)?.toInt() ?? 0,
+        noteFollow: (map['noteFollow'] as num?)?.toInt() ?? 0,
       );
     }
     if (typeStr == 'sequencer') {
@@ -692,6 +695,7 @@ class LfoSnapshot {
       decayCurve: (map['decayCurve'] as num?)?.toDouble() ?? 0.5,
       releaseCurve: (map['releaseCurve'] as num?)?.toDouble() ?? 0.5,
       analogMode: (map['analogMode'] as num?)?.toInt() ?? 0,
+      noteFollow: (map['noteFollow'] as num?)?.toInt() ?? 0,
       morph: (map['morph'] as num?)?.toDouble() ?? 0.0,
       spread: (map['spread'] as num?)?.toDouble() ?? 0.5,
       smoothing: (map['smoothing'] as num?)?.toDouble() ?? 0.0,
@@ -748,6 +752,8 @@ class LfoSnapshot {
         return copyWith(releaseCurve: value);
       case 'analogMode':
         return copyWith(analogMode: value.round());
+      case 'noteFollow':
+        return copyWith(noteFollow: value.round());
       case 'morph':
         return copyWith(morph: value);
       case 'spread':
@@ -843,6 +849,7 @@ class LfoSnapshot {
     double? decayCurve,
     double? releaseCurve,
     int? analogMode,
+    int? noteFollow,
     double? morph,
     double? spread,
     double? smoothing,
@@ -875,6 +882,7 @@ class LfoSnapshot {
       decayCurve: decayCurve ?? this.decayCurve,
       releaseCurve: releaseCurve ?? this.releaseCurve,
       analogMode: analogMode ?? this.analogMode,
+      noteFollow: noteFollow ?? this.noteFollow,
       morph: morph ?? this.morph,
       spread: spread ?? this.spread,
       smoothing: smoothing ?? this.smoothing,

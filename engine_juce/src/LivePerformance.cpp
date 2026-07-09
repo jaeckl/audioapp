@@ -249,8 +249,14 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
             evalCtx.playheadSeconds = static_cast<double>(sampleIndex) / sampleRate;
             evalCtx.frameIndex = frame;
             evalCtx.numFrames = numFrames;
+            double perNoteDuration = 3600.0;
+            if (voice.releasing && voice.releaseSample > voice.startSample) {
+                perNoteDuration =
+                    static_cast<double>(voice.releaseSample - voice.startSample) / sampleRate;
+            }
             float perNoteGain = applyPerNoteCommonGain(
-                inst.gain, inst.deviceIndex, perNoteElapsed, noteKey, evalCtx, modCtx);
+                inst.gain, inst.deviceIndex, perNoteElapsed, perNoteDuration,
+                noteKey, evalCtx, modCtx);
 
             if (inst.kind == LiveInstrumentKind::KickGenerator) {
                 auto& kv = voice.kick;
@@ -371,7 +377,7 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                 baseParams.gain = 1.0f;
                 DeviceVariantParams variant = baseParams;
                 applyPerNoteDspModulation(variant, DeviceNodeKind::PhaseModSynth,
-                                          inst.deviceIndex, secElapsed, noteKey,
+                                          inst.deviceIndex, secElapsed, perNoteDuration, noteKey,
                                           evalCtx, modCtx);
                 const auto params = std::get<PhaseModSynthParams>(variant);
                 float voiceMix = 0.0f;
@@ -399,7 +405,7 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                 baseParams.gain = 1.0f;
                 DeviceVariantParams variant = baseParams;
                 applyPerNoteDspModulation(variant, DeviceNodeKind::WavetableSynth,
-                                          inst.deviceIndex, elapsedSec, noteKey,
+                                          inst.deviceIndex, elapsedSec, perNoteDuration, noteKey,
                                           evalCtx, modCtx);
                 const auto params = std::get<WavetableSynthParams>(variant);
                 const float ampAttackSec = adsrNormalizedToSeconds(params.ampAttack, 2.0f);
@@ -464,7 +470,7 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                 auto params = inst.granular;
                 DeviceVariantParams variant = params;
                 applyPerNoteDspModulation(variant, DeviceNodeKind::Granular,
-                                          inst.deviceIndex, elapsed, noteKey,
+                                          inst.deviceIndex, elapsed, perNoteDuration, noteKey,
                                           evalCtx, modCtx);
                 params = std::get<GranularParams>(variant);
                 if (params.pcm == nullptr || params.frameCount < 4) {
@@ -588,7 +594,7 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                                           inst.kind == LiveInstrumentKind::BassSynth
                                               ? DeviceNodeKind::BassSynth
                                               : DeviceNodeKind::SubtractiveSynth,
-                                          inst.deviceIndex, perNoteElapsed, noteKey,
+                                          inst.deviceIndex, perNoteElapsed, perNoteDuration, noteKey,
                                           evalCtx, modCtx);
                 const auto params = std::get<SubtractiveSynthParams>(variant);
                 const float ampAttackSec = adsrNormalizedToSeconds(params.ampAttack, 2.0f);
