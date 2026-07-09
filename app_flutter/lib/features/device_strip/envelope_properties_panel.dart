@@ -187,15 +187,19 @@ class EnvelopePropertiesPanel extends StatelessWidget {
   }
 
   Widget _envelopeKnobs() {
+    final knobs = <Widget>[
+      _envKnob('Atk', mod.attack, (v) => onUpdate('attack', v)),
+      if (mod.curveType == 3)
+        _envKnob('Hold', mod.hold, (v) => onUpdate('hold', v)),
+      if (mod.curveType != 1)
+        _envKnob('Dec', mod.decay, (v) => onUpdate('decay', v)),
+      if (mod.curveType != 2)
+        _envKnob('Sus', mod.sustain, (v) => onUpdate('sustain', v)),
+      _envKnob('Rel', mod.release, (v) => onUpdate('release', v)),
+    ];
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _envKnob('Atk', mod.attack, (v) => onUpdate('attack', v)),
-        _envKnob('Hold', mod.hold, (v) => onUpdate('hold', v)),
-        _envKnob('Dec', mod.decay, (v) => onUpdate('decay', v)),
-        _envKnob('Sus', mod.sustain, (v) => onUpdate('sustain', v)),
-        _envKnob('Rel', mod.release, (v) => onUpdate('release', v)),
-      ],
+      children: knobs,
     );
   }
 
