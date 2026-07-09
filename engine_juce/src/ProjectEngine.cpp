@@ -2255,9 +2255,11 @@ bool ProjectEngine::assignModulation(int lfoId, const std::string& deviceId,
     return result;
 }
 
-bool ProjectEngine::removeModulation(int lfoId, const std::string& paramId) {
+bool ProjectEngine::removeModulation(int lfoId,
+                                     const std::string& deviceId,
+                                     const std::string& paramId) {
     const juce::ScopedWriteLock lock(mutex_);
-    const bool result = modulationGraph_.removeModulation(lfoId, paramId);
+    const bool result = modulationGraph_.removeModulation(lfoId, deviceId, paramId);
     if (result) {
         rebuildModEdgesLocked();
     }

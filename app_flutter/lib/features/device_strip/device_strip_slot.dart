@@ -451,7 +451,26 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   }
 
   void _onBypassModulationAssign(double amount) {
-    _onModulationForDevice?.call('bypass', amount);
+    final lfoId = _connectModeLfo;
+    if (lfoId == null) return;
+    final existing = _localModEdges.any((edge) =>
+        edge.lfoId == lfoId &&
+        edge.deviceId == widget.device.id &&
+        edge.paramId == 'bypass');
+    if (existing) {
+      _onBridgeCall('removeModulation', {
+        'lfoId': lfoId,
+        'deviceId': widget.device.id,
+        'paramId': 'bypass',
+      });
+      return;
+    }
+    _onBridgeCall('assignModulation', {
+      'lfoId': lfoId,
+      'deviceId': widget.device.id,
+      'paramId': 'bypass',
+      'amount': 1.0,
+    });
   }
 
   int _initialTabIndex() {
@@ -702,6 +721,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                             GestureDetector(
                               onTap: () => _onBridgeCall('removeModulation', {
                                 'lfoId': edge.lfoId,
+                                'deviceId': edge.deviceId,
                                 'paramId': edge.paramId,
                               }),
                               child: SizedBox(

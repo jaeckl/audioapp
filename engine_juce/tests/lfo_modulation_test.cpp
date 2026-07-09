@@ -157,7 +157,7 @@ public:
             }
             expectEquals(edgeCount, 2);
 
-            expect(host.removeModulation(lfoId1, "gain"));
+            expect(host.removeModulation(lfoId1, deviceId, "gain"));
 
             snapshot = audioapp::test::readProjectData(host);
             expectEquals(static_cast<int>(snapshot.modEdges.size()), 1);

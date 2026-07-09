@@ -158,7 +158,7 @@ bool ModulationGraph::assignModulation(int lfoId, const std::string& deviceId,
                                        const std::string& paramId, float amount) {
     if (!hasLfo(lfoId)) return false;
     for (auto& edge : modEdges_) {
-        if (edge.lfoId == lfoId && edge.paramId == paramId) {
+        if (edge.lfoId == lfoId && edge.deviceId == deviceId && edge.paramId == paramId) {
             edge.deviceId = deviceId;
             edge.amount = std::clamp(amount, -1.0f, 1.0f);
             return true;
@@ -173,9 +173,13 @@ bool ModulationGraph::assignModulation(int lfoId, const std::string& deviceId,
     return true;
 }
 
-bool ModulationGraph::removeModulation(int lfoId, const std::string& paramId) {
+bool ModulationGraph::removeModulation(int lfoId,
+                                       const std::string& deviceId,
+                                       const std::string& paramId) {
     for (auto it = modEdges_.begin(); it != modEdges_.end(); ++it) {
-        if (it->lfoId == lfoId && it->paramId == paramId) {
+        if (it->lfoId == lfoId &&
+            (deviceId.empty() || it->deviceId == deviceId) &&
+            it->paramId == paramId) {
             modEdges_.erase(it);
             return true;
         }

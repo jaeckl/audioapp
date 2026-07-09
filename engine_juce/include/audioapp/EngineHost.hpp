@@ -197,7 +197,7 @@ public:
     bool updateLfoParam(int lfoId, const std::string& param, float value);
     bool batchUpdateLfoParams(int lfoId, const std::vector<std::pair<std::string, float>>& params);
     bool assignModulation(int lfoId, const std::string& deviceId, const std::string& paramId, float amount);
-    bool removeModulation(int lfoId, const std::string& paramId);
+    bool removeModulation(int lfoId, const std::string& deviceId, const std::string& paramId);
     bool applySubtractiveSynthPreset(
         const std::string& deviceId,
         const std::vector<std::pair<std::string, float>>& params,

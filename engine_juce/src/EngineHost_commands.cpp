@@ -755,8 +755,8 @@ bool EngineHost::assignModulation(int lfoId, const std::string& deviceId, const 
     return project_->assignModulation(lfoId, deviceId, paramId, amount);
 }
 
-bool EngineHost::removeModulation(int lfoId, const std::string& paramId) {
-    return project_->removeModulation(lfoId, paramId);
+bool EngineHost::removeModulation(int lfoId, const std::string& deviceId, const std::string& paramId) {
+    return project_->removeModulation(lfoId, deviceId, paramId);
 }
 
 bool EngineHost::applySubtractiveSynthPreset(
@@ -2109,8 +2109,9 @@ void EngineHost::registerAllCommands() {
 
     reg.registerCommand("removeModulation", [](const commands::CommandContext& ctx) -> commands::CommandResult {
         const int lfoId = static_cast<int>(static_cast<double>(ctx.args["lfoId"]));
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
         const auto paramId = ctx.args["paramId"].toString().toStdString();
-        if (!ctx.engine.removeModulation(lfoId, paramId))
+        if (!ctx.engine.removeModulation(lfoId, deviceId, paramId))
             return commands::errorResult("modulation_remove_failed");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
         return commands::okWithFullRefresh(snap);

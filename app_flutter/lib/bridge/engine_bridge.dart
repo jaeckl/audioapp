@@ -810,11 +810,16 @@ class EngineBridge {
   Future<ProjectSnapshot> removeModulation({
     required int lfoId,
     required String paramId,
+    String? deviceId,
   }) async {
-    return _invokeForSnapshot('removeModulation', {
+    final args = <String, dynamic>{
       'lfoId': lfoId,
       'paramId': paramId,
-    });
+    };
+    if (deviceId != null) {
+      args['deviceId'] = deviceId;
+    }
+    return _invokeForSnapshot('removeModulation', args);
   }
 
   Future<ProjectSnapshot> applySubtractiveSynthPreset({

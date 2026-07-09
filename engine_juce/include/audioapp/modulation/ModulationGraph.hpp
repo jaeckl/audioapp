@@ -42,7 +42,9 @@ public:
                           const std::string& deviceId,
                           const std::string& paramId,
                           float amount);
-    bool removeModulation(int lfoId, const std::string& paramId);
+    bool removeModulation(int lfoId,
+                          const std::string& deviceId,
+                          const std::string& paramId);
     void removeModulationForDevice(const std::string& deviceId);
     bool hasLfo(int lfoId) const;
     void retriggerOnNote() noexcept;

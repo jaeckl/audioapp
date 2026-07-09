@@ -7,15 +7,16 @@ void main() {
 
   const channel = MethodChannel('com.audioapp.daw/engine');
   final bridge = EngineBridge(channel: channel);
+  Map<dynamic, dynamic>? lastRemoveModulationArgs;
 
   setUp(() {
+    lastRemoveModulationArgs = null;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
       switch (call.method) {
         case 'createLfo':
           final args = call.arguments as Map<dynamic, dynamic>? ?? {};
-          final modulatorType =
-              (args['modulatorType'] as num?)?.toInt() ?? 0;
+          final modulatorType = (args['modulatorType'] as num?)?.toInt() ?? 0;
           final typeStr = modulatorType == 1 ? 'envelope' : 'lfo';
           final baseLfo = <String, dynamic>{
             'id': 1,
@@ -171,6 +172,7 @@ void main() {
           };
         case 'removeModulation':
           final args = call.arguments as Map<dynamic, dynamic>;
+          lastRemoveModulationArgs = args;
           final remLfoId = (args['lfoId'] as num?)?.toInt() ?? 0;
           return {
             'ok': true,
@@ -268,9 +270,11 @@ void main() {
   test('removeModulation removes edge from snapshot', () async {
     final result = await bridge.removeModulation(
       lfoId: 1,
+      deviceId: 'dev-1',
       paramId: 'filterCutoff',
     );
     expect(result.modEdges, isEmpty);
+    expect(lastRemoveModulationArgs?['deviceId'], 'dev-1');
   });
 
   test('createLfo with different modulatorType values', () async {

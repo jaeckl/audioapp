@@ -292,7 +292,7 @@ public:
                 "mod_e2e_t9_with_mod.bin", setup.host, 4.0, 48000.0, 2.0e-4f));
 
             // Remove and re-render
-            expect(setup.host.removeModulation(lfoId, "filterCutoff"));
+            expect(setup.host.removeModulation(lfoId, setup.synthId, "filterCutoff"));
 
             expect(audioapp::test::checkRenderGolden(
                 "mod_e2e_t9_without_mod.bin", setup.host, 4.0, 48000.0, 2.0e-4f));
@@ -437,7 +437,7 @@ public:
             }
             expectEquals(foundEdge, 1);
 
-            expect(setup.host.removeModulation(lfoId, "filterCutoff"));
+            expect(setup.host.removeModulation(lfoId, setup.synthId, "filterCutoff"));
 
             const std::string json2 = setup.host.getProjectFileJson();
             audioapp::ProjectFileData parsed2;
