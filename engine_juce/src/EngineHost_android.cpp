@@ -129,7 +129,7 @@ struct EngineHost::Impl {
         }
 
         AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
-        AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
+        AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_POWER_SAVING);
         AAudioStreamBuilder_setBufferCapacityInFrames(builder, 8192);
         AAudioStreamBuilder_setFramesPerDataCallback(builder, 1024);
         AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_SHARED);
@@ -148,10 +148,6 @@ struct EngineHost::Impl {
         }
 
         sampleRate.store(AAudioStream_getSampleRate(stream), std::memory_order_release);
-        const int32_t requestedCallbackFrames = AAudioStream_getFramesPerDataCallback(stream);
-        if (requestedCallbackFrames > 0) {
-            AAudioStream_setBufferSizeInFrames(stream, requestedCallbackFrames * 2);
-        }
         // Compute per-callback deadline: bufferSize / sampleRate in nanoseconds
         const int32_t actualBufSize = AAudioStream_getBufferSizeInFrames(stream);
         const int32_t framesPerCallback = AAudioStream_getFramesPerDataCallback(stream);
