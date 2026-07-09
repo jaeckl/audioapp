@@ -35,6 +35,7 @@
 namespace audioapp {
 
 struct ProjectFileData;
+struct DeviceChainScratch;
 
 /// Live meter readouts for dynamics devices (gate, compressor, expander, limiter).
 /// Populated by applyLiveDeviceMetersLocked() during snapshot building.
@@ -493,7 +494,8 @@ private:
                                         const float* lfoValues,
                                         int lfoCount,
                                         IModulator* const* modulators,
-                                        uint32_t retriggerGeneration) noexcept;
+                                        uint32_t retriggerGeneration,
+                                        DeviceChainScratch* scratchOverride = nullptr) noexcept;
     bool trackHasActiveSampleAtPlayhead(const TrackPlaybackSnapshot& track, double playheadBeat) const noexcept;
     int selectedTrackPlaybackIndex() const noexcept;
     void syncActiveFrequencyLocked();

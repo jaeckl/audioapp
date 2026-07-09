@@ -3274,7 +3274,8 @@ void ProjectEngine::mixTrackPreGainStereoWithArena(
     const float* lfoValues,
     int lfoCount,
     IModulator* const* modulators,
-    uint32_t retriggerGeneration) noexcept {
+    uint32_t retriggerGeneration,
+    DeviceChainScratch* scratchOverride) noexcept {
     if (trackLeft == nullptr || trackRight == nullptr || numFrames <= 0) return;
 
     constexpr int kMaxFrames = 4096;
@@ -3348,7 +3349,10 @@ void ProjectEngine::mixTrackPreGainStereoWithArena(
         };
     }
 
-    DeviceChainOrchestrator::Context ctx(arena, gProjectScratch);
+    DeviceChainScratch& scratch = scratchOverride != nullptr
+        ? *scratchOverride
+        : gProjectScratch;
+    DeviceChainOrchestrator::Context ctx(arena, scratch);
     ctx.trackLeft = trackLeft;
     ctx.trackRight = trackRight;
     ctx.numFrames = framesToProcess;

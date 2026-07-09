@@ -2,6 +2,7 @@
 #include "audioapp/TrackFreeze.hpp"
 #include "audioapp/TrackFreezeAssetStore.hpp"
 #include "audioapp/ClipContentPlayback.hpp"
+#include "audioapp/DeviceChainScratch.hpp"
 #include "audioapp/DeviceChainOrchestrator.hpp"
 
 #include <algorithm>
@@ -51,16 +52,19 @@ bool ProjectEngine::freezeTrackLocked(Track& track,
     std::vector<float> pcmR(static_cast<size_t>(totalFrames), 0.0f);
     thread_local float blockL[kFreezeRenderBlock];
     thread_local float blockR[kFreezeRenderBlock];
+    thread_local DeviceChainScratch freezeScratch;
     thread_local std::vector<float> lfoValues;
     thread_local std::vector<IModulator*> modulatorPtrs;
 
     const auto& playback = trackPlayback_[trackIndex];
-    auto freezeArena = std::make_unique<ProcessorArena>();
+    auto freezeArena = std::make_unique<ProcessorArena>(
+        std::max(1, playback.trackGainDeviceIndex));
     buildProcessorChain(playback.devices, playback.trackGainDeviceIndex, *freezeArena);
     resetPlaybackStateInArena(*freezeArena);
 
     const int lfoCount = modulationGraph_.lfoPlaybackCount();
     std::vector<bool> relevantLfos(static_cast<size_t>(lfoCount), false);
+    std::vector<bool> perNoteLfos(static_cast<size_t>(lfoCount), false);
     for (int edge = 0; edge < playback.modEdgeCount; ++edge) {
         const int index = static_cast<int>(playback.modEdges[edge].lfoId);
         if (index >= 0 && index < lfoCount) relevantLfos[static_cast<size_t>(index)] = true;
@@ -79,14 +83,12 @@ bool ProjectEngine::freezeTrackLocked(Track& track,
             }
         }
         modulatorPtrs[static_cast<size_t>(i)] = modulator;
+        perNoteLfos[static_cast<size_t>(i)] = modulatorUsesPerNoteClock(modulator);
     }
     const uint32_t retriggerGeneration = modulationGraph_.noteRetriggerGeneration() + 1u;
     lfoValues.resize(static_cast<size_t>(lfoCount) * kFreezeRenderBlock);
 
     const int bpm = transport_.bpm();
-    const double beatsPerFrame =
-        (static_cast<double>(std::max(bpm, 1)) / 60.0) / kFreezeRenderSampleRate;
-    const double samplePeriod = 1.0 / kFreezeRenderSampleRate;
 
     for (int offset = 0; offset < totalFrames; offset += kFreezeRenderBlock) {
         const int frames = std::min(kFreezeRenderBlock, totalFrames - offset);
@@ -103,24 +105,13 @@ bool ProjectEngine::freezeTrackLocked(Track& track,
                 if (mod == nullptr) {
                     continue;
                 }
-                if (!mod->usesPerNoteClock()) {
-                    const float value = mod->evaluate(
-                        beat, bpm, 0.0, playheadSeconds, retriggerGeneration, -1.0);
-                    for (int frame = 0; frame < frames; ++frame) {
-                        lfoValues[static_cast<size_t>(i * frames + frame)] = value;
-                    }
+                if (perNoteLfos[static_cast<size_t>(i)]) {
                     continue;
                 }
+                const float value = mod->evaluate(
+                    beat, bpm, 0.0, playheadSeconds, retriggerGeneration, -1.0);
                 for (int frame = 0; frame < frames; ++frame) {
-                    const double secondsWithinBlock = static_cast<double>(frame) * samplePeriod;
-                    const double frameBeat = beat + static_cast<double>(frame) * beatsPerFrame;
-                    lfoValues[static_cast<size_t>(i * frames + frame)] =
-                        mod->evaluate(frameBeat,
-                                      bpm,
-                                      secondsWithinBlock,
-                                      playheadSeconds,
-                                      retriggerGeneration,
-                                      -1.0);
+                    lfoValues[static_cast<size_t>(i * frames + frame)] = value;
                 }
             }
         }
@@ -136,7 +127,8 @@ bool ProjectEngine::freezeTrackLocked(Track& track,
                                        lfoCount > 0 ? lfoValues.data() : nullptr,
                                        lfoCount,
                                        lfoCount > 0 ? modulatorPtrs.data() : nullptr,
-                                       retriggerGeneration);
+                                       retriggerGeneration,
+                                       &freezeScratch);
         std::memcpy(pcmL.data() + offset, blockL, static_cast<size_t>(frames) * sizeof(float));
         std::memcpy(pcmR.data() + offset, blockR, static_cast<size_t>(frames) * sizeof(float));
     }
