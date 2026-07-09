@@ -170,14 +170,7 @@ void main() {
                       'id': args['clipId'] as String? ?? 'clip-1',
                       'startBeat': 0.0,
                       'lengthBeats': length,
-                      'notes': [
-                        {
-                          'pitch': 60,
-                          'startBeat': 0.0,
-                          'durationBeats': 4.0,
-                          'velocity': 100.0,
-                        },
-                      ],
+                      'notes': [],
                     },
                   ],
                 },
@@ -453,6 +446,7 @@ void main() {
     final snapshot = await bridge.createMidiClip(trackId: 'track-1');
     expect(snapshot.selectedTrack?.midiClips.length, 1);
     expect(snapshot.selectedTrack?.midiClips.first.lengthBeats, 4.0);
+    expect(snapshot.selectedTrack?.midiClips.first.notes, isEmpty);
   });
 
   test('setMidiClipNotes updates notes in snapshot', () async {
@@ -477,7 +471,7 @@ void main() {
     final snapshot =
         await bridge.setClipLength(clipId: 'clip-1', lengthBeats: 2.0);
     expect(snapshot.selectedTrack?.midiClips.first.lengthBeats, 2.0);
-    expect(snapshot.selectedTrack?.midiClips.first.notes.length, 1);
+    expect(snapshot.selectedTrack?.midiClips.first.notes, isEmpty);
     expect(snapshot.selectedTrack?.midiClips.first.kind, ClipContentKind.midi);
   });
 

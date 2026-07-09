@@ -694,46 +694,12 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         startBeat: startBeat,
       );
       final track = snapshot.tracks.firstWhere((t) => t.id == trackId);
-      if (track.midiClips.length > beforeClipCount) {
-        final clip = track.midiClips.last;
-        final defaultPitch = _defaultMidiPitchForTrack(track);
-        if (defaultPitch != null) {
-          snapshot = await widget.bridge.setMidiClipNotes(
-            clipId: clip.id,
-            notes: [
-              MidiNoteSnapshot(
-                pitch: defaultPitch,
-                startBeat: 0,
-                durationBeats: 1,
-                velocity: 100,
-              ),
-            ],
-          );
-        }
-      }
+      if (track.midiClips.length <= beforeClipCount) return;
       await _refreshSnapshot(snapshot);
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
     }
-  }
-
-  int? _defaultMidiPitchForTrack(TrackSnapshot track) {
-    for (final device in track.visibleDevices) {
-      switch (device.type) {
-        case 'kick_generator':
-          return 36;
-        case 'snare_generator':
-          return 38;
-        case 'clap_generator':
-          return 39;
-        case 'cymbal_generator':
-          return 42;
-        case 'crash_generator':
-          return 49;
-      }
-    }
-    return null;
   }
 
   TrackSnapshot? _trackById(String trackId) {

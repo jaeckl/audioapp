@@ -279,17 +279,10 @@ std::string ClipRepository::createMidiClip(const std::string& trackId,
     clip.lengthBeats = lengthBeats > 0.0 ? lengthBeats : 4.0;
     clip.naturalLengthBeats = clip.lengthBeats;
 
-    MidiNote seed;
-    seed.pitch = 60;
-    seed.startBeat = 0.0;
-    seed.durationBeats = 1.0;
-    seed.velocity = 100.0f;
-    clip.notes.push_back(seed);
     MidiClipTake take;
     take.id = clip.id + "-take-1";
     take.name = "Take 1";
     take.lengthBeats = clip.naturalLengthBeats;
-    take.notes.push_back(seed);
     clip.takes.push_back(take);
     MidiClipTakeRegion region;
     region.startBeat = 0.0;
