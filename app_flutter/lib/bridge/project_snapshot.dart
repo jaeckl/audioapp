@@ -127,12 +127,26 @@ class ProjectSnapshot {
   }
 
   DeviceSnapshot? deviceById(String deviceId) {
-    for (final track in tracks) {
-      for (final device in track.devices) {
-        if (device.id == deviceId) {
-          return device;
+    DeviceSnapshot? findInDevices(Iterable<DeviceSnapshot> devices) {
+      for (final device in devices) {
+        if (device.id == deviceId) return device;
+        if (device is ChainDeviceSnapshot) {
+          final child = findInDevices(device.devices);
+          if (child != null) return child;
+        }
+        if (device is DrumMachineDeviceSnapshot) {
+          for (final pad in device.pads) {
+            final child = findInDevices(pad.devices);
+            if (child != null) return child;
+          }
         }
       }
+      return null;
+    }
+
+    for (final track in tracks) {
+      final device = findInDevices(track.devices);
+      if (device != null) return device;
     }
     return null;
   }
@@ -208,6 +222,37 @@ class ProjectSnapshot {
   /// Used when the engine's setDeviceParameter command returns void (no delta/snapshot).
   ProjectSnapshot withDeviceParam(
       String deviceId, String paramId, double value) {
+    DeviceSnapshot updateDevice(DeviceSnapshot device) {
+      if (device.id == deviceId) {
+        return device.withParameter(paramId, value);
+      }
+      if (device is ChainDeviceSnapshot) {
+        return device.copyWith(
+          devices: device.devices.map(updateDevice).toList(growable: false),
+        );
+      }
+      if (device is DrumMachineDeviceSnapshot) {
+        return device.copyWith(
+          pads: device.pads
+              .map(
+                (pad) => DrumPadSnapshot(
+                  note: pad.note,
+                  name: pad.name,
+                  gain: pad.gain,
+                  pan: pad.pan,
+                  muted: pad.muted,
+                  solo: pad.solo,
+                  chokeGroup: pad.chokeGroup,
+                  devices:
+                      pad.devices.map(updateDevice).toList(growable: false),
+                ),
+              )
+              .toList(growable: false),
+        );
+      }
+      return device;
+    }
+
     return ProjectSnapshot(
       bpm: bpm,
       selectedTrackId: selectedTrackId,
@@ -221,10 +266,7 @@ class ProjectSnapshot {
       samples: samples,
       tracks: tracks
           .map((t) => t.copyWith(
-                devices: t.devices
-                    .map((d) =>
-                        d.id == deviceId ? d.withParameter(paramId, value) : d)
-                    .toList(),
+                devices: t.devices.map(updateDevice).toList(growable: false),
               ))
           .toList(),
       lfos: lfos,
