@@ -223,6 +223,8 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
         auto& voice = runtime.voices[vi];
         if (voice.pitch != notes[ni].pitch || voice.startBeat != notes[ni].noteStartBeat ||
             voice.clipStartBeat != notes[ni].clipStartBeat) {
+            const bool glideFromPreviousVoice = glideMs > 0.0f && voice.active != 0;
+            const float previousHz = voice.currentHz;
             std::memset(&voice, 0, sizeof(voice));
             voice.active = 1;
             voice.pitch = notes[ni].pitch;
@@ -230,7 +232,7 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
             voice.clipStartBeat = notes[ni].clipStartBeat;
             voice.velocity = notes[ni].velocity;
             voice.targetHz = subtractiveOscPitchHz(notes[ni].pitch, 0.5f, 0.0f, 0.5f);
-            voice.currentHz = voice.targetHz;
+            voice.currentHz = glideFromPreviousVoice ? previousHz : voice.targetHz;
             voice.noiseSeed = 0.1f + static_cast<float>(notes[ni].pitch) * 0.013f;
         } else {
             voice.active = 1;

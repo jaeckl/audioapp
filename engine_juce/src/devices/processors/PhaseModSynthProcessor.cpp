@@ -184,6 +184,8 @@ void mixPhaseModMidiNotesBlock(float* monoOut,
         auto& voice = runtime.voices[vi];
         if (voice.pitch != notes[ni].pitch || voice.startBeat != notes[ni].noteStartBeat ||
             voice.clipStartBeat != notes[ni].clipStartBeat) {
+            const bool glideFromPreviousVoice = glideMs > 0.0f && voice.active != 0;
+            const float previousHz = voice.currentHz;
             std::memset(&voice, 0, sizeof(voice));
             voice.active = 1;
             voice.pitch = notes[ni].pitch;
@@ -191,7 +193,7 @@ void mixPhaseModMidiNotesBlock(float* monoOut,
             voice.clipStartBeat = notes[ni].clipStartBeat;
             voice.velocity = notes[ni].velocity;
             voice.targetHz = midiNoteToHz(notes[ni].pitch);
-            voice.currentHz = voice.targetHz;
+            voice.currentHz = glideFromPreviousVoice ? previousHz : voice.targetHz;
         } else {
             voice.active = 1;
         }
