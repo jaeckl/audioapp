@@ -14,9 +14,12 @@ class PianoRollGridPainter extends CustomPainter {
     required this.maxPitch,
     required this.pixelsPerBeat,
     required this.rowHeight,
+    required this.gridSettings,
     required this.scaleSettings,
     this.lanes,
   });
+
+  static const double _minSubdivisionPixels = 8;
 
   final double virtualLengthBeats;
   final double clipLengthBeats;
@@ -24,6 +27,7 @@ class PianoRollGridPainter extends CustomPainter {
   final int maxPitch;
   final double pixelsPerBeat;
   final double rowHeight;
+  final PianoRollGridSettings gridSettings;
   final PianoRollScaleSettings scaleSettings;
   final List<MidiLaneDefinition>? lanes;
 
@@ -76,20 +80,54 @@ class PianoRollGridPainter extends CustomPainter {
 
   void _paintVerticalGrid(Canvas canvas, Size size) {
     final barStep = PianoRollMetrics.beatsPerBar.toDouble();
+    final gridStep = visibleGridStepBeats(
+      gridSettings: gridSettings,
+      pixelsPerBeat: pixelsPerBeat,
+    );
 
-    for (var beat = 0.0; beat <= virtualLengthBeats; beat += 1.0) {
+    for (var beat = 0.0; beat <= virtualLengthBeats; beat += gridStep) {
       final x = beat * pixelsPerBeat;
       if (x > size.width) break;
 
-      final isBar = (beat % barStep).abs() < 0.001;
+      final isBar = _isMultipleOf(beat, barStep);
+      final isBeat = _isMultipleOf(beat, 1.0);
       canvas.drawLine(
         Offset(x, 0),
         Offset(x, size.height),
         Paint()
-          ..color = isBar ? PianoRollTheme.gridBar : PianoRollTheme.gridBeat
-          ..strokeWidth = isBar ? 1 : 0.5,
+          ..color = isBar
+              ? PianoRollTheme.gridBar
+              : isBeat
+                  ? PianoRollTheme.gridBeat
+                  : Colors.white.withValues(alpha: 0.035)
+          ..strokeWidth = isBar
+              ? 1
+              : isBeat
+                  ? 0.5
+                  : 0.35,
       );
     }
+  }
+
+  static double visibleGridStepBeats({
+    required PianoRollGridSettings gridSettings,
+    required double pixelsPerBeat,
+  }) {
+    final snapBeats = gridSettings.snapBeats;
+    if (snapBeats <= 0 || pixelsPerBeat <= 0) return 1.0;
+
+    var stepBeats = snapBeats;
+    final barStep = PianoRollMetrics.beatsPerBar.toDouble();
+    while (
+        stepBeats * pixelsPerBeat < _minSubdivisionPixels && stepBeats < 1.0) {
+      stepBeats *= 2;
+    }
+    return stepBeats.clamp(snapBeats, barStep);
+  }
+
+  static bool _isMultipleOf(double value, double step) {
+    final quotient = value / step;
+    return (quotient - quotient.round()).abs() < 0.001;
   }
 
   void _paintKeyRowGuides(Canvas canvas, Size size) {
@@ -167,6 +205,7 @@ class PianoRollGridPainter extends CustomPainter {
         oldDelegate.maxPitch != maxPitch ||
         oldDelegate.pixelsPerBeat != pixelsPerBeat ||
         oldDelegate.rowHeight != rowHeight ||
+        oldDelegate.gridSettings != gridSettings ||
         oldDelegate.scaleSettings != scaleSettings ||
         oldDelegate.lanes != lanes;
   }

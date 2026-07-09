@@ -1159,6 +1159,7 @@ class PianoRollViewportState extends State<PianoRollViewport> {
           maxPitch: widget.maxPitch,
           pixelsPerBeat: _pixelsPerBeat,
           rowHeight: _rowHeight,
+          gridSettings: widget.gridSettings,
           scaleSettings: widget.scaleSettings,
           lanes: widget.laneLayout?.lanes,
         ),
