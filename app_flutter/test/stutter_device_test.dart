@@ -1,5 +1,7 @@
 import 'package:audioapp/bridge/device_snapshot.dart';
 import 'package:audioapp/features/device_strip/device_strip_metrics.dart';
+import 'package:audioapp/features/device_strip/mood_fx_panels.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -69,5 +71,39 @@ void main() {
       DeviceStripMetrics.designWidthFor('stutter_fx'),
       216,
     );
+  });
+
+  testWidgets('stutter panel exposes hold as a toggle without overflow',
+      (tester) async {
+    final device = DeviceSnapshot.fromMap({
+      'id': 'stutter-1',
+      'type': 'stutter_fx',
+    }) as StutterDeviceSnapshot;
+    final changes = <String, double>{};
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: StutterFxPanel.designWidth,
+            height: DeviceStripMetrics.height,
+            child: StutterFxPanel(
+              device: device,
+              onParameterChanged: (id, value) => changes[id] = value,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Hold'), findsOneWidget);
+    expect(find.text('Off'), findsOneWidget);
+
+    await tester.tap(find.text('Off'));
+    await tester.pump();
+
+    expect(changes['trigger'], 1.0);
+    expect(tester.takeException(), isNull);
   });
 }

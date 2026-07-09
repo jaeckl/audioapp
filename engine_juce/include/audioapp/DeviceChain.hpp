@@ -164,7 +164,7 @@ struct StutterParamsPlayback {
     float gate = 0.85f;
     float fadeMs = 3.0f;
     float direction = 0.0f;
-    float mix = 0.75f;
+    float mix = 1.0f;
     float duck = 0.45f;
     float outputGain = 1.0f;
 };

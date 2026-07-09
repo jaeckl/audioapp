@@ -975,7 +975,7 @@ const ParamDescriptor* paramDescriptorsForKind(DeviceNodeKind kind, int& countOu
             {static_cast<uint16_t>(StutterParam::Gate), "gate", "Gate", 0.85f, 0.0f, 1.0f, true, true},
             {static_cast<uint16_t>(StutterParam::FadeMs), "fadeMs", "Fade", 3.0f, 0.0f, 250.0f, true, true},
             {static_cast<uint16_t>(StutterParam::Direction), "direction", "Direction", 0.0f, 0.0f, 4.0f, true, true},
-            {static_cast<uint16_t>(StutterParam::Mix), "mix", "Mix", 0.75f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(StutterParam::Mix), "mix", "Mix", 1.0f, 0.0f, 1.0f, true, true},
             {static_cast<uint16_t>(StutterParam::Duck), "duck", "Duck", 0.45f, 0.0f, 1.0f, true, true},
             {static_cast<uint16_t>(StutterParam::OutputGain), "outputGain", "Output", 1.0f, 0.0f, 2.0f, true, true},
         };

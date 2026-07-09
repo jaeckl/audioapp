@@ -13,7 +13,7 @@ struct StutterParams {
     double gate = 0.85;
     double fadeMs = 3.0;
     double direction = 0.0;
-    double mix = 0.75;
+    double mix = 1.0;
     double duck = 0.45;
     double outputGain = 1.0;
 

@@ -669,7 +669,7 @@ class StutterDeviceSnapshot extends EffectDeviceSnapshot {
       gate: (params['gate'] as num?)?.toDouble() ?? 0.85,
       fadeMs: (params['fadeMs'] as num?)?.toDouble() ?? 3.0,
       direction: (params['direction'] as num?)?.toDouble() ?? 0.0,
-      mix: (params['mix'] as num?)?.toDouble() ?? 0.75,
+      mix: (params['mix'] as num?)?.toDouble() ?? 1.0,
       duck: (params['duck'] as num?)?.toDouble() ?? 0.45,
       outputGain: (params['outputGain'] as num?)?.toDouble() ?? 1.0,
       outputMix: (outputPanel['outputMix'] as num?)?.toDouble() ?? 1.0,

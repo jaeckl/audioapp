@@ -160,7 +160,7 @@ DeviceSlot StutterDeviceType::varToSlot(const juce::var& obj) const {
             inst.gate = readFloatProperty(p, "gate", 0.85f);
             inst.fadeMs = readFloatProperty(p, "fadeMs", 3.0f);
             inst.direction = readFloatProperty(p, "direction", 0.0f);
-            inst.mix = readFloatProperty(p, "mix", 0.75f);
+            inst.mix = readFloatProperty(p, "mix", 1.0f);
             inst.duck = readFloatProperty(p, "duck", 0.45f);
             inst.outputGain = readFloatProperty(p, "outputGain", 1.0f);
             inst.clamp();
@@ -218,7 +218,7 @@ std::span<const ParamDescriptor> StutterDeviceType::paramDescriptors() const noe
         {static_cast<uint16_t>(StutterParam::Gate), "gate", "Gate", 0.85f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(StutterParam::FadeMs), "fadeMs", "Fade", 3.0f, 0.0f, 250.0f, true, true},
         {static_cast<uint16_t>(StutterParam::Direction), "direction", "Direction", 0.0f, 0.0f, 4.0f, true, true},
-        {static_cast<uint16_t>(StutterParam::Mix), "mix", "Mix", 0.75f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(StutterParam::Mix), "mix", "Mix", 1.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(StutterParam::Duck), "duck", "Duck", 0.45f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(StutterParam::OutputGain), "outputGain", "Output", 1.0f, 0.0f, 2.0f, true, true},
     };
