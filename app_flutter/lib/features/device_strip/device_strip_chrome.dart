@@ -54,8 +54,14 @@ abstract final class DeviceStripChrome {
     'crash_generator',
   };
   static const _fxOutputTypes = {
-    'delay', 'reverb', 'chorus', 'phaser',
-    'bitcrusher', 'distortion', 'tremolo',
+    'delay',
+    'reverb',
+    'chorus',
+    'phaser',
+    'bitcrusher',
+    'distortion',
+    'tremolo',
+    'stutter_fx',
   };
   static const _emptyOutputTypes = {
     'oscilloscope',
@@ -106,7 +112,8 @@ abstract final class DeviceStripChrome {
         width: outputWidth(deviceType),
       );
     }
-    if (deviceType == 'audio_receiver' || deviceType == 'midi_receiver' ||
+    if (deviceType == 'audio_receiver' ||
+        deviceType == 'midi_receiver' ||
         deviceType == 'midi_delay') {
       return RoutingOutputPanel(accentColor: bindings.accentColor);
     }
@@ -167,7 +174,7 @@ abstract final class DeviceStripChrome {
       accentColor: bindings.accentColor,
       onParameterChanged: bindings.onParameterChanged,
       modulatedParams: bindings.modulatedParams,
-        automatedParams: bindings.automatedParams,
+      automatedParams: bindings.automatedParams,
       modulationAmounts: bindings.modulationAmounts,
       lfos: bindings.lfos,
       modEdges: bindings.modEdges,

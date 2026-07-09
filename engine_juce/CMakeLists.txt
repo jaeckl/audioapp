@@ -85,6 +85,7 @@ add_library(audioapp_engine STATIC
   src/devices/processors/BitcrusherProcessor.cpp
   src/devices/processors/DistortionProcessor.cpp
   src/devices/processors/TremoloProcessor.cpp
+  src/devices/processors/StutterProcessor.cpp
   src/devices/processors/AnalysisProcessor.cpp
   src/devices/processors/ChainProcessor.cpp
   src/devices/processors/GranularProcessor.cpp
@@ -128,6 +129,7 @@ add_library(audioapp_engine STATIC
   src/effects/BitcrusherDeviceType.cpp
   src/effects/DistortionDeviceType.cpp
   src/effects/TremoloDeviceType.cpp
+  src/effects/StutterDeviceType.cpp
   src/model/TrackRepository.cpp
   src/model/ClipRepository.cpp
   src/model/AutomationClipStore.cpp

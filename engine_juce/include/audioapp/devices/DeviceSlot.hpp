@@ -22,6 +22,7 @@
 #include "audioapp/effects/BitcrusherParams.hpp"
 #include "audioapp/effects/DistortionParams.hpp"
 #include "audioapp/effects/TremoloParams.hpp"
+#include "audioapp/effects/StutterParams.hpp"
 
 // Model types (non-trivial replacements)
 #include "audioapp/devices/instances/SamplerModel.hpp"
@@ -64,6 +65,7 @@ using DeviceInstance = std::variant<
     BitcrusherParams,
     DistortionParams,
     TremoloParams,
+    StutterParams,
     ResonatorBankModel,
     RoutingModel,
     MidiDelayModel,

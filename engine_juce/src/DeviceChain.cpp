@@ -110,6 +110,7 @@ DeviceNodeKind deviceNodeKindFromTypeId(const std::string& typeId) noexcept {
     if (typeId == kBitcrusher)       return DeviceNodeKind::Bitcrusher;
     if (typeId == kDistortion)       return DeviceNodeKind::Distortion;
     if (typeId == kTremolo)          return DeviceNodeKind::Tremolo;
+    if (typeId == kStutter)          return DeviceNodeKind::Stutter;
     if (typeId == kWavetableSynth)   return DeviceNodeKind::WavetableSynth;
     if (typeId == kResonatorBank)    return DeviceNodeKind::ResonatorBank;
     if (typeId == kAudioReceiver)    return DeviceNodeKind::AudioReceiver;

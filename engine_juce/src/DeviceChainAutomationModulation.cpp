@@ -57,6 +57,22 @@ void applyModulation(PhaserParamsPlayback&, float, uint16_t) noexcept {}
 void applyModulation(BitcrusherParamsPlayback&, float, uint16_t) noexcept {}
 void applyModulation(DistortionParamsPlayback&, float, uint16_t) noexcept {}
 void applyModulation(TremoloParamsPlayback&, float, uint16_t) noexcept {}
+void applyModulation(StutterParamsPlayback& p, float modAmount, uint16_t localParamId) noexcept {
+    switch (static_cast<StutterParam>(unpackParamId(localParamId))) {
+    case StutterParam::Trigger: p.trigger = std::clamp(p.trigger + modAmount, 0.0f, 1.0f); break;
+    case StutterParam::CaptureMs: p.captureMs = std::clamp(p.captureMs + modAmount * 1000.0f, 1.0f, 4000.0f); break;
+    case StutterParam::RateMs: p.rateMs = std::clamp(p.rateMs + modAmount * 500.0f, 1.0f, 5000.0f); break;
+    case StutterParam::WindowMs: p.windowMs = std::clamp(p.windowMs + modAmount * 500.0f, 1.0f, 5000.0f); break;
+    case StutterParam::Position: p.position = std::clamp(p.position + modAmount, 0.0f, 1.0f); break;
+    case StutterParam::Gate: p.gate = std::clamp(p.gate + modAmount, 0.0f, 1.0f); break;
+    case StutterParam::FadeMs: p.fadeMs = std::clamp(p.fadeMs + modAmount * 50.0f, 0.0f, 250.0f); break;
+    case StutterParam::Direction: p.direction = std::clamp(p.direction + modAmount * 4.0f, 0.0f, 4.0f); break;
+    case StutterParam::Mix: p.mix = std::clamp(p.mix + modAmount, 0.0f, 1.0f); break;
+    case StutterParam::Duck: p.duck = std::clamp(p.duck + modAmount, 0.0f, 1.0f); break;
+    case StutterParam::OutputGain: p.outputGain = std::clamp(p.outputGain + modAmount, 0.0f, 2.0f); break;
+    default: break;
+    }
+}
 void applyModulation(FilterParams& p, float modAmount, uint16_t localParamId) noexcept {
     // The FilterParams playback struct stores physical units (Hz, Q, mode
     // index). `modAmount` is the LFO output in roughly [-1, 1] multiplied by

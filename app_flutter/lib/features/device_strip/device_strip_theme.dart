@@ -57,6 +57,7 @@ abstract final class DeviceStripTheme {
   static const bitcrusherAccent = Color(0xFF7B6CF6);
   static const distortionAccent = Color(0xFFE85D4B);
   static const tremoloAccent = Color(0xFF4ADE80);
+  static const stutterAccent = Color(0xFF57D3C4);
   static const drumMachineAccent = Color(0xFF8B7CF6);
   static const analysisAccent = Color(0xFF57D3C4);
 
@@ -90,6 +91,7 @@ abstract final class DeviceStripTheme {
         'bitcrusher' => bitcrusherAccent,
         'distortion' => distortionAccent,
         'tremolo' => tremoloAccent,
+        'stutter_fx' => stutterAccent,
         'drum_machine' => drumMachineAccent,
         'device_chain' => const Color(0xFF62C7B5),
         'granular_formant_synth' => const Color(0xFFDA70D6),
@@ -131,6 +133,7 @@ abstract final class DeviceStripTheme {
         'bitcrusher' => 'Bitcrusher',
         'distortion' => 'Distortion',
         'tremolo' => 'Tremolo',
+        'stutter_fx' => 'Stutter',
         'drum_machine' => 'Drum Machine',
         'device_chain' => 'Chain',
         'granular_formant_synth' => 'Grain Form',

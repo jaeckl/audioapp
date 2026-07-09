@@ -46,6 +46,7 @@ abstract final class DeviceContainerTabs {
       'bitcrusher' => BitcrusherFxPanel.containerTabs,
       'distortion' => DistortionFxPanel.containerTabs,
       'tremolo' => TremoloFxPanel.containerTabs,
+      'stutter_fx' => StutterFxPanel.containerTabs,
       'granular_formant_synth' => GranularDevicePanel.containerTabs,
       _ => const <DeviceTabSpec>[],
     };

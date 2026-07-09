@@ -327,6 +327,12 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
                 subtitle: const Text('LFO amplitude mod · sine/square'),
                 onTap: () => Navigator.pop(context, 'tremolo'),
               ),
+              ListTile(
+                leading: const Icon(Icons.repeat, color: Color(0xFF57D3C4)),
+                title: const Text('Stutter'),
+                subtitle: const Text('Buffer freeze · repeat · rhythmic gate'),
+                onTap: () => Navigator.pop(context, 'stutter_fx'),
+              ),
               const SizedBox(height: 8),
             ],
           ),

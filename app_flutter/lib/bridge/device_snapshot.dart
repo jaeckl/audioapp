@@ -76,6 +76,7 @@ sealed class DeviceSnapshot {
       'bitcrusher' => BitcrusherDeviceSnapshot.fromMap(map),
       'distortion' => DistortionDeviceSnapshot.fromMap(map),
       'tremolo' => TremoloDeviceSnapshot.fromMap(map),
+      'stutter_fx' => StutterDeviceSnapshot.fromMap(map),
       'filter' => FilterDeviceSnapshot.fromMap(map),
       'four_band_eq' => FourBandEqDeviceSnapshot.fromMap(map),
       'frequency_shifter' => FrequencyShifterDeviceSnapshot.fromMap(map),

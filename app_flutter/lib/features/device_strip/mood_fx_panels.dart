@@ -8,7 +8,8 @@ import 'device_tab_bar.dart';
 import 'panels/compact_fx_layout.dart';
 import 'rotary_knob.dart';
 
-typedef MoodFxParameterChanged = void Function(String parameterId, double value);
+typedef MoodFxParameterChanged = void Function(
+    String parameterId, double value);
 typedef MoodFxModulationAssign = void Function(String paramId, double amount)?;
 
 const _kKnobRowGap = 10.0;
@@ -65,9 +66,12 @@ class _MoodFxKnob extends StatelessWidget {
           ? (amount) => onModulationAssign!(paramId, amount)
           : null,
       linkModeActive: automationLinkActive,
-      onLinkTap: onAutomationLinkTap != null ? () => onAutomationLinkTap!(paramId) : null,
-      onAutomateRequest:
-          onAutomateParameter != null ? () => onAutomateParameter!(paramId) : null,
+      onLinkTap: onAutomationLinkTap != null
+          ? () => onAutomationLinkTap!(paramId)
+          : null,
+      onAutomateRequest: onAutomateParameter != null
+          ? () => onAutomateParameter!(paramId)
+          : null,
       onChanged: (v) => onParameterChanged(paramId, v),
     );
   }
@@ -158,7 +162,8 @@ class _BitcrusherPreviewPainter extends CustomPainter {
 
     // Crushed staircase
     final numSamples = (4 + (1 - rate) * 56).round().clamp(2, 60);
-    final quantLevels = math.max(2, math.min(32, math.pow(2, 1 + bits / 4).round().toInt()));
+    final quantLevels =
+        math.max(2, math.min(32, math.pow(2, 1 + bits / 4).round().toInt()));
     final stepW = w / numSamples;
 
     final crushedPaint = Paint()
@@ -723,7 +728,8 @@ class TremoloFxPanel extends StatelessWidget {
             label: 'Rate',
             value: _tremRateNorm,
             paramId: 'tremRate',
-            onParameterChanged: (id, v) => onParameterChanged(id, 0.1 + v * 19.9),
+            onParameterChanged: (id, v) =>
+                onParameterChanged(id, 0.1 + v * 19.9),
             accent: accent,
             modulatedParams: modulatedParams,
             automatedParams: automatedParams,
@@ -800,4 +806,257 @@ class TremoloFxStrip extends StatelessWidget {
       onAutomateParameter: onAutomateParameter,
     );
   }
+}
+
+// ─── Stutter ─────────────────────────────────────────────────
+
+class StutterFxPanel extends StatelessWidget {
+  static const accent = Color(0xFF57D3C4);
+  static const containerTabs = <DeviceTabSpec>[];
+  static const double designWidth = 216;
+
+  final StutterDeviceSnapshot device;
+  final MoodFxParameterChanged onParameterChanged;
+  final Set<String> modulatedParams;
+  final Set<String> automatedParams;
+  final Map<String, double> modulationAmounts;
+  final int? connectModeLfoId;
+  final MoodFxModulationAssign onModulationAssign;
+  final bool automationLinkActive;
+  final ValueChanged<String>? onAutomationLinkTap;
+  final ValueChanged<String>? onAutomateParameter;
+
+  const StutterFxPanel({
+    super.key,
+    required this.device,
+    required this.onParameterChanged,
+    this.modulatedParams = const {},
+    this.automatedParams = const {},
+    this.modulationAmounts = const {},
+    this.connectModeLfoId,
+    this.onModulationAssign,
+    this.automationLinkActive = false,
+    this.onAutomationLinkTap,
+    this.onAutomateParameter,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _moodFxSinglePage(
+      preview: CustomPaint(
+        painter: _StutterPreviewPainter(
+          rateNorm: _rateNorm,
+          windowNorm: _windowNorm,
+          gate: device.gate,
+          accent: accent,
+        ),
+        child: const SizedBox.expand(),
+      ),
+      rows: [
+        _knobGridRow([
+          _knob(
+            label: 'Hold',
+            value: device.trigger,
+            paramId: 'trigger',
+            onParameterChanged: onParameterChanged,
+            accent: accent,
+            modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: device.trigger >= 0.5 ? 'On' : 'Off',
+          ),
+          _knob(
+            label: 'Rate',
+            value: _rateNorm,
+            paramId: 'rateMs',
+            onParameterChanged: (id, v) =>
+                onParameterChanged(id, _msFromNorm(v, 1, 5000)),
+            accent: accent,
+            modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: '${device.rateMs.round()} ms',
+          ),
+          _knob(
+            label: 'Size',
+            value: _windowNorm,
+            paramId: 'windowMs',
+            onParameterChanged: (id, v) =>
+                onParameterChanged(id, _msFromNorm(v, 1, 5000)),
+            accent: accent,
+            modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: '${device.windowMs.round()} ms',
+          ),
+        ]),
+        _knobGridRow([
+          _knob(
+            label: 'Pos',
+            value: device.position,
+            paramId: 'position',
+            onParameterChanged: onParameterChanged,
+            accent: accent,
+            modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: '${(device.position * 100).round()}%',
+          ),
+          _knob(
+            label: 'Gate',
+            value: device.gate,
+            paramId: 'gate',
+            onParameterChanged: onParameterChanged,
+            accent: accent,
+            modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: '${(device.gate * 100).round()}%',
+          ),
+          _knob(
+            label: 'Mix',
+            value: device.mix,
+            paramId: 'mix',
+            onParameterChanged: onParameterChanged,
+            accent: accent,
+            modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: '${(device.mix * 100).round()}%',
+          ),
+        ]),
+      ],
+    );
+  }
+
+  double get _rateNorm => _normFromMs(device.rateMs, 1, 5000);
+  double get _windowNorm => _normFromMs(device.windowMs, 1, 5000);
+
+  static double _normFromMs(double value, double min, double max) =>
+      ((value.clamp(min, max) - min) / (max - min)).clamp(0.0, 1.0);
+
+  static double _msFromNorm(double value, double min, double max) =>
+      min + value.clamp(0.0, 1.0) * (max - min);
+}
+
+class StutterFxStrip extends StatelessWidget {
+  final StutterDeviceSnapshot device;
+  final MoodFxParameterChanged onParameterChanged;
+  final Set<String> modulatedParams;
+  final Set<String> automatedParams;
+  final Map<String, double> modulationAmounts;
+  final int? connectModeLfoId;
+  final MoodFxModulationAssign onModulationAssign;
+  final bool automationLinkActive;
+  final ValueChanged<String>? onAutomationLinkTap;
+  final ValueChanged<String>? onAutomateParameter;
+
+  const StutterFxStrip({
+    super.key,
+    required this.device,
+    required this.onParameterChanged,
+    this.modulatedParams = const {},
+    this.automatedParams = const {},
+    this.modulationAmounts = const {},
+    this.connectModeLfoId,
+    this.onModulationAssign,
+    this.automationLinkActive = false,
+    this.onAutomationLinkTap,
+    this.onAutomateParameter,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return StutterFxPanel(
+      device: device,
+      onParameterChanged: onParameterChanged,
+      modulatedParams: modulatedParams,
+      automatedParams: automatedParams,
+      modulationAmounts: modulationAmounts,
+      connectModeLfoId: connectModeLfoId,
+      onModulationAssign: onModulationAssign,
+      automationLinkActive: automationLinkActive,
+      onAutomationLinkTap: onAutomationLinkTap,
+      onAutomateParameter: onAutomateParameter,
+    );
+  }
+}
+
+class _StutterPreviewPainter extends CustomPainter {
+  _StutterPreviewPainter({
+    required this.rateNorm,
+    required this.windowNorm,
+    required this.gate,
+    required this.accent,
+  });
+
+  final double rateNorm;
+  final double windowNorm;
+  final double gate;
+  final Color accent;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bg = Paint()..color = const Color(0xFF101018);
+    canvas.drawRect(Offset.zero & size, bg);
+
+    final stroke = Paint()
+      ..color = accent.withValues(alpha: 0.75)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+    final fill = Paint()
+      ..color = accent.withValues(alpha: 0.20)
+      ..style = PaintingStyle.fill;
+
+    final repeats = (3 + (1.0 - rateNorm) * 9).round();
+    final gap = size.width / repeats;
+    final activeW = (gap * (0.18 + windowNorm * 0.55)).clamp(3.0, gap);
+    final activeH = size.height * (0.22 + gate.clamp(0.0, 1.0) * 0.58);
+    for (var i = 0; i < repeats; i++) {
+      final x = i * gap + gap * 0.12;
+      final rect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(x, (size.height - activeH) / 2, activeW, activeH),
+        const Radius.circular(2),
+      );
+      canvas.drawRRect(rect, fill);
+      canvas.drawRRect(rect, stroke);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _StutterPreviewPainter old) =>
+      old.rateNorm != rateNorm ||
+      old.windowNorm != windowNorm ||
+      old.gate != gate ||
+      old.accent != accent;
 }

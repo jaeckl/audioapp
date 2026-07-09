@@ -36,6 +36,7 @@ using namespace audioapp::DeviceChainAutomationModulation;
 #include "audioapp/devices/processors/AnalysisProcessor.hpp"
 #include "audioapp/devices/processors/ChainProcessor.hpp"
 #include "audioapp/devices/processors/GranularProcessor.hpp"
+#include "audioapp/devices/processors/StutterProcessor.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -86,6 +87,7 @@ static const FactoryFn kProcessorFactories[] = {
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<AnalysisProcessor>(DeviceNodeKind::StereoImager); },
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<ChainProcessor>(); },
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<GranularProcessor>(); },
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<StutterProcessor>(); },
 };
 static constexpr size_t kNumFactories = sizeof(kProcessorFactories) / sizeof(kProcessorFactories[0]);
 

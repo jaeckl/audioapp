@@ -372,6 +372,20 @@ enum class TremoloParam : uint16_t {
     Shape = 2,
 };
 
+enum class StutterParam : uint16_t {
+    Trigger = 0,
+    CaptureMs = 1,
+    RateMs = 2,
+    WindowMs = 3,
+    Position = 4,
+    Gate = 5,
+    FadeMs = 6,
+    Direction = 7,
+    Mix = 8,
+    Duck = 9,
+    OutputGain = 10,
+};
+
 // -----------------------------------------------------------------------
 // ParamKind — distinguishes which per-device enum a `localParamId` refers
 // to. Without this tag, multiple device kinds (CommonParam, SubtractiveParam,
@@ -413,6 +427,7 @@ enum class ParamKind : uint16_t {
     Routing          = 24,
     Chain            = 25,
     Granular         = 26,
+    Stutter          = 27,
 };
 
 constexpr uint16_t kParamKindShift      = 11;

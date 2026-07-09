@@ -8,6 +8,7 @@ const fxDeviceTypes = <String>{
   'bitcrusher',
   'distortion',
   'tremolo',
+  'stutter_fx',
   'device_chain',
 };
 

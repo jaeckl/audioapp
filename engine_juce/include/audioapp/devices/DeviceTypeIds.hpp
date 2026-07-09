@@ -31,6 +31,7 @@ inline constexpr const char* kMidiDelay = "midi_delay";
 inline constexpr const char* kBitcrusher = "bitcrusher";
 inline constexpr const char* kDistortion = "distortion";
 inline constexpr const char* kTremolo = "tremolo";
+inline constexpr const char* kStutter = "stutter_fx";
 inline constexpr const char* kWavetableSynth = "wavetable_synth";
 inline constexpr const char* kDrumMachine = "drum_machine";
 inline constexpr const char* kGranular = "granular_formant_synth";

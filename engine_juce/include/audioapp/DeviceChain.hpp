@@ -23,6 +23,7 @@
 #include "audioapp/ResonatorBank.hpp"
 #include "audioapp/RoutingDevices.hpp"
 #include "audioapp/MidiDelay.hpp"
+#include "audioapp/effects/StutterParams.hpp"
 
 namespace audioapp {
 
@@ -91,6 +92,7 @@ enum class DeviceNodeKind : uint8_t {
     StereoImager,
     Chain,
     Granular,
+    Stutter,
 };
 
 // --- Per-device DSP-only parameter structs ---
@@ -151,6 +153,20 @@ struct TremoloParamsPlayback {
     float rateHz = 5.0f;
     float shape = 0.0f;
     float inputGain = 1.0f;
+};
+
+struct StutterParamsPlayback {
+    float trigger = 0.0f;
+    float captureMs = 500.0f;
+    float rateMs = 125.0f;
+    float windowMs = 80.0f;
+    float position = 0.0f;
+    float gate = 0.85f;
+    float fadeMs = 3.0f;
+    float direction = 0.0f;
+    float mix = 0.75f;
+    float duck = 0.45f;
+    float outputGain = 1.0f;
 };
 
 struct SamplerParams {
@@ -219,7 +235,8 @@ using DeviceVariantParams = std::variant<
     MidiDelayParams,
     DrumMachineParams
     ,ChainParams,
-    GranularParams
+    GranularParams,
+    StutterParamsPlayback
 >;
 
 /// Per-track device chain node (built on control thread, read on audio thread).

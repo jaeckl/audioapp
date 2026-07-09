@@ -28,7 +28,12 @@ class DeviceStripMetrics {
 
   static const _dynamicsTypes = {'gate', 'compressor', 'expander', 'limiter'};
   static const _timeFxTypes = {'delay', 'reverb', 'chorus', 'phaser'};
-  static const _moodFxTypes = {'bitcrusher', 'distortion', 'tremolo'};
+  static const _moodFxTypes = {
+    'bitcrusher',
+    'distortion',
+    'tremolo',
+    'stutter_fx'
+  };
   static const _frequencyFxTypes = {
     'filter',
     'four_band_eq',
@@ -192,6 +197,7 @@ class DeviceStripMetrics {
       'bitcrusher' => BitcrusherFxPanel.designWidth,
       'distortion' => DistortionFxPanel.designWidth,
       'tremolo' => TremoloFxPanel.designWidth,
+      'stutter_fx' => StutterFxPanel.designWidth,
       'wavetable_synth' => WavetableSynthDevicePanel.designWidth,
       'simple_oscillator' => OscillatorDevicePanel.designWidth,
       'phase_mod_synth' => PhaseModSynthDevicePanel.designWidth,

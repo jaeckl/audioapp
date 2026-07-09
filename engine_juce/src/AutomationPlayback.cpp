@@ -65,6 +65,7 @@ static ParamKind paramKindForDevice(DeviceNodeKind kind) noexcept {
     case DeviceNodeKind::MidiReceiver:     return ParamKind::Routing;
     case DeviceNodeKind::Chain:            return ParamKind::Chain;
     case DeviceNodeKind::Granular:         return ParamKind::Granular;
+    case DeviceNodeKind::Stutter:          return ParamKind::Stutter;
     case DeviceNodeKind::TrackGain:        return ParamKind::TrackGain;
     case DeviceNodeKind::Unknown:
     default:                                return ParamKind::Common;
@@ -453,6 +454,25 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
             return packParamId(ParamKind::Routing, static_cast<uint16_t>(RoutingParam::Mix));
         return 0;
     }
+    case DeviceNodeKind::Stutter: {
+        auto s = [&](const char* n, StutterParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::Stutter, static_cast<uint16_t>(pid))
+                : 0;
+        };
+        if (auto v = s("trigger", StutterParam::Trigger)) return v;
+        if (auto v = s("captureMs", StutterParam::CaptureMs)) return v;
+        if (auto v = s("rateMs", StutterParam::RateMs)) return v;
+        if (auto v = s("windowMs", StutterParam::WindowMs)) return v;
+        if (auto v = s("position", StutterParam::Position)) return v;
+        if (auto v = s("gate", StutterParam::Gate)) return v;
+        if (auto v = s("fadeMs", StutterParam::FadeMs)) return v;
+        if (auto v = s("direction", StutterParam::Direction)) return v;
+        if (auto v = s("mix", StutterParam::Mix)) return v;
+        if (auto v = s("duck", StutterParam::Duck)) return v;
+        if (auto v = s("outputGain", StutterParam::OutputGain)) return v;
+        return 0;
+    }
     default:
         return 0;
     }
@@ -760,6 +780,22 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         default: return "";
         }
     }
+    case DeviceNodeKind::Stutter: {
+        switch (static_cast<StutterParam>(rawId)) {
+        case StutterParam::Trigger: return "trigger";
+        case StutterParam::CaptureMs: return "captureMs";
+        case StutterParam::RateMs: return "rateMs";
+        case StutterParam::WindowMs: return "windowMs";
+        case StutterParam::Position: return "position";
+        case StutterParam::Gate: return "gate";
+        case StutterParam::FadeMs: return "fadeMs";
+        case StutterParam::Direction: return "direction";
+        case StutterParam::Mix: return "mix";
+        case StutterParam::Duck: return "duck";
+        case StutterParam::OutputGain: return "outputGain";
+        default: return "";
+        }
+    }
     default:
         return "";
     }
@@ -927,6 +963,23 @@ const ParamDescriptor* paramDescriptorsForKind(DeviceNodeKind kind, int& countOu
             {0, "routeMix", "Mix", 1.0f, 0.0f, 1.0f, true, true},
         };
         countOut = kind == DeviceNodeKind::AudioReceiver ? 1 : 0;
+        return kParams;
+    }
+    case DeviceNodeKind::Stutter: {
+        static constexpr ParamDescriptor kParams[] = {
+            {static_cast<uint16_t>(StutterParam::Trigger), "trigger", "Trigger", 0.0f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(StutterParam::CaptureMs), "captureMs", "Capture", 500.0f, 1.0f, 4000.0f, true, true},
+            {static_cast<uint16_t>(StutterParam::RateMs), "rateMs", "Rate", 125.0f, 1.0f, 5000.0f, true, true},
+            {static_cast<uint16_t>(StutterParam::WindowMs), "windowMs", "Window", 80.0f, 1.0f, 5000.0f, true, true},
+            {static_cast<uint16_t>(StutterParam::Position), "position", "Position", 0.0f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(StutterParam::Gate), "gate", "Gate", 0.85f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(StutterParam::FadeMs), "fadeMs", "Fade", 3.0f, 0.0f, 250.0f, true, true},
+            {static_cast<uint16_t>(StutterParam::Direction), "direction", "Direction", 0.0f, 0.0f, 4.0f, true, true},
+            {static_cast<uint16_t>(StutterParam::Mix), "mix", "Mix", 0.75f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(StutterParam::Duck), "duck", "Duck", 0.45f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(StutterParam::OutputGain), "outputGain", "Output", 1.0f, 0.0f, 2.0f, true, true},
+        };
+        countOut = 11;
         return kParams;
     }
     default:
@@ -1308,6 +1361,24 @@ void applyAutomationValue(DeviceVariantParams& params,
         break;
     case ParamKind::Granular:
         if(auto*p=std::get_if<GranularParams>(&params)){float* values[]={&p->position,&p->scan,&p->size,&p->density,&p->spray,&p->pitch,&p->formant,&p->character,&p->regionStart,&p->regionEnd,&p->attack,&p->release,&p->spread,&p->formX,&p->formY};if(rawId<15)*values[rawId]=value;else if(rawId==15)p->vowel=std::clamp((int)std::lround(value*5.f),0,5);}
+        break;
+    case ParamKind::Stutter:
+        if (auto* p = std::get_if<StutterParamsPlayback>(&params)) {
+            switch (static_cast<StutterParam>(rawId)) {
+            case StutterParam::Trigger: p->trigger = value; break;
+            case StutterParam::CaptureMs: p->captureMs = 1.0f + value * 3999.0f; break;
+            case StutterParam::RateMs: p->rateMs = 1.0f + value * 4999.0f; break;
+            case StutterParam::WindowMs: p->windowMs = 1.0f + value * 4999.0f; break;
+            case StutterParam::Position: p->position = value; break;
+            case StutterParam::Gate: p->gate = value; break;
+            case StutterParam::FadeMs: p->fadeMs = value * 250.0f; break;
+            case StutterParam::Direction: p->direction = value * 4.0f; break;
+            case StutterParam::Mix: p->mix = value; break;
+            case StutterParam::Duck: p->duck = value; break;
+            case StutterParam::OutputGain: p->outputGain = value * 2.0f; break;
+            default: break;
+            }
+        }
         break;
     case ParamKind::Common:
     case ParamKind::TrackGain:

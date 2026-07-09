@@ -37,6 +37,7 @@ void applyModulation(WavetableSynthParams& p, float modAmount, uint16_t localPar
 void applyModulation(BitcrusherParamsPlayback&, float, uint16_t) noexcept;
 void applyModulation(DistortionParamsPlayback&, float, uint16_t) noexcept;
 void applyModulation(TremoloParamsPlayback&, float, uint16_t) noexcept;
+void applyModulation(StutterParamsPlayback&, float, uint16_t) noexcept;
 inline void applyModulation(DrumMachineParams&, float, uint16_t) noexcept {}
 inline void applyModulation(ChainParams& p, float amount, uint16_t localParamId) noexcept {
     const auto rawId = unpackParamId(localParamId);

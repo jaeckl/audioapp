@@ -23,7 +23,7 @@ constexpr int kAutomationSubBlockFrames = 64;
 /// One per track. Allows placement-new of ring buffers without heap allocation.
 struct DeviceChainScratchArena {
     static constexpr int kBufferSize = 192000;  // 4 seconds at 48 kHz
-    static constexpr int kMaxTimeBasedEffects = 4;  // Delay, Reverb, Chorus, Phaser
+    static constexpr int kMaxTimeBasedEffects = 6;  // Delay, Reverb, Chorus, Phaser, Stutter, spare
 
     /// Raw storage: 2 channels x 192K x 4 possible effects
     float storage[kMaxTimeBasedEffects][2][kBufferSize];
