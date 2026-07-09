@@ -273,6 +273,10 @@ class _ToolRailButtonState extends State<_ToolRailButton>
     final highlight = widget.linkModeActive
         ? const Color(0xFFB48CFF)
         : const Color(0xFFE8A54B);
+    final showModulationDot = widget.modulationActive || widget.linkModeActive;
+    final modulationDotColor = widget.linkModeActive
+        ? const Color(0xFFB48CFF)
+        : const Color(0xFFE8A54B);
 
     return Tooltip(
       message: widget.tooltip,
@@ -297,9 +301,6 @@ class _ToolRailButtonState extends State<_ToolRailButton>
           child: AnimatedBuilder(
             animation: _pulseAnimation,
             builder: (context, child) {
-              final assignmentColor = _assignmentAmount >= 0
-                  ? const Color(0xFFE86A6A)
-                  : const Color(0xFF6BCB8B);
               return Stack(
                 clipBehavior: Clip.none,
                 alignment: Alignment.center,
@@ -316,29 +317,22 @@ class _ToolRailButtonState extends State<_ToolRailButton>
                       ),
                     ),
                   Icon(widget.icon, size: 18, color: color),
-                  if (widget.modulationActive)
+                  if (showModulationDot)
                     Positioned(
                       left: 5,
                       bottom: 3,
-                      child: _StatusDot(color: const Color(0xFFE8A54B)),
+                      child: _StatusDot(
+                        key: const ValueKey('tool_rail_modulation_dot'),
+                        color: modulationDotColor,
+                      ),
                     ),
                   if (widget.automationActive)
                     Positioned(
                       right: 5,
                       top: 3,
-                      child: _StatusDot(color: const Color(0xFFB48CFF)),
-                    ),
-                  if (_assignmentMode)
-                    Positioned(
-                      top: _assignmentAmount >= 0 ? -4 : null,
-                      bottom: _assignmentAmount < 0 ? -4 : null,
-                      child: Container(
-                        width: 18,
-                        height: 3,
-                        decoration: BoxDecoration(
-                          color: assignmentColor,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
+                      child: _StatusDot(
+                        key: const ValueKey('tool_rail_automation_dot'),
+                        color: const Color(0xFFB48CFF),
                       ),
                     ),
                 ],
@@ -352,7 +346,7 @@ class _ToolRailButtonState extends State<_ToolRailButton>
 }
 
 class _StatusDot extends StatelessWidget {
-  const _StatusDot({required this.color});
+  const _StatusDot({super.key, required this.color});
 
   final Color color;
 
@@ -363,7 +357,6 @@ class _StatusDot extends StatelessWidget {
         decoration: BoxDecoration(
           color: color,
           shape: BoxShape.circle,
-          border: Border.all(color: const Color(0xFF14141C), width: 1),
         ),
         child: const SizedBox(width: 7, height: 7),
       ),

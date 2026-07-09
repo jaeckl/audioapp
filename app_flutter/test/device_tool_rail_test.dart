@@ -84,6 +84,47 @@ void main() {
     expect(toggleCount, 0);
   });
 
+  testWidgets('bypass modulation dot follows linked and linkable states',
+      (tester) async {
+    Widget buildRail({
+      bool modulationActive = false,
+      bool linkModeActive = false,
+    }) {
+      return MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 120,
+            child: DeviceToolRail(
+              deviceName: 'Sampler',
+              accentColor: const Color(0xFFE8A54B),
+              bypassed: false,
+              showLibrary: false,
+              onBypassToggle: () {},
+              bypassModulationActive: modulationActive,
+              bypassLinkModeActive: linkModeActive,
+            ),
+          ),
+        ),
+      );
+    }
+
+    await tester.pumpWidget(buildRail());
+    expect(
+        find.byKey(const ValueKey('tool_rail_modulation_dot')), findsNothing);
+
+    await tester.pumpWidget(buildRail(modulationActive: true));
+    expect(
+        find.byKey(const ValueKey('tool_rail_modulation_dot')), findsOneWidget);
+
+    await tester.pumpWidget(buildRail());
+    expect(
+        find.byKey(const ValueKey('tool_rail_modulation_dot')), findsNothing);
+
+    await tester.pumpWidget(buildRail(linkModeActive: true));
+    expect(
+        find.byKey(const ValueKey('tool_rail_modulation_dot')), findsOneWidget);
+  });
+
   testWidgets('bypass button assigns modulation in connect mode',
       (tester) async {
     double? assignedAmount;
