@@ -51,7 +51,17 @@ void applyModulation(SamplerParams& p, float modAmount, uint16_t localParamId) n
 
 void applyModulation(TrackGainParams&, float, uint16_t) noexcept {}
 void applyModulation(DelayParamsPlayback&, float, uint16_t) noexcept {}
-void applyModulation(ReverbParamsPlayback&, float, uint16_t) noexcept {}
+void applyModulation(ReverbParamsPlayback& p, float amount, uint16_t localParamId) noexcept {
+    const uint16_t rawId = unpackParamId(localParamId);
+    if (rawId == static_cast<uint16_t>(ReverbParam::ModeMorph)) {
+        p.modeMorph = std::clamp(p.modeMorph + amount * 3.0f, 0.0f, 3.0f);
+        return;
+    }
+    float* normalized[] = {&p.decay, &p.preDelay, &p.size, &p.diffusion,
+        &p.damping, &p.modulation, &p.lowCut, &p.highCut, &p.ducking};
+    if (rawId >= 1 && rawId <= 9)
+        *normalized[rawId - 1] = std::clamp(*normalized[rawId - 1] + amount, 0.0f, 1.0f);
+}
 void applyModulation(ChorusParamsPlayback& p, float modAmount, uint16_t localParamId) noexcept {
     const uint16_t rawId = unpackParamId(localParamId);
     if (rawId == static_cast<uint16_t>(ChorusParam::ModeMorph)) {

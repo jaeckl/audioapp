@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="930" height="785"
+     viewBox="0 0 930 785">
+  <title>Four Reverb Device Layout Variants</title>
+  <desc>
+    Four standalone device layouts, each exactly 320 px high. Composed from
+    the visual modules in ../architecture/daw_elements.svg without modifying
+    that file: device_tool_rail, device_tab_bar, knob_strip_default,
+    knob_strip_default_side_panel, preview_filter_response, preview_eq_curve,
+    widget_normal_sliders, and device_output_panel_stereo_mix.
+  </desc>
+
+  <defs>
+    <linearGradient id="screenGlow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7B6CF6" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#7B6CF6" stop-opacity="0"/>
+    </linearGradient>
+
+    <g id="toolRail" data-source-module="device_tool_rail">
+      <path d="M10 0H30V320H10A10 10 0 0 1 0 310V10A10 10 0 0 1 10 0Z"
+            fill="#16161E" stroke="#4A4A5C" stroke-width="1.5"/>
+      <text x="15" y="160" transform="rotate(-90 15 160)" text-anchor="middle"
+            fill="#9A9AA8" font-family="Inter, sans-serif" font-size="9"
+            font-weight="700" letter-spacing="1.4">REVERB</text>
+      <g fill="none" stroke="#9A9AA8" stroke-width="1.2">
+        <circle cx="15" cy="38" r="6"/><path d="M12 38h6M15 35v6"/>
+        <rect x="9" y="58" width="12" height="12" rx="3"/><path d="M12 64h6"/>
+        <path d="M10 297h10M12 297v13h6v-13M12 293h6"/>
+      </g>
+    </g>
+
+    <g id="mainKnob" data-source-module="knob_strip_default">
+      <circle r="18" fill="#14141C"/>
+      <path d="M-16.5 16.5A23.3 23.3 0 1 1 16.5 16.5"
+            fill="none" stroke="#2C2C36" stroke-width="3.2" stroke-linecap="round"/>
+      <path d="M-16.5 16.5A23.3 23.3 0 0 1 0-23.3"
+            fill="none" stroke="#7B6CF6" stroke-width="3.2" stroke-linecap="round"/>
+      <circle cy="-19.4" r="2.2" fill="#7B6CF6"/>
+    </g>
+
+    <g id="sideKnob" data-source-module="knob_strip_default_side_panel">
+      <circle r="14.5" fill="#14141C"/>
+      <path d="M-13 13A18.4 18.4 0 1 1 13 13"
+            fill="none" stroke="#2C2C36" stroke-width="2.55" stroke-linecap="round"/>
+      <path d="M-13 13A18.4 18.4 0 0 1 0-18.4"
+            fill="none" stroke="#9A9AA8" stroke-width="2.55" stroke-linecap="round"/>
+      <circle cy="-15.3" r="1.75" fill="#9A9AA8"/>
+    </g>
+
+    <g id="stereoMixOutput" data-source-module="device_output_panel_stereo_mix">
+      <path d="M0 0H54A10 10 0 0 1 64 10V310A10 10 0 0 1 54 320H0Z"
+            fill="#16161E" stroke="#4A4A5C" stroke-width="1.5"/>
+      <text x="32" y="18" text-anchor="middle" fill="#9A9AA8"
+            font-family="Inter, sans-serif" font-size="9" font-weight="700">OUT</text>
+      <g transform="translate(32 171)" font-family="Inter, sans-serif" text-anchor="middle">
+        <use href="#sideKnob"/><text y="3" fill="#9A9AA8" font-size="7">100%</text>
+        <text y="37" fill="#9A9AA8" font-size="9" font-weight="700">Width</text>
+      </g>
+      <g transform="translate(32 250)" font-family="Inter, sans-serif" text-anchor="middle">
+        <use href="#sideKnob"/><text y="3" fill="#9A9AA8" font-size="7">35%</text>
+        <text y="37" fill="#9A9AA8" font-size="9" font-weight="700">Mix</text>
+      </g>
+    </g>
+
+    <g id="tailScreen" data-source-module="preview_filter_response preview_eq_curve">
+      <rect width="100%" height="100%" rx="6" fill="#050508" stroke="#4A4A5C"/>
+    </g>
+  </defs>
+
+  <rect width="930" height="785" fill="#0E0E14"/>
+  <text x="30" y="25" fill="#FFFFFF" font-family="Inter, sans-serif"
+        font-size="16" font-weight="700">REVERB LAYOUT STUDIES</text>
+  <text x="30" y="43" fill="#9A9AA8" font-family="Inter, sans-serif" font-size="10">
+    All devices are native scale and exactly 320 px high, including their functional tab bar.
+  </text>
+
+  <!-- VARIANT A: column / centered view / column -->
+  <g id="variant-a" transform="translate(30 82)">
+    <text x="0" y="-26" fill="#FFFFFF" font-family="Inter, sans-serif" font-size="12" font-weight="700">
+      A · CENTER STAGE
+    </text>
+    <text x="0" y="-11" fill="#9A9AA8" font-family="Inter, sans-serif" font-size="8">
+      Knob column · focused display · knob column
+    </text>
+    <use href="#toolRail"/>
+    <rect x="30" width="4" height="320" fill="#7B6CF6"/>
+    <rect x="34" width="216" height="320" fill="#1A1A24" stroke="#4A4A5C" stroke-width="1.5"/>
+    <rect x="250" width="4" height="320" fill="#7B6CF6"/>
+    <use href="#stereoMixOutput" transform="translate(254)"/>
+
+    <g data-source-module="device_tab_bar">
+      <rect x="34" width="216" height="40" fill="#22222E"/>
+      <rect x="43" y="7" width="48" height="26" rx="5" fill="#7B6CF6" fill-opacity=".18"/>
+      <rect x="95" y="7" width="48" height="26" rx="5" fill="#FFFFFF" fill-opacity=".04"/>
+      <text x="67" y="24" text-anchor="middle" fill="#7B6CF6" font-family="Inter, sans-serif" font-size="8" font-weight="700">TAIL</text>
+      <text x="119" y="24" text-anchor="middle" fill="#FFFFFF" fill-opacity=".38" font-family="Inter, sans-serif" font-size="8" font-weight="700">TONE</text>
+      <rect x="148" y="7" width="40" height="26" rx="5" fill="#14141C" stroke="#FFFFFF" stroke-opacity=".1"/>
+      <text x="168" y="24" text-anchor="middle" fill="#9A9AA8" font-family="Inter, sans-serif" font-size="7">HALL⌄</text>
+      <rect x="193" y="7" width="47" height="26" rx="5" fill="#14141C" stroke="#7B6CF6" stroke-opacity=".35"/>
+      <text x="216.5" y="24" text-anchor="middle" fill="#7B6CF6" font-family="Inter, sans-serif" font-size="7" font-weight="700">FREEZE</text>
+    </g>
+
+    <rect x="42" y="48" width="53" height="264" rx="5" fill="#050508"/>
+    <rect x="189" y="48" width="53" height="264" rx="5" fill="#050508"/>
+    <g font-family="Inter, sans-serif" text-anchor="middle">
+      <g transform="translate(68.5 112)"><use href="#mainKnob"/><text y="3" fill="#7B6CF6" font-size="7">3.2s</text><text y="42" fill="#9A9AA8" font-size="8" font-weight="700">DECAY</text></g>
+      <g transform="translate(68.5 238)"><use href="#mainKnob"/><text y="3" fill="#7B6CF6" font-size="7">64%</text><text y="42" fill="#9A9AA8" font-size="8" font-weight="700">SIZE</text></g>
+      <g transform="translate(215.5 112)"><use href="#mainKnob"/><text y="3" fill="#7B6CF6" font-size="7">6.4k</text><text y="42" fill="#9A9AA8" font-size="8" font-weight="700">DAMP</text></g>
+      <g transform="translate(215.5 238)"><use href="#mainKnob"/><text y="3" fill="#7B6CF6" font-size="7">18%</text><text y="42" fill="#9A9AA8" font-size="8" font-weight="700">MOD</text></g>
+    </g>
+    <g data-source-module="preview_filter_response" transform="translate(101 48)">
+      <rect width="82" height="156" rx="6" fill="#050508" stroke="#4A4A5C"/>
+      <path d="M7 136v-25m5 25V94m5 42v-31m5 31V82" stroke="#7B6CF6" stroke-opacity=".65"/>
+      <path d="M24 136C29 73 40 65 49 79s16 40 27 54" fill="none" stroke="#7B6CF6" stroke-width="1.8"/>
+      <circle cx="24" cy="136" r="3" fill="#7B6CF6"/><circle cx="66" cy="120" r="3" fill="#7B6CF6"/>
+      <text x="8" y="14" fill="#9A9AA8" font-family="Inter, sans-serif" font-size="6">RT60 · 3.2 s</text>
+    </g>
+    <g font-family="Inter, sans-serif" text-anchor="middle">
+      <g transform="translate(122 245)"><use href="#sideKnob"/><text y="3" fill="#7B6CF6" font-size="6">28ms</text><text y="34" fill="#9A9AA8" font-size="7">PRE</text></g>
+      <g transform="translate(162 245)"><use href="#sideKnob"/><text y="3" fill="#7B6CF6" font-size="6">78%</text><text y="34" fill="#9A9AA8" font-size="7">DIFF</text></g>
+    </g>
+  </g>
+
+  <!-- VARIANT B: dedicated pre-reverb panel -->
+  <g id="variant-b" transform="translate(442 82)">
+    <text x="0" y="-26" fill="#FFFFFF" font-family="Inter, sans-serif" font-size="12" font-weight="700">
+      B · PRE-STAGE
+    </text>
+    <text x="0" y="-11" fill="#9A9AA8" font-family="Inter, sans-serif" font-size="8">
+      Custom input panel for sound shaping before the reverb network
+    </text>
+    <use href="#toolRail"/>
+    <g id="pre-reverb-panel" data-source-module="device_input_panel_dynamic_in">
+      <rect x="30" width="64" height="320" fill="#16161E" stroke="#4A4A5C" stroke-width="1.5"/>
+      <text x="62" y="18" text-anchor="middle" fill="#9A9AA8" font-family="Inter, sans-serif" font-size="8" font-weight="700">PRE</text>
+      <g font-family="Inter, sans-serif" text-anchor="middle">
+        <g transform="translate(62 90)"><use href="#sideKnob"/><text y="3" fill="#9A9AA8" font-size="6">28ms</text><text y="35" fill="#9A9AA8" font-size="8">Pre-delay</text></g>
+        <g transform="translate(62 179)"><use href="#sideKnob"/><text y="3" fill="#9A9AA8" font-size="6">90Hz</text><text y="35" fill="#9A9AA8" font-size="8">Low Cut</text></g>
+        <g transform="translate(62 268)"><use href="#sideKnob"/><text y="3" fill="#9A9AA8" font-size="6">25%</text><text y="35" fill="#9A9AA8" font-size="8">Duck</text></g>
+      </g>
+    </g>
+    <rect x="94" width="4" height="320" fill="#7B6CF6"/>
+    <rect x="98" width="216" height="320" fill="#1A1A24" stroke="#4A4A5C" stroke-width="1.5"/>
+    <rect x="314" width="4" height="320" fill="#7B6CF6"/>
+    <use href="#stereoMixOutput" transform="translate(318)"/>
+    <g data-source-module="device_tab_bar">
+      <rect x="98" width="216" height="40" fill="#22222E"/>
+      <g font-family="Inter, sans-serif" font-size="7" font-weight="700" text-anchor="middle">
+        <rect x="106" y="7" width="48" height="26" rx="5" fill="#FFFFFF" fill-opacity=".04"/><text x="130" y="24" fill="#FFFFFF" fill-opacity=".35">EARLY</text>
+        <rect x="158" y="7" width="48" height="26" rx="5" fill="#7B6CF6" fill-opacity=".18"/><text x="182" y="24" fill="#7B6CF6">TAIL</text>
+        <rect x="210" y="7" width="48" height="26" rx="5" fill="#FFFFFF" fill-opacity=".04"/><text x="234" y="24" fill="#FFFFFF" fill-opacity=".35">TONE</text>
+        <rect x="263" y="7" width="43" height="26" rx="5" fill="#14141C" stroke="#7B6CF6" stroke-opacity=".35"/><text x="284.5" y="24" fill="#7B6CF6">FREEZE</text>
+      </g>
+    </g>
+    <g transform="translate(108 49)" data-source-module="preview_filter_response">
+      <rect width="196" height="150" rx="6" fill="#050508" stroke="#4A4A5C"/>
+      <path d="M9 130v-21m6 21V89m6 41V101m6 29V76m7 54V95" stroke="#7B6CF6" stroke-opacity=".65"/>
+      <path d="M35 130C44 55 74 48 94 67s38 48 91 61" fill="url(#screenGlow)" stroke="#7B6CF6" stroke-width="2"/>
+      <circle cx="35" cy="130" r="3.5" fill="#7B6CF6"/><circle cx="145" cy="111" r="3.5" fill="#7B6CF6"/>
+      <text x="10" y="16" fill="#9A9AA8" font-family="Inter, sans-serif" font-size="7">HALL · RT60 3.2 s</text>
+    </g>
+    <g font-family="Inter, sans-serif" text-anchor="middle">
+      <g transform="translate(142 249)"><use href="#mainKnob"/><text y="3" fill="#7B6CF6" font-size="7">3.2s</text><text y="42" fill="#9A9AA8" font-size="8">DECAY</text></g>
+      <g transform="translate(206 249)"><use href="#mainKnob"/><text y="3" fill="#7B6CF6" font-size="7">64%</text><text y="42" fill="#9A9AA8" font-size="8">SIZE</text></g>
+      <g transform="translate(270 249)"><use href="#mainKnob"/><text y="3" fill="#7B6CF6" font-size="7">78%</text><text y="42" fill="#9A9AA8" font-size="8">DIFFUSION</text></g>
+    </g>
+  </g>
+
+  <!-- VARIANT C: wide central console -->
+  <g id="variant-c" transform="translate(30 455)">
+    <text x="0" y="-26" fill="#FFFFFF" font-family="Inter, sans-serif" font-size="12" font-weight="700">
+      C · WIDE CONSOLE
+    </text>
+    <text x="0" y="-11" fill="#9A9AA8" font-family="Inter, sans-serif" font-size="8">
+      Large editor, bottom controls, and a dedicated right parameter column
+    </text>
+    <use href="#toolRail"/>
+    <rect x="30" width="4" height="320" fill="#7B6CF6"/>
+    <rect x="34" width="280" height="320" fill="#1A1A24" stroke="#4A4A5C" stroke-width="1.5"/>
+    <rect x="314" width="4" height="320" fill="#7B6CF6"/>
+    <use href="#stereoMixOutput" transform="translate(318)"/>
+    <g data-source-module="device_tab_bar">
+      <rect x="34" width="280" height="40" fill="#22222E"/>
+      <g font-family="Inter, sans-serif" font-size="8" font-weight="700" text-anchor="middle">
+        <rect x="43" y="7" width="50" height="26" rx="5" fill="#7B6CF6" fill-opacity=".18"/><text x="68" y="24" fill="#7B6CF6">TAIL</text>
+        <rect x="97" y="7" width="50" height="26" rx="5" fill="#FFFFFF" fill-opacity=".04"/><text x="122" y="24" fill="#FFFFFF" fill-opacity=".35">TONE</text>
+        <rect x="151" y="7" width="50" height="26" rx="5" fill="#FFFFFF" fill-opacity=".04"/><text x="176" y="24" fill="#FFFFFF" fill-opacity=".35">MOD</text>
+        <rect x="207" y="7" width="45" height="26" rx="5" fill="#14141C" stroke="#FFFFFF" stroke-opacity=".1"/><text x="229.5" y="24" fill="#9A9AA8" font-size="7">HALL⌄</text>
+        <rect x="257" y="7" width="48" height="26" rx="5" fill="#14141C" stroke="#7B6CF6" stroke-opacity=".35"/><text x="281" y="24" fill="#7B6CF6" font-size="7">FREEZE</text>
+      </g>
+    </g>
+    <g transform="translate(44 49)" data-source-module="preview_filter_response preview_eq_curve">
+      <rect width="180" height="176" rx="6" fill="#050508" stroke="#4A4A5C"/>
+      <path d="M10 151v-25m6 25V95m6 56v-39m6 39V81m7 70V103" stroke="#7B6CF6" stroke-opacity=".65"/>
+      <path d="M36 151C47 58 79 48 102 70s40 57 68 77" fill="url(#screenGlow)" stroke="#7B6CF6" stroke-width="2"/>
+      <circle cx="36" cy="151" r="4" fill="#7B6CF6"/><circle cx="135" cy="126" r="4" fill="#7B6CF6"/>
+      <text x="10" y="16" fill="#9A9AA8" font-family="Inter, sans-serif" font-size="7">TAIL SHAPE</text>
+      <text x="170" y="16" text-anchor="end" fill="#9A9AA8" font-family="Inter, sans-serif" font-size="7">3.2 s</text>
+    </g>
+    <rect x="231" y="49" width="73" height="263" rx="5" fill="#050508"/>
+    <g font-family="Inter, sans-serif" text-anchor="middle">
+      <g transform="translate(267.5 93)"><use href="#mainKnob"/><text y="3" fill="#7B6CF6" font-size="7">3.2s</text><text y="42" fill="#9A9AA8" font-size="8">DECAY</text></g>
+      <g transform="translate(267.5 180)"><use href="#mainKnob"/><text y="3" fill="#7B6CF6" font-size="7">64%</text><text y="42" fill="#9A9AA8" font-size="8">SIZE</text></g>
+      <g transform="translate(267.5 267)"><use href="#mainKnob"/><text y="3" fill="#7B6CF6" font-size="7">78%</text><text y="42" fill="#9A9AA8" font-size="8">DIFF</text></g>
+      <g transform="translate(85 271)"><use href="#mainKnob"/><text y="3" fill="#7B6CF6" font-size="7">28ms</text><text y="42" fill="#9A9AA8" font-size="8">PRE-DELAY</text></g>
+      <g transform="translate(157 271)"><use href="#mainKnob"/><text y="3" fill="#7B6CF6" font-size="7">18%</text><text y="42" fill="#9A9AA8" font-size="8">MOD</text></g>
+    </g>
+  </g>
+
+  <!-- VARIANT D: early and tail sidecars -->
+  <g id="variant-d" transform="translate(442 455)">
+    <text x="0" y="-26" fill="#FFFFFF" font-family="Inter, sans-serif" font-size="12" font-weight="700">
+      D · DUAL SIDECARS
+    </text>
+    <text x="0" y="-11" fill="#9A9AA8" font-family="Inter, sans-serif" font-size="8">
+      Early-stage input panel · central editor · late-tail character panel
+    </text>
+    <use href="#toolRail"/>
+    <g data-source-module="device_input_panel_dynamic_in">
+      <rect x="30" width="64" height="320" fill="#16161E" stroke="#4A4A5C" stroke-width="1.5"/>
+      <text x="62" y="18" text-anchor="middle" fill="#9A9AA8" font-family="Inter, sans-serif" font-size="8" font-weight="700">EARLY</text>
+      <g font-family="Inter, sans-serif" text-anchor="middle">
+        <g transform="translate(62 92)"><use href="#sideKnob"/><text y="3" fill="#9A9AA8" font-size="6">28ms</text><text y="35" fill="#9A9AA8" font-size="8">Pre-delay</text></g>
+        <g transform="translate(62 183)"><use href="#sideKnob"/><text y="3" fill="#9A9AA8" font-size="6">90Hz</text><text y="35" fill="#9A9AA8" font-size="8">Low Cut</text></g>
+        <g transform="translate(62 274)"><use href="#sideKnob"/><text y="3" fill="#9A9AA8" font-size="6">25%</text><text y="35" fill="#9A9AA8" font-size="8">Duck</text></g>
+      </g>
+    </g>
+    <rect x="94" width="4" height="320" fill="#7B6CF6"/>
+    <rect x="98" width="216" height="320" fill="#1A1A24" stroke="#4A4A5C" stroke-width="1.5"/>
+    <g data-source-module="device_tab_bar">
+      <rect x="98" width="216" height="40" fill="#22222E"/>
+      <rect x="106" y="7" width="48" height="26" rx="5" fill="#7B6CF6" fill-opacity=".18"/>
+      <rect x="158" y="7" width="48" height="26" rx="5" fill="#FFFFFF" fill-opacity=".04"/>
+      <text x="130" y="24" text-anchor="middle" fill="#7B6CF6" font-family="Inter, sans-serif" font-size="8" font-weight="700">TAIL</text>
+      <text x="182" y="24" text-anchor="middle" fill="#FFFFFF" fill-opacity=".35" font-family="Inter, sans-serif" font-size="8" font-weight="700">TONE</text>
+      <rect x="211" y="7" width="42" height="26" rx="5" fill="#14141C" stroke="#FFFFFF" stroke-opacity=".1"/>
+      <text x="232" y="24" text-anchor="middle" fill="#9A9AA8" font-family="Inter, sans-serif" font-size="7">SPACE⌄</text>
+      <rect x="258" y="7" width="48" height="26" rx="5" fill="#14141C" stroke="#7B6CF6" stroke-opacity=".35"/>
+      <text x="282" y="24" text-anchor="middle" fill="#7B6CF6" font-family="Inter, sans-serif" font-size="7" font-weight="700">FREEZE</text>
+    </g>
+    <g transform="translate(108 49)" data-source-module="preview_filter_response">
+      <rect width="196" height="164" rx="6" fill="#050508" stroke="#4A4A5C"/>
+      <path d="M10 143v-25m6 25V94m6 49v-34m6 34V79m7 64V101" stroke="#7B6CF6" stroke-opacity=".65"/>
+      <path d="M36 143C45 60 76 49 99 69s42 53 86 71" fill="url(#screenGlow)" stroke="#7B6CF6" stroke-width="2"/>
+      <circle cx="36" cy="143" r="3.5" fill="#7B6CF6"/><circle cx="148" cy="123" r="3.5" fill="#7B6CF6"/>
+      <text x="10" y="16" fill="#9A9AA8" font-family="Inter, sans-serif" font-size="7">SPACE · 8.4 s</text>
+    </g>
+    <g font-family="Inter, sans-serif" text-anchor="middle">
+      <g transform="translate(142 263)"><use href="#mainKnob"/><text y="3" fill="#7B6CF6" font-size="7">8.4s</text><text y="42" fill="#9A9AA8" font-size="8">DECAY</text></g>
+      <g transform="translate(206 263)"><use href="#mainKnob"/><text y="3" fill="#7B6CF6" font-size="7">75%</text><text y="42" fill="#9A9AA8" font-size="8">SIZE</text></g>
+      <g transform="translate(270 263)"><use href="#mainKnob"/><text y="3" fill="#7B6CF6" font-size="7">90%</text><text y="42" fill="#9A9AA8" font-size="8">DIFF</text></g>
+    </g>
+    <rect x="314" width="4" height="320" fill="#7B6CF6"/>
+    <g id="tail-character-panel" data-source-module="device_output_panel_dynamic_out">
+      <rect x="318" width="64" height="320" fill="#16161E" stroke="#4A4A5C" stroke-width="1.5"/>
+      <text x="350" y="18" text-anchor="middle" fill="#9A9AA8" font-family="Inter, sans-serif" font-size="8" font-weight="700">TAIL</text>
+      <g font-family="Inter, sans-serif" text-anchor="middle">
+        <g transform="translate(350 92)"><use href="#sideKnob"/><text y="3" fill="#9A9AA8" font-size="6">6.4k</text><text y="35" fill="#9A9AA8" font-size="8">Damping</text></g>
+        <g transform="translate(350 183)"><use href="#sideKnob"/><text y="3" fill="#9A9AA8" font-size="6">18%</text><text y="35" fill="#9A9AA8" font-size="8">Mod</text></g>
+        <g transform="translate(350 274)"><use href="#sideKnob"/><text y="3" fill="#9A9AA8" font-size="6">14.2k</text><text y="35" fill="#9A9AA8" font-size="8">High Cut</text></g>
+      </g>
+    </g>
+    <use href="#stereoMixOutput" transform="translate(382)"/>
+  </g>
+</svg>

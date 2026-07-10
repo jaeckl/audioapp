@@ -415,6 +415,25 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   List<DeviceTabSpec> get _containerTabs =>
       DeviceContainerTabs.forDeviceType(widget.device.type);
 
+  Widget? get _deviceHeaderActions {
+    if (widget.device.type != 'reverb') return null;
+    return ReverbHeaderActions(
+      device: widget.device as ReverbDeviceSnapshot,
+      onParameterChanged: widget.onDeviceParameterChanged,
+      modulatedParams: _modulatedParamIds,
+      automatedParams: _automatedParamIds,
+      modulationAmounts: _modulationAmounts,
+      connectModeLfoId: _connectModeLfo,
+      onModulationAssign: _onModulationForDevice,
+      automationLinkActive: widget.automationLinkActive,
+      onAutomationLinkTap: widget.onAutomationParamSelected != null
+          ? _onAutomationLinkTap
+          : null,
+      onAutomateParameter:
+          widget.onAutomateParameter != null ? _onAutomateParameter : null,
+    );
+  }
+
   ValueChanged<double> _onModulationFor(String paramId) {
     final lfoId = _connectModeLfo;
     if (lfoId == null) return (_) {};
@@ -931,6 +950,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                       tabs: _containerTabs,
                       selectedTabIndex: _selectedTabIndex,
                       onTabSelected: _onTabSelected,
+                      headerActions: _deviceHeaderActions,
                       bodyHeight: bodyHeight,
                       child: _buildDevice(context, bodyHeight),
                     ),
@@ -1575,6 +1595,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           child: ReverbFxStrip(
             device: dev,
             onParameterChanged: widget.onDeviceParameterChanged,
+            selectedTab: ReverbViewTab.values[_selectedTabIndex.clamp(0, 2)],
             modulatedParams: _modulatedParamIds,
             automatedParams: _automatedParamIds,
             modulationAmounts: _modulationAmounts,

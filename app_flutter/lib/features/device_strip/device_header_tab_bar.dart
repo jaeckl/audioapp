@@ -11,12 +11,14 @@ class DeviceHeaderTabBar extends StatelessWidget {
     required this.selectedIndex,
     required this.onSelected,
     this.accentColor,
+    this.compact = false,
   });
 
   final List<DeviceTabSpec> tabs;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
   final Color? accentColor;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +34,7 @@ class DeviceHeaderTabBar extends StatelessWidget {
               tab: tabs[index],
               selected: index == selectedIndex,
               accentColor: accentColor ?? DeviceStripTheme.genericAccent,
+              compact: compact,
               onTap: () => onSelected(index),
             ),
         ],
@@ -46,12 +49,14 @@ class _DeviceHeaderTab extends StatelessWidget {
     required this.selected,
     required this.accentColor,
     required this.onTap,
+    required this.compact,
   });
 
   final DeviceTabSpec tab;
   final bool selected;
   final Color accentColor;
   final VoidCallback onTap;
+  final bool compact;
 
   static const _topRadius = Radius.circular(8);
 
@@ -68,9 +73,11 @@ class _DeviceHeaderTab extends StatelessWidget {
           topRight: _topRadius,
         ),
         child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: EdgeInsets.symmetric(horizontal: compact ? 4 : 12),
           decoration: BoxDecoration(
-            color: selected ? Colors.black.withValues(alpha: 0.38) : Colors.transparent,
+            color: selected
+                ? Colors.black.withValues(alpha: 0.38)
+                : Colors.transparent,
             borderRadius: const BorderRadius.only(
               topLeft: _topRadius,
               topRight: _topRadius,
@@ -85,7 +92,7 @@ class _DeviceHeaderTab extends StatelessWidget {
                 size: 15,
                 color: selected ? accentColor : labelColor,
               ),
-              const SizedBox(width: 5),
+              SizedBox(width: compact ? 4 : 5),
               Text(
                 tab.label,
                 style: TextStyle(

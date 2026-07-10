@@ -4,59 +4,79 @@
 
 namespace audioapp {
 
-/**
-    Parameters for a reverb effect.
-    JSON schema (see docs/features/time-based-effects-suite/04-data-contracts.md):
-    {
-        "roomSize":   number, // 0.0 – 1.0, default 0.5
-        "damping":    number, // 0.0 – 1.0, default 0.5
-        "wetLevel":   number, // 0.0 – 1.0, default 0.33
-        "dryLevel":   number, // 0.0 – 1.0, default 0.7
-        "width":      number, // 0.0 – 1.0, default 1.0
-        "freezeMode": boolean // default false
-    }
-*/
 struct ReverbParams {
-    double roomSize   = 0.5;
-    double damping    = 0.5;
-    double wetLevel   = 0.33;
-    double dryLevel   = 0.7;
-    double width      = 1.0;
-    bool   freezeMode = false;
+    double modeMorph = 2.0;
+    double decay = 0.56;
+    double preDelay = 0.112;
+    double size = 0.64;
+    double diffusion = 0.78;
+    double damping = 0.68;
+    double modulation = 0.18;
+    double lowCut = 0.26;
+    double highCut = 0.86;
+    double ducking = 0.25;
+    double freeze = 0.0;
 
-    void clamp() {
-        roomSize   = juce::jlimit(0.0, 1.0, roomSize);
-        damping    = juce::jlimit(0.0, 1.0, damping);
-        wetLevel   = juce::jlimit(0.0, 1.0, wetLevel);
-        dryLevel   = juce::jlimit(0.0, 1.0, dryLevel);
-        width      = juce::jlimit(0.0, 1.0, width);
-        // freezeMode is boolean, no clamping needed
+    void clamp() noexcept {
+        modeMorph = juce::jlimit(0.0, 3.0, modeMorph);
+        decay = juce::jlimit(0.0, 1.0, decay);
+        preDelay = juce::jlimit(0.0, 1.0, preDelay);
+        size = juce::jlimit(0.0, 1.0, size);
+        diffusion = juce::jlimit(0.0, 1.0, diffusion);
+        damping = juce::jlimit(0.0, 1.0, damping);
+        modulation = juce::jlimit(0.0, 1.0, modulation);
+        lowCut = juce::jlimit(0.0, 1.0, lowCut);
+        highCut = juce::jlimit(0.0, 1.0, highCut);
+        ducking = juce::jlimit(0.0, 1.0, ducking);
+        freeze = juce::jlimit(0.0, 1.0, freeze);
     }
 
     juce::var toJson() const {
-        juce::DynamicObject* obj = new juce::DynamicObject();
-        obj->setProperty("roomSize",   roomSize);
-        obj->setProperty("damping",    damping);
-        obj->setProperty("wetLevel",   wetLevel);
-        obj->setProperty("dryLevel",   dryLevel);
-        obj->setProperty("width",      width);
-        obj->setProperty("freezeMode", freezeMode);
+        auto* obj = new juce::DynamicObject();
+        obj->setProperty("modeMorph", modeMorph);
+        obj->setProperty("decay", decay);
+        obj->setProperty("preDelay", preDelay);
+        obj->setProperty("size", size);
+        obj->setProperty("diffusion", diffusion);
+        obj->setProperty("damping", damping);
+        obj->setProperty("modulation", modulation);
+        obj->setProperty("lowCut", lowCut);
+        obj->setProperty("highCut", highCut);
+        obj->setProperty("ducking", ducking);
+        obj->setProperty("freeze", freeze);
         return juce::var(obj);
     }
 
-    static ReverbParams fromJson(const juce::var& v) {
-        ReverbParams p;
-        if (v.isObject()) {
-            const auto* obj = v.getDynamicObject();
-            p.roomSize   = obj->getProperty("roomSize").toString().getDoubleValue();
-            p.damping    = obj->getProperty("damping").toString().getDoubleValue();
-            p.wetLevel   = obj->getProperty("wetLevel").toString().getDoubleValue();
-            p.dryLevel   = obj->getProperty("dryLevel").toString().getDoubleValue();
-            p.width      = obj->getProperty("width").toString().getDoubleValue();
-            p.freezeMode = static_cast<bool>(obj->getProperty("freezeMode"));
-            p.clamp();
+    static ReverbParams fromJson(const juce::var& value) {
+        ReverbParams out;
+        const auto* obj = value.getDynamicObject();
+        if (obj == nullptr) return out;
+        auto number = [&](const char* key, double fallback) {
+            const auto v = obj->getProperty(key);
+            return v.isDouble() || v.isInt() || v.isInt64()
+                ? static_cast<double>(v) : fallback;
+        };
+        const bool modern = obj->hasProperty("decay");
+        if (modern) {
+            out.modeMorph = number("modeMorph", out.modeMorph);
+            out.decay = number("decay", out.decay);
+            out.preDelay = number("preDelay", out.preDelay);
+            out.size = number("size", out.size);
+            out.diffusion = number("diffusion", out.diffusion);
+            out.damping = number("damping", out.damping);
+            out.modulation = number("modulation", out.modulation);
+            out.lowCut = number("lowCut", out.lowCut);
+            out.highCut = number("highCut", out.highCut);
+            out.ducking = number("ducking", out.ducking);
+            out.freeze = number("freeze", out.freeze);
+        } else {
+            const double roomSize = number("roomSize", 0.5);
+            out.size = roomSize;
+            out.decay = juce::jlimit(0.0, 1.0, 0.25 + roomSize * 0.55);
+            out.damping = number("damping", 0.5);
         }
-        return p;
+        out.clamp();
+        return out;
     }
 };
 

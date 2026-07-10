@@ -1,29 +1,35 @@
 #include "audioapp/devices/DeviceStripParams.hpp"
 #include "audioapp/effects/ReverbDeviceType.hpp"
-#include "audioapp/devices/DeviceSlot.hpp"
-#include "audioapp/devices/DeviceParameterResult.hpp"
-#include "audioapp/devices/PlaybackBuildContext.hpp"
-#include "audioapp/DeviceChain.hpp"
-#include "audioapp/effects/ReverbParams.hpp"
-#include <juce_core/juce_core.h>
 #include "audioapp/devices/processors/ReverbProcessor.hpp"
+#include "audioapp/dsp/ProcessorArena.hpp"
+
+#include <algorithm>
 
 namespace audioapp {
+
+namespace {
+constexpr const char* kParamNames[] = {
+    "modeMorph", "decay", "preDelay", "size", "diffusion",
+    "damping", "modulation", "lowCut", "highCut", "ducking", "freeze",
+};
+
+float readNumber(const juce::DynamicObject* object, const char* key, float fallback) {
+    if (object == nullptr) return fallback;
+    const auto value = object->getProperty(key);
+    return value.isDouble() || value.isInt() || value.isInt64()
+        ? static_cast<float>(static_cast<double>(value)) : fallback;
+}
+}
 
 DeviceSlot ReverbDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
     slot.config.typeId = typeId();
-    ReverbParams instance;
-    instance.roomSize = 0.5;
-    instance.damping = 0.5;
-    instance.wetLevel = 0.33;
-    instance.dryLevel = 0.7;
-    instance.width = 1.0;
-    instance.freezeMode = false;
-    slot.config.instance = std::move(instance);
+    slot.config.instance = ReverbParams{};
     slot.config.inputPanel = EmptyPanel{};
-    slot.config.outputPanel = StereoOutputPanel{};
+    StereoOutputPanel output;
+    output.outputMix = 0.35f;
+    slot.config.outputPanel = output;
     slot.config.bypassed = false;
     return slot;
 }
@@ -36,197 +42,161 @@ DeviceParameterResult ReverbDeviceType::setParameter(DeviceSlot& slot,
         result.handled = true;
         return result;
     }
-    auto& instance = std::get<ReverbParams>(slot.config.instance);
-    const uint16_t id = paramIdFromString(parameterId);
-    if (id == static_cast<uint16_t>(-1))
-        return result;
-    const auto localId = static_cast<ReverbParam>(id);
-    switch (localId) {
-    case ReverbParam::RoomSize:
-        instance.roomSize = juce::jlimit(0.0, 1.0, static_cast<double>(value));
-        break;
-    case ReverbParam::Damping:
-        instance.damping = juce::jlimit(0.0, 1.0, static_cast<double>(value));
-        break;
-    case ReverbParam::WetLevel:
-        instance.wetLevel = juce::jlimit(0.0, 1.0, static_cast<double>(value));
-        break;
-    case ReverbParam::DryLevel:
-        instance.dryLevel = juce::jlimit(0.0, 1.0, static_cast<double>(value));
-        break;
-    case ReverbParam::Width:
-        instance.width = juce::jlimit(0.0, 1.0, static_cast<double>(value));
-        break;
-    default:
-        return result;
+    const uint16_t raw = paramIdFromString(parameterId);
+    if (raw == static_cast<uint16_t>(-1)) return result;
+    auto& params = std::get<ReverbParams>(slot.config.instance);
+    const auto normalized = std::clamp(static_cast<double>(value), 0.0, 1.0);
+    switch (static_cast<ReverbParam>(raw)) {
+    case ReverbParam::ModeMorph: params.modeMorph = std::clamp(static_cast<double>(value), 0.0, 3.0); break;
+    case ReverbParam::Decay: params.decay = normalized; break;
+    case ReverbParam::PreDelay: params.preDelay = normalized; break;
+    case ReverbParam::Size: params.size = normalized; break;
+    case ReverbParam::Diffusion: params.diffusion = normalized; break;
+    case ReverbParam::Damping: params.damping = normalized; break;
+    case ReverbParam::Modulation: params.modulation = normalized; break;
+    case ReverbParam::LowCut: params.lowCut = normalized; break;
+    case ReverbParam::HighCut: params.highCut = normalized; break;
+    case ReverbParam::Ducking: params.ducking = normalized; break;
+    case ReverbParam::Freeze: params.freeze = normalized; break;
     }
     result.handled = true;
     return result;
 }
 
-bool ReverbDeviceType::setStringParameter(DeviceSlot&, std::string_view, const std::string&, const PlaybackBuildContext&) const {
+bool ReverbDeviceType::setStringParameter(DeviceSlot&, std::string_view,
+                                          const std::string&,
+                                          const PlaybackBuildContext&) const {
     return false;
 }
 
 std::vector<std::string_view> ReverbDeviceType::modulatableParams() const {
-    return {"gain", "pan", "roomSize", "damping", "wetLevel", "dryLevel", "width"};
+    return {"gain", "pan", "modeMorph", "decay", "preDelay", "size",
+            "diffusion", "damping", "modulation", "lowCut", "highCut", "ducking"};
 }
 
-void ReverbDeviceType::buildPlaybackNode(const DeviceSlot& slot, const PlaybackBuildContext&, DeviceNodePlayback& out) const {
+void ReverbDeviceType::buildPlaybackNode(const DeviceSlot& slot,
+                                         const PlaybackBuildContext&,
+                                         DeviceNodePlayback& out) const {
     out.kind = DeviceNodeKind::Reverb;
-    const auto& inst = std::get<ReverbParams>(slot.config.instance);
-    ReverbParamsPlayback p;
-    p.roomSize = static_cast<float>(inst.roomSize);
-    p.damping = static_cast<float>(inst.damping);
-    p.wetLevel = static_cast<float>(inst.wetLevel);
-    p.dryLevel = static_cast<float>(inst.dryLevel);
-    p.width = static_cast<float>(inst.width);
-    p.inputGain = 1.0f;
-    out.params = p;
+    const auto& source = std::get<ReverbParams>(slot.config.instance);
+    ReverbParamsPlayback params;
+    params.modeMorph = static_cast<float>(source.modeMorph);
+    params.decay = static_cast<float>(source.decay);
+    params.preDelay = static_cast<float>(source.preDelay);
+    params.size = static_cast<float>(source.size);
+    params.diffusion = static_cast<float>(source.diffusion);
+    params.damping = static_cast<float>(source.damping);
+    params.modulation = static_cast<float>(source.modulation);
+    params.lowCut = static_cast<float>(source.lowCut);
+    params.highCut = static_cast<float>(source.highCut);
+    params.ducking = static_cast<float>(source.ducking);
+    params.freeze = static_cast<float>(source.freeze);
+    out.params = params;
 }
 
-bool ReverbDeviceType::buildLiveInstrument(const DeviceSlot&, const PlaybackBuildContext&, LiveInstrumentSnapshot&) const { return false; }
+bool ReverbDeviceType::buildLiveInstrument(const DeviceSlot&,
+                                           const PlaybackBuildContext&,
+                                           LiveInstrumentSnapshot&) const { return false; }
 
 juce::var ReverbDeviceType::slotToVar(const DeviceSlot& slot) const {
-    auto* parameters = new juce::DynamicObject();
-    const auto& inst = std::get<ReverbParams>(slot.config.instance);
-    parameters->setProperty("roomSize", inst.roomSize);
-    parameters->setProperty("damping", inst.damping);
-    parameters->setProperty("wetLevel", inst.wetLevel);
-    parameters->setProperty("dryLevel", inst.dryLevel);
-    parameters->setProperty("width", inst.width);
-    parameters->setProperty("freezeMode", inst.freezeMode ? 1.0 : 0.0);
-
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
     object->setProperty("type", juce::String::fromUTF8(typeId().c_str()));
-
-    auto* outObj = new juce::DynamicObject();
-    const auto& panel = std::get<StereoOutputPanel>(slot.config.outputPanel);
-    outObj->setProperty("type", "stereo");
-    outObj->setProperty("gain", static_cast<double>(panel.gain));
-    outObj->setProperty("pan", static_cast<double>(panel.pan));
-    outObj->setProperty("outputMix", static_cast<double>(panel.outputMix));
-    outObj->setProperty("outputWidth", static_cast<double>(panel.outputWidth));
-    object->setProperty("outputPanel", juce::var(outObj));
-
-    auto* inObj = new juce::DynamicObject();
-    inObj->setProperty("type", "empty");
-    object->setProperty("inputPanel", juce::var(inObj));
-
+    object->setProperty("parameters", std::get<ReverbParams>(slot.config.instance).toJson());
     object->setProperty("bypass", slot.config.bypassed ? 1.0 : 0.0);
-    object->setProperty("parameters", juce::var(parameters));
+
+    auto* outputObject = new juce::DynamicObject();
+    const auto& output = std::get<StereoOutputPanel>(slot.config.outputPanel);
+    outputObject->setProperty("type", "stereo");
+    outputObject->setProperty("gain", output.gain);
+    outputObject->setProperty("pan", output.pan);
+    outputObject->setProperty("outputMix", output.outputMix);
+    outputObject->setProperty("outputWidth", output.outputWidth);
+    object->setProperty("outputPanel", juce::var(outputObject));
+
+    auto* inputObject = new juce::DynamicObject();
+    inputObject->setProperty("type", "empty");
+    object->setProperty("inputPanel", juce::var(inputObject));
 
     auto* meters = new juce::DynamicObject();
     meters->setProperty("gainReductionDb", 0.0);
     meters->setProperty("inputLevel", 0.0);
     object->setProperty("meters", juce::var(meters));
-
     return juce::var(object);
 }
 
-DeviceSlot ReverbDeviceType::varToSlot(const juce::var& obj) const {
-    DeviceSlot slot;
-    if (const auto* object = obj.getDynamicObject()) {
-        slot.id = object->getProperty("id").toString().toStdString();
-        slot.config.typeId = object->getProperty("type").toString().toStdString();
+DeviceSlot ReverbDeviceType::varToSlot(const juce::var& value) const {
+    DeviceSlot slot = createDefault("");
+    const auto* object = value.getDynamicObject();
+    if (object == nullptr) return slot;
+    slot.id = object->getProperty("id").toString().toStdString();
+    slot.config.typeId = typeId();
+    slot.config.inputPanel = EmptyPanel{};
 
-        const auto outputPanelVar = object->getProperty("outputPanel");
-        bool hasPanel = outputPanelVar.isObject();
-        if (hasPanel) {
-            const auto* panel = outputPanelVar.getDynamicObject();
-            auto readPanel = [&](const char* key, float fallback) -> float {
-                const auto v = panel->getProperty(key);
-                if (v.isDouble() || v.isInt() || v.isInt64())
-                    return static_cast<float>(static_cast<double>(v));
-                return fallback;
-            };
-            StereoOutputPanel sp;
-            sp.gain = readPanel("gain", 1.0f);
-            sp.pan = readPanel("pan", 0.5f);
-            sp.outputMix = readPanel("outputMix", 1.0f);
-            sp.outputWidth = readPanel("outputWidth", 1.0f);
-            slot.config.outputPanel = sp;
+    const auto outputValue = object->getProperty("outputPanel");
+    const auto* outputObject = outputValue.getDynamicObject();
+    StereoOutputPanel output;
+    output.gain = readNumber(outputObject, "gain", 1.0f);
+    output.pan = readNumber(outputObject, "pan", 0.5f);
+    output.outputMix = readNumber(outputObject, "outputMix", 1.0f);
+    output.outputWidth = readNumber(outputObject, "outputWidth", 1.0f);
 
-        }
-
-        slot.config.bypassed = object->getProperty("bypass").isDouble()
-            ? (static_cast<float>(static_cast<double>(object->getProperty("bypass"))) >= 0.5f)
-            : false;
-
-        const auto params = object->getProperty("parameters");
-        if (const auto* p = params.getDynamicObject()) {
-            auto readFloat = [&](const char* key, float fallback) -> float {
-                const auto v = p->getProperty(key);
-                if (v.isDouble() || v.isInt() || v.isInt64())
-                    return static_cast<float>(static_cast<double>(v));
-                return fallback;
-            };
-
-            if (!hasPanel) {
-                const float oldGain = readFloat("gain", 1.0f);
-                const float oldPan = readFloat("pan", 0.5f);
-                StereoOutputPanel sp;
-                sp.gain = oldGain;
-                sp.pan = oldPan;
-                sp.outputMix = readFloat("outputMix", 1.0f);
-                sp.outputWidth = readFloat("outputWidth", 1.0f);
-                slot.config.outputPanel = sp;
-                slot.config.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
-            }
-
-            ReverbParams inst;
-            inst.roomSize = p->getProperty("roomSize").toString().getDoubleValue();
-            inst.damping = p->getProperty("damping").toString().getDoubleValue();
-            inst.wetLevel = p->getProperty("wetLevel").toString().getDoubleValue();
-            inst.dryLevel = p->getProperty("dryLevel").toString().getDoubleValue();
-            inst.width = p->getProperty("width").toString().getDoubleValue();
-            inst.freezeMode = static_cast<bool>(p->getProperty("freezeMode"));
-            inst.clamp();
-            slot.config.instance = inst;
-            
-        }
+    const auto parameterValue = object->getProperty("parameters");
+    const auto* parameterObject = parameterValue.getDynamicObject();
+    if (outputObject == nullptr) {
+        output.gain = readNumber(parameterObject, "gain", 1.0f);
+        output.pan = readNumber(parameterObject, "pan", 0.5f);
+        output.outputMix = readNumber(parameterObject, "outputMix", 1.0f);
+        output.outputWidth = readNumber(parameterObject, "outputWidth", 1.0f);
     }
+    const bool modern = parameterObject != nullptr && parameterObject->hasProperty("decay");
+    if (!modern) {
+        const float legacyWet = readNumber(parameterObject, "wetLevel", 0.33f);
+        output.outputMix = std::clamp(output.outputMix * legacyWet, 0.0f, 1.0f);
+    }
+    slot.config.outputPanel = output;
+    slot.config.instance = ReverbParams::fromJson(parameterValue);
+    const auto bypassValue = object->getProperty("bypass");
+    slot.config.bypassed = bypassValue.isDouble() || bypassValue.isInt()
+        ? static_cast<double>(bypassValue) >= 0.5 : false;
     return slot;
 }
 
 DeviceProcessor* ReverbDeviceType::createProcessor(ProcessorArena& arena) const {
-    return arena.template emplace<ReverbProcessor>();
+    return arena.emplace<ReverbProcessor>();
 }
 
 DeviceNodeKind ReverbDeviceType::kind() const noexcept { return DeviceNodeKind::Reverb; }
 
 uint16_t ReverbDeviceType::paramIdFromString(std::string_view name) const noexcept {
-    if (name == "roomSize" || name == "reverbRoomSize") return static_cast<uint16_t>(ReverbParam::RoomSize);
-    if (name == "damping" || name == "reverbDamping") return static_cast<uint16_t>(ReverbParam::Damping);
-    if (name == "wetLevel" || name == "reverbWetLevel") return static_cast<uint16_t>(ReverbParam::WetLevel);
-    if (name == "dryLevel" || name == "reverbDryLevel") return static_cast<uint16_t>(ReverbParam::DryLevel);
-    if (name == "width" || name == "reverbWidth") return static_cast<uint16_t>(ReverbParam::Width);
+    for (uint16_t i = 0; i < static_cast<uint16_t>(std::size(kParamNames)); ++i)
+        if (name == kParamNames[i]) return i;
+    if (name == "roomSize" || name == "reverbRoomSize") return static_cast<uint16_t>(ReverbParam::Size);
+    if (name == "reverbDamping") return static_cast<uint16_t>(ReverbParam::Damping);
     return static_cast<uint16_t>(-1);
 }
 
 std::string_view ReverbDeviceType::paramIdToString(uint16_t localId) const noexcept {
-    switch (static_cast<ReverbParam>(localId)) {
-    case ReverbParam::RoomSize: return "reverbRoomSize";
-    case ReverbParam::Damping: return "reverbDamping";
-    case ReverbParam::WetLevel: return "reverbWetLevel";
-    case ReverbParam::DryLevel: return "reverbDryLevel";
-    case ReverbParam::Width: return "reverbWidth";
-    default: return "";
-    }
+    return localId < std::size(kParamNames) ? kParamNames[localId] : "";
 }
 
 std::span<const ParamDescriptor> ReverbDeviceType::paramDescriptors() const noexcept {
-    static constexpr ParamDescriptor kParams[] = {
-        {static_cast<uint16_t>(ReverbParam::RoomSize), "reverbRoomSize", "Room Size", 0.5f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(ReverbParam::Damping), "reverbDamping", "Damping", 0.5f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(ReverbParam::WetLevel), "reverbWetLevel", "Wet Level", 0.33f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(ReverbParam::DryLevel), "reverbDryLevel", "Dry Level", 0.7f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(ReverbParam::Width), "reverbWidth", "Width", 1.0f, 0.0f, 1.0f, true, true},
+    static constexpr ParamDescriptor descriptors[] = {
+        {0, "modeMorph", "Mode Morph", 2, 0, 3, true, true},
+        {1, "decay", "Decay", .56f, 0, 1, true, true},
+        {2, "preDelay", "Pre-delay", .112f, 0, 1, true, true},
+        {3, "size", "Size", .64f, 0, 1, true, true},
+        {4, "diffusion", "Diffusion", .78f, 0, 1, true, true},
+        {5, "damping", "Damping", .68f, 0, 1, true, true},
+        {6, "modulation", "Modulation", .18f, 0, 1, true, true},
+        {7, "lowCut", "Low Cut", .26f, 0, 1, true, true},
+        {8, "highCut", "High Cut", .86f, 0, 1, true, true},
+        {9, "ducking", "Ducking", .25f, 0, 1, true, true},
+        {10, "freeze", "Freeze", 0, 0, 1, true, true},
     };
-    return kParams;
+    return descriptors;
 }
 
-bool ReverbDeviceType::usesDspAutomationSubBlocks() const noexcept { return false; }
+bool ReverbDeviceType::usesDspAutomationSubBlocks() const noexcept { return true; }
 
 } // namespace audioapp

@@ -152,6 +152,7 @@ class DeviceStripMetrics {
       _dynamicsTypes.contains(deviceType) ||
               (_timeFxTypes.contains(deviceType) &&
                   deviceType != 'delay' &&
+                  deviceType != 'reverb' &&
                   deviceType != 'chorus') ||
               _frequencyFxTypes.contains(deviceType)
           ? dynamicsInputPanelWidth

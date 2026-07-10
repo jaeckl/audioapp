@@ -67,6 +67,12 @@ void main() {
       expect(DeviceStripChrome.outputWidth('chorus'), 64);
     });
 
+    test('reverb omits input chrome and keeps stereo mix output width', () {
+      expect(DeviceStripChrome.inputWidth('reverb'), 0);
+      expect(DeviceStripChrome.hasInputPanel('reverb'), isFalse);
+      expect(DeviceStripChrome.outputWidth('reverb'), 64);
+    });
+
     test('mono drums use drum output width without input', () {
       expect(DeviceStripChrome.inputWidth('kick_generator'), 0);
       expect(DeviceStripChrome.outputWidth('kick_generator'), 64);
@@ -156,6 +162,33 @@ void main() {
     expect(find.text('OUT'), findsOneWidget);
     expect(find.text('Width'), findsOneWidget);
     expect(find.text('Mix'), findsOneWidget);
+  });
+
+  testWidgets('reverb slot uses Version C tabs and header actions',
+      (tester) async {
+    final device = DeviceSnapshot.fromMap({
+      'id': 'dev-reverb',
+      'type': 'reverb',
+      'parameters': {'modeMorph': 2.0, 'decay': .56},
+      'outputPanel': {'outputMix': .35, 'outputWidth': 1.0},
+    });
+    await pumpSlot(tester, device: device);
+
+    expect(find.text('TAIL'), findsOneWidget);
+    expect(find.text('TONE'), findsOneWidget);
+    expect(find.text('MOD'), findsOneWidget);
+    expect(find.byKey(const ValueKey('reverb-header-mode')), findsOneWidget);
+    expect(find.byKey(const ValueKey('reverb-freeze')), findsOneWidget);
+    expect(find.byIcon(Icons.ac_unit), findsOneWidget);
+    expect(tester.widget<Text>(find.text('TAIL')).style?.fontSize, 11);
+    expect(tester.widget<Icon>(find.byIcon(Icons.multiline_chart)).size, 15);
+    expect(
+        find.byKey(const ValueKey('reverb-parameter-column')), findsOneWidget);
+    await tester.tap(find.text('TONE'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('MOD'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('oscilloscope slot shows empty output chrome rail',

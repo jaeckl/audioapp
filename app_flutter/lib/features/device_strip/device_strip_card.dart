@@ -19,6 +19,7 @@ class DeviceStripCard extends StatelessWidget {
     this.tabs = const [],
     this.selectedTabIndex = 0,
     this.onTabSelected,
+    this.headerActions,
   });
 
   final String deviceType;
@@ -41,6 +42,7 @@ class DeviceStripCard extends StatelessWidget {
   final List<DeviceTabSpec> tabs;
   final int selectedTabIndex;
   final ValueChanged<int>? onTabSelected;
+  final Widget? headerActions;
 
   bool get _usesContainerTabs => !headerOnly && tabs.isNotEmpty;
 
@@ -64,7 +66,8 @@ class DeviceStripCard extends StatelessWidget {
         borderRadius: cardRadius,
         border: Border(
           top: borderSide,
-          left: attachInputPanel || attachToolRail ? BorderSide.none : borderSide,
+          left:
+              attachInputPanel || attachToolRail ? BorderSide.none : borderSide,
           bottom: borderSide,
         ),
       ),
@@ -98,6 +101,7 @@ class DeviceStripCard extends StatelessWidget {
                           selectedTabIndex: selectedTabIndex,
                           accent: accent,
                           onTabSelected: onTabSelected,
+                          actions: headerActions,
                         )
                       else
                         _HeaderBar(
@@ -130,12 +134,14 @@ class _ContainerTabHeader extends StatelessWidget {
     required this.selectedTabIndex,
     required this.accent,
     required this.onTabSelected,
+    this.actions,
   });
 
   final List<DeviceTabSpec> tabs;
   final int selectedTabIndex;
   final Color accent;
   final ValueChanged<int>? onTabSelected;
+  final Widget? actions;
 
   @override
   Widget build(BuildContext context) {
@@ -143,11 +149,19 @@ class _ContainerTabHeader extends StatelessWidget {
       height: DeviceStripTheme.headerHeight,
       child: ColoredBox(
         color: DeviceStripTheme.cardHeader,
-        child: DeviceHeaderTabBar(
-          tabs: tabs,
-          selectedIndex: selectedTabIndex,
-          accentColor: accent,
-          onSelected: onTabSelected ?? (_) {},
+        child: Row(
+          children: [
+            Expanded(
+              child: DeviceHeaderTabBar(
+                tabs: tabs,
+                selectedIndex: selectedTabIndex,
+                accentColor: accent,
+                compact: actions != null,
+                onSelected: onTabSelected ?? (_) {},
+              ),
+            ),
+            if (actions != null) actions!,
+          ],
         ),
       ),
     );

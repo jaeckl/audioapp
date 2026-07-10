@@ -25,6 +25,10 @@ constexpr const char* kChorusParamNames[] = {
     "dimensionAmount", "dimensionDelay", "dimensionSpread", "dimensionMotion", "dimensionLowCut", "dimensionHighCut",
     "driftSpeed", "driftDepth", "driftWander", "driftDelay", "driftStereo", "driftTone",
 };
+constexpr const char* kReverbParamNames[] = {
+    "modeMorph", "decay", "preDelay", "size", "diffusion",
+    "damping", "modulation", "lowCut", "highCut", "ducking", "freeze",
+};
 }
 
 bool automationBeatInClip(const AutomationClipPlayback& ac,
@@ -76,6 +80,7 @@ static ParamKind paramKindForDevice(DeviceNodeKind kind) noexcept {
     case DeviceNodeKind::Granular:         return ParamKind::Granular;
     case DeviceNodeKind::Stutter:          return ParamKind::Stutter;
     case DeviceNodeKind::Chorus:           return ParamKind::Chorus;
+    case DeviceNodeKind::Reverb:           return ParamKind::Reverb;
     case DeviceNodeKind::TrackGain:        return ParamKind::TrackGain;
     case DeviceNodeKind::Unknown:
     default:                                return ParamKind::Common;
@@ -491,6 +496,12 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
                 return packParamId(ParamKind::Chorus, i);
         return 0;
     }
+    case DeviceNodeKind::Reverb: {
+        for (uint16_t i = 0; i < static_cast<uint16_t>(std::size(kReverbParamNames)); ++i)
+            if (std::strcmp(name, kReverbParamNames[i]) == 0)
+                return packParamId(ParamKind::Reverb, i);
+        return 0;
+    }
     default:
         return 0;
     }
@@ -818,6 +829,8 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
     }
     case DeviceNodeKind::Chorus:
         return rawId < std::size(kChorusParamNames) ? kChorusParamNames[rawId] : "";
+    case DeviceNodeKind::Reverb:
+        return rawId < std::size(kReverbParamNames) ? kReverbParamNames[rawId] : "";
     default:
         return "";
     }
@@ -1021,6 +1034,23 @@ const ParamDescriptor* paramDescriptorsForKind(DeviceNodeKind kind, int& countOu
             {19, "driftSpeed", "Drift Speed", .3f, 0, 1, true, true}, {20, "driftDepth", "Drift Depth", .5f, 0, 1, true, true},
             {21, "driftWander", "Drift Wander", .4f, 0, 1, true, true}, {22, "driftDelay", "Drift Delay", .4f, 0, 1, true, true},
             {23, "driftStereo", "Drift Stereo", .7f, 0, 1, true, true}, {24, "driftTone", "Drift Tone", .6f, 0, 1, true, true},
+        };
+        countOut = static_cast<int>(std::size(kParams));
+        return kParams;
+    }
+    case DeviceNodeKind::Reverb: {
+        static constexpr ParamDescriptor kParams[] = {
+            {0, "modeMorph", "Mode Morph", 2, 0, 3, true, true},
+            {1, "decay", "Decay", .56f, 0, 1, true, true},
+            {2, "preDelay", "Pre-delay", .112f, 0, 1, true, true},
+            {3, "size", "Size", .64f, 0, 1, true, true},
+            {4, "diffusion", "Diffusion", .78f, 0, 1, true, true},
+            {5, "damping", "Damping", .68f, 0, 1, true, true},
+            {6, "modulation", "Modulation", .18f, 0, 1, true, true},
+            {7, "lowCut", "Low Cut", .26f, 0, 1, true, true},
+            {8, "highCut", "High Cut", .86f, 0, 1, true, true},
+            {9, "ducking", "Ducking", .25f, 0, 1, true, true},
+            {10, "freeze", "Freeze", 0, 0, 1, true, true},
         };
         countOut = static_cast<int>(std::size(kParams));
         return kParams;
@@ -1432,6 +1462,16 @@ void applyAutomationValue(DeviceVariantParams& params,
                 const int index = static_cast<int>(rawId) - 1;
                 p->modeParams[index / 6][index % 6] = value;
             }
+        }
+        break;
+    case ParamKind::Reverb:
+        if (auto* p = std::get_if<ReverbParamsPlayback>(&params)) {
+            float* normalized[] = {&p->decay, &p->preDelay, &p->size,
+                &p->diffusion, &p->damping, &p->modulation,
+                &p->lowCut, &p->highCut, &p->ducking};
+            if (rawId == 0) p->modeMorph = value * 3.0f;
+            else if (rawId <= 9) *normalized[rawId - 1] = value;
+            else if (rawId == 10) p->freeze = value;
         }
         break;
     case ParamKind::Common:

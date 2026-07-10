@@ -24,18 +24,22 @@ public:
         beginTest("set reverb parameters");
         {
             audioapp::DeviceSlot slot = registry.createDefault("reverb", "testReverb");
-            audioapp::DeviceParameterResult result = registry.setParameter(slot, "roomSize", 0.5f);
-            expect(result.handled, "roomSize parameter should be handled");
-            result = registry.setParameter(slot, "damping", 0.3f);
+            audioapp::DeviceParameterResult result = registry.setParameter(slot, "modeMorph", 2.0f);
+            expect(result.handled, "modeMorph parameter should be handled");
+            result = registry.setParameter(slot, "decay", 0.75f);
+            expect(result.handled, "decay parameter should be handled");
+            result = registry.setParameter(slot, "preDelay", 0.2f);
+            expect(result.handled, "preDelay parameter should be handled");
+            result = registry.setParameter(slot, "damping", 0.7f);
             expect(result.handled, "damping parameter should be handled");
-            result = registry.setParameter(slot, "wetLevel", 0.4f);
-            expect(result.handled, "wetLevel parameter should be handled");
+            result = registry.setParameter(slot, "ducking", 0.4f);
+            expect(result.handled, "ducking parameter should be handled");
         }
 
         beginTest("round-trip snapshot");
         {
             audioapp::DeviceSlot slot = registry.createDefault("reverb", "testReverb");
-            registry.setParameter(slot, "roomSize", 0.8f);
+            registry.setParameter(slot, "decay", 0.8f);
             expect(true, "reverb device created and parameter set");
         }
     }

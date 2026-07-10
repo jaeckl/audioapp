@@ -116,11 +116,17 @@ struct OscillatorParams {
   };
 
 struct ReverbParamsPlayback {
-    float roomSize = 0.5f;
-    float damping = 0.5f;
-    float wetLevel = 0.33f;
-    float dryLevel = 0.7f;
-    float width = 1.0f;
+    float modeMorph = 2.0f;
+    float decay = 0.56f;
+    float preDelay = 0.112f;
+    float size = 0.64f;
+    float diffusion = 0.78f;
+    float damping = 0.68f;
+    float modulation = 0.18f;
+    float lowCut = 0.26f;
+    float highCut = 0.86f;
+    float ducking = 0.25f;
+    float freeze = 0.0f;
     float inputGain = 1.0f;
 };
 

@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -424,8 +425,10 @@ class DelayFxStrip extends StatelessWidget {
 
 // ── Reverb ─────────────────────────────────────────────────────────────────
 
-class ReverbFxPanel extends StatelessWidget {
-  const ReverbFxPanel({
+enum ReverbViewTab { tail, tone, mod }
+
+class ReverbHeaderActions extends StatefulWidget {
+  const ReverbHeaderActions({
     super.key,
     required this.device,
     required this.onParameterChanged,
@@ -438,12 +441,6 @@ class ReverbFxPanel extends StatelessWidget {
     this.onAutomationLinkTap,
     this.onAutomateParameter,
   });
-
-  static const accent = Color(0xFF7B6CF6);
-  static const containerTabs = <DeviceTabSpec>[];
-
-  /// Reverb — compact time FX card.
-  static const double designWidth = 216;
 
   final ReverbDeviceSnapshot device;
   final TimeFxParameterChanged onParameterChanged;
@@ -457,60 +454,824 @@ class ReverbFxPanel extends StatelessWidget {
   final ValueChanged<String>? onAutomateParameter;
 
   @override
+  State<ReverbHeaderActions> createState() => _ReverbHeaderActionsState();
+}
+
+class _ReverbHeaderActionsState extends State<ReverbHeaderActions>
+    with SingleTickerProviderStateMixin {
+  static const _modes = ['ROOM', 'PLATE', 'HALL', 'SPACE'];
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulse;
+  bool _assigning = false;
+  double _startY = 0;
+  double _amount = 0;
+
+  bool get _pulseActive =>
+      widget.connectModeLfoId != null || widget.automationLinkActive;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    _pulse = Tween<double>(begin: .1, end: .35).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+    if (_pulseActive) _pulseController.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant ReverbHeaderActions oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final wasActive =
+        oldWidget.connectModeLfoId != null || oldWidget.automationLinkActive;
+    if (_pulseActive && !wasActive) {
+      _pulseController.repeat(reverse: true);
+    } else if (!_pulseActive && wasActive) {
+      _pulseController.stop();
+      _pulseController.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return _timeFxSinglePage(
-      rows: [
-        _knobGridRow([
-          _knob(
-            label: 'Room',
-            value: device.reverbRoomSize,
-            paramId: 'roomSize',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${(device.reverbRoomSize * 100).round()}%',
+    const accent = ReverbFxPanel.accent;
+    final mode = widget.device.modeMorph.round().clamp(0, 3);
+    final shownAmount =
+        _assigning ? _amount : widget.modulationAmounts['modeMorph'] ?? 0;
+    final pulseColor =
+        widget.automationLinkActive ? const Color(0xFFB48CFF) : accent;
+    return SizedBox(
+      height: 40,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onLongPressStart: (details) {
+              HapticFeedback.mediumImpact();
+              if (widget.connectModeLfoId != null) {
+                _pulseController.stop();
+                setState(() {
+                  _assigning = true;
+                  _startY = details.localPosition.dy;
+                  _amount = 0;
+                });
+              } else if (widget.automationLinkActive) {
+                widget.onAutomationLinkTap?.call('modeMorph');
+              } else {
+                widget.onAutomateParameter?.call('modeMorph');
+              }
+            },
+            onLongPressMoveUpdate: widget.connectModeLfoId == null
+                ? null
+                : (details) => setState(() {
+                      _amount = ((_startY - details.localPosition.dy) / 70)
+                          .clamp(-1.0, 1.0);
+                    }),
+            onLongPressEnd: widget.connectModeLfoId == null
+                ? null
+                : (_) {
+                    widget.onModulationAssign?.call('modeMorph', _amount);
+                    _pulseController.reset();
+                    if (_pulseActive) {
+                      _pulseController.repeat(reverse: true);
+                    }
+                    setState(() {
+                      _assigning = false;
+                      _amount = 0;
+                    });
+                  },
+            child: AnimatedBuilder(
+              animation: _pulse,
+              builder: (context, child) => SizedBox(
+                key: const ValueKey('reverb-header-mode'),
+                width: 57,
+                height: 40,
+                child: Stack(
+                  children: [
+                    PopupMenuButton<int>(
+                      key: const ValueKey('reverb-mode-menu'),
+                      tooltip: 'Reverb algorithm',
+                      padding: EdgeInsets.zero,
+                      color: const Color(0xFF22222E),
+                      onSelected: (index) => widget.onParameterChanged(
+                        'modeMorph',
+                        index.toDouble(),
+                      ),
+                      itemBuilder: (context) => [
+                        for (var index = 0; index < _modes.length; index++)
+                          PopupMenuItem<int>(
+                            value: index,
+                            height: 34,
+                            child: Text(
+                              _modes[index],
+                              style: TextStyle(
+                                color: index == mode ? accent : Colors.white70,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                      ],
+                      child: Center(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              _modes[mode],
+                              style: TextStyle(
+                                color: _pulseActive
+                                    ? Color.lerp(
+                                        Colors.white60,
+                                        pulseColor,
+                                        _pulse.value,
+                                      )
+                                    : Colors.white60,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: .25,
+                              ),
+                            ),
+                            const SizedBox(width: 2),
+                            const Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              size: 14,
+                              color: Colors.white54,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if ((widget.modulatedParams.contains('modeMorph') ||
+                            _assigning) &&
+                        shownAmount.abs() > 0)
+                      Positioned(
+                        left: shownAmount < 0 ? null : 5,
+                        right: shownAmount < 0 ? 5 : null,
+                        bottom: 7,
+                        width: 44 * shownAmount.abs().clamp(0.05, 1.0),
+                        child: ColoredBox(
+                          color: pulseColor,
+                          child: const SizedBox(height: 2),
+                        ),
+                      ),
+                    if (widget.automatedParams.contains('modeMorph'))
+                      const Positioned(
+                        left: 2,
+                        top: 8,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Color(0xFFB48CFF),
+                            shape: BoxShape.circle,
+                          ),
+                          child: SizedBox(width: 6, height: 6),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
           ),
-          _knob(
-            label: 'Damping',
-            value: device.reverbDamping,
-            paramId: 'damping',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${(device.reverbDamping * 100).round()}%',
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              key: const ValueKey('reverb-freeze'),
+              customBorder: const CircleBorder(),
+              onTap: () => widget.onParameterChanged(
+                'freeze',
+                widget.device.freeze >= .5 ? 0 : 1,
+              ),
+              onLongPress: () {
+                HapticFeedback.mediumImpact();
+                if (widget.automationLinkActive) {
+                  widget.onAutomationLinkTap?.call('freeze');
+                } else {
+                  widget.onAutomateParameter?.call('freeze');
+                }
+              },
+              child: SizedBox(
+                width: 36,
+                height: 40,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Icon(
+                      Icons.ac_unit,
+                      size: 19,
+                      color:
+                          widget.device.freeze >= .5 ? accent : Colors.white54,
+                    ),
+                    if (widget.automatedParams.contains('freeze'))
+                      const Positioned(
+                        left: 3,
+                        top: 8,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Color(0xFFB48CFF),
+                            shape: BoxShape.circle,
+                          ),
+                          child: SizedBox(width: 5, height: 5),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
           ),
-          _knob(
-            label: 'Wet',
-            value: device.reverbWet,
-            paramId: 'wet',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${(device.reverbWet * 100).round()}%',
+        ],
+      ),
+    );
+  }
+}
+
+class _ReverbResponseEditor extends StatefulWidget {
+  const _ReverbResponseEditor({
+    required this.device,
+    required this.view,
+    required this.accent,
+    required this.onParameterChanged,
+    required this.modulatedParams,
+    required this.automatedParams,
+    required this.modulationAmounts,
+    required this.connectModeActive,
+    required this.linkModeActive,
+    this.onModulationAssign,
+    this.onAutomationLinkTap,
+    this.onAutomateParameter,
+  });
+
+  final ReverbDeviceSnapshot device;
+  final ReverbViewTab view;
+  final Color accent;
+  final TimeFxParameterChanged onParameterChanged;
+  final Set<String> modulatedParams;
+  final Set<String> automatedParams;
+  final Map<String, double> modulationAmounts;
+  final bool connectModeActive;
+  final bool linkModeActive;
+  final TimeFxModulationAssign onModulationAssign;
+  final ValueChanged<String>? onAutomationLinkTap;
+  final ValueChanged<String>? onAutomateParameter;
+
+  @override
+  State<_ReverbResponseEditor> createState() => _ReverbResponseEditorState();
+}
+
+class _ReverbResponseEditorState extends State<_ReverbResponseEditor>
+    with SingleTickerProviderStateMixin {
+  String? _dragParameter;
+  String? _assignmentParameter;
+  double _assignmentStartY = 0;
+  double _assignmentAmount = 0;
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulse;
+
+  bool get _pulseActive => widget.connectModeActive || widget.linkModeActive;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    _pulse = Tween<double>(begin: .08, end: .3).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+    if (_pulseActive) _pulseController.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ReverbResponseEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final wasActive = oldWidget.connectModeActive || oldWidget.linkModeActive;
+    if (_pulseActive && !wasActive) {
+      _pulseController.repeat(reverse: true);
+    } else if (!_pulseActive && wasActive) {
+      _pulseController.stop();
+      _pulseController.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  String _parameterAt(Offset position, Size size) {
+    if (widget.view == ReverbViewTab.tail) {
+      final preX = 12 + widget.device.preDelay * 55;
+      final decayX = 70 + widget.device.decay * (size.width - 82);
+      return (position.dx - preX).abs() < (position.dx - decayX).abs()
+          ? 'preDelay'
+          : 'decay';
+    }
+    if (widget.view == ReverbViewTab.mod) return 'modulation';
+    final lowX = 12 + widget.device.lowCut * 58;
+    final highX = size.width - 12 - (1 - widget.device.highCut) * 58;
+    final duckX = 12 + widget.device.ducking * (size.width - 24);
+    final dampingX = 70 + widget.device.damping * (size.width - 140);
+    final distances = <String, double>{
+      'lowCut': (position - Offset(lowX, size.height * .3)).distance,
+      'highCut': (position - Offset(highX, size.height * .3)).distance,
+      'ducking': (position - Offset(duckX, size.height - 11)).distance,
+      'damping': (position - Offset(dampingX, size.height * .46)).distance,
+    };
+    return distances.entries.reduce((a, b) => a.value < b.value ? a : b).key;
+  }
+
+  void _updateParameter(String parameter, Offset position, Size size) {
+    final value = switch (parameter) {
+      'preDelay' => ((position.dx - 12) / 55).clamp(0.0, 1.0),
+      'decay' => ((position.dx - 70) / (size.width - 82)).clamp(0.0, 1.0),
+      'lowCut' => ((position.dx - 12) / 58).clamp(0.0, 1.0),
+      'highCut' => (1 - (size.width - 12 - position.dx) / 58).clamp(0.0, 1.0),
+      'ducking' => ((position.dx - 12) / (size.width - 24)).clamp(0.0, 1.0),
+      'damping' => ((position.dx - 70) / (size.width - 140)).clamp(0.0, 1.0),
+      'modulation' => ((position.dx - 12) / (size.width - 24)).clamp(0.0, 1.0),
+      _ => 0.0,
+    };
+    widget.onParameterChanged(parameter, value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _pulse,
+      builder: (context, child) => LayoutBuilder(
+        builder: (context, constraints) {
+          final size = Size(constraints.maxWidth, constraints.maxHeight);
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            dragStartBehavior: DragStartBehavior.down,
+            onTapUp: (details) {
+              if (widget.linkModeActive) {
+                HapticFeedback.mediumImpact();
+                widget.onAutomationLinkTap
+                    ?.call(_parameterAt(details.localPosition, size));
+              }
+            },
+            onHorizontalDragStart: widget.connectModeActive ||
+                    widget.linkModeActive
+                ? null
+                : (details) =>
+                    _dragParameter = _parameterAt(details.localPosition, size),
+            onHorizontalDragUpdate:
+                widget.connectModeActive || widget.linkModeActive
+                    ? null
+                    : (details) => _updateParameter(
+                          _dragParameter ??
+                              _parameterAt(details.localPosition, size),
+                          details.localPosition,
+                          size,
+                        ),
+            onHorizontalDragEnd: (_) => _dragParameter = null,
+            onLongPressStart: (details) {
+              final parameter = _parameterAt(details.localPosition, size);
+              HapticFeedback.mediumImpact();
+              if (widget.connectModeActive) {
+                _pulseController.stop();
+                setState(() {
+                  _assignmentParameter = parameter;
+                  _assignmentStartY = details.localPosition.dy;
+                  _assignmentAmount = 0;
+                });
+              } else {
+                widget.onAutomateParameter?.call(parameter);
+              }
+            },
+            onLongPressMoveUpdate: widget.connectModeActive
+                ? (details) => setState(() {
+                      _assignmentAmount =
+                          ((_assignmentStartY - details.localPosition.dy) / 80)
+                              .clamp(-1.0, 1.0);
+                    })
+                : null,
+            onLongPressEnd: widget.connectModeActive
+                ? (_) {
+                    if (_assignmentParameter != null) {
+                      widget.onModulationAssign
+                          ?.call(_assignmentParameter!, _assignmentAmount);
+                    }
+                    _pulseController.reset();
+                    if (_pulseActive) {
+                      _pulseController.repeat(reverse: true);
+                    }
+                    setState(() {
+                      _assignmentParameter = null;
+                      _assignmentAmount = 0;
+                    });
+                  }
+                : null,
+            child: Container(
+              key: const ValueKey('reverb-response-editor'),
+              decoration: BoxDecoration(
+                color: Color.alphaBlend(
+                  widget.accent.withValues(
+                    alpha: _pulseActive ? _pulse.value : 0,
+                  ),
+                  const Color(0xFF050508),
+                ),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: _pulseActive
+                      ? widget.accent.withValues(alpha: .65)
+                      : Colors.white.withValues(alpha: .1),
+                ),
+              ),
+              child: CustomPaint(
+                painter: _ReverbResponsePainter(
+                  view: widget.view,
+                  device: widget.device,
+                  accent: widget.accent,
+                  modulatedParams: widget.modulatedParams,
+                  automatedParams: widget.automatedParams,
+                  modulationAmounts: widget.modulationAmounts,
+                  assignmentParameter: _assignmentParameter,
+                  assignmentAmount: _assignmentAmount,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ReverbResponsePainter extends CustomPainter {
+  const _ReverbResponsePainter({
+    required this.view,
+    required this.device,
+    required this.accent,
+    required this.modulatedParams,
+    required this.automatedParams,
+    required this.modulationAmounts,
+    required this.assignmentParameter,
+    required this.assignmentAmount,
+  });
+
+  final ReverbViewTab view;
+  final ReverbDeviceSnapshot device;
+  final Color accent;
+  final Set<String> modulatedParams;
+  final Set<String> automatedParams;
+  final Map<String, double> modulationAmounts;
+  final String? assignmentParameter;
+  final double assignmentAmount;
+
+  void _text(Canvas canvas, String text, Offset offset, Color color,
+      {double size = 7, FontWeight weight = FontWeight.w700}) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(color: color, fontSize: size, fontWeight: weight),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    painter.paint(canvas, offset);
+  }
+
+  void _handle(Canvas canvas, String parameter, Offset center) {
+    canvas.drawCircle(
+      center,
+      14,
+      Paint()..color = accent.withValues(alpha: .12),
+    );
+    canvas.drawCircle(center, 6, Paint()..color = accent);
+    canvas.drawCircle(
+      center,
+      6,
+      Paint()
+        ..color = Colors.white70
+        ..style = PaintingStyle.stroke,
+    );
+    final amount = assignmentParameter == parameter
+        ? assignmentAmount
+        : modulationAmounts[parameter] ?? 0;
+    if ((modulatedParams.contains(parameter) ||
+            assignmentParameter == parameter) &&
+        amount.abs() > 0) {
+      canvas.drawLine(
+        center,
+        Offset(center.dx + amount * 28, center.dy),
+        Paint()
+          ..color = Colors.white60
+          ..strokeWidth = 2
+          ..strokeCap = StrokeCap.round,
+      );
+    }
+    if (automatedParams.contains(parameter)) {
+      canvas.drawCircle(
+        center.translate(7, -7),
+        2.4,
+        Paint()..color = const Color(0xFFB48CFF),
+      );
+    }
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final mode = [
+      'ROOM',
+      'PLATE',
+      'HALL',
+      'SPACE'
+    ][device.modeMorph.round().clamp(0, 3)];
+    final grid = Paint()
+      ..color = Colors.white.withValues(alpha: .055)
+      ..strokeWidth = 1;
+    for (var i = 1; i <= 3; i++) {
+      final y = size.height * i / 4;
+      canvas.drawLine(Offset(6, y), Offset(size.width - 6, y), grid);
+    }
+
+    if (view == ReverbViewTab.tail) {
+      final baseY = size.height - 11;
+      final peakY = 25.0;
+      final preX = 12 + device.preDelay * 55;
+      final decayX = 70 + device.decay * (size.width - 82);
+      _text(
+        canvas,
+        '$mode  ·  PRE ${(device.preDelay * 250).round()} ms  ·  RT60 ${(.15 * math.pow(100, device.decay)).toStringAsFixed(1)} s',
+        const Offset(8, 8),
+        Colors.white60,
+        size: 8,
+      );
+      for (var i = 0; i < 6; i++) {
+        final x = preX - 22 + i * 4.2;
+        final height = 14 + ((i * 17) % 42);
+        canvas.drawLine(
+          Offset(x, baseY),
+          Offset(x, baseY - height),
+          Paint()
+            ..color = accent.withValues(alpha: .65)
+            ..strokeWidth = 1.1,
+        );
+      }
+      final path = Path()
+        ..moveTo(preX, baseY)
+        ..cubicTo(
+          preX + 8,
+          peakY,
+          preX + 28,
+          peakY,
+          decayX,
+          baseY - 9,
+        );
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = accent
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.8,
+      );
+      _handle(canvas, 'preDelay', Offset(preX, baseY));
+      _handle(canvas, 'decay', Offset(decayX, baseY - 9));
+    } else if (view == ReverbViewTab.tone) {
+      final y = size.height * .3;
+      final lowX = 12 + device.lowCut * 58;
+      final highX = size.width - 12 - (1 - device.highCut) * 58;
+      final dampingX = 70 + device.damping * (size.width - 140);
+      _text(
+        canvas,
+        'LOW ${_formatHz((20 * math.pow(50, device.lowCut)).toDouble())}  ·  DAMP ${(device.damping * 100).round()}%  ·  HIGH ${_formatHz((2000 * math.pow(10, device.highCut)).toDouble())}  ·  DUCK ${(device.ducking * 100).round()}%',
+        const Offset(8, 8),
+        Colors.white60,
+        size: 8,
+      );
+      final path = Path()
+        ..moveTo(6, size.height - 20)
+        ..cubicTo(lowX - 10, size.height - 20, lowX - 7, y, lowX, y)
+        ..lineTo(highX, y + (1 - device.damping) * 28)
+        ..cubicTo(highX + 7, size.height - 20, size.width - 9, size.height - 20,
+            size.width - 6, size.height - 20);
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = accent
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.8,
+      );
+      _handle(canvas, 'lowCut', Offset(lowX, y));
+      _handle(canvas, 'highCut', Offset(highX, y + (1 - device.damping) * 28));
+      _handle(canvas, 'damping', Offset(dampingX, size.height * .46));
+      final duckX = 12 + device.ducking * (size.width - 24);
+      canvas.drawLine(
+        Offset(12, size.height - 11),
+        Offset(size.width - 12, size.height - 11),
+        Paint()
+          ..color = Colors.white12
+          ..strokeWidth = 2,
+      );
+      canvas.drawLine(
+        Offset(12, size.height - 11),
+        Offset(duckX, size.height - 11),
+        Paint()
+          ..color = accent
+          ..strokeWidth = 2,
+      );
+      _handle(canvas, 'ducking', Offset(duckX, size.height - 11));
+    } else {
+      final amplitude = 12 + device.modulation * (size.height * .38);
+      final path = Path();
+      for (var x = 8.0; x <= size.width - 8; x += 2) {
+        final phase = (x - 8) / (size.width - 16) * math.pi * 4;
+        final y = size.height * .5 + math.sin(phase) * amplitude;
+        if (x == 8) {
+          path.moveTo(x, y);
+        } else {
+          path.lineTo(x, y);
+        }
+      }
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = accent
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.8,
+      );
+      for (var line = 0; line < 4; line++) {
+        canvas.drawPath(
+          path.shift(Offset(0, line * 6.0 - 9)),
+          Paint()
+            ..color = accent.withValues(alpha: .08 + line * .05)
+            ..style = PaintingStyle.stroke,
+        );
+      }
+      final handleX = 12 + device.modulation * (size.width - 24);
+      _handle(canvas, 'modulation', Offset(handleX, size.height - 13));
+      _text(
+        canvas,
+        '$mode  ·  DEPTH ${(device.modulation * 100).round()}%  ·  8-LINE MOTION',
+        const Offset(8, 8),
+        Colors.white60,
+        size: 8,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ReverbResponsePainter oldDelegate) => true;
+}
+
+class ReverbFxPanel extends StatelessWidget {
+  const ReverbFxPanel({
+    super.key,
+    required this.device,
+    required this.onParameterChanged,
+    this.selectedTab = ReverbViewTab.tail,
+    this.modulatedParams = const {},
+    this.automatedParams = const {},
+    this.modulationAmounts = const {},
+    this.connectModeLfoId,
+    this.onModulationAssign,
+    this.automationLinkActive = false,
+    this.onAutomationLinkTap,
+    this.onAutomateParameter,
+  });
+
+  static const accent = Color(0xFF7B6CF6);
+  static const containerTabs = <DeviceTabSpec>[
+    DeviceTabSpec(label: 'TAIL', icon: Icons.multiline_chart),
+    DeviceTabSpec(label: 'TONE', icon: Icons.equalizer),
+    DeviceTabSpec(label: 'MOD', icon: Icons.waves),
+  ];
+
+  /// Version C — wide editor plus a dedicated parameter column.
+  static const double designWidth = 320;
+
+  final ReverbDeviceSnapshot device;
+  final TimeFxParameterChanged onParameterChanged;
+  final ReverbViewTab selectedTab;
+  final Set<String> modulatedParams;
+  final Set<String> automatedParams;
+  final Map<String, double> modulationAmounts;
+  final int? connectModeLfoId;
+  final TimeFxModulationAssign onModulationAssign;
+  final bool automationLinkActive;
+  final ValueChanged<String>? onAutomationLinkTap;
+  final ValueChanged<String>? onAutomateParameter;
+
+  @override
+  Widget build(BuildContext context) {
+    _TimeFxKnob control(
+            String label, String parameter, double value, String display,
+            {double knobSize = 52}) =>
+        _knob(
+          label: label,
+          value: value,
+          paramId: parameter,
+          accent: accent,
+          onParameterChanged: onParameterChanged,
+          modulatedParams: modulatedParams,
+          automatedParams: automatedParams,
+          modulationAmounts: modulationAmounts,
+          connectModeLfoId: connectModeLfoId,
+          onModulationAssign: onModulationAssign,
+          automationLinkActive: automationLinkActive,
+          onAutomationLinkTap: onAutomationLinkTap,
+          onAutomateParameter: onAutomateParameter,
+          displayValue: display,
+          size: knobSize,
+        );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(5, 6, 5, 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _ReverbResponseEditor(
+                    device: device,
+                    view: selectedTab,
+                    accent: accent,
+                    onParameterChanged: onParameterChanged,
+                    modulatedParams: modulatedParams,
+                    automatedParams: automatedParams,
+                    modulationAmounts: modulationAmounts,
+                    connectModeActive: connectModeLfoId != null,
+                    linkModeActive: automationLinkActive,
+                    onModulationAssign: onModulationAssign,
+                    onAutomationLinkTap: onAutomationLinkTap,
+                    onAutomateParameter: onAutomateParameter,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    control(
+                      'Pre-delay',
+                      'preDelay',
+                      device.preDelay,
+                      '${(device.preDelay * 250).round()} ms',
+                    ),
+                    control(
+                      'Mod',
+                      'modulation',
+                      device.modulation,
+                      '${(device.modulation * 100).round()}%',
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ]),
-      ],
+          const SizedBox(width: 6),
+          SizedBox(
+            width: 72,
+            child: Container(
+              key: const ValueKey('reverb-parameter-column'),
+              decoration: BoxDecoration(
+                color: const Color(0xFF050508),
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  control(
+                    'Decay',
+                    'decay',
+                    device.decay,
+                    '${(.15 * math.pow(100, device.decay)).toStringAsFixed(1)} s',
+                    knobSize: 48,
+                  ),
+                  control(
+                    'Size',
+                    'size',
+                    device.size,
+                    '${(device.size * 100).round()}%',
+                    knobSize: 48,
+                  ),
+                  control(
+                    'Diffusion',
+                    'diffusion',
+                    device.diffusion,
+                    '${(device.diffusion * 100).round()}%',
+                    knobSize: 48,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -520,6 +1281,7 @@ class ReverbFxStrip extends StatelessWidget {
     super.key,
     required this.device,
     required this.onParameterChanged,
+    this.selectedTab = ReverbViewTab.tail,
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
@@ -531,6 +1293,7 @@ class ReverbFxStrip extends StatelessWidget {
   });
   final ReverbDeviceSnapshot device;
   final TimeFxParameterChanged onParameterChanged;
+  final ReverbViewTab selectedTab;
   final Set<String> modulatedParams;
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
@@ -543,6 +1306,7 @@ class ReverbFxStrip extends StatelessWidget {
   Widget build(BuildContext context) => ReverbFxPanel(
         device: device,
         onParameterChanged: onParameterChanged,
+        selectedTab: selectedTab,
         modulatedParams: modulatedParams,
         automatedParams: automatedParams,
         modulationAmounts: modulationAmounts,
@@ -556,8 +1320,10 @@ class ReverbFxStrip extends StatelessWidget {
 
 // ── Chorus ─────────────────────────────────────────────────────────────────
 
-class _ChorusModeGroup extends StatefulWidget {
-  const _ChorusModeGroup({
+class _MorphModeGroup extends StatefulWidget {
+  const _MorphModeGroup({
+    required this.labels,
+    required this.keyPrefix,
     required this.value,
     required this.accent,
     required this.modulationActive,
@@ -571,6 +1337,8 @@ class _ChorusModeGroup extends StatefulWidget {
     this.onAutomateRequest,
   });
 
+  final List<String> labels;
+  final String keyPrefix;
   final double value;
   final Color accent;
   final bool modulationActive;
@@ -584,7 +1352,7 @@ class _ChorusModeGroup extends StatefulWidget {
   final VoidCallback? onAutomateRequest;
 
   @override
-  State<_ChorusModeGroup> createState() => _ChorusModeGroupState();
+  State<_MorphModeGroup> createState() => _MorphModeGroupState();
 }
 
 class _ChorusModulationLinePainter extends CustomPainter {
@@ -620,9 +1388,8 @@ class _ChorusModulationLinePainter extends CustomPainter {
       oldDelegate.inAssignment != inAssignment;
 }
 
-class _ChorusModeGroupState extends State<_ChorusModeGroup>
+class _MorphModeGroupState extends State<_MorphModeGroup>
     with SingleTickerProviderStateMixin {
-  static const labels = ['Classic', 'Ensemble', 'Dimension', 'Drift'];
   bool _assigning = false;
   bool _highlightsVisible = true;
   double _startY = 0;
@@ -646,7 +1413,7 @@ class _ChorusModeGroupState extends State<_ChorusModeGroup>
   }
 
   @override
-  void didUpdateWidget(covariant _ChorusModeGroup oldWidget) {
+  void didUpdateWidget(covariant _MorphModeGroup oldWidget) {
     super.didUpdateWidget(oldWidget);
     final wasActive = oldWidget.connectModeActive || oldWidget.linkModeActive;
     if (_pulseActive && !wasActive) {
@@ -719,7 +1486,7 @@ class _ChorusModeGroupState extends State<_ChorusModeGroup>
       child: AnimatedBuilder(
         animation: _pulseAnimation,
         builder: (context, child) => Container(
-          key: const ValueKey('chorus-mode-group'),
+          key: ValueKey('${widget.keyPrefix}-group'),
           height: 36,
           clipBehavior: Clip.hardEdge,
           decoration: BoxDecoration(
@@ -741,14 +1508,18 @@ class _ChorusModeGroupState extends State<_ChorusModeGroup>
               Positioned.fill(
                 child: Row(
                   children: [
-                    for (var index = 0; index < labels.length; index++) ...[
+                    for (var index = 0;
+                        index < widget.labels.length;
+                        index++) ...[
                       Expanded(
                         child: Material(
                           color: index == selected
                               ? widget.accent.withValues(alpha: .18)
                               : Colors.transparent,
                           child: InkWell(
-                            key: ValueKey('chorus-mode-${labels[index]}'),
+                            key: ValueKey(
+                              '${widget.keyPrefix}-${widget.labels[index]}',
+                            ),
                             onTap: widget.linkModeActive
                                 ? widget.onAutomationLinkTap
                                 : () => widget.onChanged(index.toDouble()),
@@ -756,7 +1527,7 @@ class _ChorusModeGroupState extends State<_ChorusModeGroup>
                               child: FittedBox(
                                 fit: BoxFit.scaleDown,
                                 child: Text(
-                                  labels[index],
+                                  widget.labels[index],
                                   style: TextStyle(
                                     color: index == selected
                                         ? widget.accent
@@ -772,7 +1543,7 @@ class _ChorusModeGroupState extends State<_ChorusModeGroup>
                           ),
                         ),
                       ),
-                      if (index < labels.length - 1)
+                      if (index < widget.labels.length - 1)
                         Container(
                           width: 1,
                           color: Colors.white.withValues(alpha: .06),
@@ -785,7 +1556,7 @@ class _ChorusModeGroupState extends State<_ChorusModeGroup>
                 Positioned.fill(
                   child: IgnorePointer(
                     child: CustomPaint(
-                      key: const ValueKey('chorus-mode-modulation-line'),
+                      key: ValueKey('${widget.keyPrefix}-modulation-line'),
                       painter: _ChorusModulationLinePainter(
                         value: widget.value,
                         amount: shownAmount,
@@ -955,7 +1726,9 @@ class ChorusFxPanel extends StatelessWidget {
 
     return _timeFxSinglePage(
       rows: [
-        _ChorusModeGroup(
+        _MorphModeGroup(
+          labels: const ['Classic', 'Ensemble', 'Dimension', 'Drift'],
+          keyPrefix: 'chorus-mode',
           value: device.modeMorph,
           accent: accent,
           modulationActive: modulatedParams.contains('modeMorph'),

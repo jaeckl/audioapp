@@ -396,6 +396,20 @@ enum class ChorusParam : uint16_t {
     DriftSpeed, DriftDepth, DriftWander, DriftDelay, DriftStereo, DriftTone,
 };
 
+enum class ReverbParam : uint16_t {
+    ModeMorph = 0,
+    Decay,
+    PreDelay,
+    Size,
+    Diffusion,
+    Damping,
+    Modulation,
+    LowCut,
+    HighCut,
+    Ducking,
+    Freeze,
+};
+
 // -----------------------------------------------------------------------
 // ParamKind — distinguishes which per-device enum a `localParamId` refers
 // to. Without this tag, multiple device kinds (CommonParam, SubtractiveParam,
@@ -439,6 +453,7 @@ enum class ParamKind : uint16_t {
     Granular         = 26,
     Stutter          = 27,
     Chorus           = 28,
+    Reverb           = 29,
 };
 
 constexpr uint16_t kParamKindShift      = 11;
