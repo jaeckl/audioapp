@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../bridge/device_snapshot.dart';
+import 'device_knob_sizes.dart';
 import 'device_strip_metrics.dart';
 import 'device_tab_bar.dart';
 import 'panels/compact_fx_layout.dart';
@@ -33,6 +34,7 @@ class _MoodFxKnob extends StatelessWidget {
     required this.onAutomationLinkTap,
     required this.onAutomateParameter,
     this.displayValue,
+    this.size = DeviceStripMetrics.dynamicsFxKnobSize,
   });
 
   final String label;
@@ -49,7 +51,7 @@ class _MoodFxKnob extends StatelessWidget {
   final ValueChanged<String>? onAutomationLinkTap;
   final ValueChanged<String>? onAutomateParameter;
   final String? displayValue;
-  final double size = DeviceStripMetrics.dynamicsFxKnobSize;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
@@ -93,6 +95,7 @@ _MoodFxKnob _knob({
   required ValueChanged<String>? onAutomationLinkTap,
   required ValueChanged<String>? onAutomateParameter,
   String? displayValue,
+  double size = DeviceStripMetrics.dynamicsFxKnobSize,
 }) {
   return _MoodFxKnob(
     label: label,
@@ -109,6 +112,7 @@ _MoodFxKnob _knob({
     onAutomationLinkTap: onAutomationLinkTap,
     onAutomateParameter: onAutomateParameter,
     displayValue: displayValue,
+    size: size,
   );
 }
 
@@ -869,7 +873,7 @@ class StutterFxPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _moodFxSinglePage(
-      previewHeight: 44,
+      previewHeight: 34,
       knobRowGap: 6,
       preview: CustomPaint(
         painter: _StutterPreviewPainter(
@@ -911,115 +915,77 @@ class StutterFxPanel extends StatelessWidget {
                 onParameterChanged('rateSync', sync ? 1.0 : 0.0),
             onRateBeatsChanged: (beats) =>
                 onParameterChanged('rateBeats', beats),
+            onRateMsChanged: (ms) => onParameterChanged('rateMs', ms),
           ),
         ),
-        _knobGridRow([
-          _knob(
-            label: 'Rate',
-            value: _rateNorm,
-            paramId: _rateSync ? 'rateBeats' : 'rateMs',
-            onParameterChanged: (id, v) => _rateSync
-                ? onParameterChanged('rateBeats', _beatsFromNorm(v))
-                : onParameterChanged('rateMs', _msFromNorm(v, 1, 5000)),
-            accent: accent,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: _rateSync
-                ? _labelForBeats(_selectedRateBeats)
-                : '${device.rateMs.round()} ms',
-          ),
-          _knob(
-            label: 'Pos',
-            value: device.position,
-            paramId: 'position',
-            onParameterChanged: onParameterChanged,
-            accent: accent,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${(device.position * 100).round()}%',
-          ),
-          _knob(
-            label: 'Cap',
-            value: _captureNorm,
-            paramId: 'captureMs',
-            onParameterChanged: (id, v) =>
-                onParameterChanged(id, _msFromNorm(v, 1, 4000)),
-            accent: accent,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${device.captureMs.round()} ms',
-          ),
-        ]),
-        _knobGridRow([
-          _knob(
-            label: 'Size',
-            value: _windowNorm,
-            paramId: 'windowMs',
-            onParameterChanged: (id, v) =>
-                onParameterChanged(id, _msFromNorm(v, 1, 5000)),
-            accent: accent,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${device.windowMs.round()} ms',
-          ),
-          _knob(
-            label: 'Gate',
-            value: device.gate,
-            paramId: 'gate',
-            onParameterChanged: onParameterChanged,
-            accent: accent,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${(device.gate * 100).round()}%',
-          ),
-          _knob(
-            label: 'Duck',
-            value: device.duck,
-            paramId: 'duck',
-            onParameterChanged: onParameterChanged,
-            accent: accent,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${(device.duck * 100).round()}%',
-          ),
-        ]),
+        _StutterShapePanel(
+          accent: accent,
+          top: [
+            _stutterSmallKnob(
+              label: 'Cap',
+              value: _captureNorm,
+              paramId: 'captureMs',
+              onParameterChanged: (id, v) =>
+                  onParameterChanged(id, _msFromNorm(v, 1, 4000)),
+              displayValue: '${device.captureMs.round()} ms',
+            ),
+            _stutterSmallKnob(
+              label: 'Size',
+              value: _windowNorm,
+              paramId: 'windowMs',
+              onParameterChanged: (id, v) =>
+                  onParameterChanged(id, _msFromNorm(v, 1, 5000)),
+              displayValue: '${device.windowMs.round()} ms',
+            ),
+          ],
+          bottom: [
+            _stutterSmallKnob(
+              label: 'Pos',
+              value: device.position,
+              paramId: 'position',
+              displayValue: '${(device.position * 100).round()}%',
+            ),
+            _stutterSmallKnob(
+              label: 'Gate',
+              value: device.gate,
+              paramId: 'gate',
+              displayValue: '${(device.gate * 100).round()}%',
+            ),
+            _stutterSmallKnob(
+              label: 'Duck',
+              value: device.duck,
+              paramId: 'duck',
+              displayValue: '${(device.duck * 100).round()}%',
+            ),
+          ],
+        ),
       ],
+    );
+  }
+
+  Widget _stutterSmallKnob({
+    required String label,
+    required double value,
+    required String paramId,
+    MoodFxParameterChanged? onParameterChanged,
+    required String displayValue,
+  }) {
+    return _knob(
+      label: label,
+      value: value,
+      paramId: paramId,
+      onParameterChanged: onParameterChanged ?? this.onParameterChanged,
+      accent: accent,
+      modulatedParams: modulatedParams,
+      automatedParams: automatedParams,
+      modulationAmounts: modulationAmounts,
+      connectModeLfoId: connectModeLfoId,
+      onModulationAssign: onModulationAssign,
+      automationLinkActive: automationLinkActive,
+      onAutomationLinkTap: onAutomationLinkTap,
+      onAutomateParameter: onAutomateParameter,
+      displayValue: displayValue,
+      size: DeviceKnobSizes.compact,
     );
   }
 
@@ -1177,7 +1143,47 @@ class _StutterPreviewPainter extends CustomPainter {
       old.accent != accent;
 }
 
-class _StutterRateModeBox extends StatelessWidget {
+class _StutterShapePanel extends StatelessWidget {
+  const _StutterShapePanel({
+    required this.accent,
+    required this.top,
+    required this.bottom,
+  });
+
+  final Color accent;
+  final List<Widget> top;
+  final List<Widget> bottom;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF101018),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: top,
+            ),
+            const SizedBox(height: 5),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: bottom,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StutterRateModeBox extends StatefulWidget {
   const _StutterRateModeBox({
     required this.sync,
     required this.rateBeats,
@@ -1185,6 +1191,7 @@ class _StutterRateModeBox extends StatelessWidget {
     required this.accent,
     required this.onSyncChanged,
     required this.onRateBeatsChanged,
+    required this.onRateMsChanged,
   });
 
   final bool sync;
@@ -1193,13 +1200,32 @@ class _StutterRateModeBox extends StatelessWidget {
   final Color accent;
   final ValueChanged<bool> onSyncChanged;
   final ValueChanged<double> onRateBeatsChanged;
+  final ValueChanged<double> onRateMsChanged;
+
+  @override
+  State<_StutterRateModeBox> createState() => _StutterRateModeBoxState();
+}
+
+class _StutterRateModeBoxState extends State<_StutterRateModeBox> {
+  double _dragStartValue = 0.0;
+  double _dragStartY = 0.0;
+
+  void _onDragStart(DragStartDetails details) {
+    _dragStartValue = widget.rateMs;
+    _dragStartY = details.localPosition.dy;
+  }
+
+  void _onDragUpdate(DragUpdateDetails details) {
+    final delta = (_dragStartY - details.localPosition.dy) * 8.0;
+    widget.onRateMsChanged((_dragStartValue + delta).clamp(1.0, 5000.0));
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final border = Border.all(color: Colors.white.withValues(alpha: 0.10));
     return SizedBox(
-      height: 57,
+      height: 62,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: const Color(0xFF12121A),
@@ -1215,30 +1241,30 @@ class _StutterRateModeBox extends StatelessWidget {
                   Expanded(
                     child: _StutterMiniToggle(
                       label: 'Sync',
-                      active: sync,
-                      accent: accent,
-                      onTap: () => onSyncChanged(true),
+                      active: widget.sync,
+                      accent: widget.accent,
+                      onTap: () => widget.onSyncChanged(true),
                     ),
                   ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: _StutterMiniToggle(
                       label: 'Ms',
-                      active: !sync,
-                      accent: accent,
-                      onTap: () => onSyncChanged(false),
+                      active: !widget.sync,
+                      accent: widget.accent,
+                      onTap: () => widget.onSyncChanged(false),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
               Expanded(
-                child: sync
+                child: widget.sync
                     ? PopupMenuButton<double>(
                         tooltip: 'Rate division',
                         padding: EdgeInsets.zero,
-                        initialValue: rateBeats,
-                        onSelected: onRateBeatsChanged,
+                        initialValue: widget.rateBeats,
+                        onSelected: widget.onRateBeatsChanged,
                         itemBuilder: (context) => [
                           for (final beats in StutterFxPanel._rateDivisions)
                             PopupMenuItem<double>(
@@ -1247,19 +1273,31 @@ class _StutterRateModeBox extends StatelessWidget {
                             ),
                         ],
                         child: _StutterSelectFace(
-                          label: StutterFxPanel._labelForBeats(rateBeats),
-                          accent: accent,
+                          label:
+                              StutterFxPanel._labelForBeats(widget.rateBeats),
+                          accent: widget.accent,
                         ),
                       )
-                    : Center(
-                        child: Text(
-                          '${rateMs.round()} ms',
-                          maxLines: 1,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: Colors.white70,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            height: 1,
+                    : GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onVerticalDragStart: _onDragStart,
+                        onVerticalDragUpdate: _onDragUpdate,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.045),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '${widget.rateMs.round()} ms',
+                              maxLines: 1,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: Colors.white70,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                height: 1,
+                              ),
+                            ),
                           ),
                         ),
                       ),
