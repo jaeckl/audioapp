@@ -55,6 +55,12 @@ void main() {
       expect(DeviceStripChrome.hasInputPanel('gate'), isTrue);
     });
 
+    test('delay omits input chrome and keeps stereo mix output width', () {
+      expect(DeviceStripChrome.inputWidth('delay'), 0);
+      expect(DeviceStripChrome.hasInputPanel('delay'), isFalse);
+      expect(DeviceStripChrome.outputWidth('delay'), 64);
+    });
+
     test('mono drums use drum output width without input', () {
       expect(DeviceStripChrome.inputWidth('kick_generator'), 0);
       expect(DeviceStripChrome.outputWidth('kick_generator'), 64);
@@ -128,6 +134,22 @@ void main() {
     expect(find.text('IN'), findsOneWidget);
     expect(find.text('GR'), findsOneWidget);
     expect(find.text('Pan'), findsNothing);
+  });
+
+  testWidgets('delay slot has two-control Stereo Mix Output rail',
+      (tester) async {
+    final device = DeviceSnapshot.fromMap({
+      'id': 'dev-delay',
+      'type': 'delay',
+      'parameters': {'timeMs': 250.0, 'feedback': 0.4},
+      'outputPanel': {'outputMix': 0.5, 'outputWidth': 0.75},
+    });
+    await pumpSlot(tester, device: device);
+
+    expect(find.text('IN'), findsNothing);
+    expect(find.text('OUT'), findsOneWidget);
+    expect(find.text('Width'), findsOneWidget);
+    expect(find.text('Mix'), findsOneWidget);
   });
 
   testWidgets('oscilloscope slot shows empty output chrome rail',

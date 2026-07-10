@@ -101,12 +101,19 @@ struct OscillatorParams {
     float frequencyHz = 440.0f;
 };
 
-struct DelayParamsPlayback {
-    float timeMs = 250.0f;
-    float feedback = 0.4f;
-    float mix = 0.5f;
-    float inputGain = 1.0f;
-};
+  struct DelayParamsPlayback {
+      float timeMs = 250.0f;
+      float feedback = 0.4f;
+      float mix = 0.5f;
+      float inputGain = 1.0f;
+      float timeMode = 0.0f;
+      float noteCount = 1.0f;
+      float blurMode = 0.0f;
+      float blurAmount = 0.5f;
+      float inputDucking = 0.0f;
+      float lowCutHz = 20.0f;
+      float highCutHz = 20000.0f;
+  };
 
 struct ReverbParamsPlayback {
     float roomSize = 0.5f;

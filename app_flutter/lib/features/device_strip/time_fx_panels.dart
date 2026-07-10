@@ -7,7 +7,8 @@ import 'device_tab_bar.dart';
 import 'panels/compact_fx_layout.dart';
 import 'rotary_knob.dart';
 
-typedef TimeFxParameterChanged = void Function(String parameterId, double value);
+typedef TimeFxParameterChanged = void Function(
+    String parameterId, double value);
 typedef TimeFxModulationAssign = void Function(String paramId, double amount)?;
 
 const double _timeFxKnobRowGap = 10;
@@ -38,6 +39,9 @@ class _TimeFxKnob extends StatelessWidget {
     required this.onAutomationLinkTap,
     required this.onAutomateParameter,
     this.displayValue,
+    this.labelOptions = const [],
+    this.onLabelOptionSelected,
+    this.size,
   });
 
   final String label;
@@ -54,26 +58,34 @@ class _TimeFxKnob extends StatelessWidget {
   final ValueChanged<String>? onAutomationLinkTap;
   final ValueChanged<String>? onAutomateParameter;
   final String? displayValue;
-  final double size = DeviceStripMetrics.dynamicsFxKnobSize;
+  final List<String> labelOptions;
+  final ValueChanged<String>? onLabelOptionSelected;
+  final double? size;
 
   @override
   Widget build(BuildContext context) {
     return RotaryKnob(
       label: label,
       value: value.clamp(0.0, 1.0),
-      size: size,
+      size: size ?? DeviceStripMetrics.dynamicsFxKnobSize,
       displayValue: displayValue,
+      labelOptions: labelOptions,
+      onLabelOptionSelected: onLabelOptionSelected,
       accentColor: accent,
       modulationActive: modulatedParams.contains(paramId),
       automationActive: automatedParams.contains(paramId),
       modulationAmount: modulationAmounts[paramId] ?? 0.0,
       connectModeActive: connectModeLfoId != null,
-      onModulationAssign:
-          onModulationAssign != null ? (amount) => onModulationAssign!(paramId, amount) : null,
+      onModulationAssign: onModulationAssign != null
+          ? (amount) => onModulationAssign!(paramId, amount)
+          : null,
       linkModeActive: automationLinkActive,
-      onLinkTap: onAutomationLinkTap != null ? () => onAutomationLinkTap!(paramId) : null,
-      onAutomateRequest:
-          onAutomateParameter != null ? () => onAutomateParameter!(paramId) : null,
+      onLinkTap: onAutomationLinkTap != null
+          ? () => onAutomationLinkTap!(paramId)
+          : null,
+      onAutomateRequest: onAutomateParameter != null
+          ? () => onAutomateParameter!(paramId)
+          : null,
       onChanged: (v) => onParameterChanged(paramId, v),
     );
   }
@@ -94,6 +106,9 @@ _TimeFxKnob _knob({
   required ValueChanged<String>? onAutomationLinkTap,
   required ValueChanged<String>? onAutomateParameter,
   String? displayValue,
+  List<String> labelOptions = const [],
+  ValueChanged<String>? onLabelOptionSelected,
+  double? size,
 }) {
   return _TimeFxKnob(
     label: label,
@@ -110,6 +125,9 @@ _TimeFxKnob _knob({
     onAutomationLinkTap: onAutomationLinkTap,
     onAutomateParameter: onAutomateParameter,
     displayValue: displayValue,
+    labelOptions: labelOptions,
+    onLabelOptionSelected: onLabelOptionSelected,
+    size: size,
   );
 }
 
@@ -141,8 +159,11 @@ class DelayFxPanel extends StatelessWidget {
   static const accent = Color(0xFF6EC9A8);
   static const containerTabs = <DeviceTabSpec>[];
 
-  /// Delay — compact time FX card.
-  static const double designWidth = 216;
+  /// Delay panel follows the 170px-wide layout in daw_elements.svg.
+  static const double designWidth = 170;
+
+  static const timeModes = <String>['Time', '16th', '8th', '4th'];
+  static const blurModes = <String>['No Blur', 'Soft Blur', 'Wide Blur'];
 
   final DelayDeviceSnapshot device;
   final TimeFxParameterChanged onParameterChanged;
@@ -155,46 +176,208 @@ class DelayFxPanel extends StatelessWidget {
   final ValueChanged<String>? onAutomationLinkTap;
   final ValueChanged<String>? onAutomateParameter;
 
+  static double _timeToKnob(double milliseconds) {
+    if (milliseconds <= 0) return 0;
+    return (math.log(milliseconds.clamp(1, 5000)) / math.log(5000))
+        .clamp(0.0, 1.0);
+  }
+
+  static double _knobToTime(double value) {
+    if (value <= 0) return 0;
+    return math.pow(5000, value).toDouble().clamp(0, 5000);
+  }
+
+  static double _frequencyToKnob(double frequency, double min, double max) =>
+      (math.log(frequency.clamp(min, max) / min) / math.log(max / min))
+          .clamp(0.0, 1.0);
+
+  static double _knobToFrequency(double value, double min, double max) =>
+      (min * math.pow(max / min, value)).toDouble().clamp(min, max);
+
+  Widget _panelColumn(List<Widget> children) => Expanded(
+        child: Container(
+          height: 174,
+          padding: const EdgeInsets.symmetric(vertical: 3),
+          decoration: BoxDecoration(
+            color: const Color(0xFF050508),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: children,
+          ),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
-    return _timeFxSinglePage(
-      rows: [
-        _knobGridRow([
-          _knob(
-            label: 'Time',
-            value: device.delayTimeMs / 2000,
-            paramId: 'timeMs',
-            accent: accent,
-            onParameterChanged: (id, v) => onParameterChanged(id, v * 2000),
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${device.delayTimeMs.round()} ms',
+    final timeMode =
+        device.delayTimeMode.round().clamp(0, timeModes.length - 1);
+    final blurMode =
+        device.delayBlurMode.round().clamp(0, blurModes.length - 1);
+    final isFreeTime = timeMode == 0;
+    final timeValue = isFreeTime
+        ? _timeToKnob(device.delayTimeMs)
+        : ((device.delayNoteCount - 1) / 7).clamp(0.0, 1.0);
+    final timeDisplay = isFreeTime
+        ? (device.delayTimeMs >= 1000
+            ? '${(device.delayTimeMs / 1000).toStringAsFixed(2)} s'
+            : '${device.delayTimeMs.round()} ms')
+        : '${device.delayNoteCount.round()}';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
+      child: OverflowBox(
+        alignment: Alignment.topCenter,
+        minHeight: 257,
+        maxHeight: 257,
+        child: SizedBox(
+          height: 257,
+          child: Column(
+            children: [
+              SizedBox(
+                height: 174,
+                child: Row(
+                  children: [
+                    _panelColumn([
+                      _knob(
+                        label: timeModes[timeMode],
+                        value: timeValue,
+                        paramId: 'timeMs',
+                        accent: accent,
+                        onParameterChanged: (_, v) => onParameterChanged(
+                          isFreeTime ? 'timeMs' : 'noteCount',
+                          isFreeTime
+                              ? _knobToTime(v)
+                              : 1 + (v * 7).roundToDouble(),
+                        ),
+                        modulatedParams: modulatedParams,
+                        automatedParams: automatedParams,
+                        modulationAmounts: modulationAmounts,
+                        connectModeLfoId: connectModeLfoId,
+                        onModulationAssign: onModulationAssign,
+                        automationLinkActive: automationLinkActive,
+                        onAutomationLinkTap: onAutomationLinkTap,
+                        onAutomateParameter: onAutomateParameter,
+                        displayValue: timeDisplay,
+                        labelOptions: timeModes,
+                        onLabelOptionSelected: (mode) => onParameterChanged(
+                            'timeMode', timeModes.indexOf(mode).toDouble()),
+                      ),
+                      _knob(
+                        label: blurModes[blurMode],
+                        value: device.delayBlurAmount,
+                        paramId: 'blurAmount',
+                        accent: accent,
+                        onParameterChanged: onParameterChanged,
+                        modulatedParams: modulatedParams,
+                        automatedParams: automatedParams,
+                        modulationAmounts: modulationAmounts,
+                        connectModeLfoId: connectModeLfoId,
+                        onModulationAssign: onModulationAssign,
+                        automationLinkActive: automationLinkActive,
+                        onAutomationLinkTap: onAutomationLinkTap,
+                        onAutomateParameter: onAutomateParameter,
+                        displayValue:
+                            '${(device.delayBlurAmount * 100).round()}%',
+                        labelOptions: blurModes,
+                        onLabelOptionSelected: (mode) => onParameterChanged(
+                            'blurMode', blurModes.indexOf(mode).toDouble()),
+                      ),
+                    ]),
+                    const SizedBox(width: 5),
+                    _panelColumn([
+                      _knob(
+                        label: 'Input Ducking',
+                        value: device.delayInputDucking,
+                        paramId: 'inputDucking',
+                        accent: accent,
+                        onParameterChanged: onParameterChanged,
+                        modulatedParams: modulatedParams,
+                        automatedParams: automatedParams,
+                        modulationAmounts: modulationAmounts,
+                        connectModeLfoId: connectModeLfoId,
+                        onModulationAssign: onModulationAssign,
+                        automationLinkActive: automationLinkActive,
+                        onAutomationLinkTap: onAutomationLinkTap,
+                        onAutomateParameter: onAutomateParameter,
+                        displayValue:
+                            '${(device.delayInputDucking * 100).round()}%',
+                      ),
+                      _knob(
+                        label: 'Feedback',
+                        value: device.delayFeedback,
+                        paramId: 'feedback',
+                        accent: accent,
+                        onParameterChanged: onParameterChanged,
+                        modulatedParams: modulatedParams,
+                        automatedParams: automatedParams,
+                        modulationAmounts: modulationAmounts,
+                        connectModeLfoId: connectModeLfoId,
+                        onModulationAssign: onModulationAssign,
+                        automationLinkActive: automationLinkActive,
+                        onAutomationLinkTap: onAutomationLinkTap,
+                        onAutomateParameter: onAutomateParameter,
+                        displayValue:
+                            '${(device.delayFeedback * 100).round()}%',
+                      ),
+                    ]),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 5),
+              Container(
+                height: 78,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF050508),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _knob(
+                      label: 'Low Cut',
+                      value: _frequencyToKnob(device.delayLowCutHz, 20, 2000),
+                      paramId: 'lowCutHz',
+                      accent: accent,
+                      onParameterChanged: (_, v) => onParameterChanged(
+                          'lowCutHz', _knobToFrequency(v, 20, 2000)),
+                      modulatedParams: modulatedParams,
+                      automatedParams: automatedParams,
+                      modulationAmounts: modulationAmounts,
+                      connectModeLfoId: connectModeLfoId,
+                      onModulationAssign: onModulationAssign,
+                      automationLinkActive: automationLinkActive,
+                      onAutomationLinkTap: onAutomationLinkTap,
+                      onAutomateParameter: onAutomateParameter,
+                      displayValue: _formatHz(device.delayLowCutHz),
+                    ),
+                    _knob(
+                      label: 'High Cut',
+                      value:
+                          _frequencyToKnob(device.delayHighCutHz, 2000, 20000),
+                      paramId: 'highCutHz',
+                      accent: accent,
+                      onParameterChanged: (_, v) => onParameterChanged(
+                          'highCutHz', _knobToFrequency(v, 2000, 20000)),
+                      modulatedParams: modulatedParams,
+                      automatedParams: automatedParams,
+                      modulationAmounts: modulationAmounts,
+                      connectModeLfoId: connectModeLfoId,
+                      onModulationAssign: onModulationAssign,
+                      automationLinkActive: automationLinkActive,
+                      onAutomationLinkTap: onAutomationLinkTap,
+                      onAutomateParameter: onAutomateParameter,
+                      displayValue: _formatHz(device.delayHighCutHz),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          _knob(
-            label: 'Feedback',
-            value: device.delayFeedback,
-            paramId: 'feedback',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${(device.delayFeedback * 100).round()}%',
-          ),
-          null,
-        ]),
-      ],
+        ),
+      ),
     );
   }
 }
@@ -430,7 +613,8 @@ class ChorusFxPanel extends StatelessWidget {
             value: (device.chorusRateHz - 0.1) / (5 - 0.1),
             paramId: 'rateHz',
             accent: accent,
-            onParameterChanged: (id, v) => onParameterChanged(id, 0.1 + v * 4.9),
+            onParameterChanged: (id, v) =>
+                onParameterChanged(id, 0.1 + v * 4.9),
             modulatedParams: modulatedParams,
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
@@ -558,7 +742,9 @@ class PhaserFxPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double normFreq = math.log(device.phaserCentreFrequencyHz.clamp(20.0, 20000.0) / 20.0) / math.log(1000.0);
+    final double normFreq =
+        math.log(device.phaserCentreFrequencyHz.clamp(20.0, 20000.0) / 20.0) /
+            math.log(1000.0);
     return _timeFxSinglePage(
       rows: [
         _knobGridRow([
@@ -583,7 +769,8 @@ class PhaserFxPanel extends StatelessWidget {
             value: (device.phaserRateHz - 0.1) / (5 - 0.1),
             paramId: 'rateHz',
             accent: accent,
-            onParameterChanged: (id, v) => onParameterChanged(id, 0.1 + v * 4.9),
+            onParameterChanged: (id, v) =>
+                onParameterChanged(id, 0.1 + v * 4.9),
             modulatedParams: modulatedParams,
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,
@@ -617,7 +804,8 @@ class PhaserFxPanel extends StatelessWidget {
             value: normFreq,
             paramId: 'centreFrequencyHz',
             accent: accent,
-            onParameterChanged: (id, v) => onParameterChanged(id, 20.0 * math.pow(1000.0, v)),
+            onParameterChanged: (id, v) =>
+                onParameterChanged(id, 20.0 * math.pow(1000.0, v)),
             modulatedParams: modulatedParams,
             automatedParams: automatedParams,
             modulationAmounts: modulationAmounts,

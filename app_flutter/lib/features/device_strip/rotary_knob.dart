@@ -72,6 +72,8 @@ class RotaryKnob extends StatefulWidget {
     this.onAutomateRequest,
     this.labelGap = 3,
     this.showLabel = true,
+    this.labelOptions = const [],
+    this.onLabelOptionSelected,
   });
 
   final String label;
@@ -100,6 +102,10 @@ class RotaryKnob extends StatefulWidget {
   final VoidCallback? onAutomateRequest;
   final double labelGap;
   final bool showLabel;
+
+  /// Optional choices presented when the knob label is tapped.
+  final List<String> labelOptions;
+  final ValueChanged<String>? onLabelOptionSelected;
 
   @override
   State<RotaryKnob> createState() => _RotaryKnobState();
@@ -365,14 +371,62 @@ class _RotaryKnobState extends State<RotaryKnob>
         ),
         if (widget.showLabel) ...[
           SizedBox(height: widget.labelGap),
-          Text(
-            widget.label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: Colors.white54,
-              fontSize: labelSize,
-              fontWeight: FontWeight.w600,
+          if (widget.labelOptions.isEmpty)
+            SizedBox(
+              width: widget.size + 8,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  widget.label,
+                  maxLines: 1,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: Colors.white54,
+                    fontSize: labelSize,
+                    fontWeight: FontWeight.w600,
+                    height: 1,
+                  ),
+                ),
+              ),
+            )
+          else
+            PopupMenuButton<String>(
+              key: ValueKey('knob-label-menu-${widget.label}'),
+              tooltip: 'Select ${widget.label} mode',
+              initialValue: widget.label,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 96),
+              color: const Color(0xFF22222E),
+              onSelected: widget.onLabelOptionSelected,
+              itemBuilder: (context) => widget.labelOptions
+                  .map((option) => PopupMenuItem<String>(
+                        value: option,
+                        child: Text(option),
+                      ))
+                  .toList(),
+              child: SizedBox(
+                width: widget.size + 8,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.chevron_left,
+                          size: 10, color: Colors.white54),
+                      Text(
+                        widget.label,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: Colors.white70,
+                          fontSize: labelSize,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right,
+                          size: 10, color: Colors.white54),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
         ],
       ],
     );

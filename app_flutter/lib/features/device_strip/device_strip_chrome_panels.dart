@@ -106,7 +106,7 @@ class DrumMonoOutputPanel extends StatelessWidget {
               paramId: velocityParamId,
               accentColor: accentColor,
               modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
+              automatedParams: automatedParams,
               modulationAmounts: modulationAmounts,
               lfos: lfos,
               modEdges: modEdges,
@@ -184,7 +184,9 @@ class DynamicsInputPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dynamicsDevice = device is DynamicsDeviceSnapshot ? device as DynamicsDeviceSnapshot : null;
+    final dynamicsDevice = device is DynamicsDeviceSnapshot
+        ? device as DynamicsDeviceSnapshot
+        : null;
     return Semantics(
       label: 'Dynamics input panel',
       child: _ChromeInputShell(
@@ -197,7 +199,8 @@ class DynamicsInputPanel extends StatelessWidget {
                   label: 'Trim',
                   value: dynamicsDevice.inputGain.clamp(0, 1),
                   size: knobSize,
-                  displayValue: StereoGainPanPanel.formatGain(dynamicsDevice.inputGain),
+                  displayValue:
+                      StereoGainPanPanel.formatGain(dynamicsDevice.inputGain),
                   onChanged: (value) => onParameterChanged('inputGain', value),
                   paramId: 'inputGain',
                   accentColor: accentColor,
@@ -276,7 +279,7 @@ class DynamicsOutputPanel extends StatelessWidget {
           paramId: 'gain',
           accentColor: accentColor,
           modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
+          automatedParams: automatedParams,
           modulationAmounts: modulationAmounts,
           connectModeLfoId: connectModeLfoId,
           onModulationAssign: onModulationAssign,
@@ -307,7 +310,8 @@ class _DynamicsSideColumn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final visibleLevel = meterLevel <= 0.001 ? 0.0 : meterLevel.clamp(0.05, 1.0);
+    final visibleLevel =
+        meterLevel <= 0.001 ? 0.0 : meterLevel.clamp(0.05, 1.0);
 
     return Column(
       children: [
@@ -332,7 +336,8 @@ class _DynamicsSideColumn extends StatelessWidget {
                   child: FractionallySizedBox(
                     heightFactor: visibleLevel,
                     widthFactor: 1.0,
-                    child: ColoredBox(color: accentColor.withValues(alpha: 0.65)),
+                    child:
+                        ColoredBox(color: accentColor.withValues(alpha: 0.65)),
                   ),
                 ),
               ),
@@ -368,7 +373,8 @@ class _ChromeOutputShell extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: DeviceStripTheme.toolRailBackground,
-          borderRadius: BorderRadius.only(topRight: rightRadius, bottomRight: rightRadius),
+          borderRadius: BorderRadius.only(
+              topRight: rightRadius, bottomRight: rightRadius),
           border: const Border(
             top: borderSide,
             bottom: borderSide,
@@ -421,15 +427,46 @@ class FxOutputPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final eff = device is EffectDeviceSnapshot ? device as EffectDeviceSnapshot : null;
+    final eff =
+        device is EffectDeviceSnapshot ? device as EffectDeviceSnapshot : null;
     final mix = eff?.outputMix ?? 1.0;
     final width = eff?.outputWidth ?? 1.0;
 
     return _ChromeOutputShell(
       width: DeviceStripMetrics.dynamicsOutputPanelWidth,
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          const Text(
+            'OUT',
+            style: TextStyle(
+              color: Colors.white54,
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const Spacer(),
+          deviceAutomationKnob(
+            label: 'Width',
+            value: width.clamp(0, 1),
+            size: knobSize,
+            displayValue: '${(width * 100).round()}%',
+            onChanged: (value) => onParameterChanged('outputWidth', value),
+            paramId: 'outputWidth',
+            accentColor: accentColor,
+            modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
+            modulationAmounts: modulationAmounts,
+            lfos: lfos,
+            modEdges: modEdges,
+            deviceId: device.id,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+          ),
+          const SizedBox(height: 16),
           deviceAutomationKnob(
             label: 'Mix',
             value: mix.clamp(0, 1),
@@ -451,26 +488,6 @@ class FxOutputPanel extends StatelessWidget {
             onAutomateParameter: onAutomateParameter,
           ),
           const SizedBox(height: 8),
-          deviceAutomationKnob(
-            label: 'Width',
-            value: width.clamp(0, 1),
-            size: knobSize,
-            displayValue: '${(width * 100).round()}%',
-            onChanged: (value) => onParameterChanged('outputWidth', value),
-            paramId: 'outputWidth',
-            accentColor: accentColor,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            lfos: lfos,
-            modEdges: modEdges,
-            deviceId: device.id,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-          ),
         ],
       ),
     );

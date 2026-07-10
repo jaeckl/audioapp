@@ -22,7 +22,7 @@ constexpr int kAutomationSubBlockFrames = 64;
 /// Dedicated preallocated storage for time-based effect ring buffers.
 /// One per track. Allows placement-new of ring buffers without heap allocation.
 struct DeviceChainScratchArena {
-    static constexpr int kBufferSize = 192000;  // 4 seconds at 48 kHz
+    static constexpr int kBufferSize = 240001;  // 5 seconds at the 48 kHz engine rate
     static constexpr int kMaxTimeBasedEffects = 6;  // Delay, Reverb, Chorus, Phaser, Stutter, spare
 
     /// Raw storage: 2 channels x 192K x 4 possible effects

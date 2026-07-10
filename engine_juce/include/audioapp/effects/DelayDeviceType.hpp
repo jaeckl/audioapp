@@ -13,7 +13,10 @@
 
 namespace audioapp {
 
-enum class DelayParam : uint16_t { Time = 0, Feedback = 1, Mix = 2 };
+enum class DelayParam : uint16_t {
+    Time = 0, Feedback = 1, Mix = 2, TimeMode = 3, NoteCount = 4, BlurMode = 5,
+    BlurAmount = 6, InputDucking = 7, LowCut = 8, HighCut = 9
+};
 
 class DelayDeviceType final : public TimeBasedEffectDeviceType {
 public:

@@ -40,13 +40,34 @@ DeviceParameterResult DelayDeviceType::setParameter(DeviceSlot& slot,
     const auto localId = static_cast<DelayParam>(id);
     switch (localId) {
     case DelayParam::Time:
-        instance.delayTime = juce::jlimit(1.0, 2000.0, static_cast<double>(value));
+        instance.delayTime = juce::jlimit(0.0, 5000.0, static_cast<double>(value));
         break;
     case DelayParam::Feedback:
         instance.feedback = juce::jlimit(0.0, 0.95, static_cast<double>(value));
         break;
     case DelayParam::Mix:
         instance.mix = juce::jlimit(0.0, 1.0, static_cast<double>(value));
+        break;
+    case DelayParam::TimeMode:
+        instance.timeMode = juce::jlimit(0.0, 3.0, std::round(static_cast<double>(value)));
+        break;
+    case DelayParam::NoteCount:
+        instance.noteCount = juce::jlimit(1.0, 8.0, std::round(static_cast<double>(value)));
+        break;
+    case DelayParam::BlurMode:
+        instance.blurMode = juce::jlimit(0.0, 2.0, std::round(static_cast<double>(value)));
+        break;
+    case DelayParam::BlurAmount:
+        instance.blurAmount = juce::jlimit(0.0, 1.0, static_cast<double>(value));
+        break;
+    case DelayParam::InputDucking:
+        instance.inputDucking = juce::jlimit(0.0, 1.0, static_cast<double>(value));
+        break;
+    case DelayParam::LowCut:
+        instance.lowCutHz = juce::jlimit(20.0, juce::jmin(2000.0, instance.highCutHz * 0.5), static_cast<double>(value));
+        break;
+    case DelayParam::HighCut:
+        instance.highCutHz = juce::jlimit(juce::jmax(2000.0, instance.lowCutHz * 2.0), 20000.0, static_cast<double>(value));
         break;
     default:
         return result;
@@ -60,7 +81,8 @@ bool DelayDeviceType::setStringParameter(DeviceSlot&, std::string_view, const st
 }
 
 std::vector<std::string_view> DelayDeviceType::modulatableParams() const {
-    return {"gain", "pan", "timeMs", "feedback", "mix"};
+    return {"gain", "pan", "timeMs", "feedback", "mix", "blurAmount",
+            "inputDucking", "lowCutHz", "highCutHz"};
 }
 
 void DelayDeviceType::buildPlaybackNode(const DeviceSlot& slot, const PlaybackBuildContext&, DeviceNodePlayback& out) const {
@@ -72,6 +94,13 @@ void DelayDeviceType::buildPlaybackNode(const DeviceSlot& slot, const PlaybackBu
     p.mix = static_cast<float>(inst.mix);
     // Since Delay snapshot doesn't hold inputGain yet, we can default it to 1.0f
     p.inputGain = 1.0f;
+    p.timeMode = static_cast<float>(inst.timeMode);
+    p.noteCount = static_cast<float>(inst.noteCount);
+    p.blurMode = static_cast<float>(inst.blurMode);
+    p.blurAmount = static_cast<float>(inst.blurAmount);
+    p.inputDucking = static_cast<float>(inst.inputDucking);
+    p.lowCutHz = static_cast<float>(inst.lowCutHz);
+    p.highCutHz = static_cast<float>(inst.highCutHz);
     out.params = p;
 }
 
@@ -85,6 +114,13 @@ juce::var DelayDeviceType::slotToVar(const DeviceSlot& slot) const {
     parameters->setProperty("timeMs", inst.delayTime);
     parameters->setProperty("feedback", inst.feedback);
     parameters->setProperty("mix", inst.mix);
+    parameters->setProperty("timeMode", inst.timeMode);
+    parameters->setProperty("noteCount", inst.noteCount);
+    parameters->setProperty("blurMode", inst.blurMode);
+    parameters->setProperty("blurAmount", inst.blurAmount);
+    parameters->setProperty("inputDucking", inst.inputDucking);
+    parameters->setProperty("lowCutHz", inst.lowCutHz);
+    parameters->setProperty("highCutHz", inst.highCutHz);
 
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
@@ -168,6 +204,13 @@ DeviceSlot DelayDeviceType::varToSlot(const juce::var& obj) const {
             inst.delayTime = p->getProperty("timeMs").toString().getDoubleValue();
             inst.feedback = p->getProperty("feedback").toString().getDoubleValue();
             inst.mix = p->getProperty("mix").toString().getDoubleValue();
+            inst.timeMode = readFloat("timeMode", 0.0f);
+            inst.noteCount = readFloat("noteCount", 1.0f);
+            inst.blurMode = readFloat("blurMode", 0.0f);
+            inst.blurAmount = readFloat("blurAmount", 0.5f);
+            inst.inputDucking = readFloat("inputDucking", 0.0f);
+            inst.lowCutHz = readFloat("lowCutHz", 20.0f);
+            inst.highCutHz = readFloat("highCutHz", 20000.0f);
             inst.clamp();
             slot.config.instance = inst;
             
@@ -186,6 +229,13 @@ uint16_t DelayDeviceType::paramIdFromString(std::string_view name) const noexcep
     if (name == "timeMs" || name == "delayTimeMs") return static_cast<uint16_t>(DelayParam::Time);
     if (name == "feedback" || name == "delayFeedback") return static_cast<uint16_t>(DelayParam::Feedback);
     if (name == "mix" || name == "delayMix") return static_cast<uint16_t>(DelayParam::Mix);
+    if (name == "timeMode") return static_cast<uint16_t>(DelayParam::TimeMode);
+    if (name == "noteCount") return static_cast<uint16_t>(DelayParam::NoteCount);
+    if (name == "blurMode") return static_cast<uint16_t>(DelayParam::BlurMode);
+    if (name == "blurAmount") return static_cast<uint16_t>(DelayParam::BlurAmount);
+    if (name == "inputDucking") return static_cast<uint16_t>(DelayParam::InputDucking);
+    if (name == "lowCutHz") return static_cast<uint16_t>(DelayParam::LowCut);
+    if (name == "highCutHz") return static_cast<uint16_t>(DelayParam::HighCut);
     return static_cast<uint16_t>(-1);
 }
 
@@ -194,15 +244,29 @@ std::string_view DelayDeviceType::paramIdToString(uint16_t localId) const noexce
     case DelayParam::Time: return "delayTimeMs";
     case DelayParam::Feedback: return "delayFeedback";
     case DelayParam::Mix: return "delayMix";
+    case DelayParam::TimeMode: return "timeMode";
+    case DelayParam::NoteCount: return "noteCount";
+    case DelayParam::BlurMode: return "blurMode";
+    case DelayParam::BlurAmount: return "blurAmount";
+    case DelayParam::InputDucking: return "inputDucking";
+    case DelayParam::LowCut: return "lowCutHz";
+    case DelayParam::HighCut: return "highCutHz";
     default: return "";
     }
 }
 
 std::span<const ParamDescriptor> DelayDeviceType::paramDescriptors() const noexcept {
     static constexpr ParamDescriptor kParams[] = {
-        {static_cast<uint16_t>(DelayParam::Time), "delayTimeMs", "Time", 250.0f, 1.0f, 2000.0f, true, true},
+        {static_cast<uint16_t>(DelayParam::Time), "delayTimeMs", "Time", 250.0f, 0.0f, 5000.0f, true, true},
         {static_cast<uint16_t>(DelayParam::Feedback), "delayFeedback", "Feedback", 0.4f, 0.0f, 0.95f, true, true},
         {static_cast<uint16_t>(DelayParam::Mix), "delayMix", "Mix", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(DelayParam::TimeMode), "timeMode", "Time Mode", 0.0f, 0.0f, 3.0f, false, false},
+        {static_cast<uint16_t>(DelayParam::NoteCount), "noteCount", "Notes", 1.0f, 1.0f, 8.0f, false, false},
+        {static_cast<uint16_t>(DelayParam::BlurMode), "blurMode", "Blur", 0.0f, 0.0f, 2.0f, false, false},
+        {static_cast<uint16_t>(DelayParam::BlurAmount), "blurAmount", "Blur Amount", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(DelayParam::InputDucking), "inputDucking", "Input Ducking", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(DelayParam::LowCut), "lowCutHz", "Low Cut", 20.0f, 20.0f, 2000.0f, true, true},
+        {static_cast<uint16_t>(DelayParam::HighCut), "highCutHz", "High Cut", 20000.0f, 2000.0f, 20000.0f, true, true},
     };
     return kParams;
 }

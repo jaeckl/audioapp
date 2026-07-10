@@ -29,10 +29,24 @@ class DelayDeviceSnapshot extends EffectDeviceSnapshot {
     super.outputWidth,
     required this.delayTimeMs,
     required this.delayFeedback,
+    this.delayTimeMode = 0,
+    this.delayNoteCount = 1,
+    this.delayBlurMode = 0,
+    this.delayBlurAmount = 0.5,
+    this.delayInputDucking = 0,
+    this.delayLowCutHz = 20,
+    this.delayHighCutHz = 20000,
   }) : super(type: 'delay');
 
   final double delayTimeMs;
   final double delayFeedback;
+  final double delayTimeMode;
+  final double delayNoteCount;
+  final double delayBlurMode;
+  final double delayBlurAmount;
+  final double delayInputDucking;
+  final double delayLowCutHz;
+  final double delayHighCutHz;
 
   factory DelayDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -48,8 +62,19 @@ class DelayDeviceSnapshot extends EffectDeviceSnapshot {
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       delayTimeMs: (params['timeMs'] as num?)?.toDouble() ?? 250.0,
       delayFeedback: (params['feedback'] as num?)?.toDouble() ?? 0.4,
-      outputMix: (params['outputMix'] as num?)?.toDouble() ?? 1.0,
-      outputWidth: (params['outputWidth'] as num?)?.toDouble() ?? 1.0,
+      delayTimeMode: (params['timeMode'] as num?)?.toDouble() ?? 0.0,
+      delayNoteCount: (params['noteCount'] as num?)?.toDouble() ?? 1.0,
+      delayBlurMode: (params['blurMode'] as num?)?.toDouble() ?? 0.0,
+      delayBlurAmount: (params['blurAmount'] as num?)?.toDouble() ?? 0.5,
+      delayInputDucking: (params['inputDucking'] as num?)?.toDouble() ?? 0.0,
+      delayLowCutHz: (params['lowCutHz'] as num?)?.toDouble() ?? 20.0,
+      delayHighCutHz: (params['highCutHz'] as num?)?.toDouble() ?? 20000.0,
+      outputMix: (outputPanel['outputMix'] as num?)?.toDouble() ??
+          (params['outputMix'] as num?)?.toDouble() ??
+          1.0,
+      outputWidth: (outputPanel['outputWidth'] as num?)?.toDouble() ??
+          (params['outputWidth'] as num?)?.toDouble() ??
+          1.0,
     );
   }
 
@@ -66,6 +91,13 @@ class DelayDeviceSnapshot extends EffectDeviceSnapshot {
     double? outputWidth,
     double? delayTimeMs,
     double? delayFeedback,
+    double? delayTimeMode,
+    double? delayNoteCount,
+    double? delayBlurMode,
+    double? delayBlurAmount,
+    double? delayInputDucking,
+    double? delayLowCutHz,
+    double? delayHighCutHz,
   }) {
     return DelayDeviceSnapshot(
       id: id ?? this.id,
@@ -78,6 +110,13 @@ class DelayDeviceSnapshot extends EffectDeviceSnapshot {
       outputWidth: outputWidth ?? this.outputWidth,
       delayTimeMs: delayTimeMs ?? this.delayTimeMs,
       delayFeedback: delayFeedback ?? this.delayFeedback,
+      delayTimeMode: delayTimeMode ?? this.delayTimeMode,
+      delayNoteCount: delayNoteCount ?? this.delayNoteCount,
+      delayBlurMode: delayBlurMode ?? this.delayBlurMode,
+      delayBlurAmount: delayBlurAmount ?? this.delayBlurAmount,
+      delayInputDucking: delayInputDucking ?? this.delayInputDucking,
+      delayLowCutHz: delayLowCutHz ?? this.delayLowCutHz,
+      delayHighCutHz: delayHighCutHz ?? this.delayHighCutHz,
     );
   }
 
@@ -91,6 +130,13 @@ class DelayDeviceSnapshot extends EffectDeviceSnapshot {
       'outputWidth' => copyWith(outputWidth: value),
       'timeMs' => copyWith(delayTimeMs: value),
       'feedback' => copyWith(delayFeedback: value),
+      'timeMode' => copyWith(delayTimeMode: value),
+      'noteCount' => copyWith(delayNoteCount: value),
+      'blurMode' => copyWith(delayBlurMode: value),
+      'blurAmount' => copyWith(delayBlurAmount: value),
+      'inputDucking' => copyWith(delayInputDucking: value),
+      'lowCutHz' => copyWith(delayLowCutHz: value),
+      'highCutHz' => copyWith(delayHighCutHz: value),
       _ => this,
     };
   }
