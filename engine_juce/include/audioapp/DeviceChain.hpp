@@ -146,6 +146,12 @@ struct PhaserParamsPlayback {
     float rateHz = 0.8f;
     float feedback = 0.3f;
     float centreFrequencyHz = 1000.0f;
+    float rateMode = 0.0f;
+    float waveform = 0.0f;
+    float waveShape = 0.5f;
+    float phaseOffset = 0.0f;
+    float stereoPhase = 0.75f;
+    float stages = 8.0f;
     float inputGain = 1.0f;
 };
 

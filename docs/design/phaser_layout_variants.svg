@@ -1,0 +1,173 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="780" viewBox="0 0 1200 780">
+  <title>Advanced Phaser layout variants built from daw_elements.svg components</title>
+  <desc>Exact external component references: kick_tool_rail, group_kick_generator-3-2-9-5 Stereo Mix Output, knob_strip_default, knob_strip_default-0-1 selectable-unit knob, widget_value_drag_box, widget_normal_sliders, g23/g22 tab buttons, and g24 segmented button group.</desc>
+  <defs>
+    <style>
+      .page{fill:#0e0e14}.card{fill:#1a1a24;stroke:#4a4a5c;stroke-width:1.5}.header{fill:#22222e}
+      .panel{fill:#101016;stroke:#fff;stroke-opacity:.08}.screen{fill:#050508;stroke:#fff;stroke-opacity:.1}
+      .pink{fill:#e8a0c8}.curve{fill:none;stroke:#e8a0c8;stroke-width:2.2}.curve2{fill:none;stroke:#78aee8;stroke-width:1.5}
+      .grid{stroke:#fff;stroke-opacity:.07}.title{fill:#fff;font:700 14px Inter,Arial}.tab{fill:#fff;font:700 10px Inter,Arial;letter-spacing:.4px}
+      .label{fill:#fff;font:700 9px Inter,Arial;letter-spacing:.35px}.small{fill:#9a9aa8;font:600 8px Inter,Arial}.tiny{fill:#767681;font:500 7px Inter,Arial}.value{fill:#e8a0c8;font:700 9px Inter,Arial}
+      .exact{filter:url(#phaserTint)}
+    </style>
+    <filter id="phaserTint" color-interpolation-filters="sRGB">
+      <feColorMatrix type="matrix" values="0.90 0 0 0 0.08  0 0.63 0 0 0.10  0 0 0.78 0 0.12  0 0 0 1 0"/>
+    </filter>
+
+    <!-- These wrappers instantiate exact components from daw_elements.svg. -->
+    <symbol id="daw-tool-rail" viewBox="0 0 30 320">
+      <use xlink:href="../architecture/daw_elements.svg#kick_tool_rail" class="exact"/>
+    </symbol>
+    <symbol id="daw-stereo-mix-output" viewBox="0 0 64 320">
+      <use xlink:href="../architecture/daw_elements.svg#group_kick_generator-3-2-9-5" transform="translate(-325.71999,-124.8)" class="exact"/>
+    </symbol>
+    <symbol id="daw-knob" viewBox="0 0 65 78">
+      <use xlink:href="../architecture/daw_elements.svg#knob_strip_default" transform="translate(-124,0)" class="exact"/>
+    </symbol>
+    <symbol id="daw-unit-knob" viewBox="0 0 65 78">
+      <use xlink:href="../architecture/daw_elements.svg#knob_strip_default-0-1" transform="translate(-170.00553,-319.60768)" class="exact"/>
+    </symbol>
+    <symbol id="daw-value-box" viewBox="0 0 44 44">
+      <use xlink:href="../architecture/daw_elements.svg#widget_value_drag_box" transform="translate(-50,-90)" class="exact"/>
+      <rect x="0" y="28" width="44" height="16" fill="#101016"/>
+    </symbol>
+    <symbol id="daw-slider" viewBox="0 0 80 44">
+      <use xlink:href="../architecture/daw_elements.svg#widget_normal_sliders" transform="translate(-450,-90)" class="exact"/>
+    </symbol>
+    <symbol id="daw-tabs" viewBox="0 0 270 40">
+      <use xlink:href="../architecture/daw_elements.svg#g23" transform="translate(-44.449596,8) scale(.78,1)"/>
+      <use xlink:href="../architecture/daw_elements.svg#g22" transform="translate(-66,8) scale(.78,1)"/>
+      <rect x="8" y="0" width="98" height="32" rx="7" fill="#15151d"/>
+      <rect x="108" y="0" width="106" height="32" fill="#22222e"/>
+    </symbol>
+    <symbol id="daw-mode-group" viewBox="0 0 180 26">
+      <use xlink:href="../architecture/daw_elements.svg#g24" transform="translate(0,-165)" class="exact"/>
+    </symbol>
+  </defs>
+
+  <rect width="1200" height="780" class="page"/>
+  <text x="20" y="25" class="title">ADVANCED PHASER — REFINED LAYOUT STUDY</text>
+  <text x="1180" y="25" text-anchor="end" class="small">Exact daw_elements.svg controls · 320 px total height · no input panel</text>
+
+  <!-- 1. Refined Motion Lab -->
+  <g transform="translate(20 48)">
+    <text y="-8" class="title">1 · MOTION LAB — REFINED B</text>
+    <use xlink:href="#daw-tool-rail" width="30" height="320"/>
+    <rect x="30" width="4" height="320" class="pink"/><rect x="34" width="424" height="320" class="card"/>
+    <rect x="34" width="424" height="40" class="header"/>
+    <use xlink:href="#daw-tabs" x="78" width="270" height="40"/><text x="127" y="25" text-anchor="middle" class="tab">MOTION</text><text x="238" y="25" text-anchor="middle" class="small">RESPONSE</text>
+    <text x="397" y="24" text-anchor="middle" class="label">SINE⌄</text>
+
+    <rect x="47" y="52" width="88" height="254" rx="6" class="panel"/>
+    <g transform="translate(59 62)"><use xlink:href="#daw-unit-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">1/8</text><rect x="4" y="58" width="57" height="17" fill="#101016"/><text x="32" y="70" text-anchor="middle" class="small">Rate · Sync</text></g>
+    <g transform="translate(59 143)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">72%</text><rect x="4" y="58" width="57" height="17" fill="#101016"/><text x="32" y="70" text-anchor="middle" class="small">Depth</text></g>
+    <g transform="translate(59 224)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">135°</text><rect x="4" y="58" width="57" height="17" fill="#101016"/><text x="32" y="70" text-anchor="middle" class="small">Stereo Phase</text></g>
+
+    <rect x="147" y="52" width="200" height="164" rx="6" class="screen"/>
+    <path d="M157 83H337M157 123H337M157 163H337M197 60V208M247 60V208M297 60V208" class="grid"/>
+    <path d="M157 135C174 77 191 193 208 135S242 77 259 135 293 193 310 135 327 91 337 116" class="curve"/>
+    <path d="M157 153C174 95 191 211 208 153S242 95 259 153 293 211 310 153 327 109 337 134" class="curve2"/>
+    <text x="158" y="70" class="label">L / R MODULATION · 135° OFFSET</text>
+    <circle cx="259" cy="135" r="11" fill="#e8a0c8" fill-opacity=".16"/><circle cx="259" cy="135" r="5" class="pink"/>
+    <g transform="translate(171 225)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">34%</text><rect x="1" y="58" width="63" height="17" fill="#1a1a24"/><text x="32" y="70" text-anchor="middle" class="small">Wave Shape</text></g>
+    <g transform="translate(259 225)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">0°</text><rect x="1" y="58" width="63" height="17" fill="#1a1a24"/><text x="32" y="70" text-anchor="middle" class="small">LFO Phase</text></g>
+
+    <rect x="359" y="52" width="86" height="254" rx="6" class="panel"/>
+    <g transform="translate(370 62)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">1.2k</text><rect x="4" y="58" width="57" height="17" fill="#101016"/><text x="32" y="70" text-anchor="middle" class="small">Centre</text></g>
+    <g transform="translate(370 143)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">+38%</text><rect x="4" y="58" width="57" height="17" fill="#101016"/><text x="32" y="70" text-anchor="middle" class="small">Feedback</text></g>
+    <g transform="translate(370 224)"><use xlink:href="#daw-value-box" width="44" height="44"/><rect x="2" y="4" width="40" height="18" fill="#14141c"/><text x="22" y="17" text-anchor="middle" class="value">8</text><rect y="27" width="44" height="15" fill="#101016"/><text x="22" y="39" text-anchor="middle" class="small">Stages</text></g>
+    <rect x="458" width="4" height="320" class="pink"/><use xlink:href="#daw-stereo-mix-output" x="462" width="64" height="320"/>
+    <text y="340" class="small">Focus: precise rhythmic and stereo motion; response remains a secondary tab.</text>
+  </g>
+
+  <!-- 2. Refined Performance XY -->
+  <g transform="translate(650 48)">
+    <text y="-8" class="title">2 · PERFORMANCE XY — REFINED D</text>
+    <use xlink:href="#daw-tool-rail" width="30" height="320"/><rect x="30" width="4" height="320" class="pink"/>
+    <rect x="34" width="424" height="320" class="card"/><rect x="34" width="424" height="40" class="header"/>
+    <use xlink:href="#daw-mode-group" x="55" y="7" width="180" height="26"/><rect x="55" y="7" width="180" height="26" fill="none"/>
+    <rect x="58" y="15" width="40" height="15" fill="#e8a0c8"/><rect x="99" y="15" width="43" height="15" fill="#050508"/><rect x="143" y="15" width="43" height="15" fill="#050508"/><rect x="187" y="15" width="45" height="15" fill="#050508"/>
+    <text x="78" y="25" text-anchor="middle" class="tiny" style="fill:#15151d;font-weight:700">CLASSIC</text><text x="120" y="25" text-anchor="middle" class="tiny">BARBER</text><text x="164" y="25" text-anchor="middle" class="tiny">VOWEL</text><text x="209" y="25" text-anchor="middle" class="tiny">PHASE</text>
+    <text x="396" y="24" text-anchor="middle" class="label">8 STAGES⌄</text>
+
+    <rect x="47" y="52" width="82" height="254" rx="6" class="panel"/>
+    <g transform="translate(55 67)"><use xlink:href="#daw-unit-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">1/4</text><rect x="4" y="58" width="57" height="17" fill="#101016"/><text x="32" y="70" text-anchor="middle" class="small">Rate · Sync</text></g>
+    <g transform="translate(55 162)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">24%</text><rect x="4" y="58" width="57" height="17" fill="#101016"/><text x="32" y="70" text-anchor="middle" class="small">Drive</text></g>
+    <g transform="translate(61 260)"><use xlink:href="#daw-value-box" width="44" height="44"/><rect x="2" y="4" width="40" height="18" fill="#14141c"/><text x="22" y="17" text-anchor="middle" class="value">SINE</text></g>
+
+    <rect x="141" y="52" width="214" height="204" rx="7" class="screen"/>
+    <path d="M153 102H343M153 153H343M153 204H343M200 62V246M248 62V246M296 62V246" class="grid"/>
+    <path d="M153 216C173 82 192 232 212 141S251 73 271 171 311 230 343 92" class="curve"/>
+    <text x="153" y="70" class="label">FEEDBACK +</text><text x="153" y="245" class="small">FEEDBACK −</text>
+    <text x="310" y="245" class="small">CENTRE →</text><text x="151" y="268" class="tiny">XY records as two automatable parameters</text>
+    <circle cx="275" cy="121" r="18" fill="#e8a0c8" fill-opacity=".15"/><circle cx="275" cy="121" r="6" class="pink"/>
+    <g transform="translate(149 273)"><use xlink:href="#daw-value-box" width="44" height="44"/><rect x="2" y="4" width="40" height="18" fill="#14141c"/><text x="22" y="17" text-anchor="middle" class="value">LOG</text></g>
+    <g transform="translate(213 273)"><use xlink:href="#daw-value-box" width="44" height="44"/><rect x="2" y="4" width="40" height="18" fill="#14141c"/><text x="22" y="17" text-anchor="middle" class="value">LINK</text></g>
+    <g transform="translate(277 273)"><use xlink:href="#daw-value-box" width="44" height="44"/><rect x="2" y="4" width="40" height="18" fill="#14141c"/><text x="22" y="17" text-anchor="middle" class="value">HOLD</text></g>
+
+    <rect x="367" y="52" width="78" height="254" rx="6" class="panel"/>
+    <g transform="translate(373 67)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">82%</text><rect x="4" y="58" width="57" height="17" fill="#101016"/><text x="32" y="70" text-anchor="middle" class="small">Depth</text></g>
+    <g transform="translate(373 162)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">120°</text><rect x="4" y="58" width="57" height="17" fill="#101016"/><text x="32" y="70" text-anchor="middle" class="small">Stereo</text></g>
+    <rect x="458" width="4" height="320" class="pink"/><use xlink:href="#daw-stereo-mix-output" x="462" width="64" height="320"/>
+    <text y="340" class="small">Focus: playable macro control; mode morph and XY are modulation/automation targets.</text>
+  </g>
+
+  <!-- 3. Response editor -->
+  <g transform="translate(20 416)">
+    <text y="-8" class="title">3 · NOTCH SCULPTOR — NEW</text>
+    <use xlink:href="#daw-tool-rail" width="30" height="320"/><rect x="30" width="4" height="320" class="pink"/>
+    <rect x="34" width="424" height="320" class="card"/><rect x="34" width="424" height="40" class="header"/>
+    <use xlink:href="#daw-tabs" x="91" width="270" height="40"/><text x="141" y="25" text-anchor="middle" class="tab">RESPONSE</text><text x="251" y="25" text-anchor="middle" class="small">MOTION</text><text x="398" y="24" text-anchor="middle" class="label">CLASSIC⌄</text>
+
+    <rect x="47" y="52" width="286" height="176" rx="7" class="screen"/>
+    <path d="M59 91H321M59 135H321M59 179H321M111 62V218M164 62V218M217 62V218M270 62V218" class="grid"/>
+    <path d="M59 101C82 101 90 196 111 103S143 197 164 103 196 197 217 103 249 197 270 103 302 186 321 111" class="curve"/>
+    <text x="59" y="70" class="label">8 NOTCHES · 180 Hz — 7.2 kHz · LOG</text>
+    <circle cx="111" cy="103" r="12" fill="#e8a0c8" fill-opacity=".16"/><circle cx="111" cy="103" r="5" class="pink"/>
+    <circle cx="270" cy="103" r="12" fill="#e8a0c8" fill-opacity=".16"/><circle cx="270" cy="103" r="5" class="pink"/>
+    <circle cx="217" cy="103" r="12" fill="#e8a0c8" fill-opacity=".16"/><circle cx="217" cy="103" r="5" class="pink"/>
+    <text x="62" y="219" class="tiny">drag range · centre · spacing</text>
+
+    <g transform="translate(50 237)"><use xlink:href="#daw-unit-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">0.8 Hz</text><rect x="4" y="58" width="57" height="17" fill="#1a1a24"/><text x="32" y="70" text-anchor="middle" class="small">Rate</text></g>
+    <g transform="translate(126 237)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">64%</text><rect x="4" y="58" width="57" height="17" fill="#1a1a24"/><text x="32" y="70" text-anchor="middle" class="small">Depth</text></g>
+    <g transform="translate(202 237)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">90°</text><rect x="4" y="58" width="57" height="17" fill="#1a1a24"/><text x="32" y="70" text-anchor="middle" class="small">Stereo</text></g>
+    <g transform="translate(278 237)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">+38%</text><rect x="4" y="58" width="57" height="17" fill="#1a1a24"/><text x="32" y="70" text-anchor="middle" class="small">Feedback</text></g>
+
+    <rect x="345" y="52" width="100" height="254" rx="6" class="panel"/>
+    <g transform="translate(369 65)"><use xlink:href="#daw-value-box" width="44" height="44"/><rect x="2" y="4" width="40" height="18" fill="#14141c"/><text x="22" y="17" text-anchor="middle" class="value">8</text><text x="22" y="40" text-anchor="middle" class="small">Stages</text></g>
+    <g transform="translate(369 125)"><use xlink:href="#daw-value-box" width="44" height="44"/><rect x="2" y="4" width="40" height="18" fill="#14141c"/><text x="22" y="17" text-anchor="middle" class="value">LOG</text><text x="22" y="40" text-anchor="middle" class="small">Spacing</text></g>
+    <g transform="translate(362 190)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">18%</text><rect x="4" y="58" width="57" height="17" fill="#101016"/><text x="32" y="70" text-anchor="middle" class="small">Drive</text></g>
+    <rect x="458" width="4" height="320" class="pink"/><use xlink:href="#daw-stereo-mix-output" x="462" width="64" height="320"/>
+    <text y="340" class="small">Focus: the audible all-pass/notch structure itself; handles replace several knobs.</text>
+  </g>
+
+  <!-- 4. Signal flow -->
+  <g transform="translate(650 416)">
+    <text y="-8" class="title">4 · SIGNAL-FLOW RACK — NEW</text>
+    <use xlink:href="#daw-tool-rail" width="30" height="320"/><rect x="30" width="4" height="320" class="pink"/>
+    <rect x="34" width="424" height="320" class="card"/><rect x="34" width="424" height="40" class="header"/>
+    <text x="55" y="25" class="label">CLASSIC PHASER</text><text x="397" y="25" text-anchor="middle" class="small">ADVANCED⌄</text>
+
+    <rect x="47" y="52" width="116" height="254" rx="6" class="panel"/><text x="105" y="70" text-anchor="middle" class="label">MODULATOR</text>
+    <rect x="58" y="80" width="94" height="55" rx="5" class="screen"/><path d="M65 108C75 83 85 133 95 108S115 83 125 108 143 127 147 107" class="curve"/>
+    <g transform="translate(56 148)"><use xlink:href="#daw-unit-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">1/8</text><rect x="4" y="58" width="57" height="17" fill="#101016"/><text x="32" y="70" text-anchor="middle" class="small">Rate</text></g>
+    <g transform="translate(96 222)"><use xlink:href="#daw-value-box" width="44" height="44"/><rect x="2" y="4" width="40" height="18" fill="#14141c"/><text x="22" y="17" text-anchor="middle" class="value">SINE</text></g>
+
+    <path d="M164 177h15" stroke="#e8a0c8" stroke-width="2"/><path d="m174 172 7 5-7 5" fill="#e8a0c8"/>
+    <rect x="181" y="52" width="126" height="254" rx="6" class="panel"/><text x="244" y="70" text-anchor="middle" class="label">ALL-PASS BANK</text>
+    <rect x="192" y="80" width="104" height="75" rx="5" class="screen"/><path d="M198 112C208 112 212 143 222 112S236 143 246 112 260 143 270 112 286 139 290 113" class="curve"/>
+    <g transform="translate(187 165)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">1.2k</text><rect x="4" y="58" width="57" height="17" fill="#101016"/><text x="32" y="70" text-anchor="middle" class="small">Centre</text></g>
+    <g transform="translate(242 165)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">72%</text><rect x="4" y="58" width="57" height="17" fill="#101016"/><text x="32" y="70" text-anchor="middle" class="small">Depth</text></g>
+    <g transform="translate(196 254)"><use xlink:href="#daw-value-box" width="44" height="44"/><rect x="2" y="4" width="40" height="18" fill="#14141c"/><text x="22" y="17" text-anchor="middle" class="value">8</text><text x="22" y="40" text-anchor="middle" class="small">Stages</text></g>
+    <g transform="translate(250 254)"><use xlink:href="#daw-value-box" width="44" height="44"/><rect x="2" y="4" width="40" height="18" fill="#14141c"/><text x="22" y="17" text-anchor="middle" class="value">LOG</text><text x="22" y="40" text-anchor="middle" class="small">Space</text></g>
+
+    <path d="M308 177h15" stroke="#e8a0c8" stroke-width="2"/><path d="m318 172 7 5-7 5" fill="#e8a0c8"/>
+    <rect x="325" y="52" width="120" height="254" rx="6" class="panel"/><text x="385" y="70" text-anchor="middle" class="label">FEEDBACK</text>
+    <path d="M337 101h96" stroke="#e8a0c8" stroke-width="3"/><circle cx="385" cy="101" r="6" class="pink"/><text x="337" y="91" class="tiny">−</text><text x="429" y="91" class="tiny">+</text>
+    <g transform="translate(328 119)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">+38%</text><rect x="4" y="58" width="57" height="17" fill="#101016"/><text x="32" y="70" text-anchor="middle" class="small">Feedback</text></g>
+    <g transform="translate(380 119)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">15%</text><rect x="4" y="58" width="57" height="17" fill="#101016"/><text x="32" y="70" text-anchor="middle" class="small">Drive</text></g>
+    <g transform="translate(333 224)"><use xlink:href="#daw-slider" width="80" height="44"/><rect y="29" width="80" height="15" fill="#101016"/><text x="40" y="40" text-anchor="middle" class="small">Stereo Phase</text></g>
+    <rect x="458" width="4" height="320" class="pink"/><use xlink:href="#daw-stereo-mix-output" x="462" width="64" height="320"/>
+    <text y="340" class="small">Focus: teaches the architecture; bipolar feedback and drive are visually explicit.</text>
+  </g>
+</svg>

@@ -73,6 +73,12 @@ void main() {
       expect(DeviceStripChrome.outputWidth('reverb'), 64);
     });
 
+    test('phaser omits input chrome and keeps stereo mix output width', () {
+      expect(DeviceStripChrome.inputWidth('phaser'), 0);
+      expect(DeviceStripChrome.hasInputPanel('phaser'), isFalse);
+      expect(DeviceStripChrome.outputWidth('phaser'), 64);
+    });
+
     test('mono drums use drum output width without input', () {
       expect(DeviceStripChrome.inputWidth('kick_generator'), 0);
       expect(DeviceStripChrome.outputWidth('kick_generator'), 64);
@@ -162,6 +168,32 @@ void main() {
     expect(find.text('OUT'), findsOneWidget);
     expect(find.text('Width'), findsOneWidget);
     expect(find.text('Mix'), findsOneWidget);
+  });
+
+  testWidgets('phaser slot omits the generic input panel', (tester) async {
+    final device = DeviceSnapshot.fromMap({
+      'id': 'dev-phaser',
+      'type': 'phaser',
+      'parameters': {
+        'depth': .5,
+        'rateHz': .8,
+        'feedback': .3,
+        'centreFrequencyHz': 1000.0,
+      },
+      'outputPanel': {'outputMix': .5, 'outputWidth': 1.0},
+    });
+    await pumpSlot(tester, device: device);
+
+    expect(find.text('IN'), findsNothing);
+    expect(find.text('OUT'), findsOneWidget);
+    expect(find.text('Centre'), findsOneWidget);
+    expect(find.text('MOTION'), findsOneWidget);
+    expect(find.text('RESPONSE'), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('phaser-waveform-selector')), findsOneWidget);
+    await tester.tap(find.text('RESPONSE'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('reverb slot uses Version C tabs and header actions',

@@ -45,6 +45,7 @@ abstract final class DeviceContainerTabs {
       'audio_receiver' || 'midi_receiver' => RoutingDevicePanel.containerTabs,
       'midi_delay' => MidiDelayPanel.containerTabs,
       'reverb' => ReverbFxPanel.containerTabs,
+      'phaser' => PhaserFxPanel.containerTabs,
       'bitcrusher' => BitcrusherFxPanel.containerTabs,
       'distortion' => DistortionFxPanel.containerTabs,
       'tremolo' => TremoloFxPanel.containerTabs,

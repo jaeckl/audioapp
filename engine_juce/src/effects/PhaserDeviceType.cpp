@@ -19,6 +19,12 @@ DeviceSlot PhaserDeviceType::createDefault(const std::string& deviceId) const {
     instance.rateHz = 0.8;
     instance.feedback = 0.3;
     instance.centreFrequencyHz = 1000.0;
+    instance.rateMode = 2.0;
+    instance.waveform = 0.0;
+    instance.waveShape = 0.34;
+    instance.phaseOffset = 0.0;
+    instance.stereoPhase = 0.75;
+    instance.stages = 8.0;
     slot.config.instance = std::move(instance);
     slot.config.inputPanel = EmptyPanel{};
     slot.config.outputPanel = StereoOutputPanel{};
@@ -44,13 +50,31 @@ DeviceParameterResult PhaserDeviceType::setParameter(DeviceSlot& slot,
         instance.depth = juce::jlimit(0.0, 1.0, static_cast<double>(value));
         break;
     case PhaserParam::Rate:
-        instance.rateHz = juce::jlimit(0.1, 5.0, static_cast<double>(value));
+        instance.rateHz = juce::jlimit(0.05, 10.0, static_cast<double>(value));
         break;
     case PhaserParam::Feedback:
         instance.feedback = juce::jlimit(0.0, 0.95, static_cast<double>(value));
         break;
     case PhaserParam::CentreFrequency:
         instance.centreFrequencyHz = juce::jlimit(20.0, 20000.0, static_cast<double>(value));
+        break;
+    case PhaserParam::RateMode:
+        instance.rateMode = juce::jlimit(0.0, 3.0, static_cast<double>(value));
+        break;
+    case PhaserParam::Waveform:
+        instance.waveform = juce::jlimit(0.0, 3.0, static_cast<double>(value));
+        break;
+    case PhaserParam::WaveShape:
+        instance.waveShape = juce::jlimit(0.0, 1.0, static_cast<double>(value));
+        break;
+    case PhaserParam::PhaseOffset:
+        instance.phaseOffset = juce::jlimit(0.0, 1.0, static_cast<double>(value));
+        break;
+    case PhaserParam::StereoPhase:
+        instance.stereoPhase = juce::jlimit(0.0, 1.0, static_cast<double>(value));
+        break;
+    case PhaserParam::Stages:
+        instance.stages = juce::jlimit(2.0, 12.0, static_cast<double>(std::lround(value)));
         break;
     default:
         return result;
@@ -64,7 +88,8 @@ bool PhaserDeviceType::setStringParameter(DeviceSlot&, std::string_view, const s
 }
 
 std::vector<std::string_view> PhaserDeviceType::modulatableParams() const {
-    return {"gain", "pan", "depth", "rateHz", "feedback", "centreFrequencyHz"};
+    return {"gain", "pan", "depth", "rateHz", "feedback", "centreFrequencyHz",
+        "waveform", "waveShape", "phaseOffset", "stereoPhase", "stages"};
 }
 
 void PhaserDeviceType::buildPlaybackNode(const DeviceSlot& slot, const PlaybackBuildContext&, DeviceNodePlayback& out) const {
@@ -75,6 +100,12 @@ void PhaserDeviceType::buildPlaybackNode(const DeviceSlot& slot, const PlaybackB
     p.rateHz = static_cast<float>(inst.rateHz);
     p.feedback = static_cast<float>(inst.feedback);
     p.centreFrequencyHz = static_cast<float>(inst.centreFrequencyHz);
+    p.rateMode = static_cast<float>(inst.rateMode);
+    p.waveform = static_cast<float>(inst.waveform);
+    p.waveShape = static_cast<float>(inst.waveShape);
+    p.phaseOffset = static_cast<float>(inst.phaseOffset);
+    p.stereoPhase = static_cast<float>(inst.stereoPhase);
+    p.stages = static_cast<float>(inst.stages);
     p.inputGain = 1.0f;
     out.params = p;
 }
@@ -88,6 +119,12 @@ juce::var PhaserDeviceType::slotToVar(const DeviceSlot& slot) const {
     parameters->setProperty("rateHz", inst.rateHz);
     parameters->setProperty("feedback", inst.feedback);
     parameters->setProperty("centreFrequencyHz", inst.centreFrequencyHz);
+    parameters->setProperty("rateMode", inst.rateMode);
+    parameters->setProperty("waveform", inst.waveform);
+    parameters->setProperty("waveShape", inst.waveShape);
+    parameters->setProperty("phaseOffset", inst.phaseOffset);
+    parameters->setProperty("stereoPhase", inst.stereoPhase);
+    parameters->setProperty("stages", inst.stages);
 
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
@@ -168,10 +205,16 @@ DeviceSlot PhaserDeviceType::varToSlot(const juce::var& obj) const {
             }
 
             PhaserParams inst;
-            inst.depth = p->getProperty("depth").toString().getDoubleValue();
-            inst.rateHz = p->getProperty("rateHz").toString().getDoubleValue();
-            inst.feedback = p->getProperty("feedback").toString().getDoubleValue();
-            inst.centreFrequencyHz = p->getProperty("centreFrequencyHz").toString().getDoubleValue();
+            inst.depth = readFloat("depth", static_cast<float>(inst.depth));
+            inst.rateHz = readFloat("rateHz", static_cast<float>(inst.rateHz));
+            inst.feedback = readFloat("feedback", static_cast<float>(inst.feedback));
+            inst.centreFrequencyHz = readFloat("centreFrequencyHz", static_cast<float>(inst.centreFrequencyHz));
+            inst.rateMode = readFloat("rateMode", static_cast<float>(inst.rateMode));
+            inst.waveform = readFloat("waveform", static_cast<float>(inst.waveform));
+            inst.waveShape = readFloat("waveShape", static_cast<float>(inst.waveShape));
+            inst.phaseOffset = readFloat("phaseOffset", static_cast<float>(inst.phaseOffset));
+            inst.stereoPhase = readFloat("stereoPhase", static_cast<float>(inst.stereoPhase));
+            inst.stages = readFloat("stages", static_cast<float>(inst.stages));
             inst.clamp();
             slot.config.instance = inst;
             
@@ -191,25 +234,43 @@ uint16_t PhaserDeviceType::paramIdFromString(std::string_view name) const noexce
     if (name == "rateHz" || name == "phaserRateHz") return static_cast<uint16_t>(PhaserParam::Rate);
     if (name == "feedback" || name == "phaserFeedback") return static_cast<uint16_t>(PhaserParam::Feedback);
     if (name == "centreFrequencyHz" || name == "phaserCentreFrequencyHz") return static_cast<uint16_t>(PhaserParam::CentreFrequency);
+    if (name == "rateMode") return static_cast<uint16_t>(PhaserParam::RateMode);
+    if (name == "waveform") return static_cast<uint16_t>(PhaserParam::Waveform);
+    if (name == "waveShape") return static_cast<uint16_t>(PhaserParam::WaveShape);
+    if (name == "phaseOffset") return static_cast<uint16_t>(PhaserParam::PhaseOffset);
+    if (name == "stereoPhase") return static_cast<uint16_t>(PhaserParam::StereoPhase);
+    if (name == "stages") return static_cast<uint16_t>(PhaserParam::Stages);
     return static_cast<uint16_t>(-1);
 }
 
 std::string_view PhaserDeviceType::paramIdToString(uint16_t localId) const noexcept {
     switch (static_cast<PhaserParam>(localId)) {
-    case PhaserParam::Depth: return "phaserDepth";
-    case PhaserParam::Rate: return "phaserRateHz";
-    case PhaserParam::Feedback: return "phaserFeedback";
-    case PhaserParam::CentreFrequency: return "phaserCentreFrequencyHz";
+    case PhaserParam::Depth: return "depth";
+    case PhaserParam::Rate: return "rateHz";
+    case PhaserParam::Feedback: return "feedback";
+    case PhaserParam::CentreFrequency: return "centreFrequencyHz";
+    case PhaserParam::RateMode: return "rateMode";
+    case PhaserParam::Waveform: return "waveform";
+    case PhaserParam::WaveShape: return "waveShape";
+    case PhaserParam::PhaseOffset: return "phaseOffset";
+    case PhaserParam::StereoPhase: return "stereoPhase";
+    case PhaserParam::Stages: return "stages";
     default: return "";
     }
 }
 
 std::span<const ParamDescriptor> PhaserDeviceType::paramDescriptors() const noexcept {
     static constexpr ParamDescriptor kParams[] = {
-        {static_cast<uint16_t>(PhaserParam::Depth), "phaserDepth", "Depth", 0.5f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(PhaserParam::Rate), "phaserRateHz", "Rate", 0.8f, 0.1f, 5.0f, true, true},
-        {static_cast<uint16_t>(PhaserParam::Feedback), "phaserFeedback", "Feedback", 0.3f, 0.0f, 0.95f, true, true},
-        {static_cast<uint16_t>(PhaserParam::CentreFrequency), "phaserCentreFrequencyHz", "Centre Freq", 1000.0f, 20.0f, 20000.0f, true, true},
+        {static_cast<uint16_t>(PhaserParam::Depth), "depth", "Depth", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaserParam::Rate), "rateHz", "Rate", 0.8f, 0.05f, 10.0f, true, true},
+        {static_cast<uint16_t>(PhaserParam::Feedback), "feedback", "Feedback", 0.3f, 0.0f, 0.95f, true, true},
+        {static_cast<uint16_t>(PhaserParam::CentreFrequency), "centreFrequencyHz", "Centre Freq", 1000.0f, 20.0f, 20000.0f, true, true},
+        {static_cast<uint16_t>(PhaserParam::RateMode), "rateMode", "Rate Mode", 2.0f, 0.0f, 3.0f, true, false},
+        {static_cast<uint16_t>(PhaserParam::Waveform), "waveform", "Waveform", 0.0f, 0.0f, 3.0f, true, true},
+        {static_cast<uint16_t>(PhaserParam::WaveShape), "waveShape", "Wave Shape", 0.34f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaserParam::PhaseOffset), "phaseOffset", "LFO Phase", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaserParam::StereoPhase), "stereoPhase", "Stereo Phase", 0.75f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(PhaserParam::Stages), "stages", "Stages", 8.0f, 2.0f, 12.0f, true, true},
     };
     return kParams;
 }

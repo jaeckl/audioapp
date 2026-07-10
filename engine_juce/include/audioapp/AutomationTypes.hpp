@@ -410,6 +410,19 @@ enum class ReverbParam : uint16_t {
     Freeze,
 };
 
+enum class PhaserParam : uint16_t {
+    Depth = 0,
+    Rate,
+    Feedback,
+    CentreFrequency,
+    RateMode,
+    Waveform,
+    WaveShape,
+    PhaseOffset,
+    StereoPhase,
+    Stages,
+};
+
 // -----------------------------------------------------------------------
 // ParamKind — distinguishes which per-device enum a `localParamId` refers
 // to. Without this tag, multiple device kinds (CommonParam, SubtractiveParam,
@@ -454,6 +467,7 @@ enum class ParamKind : uint16_t {
     Stutter          = 27,
     Chorus           = 28,
     Reverb           = 29,
+    Phaser           = 30,
 };
 
 constexpr uint16_t kParamKindShift      = 11;

@@ -416,22 +416,41 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       DeviceContainerTabs.forDeviceType(widget.device.type);
 
   Widget? get _deviceHeaderActions {
-    if (widget.device.type != 'reverb') return null;
-    return ReverbHeaderActions(
-      device: widget.device as ReverbDeviceSnapshot,
-      onParameterChanged: widget.onDeviceParameterChanged,
-      modulatedParams: _modulatedParamIds,
-      automatedParams: _automatedParamIds,
-      modulationAmounts: _modulationAmounts,
-      connectModeLfoId: _connectModeLfo,
-      onModulationAssign: _onModulationForDevice,
-      automationLinkActive: widget.automationLinkActive,
-      onAutomationLinkTap: widget.onAutomationParamSelected != null
-          ? _onAutomationLinkTap
-          : null,
-      onAutomateParameter:
-          widget.onAutomateParameter != null ? _onAutomateParameter : null,
-    );
+    if (widget.device.type == 'reverb') {
+      return ReverbHeaderActions(
+        device: widget.device as ReverbDeviceSnapshot,
+        onParameterChanged: widget.onDeviceParameterChanged,
+        modulatedParams: _modulatedParamIds,
+        automatedParams: _automatedParamIds,
+        modulationAmounts: _modulationAmounts,
+        connectModeLfoId: _connectModeLfo,
+        onModulationAssign: _onModulationForDevice,
+        automationLinkActive: widget.automationLinkActive,
+        onAutomationLinkTap: widget.onAutomationParamSelected != null
+            ? _onAutomationLinkTap
+            : null,
+        onAutomateParameter:
+            widget.onAutomateParameter != null ? _onAutomateParameter : null,
+      );
+    }
+    if (widget.device.type == 'phaser') {
+      return PhaserHeaderActions(
+        device: widget.device as PhaserDeviceSnapshot,
+        onParameterChanged: widget.onDeviceParameterChanged,
+        modulatedParams: _modulatedParamIds,
+        automatedParams: _automatedParamIds,
+        modulationAmounts: _modulationAmounts,
+        connectModeLfoId: _connectModeLfo,
+        onModulationAssign: _onModulationForDevice,
+        automationLinkActive: widget.automationLinkActive,
+        onAutomationLinkTap: widget.onAutomationParamSelected != null
+            ? _onAutomationLinkTap
+            : null,
+        onAutomateParameter:
+            widget.onAutomateParameter != null ? _onAutomateParameter : null,
+      );
+    }
+    return null;
   }
 
   ValueChanged<double> _onModulationFor(String paramId) {
@@ -1642,6 +1661,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
           child: PhaserFxStrip(
             device: dev,
             onParameterChanged: widget.onDeviceParameterChanged,
+            selectedTab: PhaserViewTab.values[_selectedTabIndex.clamp(0, 1)],
             modulatedParams: _modulatedParamIds,
             automatedParams: _automatedParamIds,
             modulationAmounts: _modulationAmounts,

@@ -72,7 +72,21 @@ void applyModulation(ChorusParamsPlayback& p, float modAmount, uint16_t localPar
             std::clamp(p.modeParams[index / 6][index % 6] + modAmount, 0.0f, 1.0f);
     }
 }
-void applyModulation(PhaserParamsPlayback&, float, uint16_t) noexcept {}
+void applyModulation(PhaserParamsPlayback& p, float amount, uint16_t localParamId) noexcept {
+    switch (static_cast<PhaserParam>(unpackParamId(localParamId))) {
+    case PhaserParam::Depth: p.depth = std::clamp(p.depth + amount, 0.0f, 1.0f); break;
+    case PhaserParam::Rate: p.rateHz = std::clamp(p.rateHz + amount * 5.0f, .05f, 10.0f); break;
+    case PhaserParam::Feedback: p.feedback = std::clamp(p.feedback + amount, 0.0f, .95f); break;
+    case PhaserParam::CentreFrequency:
+        p.centreFrequencyHz = std::clamp(p.centreFrequencyHz * std::pow(4.0f, amount), 20.0f, 20000.0f); break;
+    case PhaserParam::RateMode: break;
+    case PhaserParam::Waveform: p.waveform = std::clamp(p.waveform + amount * 3.0f, 0.0f, 3.0f); break;
+    case PhaserParam::WaveShape: p.waveShape = std::clamp(p.waveShape + amount, 0.0f, 1.0f); break;
+    case PhaserParam::PhaseOffset: p.phaseOffset = std::clamp(p.phaseOffset + amount, 0.0f, 1.0f); break;
+    case PhaserParam::StereoPhase: p.stereoPhase = std::clamp(p.stereoPhase + amount, 0.0f, 1.0f); break;
+    case PhaserParam::Stages: p.stages = std::clamp(p.stages + std::round(amount * 10.0f), 2.0f, 12.0f); break;
+    }
+}
 void applyModulation(BitcrusherParamsPlayback&, float, uint16_t) noexcept {}
 void applyModulation(DistortionParamsPlayback&, float, uint16_t) noexcept {}
 void applyModulation(TremoloParamsPlayback&, float, uint16_t) noexcept {}

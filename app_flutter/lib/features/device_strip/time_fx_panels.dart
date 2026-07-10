@@ -8,6 +8,7 @@ import 'device_strip_metrics.dart';
 import 'device_tab_bar.dart';
 import 'panels/compact_fx_layout.dart';
 import 'rotary_knob.dart';
+import 'value_drag_box.dart';
 
 typedef TimeFxParameterChanged = void Function(
     String parameterId, double value);
@@ -1803,8 +1804,10 @@ class ChorusFxStrip extends StatelessWidget {
 
 // ── Phaser ─────────────────────────────────────────────────────────────────
 
-class PhaserFxPanel extends StatelessWidget {
-  const PhaserFxPanel({
+enum PhaserViewTab { motion, response }
+
+class PhaserHeaderActions extends StatefulWidget {
+  const PhaserHeaderActions({
     super.key,
     required this.device,
     required this.onParameterChanged,
@@ -1817,12 +1820,6 @@ class PhaserFxPanel extends StatelessWidget {
     this.onAutomationLinkTap,
     this.onAutomateParameter,
   });
-
-  static const accent = Color(0xFFE8A0C8);
-  static const containerTabs = <DeviceTabSpec>[];
-
-  /// Phaser — compact time FX card.
-  static const double designWidth = 216;
 
   final PhaserDeviceSnapshot device;
   final TimeFxParameterChanged onParameterChanged;
@@ -1836,85 +1833,491 @@ class PhaserFxPanel extends StatelessWidget {
   final ValueChanged<String>? onAutomateParameter;
 
   @override
+  State<PhaserHeaderActions> createState() => _PhaserHeaderActionsState();
+}
+
+class _PhaserHeaderActionsState extends State<PhaserHeaderActions>
+    with SingleTickerProviderStateMixin {
+  static const waveforms = ['SINE', 'TRIANGLE', 'RAMP', 'RANDOM'];
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulse;
+  bool _assigning = false;
+  double _startY = 0;
+  double _amount = 0;
+
+  bool get _linkActive =>
+      widget.connectModeLfoId != null || widget.automationLinkActive;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    _pulse = Tween<double>(begin: .1, end: .35).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+    if (_linkActive) _pulseController.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant PhaserHeaderActions oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final wasActive =
+        oldWidget.connectModeLfoId != null || oldWidget.automationLinkActive;
+    if (_linkActive && !wasActive) {
+      _pulseController.repeat(reverse: true);
+    } else if (!_linkActive && wasActive) {
+      _pulseController
+        ..stop()
+        ..reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final double normFreq =
+    const accent = PhaserFxPanel.accent;
+    final waveform = widget.device.phaserWaveform.round().clamp(0, 3);
+    final shownAmount =
+        _assigning ? _amount : widget.modulationAmounts['waveform'] ?? 0.0;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onLongPressStart: (details) {
+        HapticFeedback.mediumImpact();
+        if (widget.connectModeLfoId != null) {
+          _pulseController.stop();
+          setState(() {
+            _assigning = true;
+            _startY = details.localPosition.dy;
+            _amount = 0;
+          });
+        } else if (widget.automationLinkActive) {
+          widget.onAutomationLinkTap?.call('waveform');
+        } else {
+          widget.onAutomateParameter?.call('waveform');
+        }
+      },
+      onLongPressMoveUpdate: widget.connectModeLfoId == null
+          ? null
+          : (details) => setState(() {
+                _amount = ((_startY - details.localPosition.dy) / 70)
+                    .clamp(-1.0, 1.0);
+              }),
+      onLongPressEnd: widget.connectModeLfoId == null
+          ? null
+          : (_) {
+              widget.onModulationAssign?.call('waveform', _amount);
+              setState(() {
+                _assigning = false;
+                _amount = 0;
+              });
+              if (_linkActive) _pulseController.repeat(reverse: true);
+            },
+      child: AnimatedBuilder(
+        animation: _pulse,
+        builder: (context, child) => SizedBox(
+          key: const ValueKey('phaser-waveform-selector'),
+          width: 76,
+          height: 40,
+          child: Stack(
+            children: [
+              PopupMenuButton<int>(
+                key: const ValueKey('phaser-waveform-menu'),
+                tooltip: 'LFO waveform',
+                padding: EdgeInsets.zero,
+                color: const Color(0xFF22222E),
+                onSelected: (value) =>
+                    widget.onParameterChanged('waveform', value.toDouble()),
+                itemBuilder: (context) => [
+                  for (var i = 0; i < waveforms.length; i++)
+                    PopupMenuItem<int>(
+                      value: i,
+                      height: 34,
+                      child: Text(
+                        waveforms[i],
+                        style: TextStyle(
+                          color: i == waveform ? accent : Colors.white70,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                ],
+                child: Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        waveforms[waveform],
+                        style: TextStyle(
+                          color: _linkActive
+                              ? Color.lerp(Colors.white60, accent, _pulse.value)
+                              : Colors.white60,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(width: 1),
+                      const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 14,
+                        color: Colors.white54,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if ((widget.modulatedParams.contains('waveform') || _assigning) &&
+                  shownAmount.abs() > 0)
+                Positioned(
+                  left: shownAmount < 0 ? null : 6,
+                  right: shownAmount < 0 ? 6 : null,
+                  bottom: 6,
+                  width: 62 * shownAmount.abs().clamp(.05, 1.0),
+                  child: const ColoredBox(
+                    color: accent,
+                    child: SizedBox(height: 2),
+                  ),
+                ),
+              if (widget.automatedParams.contains('waveform'))
+                const Positioned(
+                  left: 3,
+                  top: 8,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Color(0xFFB48CFF),
+                      shape: BoxShape.circle,
+                    ),
+                    child: SizedBox(width: 6, height: 6),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PhaserPreview extends StatelessWidget {
+  const _PhaserPreview({required this.device, required this.view});
+
+  final PhaserDeviceSnapshot device;
+  final PhaserViewTab view;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        key: const ValueKey('phaser-preview'),
+        decoration: BoxDecoration(
+          color: const Color(0xFF050508),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: CustomPaint(
+          painter: _PhaserPreviewPainter(device: device, view: view),
+        ),
+      );
+}
+
+class _PhaserPreviewPainter extends CustomPainter {
+  const _PhaserPreviewPainter({required this.device, required this.view});
+
+  final PhaserDeviceSnapshot device;
+  final PhaserViewTab view;
+
+  void _text(Canvas canvas, String value, Offset offset) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: value,
+        style: const TextStyle(
+          color: Colors.white60,
+          fontSize: 8,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    painter.paint(canvas, offset);
+  }
+
+  double _wave(double phase) {
+    final p = phase - phase.floorToDouble();
+    return switch (device.phaserWaveform.round().clamp(0, 3)) {
+      1 => 1 - 4 * (p - .5).abs(),
+      2 => 2 * p - 1,
+      3 => math.sin((phase.floor() * 91.7) + 1.2) >= 0 ? .75 : -.75,
+      _ => math.sin(phase * math.pi * 2),
+    };
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final grid = Paint()
+      ..color = Colors.white.withValues(alpha: .06)
+      ..strokeWidth = 1;
+    for (var i = 1; i < 4; i++) {
+      canvas.drawLine(
+        Offset(7, size.height * i / 4),
+        Offset(size.width - 7, size.height * i / 4),
+        grid,
+      );
+    }
+    for (var i = 1; i < 5; i++) {
+      canvas.drawLine(
+        Offset(size.width * i / 5, 7),
+        Offset(size.width * i / 5, size.height - 7),
+        grid,
+      );
+    }
+
+    if (view == PhaserViewTab.motion) {
+      _text(
+        canvas,
+        'L / R MODULATION · ${(device.phaserStereoPhase * 180).round()}° OFFSET',
+        const Offset(8, 8),
+      );
+      Path curve(double offset) {
+        final path = Path();
+        for (var x = 8.0; x <= size.width - 8; x += 2) {
+          final phase = (x - 8) / (size.width - 16) * 2 + offset;
+          final y = size.height * .53 - _wave(phase) * size.height * .3;
+          if (x == 8) {
+            path.moveTo(x, y);
+          } else {
+            path.lineTo(x, y);
+          }
+        }
+        return path;
+      }
+
+      canvas.drawPath(
+        curve(device.phaserPhaseOffset),
+        Paint()
+          ..color = PhaserFxPanel.accent
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+      canvas.drawPath(
+        curve(device.phaserPhaseOffset + device.phaserStereoPhase * .5),
+        Paint()
+          ..color = const Color(0xFF78AEE8)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5,
+      );
+    } else {
+      final stages = device.phaserStages.round().clamp(2, 12);
+      _text(
+        canvas,
+        '$stages STAGES · ${_formatHz(device.phaserCentreFrequencyHz)} · ${(device.phaserDepth * 4).toStringAsFixed(1)} OCT SWEEP',
+        const Offset(8, 8),
+      );
+      final path = Path();
+      for (var x = 7.0; x <= size.width - 7; x += 1.5) {
+        final phase = (x - 7) / (size.width - 14) * math.pi * stages;
+        final envelope = .35 + .65 * math.sin(phase).abs();
+        final y = 24 + envelope * (size.height - 34);
+        if (x == 7) {
+          path.moveTo(x, y);
+        } else {
+          path.lineTo(x, y);
+        }
+      }
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = PhaserFxPanel.accent
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _PhaserPreviewPainter oldDelegate) => true;
+}
+
+class PhaserFxPanel extends StatelessWidget {
+  const PhaserFxPanel({
+    super.key,
+    required this.device,
+    required this.onParameterChanged,
+    this.selectedTab = PhaserViewTab.motion,
+    this.modulatedParams = const {},
+    this.automatedParams = const {},
+    this.modulationAmounts = const {},
+    this.connectModeLfoId,
+    this.onModulationAssign,
+    this.automationLinkActive = false,
+    this.onAutomationLinkTap,
+    this.onAutomateParameter,
+  });
+
+  static const accent = Color(0xFFE8A0C8);
+  static const containerTabs = <DeviceTabSpec>[
+    DeviceTabSpec(label: 'MOTION', icon: Icons.waves),
+    DeviceTabSpec(label: 'RESPONSE', icon: Icons.multiline_chart),
+  ];
+
+  /// Phaser — compact time FX card.
+  static const double designWidth = 424;
+
+  final PhaserDeviceSnapshot device;
+  final TimeFxParameterChanged onParameterChanged;
+  final PhaserViewTab selectedTab;
+  final Set<String> modulatedParams;
+  final Set<String> automatedParams;
+  final Map<String, double> modulationAmounts;
+  final int? connectModeLfoId;
+  final TimeFxModulationAssign onModulationAssign;
+  final bool automationLinkActive;
+  final ValueChanged<String>? onAutomationLinkTap;
+  final ValueChanged<String>? onAutomateParameter;
+
+  @override
+  Widget build(BuildContext context) {
+    final normFreq =
         math.log(device.phaserCentreFrequencyHz.clamp(20.0, 20000.0) / 20.0) /
             math.log(1000.0);
-    return _timeFxSinglePage(
-      rows: [
-        _knobGridRow([
-          _knob(
-            label: 'Depth',
-            value: device.phaserDepth,
-            paramId: 'depth',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${(device.phaserDepth * 100).round()}%',
+    final rateMode = device.phaserRateMode.round().clamp(0, 3);
+    const rateLabels = ['Hz', '16th', '8th', '4th'];
+    final rateValue = rateMode == 0
+        ? (math.log(device.phaserRateHz.clamp(.05, 10) / .05) / math.log(200))
+            .clamp(0.0, 1.0)
+        : rateMode / 3;
+
+    _TimeFxKnob knob(
+      String label,
+      String id,
+      double value,
+      String display, {
+      TimeFxParameterChanged? changed,
+      List<String> options = const [],
+      ValueChanged<String>? optionSelected,
+      double size = 52,
+    }) =>
+        _knob(
+          label: label,
+          value: value,
+          paramId: id,
+          accent: accent,
+          onParameterChanged: changed ?? onParameterChanged,
+          modulatedParams: modulatedParams,
+          automatedParams: automatedParams,
+          modulationAmounts: modulationAmounts,
+          connectModeLfoId: connectModeLfoId,
+          onModulationAssign: onModulationAssign,
+          automationLinkActive: automationLinkActive,
+          onAutomationLinkTap: onAutomationLinkTap,
+          onAutomateParameter: onAutomateParameter,
+          displayValue: display,
+          labelOptions: options,
+          onLabelOptionSelected: optionSelected,
+          size: size,
+        );
+
+    Widget column(List<Widget> children, {double width = 84}) => Container(
+          width: width,
+          decoration: BoxDecoration(
+            color: const Color(0xFF101016),
+            borderRadius: BorderRadius.circular(6),
           ),
-          _knob(
-            label: 'Rate',
-            value: (device.phaserRateHz - 0.1) / (5 - 0.1),
-            paramId: 'rateHz',
-            accent: accent,
-            onParameterChanged: (id, v) =>
-                onParameterChanged(id, 0.1 + v * 4.9),
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${device.phaserRateHz.toStringAsFixed(1)} Hz',
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: children,
           ),
-          _knob(
-            label: 'Feedback',
-            value: device.phaserFeedback,
-            paramId: 'feedback',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${(device.phaserFeedback * 100).round()}%',
+        );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(5, 6, 5, 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          column([
+            knob(
+              rateLabels[rateMode],
+              rateMode == 0 ? 'rateHz' : 'rateMode',
+              rateValue,
+              rateMode == 0
+                  ? '${device.phaserRateHz.toStringAsFixed(2)} Hz'
+                  : rateLabels[rateMode],
+              changed: (_, value) => onParameterChanged(
+                rateMode == 0 ? 'rateHz' : 'rateMode',
+                rateMode == 0 ? .05 * math.pow(200, value) : value * 3,
+              ),
+              options: rateLabels,
+              optionSelected: (label) => onParameterChanged(
+                'rateMode',
+                rateLabels.indexOf(label).toDouble(),
+              ),
+            ),
+            knob('Depth', 'depth', device.phaserDepth,
+                '${(device.phaserDepth * 100).round()}%'),
+            knob('Stereo Phase', 'stereoPhase', device.phaserStereoPhase,
+                '${(device.phaserStereoPhase * 180).round()}°'),
+          ]),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _PhaserPreview(device: device, view: selectedTab),
+                ),
+                const SizedBox(height: 5),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    knob('Wave Shape', 'waveShape', device.phaserWaveShape,
+                        '${(device.phaserWaveShape * 100).round()}%'),
+                    knob('LFO Phase', 'phaseOffset', device.phaserPhaseOffset,
+                        '${(device.phaserPhaseOffset * 360).round()}°'),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ]),
-        _knobGridRow([
-          _knob(
-            label: 'Centre',
-            value: normFreq,
-            paramId: 'centreFrequencyHz',
-            accent: accent,
-            onParameterChanged: (id, v) =>
-                onParameterChanged(id, 20.0 * math.pow(1000.0, v)),
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: _formatHz(device.phaserCentreFrequencyHz),
-          ),
-          null,
-          null,
-        ]),
-      ],
+          const SizedBox(width: 6),
+          column([
+            knob(
+              'Centre',
+              'centreFrequencyHz',
+              normFreq,
+              _formatHz(device.phaserCentreFrequencyHz),
+              changed: (id, value) => onParameterChanged(
+                  id, (20.0 * math.pow(1000, value)).toDouble()),
+            ),
+            knob('Feedback', 'feedback', device.phaserFeedback / .95,
+                '${(device.phaserFeedback * 100).round()}%',
+                changed: (id, value) => onParameterChanged(id, value * .95)),
+            ValueDragBox(
+              valueNorm: ((device.phaserStages - 2) / 10).clamp(0, 1),
+              values: List<double>.generate(11, (index) => index / 10),
+              format: (value) => '${2 + (value * 10).round()}',
+              accent: accent,
+              paramId: 'stages',
+              modulatedParams: modulatedParams,
+              automatedParams: automatedParams,
+              modulationAmounts: modulationAmounts,
+              connectModeLfoId: connectModeLfoId,
+              onModulationAssign: onModulationAssign,
+              automationLinkActive: automationLinkActive,
+              onAutomationLinkTap: onAutomationLinkTap,
+              onAutomateParameter: onAutomateParameter,
+              onChanged: (value) => onParameterChanged(
+                  'stages', (2 + (value * 10).round()).toDouble()),
+              resetIndex: 6,
+              dragPixelsPerStep: 32,
+              footerLabel: 'Stages',
+            ),
+          ]),
+        ],
+      ),
     );
   }
 }
@@ -1924,6 +2327,7 @@ class PhaserFxStrip extends StatelessWidget {
     super.key,
     required this.device,
     required this.onParameterChanged,
+    this.selectedTab = PhaserViewTab.motion,
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
@@ -1935,6 +2339,7 @@ class PhaserFxStrip extends StatelessWidget {
   });
   final PhaserDeviceSnapshot device;
   final TimeFxParameterChanged onParameterChanged;
+  final PhaserViewTab selectedTab;
   final Set<String> modulatedParams;
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
@@ -1947,6 +2352,7 @@ class PhaserFxStrip extends StatelessWidget {
   Widget build(BuildContext context) => PhaserFxPanel(
         device: device,
         onParameterChanged: onParameterChanged,
+        selectedTab: selectedTab,
         modulatedParams: modulatedParams,
         automatedParams: automatedParams,
         modulationAmounts: modulationAmounts,

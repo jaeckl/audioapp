@@ -29,6 +29,10 @@ constexpr const char* kReverbParamNames[] = {
     "modeMorph", "decay", "preDelay", "size", "diffusion",
     "damping", "modulation", "lowCut", "highCut", "ducking", "freeze",
 };
+constexpr const char* kPhaserParamNames[] = {
+    "depth", "rateHz", "feedback", "centreFrequencyHz", "rateMode",
+    "waveform", "waveShape", "phaseOffset", "stereoPhase", "stages",
+};
 }
 
 bool automationBeatInClip(const AutomationClipPlayback& ac,
@@ -81,6 +85,7 @@ static ParamKind paramKindForDevice(DeviceNodeKind kind) noexcept {
     case DeviceNodeKind::Stutter:          return ParamKind::Stutter;
     case DeviceNodeKind::Chorus:           return ParamKind::Chorus;
     case DeviceNodeKind::Reverb:           return ParamKind::Reverb;
+    case DeviceNodeKind::Phaser:           return ParamKind::Phaser;
     case DeviceNodeKind::TrackGain:        return ParamKind::TrackGain;
     case DeviceNodeKind::Unknown:
     default:                                return ParamKind::Common;
@@ -502,6 +507,16 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
                 return packParamId(ParamKind::Reverb, i);
         return 0;
     }
+    case DeviceNodeKind::Phaser: {
+        for (uint16_t i = 0; i < static_cast<uint16_t>(std::size(kPhaserParamNames)); ++i)
+            if (std::strcmp(name, kPhaserParamNames[i]) == 0)
+                return packParamId(ParamKind::Phaser, i);
+        if (std::strcmp(name, "phaserDepth") == 0) return packParamId(ParamKind::Phaser, 0);
+        if (std::strcmp(name, "phaserRateHz") == 0) return packParamId(ParamKind::Phaser, 1);
+        if (std::strcmp(name, "phaserFeedback") == 0) return packParamId(ParamKind::Phaser, 2);
+        if (std::strcmp(name, "phaserCentreFrequencyHz") == 0) return packParamId(ParamKind::Phaser, 3);
+        return 0;
+    }
     default:
         return 0;
     }
@@ -831,6 +846,8 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         return rawId < std::size(kChorusParamNames) ? kChorusParamNames[rawId] : "";
     case DeviceNodeKind::Reverb:
         return rawId < std::size(kReverbParamNames) ? kReverbParamNames[rawId] : "";
+    case DeviceNodeKind::Phaser:
+        return rawId < std::size(kPhaserParamNames) ? kPhaserParamNames[rawId] : "";
     default:
         return "";
     }
@@ -1051,6 +1068,22 @@ const ParamDescriptor* paramDescriptorsForKind(DeviceNodeKind kind, int& countOu
             {8, "highCut", "High Cut", .86f, 0, 1, true, true},
             {9, "ducking", "Ducking", .25f, 0, 1, true, true},
             {10, "freeze", "Freeze", 0, 0, 1, true, true},
+        };
+        countOut = static_cast<int>(std::size(kParams));
+        return kParams;
+    }
+    case DeviceNodeKind::Phaser: {
+        static constexpr ParamDescriptor kParams[] = {
+            {0, "depth", "Depth", .5f, 0, 1, true, true},
+            {1, "rateHz", "Rate", .8f, .05f, 10, true, true},
+            {2, "feedback", "Feedback", .3f, 0, .95f, true, true},
+            {3, "centreFrequencyHz", "Centre", 1000, 20, 20000, true, true},
+            {4, "rateMode", "Rate Mode", 2, 0, 3, true, false},
+            {5, "waveform", "Waveform", 0, 0, 3, true, true},
+            {6, "waveShape", "Wave Shape", .34f, 0, 1, true, true},
+            {7, "phaseOffset", "LFO Phase", 0, 0, 1, true, true},
+            {8, "stereoPhase", "Stereo Phase", .75f, 0, 1, true, true},
+            {9, "stages", "Stages", 8, 2, 12, true, true},
         };
         countOut = static_cast<int>(std::size(kParams));
         return kParams;
@@ -1472,6 +1505,23 @@ void applyAutomationValue(DeviceVariantParams& params,
             if (rawId == 0) p->modeMorph = value * 3.0f;
             else if (rawId <= 9) *normalized[rawId - 1] = value;
             else if (rawId == 10) p->freeze = value;
+        }
+        break;
+    case ParamKind::Phaser:
+        if (auto* p = std::get_if<PhaserParamsPlayback>(&params)) {
+            switch (static_cast<PhaserParam>(rawId)) {
+            case PhaserParam::Depth: p->depth = value; break;
+            case PhaserParam::Rate: p->rateHz = .05f + value * 9.95f; break;
+            case PhaserParam::Feedback: p->feedback = value * .95f; break;
+            case PhaserParam::CentreFrequency:
+                p->centreFrequencyHz = 20.0f * std::pow(1000.0f, value); break;
+            case PhaserParam::RateMode: p->rateMode = value * 3.0f; break;
+            case PhaserParam::Waveform: p->waveform = value * 3.0f; break;
+            case PhaserParam::WaveShape: p->waveShape = value; break;
+            case PhaserParam::PhaseOffset: p->phaseOffset = value; break;
+            case PhaserParam::StereoPhase: p->stereoPhase = value; break;
+            case PhaserParam::Stages: p->stages = 2.0f + std::round(value * 10.0f); break;
+            }
         }
         break;
     case ParamKind::Common:

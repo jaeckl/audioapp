@@ -5,14 +5,14 @@
 namespace audioapp {
 
 class PhaserProcessor : public DeviceProcessor {
-    float* bufferLeft_ = nullptr;
-    float* bufferRight_ = nullptr;
-    int writeIndex_ = 0;
     float lfoPhase_ = 0.0f;
-    float phaserStateL_[4] = {};
-    float phaserStateR_[4] = {};
+    float phaserStateL_[12] = {};
+    float phaserStateR_[12] = {};
+    uint32_t randomState_ = 0x5a17c9e3u;
+    float randomL_ = 0.0f;
+    float randomR_ = 0.0f;
 
-    bool ensureBuffers(ProcessContext& ctx) noexcept;
+    float nextRandom() noexcept;
 
 public:
     void process(AudioBlock& block, ProcessContext& ctx) noexcept override;
