@@ -52,7 +52,16 @@ void applyModulation(SamplerParams& p, float modAmount, uint16_t localParamId) n
 void applyModulation(TrackGainParams&, float, uint16_t) noexcept {}
 void applyModulation(DelayParamsPlayback&, float, uint16_t) noexcept {}
 void applyModulation(ReverbParamsPlayback&, float, uint16_t) noexcept {}
-void applyModulation(ChorusParamsPlayback&, float, uint16_t) noexcept {}
+void applyModulation(ChorusParamsPlayback& p, float modAmount, uint16_t localParamId) noexcept {
+    const uint16_t rawId = unpackParamId(localParamId);
+    if (rawId == static_cast<uint16_t>(ChorusParam::ModeMorph)) {
+        p.modeMorph = std::clamp(p.modeMorph + modAmount * 3.0f, 0.0f, 3.0f);
+    } else if (rawId <= static_cast<uint16_t>(ChorusParam::DriftTone)) {
+        const int index = static_cast<int>(rawId) - 1;
+        p.modeParams[index / 6][index % 6] =
+            std::clamp(p.modeParams[index / 6][index % 6] + modAmount, 0.0f, 1.0f);
+    }
+}
 void applyModulation(PhaserParamsPlayback&, float, uint16_t) noexcept {}
 void applyModulation(BitcrusherParamsPlayback&, float, uint16_t) noexcept {}
 void applyModulation(DistortionParamsPlayback&, float, uint16_t) noexcept {}

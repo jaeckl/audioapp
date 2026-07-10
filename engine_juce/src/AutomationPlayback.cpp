@@ -18,6 +18,15 @@
 
 namespace audioapp {
 
+namespace {
+constexpr const char* kChorusParamNames[] = {
+    "modeMorph", "classicRate", "classicDepth", "classicDelay", "classicFeedback", "classicPhase", "classicShape",
+    "ensembleRate", "ensembleDepth", "ensembleVoices", "ensembleSpread", "ensembleDrift", "ensembleTone",
+    "dimensionAmount", "dimensionDelay", "dimensionSpread", "dimensionMotion", "dimensionLowCut", "dimensionHighCut",
+    "driftSpeed", "driftDepth", "driftWander", "driftDelay", "driftStereo", "driftTone",
+};
+}
+
 bool automationBeatInClip(const AutomationClipPlayback& ac,
                           double beat,
                           float& beatInClipOut) noexcept {
@@ -66,6 +75,7 @@ static ParamKind paramKindForDevice(DeviceNodeKind kind) noexcept {
     case DeviceNodeKind::Chain:            return ParamKind::Chain;
     case DeviceNodeKind::Granular:         return ParamKind::Granular;
     case DeviceNodeKind::Stutter:          return ParamKind::Stutter;
+    case DeviceNodeKind::Chorus:           return ParamKind::Chorus;
     case DeviceNodeKind::TrackGain:        return ParamKind::TrackGain;
     case DeviceNodeKind::Unknown:
     default:                                return ParamKind::Common;
@@ -475,6 +485,12 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         if (auto v = s("outputGain", StutterParam::OutputGain)) return v;
         return 0;
     }
+    case DeviceNodeKind::Chorus: {
+        for (uint16_t i = 0; i < static_cast<uint16_t>(std::size(kChorusParamNames)); ++i)
+            if (std::strcmp(name, kChorusParamNames[i]) == 0)
+                return packParamId(ParamKind::Chorus, i);
+        return 0;
+    }
     default:
         return 0;
     }
@@ -800,6 +816,8 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         default: return "";
         }
     }
+    case DeviceNodeKind::Chorus:
+        return rawId < std::size(kChorusParamNames) ? kChorusParamNames[rawId] : "";
     default:
         return "";
     }
@@ -986,6 +1004,25 @@ const ParamDescriptor* paramDescriptorsForKind(DeviceNodeKind kind, int& countOu
             {static_cast<uint16_t>(StutterParam::OutputGain), "outputGain", "Output", 1.0f, 0.0f, 2.0f, true, true},
         };
         countOut = 11;
+        return kParams;
+    }
+    case DeviceNodeKind::Chorus: {
+        static constexpr ParamDescriptor kParams[] = {
+            {0, "modeMorph", "Mode Morph", 0, 0, 3, true, true},
+            {1, "classicRate", "Classic Rate", .286f, 0, 1, true, true}, {2, "classicDepth", "Classic Depth", .25f, 0, 1, true, true},
+            {3, "classicDelay", "Classic Delay", .3f, 0, 1, true, true}, {4, "classicFeedback", "Classic Feedback", 0, 0, 1, true, true},
+            {5, "classicPhase", "Classic Phase", .5f, 0, 1, true, true}, {6, "classicShape", "Classic Shape", 0, 0, 1, true, true},
+            {7, "ensembleRate", "Ensemble Rate", .25f, 0, 1, true, true}, {8, "ensembleDepth", "Ensemble Depth", .5f, 0, 1, true, true},
+            {9, "ensembleVoices", "Ensemble Voices", .5f, 0, 1, true, true}, {10, "ensembleSpread", "Ensemble Spread", .65f, 0, 1, true, true},
+            {11, "ensembleDrift", "Ensemble Drift", .25f, 0, 1, true, true}, {12, "ensembleTone", "Ensemble Tone", .65f, 0, 1, true, true},
+            {13, "dimensionAmount", "Dimension Amount", .5f, 0, 1, true, true}, {14, "dimensionDelay", "Dimension Delay", .35f, 0, 1, true, true},
+            {15, "dimensionSpread", "Dimension Spread", .8f, 0, 1, true, true}, {16, "dimensionMotion", "Dimension Motion", .25f, 0, 1, true, true},
+            {17, "dimensionLowCut", "Dimension Low Cut", 0, 0, 1, true, true}, {18, "dimensionHighCut", "Dimension High Cut", .9f, 0, 1, true, true},
+            {19, "driftSpeed", "Drift Speed", .3f, 0, 1, true, true}, {20, "driftDepth", "Drift Depth", .5f, 0, 1, true, true},
+            {21, "driftWander", "Drift Wander", .4f, 0, 1, true, true}, {22, "driftDelay", "Drift Delay", .4f, 0, 1, true, true},
+            {23, "driftStereo", "Drift Stereo", .7f, 0, 1, true, true}, {24, "driftTone", "Drift Tone", .6f, 0, 1, true, true},
+        };
+        countOut = static_cast<int>(std::size(kParams));
         return kParams;
     }
     default:
@@ -1385,6 +1422,15 @@ void applyAutomationValue(DeviceVariantParams& params,
             case StutterParam::Duck: p->duck = value; break;
             case StutterParam::OutputGain: p->outputGain = value * 2.0f; break;
             default: break;
+            }
+        }
+        break;
+    case ParamKind::Chorus:
+        if (auto* p = std::get_if<ChorusParamsPlayback>(&params)) {
+            if (rawId == 0) p->modeMorph = value * 3.0f;
+            else if (rawId <= 24) {
+                const int index = static_cast<int>(rawId) - 1;
+                p->modeParams[index / 6][index % 6] = value;
             }
         }
         break;

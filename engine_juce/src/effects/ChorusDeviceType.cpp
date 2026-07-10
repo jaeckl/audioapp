@@ -10,19 +10,34 @@
 
 namespace audioapp {
 
+namespace {
+constexpr const char* kParamNames[] = {
+    "modeMorph",
+    "classicRate", "classicDepth", "classicDelay", "classicFeedback", "classicPhase", "classicShape",
+    "ensembleRate", "ensembleDepth", "ensembleVoices", "ensembleSpread", "ensembleDrift", "ensembleTone",
+    "dimensionAmount", "dimensionDelay", "dimensionSpread", "dimensionMotion", "dimensionLowCut", "dimensionHighCut",
+    "driftSpeed", "driftDepth", "driftWander", "driftDelay", "driftStereo", "driftTone",
+};
+
+bool bankSlot(ChorusParam param, int& mode, int& slot) noexcept {
+    const int raw = static_cast<int>(param) - 1;
+    if (raw < 0 || raw >= ChorusParams::kModeCount * ChorusParams::kParamsPerMode) return false;
+    mode = raw / ChorusParams::kParamsPerMode;
+    slot = raw % ChorusParams::kParamsPerMode;
+    return true;
+}
+}
+
 DeviceSlot ChorusDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
     slot.config.typeId = typeId();
     ChorusParams instance;
-    instance.depth = 0.25;
-    instance.rateHz = 1.5;
-    instance.mix = 0.4;
-    instance.centreDelayMs = 7.0;
-    instance.feedback = 0.0;
     slot.config.instance = std::move(instance);
     slot.config.inputPanel = EmptyPanel{};
-    slot.config.outputPanel = StereoOutputPanel{};
+    StereoOutputPanel output;
+    output.outputMix = 0.4f;
+    slot.config.outputPanel = output;
     slot.config.bypassed = false;
     return slot;
 }
@@ -40,24 +55,13 @@ DeviceParameterResult ChorusDeviceType::setParameter(DeviceSlot& slot,
     if (id == static_cast<uint16_t>(-1))
         return result;
     const auto localId = static_cast<ChorusParam>(id);
-    switch (localId) {
-    case ChorusParam::Depth:
-        instance.depth = juce::jlimit(0.0, 1.0, static_cast<double>(value));
-        break;
-    case ChorusParam::Rate:
-        instance.rateHz = juce::jlimit(0.1, 5.0, static_cast<double>(value));
-        break;
-    case ChorusParam::Mix:
-        instance.mix = juce::jlimit(0.0, 1.0, static_cast<double>(value));
-        break;
-    case ChorusParam::CentreDelay:
-        instance.centreDelayMs = juce::jlimit(0.0, 20.0, static_cast<double>(value));
-        break;
-    case ChorusParam::Feedback:
-        instance.feedback = juce::jlimit(0.0, 0.95, static_cast<double>(value));
-        break;
-    default:
-        return result;
+    if (localId == ChorusParam::ModeMorph) {
+        instance.modeMorph = juce::jlimit(0.0, 3.0, static_cast<double>(value));
+    } else {
+        int mode = 0, parameter = 0;
+        if (!bankSlot(localId, mode, parameter)) return result;
+        instance.bank(mode)[static_cast<size_t>(parameter)] =
+            juce::jlimit(0.0, 1.0, static_cast<double>(value));
     }
     result.handled = true;
     return result;
@@ -68,18 +72,20 @@ bool ChorusDeviceType::setStringParameter(DeviceSlot&, std::string_view, const s
 }
 
 std::vector<std::string_view> ChorusDeviceType::modulatableParams() const {
-    return {"gain", "pan", "depth", "rateHz", "mix", "centreDelayMs", "feedback"};
+    std::vector<std::string_view> result{"gain", "pan"};
+    for (const char* name : kParamNames) result.emplace_back(name);
+    return result;
 }
 
 void ChorusDeviceType::buildPlaybackNode(const DeviceSlot& slot, const PlaybackBuildContext&, DeviceNodePlayback& out) const {
     out.kind = DeviceNodeKind::Chorus;
     const auto& inst = std::get<ChorusParams>(slot.config.instance);
     ChorusParamsPlayback p;
-    p.depth = static_cast<float>(inst.depth);
-    p.rateHz = static_cast<float>(inst.rateHz);
-    p.mix = static_cast<float>(inst.mix);
-    p.centreDelayMs = static_cast<float>(inst.centreDelayMs);
-    p.feedback = static_cast<float>(inst.feedback);
+    p.modeMorph = static_cast<float>(inst.modeMorph);
+    for (int mode = 0; mode < ChorusParams::kModeCount; ++mode)
+        for (int parameter = 0; parameter < ChorusParams::kParamsPerMode; ++parameter)
+            p.modeParams[mode][parameter] =
+                static_cast<float>(inst.bank(mode)[static_cast<size_t>(parameter)]);
     p.inputGain = 1.0f;
     out.params = p;
 }
@@ -89,11 +95,11 @@ bool ChorusDeviceType::buildLiveInstrument(const DeviceSlot&, const PlaybackBuil
 juce::var ChorusDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
     const auto& inst = std::get<ChorusParams>(slot.config.instance);
-    parameters->setProperty("depth", inst.depth);
-    parameters->setProperty("rateHz", inst.rateHz);
-    parameters->setProperty("mix", inst.mix);
-    parameters->setProperty("centreDelayMs", inst.centreDelayMs);
-    parameters->setProperty("feedback", inst.feedback);
+    parameters->setProperty("modeMorph", inst.modeMorph);
+    parameters->setProperty("classic", ChorusParams::bankToVar(inst.classic));
+    parameters->setProperty("ensemble", ChorusParams::bankToVar(inst.ensemble));
+    parameters->setProperty("dimension", ChorusParams::bankToVar(inst.dimension));
+    parameters->setProperty("drift", ChorusParams::bankToVar(inst.drift));
 
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
@@ -173,14 +179,10 @@ DeviceSlot ChorusDeviceType::varToSlot(const juce::var& obj) const {
                 slot.config.bypassed = readFloat("bypass", 0.0f) >= 0.5f;
             }
 
-            ChorusParams inst;
-            inst.depth = p->getProperty("depth").toString().getDoubleValue();
-            inst.rateHz = p->getProperty("rateHz").toString().getDoubleValue();
-            inst.mix = p->getProperty("mix").toString().getDoubleValue();
-            inst.centreDelayMs = p->getProperty("centreDelayMs").toString().getDoubleValue();
-            inst.feedback = p->getProperty("feedback").toString().getDoubleValue();
-            inst.clamp();
-            slot.config.instance = inst;
+            const bool legacy = !p->hasProperty("classic");
+            slot.config.instance = ChorusParams::fromJson(params);
+            if (legacy && std::holds_alternative<StereoOutputPanel>(slot.config.outputPanel))
+                std::get<StereoOutputPanel>(slot.config.outputPanel).outputMix *= 0.4f;
             
         }
     }
@@ -194,32 +196,35 @@ DeviceProcessor* ChorusDeviceType::createProcessor(ProcessorArena& arena) const 
 DeviceNodeKind ChorusDeviceType::kind() const noexcept { return DeviceNodeKind::Chorus; }
 
 uint16_t ChorusDeviceType::paramIdFromString(std::string_view name) const noexcept {
-    if (name == "depth" || name == "chorusDepth") return static_cast<uint16_t>(ChorusParam::Depth);
-    if (name == "rateHz" || name == "chorusRateHz") return static_cast<uint16_t>(ChorusParam::Rate);
-    if (name == "mix" || name == "chorusMix") return static_cast<uint16_t>(ChorusParam::Mix);
-    if (name == "centreDelayMs" || name == "chorusCentreDelayMs") return static_cast<uint16_t>(ChorusParam::CentreDelay);
-    if (name == "feedback" || name == "chorusFeedback") return static_cast<uint16_t>(ChorusParam::Feedback);
+    for (uint16_t i = 0; i < static_cast<uint16_t>(std::size(kParamNames)); ++i)
+        if (name == kParamNames[i]) return i;
+    // Legacy names edit the Classic anchor.
+    if (name == "rateHz" || name == "chorusRateHz") return static_cast<uint16_t>(ChorusParam::ClassicRate);
+    if (name == "depth" || name == "chorusDepth") return static_cast<uint16_t>(ChorusParam::ClassicDepth);
+    if (name == "centreDelayMs" || name == "chorusCentreDelayMs") return static_cast<uint16_t>(ChorusParam::ClassicDelay);
+    if (name == "feedback" || name == "chorusFeedback") return static_cast<uint16_t>(ChorusParam::ClassicFeedback);
     return static_cast<uint16_t>(-1);
 }
 
 std::string_view ChorusDeviceType::paramIdToString(uint16_t localId) const noexcept {
-    switch (static_cast<ChorusParam>(localId)) {
-    case ChorusParam::Depth: return "chorusDepth";
-    case ChorusParam::Rate: return "chorusRateHz";
-    case ChorusParam::Mix: return "chorusMix";
-    case ChorusParam::CentreDelay: return "chorusCentreDelayMs";
-    case ChorusParam::Feedback: return "chorusFeedback";
-    default: return "";
-    }
+    return localId < std::size(kParamNames) ? kParamNames[localId] : "";
 }
 
 std::span<const ParamDescriptor> ChorusDeviceType::paramDescriptors() const noexcept {
     static constexpr ParamDescriptor kParams[] = {
-        {static_cast<uint16_t>(ChorusParam::Depth), "chorusDepth", "Depth", 0.25f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(ChorusParam::Rate), "chorusRateHz", "Rate", 1.5f, 0.1f, 5.0f, true, true},
-        {static_cast<uint16_t>(ChorusParam::Mix), "chorusMix", "Mix", 0.4f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(ChorusParam::CentreDelay), "chorusCentreDelayMs", "Centre Delay", 7.0f, 0.0f, 20.0f, true, true},
-        {static_cast<uint16_t>(ChorusParam::Feedback), "chorusFeedback", "Feedback", 0.0f, 0.0f, 0.95f, true, true},
+        {0, "modeMorph", "Mode Morph", 0.0f, 0.0f, 3.0f, true, true},
+        {1, "classicRate", "Classic Rate", .286f, 0, 1, true, true}, {2, "classicDepth", "Classic Depth", .25f, 0, 1, true, true},
+        {3, "classicDelay", "Classic Delay", .30f, 0, 1, true, true}, {4, "classicFeedback", "Classic Feedback", 0, 0, 1, true, true},
+        {5, "classicPhase", "Classic Phase", .5f, 0, 1, true, true}, {6, "classicShape", "Classic Shape", 0, 0, 1, true, true},
+        {7, "ensembleRate", "Ensemble Rate", .25f, 0, 1, true, true}, {8, "ensembleDepth", "Ensemble Depth", .5f, 0, 1, true, true},
+        {9, "ensembleVoices", "Ensemble Voices", .5f, 0, 1, true, true}, {10, "ensembleSpread", "Ensemble Spread", .65f, 0, 1, true, true},
+        {11, "ensembleDrift", "Ensemble Drift", .25f, 0, 1, true, true}, {12, "ensembleTone", "Ensemble Tone", .65f, 0, 1, true, true},
+        {13, "dimensionAmount", "Dimension Amount", .5f, 0, 1, true, true}, {14, "dimensionDelay", "Dimension Delay", .35f, 0, 1, true, true},
+        {15, "dimensionSpread", "Dimension Spread", .8f, 0, 1, true, true}, {16, "dimensionMotion", "Dimension Motion", .25f, 0, 1, true, true},
+        {17, "dimensionLowCut", "Dimension Low Cut", 0, 0, 1, true, true}, {18, "dimensionHighCut", "Dimension High Cut", .9f, 0, 1, true, true},
+        {19, "driftSpeed", "Drift Speed", .3f, 0, 1, true, true}, {20, "driftDepth", "Drift Depth", .5f, 0, 1, true, true},
+        {21, "driftWander", "Drift Wander", .4f, 0, 1, true, true}, {22, "driftDelay", "Drift Delay", .4f, 0, 1, true, true},
+        {23, "driftStereo", "Drift Stereo", .7f, 0, 1, true, true}, {24, "driftTone", "Drift Tone", .6f, 0, 1, true, true},
     };
     return kParams;
 }

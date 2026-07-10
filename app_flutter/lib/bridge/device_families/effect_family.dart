@@ -243,16 +243,34 @@ class ChorusDeviceSnapshot extends EffectDeviceSnapshot {
     required super.meterInputLevel,
     super.outputMix,
     super.outputWidth,
-    required this.chorusDepth,
-    required this.chorusRateHz,
-    required this.chorusCentreDelayMs,
-    required this.chorusFeedback,
+    this.modeMorph = 0,
+    this.classic = const [0.286, 0.25, 0.30, 0.0, 0.5, 0.0],
+    this.ensemble = const [0.25, 0.50, 0.50, 0.65, 0.25, 0.65],
+    this.dimension = const [0.50, 0.35, 0.80, 0.25, 0.0, 0.90],
+    this.drift = const [0.30, 0.50, 0.40, 0.40, 0.70, 0.60],
   }) : super(type: 'chorus');
 
-  final double chorusDepth;
-  final double chorusRateHz;
-  final double chorusCentreDelayMs;
-  final double chorusFeedback;
+  final double modeMorph;
+  final List<double> classic;
+  final List<double> ensemble;
+  final List<double> dimension;
+  final List<double> drift;
+
+  double get chorusRateHz => 0.1 + classic[0] * 4.9;
+  double get chorusDepth => classic[1];
+  double get chorusCentreDelayMs => 2 + classic[2] * 18;
+  double get chorusFeedback => classic[3] * 0.8;
+
+  static List<double> _bank(
+    dynamic value,
+    List<double> fallback,
+  ) {
+    if (value is! List || value.length < 6) return List<double>.from(fallback);
+    return List<double>.generate(
+      6,
+      (index) => (value[index] as num?)?.toDouble() ?? fallback[index],
+    );
+  }
 
   factory ChorusDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -266,12 +284,25 @@ class ChorusDeviceSnapshot extends EffectDeviceSnapshot {
       meterGainReductionDb:
           (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
-      chorusDepth: (params['depth'] as num?)?.toDouble() ?? 0.3,
-      chorusRateHz: (params['rateHz'] as num?)?.toDouble() ?? 0.5,
-      chorusCentreDelayMs: (params['centreDelayMs'] as num?)?.toDouble() ?? 0.3,
-      chorusFeedback: (params['feedback'] as num?)?.toDouble() ?? 0.3,
-      outputMix: (params['outputMix'] as num?)?.toDouble() ?? 1.0,
-      outputWidth: (params['outputWidth'] as num?)?.toDouble() ?? 1.0,
+      modeMorph: (params['modeMorph'] as num?)?.toDouble() ?? 0,
+      classic: params['classic'] is List
+          ? _bank(params['classic'], const [0.286, 0.25, 0.30, 0, 0.5, 0])
+          : <double>[
+              (((params['rateHz'] as num?)?.toDouble() ?? 1.5) - 0.1) / 4.9,
+              (params['depth'] as num?)?.toDouble() ?? 0.25,
+              ((((params['centreDelayMs'] as num?)?.toDouble() ?? 7) - 2) / 18)
+                  .clamp(0.0, 1.0),
+              ((params['feedback'] as num?)?.toDouble() ?? 0) / 0.8,
+              0.5,
+              0,
+            ],
+      ensemble:
+          _bank(params['ensemble'], const [0.25, 0.50, 0.50, 0.65, 0.25, 0.65]),
+      dimension:
+          _bank(params['dimension'], const [0.50, 0.35, 0.80, 0.25, 0.0, 0.90]),
+      drift: _bank(params['drift'], const [0.30, 0.50, 0.40, 0.40, 0.70, 0.60]),
+      outputMix: (outputPanel['outputMix'] as num?)?.toDouble() ?? 0.4,
+      outputWidth: (outputPanel['outputWidth'] as num?)?.toDouble() ?? 1.0,
     );
   }
 
@@ -286,10 +317,11 @@ class ChorusDeviceSnapshot extends EffectDeviceSnapshot {
     double? meterInputLevel,
     double? outputMix,
     double? outputWidth,
-    double? chorusDepth,
-    double? chorusRateHz,
-    double? chorusCentreDelayMs,
-    double? chorusFeedback,
+    double? modeMorph,
+    List<double>? classic,
+    List<double>? ensemble,
+    List<double>? dimension,
+    List<double>? drift,
   }) {
     return ChorusDeviceSnapshot(
       id: id ?? this.id,
@@ -300,10 +332,11 @@ class ChorusDeviceSnapshot extends EffectDeviceSnapshot {
       meterInputLevel: meterInputLevel ?? this.meterInputLevel,
       outputMix: outputMix ?? this.outputMix,
       outputWidth: outputWidth ?? this.outputWidth,
-      chorusDepth: chorusDepth ?? this.chorusDepth,
-      chorusRateHz: chorusRateHz ?? this.chorusRateHz,
-      chorusCentreDelayMs: chorusCentreDelayMs ?? this.chorusCentreDelayMs,
-      chorusFeedback: chorusFeedback ?? this.chorusFeedback,
+      modeMorph: modeMorph ?? this.modeMorph,
+      classic: classic ?? this.classic,
+      ensemble: ensemble ?? this.ensemble,
+      dimension: dimension ?? this.dimension,
+      drift: drift ?? this.drift,
     );
   }
 
@@ -315,12 +348,51 @@ class ChorusDeviceSnapshot extends EffectDeviceSnapshot {
       'bypass' => copyWith(bypassed: value >= 0.5),
       'outputMix' => copyWith(outputMix: value),
       'outputWidth' => copyWith(outputWidth: value),
-      'depth' => copyWith(chorusDepth: value),
-      'rateHz' => copyWith(chorusRateHz: value),
-      'centreDelayMs' => copyWith(chorusCentreDelayMs: value),
-      'feedback' => copyWith(chorusFeedback: value),
+      'modeMorph' => copyWith(modeMorph: value),
+      'classicRate' => copyWith(classic: _withBankValue(classic, 0, value)),
+      'classicDepth' => copyWith(classic: _withBankValue(classic, 1, value)),
+      'classicDelay' => copyWith(classic: _withBankValue(classic, 2, value)),
+      'classicFeedback' => copyWith(classic: _withBankValue(classic, 3, value)),
+      'classicPhase' => copyWith(classic: _withBankValue(classic, 4, value)),
+      'classicShape' => copyWith(classic: _withBankValue(classic, 5, value)),
+      'ensembleRate' => copyWith(ensemble: _withBankValue(ensemble, 0, value)),
+      'ensembleDepth' => copyWith(ensemble: _withBankValue(ensemble, 1, value)),
+      'ensembleVoices' =>
+        copyWith(ensemble: _withBankValue(ensemble, 2, value)),
+      'ensembleSpread' =>
+        copyWith(ensemble: _withBankValue(ensemble, 3, value)),
+      'ensembleDrift' => copyWith(ensemble: _withBankValue(ensemble, 4, value)),
+      'ensembleTone' => copyWith(ensemble: _withBankValue(ensemble, 5, value)),
+      'dimensionAmount' =>
+        copyWith(dimension: _withBankValue(dimension, 0, value)),
+      'dimensionDelay' =>
+        copyWith(dimension: _withBankValue(dimension, 1, value)),
+      'dimensionSpread' =>
+        copyWith(dimension: _withBankValue(dimension, 2, value)),
+      'dimensionMotion' =>
+        copyWith(dimension: _withBankValue(dimension, 3, value)),
+      'dimensionLowCut' =>
+        copyWith(dimension: _withBankValue(dimension, 4, value)),
+      'dimensionHighCut' =>
+        copyWith(dimension: _withBankValue(dimension, 5, value)),
+      'driftSpeed' => copyWith(drift: _withBankValue(drift, 0, value)),
+      'driftDepth' => copyWith(drift: _withBankValue(drift, 1, value)),
+      'driftWander' => copyWith(drift: _withBankValue(drift, 2, value)),
+      'driftDelay' => copyWith(drift: _withBankValue(drift, 3, value)),
+      'driftStereo' => copyWith(drift: _withBankValue(drift, 4, value)),
+      'driftTone' => copyWith(drift: _withBankValue(drift, 5, value)),
       _ => this,
     };
+  }
+
+  static List<double> _withBankValue(
+    List<double> bank,
+    int index,
+    double value,
+  ) {
+    final copy = List<double>.from(bank);
+    copy[index] = value;
+    return copy;
   }
 }
 

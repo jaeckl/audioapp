@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../bridge/project_snapshot.dart';
 import 'device_strip_metrics.dart';
@@ -555,6 +556,270 @@ class ReverbFxStrip extends StatelessWidget {
 
 // ── Chorus ─────────────────────────────────────────────────────────────────
 
+class _ChorusModeGroup extends StatefulWidget {
+  const _ChorusModeGroup({
+    required this.value,
+    required this.accent,
+    required this.modulationActive,
+    required this.modulationAmount,
+    required this.automationActive,
+    required this.connectModeActive,
+    required this.linkModeActive,
+    required this.onChanged,
+    this.onModulationAssign,
+    this.onAutomationLinkTap,
+    this.onAutomateRequest,
+  });
+
+  final double value;
+  final Color accent;
+  final bool modulationActive;
+  final double modulationAmount;
+  final bool automationActive;
+  final bool connectModeActive;
+  final bool linkModeActive;
+  final ValueChanged<double> onChanged;
+  final ValueChanged<double>? onModulationAssign;
+  final VoidCallback? onAutomationLinkTap;
+  final VoidCallback? onAutomateRequest;
+
+  @override
+  State<_ChorusModeGroup> createState() => _ChorusModeGroupState();
+}
+
+class _ChorusModulationLinePainter extends CustomPainter {
+  const _ChorusModulationLinePainter({
+    required this.value,
+    required this.amount,
+    required this.inAssignment,
+  });
+
+  final double value;
+  final double amount;
+  final bool inAssignment;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final start = (value.clamp(0.0, 3.0) / 3.0) * size.width;
+    final end =
+        (start + amount.clamp(-1.0, 1.0) * size.width).clamp(0.0, size.width);
+    canvas.drawLine(
+      Offset(start, size.height - 2.5),
+      Offset(end, size.height - 2.5),
+      Paint()
+        ..color = Colors.white.withValues(alpha: inAssignment ? .9 : .6)
+        ..strokeWidth = 3
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ChorusModulationLinePainter oldDelegate) =>
+      oldDelegate.value != value ||
+      oldDelegate.amount != amount ||
+      oldDelegate.inAssignment != inAssignment;
+}
+
+class _ChorusModeGroupState extends State<_ChorusModeGroup>
+    with SingleTickerProviderStateMixin {
+  static const labels = ['Classic', 'Ensemble', 'Dimension', 'Drift'];
+  bool _assigning = false;
+  bool _highlightsVisible = true;
+  double _startY = 0;
+  double _assignment = 0;
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulseAnimation;
+
+  bool get _pulseActive => widget.connectModeActive || widget.linkModeActive;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    _pulseAnimation = Tween<double>(begin: .15, end: .45).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+    if (_pulseActive) _pulseController.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ChorusModeGroup oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final wasActive = oldWidget.connectModeActive || oldWidget.linkModeActive;
+    if (_pulseActive && !wasActive) {
+      _pulseController.repeat(reverse: true);
+    } else if (!_pulseActive && wasActive) {
+      _pulseController.stop();
+      _pulseController.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  void _longPress() {
+    HapticFeedback.mediumImpact();
+    if (widget.linkModeActive) {
+      widget.onAutomationLinkTap?.call();
+    } else if (!widget.connectModeActive) {
+      widget.onAutomateRequest?.call();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = widget.value.round().clamp(0, 3);
+    final shownAmount = _assigning ? _assignment : widget.modulationAmount;
+    final pulseAccent =
+        widget.linkModeActive ? const Color(0xFFB48CFF) : widget.accent;
+    final showPulse = _pulseActive && _highlightsVisible;
+    final showModulationAmount = _assigning
+        ? shownAmount.abs() > 0
+        : widget.modulationActive && shownAmount.abs() > 0;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: widget.linkModeActive ? widget.onAutomationLinkTap : null,
+      onLongPress: widget.connectModeActive ? null : _longPress,
+      onLongPressStart: widget.connectModeActive
+          ? (details) {
+              HapticFeedback.mediumImpact();
+              _pulseController.stop();
+              _startY = details.localPosition.dy;
+              setState(() {
+                _highlightsVisible = false;
+                _assigning = true;
+                _assignment = 0;
+              });
+            }
+          : null,
+      onLongPressMoveUpdate: widget.connectModeActive
+          ? (details) => setState(() {
+                _assignment = ((_startY - details.localPosition.dy) / 100)
+                    .clamp(-1.0, 1.0);
+              })
+          : null,
+      onLongPressEnd: widget.connectModeActive
+          ? (_) {
+              widget.onModulationAssign?.call(_assignment);
+              _pulseController.reset();
+              if (_pulseActive) _pulseController.repeat(reverse: true);
+              setState(() {
+                _highlightsVisible = true;
+                _assigning = false;
+                _assignment = 0;
+              });
+            }
+          : null,
+      child: AnimatedBuilder(
+        animation: _pulseAnimation,
+        builder: (context, child) => Container(
+          key: const ValueKey('chorus-mode-group'),
+          height: 36,
+          clipBehavior: Clip.hardEdge,
+          decoration: BoxDecoration(
+            color: Color.alphaBlend(
+              pulseAccent.withValues(
+                alpha: showPulse ? _pulseAnimation.value : 0,
+              ),
+              const Color(0xFF121218),
+            ),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: showPulse
+                  ? pulseAccent.withValues(alpha: .75)
+                  : Colors.white.withValues(alpha: .08),
+            ),
+          ),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Row(
+                  children: [
+                    for (var index = 0; index < labels.length; index++) ...[
+                      Expanded(
+                        child: Material(
+                          color: index == selected
+                              ? widget.accent.withValues(alpha: .18)
+                              : Colors.transparent,
+                          child: InkWell(
+                            key: ValueKey('chorus-mode-${labels[index]}'),
+                            onTap: widget.linkModeActive
+                                ? widget.onAutomationLinkTap
+                                : () => widget.onChanged(index.toDouble()),
+                            child: Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  labels[index],
+                                  style: TextStyle(
+                                    color: index == selected
+                                        ? widget.accent
+                                        : Colors.white38,
+                                    fontSize: 8,
+                                    fontWeight: index == selected
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (index < labels.length - 1)
+                        Container(
+                          width: 1,
+                          color: Colors.white.withValues(alpha: .06),
+                        ),
+                    ],
+                  ],
+                ),
+              ),
+              if (showModulationAmount)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      key: const ValueKey('chorus-mode-modulation-line'),
+                      painter: _ChorusModulationLinePainter(
+                        value: widget.value,
+                        amount: shownAmount,
+                        inAssignment: _assigning,
+                      ),
+                    ),
+                  ),
+                ),
+              if (widget.automationActive)
+                Positioned(
+                  left: 3,
+                  top: 3,
+                  child: IgnorePointer(
+                    child: Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFB48CFF),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.black.withValues(alpha: .5),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class ChorusFxPanel extends StatelessWidget {
   const ChorusFxPanel({
     super.key,
@@ -589,78 +854,135 @@ class ChorusFxPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mode = device.modeMorph.round().clamp(0, 3);
+    final bank = switch (mode) {
+      1 => device.ensemble,
+      2 => device.dimension,
+      3 => device.drift,
+      _ => device.classic,
+    };
+    final definitions = switch (mode) {
+      1 => <(String, String, String Function(double))>[
+          (
+            'Rate',
+            'ensembleRate',
+            (v) => '${(0.05 + v * 1.95).toStringAsFixed(2)} Hz'
+          ),
+          ('Depth', 'ensembleDepth', (v) => '${(v * 100).round()}%'),
+          ('Voices', 'ensembleVoices', (v) => '${2 + (v * 2).round()}'),
+          ('Spread', 'ensembleSpread', (v) => '${(v * 100).round()}%'),
+          ('Drift', 'ensembleDrift', (v) => '${(v * 100).round()}%'),
+          ('Tone', 'ensembleTone', (v) => _formatHz(3000 + v * 17000)),
+        ],
+      2 => <(String, String, String Function(double))>[
+          ('Amount', 'dimensionAmount', (v) => '${(v * 100).round()}%'),
+          (
+            'Delay',
+            'dimensionDelay',
+            (v) => '${(4 + v * 20).toStringAsFixed(1)} ms'
+          ),
+          ('Spread', 'dimensionSpread', (v) => '${(v * 100).round()}%'),
+          ('Motion', 'dimensionMotion', (v) => '${(v * 100).round()}%'),
+          (
+            'Low Cut',
+            'dimensionLowCut',
+            (v) => _formatHz((20 * math.pow(50, v)).toDouble())
+          ),
+          (
+            'High Cut',
+            'dimensionHighCut',
+            (v) => _formatHz((2000 * math.pow(10, v)).toDouble())
+          ),
+        ],
+      3 => <(String, String, String Function(double))>[
+          (
+            'Speed',
+            'driftSpeed',
+            (v) => '${(0.02 + v * 0.98).toStringAsFixed(2)} Hz'
+          ),
+          ('Depth', 'driftDepth', (v) => '${(v * 100).round()}%'),
+          ('Wander', 'driftWander', (v) => '${(v * 100).round()}%'),
+          (
+            'Delay',
+            'driftDelay',
+            (v) => '${(3 + v * 27).toStringAsFixed(1)} ms'
+          ),
+          ('Stereo', 'driftStereo', (v) => '${(v * 100).round()}%'),
+          ('Tone', 'driftTone', (v) => _formatHz(2500 + v * 17500)),
+        ],
+      _ => <(String, String, String Function(double))>[
+          (
+            'Rate',
+            'classicRate',
+            (v) => '${(0.1 + v * 4.9).toStringAsFixed(2)} Hz'
+          ),
+          ('Depth', 'classicDepth', (v) => '${(v * 100).round()}%'),
+          (
+            'Delay',
+            'classicDelay',
+            (v) => '${(2 + v * 18).toStringAsFixed(1)} ms'
+          ),
+          ('Feedback', 'classicFeedback', (v) => '${(v * 80).round()}%'),
+          ('Phase', 'classicPhase', (v) => '${(v * 180).round()}°'),
+          (
+            'Shape',
+            'classicShape',
+            (v) => v < .33
+                ? 'Sine'
+                : v > .67
+                    ? 'Triangle'
+                    : 'Morph'
+          ),
+        ],
+    };
+
+    _TimeFxKnob control(int index) => _knob(
+          label: definitions[index].$1,
+          value: bank[index],
+          paramId: definitions[index].$2,
+          accent: accent,
+          onParameterChanged: onParameterChanged,
+          modulatedParams: modulatedParams,
+          automatedParams: automatedParams,
+          modulationAmounts: modulationAmounts,
+          connectModeLfoId: connectModeLfoId,
+          onModulationAssign: onModulationAssign,
+          automationLinkActive: automationLinkActive,
+          onAutomationLinkTap: onAutomationLinkTap,
+          onAutomateParameter: onAutomateParameter,
+          displayValue: definitions[index].$3(bank[index]),
+        );
+
     return _timeFxSinglePage(
       rows: [
+        _ChorusModeGroup(
+          value: device.modeMorph,
+          accent: accent,
+          modulationActive: modulatedParams.contains('modeMorph'),
+          modulationAmount: modulationAmounts['modeMorph'] ?? 0,
+          automationActive: automatedParams.contains('modeMorph'),
+          connectModeActive: connectModeLfoId != null,
+          linkModeActive: automationLinkActive,
+          onChanged: (value) => onParameterChanged('modeMorph', value),
+          onModulationAssign: onModulationAssign == null
+              ? null
+              : (amount) => onModulationAssign!('modeMorph', amount),
+          onAutomationLinkTap: onAutomationLinkTap == null
+              ? null
+              : () => onAutomationLinkTap!('modeMorph'),
+          onAutomateRequest: onAutomateParameter == null
+              ? null
+              : () => onAutomateParameter!('modeMorph'),
+        ),
         _knobGridRow([
-          _knob(
-            label: 'Depth',
-            value: device.chorusDepth,
-            paramId: 'depth',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${(device.chorusDepth * 100).round()}%',
-          ),
-          _knob(
-            label: 'Rate',
-            value: (device.chorusRateHz - 0.1) / (5 - 0.1),
-            paramId: 'rateHz',
-            accent: accent,
-            onParameterChanged: (id, v) =>
-                onParameterChanged(id, 0.1 + v * 4.9),
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${device.chorusRateHz.toStringAsFixed(1)} Hz',
-          ),
-          null,
+          control(0),
+          control(1),
+          control(2),
         ]),
         _knobGridRow([
-          _knob(
-            label: 'Delay',
-            value: device.chorusCentreDelayMs / 20,
-            paramId: 'centreDelayMs',
-            accent: accent,
-            onParameterChanged: (id, v) => onParameterChanged(id, v * 20),
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${device.chorusCentreDelayMs.toStringAsFixed(1)} ms',
-          ),
-          _knob(
-            label: 'Feedback',
-            value: device.chorusFeedback,
-            paramId: 'feedback',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${(device.chorusFeedback * 100).round()}%',
-          ),
-          null,
+          control(3),
+          control(4),
+          control(5),
         ]),
       ],
     );

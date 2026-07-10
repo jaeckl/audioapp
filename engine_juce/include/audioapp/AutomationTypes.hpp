@@ -388,6 +388,14 @@ enum class StutterParam : uint16_t {
     OutputGain = 12,
 };
 
+enum class ChorusParam : uint16_t {
+    ModeMorph = 0,
+    ClassicRate, ClassicDepth, ClassicDelay, ClassicFeedback, ClassicPhase, ClassicShape,
+    EnsembleRate, EnsembleDepth, EnsembleVoices, EnsembleSpread, EnsembleDrift, EnsembleTone,
+    DimensionAmount, DimensionDelay, DimensionSpread, DimensionMotion, DimensionLowCut, DimensionHighCut,
+    DriftSpeed, DriftDepth, DriftWander, DriftDelay, DriftStereo, DriftTone,
+};
+
 // -----------------------------------------------------------------------
 // ParamKind — distinguishes which per-device enum a `localParamId` refers
 // to. Without this tag, multiple device kinds (CommonParam, SubtractiveParam,
@@ -430,6 +438,7 @@ enum class ParamKind : uint16_t {
     Chain            = 25,
     Granular         = 26,
     Stutter          = 27,
+    Chorus           = 28,
 };
 
 constexpr uint16_t kParamKindShift      = 11;

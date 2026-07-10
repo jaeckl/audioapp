@@ -61,6 +61,12 @@ void main() {
       expect(DeviceStripChrome.outputWidth('delay'), 64);
     });
 
+    test('chorus omits input chrome and keeps stereo mix output width', () {
+      expect(DeviceStripChrome.inputWidth('chorus'), 0);
+      expect(DeviceStripChrome.hasInputPanel('chorus'), isFalse);
+      expect(DeviceStripChrome.outputWidth('chorus'), 64);
+    });
+
     test('mono drums use drum output width without input', () {
       expect(DeviceStripChrome.inputWidth('kick_generator'), 0);
       expect(DeviceStripChrome.outputWidth('kick_generator'), 64);

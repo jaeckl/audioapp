@@ -150,7 +150,9 @@ class DeviceStripMetrics {
 
   static double inputPanelWidthFor(String deviceType) =>
       _dynamicsTypes.contains(deviceType) ||
-              (_timeFxTypes.contains(deviceType) && deviceType != 'delay') ||
+              (_timeFxTypes.contains(deviceType) &&
+                  deviceType != 'delay' &&
+                  deviceType != 'chorus') ||
               _frequencyFxTypes.contains(deviceType)
           ? dynamicsInputPanelWidth
           : 0;

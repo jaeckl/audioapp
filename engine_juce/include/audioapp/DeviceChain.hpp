@@ -125,11 +125,13 @@ struct ReverbParamsPlayback {
 };
 
 struct ChorusParamsPlayback {
-    float depth = 0.25f;
-    float rateHz = 1.5f;
-    float mix = 0.4f;
-    float centreDelayMs = 7.0f;
-    float feedback = 0.0f;
+    float modeMorph = 0.0f;
+    float modeParams[4][6] = {
+        {0.286f, 0.25f, 0.30f, 0.0f, 0.5f, 0.0f},
+        {0.25f, 0.50f, 0.50f, 0.65f, 0.25f, 0.65f},
+        {0.50f, 0.35f, 0.80f, 0.25f, 0.0f, 0.90f},
+        {0.30f, 0.50f, 0.40f, 0.40f, 0.70f, 0.60f},
+    };
     float inputGain = 1.0f;
 };
 
