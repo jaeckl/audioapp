@@ -108,7 +108,7 @@ void main() {
             onAddDevice: (_, __, ___) async {},
             onBypassToggle: (_, __) {},
             onRemoveDevice: (_, __) async {},
-            onOpenDeviceLibrary: (_) {},
+            onOpenDeviceLibrary: (_, __) {},
           ),
         ),
       ),

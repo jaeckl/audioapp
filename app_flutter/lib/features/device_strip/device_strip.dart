@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../bridge/param_descriptor.dart';
 import '../../bridge/live_meters_dto.dart';
 import '../../bridge/project_snapshot.dart';
+import '../content_library/library_filter.dart';
 import '../clip_drag/sample_clip_drag_data.dart';
 import 'device_chain_row.dart';
 import 'device_chain_screen.dart';
@@ -69,7 +70,7 @@ class DeviceStrip extends StatefulWidget {
   final void Function(String deviceId, bool bypassed) onBypassToggle;
   final Future<void> Function(TrackSnapshot track, DeviceSnapshot device)
       onRemoveDevice;
-  final void Function(DeviceSnapshot device) onOpenDeviceLibrary;
+  final void Function(DeviceSnapshot device, LibraryFilter filter) onOpenDeviceLibrary;
   final void Function(DrumMachineDeviceSnapshot device, int note)?
       onOpenDrumPadLibrary;
   final Future<ProjectSnapshot> Function(
@@ -159,11 +160,12 @@ class _DeviceStripState extends State<DeviceStrip> {
           automationLinkClipId: widget.automationLinkClipId,
           onAutomationParamSelected: widget.onAutomationParamSelected,
           onAutomateParameter: widget.onAutomateParameter,
-          onGetParamDescriptors: widget.onGetParamDescriptors,
-          onMeterSubscriptionsChanged: widget.onMeterSubscriptionsChanged,
-        ),
-      ),
-    );
+           onGetParamDescriptors: widget.onGetParamDescriptors,
+           onMeterSubscriptionsChanged: widget.onMeterSubscriptionsChanged,
+           onOpenLibrary: widget.onOpenDeviceLibrary,
+         ),
+       ),
+     );
     if (mounted) setState(() => _fullscreenChainOpen = false);
   }
 

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../bridge/param_descriptor.dart';
 import '../../bridge/live_meters_dto.dart';
 import '../../bridge/project_snapshot.dart';
+import '../content_library/library_filter.dart';
 import '../clip_drag/sample_clip_drag_data.dart';
 import 'device_chain_separator.dart';
 import 'device_strip_device_kind.dart';
@@ -95,7 +96,7 @@ class DeviceChainRow extends StatefulWidget {
   final ScrollController? scrollController;
   final void Function(String deviceId, bool bypassed)? onBypassToggle;
   final void Function(DeviceSnapshot device)? onDeleteDevice;
-  final void Function(DeviceSnapshot device)? onOpenLibrary;
+  final void Function(DeviceSnapshot device, LibraryFilter filter)? onOpenLibrary;
   final void Function(DrumMachineDeviceSnapshot device, int note)?
       onOpenDrumPadLibrary;
   final ValueChanged<SampleLibraryEntrySnapshot>? onPreviewSample;
@@ -350,7 +351,7 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                           : () => widget.onDeleteDevice!(devices[i]),
                       onOpenLibrary: widget.onOpenLibrary == null
                           ? null
-                          : () => widget.onOpenLibrary!(devices[i]),
+                          : (filter) => widget.onOpenLibrary!(devices[i], filter),
                       onPreviewSample: widget.onPreviewSample,
                       onPreviewSampler: widget.onPreviewSampler,
                       lfos: widget.lfos,
@@ -489,7 +490,7 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                                   {'chainId': chain.id, 'deviceId': child.id}),
                           onOpenLibrary: widget.onOpenLibrary == null
                               ? null
-                              : () => widget.onOpenLibrary!(child),
+                              : (filter) => widget.onOpenLibrary!(child, filter),
                           onPreviewSample: widget.onPreviewSample,
                           onPreviewSampler: widget.onPreviewSampler,
                           lfos: widget.lfos,
@@ -609,7 +610,7 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                         }),
                         onOpenLibrary: widget.onOpenLibrary == null
                             ? null
-                            : () => widget.onOpenLibrary!(child),
+                            : (filter) => widget.onOpenLibrary!(child, filter),
                         onPreviewSample: widget.onPreviewSample,
                         onPreviewSampler: widget.onPreviewSampler,
                         lfos: widget.lfos,

@@ -20,6 +20,7 @@ import '../features/clip_drag/sample_clip_drag_data.dart';
 import '../features/editor/timeline_marker_layer.dart';
 import '../features/content_library/library_catalog.dart';
 import '../features/content_library/library_category.dart';
+import '../features/content_library/library_filter.dart';
 import '../features/content_library/library_fly_in_panel.dart';
 import '../features/device_strip/device_strip.dart';
 import '../features/device_strip/device_strip_device_kind.dart';
@@ -1194,17 +1195,17 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _openDeviceLibrary(DeviceSnapshot device) async {
+  Future<void> _openDeviceLibrary(
+      DeviceSnapshot device, LibraryFilter filter) async {
     setState(() {
       _libraryOpen = true;
-      _libraryCategory = LibraryCategory.devicePresets;
+      _libraryCategory = filter.defaultCategory;
       _libraryPresetDeviceId = device.id;
       _libraryPresetDeviceType = device.type;
-      _librarySamplerDeviceId = device.type == 'simple_sampler' ||
-              device.type == 'granular_formant_synth'
-          ? device.id
-          : null;
-      _libraryWavetableDeviceId = null;
+      _librarySamplerDeviceId =
+          filter.defaultCategory == LibraryCategory.audioClips ? device.id : null;
+      _libraryWavetableDeviceId =
+          filter.defaultCategory == LibraryCategory.wavetables ? device.id : null;
     });
   }
 

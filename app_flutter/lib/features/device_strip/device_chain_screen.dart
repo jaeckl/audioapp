@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../bridge/param_descriptor.dart';
 import '../../bridge/project_snapshot.dart';
 import '../content_library/library_category.dart';
+import '../content_library/library_filter.dart';
 import '../content_library/library_fly_in_panel.dart';
 import 'device_chain_minimap.dart';
 import 'device_chain_row.dart';
@@ -39,6 +40,7 @@ class DeviceChainScreen extends StatefulWidget {
     this.onAutomateParameter,
     this.onGetParamDescriptors,
     this.onMeterSubscriptionsChanged,
+    this.onOpenLibrary,
   });
 
   final ProjectSnapshot snapshot;
@@ -71,6 +73,7 @@ class DeviceChainScreen extends StatefulWidget {
   final Future<List<DeviceParamDescriptor>> Function(String deviceType)?
       onGetParamDescriptors;
   final ValueChanged<List<String>>? onMeterSubscriptionsChanged;
+  final void Function(DeviceSnapshot device, LibraryFilter filter)? onOpenLibrary;
 
   @override
   State<DeviceChainScreen> createState() => _DeviceChainScreenState();
@@ -80,6 +83,7 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<LibraryFlyInPanelState> _libraryPanelKey = GlobalKey();
   DeviceSnapshot? _libraryDevice;
+  LibraryFilter? _libraryFilter;
   late TrackSnapshot _track;
 
   @override
@@ -189,19 +193,32 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
     super.dispose();
   }
 
-  void _openLibrary(DeviceSnapshot device) {
-    if (device.type != 'simple_sampler') return;
-    setState(() => _libraryDevice = device);
+  void _openLibrary(DeviceSnapshot device, LibraryFilter filter) {
+    final handler = widget.onOpenLibrary;
+    if (handler != null) {
+      handler(device, filter);
+      return;
+    }
+    setState(() {
+      _libraryDevice = device;
+      _libraryFilter = filter;
+    });
   }
 
   void _closeLibrary() {
-    setState(() => _libraryDevice = null);
+    setState(() {
+      _libraryDevice = null;
+      _libraryFilter = null;
+    });
   }
 
   Future<void> _onLibraryInsertAudio(SampleLibraryEntrySnapshot sample) async {
     final device = _libraryDevice;
     if (device != null) {
-      _onAssignSamplerSample(device.id, sample.id);
+      if (device.type == 'simple_sampler' ||
+          device.type == 'granular_formant_synth') {
+        _onAssignSamplerSample(device.id, sample.id);
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Loaded ${sample.name}')),
@@ -289,7 +306,8 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
               LibraryFlyInPanel(
                 key: _libraryPanelKey,
                 snapshot: widget.snapshot,
-                initialCategory: LibraryCategory.audioClips,
+                initialCategory: _libraryFilter?.defaultCategory ??
+                    LibraryCategory.audioClips,
                 onClose: _closeLibrary,
                 onPreviewAudio: widget.onPreviewAudio,
                 onInsertAudio: _onLibraryInsertAudio,

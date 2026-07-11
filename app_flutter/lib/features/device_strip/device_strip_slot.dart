@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../bridge/param_descriptor.dart';
 import '../../bridge/live_meters_dto.dart';
 import '../../bridge/project_snapshot.dart';
+import '../content_library/library_filter.dart';
 import 'bass_synth_device_panel.dart';
 import 'bass_synth_device_strip.dart';
 import 'device_container_tabs.dart';
@@ -140,7 +141,7 @@ class DeviceStripSlot extends StatefulWidget {
   final VoidCallback? onCollapse;
   final VoidCallback? onBypassToggle;
   final VoidCallback? onDeleteRequest;
-  final VoidCallback? onOpenLibrary;
+  final void Function(LibraryFilter filter)? onOpenLibrary;
   final ValueChanged<SampleLibraryEntrySnapshot>? onPreviewSample;
   final ValueChanged<int>? onPreviewSampler;
   final SamplerDeviceTab samplerTab;
@@ -936,7 +937,11 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                         ? null
                         : () => _onAutomateParameter('bypass'),
                     onDelete: widget.onDeleteRequest,
-                    onLibrary: widget.onOpenLibrary,
+                    onLibrary: widget.onOpenLibrary != null
+                        ? () => widget.onOpenLibrary!(
+                              DeviceLibraryRegistry.filterForDeviceType(
+                                  widget.device.type))
+                        : null,
                     modActive: _modStripVisible,
                     onModToggle: () async {
                       if (!_modStripVisible && _localLfos.isEmpty) {
@@ -1097,7 +1102,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             onPreview: widget.sample != null && widget.onPreviewSampler != null
                 ? () => widget.onPreviewSampler!(dev.rootPitch.round())
                 : null,
-            onLoadSample: widget.onOpenLibrary,
+            onLoadSample: widget.onOpenLibrary != null
+                ? () => widget.onOpenLibrary!(
+                      DeviceLibraryRegistry.filterForDeviceType(widget.device.type))
+                : null,
             selectedTab: SamplerDeviceTab.values[_selectedTabIndex],
             modulatedParams: _modulatedParamIds,
             automatedParams: _automatedParamIds,
@@ -1203,7 +1211,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             selectedTab: WavetableSynthDeviceTab.values[_selectedTabIndex],
             onTabChanged: widget.onWtTabChanged,
             onOpenFullscreen: widget.onOpenSamplerEditor,
-            onOpenWavetableLibrary: widget.onOpenLibrary,
+            onOpenWavetableLibrary: widget.onOpenLibrary != null
+                ? () => widget.onOpenLibrary!(
+                      DeviceLibraryRegistry.filterForDeviceType(widget.device.type))
+                : null,
             modulatedParams: _modulatedParamIds,
             automatedParams: _automatedParamIds,
             modulationAmounts: _modulationAmounts,
