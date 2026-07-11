@@ -202,7 +202,8 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
                   ),
                 ),
               ),
-              for (final definition in deviceDefinitionRepository.definitions)
+              for (final definition in deviceDefinitionRepository.definitions
+                  .where((item) => item.picker.category == 'Effects'))
                 ListTile(
                   leading: Icon(definition.picker.icon,
                       color: definition.picker.color),
@@ -331,32 +332,16 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
                   ),
                 ),
               ),
-              ListTile(
-                leading: const Icon(Icons.timer, color: Color(0xFF6EC9A8)),
-                title: const Text('Delay'),
-                subtitle: const Text('Echo · feedback & filter'),
-                onTap: () => Navigator.pop(context, 'delay'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.waves, color: Color(0xFF7B6CF6)),
-                title: const Text('Reverb'),
-                subtitle: const Text('Room · hall · shimmer'),
-                onTap: () => Navigator.pop(context, 'reverb'),
-              ),
-              ListTile(
-                leading:
-                    const Icon(Icons.blur_circular, color: Color(0xFFE8A54B)),
-                title: const Text('Chorus'),
-                subtitle: const Text('Thicken · spread · modulate'),
-                onTap: () => Navigator.pop(context, 'chorus'),
-              ),
-              ListTile(
-                leading:
-                    const Icon(Icons.flip_to_back, color: Color(0xFFE8A0C8)),
-                title: const Text('Phaser'),
-                subtitle: const Text('Sweep · notches · swirl'),
-                onTap: () => Navigator.pop(context, 'phaser'),
-              ),
+              for (final definition in deviceDefinitionRepository.definitions
+                  .where(
+                      (item) => item.picker.category == 'Time-Based Effects'))
+                ListTile(
+                  leading: Icon(definition.picker.icon,
+                      color: definition.picker.color),
+                  title: Text(definition.picker.name),
+                  subtitle: Text(definition.picker.description),
+                  onTap: () => Navigator.pop(context, definition.typeId),
+                ),
               const Padding(
                 padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
                 child: Text(

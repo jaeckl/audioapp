@@ -11,7 +11,8 @@ DEVICE_ROOT = ROOT / "app_flutter" / "lib" / "devices"
 OUTPUT = DEVICE_ROOT / "generated_device_definitions.dart"
 PATTERN = re.compile(
     r"@AudioDeviceDefinition\('([^']+)'\)\s+"
-    r"final\s+class\s+(\w+)\s+implements\s+DeviceDefinition"
+    r"final\s+class\s+(\w+)\s+(?:implements\s+DeviceDefinition|"
+    r"extends\s+AudioEffectDefinition)"
 )
 
 

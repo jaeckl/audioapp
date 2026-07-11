@@ -28,7 +28,6 @@ import 'granular_device_panel.dart';
 class DeviceStripMetrics {
   const DeviceStripMetrics._();
 
-  static const _timeFxTypes = {'delay', 'reverb', 'chorus', 'phaser'};
   static const _moodFxTypes = {
     'bitcrusher',
     'distortion',
@@ -165,7 +164,6 @@ class DeviceStripMetrics {
     if (_analysisTypes.contains(deviceType)) return stereoOutputPanelWidth;
     if (_routingTypes.contains(deviceType)) return routingOutputPanelWidth;
     if (_drumTypes.contains(deviceType)) return drumMonoOutputPanelWidth;
-    if (_timeFxTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
     if (_moodFxTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
     if (_frequencyFxTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
     if (DeviceCapabilities.virtualStripHosts.contains(deviceType)) {
@@ -189,10 +187,6 @@ class DeviceStripMetrics {
       'clap_generator' => ClapGeneratorDevicePanel.designWidth,
       'cymbal_generator' => CymbalGeneratorDevicePanel.designWidth,
       'crash_generator' => CrashGeneratorDevicePanel.designWidth,
-      'delay' => DelayFxPanel.designWidth,
-      'reverb' => ReverbFxPanel.designWidth,
-      'chorus' => ChorusFxPanel.designWidth,
-      'phaser' => PhaserFxPanel.designWidth,
       'filter' => FilterDevicePanel.designWidth,
       'four_band_eq' => FourBandEqDevicePanel.designWidth,
       'frequency_shifter' => FreqShifterDevicePanel.designWidth,

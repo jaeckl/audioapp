@@ -84,10 +84,11 @@ sealed class DeviceSnapshot {
       'expander' ||
       'limiter' =>
         deviceDefinitionRepository.parseSnapshot(map),
-      'delay' => DelayDeviceSnapshot.fromMap(map),
-      'reverb' => ReverbDeviceSnapshot.fromMap(map),
-      'chorus' => ChorusDeviceSnapshot.fromMap(map),
-      'phaser' => PhaserDeviceSnapshot.fromMap(map),
+      'delay' ||
+      'reverb' ||
+      'chorus' ||
+      'phaser' =>
+        deviceDefinitionRepository.parseSnapshot(map),
       'bitcrusher' => BitcrusherDeviceSnapshot.fromMap(map),
       'distortion' => DistortionDeviceSnapshot.fromMap(map),
       'tremolo' => TremoloDeviceSnapshot.fromMap(map),

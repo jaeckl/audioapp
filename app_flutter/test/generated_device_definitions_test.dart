@@ -3,10 +3,19 @@ import 'package:audioapp/devices/generated_device_definitions.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('generated repository discovers all dynamics definitions', () {
+  test('generated repository discovers migrated effect definitions', () {
     expect(
       generatedDeviceDefinitions.map((definition) => definition.typeId).toSet(),
-      {'gate', 'compressor', 'expander', 'limiter'},
+      {
+        'gate',
+        'compressor',
+        'expander',
+        'limiter',
+        'delay',
+        'reverb',
+        'chorus',
+        'phaser',
+      },
     );
     expect(
       generatedDeviceDefinitions
