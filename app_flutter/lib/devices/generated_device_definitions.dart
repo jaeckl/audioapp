@@ -7,6 +7,10 @@ import 'dynamics/compressor_definition.dart';
 import 'dynamics/expander_definition.dart';
 import 'dynamics/gate_definition.dart';
 import 'dynamics/limiter_definition.dart';
+import 'mood_fx/bitcrusher_definition.dart';
+import 'mood_fx/distortion_definition.dart';
+import 'mood_fx/stutter_definition.dart';
+import 'mood_fx/tremolo_definition.dart';
 import 'time_fx/chorus_definition.dart';
 import 'time_fx/delay_definition.dart';
 import 'time_fx/phaser_definition.dart';
@@ -17,6 +21,10 @@ final List<DeviceDefinition<DeviceSnapshot>> generatedDeviceDefinitions = [
   ExpanderDefinition(),
   GateDefinition(),
   LimiterDefinition(),
+  BitcrusherDefinition(),
+  DistortionDefinition(),
+  StutterDefinition(),
+  TremoloDefinition(),
   ChorusDefinition(),
   DelayDefinition(),
   PhaserDefinition(),

@@ -15,6 +15,10 @@ void main() {
         'reverb',
         'chorus',
         'phaser',
+        'bitcrusher',
+        'distortion',
+        'tremolo',
+        'stutter_fx',
       },
     );
     expect(

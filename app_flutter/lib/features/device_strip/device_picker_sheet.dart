@@ -354,31 +354,15 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
                   ),
                 ),
               ),
-              ListTile(
-                leading: const Icon(Icons.blur_on, color: Color(0xFF7B6CF6)),
-                title: const Text('Bitcrusher'),
-                subtitle: const Text('Lo-fi · SRC decimation · bit crush'),
-                onTap: () => Navigator.pop(context, 'bitcrusher'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.waves, color: Color(0xFFE85D4B)),
-                title: const Text('Distortion'),
-                subtitle: const Text('Tanh waveshape · drive & tone'),
-                onTap: () => Navigator.pop(context, 'distortion'),
-              ),
-              ListTile(
-                leading:
-                    const Icon(Icons.blur_circular, color: Color(0xFF4ADE80)),
-                title: const Text('Tremolo'),
-                subtitle: const Text('LFO amplitude mod · sine/square'),
-                onTap: () => Navigator.pop(context, 'tremolo'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.repeat, color: Color(0xFF57D3C4)),
-                title: const Text('Stutter'),
-                subtitle: const Text('Buffer freeze · repeat · rhythmic gate'),
-                onTap: () => Navigator.pop(context, 'stutter_fx'),
-              ),
+              for (final definition in deviceDefinitionRepository.definitions
+                  .where((item) => item.picker.category == 'Mood Effects'))
+                ListTile(
+                  leading: Icon(definition.picker.icon,
+                      color: definition.picker.color),
+                  title: Text(definition.picker.name),
+                  subtitle: Text(definition.picker.description),
+                  onTap: () => Navigator.pop(context, definition.typeId),
+                ),
               const SizedBox(height: 8),
             ],
           ),

@@ -28,12 +28,6 @@ import 'granular_device_panel.dart';
 class DeviceStripMetrics {
   const DeviceStripMetrics._();
 
-  static const _moodFxTypes = {
-    'bitcrusher',
-    'distortion',
-    'tremolo',
-    'stutter_fx'
-  };
   static const _frequencyFxTypes = {
     'filter',
     'four_band_eq',
@@ -164,7 +158,6 @@ class DeviceStripMetrics {
     if (_analysisTypes.contains(deviceType)) return stereoOutputPanelWidth;
     if (_routingTypes.contains(deviceType)) return routingOutputPanelWidth;
     if (_drumTypes.contains(deviceType)) return drumMonoOutputPanelWidth;
-    if (_moodFxTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
     if (_frequencyFxTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
     if (DeviceCapabilities.virtualStripHosts.contains(deviceType)) {
       return synthOutputPanelWidth;
@@ -193,10 +186,6 @@ class DeviceStripMetrics {
       'resonator_bank' => ResonatorBankPanel.designWidth,
       'audio_receiver' || 'midi_receiver' => RoutingDevicePanel.designWidth,
       'midi_delay' => MidiDelayPanel.designWidth,
-      'bitcrusher' => BitcrusherFxPanel.designWidth,
-      'distortion' => DistortionFxPanel.designWidth,
-      'tremolo' => TremoloFxPanel.designWidth,
-      'stutter_fx' => StutterFxPanel.designWidth,
       'wavetable_synth' => WavetableSynthDevicePanel.designWidth,
       'simple_oscillator' => OscillatorDevicePanel.designWidth,
       'phase_mod_synth' => PhaseModSynthDevicePanel.designWidth,
