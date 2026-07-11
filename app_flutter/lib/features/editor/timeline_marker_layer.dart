@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 
+part 'timeline_marker_layer_timeline_beat_vertical_line_overlay.dart';
+part 'timeline_marker_layer_timeline_beat_full_height_line_overlay.dart';
+part 'timeline_marker_layer_timeline_synced_line_layer.dart';
+part 'timeline_marker_layer_timeline_synced_pill_layer.dart';
+part 'timeline_marker_layer_timeline_ruler_marker_overlay.dart';
+
 /// Shared layout for beat-synced ruler pills that must paint above and outside the ruler band.
 abstract final class TimelineMarkerLayerMetrics {
   /// Largest pill diameter used in timeline UIs (arrangement play scrub).
@@ -137,7 +143,8 @@ bool timelinePlayheadNeedsFollow({
     pixelsPerBeat: pixelsPerBeat,
     scrollOffset: scrollOffset,
   );
-  final leadX = timelineLeadViewportX(viewportWidth, leadFraction: leadFraction);
+  final leadX =
+      timelineLeadViewportX(viewportWidth, leadFraction: leadFraction);
   final maxX = viewportWidth * maxVisibleFraction;
   return natural < leadX || natural > maxX;
 }
@@ -369,7 +376,8 @@ void partitionPlayheadMarker({
 }
 
 /// Behind / in-front marker stacks for editor [Stack] children.
-({List<Widget> behindChrome, List<Widget> inFrontOfChrome}) buildSyncedMarkerStackLayers({
+({List<Widget> behindChrome, List<Widget> inFrontOfChrome})
+    buildSyncedMarkerStackLayers({
   required double sideColumnWidth,
   required double rulerHeight,
   required List<Widget> behindLines,
@@ -426,163 +434,9 @@ double timelineLocalBeatLineLeft({
 }
 
 /// Viewport-fixed vertical line in the canvas band (below [rulerHeight]).
-class TimelineBeatVerticalLineOverlay extends StatelessWidget {
-  const TimelineBeatVerticalLineOverlay({
-    super.key,
-    required this.left,
-    required this.rulerHeight,
-    required this.width,
-    required this.color,
-  });
-
-  final double left;
-  final double rulerHeight;
-  final double width;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      left: left,
-      top: rulerHeight,
-      bottom: 0,
-      width: width,
-      child: IgnorePointer(
-        child: ColoredBox(color: color),
-      ),
-    );
-  }
-}
-
 /// Full-height vertical line (playhead through ruler + body).
-class TimelineBeatFullHeightLineOverlay extends StatelessWidget {
-  const TimelineBeatFullHeightLineOverlay({
-    super.key,
-    required this.left,
-    required this.width,
-    required this.color,
-  });
-
-  final double left;
-  final double width;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      left: left,
-      top: 0,
-      bottom: 0,
-      width: width,
-      child: IgnorePointer(
-        child: ColoredBox(color: color),
-      ),
-    );
-  }
-}
-
 /// Scroll-synced vertical lines — default below fixed side chrome.
 ///
 /// Stack order: scroll → behind lines/pills → side chrome → in-front lines/pills (viewport x≈0).
-class TimelineSyncedLineLayer extends StatelessWidget {
-  const TimelineSyncedLineLayer({
-    super.key,
-    required this.sideColumnWidth,
-    required this.lines,
-    this.clipToTimelineBand = true,
-  });
-
-  final double sideColumnWidth;
-  final List<Widget> lines;
-  final bool clipToTimelineBand;
-
-  @override
-  Widget build(BuildContext context) {
-    final stack = IgnorePointer(
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: lines,
-      ),
-    );
-    return Positioned(
-      left: sideColumnWidth,
-      top: 0,
-      right: 0,
-      bottom: 0,
-      child: clipToTimelineBand ? ClipRect(child: stack) : stack,
-    );
-  }
-}
-
 /// Scroll-synced ruler pills — paired with [TimelineSyncedLineLayer] for each z band.
-class TimelineSyncedPillLayer extends StatelessWidget {
-  const TimelineSyncedPillLayer({
-    super.key,
-    required this.sideColumnWidth,
-    required this.rulerHeight,
-    required this.rulerMarkers,
-  });
-
-  final double sideColumnWidth;
-  final double rulerHeight;
-  final List<Widget> rulerMarkers;
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      left: sideColumnWidth,
-      top: 0,
-      right: 0,
-      bottom: 0,
-      child: IgnorePointer(
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned(
-              top: TimelineMarkerLayerMetrics.overlayTop(),
-              left: 0,
-              right: 0,
-              height: TimelineMarkerLayerMetrics.overlayHeight(rulerHeight),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: rulerMarkers,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 /// Viewport-fixed ruler pills — pointer handling stays on the ruler [Listener].
-class TimelineRulerMarkerOverlay extends StatelessWidget {
-  const TimelineRulerMarkerOverlay({
-    super.key,
-    required this.left,
-    required this.width,
-    required this.rulerHeight,
-    required this.markers,
-  });
-
-  final double left;
-  final double width;
-  final double rulerHeight;
-  final List<Widget> markers;
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      top: TimelineMarkerLayerMetrics.overlayTop(),
-      left: left,
-      width: width,
-      height: TimelineMarkerLayerMetrics.overlayHeight(rulerHeight),
-      child: IgnorePointer(
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: markers,
-        ),
-      ),
-    );
-  }
-}

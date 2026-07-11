@@ -1,0 +1,72 @@
+part of 'device_strip_chrome_panels.dart';
+
+class DynamicsOutputPanel extends StatelessWidget {
+  const DynamicsOutputPanel({
+    super.key,
+    required this.device,
+    required this.accentColor,
+    required this.onParameterChanged,
+    this.gainReductionDb = 0,
+    this.knobSize = DeviceKnobSizes.compact,
+    this.modulatedParams = const {},
+    this.automatedParams = const {},
+    this.modulationAmounts = const {},
+    this.lfos = const [],
+    this.modEdges = const [],
+    this.connectModeLfoId,
+    this.onModulationAssign,
+    this.automationLinkActive = false,
+    this.onAutomationLinkTap,
+    this.onAutomateParameter,
+  });
+
+  final DeviceSnapshot device;
+  final Color accentColor;
+  final void Function(String parameterId, double value) onParameterChanged;
+  final double gainReductionDb;
+  final double knobSize;
+  final Set<String> modulatedParams;
+  final Set<String> automatedParams;
+  final Map<String, double> modulationAmounts;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
+  final int? connectModeLfoId;
+  final void Function(String paramId, double amount)? onModulationAssign;
+  final bool automationLinkActive;
+  final ValueChanged<String>? onAutomationLinkTap;
+  final ValueChanged<String>? onAutomateParameter;
+
+  static double gainReductionMeterLevel(double db) {
+    const maxDb = 24.0;
+    return (db / maxDb).clamp(0.0, 1.0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _ChromeOutputShell(
+      width: DeviceStripMetrics.dynamicsOutputPanelWidth,
+      child: _DynamicsSideColumn(
+        label: 'GR',
+        meterLevel: gainReductionMeterLevel(gainReductionDb),
+        accentColor: accentColor,
+        bottomKnob: deviceAutomationKnob(
+          label: 'Gain',
+          value: device.gain.clamp(0, 1),
+          size: knobSize,
+          displayValue: StereoGainPanPanel.formatGain(device.gain),
+          onChanged: (value) => onParameterChanged('gain', value),
+          paramId: 'gain',
+          accentColor: accentColor,
+          modulatedParams: modulatedParams,
+          automatedParams: automatedParams,
+          modulationAmounts: modulationAmounts,
+          connectModeLfoId: connectModeLfoId,
+          onModulationAssign: onModulationAssign,
+          automationLinkActive: automationLinkActive,
+          onAutomationLinkTap: onAutomationLinkTap,
+          onAutomateParameter: onAutomateParameter,
+        ),
+      ),
+    );
+  }
+}
