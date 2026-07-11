@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 
 import 'play_deck_theme.dart';
 
+part 'mod_strip_label.dart';
+part 'mod_strip_hint.dart';
+part 'mod_strip_readout.dart';
+part 'mod_strip_readout_painter.dart';
+
 /// Visual-only readout for live modulation and pitch bend.
 ///
 /// Mod and bend are no longer dragged from a strip — the user drags
@@ -49,105 +54,4 @@ class ModStrip extends StatelessWidget {
       ),
     );
   }
-}
-
-class _Label extends StatelessWidget {
-  const _Label(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(fontSize: 9, color: PlayDeckTheme.railLabel),
-    );
-  }
-}
-
-class _Hint extends StatelessWidget {
-  const _Hint(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 9,
-        color: PlayDeckTheme.railLabel,
-        fontStyle: FontStyle.italic,
-      ),
-    );
-  }
-}
-
-class _Readout extends StatelessWidget {
-  const _Readout({
-    required this.value,
-    required this.color,
-    this.center = false,
-  });
-
-  final double value;
-  final Color color;
-  final bool center;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 48,
-      height: 8,
-      child: CustomPaint(painter: _ReadoutPainter(value, color, center)),
-    );
-  }
-}
-
-class _ReadoutPainter extends CustomPainter {
-  _ReadoutPainter(this.value, this.color, this.center);
-  final double value;
-  final Color color;
-  final bool center;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final track = Paint()..color = const Color(0xFF2A2A30);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(2)),
-      track,
-    );
-    if (center) {
-      final midX = size.width / 2;
-      canvas.drawLine(
-        Offset(midX, 0),
-        Offset(midX, size.height),
-        Paint()..color = const Color(0xFF3A3A44),
-      );
-    }
-    final clamped = value.clamp(center ? -1.0 : 0.0, 1.0);
-    final fillPaint = Paint()..color = color.withValues(alpha: 0.85);
-    if (center) {
-      final midX = size.width / 2;
-      final width = (clamped.abs() * (size.width / 2));
-      final left = clamped >= 0 ? midX : midX - width;
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(left, 0, width, size.height),
-          const Radius.circular(2),
-        ),
-        fillPaint,
-      );
-    } else {
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(0, 0, clamped * size.width, size.height),
-          const Radius.circular(2),
-        ),
-        fillPaint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _ReadoutPainter old) =>
-      old.value != value || old.color != color || old.center != center;
 }

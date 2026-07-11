@@ -18,6 +18,8 @@ final class WavetableSynthDefinition extends InstrumentDefinition {
         icon: Icons.view_column,
         color: Color(0xFF3B82F6),
         category: 'Instruments',
+        libraryCategory: 'wavetables',
+        libraryTags: ['factory'],
       );
 
   @override

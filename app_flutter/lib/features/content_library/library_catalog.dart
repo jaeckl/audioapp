@@ -6,6 +6,13 @@ import 'library_manifest.dart';
 import 'library_midi_patterns.dart';
 import 'user_device_preset_store.dart';
 
+part 'library_catalog_library_audio_item.dart';
+part 'library_catalog_library_midi_item.dart';
+part 'library_catalog_library_automation_item.dart';
+part 'library_catalog_library_preset_item.dart';
+part 'library_catalog_library_wavetable_item.dart';
+part 'library_catalog_library_curve_item.dart';
+
 sealed class LibraryItem {
   const LibraryItem({
     required this.id,
@@ -18,94 +25,6 @@ sealed class LibraryItem {
   final String title;
   final String subtitle;
   final List<String> tags;
-}
-
-class LibraryAudioItem extends LibraryItem {
-  const LibraryAudioItem({
-    required super.id,
-    required super.title,
-    required super.subtitle,
-    required this.sample,
-    this.isProjectClip = false,
-    super.tags,
-  });
-
-  final SampleLibraryEntrySnapshot sample;
-  final bool isProjectClip;
-}
-
-class LibraryMidiItem extends LibraryItem {
-  const LibraryMidiItem({
-    required super.id,
-    required super.title,
-    required super.subtitle,
-    required this.clip,
-    this.trackId,
-    this.isFactory = false,
-    super.tags,
-  });
-
-  final String? trackId;
-  final MidiClipSnapshot clip;
-  final bool isFactory;
-}
-
-class LibraryAutomationItem extends LibraryItem {
-  const LibraryAutomationItem({
-    required super.id,
-    required super.title,
-    required super.subtitle,
-    required this.parameterLabel,
-    this.trackId,
-    this.clip,
-    this.suggestedParamId,
-    super.tags,
-  });
-
-  final String parameterLabel;
-  final String? trackId;
-  final AutomationClipSnapshot? clip;
-  final String? suggestedParamId;
-}
-
-class LibraryPresetItem extends LibraryItem {
-  const LibraryPresetItem({
-    required super.id,
-    required super.title,
-    required super.subtitle,
-    required this.deviceType,
-    this.isUser = false,
-    this.presetJson,
-    super.tags,
-  });
-
-  final String deviceType;
-  final bool isUser;
-  final String? presetJson;
-}
-
-class LibraryWavetableItem extends LibraryItem {
-  const LibraryWavetableItem({
-    required super.id,
-    required super.title,
-    required super.subtitle,
-    required this.wavetableName,
-    super.tags,
-  });
-
-  final String wavetableName;
-}
-
-class LibraryCurveItem extends LibraryItem {
-  const LibraryCurveItem({
-    required super.id,
-    required super.title,
-    required super.subtitle,
-    required this.resource,
-    super.tags,
-  });
-
-  final CurveLibraryResource resource;
 }
 
 abstract final class LibraryCatalog {

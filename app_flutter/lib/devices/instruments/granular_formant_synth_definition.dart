@@ -18,6 +18,7 @@ final class GranularFormantSynthDefinition extends InstrumentDefinition {
         icon: Icons.blur_on,
         color: Color(0xFFDA70D6),
         category: 'Instruments',
+        libraryCategory: 'audioClips',
       );
 
   @override

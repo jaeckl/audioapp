@@ -18,6 +18,7 @@ final class SimpleSamplerDefinition extends InstrumentDefinition {
         icon: Icons.piano,
         color: Color(0xFFE8A54B),
         category: 'Instruments',
+        libraryCategory: 'audioClips',
       );
 
   @override

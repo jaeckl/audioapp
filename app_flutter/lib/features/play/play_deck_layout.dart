@@ -1,20 +1,12 @@
+part 'play_deck_layout_play_surface_mode.dart';
+part 'play_deck_layout_play_context_view.dart';
+part 'play_deck_layout_arp_mode.dart';
+part 'play_deck_layout_chord_quality.dart';
+part 'play_deck_layout_capture_quantize.dart';
+part 'play_deck_layout_chord_memory.dart';
+
 /// Mode toggle for the rail (keyboard/pads switch).
-enum PlaySurfaceMode { pads, keys }
-
 /// What is currently filling the play area next to the rail.
-enum PlayContextView { perform, octave, performPanel, scaleBuilder, performancePanel }
-
-enum ArpMode {
-  off,
-  up,
-  down,
-  upDown,
-  downUp,
-  random,
-  chord,
-  strum,
-}
-
 extension ArpModeLabel on ArpMode {
   String get label => switch (this) {
         ArpMode.off => 'Off',
@@ -27,8 +19,6 @@ extension ArpModeLabel on ArpMode {
         ArpMode.strum => 'Strum',
       };
 }
-
-enum ChordQuality { off, major, minor, seventh, minor7, sus2, sus4 }
 
 extension ChordQualityLabel on ChordQuality {
   String get label => switch (this) {
@@ -52,8 +42,6 @@ extension ChordQualityLabel on ChordQuality {
       };
 }
 
-enum CaptureQuantize { off, quarter, eighth, sixteenth }
-
 extension CaptureQuantizeLabel on CaptureQuantize {
   String get label => switch (this) {
         CaptureQuantize.off => 'Off',
@@ -61,12 +49,6 @@ extension CaptureQuantizeLabel on CaptureQuantize {
         CaptureQuantize.eighth => '1/8',
         CaptureQuantize.sixteenth => '1/16',
       };
-}
-
-class ChordMemory {
-  ChordMemory({required this.label, required this.quality});
-  final String label;
-  final ChordQuality quality;
 }
 
 class PlayDeckLayout {

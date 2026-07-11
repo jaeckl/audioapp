@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'play_deck_theme.dart';
 import 'play_scale.dart';
 
+part 'octave_panel_section_title.dart';
+part 'octave_panel_round_icon_button.dart';
+part 'octave_panel_pill.dart';
+
 /// Settings panel for octave / key range / scale.
 class OctavePanel extends StatelessWidget {
   const OctavePanel({
@@ -57,7 +61,8 @@ class OctavePanel extends StatelessWidget {
           const _SectionTitle(text: 'Octave'),
           Row(
             children: [
-              _RoundIconButton(icon: Icons.remove, onTap: () => onOctaveDelta(-1)),
+              _RoundIconButton(
+                  icon: Icons.remove, onTap: () => onOctaveDelta(-1)),
               Expanded(
                 child: Center(
                   child: Text(
@@ -77,7 +82,8 @@ class OctavePanel extends StatelessWidget {
           Center(
             child: Text(
               'Key region: $rootName$octaveOffset',
-              style: const TextStyle(fontSize: 11, color: PlayDeckTheme.railLabel),
+              style:
+                  const TextStyle(fontSize: 11, color: PlayDeckTheme.railLabel),
             ),
           ),
           const SizedBox(height: 14),
@@ -88,7 +94,11 @@ class OctavePanel extends StatelessWidget {
             children: [
               for (var r = 1; r <= 3; r++)
                 _Pill(
-                  label: r == 1 ? '1 row' : r == 2 ? '2 rows' : '3 rows',
+                  label: r == 1
+                      ? '1 row'
+                      : r == 2
+                          ? '2 rows'
+                          : '3 rows',
                   selected: rowCount == r,
                   onTap: () => onRowCountChanged(r),
                 ),
@@ -149,75 +159,6 @@ class OctavePanel extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.text});
-  final String text;
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Text(
-        text.toUpperCase(),
-        style: const TextStyle(
-          fontSize: 10,
-          letterSpacing: 1.4,
-          color: PlayDeckTheme.railLabel,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
-class _RoundIconButton extends StatelessWidget {
-  const _RoundIconButton({required this.icon, required this.onTap});
-  final IconData icon;
-  final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: PlayDeckTheme.optionIdle,
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: SizedBox(
-          width: 40,
-          height: 40,
-          child: Icon(icon, color: PlayDeckTheme.railActive, size: 18),
-        ),
-      ),
-    );
-  }
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill({required this.label, required this.selected, required this.onTap});
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: selected ? PlayDeckTheme.optionActive : PlayDeckTheme.optionIdle,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: selected ? Colors.black : PlayDeckTheme.optionLabel,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
       ),
     );
   }

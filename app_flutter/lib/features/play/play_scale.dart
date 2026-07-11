@@ -1,18 +1,32 @@
+part 'play_scale_velocity_curve.dart';
+
 /// Scale helpers for In Key play surfaces.
 class PlayScale {
-  const PlayScale({required this.id, required this.label, required this.intervals});
+  const PlayScale(
+      {required this.id, required this.label, required this.intervals});
 
   final String id;
   final String label;
   final List<int> intervals;
 
-  static const chromatic = PlayScale(id: 'chromatic', label: 'Chromatic', intervals: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+  static const chromatic = PlayScale(
+      id: 'chromatic',
+      label: 'Chromatic',
+      intervals: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
 
-  static const major = PlayScale(id: 'major', label: 'Major', intervals: [0, 2, 4, 5, 7, 9, 11]);
-  static const minor = PlayScale(id: 'minor', label: 'Minor', intervals: [0, 2, 3, 5, 7, 8, 10]);
-  static const pentatonicMinor = PlayScale(id: 'pentatonic', label: 'Pentatonic', intervals: [0, 3, 5, 7, 10]);
+  static const major =
+      PlayScale(id: 'major', label: 'Major', intervals: [0, 2, 4, 5, 7, 9, 11]);
+  static const minor =
+      PlayScale(id: 'minor', label: 'Minor', intervals: [0, 2, 3, 5, 7, 8, 10]);
+  static const pentatonicMinor = PlayScale(
+      id: 'pentatonic', label: 'Pentatonic', intervals: [0, 3, 5, 7, 10]);
 
-  static const List<PlayScale> presets = [chromatic, major, minor, pentatonicMinor];
+  static const List<PlayScale> presets = [
+    chromatic,
+    major,
+    minor,
+    pentatonicMinor
+  ];
 
   static PlayScale byId(String id, {List<PlayScale> custom = const []}) {
     for (final scale in custom) {
@@ -51,7 +65,20 @@ class PlayScale {
 
   static String degreeLabel(PlayScale scale, int index) {
     if (scale.id == 'chromatic') {
-      const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+      const names = [
+        'C',
+        'C#',
+        'D',
+        'D#',
+        'E',
+        'F',
+        'F#',
+        'G',
+        'G#',
+        'A',
+        'A#',
+        'B'
+      ];
       return names[index % 12];
     }
     const labels = ['R', '2', '3', '4', '5', '6', '7'];
@@ -61,7 +88,20 @@ class PlayScale {
     return '${index + 1}';
   }
 
-  static const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  static const noteNames = [
+    'C',
+    'C#',
+    'D',
+    'D#',
+    'E',
+    'F',
+    'F#',
+    'G',
+    'G#',
+    'A',
+    'A#',
+    'B'
+  ];
 }
 
 /// Y touch position within pad/key → MIDI velocity.
@@ -90,8 +130,6 @@ int velocityFromY(
   }
   return (40 + shaped * 87).round().clamp(1, 127);
 }
-
-enum VelocityCurve { linear, soft, hard, fixed }
 
 extension VelocityCurveLabel on VelocityCurve {
   String get label => switch (this) {

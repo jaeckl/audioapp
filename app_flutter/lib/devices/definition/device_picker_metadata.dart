@@ -7,6 +7,8 @@ final class DevicePickerMetadata {
     required this.icon,
     required this.color,
     required this.category,
+    this.libraryCategory,
+    this.libraryTags = const [],
   });
 
   final String name;
@@ -14,4 +16,6 @@ final class DevicePickerMetadata {
   final IconData icon;
   final Color color;
   final String category;
+  final String? libraryCategory;
+  final List<String> libraryTags;
 }

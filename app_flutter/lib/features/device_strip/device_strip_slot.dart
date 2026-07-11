@@ -951,8 +951,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                     onDelete: widget.onDeleteRequest,
                     onLibrary: widget.onOpenLibrary != null
                         ? () => widget.onOpenLibrary!(
-                              DeviceLibraryRegistry.filterForDeviceType(
-                                  widget.device.type))
+                            libraryFilterForDeviceType(widget.device.type))
                         : null,
                     modActive: _modStripVisible,
                     onModToggle: () async {
@@ -1116,7 +1115,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
                 : null,
             onLoadSample: widget.onOpenLibrary != null
                 ? () => widget.onOpenLibrary!(
-                      DeviceLibraryRegistry.filterForDeviceType(widget.device.type))
+                    libraryFilterForDeviceType(widget.device.type))
                 : null,
             selectedTab: SamplerDeviceTab.values[_selectedTabIndex],
             modulatedParams: _modulatedParamIds,
@@ -1225,7 +1224,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             onOpenFullscreen: widget.onOpenSamplerEditor,
             onOpenWavetableLibrary: widget.onOpenLibrary != null
                 ? () => widget.onOpenLibrary!(
-                      DeviceLibraryRegistry.filterForDeviceType(widget.device.type))
+                    libraryFilterForDeviceType(widget.device.type))
                 : null,
             modulatedParams: _modulatedParamIds,
             automatedParams: _automatedParamIds,

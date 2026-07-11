@@ -81,7 +81,7 @@ def split(path: Path) -> None:
         if match is keeper:
             continue
         name = match.group(1)
-        filename = snake_case(name) + ".dart"
+        filename = f"{path.stem}_{snake_case(name)}.dart"
         if filename in used_names:
             raise ValueError(f"Part filename collision in {path}: {filename}")
         used_names.add(filename)
