@@ -1,8 +1,7 @@
 part of '../device_snapshot.dart';
 
 /// Phase-modulation (FM) synth device snapshot.
-class PhaseModSynthDeviceSnapshot extends DeviceSnapshot
-    implements VirtualStripHostSnapshot {
+class PhaseModSynthDeviceSnapshot extends DeviceSnapshot implements VirtualStripHostSnapshot {
   @override
   final List<DeviceSnapshot> audioFxDevices;
   @override
@@ -85,163 +84,26 @@ class PhaseModSynthDeviceSnapshot extends DeviceSnapshot
     this.noteFxDevices = const [],
   }) : super(type: 'phase_mod_synth');
 
-  final double pmOp1Ratio;
-  final double pmOp1Fine;
-  final double pmOp1Level;
-  final double pmOp1Wave;
-  final double pmOp1Attack;
-  final double pmOp1Decay;
-  final double pmOp1Sustain;
-  final double pmOp1Release;
-  final double pmOp1VelSense;
-  final double pmOp1KeyTrack;
+  final double pmOp1Ratio, pmOp1Fine, pmOp1Level, pmOp1Wave, pmOp1Attack, pmOp1Decay, pmOp1Sustain, pmOp1Release, pmOp1VelSense, pmOp1KeyTrack;
 
-  final double pmOp2Ratio;
-  final double pmOp2Fine;
-  final double pmOp2Level;
-  final double pmOp2Wave;
-  final double pmOp2Attack;
-  final double pmOp2Decay;
-  final double pmOp2Sustain;
-  final double pmOp2Release;
-  final double pmOp2VelSense;
-  final double pmOp2KeyTrack;
+  final double pmOp2Ratio, pmOp2Fine, pmOp2Level, pmOp2Wave, pmOp2Attack, pmOp2Decay, pmOp2Sustain, pmOp2Release, pmOp2VelSense, pmOp2KeyTrack;
 
-  final double pmOp3Ratio;
-  final double pmOp3Fine;
-  final double pmOp3Level;
-  final double pmOp3Wave;
-  final double pmOp3Attack;
-  final double pmOp3Decay;
-  final double pmOp3Sustain;
-  final double pmOp3Release;
-  final double pmOp3VelSense;
-  final double pmOp3KeyTrack;
+  final double pmOp3Ratio, pmOp3Fine, pmOp3Level, pmOp3Wave, pmOp3Attack, pmOp3Decay, pmOp3Sustain, pmOp3Release, pmOp3VelSense, pmOp3KeyTrack;
 
-  final double pmOp4Ratio;
-  final double pmOp4Fine;
-  final double pmOp4Level;
-  final double pmOp4Wave;
-  final double pmOp4Attack;
-  final double pmOp4Decay;
-  final double pmOp4Sustain;
-  final double pmOp4Release;
-  final double pmOp4VelSense;
-  final double pmOp4KeyTrack;
+  final double pmOp4Ratio, pmOp4Fine, pmOp4Level, pmOp4Wave, pmOp4Attack, pmOp4Decay, pmOp4Sustain, pmOp4Release, pmOp4VelSense, pmOp4KeyTrack;
 
   final int pmAlgoIndex;
-  final double pmFeedback;
-  final double pmUnisonVoices;
-  final double pmUnisonDetune;
-  final double pmGlide;
-  final double pmMono;
-  final double pmLegato;
-  final double pmMasterVol;
-  final double pmLfoRate;
-  final double pmLfoShape;
-  final double pmLfoAmount;
+  final double pmFeedback, pmUnisonVoices, pmUnisonDetune, pmGlide, pmMono, pmLegato, pmMasterVol, pmLfoRate, pmLfoShape, pmLfoAmount;
   final int pmLfoDest;
-  final double pmVibratoDepth;
-  final double pmVibratoRate;
+  final double pmVibratoDepth, pmVibratoRate;
 
-  final double filterCutoff;
-  final double filterQ;
+  final double filterCutoff, filterQ;
   final int filterMode;
-  final double filterEnvAmount;
-  final double filterAttack;
-  final double filterDecay;
-  final double filterSustain;
-  final double filterRelease;
-  final double filterKeyTrack;
+  final double filterEnvAmount, filterAttack, filterDecay, filterSustain, filterRelease, filterKeyTrack;
 
-  final double attack;
-  final double decay;
-  final double sustain;
-  final double release;
+  final double attack, decay, sustain, release;
 
-  factory PhaseModSynthDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
-    final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
-    final outputPanel = map['outputPanel'] as Map<dynamic, dynamic>? ?? {};
-    final meters = map['meters'] as Map<dynamic, dynamic>? ?? {};
-    return PhaseModSynthDeviceSnapshot(
-      id: map['id'] as String? ?? '',
-      gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
-      pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
-      bypassed: readBypass(map['bypass']),
-      meterGainReductionDb:
-          (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
-      meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
-      pmOp1Ratio: (params['pmOp1Ratio'] as num?)?.toDouble() ?? 0.0625,
-      pmOp1Fine: (params['pmOp1Fine'] as num?)?.toDouble() ?? 0.5,
-      pmOp1Level: (params['pmOp1Level'] as num?)?.toDouble() ?? 0.8,
-      pmOp1Wave: (params['pmOp1Wave'] as num?)?.toDouble() ?? 0.0,
-      pmOp1Attack: (params['pmOp1Attack'] as num?)?.toDouble() ?? 0.01,
-      pmOp1Decay: (params['pmOp1Decay'] as num?)?.toDouble() ?? 0.3,
-      pmOp1Sustain: (params['pmOp1Sustain'] as num?)?.toDouble() ?? 0.8,
-      pmOp1Release: (params['pmOp1Release'] as num?)?.toDouble() ?? 0.4,
-      pmOp1VelSense: (params['pmOp1VelSense'] as num?)?.toDouble() ?? 1.0,
-      pmOp1KeyTrack: (params['pmOp1KeyTrack'] as num?)?.toDouble() ?? 0.0,
-      pmOp2Ratio: (params['pmOp2Ratio'] as num?)?.toDouble() ?? 0.4375,
-      pmOp2Fine: (params['pmOp2Fine'] as num?)?.toDouble() ?? 0.5,
-      pmOp2Level: (params['pmOp2Level'] as num?)?.toDouble() ?? 0.4,
-      pmOp2Wave: (params['pmOp2Wave'] as num?)?.toDouble() ?? 0.0,
-      pmOp2Attack: (params['pmOp2Attack'] as num?)?.toDouble() ?? 0.01,
-      pmOp2Decay: (params['pmOp2Decay'] as num?)?.toDouble() ?? 0.3,
-      pmOp2Sustain: (params['pmOp2Sustain'] as num?)?.toDouble() ?? 0.8,
-      pmOp2Release: (params['pmOp2Release'] as num?)?.toDouble() ?? 0.4,
-      pmOp2VelSense: (params['pmOp2VelSense'] as num?)?.toDouble() ?? 1.0,
-      pmOp2KeyTrack: (params['pmOp2KeyTrack'] as num?)?.toDouble() ?? 0.0,
-      pmOp3Ratio: (params['pmOp3Ratio'] as num?)?.toDouble() ?? 0.75,
-      pmOp3Fine: (params['pmOp3Fine'] as num?)?.toDouble() ?? 0.5,
-      pmOp3Level: (params['pmOp3Level'] as num?)?.toDouble() ?? 0.0,
-      pmOp3Wave: (params['pmOp3Wave'] as num?)?.toDouble() ?? 0.0,
-      pmOp3Attack: (params['pmOp3Attack'] as num?)?.toDouble() ?? 0.01,
-      pmOp3Decay: (params['pmOp3Decay'] as num?)?.toDouble() ?? 0.3,
-      pmOp3Sustain: (params['pmOp3Sustain'] as num?)?.toDouble() ?? 0.8,
-      pmOp3Release: (params['pmOp3Release'] as num?)?.toDouble() ?? 0.4,
-      pmOp3VelSense: (params['pmOp3VelSense'] as num?)?.toDouble() ?? 1.0,
-      pmOp3KeyTrack: (params['pmOp3KeyTrack'] as num?)?.toDouble() ?? 0.0,
-      pmOp4Ratio: (params['pmOp4Ratio'] as num?)?.toDouble() ?? 0.375,
-      pmOp4Fine: (params['pmOp4Fine'] as num?)?.toDouble() ?? 0.5,
-      pmOp4Level: (params['pmOp4Level'] as num?)?.toDouble() ?? 0.0,
-      pmOp4Wave: (params['pmOp4Wave'] as num?)?.toDouble() ?? 0.0,
-      pmOp4Attack: (params['pmOp4Attack'] as num?)?.toDouble() ?? 0.01,
-      pmOp4Decay: (params['pmOp4Decay'] as num?)?.toDouble() ?? 0.3,
-      pmOp4Sustain: (params['pmOp4Sustain'] as num?)?.toDouble() ?? 0.8,
-      pmOp4Release: (params['pmOp4Release'] as num?)?.toDouble() ?? 0.4,
-      pmOp4VelSense: (params['pmOp4VelSense'] as num?)?.toDouble() ?? 1.0,
-      pmOp4KeyTrack: (params['pmOp4KeyTrack'] as num?)?.toDouble() ?? 0.0,
-      pmAlgoIndex: (params['pmAlgoIndex'] as num?)?.toInt() ?? 0,
-      pmFeedback: (params['pmFeedback'] as num?)?.toDouble() ?? 0.0,
-      pmUnisonVoices: (params['pmUnisonVoices'] as num?)?.toDouble() ?? 0.0,
-      pmUnisonDetune: (params['pmUnisonDetune'] as num?)?.toDouble() ?? 0.15,
-      pmGlide: (params['pmGlide'] as num?)?.toDouble() ?? 0.0,
-      pmMono: (params['pmMono'] as num?)?.toDouble() ?? 0.0,
-      pmLegato: (params['pmLegato'] as num?)?.toDouble() ?? 0.0,
-      pmMasterVol: (params['pmMasterVol'] as num?)?.toDouble() ?? 0.85,
-      pmLfoRate: (params['pmLfoRate'] as num?)?.toDouble() ?? 0.2,
-      pmLfoShape: (params['pmLfoShape'] as num?)?.toDouble() ?? 0.0,
-      pmLfoAmount: (params['pmLfoAmount'] as num?)?.toDouble() ?? 0.0,
-      pmLfoDest: (params['pmLfoDest'] as num?)?.toInt() ?? 0,
-      pmVibratoDepth: (params['pmVibratoDepth'] as num?)?.toDouble() ?? 0.0,
-      pmVibratoRate: (params['pmVibratoRate'] as num?)?.toDouble() ?? 0.3,
-      filterCutoff: (params['filterCutoff'] as num?)?.toDouble() ?? 1.0,
-      filterQ: (params['filterQ'] as num?)?.toDouble() ?? 0.35,
-      filterMode: (params['filterMode'] as num?)?.toInt() ?? 0,
-      filterEnvAmount: (params['filterEnvAmount'] as num?)?.toDouble() ?? 0.5,
-      filterAttack: (params['filterAttack'] as num?)?.toDouble() ?? 0.05,
-      filterDecay: (params['filterDecay'] as num?)?.toDouble() ?? 0.35,
-      filterSustain: (params['filterSustain'] as num?)?.toDouble() ?? 0.4,
-      filterRelease: (params['filterRelease'] as num?)?.toDouble() ?? 0.45,
-      filterKeyTrack: (params['filterKeyTrack'] as num?)?.toDouble() ?? 0.0,
-      attack: (params['attack'] as num?)?.toDouble() ?? 0.01,
-      decay: (params['decay'] as num?)?.toDouble() ?? 0.3,
-      sustain: (params['sustain'] as num?)?.toDouble() ?? 0.7,
-      release: (params['release'] as num?)?.toDouble() ?? 0.4,
-      audioFxDevices: parseDeviceList(map, 'audioFxDevices'),
-      noteFxDevices: parseDeviceList(map, 'noteFxDevices'),
-    );
-  }
+  factory PhaseModSynthDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) => _phaseModSynthFromMap(map);
 
   @override
   PhaseModSynthDeviceSnapshot copyWith({
@@ -402,79 +264,5 @@ class PhaseModSynthDeviceSnapshot extends DeviceSnapshot
   }
 
   @override
-  PhaseModSynthDeviceSnapshot withParameter(String parameterId, double value) {
-    return switch (parameterId) {
-      'gain' => copyWith(gain: value),
-      'pan' => copyWith(pan: value),
-      'bypass' => copyWith(bypassed: value >= 0.5),
-      'pmOp1Ratio' => copyWith(pmOp1Ratio: value),
-      'pmOp1Fine' => copyWith(pmOp1Fine: value),
-      'pmOp1Level' => copyWith(pmOp1Level: value),
-      'pmOp1Wave' => copyWith(pmOp1Wave: value),
-      'pmOp1Attack' => copyWith(pmOp1Attack: value),
-      'pmOp1Decay' => copyWith(pmOp1Decay: value),
-      'pmOp1Sustain' => copyWith(pmOp1Sustain: value),
-      'pmOp1Release' => copyWith(pmOp1Release: value),
-      'pmOp1VelSense' => copyWith(pmOp1VelSense: value),
-      'pmOp1KeyTrack' => copyWith(pmOp1KeyTrack: value),
-      'pmOp2Ratio' => copyWith(pmOp2Ratio: value),
-      'pmOp2Fine' => copyWith(pmOp2Fine: value),
-      'pmOp2Level' => copyWith(pmOp2Level: value),
-      'pmOp2Wave' => copyWith(pmOp2Wave: value),
-      'pmOp2Attack' => copyWith(pmOp2Attack: value),
-      'pmOp2Decay' => copyWith(pmOp2Decay: value),
-      'pmOp2Sustain' => copyWith(pmOp2Sustain: value),
-      'pmOp2Release' => copyWith(pmOp2Release: value),
-      'pmOp2VelSense' => copyWith(pmOp2VelSense: value),
-      'pmOp2KeyTrack' => copyWith(pmOp2KeyTrack: value),
-      'pmOp3Ratio' => copyWith(pmOp3Ratio: value),
-      'pmOp3Fine' => copyWith(pmOp3Fine: value),
-      'pmOp3Level' => copyWith(pmOp3Level: value),
-      'pmOp3Wave' => copyWith(pmOp3Wave: value),
-      'pmOp3Attack' => copyWith(pmOp3Attack: value),
-      'pmOp3Decay' => copyWith(pmOp3Decay: value),
-      'pmOp3Sustain' => copyWith(pmOp3Sustain: value),
-      'pmOp3Release' => copyWith(pmOp3Release: value),
-      'pmOp3VelSense' => copyWith(pmOp3VelSense: value),
-      'pmOp3KeyTrack' => copyWith(pmOp3KeyTrack: value),
-      'pmOp4Ratio' => copyWith(pmOp4Ratio: value),
-      'pmOp4Fine' => copyWith(pmOp4Fine: value),
-      'pmOp4Level' => copyWith(pmOp4Level: value),
-      'pmOp4Wave' => copyWith(pmOp4Wave: value),
-      'pmOp4Attack' => copyWith(pmOp4Attack: value),
-      'pmOp4Decay' => copyWith(pmOp4Decay: value),
-      'pmOp4Sustain' => copyWith(pmOp4Sustain: value),
-      'pmOp4Release' => copyWith(pmOp4Release: value),
-      'pmOp4VelSense' => copyWith(pmOp4VelSense: value),
-      'pmOp4KeyTrack' => copyWith(pmOp4KeyTrack: value),
-      'pmAlgoIndex' => copyWith(pmAlgoIndex: value.round()),
-      'pmFeedback' => copyWith(pmFeedback: value),
-      'pmUnisonVoices' => copyWith(pmUnisonVoices: value),
-      'pmUnisonDetune' => copyWith(pmUnisonDetune: value),
-      'pmGlide' => copyWith(pmGlide: value),
-      'pmMono' => copyWith(pmMono: value),
-      'pmLegato' => copyWith(pmLegato: value),
-      'pmMasterVol' => copyWith(pmMasterVol: value),
-      'pmLfoRate' => copyWith(pmLfoRate: value),
-      'pmLfoShape' => copyWith(pmLfoShape: value),
-      'pmLfoAmount' => copyWith(pmLfoAmount: value),
-      'pmLfoDest' => copyWith(pmLfoDest: value.round()),
-      'pmVibratoDepth' => copyWith(pmVibratoDepth: value),
-      'pmVibratoRate' => copyWith(pmVibratoRate: value),
-      'filterCutoff' => copyWith(filterCutoff: value),
-      'filterQ' => copyWith(filterQ: value),
-      'filterMode' => copyWith(filterMode: value.round().clamp(0, 5)),
-      'filterEnvAmount' => copyWith(filterEnvAmount: value),
-      'filterAttack' => copyWith(filterAttack: value),
-      'filterDecay' => copyWith(filterDecay: value),
-      'filterSustain' => copyWith(filterSustain: value),
-      'filterRelease' => copyWith(filterRelease: value),
-      'filterKeyTrack' => copyWith(filterKeyTrack: value),
-      'attack' => copyWith(attack: value),
-      'decay' => copyWith(decay: value),
-      'sustain' => copyWith(sustain: value),
-      'release' => copyWith(release: value),
-      _ => this,
-    };
-  }
+  PhaseModSynthDeviceSnapshot withParameter(String parameterId, double value) => _withParameterImpl(parameterId, value);
 }

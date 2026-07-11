@@ -44,6 +44,9 @@ part 'device_families/drum_machine_family_drum_machine_device_snapshot.dart';
 
 part 'device_snapshot_virtual_strip_host_snapshot.dart';
 part 'device_snapshot_virtual_strip_device_access.dart';
+part 'device_families/subtractive_synth_family_with_parameter_impl.dart';
+part 'device_families/phase_mod_synth_family_with_parameter_impl.dart';
+part 'device_families/phase_mod_synth_family_from_map.dart';
 /// Helper to parse an optional device-list key from engine JSON.
 List<DeviceSnapshot> parseDeviceList(Map<dynamic, dynamic> map, String key) {
   final raw = map[key];

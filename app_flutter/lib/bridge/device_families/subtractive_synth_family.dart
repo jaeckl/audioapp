@@ -1,8 +1,7 @@
 part of '../device_snapshot.dart';
 
 /// Subtractive synth device snapshot.
-class SubtractiveSynthDeviceSnapshot extends DeviceSnapshot
-    implements VirtualStripHostSnapshot {
+class SubtractiveSynthDeviceSnapshot extends DeviceSnapshot implements VirtualStripHostSnapshot {
   @override
   final List<DeviceSnapshot> audioFxDevices;
   @override
@@ -110,8 +109,7 @@ class SubtractiveSynthDeviceSnapshot extends DeviceSnapshot
       gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
       pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
       bypassed: readBypass(map['bypass']),
-      meterGainReductionDb:
-          (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
+      meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       osc1Shape: readOscShape(params, 'osc1Shape', 'osc1Wave', 0.5),
       osc2Shape: readOscShape(params, 'osc2Shape', 'osc2Wave', 0.5),
@@ -121,8 +119,7 @@ class SubtractiveSynthDeviceSnapshot extends DeviceSnapshot
       osc2Octave: (params['osc2Octave'] as num?)?.toDouble() ?? 0.5,
       osc2Semi: (params['osc2Semi'] as num?)?.toDouble() ?? 0.0,
       osc2Detune: (params['osc2Detune'] as num?)?.toDouble() ?? 0.5,
-      oscMix: (params['oscMix'] as num?)?.toDouble() ??
-          deriveOscMixFromLegacyLevels(params),
+      oscMix: (params['oscMix'] as num?)?.toDouble() ?? deriveOscMixFromLegacyLevels(params),
       osc1Sync: (params['osc1Sync'] as num?)?.toDouble() ?? 0.0,
       osc2Sync: (params['osc2Sync'] as num?)?.toDouble() ?? 0.0,
       noiseLevel: (params['noiseLevel'] as num?)?.toDouble() ?? 0.0,
@@ -135,8 +132,7 @@ class SubtractiveSynthDeviceSnapshot extends DeviceSnapshot
       filterSustain: (params['filterSustain'] as num?)?.toDouble() ?? 0.4,
       filterRelease: (params['filterRelease'] as num?)?.toDouble() ?? 0.45,
       glideMs: (params['glideMs'] as num?)?.toDouble() ?? 0.0,
-      velocitySensitivity:
-          (params['velocitySensitivity'] as num?)?.toDouble() ?? 1.0,
+      velocitySensitivity: (params['velocitySensitivity'] as num?)?.toDouble() ?? 1.0,
       preHpCutoff: (params['preHpCutoff'] as num?)?.toDouble() ?? 0.0,
       preHpRes: (params['preHpRes'] as num?)?.toDouble() ?? 0.2,
       preDrive: (params['preDrive'] as num?)?.toDouble() ?? 0.0,
@@ -268,55 +264,7 @@ class SubtractiveSynthDeviceSnapshot extends DeviceSnapshot
   }
 
   @override
-  SubtractiveSynthDeviceSnapshot withParameter(
-      String parameterId, double value) {
-    return switch (parameterId) {
-      'gain' => copyWith(gain: value),
-      'pan' => copyWith(pan: value),
-      'bypass' => copyWith(bypassed: value >= 0.5),
-      'attack' => copyWith(attack: value),
-      'decay' => copyWith(decay: value),
-      'sustain' => copyWith(sustain: value),
-      'release' => copyWith(release: value),
-      'filterCutoff' => copyWith(filterCutoff: value),
-      'filterQ' => copyWith(filterQ: value),
-      'filterMode' => copyWith(filterMode: value.round().clamp(0, 5)),
-      'osc1Shape' => copyWith(osc1Shape: value.clamp(0.0, 1.0)),
-      'osc2Shape' => copyWith(osc2Shape: value.clamp(0.0, 1.0)),
-      'osc1Octave' => copyWith(osc1Octave: value),
-      'osc1Semi' => copyWith(osc1Semi: value),
-      'osc1Detune' => copyWith(osc1Detune: value),
-      'osc2Octave' => copyWith(osc2Octave: value),
-      'osc2Semi' => copyWith(osc2Semi: value),
-      'osc2Detune' => copyWith(osc2Detune: value),
-      'oscMix' => copyWith(oscMix: value.clamp(0.0, 1.0)),
-      'osc1Sync' => copyWith(osc1Sync: value.clamp(0.0, 1.0)),
-      'osc2Sync' => copyWith(osc2Sync: value.clamp(0.0, 1.0)),
-      'noiseLevel' => copyWith(noiseLevel: value),
-      'oscMixMode' => copyWith(oscMixMode: value.round().clamp(0, 4)),
-      'unisonVoices' => copyWith(unisonVoices: value),
-      'unisonDetune' => copyWith(unisonDetune: value),
-      'filterEnvAmount' => copyWith(filterEnvAmount: value),
-      'filterAttack' => copyWith(filterAttack: value),
-      'filterDecay' => copyWith(filterDecay: value),
-      'filterSustain' => copyWith(filterSustain: value),
-      'filterRelease' => copyWith(filterRelease: value),
-      'glideMs' => copyWith(glideMs: value),
-      'velocitySensitivity' => copyWith(velocitySensitivity: value),
-      'preHpCutoff' => copyWith(preHpCutoff: value),
-      'preHpRes' => copyWith(preHpRes: value),
-      'preDrive' => copyWith(preDrive: value),
-      'mixFeedback' => copyWith(mixFeedback: value),
-      'globalPitch' => copyWith(globalPitch: value),
-      'filterKeyTrack' => copyWith(filterKeyTrack: value),
-      'filterDrive' => copyWith(filterDrive: value),
-      'filterShaper' => copyWith(filterShaper: value),
-      'filterFm' => copyWith(filterFm: value),
-      'filterShaperMode' =>
-        copyWith(filterShaperMode: value.round().clamp(0, 3)),
-      'synthLegato' => copyWith(synthLegato: value >= 0.5 ? 1.0 : 0.0),
-      'synthMono' => copyWith(synthMono: value >= 0.5 ? 1.0 : 0.0),
-      _ => this,
-    };
-  }
+  SubtractiveSynthDeviceSnapshot withParameter(String parameterId, double value) =>
+      _withParameterImpl(parameterId, value);
+
 }

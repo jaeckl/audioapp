@@ -19,6 +19,9 @@ part 'modulation_edge_snapshot.dart';
 
 part 'project_snapshot_track_snapshot_devices.dart';
 
+part 'lfo_snapshot_apply_param_update.dart';
+part 'lfo_snapshot_with_step_value.dart';
+part 'lfo_snapshot_copy_with.dart';
 class ProjectSnapshot {
   const ProjectSnapshot({
     required this.bpm,
