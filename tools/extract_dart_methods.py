@@ -16,6 +16,11 @@ def method_match(text: str, name: str) -> re.Match[str]:
         rf"[A-Za-z_][A-Za-z0-9_<>,?.\[\] ]*\s+{re.escape(name)}\s*\("
     )
     matches = list(pattern.finditer(text))
+    if not matches:
+        multiline = re.compile(
+            rf"(?m)^  [^\n]+\n      {re.escape(name)}\s*\("
+        )
+        matches = list(multiline.finditer(text))
     if len(matches) != 1:
         raise ValueError(f"Expected one declaration of {name}, found {len(matches)}")
     return matches[0]
