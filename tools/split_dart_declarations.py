@@ -65,8 +65,7 @@ def declaration_end(text: str, start: int) -> int:
 
 def split(path: Path) -> None:
     text = path.read_text(encoding="utf-8")
-    if re.search(r"(?m)^part\s+of\s+", text):
-        raise ValueError(f"Cannot split an existing part file: {path}")
+    part_of_match = re.search(r"(?m)^part\s+of\s+'([^']+)';", text)
     matches = list(DECLARATION.finditer(text))
     if len(matches) < 2:
         return
@@ -95,23 +94,38 @@ def split(path: Path) -> None:
     for _, _, start, end in reversed(extracted):
         remaining = remaining[:start] + remaining[end:]
 
-    directive_matches = list(
-        re.finditer(
-            r"(?m)^(?:library(?:\s+\w+)?|import\s+[^;]+|export\s+[^;]+|part\s+[^;]+);\s*$",
-            remaining,
+    if part_of_match:
+        parent = (path.parent / part_of_match.group(1)).resolve()
+        parent_text = parent.read_text(encoding="utf-8")
+        parent_directives = list(
+            re.finditer(r"(?m)^part\s+'[^']+';\s*$", parent_text)
         )
-    )
-    insertion = directive_matches[-1].end() if directive_matches else 0
-    directives = ("\n" if insertion else "") + "\n".join(
-        f"part '{filename}';" for _, filename, _, _ in extracted
-    ) + ("\n\n" if not insertion else "")
-    remaining = remaining[:insertion] + directives + remaining[insertion:]
+        insertion = parent_directives[-1].end()
+        directives = "\n" + "\n".join(
+            f"part '{(path.parent / filename).relative_to(parent.parent).as_posix()}';"
+            for _, filename, _, _ in extracted
+        )
+        parent_text = parent_text[:insertion] + directives + parent_text[insertion:]
+        parent.write_text(parent_text, encoding="utf-8")
+    else:
+        directive_matches = list(
+            re.finditer(
+                r"(?m)^(?:library(?:\s+\w+)?|import\s+[^;]+|export\s+[^;]+|part\s+[^;]+);\s*$",
+                remaining,
+            )
+        )
+        insertion = directive_matches[-1].end() if directive_matches else 0
+        directives = ("\n" if insertion else "") + "\n".join(
+            f"part '{filename}';" for _, filename, _, _ in extracted
+        ) + ("\n\n" if not insertion else "")
+        remaining = remaining[:insertion] + directives + remaining[insertion:]
     path.write_text(remaining.rstrip() + "\n", encoding="utf-8")
 
     for _, filename, start, end in extracted:
         content = text[start:end].strip()
+        part_owner = part_of_match.group(1) if part_of_match else path.name
         (path.parent / filename).write_text(
-            f"part of '{path.name}';\n\n{content}\n", encoding="utf-8"
+            f"part of '{part_owner}';\n\n{content}\n", encoding="utf-8"
         )
 
 

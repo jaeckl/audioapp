@@ -24,6 +24,24 @@ part 'device_families/analysis_family.dart';
 part 'device_families/chain_family.dart';
 part 'device_families/granular_family.dart';
 
+part 'device_families/effect_family_delay_device_snapshot.dart';
+part 'device_families/effect_family_reverb_device_snapshot.dart';
+part 'device_families/effect_family_chorus_device_snapshot.dart';
+part 'device_families/effect_family_phaser_device_snapshot.dart';
+part 'device_families/effect_family_bitcrusher_device_snapshot.dart';
+part 'device_families/effect_family_distortion_device_snapshot.dart';
+part 'device_families/effect_family_tremolo_device_snapshot.dart';
+part 'device_families/effect_family_stutter_device_snapshot.dart';
+part 'device_families/drum_generator_family_kick_generator_device_snapshot.dart';
+part 'device_families/drum_generator_family_snare_generator_device_snapshot.dart';
+part 'device_families/drum_generator_family_clap_generator_device_snapshot.dart';
+part 'device_families/drum_generator_family_cymbal_generator_device_snapshot.dart';
+part 'device_families/drum_generator_family_crash_generator_device_snapshot.dart';
+part 'device_families/frequency_fx_family_filter_device_snapshot.dart';
+part 'device_families/frequency_fx_family_four_band_eq_device_snapshot.dart';
+part 'device_families/frequency_fx_family_frequency_shifter_device_snapshot.dart';
+part 'device_families/drum_machine_family_drum_machine_device_snapshot.dart';
+
 /// Helper to parse an optional device-list key from engine JSON.
 List<DeviceSnapshot> parseDeviceList(Map<dynamic, dynamic> map, String key) {
   final raw = map[key];

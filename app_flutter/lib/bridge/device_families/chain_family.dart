@@ -25,9 +25,7 @@ class ChainDeviceSnapshot extends DeviceSnapshot {
       bypassed: readBypass(map['bypass']),
       mix: (p['chainMix'] as num?)?.toDouble() ?? 1,
       chainGain: (p['chainGain'] as num?)?.toDouble() ?? 1,
-      devices: (map['devices'] as List<dynamic>? ?? const [])
-          .map((v) => DeviceSnapshot.fromMap(v as Map<dynamic, dynamic>))
-          .toList(growable: false),
+      devices: parseDeviceList(map, 'devices'),
     );
   }
 
