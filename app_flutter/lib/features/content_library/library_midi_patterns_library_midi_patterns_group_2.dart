@@ -1,0 +1,92 @@
+part of 'library_midi_patterns.dart';
+
+final Map<String, LibraryMidiPattern> _library_midi_patternsGroup2 = {
+  'edm-melody-pluck': LibraryMidiPattern(
+    lengthBeats: LibraryMidiPatterns._loop16,
+    notes: [
+      for (final entry in [
+        (76, 0.0),
+        (74, 1.0),
+        (72, 2.0),
+        (69, 3.0),
+        (72, 4.0),
+        (74, 5.0),
+        (76, 6.0),
+        (79, 7.0),
+        (76, 8.0),
+        (74, 9.0),
+        (72, 10.0),
+        (69, 11.0),
+        (67, 12.0),
+        (69, 13.0),
+        (72, 14.0),
+        (74, 15.0),
+      ])
+        LibraryMidiPatterns._n(entry.$1, entry.$2, 0.35, 104),
+    ],
+  ),
+  'edm-melody-festival': LibraryMidiPattern(
+    lengthBeats: LibraryMidiPatterns._loop16,
+    notes: [
+      LibraryMidiPatterns._n(79, 0, 0.5, 114),
+      LibraryMidiPatterns._n(76, 0.5, 0.5, 110),
+      LibraryMidiPatterns._n(79, 1, 0.5, 114),
+      LibraryMidiPatterns._n(81, 2, 1, 116),
+      LibraryMidiPatterns._n(79, 4, 0.5, 112),
+      LibraryMidiPatterns._n(76, 5, 0.5, 108),
+      LibraryMidiPatterns._n(74, 6, 1, 106),
+      LibraryMidiPatterns._n(76, 8, 0.5, 110),
+      LibraryMidiPatterns._n(79, 9, 0.5, 112),
+      LibraryMidiPatterns._n(81, 10, 1.5, 116),
+      LibraryMidiPatterns._n(79, 12, 0.5, 112),
+      LibraryMidiPatterns._n(76, 13, 0.5, 108),
+      LibraryMidiPatterns._n(74, 14, 2, 106),
+    ],
+  ),
+  'edm-melody-night': LibraryMidiPattern(
+    lengthBeats: LibraryMidiPatterns._loop16,
+    notes: [
+      LibraryMidiPatterns._n(62, 0, 0.75, 98),
+      LibraryMidiPatterns._n(64, 1, 0.5, 100),
+      LibraryMidiPatterns._n(67, 2, 0.5, 102),
+      LibraryMidiPatterns._n(64, 3, 0.75, 100),
+      LibraryMidiPatterns._n(62, 4, 1, 98),
+      LibraryMidiPatterns._n(59, 6, 0.5, 94),
+      LibraryMidiPatterns._n(62, 7, 1, 98),
+      LibraryMidiPatterns._n(64, 8, 0.75, 100),
+      LibraryMidiPatterns._n(67, 9, 0.5, 102),
+      LibraryMidiPatterns._n(69, 10, 1, 104),
+      LibraryMidiPatterns._n(67, 12, 0.5, 102),
+      LibraryMidiPatterns._n(64, 13, 0.5, 100),
+      LibraryMidiPatterns._n(62, 14, 2, 98),
+    ],
+  ),
+  'edm-melody-rise': LibraryMidiPattern(
+    lengthBeats: LibraryMidiPatterns._loop16,
+    notes: [
+      LibraryMidiPatterns._n(60, 0, 0.5, 96),
+      LibraryMidiPatterns._n(62, 1, 0.5, 98),
+      LibraryMidiPatterns._n(64, 2, 0.5, 100),
+      LibraryMidiPatterns._n(67, 3, 0.5, 102),
+      LibraryMidiPatterns._n(69, 4, 0.5, 104),
+      LibraryMidiPatterns._n(72, 5, 0.5, 106),
+      LibraryMidiPatterns._n(74, 6, 0.5, 108),
+      LibraryMidiPatterns._n(76, 7, 0.5, 110),
+      LibraryMidiPatterns._n(79, 8, 1, 112),
+      LibraryMidiPatterns._n(81, 10, 1, 114),
+      LibraryMidiPatterns._n(84, 12, 2, 116),
+      LibraryMidiPatterns._n(81, 14, 2, 114),
+    ],
+  ),
+  'edm-melody-chant': LibraryMidiPattern(
+    lengthBeats: LibraryMidiPatterns._loop16,
+    notes: [
+      for (var rep = 0; rep < 4; rep++) ...[
+        LibraryMidiPatterns._n(67, rep * 4.0, 0.5, 108),
+        LibraryMidiPatterns._n(67, rep * 4.0 + 0.75, 0.25, 100),
+        LibraryMidiPatterns._n(64, rep * 4.0 + 1.5, 0.5, 104),
+        LibraryMidiPatterns._n(67, rep * 4.0 + 2.5, 0.75, 106),
+      ],
+    ],
+  ),
+};

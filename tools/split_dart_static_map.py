@@ -15,6 +15,7 @@ def split_map(
     prefix: str,
     max_lines: int,
     qualify: list[str],
+    value_type: str | None,
 ) -> None:
     text = source.read_text(encoding="utf-8")
     declaration = re.search(
@@ -76,7 +77,7 @@ def split_map(
         content = "".join(group)
         for member in qualify:
             content = re.sub(
-                rf"(?<![A-Za-z0-9_.]){re.escape(member)}\b",
+                rf"(?<![A-Za-z0-9_]){re.escape(member)}\b",
                 f"{owner}.{member}",
                 content,
             )
@@ -85,7 +86,7 @@ def split_map(
             raise ValueError(f"Refusing to overwrite {target}")
         target.write_text(
             f"part of '{source.name}';\n\n"
-            f"final Map<String, {('dynamic' if owner == 'PhaseModSynthPresets' else 'SubtractiveSynthPreset')}> "
+            f"final Map<String, {value_type or ('dynamic' if owner == 'PhaseModSynthPresets' else 'SubtractiveSynthPreset')}> "
             f"{identifier} = {{\n{content}}};\n",
             encoding="utf-8",
         )
@@ -102,6 +103,7 @@ def main() -> None:
     parser.add_argument("prefix")
     parser.add_argument("--max-lines", type=int, default=260)
     parser.add_argument("--qualify", nargs="*", default=[])
+    parser.add_argument("--value-type")
     args = parser.parse_args()
     split_map(
         args.source,
@@ -110,6 +112,7 @@ def main() -> None:
         args.prefix,
         args.max_lines,
         args.qualify,
+        args.value_type,
     )
 
 
