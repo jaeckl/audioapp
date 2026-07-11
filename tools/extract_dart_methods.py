@@ -58,9 +58,10 @@ def extract(source: Path, names: list[str]) -> None:
     original = source.read_text(encoding="utf-8")
     owner = re.search(r"(?m)^class\s+(\w+)", original)
     part = re.search(r"(?m)^part\s+of\s+'([^']+)';", original)
-    if not owner or not part:
-        raise ValueError(f"Expected one class in a part file: {source}")
-    parent = (source.parent / part.group(1)).resolve()
+    if not owner:
+        raise ValueError(f"Expected one class: {source}")
+    parent = (source.parent / part.group(1)).resolve() if part else source.resolve()
+    part_owner = part.group(1) if part else source.name
     ranges: list[tuple[str, int, int, str]] = []
     for name in names:
         match = method_match(original, name)
@@ -79,19 +80,30 @@ def extract(source: Path, names: list[str]) -> None:
         if target.exists():
             raise ValueError(f"Refusing to overwrite {target}")
         extension = f"_{owner_name.lstrip('_')}{''.join(p.title() for p in name.split('_'))}"
-        outputs.append((target, f"part of '{part.group(1)}';\n\nextension {extension} on {owner_name} {{\n{body}\n}}\n"))
+        outputs.append((target, f"part of '{part_owner}';\n\nextension {extension} on {owner_name} {{\n{body}\n}}\n"))
 
     remaining = original
     for _, start, end, _ in sorted(ranges, key=lambda item: item[1], reverse=True):
         remaining = remaining[:start] + remaining[end:]
-    parent_text = parent.read_text(encoding="utf-8")
-    directives = list(re.finditer(r"(?m)^part\s+'[^']+';\s*$", parent_text))
-    insertion = directives[-1].end()
-    additions = "\n" + "\n".join(
-        f"part '{target.relative_to(parent.parent).as_posix()}';" for target, _ in outputs
-    )
-    source.write_text(remaining.rstrip() + "\n", encoding="utf-8")
-    parent.write_text(parent_text[:insertion] + additions + parent_text[insertion:], encoding="utf-8")
+    if parent == source.resolve():
+        directives = list(re.finditer(
+            r"(?m)^(?:import|export|part)\s+[^;]+;\s*$", remaining
+        ))
+        insertion = directives[-1].end()
+        additions = "\n" + "\n".join(
+            f"part '{target.name}';" for target, _ in outputs
+        )
+        remaining = remaining[:insertion] + additions + remaining[insertion:]
+        source.write_text(remaining.rstrip() + "\n", encoding="utf-8")
+    else:
+        parent_text = parent.read_text(encoding="utf-8")
+        directives = list(re.finditer(r"(?m)^part\s+'[^']+';\s*$", parent_text))
+        insertion = directives[-1].end()
+        additions = "\n" + "\n".join(
+            f"part '{target.relative_to(parent.parent).as_posix()}';" for target, _ in outputs
+        )
+        source.write_text(remaining.rstrip() + "\n", encoding="utf-8")
+        parent.write_text(parent_text[:insertion] + additions + parent_text[insertion:], encoding="utf-8")
     for target, content in outputs:
         target.write_text(content, encoding="utf-8")
 
