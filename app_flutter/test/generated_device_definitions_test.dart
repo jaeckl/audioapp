@@ -36,13 +36,36 @@ void main() {
         'cymbal_generator',
         'crash_generator',
         'drum_machine',
+        'audio_receiver',
+        'midi_receiver',
+        'midi_delay',
+        'oscilloscope',
+        'spectrum_analyzer',
+        'loudness_meter',
+        'stereo_imager',
+        'device_chain',
+        'track_gain',
       },
     );
     expect(
       generatedDeviceDefinitions
-          .where((definition) => definition.picker.category == 'Instruments')
+          .where((definition) =>
+              definition.picker.category == 'Instruments' &&
+              definition.typeId != 'device_chain')
           .every((definition) => definition.role == DeviceRole.instrument),
       isTrue,
+    );
+    expect(
+      generatedDeviceDefinitions
+          .singleWhere((definition) => definition.typeId == 'midi_delay')
+          .role,
+      DeviceRole.noteEffect,
+    );
+    expect(
+      generatedDeviceDefinitions
+          .singleWhere((definition) => definition.typeId == 'device_chain')
+          .role,
+      DeviceRole.utility,
     );
   });
 }

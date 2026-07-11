@@ -3,6 +3,10 @@
 
 import '../bridge/project_snapshot.dart';
 import 'definition/device_definition.dart';
+import 'analysis/loudness_meter_definition.dart';
+import 'analysis/oscilloscope_definition.dart';
+import 'analysis/spectrum_analyzer_definition.dart';
+import 'analysis/stereo_imager_definition.dart';
 import 'drums/clap_generator_definition.dart';
 import 'drums/crash_generator_definition.dart';
 import 'drums/cymbal_generator_definition.dart';
@@ -28,12 +32,21 @@ import 'mood_fx/bitcrusher_definition.dart';
 import 'mood_fx/distortion_definition.dart';
 import 'mood_fx/stutter_definition.dart';
 import 'mood_fx/tremolo_definition.dart';
+import 'routing/audio_receiver_definition.dart';
+import 'routing/midi_delay_definition.dart';
+import 'routing/midi_receiver_definition.dart';
 import 'time_fx/chorus_definition.dart';
 import 'time_fx/delay_definition.dart';
 import 'time_fx/phaser_definition.dart';
 import 'time_fx/reverb_definition.dart';
+import 'utility/device_chain_definition.dart';
+import 'utility/track_gain_definition.dart';
 
 final List<DeviceDefinition<DeviceSnapshot>> generatedDeviceDefinitions = [
+  LoudnessMeterDefinition(),
+  OscilloscopeDefinition(),
+  SpectrumAnalyzerDefinition(),
+  StereoImagerDefinition(),
   ClapGeneratorDefinition(),
   CrashGeneratorDefinition(),
   CymbalGeneratorDefinition(),
@@ -59,8 +72,13 @@ final List<DeviceDefinition<DeviceSnapshot>> generatedDeviceDefinitions = [
   DistortionDefinition(),
   StutterDefinition(),
   TremoloDefinition(),
+  AudioReceiverDefinition(),
+  MidiDelayDefinition(),
+  MidiReceiverDefinition(),
   ChorusDefinition(),
   DelayDefinition(),
   PhaserDefinition(),
   ReverbDefinition(),
+  DeviceChainDefinition(),
+  TrackGainDefinition(),
 ];

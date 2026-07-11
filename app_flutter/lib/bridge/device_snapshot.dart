@@ -67,7 +67,7 @@ sealed class DeviceSnapshot {
   factory DeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final type = map['type'] as String? ?? '';
     return switch (type) {
-      'track_gain' => TrackGainDeviceSnapshot.fromMap(map),
+      'track_gain' => deviceDefinitionRepository.parseSnapshot(map),
       'simple_oscillator' ||
       'simple_sampler' ||
       'subtractive_synth' ||
@@ -102,14 +102,16 @@ sealed class DeviceSnapshot {
       'frequency_shifter' ||
       'resonator_bank' =>
         deviceDefinitionRepository.parseSnapshot(map),
-      'audio_receiver' || 'midi_receiver' => RoutingDeviceSnapshot.fromMap(map),
-      'midi_delay' => MidiDelayDeviceSnapshot.fromMap(map),
-      'device_chain' => ChainDeviceSnapshot.fromMap(map),
+      'audio_receiver' ||
+      'midi_receiver' ||
+      'midi_delay' ||
+      'device_chain' =>
+        deviceDefinitionRepository.parseSnapshot(map),
       'oscilloscope' ||
       'spectrum_analyzer' ||
       'loudness_meter' ||
       'stereo_imager' =>
-        AnalysisDeviceSnapshot.fromMap(map),
+        deviceDefinitionRepository.parseSnapshot(map),
       _ => throw ArgumentError('Unknown device type: $type'),
     };
   }

@@ -1,26 +1,9 @@
 import '../../devices/device_repository.dart';
 import 'device_knob_sizes.dart';
-import 'routing_device_panel.dart';
-import 'midi_delay_panel.dart';
-import 'analysis_device_panel.dart';
-import 'chain_device_panel.dart';
 
 /// Device strip layout constants.
 class DeviceStripMetrics {
   const DeviceStripMetrics._();
-
-  static const _routingTypes = {
-    'audio_receiver',
-    'midi_receiver',
-    'midi_delay'
-  };
-  static const _analysisTypes = {
-    'oscilloscope',
-    'spectrum_analyzer',
-    'loudness_meter',
-    'stereo_imager',
-    'device_chain',
-  };
 
   /// Canonical sampler strip width (~⅔ of the original 520).
   static const double samplerDesignWidth = 348;
@@ -122,9 +105,6 @@ class DeviceStripMetrics {
   static double outputPanelWidthFor(String deviceType) {
     final definition = deviceDefinitionRepository.find(deviceType);
     if (definition != null) return definition.layout.outputPanelWidth;
-    if (deviceType == 'device_chain') return toolRailWidth;
-    if (_analysisTypes.contains(deviceType)) return stereoOutputPanelWidth;
-    if (_routingTypes.contains(deviceType)) return routingOutputPanelWidth;
     return stereoOutputPanelWidth;
   }
 
@@ -134,16 +114,6 @@ class DeviceStripMetrics {
     }
     final definition = deviceDefinitionRepository.find(deviceType);
     if (definition != null) return definition.layout.designWidth;
-    return switch (deviceType) {
-      'audio_receiver' || 'midi_receiver' => RoutingDevicePanel.designWidth,
-      'midi_delay' => MidiDelayPanel.designWidth,
-      'device_chain' => ChainDevicePanel.designWidth,
-      'oscilloscope' ||
-      'spectrum_analyzer' ||
-      'loudness_meter' ||
-      'stereo_imager' =>
-        AnalysisDevicePanel.designWidth,
-      _ => 280,
-    };
+    return 280;
   }
 }

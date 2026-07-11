@@ -109,13 +109,6 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
                   subtitle: Text(definition.picker.description),
                   onTap: () => Navigator.pop(context, definition.typeId),
                 ),
-              ListTile(
-                leading: const Icon(Icons.account_tree_outlined,
-                    color: Color(0xFF62C7B5)),
-                title: const Text('Chain'),
-                subtitle: const Text('Virtual device strip · mix & gain'),
-                onTap: () => Navigator.pop(context, 'device_chain'),
-              ),
               const Padding(
                 padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
                 child: Text(
@@ -168,6 +161,15 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
                       letterSpacing: 0.6,
                     )),
               ),
+              for (final definition in deviceDefinitionRepository.definitions
+                  .where((item) => item.picker.category == 'Routing'))
+                ListTile(
+                  leading: Icon(definition.picker.icon,
+                      color: definition.picker.color),
+                  title: Text(definition.picker.name),
+                  subtitle: Text(definition.picker.description),
+                  onTap: () => Navigator.pop(context, definition.typeId),
+                ),
               const Padding(
                 padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
                 child: Text('Analysis & Metering',
@@ -177,59 +179,16 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.6)),
               ),
-              for (final item in const [
-                (
-                  'oscilloscope',
-                  'Oscilloscope',
-                  'Waveform · trigger view',
-                  Icons.monitor_heart_outlined
-                ),
-                (
-                  'spectrum_analyzer',
-                  'Spectrum Analyzer',
-                  'Frequency energy · 20 Hz–20 kHz',
-                  Icons.equalizer
-                ),
-                (
-                  'loudness_meter',
-                  'Loudness Meter',
-                  'LUFS · integrated · true peak',
-                  Icons.speed
-                ),
-                (
-                  'stereo_imager',
-                  'Stereo Imager',
-                  'Vectorscope · phase correlation',
-                  Icons.blur_circular
-                ),
-              ])
+              for (final definition in deviceDefinitionRepository.definitions
+                  .where(
+                      (item) => item.picker.category == 'Analysis & Metering'))
                 ListTile(
-                  leading: Icon(item.$4, color: const Color(0xFF57D3C4)),
-                  title: Text(item.$2),
-                  subtitle: Text(item.$3),
-                  onTap: () => Navigator.pop(context, item.$1),
+                  leading: Icon(definition.picker.icon,
+                      color: definition.picker.color),
+                  title: Text(definition.picker.name),
+                  subtitle: Text(definition.picker.description),
+                  onTap: () => Navigator.pop(context, definition.typeId),
                 ),
-              ListTile(
-                leading:
-                    const Icon(Icons.call_received, color: Color(0xFF66D19E)),
-                title: const Text('Audio Receiver'),
-                subtitle: const Text('Receive any device audio output'),
-                onTap: () => Navigator.pop(context, 'audio_receiver'),
-              ),
-              ListTile(
-                leading:
-                    const Icon(Icons.call_received, color: Color(0xFFF08BB4)),
-                title: const Text('MIDI Receiver'),
-                subtitle: const Text('Receive notes from any track MIDI input'),
-                onTap: () => Navigator.pop(context, 'midi_receiver'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.schedule, color: Color(0xFFA78BFA)),
-                title: const Text('MIDI Delay'),
-                subtitle:
-                    const Text('Delay notes in seconds or tempo divisions'),
-                onTap: () => Navigator.pop(context, 'midi_delay'),
-              ),
               const Padding(
                 padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
                 child: Text(
