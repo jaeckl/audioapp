@@ -113,11 +113,13 @@ def extract(source: Path, names: list[str]) -> None:
         raise ValueError("Overlapping method ranges")
 
     outputs: list[tuple[Path, str]] = []
+    output_paths: set[Path] = set()
     owner_name = owner.group(1)
     for name, _, _, body in ranges:
         target = (source.parent / f"{source.stem}_{snake_case(name)}.dart").resolve()
-        if target.exists():
+        if target.exists() or target in output_paths:
             raise ValueError(f"Refusing to overwrite {target}")
+        output_paths.add(target)
         extension = (
             f"{owner_name.lstrip('_')}"
             f"{''.join(p.title() for p in name.split('_'))}Operation"
