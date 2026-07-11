@@ -1,16 +1,7 @@
 import 'piano_roll_metrics.dart';
 
-class MidiLaneDefinition {
-  const MidiLaneDefinition({
-    required this.pitch,
-    required this.name,
-    this.enabled = true,
-  });
-
-  final int pitch;
-  final String name;
-  final bool enabled;
-}
+part 'midi_lane_layout_midi_lane_definition.dart';
+part 'midi_lane_layout_midi_editor_mode.dart';
 
 class MidiLaneLayout {
   MidiLaneLayout(Iterable<MidiLaneDefinition> source, {int minimumRows = 8})
@@ -54,5 +45,3 @@ class MidiLaneLayout {
 
   static String defaultName(int pitch) => PianoRollMetrics.noteLabel(pitch);
 }
-
-enum MidiEditorMode { piano, drums }

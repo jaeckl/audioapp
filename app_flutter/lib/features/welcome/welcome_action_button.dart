@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'welcome_theme.dart';
 
-enum WelcomeActionEmphasis { primary, secondary }
+part 'welcome_action_button_welcome_action_emphasis.dart';
 
 /// Pill-shaped call-to-action button used on the welcome screen, styled to
 /// match the app's dark bordered-panel chrome instead of stock Material
@@ -27,7 +27,8 @@ class WelcomeActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final background = _isPrimary ? WelcomeTheme.accent : WelcomeTheme.panelBackground;
+    final background =
+        _isPrimary ? WelcomeTheme.accent : WelcomeTheme.panelBackground;
     final border = _isPrimary ? WelcomeTheme.accent : WelcomeTheme.panelBorder;
     final foreground = _isPrimary ? Colors.white : WelcomeTheme.textPrimary;
 
@@ -51,7 +52,8 @@ class WelcomeActionButton extends StatelessWidget {
                 SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: foreground),
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: foreground),
                 )
               else
                 Icon(icon, size: 20, color: foreground),
@@ -59,7 +61,10 @@ class WelcomeActionButton extends StatelessWidget {
               Flexible(
                 child: Text(
                   label,
-                  style: TextStyle(color: foreground, fontSize: 15, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      color: foreground,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),

@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 import 'piano_roll_theme.dart';
 
+part 'piano_roll_edit_sheet_section_title.dart';
+part 'piano_roll_edit_sheet_action_tile.dart';
+part 'piano_roll_edit_sheet_nudge_button.dart';
+
 class PianoRollEditSheet extends StatelessWidget {
   const PianoRollEditSheet({
     super.key,
@@ -149,98 +153,6 @@ class PianoRollEditSheet extends StatelessWidget {
             onTap: onDeleteSelected,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        color: PianoRollTheme.label,
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-      ),
-    );
-  }
-}
-
-class _ActionTile extends StatelessWidget {
-  const _ActionTile({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.enabled = true,
-    this.destructive = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final bool enabled;
-  final bool destructive;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = !enabled
-        ? PianoRollTheme.labelMuted
-        : destructive
-            ? PianoRollTheme.saveError
-            : Colors.white;
-    return Material(
-      color: const Color(0xFF22222C),
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 18, color: color),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NudgeButton extends StatelessWidget {
-  const _NudgeButton({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0xFF22222C),
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: SizedBox(
-          width: 48,
-          height: 48,
-          child: Icon(icon, color: Colors.white, size: 28),
-        ),
       ),
     );
   }

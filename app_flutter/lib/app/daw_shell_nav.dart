@@ -1,107 +1,10 @@
 import 'package:flutter/material.dart';
 
+part 'daw_shell_nav_daw_shell_nav_edge.dart';
+part 'daw_shell_nav_daw_shell_nav_geometry.dart';
+
 /// Where the shell nav bar sits relative to the device (physical bottom edge in portrait).
-enum DawShellNavEdge { bottom, left, right, top }
-
 /// Layout for the nav bar: fixed 64dp strip on the device's portrait-bottom edge.
-class DawShellNavGeometry {
-  const DawShellNavGeometry({
-    required this.edge,
-    required this.contentPadding,
-    required this.iconQuarterTurns,
-  });
-
-  final DawShellNavEdge edge;
-  final EdgeInsets contentPadding;
-  final int iconQuarterTurns;
-
-  static const double thickness = 64;
-
-  static DawShellNavGeometry of(BuildContext context) {
-    final viewPadding = MediaQuery.viewPaddingOf(context);
-    final rotation = _effectiveRotation(context);
-
-    switch (rotation) {
-      case 1:
-        return DawShellNavGeometry(
-          edge: DawShellNavEdge.left,
-          iconQuarterTurns: 1,
-          contentPadding: EdgeInsets.only(left: thickness + viewPadding.left),
-        );
-      case 3:
-        return DawShellNavGeometry(
-          edge: DawShellNavEdge.right,
-          iconQuarterTurns: 3,
-          contentPadding: EdgeInsets.only(right: thickness + viewPadding.right),
-        );
-      case 2:
-        return DawShellNavGeometry(
-          edge: DawShellNavEdge.top,
-          iconQuarterTurns: 2,
-          contentPadding: EdgeInsets.only(top: thickness + viewPadding.top),
-        );
-      case 0:
-      default:
-        return DawShellNavGeometry(
-          edge: DawShellNavEdge.bottom,
-          iconQuarterTurns: 0,
-          contentPadding: EdgeInsets.only(bottom: thickness + viewPadding.bottom),
-        );
-    }
-  }
-
-  Widget position({required BuildContext context, required Widget child}) {
-    final viewPadding = MediaQuery.viewPaddingOf(context);
-
-    switch (edge) {
-      case DawShellNavEdge.left:
-        return Positioned(
-          top: 0,
-          bottom: 0,
-          left: 0,
-          width: thickness + viewPadding.left,
-          child: Padding(
-            padding: EdgeInsets.only(left: viewPadding.left),
-            child: child,
-          ),
-        );
-      case DawShellNavEdge.right:
-        return Positioned(
-          top: 0,
-          bottom: 0,
-          right: 0,
-          width: thickness + viewPadding.right,
-          child: Padding(
-            padding: EdgeInsets.only(right: viewPadding.right),
-            child: child,
-          ),
-        );
-      case DawShellNavEdge.top:
-        return Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          height: thickness + viewPadding.top,
-          child: Padding(
-            padding: EdgeInsets.only(top: viewPadding.top),
-            child: child,
-          ),
-        );
-      case DawShellNavEdge.bottom:
-        return Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: thickness + viewPadding.bottom,
-          child: Padding(
-            padding: EdgeInsets.only(bottom: viewPadding.bottom),
-            child: child,
-          ),
-        );
-    }
-  }
-}
-
 /// Shell navigation pinned to the device's portrait-bottom edge; icons rotate with the screen.
 class DawShellNav extends StatelessWidget {
   const DawShellNav({
@@ -120,20 +23,35 @@ class DawShellNav extends StatelessWidget {
   static const Color _selectedColor = Color(0xFFE8E8F0);
   static const Color _unselectedColor = Color(0xFF8A8A9A);
 
-  static const _destinations = <({IconData icon, IconData selectedIcon, String label})>[
+  static const _destinations =
+      <({IconData icon, IconData selectedIcon, String label})>[
     (icon: Icons.tune_outlined, selectedIcon: Icons.tune, label: 'Devices'),
     (icon: Icons.piano_outlined, selectedIcon: Icons.piano, label: 'Keys'),
-    (icon: Icons.graphic_eq_outlined, selectedIcon: Icons.graphic_eq, label: 'Mixer'),
-    (icon: Icons.library_music_outlined, selectedIcon: Icons.library_music, label: 'Library'),
-    (icon: Icons.folder_open_outlined, selectedIcon: Icons.folder_open, label: 'Project'),
+    (
+      icon: Icons.graphic_eq_outlined,
+      selectedIcon: Icons.graphic_eq,
+      label: 'Mixer'
+    ),
+    (
+      icon: Icons.library_music_outlined,
+      selectedIcon: Icons.library_music,
+      label: 'Library'
+    ),
+    (
+      icon: Icons.folder_open_outlined,
+      selectedIcon: Icons.folder_open,
+      label: 'Project'
+    ),
   ];
 
   bool get _isVertical =>
-      geometry.edge == DawShellNavEdge.left || geometry.edge == DawShellNavEdge.right;
+      geometry.edge == DawShellNavEdge.left ||
+      geometry.edge == DawShellNavEdge.right;
 
   @override
   Widget build(BuildContext context) {
-    final items = List<Widget>.generate(_destinations.length, _buildDestination);
+    final items =
+        List<Widget>.generate(_destinations.length, _buildDestination);
 
     return Material(
       color: _backgroundColor,
@@ -176,7 +94,8 @@ class DawShellNav extends StatelessWidget {
               : null,
           child: geometry.iconQuarterTurns == 0
               ? icon
-              : RotatedBox(quarterTurns: geometry.iconQuarterTurns, child: icon),
+              : RotatedBox(
+                  quarterTurns: geometry.iconQuarterTurns, child: icon),
         ),
       ),
     );

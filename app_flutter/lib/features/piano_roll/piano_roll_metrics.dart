@@ -1,6 +1,11 @@
-/// Layout tokens and helpers for the piano roll editor.
 library;
 
+part 'piano_roll_metrics_piano_roll_tool.dart';
+part 'piano_roll_metrics_piano_roll_draw_pattern.dart';
+part 'piano_roll_metrics_piano_roll_snap.dart';
+part 'piano_roll_metrics_piano_roll_grid_settings.dart';
+
+/// Layout tokens and helpers for the piano roll editor.
 class PianoRollMetrics {
   const PianoRollMetrics._();
 
@@ -135,26 +140,6 @@ class PianoRollMetrics {
   }
 }
 
-enum PianoRollTool { select, draw }
-
-enum PianoRollDrawPattern { single, repeat }
-
-enum PianoRollSnap {
-  off,
-
-  whole,
-
-  half,
-
-  quarter,
-
-  eighth,
-
-  sixteenth,
-
-  thirtySecond,
-}
-
 extension PianoRollSnapLabel on PianoRollSnap {
   String get shortLabel => switch (this) {
         PianoRollSnap.off => 'Off',
@@ -180,51 +165,5 @@ extension PianoRollSnapLabel on PianoRollSnap {
     };
 
     return triplet ? base * (2 / 3) : base;
-  }
-}
-
-class PianoRollGridSettings {
-  const PianoRollGridSettings({
-    this.snap = PianoRollSnap.sixteenth,
-    this.triplet = false,
-    this.defaultNoteBeats = PianoRollMetrics.defaultNoteBeats,
-  });
-
-  final PianoRollSnap snap;
-
-  final bool triplet;
-
-  final double defaultNoteBeats;
-
-  double get snapBeats => snap.beats(triplet: triplet);
-
-  PianoRollGridSettings copyWith({
-    PianoRollSnap? snap,
-    bool? triplet,
-    double? defaultNoteBeats,
-  }) {
-    return PianoRollGridSettings(
-      snap: snap ?? this.snap,
-      triplet: triplet ?? this.triplet,
-      defaultNoteBeats: defaultNoteBeats ?? this.defaultNoteBeats,
-    );
-  }
-
-  double snapBeat(double beat) {
-    if (snap == PianoRollSnap.off || snapBeats <= 0) return beat;
-
-    return (beat / snapBeats).round() * snapBeats;
-  }
-
-  /// Duration for a newly inserted or tap-drawn note (not drag-painted length).
-  double get insertNoteDurationBeats {
-    var duration = defaultNoteBeats;
-    if (snap != PianoRollSnap.off && snapBeats > 0) {
-      duration = snapBeat(duration);
-      if (duration < snapBeats) {
-        duration = snapBeats;
-      }
-    }
-    return duration;
   }
 }

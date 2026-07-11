@@ -5,6 +5,9 @@ import 'automation_editor_theme.dart';
 import 'automation_curve_shapes.dart';
 import 'automation_shape_icon.dart';
 
+part 'automation_editor_tool_dock_dock_button.dart';
+part 'automation_editor_tool_dock_shape_dock_button.dart';
+
 class AutomationEditorToolDock extends StatelessWidget {
   const AutomationEditorToolDock({
     super.key,
@@ -114,82 +117,6 @@ class AutomationEditorToolDock extends StatelessWidget {
             ),
             const SizedBox(width: 4),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DockButton extends StatelessWidget {
-  const _DockButton({
-    required this.icon,
-    required this.activeIcon,
-    required this.active,
-    required this.onTap,
-    this.enabled = true,
-  });
-
-  final IconData icon;
-  final IconData activeIcon;
-  final bool active;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: active ? AutomationEditorTheme.dockActive : Colors.transparent,
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        child: SizedBox(
-          width: 40,
-          height: AutomationEditorMetrics.toolDockHeight,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                active ? activeIcon : icon,
-                size: 22,
-                color: enabled
-                    ? (active
-                        ? AutomationEditorTheme.dockIconActive
-                        : AutomationEditorTheme.dockIcon)
-                    : AutomationEditorTheme.labelMuted,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ShapeDockButton extends StatelessWidget {
-  const _ShapeDockButton({
-    required this.shape,
-    required this.active,
-    required this.onTap,
-  });
-
-  final AutomationCurveShape shape;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = active
-        ? AutomationEditorTheme.dockIconActive
-        : AutomationEditorTheme.dockIcon;
-    return Material(
-      color: active ? AutomationEditorTheme.dockActive : Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: SizedBox(
-          width: 38,
-          height: AutomationEditorMetrics.toolDockHeight,
-          child: Center(
-            child: AutomationShapeIcon(shape: shape, color: color),
-          ),
         ),
       ),
     );

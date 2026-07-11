@@ -81,7 +81,8 @@ def split(path: Path) -> None:
         if match is keeper:
             continue
         name = match.group(1)
-        filename = f"{path.stem}_{snake_case(name)}.dart"
+        privacy = "private_" if name.startswith("_") else ""
+        filename = f"{path.stem}_{privacy}{snake_case(name)}.dart"
         if filename in used_names:
             raise ValueError(f"Part filename collision in {path}: {filename}")
         used_names.add(filename)
@@ -95,7 +96,10 @@ def split(path: Path) -> None:
         remaining = remaining[:start] + remaining[end:]
 
     directive_matches = list(
-        re.finditer(r"(?m)^(?:import|export|part)\s+[^;]+;\s*$", remaining)
+        re.finditer(
+            r"(?m)^(?:library(?:\s+\w+)?|import\s+[^;]+|export\s+[^;]+|part\s+[^;]+);\s*$",
+            remaining,
+        )
     )
     insertion = directive_matches[-1].end() if directive_matches else 0
     directives = ("\n" if insertion else "") + "\n".join(

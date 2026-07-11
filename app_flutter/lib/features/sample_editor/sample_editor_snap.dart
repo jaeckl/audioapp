@@ -1,3 +1,5 @@
+part 'sample_editor_snap_sample_edit_snap_settings.dart';
+
 enum SampleEditSnap {
   off,
   half,
@@ -25,19 +27,4 @@ extension SampleEditSnapLabel on SampleEditSnap {
         SampleEditSnap.sixteenth => 0.0625,
         SampleEditSnap.thirtySecond => 0.03125,
       };
-}
-
-class SampleEditSnapSettings {
-  const SampleEditSnapSettings({this.snap = SampleEditSnap.off});
-
-  final SampleEditSnap snap;
-
-  SampleEditSnapSettings copyWith({SampleEditSnap? snap}) =>
-      SampleEditSnapSettings(snap: snap ?? this.snap);
-
-  double snapSource(double value) {
-    if (snap == SampleEditSnap.off) return value.clamp(0.0, 1.0);
-    final step = snap.sourceStep;
-    return ((value / step).round() * step).clamp(0.0, 1.0);
-  }
 }

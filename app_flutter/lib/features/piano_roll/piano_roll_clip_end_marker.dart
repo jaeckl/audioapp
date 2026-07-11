@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'piano_roll_theme.dart';
 
+part 'piano_roll_clip_end_marker_piano_roll_clip_end_line.dart';
+
 /// Draggable handle shown on the beat ruler at the clip end.
 class PianoRollClipEndPill extends StatelessWidget {
   const PianoRollClipEndPill({super.key});
@@ -32,19 +34,3 @@ class PianoRollClipEndPill extends StatelessWidget {
 }
 
 /// Vertical boundary line on the note canvas (pill lives on the ruler row).
-class PianoRollClipEndLine extends StatelessWidget {
-  const PianoRollClipEndLine({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: Container(
-          width: PianoRollTheme.clipEndLineWidth,
-          color: PianoRollTheme.clipBoundary,
-        ),
-      ),
-    );
-  }
-}
