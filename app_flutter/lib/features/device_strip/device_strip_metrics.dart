@@ -1,35 +1,14 @@
-import 'bass_synth_device_panel.dart';
-import '../../bridge/device_capabilities.dart';
 import '../../devices/device_repository.dart';
-import 'clap_generator_device_panel.dart';
-import 'crash_generator_device_panel.dart';
-import 'cymbal_generator_device_panel.dart';
 import 'device_knob_sizes.dart';
 import 'routing_device_panel.dart';
 import 'midi_delay_panel.dart';
-import 'kick_generator_device_panel.dart';
-import 'oscillator_device_panel.dart';
-import 'phase_mod_synth_device_panel.dart';
-import 'sampler_device_panel.dart';
-import 'snare_generator_device_panel.dart';
-import 'subtractive_synth_device_panel.dart';
-import 'wavetable_synth_device_panel.dart';
-import 'drum_machine_device_panel.dart';
 import 'analysis_device_panel.dart';
 import 'chain_device_panel.dart';
-import 'granular_device_panel.dart';
 
 /// Device strip layout constants.
 class DeviceStripMetrics {
   const DeviceStripMetrics._();
 
-  static const _drumTypes = {
-    'kick_generator',
-    'snare_generator',
-    'clap_generator',
-    'cymbal_generator',
-    'crash_generator',
-  };
   static const _routingTypes = {
     'audio_receiver',
     'midi_receiver',
@@ -146,10 +125,6 @@ class DeviceStripMetrics {
     if (deviceType == 'device_chain') return toolRailWidth;
     if (_analysisTypes.contains(deviceType)) return stereoOutputPanelWidth;
     if (_routingTypes.contains(deviceType)) return routingOutputPanelWidth;
-    if (_drumTypes.contains(deviceType)) return drumMonoOutputPanelWidth;
-    if (DeviceCapabilities.virtualStripHosts.contains(deviceType)) {
-      return synthOutputPanelWidth;
-    }
     return stereoOutputPanelWidth;
   }
 
@@ -160,22 +135,9 @@ class DeviceStripMetrics {
     final definition = deviceDefinitionRepository.find(deviceType);
     if (definition != null) return definition.layout.designWidth;
     return switch (deviceType) {
-      'simple_sampler' => SamplerDevicePanel.designWidth,
-      'bass_synth' => BassSynthDevicePanel.designWidth,
-      'subtractive_synth' => SubtractiveSynthDevicePanel.designWidth,
-      'kick_generator' => KickGeneratorDevicePanel.designWidth,
-      'snare_generator' => SnareGeneratorDevicePanel.designWidth,
-      'clap_generator' => ClapGeneratorDevicePanel.designWidth,
-      'cymbal_generator' => CymbalGeneratorDevicePanel.designWidth,
-      'crash_generator' => CrashGeneratorDevicePanel.designWidth,
       'audio_receiver' || 'midi_receiver' => RoutingDevicePanel.designWidth,
       'midi_delay' => MidiDelayPanel.designWidth,
-      'wavetable_synth' => WavetableSynthDevicePanel.designWidth,
-      'simple_oscillator' => OscillatorDevicePanel.designWidth,
-      'phase_mod_synth' => PhaseModSynthDevicePanel.designWidth,
-      'drum_machine' => DrumMachineDevicePanel.designWidth,
       'device_chain' => ChainDevicePanel.designWidth,
-      'granular_formant_synth' => GranularDevicePanel.designWidth,
       'oscilloscope' ||
       'spectrum_analyzer' ||
       'loudness_meter' ||

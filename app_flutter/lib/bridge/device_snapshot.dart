@@ -68,17 +68,20 @@ sealed class DeviceSnapshot {
     final type = map['type'] as String? ?? '';
     return switch (type) {
       'track_gain' => TrackGainDeviceSnapshot.fromMap(map),
-      'simple_oscillator' => OscillatorDeviceSnapshot.fromMap(map),
-      'simple_sampler' => SamplerDeviceSnapshot.fromMap(map),
-      'subtractive_synth' => SubtractiveSynthDeviceSnapshot.fromMap(map),
-      'phase_mod_synth' => PhaseModSynthDeviceSnapshot.fromMap(map),
-      'wavetable_synth' => WavetableSynthDeviceSnapshot.fromMap(map),
-      'bass_synth' => BassSynthDeviceSnapshot.fromMap(map),
-      'kick_generator' => KickGeneratorDeviceSnapshot.fromMap(map),
-      'snare_generator' => SnareGeneratorDeviceSnapshot.fromMap(map),
-      'clap_generator' => ClapGeneratorDeviceSnapshot.fromMap(map),
-      'cymbal_generator' => CymbalGeneratorDeviceSnapshot.fromMap(map),
-      'crash_generator' => CrashGeneratorDeviceSnapshot.fromMap(map),
+      'simple_oscillator' ||
+      'simple_sampler' ||
+      'subtractive_synth' ||
+      'phase_mod_synth' ||
+      'wavetable_synth' ||
+      'bass_synth' ||
+      'kick_generator' ||
+      'snare_generator' ||
+      'clap_generator' ||
+      'cymbal_generator' ||
+      'crash_generator' ||
+      'drum_machine' ||
+      'granular_formant_synth' =>
+        deviceDefinitionRepository.parseSnapshot(map),
       'gate' ||
       'compressor' ||
       'expander' ||
@@ -101,9 +104,7 @@ sealed class DeviceSnapshot {
         deviceDefinitionRepository.parseSnapshot(map),
       'audio_receiver' || 'midi_receiver' => RoutingDeviceSnapshot.fromMap(map),
       'midi_delay' => MidiDelayDeviceSnapshot.fromMap(map),
-      'drum_machine' => DrumMachineDeviceSnapshot.fromMap(map),
       'device_chain' => ChainDeviceSnapshot.fromMap(map),
-      'granular_formant_synth' => GranularDeviceSnapshot.fromMap(map),
       'oscilloscope' ||
       'spectrum_analyzer' ||
       'loudness_meter' ||

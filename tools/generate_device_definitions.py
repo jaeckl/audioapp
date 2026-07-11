@@ -12,7 +12,7 @@ OUTPUT = DEVICE_ROOT / "generated_device_definitions.dart"
 PATTERN = re.compile(
     r"@AudioDeviceDefinition\('([^']+)'\)\s+"
     r"final\s+class\s+(\w+)\s+(?:implements\s+DeviceDefinition|"
-    r"extends\s+AudioEffectDefinition)"
+    r"extends\s+(?:AudioEffectDefinition|InstrumentDefinition|DrumInstrumentDefinition))"
 )
 
 

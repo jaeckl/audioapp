@@ -100,95 +100,21 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-              ListTile(
-                leading: const Icon(Icons.piano, color: Color(0xFFE8A54B)),
-                title: const Text('Sampler'),
-                subtitle: const Text('Play audio samples from MIDI'),
-                onTap: () => Navigator.pop(context, 'simple_sampler'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.waves, color: Color(0xFF6EC9E8)),
-                title: const Text('Oscillator'),
-                subtitle: const Text('Simple sine tone generator'),
-                onTap: () => Navigator.pop(context, 'simple_oscillator'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.graphic_eq, color: Color(0xFF7B6CF6)),
-                title: const Text('Subtractive Synth'),
-                subtitle: const Text('2 osc · multimode · 8-voice poly'),
-                onTap: () => Navigator.pop(context, 'subtractive_synth'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.music_note, color: Color(0xFF4ADE80)),
-                title: const Text('Bass Synth'),
-                subtitle: const Text('Mono · sub · analog grunt'),
-                onTap: () => Navigator.pop(context, 'bass_synth'),
-              ),
-              ListTile(
-                leading:
-                    const Icon(Icons.account_tree, color: Color(0xFFFF6B35)),
-                title: const Text('Phase Mod Synth'),
-                subtitle: const Text('4-OP · FM/PM · 8 algorithms'),
-                onTap: () => Navigator.pop(context, 'phase_mod_synth'),
-              ),
-              ListTile(
-                leading:
-                    const Icon(Icons.view_column, color: Color(0xFF3B82F6)),
-                title: const Text('Wavetable Synth'),
-                subtitle: const Text('Load-your-own wavetables · 8 voices'),
-                onTap: () => Navigator.pop(context, 'wavetable_synth'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.album, color: Color(0xFFE85D4B)),
-                title: const Text('Kick Generator'),
-                subtitle: const Text('808-style · pitch-drop body'),
-                onTap: () => Navigator.pop(context, 'kick_generator'),
-              ),
-              ListTile(
-                leading:
-                    const Icon(Icons.album_outlined, color: Color(0xFFF0C14B)),
-                title: const Text('Snare Generator'),
-                subtitle: const Text('Body + noise · tunable'),
-                onTap: () => Navigator.pop(context, 'snare_generator'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.back_hand, color: Color(0xFFE8A0C8)),
-                title: const Text('Clap Generator'),
-                subtitle: const Text('Multi-hit noise · room clap'),
-                onTap: () => Navigator.pop(context, 'clap_generator'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.blur_on, color: Color(0xFF9AD4E8)),
-                title: const Text('Cymbal Generator'),
-                subtitle: const Text('Hi-hat · filtered noise wash'),
-                onTap: () => Navigator.pop(context, 'cymbal_generator'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.water_drop_outlined,
-                    color: Color(0xFF7BC8E8)),
-                title: const Text('Crash Generator'),
-                subtitle: const Text('Long metallic wash · noise shimmer'),
-                onTap: () => Navigator.pop(context, 'crash_generator'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.grid_view_rounded,
-                    color: Color(0xFF8B7CF6)),
-                title: const Text('Drum Machine'),
-                subtitle: const Text('128 MIDI-note pad chains'),
-                onTap: () => Navigator.pop(context, 'drum_machine'),
-              ),
+              for (final definition in deviceDefinitionRepository.definitions
+                  .where((item) => item.picker.category == 'Instruments'))
+                ListTile(
+                  leading: Icon(definition.picker.icon,
+                      color: definition.picker.color),
+                  title: Text(definition.picker.name),
+                  subtitle: Text(definition.picker.description),
+                  onTap: () => Navigator.pop(context, definition.typeId),
+                ),
               ListTile(
                 leading: const Icon(Icons.account_tree_outlined,
                     color: Color(0xFF62C7B5)),
                 title: const Text('Chain'),
                 subtitle: const Text('Virtual device strip · mix & gain'),
                 onTap: () => Navigator.pop(context, 'device_chain'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.blur_on, color: Color(0xFFDA70D6)),
-                title: const Text('Grain Form'),
-                subtitle: const Text('Granular sample · vowel formants'),
-                onTap: () => Navigator.pop(context, 'granular_formant_synth'),
               ),
               const Padding(
                 padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
