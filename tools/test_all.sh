@@ -6,6 +6,9 @@ cd "$ROOT"
 
 STATUS=0
 
+python tools/flutter_architecture_audit.py || STATUS=1
+python -m unittest discover -s tools -p 'test_flutter_architecture_audit.py' || STATUS=1
+
 if [[ -d engine_juce ]]; then
   cmake -S engine_juce -B build/engine -G Ninja -DAUDIOAPP_BUILD_TESTS=ON || STATUS=1
   cmake --build build/engine || STATUS=1

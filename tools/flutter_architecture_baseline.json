@@ -1,0 +1,579 @@
+{
+  "maxLines": 500,
+  "violations": {
+    "app/automation_recording_session.dart": {
+      "declarations": 4
+    },
+    "app/daw_shell.dart": {
+      "lines": 3421,
+      "declarations": 5
+    },
+    "app/daw_shell_nav.dart": {
+      "declarations": 3
+    },
+    "bridge/clip_snapshots.dart": {
+      "lines": 590,
+      "declarations": 9
+    },
+    "bridge/device_families/analysis_family.dart": {
+      "central_registrations": 1
+    },
+    "bridge/device_families/bass_synth_family.dart": {
+      "central_registrations": 1
+    },
+    "bridge/device_families/chain_family.dart": {
+      "central_registrations": 2
+    },
+    "bridge/device_families/drum_generator_family.dart": {
+      "declarations": 6,
+      "central_registrations": 5
+    },
+    "bridge/device_families/drum_machine_family.dart": {
+      "declarations": 2,
+      "central_registrations": 2
+    },
+    "bridge/device_families/dynamics_family.dart": {
+      "declarations": 5,
+      "central_registrations": 4
+    },
+    "bridge/device_families/effect_family.dart": {
+      "lines": 1014,
+      "declarations": 9,
+      "central_registrations": 8
+    },
+    "bridge/device_families/frequency_fx_family.dart": {
+      "declarations": 4,
+      "central_registrations": 3
+    },
+    "bridge/device_families/granular_family.dart": {
+      "central_registrations": 1
+    },
+    "bridge/device_families/midi_delay_family.dart": {
+      "central_registrations": 1
+    },
+    "bridge/device_families/oscillator_family.dart": {
+      "central_registrations": 1
+    },
+    "bridge/device_families/phase_mod_synth_family.dart": {
+      "central_registrations": 1
+    },
+    "bridge/device_families/resonator_bank_family.dart": {
+      "central_registrations": 1
+    },
+    "bridge/device_families/routing_family.dart": {
+      "central_registrations": 1
+    },
+    "bridge/device_families/sampler_family.dart": {
+      "central_registrations": 1
+    },
+    "bridge/device_families/subtractive_synth_family.dart": {
+      "central_registrations": 1
+    },
+    "bridge/device_families/track_gain_family.dart": {
+      "central_registrations": 1
+    },
+    "bridge/device_families/wavetable_synth_family.dart": {
+      "central_registrations": 1
+    },
+    "bridge/device_snapshot.dart": {
+      "central_registrations": 36
+    },
+    "bridge/engine_bridge.dart": {
+      "lines": 1345,
+      "declarations": 4
+    },
+    "bridge/live_meters_dto.dart": {
+      "declarations": 2
+    },
+    "bridge/project_snapshot.dart": {
+      "lines": 953,
+      "declarations": 7,
+      "central_registrations": 1
+    },
+    "bridge/timeline_clip.dart": {
+      "declarations": 3
+    },
+    "dynamics_fx_screenshot_main.dart": {
+      "central_registrations": 1
+    },
+    "features/arrangement/arrangement_loop_region_marker.dart": {
+      "declarations": 2
+    },
+    "features/arrangement/arrangement_playhead_marker.dart": {
+      "declarations": 2
+    },
+    "features/arrangement/arrangement_playhead_overlay.dart": {
+      "declarations": 2
+    },
+    "features/arrangement/arrangement_view.dart": {
+      "lines": 3550,
+      "declarations": 25
+    },
+    "features/arrangement/automation_clip_renderer.dart": {
+      "declarations": 2
+    },
+    "features/arrangement/clip_renderer.dart": {
+      "declarations": 3,
+      "embedded_special_declarations": 1
+    },
+    "features/automation/automation_curve_shapes.dart": {
+      "declarations": 2
+    },
+    "features/automation/automation_editor_screen.dart": {
+      "lines": 585,
+      "declarations": 2
+    },
+    "features/automation/automation_editor_tool_dock.dart": {
+      "declarations": 3
+    },
+    "features/automation/automation_editor_viewport.dart": {
+      "lines": 1061,
+      "declarations": 4
+    },
+    "features/automation/automation_shape_icon.dart": {
+      "declarations": 2,
+      "embedded_special_declarations": 1
+    },
+    "features/automation/automation_shape_panel.dart": {
+      "declarations": 3
+    },
+    "features/content_library/device_preset_filter_list.dart": {
+      "declarations": 3
+    },
+    "features/content_library/library_catalog.dart": {
+      "declarations": 7
+    },
+    "features/content_library/library_category_menu.dart": {
+      "declarations": 2
+    },
+    "features/content_library/library_content_pane.dart": {
+      "lines": 639,
+      "declarations": 6
+    },
+    "features/content_library/library_filter.dart": {
+      "declarations": 2,
+      "central_registrations": 1
+    },
+    "features/content_library/library_fly_in_panel.dart": {
+      "lines": 516,
+      "declarations": 2
+    },
+    "features/content_library/library_manifest.dart": {
+      "declarations": 3
+    },
+    "features/content_library/library_preset_preview_bar.dart": {
+      "declarations": 5,
+      "embedded_special_declarations": 1
+    },
+    "features/content_library/library_preview_widget.dart": {
+      "declarations": 2,
+      "embedded_special_declarations": 1
+    },
+    "features/content_library/library_tag_filter_bar.dart": {
+      "declarations": 3
+    },
+    "features/device_strip/analysis_device_panel.dart": {
+      "declarations": 3,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/bass_synth_device_panel.dart": {
+      "lines": 651,
+      "declarations": 5
+    },
+    "features/device_strip/clap_burst_preview.dart": {
+      "declarations": 2,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/clap_generator_device_panel.dart": {
+      "declarations": 3
+    },
+    "features/device_strip/crash_generator_device_panel.dart": {
+      "central_registrations": 1
+    },
+    "features/device_strip/crash_model_ui_registry.dart": {
+      "central_registrations": 1
+    },
+    "features/device_strip/curve_editor_screen.dart": {
+      "lines": 1418,
+      "declarations": 6,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/curve_properties_panel.dart": {
+      "declarations": 2,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/cymbal_decay_preview.dart": {
+      "declarations": 2,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/cymbal_generator_device_panel.dart": {
+      "central_registrations": 1
+    },
+    "features/device_strip/cymbal_model_ui_registry.dart": {
+      "central_registrations": 1
+    },
+    "features/device_strip/device_chain_minimap.dart": {
+      "declarations": 3
+    },
+    "features/device_strip/device_chain_row.dart": {
+      "lines": 955,
+      "declarations": 3,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/device_chain_screen.dart": {
+      "declarations": 2
+    },
+    "features/device_strip/device_container_tabs.dart": {
+      "central_registrations": 1
+    },
+    "features/device_strip/device_header_tab_bar.dart": {
+      "declarations": 2
+    },
+    "features/device_strip/device_landscape_shell.dart": {
+      "declarations": 2
+    },
+    "features/device_strip/device_strip.dart": {
+      "declarations": 4
+    },
+    "features/device_strip/device_strip_card.dart": {
+      "declarations": 5
+    },
+    "features/device_strip/device_strip_chrome_panels.dart": {
+      "lines": 765,
+      "declarations": 12,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/device_strip_slot.dart": {
+      "lines": 2184,
+      "declarations": 4,
+      "central_registrations": 4
+    },
+    "features/device_strip/device_tab_bar.dart": {
+      "declarations": 2
+    },
+    "features/device_strip/device_tool_rail.dart": {
+      "declarations": 5
+    },
+    "features/device_strip/device_vu_meter.dart": {
+      "declarations": 3,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/draggable_int_value_box.dart": {
+      "declarations": 3
+    },
+    "features/device_strip/drum_machine_device_panel.dart": {
+      "declarations": 2,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/drum_model_tab_bar.dart": {
+      "declarations": 2
+    },
+    "features/device_strip/dynamics_envelope_preview.dart": {
+      "declarations": 3,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/dynamics_fx_panels.dart": {
+      "lines": 989,
+      "declarations": 13
+    },
+    "features/device_strip/envelope_preview_painter.dart": {
+      "lines": 741,
+      "declarations": 4,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/eq_preview.dart": {
+      "declarations": 3,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/filter_preview.dart": {
+      "declarations": 5,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/frequency_fx_panels.dart": {
+      "lines": 758,
+      "declarations": 8,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/granular_device_panel.dart": {
+      "lines": 696,
+      "declarations": 9,
+      "embedded_special_declarations": 3
+    },
+    "features/device_strip/kick_envelope_preview.dart": {
+      "declarations": 2,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/kick_generator_device_panel.dart": {
+      "central_registrations": 1
+    },
+    "features/device_strip/kick_model_ui_registry.dart": {
+      "central_registrations": 1
+    },
+    "features/device_strip/lfo_preview_painter.dart": {
+      "declarations": 2,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/modulatable_spinner_shell.dart": {
+      "declarations": 3,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/modulation_grid.dart": {
+      "lines": 679,
+      "declarations": 8,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/modulation_strip.dart": {
+      "declarations": 6
+    },
+    "features/device_strip/modulator_preview.dart": {
+      "declarations": 2,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/mood_fx_panels.dart": {
+      "lines": 2189,
+      "declarations": 24,
+      "embedded_special_declarations": 4
+    },
+    "features/device_strip/oscillator_device_panel.dart": {
+      "declarations": 4
+    },
+    "features/device_strip/panels/device_section_card.dart": {
+      "declarations": 2
+    },
+    "features/device_strip/panels/filter_mode_icons.dart": {
+      "declarations": 4,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/panels/filter_mode_selector.dart": {
+      "declarations": 6
+    },
+    "features/device_strip/panels/filter_section_layout.dart": {
+      "declarations": 2
+    },
+    "features/device_strip/phase_mod_synth_device_panel.dart": {
+      "lines": 963,
+      "declarations": 4
+    },
+    "features/device_strip/phase_mod_synth_editor_screen.dart": {
+      "declarations": 2
+    },
+    "features/device_strip/phase_mod_synth_presets.dart": {
+      "lines": 685
+    },
+    "features/device_strip/resonator_bank_panel.dart": {
+      "declarations": 2,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/rotary_knob.dart": {
+      "lines": 600,
+      "declarations": 4,
+      "embedded_special_declarations": 2
+    },
+    "features/device_strip/routing_device_panel.dart": {
+      "declarations": 2
+    },
+    "features/device_strip/sampler_device_panel.dart": {
+      "lines": 877,
+      "declarations": 8
+    },
+    "features/device_strip/sampler_envelope_preview.dart": {
+      "declarations": 2,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/sampler_waveform_view.dart": {
+      "lines": 1222,
+      "declarations": 16
+    },
+    "features/device_strip/snare_envelope_preview.dart": {
+      "declarations": 2,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/snare_generator_device_panel.dart": {
+      "central_registrations": 1
+    },
+    "features/device_strip/snare_model_ui_registry.dart": {
+      "central_registrations": 1
+    },
+    "features/device_strip/subtractive_filter_preview.dart": {
+      "declarations": 2,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/subtractive_synth_device_panel.dart": {
+      "lines": 1531,
+      "declarations": 5
+    },
+    "features/device_strip/subtractive_synth_editor_screen.dart": {
+      "declarations": 2
+    },
+    "features/device_strip/subtractive_synth_presets.dart": {
+      "lines": 685,
+      "declarations": 3
+    },
+    "features/device_strip/subtractive_waveform_preview.dart": {
+      "declarations": 2,
+      "embedded_special_declarations": 1
+    },
+    "features/device_strip/time_fx_panels.dart": {
+      "lines": 2365,
+      "declarations": 23,
+      "embedded_special_declarations": 3
+    },
+    "features/device_strip/wavetable_synth_device_panel.dart": {
+      "lines": 686,
+      "declarations": 4
+    },
+    "features/device_strip/wavetable_waveform_preview.dart": {
+      "lines": 614,
+      "declarations": 5,
+      "embedded_special_declarations": 1
+    },
+    "features/editor/editor_beat_tap.dart": {
+      "declarations": 2
+    },
+    "features/editor/editor_pinch_zoom.dart": {
+      "declarations": 2
+    },
+    "features/editor/timeline_marker_layer.dart": {
+      "lines": 588,
+      "declarations": 6
+    },
+    "features/mixer/mixer_view.dart": {
+      "declarations": 5
+    },
+    "features/piano_roll/midi_comp_context_bar.dart": {
+      "declarations": 5
+    },
+    "features/piano_roll/midi_comp_tool_dock.dart": {
+      "declarations": 2
+    },
+    "features/piano_roll/midi_lane_layout.dart": {
+      "declarations": 3
+    },
+    "features/piano_roll/midi_take_comp_view.dart": {
+      "lines": 739,
+      "declarations": 4,
+      "embedded_special_declarations": 1
+    },
+    "features/piano_roll/piano_roll_clip_end_marker.dart": {
+      "declarations": 2
+    },
+    "features/piano_roll/piano_roll_context_strip.dart": {
+      "declarations": 5
+    },
+    "features/piano_roll/piano_roll_edit_sheet.dart": {
+      "declarations": 4
+    },
+    "features/piano_roll/piano_roll_grid_sheet.dart": {
+      "declarations": 6
+    },
+    "features/piano_roll/piano_roll_key_column.dart": {
+      "declarations": 2
+    },
+    "features/piano_roll/piano_roll_metrics.dart": {
+      "declarations": 5
+    },
+    "features/piano_roll/piano_roll_ruler.dart": {
+      "declarations": 2,
+      "embedded_special_declarations": 1
+    },
+    "features/piano_roll/piano_roll_screen.dart": {
+      "lines": 986,
+      "declarations": 2
+    },
+    "features/piano_roll/piano_roll_tool_dock.dart": {
+      "declarations": 2
+    },
+    "features/piano_roll/piano_roll_viewport.dart": {
+      "lines": 1331,
+      "declarations": 5
+    },
+    "features/play/live_instrument_panel.dart": {
+      "declarations": 5
+    },
+    "features/play/mod_strip.dart": {
+      "declarations": 5,
+      "embedded_special_declarations": 1
+    },
+    "features/play/mpc_pad_grid.dart": {
+      "declarations": 5
+    },
+    "features/play/octave_panel.dart": {
+      "declarations": 4
+    },
+    "features/play/perform_panel.dart": {
+      "declarations": 6
+    },
+    "features/play/performance_panel.dart": {
+      "declarations": 3
+    },
+    "features/play/play_deck.dart": {
+      "declarations": 2
+    },
+    "features/play/play_deck_layout.dart": {
+      "declarations": 7
+    },
+    "features/play/play_deck_rail.dart": {
+      "declarations": 2
+    },
+    "features/play/play_keyboard.dart": {
+      "declarations": 6
+    },
+    "features/play/play_scale.dart": {
+      "declarations": 2
+    },
+    "features/play/scale_builder_panel.dart": {
+      "declarations": 5
+    },
+    "features/play/track_mute_row.dart": {
+      "declarations": 3
+    },
+    "features/sample_editor/editable_waveform.dart": {
+      "declarations": 4,
+      "embedded_special_declarations": 1
+    },
+    "features/sample_editor/sample_editor_screen.dart": {
+      "lines": 2897,
+      "declarations": 37,
+      "embedded_special_declarations": 3
+    },
+    "features/sample_editor/sample_editor_snap.dart": {
+      "declarations": 2
+    },
+    "features/sample_editor/sample_editor_snap_sheet.dart": {
+      "declarations": 5
+    },
+    "features/sample_editor/sample_editor_take_panel.dart": {
+      "lines": 571,
+      "declarations": 9,
+      "embedded_special_declarations": 1
+    },
+    "features/sample_library/sample_library_screen.dart": {
+      "declarations": 6,
+      "embedded_special_declarations": 1
+    },
+    "features/transport/transport_bar.dart": {
+      "lines": 982,
+      "declarations": 13
+    },
+    "features/transport/transport_bpm_box.dart": {
+      "declarations": 2
+    },
+    "features/transport/transport_overflow_sheet.dart": {
+      "declarations": 3
+    },
+    "features/welcome/welcome_action_button.dart": {
+      "declarations": 2
+    },
+    "features/welcome/welcome_hub.dart": {
+      "declarations": 4
+    },
+    "features/welcome/welcome_recent_projects_panel.dart": {
+      "declarations": 3
+    }
+  },
+  "summary": {
+    "files": 270,
+    "lines": 76549,
+    "declarations": 733
+  }
+}
