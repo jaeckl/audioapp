@@ -48,7 +48,7 @@ class CymbalGeneratorDevicePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final modelIndex = CymbalModel.indexFromValue(device.cymbalModel);
-    final knobs = CymbalModelUiRegistry.knobsForModelIndex(modelIndex);
+    final knobs = CymbalModelUiRegistry.knobs;
     final bench = Padding(
       padding: const EdgeInsets.all(8),
       child: Row(
@@ -77,8 +77,8 @@ class CymbalGeneratorDevicePanel extends StatelessWidget {
                     selectedIndex: modelIndex,
                     accent: accent,
                     isEnabled: CymbalModel.isSelectable,
-                    onSelected: (i) =>
-                        onParameterChanged('cymbalModel', CymbalModel.valueFromIndex(i)),
+                    onSelected: (i) => onParameterChanged(
+                        'cymbalModel', CymbalModel.valueFromIndex(i)),
                   ),
                 ),
               ],
@@ -168,9 +168,12 @@ class CymbalGeneratorDevicePanel extends StatelessWidget {
           ? (amount) => onModulationAssign!(paramId, amount)
           : null,
       linkModeActive: automationLinkActive,
-      onLinkTap: onAutomationLinkTap != null ? () => onAutomationLinkTap!(paramId) : null,
-      onAutomateRequest:
-          onAutomateParameter != null ? () => onAutomateParameter!(paramId) : null,
+      onLinkTap: onAutomationLinkTap != null
+          ? () => onAutomationLinkTap!(paramId)
+          : null,
+      onAutomateRequest: onAutomateParameter != null
+          ? () => onAutomateParameter!(paramId)
+          : null,
       onChanged: (v) => onParameterChanged(paramId, v),
     );
   }

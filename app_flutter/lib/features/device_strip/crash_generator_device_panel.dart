@@ -48,7 +48,7 @@ class CrashGeneratorDevicePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final modelIndex = CrashModel.indexFromValue(device.crashModel);
-    final knobs = CrashModelUiRegistry.knobsForModelIndex(modelIndex);
+    final knobs = CrashModelUiRegistry.knobs;
     final bench = Padding(
       padding: const EdgeInsets.all(8),
       child: Row(
@@ -77,8 +77,8 @@ class CrashGeneratorDevicePanel extends StatelessWidget {
                     selectedIndex: modelIndex,
                     accent: accent,
                     isEnabled: CrashModel.isSelectable,
-                    onSelected: (i) =>
-                        onParameterChanged('crashModel', CrashModel.valueFromIndex(i)),
+                    onSelected: (i) => onParameterChanged(
+                        'crashModel', CrashModel.valueFromIndex(i)),
                   ),
                 ),
               ],
@@ -168,9 +168,12 @@ class CrashGeneratorDevicePanel extends StatelessWidget {
           ? (amount) => onModulationAssign!(paramId, amount)
           : null,
       linkModeActive: automationLinkActive,
-      onLinkTap: onAutomationLinkTap != null ? () => onAutomationLinkTap!(paramId) : null,
-      onAutomateRequest:
-          onAutomateParameter != null ? () => onAutomateParameter!(paramId) : null,
+      onLinkTap: onAutomationLinkTap != null
+          ? () => onAutomationLinkTap!(paramId)
+          : null,
+      onAutomateRequest: onAutomateParameter != null
+          ? () => onAutomateParameter!(paramId)
+          : null,
       onChanged: (v) => onParameterChanged(paramId, v),
     );
   }

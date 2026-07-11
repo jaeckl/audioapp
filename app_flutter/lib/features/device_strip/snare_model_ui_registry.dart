@@ -55,7 +55,7 @@ abstract final class SnareModelUiRegistry {
     ),
   ];
 
-  static List<SnareKnobSpec> knobsForModelIndex(int modelIndex) => _acousticKnobs;
+  static List<SnareKnobSpec> get knobs => _acousticKnobs;
 
   static double _body(SnareGeneratorDeviceSnapshot d) => d.snareBody;
   static double _ring(SnareGeneratorDeviceSnapshot d) => d.snareRing;

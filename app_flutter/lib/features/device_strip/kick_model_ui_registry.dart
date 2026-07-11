@@ -50,7 +50,7 @@ abstract final class KickModelUiRegistry {
     ),
   ];
 
-  static List<KickKnobSpec> knobsForModelIndex(int modelIndex) => _808Knobs;
+  static List<KickKnobSpec> get knobs => _808Knobs;
 
   static double _kickPitch(KickGeneratorDeviceSnapshot d) => d.kickPitch;
   static double _kickPunch(KickGeneratorDeviceSnapshot d) => d.kickPunch;

@@ -37,7 +37,7 @@ abstract final class CymbalModelUiRegistry {
     ),
   ];
 
-  static List<CymbalKnobSpec> knobsForModelIndex(int modelIndex) => _closedKnobs;
+  static List<CymbalKnobSpec> get knobs => _closedKnobs;
 
   static double _color(CymbalGeneratorDeviceSnapshot d) => d.cymbalColor;
   static double _width(CymbalGeneratorDeviceSnapshot d) => d.cymbalWidth;

@@ -36,7 +36,7 @@ abstract final class CrashModelUiRegistry {
     ),
   ];
 
-  static List<CrashKnobSpec> knobsForModelIndex(int modelIndex) => _brightKnobs;
+  static List<CrashKnobSpec> get knobs => _brightKnobs;
 
   static double _color(CrashGeneratorDeviceSnapshot d) => d.crashColor;
   static double _spread(CrashGeneratorDeviceSnapshot d) => d.crashSpread;
@@ -47,5 +47,7 @@ abstract final class CrashModelUiRegistry {
 
 String crashDecayLabel(double norm) {
   final sec = 0.45 + norm.clamp(0.0, 1.0) * 3.0;
-  return sec >= 1.0 ? '${sec.toStringAsFixed(1)}s' : '${(sec * 1000).round()}ms';
+  return sec >= 1.0
+      ? '${sec.toStringAsFixed(1)}s'
+      : '${(sec * 1000).round()}ms';
 }

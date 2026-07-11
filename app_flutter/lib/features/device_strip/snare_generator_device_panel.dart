@@ -49,7 +49,7 @@ class SnareGeneratorDevicePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final modelIndex = SnareModel.indexFromValue(device.snareModel);
-    final knobs = SnareModelUiRegistry.knobsForModelIndex(modelIndex);
+    final knobs = SnareModelUiRegistry.knobs;
     final bench = Padding(
       padding: const EdgeInsets.all(8),
       child: Row(
@@ -82,8 +82,8 @@ class SnareGeneratorDevicePanel extends StatelessWidget {
                     selectedIndex: modelIndex,
                     accent: accent,
                     isEnabled: SnareModel.isSelectable,
-                    onSelected: (i) =>
-                        onParameterChanged('snareModel', SnareModel.valueFromIndex(i)),
+                    onSelected: (i) => onParameterChanged(
+                        'snareModel', SnareModel.valueFromIndex(i)),
                   ),
                 ),
               ],
@@ -172,9 +172,12 @@ class SnareGeneratorDevicePanel extends StatelessWidget {
           ? (amount) => onModulationAssign!(paramId, amount)
           : null,
       linkModeActive: automationLinkActive,
-      onLinkTap: onAutomationLinkTap != null ? () => onAutomationLinkTap!(paramId) : null,
-      onAutomateRequest:
-          onAutomateParameter != null ? () => onAutomateParameter!(paramId) : null,
+      onLinkTap: onAutomationLinkTap != null
+          ? () => onAutomationLinkTap!(paramId)
+          : null,
+      onAutomateRequest: onAutomateParameter != null
+          ? () => onAutomateParameter!(paramId)
+          : null,
       onChanged: (v) => onParameterChanged(paramId, v),
     );
   }

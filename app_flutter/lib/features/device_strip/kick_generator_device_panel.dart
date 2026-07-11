@@ -49,7 +49,7 @@ class KickGeneratorDevicePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final modelIndex = KickModel.indexFromValue(device.kickModel);
-    final knobs = KickModelUiRegistry.knobsForModelIndex(modelIndex);
+    final knobs = KickModelUiRegistry.knobs;
     final bench = Padding(
       padding: const EdgeInsets.all(8),
       child: Row(
@@ -142,7 +142,8 @@ class KickGeneratorDevicePanel extends StatelessWidget {
       selectedIndex: selectedIndex,
       accent: accent,
       isEnabled: KickModel.isSelectable,
-      onSelected: (i) => onParameterChanged('kickModel', KickModel.valueFromIndex(i)),
+      onSelected: (i) =>
+          onParameterChanged('kickModel', KickModel.valueFromIndex(i)),
     );
   }
 
@@ -174,9 +175,12 @@ class KickGeneratorDevicePanel extends StatelessWidget {
           ? (amount) => onModulationAssign!(paramId, amount)
           : null,
       linkModeActive: automationLinkActive,
-      onLinkTap: onAutomationLinkTap != null ? () => onAutomationLinkTap!(paramId) : null,
-      onAutomateRequest:
-          onAutomateParameter != null ? () => onAutomateParameter!(paramId) : null,
+      onLinkTap: onAutomationLinkTap != null
+          ? () => onAutomationLinkTap!(paramId)
+          : null,
+      onAutomateRequest: onAutomateParameter != null
+          ? () => onAutomateParameter!(paramId)
+          : null,
       onChanged: (v) => onParameterChanged(paramId, v),
     );
   }
