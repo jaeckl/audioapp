@@ -47,7 +47,11 @@ List<DeviceSnapshot> parseDeviceList(Map<dynamic, dynamic> map, String key) {
   final raw = map[key];
   if (raw is! List) return const [];
   return raw
-      .map((v) => DeviceSnapshot.fromMap(v as Map<dynamic, dynamic>))
+      .map(
+        (value) => deviceDefinitionRepository.parseSnapshot(
+          value as Map<dynamic, dynamic>,
+        ),
+      )
       .toList(growable: false);
 }
 
@@ -82,57 +86,8 @@ sealed class DeviceSnapshot {
     double? meterInputLevel,
   });
 
-  factory DeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
-    final type = map['type'] as String? ?? '';
-    return switch (type) {
-      'track_gain' => deviceDefinitionRepository.parseSnapshot(map),
-      'simple_oscillator' ||
-      'simple_sampler' ||
-      'subtractive_synth' ||
-      'phase_mod_synth' ||
-      'wavetable_synth' ||
-      'bass_synth' ||
-      'kick_generator' ||
-      'snare_generator' ||
-      'clap_generator' ||
-      'cymbal_generator' ||
-      'crash_generator' ||
-      'drum_machine' ||
-      'granular_formant_synth' =>
-        deviceDefinitionRepository.parseSnapshot(map),
-      'gate' ||
-      'compressor' ||
-      'expander' ||
-      'limiter' =>
-        deviceDefinitionRepository.parseSnapshot(map),
-      'delay' ||
-      'reverb' ||
-      'chorus' ||
-      'phaser' =>
-        deviceDefinitionRepository.parseSnapshot(map),
-      'bitcrusher' ||
-      'distortion' ||
-      'tremolo' ||
-      'stutter_fx' =>
-        deviceDefinitionRepository.parseSnapshot(map),
-      'filter' ||
-      'four_band_eq' ||
-      'frequency_shifter' ||
-      'resonator_bank' =>
-        deviceDefinitionRepository.parseSnapshot(map),
-      'audio_receiver' ||
-      'midi_receiver' ||
-      'midi_delay' ||
-      'device_chain' =>
-        deviceDefinitionRepository.parseSnapshot(map),
-      'oscilloscope' ||
-      'spectrum_analyzer' ||
-      'loudness_meter' ||
-      'stereo_imager' =>
-        deviceDefinitionRepository.parseSnapshot(map),
-      _ => throw ArgumentError('Unknown device type: $type'),
-    };
-  }
+  factory DeviceSnapshot.fromMap(Map<dynamic, dynamic> map) =>
+      deviceDefinitionRepository.parseSnapshot(map);
 }
 
 /// Implemented only by instrument snapshots that own virtual Note/Audio FX.
