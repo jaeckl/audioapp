@@ -1,0 +1,9 @@
+{
+  "project_format_version": 1,
+  "name": "Untitled",
+  "bpm": 120,
+  "selectedTrackId": "track-1",
+  "tracks": [
+    {"id":"track-1","name":"Track 1","devices":[{"id":"dev-1","type":"simple_oscillator","parameters":{"frequency":440.00}}],"midiClips":[{"id":"clip-1","startBeat":0.00,"lengthBeats":4.00,"notes":[{"pitch":60,"startBeat":0.00,"durationBeats":1.00,"velocity":100.00},{"pitch":65,"startBeat":0.75,"durationBeats":1.00,"velocity":100.00},{"pitch":60,"startBeat":2.25,"durationBeats":1.00,"velocity":100.00},{"pitch":53,"startBeat":3.00,"durationBeats":1.00,"velocity":100.00}]}]}
+  ]
+}

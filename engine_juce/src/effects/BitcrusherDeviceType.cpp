@@ -47,6 +47,15 @@ DeviceParameterResult BitcrusherDeviceType::setParameter(DeviceSlot& slot,
     case BitcrusherParam::Mix:
         instance.mix = juce::jlimit(0.0, 1.0, static_cast<double>(value));
         break;
+    case BitcrusherParam::Mode: instance.mode = juce::jlimit(0.0, 3.0, static_cast<double>(value)); break;
+    case BitcrusherParam::Shape: instance.shape = juce::jlimit(0.0, 3.0, static_cast<double>(value)); break;
+    case BitcrusherParam::Jitter: instance.jitter = juce::jlimit(0.0, 1.0, static_cast<double>(value)); break;
+    case BitcrusherParam::Drive: instance.drive = juce::jlimit(0.0, 1.0, static_cast<double>(value)); break;
+    case BitcrusherParam::DitherMode: instance.ditherMode = juce::jlimit(0.0, 3.0, static_cast<double>(value)); break;
+    case BitcrusherParam::DitherAmount: instance.ditherAmount = juce::jlimit(0.0, 1.0, static_cast<double>(value)); break;
+    case BitcrusherParam::ClipMode: instance.clipMode = juce::jlimit(0.0, 2.0, static_cast<double>(value)); break;
+    case BitcrusherParam::ClipAmount: instance.clipAmount = juce::jlimit(0.0, 1.0, static_cast<double>(value)); break;
+    case BitcrusherParam::Filter: instance.filter = juce::jlimit(0.0, 1.0, static_cast<double>(value)); break;
     default:
         return result;
     }
@@ -59,7 +68,8 @@ bool BitcrusherDeviceType::setStringParameter(DeviceSlot&, std::string_view, con
 }
 
 std::vector<std::string_view> BitcrusherDeviceType::modulatableParams() const {
-    return {"gain", "pan"};
+    return {"gain", "pan", "bcRate", "bcBits", "bcMix", "bcMode", "bcShape", "bcJitter", "bcDrive",
+            "bcDitherMode", "bcDitherAmount", "bcClipMode", "bcClipAmount", "bcFilter"};
 }
 
 void BitcrusherDeviceType::buildPlaybackNode(const DeviceSlot& slot, const PlaybackBuildContext&, DeviceNodePlayback& out) const {
@@ -69,6 +79,11 @@ void BitcrusherDeviceType::buildPlaybackNode(const DeviceSlot& slot, const Playb
     p.rate = static_cast<float>(inst.rate);
     p.bits = static_cast<float>(inst.bits);
     p.mix = static_cast<float>(inst.mix);
+    p.mode = static_cast<float>(inst.mode); p.shape = static_cast<float>(inst.shape);
+    p.jitter = static_cast<float>(inst.jitter); p.drive = static_cast<float>(inst.drive);
+    p.ditherMode = static_cast<float>(inst.ditherMode); p.ditherAmount = static_cast<float>(inst.ditherAmount);
+    p.clipMode = static_cast<float>(inst.clipMode); p.clipAmount = static_cast<float>(inst.clipAmount);
+    p.filter = static_cast<float>(inst.filter);
     p.inputGain = 1.0f;
     out.params = p;
 }
@@ -81,6 +96,11 @@ juce::var BitcrusherDeviceType::slotToVar(const DeviceSlot& slot) const {
     parameters->setProperty("rate", inst.rate);
     parameters->setProperty("bits", inst.bits);
     parameters->setProperty("mix", inst.mix);
+    parameters->setProperty("mode", inst.mode); parameters->setProperty("shape", inst.shape);
+    parameters->setProperty("jitter", inst.jitter); parameters->setProperty("drive", inst.drive);
+    parameters->setProperty("ditherMode", inst.ditherMode); parameters->setProperty("ditherAmount", inst.ditherAmount);
+    parameters->setProperty("clipMode", inst.clipMode); parameters->setProperty("clipAmount", inst.clipAmount);
+    parameters->setProperty("filter", inst.filter);
 
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
@@ -163,6 +183,15 @@ DeviceSlot BitcrusherDeviceType::varToSlot(const juce::var& obj) const {
             inst.rate = p->getProperty("rate").toString().getDoubleValue();
             inst.bits = p->getProperty("bits").toString().getDoubleValue();
             inst.mix = p->getProperty("mix").toString().getDoubleValue();
+            inst.mode = readFloat("mode", static_cast<float>(inst.mode));
+            inst.shape = readFloat("shape", static_cast<float>(inst.shape));
+            inst.jitter = readFloat("jitter", static_cast<float>(inst.jitter));
+            inst.drive = readFloat("drive", static_cast<float>(inst.drive));
+            inst.ditherMode = readFloat("ditherMode", static_cast<float>(inst.ditherMode));
+            inst.ditherAmount = readFloat("ditherAmount", static_cast<float>(inst.ditherAmount));
+            inst.clipMode = readFloat("clipMode", static_cast<float>(inst.clipMode));
+            inst.clipAmount = readFloat("clipAmount", static_cast<float>(inst.clipAmount));
+            inst.filter = readFloat("filter", static_cast<float>(inst.filter));
             inst.clamp();
             slot.config.instance = inst;
         }
@@ -180,6 +209,15 @@ uint16_t BitcrusherDeviceType::paramIdFromString(std::string_view name) const no
     if (name == "bcRate") return static_cast<uint16_t>(BitcrusherParam::Rate);
     if (name == "bcBits") return static_cast<uint16_t>(BitcrusherParam::Bits);
     if (name == "bcMix")  return static_cast<uint16_t>(BitcrusherParam::Mix);
+    if (name == "bcMode") return static_cast<uint16_t>(BitcrusherParam::Mode);
+    if (name == "bcShape") return static_cast<uint16_t>(BitcrusherParam::Shape);
+    if (name == "bcJitter") return static_cast<uint16_t>(BitcrusherParam::Jitter);
+    if (name == "bcDrive") return static_cast<uint16_t>(BitcrusherParam::Drive);
+    if (name == "bcDitherMode") return static_cast<uint16_t>(BitcrusherParam::DitherMode);
+    if (name == "bcDitherAmount") return static_cast<uint16_t>(BitcrusherParam::DitherAmount);
+    if (name == "bcClipMode") return static_cast<uint16_t>(BitcrusherParam::ClipMode);
+    if (name == "bcClipAmount") return static_cast<uint16_t>(BitcrusherParam::ClipAmount);
+    if (name == "bcFilter") return static_cast<uint16_t>(BitcrusherParam::Filter);
     return static_cast<uint16_t>(-1);
 }
 
@@ -188,6 +226,15 @@ std::string_view BitcrusherDeviceType::paramIdToString(uint16_t localId) const n
     case BitcrusherParam::Rate: return "bcRate";
     case BitcrusherParam::Bits: return "bcBits";
     case BitcrusherParam::Mix:  return "bcMix";
+    case BitcrusherParam::Mode: return "bcMode";
+    case BitcrusherParam::Shape: return "bcShape";
+    case BitcrusherParam::Jitter: return "bcJitter";
+    case BitcrusherParam::Drive: return "bcDrive";
+    case BitcrusherParam::DitherMode: return "bcDitherMode";
+    case BitcrusherParam::DitherAmount: return "bcDitherAmount";
+    case BitcrusherParam::ClipMode: return "bcClipMode";
+    case BitcrusherParam::ClipAmount: return "bcClipAmount";
+    case BitcrusherParam::Filter: return "bcFilter";
     default: return "";
     }
 }
@@ -197,6 +244,15 @@ std::span<const ParamDescriptor> BitcrusherDeviceType::paramDescriptors() const 
         {static_cast<uint16_t>(BitcrusherParam::Rate), "bcRate", "Rate", 0.5f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(BitcrusherParam::Bits), "bcBits", "Bits", 8.0f, 1.0f, 16.0f, true, true},
         {static_cast<uint16_t>(BitcrusherParam::Mix), "bcMix", "Mix", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(BitcrusherParam::Mode), "bcMode", "Mode", 0.0f, 0.0f, 3.0f, true, true},
+        {static_cast<uint16_t>(BitcrusherParam::Shape), "bcShape", "Shape", 0.0f, 0.0f, 3.0f, true, true},
+        {static_cast<uint16_t>(BitcrusherParam::Jitter), "bcJitter", "Jitter", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(BitcrusherParam::Drive), "bcDrive", "Drive", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(BitcrusherParam::DitherMode), "bcDitherMode", "Dither Mode", 0.0f, 0.0f, 3.0f, true, true},
+        {static_cast<uint16_t>(BitcrusherParam::DitherAmount), "bcDitherAmount", "Dither", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(BitcrusherParam::ClipMode), "bcClipMode", "Clip Mode", 0.0f, 0.0f, 2.0f, true, true},
+        {static_cast<uint16_t>(BitcrusherParam::ClipAmount), "bcClipAmount", "Clip", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(BitcrusherParam::Filter), "bcFilter", "Filter", 1.0f, 0.0f, 1.0f, true, true},
     };
     return kParams;
 }

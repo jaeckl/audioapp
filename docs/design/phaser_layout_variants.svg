@@ -5,14 +5,10 @@
     <style>
       .page{fill:#0e0e14}.card{fill:#1a1a24;stroke:#4a4a5c;stroke-width:1.5}.header{fill:#22222e}
       .panel{fill:#101016;stroke:#fff;stroke-opacity:.08}.screen{fill:#050508;stroke:#fff;stroke-opacity:.1}
-      .pink{fill:#e8a0c8}.curve{fill:none;stroke:#e8a0c8;stroke-width:2.2}.curve2{fill:none;stroke:#78aee8;stroke-width:1.5}
+      .pink{fill:#e85d4b}.curve{fill:none;stroke:#e85d4b;stroke-width:2.2}.curve2{fill:none;stroke:#9a9aa8;stroke-width:1.5}
       .grid{stroke:#fff;stroke-opacity:.07}.title{fill:#fff;font:700 14px Inter,Arial}.tab{fill:#fff;font:700 10px Inter,Arial;letter-spacing:.4px}
-      .label{fill:#fff;font:700 9px Inter,Arial;letter-spacing:.35px}.small{fill:#9a9aa8;font:600 8px Inter,Arial}.tiny{fill:#767681;font:500 7px Inter,Arial}.value{fill:#e8a0c8;font:700 9px Inter,Arial}
-      .exact{filter:url(#phaserTint)}
+      .label{fill:#fff;font:700 9px Inter,Arial;letter-spacing:.35px}.small{fill:#9a9aa8;font:600 8px Inter,Arial}.tiny{fill:#767681;font:500 7px Inter,Arial}.value{fill:#e85d4b;font:700 9px Inter,Arial}
     </style>
-    <filter id="phaserTint" color-interpolation-filters="sRGB">
-      <feColorMatrix type="matrix" values="0.90 0 0 0 0.08  0 0.63 0 0 0.10  0 0 0.78 0 0.12  0 0 0 1 0"/>
-    </filter>
 
     <!-- These wrappers instantiate exact components from daw_elements.svg. -->
     <symbol id="daw-tool-rail" viewBox="0 0 30 320">
@@ -58,12 +54,12 @@
     <use xlink:href="#daw-tabs" x="78" width="270" height="40"/><text x="127" y="25" text-anchor="middle" class="tab">MOTION</text><text x="238" y="25" text-anchor="middle" class="small">RESPONSE</text>
     <text x="397" y="24" text-anchor="middle" class="label">SINE⌄</text>
 
-    <rect x="47" y="52" width="88" height="254" rx="6" class="panel"/>
+    <rect x="40" y="46" width="94" height="260" rx="6" class="panel"/>
     <g transform="translate(59 62)"><use xlink:href="#daw-unit-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">1/8</text><rect x="4" y="58" width="57" height="17" fill="#101016"/><text x="32" y="70" text-anchor="middle" class="small">Rate · Sync</text></g>
     <g transform="translate(59 143)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">72%</text><rect x="4" y="58" width="57" height="17" fill="#101016"/><text x="32" y="70" text-anchor="middle" class="small">Depth</text></g>
     <g transform="translate(59 224)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">135°</text><rect x="4" y="58" width="57" height="17" fill="#101016"/><text x="32" y="70" text-anchor="middle" class="small">Stereo Phase</text></g>
 
-    <rect x="147" y="52" width="200" height="164" rx="6" class="screen"/>
+    <rect x="139" y="46" width="214" height="170" rx="6" class="screen"/>
     <path d="M157 83H337M157 123H337M157 163H337M197 60V208M247 60V208M297 60V208" class="grid"/>
     <path d="M157 135C174 77 191 193 208 135S242 77 259 135 293 193 310 135 327 91 337 116" class="curve"/>
     <path d="M157 153C174 95 191 211 208 153S242 95 259 153 293 211 310 153 327 109 337 134" class="curve2"/>
@@ -72,7 +68,7 @@
     <g transform="translate(171 225)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">34%</text><rect x="1" y="58" width="63" height="17" fill="#1a1a24"/><text x="32" y="70" text-anchor="middle" class="small">Wave Shape</text></g>
     <g transform="translate(259 225)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">0°</text><rect x="1" y="58" width="63" height="17" fill="#1a1a24"/><text x="32" y="70" text-anchor="middle" class="small">LFO Phase</text></g>
 
-    <rect x="359" y="52" width="86" height="254" rx="6" class="panel"/>
+    <rect x="358" y="46" width="94" height="260" rx="6" class="panel"/>
     <g transform="translate(370 62)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">1.2k</text><rect x="4" y="58" width="57" height="17" fill="#101016"/><text x="32" y="70" text-anchor="middle" class="small">Centre</text></g>
     <g transform="translate(370 143)"><use xlink:href="#daw-knob" width="65" height="78"/><rect x="9" y="23" width="47" height="15" fill="#14141c"/><text x="32" y="34" text-anchor="middle" class="value">+38%</text><rect x="4" y="58" width="57" height="17" fill="#101016"/><text x="32" y="70" text-anchor="middle" class="small">Feedback</text></g>
     <g transform="translate(370 224)"><use xlink:href="#daw-value-box" width="44" height="44"/><rect x="2" y="4" width="40" height="18" fill="#14141c"/><text x="22" y="17" text-anchor="middle" class="value">8</text><rect y="27" width="44" height="15" fill="#101016"/><text x="22" y="39" text-anchor="middle" class="small">Stages</text></g>

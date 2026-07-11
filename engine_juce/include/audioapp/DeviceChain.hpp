@@ -159,6 +159,15 @@ struct BitcrusherParamsPlayback {
     float rate = 0.5f;
     float bits = 8.0f;
     float mix = 0.5f;
+    float mode = 0.0f;
+    float shape = 0.0f;
+    float jitter = 0.0f;
+    float drive = 0.0f;
+    float ditherMode = 0.0f;
+    float ditherAmount = 0.0f;
+    float clipMode = 0.0f;
+    float clipAmount = 0.0f;
+    float filter = 1.0f;
     float inputGain = 1.0f;
 };
 

@@ -105,7 +105,7 @@ class DeviceToolRail extends StatelessWidget {
                   ),
                   if (showLibrary)
                     _ToolRailButton(
-                      icon: Icons.library_music_outlined,
+                      icon: Icons.folder_outlined,
                       tooltip: libraryTooltip,
                       enabled: onLibrary != null,
                       onPressed: onLibrary,
@@ -380,13 +380,10 @@ class _ModButton extends StatelessWidget {
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints(minWidth: 28, minHeight: 24),
       onPressed: onPressed,
-      icon: Text(
-        'Mod',
-        style: TextStyle(
-          color: active ? const Color(0xFFE8A54B) : Colors.white54,
-          fontSize: 9,
-          fontWeight: FontWeight.w700,
-        ),
+      icon: Icon(
+        Icons.cable,
+        size: 18,
+        color: active ? const Color(0xFFE8A54B) : Colors.white54,
       ),
     );
   }

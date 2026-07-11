@@ -44,7 +44,8 @@ class DeviceStripCard extends StatelessWidget {
   final ValueChanged<int>? onTabSelected;
   final Widget? headerActions;
 
-  bool get _usesContainerTabs => !headerOnly && tabs.isNotEmpty;
+  bool get _usesContainerTabs =>
+      !headerOnly && (tabs.isNotEmpty || headerActions != null);
 
   @override
   Widget build(BuildContext context) {
@@ -151,16 +152,18 @@ class _ContainerTabHeader extends StatelessWidget {
         color: DeviceStripTheme.cardHeader,
         child: Row(
           children: [
-            Expanded(
-              child: DeviceHeaderTabBar(
-                tabs: tabs,
-                selectedIndex: selectedTabIndex,
-                accentColor: accent,
-                compact: actions != null,
-                onSelected: onTabSelected ?? (_) {},
+            if (tabs.isNotEmpty)
+              Expanded(
+                child: DeviceHeaderTabBar(
+                  tabs: tabs,
+                  selectedIndex: selectedTabIndex,
+                  accentColor: accent,
+                  compact: actions != null,
+                  onSelected: onTabSelected ?? (_) {},
+                ),
               ),
-            ),
-            if (actions != null) actions!,
+            if (actions != null)
+              if (tabs.isEmpty) Expanded(child: actions!) else actions!,
           ],
         ),
       ),

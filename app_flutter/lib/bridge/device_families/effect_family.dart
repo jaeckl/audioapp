@@ -590,10 +590,21 @@ class BitcrusherDeviceSnapshot extends EffectDeviceSnapshot {
     super.outputWidth,
     required this.bcRate,
     required this.bcBits,
+    required this.bcMode,
+    required this.bcShape,
+    required this.bcJitter,
+    required this.bcDrive,
+    required this.bcDitherMode,
+    required this.bcDitherAmount,
+    required this.bcClipMode,
+    required this.bcClipAmount,
+    required this.bcFilter,
   }) : super(type: 'bitcrusher');
 
   final double bcRate;
   final double bcBits;
+  final double bcMode, bcShape, bcJitter, bcDrive;
+  final double bcDitherMode, bcDitherAmount, bcClipMode, bcClipAmount, bcFilter;
 
   factory BitcrusherDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -609,6 +620,15 @@ class BitcrusherDeviceSnapshot extends EffectDeviceSnapshot {
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       bcRate: (params['rate'] as num?)?.toDouble() ?? 0.5,
       bcBits: (params['bits'] as num?)?.toDouble() ?? 8.0,
+      bcMode: (params['mode'] as num?)?.toDouble() ?? 0.0,
+      bcShape: (params['shape'] as num?)?.toDouble() ?? 0.0,
+      bcJitter: (params['jitter'] as num?)?.toDouble() ?? 0.0,
+      bcDrive: (params['drive'] as num?)?.toDouble() ?? 0.0,
+      bcDitherMode: (params['ditherMode'] as num?)?.toDouble() ?? 0.0,
+      bcDitherAmount: (params['ditherAmount'] as num?)?.toDouble() ?? 0.0,
+      bcClipMode: (params['clipMode'] as num?)?.toDouble() ?? 0.0,
+      bcClipAmount: (params['clipAmount'] as num?)?.toDouble() ?? 0.0,
+      bcFilter: (params['filter'] as num?)?.toDouble() ?? 1.0,
       outputMix: (params['outputMix'] as num?)?.toDouble() ?? 1.0,
       outputWidth: (params['outputWidth'] as num?)?.toDouble() ?? 1.0,
     );
@@ -627,6 +647,15 @@ class BitcrusherDeviceSnapshot extends EffectDeviceSnapshot {
     double? outputWidth,
     double? bcRate,
     double? bcBits,
+    double? bcMode,
+    double? bcShape,
+    double? bcJitter,
+    double? bcDrive,
+    double? bcDitherMode,
+    double? bcDitherAmount,
+    double? bcClipMode,
+    double? bcClipAmount,
+    double? bcFilter,
   }) {
     return BitcrusherDeviceSnapshot(
       id: id ?? this.id,
@@ -639,6 +668,15 @@ class BitcrusherDeviceSnapshot extends EffectDeviceSnapshot {
       outputWidth: outputWidth ?? this.outputWidth,
       bcRate: bcRate ?? this.bcRate,
       bcBits: bcBits ?? this.bcBits,
+      bcMode: bcMode ?? this.bcMode,
+      bcShape: bcShape ?? this.bcShape,
+      bcJitter: bcJitter ?? this.bcJitter,
+      bcDrive: bcDrive ?? this.bcDrive,
+      bcDitherMode: bcDitherMode ?? this.bcDitherMode,
+      bcDitherAmount: bcDitherAmount ?? this.bcDitherAmount,
+      bcClipMode: bcClipMode ?? this.bcClipMode,
+      bcClipAmount: bcClipAmount ?? this.bcClipAmount,
+      bcFilter: bcFilter ?? this.bcFilter,
     );
   }
 
@@ -650,8 +688,17 @@ class BitcrusherDeviceSnapshot extends EffectDeviceSnapshot {
       'bypass' => copyWith(bypassed: value >= 0.5),
       'outputMix' => copyWith(outputMix: value),
       'outputWidth' => copyWith(outputWidth: value),
-      'rate' => copyWith(bcRate: value),
-      'bits' => copyWith(bcBits: value),
+      'rate' || 'bcRate' => copyWith(bcRate: value),
+      'bits' || 'bcBits' => copyWith(bcBits: value),
+      'mode' || 'bcMode' => copyWith(bcMode: value),
+      'shape' || 'bcShape' => copyWith(bcShape: value),
+      'jitter' || 'bcJitter' => copyWith(bcJitter: value),
+      'drive' || 'bcDrive' => copyWith(bcDrive: value),
+      'ditherMode' || 'bcDitherMode' => copyWith(bcDitherMode: value),
+      'ditherAmount' || 'bcDitherAmount' => copyWith(bcDitherAmount: value),
+      'clipMode' || 'bcClipMode' => copyWith(bcClipMode: value),
+      'clipAmount' || 'bcClipAmount' => copyWith(bcClipAmount: value),
+      'filter' || 'bcFilter' => copyWith(bcFilter: value),
       _ => this,
     };
   }

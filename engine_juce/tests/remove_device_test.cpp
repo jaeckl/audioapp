@@ -2,7 +2,23 @@
 #include "TestHelpers.h"
 #include "audioapp/EngineHost.hpp"
 
+#include <cmath>
 #include <string>
+#include <vector>
+
+namespace {
+
+float meanAbsDifference(const std::vector<float>& a, const std::vector<float>& b) noexcept {
+    const size_t count = std::min(a.size(), b.size());
+    if (count == 0) return 0.0f;
+    double acc = 0.0;
+    for (size_t i = 0; i < count; ++i) {
+        acc += std::abs(a[i] - b[i]);
+    }
+    return static_cast<float>(acc / static_cast<double>(count));
+}
+
+} // namespace
 
 class RemoveDeviceTest : public juce::UnitTest {
 public:
@@ -67,6 +83,45 @@ public:
 
             expect(host.removeDeviceFromTrack(samplerId),
                    "remove sampler device");
+        }
+        beginTest("fx after removed device still processes");
+        {
+            auto renderAfterRemove = [](bool bypassDistortion) {
+                audioapp::EngineHost host;
+                host.createProject();
+                const std::string trackId = host.addTrack("FX chain");
+                host.selectTrack(trackId);
+
+                const std::string oscId = host.addDeviceToTrack(trackId, "simple_oscillator");
+                const std::string removedFxId = host.addDeviceToTrack(trackId, "bitcrusher");
+                const std::string tremoloId = host.addDeviceToTrack(trackId, "tremolo");
+                const std::string distortionId = host.addDeviceToTrack(trackId, "distortion");
+                if (oscId.empty() || removedFxId.empty() || tremoloId.empty() || distortionId.empty()) {
+                    return std::vector<float>{};
+                }
+
+                host.setDeviceParameter(tremoloId, "tremDepth", 0.75f);
+                host.setDeviceParameter(distortionId, "distDrive", 1.0f);
+                host.setDeviceParameter(distortionId, "distMix", 1.0f);
+
+                const std::string clipId = host.createMidiClip(trackId, 0.0, 4.0);
+                std::vector<audioapp::MidiNoteState> notes;
+                notes.push_back({60, 0.0, 4.0, 100.0f});
+                host.setMidiClipNotes(clipId, notes);
+
+                host.removeDeviceFromTrack(removedFxId);
+                if (bypassDistortion) {
+                    host.setDeviceParameter(distortionId, "bypass", 1.0f);
+                }
+                return host.renderOffline(4.0, 48000.0);
+            };
+
+            const auto active = renderAfterRemove(false);
+            const auto bypassed = renderAfterRemove(true);
+            expect(audioapp::test::hasNonZeroSample(active), "active chain renders audio");
+            expect(audioapp::test::hasNonZeroSample(bypassed), "bypassed comparison renders audio");
+            expect(meanAbsDifference(active, bypassed) > 1.0e-4f,
+                   "second remaining FX still changes audio after removing earlier FX");
         }
     }
 };

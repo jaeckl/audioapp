@@ -1,0 +1,19 @@
+{
+  "name": "comfyui-imagegen",
+  "version": "0.1.0",
+  "description": "Generate local images through ComfyUI workflows from Codex.",
+  "author": {
+    "name": "Local developer"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "ComfyUI Image Generation",
+    "shortDescription": "Run local ComfyUI workflows from Codex.",
+    "longDescription": "Submits API-format workflows to a local ComfyUI server, uploads reference images, waits for completion, and saves generated images locally.",
+    "developerName": "Local developer",
+    "category": "Engineering",
+    "capabilities": ["Write"],
+    "defaultPrompt": ["Generate an image with my local ComfyUI workflow."]
+  },
+  "mcpServers": "./.mcp.json"
+}

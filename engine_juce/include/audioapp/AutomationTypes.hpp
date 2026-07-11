@@ -358,6 +358,15 @@ enum class BitcrusherParam : uint16_t {
     Rate = 0,
     Bits = 1,
     Mix = 2,
+    Mode = 3,
+    Shape = 4,
+    Jitter = 5,
+    Drive = 6,
+    DitherMode = 7,
+    DitherAmount = 8,
+    ClipMode = 9,
+    ClipAmount = 10,
+    Filter = 11,
 };
 
 enum class DistortionParam : uint16_t {

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../bridge/device_snapshot.dart';
 import 'device_knob_sizes.dart';
+import 'device_automation_spinner.dart';
 import 'device_strip_metrics.dart';
 import 'device_tab_bar.dart';
 import 'panels/compact_fx_layout.dart';
@@ -35,6 +36,8 @@ class _MoodFxKnob extends StatelessWidget {
     required this.onAutomateParameter,
     this.displayValue,
     this.size = DeviceStripMetrics.dynamicsFxKnobSize,
+    this.labelOptions = const [],
+    this.onLabelOptionSelected,
   });
 
   final String label;
@@ -52,6 +55,8 @@ class _MoodFxKnob extends StatelessWidget {
   final ValueChanged<String>? onAutomateParameter;
   final String? displayValue;
   final double size;
+  final List<String> labelOptions;
+  final ValueChanged<String>? onLabelOptionSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -76,6 +81,8 @@ class _MoodFxKnob extends StatelessWidget {
           ? () => onAutomateParameter!(paramId)
           : null,
       onChanged: (v) => onParameterChanged(paramId, v),
+      labelOptions: labelOptions,
+      onLabelOptionSelected: onLabelOptionSelected,
     );
   }
 }
@@ -96,6 +103,8 @@ _MoodFxKnob _knob({
   required ValueChanged<String>? onAutomateParameter,
   String? displayValue,
   double size = DeviceStripMetrics.dynamicsFxKnobSize,
+  List<String> labelOptions = const [],
+  ValueChanged<String>? onLabelOptionSelected,
 }) {
   return _MoodFxKnob(
     label: label,
@@ -113,6 +122,8 @@ _MoodFxKnob _knob({
     onAutomateParameter: onAutomateParameter,
     displayValue: displayValue,
     size: size,
+    labelOptions: labelOptions,
+    onLabelOptionSelected: onLabelOptionSelected,
   );
 }
 
@@ -168,56 +179,60 @@ class _BitcrusherPreviewPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final h = size.height;
-    final w = size.width;
-    final cy = h / 2;
-    final amp = (h - 8) / 2;
-
-    // Ghost sine — 2 cycles
-    final ghostPaint = Paint()
-      ..color = accent.withValues(alpha: 0.2)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
-    final ghostPath = Path();
-    for (double x = 0; x <= w; x += 1) {
-      final t = x / w * 4 * math.pi;
-      final y = cy + math.sin(t) * amp;
-      if (x == 0) {
-        ghostPath.moveTo(x, y);
-      } else {
-        ghostPath.lineTo(x, y);
+    final rect = Offset.zero & size;
+    canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(5)),
+        Paint()..color = const Color(0xFF07070A));
+    final pad = math.max(8.0, size.shortestSide * .07);
+    final graph =
+        Rect.fromLTRB(pad, pad + 8, size.width - pad, size.height - pad);
+    final grid = Paint()
+      ..color = Colors.white.withValues(alpha: .055)
+      ..strokeWidth = 1;
+    for (var i = 1; i < 4; i++) {
+      final x = graph.left + graph.width * i / 4;
+      final y = graph.top + graph.height * i / 4;
+      canvas.drawLine(Offset(x, graph.top), Offset(x, graph.bottom), grid);
+      canvas.drawLine(Offset(graph.left, y), Offset(graph.right, y), grid);
+    }
+    canvas.drawLine(
+        graph.bottomLeft,
+        graph.topRight,
+        Paint()
+          ..color = Colors.white.withValues(alpha: .28)
+          ..strokeWidth = 1);
+    final steps = (4 + rate * 8).round().clamp(4, 12);
+    final levels = math.max(2, math.min(steps, bits.round()));
+    final path = Path()..moveTo(graph.left, graph.bottom);
+    for (var i = 0; i < steps; i++) {
+      final x1 = graph.left + graph.width * (i + 1) / steps;
+      final normalized = i / math.max(1, steps - 1);
+      final quantized = (normalized * (levels - 1)).round() / (levels - 1);
+      final y = graph.bottom - quantized * graph.height;
+      if (i == 0) path.lineTo(graph.left, y);
+      path.lineTo(x1, y);
+      if (i < steps - 1) {
+        final next =
+            ((i + 1) / (steps - 1) * (levels - 1)).round() / (levels - 1);
+        path.lineTo(x1, graph.bottom - next * graph.height);
       }
     }
-    canvas.drawPath(ghostPath, ghostPaint);
-
-    // Crushed staircase
-    final numSamples = (4 + (1 - rate) * 56).round().clamp(2, 60);
-    final quantLevels =
-        math.max(2, math.min(32, math.pow(2, 1 + bits / 4).round().toInt()));
-    final stepW = w / numSamples;
-
-    final crushedPaint = Paint()
-      ..color = accent
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0
-      ..strokeJoin = StrokeJoin.round;
-    final crushedPath = Path();
-    for (int i = 0; i < numSamples; i++) {
-      final cx = i * stepW + stepW / 2;
-      final t = cx / w * 4 * math.pi;
-      final raw = math.sin(t);
-      final quantized = (raw * quantLevels / 2).round() / (quantLevels / 2);
-      final y = cy + quantized * amp;
-      final x0 = i * stepW;
-      if (i == 0) {
-        crushedPath.moveTo(x0, y);
-      } else {
-        crushedPath.lineTo(x0, y);
-      }
-      final x1 = (i + 1) * stepW;
-      crushedPath.lineTo(x1, y);
-    }
-    canvas.drawPath(crushedPath, crushedPaint);
+    canvas.drawPath(
+        path,
+        Paint()
+          ..color = accent
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2
+          ..strokeJoin = StrokeJoin.miter);
+    final text = TextPainter(
+      text: TextSpan(
+          text: 'AMPLITUDE TRANSFER',
+          style: TextStyle(
+              color: Colors.white.withValues(alpha: .72),
+              fontSize: 7,
+              fontWeight: FontWeight.w700)),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    text.paint(canvas, Offset(pad, 5));
   }
 
   @override
@@ -440,10 +455,319 @@ class _TremoloPreviewPainter extends CustomPainter {
 
 // ─── Bitcrusher ──────────────────────────────────────────────
 
+class _HorizontalGroupShell extends StatefulWidget {
+  const _HorizontalGroupShell({
+    required this.width,
+    required this.height,
+    required this.value,
+    required this.maxValue,
+    required this.accent,
+    required this.modulationActive,
+    required this.modulationAmount,
+    required this.automationActive,
+    required this.connectModeActive,
+    required this.linkModeActive,
+    required this.child,
+    this.onModulationAssign,
+    this.onLinkTap,
+    this.onAutomateRequest,
+  });
+
+  final double width, height, value, maxValue, modulationAmount;
+  final Color accent;
+  final bool modulationActive, automationActive;
+  final bool connectModeActive, linkModeActive;
+  final Widget child;
+  final ValueChanged<double>? onModulationAssign;
+  final VoidCallback? onLinkTap, onAutomateRequest;
+
+  @override
+  State<_HorizontalGroupShell> createState() => _HorizontalGroupShellState();
+}
+
+class _HorizontalGroupShellState extends State<_HorizontalGroupShell>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulse;
+  bool _assigning = false;
+  double _startY = 0, _amount = 0;
+
+  bool get _linking => widget.connectModeActive || widget.linkModeActive;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1500));
+    _pulse = Tween<double>(begin: .1, end: .35).animate(
+        CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut));
+    if (_linking) _pulseController.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant _HorizontalGroupShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final wasLinking = oldWidget.connectModeActive || oldWidget.linkModeActive;
+    if (_linking && !wasLinking) {
+      _pulseController.repeat(reverse: true);
+    } else if (!_linking && wasLinking) {
+      _pulseController
+        ..stop()
+        ..reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final shownAmount = _assigning ? _amount : widget.modulationAmount;
+    final showLine = widget.connectModeActive &&
+        (_assigning || widget.modulationActive) &&
+        shownAmount.abs() > 0;
+    final lineStart =
+        (widget.value / widget.maxValue).clamp(0.0, 1.0) * widget.width;
+    final lineEnd =
+        (lineStart + shownAmount * widget.width).clamp(0.0, widget.width);
+    final pulseColor =
+        widget.linkModeActive ? const Color(0xFFB48CFF) : widget.accent;
+    const linePadding = 4.0;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: widget.linkModeActive ? widget.onLinkTap : null,
+      onLongPress: !_linking ? widget.onAutomateRequest : null,
+      onLongPressStart: widget.connectModeActive
+          ? (details) {
+              HapticFeedback.mediumImpact();
+              _pulseController.stop();
+              setState(() {
+                _assigning = true;
+                _startY = details.localPosition.dy;
+                _amount = 0;
+              });
+            }
+          : null,
+      onLongPressMoveUpdate: widget.connectModeActive
+          ? (details) => setState(() => _amount =
+              ((_startY - details.localPosition.dy) / 100).clamp(-1.0, 1.0))
+          : null,
+      onLongPressEnd: widget.connectModeActive
+          ? (_) {
+              widget.onModulationAssign?.call(_amount);
+              setState(() {
+                _assigning = false;
+                _amount = 0;
+              });
+              if (_linking) _pulseController.repeat(reverse: true);
+            }
+          : null,
+      child: AnimatedBuilder(
+        animation: _pulse,
+        builder: (_, child) => SizedBox(
+          width: widget.width,
+          height: widget.height,
+          child: Stack(clipBehavior: Clip.hardEdge, children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: _linking
+                      ? pulseColor.withValues(alpha: _pulse.value)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(
+                      color: _linking
+                          ? pulseColor.withValues(alpha: .7)
+                          : Colors.white.withValues(alpha: .08)),
+                ),
+                child: child,
+              ),
+            ),
+            if (showLine)
+              Positioned(
+                left: math.min(lineStart, lineEnd) + linePadding,
+                bottom: 2,
+                width: math.max(0,(lineEnd - lineStart).abs() - linePadding * 2),
+                child: Container(
+                  height: 3 * 0.75,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.75),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+  ),
+            if (widget.automationActive)
+              const Positioned(
+                left: 3,
+                top: 3,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                      color: Color(0xFFB48CFF), shape: BoxShape.circle),
+                  child: SizedBox(width: 6, height: 6),
+                ),
+              ),
+          ]),
+        ),
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+class BitcrusherHeaderActions extends StatelessWidget {
+  const BitcrusherHeaderActions({
+    super.key,
+    required this.device,
+    required this.onParameterChanged,
+    this.modulatedParams = const {},
+    this.automatedParams = const {},
+    this.modulationAmounts = const {},
+    this.connectModeLfoId,
+    this.onModulationAssign,
+    this.automationLinkActive = false,
+    this.onAutomationLinkTap,
+    this.onAutomateParameter,
+  });
+
+  final BitcrusherDeviceSnapshot device;
+  final MoodFxParameterChanged onParameterChanged;
+  final Set<String> modulatedParams;
+  final Set<String> automatedParams;
+  final Map<String, double> modulationAmounts;
+  final int? connectModeLfoId;
+  final MoodFxModulationAssign onModulationAssign;
+  final bool automationLinkActive;
+  final ValueChanged<String>? onAutomationLinkTap;
+  final ValueChanged<String>? onAutomateParameter;
+
+  @override
+  Widget build(BuildContext context) {
+    const labels = ['Classic', 'Impact', 'Sub', 'Organic'];
+    final selected = device.bcMode.round().clamp(0, 3);
+    final antiAlias = device.bcFilter > .82
+        ? 0
+        : device.bcFilter > .55
+            ? 1
+            : 2;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 0, 4, 0),
+      child: Row(children: [
+        _HorizontalGroupShell(
+          width: 210,
+          height: 32,
+          value: device.bcMode,
+          maxValue: 3,
+          accent: BitcrusherFxPanel.accent,
+          modulationActive: modulatedParams.contains('bcMode'),
+          modulationAmount: modulationAmounts['bcMode'] ?? 0,
+          automationActive: automatedParams.contains('bcMode'),
+          connectModeActive: connectModeLfoId != null,
+          linkModeActive: automationLinkActive,
+          onModulationAssign: onModulationAssign == null
+              ? null
+              : (amount) => onModulationAssign!('bcMode', amount),
+          onLinkTap: onAutomationLinkTap == null
+              ? null
+              : () => onAutomationLinkTap!('bcMode'),
+          onAutomateRequest: onAutomateParameter == null
+              ? null
+              : () => onAutomateParameter!('bcMode'),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(5),
+            child: Row(children: [
+              for (var i = 0; i < labels.length; i++)
+                Expanded(
+                  child: Material(
+                    color: i == selected
+                        ? BitcrusherFxPanel.accent
+                        : const Color(0xFF0C0C11),
+                    child: InkWell(
+                      key: ValueKey('bitcrusher-mode-$i'),
+                      onTap: () => onParameterChanged('bcMode', i.toDouble()),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: i < labels.length - 1
+                              ? Border(
+                                  right: BorderSide(
+                                      color:
+                                          Colors.white.withValues(alpha: .07)))
+                              : null,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(labels[i],
+                            style: TextStyle(
+                                color: i == selected
+                                    ? Colors.white
+                                    : Colors.white38,
+                                fontSize: 8,
+                                fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ),
+                ),
+            ]),
+          ),
+        ),
+        const Spacer(),
+        deviceAutomationSpinner(
+          paramId: 'bcFilter',
+          width: 120,
+          height: 40,
+          accentColor: BitcrusherFxPanel.accent,
+          borderAlpha: 0,
+          modulatedParams: modulatedParams,
+          automatedParams: automatedParams,
+          modulationAmounts: modulationAmounts,
+          connectModeLfoId: connectModeLfoId,
+          onModulationAssign: onModulationAssign,
+          automationLinkActive: automationLinkActive,
+          onAutomationLinkTap: onAutomationLinkTap,
+          onAutomateParameter: onAutomateParameter,
+          child: PopupMenuButton<int>(
+            padding: EdgeInsets.zero,
+            color: const Color(0xFF22222E),
+            onSelected: (value) =>
+                onParameterChanged('bcFilter', const [1.0, .7, .4][value]),
+            itemBuilder: (_) => [
+              for (var i = 0; i < 3; i++)
+                PopupMenuItem<int>(
+                  value: i,
+                  height: 32,
+                  child: Text(const ['Off', 'Soft', 'Steep'][i],
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: i == antiAlias
+                            ? BitcrusherFxPanel.accent
+                            : Colors.white70,
+                      )),
+                ),
+            ],
+            child: const Center(
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Text('ANTI-ALIAS',
+                    style: TextStyle(
+                        fontSize: 9.5,
+                        color: Colors.white60,
+                        fontWeight: FontWeight.w700)),
+                SizedBox(width: 1),
+                Icon(Icons.keyboard_arrow_down_rounded,
+                    size: 14, color: Colors.white54),
+              ]),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
 class BitcrusherFxPanel extends StatelessWidget {
   static const accent = Color(0xFF7B6CF6);
   static const containerTabs = <DeviceTabSpec>[];
-  static const double designWidth = 216;
+  static const double designWidth = 424;
 
   final BitcrusherDeviceSnapshot device;
   final MoodFxParameterChanged onParameterChanged;
@@ -472,52 +796,227 @@ class BitcrusherFxPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _moodFxSinglePage(
-      preview: CustomPaint(
-        painter: _BitcrusherPreviewPainter(
-          rate: device.bcRate,
-          bits: device.bcBits,
+    Widget knob(String label, double value, String id, String display,
+            {double size = 58,
+            ValueChanged<double>? changed,
+            List<String> labelOptions = const [],
+            ValueChanged<String>? onLabelOptionSelected}) =>
+        _knob(
+          label: label,
+          value: value,
+          paramId: id,
           accent: accent,
-        ),
-        child: const SizedBox.expand(),
-      ),
-      rows: [
-        _knobGridRow([
-          _knob(
-            label: 'Rate',
-            value: device.bcRate,
-            paramId: 'bcRate',
-            onParameterChanged: onParameterChanged,
-            accent: accent,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${(device.bcRate * 100).round()}%',
-          ),
-          _knob(
-            label: 'Bits',
-            value: _bcBitsNorm,
-            paramId: 'bcBits',
-            onParameterChanged: (id, v) => onParameterChanged(id, 1 + v * 15),
-            accent: accent,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${device.bcBits.round()} bit',
-          ),
-          null,
-        ]),
-      ],
+          onParameterChanged: changed == null
+              ? onParameterChanged
+              : (_, value) => changed(value),
+          modulatedParams: modulatedParams,
+          automatedParams: automatedParams,
+          modulationAmounts: modulationAmounts,
+          connectModeLfoId: connectModeLfoId,
+          onModulationAssign: onModulationAssign,
+          automationLinkActive: automationLinkActive,
+          onAutomationLinkTap: onAutomationLinkTap,
+          onAutomateParameter: onAutomateParameter,
+          displayValue: display,
+          size: size,
+          labelOptions: labelOptions,
+          onLabelOptionSelected: onLabelOptionSelected,
+        );
+
+    Widget shapeGroup() {
+      final selected = device.bcShape.round().clamp(0, 3);
+      const icons = [
+        Icons.horizontal_rule_rounded,
+        Icons.waves_rounded,
+        Icons.change_history_rounded,
+        Icons.stacked_line_chart_rounded
+      ];
+      return _HorizontalGroupShell(
+        width: 92,
+        height: 30,
+        value: device.bcShape,
+        maxValue: 3,
+        accent: accent,
+        modulationActive: modulatedParams.contains('bcShape'),
+        modulationAmount: modulationAmounts['bcShape'] ?? 0,
+        automationActive: automatedParams.contains('bcShape'),
+        connectModeActive: connectModeLfoId != null,
+        linkModeActive: automationLinkActive,
+        onModulationAssign: onModulationAssign == null
+            ? null
+            : (amount) => onModulationAssign!('bcShape', amount),
+        onLinkTap: onAutomationLinkTap == null
+            ? null
+            : () => onAutomationLinkTap!('bcShape'),
+        onAutomateRequest: onAutomateParameter == null
+            ? null
+            : () => onAutomateParameter!('bcShape'),
+        child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: Row(children: [
+              for (var i = 0; i < icons.length; i++)
+                Expanded(
+                    child: InkWell(
+                  key: ValueKey('bitcrusher-shape-$i'),
+                  onTap: () => onParameterChanged('bcShape', i.toDouble()),
+                  child: ColoredBox(
+                      color: i == selected
+                          ? Colors.white.withValues(alpha: .08)
+                          : const Color(0xFF0C0C11),
+                      child: Center(
+                          child: Icon(icons[i],
+                              size: 14,
+                              color: i == selected ? accent : Colors.white54))),
+                )),
+            ])),
+      );
+    }
+
+    BoxDecoration card() => BoxDecoration(
+          color: const Color(0xFF121218),
+          borderRadius: BorderRadius.circular(5),
+          border: Border.all(color: Colors.white.withValues(alpha: .07)),
+        );
+
+    String filterLabel() {
+      final hz = 800 * math.pow(25, device.bcFilter);
+      return hz >= 1000
+          ? '${(hz / 1000).toStringAsFixed(hz >= 10000 ? 0 : 1)}k'
+          : '${hz.round()} Hz';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(6, 5, 6, 4),
+      child: Column(children: [
+        Expanded(
+            child:
+                Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Container(
+              width: 84,
+              decoration: card(),
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    knob('Rate', device.bcRate, 'bcRate',
+                        '${(48 / (1 + (1 - device.bcRate) * 63)).toStringAsFixed(1)}k',
+                        size: 68),
+                    knob('Bits', _bcBitsNorm, 'bcBits',
+                        '${device.bcBits.round()} bit',
+                        size: 68,
+                        changed: (v) =>
+                            onParameterChanged('bcBits', 1 + v * 15)),
+                  ])),
+          const SizedBox(width: 4),
+          Expanded(
+              child: Container(
+                  decoration: card(),
+                  padding: const EdgeInsets.all(5),
+                  child: Column(children: [
+                    Expanded(
+                        child: CustomPaint(
+                            painter: _BitcrusherPreviewPainter(
+                                rate: device.bcRate,
+                                bits: device.bcBits,
+                                accent: accent),
+                            child: const SizedBox.expand())),
+                    const SizedBox(height: 4),
+                    Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          SizedBox(
+                            width: 92,
+                            height: 65,
+                            child: Stack(
+                              children: [
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  top: 0,
+                                  bottom: 12, // Reserve space for the label.
+                                  child: Align(
+                                    alignment: Alignment.center,
+                                    child: shapeGroup(),
+                                  ),
+                                ),
+                                const Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  child: Text(
+                                    'Shape',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 8,
+                                      color: Colors.white60,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          knob(
+                            const [
+                              'No Dither',
+                              'Rect',
+                              'TPDF',
+                              'Shaped'
+                            ][device.bcDitherMode.round().clamp(0, 3)],
+                            device.bcDitherAmount,
+                            'bcDitherAmount',
+                            '${(device.bcDitherAmount * 100).round()}%',
+                            size: 55,
+                            labelOptions: const [
+                              'No Dither',
+                              'Rect',
+                              'TPDF',
+                              'Shaped'
+                            ],
+                            onLabelOptionSelected: (label) =>
+                                onParameterChanged(
+                                    'bcDitherMode',
+                                    const [
+                                      'No Dither',
+                                      'Rect',
+                                      'TPDF',
+                                      'Shaped'
+                                    ].indexOf(label).toDouble()),
+                          ),
+                          knob(
+                            const [
+                              'No Clip',
+                              'Soft',
+                              'Hard'
+                            ][device.bcClipMode.round().clamp(0, 2)],
+                            device.bcClipAmount,
+                            'bcClipAmount',
+                            '${(device.bcClipAmount * 100).round()}%',
+                            size: 55,
+                            labelOptions: const ['No Clip', 'Soft', 'Hard'],
+                            onLabelOptionSelected: (label) =>
+                                onParameterChanged(
+                                    'bcClipMode',
+                                    const ['No Clip', 'Soft', 'Hard']
+                                        .indexOf(label)
+                                        .toDouble()),
+                          ),
+                        ]),
+                  ]))),
+          const SizedBox(width: 4),
+          Container(
+              width: 78,
+              decoration: card(),
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    knob('Jitter', device.bcJitter, 'bcJitter',
+                        '${(device.bcJitter * 100).round()}%'),
+                    knob('Drive', device.bcDrive, 'bcDrive',
+                        '${(device.bcDrive * 100).round()}%'),
+                    knob('Filter', device.bcFilter, 'bcFilter', filterLabel()),
+                  ])),
+        ])),
+      ]),
     );
   }
 

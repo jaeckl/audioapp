@@ -195,6 +195,7 @@ std::string ProjectEngine::addDeviceToTrack(const std::string& trackId,
 }
 
 bool ProjectEngine::removeDeviceFromTrack(const std::string& deviceId) {
+    const juce::ScopedWriteLock lock(mutex_);
     if (deviceId.empty()) {
         return false;
     }

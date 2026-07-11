@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "comfyui": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--with",
+        "mcp",
+        "python",
+        "C:\\Users\\ludwi\\Desktop\\audioapp\\output\\plugins\\comfyui-imagegen\\scripts\\comfyui_mcp.py"
+      ],
+      "env": {
+        "COMFYUI_URL": "http://127.0.0.1:8000",
+        "COMFYUI_WORKFLOW": "C:\\Users\\ludwi\\Desktop\\audioapp\\output\\plugins\\comfyui-imagegen\\workflows\\basic-txt2img.json",
+        "COMFYUI_OUTPUT_DIR": "C:\\Users\\ludwi\\Desktop\\audioapp\\output\\comfyui-generated"
+      }
+    }
+  }
+}

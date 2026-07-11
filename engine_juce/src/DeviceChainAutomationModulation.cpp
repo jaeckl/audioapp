@@ -87,7 +87,22 @@ void applyModulation(PhaserParamsPlayback& p, float amount, uint16_t localParamI
     case PhaserParam::Stages: p.stages = std::clamp(p.stages + std::round(amount * 10.0f), 2.0f, 12.0f); break;
     }
 }
-void applyModulation(BitcrusherParamsPlayback&, float, uint16_t) noexcept {}
+void applyModulation(BitcrusherParamsPlayback& p, float amount, uint16_t localParamId) noexcept {
+    switch (static_cast<BitcrusherParam>(unpackParamId(localParamId))) {
+    case BitcrusherParam::Rate: p.rate = std::clamp(p.rate + amount, 0.0f, 1.0f); break;
+    case BitcrusherParam::Bits: p.bits = std::clamp(p.bits + amount * 15.0f, 1.0f, 16.0f); break;
+    case BitcrusherParam::Mix: p.mix = std::clamp(p.mix + amount, 0.0f, 1.0f); break;
+    case BitcrusherParam::Mode: p.mode = std::clamp(p.mode + amount * 3.0f, 0.0f, 3.0f); break;
+    case BitcrusherParam::Shape: p.shape = std::clamp(p.shape + amount * 3.0f, 0.0f, 3.0f); break;
+    case BitcrusherParam::Jitter: p.jitter = std::clamp(p.jitter + amount, 0.0f, 1.0f); break;
+    case BitcrusherParam::Drive: p.drive = std::clamp(p.drive + amount, 0.0f, 1.0f); break;
+    case BitcrusherParam::DitherMode: p.ditherMode = std::clamp(p.ditherMode + amount * 3.0f, 0.0f, 3.0f); break;
+    case BitcrusherParam::DitherAmount: p.ditherAmount = std::clamp(p.ditherAmount + amount, 0.0f, 1.0f); break;
+    case BitcrusherParam::ClipMode: p.clipMode = std::clamp(p.clipMode + amount * 2.0f, 0.0f, 2.0f); break;
+    case BitcrusherParam::ClipAmount: p.clipAmount = std::clamp(p.clipAmount + amount, 0.0f, 1.0f); break;
+    case BitcrusherParam::Filter: p.filter = std::clamp(p.filter + amount, 0.0f, 1.0f); break;
+    }
+}
 void applyModulation(DistortionParamsPlayback&, float, uint16_t) noexcept {}
 void applyModulation(TremoloParamsPlayback&, float, uint16_t) noexcept {}
 void applyModulation(StutterParamsPlayback& p, float modAmount, uint16_t localParamId) noexcept {

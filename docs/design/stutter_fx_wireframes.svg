@@ -1,0 +1,238 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="790" viewBox="0 0 1180 790">
+  <defs>
+    <style>
+      .page { fill: #07080c; }
+      .h1 { fill: #eef6f7; font: 800 18px Inter, Segoe UI, sans-serif; }
+      .h2 { fill: #e4edf0; font: 800 14px Inter, Segoe UI, sans-serif; }
+      .body { fill: #a6b2bb; font: 500 11px Inter, Segoe UI, sans-serif; }
+      .tiny { fill: #94a0aa; font: 600 8px Inter, Segoe UI, sans-serif; }
+      .label { fill: #dce8ea; font: 800 9px Inter, Segoe UI, sans-serif; letter-spacing: 0.5px; }
+      .value { fill: #57d3c4; font: 900 13px Inter, Segoe UI, sans-serif; }
+      .panel { fill: #10131a; stroke: #303842; stroke-width: 1.4; rx: 8; }
+      .inside { fill: none; stroke: #3a444f; stroke-width: 1; stroke-dasharray: 4 3; rx: 2; }
+      .section { fill: #151922; stroke: #2e3741; stroke-width: 1; rx: 6; }
+      .section2 { fill: #11151d; stroke: #29323c; stroke-width: 1; rx: 6; }
+      .accent { fill: #57d3c4; }
+      .accentSoft { fill: #57d3c4; opacity: 0.16; }
+      .accentLine { stroke: #57d3c4; stroke-width: 2; fill: none; stroke-linecap: round; }
+      .mutedLine { stroke: #35404b; stroke-width: 2; fill: none; stroke-linecap: round; }
+      .knob { fill: #121720; stroke: #47525f; stroke-width: 2; }
+      .knobHost { fill: none; stroke: #55606b; stroke-width: 1; opacity: 0.5; rx: 4; }
+      .chip { fill: #222936; stroke: #3b4652; stroke-width: 1; rx: 4; }
+      .chipOn { fill: #153632; stroke: #57d3c4; stroke-width: 1; rx: 4; }
+      .warn { fill: #ffcf6e; font: 700 10px Inter, Segoe UI, sans-serif; }
+      .measure { fill: #74808a; font: 600 8px Inter, Segoe UI, sans-serif; }
+    </style>
+  </defs>
+
+  <rect class="page" width="1180" height="790"/>
+  <text class="h1" x="30" y="34">Stutter FX Wireframes, Design-System Sized</text>
+  <text class="body" x="30" y="55">Hard constraints used here: device face 216 x 320, inner compact-FX padding x=6 top=6 bottom=4, default strip knob 56, knob host 64 x 60, knob column 62, gap 8.</text>
+  <text class="body" x="30" y="73">Conclusion: with real 56px knobs, Stutter can support one normal knob row comfortably. More controls should be sliders/chips or another tab/page.</text>
+
+  <!-- Shared symbol-ish helpers are drawn inline to keep the SVG standalone. -->
+
+  <!-- Variant 1 -->
+  <g transform="translate(30 125)">
+    <text class="h2" x="0" y="-22">1. Performance + One Knob Row</text>
+    <text class="body" x="0" y="-6">Primary controls own the top; exactly one 56px knob row; secondary controls are visible sliders.</text>
+    <rect class="panel" width="216" height="320"/>
+    <rect class="inside" x="6" y="6" width="204" height="310"/>
+    <text class="measure" x="160" y="18">216 x 320</text>
+
+    <rect class="section2" x="12" y="12" width="192" height="30"/>
+    <rect class="accentSoft" x="22" y="24" width="16" height="8" rx="2"/>
+    <rect class="accentSoft" x="46" y="20" width="10" height="12" rx="2"/>
+    <rect class="accentSoft" x="65" y="25" width="21" height="7" rx="2"/>
+    <rect class="accentSoft" x="96" y="19" width="13" height="13" rx="2"/>
+    <rect class="accentSoft" x="120" y="23" width="25" height="9" rx="2"/>
+    <text class="measure" x="154" y="31">preview 30</text>
+
+    <rect class="section" x="12" y="50" width="70" height="76"/>
+    <circle class="accent" cx="28" cy="68" r="4"/>
+    <text class="label" x="24" y="92">HOLD</text>
+    <rect class="accent" x="24" y="108" width="40" height="5" rx="3"/>
+    <text class="measure" x="20" y="121">binary</text>
+
+    <rect class="section" x="90" y="50" width="114" height="76"/>
+    <text class="label" x="102" y="68">RATE</text>
+    <rect class="chipOn" x="102" y="77" width="43" height="18"/>
+    <text class="tiny" x="112" y="90">SYNC</text>
+    <rect class="chip" x="151" y="77" width="35" height="18"/>
+    <text class="tiny" x="162" y="90">MS</text>
+    <rect class="section2" x="102" y="101" width="84" height="18"/>
+    <text class="value" x="132" y="115">1/8</text>
+
+    <text class="measure" x="18" y="141">one real knob row: 3 x 62 cols, knobs are 56</text>
+    <g transform="translate(15 150)">
+      <rect class="knobHost" x="0" y="0" width="64" height="73"/>
+      <circle class="knob" cx="32" cy="30" r="28"/>
+      <path class="accentLine" d="M16 41 A22 22 0 0 1 45 11"/>
+      <text class="tiny" x="19" y="69">SIZE</text>
+      <rect class="knobHost" x="70" y="0" width="64" height="73"/>
+      <circle class="knob" cx="102" cy="30" r="28"/>
+      <path class="accentLine" d="M86 41 A22 22 0 0 1 106 8"/>
+      <text class="tiny" x="92" y="69">POS</text>
+      <rect class="knobHost" x="140" y="0" width="64" height="73"/>
+      <circle class="knob" cx="172" cy="30" r="28"/>
+      <path class="accentLine" d="M156 41 A22 22 0 0 1 186 14"/>
+      <text class="tiny" x="160" y="69">GATE</text>
+    </g>
+
+    <rect class="section" x="12" y="236" width="192" height="68"/>
+    <text class="label" x="22" y="254">CAPTURE</text>
+    <text class="tiny" x="164" y="254">500ms</text>
+    <line class="mutedLine" x1="22" y1="267" x2="194" y2="267"/>
+    <line class="accentLine" x1="22" y1="267" x2="112" y2="267"/>
+    <text class="label" x="22" y="287">DUCK</text>
+    <text class="tiny" x="170" y="287">45%</text>
+    <line class="mutedLine" x1="22" y1="298" x2="194" y2="298"/>
+    <line class="accentLine" x1="22" y1="298" x2="94" y2="298"/>
+  </g>
+
+  <!-- Variant 2 -->
+  <g transform="translate(300 125)">
+    <text class="h2" x="0" y="-22">2. Rate Card + Buffer Sliders</text>
+    <text class="body" x="0" y="-6">No duplicate rate knob. Two actual knobs only; buffer controls become explicit sliders.</text>
+    <rect class="panel" width="216" height="320"/>
+    <rect class="inside" x="6" y="6" width="204" height="310"/>
+
+    <rect class="section" x="12" y="12" width="192" height="84"/>
+    <rect class="section2" x="22" y="22" width="54" height="58"/>
+    <circle class="accent" cx="36" cy="37" r="4"/>
+    <text class="label" x="31" y="60">HOLD</text>
+    <rect class="accent" x="31" y="69" width="30" height="4" rx="2"/>
+    <text class="label" x="92" y="34">RATE</text>
+    <rect class="chipOn" x="92" y="45" width="42" height="18"/>
+    <text class="tiny" x="102" y="58">SYNC</text>
+    <rect class="chip" x="140" y="45" width="32" height="18"/>
+    <text class="tiny" x="150" y="58">MS</text>
+    <text class="value" x="104" y="82">1/16</text>
+
+    <rect class="section2" x="12" y="104" width="192" height="28"/>
+    <rect class="accentSoft" x="22" y="115" width="17" height="7" rx="2"/>
+    <rect class="accentSoft" x="47" y="112" width="11" height="10" rx="2"/>
+    <rect class="accentSoft" x="68" y="116" width="23" height="6" rx="2"/>
+    <rect class="accentSoft" x="101" y="111" width="13" height="11" rx="2"/>
+    <rect class="accentSoft" x="126" y="115" width="34" height="7" rx="2"/>
+
+    <g transform="translate(41 143)">
+      <rect class="knobHost" x="0" y="0" width="64" height="73"/>
+      <circle class="knob" cx="32" cy="30" r="28"/>
+      <path class="accentLine" d="M16 41 A22 22 0 0 1 46 11"/>
+      <text class="tiny" x="19" y="69">SIZE</text>
+      <rect class="knobHost" x="70" y="0" width="64" height="73"/>
+      <circle class="knob" cx="102" cy="30" r="28"/>
+      <path class="accentLine" d="M86 41 A22 22 0 0 1 116 14"/>
+      <text class="tiny" x="90" y="69">GATE</text>
+    </g>
+
+    <rect class="section" x="12" y="232" width="192" height="72"/>
+    <text class="label" x="22" y="249">CAP</text>
+    <line class="mutedLine" x1="58" y1="246" x2="194" y2="246"/>
+    <line class="accentLine" x1="58" y1="246" x2="118" y2="246"/>
+    <text class="label" x="22" y="271">POS</text>
+    <line class="mutedLine" x1="58" y1="268" x2="194" y2="268"/>
+    <line class="accentLine" x1="58" y1="268" x2="92" y2="268"/>
+    <text class="label" x="22" y="293">DUCK</text>
+    <line class="mutedLine" x1="58" y1="290" x2="194" y2="290"/>
+    <line class="accentLine" x1="58" y1="290" x2="110" y2="290"/>
+  </g>
+
+  <!-- Variant 3 -->
+  <g transform="translate(570 125)">
+    <text class="h2" x="0" y="-22">3. Two Pages, Clean Main Page</text>
+    <text class="body" x="0" y="-6">Main page has only performance controls. Advanced shaping moves to a tab.</text>
+    <rect class="panel" width="216" height="320"/>
+    <rect class="inside" x="6" y="6" width="204" height="310"/>
+
+    <rect class="section2" x="12" y="12" width="192" height="32"/>
+    <text class="tiny" x="22" y="32">tabs: PLAY selected / SHAPE</text>
+
+    <rect class="section" x="12" y="54" width="192" height="94"/>
+    <rect class="section2" x="24" y="66" width="64" height="68"/>
+    <circle class="accent" cx="42" cy="86" r="5"/>
+    <text class="label" x="36" y="111">HOLD</text>
+    <rect class="accent" x="36" y="123" width="38" height="5" rx="3"/>
+    <text class="label" x="108" y="78">RATE</text>
+    <rect class="chipOn" x="108" y="90" width="44" height="18"/>
+    <text class="tiny" x="118" y="103">SYNC</text>
+    <rect class="chip" x="156" y="90" width="32" height="18"/>
+    <text class="tiny" x="166" y="103">MS</text>
+    <text class="value" x="128" y="129">1/8</text>
+
+    <rect class="section2" x="12" y="158" width="192" height="34"/>
+    <path class="accentLine" d="M22 175 h18 m10 0 h12 m10 0 h24 m10 0 h13 m10 0 h37"/>
+    <text class="measure" x="22" y="187">preview 34</text>
+
+    <g transform="translate(15 207)">
+      <rect class="knobHost" x="0" y="0" width="64" height="73"/>
+      <circle class="knob" cx="32" cy="30" r="28"/>
+      <path class="accentLine" d="M16 41 A22 22 0 0 1 45 11"/>
+      <text class="tiny" x="19" y="69">SIZE</text>
+      <rect class="knobHost" x="70" y="0" width="64" height="73"/>
+      <circle class="knob" cx="102" cy="30" r="28"/>
+      <path class="accentLine" d="M86 41 A22 22 0 0 1 106 8"/>
+      <text class="tiny" x="92" y="69">POS</text>
+      <rect class="knobHost" x="140" y="0" width="64" height="73"/>
+      <circle class="knob" cx="172" cy="30" r="28"/>
+      <path class="accentLine" d="M156 41 A22 22 0 0 1 186 14"/>
+      <text class="tiny" x="160" y="69">GATE</text>
+    </g>
+    <text class="warn" x="18" y="302">Shape tab: Capture, Duck, Fade, Direction</text>
+  </g>
+
+  <!-- Variant 4 -->
+  <g transform="translate(840 125)">
+    <text class="h2" x="0" y="-22">4. Knob-Only Truth Test</text>
+    <text class="body" x="0" y="-6">If everything is 56px knobs, this is about the max without clipping.</text>
+    <rect class="panel" width="216" height="320"/>
+    <rect class="inside" x="6" y="6" width="204" height="310"/>
+
+    <rect class="section" x="12" y="12" width="92" height="70"/>
+    <circle class="accent" cx="30" cy="31" r="4"/>
+    <text class="label" x="26" y="56">HOLD</text>
+    <rect class="section" x="112" y="12" width="92" height="70"/>
+    <text class="label" x="126" y="31">RATE</text>
+    <text class="value" x="138" y="57">1/8</text>
+
+    <rect class="section2" x="12" y="92" width="192" height="26"/>
+    <text class="measure" x="22" y="109">preview must be only a strip</text>
+
+    <g transform="translate(15 132)">
+      <rect class="knobHost" x="0" y="0" width="64" height="73"/>
+      <circle class="knob" cx="32" cy="30" r="28"/>
+      <path class="accentLine" d="M16 41 A22 22 0 0 1 45 11"/>
+      <text class="tiny" x="19" y="69">CAP</text>
+      <rect class="knobHost" x="70" y="0" width="64" height="73"/>
+      <circle class="knob" cx="102" cy="30" r="28"/>
+      <path class="accentLine" d="M86 41 A22 22 0 0 1 106 8"/>
+      <text class="tiny" x="91" y="69">SIZE</text>
+      <rect class="knobHost" x="140" y="0" width="64" height="73"/>
+      <circle class="knob" cx="172" cy="30" r="28"/>
+      <path class="accentLine" d="M156 41 A22 22 0 0 1 186 14"/>
+      <text class="tiny" x="162" y="69">POS</text>
+    </g>
+
+    <g transform="translate(15 220)">
+      <rect class="knobHost" x="0" y="0" width="64" height="73"/>
+      <circle class="knob" cx="32" cy="30" r="28"/>
+      <path class="accentLine" d="M16 41 A22 22 0 0 1 45 11"/>
+      <text class="tiny" x="20" y="69">GATE</text>
+      <rect class="knobHost" x="70" y="0" width="64" height="73"/>
+      <circle class="knob" cx="102" cy="30" r="28"/>
+      <path class="accentLine" d="M86 41 A22 22 0 0 1 106 8"/>
+      <text class="tiny" x="91" y="69">DUCK</text>
+      <text class="warn" x="144" y="30">no room</text>
+      <text class="warn" x="144" y="45">for 6th</text>
+    </g>
+  </g>
+
+  <g transform="translate(30 520)">
+    <text class="h1" x="0" y="0">Fit Math</text>
+    <text class="body" x="0" y="28">Compact page vertical budget: 320 - top padding 6 - bottom padding 4 = 310.</text>
+    <text class="body" x="0" y="50">Default knob block: host height 60 + label gap 3 + label text approx 10-12 = about 73-75.</text>
+    <text class="body" x="0" y="72">Two full knob rows plus a primary rate/hold block plus preview is already tight. Three rows will clip.</text>
+    <text class="body" x="0" y="94">Recommendation from these honest wireframes: choose 1 or 2 if this must stay one page; choose 3 if tabs are acceptable.</text>
+  </g>
+</svg>

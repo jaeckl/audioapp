@@ -247,6 +247,17 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
   endif()
   add_test(NAME audioapp_track_freeze_test COMMAND audioapp_track_freeze_test)
 
+  add_executable(audioapp_remove_device_test
+    tests/JuceTestRunner.cpp
+    tests/remove_device_test.cpp
+  )
+  target_link_libraries(audioapp_remove_device_test PRIVATE audioapp_engine)
+  if(MSVC)
+    target_compile_options(audioapp_remove_device_test PRIVATE /EHsc)
+    target_link_options(audioapp_remove_device_test PRIVATE /STACK:16777216)
+  endif()
+  add_test(NAME audioapp_remove_device_test COMMAND audioapp_remove_device_test)
+
   set(AUDIOAPP_TEST_SOURCES
     tests/JuceTestRunner.cpp
     tests/autobroken_routing_test.cpp
