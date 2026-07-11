@@ -1,3 +1,6 @@
+part 'subtractive_synth_presets_subtractive_preset_mod.dart';
+part 'subtractive_synth_presets_subtractive_synth_preset.dart';
+
 /// Factory preset bundles for subtractive_synth devices (params + LFO/mod routing).
 class SubtractivePresetLfo {
   const SubtractivePresetLfo({
@@ -21,36 +24,6 @@ class SubtractivePresetLfo {
         'phase': phase,
         'polarity': polarity,
       };
-}
-
-class SubtractivePresetMod {
-  const SubtractivePresetMod({
-    required this.lfoIndex,
-    required this.paramId,
-    required this.amount,
-  });
-
-  final int lfoIndex;
-  final String paramId;
-  final double amount;
-
-  Map<String, dynamic> toJson() => {
-        'lfoIndex': lfoIndex,
-        'paramId': paramId,
-        'amount': amount,
-      };
-}
-
-class SubtractiveSynthPreset {
-  const SubtractiveSynthPreset({
-    required this.params,
-    this.lfos = const [],
-    this.mods = const [],
-  });
-
-  final Map<String, double> params;
-  final List<SubtractivePresetLfo> lfos;
-  final List<SubtractivePresetMod> mods;
 }
 
 abstract final class SubtractiveSynthPresets {
@@ -100,13 +73,16 @@ abstract final class SubtractiveSynthPresets {
     'velocitySensitivity': 1.0,
   };
 
-  static const _quarterSine = SubtractivePresetLfo(waveform: 0, syncDivision: 3);
+  static const _quarterSine =
+      SubtractivePresetLfo(waveform: 0, syncDivision: 3);
   static const _halfTri = SubtractivePresetLfo(waveform: 1, syncDivision: 2);
   static const _barSine = SubtractivePresetLfo(waveform: 0, syncDivision: 1);
   static const _eighthSine = SubtractivePresetLfo(waveform: 0, syncDivision: 4);
   static const _slowSaw = SubtractivePresetLfo(waveform: 2, syncDivision: 3);
-  static const _sixteenthTri = SubtractivePresetLfo(waveform: 1, syncDivision: 5);
-  static const _eighthSquare = SubtractivePresetLfo(waveform: 3, syncDivision: 4);
+  static const _sixteenthTri =
+      SubtractivePresetLfo(waveform: 1, syncDivision: 5);
+  static const _eighthSquare =
+      SubtractivePresetLfo(waveform: 3, syncDivision: 4);
   static const _halfSine = SubtractivePresetLfo(waveform: 0, syncDivision: 2);
 
   static Map<String, double> _patch(Map<String, double> overrides) => {
@@ -152,9 +128,12 @@ abstract final class SubtractiveSynthPresets {
         'attack': 0.05,
         'release': 0.5,
       },
-      lfos: const [SubtractivePresetLfo(waveform: 2, syncDivision: 4, rate: 2.0)],
+      lfos: const [
+        SubtractivePresetLfo(waveform: 2, syncDivision: 4, rate: 2.0)
+      ],
       mods: const [
-        SubtractivePresetMod(lfoIndex: 0, paramId: 'filterCutoff', amount: 0.55),
+        SubtractivePresetMod(
+            lfoIndex: 0, paramId: 'filterCutoff', amount: 0.55),
       ],
     ),
 
@@ -213,7 +192,8 @@ abstract final class SubtractiveSynthPresets {
       },
       lfos: const [_quarterSine],
       mods: const [
-        SubtractivePresetMod(lfoIndex: 0, paramId: 'filterCutoff', amount: 0.42),
+        SubtractivePresetMod(
+            lfoIndex: 0, paramId: 'filterCutoff', amount: 0.42),
       ],
     ),
     'preset:synth-bass-warehouse': _bundle(
@@ -238,7 +218,8 @@ abstract final class SubtractiveSynthPresets {
       },
       lfos: const [_eighthSine],
       mods: const [
-        SubtractivePresetMod(lfoIndex: 0, paramId: 'filterCutoff', amount: 0.18),
+        SubtractivePresetMod(
+            lfoIndex: 0, paramId: 'filterCutoff', amount: 0.18),
       ],
     ),
     'preset:synth-bass-acid': _bundle({
@@ -284,7 +265,8 @@ abstract final class SubtractiveSynthPresets {
       },
       lfos: const [_quarterSine],
       mods: const [
-        SubtractivePresetMod(lfoIndex: 0, paramId: 'filterCutoff', amount: 0.65),
+        SubtractivePresetMod(
+            lfoIndex: 0, paramId: 'filterCutoff', amount: 0.65),
       ],
     ),
     'preset:synth-bass-wobble-fast': _bundle(
@@ -303,7 +285,8 @@ abstract final class SubtractiveSynthPresets {
       },
       lfos: const [_sixteenthTri],
       mods: const [
-        SubtractivePresetMod(lfoIndex: 0, paramId: 'filterCutoff', amount: 0.58),
+        SubtractivePresetMod(
+            lfoIndex: 0, paramId: 'filterCutoff', amount: 0.58),
         SubtractivePresetMod(lfoIndex: 0, paramId: 'filterQ', amount: 0.12),
       ],
     ),
@@ -327,7 +310,8 @@ abstract final class SubtractiveSynthPresets {
       },
       lfos: const [_eighthSquare],
       mods: const [
-        SubtractivePresetMod(lfoIndex: 0, paramId: 'filterCutoff', amount: 0.72),
+        SubtractivePresetMod(
+            lfoIndex: 0, paramId: 'filterCutoff', amount: 0.72),
       ],
     ),
     'preset:synth-bass-wobble-growl': _bundle(
@@ -354,7 +338,8 @@ abstract final class SubtractiveSynthPresets {
         _eighthSine,
       ],
       mods: const [
-        SubtractivePresetMod(lfoIndex: 0, paramId: 'filterCutoff', amount: 0.55),
+        SubtractivePresetMod(
+            lfoIndex: 0, paramId: 'filterCutoff', amount: 0.55),
         SubtractivePresetMod(lfoIndex: 1, paramId: 'filterFm', amount: 0.38),
         SubtractivePresetMod(lfoIndex: 1, paramId: 'filterDrive', amount: 0.15),
       ],
@@ -377,7 +362,8 @@ abstract final class SubtractiveSynthPresets {
       },
       lfos: const [_halfSine],
       mods: const [
-        SubtractivePresetMod(lfoIndex: 0, paramId: 'filterCutoff', amount: 0.48),
+        SubtractivePresetMod(
+            lfoIndex: 0, paramId: 'filterCutoff', amount: 0.48),
         SubtractivePresetMod(lfoIndex: 0, paramId: 'osc1Detune', amount: 0.08),
       ],
     ),
@@ -399,7 +385,8 @@ abstract final class SubtractiveSynthPresets {
       },
       lfos: const [_eighthSquare],
       mods: const [
-        SubtractivePresetMod(lfoIndex: 0, paramId: 'filterCutoff', amount: 0.45),
+        SubtractivePresetMod(
+            lfoIndex: 0, paramId: 'filterCutoff', amount: 0.45),
       ],
     ),
     'preset:synth-lead-siren': _bundle(
@@ -416,9 +403,12 @@ abstract final class SubtractiveSynthPresets {
         'release': 0.15,
         'glideMs': 0.08,
       },
-      lfos: const [SubtractivePresetLfo(waveform: 2, syncDivision: 2, rate: 1.5)],
+      lfos: const [
+        SubtractivePresetLfo(waveform: 2, syncDivision: 2, rate: 1.5)
+      ],
       mods: const [
-        SubtractivePresetMod(lfoIndex: 0, paramId: 'filterCutoff', amount: 0.52),
+        SubtractivePresetMod(
+            lfoIndex: 0, paramId: 'filterCutoff', amount: 0.52),
         SubtractivePresetMod(lfoIndex: 0, paramId: 'osc1Sync', amount: 0.18),
       ],
     ),
@@ -439,7 +429,8 @@ abstract final class SubtractiveSynthPresets {
       },
       lfos: const [_barSine],
       mods: const [
-        SubtractivePresetMod(lfoIndex: 0, paramId: 'filterCutoff', amount: 0.62),
+        SubtractivePresetMod(
+            lfoIndex: 0, paramId: 'filterCutoff', amount: 0.62),
         SubtractivePresetMod(lfoIndex: 0, paramId: 'noiseLevel', amount: 0.2),
       ],
     ),
@@ -467,7 +458,8 @@ abstract final class SubtractiveSynthPresets {
       },
       lfos: const [_quarterSine],
       mods: const [
-        SubtractivePresetMod(lfoIndex: 0, paramId: 'filterCutoff', amount: 0.24),
+        SubtractivePresetMod(
+            lfoIndex: 0, paramId: 'filterCutoff', amount: 0.24),
       ],
     ),
     'preset:synth-pad-glass': _bundle(
@@ -487,7 +479,8 @@ abstract final class SubtractiveSynthPresets {
       },
       lfos: const [_halfTri],
       mods: const [
-        SubtractivePresetMod(lfoIndex: 0, paramId: 'filterCutoff', amount: 0.16),
+        SubtractivePresetMod(
+            lfoIndex: 0, paramId: 'filterCutoff', amount: 0.16),
       ],
     ),
     'preset:synth-pad-choir': _bundle(
@@ -512,7 +505,8 @@ abstract final class SubtractiveSynthPresets {
       lfos: const [_barSine],
       mods: const [
         SubtractivePresetMod(lfoIndex: 0, paramId: 'filterCutoff', amount: 0.2),
-        SubtractivePresetMod(lfoIndex: 0, paramId: 'unisonDetune', amount: 0.08),
+        SubtractivePresetMod(
+            lfoIndex: 0, paramId: 'unisonDetune', amount: 0.08),
       ],
     ),
     'preset:synth-pad-dark': _bundle(
@@ -535,7 +529,8 @@ abstract final class SubtractiveSynthPresets {
       },
       lfos: const [_slowSaw],
       mods: const [
-        SubtractivePresetMod(lfoIndex: 0, paramId: 'filterCutoff', amount: 0.32),
+        SubtractivePresetMod(
+            lfoIndex: 0, paramId: 'filterCutoff', amount: 0.32),
       ],
     ),
     'preset:synth-pad-lofi': _bundle(
@@ -557,7 +552,8 @@ abstract final class SubtractiveSynthPresets {
       },
       lfos: const [_eighthSine],
       mods: const [
-        SubtractivePresetMod(lfoIndex: 0, paramId: 'filterCutoff', amount: 0.22),
+        SubtractivePresetMod(
+            lfoIndex: 0, paramId: 'filterCutoff', amount: 0.22),
         SubtractivePresetMod(lfoIndex: 0, paramId: 'noiseLevel', amount: 0.06),
       ],
     ),
@@ -583,7 +579,8 @@ abstract final class SubtractiveSynthPresets {
       },
       lfos: const [_quarterSine],
       mods: const [
-        SubtractivePresetMod(lfoIndex: 0, paramId: 'filterCutoff', amount: 0.24),
+        SubtractivePresetMod(
+            lfoIndex: 0, paramId: 'filterCutoff', amount: 0.24),
       ],
     ),
 
@@ -636,7 +633,8 @@ abstract final class SubtractiveSynthPresets {
       },
       lfos: const [_barSine],
       mods: const [
-        SubtractivePresetMod(lfoIndex: 0, paramId: 'filterCutoff', amount: 0.14),
+        SubtractivePresetMod(
+            lfoIndex: 0, paramId: 'filterCutoff', amount: 0.14),
       ],
     ),
     'preset:synth-lead-wide': _bundle(

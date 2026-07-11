@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+part 'device_tab_bar_device_tab_spec.dart';
+
 /// Segmented tabs for a device panel — one functional group per tab (Note / FLM pattern).
 class DeviceTabBar extends StatelessWidget {
   const DeviceTabBar({
@@ -74,11 +76,4 @@ class DeviceTabBar extends StatelessWidget {
       ),
     );
   }
-}
-
-class DeviceTabSpec {
-  const DeviceTabSpec({required this.label, required this.icon});
-
-  final String label;
-  final IconData icon;
 }

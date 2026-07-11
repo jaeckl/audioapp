@@ -3,30 +3,14 @@ import 'package:flutter/material.dart';
 import 'device_panel_theme.dart';
 import 'filter_mode_icons.dart';
 
+part 'filter_mode_selector_filter_mode_primary_option.dart';
+part 'filter_mode_selector_filter_mode_overflow_option.dart';
+part 'filter_mode_selector_filter_mode_selector_layout.dart';
+part 'filter_mode_selector_mode_cell.dart';
+part 'filter_mode_selector_overflow_cell.dart';
+
 /// Maps an engine mode index to a curve icon in the mode row.
-class FilterModePrimaryOption {
-  const FilterModePrimaryOption({
-    required this.index,
-    required this.curve,
-  });
-
-  final int index;
-  final FilterCurveMode curve;
-}
-
 /// Extra filter modes shown in a popup (e.g. Subtractive FB / LP 24).
-class FilterModeOverflowOption {
-  const FilterModeOverflowOption({
-    required this.index,
-    required this.label,
-  });
-
-  final int index;
-  final String label;
-}
-
-enum FilterModeSelectorLayout { iconRow, iconGrid }
-
 /// Unified filter mode picker — curve icons + optional overflow menu.
 class FilterModeSelector extends StatelessWidget {
   const FilterModeSelector({
@@ -126,82 +110,6 @@ class FilterModeSelector extends StatelessWidget {
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-class _ModeCell extends StatelessWidget {
-  const _ModeCell({
-    required this.selected,
-    required this.accent,
-    required this.onTap,
-    required this.child,
-  });
-
-  final bool selected;
-  final Color accent;
-  final VoidCallback onTap;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: selected ? accent.withValues(alpha: 0.18) : Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Center(child: child),
-      ),
-    );
-  }
-}
-
-class _OverflowCell extends StatelessWidget {
-  const _OverflowCell({
-    required this.accent,
-    required this.active,
-    required this.label,
-    required this.options,
-    required this.onSelected,
-  });
-
-  final Color accent;
-  final bool active;
-  final String label;
-  final List<FilterModeOverflowOption> options;
-  final ValueChanged<int> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Material(
-        color: active ? accent.withValues(alpha: 0.18) : Colors.transparent,
-        child: PopupMenuButton<int>(
-          padding: EdgeInsets.zero,
-          tooltip: 'More filter modes',
-          onSelected: onSelected,
-          itemBuilder: (context) => [
-            for (final option in options)
-              PopupMenuItem<int>(
-                value: option.index,
-                height: 32,
-                child: Text(
-                  option.label,
-                  style: const TextStyle(fontSize: 11),
-                ),
-              ),
-          ],
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: active ? accent : Colors.white.withValues(alpha: 0.45),
-                fontSize: 9,
-                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

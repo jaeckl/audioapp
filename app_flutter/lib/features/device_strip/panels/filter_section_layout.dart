@@ -4,7 +4,7 @@ import '../device_strip_metrics.dart';
 import 'device_panel_theme.dart';
 import 'device_section_card.dart';
 
-enum FilterSectionTier { hero, strip, embedded }
+part 'filter_section_layout_filter_section_tier.dart';
 
 /// Standard filter block layout: preview → mode row → controls.
 class FilterSectionLayout extends StatelessWidget {
@@ -29,10 +29,9 @@ class FilterSectionLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hPad = padding?.horizontal ??
-        DeviceStripMetrics.dynamicsFxPanelPaddingH / 2;
-    final edgePadding = padding ??
-        EdgeInsets.fromLTRB(hPad, 6, hPad, 4);
+    final hPad =
+        padding?.horizontal ?? DeviceStripMetrics.dynamicsFxPanelPaddingH / 2;
+    final edgePadding = padding ?? EdgeInsets.fromLTRB(hPad, 6, hPad, 4);
 
     final previewHeight = switch (tier) {
       FilterSectionTier.hero => DevicePanelTheme.previewHeroHeight,
@@ -48,7 +47,9 @@ class FilterSectionLayout extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (title != null) ...[
-              Text(title!, textAlign: TextAlign.center, style: DevicePanelTheme.sectionLabel),
+              Text(title!,
+                  textAlign: TextAlign.center,
+                  style: DevicePanelTheme.sectionLabel),
               const SizedBox(height: 4),
             ],
             modeSelector,
@@ -71,7 +72,9 @@ class FilterSectionLayout extends StatelessWidget {
           ],
           if (!wrapControlsInCard) ...[
             if (title != null) ...[
-              Text(title!, textAlign: TextAlign.center, style: DevicePanelTheme.sectionLabel),
+              Text(title!,
+                  textAlign: TextAlign.center,
+                  style: DevicePanelTheme.sectionLabel),
               const SizedBox(height: 4),
             ],
             modeSelector,

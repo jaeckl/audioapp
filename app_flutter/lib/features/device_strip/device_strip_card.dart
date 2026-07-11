@@ -4,6 +4,11 @@ import 'device_header_tab_bar.dart';
 import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
 
+part 'device_strip_card_container_tab_header.dart';
+part 'device_strip_card_header_bar.dart';
+part 'device_strip_card_header_panel.dart';
+part 'device_strip_card_header_text.dart';
+
 /// Visible card container for one device in the horizontal chain.
 class DeviceStripCard extends StatelessWidget {
   const DeviceStripCard({
@@ -125,156 +130,6 @@ class DeviceStripCard extends StatelessWidget {
             ),
         ],
       ),
-    );
-  }
-}
-
-class _ContainerTabHeader extends StatelessWidget {
-  const _ContainerTabHeader({
-    required this.tabs,
-    required this.selectedTabIndex,
-    required this.accent,
-    required this.onTabSelected,
-    this.actions,
-  });
-
-  final List<DeviceTabSpec> tabs;
-  final int selectedTabIndex;
-  final Color accent;
-  final ValueChanged<int>? onTabSelected;
-  final Widget? actions;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: DeviceStripTheme.headerHeight,
-      child: ColoredBox(
-        color: DeviceStripTheme.cardHeader,
-        child: Row(
-          children: [
-            if (tabs.isNotEmpty)
-              Expanded(
-                child: DeviceHeaderTabBar(
-                  tabs: tabs,
-                  selectedIndex: selectedTabIndex,
-                  accentColor: accent,
-                  compact: actions != null,
-                  onSelected: onTabSelected ?? (_) {},
-                ),
-              ),
-            if (actions != null)
-              if (tabs.isEmpty) Expanded(child: actions!) else actions!,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _HeaderBar extends StatelessWidget {
-  const _HeaderBar({
-    required this.theme,
-    required this.accent,
-    required this.label,
-    this.subtitle,
-  });
-
-  final ThemeData theme;
-  final Color accent;
-  final String label;
-  final String? subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: DeviceStripTheme.headerHeight,
-      color: DeviceStripTheme.cardHeader,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      alignment: Alignment.centerLeft,
-      child: _HeaderText(
-        theme: theme,
-        accent: accent,
-        label: label,
-        subtitle: subtitle,
-      ),
-    );
-  }
-}
-
-class _HeaderPanel extends StatelessWidget {
-  const _HeaderPanel({
-    required this.theme,
-    required this.accent,
-    required this.label,
-    this.subtitle,
-  });
-
-  final ThemeData theme;
-  final Color accent;
-  final String label;
-  final String? subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: DeviceStripTheme.cardHeader,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: _HeaderText(
-            theme: theme,
-            accent: accent,
-            label: label,
-            subtitle: subtitle,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HeaderText extends StatelessWidget {
-  const _HeaderText({
-    required this.theme,
-    required this.accent,
-    required this.label,
-    this.subtitle,
-  });
-
-  final ThemeData theme;
-  final Color accent;
-  final String label;
-  final String? subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          label.toUpperCase(),
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: accent,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.8,
-            fontSize: 10,
-          ),
-        ),
-        if (subtitle != null) ...[
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              subtitle!,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: Colors.white38,
-                fontSize: 10,
-              ),
-            ),
-          ),
-        ],
-      ],
     );
   }
 }

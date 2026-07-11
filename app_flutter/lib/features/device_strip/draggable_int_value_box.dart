@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+part 'draggable_int_value_box_draggable_int_value_box_state.dart';
+part 'draggable_int_value_box_step_button.dart';
+
 /// Compact integer readout — drag vertically to change value.
 class DraggableIntValueBox extends StatefulWidget {
   const DraggableIntValueBox({
@@ -25,115 +28,6 @@ class DraggableIntValueBox extends StatefulWidget {
 
   @override
   State<DraggableIntValueBox> createState() => _DraggableIntValueBoxState();
-}
-
-class _DraggableIntValueBoxState extends State<DraggableIntValueBox> {
-  double _dragStartY = 0;
-  int _dragStartValue = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    final display = widget.value >= 0 ? '+${widget.value}' : '${widget.value}';
-    final muted = widget.accentColor.withValues(alpha: 0.55);
-
-    void bump(int delta) {
-      final next = (widget.value + delta).clamp(widget.min, widget.max);
-      if (next != widget.value) widget.onChanged(next);
-    }
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 46,
-          height: widget.controlSize + 4,
-          decoration: BoxDecoration(
-            color: const Color(0xFF14141C),
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(
-              color: widget.accentColor.withValues(alpha: 0.35),
-            ),
-          ),
-          child: Column(
-            children: [
-              Expanded(
-                child: _StepButton(
-                  icon: Icons.keyboard_arrow_up_rounded,
-                  color: muted,
-                  onTap: () => bump(1),
-                ),
-              ),
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onVerticalDragStart: (d) {
-                  _dragStartY = d.localPosition.dy;
-                  _dragStartValue = widget.value;
-                },
-                onVerticalDragUpdate: (d) {
-                  final delta =
-                      ((_dragStartY - d.localPosition.dy) / 8).round();
-                  final next =
-                      (_dragStartValue + delta).clamp(widget.min, widget.max);
-                  if (next != widget.value) widget.onChanged(next);
-                },
-                onDoubleTap: () => widget.onChanged(0),
-                child: Text(
-                  display,
-                  style: TextStyle(
-                    color: widget.accentColor,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    height: 1,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: _StepButton(
-                  icon: Icons.keyboard_arrow_down_rounded,
-                  color: muted,
-                  onTap: () => bump(-1),
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (widget.showLabel) ...[
-          const SizedBox(height: 3),
-          Text(
-            widget.label,
-            style: TextStyle(
-              color: Colors.white54,
-              fontSize: widget.controlSize >= 56 ? 10 : 9,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _StepButton extends StatelessWidget {
-  const _StepButton({
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Center(child: Icon(icon, size: 14, color: color)),
-      ),
-    );
-  }
 }
 
 int subtractiveOctaveFromNorm(double norm) =>

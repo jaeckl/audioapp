@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'device_panel_theme.dart';
 
+part 'device_section_card_device_preview_frame.dart';
+
 /// Rounded section container used across synth and FX filter blocks.
 class DeviceSectionCard extends StatelessWidget {
   const DeviceSectionCard({
@@ -45,29 +47,3 @@ class DeviceSectionCard extends StatelessWidget {
 }
 
 /// Preview slot with standard hero/strip sizing and chrome.
-class DevicePreviewFrame extends StatelessWidget {
-  const DevicePreviewFrame({
-    super.key,
-    required this.child,
-    this.height = DevicePanelTheme.previewHeroHeight,
-    this.borderColor,
-  });
-
-  final Widget child;
-  final double height;
-  final Color? borderColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: height,
-      child: DecoratedBox(
-        decoration: DevicePanelTheme.previewDecoration(borderColor: borderColor),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(DevicePanelTheme.sectionRadius),
-          child: child,
-        ),
-      ),
-    );
-  }
-}

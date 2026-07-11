@@ -6,19 +6,7 @@ import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
 import 'rotary_knob.dart';
 
-class RoutingSourceOption {
-  const RoutingSourceOption(
-      {required this.id, required this.label, required this.isMidi,
-      required this.trackId, required this.deviceIndex,
-      this.disabled = false, this.disabledReason});
-  final String id;
-  final String label;
-  final bool isMidi;
-  final String trackId;
-  final int deviceIndex;
-  final bool disabled;
-  final String? disabledReason;
-}
+part 'routing_device_panel_routing_source_option.dart';
 
 List<RoutingSourceOption> buildRoutingSourceOptions(
   ProjectSnapshot snapshot,
@@ -32,22 +20,31 @@ List<RoutingSourceOption> buildRoutingSourceOptions(
   final raw = <RoutingSourceOption>[];
   for (final track in tracks) {
     raw.add(RoutingSourceOption(
-      id: 'track-midi:${track.id}', label: '${track.name} · MIDI',
-      isMidi: true, trackId: track.id, deviceIndex: -1,
+      id: 'track-midi:${track.id}',
+      label: '${track.name} · MIDI',
+      isMidi: true,
+      trackId: track.id,
+      deviceIndex: -1,
     ));
     for (var index = 0; index < track.devices.length; index++) {
       final device = track.devices[index];
       if (device.type == 'midi_delay') {
         raw.add(RoutingSourceOption(
-          id: device.id, label: '${track.name} · MIDI Delay', isMidi: true,
-          trackId: track.id, deviceIndex: index,
+          id: device.id,
+          label: '${track.name} · MIDI Delay',
+          isMidi: true,
+          trackId: track.id,
+          deviceIndex: index,
         ));
       } else if (device.type != 'audio_receiver' &&
           device.type != 'midi_receiver') {
         raw.add(RoutingSourceOption(
           id: device.id,
-          label: '${track.name} · ${DeviceStripTheme.labelForDeviceType(device.type)}',
-          isMidi: false, trackId: track.id, deviceIndex: index,
+          label:
+              '${track.name} · ${DeviceStripTheme.labelForDeviceType(device.type)}',
+          isMidi: false,
+          trackId: track.id,
+          deviceIndex: index,
         ));
       }
     }
@@ -64,7 +61,8 @@ List<RoutingSourceOption> buildRoutingSourceOptions(
   }
   for (final track in tracks) {
     for (final device in track.devices) {
-      if (device is! RoutingDeviceSnapshot || device.id == receiver.id ||
+      if (device is! RoutingDeviceSnapshot ||
+          device.id == receiver.id ||
           device.sourceId.isEmpty) {
         continue;
       }
@@ -83,10 +81,14 @@ List<RoutingSourceOption> buildRoutingSourceOptions(
     return adjacency[from]?.any((next) => reaches(next, target, seen)) ?? false;
   }
 
-  final receiverIndex = destinationTrack.devices.indexWhere((d) => d.id == receiver.id);
-  return raw.where((source) => source.isMidi == !receiver.isAudioRoute).map((source) {
+  final receiverIndex =
+      destinationTrack.devices.indexWhere((d) => d.id == receiver.id);
+  return raw
+      .where((source) => source.isMidi == !receiver.isAudioRoute)
+      .map((source) {
     String? reason;
-    if (source.trackId == destinationTrack.id && source.deviceIndex >= receiverIndex &&
+    if (source.trackId == destinationTrack.id &&
+        source.deviceIndex >= receiverIndex &&
         source.deviceIndex >= 0) {
       reason = 'must be before receiver';
     } else if (source.trackId != destinationTrack.id &&
@@ -94,9 +96,13 @@ List<RoutingSourceOption> buildRoutingSourceOptions(
       reason = 'would create cycle';
     }
     return RoutingSourceOption(
-      id: source.id, label: source.label, isMidi: source.isMidi,
-      trackId: source.trackId, deviceIndex: source.deviceIndex,
-      disabled: reason != null, disabledReason: reason,
+      id: source.id,
+      label: source.label,
+      isMidi: source.isMidi,
+      trackId: source.trackId,
+      deviceIndex: source.deviceIndex,
+      disabled: reason != null,
+      disabledReason: reason,
     );
   }).toList();
 }
@@ -138,7 +144,8 @@ class RoutingDevicePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = DeviceStripTheme.accentForDeviceType(device.type);
     final selectedId = sources.any((source) => source.id == device.sourceId)
-        ? device.sourceId : '';
+        ? device.sourceId
+        : '';
     return Padding(
       padding: const EdgeInsets.all(10),
       child: Column(
@@ -199,16 +206,17 @@ class RoutingDevicePanel extends StatelessWidget {
             items: [
               const DropdownMenuItem(value: '', child: Text('Disconnect')),
               ...sources.map((source) => DropdownMenuItem(
-                      value: source.id,
-                      enabled: !source.disabled,
-                      child: Text(
-                        source.disabledReason == null
-                            ? source.label
-                            : '${source.label} · ${source.disabledReason}',
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: source.disabled ? Colors.white24 : null),
-                      ),
-                    )),
+                    value: source.id,
+                    enabled: !source.disabled,
+                    child: Text(
+                      source.disabledReason == null
+                          ? source.label
+                          : '${source.label} · ${source.disabledReason}',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: source.disabled ? Colors.white24 : null),
+                    ),
+                  )),
             ],
             onChanged: (value) {
               if (value != null) onSourceChanged(value);

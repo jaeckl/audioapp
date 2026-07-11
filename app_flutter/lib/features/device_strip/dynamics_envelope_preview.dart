@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 
 part 'dynamics/dynamics_envelope_painter.dart';
 
+part 'dynamics_envelope_preview_dynamics_preview_mode.dart';
+
 const double dynamicsPreviewMinDb = -60;
 const double dynamicsPreviewMaxDb = 0;
-
-enum DynamicsPreviewMode { gate, compressor, expander, limiter }
 
 double dynamicsThresholdDb(double norm) => -60 + norm.clamp(0.0, 1.0) * 54;
 double dynamicsCeilingDb(double norm) => -12 + norm.clamp(0.0, 1.0) * 12;
