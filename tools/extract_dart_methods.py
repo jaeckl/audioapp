@@ -26,7 +26,7 @@ def method_match(text: str, name: str) -> re.Match[str]:
     return matches[0]
 
 
-def body_brace(text: str, start: int) -> int:
+def parameter_close(text: str, start: int) -> int:
     opening = text.find("(", start)
     depth = 0
     quote: str | None = None
@@ -47,11 +47,50 @@ def body_brace(text: str, start: int) -> int:
         elif char == ")":
             depth -= 1
             if depth == 0:
-                brace = text.find("{", index + 1)
-                if brace < 0:
-                    raise ValueError("Method has no block body")
-                return brace
+                return index
     raise ValueError("Unbalanced method parameters")
+
+
+def method_end(text: str, start: int) -> int:
+    close = parameter_close(text, start)
+    brace = text.find("{", close + 1)
+    arrow = text.find("=>", close + 1)
+    if arrow < 0 or (brace >= 0 and brace < arrow):
+        if brace < 0:
+            raise ValueError("Method has no block body")
+        return declaration_end(text, brace - 1)
+
+    parens = brackets = braces = 0
+    quote: str | None = None
+    escaped = False
+    index = arrow + 2
+    while index < len(text):
+        char = text[index]
+        if quote:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+        elif char in "'\"":
+            quote = char
+        elif char == "(":
+            parens += 1
+        elif char == ")":
+            parens -= 1
+        elif char == "[":
+            brackets += 1
+        elif char == "]":
+            brackets -= 1
+        elif char == "{":
+            braces += 1
+        elif char == "}":
+            braces -= 1
+        elif char == ";" and parens == brackets == braces == 0:
+            return index + 1
+        index += 1
+    raise ValueError("Unterminated expression-bodied method")
 
 
 def extract(source: Path, names: list[str]) -> None:
@@ -65,7 +104,7 @@ def extract(source: Path, names: list[str]) -> None:
     ranges: list[tuple[str, int, int, str]] = []
     for name in names:
         match = method_match(original, name)
-        end = declaration_end(original, body_brace(original, match.start()))
+        end = method_end(original, match.start())
         while end < len(original) and original[end] in "\r\n":
             end += 1
         ranges.append((name, match.start(), end, original[match.start():end].strip()))
@@ -79,7 +118,10 @@ def extract(source: Path, names: list[str]) -> None:
         target = (source.parent / f"{source.stem}_{snake_case(name)}.dart").resolve()
         if target.exists():
             raise ValueError(f"Refusing to overwrite {target}")
-        extension = f"_{owner_name.lstrip('_')}{''.join(p.title() for p in name.split('_'))}"
+        extension = (
+            f"{owner_name.lstrip('_')}"
+            f"{''.join(p.title() for p in name.split('_'))}Operation"
+        )
         outputs.append((target, f"part of '{part_owner}';\n\nextension {extension} on {owner_name} {{\n{body}\n}}\n"))
 
     remaining = original
