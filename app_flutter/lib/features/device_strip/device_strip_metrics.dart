@@ -5,9 +5,6 @@ import 'clap_generator_device_panel.dart';
 import 'crash_generator_device_panel.dart';
 import 'cymbal_generator_device_panel.dart';
 import 'device_knob_sizes.dart';
-import 'dynamics_fx_panels.dart';
-import 'frequency_fx_panels.dart';
-import 'resonator_bank_panel.dart';
 import 'routing_device_panel.dart';
 import 'midi_delay_panel.dart';
 import 'kick_generator_device_panel.dart';
@@ -17,8 +14,6 @@ import 'sampler_device_panel.dart';
 import 'snare_generator_device_panel.dart';
 import 'subtractive_synth_device_panel.dart';
 import 'wavetable_synth_device_panel.dart';
-import 'time_fx_panels.dart';
-import 'mood_fx_panels.dart';
 import 'drum_machine_device_panel.dart';
 import 'analysis_device_panel.dart';
 import 'chain_device_panel.dart';
@@ -28,12 +23,6 @@ import 'granular_device_panel.dart';
 class DeviceStripMetrics {
   const DeviceStripMetrics._();
 
-  static const _frequencyFxTypes = {
-    'filter',
-    'four_band_eq',
-    'frequency_shifter',
-    'resonator_bank',
-  };
   static const _drumTypes = {
     'kick_generator',
     'snare_generator',
@@ -148,7 +137,7 @@ class DeviceStripMetrics {
   static double inputPanelWidthFor(String deviceType) {
     final definition = deviceDefinitionRepository.find(deviceType);
     if (definition != null) return definition.layout.inputPanelWidth;
-    return _frequencyFxTypes.contains(deviceType) ? dynamicsInputPanelWidth : 0;
+    return 0;
   }
 
   static double outputPanelWidthFor(String deviceType) {
@@ -158,7 +147,6 @@ class DeviceStripMetrics {
     if (_analysisTypes.contains(deviceType)) return stereoOutputPanelWidth;
     if (_routingTypes.contains(deviceType)) return routingOutputPanelWidth;
     if (_drumTypes.contains(deviceType)) return drumMonoOutputPanelWidth;
-    if (_frequencyFxTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
     if (DeviceCapabilities.virtualStripHosts.contains(deviceType)) {
       return synthOutputPanelWidth;
     }
@@ -180,10 +168,6 @@ class DeviceStripMetrics {
       'clap_generator' => ClapGeneratorDevicePanel.designWidth,
       'cymbal_generator' => CymbalGeneratorDevicePanel.designWidth,
       'crash_generator' => CrashGeneratorDevicePanel.designWidth,
-      'filter' => FilterDevicePanel.designWidth,
-      'four_band_eq' => FourBandEqDevicePanel.designWidth,
-      'frequency_shifter' => FreqShifterDevicePanel.designWidth,
-      'resonator_bank' => ResonatorBankPanel.designWidth,
       'audio_receiver' || 'midi_receiver' => RoutingDevicePanel.designWidth,
       'midi_delay' => MidiDelayPanel.designWidth,
       'wavetable_synth' => WavetableSynthDevicePanel.designWidth,

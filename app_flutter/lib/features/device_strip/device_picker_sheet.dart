@@ -223,31 +223,15 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
                   ),
                 ),
               ),
-              ListTile(
-                leading: const Icon(Icons.equalizer, color: Color(0xFF5BC0EB)),
-                title: const Text('Filter'),
-                subtitle: const Text('Multimode · LP/HP/BP/Notch'),
-                onTap: () => Navigator.pop(context, 'filter'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.tune, color: Color(0xFF78C091)),
-                title: const Text('4-Band EQ'),
-                subtitle: const Text('Low shelf · 2 peaks · high shelf'),
-                onTap: () => Navigator.pop(context, 'four_band_eq'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.swap_horiz, color: Color(0xFFC77DFF)),
-                title: const Text('Ring Mod'),
-                subtitle: const Text('Carrier · -2 kHz to +2 kHz'),
-                onTap: () => Navigator.pop(context, 'frequency_shifter'),
-              ),
-              ListTile(
-                leading:
-                    const Icon(Icons.multiline_chart, color: Color(0xFFFFB454)),
-                title: const Text('RESONATE'),
-                subtitle: const Text('Six tuned modes · decay & stereo body'),
-                onTap: () => Navigator.pop(context, 'resonator_bank'),
-              ),
+              for (final definition in deviceDefinitionRepository.definitions
+                  .where((item) => item.picker.category == 'Frequency Effects'))
+                ListTile(
+                  leading: Icon(definition.picker.icon,
+                      color: definition.picker.color),
+                  title: Text(definition.picker.name),
+                  subtitle: Text(definition.picker.description),
+                  onTap: () => Navigator.pop(context, definition.typeId),
+                ),
               const Padding(
                 padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
                 child: Text('Routing',

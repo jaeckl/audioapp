@@ -19,6 +19,10 @@ void main() {
         'distortion',
         'tremolo',
         'stutter_fx',
+        'filter',
+        'four_band_eq',
+        'frequency_shifter',
+        'resonator_bank',
       },
     );
     expect(

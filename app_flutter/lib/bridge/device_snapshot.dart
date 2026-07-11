@@ -94,10 +94,11 @@ sealed class DeviceSnapshot {
       'tremolo' ||
       'stutter_fx' =>
         deviceDefinitionRepository.parseSnapshot(map),
-      'filter' => FilterDeviceSnapshot.fromMap(map),
-      'four_band_eq' => FourBandEqDeviceSnapshot.fromMap(map),
-      'frequency_shifter' => FrequencyShifterDeviceSnapshot.fromMap(map),
-      'resonator_bank' => ResonatorBankDeviceSnapshot.fromMap(map),
+      'filter' ||
+      'four_band_eq' ||
+      'frequency_shifter' ||
+      'resonator_bank' =>
+        deviceDefinitionRepository.parseSnapshot(map),
       'audio_receiver' || 'midi_receiver' => RoutingDeviceSnapshot.fromMap(map),
       'midi_delay' => MidiDelayDeviceSnapshot.fromMap(map),
       'drum_machine' => DrumMachineDeviceSnapshot.fromMap(map),

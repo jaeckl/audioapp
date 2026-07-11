@@ -7,6 +7,10 @@ import 'dynamics/compressor_definition.dart';
 import 'dynamics/expander_definition.dart';
 import 'dynamics/gate_definition.dart';
 import 'dynamics/limiter_definition.dart';
+import 'frequency_fx/filter_definition.dart';
+import 'frequency_fx/four_band_eq_definition.dart';
+import 'frequency_fx/frequency_shifter_definition.dart';
+import 'frequency_fx/resonator_bank_definition.dart';
 import 'mood_fx/bitcrusher_definition.dart';
 import 'mood_fx/distortion_definition.dart';
 import 'mood_fx/stutter_definition.dart';
@@ -21,6 +25,10 @@ final List<DeviceDefinition<DeviceSnapshot>> generatedDeviceDefinitions = [
   ExpanderDefinition(),
   GateDefinition(),
   LimiterDefinition(),
+  FilterDefinition(),
+  FourBandEqDefinition(),
+  FrequencyShifterDefinition(),
+  ResonatorBankDefinition(),
   BitcrusherDefinition(),
   DistortionDefinition(),
   StutterDefinition(),
