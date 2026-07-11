@@ -1,20 +1,7 @@
 import '../../bridge/project_snapshot.dart';
 import 'snare_envelope_preview.dart';
 
-class SnareKnobSpec {
-  const SnareKnobSpec({
-    required this.paramId,
-    required this.label,
-    required this.value,
-    required this.format,
-  });
-
-  final String paramId;
-  final String label;
-  final double Function(SnareGeneratorDeviceSnapshot device) value;
-  final String Function(double normalized) format;
-}
-
+part 'snare_model_ui_registry_snare_knob_spec.dart';
 abstract final class SnareModelUiRegistry {
   static const _acousticKnobs = <SnareKnobSpec>[
     SnareKnobSpec(

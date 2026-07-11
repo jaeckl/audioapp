@@ -1,20 +1,7 @@
 import '../../bridge/project_snapshot.dart';
 import 'cymbal_decay_preview.dart';
 
-class CymbalKnobSpec {
-  const CymbalKnobSpec({
-    required this.paramId,
-    required this.label,
-    required this.value,
-    required this.format,
-  });
-
-  final String paramId;
-  final String label;
-  final double Function(CymbalGeneratorDeviceSnapshot device) value;
-  final String Function(double normalized) format;
-}
-
+part 'cymbal_model_ui_registry_cymbal_knob_spec.dart';
 abstract final class CymbalModelUiRegistry {
   static const _closedKnobs = <CymbalKnobSpec>[
     CymbalKnobSpec(

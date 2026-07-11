@@ -6,6 +6,7 @@ import 'automation_curve_shapes.dart';
 
 part 'automation_shape_icon_automation_shape_icon_painter.dart';
 
+part 'automation_shape_icon_automation_curve_shape_a11y.dart';
 /// Mini waveform glyph for automation shape picker chips.
 class AutomationShapeIcon extends StatelessWidget {
   const AutomationShapeIcon({
@@ -29,16 +30,4 @@ class AutomationShapeIcon extends StatelessWidget {
       ),
     );
   }
-}
-
-extension AutomationCurveShapeA11y on AutomationCurveShape {
-  String get accessibilityLabel => switch (this) {
-        AutomationCurveShape.rampUp => 'Ramp up',
-        AutomationCurveShape.rampDown => 'Ramp down',
-        AutomationCurveShape.sawUp => 'Saw up',
-        AutomationCurveShape.sawDown => 'Saw down',
-        AutomationCurveShape.triangle => 'Triangle',
-        AutomationCurveShape.square => 'Square',
-        AutomationCurveShape.sine => 'Sine',
-      };
 }

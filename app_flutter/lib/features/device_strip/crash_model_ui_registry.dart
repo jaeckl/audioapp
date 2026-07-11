@@ -1,19 +1,6 @@
 import '../../bridge/project_snapshot.dart';
 
-class CrashKnobSpec {
-  const CrashKnobSpec({
-    required this.paramId,
-    required this.label,
-    required this.value,
-    required this.format,
-  });
-
-  final String paramId;
-  final String label;
-  final double Function(CrashGeneratorDeviceSnapshot device) value;
-  final String Function(double normalized) format;
-}
-
+part 'crash_model_ui_registry_crash_knob_spec.dart';
 abstract final class CrashModelUiRegistry {
   static const _brightKnobs = <CrashKnobSpec>[
     CrashKnobSpec(

@@ -1,5 +1,7 @@
 import '../../bridge/project_snapshot.dart';
 
+part 'device_strip_device_kind_track_device_strip_kind.dart';
+part 'device_strip_device_kind_track_freeze_device_strip.dart';
 const fxDeviceTypes = <String>{
   'gate',
   'compressor',
@@ -35,39 +37,4 @@ extension DeviceStripDeviceKind on DeviceSnapshot {
   bool get isInstrumentDevice => type != 'track_gain' && !isFxDevice;
 }
 
-extension TrackDeviceStripKind on TrackSnapshot {
-  int get visibleInstrumentCount =>
-      visibleDevices.where((device) => device.isInstrumentDevice).length;
-
-  bool hasLinkedAutomationFor(String deviceId) {
-    for (final clip in automationClips) {
-      if (clip.deviceId == deviceId && clip.isLinked) {
-        return true;
-      }
-    }
-    return false;
-  }
-}
-
 /// Freeze-aware helpers for the device strip (pre-gain chain is baked when frozen).
-extension TrackFreezeDeviceStrip on TrackSnapshot {
-  int get trackGainDeviceIndex =>
-      devices.indexWhere((device) => device.type == 'track_gain');
-
-  bool get canInsertDevices => !freeze.enabled;
-
-  bool isPreGainDeviceDimmed(DeviceSnapshot device) {
-    if (!freeze.enabled || device.type == 'track_gain') {
-      return false;
-    }
-    final gainIndex = trackGainDeviceIndex;
-    if (gainIndex < 0) {
-      return true;
-    }
-    final deviceIndex = devices.indexWhere((d) => d.id == device.id);
-    if (deviceIndex < 0) {
-      return false;
-    }
-    return deviceIndex < gainIndex;
-  }
-}

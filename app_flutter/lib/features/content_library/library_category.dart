@@ -1,3 +1,5 @@
+part 'library_category_library_category_labels.dart';
+
 /// Content library categories.
 enum LibraryCategory {
   audioClips,
@@ -6,24 +8,4 @@ enum LibraryCategory {
   curves,
   devicePresets,
   wavetables,
-}
-
-extension LibraryCategoryLabels on LibraryCategory {
-  String get title => switch (this) {
-        LibraryCategory.audioClips => 'Audio',
-        LibraryCategory.midiClips => 'MIDI',
-        LibraryCategory.automationClips => 'Automation',
-        LibraryCategory.curves => 'Curves',
-        LibraryCategory.devicePresets => 'Presets',
-        LibraryCategory.wavetables => 'Wavetables',
-      };
-
-  String get subtitle => switch (this) {
-        LibraryCategory.audioClips => 'Samples & audio clips',
-        LibraryCategory.midiClips => 'MIDI patterns',
-        LibraryCategory.automationClips => 'Automation lanes',
-        LibraryCategory.curves => 'Automation & modulation shapes',
-        LibraryCategory.devicePresets => 'Device chains',
-        LibraryCategory.wavetables => 'Bundled wavetables',
-      };
 }

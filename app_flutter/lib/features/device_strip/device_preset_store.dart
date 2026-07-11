@@ -1,14 +1,9 @@
 import 'subtractive_synth_presets.dart';
 
+part 'device_preset_store_device_preset.dart';
 /// Generic factory preset payload. The parameter map shape (id -> float) is
 /// the same regardless of device type — the engine's `DeviceRegistry`
 /// already knows how to apply these params for any registered device.
-class DevicePreset {
-  const DevicePreset({required this.params, this.stringParams = const {}});
-  final Map<String, double> params;
-  final Map<String, String> stringParams;
-}
-
 /// Look up factory presets by (deviceType, presetId).
 ///
 /// Previously the DAW only supported subtractive synth presets

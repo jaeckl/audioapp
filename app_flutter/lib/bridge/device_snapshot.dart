@@ -42,6 +42,8 @@ part 'device_families/frequency_fx_family_four_band_eq_device_snapshot.dart';
 part 'device_families/frequency_fx_family_frequency_shifter_device_snapshot.dart';
 part 'device_families/drum_machine_family_drum_machine_device_snapshot.dart';
 
+part 'device_snapshot_virtual_strip_host_snapshot.dart';
+part 'device_snapshot_virtual_strip_device_access.dart';
 /// Helper to parse an optional device-list key from engine JSON.
 List<DeviceSnapshot> parseDeviceList(Map<dynamic, dynamic> map, String key) {
   final raw = map[key];
@@ -91,23 +93,4 @@ sealed class DeviceSnapshot {
 }
 
 /// Implemented only by instrument snapshots that own virtual Note/Audio FX.
-abstract interface class VirtualStripHostSnapshot {
-  List<DeviceSnapshot> get audioFxDevices;
-  List<DeviceSnapshot> get noteFxDevices;
-
-  DeviceSnapshot copyWith({
-    List<DeviceSnapshot>? audioFxDevices,
-    List<DeviceSnapshot>? noteFxDevices,
-  });
-}
-
-extension VirtualStripDeviceAccess on DeviceSnapshot {
-  List<DeviceSnapshot> get audioFxDevices => this is VirtualStripHostSnapshot
-      ? (this as VirtualStripHostSnapshot).audioFxDevices
-      : const [];
-  List<DeviceSnapshot> get noteFxDevices => this is VirtualStripHostSnapshot
-      ? (this as VirtualStripHostSnapshot).noteFxDevices
-      : const [];
-}
-
 // --- Sealed Families ---

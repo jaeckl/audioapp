@@ -6,6 +6,8 @@ part 'timeline_marker_layer_timeline_synced_line_layer.dart';
 part 'timeline_marker_layer_timeline_synced_pill_layer.dart';
 part 'timeline_marker_layer_timeline_ruler_marker_overlay.dart';
 
+part 'timeline_marker_layer_timeline_follow_metrics.dart';
+part 'timeline_marker_layer_timeline_viewport_scroll_controller.dart';
 /// Shared layout for beat-synced ruler pills that must paint above and outside the ruler band.
 abstract final class TimelineMarkerLayerMetrics {
   /// Largest pill diameter used in timeline UIs (arrangement play scrub).
@@ -111,14 +113,6 @@ double timelineScrollOffsetForBeatAtViewportX({
 }
 
 /// Default follow-playhead layout for mobile timelines.
-abstract final class TimelineFollowMetrics {
-  /// Playhead sits this fraction from the left edge while following.
-  static const double leadFraction = 0.25;
-
-  /// Follow when the playhead passes this rightward bound.
-  static const double maxVisibleFraction = 0.85;
-}
-
 double timelineLeadViewportX(
   double viewportWidth, {
   double leadFraction = TimelineFollowMetrics.leadFraction,
@@ -160,29 +154,6 @@ bool timelinePlayheadLoopedBackward({
 }
 
 /// Binds to a timeline viewport for play-time scroll reveal (avoids [GlobalKey] on rebuilt children).
-class TimelineViewportScrollController {
-  void Function(double beat)? _reveal;
-  void Function(double beat, {required bool immediate})? _catchUpOnPlay;
-  void Function(double beat)? _followIfNeeded;
-
-  void bind({
-    void Function(double beat)? reveal,
-    void Function(double beat, {required bool immediate})? catchUpOnPlay,
-    void Function(double beat)? followIfNeeded,
-  }) {
-    _reveal = reveal;
-    _catchUpOnPlay = catchUpOnPlay;
-    _followIfNeeded = followIfNeeded;
-  }
-
-  void revealPlayheadAtViewportOrigin(double beat) => _reveal?.call(beat);
-
-  void catchUpPlayheadOnPlay(double beat, {bool immediate = true}) =>
-      _catchUpOnPlay?.call(beat, immediate: immediate);
-
-  void followPlayheadIfNeeded(double beat) => _followIfNeeded?.call(beat);
-}
-
 /// Canvas X of a sticky playhead pill center (pinned at viewport x=0 when scrolled past).
 double timelineStickyMarkerCanvasX({
   required double beat,

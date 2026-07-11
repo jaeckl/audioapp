@@ -1,23 +1,7 @@
 import '../../bridge/clip_snapshots.dart';
 
+part 'library_midi_patterns_library_midi_pattern.dart';
 /// Bundled factory MIDI loop definitions referenced by the content library manifest.
-class LibraryMidiPattern {
-  const LibraryMidiPattern({
-    required this.lengthBeats,
-    required this.notes,
-  });
-
-  final double lengthBeats;
-  final List<MidiNoteSnapshot> notes;
-
-  MidiClipSnapshot toClip(String id) => MidiClipSnapshot(
-        id: id,
-        startBeat: 0,
-        lengthBeats: lengthBeats,
-        notes: notes,
-      );
-}
-
 abstract final class LibraryMidiPatterns {
   static const _loop16 = 16.0;
   static const _loop8 = 8.0;

@@ -4,6 +4,7 @@ import '../../bridge/project_snapshot.dart';
 
 part 'automation_curve_shapes_automation_shape_params.dart';
 
+part 'automation_curve_shapes_automation_curve_shape_labels.dart';
 /// Built-in automation envelope shapes (linear breakpoints for engine playback).
 enum AutomationCurveShape {
   rampUp,
@@ -16,25 +17,6 @@ enum AutomationCurveShape {
 }
 
 /// Parameters for [generateAutomationShapePoints].
-extension AutomationCurveShapeLabels on AutomationCurveShape {
-  String get label => switch (this) {
-        AutomationCurveShape.rampUp => 'Ramp ↑',
-        AutomationCurveShape.rampDown => 'Ramp ↓',
-        AutomationCurveShape.sawUp => 'Saw ↑',
-        AutomationCurveShape.sawDown => 'Saw ↓',
-        AutomationCurveShape.triangle => 'Triangle',
-        AutomationCurveShape.square => 'Square',
-        AutomationCurveShape.sine => 'Sine',
-      };
-
-  bool get isPeriodic => switch (this) {
-        AutomationCurveShape.rampUp || AutomationCurveShape.rampDown => false,
-        _ => true,
-      };
-
-  bool get usesDuty => this == AutomationCurveShape.square;
-}
-
 /// Generate breakpoint list for an automation clip span.
 List<AutomationPointSnapshot> generateAutomationShapePoints({
   required AutomationCurveShape shape,

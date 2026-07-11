@@ -5,6 +5,7 @@ import 'device_insert_slot.dart';
 import 'device_strip_metrics.dart';
 import 'device_vu_meter.dart';
 
+part 'device_chain_separator_device_chain_separator_metrics.dart';
 /// VU meter with centered insert button between device chain slots.
 class DeviceChainSeparator extends StatelessWidget {
   const DeviceChainSeparator({
@@ -67,6 +68,3 @@ double _deviceGain(DeviceSnapshot device) {
 }
 
 /// Shared insert-index + gain helpers for chain rows.
-extension DeviceChainSeparatorMetrics on DeviceSnapshot {
-  double get chainVuGain => _deviceGain(this);
-}

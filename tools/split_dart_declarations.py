@@ -8,8 +8,8 @@ import re
 from pathlib import Path
 
 DECLARATION = re.compile(
-    r"(?m)^(?:(?:abstract|base|final|interface|sealed)\s+)?"
-    r"(?:class|enum|mixin|extension\s+type)\s+([A-Za-z_]\w*)"
+    r"(?m)^(?:(?:abstract|base|final|interface|sealed)\s+)*"
+    r"(?:class|enum|mixin|extension(?:\s+type)?)\s+([A-Za-z_]\w*)"
 )
 
 

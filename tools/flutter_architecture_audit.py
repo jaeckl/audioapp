@@ -13,15 +13,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ROOT = ROOT / "app_flutter" / "lib"
 DEFAULT_BASELINE = ROOT / "tools" / "flutter_architecture_baseline.json"
-MAX_LINES = 500
+MAX_LINES = 300
 
 DECLARATION = re.compile(
-    r"^\s*(?:(?:abstract|base|final|interface|sealed)\s+)?"
-    r"(?:class|mixin|enum|extension\s+type)\s+([A-Za-z_]\w*)",
+    r"^\s*(?:(?:abstract|base|final|interface|sealed)\s+)*"
+    r"(?:class|mixin|enum|extension(?:\s+type)?)\s+([A-Za-z_]\w*)",
     re.MULTILINE,
 )
 SPECIAL_DECLARATION = re.compile(
-    r"^\s*(?:(?:abstract|base|final|interface|sealed)\s+)?class\s+"
+    r"^\s*(?:(?:abstract|base|final|interface|sealed)\s+)*class\s+"
     r"([A-Za-z_]\w*)[^\n]*(?:extends|implements)\s+"
     r"(?:CustomPainter|CustomClipper|RenderBox|RenderObject|Sliver|FlowDelegate)",
     re.MULTILINE,

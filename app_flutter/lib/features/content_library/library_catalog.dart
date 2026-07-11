@@ -13,20 +13,7 @@ part 'library_catalog_library_preset_item.dart';
 part 'library_catalog_library_wavetable_item.dart';
 part 'library_catalog_library_curve_item.dart';
 
-sealed class LibraryItem {
-  const LibraryItem({
-    required this.id,
-    required this.title,
-    required this.subtitle,
-    this.tags = const [],
-  });
-
-  final String id;
-  final String title;
-  final String subtitle;
-  final List<String> tags;
-}
-
+part 'library_catalog_library_item.dart';
 abstract final class LibraryCatalog {
   static List<LibraryItem> itemsFor(
     LibraryCategory category,

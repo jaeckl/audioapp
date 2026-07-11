@@ -4,6 +4,7 @@ import '../../bridge/project_snapshot.dart';
 import 'modulator_rate_codec.dart';
 import 'modulator_types.dart';
 
+part 'modulator_math_offset_lite.dart';
 /// Client-side modulator evaluation for canvas previews (mirrors engine curves).
 abstract final class ModulatorMath {
   /// Map curvature param [0,1] to ease-in (0) / linear (0.5) / ease-out (1).
@@ -249,10 +250,4 @@ abstract final class ModulatorMath {
       return OffsetLite(progress, y);
     });
   }
-}
-
-class OffsetLite {
-  const OffsetLite(this.dx, this.dy);
-  final double dx;
-  final double dy;
 }

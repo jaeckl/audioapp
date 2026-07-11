@@ -91,28 +91,7 @@ part 'sample_editor_screen_private_sample_timeline_state_source_from_playhead_be
 part 'sample_editor_screen_private_sample_timeline_state_playhead_beat_from_source.dart';
 part 'sample_editor_screen_private_sample_timeline_state_playhead_x.dart';
 part 'sample_editor_screen_private_sample_timeline_state_build_content.dart';
-extension _FadeCurveKindX on _FadeCurveKind {
-  double get value => switch (this) {
-        _FadeCurveKind.linear => 0.0,
-        _FadeCurveKind.quadratic => 0.33,
-        _FadeCurveKind.cubic => 0.66,
-        _FadeCurveKind.smooth => 1.0,
-      };
-
-  static _FadeCurveKind fromValue(double value) {
-    var closest = _FadeCurveKind.linear;
-    var distance = (value - closest.value).abs();
-    for (final kind in _FadeCurveKind.values.skip(1)) {
-      final next = (value - kind.value).abs();
-      if (next < distance) {
-        closest = kind;
-        distance = next;
-      }
-    }
-    return closest;
-  }
-}
-
+part 'sample_editor_screen_private_fade_curve_kind_x.dart';
 class SampleEditorScreen extends StatefulWidget {
   const SampleEditorScreen(
       {super.key,

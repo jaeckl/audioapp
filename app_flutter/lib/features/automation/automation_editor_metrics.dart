@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import '../piano_roll/piano_roll_metrics.dart';
 
+part 'automation_editor_metrics_automation_editor_tool.dart';
 /// Layout tokens for the automation timeline editor.
 abstract final class AutomationEditorMetrics {
   static const double valueColumnWidth = PianoRollMetrics.keyColumnWidth;
@@ -58,5 +59,3 @@ abstract final class AutomationEditorMetrics {
     return height.clamp(minH, maxH);
   }
 }
-
-enum AutomationEditorTool { select, draw, multiErase }

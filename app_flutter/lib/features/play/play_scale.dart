@@ -1,5 +1,6 @@
 part 'play_scale_velocity_curve.dart';
 
+part 'play_scale_velocity_curve_label.dart';
 /// Scale helpers for In Key play surfaces.
 class PlayScale {
   const PlayScale(
@@ -129,13 +130,4 @@ int velocityFromY(
       break;
   }
   return (40 + shaped * 87).round().clamp(1, 127);
-}
-
-extension VelocityCurveLabel on VelocityCurve {
-  String get label => switch (this) {
-        VelocityCurve.linear => 'Linear',
-        VelocityCurve.soft => 'Soft',
-        VelocityCurve.hard => 'Hard',
-        VelocityCurve.fixed => 'Fixed',
-      };
 }

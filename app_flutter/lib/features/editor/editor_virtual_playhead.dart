@@ -2,31 +2,12 @@ import 'package:flutter/material.dart';
 
 import 'timeline_marker_layer.dart';
 
+part 'editor_virtual_playhead_editor_virtual_playhead_pill.dart';
 /// Visual playhead for in-editor preview (clip-local beats, not arrangement marker).
 abstract final class EditorVirtualPlayheadTheme {
   static const Color color = Color(0xFFE8A54B);
   static const double pillSize = 30;
   static const double hitWidth = 44;
-}
-
-class EditorVirtualPlayheadPill extends StatelessWidget {
-  const EditorVirtualPlayheadPill({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Material(
-        elevation: 4,
-        color: EditorVirtualPlayheadTheme.color,
-        shape: CircleBorder(),
-        child: SizedBox(
-          width: EditorVirtualPlayheadTheme.pillSize,
-          height: EditorVirtualPlayheadTheme.pillSize,
-          child: Icon(Icons.play_arrow, size: 18, color: Color(0xFF1A1408)),
-        ),
-      ),
-    );
-  }
 }
 
 /// Line width for viewport-fixed editor playhead overlays.

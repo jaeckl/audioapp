@@ -4,31 +4,8 @@ part 'subtractive_synth_presets_subtractive_presets_group_1.dart';
 part 'subtractive_synth_presets_subtractive_presets_group_2.dart';
 part 'subtractive_synth_presets_subtractive_presets_group_3.dart';
 
+part 'subtractive_synth_presets_subtractive_preset_lfo.dart';
 /// Factory preset bundles for subtractive_synth devices (params + LFO/mod routing).
-class SubtractivePresetLfo {
-  const SubtractivePresetLfo({
-    this.waveform = 0,
-    this.rate = 1.0,
-    this.syncDivision = 3,
-    this.phase = 0.0,
-    this.polarity = 0,
-  });
-
-  final int waveform;
-  final double rate;
-  final int syncDivision;
-  final double phase;
-  final int polarity;
-
-  Map<String, dynamic> toJson() => {
-        'waveform': waveform,
-        'rate': rate,
-        'syncDivision': syncDivision,
-        'phase': phase,
-        'polarity': polarity,
-      };
-}
-
 abstract final class SubtractiveSynthPresets {
   /// Every exposed subtractive synth knob — presets always replace the full device state.
   static const Map<String, double> initParams = {

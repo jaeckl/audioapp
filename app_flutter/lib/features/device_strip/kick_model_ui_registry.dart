@@ -1,20 +1,7 @@
 import '../../bridge/project_snapshot.dart';
 import 'kick_envelope_preview.dart';
 
-class KickKnobSpec {
-  const KickKnobSpec({
-    required this.paramId,
-    required this.label,
-    required this.value,
-    required this.format,
-  });
-
-  final String paramId;
-  final String label;
-  final double Function(KickGeneratorDeviceSnapshot device) value;
-  final String Function(double normalized) format;
-}
-
+part 'kick_model_ui_registry_kick_knob_spec.dart';
 /// Per-model knob grid for the kick bench (right column).
 abstract final class KickModelUiRegistry {
   static const _808Knobs = <KickKnobSpec>[

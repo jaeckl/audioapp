@@ -4,6 +4,7 @@ import '../editor/timeline_marker_layer.dart';
 
 part 'arrangement_playhead_marker_arrangement_playhead_hit_target.dart';
 
+part 'arrangement_playhead_marker_arrangement_playhead_ruler_pill.dart';
 /// Arrangement playhead handle on the beat ruler (larger than loop region pills).
 abstract final class ArrangementPlayheadMarkerTheme {
   static const double pillSize = 30;
@@ -26,39 +27,6 @@ abstract final class ArrangementPlayheadMarkerTheme {
   }) {
     final base = TimelineMarkerLayerMetrics.overlayHeight(rulerHeight);
     return playing ? base + hitExtendBelowRulerPlaying : base;
-  }
-}
-
-class ArrangementPlayheadRulerPill extends StatelessWidget {
-  const ArrangementPlayheadRulerPill({
-    super.key,
-    required this.color,
-    required this.iconColor,
-    required this.playing,
-  });
-
-  final Color color;
-  final Color iconColor;
-  final bool playing;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Material(
-        elevation: 4,
-        color: color,
-        shape: const CircleBorder(),
-        child: SizedBox(
-          width: ArrangementPlayheadMarkerTheme.pillSize,
-          height: ArrangementPlayheadMarkerTheme.pillSize,
-          child: Icon(
-            playing ? Icons.stop : Icons.play_arrow,
-            size: 18,
-            color: iconColor,
-          ),
-        ),
-      ),
-    );
   }
 }
 
