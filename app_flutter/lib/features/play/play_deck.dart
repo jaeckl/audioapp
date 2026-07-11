@@ -15,6 +15,23 @@ import 'scale_builder_panel.dart';
 
 part 'play_deck_play_deck_state.dart';
 
+part 'play_deck_play_deck_state_set_surface_mode.dart';
+part 'play_deck_play_deck_state_toggle_latch.dart';
+part 'play_deck_play_deck_state_toggle_metronome.dart';
+part 'play_deck_play_deck_state_set_metronome.dart';
+part 'play_deck_play_deck_state_notify_performance.dart';
+part 'play_deck_play_deck_state_on_octave_delta.dart';
+part 'play_deck_play_deck_state_on_surface_mode_changed.dart';
+part 'play_deck_play_deck_state_on_view_changed.dart';
+part 'play_deck_play_deck_state_update_highlights.dart';
+part 'play_deck_play_deck_state_build_chord_pitches.dart';
+part 'play_deck_play_deck_state_build_context_area.dart';
+
+const int _rootMidi = 60;
+const _noteNames = [
+  'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B',
+];
+
 /// Shared play surface: rail (Pads/Keys · Octave · Perform · Perf), mod strip,
 /// and context panels — used in Play tab and piano roll editor.
 class PlayDeck extends StatefulWidget {

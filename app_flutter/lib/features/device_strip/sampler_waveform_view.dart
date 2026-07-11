@@ -20,6 +20,24 @@ part 'sampler_waveform_view_private_playback_mode_segments.dart';
 part 'sampler_waveform_view_private_playback_segment.dart';
 part 'sampler_waveform_view_private_root_step_hit.dart';
 
+part 'sampler_waveform_view_private_sampler_waveform_view_state_sync_local.dart';
+part 'sampler_waveform_view_private_sampler_waveform_view_state_sec_from_dx.dart';
+part 'sampler_waveform_view_private_sampler_waveform_view_state_left_handle_left.dart';
+part 'sampler_waveform_view_private_sampler_waveform_view_state_right_handle_left.dart';
+part 'sampler_waveform_view_private_sampler_waveform_view_state_hit_left_handle.dart';
+part 'sampler_waveform_view_private_sampler_waveform_view_state_hit_right_handle.dart';
+part 'sampler_waveform_view_private_sampler_waveform_view_state_commit_trim.dart';
+part 'sampler_waveform_view_private_sampler_waveform_view_state_commit_region.dart';
+part 'sampler_waveform_view_private_sampler_waveform_view_state_pick_handle.dart';
+part 'sampler_waveform_view_private_sampler_waveform_view_state_on_drag_start.dart';
+part 'sampler_waveform_view_private_sampler_waveform_view_state_on_drag_update.dart';
+part 'sampler_waveform_view_private_sampler_waveform_view_state_on_drag_end.dart';
+part 'sampler_waveform_view_private_sampler_waveform_view_state_create_region_at.dart';
+
+const double _handleVisualWidth = 12;
+const double _handleHitRadius = 28;
+const double _minSpanSec = 0.02;
+const double _handleVerticalInset = 4.0;
 /// Strip: loop region only. Editor: trim bounds + optional loop band inside trim.
 /// Shared waveform surface for sampler Wave tab (strip + fullscreen).
 class SamplerWaveformView extends StatefulWidget {

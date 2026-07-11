@@ -13,6 +13,15 @@ part 'rotary_knob_knob_painter.dart';
 part 'rotary_knob_background_glow_painter.dart';
 
 part 'rotary_knob_knob_arc_geometry.dart';
+part 'rotary_knob_rotary_knob_state_on_drag_start.dart';
+part 'rotary_knob_rotary_knob_state_on_drag_update.dart';
+part 'rotary_knob_rotary_knob_state_on_drag_end.dart';
+part 'rotary_knob_rotary_knob_state_on_drag_cancel.dart';
+part 'rotary_knob_rotary_knob_state_on_long_press.dart';
+part 'rotary_knob_rotary_knob_state_on_long_press_start.dart';
+part 'rotary_knob_rotary_knob_state_on_long_press_move_update.dart';
+part 'rotary_knob_rotary_knob_state_on_long_press_end.dart';
+part 'rotary_knob_rotary_knob_state_build_content.dart';
 /// Knob dial geometry — 0 at south-west, max at south-east (clockwise over the
 /// top; bottom 120° is empty).
 /// Compact rotary control styled after Bitwig / FL Studio Mobile device knobs.

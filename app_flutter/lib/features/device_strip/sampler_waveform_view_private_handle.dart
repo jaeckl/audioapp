@@ -23,7 +23,7 @@ class _Handle extends StatelessWidget {
       bottom: bottom,
       child: IgnorePointer(
         child: Container(
-          width: _SamplerWaveformViewState._handleVisualWidth,
+          width: _handleVisualWidth,
           decoration: BoxDecoration(
             color: color,
             borderRadius: BorderRadius.only(

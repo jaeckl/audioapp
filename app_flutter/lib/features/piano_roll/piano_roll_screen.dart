@@ -70,6 +70,8 @@ part 'piano_roll_screen_private_piano_roll_screen_state_on_scale_changed.dart';
 part 'piano_roll_screen_private_piano_roll_screen_state_persist_scale_settings.dart';
 part 'piano_roll_screen_private_piano_roll_screen_state_open_edit_sheet.dart';
 
+part 'piano_roll_screen_private_piano_roll_screen_state_open_grid_sheet.dart';
+part 'piano_roll_screen_private_piano_roll_screen_state_build_content.dart';
 class PianoRollScreen extends StatefulWidget {
   const PianoRollScreen({
     super.key,

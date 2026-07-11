@@ -18,6 +18,7 @@ part 'lfo_snapshot.dart';
 part 'modulation_edge_snapshot.dart';
 
 part 'project_snapshot_track_snapshot_devices.dart';
+
 class ProjectSnapshot {
   const ProjectSnapshot({
     required this.bpm,
@@ -74,12 +75,8 @@ class ProjectSnapshot {
       snapshot['loopRegionEndBeat'],
       defaultValue: 16.0,
     );
-    final automationClipsList = automationRaw != null
-        ? automationRaw
-            .map((c) =>
-                AutomationClipSnapshot.fromMap(c as Map<dynamic, dynamic>))
-            .toList()
-        : <AutomationClipSnapshot>[];
+    final automationClipsList =
+        automationRaw != null ? automationRaw.map((c) => AutomationClipSnapshot.fromMap(c as Map<dynamic, dynamic>)).toList() : <AutomationClipSnapshot>[];
     return ProjectSnapshot(
       bpm: (snapshot['bpm'] as num?)?.toInt() ?? 120,
       selectedTrackId: snapshot['selectedTrackId'] as String? ?? '',
@@ -89,25 +86,16 @@ class ProjectSnapshot {
       loopRegionStartBeat: loopRegionStart,
       loopRegionEndBeat: loopRegionEnd,
       recordArmed: snapshot['recordArmed'] == true,
-      master: MasterTrackSnapshot.fromMap(
-          snapshot['master'] as Map<dynamic, dynamic>?),
-      samples: samplesRaw
-          .map((s) =>
-              SampleLibraryEntrySnapshot.fromMap(s as Map<dynamic, dynamic>))
-          .toList(),
+      master: MasterTrackSnapshot.fromMap(snapshot['master'] as Map<dynamic, dynamic>?),
+      samples: samplesRaw.map((s) => SampleLibraryEntrySnapshot.fromMap(s as Map<dynamic, dynamic>)).toList(),
       tracks: tracksRaw
           .map((t) => TrackSnapshot.fromMap(
                 t as Map<dynamic, dynamic>,
                 projectAutomationClips: automationClipsList,
               ))
           .toList(),
-      lfos: lfosRaw
-          .map((l) => LfoSnapshot.fromMap(l as Map<dynamic, dynamic>))
-          .toList(),
-      modEdges: modEdgesRaw
-          .map(
-              (e) => ModulationEdgeSnapshot.fromMap(e as Map<dynamic, dynamic>))
-          .toList(),
+      lfos: lfosRaw.map((l) => LfoSnapshot.fromMap(l as Map<dynamic, dynamic>)).toList(),
+      modEdges: modEdgesRaw.map((e) => ModulationEdgeSnapshot.fromMap(e as Map<dynamic, dynamic>)).toList(),
       automationClips: automationClipsList,
     );
   }
@@ -237,8 +225,7 @@ class ProjectSnapshot {
 
   /// Optimistically update a device parameter in the snapshot (no bridge round-trip).
   /// Used when the engine's setDeviceParameter command returns void (no delta/snapshot).
-  ProjectSnapshot withDeviceParam(
-      String deviceId, String paramId, double value) {
+  ProjectSnapshot withDeviceParam(String deviceId, String paramId, double value) {
     DeviceSnapshot updateDevice(DeviceSnapshot device) {
       if (device.id == deviceId) {
         return device.withParameter(paramId, value);
@@ -260,8 +247,7 @@ class ProjectSnapshot {
                   muted: pad.muted,
                   solo: pad.solo,
                   chokeGroup: pad.chokeGroup,
-                  devices:
-                      pad.devices.map(updateDevice).toList(growable: false),
+                  devices: pad.devices.map(updateDevice).toList(growable: false),
                 ),
               )
               .toList(growable: false),
@@ -269,10 +255,8 @@ class ProjectSnapshot {
       }
       if (device is VirtualStripHostSnapshot) {
         return (device as VirtualStripHostSnapshot).copyWith(
-          audioFxDevices:
-              device.audioFxDevices.map(updateDevice).toList(growable: false),
-          noteFxDevices:
-              device.noteFxDevices.map(updateDevice).toList(growable: false),
+          audioFxDevices: device.audioFxDevices.map(updateDevice).toList(growable: false),
+          noteFxDevices: device.noteFxDevices.map(updateDevice).toList(growable: false),
         );
       }
       return device;
