@@ -2,7 +2,11 @@ import 'device_families/device_snapshot_helpers.dart';
 
 part 'device_families/bass_synth_family.dart';
 part 'device_families/drum_generator_family.dart';
-part 'device_families/dynamics_family.dart';
+part 'device_families/dynamics_device_snapshot.dart';
+part 'device_families/gate_device_snapshot.dart';
+part 'device_families/compressor_device_snapshot.dart';
+part 'device_families/expander_device_snapshot.dart';
+part 'device_families/limiter_device_snapshot.dart';
 part 'device_families/effect_family.dart';
 part 'device_families/frequency_fx_family.dart';
 part 'device_families/resonator_bank_family.dart';
