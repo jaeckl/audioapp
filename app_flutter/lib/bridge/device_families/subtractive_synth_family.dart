@@ -1,7 +1,12 @@
 part of '../device_snapshot.dart';
 
 /// Subtractive synth device snapshot.
-class SubtractiveSynthDeviceSnapshot extends DeviceSnapshot {
+class SubtractiveSynthDeviceSnapshot extends DeviceSnapshot
+    implements VirtualStripHostSnapshot {
+  @override
+  final List<DeviceSnapshot> audioFxDevices;
+  @override
+  final List<DeviceSnapshot> noteFxDevices;
   const SubtractiveSynthDeviceSnapshot({
     required super.id,
     required super.gain,
@@ -50,6 +55,8 @@ class SubtractiveSynthDeviceSnapshot extends DeviceSnapshot {
     required this.filterCutoff,
     required this.filterQ,
     required this.filterMode,
+    this.audioFxDevices = const [],
+    this.noteFxDevices = const [],
   }) : super(type: 'subtractive_synth');
 
   final double osc1Shape;
@@ -103,7 +110,8 @@ class SubtractiveSynthDeviceSnapshot extends DeviceSnapshot {
       gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
       pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
       bypassed: readBypass(map['bypass']),
-      meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
+      meterGainReductionDb:
+          (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       osc1Shape: readOscShape(params, 'osc1Shape', 'osc1Wave', 0.5),
       osc2Shape: readOscShape(params, 'osc2Shape', 'osc2Wave', 0.5),
@@ -113,7 +121,8 @@ class SubtractiveSynthDeviceSnapshot extends DeviceSnapshot {
       osc2Octave: (params['osc2Octave'] as num?)?.toDouble() ?? 0.5,
       osc2Semi: (params['osc2Semi'] as num?)?.toDouble() ?? 0.0,
       osc2Detune: (params['osc2Detune'] as num?)?.toDouble() ?? 0.5,
-      oscMix: (params['oscMix'] as num?)?.toDouble() ?? deriveOscMixFromLegacyLevels(params),
+      oscMix: (params['oscMix'] as num?)?.toDouble() ??
+          deriveOscMixFromLegacyLevels(params),
       osc1Sync: (params['osc1Sync'] as num?)?.toDouble() ?? 0.0,
       osc2Sync: (params['osc2Sync'] as num?)?.toDouble() ?? 0.0,
       noiseLevel: (params['noiseLevel'] as num?)?.toDouble() ?? 0.0,
@@ -126,7 +135,8 @@ class SubtractiveSynthDeviceSnapshot extends DeviceSnapshot {
       filterSustain: (params['filterSustain'] as num?)?.toDouble() ?? 0.4,
       filterRelease: (params['filterRelease'] as num?)?.toDouble() ?? 0.45,
       glideMs: (params['glideMs'] as num?)?.toDouble() ?? 0.0,
-      velocitySensitivity: (params['velocitySensitivity'] as num?)?.toDouble() ?? 1.0,
+      velocitySensitivity:
+          (params['velocitySensitivity'] as num?)?.toDouble() ?? 1.0,
       preHpCutoff: (params['preHpCutoff'] as num?)?.toDouble() ?? 0.0,
       preHpRes: (params['preHpRes'] as num?)?.toDouble() ?? 0.2,
       preDrive: (params['preDrive'] as num?)?.toDouble() ?? 0.0,
@@ -146,6 +156,8 @@ class SubtractiveSynthDeviceSnapshot extends DeviceSnapshot {
       filterCutoff: (params['filterCutoff'] as num?)?.toDouble() ?? 1.0,
       filterQ: (params['filterQ'] as num?)?.toDouble() ?? 0.35,
       filterMode: (params['filterMode'] as num?)?.toInt() ?? 0,
+      audioFxDevices: parseDeviceList(map, 'audioFxDevices'),
+      noteFxDevices: parseDeviceList(map, 'noteFxDevices'),
     );
   }
 
@@ -199,6 +211,8 @@ class SubtractiveSynthDeviceSnapshot extends DeviceSnapshot {
     double? filterCutoff,
     double? filterQ,
     int? filterMode,
+    List<DeviceSnapshot>? audioFxDevices,
+    List<DeviceSnapshot>? noteFxDevices,
   }) {
     return SubtractiveSynthDeviceSnapshot(
       id: id ?? this.id,
@@ -248,11 +262,14 @@ class SubtractiveSynthDeviceSnapshot extends DeviceSnapshot {
       filterCutoff: filterCutoff ?? this.filterCutoff,
       filterQ: filterQ ?? this.filterQ,
       filterMode: filterMode ?? this.filterMode,
+      audioFxDevices: audioFxDevices ?? this.audioFxDevices,
+      noteFxDevices: noteFxDevices ?? this.noteFxDevices,
     );
   }
 
   @override
-  SubtractiveSynthDeviceSnapshot withParameter(String parameterId, double value) {
+  SubtractiveSynthDeviceSnapshot withParameter(
+      String parameterId, double value) {
     return switch (parameterId) {
       'gain' => copyWith(gain: value),
       'pan' => copyWith(pan: value),
@@ -295,7 +312,8 @@ class SubtractiveSynthDeviceSnapshot extends DeviceSnapshot {
       'filterDrive' => copyWith(filterDrive: value),
       'filterShaper' => copyWith(filterShaper: value),
       'filterFm' => copyWith(filterFm: value),
-      'filterShaperMode' => copyWith(filterShaperMode: value.round().clamp(0, 3)),
+      'filterShaperMode' =>
+        copyWith(filterShaperMode: value.round().clamp(0, 3)),
       'synthLegato' => copyWith(synthLegato: value >= 0.5 ? 1.0 : 0.0),
       'synthMono' => copyWith(synthMono: value >= 0.5 ? 1.0 : 0.0),
       _ => this,

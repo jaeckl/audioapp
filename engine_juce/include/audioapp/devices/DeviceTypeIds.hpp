@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string_view>
+
 namespace audioapp::device_types {
 
 inline constexpr const char* kOscillator = "simple_oscillator";
@@ -40,5 +42,25 @@ inline constexpr const char* kSpectrumAnalyzer = "spectrum_analyzer";
 inline constexpr const char* kLoudnessMeter = "loudness_meter";
 inline constexpr const char* kStereoImager = "stereo_imager";
 inline constexpr const char* kChain = "device_chain";
+
+/// Returns true for synth/instrument device types that support audio/note FX sub-strips.
+inline bool isSynthType(std::string_view typeId) {
+    return typeId == kOscillator || typeId == kSubtractiveSynth ||
+           typeId == kPhaseModSynth || typeId == kWavetableSynth ||
+           typeId == kBasSynth || typeId == kGranular || typeId == kSampler;
+}
+
+inline bool isNoteFxType(std::string_view typeId) {
+    return typeId == kMidiDelay;
+}
+
+inline bool isAudioFxType(std::string_view typeId) {
+    return typeId == kGate || typeId == kCompressor || typeId == kExpander ||
+           typeId == kLimiter || typeId == kDelay || typeId == kReverb ||
+           typeId == kChorus || typeId == kPhaser || typeId == kFilter ||
+           typeId == kFourBandEq || typeId == kFrequencyShifter ||
+           typeId == kResonatorBank || typeId == kBitcrusher ||
+           typeId == kDistortion || typeId == kTremolo || typeId == kStutter;
+}
 
 } // namespace audioapp::device_types

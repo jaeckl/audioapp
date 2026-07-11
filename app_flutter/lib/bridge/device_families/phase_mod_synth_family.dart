@@ -1,7 +1,12 @@
 part of '../device_snapshot.dart';
 
 /// Phase-modulation (FM) synth device snapshot.
-class PhaseModSynthDeviceSnapshot extends DeviceSnapshot {
+class PhaseModSynthDeviceSnapshot extends DeviceSnapshot
+    implements VirtualStripHostSnapshot {
+  @override
+  final List<DeviceSnapshot> audioFxDevices;
+  @override
+  final List<DeviceSnapshot> noteFxDevices;
   const PhaseModSynthDeviceSnapshot({
     required super.id,
     required super.gain,
@@ -76,6 +81,8 @@ class PhaseModSynthDeviceSnapshot extends DeviceSnapshot {
     required this.decay,
     required this.sustain,
     required this.release,
+    this.audioFxDevices = const [],
+    this.noteFxDevices = const [],
   }) : super(type: 'phase_mod_synth');
 
   final double pmOp1Ratio;
@@ -161,7 +168,8 @@ class PhaseModSynthDeviceSnapshot extends DeviceSnapshot {
       gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
       pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
       bypassed: readBypass(map['bypass']),
-      meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
+      meterGainReductionDb:
+          (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       pmOp1Ratio: (params['pmOp1Ratio'] as num?)?.toDouble() ?? 0.0625,
       pmOp1Fine: (params['pmOp1Fine'] as num?)?.toDouble() ?? 0.5,
@@ -230,6 +238,8 @@ class PhaseModSynthDeviceSnapshot extends DeviceSnapshot {
       decay: (params['decay'] as num?)?.toDouble() ?? 0.3,
       sustain: (params['sustain'] as num?)?.toDouble() ?? 0.7,
       release: (params['release'] as num?)?.toDouble() ?? 0.4,
+      audioFxDevices: parseDeviceList(map, 'audioFxDevices'),
+      noteFxDevices: parseDeviceList(map, 'noteFxDevices'),
     );
   }
 
@@ -309,6 +319,8 @@ class PhaseModSynthDeviceSnapshot extends DeviceSnapshot {
     double? decay,
     double? sustain,
     double? release,
+    List<DeviceSnapshot>? audioFxDevices,
+    List<DeviceSnapshot>? noteFxDevices,
   }) {
     return PhaseModSynthDeviceSnapshot(
       id: id ?? this.id,
@@ -384,6 +396,8 @@ class PhaseModSynthDeviceSnapshot extends DeviceSnapshot {
       decay: decay ?? this.decay,
       sustain: sustain ?? this.sustain,
       release: release ?? this.release,
+      audioFxDevices: audioFxDevices ?? this.audioFxDevices,
+      noteFxDevices: noteFxDevices ?? this.noteFxDevices,
     );
   }
 

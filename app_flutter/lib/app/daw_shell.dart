@@ -1061,6 +1061,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             if (containsDevice(pad.devices)) return true;
           }
         }
+        if (containsDevice(device.audioFxDevices)) return true;
+        if (containsDevice(device.noteFxDevices)) return true;
       }
       return false;
     }
@@ -1203,9 +1205,13 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
       _libraryPresetDeviceId = device.id;
       _libraryPresetDeviceType = device.type;
       _librarySamplerDeviceId =
-          filter.defaultCategory == LibraryCategory.audioClips ? device.id : null;
+          filter.defaultCategory == LibraryCategory.audioClips
+              ? device.id
+              : null;
       _libraryWavetableDeviceId =
-          filter.defaultCategory == LibraryCategory.wavetables ? device.id : null;
+          filter.defaultCategory == LibraryCategory.wavetables
+              ? device.id
+              : null;
     });
   }
 
@@ -1382,7 +1388,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     String? deviceId;
     String? paramId;
     if (item.suggestedParamId != null) {
-      final synth = track.subtractiveSynthDevice ?? track.samplerDevice;
+      final DeviceSnapshot? synth =
+          track.subtractiveSynthDevice ?? track.samplerDevice;
       if (synth != null) {
         deviceId = synth.id;
         paramId = item.suggestedParamId;

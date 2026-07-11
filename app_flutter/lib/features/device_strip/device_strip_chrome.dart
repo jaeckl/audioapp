@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
+import '../../bridge/device_capabilities.dart';
 import 'device_strip_chrome_panels.dart';
 import 'device_strip_metrics.dart';
 import 'device_strip_theme.dart';
@@ -24,6 +25,10 @@ class DeviceStripChromeBindings {
     this.onAutomateParameter,
     this.gainReductionDb = 0,
     this.inputLevel = 0,
+    this.audioFxExpanded = false,
+    this.noteFxExpanded = false,
+    this.onToggleAudioFx,
+    this.onToggleNoteFx,
   });
 
   final DeviceSnapshot device;
@@ -41,6 +46,10 @@ class DeviceStripChromeBindings {
   final ValueChanged<String>? onAutomateParameter;
   final double gainReductionDb;
   final double inputLevel;
+  final bool audioFxExpanded;
+  final bool noteFxExpanded;
+  final VoidCallback? onToggleAudioFx;
+  final VoidCallback? onToggleNoteFx;
 }
 
 /// Per-device input/output strip chrome registry (ADR-0008).
@@ -167,6 +176,27 @@ abstract final class DeviceStripChrome {
         automationLinkActive: bindings.automationLinkActive,
         onAutomationLinkTap: bindings.onAutomationLinkTap,
         onAutomateParameter: bindings.onAutomateParameter,
+      );
+    }
+    if (DeviceCapabilities.virtualStripHosts.contains(deviceType)) {
+      return SynthOutputPanel(
+        device: bindings.device,
+        accentColor: bindings.accentColor,
+        onParameterChanged: bindings.onParameterChanged,
+        modulatedParams: bindings.modulatedParams,
+        automatedParams: bindings.automatedParams,
+        modulationAmounts: bindings.modulationAmounts,
+        lfos: bindings.lfos,
+        modEdges: bindings.modEdges,
+        connectModeLfoId: bindings.connectModeLfoId,
+        onModulationAssign: bindings.onModulationAssign,
+        automationLinkActive: bindings.automationLinkActive,
+        onAutomationLinkTap: bindings.onAutomationLinkTap,
+        onAutomateParameter: bindings.onAutomateParameter,
+        audioFxExpanded: bindings.audioFxExpanded,
+        noteFxExpanded: bindings.noteFxExpanded,
+        onToggleAudioFx: bindings.onToggleAudioFx,
+        onToggleNoteFx: bindings.onToggleNoteFx,
       );
     }
     return StereoGainPanPanel(

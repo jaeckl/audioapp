@@ -1,7 +1,12 @@
 part of '../device_snapshot.dart';
 
 /// Bass synth device snapshot.
-class BassSynthDeviceSnapshot extends DeviceSnapshot {
+class BassSynthDeviceSnapshot extends DeviceSnapshot
+    implements VirtualStripHostSnapshot {
+  @override
+  final List<DeviceSnapshot> audioFxDevices;
+  @override
+  final List<DeviceSnapshot> noteFxDevices;
   const BassSynthDeviceSnapshot({
     required super.id,
     required super.gain,
@@ -25,6 +30,8 @@ class BassSynthDeviceSnapshot extends DeviceSnapshot {
     required this.filterEnvAmount,
     required this.filterDecay,
     required this.glideMs,
+    this.audioFxDevices = const [],
+    this.noteFxDevices = const [],
   }) : super(type: 'bass_synth');
 
   final double bassOscShape;
@@ -53,17 +60,20 @@ class BassSynthDeviceSnapshot extends DeviceSnapshot {
       gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
       pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
       bypassed: readBypass(map['bypass']),
-      meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
+      meterGainReductionDb:
+          (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       bassOscShape: (params['bassOscShape'] as num?)?.toDouble() ?? 0.3,
       bassSubMix: (params['bassSubMix'] as num?)?.toDouble() ?? 0.5,
       bassSubOctave: (params['bassSubOctave'] as num?)?.toInt() ?? 0,
       bassNoise: (params['bassNoise'] as num?)?.toDouble() ?? 0.0,
-      bassFilterResonance: (params['bassFilterResonance'] as num?)?.toDouble() ?? 0.25,
+      bassFilterResonance:
+          (params['bassFilterResonance'] as num?)?.toDouble() ?? 0.25,
       bassDrive: (params['bassDrive'] as num?)?.toDouble() ?? 0.0,
       bassSquash: (params['bassSquash'] as num?)?.toDouble() ?? 0.0,
       bassOctave: (params['bassOctave'] as num?)?.toInt() ?? 2,
-      bassVelocitySense: (params['bassVelocitySense'] as num?)?.toDouble() ?? 1.0,
+      bassVelocitySense:
+          (params['bassVelocitySense'] as num?)?.toDouble() ?? 1.0,
       filterCutoff: (params['filterCutoff'] as num?)?.toDouble() ?? 1.0,
       attack: (params['attack'] as num?)?.toDouble() ?? 0.01,
       sustain: (params['sustain'] as num?)?.toDouble() ?? 0.7,
@@ -71,6 +81,8 @@ class BassSynthDeviceSnapshot extends DeviceSnapshot {
       filterEnvAmount: (params['filterEnvAmount'] as num?)?.toDouble() ?? 0.6,
       filterDecay: (params['filterDecay'] as num?)?.toDouble() ?? 0.4,
       glideMs: (params['glideMs'] as num?)?.toDouble() ?? 0.0,
+      audioFxDevices: parseDeviceList(map, 'audioFxDevices'),
+      noteFxDevices: parseDeviceList(map, 'noteFxDevices'),
     );
   }
 
@@ -99,6 +111,8 @@ class BassSynthDeviceSnapshot extends DeviceSnapshot {
     double? filterEnvAmount,
     double? filterDecay,
     double? glideMs,
+    List<DeviceSnapshot>? audioFxDevices,
+    List<DeviceSnapshot>? noteFxDevices,
   }) {
     return BassSynthDeviceSnapshot(
       id: id ?? this.id,
@@ -123,6 +137,8 @@ class BassSynthDeviceSnapshot extends DeviceSnapshot {
       filterEnvAmount: filterEnvAmount ?? this.filterEnvAmount,
       filterDecay: filterDecay ?? this.filterDecay,
       glideMs: glideMs ?? this.glideMs,
+      audioFxDevices: audioFxDevices ?? this.audioFxDevices,
+      noteFxDevices: noteFxDevices ?? this.noteFxDevices,
     );
   }
 
@@ -136,7 +152,8 @@ class BassSynthDeviceSnapshot extends DeviceSnapshot {
       'bassSubMix' => copyWith(bassSubMix: value.clamp(0.0, 1.0)),
       'bassSubOctave' => copyWith(bassSubOctave: value.round().clamp(0, 2)),
       'bassNoise' => copyWith(bassNoise: value.clamp(0.0, 1.0)),
-      'bassFilterResonance' => copyWith(bassFilterResonance: value.clamp(0.0, 1.0)),
+      'bassFilterResonance' =>
+        copyWith(bassFilterResonance: value.clamp(0.0, 1.0)),
       'bassDrive' => copyWith(bassDrive: value.clamp(0.0, 1.0)),
       'bassSquash' => copyWith(bassSquash: value.clamp(0.0, 1.0)),
       'bassOctave' => copyWith(bassOctave: value.round().clamp(0, 4)),

@@ -1,7 +1,12 @@
 part of '../device_snapshot.dart';
 
 /// Simple sampler device snapshot.
-class SamplerDeviceSnapshot extends DeviceSnapshot {
+class SamplerDeviceSnapshot extends DeviceSnapshot
+    implements VirtualStripHostSnapshot {
+  @override
+  final List<DeviceSnapshot> audioFxDevices;
+  @override
+  final List<DeviceSnapshot> noteFxDevices;
   const SamplerDeviceSnapshot({
     required super.id,
     required super.gain,
@@ -29,6 +34,8 @@ class SamplerDeviceSnapshot extends DeviceSnapshot {
     required this.filterDecay,
     required this.filterSustain,
     required this.filterRelease,
+    this.audioFxDevices = const [],
+    this.noteFxDevices = const [],
   }) : super(type: 'simple_sampler');
 
   final String sampleId;
@@ -61,7 +68,8 @@ class SamplerDeviceSnapshot extends DeviceSnapshot {
       gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
       pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
       bypassed: readBypass(map['bypass']),
-      meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
+      meterGainReductionDb:
+          (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       sampleId: params['sampleId'] as String? ?? '',
       attack: (params['attack'] as num?)?.toDouble() ?? 0.01,
@@ -85,6 +93,8 @@ class SamplerDeviceSnapshot extends DeviceSnapshot {
       filterDecay: (params['filterDecay'] as num?)?.toDouble() ?? 0.35,
       filterSustain: (params['filterSustain'] as num?)?.toDouble() ?? 0.7,
       filterRelease: (params['filterRelease'] as num?)?.toDouble() ?? 0.4,
+      audioFxDevices: parseDeviceList(map, 'audioFxDevices'),
+      noteFxDevices: parseDeviceList(map, 'noteFxDevices'),
     );
   }
 
@@ -117,6 +127,8 @@ class SamplerDeviceSnapshot extends DeviceSnapshot {
     double? filterDecay,
     double? filterSustain,
     double? filterRelease,
+    List<DeviceSnapshot>? audioFxDevices,
+    List<DeviceSnapshot>? noteFxDevices,
   }) {
     return SamplerDeviceSnapshot(
       id: id ?? this.id,
@@ -145,6 +157,8 @@ class SamplerDeviceSnapshot extends DeviceSnapshot {
       filterDecay: filterDecay ?? this.filterDecay,
       filterSustain: filterSustain ?? this.filterSustain,
       filterRelease: filterRelease ?? this.filterRelease,
+      audioFxDevices: audioFxDevices ?? this.audioFxDevices,
+      noteFxDevices: noteFxDevices ?? this.noteFxDevices,
     );
   }
 

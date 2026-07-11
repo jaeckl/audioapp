@@ -19,6 +19,15 @@ part 'device_families/analysis_family.dart';
 part 'device_families/chain_family.dart';
 part 'device_families/granular_family.dart';
 
+/// Helper to parse an optional device-list key from engine JSON.
+List<DeviceSnapshot> parseDeviceList(Map<dynamic, dynamic> map, String key) {
+  final raw = map[key];
+  if (raw is! List) return const [];
+  return raw
+      .map((v) => DeviceSnapshot.fromMap(v as Map<dynamic, dynamic>))
+      .toList(growable: false);
+}
+
 sealed class DeviceSnapshot {
   const DeviceSnapshot({
     required this.id,
@@ -94,6 +103,26 @@ sealed class DeviceSnapshot {
       _ => throw ArgumentError('Unknown device type: $type'),
     };
   }
+}
+
+/// Implemented only by instrument snapshots that own virtual Note/Audio FX.
+abstract interface class VirtualStripHostSnapshot {
+  List<DeviceSnapshot> get audioFxDevices;
+  List<DeviceSnapshot> get noteFxDevices;
+
+  DeviceSnapshot copyWith({
+    List<DeviceSnapshot>? audioFxDevices,
+    List<DeviceSnapshot>? noteFxDevices,
+  });
+}
+
+extension VirtualStripDeviceAccess on DeviceSnapshot {
+  List<DeviceSnapshot> get audioFxDevices => this is VirtualStripHostSnapshot
+      ? (this as VirtualStripHostSnapshot).audioFxDevices
+      : const [];
+  List<DeviceSnapshot> get noteFxDevices => this is VirtualStripHostSnapshot
+      ? (this as VirtualStripHostSnapshot).noteFxDevices
+      : const [];
 }
 
 // --- Sealed Families ---

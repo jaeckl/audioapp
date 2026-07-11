@@ -129,6 +129,26 @@ bool EngineHost::removeDeviceFromChain(const std::string& chainId, const std::st
     return project_ != nullptr && project_->removeDeviceFromChain(chainId, deviceId);
 }
 
+std::string EngineHost::addDeviceToSynthAudioFx(const std::string& deviceId,
+                                                  const std::string& deviceType, int insertIndex) {
+    return project_ != nullptr ? project_->addDeviceToSynthAudioFx(deviceId, deviceType, insertIndex) : std::string{};
+}
+
+bool EngineHost::removeDeviceFromSynthAudioFx(const std::string& deviceId,
+                                                const std::string& subDeviceId) {
+    return project_ != nullptr && project_->removeDeviceFromSynthAudioFx(deviceId, subDeviceId);
+}
+
+std::string EngineHost::addDeviceToSynthNoteFx(const std::string& deviceId,
+                                                 const std::string& deviceType, int insertIndex) {
+    return project_ != nullptr ? project_->addDeviceToSynthNoteFx(deviceId, deviceType, insertIndex) : std::string{};
+}
+
+bool EngineHost::removeDeviceFromSynthNoteFx(const std::string& deviceId,
+                                               const std::string& subDeviceId) {
+    return project_ != nullptr && project_->removeDeviceFromSynthNoteFx(deviceId, subDeviceId);
+}
+
 std::string EngineHost::getDevicePresetJson(const std::string& deviceId) const {
     return project_ != nullptr ? project_->getDevicePresetJson(deviceId) : std::string{};
 }
@@ -2261,6 +2281,42 @@ void EngineHost::registerAllCommands() {
         ctx.engine.redo();
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
         return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("addDeviceToSynthAudioFx", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        const auto deviceType = ctx.args["deviceType"].toString().toStdString();
+        const int insertIndex = ctx.args.hasProperty("insertIndex")
+            ? static_cast<int>(static_cast<double>(ctx.args["insertIndex"])) : -1;
+        if (ctx.engine.addDeviceToSynthAudioFx(deviceId, deviceType, insertIndex).empty())
+            return commands::errorResult("invalid_synth_or_fx");
+        return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
+    });
+
+    reg.registerCommand("removeDeviceFromSynthAudioFx", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        const auto subDeviceId = ctx.args["subDeviceId"].toString().toStdString();
+        if (!ctx.engine.removeDeviceFromSynthAudioFx(deviceId, subDeviceId))
+            return commands::errorResult("sub_device_not_found");
+        return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
+    });
+
+    reg.registerCommand("addDeviceToSynthNoteFx", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        const auto deviceType = ctx.args["deviceType"].toString().toStdString();
+        const int insertIndex = ctx.args.hasProperty("insertIndex")
+            ? static_cast<int>(static_cast<double>(ctx.args["insertIndex"])) : -1;
+        if (ctx.engine.addDeviceToSynthNoteFx(deviceId, deviceType, insertIndex).empty())
+            return commands::errorResult("invalid_synth_or_fx");
+        return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
+    });
+
+    reg.registerCommand("removeDeviceFromSynthNoteFx", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        const auto subDeviceId = ctx.args["subDeviceId"].toString().toStdString();
+        if (!ctx.engine.removeDeviceFromSynthNoteFx(deviceId, subDeviceId))
+            return commands::errorResult("sub_device_not_found");
+        return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
     });
 }
 

@@ -308,7 +308,9 @@ struct DrumMachinePlayback {
     DrumPadPlayback pads[128]{};
 };
 
-static constexpr int kMaxDevicesPerTrack = 16;
+// Eight top-level devices plus up to eight Note FX and eight Audio FX owned by
+// one instrument must all remain addressable in the flattened realtime graph.
+static constexpr int kMaxDevicesPerTrack = 24;
 static constexpr float kInstrumentOutputGain = 0.2f;
 
 struct DeviceMeterAtomic {

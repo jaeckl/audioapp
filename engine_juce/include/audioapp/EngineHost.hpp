@@ -59,6 +59,16 @@ public:
     std::string addDeviceToChain(const std::string& chainId, const std::string& deviceType,
                                  int insertIndex = -1);
     bool removeDeviceFromChain(const std::string& chainId, const std::string& deviceId);
+    std::string addDeviceToSynthAudioFx(const std::string& deviceId,
+                                         const std::string& deviceType,
+                                         int insertIndex = -1);
+    bool removeDeviceFromSynthAudioFx(const std::string& deviceId,
+                                      const std::string& subDeviceId);
+    std::string addDeviceToSynthNoteFx(const std::string& deviceId,
+                                        const std::string& deviceType,
+                                        int insertIndex = -1);
+    bool removeDeviceFromSynthNoteFx(const std::string& deviceId,
+                                      const std::string& subDeviceId);
     std::string getDevicePresetJson(const std::string& deviceId) const;
     bool applyDevicePresetJson(const std::string& deviceId, const std::string& presetJson);
     bool setDrumPadParameter(const std::string& drumMachineId, int note,

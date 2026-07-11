@@ -261,6 +261,46 @@ class EngineBridge {
         'deviceId': deviceId,
       });
 
+  Future<ProjectSnapshot> addDeviceToSynthAudioFx({
+    required String deviceId,
+    required String deviceType,
+    int? insertIndex,
+  }) =>
+      _invokeForSnapshot('addDeviceToSynthAudioFx', {
+        'deviceId': deviceId,
+        'deviceType': deviceType,
+        if (insertIndex != null) 'insertIndex': insertIndex,
+      });
+
+  Future<ProjectSnapshot> removeDeviceFromSynthAudioFx({
+    required String deviceId,
+    required String subDeviceId,
+  }) =>
+      _invokeForSnapshot('removeDeviceFromSynthAudioFx', {
+        'deviceId': deviceId,
+        'subDeviceId': subDeviceId,
+      });
+
+  Future<ProjectSnapshot> addDeviceToSynthNoteFx({
+    required String deviceId,
+    required String deviceType,
+    int? insertIndex,
+  }) =>
+      _invokeForSnapshot('addDeviceToSynthNoteFx', {
+        'deviceId': deviceId,
+        'deviceType': deviceType,
+        if (insertIndex != null) 'insertIndex': insertIndex,
+      });
+
+  Future<ProjectSnapshot> removeDeviceFromSynthNoteFx({
+    required String deviceId,
+    required String subDeviceId,
+  }) =>
+      _invokeForSnapshot('removeDeviceFromSynthNoteFx', {
+        'deviceId': deviceId,
+        'subDeviceId': subDeviceId,
+      });
+
   Future<String> getDevicePreset(String deviceId) async {
     final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
       'getDevicePreset',

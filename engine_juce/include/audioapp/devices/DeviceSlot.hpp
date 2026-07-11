@@ -87,6 +87,8 @@ struct DeviceConfig {
 struct DeviceSlot {
     std::string id;
     DeviceConfig config;
+    std::vector<std::shared_ptr<DeviceSlot>> audioFxDevices;
+    std::vector<std::shared_ptr<DeviceSlot>> noteFxDevices;
 };
 
 } // namespace audioapp

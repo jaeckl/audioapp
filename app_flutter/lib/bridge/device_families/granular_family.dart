@@ -1,6 +1,11 @@
 part of '../device_snapshot.dart';
 
-class GranularDeviceSnapshot extends DeviceSnapshot {
+class GranularDeviceSnapshot extends DeviceSnapshot
+    implements VirtualStripHostSnapshot {
+  @override
+  final List<DeviceSnapshot> audioFxDevices;
+  @override
+  final List<DeviceSnapshot> noteFxDevices;
   const GranularDeviceSnapshot(
       {required super.id,
       required super.bypassed,
@@ -20,7 +25,9 @@ class GranularDeviceSnapshot extends DeviceSnapshot {
       this.spread = .35,
       this.formX = .5,
       this.formY = .05,
-      this.vowel = 0})
+      this.vowel = 0,
+      this.audioFxDevices = const [],
+      this.noteFxDevices = const []})
       : super(
             type: 'granular_formant_synth',
             gain: 1,
@@ -75,7 +82,9 @@ class GranularDeviceSnapshot extends DeviceSnapshot {
         spread: d('spread', .35),
         formX: d('formX', legacyPoints[vowel][0]),
         formY: d('formY', legacyPoints[vowel][1]),
-        vowel: vowel);
+        vowel: vowel,
+        audioFxDevices: parseDeviceList(m, 'audioFxDevices'),
+        noteFxDevices: parseDeviceList(m, 'noteFxDevices'));
   }
   @override
   GranularDeviceSnapshot withParameter(String k, double v) => copyWith(
@@ -121,7 +130,9 @@ class GranularDeviceSnapshot extends DeviceSnapshot {
           double? spread,
           double? formX,
           double? formY,
-          int? vowel}) =>
+          int? vowel,
+          List<DeviceSnapshot>? audioFxDevices,
+          List<DeviceSnapshot>? noteFxDevices}) =>
       GranularDeviceSnapshot(
           id: id ?? this.id,
           bypassed: bypassed ?? this.bypassed,
@@ -141,5 +152,7 @@ class GranularDeviceSnapshot extends DeviceSnapshot {
           spread: spread ?? this.spread,
           formX: formX ?? this.formX,
           formY: formY ?? this.formY,
-          vowel: vowel ?? this.vowel);
+          vowel: vowel ?? this.vowel,
+          audioFxDevices: audioFxDevices ?? this.audioFxDevices,
+          noteFxDevices: noteFxDevices ?? this.noteFxDevices);
 }

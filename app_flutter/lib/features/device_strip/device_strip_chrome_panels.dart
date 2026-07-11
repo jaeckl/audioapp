@@ -524,3 +524,242 @@ class _ChromeInputShell extends StatelessWidget {
     );
   }
 }
+
+/// Synth output panel: gain/pan knobs + audio-fx / note-fx toggle buttons.
+class SynthOutputPanel extends StatelessWidget {
+  const SynthOutputPanel({
+    super.key,
+    required this.device,
+    required this.accentColor,
+    required this.onParameterChanged,
+    this.knobSize = DeviceKnobSizes.compact,
+    this.modulatedParams = const {},
+    this.automatedParams = const {},
+    this.modulationAmounts = const {},
+    this.lfos = const [],
+    this.modEdges = const [],
+    this.connectModeLfoId,
+    this.onModulationAssign,
+    this.automationLinkActive = false,
+    this.onAutomationLinkTap,
+    this.onAutomateParameter,
+    this.audioFxExpanded = false,
+    this.noteFxExpanded = false,
+    this.onToggleAudioFx,
+    this.onToggleNoteFx,
+  });
+
+  final DeviceSnapshot device;
+  final Color accentColor;
+  final void Function(String parameterId, double value) onParameterChanged;
+  final double knobSize;
+  final Set<String> modulatedParams;
+  final Set<String> automatedParams;
+  final Map<String, double> modulationAmounts;
+  final List<LfoSnapshot> lfos;
+  final List<ModulationEdgeSnapshot> modEdges;
+  final int? connectModeLfoId;
+  final void Function(String paramId, double amount)? onModulationAssign;
+  final bool automationLinkActive;
+  final ValueChanged<String>? onAutomationLinkTap;
+  final ValueChanged<String>? onAutomateParameter;
+  final bool audioFxExpanded;
+  final bool noteFxExpanded;
+  final VoidCallback? onToggleAudioFx;
+  final VoidCallback? onToggleNoteFx;
+
+  @override
+  Widget build(BuildContext context) {
+    return _ChromeOutputShell(
+      width: DeviceStripMetrics.synthOutputPanelWidth,
+      child: Stack(
+        children: [
+          const Positioned(
+            left: 38,
+            top: 7,
+            width: 30,
+            child: Text(
+              'OUT',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFF9A9AA8),
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Positioned(
+            left: 24,
+            top: 149,
+            child: deviceAutomationKnob(
+              label: 'Pan',
+              value: device.pan.clamp(0, 1),
+              size: knobSize,
+              displayValue: StereoGainPanPanel.formatPan(device.pan),
+              onChanged: (value) => onParameterChanged('pan', value),
+              paramId: 'pan',
+              accentColor: accentColor,
+              modulatedParams: modulatedParams,
+              automatedParams: automatedParams,
+              modulationAmounts: modulationAmounts,
+              lfos: lfos,
+              modEdges: modEdges,
+              deviceId: device.id,
+              connectModeLfoId: connectModeLfoId,
+              onModulationAssign: onModulationAssign,
+              automationLinkActive: automationLinkActive,
+              onAutomationLinkTap: onAutomationLinkTap,
+              onAutomateParameter: onAutomateParameter,
+            ),
+          ),
+          Positioned(
+            left: 23,
+            top: 228,
+            child: deviceAutomationKnob(
+              label: 'Gain',
+              value: device.gain.clamp(0, 1),
+              size: knobSize,
+              displayValue: StereoGainPanPanel.formatGain(device.gain),
+              onChanged: (value) => onParameterChanged('gain', value),
+              paramId: 'gain',
+              accentColor: accentColor,
+              modulatedParams: modulatedParams,
+              automatedParams: automatedParams,
+              modulationAmounts: modulationAmounts,
+              lfos: lfos,
+              modEdges: modEdges,
+              deviceId: device.id,
+              connectModeLfoId: connectModeLfoId,
+              onModulationAssign: onModulationAssign,
+              automationLinkActive: automationLinkActive,
+              onAutomationLinkTap: onAutomationLinkTap,
+              onAutomateParameter: onAutomateParameter,
+            ),
+          ),
+          Positioned(
+            left: 31,
+            top: 35,
+            child: _FxToggleButton(
+              label: 'Note FX',
+              active: noteFxExpanded,
+              accentColor: const Color(0xFFF9FF00),
+              onPressed: onToggleNoteFx,
+            ),
+          ),
+          Positioned(
+            left: 31,
+            top: 70,
+            child: _FxToggleButton(
+              label: 'FX',
+              active: audioFxExpanded,
+              accentColor: const Color(0xFF00FF33),
+              onPressed: onToggleAudioFx,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FxToggleButton extends StatelessWidget {
+  const _FxToggleButton({
+    required this.label,
+    required this.active,
+    required this.accentColor,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool active;
+  final Color accentColor;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: SizedBox(
+        width: 53,
+        height: 25,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              left: 0,
+              top: 0,
+              width: 40,
+              height: 25,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF222229),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+                alignment: Alignment.center,
+                child: Text(label,
+                    style: const TextStyle(
+                      color: Color(0xFFF2F2F2),
+                      fontSize: 9,
+                      fontWeight: FontWeight.w400,
+                    )),
+              ),
+            ),
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: _FxButtonAdornmentPainter(
+                    accentColor: accentColor,
+                    active: active,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FxButtonAdornmentPainter extends CustomPainter {
+  const _FxButtonAdornmentPainter({
+    required this.accentColor,
+    required this.active,
+  });
+
+  final Color accentColor;
+  final bool active;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Exact SVG path: M 0,3 V 0 H 40 V 3.
+    final bracketPaint = Paint()
+      ..color = accentColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..strokeCap = StrokeCap.round;
+    final bracket = Path()
+      ..moveTo(0, 3)
+      ..lineTo(0, 0)
+      ..lineTo(40, 0)
+      ..lineTo(40, 3);
+    canvas.drawPath(bracket, bracketPaint);
+
+    // Exact SVG triangle: x=42.5..47.5, y=9..17, outside the button body.
+    final triangle = Path()
+      ..moveTo(47.5, 13)
+      ..lineTo(42.5, 9)
+      ..lineTo(42.5, 17)
+      ..close();
+    canvas.drawPath(
+      triangle,
+      Paint()
+        ..color = const Color(0xFFF2F2F2)
+        ..style = PaintingStyle.fill,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_FxButtonAdornmentPainter old) =>
+      old.accentColor != accentColor || old.active != active;
+}

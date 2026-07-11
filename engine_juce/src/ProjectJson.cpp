@@ -613,6 +613,31 @@ juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& regi
         object->setProperty("pads", pads);
         return juce::var(object);
     }
+    if (device_types::isSynthType(slot.config.typeId)) {
+        const IDeviceType* type = registry.findForSlot(slot);
+        juce::var result = type != nullptr ? type->slotToVar(slot) : juce::var{};
+        if (auto* object = result.getDynamicObject()) {
+            if (!slot.audioFxDevices.empty()) {
+                juce::Array<juce::var> devices;
+                for (const auto& child : slot.audioFxDevices) {
+                    if (child != nullptr) {
+                        devices.add(deviceSlotToVarImpl(*child, registry));
+                    }
+                }
+                object->setProperty("audioFxDevices", devices);
+            }
+            if (!slot.noteFxDevices.empty()) {
+                juce::Array<juce::var> devices;
+                for (const auto& child : slot.noteFxDevices) {
+                    if (child != nullptr) {
+                        devices.add(deviceSlotToVarImpl(*child, registry));
+                    }
+                }
+                object->setProperty("noteFxDevices", devices);
+            }
+        }
+        return result;
+    }
     const IDeviceType* type = registry.findForSlot(slot);
     if (type != nullptr) {
         juce::var result = type->slotToVar(slot);
@@ -675,6 +700,36 @@ DeviceSlot deviceVarToSlotImpl(const juce::var& obj, const DeviceRegistry& regis
                                 pad.devices.push_back(std::make_shared<DeviceSlot>(std::move(child)));
                             }
                         }
+                    }
+                }
+            }
+            return slot;
+        }
+        if (device_types::isSynthType(typeId)) {
+            const IDeviceType* type = registry.find(typeId);
+            if (type == nullptr) return {};
+            DeviceSlot slot = type->varToSlot(obj);
+            if (slot.id.empty()) return {};
+            slot.config.bypassed = static_cast<bool>(object->getProperty("bypass"));
+            if (const auto* devices = varArray(object->getProperty("audioFxDevices"))) {
+                slot.audioFxDevices.reserve(std::min(devices->size(), 8));
+                for (const auto& value : *devices) {
+                    if (slot.audioFxDevices.size() >= 8) break;
+                    DeviceSlot child = deviceVarToSlotImpl(value, registry);
+                    if (!child.id.empty() && device_types::isAudioFxType(child.config.typeId)) {
+                        slot.audioFxDevices.push_back(
+                            std::make_shared<DeviceSlot>(std::move(child)));
+                    }
+                }
+            }
+            if (const auto* devices = varArray(object->getProperty("noteFxDevices"))) {
+                slot.noteFxDevices.reserve(std::min(devices->size(), 8));
+                for (const auto& value : *devices) {
+                    if (slot.noteFxDevices.size() >= 8) break;
+                    DeviceSlot child = deviceVarToSlotImpl(value, registry);
+                    if (!child.id.empty() && device_types::isNoteFxType(child.config.typeId)) {
+                        slot.noteFxDevices.push_back(
+                            std::make_shared<DeviceSlot>(std::move(child)));
                     }
                 }
             }

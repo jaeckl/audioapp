@@ -3,6 +3,7 @@ import 'package:audioapp/features/device_strip/device_strip_chrome.dart';
 import 'package:audioapp/features/device_strip/device_strip_chrome_panels.dart';
 import 'package:audioapp/features/device_strip/device_strip_metrics.dart';
 import 'package:audioapp/features/device_strip/device_strip_slot.dart';
+import 'package:audioapp/features/device_strip/device_picker_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -44,8 +45,14 @@ void main() {
   }
 
   group('DeviceStripChrome registry', () {
-    test('stereo synth uses stereo output width', () {
-      expect(DeviceStripChrome.outputWidth('subtractive_synth'), 64);
+    test('virtual strip device roles are disjoint', () {
+      expect(noteFxDeviceTypes, {'midi_delay'});
+      expect(audioFxDeviceTypes.intersection(noteFxDeviceTypes), isEmpty);
+      expect(audioFxDeviceTypes, containsAll({'filter', 'delay', 'reverb'}));
+    });
+
+    test('synth uses SVG virtual-strip output width', () {
+      expect(DeviceStripChrome.outputWidth('subtractive_synth'), 85);
       expect(DeviceStripChrome.inputWidth('subtractive_synth'), 0);
     });
 
@@ -101,6 +108,30 @@ void main() {
 
     expect(find.text('Gain'), findsOneWidget);
     expect(find.text('Pan'), findsOneWidget);
+    expect(find.text('OUT'), findsOneWidget);
+    expect(find.text('Note FX'), findsOneWidget);
+    expect(find.text('FX'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  test('only synth snapshots own virtual strips', () {
+    final synth = DeviceSnapshot.fromMap({
+      'id': 'synth',
+      'type': 'simple_oscillator',
+      'audioFxDevices': [
+        {'id': 'fx', 'type': 'filter'}
+      ],
+      'noteFxDevices': [
+        {'id': 'note', 'type': 'midi_delay'}
+      ],
+    });
+    final effect = DeviceSnapshot.fromMap({'id': 'fx', 'type': 'filter'});
+
+    expect(synth, isA<VirtualStripHostSnapshot>());
+    expect(synth.audioFxDevices.single.id, 'fx');
+    expect(synth.noteFxDevices.single.id, 'note');
+    expect(effect, isNot(isA<VirtualStripHostSnapshot>()));
+    expect(effect.audioFxDevices, isEmpty);
   });
 
   testWidgets('subtractive synth signal-flow tabs fit the strip',

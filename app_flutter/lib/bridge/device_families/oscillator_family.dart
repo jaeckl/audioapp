@@ -1,7 +1,12 @@
 part of '../device_snapshot.dart';
 
 /// Simple oscillator device snapshot.
-class OscillatorDeviceSnapshot extends DeviceSnapshot {
+class OscillatorDeviceSnapshot extends DeviceSnapshot
+    implements VirtualStripHostSnapshot {
+  @override
+  final List<DeviceSnapshot> audioFxDevices;
+  @override
+  final List<DeviceSnapshot> noteFxDevices;
   const OscillatorDeviceSnapshot({
     required super.id,
     required super.gain,
@@ -10,6 +15,8 @@ class OscillatorDeviceSnapshot extends DeviceSnapshot {
     required super.meterGainReductionDb,
     required super.meterInputLevel,
     required this.frequencyHz,
+    this.audioFxDevices = const [],
+    this.noteFxDevices = const [],
   }) : super(type: 'simple_oscillator');
 
   final double frequencyHz;
@@ -23,9 +30,12 @@ class OscillatorDeviceSnapshot extends DeviceSnapshot {
       gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
       pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
       bypassed: readBypass(map['bypass']),
-      meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
+      meterGainReductionDb:
+          (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       frequencyHz: (params['frequency'] as num?)?.toDouble() ?? 440.0,
+      audioFxDevices: parseDeviceList(map, 'audioFxDevices'),
+      noteFxDevices: parseDeviceList(map, 'noteFxDevices'),
     );
   }
 
@@ -39,6 +49,8 @@ class OscillatorDeviceSnapshot extends DeviceSnapshot {
     double? meterGainReductionDb,
     double? meterInputLevel,
     double? frequencyHz,
+    List<DeviceSnapshot>? audioFxDevices,
+    List<DeviceSnapshot>? noteFxDevices,
   }) {
     return OscillatorDeviceSnapshot(
       id: id ?? this.id,
@@ -48,6 +60,8 @@ class OscillatorDeviceSnapshot extends DeviceSnapshot {
       meterGainReductionDb: meterGainReductionDb ?? this.meterGainReductionDb,
       meterInputLevel: meterInputLevel ?? this.meterInputLevel,
       frequencyHz: frequencyHz ?? this.frequencyHz,
+      audioFxDevices: audioFxDevices ?? this.audioFxDevices,
+      noteFxDevices: noteFxDevices ?? this.noteFxDevices,
     );
   }
 

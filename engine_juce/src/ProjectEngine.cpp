@@ -44,6 +44,22 @@ namespace audioapp {
 namespace {
 thread_local DeviceChainScratch gProjectScratch;
 
+void collectDeviceTreeIds(const DeviceSlot& slot, std::vector<std::string>& ids) {
+    ids.push_back(slot.id);
+    if (slot.config.typeId == device_types::kChain) {
+        for (const auto& child : std::get<ChainModel>(slot.config.instance).devices)
+            if (child) collectDeviceTreeIds(*child, ids);
+    } else if (slot.config.typeId == device_types::kDrumMachine) {
+        for (const auto& pad : std::get<DrumMachineModel>(slot.config.instance).pads)
+            for (const auto& child : pad.devices)
+                if (child) collectDeviceTreeIds(*child, ids);
+    }
+    for (const auto& child : slot.noteFxDevices)
+        if (child) collectDeviceTreeIds(*child, ids);
+    for (const auto& child : slot.audioFxDevices)
+        if (child) collectDeviceTreeIds(*child, ids);
+}
+
 void addMetronomeClick(float* left, float* right, int frames, double sampleRate,
                        double startBeat, int bpm, float level) noexcept {
     if (!left || !right || frames <= 0 || sampleRate <= 0.0 || bpm <= 0 || level <= 0.0f) return;
@@ -303,6 +319,84 @@ bool ProjectEngine::removeDeviceFromChain(const std::string& chainId,
     return true;
 }
 
+std::string ProjectEngine::addDeviceToSynthAudioFx(const std::string& deviceId,
+                                                    const std::string& deviceType,
+                                                    int insertIndex) {
+    const juce::ScopedWriteLock lock(mutex_);
+    DeviceSlot* slot = findDeviceLocked(deviceId);
+    if (slot == nullptr || !device_types::isSynthType(slot->config.typeId) ||
+        !device_types::isAudioFxType(deviceType)) return {};
+    if (slot->audioFxDevices.size() >= 8) return {};
+    const std::string id = trackRepo_.allocateDeviceId();
+    auto child = std::make_shared<DeviceSlot>(deviceRegistry_.createDefault(deviceType, id));
+    const size_t at = insertIndex < 0 ? slot->audioFxDevices.size()
+        : std::min(static_cast<size_t>(insertIndex), slot->audioFxDevices.size());
+    slot->audioFxDevices.insert(
+        slot->audioFxDevices.begin() + static_cast<std::ptrdiff_t>(at), std::move(child));
+    rebuildTrackPlaybackLocked();
+    return id;
+}
+
+bool ProjectEngine::removeDeviceFromSynthAudioFx(const std::string& deviceId,
+                                                   const std::string& subDeviceId) {
+    const juce::ScopedWriteLock lock(mutex_);
+    DeviceSlot* slot = findDeviceLocked(deviceId);
+    if (slot == nullptr || !device_types::isSynthType(slot->config.typeId)) return false;
+    auto& devices = slot->audioFxDevices;
+    const auto it = std::find_if(devices.begin(), devices.end(), [&](const auto& child) {
+        return child != nullptr && child->id == subDeviceId;
+    });
+    if (it == devices.end()) return false;
+    std::vector<std::string> removedIds;
+    collectDeviceTreeIds(**it, removedIds);
+    devices.erase(it);
+    for (const auto& id : removedIds) {
+        automationClipStore_.unlinkForDevice(id);
+        modulationGraph_.removeModulationForDevice(id);
+    }
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
+std::string ProjectEngine::addDeviceToSynthNoteFx(const std::string& deviceId,
+                                                    const std::string& deviceType,
+                                                    int insertIndex) {
+    const juce::ScopedWriteLock lock(mutex_);
+    DeviceSlot* slot = findDeviceLocked(deviceId);
+    if (slot == nullptr || !device_types::isSynthType(slot->config.typeId) ||
+        !device_types::isNoteFxType(deviceType)) return {};
+    if (slot->noteFxDevices.size() >= 8) return {};
+    const std::string id = trackRepo_.allocateDeviceId();
+    auto child = std::make_shared<DeviceSlot>(deviceRegistry_.createDefault(deviceType, id));
+    const size_t at = insertIndex < 0 ? slot->noteFxDevices.size()
+        : std::min(static_cast<size_t>(insertIndex), slot->noteFxDevices.size());
+    slot->noteFxDevices.insert(
+        slot->noteFxDevices.begin() + static_cast<std::ptrdiff_t>(at), std::move(child));
+    rebuildTrackPlaybackLocked();
+    return id;
+}
+
+bool ProjectEngine::removeDeviceFromSynthNoteFx(const std::string& deviceId,
+                                                  const std::string& subDeviceId) {
+    const juce::ScopedWriteLock lock(mutex_);
+    DeviceSlot* slot = findDeviceLocked(deviceId);
+    if (slot == nullptr || !device_types::isSynthType(slot->config.typeId)) return false;
+    auto& devices = slot->noteFxDevices;
+    const auto it = std::find_if(devices.begin(), devices.end(), [&](const auto& child) {
+        return child != nullptr && child->id == subDeviceId;
+    });
+    if (it == devices.end()) return false;
+    std::vector<std::string> removedIds;
+    collectDeviceTreeIds(**it, removedIds);
+    devices.erase(it);
+    for (const auto& id : removedIds) {
+        automationClipStore_.unlinkForDevice(id);
+        modulationGraph_.removeModulationForDevice(id);
+    }
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
 std::string ProjectEngine::getDevicePresetJson(const std::string& deviceId) const {
     const juce::ScopedReadLock lock(mutex_);
     std::function<const DeviceSlot*(const DeviceSlot&)> find = [&](const DeviceSlot& slot) -> const DeviceSlot* {
@@ -316,11 +410,73 @@ std::string ProjectEngine::getDevicePresetJson(const std::string& deviceId) cons
                 for (const auto& child : pad.devices)
                     if (child) if (const auto* found = find(*child)) return found;
         }
+        for (const auto& child : slot.audioFxDevices)
+            if (child) if (const auto* found = find(*child)) return found;
+        for (const auto& child : slot.noteFxDevices)
+            if (child) if (const auto* found = find(*child)) return found;
         return nullptr;
     };
     for (const auto& track : trackRepo_.tracks())
         for (const auto& slot : track.devices)
-            if (const auto* found = find(slot)) return deviceSlotToVar(*found, deviceRegistry_);
+            if (const auto* found = find(slot)) {
+                std::vector<std::string> ids;
+                collectDeviceTreeIds(*found, ids);
+                const auto owns = [&](const std::string& id) {
+                    return std::find(ids.begin(), ids.end(), id) != ids.end();
+                };
+                auto* root = new juce::DynamicObject();
+                root->setProperty("presetVersion", 2);
+                root->setProperty("device", deviceToVar(*found, deviceRegistry_));
+
+                juce::Array<juce::var> clips;
+                for (const auto& clip : automationClipStore_.clips()) {
+                    if (!owns(clip.deviceId)) continue;
+                    auto* value = new juce::DynamicObject();
+                    value->setProperty("startBeat", clip.startBeat);
+                    value->setProperty("lengthBeats", clip.lengthBeats);
+                    value->setProperty("loopContent", clip.loopContent);
+                    value->setProperty("deviceId", juce::String(clip.deviceId));
+                    value->setProperty("paramId", juce::String(clip.paramId));
+                    juce::Array<juce::var> points;
+                    for (const auto& point : clip.points) {
+                        auto* p = new juce::DynamicObject();
+                        p->setProperty("beat", point.beat);
+                        p->setProperty("value", point.value);
+                        points.add(juce::var(p));
+                    }
+                    value->setProperty("points", points);
+                    clips.add(juce::var(value));
+                }
+                root->setProperty("automationClips", clips);
+
+                juce::Array<juce::var> edges;
+                std::vector<int> referencedModulators;
+                for (const auto& edge : modulationGraph_.modEdges()) {
+                    if (!owns(edge.deviceId)) continue;
+                    auto* value = new juce::DynamicObject();
+                    value->setProperty("lfoId", edge.lfoId);
+                    value->setProperty("deviceId", juce::String(edge.deviceId));
+                    value->setProperty("paramId", juce::String(edge.paramId));
+                    value->setProperty("amount", edge.amount);
+                    edges.add(juce::var(value));
+                    if (std::find(referencedModulators.begin(), referencedModulators.end(), edge.lfoId) == referencedModulators.end())
+                        referencedModulators.push_back(edge.lfoId);
+                }
+                root->setProperty("modEdges", edges);
+                juce::Array<juce::var> modulators;
+                const juce::var allModulators = modulationGraph_.recordsToVar();
+                if (const auto* all = allModulators.getArray()) {
+                    for (const auto& value : *all) {
+                        const auto* object = value.getDynamicObject();
+                        if (object == nullptr) continue;
+                        const int id = static_cast<int>(object->getProperty("id"));
+                        if (std::find(referencedModulators.begin(), referencedModulators.end(), id) != referencedModulators.end())
+                            modulators.add(value);
+                    }
+                }
+                root->setProperty("modulators", modulators);
+                return juce::JSON::toString(juce::var(root), true).toStdString();
+            }
     return {};
 }
 
@@ -329,7 +485,11 @@ bool ProjectEngine::applyDevicePresetJson(const std::string& deviceId,
     const juce::ScopedWriteLock lock(mutex_);
     DeviceSlot* target = findDeviceLocked(deviceId);
     if (target == nullptr) return false;
-    DeviceSlot loaded = deviceVarToSlot(presetJson, deviceRegistry_);
+    const juce::var presetRoot = juce::JSON::parse(juce::String::fromUTF8(presetJson.c_str()));
+    const auto* presetObject = presetRoot.getDynamicObject();
+    const juce::var deviceValue = presetObject != nullptr && presetObject->hasProperty("device")
+        ? presetObject->getProperty("device") : presetRoot;
+    DeviceSlot loaded = deviceFromVar(deviceValue, deviceRegistry_);
     if (loaded.id.empty() || loaded.config.typeId != target->config.typeId) return false;
 
     std::vector<std::string> removedChildIds;
@@ -342,11 +502,16 @@ bool ProjectEngine::applyDevicePresetJson(const std::string& deviceId,
             for (const auto& pad : std::get<DrumMachineModel>(slot.config.instance).pads)
                 for (const auto& child : pad.devices) if (child) collectChildren(*child);
         }
+        for (const auto& child : slot.audioFxDevices) if (child) collectChildren(*child);
+        for (const auto& child : slot.noteFxDevices) if (child) collectChildren(*child);
     };
     collectChildren(*target);
 
+    std::unordered_map<std::string, std::string> idMap;
     std::function<void(DeviceSlot&, bool)> renewIds = [&](DeviceSlot& slot, bool root) {
+        const std::string oldId = slot.id;
         slot.id = root ? deviceId : trackRepo_.allocateDeviceId();
+        idMap[oldId] = slot.id;
         if (slot.config.typeId == device_types::kChain) {
             for (auto& child : std::get<ChainModel>(slot.config.instance).devices)
                 if (child) renewIds(*child, false);
@@ -354,14 +519,93 @@ bool ProjectEngine::applyDevicePresetJson(const std::string& deviceId,
             for (auto& pad : std::get<DrumMachineModel>(slot.config.instance).pads)
                 for (auto& child : pad.devices) if (child) renewIds(*child, false);
         }
+        for (auto& child : slot.audioFxDevices) if (child) renewIds(*child, false);
+        for (auto& child : slot.noteFxDevices) if (child) renewIds(*child, false);
     };
     const bool bypassed = target->config.bypassed;
     renewIds(loaded, true);
     loaded.config.bypassed = bypassed;
     *target = std::move(loaded);
+    const bool bundledPreset = presetObject != nullptr && presetObject->hasProperty("device");
+    if (bundledPreset) {
+        std::vector<std::string> clipIdsToRemove;
+        for (const auto& clip : automationClipStore_.clips()) {
+            if (clip.deviceId == deviceId ||
+                std::find(removedChildIds.begin(), removedChildIds.end(), clip.deviceId) != removedChildIds.end())
+                clipIdsToRemove.push_back(clip.id);
+        }
+        for (const auto& clipId : clipIdsToRemove) automationClipStore_.remove(clipId);
+        modulationGraph_.removeModulationForDevice(deviceId);
+    }
     for (const auto& childId : removedChildIds) {
-        automationClipStore_.unlinkForDevice(childId);
+        if (!bundledPreset) automationClipStore_.unlinkForDevice(childId);
         modulationGraph_.removeModulationForDevice(childId);
+    }
+    if (presetObject != nullptr) {
+        std::string homeTrackId;
+        for (const auto& track : trackRepo_.tracks()) {
+            std::function<bool(const DeviceSlot&)> contains = [&](const DeviceSlot& slot) {
+                if (slot.id == deviceId) return true;
+                if (slot.config.typeId == device_types::kChain)
+                    for (const auto& child : std::get<ChainModel>(slot.config.instance).devices)
+                        if (child && contains(*child)) return true;
+                for (const auto& child : slot.noteFxDevices) if (child && contains(*child)) return true;
+                for (const auto& child : slot.audioFxDevices) if (child && contains(*child)) return true;
+                return false;
+            };
+            for (const auto& slot : track.devices) if (contains(slot)) { homeTrackId = track.id; break; }
+            if (!homeTrackId.empty()) break;
+        }
+        if (const auto* clips = presetObject->getProperty("automationClips").getArray()) {
+            for (const auto& value : *clips) {
+                const auto* object = value.getDynamicObject();
+                if (object == nullptr) continue;
+                const auto oldTarget = object->getProperty("deviceId").toString().toStdString();
+                const auto mapped = idMap.find(oldTarget);
+                if (mapped == idMap.end()) continue;
+                const double start = static_cast<double>(object->getProperty("startBeat"));
+                const double length = static_cast<double>(object->getProperty("lengthBeats"));
+                const auto clipId = automationClipStore_.create(homeTrackId, start, length);
+                automationClipStore_.assignTarget(clipId, mapped->second,
+                    object->getProperty("paramId").toString().toStdString());
+                std::vector<AutomationPointState> points;
+                if (const auto* rawPoints = object->getProperty("points").getArray())
+                    for (const auto& rawPoint : *rawPoints)
+                        if (const auto* point = rawPoint.getDynamicObject())
+                            points.push_back({static_cast<double>(point->getProperty("beat")),
+                                              static_cast<float>(static_cast<double>(point->getProperty("value")))});
+                automationClipStore_.setPoints(clipId, points);
+                automationClipStore_.setLoopContent(clipId, static_cast<bool>(object->getProperty("loopContent")));
+            }
+        }
+
+        ModulationGraph imported;
+        imported.recordsFromVar(presetObject->getProperty("modulators"));
+        auto records = modulationGraph_.lfos();
+        auto edges = modulationGraph_.modEdges();
+        int nextModId = 1;
+        for (const auto& record : records) nextModId = std::max(nextModId, record.id + 1);
+        std::unordered_map<int, int> modIdMap;
+        for (auto record : imported.lfos()) {
+            const int oldId = record.id;
+            record.id = nextModId++;
+            modIdMap[oldId] = record.id;
+            records.push_back(std::move(record));
+        }
+        if (const auto* rawEdges = presetObject->getProperty("modEdges").getArray()) {
+            for (const auto& value : *rawEdges) {
+                const auto* object = value.getDynamicObject();
+                if (object == nullptr) continue;
+                const int oldModId = static_cast<int>(object->getProperty("lfoId"));
+                const auto modIt = modIdMap.find(oldModId);
+                const auto deviceIt = idMap.find(object->getProperty("deviceId").toString().toStdString());
+                if (modIt == modIdMap.end() || deviceIt == idMap.end()) continue;
+                edges.push_back({modIt->second, deviceIt->second,
+                    object->getProperty("paramId").toString().toStdString(),
+                    static_cast<float>(static_cast<double>(object->getProperty("amount")))});
+            }
+        }
+        modulationGraph_.replaceRecords(records, edges);
     }
     liveMixer_.allNotesOff();
     syncProjectTreeLocked();
@@ -2463,14 +2707,14 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
         // Build processor chain from device snapshot into the arena
         snap.arena.reset();
 
-        for (const auto& device : sourceTrack.devices) {
-            if (snap.deviceCount >= kMaxDevicesPerTrack) {
-                break;
-            }
-
+        PlaybackBuildContext context{sampleBank_};
+        context.wavetableBank = wavetableBank_;
+        context.deviceRegistry = &deviceRegistry_;
+        auto emitDeviceToPlayback = [&](const DeviceSlot& dev) {
+            if (snap.deviceCount >= kMaxDevicesPerTrack) return;
             DeviceNodePlayback& node = snap.devices[snap.deviceCount];
-            node.deviceId = device.id;
-            node.bypassed = device.config.bypassed;
+            node.deviceId = dev.id;
+            node.bypassed = dev.config.bypassed;
             std::visit([&](const auto& panel) {
                 using T = std::decay_t<decltype(panel)>;
                 if constexpr (std::is_same_v<T, MonoOutputPanel>) {
@@ -2489,13 +2733,9 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                     node.outputMix = 1.0f;
                     node.outputWidth = 1.0f;
                 }
-            }, device.config.outputPanel);
+            }, dev.config.outputPanel);
             node.meterSlot = -1;
-
-            PlaybackBuildContext context{sampleBank_};
-            context.wavetableBank = wavetableBank_;
-            context.deviceRegistry = &deviceRegistry_;
-            deviceRegistry_.buildPlaybackNode(device, context, node);
+            deviceRegistry_.buildPlaybackNode(dev, context, node);
             node.automationTargetIndex = static_cast<uint16_t>(snap.deviceCount);
             if (node.kind == DeviceNodeKind::DrumMachine) {
                 auto playback = std::get<DrumMachineParams>(node.params).playback;
@@ -2525,12 +2765,10 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
             }
             if ((isDynamicsDeviceNodeKind(node.kind) || isAnalysisDeviceNodeKind(node.kind)) && deviceMeterSlotCount_ < kMaxDeviceMeters) {
                 node.meterSlot = static_cast<int8_t>(deviceMeterSlotCount_);
-                deviceMeterIds_[deviceMeterSlotCount_] = device.id;
+                deviceMeterIds_[deviceMeterSlotCount_] = dev.id;
                 ++deviceMeterSlotCount_;
             }
-
-            // Create processor via IDeviceType virtual dispatch
-            const IDeviceType* type = deviceRegistry_.findForSlot(device);
+            const IDeviceType* type = deviceRegistry_.findForSlot(dev);
             if (type != nullptr) {
                 auto* proc = type->createProcessor(snap.arena);
                 if (proc != nullptr) {
@@ -2543,8 +2781,20 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                     proc->initParams(node.params);
                 }
             }
-
             ++snap.deviceCount;
+        };
+
+        for (const auto& device : sourceTrack.devices) {
+            if (snap.deviceCount >= kMaxDevicesPerTrack) break;
+            if (device_types::isSynthType(device.config.typeId)) {
+                for (const auto& fx : device.noteFxDevices)
+                    if (fx) emitDeviceToPlayback(*fx);
+                emitDeviceToPlayback(device);
+                for (const auto& fx : device.audioFxDevices)
+                    if (fx) emitDeviceToPlayback(*fx);
+            } else {
+                emitDeviceToPlayback(device);
+            }
         }
 
         snap.trackGainDeviceIndex = -1;
@@ -2917,6 +3167,12 @@ DeviceSlot* ProjectEngine::findDeviceLocked(const std::string& deviceId) {
                 for (auto& child : chain.devices) {
                     if (child != nullptr && child->id == deviceId) return child.get();
                 }
+            }
+            for (auto& child : device.audioFxDevices) {
+                if (child != nullptr && child->id == deviceId) return child.get();
+            }
+            for (auto& child : device.noteFxDevices) {
+                if (child != nullptr && child->id == deviceId) return child.get();
             }
         }
     }

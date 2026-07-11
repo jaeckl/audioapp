@@ -140,6 +140,15 @@ class ProjectSnapshot {
             if (child != null) return child;
           }
         }
+        // Recurse into virtual FX sub-strips
+        if (device.audioFxDevices.isNotEmpty) {
+          final child = findInDevices(device.audioFxDevices);
+          if (child != null) return child;
+        }
+        if (device.noteFxDevices.isNotEmpty) {
+          final child = findInDevices(device.noteFxDevices);
+          if (child != null) return child;
+        }
       }
       return null;
     }
@@ -248,6 +257,14 @@ class ProjectSnapshot {
                 ),
               )
               .toList(growable: false),
+        );
+      }
+      if (device is VirtualStripHostSnapshot) {
+        return (device as VirtualStripHostSnapshot).copyWith(
+          audioFxDevices:
+              device.audioFxDevices.map(updateDevice).toList(growable: false),
+          noteFxDevices:
+              device.noteFxDevices.map(updateDevice).toList(growable: false),
         );
       }
       return device;

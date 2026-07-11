@@ -1,6 +1,11 @@
 part of '../device_snapshot.dart';
 
-class WavetableSynthDeviceSnapshot extends DeviceSnapshot {
+class WavetableSynthDeviceSnapshot extends DeviceSnapshot
+    implements VirtualStripHostSnapshot {
+  @override
+  final List<DeviceSnapshot> audioFxDevices;
+  @override
+  final List<DeviceSnapshot> noteFxDevices;
   const WavetableSynthDeviceSnapshot({
     required super.id,
     required super.gain,
@@ -27,6 +32,8 @@ class WavetableSynthDeviceSnapshot extends DeviceSnapshot {
     required this.decay,
     required this.sustain,
     required this.release,
+    this.audioFxDevices = const [],
+    this.noteFxDevices = const [],
   }) : super(type: 'wavetable_synth');
 
   final String wavetableId;
@@ -58,7 +65,8 @@ class WavetableSynthDeviceSnapshot extends DeviceSnapshot {
       gain: (outputPanel['gain'] as num?)?.toDouble() ?? 1.0,
       pan: (outputPanel['pan'] as num?)?.toDouble() ?? 0.5,
       bypassed: readBypass(map['bypass']),
-      meterGainReductionDb: (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
+      meterGainReductionDb:
+          (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       wavetableId: (params['wavetableId'] as String?) ?? 'sine_64',
       wtPosition: (params['wtPosition'] as num?)?.toDouble() ?? 0.0,
@@ -79,6 +87,8 @@ class WavetableSynthDeviceSnapshot extends DeviceSnapshot {
       decay: (params['decay'] as num?)?.toDouble() ?? 0.2,
       sustain: (params['sustain'] as num?)?.toDouble() ?? 0.8,
       release: (params['release'] as num?)?.toDouble() ?? 0.3,
+      audioFxDevices: parseDeviceList(map, 'audioFxDevices'),
+      noteFxDevices: parseDeviceList(map, 'noteFxDevices'),
     );
   }
 
@@ -110,6 +120,8 @@ class WavetableSynthDeviceSnapshot extends DeviceSnapshot {
     double? decay,
     double? sustain,
     double? release,
+    List<DeviceSnapshot>? audioFxDevices,
+    List<DeviceSnapshot>? noteFxDevices,
   }) {
     return WavetableSynthDeviceSnapshot(
       id: id ?? this.id,
@@ -137,6 +149,8 @@ class WavetableSynthDeviceSnapshot extends DeviceSnapshot {
       decay: decay ?? this.decay,
       sustain: sustain ?? this.sustain,
       release: release ?? this.release,
+      audioFxDevices: audioFxDevices ?? this.audioFxDevices,
+      noteFxDevices: noteFxDevices ?? this.noteFxDevices,
     );
   }
 

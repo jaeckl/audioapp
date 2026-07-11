@@ -115,6 +115,10 @@ class DeviceStripSlot extends StatefulWidget {
     this.onDrumChainToggle,
     this.onDrumTriggerNote,
     this.onEmptyDrumPadTap,
+    this.audioFxExpanded = false,
+    this.noteFxExpanded = false,
+    this.onToggleAudioFx,
+    this.onToggleNoteFx,
   });
 
   final TrackSnapshot track;
@@ -173,6 +177,10 @@ class DeviceStripSlot extends StatefulWidget {
   final VoidCallback? onDrumChainToggle;
   final ValueChanged<int>? onDrumTriggerNote;
   final ValueChanged<int>? onEmptyDrumPadTap;
+  final bool audioFxExpanded;
+  final bool noteFxExpanded;
+  final VoidCallback? onToggleAudioFx;
+  final VoidCallback? onToggleNoteFx;
 
   @override
   State<DeviceStripSlot> createState() => _DeviceStripSlotState();
@@ -650,6 +658,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       gainReductionDb:
           reading?.gainReductionDb ?? widget.device.meterGainReductionDb,
       inputLevel: reading?.inputLevel ?? widget.device.meterInputLevel,
+      audioFxExpanded: widget.audioFxExpanded,
+      noteFxExpanded: widget.noteFxExpanded,
+      onToggleAudioFx: widget.onToggleAudioFx,
+      onToggleNoteFx: widget.onToggleNoteFx,
     );
   }
 

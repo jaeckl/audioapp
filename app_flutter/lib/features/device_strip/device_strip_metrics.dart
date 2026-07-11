@@ -1,4 +1,5 @@
 import 'bass_synth_device_panel.dart';
+import '../../bridge/device_capabilities.dart';
 import 'clap_generator_device_panel.dart';
 import 'crash_generator_device_panel.dart';
 import 'cymbal_generator_device_panel.dart';
@@ -144,6 +145,9 @@ class DeviceStripMetrics {
   /// Dynamics FX output column (GR meter + gain) — matches [dynamicsInputPanelWidth].
   static const double dynamicsOutputPanelWidth = dynamicsInputPanelWidth;
 
+  /// Synth output column: gain/pan knobs + FX toggle buttons.
+  static const double synthOutputPanelWidth = 85;
+
   /// Dynamics FX input column (meter).
   static const double dynamicsInputPanelWidth = 64;
   static const double routingOutputPanelWidth = 34;
@@ -163,6 +167,9 @@ class DeviceStripMetrics {
     if (_timeFxTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
     if (_moodFxTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
     if (_frequencyFxTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
+    if (DeviceCapabilities.virtualStripHosts.contains(deviceType)) {
+      return synthOutputPanelWidth;
+    }
     return stereoOutputPanelWidth;
   }
 
