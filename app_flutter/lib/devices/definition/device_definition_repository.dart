@@ -28,6 +28,8 @@ final class DeviceDefinitionRepository {
     return definition;
   }
 
+  DeviceDefinition<DeviceSnapshot>? find(String typeId) => _definitions[typeId];
+
   DeviceSnapshot parseSnapshot(Map<dynamic, dynamic> map) {
     final typeId = map['type'] as String? ?? '';
     return require(typeId).parseSnapshot(map);

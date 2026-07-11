@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
 import '../../bridge/device_capabilities.dart';
+import '../../devices/device_repository.dart';
 import 'device_strip_chrome_panels.dart';
 import 'device_strip_metrics.dart';
 import 'device_strip_theme.dart';
@@ -54,7 +55,6 @@ class DeviceStripChromeBindings {
 
 /// Per-device input/output strip chrome registry (ADR-0008).
 abstract final class DeviceStripChrome {
-  static const _dynamicsTypes = {'gate', 'compressor', 'expander', 'limiter'};
   static const _drumTypes = {
     'kick_generator',
     'snare_generator',
@@ -143,7 +143,9 @@ abstract final class DeviceStripChrome {
         onAutomateParameter: bindings.onAutomateParameter,
       );
     }
-    if (_dynamicsTypes.contains(deviceType)) {
+    if ((deviceDefinitionRepository.find(deviceType)?.layout.inputPanelWidth ??
+            0) >
+        0) {
       return DynamicsOutputPanel(
         device: bindings.device,
         accentColor: bindings.accentColor,

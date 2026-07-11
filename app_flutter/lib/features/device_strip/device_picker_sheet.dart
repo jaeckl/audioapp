@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../bridge/device_capabilities.dart';
+import '../../devices/device_repository.dart';
 
 enum DevicePickerRole { any, noteFx, audioFx }
 
@@ -201,33 +202,14 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
                   ),
                 ),
               ),
-              ListTile(
-                leading:
-                    const Icon(Icons.door_sliding, color: Color(0xFF6EC9A8)),
-                title: const Text('Gate'),
-                subtitle: const Text('Noise gate · threshold & hold'),
-                onTap: () => Navigator.pop(context, 'gate'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.compress, color: Color(0xFFE8A54B)),
-                title: const Text('Compressor'),
-                subtitle: const Text('Downward · ratio & makeup'),
-                onTap: () => Navigator.pop(context, 'compressor'),
-              ),
-              ListTile(
-                leading:
-                    const Icon(Icons.unfold_more, color: Color(0xFF9AD4E8)),
-                title: const Text('Expander'),
-                subtitle: const Text('Downward · below threshold'),
-                onTap: () => Navigator.pop(context, 'expander'),
-              ),
-              ListTile(
-                leading:
-                    const Icon(Icons.horizontal_rule, color: Color(0xFFE85D4B)),
-                title: const Text('Limiter'),
-                subtitle: const Text('Brick-wall ceiling · track bus'),
-                onTap: () => Navigator.pop(context, 'limiter'),
-              ),
+              for (final definition in deviceDefinitionRepository.definitions)
+                ListTile(
+                  leading: Icon(definition.picker.icon,
+                      color: definition.picker.color),
+                  title: Text(definition.picker.name),
+                  subtitle: Text(definition.picker.description),
+                  onTap: () => Navigator.pop(context, definition.typeId),
+                ),
               const Padding(
                 padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
                 child: Text(

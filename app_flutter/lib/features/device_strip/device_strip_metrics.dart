@@ -1,5 +1,6 @@
 import 'bass_synth_device_panel.dart';
 import '../../bridge/device_capabilities.dart';
+import '../../devices/device_repository.dart';
 import 'clap_generator_device_panel.dart';
 import 'crash_generator_device_panel.dart';
 import 'cymbal_generator_device_panel.dart';
@@ -27,7 +28,6 @@ import 'granular_device_panel.dart';
 class DeviceStripMetrics {
   const DeviceStripMetrics._();
 
-  static const _dynamicsTypes = {'gate', 'compressor', 'expander', 'limiter'};
   static const _timeFxTypes = {'delay', 'reverb', 'chorus', 'phaser'};
   static const _moodFxTypes = {
     'bitcrusher',
@@ -152,18 +152,19 @@ class DeviceStripMetrics {
   static const double dynamicsInputPanelWidth = 64;
   static const double routingOutputPanelWidth = 34;
 
-  static double inputPanelWidthFor(String deviceType) =>
-      _dynamicsTypes.contains(deviceType) ||
-              _frequencyFxTypes.contains(deviceType)
-          ? dynamicsInputPanelWidth
-          : 0;
+  static double inputPanelWidthFor(String deviceType) {
+    final definition = deviceDefinitionRepository.find(deviceType);
+    if (definition != null) return definition.layout.inputPanelWidth;
+    return _frequencyFxTypes.contains(deviceType) ? dynamicsInputPanelWidth : 0;
+  }
 
   static double outputPanelWidthFor(String deviceType) {
+    final definition = deviceDefinitionRepository.find(deviceType);
+    if (definition != null) return definition.layout.outputPanelWidth;
     if (deviceType == 'device_chain') return toolRailWidth;
     if (_analysisTypes.contains(deviceType)) return stereoOutputPanelWidth;
     if (_routingTypes.contains(deviceType)) return routingOutputPanelWidth;
     if (_drumTypes.contains(deviceType)) return drumMonoOutputPanelWidth;
-    if (_dynamicsTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
     if (_timeFxTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
     if (_moodFxTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
     if (_frequencyFxTypes.contains(deviceType)) return dynamicsOutputPanelWidth;
@@ -177,6 +178,8 @@ class DeviceStripMetrics {
     if (collapsed) {
       return collapsedDesignWidth;
     }
+    final definition = deviceDefinitionRepository.find(deviceType);
+    if (definition != null) return definition.layout.designWidth;
     return switch (deviceType) {
       'simple_sampler' => SamplerDevicePanel.designWidth,
       'bass_synth' => BassSynthDevicePanel.designWidth,
@@ -186,10 +189,6 @@ class DeviceStripMetrics {
       'clap_generator' => ClapGeneratorDevicePanel.designWidth,
       'cymbal_generator' => CymbalGeneratorDevicePanel.designWidth,
       'crash_generator' => CrashGeneratorDevicePanel.designWidth,
-      'gate' => GateDevicePanel.designWidth,
-      'compressor' => CompressorDevicePanel.designWidth,
-      'expander' => ExpanderDevicePanel.designWidth,
-      'limiter' => LimiterDevicePanel.designWidth,
       'delay' => DelayFxPanel.designWidth,
       'reverb' => ReverbFxPanel.designWidth,
       'chorus' => ChorusFxPanel.designWidth,

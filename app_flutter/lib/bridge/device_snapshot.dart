@@ -1,4 +1,5 @@
 import 'device_families/device_snapshot_helpers.dart';
+import '../devices/device_repository.dart';
 
 part 'device_families/bass_synth_family.dart';
 part 'device_families/drum_generator_family.dart';
@@ -78,10 +79,11 @@ sealed class DeviceSnapshot {
       'clap_generator' => ClapGeneratorDeviceSnapshot.fromMap(map),
       'cymbal_generator' => CymbalGeneratorDeviceSnapshot.fromMap(map),
       'crash_generator' => CrashGeneratorDeviceSnapshot.fromMap(map),
-      'gate' => GateDeviceSnapshot.fromMap(map),
-      'compressor' => CompressorDeviceSnapshot.fromMap(map),
-      'expander' => ExpanderDeviceSnapshot.fromMap(map),
-      'limiter' => LimiterDeviceSnapshot.fromMap(map),
+      'gate' ||
+      'compressor' ||
+      'expander' ||
+      'limiter' =>
+        deviceDefinitionRepository.parseSnapshot(map),
       'delay' => DelayDeviceSnapshot.fromMap(map),
       'reverb' => ReverbDeviceSnapshot.fromMap(map),
       'chorus' => ChorusDeviceSnapshot.fromMap(map),
