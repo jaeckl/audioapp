@@ -217,7 +217,7 @@ void processExpanderStereoBlock(float* trackLeft,
         const float envDb = linearToDb(runtime.envelope);
         float grDb = 0.0f;
         if (envDb < thresholdDb) {
-            grDb = (thresholdDb - envDb) * (ratio - 1.0f);
+            grDb = (envDb - thresholdDb) * (ratio - 1.0f);
             grDb = std::max(grDb, floorDb);
         }
         runtime.gainReductionDb = grDb;

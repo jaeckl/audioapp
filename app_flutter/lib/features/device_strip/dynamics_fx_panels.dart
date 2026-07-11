@@ -8,12 +8,17 @@ import 'panels/compact_fx_layout.dart';
 import 'rotary_knob.dart';
 
 enum GateDeviceTab { detect, time, range }
+
 enum CompressorDeviceTab { comp, time, gain }
+
 enum ExpanderDeviceTab { expand, time, range }
+
 enum LimiterDeviceTab { ceiling, time, gain }
 
-typedef DynamicsParameterChanged = void Function(String parameterId, double value);
-typedef DynamicsModulationAssign = void Function(String paramId, double amount)?;
+typedef DynamicsParameterChanged = void Function(
+    String parameterId, double value);
+typedef DynamicsModulationAssign = void Function(
+    String paramId, double amount)?;
 
 const double _dynamicsKnobRowGap = 10;
 
@@ -74,12 +79,16 @@ class _DynamicsKnob extends StatelessWidget {
       modEdges: modEdges,
       connectModeLfoId: connectModeLfoId,
       connectModeActive: connectModeLfoId != null,
-      onModulationAssign:
-          onModulationAssign != null ? (amount) => onModulationAssign!(paramId, amount) : null,
+      onModulationAssign: onModulationAssign != null
+          ? (amount) => onModulationAssign!(paramId, amount)
+          : null,
       linkModeActive: automationLinkActive,
-      onLinkTap: onAutomationLinkTap != null ? () => onAutomationLinkTap!(paramId) : null,
-      onAutomateRequest:
-          onAutomateParameter != null ? () => onAutomateParameter!(paramId) : null,
+      onLinkTap: onAutomationLinkTap != null
+          ? () => onAutomationLinkTap!(paramId)
+          : null,
+      onAutomateRequest: onAutomateParameter != null
+          ? () => onAutomateParameter!(paramId)
+          : null,
       onChanged: (v) => onParameterChanged(paramId, v),
     );
   }
@@ -111,7 +120,7 @@ _DynamicsKnob _knob({
     accent: accent,
     onParameterChanged: onParameterChanged,
     modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
+    automatedParams: automatedParams,
     modulationAmounts: modulationAmounts,
     connectModeLfoId: connectModeLfoId,
     deviceId: deviceId,
@@ -182,6 +191,7 @@ class GateDevicePanel extends StatelessWidget {
     return _dynamicsSinglePage(
       preview: DynamicsEnvelopePreview(
         threshold: device.gateThreshold,
+        range: device.gateRange,
         accent: accent,
       ),
       rows: [
@@ -326,7 +336,7 @@ class GateDeviceStrip extends StatelessWidget {
         onParameterChanged: onParameterChanged,
         selectedTab: selectedTab,
         modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
+        automatedParams: automatedParams,
         modulationAmounts: modulationAmounts,
         lfos: lfos,
         modEdges: modEdges,
@@ -380,6 +390,8 @@ class CompressorDevicePanel extends StatelessWidget {
       preview: DynamicsEnvelopePreview(
         threshold: device.compThreshold,
         ratio: device.compRatio,
+        knee: device.compKnee,
+        makeup: device.compMakeup,
         accent: accent,
         mode: DynamicsPreviewMode.compressor,
       ),
@@ -543,7 +555,7 @@ class CompressorDeviceStrip extends StatelessWidget {
         onParameterChanged: onParameterChanged,
         selectedTab: selectedTab,
         modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
+        automatedParams: automatedParams,
         modulationAmounts: modulationAmounts,
         lfos: lfos,
         modEdges: modEdges,
@@ -597,6 +609,7 @@ class ExpanderDevicePanel extends StatelessWidget {
       preview: DynamicsEnvelopePreview(
         threshold: device.expandThreshold,
         ratio: device.expandRatio,
+        range: device.expandRange,
         accent: accent,
         mode: DynamicsPreviewMode.expander,
       ),
@@ -638,7 +651,8 @@ class ExpanderDevicePanel extends StatelessWidget {
             automationLinkActive: automationLinkActive,
             onAutomationLinkTap: onAutomationLinkTap,
             onAutomateParameter: onAutomateParameter,
-            displayValue: dynamicsRatioLabel(device.expandRatio, expander: true),
+            displayValue:
+                dynamicsRatioLabel(device.expandRatio, expander: true),
           ),
           _knob(
             label: 'Attack',
@@ -742,7 +756,7 @@ class ExpanderDeviceStrip extends StatelessWidget {
         onParameterChanged: onParameterChanged,
         selectedTab: selectedTab,
         modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
+        automatedParams: automatedParams,
         modulationAmounts: modulationAmounts,
         lfos: lfos,
         modEdges: modEdges,
@@ -796,6 +810,9 @@ class LimiterDevicePanel extends StatelessWidget {
       preview: DynamicsEnvelopePreview(
         threshold: device.limitCeiling,
         ceiling: device.limitCeiling,
+        knee: device.limitKnee,
+        drive: device.limitDrive,
+        makeup: device.limitMakeup,
         accent: accent,
         mode: DynamicsPreviewMode.limiter,
       ),
@@ -959,7 +976,7 @@ class LimiterDeviceStrip extends StatelessWidget {
         onParameterChanged: onParameterChanged,
         selectedTab: selectedTab,
         modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
+        automatedParams: automatedParams,
         modulationAmounts: modulationAmounts,
         lfos: lfos,
         modEdges: modEdges,

@@ -1,4 +1,93 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+
+const double dynamicsPreviewMinDb = -60;
+const double dynamicsPreviewMaxDb = 0;
+
+enum DynamicsPreviewMode { gate, compressor, expander, limiter }
+
+double dynamicsThresholdDb(double norm) => -60 + norm.clamp(0.0, 1.0) * 54;
+double dynamicsCeilingDb(double norm) => -12 + norm.clamp(0.0, 1.0) * 12;
+double dynamicsCompressorRatio(double norm) => 1 + norm.clamp(0.0, 1.0) * 19;
+double dynamicsExpanderRatio(double norm) => 1 + norm.clamp(0.0, 1.0) * 7;
+double dynamicsKneeDb(double norm) => norm.clamp(0.0, 1.0) * 12;
+double dynamicsRangeDb(double norm) => -80 + norm.clamp(0.0, 1.0) * 80;
+double dynamicsMakeupDb(double norm) => norm.clamp(0.0, 1.0) * 18;
+double dynamicsDriveDb(double norm) => norm.clamp(0.0, 1.0) * 12;
+
+double _compressorGainDb(
+    double inputDb, double thresholdDb, double ratio, double kneeDb) {
+  if (kneeDb <= 0.001) {
+    return inputDb <= thresholdDb
+        ? 0
+        : (thresholdDb - inputDb) * (1 - 1 / ratio);
+  }
+  final kneeStart = thresholdDb - kneeDb * 0.5;
+  final kneeEnd = thresholdDb + kneeDb * 0.5;
+  if (inputDb <= kneeStart) return 0;
+  if (inputDb >= kneeEnd) {
+    return (thresholdDb - inputDb) * (1 - 1 / ratio);
+  }
+  final x = inputDb - kneeStart;
+  final slope = (1 - 1 / ratio) / (2 * kneeDb);
+  return -slope * x * x;
+}
+
+double _limiterGainDb(double inputDb, double ceilingDb, double kneeDb) {
+  if (inputDb <= ceilingDb - kneeDb) return 0;
+  if (inputDb >= ceilingDb) return ceilingDb - inputDb;
+  if (kneeDb <= 0.001) return 0;
+  final x = inputDb - (ceilingDb - kneeDb);
+  return -0.5 * x * x / kneeDb;
+}
+
+/// Static input/output response matching `DynamicsProcessor.cpp`.
+double dynamicsPreviewOutputDb({
+  required DynamicsPreviewMode mode,
+  required double inputDb,
+  required double threshold,
+  double ratio = 0.5,
+  double knee = 0,
+  double range = 0,
+  double makeup = 0,
+  double drive = 0,
+  double ceiling = 0.85,
+}) {
+  switch (mode) {
+    case DynamicsPreviewMode.gate:
+      return inputDb >= dynamicsThresholdDb(threshold)
+          ? inputDb
+          : inputDb + dynamicsRangeDb(range);
+    case DynamicsPreviewMode.compressor:
+      return inputDb +
+          _compressorGainDb(
+            inputDb,
+            dynamicsThresholdDb(threshold),
+            dynamicsCompressorRatio(ratio),
+            dynamicsKneeDb(knee),
+          ) +
+          dynamicsMakeupDb(makeup);
+    case DynamicsPreviewMode.expander:
+      final thresholdDb = dynamicsThresholdDb(threshold);
+      final gainDb = inputDb < thresholdDb
+          ? math.max(
+              (inputDb - thresholdDb) * (dynamicsExpanderRatio(ratio) - 1),
+              dynamicsRangeDb(range),
+            )
+          : 0.0;
+      return inputDb + gainDb;
+    case DynamicsPreviewMode.limiter:
+      final drivenDb = inputDb + dynamicsDriveDb(drive);
+      return drivenDb +
+          _limiterGainDb(
+            drivenDb,
+            dynamicsCeilingDb(ceiling),
+            dynamicsKneeDb(knee),
+          ) +
+          dynamicsMakeupDb(makeup);
+  }
+}
 
 class DynamicsEnvelopePreview extends StatelessWidget {
   const DynamicsEnvelopePreview({
@@ -7,6 +96,10 @@ class DynamicsEnvelopePreview extends StatelessWidget {
     required this.accent,
     this.mode = DynamicsPreviewMode.gate,
     this.ratio = 0.5,
+    this.knee = 0,
+    this.range = 0,
+    this.makeup = 0,
+    this.drive = 0,
     this.ceiling = 0.85,
   });
 
@@ -14,31 +107,39 @@ class DynamicsEnvelopePreview extends StatelessWidget {
   final Color accent;
   final DynamicsPreviewMode mode;
   final double ratio;
+  final double knee;
+  final double range;
+  final double makeup;
+  final double drive;
   final double ceiling;
 
   @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _DynamicsEnvelopePainter(
-        threshold: threshold,
-        accent: accent,
-        mode: mode,
-        ratio: ratio,
-        ceiling: ceiling,
-      ),
-      child: const SizedBox.expand(),
-    );
-  }
+  Widget build(BuildContext context) => CustomPaint(
+        painter: _DynamicsEnvelopePainter(
+          threshold: threshold,
+          accent: accent,
+          mode: mode,
+          ratio: ratio,
+          knee: knee,
+          range: range,
+          makeup: makeup,
+          drive: drive,
+          ceiling: ceiling,
+        ),
+        child: const SizedBox.expand(),
+      );
 }
 
-enum DynamicsPreviewMode { gate, compressor, expander, limiter }
-
 class _DynamicsEnvelopePainter extends CustomPainter {
-  _DynamicsEnvelopePainter({
+  const _DynamicsEnvelopePainter({
     required this.threshold,
     required this.accent,
     required this.mode,
     required this.ratio,
+    required this.knee,
+    required this.range,
+    required this.makeup,
+    required this.drive,
     required this.ceiling,
   });
 
@@ -46,80 +147,151 @@ class _DynamicsEnvelopePainter extends CustomPainter {
   final Color accent;
   final DynamicsPreviewMode mode;
   final double ratio;
+  final double knee;
+  final double range;
+  final double makeup;
+  final double drive;
   final double ceiling;
+
+  Offset _point(Size size, double inputDb, double outputDb) {
+    final x = (inputDb - dynamicsPreviewMinDb) /
+        (dynamicsPreviewMaxDb - dynamicsPreviewMinDb);
+    final y = (outputDb.clamp(dynamicsPreviewMinDb, dynamicsPreviewMaxDb) -
+            dynamicsPreviewMinDb) /
+        (dynamicsPreviewMaxDb - dynamicsPreviewMinDb);
+    return Offset(size.width * x, size.height * (1 - y));
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFF0E0E14));
+    canvas.drawRect(
+        Offset.zero & size, Paint()..color = const Color(0xFF0E0E14));
 
-    final thresholdY = size.height * (1.0 - threshold.clamp(0.0, 1.0));
+    final gridPaint = Paint()
+      ..color = const Color(0xFF2C2C36).withValues(alpha: 0.65)
+      ..strokeWidth = 1;
+    for (final db in const [-45.0, -30.0, -15.0]) {
+      final p = _point(size, db, db);
+      canvas.drawLine(Offset(p.dx, 0), Offset(p.dx, size.height), gridPaint);
+      canvas.drawLine(Offset(0, p.dy), Offset(size.width, p.dy), gridPaint);
+    }
+
     canvas.drawLine(
-      Offset(0, thresholdY),
-      Offset(size.width, thresholdY),
+      _point(size, dynamicsPreviewMinDb, dynamicsPreviewMinDb),
+      _point(size, dynamicsPreviewMaxDb, dynamicsPreviewMaxDb),
       Paint()
-        ..color = accent.withValues(alpha: 0.85)
-        ..strokeWidth = 1.5,
+        ..color = const Color(0xFF6A6A78).withValues(alpha: 0.7)
+        ..strokeWidth = 1,
     );
 
-    final path = Path()..moveTo(0, size.height);
-    switch (mode) {
-      case DynamicsPreviewMode.gate:
-        final openX = size.width * (0.15 + threshold * 0.35);
-        path
-          ..lineTo(openX, size.height)
-          ..lineTo(openX + 40, size.height * 0.12)
-          ..lineTo(size.width * 0.72, size.height * 0.12)
-          ..lineTo(size.width * 0.82, size.height);
-      case DynamicsPreviewMode.compressor:
-        final kneeX = size.width * threshold.clamp(0.2, 0.8);
-        path
-          ..lineTo(kneeX - 30, size.height * 0.15)
-          ..lineTo(kneeX, size.height * 0.15)
-          ..lineTo(size.width, size.height * (0.15 + (1.0 - ratio) * 0.45));
-      case DynamicsPreviewMode.expander:
-        final kneeX = size.width * threshold.clamp(0.2, 0.7);
-        path
-          ..lineTo(kneeX, size.height * 0.18)
-          ..lineTo(0, size.height * (0.18 + ratio * 0.55));
-      case DynamicsPreviewMode.limiter:
-        final ceilY = size.height * (1.0 - ceiling.clamp(0.0, 1.0));
-        path
-          ..lineTo(size.width * 0.55, size.height * 0.08)
-          ..lineTo(size.width * 0.55, ceilY)
-          ..lineTo(size.width, ceilY);
+    final markerDb = mode == DynamicsPreviewMode.limiter
+        ? dynamicsCeilingDb(ceiling)
+        : dynamicsThresholdDb(threshold);
+    final marker = _point(size, markerDb, markerDb);
+    final markerPaint = Paint()
+      ..color = accent.withValues(alpha: 0.5)
+      ..strokeWidth = 1;
+    canvas.drawLine(
+        Offset(marker.dx, 0), Offset(marker.dx, size.height), markerPaint);
+    canvas.drawLine(
+        Offset(0, marker.dy), Offset(size.width, marker.dy), markerPaint);
+
+    final response = Path();
+    final fill = Path();
+    const samples = 120;
+    for (var i = 0; i <= samples; i++) {
+      final inputDb = dynamicsPreviewMinDb +
+          i / samples * (dynamicsPreviewMaxDb - dynamicsPreviewMinDb);
+      final outputDb = dynamicsPreviewOutputDb(
+        mode: mode,
+        inputDb: inputDb,
+        threshold: threshold,
+        ratio: ratio,
+        knee: knee,
+        range: range,
+        makeup: makeup,
+        drive: drive,
+        ceiling: ceiling,
+      );
+      final responsePoint = _point(size, inputDb, outputDb);
+      final unityPoint = _point(size, inputDb, inputDb);
+      if (i == 0) {
+        response.moveTo(responsePoint.dx, responsePoint.dy);
+        fill.moveTo(unityPoint.dx, unityPoint.dy);
+      } else {
+        response.lineTo(responsePoint.dx, responsePoint.dy);
+        fill.lineTo(unityPoint.dx, unityPoint.dy);
+      }
     }
-    path
-      ..lineTo(size.width, size.height)
-      ..close();
+    for (var i = samples; i >= 0; i--) {
+      final inputDb = dynamicsPreviewMinDb +
+          i / samples * (dynamicsPreviewMaxDb - dynamicsPreviewMinDb);
+      fill.lineTo(
+        _point(
+          size,
+          inputDb,
+          dynamicsPreviewOutputDb(
+            mode: mode,
+            inputDb: inputDb,
+            threshold: threshold,
+            ratio: ratio,
+            knee: knee,
+            range: range,
+            makeup: makeup,
+            drive: drive,
+            ceiling: ceiling,
+          ),
+        ).dx,
+        _point(
+          size,
+          inputDb,
+          dynamicsPreviewOutputDb(
+            mode: mode,
+            inputDb: inputDb,
+            threshold: threshold,
+            ratio: ratio,
+            knee: knee,
+            range: range,
+            makeup: makeup,
+            drive: drive,
+            ceiling: ceiling,
+          ),
+        ).dy,
+      );
+    }
+    fill.close();
+    canvas.drawPath(fill, Paint()..color = accent.withValues(alpha: 0.14));
     canvas.drawPath(
-      path,
+      response,
       Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [accent.withValues(alpha: 0.55), accent.withValues(alpha: 0.08)],
-        ).createShader(Offset.zero & size),
+        ..color = accent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
     );
   }
 
   @override
-  bool shouldRepaint(covariant _DynamicsEnvelopePainter oldDelegate) =>
-      oldDelegate.threshold != threshold ||
-      oldDelegate.accent != accent ||
-      oldDelegate.mode != mode ||
-      oldDelegate.ratio != ratio ||
-      oldDelegate.ceiling != ceiling;
+  bool shouldRepaint(_DynamicsEnvelopePainter old) =>
+      old.threshold != threshold ||
+      old.accent != accent ||
+      old.mode != mode ||
+      old.ratio != ratio ||
+      old.knee != knee ||
+      old.range != range ||
+      old.makeup != makeup ||
+      old.drive != drive ||
+      old.ceiling != ceiling;
 }
 
 String dynamicsThresholdLabel(double norm) =>
-    '${(-60 + norm.clamp(0.0, 1.0) * 54).round()} dB';
+    '${dynamicsThresholdDb(norm).round()} dB';
 
 String dynamicsRatioLabel(double norm, {bool expander = false}) {
-  if (expander) {
-    final r = 1 + norm.clamp(0.0, 1.0) * 7;
-    return '${r.toStringAsFixed(1)}:1';
-  }
-  return '${(1 + norm.clamp(0.0, 1.0) * 19).round()}:1';
+  final ratio =
+      expander ? dynamicsExpanderRatio(norm) : dynamicsCompressorRatio(norm);
+  return expander ? '${ratio.toStringAsFixed(1)}:1' : '${ratio.round()}:1';
 }
 
 String dynamicsTimeLabel(double norm) {
@@ -128,13 +300,11 @@ String dynamicsTimeLabel(double norm) {
 }
 
 String dynamicsCeilingLabel(double norm) =>
-    '${(-12 + norm.clamp(0.0, 1.0) * 12).toStringAsFixed(1)} dB';
-
-String dynamicsRangeLabel(double norm) =>
-    '${(-80 + norm.clamp(0.0, 1.0) * 80).round()} dB';
-
-String dynamicsMakeupLabel(double norm) => '+${(norm.clamp(0.0, 1.0) * 18).toStringAsFixed(1)} dB';
-
-String dynamicsDriveLabel(double norm) => '+${(norm.clamp(0.0, 1.0) * 12).toStringAsFixed(1)} dB';
-
-String dynamicsHoldLabel(double norm) => '${(norm.clamp(0.0, 1.0) * 80).round()} ms';
+    '${dynamicsCeilingDb(norm).toStringAsFixed(1)} dB';
+String dynamicsRangeLabel(double norm) => '${dynamicsRangeDb(norm).round()} dB';
+String dynamicsMakeupLabel(double norm) =>
+    '+${dynamicsMakeupDb(norm).toStringAsFixed(1)} dB';
+String dynamicsDriveLabel(double norm) =>
+    '+${dynamicsDriveDb(norm).toStringAsFixed(1)} dB';
+String dynamicsHoldLabel(double norm) =>
+    '${(norm.clamp(0.0, 1.0) * 80).round()} ms';
