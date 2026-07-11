@@ -97,12 +97,10 @@ def split(path: Path) -> None:
     directive_matches = list(
         re.finditer(r"(?m)^(?:import|export|part)\s+[^;]+;\s*$", remaining)
     )
-    if not directive_matches:
-        raise ValueError(f"No directive insertion point in {path}")
-    insertion = directive_matches[-1].end()
-    directives = "\n" + "\n".join(
+    insertion = directive_matches[-1].end() if directive_matches else 0
+    directives = ("\n" if insertion else "") + "\n".join(
         f"part '{filename}';" for _, filename, _, _ in extracted
-    )
+    ) + ("\n\n" if not insertion else "")
     remaining = remaining[:insertion] + directives + remaining[insertion:]
     path.write_text(remaining.rstrip() + "\n", encoding="utf-8")
 
