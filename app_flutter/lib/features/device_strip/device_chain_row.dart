@@ -85,7 +85,7 @@ class DeviceChainRow extends StatefulWidget {
   final void Function(TrackSnapshot track, DeviceSnapshot device)
       onOpenSamplerEditor;
   final void Function(String deviceId, double frequencyHz) onFrequencyChanged;
-  final void Function(int insertIndex) onInsertDevice;
+  final Future<ProjectSnapshot?> Function(int insertIndex) onInsertDevice;
   final void Function(String deviceId, SamplerDeviceTab tab)?
       onSamplerTabChanged;
   final void Function(String deviceId, SubtractiveDeviceTab tab)?
@@ -95,7 +95,7 @@ class DeviceChainRow extends StatefulWidget {
   final SubtractiveDeviceTab Function(String deviceId)? synthTabFor;
   final ScrollController? scrollController;
   final void Function(String deviceId, bool bypassed)? onBypassToggle;
-  final void Function(DeviceSnapshot device)? onDeleteDevice;
+  final Future<ProjectSnapshot?> Function(DeviceSnapshot device)? onDeleteDevice;
   final void Function(DeviceSnapshot device, LibraryFilter filter)? onOpenLibrary;
   final void Function(DrumMachineDeviceSnapshot device, int note)?
       onOpenDrumPadLibrary;

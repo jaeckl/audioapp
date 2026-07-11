@@ -1716,7 +1716,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _addDeviceToTrack(
+  Future<ProjectSnapshot> _addDeviceToTrack(
     String trackId,
     String deviceType,
     int insertIndex,
@@ -1728,9 +1728,11 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         insertIndex: insertIndex,
       );
       await _refreshSnapshot(snapshot);
+      return snapshot;
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) rethrow;
       setState(() => _projectError = e.toString());
+      rethrow;
     }
   }
 
@@ -2051,7 +2053,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _confirmRemoveDevice(
+  Future<ProjectSnapshot?> _confirmRemoveDevice(
     TrackSnapshot track,
     DeviceSnapshot device,
   ) async {
@@ -2086,15 +2088,17 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
         ],
       ),
     );
-    if (ok != true) return;
+    if (ok != true) return null;
 
     try {
       final snapshot =
           await widget.bridge.removeDeviceFromTrack(deviceId: device.id);
       await _refreshSnapshot(snapshot);
+      return snapshot;
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) return null;
       setState(() => _projectError = e.toString());
+      return null;
     }
   }
 

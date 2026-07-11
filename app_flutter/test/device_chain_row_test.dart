@@ -40,7 +40,7 @@ void main() {
             onSamplerParameterChanged: (_, __, ___) {},
             onOpenSamplerEditor: (_, __) {},
             onFrequencyChanged: (_, __) {},
-            onInsertDevice: (_) {},
+            onInsertDevice: (_) async => null,
           ),
         ),
       ),
@@ -105,9 +105,9 @@ void main() {
             onPreviewSample: (_) {},
             onImportSamples: () async => const [],
             onFrequencyChanged: (_, __) {},
-            onAddDevice: (_, __, ___) async {},
+            onAddDevice: (_, __, ___) async => snapshot,
             onBypassToggle: (_, __) {},
-            onRemoveDevice: (_, __) async {},
+            onRemoveDevice: (_, __) async => null,
             onOpenDeviceLibrary: (_, __) {},
           ),
         ),
@@ -153,7 +153,10 @@ void main() {
             onSamplerParameterChanged: (_, __, ___) {},
             onOpenSamplerEditor: (_, __) {},
             onFrequencyChanged: (_, __) {},
-            onInsertDevice: (_) => insertCalls++,
+            onInsertDevice: (_) async {
+              insertCalls++;
+              return null;
+            },
           ),
         ),
       ),

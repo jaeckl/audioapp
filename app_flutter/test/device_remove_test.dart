@@ -42,8 +42,11 @@ void main() {
               onSamplerParameterChanged: (_, __, ___) {},
               onOpenSamplerEditor: (_, __) {},
               onFrequencyChanged: (_, __) {},
-              onInsertDevice: (_) {},
-              onDeleteDevice: (device) => removed = device,
+              onInsertDevice: (_) async => null,
+              onDeleteDevice: (device) async {
+                removed = device;
+                return null;
+              },
             ),
           ),
         ),

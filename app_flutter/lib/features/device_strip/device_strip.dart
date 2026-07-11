@@ -68,10 +68,10 @@ class DeviceStrip extends StatefulWidget {
   final ValueChanged<int>? onPreviewSampler;
   final Future<List<SampleLibraryEntrySnapshot>> Function() onImportSamples;
   final void Function(String deviceId, double frequencyHz) onFrequencyChanged;
-  final Future<void> Function(
+  final Future<ProjectSnapshot> Function(
       String trackId, String deviceType, int insertIndex) onAddDevice;
   final void Function(String deviceId, bool bypassed) onBypassToggle;
-  final Future<void> Function(TrackSnapshot track, DeviceSnapshot device)
+  final Future<ProjectSnapshot?> Function(TrackSnapshot track, DeviceSnapshot device)
       onRemoveDevice;
   final void Function(DeviceSnapshot device, LibraryFilter filter) onOpenDeviceLibrary;
   final void Function(DrumMachineDeviceSnapshot device, int note)?
@@ -129,10 +129,10 @@ class _DeviceStripState extends State<DeviceStrip> {
     setState(() => _synthTabs[deviceId] = tab);
   }
 
-  Future<void> _insertDevice(TrackSnapshot track, int insertIndex) async {
+  Future<ProjectSnapshot?> _insertDevice(TrackSnapshot track, int insertIndex) async {
     final deviceType = await showDevicePickerSheet(context);
-    if (deviceType == null || !mounted) return;
-    await widget.onAddDevice(track.id, deviceType, insertIndex);
+    if (deviceType == null || !mounted) return null;
+    return widget.onAddDevice(track.id, deviceType, insertIndex);
   }
 
   Future<void> _openDeviceChain(TrackSnapshot track) async {
@@ -151,7 +151,7 @@ class _DeviceStripState extends State<DeviceStrip> {
           onDeviceStringParameterChanged: widget.onDeviceStringParameterChanged,
           onOpenSamplerEditor: widget.onOpenSamplerEditor,
           onFrequencyChanged: widget.onFrequencyChanged,
-          onInsertDevice: (insertIndex) => _insertDevice(track, insertIndex),
+           onInsertDevice: (insertIndex) => _insertDevice(track, insertIndex),
           onSamplerTabChanged: _setSamplerTab,
           onSynthTabChanged: _setSynthTab,
           onBypassToggle: widget.onBypassToggle,

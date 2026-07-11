@@ -55,7 +55,7 @@ class DeviceChainScreen extends StatefulWidget {
       onDeviceStringParameterChanged;
   final void Function(TrackSnapshot track, DeviceSnapshot device) onOpenSamplerEditor;
   final void Function(String deviceId, double frequencyHz) onFrequencyChanged;
-  final void Function(int insertIndex) onInsertDevice;
+  final Future<ProjectSnapshot?> Function(int insertIndex) onInsertDevice;
   final ValueChanged<SampleLibraryEntrySnapshot> onPreviewAudio;
   final void Function(String deviceId, String sampleId) onAssignSamplerSample;
   final Future<void> Function() onImportAudio;
@@ -64,7 +64,7 @@ class DeviceChainScreen extends StatefulWidget {
   final void Function(String deviceId, SubtractiveDeviceTab tab)? onSynthTabChanged;
   final SubtractiveDeviceTab Function(String deviceId)? synthTabFor;
   final void Function(String deviceId, bool bypassed)? onBypassToggle;
-  final void Function(DeviceSnapshot device)? onDeleteDevice;
+  final Future<ProjectSnapshot?> Function(DeviceSnapshot device)? onDeleteDevice;
   final Future<ProjectSnapshot> Function(String method, Map<String, dynamic> args)?
       onModulationBridgeCall;
   final String? automationLinkClipId;
@@ -226,6 +226,40 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
     await _libraryPanelKey.currentState?.close();
   }
 
+  Future<ProjectSnapshot?> _onInsertDevice(int index) async {
+    try {
+      final snapshot = await widget.onInsertDevice(index);
+      if (snapshot != null && mounted) {
+        final track = snapshot.tracks.firstWhere(
+          (t) => t.id == _track.id,
+          orElse: () => _track,
+        );
+        setState(() => _track = track);
+      }
+      return snapshot;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<ProjectSnapshot?> _onDeleteDevice(DeviceSnapshot device) async {
+    final callback = widget.onDeleteDevice;
+    if (callback == null) return null;
+    try {
+      final snapshot = await callback(device);
+      if (snapshot != null && mounted) {
+        final track = snapshot.tracks.firstWhere(
+          (t) => t.id == _track.id,
+          orElse: () => _track,
+        );
+        setState(() => _track = track);
+      }
+      return snapshot;
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     const density = DeviceStripSlotDensity.fullscreen;
@@ -256,11 +290,11 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
                       onDeviceStringParameterChanged: _onDeviceStringParameterChanged,
                       onOpenSamplerEditor: widget.onOpenSamplerEditor,
                       onFrequencyChanged: _onFrequencyChanged,
-                      onInsertDevice: widget.onInsertDevice,
+                      onInsertDevice: _onInsertDevice,
                       onSamplerTabChanged: widget.onSamplerTabChanged,
                       onSynthTabChanged: widget.onSynthTabChanged,
                       onBypassToggle: widget.onBypassToggle == null ? null : _onBypassToggle,
-                      onDeleteDevice: widget.onDeleteDevice,
+                      onDeleteDevice: widget.onDeleteDevice == null ? null : _onDeleteDevice,
                       onOpenLibrary: _openLibrary,
                       onPreviewSample: widget.onPreviewAudio,
                       lfos: widget.snapshot.lfos,
