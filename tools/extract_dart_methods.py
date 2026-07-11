@@ -60,7 +60,7 @@ def extract(source: Path, names: list[str]) -> None:
     for name in names:
         match = method_match(original, name)
         end = declaration_end(original, body_brace(original, match.start()))
-        while end < len(original) and original[end] in " \t\r\n":
+        while end < len(original) and original[end] in "\r\n":
             end += 1
         ranges.append((name, match.start(), end, original[match.start():end].strip()))
     ordered = sorted(ranges, key=lambda item: item[1])
