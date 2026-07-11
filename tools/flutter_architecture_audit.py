@@ -30,7 +30,7 @@ SPECIAL_DECLARATION = re.compile(
 # These are registration/catalog ownership smells. Existing occurrences are
 # baselined; new occurrences or count increases fail the audit.
 CENTRAL_REGISTRATION = re.compile(
-    r"DeviceSnapshot\.fromMap|forDeviceType\s*\(|filterForDeviceType\s*\(|"
+    r"(?<![A-Za-z])DeviceSnapshot\.fromMap|forDeviceType\s*\(|filterForDeviceType\s*\(|"
     r"knobsForModelIndex\s*\(|register(?:All|Type|Factory|Device|Panel)\s*\(",
 )
 

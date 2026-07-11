@@ -15,68 +15,28 @@
       "lines": 590,
       "declarations": 9
     },
-    "bridge/device_families/analysis_family.dart": {
-      "central_registrations": 1
-    },
-    "bridge/device_families/bass_synth_family.dart": {
-      "central_registrations": 1
-    },
     "bridge/device_families/chain_family.dart": {
-      "central_registrations": 2
+      "central_registrations": 1
     },
     "bridge/device_families/drum_generator_family.dart": {
-      "declarations": 6,
-      "central_registrations": 5
+      "declarations": 6
     },
     "bridge/device_families/drum_machine_family.dart": {
       "declarations": 2,
-      "central_registrations": 2
+      "central_registrations": 1
     },
     "bridge/device_families/dynamics_family.dart": {
-      "declarations": 5,
-      "central_registrations": 4
+      "declarations": 5
     },
     "bridge/device_families/effect_family.dart": {
       "lines": 1014,
-      "declarations": 9,
-      "central_registrations": 8
+      "declarations": 9
     },
     "bridge/device_families/frequency_fx_family.dart": {
-      "declarations": 4,
-      "central_registrations": 3
-    },
-    "bridge/device_families/granular_family.dart": {
-      "central_registrations": 1
-    },
-    "bridge/device_families/midi_delay_family.dart": {
-      "central_registrations": 1
-    },
-    "bridge/device_families/oscillator_family.dart": {
-      "central_registrations": 1
-    },
-    "bridge/device_families/phase_mod_synth_family.dart": {
-      "central_registrations": 1
-    },
-    "bridge/device_families/resonator_bank_family.dart": {
-      "central_registrations": 1
-    },
-    "bridge/device_families/routing_family.dart": {
-      "central_registrations": 1
-    },
-    "bridge/device_families/sampler_family.dart": {
-      "central_registrations": 1
-    },
-    "bridge/device_families/subtractive_synth_family.dart": {
-      "central_registrations": 1
-    },
-    "bridge/device_families/track_gain_family.dart": {
-      "central_registrations": 1
-    },
-    "bridge/device_families/wavetable_synth_family.dart": {
-      "central_registrations": 1
+      "declarations": 4
     },
     "bridge/device_snapshot.dart": {
-      "central_registrations": 36
+      "central_registrations": 2
     },
     "bridge/engine_bridge.dart": {
       "lines": 1345,
@@ -572,8 +532,8 @@
     }
   },
   "summary": {
-    "files": 270,
-    "lines": 76549,
-    "declarations": 733
+    "files": 283,
+    "lines": 76830,
+    "declarations": 743
   }
 }
