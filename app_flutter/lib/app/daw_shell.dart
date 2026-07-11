@@ -3234,6 +3234,8 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
             onMeterSubscriptionsChanged: _updateMeterSubscriptions,
             onCreateSamplerFromDroppedSample: _createSamplerFromDroppedSample,
             onAssignDroppedSampleToDevice: _assignDroppedSampleToDevice,
+            onPresetTap: _onLibraryPresetTap,
+            onWavetableTap: _onLibraryWavetableTap,
           )
         else if (_tab == _ShellTab.keys)
           LiveInstrumentPanel(

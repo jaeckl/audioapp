@@ -5,6 +5,7 @@ import '../../bridge/param_descriptor.dart';
 import '../../bridge/project_snapshot.dart';
 import '../content_library/library_category.dart';
 import '../content_library/library_filter.dart';
+import '../content_library/library_catalog.dart';
 import '../content_library/library_fly_in_panel.dart';
 import 'device_chain_minimap.dart';
 import 'device_chain_row.dart';
@@ -40,7 +41,8 @@ class DeviceChainScreen extends StatefulWidget {
     this.onAutomateParameter,
     this.onGetParamDescriptors,
     this.onMeterSubscriptionsChanged,
-    this.onOpenLibrary,
+    this.onPresetTap,
+    this.onWavetableTap,
   });
 
   final ProjectSnapshot snapshot;
@@ -73,7 +75,8 @@ class DeviceChainScreen extends StatefulWidget {
   final Future<List<DeviceParamDescriptor>> Function(String deviceType)?
       onGetParamDescriptors;
   final ValueChanged<List<String>>? onMeterSubscriptionsChanged;
-  final void Function(DeviceSnapshot device, LibraryFilter filter)? onOpenLibrary;
+  final void Function(LibraryPresetItem item)? onPresetTap;
+  final void Function(LibraryWavetableItem item)? onWavetableTap;
 
   @override
   State<DeviceChainScreen> createState() => _DeviceChainScreenState();
@@ -194,11 +197,6 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
   }
 
   void _openLibrary(DeviceSnapshot device, LibraryFilter filter) {
-    final handler = widget.onOpenLibrary;
-    if (handler != null) {
-      handler(device, filter);
-      return;
-    }
     setState(() {
       _libraryDevice = device;
       _libraryFilter = filter;
@@ -308,10 +306,14 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
                 snapshot: widget.snapshot,
                 initialCategory: _libraryFilter?.defaultCategory ??
                     LibraryCategory.audioClips,
+                presetDeviceId: _libraryDevice!.id,
+                presetDeviceType: _libraryDevice!.type,
                 onClose: _closeLibrary,
                 onPreviewAudio: widget.onPreviewAudio,
                 onInsertAudio: _onLibraryInsertAudio,
                 onImportAudio: widget.onImportAudio,
+                onPresetTap: widget.onPresetTap,
+                onWavetableTap: widget.onWavetableTap,
               ),
           ],
         ),

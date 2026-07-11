@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../bridge/param_descriptor.dart';
 import '../../bridge/live_meters_dto.dart';
 import '../../bridge/project_snapshot.dart';
+import '../content_library/library_catalog.dart';
 import '../content_library/library_filter.dart';
 import '../clip_drag/sample_clip_drag_data.dart';
 import 'device_chain_row.dart';
@@ -45,6 +46,8 @@ class DeviceStrip extends StatefulWidget {
     this.onMeterSubscriptionsChanged,
     this.onCreateSamplerFromDroppedSample,
     this.onAssignDroppedSampleToDevice,
+    this.onPresetTap,
+    this.onWavetableTap,
   });
 
   final ProjectSnapshot snapshot;
@@ -91,6 +94,8 @@ class DeviceStrip extends StatefulWidget {
   )? onCreateSamplerFromDroppedSample;
   final Future<void> Function(DeviceSnapshot device, SampleClipDragData sample)?
       onAssignDroppedSampleToDevice;
+  final void Function(LibraryPresetItem item)? onPresetTap;
+  final void Function(LibraryWavetableItem item)? onWavetableTap;
 
   @override
   State<DeviceStrip> createState() => _DeviceStripState();
@@ -162,7 +167,8 @@ class _DeviceStripState extends State<DeviceStrip> {
           onAutomateParameter: widget.onAutomateParameter,
            onGetParamDescriptors: widget.onGetParamDescriptors,
            onMeterSubscriptionsChanged: widget.onMeterSubscriptionsChanged,
-           onOpenLibrary: widget.onOpenDeviceLibrary,
+           onPresetTap: widget.onPresetTap,
+           onWavetableTap: widget.onWavetableTap,
          ),
        ),
      );
@@ -250,7 +256,7 @@ class _DeviceStripState extends State<DeviceStrip> {
                       widget.snapshot.allAutomationClips.toList(),
                   onAutomationParamSelected: widget.onAutomationParamSelected,
                   onAutomateParameter: widget.onAutomateParameter,
-                  onGetParamDescriptors: widget.onGetParamDescriptors,
+                 onGetParamDescriptors: widget.onGetParamDescriptors,
                   onMeterSubscriptionsChanged: _fullscreenChainOpen
                       ? null
                       : widget.onMeterSubscriptionsChanged,
