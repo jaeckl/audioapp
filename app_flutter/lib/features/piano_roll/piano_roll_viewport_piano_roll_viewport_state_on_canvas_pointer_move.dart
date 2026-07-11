@@ -9,16 +9,16 @@ extension _PianoRollViewportStateOncanvaspointermove on PianoRollViewportState {
       final focal = _canvasFocalPoint();
       if (_pinchZoomAxis == _PinchZoomAxis.horizontal &&
           _pinchStartSpanX != null &&
-          _pinchStartSpanX! >= _pinchMinSpan) {
+          _pinchStartSpanX! >= PianoRollViewportState._pinchMinSpan) {
         final spanX = _canvasPointerSpanX();
-        if (spanX >= _pinchMinSpan) {
+        if (spanX >= PianoRollViewportState._pinchMinSpan) {
           _applyHorizontalPinchZoom(spanX / _pinchStartSpanX!, focal);
         }
       } else if (_pinchZoomAxis == _PinchZoomAxis.vertical &&
           _pinchStartSpanY != null &&
-          _pinchStartSpanY! >= _pinchMinSpan) {
+          _pinchStartSpanY! >= PianoRollViewportState._pinchMinSpan) {
         final spanY = _canvasPointerSpanY();
-        if (spanY >= _pinchMinSpan) {
+        if (spanY >= PianoRollViewportState._pinchMinSpan) {
           _applyVerticalPinchZoom(spanY / _pinchStartSpanY!, focal);
         }
       }
@@ -32,13 +32,13 @@ extension _PianoRollViewportStateOncanvaspointermove on PianoRollViewportState {
     _lastCanvasPos = canvasPos;
     _editTravel += delta.distance;
 
-    if (_editTravel > _tapSlop) {
+    if (_editTravel > PianoRollViewportState._tapSlop) {
       _longPressTimer?.cancel();
     }
 
     if (widget.tool == PianoRollTool.draw && _pendingDrawTap) {
       _drawHorizontalTravel += delta.dx.abs();
-      if (_drawHorizontalTravel > _drawPaintThreshold &&
+      if (_drawHorizontalTravel > PianoRollViewportState._drawPaintThreshold &&
           _dragMode == _DragMode.none) {
         _beginDrawAt(_editStartCanvas!);
       }
@@ -50,7 +50,8 @@ extension _PianoRollViewportStateOncanvaspointermove on PianoRollViewportState {
 
     if (widget.tool == PianoRollTool.select && _draggingIndex != null) {
       if (_dragMode == _DragMode.move || _dragMode == _DragMode.resize) {
-        if (_editTravel > _tapSlop && _dragStartBeat != null) {
+        if (_editTravel > PianoRollViewportState._tapSlop &&
+            _dragStartBeat != null) {
           _applyNoteDrag(canvasPos);
         }
       }

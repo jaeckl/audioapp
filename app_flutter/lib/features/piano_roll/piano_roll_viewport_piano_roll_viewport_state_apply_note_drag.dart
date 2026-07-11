@@ -11,7 +11,7 @@ extension _PianoRollViewportStateApplynotedrag on PianoRollViewportState {
       return;
     }
 
-    if (_editTravel <= _tapSlop) return;
+    if (_editTravel <= PianoRollViewportState._tapSlop) return;
 
     if (!_editCommitted) {
       widget.onEditStarted();

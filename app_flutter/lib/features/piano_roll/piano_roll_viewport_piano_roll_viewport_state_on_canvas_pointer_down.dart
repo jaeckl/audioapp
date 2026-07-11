@@ -38,7 +38,7 @@ extension _PianoRollViewportStateOncanvaspointerdown on PianoRollViewportState {
           _dragStartPitch = widget.notes[noteIndex].pitch;
           _longPressTimer = Timer(const Duration(milliseconds: 500), () {
             if (!mounted || _draggingIndex != noteIndex) return;
-            if (_editTravel < _tapSlop) {
+            if (_editTravel < PianoRollViewportState._tapSlop) {
               _deleteNote(noteIndex);
               _endEditGesture(save: true);
             }

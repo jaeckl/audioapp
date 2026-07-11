@@ -17,7 +17,7 @@ extension _PianoRollViewportStateOnrulerpointermove on PianoRollViewportState {
     }
 
     if (_draggingVirtualPlayhead) {
-      if (_rulerPointerTravel < _tapSlop) return;
+      if (_rulerPointerTravel < PianoRollViewportState._tapSlop) return;
       final beat = clampEditorVirtualPlayheadBeat(
         beat: _beatFromDx(canvasDx, snap: false),
         clipLengthBeats: widget.clipLengthBeats,

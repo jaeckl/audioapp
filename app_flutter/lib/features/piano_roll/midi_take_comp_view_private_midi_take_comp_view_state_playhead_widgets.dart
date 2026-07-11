@@ -2,12 +2,14 @@ part of 'midi_take_comp_view.dart';
 
 extension _MidiTakeCompViewStatePlayheadwidgets on _MidiTakeCompViewState {
   List<Widget> _playheadWidgets(double beat, double scroll) {
-    final viewportX = _labelRailWidth + beat * _pixelsPerBeat - scroll;
-    if (viewportX < _labelRailWidth - 0.5) return const [];
+    final viewportX =
+        _MidiTakeCompViewState._labelRailWidth + beat * _pixelsPerBeat - scroll;
+    if (viewportX < _MidiTakeCompViewState._labelRailWidth - 0.5)
+      return const [];
     return [
       Positioned(
         left: viewportX - editorVirtualPlayheadLineWidth / 2,
-        top: _rulerHeight / 2,
+        top: _MidiTakeCompViewState._rulerHeight / 2,
         bottom: 0,
         width: editorVirtualPlayheadLineWidth,
         child: const IgnorePointer(

@@ -18,7 +18,8 @@ extension _PianoRollViewportStateOnrulerpointerup on PianoRollViewportState {
     if (wasDraggingClipEnd && event.pointer == editPointer) {
       widget.onClipLengthCommit?.call();
       _endEditGesture(save: false);
-    } else if (wasDraggingVirtualPlayhead && pointerTravel < _tapSlop) {
+    } else if (wasDraggingVirtualPlayhead &&
+        pointerTravel < PianoRollViewportState._tapSlop) {
       if (widget.previewPlaying) {
         widget.onPreviewStopRequested?.call();
       } else {
@@ -27,7 +28,7 @@ extension _PianoRollViewportStateOnrulerpointerup on PianoRollViewportState {
     } else if (!wasDraggingClipEnd &&
         !wasDraggingVirtualPlayhead &&
         widget.onVirtualPlayheadSeek != null &&
-        pointerTravel < _tapSlop) {
+        pointerTravel < PianoRollViewportState._tapSlop) {
       widget.onVirtualPlayheadSeek!(
         _beatFromDx(canvasDx).clamp(0.0, widget.clipLengthBeats),
       );

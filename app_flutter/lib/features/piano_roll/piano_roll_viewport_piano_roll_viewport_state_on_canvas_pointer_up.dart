@@ -26,7 +26,7 @@ extension _PianoRollViewportStateOncanvaspointerup on PianoRollViewportState {
     if (widget.tool == PianoRollTool.select &&
         _draggingIndex != null &&
         _dragMode == _DragMode.none &&
-        _editTravel < _tapSlop) {
+        _editTravel < PianoRollViewportState._tapSlop) {
       widget.onNotePreview?.call(widget.notes[_draggingIndex!]);
     }
 
@@ -39,7 +39,7 @@ extension _PianoRollViewportStateOncanvaspointerup on PianoRollViewportState {
         _pendingDrawTap &&
         _dragMode == _DragMode.none &&
         _editStartCanvas != null &&
-        _editTravel < _tapSlop) {
+        _editTravel < PianoRollViewportState._tapSlop) {
       _insertNoteAt(_editStartCanvas!);
       _endEditGesture(save: true);
     } else if (_draggingIndex != null && _dragMode != _DragMode.none) {

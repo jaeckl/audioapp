@@ -8,13 +8,18 @@ extension _MidiTakeCompViewStateMarkerhandle on _MidiTakeCompViewState {
   }) {
     final beat =
         index == _dragMarkerIndex ? _dragMarkerBeat! : region.startBeat;
-    final viewportX = _labelRailWidth + beat * _pixelsPerBeat - scroll;
-    if (viewportX < _labelRailWidth - 0.5) return const SizedBox.shrink();
+    final viewportX =
+        _MidiTakeCompViewState._labelRailWidth + beat * _pixelsPerBeat - scroll;
+    if (viewportX < _MidiTakeCompViewState._labelRailWidth - 0.5) {
+      return const SizedBox.shrink();
+    }
     final selected = widget.selectedMarker == index;
     final interactive = _canSelectMarker || _canDragMarker;
     return Positioned(
       left: viewportX - ArrangementLoopRegionTheme.hitWidth / 2,
-      top: (_rulerHeight - ArrangementLoopRegionTheme.pillSize) / 2,
+      top: (_MidiTakeCompViewState._rulerHeight -
+              ArrangementLoopRegionTheme.pillSize) /
+          2,
       bottom: 0,
       width: ArrangementLoopRegionTheme.hitWidth,
       child: IgnorePointer(
