@@ -11,6 +11,7 @@ import 'snare_model.dart';
 import 'snare_model_ui_registry.dart';
 
 class SnareGeneratorDevicePanel extends StatelessWidget {
+  static const registeredDeviceTypes = ['snare_generator'];
   const SnareGeneratorDevicePanel({
     super.key,
     required this.device,

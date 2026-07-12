@@ -11,6 +11,7 @@ part 'clap_generator_device_panel_clap_device_tab.dart';
 part 'clap_generator_device_panel_clap_generator_device_panel_state.dart';
 
 class ClapGeneratorDevicePanel extends StatefulWidget {
+  static const registeredDeviceTypes = ['clap_generator'];
   const ClapGeneratorDevicePanel({
     super.key,
     required this.device,

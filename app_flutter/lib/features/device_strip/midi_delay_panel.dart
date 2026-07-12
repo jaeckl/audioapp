@@ -6,6 +6,7 @@ import 'device_tab_bar.dart';
 import 'rotary_knob.dart';
 
 class MidiDelayPanel extends StatelessWidget {
+  static const registeredDeviceTypes = ['midi_delay'];
   const MidiDelayPanel({
     super.key,
     required this.device,

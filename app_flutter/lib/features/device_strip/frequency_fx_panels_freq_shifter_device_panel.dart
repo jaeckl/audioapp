@@ -1,6 +1,7 @@
 part of 'frequency_fx_panels.dart';
 
 class FreqShifterDevicePanel extends StatelessWidget {
+  static const registeredDeviceTypes = ['frequency_shifter'];
   const FreqShifterDevicePanel({
     super.key,
     required this.device,

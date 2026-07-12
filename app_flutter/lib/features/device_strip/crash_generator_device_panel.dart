@@ -11,6 +11,7 @@ import 'drum_model_tab_bar.dart';
 import 'rotary_knob.dart';
 
 class CrashGeneratorDevicePanel extends StatelessWidget {
+  static const registeredDeviceTypes = ['crash_generator'];
   const CrashGeneratorDevicePanel({
     super.key,
     required this.device,

@@ -1,6 +1,7 @@
 part of 'mood_fx_panels.dart';
 
 class DistortionFxPanel extends StatelessWidget {
+  static const registeredDeviceTypes = ['distortion'];
   static const accent = Color(0xFFE85D4B);
   static const containerTabs = <DeviceTabSpec>[];
   static const double designWidth = 216;

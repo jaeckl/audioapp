@@ -11,6 +11,7 @@ import 'drum_model_tab_bar.dart';
 import 'rotary_knob.dart';
 
 class CymbalGeneratorDevicePanel extends StatelessWidget {
+  static const registeredDeviceTypes = ['cymbal_generator'];
   const CymbalGeneratorDevicePanel({
     super.key,
     required this.device,

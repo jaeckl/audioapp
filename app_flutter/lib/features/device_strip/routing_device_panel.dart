@@ -108,6 +108,7 @@ List<RoutingSourceOption> buildRoutingSourceOptions(
 }
 
 class RoutingDevicePanel extends StatelessWidget {
+  static const registeredDeviceTypes = ['audio_receiver', 'midi_receiver'];
   const RoutingDevicePanel({
     super.key,
     required this.device,

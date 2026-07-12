@@ -1,6 +1,7 @@
 part of 'frequency_fx_panels.dart';
 
 class FilterDevicePanel extends StatelessWidget {
+  static const registeredDeviceTypes = ['filter'];
   const FilterDevicePanel({
     super.key,
     required this.device,

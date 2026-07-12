@@ -23,6 +23,7 @@ part 'bass_synth_device_panel_private_bass_synth_device_panel_state_filter_tab.d
 part 'bass_synth_device_panel_private_bass_synth_device_panel_state_int_octave_slot.dart';
 
 class BassSynthDevicePanel extends StatefulWidget {
+  static const registeredDeviceTypes = ['bass_synth'];
   const BassSynthDevicePanel({
     super.key,
     required this.device,

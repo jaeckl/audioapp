@@ -1,6 +1,7 @@
 part of 'mood_fx_panels.dart';
 
 class BitcrusherFxPanel extends StatelessWidget {
+  static const registeredDeviceTypes = ['bitcrusher'];
   static const accent = Color(0xFF7B6CF6);
   static const containerTabs = <DeviceTabSpec>[];
   static const double designWidth = 424;

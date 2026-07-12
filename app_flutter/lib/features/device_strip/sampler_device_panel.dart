@@ -32,6 +32,7 @@ part 'sampler_device_panel_private_tone_tab_build_adsr_panel.dart';
 /// Layout density for sampler controls.
 /// Tabbed sampler UI — Wave (sample + playback) and Tone (env + filter).
 class SamplerDevicePanel extends StatefulWidget {
+  static const registeredDeviceTypes = ['simple_sampler'];
   const SamplerDevicePanel({
     super.key,
     required this.device,

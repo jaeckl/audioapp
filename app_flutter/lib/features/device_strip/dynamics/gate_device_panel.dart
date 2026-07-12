@@ -1,6 +1,7 @@
 part of '../dynamics_fx_panels.dart';
 
 class GateDevicePanel extends StatelessWidget {
+  static const registeredDeviceTypes = ['gate'];
   const GateDevicePanel({
     super.key,
     required this.device,

@@ -137,7 +137,7 @@ Widget _dynamicsCard({
       deviceType: type,
       subtitle: 'Stereo · FX',
       bodyHeight: bodyHeight,
-      tabs: DeviceContainerTabs.forDeviceType(type),
+      tabs: devicePanelTabsRepository.tabsFor(type),
       selectedTabIndex: tabIndex,
       child: DeviceStripViewport(
         shrinkWrap: true,

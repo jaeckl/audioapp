@@ -43,6 +43,7 @@ part 'subtractive_synth_device_panel_private_subtractive_synth_device_panel_stat
 ///   * [subtle] — between elevated and flat. Used for envelope rows and grouping.
 ///   * [flat] — lightest fill, no border by default. Used for lightweight grouping.
 class SubtractiveSynthDevicePanel extends StatefulWidget {
+  static const registeredDeviceTypes = ['subtractive_synth'];
   const SubtractiveSynthDevicePanel({
     super.key,
     required this.device,

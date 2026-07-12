@@ -24,6 +24,7 @@ part 'phase_mod_synth_device_panel_private_phase_mod_synth_device_panel_state_op
 part 'phase_mod_synth_device_panel_private_phase_mod_synth_device_panel_state_tone_tab.dart';
 
 class PhaseModSynthDevicePanel extends StatefulWidget {
+  static const registeredDeviceTypes = ['phase_mod_synth'];
   const PhaseModSynthDevicePanel({
     super.key,
     required this.device,

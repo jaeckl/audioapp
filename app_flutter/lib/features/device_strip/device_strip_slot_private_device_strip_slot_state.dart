@@ -160,7 +160,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     return null;
   }
 
-  List<DeviceTabSpec> get _containerTabs => DeviceContainerTabs.forDeviceType(widget.device.type);
+  List<DeviceTabSpec> get _containerTabs =>
+      devicePanelTabsRepository.tabsFor(widget.device.type);
 
   Widget? get _deviceHeaderActions {
     if (widget.device.type == 'reverb') {

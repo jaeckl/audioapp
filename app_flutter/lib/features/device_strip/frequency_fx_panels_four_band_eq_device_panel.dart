@@ -1,6 +1,7 @@
 part of 'frequency_fx_panels.dart';
 
 class FourBandEqDevicePanel extends StatelessWidget {
+  static const registeredDeviceTypes = ['four_band_eq'];
   const FourBandEqDevicePanel({
     super.key,
     required this.device,

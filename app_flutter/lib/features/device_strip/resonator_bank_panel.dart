@@ -15,6 +15,7 @@ typedef ResonatorModulationAssign = void Function(
     String paramId, double amount)?;
 
 class ResonatorBankPanel extends StatelessWidget {
+  static const registeredDeviceTypes = ['resonator_bank'];
   const ResonatorBankPanel({
     super.key,
     required this.device,

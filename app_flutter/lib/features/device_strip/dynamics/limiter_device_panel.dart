@@ -1,6 +1,7 @@
 part of '../dynamics_fx_panels.dart';
 
 class LimiterDevicePanel extends StatelessWidget {
+  static const registeredDeviceTypes = ['limiter'];
   const LimiterDevicePanel({
     super.key,
     required this.device,

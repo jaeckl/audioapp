@@ -1,6 +1,7 @@
 part of '../dynamics_fx_panels.dart';
 
 class ExpanderDevicePanel extends StatelessWidget {
+  static const registeredDeviceTypes = ['expander'];
   const ExpanderDevicePanel({
     super.key,
     required this.device,

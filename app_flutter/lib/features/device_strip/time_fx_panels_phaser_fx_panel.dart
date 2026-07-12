@@ -1,6 +1,7 @@
 part of 'time_fx_panels.dart';
 
 class PhaserFxPanel extends StatelessWidget {
+  static const registeredDeviceTypes = ['phaser'];
   const PhaserFxPanel({
     super.key,
     required this.device,

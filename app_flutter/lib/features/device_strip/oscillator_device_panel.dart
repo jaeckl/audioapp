@@ -10,6 +10,7 @@ part 'oscillator_device_panel_oscillator_device_strip_collapsed.dart';
 
 /// Tabbed oscillator device — big frequency knob on Tone tab.
 class OscillatorDevicePanel extends StatefulWidget {
+  static const registeredDeviceTypes = ['simple_oscillator'];
   const OscillatorDevicePanel({
     super.key,
     required this.trackName,

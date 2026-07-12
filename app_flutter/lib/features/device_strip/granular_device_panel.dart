@@ -17,6 +17,7 @@ part 'granular_device_panel_private_grain_cloud_preview.dart';
 part 'granular_device_panel_private_grain_cloud_painter.dart';
 
 class GranularDevicePanel extends StatelessWidget {
+  static const registeredDeviceTypes = ['granular_formant_synth'];
   const GranularDevicePanel({
     super.key,
     required this.device,

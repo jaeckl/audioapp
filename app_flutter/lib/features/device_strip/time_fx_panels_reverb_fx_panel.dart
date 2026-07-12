@@ -1,6 +1,7 @@
 part of 'time_fx_panels.dart';
 
 class ReverbFxPanel extends StatelessWidget {
+  static const registeredDeviceTypes = ['reverb'];
   const ReverbFxPanel({
     super.key,
     required this.device,

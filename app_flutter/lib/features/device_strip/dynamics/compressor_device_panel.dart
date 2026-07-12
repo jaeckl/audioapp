@@ -1,6 +1,7 @@
 part of '../dynamics_fx_panels.dart';
 
 class CompressorDevicePanel extends StatelessWidget {
+  static const registeredDeviceTypes = ['compressor'];
   const CompressorDevicePanel({
     super.key,
     required this.device,

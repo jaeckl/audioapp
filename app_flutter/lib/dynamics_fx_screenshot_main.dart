@@ -8,107 +8,13 @@ import 'features/device_strip/device_strip_metrics.dart';
 import 'features/device_strip/device_strip_theme.dart';
 import 'features/device_strip/device_strip_viewport.dart';
 import 'features/device_strip/dynamics_fx_panels.dart';
+part 'dynamics_fx_screenshot_main_mock_device.dart';
+part 'dynamics_fx_screenshot_main_dynamics_card.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SemanticsBinding.instance.ensureSemantics();
   runApp(const DynamicsFxScreenshotApp());
-}
-
-DynamicsDeviceSnapshot _mockDevice(String type) {
-  switch (type) {
-    case 'gate':
-      return const GateDeviceSnapshot(
-        id: 'dev-gate',
-        gain: 0.8,
-        pan: 0.5,
-        bypassed: false,
-        meterGainReductionDb: 0.0,
-        meterInputLevel: 0.0,
-        inputGain: 1.0,
-        gateThreshold: 0.45,
-        gateAttack: 0.25,
-        gateRelease: 0.50,
-        gateHold: 0.20,
-        gateRange: 0.0,
-      );
-    case 'compressor':
-      return const CompressorDeviceSnapshot(
-        id: 'dev-compressor',
-        gain: 0.8,
-        pan: 0.5,
-        bypassed: false,
-        meterGainReductionDb: 0.0,
-        meterInputLevel: 0.0,
-        inputGain: 1.0,
-        compThreshold: 0.55,
-        compRatio: 0.50,
-        compAttack: 0.20,
-        compRelease: 0.55,
-        compKnee: 0.25,
-        compMakeup: 0.35,
-      );
-    case 'expander':
-      return const ExpanderDeviceSnapshot(
-        id: 'dev-expander',
-        gain: 0.8,
-        pan: 0.5,
-        bypassed: false,
-        meterGainReductionDb: 0.0,
-        meterInputLevel: 0.0,
-        inputGain: 1.0,
-        expandThreshold: 0.40,
-        expandRatio: 0.45,
-        expandAttack: 0.25,
-        expandRelease: 0.55,
-        expandRange: 0.15,
-      );
-    case 'limiter':
-      return const LimiterDeviceSnapshot(
-        id: 'dev-limiter',
-        gain: 0.8,
-        pan: 0.5,
-        bypassed: false,
-        meterGainReductionDb: 0.0,
-        meterInputLevel: 0.0,
-        inputGain: 1.0,
-        limitCeiling: 0.85,
-        limitAttack: 0.10,
-        limitRelease: 0.40,
-        limitKnee: 0.0,
-        limitDrive: 0.0,
-        limitMakeup: 0.0,
-      );
-    default:
-      throw ArgumentError('Unknown mock dynamics type: $type');
-  }
-}
-
-Widget _dynamicsCard({
-  required String type,
-  required Widget panel,
-}) {
-  const cardHeight = DeviceStripMetrics.height;
-  const bodyHeight = cardHeight - DeviceStripTheme.cardChromeHeight;
-  final width = DeviceStripMetrics.designWidthFor(type);
-
-  return SizedBox(
-    width: width,
-    height: cardHeight,
-    child: DeviceStripCard(
-      deviceType: type,
-      subtitle: 'Stereo · FX',
-      bodyHeight: bodyHeight,
-      tabs: DeviceContainerTabs.forDeviceType(type),
-      selectedTabIndex: 0,
-      child: DeviceStripViewport(
-        shrinkWrap: true,
-        designWidth: width,
-        designHeight: bodyHeight,
-        child: panel,
-      ),
-    ),
-  );
 }
 
 class DynamicsFxScreenshotApp extends StatelessWidget {
@@ -147,7 +53,8 @@ class DynamicsFxScreenshotApp extends StatelessWidget {
                         padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
                         child: Text(
                           'Insert device',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w500),
                         ),
                       ),
                       Padding(
@@ -163,7 +70,8 @@ class DynamicsFxScreenshotApp extends StatelessWidget {
                         ),
                       ),
                       ListTile(
-                        leading: Icon(Icons.door_sliding, color: Color(0xFF6EC9A8)),
+                        leading:
+                            Icon(Icons.door_sliding, color: Color(0xFF6EC9A8)),
                         title: Text('Gate'),
                         subtitle: Text('Noise gate · threshold & hold'),
                       ),
@@ -173,12 +81,14 @@ class DynamicsFxScreenshotApp extends StatelessWidget {
                         subtitle: Text('Downward · ratio & makeup'),
                       ),
                       ListTile(
-                        leading: Icon(Icons.unfold_more, color: Color(0xFF9AD4E8)),
+                        leading:
+                            Icon(Icons.unfold_more, color: Color(0xFF9AD4E8)),
                         title: Text('Expander'),
                         subtitle: Text('Downward · below threshold'),
                       ),
                       ListTile(
-                        leading: Icon(Icons.horizontal_rule, color: Color(0xFFE85D4B)),
+                        leading: Icon(Icons.horizontal_rule,
+                            color: Color(0xFFE85D4B)),
                         title: Text('Limiter'),
                         subtitle: Text('Brick-wall ceiling · track bus'),
                       ),
@@ -208,7 +118,8 @@ class DynamicsFxScreenshotApp extends StatelessWidget {
                 child: _dynamicsCard(
                   type: 'compressor',
                   panel: CompressorDeviceStrip(
-                    device: _mockDevice('compressor') as CompressorDeviceSnapshot,
+                    device:
+                        _mockDevice('compressor') as CompressorDeviceSnapshot,
                     onParameterChanged: noop,
                     selectedTab: CompressorDeviceTab.comp,
                   ),
@@ -262,7 +173,8 @@ class DynamicsFxScreenshotApp extends StatelessWidget {
                     _dynamicsCard(
                       type: 'compressor',
                       panel: CompressorDeviceStrip(
-                        device: _mockDevice('compressor') as CompressorDeviceSnapshot,
+                        device: _mockDevice('compressor')
+                            as CompressorDeviceSnapshot,
                         onParameterChanged: noop,
                         selectedTab: CompressorDeviceTab.comp,
                       ),
@@ -271,7 +183,8 @@ class DynamicsFxScreenshotApp extends StatelessWidget {
                     _dynamicsCard(
                       type: 'expander',
                       panel: ExpanderDeviceStrip(
-                        device: _mockDevice('expander') as ExpanderDeviceSnapshot,
+                        device:
+                            _mockDevice('expander') as ExpanderDeviceSnapshot,
                         onParameterChanged: noop,
                         selectedTab: ExpanderDeviceTab.expand,
                       ),

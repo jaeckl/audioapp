@@ -1,6 +1,7 @@
 part of 'mood_fx_panels.dart';
 
 class StutterFxPanel extends StatelessWidget {
+  static const registeredDeviceTypes = ['stutter_fx'];
   static const accent = Color(0xFF57D3C4);
   static const containerTabs = <DeviceTabSpec>[];
   static const double designWidth = 216;

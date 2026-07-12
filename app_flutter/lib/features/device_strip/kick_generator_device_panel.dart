@@ -11,6 +11,7 @@ import 'kick_model_ui_registry.dart';
 import 'rotary_knob.dart';
 
 class KickGeneratorDevicePanel extends StatelessWidget {
+  static const registeredDeviceTypes = ['kick_generator'];
   const KickGeneratorDevicePanel({
     super.key,
     required this.device,

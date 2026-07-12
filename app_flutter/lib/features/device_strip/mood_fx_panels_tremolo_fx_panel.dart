@@ -1,6 +1,7 @@
 part of 'mood_fx_panels.dart';
 
 class TremoloFxPanel extends StatelessWidget {
+  static const registeredDeviceTypes = ['tremolo'];
   static const accent = Color(0xFF4ADE80);
   static const containerTabs = <DeviceTabSpec>[];
   static const double designWidth = 216;

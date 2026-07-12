@@ -30,6 +30,7 @@ part 'wavetable_synth_device_panel_private_wavetable_synth_device_panel_state_ad
 
 /// 3-tab wavetable synth panel: OSC · FILTER · ENV
 class WavetableSynthDevicePanel extends StatefulWidget {
+  static const registeredDeviceTypes = ['wavetable_synth'];
   const WavetableSynthDevicePanel({
     super.key,
     required this.device,
