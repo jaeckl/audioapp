@@ -45,11 +45,13 @@ void main() {
   );
 
   test('DeviceChainLayout sums slot and separator widths', () {
-    final width = DeviceChainLayout.contentWidth(track, DeviceStripSlotDensity.fullscreen);
+    final width = DeviceChainLayout.contentWidth(
+        track, DeviceStripSlotDensity.fullscreen);
     expect(width, greaterThan(900));
   });
 
-  testWidgets('DeviceChainScreen shows close button and minimap', (tester) async {
+  testWidgets('DeviceChainScreen shows close button and minimap',
+      (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: DeviceChainScreen(
@@ -75,7 +77,8 @@ void main() {
     expect(find.text('Swipe horizontally'), findsNothing);
   });
 
-  testWidgets('DeviceChainScreen library button opens fly-in overlay', (tester) async {
+  testWidgets('DeviceChainScreen library button opens fly-in overlay',
+      (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: DeviceChainScreen(
@@ -96,7 +99,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Open sample library'));
+    await tester.tap(find.byTooltip('Device presets').first);
     await tester.pumpAndSettle();
 
     expect(find.byType(LibraryFlyInPanel), findsOneWidget);

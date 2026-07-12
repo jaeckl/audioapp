@@ -102,7 +102,11 @@ void main() {
                           {
                             'id': 'dev-1',
                             'type': 'simple_sampler',
-                            'parameters': {'gain': 1.0, 'sampleId': '', 'bypass': false},
+                            'parameters': {
+                              'gain': 1.0,
+                              'sampleId': '',
+                              'bypass': false
+                            },
                           },
                           {
                             'id': 'dev-2',
@@ -182,7 +186,11 @@ void main() {
                     {
                       'id': 'dev-1',
                       'type': 'simple_sampler',
-                      'parameters': {'gain': 1.0, 'sampleId': '', 'bypass': false},
+                      'parameters': {
+                        'gain': 1.0,
+                        'sampleId': '',
+                        'bypass': false
+                      },
                     },
                     {
                       'id': 'dev-3',
@@ -216,7 +224,11 @@ void main() {
                     {
                       'id': 'dev-1',
                       'type': 'simple_sampler',
-                      'parameters': {'gain': 1.0, 'sampleId': '', 'bypass': false},
+                      'parameters': {
+                        'gain': 1.0,
+                        'sampleId': '',
+                        'bypass': false
+                      },
                     },
                     {
                       'id': 'dev-2',
@@ -254,7 +266,11 @@ void main() {
                     {
                       'id': 'dev-1',
                       'type': 'simple_sampler',
-                      'parameters': {'gain': 1.0, 'sampleId': '', 'bypass': false},
+                      'parameters': {
+                        'gain': 1.0,
+                        'sampleId': '',
+                        'bypass': false
+                      },
                     },
                     {
                       'id': 'dev-2',
@@ -297,7 +313,11 @@ void main() {
                     {
                       'id': 'dev-1',
                       'type': 'simple_sampler',
-                      'parameters': {'gain': 1.0, 'sampleId': '', 'bypass': false},
+                      'parameters': {
+                        'gain': 1.0,
+                        'sampleId': '',
+                        'bypass': false
+                      },
                     },
                     {
                       'id': 'dev-2',
@@ -331,10 +351,14 @@ void main() {
             },
           };
         case 'saveProject':
-          return {'ok': true, 'uri': 'file:///tmp/project.audioapp.zip', 'cancelled': false};
+          return {
+            'ok': true,
+            'uri': 'file:///tmp/project.audioapp.zip',
+            'cancelled': false
+          };
         case 'loadExampleProject':
-          lastExampleProjectJson =
-              (call.arguments as Map<dynamic, dynamic>?)?['projectJson'] as String?;
+          lastExampleProjectJson = (call.arguments
+              as Map<dynamic, dynamic>?)?['projectJson'] as String?;
           return {
             'ok': true,
             'snapshot': {
@@ -428,7 +452,8 @@ void main() {
         case 'setPitchBend':
           lastPitchBend = (call.arguments as Map?)?['bend'] as double?;
           final v = lastPitchBend;
-          if (v != null && (peakPitchBend == null || v.abs() > peakPitchBend!.abs())) {
+          if (v != null &&
+              (peakPitchBend == null || v.abs() > peakPitchBend!.abs())) {
             peakPitchBend = v;
           }
           return {'ok': true};
@@ -459,7 +484,11 @@ void main() {
                     {
                       'id': 'dev-1',
                       'type': 'simple_sampler',
-                      'parameters': {'gain': 1.0, 'sampleId': '', 'bypass': false},
+                      'parameters': {
+                        'gain': 1.0,
+                        'sampleId': '',
+                        'bypass': false
+                      },
                     },
                   ],
                   'midiClips': [
@@ -492,7 +521,8 @@ void main() {
         .setMockMethodCallHandler(channel, null);
   });
 
-  testWidgets('DAW shell shows transport header and bottom nav', (tester) async {
+  testWidgets('DAW shell shows transport header and bottom nav',
+      (tester) async {
     await tester.pumpWidget(
       MaterialApp(home: DawShell(bridge: EngineBridge(channel: channel))),
     );
@@ -511,7 +541,8 @@ void main() {
     expect(find.byIcon(Icons.play_arrow), findsOneWidget);
   });
 
-  testWidgets('welcome hub waits for explicit project creation', (tester) async {
+  testWidgets('welcome hub waits for explicit project creation',
+      (tester) async {
     mockRecentProjects = true;
     await tester.pumpWidget(MaterialApp(
       home: DawShell(
@@ -547,7 +578,8 @@ void main() {
     expect(find.byTooltip('Loaded Track'), findsOneWidget);
   });
 
-  testWidgets('welcome hub shows non-deletable example projects', (tester) async {
+  testWidgets('welcome hub shows non-deletable example projects',
+      (tester) async {
     await tester.pumpWidget(MaterialApp(
       home: DawShell(
         bridge: EngineBridge(channel: channel),
@@ -584,7 +616,8 @@ void main() {
     expect(lastSelectedTrackId, 'track-2');
     expect(
       find.byWidgetPredicate(
-        (widget) => widget is DeviceStripSlot && widget.device.id == 'dev-track-2-osc',
+        (widget) =>
+            widget is DeviceStripSlot && widget.device.id == 'dev-track-2-osc',
       ),
       findsOneWidget,
     );
@@ -618,7 +651,8 @@ void main() {
     expect(find.text('Select a track to show devices'), findsNothing);
   });
 
-  testWidgets('Adding track shows no devices initially, can insert a device', (tester) async {
+  testWidgets('Adding track shows no devices initially, can insert a device',
+      (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -675,7 +709,8 @@ void main() {
     expect(find.byIcon(Icons.folder_outlined), findsOneWidget);
   });
 
-  testWidgets('Tapping MIDI clip opens piano roll and close returns', (tester) async {
+  testWidgets('Tapping MIDI clip opens piano roll and close returns',
+      (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -700,7 +735,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Track 1'), findsOneWidget);
-    expect(find.text('4 bars'), findsOneWidget);
+    expect(find.text('1 bar · MIDI'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.arrow_back));
     await tester.pump();

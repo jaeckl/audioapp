@@ -25,7 +25,7 @@ void main() {
     );
 
     expect(find.byIcon(Icons.power_settings_new), findsOneWidget);
-    expect(find.byIcon(Icons.library_music_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.folder_outlined), findsOneWidget);
     expect(find.text('SAMPLER'), findsOneWidget);
   });
 

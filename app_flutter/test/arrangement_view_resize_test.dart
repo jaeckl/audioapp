@@ -33,59 +33,73 @@ ProjectSnapshot _baseSnapshot({
 }
 
 List<TrackSnapshot> _threeTracksAllClips() => [
-  const TrackSnapshot(
-    id: 'track-midi',
-    name: 'MIDI Track',
-    devices: [],
-    midiClips: [
-      MidiClipSnapshot(
-        id: 'midi-clip-1', startBeat: 0, lengthBeats: 4, notes: [],
+      const TrackSnapshot(
+        id: 'track-midi',
+        name: 'MIDI Track',
+        devices: [],
+        midiClips: [
+          MidiClipSnapshot(
+            id: 'midi-clip-1',
+            startBeat: 0,
+            lengthBeats: 4,
+            notes: [],
+          ),
+        ],
+        sampleClips: [],
+        automationClips: [],
       ),
-    ],
-    sampleClips: [],
-    automationClips: [],
-  ),
-  const TrackSnapshot(
-    id: 'track-sample',
-    name: 'Sample Track',
-    devices: [],
-    midiClips: [],
-    sampleClips: [
-      SampleClipSnapshot(
-        id: 'sample-clip-1', sampleId: 'sample-1', sampleName: 'Kick',
-        startBeat: 0, lengthBeats: 4, waveformPeaks: [],
+      const TrackSnapshot(
+        id: 'track-sample',
+        name: 'Sample Track',
+        devices: [],
+        midiClips: [],
+        sampleClips: [
+          SampleClipSnapshot(
+            id: 'sample-clip-1',
+            sampleId: 'sample-1',
+            sampleName: 'Kick',
+            startBeat: 0,
+            lengthBeats: 4,
+            waveformPeaks: [],
+          ),
+        ],
+        automationClips: [],
       ),
-    ],
-    automationClips: [],
-  ),
-  const TrackSnapshot(
-    id: 'track-auto',
-    name: 'Automation Track',
-    devices: [],
-    midiClips: [],
-    sampleClips: [],
-    automationClips: [
-      AutomationClipSnapshot(
-        id: 'auto-clip-1', homeTrackId: 'track-auto',
-        startBeat: 0, lengthBeats: 4, deviceId: '', paramId: '', points: [],
+      const TrackSnapshot(
+        id: 'track-auto',
+        name: 'Automation Track',
+        devices: [],
+        midiClips: [],
+        sampleClips: [],
+        automationClips: [
+          AutomationClipSnapshot(
+            id: 'auto-clip-1',
+            homeTrackId: 'track-auto',
+            startBeat: 0,
+            lengthBeats: 4,
+            deviceId: '',
+            paramId: '',
+            points: [],
+          ),
+        ],
       ),
-    ],
-  ),
-];
+    ];
 
 List<TrackSnapshot> _twoAdjacentMidiClips() => [
-  const TrackSnapshot(
-    id: 'track-midi',
-    name: 'MIDI Track',
-    devices: [],
-    midiClips: [
-      MidiClipSnapshot(id: 'midi-clip-1', startBeat: 0, lengthBeats: 4, notes: []),
-      MidiClipSnapshot(id: 'midi-clip-2', startBeat: 8, lengthBeats: 4, notes: []),
-    ],
-    sampleClips: [],
-    automationClips: [],
-  ),
-];
+      const TrackSnapshot(
+        id: 'track-midi',
+        name: 'MIDI Track',
+        devices: [],
+        midiClips: [
+          MidiClipSnapshot(
+              id: 'midi-clip-1', startBeat: 0, lengthBeats: 4, notes: []),
+          MidiClipSnapshot(
+              id: 'midi-clip-2', startBeat: 8, lengthBeats: 4, notes: []),
+        ],
+        sampleClips: [],
+        automationClips: [],
+      ),
+    ];
 
 class _CommitLog {
   final List<({String clipId, double lengthBeats})> commits = [];
@@ -103,6 +117,7 @@ Future<_CommitLog> _pumpArrangement(
   required ProjectSnapshot snapshot,
   double width = 1600,
   double height = 1200,
+  bool snapClipsEnabled = true,
 }) async {
   final log = _CommitLog();
 
@@ -125,7 +140,8 @@ Future<_CommitLog> _pumpArrangement(
           onPlayRequested: () {},
           onStopRequested: () {},
           onPlayheadSeek: (_) {},
-          onLoopRegionChanged: ({required startBeat, required endBeat}) async {},
+          onLoopRegionChanged: (
+              {required startBeat, required endBeat}) async {},
           onClipTap: (_, __) {},
           onSampleClipTap: (_, __) {},
           onMoveClip: ({
@@ -134,6 +150,7 @@ Future<_CommitLog> _pumpArrangement(
             required startBeat,
           }) async {},
           onResizeClipCommit: log.record,
+          snapClipsEnabled: snapClipsEnabled,
         ),
       ),
     ),
@@ -161,7 +178,8 @@ int _handleIndexFor(String clipId) {
 }
 
 Finder _handleFinder(String clipId) {
-  final list = find.byWidgetPredicate((widget) => widget.runtimeType.toString() == '_ClipResizeHandle');
+  final list = find.byWidgetPredicate(
+      (widget) => widget.runtimeType.toString() == '_ClipResizeHandle');
   final idx = _handleIndexFor(clipId);
   return list.at(idx);
 }
@@ -294,7 +312,11 @@ void main() {
 
   testWidgets('F4: NoBeatGridSnap — drag 1.25 beats keeps fractional length',
       (tester) async {
-    await _pumpArrangement(tester, snapshot: _baseSnapshot());
+    await _pumpArrangement(
+      tester,
+      snapshot: _baseSnapshot(),
+      snapClipsEnabled: false,
+    );
 
     _triggerStart(tester, 'midi-clip-1');
     await tester.pump();
@@ -423,8 +445,7 @@ void main() {
     expect(log.commits.first.lengthBeats, 6.0);
   });
 
-  testWidgets('F11: SampleClipResize — handle moves + commits',
-      (tester) async {
+  testWidgets('F11: SampleClipResize — handle moves + commits', (tester) async {
     final log = await _pumpArrangement(tester, snapshot: _baseSnapshot());
 
     _triggerStart(tester, 'sample-clip-1');

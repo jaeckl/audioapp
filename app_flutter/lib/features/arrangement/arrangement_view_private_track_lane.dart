@@ -80,7 +80,8 @@ class _TrackLane extends StatelessWidget {
   final void Function(String clipId)? onClipMenu;
   final String? automationLinkClipId;
   final void Function(String clipId)? onAutomationLinkToggle;
-  final void Function(String trackId, AutomationClipSnapshot clip)? onAutomationClipDoubleTap;
+  final void Function(String trackId, AutomationClipSnapshot clip)?
+      onAutomationClipDoubleTap;
 
   /// Smallest start beat > [clipStartBeat] among all other clips on this track.
   /// `double.infinity` if none.
@@ -88,7 +89,10 @@ class _TrackLane extends StatelessWidget {
     final starts = ArrangementTimelineMetrics.clipIntervalsForTrackExcluding(
       track,
       excludeClipId: excludeClipId,
-    ).where((interval) => interval.start > clipStartBeat).map((interval) => interval.start).toList()
+    )
+        .where((interval) => interval.start > clipStartBeat)
+        .map((interval) => interval.start)
+        .toList()
       ..sort();
     return starts.isEmpty ? double.infinity : starts.first;
   }
@@ -102,7 +106,8 @@ class _TrackLane extends StatelessWidget {
     ];
   }
 
-  Widget _buildResizeHandle(BuildContext context, _ResizeClipRef clip, double laneHeight) {
+  Widget _buildResizeHandle(
+      BuildContext context, _ResizeClipRef clip, double laneHeight) {
     final preview = previewLengthFor(clip.id);
     final renderedPx = preview != null
         ? (preview * pixelsPerBeat)
@@ -121,7 +126,10 @@ class _TrackLane extends StatelessWidget {
       // the LEFT (into the clip body) so the hit zone is forgiving
       // without the bar ever appearing to extend past the clip's
       // right edge.
-      left: clip.startBeat * pixelsPerBeat + renderedPx - kResizeHandleHitWidth,
+      left:
+          (clip.startBeat * pixelsPerBeat + renderedPx - kResizeHandleHitWidth)
+              .clamp(0.0, double.infinity)
+              .toDouble(),
       top: 4,
       width: kResizeHandleHitWidth,
       height: laneHeight - 8,
@@ -133,7 +141,8 @@ class _TrackLane extends StatelessWidget {
           startBeat: clip.startBeat,
           lengthBeats: clip.lengthBeats,
           globalPosition: details.globalPosition,
-          adjacentClipStartBeat: _adjacentClipStartBeat(clip.id, clip.startBeat),
+          adjacentClipStartBeat:
+              _adjacentClipStartBeat(clip.id, clip.startBeat),
           kind: clip.kind,
         ),
         onResizeUpdate: onResizeClipUpdate,
@@ -186,25 +195,34 @@ class _TrackLane extends StatelessWidget {
                     pixelsPerBeat: pixelsPerBeat,
                     gapEndBeat: ArrangementTimelineMetrics.gapEndBeatForClip(
                       clipStartBeat: clip.startBeat,
-                      otherClipStarts: _clipStarts.where((s) => s != clip.startBeat).toList(),
+                      otherClipStarts: _clipStarts
+                          .where((s) => s != clip.startBeat)
+                          .toList(),
                       timelineEndBeat: timelineEndBeat,
                     ),
                     viewportWidthPx: viewportWidthPx,
                   ),
                   height: laneHeight - 8,
                   child: _SampleClipBlock(
-                    clip: previewLengthFor(clip.id) != null ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!) : clip,
+                    clip: previewLengthFor(clip.id) != null
+                        ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!)
+                        : clip,
                     highlighted: draggingClipId == clip.id,
                     onTap: () => onSampleClipTap(track.id, clip),
-                    onDoubleTap: onClipMenu == null ? null : () => onClipMenu!(clip.id),
+                    onDoubleTap:
+                        onClipMenu == null ? null : () => onClipMenu!(clip.id),
                     onDragStart: (globalPosition) => onClipDragStart(
                       trackId: track.id,
                       clipId: clip.id,
-                      lengthBeats: previewLengthFor(clip.id) ?? clip.lengthBeats,
+                      lengthBeats:
+                          previewLengthFor(clip.id) ?? clip.lengthBeats,
                       isMidi: false,
                       originalStartBeat: clip.startBeat,
                       globalPosition: globalPosition,
-                      sampleClip: previewLengthFor(clip.id) != null ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!) : clip,
+                      sampleClip: previewLengthFor(clip.id) != null
+                          ? clip.copyWith(
+                              lengthBeats: previewLengthFor(clip.id)!)
+                          : clip,
                     ),
                     onDragUpdate: onSampleClipDragUpdate,
                     onDragEnd: onSampleClipDragEnd,
@@ -215,26 +233,38 @@ class _TrackLane extends StatelessWidget {
                 Positioned(
                   left: clip.startBeat * pixelsPerBeat,
                   top: 4,
-                  width: (previewLengthFor(clip.id) ?? clip.lengthBeats) * pixelsPerBeat,
+                  width: (previewLengthFor(clip.id) ?? clip.lengthBeats) *
+                      pixelsPerBeat,
                   height: laneHeight - 8,
                   child: _MidiClipBlock(
-                    clip: previewLengthFor(clip.id) != null || liveMidiPreviewNotes[clip.id] != null
+                    clip: previewLengthFor(clip.id) != null ||
+                            liveMidiPreviewNotes[clip.id] != null
                         ? clip.copyWith(
-                            lengthBeats: previewLengthFor(clip.id) ?? clip.lengthBeats,
+                            lengthBeats:
+                                previewLengthFor(clip.id) ?? clip.lengthBeats,
                             notes: liveMidiPreviewNotes[clip.id],
                           )
                         : clip,
                     highlighted: draggingClipId == clip.id,
-                    onTap: liveMidiPreviewClips.any((c) => c.id == clip.id) ? () {} : () => onClipTap(track.id, clip),
-                    onDoubleTap: onClipMenu == null || liveMidiPreviewClips.any((c) => c.id == clip.id) ? null : () => onClipMenu!(clip.id),
+                    onTap: liveMidiPreviewClips.any((c) => c.id == clip.id)
+                        ? () {}
+                        : () => onClipTap(track.id, clip),
+                    onDoubleTap: onClipMenu == null ||
+                            liveMidiPreviewClips.any((c) => c.id == clip.id)
+                        ? null
+                        : () => onClipMenu!(clip.id),
                     onDragStart: (details) => onClipDragStart(
                       trackId: track.id,
                       clipId: clip.id,
-                      lengthBeats: previewLengthFor(clip.id) ?? clip.lengthBeats,
+                      lengthBeats:
+                          previewLengthFor(clip.id) ?? clip.lengthBeats,
                       isMidi: true,
                       originalStartBeat: clip.startBeat,
                       globalPosition: details.globalPosition,
-                      midiClip: previewLengthFor(clip.id) != null ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!) : clip,
+                      midiClip: previewLengthFor(clip.id) != null
+                          ? clip.copyWith(
+                              lengthBeats: previewLengthFor(clip.id)!)
+                          : clip,
                     ),
                     onDragUpdate: onClipDragUpdate,
                     onDragEnd: onClipDragEnd,
@@ -245,23 +275,35 @@ class _TrackLane extends StatelessWidget {
                 Positioned(
                   left: clip.startBeat * pixelsPerBeat,
                   top: 4,
-                  width: (previewLengthFor(clip.id) ?? clip.lengthBeats) * pixelsPerBeat,
+                  width: (previewLengthFor(clip.id) ?? clip.lengthBeats) *
+                      pixelsPerBeat,
                   height: laneHeight - 8,
                   child: _AutomationClipBlock(
-                    clip: previewLengthFor(clip.id) != null ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!) : clip,
+                    clip: previewLengthFor(clip.id) != null
+                        ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!)
+                        : clip,
                     highlighted: draggingClipId == clip.id,
                     linkActive: automationLinkClipId == clip.id,
-                    onLinkToggle: onAutomationLinkToggle == null ? null : () => onAutomationLinkToggle!(clip.id),
-                    onTap: onAutomationClipDoubleTap == null ? null : () => onAutomationClipDoubleTap!(track.id, clip),
-                    onDoubleTap: onClipMenu == null ? null : () => onClipMenu!(clip.id),
+                    onLinkToggle: onAutomationLinkToggle == null
+                        ? null
+                        : () => onAutomationLinkToggle!(clip.id),
+                    onTap: onAutomationClipDoubleTap == null
+                        ? null
+                        : () => onAutomationClipDoubleTap!(track.id, clip),
+                    onDoubleTap:
+                        onClipMenu == null ? null : () => onClipMenu!(clip.id),
                     onDragStart: (details) => onClipDragStart(
                       trackId: track.id,
                       clipId: clip.id,
-                      lengthBeats: previewLengthFor(clip.id) ?? clip.lengthBeats,
+                      lengthBeats:
+                          previewLengthFor(clip.id) ?? clip.lengthBeats,
                       isMidi: false,
                       originalStartBeat: clip.startBeat,
                       globalPosition: details.globalPosition,
-                      automationClip: previewLengthFor(clip.id) != null ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!) : clip,
+                      automationClip: previewLengthFor(clip.id) != null
+                          ? clip.copyWith(
+                              lengthBeats: previewLengthFor(clip.id)!)
+                          : clip,
                     ),
                     onDragUpdate: onClipDragUpdate,
                     onDragEnd: onClipDragEnd,
@@ -279,9 +321,15 @@ class _TrackLane extends StatelessWidget {
 // `lengthBeats * pixelsPerBeat`, which is why MIDI/auto use beat-accurate
 // and sample uses [ArrangementTimelineMetrics.clipDisplayWidthPx].
               for (final clip in [
-                for (final c in track.sampleClips) _ResizeClipRef(c.id, c.startBeat, c.lengthBeats, ClipContentKind.sample),
-                for (final c in track.midiClips) _ResizeClipRef(c.id, c.startBeat, c.lengthBeats, ClipContentKind.midi),
-                for (final c in track.automationClips) _ResizeClipRef(c.id, c.startBeat, c.lengthBeats, ClipContentKind.automation),
+                for (final c in track.sampleClips)
+                  _ResizeClipRef(
+                      c.id, c.startBeat, c.lengthBeats, ClipContentKind.sample),
+                for (final c in track.midiClips)
+                  _ResizeClipRef(
+                      c.id, c.startBeat, c.lengthBeats, ClipContentKind.midi),
+                for (final c in track.automationClips)
+                  _ResizeClipRef(c.id, c.startBeat, c.lengthBeats,
+                      ClipContentKind.automation),
               ])
                 _buildResizeHandle(context, clip, laneHeight),
             ],
