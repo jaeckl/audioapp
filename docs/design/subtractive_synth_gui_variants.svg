@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1180" viewBox="0 0 1200 1180">
+  <defs>
+    <linearGradient id="header" x2="0" y2="1"><stop stop-color="#262635"/><stop offset="1" stop-color="#1a1a24"/></linearGradient>
+    <linearGradient id="body" x2="0" y2="1"><stop stop-color="#1a1a24"/><stop offset="1" stop-color="#14141e"/></linearGradient>
+    <linearGradient id="screen" x2="0" y2="1"><stop stop-color="#111119"/><stop offset="1" stop-color="#0b0b11"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000" flood-opacity=".45"/></filter>
+    <style>
+      .title{font:700 18px Inter,Arial,sans-serif;fill:#f2f2f5}.variant{font:700 13px Inter,Arial,sans-serif;fill:#a8a8b4;letter-spacing:1.4px}.label{font:700 8px Inter,Arial,sans-serif;fill:#777785;letter-spacing:.8px}.value{font:700 9px Inter,Arial,sans-serif;fill:#e8e8ec}.tab{font:700 9px Inter,Arial,sans-serif;fill:#898994}.active{fill:#f0a44a}.hint{font:500 11px Inter,Arial,sans-serif;fill:#8d8d99}.hair{stroke:#ffffff;stroke-opacity:.08}.accent{stroke:#f0a44a}.knobbg{fill:#101017;stroke:#3c3c48;stroke-width:3}.knobarc{fill:none;stroke:#f0a44a;stroke-width:3;stroke-linecap:round}.handle{stroke:#f5f5f8;stroke-width:2;stroke-linecap:round}
+    </style>
+    <g id="knob">
+      <circle class="knobbg" r="15"/><path d="M-12 9 A15 15 0 1 1 13 7" fill="none" stroke="#32323e" stroke-width="3" stroke-linecap="round"/><path class="knobarc" d="M-12 9 A15 15 0 0 1 8-13"/><path class="handle" d="M0 0 L7-10"/>
+    </g>
+    <g id="smallknob"><circle class="knobbg" r="12" stroke-width="2.5"/><path d="M-10 7 A12 12 0 1 1 10 6" fill="none" stroke="#32323e" stroke-width="2.5" stroke-linecap="round"/><path class="knobarc" stroke-width="2.5" d="M-10 7 A12 12 0 0 1 6-10"/><path class="handle" d="M0 0 L5-8"/></g>
+  </defs>
+  <rect width="1200" height="1180" fill="#0e0e14"/>
+  <text x="70" y="45" class="title">SUBTRACTIVE SYNTH — PANEL DIRECTIONS</text>
+  <text x="70" y="68" class="hint">Three variants built from the DAW element grammar · shown at the production 500 × 320 panel size</text>
+
+  <!-- Variant A -->
+  <g transform="translate(70 105)" filter="url(#shadow)">
+    <text y="-16" class="variant">A · FOCUSED PAGES</text>
+    <rect width="500" height="320" rx="7" fill="url(#body)" stroke="#ffffff" stroke-opacity=".10"/>
+    <rect width="4" height="320" rx="2" fill="#f0a44a"/>
+    <rect x="4" width="496" height="38" rx="6" fill="url(#header)"/>
+    <text x="18" y="24" class="title" font-size="12">SUBTRACTOR</text><circle cx="474" cy="19" r="4" fill="#f0a44a"/>
+    <g transform="translate(12 48)"><rect width="476" height="28" rx="4" fill="#111118"/>
+      <rect width="156" height="28" rx="4" fill="#2a251f" stroke="#f0a44a" stroke-opacity=".55"/><text x="78" y="18" text-anchor="middle" class="tab active">OSC</text>
+      <text x="238" y="18" text-anchor="middle" class="tab">FILTER</text><text x="398" y="18" text-anchor="middle" class="tab">AMP</text>
+    </g>
+    <g transform="translate(12 84)">
+      <rect width="278" height="150" rx="6" fill="url(#screen)" class="hair"/><text x="10" y="16" class="label">OSCILLATOR 1</text>
+      <path d="M20 85 C45 28 72 142 100 78 S155 25 185 83 235 126 258 66" fill="none" stroke="#f0a44a" stroke-width="2"/>
+      <path d="M16 115 H262M16 48 H262" class="hair"/><path d="M70 26 V135M140 26V135M210 26V135" class="hair"/>
+      <rect x="8" y="121" width="64" height="21" rx="3" fill="#2a251f" stroke="#f0a44a" stroke-opacity=".55"/><text x="40" y="135" text-anchor="middle" class="tab active">SAW</text>
+      <rect x="78" y="121" width="64" height="21" rx="3" fill="#181820"/><text x="110" y="135" text-anchor="middle" class="tab">SQUARE</text>
+      <rect x="148" y="121" width="58" height="21" rx="3" fill="#181820"/><text x="177" y="135" text-anchor="middle" class="tab">TRI</text>
+      <rect x="212" y="121" width="58" height="21" rx="3" fill="#181820"/><text x="241" y="135" text-anchor="middle" class="tab">SINE</text>
+      <g transform="translate(288)"><rect width="188" height="150" rx="6" fill="#17171f" class="hair"/><text x="10" y="16" class="label">VOICE</text>
+        <g transform="translate(42 58)"><use href="#knob"/><text y="31" text-anchor="middle" class="label">OCTAVE</text><text y="44" text-anchor="middle" class="value">0</text></g>
+        <g transform="translate(94 58)"><use href="#knob"/><text y="31" text-anchor="middle" class="label">SEMITONE</text><text y="44" text-anchor="middle" class="value">0</text></g>
+        <g transform="translate(146 58)"><use href="#knob"/><text y="31" text-anchor="middle" class="label">DETUNE</text><text y="44" text-anchor="middle" class="value">+4¢</text></g>
+        <rect x="12" y="116" width="78" height="23" rx="3" fill="#2a251f"/><text x="51" y="131" text-anchor="middle" class="tab active">SYNC</text><rect x="98" y="116" width="78" height="23" rx="3" fill="#111118"/><text x="137" y="131" text-anchor="middle" class="tab">PHASE</text>
+      </g>
+      <g transform="translate(0 158)"><rect width="476" height="66" rx="6" fill="#17171f" class="hair"/><text x="10" y="15" class="label">MIXER · SIGNAL FLOWS LEFT TO RIGHT</text>
+        <g transform="translate(76 35)"><use href="#smallknob"/><text y="27" text-anchor="middle" class="label">OSC 1</text></g><text x="112" y="39" class="active">＋</text>
+        <g transform="translate(150 35)"><use href="#smallknob"/><text y="27" text-anchor="middle" class="label">OSC 2</text></g><path d="M175 35H203" stroke="#f0a44a"/><path d="m199 31 6 4-6 4" fill="#f0a44a"/>
+        <g transform="translate(232 35)"><use href="#smallknob"/><text y="27" text-anchor="middle" class="label">NOISE</text></g><path d="M257 35H285" stroke="#f0a44a"/>
+        <g transform="translate(314 35)"><use href="#smallknob"/><text y="27" text-anchor="middle" class="label">RING</text></g><path d="M339 35H367" stroke="#f0a44a"/>
+        <rect x="374" y="22" width="88" height="26" rx="4" fill="#2a251f" stroke="#f0a44a" stroke-opacity=".5"/><text x="418" y="39" text-anchor="middle" class="tab active">TO FILTER ›</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Variant B -->
+  <g transform="translate(630 105)" filter="url(#shadow)">
+    <text y="-16" class="variant">B · SIGNAL FLOW</text><rect width="500" height="320" rx="7" fill="url(#body)" stroke="#ffffff" stroke-opacity=".10"/><rect width="4" height="320" rx="2" fill="#f0a44a"/><rect x="4" width="496" height="38" rx="6" fill="url(#header)"/><text x="18" y="24" class="title" font-size="12">SUBTRACTOR</text><text x="476" y="23" text-anchor="end" class="label">POLY 8</text>
+    <g transform="translate(12 48)"><text x="0" y="10" class="label">SOURCE</text><text x="170" y="10" class="label">SHAPE</text><text x="330" y="10" class="label">ARTICULATE</text>
+      <path d="M145 6H158M305 6H318" stroke="#f0a44a"/><path d="m155 2 6 4-6 4m160-8 6 4-6 4" fill="#f0a44a"/>
+      <rect y="18" width="148" height="226" rx="6" fill="#17171f" class="hair"/><rect x="160" y="18" width="148" height="226" rx="6" fill="#17171f" class="hair"/><rect x="320" y="18" width="156" height="226" rx="6" fill="#17171f" class="hair"/>
+      <rect x="8" y="28" width="132" height="58" rx="4" fill="url(#screen)"/><path d="M16 58 C30 32 45 78 60 55 S90 38 105 61 125 69 134 48" fill="none" stroke="#f0a44a" stroke-width="2"/>
+      <text x="12" y="102" class="label">OSC 1</text><g transform="translate(32 129)"><use href="#smallknob"/><text y="27" text-anchor="middle" class="label">PITCH</text></g><g transform="translate(75 129)"><use href="#smallknob"/><text y="27" text-anchor="middle" class="label">SHAPE</text></g><g transform="translate(118 129)"><use href="#smallknob"/><text y="27" text-anchor="middle" class="label">LEVEL</text></g>
+      <text x="12" y="174" class="label">OSC 2 + NOISE</text><g transform="translate(32 200)"><use href="#smallknob"/></g><g transform="translate(75 200)"><use href="#smallknob"/></g><g transform="translate(118 200)"><use href="#smallknob"/></g>
+      <rect x="168" y="28" width="132" height="58" rx="4" fill="url(#screen)"/><path d="M176 72 C205 72 205 40 234 40S263 72 292 72" fill="none" stroke="#f0a44a" stroke-width="2"/>
+      <rect x="168" y="94" width="40" height="20" rx="3" fill="#2a251f"/><text x="188" y="108" text-anchor="middle" class="tab active">LP24</text><rect x="212" y="94" width="40" height="20" rx="3" fill="#111118"/><text x="232" y="108" text-anchor="middle" class="tab">HP</text><rect x="256" y="94" width="44" height="20" rx="3" fill="#111118"/><text x="278" y="108" text-anchor="middle" class="tab">BAND</text>
+      <g transform="translate(192 148)"><use href="#knob"/><text y="31" text-anchor="middle" class="label">CUTOFF</text></g><g transform="translate(240 148)"><use href="#knob"/><text y="31" text-anchor="middle" class="label">RES</text></g><g transform="translate(282 148)"><use href="#smallknob"/><text y="27" text-anchor="middle" class="label">DRIVE</text></g><g transform="translate(192 211)"><use href="#smallknob"/><text y="27" text-anchor="middle" class="label">ENV</text></g><g transform="translate(240 211)"><use href="#smallknob"/><text y="27" text-anchor="middle" class="label">KEY</text></g><g transform="translate(282 211)"><use href="#smallknob"/><text y="27" text-anchor="middle" class="label">FM</text></g>
+      <rect x="328" y="28" width="140" height="74" rx="4" fill="url(#screen)"/><path d="M338 88 L350 88 366 48 390 68 420 68 456 88" fill="none" stroke="#f0a44a" stroke-width="2"/>
+      <text x="332" y="117" class="label">AMP ENVELOPE</text><g transform="translate(344 145)"><use href="#smallknob"/><text y="27" text-anchor="middle" class="label">A</text></g><g transform="translate(383 145)"><use href="#smallknob"/><text y="27" text-anchor="middle" class="label">D</text></g><g transform="translate(422 145)"><use href="#smallknob"/><text y="27" text-anchor="middle" class="label">S</text></g><g transform="translate(459 145)"><use href="#smallknob"/><text y="27" text-anchor="middle" class="label">R</text></g>
+      <rect x="328" y="185" width="64" height="22" rx="3" fill="#2a251f"/><text x="360" y="200" text-anchor="middle" class="tab active">POLY</text><rect x="400" y="185" width="68" height="22" rx="3" fill="#111118"/><text x="434" y="200" text-anchor="middle" class="tab">LEGATO</text><g transform="translate(360 228)"><use href="#smallknob"/><text y="27" text-anchor="middle" class="label">GLIDE</text></g><g transform="translate(436 228)"><use href="#smallknob"/><text y="27" text-anchor="middle" class="label">VELOCITY</text></g>
+    </g>
+  </g>
+
+  <!-- Variant C -->
+  <g transform="translate(350 515)" filter="url(#shadow)">
+    <text y="-16" class="variant">C · PERFORMANCE FIRST</text><rect width="500" height="320" rx="7" fill="url(#body)" stroke="#ffffff" stroke-opacity=".10"/><rect width="4" height="320" rx="2" fill="#f0a44a"/><rect x="4" width="496" height="38" rx="6" fill="url(#header)"/><text x="18" y="24" class="title" font-size="12">SUBTRACTOR</text><rect x="375" y="9" width="108" height="21" rx="3" fill="#111118"/><text x="429" y="23" text-anchor="middle" class="tab active">INIT PATCH  ▾</text>
+    <g transform="translate(12 48)"><rect width="476" height="118" rx="6" fill="url(#screen)" class="hair"/><text x="10" y="16" class="label">MACRO SHAPE</text>
+      <path d="M18 81 C65 18 105 103 150 60 S235 28 280 70 365 102 458 42" fill="none" stroke="#f0a44a" stroke-width="2"/><path d="M18 96H458" class="hair"/>
+      <g transform="translate(62 62)"><use href="#knob"/><text y="31" text-anchor="middle" class="label">CHARACTER</text></g><g transform="translate(175 62)"><use href="#knob"/><text y="31" text-anchor="middle" class="label">CUTOFF</text></g><g transform="translate(288 62)"><use href="#knob"/><text y="31" text-anchor="middle" class="label">MOVEMENT</text></g><g transform="translate(401 62)"><use href="#knob"/><text y="31" text-anchor="middle" class="label">SPACE</text></g>
+      <g transform="translate(0 128)"><rect width="476" height="116" rx="6" fill="#17171f" class="hair"/>
+        <g transform="translate(12 10)"><rect width="145" height="96" rx="5" fill="#14141c"/><text x="8" y="15" class="label">OSC BLEND</text><g transform="translate(34 49)"><use href="#knob"/><text y="31" text-anchor="middle" class="label">OSC 1</text></g><g transform="translate(78 49)"><use href="#knob"/><text y="31" text-anchor="middle" class="label">OSC 2</text></g><g transform="translate(121 49)"><use href="#smallknob"/><text y="27" text-anchor="middle" class="label">NOISE</text></g></g>
+        <g transform="translate(165 10)"><rect width="145" height="96" rx="5" fill="#14141c"/><text x="8" y="15" class="label">FILTER MOTION</text><g transform="translate(35 49)"><use href="#knob"/><text y="31" text-anchor="middle" class="label">RES</text></g><g transform="translate(80 49)"><use href="#knob"/><text y="31" text-anchor="middle" class="label">ENV</text></g><g transform="translate(122 49)"><use href="#smallknob"/><text y="27" text-anchor="middle" class="label">DRIVE</text></g></g>
+        <g transform="translate(318 10)"><rect width="146" height="96" rx="5" fill="#14141c"/><text x="8" y="15" class="label">VOICE</text><rect x="8" y="25" width="61" height="20" rx="3" fill="#2a251f"/><text x="38" y="39" text-anchor="middle" class="tab active">POLY</text><rect x="76" y="25" width="62" height="20" rx="3" fill="#111118"/><text x="107" y="39" text-anchor="middle" class="tab">MONO</text><g transform="translate(38 68)"><use href="#smallknob"/><text y="27" text-anchor="middle" class="label">GLIDE</text></g><g transform="translate(105 68)"><use href="#smallknob"/><text y="27" text-anchor="middle" class="label">SPREAD</text></g></g>
+      </g>
+    </g>
+  </g>
+
+  <g transform="translate(70 895)"><text class="variant">RECOMMENDATION</text><rect y="18" width="1060" height="205" rx="7" fill="#15151d" stroke="#ffffff" stroke-opacity=".08"/>
+    <rect x="18" y="38" width="6" height="76" rx="3" fill="#f0a44a"/><text x="42" y="58" class="title" font-size="14">A · Focused Pages</text><text x="42" y="80" class="hint">Best fit for the current implementation. Clear hierarchy, generous touch targets, and no hidden parameters.</text><text x="42" y="101" class="hint">Keep Osc / Filter / Amp pages; use one hero display, one primary action row, and one secondary group per page.</text>
+    <text x="42" y="141" class="label">B · SIGNAL FLOW</text><text x="210" y="141" class="hint">Fast overview and Bitwig-like causality, but denser on phones.</text><text x="42" y="171" class="label">C · PERFORMANCE FIRST</text><text x="210" y="171" class="hint">Excellent live surface; requires real macro mapping and a separate deep editor.</text>
+    <text x="42" y="203" class="hint">Rule shared by all variants: orange indicates value, selection, or routing—not decoration. Secondary panels stay neutral.</text>
+  </g>
+</svg>
