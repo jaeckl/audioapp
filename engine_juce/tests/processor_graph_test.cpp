@@ -93,6 +93,8 @@ int main() {
            graph.audioEdges[0].latencyCompensationSamples == 64 &&
            graph.audioEdges[1].latencyCompensationSamples == 0,
            "parallel inputs compile deterministic latency compensation");
+    expect(graph.maxLatencySamples == 96,
+           "latency budget is retained for the callback delay lines");
 
     parallel[0].sources[0].direction = GraphPortDirection::Input;
     graph = buildProcessorGraph(parallel);

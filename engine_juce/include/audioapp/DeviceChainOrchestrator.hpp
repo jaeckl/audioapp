@@ -41,6 +41,7 @@ struct DeviceChainOrchestrator {
         float* graphAudioLeft = nullptr;
         float* graphAudioRight = nullptr;
         int graphAudioStride = 0;
+        ProcessorGraphDelayLine* graphLatencyLines = nullptr;
         const MidiPlaybackNote* graphMidiNotes = nullptr;
         const int* graphMidiCounts = nullptr;
         int graphMidiStride = 0;

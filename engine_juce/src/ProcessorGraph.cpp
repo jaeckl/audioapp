@@ -86,6 +86,12 @@ ProcessorGraphSnapshot buildProcessorGraph(
                     edge.tapKind = candidate.tapKind;
                     graph.maxLatencySamples = std::max(
                         graph.maxLatencySamples, candidate.latencySamples);
+                    if (candidate.latencySamples > kMaxProcessorGraphLatencySamples) {
+                        graph.audioEdgeCount = 0;
+                        graph.midiEdgeCount = 0;
+                        graph.error = ProcessorGraphError::InvalidPort;
+                        return graph;
+                    }
                     if (!appendEdge(graph, edge)) {
                         graph.audioEdgeCount = 0;
                         graph.midiEdgeCount = 0;

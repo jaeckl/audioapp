@@ -550,9 +550,35 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                     edge.destinationDevice != deviceIndex) continue;
                 const float* sourceLeft = ctx.graphAudioLeft + edge.bufferSlot * ctx.graphAudioStride;
                 const float* sourceRight = ctx.graphAudioRight + edge.bufferSlot * ctx.graphAudioStride;
+                if (edge.latencyCompensationSamples == 0 || ctx.graphLatencyLines == nullptr) {
+                    for (int frame = 0; frame < numFrames; ++frame) {
+                        block.channelL[frame] = block.channelL[frame] * (1.0f - mix) + sourceLeft[frame] * mix;
+                        block.channelR[frame] = block.channelR[frame] * (1.0f - mix) + sourceRight[frame] * mix;
+                    }
+                    continue;
+                }
+                auto& delay = ctx.graphLatencyLines[edge.bufferSlot];
+                const uint16_t requestedDelay = std::min<uint16_t>(
+                    edge.latencyCompensationSamples, kMaxProcessorGraphLatencySamples);
+                if (delay.delaySamples != requestedDelay) {
+                    // A route shape changes only with an immutable graph swap.
+                    // Reset lazily here so the control thread never mutates
+                    // state owned by the audio callback.
+                    delay.left.fill(0.0f);
+                    delay.right.fill(0.0f);
+                    delay.delaySamples = requestedDelay;
+                    delay.writePosition = 0;
+                }
                 for (int frame = 0; frame < numFrames; ++frame) {
-                    block.channelL[frame] = block.channelL[frame] * (1.0f - mix) + sourceLeft[frame] * mix;
-                    block.channelR[frame] = block.channelR[frame] * (1.0f - mix) + sourceRight[frame] * mix;
+                    const uint16_t position = delay.writePosition;
+                    const float delayedLeft = delay.left[position];
+                    const float delayedRight = delay.right[position];
+                    delay.left[position] = sourceLeft[frame];
+                    delay.right[position] = sourceRight[frame];
+                    delay.writePosition = static_cast<uint16_t>(
+                        (position + 1) % requestedDelay);
+                    block.channelL[frame] = block.channelL[frame] * (1.0f - mix) + delayedLeft * mix;
+                    block.channelR[frame] = block.channelR[frame] * (1.0f - mix) + delayedRight * mix;
                 }
             }
         }

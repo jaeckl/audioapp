@@ -2189,6 +2189,7 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         ctx.graphAudioLeft = &graphAudioLeft[0][0];
         ctx.graphAudioRight = &graphAudioRight[0][0];
         ctx.graphAudioStride = kMaxFrames;
+        ctx.graphLatencyLines = graphLatencyLines_.data();
         ctx.graphMidiNotes = &routedMidi[0][0];
         ctx.graphMidiCounts = routedMidiCount;
         ctx.graphMidiStride = kMaxRoutedMidiNotes;

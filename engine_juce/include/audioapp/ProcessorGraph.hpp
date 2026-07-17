@@ -11,6 +11,8 @@ constexpr int kMaxProcessorGraphTracks = 8;
 constexpr int kMaxProcessorGraphSourcesPerTrack = 16;
 constexpr int kMaxProcessorGraphReceiversPerTrack = 16;
 constexpr int kMaxProcessorGraphEdges = 32;
+/// Bounded, allocation-free delay storage for route latency compensation.
+constexpr int kMaxProcessorGraphLatencySamples = 4096;
 constexpr uint8_t kGraphTrackMidiInput = 0xFF;
 
 enum class GraphSignalType : uint8_t {
@@ -75,6 +77,16 @@ struct ProcessorGraphEdge {
     uint16_t sourceLatencySamples = 0;
     uint16_t latencyCompensationSamples = 0;
     GraphTapKind tapKind = GraphTapKind::None;
+};
+
+/// Audio-thread-owned state for a compiled route delay. The compiler keeps the
+/// required delay on the immutable edge; this storage only carries samples
+/// between callback blocks and is never allocated or locked by the callback.
+struct ProcessorGraphDelayLine {
+    std::array<float, kMaxProcessorGraphLatencySamples> left{};
+    std::array<float, kMaxProcessorGraphLatencySamples> right{};
+    uint16_t delaySamples = 0;
+    uint16_t writePosition = 0;
 };
 
 /// Immutable playback description. Built on the control thread, then read
