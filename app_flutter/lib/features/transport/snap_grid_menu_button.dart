@@ -24,46 +24,38 @@ class _SnapGridMenuButton extends StatelessWidget {
     final tooltip =
         '${snapClipsEnabled ? 'Clip snap on' : 'Clip snap off'} · ${snapGridResolution.label}${snapGridTriplet ? ' triplet' : ''}';
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: TransportBarTheme.chipFill,
-        borderRadius: BorderRadius.circular(TransportBarTheme.cardRadius),
-        border: Border.all(color: TransportBarTheme.chipBorder),
+    return PopupMenuButton<void>(
+      tooltip: tooltip,
+      enabled: enabled,
+      padding: EdgeInsets.zero,
+      color: TransportBarTheme.menuBackground,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: const BorderSide(color: TransportBarTheme.chipBorder),
       ),
-      child: PopupMenuButton<void>(
-        tooltip: tooltip,
-        enabled: enabled,
-        padding: EdgeInsets.zero,
-        color: TransportBarTheme.menuBackground,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-          side: const BorderSide(color: TransportBarTheme.chipBorder),
-        ),
-        icon: Icon(
-          Icons.grid_4x4,
-          size: 20,
-          color: enabled
-              ? TransportBarTheme.textSecondary
-              : TransportBarTheme.textMuted,
-        ),
-        itemBuilder: (context) => [
-          PopupMenuItem<void>(
-            enabled: false,
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-            child: _SnapGridMenu(
-              snapClips: snapClipsEnabled,
-              resolution: snapGridResolution,
-              triplet: snapGridTriplet,
-              onSnapClipsChanged: (value) =>
-                  onSnapClipsEnabledChanged?.call(value),
-              onResolutionChanged: (value) =>
-                  onSnapGridResolutionChanged?.call(value),
-              onTripletChanged: (value) =>
-                  onSnapGridTripletChanged?.call(value),
-            ),
+      icon: Icon(
+        Icons.grid_4x4,
+        size: 20,
+        color: enabled
+            ? TransportBarTheme.textSecondary
+            : TransportBarTheme.textMuted,
+      ),
+      itemBuilder: (context) => [
+        PopupMenuItem<void>(
+          enabled: false,
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+          child: _SnapGridMenu(
+            snapClips: snapClipsEnabled,
+            resolution: snapGridResolution,
+            triplet: snapGridTriplet,
+            onSnapClipsChanged: (value) =>
+                onSnapClipsEnabledChanged?.call(value),
+            onResolutionChanged: (value) =>
+                onSnapGridResolutionChanged?.call(value),
+            onTripletChanged: (value) => onSnapGridTripletChanged?.call(value),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

@@ -24,7 +24,6 @@ abstract final class TransportBarTheme {
   static const double barPaddingH = 8;
   static const double cardGap = 4;
   static const double panelRadius = 14;
-  static const double cardRadius = 10;
   static const double cardInnerPaddingV = 2;
   static const double cardInnerPaddingH = 4;
   static const double statusIconSize = 16;

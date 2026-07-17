@@ -38,38 +38,31 @@ class _TransportBpmBoxState extends State<TransportBpmBox> {
 
     return SizedBox(
       width: TransportBarTheme.bpmBoxWidth,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: TransportBarTheme.chipFill,
-          borderRadius: BorderRadius.circular(TransportBarTheme.cardRadius),
-          border: Border.all(color: TransportBarTheme.chipBorder),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: TransportBarTheme.cardInnerPaddingH,
+          vertical: TransportBarTheme.cardInnerPaddingV,
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: TransportBarTheme.cardInnerPaddingH,
-            vertical: TransportBarTheme.cardInnerPaddingV,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('BPM', style: labelStyle),
-              Expanded(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onVerticalDragStart: widget.enabled ? _onDragStart : null,
-                  onVerticalDragUpdate: widget.enabled ? _onDragUpdate : null,
-                  child: Center(
-                    child: Text(
-                      '${widget.bpm}',
-                      textAlign: TextAlign.center,
-                      style: valueStyle,
-                    ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('BPM', style: labelStyle),
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onVerticalDragStart: widget.enabled ? _onDragStart : null,
+                onVerticalDragUpdate: widget.enabled ? _onDragUpdate : null,
+                child: Center(
+                  child: Text(
+                    '${widget.bpm}',
+                    textAlign: TextAlign.center,
+                    style: valueStyle,
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
