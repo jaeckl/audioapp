@@ -2,6 +2,7 @@ package com.audioapp.daw
 
 import android.content.Context
 import android.net.Uri
+import android.provider.DocumentsContract
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -67,17 +68,32 @@ object ProjectUriStore {
      */
     fun loadAccessibleRecentProjects(context: Context): List<RecentProject> {
         val persistedReadUris = context.contentResolver.persistedUriPermissions
-            .asSequence()
             .filter { it.isReadPermission }
-            .map { it.uri.toString() }
-            .toSet()
+            .map { it.uri }
         val allProjects = loadRecentProjects(context)
-        val accessible = allProjects.filter { it.uri in persistedReadUris }
+        val accessible = allProjects.filter { project ->
+            val projectUri = Uri.parse(project.uri)
+            persistedReadUris.any { grantUri -> uriGrantCovers(grantUri, projectUri) }
+        }
         if (accessible.size != allProjects.size) {
             writeRecentProjects(context, accessible)
         }
         return accessible
     }
+
+    internal fun uriGrantCovers(grantUri: Uri, documentUri: Uri): Boolean {
+        if (grantUri == documentUri) return true
+        return try {
+            val treeId = DocumentsContract.getTreeDocumentId(grantUri)
+            val documentId = DocumentsContract.getDocumentId(documentUri)
+            documentIdWithinTree(treeId, documentId)
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    internal fun documentIdWithinTree(treeId: String, documentId: String): Boolean =
+        documentId == treeId || documentId.startsWith("$treeId/")
 
     fun loadRecentProjects(context: Context): List<RecentProject> {
         val raw = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

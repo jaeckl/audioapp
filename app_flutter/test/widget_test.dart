@@ -356,6 +356,25 @@ void main() {
             'uri': 'file:///tmp/project.audioapp.zip',
             'cancelled': false
           };
+        case 'saveProjectToWorkspace':
+          return {
+            'ok': true,
+            'uri': 'content://projects/document/saved.audioapp.zip',
+          };
+        case 'getProjectWorkspaceEntries':
+          return {
+            'ok': true,
+            'workspaceUri': 'content://projects/tree/workspace',
+            'entries': [
+              {
+                'uri': 'content://projects/document/demo.audioapp.zip',
+                'name': 'Demo Project.audioapp.zip',
+                'directory': false,
+              },
+            ],
+          };
+        case 'loadWorkspaceProject':
+          continue loadProjectResponse;
         case 'loadExampleProject':
           lastExampleProjectJson = (call.arguments
               as Map<dynamic, dynamic>?)?['projectJson'] as String?;
@@ -761,9 +780,20 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save project'));
     await tester.pumpAndSettle();
+    expect(find.text('Save Project'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('project-workspace-save-here')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const ValueKey('project-workspace-name')), 'Saved Song');
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.pumpAndSettle();
     expect(find.textContaining('Saved project'), findsOneWidget);
 
     await tester.tap(find.text('Open project'));
+    await tester.pumpAndSettle();
+    expect(find.text('Projects'), findsOneWidget);
+    expect(find.text('Demo Project.audioapp.zip'), findsOneWidget);
+    await tester.tap(find.text('Demo Project.audioapp.zip'));
     await tester.pumpAndSettle();
     expect(find.byTooltip('Loaded Track'), findsOneWidget);
   });

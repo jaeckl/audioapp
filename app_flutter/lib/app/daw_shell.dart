@@ -37,6 +37,7 @@ import '../features/sample_editor/sample_editor_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/welcome/example_projects.dart';
 import '../features/welcome/welcome_hub.dart';
+import '../features/welcome/project_workspace_browser.dart';
 import '../features/transport/transport_bar.dart';
 import 'automation_recording_merge.dart';
 import 'automation_recording_session.dart';

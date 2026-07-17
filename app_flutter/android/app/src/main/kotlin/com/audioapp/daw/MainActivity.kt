@@ -28,6 +28,7 @@ class MainActivity : FlutterFragmentActivity() {
 
     private var pendingSaveResult: MethodChannel.Result? = null
     private var pendingLoadResult: MethodChannel.Result? = null
+    private var pendingWorkspaceResult: MethodChannel.Result? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var pendingImportResult: MethodChannel.Result? = null
     private var pendingExportResult: MethodChannel.Result? = null
@@ -50,6 +51,19 @@ class MainActivity : FlutterFragmentActivity() {
     private val openProjectArchive = registerForActivityResult(
         OpenProjectDocument(),
     ) { documentUri -> onLoadArchivePicked(documentUri) }
+
+    private val chooseProjectWorkspace = registerForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { treeUri ->
+        val result = pendingWorkspaceResult
+        pendingWorkspaceResult = null
+        if (treeUri == null) result?.success(mapOf("ok" to false, "cancelled" to true))
+        else {
+            ProjectArchiveStore.takeFolderUriPermission(this, treeUri)
+            ProjectUriStore.saveLastFolderUri(this, treeUri)
+            result?.success(mapOf("ok" to true, "uri" to treeUri.toString(), "cancelled" to false))
+        }
+    }
 
     private val openAudioSample = registerForActivityResult(
         ActivityResultContracts.OpenDocument(),
@@ -429,6 +443,65 @@ class MainActivity : FlutterFragmentActivity() {
                         }
                         "saveProject" -> launchSaveArchivePicker(result)
                         "loadProject" -> launchLoadArchivePicker(result)
+                        "chooseProjectWorkspace" -> {
+                            if (pendingWorkspaceResult != null || pendingSaveResult != null ||
+                                pendingLoadResult != null || pendingImportResult != null ||
+                                pendingExportResult != null
+                            ) {
+                                result.error("busy", "File picker already open", null)
+                            } else {
+                                pendingWorkspaceResult = result
+                                chooseProjectWorkspace.launch(ProjectUriStore.loadLastFolderUri(this))
+                            }
+                        }
+                        "getProjectWorkspaceEntries" -> {
+                            val folder = (call.arguments as? Map<*, *>)?.get("folderUri") as? String
+                            val root = folder?.let(Uri::parse) ?: ProjectUriStore.loadLastFolderUri(this)
+                            val entries = root?.let { ProjectArchiveStore.listWorkspaceEntries(this, it) }
+                                ?: emptyList()
+                            result.success(
+                                mapOf(
+                                    "ok" to true,
+                                    "workspaceUri" to ProjectUriStore.loadLastFolderUri(this)?.toString(),
+                                    "entries" to entries.map { entry ->
+                                        mapOf(
+                                            "uri" to entry.documentUri.toString(),
+                                            "name" to entry.displayName,
+                                            "directory" to entry.isDirectory,
+                                        )
+                                    },
+                                ),
+                            )
+                        }
+                        "loadWorkspaceProject" -> {
+                            val uri = (call.arguments as? Map<*, *>)?.get("uri") as? String
+                            if (uri.isNullOrBlank()) {
+                                result.error("invalid_uri", "Project URI is missing", null)
+                            } else {
+                                loadArchive(Uri.parse(uri), result)
+                            }
+                        }
+                        "saveProjectToWorkspace" -> {
+                            val args = call.arguments as? Map<*, *>
+                            val folderUri = (args?.get("folderUri") as? String)?.let(Uri::parse)
+                                ?: ProjectUriStore.loadLastFolderUri(this)
+                            val name = args?.get("name") as? String
+                            if (folderUri == null || name.isNullOrBlank()) {
+                                result.error("invalid_destination", "Project folder or name is missing", null)
+                            } else {
+                                try {
+                                    val documentUri = ProjectArchiveStore.createProjectDocument(this, folderUri, name)
+                                    val archiveBytes = nativeBuildProjectArchiveBytes()
+                                    ProjectArchiveStore.writeArchiveBytes(this, documentUri, archiveBytes)
+                                    ProjectUriStore.saveLastDocumentUri(this, documentUri)
+                                    ProjectUriStore.recordRecentProject(this, documentUri, projectDisplayName(documentUri))
+                                    result.success(mapOf("ok" to true, "uri" to documentUri.toString()))
+                                } catch (e: Exception) {
+                                    Log.e(logTag, "Save project to workspace failed", e)
+                                    result.error("save_failed", e.message, null)
+                                }
+                            }
+                        }
                         "getRecentProjects" -> result.success(recentProjectsResult())
                         "loadRecentProject" -> {
                             val rawUri = (call.arguments as? Map<*, *>)?.get("uri") as? String

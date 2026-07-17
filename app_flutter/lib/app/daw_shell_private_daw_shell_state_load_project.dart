@@ -1,9 +1,14 @@
 part of 'daw_shell.dart';
 
 extension DawShellStateLoadprojectOperation on _DawShellState {
-Future<void> _loadProject() async {
+  Future<void> _loadProject() async {
     try {
-      final snapshot = await widget.bridge.loadProject();
+      final snapshot = await Navigator.of(context).push<ProjectSnapshot>(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => ProjectWorkspaceBrowser(bridge: widget.bridge),
+        ),
+      );
       if (!mounted) return;
       if (snapshot == null) {
         return;

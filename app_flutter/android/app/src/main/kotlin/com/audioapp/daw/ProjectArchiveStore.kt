@@ -27,8 +27,13 @@ object ProjectArchiveStore {
     const val DEFAULT_ARCHIVE_NAME = "project.audioapp.zip"
     const val ARCHIVE_MIME_TYPE = "application/zip"
     const val PROJECT_MIME_TYPE = "application/vnd.audioapp.project+zip"
-    /** MIME types accepted by the direct SAF Open picker. */
-    val OPEN_MIME_TYPES = arrayOf(ARCHIVE_MIME_TYPE, PROJECT_MIME_TYPE, "application/octet-stream")
+    /**
+     * The direct SAF Open picker deliberately has no MIME filter. Some Android
+     * document providers report `.audioapp.zip` as a vendor-specific or unknown
+     * MIME type, which makes a filtered picker appear empty. [readArchiveBytes]
+     * and the native archive loader validate the selected content instead.
+     */
+    val OPEN_MIME_TYPES = arrayOf("*/*")
     // (Reserved for inbound ACTION_VIEW follow-up;
     // no production load-path reader after VP-4)
     const val PROJECT_FILE_SUFFIX = ".audioapp.zip"
@@ -39,6 +44,81 @@ object ProjectArchiveStore {
         val sizeBytes: Long,
         val lastModifiedMillis: Long,
     )
+
+    data class WorkspaceEntry(
+        val documentUri: Uri,
+        val displayName: String,
+        val isDirectory: Boolean,
+    )
+
+    fun listWorkspaceEntries(context: Context, treeUri: Uri): List<WorkspaceEntry> {
+        val documentId = try {
+            DocumentsContract.getDocumentId(treeUri)
+        } catch (_: Exception) {
+            try {
+                DocumentsContract.getTreeDocumentId(treeUri)
+            } catch (_: Exception) {
+                return emptyList()
+            }
+        }
+        val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, documentId)
+        val projection = arrayOf(
+            DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+            DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+            DocumentsContract.Document.COLUMN_MIME_TYPE,
+        )
+        return try {
+            context.contentResolver.query(childrenUri, projection, null, null, null)?.use { cursor ->
+                buildList {
+                    while (cursor.moveToNext()) {
+                        val id = cursor.getString(0) ?: continue
+                        val name = cursor.getString(1) ?: "Untitled"
+                        val isDirectory = cursor.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR
+                        if (isDirectory || name.endsWith(PROJECT_FILE_SUFFIX, ignoreCase = true)) {
+                            add(
+                                WorkspaceEntry(
+                                    DocumentsContract.buildDocumentUriUsingTree(treeUri, id),
+                                    name,
+                                    isDirectory,
+                                ),
+                            )
+                        }
+                    }
+                }
+            } ?: emptyList()
+        } catch (e: Exception) {
+            Log.w("audioapp_daw", "Could not list workspace folder $treeUri", e)
+            emptyList()
+        }
+    }
+
+    @Throws(IOException::class)
+    fun createProjectDocument(context: Context, folderUri: Uri, requestedName: String): Uri {
+        val cleanName = requestedName.trim().ifBlank { "project" }
+        val fileName = if (cleanName.endsWith(PROJECT_FILE_SUFFIX, ignoreCase = true)) {
+            cleanName
+        } else {
+            "$cleanName$PROJECT_FILE_SUFFIX"
+        }
+        val existing = listWorkspaceEntries(context, folderUri)
+            .firstOrNull { !it.isDirectory && it.displayName.equals(fileName, ignoreCase = true) }
+        if (existing != null) return existing.documentUri
+        val parentDocumentUri = try {
+            DocumentsContract.getDocumentId(folderUri)
+            folderUri
+        } catch (_: Exception) {
+            DocumentsContract.buildDocumentUriUsingTree(
+                folderUri,
+                DocumentsContract.getTreeDocumentId(folderUri),
+            )
+        }
+        return DocumentsContract.createDocument(
+            context.contentResolver,
+            parentDocumentUri,
+            PROJECT_MIME_TYPE,
+            fileName,
+        ) ?: throw IOException("Could not create $fileName")
+    }
 
     /**
      * Enumerates the children of [treeUri] and returns those whose
@@ -107,20 +187,20 @@ object ProjectArchiveStore {
     }
 
     /**
-     * Takes a persistable read grant on [treeUri]. Required so that the
+     * Takes persistable read/write grants on [treeUri]. Required so that the
      * folder URI survives process death and reboots (without persistable
      * permission, the grant is session-scoped and `getChildDocuments`
      * would throw SecurityException after the process is killed).
      *
      * Failures are silent: a session grant is sufficient for the
-     * immediate folder enumeration call. Mirrors the pattern in
+     * immediate folder operation. Mirrors the pattern in
      * [persistDocumentUri].
      */
     fun takeFolderUriPermission(context: Context, treeUri: Uri) {
         try {
             context.contentResolver.takePersistableUriPermission(
                 treeUri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
             )
         } catch (_: SecurityException) {
             // Session grant is sufficient for one-shot enumeration.

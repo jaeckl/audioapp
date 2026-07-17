@@ -3,6 +3,7 @@ package com.audioapp.daw
 import android.content.Context
 import android.net.Uri
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -80,5 +81,21 @@ class ProjectUriStoreTest {
         val expectedFolderKey = "last_folder_uri"
         val expectedDocumentKey = "last_document_uri"
         assertNotEquals(expectedFolderKey, expectedDocumentKey)
+    }
+
+    @Test
+    fun treeGrant_coversDocumentsInsideWorkspaceOnly() {
+        assertTrue(
+            ProjectUriStore.documentIdWithinTree(
+                "primary:AudioApp",
+                "primary:AudioApp/Demos/song.audioapp.zip",
+            ),
+        )
+        assertFalse(
+            ProjectUriStore.documentIdWithinTree(
+                "primary:AudioApp",
+                "primary:Other/song.audioapp.zip",
+            ),
+        )
     }
 }

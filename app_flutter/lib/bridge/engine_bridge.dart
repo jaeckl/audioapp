@@ -123,8 +123,10 @@ part 'engine_bridge_load_project.dart';
 part 'engine_bridge_get_recent_projects.dart';
 part 'engine_bridge_load_recent_project.dart';
 part 'engine_bridge_load_example_project.dart';
+part 'engine_bridge_project_workspace.dart';
 part 'engine_bridge_invoke_for_snapshot.dart';
 part 'engine_bridge_snapshot_from_result.dart';
+
 /// Flutter ↔ native engine bridge (MethodChannel + EventChannels).
 class EngineBridge {
   EngineBridge({MethodChannel? channel, EventChannel? metersChannel})

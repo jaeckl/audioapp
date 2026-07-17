@@ -1,9 +1,17 @@
 part of 'daw_shell.dart';
 
 extension DawShellStateSaveprojectOperation on _DawShellState {
-Future<void> _saveProject() async {
+  Future<void> _saveProject() async {
     try {
-      final location = await widget.bridge.saveProject();
+      final location = await Navigator.of(context).push<String>(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => ProjectWorkspaceBrowser(
+            bridge: widget.bridge,
+            saveMode: true,
+          ),
+        ),
+      );
       if (!mounted) return;
       if (location == null) {
         return;
