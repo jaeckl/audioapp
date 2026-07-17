@@ -523,6 +523,10 @@ struct AutomationClipPlayback {
     float contentLengthBeats = 4.0f;
     int pointCount = 0;
     AutomationPointPlayback points[kMaxAutomationPlaybackPoints]{};
+    // Audio-thread-owned cursor. The containing playback snapshot is published
+    // immutably; only its active callback advances these mutable cache fields.
+    mutable uint16_t envelopeCursor = 0;
+    mutable float envelopeCursorBeat = -1.0f;
 };
 
 struct ModulationEdgePlayback {

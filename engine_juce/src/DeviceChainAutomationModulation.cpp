@@ -479,10 +479,9 @@ bool nodeNeedsSubBlocks(int deviceIndex,
                         int clipCount,
                         const ModulationEdgePlayback* modEdges,
                         int modEdgeCount) noexcept {
-    // Automation clips — check via deviceIndex
+    (void)deviceIndex; // spans are already compiled for one stable target
     if (clips != nullptr && clipCount > 0) {
         for (int a = 0; a < clipCount; ++a) {
-            if (clips[a].deviceIndex != static_cast<uint16_t>(deviceIndex)) continue;
             const uint16_t pid = clips[a].localParamId;
             // Encoded kind tag prevents CommonParam::Gain (0) from being
             // confused with SubtractiveSynth::FilterCutoff (0x3000), so
@@ -494,10 +493,8 @@ bool nodeNeedsSubBlocks(int deviceIndex,
             }
         }
     }
-    // Modulation edges — check via deviceIndex
     if (modEdges != nullptr && modEdgeCount > 0) {
         for (int e = 0; e < modEdgeCount; ++e) {
-            if (modEdges[e].deviceIndex != static_cast<uint16_t>(deviceIndex)) continue;
             const uint16_t pid = modEdges[e].localParamId;
             if (pid != kEncodedCommonGain &&
                 pid != kEncodedCommonPan &&

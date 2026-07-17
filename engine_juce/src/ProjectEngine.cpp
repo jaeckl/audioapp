@@ -3572,8 +3572,6 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
         }
         }
 
-        rebuildModEdgesLocked();
-
         // Resolve per-track automation clips
         snap.automationClipCount = 0;
         for (const auto& clip : automationClipStore_.clips()) {
@@ -3640,6 +3638,27 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
         }
 
         ++trackIndex;
+    }
+    rebuildModEdgesLocked();
+    for (int targetTrack = 0; targetTrack < trackIndex; ++targetTrack) {
+        auto& snapshot = trackPlayback_[targetTrack];
+        std::sort(snapshot.automationClips,
+                  snapshot.automationClips + snapshot.automationClipCount,
+                  [](const AutomationClipPlayback& left,
+                     const AutomationClipPlayback& right) {
+                      return left.targetNodeId < right.targetNodeId;
+                  });
+        std::sort(snapshot.modEdges,
+                  snapshot.modEdges + snapshot.modEdgeCount,
+                  [](const ModulationEdgePlayback& left,
+                     const ModulationEdgePlayback& right) {
+                      return left.targetNodeId < right.targetNodeId;
+                  });
+        for (int device = 0; device < snapshot.deviceCount; ++device)
+            if (auto* processor = snapshot.arena.get(device))
+                processor->bindCompiledParameterSpans(
+                    snapshot.automationClips, snapshot.automationClipCount,
+                    snapshot.modEdges, snapshot.modEdgeCount);
     }
     rebuildProcessorGraphLocked(trackIndex);
     reconcileTrackFreezeStaleLocked();
@@ -3821,6 +3840,23 @@ void ProjectEngine::rebuildModEdgesLocked() {
                     targetIndex = static_cast<uint16_t>(i);
                     targetKind = snap.devices[i].kind;
                     break;
+                }
+                if (snap.devices[i].kind == DeviceNodeKind::DrumMachine) {
+                    const auto playback =
+                        std::get<DrumMachineParams>(snap.devices[i].params).playback;
+                    if (playback != nullptr) {
+                        for (int note = 0; note < 128 && di < 0; ++note) {
+                            const auto& pad = playback->pads[note];
+                            for (int child = 0; child < pad.deviceCount; ++child) {
+                                if (pad.devices[child].deviceId != globalEdge.deviceId)
+                                    continue;
+                                di = i;
+                                targetIndex = pad.devices[child].automationTargetIndex;
+                                targetKind = pad.devices[child].kind;
+                                break;
+                            }
+                        }
+                    }
                 }
                 if (snap.devices[i].kind == DeviceNodeKind::Chain) {
                     const auto playback = std::get<ChainParams>(snap.devices[i].params).playback;

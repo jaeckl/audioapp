@@ -129,8 +129,12 @@ public:
             snapshot = audioapp::test::readProjectData(host);
             for (const auto& lfo : snapshot.lfos) {
                 if (lfo.id == lfoId1) {
-                    expectEquals(lfo.waveform, static_cast<int>(audioapp::LfoWaveform::Square));
-                    expectWithinAbsoluteError(lfo.rate, 2.0f, 0.001f);
+                    const auto* params = std::get_if<audioapp::LfoParams>(&lfo.params);
+                    expect(params != nullptr, "LFO record has typed LFO parameters");
+                    if (params != nullptr) {
+                        expectEquals(params->waveform, static_cast<int>(audioapp::LfoWaveform::Square));
+                        expectWithinAbsoluteError(params->rate, 2.0f, 0.001f);
+                    }
                 }
             }
 
@@ -195,8 +199,12 @@ public:
 
             expectEquals(static_cast<int>(parsed.lfos.size()), 1);
             expect(parsed.lfos[0].id == lfoId);
-            expectEquals(parsed.lfos[0].waveform, static_cast<int>(audioapp::LfoWaveform::Tri));
-            expectWithinAbsoluteError(parsed.lfos[0].rate, 3.5f, 0.001f);
+            const auto* parsedParams = std::get_if<audioapp::LfoParams>(&parsed.lfos[0].params);
+            expect(parsedParams != nullptr, "Round-tripped record has typed LFO parameters");
+            if (parsedParams != nullptr) {
+                expectEquals(parsedParams->waveform, static_cast<int>(audioapp::LfoWaveform::Tri));
+                expectWithinAbsoluteError(parsedParams->rate, 3.5f, 0.001f);
+            }
 
             expectEquals(static_cast<int>(parsed.modEdges.size()), 1);
             expectEquals(parsed.modEdges[0].lfoId, lfoId);

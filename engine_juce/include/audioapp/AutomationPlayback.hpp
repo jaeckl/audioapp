@@ -24,6 +24,8 @@ const ParamDescriptor* paramDescriptorsForKind(DeviceNodeKind kind, int& countOu
 float evaluateAutomationEnvelope(const AutomationPointPlayback* points,
                                  int pointCount,
                                  float beatInClip) noexcept;
+float evaluateAutomationEnvelopeCached(const AutomationClipPlayback& clip,
+                                       float beatInClip) noexcept;
 
 /// Apply an absolute automation value (0..1) to device params for block-rate DSP.
 void applyAutomationValue(DeviceVariantParams& params,

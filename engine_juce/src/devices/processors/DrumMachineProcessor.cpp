@@ -94,6 +94,18 @@ bool DrumMachineProcessor::setNestedCompiledParameter(uint64_t processorNodeId,
     return false;
 }
 
+void DrumMachineProcessor::bindCompiledParameterSpans(
+    const AutomationClipPlayback* clips, int clipCount,
+    const ModulationEdgePlayback* edges, int edgeCount) noexcept {
+    DeviceProcessor::bindCompiledParameterSpans(clips, clipCount, edges, edgeCount);
+    for (auto& runtime : pads_) {
+        const int childCount = playback_ ? playback_->pads[runtime.padIndex].deviceCount : 0;
+        for (int child = 0; runtime.arena && child < childCount; ++child)
+            if (auto* processor = runtime.arena->get(child))
+                processor->bindCompiledParameterSpans(clips, clipCount, edges, edgeCount);
+    }
+}
+
 bool DrumMachineProcessor::updateDrumPadParameter(
     int note, std::string_view parameterId, float value) noexcept {
     if (playback_ == nullptr || note < 0 || note >= 128) return false;
@@ -177,28 +189,10 @@ void DrumMachineProcessor::process(AudioBlock& block, ProcessContext& ctx) noexc
         sub.graphTapRuntimeCount = ctx.graphTapRuntimeCount;
         sub.compiledDeviceOrder = runtime.executionOrder.deviceIndices.data();
         sub.compiledDeviceOrderCount = runtime.executionOrder.count;
-        AutomationClipPlayback padAutomation[16]{};
-        int padAutomationCount = 0;
-        if (ctx.automationClips != nullptr) {
-            for (int a = 0; a < ctx.automationClipCount && padAutomationCount < 16; ++a) {
-                for (int child = 0; child < pad.deviceCount; ++child) {
-                    const auto targetId = stableDeviceSubgraphNodeId(
-                        pad.devices[child].deviceId,
-                        DeviceSubgraphNodeRole::DeviceProcessor);
-                    const bool targetMatches = ctx.automationClips[a].targetNodeId != 0
-                        ? ctx.automationClips[a].targetNodeId == targetId
-                        : ctx.automationClips[a].deviceIndex ==
-                            pad.devices[child].automationTargetIndex;
-                    if (!targetMatches) continue;
-                    padAutomation[padAutomationCount] = ctx.automationClips[a];
-                    padAutomation[padAutomationCount].deviceIndex = static_cast<uint16_t>(child);
-                    ++padAutomationCount;
-                    break;
-                }
-            }
-        }
-        sub.automationClips = padAutomationCount > 0 ? padAutomation : nullptr;
-        sub.automationClipCount = padAutomationCount;
+        sub.automationClips = ctx.automationClips;
+        sub.automationClipCount = ctx.automationClipCount;
+        sub.modEdges = ctx.modEdges;
+        sub.modEdgeCount = ctx.modEdgeCount;
         DeviceChainOrchestrator::processChain(sub);
 
         runtime.tailActive = false;

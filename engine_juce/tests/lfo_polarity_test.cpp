@@ -112,7 +112,10 @@ public:
                 bool found = false;
                 for (const auto& lfo : parsed.lfos) {
                     if (lfo.id == lfoId) {
-                        expectEquals(lfo.polarity, 0);
+                        const auto* params = std::get_if<audioapp::LfoParams>(&lfo.params);
+                        expect(params != nullptr, "LFO record has typed LFO parameters");
+                        if (params != nullptr)
+                            expectEquals(params->polarity, 0);
                         found = true;
                         break;
                     }
@@ -131,7 +134,10 @@ public:
                 bool found = false;
                 for (const auto& lfo : parsed.lfos) {
                     if (lfo.id == lfoId) {
-                        expectEquals(lfo.polarity, 1);
+                        const auto* params = std::get_if<audioapp::LfoParams>(&lfo.params);
+                        expect(params != nullptr, "LFO record has typed LFO parameters");
+                        if (params != nullptr)
+                            expectEquals(params->polarity, 1);
                         found = true;
                         break;
                     }
@@ -150,7 +156,10 @@ public:
                 bool found = false;
                 for (const auto& lfo : parsed.lfos) {
                     if (lfo.id == lfoId) {
-                        expectEquals(lfo.polarity, 2);
+                        const auto* params = std::get_if<audioapp::LfoParams>(&lfo.params);
+                        expect(params != nullptr, "LFO record has typed LFO parameters");
+                        if (params != nullptr)
+                            expectEquals(params->polarity, 2);
                         found = true;
                         break;
                     }

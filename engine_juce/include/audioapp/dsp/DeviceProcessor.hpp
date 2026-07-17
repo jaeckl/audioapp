@@ -68,6 +68,25 @@ public:
         return false;
     }
 
+    virtual void bindCompiledParameterSpans(
+        const AutomationClipPlayback* clips, int clipCount,
+        const ModulationEdgePlayback* edges, int edgeCount) noexcept {
+        automationSpanOffset = automationSpanCount = 0;
+        modulationSpanOffset = modulationSpanCount = 0;
+        for (int index = 0; index < clipCount; ++index) {
+            if (clips[index].targetNodeId != stableProcessorNodeId) continue;
+            if (automationSpanCount == 0)
+                automationSpanOffset = static_cast<uint8_t>(index);
+            ++automationSpanCount;
+        }
+        for (int index = 0; index < edgeCount; ++index) {
+            if (edges[index].targetNodeId != stableProcessorNodeId) continue;
+            if (modulationSpanCount == 0)
+                modulationSpanOffset = static_cast<uint8_t>(index);
+            ++modulationSpanCount;
+        }
+    }
+
     virtual bool updateDrumPadParameter(int note, std::string_view parameterId,
                                         float value) noexcept {
         (void)note;
@@ -127,6 +146,10 @@ public:
     InstrumentVoicePolicy voicePolicy{};
     uint64_t stableProcessorNodeId = 0;
     uint64_t stableOutputNodeId = 0;
+    uint8_t automationSpanOffset = 0;
+    uint8_t automationSpanCount = 0;
+    uint8_t modulationSpanOffset = 0;
+    uint8_t modulationSpanCount = 0;
 
 protected:
     DeviceProcessor() = default;

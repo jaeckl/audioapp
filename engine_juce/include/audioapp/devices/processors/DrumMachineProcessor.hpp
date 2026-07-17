@@ -33,6 +33,10 @@ public:
     bool setNestedCompiledParameter(uint64_t processorNodeId,
                                     uint16_t parameterId,
                                     float value) noexcept override;
+    void bindCompiledParameterSpans(const AutomationClipPlayback* clips,
+                                    int clipCount,
+                                    const ModulationEdgePlayback* edges,
+                                    int edgeCount) noexcept override;
     bool updateDrumPadParameter(int note, std::string_view parameterId,
                                 float value) noexcept override;
     void process(AudioBlock&, ProcessContext&) noexcept override;

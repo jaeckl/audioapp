@@ -195,8 +195,7 @@ static bool evaluateCommonBypass(
             if (!automationBeatInClip(ac, playheadBeat, beatInClip)) {
                 continue;
             }
-            bypassValue = evaluateAutomationEnvelope(
-                ac.points, ac.pointCount, beatInClip);
+            bypassValue = evaluateAutomationEnvelopeCached(ac, beatInClip);
         }
     }
 
@@ -408,6 +407,16 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         // The logical device subgraph is InputAdapter -> DSP -> OutputAdapter.
         // The plan is fused, so this check adds no buffers or dispatch layers.
         if (!proc->executionPlan.valid()) continue;
+        const auto* targetAutomation =
+            ctx.automationClips != nullptr && proc->automationSpanCount > 0
+                ? ctx.automationClips + proc->automationSpanOffset : nullptr;
+        const int targetAutomationCount = targetAutomation != nullptr
+            ? proc->automationSpanCount : 0;
+        const auto* targetModEdges =
+            ctx.modEdges != nullptr && proc->modulationSpanCount > 0
+                ? ctx.modEdges + proc->modulationSpanOffset : nullptr;
+        const int targetModEdgeCount = targetModEdges != nullptr
+            ? proc->modulationSpanCount : 0;
         const uint16_t di = static_cast<uint16_t>(deviceIndex);
         const bool effectiveBypass = evaluateCommonBypass(
             proc->bypassed,
@@ -415,12 +424,12 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
             proc->stableProcessorNodeId,
             ctx.playheadStartBeat,
             numFrames,
-            ctx.automationClips,
-            ctx.automationClipCount,
+            targetAutomation,
+            targetAutomationCount,
             ctx.lfoValues,
             ctx.lfoCount,
-            ctx.modEdges,
-            ctx.modEdgeCount,
+            targetModEdges,
+            targetModEdgeCount,
             ctx.modulators);
         if (effectiveBypass) {
             captureGraphTaps(*proc);
@@ -467,17 +476,20 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
 
         const bool needsSubBlocks = nodeNeedsSubBlocks(
             deviceIndex,
-            ctx.automationClips, ctx.automationClipCount,
-            ctx.modEdges, ctx.modEdgeCount);
+            targetAutomation, targetAutomationCount,
+            targetModEdges, targetModEdgeCount);
 
         // Build ProcessContext
         ProcessContext pc(s);
         pc.lfoValues = ctx.lfoValues;
         pc.lfoCount = ctx.lfoCount;
-        pc.modEdges = ctx.modEdges;
-        pc.modEdgeCount = ctx.modEdgeCount;
-        pc.automationClips = ctx.automationClips;
-        pc.automationClipCount = ctx.automationClipCount;
+        const bool isContainer = nodeKind == DeviceNodeKind::Chain ||
+                                 nodeKind == DeviceNodeKind::DrumMachine;
+        pc.modEdges = isContainer ? ctx.modEdges : targetModEdges;
+        pc.modEdgeCount = isContainer ? ctx.modEdgeCount : targetModEdgeCount;
+        pc.automationClips = isContainer ? ctx.automationClips : targetAutomation;
+        pc.automationClipCount = isContainer ? ctx.automationClipCount
+                                             : targetAutomationCount;
         pc.notes = activeNotes;
         pc.noteCount = activeNoteCount;
         pc.playheadBeat = ctx.playheadStartBeat;
@@ -500,9 +512,9 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
 
         // --- Timeline automation ---
         auto modulatedParams = proc->storedParams(); // start from processor's own params
-        if (ctx.automationClips != nullptr && ctx.automationClipCount > 0) {
-            for (int a = 0; a < ctx.automationClipCount; ++a) {
-                const auto& ac = ctx.automationClips[a];
+        if (targetAutomation != nullptr && targetAutomationCount > 0) {
+            for (int a = 0; a < targetAutomationCount; ++a) {
+                const auto& ac = targetAutomation[a];
                 if (!playbackTargetMatches(ac.targetNodeId, ac.deviceIndex,
                                            proc->stableProcessorNodeId, di)) continue;
 
@@ -515,7 +527,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                         if (!automationBeatInClip(ac, beat, beatInClip)) {
                             continue;
                         }
-                        const float val = evaluateAutomationEnvelope(ac.points, ac.pointCount, beatInClip);
+                        const float val = evaluateAutomationEnvelopeCached(ac, beatInClip);
                         if (isGain) s.perFrameGain[f] = val;
                         else s.perFramePan[f] = val;
                     }
@@ -525,7 +537,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                     const double beat = ctx.playheadStartBeat;
                     float beatInClip = 0.0f;
                     if (!automationBeatInClip(ac, beat, beatInClip)) continue;
-                    const float val = evaluateAutomationEnvelope(ac.points, ac.pointCount, beatInClip);
+                    const float val = evaluateAutomationEnvelopeCached(ac, beatInClip);
                     applyAutomationValue(modulatedParams, nodeKind, ac.localParamId, val);
                 }
             }
@@ -533,9 +545,9 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
 
         // --- LFO modulation (DSP params) ---
         if (ctx.lfoValues != nullptr && ctx.lfoCount > 0 &&
-            ctx.modEdges != nullptr && ctx.modEdgeCount > 0) {
-            for (int e = 0; e < ctx.modEdgeCount; ++e) {
-                const auto& edge = ctx.modEdges[e];
+            targetModEdges != nullptr && targetModEdgeCount > 0) {
+            for (int e = 0; e < targetModEdgeCount; ++e) {
+                const auto& edge = targetModEdges[e];
                 if (!playbackTargetMatches(edge.targetNodeId, edge.deviceIndex,
                                            proc->stableProcessorNodeId, di) ||
                     edge.lfoId >= static_cast<uint16_t>(ctx.lfoCount)) continue;
@@ -561,7 +573,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         // --- Per-frame gain/pan LFO modulation ---
         applyCommonGainPanLfo(s, di, proc->stableProcessorNodeId, numFrames,
                               ctx.lfoValues, ctx.lfoCount,
-                              ctx.modEdges, ctx.modEdgeCount,
+                              targetModEdges, targetModEdgeCount,
                               ctx.modulators);
 
         // --- Process device via virtual dispatch ---

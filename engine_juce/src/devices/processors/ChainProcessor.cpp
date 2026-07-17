@@ -68,6 +68,15 @@ bool ChainProcessor::setNestedCompiledParameter(uint64_t processorNodeId,
     return false;
 }
 
+void ChainProcessor::bindCompiledParameterSpans(
+    const AutomationClipPlayback* clips, int clipCount,
+    const ModulationEdgePlayback* edges, int edgeCount) noexcept {
+    DeviceProcessor::bindCompiledParameterSpans(clips, clipCount, edges, edgeCount);
+    for (int child = 0; playback_ && arena_ && child < playback_->deviceCount; ++child)
+        if (auto* processor = arena_->get(child))
+            processor->bindCompiledParameterSpans(clips, clipCount, edges, edgeCount);
+}
+
 void ChainProcessor::resetPlaybackState() noexcept {
     if (arena_) resetPlaybackStateInArena(*arena_);
 }
@@ -89,31 +98,10 @@ void ChainProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
     sub.compiledDeviceOrder = executionOrder_.deviceIndices.data();
     sub.compiledDeviceOrderCount = executionOrder_.count;
 
-    AutomationClipPlayback automation[16]{}; int automationCount=0;
-    if (ctx.automationClips) for(int a=0;a<ctx.automationClipCount&&automationCount<16;++a)
-        for(int child=0;child<playback_->deviceCount;++child)
-            if((ctx.automationClips[a].targetNodeId != 0 &&
-                ctx.automationClips[a].targetNodeId == stableDeviceSubgraphNodeId(
-                    playback_->devices[child].deviceId, DeviceSubgraphNodeRole::DeviceProcessor)) ||
-               (ctx.automationClips[a].targetNodeId == 0 &&
-                ctx.automationClips[a].deviceIndex==playback_->devices[child].automationTargetIndex)){
-                automation[automationCount]=ctx.automationClips[a];
-                automation[automationCount++].deviceIndex=static_cast<uint16_t>(child); break;
-            }
-    sub.automationClips=automationCount?automation:nullptr; sub.automationClipCount=automationCount;
-
-    ModulationEdgePlayback edges[16]{}; int edgeCount=0;
-    if (ctx.modEdges) for(int e=0;e<ctx.modEdgeCount&&edgeCount<16;++e)
-        for(int child=0;child<playback_->deviceCount;++child)
-            if((ctx.modEdges[e].targetNodeId != 0 &&
-                ctx.modEdges[e].targetNodeId == stableDeviceSubgraphNodeId(
-                    playback_->devices[child].deviceId, DeviceSubgraphNodeRole::DeviceProcessor)) ||
-               (ctx.modEdges[e].targetNodeId == 0 &&
-                ctx.modEdges[e].deviceIndex==playback_->devices[child].automationTargetIndex)){
-                edges[edgeCount]=ctx.modEdges[e];
-                edges[edgeCount++].deviceIndex=static_cast<uint16_t>(child); break;
-            }
-    sub.modEdges=edgeCount?edges:nullptr; sub.modEdgeCount=edgeCount;
+    sub.automationClips = ctx.automationClips;
+    sub.automationClipCount = ctx.automationClipCount;
+    sub.modEdges = ctx.modEdges;
+    sub.modEdgeCount = ctx.modEdgeCount;
     DeviceChainOrchestrator::processChain(sub);
 
     const auto* runtime = ctx.modulatedParams ? std::get_if<ChainParams>(ctx.modulatedParams) : nullptr;

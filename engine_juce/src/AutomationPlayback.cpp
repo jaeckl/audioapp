@@ -1128,6 +1128,31 @@ float evaluateAutomationEnvelope(const AutomationPointPlayback* points,
     return points[pointCount - 1].value;
 }
 
+float evaluateAutomationEnvelopeCached(const AutomationClipPlayback& clip,
+                                       float beatInClip) noexcept {
+    if (clip.pointCount <= 0) return 0.0f;
+    if (clip.pointCount == 1 || beatInClip <= clip.points[0].beat) {
+        clip.envelopeCursor = 0;
+        clip.envelopeCursorBeat = beatInClip;
+        return clip.points[0].value;
+    }
+    if (beatInClip < clip.envelopeCursorBeat ||
+        clip.envelopeCursor >= static_cast<uint16_t>(clip.pointCount - 1))
+        clip.envelopeCursor = 0;
+    while (clip.envelopeCursor + 1 < clip.pointCount - 1 &&
+           beatInClip >= clip.points[clip.envelopeCursor + 1].beat)
+        ++clip.envelopeCursor;
+    clip.envelopeCursorBeat = beatInClip;
+    const auto& left = clip.points[clip.envelopeCursor];
+    const auto& right = clip.points[clip.envelopeCursor + 1];
+    if (beatInClip >= right.beat && clip.envelopeCursor + 1 == clip.pointCount - 1)
+        return right.value;
+    const float width = right.beat - left.beat;
+    const float mix = width > 0.0f
+        ? std::clamp((beatInClip - left.beat) / width, 0.0f, 1.0f) : 1.0f;
+    return left.value + mix * (right.value - left.value);
+}
+
 // -----------------------------------------------------------------------
 // applyAutomationValue — per-device enum dispatch (audio thread)
 // -----------------------------------------------------------------------
@@ -1670,8 +1695,7 @@ void applyDspAutomationAtBeat(DeviceVariantParams& params,
         if (!automationBeatInClip(ac, beat, beatInClip)) {
             continue;
         }
-        const float value =
-            evaluateAutomationEnvelope(ac.points, ac.pointCount, beatInClip);
+        const float value = evaluateAutomationEnvelopeCached(ac, beatInClip);
         applyAutomationValue(params, kind, pid, value);
     }
 }

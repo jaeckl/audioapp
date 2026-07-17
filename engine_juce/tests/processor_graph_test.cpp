@@ -122,6 +122,21 @@ int main() {
     expect(std::abs(std::get<TremoloParamsPlayback>(normalizedTremolo).rateHz - 10.05f) < 1.0e-5f,
            "tremolo rate normalization follows its physical range");
 
+    AutomationClipPlayback cursorClip{};
+    cursorClip.pointCount = 3;
+    cursorClip.points[0] = {0.0f, 0.0f};
+    cursorClip.points[1] = {1.0f, 1.0f};
+    cursorClip.points[2] = {2.0f, 0.0f};
+    expect(std::abs(evaluateAutomationEnvelopeCached(cursorClip, 0.25f) - 0.25f) < 1.0e-6f &&
+           cursorClip.envelopeCursor == 0,
+           "automation cursor evaluates the first forward segment");
+    expect(std::abs(evaluateAutomationEnvelopeCached(cursorClip, 1.5f) - 0.5f) < 1.0e-6f &&
+           cursorClip.envelopeCursor == 1,
+           "automation cursor advances monotonically");
+    expect(std::abs(evaluateAutomationEnvelopeCached(cursorClip, 0.5f) - 0.5f) < 1.0e-6f &&
+           cursorClip.envelopeCursor == 0,
+           "automation cursor resets after transport rewind");
+
     std::array<GraphTapDefinition, kMaxProcessorGraphTaps> maximumTaps{};
     for (int i = 0; i < kMaxProcessorGraphTaps; ++i) {
         maximumTaps[static_cast<size_t>(i)] = {

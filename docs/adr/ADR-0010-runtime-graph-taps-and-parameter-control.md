@@ -123,6 +123,15 @@ only; projects persist stable names). Audio Receiver mix and routing-device
 strip controls use the mailbox; only source/feedback topology changes rebuild
 the routing graph.
 
+Phase 4 is complete. Automation clips and modulation edges are sorted once on
+the control thread by stable processor-node ID. Every top-level and nested
+Chain/Drum processor is bound to its contiguous target span, so the callback no
+longer scans unrelated targets or copies/filter targets into container-local
+arrays. Drum children now receive modulation edges through the same compiled
+path. Automation envelopes keep an audio-thread-owned forward cursor and reset
+it on transport rewind or loop wrap; source evaluation is therefore linear in
+the points actually crossed rather than restarting at point zero each block.
+
 Consistency is part of the contract: every automatable or modulatable parameter
 must declare its rate and smoothing behavior, and tests must reject missing
 declarations. Discrete parameters never interpolate; continuous manual changes
