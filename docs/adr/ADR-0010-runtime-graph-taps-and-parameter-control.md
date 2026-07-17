@@ -106,6 +106,16 @@ while the simulated callback runs, floods one realtime parameter command per
 block, enables all 16 tap slots, and checks both zero allocations and the real
 128-frame deadline. It also covers steady-state callbacks without commands.
 
+The first slice of phases 2 and 3 is complete for common strip controls and every device kind
+already covered by the normalized automation evaluator. Control-thread strings
+resolve to a stable processor-node ID plus encoded parameter ID, then enter a
+separate compact SPSC mailbox. The callback coalesces by numeric handle and
+updates top-level or nested Chain/Drum processors without string comparison or
+whole-node copying. Discrete parameters and device kinds missing a normalized
+evaluator deliberately remain on the prior block-boundary fallback until phase
+7 supplies their typed policy; fallback commands drain before compact values so
+an older node snapshot cannot overwrite a newer gesture.
+
 Consistency is part of the contract: every automatable or modulatable parameter
 must declare its rate and smoothing behavior, and tests must reject missing
 declarations. Discrete parameters never interpolate; continuous manual changes

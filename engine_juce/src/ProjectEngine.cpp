@@ -44,6 +44,40 @@ namespace audioapp {
 namespace {
 thread_local DeviceChainScratch gProjectScratch;
 
+bool supportsCompiledNormalizedParameter(DeviceNodeKind kind) noexcept {
+    switch (kind) {
+    case DeviceNodeKind::Oscillator:
+    case DeviceNodeKind::Sampler:
+    case DeviceNodeKind::SubtractiveSynth:
+    case DeviceNodeKind::WavetableSynth:
+    case DeviceNodeKind::PhaseModSynth:
+    case DeviceNodeKind::KickGenerator:
+    case DeviceNodeKind::SnareGenerator:
+    case DeviceNodeKind::ClapGenerator:
+    case DeviceNodeKind::CymbalGenerator:
+    case DeviceNodeKind::CrashGenerator:
+    case DeviceNodeKind::Gate:
+    case DeviceNodeKind::Compressor:
+    case DeviceNodeKind::Expander:
+    case DeviceNodeKind::Limiter:
+    case DeviceNodeKind::Filter:
+    case DeviceNodeKind::FourBandEq:
+    case DeviceNodeKind::FrequencyShifter:
+    case DeviceNodeKind::ResonatorBank:
+    case DeviceNodeKind::AudioReceiver:
+    case DeviceNodeKind::MidiReceiver:
+    case DeviceNodeKind::Chain:
+    case DeviceNodeKind::Granular:
+    case DeviceNodeKind::Stutter:
+    case DeviceNodeKind::Chorus:
+    case DeviceNodeKind::Reverb:
+    case DeviceNodeKind::Phaser:
+        return true;
+    default:
+        return false;
+    }
+}
+
 // This deliberately compares the full playback payload rather than only the
 // device ID/type. Sharing an arena is safe only when a rebuild would not need
 // to write into its processors; parameter changes continue through the live
@@ -708,17 +742,19 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
         }, device->config.outputPanel);
     };
     RealtimeCommand command;
-    command.type = RealtimeCommandType::DeviceNode;
-    command.targetId = deviceId;
-    command.commonOnly = commonStripParameter;
-    command.node.deviceId = deviceId;
-    command.node.voicePolicy = InstrumentVoicePolicy{1, true};
-    deviceRegistry_.buildPlaybackNode(*device, context, command.node);
-    refreshCommonState(command.node);
+    const uint64_t targetNodeId = stableDeviceSubgraphNodeId(
+        deviceId, DeviceSubgraphNodeRole::DeviceProcessor);
 
     // Routing changes alter graph connectivity and therefore remain on the
     // structural path. Ordinary knobs only publish a block-boundary command.
     if (routingDevice) {
+        command.type = RealtimeCommandType::DeviceNode;
+        command.targetId = deviceId;
+        command.commonOnly = commonStripParameter;
+        command.node.deviceId = deviceId;
+        command.node.voicePolicy = InstrumentVoicePolicy{1, true};
+        deviceRegistry_.buildPlaybackNode(*device, context, command.node);
+        refreshCommonState(command.node);
         const std::lock_guard<std::recursive_mutex> playbackLock(playbackMutex_);
         const int trackCount = trackPlayback_.count();
         applyRealtimeDeviceNode(command.node, command.commonOnly);
@@ -733,6 +769,47 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
     }
 
     markDeviceOwnerFreezeStaleLocked(deviceId);
+
+    RealtimeParameterCommand parameterCommand;
+    parameterCommand.targetNodeId = targetNodeId;
+    if (parameterId == "gain") parameterCommand.encodedParameterId = kEncodedCommonGain;
+    else if (parameterId == "pan") parameterCommand.encodedParameterId = kEncodedCommonPan;
+    else if (parameterId == "bypass") parameterCommand.encodedParameterId = kEncodedCommonBypass;
+    else if (parameterId == "outputMix") parameterCommand.encodedParameterId = kEncodedCommonOutputMix;
+    else if (parameterId == "outputWidth") parameterCommand.encodedParameterId = kEncodedCommonOutputWidth;
+    else if (const auto* type = deviceRegistry_.findForSlot(*device);
+             type != nullptr && supportsCompiledNormalizedParameter(type->kind())) {
+        const auto descriptors = type->paramDescriptors();
+        const auto descriptor = std::find_if(
+            descriptors.begin(), descriptors.end(), [&](const ParamDescriptor& candidate) {
+                return parameterId == candidate.stableName;
+            });
+        if (descriptor != descriptors.end() && descriptor->automatable &&
+            descriptor->maxValue > descriptor->minValue) {
+            parameterCommand.encodedParameterId = encodeAutomationParamId(
+                parameterId.c_str(), type->kind(), descriptor->localParamId);
+            parameterCommand.value = std::clamp(
+                (value - descriptor->minValue) /
+                    (descriptor->maxValue - descriptor->minValue),
+                0.0f, 1.0f);
+            if (unpackParamKind(parameterCommand.encodedParameterId) != ParamKind::Common)
+                return enqueueRealtimeParameter(parameterCommand);
+        }
+    }
+    if (commonStripParameter) {
+        parameterCommand.value = value;
+        return enqueueRealtimeParameter(parameterCommand);
+    }
+
+    // Discrete and not-yet-normalized parameters retain the block-boundary
+    // fallback until their typed stream policy is declared.
+    command.type = RealtimeCommandType::DeviceNode;
+    command.targetId = deviceId;
+    command.commonOnly = false;
+    command.node.deviceId = deviceId;
+    command.node.voicePolicy = InstrumentVoicePolicy{1, true};
+    deviceRegistry_.buildPlaybackNode(*device, context, command.node);
+    refreshCommonState(command.node);
     return enqueueRealtimeCommand(std::move(command));
 }
 
@@ -1734,6 +1811,25 @@ bool ProjectEngine::enqueueRealtimeCommand(RealtimeCommand command) noexcept {
     return false;
 }
 
+bool ProjectEngine::enqueueRealtimeParameter(RealtimeParameterCommand command) noexcept {
+    auto tryEnqueue = [&]() noexcept {
+        const uint32_t head = realtimeParameterMailbox_.head.load(std::memory_order_relaxed);
+        const uint32_t tail = realtimeParameterMailbox_.tail.load(std::memory_order_acquire);
+        if (head - tail >= kRealtimeCommandCapacity) return false;
+        realtimeParameterMailbox_.entries[head % kRealtimeCommandCapacity] = command;
+        realtimeParameterMailbox_.head.store(head + 1, std::memory_order_release);
+        return true;
+    };
+    if (tryEnqueue()) return true;
+    if (!transport_.isPlaying()) {
+        const std::lock_guard<std::recursive_mutex> playbackLock(playbackMutex_);
+        drainRealtimeParameters();
+        if (tryEnqueue()) return true;
+    }
+    realtimeCommandOverflowCount_.fetch_add(1, std::memory_order_relaxed);
+    return false;
+}
+
 bool ProjectEngine::applyRealtimeDeviceNode(const DeviceNodePlayback& node,
                                             bool commonOnly) noexcept {
     const int trackCount = trackPlayback_.count();
@@ -1758,6 +1854,60 @@ bool ProjectEngine::applyRealtimeDeviceNode(const DeviceNodePlayback& node,
         }
     }
     return false;
+}
+
+bool ProjectEngine::applyRealtimeDeviceParameter(uint64_t targetNodeId,
+                                                 uint16_t encodedParameterId,
+                                                 float value) noexcept {
+    const int trackCount = trackPlayback_.count();
+    for (int track = 0; track < trackCount; ++track) {
+        auto& snapshot = trackPlayback_[track];
+        for (int device = 0; device < snapshot.deviceCount; ++device) {
+            auto* processor = snapshot.arena.get(device);
+            if (processor == nullptr) continue;
+            if (processor->stableProcessorNodeId == targetNodeId)
+                return processor->setCompiledParameter(encodedParameterId, value);
+            if (processor->setNestedCompiledParameter(
+                    targetNodeId, encodedParameterId, value))
+                return true;
+        }
+    }
+    return false;
+}
+
+void ProjectEngine::drainRealtimeParameters() noexcept {
+    uint32_t tail = realtimeParameterMailbox_.tail.load(std::memory_order_relaxed);
+    const uint32_t head = realtimeParameterMailbox_.head.load(std::memory_order_acquire);
+    if (tail == head) return;
+
+    constexpr int kMaxDistinctParametersPerBlock = 128;
+    const RealtimeParameterCommand* latest[kMaxDistinctParametersPerBlock]{};
+    int latestCount = 0;
+    uint32_t consumedEnd = tail;
+    for (uint32_t cursor = tail; cursor != head; ++cursor) {
+        const auto& candidate = realtimeParameterMailbox_.entries[
+            cursor % kRealtimeCommandCapacity];
+        int existing = -1;
+        for (int index = 0; index < latestCount; ++index) {
+            if (latest[index]->targetNodeId == candidate.targetNodeId &&
+                latest[index]->encodedParameterId == candidate.encodedParameterId) {
+                existing = index;
+                break;
+            }
+        }
+        if (existing >= 0) latest[existing] = &candidate;
+        else if (latestCount < kMaxDistinctParametersPerBlock)
+            latest[latestCount++] = &candidate;
+        else break;
+        consumedEnd = cursor + 1;
+    }
+    for (int index = 0; index < latestCount; ++index) {
+        const auto& command = *latest[index];
+        applyRealtimeDeviceParameter(command.targetNodeId,
+                                     command.encodedParameterId,
+                                     command.value);
+    }
+    realtimeParameterMailbox_.tail.store(consumedEnd, std::memory_order_release);
 }
 
 void ProjectEngine::drainRealtimeCommands() noexcept {
@@ -1861,6 +2011,9 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
     }
     PlaybackStateStorage::ReadGuard playbackRead(trackPlayback_);
     drainRealtimeCommands();
+    // Full-node fallbacks may contain an older copy of common strip values.
+    // Apply compact mailboxes last so the newest live gesture wins.
+    drainRealtimeParameters();
     const int trackCount = trackPlayback_.count();
     if (trackCount <= 0) {
         return;

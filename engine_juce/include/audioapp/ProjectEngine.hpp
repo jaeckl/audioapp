@@ -532,6 +532,17 @@ private:
     // project editing work.
     mutable std::recursive_mutex playbackMutex_;
     RealtimeCommandQueue realtimeCommands_;
+    struct RealtimeParameterCommand {
+        uint64_t targetNodeId = 0;
+        uint16_t encodedParameterId = 0;
+        float value = 0.0f;
+    };
+    struct RealtimeParameterQueue {
+        std::array<RealtimeParameterCommand, kRealtimeCommandCapacity> entries{};
+        std::atomic<uint32_t> head{0};
+        std::atomic<uint32_t> tail{0};
+    };
+    RealtimeParameterQueue realtimeParameterMailbox_;
     std::atomic<uint64_t> realtimeCommandOverflowCount_{0};
     std::string projectName_ = "Untitled";
     TransportController transport_;
@@ -612,9 +623,14 @@ private:
 
     void rebuildTrackPlaybackLocked();
     bool enqueueRealtimeCommand(RealtimeCommand command) noexcept;
+    bool enqueueRealtimeParameter(RealtimeParameterCommand command) noexcept;
     void drainRealtimeCommands() noexcept;
+    void drainRealtimeParameters() noexcept;
     bool applyRealtimeDeviceNode(const DeviceNodePlayback& node,
                                  bool commonOnly) noexcept;
+    bool applyRealtimeDeviceParameter(uint64_t targetNodeId,
+                                      uint16_t encodedParameterId,
+                                      float value) noexcept;
     void rebuildProcessorGraphLocked(int trackCount);
     void rebuildRepoCacheFromTree();
     void syncProjectTreeLocked();

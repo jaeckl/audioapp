@@ -30,6 +30,9 @@ public:
     void initParams(const DeviceVariantParams& params) noexcept override;
     bool updateNestedDevice(const DeviceNodePlayback& node,
                             bool paramsChanged = true) noexcept override;
+    bool setNestedCompiledParameter(uint64_t processorNodeId,
+                                    uint16_t parameterId,
+                                    float value) noexcept override;
     bool updateDrumPadParameter(int note, std::string_view parameterId,
                                 float value) noexcept override;
     void process(AudioBlock&, ProcessContext&) noexcept override;

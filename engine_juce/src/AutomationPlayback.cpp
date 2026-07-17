@@ -1146,7 +1146,7 @@ void applyAutomationValue(DeviceVariantParams& params,
     case ParamKind::Oscillator:
         if (auto* p = std::get_if<OscillatorParams>(&params)) {
             switch (static_cast<OscillatorParam>(rawId)) {
-            case OscillatorParam::Frequency: p->frequencyHz = 20.0f + value * 1980.0f; break;
+            case OscillatorParam::Frequency: p->frequencyHz = 20.0f + value * 19980.0f; break;
             default: break;
             }
         }

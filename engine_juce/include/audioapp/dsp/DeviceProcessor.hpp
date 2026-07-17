@@ -2,6 +2,7 @@
 
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/DeviceSubgraph.hpp"
+#include "audioapp/AutomationPlayback.hpp"
 #include "audioapp/dsp/AudioBlock.hpp"
 #include "audioapp/dsp/ProcessContext.hpp"
 
@@ -37,6 +38,33 @@ public:
                                     bool paramsChanged = true) noexcept {
         (void)node;
         (void)paramsChanged;
+        return false;
+    }
+
+    /// Apply a pre-resolved parameter handle. Common strip values are physical
+    /// values; DSP values are normalized through the same evaluator used by
+    /// automation. Called only by the audio thread at a block boundary.
+    bool setCompiledParameter(uint16_t parameterId, float value) noexcept {
+        if (unpackParamKind(parameterId) == ParamKind::Common) {
+            switch (unpackParamId(parameterId)) {
+            case 0: gain = value; return true;
+            case 1: pan = value; return true;
+            case 2: bypassed = value >= 0.5f; return true;
+            case 3: outputMix = value; return true;
+            case 4: outputWidth = value; return true;
+            default: return false;
+            }
+        }
+        applyAutomationValue(storedParams_, kind(), parameterId, value);
+        return true;
+    }
+
+    virtual bool setNestedCompiledParameter(uint64_t processorNodeId,
+                                            uint16_t parameterId,
+                                            float value) noexcept {
+        (void)processorNodeId;
+        (void)parameterId;
+        (void)value;
         return false;
     }
 

@@ -77,6 +77,23 @@ bool DrumMachineProcessor::updateNestedDevice(const DeviceNodePlayback& node,
     return false;
 }
 
+bool DrumMachineProcessor::setNestedCompiledParameter(uint64_t processorNodeId,
+                                                      uint16_t parameterId,
+                                                      float value) noexcept {
+    for (auto& runtime : pads_) {
+        const int childCount = playback_ ? playback_->pads[runtime.padIndex].deviceCount : 0;
+        for (int child = 0; runtime.arena && child < childCount; ++child) {
+            auto* processor = runtime.arena->get(child);
+            if (processor == nullptr) continue;
+            if (processor->stableProcessorNodeId == processorNodeId)
+                return processor->setCompiledParameter(parameterId, value);
+            if (processor->setNestedCompiledParameter(processorNodeId, parameterId, value))
+                return true;
+        }
+    }
+    return false;
+}
+
 bool DrumMachineProcessor::updateDrumPadParameter(
     int note, std::string_view parameterId, float value) noexcept {
     if (playback_ == nullptr || note < 0 || note >= 128) return false;

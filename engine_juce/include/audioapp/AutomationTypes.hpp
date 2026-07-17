@@ -502,6 +502,8 @@ constexpr uint16_t unpackParamId(uint16_t localParamId) noexcept {
 constexpr uint16_t kEncodedCommonGain = 0;  // packParamId(ParamKind::Common, 0)
 constexpr uint16_t kEncodedCommonPan  = 1;  // packParamId(ParamKind::Common, 1)
 constexpr uint16_t kEncodedCommonBypass = 2; // packParamId(ParamKind::Common, 2)
+constexpr uint16_t kEncodedCommonOutputMix = 3;
+constexpr uint16_t kEncodedCommonOutputWidth = 4;
 
 // -----------------------------------------------------------------------
 // Audio-thread playback structs — zero strings, zero allocations.
