@@ -58,10 +58,11 @@ class _PositionPanel extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: TransportBarTheme.chipFill,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(TransportBarTheme.cardRadius),
+        border: Border.all(color: TransportBarTheme.chipBorder),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(TransportBarTheme.cardRadius),
         child: Stack(
           fit: StackFit.expand,
           children: [

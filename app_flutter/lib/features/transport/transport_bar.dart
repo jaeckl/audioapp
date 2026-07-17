@@ -109,10 +109,13 @@ class TransportBar extends StatelessWidget {
             ? 'Follow on — tap to disable'
             : 'Follow off — tap to enable');
     return Container(
+      key: const ValueKey('transport-chrome'),
       width: double.infinity,
-      decoration: const BoxDecoration(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
         color: TransportBarTheme.background,
-        border: Border(bottom: BorderSide(color: Colors.white12)),
+        borderRadius: BorderRadius.circular(TransportBarTheme.panelRadius),
+        border: Border.all(color: TransportBarTheme.panelBorder),
       ),
       child: SizedBox(
         height: TransportBarTheme.rowHeight,
@@ -161,6 +164,7 @@ class TransportBar extends StatelessWidget {
                 enabled: onBpmChanged != null,
                 onChanged: onBpmChanged,
               ),
+              const SizedBox(width: TransportBarTheme.cardGap),
               _SnapGridMenuButton(
                 snapClipsEnabled: snapClipsEnabled,
                 snapGridResolution: snapGridResolution,

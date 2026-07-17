@@ -41,7 +41,8 @@ class _TransportBpmBoxState extends State<TransportBpmBox> {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: TransportBarTheme.chipFill,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(TransportBarTheme.cardRadius),
+          border: Border.all(color: TransportBarTheme.chipBorder),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(

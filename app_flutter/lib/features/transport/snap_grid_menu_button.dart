@@ -27,7 +27,8 @@ class _SnapGridMenuButton extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: TransportBarTheme.chipFill,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(TransportBarTheme.cardRadius),
+        border: Border.all(color: TransportBarTheme.chipBorder),
       ),
       child: PopupMenuButton<void>(
         tooltip: tooltip,

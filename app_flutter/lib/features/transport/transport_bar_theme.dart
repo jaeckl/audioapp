@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 /// Visual tokens for the shell transport header.
 abstract final class TransportBarTheme {
-  static const background = Color(0xFF0E0E14);
-  static const chipFill = Color(0xFF16161E);
-  static const chipBorder = Color(0x24FFFFFF);
+  static const background = Color(0xFF121218);
+  static const chipFill = Color(0xFF181820);
+  static const panelBorder = Color(0x14FFFFFF);
+  static const chipBorder = Color(0x1FFFFFFF);
   static const accentLoop = Color(0xFFE8A54B);
   static const accentPlay = Color(0xFF6EC6FF);
   static const accentRecord = Color(0xFFE85B5B);
@@ -22,6 +23,8 @@ abstract final class TransportBarTheme {
   static const double barPaddingV = 2;
   static const double barPaddingH = 8;
   static const double cardGap = 4;
+  static const double panelRadius = 14;
+  static const double cardRadius = 10;
   static const double cardInnerPaddingV = 2;
   static const double cardInnerPaddingH = 4;
   static const double statusIconSize = 16;
