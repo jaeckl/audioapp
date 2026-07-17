@@ -240,8 +240,28 @@ void resetGraphTapRuntime(GraphTapRuntime& runtime, uint32_t generation) noexcep
     runtime.peakR.store(0.0f, std::memory_order_relaxed);
     runtime.rmsL.store(0.0f, std::memory_order_relaxed);
     runtime.rmsR.store(0.0f, std::memory_order_relaxed);
+    runtime.meterRevision.store(0, std::memory_order_relaxed);
     runtime.head.store(0, std::memory_order_relaxed);
     runtime.tail.store(0, std::memory_order_relaxed);
+}
+
+bool tryReadGraphTapMeter(const GraphTapRuntime& runtime,
+                          GraphTapMeterSnapshot& snapshot) noexcept {
+    const uint64_t before = runtime.meterRevision.load(std::memory_order_acquire);
+    if ((before & 1u) != 0u) return false;
+
+    GraphTapMeterSnapshot candidate;
+    candidate.sequence = runtime.sequence.load(std::memory_order_relaxed);
+    candidate.sampleRate = runtime.sampleRate.load(std::memory_order_relaxed);
+    candidate.peakL = runtime.peakL.load(std::memory_order_relaxed);
+    candidate.peakR = runtime.peakR.load(std::memory_order_relaxed);
+    candidate.rmsL = runtime.rmsL.load(std::memory_order_relaxed);
+    candidate.rmsR = runtime.rmsR.load(std::memory_order_relaxed);
+
+    const uint64_t after = runtime.meterRevision.load(std::memory_order_acquire);
+    if (before != after || (after & 1u) != 0u) return false;
+    snapshot = candidate;
+    return true;
 }
 
 void processGraphTap(GraphTapRuntime& runtime,
@@ -259,9 +279,8 @@ void processGraphTap(GraphTapRuntime& runtime,
         runtime.writers.fetch_sub(1, std::memory_order_release);
         return;
     }
-    runtime.sampleRate.store(static_cast<uint32_t>(
-        std::clamp(std::lround(sampleRate), 1l, 768000l)),
-        std::memory_order_relaxed);
+    const auto publishedSampleRate = static_cast<uint32_t>(
+        std::clamp(std::lround(sampleRate), 1l, 768000l));
 
     if (tap.kind == GraphTapKind::Meter) {
         float peakL = 0.0f;
@@ -274,42 +293,48 @@ void processGraphTap(GraphTapRuntime& runtime,
             sumL += static_cast<double>(left[frame]) * left[frame];
             sumR += static_cast<double>(right[frame]) * right[frame];
         }
+        runtime.meterRevision.fetch_add(1, std::memory_order_acq_rel);
+        runtime.sampleRate.store(publishedSampleRate, std::memory_order_relaxed);
         runtime.peakL.store(peakL, std::memory_order_relaxed);
         runtime.peakR.store(peakR, std::memory_order_relaxed);
         runtime.rmsL.store(static_cast<float>(std::sqrt(sumL / numFrames)),
                            std::memory_order_relaxed);
         runtime.rmsR.store(static_cast<float>(std::sqrt(sumR / numFrames)),
                            std::memory_order_relaxed);
-        runtime.sequence.fetch_add(1, std::memory_order_release);
-    } else if (tap.kind == GraphTapKind::Recorder &&
-               runtime.overflowed.load(std::memory_order_acquire)) {
-        runtime.droppedFrames.fetch_add(static_cast<uint64_t>(numFrames),
-                                        std::memory_order_relaxed);
+        runtime.sequence.fetch_add(1, std::memory_order_relaxed);
+        runtime.meterRevision.fetch_add(1, std::memory_order_release);
     } else {
-        const uint64_t head = runtime.head.load(std::memory_order_relaxed);
-        const uint64_t tail = runtime.tail.load(std::memory_order_acquire);
-        const uint32_t capacity = std::clamp(
-            tap.capacityFrames, 1u, kGraphTapMaxBufferedFrames);
-        const uint64_t used = head - tail;
-        const uint64_t available = used < capacity ? capacity - used : 0;
-        const int writable = static_cast<int>(std::min<uint64_t>(
-            available, static_cast<uint64_t>(numFrames)));
-        for (int frame = 0; frame < writable; ++frame) {
-            const size_t position = static_cast<size_t>((head + frame) % capacity);
-            runtime.ringL[position] = left[frame];
-            runtime.ringR[position] = right[frame];
-        }
-        if (writable > 0) {
-            runtime.head.store(head + static_cast<uint64_t>(writable),
-                               std::memory_order_release);
-            runtime.sequence.fetch_add(static_cast<uint64_t>(writable),
-                                       std::memory_order_release);
-        }
-        if (writable < numFrames) {
-            runtime.droppedFrames.fetch_add(
-                static_cast<uint64_t>(numFrames - writable),
-                std::memory_order_relaxed);
-            runtime.overflowed.store(true, std::memory_order_release);
+        runtime.sampleRate.store(publishedSampleRate, std::memory_order_relaxed);
+        if (tap.kind == GraphTapKind::Recorder &&
+            runtime.overflowed.load(std::memory_order_acquire)) {
+            runtime.droppedFrames.fetch_add(static_cast<uint64_t>(numFrames),
+                                            std::memory_order_relaxed);
+        } else {
+            const uint64_t head = runtime.head.load(std::memory_order_relaxed);
+            const uint64_t tail = runtime.tail.load(std::memory_order_acquire);
+            const uint32_t capacity = std::clamp(
+                tap.capacityFrames, 1u, kGraphTapMaxBufferedFrames);
+            const uint64_t used = head - tail;
+            const uint64_t available = used < capacity ? capacity - used : 0;
+            const int writable = static_cast<int>(std::min<uint64_t>(
+                available, static_cast<uint64_t>(numFrames)));
+            for (int frame = 0; frame < writable; ++frame) {
+                const size_t position = static_cast<size_t>((head + frame) % capacity);
+                runtime.ringL[position] = left[frame];
+                runtime.ringR[position] = right[frame];
+            }
+            if (writable > 0) {
+                runtime.head.store(head + static_cast<uint64_t>(writable),
+                                   std::memory_order_release);
+                runtime.sequence.fetch_add(static_cast<uint64_t>(writable),
+                                           std::memory_order_release);
+            }
+            if (writable < numFrames) {
+                runtime.droppedFrames.fetch_add(
+                    static_cast<uint64_t>(numFrames - writable),
+                    std::memory_order_relaxed);
+                runtime.overflowed.store(true, std::memory_order_release);
+            }
         }
     }
     runtime.writers.fetch_sub(1, std::memory_order_release);

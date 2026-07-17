@@ -2,8 +2,8 @@
 
 ## Status
 
-Accepted — graph taps are implemented first; compiled parameter control follows
-in independently testable phases.
+Accepted — graph taps are implemented and hardened; compiled parameter control
+follows in independently testable phases.
 
 ## Context
 

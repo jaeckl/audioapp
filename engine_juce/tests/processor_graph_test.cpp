@@ -6,6 +6,7 @@
 #include <iostream>
 #include <cmath>
 #include <memory>
+#include <array>
 
 namespace {
 
@@ -98,6 +99,33 @@ int main() {
     expect(graph.error == ProcessorGraphError::InvalidTap,
            "zero stable output IDs are rejected");
 
+    std::array<GraphTapDefinition, kMaxProcessorGraphTaps> maximumTaps{};
+    for (int i = 0; i < kMaxProcessorGraphTaps; ++i) {
+        maximumTaps[static_cast<size_t>(i)] = {
+            1001, static_cast<uint8_t>(i), static_cast<uint32_t>(i + 1),
+            GraphTapKind::Meter, 64};
+    }
+    graph = buildProcessorGraph(linear, maximumTaps);
+    expect(graph.valid() && graph.tapCount == kMaxProcessorGraphTaps,
+           "the documented maximum graph-tap count compiles");
+    std::array<GraphTapDefinition, kMaxProcessorGraphTaps + 1> tooManyTaps{};
+    std::copy(maximumTaps.begin(), maximumTaps.end(), tooManyTaps.begin());
+    tooManyTaps.back() = {1001, 0, 99, GraphTapKind::Meter, 64};
+    graph = buildProcessorGraph(linear, tooManyTaps);
+    expect(graph.error == ProcessorGraphError::TooManyTaps,
+           "one tap beyond the fixed realtime capacity is rejected");
+    const GraphTapDefinition invalidTapFields[] = {
+        {1001, static_cast<uint8_t>(kMaxProcessorGraphTaps), 1,
+         GraphTapKind::Meter, 64},
+        {1001, 0, 1, GraphTapKind::None, 64},
+        {1001, 0, 0, GraphTapKind::Meter, 64},
+    };
+    for (const auto& invalid : invalidTapFields) {
+        graph = buildProcessorGraph(linear, std::span<const GraphTapDefinition>(&invalid, 1));
+        expect(graph.error == ProcessorGraphError::InvalidTap,
+               "invalid runtime slot, kind, and generation are rejected");
+    }
+
     auto meterRuntime = std::make_unique<GraphTapRuntime>();
     resetGraphTapRuntime(*meterRuntime, 7);
     const float tapLeft[] = {0.25f, -0.5f, 1.0f, 0.0f};
@@ -110,6 +138,17 @@ int main() {
     expect(std::abs(meterRuntime->rmsL.load() -
                     std::sqrt((0.0625f + 0.25f + 1.0f) / 4.0f)) < 1.0e-6f,
            "meter tap publishes RMS");
+    GraphTapMeterSnapshot meterSnapshot;
+    expect(tryReadGraphTapMeter(*meterRuntime, meterSnapshot) &&
+           meterSnapshot.sequence == 1 && meterSnapshot.sampleRate == 48000 &&
+           std::abs(meterSnapshot.peakL - 1.0f) < 1.0e-6f &&
+           std::abs(meterSnapshot.rmsR -
+                    std::sqrt((0.0625f + 0.25f + 0.5625f + 0.0625f) / 4.0f)) < 1.0e-6f,
+           "meter tap exposes one coherent published snapshot");
+    meterRuntime->meterRevision.fetch_add(1, std::memory_order_acq_rel);
+    expect(!tryReadGraphTapMeter(*meterRuntime, meterSnapshot),
+           "meter snapshot rejects an in-progress publication");
+    meterRuntime->meterRevision.fetch_add(1, std::memory_order_release);
 
     auto recorderRuntime = std::make_unique<GraphTapRuntime>();
     resetGraphTapRuntime(*recorderRuntime, 9);
@@ -135,6 +174,38 @@ int main() {
                     recorderLeft, recorderRight, 2, 44100.0);
     expect(recorderRuntime->head.load() == 0,
            "stale tap generations cannot write reused runtime slots");
+
+    resetGraphTapRuntime(*recorderRuntime, 11);
+    const CompiledGraphTap wrappingRecorderTap{1001, 1, 11,
+        GraphTapKind::Recorder, 4};
+    processGraphTap(*recorderRuntime, wrappingRecorderTap,
+                    recorderLeft, recorderRight, 3, 44100.0);
+    recorderRuntime->tail.store(2, std::memory_order_release);
+    processGraphTap(*recorderRuntime, wrappingRecorderTap,
+                    recorderLeft + 3, recorderRight + 3, 3, 44100.0);
+    expect(recorderRuntime->head.load() == 6 &&
+           recorderRuntime->ringL[2] == 3.0f &&
+           recorderRuntime->ringL[3] == 4.0f &&
+           recorderRuntime->ringL[0] == 5.0f &&
+           recorderRuntime->ringL[1] == 6.0f,
+           "recorder ring wraps while retaining unread sample order");
+
+    auto analyzerRuntime = std::make_unique<GraphTapRuntime>();
+    resetGraphTapRuntime(*analyzerRuntime, 12);
+    const CompiledGraphTap analyzerTap{1001, 2, 12,
+        GraphTapKind::Analyzer, 4};
+    processGraphTap(*analyzerRuntime, analyzerTap,
+                    recorderLeft, recorderRight, 6, 48000.0);
+    expect(analyzerRuntime->head.load() == 4 &&
+           analyzerRuntime->droppedFrames.load() == 2 &&
+           analyzerRuntime->overflowed.load(),
+           "analyzer reports bounded overflow without overwriting unread audio");
+    analyzerRuntime->tail.store(4, std::memory_order_release);
+    processGraphTap(*analyzerRuntime, analyzerTap,
+                    recorderLeft + 4, recorderRight + 4, 2, 48000.0);
+    expect(analyzerRuntime->head.load() == 6 &&
+           analyzerRuntime->ringL[0] == 5.0f && analyzerRuntime->ringL[1] == 6.0f,
+           "analyzer resumes publication after its consumer drains the ring");
 
     GraphTrackDefinition parallel[3];
     parallel[0].trackId = "fast";

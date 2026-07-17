@@ -2959,12 +2959,27 @@ std::string ProjectEngine::readGraphTapJson(const std::string& tapId, int maxFra
     auto& runtime = graphTapRuntimes_[slot];
     const char* kindName = registration->kind == GraphTapKind::Meter ? "meter" :
         registration->kind == GraphTapKind::Analyzer ? "analyzer" : "recorder";
-    std::string json = R"({"ok":true,"tapId":")" + tapId +
-        R"(","type":")" + kindName + R"(","deviceId":")" +
-        registration->deviceId + R"(","sequence":)" +
-        std::to_string(runtime.sequence.load(std::memory_order_acquire)) +
+    const auto jsonString = [](const std::string& value) {
+        const auto text = juce::String::fromUTF8(
+            value.data(), static_cast<int>(value.size()));
+        return juce::JSON::toString(juce::var(text), false).toStdString();
+    };
+    GraphTapMeterSnapshot meter;
+    if (registration->kind == GraphTapKind::Meter) {
+        while (!tryReadGraphTapMeter(runtime, meter)) {
+            std::this_thread::yield();
+        }
+    }
+    const uint64_t sequence = registration->kind == GraphTapKind::Meter
+        ? meter.sequence : runtime.sequence.load(std::memory_order_acquire);
+    const uint32_t sampleRate = registration->kind == GraphTapKind::Meter
+        ? meter.sampleRate : runtime.sampleRate.load(std::memory_order_relaxed);
+    std::string json = R"({"ok":true,"tapId":)" + jsonString(tapId) +
+        R"(,"type":")" + kindName + R"(","deviceId":)" +
+        jsonString(registration->deviceId) + R"(,"sequence":)" +
+        std::to_string(sequence) +
         R"(,"sampleRate":)" +
-        std::to_string(runtime.sampleRate.load(std::memory_order_relaxed)) +
+        std::to_string(sampleRate) +
         R"(,"droppedFrames":)" +
         std::to_string(runtime.droppedFrames.load(std::memory_order_relaxed)) +
         R"(,"overflowed":)" +
@@ -2974,31 +2989,17 @@ std::string ProjectEngine::readGraphTapJson(const std::string& tapId, int maxFra
 
     char buf[64];
     if (registration->kind == GraphTapKind::Meter) {
-        float peakL = 0.0f;
-        float peakR = 0.0f;
-        float rmsL = 0.0f;
-        float rmsR = 0.0f;
-        for (int attempt = 0; attempt < 4; ++attempt) {
-            if (runtime.writers.load(std::memory_order_acquire) != 0) continue;
-            const uint64_t sequence = runtime.sequence.load(std::memory_order_acquire);
-            peakL = runtime.peakL.load(std::memory_order_relaxed);
-            peakR = runtime.peakR.load(std::memory_order_relaxed);
-            rmsL = runtime.rmsL.load(std::memory_order_relaxed);
-            rmsR = runtime.rmsR.load(std::memory_order_relaxed);
-            if (runtime.writers.load(std::memory_order_acquire) == 0 &&
-                runtime.sequence.load(std::memory_order_acquire) == sequence) break;
-        }
         json += R"(,"peakL":)";
-        snprintf(buf, sizeof(buf), "%.6f", static_cast<double>(peakL));
+        snprintf(buf, sizeof(buf), "%.6f", static_cast<double>(meter.peakL));
         json += buf;
         json += R"(,"peakR":)";
-        snprintf(buf, sizeof(buf), "%.6f", static_cast<double>(peakR));
+        snprintf(buf, sizeof(buf), "%.6f", static_cast<double>(meter.peakR));
         json += buf;
         json += R"(,"rmsL":)";
-        snprintf(buf, sizeof(buf), "%.6f", static_cast<double>(rmsL));
+        snprintf(buf, sizeof(buf), "%.6f", static_cast<double>(meter.rmsL));
         json += buf;
         json += R"(,"rmsR":)";
-        snprintf(buf, sizeof(buf), "%.6f", static_cast<double>(rmsR));
+        snprintf(buf, sizeof(buf), "%.6f", static_cast<double>(meter.rmsR));
         json += buf;
     } else {
         const uint32_t capacity = registration->capacityFrames;

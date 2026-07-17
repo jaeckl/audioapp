@@ -1,9 +1,13 @@
 #include "audioapp/ProjectEngine.hpp"
+#include "audioapp/ProjectJson.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <atomic>
 #include <iostream>
 #include <memory>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -27,6 +31,15 @@ bool finiteAndBounded(const std::vector<float>& audio) {
         if (!std::isfinite(sample) || std::abs(sample) > 1.001f) return false;
     }
     return true;
+}
+
+std::vector<float> jsonFloatArray(const juce::var& object, const char* key) {
+    std::vector<float> result;
+    if (const auto* values = object[key].getArray()) {
+        result.reserve(static_cast<size_t>(values->size()));
+        for (const auto& value : *values) result.push_back(static_cast<float>(value));
+    }
+    return result;
 }
 
 } // namespace
@@ -61,14 +74,175 @@ int main() {
            "meter tap executes at the source output adapter");
     expect(static_cast<int>(recorderJson["frameCount"]) == 128,
            "recorder tap returns the captured block in order");
+    const auto capturedLeft = jsonFloatArray(recorderJson, "left");
+    bool outputSamplesMatch = capturedLeft.size() == 128;
+    for (size_t i = 0; outputSamplesMatch && i < capturedLeft.size(); ++i) {
+        outputSamplesMatch = std::abs(capturedLeft[i] - tapLeft[i]) < 1.0e-6f;
+    }
+    expect(outputSamplesMatch,
+           "recorder observes the exact post-output-adapter signal sent to the track");
     expect(audioProject->removeGraphTap(meterTap) &&
            audioProject->removeGraphTap(recorderTap),
            "runtime taps can be removed safely");
     expect(audioProject->readGraphTapJson(meterTap).find("tap_not_found") != std::string::npos,
            "removed tap generations are no longer readable");
+
+    expect(audioProject->createGraphTap("missing-device", GraphTapKind::Meter).empty() &&
+           audioProject->createGraphTap(oscillator, GraphTapKind::None).empty(),
+           "invalid targets and tap kinds are rejected");
+    std::vector<std::string> capacityTaps;
+    for (int i = 0; i < kMaxProcessorGraphTaps; ++i) {
+        capacityTaps.push_back(audioProject->createGraphTap(
+            oscillator, GraphTapKind::Meter, 1));
+    }
+    bool allCapacitySlotsCreated = true;
+    for (const auto& id : capacityTaps) allCapacitySlotsCreated &= !id.empty();
+    expect(allCapacitySlotsCreated &&
+           audioProject->createGraphTap(oscillator, GraphTapKind::Meter, 1).empty(),
+           "runtime accepts exactly the fixed 16-tap capacity");
+    for (const auto& id : capacityTaps) expect(audioProject->removeGraphTap(id),
+        "capacity tap can be removed");
+
+    const auto clampedTap = audioProject->createGraphTap(
+        oscillator, GraphTapKind::Recorder, 0);
+    audioProject->setPlaying(true);
+    audioProject->readMasterMixStereo(tapLeft, tapRight, 8, 48000.0, 0.0);
+    audioProject->setPlaying(false);
+    const auto clampedJson = juce::JSON::parse(audioProject->readGraphTapJson(clampedTap, 8));
+    expect(static_cast<int>(clampedJson["frameCount"]) == 1 &&
+           static_cast<int>(clampedJson["droppedFrames"]) == 7,
+           "zero requested capacity clamps to one bounded frame");
+    expect(audioProject->removeGraphTap(clampedTap), "clamped recorder tap is removable");
+
+    const auto drainingTap = audioProject->createGraphTap(
+        oscillator, GraphTapKind::Recorder, 32);
+    audioProject->setPlaying(true);
+    audioProject->readMasterMixStereo(tapLeft, tapRight, 32, 48000.0, 0.0);
+    audioProject->setPlaying(false);
+    const auto firstDrain = juce::JSON::parse(audioProject->readGraphTapJson(drainingTap, 7));
+    const auto secondDrain = juce::JSON::parse(audioProject->readGraphTapJson(drainingTap, 32));
+    auto drained = jsonFloatArray(firstDrain, "left");
+    const auto remainder = jsonFloatArray(secondDrain, "left");
+    drained.insert(drained.end(), remainder.begin(), remainder.end());
+    bool drainOrderMatches = drained.size() == 32;
+    for (size_t i = 0; drainOrderMatches && i < drained.size(); ++i) {
+        drainOrderMatches = std::abs(drained[i] - tapLeft[i]) < 1.0e-6f;
+    }
+    expect(static_cast<int>(firstDrain["frameCount"]) == 7 &&
+           static_cast<int>(secondDrain["frameCount"]) == 25 && drainOrderMatches,
+           "multiple recorder drains preserve exact sample order");
+    expect(audioProject->removeGraphTap(drainingTap), "drained recorder tap is removable");
+
+    const auto analyzerTap = audioProject->createGraphTap(
+        oscillator, GraphTapKind::Analyzer, 64);
+    audioProject->setPlaying(true);
+    audioProject->readMasterMixStereo(tapLeft, tapRight, 128, 48000.0, 0.0);
+    audioProject->setPlaying(false);
+    const auto analyzerOverflow = juce::JSON::parse(
+        audioProject->readGraphTapJson(analyzerTap));
+    const auto waveform = jsonFloatArray(analyzerOverflow, "waveform");
+    const auto spectrum = jsonFloatArray(analyzerOverflow, "spectrum");
+    expect(static_cast<bool>(analyzerOverflow["overflowed"]) &&
+           static_cast<int>(analyzerOverflow["droppedFrames"]) == 64 &&
+           waveform.size() == 32 && spectrum.size() == 24 &&
+           *std::max_element(waveform.begin(), waveform.end()) > 0.0f &&
+           *std::max_element(spectrum.begin(), spectrum.end()) > 0.0f,
+           "analyzer returns non-silent waveform/spectrum data and reports overflow");
+    audioProject->setPlaying(true);
+    audioProject->readMasterMixStereo(tapLeft, tapRight, 32, 48000.0, 0.0);
+    audioProject->setPlaying(false);
+    const auto analyzerRecovered = juce::JSON::parse(
+        audioProject->readGraphTapJson(analyzerTap));
+    expect(static_cast<int>(analyzerRecovered["sequence"]) >= 96,
+           "analyzer resumes accepting samples after a drain");
+    expect(audioProject->removeGraphTap(analyzerTap), "analyzer tap is removable");
+
+    const auto spectrumTap = audioProject->createGraphTap(
+        oscillator, GraphTapKind::Analyzer, kGraphTapAnalyzerWindowFrames);
+    audioProject->setPlaying(true);
+    audioProject->readMasterMixStereo(tapLeft, tapRight, 128, 48000.0, 0.0);
+    audioProject->readMasterMixStereo(tapLeft, tapRight, 128, 48000.0, 0.0);
+    audioProject->setPlaying(false);
+    const auto spectrumJson = juce::JSON::parse(
+        audioProject->readGraphTapJson(spectrumTap));
+    const auto accurateSpectrum = jsonFloatArray(spectrumJson, "spectrum");
+    const auto strongestBin = std::distance(
+        accurateSpectrum.begin(),
+        std::max_element(accurateSpectrum.begin(), accurateSpectrum.end()));
+    // The analyzer bins are 187.5 Hz apart at 48 kHz / 256 frames. A 440 Hz
+    // oscillator is therefore closest to the second reported bin (375 Hz).
+    expect(accurateSpectrum.size() == 24 && strongestBin == 1,
+           "analyzer spectrum places a known 440 Hz tone in the nearest DFT bin");
+    expect(audioProject->removeGraphTap(spectrumTap), "spectrum accuracy tap is removable");
+
+    const auto bypassTap = audioProject->createGraphTap(
+        oscillator, GraphTapKind::Recorder, 32);
+    expect(audioProject->setDeviceParameter(oscillator, "bypass", 1.0f),
+           "tapped source can be bypassed");
+    audioProject->setPlaying(true);
+    audioProject->readMasterMixStereo(tapLeft, tapRight, 32, 48000.0, 0.0);
+    audioProject->setPlaying(false);
+    const auto bypassJson = juce::JSON::parse(
+        audioProject->readGraphTapJson(bypassTap, 32));
+    const auto bypassCaptured = jsonFloatArray(bypassJson, "left");
+    bool bypassMatches = bypassCaptured.size() == 32;
+    for (size_t i = 0; bypassMatches && i < bypassCaptured.size(); ++i) {
+        bypassMatches = std::abs(bypassCaptured[i] - tapLeft[i]) < 1.0e-6f;
+    }
+    expect(bypassMatches,
+           "tap and track observe equivalent output when the source is bypassed");
+    expect(audioProject->removeGraphTap(bypassTap) &&
+           audioProject->setDeviceParameter(oscillator, "bypass", 0.0f),
+           "bypass tap is removed and source is restored");
+
+    const auto deletedSourceTap = audioProject->createGraphTap(
+        oscillator, GraphTapKind::Meter, 64);
+    expect(audioProject->removeDeviceFromTrack(oscillator),
+           "tapped source can be deleted");
+    const auto deletedSourceJson = juce::JSON::parse(
+        audioProject->readGraphTapJson(deletedSourceTap));
+    expect(!static_cast<bool>(deletedSourceJson["sourceAvailable"]),
+           "tap readback explicitly reports a deleted source");
+    const auto persistedData = audioProject->toProjectFileData();
+    expect(audioProject->loadFromProjectFileData(persistedData),
+           "project reload succeeds while a runtime-only tap exists");
+    expect(audioProject->readGraphTapJson(deletedSourceTap).find("tap_not_found") != std::string::npos,
+           "project reload clears runtime-only taps instead of persisting them");
+
+    // Recreate an oscillator for routing and concurrent lifecycle tests.
+    const auto replacementOscillator = audioProject->addDeviceToTrack(
+        source, device_types::kOscillator);
+    std::atomic<bool> keepRendering{true};
+    std::atomic<bool> callbackAudioValid{true};
+    std::thread callbackThread([&] {
+        float concurrentLeft[64]{};
+        float concurrentRight[64]{};
+        while (keepRendering.load(std::memory_order_acquire)) {
+            audioProject->readMasterMixStereo(
+                concurrentLeft, concurrentRight, 64, 48000.0, 0.0);
+            for (int i = 0; i < 64; ++i) {
+                if (!std::isfinite(concurrentLeft[i]) ||
+                    !std::isfinite(concurrentRight[i])) {
+                    callbackAudioValid.store(false, std::memory_order_release);
+                }
+            }
+        }
+    });
+    bool concurrentLifecycleSucceeded = true;
+    for (int iteration = 0; iteration < 64; ++iteration) {
+        const auto liveTap = audioProject->createGraphTap(
+            replacementOscillator, GraphTapKind::Recorder, 64);
+        concurrentLifecycleSucceeded &= !liveTap.empty();
+        concurrentLifecycleSucceeded &= audioProject->removeGraphTap(liveTap);
+    }
+    keepRendering.store(false, std::memory_order_release);
+    callbackThread.join();
+    expect(concurrentLifecycleSucceeded && callbackAudioValid.load(std::memory_order_acquire),
+           "tap slots survive concurrent callback creation, removal, and immediate reuse");
+
     const auto audioReceiver = audioProject->addDeviceToTrack(destination, device_types::kAudioReceiver);
     expect(!audioReceiver.empty(), "audio receiver is created");
-    expect(audioProject->setDeviceStringParameter(audioReceiver, "sourceId", oscillator),
+    expect(audioProject->setDeviceStringParameter(audioReceiver, "sourceId", replacementOscillator),
            "audio receiver targets the oscillator output");
     const float routed = rms(audioProject->renderOffline(0.5, 48000.0));
     expect(baseline > 0.01f, "baseline oscillator is audible");
@@ -92,7 +266,7 @@ int main() {
     for (int iteration = 0; iteration < 24; ++iteration) {
         const bool connected = (iteration & 1) == 0;
         expect(audioProject->setDeviceStringParameter(
-                   audioReceiver, "sourceId", connected ? oscillator : ""),
+                   audioReceiver, "sourceId", connected ? replacementOscillator : ""),
                "live routing source update succeeds");
         expect(audioProject->setDeviceParameter(
                    audioReceiver, "feedback", connected ? 1.0f : 0.0f),

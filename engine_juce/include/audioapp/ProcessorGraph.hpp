@@ -126,12 +126,29 @@ struct GraphTapRuntime {
     std::atomic<float> peakR{0.0f};
     std::atomic<float> rmsL{0.0f};
     std::atomic<float> rmsR{0.0f};
+    // Even while stable and odd while the audio thread publishes a meter
+    // block. This makes the individually atomic fields one coherent snapshot.
+    std::atomic<uint64_t> meterRevision{0};
 
     alignas(64) std::array<float, kGraphTapMaxBufferedFrames> ringL{};
     alignas(64) std::array<float, kGraphTapMaxBufferedFrames> ringR{};
     alignas(64) std::atomic<uint64_t> head{0};
     alignas(64) std::atomic<uint64_t> tail{0};
 };
+
+struct GraphTapMeterSnapshot {
+    uint64_t sequence = 0;
+    uint32_t sampleRate = 48000;
+    float peakL = 0.0f;
+    float peakR = 0.0f;
+    float rmsL = 0.0f;
+    float rmsR = 0.0f;
+};
+
+/// Attempts one non-blocking seqlock read. A false result contains no usable
+/// snapshot; callers may retry without ever delaying the audio thread.
+bool tryReadGraphTapMeter(const GraphTapRuntime& runtime,
+                          GraphTapMeterSnapshot& snapshot) noexcept;
 
 void resetGraphTapRuntime(GraphTapRuntime& runtime, uint32_t generation) noexcept;
 void processGraphTap(GraphTapRuntime& runtime,
