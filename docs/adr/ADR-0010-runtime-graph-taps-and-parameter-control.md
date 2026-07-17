@@ -116,6 +116,13 @@ evaluator deliberately remain on the prior block-boundary fallback until phase
 7 supplies their typed policy; fallback commands drain before compact values so
 an older node snapshot cannot overwrite a newer gesture.
 
+The remaining automatable FX gaps are also compiled: Delay, Bitcrusher,
+Distortion, Tremolo, Wavetable and Bass Synth now have distinct encoded kinds
+and normalized evaluators. The runtime encoding uses six kind bits (runtime
+only; projects persist stable names). Audio Receiver mix and routing-device
+strip controls use the mailbox; only source/feedback topology changes rebuild
+the routing graph.
+
 Consistency is part of the contract: every automatable or modulatable parameter
 must declare its rate and smoothing behavior, and tests must reject missing
 declarations. Discrete parameters never interpolate; continuous manual changes

@@ -74,9 +74,14 @@ static ParamKind paramKindForDevice(DeviceNodeKind kind) noexcept {
     case DeviceNodeKind::Limiter:          return ParamKind::Limiter;
     case DeviceNodeKind::BassSynth:        return ParamKind::BassSynth;
     case DeviceNodeKind::PhaseModSynth:    return ParamKind::PhaseModSynth;
+    case DeviceNodeKind::Delay:            return ParamKind::Delay;
     case DeviceNodeKind::Filter:           return ParamKind::Filter;
     case DeviceNodeKind::FourBandEq:       return ParamKind::FourBandEq;
     case DeviceNodeKind::FrequencyShifter: return ParamKind::FrequencyShifter;
+    case DeviceNodeKind::Bitcrusher:       return ParamKind::Bitcrusher;
+    case DeviceNodeKind::Distortion:       return ParamKind::Distortion;
+    case DeviceNodeKind::Tremolo:          return ParamKind::Tremolo;
+    case DeviceNodeKind::WavetableSynth:   return ParamKind::WavetableSynth;
     case DeviceNodeKind::ResonatorBank:    return ParamKind::ResonatorBank;
     case DeviceNodeKind::AudioReceiver:
     case DeviceNodeKind::MidiReceiver:     return ParamKind::Routing;
@@ -1404,6 +1409,56 @@ void applyAutomationValue(DeviceVariantParams& params,
             case PhaseModSynthParam::VibratoDepth: p->vibratoDepth = value; break;
             case PhaseModSynthParam::VibratoRate: p->vibratoRate = value; break;
             default: break;
+            }
+        }
+        break;
+    case ParamKind::Delay:
+        if (auto* p = std::get_if<DelayParamsPlayback>(&params)) {
+            switch (rawId) {
+            case 0: p->timeMs = value * 5000.0f; break;
+            case 1: p->feedback = value * 0.95f; break;
+            case 2: p->mix = value; break;
+            case 6: p->blurAmount = value; break;
+            case 7: p->inputDucking = value; break;
+            case 8: p->lowCutHz = 20.0f + value * 1980.0f; break;
+            case 9: p->highCutHz = 2000.0f + value * 18000.0f; break;
+            default: break;
+            }
+        }
+        break;
+    case ParamKind::Bitcrusher:
+        if (auto* p = std::get_if<BitcrusherParamsPlayback>(&params)) {
+            switch (static_cast<BitcrusherParam>(rawId)) {
+            case BitcrusherParam::Rate: p->rate = value; break;
+            case BitcrusherParam::Bits: p->bits = 1.0f + value * 15.0f; break;
+            case BitcrusherParam::Mix: p->mix = value; break;
+            case BitcrusherParam::Mode: p->mode = value * 3.0f; break;
+            case BitcrusherParam::Shape: p->shape = value * 3.0f; break;
+            case BitcrusherParam::Jitter: p->jitter = value; break;
+            case BitcrusherParam::Drive: p->drive = value; break;
+            case BitcrusherParam::DitherMode: p->ditherMode = value * 3.0f; break;
+            case BitcrusherParam::DitherAmount: p->ditherAmount = value; break;
+            case BitcrusherParam::ClipMode: p->clipMode = value * 2.0f; break;
+            case BitcrusherParam::ClipAmount: p->clipAmount = value; break;
+            case BitcrusherParam::Filter: p->filter = value; break;
+            }
+        }
+        break;
+    case ParamKind::Distortion:
+        if (auto* p = std::get_if<DistortionParamsPlayback>(&params)) {
+            switch (static_cast<DistortionParam>(rawId)) {
+            case DistortionParam::Drive: p->drive = value; break;
+            case DistortionParam::Tone: p->tone = value; break;
+            case DistortionParam::Mix: p->mix = value; break;
+            }
+        }
+        break;
+    case ParamKind::Tremolo:
+        if (auto* p = std::get_if<TremoloParamsPlayback>(&params)) {
+            switch (static_cast<TremoloParam>(rawId)) {
+            case TremoloParam::Depth: p->depth = value; break;
+            case TremoloParam::Rate: p->rateHz = 0.1f + value * 19.9f; break;
+            case TremoloParam::Shape: p->shape = value; break;
             }
         }
         break;

@@ -51,6 +51,7 @@ bool supportsCompiledNormalizedParameter(DeviceNodeKind kind) noexcept {
     case DeviceNodeKind::SubtractiveSynth:
     case DeviceNodeKind::WavetableSynth:
     case DeviceNodeKind::PhaseModSynth:
+    case DeviceNodeKind::Delay:
     case DeviceNodeKind::KickGenerator:
     case DeviceNodeKind::SnareGenerator:
     case DeviceNodeKind::ClapGenerator:
@@ -60,9 +61,13 @@ bool supportsCompiledNormalizedParameter(DeviceNodeKind kind) noexcept {
     case DeviceNodeKind::Compressor:
     case DeviceNodeKind::Expander:
     case DeviceNodeKind::Limiter:
+    case DeviceNodeKind::BassSynth:
     case DeviceNodeKind::Filter:
     case DeviceNodeKind::FourBandEq:
     case DeviceNodeKind::FrequencyShifter:
+    case DeviceNodeKind::Bitcrusher:
+    case DeviceNodeKind::Distortion:
+    case DeviceNodeKind::Tremolo:
     case DeviceNodeKind::ResonatorBank:
     case DeviceNodeKind::AudioReceiver:
     case DeviceNodeKind::MidiReceiver:
@@ -708,6 +713,7 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
     const DeviceSlot previousDevice = *device;
     const bool routingDevice =
         isRoutingDeviceNodeKind(deviceNodeKindFromTypeId(device->config.typeId));
+    const bool structuralRoutingParameter = routingDevice && parameterId == "feedback";
     const bool commonStripParameter = parameterId == "gain" || parameterId == "pan" ||
         parameterId == "bypass" || parameterId == "outputMix" ||
         parameterId == "outputWidth";
@@ -747,7 +753,7 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
 
     // Routing changes alter graph connectivity and therefore remain on the
     // structural path. Ordinary knobs only publish a block-boundary command.
-    if (routingDevice) {
+    if (structuralRoutingParameter) {
         command.type = RealtimeCommandType::DeviceNode;
         command.targetId = deviceId;
         command.commonOnly = commonStripParameter;

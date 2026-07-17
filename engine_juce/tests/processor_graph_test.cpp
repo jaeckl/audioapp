@@ -1,4 +1,5 @@
 #include "audioapp/ProcessorGraph.hpp"
+#include "audioapp/AutomationPlayback.hpp"
 #include "audioapp/DeviceSubgraph.hpp"
 #include "audioapp/devices/DeviceSlot.hpp"
 #include "audioapp/dsp/ProcessorArena.hpp"
@@ -98,6 +99,28 @@ int main() {
     graph = buildProcessorGraph(linear, invalidTap);
     expect(graph.error == ProcessorGraphError::InvalidTap,
            "zero stable output IDs are rejected");
+
+    expect(unpackParamKind(packParamId(ParamKind::Delay, 9)) == ParamKind::Delay &&
+           unpackParamId(packParamId(ParamKind::Delay, 9)) == 9,
+           "six-bit parameter kinds preserve the added delay namespace");
+    DeviceVariantParams normalizedDelay = DelayParamsPlayback{};
+    applyAutomationValue(normalizedDelay, DeviceNodeKind::Delay,
+                         packParamId(ParamKind::Delay, 0), 0.5f);
+    applyAutomationValue(normalizedDelay, DeviceNodeKind::Delay,
+                         packParamId(ParamKind::Delay, 9), 0.5f);
+    expect(std::abs(std::get<DelayParamsPlayback>(normalizedDelay).timeMs - 2500.0f) < 1.0e-6f &&
+           std::abs(std::get<DelayParamsPlayback>(normalizedDelay).highCutHz - 11000.0f) < 1.0e-6f,
+           "delay mailbox normalization follows descriptor ranges");
+    DeviceVariantParams normalizedDistortion = DistortionParamsPlayback{};
+    applyAutomationValue(normalizedDistortion, DeviceNodeKind::Distortion,
+                         packParamId(ParamKind::Distortion, 0), 0.75f);
+    expect(std::abs(std::get<DistortionParamsPlayback>(normalizedDistortion).drive - 0.75f) < 1.0e-6f,
+           "distortion mailbox values reach the typed evaluator");
+    DeviceVariantParams normalizedTremolo = TremoloParamsPlayback{};
+    applyAutomationValue(normalizedTremolo, DeviceNodeKind::Tremolo,
+                         packParamId(ParamKind::Tremolo, 1), 0.5f);
+    expect(std::abs(std::get<TremoloParamsPlayback>(normalizedTremolo).rateHz - 10.05f) < 1.0e-5f,
+           "tremolo rate normalization follows its physical range");
 
     std::array<GraphTapDefinition, kMaxProcessorGraphTaps> maximumTaps{};
     for (int i = 0; i < kMaxProcessorGraphTaps; ++i) {

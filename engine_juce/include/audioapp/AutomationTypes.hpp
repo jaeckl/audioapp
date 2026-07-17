@@ -441,8 +441,8 @@ enum class PhaserParam : uint16_t {
 // thread. The fix is to pack `(ParamKind, perKindId)` into the uint16_t so
 // the runtime can disambiguate.
 //
-// Encoding:  bits 11..15 = kind tag (5 bits, 0..31)
-//            bits  0..10 = per-kind enum value (11 bits, 0..2047)
+// Encoding:  bits 10..15 = kind tag (6 bits, 0..63)
+//            bits  0..9  = per-kind enum value (10 bits, 0..1023)
 // -----------------------------------------------------------------------
 
 enum class ParamKind : uint16_t {
@@ -477,11 +477,12 @@ enum class ParamKind : uint16_t {
     Chorus           = 28,
     Reverb           = 29,
     Phaser           = 30,
+    Delay            = 31,
 };
 
-constexpr uint16_t kParamKindShift      = 11;
-constexpr uint16_t kParamKindMask       = 0xF800;
-constexpr uint16_t kParamIdMask         = 0x07FF;
+constexpr uint16_t kParamKindShift      = 10;
+constexpr uint16_t kParamKindMask       = 0xFC00;
+constexpr uint16_t kParamIdMask         = 0x03FF;
 
 constexpr uint16_t packParamId(ParamKind kind, uint16_t perKindId) noexcept {
     return static_cast<uint16_t>((static_cast<uint16_t>(kind) << kParamKindShift) |
