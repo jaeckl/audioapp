@@ -3,6 +3,7 @@ package com.audioapp.daw
 import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
+import java.io.File
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -73,7 +74,11 @@ object ProjectUriStore {
         val allProjects = loadRecentProjects(context)
         val accessible = allProjects.filter { project ->
             val projectUri = Uri.parse(project.uri)
-            persistedReadUris.any { grantUri -> uriGrantCovers(grantUri, projectUri) }
+            if (projectUri.scheme == "file") {
+                projectUri.path?.let(::File)?.isFile == true
+            } else {
+                persistedReadUris.any { grantUri -> uriGrantCovers(grantUri, projectUri) }
+            }
         }
         if (accessible.size != allProjects.size) {
             writeRecentProjects(context, accessible)

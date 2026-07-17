@@ -65,10 +65,40 @@ class _ProjectWorkspaceBrowserState extends State<ProjectWorkspaceBrowser> {
     }
   }
 
-  Future<void> _chooseWorkspace() async {
-    if (await widget.bridge.chooseProjectWorkspace()) {
-      _path.clear();
+  Future<void> _createFolder() async {
+    var folderName = 'New Folder';
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: WelcomeTheme.panelBackground,
+        title: const Text('New folder',
+            style: TextStyle(color: WelcomeTheme.textPrimary)),
+        content: TextFormField(
+          key: const ValueKey('project-workspace-folder-name'),
+          initialValue: folderName,
+          autofocus: true,
+          style: const TextStyle(color: WelcomeTheme.textPrimary),
+          decoration: const InputDecoration(labelText: 'Folder name'),
+          onChanged: (value) => folderName = value,
+          onFieldSubmitted: (value) => Navigator.of(context).pop(value),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.of(context).pop(folderName),
+              child: const Text('Create')),
+        ],
+      ),
+    );
+    if (name == null || name.trim().isEmpty || !mounted) return;
+    try {
+      final parentUri = _path.isEmpty ? _workspaceUri! : _path.last.uri;
+      await widget.bridge.createProjectWorkspaceFolder(parentUri, name);
       await _refresh();
+    } on PlatformException catch (e) {
+      if (mounted) setState(() => _error = e.message ?? e.code);
     }
   }
 
@@ -178,10 +208,11 @@ class _ProjectWorkspaceBrowserState extends State<ProjectWorkspaceBrowser> {
               : (_path.isEmpty ? 'Projects' : _path.last.name)),
           actions: [
             IconButton(
-              key: const ValueKey('project-workspace-change'),
-              tooltip: 'Change project workspace',
-              onPressed: _loading ? null : _chooseWorkspace,
-              icon: const Icon(Icons.drive_folder_upload_outlined),
+              key: const ValueKey('project-workspace-new-folder'),
+              tooltip: 'New folder',
+              onPressed:
+                  _loading || _workspaceUri == null ? null : _createFolder,
+              icon: const Icon(Icons.create_new_folder_outlined),
             ),
             if (widget.saveMode && _workspaceUri != null)
               IconButton(
@@ -235,9 +266,7 @@ class _ProjectWorkspaceBrowserState extends State<ProjectWorkspaceBrowser> {
     if (_loading)
       return const Center(
           child: CircularProgressIndicator(color: WelcomeTheme.accent));
-    if (_workspaceUri == null) {
-      return _EmptyWorkspace(onChoose: _chooseWorkspace);
-    }
+    if (_workspaceUri == null) return const SizedBox.shrink();
     if (_entries.isEmpty) {
       return const Center(
           child: Text('No AudioApp projects in this folder',
@@ -296,41 +325,5 @@ class _WorkspacePath extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: WelcomeTheme.sectionLabel),
-      );
-}
-
-class _EmptyWorkspace extends StatelessWidget {
-  const _EmptyWorkspace({required this.onChoose});
-  final VoidCallback onChoose;
-  @override
-  Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.folder_special_outlined,
-                size: 58, color: WelcomeTheme.accent),
-            const SizedBox(height: 18),
-            const Text('Choose your project workspace',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: WelcomeTheme.textPrimary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            const Text(
-                'AudioApp will show folders and projects from this location in its own browser.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: WelcomeTheme.textMuted, height: 1.4)),
-            const SizedBox(height: 22),
-            FilledButton.icon(
-                key: const ValueKey('project-workspace-choose'),
-                onPressed: onChoose,
-                icon: const Icon(Icons.folder_open_rounded),
-                label: const Text('Choose workspace'),
-                style: FilledButton.styleFrom(
-                    backgroundColor: WelcomeTheme.accent,
-                    minimumSize: const Size(210, 48))),
-          ]),
-        ),
       );
 }

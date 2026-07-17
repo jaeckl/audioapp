@@ -6,6 +6,7 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import android.util.Log
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.IOException
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
@@ -51,7 +52,35 @@ object ProjectArchiveStore {
         val isDirectory: Boolean,
     )
 
+    private const val WORKSPACE_DIRECTORY = "projects"
+
+    fun workspaceRootUri(context: Context): Uri = Uri.fromFile(workspaceRoot(context))
+
+    private fun workspaceRoot(context: Context): File {
+        val root = File(context.getExternalFilesDir(null) ?: context.filesDir, WORKSPACE_DIRECTORY)
+        if (!root.exists() && !root.mkdirs()) {
+            throw IOException("Could not create AudioApp project workspace")
+        }
+        return root.canonicalFile
+    }
+
+    private fun workspaceDirectory(context: Context, uri: Uri): File {
+        if (uri.scheme != "file") throw IOException("Not an AudioApp workspace folder")
+        val root = workspaceRoot(context)
+        val directory = File(uri.path ?: throw IOException("Workspace path is missing")).canonicalFile
+        val insideRoot = directory == root || directory.path.startsWith(root.path + File.separator)
+        if (!insideRoot || !directory.isDirectory) throw IOException("Folder is outside the AudioApp workspace")
+        return directory
+    }
+
     fun listWorkspaceEntries(context: Context, treeUri: Uri): List<WorkspaceEntry> {
+        if (treeUri.scheme == "file") {
+            return workspaceDirectory(context, treeUri).listFiles().orEmpty()
+                .asSequence()
+                .filter { it.isDirectory || it.name.endsWith(PROJECT_FILE_SUFFIX, ignoreCase = true) }
+                .map { WorkspaceEntry(Uri.fromFile(it), it.name, it.isDirectory) }
+                .toList()
+        }
         val documentId = try {
             DocumentsContract.getDocumentId(treeUri)
         } catch (_: Exception) {
@@ -92,6 +121,17 @@ object ProjectArchiveStore {
         }
     }
 
+    fun createWorkspaceFolder(context: Context, parentUri: Uri, requestedName: String): Uri {
+        val name = requestedName.trim()
+        if (name.isBlank() || name == "." || name == ".." || name.contains('/') || name.contains('\\')) {
+            throw IOException("Enter a valid folder name")
+        }
+        val folder = File(workspaceDirectory(context, parentUri), name)
+        if (!folder.exists() && !folder.mkdir()) throw IOException("Could not create folder $name")
+        if (!folder.isDirectory) throw IOException("$name already exists as a file")
+        return Uri.fromFile(folder)
+    }
+
     @Throws(IOException::class)
     fun createProjectDocument(context: Context, folderUri: Uri, requestedName: String): Uri {
         val cleanName = requestedName.trim().ifBlank { "project" }
@@ -99,6 +139,9 @@ object ProjectArchiveStore {
             cleanName
         } else {
             "$cleanName$PROJECT_FILE_SUFFIX"
+        }
+        if (folderUri.scheme == "file") {
+            return Uri.fromFile(File(workspaceDirectory(context, folderUri), fileName))
         }
         val existing = listWorkspaceEntries(context, folderUri)
             .firstOrNull { !it.isDirectory && it.displayName.equals(fileName, ignoreCase = true) }
@@ -273,6 +316,16 @@ object ProjectArchiveStore {
 
     @Throws(IOException::class)
     fun writeArchiveBytes(context: Context, documentUri: Uri, archiveBytes: ByteArray) {
+        if (documentUri.scheme == "file") {
+            val target = documentUri.path?.let(::File) ?: throw IOException("Archive path is missing")
+            val root = workspaceRoot(context)
+            val canonical = target.canonicalFile
+            if (!canonical.path.startsWith(root.path + File.separator)) {
+                throw IOException("Archive is outside the AudioApp workspace")
+            }
+            canonical.outputStream().use { it.write(archiveBytes) }
+            return
+        }
         persistDocumentUri(context, documentUri, writable = true)
         context.contentResolver.openOutputStream(documentUri)?.use { stream ->
             stream.write(archiveBytes)
@@ -281,6 +334,17 @@ object ProjectArchiveStore {
 
     @Throws(IOException::class)
     fun readArchiveBytes(context: Context, documentUri: Uri): ByteArray {
+        if (documentUri.scheme == "file") {
+            val source = documentUri.path?.let(::File) ?: throw IOException("Archive path is missing")
+            val root = workspaceRoot(context)
+            val canonical = source.canonicalFile
+            if (!canonical.path.startsWith(root.path + File.separator) || !canonical.isFile) {
+                throw IOException("Project is unavailable in the AudioApp workspace")
+            }
+            return canonical.readBytes().also {
+                if (it.isEmpty()) throw IOException("Archive is empty")
+            }
+        }
         persistDocumentUri(context, documentUri, writable = false)
         val bytes = context.contentResolver.openInputStream(documentUri)?.use { stream ->
             stream.readBytes()

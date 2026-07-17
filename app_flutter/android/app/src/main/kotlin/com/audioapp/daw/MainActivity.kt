@@ -20,6 +20,7 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.EventChannel
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 import java.io.IOException
 
 class MainActivity : FlutterFragmentActivity() {
@@ -28,7 +29,6 @@ class MainActivity : FlutterFragmentActivity() {
 
     private var pendingSaveResult: MethodChannel.Result? = null
     private var pendingLoadResult: MethodChannel.Result? = null
-    private var pendingWorkspaceResult: MethodChannel.Result? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var pendingImportResult: MethodChannel.Result? = null
     private var pendingExportResult: MethodChannel.Result? = null
@@ -51,19 +51,6 @@ class MainActivity : FlutterFragmentActivity() {
     private val openProjectArchive = registerForActivityResult(
         OpenProjectDocument(),
     ) { documentUri -> onLoadArchivePicked(documentUri) }
-
-    private val chooseProjectWorkspace = registerForActivityResult(
-        ActivityResultContracts.OpenDocumentTree(),
-    ) { treeUri ->
-        val result = pendingWorkspaceResult
-        pendingWorkspaceResult = null
-        if (treeUri == null) result?.success(mapOf("ok" to false, "cancelled" to true))
-        else {
-            ProjectArchiveStore.takeFolderUriPermission(this, treeUri)
-            ProjectUriStore.saveLastFolderUri(this, treeUri)
-            result?.success(mapOf("ok" to true, "uri" to treeUri.toString(), "cancelled" to false))
-        }
-    }
 
     private val openAudioSample = registerForActivityResult(
         ActivityResultContracts.OpenDocument(),
@@ -350,11 +337,15 @@ class MainActivity : FlutterFragmentActivity() {
         }
     }
 
-    private fun projectDisplayName(documentUri: Uri): String =
-        contentResolver.query(documentUri, null, null, null, null)?.use { cursor ->
+    private fun projectDisplayName(documentUri: Uri): String {
+        if (documentUri.scheme == "file") {
+            return documentUri.path?.let(::File)?.name ?: "Project"
+        }
+        return contentResolver.query(documentUri, null, null, null, null)?.use { cursor ->
             val index = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
             if (index >= 0 && cursor.moveToFirst()) cursor.getString(index) else null
         } ?: documentUri.lastPathSegment?.substringAfterLast('/') ?: "Project"
+    }
 
     private fun recentProjectsResult(): Map<String, Any> {
         var projects = ProjectUriStore.loadAccessibleRecentProjects(this)
@@ -422,6 +413,11 @@ class MainActivity : FlutterFragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
+        try {
+            ProjectArchiveStore.workspaceRootUri(this)
+        } catch (e: Exception) {
+            Log.e(logTag, "Could not initialize project workspace", e)
+        }
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -443,26 +439,15 @@ class MainActivity : FlutterFragmentActivity() {
                         }
                         "saveProject" -> launchSaveArchivePicker(result)
                         "loadProject" -> launchLoadArchivePicker(result)
-                        "chooseProjectWorkspace" -> {
-                            if (pendingWorkspaceResult != null || pendingSaveResult != null ||
-                                pendingLoadResult != null || pendingImportResult != null ||
-                                pendingExportResult != null
-                            ) {
-                                result.error("busy", "File picker already open", null)
-                            } else {
-                                pendingWorkspaceResult = result
-                                chooseProjectWorkspace.launch(ProjectUriStore.loadLastFolderUri(this))
-                            }
-                        }
                         "getProjectWorkspaceEntries" -> {
                             val folder = (call.arguments as? Map<*, *>)?.get("folderUri") as? String
-                            val root = folder?.let(Uri::parse) ?: ProjectUriStore.loadLastFolderUri(this)
-                            val entries = root?.let { ProjectArchiveStore.listWorkspaceEntries(this, it) }
-                                ?: emptyList()
+                            val root = folder?.let(Uri::parse)
+                                ?: ProjectArchiveStore.workspaceRootUri(this)
+                            val entries = ProjectArchiveStore.listWorkspaceEntries(this, root)
                             result.success(
                                 mapOf(
                                     "ok" to true,
-                                    "workspaceUri" to ProjectUriStore.loadLastFolderUri(this)?.toString(),
+                                    "workspaceUri" to ProjectArchiveStore.workspaceRootUri(this).toString(),
                                     "entries" to entries.map { entry ->
                                         mapOf(
                                             "uri" to entry.documentUri.toString(),
@@ -472,6 +457,18 @@ class MainActivity : FlutterFragmentActivity() {
                                     },
                                 ),
                             )
+                        }
+                        "createProjectWorkspaceFolder" -> {
+                            val args = call.arguments as? Map<*, *>
+                            val parent = (args?.get("folderUri") as? String)?.let(Uri::parse)
+                                ?: ProjectArchiveStore.workspaceRootUri(this)
+                            val name = args?.get("name") as? String
+                            try {
+                                val folder = ProjectArchiveStore.createWorkspaceFolder(this, parent, name.orEmpty())
+                                result.success(mapOf("ok" to true, "uri" to folder.toString()))
+                            } catch (e: Exception) {
+                                result.error("create_folder_failed", e.message, null)
+                            }
                         }
                         "loadWorkspaceProject" -> {
                             val uri = (call.arguments as? Map<*, *>)?.get("uri") as? String
@@ -484,9 +481,9 @@ class MainActivity : FlutterFragmentActivity() {
                         "saveProjectToWorkspace" -> {
                             val args = call.arguments as? Map<*, *>
                             val folderUri = (args?.get("folderUri") as? String)?.let(Uri::parse)
-                                ?: ProjectUriStore.loadLastFolderUri(this)
+                                ?: ProjectArchiveStore.workspaceRootUri(this)
                             val name = args?.get("name") as? String
-                            if (folderUri == null || name.isNullOrBlank()) {
+                            if (name.isNullOrBlank()) {
                                 result.error("invalid_destination", "Project folder or name is missing", null)
                             } else {
                                 try {

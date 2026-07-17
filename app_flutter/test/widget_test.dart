@@ -25,6 +25,7 @@ void main() {
   bool mockRecentProjects = false;
   String? lastRecentProjectUri;
   String? lastExampleProjectJson;
+  String? lastCreatedWorkspaceFolder;
 
   const bootstrapSnapshot = {
     'ok': true,
@@ -53,6 +54,7 @@ void main() {
     mockRecentProjects = false;
     lastRecentProjectUri = null;
     lastExampleProjectJson = null;
+    lastCreatedWorkspaceFolder = null;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
       switch (call.method) {
@@ -364,14 +366,21 @@ void main() {
         case 'getProjectWorkspaceEntries':
           return {
             'ok': true,
-            'workspaceUri': 'content://projects/tree/workspace',
+            'workspaceUri': 'file:///workspace/projects',
             'entries': [
               {
-                'uri': 'content://projects/document/demo.audioapp.zip',
+                'uri': 'file:///workspace/projects/demo.audioapp.zip',
                 'name': 'Demo Project.audioapp.zip',
                 'directory': false,
               },
             ],
+          };
+        case 'createProjectWorkspaceFolder':
+          lastCreatedWorkspaceFolder =
+              (call.arguments as Map<dynamic, dynamic>?)?['name'] as String?;
+          return {
+            'ok': true,
+            'uri': 'file:///workspace/projects/$lastCreatedWorkspaceFolder',
           };
         case 'loadWorkspaceProject':
           continue loadProjectResponse;
@@ -793,6 +802,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Projects'), findsOneWidget);
     expect(find.text('Demo Project.audioapp.zip'), findsOneWidget);
+    await tester
+        .tap(find.byKey(const ValueKey('project-workspace-new-folder')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const ValueKey('project-workspace-folder-name')), 'Ideas');
+    await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+    await tester.pumpAndSettle();
+    expect(lastCreatedWorkspaceFolder, 'Ideas');
     await tester.tap(find.text('Demo Project.audioapp.zip'));
     await tester.pumpAndSettle();
     expect(find.byTooltip('Loaded Track'), findsOneWidget);

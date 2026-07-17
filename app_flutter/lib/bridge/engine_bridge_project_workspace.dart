@@ -18,12 +18,6 @@ class ProjectWorkspaceListing {
 }
 
 extension EngineBridgeProjectWorkspace on EngineBridge {
-  Future<bool> chooseProjectWorkspace() async {
-    final result = await _channel
-        .invokeMethod<Map<dynamic, dynamic>>('chooseProjectWorkspace');
-    return result?['ok'] == true;
-  }
-
   Future<ProjectWorkspaceListing> projectWorkspaceEntries(
       [String? folderUri]) async {
     final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
@@ -40,6 +34,21 @@ extension EngineBridgeProjectWorkspace on EngineBridge {
 
   Future<ProjectSnapshot> loadWorkspaceProject(String uri) =>
       _invokeForSnapshot('loadWorkspaceProject', {'uri': uri});
+
+  Future<String> createProjectWorkspaceFolder(
+      String folderUri, String name) async {
+    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
+      'createProjectWorkspaceFolder',
+      {'folderUri': folderUri, 'name': name},
+    );
+    if (result?['ok'] != true) {
+      throw PlatformException(
+        code: result?['error']?.toString() ?? 'create_folder_failed',
+        message: 'Failed to create project folder',
+      );
+    }
+    return result!['uri'] as String;
+  }
 
   Future<String> saveProjectToWorkspace(String folderUri, String name) async {
     final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
