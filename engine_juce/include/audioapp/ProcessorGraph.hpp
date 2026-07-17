@@ -12,6 +12,7 @@ constexpr int kMaxProcessorGraphSourcesPerTrack = 16;
 constexpr int kMaxProcessorGraphReceiversPerTrack = 16;
 constexpr int kMaxProcessorGraphEdges = 32;
 constexpr int kMaxProcessorGraphFeedbackEdges = 8;
+constexpr int kMaxProcessorGraphBlockFrames = 4096;
 /// Bounded, allocation-free delay storage for route latency compensation.
 constexpr int kMaxProcessorGraphLatencySamples = 4096;
 constexpr uint8_t kGraphTrackMidiInput = 0xFF;

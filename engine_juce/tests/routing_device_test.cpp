@@ -22,6 +22,13 @@ float rms(const std::vector<float>& audio) {
     return audio.empty() ? 0.0f : static_cast<float>(std::sqrt(sum / audio.size()));
 }
 
+bool finiteAndBounded(const std::vector<float>& audio) {
+    for (float sample : audio) {
+        if (!std::isfinite(sample) || std::abs(sample) > 1.001f) return false;
+    }
+    return true;
+}
+
 } // namespace
 
 int main() {
@@ -52,6 +59,29 @@ int main() {
            "audio receiver can disconnect without rebuilding playback");
     const float disconnected = rms(audioProject->renderOffline(0.5, 48000.0));
     expect(disconnected < routed * 0.8f, "disconnect removes the graph edge");
+
+    // Exercise the actual playback publication path: the graph is rebuilt
+    // while playing, feedback is repeatedly created/destroyed, and a nearby
+    // processor is inserted/removed. This catches stale feedback-bank reads
+    // and invalid snapshot swaps without relying on a device callback.
+    audioProject->setPlaying(true);
+    for (int iteration = 0; iteration < 24; ++iteration) {
+        const bool connected = (iteration & 1) == 0;
+        expect(audioProject->setDeviceStringParameter(
+                   audioReceiver, "sourceId", connected ? oscillator : ""),
+               "live routing source update succeeds");
+        expect(audioProject->setDeviceParameter(
+                   audioReceiver, "feedback", connected ? 1.0f : 0.0f),
+               "live feedback update succeeds");
+        const auto effect = audioProject->addDeviceToTrack(destination, "bitcrusher", 0);
+        expect(!effect.empty(), "live structural insert succeeds");
+        const auto rendered = audioProject->renderOffline(0.04, 48000.0);
+        expect(finiteAndBounded(rendered),
+               "live graph swap produces finite, bounded audio");
+        expect(audioProject->removeDeviceFromTrack(effect),
+               "live structural removal succeeds");
+    }
+    audioProject->setPlaying(false);
 
     auto midiProject = std::make_unique<ProjectEngine>();
     midiProject->createProject();

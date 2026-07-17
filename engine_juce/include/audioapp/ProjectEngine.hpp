@@ -564,7 +564,20 @@ private:
     int lastBuiltProcessorGraph_ = 0; // control thread only
     // Each immutable graph owns a pre-cleared bank. The audio callback never
     // clears delay memory when a live structural edit is published.
-    std::array<ProcessorGraphDelayLine, kMaxProcessorGraphEdges> graphLatencyLines_[2]{};
+    std::unique_ptr<std::array<ProcessorGraphDelayLine, kMaxProcessorGraphEdges>[]>
+        graphLatencyLines_ =
+            std::make_unique<std::array<ProcessorGraphDelayLine, kMaxProcessorGraphEdges>[]>(2);
+    struct GraphFeedbackBank {
+        std::array<std::array<float, kMaxProcessorGraphBlockFrames>,
+                   kMaxProcessorGraphFeedbackEdges> left[2]{};
+        std::array<std::array<float, kMaxProcessorGraphBlockFrames>,
+                   kMaxProcessorGraphFeedbackEdges> right[2]{};
+        int readIndex = 0;
+    };
+    // Like latency lines, feedback state is tied to the immutable graph it
+    // belongs to, so a new route never consumes a stale predecessor block.
+    std::unique_ptr<GraphFeedbackBank[]> graphFeedbackBanks_ =
+        std::make_unique<GraphFeedbackBank[]>(2);
 
     DeviceMeterAtomic deviceMeters_[kMaxDeviceMeters];
     std::string deviceMeterIds_[kMaxDeviceMeters];

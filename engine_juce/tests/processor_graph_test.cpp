@@ -71,6 +71,8 @@ int main() {
     expect(graph.audioEdges[0].bufferSlot == 0 && graph.midiEdges[0].bufferSlot == 0 &&
            graph.audioBufferSlotCount == 1 && graph.midiBufferSlotCount == 1,
            "compiler assigns independent preallocated audio and MIDI buffer slots");
+    expect(graph.midiEdges[0].eventCapacity == 128,
+           "default MIDI ports retain their event capacity");
     expect(graph.audioEdges[0].sourceLayout == GraphChannelLayout::Stereo &&
            graph.audioEdges[0].tapKind == GraphTapKind::Meter &&
            graph.maxLatencySamples == 64,

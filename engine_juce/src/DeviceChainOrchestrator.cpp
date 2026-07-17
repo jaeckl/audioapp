@@ -447,6 +447,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
             for (int i = 0; i < activeNoteCount; ++i) {
                 activeNotes[i].noteStartBeat += delayBeats;
                 activeNotes[i].clipLengthBeats += delayBeats;
+                activeNotes[i].contentLengthBeats += delayBeats;
             }
         }
 

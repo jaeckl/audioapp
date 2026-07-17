@@ -1647,7 +1647,7 @@ void ProjectEngine::readMasterMix(float* monoOut,
     if (monoOut == nullptr || numFrames <= 0) {
         return;
     }
-    constexpr int kMaxFrames = 4096;
+    constexpr int kMaxFrames = kMaxProcessorGraphBlockFrames;
     const int framesToProcess = numFrames > kMaxFrames ? kMaxFrames : numFrames;
     thread_local float left[kMaxFrames];
     thread_local float right[kMaxFrames];
@@ -1886,9 +1886,6 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
     int graphMidiEdgeCounts[kMaxProcessorGraphEdges]{};
     thread_local float graphAudioLeft[kMaxProcessorGraphEdges][kMaxFrames];
     thread_local float graphAudioRight[kMaxProcessorGraphEdges][kMaxFrames];
-    thread_local float graphFeedbackLeft[2][kMaxProcessorGraphFeedbackEdges][kMaxFrames]{};
-    thread_local float graphFeedbackRight[2][kMaxProcessorGraphFeedbackEdges][kMaxFrames]{};
-    thread_local int graphFeedbackReadIndex = 0;
     int routedMidiCount[kMaxTracks]{};
     const int framesToProcess = numFrames > kMaxFrames ? kMaxFrames : numFrames;
     const double beatsPerFrame =
@@ -1904,11 +1901,13 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         std::memset(graphAudioRight[slot], 0,
                     static_cast<size_t>(framesToProcess) * sizeof(float));
     }
+    auto& graphFeedback = graphFeedbackBanks_[graphIndex];
+    const int graphFeedbackReadIndex = graphFeedback.readIndex;
     const int graphFeedbackWriteIndex = 1 - graphFeedbackReadIndex;
     for (int slot = 0; slot < graph.feedbackBufferSlotCount; ++slot) {
-        std::memset(graphFeedbackLeft[graphFeedbackWriteIndex][slot], 0,
+        std::memset(graphFeedback.left[graphFeedbackWriteIndex][slot].data(), 0,
                     static_cast<size_t>(framesToProcess) * sizeof(float));
-        std::memset(graphFeedbackRight[graphFeedbackWriteIndex][slot], 0,
+        std::memset(graphFeedback.right[graphFeedbackWriteIndex][slot].data(), 0,
                     static_cast<size_t>(framesToProcess) * sizeof(float));
     }
 
@@ -2200,10 +2199,10 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         ctx.graphAudioRight = &graphAudioRight[0][0];
         ctx.graphAudioStride = kMaxFrames;
         ctx.graphLatencyLines = graphLatencyLines_[graphIndex].data();
-        ctx.graphFeedbackReadLeft = &graphFeedbackLeft[graphFeedbackReadIndex][0][0];
-        ctx.graphFeedbackReadRight = &graphFeedbackRight[graphFeedbackReadIndex][0][0];
-        ctx.graphFeedbackWriteLeft = &graphFeedbackLeft[graphFeedbackWriteIndex][0][0];
-        ctx.graphFeedbackWriteRight = &graphFeedbackRight[graphFeedbackWriteIndex][0][0];
+        ctx.graphFeedbackReadLeft = graphFeedback.left[graphFeedbackReadIndex][0].data();
+        ctx.graphFeedbackReadRight = graphFeedback.right[graphFeedbackReadIndex][0].data();
+        ctx.graphFeedbackWriteLeft = graphFeedback.left[graphFeedbackWriteIndex][0].data();
+        ctx.graphFeedbackWriteRight = graphFeedback.right[graphFeedbackWriteIndex][0].data();
         ctx.graphFeedbackStride = kMaxFrames;
         ctx.graphMidiNotes = &routedMidi[0][0];
         ctx.graphMidiCounts = routedMidiCount;
@@ -2244,7 +2243,7 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         }
     }
 
-    graphFeedbackReadIndex = graphFeedbackWriteIndex;
+    graphFeedback.readIndex = graphFeedbackWriteIndex;
 
     if (metronomeEnabled_.load(std::memory_order_acquire)) {
         addMetronomeClick(masterLeft, masterRight, framesToProcess, sampleRate,
@@ -3327,6 +3326,12 @@ void ProjectEngine::rebuildProcessorGraphLocked(int trackCount) {
         delay.delaySamples = 0;
         delay.writePosition = 0;
     }
+    auto& feedbackBank = graphFeedbackBanks_[inactive];
+    for (int ping = 0; ping < 2; ++ping) {
+        for (auto& channel : feedbackBank.left[ping]) channel.fill(0.0f);
+        for (auto& channel : feedbackBank.right[ping]) channel.fill(0.0f);
+    }
+    feedbackBank.readIndex = 0;
     processorGraphs_[inactive] = buildProcessorGraph(
         std::span<const GraphTrackDefinition>(definitions.data(), static_cast<size_t>(trackCount)));
     for (int edgeIndex = 0; edgeIndex < processorGraphs_[inactive].audioEdgeCount; ++edgeIndex) {
