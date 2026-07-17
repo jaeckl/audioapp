@@ -465,10 +465,8 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
             }
         }
 
-        // nodeNeedsSubBlocks only uses deviceIndex/clips/edges; pass a dummy node
-        const DeviceNodePlayback dummyNode{};
         const bool needsSubBlocks = nodeNeedsSubBlocks(
-            dummyNode, deviceIndex,
+            deviceIndex,
             ctx.automationClips, ctx.automationClipCount,
             ctx.modEdges, ctx.modEdgeCount);
 

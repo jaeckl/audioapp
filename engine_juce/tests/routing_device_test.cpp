@@ -3,12 +3,37 @@
 #include "audioapp/devices/DeviceTypeIds.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <atomic>
+#include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <new>
 #include <thread>
 #include <vector>
+
+namespace realtime_allocation_audit {
+thread_local bool enabled = false;
+thread_local uint64_t count = 0;
+}
+
+void* operator new(std::size_t size) {
+    if (realtime_allocation_audit::enabled) {
+        ++realtime_allocation_audit::count;
+    }
+    if (void* result = std::malloc(size)) return result;
+    throw std::bad_alloc{};
+}
+
+void* operator new[](std::size_t size) {
+    return ::operator new(size);
+}
+
+void operator delete(void* pointer) noexcept { std::free(pointer); }
+void operator delete[](void* pointer) noexcept { std::free(pointer); }
+void operator delete(void* pointer, std::size_t) noexcept { std::free(pointer); }
+void operator delete[](void* pointer, std::size_t) noexcept { std::free(pointer); }
 
 namespace {
 
@@ -239,6 +264,77 @@ int main() {
     callbackThread.join();
     expect(concurrentLifecycleSucceeded && callbackAudioValid.load(std::memory_order_acquire),
            "tap slots survive concurrent callback creation, removal, and immediate reuse");
+
+    auto realtimeProject = std::make_unique<ProjectEngine>();
+    const auto realtimeTrack = realtimeProject->addTrack("Realtime audit");
+    const auto realtimeOscillator = realtimeProject->addDeviceToTrack(
+        realtimeTrack, device_types::kOscillator);
+    const auto realtimeClip = realtimeProject->createMidiClip(realtimeTrack, 0.0, 16.0);
+    expect(realtimeProject->setMidiClipNotes(
+        realtimeClip, {{60, 0.0, 16.0, 100.0f}}),
+        "realtime audit clip is configured");
+    std::vector<std::string> realtimeTaps;
+    for (int i = 0; i < kMaxProcessorGraphTaps; ++i) {
+        realtimeTaps.push_back(realtimeProject->createGraphTap(
+            realtimeOscillator, GraphTapKind::Meter, 64));
+    }
+    realtimeProject->setPlaying(true);
+    float realtimeLeft[128]{};
+    float realtimeRight[128]{};
+    double realtimeBeat = 0.0;
+    for (int i = 0; i < 16; ++i) {
+        realtimeProject->readMasterMixStereo(
+            realtimeLeft, realtimeRight, 128, 48000.0, realtimeBeat);
+        realtimeBeat += 128.0 / 48000.0 * 2.0;
+    }
+
+    constexpr int kMeasuredCallbacks = 256;
+    using Clock = std::chrono::steady_clock;
+    std::chrono::nanoseconds totalCallbackTime{};
+    std::chrono::nanoseconds longestCallback{};
+    realtime_allocation_audit::count = 0;
+    for (int callback = 0; callback < 8; ++callback) {
+        realtime_allocation_audit::enabled = true;
+        realtimeProject->readMasterMixStereo(
+            realtimeLeft, realtimeRight, 128, 48000.0, realtimeBeat);
+        realtime_allocation_audit::enabled = false;
+        realtimeBeat += 128.0 / 48000.0 * 2.0;
+    }
+    expect(realtime_allocation_audit::count == 0,
+           "steady-state callbacks perform no heap allocations");
+    realtime_allocation_audit::count = 0;
+    for (int callback = 0; callback < kMeasuredCallbacks; ++callback) {
+        // Fill the existing mailbox between callbacks. Allocation accounting is
+        // enabled only while executing the simulated audio callback.
+        expect(realtimeProject->setDeviceParameter(
+            realtimeOscillator, "frequency",
+            110.0f + static_cast<float>(callback % 64) * 8.0f),
+            "realtime parameter command is accepted");
+        const auto started = Clock::now();
+        realtime_allocation_audit::enabled = true;
+        realtimeProject->readMasterMixStereo(
+            realtimeLeft, realtimeRight, 128, 48000.0, realtimeBeat);
+        realtime_allocation_audit::enabled = false;
+        const auto elapsed = Clock::now() - started;
+        totalCallbackTime += elapsed;
+        longestCallback = std::max(longestCallback, elapsed);
+        realtimeBeat += 128.0 / 48000.0 * 2.0;
+    }
+    realtimeProject->setPlaying(false);
+    const auto callbackDeadline = std::chrono::nanoseconds(
+        static_cast<int64_t>(128.0 / 48000.0 * 1.0e9));
+    const auto averageCallback = totalCallbackTime / kMeasuredCallbacks;
+    std::cout << "Realtime callback audit: average="
+              << std::chrono::duration_cast<std::chrono::microseconds>(averageCallback).count()
+              << "us max="
+              << std::chrono::duration_cast<std::chrono::microseconds>(longestCallback).count()
+              << "us deadline="
+              << std::chrono::duration_cast<std::chrono::microseconds>(callbackDeadline).count()
+              << "us allocations=" << realtime_allocation_audit::count << '\n';
+    expect(realtime_allocation_audit::count == 0,
+           "command-flooded callbacks with 16 taps perform no heap allocations");
+    expect(longestCallback < callbackDeadline,
+           "command-flooded callbacks with 16 taps stay inside the device deadline");
 
     const auto audioReceiver = audioProject->addDeviceToTrack(destination, device_types::kAudioReceiver);
     expect(!audioReceiver.empty(), "audio receiver is created");

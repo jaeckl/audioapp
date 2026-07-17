@@ -1845,7 +1845,9 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
     if (masterLeft == nullptr || masterRight == nullptr || numFrames <= 0) {
         return;
     }
-    {
+    // Structural publishers are rare. Avoid touching the platform recursive
+    // mutex on every callback when there is no snapshot waiting to commit.
+    if (trackPlayback_.pending.load(std::memory_order_acquire) >= 0) {
         const std::unique_lock<std::recursive_mutex> publishLock(
             playbackMutex_, std::try_to_lock);
         if (publishLock.owns_lock()) {

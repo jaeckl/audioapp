@@ -101,6 +101,11 @@ share stable node IDs and be delivered in these phases:
 8. Publish effective parameter values through a separate fixed atomic monitor
    array for coalesced Flutter knob animation.
 
+Phase 1 is complete. The regression harness overrides allocation entry points
+while the simulated callback runs, floods one realtime parameter command per
+block, enables all 16 tap slots, and checks both zero allocations and the real
+128-frame deadline. It also covers steady-state callbacks without commands.
+
 Consistency is part of the contract: every automatable or modulatable parameter
 must declare its rate and smoothing behavior, and tests must reject missing
 declarations. Discrete parameters never interpolate; continuous manual changes

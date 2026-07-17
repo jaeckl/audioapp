@@ -474,8 +474,7 @@ DeviceVariantParams dspParamsAtFrame(const DeviceNodePlayback& node,
     return params;
 }
 
-bool nodeNeedsSubBlocks(const DeviceNodePlayback& node,
-                        int deviceIndex,
+bool nodeNeedsSubBlocks(int deviceIndex,
                         const AutomationClipPlayback* clips,
                         int clipCount,
                         const ModulationEdgePlayback* modEdges,
