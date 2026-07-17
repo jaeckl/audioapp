@@ -347,8 +347,9 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         for (int edgeIndex = 0; edgeIndex < ctx.graph->audioEdgeCount; ++edgeIndex) {
             const auto& edge = ctx.graph->audioEdges[static_cast<size_t>(edgeIndex)];
             if (edge.sourceTrack != ctx.graphTrackIndex || edge.sourceDevice != deviceIndex) continue;
-            float* tapLeft = ctx.graphAudioLeft + edgeIndex * ctx.graphAudioStride;
-            float* tapRight = ctx.graphAudioRight + edgeIndex * ctx.graphAudioStride;
+            const int slot = edge.bufferSlot;
+            float* tapLeft = ctx.graphAudioLeft + slot * ctx.graphAudioStride;
+            float* tapRight = ctx.graphAudioRight + slot * ctx.graphAudioStride;
             std::copy(ctx.trackLeft, ctx.trackLeft + numFrames, tapLeft);
             std::copy(ctx.trackRight, ctx.trackRight + numFrames, tapRight);
         }
@@ -361,9 +362,10 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
             const auto& edge = ctx.graph->midiEdges[static_cast<size_t>(edgeIndex)];
             if (edge.sourceTrack != ctx.graphTrackIndex || edge.sourceDevice != deviceIndex) continue;
             const int count = std::min(activeNoteCount, ctx.graphMidiEdgeStride);
-            auto* tap = ctx.graphMidiEdgeNotes + edgeIndex * ctx.graphMidiEdgeStride;
+            const int slot = edge.bufferSlot;
+            auto* tap = ctx.graphMidiEdgeNotes + slot * ctx.graphMidiEdgeStride;
             std::copy(activeNotes, activeNotes + count, tap);
-            ctx.graphMidiEdgeCounts[edgeIndex] = count;
+            ctx.graphMidiEdgeCounts[slot] = count;
         }
     };
 
@@ -416,10 +418,10 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                 const int source = edge.sourceTrack;
                 const auto* sourceNotes = trackInput
                     ? ctx.graphMidiNotes + source * ctx.graphMidiStride
-                    : ctx.graphMidiEdgeNotes + edgeIndex * ctx.graphMidiEdgeStride;
+                    : ctx.graphMidiEdgeNotes + edge.bufferSlot * ctx.graphMidiEdgeStride;
                 const int sourceCount = trackInput
                     ? ctx.graphMidiCounts[source]
-                    : ctx.graphMidiEdgeCounts[edgeIndex];
+                    : ctx.graphMidiEdgeCounts[edge.bufferSlot];
                 for (int i = 0; i < sourceCount && activeNoteCount < kMaxActiveNotes; ++i) {
                     activeNotes[activeNoteCount++] = sourceNotes[i];
                 }
@@ -546,8 +548,8 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                 const auto& edge = ctx.graph->audioEdges[static_cast<size_t>(edgeIndex)];
                 if (edge.destinationTrack != ctx.graphTrackIndex ||
                     edge.destinationDevice != deviceIndex) continue;
-                const float* sourceLeft = ctx.graphAudioLeft + edgeIndex * ctx.graphAudioStride;
-                const float* sourceRight = ctx.graphAudioRight + edgeIndex * ctx.graphAudioStride;
+                const float* sourceLeft = ctx.graphAudioLeft + edge.bufferSlot * ctx.graphAudioStride;
+                const float* sourceRight = ctx.graphAudioRight + edge.bufferSlot * ctx.graphAudioStride;
                 for (int frame = 0; frame < numFrames; ++frame) {
                     block.channelL[frame] = block.channelL[frame] * (1.0f - mix) + sourceLeft[frame] * mix;
                     block.channelR[frame] = block.channelR[frame] * (1.0f - mix) + sourceRight[frame] * mix;

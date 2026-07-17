@@ -1895,10 +1895,10 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
     const int graphIndex = activeProcessorGraph_.load(std::memory_order_acquire);
     const ProcessorGraphSnapshot graph = processorGraphs_[graphIndex];
     const bool useGraph = graph.trackCount == trackCount;
-    for (int edgeIndex = 0; edgeIndex < graph.audioEdgeCount; ++edgeIndex) {
-        std::memset(graphAudioLeft[edgeIndex], 0,
+    for (int slot = 0; slot < graph.audioBufferSlotCount; ++slot) {
+        std::memset(graphAudioLeft[slot], 0,
                     static_cast<size_t>(framesToProcess) * sizeof(float));
-        std::memset(graphAudioRight[edgeIndex], 0,
+        std::memset(graphAudioRight[slot], 0,
                     static_cast<size_t>(framesToProcess) * sizeof(float));
     }
 

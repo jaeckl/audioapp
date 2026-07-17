@@ -48,6 +48,9 @@ int main() {
     GraphTrackDefinition routed[3];
     routed[0].trackId = "source";
     routed[0].sources[0] = source("audio-dev", GraphSignalType::Audio, 2);
+    routed[0].sources[0].channelLayout = GraphChannelLayout::Stereo;
+    routed[0].sources[0].latencySamples = 64;
+    routed[0].sources[0].tapKind = GraphTapKind::Meter;
     routed[0].sourceCount = 1;
     routed[1].trackId = "midi-source";
     routed[1].sources[0] = source("track-midi", GraphSignalType::Midi, kGraphTrackMidiInput);
@@ -65,6 +68,36 @@ int main() {
     expect(graph.audioEdges[0].sourceDevice == 2 &&
            graph.audioEdges[0].destinationDevice == 1,
            "edge retains source and receiver insertion points");
+    expect(graph.audioEdges[0].bufferSlot == 0 && graph.midiEdges[0].bufferSlot == 0 &&
+           graph.audioBufferSlotCount == 1 && graph.midiBufferSlotCount == 1,
+           "compiler assigns independent preallocated audio and MIDI buffer slots");
+    expect(graph.audioEdges[0].sourceLayout == GraphChannelLayout::Stereo &&
+           graph.audioEdges[0].tapKind == GraphTapKind::Meter &&
+           graph.maxLatencySamples == 64,
+           "typed port, tap, and latency metadata reach the immutable edge");
+
+    GraphTrackDefinition parallel[3];
+    parallel[0].trackId = "fast";
+    parallel[0].sources[0] = source("bus", GraphSignalType::Audio, 0);
+    parallel[0].sources[0].latencySamples = 32;
+    parallel[0].sourceCount = 1;
+    parallel[1].trackId = "slow";
+    parallel[1].sources[0] = source("bus", GraphSignalType::Audio, 0);
+    parallel[1].sources[0].latencySamples = 96;
+    parallel[1].sourceCount = 1;
+    parallel[2].trackId = "sum";
+    parallel[2].receivers[0] = receiver("bus", GraphSignalType::Audio, 0);
+    parallel[2].receiverCount = 1;
+    graph = buildProcessorGraph(parallel);
+    expect(graph.valid() && graph.audioEdgeCount == 2 &&
+           graph.audioEdges[0].latencyCompensationSamples == 64 &&
+           graph.audioEdges[1].latencyCompensationSamples == 0,
+           "parallel inputs compile deterministic latency compensation");
+
+    parallel[0].sources[0].direction = GraphPortDirection::Input;
+    graph = buildProcessorGraph(parallel);
+    expect(graph.error == ProcessorGraphError::InvalidPort,
+           "source and receiver port directions are validated");
 
     GraphTrackDefinition cyclic[2];
     cyclic[0].trackId = "a";

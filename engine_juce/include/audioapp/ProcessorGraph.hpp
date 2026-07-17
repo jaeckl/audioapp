@@ -18,18 +18,28 @@ enum class GraphSignalType : uint8_t {
     Midi,
 };
 
+enum class GraphPortDirection : uint8_t { Input, Output };
+enum class GraphChannelLayout : uint8_t { None, Mono, Stereo };
+enum class GraphTapKind : uint8_t { None, Meter, Analyzer, Recorder };
+
 enum class ProcessorGraphError : uint8_t {
     None,
     TooManyTracks,
     TooManyEdges,
     Cycle,
     InvalidDeviceOrder,
+    InvalidPort,
 };
 
 struct GraphSourceDefinition {
     std::string_view sourceId;
     GraphSignalType signalType = GraphSignalType::Audio;
     uint8_t deviceIndex = 0;
+    GraphPortDirection direction = GraphPortDirection::Output;
+    GraphChannelLayout channelLayout = GraphChannelLayout::Stereo;
+    uint16_t eventCapacity = 128;
+    uint16_t latencySamples = 0;
+    GraphTapKind tapKind = GraphTapKind::None;
 };
 
 struct GraphReceiverDefinition {
@@ -37,6 +47,9 @@ struct GraphReceiverDefinition {
     GraphSignalType signalType = GraphSignalType::Audio;
     uint8_t deviceIndex = 0;
     float mix = 1.0f;
+    GraphPortDirection direction = GraphPortDirection::Input;
+    GraphChannelLayout channelLayout = GraphChannelLayout::Stereo;
+    uint16_t eventCapacity = 128;
 };
 
 struct GraphTrackDefinition {
@@ -55,6 +68,13 @@ struct ProcessorGraphEdge {
     uint8_t destinationTrack = 0;
     uint8_t destinationDevice = 0;
     float mix = 1.0f;
+    uint8_t bufferSlot = 0;
+    GraphChannelLayout sourceLayout = GraphChannelLayout::Stereo;
+    GraphChannelLayout destinationLayout = GraphChannelLayout::Stereo;
+    uint16_t eventCapacity = 0;
+    uint16_t sourceLatencySamples = 0;
+    uint16_t latencyCompensationSamples = 0;
+    GraphTapKind tapKind = GraphTapKind::None;
 };
 
 /// Immutable playback description. Built on the control thread, then read
@@ -66,6 +86,9 @@ struct ProcessorGraphSnapshot {
     uint8_t trackCount = 0;
     uint8_t audioEdgeCount = 0;
     uint8_t midiEdgeCount = 0;
+    uint8_t audioBufferSlotCount = 0;
+    uint8_t midiBufferSlotCount = 0;
+    uint16_t maxLatencySamples = 0;
     ProcessorGraphError error = ProcessorGraphError::None;
 
     bool valid() const noexcept { return error == ProcessorGraphError::None; }
