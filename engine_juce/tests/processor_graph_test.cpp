@@ -19,6 +19,13 @@ struct ArenaProbeProcessor final : audioapp::DeviceProcessor {
     static inline int destroyed = 0;
 };
 
+struct SmoothingProbeProcessor final : audioapp::DeviceProcessor {
+    void process(audioapp::AudioBlock&, audioapp::ProcessContext&) noexcept override {}
+    audioapp::DeviceNodeKind kind() const noexcept override {
+        return audioapp::DeviceNodeKind::Distortion;
+    }
+};
+
 void expect(bool condition, const char* message) {
     if (condition) return;
     ++failures;
@@ -136,6 +143,37 @@ int main() {
     expect(std::abs(evaluateAutomationEnvelopeCached(cursorClip, 0.5f) - 0.5f) < 1.0e-6f &&
            cursorClip.envelopeCursor == 0,
            "automation cursor resets after transport rewind");
+
+    const ParamDescriptor continuousDescriptor{0, "drive", "Drive", 0.0f,
+                                               0.0f, 1.0f, true, true};
+    const ParamDescriptor discreteDescriptor{1, "waveform", "Waveform", 0.0f,
+                                             0.0f, 4.0f, true, true};
+    expect(parameterUpdateRateFor(continuousDescriptor) == ParameterUpdateRate::Smoothed &&
+           parameterUpdateRateFor(discreteDescriptor) == ParameterUpdateRate::Discrete,
+           "parameter metadata separates continuous gestures from selectors");
+
+    SmoothingProbeProcessor smoothingProbe;
+    smoothingProbe.initParams(DistortionParamsPlayback{});
+    const auto encodedDrive = packParamId(ParamKind::Distortion, 0);
+    expect(smoothingProbe.setCompiledParameter(encodedDrive, 0.2f,
+                                               ParameterUpdateRate::Smoothed),
+           "compiled smoothing accepts the initial target");
+    expect(smoothingProbe.setCompiledParameter(encodedDrive, 0.8f,
+                                               ParameterUpdateRate::Smoothed),
+           "compiled smoothing accepts a live gesture update");
+    DeviceVariantParams smoothedParams = smoothingProbe.storedParams();
+    smoothingProbe.applyCompiledParameterSmoothing(smoothedParams, 128, 48000.0);
+    const float firstSmoothed = std::get<DistortionParamsPlayback>(smoothedParams).drive;
+    float monitoredValue = 0.0f;
+    expect(firstSmoothed > 0.2f && firstSmoothed < 0.8f &&
+           smoothingProbe.readEffectiveParameter(encodedDrive, monitoredValue) &&
+           std::abs(monitoredValue - firstSmoothed) < 1.0e-6f,
+           "live DSP targets ramp and publish their effective value atomically");
+    smoothingProbe.setCompiledParameter(encodedDrive, 0.0f,
+                                        ParameterUpdateRate::Discrete);
+    expect(smoothingProbe.readEffectiveParameter(encodedDrive, monitoredValue) &&
+           monitoredValue == 0.0f,
+           "discrete parameters step without interpolation");
 
     std::array<GraphTapDefinition, kMaxProcessorGraphTaps> maximumTaps{};
     for (int i = 0; i < kMaxProcessorGraphTaps; ++i) {

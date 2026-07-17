@@ -1263,6 +1263,11 @@ std::string EngineHost::readGraphTapJson(const std::string& tapId, int maxFrames
     return project_->readGraphTapJson(tapId, maxFrames);
 }
 
+std::string EngineHost::readEffectiveParameterJson(
+    const std::string& deviceId, const std::string& parameterId) {
+    return project_->readEffectiveParameterJson(deviceId, parameterId);
+}
+
 namespace {
 
 /// Convert any populated SnapshotDelta into a delta CommandResult.
@@ -2318,6 +2323,13 @@ void EngineHost::registerAllCommands() {
             ? std::clamp(static_cast<int>(static_cast<double>(ctx.args["maxFrames"])), 1, 2048)
             : 512;
         return commands::rawResult(ctx.engine.readGraphTapJson(tapId, maxFrames));
+    });
+
+    reg.registerCommand("readEffectiveParameter", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        const auto parameterId = ctx.args["parameterId"].toString().toStdString();
+        return commands::rawResult(
+            ctx.engine.readEffectiveParameterJson(deviceId, parameterId));
     });
 
     // ── Undo / Redo ──────────────────────────────────────

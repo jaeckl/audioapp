@@ -7,6 +7,9 @@
 #include "audioapp/dsp/ProcessContext.hpp"
 
 #include <string_view>
+#include <array>
+#include <atomic>
+#include <cmath>
 
 namespace audioapp {
 
@@ -44,27 +47,95 @@ public:
     /// Apply a pre-resolved parameter handle. Common strip values are physical
     /// values; DSP values are normalized through the same evaluator used by
     /// automation. Called only by the audio thread at a block boundary.
-    bool setCompiledParameter(uint16_t parameterId, float value) noexcept {
+    bool setCompiledParameter(uint16_t parameterId, float value,
+                              ParameterUpdateRate rate = ParameterUpdateRate::Smoothed) noexcept {
         if (unpackParamKind(parameterId) == ParamKind::Common) {
             switch (unpackParamId(parameterId)) {
-            case 0: gain = value; return true;
-            case 1: pan = value; return true;
-            case 2: bypassed = value >= 0.5f; return true;
-            case 3: outputMix = value; return true;
-            case 4: outputWidth = value; return true;
+            case 0: gain = value; publishEffectiveParameter(parameterId, value); return true;
+            case 1: pan = value; publishEffectiveParameter(parameterId, value); return true;
+            case 2: bypassed = value >= 0.5f; publishEffectiveParameter(parameterId, value); return true;
+            case 3: outputMix = value; publishEffectiveParameter(parameterId, value); return true;
+            case 4: outputWidth = value; publishEffectiveParameter(parameterId, value); return true;
             default: return false;
             }
         }
+        if (rate == ParameterUpdateRate::Discrete ||
+            rate == ParameterUpdateRate::Block) {
+            for (auto& state : compiledParameterStates_)
+                if (state.active && state.parameterId == parameterId)
+                    state.active = false;
+            applyAutomationValue(storedParams_, kind(), parameterId, value);
+            publishEffectiveParameter(parameterId, value);
+            return true;
+        }
+        CompiledParameterState* state = nullptr;
+        for (auto& candidate : compiledParameterStates_) {
+            if (candidate.active && candidate.parameterId == parameterId) {
+                state = &candidate;
+                break;
+            }
+            if (!candidate.active && state == nullptr) state = &candidate;
+        }
+        if (state == nullptr) return false;
+        if (!state->active) {
+            state->active = true;
+            state->parameterId = parameterId;
+            state->current = value;
+        }
+        state->target = value;
+        state->rate = rate;
         applyAutomationValue(storedParams_, kind(), parameterId, value);
+        publishEffectiveParameter(parameterId, state->current);
         return true;
+    }
+
+    void applyCompiledParameterSmoothing(DeviceVariantParams& params,
+                                         int numFrames,
+                                         double sampleRate) noexcept {
+        const float frames = static_cast<float>(std::max(numFrames, 1));
+        const float rate = static_cast<float>(std::max(sampleRate, 1.0));
+        for (auto& state : compiledParameterStates_) {
+            if (!state.active) continue;
+            float coefficient = 1.0f;
+            if (state.rate == ParameterUpdateRate::Smoothed)
+                coefficient = 1.0f - std::exp(-frames / (rate * 0.010f));
+            else if (state.rate == ParameterUpdateRate::ControlRate)
+                coefficient = 1.0f - std::exp(-frames / (rate * 0.003f));
+            state.current += (state.target - state.current) * coefficient;
+            if (std::abs(state.target - state.current) < 1.0e-6f)
+                state.current = state.target;
+            applyAutomationValue(params, kind(), state.parameterId, state.current);
+            publishEffectiveParameter(state.parameterId, state.current);
+        }
+    }
+
+    bool readEffectiveParameter(uint16_t parameterId, float& value) const noexcept {
+        for (const auto& slot : effectiveParameterSlots_) {
+            if (slot.parameterId.load(std::memory_order_acquire) != parameterId)
+                continue;
+            value = slot.value.load(std::memory_order_acquire);
+            return true;
+        }
+        return false;
+    }
+
+    virtual bool readNestedEffectiveParameter(uint64_t processorNodeId,
+                                              uint16_t parameterId,
+                                              float& value) const noexcept {
+        (void)processorNodeId;
+        (void)parameterId;
+        (void)value;
+        return false;
     }
 
     virtual bool setNestedCompiledParameter(uint64_t processorNodeId,
                                             uint16_t parameterId,
-                                            float value) noexcept {
+                                            float value,
+                                            ParameterUpdateRate rate = ParameterUpdateRate::Smoothed) noexcept {
         (void)processorNodeId;
         (void)parameterId;
         (void)value;
+        (void)rate;
         return false;
     }
 
@@ -96,6 +167,9 @@ public:
     }
 
     void applyPlaybackNode(const DeviceNodePlayback& node) noexcept {
+        for (auto& state : compiledParameterStates_) state.active = false;
+        for (auto& slot : effectiveParameterSlots_)
+            slot.parameterId.store(0xffff, std::memory_order_relaxed);
         deviceId_ = node.deviceId;
         stableProcessorNodeId = stableDeviceSubgraphNodeId(
             node.deviceId, DeviceSubgraphNodeRole::DeviceProcessor);
@@ -159,8 +233,37 @@ protected:
     const std::string& deviceId() const noexcept { return deviceId_; }
 
 private:
+    struct CompiledParameterState {
+        uint16_t parameterId = 0;
+        float current = 0.0f;
+        float target = 0.0f;
+        ParameterUpdateRate rate = ParameterUpdateRate::Smoothed;
+        bool active = false;
+    };
+    struct EffectiveParameterSlot {
+        std::atomic<uint16_t> parameterId{0xffff};
+        std::atomic<float> value{0.0f};
+    };
+    void publishEffectiveParameter(uint16_t parameterId, float value) noexcept {
+        EffectiveParameterSlot* empty = nullptr;
+        for (auto& slot : effectiveParameterSlots_) {
+            const auto existing = slot.parameterId.load(std::memory_order_relaxed);
+            if (existing == parameterId) {
+                slot.value.store(value, std::memory_order_release);
+                return;
+            }
+            if (existing == 0xffff && empty == nullptr) empty = &slot;
+        }
+        if (empty != nullptr) {
+            empty->value.store(value, std::memory_order_relaxed);
+            empty->parameterId.store(parameterId, std::memory_order_release);
+        }
+    }
+
     std::string deviceId_;
     DeviceVariantParams storedParams_;
+    std::array<CompiledParameterState, 16> compiledParameterStates_{};
+    std::array<EffectiveParameterSlot, 16> effectiveParameterSlots_{};
 };
 
 } // namespace audioapp

@@ -27,6 +27,8 @@ void main() {
             'sequence': 3,
             'peakL': 0.5,
           };
+        case 'readEffectiveParameter':
+          return {'ok': true, 'value': 0.625};
       }
       return {'ok': false, 'error': 'unexpected'};
     });
@@ -57,5 +59,18 @@ void main() {
     await bridge.removeGraphTap(tapId);
     expect(calls.last.method, 'removeGraphTap');
     expect(calls.last.arguments, {'tapId': 'tap-7'});
+  });
+
+  test('effective parameter monitor uses a compact coalescible read', () async {
+    final value = await bridge.readEffectiveParameter(
+      deviceId: 'dev-2',
+      parameterId: 'drive',
+    );
+    expect(value, 0.625);
+    expect(calls.single.method, 'readEffectiveParameter');
+    expect(calls.single.arguments, {
+      'deviceId': 'dev-2',
+      'parameterId': 'drive',
+    });
   });
 }

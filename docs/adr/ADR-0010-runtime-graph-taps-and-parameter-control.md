@@ -132,6 +132,24 @@ path. Automation envelopes keep an audio-thread-owned forward cursor and reset
 it on transport rewind or loop wrap; source evaluation is therefore linear in
 the points actually crossed rather than restarting at point zero each block.
 
+The live-control portion of phases 5–7 is complete. Descriptor metadata is
+compiled to an explicit `Discrete`, `Block`, `Smoothed`, `ControlRate`, or
+`AudioRate` policy before entering the mailbox. Discrete selectors step at the
+block boundary; continuous DSP gestures feed a fixed 16-slot processor-local
+target bank and advance with a sample-rate-independent 10 ms ramp. The same
+implementation is inherited by every typed processor and recursively by Chain
+and Drum children; it allocates and locks neither when accepting a target nor
+when advancing it. Existing audio/control-rate automation and modulation keep
+their higher-resolution evaluator and are applied after the smoothed manual
+base value, so manual gestures no longer force their rate down to block steps.
+
+Phase 8's read path is also implemented. Each processor publishes the latest
+effective normalized value through a fixed atomic monitor bank. Top-level and
+nested values are readable through `readEffectiveParameter`; the Flutter bridge
+exposes this separately from project state so UI animation cannot feed values
+back into DSP or trigger a snapshot rebuild. Coalesced UI scheduling remains a
+Flutter presentation concern rather than audio-engine state.
+
 Consistency is part of the contract: every automatable or modulatable parameter
 must declare its rate and smoothing behavior, and tests must reject missing
 declarations. Discrete parameters never interpolate; continuous manual changes

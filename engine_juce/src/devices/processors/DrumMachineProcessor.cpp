@@ -78,16 +78,33 @@ bool DrumMachineProcessor::updateNestedDevice(const DeviceNodePlayback& node,
 }
 
 bool DrumMachineProcessor::setNestedCompiledParameter(uint64_t processorNodeId,
-                                                      uint16_t parameterId,
-                                                      float value) noexcept {
+                                                       uint16_t parameterId,
+                                                       float value,
+                                                       ParameterUpdateRate rate) noexcept {
     for (auto& runtime : pads_) {
         const int childCount = playback_ ? playback_->pads[runtime.padIndex].deviceCount : 0;
         for (int child = 0; runtime.arena && child < childCount; ++child) {
             auto* processor = runtime.arena->get(child);
             if (processor == nullptr) continue;
             if (processor->stableProcessorNodeId == processorNodeId)
-                return processor->setCompiledParameter(parameterId, value);
-            if (processor->setNestedCompiledParameter(processorNodeId, parameterId, value))
+                return processor->setCompiledParameter(parameterId, value, rate);
+            if (processor->setNestedCompiledParameter(processorNodeId, parameterId, value, rate))
+                return true;
+        }
+    }
+    return false;
+}
+
+bool DrumMachineProcessor::readNestedEffectiveParameter(
+    uint64_t processorNodeId, uint16_t parameterId, float& value) const noexcept {
+    for (const auto& runtime : pads_) {
+        const int childCount = playback_ ? playback_->pads[runtime.padIndex].deviceCount : 0;
+        for (int child = 0; runtime.arena && child < childCount; ++child) {
+            const auto* processor = runtime.arena->get(child);
+            if (processor == nullptr) continue;
+            if (processor->stableProcessorNodeId == processorNodeId)
+                return processor->readEffectiveParameter(parameterId, value);
+            if (processor->readNestedEffectiveParameter(processorNodeId, parameterId, value))
                 return true;
         }
     }

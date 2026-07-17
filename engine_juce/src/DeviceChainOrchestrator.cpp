@@ -512,6 +512,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
 
         // --- Timeline automation ---
         auto modulatedParams = proc->storedParams(); // start from processor's own params
+        proc->applyCompiledParameterSmoothing(modulatedParams, numFrames, ctx.sampleRate);
         if (targetAutomation != nullptr && targetAutomationCount > 0) {
             for (int a = 0; a < targetAutomationCount; ++a) {
                 const auto& ac = targetAutomation[a];

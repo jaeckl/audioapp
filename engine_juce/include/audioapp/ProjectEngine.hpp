@@ -344,6 +344,8 @@ public:
                                uint32_t capacityFrames = kGraphTapDefaultRecorderFrames);
     bool removeGraphTap(const std::string& tapId);
     std::string readGraphTapJson(const std::string& tapId, int maxFrames = 512);
+    std::string readEffectiveParameterJson(const std::string& deviceId,
+                                           const std::string& parameterId);
 
     /// Expose modulator types for serialization dispatch.
     const std::vector<std::unique_ptr<IModulatorType>>& modulatorTypes() const {
@@ -536,6 +538,7 @@ private:
         uint64_t targetNodeId = 0;
         uint16_t encodedParameterId = 0;
         float value = 0.0f;
+        ParameterUpdateRate rate = ParameterUpdateRate::Smoothed;
     };
     struct RealtimeParameterQueue {
         std::array<RealtimeParameterCommand, kRealtimeCommandCapacity> entries{};
@@ -630,7 +633,8 @@ private:
                                  bool commonOnly) noexcept;
     bool applyRealtimeDeviceParameter(uint64_t targetNodeId,
                                       uint16_t encodedParameterId,
-                                      float value) noexcept;
+                                      float value,
+                                      ParameterUpdateRate rate) noexcept;
     void rebuildProcessorGraphLocked(int trackCount);
     void rebuildRepoCacheFromTree();
     void syncProjectTreeLocked();

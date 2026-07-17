@@ -506,6 +506,14 @@ constexpr uint16_t kEncodedCommonBypass = 2; // packParamId(ParamKind::Common, 2
 constexpr uint16_t kEncodedCommonOutputMix = 3;
 constexpr uint16_t kEncodedCommonOutputWidth = 4;
 
+enum class ParameterUpdateRate : uint8_t {
+    Discrete,
+    Block,
+    Smoothed,
+    ControlRate,
+    AudioRate,
+};
+
 // -----------------------------------------------------------------------
 // Audio-thread playback structs — zero strings, zero allocations.
 // -----------------------------------------------------------------------
@@ -560,6 +568,23 @@ struct ParamDescriptor {
     bool automatable;
     bool modulatable;
 };
+
+inline ParameterUpdateRate parameterUpdateRateFor(
+    const ParamDescriptor& descriptor) noexcept {
+    const std::string_view name{descriptor.stableName != nullptr
+        ? descriptor.stableName : ""};
+    constexpr std::string_view discreteTokens[] = {
+        "mode", "Mode", "waveform", "Waveform", "type", "Type",
+        "sync", "Sync", "retrigger", "Retrigger", "stages", "Stages",
+        "voices", "Voices", "freeze", "Freeze", "direction", "Direction",
+        "shape", "Shape", "enabled", "Enabled", "solo", "mute"
+    };
+    for (const auto token : discreteTokens)
+        if (name.find(token) != std::string_view::npos)
+            return ParameterUpdateRate::Discrete;
+    return descriptor.automatable ? ParameterUpdateRate::Smoothed
+                                  : ParameterUpdateRate::Block;
+}
 
 struct AutomationPointState {
     double beat = 0.0;

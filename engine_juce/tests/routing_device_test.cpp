@@ -393,6 +393,16 @@ int main() {
         chainProject->readGraphTapJson(chainTap));
     expect(static_cast<int>(chainTapJson["sequence"]) > 0,
            "nested Chain context publishes graph taps");
+    expect(chainProject->setDeviceParameter(chainChild, "frequency", 880.0f),
+           "nested Chain child accepts a compiled live parameter");
+    chainProject->setPlaying(true);
+    chainProject->readMasterMixStereo(tapLeft, tapRight, 128, 48000.0, 0.0);
+    chainProject->setPlaying(false);
+    const auto effectiveJson = juce::JSON::parse(
+        chainProject->readEffectiveParameterJson(chainChild, "frequency"));
+    expect(static_cast<bool>(effectiveJson["ok"]) &&
+           static_cast<double>(effectiveJson["value"]) > 0.0,
+           "nested effective parameter monitor publishes lock-free values");
 
     auto drumProject = std::make_unique<ProjectEngine>();
     drumProject->createProject();

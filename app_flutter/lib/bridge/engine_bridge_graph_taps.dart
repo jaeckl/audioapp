@@ -1,6 +1,17 @@
 part of 'engine_bridge.dart';
 
 extension EngineBridgeGraphTapsOperation on EngineBridge {
+  Future<double?> readEffectiveParameter({
+    required String deviceId,
+    required String parameterId,
+  }) async {
+    final result = await invokeRaw('readEffectiveParameter', {
+      'deviceId': deviceId,
+      'parameterId': parameterId,
+    });
+    return (result['value'] as num?)?.toDouble();
+  }
+
   Future<String> createGraphTap({
     required String deviceId,
     required String kind,

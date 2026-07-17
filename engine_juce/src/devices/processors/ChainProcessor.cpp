@@ -54,15 +54,31 @@ bool ChainProcessor::updateNestedDevice(const DeviceNodePlayback& node,
 }
 
 bool ChainProcessor::setNestedCompiledParameter(uint64_t processorNodeId,
-                                                uint16_t parameterId,
-                                                float value) noexcept {
+                                                 uint16_t parameterId,
+                                                 float value,
+                                                 ParameterUpdateRate rate) noexcept {
     if (!arena_) return false;
     for (int child = 0; playback_ && child < playback_->deviceCount; ++child) {
         auto* processor = arena_->get(child);
         if (processor == nullptr) continue;
         if (processor->stableProcessorNodeId == processorNodeId)
-            return processor->setCompiledParameter(parameterId, value);
-        if (processor->setNestedCompiledParameter(processorNodeId, parameterId, value))
+            return processor->setCompiledParameter(parameterId, value, rate);
+        if (processor->setNestedCompiledParameter(processorNodeId, parameterId, value, rate))
+            return true;
+    }
+    return false;
+}
+
+bool ChainProcessor::readNestedEffectiveParameter(uint64_t processorNodeId,
+                                                   uint16_t parameterId,
+                                                   float& value) const noexcept {
+    if (!arena_ || !playback_) return false;
+    for (int child = 0; child < playback_->deviceCount; ++child) {
+        const auto* processor = arena_->get(child);
+        if (processor == nullptr) continue;
+        if (processor->stableProcessorNodeId == processorNodeId)
+            return processor->readEffectiveParameter(parameterId, value);
+        if (processor->readNestedEffectiveParameter(processorNodeId, parameterId, value))
             return true;
     }
     return false;

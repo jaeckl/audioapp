@@ -780,7 +780,10 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
     parameterCommand.targetNodeId = targetNodeId;
     if (parameterId == "gain") parameterCommand.encodedParameterId = kEncodedCommonGain;
     else if (parameterId == "pan") parameterCommand.encodedParameterId = kEncodedCommonPan;
-    else if (parameterId == "bypass") parameterCommand.encodedParameterId = kEncodedCommonBypass;
+    else if (parameterId == "bypass") {
+        parameterCommand.encodedParameterId = kEncodedCommonBypass;
+        parameterCommand.rate = ParameterUpdateRate::Discrete;
+    }
     else if (parameterId == "outputMix") parameterCommand.encodedParameterId = kEncodedCommonOutputMix;
     else if (parameterId == "outputWidth") parameterCommand.encodedParameterId = kEncodedCommonOutputWidth;
     else if (const auto* type = deviceRegistry_.findForSlot(*device);
@@ -794,6 +797,7 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
             descriptor->maxValue > descriptor->minValue) {
             parameterCommand.encodedParameterId = encodeAutomationParamId(
                 parameterId.c_str(), type->kind(), descriptor->localParamId);
+            parameterCommand.rate = parameterUpdateRateFor(*descriptor);
             parameterCommand.value = std::clamp(
                 (value - descriptor->minValue) /
                     (descriptor->maxValue - descriptor->minValue),
@@ -1864,7 +1868,8 @@ bool ProjectEngine::applyRealtimeDeviceNode(const DeviceNodePlayback& node,
 
 bool ProjectEngine::applyRealtimeDeviceParameter(uint64_t targetNodeId,
                                                  uint16_t encodedParameterId,
-                                                 float value) noexcept {
+                                                 float value,
+                                                 ParameterUpdateRate rate) noexcept {
     const int trackCount = trackPlayback_.count();
     for (int track = 0; track < trackCount; ++track) {
         auto& snapshot = trackPlayback_[track];
@@ -1872,9 +1877,9 @@ bool ProjectEngine::applyRealtimeDeviceParameter(uint64_t targetNodeId,
             auto* processor = snapshot.arena.get(device);
             if (processor == nullptr) continue;
             if (processor->stableProcessorNodeId == targetNodeId)
-                return processor->setCompiledParameter(encodedParameterId, value);
+                return processor->setCompiledParameter(encodedParameterId, value, rate);
             if (processor->setNestedCompiledParameter(
-                    targetNodeId, encodedParameterId, value))
+                    targetNodeId, encodedParameterId, value, rate))
                 return true;
         }
     }
@@ -1911,7 +1916,8 @@ void ProjectEngine::drainRealtimeParameters() noexcept {
         const auto& command = *latest[index];
         applyRealtimeDeviceParameter(command.targetNodeId,
                                      command.encodedParameterId,
-                                     command.value);
+                                     command.value,
+                                     command.rate);
     }
     realtimeParameterMailbox_.tail.store(consumedEnd, std::memory_order_release);
 }
@@ -3231,6 +3237,54 @@ std::string ProjectEngine::readGraphTapJson(const std::string& tapId, int maxFra
     }
     json += "}";
     return json;
+}
+
+std::string ProjectEngine::readEffectiveParameterJson(
+    const std::string& deviceId, const std::string& parameterId) {
+    const juce::ScopedReadLock lock(mutex_);
+    auto* device = findDeviceLocked(deviceId);
+    if (device == nullptr)
+        return R"({"ok":false,"error":"device_not_found"})";
+
+    uint16_t encoded = 0xffff;
+    if (parameterId == "gain") encoded = kEncodedCommonGain;
+    else if (parameterId == "pan") encoded = kEncodedCommonPan;
+    else if (parameterId == "bypass") encoded = kEncodedCommonBypass;
+    else if (parameterId == "outputMix") encoded = kEncodedCommonOutputMix;
+    else if (parameterId == "outputWidth") encoded = kEncodedCommonOutputWidth;
+    else if (const auto* type = deviceRegistry_.findForSlot(*device)) {
+        const auto descriptors = type->paramDescriptors();
+        const auto descriptor = std::find_if(
+            descriptors.begin(), descriptors.end(), [&](const ParamDescriptor& candidate) {
+                return parameterId == candidate.stableName;
+            });
+        if (descriptor != descriptors.end())
+            encoded = encodeAutomationParamId(
+                parameterId.c_str(), type->kind(), descriptor->localParamId);
+    }
+    if (encoded == 0xffff)
+        return R"({"ok":false,"error":"parameter_not_found"})";
+
+    const uint64_t target = stableDeviceSubgraphNodeId(
+        deviceId, DeviceSubgraphNodeRole::DeviceProcessor);
+    float value = 0.0f;
+    bool found = false;
+    for (int track = 0; track < trackPlayback_.count() && !found; ++track) {
+        const auto& snapshot = trackPlayback_[track];
+        for (int index = 0; index < snapshot.deviceCount && !found; ++index) {
+            const auto* processor = snapshot.arena.get(index);
+            if (processor == nullptr) continue;
+            if (processor->stableProcessorNodeId == target)
+                found = processor->readEffectiveParameter(encoded, value);
+            else
+                found = processor->readNestedEffectiveParameter(target, encoded, value);
+        }
+    }
+    if (!found)
+        return R"({"ok":false,"error":"effective_value_unavailable"})";
+    char buffer[64];
+    snprintf(buffer, sizeof(buffer), "%.8f", static_cast<double>(value));
+    return std::string(R"({"ok":true,"value":)") + buffer + "}";
 }
 
 void ProjectEngine::clearGraphTapsLocked() noexcept {

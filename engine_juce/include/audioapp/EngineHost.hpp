@@ -250,6 +250,8 @@ public:
                                uint32_t capacityFrames = kGraphTapDefaultRecorderFrames);
     bool removeGraphTap(const std::string& tapId);
     std::string readGraphTapJson(const std::string& tapId, int maxFrames = 512);
+    std::string readEffectiveParameterJson(const std::string& deviceId,
+                                           const std::string& parameterId);
 
     /// Returns param descriptor metadata for a device type as JSON.
     /// Format: {"ok":true, "deviceType":"sampler", "params":[...], "protocolVersion":1}
