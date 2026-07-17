@@ -1,6 +1,7 @@
 #pragma once
 
 #include "audioapp/DeviceChain.hpp"
+#include "audioapp/DeviceSubgraph.hpp"
 #include "audioapp/dsp/AudioBlock.hpp"
 #include "audioapp/dsp/ProcessContext.hpp"
 
@@ -48,6 +49,8 @@ public:
     }
 
     void applyPlaybackNode(const DeviceNodePlayback& node) noexcept {
+        deviceId_ = node.deviceId;
+        executionPlan = compileDeviceExecutionPlan(node.kind);
         bypassed = node.bypassed;
         gain = node.gain;
         pan = node.pan;
@@ -67,6 +70,10 @@ public:
 
     const DeviceVariantParams& storedParams() const noexcept { return storedParams_; }
 
+    void configureExecutionPlan(DeviceNodeKind nodeKind) noexcept {
+        executionPlan = compileDeviceExecutionPlan(nodeKind);
+    }
+
     bool bypassed = false;
     int8_t meterSlot = -1;
     float gain = 1.0f;
@@ -80,6 +87,7 @@ public:
     float smoothedOutputMix = 1.0f;
     float smoothedOutputWidth = 1.0f;
     bool commonSmoothingReady = false;
+    DeviceExecutionPlan executionPlan{};
     InstrumentVoicePolicy voicePolicy{};
 
 protected:
@@ -87,7 +95,10 @@ protected:
     DeviceProcessor(const DeviceProcessor&) = delete;
     DeviceProcessor& operator=(const DeviceProcessor&) = delete;
 
+    const std::string& deviceId() const noexcept { return deviceId_; }
+
 private:
+    std::string deviceId_;
     DeviceVariantParams storedParams_;
 };
 

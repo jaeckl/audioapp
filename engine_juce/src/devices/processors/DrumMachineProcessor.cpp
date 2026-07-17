@@ -12,6 +12,12 @@ void DrumMachineProcessor::initParams(const DeviceVariantParams& params) noexcep
     pads_.clear();
     playback_ = std::get<DrumMachineParams>(params).playback;
     if (playback_ == nullptr) return;
+    DeviceNodePlayback root;
+    root.kind = kind();
+    root.deviceId = deviceId();
+    root.params = params;
+    schedule_ = compileDeviceSubgraphTree(buildDeviceSubgraphTree(root));
+    if (!schedule_.valid()) return;
     try {
         for (int note = 0; note < 128; ++note) {
             const auto& pad = playback_->pads[note];
@@ -24,6 +30,11 @@ void DrumMachineProcessor::initParams(const DeviceVariantParams& params) noexcep
             runtime.muted = pad.muted;
             runtime.solo = pad.solo;
             runtime.chokeGroup = pad.chokeGroup;
+            runtime.executionOrder = compileFusedChildExecutionOrder(
+                schedule_,
+                std::span<const DeviceNodePlayback>(pad.devices,
+                                                     static_cast<size_t>(pad.deviceCount)));
+            if (!runtime.executionOrder.valid()) continue;
             runtime.arena = std::make_unique<ProcessorArena>(pad.deviceCount);
             buildProcessorChain(pad.devices, pad.deviceCount, *runtime.arena);
             pads_.push_back(std::move(runtime));
@@ -90,7 +101,8 @@ void DrumMachineProcessor::resetPlaybackState() noexcept {
 }
 
 void DrumMachineProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
-    if (playback_ == nullptr || block.numSamples <= 0 || block.numSamples > kScratchFrames) return;
+    if (playback_ == nullptr || !schedule_.valid() ||
+        block.numSamples <= 0 || block.numSamples > kScratchFrames) return;
     bool hasSolo = false;
     for (const auto& runtime : pads_) hasSolo |= runtime.solo;
 
@@ -143,6 +155,8 @@ void DrumMachineProcessor::process(AudioBlock& block, ProcessContext& ctx) noexc
         sub.noteCount = routedCount;
         sub.wavetableBank = ctx.wavetableBank;
         sub.suppressInstruments = ctx.suppressInstruments;
+        sub.compiledDeviceOrder = runtime.executionOrder.deviceIndices.data();
+        sub.compiledDeviceOrderCount = runtime.executionOrder.count;
         AutomationClipPlayback padAutomation[16]{};
         int padAutomationCount = 0;
         if (ctx.automationClips != nullptr) {

@@ -18,9 +18,11 @@ class DrumMachineProcessor final : public DeviceProcessor {
         bool solo = false;
         int chokeGroup = 0;
         std::unique_ptr<ProcessorArena> arena;
+        CompiledDeviceExecutionOrder executionOrder{};
     };
     std::vector<PadRuntime> pads_;
     std::shared_ptr<const DrumMachinePlayback> playback_;
+    CompiledDeviceSubgraphSchedule schedule_{};
     float padLeft_[kScratchFrames]{};
     float padRight_[kScratchFrames]{};
     MidiPlaybackNote routedNotes_[kMaxInstrumentRegions]{};

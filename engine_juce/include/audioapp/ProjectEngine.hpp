@@ -403,6 +403,7 @@ private:
         SampleRegion regions[8];
         int deviceCount = 0;
         DeviceNodePlayback devices[kMaxDevicesPerTrack];
+        CompiledDeviceExecutionOrder deviceExecutionOrder;
         int modEdgeCount = 0;
         ModulationEdgePlayback modEdges[16];
         int automationClipCount = 0;

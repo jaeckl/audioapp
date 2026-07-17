@@ -7,6 +7,21 @@ namespace audioapp {
 void ChainProcessor::initParams(const DeviceVariantParams& params) noexcept {
     DeviceProcessor::initParams(params);
     playback_ = std::get<ChainParams>(params).playback;
+    DeviceNodePlayback root;
+    root.kind = kind();
+    root.deviceId = deviceId();
+    root.params = params;
+    schedule_ = compileDeviceSubgraphTree(buildDeviceSubgraphTree(root));
+    executionOrder_ = playback_ == nullptr
+        ? CompiledDeviceExecutionOrder{}
+        : compileFusedChildExecutionOrder(
+            schedule_,
+            std::span<const DeviceNodePlayback>(playback_->devices,
+                                                 static_cast<size_t>(playback_->deviceCount)));
+    if (!schedule_.valid() || !executionOrder_.valid()) {
+        arena_.reset();
+        return;
+    }
     try {
         arena_ = std::make_unique<ProcessorArena>(
             playback_ ? playback_->deviceCount : 1);
@@ -43,7 +58,8 @@ void ChainProcessor::resetPlaybackState() noexcept {
 }
 
 void ChainProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
-    if (!playback_ || !arena_ || block.numSamples > kScratchFrames) return;
+    if (!playback_ || !arena_ || !schedule_.valid() || !executionOrder_.valid() ||
+        block.numSamples > kScratchFrames) return;
     std::memcpy(dryL_, block.channelL, block.numSamples * sizeof(float));
     std::memcpy(dryR_, block.channelR, block.numSamples * sizeof(float));
 
@@ -53,6 +69,8 @@ void ChainProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
     sub.notes=ctx.notes; sub.noteCount=ctx.noteCount; sub.wavetableBank=ctx.wavetableBank;
     sub.lfoValues=ctx.lfoValues; sub.lfoCount=ctx.lfoCount; sub.modulators=ctx.modulators;
     sub.retriggerGeneration=ctx.retriggerGeneration;
+    sub.compiledDeviceOrder = executionOrder_.deviceIndices.data();
+    sub.compiledDeviceOrderCount = executionOrder_.count;
 
     AutomationClipPlayback automation[16]{}; int automationCount=0;
     if (ctx.automationClips) for(int a=0;a<ctx.automationClipCount&&automationCount<16;++a)

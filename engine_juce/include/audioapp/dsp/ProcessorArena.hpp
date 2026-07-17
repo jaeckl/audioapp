@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <array>
 #include <algorithm>
 #include <memory>
 #include <new>
@@ -21,56 +22,114 @@ static constexpr size_t kMaxDeviceStorage = kMaxDevicesPerTrack * kMaxProcessorS
 class ProcessorArena {
 public:
     explicit ProcessorArena(int maxDevices = kMaxDevicesPerTrack)
-        : capacity_(std::clamp(maxDevices, 1, kMaxDevicesPerTrack)),
-          storage_(std::make_unique<char[]>(
-              static_cast<size_t>(capacity_) * kMaxProcessorSize)),
-          destructors_(std::make_unique<Destructor[]>(
-              static_cast<size_t>(capacity_))) {}
+        : storage_(std::make_shared<Storage>(maxDevices)) {}
 
-    ~ProcessorArena() { reset(); }
+    // Snapshots may share an arena when their complete device topology and
+    // playback nodes are unchanged. The Storage object owns destruction, so
+    // the old audio snapshot remains valid until its reader releases it.
+    ProcessorArena(const ProcessorArena&) noexcept = default;
+    ProcessorArena& operator=(const ProcessorArena&) noexcept = default;
+    ProcessorArena(ProcessorArena&&) noexcept = default;
+    ProcessorArena& operator=(ProcessorArena&&) noexcept = default;
+    ~ProcessorArena() = default;
 
     template<typename T, typename... Args>
     T* emplace(Args&&... args) noexcept {
+        return emplaceAt<T>(storage_->size, std::forward<Args>(args)...);
+    }
+
+    template<typename T, typename... Args>
+    T* emplaceAt(int index, Args&&... args) noexcept {
         static_assert(sizeof(T) <= kMaxProcessorSize,
                       "Processor subclass exceeds kMaxProcessorSize");
         static_assert(std::is_base_of_v<DeviceProcessor, T>,
                       "T must derive from DeviceProcessor");
-        if (size_ >= capacity_) return nullptr;
-        void* ptr = storage_.get() + size_ * kMaxProcessorSize;
+        if (index < 0 || index >= storage_->capacity ||
+            storage_->slots[index] != nullptr || index > storage_->size) {
+            return nullptr;
+        }
+        auto slot = std::make_shared<Slot>();
+        void* ptr = slot->bytes.data();
         auto* proc = ::new (ptr) T(std::forward<Args>(args)...);
-        destructors_[size_] = [](void* object) noexcept {
+        slot->destructor = [](void* object) noexcept {
             static_cast<DeviceProcessor*>(static_cast<T*>(object))->~DeviceProcessor();
         };
-        ++size_;
+        storage_->slots[index] = std::move(slot);
+        storage_->size = std::max(storage_->size, index + 1);
         return proc;
     }
 
-    DeviceProcessor* get(int index) const noexcept {
-        if (index < 0 || index >= size_) return nullptr;
-        return reinterpret_cast<DeviceProcessor*>(
-            storage_.get() + index * kMaxProcessorSize);
+    /// Reference one compatible processor slot from another immutable
+    /// snapshot. The slot's lifetime is now shared, while both arenas retain
+    /// their own device-index layout.
+    bool reuseSlotAt(int destinationIndex, const ProcessorArena& source,
+                     int sourceIndex) noexcept {
+        if (destinationIndex < 0 || destinationIndex >= storage_->capacity ||
+            sourceIndex < 0 || sourceIndex >= source.storage_->size ||
+            storage_->slots[destinationIndex] != nullptr ||
+            source.storage_->slots[sourceIndex] == nullptr ||
+            destinationIndex > storage_->size) {
+            return false;
+        }
+        storage_->slots[destinationIndex] = source.storage_->slots[sourceIndex];
+        storage_->size = std::max(storage_->size, destinationIndex + 1);
+        return true;
     }
 
-    int size() const noexcept { return size_; }
-    int capacity() const noexcept { return capacity_; }
+    DeviceProcessor* get(int index) const noexcept {
+        if (index < 0 || index >= storage_->size ||
+            storage_->slots[index] == nullptr) return nullptr;
+        return reinterpret_cast<DeviceProcessor*>(storage_->slots[index]->bytes.data());
+    }
+
+    int size() const noexcept { return storage_->size; }
+    int capacity() const noexcept { return storage_->capacity; }
+
+    bool sharesStorageWith(const ProcessorArena& other) const noexcept {
+        return storage_ == other.storage_;
+    }
+
+    bool sharesSlotWith(int index, const ProcessorArena& other,
+                        int otherIndex) const noexcept {
+        return index >= 0 && index < storage_->size &&
+               otherIndex >= 0 && otherIndex < other.storage_->size &&
+               storage_->slots[index] != nullptr &&
+               storage_->slots[index] == other.storage_->slots[otherIndex];
+    }
 
     void reset() noexcept {
-        while (size_ > 0) {
-            --size_;
-            if (destructors_[size_] != nullptr) {
-                destructors_[size_](
-                    storage_.get() + size_ * kMaxProcessorSize);
-                destructors_[size_] = nullptr;
-            }
+        // Never clear processors owned by an active snapshot. Detach instead;
+        // Storage is reclaimed only after its final snapshot reference dies.
+        if (storage_.use_count() != 1) {
+            storage_ = std::make_shared<Storage>(storage_->capacity);
+            return;
         }
+        storage_->clear();
     }
 
 private:
     using Destructor = void (*)(void*) noexcept;
-    int capacity_ = kMaxDevicesPerTrack;
-    std::unique_ptr<char[]> storage_;
-    std::unique_ptr<Destructor[]> destructors_;
-    int size_ = 0;
+    struct Slot {
+        ~Slot() {
+            if (destructor != nullptr) destructor(bytes.data());
+        }
+
+        std::array<std::byte, kMaxProcessorSize> bytes{};
+        Destructor destructor = nullptr;
+    };
+
+    struct Storage {
+        explicit Storage(int maxDevices)
+            : capacity(std::clamp(maxDevices, 1, kMaxDevicesPerTrack)) {}
+
+        void clear() noexcept { slots.fill(nullptr); size = 0; }
+
+        int capacity = kMaxDevicesPerTrack;
+        std::array<std::shared_ptr<Slot>, kMaxDevicesPerTrack> slots{};
+        int size = 0;
+    };
+
+    std::shared_ptr<Storage> storage_;
 };
 
 } // namespace audioapp

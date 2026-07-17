@@ -44,6 +44,27 @@ namespace audioapp {
 namespace {
 thread_local DeviceChainScratch gProjectScratch;
 
+// This deliberately compares the full playback payload rather than only the
+// device ID/type. Sharing an arena is safe only when a rebuild would not need
+// to write into its processors; parameter changes continue through the live
+// command path or get a freshly built arena.
+bool playbackNodesEquivalent(const DeviceNodePlayback& a,
+                             const DeviceNodePlayback& b) noexcept {
+    return a.kind == b.kind &&
+           a.deviceId == b.deviceId &&
+           a.bypassed == b.bypassed &&
+           a.gain == b.gain &&
+           a.pan == b.pan &&
+           a.outputMix == b.outputMix &&
+           a.outputWidth == b.outputWidth &&
+           a.meterSlot == b.meterSlot &&
+           a.automationTargetIndex == b.automationTargetIndex &&
+           a.voicePolicy.maxVoices == b.voicePolicy.maxVoices &&
+           a.voicePolicy.retriggerReplacesVoice == b.voicePolicy.retriggerReplacesVoice &&
+           a.params.index() == b.params.index() &&
+           std::memcmp(&a.params, &b.params, sizeof(DeviceVariantParams)) == 0;
+}
+
 void collectDeviceTreeIds(const DeviceSlot& slot, std::vector<std::string>& ids) {
     ids.push_back(slot.id);
     if (slot.config.typeId == device_types::kChain) {
@@ -2174,6 +2195,10 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         ctx.graphMidiEdgeNotes = &graphMidiEdges[0][0];
         ctx.graphMidiEdgeCounts = graphMidiEdgeCounts;
         ctx.graphMidiEdgeStride = kMaxRoutedMidiNotes;
+        if (track.deviceExecutionOrder.valid()) {
+            ctx.compiledDeviceOrder = track.deviceExecutionOrder.deviceIndices.data();
+            ctx.compiledDeviceOrderCount = track.deviceExecutionOrder.count;
+        }
 
         DeviceChainOrchestrator::processChain(ctx);
 
@@ -2851,6 +2876,8 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
             trackPlayback_.graphIndexForState(committedState),
             std::memory_order_release);
     }
+    const int activePlaybackState = trackPlayback_.active.load(std::memory_order_acquire);
+    const int activePlaybackTrackCount = trackPlayback_.counts[activePlaybackState];
     deviceMeterSlotCount_ = 0;
     int trackIndex = 0;
     for (const auto& sourceTrack : trackRepo_.tracks()) {
@@ -2876,6 +2903,9 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
         snap.noteCount = 0;
         snap.regionCount = 0;
         snap.deviceCount = 0;
+        snap.deviceExecutionOrder = {};
+        std::vector<DeviceSubgraphTree> deviceSubgraphRoots;
+        deviceSubgraphRoots.reserve(sourceTrack.devices.size());
 
         // Build processor chain from device snapshot into the arena
         snap.arena.reset();
@@ -2941,24 +2971,12 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                 deviceMeterIds_[deviceMeterSlotCount_] = dev.id;
                 ++deviceMeterSlotCount_;
             }
-            const IDeviceType* type = deviceRegistry_.findForSlot(dev);
-            if (type != nullptr) {
-                auto* proc = type->createProcessor(snap.arena);
-                if (proc != nullptr) {
-                    proc->bypassed = node.bypassed;
-                    proc->meterSlot = node.meterSlot;
-                    proc->gain = node.gain;
-                    proc->pan = node.pan;
-                    proc->outputMix = node.outputMix;
-                    proc->outputWidth = node.outputWidth;
-                    proc->initParams(node.params);
-                }
-            }
             ++snap.deviceCount;
         };
 
         for (const auto& device : sourceTrack.devices) {
             if (snap.deviceCount >= kMaxDevicesPerTrack) break;
+            deviceSubgraphRoots.push_back(buildDeviceSubgraphTree(device));
             if (device_types::isSynthType(device.config.typeId)) {
                 for (const auto& fx : device.noteFxDevices)
                     if (fx) emitDeviceToPlayback(*fx);
@@ -2967,6 +2985,59 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                     if (fx) emitDeviceToPlayback(*fx);
             } else {
                 emitDeviceToPlayback(device);
+            }
+        }
+
+        snap.deviceExecutionOrder = compileFusedForestExecutionOrder(
+            std::span<const DeviceSubgraphTree>(deviceSubgraphRoots.data(),
+                                                deviceSubgraphRoots.size()),
+            std::span<const DeviceNodePlayback>(snap.devices,
+                                                static_cast<size_t>(snap.deviceCount)));
+
+        // Reuse the active processor instances only when every node payload is
+        // identical. Shared arena storage keeps the old snapshot valid while
+        // the audio thread finishes its block; a changed node receives a new
+        // arena rather than being mutated from the control thread.
+        const TrackPlaybackSnapshot* activeSnapshot =
+            trackIndex < activePlaybackTrackCount
+                ? &trackPlayback_.states[activePlaybackState][trackIndex]
+                : nullptr;
+        bool reuseActiveArena = activeSnapshot != nullptr &&
+            snap.deviceCount == activeSnapshot->deviceCount &&
+            snap.deviceCount == activeSnapshot->arena.size();
+        if (reuseActiveArena) {
+            for (int deviceIndex = 0; deviceIndex < snap.deviceCount; ++deviceIndex) {
+                if (!playbackNodesEquivalent(
+                        snap.devices[deviceIndex], activeSnapshot->devices[deviceIndex])) {
+                    reuseActiveArena = false;
+                    break;
+                }
+            }
+        }
+
+        if (reuseActiveArena) {
+            snap.arena = activeSnapshot->arena;
+        } else {
+            std::unordered_map<std::string, int> activeDeviceIndices;
+            if (activeSnapshot != nullptr) {
+                for (int oldIndex = 0; oldIndex < activeSnapshot->deviceCount; ++oldIndex) {
+                    activeDeviceIndices.emplace(activeSnapshot->devices[oldIndex].deviceId, oldIndex);
+                }
+            }
+            for (int deviceIndex = 0; deviceIndex < snap.deviceCount; ++deviceIndex) {
+                const auto& node = snap.devices[deviceIndex];
+                const auto activeIt = activeDeviceIndices.find(node.deviceId);
+                if (activeSnapshot != nullptr && activeIt != activeDeviceIndices.end() &&
+                    playbackNodesEquivalent(node, activeSnapshot->devices[activeIt->second]) &&
+                    snap.arena.reuseSlotAt(deviceIndex, activeSnapshot->arena, activeIt->second)) {
+                    continue;
+                }
+                const IDeviceType* type = deviceRegistry_.findByKind(node.kind);
+                if (type == nullptr) continue;
+                auto* proc = type->createProcessor(snap.arena);
+                if (proc == nullptr) continue;
+                proc->applyPlaybackNode(node);
+                proc->meterSlot = node.meterSlot;
             }
         }
 
@@ -3816,6 +3887,10 @@ void ProjectEngine::mixTrackPreGainStereoWithArena(
     ctx.automationClips = track.automationClipCount > 0 ? track.automationClips : nullptr;
     ctx.automationClipCount = track.automationClipCount;
     ctx.wavetableBank = wavetableBank_;
+    if (track.deviceExecutionOrder.valid()) {
+        ctx.compiledDeviceOrder = track.deviceExecutionOrder.deviceIndices.data();
+        ctx.compiledDeviceOrderCount = track.deviceExecutionOrder.count;
+    }
     if (gainIndex > 0) {
         DeviceChainOrchestrator::processChain(ctx, 0, gainIndex);
     }

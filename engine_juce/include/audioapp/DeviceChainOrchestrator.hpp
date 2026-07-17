@@ -49,6 +49,8 @@ struct DeviceChainOrchestrator {
         int graphMidiEdgeStride = 0;
         IModulator* const* modulators = nullptr;
         uint32_t retriggerGeneration = 0;
+        const uint16_t* compiledDeviceOrder = nullptr;
+        int compiledDeviceOrderCount = 0;
 
         Context(ProcessorArena& ar, DeviceChainScratch& s) noexcept
             : arena(ar), scratch(s) {}

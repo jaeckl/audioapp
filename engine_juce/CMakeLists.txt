@@ -29,6 +29,7 @@ add_library(audioapp_engine STATIC
   src/ProjectEngine.cpp
   src/ProjectEngine_freeze.cpp
   src/ProcessorGraph.cpp
+  src/DeviceSubgraph.cpp
   src/LivePerformance.cpp
   src/ProjectEngine_live.cpp
   src/ProjectJson.cpp

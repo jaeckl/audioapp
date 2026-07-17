@@ -1,10 +1,19 @@
 #include "audioapp/ProcessorGraph.hpp"
+#include "audioapp/DeviceSubgraph.hpp"
+#include "audioapp/devices/DeviceSlot.hpp"
+#include "audioapp/dsp/ProcessorArena.hpp"
 
 #include <iostream>
 
 namespace {
 
 int failures = 0;
+
+struct ArenaProbeProcessor final : audioapp::DeviceProcessor {
+    ~ArenaProbeProcessor() override { ++destroyed; }
+    void process(audioapp::AudioBlock&, audioapp::ProcessContext&) noexcept override {}
+    static inline int destroyed = 0;
+};
 
 void expect(bool condition, const char* message) {
     if (condition) return;
@@ -69,6 +78,135 @@ int main() {
     graph = buildProcessorGraph(cyclic);
     expect(graph.error == ProcessorGraphError::Cycle, "cycles are rejected");
     expect(graph.audioEdgeCount == 0, "rejected graph falls back without routes");
+
+    const auto distortionPlan = compileDeviceExecutionPlan(DeviceNodeKind::Distortion);
+    expect(distortionPlan.valid(), "effect has a valid three-node device subgraph");
+    expect(hasPort(distortionPlan.logical.nodes[0].inputPorts, DevicePortMask::Audio),
+           "effect input adapter accepts audio");
+    expect(hasPort(distortionPlan.logical.nodes[2].outputPorts, DevicePortMask::Audio),
+           "effect output adapter exposes audio");
+    expect(distortionPlan.fuseInputWithProcessor && distortionPlan.fuseProcessorWithOutput,
+           "default device plan remains fused for realtime execution");
+    expect(distortionPlan.inputAdapterOwnsTrim,
+           "pure effect input trim belongs to the logical input adapter");
+
+    const auto synthPlan = compileDeviceExecutionPlan(DeviceNodeKind::SubtractiveSynth);
+    expect(synthPlan.valid(), "instrument has a valid three-node device subgraph");
+    expect(hasPort(synthPlan.logical.nodes[0].inputPorts, DevicePortMask::Midi),
+           "instrument input adapter accepts MIDI");
+    expect(hasPort(synthPlan.logical.nodes[2].outputPorts, DevicePortMask::Audio),
+           "instrument output adapter exposes audio");
+
+    const auto midiPlan = compileDeviceExecutionPlan(DeviceNodeKind::MidiDelay);
+    expect(hasPort(midiPlan.logical.nodes[0].inputPorts, DevicePortMask::Midi) &&
+           !hasPort(midiPlan.logical.nodes[0].inputPorts, DevicePortMask::Audio),
+           "MIDI utility remains MIDI-only at the logical boundary");
+    expect(!midiPlan.inputAdapterOwnsTrim,
+           "MIDI utilities do not receive an audio input trim adapter");
+
+    DeviceSlot container;
+    container.id = "chain";
+    container.config.typeId = "chain";
+    container.config.instance = ChainModel{};
+    auto child = std::make_shared<DeviceSlot>();
+    child->id = "child-distortion";
+    child->config.typeId = "distortion";
+    child->config.instance = DistortionParams{};
+    std::get<ChainModel>(container.config.instance).devices.push_back(child);
+    const auto tree = buildDeviceSubgraphTree(container);
+    expect(tree.plan.valid(), "container has its own device subgraph");
+    expect(tree.chainChildren.size() == 1 && tree.chainChildren[0].deviceId == "child-distortion",
+           "chain children are explicit control-thread subgraphs");
+    const auto schedule = compileDeviceSubgraphTree(tree);
+    expect(schedule.valid() && schedule.stepCount == 6,
+           "nested chain compiles to fixed adapter/DSP schedule");
+    expect(schedule.steps[0].stage == CompiledDeviceSubgraphStage::InputAdapter &&
+           schedule.steps[1].stage == CompiledDeviceSubgraphStage::DeviceProcessor &&
+           schedule.steps[5].stage == CompiledDeviceSubgraphStage::OutputAdapter,
+           "compiled root retains adapter/DSP/adapter boundaries");
+    expect(schedule.steps[2].parentProcessorNodeId == schedule.steps[1].stableNodeId,
+           "compiled child retains stable parent processor identity");
+
+    auto playbackChain = std::make_shared<ChainPlayback>();
+    playbackChain->deviceCount = 1;
+    playbackChain->devices[0].deviceId = "playback-child";
+    playbackChain->devices[0].kind = DeviceNodeKind::Distortion;
+    DeviceNodePlayback playbackContainer;
+    playbackContainer.deviceId = "playback-chain";
+    playbackContainer.kind = DeviceNodeKind::Chain;
+    playbackContainer.params = ChainParams{playbackChain};
+    const auto playbackSchedule = compileDeviceSubgraphTree(
+        buildDeviceSubgraphTree(playbackContainer));
+    expect(playbackSchedule.valid() && playbackSchedule.stepCount == 6,
+           "container playback compiles its immutable nested child schedule");
+    expect(playbackSchedule.steps[2].stableNodeId ==
+               stableDeviceSubgraphNodeId("playback-child", DeviceSubgraphNodeRole::InputAdapter),
+           "playback schedule uses stable child device identity rather than arena index");
+    const auto executionOrder = compileFusedChildExecutionOrder(
+        playbackSchedule,
+        std::span<const DeviceNodePlayback>(playbackChain->devices, 1));
+    expect(executionOrder.valid() && executionOrder.count == 1 &&
+               executionOrder.deviceIndices[0] == 0,
+           "compiled schedule produces a fixed fused child execution order");
+
+    DeviceSubgraphTree synthTree;
+    synthTree.deviceId = "synth";
+    synthTree.plan = compileDeviceExecutionPlan(DeviceNodeKind::SubtractiveSynth);
+    synthTree.noteFx.push_back(DeviceSubgraphTree{
+        "note-fx", compileDeviceExecutionPlan(DeviceNodeKind::MidiDelay)});
+    synthTree.audioFx.push_back(DeviceSubgraphTree{
+        "audio-fx", compileDeviceExecutionPlan(DeviceNodeKind::Distortion)});
+    DeviceNodePlayback flattenedSynth[3];
+    flattenedSynth[0].deviceId = "note-fx";
+    flattenedSynth[0].kind = DeviceNodeKind::MidiDelay;
+    flattenedSynth[1].deviceId = "synth";
+    flattenedSynth[1].kind = DeviceNodeKind::SubtractiveSynth;
+    flattenedSynth[2].deviceId = "audio-fx";
+    flattenedSynth[2].kind = DeviceNodeKind::Distortion;
+    const DeviceSubgraphTree forest[] = {synthTree};
+    const auto synthExecutionOrder = compileFusedForestExecutionOrder(
+        forest, flattenedSynth);
+    expect(synthExecutionOrder.valid() && synthExecutionOrder.count == 3 &&
+               synthExecutionOrder.deviceIndices[0] == 0 &&
+               synthExecutionOrder.deviceIndices[1] == 1 &&
+               synthExecutionOrder.deviceIndices[2] == 2,
+           "synth Note FX, DSP, and Audio FX execute in compiled signal order");
+
+    ArenaProbeProcessor::destroyed = 0;
+    {
+        ProcessorArena activeArena;
+        auto* activeProcessor = activeArena.emplace<ArenaProbeProcessor>();
+        ProcessorArena rebuildingArena = activeArena;
+        expect(rebuildingArena.sharesStorageWith(activeArena),
+               "identical snapshots share processor storage");
+        rebuildingArena.reset();
+        expect(!rebuildingArena.sharesStorageWith(activeArena) &&
+               rebuildingArena.size() == 0 && activeArena.size() == 1 &&
+               activeProcessor != nullptr && ArenaProbeProcessor::destroyed == 0,
+               "rebuild detaches without destroying active processors");
+    }
+    expect(ArenaProbeProcessor::destroyed == 1,
+           "shared processor storage is destroyed after the final snapshot releases it");
+
+    ArenaProbeProcessor::destroyed = 0;
+    {
+        ProcessorArena sourceArena;
+        sourceArena.emplace<ArenaProbeProcessor>();
+        auto* retainedProcessor = sourceArena.emplace<ArenaProbeProcessor>();
+        ProcessorArena changedArena;
+        expect(changedArena.reuseSlotAt(0, sourceArena, 1),
+               "a compatible processor slot can move to a new device index");
+        changedArena.emplaceAt<ArenaProbeProcessor>(1);
+        expect(changedArena.sharesSlotWith(0, sourceArena, 1) &&
+               changedArena.get(0) == retainedProcessor &&
+               sourceArena.size() == 2 && changedArena.size() == 2,
+               "partial rebuild preserves the selected processor while adding a new slot");
+        sourceArena.reset();
+        expect(ArenaProbeProcessor::destroyed == 1 && changedArena.get(0) == retainedProcessor,
+               "removing an old snapshot does not cut the retained processor slot");
+    }
+    expect(ArenaProbeProcessor::destroyed == 3,
+           "partially shared slots release exactly once after their final owner");
 
     if (failures != 0) return 1;
     std::cout << "All processor graph tests passed\n";
