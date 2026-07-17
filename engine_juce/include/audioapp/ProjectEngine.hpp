@@ -562,8 +562,9 @@ private:
     ProcessorGraphSnapshot processorGraphs_[2];
     std::atomic<int> activeProcessorGraph_{0};
     int lastBuiltProcessorGraph_ = 0; // control thread only
-    // Audio callback only: fixed route-delay storage for latency alignment.
-    std::array<ProcessorGraphDelayLine, kMaxProcessorGraphEdges> graphLatencyLines_{};
+    // Each immutable graph owns a pre-cleared bank. The audio callback never
+    // clears delay memory when a live structural edit is published.
+    std::array<ProcessorGraphDelayLine, kMaxProcessorGraphEdges> graphLatencyLines_[2]{};
 
     DeviceMeterAtomic deviceMeters_[kMaxDeviceMeters];
     std::string deviceMeterIds_[kMaxDeviceMeters];

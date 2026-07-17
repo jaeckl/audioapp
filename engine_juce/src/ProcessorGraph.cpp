@@ -50,6 +50,7 @@ ProcessorGraphSnapshot buildProcessorGraph(
         for (int ri = 0; ri < destinationTrack.receiverCount; ++ri) {
             const auto& receiver = destinationTrack.receivers[static_cast<size_t>(ri)];
             if (receiver.sourceId.empty()) continue;
+            int matchedAudioSources = 0;
             for (int source = 0; source < graph.trackCount; ++source) {
                 const auto& sourceTrack = tracks[static_cast<size_t>(source)];
                 for (int si = 0; si < sourceTrack.sourceCount; ++si) {
@@ -60,6 +61,26 @@ ProcessorGraphSnapshot buildProcessorGraph(
                     }
                     if (candidate.direction != GraphPortDirection::Output ||
                         receiver.direction != GraphPortDirection::Input) {
+                        graph.audioEdgeCount = 0;
+                        graph.midiEdgeCount = 0;
+                        graph.error = ProcessorGraphError::InvalidPort;
+                        return graph;
+                    }
+                    if (receiver.signalType == GraphSignalType::Audio && ++matchedAudioSources > 1) {
+                        graph.audioEdgeCount = 0;
+                        graph.midiEdgeCount = 0;
+                        graph.error = ProcessorGraphError::MultipleAudioInputs;
+                        return graph;
+                    }
+                    if (receiver.signalType == GraphSignalType::Audio &&
+                        candidate.channelLayout != receiver.channelLayout) {
+                        graph.audioEdgeCount = 0;
+                        graph.midiEdgeCount = 0;
+                        graph.error = ProcessorGraphError::InvalidPort;
+                        return graph;
+                    }
+                    if (receiver.signalType == GraphSignalType::Midi &&
+                        (candidate.eventCapacity == 0 || receiver.eventCapacity == 0)) {
                         graph.audioEdgeCount = 0;
                         graph.midiEdgeCount = 0;
                         graph.error = ProcessorGraphError::InvalidPort;

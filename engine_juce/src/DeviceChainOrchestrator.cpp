@@ -371,7 +371,8 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         for (int edgeIndex = 0; edgeIndex < ctx.graph->midiEdgeCount; ++edgeIndex) {
             const auto& edge = ctx.graph->midiEdges[static_cast<size_t>(edgeIndex)];
             if (edge.sourceTrack != ctx.graphTrackIndex || edge.sourceDevice != deviceIndex) continue;
-            const int count = std::min(activeNoteCount, ctx.graphMidiEdgeStride);
+            const int count = std::min({activeNoteCount, ctx.graphMidiEdgeStride,
+                                        static_cast<int>(edge.eventCapacity)});
             const int slot = edge.bufferSlot;
             auto* tap = ctx.graphMidiEdgeNotes + slot * ctx.graphMidiEdgeStride;
             std::copy(activeNotes, activeNotes + count, tap);
@@ -576,15 +577,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                 auto& delay = ctx.graphLatencyLines[edge.bufferSlot];
                 const uint16_t requestedDelay = std::min<uint16_t>(
                     edge.latencyCompensationSamples, kMaxProcessorGraphLatencySamples);
-                if (delay.delaySamples != requestedDelay) {
-                    // A route shape changes only with an immutable graph swap.
-                    // Reset lazily here so the control thread never mutates
-                    // state owned by the audio callback.
-                    delay.left.fill(0.0f);
-                    delay.right.fill(0.0f);
-                    delay.delaySamples = requestedDelay;
-                    delay.writePosition = 0;
-                }
+                if (delay.delaySamples != requestedDelay) continue;
                 for (int frame = 0; frame < numFrames; ++frame) {
                     const uint16_t position = delay.writePosition;
                     const float delayedLeft = delay.left[position];

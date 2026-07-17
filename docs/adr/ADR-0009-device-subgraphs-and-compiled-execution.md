@@ -107,6 +107,16 @@ model and serialization retain the hierarchy.
 9. Plugin hosting is out of scope. The contract is for built-in devices and
    must not imply arbitrary third-party real-time code.
 
+### Current top-level routing boundary
+
+`AudioReceiver` is deliberately a **single-input stereo receiver**. The
+compiler rejects more than one matching audio source and rejects channel-layout
+conversion until an explicit Mixer/ChannelAdapter node exists. MIDI edge
+capacity is compiled and enforced while copying events. Multi-input summing is
+therefore not hidden in the receiver loop; it is future explicit graph-node
+work. Existing per-device meters remain output-adapter/device-meter plumbing;
+raw graph tap creation is deferred with the raw graph-edit API.
+
 ## Migration plan
 
 1. Add logical three-node device subgraphs and fused execution plans with no

@@ -59,6 +59,7 @@ void main() {
                 bypassed: false,
                 sourceId: '',
                 routeMix: 0.5,
+                feedback: false,
               ),
               sources: const [
                 RoutingSourceOption(
@@ -131,7 +132,7 @@ void main() {
       child: RoutingDevicePanel(
         device: const RoutingDeviceSnapshot(
           id: 'route-1', type: 'audio_receiver', bypassed: false,
-          sourceId: 'device-7', routeMix: 1,
+          sourceId: 'device-7', routeMix: 1, feedback: false,
         ),
         sources: const [RoutingSourceOption(
           id: 'device-7', label: 'Source', isMidi: false,

@@ -2199,7 +2199,7 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         ctx.graphAudioLeft = &graphAudioLeft[0][0];
         ctx.graphAudioRight = &graphAudioRight[0][0];
         ctx.graphAudioStride = kMaxFrames;
-        ctx.graphLatencyLines = graphLatencyLines_.data();
+        ctx.graphLatencyLines = graphLatencyLines_[graphIndex].data();
         ctx.graphFeedbackReadLeft = &graphFeedbackLeft[graphFeedbackReadIndex][0][0];
         ctx.graphFeedbackReadRight = &graphFeedbackRight[graphFeedbackReadIndex][0][0];
         ctx.graphFeedbackWriteLeft = &graphFeedbackLeft[graphFeedbackWriteIndex][0][0];
@@ -3288,8 +3288,12 @@ void ProjectEngine::rebuildProcessorGraphLocked(int trackCount) {
                     device.id, GraphSignalType::Midi, static_cast<uint8_t>(deviceIndex)};
             } else if (!isRoutingDeviceNodeKind(kind) &&
                 definition.sourceCount < kMaxProcessorGraphSourcesPerTrack) {
-                definition.sources[definition.sourceCount++] = GraphSourceDefinition{
+                auto source = GraphSourceDefinition{
                     device.id, GraphSignalType::Audio, static_cast<uint8_t>(deviceIndex)};
+                if (const auto* processor = trackPlayback_[trackIndex].arena.get(deviceIndex)) {
+                    source.latencySamples = processor->reportedLatencySamples();
+                }
+                definition.sources[definition.sourceCount++] = source;
             } else if (isRoutingDeviceNodeKind(kind) && !device.config.bypassed &&
                        definition.receiverCount < kMaxProcessorGraphReceiversPerTrack) {
                 const auto& model = std::get<RoutingModel>(device.config.instance);
@@ -3300,6 +3304,7 @@ void ProjectEngine::rebuildProcessorGraphLocked(int trackCount) {
                     : GraphSignalType::Midi;
                 receiver.deviceIndex = static_cast<uint8_t>(deviceIndex);
                 receiver.mix = kind == DeviceNodeKind::AudioReceiver ? model.routeMix : 1.0f;
+                receiver.feedback = kind == DeviceNodeKind::AudioReceiver && model.feedback;
                 definition.receivers[definition.receiverCount++] = receiver;
             }
             ++deviceIndex;
@@ -3307,9 +3312,27 @@ void ProjectEngine::rebuildProcessorGraphLocked(int trackCount) {
         ++trackIndex;
     }
 
-    const int inactive = 1 - activeProcessorGraph_.load(std::memory_order_relaxed);
+    // During a playback rebuild the target state has already been proven to
+    // have no audio readers by beginBuild(). Bind the graph bank to that same
+    // state; deriving it from the independently published graph index can
+    // race a pending callback commit.
+    const int inactive = PlaybackStateStorage::buildIndex >= 0
+        ? PlaybackStateStorage::buildIndex
+        : 1 - activeProcessorGraph_.load(std::memory_order_relaxed);
+    // The inactive bank cannot be read by the callback. Prepare it here,
+    // rather than bulk-clearing state from a live callback after publication.
+    for (auto& delay : graphLatencyLines_[inactive]) {
+        delay.left.fill(0.0f);
+        delay.right.fill(0.0f);
+        delay.delaySamples = 0;
+        delay.writePosition = 0;
+    }
     processorGraphs_[inactive] = buildProcessorGraph(
         std::span<const GraphTrackDefinition>(definitions.data(), static_cast<size_t>(trackCount)));
+    for (int edgeIndex = 0; edgeIndex < processorGraphs_[inactive].audioEdgeCount; ++edgeIndex) {
+        const auto& edge = processorGraphs_[inactive].audioEdges[static_cast<size_t>(edgeIndex)];
+        graphLatencyLines_[inactive][edge.bufferSlot].delaySamples = edge.latencyCompensationSamples;
+    }
     lastBuiltProcessorGraph_ = inactive;
     if (PlaybackStateStorage::buildIndex >= 0)
         trackPlayback_.setSelectedGraphIndex(inactive);

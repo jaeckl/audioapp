@@ -7,6 +7,7 @@ class RoutingDeviceSnapshot extends DeviceSnapshot {
     required super.bypassed,
     required this.sourceId,
     required this.routeMix,
+    required this.feedback,
   }) : super(
           gain: 1,
           pan: 0.5,
@@ -16,6 +17,7 @@ class RoutingDeviceSnapshot extends DeviceSnapshot {
 
   final String sourceId;
   final double routeMix;
+  final bool feedback;
 
   bool get isAudioRoute => type == 'audio_receiver';
 
@@ -27,6 +29,7 @@ class RoutingDeviceSnapshot extends DeviceSnapshot {
       bypassed: readBypass(map['bypass']),
       sourceId: params['sourceId'] as String? ?? '',
       routeMix: (params['routeMix'] as num?)?.toDouble() ?? 1,
+      feedback: ((params['feedback'] as num?)?.toDouble() ?? 0.0) >= 0.5,
     );
   }
 
@@ -41,6 +44,7 @@ class RoutingDeviceSnapshot extends DeviceSnapshot {
     double? meterInputLevel,
     String? sourceId,
     double? routeMix,
+    bool? feedback,
   }) =>
       RoutingDeviceSnapshot(
         id: id ?? this.id,
@@ -48,6 +52,7 @@ class RoutingDeviceSnapshot extends DeviceSnapshot {
         bypassed: bypassed ?? this.bypassed,
         sourceId: sourceId ?? this.sourceId,
         routeMix: routeMix ?? this.routeMix,
+        feedback: feedback ?? this.feedback,
       );
 
   @override
@@ -55,6 +60,7 @@ class RoutingDeviceSnapshot extends DeviceSnapshot {
     return switch (parameterId) {
       'bypass' => copyWith(bypassed: value >= 0.5),
       'routeMix' => copyWith(routeMix: value.clamp(0.0, 1.0)),
+      'feedback' => copyWith(feedback: value >= 0.5),
       _ => this,
     };
   }

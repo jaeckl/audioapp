@@ -89,23 +89,24 @@ int main() {
     parallel[2].receivers[0] = receiver("bus", GraphSignalType::Audio, 0);
     parallel[2].receiverCount = 1;
     graph = buildProcessorGraph(parallel);
-    expect(graph.valid() && graph.audioEdgeCount == 2 &&
-           graph.audioEdges[0].latencyCompensationSamples == 64 &&
-           graph.audioEdges[1].latencyCompensationSamples == 0,
-           "parallel inputs compile deterministic latency compensation");
-    expect(graph.maxLatencySamples == 96,
-           "latency budget is retained for the callback delay lines");
+    expect(graph.error == ProcessorGraphError::MultipleAudioInputs,
+           "an AudioReceiver accepts exactly one incoming audio edge");
 
     parallel[0].sources[0].direction = GraphPortDirection::Input;
     graph = buildProcessorGraph(parallel);
     expect(graph.error == ProcessorGraphError::InvalidPort,
            "source and receiver port directions are validated");
 
-    parallel[0].sources[0].direction = GraphPortDirection::Output;
-    parallel[2].receivers[0].feedback = true;
-    graph = buildProcessorGraph(parallel);
-    expect(graph.valid() && graph.feedbackBufferSlotCount == 2 &&
-           graph.audioEdges[0].feedback && graph.audioEdges[1].feedback,
+    GraphTrackDefinition feedback[2];
+    feedback[0].trackId = "source";
+    feedback[0].sources[0] = source("feedback-bus", GraphSignalType::Audio, 0);
+    feedback[0].sourceCount = 1;
+    feedback[1].trackId = "destination";
+    feedback[1].receivers[0] = receiver("feedback-bus", GraphSignalType::Audio, 0);
+    feedback[1].receivers[0].feedback = true;
+    feedback[1].receiverCount = 1;
+    graph = buildProcessorGraph(feedback);
+    expect(graph.valid() && graph.feedbackBufferSlotCount == 1 && graph.audioEdges[0].feedback,
            "explicit audio feedback routes compile into one-block buffer slots");
 
     GraphTrackDefinition cyclic[2];

@@ -32,6 +32,7 @@ enum class ProcessorGraphError : uint8_t {
     Cycle,
     InvalidDeviceOrder,
     InvalidPort,
+    MultipleAudioInputs,
 };
 
 struct GraphSourceDefinition {

@@ -48,6 +48,8 @@ DeviceParameterResult RoutingDeviceType::setParameter(DeviceSlot& slot,
     auto& model = std::get<RoutingModel>(slot.config.instance);
     if (parameterId == "routeMix" && hasMix()) {
         model.routeMix = std::clamp(value, 0.0f, 1.0f);
+    } else if (parameterId == "feedback" && hasMix()) {
+        model.feedback = value >= 0.5f;
     } else {
         return result;
     }
@@ -83,6 +85,7 @@ juce::var RoutingDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* params = new juce::DynamicObject();
     params->setProperty("sourceId", juce::String(model.sourceId));
     params->setProperty("routeMix", model.routeMix);
+    params->setProperty("feedback", model.feedback ? 1.0 : 0.0);
     auto* input = new juce::DynamicObject();
     input->setProperty("type", "empty");
     auto* output = new juce::DynamicObject();
@@ -113,6 +116,7 @@ DeviceSlot RoutingDeviceType::varToSlot(const juce::var& value) const {
         RoutingModel model;
         model.sourceId = params->getProperty("sourceId").toString().toStdString();
         model.routeMix = readFloat(params, "routeMix", model.routeMix);
+        model.feedback = readFloat(params, "feedback", 0.0f) >= 0.5f;
         slot.config.instance = model;
     }
     return slot;

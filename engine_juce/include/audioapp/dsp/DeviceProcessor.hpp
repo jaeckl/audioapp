@@ -70,6 +70,10 @@ public:
     /// use this to sleep inactive internal chains without cutting delay/reverb tails.
     virtual bool hasActiveTail() const noexcept { return false; }
 
+    /// Algorithmic delay at the exposed output port. Built-ins currently
+    /// report zero; look-ahead devices override this before they are routed.
+    virtual uint16_t reportedLatencySamples() const noexcept { return 0; }
+
     const DeviceVariantParams& storedParams() const noexcept { return storedParams_; }
 
     void configureExecutionPlan(DeviceNodeKind nodeKind) noexcept {

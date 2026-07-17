@@ -14,6 +14,7 @@ struct RoutingParams {
 struct RoutingModel {
     std::string sourceId;
     float routeMix = 1.0f;
+    bool feedback = false;
 
     RoutingParams toPlaybackParams() const noexcept {
         RoutingParams params;
