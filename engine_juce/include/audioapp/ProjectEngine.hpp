@@ -338,6 +338,13 @@ public:
     std::string getDeviceMetersJson();
     void setMeterSubscriptions(const std::vector<std::string>& deviceIds);
 
+    /// Runtime-only observers on logical device Output Adapter ports.
+    std::string createGraphTap(const std::string& deviceId,
+                               GraphTapKind kind,
+                               uint32_t capacityFrames = kGraphTapDefaultRecorderFrames);
+    bool removeGraphTap(const std::string& tapId);
+    std::string readGraphTapJson(const std::string& tapId, int maxFrames = 512);
+
     /// Expose modulator types for serialization dispatch.
     const std::vector<std::unique_ptr<IModulatorType>>& modulatorTypes() const {
         return modulationGraph_.modulatorTypes();
@@ -562,6 +569,19 @@ private:
     ProcessorGraphSnapshot processorGraphs_[2];
     std::atomic<int> activeProcessorGraph_{0};
     int lastBuiltProcessorGraph_ = 0; // control thread only
+    struct GraphTapRegistration {
+        bool active = false;
+        std::string tapId;
+        std::string deviceId;
+        uint64_t sourceOutputNodeId = 0;
+        GraphTapKind kind = GraphTapKind::None;
+        uint32_t capacityFrames = kGraphTapDefaultRecorderFrames;
+        uint32_t generation = 0;
+    };
+    std::array<GraphTapRegistration, kMaxProcessorGraphTaps> graphTapRegistrations_{};
+    std::unique_ptr<GraphTapRuntime[]> graphTapRuntimes_ =
+        std::make_unique<GraphTapRuntime[]>(kMaxProcessorGraphTaps);
+    uint64_t nextGraphTapId_ = 1;
     // Each immutable graph owns a pre-cleared bank. The audio callback never
     // clears delay memory when a live structural edit is published.
     std::unique_ptr<std::array<ProcessorGraphDelayLine, kMaxProcessorGraphEdges>[]>
@@ -639,6 +659,7 @@ private:
     void syncActiveFrequencyLocked();
     void recomputeIdCountersLocked();
     void applyLiveDeviceMetersLocked(ProjectSnapshot& snap) const;
+    void clearGraphTapsLocked() noexcept;
     const DeviceNodePlayback* findOscillatorNode(const TrackPlaybackSnapshot& track) const noexcept;
     DeviceSlot* findDeviceLocked(const std::string& deviceId);
     bool buildLiveInstrumentForTrack(const Track& track, int pitch,

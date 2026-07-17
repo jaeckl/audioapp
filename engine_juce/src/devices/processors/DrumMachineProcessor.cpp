@@ -155,6 +155,9 @@ void DrumMachineProcessor::process(AudioBlock& block, ProcessContext& ctx) noexc
         sub.noteCount = routedCount;
         sub.wavetableBank = ctx.wavetableBank;
         sub.suppressInstruments = ctx.suppressInstruments;
+        sub.tapGraph = ctx.tapGraph;
+        sub.graphTapRuntimes = ctx.graphTapRuntimes;
+        sub.graphTapRuntimeCount = ctx.graphTapRuntimeCount;
         sub.compiledDeviceOrder = runtime.executionOrder.deviceIndices.data();
         sub.compiledDeviceOrderCount = runtime.executionOrder.count;
         AutomationClipPlayback padAutomation[16]{};

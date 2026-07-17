@@ -114,8 +114,9 @@ compiler rejects more than one matching audio source and rejects channel-layout
 conversion until an explicit Mixer/ChannelAdapter node exists. MIDI edge
 capacity is compiled and enforced while copying events. Multi-input summing is
 therefore not hidden in the receiver loop; it is future explicit graph-node
-work. Existing per-device meters remain output-adapter/device-meter plumbing;
-raw graph tap creation is deferred with the raw graph-edit API.
+work. Existing per-device meters remain output-adapter/device-meter plumbing.
+Runtime graph-tap creation is specified by ADR-0010 and is independent of the
+still-deferred raw graph-edit API.
 
 ## Migration plan
 

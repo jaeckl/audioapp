@@ -245,6 +245,11 @@ public:
     /// Format: {"ok":true,"meters":{"dev-1":{"gr":-3.5,"in":0.85},"dev-2":{...}}}
     std::string getDeviceMetersJson();
     void setMeterSubscriptions(const std::vector<std::string>& deviceIds);
+    std::string createGraphTap(const std::string& deviceId,
+                               GraphTapKind kind,
+                               uint32_t capacityFrames = kGraphTapDefaultRecorderFrames);
+    bool removeGraphTap(const std::string& tapId);
+    std::string readGraphTapJson(const std::string& tapId, int maxFrames = 512);
 
     /// Returns param descriptor metadata for a device type as JSON.
     /// Format: {"ok":true, "deviceType":"sampler", "params":[...], "protocolVersion":1}

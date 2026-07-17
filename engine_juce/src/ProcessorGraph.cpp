@@ -1,6 +1,7 @@
 #include "audioapp/ProcessorGraph.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 namespace audioapp {
 namespace {
@@ -36,7 +37,8 @@ bool appendEdge(ProcessorGraphSnapshot& graph, ProcessorGraphEdge edge) noexcept
 } // namespace
 
 ProcessorGraphSnapshot buildProcessorGraph(
-    std::span<const GraphTrackDefinition> tracks) noexcept {
+    std::span<const GraphTrackDefinition> tracks,
+    std::span<const GraphTapDefinition> taps) noexcept {
     ProcessorGraphSnapshot graph;
     if (tracks.size() > static_cast<size_t>(kMaxProcessorGraphTracks)) {
         setLinearOrder(graph, kMaxProcessorGraphTracks);
@@ -108,7 +110,6 @@ ProcessorGraphSnapshot buildProcessorGraph(
                     edge.eventCapacity = receiver.signalType == GraphSignalType::Midi
                         ? std::min(candidate.eventCapacity, receiver.eventCapacity) : 0;
                     edge.sourceLatencySamples = candidate.latencySamples;
-                    edge.tapKind = candidate.tapKind;
                     edge.feedback = receiver.feedback;
                     if (edge.feedback && receiver.signalType != GraphSignalType::Audio) {
                         graph.audioEdgeCount = 0;
@@ -133,6 +134,28 @@ ProcessorGraphSnapshot buildProcessorGraph(
                 }
             }
         }
+    }
+
+    if (taps.size() > static_cast<size_t>(kMaxProcessorGraphTaps)) {
+        graph.error = ProcessorGraphError::TooManyTaps;
+        graph.tapCount = 0;
+        return graph;
+    }
+    for (const auto& tap : taps) {
+        if (tap.sourceOutputNodeId == 0 || tap.kind == GraphTapKind::None ||
+            tap.runtimeSlot >= kMaxProcessorGraphTaps || tap.generation == 0) {
+            graph.error = ProcessorGraphError::InvalidTap;
+            graph.tapCount = 0;
+            return graph;
+        }
+        auto compiled = CompiledGraphTap{
+            tap.sourceOutputNodeId,
+            tap.runtimeSlot,
+            tap.generation,
+            tap.kind,
+            std::clamp(tap.capacityFrames, 1u, kGraphTapMaxBufferedFrames),
+        };
+        graph.taps[graph.tapCount++] = compiled;
     }
 
     // Compile per-destination latency alignment metadata. Runtime delay slots
@@ -205,6 +228,91 @@ ProcessorGraphSnapshot buildProcessorGraph(
         }
     }
     return graph;
+}
+
+void resetGraphTapRuntime(GraphTapRuntime& runtime, uint32_t generation) noexcept {
+    runtime.generation.store(generation, std::memory_order_release);
+    runtime.sequence.store(0, std::memory_order_relaxed);
+    runtime.droppedFrames.store(0, std::memory_order_relaxed);
+    runtime.overflowed.store(false, std::memory_order_relaxed);
+    runtime.sampleRate.store(48000, std::memory_order_relaxed);
+    runtime.peakL.store(0.0f, std::memory_order_relaxed);
+    runtime.peakR.store(0.0f, std::memory_order_relaxed);
+    runtime.rmsL.store(0.0f, std::memory_order_relaxed);
+    runtime.rmsR.store(0.0f, std::memory_order_relaxed);
+    runtime.head.store(0, std::memory_order_relaxed);
+    runtime.tail.store(0, std::memory_order_relaxed);
+}
+
+void processGraphTap(GraphTapRuntime& runtime,
+                     const CompiledGraphTap& tap,
+                     const float* left,
+                     const float* right,
+                     int numFrames,
+                     double sampleRate) noexcept {
+    if (left == nullptr || right == nullptr || numFrames <= 0 ||
+        runtime.generation.load(std::memory_order_acquire) != tap.generation) {
+        return;
+    }
+    runtime.writers.fetch_add(1, std::memory_order_acq_rel);
+    if (runtime.generation.load(std::memory_order_acquire) != tap.generation) {
+        runtime.writers.fetch_sub(1, std::memory_order_release);
+        return;
+    }
+    runtime.sampleRate.store(static_cast<uint32_t>(
+        std::clamp(std::lround(sampleRate), 1l, 768000l)),
+        std::memory_order_relaxed);
+
+    if (tap.kind == GraphTapKind::Meter) {
+        float peakL = 0.0f;
+        float peakR = 0.0f;
+        double sumL = 0.0;
+        double sumR = 0.0;
+        for (int frame = 0; frame < numFrames; ++frame) {
+            peakL = std::max(peakL, std::abs(left[frame]));
+            peakR = std::max(peakR, std::abs(right[frame]));
+            sumL += static_cast<double>(left[frame]) * left[frame];
+            sumR += static_cast<double>(right[frame]) * right[frame];
+        }
+        runtime.peakL.store(peakL, std::memory_order_relaxed);
+        runtime.peakR.store(peakR, std::memory_order_relaxed);
+        runtime.rmsL.store(static_cast<float>(std::sqrt(sumL / numFrames)),
+                           std::memory_order_relaxed);
+        runtime.rmsR.store(static_cast<float>(std::sqrt(sumR / numFrames)),
+                           std::memory_order_relaxed);
+        runtime.sequence.fetch_add(1, std::memory_order_release);
+    } else if (tap.kind == GraphTapKind::Recorder &&
+               runtime.overflowed.load(std::memory_order_acquire)) {
+        runtime.droppedFrames.fetch_add(static_cast<uint64_t>(numFrames),
+                                        std::memory_order_relaxed);
+    } else {
+        const uint64_t head = runtime.head.load(std::memory_order_relaxed);
+        const uint64_t tail = runtime.tail.load(std::memory_order_acquire);
+        const uint32_t capacity = std::clamp(
+            tap.capacityFrames, 1u, kGraphTapMaxBufferedFrames);
+        const uint64_t used = head - tail;
+        const uint64_t available = used < capacity ? capacity - used : 0;
+        const int writable = static_cast<int>(std::min<uint64_t>(
+            available, static_cast<uint64_t>(numFrames)));
+        for (int frame = 0; frame < writable; ++frame) {
+            const size_t position = static_cast<size_t>((head + frame) % capacity);
+            runtime.ringL[position] = left[frame];
+            runtime.ringR[position] = right[frame];
+        }
+        if (writable > 0) {
+            runtime.head.store(head + static_cast<uint64_t>(writable),
+                               std::memory_order_release);
+            runtime.sequence.fetch_add(static_cast<uint64_t>(writable),
+                                       std::memory_order_release);
+        }
+        if (writable < numFrames) {
+            runtime.droppedFrames.fetch_add(
+                static_cast<uint64_t>(numFrames - writable),
+                std::memory_order_relaxed);
+            runtime.overflowed.store(true, std::memory_order_release);
+        }
+    }
+    runtime.writers.fetch_sub(1, std::memory_order_release);
 }
 
 } // namespace audioapp

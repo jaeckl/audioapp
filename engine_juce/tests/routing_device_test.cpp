@@ -42,6 +42,30 @@ int main() {
     expect(!oscillator.empty(),
            "source oscillator is created");
     const float baseline = rms(audioProject->renderOffline(0.5, 48000.0));
+    const auto meterTap = audioProject->createGraphTap(
+        oscillator, GraphTapKind::Meter, 256);
+    const auto recorderTap = audioProject->createGraphTap(
+        oscillator, GraphTapKind::Recorder, 256);
+    expect(!meterTap.empty() && !recorderTap.empty(),
+           "multiple runtime taps attach to one output without a receiver");
+    float tapLeft[128]{};
+    float tapRight[128]{};
+    audioProject->setPlaying(true);
+    audioProject->readMasterMixStereo(tapLeft, tapRight, 128, 48000.0, 0.0);
+    audioProject->setPlaying(false);
+    const auto meterJson = juce::JSON::parse(audioProject->readGraphTapJson(meterTap));
+    const auto recorderJson = juce::JSON::parse(
+        audioProject->readGraphTapJson(recorderTap, 128));
+    expect(static_cast<int>(meterJson["sequence"]) > 0 &&
+           static_cast<double>(meterJson["peakL"]) > 0.0,
+           "meter tap executes at the source output adapter");
+    expect(static_cast<int>(recorderJson["frameCount"]) == 128,
+           "recorder tap returns the captured block in order");
+    expect(audioProject->removeGraphTap(meterTap) &&
+           audioProject->removeGraphTap(recorderTap),
+           "runtime taps can be removed safely");
+    expect(audioProject->readGraphTapJson(meterTap).find("tap_not_found") != std::string::npos,
+           "removed tap generations are no longer readable");
     const auto audioReceiver = audioProject->addDeviceToTrack(destination, device_types::kAudioReceiver);
     expect(!audioReceiver.empty(), "audio receiver is created");
     expect(audioProject->setDeviceStringParameter(audioReceiver, "sourceId", oscillator),
@@ -82,6 +106,45 @@ int main() {
                "live structural removal succeeds");
     }
     audioProject->setPlaying(false);
+
+    auto chainProject = std::make_unique<ProjectEngine>();
+    chainProject->createProject();
+    const auto chainTrack = chainProject->addTrack("Chain Tap");
+    const auto chain = chainProject->addDeviceToTrack(chainTrack, device_types::kChain);
+    const auto chainChild = chainProject->addDeviceToChain(
+        chain, device_types::kOscillator);
+    const auto chainTap = chainProject->createGraphTap(
+        chainChild, GraphTapKind::Meter, 256);
+    expect(!chainTap.empty(), "tap attaches to a nested Chain output adapter");
+    chainProject->setPlaying(true);
+    chainProject->readMasterMixStereo(tapLeft, tapRight, 128, 48000.0, 0.0);
+    chainProject->setPlaying(false);
+    const auto chainTapJson = juce::JSON::parse(
+        chainProject->readGraphTapJson(chainTap));
+    expect(static_cast<int>(chainTapJson["sequence"]) > 0,
+           "nested Chain context publishes graph taps");
+
+    auto drumProject = std::make_unique<ProjectEngine>();
+    drumProject->createProject();
+    const auto drumTrack = drumProject->addTrack("Drum Tap");
+    const auto drum = drumProject->addDeviceToTrack(
+        drumTrack, device_types::kDrumMachine);
+    const auto drumChild = drumProject->addDeviceToDrumPad(
+        drum, 60, device_types::kOscillator);
+    const auto drumClip = drumProject->createMidiClip(drumTrack, 0.0, 4.0);
+    expect(drumProject->setMidiClipNotes(
+               drumClip, {{60, 0.0, 1.0, 100.0f}}),
+           "drum tap test creates a pad trigger");
+    const auto drumTap = drumProject->createGraphTap(
+        drumChild, GraphTapKind::Recorder, 256);
+    expect(!drumTap.empty(), "tap attaches to a Drum Machine pad child output");
+    drumProject->setPlaying(true);
+    drumProject->readMasterMixStereo(tapLeft, tapRight, 128, 48000.0, 0.0);
+    drumProject->setPlaying(false);
+    const auto drumTapJson = juce::JSON::parse(
+        drumProject->readGraphTapJson(drumTap, 128));
+    expect(static_cast<int>(drumTapJson["frameCount"]) == 128,
+           "nested Drum Machine context publishes graph taps");
 
     auto midiProject = std::make_unique<ProjectEngine>();
     midiProject->createProject();

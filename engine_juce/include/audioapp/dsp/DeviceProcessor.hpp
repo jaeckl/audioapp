@@ -52,6 +52,8 @@ public:
         deviceId_ = node.deviceId;
         stableProcessorNodeId = stableDeviceSubgraphNodeId(
             node.deviceId, DeviceSubgraphNodeRole::DeviceProcessor);
+        stableOutputNodeId = stableDeviceSubgraphNodeId(
+            node.deviceId, DeviceSubgraphNodeRole::OutputAdapter);
         executionPlan = compileDeviceExecutionPlan(node.kind);
         bypassed = node.bypassed;
         gain = node.gain;
@@ -96,6 +98,7 @@ public:
     DeviceExecutionPlan executionPlan{};
     InstrumentVoicePolicy voicePolicy{};
     uint64_t stableProcessorNodeId = 0;
+    uint64_t stableOutputNodeId = 0;
 
 protected:
     DeviceProcessor() = default;

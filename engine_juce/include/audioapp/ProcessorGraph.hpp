@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <span>
 #include <string_view>
@@ -12,9 +13,13 @@ constexpr int kMaxProcessorGraphSourcesPerTrack = 16;
 constexpr int kMaxProcessorGraphReceiversPerTrack = 16;
 constexpr int kMaxProcessorGraphEdges = 32;
 constexpr int kMaxProcessorGraphFeedbackEdges = 8;
+constexpr int kMaxProcessorGraphTaps = 16;
 constexpr int kMaxProcessorGraphBlockFrames = 4096;
 /// Bounded, allocation-free delay storage for route latency compensation.
 constexpr int kMaxProcessorGraphLatencySamples = 4096;
+constexpr uint32_t kGraphTapDefaultRecorderFrames = 32768;
+constexpr uint32_t kGraphTapMaxBufferedFrames = 65536;
+constexpr int kGraphTapAnalyzerWindowFrames = 256;
 constexpr uint8_t kGraphTrackMidiInput = 0xFF;
 
 enum class GraphSignalType : uint8_t {
@@ -34,6 +39,8 @@ enum class ProcessorGraphError : uint8_t {
     InvalidDeviceOrder,
     InvalidPort,
     MultipleAudioInputs,
+    TooManyTaps,
+    InvalidTap,
 };
 
 struct GraphSourceDefinition {
@@ -44,7 +51,6 @@ struct GraphSourceDefinition {
     GraphChannelLayout channelLayout = GraphChannelLayout::Stereo;
     uint16_t eventCapacity = 128;
     uint16_t latencySamples = 0;
-    GraphTapKind tapKind = GraphTapKind::None;
 };
 
 struct GraphReceiverDefinition {
@@ -81,10 +87,59 @@ struct ProcessorGraphEdge {
     uint16_t eventCapacity = 0;
     uint16_t sourceLatencySamples = 0;
     uint16_t latencyCompensationSamples = 0;
-    GraphTapKind tapKind = GraphTapKind::None;
     bool feedback = false;
     uint8_t feedbackBufferSlot = 0;
 };
+
+/// Control-thread tap definition. The source is a stable logical Output
+/// Adapter node ID; runtimeSlot/generation address preallocated session state.
+struct GraphTapDefinition {
+    uint64_t sourceOutputNodeId = 0;
+    uint8_t runtimeSlot = 0;
+    uint32_t generation = 0;
+    GraphTapKind kind = GraphTapKind::None;
+    uint32_t capacityFrames = kGraphTapDefaultRecorderFrames;
+};
+
+/// Immutable audio-thread binding. Taps are observers, not routing edges, so
+/// they have no destination, route buffer, dependency, or latency field.
+struct CompiledGraphTap {
+    uint64_t sourceOutputNodeId = 0;
+    uint8_t runtimeSlot = 0;
+    uint32_t generation = 0;
+    GraphTapKind kind = GraphTapKind::None;
+    uint32_t capacityFrames = kGraphTapDefaultRecorderFrames;
+};
+
+/// Preallocated SPSC/latest-value state shared by one tap generation. Meter
+/// readers use atomics. Analyzer/recorder readers consume ring data using
+/// head/tail release/acquire publication; the audio callback is the sole writer.
+struct GraphTapRuntime {
+    std::atomic<uint32_t> generation{1};
+    std::atomic<uint32_t> writers{0};
+    std::atomic<uint64_t> sequence{0};
+    std::atomic<uint64_t> droppedFrames{0};
+    std::atomic<bool> overflowed{false};
+    std::atomic<uint32_t> sampleRate{48000};
+
+    std::atomic<float> peakL{0.0f};
+    std::atomic<float> peakR{0.0f};
+    std::atomic<float> rmsL{0.0f};
+    std::atomic<float> rmsR{0.0f};
+
+    alignas(64) std::array<float, kGraphTapMaxBufferedFrames> ringL{};
+    alignas(64) std::array<float, kGraphTapMaxBufferedFrames> ringR{};
+    alignas(64) std::atomic<uint64_t> head{0};
+    alignas(64) std::atomic<uint64_t> tail{0};
+};
+
+void resetGraphTapRuntime(GraphTapRuntime& runtime, uint32_t generation) noexcept;
+void processGraphTap(GraphTapRuntime& runtime,
+                     const CompiledGraphTap& tap,
+                     const float* left,
+                     const float* right,
+                     int numFrames,
+                     double sampleRate) noexcept;
 
 /// Audio-thread-owned state for a compiled route delay. The compiler keeps the
 /// required delay on the immutable edge; this storage only carries samples
@@ -102,12 +157,14 @@ struct ProcessorGraphSnapshot {
     std::array<uint8_t, kMaxProcessorGraphTracks> executionOrder{};
     std::array<ProcessorGraphEdge, kMaxProcessorGraphEdges> audioEdges{};
     std::array<ProcessorGraphEdge, kMaxProcessorGraphEdges> midiEdges{};
+    std::array<CompiledGraphTap, kMaxProcessorGraphTaps> taps{};
     uint8_t trackCount = 0;
     uint8_t audioEdgeCount = 0;
     uint8_t midiEdgeCount = 0;
     uint8_t audioBufferSlotCount = 0;
     uint8_t midiBufferSlotCount = 0;
     uint8_t feedbackBufferSlotCount = 0;
+    uint8_t tapCount = 0;
     uint16_t maxLatencySamples = 0;
     ProcessorGraphError error = ProcessorGraphError::None;
 
@@ -115,6 +172,7 @@ struct ProcessorGraphSnapshot {
 };
 
 ProcessorGraphSnapshot buildProcessorGraph(
-    std::span<const GraphTrackDefinition> tracks) noexcept;
+    std::span<const GraphTrackDefinition> tracks,
+    std::span<const GraphTapDefinition> taps = {}) noexcept;
 
 } // namespace audioapp

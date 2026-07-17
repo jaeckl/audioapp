@@ -12,6 +12,7 @@ part 'engine_bridge_recent_project_entry.dart';
 part 'engine_bridge_audio_recording_session.dart';
 part 'engine_bridge_live_midi_note_event.dart';
 part 'engine_bridge_set_meter_subscriptions.dart';
+part 'engine_bridge_graph_taps.dart';
 part 'engine_bridge_ping.dart';
 part 'engine_bridge_play.dart';
 part 'engine_bridge_stop.dart';

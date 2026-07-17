@@ -1249,6 +1249,20 @@ void EngineHost::setMeterSubscriptions(const std::vector<std::string>& deviceIds
     project_->setMeterSubscriptions(deviceIds);
 }
 
+std::string EngineHost::createGraphTap(const std::string& deviceId,
+                                       GraphTapKind kind,
+                                       uint32_t capacityFrames) {
+    return project_->createGraphTap(deviceId, kind, capacityFrames);
+}
+
+bool EngineHost::removeGraphTap(const std::string& tapId) {
+    return project_->removeGraphTap(tapId);
+}
+
+std::string EngineHost::readGraphTapJson(const std::string& tapId, int maxFrames) {
+    return project_->readGraphTapJson(tapId, maxFrames);
+}
+
 namespace {
 
 /// Convert any populated SnapshotDelta into a delta CommandResult.
@@ -2268,6 +2282,42 @@ void EngineHost::registerAllCommands() {
         }
         ctx.engine.setMeterSubscriptions(deviceIds);
         return commands::okResult();
+    });
+
+    reg.registerCommand("createGraphTap", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        const auto kindName = ctx.args["kind"].toString().toStdString();
+        GraphTapKind kind = GraphTapKind::None;
+        if (kindName == "meter") kind = GraphTapKind::Meter;
+        else if (kindName == "analyzer") kind = GraphTapKind::Analyzer;
+        else if (kindName == "recorder") kind = GraphTapKind::Recorder;
+        else return commands::errorResult("invalid_tap_kind");
+        const uint32_t capacity = ctx.args.hasProperty("capacityFrames")
+            ? static_cast<uint32_t>(std::clamp(
+                static_cast<int64_t>(static_cast<double>(ctx.args["capacityFrames"])),
+                int64_t{1}, static_cast<int64_t>(kGraphTapMaxBufferedFrames)))
+            : kGraphTapDefaultRecorderFrames;
+        const auto tapId = ctx.engine.createGraphTap(deviceId, kind, capacity);
+        if (tapId.empty()) return commands::errorResult("invalid_tap_target");
+        auto* result = new juce::DynamicObject();
+        result->setProperty("ok", true);
+        result->setProperty("tapId", juce::String(tapId));
+        return commands::rawResult(
+            juce::JSON::toString(juce::var(result), false).toStdString());
+    });
+
+    reg.registerCommand("removeGraphTap", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto tapId = ctx.args["tapId"].toString().toStdString();
+        if (!ctx.engine.removeGraphTap(tapId)) return commands::errorResult("tap_not_found");
+        return commands::okResult();
+    });
+
+    reg.registerCommand("readGraphTap", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto tapId = ctx.args["tapId"].toString().toStdString();
+        const int maxFrames = ctx.args.hasProperty("maxFrames")
+            ? std::clamp(static_cast<int>(static_cast<double>(ctx.args["maxFrames"])), 1, 2048)
+            : 512;
+        return commands::rawResult(ctx.engine.readGraphTapJson(tapId, maxFrames));
     });
 
     // ── Undo / Redo ──────────────────────────────────────

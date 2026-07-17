@@ -4,6 +4,8 @@
 #include "audioapp/dsp/ProcessorArena.hpp"
 
 #include <iostream>
+#include <cmath>
+#include <memory>
 
 namespace {
 
@@ -50,7 +52,6 @@ int main() {
     routed[0].sources[0] = source("audio-dev", GraphSignalType::Audio, 2);
     routed[0].sources[0].channelLayout = GraphChannelLayout::Stereo;
     routed[0].sources[0].latencySamples = 64;
-    routed[0].sources[0].tapKind = GraphTapKind::Meter;
     routed[0].sourceCount = 1;
     routed[1].trackId = "midi-source";
     routed[1].sources[0] = source("track-midi", GraphSignalType::Midi, kGraphTrackMidiInput);
@@ -74,9 +75,66 @@ int main() {
     expect(graph.midiEdges[0].eventCapacity == 128,
            "default MIDI ports retain their event capacity");
     expect(graph.audioEdges[0].sourceLayout == GraphChannelLayout::Stereo &&
-           graph.audioEdges[0].tapKind == GraphTapKind::Meter &&
            graph.maxLatencySamples == 64,
-           "typed port, tap, and latency metadata reach the immutable edge");
+           "typed port and latency metadata reach the immutable edge");
+
+    const GraphTapDefinition taps[] = {
+        {1001, 0, 7, GraphTapKind::Meter, 64},
+        {1001, 1, 9, GraphTapKind::Recorder, 4},
+    };
+    graph = buildProcessorGraph(linear, taps);
+    expect(graph.valid() && graph.tapCount == 2,
+           "multiple taps compile without a routing receiver");
+    expect(graph.audioEdgeCount == 0 && graph.audioBufferSlotCount == 0,
+           "taps create no routing edges or route buffers");
+    expect(graph.taps[0].sourceOutputNodeId == 1001 &&
+           graph.taps[1].kind == GraphTapKind::Recorder,
+           "compiled taps retain stable output IDs and kinds");
+
+    const GraphTapDefinition invalidTap[] = {
+        {0, 0, 1, GraphTapKind::Meter, 64},
+    };
+    graph = buildProcessorGraph(linear, invalidTap);
+    expect(graph.error == ProcessorGraphError::InvalidTap,
+           "zero stable output IDs are rejected");
+
+    auto meterRuntime = std::make_unique<GraphTapRuntime>();
+    resetGraphTapRuntime(*meterRuntime, 7);
+    const float tapLeft[] = {0.25f, -0.5f, 1.0f, 0.0f};
+    const float tapRight[] = {-0.25f, 0.5f, -0.75f, 0.25f};
+    processGraphTap(*meterRuntime, CompiledGraphTap{1001, 0, 7,
+        GraphTapKind::Meter, 64}, tapLeft, tapRight, 4, 48000.0);
+    expect(std::abs(meterRuntime->peakL.load() - 1.0f) < 1.0e-6f &&
+           std::abs(meterRuntime->peakR.load() - 0.75f) < 1.0e-6f,
+           "meter tap publishes stereo peaks");
+    expect(std::abs(meterRuntime->rmsL.load() -
+                    std::sqrt((0.0625f + 0.25f + 1.0f) / 4.0f)) < 1.0e-6f,
+           "meter tap publishes RMS");
+
+    auto recorderRuntime = std::make_unique<GraphTapRuntime>();
+    resetGraphTapRuntime(*recorderRuntime, 9);
+    const float recorderLeft[] = {1, 2, 3, 4, 5, 6};
+    const float recorderRight[] = {-1, -2, -3, -4, -5, -6};
+    const CompiledGraphTap recorderTap{1001, 1, 9,
+        GraphTapKind::Recorder, 4};
+    processGraphTap(*recorderRuntime, recorderTap,
+                    recorderLeft, recorderRight, 6, 44100.0);
+    expect(recorderRuntime->head.load() == 4 &&
+           recorderRuntime->droppedFrames.load() == 2 &&
+           recorderRuntime->overflowed.load(),
+           "recorder tap reports bounded overflow without overwriting");
+    expect(recorderRuntime->ringL[0] == 1.0f && recorderRuntime->ringL[3] == 4.0f,
+           "recorder tap retains ordered bit-exact samples");
+    processGraphTap(*recorderRuntime, recorderTap,
+                    recorderLeft, recorderRight, 2, 44100.0);
+    expect(recorderRuntime->head.load() == 4 &&
+           recorderRuntime->droppedFrames.load() == 4,
+           "overflowed recorder rejects later samples");
+    resetGraphTapRuntime(*recorderRuntime, 10);
+    processGraphTap(*recorderRuntime, recorderTap,
+                    recorderLeft, recorderRight, 2, 44100.0);
+    expect(recorderRuntime->head.load() == 0,
+           "stale tap generations cannot write reused runtime slots");
 
     GraphTrackDefinition parallel[3];
     parallel[0].trackId = "fast";

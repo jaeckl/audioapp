@@ -37,6 +37,9 @@ struct DeviceChainOrchestrator {
         int automationClipCount = 0;
         const WavetableBank* wavetableBank = nullptr;
         const ProcessorGraphSnapshot* graph = nullptr;
+        const ProcessorGraphSnapshot* tapGraph = nullptr;
+        GraphTapRuntime* graphTapRuntimes = nullptr;
+        int graphTapRuntimeCount = 0;
         int graphTrackIndex = -1;
         float* graphAudioLeft = nullptr;
         float* graphAudioRight = nullptr;

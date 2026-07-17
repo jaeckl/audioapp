@@ -380,6 +380,19 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         }
     };
 
+    auto captureGraphTaps = [&](const DeviceProcessor& processor) noexcept {
+        if (ctx.tapGraph == nullptr || ctx.graphTapRuntimes == nullptr ||
+            ctx.graphTapRuntimeCount <= 0) return;
+        for (int tapIndex = 0; tapIndex < ctx.tapGraph->tapCount; ++tapIndex) {
+            const auto& tap = ctx.tapGraph->taps[static_cast<size_t>(tapIndex)];
+            if (tap.sourceOutputNodeId != processor.stableOutputNodeId ||
+                tap.runtimeSlot >= ctx.graphTapRuntimeCount) continue;
+            processGraphTap(ctx.graphTapRuntimes[tap.runtimeSlot], tap,
+                            ctx.trackLeft, ctx.trackRight, numFrames,
+                            ctx.sampleRate);
+        }
+    };
+
     const bool useCompiledOrder = ctx.compiledDeviceOrder != nullptr &&
         ctx.compiledDeviceOrderCount > 0;
     const int iterationCount = useCompiledOrder
@@ -410,6 +423,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
             ctx.modEdgeCount,
             ctx.modulators);
         if (effectiveBypass) {
+            captureGraphTaps(*proc);
             captureAudioSources(deviceIndex);
             captureMidiSources(deviceIndex);
             continue;
@@ -476,6 +490,9 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         pc.deviceMeters = ctx.deviceMeters;
         pc.maxDeviceMeters = ctx.maxDeviceMeters;
         pc.meterSlotSubscribed = ctx.meterSlotSubscribed;
+        pc.tapGraph = ctx.tapGraph;
+        pc.graphTapRuntimes = ctx.graphTapRuntimes;
+        pc.graphTapRuntimeCount = ctx.graphTapRuntimeCount;
         pc.deviceIndex = deviceIndex;
         pc.needsSubBlocks = needsSubBlocks;
         pc.wavetableBank = ctx.wavetableBank;
@@ -602,6 +619,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         proc->process(block, pc);
 
         runFusedOutputAdapter(*proc, nodeKind, block, s, numFrames);
+        captureGraphTaps(*proc);
         captureAudioSources(deviceIndex);
         captureMidiSources(deviceIndex);
     }

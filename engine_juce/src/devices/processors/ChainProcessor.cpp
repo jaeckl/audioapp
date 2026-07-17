@@ -69,6 +69,8 @@ void ChainProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
     sub.notes=ctx.notes; sub.noteCount=ctx.noteCount; sub.wavetableBank=ctx.wavetableBank;
     sub.lfoValues=ctx.lfoValues; sub.lfoCount=ctx.lfoCount; sub.modulators=ctx.modulators;
     sub.retriggerGeneration=ctx.retriggerGeneration;
+    sub.tapGraph=ctx.tapGraph; sub.graphTapRuntimes=ctx.graphTapRuntimes;
+    sub.graphTapRuntimeCount=ctx.graphTapRuntimeCount;
     sub.compiledDeviceOrder = executionOrder_.deviceIndices.data();
     sub.compiledDeviceOrderCount = executionOrder_.count;
 

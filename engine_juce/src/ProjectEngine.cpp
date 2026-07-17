@@ -104,6 +104,7 @@ void addMetronomeClick(float* left, float* right, int frames, double sampleRate,
 
 void ProjectEngine::createProject() {
     const juce::ScopedWriteLock lock(mutex_);
+    clearGraphTapsLocked();
     trackRepo_.clear();
     clipRepo_.clear();
     automationClipStore_.clear();
@@ -2142,6 +2143,9 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                 ctx.deviceMeters = deviceMeters_;
                 ctx.maxDeviceMeters = kMaxDeviceMeters;
                 ctx.meterSlotSubscribed = meterSlotSubscribed_.data();
+                ctx.tapGraph = useGraph ? &graph : nullptr;
+                ctx.graphTapRuntimes = graphTapRuntimes_.get();
+                ctx.graphTapRuntimeCount = kMaxProcessorGraphTaps;
                 ctx.lfoValues = lfoCount > 0 ? lfoValues.data() : nullptr;
                 ctx.lfoCount = lfoCount;
                 ctx.modulators = lfoCount > 0 ? modulatorPtrs.data() : nullptr;
@@ -2184,6 +2188,9 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         ctx.deviceMeters = deviceMeters_;
         ctx.maxDeviceMeters = kMaxDeviceMeters;
         ctx.meterSlotSubscribed = meterSlotSubscribed_.data();
+        ctx.tapGraph = useGraph ? &graph : nullptr;
+        ctx.graphTapRuntimes = graphTapRuntimes_.get();
+        ctx.graphTapRuntimeCount = kMaxProcessorGraphTaps;
         ctx.lfoValues = lfoCount > 0 ? lfoValues.data() : nullptr;
         ctx.lfoCount = lfoCount;
         ctx.modulators = lfoCount > 0 ? modulatorPtrs.data() : nullptr;
@@ -2499,6 +2506,7 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
     }
 
     const juce::ScopedWriteLock lock(mutex_);
+    clearGraphTapsLocked();
     projectName_ = data.name.empty() ? "Untitled" : data.name;
     if (data.bpm > 0) {
         transport_.setBpm(data.bpm);
@@ -2855,6 +2863,228 @@ void ProjectEngine::setMeterSubscriptions(const std::vector<std::string>& device
                 break;
             }
         }
+    }
+}
+
+std::string ProjectEngine::createGraphTap(const std::string& deviceId,
+                                          GraphTapKind kind,
+                                          uint32_t capacityFrames) {
+    const juce::ScopedWriteLock lock(mutex_);
+    DeviceSlot* device = findDeviceLocked(deviceId);
+    if (device == nullptr || kind == GraphTapKind::None) return {};
+    const auto nodeKind = deviceNodeKindFromTypeId(device->config.typeId);
+    const auto plan = compileDeviceExecutionPlan(nodeKind);
+    if (!plan.valid() ||
+        !hasPort(plan.logical.nodes[2].outputPorts, DevicePortMask::Audio)) {
+        return {};
+    }
+
+    int slot = -1;
+    for (int i = 0; i < kMaxProcessorGraphTaps; ++i) {
+        if (!graphTapRegistrations_[static_cast<size_t>(i)].active) {
+            slot = i;
+            break;
+        }
+    }
+    if (slot < 0) return {};
+
+    auto& runtime = graphTapRuntimes_[slot];
+    uint32_t generation = runtime.generation.fetch_add(1, std::memory_order_acq_rel) + 1;
+    if (generation == 0) {
+        generation = 1;
+        runtime.generation.store(generation, std::memory_order_release);
+    }
+    while (runtime.writers.load(std::memory_order_acquire) != 0) {
+        std::this_thread::yield();
+    }
+    resetGraphTapRuntime(runtime, generation);
+
+    auto& registration = graphTapRegistrations_[static_cast<size_t>(slot)];
+    registration.active = true;
+    registration.tapId = "tap-" + std::to_string(nextGraphTapId_++);
+    registration.deviceId = deviceId;
+    registration.sourceOutputNodeId = stableDeviceSubgraphNodeId(
+        deviceId, DeviceSubgraphNodeRole::OutputAdapter);
+    registration.kind = kind;
+    registration.capacityFrames = std::clamp(
+        capacityFrames, 1u, kGraphTapMaxBufferedFrames);
+    registration.generation = generation;
+
+    // Tap creation is a structural observer edit. Compile it into the inactive
+    // playback/graph state and publish at a callback boundary.
+    rebuildTrackPlaybackLocked();
+    return registration.tapId;
+}
+
+bool ProjectEngine::removeGraphTap(const std::string& tapId) {
+    const juce::ScopedWriteLock lock(mutex_);
+    for (int slot = 0; slot < kMaxProcessorGraphTaps; ++slot) {
+        auto& registration = graphTapRegistrations_[static_cast<size_t>(slot)];
+        if (!registration.active || registration.tapId != tapId) continue;
+        registration.active = false;
+        auto& runtime = graphTapRuntimes_[slot];
+        uint32_t generation = runtime.generation.fetch_add(1, std::memory_order_acq_rel) + 1;
+        if (generation == 0) {
+            generation = 1;
+            runtime.generation.store(generation, std::memory_order_release);
+        }
+        rebuildTrackPlaybackLocked();
+        while (runtime.writers.load(std::memory_order_acquire) != 0) {
+            std::this_thread::yield();
+        }
+        resetGraphTapRuntime(runtime, generation);
+        registration = GraphTapRegistration{};
+        return true;
+    }
+    return false;
+}
+
+std::string ProjectEngine::readGraphTapJson(const std::string& tapId, int maxFrames) {
+    // Analyzer/recorder reads advance the SPSC consumer tail, so serialize
+    // readers even though they never mutate the editable project model.
+    const juce::ScopedWriteLock lock(mutex_);
+    int slot = -1;
+    const GraphTapRegistration* registration = nullptr;
+    for (int i = 0; i < kMaxProcessorGraphTaps; ++i) {
+        const auto& candidate = graphTapRegistrations_[static_cast<size_t>(i)];
+        if (candidate.active && candidate.tapId == tapId) {
+            slot = i;
+            registration = &candidate;
+            break;
+        }
+    }
+    if (registration == nullptr) {
+        return R"({"ok":false,"error":"tap_not_found"})";
+    }
+    auto& runtime = graphTapRuntimes_[slot];
+    const char* kindName = registration->kind == GraphTapKind::Meter ? "meter" :
+        registration->kind == GraphTapKind::Analyzer ? "analyzer" : "recorder";
+    std::string json = R"({"ok":true,"tapId":")" + tapId +
+        R"(","type":")" + kindName + R"(","deviceId":")" +
+        registration->deviceId + R"(","sequence":)" +
+        std::to_string(runtime.sequence.load(std::memory_order_acquire)) +
+        R"(,"sampleRate":)" +
+        std::to_string(runtime.sampleRate.load(std::memory_order_relaxed)) +
+        R"(,"droppedFrames":)" +
+        std::to_string(runtime.droppedFrames.load(std::memory_order_relaxed)) +
+        R"(,"overflowed":)" +
+        (runtime.overflowed.load(std::memory_order_acquire) ? "true" : "false");
+    json += R"(,"sourceAvailable":)";
+    json += findDeviceLocked(registration->deviceId) != nullptr ? "true" : "false";
+
+    char buf[64];
+    if (registration->kind == GraphTapKind::Meter) {
+        float peakL = 0.0f;
+        float peakR = 0.0f;
+        float rmsL = 0.0f;
+        float rmsR = 0.0f;
+        for (int attempt = 0; attempt < 4; ++attempt) {
+            if (runtime.writers.load(std::memory_order_acquire) != 0) continue;
+            const uint64_t sequence = runtime.sequence.load(std::memory_order_acquire);
+            peakL = runtime.peakL.load(std::memory_order_relaxed);
+            peakR = runtime.peakR.load(std::memory_order_relaxed);
+            rmsL = runtime.rmsL.load(std::memory_order_relaxed);
+            rmsR = runtime.rmsR.load(std::memory_order_relaxed);
+            if (runtime.writers.load(std::memory_order_acquire) == 0 &&
+                runtime.sequence.load(std::memory_order_acquire) == sequence) break;
+        }
+        json += R"(,"peakL":)";
+        snprintf(buf, sizeof(buf), "%.6f", static_cast<double>(peakL));
+        json += buf;
+        json += R"(,"peakR":)";
+        snprintf(buf, sizeof(buf), "%.6f", static_cast<double>(peakR));
+        json += buf;
+        json += R"(,"rmsL":)";
+        snprintf(buf, sizeof(buf), "%.6f", static_cast<double>(rmsL));
+        json += buf;
+        json += R"(,"rmsR":)";
+        snprintf(buf, sizeof(buf), "%.6f", static_cast<double>(rmsR));
+        json += buf;
+    } else {
+        const uint32_t capacity = registration->capacityFrames;
+        const uint64_t head = runtime.head.load(std::memory_order_acquire);
+        const uint64_t tail = runtime.tail.load(std::memory_order_relaxed);
+        const uint64_t available = std::min<uint64_t>(head - tail, capacity);
+        if (registration->kind == GraphTapKind::Analyzer) {
+            const int count = static_cast<int>(std::min<uint64_t>(
+                available, kGraphTapAnalyzerWindowFrames));
+            const uint64_t start = head - static_cast<uint64_t>(count);
+            float mono[kGraphTapAnalyzerWindowFrames]{};
+            for (int i = 0; i < count; ++i) {
+                const size_t pos = static_cast<size_t>((start + i) % capacity);
+                mono[kGraphTapAnalyzerWindowFrames - count + i] =
+                    0.5f * (runtime.ringL[pos] + runtime.ringR[pos]);
+            }
+            runtime.tail.store(head, std::memory_order_release);
+            json += R"(,"waveform":[)";
+            constexpr int waveformBins = 32;
+            for (int bin = 0; bin < waveformBins; ++bin) {
+                if (bin) json += ",";
+                float peak = 0.0f;
+                const int begin = bin * kGraphTapAnalyzerWindowFrames / waveformBins;
+                const int end = (bin + 1) * kGraphTapAnalyzerWindowFrames / waveformBins;
+                for (int i = begin; i < end; ++i) peak = std::max(peak, std::abs(mono[i]));
+                snprintf(buf, sizeof(buf), "%.6f", static_cast<double>(peak));
+                json += buf;
+            }
+            json += R"(],"spectrum":[)";
+            constexpr int spectrumBins = 24;
+            for (int bin = 0; bin < spectrumBins; ++bin) {
+                if (bin) json += ",";
+                double real = 0.0;
+                double imag = 0.0;
+                const int frequencyBin = bin + 1;
+                for (int i = 0; i < kGraphTapAnalyzerWindowFrames; ++i) {
+                    const double phase = -2.0 * juce::MathConstants<double>::pi *
+                        frequencyBin * i / kGraphTapAnalyzerWindowFrames;
+                    real += mono[i] * std::cos(phase);
+                    imag += mono[i] * std::sin(phase);
+                }
+                const double magnitude = std::sqrt(real * real + imag * imag) /
+                    kGraphTapAnalyzerWindowFrames;
+                snprintf(buf, sizeof(buf), "%.6f", magnitude);
+                json += buf;
+            }
+            json += "]";
+        } else {
+            const int requested = std::clamp(maxFrames, 1, 2048);
+            const int count = static_cast<int>(std::min<uint64_t>(available, requested));
+            json += R"(,"frameCount":)" + std::to_string(count) + R"(,"left":[)";
+            for (int i = 0; i < count; ++i) {
+                if (i) json += ",";
+                const size_t pos = static_cast<size_t>((tail + i) % capacity);
+                snprintf(buf, sizeof(buf), "%.8f", static_cast<double>(runtime.ringL[pos]));
+                json += buf;
+            }
+            json += R"(],"right":[)";
+            for (int i = 0; i < count; ++i) {
+                if (i) json += ",";
+                const size_t pos = static_cast<size_t>((tail + i) % capacity);
+                snprintf(buf, sizeof(buf), "%.8f", static_cast<double>(runtime.ringR[pos]));
+                json += buf;
+            }
+            json += "]";
+            runtime.tail.store(tail + static_cast<uint64_t>(count), std::memory_order_release);
+        }
+    }
+    json += "}";
+    return json;
+}
+
+void ProjectEngine::clearGraphTapsLocked() noexcept {
+    for (int slot = 0; slot < kMaxProcessorGraphTaps; ++slot) {
+        auto& registration = graphTapRegistrations_[static_cast<size_t>(slot)];
+        if (!registration.active) continue;
+        registration.active = false;
+        auto& runtime = graphTapRuntimes_[slot];
+        uint32_t generation = runtime.generation.fetch_add(1, std::memory_order_acq_rel) + 1;
+        if (generation == 0) generation = 1;
+        runtime.generation.store(generation, std::memory_order_release);
+        while (runtime.writers.load(std::memory_order_acquire) != 0) {
+            std::this_thread::yield();
+        }
+        resetGraphTapRuntime(runtime, generation);
+        registration = GraphTapRegistration{};
     }
 }
 
@@ -3267,6 +3497,19 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
 void ProjectEngine::rebuildProcessorGraphLocked(int trackCount) {
     std::array<GraphTrackDefinition, kMaxProcessorGraphTracks> definitions{};
     std::array<std::string, kMaxProcessorGraphTracks> midiInputIds{};
+    std::array<GraphTapDefinition, kMaxProcessorGraphTaps> tapDefinitions{};
+    int tapDefinitionCount = 0;
+    for (int slot = 0; slot < kMaxProcessorGraphTaps; ++slot) {
+        const auto& registration = graphTapRegistrations_[static_cast<size_t>(slot)];
+        if (!registration.active || findDeviceLocked(registration.deviceId) == nullptr) continue;
+        tapDefinitions[static_cast<size_t>(tapDefinitionCount++)] = GraphTapDefinition{
+            registration.sourceOutputNodeId,
+            static_cast<uint8_t>(slot),
+            registration.generation,
+            registration.kind,
+            registration.capacityFrames,
+        };
+    }
     int trackIndex = 0;
     for (const auto& track : trackRepo_.tracks()) {
         if (trackIndex >= trackCount || trackIndex >= kMaxProcessorGraphTracks) break;
@@ -3333,7 +3576,9 @@ void ProjectEngine::rebuildProcessorGraphLocked(int trackCount) {
     }
     feedbackBank.readIndex = 0;
     processorGraphs_[inactive] = buildProcessorGraph(
-        std::span<const GraphTrackDefinition>(definitions.data(), static_cast<size_t>(trackCount)));
+        std::span<const GraphTrackDefinition>(definitions.data(), static_cast<size_t>(trackCount)),
+        std::span<const GraphTapDefinition>(tapDefinitions.data(),
+                                            static_cast<size_t>(tapDefinitionCount)));
     for (int edgeIndex = 0; edgeIndex < processorGraphs_[inactive].audioEdgeCount; ++edgeIndex) {
         const auto& edge = processorGraphs_[inactive].audioEdges[static_cast<size_t>(edgeIndex)];
         graphLatencyLines_[inactive][edge.bufferSlot].delaySamples = edge.latencyCompensationSamples;

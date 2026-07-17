@@ -10,6 +10,8 @@
 namespace audioapp {
 
 class WavetableBank;
+struct ProcessorGraphSnapshot;
+struct GraphTapRuntime;
 
 struct ProcessContext {
     DeviceChainScratch& scratch;
@@ -36,6 +38,10 @@ struct ProcessContext {
     DeviceMeterAtomic* deviceMeters = nullptr;
     int maxDeviceMeters = 0;
     const bool* meterSlotSubscribed = nullptr;
+
+    const ProcessorGraphSnapshot* tapGraph = nullptr;
+    GraphTapRuntime* graphTapRuntimes = nullptr;
+    int graphTapRuntimeCount = 0;
 
     int deviceIndex = 0;
     bool needsSubBlocks = false;
