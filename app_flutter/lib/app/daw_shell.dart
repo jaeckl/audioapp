@@ -35,6 +35,8 @@ import '../features/piano_roll/midi_lane_layout.dart';
 import '../features/sample_library/sample_library_screen.dart';
 import '../features/sample_editor/sample_editor_screen.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/settings/app_settings_store.dart';
+import '../features/settings/project_hub_screen.dart';
 import '../features/welcome/example_projects.dart';
 import '../features/welcome/welcome_hub.dart';
 import '../features/welcome/project_workspace_browser.dart';
@@ -173,6 +175,7 @@ part 'daw_shell_private_daw_shell_state_on_tab_selected.dart';
 part 'daw_shell_private_daw_shell_state_build_arrangement_column.dart';
 part 'daw_shell_private_daw_shell_state_build_tab_body.dart';
 part 'daw_shell_private_daw_shell_state_build_main_column.dart';
+
 const _demoSamples = <(String, String, String)>[
   ('demo_form_basic_e', 'Basic E', 'form_basic_e.wav'),
   ('demo_form_evolving_sines', 'Evolving Sines', 'form_evolving_sines.wav'),

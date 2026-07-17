@@ -3,8 +3,9 @@ import 'package:flutter/services.dart';
 
 import 'app/daw_shell.dart';
 import 'bridge/engine_bridge.dart';
+import 'features/settings/app_settings_store.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(
@@ -16,11 +17,22 @@ void main() {
       systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
-  runApp(const AudioApp());
+  var showWelcomeOnLaunch = true;
+  try {
+    showWelcomeOnLaunch = await AppSettingsStore().loadShowWelcomeOnLaunch();
+  } catch (_) {
+    // A preference failure must never prevent the DAW from opening.
+  }
+  runApp(AudioApp(showWelcomeOnLaunch: showWelcomeOnLaunch));
 }
 
 class AudioApp extends StatelessWidget {
-  const AudioApp({super.key});
+  const AudioApp({
+    super.key,
+    this.showWelcomeOnLaunch = true,
+  });
+
+  final bool showWelcomeOnLaunch;
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +49,10 @@ class AudioApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: DawShell(bridge: EngineBridge(), showWelcomeOnLaunch: true),
+      home: DawShell(
+        bridge: EngineBridge(),
+        showWelcomeOnLaunch: showWelcomeOnLaunch,
+      ),
     );
   }
 }

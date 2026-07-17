@@ -4,6 +4,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   late final DawTransportController _transport;
   late final SnapshotStore _store;
   late final LiveMetersStore _liveMeters;
+  final AppSettingsStore _appSettings = AppSettingsStore();
   ProjectSnapshot? get _snapshot => _store.state;
   String? _saveStatus;
   String? _projectError;
@@ -28,6 +29,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   double? _pendingWtPositionValue;
   bool _wtPositionSendInFlight = false;
   bool _bootstrapReady = false;
+  bool _showWelcomeOnLaunch = true;
   List<RecentProjectEntry> _recentProjects = const [];
   bool _snapClipsEnabled = true;
   RecordWriteMode _recordWriteMode = RecordWriteMode.take;

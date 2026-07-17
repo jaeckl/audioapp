@@ -1,16 +1,18 @@
 part of 'daw_shell.dart';
 
 extension DawShellStateBootstrapOperation on _DawShellState {
-Future<void> _bootstrap() async {
+  Future<void> _bootstrap() async {
     try {
       await widget.bridge.ping();
       await _refreshRecentProjects();
-      if (!widget.showWelcomeOnLaunch) {
+      final showWelcome = widget.showWelcomeOnLaunch;
+      _showWelcomeOnLaunch = showWelcome;
+      if (!showWelcome) {
         await _createNewProject();
       }
       if (!mounted) return;
       setState(() => _bootstrapReady = true);
-      if (widget.showWelcomeOnLaunch) {
+      if (showWelcome) {
         await _presentWelcomeHub();
       }
     } on MissingPluginException {

@@ -772,7 +772,7 @@ void main() {
     expect(find.text('120'), findsOneWidget);
   });
 
-  testWidgets('Save and load project buttons in settings', (tester) async {
+  testWidgets('Project hub saves and loads projects', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -785,8 +785,8 @@ void main() {
 
     await tester.tap(find.bySemanticsLabel('Project'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
+    expect(find.text('Project'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
     await tester.tap(find.text('Save project'));
     await tester.pumpAndSettle();
     expect(find.text('Save Project'), findsOneWidget);
