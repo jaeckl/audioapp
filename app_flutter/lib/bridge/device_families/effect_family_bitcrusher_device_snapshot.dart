@@ -51,8 +51,12 @@ class BitcrusherDeviceSnapshot extends EffectDeviceSnapshot {
       bcClipMode: (params['clipMode'] as num?)?.toDouble() ?? 0.0,
       bcClipAmount: (params['clipAmount'] as num?)?.toDouble() ?? 0.0,
       bcFilter: (params['filter'] as num?)?.toDouble() ?? 1.0,
-      outputMix: (params['outputMix'] as num?)?.toDouble() ?? 1.0,
-      outputWidth: (params['outputWidth'] as num?)?.toDouble() ?? 1.0,
+      outputMix: (outputPanel['outputMix'] as num?)?.toDouble() ??
+          (params['outputMix'] as num?)?.toDouble() ??
+          1.0,
+      outputWidth: (outputPanel['outputWidth'] as num?)?.toDouble() ??
+          (params['outputWidth'] as num?)?.toDouble() ??
+          1.0,
     );
   }
 

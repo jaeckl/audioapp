@@ -116,6 +116,11 @@ int buildProcessorChain(const DeviceNodePlayback* devices, int deviceCount,
             proc->pan = node.pan;
             proc->outputMix = node.outputMix;
             proc->outputWidth = node.outputWidth;
+            proc->smoothedGain = node.gain;
+            proc->smoothedPan = node.pan;
+            proc->smoothedOutputMix = node.outputMix;
+            proc->smoothedOutputWidth = node.outputWidth;
+            proc->commonSmoothingReady = true;
             proc->voicePolicy = node.voicePolicy;
             proc->initParams(node.params);
             ++count;
@@ -289,11 +294,26 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
             continue;
         }
 
-        // Initialize per-frame gain/pan from processor instance
-        for (int f = 0; f < numFrames; ++f) {
-            s.perFrameGain[f] = proc->gain;
-            s.perFramePan[f] = proc->pan;
+        if (!proc->commonSmoothingReady) {
+            proc->smoothedGain = proc->gain;
+            proc->smoothedPan = proc->pan;
+            proc->smoothedOutputMix = proc->outputMix;
+            proc->smoothedOutputWidth = proc->outputWidth;
+            proc->commonSmoothingReady = true;
         }
+
+        // Ramp common strip controls across this block. This prevents gain and
+        // pan gestures from introducing a discontinuity at a block boundary.
+        const float gainStep = (proc->gain - proc->smoothedGain) /
+                               static_cast<float>(std::max(1, numFrames));
+        const float panStep = (proc->pan - proc->smoothedPan) /
+                              static_cast<float>(std::max(1, numFrames));
+        for (int f = 0; f < numFrames; ++f) {
+            s.perFrameGain[f] = proc->smoothedGain + gainStep * static_cast<float>(f + 1);
+            s.perFramePan[f] = proc->smoothedPan + panStep * static_cast<float>(f + 1);
+        }
+        proc->smoothedGain = proc->gain;
+        proc->smoothedPan = proc->pan;
 
         const DeviceNodeKind nodeKind = proc->kind();
 
@@ -450,23 +470,32 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         proc->process(block, pc);
 
         // --- Apply outputMix (dry/wet blend) ---
-        if (proc->outputMix != 1.0f) {
+        const float outputMixStep = (proc->outputMix - proc->smoothedOutputMix) /
+                                    static_cast<float>(std::max(1, numFrames));
+        if (proc->outputMix != 1.0f || proc->smoothedOutputMix != 1.0f) {
             for (int f = 0; f < numFrames; ++f) {
-                block.channelL[f] = s.tempStereoL[f] * (1.0f - proc->outputMix) + block.channelL[f] * proc->outputMix;
-                block.channelR[f] = s.tempStereoR[f] * (1.0f - proc->outputMix) + block.channelR[f] * proc->outputMix;
+                const float mix = proc->smoothedOutputMix +
+                                  outputMixStep * static_cast<float>(f + 1);
+                block.channelL[f] = s.tempStereoL[f] * (1.0f - mix) + block.channelL[f] * mix;
+                block.channelR[f] = s.tempStereoR[f] * (1.0f - mix) + block.channelR[f] * mix;
             }
         }
+        proc->smoothedOutputMix = proc->outputMix;
 
         // --- Apply outputWidth (M/S stereo width) ---
-        if (proc->outputWidth != 1.0f) {
-            const float width = proc->outputWidth;
+        const float outputWidthStep = (proc->outputWidth - proc->smoothedOutputWidth) /
+                                      static_cast<float>(std::max(1, numFrames));
+        if (proc->outputWidth != 1.0f || proc->smoothedOutputWidth != 1.0f) {
             for (int f = 0; f < numFrames; ++f) {
+                const float width = proc->smoothedOutputWidth +
+                                    outputWidthStep * static_cast<float>(f + 1);
                 const float mid = (block.channelL[f] + block.channelR[f]) * 0.5f;
                 const float side = (block.channelL[f] - block.channelR[f]) * 0.5f * width;
                 block.channelL[f] = mid + side;
                 block.channelR[f] = mid - side;
             }
         }
+        proc->smoothedOutputWidth = proc->outputWidth;
 
         // --- Apply per-frame gain for non-instrument processors ---
         if (!isInstrumentDeviceNodeKind(nodeKind) &&

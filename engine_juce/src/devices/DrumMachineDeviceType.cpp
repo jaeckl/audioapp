@@ -2,6 +2,7 @@
 #include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/devices/processors/DrumMachineProcessor.hpp"
 #include "audioapp/devices/DeviceRegistry.hpp"
+#include "audioapp/devices/DeviceStripParams.hpp"
 
 namespace audioapp {
 
@@ -18,7 +19,11 @@ DeviceSlot DrumMachineDeviceType::createDefault(const std::string& deviceId) con
 }
 
 DeviceParameterResult DrumMachineDeviceType::setParameter(
-    DeviceSlot&, std::string_view, float) const { return {}; }
+    DeviceSlot& slot, std::string_view parameterId, float value) const {
+    DeviceParameterResult result;
+    result.handled = device_strip::setStripParameter(slot, parameterId, value);
+    return result;
+}
 
 bool DrumMachineDeviceType::setStringParameter(
     DeviceSlot&, std::string_view, const std::string&, const PlaybackBuildContext&) const {

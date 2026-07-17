@@ -30,6 +30,33 @@ public:
         return false;
     }
 
+    /// Update a processor owned by a container (drum machine/device chain)
+    /// without rebuilding the container and discarding every child voice.
+    virtual bool updateNestedDevice(const DeviceNodePlayback& node,
+                                    bool paramsChanged = true) noexcept {
+        (void)node;
+        (void)paramsChanged;
+        return false;
+    }
+
+    virtual bool updateDrumPadParameter(int note, std::string_view parameterId,
+                                        float value) noexcept {
+        (void)note;
+        (void)parameterId;
+        (void)value;
+        return false;
+    }
+
+    void applyPlaybackNode(const DeviceNodePlayback& node) noexcept {
+        bypassed = node.bypassed;
+        gain = node.gain;
+        pan = node.pan;
+        outputMix = node.outputMix;
+        outputWidth = node.outputWidth;
+        voicePolicy = node.voicePolicy;
+        initParams(node.params);
+    }
+
     /// Clear per-processor runtime state (voices, FX buffers, phases).
     /// Called when transport loops or playhead seeks backward.
     virtual void resetPlaybackState() noexcept {}
@@ -46,6 +73,13 @@ public:
     float pan = 0.5f;
     float outputMix = 1.0f;
     float outputWidth = 1.0f;
+    // Audio-thread-owned values used to ramp common strip controls across a
+    // block. Control commands only change the public targets above.
+    float smoothedGain = 1.0f;
+    float smoothedPan = 0.5f;
+    float smoothedOutputMix = 1.0f;
+    float smoothedOutputWidth = 1.0f;
+    bool commonSmoothingReady = false;
     InstrumentVoicePolicy voicePolicy{};
 
 protected:

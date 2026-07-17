@@ -34,8 +34,12 @@ class TremoloDeviceSnapshot extends EffectDeviceSnapshot {
       tremDepth: (params['depth'] as num?)?.toDouble() ?? 0.5,
       tremRate: (params['rateHz'] as num?)?.toDouble() ?? 5.0,
       tremShape: (params['shape'] as num?)?.toDouble() ?? 0.0,
-      outputMix: (params['outputMix'] as num?)?.toDouble() ?? 1.0,
-      outputWidth: (params['outputWidth'] as num?)?.toDouble() ?? 1.0,
+      outputMix: (outputPanel['outputMix'] as num?)?.toDouble() ??
+          (params['outputMix'] as num?)?.toDouble() ??
+          1.0,
+      outputWidth: (outputPanel['outputWidth'] as num?)?.toDouble() ??
+          (params['outputWidth'] as num?)?.toDouble() ??
+          1.0,
     );
   }
 
@@ -77,9 +81,9 @@ class TremoloDeviceSnapshot extends EffectDeviceSnapshot {
       'bypass' => copyWith(bypassed: value >= 0.5),
       'outputMix' => copyWith(outputMix: value),
       'outputWidth' => copyWith(outputWidth: value),
-      'depth' => copyWith(tremDepth: value),
-      'rateHz' => copyWith(tremRate: value),
-      'shape' => copyWith(tremShape: value),
+      'depth' || 'tremDepth' => copyWith(tremDepth: value),
+      'rateHz' || 'tremRate' => copyWith(tremRate: value),
+      'shape' || 'tremShape' => copyWith(tremShape: value),
       _ => this,
     };
   }

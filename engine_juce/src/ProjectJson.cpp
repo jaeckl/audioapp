@@ -610,6 +610,15 @@ juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& regi
         object->setProperty("id", toJuceString(slot.id));
         object->setProperty("type", device_types::kDrumMachine);
         object->setProperty("bypass", slot.config.bypassed);
+        if (const auto* panel = std::get_if<StereoOutputPanel>(&slot.config.outputPanel)) {
+            auto* output = new juce::DynamicObject();
+            output->setProperty("type", "stereo");
+            output->setProperty("gain", static_cast<double>(panel->gain));
+            output->setProperty("pan", static_cast<double>(panel->pan));
+            output->setProperty("outputMix", static_cast<double>(panel->outputMix));
+            output->setProperty("outputWidth", static_cast<double>(panel->outputWidth));
+            object->setProperty("outputPanel", juce::var(output));
+        }
         object->setProperty("pads", pads);
         return juce::var(object);
     }
@@ -674,6 +683,13 @@ DeviceSlot deviceVarToSlotImpl(const juce::var& obj, const DeviceRegistry& regis
                 typeId, varToString(object->getProperty("id")));
             if (slot.id.empty()) return {};
             slot.config.bypassed = static_cast<bool>(object->getProperty("bypass"));
+            if (const auto* output = object->getProperty("outputPanel").getDynamicObject()) {
+                auto& panel = std::get<StereoOutputPanel>(slot.config.outputPanel);
+                panel.gain = std::clamp(varToFloat(output->getProperty("gain"), 1.0f), 0.0f, 1.0f);
+                panel.pan = std::clamp(varToFloat(output->getProperty("pan"), 0.5f), 0.0f, 1.0f);
+                panel.outputMix = std::clamp(varToFloat(output->getProperty("outputMix"), 1.0f), 0.0f, 1.0f);
+                panel.outputWidth = std::clamp(varToFloat(output->getProperty("outputWidth"), 1.0f), 0.0f, 1.0f);
+            }
             auto& machine = std::get<DrumMachineModel>(slot.config.instance);
             if (const auto* padValues = varArray(object->getProperty("pads"))) {
                 for (const auto& padValue : *padValues) {

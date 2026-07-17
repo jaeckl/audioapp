@@ -56,8 +56,12 @@ class PhaserDeviceSnapshot extends EffectDeviceSnapshot {
       phaserPhaseOffset: (params['phaseOffset'] as num?)?.toDouble() ?? 0.0,
       phaserStereoPhase: (params['stereoPhase'] as num?)?.toDouble() ?? .75,
       phaserStages: (params['stages'] as num?)?.toDouble() ?? 8.0,
-      outputMix: (params['outputMix'] as num?)?.toDouble() ?? 1.0,
-      outputWidth: (params['outputWidth'] as num?)?.toDouble() ?? 1.0,
+      outputMix: (outputPanel['outputMix'] as num?)?.toDouble() ??
+          (params['outputMix'] as num?)?.toDouble() ??
+          1.0,
+      outputWidth: (outputPanel['outputWidth'] as num?)?.toDouble() ??
+          (params['outputWidth'] as num?)?.toDouble() ??
+          1.0,
     );
   }
 

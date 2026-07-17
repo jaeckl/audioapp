@@ -19,6 +19,11 @@ void DrumMachineProcessor::initParams(const DeviceVariantParams& params) noexcep
             PadRuntime runtime;
             runtime.note = note;
             runtime.padIndex = note;
+            runtime.gain = pad.gain;
+            runtime.pan = pad.pan;
+            runtime.muted = pad.muted;
+            runtime.solo = pad.solo;
+            runtime.chokeGroup = pad.chokeGroup;
             runtime.arena = std::make_unique<ProcessorArena>(pad.deviceCount);
             buildProcessorChain(pad.devices, pad.deviceCount, *runtime.arena);
             pads_.push_back(std::move(runtime));
@@ -26,6 +31,55 @@ void DrumMachineProcessor::initParams(const DeviceVariantParams& params) noexcep
     } catch (...) {
         pads_.clear();
     }
+}
+
+bool DrumMachineProcessor::updateNestedDevice(const DeviceNodePlayback& node,
+                                               bool paramsChanged) noexcept {
+    if (playback_ == nullptr) return false;
+    for (auto& runtime : pads_) {
+        const auto& pad = playback_->pads[runtime.padIndex];
+        for (int child = 0; child < pad.deviceCount; ++child) {
+            auto* processor = runtime.arena ? runtime.arena->get(child) : nullptr;
+            if (pad.devices[child].deviceId == node.deviceId) {
+                if (processor == nullptr) return false;
+                processor->bypassed = node.bypassed;
+                processor->gain = node.gain;
+                processor->pan = node.pan;
+                processor->outputMix = node.outputMix;
+                processor->outputWidth = node.outputWidth;
+                if (paramsChanged) {
+                    if (node.kind == DeviceNodeKind::Sampler) {
+                        auto params = node.params;
+                        std::get<SamplerParams>(params).rootPitch = runtime.note;
+                        processor->voicePolicy = pad.devices[child].voicePolicy;
+                        processor->initParams(params);
+                    } else {
+                        processor->applyPlaybackNode(node);
+                    }
+                }
+                return true;
+            }
+            if (processor != nullptr && processor->updateNestedDevice(node, paramsChanged))
+                return true;
+        }
+    }
+    return false;
+}
+
+bool DrumMachineProcessor::updateDrumPadParameter(
+    int note, std::string_view parameterId, float value) noexcept {
+    if (playback_ == nullptr || note < 0 || note >= 128) return false;
+    const auto it = std::find_if(pads_.begin(), pads_.end(),
+        [note](const PadRuntime& runtime) { return runtime.padIndex == note; });
+    if (it == pads_.end()) return false;
+    if (parameterId == "gain") it->gain = std::clamp(value, 0.0f, 2.0f);
+    else if (parameterId == "pan") it->pan = std::clamp(value, 0.0f, 1.0f);
+    else if (parameterId == "mute") it->muted = value >= 0.5f;
+    else if (parameterId == "solo") it->solo = value >= 0.5f;
+    else if (parameterId == "chokeGroup")
+        it->chokeGroup = std::clamp(static_cast<int>(std::lround(value)), 0, 16);
+    else return false;
+    return true;
 }
 
 void DrumMachineProcessor::resetPlaybackState() noexcept {
@@ -38,14 +92,14 @@ void DrumMachineProcessor::resetPlaybackState() noexcept {
 void DrumMachineProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
     if (playback_ == nullptr || block.numSamples <= 0 || block.numSamples > kScratchFrames) return;
     bool hasSolo = false;
-    for (const auto& runtime : pads_) hasSolo |= playback_->pads[runtime.padIndex].solo;
+    for (const auto& runtime : pads_) hasSolo |= runtime.solo;
 
     const double beatsPerFrame = (static_cast<double>(std::max(ctx.bpm, 1)) / 60.0) / ctx.sampleRate;
     const double blockEndBeat = ctx.playheadBeat + beatsPerFrame * (block.numSamples - 1);
 
     for (auto& runtime : pads_) {
         const auto& pad = playback_->pads[runtime.padIndex];
-        if (pad.muted || (hasSolo && !pad.solo)) continue;
+        if (runtime.muted || (hasSolo && !runtime.solo)) continue;
 
         int routedCount = 0;
         bool triggersNow = false;
@@ -66,9 +120,9 @@ void DrumMachineProcessor::process(AudioBlock& block, ProcessContext& ctx) noexc
             routedNotes_[routedCount++] = note;
         }
 
-        if (triggersNow && pad.chokeGroup > 0) {
+        if (triggersNow && runtime.chokeGroup > 0) {
             for (auto& other : pads_) {
-                if (&other != &runtime && playback_->pads[other.padIndex].chokeGroup == pad.chokeGroup) {
+                if (&other != &runtime && other.chokeGroup == runtime.chokeGroup) {
                     resetPlaybackStateInArena(*other.arena);
                     other.tailActive = false;
                 }
@@ -111,8 +165,8 @@ void DrumMachineProcessor::process(AudioBlock& block, ProcessContext& ctx) noexc
         for (int i = 0; i < runtime.arena->size(); ++i) {
             if (auto* processor = runtime.arena->get(i)) runtime.tailActive |= processor->hasActiveTail();
         }
-        const float leftGain = pad.gain * (pad.pan <= 0.5f ? 1.0f : 2.0f * (1.0f - pad.pan));
-        const float rightGain = pad.gain * (pad.pan >= 0.5f ? 1.0f : 2.0f * pad.pan);
+        const float leftGain = runtime.gain * (runtime.pan <= 0.5f ? 1.0f : 2.0f * (1.0f - runtime.pan));
+        const float rightGain = runtime.gain * (runtime.pan >= 0.5f ? 1.0f : 2.0f * runtime.pan);
         for (int frame = 0; frame < block.numSamples; ++frame) {
             block.channelL[frame] += padLeft_[frame] * leftGain;
             block.channelR[frame] += padRight_[frame] * rightGain;

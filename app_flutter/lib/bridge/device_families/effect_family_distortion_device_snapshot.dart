@@ -31,8 +31,12 @@ class DistortionDeviceSnapshot extends EffectDeviceSnapshot {
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       distDrive: (params['drive'] as num?)?.toDouble() ?? 0.5,
       distTone: (params['tone'] as num?)?.toDouble() ?? 0.5,
-      outputMix: (params['outputMix'] as num?)?.toDouble() ?? 1.0,
-      outputWidth: (params['outputWidth'] as num?)?.toDouble() ?? 1.0,
+      outputMix: (outputPanel['outputMix'] as num?)?.toDouble() ??
+          (params['outputMix'] as num?)?.toDouble() ??
+          1.0,
+      outputWidth: (outputPanel['outputWidth'] as num?)?.toDouble() ??
+          (params['outputWidth'] as num?)?.toDouble() ??
+          1.0,
     );
   }
 
@@ -72,8 +76,8 @@ class DistortionDeviceSnapshot extends EffectDeviceSnapshot {
       'bypass' => copyWith(bypassed: value >= 0.5),
       'outputMix' => copyWith(outputMix: value),
       'outputWidth' => copyWith(outputWidth: value),
-      'drive' => copyWith(distDrive: value),
-      'tone' => copyWith(distTone: value),
+      'drive' || 'distDrive' => copyWith(distDrive: value),
+      'tone' || 'distTone' => copyWith(distTone: value),
       _ => this,
     };
   }

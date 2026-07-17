@@ -12,6 +12,11 @@ class DrumMachineProcessor final : public DeviceProcessor {
         int note = 0;
         int padIndex = 0;
         bool tailActive = false;
+        float gain = 1.0f;
+        float pan = 0.5f;
+        bool muted = false;
+        bool solo = false;
+        int chokeGroup = 0;
         std::unique_ptr<ProcessorArena> arena;
     };
     std::vector<PadRuntime> pads_;
@@ -21,6 +26,10 @@ class DrumMachineProcessor final : public DeviceProcessor {
     MidiPlaybackNote routedNotes_[kMaxInstrumentRegions]{};
 public:
     void initParams(const DeviceVariantParams& params) noexcept override;
+    bool updateNestedDevice(const DeviceNodePlayback& node,
+                            bool paramsChanged = true) noexcept override;
+    bool updateDrumPadParameter(int note, std::string_view parameterId,
+                                float value) noexcept override;
     void process(AudioBlock&, ProcessContext&) noexcept override;
     void resetPlaybackState() noexcept override;
     DeviceNodeKind kind() const noexcept override { return DeviceNodeKind::DrumMachine; }

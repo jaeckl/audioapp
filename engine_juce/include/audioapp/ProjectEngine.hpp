@@ -1,10 +1,12 @@
 #pragma once
 
 #include <atomic>
+#include <mutex>
 #include <array>
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "audioapp/AutomationTypes.hpp"
@@ -387,11 +389,14 @@ private:
         bool reversed = false;
     };
 
+    static constexpr int kMaxTracks = 8;
+
     struct TrackPlaybackSnapshot {
         std::string trackId;
         int parentGroupTrackIndex = -1;
         bool muted = false;
         bool soloed = false;
+        float audibilityGain = 1.0f;
         int noteCount = 0;
         PlaybackNote notes[256];
         int regionCount = 0;
@@ -415,9 +420,111 @@ private:
         int trackGainDeviceIndex = -1;
     };
 
-    static constexpr int kMaxTracks = 8;
+    struct PlaybackStateStorage {
+        TrackPlaybackSnapshot states[2][kMaxTracks];
+        std::atomic<int> active{0};
+        std::atomic<int> pending{-1};
+        std::atomic<int> readers[2]{};
+        int counts[2]{};
+        int graphIndices[2]{};
+        inline static thread_local int buildIndex = -1;
+        inline static thread_local int readIndex = -1;
+
+        int selectedIndex() const noexcept {
+            if (buildIndex >= 0) return buildIndex;
+            if (readIndex >= 0) return readIndex;
+            return active.load(std::memory_order_acquire);
+        }
+        TrackPlaybackSnapshot& operator[](int index) noexcept {
+            return states[selectedIndex()][index];
+        }
+        const TrackPlaybackSnapshot& operator[](int index) const noexcept {
+            return states[selectedIndex()][index];
+        }
+        int count() const noexcept { return counts[selectedIndex()]; }
+        void setCount(int count) noexcept { counts[selectedIndex()] = count; }
+        int graphIndexForState(int state) const noexcept { return graphIndices[state]; }
+        void setSelectedGraphIndex(int index) noexcept {
+            graphIndices[selectedIndex()] = index;
+        }
+
+        int commitPending() noexcept {
+            const int next = pending.exchange(-1, std::memory_order_acq_rel);
+            if (next >= 0) active.store(next, std::memory_order_release);
+            return next;
+        }
+        int beginBuild() noexcept {
+            const int committed = commitPending();
+            const int target = 1 - active.load(std::memory_order_acquire);
+            while (readers[target].load(std::memory_order_acquire) != 0)
+                std::this_thread::yield();
+            buildIndex = target;
+            return committed;
+        }
+        int publishBuild(bool immediate) noexcept {
+            const int built = buildIndex;
+            buildIndex = -1;
+            if (immediate) active.store(built, std::memory_order_release);
+            else pending.store(built, std::memory_order_release);
+            return built;
+        }
+
+        struct ReadGuard {
+            PlaybackStateStorage& storage;
+            int index = 0;
+            explicit ReadGuard(PlaybackStateStorage& owner) noexcept : storage(owner) {
+                for (;;) {
+                    index = storage.active.load(std::memory_order_acquire);
+                    storage.readers[index].fetch_add(1, std::memory_order_acq_rel);
+                    if (index == storage.active.load(std::memory_order_acquire)) break;
+                    storage.readers[index].fetch_sub(1, std::memory_order_release);
+                }
+                readIndex = index;
+            }
+            ~ReadGuard() {
+                readIndex = -1;
+                storage.readers[index].fetch_sub(1, std::memory_order_release);
+            }
+            ReadGuard(const ReadGuard&) = delete;
+            ReadGuard& operator=(const ReadGuard&) = delete;
+        };
+    };
+
+    enum class RealtimeCommandType : uint8_t {
+        DeviceNode,
+        TrackMute,
+        TrackSolo,
+        DrumPad,
+    };
+
+    struct RealtimeCommand {
+        RealtimeCommandType type = RealtimeCommandType::DeviceNode;
+        DeviceNodePlayback node{};
+        std::string targetId;
+        std::string parameterId;
+        float value = 0.0f;
+        int note = 0;
+        bool commonOnly = false;
+    };
+
+    // Single-producer/single-consumer queue. The control thread owns writes and
+    // the audio thread owns reads. Slots are preallocated, so consuming a
+    // command never allocates or waits for the control thread.
+    static constexpr uint32_t kRealtimeCommandCapacity = 512;
+    struct RealtimeCommandQueue {
+        std::array<RealtimeCommand, kRealtimeCommandCapacity> entries{};
+        std::atomic<uint32_t> head{0};
+        std::atomic<uint32_t> tail{0};
+    };
 
     mutable juce::ReadWriteLock mutex_;
+    // Protects the processor arenas and playback snapshots from control-thread
+    // rebuilds/parameter writes while the audio callback is using them.  The
+    // audio thread only ever try-locks this mutex, so it can never block behind
+    // project editing work.
+    mutable std::recursive_mutex playbackMutex_;
+    RealtimeCommandQueue realtimeCommands_;
+    std::atomic<uint64_t> realtimeCommandOverflowCount_{0};
     std::string projectName_ = "Untitled";
     TransportController transport_;
     TrackRepository trackRepo_;
@@ -450,10 +557,10 @@ private:
     std::atomic<float> livePitchBend_{0.0f};
     std::atomic<float> liveModulation_{0.0f};
 
-    TrackPlaybackSnapshot trackPlayback_[kMaxTracks];
-    std::atomic<int> trackPlaybackCount_{0};
+    PlaybackStateStorage trackPlayback_;
     ProcessorGraphSnapshot processorGraphs_[2];
     std::atomic<int> activeProcessorGraph_{0};
+    int lastBuiltProcessorGraph_ = 0; // control thread only
 
     DeviceMeterAtomic deviceMeters_[kMaxDeviceMeters];
     std::string deviceMeterIds_[kMaxDeviceMeters];
@@ -467,6 +574,10 @@ private:
     // ModulationEdgePlayback arrays are also per-track: see TrackPlaybackSnapshot::modEdges
 
     void rebuildTrackPlaybackLocked();
+    bool enqueueRealtimeCommand(RealtimeCommand command) noexcept;
+    void drainRealtimeCommands() noexcept;
+    bool applyRealtimeDeviceNode(const DeviceNodePlayback& node,
+                                 bool commonOnly) noexcept;
     void rebuildProcessorGraphLocked(int trackCount);
     void rebuildRepoCacheFromTree();
     void syncProjectTreeLocked();

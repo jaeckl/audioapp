@@ -92,7 +92,7 @@ void ProjectEngine::createProject() {
     activeFrequencyHz_.store(440.0f, std::memory_order_release);
     masterGain_.store(1.0f, std::memory_order_release);
     countInRemainingBeats_.store(0.0, std::memory_order_release);
-    trackPlaybackCount_.store(0, std::memory_order_release);
+    trackPlayback_.setCount(0);
 
     // Reset ValueTree root + re-register as listener
     projectRoot_ = state::createProjectTree();
@@ -129,8 +129,7 @@ bool ProjectEngine::moveTrack(const std::string& trackId,
         return false;
     }
     rebuildTrackPlaybackLocked();
-    const int graphIndex = activeProcessorGraph_.load(std::memory_order_acquire);
-    if (!processorGraphs_[graphIndex].valid()) {
+    if (!processorGraphs_[lastBuiltProcessorGraph_].valid()) {
         trackRepo_.tracks() = previousTracks;
         rebuildTrackPlaybackLocked();
         return false;
@@ -144,8 +143,11 @@ bool ProjectEngine::setTrackMuted(const std::string& trackId, bool muted) {
         return false;
     }
     syncProjectTreeLocked();
-    rebuildTrackPlaybackLocked();
-    return true;
+    RealtimeCommand command;
+    command.type = RealtimeCommandType::TrackMute;
+    command.targetId = trackId;
+    command.value = muted ? 1.0f : 0.0f;
+    return enqueueRealtimeCommand(std::move(command));
 }
 
 bool ProjectEngine::setTrackSoloed(const std::string& trackId, bool soloed) {
@@ -154,8 +156,11 @@ bool ProjectEngine::setTrackSoloed(const std::string& trackId, bool soloed) {
         return false;
     }
     syncProjectTreeLocked();
-    rebuildTrackPlaybackLocked();
-    return true;
+    RealtimeCommand command;
+    command.type = RealtimeCommandType::TrackSolo;
+    command.targetId = trackId;
+    command.value = soloed ? 1.0f : 0.0f;
+    return enqueueRealtimeCommand(std::move(command));
 }
 
 bool ProjectEngine::selectTrack(const std::string& trackId) {
@@ -168,7 +173,7 @@ bool ProjectEngine::selectTrack(const std::string& trackId) {
         liveMixer_.allNotesOff();
     }
     syncActiveFrequencyLocked();
-    rebuildTrackPlaybackLocked();
+    syncProjectTreeLocked();
     return true;
 }
 
@@ -626,8 +631,14 @@ bool ProjectEngine::setDrumPadParameter(const std::string& drumMachineId, int no
     else if (parameterId == "solo") pad.solo = value >= 0.5f;
     else if (parameterId == "chokeGroup") pad.chokeGroup = std::clamp(static_cast<int>(std::lround(value)), 0, 16);
     else return false;
-    rebuildTrackPlaybackLocked();
-    return true;
+    syncProjectTreeLocked();
+    RealtimeCommand command;
+    command.type = RealtimeCommandType::DrumPad;
+    command.targetId = drumMachineId;
+    command.parameterId = parameterId;
+    command.note = note;
+    command.value = value;
+    return enqueueRealtimeCommand(std::move(command));
 }
 
 bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
@@ -641,6 +652,9 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
     const DeviceSlot previousDevice = *device;
     const bool routingDevice =
         isRoutingDeviceNodeKind(deviceNodeKindFromTypeId(device->config.typeId));
+    const bool commonStripParameter = parameterId == "gain" || parameterId == "pan" ||
+        parameterId == "bypass" || parameterId == "outputMix" ||
+        parameterId == "outputWidth";
 
     const DeviceParameterResult result =
         deviceRegistry_.setParameter(*device, parameterId, value);
@@ -651,70 +665,53 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
         syncActiveFrequencyLocked();
     }
 
-    // Fast path: update live playback node and processor params in-place,
-    // preserving all runtime state (oscillator phases, filter biquad states,
-    // delay buffers, voice runtime, etc.). Falls back to full rebuild if
-    // the device hasn't been built into playback yet.
     PlaybackBuildContext context{sampleBank_};
     context.wavetableBank = wavetableBank_;
-    for (int t = 0; t < kMaxTracks; ++t) {
-        auto& snap = trackPlayback_[t];
-        for (int d = 0; d < snap.deviceCount; ++d) {
-            if (snap.devices[d].deviceId != deviceId) continue;
-            deviceRegistry_.buildPlaybackNode(*device, context, snap.devices[d]);
-            snap.devices[d].bypassed = device->config.bypassed;
-
-            // Common strip controls live in the output panel rather than the
-            // device-specific parameter variant, so buildPlaybackNode cannot
-            // refresh them for the fast path.
-            std::visit([&](const auto& panel) {
-                using T = std::decay_t<decltype(panel)>;
-                if constexpr (std::is_same_v<T, MonoOutputPanel>) {
-                    snap.devices[d].gain = panel.gain;
-                    snap.devices[d].pan = 0.5f;
-                } else if constexpr (std::is_same_v<T, StereoOutputPanel>) {
-                    snap.devices[d].gain = panel.gain;
-                    snap.devices[d].pan = panel.pan;
-                    snap.devices[d].outputMix = panel.outputMix;
-                    snap.devices[d].outputWidth = panel.outputWidth;
-                }
-            }, device->config.outputPanel);
-
-            auto* proc = snap.arena.get(d);
-            if (proc != nullptr) {
-                proc->initParams(snap.devices[d].params);
-                proc->bypassed = snap.devices[d].bypassed;
-                proc->gain = snap.devices[d].gain;
-                proc->pan = snap.devices[d].pan;
-                proc->outputMix = snap.devices[d].outputMix;
-                proc->outputWidth = snap.devices[d].outputWidth;
+    context.deviceRegistry = &deviceRegistry_;
+    auto refreshCommonState = [&](DeviceNodePlayback& node) {
+        node.bypassed = device->config.bypassed;
+        std::visit([&](const auto& panel) {
+            using T = std::decay_t<decltype(panel)>;
+            if constexpr (std::is_same_v<T, MonoOutputPanel>) {
+                node.gain = panel.gain;
+                node.pan = 0.5f;
+                node.outputMix = 1.0f;
+                node.outputWidth = 1.0f;
+            } else if constexpr (std::is_same_v<T, StereoOutputPanel>) {
+                node.gain = panel.gain;
+                node.pan = panel.pan;
+                node.outputMix = panel.outputMix;
+                node.outputWidth = panel.outputWidth;
             }
-            if (routingDevice) {
-                rebuildProcessorGraphLocked(trackPlaybackCount_.load(std::memory_order_acquire));
-                const int graphIndex = activeProcessorGraph_.load(std::memory_order_acquire);
-                if (!processorGraphs_[graphIndex].valid()) {
-                    *device = previousDevice;
-                    rebuildTrackPlaybackLocked();
-                    return false;
-                }
-            }
-            markDeviceOwnerFreezeStaleLocked(deviceId);
-            return true;
-        }
-    }
+        }, device->config.outputPanel);
+    };
+    RealtimeCommand command;
+    command.type = RealtimeCommandType::DeviceNode;
+    command.targetId = deviceId;
+    command.commonOnly = commonStripParameter;
+    command.node.deviceId = deviceId;
+    command.node.voicePolicy = InstrumentVoicePolicy{1, true};
+    deviceRegistry_.buildPlaybackNode(*device, context, command.node);
+    refreshCommonState(command.node);
 
-    // Fallback: device not in live playback arrays yet (e.g. during initial load)
-    rebuildTrackPlaybackLocked();
+    // Routing changes alter graph connectivity and therefore remain on the
+    // structural path. Ordinary knobs only publish a block-boundary command.
     if (routingDevice) {
-        const int graphIndex = activeProcessorGraph_.load(std::memory_order_acquire);
-        if (!processorGraphs_[graphIndex].valid()) {
+        const std::lock_guard<std::recursive_mutex> playbackLock(playbackMutex_);
+        const int trackCount = trackPlayback_.count();
+        applyRealtimeDeviceNode(command.node, command.commonOnly);
+        rebuildProcessorGraphLocked(trackCount);
+        if (!processorGraphs_[lastBuiltProcessorGraph_].valid()) {
             *device = previousDevice;
             rebuildTrackPlaybackLocked();
             return false;
         }
+        markDeviceOwnerFreezeStaleLocked(deviceId);
+        return true;
     }
+
     markDeviceOwnerFreezeStaleLocked(deviceId);
-    return true;
+    return enqueueRealtimeCommand(std::move(command));
 }
 
 bool ProjectEngine::setDeviceStringParameter(const std::string& deviceId,
@@ -731,6 +728,7 @@ bool ProjectEngine::setDeviceStringParameter(const std::string& deviceId,
 
     PlaybackBuildContext context{sampleBank_};
     context.wavetableBank = wavetableBank_;
+    context.deviceRegistry = &deviceRegistry_;
     if (!deviceRegistry_.setStringParameter(*device, parameterId, value, context)) {
         return false;
     }
@@ -739,34 +737,50 @@ bool ProjectEngine::setDeviceStringParameter(const std::string& deviceId,
     // avoiding full track rebuild (which causes audible glitches).
     // String parameters (e.g. wavetableId, sampleId) just set runtime
     // state resolved at process time — no structural change needed.
-    for (int t = 0; t < kMaxTracks; ++t) {
-        auto& snap = trackPlayback_[t];
-        for (int d = 0; d < snap.deviceCount; ++d) {
-            if (snap.devices[d].deviceId != deviceId) continue;
-            deviceRegistry_.buildPlaybackNode(*device, context, snap.devices[d]);
-            auto* proc = snap.arena.get(d);
-            if (proc != nullptr) {
-                proc->initParams(snap.devices[d].params);
-            }
-            if (routingDevice) {
-                rebuildProcessorGraphLocked(trackPlaybackCount_.load(std::memory_order_acquire));
-                const int graphIndex = activeProcessorGraph_.load(std::memory_order_acquire);
-                if (!processorGraphs_[graphIndex].valid()) {
-                    *device = previousDevice;
-                    rebuildTrackPlaybackLocked();
-                    return false;
+    {
+        const std::lock_guard<std::recursive_mutex> playbackLock(playbackMutex_);
+        const int trackCount = trackPlayback_.count();
+        for (int t = 0; t < trackCount; ++t) {
+            auto& snap = trackPlayback_[t];
+            for (int d = 0; d < snap.deviceCount; ++d) {
+                if (snap.devices[d].deviceId == deviceId) {
+                    const auto automationTargetIndex = snap.devices[d].automationTargetIndex;
+                    const auto meterSlot = snap.devices[d].meterSlot;
+                    deviceRegistry_.buildPlaybackNode(*device, context, snap.devices[d]);
+                    snap.devices[d].automationTargetIndex = automationTargetIndex;
+                    snap.devices[d].meterSlot = meterSlot;
+                    if (auto* proc = snap.arena.get(d)) {
+                        proc->applyPlaybackNode(snap.devices[d]);
+                        proc->meterSlot = meterSlot;
+                    }
+                    if (routingDevice) {
+                        rebuildProcessorGraphLocked(trackCount);
+                        if (!processorGraphs_[lastBuiltProcessorGraph_].valid()) {
+                            *device = previousDevice;
+                            rebuildTrackPlaybackLocked();
+                            return false;
+                        }
+                    }
+                    markDeviceOwnerFreezeStaleLocked(deviceId);
+                    return true;
+                }
+                DeviceNodePlayback nestedNode{};
+                nestedNode.deviceId = deviceId;
+                nestedNode.voicePolicy = InstrumentVoicePolicy{1, true};
+                deviceRegistry_.buildPlaybackNode(*device, context, nestedNode);
+                if (auto* proc = snap.arena.get(d);
+                    proc != nullptr && proc->updateNestedDevice(nestedNode)) {
+                    markDeviceOwnerFreezeStaleLocked(deviceId);
+                    return true;
                 }
             }
-            markDeviceOwnerFreezeStaleLocked(deviceId);
-            return true;
         }
     }
 
     // Fallback: device not in live playback arrays yet
     rebuildTrackPlaybackLocked();
     if (routingDevice) {
-        const int graphIndex = activeProcessorGraph_.load(std::memory_order_acquire);
-        if (!processorGraphs_[graphIndex].valid()) {
+        if (!processorGraphs_[lastBuiltProcessorGraph_].valid()) {
             *device = previousDevice;
             rebuildTrackPlaybackLocked();
             return false;
@@ -1657,16 +1671,148 @@ void ProjectEngine::readMasterMixStereo(float* leftOut,
         }
         return;
     }
-    // No shared_lock needed: trackPlaybackCount_ release/acquire ordering
+    // The playback-state publication supplies release/acquire ordering.
     // provides happens-before for all trackPlayback_[] writes by the
     // control thread in rebuildTrackPlaybackLocked. TransportController
     // and ModulationGraph use their own atomics/double-buffering.
     mixAtPlayheadBeatStereo(leftOut, rightOut, numFrames, sampleRate, playheadStartBeat);
-    if (trackPlaybackCount_.load(std::memory_order_acquire) <= 0 &&
+    if (trackPlayback_.count() <= 0 &&
         metronomeEnabled_.load(std::memory_order_acquire)) {
         addMetronomeClick(leftOut, rightOut, numFrames, sampleRate, playheadStartBeat,
                           transport_.bpm(), metronomeLevel_.load(std::memory_order_acquire));
     }
+}
+
+bool ProjectEngine::enqueueRealtimeCommand(RealtimeCommand command) noexcept {
+    auto tryEnqueue = [&]() noexcept {
+        const uint32_t head = realtimeCommands_.head.load(std::memory_order_relaxed);
+        const uint32_t tail = realtimeCommands_.tail.load(std::memory_order_acquire);
+        if (head - tail >= kRealtimeCommandCapacity) return false;
+        try {
+            realtimeCommands_.entries[head % kRealtimeCommandCapacity] = std::move(command);
+        } catch (...) {
+            return false;
+        }
+        realtimeCommands_.head.store(head + 1, std::memory_order_release);
+        return true;
+    };
+
+    if (tryEnqueue()) return true;
+
+    // With no running transport there may be no callback to consume commands.
+    // Applying them here is safe because the playback lock excludes callbacks;
+    // this path cannot affect live audio.
+    if (!transport_.isPlaying()) {
+        const std::lock_guard<std::recursive_mutex> playbackLock(playbackMutex_);
+        drainRealtimeCommands();
+        if (tryEnqueue()) return true;
+    }
+
+    realtimeCommandOverflowCount_.fetch_add(1, std::memory_order_relaxed);
+    return false;
+}
+
+bool ProjectEngine::applyRealtimeDeviceNode(const DeviceNodePlayback& node,
+                                            bool commonOnly) noexcept {
+    const int trackCount = trackPlayback_.count();
+    for (int t = 0; t < trackCount; ++t) {
+        auto& snap = trackPlayback_[t];
+        for (int d = 0; d < snap.deviceCount; ++d) {
+            auto* processor = snap.arena.get(d);
+            if (snap.devices[d].deviceId == node.deviceId) {
+                if (processor == nullptr) return false;
+                processor->bypassed = node.bypassed;
+                processor->gain = node.gain;
+                processor->pan = node.pan;
+                processor->outputMix = node.outputMix;
+                processor->outputWidth = node.outputWidth;
+                if (!commonOnly) processor->applyPlaybackNode(node);
+                return true;
+            }
+            if (processor != nullptr &&
+                processor->updateNestedDevice(node, !commonOnly)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void ProjectEngine::drainRealtimeCommands() noexcept {
+    uint32_t tail = realtimeCommands_.tail.load(std::memory_order_relaxed);
+    const uint32_t head = realtimeCommands_.head.load(std::memory_order_acquire);
+    if (tail == head) return;
+
+    // A touch gesture can publish several values before the next callback.
+    // Keep only the newest value for each target so one audio block never does
+    // hundreds of obsolete processor updates.
+    constexpr int kMaxDistinctTargetsPerBlock = 64;
+    const RealtimeCommand* latest[kMaxDistinctTargetsPerBlock]{};
+    int latestCount = 0;
+    uint32_t consumedEnd = tail;
+    for (uint32_t cursor = tail; cursor != head; ++cursor) {
+        const auto& candidate =
+            realtimeCommands_.entries[cursor % kRealtimeCommandCapacity];
+        int existing = -1;
+        for (int i = 0; i < latestCount; ++i) {
+            const bool samePad = candidate.type != RealtimeCommandType::DrumPad ||
+                                 candidate.note == latest[i]->note;
+            const bool sameDeviceClass =
+                candidate.type != RealtimeCommandType::DeviceNode ||
+                candidate.commonOnly == latest[i]->commonOnly;
+            if (latest[i]->type == candidate.type && samePad && sameDeviceClass &&
+                latest[i]->targetId == candidate.targetId) {
+                existing = i;
+                break;
+            }
+        }
+        if (existing >= 0) {
+            latest[existing] = &candidate;
+        } else if (latestCount < kMaxDistinctTargetsPerBlock) {
+            latest[latestCount++] = &candidate;
+        } else {
+            break;
+        }
+        consumedEnd = cursor + 1;
+    }
+
+    for (int commandIndex = 0; commandIndex < latestCount; ++commandIndex) {
+        const auto& command = *latest[commandIndex];
+        switch (command.type) {
+            case RealtimeCommandType::DeviceNode:
+                applyRealtimeDeviceNode(command.node, command.commonOnly);
+                break;
+            case RealtimeCommandType::TrackMute:
+            case RealtimeCommandType::TrackSolo: {
+                const int count = trackPlayback_.count();
+                for (int i = 0; i < count; ++i) {
+                    if (trackPlayback_[i].trackId != command.targetId) continue;
+                    if (command.type == RealtimeCommandType::TrackMute)
+                        trackPlayback_[i].muted = command.value >= 0.5f;
+                    else
+                        trackPlayback_[i].soloed = command.value >= 0.5f;
+                    break;
+                }
+                break;
+            }
+            case RealtimeCommandType::DrumPad: {
+                const int count = trackPlayback_.count();
+                for (int t = 0; t < count; ++t) {
+                    auto& snap = trackPlayback_[t];
+                    for (int d = 0; d < snap.deviceCount; ++d) {
+                        if (snap.devices[d].deviceId != command.targetId) continue;
+                        if (auto* processor = snap.arena.get(d)) {
+                            processor->updateDrumPadParameter(
+                                command.note, command.parameterId, command.value);
+                        }
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+    }
+    realtimeCommands_.tail.store(consumedEnd, std::memory_order_release);
 }
 
 void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
@@ -1677,7 +1823,21 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
     if (masterLeft == nullptr || masterRight == nullptr || numFrames <= 0) {
         return;
     }
-    const int trackCount = trackPlaybackCount_.load(std::memory_order_acquire);
+    {
+        const std::unique_lock<std::recursive_mutex> publishLock(
+            playbackMutex_, std::try_to_lock);
+        if (publishLock.owns_lock()) {
+            const int committed = trackPlayback_.commitPending();
+            if (committed >= 0) {
+                activeProcessorGraph_.store(
+                    trackPlayback_.graphIndexForState(committed),
+                    std::memory_order_release);
+            }
+        }
+    }
+    PlaybackStateStorage::ReadGuard playbackRead(trackPlayback_);
+    drainRealtimeCommands();
+    const int trackCount = trackPlayback_.count();
     if (trackCount <= 0) {
         return;
     }
@@ -2019,12 +2179,17 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
 
         } // !track.freeze.active
 
-        if (!trackAudibleForOutput(trackIndex)) {
-            std::memset(trackLeft[trackIndex], 0,
-                        static_cast<size_t>(framesToProcess) * sizeof(float));
-            std::memset(trackRight[trackIndex], 0,
-                        static_cast<size_t>(framesToProcess) * sizeof(float));
+        const float audibleTarget = trackAudibleForOutput(trackIndex) ? 1.0f : 0.0f;
+        auto& mutableTrack = trackPlayback_[trackIndex];
+        const float audibleStep = (audibleTarget - mutableTrack.audibilityGain) /
+                                  static_cast<float>(std::max(1, framesToProcess));
+        for (int frame = 0; frame < framesToProcess; ++frame) {
+            const float audibleGain = mutableTrack.audibilityGain +
+                                      audibleStep * static_cast<float>(frame + 1);
+            trackLeft[trackIndex][frame] *= audibleGain;
+            trackRight[trackIndex][frame] *= audibleGain;
         }
+        mutableTrack.audibilityGain = audibleTarget;
 
         const int parentGroup = track.parentGroupTrackIndex;
         for (int frame = 0; frame < framesToProcess; ++frame) {
@@ -2678,7 +2843,14 @@ void ProjectEngine::applyLiveDeviceMetersLocked(ProjectSnapshot& snap) const {
 }
 
 void ProjectEngine::rebuildTrackPlaybackLocked() {
+    const std::lock_guard<std::recursive_mutex> playbackLock(playbackMutex_);
     if (syncingTree_) return;
+    const int committedState = trackPlayback_.beginBuild();
+    if (committedState >= 0) {
+        activeProcessorGraph_.store(
+            trackPlayback_.graphIndexForState(committedState),
+            std::memory_order_release);
+    }
     deviceMeterSlotCount_ = 0;
     int trackIndex = 0;
     for (const auto& sourceTrack : trackRepo_.tracks()) {
@@ -2690,6 +2862,7 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
         snap.trackId = sourceTrack.id;
         snap.muted = sourceTrack.muted;
         snap.soloed = sourceTrack.soloed;
+        snap.audibilityGain = sourceTrack.muted ? 0.0f : 1.0f;
         snap.parentGroupTrackIndex = -1;
         if (!sourceTrack.parentGroupId.empty()) {
             for (size_t parentIndex = 0; parentIndex < trackRepo_.tracks().size(); ++parentIndex) {
@@ -2988,10 +3161,17 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
     }
     rebuildProcessorGraphLocked(trackIndex);
     reconcileTrackFreezeStaleLocked();
-    trackPlaybackCount_.store(trackIndex, std::memory_order_release);
+    trackPlayback_.setCount(trackIndex);
 
     // Keep ValueTree in sync (repos→tree) so listener can trust it for undo
     syncProjectTreeLocked();
+    const bool publishImmediately = !transport_.isPlaying();
+    const int builtState = trackPlayback_.publishBuild(publishImmediately);
+    if (publishImmediately) {
+        activeProcessorGraph_.store(
+            trackPlayback_.graphIndexForState(builtState),
+            std::memory_order_release);
+    }
 }
 
 void ProjectEngine::rebuildProcessorGraphLocked(int trackCount) {
@@ -3039,7 +3219,11 @@ void ProjectEngine::rebuildProcessorGraphLocked(int trackCount) {
     const int inactive = 1 - activeProcessorGraph_.load(std::memory_order_relaxed);
     processorGraphs_[inactive] = buildProcessorGraph(
         std::span<const GraphTrackDefinition>(definitions.data(), static_cast<size_t>(trackCount)));
-    activeProcessorGraph_.store(inactive, std::memory_order_release);
+    lastBuiltProcessorGraph_ = inactive;
+    if (PlaybackStateStorage::buildIndex >= 0)
+        trackPlayback_.setSelectedGraphIndex(inactive);
+    else
+        activeProcessorGraph_.store(inactive, std::memory_order_release);
 }
 
 bool ProjectEngine::trackHasActiveSampleAtPlayhead(const TrackPlaybackSnapshot& track,
@@ -3065,7 +3249,7 @@ const DeviceNodePlayback* ProjectEngine::findOscillatorNode(
 }
 
 int ProjectEngine::selectedTrackPlaybackIndex() const noexcept {
-    const int count = trackPlaybackCount_.load(std::memory_order_acquire);
+    const int count = trackPlayback_.count();
     for (int i = 0; i < count; ++i) {
         if (trackPlayback_[i].trackId == trackRepo_.selectedTrackId()) {
             return i;
@@ -3510,7 +3694,7 @@ void ProjectEngine::mixTrackPreGainStereo(int trackIndex,
     if (trackLeft == nullptr || trackRight == nullptr || numFrames <= 0 || trackIndex < 0) {
         return;
     }
-    const int trackCount = trackPlaybackCount_.load(std::memory_order_acquire);
+    const int trackCount = trackPlayback_.count();
     if (trackIndex >= trackCount) {
         return;
     }

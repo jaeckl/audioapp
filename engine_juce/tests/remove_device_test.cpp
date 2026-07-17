@@ -3,7 +3,9 @@
 #include "audioapp/EngineHost.hpp"
 
 #include <cmath>
+#include <atomic>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -122,6 +124,166 @@ public:
             expect(audioapp::test::hasNonZeroSample(bypassed), "bypassed comparison renders audio");
             expect(meanAbsDifference(active, bypassed) > 1.0e-4f,
                    "second remaining FX still changes audio after removing earlier FX");
+        }
+        beginTest("live edits and phase-mod deletion are audio-thread safe");
+        {
+            audioapp::EngineHost host;
+            host.createProject();
+            const auto trackId = host.addTrack("Live edits");
+            host.selectTrack(trackId);
+            const auto synthId = host.addDeviceToTrack(trackId, "phase_mod_synth");
+            const auto clipId = host.createMidiClip(trackId, 0.0, 4.0);
+            host.setMidiClipNotes(clipId, {{60, 0.0, 4.0, 100.0f}});
+            host.setPlaying(true);
+
+            std::atomic<bool> keepRendering{true};
+            std::atomic<bool> finiteOutput{true};
+            std::thread audio([&] {
+                float left[128]{};
+                float right[128]{};
+                double beat = 0.0;
+                while (keepRendering.load(std::memory_order_acquire)) {
+                    host.readMasterMixStereo(left, right, 128, 48000.0, beat);
+                    for (int i = 0; i < 128; ++i) {
+                        if (!std::isfinite(left[i]) || !std::isfinite(right[i])) {
+                            finiteOutput.store(false, std::memory_order_release);
+                        }
+                    }
+                    beat += 128.0 / 48000.0 * 2.0;
+                }
+            });
+
+            for (int i = 0; i < 250; ++i) {
+                expect(host.setDeviceParameter(
+                    synthId, "pmFeedback", static_cast<float>(i % 100) / 100.0f));
+                expect(host.setTrackMuted(trackId, (i % 7) == 0));
+                expect(host.setTrackSoloed(trackId, (i % 11) == 0));
+            }
+            expect(host.setTrackMuted(trackId, false));
+            expect(host.setTrackSoloed(trackId, false));
+            expect(host.removeDeviceFromTrack(synthId), "phase-mod synth removed during playback");
+            keepRendering.store(false, std::memory_order_release);
+            audio.join();
+            expect(finiteOutput.load(std::memory_order_acquire), "all concurrent output remained finite");
+
+            float left[256]{};
+            float right[256]{};
+            host.readMasterMixStereo(left, right, 256, 48000.0, 1.0);
+            float peak = 0.0f;
+            for (int i = 0; i < 256; ++i) {
+                peak = std::max(peak, std::max(std::abs(left[i]), std::abs(right[i])));
+            }
+            expect(peak < 1.0e-6f, "removed phase-mod synth leaves no stuck sine voice");
+        }
+        beginTest("live knob gestures never emit an empty audio block");
+        {
+            audioapp::EngineHost host;
+            host.createProject();
+            const auto trackId = host.addTrack("Continuous live edit");
+            host.selectTrack(trackId);
+            host.addDeviceToTrack(trackId, "simple_oscillator");
+            const auto distortionId = host.addDeviceToTrack(trackId, "distortion");
+            const auto clipId = host.createMidiClip(trackId, 0.0, 16.0);
+            host.setMidiClipNotes(clipId, {{60, 0.0, 16.0, 100.0f}});
+            host.setPlaying(true);
+
+            std::atomic<bool> keepRendering{true};
+            std::atomic<int> renderedBlocks{0};
+            std::atomic<int> silentBlocksAfterSignal{0};
+            std::thread audio([&] {
+                float left[128]{};
+                float right[128]{};
+                double beat = 0.0;
+                bool signalStarted = false;
+                while (keepRendering.load(std::memory_order_acquire)) {
+                    host.readMasterMixStereo(left, right, 128, 48000.0, beat);
+                    float peak = 0.0f;
+                    for (int i = 0; i < 128; ++i)
+                        peak = std::max(peak, std::max(std::abs(left[i]), std::abs(right[i])));
+                    signalStarted |= peak > 1.0e-5f;
+                    if (signalStarted && peak < 1.0e-8f)
+                        silentBlocksAfterSignal.fetch_add(1, std::memory_order_relaxed);
+                    renderedBlocks.fetch_add(1, std::memory_order_release);
+                    beat += 128.0 / 48000.0 * 2.0;
+                }
+            });
+
+            for (int i = 0; i < 2000; ++i) {
+                expect(host.setDeviceParameter(
+                    distortionId, "distDrive", static_cast<float>(i % 100) / 99.0f));
+                std::this_thread::yield();
+            }
+            while (renderedBlocks.load(std::memory_order_acquire) < 100)
+                std::this_thread::yield();
+            keepRendering.store(false, std::memory_order_release);
+            audio.join();
+            expectEquals(silentBlocksAfterSignal.load(std::memory_order_acquire), 0,
+                         "no callback was replaced by silence during a knob gesture");
+        }
+        beginTest("structural swaps keep the previous graph rendering");
+        {
+            audioapp::EngineHost host;
+            host.createProject();
+            const auto trackId = host.addTrack("Structural continuity");
+            host.selectTrack(trackId);
+            host.addDeviceToTrack(trackId, "simple_oscillator");
+            const auto clipId = host.createMidiClip(trackId, 0.0, 16.0);
+            host.setMidiClipNotes(clipId, {{60, 0.0, 16.0, 100.0f}});
+            host.setPlaying(true);
+
+            std::atomic<bool> keepRendering{true};
+            std::atomic<int> renderedBlocks{0};
+            std::atomic<int> silentBlocksAfterSignal{0};
+            std::thread audio([&] {
+                float left[128]{};
+                float right[128]{};
+                double beat = 0.0;
+                bool signalStarted = false;
+                while (keepRendering.load(std::memory_order_acquire)) {
+                    host.readMasterMixStereo(left, right, 128, 48000.0, beat);
+                    float peak = 0.0f;
+                    for (int i = 0; i < 128; ++i)
+                        peak = std::max(peak, std::max(std::abs(left[i]), std::abs(right[i])));
+                    signalStarted |= peak > 1.0e-5f;
+                    if (signalStarted && peak < 1.0e-8f)
+                        silentBlocksAfterSignal.fetch_add(1, std::memory_order_relaxed);
+                    renderedBlocks.fetch_add(1, std::memory_order_release);
+                    beat += 128.0 / 48000.0 * 2.0;
+                }
+            });
+
+            for (int i = 0; i < 40; ++i) {
+                const auto effectId = host.addDeviceToTrack(trackId, "distortion");
+                expect(!effectId.empty(), "effect added during playback");
+                expect(host.removeDeviceFromTrack(effectId), "effect removed during playback");
+            }
+            while (renderedBlocks.load(std::memory_order_acquire) < 100)
+                std::this_thread::yield();
+            keepRendering.store(false, std::memory_order_release);
+            audio.join();
+            expectEquals(silentBlocksAfterSignal.load(std::memory_order_acquire), 0,
+                         "no structural rebuild replaced a callback with silence");
+        }
+        beginTest("drum virtual-strip child parameters reach live DSP");
+        {
+            audioapp::EngineHost host;
+            host.createProject();
+            const auto trackId = host.addTrack("Drums");
+            host.selectTrack(trackId);
+            const auto machineId = host.addDeviceToTrack(trackId, "drum_machine");
+            const auto kickId = host.addDeviceToDrumPad(machineId, 36, "kick_generator");
+            const auto clipId = host.createMidiClip(trackId, 0.0, 1.0);
+            host.setMidiClipNotes(clipId, {{36, 0.0, 0.25, 127.0f}});
+
+            expect(host.setDeviceParameter(kickId, "kickPitch", 0.05f));
+            const auto low = host.renderOffline(1.0, 48000.0);
+            expect(host.setDeviceParameter(kickId, "kickPitch", 0.95f));
+            const auto high = host.renderOffline(1.0, 48000.0);
+
+            expect(audioapp::test::hasNonZeroSample(low), "low-pitch pad child renders");
+            expect(audioapp::test::hasNonZeroSample(high), "high-pitch pad child renders");
+            expect(meanAbsDifference(low, high) > 1.0e-4f,
+                   "nested kick parameter changes generated audio");
         }
     }
 };

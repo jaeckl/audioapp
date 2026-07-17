@@ -14,6 +14,30 @@ void ChainProcessor::initParams(const DeviceVariantParams& params) noexcept {
     } catch (...) { arena_.reset(); }
 }
 
+bool ChainProcessor::updateNestedDevice(const DeviceNodePlayback& node,
+                                        bool paramsChanged) noexcept {
+    if (!playback_ || !arena_) return false;
+    for (int child = 0; child < playback_->deviceCount; ++child) {
+        auto* processor = arena_->get(child);
+        if (playback_->devices[child].deviceId == node.deviceId) {
+            if (processor == nullptr) return false;
+            if (paramsChanged) processor->applyPlaybackNode(node);
+            else {
+                processor->bypassed = node.bypassed;
+                processor->gain = node.gain;
+                processor->pan = node.pan;
+                processor->outputMix = node.outputMix;
+                processor->outputWidth = node.outputWidth;
+            }
+            return true;
+        }
+        if (processor != nullptr && processor->updateNestedDevice(node, paramsChanged)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void ChainProcessor::resetPlaybackState() noexcept {
     if (arena_) resetPlaybackStateInArena(*arena_);
 }
