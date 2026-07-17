@@ -49,16 +49,34 @@ object ProjectUriStore {
             .filterNot { it.uri == documentUri.toString() }
             .toMutableList()
         updated.add(0, RecentProject(documentUri.toString(), displayName, System.currentTimeMillis()))
-        val array = JSONArray()
-        updated.take(8).forEach { entry ->
-            array.put(JSONObject().apply {
-                put("uri", entry.uri)
-                put("name", entry.name)
-                put("openedAtMillis", entry.openedAtMillis)
-            })
+        writeRecentProjects(context, updated)
+    }
+
+    fun removeRecentProject(context: Context, documentUri: Uri) {
+        val remaining = loadRecentProjects(context).filterNot { it.uri == documentUri.toString() }
+        writeRecentProjects(context, remaining)
+        if (loadLastDocumentUri(context) == documentUri) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit().remove(KEY_LAST_DOCUMENT_URI).apply()
         }
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit().putString(KEY_RECENT_PROJECTS, array.toString()).apply()
+    }
+
+    /**
+     * Keeps only SAF documents for which Android still grants persisted read access.
+     * A removed/moved document or revoked grant must not remain as a crashing recent.
+     */
+    fun loadAccessibleRecentProjects(context: Context): List<RecentProject> {
+        val persistedReadUris = context.contentResolver.persistedUriPermissions
+            .asSequence()
+            .filter { it.isReadPermission }
+            .map { it.uri.toString() }
+            .toSet()
+        val allProjects = loadRecentProjects(context)
+        val accessible = allProjects.filter { it.uri in persistedReadUris }
+        if (accessible.size != allProjects.size) {
+            writeRecentProjects(context, accessible)
+        }
+        return accessible
     }
 
     fun loadRecentProjects(context: Context): List<RecentProject> {
@@ -79,5 +97,18 @@ object ProjectUriStore {
         } catch (_: Exception) {
             emptyList()
         }
+    }
+
+    private fun writeRecentProjects(context: Context, projects: List<RecentProject>) {
+        val array = JSONArray()
+        projects.take(8).forEach { entry ->
+            array.put(JSONObject().apply {
+                put("uri", entry.uri)
+                put("name", entry.name)
+                put("openedAtMillis", entry.openedAtMillis)
+            })
+        }
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putString(KEY_RECENT_PROJECTS, array.toString()).apply()
     }
 }

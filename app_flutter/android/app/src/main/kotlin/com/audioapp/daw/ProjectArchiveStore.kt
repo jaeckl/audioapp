@@ -27,6 +27,8 @@ object ProjectArchiveStore {
     const val DEFAULT_ARCHIVE_NAME = "project.audioapp.zip"
     const val ARCHIVE_MIME_TYPE = "application/zip"
     const val PROJECT_MIME_TYPE = "application/vnd.audioapp.project+zip"
+    /** MIME types accepted by the direct SAF Open picker. */
+    val OPEN_MIME_TYPES = arrayOf(ARCHIVE_MIME_TYPE, PROJECT_MIME_TYPE, "application/octet-stream")
     // (Reserved for inbound ACTION_VIEW follow-up;
     // no production load-path reader after VP-4)
     const val PROJECT_FILE_SUFFIX = ".audioapp.zip"
@@ -55,7 +57,10 @@ object ProjectArchiveStore {
     fun listAudioAppZipsIn(context: Context, treeUri: Uri): List<LoadFolderEntry> {
         val resolver = context.contentResolver
         val childrenUri = try {
-            DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, "root")
+            DocumentsContract.buildChildDocumentsUriUsingTree(
+                treeUri,
+                DocumentsContract.getTreeDocumentId(treeUri),
+            )
         } catch (e: Exception) {
             Log.w("audioapp_daw", "buildChildDocumentsUriUsingTree failed for $treeUri", e)
             return emptyList()
