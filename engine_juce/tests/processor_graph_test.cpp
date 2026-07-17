@@ -101,6 +101,13 @@ int main() {
     expect(graph.error == ProcessorGraphError::InvalidPort,
            "source and receiver port directions are validated");
 
+    parallel[0].sources[0].direction = GraphPortDirection::Output;
+    parallel[2].receivers[0].feedback = true;
+    graph = buildProcessorGraph(parallel);
+    expect(graph.valid() && graph.feedbackBufferSlotCount == 2 &&
+           graph.audioEdges[0].feedback && graph.audioEdges[1].feedback,
+           "explicit audio feedback routes compile into one-block buffer slots");
+
     GraphTrackDefinition cyclic[2];
     cyclic[0].trackId = "a";
     cyclic[0].sources[0] = source("a-out", GraphSignalType::Audio, 0);

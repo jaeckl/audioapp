@@ -11,6 +11,7 @@ constexpr int kMaxProcessorGraphTracks = 8;
 constexpr int kMaxProcessorGraphSourcesPerTrack = 16;
 constexpr int kMaxProcessorGraphReceiversPerTrack = 16;
 constexpr int kMaxProcessorGraphEdges = 32;
+constexpr int kMaxProcessorGraphFeedbackEdges = 8;
 /// Bounded, allocation-free delay storage for route latency compensation.
 constexpr int kMaxProcessorGraphLatencySamples = 4096;
 constexpr uint8_t kGraphTrackMidiInput = 0xFF;
@@ -52,6 +53,8 @@ struct GraphReceiverDefinition {
     GraphPortDirection direction = GraphPortDirection::Input;
     GraphChannelLayout channelLayout = GraphChannelLayout::Stereo;
     uint16_t eventCapacity = 128;
+    /// Feedback is explicit and always read from the preceding callback block.
+    bool feedback = false;
 };
 
 struct GraphTrackDefinition {
@@ -77,6 +80,8 @@ struct ProcessorGraphEdge {
     uint16_t sourceLatencySamples = 0;
     uint16_t latencyCompensationSamples = 0;
     GraphTapKind tapKind = GraphTapKind::None;
+    bool feedback = false;
+    uint8_t feedbackBufferSlot = 0;
 };
 
 /// Audio-thread-owned state for a compiled route delay. The compiler keeps the
@@ -100,6 +105,7 @@ struct ProcessorGraphSnapshot {
     uint8_t midiEdgeCount = 0;
     uint8_t audioBufferSlotCount = 0;
     uint8_t midiBufferSlotCount = 0;
+    uint8_t feedbackBufferSlotCount = 0;
     uint16_t maxLatencySamples = 0;
     ProcessorGraphError error = ProcessorGraphError::None;
 

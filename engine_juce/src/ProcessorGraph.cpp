@@ -21,6 +21,10 @@ bool appendEdge(ProcessorGraphSnapshot& graph, ProcessorGraphEdge edge) noexcept
         : graph.midiEdges;
     if (count >= kMaxProcessorGraphEdges) return false;
     edge.bufferSlot = count;
+    if (edge.feedback) {
+        if (graph.feedbackBufferSlotCount >= kMaxProcessorGraphFeedbackEdges) return false;
+        edge.feedbackBufferSlot = graph.feedbackBufferSlotCount++;
+    }
     edges[count++] = edge;
     if (edge.signalType == GraphSignalType::Audio)
         graph.audioBufferSlotCount = count;
@@ -61,7 +65,7 @@ ProcessorGraphSnapshot buildProcessorGraph(
                         graph.error = ProcessorGraphError::InvalidPort;
                         return graph;
                     }
-                    if (source == destination &&
+                    if (!receiver.feedback && source == destination &&
                         candidate.deviceIndex != kGraphTrackMidiInput &&
                         candidate.deviceIndex >= receiver.deviceIndex) {
                         graph.audioEdgeCount = 0;
@@ -84,6 +88,13 @@ ProcessorGraphSnapshot buildProcessorGraph(
                         ? std::min(candidate.eventCapacity, receiver.eventCapacity) : 0;
                     edge.sourceLatencySamples = candidate.latencySamples;
                     edge.tapKind = candidate.tapKind;
+                    edge.feedback = receiver.feedback;
+                    if (edge.feedback && receiver.signalType != GraphSignalType::Audio) {
+                        graph.audioEdgeCount = 0;
+                        graph.midiEdgeCount = 0;
+                        graph.error = ProcessorGraphError::InvalidPort;
+                        return graph;
+                    }
                     graph.maxLatencySamples = std::max(
                         graph.maxLatencySamples, candidate.latencySamples);
                     if (candidate.latencySamples > kMaxProcessorGraphLatencySamples) {
@@ -123,7 +134,7 @@ ProcessorGraphSnapshot buildProcessorGraph(
     auto countDependencies = [&](const auto& edges, int count) {
         for (int i = 0; i < count; ++i) {
             const auto& edge = edges[static_cast<size_t>(i)];
-            if (edge.sourceTrack != edge.destinationTrack)
+            if (!edge.feedback && edge.sourceTrack != edge.destinationTrack)
                 ++indegree[edge.destinationTrack];
         }
     };
@@ -158,7 +169,7 @@ ProcessorGraphSnapshot buildProcessorGraph(
         auto releaseDependencies = [&](const auto& edges, int count) {
             for (int i = 0; i < count; ++i) {
                 const auto& edge = edges[static_cast<size_t>(i)];
-                if (edge.sourceTrack != edge.destinationTrack &&
+                if (!edge.feedback && edge.sourceTrack != edge.destinationTrack &&
                     edge.sourceTrack == next && indegree[edge.destinationTrack] > 0) {
                     --indegree[edge.destinationTrack];
                 }

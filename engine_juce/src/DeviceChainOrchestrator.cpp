@@ -347,6 +347,16 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         for (int edgeIndex = 0; edgeIndex < ctx.graph->audioEdgeCount; ++edgeIndex) {
             const auto& edge = ctx.graph->audioEdges[static_cast<size_t>(edgeIndex)];
             if (edge.sourceTrack != ctx.graphTrackIndex || edge.sourceDevice != deviceIndex) continue;
+            if (edge.feedback) {
+                if (ctx.graphFeedbackWriteLeft == nullptr || ctx.graphFeedbackWriteRight == nullptr ||
+                    ctx.graphFeedbackStride <= 0) continue;
+                const int slot = edge.feedbackBufferSlot;
+                float* tapLeft = ctx.graphFeedbackWriteLeft + slot * ctx.graphFeedbackStride;
+                float* tapRight = ctx.graphFeedbackWriteRight + slot * ctx.graphFeedbackStride;
+                std::copy(ctx.trackLeft, ctx.trackLeft + numFrames, tapLeft);
+                std::copy(ctx.trackRight, ctx.trackRight + numFrames, tapRight);
+                continue;
+            }
             const int slot = edge.bufferSlot;
             float* tapLeft = ctx.graphAudioLeft + slot * ctx.graphAudioStride;
             float* tapRight = ctx.graphAudioRight + slot * ctx.graphAudioStride;
@@ -548,8 +558,14 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                 const auto& edge = ctx.graph->audioEdges[static_cast<size_t>(edgeIndex)];
                 if (edge.destinationTrack != ctx.graphTrackIndex ||
                     edge.destinationDevice != deviceIndex) continue;
-                const float* sourceLeft = ctx.graphAudioLeft + edge.bufferSlot * ctx.graphAudioStride;
-                const float* sourceRight = ctx.graphAudioRight + edge.bufferSlot * ctx.graphAudioStride;
+                const bool useFeedback = edge.feedback && ctx.graphFeedbackReadLeft != nullptr &&
+                    ctx.graphFeedbackReadRight != nullptr && ctx.graphFeedbackStride > 0;
+                const float* sourceLeft = useFeedback
+                    ? ctx.graphFeedbackReadLeft + edge.feedbackBufferSlot * ctx.graphFeedbackStride
+                    : ctx.graphAudioLeft + edge.bufferSlot * ctx.graphAudioStride;
+                const float* sourceRight = useFeedback
+                    ? ctx.graphFeedbackReadRight + edge.feedbackBufferSlot * ctx.graphFeedbackStride
+                    : ctx.graphAudioRight + edge.bufferSlot * ctx.graphAudioStride;
                 if (edge.latencyCompensationSamples == 0 || ctx.graphLatencyLines == nullptr) {
                     for (int frame = 0; frame < numFrames; ++frame) {
                         block.channelL[frame] = block.channelL[frame] * (1.0f - mix) + sourceLeft[frame] * mix;

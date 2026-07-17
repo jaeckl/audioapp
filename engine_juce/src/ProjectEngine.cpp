@@ -1886,6 +1886,9 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
     int graphMidiEdgeCounts[kMaxProcessorGraphEdges]{};
     thread_local float graphAudioLeft[kMaxProcessorGraphEdges][kMaxFrames];
     thread_local float graphAudioRight[kMaxProcessorGraphEdges][kMaxFrames];
+    thread_local float graphFeedbackLeft[2][kMaxProcessorGraphFeedbackEdges][kMaxFrames]{};
+    thread_local float graphFeedbackRight[2][kMaxProcessorGraphFeedbackEdges][kMaxFrames]{};
+    thread_local int graphFeedbackReadIndex = 0;
     int routedMidiCount[kMaxTracks]{};
     const int framesToProcess = numFrames > kMaxFrames ? kMaxFrames : numFrames;
     const double beatsPerFrame =
@@ -1899,6 +1902,13 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         std::memset(graphAudioLeft[slot], 0,
                     static_cast<size_t>(framesToProcess) * sizeof(float));
         std::memset(graphAudioRight[slot], 0,
+                    static_cast<size_t>(framesToProcess) * sizeof(float));
+    }
+    const int graphFeedbackWriteIndex = 1 - graphFeedbackReadIndex;
+    for (int slot = 0; slot < graph.feedbackBufferSlotCount; ++slot) {
+        std::memset(graphFeedbackLeft[graphFeedbackWriteIndex][slot], 0,
+                    static_cast<size_t>(framesToProcess) * sizeof(float));
+        std::memset(graphFeedbackRight[graphFeedbackWriteIndex][slot], 0,
                     static_cast<size_t>(framesToProcess) * sizeof(float));
     }
 
@@ -2190,6 +2200,11 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         ctx.graphAudioRight = &graphAudioRight[0][0];
         ctx.graphAudioStride = kMaxFrames;
         ctx.graphLatencyLines = graphLatencyLines_.data();
+        ctx.graphFeedbackReadLeft = &graphFeedbackLeft[graphFeedbackReadIndex][0][0];
+        ctx.graphFeedbackReadRight = &graphFeedbackRight[graphFeedbackReadIndex][0][0];
+        ctx.graphFeedbackWriteLeft = &graphFeedbackLeft[graphFeedbackWriteIndex][0][0];
+        ctx.graphFeedbackWriteRight = &graphFeedbackRight[graphFeedbackWriteIndex][0][0];
+        ctx.graphFeedbackStride = kMaxFrames;
         ctx.graphMidiNotes = &routedMidi[0][0];
         ctx.graphMidiCounts = routedMidiCount;
         ctx.graphMidiStride = kMaxRoutedMidiNotes;
@@ -2228,6 +2243,8 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
             }
         }
     }
+
+    graphFeedbackReadIndex = graphFeedbackWriteIndex;
 
     if (metronomeEnabled_.load(std::memory_order_acquire)) {
         addMetronomeClick(masterLeft, masterRight, framesToProcess, sampleRate,
