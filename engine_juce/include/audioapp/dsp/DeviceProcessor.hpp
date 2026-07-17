@@ -10,6 +10,7 @@
 #include <array>
 #include <atomic>
 #include <cmath>
+#include <limits>
 
 namespace audioapp {
 
@@ -48,7 +49,8 @@ public:
     /// values; DSP values are normalized through the same evaluator used by
     /// automation. Called only by the audio thread at a block boundary.
     bool setCompiledParameter(uint16_t parameterId, float value,
-                              ParameterUpdateRate rate = ParameterUpdateRate::Smoothed) noexcept {
+                              ParameterUpdateRate rate = ParameterUpdateRate::Smoothed,
+                              float startValue = std::numeric_limits<float>::quiet_NaN()) noexcept {
         if (unpackParamKind(parameterId) == ParamKind::Common) {
             switch (unpackParamId(parameterId)) {
             case 0: gain = value; publishEffectiveParameter(parameterId, value); return true;
@@ -80,7 +82,7 @@ public:
         if (!state->active) {
             state->active = true;
             state->parameterId = parameterId;
-            state->current = value;
+            state->current = std::isfinite(startValue) ? startValue : value;
         }
         state->target = value;
         state->rate = rate;
@@ -131,11 +133,13 @@ public:
     virtual bool setNestedCompiledParameter(uint64_t processorNodeId,
                                             uint16_t parameterId,
                                             float value,
-                                            ParameterUpdateRate rate = ParameterUpdateRate::Smoothed) noexcept {
+                                            ParameterUpdateRate rate = ParameterUpdateRate::Smoothed,
+                                            float startValue = std::numeric_limits<float>::quiet_NaN()) noexcept {
         (void)processorNodeId;
         (void)parameterId;
         (void)value;
         (void)rate;
+        (void)startValue;
         return false;
     }
 

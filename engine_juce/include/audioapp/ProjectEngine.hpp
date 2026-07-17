@@ -538,6 +538,7 @@ private:
         uint64_t targetNodeId = 0;
         uint16_t encodedParameterId = 0;
         float value = 0.0f;
+        float startValue = std::numeric_limits<float>::quiet_NaN();
         ParameterUpdateRate rate = ParameterUpdateRate::Smoothed;
     };
     struct RealtimeParameterQueue {
@@ -634,6 +635,7 @@ private:
     bool applyRealtimeDeviceParameter(uint64_t targetNodeId,
                                       uint16_t encodedParameterId,
                                       float value,
+                                      float startValue,
                                       ParameterUpdateRate rate) noexcept;
     void rebuildProcessorGraphLocked(int trackCount);
     void rebuildRepoCacheFromTree();

@@ -802,6 +802,16 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
                 (value - descriptor->minValue) /
                     (descriptor->maxValue - descriptor->minValue),
                 0.0f, 1.0f);
+            const auto previousVar = type->slotToVar(previousDevice);
+            auto previousValue = previousVar["parameters"][descriptor->stableName];
+            if (previousValue.isVoid()) previousValue = previousVar[descriptor->stableName];
+            if (!previousValue.isVoid()) {
+                parameterCommand.startValue = std::clamp(
+                    (static_cast<float>(static_cast<double>(previousValue)) -
+                     descriptor->minValue) /
+                        (descriptor->maxValue - descriptor->minValue),
+                    0.0f, 1.0f);
+            }
             if (unpackParamKind(parameterCommand.encodedParameterId) != ParamKind::Common)
                 return enqueueRealtimeParameter(parameterCommand);
         }
@@ -1869,6 +1879,7 @@ bool ProjectEngine::applyRealtimeDeviceNode(const DeviceNodePlayback& node,
 bool ProjectEngine::applyRealtimeDeviceParameter(uint64_t targetNodeId,
                                                  uint16_t encodedParameterId,
                                                  float value,
+                                                 float startValue,
                                                  ParameterUpdateRate rate) noexcept {
     const int trackCount = trackPlayback_.count();
     for (int track = 0; track < trackCount; ++track) {
@@ -1877,9 +1888,10 @@ bool ProjectEngine::applyRealtimeDeviceParameter(uint64_t targetNodeId,
             auto* processor = snapshot.arena.get(device);
             if (processor == nullptr) continue;
             if (processor->stableProcessorNodeId == targetNodeId)
-                return processor->setCompiledParameter(encodedParameterId, value, rate);
+                return processor->setCompiledParameter(
+                    encodedParameterId, value, rate, startValue);
             if (processor->setNestedCompiledParameter(
-                    targetNodeId, encodedParameterId, value, rate))
+                    targetNodeId, encodedParameterId, value, rate, startValue))
                 return true;
         }
     }
@@ -1892,7 +1904,7 @@ void ProjectEngine::drainRealtimeParameters() noexcept {
     if (tail == head) return;
 
     constexpr int kMaxDistinctParametersPerBlock = 128;
-    const RealtimeParameterCommand* latest[kMaxDistinctParametersPerBlock]{};
+    RealtimeParameterCommand latest[kMaxDistinctParametersPerBlock]{};
     int latestCount = 0;
     uint32_t consumedEnd = tail;
     for (uint32_t cursor = tail; cursor != head; ++cursor) {
@@ -1900,23 +1912,31 @@ void ProjectEngine::drainRealtimeParameters() noexcept {
             cursor % kRealtimeCommandCapacity];
         int existing = -1;
         for (int index = 0; index < latestCount; ++index) {
-            if (latest[index]->targetNodeId == candidate.targetNodeId &&
-                latest[index]->encodedParameterId == candidate.encodedParameterId) {
+            if (latest[index].targetNodeId == candidate.targetNodeId &&
+                latest[index].encodedParameterId == candidate.encodedParameterId) {
                 existing = index;
                 break;
             }
         }
-        if (existing >= 0) latest[existing] = &candidate;
+        if (existing >= 0) {
+            // Preserve the first pre-gesture value while coalescing to the
+            // newest target. Otherwise a flood received in one callback would
+            // start its ramp near the final UI value instead of current audio.
+            const float firstStart = latest[existing].startValue;
+            latest[existing] = candidate;
+            latest[existing].startValue = firstStart;
+        }
         else if (latestCount < kMaxDistinctParametersPerBlock)
-            latest[latestCount++] = &candidate;
+            latest[latestCount++] = candidate;
         else break;
         consumedEnd = cursor + 1;
     }
     for (int index = 0; index < latestCount; ++index) {
-        const auto& command = *latest[index];
+        const auto& command = latest[index];
         applyRealtimeDeviceParameter(command.targetNodeId,
                                      command.encodedParameterId,
                                      command.value,
+                                     command.startValue,
                                      command.rate);
     }
     realtimeParameterMailbox_.tail.store(consumedEnd, std::memory_order_release);

@@ -33,7 +33,8 @@ public:
     bool setNestedCompiledParameter(uint64_t processorNodeId,
                                     uint16_t parameterId,
                                     float value,
-                                    ParameterUpdateRate rate) noexcept override;
+                                    ParameterUpdateRate rate,
+                                    float startValue) noexcept override;
     bool readNestedEffectiveParameter(uint64_t processorNodeId,
                                       uint16_t parameterId,
                                       float& value) const noexcept override;

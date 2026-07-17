@@ -155,12 +155,10 @@ int main() {
     SmoothingProbeProcessor smoothingProbe;
     smoothingProbe.initParams(DistortionParamsPlayback{});
     const auto encodedDrive = packParamId(ParamKind::Distortion, 0);
-    expect(smoothingProbe.setCompiledParameter(encodedDrive, 0.2f,
-                                               ParameterUpdateRate::Smoothed),
-           "compiled smoothing accepts the initial target");
     expect(smoothingProbe.setCompiledParameter(encodedDrive, 0.8f,
-                                               ParameterUpdateRate::Smoothed),
-           "compiled smoothing accepts a live gesture update");
+                                               ParameterUpdateRate::Smoothed,
+                                               0.2f),
+           "compiled smoothing accepts the previous and target gesture values");
     DeviceVariantParams smoothedParams = smoothingProbe.storedParams();
     smoothingProbe.applyCompiledParameterSmoothing(smoothedParams, 128, 48000.0);
     const float firstSmoothed = std::get<DistortionParamsPlayback>(smoothedParams).drive;

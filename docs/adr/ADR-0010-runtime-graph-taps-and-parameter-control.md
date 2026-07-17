@@ -139,7 +139,10 @@ block boundary; continuous DSP gestures feed a fixed 16-slot processor-local
 target bank and advance with a sample-rate-independent 10 ms ramp. The same
 implementation is inherited by every typed processor and recursively by Chain
 and Drum children; it allocates and locks neither when accepting a target nor
-when advancing it. Existing audio/control-rate automation and modulation keep
+when advancing it. Mailbox commands carry the prior normalized value, and
+coalescing preserves the earliest prior value plus newest target, so the first
+gesture block cannot jump toward an already-coalesced UI value. Existing
+audio/control-rate automation and modulation keep
 their higher-resolution evaluator and are applied after the smoothed manual
 base value, so manual gestures no longer force their rate down to block steps.
 

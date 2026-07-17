@@ -393,16 +393,22 @@ int main() {
         chainProject->readGraphTapJson(chainTap));
     expect(static_cast<int>(chainTapJson["sequence"]) > 0,
            "nested Chain context publishes graph taps");
-    expect(chainProject->setDeviceParameter(chainChild, "frequency", 880.0f),
-           "nested Chain child accepts a compiled live parameter");
+    expect(chainProject->setDeviceParameter(chainChild, "frequency", 660.0f) &&
+           chainProject->setDeviceParameter(chainChild, "frequency", 880.0f),
+           "nested Chain child accepts a coalesced live gesture");
     chainProject->setPlaying(true);
     chainProject->readMasterMixStereo(tapLeft, tapRight, 128, 48000.0, 0.0);
     chainProject->setPlaying(false);
     const auto effectiveJson = juce::JSON::parse(
         chainProject->readEffectiveParameterJson(chainChild, "frequency"));
+    const double initialFrequency = (440.0 - 20.0) / (20000.0 - 20.0);
+    const double intermediateFrequency = (660.0 - 20.0) / (20000.0 - 20.0);
+    const double targetFrequency = (880.0 - 20.0) / (20000.0 - 20.0);
     expect(static_cast<bool>(effectiveJson["ok"]) &&
-           static_cast<double>(effectiveJson["value"]) > 0.0,
-           "nested effective parameter monitor publishes lock-free values");
+           static_cast<double>(effectiveJson["value"]) > initialFrequency &&
+           static_cast<double>(effectiveJson["value"]) < intermediateFrequency &&
+           static_cast<double>(effectiveJson["value"]) < targetFrequency,
+           "coalesced nested gesture preserves its first pre-gesture value");
 
     auto drumProject = std::make_unique<ProjectEngine>();
     drumProject->createProject();
