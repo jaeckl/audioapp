@@ -162,8 +162,14 @@ void DrumMachineProcessor::process(AudioBlock& block, ProcessContext& ctx) noexc
         if (ctx.automationClips != nullptr) {
             for (int a = 0; a < ctx.automationClipCount && padAutomationCount < 16; ++a) {
                 for (int child = 0; child < pad.deviceCount; ++child) {
-                    if (ctx.automationClips[a].deviceIndex !=
-                        pad.devices[child].automationTargetIndex) continue;
+                    const auto targetId = stableDeviceSubgraphNodeId(
+                        pad.devices[child].deviceId,
+                        DeviceSubgraphNodeRole::DeviceProcessor);
+                    const bool targetMatches = ctx.automationClips[a].targetNodeId != 0
+                        ? ctx.automationClips[a].targetNodeId == targetId
+                        : ctx.automationClips[a].deviceIndex ==
+                            pad.devices[child].automationTargetIndex;
+                    if (!targetMatches) continue;
                     padAutomation[padAutomationCount] = ctx.automationClips[a];
                     padAutomation[padAutomationCount].deviceIndex = static_cast<uint16_t>(child);
                     ++padAutomationCount;

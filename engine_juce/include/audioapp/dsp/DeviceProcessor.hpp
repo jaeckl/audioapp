@@ -50,6 +50,8 @@ public:
 
     void applyPlaybackNode(const DeviceNodePlayback& node) noexcept {
         deviceId_ = node.deviceId;
+        stableProcessorNodeId = stableDeviceSubgraphNodeId(
+            node.deviceId, DeviceSubgraphNodeRole::DeviceProcessor);
         executionPlan = compileDeviceExecutionPlan(node.kind);
         bypassed = node.bypassed;
         gain = node.gain;
@@ -89,6 +91,7 @@ public:
     bool commonSmoothingReady = false;
     DeviceExecutionPlan executionPlan{};
     InstrumentVoicePolicy voicePolicy{};
+    uint64_t stableProcessorNodeId = 0;
 
 protected:
     DeviceProcessor() = default;

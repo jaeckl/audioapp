@@ -104,6 +104,15 @@ int main() {
     expect(!midiPlan.inputAdapterOwnsTrim,
            "MIDI utilities do not receive an audio input trim adapter");
 
+    const auto targetNode = stableDeviceSubgraphNodeId(
+        "stable-target", DeviceSubgraphNodeRole::DeviceProcessor);
+    expect(playbackTargetMatches(targetNode, 7, targetNode, 3),
+           "stable automation target survives flattened index changes");
+    expect(!playbackTargetMatches(targetNode, 3, targetNode + 1, 3),
+           "stable target identity takes precedence over a stale cached index");
+    expect(playbackTargetMatches(0, 3, targetNode, 3),
+           "legacy index-only playback data remains compatible");
+
     DeviceSlot container;
     container.id = "chain";
     container.config.typeId = "chain";

@@ -134,6 +134,7 @@ int buildProcessorChain(const DeviceNodePlayback* devices, int deviceCount,
 void DeviceChainOrchestrator::applyCommonGainPanLfo(
     DeviceChainScratch& scratch,
     uint16_t deviceIndex,
+    uint64_t processorNodeId,
     int framesToProcess,
     const float* lfoValues, int lfoCount,
     const ModulationEdgePlayback* modEdges, int modEdgeCount,
@@ -142,7 +143,9 @@ void DeviceChainOrchestrator::applyCommonGainPanLfo(
     if (lfoValues != nullptr && lfoCount > 0 && modEdges != nullptr && modEdgeCount > 0) {
         for (int e = 0; e < modEdgeCount; ++e) {
             const auto& edge = modEdges[e];
-            if (edge.deviceIndex != deviceIndex || edge.lfoId >= static_cast<uint16_t>(lfoCount)) continue;
+            if (!playbackTargetMatches(edge.targetNodeId, edge.deviceIndex,
+                                       processorNodeId, deviceIndex) ||
+                edge.lfoId >= static_cast<uint16_t>(lfoCount)) continue;
             if (modulators != nullptr && modulatorUsesPerNoteClock(modulators[edge.lfoId])) {
                 continue;
             }
@@ -167,6 +170,7 @@ void DeviceChainOrchestrator::applyCommonGainPanLfo(
 static bool evaluateCommonBypass(
     bool baseBypassed,
     uint16_t deviceIndex,
+    uint64_t processorNodeId,
     double playheadBeat,
     int framesToProcess,
     const AutomationClipPlayback* automationClips,
@@ -182,7 +186,8 @@ static bool evaluateCommonBypass(
     if (automationClips != nullptr && automationClipCount > 0) {
         for (int a = 0; a < automationClipCount; ++a) {
             const auto& ac = automationClips[a];
-            if (ac.deviceIndex != deviceIndex ||
+            if (!playbackTargetMatches(ac.targetNodeId, ac.deviceIndex,
+                                       processorNodeId, deviceIndex) ||
                 ac.localParamId != kEncodedCommonBypass) {
                 continue;
             }
@@ -200,7 +205,8 @@ static bool evaluateCommonBypass(
         const int lfoFrame = std::max(0, framesToProcess / 2);
         for (int e = 0; e < modEdgeCount; ++e) {
             const auto& edge = modEdges[e];
-            if (edge.deviceIndex != deviceIndex ||
+            if (!playbackTargetMatches(edge.targetNodeId, edge.deviceIndex,
+                                       processorNodeId, deviceIndex) ||
                 edge.localParamId != kEncodedCommonBypass ||
                 edge.lfoId >= static_cast<uint16_t>(lfoCount)) {
                 continue;
@@ -380,6 +386,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         const bool effectiveBypass = evaluateCommonBypass(
             proc->bypassed,
             di,
+            proc->stableProcessorNodeId,
             ctx.playheadStartBeat,
             numFrames,
             ctx.automationClips,
@@ -467,7 +474,8 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         if (ctx.automationClips != nullptr && ctx.automationClipCount > 0) {
             for (int a = 0; a < ctx.automationClipCount; ++a) {
                 const auto& ac = ctx.automationClips[a];
-                if (ac.deviceIndex != di) continue;
+                if (!playbackTargetMatches(ac.targetNodeId, ac.deviceIndex,
+                                           proc->stableProcessorNodeId, di)) continue;
 
                 if (ac.localParamId == kEncodedCommonGain ||
                     ac.localParamId == kEncodedCommonPan) {
@@ -499,7 +507,9 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
             ctx.modEdges != nullptr && ctx.modEdgeCount > 0) {
             for (int e = 0; e < ctx.modEdgeCount; ++e) {
                 const auto& edge = ctx.modEdges[e];
-                if (edge.deviceIndex != di || edge.lfoId >= static_cast<uint16_t>(ctx.lfoCount)) continue;
+                if (!playbackTargetMatches(edge.targetNodeId, edge.deviceIndex,
+                                           proc->stableProcessorNodeId, di) ||
+                    edge.lfoId >= static_cast<uint16_t>(ctx.lfoCount)) continue;
                 const uint16_t pid = edge.localParamId;
                 if (pid == kEncodedCommonGain ||
                     pid == kEncodedCommonPan ||
@@ -520,7 +530,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         }
 
         // --- Per-frame gain/pan LFO modulation ---
-        applyCommonGainPanLfo(s, di, numFrames,
+        applyCommonGainPanLfo(s, di, proc->stableProcessorNodeId, numFrames,
                               ctx.lfoValues, ctx.lfoCount,
                               ctx.modEdges, ctx.modEdgeCount,
                               ctx.modulators);

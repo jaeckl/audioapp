@@ -65,6 +65,7 @@ struct DeviceChainOrchestrator {
     static void applyCommonGainPanLfo(
         DeviceChainScratch& scratch,
         uint16_t deviceIndex,
+        uint64_t processorNodeId,
         int framesToProcess,
         const float* lfoValues, int lfoCount,
         const ModulationEdgePlayback* modEdges, int modEdgeCount,

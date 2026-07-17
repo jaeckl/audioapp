@@ -509,6 +509,7 @@ constexpr uint16_t kEncodedCommonBypass = 2; // packParamId(ParamKind::Common, 2
 
 struct AutomationClipPlayback {
     uint16_t deviceIndex = 0;    // index into current track's device chain
+    uint64_t targetNodeId = 0;   // stable logical DSP node; index is legacy cache
     // Encoded (ParamKind, perKindId) — see packParamId. The kind tag is
     // required so that the audio thread can dispatch to the correct
     // per-kind enum without colliding with other kinds that reuse value 0.
@@ -523,11 +524,20 @@ struct AutomationClipPlayback {
 
 struct ModulationEdgePlayback {
     uint16_t deviceIndex = 0;    // index into current track's device chain
+    uint64_t targetNodeId = 0;   // stable logical DSP node; index is legacy cache
     // Encoded (ParamKind, perKindId) — see packParamId.
     uint16_t localParamId = 0;
     uint16_t lfoId = 0;
     float amount = 0.0f;
 };
+
+constexpr bool playbackTargetMatches(uint64_t targetNodeId,
+                                     uint16_t cachedDeviceIndex,
+                                     uint64_t processorNodeId,
+                                     uint16_t processorIndex) noexcept {
+    return targetNodeId != 0 ? targetNodeId == processorNodeId
+                             : cachedDeviceIndex == processorIndex;
+}
 
 // -----------------------------------------------------------------------
 // Control-thread data (can use strings, vectors, etc.)

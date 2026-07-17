@@ -75,7 +75,11 @@ void ChainProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
     AutomationClipPlayback automation[16]{}; int automationCount=0;
     if (ctx.automationClips) for(int a=0;a<ctx.automationClipCount&&automationCount<16;++a)
         for(int child=0;child<playback_->deviceCount;++child)
-            if(ctx.automationClips[a].deviceIndex==playback_->devices[child].automationTargetIndex){
+            if((ctx.automationClips[a].targetNodeId != 0 &&
+                ctx.automationClips[a].targetNodeId == stableDeviceSubgraphNodeId(
+                    playback_->devices[child].deviceId, DeviceSubgraphNodeRole::DeviceProcessor)) ||
+               (ctx.automationClips[a].targetNodeId == 0 &&
+                ctx.automationClips[a].deviceIndex==playback_->devices[child].automationTargetIndex)){
                 automation[automationCount]=ctx.automationClips[a];
                 automation[automationCount++].deviceIndex=static_cast<uint16_t>(child); break;
             }
@@ -84,7 +88,11 @@ void ChainProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
     ModulationEdgePlayback edges[16]{}; int edgeCount=0;
     if (ctx.modEdges) for(int e=0;e<ctx.modEdgeCount&&edgeCount<16;++e)
         for(int child=0;child<playback_->deviceCount;++child)
-            if(ctx.modEdges[e].deviceIndex==playback_->devices[child].automationTargetIndex){
+            if((ctx.modEdges[e].targetNodeId != 0 &&
+                ctx.modEdges[e].targetNodeId == stableDeviceSubgraphNodeId(
+                    playback_->devices[child].deviceId, DeviceSubgraphNodeRole::DeviceProcessor)) ||
+               (ctx.modEdges[e].targetNodeId == 0 &&
+                ctx.modEdges[e].deviceIndex==playback_->devices[child].automationTargetIndex)){
                 edges[edgeCount]=ctx.modEdges[e];
                 edges[edgeCount++].deviceIndex=static_cast<uint16_t>(child); break;
             }

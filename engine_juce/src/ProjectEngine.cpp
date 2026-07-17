@@ -3216,6 +3216,8 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
         AutomationClipPlayback pb{};
         if (!automationClipPlaybackFromClip(clip, pb)) continue;
         pb.deviceIndex = targetIndex;
+        pb.targetNodeId = stableDeviceSubgraphNodeId(
+            clip.deviceId, DeviceSubgraphNodeRole::DeviceProcessor);
         {
             const uint16_t rawPerKindId =
                 targetType ? targetType->paramIdFromString(clip.paramId) : static_cast<uint16_t>(-1);
@@ -3385,6 +3387,8 @@ void ProjectEngine::rebuildModEdgesLocked() {
             if (lfoPlaybackIdx < 0) continue;
             ModulationEdgePlayback& me = snap.modEdges[snap.modEdgeCount++];
             me.deviceIndex = targetIndex;
+            me.targetNodeId = stableDeviceSubgraphNodeId(
+                globalEdge.deviceId, DeviceSubgraphNodeRole::DeviceProcessor);
             me.lfoId = static_cast<uint16_t>(lfoPlaybackIdx);
             {
                 const auto* type = deviceRegistry_.findByKind(targetKind);
