@@ -35,9 +35,9 @@ struct EngineHost::Impl {
     enum class AudioProfile : int { LowLatency, Balanced, Safe, Custom };
     std::atomic<AudioProfile> profile{AudioProfile::Balanced};
     std::atomic<int32_t> requestedSampleRate{48000};
-    std::atomic<int32_t> requestedFramesPerCallback{192};
-    std::atomic<int32_t> requestedBufferCapacity{2048};
-    std::atomic<int32_t> requestedBufferSize{768};
+    std::atomic<int32_t> requestedFramesPerCallback{1024};
+    std::atomic<int32_t> requestedBufferCapacity{8192};
+    std::atomic<int32_t> requestedBufferSize{8192};
     std::atomic<bool> requestedLowLatency{true};
     std::atomic<bool> requestedExclusive{false};
     std::atomic<int32_t> actualFramesPerBurst{0};
@@ -160,19 +160,25 @@ struct EngineHost::Impl {
         const auto sharingMode = wantsExclusive
             ? AAUDIO_SHARING_MODE_EXCLUSIVE
             : AAUDIO_SHARING_MODE_SHARED;
+        const int32_t callbackFrames = custom
+            ? requestedFramesPerCallback.load(std::memory_order_acquire)
+            : requestedProfile == AudioProfile::LowLatency ? 512 : 1024;
+        const int32_t bufferCapacity = custom
+            ? requestedBufferCapacity.load(std::memory_order_acquire)
+            : requestedProfile == AudioProfile::LowLatency ? 2048
+            : requestedProfile == AudioProfile::Balanced ? 8192 : 16384;
+        const int32_t activeBuffer = custom
+            ? requestedBufferSize.load(std::memory_order_acquire)
+            : requestedProfile == AudioProfile::LowLatency ? 1024
+            : requestedProfile == AudioProfile::Balanced ? 4096 : 8192;
 
         AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
         AAudioStreamBuilder_setPerformanceMode(builder, performanceMode);
-        if (requestedProfile == AudioProfile::Safe) {
-            AAudioStreamBuilder_setBufferCapacityInFrames(builder, 8192);
-            AAudioStreamBuilder_setFramesPerDataCallback(builder, 1024);
-        } else if (custom) {
+        AAudioStreamBuilder_setBufferCapacityInFrames(builder, bufferCapacity);
+        AAudioStreamBuilder_setFramesPerDataCallback(builder, callbackFrames);
+        if (custom) {
             AAudioStreamBuilder_setSampleRate(
                 builder, requestedSampleRate.load(std::memory_order_acquire));
-            AAudioStreamBuilder_setBufferCapacityInFrames(
-                builder, requestedBufferCapacity.load(std::memory_order_acquire));
-            AAudioStreamBuilder_setFramesPerDataCallback(
-                builder, requestedFramesPerCallback.load(std::memory_order_acquire));
         }
         AAudioStreamBuilder_setSharingMode(builder, sharingMode);
         AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_FLOAT);
@@ -193,13 +199,11 @@ struct EngineHost::Impl {
                 AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
                 AAudioStreamBuilder_setPerformanceMode(builder, performanceMode);
                 AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_SHARED);
+                AAudioStreamBuilder_setBufferCapacityInFrames(builder, bufferCapacity);
+                AAudioStreamBuilder_setFramesPerDataCallback(builder, callbackFrames);
                 if (custom) {
                     AAudioStreamBuilder_setSampleRate(
                         builder, requestedSampleRate.load(std::memory_order_acquire));
-                    AAudioStreamBuilder_setBufferCapacityInFrames(
-                        builder, requestedBufferCapacity.load(std::memory_order_acquire));
-                    AAudioStreamBuilder_setFramesPerDataCallback(
-                        builder, requestedFramesPerCallback.load(std::memory_order_acquire));
                 }
                 AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_FLOAT);
                 AAudioStreamBuilder_setChannelCount(builder, 2);
@@ -218,13 +222,7 @@ struct EngineHost::Impl {
 
         sampleRate.store(AAudioStream_getSampleRate(stream), std::memory_order_release);
         const int32_t framesPerBurst = AAudioStream_getFramesPerBurst(stream);
-        if (custom) {
-            AAudioStream_setBufferSizeInFrames(
-                stream, requestedBufferSize.load(std::memory_order_acquire));
-        } else if (requestedProfile != AudioProfile::Safe && framesPerBurst > 0) {
-            const int32_t burstCount = requestedProfile == AudioProfile::LowLatency ? 2 : 4;
-            AAudioStream_setBufferSizeInFrames(stream, framesPerBurst * burstCount);
-        }
+        AAudioStream_setBufferSizeInFrames(stream, activeBuffer);
         // Compute per-callback deadline: bufferSize / sampleRate in nanoseconds
         const int32_t actualBufSize = AAudioStream_getBufferSizeInFrames(stream);
         const int32_t framesPerCallback = AAudioStream_getFramesPerDataCallback(stream);
@@ -341,10 +339,17 @@ bool EngineHost::configureAudioEngine(const std::string& profileName,
     } else if (profileName == "safe") {
         nextProfile = Impl::AudioProfile::Safe;
     } else if (profileName == "custom") {
-        if (requestedRate < 8000 || requestedRate > 192000 ||
-            requestedCallback < 16 || requestedCallback > 4096 ||
-            requestedCapacity < 64 || requestedCapacity > 32768 ||
-            requestedActiveBuffer < 16 || requestedActiveBuffer > requestedCapacity) {
+        const bool validRate = requestedRate == 44100 || requestedRate == 48000 ||
+            requestedRate == 88200 || requestedRate == 96000 || requestedRate == 192000;
+        const bool validCallback = requestedCallback == 512 || requestedCallback == 1024 ||
+            requestedCallback == 2048 || requestedCallback == 4096;
+        const bool validCapacity = requestedCapacity == 2048 || requestedCapacity == 4096 ||
+            requestedCapacity == 8192 || requestedCapacity == 16384 || requestedCapacity == 32768;
+        const bool validBuffer = requestedActiveBuffer == 1024 || requestedActiveBuffer == 2048 ||
+            requestedActiveBuffer == 4096 || requestedActiveBuffer == 8192 ||
+            requestedActiveBuffer == 16384 || requestedActiveBuffer == 32768;
+        if (!validRate || !validCallback || !validCapacity || !validBuffer ||
+            requestedActiveBuffer > requestedCapacity) {
             return false;
         }
         nextProfile = Impl::AudioProfile::Custom;
@@ -368,8 +373,7 @@ bool EngineHost::configureAudioEngine(const std::string& profileName,
     impl_->maxCallbackNs.store(0, std::memory_order_release);
     impl_->callbackCount.store(0, std::memory_order_release);
     impl_->callbackOverrunCount.store(0, std::memory_order_release);
-    if (nextProfile == Impl::AudioProfile::Custom && isAudioOutputEnabled() &&
-        !impl_->openStream()) {
+    if (isAudioOutputEnabled() && !impl_->openStream()) {
         impl_->profile.store(previousProfile, std::memory_order_release);
         impl_->requestedSampleRate.store(previousRate, std::memory_order_release);
         impl_->requestedFramesPerCallback.store(previousCallback, std::memory_order_release);

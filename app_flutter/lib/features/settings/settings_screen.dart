@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../welcome/welcome_theme.dart';
 import 'audio_engine_settings.dart';
@@ -265,38 +264,32 @@ class _CustomAudioControls extends StatefulWidget {
 }
 
 class _CustomAudioControlsState extends State<_CustomAudioControls> {
-  late final TextEditingController _sampleRate = TextEditingController(
-    text: '${widget.initialSettings.sampleRate}',
-  );
-  late final TextEditingController _callbackFrames = TextEditingController(
-    text: '${widget.initialSettings.framesPerCallback}',
-  );
-  late final TextEditingController _bufferCapacity = TextEditingController(
-    text: '${widget.initialSettings.bufferCapacityFrames}',
-  );
-  late final TextEditingController _bufferSize = TextEditingController(
-    text: '${widget.initialSettings.bufferSizeFrames}',
-  );
+  late int _sampleRate = widget.initialSettings.sampleRate;
+  late int _callbackFrames = widget.initialSettings.framesPerCallback;
+  late int _bufferCapacity = widget.initialSettings.bufferCapacityFrames;
+  late int _bufferSize = widget.initialSettings.bufferSizeFrames;
   late bool _lowLatency = widget.initialSettings.lowLatency;
   late bool _exclusive = widget.initialSettings.exclusive;
   String? _validationError;
 
-  @override
-  void dispose() {
-    _sampleRate.dispose();
-    _callbackFrames.dispose();
-    _bufferCapacity.dispose();
-    _bufferSize.dispose();
-    super.dispose();
+  void _setBufferCapacity(int value) {
+    setState(() {
+      _bufferCapacity = value;
+      if (_bufferSize > value) {
+        _bufferSize = AudioEngineCustomSettings.bufferSizeChoices
+            .where((candidate) => candidate <= value)
+            .last;
+      }
+    });
   }
 
   Future<void> _apply() async {
     try {
       final settings = AudioEngineCustomSettings(
-        sampleRate: int.parse(_sampleRate.text.trim()),
-        framesPerCallback: int.parse(_callbackFrames.text.trim()),
-        bufferCapacityFrames: int.parse(_bufferCapacity.text.trim()),
-        bufferSizeFrames: int.parse(_bufferSize.text.trim()),
+        sampleRate: _sampleRate,
+        framesPerCallback: _callbackFrames,
+        bufferCapacityFrames: _bufferCapacity,
+        bufferSizeFrames: _bufferSize,
         lowLatency: _lowLatency,
         exclusive: _exclusive,
       );
@@ -327,22 +320,26 @@ class _CustomAudioControlsState extends State<_CustomAudioControls> {
           Row(
             children: [
               Expanded(
-                child: _AudioNumberField(
+                child: _AudioChoiceField(
                   fieldKey: const ValueKey('settings-custom-sample-rate'),
-                  controller: _sampleRate,
+                  value: _sampleRate,
+                  choices: AudioEngineCustomSettings.sampleRateChoices,
                   label: 'Sample rate',
                   suffix: 'Hz',
                   enabled: widget.enabled,
+                  onChanged: (value) => setState(() => _sampleRate = value),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _AudioNumberField(
+                child: _AudioChoiceField(
                   fieldKey: const ValueKey('settings-custom-callback'),
-                  controller: _callbackFrames,
-                  label: 'Callback',
+                  value: _callbackFrames,
+                  choices: AudioEngineCustomSettings.callbackFrameChoices,
+                  label: 'Callback block',
                   suffix: 'frames',
                   enabled: widget.enabled,
+                  onChanged: (value) => setState(() => _callbackFrames = value),
                 ),
               ),
             ],
@@ -351,22 +348,28 @@ class _CustomAudioControlsState extends State<_CustomAudioControls> {
           Row(
             children: [
               Expanded(
-                child: _AudioNumberField(
+                child: _AudioChoiceField(
                   fieldKey: const ValueKey('settings-custom-capacity'),
-                  controller: _bufferCapacity,
+                  value: _bufferCapacity,
+                  choices: AudioEngineCustomSettings.bufferCapacityChoices,
                   label: 'Capacity',
                   suffix: 'frames',
                   enabled: widget.enabled,
+                  onChanged: _setBufferCapacity,
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _AudioNumberField(
+                child: _AudioChoiceField(
                   fieldKey: const ValueKey('settings-custom-buffer'),
-                  controller: _bufferSize,
+                  value: _bufferSize,
+                  choices: AudioEngineCustomSettings.bufferSizeChoices
+                      .where((value) => value <= _bufferCapacity)
+                      .toList(),
                   label: 'Active buffer',
                   suffix: 'frames',
                   enabled: widget.enabled,
+                  onChanged: (value) => setState(() => _bufferSize = value),
                 ),
               ),
             ],
@@ -429,34 +432,50 @@ class _CustomAudioControlsState extends State<_CustomAudioControls> {
   }
 }
 
-class _AudioNumberField extends StatelessWidget {
-  const _AudioNumberField({
+class _AudioChoiceField extends StatelessWidget {
+  const _AudioChoiceField({
     required this.fieldKey,
-    required this.controller,
+    required this.value,
+    required this.choices,
     required this.label,
     required this.suffix,
     required this.enabled,
+    required this.onChanged,
   });
 
-  final TextEditingController controller;
   final Key fieldKey;
+  final int value;
+  final List<int> choices;
   final String label;
   final String suffix;
   final bool enabled;
+  final ValueChanged<int> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    return Container(
       key: fieldKey,
-      controller: controller,
-      enabled: enabled,
-      keyboardType: TextInputType.number,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      decoration: InputDecoration(
-        isDense: true,
-        labelText: label,
-        suffixText: suffix,
-        border: const OutlineInputBorder(),
+      child: DropdownButtonFormField<int>(
+        key: ValueKey('$label-$value'),
+        initialValue: value,
+        isExpanded: true,
+        items: [
+          for (final choice in choices)
+            DropdownMenuItem<int>(
+              value: choice,
+              child: Text('$choice $suffix'),
+            ),
+        ],
+        onChanged: enabled
+            ? (selection) {
+                if (selection != null) onChanged(selection);
+              }
+            : null,
+        decoration: InputDecoration(
+          isDense: true,
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
       ),
     );
   }

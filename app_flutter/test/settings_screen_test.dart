@@ -70,12 +70,12 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.enterText(
+    await tester.tap(
       find.byKey(const ValueKey('settings-custom-sample-rate')),
-      '96000',
     );
-    tester.testTextInput.hide();
-    await tester.pump();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('96000 Hz').last);
+    await tester.pumpAndSettle();
     final apply = find.byKey(const ValueKey('settings-apply-custom-audio'));
     await tester.ensureVisible(apply);
     await tester.tap(apply);
@@ -95,17 +95,17 @@ void main() {
     expect(await store.loadAudioEngineProfile(), AudioEngineProfile.safe);
     const custom = AudioEngineCustomSettings(
       sampleRate: 96000,
-      framesPerCallback: 256,
-      bufferCapacityFrames: 4096,
-      bufferSizeFrames: 1024,
+      framesPerCallback: 1024,
+      bufferCapacityFrames: 8192,
+      bufferSizeFrames: 8192,
       exclusive: true,
     );
     await store.saveAudioEngineCustomSettings(custom);
     final restored = await store.loadAudioEngineCustomSettings();
     expect(restored.sampleRate, 96000);
-    expect(restored.framesPerCallback, 256);
-    expect(restored.bufferCapacityFrames, 4096);
-    expect(restored.bufferSizeFrames, 1024);
+    expect(restored.framesPerCallback, 1024);
+    expect(restored.bufferCapacityFrames, 8192);
+    expect(restored.bufferSizeFrames, 8192);
     expect(restored.exclusive, isTrue);
   });
 }

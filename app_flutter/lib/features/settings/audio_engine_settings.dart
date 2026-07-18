@@ -35,11 +35,16 @@ extension AudioEngineProfileDetails on AudioEngineProfile {
 }
 
 class AudioEngineCustomSettings {
+  static const sampleRateChoices = [44100, 48000, 88200, 96000, 192000];
+  static const callbackFrameChoices = [512, 1024, 2048, 4096];
+  static const bufferCapacityChoices = [2048, 4096, 8192, 16384, 32768];
+  static const bufferSizeChoices = [1024, 2048, 4096, 8192, 16384, 32768];
+
   const AudioEngineCustomSettings({
     this.sampleRate = 48000,
-    this.framesPerCallback = 192,
-    this.bufferCapacityFrames = 2048,
-    this.bufferSizeFrames = 768,
+    this.framesPerCallback = 1024,
+    this.bufferCapacityFrames = 8192,
+    this.bufferSizeFrames = 8192,
     this.lowLatency = true,
     this.exclusive = false,
   });
@@ -61,16 +66,17 @@ class AudioEngineCustomSettings {
       };
 
   void validate() {
-    if (sampleRate < 8000 || sampleRate > 192000) {
-      throw const FormatException('Sample rate must be 8000–192000 Hz.');
+    if (!sampleRateChoices.contains(sampleRate)) {
+      throw const FormatException('Choose a supported sample rate.');
     }
-    if (framesPerCallback < 16 || framesPerCallback > 4096) {
-      throw const FormatException('Callback size must be 16–4096 frames.');
+    if (!callbackFrameChoices.contains(framesPerCallback)) {
+      throw const FormatException('Choose a supported callback size.');
     }
-    if (bufferCapacityFrames < 64 || bufferCapacityFrames > 32768) {
-      throw const FormatException('Buffer capacity must be 64–32768 frames.');
+    if (!bufferCapacityChoices.contains(bufferCapacityFrames)) {
+      throw const FormatException('Choose a supported buffer capacity.');
     }
-    if (bufferSizeFrames < 16 || bufferSizeFrames > bufferCapacityFrames) {
+    if (!bufferSizeChoices.contains(bufferSizeFrames) ||
+        bufferSizeFrames > bufferCapacityFrames) {
       throw const FormatException(
         'Active buffer must fit inside the buffer capacity.',
       );

@@ -21,9 +21,9 @@ struct EngineHost::Impl : juce::AudioIODeviceCallback {
     juce::CriticalSection initMutex;
     std::string audioProfile{"balanced"};
     int requestedSampleRate = 48000;
-    int requestedFramesPerCallback = 192;
-    int requestedBufferCapacity = 2048;
-    int requestedBufferSize = 768;
+    int requestedFramesPerCallback = 1024;
+    int requestedBufferCapacity = 8192;
+    int requestedBufferSize = 8192;
 
     void ensureAudioInitialized() {
         if (audioInitialized.load(std::memory_order_acquire)) {
@@ -156,10 +156,17 @@ bool EngineHost::configureAudioEngine(const std::string& profile,
         return false;
     }
     if (profile == "custom" &&
-        (sampleRate < 8000 || sampleRate > 192000 ||
-         framesPerCallback < 16 || framesPerCallback > 4096 ||
-         bufferCapacityFrames < 64 || bufferCapacityFrames > 32768 ||
-         bufferSizeFrames < 16 || bufferSizeFrames > bufferCapacityFrames)) {
+        ((sampleRate != 44100 && sampleRate != 48000 && sampleRate != 88200 &&
+          sampleRate != 96000 && sampleRate != 192000) ||
+         (framesPerCallback != 512 && framesPerCallback != 1024 &&
+          framesPerCallback != 2048 && framesPerCallback != 4096) ||
+         (bufferCapacityFrames != 2048 && bufferCapacityFrames != 4096 &&
+          bufferCapacityFrames != 8192 && bufferCapacityFrames != 16384 &&
+          bufferCapacityFrames != 32768) ||
+         (bufferSizeFrames != 1024 && bufferSizeFrames != 2048 &&
+          bufferSizeFrames != 4096 && bufferSizeFrames != 8192 &&
+          bufferSizeFrames != 16384 && bufferSizeFrames != 32768) ||
+         bufferSizeFrames > bufferCapacityFrames)) {
         return false;
     }
     setPlaying(false);

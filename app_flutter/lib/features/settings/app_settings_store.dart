@@ -48,10 +48,10 @@ class AppSettingsStore {
     final preferences = await SharedPreferences.getInstance();
     final settings = AudioEngineCustomSettings(
       sampleRate: preferences.getInt(_customSampleRateKey) ?? 48000,
-      framesPerCallback: preferences.getInt(_customCallbackFramesKey) ?? 192,
+      framesPerCallback: preferences.getInt(_customCallbackFramesKey) ?? 1024,
       bufferCapacityFrames:
-          preferences.getInt(_customBufferCapacityKey) ?? 2048,
-      bufferSizeFrames: preferences.getInt(_customBufferSizeKey) ?? 768,
+          preferences.getInt(_customBufferCapacityKey) ?? 8192,
+      bufferSizeFrames: preferences.getInt(_customBufferSizeKey) ?? 8192,
       lowLatency: preferences.getBool(_customLowLatencyKey) ?? true,
       exclusive: preferences.getBool(_customExclusiveKey) ?? false,
     );
