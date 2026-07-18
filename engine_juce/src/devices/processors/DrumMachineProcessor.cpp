@@ -239,8 +239,14 @@ void DrumMachineProcessor::process(AudioBlock& block, ProcessContext& ctx) noexc
         const float leftGain = runtime.gain * (runtime.pan <= 0.5f ? 1.0f : 2.0f * (1.0f - runtime.pan));
         const float rightGain = runtime.gain * (runtime.pan >= 0.5f ? 1.0f : 2.0f * runtime.pan);
         for (int frame = 0; frame < block.numSamples; ++frame) {
-            block.channelL[frame] += padLeft_[frame] * leftGain;
-            block.channelR[frame] += padRight_[frame] * rightGain;
+            const float commonGain = ctx.commonControls.gainAt(frame);
+            const float angle = std::clamp(ctx.commonControls.panAt(frame), 0.0f, 1.0f) *
+                1.57079632679f;
+            constexpr float centerCompensation = 1.41421356237f;
+            block.channelL[frame] += padLeft_[frame] * leftGain * commonGain *
+                std::cos(angle) * centerCompensation;
+            block.channelR[frame] += padRight_[frame] * rightGain * commonGain *
+                std::sin(angle) * centerCompensation;
         }
     }
 }

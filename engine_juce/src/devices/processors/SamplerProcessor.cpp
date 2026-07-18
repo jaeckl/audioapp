@@ -85,7 +85,9 @@ void mixSamplerMidiNotesBlock(float* monoOut,
                               bool retriggerReplacesVoice,
                               const int* activeNoteIndices,
                               const int* activeVoiceSlots,
-                              BiquadState* persistentVoiceFilters) {
+                              BiquadState* persistentVoiceFilters,
+                              const CommonControlBlock* commonControls,
+                              int commonControlFrameOffset) {
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
         return;
     }
@@ -194,8 +196,11 @@ void mixSamplerMidiNotesBlock(float* monoOut,
                 const NoteModKey key = noteModKeyFromRegion(
                     note.pitch, note.clipStartBeat, note.noteStartBeat);
                 const ModulationEvalContext evalCtx = instMod->evalContextForFrame(frame);
+                const float commonGain = commonControls != nullptr
+                    ? commonControls->gainAt(commonControlFrameOffset + frame)
+                    : (perFramePanelGain != nullptr ? perFramePanelGain[frame] : 1.0f);
                 const float panelGain =
-                    applyPerNoteCommonGain(perFramePanelGain != nullptr ? perFramePanelGain[frame] : 1.0f,
+                    applyPerNoteCommonGain(commonGain,
                                            modulationDeviceIndex,
                                            elapsedSeconds,
                                            noteDurationSec,
@@ -343,10 +348,11 @@ void SamplerProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept 
                 p.playbackMode, nullptr, persistentFilters, regionCount,
             },
             instModPtr,
-            ctx.scratch.perFrameGain,
+            nullptr,
             di,
             activeVoiceCount_, false,
-            activeNoteIndices, activeVoiceSlots_, persistentFilters);
+            activeNoteIndices, activeVoiceSlots_, persistentFilters,
+            bakePanelGain ? &ctx.commonControls : nullptr, sub);
     };
 
     if (ctx.needsSubBlocks) {
@@ -370,8 +376,7 @@ void SamplerProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept 
     for (int i = 0; i < kMaxInstrumentRegions; ++i) voices_[i].filter = persistentFilters[i];
 
     StereoOutputPanel::applyFromScratch(ctx.scratch.scratch, block, block.numSamples,
-                                         bakePanelGain ? nullptr : ctx.scratch.perFrameGain,
-                                         ctx.scratch.perFramePan);
+                                        ctx.commonControls, !bakePanelGain);
 }
 
 } // namespace audioapp

@@ -63,7 +63,7 @@ void mixCrashMidiNotesBlockStereo(float* trackLeftOut,
                                    int noteCount,
                                    const audioapp::CrashGeneratorParams& params,
                                    audioapp::CrashGeneratorRuntime& runtime,
-                                   const float* perFrameGain,
+                                   const audioapp::CommonControlBlock* commonControls,
                                    const audioapp::InstrumentModulationContext* instMod = nullptr,
                                    uint16_t deviceIndex = 0) noexcept {
     if (trackLeftOut == nullptr || trackRightOut == nullptr ||
@@ -109,7 +109,7 @@ void mixCrashMidiNotesBlockStereo(float* trackLeftOut,
 
         const float vel = std::clamp(runtime.voice.velocity / 127.0f, 0.0f, 1.0f);
         const float velGain = 1.0f - params.crashVelocity * (1.0f - vel);
-        float gain = perFrameGain != nullptr ? perFrameGain[frame] : 1.0f;
+        float gain = commonControls != nullptr ? commonControls->gainAt(frame) : 1.0f;
         if (instMod != nullptr && activeNoteIndex >= 0) {
             const auto& note = notes[activeNoteIndex];
             const audioapp::NoteModKey key = audioapp::noteModKeyFromRegion(
@@ -164,8 +164,6 @@ void CrashProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
             instMod = ctx.instrumentModulation();
             instModPtr = &instMod;
         }
-        const bool bakePanelGain = instModPtr != nullptr &&
-            deviceHasPerNoteModEdges(di, ctx.modEdges, ctx.modEdgeCount, ctx.modulators, ctx.lfoCount);
         mixCrashMidiNotesBlockStereo(
             ctx.scratch.tempStereoL,
             ctx.scratch.tempStereoR,
@@ -177,12 +175,12 @@ void CrashProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
             regionCount,
             crp,
             runtime_,
-            bakePanelGain ? nullptr : ctx.scratch.perFrameGain,
+            &ctx.commonControls,
             instModPtr,
             di
         );
         for (int f = 0; f < block.numSamples; ++f) {
-            const float angle = std::clamp(ctx.scratch.perFramePan[f], 0.0f, 1.0f) * 1.57079632679f;
+            const float angle = std::clamp(ctx.commonControls.panAt(f), 0.0f, 1.0f) * 1.57079632679f;
             constexpr float kCenterCompensation = 1.41421356237f;
             block.channelL[f] += ctx.scratch.tempStereoL[f] *
                 std::cos(angle) * kCenterCompensation;

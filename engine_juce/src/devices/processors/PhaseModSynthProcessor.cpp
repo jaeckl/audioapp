@@ -119,7 +119,8 @@ void mixPhaseModMidiNotesBlock(float* monoOut,
                                const float* perFramePanelGain,
                                const InstrumentModulationContext* instMod,
                                int voiceLimit,
-                               bool retriggerReplacesVoice) noexcept {
+                               bool retriggerReplacesVoice,
+                               const CommonControlBlock* commonControls) noexcept {
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
         return;
     }
@@ -319,7 +320,9 @@ void mixPhaseModMidiNotesBlock(float* monoOut,
             const float velGain = 1.0f - frameParams.velocitySensitivity * (1.0f - vel);
 
             PhaseModSynthParams voiceParams = frameParams;
-            float panelGain = perFramePanelGain != nullptr ? perFramePanelGain[frame] : 1.0f;
+            float panelGain = commonControls != nullptr
+                ? commonControls->gainAt(frame)
+                : (perFramePanelGain != nullptr ? perFramePanelGain[frame] : 1.0f);
             float voiceLfoOut = 0.0f;
             if (instMod != nullptr) {
                 const NoteModKey key =
@@ -407,14 +410,14 @@ void PhaseModSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) noe
         hasMod ? ctx.lfoValues : nullptr, hasMod ? ctx.lfoCount : 0, hasMod ? block.numSamples : 0,
         hasMod ? ctx.modEdges : nullptr, hasMod ? ctx.modEdgeCount : 0,
         hasMod ? &di : nullptr,
-        ctx.scratch.perFrameGain,
+        nullptr,
         instModPtr,
         ctx.voicePolicy.maxVoices > 0 ? ctx.voicePolicy.maxVoices : kPhaseModMaxVoices,
-        ctx.voicePolicy.retriggerReplacesVoice);
+        ctx.voicePolicy.retriggerReplacesVoice,
+        bakePanelGain ? &ctx.commonControls : nullptr);
 
     StereoOutputPanel::applyFromScratch(ctx.scratch.scratch, block, block.numSamples,
-                                         bakePanelGain ? nullptr : ctx.scratch.perFrameGain,
-                                         ctx.scratch.perFramePan);
+                                        ctx.commonControls, !bakePanelGain);
 }
 
 } // namespace audioapp

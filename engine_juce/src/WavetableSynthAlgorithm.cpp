@@ -186,7 +186,8 @@ void mixWavetableMidiNotesBlock(float* monoOut,
                                 const float* perFramePanelGain,
                                 const InstrumentModulationContext* instMod,
                                 int voiceLimit,
-                                bool retriggerReplacesVoice) noexcept {
+                                bool retriggerReplacesVoice,
+                                const CommonControlBlock* commonControls) noexcept {
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0 ||
         wavetablePcm == nullptr || wavetableFrameCount <= 0 || wavetableFrameLength <= 0) {
         return;
@@ -367,7 +368,9 @@ void mixWavetableMidiNotesBlock(float* monoOut,
             const float vel = safe_clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
 
             WavetableSynthParams voiceParams = frameParams;
-            float panelGain = perFramePanelGain != nullptr ? perFramePanelGain[frame] : 1.0f;
+            float panelGain = commonControls != nullptr
+                ? commonControls->gainAt(frame)
+                : (perFramePanelGain != nullptr ? perFramePanelGain[frame] : 1.0f);
             if (instMod != nullptr) {
                 const NoteModKey key =
                     noteModKeyFromRegion(note.pitch, note.clipStartBeat, note.noteStartBeat);

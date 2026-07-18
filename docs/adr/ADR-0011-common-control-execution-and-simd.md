@@ -2,9 +2,10 @@
 
 ## Status
 
-Accepted — phase 1 implements effects, routing/container outputs, and Track
-Gain. Instrument kernels remain on the compatible dynamic-array adapter until
-they are migrated and compared device by device.
+Accepted and implemented. Effects, routing/container outputs, Track Gain, and
+all instrument families consume the constant/ramp/dynamic descriptor. Legacy
+array parameters remain only on direct-renderer test/preview entry points; the
+realtime playback path no longer materializes static instrument controls.
 
 ## Context
 
@@ -56,12 +57,12 @@ analysis.
 ## Migration
 
 1. Effects, routing/container output adapters and Track Gain use the descriptor.
-2. Instruments continue receiving materialized arrays to preserve their current
-   per-note and sample-accurate behavior.
-3. Each instrument family migrates to scalar/ramp/dynamic inputs with an audio
-   equivalence test before its legacy materialization is removed.
-4. Remove the compatibility materialization only after every instrument is in
-   the device matrix from ADR-0014.
+2. Instruments receive the same descriptor, while per-note modulation remains
+   inside voice renderers and uses `gainAt(frame)` as its manual/global base.
+3. Direct-renderer compatibility parameters remain available to tests and
+   previews, but arrangement playback passes the compact descriptor.
+4. The device matrix in ADR-0014 gates removal of those direct-renderer
+   compatibility parameters.
 
 ## Correctness gates
 

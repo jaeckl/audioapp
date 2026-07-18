@@ -233,8 +233,7 @@ static CommonControlBlock prepareCommonControls(
     DeviceChainScratch& scratch,
     int numFrames,
     bool dynamicGain,
-    bool dynamicPan,
-    bool materializeLegacyArrays) noexcept {
+    bool dynamicPan) noexcept {
     if (!processor.commonSmoothingReady) {
         processor.smoothedGain = processor.gain;
         processor.smoothedPan = processor.pan;
@@ -258,8 +257,8 @@ static CommonControlBlock prepareCommonControls(
         : (processor.pan != processor.smoothedPan
             ? CommonControlMode::Ramp : CommonControlMode::Constant);
 
-    const bool writeGain = dynamicGain || materializeLegacyArrays;
-    const bool writePan = dynamicPan || materializeLegacyArrays;
+    const bool writeGain = dynamicGain;
+    const bool writePan = dynamicPan;
     const float inverseFrames = 1.0f / static_cast<float>(std::max(1, numFrames));
     if (writeGain) {
         const float gainStep = (controls.gainEnd - controls.gainStart) * inverseFrames;
@@ -523,15 +522,10 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
             continue;
         }
 
-        // Instrument kernels still consume the legacy arrays directly. Effects,
-        // routing devices, containers, and Track Gain use the compact control
-        // descriptor and avoid those writes in their steady-state path.
-        const bool legacyInstrumentControls = isInstrumentDeviceNodeKind(nodeKind);
         CommonControlBlock commonControls = prepareCommonControls(
             *proc, s, numFrames,
             proc->hasCommonGainAutomation || proc->hasCommonGainModulation,
-            proc->hasCommonPanAutomation || proc->hasCommonPanModulation,
-            legacyInstrumentControls);
+            proc->hasCommonPanAutomation || proc->hasCommonPanModulation);
 
         if (nodeKind == DeviceNodeKind::MidiReceiver && ctx.graph != nullptr &&
             ctx.graphMidiNotes != nullptr && ctx.graphMidiCounts != nullptr) {

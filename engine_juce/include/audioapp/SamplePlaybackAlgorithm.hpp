@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "audioapp/SamplerFilter.hpp"
+#include "audioapp/dsp/CommonControlBlock.hpp"
 
 namespace audioapp {
 
@@ -85,7 +86,9 @@ void mixSamplerMidiNotesBlock(float* monoOut,
                               bool retriggerReplacesVoice = false,
                               const int* activeNoteIndices = nullptr,
                               const int* activeVoiceSlots = nullptr,
-                              BiquadState* persistentVoiceFilters = nullptr);
+                              BiquadState* persistentVoiceFilters = nullptr,
+                              const CommonControlBlock* commonControls = nullptr,
+                              int commonControlFrameOffset = 0);
 
 /// Cutoff Hz with filter-envelope depth applied (matches subtractive synth FEG).
 float samplerFilterCutoffHz(float filterCutoffNorm,

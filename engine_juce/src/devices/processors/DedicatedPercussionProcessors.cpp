@@ -37,8 +37,6 @@ void processDedicated(AudioBlock& block, ProcessContext& ctx, Runtime& runtime,
         instMod = ctx.instrumentModulation();
         instModPtr = &instMod;
     }
-    const bool bakePanelGain = instModPtr != nullptr &&
-        deviceHasPerNoteModEdges(di, ctx.modEdges, ctx.modEdgeCount, ctx.modulators, ctx.lfoCount);
     const float releaseSec = release(params);
 
     for (int frame = 0; frame < block.numSamples; ++frame) {
@@ -64,7 +62,7 @@ void processDedicated(AudioBlock& block, ProcessContext& ctx, Runtime& runtime,
         runtime.voice.elapsedSec = elapsed;
         const float vel = std::clamp(noteVelocity / 127.0f, 0.0f, 1.0f);
         const float velocityGain = 1.0f - velocityAmount(params) * (1.0f - vel);
-        float gain = bakePanelGain ? 1.0f : ctx.scratch.perFrameGain[frame];
+        float gain = ctx.commonControls.gainAt(frame);
         if (instModPtr != nullptr && activeIndex >= 0) {
             const auto& n = ctx.scratch.percussionRegions[activeIndex];
             gain = applyPerNoteCommonGain(gain, di, elapsed, -1.0,
@@ -76,7 +74,7 @@ void processDedicated(AudioBlock& block, ProcessContext& ctx, Runtime& runtime,
     }
 
     for (int f = 0; f < block.numSamples; ++f) {
-        const float angle = std::clamp(ctx.scratch.perFramePan[f], 0.0f, 1.0f) * 1.57079632679f;
+        const float angle = std::clamp(ctx.commonControls.panAt(f), 0.0f, 1.0f) * 1.57079632679f;
         constexpr float kCenter = 1.41421356237f;
         block.channelL[f] += ctx.scratch.tempStereoL[f] * std::cos(angle) * kCenter;
         block.channelR[f] += ctx.scratch.tempStereoR[f] * std::sin(angle) * kCenter;

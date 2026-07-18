@@ -5,6 +5,7 @@
 #include "audioapp/devices/PhaseModSynthDeviceType.hpp"
 #include "audioapp/devices/processors/WavetableSynthProcessor.hpp"
 #include "audioapp/devices/processors/TrackGainProcessor.hpp"
+#include "audioapp/devices/DevicePanelTypes.hpp"
 #include "audioapp/dsp/ProcessorArena.hpp"
 
 #include <iostream>
@@ -99,6 +100,19 @@ int main() {
     expect(std::abs(controlLeft[3] - 0.125f) < 1.0e-6f &&
            std::abs(controlRight[3] - 0.25f) < 1.0e-6f,
            "Track Gain constant mode applies precomputed scalar channel gains");
+
+    float instrumentMono[8];
+    float instrumentLeft[8]{};
+    float instrumentRight[8]{};
+    std::fill_n(instrumentMono, 8, 1.0f);
+    AudioBlock instrumentBlock{instrumentLeft, instrumentRight, 8};
+    StereoOutputPanel::applyFromScratch(
+        instrumentMono, instrumentBlock, 8, constantControls);
+    const float expectedLeft = 0.25f * std::cos(0.75f * 1.57079632679f);
+    const float expectedRight = 0.25f * std::sin(0.75f * 1.57079632679f);
+    expect(std::abs(instrumentLeft[3] - expectedLeft) < 1.0e-6f &&
+           std::abs(instrumentRight[3] - expectedRight) < 1.0e-6f,
+           "instrument output panels consume compact controls without legacy arrays");
 
     SmoothingProbeProcessor commonTargetProbe;
     commonTargetProbe.stableProcessorNodeId = 77;

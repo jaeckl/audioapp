@@ -85,7 +85,7 @@ void mixSnareMidiNotesBlock(float* monoOut,
                             const audioapp::SnareGeneratorParams& params,
                             audioapp::SnareGeneratorRuntime& runtime,
                             const audioapp::InstrumentModulationContext* instMod = nullptr,
-                            const float* perFramePanelGain = nullptr,
+                            const audioapp::CommonControlBlock* commonControls = nullptr,
                             uint16_t deviceIndex = 0) noexcept {
     using namespace audioapp;
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
@@ -132,7 +132,7 @@ void mixSnareMidiNotesBlock(float* monoOut,
 
         const float vel = std::clamp(runtime.voice.velocity / 127.0f, 0.0f, 1.0f);
         const float velGain = 1.0f - params.snareVelocity * (1.0f - vel);
-        float panelGain = perFramePanelGain != nullptr ? perFramePanelGain[frame] : 1.0f;
+        float panelGain = commonControls != nullptr ? commonControls->gainAt(frame) : 1.0f;
         if (instMod != nullptr && activeNoteIndex >= 0) {
             const auto& note = notes[activeNoteIndex];
             const NoteModKey key = noteModKeyFromRegion(
@@ -195,12 +195,11 @@ void SnareProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
             sp,
             runtime_,
             instModPtr,
-            ctx.scratch.perFrameGain,
+            bakePanelGain ? &ctx.commonControls : nullptr,
             di
         );
         StereoOutputPanel::applyFromScratch(ctx.scratch.scratch, block, block.numSamples,
-                                             bakePanelGain ? nullptr : ctx.scratch.perFrameGain,
-                                             ctx.scratch.perFramePan);
+                                            ctx.commonControls, !bakePanelGain);
     }
 }
 

@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "audioapp/AutomationTypes.hpp"
+#include "audioapp/dsp/CommonControlBlock.hpp"
 #include "audioapp/SamplerFilter.hpp"
 
 namespace audioapp {
@@ -143,7 +144,8 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
                                   const float* perFramePanelGain = nullptr,
                                   const InstrumentModulationContext* instMod = nullptr,
                                   int voiceLimit = kSubtractiveMaxVoices,
-                                  bool retriggerReplacesVoice = false) noexcept;
+                                  bool retriggerReplacesVoice = false,
+                                  const CommonControlBlock* commonControls = nullptr) noexcept;
 
 float subtractiveNoiseSample(float& seed) noexcept;
 

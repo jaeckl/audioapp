@@ -4,6 +4,7 @@
 
 #include "audioapp/AutomationTypes.hpp"
 #include "audioapp/SamplerFilter.hpp"
+#include "audioapp/dsp/CommonControlBlock.hpp"
 
 namespace audioapp {
 
@@ -105,7 +106,8 @@ void mixWavetableMidiNotesBlock(float* monoOut,
                                 const float* perFramePanelGain = nullptr,
                                 const InstrumentModulationContext* instMod = nullptr,
                                 int voiceLimit = kWavetableMaxVoices,
-                                bool retriggerReplacesVoice = false) noexcept;
+                                bool retriggerReplacesVoice = false,
+                                const CommonControlBlock* commonControls = nullptr) noexcept;
 
 float wavetableInterpolatedSample(const float* table,
                                   int frameCount,

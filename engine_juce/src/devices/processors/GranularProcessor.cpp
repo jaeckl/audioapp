@@ -104,8 +104,13 @@ void GranularProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept
             }
         }
         const float wet=std::sqrt(std::clamp(p.character,0.0f,1.0f));
-        block.channelL[frame]+=(left*(1-wet)+shaped[0]*wet*2.1f)*.36f;
-        block.channelR[frame]+=(right*(1-wet)+shaped[1]*wet*2.1f)*.36f;
+        const float commonGain = ctx.commonControls.gainAt(frame);
+        const float panAngle = std::clamp(ctx.commonControls.panAt(frame), 0.0f, 1.0f) * pi * 0.5f;
+        constexpr float centerCompensation = 1.41421356237f;
+        block.channelL[frame] += (left*(1-wet)+shaped[0]*wet*2.1f)*.36f *
+            commonGain * std::cos(panAngle) * centerCompensation;
+        block.channelR[frame] += (right*(1-wet)+shaped[1]*wet*2.1f)*.36f *
+            commonGain * std::sin(panAngle) * centerCompensation;
     }
 }
 } // namespace audioapp

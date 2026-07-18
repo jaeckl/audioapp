@@ -63,7 +63,7 @@ void mixClapMidiNotesBlock(float* monoOut,
                             const audioapp::ClapGeneratorParams& params,
                             audioapp::ClapGeneratorRuntime& runtime,
                             const audioapp::InstrumentModulationContext* instMod = nullptr,
-                            const float* perFramePanelGain = nullptr,
+                            const audioapp::CommonControlBlock* commonControls = nullptr,
                             uint16_t deviceIndex = 0) noexcept {
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
         return;
@@ -101,7 +101,7 @@ void mixClapMidiNotesBlock(float* monoOut,
         runtime.voice.elapsedSec = activeElapsed;
         const float vel = std::clamp(runtime.voice.velocity / 127.0f, 0.0f, 1.0f);
         const float velGain = 1.0f - params.clapVelocity * (1.0f - vel);
-        float panelGain = perFramePanelGain != nullptr ? perFramePanelGain[frame] : 1.0f;
+        float panelGain = commonControls != nullptr ? commonControls->gainAt(frame) : 1.0f;
         if (instMod != nullptr && activeNoteIndex >= 0) {
             const auto& note = notes[activeNoteIndex];
             const audioapp::NoteModKey key = audioapp::noteModKeyFromRegion(
@@ -165,12 +165,11 @@ void ClapProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
             cp,
             runtime_,
             instModPtr,
-            ctx.scratch.perFrameGain,
+            bakePanelGain ? &ctx.commonControls : nullptr,
             di
         );
         StereoOutputPanel::applyFromScratch(ctx.scratch.scratch, block, block.numSamples,
-                                             bakePanelGain ? nullptr : ctx.scratch.perFrameGain,
-                                             ctx.scratch.perFramePan);
+                                            ctx.commonControls, !bakePanelGain);
     }
 }
 

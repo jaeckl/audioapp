@@ -7,6 +7,7 @@
 #include <juce_core/juce_core.h>
 
 #include "audioapp/dsp/AudioBlock.hpp"
+#include "audioapp/dsp/CommonControlBlock.hpp"
 
 namespace audioapp {
 
@@ -83,6 +84,21 @@ struct StereoOutputPanel {
             const float angle = std::clamp(perFramePan[f], 0.0f, 1.0f) * 1.57079632679f;
             block.channelL[f] += g * std::cos(angle);
             block.channelR[f] += g * std::sin(angle);
+        }
+    }
+
+    /// Apply the compact common-control descriptor without forcing constant
+    /// or one-block ramp values through materialized scratch arrays.
+    static void applyFromScratch(float* scratch, AudioBlock& block, int frames,
+                                  const CommonControlBlock& controls,
+                                  bool applyGain = true) noexcept {
+        for (int f = 0; f < frames; ++f) {
+            const float gain = applyGain ? controls.gainAt(f) : 1.0f;
+            const float sample = scratch[f] * gain;
+            const float angle = std::clamp(controls.panAt(f), 0.0f, 1.0f) *
+                1.57079632679f;
+            block.channelL[f] += sample * std::cos(angle);
+            block.channelR[f] += sample * std::sin(angle);
         }
     }
 

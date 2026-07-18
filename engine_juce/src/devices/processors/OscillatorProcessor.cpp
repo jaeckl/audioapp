@@ -119,7 +119,7 @@ void OscillatorProcessor::process(AudioBlock& block, ProcessContext& ctx) noexce
                 / static_cast<double>(std::max(ctx.bpm, 1));
             const NoteModKey key = noteModKeyFromMidi(*activeNote);
             const ModulationEvalContext evalCtx = instModPtr->evalContextForFrame(frame);
-            const float panelGain = applyPerNoteCommonGain(ctx.scratch.perFrameGain[frame],
+            const float panelGain = applyPerNoteCommonGain(ctx.commonControls.gainAt(frame),
                                                            di,
                                                            elapsedSec,
                                                            activeNote->noteDurationBeats * 60.0 /
@@ -132,8 +132,7 @@ void OscillatorProcessor::process(AudioBlock& block, ProcessContext& ctx) noexce
     }
 
     StereoOutputPanel::applyFromScratch(ctx.scratch.scratch, block, block.numSamples,
-                                         bakePanelGain ? nullptr : ctx.scratch.perFrameGain,
-                                         ctx.scratch.perFramePan);
+                                        ctx.commonControls, !bakePanelGain);
 }
 
 } // namespace audioapp
