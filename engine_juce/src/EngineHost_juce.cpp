@@ -122,7 +122,7 @@ std::string EngineHost::ping() const {
 }
 
 void EngineHost::setPlaying(bool shouldPlay) {
-    if (shouldPlay) {
+    if (shouldPlay && isAudioOutputEnabled()) {
         impl_->ensureAudioInitialized();
         if (!impl_->audioInitialized.load(std::memory_order_acquire)) {
             project_->setPlaying(false);
@@ -140,7 +140,9 @@ bool EngineHost::isPlaying() const noexcept {
 }
 
 void EngineHost::ensureAudioOutput() {
-    impl_->ensureAudioInitialized();
+    if (isAudioOutputEnabled()) {
+        impl_->ensureAudioInitialized();
+    }
 }
 
 } // namespace audioapp

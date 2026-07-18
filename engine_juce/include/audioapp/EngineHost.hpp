@@ -26,6 +26,12 @@ public:
     EngineHost();
     ~EngineHost();
 
+    /// Controls whether EngineHost may open a physical audio output for this process.
+    /// Enabled by default for applications; headless test runners can disable it
+    /// before constructing any EngineHost instances.
+    static void setAudioOutputEnabled(bool enabled) noexcept;
+    static bool isAudioOutputEnabled() noexcept;
+
     EngineHost(const EngineHost&) = delete;
     EngineHost& operator=(const EngineHost&) = delete;
 

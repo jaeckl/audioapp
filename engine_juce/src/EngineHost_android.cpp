@@ -216,7 +216,7 @@ std::string EngineHost::ping() const {
 }
 
 void EngineHost::setPlaying(bool shouldPlay) {
-    if (shouldPlay) {
+    if (shouldPlay && isAudioOutputEnabled()) {
         if (!impl_->startStream()) {
             AUDIOAPP_LOG("Failed to start audio stream");
             project_->setPlaying(false);
@@ -236,7 +236,9 @@ bool EngineHost::isPlaying() const noexcept {
 }
 
 void EngineHost::ensureAudioOutput() {
-    impl_->startStream();
+    if (isAudioOutputEnabled()) {
+        impl_->startStream();
+    }
 }
 
 } // namespace audioapp

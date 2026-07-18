@@ -1,5 +1,8 @@
+#include "audioapp/EngineHost.hpp"
+
 #include <juce_core/juce_core.h>
 #include <cstdio>
+#include <cstring>
 #include <crtdbg.h>
 
 static void invalidParamHandler(const wchar_t* expr, const wchar_t* func, const wchar_t* file, unsigned int line, uintptr_t)
@@ -18,7 +21,32 @@ int main(int argc, char** argv)
     _CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
     _set_invalid_parameter_handler(invalidParamHandler);
 
-    const char* filter = argc > 1 ? argv[1] : nullptr;
+    bool enableAudioOutput = false;
+    const char* filter = nullptr;
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--audio-output") == 0) {
+            enableAudioOutput = true;
+        } else if (std::strcmp(argv[i], "--help") == 0) {
+            std::fprintf(stderr,
+                         "Usage: audioapp_juce_tests [--audio-output] [test-name-filter]\n"
+                         "Physical audio output is disabled by default.\n");
+            return 0;
+        } else if (argv[i][0] == '-') {
+            std::fprintf(stderr, "Unknown option: %s\n", argv[i]);
+            return 2;
+        } else if (filter == nullptr) {
+            filter = argv[i];
+        } else {
+            std::fprintf(stderr, "Only one test-name filter may be specified.\n");
+            return 2;
+        }
+    }
+
+    audioapp::EngineHost::setAudioOutputEnabled(enableAudioOutput);
+    std::fprintf(stderr, "Physical audio output: %s%s\n",
+                 enableAudioOutput ? "enabled" : "disabled",
+                 enableAudioOutput ? "" : " (pass --audio-output to enable)");
+
     const auto& allTests = juce::UnitTest::getAllTests();
 
     for (auto* t : allTests) {

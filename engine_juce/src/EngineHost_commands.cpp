@@ -23,6 +23,18 @@
 
 namespace audioapp {
 
+namespace {
+std::atomic<bool> gAudioOutputEnabled{true};
+}
+
+void EngineHost::setAudioOutputEnabled(bool enabled) noexcept {
+    gAudioOutputEnabled.store(enabled, std::memory_order_release);
+}
+
+bool EngineHost::isAudioOutputEnabled() noexcept {
+    return gAudioOutputEnabled.load(std::memory_order_acquire);
+}
+
 void EngineHost::ensureSampleBankReady() {
     sampleBank_.registerBundledDefaults();
     project_->setSampleBank(&sampleBank_);
