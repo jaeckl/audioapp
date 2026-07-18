@@ -8,6 +8,7 @@ import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
 import 'drum_model_tab_bar.dart';
+import 'drum_keytrack_toggle.dart';
 import 'rotary_knob.dart';
 
 class CymbalGeneratorDevicePanel extends StatelessWidget {
@@ -155,8 +156,10 @@ class CymbalGeneratorDevicePanel extends StatelessWidget {
   Widget _buildKnob(CymbalKnobSpec spec) {
     final value = spec.value(device);
     final paramId = spec.paramId;
-    return RotaryKnob(
-      label: spec.label,
+    final knob = RotaryKnob(
+      label: paramId == 'cymbalPitch' && device.cymbalKeyTrack >= 0.5
+          ? 'Tune'
+          : spec.label,
       value: value.clamp(0.0, 1.0),
       size: DeviceKnobSizes.strip,
       displayValue: spec.format(value),
@@ -177,6 +180,20 @@ class CymbalGeneratorDevicePanel extends StatelessWidget {
           ? () => onAutomateParameter!(paramId)
           : null,
       onChanged: (v) => onParameterChanged(paramId, v),
+    );
+    if (paramId != 'cymbalPitch') return knob;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        knob,
+        const SizedBox(width: 4),
+        DrumKeyTrackToggle(
+          active: device.cymbalKeyTrack >= 0.5,
+          accent: accent,
+          onChanged: (active) =>
+              onParameterChanged('cymbalKeyTrack', active ? 1.0 : 0.0),
+        ),
+      ],
     );
   }
 }

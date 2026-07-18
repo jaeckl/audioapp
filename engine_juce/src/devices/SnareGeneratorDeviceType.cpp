@@ -49,6 +49,7 @@ DeviceParameterResult SnareGeneratorDeviceType::setParameter(DeviceSlot& slot,
     case SnareParam::Snap:     instance.snareSnap = clamped; break;
     case SnareParam::Decay:    instance.snareDecay = clamped; break;
     case SnareParam::Velocity: instance.snareVelocity = clamped; break;
+    case SnareParam::KeyTrack: instance.snareKeyTrack = clamped >= 0.5f ? 1.0f : 0.0f; break;
     default: return result;
     }
 
@@ -65,7 +66,7 @@ bool SnareGeneratorDeviceType::setStringParameter(DeviceSlot&,
 
 std::vector<std::string_view> SnareGeneratorDeviceType::modulatableParams() const {
     return {"gain", "snareModel", "snareBody", "snareRing", "snareTune", "snareSnares",
-            "snareSnap", "snareDecay", "snareVelocity"};
+            "snareSnap", "snareDecay", "snareVelocity", "snareKeyTrack"};
 }
 
 void SnareGeneratorDeviceType::buildPlaybackNode(const DeviceSlot& slot,
@@ -102,6 +103,7 @@ juce::var SnareGeneratorDeviceType::slotToVar(const DeviceSlot& slot) const {
     parameters->setProperty("snareSnap", static_cast<double>(inst.snareSnap));
     parameters->setProperty("snareDecay", static_cast<double>(inst.snareDecay));
     parameters->setProperty("snareVelocity", static_cast<double>(inst.snareVelocity));
+    parameters->setProperty("snareKeyTrack", static_cast<double>(inst.snareKeyTrack));
 
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
@@ -173,6 +175,7 @@ DeviceSlot SnareGeneratorDeviceType::varToSlot(const juce::var& obj) const {
             inst.snareSnap = readFloat(p, "snareSnap", 0.40f);
             inst.snareDecay = readFloat(p, "snareDecay", 0.50f);
             inst.snareVelocity = readFloat(p, "snareVelocity", 1.0f);
+            inst.snareKeyTrack = readFloat(p, "snareKeyTrack", 1.0f);
             slot.config.instance = inst;
 
         }
@@ -198,6 +201,7 @@ uint16_t SnareGeneratorDeviceType::paramIdFromString(std::string_view name) cons
     if (auto v = s("snareSnap", SnareParam::Snap); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = s("snareDecay", SnareParam::Decay); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = s("snareVelocity", SnareParam::Velocity); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("snareKeyTrack", SnareParam::KeyTrack); v != static_cast<uint16_t>(-1)) return v;
     return static_cast<uint16_t>(-1);
 }
 
@@ -211,6 +215,7 @@ std::string_view SnareGeneratorDeviceType::paramIdToString(uint16_t localId) con
     case SnareParam::Snap: return "snareSnap";
     case SnareParam::Decay: return "snareDecay";
     case SnareParam::Velocity: return "snareVelocity";
+    case SnareParam::KeyTrack: return "snareKeyTrack";
     default: return "";
     }
 }
@@ -225,6 +230,7 @@ std::span<const ParamDescriptor> SnareGeneratorDeviceType::paramDescriptors() co
         {static_cast<uint16_t>(SnareParam::Snap), "snareSnap", "Snap", 0.40f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(SnareParam::Decay), "snareDecay", "Decay", 0.50f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(SnareParam::Velocity), "snareVelocity", "Velocity", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SnareParam::KeyTrack), "snareKeyTrack", "Key Track", 1.0f, 0.0f, 1.0f, true, true, ParameterUpdateRate::Discrete},
     };
     return kParams;
 }

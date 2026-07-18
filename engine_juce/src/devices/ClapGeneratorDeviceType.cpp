@@ -47,6 +47,8 @@ DeviceParameterResult ClapGeneratorDeviceType::setParameter(DeviceSlot& slot,
     case ClapParam::Room:     instance.clapRoom = clamped; break;
     case ClapParam::Decay:    instance.clapDecay = clamped; break;
     case ClapParam::Velocity: instance.clapVelocity = clamped; break;
+    case ClapParam::Pitch:    instance.clapPitch = clamped; break;
+    case ClapParam::KeyTrack: instance.clapKeyTrack = clamped >= 0.5f ? 1.0f : 0.0f; break;
     default: return result;
     }
 
@@ -63,7 +65,7 @@ bool ClapGeneratorDeviceType::setStringParameter(DeviceSlot&,
 
 std::vector<std::string_view> ClapGeneratorDeviceType::modulatableParams() const {
     return {"gain", "clapBursts", "clapSpread", "clapTone", "clapRoom", "clapDecay",
-            "clapVelocity"};
+            "clapVelocity", "clapPitch", "clapKeyTrack"};
 }
 
 void ClapGeneratorDeviceType::buildPlaybackNode(const DeviceSlot& slot,
@@ -98,6 +100,8 @@ juce::var ClapGeneratorDeviceType::slotToVar(const DeviceSlot& slot) const {
     parameters->setProperty("clapRoom", static_cast<double>(inst.clapRoom));
     parameters->setProperty("clapDecay", static_cast<double>(inst.clapDecay));
     parameters->setProperty("clapVelocity", static_cast<double>(inst.clapVelocity));
+    parameters->setProperty("clapPitch", static_cast<double>(inst.clapPitch));
+    parameters->setProperty("clapKeyTrack", static_cast<double>(inst.clapKeyTrack));
 
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
@@ -166,6 +170,8 @@ DeviceSlot ClapGeneratorDeviceType::varToSlot(const juce::var& obj) const {
             inst.clapRoom = readFloat(p, "clapRoom", 0.50f);
             inst.clapDecay = readFloat(p, "clapDecay", 0.50f);
             inst.clapVelocity = readFloat(p, "clapVelocity", 1.0f);
+            inst.clapPitch = readFloat(p, "clapPitch", 0.50f);
+            inst.clapKeyTrack = readFloat(p, "clapKeyTrack", 0.0f);
             slot.config.instance = inst;
 
         }
@@ -189,6 +195,8 @@ uint16_t ClapGeneratorDeviceType::paramIdFromString(std::string_view name) const
     if (auto v = c("clapRoom", ClapParam::Room); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = c("clapDecay", ClapParam::Decay); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = c("clapVelocity", ClapParam::Velocity); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("clapPitch", ClapParam::Pitch); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("clapKeyTrack", ClapParam::KeyTrack); v != static_cast<uint16_t>(-1)) return v;
     return static_cast<uint16_t>(-1);
 }
 
@@ -200,6 +208,8 @@ std::string_view ClapGeneratorDeviceType::paramIdToString(uint16_t localId) cons
     case ClapParam::Room: return "clapRoom";
     case ClapParam::Decay: return "clapDecay";
     case ClapParam::Velocity: return "clapVelocity";
+    case ClapParam::Pitch: return "clapPitch";
+    case ClapParam::KeyTrack: return "clapKeyTrack";
     default: return "";
     }
 }
@@ -212,6 +222,8 @@ std::span<const ParamDescriptor> ClapGeneratorDeviceType::paramDescriptors() con
         {static_cast<uint16_t>(ClapParam::Room), "clapRoom", "Room", 0.50f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(ClapParam::Decay), "clapDecay", "Decay", 0.50f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(ClapParam::Velocity), "clapVelocity", "Velocity", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(ClapParam::Pitch), "clapPitch", "Pitch", 0.50f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(ClapParam::KeyTrack), "clapKeyTrack", "Key Track", 0.0f, 0.0f, 1.0f, true, true, ParameterUpdateRate::Discrete},
     };
     return kParams;
 }

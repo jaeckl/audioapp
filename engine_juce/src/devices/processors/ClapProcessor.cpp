@@ -73,6 +73,7 @@ void mixClapMidiNotesBlock(float* monoOut,
         const double beat = beatAtFrame(playheadStartBeat, frame, sampleRate, bpm);
         int activeNoteKey = -1;
         int activeNoteIndex = -1;
+        int activePitch = 39;
         float activeVelocity = 100.0f;
         double activeElapsed = 0.0;
         for (int noteIndex = 0; noteIndex < noteCount; ++noteIndex) {
@@ -84,6 +85,7 @@ void mixClapMidiNotesBlock(float* monoOut,
             }
             activeNoteKey = note.noteKey;
             activeNoteIndex = noteIndex;
+            activePitch = note.pitch;
             activeVelocity = note.velocity;
             activeElapsed = elapsedSeconds;
         }
@@ -93,7 +95,7 @@ void mixClapMidiNotesBlock(float* monoOut,
             continue;
         }
         if (runtime.lastNoteKey != activeNoteKey || runtime.voice.active == 0) {
-            triggerClapVoice(runtime.voice, activeVelocity, params);
+            triggerClapVoice(runtime.voice, activePitch, activeVelocity, params);
             runtime.lastNoteKey = activeNoteKey;
         }
         runtime.voice.elapsedSec = activeElapsed;

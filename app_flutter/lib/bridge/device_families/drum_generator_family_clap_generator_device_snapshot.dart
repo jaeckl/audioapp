@@ -14,6 +14,8 @@ class ClapGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
     required this.clapRoom,
     required this.clapDecay,
     required this.clapVelocity,
+    this.clapPitch = 0.50,
+    this.clapKeyTrack = 0.0,
   }) : super(type: 'clap_generator');
 
   final double clapBursts;
@@ -22,6 +24,8 @@ class ClapGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
   final double clapRoom;
   final double clapDecay;
   final double clapVelocity;
+  final double clapPitch;
+  final double clapKeyTrack;
 
   factory ClapGeneratorDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -41,6 +45,8 @@ class ClapGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
       clapRoom: (params['clapRoom'] as num?)?.toDouble() ?? 0.50,
       clapDecay: (params['clapDecay'] as num?)?.toDouble() ?? 0.50,
       clapVelocity: (params['clapVelocity'] as num?)?.toDouble() ?? 1.0,
+      clapPitch: (params['clapPitch'] as num?)?.toDouble() ?? 0.50,
+      clapKeyTrack: (params['clapKeyTrack'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -59,6 +65,8 @@ class ClapGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
     double? clapRoom,
     double? clapDecay,
     double? clapVelocity,
+    double? clapPitch,
+    double? clapKeyTrack,
   }) {
     return ClapGeneratorDeviceSnapshot(
       id: id ?? this.id,
@@ -73,6 +81,8 @@ class ClapGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
       clapRoom: clapRoom ?? this.clapRoom,
       clapDecay: clapDecay ?? this.clapDecay,
       clapVelocity: clapVelocity ?? this.clapVelocity,
+      clapPitch: clapPitch ?? this.clapPitch,
+      clapKeyTrack: clapKeyTrack ?? this.clapKeyTrack,
     );
   }
 
@@ -88,6 +98,8 @@ class ClapGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
       'clapRoom' => copyWith(clapRoom: value.clamp(0.0, 1.0)),
       'clapDecay' => copyWith(clapDecay: value.clamp(0.0, 1.0)),
       'clapVelocity' => copyWith(clapVelocity: value.clamp(0.0, 1.0)),
+      'clapPitch' => copyWith(clapPitch: value.clamp(0.0, 1.0)),
+      'clapKeyTrack' => copyWith(clapKeyTrack: value >= 0.5 ? 1.0 : 0.0),
       _ => this,
     };
   }

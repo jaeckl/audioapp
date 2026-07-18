@@ -13,6 +13,8 @@ struct CymbalGeneratorParams {
     float cymbalDecay = 0.50f;      // 0=short (closed hat), 1=long (open hat)
     float cymbalWidth = 0.35f;      // stereo width (0=mono, 1=max)
     float cymbalVelocity = 1.0f;
+    float cymbalPitch = 0.50f;
+    float cymbalKeyTrack = 0.0f;
 };
 
 struct CymbalVoiceRuntime : MetallicNoiseVoiceRuntime {
@@ -29,6 +31,7 @@ struct CymbalVoiceRuntime : MetallicNoiseVoiceRuntime {
     BiquadState highpassStateL{};
     BiquadState highpassStateR{};
     float configuredColor = -1.0f;
+    float configuredPitchRatio = -1.0f;
     float configuredSampleRate = 0.0f;
 };
 

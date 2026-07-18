@@ -1,6 +1,7 @@
 #include "audioapp/CymbalAlgorithm.hpp"
 
 #include "audioapp/DeviceChain.hpp"
+#include "audioapp/PercussionPitch.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -20,20 +21,27 @@ float decaySeconds(float decay, int model) noexcept {
 
 float pulse(float phase) noexcept { return phase < 3.14159265f ? 1.0f : -1.0f; }
 
-void configure(CymbalVoiceRuntime& voice, float color, float sampleRate) noexcept {
-    if (voice.configuredColor == color && voice.configuredSampleRate == sampleRate) return;
-    cookSamplerBiquad(voice.bodyCoeffs, 2, sampleRate, 1150.0f + color * 1750.0f, 0.72f);
-    cookSamplerBiquad(voice.sizzleCoeffs, 2, sampleRate, 4300.0f + color * 5200.0f, 0.62f);
-    cookSamplerBiquad(voice.highpassCoeffs, 1, sampleRate, 520.0f + color * 1150.0f, 0.707f);
+void configure(CymbalVoiceRuntime& voice, float color, float ratio,
+               float sampleRate) noexcept {
+    if (voice.configuredColor == color && voice.configuredPitchRatio == ratio &&
+        voice.configuredSampleRate == sampleRate) return;
+    const auto hz = [sampleRate, ratio](float base) {
+        return std::clamp(base * ratio, 30.0f, sampleRate * 0.42f);
+    };
+    cookSamplerBiquad(voice.bodyCoeffs, 2, sampleRate, hz(1150.0f + color * 1750.0f), 0.72f);
+    cookSamplerBiquad(voice.sizzleCoeffs, 2, sampleRate, hz(4300.0f + color * 5200.0f), 0.62f);
+    cookSamplerBiquad(voice.highpassCoeffs, 1, sampleRate, hz(520.0f + color * 1150.0f), 0.707f);
     voice.configuredColor = color;
+    voice.configuredPitchRatio = ratio;
     voice.configuredSampleRate = sampleRate;
 }
 
-void generateMetal(CymbalVoiceRuntime& voice, float color, float width, double sampleRate) noexcept {
+void generateMetal(CymbalVoiceRuntime& voice, float color, float width,
+                   float ratio, double sampleRate) noexcept {
     float s[6];
     const float tune = 0.88f + color * 0.30f;
     for (int i = 0; i < 6; ++i) {
-        voice.oscillatorPhase[i] += kTwoPi * kOscHz[i] * tune / static_cast<float>(sampleRate);
+        voice.oscillatorPhase[i] += kTwoPi * kOscHz[i] * tune * ratio / static_cast<float>(sampleRate);
         if (voice.oscillatorPhase[i] >= kTwoPi) voice.oscillatorPhase[i] -= kTwoPi;
         s[i] = pulse(voice.oscillatorPhase[i]);
     }
@@ -53,8 +61,10 @@ float render(CymbalVoiceRuntime& voice, const CymbalGeneratorParams& params,
     const float color = std::clamp(params.cymbalColor, 0.0f, 1.0f);
     const float width = std::clamp(params.cymbalWidth, 0.0f, 1.0f);
     const int model = cymbalModelIndex(params.cymbalModel);
-    configure(voice, color, static_cast<float>(sampleRate));
-    if (!right) generateMetal(voice, color, width, sampleRate);
+    const float ratio = percussionPitchRatio(
+        params.cymbalPitch, voice.pitch, 42, params.cymbalKeyTrack);
+    configure(voice, color, ratio, static_cast<float>(sampleRate));
+    if (!right) generateMetal(voice, color, width, ratio, sampleRate);
 
     const double t = voice.elapsedSec;
     const float tau = decaySeconds(std::clamp(params.cymbalDecay, 0.0f, 1.0f), model);

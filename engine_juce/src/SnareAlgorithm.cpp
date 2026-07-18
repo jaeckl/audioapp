@@ -1,5 +1,6 @@
 #include "audioapp/SnareAlgorithm.hpp"
 #include "audioapp/DeviceChain.hpp"
+#include "audioapp/PercussionPitch.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -12,9 +13,6 @@ constexpr float kTwoPi = 6.28318530718f;
 float noise(uint32_t& state) noexcept {
     state ^= state << 13; state ^= state >> 17; state ^= state << 5;
     return static_cast<float>(state) * (1.0f / 2147483648.0f) - 1.0f;
-}
-float pitchRatio(int pitch) noexcept {
-    return std::pow(2.0f, static_cast<float>(pitch - 38) / 24.0f);
 }
 float overallDecay(float norm) noexcept { return 0.16f + norm * 0.46f; }
 } // namespace
@@ -30,17 +28,21 @@ void configureSnareVoice(SnareVoiceRuntime& voice, const SnareGeneratorParams& p
     const float ring = std::clamp(params.snareRing, 0.0f, 1.0f);
     const float tune = std::clamp(params.snareTune, 0.0f, 1.0f);
     const float snares = std::clamp(params.snareSnares, 0.0f, 1.0f);
-    const float ratio = pitchRatio(voice.pitch);
-    const float fundamental = (145.0f + tune * 105.0f) * ratio;
-    voice.membraneHz[0] = fundamental;
-    voice.membraneHz[1] = fundamental * (1.61f + body * 0.09f);
-    voice.membraneHz[2] = fundamental * (2.27f + ring * 0.16f);
+    const float ratio = percussionPitchRatio(
+        tune, voice.pitch, 38, params.snareKeyTrack);
+    const float fundamental = 197.5f * ratio;
+    const auto safeHz = [sampleRate](float hz) {
+        return std::clamp(hz, 20.0f, sampleRate * 0.42f);
+    };
+    voice.membraneHz[0] = safeHz(fundamental);
+    voice.membraneHz[1] = safeHz(fundamental * (1.61f + body * 0.09f));
+    voice.membraneHz[2] = safeHz(fundamental * (2.27f + ring * 0.16f));
     voice.membraneDecaySec[0] = 0.085f + body * 0.16f;
     voice.membraneDecaySec[1] = 0.055f + body * 0.10f;
     voice.membraneDecaySec[2] = 0.035f + ring * 0.16f;
     voice.wiresDecaySec = 0.11f + snares * 0.34f;
 
-    const float wireCenter = std::clamp(1500.0f + tune * 3800.0f,
+    const float wireCenter = std::clamp(3400.0f * ratio,
                                         350.0f, sampleRate * 0.42f);
     cookSamplerBiquad(voice.wiresCoeffs, 2, sampleRate, wireCenter,
                       0.55f + (1.0f - snares) * 0.75f);

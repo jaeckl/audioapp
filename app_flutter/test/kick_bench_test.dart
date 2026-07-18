@@ -58,7 +58,7 @@ void main() {
   testWidgets('kick bench shows all timbre knobs without tabs', (tester) async {
     await pumpKickSlot(tester);
 
-    expect(find.text('Pitch'), findsOneWidget);
+    expect(find.text('Tune'), findsOneWidget);
     expect(find.text('Punch'), findsOneWidget);
     expect(find.text('Tone'), findsOneWidget);
     expect(find.text('Click'), findsOneWidget);

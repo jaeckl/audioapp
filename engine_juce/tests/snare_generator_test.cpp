@@ -55,6 +55,30 @@ public:
             expect(audioapp::test::peakAbs(live, kFrames) > 0.001f,
                    "Snare live performance mixer should produce audible output");
         }
+
+        beginTest("pitch and keytrack control membrane tuning");
+        {
+            audioapp::SnareGeneratorParams params;
+            audioapp::SnareVoiceRuntime low;
+            audioapp::SnareVoiceRuntime high;
+            params.snareTune = 0.25f;
+            audioapp::triggerSnareVoice(low, 38, 100.0f);
+            audioapp::configureSnareVoice(low, params, kSampleRate);
+            params.snareTune = 0.75f;
+            audioapp::triggerSnareVoice(high, 38, 100.0f);
+            audioapp::configureSnareVoice(high, params, kSampleRate);
+            expect(high.membraneHz[0] > low.membraneHz[0] * 3.5f,
+                   "snare pitch should span four octaves");
+
+            params.snareTune = 0.5f;
+            params.snareKeyTrack = 0.0f;
+            audioapp::triggerSnareVoice(low, 38, 100.0f);
+            audioapp::triggerSnareVoice(high, 50, 100.0f);
+            audioapp::configureSnareVoice(low, params, kSampleRate);
+            audioapp::configureSnareVoice(high, params, kSampleRate);
+            expectWithinAbsoluteError(high.membraneHz[0], low.membraneHz[0], 0.001f,
+                                      "disabled keytrack should ignore MIDI pitch");
+        }
     }
 };
 

@@ -13,6 +13,8 @@ struct CrashGeneratorParams {
     float crashSpread = 0.50f;     // stereo width
     float crashDecay = 0.55f;      // 0=short, 1=long
     float crashVelocity = 1.0f;
+    float crashPitch = 0.50f;
+    float crashKeyTrack = 0.0f;
 };
 
 static constexpr int kCrashModeCount = 16;

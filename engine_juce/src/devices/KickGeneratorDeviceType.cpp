@@ -218,7 +218,7 @@ std::span<const ParamDescriptor> KickGeneratorDeviceType::paramDescriptors() con
         {static_cast<uint16_t>(KickParam::Click), "kickClick", "Click", 0.35f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(KickParam::Tone), "kickTone", "Tone", 0.50f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(KickParam::Velocity), "kickVelocity", "Velocity", 1.0f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(KickParam::KeyTrack), "kickKeyTrack", "Key Track", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(KickParam::KeyTrack), "kickKeyTrack", "Key Track", 1.0f, 0.0f, 1.0f, true, true, ParameterUpdateRate::Discrete},
     };
     return kParams;
 }

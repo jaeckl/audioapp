@@ -5,6 +5,7 @@ import 'clap_burst_preview.dart';
 import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
+import 'drum_keytrack_toggle.dart';
 import 'rotary_knob.dart';
 
 part 'clap_generator_device_panel_clap_device_tab.dart';

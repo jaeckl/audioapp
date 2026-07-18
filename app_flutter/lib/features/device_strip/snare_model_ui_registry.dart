@@ -1,7 +1,9 @@
 import '../../bridge/project_snapshot.dart';
 import 'snare_envelope_preview.dart';
+import 'drum_keytrack_toggle.dart';
 
 part 'snare_model_ui_registry_snare_knob_spec.dart';
+
 abstract final class SnareModelUiRegistry {
   static const _acousticKnobs = <SnareKnobSpec>[
     SnareKnobSpec(
@@ -18,9 +20,9 @@ abstract final class SnareModelUiRegistry {
     ),
     SnareKnobSpec(
       paramId: 'snareTune',
-      label: 'Tune',
+      label: 'Pitch',
       value: _tune,
-      format: snareTuneLabel,
+      format: percussionPitchLabel,
     ),
     SnareKnobSpec(
       paramId: 'snareSnares',

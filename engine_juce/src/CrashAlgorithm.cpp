@@ -1,6 +1,7 @@
 #include "audioapp/CrashAlgorithm.hpp"
 
 #include "audioapp/DeviceChain.hpp"
+#include "audioapp/PercussionPitch.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -27,8 +28,9 @@ float decaySeconds(float norm, int mode) noexcept {
     return base + norm * (mode == 2 ? 4.0f : 3.3f);
 }
 
-void advance(CrashVoiceRuntime& voice, float color, double sampleRate) noexcept {
-    const float baseHz = 235.0f + color * 115.0f;
+void advance(CrashVoiceRuntime& voice, float color, float ratio,
+             double sampleRate) noexcept {
+    const float baseHz = (235.0f + color * 115.0f) * ratio;
     for (int i = 0; i < kCrashModeCount; ++i) {
         const float slowChaos = 1.0f + 0.0035f * std::sin(
             static_cast<float>(voice.elapsedSec) * (2.1f + i * 0.37f) + i);
@@ -47,7 +49,11 @@ float render(CrashVoiceRuntime& voice, const CrashGeneratorParams& params,
     const float spread = std::clamp(params.crashSpread, 0.0f, 1.0f);
     const float totalDecay = decaySeconds(std::clamp(params.crashDecay, 0.0f, 1.0f),
                                           crashModelIndex(params.crashModel));
-    if (!right) advance(voice, color, sampleRate);
+    if (!right) advance(
+        voice, color,
+        percussionPitchRatio(params.crashPitch, voice.pitch, 49,
+                              params.crashKeyTrack),
+        sampleRate);
     const double t = voice.elapsedSec;
     if (std::exp(-t / totalDecay) < 0.00001) { voice.active = 0; return 0.0f; }
 

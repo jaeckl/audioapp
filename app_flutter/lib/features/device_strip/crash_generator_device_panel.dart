@@ -8,6 +8,7 @@ import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
 import 'drum_model_tab_bar.dart';
+import 'drum_keytrack_toggle.dart';
 import 'rotary_knob.dart';
 
 class CrashGeneratorDevicePanel extends StatelessWidget {
@@ -155,8 +156,10 @@ class CrashGeneratorDevicePanel extends StatelessWidget {
   Widget _buildKnob(CrashKnobSpec spec) {
     final value = spec.value(device);
     final paramId = spec.paramId;
-    return RotaryKnob(
-      label: spec.label,
+    final knob = RotaryKnob(
+      label: paramId == 'crashPitch' && device.crashKeyTrack >= 0.5
+          ? 'Tune'
+          : spec.label,
       value: value.clamp(0.0, 1.0),
       size: DeviceKnobSizes.strip,
       displayValue: spec.format(value),
@@ -177,6 +180,20 @@ class CrashGeneratorDevicePanel extends StatelessWidget {
           ? () => onAutomateParameter!(paramId)
           : null,
       onChanged: (v) => onParameterChanged(paramId, v),
+    );
+    if (paramId != 'crashPitch') return knob;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        knob,
+        const SizedBox(width: 4),
+        DrumKeyTrackToggle(
+          active: device.crashKeyTrack >= 0.5,
+          accent: accent,
+          onChanged: (active) =>
+              onParameterChanged('crashKeyTrack', active ? 1.0 : 0.0),
+        ),
+      ],
     );
   }
 }

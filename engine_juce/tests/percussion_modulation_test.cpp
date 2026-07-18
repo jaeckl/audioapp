@@ -15,7 +15,9 @@
 #include <juce_core/juce_core.h>
 #include "TestHelpers.h"
 #include "audioapp/EngineHost.hpp"
+#include "audioapp/AutomationPlayback.hpp"
 #include "audioapp/MidiClipPlayback.hpp"
+#include "audioapp/PercussionPitch.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -124,6 +126,34 @@ class PercussionModulationTest : public juce::UnitTest {
 public:
     PercussionModulationTest() : juce::UnitTest("PercussionModulation", "Effects") {}
     void runTest() override {
+        beginTest("percussion keytrack follows MIDI pitch only when enabled");
+        {
+            const float fixed = audioapp::percussionPitchRatio(0.5f, 72, 60, 0.0f);
+            const float tracked = audioapp::percussionPitchRatio(0.5f, 72, 60, 1.0f);
+            expectWithinAbsoluteError(fixed, 1.0f, 0.0001f,
+                                      "disabled keytrack should keep fixed tuning");
+            expectWithinAbsoluteError(tracked, 2.0f, 0.0001f,
+                                      "enabled keytrack should follow semitones");
+        }
+        beginTest("all percussion keytrack parameters compile for realtime DSP");
+        {
+            const struct {
+                const char* name;
+                audioapp::DeviceNodeKind kind;
+            } cases[] = {
+                {"kickKeyTrack", audioapp::DeviceNodeKind::KickGenerator},
+                {"snareKeyTrack", audioapp::DeviceNodeKind::SnareGenerator},
+                {"clapKeyTrack", audioapp::DeviceNodeKind::ClapGenerator},
+                {"cymbalKeyTrack", audioapp::DeviceNodeKind::CymbalGenerator},
+                {"crashKeyTrack", audioapp::DeviceNodeKind::CrashGenerator},
+            };
+            for (const auto& item : cases) {
+                const auto encoded = audioapp::paramIdFromString(item.name, item.kind);
+                expect(encoded != 0 &&
+                           std::string(audioapp::paramIdToString(encoded, item.kind)) == item.name,
+                       std::string(item.name) + " should round-trip through compiled parameter IDs");
+            }
+        }
         beginTest("LFO -> Kick pitch -> spectral change");
         {
             expect(testPercussionModulation("kick_generator", "kickPitch", "Kick pitch"),

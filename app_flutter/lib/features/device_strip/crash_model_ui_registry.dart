@@ -1,8 +1,16 @@
 import '../../bridge/project_snapshot.dart';
+import 'drum_keytrack_toggle.dart';
 
 part 'crash_model_ui_registry_crash_knob_spec.dart';
+
 abstract final class CrashModelUiRegistry {
   static const _brightKnobs = <CrashKnobSpec>[
+    CrashKnobSpec(
+      paramId: 'crashPitch',
+      label: 'Pitch',
+      value: _pitch,
+      format: percussionPitchLabel,
+    ),
     CrashKnobSpec(
       paramId: 'crashColor',
       label: 'Color',
@@ -26,6 +34,7 @@ abstract final class CrashModelUiRegistry {
   static List<CrashKnobSpec> get knobs => _brightKnobs;
 
   static double _color(CrashGeneratorDeviceSnapshot d) => d.crashColor;
+  static double _pitch(CrashGeneratorDeviceSnapshot d) => d.crashPitch;
   static double _spread(CrashGeneratorDeviceSnapshot d) => d.crashSpread;
   static double _decay(CrashGeneratorDeviceSnapshot d) => d.crashDecay;
 

@@ -55,6 +55,28 @@ public:
             expect(audioapp::test::peakAbs(live, kFrames) > 0.001f,
                    "Cymbal live performance mixer should produce audible output");
         }
+
+        beginTest("pitch changes cymbal spectrum");
+        {
+            audioapp::CymbalGeneratorParams lowParams;
+            auto highParams = lowParams;
+            lowParams.cymbalPitch = 0.25f;
+            highParams.cymbalPitch = 0.75f;
+            audioapp::CymbalVoiceRuntime low;
+            audioapp::CymbalVoiceRuntime high;
+            audioapp::triggerCymbalVoice(low, 42, 100.0f);
+            audioapp::triggerCymbalVoice(high, 42, 100.0f);
+            float difference = 0.0f;
+            for (int frame = 0; frame < 512; ++frame) {
+                low.elapsedSec = high.elapsedSec = frame / kSampleRate;
+                const float lowSample = audioapp::cymbalGeneratorSampleL(
+                    low, lowParams, kSampleRate, 1.0f);
+                const float highSample = audioapp::cymbalGeneratorSampleL(
+                    high, highParams, kSampleRate, 1.0f);
+                difference += std::abs(lowSample - highSample);
+            }
+            expect(difference > 0.01f, "cymbal pitch should change rendered audio");
+        }
     }
 };
 

@@ -115,6 +115,7 @@ enum class SnareParam : uint16_t {
     Snap = 5,
     Decay = 6,
     Velocity = 7,
+    KeyTrack = 8,
 };
 
 enum class ClapParam : uint16_t {
@@ -124,6 +125,8 @@ enum class ClapParam : uint16_t {
     Room = 3,
     Decay = 4,
     Velocity = 5,
+    Pitch = 6,
+    KeyTrack = 7,
 };
 
 enum class CymbalParam : uint16_t {
@@ -132,6 +135,8 @@ enum class CymbalParam : uint16_t {
     Decay = 2,
     Width = 3,
     Velocity = 4,
+    Pitch = 5,
+    KeyTrack = 6,
 };
 
 enum class CrashParam : uint16_t {
@@ -140,6 +145,8 @@ enum class CrashParam : uint16_t {
     Spread = 2,
     Decay = 3,
     Velocity = 4,
+    Pitch = 5,
+    KeyTrack = 6,
 };
 
 enum class GateParam : uint16_t {

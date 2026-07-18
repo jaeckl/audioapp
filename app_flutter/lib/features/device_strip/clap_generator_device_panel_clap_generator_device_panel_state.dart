@@ -103,6 +103,27 @@ class _ClapGeneratorDevicePanelState extends State<ClapGeneratorDevicePanel> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _knob(
+                label: widget.device.clapKeyTrack >= 0.5 ? 'Tune' : 'Pitch',
+                value: widget.device.clapPitch,
+                paramId: 'clapPitch',
+                displayValue: percussionPitchLabel(widget.device.clapPitch),
+                onChanged: (v) => widget.onParameterChanged('clapPitch', v),
+              ),
+              const SizedBox(width: 4),
+              DrumKeyTrackToggle(
+                active: widget.device.clapKeyTrack >= 0.5,
+                accent: ClapGeneratorDevicePanel.accent,
+                onChanged: (active) => widget.onParameterChanged(
+                  'clapKeyTrack',
+                  active ? 1.0 : 0.0,
+                ),
+              ),
+            ],
+          ),
           _knob(
             label: 'Tone',
             value: widget.device.clapTone,

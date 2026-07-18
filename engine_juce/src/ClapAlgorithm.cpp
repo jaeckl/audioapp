@@ -1,5 +1,6 @@
 #include "audioapp/ClapAlgorithm.hpp"
 #include "audioapp/DeviceChain.hpp"
+#include "audioapp/PercussionPitch.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -11,12 +12,19 @@ float noise(float& seed) noexcept {
     seed = std::fmod(seed * 16807.0f, 2147483647.0f);
     return seed / 1073741823.5f - 1.0f;
 }
-void configure(ClapVoiceRuntime& voice, float tone, float sampleRate) noexcept {
-    if (voice.configuredTone == tone && voice.configuredSampleRate == sampleRate) return;
-    cookSamplerBiquad(voice.palmCoeffs, 2, sampleRate, 900.0f + tone * 1900.0f,
+void configure(ClapVoiceRuntime& voice, float tone, float ratio,
+               float sampleRate) noexcept {
+    if (voice.configuredTone == tone &&
+        voice.configuredPitchRatio == ratio &&
+        voice.configuredSampleRate == sampleRate) return;
+    cookSamplerBiquad(voice.palmCoeffs, 2, sampleRate,
+                      std::clamp((900.0f + tone * 1900.0f) * ratio, 30.0f, sampleRate * 0.42f),
                       0.62f + tone * 0.28f);
-    cookSamplerBiquad(voice.airCoeffs, 1, sampleRate, 650.0f + tone * 1500.0f, 0.707f);
-    voice.configuredTone = tone; voice.configuredSampleRate = sampleRate;
+    cookSamplerBiquad(voice.airCoeffs, 1, sampleRate,
+                      std::clamp((650.0f + tone * 1500.0f) * ratio, 30.0f, sampleRate * 0.42f), 0.707f);
+    voice.configuredTone = tone;
+    voice.configuredPitchRatio = ratio;
+    voice.configuredSampleRate = sampleRate;
 }
 } // namespace
 
@@ -26,7 +34,10 @@ float clapGeneratorSample(ClapVoiceRuntime& voice, const ClapGeneratorParams& pa
     const float tone = std::clamp(params.clapTone, 0.0f, 1.0f);
     const float room = std::clamp(params.clapRoom, 0.0f, 1.0f);
     const float decay = std::clamp(params.clapDecay, 0.0f, 1.0f);
-    configure(voice, tone, static_cast<float>(sampleRate));
+    configure(voice, tone,
+              percussionPitchRatio(params.clapPitch, voice.pitch, 39,
+                                    params.clapKeyTrack),
+              static_cast<float>(sampleRate));
     const double t = voice.elapsedSec;
     const float raw = noise(voice.noiseSeed);
     const float palm = processBiquadSample(raw, voice.palmCoeffs, voice.palmState);
@@ -51,10 +62,10 @@ float clapGeneratorSample(ClapVoiceRuntime& voice, const ClapGeneratorParams& pa
     return out * velocityGain * params.gain * kInstrumentOutputGain * 1.45f;
 }
 
-void triggerClapVoice(ClapVoiceRuntime& voice, float velocity,
+void triggerClapVoice(ClapVoiceRuntime& voice, int pitch, float velocity,
                       const ClapGeneratorParams& params) noexcept {
     std::memset(&voice, 0, sizeof(voice));
-    voice.active = 1; voice.velocity = velocity; voice.noiseSeed = 0.33f;
+    voice.active = 1; voice.pitch = pitch; voice.velocity = velocity; voice.noiseSeed = 0.33f;
     voice.configuredTone = -1.0f;
     const float spread = std::clamp(params.clapSpread, 0.0f, 1.0f);
     voice.burstCount = 2 + static_cast<int>(std::lround(

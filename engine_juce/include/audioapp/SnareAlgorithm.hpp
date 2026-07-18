@@ -16,6 +16,7 @@ struct SnareGeneratorParams {
     float snareSnap = 0.40f;
     float snareDecay = 0.50f;
     float snareVelocity = 1.0f;
+    float snareKeyTrack = 1.0f;
 };
 
 struct SnareVoiceRuntime {

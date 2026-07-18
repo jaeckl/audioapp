@@ -226,6 +226,7 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         if (auto v = k("kickClick", KickParam::Click)) return v;
         if (auto v = k("kickTone", KickParam::Tone)) return v;
         if (auto v = k("kickVelocity", KickParam::Velocity)) return v;
+        if (auto v = k("kickKeyTrack", KickParam::KeyTrack)) return v;
         return 0;
     }
     case DeviceNodeKind::SnareGenerator: {
@@ -242,6 +243,7 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         if (auto v = s("snareSnap", SnareParam::Snap)) return v;
         if (auto v = s("snareDecay", SnareParam::Decay)) return v;
         if (auto v = s("snareVelocity", SnareParam::Velocity)) return v;
+        if (auto v = s("snareKeyTrack", SnareParam::KeyTrack)) return v;
         return 0;
     }
     case DeviceNodeKind::ClapGenerator: {
@@ -256,6 +258,8 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         if (auto v = c("clapRoom", ClapParam::Room)) return v;
         if (auto v = c("clapDecay", ClapParam::Decay)) return v;
         if (auto v = c("clapVelocity", ClapParam::Velocity)) return v;
+        if (auto v = c("clapPitch", ClapParam::Pitch)) return v;
+        if (auto v = c("clapKeyTrack", ClapParam::KeyTrack)) return v;
         return 0;
     }
     case DeviceNodeKind::CymbalGenerator: {
@@ -268,6 +272,8 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         if (auto v = c("cymbalDecay", CymbalParam::Decay)) return v;
         if (auto v = c("cymbalWidth", CymbalParam::Width)) return v;
         if (auto v = c("cymbalVelocity", CymbalParam::Velocity)) return v;
+        if (auto v = c("cymbalPitch", CymbalParam::Pitch)) return v;
+        if (auto v = c("cymbalKeyTrack", CymbalParam::KeyTrack)) return v;
         return 0;
     }
     case DeviceNodeKind::CrashGenerator: {
@@ -280,6 +286,8 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         if (auto v = c("crashSpread", CrashParam::Spread)) return v;
         if (auto v = c("crashDecay", CrashParam::Decay)) return v;
         if (auto v = c("crashVelocity", CrashParam::Velocity)) return v;
+        if (auto v = c("crashPitch", CrashParam::Pitch)) return v;
+        if (auto v = c("crashKeyTrack", CrashParam::KeyTrack)) return v;
         return 0;
     }
     case DeviceNodeKind::Gate: {
@@ -621,6 +629,7 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         case KickParam::Click: return "kickClick";
         case KickParam::Tone: return "kickTone";
         case KickParam::Velocity: return "kickVelocity";
+        case KickParam::KeyTrack: return "kickKeyTrack";
         default: return "";
         }
     }
@@ -634,6 +643,7 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         case SnareParam::Snap: return "snareSnap";
         case SnareParam::Decay: return "snareDecay";
         case SnareParam::Velocity: return "snareVelocity";
+        case SnareParam::KeyTrack: return "snareKeyTrack";
         default: return "";
         }
     }
@@ -645,6 +655,8 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         case ClapParam::Room: return "clapRoom";
         case ClapParam::Decay: return "clapDecay";
         case ClapParam::Velocity: return "clapVelocity";
+        case ClapParam::Pitch: return "clapPitch";
+        case ClapParam::KeyTrack: return "clapKeyTrack";
         default: return "";
         }
     }
@@ -654,6 +666,8 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         case CymbalParam::Decay: return "cymbalDecay";
         case CymbalParam::Width: return "cymbalWidth";
         case CymbalParam::Velocity: return "cymbalVelocity";
+        case CymbalParam::Pitch: return "cymbalPitch";
+        case CymbalParam::KeyTrack: return "cymbalKeyTrack";
         default: return "";
         }
     }
@@ -663,6 +677,8 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         case CrashParam::Spread: return "crashSpread";
         case CrashParam::Decay: return "crashDecay";
         case CrashParam::Velocity: return "crashVelocity";
+        case CrashParam::Pitch: return "crashPitch";
+        case CrashParam::KeyTrack: return "crashKeyTrack";
         default: return "";
         }
     }
@@ -1258,6 +1274,7 @@ void applyAutomationValue(DeviceVariantParams& params,
             case KickParam::Click: p->kickClick = value; break;
             case KickParam::Tone: p->kickTone = value; break;
             case KickParam::Velocity: p->kickVelocity = value; break;
+            case KickParam::KeyTrack: p->kickKeyTrack = value >= 0.5f ? 1.0f : 0.0f; break;
             default: break;
             }
         }
@@ -1273,6 +1290,7 @@ void applyAutomationValue(DeviceVariantParams& params,
             case SnareParam::Snap: p->snareSnap = value; break;
             case SnareParam::Decay: p->snareDecay = value; break;
             case SnareParam::Velocity: p->snareVelocity = value; break;
+            case SnareParam::KeyTrack: p->snareKeyTrack = value >= 0.5f ? 1.0f : 0.0f; break;
             default: break;
             }
         }
@@ -1286,6 +1304,8 @@ void applyAutomationValue(DeviceVariantParams& params,
             case ClapParam::Room: p->clapRoom = value; break;
             case ClapParam::Decay: p->clapDecay = value; break;
             case ClapParam::Velocity: p->clapVelocity = value; break;
+            case ClapParam::Pitch: p->clapPitch = value; break;
+            case ClapParam::KeyTrack: p->clapKeyTrack = value >= 0.5f ? 1.0f : 0.0f; break;
             default: break;
             }
         }
@@ -1297,6 +1317,8 @@ void applyAutomationValue(DeviceVariantParams& params,
             case CymbalParam::Decay: p->cymbalDecay = value; break;
             case CymbalParam::Width: p->cymbalWidth = value; break;
             case CymbalParam::Velocity: p->cymbalVelocity = value; break;
+            case CymbalParam::Pitch: p->cymbalPitch = value; break;
+            case CymbalParam::KeyTrack: p->cymbalKeyTrack = value >= 0.5f ? 1.0f : 0.0f; break;
             default: break;
             }
         }
@@ -1308,6 +1330,8 @@ void applyAutomationValue(DeviceVariantParams& params,
             case CrashParam::Spread: p->crashSpread = value; break;
             case CrashParam::Decay: p->crashDecay = value; break;
             case CrashParam::Velocity: p->crashVelocity = value; break;
+            case CrashParam::Pitch: p->crashPitch = value; break;
+            case CrashParam::KeyTrack: p->crashKeyTrack = value >= 0.5f ? 1.0f : 0.0f; break;
             default: break;
             }
         }

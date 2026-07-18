@@ -136,6 +136,38 @@ public:
             expect(parsedAfterRemoval.lfos.empty(),
                    "removing a device should remove its owned modulators");
         }
+
+        beginTest("percussion pitch controls survive project round-trip");
+        {
+            audioapp::EngineHost percussion;
+            percussion.createProject();
+            const auto track = percussion.addTrack("Percussion Pitch");
+            const auto snare = percussion.addDeviceToTrack(
+                track, audioapp::device_types::kSnareGenerator);
+            const auto clap = percussion.addDeviceToTrack(
+                track, audioapp::device_types::kClapGenerator);
+            const auto cymbal = percussion.addDeviceToTrack(
+                track, audioapp::device_types::kCymbalGenerator);
+            const auto crash = percussion.addDeviceToTrack(
+                track, audioapp::device_types::kCrashGenerator);
+            expect(percussion.setDeviceParameter(snare, "snareKeyTrack", 0.0f) &&
+                       percussion.setDeviceParameter(clap, "clapPitch", 0.25f) &&
+                       percussion.setDeviceParameter(clap, "clapKeyTrack", 0.0f) &&
+                       percussion.setDeviceParameter(cymbal, "cymbalPitch", 0.75f) &&
+                       percussion.setDeviceParameter(crash, "crashPitch", 0.80f),
+                   "should update every percussion pitch contract");
+
+            audioapp::EngineHost restored;
+            restored.createProject();
+            expect(restored.loadProjectFileJson(percussion.getProjectFileJson()),
+                   "should reload percussion pitch controls");
+            const auto snapshot = restored.getProjectSnapshotJson();
+            expect(snapshot.find("snareKeyTrack") != std::string::npos &&
+                       snapshot.find("clapPitch") != std::string::npos &&
+                       snapshot.find("cymbalPitch") != std::string::npos &&
+                       snapshot.find("crashPitch") != std::string::npos,
+                   "restored snapshot should publish percussion pitch controls");
+        }
     }
 };
 

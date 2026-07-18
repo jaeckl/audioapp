@@ -46,6 +46,8 @@ DeviceParameterResult CymbalGeneratorDeviceType::setParameter(DeviceSlot& slot,
     case CymbalParam::Decay:    instance.cymbalDecay = clamped; break;
     case CymbalParam::Width:    instance.cymbalWidth = clamped; break;
     case CymbalParam::Velocity: instance.cymbalVelocity = clamped; break;
+    case CymbalParam::Pitch:    instance.cymbalPitch = clamped; break;
+    case CymbalParam::KeyTrack: instance.cymbalKeyTrack = clamped >= 0.5f ? 1.0f : 0.0f; break;
     default: return result;
     }
 
@@ -61,7 +63,8 @@ bool CymbalGeneratorDeviceType::setStringParameter(DeviceSlot&,
 }
 
 std::vector<std::string_view> CymbalGeneratorDeviceType::modulatableParams() const {
-    return {"gain", "cymbalColor", "cymbalDecay", "cymbalWidth", "cymbalVelocity"};
+    return {"gain", "cymbalColor", "cymbalDecay", "cymbalWidth", "cymbalVelocity",
+            "cymbalPitch", "cymbalKeyTrack"};
 }
 
 void CymbalGeneratorDeviceType::buildPlaybackNode(const DeviceSlot& slot,
@@ -95,6 +98,8 @@ juce::var CymbalGeneratorDeviceType::slotToVar(const DeviceSlot& slot) const {
     parameters->setProperty("cymbalDecay", static_cast<double>(inst.cymbalDecay));
     parameters->setProperty("cymbalWidth", static_cast<double>(inst.cymbalWidth));
     parameters->setProperty("cymbalVelocity", static_cast<double>(inst.cymbalVelocity));
+    parameters->setProperty("cymbalPitch", static_cast<double>(inst.cymbalPitch));
+    parameters->setProperty("cymbalKeyTrack", static_cast<double>(inst.cymbalKeyTrack));
 
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
@@ -168,6 +173,8 @@ DeviceSlot CymbalGeneratorDeviceType::varToSlot(const juce::var& obj) const {
             inst.cymbalDecay = readFloat(p, "cymbalDecay", 0.50f);
             inst.cymbalWidth = readFloat(p, "cymbalWidth", 0.35f);
             inst.cymbalVelocity = readFloat(p, "cymbalVelocity", 1.0f);
+            inst.cymbalPitch = readFloat(p, "cymbalPitch", 0.50f);
+            inst.cymbalKeyTrack = readFloat(p, "cymbalKeyTrack", 0.0f);
             slot.config.instance = inst;
 
         }
@@ -190,6 +197,8 @@ uint16_t CymbalGeneratorDeviceType::paramIdFromString(std::string_view name) con
     if (auto v = c("cymbalDecay", CymbalParam::Decay); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = c("cymbalWidth", CymbalParam::Width); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = c("cymbalVelocity", CymbalParam::Velocity); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("cymbalPitch", CymbalParam::Pitch); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("cymbalKeyTrack", CymbalParam::KeyTrack); v != static_cast<uint16_t>(-1)) return v;
     return static_cast<uint16_t>(-1);
 }
 
@@ -200,6 +209,8 @@ std::string_view CymbalGeneratorDeviceType::paramIdToString(uint16_t localId) co
     case CymbalParam::Decay: return "cymbalDecay";
     case CymbalParam::Width: return "cymbalWidth";
     case CymbalParam::Velocity: return "cymbalVelocity";
+    case CymbalParam::Pitch: return "cymbalPitch";
+    case CymbalParam::KeyTrack: return "cymbalKeyTrack";
     default: return "";
     }
 }
@@ -211,6 +222,8 @@ std::span<const ParamDescriptor> CymbalGeneratorDeviceType::paramDescriptors() c
         {static_cast<uint16_t>(CymbalParam::Decay), "cymbalDecay", "Decay", 0.50f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(CymbalParam::Width), "cymbalWidth", "Width", 0.35f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(CymbalParam::Velocity), "cymbalVelocity", "Velocity", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(CymbalParam::Pitch), "cymbalPitch", "Pitch", 0.50f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(CymbalParam::KeyTrack), "cymbalKeyTrack", "Key Track", 0.0f, 0.0f, 1.0f, true, true, ParameterUpdateRate::Discrete},
     };
     return kParams;
 }

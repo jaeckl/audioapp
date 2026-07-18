@@ -55,6 +55,28 @@ public:
             expect(audioapp::test::peakAbs(live, kFrames) > 0.001f,
                    "Crash live performance mixer should produce audible output");
         }
+
+        beginTest("pitch changes crash spectrum");
+        {
+            audioapp::CrashGeneratorParams lowParams;
+            auto highParams = lowParams;
+            lowParams.crashPitch = 0.25f;
+            highParams.crashPitch = 0.75f;
+            audioapp::CrashVoiceRuntime low;
+            audioapp::CrashVoiceRuntime high;
+            audioapp::triggerCrashVoice(low, 49, 100.0f);
+            audioapp::triggerCrashVoice(high, 49, 100.0f);
+            float difference = 0.0f;
+            for (int frame = 0; frame < 512; ++frame) {
+                low.elapsedSec = high.elapsedSec = frame / kSampleRate;
+                const float lowSample = audioapp::crashGeneratorSampleL(
+                    low, lowParams, kSampleRate, 1.0f);
+                const float highSample = audioapp::crashGeneratorSampleL(
+                    high, highParams, kSampleRate, 1.0f);
+                difference += std::abs(lowSample - highSample);
+            }
+            expect(difference > 0.01f, "crash pitch should change rendered audio");
+        }
     }
 };
 

@@ -55,6 +55,26 @@ public:
             expect(audioapp::test::peakAbs(live, kFrames) > 0.001f,
                    "Clap live performance mixer should produce audible output");
         }
+
+        beginTest("pitch changes clap spectrum");
+        {
+            audioapp::ClapGeneratorParams lowParams;
+            auto highParams = lowParams;
+            lowParams.clapPitch = 0.25f;
+            highParams.clapPitch = 0.75f;
+            audioapp::ClapVoiceRuntime low;
+            audioapp::ClapVoiceRuntime high;
+            audioapp::triggerClapVoice(low, 39, 100.0f, lowParams);
+            audioapp::triggerClapVoice(high, 39, 100.0f, highParams);
+            float difference = 0.0f;
+            for (int frame = 0; frame < 512; ++frame) {
+                low.elapsedSec = high.elapsedSec = frame / kSampleRate;
+                difference += std::abs(
+                    audioapp::clapGeneratorSample(low, lowParams, kSampleRate, 1.0f) -
+                    audioapp::clapGeneratorSample(high, highParams, kSampleRate, 1.0f));
+            }
+            expect(difference > 0.01f, "clap pitch should change rendered audio");
+        }
     }
 };
 

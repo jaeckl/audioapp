@@ -59,9 +59,10 @@ float kickGeneratorSample808(KickVoiceRuntime& voice,
         return 0.0f;
     }
 
-    const float currentHz =
+    const float currentHz = std::clamp(
         (endHz + (startHz - endHz) * static_cast<float>(std::exp(-t / pitchDecaySec))) *
-        tuneRatio;
+            tuneRatio,
+        20.0f, static_cast<float>(sampleRate) * 0.45f);
     voice.phase += static_cast<float>(kTwoPi * currentHz / sampleRate);
     if (voice.phase >= static_cast<float>(kTwoPi)) {
         voice.phase -= static_cast<float>(kTwoPi);

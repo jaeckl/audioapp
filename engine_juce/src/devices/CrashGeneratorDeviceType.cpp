@@ -46,6 +46,8 @@ DeviceParameterResult CrashGeneratorDeviceType::setParameter(DeviceSlot& slot,
     case CrashParam::Spread:   instance.crashSpread = clamped; break;
     case CrashParam::Decay:    instance.crashDecay = clamped; break;
     case CrashParam::Velocity: instance.crashVelocity = clamped; break;
+    case CrashParam::Pitch:    instance.crashPitch = clamped; break;
+    case CrashParam::KeyTrack: instance.crashKeyTrack = clamped >= 0.5f ? 1.0f : 0.0f; break;
     default: return result;
     }
 
@@ -61,7 +63,8 @@ bool CrashGeneratorDeviceType::setStringParameter(DeviceSlot&,
 }
 
 std::vector<std::string_view> CrashGeneratorDeviceType::modulatableParams() const {
-    return {"gain", "crashColor", "crashSpread", "crashDecay", "crashVelocity"};
+    return {"gain", "crashColor", "crashSpread", "crashDecay", "crashVelocity",
+            "crashPitch", "crashKeyTrack"};
 }
 
 void CrashGeneratorDeviceType::buildPlaybackNode(const DeviceSlot& slot,
@@ -95,6 +98,8 @@ juce::var CrashGeneratorDeviceType::slotToVar(const DeviceSlot& slot) const {
     parameters->setProperty("crashSpread", static_cast<double>(inst.crashSpread));
     parameters->setProperty("crashDecay", static_cast<double>(inst.crashDecay));
     parameters->setProperty("crashVelocity", static_cast<double>(inst.crashVelocity));
+    parameters->setProperty("crashPitch", static_cast<double>(inst.crashPitch));
+    parameters->setProperty("crashKeyTrack", static_cast<double>(inst.crashKeyTrack));
 
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
@@ -168,6 +173,8 @@ DeviceSlot CrashGeneratorDeviceType::varToSlot(const juce::var& obj) const {
             inst.crashSpread = readFloat(p, "crashSpread", 0.50f);
             inst.crashDecay = readFloat(p, "crashDecay", 0.55f);
             inst.crashVelocity = readFloat(p, "crashVelocity", 1.0f);
+            inst.crashPitch = readFloat(p, "crashPitch", 0.50f);
+            inst.crashKeyTrack = readFloat(p, "crashKeyTrack", 0.0f);
             slot.config.instance = inst;
 
         }
@@ -190,6 +197,8 @@ uint16_t CrashGeneratorDeviceType::paramIdFromString(std::string_view name) cons
     if (auto v = c("crashSpread", CrashParam::Spread); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = c("crashDecay", CrashParam::Decay); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = c("crashVelocity", CrashParam::Velocity); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("crashPitch", CrashParam::Pitch); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = c("crashKeyTrack", CrashParam::KeyTrack); v != static_cast<uint16_t>(-1)) return v;
     return static_cast<uint16_t>(-1);
 }
 
@@ -200,6 +209,8 @@ std::string_view CrashGeneratorDeviceType::paramIdToString(uint16_t localId) con
     case CrashParam::Spread: return "crashSpread";
     case CrashParam::Decay: return "crashDecay";
     case CrashParam::Velocity: return "crashVelocity";
+    case CrashParam::Pitch: return "crashPitch";
+    case CrashParam::KeyTrack: return "crashKeyTrack";
     default: return "";
     }
 }
@@ -211,6 +222,8 @@ std::span<const ParamDescriptor> CrashGeneratorDeviceType::paramDescriptors() co
         {static_cast<uint16_t>(CrashParam::Spread), "crashSpread", "Spread", 0.50f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(CrashParam::Decay), "crashDecay", "Decay", 0.55f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(CrashParam::Velocity), "crashVelocity", "Velocity", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(CrashParam::Pitch), "crashPitch", "Pitch", 0.50f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(CrashParam::KeyTrack), "crashKeyTrack", "Key Track", 0.0f, 0.0f, 1.0f, true, true, ParameterUpdateRate::Discrete},
     };
     return kParams;
 }

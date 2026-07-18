@@ -13,6 +13,8 @@ class CrashGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
     required this.crashSpread,
     required this.crashDecay,
     required this.crashVelocity,
+    this.crashPitch = 0.50,
+    this.crashKeyTrack = 0.0,
   }) : super(type: 'crash_generator');
 
   final double crashModel;
@@ -20,6 +22,8 @@ class CrashGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
   final double crashSpread;
   final double crashDecay;
   final double crashVelocity;
+  final double crashPitch;
+  final double crashKeyTrack;
 
   factory CrashGeneratorDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -38,6 +42,8 @@ class CrashGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
       crashSpread: (params['crashSpread'] as num?)?.toDouble() ?? 0.50,
       crashDecay: (params['crashDecay'] as num?)?.toDouble() ?? 0.55,
       crashVelocity: (params['crashVelocity'] as num?)?.toDouble() ?? 1.0,
+      crashPitch: (params['crashPitch'] as num?)?.toDouble() ?? 0.50,
+      crashKeyTrack: (params['crashKeyTrack'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -55,6 +61,8 @@ class CrashGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
     double? crashSpread,
     double? crashDecay,
     double? crashVelocity,
+    double? crashPitch,
+    double? crashKeyTrack,
   }) {
     return CrashGeneratorDeviceSnapshot(
       id: id ?? this.id,
@@ -68,6 +76,8 @@ class CrashGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
       crashSpread: crashSpread ?? this.crashSpread,
       crashDecay: crashDecay ?? this.crashDecay,
       crashVelocity: crashVelocity ?? this.crashVelocity,
+      crashPitch: crashPitch ?? this.crashPitch,
+      crashKeyTrack: crashKeyTrack ?? this.crashKeyTrack,
     );
   }
 
@@ -82,6 +92,8 @@ class CrashGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
       'crashSpread' => copyWith(crashSpread: value.clamp(0.0, 1.0)),
       'crashDecay' => copyWith(crashDecay: value.clamp(0.0, 1.0)),
       'crashVelocity' => copyWith(crashVelocity: value.clamp(0.0, 1.0)),
+      'crashPitch' => copyWith(crashPitch: value.clamp(0.0, 1.0)),
+      'crashKeyTrack' => copyWith(crashKeyTrack: value >= 0.5 ? 1.0 : 0.0),
       _ => this,
     };
   }

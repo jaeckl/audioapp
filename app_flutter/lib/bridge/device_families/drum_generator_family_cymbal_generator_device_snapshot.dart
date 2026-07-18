@@ -13,6 +13,8 @@ class CymbalGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
     required this.cymbalDecay,
     required this.cymbalVelocity,
     required this.cymbalWidth,
+    this.cymbalPitch = 0.50,
+    this.cymbalKeyTrack = 0.0,
   }) : super(type: 'cymbal_generator');
 
   final double cymbalModel;
@@ -20,6 +22,8 @@ class CymbalGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
   final double cymbalDecay;
   final double cymbalVelocity;
   final double cymbalWidth;
+  final double cymbalPitch;
+  final double cymbalKeyTrack;
 
   factory CymbalGeneratorDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -38,6 +42,8 @@ class CymbalGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
       cymbalDecay: (params['cymbalDecay'] as num?)?.toDouble() ?? 0.50,
       cymbalVelocity: (params['cymbalVelocity'] as num?)?.toDouble() ?? 1.0,
       cymbalWidth: (params['cymbalWidth'] as num?)?.toDouble() ?? 0.35,
+      cymbalPitch: (params['cymbalPitch'] as num?)?.toDouble() ?? 0.50,
+      cymbalKeyTrack: (params['cymbalKeyTrack'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -55,6 +61,8 @@ class CymbalGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
     double? cymbalDecay,
     double? cymbalVelocity,
     double? cymbalWidth,
+    double? cymbalPitch,
+    double? cymbalKeyTrack,
   }) {
     return CymbalGeneratorDeviceSnapshot(
       id: id ?? this.id,
@@ -68,6 +76,8 @@ class CymbalGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
       cymbalDecay: cymbalDecay ?? this.cymbalDecay,
       cymbalVelocity: cymbalVelocity ?? this.cymbalVelocity,
       cymbalWidth: cymbalWidth ?? this.cymbalWidth,
+      cymbalPitch: cymbalPitch ?? this.cymbalPitch,
+      cymbalKeyTrack: cymbalKeyTrack ?? this.cymbalKeyTrack,
     );
   }
 
@@ -83,6 +93,8 @@ class CymbalGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
       'cymbalDecay' => copyWith(cymbalDecay: value.clamp(0.0, 1.0)),
       'cymbalVelocity' => copyWith(cymbalVelocity: value.clamp(0.0, 1.0)),
       'cymbalWidth' => copyWith(cymbalWidth: value.clamp(0.0, 1.0)),
+      'cymbalPitch' => copyWith(cymbalPitch: value.clamp(0.0, 1.0)),
+      'cymbalKeyTrack' => copyWith(cymbalKeyTrack: value >= 0.5 ? 1.0 : 0.0),
       _ => this,
     };
   }

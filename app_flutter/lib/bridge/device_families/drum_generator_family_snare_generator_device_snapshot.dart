@@ -16,6 +16,7 @@ class SnareGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
     required this.snareSnap,
     required this.snareDecay,
     required this.snareVelocity,
+    this.snareKeyTrack = 1.0,
   }) : super(type: 'snare_generator');
 
   final double snareModel;
@@ -26,6 +27,7 @@ class SnareGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
   final double snareSnap;
   final double snareDecay;
   final double snareVelocity;
+  final double snareKeyTrack;
 
   factory SnareGeneratorDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -47,6 +49,7 @@ class SnareGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
       snareSnap: (params['snareSnap'] as num?)?.toDouble() ?? 0.40,
       snareDecay: (params['snareDecay'] as num?)?.toDouble() ?? 0.50,
       snareVelocity: (params['snareVelocity'] as num?)?.toDouble() ?? 1.0,
+      snareKeyTrack: (params['snareKeyTrack'] as num?)?.toDouble() ?? 1.0,
     );
   }
 
@@ -67,6 +70,7 @@ class SnareGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
     double? snareSnap,
     double? snareDecay,
     double? snareVelocity,
+    double? snareKeyTrack,
   }) {
     return SnareGeneratorDeviceSnapshot(
       id: id ?? this.id,
@@ -83,6 +87,7 @@ class SnareGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
       snareSnap: snareSnap ?? this.snareSnap,
       snareDecay: snareDecay ?? this.snareDecay,
       snareVelocity: snareVelocity ?? this.snareVelocity,
+      snareKeyTrack: snareKeyTrack ?? this.snareKeyTrack,
     );
   }
 
@@ -100,6 +105,7 @@ class SnareGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
       'snareSnap' => copyWith(snareSnap: value.clamp(0.0, 1.0)),
       'snareDecay' => copyWith(snareDecay: value.clamp(0.0, 1.0)),
       'snareVelocity' => copyWith(snareVelocity: value.clamp(0.0, 1.0)),
+      'snareKeyTrack' => copyWith(snareKeyTrack: value >= 0.5 ? 1.0 : 0.0),
       _ => this,
     };
   }

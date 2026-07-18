@@ -263,6 +263,7 @@ void applyModulation(KickGeneratorParams& p, float modAmount, uint16_t localPara
     case KickParam::Click:    p.kickClick = std::clamp(p.kickClick + modAmount, 0.0f, 1.0f); break;
     case KickParam::Tone:     p.kickTone = std::clamp(p.kickTone + modAmount, 0.0f, 1.0f); break;
     case KickParam::Velocity: p.kickVelocity = std::clamp(p.kickVelocity + modAmount, 0.0f, 1.0f); break;
+    case KickParam::KeyTrack: p.kickKeyTrack = p.kickKeyTrack + modAmount >= 0.5f ? 1.0f : 0.0f; break;
     default: break;
     }
 }
@@ -277,6 +278,7 @@ void applyModulation(SnareGeneratorParams& p, float modAmount, uint16_t localPar
     case SnareParam::Snap:    p.snareSnap = std::clamp(p.snareSnap + modAmount, 0.0f, 1.0f); break;
     case SnareParam::Decay:   p.snareDecay = std::clamp(p.snareDecay + modAmount, 0.0f, 1.0f); break;
     case SnareParam::Velocity: p.snareVelocity = std::clamp(p.snareVelocity + modAmount, 0.0f, 1.0f); break;
+    case SnareParam::KeyTrack: p.snareKeyTrack = p.snareKeyTrack + modAmount >= 0.5f ? 1.0f : 0.0f; break;
     default: break;
     }
 }
@@ -289,6 +291,8 @@ void applyModulation(ClapGeneratorParams& p, float modAmount, uint16_t localPara
     case ClapParam::Room:     p.clapRoom = std::clamp(p.clapRoom + modAmount, 0.0f, 1.0f); break;
     case ClapParam::Decay:    p.clapDecay = std::clamp(p.clapDecay + modAmount, 0.0f, 1.0f); break;
     case ClapParam::Velocity: p.clapVelocity = std::clamp(p.clapVelocity + modAmount, 0.0f, 1.0f); break;
+    case ClapParam::Pitch:    p.clapPitch = std::clamp(p.clapPitch + modAmount, 0.0f, 1.0f); break;
+    case ClapParam::KeyTrack: p.clapKeyTrack = p.clapKeyTrack + modAmount >= 0.5f ? 1.0f : 0.0f; break;
     default: break;
     }
 }
@@ -299,6 +303,8 @@ void applyModulation(CymbalGeneratorParams& p, float modAmount, uint16_t localPa
     case CymbalParam::Decay:    p.cymbalDecay = std::clamp(p.cymbalDecay + modAmount, 0.0f, 1.0f); break;
     case CymbalParam::Width:    p.cymbalWidth = std::clamp(p.cymbalWidth + modAmount, 0.0f, 1.0f); break;
     case CymbalParam::Velocity: p.cymbalVelocity = std::clamp(p.cymbalVelocity + modAmount, 0.0f, 1.0f); break;
+    case CymbalParam::Pitch:    p.cymbalPitch = std::clamp(p.cymbalPitch + modAmount, 0.0f, 1.0f); break;
+    case CymbalParam::KeyTrack: p.cymbalKeyTrack = p.cymbalKeyTrack + modAmount >= 0.5f ? 1.0f : 0.0f; break;
     default: break;
     }
 }
@@ -309,6 +315,8 @@ void applyModulation(CrashGeneratorParams& p, float modAmount, uint16_t localPar
     case CrashParam::Spread:   p.crashSpread = std::clamp(p.crashSpread + modAmount, 0.0f, 1.0f); break;
     case CrashParam::Decay:    p.crashDecay = std::clamp(p.crashDecay + modAmount, 0.0f, 1.0f); break;
     case CrashParam::Velocity: p.crashVelocity = std::clamp(p.crashVelocity + modAmount, 0.0f, 1.0f); break;
+    case CrashParam::Pitch:    p.crashPitch = std::clamp(p.crashPitch + modAmount, 0.0f, 1.0f); break;
+    case CrashParam::KeyTrack: p.crashKeyTrack = p.crashKeyTrack + modAmount >= 0.5f ? 1.0f : 0.0f; break;
     default: break;
     }
 }
