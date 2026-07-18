@@ -245,6 +245,13 @@ struct GranularParams { const float* pcm=nullptr; int frameCount=0; double pcmRa
  float regionStart=0.f,regionEnd=1.f,attack=.02f,release=.25f,spread=.35f;
  float formX=.5f,formY=.05f; int vowel=0; };
 
+struct ResolvedAssetUpdate {
+    DeviceNodeKind kind = DeviceNodeKind::Unknown;
+    SamplerParams sampler{};
+    GranularParams granular{};
+    int wavetableIndex = -1;
+};
+
 using DeviceVariantParams = std::variant<
     OscillatorParams,
     SamplerParams,

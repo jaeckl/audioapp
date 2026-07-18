@@ -86,6 +86,19 @@ bool ChainProcessor::readNestedEffectiveParameter(uint64_t processorNodeId,
     return false;
 }
 
+bool ChainProcessor::setNestedResolvedAsset(
+    uint64_t processorNodeId, const ResolvedAssetUpdate& update) noexcept {
+    if (!arena_ || !playback_) return false;
+    for (int child = 0; child < playback_->deviceCount; ++child) {
+        auto* processor = arena_->get(child);
+        if (processor == nullptr) continue;
+        if (processor->stableProcessorNodeId == processorNodeId)
+            return processor->applyResolvedAsset(update);
+        if (processor->setNestedResolvedAsset(processorNodeId, update)) return true;
+    }
+    return false;
+}
+
 void ChainProcessor::bindCompiledParameterSpans(
     const AutomationClipPlayback* clips, int clipCount,
     const ModulationEdgePlayback* edges, int edgeCount) noexcept {

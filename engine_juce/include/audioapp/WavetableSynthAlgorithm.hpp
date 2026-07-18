@@ -13,6 +13,8 @@ static constexpr int kWavetableMaxUnison = 8;
 struct WavetableSynthParams {
     float gain = 1.0f;
     std::string wavetableId;
+    // Resolved on the control thread for realtime playback.
+    int wavetableIndex = -1;
     float wtPosition = 0.0f;
     float wtOctave = 0.5f;
     float wtSemitone = 0.5f;

@@ -110,10 +110,15 @@ std::vector<std::string_view> WavetableSynthDeviceType::modulatableParams() cons
 }
 
 void WavetableSynthDeviceType::buildPlaybackNode(const DeviceSlot& slot,
-                                                  const PlaybackBuildContext&,
+                                                  const PlaybackBuildContext& context,
                                                   DeviceNodePlayback& out) const {
     auto params = std::get<WavetableSynthParams>(slot.config.instance);
     params.gain = 1.0f; // output-panel gain is applied by the device-chain stage
+    if (context.wavetableBank != nullptr) {
+        params.wavetableIndex = params.wavetableId.empty()
+            ? 0 : context.wavetableBank->findByName(params.wavetableId);
+        if (params.wavetableIndex < 0) params.wavetableIndex = 0;
+    }
     out.kind = DeviceNodeKind::WavetableSynth;
     out.params = params;
 }
@@ -122,6 +127,11 @@ bool WavetableSynthDeviceType::buildLiveInstrument(const DeviceSlot& slot,
                                                     const PlaybackBuildContext& ctx,
                                                     LiveInstrumentSnapshot& out) const {
     auto params = std::get<WavetableSynthParams>(slot.config.instance);
+    if (ctx.wavetableBank != nullptr) {
+        params.wavetableIndex = params.wavetableId.empty()
+            ? 0 : ctx.wavetableBank->findByName(params.wavetableId);
+        if (params.wavetableIndex < 0) params.wavetableIndex = 0;
+    }
     out = LiveInstrumentSnapshot{};
     out.kind = LiveInstrumentKind::WavetableSynth;
     const auto gain = std::get<StereoOutputPanel>(slot.config.outputPanel).gain;

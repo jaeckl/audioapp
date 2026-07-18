@@ -5,14 +5,12 @@
 #include "audioapp/WavetableBank.hpp"
 
 #include <atomic>
-#include <string>
 #include <string_view>
 
 namespace audioapp {
 
 class WavetableSynthProcessor : public DeviceProcessor {
     WavetableSynthRuntime runtime_{};
-    std::string cachedWtId_;
     std::atomic<float> realtimeWtPosition_{0.0f};
     std::atomic<bool> realtimeWtPositionValid_{false};
 
@@ -24,6 +22,10 @@ public:
 
     WavetableSynthRuntime* runtimePtr() noexcept { return &runtime_; }
     void setWavetableIndex(int idx) noexcept { runtime_.wavetableIndex = idx; }
+    bool setResolvedWavetableIndex(int idx) noexcept override {
+        runtime_.wavetableIndex = idx;
+        return true;
+    }
     int wavetableIndex() const noexcept { return runtime_.wavetableIndex; }
     void resetPlaybackState() noexcept override;
 };

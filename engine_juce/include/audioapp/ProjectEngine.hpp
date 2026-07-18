@@ -505,6 +505,7 @@ private:
         TrackMute,
         TrackSolo,
         DrumPad,
+        ResolvedAsset,
     };
 
     struct RealtimeCommand {
@@ -512,6 +513,8 @@ private:
         DeviceNodePlayback node{};
         std::string targetId;
         DrumPadParameter drumPadParameter = DrumPadParameter::Invalid;
+        ResolvedAssetUpdate resolvedAsset{};
+        uint64_t targetNodeId = 0;
         float value = 0.0f;
         int note = 0;
         bool commonOnly = false;

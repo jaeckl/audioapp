@@ -180,6 +180,44 @@ public:
         return false;
     }
 
+    bool applyResolvedAsset(const ResolvedAssetUpdate& update) noexcept {
+        if (update.kind == DeviceNodeKind::Sampler) {
+            auto* params = std::get_if<SamplerParams>(&storedParams_);
+            if (params == nullptr) return false;
+            params->samplerPcm = update.sampler.samplerPcm;
+            params->samplerFrameCount = update.sampler.samplerFrameCount;
+            params->samplerPcmSampleRate = update.sampler.samplerPcmSampleRate;
+            params->trimStartFrame = update.sampler.trimStartFrame;
+            params->trimEndFrame = update.sampler.trimEndFrame;
+            params->regionStartFrame = update.sampler.regionStartFrame;
+            params->regionEndFrame = update.sampler.regionEndFrame;
+            return true;
+        }
+        if (update.kind == DeviceNodeKind::Granular) {
+            auto* params = std::get_if<GranularParams>(&storedParams_);
+            if (params == nullptr) return false;
+            params->pcm = update.granular.pcm;
+            params->frameCount = update.granular.frameCount;
+            params->pcmRate = update.granular.pcmRate;
+            return true;
+        }
+        if (update.kind == DeviceNodeKind::WavetableSynth)
+            return setResolvedWavetableIndex(update.wavetableIndex);
+        return false;
+    }
+
+    virtual bool setNestedResolvedAsset(uint64_t processorNodeId,
+                                        const ResolvedAssetUpdate& update) noexcept {
+        (void)processorNodeId;
+        (void)update;
+        return false;
+    }
+
+    virtual bool setResolvedWavetableIndex(int index) noexcept {
+        (void)index;
+        return false;
+    }
+
     void applyPlaybackNode(const DeviceNodePlayback& node) noexcept {
         for (auto& state : compiledParameterStates_) state.active = false;
         for (auto& slot : effectiveParameterSlots_)

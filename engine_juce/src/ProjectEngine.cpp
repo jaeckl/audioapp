@@ -855,51 +855,47 @@ bool ProjectEngine::setDeviceStringParameter(const std::string& deviceId,
         return false;
     }
 
-    // Fast path: update live playback node and processor in-place,
-    // avoiding full track rebuild (which causes audible glitches).
-    // String parameters (e.g. wavetableId, sampleId) just set runtime
-    // state resolved at process time — no structural change needed.
-    {
-        const std::lock_guard<std::recursive_mutex> playbackLock(playbackMutex_);
-        const int trackCount = trackPlayback_.count();
-        for (int t = 0; t < trackCount; ++t) {
-            auto& snap = trackPlayback_[t];
-            for (int d = 0; d < snap.deviceCount; ++d) {
-                if (snap.devices[d].deviceId == deviceId) {
-                    const auto automationTargetIndex = snap.devices[d].automationTargetIndex;
-                    const auto meterSlot = snap.devices[d].meterSlot;
-                    deviceRegistry_.buildPlaybackNode(*device, context, snap.devices[d]);
-                    snap.devices[d].automationTargetIndex = automationTargetIndex;
-                    snap.devices[d].meterSlot = meterSlot;
-                    if (auto* proc = snap.arena.get(d)) {
-                        proc->applyPlaybackNode(snap.devices[d]);
-                        proc->meterSlot = meterSlot;
-                    }
-                    if (routingDevice) {
-                        rebuildProcessorGraphLocked(trackCount);
-                        if (!processorGraphs_[lastBuiltProcessorGraph_].valid()) {
-                            *device = previousDevice;
-                            rebuildTrackPlaybackLocked();
-                            return false;
-                        }
-                    }
-                    markDeviceOwnerFreezeStaleLocked(deviceId);
-                    return true;
-                }
-                DeviceNodePlayback nestedNode{};
-                nestedNode.deviceId = deviceId;
-                nestedNode.voicePolicy = InstrumentVoicePolicy{1, true};
-                deviceRegistry_.buildPlaybackNode(*device, context, nestedNode);
-                if (auto* proc = snap.arena.get(d);
-                    proc != nullptr && proc->updateNestedDevice(nestedNode)) {
-                    markDeviceOwnerFreezeStaleLocked(deviceId);
-                    return true;
-                }
-            }
-        }
+    DeviceNodePlayback resolvedNode{};
+    resolvedNode.deviceId = deviceId;
+    resolvedNode.voicePolicy = InstrumentVoicePolicy{1, true};
+    deviceRegistry_.buildPlaybackNode(*device, context, resolvedNode);
+
+    if (resolvedNode.kind == DeviceNodeKind::Sampler ||
+        resolvedNode.kind == DeviceNodeKind::Granular ||
+        resolvedNode.kind == DeviceNodeKind::WavetableSynth) {
+        RealtimeCommand command;
+        command.type = RealtimeCommandType::ResolvedAsset;
+        command.targetNodeId = stableDeviceSubgraphNodeId(
+            deviceId, DeviceSubgraphNodeRole::DeviceProcessor);
+        command.resolvedAsset.kind = resolvedNode.kind;
+        if (resolvedNode.kind == DeviceNodeKind::Sampler)
+            command.resolvedAsset.sampler = std::get<SamplerParams>(resolvedNode.params);
+        else if (resolvedNode.kind == DeviceNodeKind::Granular)
+            command.resolvedAsset.granular = std::get<GranularParams>(resolvedNode.params);
+        else
+            command.resolvedAsset.wavetableIndex =
+                std::get<WavetableSynthParams>(resolvedNode.params).wavetableIndex;
+        markDeviceOwnerFreezeStaleLocked(deviceId);
+        return enqueueRealtimeCommand(std::move(command));
     }
 
-    // Fallback: device not in live playback arrays yet
+    if (resolvedNode.kind == DeviceNodeKind::PhaseModSynth &&
+        parameterId == "pmAlgo") {
+        const auto& model = std::get<PhaseModSynthModel>(device->config.instance);
+        RealtimeParameterCommand command;
+        command.targetNodeId = stableDeviceSubgraphNodeId(
+            deviceId, DeviceSubgraphNodeRole::DeviceProcessor);
+        command.encodedParameterId = packParamId(
+            ParamKind::PhaseModSynth,
+            static_cast<uint16_t>(PhaseModSynthParam::AlgoIndex));
+        command.value = static_cast<float>(model.algoIndex) / 7.0f;
+        command.rate = ParameterUpdateRate::Discrete;
+        markDeviceOwnerFreezeStaleLocked(deviceId);
+        return enqueueRealtimeParameter(command);
+    }
+
+    // Routing source changes are topology edits, not realtime parameter
+    // gestures. Publish them through the inactive playback/graph bank.
     rebuildTrackPlaybackLocked();
     if (routingDevice) {
         if (!processorGraphs_[lastBuiltProcessorGraph_].valid()) {
@@ -1969,8 +1965,11 @@ void ProjectEngine::drainRealtimeCommands() noexcept {
             const bool sameDeviceClass =
                 candidate.type != RealtimeCommandType::DeviceNode ||
                 candidate.commonOnly == latest[i]->commonOnly;
+            const bool sameTarget = candidate.type == RealtimeCommandType::ResolvedAsset
+                ? latest[i]->targetNodeId == candidate.targetNodeId
+                : latest[i]->targetId == candidate.targetId;
             if (latest[i]->type == candidate.type && samePad && sameDeviceClass &&
-                latest[i]->targetId == candidate.targetId) {
+                sameTarget) {
                 existing = i;
                 break;
             }
@@ -2015,6 +2014,23 @@ void ProjectEngine::drainRealtimeCommands() noexcept {
                                 command.note, command.drumPadParameter, command.value);
                         }
                         break;
+                    }
+                }
+                break;
+            }
+            case RealtimeCommandType::ResolvedAsset: {
+                const int count = trackPlayback_.count();
+                for (int track = 0; track < count; ++track) {
+                    auto& snapshot = trackPlayback_[track];
+                    for (int device = 0; device < snapshot.deviceCount; ++device) {
+                        auto* processor = snapshot.arena.get(device);
+                        if (processor == nullptr) continue;
+                        if (processor->stableProcessorNodeId == command.targetNodeId) {
+                            processor->applyResolvedAsset(command.resolvedAsset);
+                            break;
+                        }
+                        if (processor->setNestedResolvedAsset(
+                                command.targetNodeId, command.resolvedAsset)) break;
                     }
                 }
                 break;

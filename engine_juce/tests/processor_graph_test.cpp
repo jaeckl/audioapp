@@ -3,6 +3,7 @@
 #include "audioapp/DeviceSubgraph.hpp"
 #include "audioapp/devices/DeviceSlot.hpp"
 #include "audioapp/devices/PhaseModSynthDeviceType.hpp"
+#include "audioapp/devices/processors/WavetableSynthProcessor.hpp"
 #include "audioapp/dsp/ProcessorArena.hpp"
 
 #include <iostream>
@@ -31,6 +32,13 @@ struct PhaseModSmoothingProbeProcessor final : audioapp::DeviceProcessor {
     void process(audioapp::AudioBlock&, audioapp::ProcessContext&) noexcept override {}
     audioapp::DeviceNodeKind kind() const noexcept override {
         return audioapp::DeviceNodeKind::PhaseModSynth;
+    }
+};
+
+struct SamplerAssetProbeProcessor final : audioapp::DeviceProcessor {
+    void process(audioapp::AudioBlock&, audioapp::ProcessContext&) noexcept override {}
+    audioapp::DeviceNodeKind kind() const noexcept override {
+        return audioapp::DeviceNodeKind::Sampler;
     }
 };
 
@@ -247,6 +255,36 @@ int main() {
     }
     expect(acceptedEveryPhaseModParameter && publishedEveryPhaseModParameter,
            "devices with more than 16 parameters never drop live updates or monitors");
+
+    SamplerAssetProbeProcessor samplerAssetProbe;
+    SamplerParams originalSampler;
+    originalSampler.attack = 0.73f;
+    samplerAssetProbe.initParams(originalSampler);
+    float replacementPcm[4]{0.1f, 0.2f, 0.3f, 0.4f};
+    ResolvedAssetUpdate samplerAsset;
+    samplerAsset.kind = DeviceNodeKind::Sampler;
+    samplerAsset.sampler.samplerPcm = replacementPcm;
+    samplerAsset.sampler.samplerFrameCount = 4;
+    samplerAsset.sampler.trimEndFrame = 4;
+    expect(samplerAssetProbe.applyResolvedAsset(samplerAsset),
+           "resolved sampler sources update through the POD asset command");
+    const auto& updatedSampler =
+        std::get<SamplerParams>(samplerAssetProbe.storedParams());
+    expect(updatedSampler.samplerPcm == replacementPcm &&
+               updatedSampler.samplerFrameCount == 4 &&
+               updatedSampler.attack == 0.73f,
+           "sample replacement preserves unrelated DSP and voice parameters");
+
+    WavetableSynthProcessor wavetableAssetProbe;
+    WavetableSynthParams wavetableParams;
+    wavetableParams.wavetableIndex = 2;
+    wavetableAssetProbe.initParams(wavetableParams);
+    ResolvedAssetUpdate wavetableAsset;
+    wavetableAsset.kind = DeviceNodeKind::WavetableSynth;
+    wavetableAsset.wavetableIndex = 7;
+    expect(wavetableAssetProbe.applyResolvedAsset(wavetableAsset) &&
+               wavetableAssetProbe.wavetableIndex() == 7,
+           "wavetable replacement uses a resolved numeric bank index");
 
     std::array<GraphTapDefinition, kMaxProcessorGraphTaps> maximumTaps{};
     for (int i = 0; i < kMaxProcessorGraphTaps; ++i) {

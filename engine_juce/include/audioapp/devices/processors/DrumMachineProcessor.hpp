@@ -35,6 +35,8 @@ public:
                                     float value,
                                     ParameterUpdateRate rate,
                                     float startValue) noexcept override;
+    bool setNestedResolvedAsset(uint64_t processorNodeId,
+                                const ResolvedAssetUpdate& update) noexcept override;
     bool readNestedEffectiveParameter(uint64_t processorNodeId,
                                       uint16_t parameterId,
                                       float& value) const noexcept override;
