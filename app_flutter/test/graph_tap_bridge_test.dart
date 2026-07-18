@@ -63,6 +63,20 @@ void main() {
     expect(calls.last.arguments, {'tapId': 'tap-7'});
   });
 
+  test('graph tap forwards an explicit logical port', () async {
+    await bridge.createGraphTap(
+      deviceId: 'dev-1',
+      kind: 'meter',
+      port: 'processor',
+    );
+    expect(calls.single.arguments, {
+      'deviceId': 'dev-1',
+      'kind': 'meter',
+      'capacityFrames': 32768,
+      'port': 'processor',
+    });
+  });
+
   test('effective parameter monitor uses a compact coalescible read', () async {
     final value = await bridge.readEffectiveParameter(
       deviceId: 'dev-2',

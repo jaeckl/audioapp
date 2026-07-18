@@ -2441,6 +2441,7 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         ctx.graphMidiEdgeNotes = &graphMidiEdges[0][0];
         ctx.graphMidiEdgeCounts = graphMidiEdgeCounts;
         ctx.graphMidiEdgeStride = kMaxRoutedMidiNotes;
+        ctx.graphMidiOutputNodeId = track.outputNodeId;
         if (track.deviceExecutionOrder.valid()) {
             ctx.compiledDeviceOrder = track.deviceExecutionOrder.deviceIndices.data();
             ctx.compiledDeviceOrderCount = track.deviceExecutionOrder.count;
@@ -3113,7 +3114,8 @@ void ProjectEngine::setMeterSubscriptions(const std::vector<std::string>& device
 
 std::string ProjectEngine::createGraphTap(const std::string& targetId,
                                           GraphTapKind kind,
-                                          uint32_t capacityFrames) {
+                                          uint32_t capacityFrames,
+                                          GraphTapPort port) {
     const juce::ScopedWriteLock lock(mutex_);
     if (kind == GraphTapKind::None) return {};
 
@@ -3122,16 +3124,28 @@ std::string ProjectEngine::createGraphTap(const std::string& targetId,
     if (DeviceSlot* device = findDeviceLocked(targetId)) {
         const auto nodeKind = deviceNodeKindFromTypeId(device->config.typeId);
         const auto plan = compileDeviceExecutionPlan(nodeKind);
+        if (port == GraphTapPort::Sidechain) return {};
+        const int logicalNode = port == GraphTapPort::Input ? 0 :
+            port == GraphTapPort::ProcessorOutput ? 1 : 2;
+        const DevicePortMask requiredPort = kind == GraphTapKind::MidiRecorder
+            ? DevicePortMask::Midi : DevicePortMask::Audio;
         if (!plan.valid() ||
-            !hasPort(plan.logical.nodes[2].outputPorts, DevicePortMask::Audio)) return {};
+            !hasPort(port == GraphTapPort::Input
+                         ? plan.logical.nodes[logicalNode].inputPorts
+                         : plan.logical.nodes[logicalNode].outputPorts,
+                     requiredPort)) return {};
         sourceScope = GraphTapRegistration::SourceScope::Device;
         sourceOutputNodeId = stableDeviceSubgraphNodeId(
-            targetId, DeviceSubgraphNodeRole::OutputAdapter);
+            targetId, logicalNode == 0 ? DeviceSubgraphNodeRole::InputAdapter :
+                logicalNode == 1 ? DeviceSubgraphNodeRole::DeviceProcessor :
+                                   DeviceSubgraphNodeRole::OutputAdapter);
     } else if (trackRepo_.findTrack(targetId) != nullptr) {
+        if (port != GraphTapPort::Output) return {};
         sourceScope = GraphTapRegistration::SourceScope::Track;
         sourceOutputNodeId = stableDeviceSubgraphNodeId(
             "graph-track-output:" + targetId, DeviceSubgraphNodeRole::OutputAdapter);
     } else if (targetId == "master") {
+        if (kind == GraphTapKind::MidiRecorder || port != GraphTapPort::Output) return {};
         sourceScope = GraphTapRegistration::SourceScope::Master;
         sourceOutputNodeId = stableDeviceSubgraphNodeId(
             "graph-master-output", DeviceSubgraphNodeRole::OutputAdapter);
@@ -3166,8 +3180,10 @@ std::string ProjectEngine::createGraphTap(const std::string& targetId,
     registration.sourceScope = sourceScope;
     registration.sourceOutputNodeId = sourceOutputNodeId;
     registration.kind = kind;
-    registration.capacityFrames = std::clamp(
-        capacityFrames, 1u, kGraphTapMaxBufferedFrames);
+    registration.port = port;
+    const uint32_t maxCapacity = kind == GraphTapKind::MidiRecorder
+        ? kGraphTapMaxBufferedMidiEvents : kGraphTapMaxBufferedFrames;
+    registration.capacityFrames = std::clamp(capacityFrames, 1u, maxCapacity);
     registration.generation = generation;
 
     // Tap creation is a structural observer edit. Compile it into the inactive
@@ -3218,7 +3234,11 @@ std::string ProjectEngine::readGraphTapJson(const std::string& tapId, int maxFra
     }
     auto& runtime = graphTapRuntimes_[slot];
     const char* kindName = registration->kind == GraphTapKind::Meter ? "meter" :
-        registration->kind == GraphTapKind::Analyzer ? "analyzer" : "recorder";
+        registration->kind == GraphTapKind::Analyzer ? "analyzer" :
+        registration->kind == GraphTapKind::MidiRecorder ? "midi" : "recorder";
+    const char* portName = registration->port == GraphTapPort::Input ? "input" :
+        registration->port == GraphTapPort::ProcessorOutput ? "processor" :
+        registration->port == GraphTapPort::Sidechain ? "sidechain" : "output";
     const auto jsonString = [](const std::string& value) {
         const auto text = juce::String::fromUTF8(
             value.data(), static_cast<int>(value.size()));
@@ -3235,7 +3255,8 @@ std::string ProjectEngine::readGraphTapJson(const std::string& tapId, int maxFra
     const uint32_t sampleRate = registration->kind == GraphTapKind::Meter
         ? meter.sampleRate : runtime.sampleRate.load(std::memory_order_relaxed);
     std::string json = R"({"ok":true,"tapId":)" + jsonString(tapId) +
-        R"(,"type":")" + kindName + R"(","targetId":)" +
+        R"(,"type":")" + kindName + R"(","port":")" + portName +
+        R"(","targetId":)" +
         jsonString(registration->targetId) + R"(,"deviceId":)" +
         jsonString(registration->targetId) + R"(,"sequence":)" +
         std::to_string(sequence) +
@@ -3273,7 +3294,33 @@ std::string ProjectEngine::readGraphTapJson(const std::string& tapId, int maxFra
         const uint64_t head = runtime.head.load(std::memory_order_acquire);
         const uint64_t tail = runtime.tail.load(std::memory_order_relaxed);
         const uint64_t available = std::min<uint64_t>(head - tail, capacity);
-        if (registration->kind == GraphTapKind::Analyzer) {
+        if (registration->kind == GraphTapKind::MidiRecorder) {
+            const int requested = std::clamp(maxFrames, 1, 2048);
+            const int count = static_cast<int>(std::min<uint64_t>(available, requested));
+            json += R"(,"eventCount":)" + std::to_string(count) + R"(,"events":[)";
+            for (int i = 0; i < count; ++i) {
+                if (i) json += ",";
+                const size_t pos = static_cast<size_t>((tail + i) % capacity);
+                const auto& event = runtime.midiRing[pos];
+                json += R"({"pitch":)" + std::to_string(event.pitch);
+                snprintf(buf, sizeof(buf), "%.9f", event.noteStartBeat);
+                json += R"(,"noteStartBeat":)" + std::string(buf);
+                snprintf(buf, sizeof(buf), "%.9f", event.noteDurationBeats);
+                json += R"(,"noteDurationBeats":)" + std::string(buf);
+                snprintf(buf, sizeof(buf), "%.6f", static_cast<double>(event.velocity));
+                json += R"(,"velocity":)" + std::string(buf);
+                snprintf(buf, sizeof(buf), "%.9f", event.clipStartBeat);
+                json += R"(,"clipStartBeat":)" + std::string(buf);
+                snprintf(buf, sizeof(buf), "%.9f", event.clipLengthBeats);
+                json += R"(,"clipLengthBeats":)" + std::string(buf);
+                snprintf(buf, sizeof(buf), "%.9f", event.contentLengthBeats);
+                json += R"(,"contentLengthBeats":)" + std::string(buf) +
+                    R"(,"loopContent":)" + (event.loopContent ? "true}" : "false}");
+            }
+            json += "]";
+            runtime.tail.store(tail + static_cast<uint64_t>(count),
+                               std::memory_order_release);
+        } else if (registration->kind == GraphTapKind::Analyzer) {
             const int count = static_cast<int>(std::min<uint64_t>(
                 available, kGraphTapAnalyzerWindowFrames));
             const uint64_t start = head - static_cast<uint64_t>(count);

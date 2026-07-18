@@ -16,12 +16,15 @@ extension EngineBridgeGraphTapsOperation on EngineBridge {
     required String deviceId,
     required String kind,
     int capacityFrames = 32768,
+    String port = 'output',
   }) async {
-    final result = await invokeRaw('createGraphTap', {
+    final arguments = <String, dynamic>{
       'deviceId': deviceId,
       'kind': kind,
       'capacityFrames': capacityFrames,
-    });
+    };
+    if (port != 'output') arguments['port'] = port;
+    final result = await invokeRaw('createGraphTap', arguments);
     return result['tapId'] as String;
   }
 

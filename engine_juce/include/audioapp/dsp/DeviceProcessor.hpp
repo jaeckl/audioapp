@@ -225,6 +225,8 @@ public:
         deviceId_ = node.deviceId;
         stableProcessorNodeId = stableDeviceSubgraphNodeId(
             node.deviceId, DeviceSubgraphNodeRole::DeviceProcessor);
+        stableInputNodeId = stableDeviceSubgraphNodeId(
+            node.deviceId, DeviceSubgraphNodeRole::InputAdapter);
         stableOutputNodeId = stableDeviceSubgraphNodeId(
             node.deviceId, DeviceSubgraphNodeRole::OutputAdapter);
         executionPlan = compileDeviceExecutionPlan(node.kind);
@@ -271,6 +273,7 @@ public:
     DeviceExecutionPlan executionPlan{};
     InstrumentVoicePolicy voicePolicy{};
     uint64_t stableProcessorNodeId = 0;
+    uint64_t stableInputNodeId = 0;
     uint64_t stableOutputNodeId = 0;
     uint8_t automationSpanOffset = 0;
     uint8_t automationSpanCount = 0;

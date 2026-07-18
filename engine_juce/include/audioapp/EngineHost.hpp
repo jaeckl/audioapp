@@ -248,7 +248,8 @@ public:
     /// targetId may identify a device output, a track/group output, or "master".
     std::string createGraphTap(const std::string& targetId,
                                GraphTapKind kind,
-                               uint32_t capacityFrames = kGraphTapDefaultRecorderFrames);
+                               uint32_t capacityFrames = kGraphTapDefaultRecorderFrames,
+                               GraphTapPort port = GraphTapPort::Output);
     bool removeGraphTap(const std::string& tapId);
     std::string readGraphTapJson(const std::string& tapId, int maxFrames = 512);
     std::string readEffectiveParameterJson(const std::string& deviceId,

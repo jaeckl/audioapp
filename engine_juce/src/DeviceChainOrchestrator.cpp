@@ -379,16 +379,30 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         }
     };
 
-    auto captureGraphTaps = [&](const DeviceProcessor& processor) noexcept {
+    const auto captureAudioGraphTaps = [&](uint64_t nodeId) noexcept {
         if (ctx.tapGraph == nullptr || ctx.graphTapRuntimes == nullptr ||
             ctx.graphTapRuntimeCount <= 0) return;
         for (int tapIndex = 0; tapIndex < ctx.tapGraph->tapCount; ++tapIndex) {
             const auto& tap = ctx.tapGraph->taps[static_cast<size_t>(tapIndex)];
-            if (tap.sourceOutputNodeId != processor.stableOutputNodeId ||
+            if (tap.kind == GraphTapKind::MidiRecorder ||
+                tap.sourceOutputNodeId != nodeId ||
                 tap.runtimeSlot >= ctx.graphTapRuntimeCount) continue;
             processGraphTap(ctx.graphTapRuntimes[tap.runtimeSlot], tap,
                             ctx.trackLeft, ctx.trackRight, numFrames,
                             ctx.sampleRate);
+        }
+    };
+
+    const auto captureMidiGraphTaps = [&](uint64_t outputNodeId) noexcept {
+        if (outputNodeId == 0 || ctx.tapGraph == nullptr ||
+            ctx.graphTapRuntimes == nullptr || ctx.graphTapRuntimeCount <= 0) return;
+        for (int tapIndex = 0; tapIndex < ctx.tapGraph->tapCount; ++tapIndex) {
+            const auto& tap = ctx.tapGraph->taps[static_cast<size_t>(tapIndex)];
+            if (tap.kind != GraphTapKind::MidiRecorder ||
+                tap.sourceOutputNodeId != outputNodeId ||
+                tap.runtimeSlot >= ctx.graphTapRuntimeCount) continue;
+            processGraphMidiTap(ctx.graphTapRuntimes[tap.runtimeSlot], tap,
+                                activeNotes, activeNoteCount);
         }
     };
 
@@ -407,6 +421,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         // The logical device subgraph is InputAdapter -> DSP -> OutputAdapter.
         // The plan is fused, so this check adds no buffers or dispatch layers.
         if (!proc->executionPlan.valid()) continue;
+        captureAudioGraphTaps(proc->stableInputNodeId);
         const auto* targetAutomation =
             ctx.automationClips != nullptr && proc->automationSpanCount > 0
                 ? ctx.automationClips + proc->automationSpanOffset : nullptr;
@@ -432,7 +447,9 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
             targetModEdgeCount,
             ctx.modulators);
         if (effectiveBypass) {
-            captureGraphTaps(*proc);
+            captureAudioGraphTaps(proc->stableProcessorNodeId);
+            captureAudioGraphTaps(proc->stableOutputNodeId);
+            captureMidiGraphTaps(proc->stableOutputNodeId);
             captureAudioSources(deviceIndex);
             captureMidiSources(deviceIndex);
             continue;
@@ -688,11 +705,14 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
 
         proc->process(block, pc);
 
+        captureAudioGraphTaps(proc->stableProcessorNodeId);
         runFusedOutputAdapter(*proc, nodeKind, block, s, numFrames);
-        captureGraphTaps(*proc);
+        captureAudioGraphTaps(proc->stableOutputNodeId);
+        captureMidiGraphTaps(proc->stableOutputNodeId);
         captureAudioSources(deviceIndex);
         captureMidiSources(deviceIndex);
     }
+    captureMidiGraphTaps(ctx.graphMidiOutputNodeId);
 }
 
 void resetPlaybackStateInArena(ProcessorArena& arena) noexcept {

@@ -433,6 +433,52 @@ int main() {
            static_cast<double>(effectiveJson["value"]) < targetFrequency,
            "coalesced nested gesture preserves its first pre-gesture value");
 
+    auto internalTapProject = std::make_unique<ProjectEngine>();
+    internalTapProject->createProject();
+    const auto internalTapTrack = internalTapProject->addTrack("Internal Tap");
+    const auto internalOscillator = internalTapProject->addDeviceToTrack(
+        internalTapTrack, device_types::kOscillator);
+    const auto internalEffect = internalTapProject->addDeviceToTrack(
+        internalTapTrack, device_types::kDistortion);
+    expect(internalTapProject->setDeviceParameter(
+               internalEffect, "gain", 0.0f),
+           "internal tap fixture mutes the output adapter");
+    const auto processorTap = internalTapProject->createGraphTap(
+        internalEffect, GraphTapKind::Recorder, 128,
+        GraphTapPort::ProcessorOutput);
+    const auto mutedOutputTap = internalTapProject->createGraphTap(
+        internalEffect, GraphTapKind::Recorder, 128,
+        GraphTapPort::Output);
+    expect(!processorTap.empty() && !mutedOutputTap.empty() &&
+               !internalTapProject->createGraphTap(
+                   internalEffect, GraphTapKind::Recorder, 128,
+                   GraphTapPort::Input).empty() &&
+               internalTapProject->createGraphTap(
+                   internalEffect, GraphTapKind::Recorder, 128,
+                   GraphTapPort::Sidechain).empty(),
+           "logical ports accept only capabilities exposed by the device subgraph");
+    internalTapProject->setPlaying(true);
+    internalTapProject->readMasterMixStereo(
+        tapLeft, tapRight, 128, 48000.0, 0.0);
+    internalTapProject->setPlaying(false);
+    const auto processorTapJson = juce::JSON::parse(
+        internalTapProject->readGraphTapJson(processorTap, 128));
+    const auto outputTapJson = juce::JSON::parse(
+        internalTapProject->readGraphTapJson(mutedOutputTap, 128));
+    const auto* processorSamples = processorTapJson["left"].getArray();
+    const auto* outputSamples = outputTapJson["left"].getArray();
+    double processorEnergy = 0.0;
+    double outputEnergy = 0.0;
+    if (processorSamples != nullptr)
+        for (const auto& sample : *processorSamples)
+            processorEnergy += std::abs(static_cast<double>(sample));
+    if (outputSamples != nullptr)
+        for (const auto& sample : *outputSamples)
+            outputEnergy += std::abs(static_cast<double>(sample));
+    expect(processorTapJson["port"].toString() == "processor" &&
+               processorEnergy > 0.01 && outputEnergy < 1.0e-6,
+           "processor-port tap observes DSP before the muted output adapter");
+
     auto ownedControlProject = std::make_unique<ProjectEngine>();
     ownedControlProject->createProject();
     const auto ownedControlTrack = ownedControlProject->addTrack("Owned Controls");
@@ -500,6 +546,23 @@ int main() {
     const auto clip = midiProject->createMidiClip(midiSource, 0.0, 4.0);
     expect(midiProject->setMidiClipNotes(clip, {{60, 0.0, 1.0, 100.0f}}),
            "source MIDI note is created");
+    const auto midiTrackTap = midiProject->createGraphTap(
+        midiSource, GraphTapKind::MidiRecorder, 16);
+    expect(!midiTrackTap.empty(), "MIDI tap attaches to a track event output");
+    midiProject->setPlaying(true);
+    midiProject->readMasterMixStereo(tapLeft, tapRight, 128, 48000.0, 0.0);
+    midiProject->setPlaying(false);
+    const auto midiTrackTapJson = juce::JSON::parse(
+        midiProject->readGraphTapJson(midiTrackTap, 16));
+    const auto* midiTrackEvents = midiTrackTapJson["events"].getArray();
+    expect(static_cast<bool>(midiTrackTapJson["ok"]) &&
+               midiTrackTapJson["type"].toString() == "midi" &&
+               midiTrackEvents != nullptr && midiTrackEvents->size() == 1 &&
+               static_cast<int>((*midiTrackEvents)[0]["pitch"]) == 60,
+           "track MIDI tap drains a bounded typed event batch");
+    expect(midiProject->createGraphTap(
+               "master", GraphTapKind::MidiRecorder, 16).empty(),
+           "master rejects a MIDI tap because it exposes audio only");
     const float silent = rms(midiProject->renderOffline(0.5, 48000.0));
     const auto midiReceiver = midiProject->addDeviceToTrack(
         synthDestination, device_types::kMidiReceiver, 0);
@@ -522,6 +585,12 @@ int main() {
     const auto midiDelay = delayedProject->addDeviceToTrack(
         delayedSource, device_types::kMidiDelay, 0);
     expect(!midiDelay.empty(), "MIDI delay is created");
+    const auto midiDelayTap = delayedProject->createGraphTap(
+        midiDelay, GraphTapKind::MidiRecorder, 16);
+    expect(!midiDelayTap.empty() &&
+               delayedProject->createGraphTap(
+                   midiDelay, GraphTapKind::Meter, 16).empty(),
+           "MIDI-only device accepts event taps and rejects audio meters");
     expect(delayedProject->setDeviceParameter(midiDelay, "midiDelayMode", 1.0f),
            "MIDI delay uses tempo sync");
     expect(delayedProject->setDeviceParameter(midiDelay, "midiDelayDivision", 1.0f),
@@ -530,6 +599,13 @@ int main() {
     delayedProject->setPlaying(true);
     delayedProject->readMasterMix(midiDelayProbe, 64, 48000.0, 0.0);
     delayedProject->setPlaying(false);
+    const auto midiDelayTapJson = juce::JSON::parse(
+        delayedProject->readGraphTapJson(midiDelayTap, 16));
+    const auto* delayedEvents = midiDelayTapJson["events"].getArray();
+    expect(delayedEvents != nullptr && delayedEvents->size() == 1 &&
+               static_cast<double>((*delayedEvents)[0]["noteStartBeat"]) > 0.5 &&
+               static_cast<double>((*delayedEvents)[0]["noteStartBeat"]) < 0.75,
+           "device MIDI tap observes events after the note effect processor");
     const auto midiDelayEffective = juce::JSON::parse(
         delayedProject->readEffectiveParameterJson(midiDelay, "midiDelayDivision"));
     expect(static_cast<bool>(midiDelayEffective["ok"]),

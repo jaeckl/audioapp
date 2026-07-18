@@ -1,4 +1,5 @@
 #include "audioapp/ProcessorGraph.hpp"
+#include "audioapp/DeviceChain.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -270,6 +271,7 @@ void processGraphTap(GraphTapRuntime& runtime,
                      const float* right,
                      int numFrames,
                      double sampleRate) noexcept {
+    if (tap.kind == GraphTapKind::MidiRecorder) return;
     if (left == nullptr || right == nullptr || numFrames <= 0 ||
         runtime.generation.load(std::memory_order_acquire) != tap.generation) {
         return;
@@ -336,6 +338,47 @@ void processGraphTap(GraphTapRuntime& runtime,
                 runtime.overflowed.store(true, std::memory_order_release);
             }
         }
+    }
+    runtime.writers.fetch_sub(1, std::memory_order_release);
+}
+
+void processGraphMidiTap(GraphTapRuntime& runtime,
+                         const CompiledGraphTap& tap,
+                         const MidiPlaybackNote* notes,
+                         int noteCount) noexcept {
+    if (tap.kind != GraphTapKind::MidiRecorder || notes == nullptr || noteCount <= 0 ||
+        runtime.generation.load(std::memory_order_acquire) != tap.generation) return;
+    runtime.writers.fetch_add(1, std::memory_order_acq_rel);
+    if (runtime.generation.load(std::memory_order_acquire) != tap.generation) {
+        runtime.writers.fetch_sub(1, std::memory_order_release);
+        return;
+    }
+    const uint32_t capacity = std::clamp(
+        tap.capacityFrames, 1u, kGraphTapMaxBufferedMidiEvents);
+    const uint64_t head = runtime.head.load(std::memory_order_relaxed);
+    const uint64_t tail = runtime.tail.load(std::memory_order_acquire);
+    const uint64_t used = head - tail;
+    const uint64_t available = used < capacity ? capacity - used : 0;
+    const int writable = static_cast<int>(std::min<uint64_t>(
+        available, static_cast<uint64_t>(noteCount)));
+    for (int index = 0; index < writable; ++index) {
+        const auto& note = notes[index];
+        runtime.midiRing[static_cast<size_t>((head + index) % capacity)] = {
+            note.pitch, note.clipStartBeat, note.clipLengthBeats,
+            note.noteStartBeat, note.noteDurationBeats, note.velocity,
+            note.loopContent, note.contentLengthBeats};
+    }
+    if (writable > 0) {
+        runtime.head.store(head + static_cast<uint64_t>(writable),
+                           std::memory_order_release);
+        runtime.sequence.fetch_add(static_cast<uint64_t>(writable),
+                                   std::memory_order_release);
+    }
+    if (writable < noteCount) {
+        runtime.droppedFrames.fetch_add(
+            static_cast<uint64_t>(noteCount - writable),
+            std::memory_order_relaxed);
+        runtime.overflowed.store(true, std::memory_order_release);
     }
     runtime.writers.fetch_sub(1, std::memory_order_release);
 }

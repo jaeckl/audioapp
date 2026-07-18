@@ -42,8 +42,15 @@ Taps are independent of routing edges:
 Track and group targets attach after their device chain and audibility ramp,
 immediately before their signal is accumulated into the parent bus. The master
 target attaches after gain and limiting. All use stable numeric output-node IDs
-compiled on the control thread. MIDI, side-chain, and arbitrary internal port
-taps remain outside this audio-output contract.
+compiled on the control thread. Device audio taps may explicitly select the
+logical `input`, `processor`, or `output` port without disabling fusion: each
+observer reads the buffer already present at that fused stage. MIDI taps observe
+track or MIDI-device output event batches through a separate bounded event ring.
+
+Side-chain is a declared port selector but no built-in currently exposes a
+side-chain port, so creation is rejected by capability validation. Adding the
+first side-chain-capable processor must add that logical port to its subgraph;
+the tap API does not invent an unconnected pseudo-port.
 
 ### Runtime kinds
 
@@ -52,6 +59,7 @@ taps remain outside this audio-output contract.
 | Meter | calculate and atomically publish peak/RMS | read latest coherent values |
 | Analyzer | copy samples into a bounded SPSC ring | consume the newest window and calculate waveform/spectrum |
 | Recorder | copy stereo samples into a bounded SPSC ring | drain bounded, ordered PCM chunks |
+| MIDI | copy note-event descriptors into a bounded SPSC ring | drain bounded, ordered event batches |
 
 Meter state is latest-value state and cannot overflow. Analyzer overflow drops
 new samples and reports a discontinuity. Recorder overflow latches an overflow
@@ -71,15 +79,18 @@ not advance while frozen.
 
 The bridge exposes:
 
-- `createGraphTap(targetId, kind, capacityFrames)` -> stable session tap ID;
+- `createGraphTap(targetId, kind, capacityFrames, port)` -> stable session tap ID;
 - `removeGraphTap(tapId)`;
 - `readGraphTap(tapId, maxFrames)`.
 
 `targetId` accepts a device ID, track/group ID, or `master`; the bridge still
 accepts the legacy `deviceId` field for compatibility. Kinds are `meter`,
-`analyzer`, and `recorder`. Recorder/analyzer readback is
-bounded; unbounded PCM JSON is forbidden. A later native typed-data or file
-writer may consume the same ring without changing the compiled graph contract.
+`analyzer`, `recorder`, and `midi`. Device audio ports are `input`, `processor`,
+or `output` (default); track/group/master and MIDI targets expose `output` only.
+`sidechain` is accepted only when the device subgraph declares that capability.
+Recorder/analyzer/MIDI readback is bounded; unbounded PCM or event JSON is
+forbidden. A later native typed-data or file writer may consume the same ring
+without changing the compiled graph contract.
 
 ## Follow-up: compiled parameter control
 

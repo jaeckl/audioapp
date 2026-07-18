@@ -20,6 +20,7 @@ constexpr int kMaxProcessorGraphLatencySamples = 4096;
 constexpr uint32_t kGraphTapDefaultRecorderFrames = 32768;
 constexpr uint32_t kGraphTapMaxBufferedFrames = 65536;
 constexpr int kGraphTapAnalyzerWindowFrames = 256;
+constexpr uint32_t kGraphTapMaxBufferedMidiEvents = 4096;
 constexpr uint8_t kGraphTrackMidiInput = 0xFF;
 
 enum class GraphSignalType : uint8_t {
@@ -29,7 +30,8 @@ enum class GraphSignalType : uint8_t {
 
 enum class GraphPortDirection : uint8_t { Input, Output };
 enum class GraphChannelLayout : uint8_t { None, Mono, Stereo };
-enum class GraphTapKind : uint8_t { None, Meter, Analyzer, Recorder };
+enum class GraphTapKind : uint8_t { None, Meter, Analyzer, Recorder, MidiRecorder };
+enum class GraphTapPort : uint8_t { Output, Input, ProcessorOutput, Sidechain };
 
 enum class ProcessorGraphError : uint8_t {
     None,
@@ -111,6 +113,17 @@ struct CompiledGraphTap {
     uint32_t capacityFrames = kGraphTapDefaultRecorderFrames;
 };
 
+struct GraphTapMidiEvent {
+    int pitch = 60;
+    double clipStartBeat = 0.0;
+    double clipLengthBeats = 4.0;
+    double noteStartBeat = 0.0;
+    double noteDurationBeats = 1.0;
+    float velocity = 100.0f;
+    bool loopContent = false;
+    double contentLengthBeats = 4.0;
+};
+
 /// Preallocated SPSC/latest-value state shared by one tap generation. Meter
 /// readers use atomics. Analyzer/recorder readers consume ring data using
 /// head/tail release/acquire publication; the audio callback is the sole writer.
@@ -132,6 +145,8 @@ struct GraphTapRuntime {
 
     alignas(64) std::array<float, kGraphTapMaxBufferedFrames> ringL{};
     alignas(64) std::array<float, kGraphTapMaxBufferedFrames> ringR{};
+    alignas(64) std::array<GraphTapMidiEvent,
+                           kGraphTapMaxBufferedMidiEvents> midiRing{};
     alignas(64) std::atomic<uint64_t> head{0};
     alignas(64) std::atomic<uint64_t> tail{0};
 };
@@ -157,6 +172,12 @@ void processGraphTap(GraphTapRuntime& runtime,
                      const float* right,
                      int numFrames,
                      double sampleRate) noexcept;
+
+struct MidiPlaybackNote;
+void processGraphMidiTap(GraphTapRuntime& runtime,
+                         const CompiledGraphTap& tap,
+                         const MidiPlaybackNote* notes,
+                         int noteCount) noexcept;
 
 /// Audio-thread-owned state for a compiled route delay. The compiler keeps the
 /// required delay on the immutable edge; this storage only carries samples

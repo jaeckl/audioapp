@@ -56,6 +56,7 @@ struct DeviceChainOrchestrator {
         MidiPlaybackNote* graphMidiEdgeNotes = nullptr;
         int* graphMidiEdgeCounts = nullptr;
         int graphMidiEdgeStride = 0;
+        uint64_t graphMidiOutputNodeId = 0;
         IModulator* const* modulators = nullptr;
         uint32_t retriggerGeneration = 0;
         const uint16_t* compiledDeviceOrder = nullptr;

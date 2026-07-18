@@ -1251,8 +1251,9 @@ void EngineHost::setMeterSubscriptions(const std::vector<std::string>& deviceIds
 
 std::string EngineHost::createGraphTap(const std::string& targetId,
                                        GraphTapKind kind,
-                                       uint32_t capacityFrames) {
-    return project_->createGraphTap(targetId, kind, capacityFrames);
+                                       uint32_t capacityFrames,
+                                       GraphTapPort port) {
+    return project_->createGraphTap(targetId, kind, capacityFrames, port);
 }
 
 bool EngineHost::removeGraphTap(const std::string& tapId) {
@@ -2300,13 +2301,21 @@ void EngineHost::registerAllCommands() {
         if (kindName == "meter") kind = GraphTapKind::Meter;
         else if (kindName == "analyzer") kind = GraphTapKind::Analyzer;
         else if (kindName == "recorder") kind = GraphTapKind::Recorder;
+        else if (kindName == "midi") kind = GraphTapKind::MidiRecorder;
+        const auto portName = ctx.args.hasProperty("port")
+            ? ctx.args["port"].toString().toStdString() : std::string("output");
+        GraphTapPort port = GraphTapPort::Output;
+        if (portName == "output") port = GraphTapPort::Output;
+        else if (portName == "input") port = GraphTapPort::Input;
+        else if (portName == "processor") port = GraphTapPort::ProcessorOutput;
+        else if (portName == "sidechain") port = GraphTapPort::Sidechain;
         else return commands::errorResult("invalid_tap_kind");
         const uint32_t capacity = ctx.args.hasProperty("capacityFrames")
             ? static_cast<uint32_t>(std::clamp(
                 static_cast<int64_t>(static_cast<double>(ctx.args["capacityFrames"])),
                 int64_t{1}, static_cast<int64_t>(kGraphTapMaxBufferedFrames)))
             : kGraphTapDefaultRecorderFrames;
-        const auto tapId = ctx.engine.createGraphTap(targetId, kind, capacity);
+        const auto tapId = ctx.engine.createGraphTap(targetId, kind, capacity, port);
         if (tapId.empty()) return commands::errorResult("invalid_tap_target");
         auto* result = new juce::DynamicObject();
         result->setProperty("ok", true);
