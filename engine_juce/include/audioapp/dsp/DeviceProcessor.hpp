@@ -125,10 +125,36 @@ public:
         return false;
     }
 
+    bool readManualEffectiveParameter(uint16_t parameterId,
+                                      float& value) const noexcept {
+        for (const auto& slot : effectiveParameterSlots_) {
+            if (slot.parameterId.load(std::memory_order_acquire) != parameterId ||
+                !slot.manualValueAvailable.load(std::memory_order_acquire)) continue;
+            value = slot.manualValue.load(std::memory_order_acquire);
+            return true;
+        }
+        return false;
+    }
+
     /// Publish the normalized value after base, automation, and modulation
     /// have been combined. The monitor is observational and never feeds DSP.
     void publishFinalEffectiveParameter(uint16_t parameterId, float value) noexcept {
-        publishEffectiveParameter(parameterId, std::clamp(value, 0.0f, 1.0f));
+        EffectiveParameterSlot* empty = nullptr;
+        for (auto& slot : effectiveParameterSlots_) {
+            const auto existing = slot.parameterId.load(std::memory_order_relaxed);
+            if (existing == parameterId) {
+                slot.value.store(std::clamp(value, 0.0f, 1.0f),
+                                 std::memory_order_release);
+                return;
+            }
+            if (existing == 0xffff && empty == nullptr) empty = &slot;
+        }
+        if (empty != nullptr) {
+            empty->value.store(std::clamp(value, 0.0f, 1.0f),
+                               std::memory_order_relaxed);
+            empty->manualValueAvailable.store(false, std::memory_order_relaxed);
+            empty->parameterId.store(parameterId, std::memory_order_release);
+        }
     }
 
     virtual bool readNestedEffectiveParameter(uint64_t processorNodeId,
@@ -298,18 +324,24 @@ private:
     struct EffectiveParameterSlot {
         std::atomic<uint16_t> parameterId{0xffff};
         std::atomic<float> value{0.0f};
+        std::atomic<float> manualValue{0.0f};
+        std::atomic<bool> manualValueAvailable{false};
     };
     void publishEffectiveParameter(uint16_t parameterId, float value) noexcept {
         EffectiveParameterSlot* empty = nullptr;
         for (auto& slot : effectiveParameterSlots_) {
             const auto existing = slot.parameterId.load(std::memory_order_relaxed);
             if (existing == parameterId) {
+                slot.manualValue.store(value, std::memory_order_relaxed);
+                slot.manualValueAvailable.store(true, std::memory_order_relaxed);
                 slot.value.store(value, std::memory_order_release);
                 return;
             }
             if (existing == 0xffff && empty == nullptr) empty = &slot;
         }
         if (empty != nullptr) {
+            empty->manualValue.store(value, std::memory_order_relaxed);
+            empty->manualValueAvailable.store(true, std::memory_order_relaxed);
             empty->value.store(value, std::memory_order_relaxed);
             empty->parameterId.store(parameterId, std::memory_order_release);
         }

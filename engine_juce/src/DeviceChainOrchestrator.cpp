@@ -522,6 +522,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
             uint16_t parameterId = 0xffff;
             float automatedValue = 0.0f;
             float modulationAmount = 0.0f;
+            bool hasAutomation = false;
         };
         std::array<FinalParameterTarget, kMaxCompiledParametersPerProcessor> finalTargets{};
         int finalTargetCount = 0;
@@ -575,6 +576,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                     }
                     if (target != nullptr) {
                         target->automatedValue = val;
+                        target->hasAutomation = true;
                     }
                 }
             }
@@ -601,17 +603,13 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                 const int lfoFrame = numFrames / 2;
                 const float lfoOut = ctx.lfoValues[edge.lfoId * numFrames + lfoFrame];
                 const float modAmount = edge.amount * lfoOut;
-                if (auto* target = findFinalTarget(pid)) {
-                    target->modulationAmount += modAmount;
-                } else if (!needsSubBlocks || !handlesOwnModulation(nodeKind)) {
-                        std::visit([&](auto& params) {
-                            applyModulation(params, modAmount, pid);
-                        }, modulatedParams);
-                        float manualBase = 0.0f;
-                        if (proc->readEffectiveParameter(pid, manualBase))
-                            proc->publishFinalEffectiveParameter(
-                                pid, manualBase + modAmount);
+                auto* target = findFinalTarget(pid);
+                if (target == nullptr && finalTargetCount <
+                        static_cast<int>(finalTargets.size())) {
+                    target = &finalTargets[static_cast<size_t>(finalTargetCount++)];
+                    target->parameterId = pid;
                 }
+                if (target != nullptr) target->modulationAmount += modAmount;
             }
         }
 
@@ -619,12 +617,31 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         // avoids applying/smoothing the same target independently per source.
         for (int index = 0; index < finalTargetCount; ++index) {
             const auto& target = finalTargets[static_cast<size_t>(index)];
-            const float effective = std::clamp(
-                target.automatedValue + target.modulationAmount, 0.0f, 1.0f);
+            const bool ownsTimeVaryingControls =
+                needsSubBlocks && handlesOwnModulation(nodeKind);
+            if (!target.hasAutomation) {
+                if (!ownsTimeVaryingControls) {
+                    std::visit([&](auto& params) {
+                        applyModulation(params, target.modulationAmount,
+                                        target.parameterId);
+                    }, modulatedParams);
+                }
+                float manualBase = 0.0f;
+                if (proc->readManualEffectiveParameter(
+                        target.parameterId, manualBase)) {
+                    proc->publishFinalEffectiveParameter(
+                        target.parameterId,
+                        manualBase + target.modulationAmount);
+                }
+                continue;
+            }
+            const float effective = std::clamp(target.automatedValue +
+                                                   target.modulationAmount,
+                                               0.0f, 1.0f);
             // Device-owned time-varying renderers apply the same automation
             // and global modulation at frame/sub-block rate. Do not apply the
             // midpoint probe to their DSP input a second time.
-            if (!needsSubBlocks || !handlesOwnModulation(nodeKind)) {
+            if (!ownsTimeVaryingControls) {
                 applyAutomationValue(
                     modulatedParams, nodeKind, target.parameterId, effective);
             }

@@ -173,6 +173,15 @@ Per-note modulation deliberately has no single device-wide effective value:
 different active voices can have different values, and collapsing those into
 one knob position would be false state.
 
+Device-wide composition has one target pass. Manual smoothing prepares the
+base, an active automation lane replaces that base with its absolute value,
+and all global modulation edges add to the selected value before clamping and
+publication. Manual base and final observed value occupy separate atomics, so a
+previous block's modulated value cannot feed back and accumulate in the next
+block. Renderers needing sub-block or sample-rate values consume the same
+compiled spans locally; the orchestration midpoint is monitoring-only and is
+never reapplied to their DSP.
+
 Consistency is part of the contract: every automatable or modulatable parameter
 must declare its rate and smoothing behavior, and tests must reject missing
 declarations. Discrete parameters never interpolate; continuous manual changes
