@@ -2,8 +2,8 @@
 
 ## Status
 
-Accepted as a prerequisite for broad DSP optimization; harness implementation
-is pending.
+Accepted. The informational benchmark harness is implemented; the registry-wide
+correctness matrix remains the next phase.
 
 ## Context
 
@@ -34,6 +34,12 @@ record median, p95 and maximum callback time plus realtime factor for:
 Results include build type, CPU/ABI, compiler and commit. Mobile ARM results are
 authoritative for product decisions. Desktop results remain useful for change
 detection.
+
+The `audioapp_dsp_benchmarks` target emits schema-versioned JSON on stdout. Its
+default run covers the full sample-rate/block-size grid; `--quick` is the smoke
+mode used while changing the harness. Filters such as `--scenario`,
+`--sample-rate`, and `--block-size` support focused comparisons. Timings are
+never unit-test pass/fail thresholds.
 
 ### Device correctness matrix
 

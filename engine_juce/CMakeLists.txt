@@ -183,6 +183,22 @@ if(NOT ANDROID)
     tests/routing_device_test.cpp
   )
   target_link_libraries(routing_device_tests PRIVATE audioapp_engine)
+  add_executable(audioapp_dsp_benchmarks EXCLUDE_FROM_ALL
+    benchmarks/dsp_benchmark.cpp
+  )
+  target_link_libraries(audioapp_dsp_benchmarks PRIVATE audioapp_engine)
+  execute_process(
+    COMMAND git rev-parse --short HEAD
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE AUDIOAPP_BENCHMARK_COMMIT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+  )
+  if(AUDIOAPP_BENCHMARK_COMMIT)
+    target_compile_definitions(audioapp_dsp_benchmarks PRIVATE
+      AUDIOAPP_BENCHMARK_COMMIT="${AUDIOAPP_BENCHMARK_COMMIT}"
+    )
+  endif()
   add_executable(clip_playback_regression_tests EXCLUDE_FROM_ALL
     tests/clip_playback_regression_test.cpp
   )
