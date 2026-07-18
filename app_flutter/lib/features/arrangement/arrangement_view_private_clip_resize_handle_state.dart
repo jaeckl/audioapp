@@ -16,63 +16,58 @@ class _ClipResizeHandleState extends State<_ClipResizeHandle> {
 
   @override
   Widget build(BuildContext context) {
-    // The handle brightens to full white on touch so the user sees the drag
-    // has begun. Idle uses a dedicated solid bright color matching the
-    // clip type's unique color scheme.
     final color =
         _active ? ArrangementClipTheme.resizeHandleActiveColor : _idleColor;
+    final typeLabel = switch (widget.clipKind) {
+      ClipContentKind.midi => 'MIDI',
+      ClipContentKind.sample => 'audio',
+      ClipContentKind.automation => 'automation',
+    };
     return Semantics(
       label: 'Resize clip',
-      child: SizedBox(
-        width: kResizeHandleHitWidth,
-        height: double.infinity,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onHorizontalDragStart: (details) {
-            setState(() => _active = true);
-            widget.onResizeStart(details);
-          },
-          onHorizontalDragUpdate: widget.onResizeUpdate,
-          onHorizontalDragEnd: (details) {
-            setState(() => _active = false);
-            widget.onResizeEnd(details);
-          },
-          onHorizontalDragCancel: () {
-            setState(() => _active = false);
-            widget.onResizeCancel();
-          },
-          // AlignRight: the 12 px visual bar pins to the right edge of the
-          // 28 px hit zone so the bar lands flush on the clip's right edge
-          // regardless of hit-zone padding.
-          //
-          // The square side faces the clip content (so the bar reads as
-          // attached to the clip) and the rounded side faces outward —
-          // mirrors the right-boundary handle of the sampler trim control.
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: Container(
-              width: kResizeHandleVisualWidth,
-              height: double.infinity,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: const BorderRadius.only(
-                  topRight: Radius.circular(3),
-                  bottomRight: Radius.circular(3),
-                ),
-                border: Border.all(color: Colors.black.withValues(alpha: 0.35)),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x55000000),
-                    blurRadius: 2,
-                    offset: Offset(0, 1),
+      value: '$typeLabel clip',
+      hint: 'Drag horizontally to change the clip length',
+      child: MouseRegion(
+        cursor: SystemMouseCursors.resizeLeftRight,
+        child: SizedBox(
+          width: widget.hitWidth,
+          height: double.infinity,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onHorizontalDragStart: (details) {
+              setState(() => _active = true);
+              widget.onResizeStart(details);
+            },
+            onHorizontalDragUpdate: widget.onResizeUpdate,
+            onHorizontalDragEnd: (details) {
+              setState(() => _active = false);
+              widget.onResizeEnd(details);
+            },
+            onHorizontalDragCancel: () {
+              setState(() => _active = false);
+              widget.onResizeCancel();
+            },
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: AnimatedContainer(
+                key: const ValueKey('clip-resize-rail'),
+                duration: const Duration(milliseconds: 90),
+                curve: Curves.easeOut,
+                width: kResizeHandleVisualWidth,
+                height: _active ? 32 : 24,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: _active ? 1 : 0.72),
+                  borderRadius: const BorderRadius.horizontal(
+                    left: Radius.circular(3),
                   ),
-                ],
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.drag_handle,
-                  size: 12,
-                  color: Color(0x8C000000), // black @ 0.55
+                  boxShadow: _active
+                      ? [
+                          BoxShadow(
+                            color: color.withValues(alpha: 0.45),
+                            blurRadius: 5,
+                          ),
+                        ]
+                      : null,
                 ),
               ),
             ),

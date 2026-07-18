@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 // The resize handle is rendered as a sibling Positioned in the track lane
-// (see arrangement_view.dart). At rest the handle's *visual* 12 px bar sits
+// (see arrangement_view.dart). At rest the handle's *visual* 4 px rail sits
 // flush on the right edge of the rendered clip:
 //   left = startBeat*ppb + renderedClipWidthPx - kResizeHandleHitWidth
-// The hit zone is kResizeHandleHitWidth = 44 px (right-aligned in the
-// Positioned) so users get a forgiving touch target.
+// Only the selected clip receives a handle. Normal clips use a 44 px in-clip
+// target; short clips split their width between body and edge interaction.
 //
 // pixelsPerBeat defaults to 64.0.
 
@@ -118,6 +118,11 @@ Future<_CommitLog> _pumpArrangement(
   double width = 1600,
   double height = 1200,
   bool snapClipsEnabled = true,
+  Future<void> Function({
+    required String clipId,
+    required double lengthBeats,
+  })? onResize,
+  void Function(String trackId, MidiClipSnapshot clip)? onMidiTap,
 }) async {
   final log = _CommitLog();
 
@@ -142,14 +147,14 @@ Future<_CommitLog> _pumpArrangement(
           onPlayheadSeek: (_) {},
           onLoopRegionChanged: (
               {required startBeat, required endBeat}) async {},
-          onClipTap: (_, __) {},
+          onClipTap: onMidiTap ?? (_, __) {},
           onSampleClipTap: (_, __) {},
           onMoveClip: ({
             required clipId,
             required trackId,
             required startBeat,
           }) async {},
-          onResizeClipCommit: log.record,
+          onResizeClipCommit: onResize ?? log.record,
           snapClipsEnabled: snapClipsEnabled,
         ),
       ),
@@ -164,24 +169,15 @@ Future<_CommitLog> _pumpArrangement(
 /// the resize handles are added in a flat list with sample → midi → automation
 /// order per track, then track order. With our 3-track setup of one clip each
 /// the handles in tree order are: midi-clip-1, sample-clip-1, auto-clip-1.
-int _handleIndexFor(String clipId) {
-  switch (clipId) {
-    case 'midi-clip-1':
-      return 0;
-    case 'sample-clip-1':
-      return 1;
-    case 'auto-clip-1':
-      return 2;
-    default:
-      throw ArgumentError('Unknown clip id: $clipId');
-  }
+Finder _handleFinder(String clipId) {
+  return find.byWidgetPredicate(
+      (widget) => widget.runtimeType.toString() == '_ClipResizeHandle');
 }
 
-Finder _handleFinder(String clipId) {
-  final list = find.byWidgetPredicate(
-      (widget) => widget.runtimeType.toString() == '_ClipResizeHandle');
-  final idx = _handleIndexFor(clipId);
-  return list.at(idx);
+Future<void> _selectClip(WidgetTester tester, String clipId) async {
+  await tester.tap(find.byKey(ValueKey('arrangement-clip-$clipId')));
+  await tester.pump(const Duration(milliseconds: 350));
+  await tester.pumpAndSettle();
 }
 
 Finder _handleGestureFinder(String clipId) {
@@ -254,22 +250,22 @@ double _handleLeft(WidgetTester tester, String clipId) {
 }
 
 void main() {
-  testWidgets('F1: ResizeHandleRendered — three handles, one per clip',
+  testWidgets('F1: resize handle is contextual to the selected clip',
       (tester) async {
     await _pumpArrangement(tester, snapshot: _baseSnapshot());
 
-    expect(find.bySemanticsLabel('Resize clip'), findsNWidgets(3));
+    expect(find.bySemanticsLabel('Resize clip'), findsNothing);
+    await _selectClip(tester, 'midi-clip-1');
+    expect(find.bySemanticsLabel('Resize clip'), findsOneWidget);
+    await _selectClip(tester, 'sample-clip-1');
+    expect(find.bySemanticsLabel('Resize clip'), findsOneWidget);
   });
 
   testWidgets('F2: DragRightIncreasesLength — handle moves to preview x',
       (tester) async {
     await _pumpArrangement(tester, snapshot: _baseSnapshot());
+    await _selectClip(tester, 'midi-clip-1');
 
-    // Initial: Positioned is 44 px wide and its right edge sits on the
-    // rendered right edge of the clip. The 12 px visual bar then anchors
-    // to the right of the 44 px zone via [Align.centerRight] inside the
-    // handle widget.
-    //   Positioned.left = startBeat*ppb + 256 - 44 = 212 px.
     expect(_handleLeft(tester, 'midi-clip-1'), 212.0);
 
     _triggerStart(tester, 'midi-clip-1');
@@ -279,7 +275,6 @@ void main() {
     _triggerMove(tester, 'midi-clip-1', const Offset(128, 0));
     await tester.pump();
 
-    // Handle now at 0 + 384 - 44 = 340 px.
     expect(_handleLeft(tester, 'midi-clip-1'), 340.0);
 
     // The clip block being resized live resizes to 384 px. The other two stay at 256 px.
@@ -298,6 +293,7 @@ void main() {
   testWidgets('F3: DragLeftDecreasesLength — handle moves to preview x',
       (tester) async {
     await _pumpArrangement(tester, snapshot: _baseSnapshot());
+    await _selectClip(tester, 'midi-clip-1');
 
     _triggerStart(tester, 'midi-clip-1');
     await tester.pump();
@@ -306,7 +302,6 @@ void main() {
     _triggerMove(tester, 'midi-clip-1', const Offset(-64, 0));
     await tester.pump();
 
-    // Handle at 0 + 192 - 44 = 148 px.
     expect(_handleLeft(tester, 'midi-clip-1'), 148.0);
   });
 
@@ -317,6 +312,7 @@ void main() {
       snapshot: _baseSnapshot(),
       snapClipsEnabled: false,
     );
+    await _selectClip(tester, 'midi-clip-1');
 
     _triggerStart(tester, 'midi-clip-1');
     await tester.pump();
@@ -325,13 +321,13 @@ void main() {
     _triggerMove(tester, 'midi-clip-1', const Offset(80, 0));
     await tester.pump();
 
-    // Handle at 0 + 336 - 44 = 292 px (5.25 beats, not snapped to 5.0).
     expect(_handleLeft(tester, 'midi-clip-1'), 292.0);
   });
 
   testWidgets('F5: ClampsToMinimumLength — drag left until timeline origin',
       (tester) async {
     await _pumpArrangement(tester, snapshot: _baseSnapshot());
+    await _selectClip(tester, 'midi-clip-1');
 
     _triggerStart(tester, 'midi-clip-1');
     await tester.pump();
@@ -341,7 +337,7 @@ void main() {
     _triggerMove(tester, 'midi-clip-1', const Offset(-300, 0));
     await tester.pump();
 
-    expect(_handleLeft(tester, 'midi-clip-1'), 0.0);
+    expect(_handleLeft(tester, 'midi-clip-1'), 16.0);
   });
 
   testWidgets('F6: ClampsToAdjacentClip — second clip at 8, clamps to 8.0',
@@ -350,6 +346,7 @@ void main() {
       tester,
       snapshot: _baseSnapshot(tracksBuilder: _twoAdjacentMidiClips),
     );
+    await _selectClip(tester, 'midi-clip-1');
 
     _triggerStart(tester, 'midi-clip-1');
     await tester.pump();
@@ -358,13 +355,13 @@ void main() {
     _triggerMove(tester, 'midi-clip-1', const Offset(500, 0));
     await tester.pump();
 
-    // Handle at 0 + 512 - 44 = 468 px.
     expect(_handleLeft(tester, 'midi-clip-1'), 468.0);
   });
 
   testWidgets('F7: CommitsCorrectLength — release commits (clipId, 6.0)',
       (tester) async {
     final log = await _pumpArrangement(tester, snapshot: _baseSnapshot());
+    await _selectClip(tester, 'midi-clip-1');
 
     _triggerStart(tester, 'midi-clip-1');
     await tester.pump();
@@ -384,8 +381,8 @@ void main() {
   testWidgets('F8: CancelRevertsLength — handle returns to original position',
       (tester) async {
     final log = await _pumpArrangement(tester, snapshot: _baseSnapshot());
+    await _selectClip(tester, 'midi-clip-1');
 
-    // Initial handle at 212 px.
     expect(_handleLeft(tester, 'midi-clip-1'), 212.0);
 
     _triggerStart(tester, 'midi-clip-1');
@@ -401,13 +398,13 @@ void main() {
 
     expect(log.commits, isEmpty);
 
-    // Handle reverts to original position 212 px.
     expect(_handleLeft(tester, 'midi-clip-1'), 212.0);
   });
 
   testWidgets('F9: ResizeDoesNotTriggerClipDrag — resize-only commit fires',
       (tester) async {
     final log = await _pumpArrangement(tester, snapshot: _baseSnapshot());
+    await _selectClip(tester, 'midi-clip-1');
 
     _triggerStart(tester, 'midi-clip-1');
     await tester.pump();
@@ -427,6 +424,7 @@ void main() {
   testWidgets('F10: AutomationClipResize — handle moves + commits',
       (tester) async {
     final log = await _pumpArrangement(tester, snapshot: _baseSnapshot());
+    await _selectClip(tester, 'auto-clip-1');
 
     _triggerStart(tester, 'auto-clip-1');
     await tester.pump();
@@ -447,6 +445,7 @@ void main() {
 
   testWidgets('F11: SampleClipResize — handle moves + commits', (tester) async {
     final log = await _pumpArrangement(tester, snapshot: _baseSnapshot());
+    await _selectClip(tester, 'sample-clip-1');
 
     _triggerStart(tester, 'sample-clip-1');
     await tester.pump();
@@ -455,7 +454,6 @@ void main() {
     await tester.pump();
 
     // Sample rendered width at ppb=64, viewport=1600, lengthBeats=4
-    // = clipDisplayWidthPx = 256. Handle at 0 + 320 - 44 = 276 px.
     expect(_handleLeft(tester, 'sample-clip-1'), 276.0);
 
     _triggerEnd(tester, 'sample-clip-1');
@@ -465,5 +463,150 @@ void main() {
     expect(log.commits.length, 1);
     expect(log.commits.first.clipId, 'sample-clip-1');
     expect(log.commits.first.lengthBeats, 5.0);
+  });
+
+  testWidgets('F12: narrow clip keeps resize target inside its bounds',
+      (tester) async {
+    await _pumpArrangement(
+      tester,
+      snapshot: _baseSnapshot(
+        tracksBuilder: () => const [
+          TrackSnapshot(
+            id: 'track-midi',
+            name: 'MIDI Track',
+            devices: [],
+            midiClips: [
+              MidiClipSnapshot(
+                id: 'midi-clip-1',
+                startBeat: 0,
+                lengthBeats: 0.25,
+                notes: [],
+              ),
+            ],
+            sampleClips: [],
+            automationClips: [],
+          ),
+        ],
+      ),
+    );
+    expect(find.bySemanticsLabel('Resize clip'), findsNothing);
+    await _selectClip(tester, 'midi-clip-1');
+
+    final positioned =
+        tester.widget<Positioned>(_handlePositioned('midi-clip-1'));
+    expect(positioned.left, 8);
+    expect(positioned.width, 8);
+  });
+
+  testWidgets('F13: rejected commit rolls preview back and reports failure',
+      (tester) async {
+    await _pumpArrangement(
+      tester,
+      snapshot: _baseSnapshot(),
+      onResize: ({required clipId, required lengthBeats}) async {
+        throw StateError('rejected');
+      },
+    );
+    await _selectClip(tester, 'midi-clip-1');
+
+    _triggerStart(tester, 'midi-clip-1');
+    await tester.pump();
+    _triggerMove(tester, 'midi-clip-1', const Offset(128, 0));
+    await tester.pump();
+    expect(_handleLeft(tester, 'midi-clip-1'), 340);
+
+    _triggerEnd(tester, 'midi-clip-1');
+    await tester.pump();
+    await tester.pump();
+
+    expect(_handleLeft(tester, 'midi-clip-1'), 212);
+    expect(find.text('Could not resize clip'), findsOneWidget);
+  });
+
+  testWidgets('F14: real touch keeps narrow clip body and edge usable',
+      (tester) async {
+    var opens = 0;
+    final log = await _pumpArrangement(
+      tester,
+      snapshot: _baseSnapshot(
+        tracksBuilder: () => const [
+          TrackSnapshot(
+            id: 'track-midi',
+            name: 'MIDI Track',
+            devices: [],
+            midiClips: [
+              MidiClipSnapshot(
+                id: 'midi-clip-1',
+                startBeat: 0,
+                lengthBeats: 0.25,
+                notes: [],
+              ),
+            ],
+            sampleClips: [],
+            automationClips: [],
+          ),
+        ],
+      ),
+      onMidiTap: (_, __) => opens++,
+    );
+
+    final clip = find.byKey(const ValueKey('arrangement-clip-midi-clip-1'));
+    await tester.tapAt(tester.getTopLeft(clip) + const Offset(5, 20));
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.bySemanticsLabel('Resize clip'), findsOneWidget);
+
+    // A second body tap still reaches the clip rather than the edge target.
+    await tester.tapAt(tester.getTopLeft(clip) + const Offset(5, 20));
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(opens, 1);
+
+    // A real pointer drag on the edge enters resize and commits.
+    final handleOrigin = tester.getTopLeft(_handleGestureFinder('midi-clip-1'));
+    await tester.dragFrom(
+        handleOrigin + const Offset(2, 20), const Offset(64, 0));
+    await tester.pumpAndSettle();
+    expect(log.commits, hasLength(1));
+    expect(log.commits.single.clipId, 'midi-clip-1');
+  });
+
+  testWidgets('F15: selected edge never blocks a back-to-back short clip',
+      (tester) async {
+    await _pumpArrangement(
+      tester,
+      snapshot: _baseSnapshot(
+        tracksBuilder: () => const [
+          TrackSnapshot(
+            id: 'track-midi',
+            name: 'MIDI Track',
+            devices: [],
+            midiClips: [
+              MidiClipSnapshot(
+                id: 'midi-clip-1',
+                startBeat: 0,
+                lengthBeats: 0.25,
+                notes: [],
+              ),
+              MidiClipSnapshot(
+                id: 'midi-clip-2',
+                startBeat: 0.25,
+                lengthBeats: 0.25,
+                notes: [],
+              ),
+            ],
+            sampleClips: [],
+            automationClips: [],
+          ),
+        ],
+      ),
+    );
+
+    await _selectClip(tester, 'midi-clip-1');
+    expect(_handleLeft(tester, 'midi-clip-1'), 8);
+
+    // The second clip starts exactly where the first ends and remains fully
+    // selectable because the first clip's edge target does not protrude.
+    await _selectClip(tester, 'midi-clip-2');
+    expect(find.bySemanticsLabel('Resize clip'), findsOneWidget);
+    expect(_handleLeft(tester, 'midi-clip-2'), 24);
   });
 }

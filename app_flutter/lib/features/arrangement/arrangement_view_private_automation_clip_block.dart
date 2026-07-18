@@ -4,6 +4,7 @@ class _AutomationClipBlock extends StatelessWidget {
   const _AutomationClipBlock({
     required this.clip,
     required this.highlighted,
+    required this.selected,
     required this.linkActive,
     this.onLinkToggle,
     this.onTap,
@@ -16,6 +17,7 @@ class _AutomationClipBlock extends StatelessWidget {
 
   final AutomationClipSnapshot clip;
   final bool highlighted;
+  final bool selected;
   final bool linkActive;
   final VoidCallback? onLinkToggle;
   final VoidCallback? onTap;
@@ -43,7 +45,7 @@ class _AutomationClipBlock extends StatelessWidget {
               opacity: highlighted ? 0.35 : 1,
               child: ArrangementClipChrome(
                 renderer: AutomationClipRenderer(clip),
-                highlighted: highlighted || linkActive,
+                highlighted: highlighted || selected || linkActive,
               ),
             ),
           ),

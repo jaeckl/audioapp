@@ -14,13 +14,17 @@ extension ArrangementViewStateBuildcontentOperation on ArrangementViewState {
       color: const Color(0xFF1A1A22),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final headerWidth = widget.compact ? ArrangementTimelineMetrics.trackHeaderWidth : _headerColumnWidth;
-          final showMixControls = ArrangementTimelineMetrics.headerShowsMixControls(headerWidth);
+          final headerWidth = widget.compact
+              ? ArrangementTimelineMetrics.trackHeaderWidth
+              : _headerColumnWidth;
+          final showMixControls =
+              ArrangementTimelineMetrics.headerShowsMixControls(headerWidth);
           final viewportWidth = constraints.maxWidth - headerWidth;
           _timelineViewportWidth = viewportWidth;
 
           final laneCount = visibleTracks.length + (widget.compact ? 0 : 1);
-          final lanesHeight = laneCount * ArrangementTimelineMetrics.trackLaneHeight;
+          final lanesHeight =
+              laneCount * ArrangementTimelineMetrics.trackLaneHeight;
 
           final lanesChild = SizedBox(
             key: _trackLanesKey,
@@ -49,14 +53,24 @@ extension ArrangementViewStateBuildcontentOperation on ArrangementViewState {
                         child: _TrackLane(
                           track: track,
                           selected: track.id == widget.snapshot.selectedTrackId,
-                          onTap: () => widget.onTrackSelected(track.id),
+                          onTap: () {
+                            if (_selectedClipId != null) {
+                              setState(() => _selectedClipId = null);
+                            }
+                            widget.onTrackSelected(track.id);
+                          },
                           pixelsPerBeat: _pixelsPerBeat,
                           timelineEndBeat: _timelineEndBeat,
                           viewportWidthPx: viewportWidth,
                           draggingClipId: _clipDrag?.clipId,
+                          selectedClipId: _selectedClipId,
                           highlightedClipId: widget.highlightedClipId,
                           onClipTap: widget.onClipTap,
                           onSampleClipTap: widget.onSampleClipTap,
+                          onClipSelected: (trackId, clipId) {
+                            widget.onTrackSelected(trackId);
+                            setState(() => _selectedClipId = clipId);
+                          },
                           onClipDragStart: _startClipDrag,
                           onClipDragUpdate: _updateClipDrag,
                           onClipDragEnd: _onClipDragEnd,
@@ -74,12 +88,14 @@ extension ArrangementViewStateBuildcontentOperation on ArrangementViewState {
                           onResizeClipCancel: _cancelClipResize,
                           previewLengthFor: previewLengthFor,
                           liveMidiPreviewNotes: widget.liveMidiPreviewNotes,
-                          liveMidiPreviewClips: widget.liveMidiPreviewClips[track.id] ?? const [],
+                          liveMidiPreviewClips:
+                              widget.liveMidiPreviewClips[track.id] ?? const [],
                           onDeleteClip: widget.onDeleteClip,
                           onClipMenu: _showClipMenu,
                           automationLinkClipId: widget.automationLinkClipId,
                           onAutomationLinkToggle: widget.onAutomationLinkToggle,
-                          onAutomationClipDoubleTap: widget.onAutomationClipDoubleTap,
+                          onAutomationClipDoubleTap:
+                              widget.onAutomationClipDoubleTap,
                         ),
                       ),
                     if (!widget.compact) const _AddTrackLane(),
@@ -93,7 +109,9 @@ extension ArrangementViewStateBuildcontentOperation on ArrangementViewState {
           final clipDragVisibleIndex = clipDrag == null
               ? -1
               : visibleTracks.indexWhere(
-                  (track) => track.id == widget.snapshot.tracks[clipDrag.targetTrackIndex].id,
+                  (track) =>
+                      track.id ==
+                      widget.snapshot.tracks[clipDrag.targetTrackIndex].id,
                 );
 
           final trackHeaders = Column(
@@ -106,10 +124,12 @@ extension ArrangementViewStateBuildcontentOperation on ArrangementViewState {
                   onDrop: _commitTrackDrop,
                   child: _TrackHeader(
                     track: visibleTracks[i],
-                    index: widget.snapshot.tracks.indexWhere((t) => t.id == visibleTracks[i].id),
+                    index: widget.snapshot.tracks
+                        .indexWhere((t) => t.id == visibleTracks[i].id),
                     headerWidth: headerWidth,
                     showMixControls: showMixControls,
-                    selected: visibleTracks[i].id == widget.snapshot.selectedTrackId,
+                    selected:
+                        visibleTracks[i].id == widget.snapshot.selectedTrackId,
                     onTap: () => _onTrackHeaderTap(visibleTracks[i]),
                     onToggleMute: widget.onSetTrackMuted == null
                         ? null
@@ -123,42 +143,56 @@ extension ArrangementViewStateBuildcontentOperation on ArrangementViewState {
                               trackId: visibleTracks[i].id,
                               soloed: !visibleTracks[i].soloed,
                             ),
-                    recordArmed: visibleTracks[i].id == widget.snapshot.selectedTrackId && widget.snapshot.recordArmed,
-                    onToggleRecordArmed: widget.onSetTrackRecordArmed == null || visibleTracks[i].isGroup || visibleTracks[i].freeze.enabled
+                    recordArmed: visibleTracks[i].id ==
+                            widget.snapshot.selectedTrackId &&
+                        widget.snapshot.recordArmed,
+                    onToggleRecordArmed: widget.onSetTrackRecordArmed == null ||
+                            visibleTracks[i].isGroup ||
+                            visibleTracks[i].freeze.enabled
                         ? null
                         : () => widget.onSetTrackRecordArmed!(
                               trackId: visibleTracks[i].id,
-                              armed: !(visibleTracks[i].id == widget.snapshot.selectedTrackId && widget.snapshot.recordArmed),
+                              armed: !(visibleTracks[i].id ==
+                                      widget.snapshot.selectedTrackId &&
+                                  widget.snapshot.recordArmed),
                             ),
-                    onToggleFreeze: widget.onToggleTrackFreeze == null || visibleTracks[i].isGroup
+                    onToggleFreeze: widget.onToggleTrackFreeze == null ||
+                            visibleTracks[i].isGroup
                         ? null
                         : () => widget.onToggleTrackFreeze!(
                               trackId: visibleTracks[i].id,
                               enabled: visibleTracks[i].freeze.enabled,
                               stale: visibleTracks[i].freeze.stale,
                             ),
-                    enableDrag: !widget.compact && widget.onMoveTrack != null && !showMixControls,
+                    enableDrag: !widget.compact &&
+                        widget.onMoveTrack != null &&
+                        !showMixControls,
                     onDragUpdate: _autoScrollTrackDrag,
                     collapsed: _collapsedGroupIds.contains(visibleTracks[i].id),
                     onToggleCollapsed: visibleTracks[i].isGroup
                         ? () => setState(() {
                               final id = visibleTracks[i].id;
-                              final collapsing = !_collapsedGroupIds.contains(id);
+                              final collapsing =
+                                  !_collapsedGroupIds.contains(id);
                               if (!_collapsedGroupIds.add(id)) {
                                 _collapsedGroupIds.remove(id);
                               }
-                              if (collapsing && widget.snapshot.selectedTrack?.parentGroupId == id) {
+                              if (collapsing &&
+                                  widget.snapshot.selectedTrack
+                                          ?.parentGroupId ==
+                                      id) {
                                 widget.onTrackSelected(id);
                               }
                             })
                         : null,
-                    onLongPressStart: widget.compact || widget.onMoveTrack != null
-                        ? null
-                        : (details) => _onTrackLongPress(
-                              visibleTracks[i],
-                              details,
-                              lanePress: false,
-                            ),
+                    onLongPressStart:
+                        widget.compact || widget.onMoveTrack != null
+                            ? null
+                            : (details) => _onTrackLongPress(
+                                  visibleTracks[i],
+                                  details,
+                                  lanePress: false,
+                                ),
                   ),
                 ),
               if (!widget.compact)
@@ -230,7 +264,8 @@ extension ArrangementViewStateBuildcontentOperation on ArrangementViewState {
               pixelsPerBeat: _pixelsPerBeat,
               scrollOffset: scrollOffset,
               pill: Positioned(
-                left: playheadDisplayX - ArrangementPlayheadMarkerTheme.hitWidth / 2,
+                left: playheadDisplayX -
+                    ArrangementPlayheadMarkerTheme.hitWidth / 2,
                 top: TimelineMarkerLayerMetrics.pillTopInOverlay(
                   rulerHeight: rulerHeight,
                   pillHeight: ArrangementPlayheadMarkerTheme.pillSize,
@@ -238,8 +273,12 @@ extension ArrangementViewStateBuildcontentOperation on ArrangementViewState {
                 width: ArrangementPlayheadMarkerTheme.hitWidth,
                 height: ArrangementPlayheadMarkerTheme.pillSize,
                 child: ArrangementPlayheadRulerPill(
-                  color: _scrubbingPlayhead ? theme.colorScheme.tertiary : theme.colorScheme.secondary,
-                  iconColor: _scrubbingPlayhead ? theme.colorScheme.onTertiary : theme.colorScheme.onSecondary,
+                  color: _scrubbingPlayhead
+                      ? theme.colorScheme.tertiary
+                      : theme.colorScheme.secondary,
+                  iconColor: _scrubbingPlayhead
+                      ? theme.colorScheme.onTertiary
+                      : theme.colorScheme.onSecondary,
                   playing: widget.playing,
                 ),
               ),

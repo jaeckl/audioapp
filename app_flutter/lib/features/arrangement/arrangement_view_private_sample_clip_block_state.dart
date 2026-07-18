@@ -54,7 +54,7 @@ class _SampleClipBlockState extends State<_SampleClipBlock> {
             opacity: widget.highlighted ? 0.35 : 1,
             child: ArrangementClipChrome(
               renderer: SampleClipRenderer(widget.clip),
-              highlighted: widget.highlighted,
+              highlighted: widget.highlighted || widget.selected,
             ),
           ),
         ),

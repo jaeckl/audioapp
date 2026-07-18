@@ -121,15 +121,12 @@ part 'arrangement_view_arrangement_view_state_clip_loop_content.dart';
 part 'arrangement_view_arrangement_view_state_show_clip_menu.dart';
 part 'arrangement_view_arrangement_view_state_build_content.dart';
 part 'arrangement_view_arrangement_view_state_build_stack.dart';
-// Clip resize (WP-1) — keep new code grouped here so it is easy to audit.
-//
-// The handle visual mirrors the sampler trim handle in
-// `device_strip/sampler_waveform_view.dart`:
-//   - 12 px visible bar, rounded on the outer (right) side
-//   - drag_handle icon centered for an obvious grab affordance
-//   - subtle drop shadow + black border so it stands off the clip body
-//   - generous 44 px touch radius outside the bar (handled by hit-width)
-const double kResizeHandleVisualWidth = 12.0;
+
+// Clip edge interaction. The hit target remains comfortably touchable while
+// the visible rail stays subordinate to the clip content. For clips narrower
+// than the normal target, the target shrinks to the rendered clip width so its
+// right edge never floats beyond the clip.
+const double kResizeHandleVisualWidth = 4.0;
 const double kResizeHandleHitWidth = 44.0;
 const double _kAutomationMinLengthBeats = 0.01;
 

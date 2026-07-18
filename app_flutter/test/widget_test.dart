@@ -774,7 +774,7 @@ void main() {
     expect(find.byIcon(Icons.folder_outlined), findsOneWidget);
   });
 
-  testWidgets('Tapping MIDI clip opens piano roll and close returns',
+  testWidgets('Selecting then tapping MIDI clip opens piano roll',
       (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
@@ -795,6 +795,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Add MIDI Clip'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('MIDI'));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.bySemanticsLabel('Resize clip'), findsOneWidget);
     await tester.tap(find.text('MIDI'));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();

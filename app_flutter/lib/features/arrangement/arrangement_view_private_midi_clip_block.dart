@@ -4,6 +4,7 @@ class _MidiClipBlock extends StatelessWidget {
   const _MidiClipBlock({
     required this.clip,
     required this.highlighted,
+    required this.selected,
     required this.onTap,
     required this.onDragStart,
     required this.onDragUpdate,
@@ -14,6 +15,7 @@ class _MidiClipBlock extends StatelessWidget {
 
   final MidiClipSnapshot clip;
   final bool highlighted;
+  final bool selected;
   final VoidCallback onTap;
   final VoidCallback? onDoubleTap;
   final GestureLongPressStartCallback onDragStart;
@@ -39,7 +41,7 @@ class _MidiClipBlock extends StatelessWidget {
               opacity: highlighted ? 0.35 : 1,
               child: ArrangementClipChrome(
                 renderer: MidiClipRenderer(clip),
-                highlighted: highlighted,
+                highlighted: highlighted || selected,
               ),
             ),
           ),

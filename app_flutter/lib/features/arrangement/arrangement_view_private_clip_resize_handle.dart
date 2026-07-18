@@ -3,6 +3,7 @@ part of 'arrangement_view.dart';
 class _ClipResizeHandle extends StatefulWidget {
   const _ClipResizeHandle({
     required this.clipKind,
+    required this.hitWidth,
     required this.onResizeStart,
     required this.onResizeUpdate,
     required this.onResizeEnd,
@@ -10,6 +11,7 @@ class _ClipResizeHandle extends StatefulWidget {
   });
 
   final ClipContentKind clipKind;
+  final double hitWidth;
   final void Function(DragStartDetails details) onResizeStart;
   final void Function(DragUpdateDetails details) onResizeUpdate;
   final void Function(DragEndDetails details) onResizeEnd;

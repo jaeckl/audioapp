@@ -1,7 +1,7 @@
 part of 'arrangement_view.dart';
 
 extension ArrangementViewStateEndclipresizeOperation on ArrangementViewState {
-void _endClipResize(DragEndDetails details) {
+  void _endClipResize(DragEndDetails details) {
     final session = _resizeSession;
     if (session == null) return;
     final finalLength = session.previewLengthBeats;
@@ -15,7 +15,28 @@ void _endClipResize(DragEndDetails details) {
     }
     final commit = widget.onResizeClipCommit;
     if (commit != null) {
-      unawaited(commit(clipId: session.clipId, lengthBeats: finalLength));
+      unawaited(_commitClipResize(session, commit, finalLength));
+    } else {
+      setState(() => _resizeSession = null);
+    }
+  }
+
+  Future<void> _commitClipResize(
+    _ClipResizeSession session,
+    Future<void> Function({
+      required String clipId,
+      required double lengthBeats,
+    }) commit,
+    double finalLength,
+  ) async {
+    try {
+      await commit(clipId: session.clipId, lengthBeats: finalLength);
+    } catch (_) {
+      if (!mounted || !identical(_resizeSession, session)) return;
+      setState(() => _resizeSession = null);
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(content: Text('Could not resize clip')),
+      );
     }
   }
 }

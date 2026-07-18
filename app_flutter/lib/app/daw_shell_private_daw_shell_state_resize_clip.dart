@@ -1,7 +1,7 @@
 part of 'daw_shell.dart';
 
 extension DawShellStateResizeclipOperation on _DawShellState {
-Future<void> _resizeClip({
+  Future<void> _resizeClip({
     required String clipId,
     required double lengthBeats,
   }) async {
@@ -14,6 +14,7 @@ Future<void> _resizeClip({
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
+      rethrow;
     }
   }
 }

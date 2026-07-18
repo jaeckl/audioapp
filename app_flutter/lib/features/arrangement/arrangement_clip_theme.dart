@@ -36,8 +36,8 @@ abstract final class ArrangementClipTheme {
     return Color.lerp(clipBackground, Colors.black, 0.38)!;
   }
 
-  /// Resize handle idle colors matching each clip's color scheme.
-  /// Bright enough to read against any background.
+  /// Clip-edge rails use the clip type's content color so the affordance is
+  /// discoverable without reading as a separate button.
   static const Color resizeHandleMidiIdleColor = Color(0xFF8EB4FF);
   static const Color resizeHandleSampleIdleColor = Color(0xFF9AD4B3);
   static const Color resizeHandleAutomationIdleColor = Color(0xFFB48CFF);

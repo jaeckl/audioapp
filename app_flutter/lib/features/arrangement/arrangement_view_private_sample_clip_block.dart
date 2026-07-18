@@ -4,6 +4,7 @@ class _SampleClipBlock extends StatefulWidget {
   const _SampleClipBlock({
     required this.clip,
     required this.highlighted,
+    required this.selected,
     required this.onTap,
     required this.onDragStart,
     required this.onDragUpdate,
@@ -14,6 +15,7 @@ class _SampleClipBlock extends StatefulWidget {
 
   final SampleClipSnapshot clip;
   final bool highlighted;
+  final bool selected;
   final VoidCallback onTap;
   final VoidCallback? onDoubleTap;
   final ValueChanged<Offset> onDragStart;

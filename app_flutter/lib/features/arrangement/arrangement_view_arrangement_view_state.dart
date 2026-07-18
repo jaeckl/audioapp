@@ -20,6 +20,7 @@ class ArrangementViewState extends State<ArrangementView> {
   double? _scrubPlayheadBeats;
   ArrangementClipDragSession? _clipDrag;
   _ClipResizeSession? _resizeSession;
+  String? _selectedClipId;
   int? _rulerActivePointer;
   Offset? _rulerLastCanvasPos;
   double _rulerPointerTravel = 0;
@@ -152,5 +153,4 @@ class ArrangementViewState extends State<ArrangementView> {
   /// `null` if not resizing. Clip blocks call this to render drag width.
   @override
   Widget build(BuildContext context) => _buildContent(context);
-
 }
