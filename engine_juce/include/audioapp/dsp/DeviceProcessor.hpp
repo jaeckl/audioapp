@@ -14,6 +14,10 @@
 
 namespace audioapp {
 
+// Must cover the largest registered device parameter set. This is fixed-size
+// realtime storage: no callback allocation and no silent eviction.
+inline constexpr size_t kMaxCompiledParametersPerProcessor = 128;
+
 class DeviceProcessor {
 public:
     virtual ~DeviceProcessor() = default;
@@ -266,8 +270,10 @@ private:
 
     std::string deviceId_;
     DeviceVariantParams storedParams_;
-    std::array<CompiledParameterState, 16> compiledParameterStates_{};
-    std::array<EffectiveParameterSlot, 16> effectiveParameterSlots_{};
+    std::array<CompiledParameterState,
+               kMaxCompiledParametersPerProcessor> compiledParameterStates_{};
+    std::array<EffectiveParameterSlot,
+               kMaxCompiledParametersPerProcessor> effectiveParameterSlots_{};
 };
 
 } // namespace audioapp

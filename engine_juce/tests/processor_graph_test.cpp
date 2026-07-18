@@ -26,6 +26,13 @@ struct SmoothingProbeProcessor final : audioapp::DeviceProcessor {
     }
 };
 
+struct PhaseModSmoothingProbeProcessor final : audioapp::DeviceProcessor {
+    void process(audioapp::AudioBlock&, audioapp::ProcessContext&) noexcept override {}
+    audioapp::DeviceNodeKind kind() const noexcept override {
+        return audioapp::DeviceNodeKind::PhaseModSynth;
+    }
+};
+
 void expect(bool condition, const char* message) {
     if (condition) return;
     ++failures;
@@ -172,6 +179,40 @@ int main() {
     expect(smoothingProbe.readEffectiveParameter(encodedDrive, monitoredValue) &&
            monitoredValue == 0.0f,
            "discrete parameters step without interpolation");
+
+    PhaseModSmoothingProbeProcessor largeParameterProbe;
+    largeParameterProbe.initParams(PhaseModSynthParams{});
+    int phaseModDescriptorCount = 0;
+    const auto* phaseModDescriptors = paramDescriptorsForKind(
+        DeviceNodeKind::PhaseModSynth, phaseModDescriptorCount);
+    expect(phaseModDescriptorCount > 16 &&
+           phaseModDescriptorCount <=
+               static_cast<int>(kMaxCompiledParametersPerProcessor),
+           "compiled parameter bank covers the largest registered device");
+    bool acceptedEveryPhaseModParameter = phaseModDescriptors != nullptr;
+    for (int index = 0; index < phaseModDescriptorCount; ++index) {
+        const auto encoded = encodeAutomationParamId(
+            phaseModDescriptors[index].stableName,
+            DeviceNodeKind::PhaseModSynth,
+            phaseModDescriptors[index].localParamId);
+        acceptedEveryPhaseModParameter &= largeParameterProbe.setCompiledParameter(
+            encoded, 0.75f, ParameterUpdateRate::Smoothed, 0.25f);
+    }
+    DeviceVariantParams largeSmoothedParams = largeParameterProbe.storedParams();
+    largeParameterProbe.applyCompiledParameterSmoothing(
+        largeSmoothedParams, 128, 48000.0);
+    bool publishedEveryPhaseModParameter = true;
+    for (int index = 0; index < phaseModDescriptorCount; ++index) {
+        const auto encoded = encodeAutomationParamId(
+            phaseModDescriptors[index].stableName,
+            DeviceNodeKind::PhaseModSynth,
+            phaseModDescriptors[index].localParamId);
+        float effective = 0.0f;
+        publishedEveryPhaseModParameter &=
+            largeParameterProbe.readEffectiveParameter(encoded, effective);
+    }
+    expect(acceptedEveryPhaseModParameter && publishedEveryPhaseModParameter,
+           "devices with more than 16 parameters never drop live updates or monitors");
 
     std::array<GraphTapDefinition, kMaxProcessorGraphTaps> maximumTaps{};
     for (int i = 0; i < kMaxProcessorGraphTaps; ++i) {
