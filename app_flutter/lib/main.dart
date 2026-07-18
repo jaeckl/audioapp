@@ -20,16 +20,19 @@ Future<void> main() async {
   );
   var showWelcomeOnLaunch = true;
   var audioEngineProfile = AudioEngineProfile.balanced;
+  var customAudioSettings = const AudioEngineCustomSettings();
   try {
     final settings = AppSettingsStore();
     showWelcomeOnLaunch = await settings.loadShowWelcomeOnLaunch();
     audioEngineProfile = await settings.loadAudioEngineProfile();
+    customAudioSettings = await settings.loadAudioEngineCustomSettings();
   } catch (_) {
     // A preference failure must never prevent the DAW from opening.
   }
   runApp(AudioApp(
     showWelcomeOnLaunch: showWelcomeOnLaunch,
     audioEngineProfile: audioEngineProfile,
+    customAudioSettings: customAudioSettings,
   ));
 }
 
@@ -38,10 +41,12 @@ class AudioApp extends StatelessWidget {
     super.key,
     this.showWelcomeOnLaunch = true,
     this.audioEngineProfile = AudioEngineProfile.balanced,
+    this.customAudioSettings = const AudioEngineCustomSettings(),
   });
 
   final bool showWelcomeOnLaunch;
   final AudioEngineProfile audioEngineProfile;
+  final AudioEngineCustomSettings customAudioSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +67,7 @@ class AudioApp extends StatelessWidget {
         bridge: EngineBridge(),
         showWelcomeOnLaunch: showWelcomeOnLaunch,
         initialAudioEngineProfile: audioEngineProfile,
+        initialCustomAudioSettings: customAudioSettings,
       ),
     );
   }

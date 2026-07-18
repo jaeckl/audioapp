@@ -33,6 +33,8 @@ class _DawShellState extends State<DawShell>
   bool _showWelcomeOnLaunch = true;
   late AudioEngineProfile _audioEngineProfile =
       widget.initialAudioEngineProfile;
+  late AudioEngineCustomSettings _customAudioSettings =
+      widget.initialCustomAudioSettings;
   AudioEngineStatus? _audioEngineStatus;
   bool _inactiveStopInFlight = false;
   List<RecentProjectEntry> _recentProjects = const [];

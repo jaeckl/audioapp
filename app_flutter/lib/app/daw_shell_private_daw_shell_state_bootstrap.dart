@@ -5,8 +5,10 @@ extension DawShellStateBootstrapOperation on _DawShellState {
     try {
       await widget.bridge.ping();
       try {
-        _audioEngineStatus =
-            await widget.bridge.configureAudioEngine(_audioEngineProfile);
+        _audioEngineStatus = await widget.bridge.configureAudioEngine(
+          _audioEngineProfile,
+          _customAudioSettings,
+        );
       } catch (_) {
         // Preference failures must not prevent opening or creating projects.
       }

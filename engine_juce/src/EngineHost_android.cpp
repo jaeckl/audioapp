@@ -32,8 +32,14 @@ struct EngineHost::Impl {
     std::atomic<uint32_t> callbackOverrunCount{0};
     int64_t blockDeadlineNs = 0; // set on stream open
 
-    enum class AudioProfile : int { LowLatency, Balanced, Safe };
+    enum class AudioProfile : int { LowLatency, Balanced, Safe, Custom };
     std::atomic<AudioProfile> profile{AudioProfile::Balanced};
+    std::atomic<int32_t> requestedSampleRate{48000};
+    std::atomic<int32_t> requestedFramesPerCallback{192};
+    std::atomic<int32_t> requestedBufferCapacity{2048};
+    std::atomic<int32_t> requestedBufferSize{768};
+    std::atomic<bool> requestedLowLatency{true};
+    std::atomic<bool> requestedExclusive{false};
     std::atomic<int32_t> actualFramesPerBurst{0};
     std::atomic<int32_t> actualBufferSize{0};
     std::atomic<int32_t> actualBufferCapacity{0};
@@ -141,10 +147,17 @@ struct EngineHost::Impl {
         }
 
         const auto requestedProfile = profile.load(std::memory_order_acquire);
-        const auto performanceMode = requestedProfile == AudioProfile::Safe
-            ? AAUDIO_PERFORMANCE_MODE_POWER_SAVING
-            : AAUDIO_PERFORMANCE_MODE_LOW_LATENCY;
-        const auto sharingMode = requestedProfile == AudioProfile::LowLatency
+        const bool custom = requestedProfile == AudioProfile::Custom;
+        const bool wantsLowLatency = custom
+            ? requestedLowLatency.load(std::memory_order_acquire)
+            : requestedProfile != AudioProfile::Safe;
+        const bool wantsExclusive = custom
+            ? requestedExclusive.load(std::memory_order_acquire)
+            : requestedProfile == AudioProfile::LowLatency;
+        const auto performanceMode = wantsLowLatency
+            ? AAUDIO_PERFORMANCE_MODE_LOW_LATENCY
+            : AAUDIO_PERFORMANCE_MODE_POWER_SAVING;
+        const auto sharingMode = wantsExclusive
             ? AAUDIO_SHARING_MODE_EXCLUSIVE
             : AAUDIO_SHARING_MODE_SHARED;
 
@@ -153,6 +166,13 @@ struct EngineHost::Impl {
         if (requestedProfile == AudioProfile::Safe) {
             AAudioStreamBuilder_setBufferCapacityInFrames(builder, 8192);
             AAudioStreamBuilder_setFramesPerDataCallback(builder, 1024);
+        } else if (custom) {
+            AAudioStreamBuilder_setSampleRate(
+                builder, requestedSampleRate.load(std::memory_order_acquire));
+            AAudioStreamBuilder_setBufferCapacityInFrames(
+                builder, requestedBufferCapacity.load(std::memory_order_acquire));
+            AAudioStreamBuilder_setFramesPerDataCallback(
+                builder, requestedFramesPerCallback.load(std::memory_order_acquire));
         }
         AAudioStreamBuilder_setSharingMode(builder, sharingMode);
         AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_FLOAT);
@@ -173,6 +193,14 @@ struct EngineHost::Impl {
                 AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
                 AAudioStreamBuilder_setPerformanceMode(builder, performanceMode);
                 AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_SHARED);
+                if (custom) {
+                    AAudioStreamBuilder_setSampleRate(
+                        builder, requestedSampleRate.load(std::memory_order_acquire));
+                    AAudioStreamBuilder_setBufferCapacityInFrames(
+                        builder, requestedBufferCapacity.load(std::memory_order_acquire));
+                    AAudioStreamBuilder_setFramesPerDataCallback(
+                        builder, requestedFramesPerCallback.load(std::memory_order_acquire));
+                }
                 AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_FLOAT);
                 AAudioStreamBuilder_setChannelCount(builder, 2);
                 AAudioStreamBuilder_setDataCallback(builder, &Impl::dataCallback, this);
@@ -190,7 +218,10 @@ struct EngineHost::Impl {
 
         sampleRate.store(AAudioStream_getSampleRate(stream), std::memory_order_release);
         const int32_t framesPerBurst = AAudioStream_getFramesPerBurst(stream);
-        if (requestedProfile != AudioProfile::Safe && framesPerBurst > 0) {
+        if (custom) {
+            AAudioStream_setBufferSizeInFrames(
+                stream, requestedBufferSize.load(std::memory_order_acquire));
+        } else if (requestedProfile != AudioProfile::Safe && framesPerBurst > 0) {
             const int32_t burstCount = requestedProfile == AudioProfile::LowLatency ? 2 : 4;
             AAudioStream_setBufferSizeInFrames(stream, framesPerBurst * burstCount);
         }
@@ -288,7 +319,20 @@ bool EngineHost::isPlaying() const noexcept {
     return impl_->playing.load(std::memory_order_acquire);
 }
 
-bool EngineHost::configureAudioEngine(const std::string& profileName) {
+bool EngineHost::configureAudioEngine(const std::string& profileName,
+                                      int requestedRate,
+                                      int requestedCallback,
+                                      int requestedCapacity,
+                                      int requestedActiveBuffer,
+                                      bool lowLatency,
+                                      bool exclusive) {
+    const auto previousProfile = impl_->profile.load(std::memory_order_acquire);
+    const int previousRate = impl_->requestedSampleRate.load(std::memory_order_acquire);
+    const int previousCallback = impl_->requestedFramesPerCallback.load(std::memory_order_acquire);
+    const int previousCapacity = impl_->requestedBufferCapacity.load(std::memory_order_acquire);
+    const int previousBuffer = impl_->requestedBufferSize.load(std::memory_order_acquire);
+    const bool previousLowLatency = impl_->requestedLowLatency.load(std::memory_order_acquire);
+    const bool previousExclusive = impl_->requestedExclusive.load(std::memory_order_acquire);
     Impl::AudioProfile nextProfile;
     if (profileName == "low_latency") {
         nextProfile = Impl::AudioProfile::LowLatency;
@@ -296,6 +340,14 @@ bool EngineHost::configureAudioEngine(const std::string& profileName) {
         nextProfile = Impl::AudioProfile::Balanced;
     } else if (profileName == "safe") {
         nextProfile = Impl::AudioProfile::Safe;
+    } else if (profileName == "custom") {
+        if (requestedRate < 8000 || requestedRate > 192000 ||
+            requestedCallback < 16 || requestedCallback > 4096 ||
+            requestedCapacity < 64 || requestedCapacity > 32768 ||
+            requestedActiveBuffer < 16 || requestedActiveBuffer > requestedCapacity) {
+            return false;
+        }
+        nextProfile = Impl::AudioProfile::Custom;
     } else {
         return false;
     }
@@ -305,9 +357,28 @@ bool EngineHost::configureAudioEngine(const std::string& profileName) {
     allNotesOff();
     impl_->closeStream();
     impl_->profile.store(nextProfile, std::memory_order_release);
+    if (nextProfile == Impl::AudioProfile::Custom) {
+        impl_->requestedSampleRate.store(requestedRate, std::memory_order_release);
+        impl_->requestedFramesPerCallback.store(requestedCallback, std::memory_order_release);
+        impl_->requestedBufferCapacity.store(requestedCapacity, std::memory_order_release);
+        impl_->requestedBufferSize.store(requestedActiveBuffer, std::memory_order_release);
+        impl_->requestedLowLatency.store(lowLatency, std::memory_order_release);
+        impl_->requestedExclusive.store(exclusive, std::memory_order_release);
+    }
     impl_->maxCallbackNs.store(0, std::memory_order_release);
     impl_->callbackCount.store(0, std::memory_order_release);
     impl_->callbackOverrunCount.store(0, std::memory_order_release);
+    if (nextProfile == Impl::AudioProfile::Custom && isAudioOutputEnabled() &&
+        !impl_->openStream()) {
+        impl_->profile.store(previousProfile, std::memory_order_release);
+        impl_->requestedSampleRate.store(previousRate, std::memory_order_release);
+        impl_->requestedFramesPerCallback.store(previousCallback, std::memory_order_release);
+        impl_->requestedBufferCapacity.store(previousCapacity, std::memory_order_release);
+        impl_->requestedBufferSize.store(previousBuffer, std::memory_order_release);
+        impl_->requestedLowLatency.store(previousLowLatency, std::memory_order_release);
+        impl_->requestedExclusive.store(previousExclusive, std::memory_order_release);
+        return false;
+    }
     return true;
 }
 
@@ -315,7 +386,8 @@ std::string EngineHost::getAudioEngineStatusJson() const {
     const juce::ScopedLock lock(impl_->streamMutex);
     const auto selected = impl_->profile.load(std::memory_order_acquire);
     const char* profileName = selected == Impl::AudioProfile::LowLatency ? "low_latency"
-        : selected == Impl::AudioProfile::Safe ? "safe" : "balanced";
+        : selected == Impl::AudioProfile::Safe ? "safe"
+        : selected == Impl::AudioProfile::Custom ? "custom" : "balanced";
     const bool streamOpen = impl_->stream != nullptr;
     const int32_t xruns = streamOpen ? AAudioStream_getXRunCount(impl_->stream) : 0;
     auto* status = new juce::DynamicObject();
@@ -331,12 +403,20 @@ std::string EngineHost::getAudioEngineStatusJson() const {
     status->setProperty("xRunCount", xruns);
     status->setProperty("callbackOverruns", static_cast<int>(impl_->callbackOverrunCount.load(std::memory_order_acquire)));
     status->setProperty("maxCallbackMicros", static_cast<double>(impl_->maxCallbackNs.load(std::memory_order_acquire)) / 1000.0);
+    status->setProperty("requestedSampleRate", impl_->requestedSampleRate.load(std::memory_order_acquire));
+    status->setProperty("requestedFramesPerCallback", impl_->requestedFramesPerCallback.load(std::memory_order_acquire));
+    status->setProperty("requestedBufferCapacityFrames", impl_->requestedBufferCapacity.load(std::memory_order_acquire));
+    status->setProperty("requestedBufferSizeFrames", impl_->requestedBufferSize.load(std::memory_order_acquire));
     const bool exclusive = streamOpen
         ? impl_->actualSharingMode.load(std::memory_order_acquire) == AAUDIO_SHARING_MODE_EXCLUSIVE
-        : selected == Impl::AudioProfile::LowLatency;
+        : selected == Impl::AudioProfile::Custom
+            ? impl_->requestedExclusive.load(std::memory_order_acquire)
+            : selected == Impl::AudioProfile::LowLatency;
     const bool lowLatency = streamOpen
         ? impl_->actualPerformanceMode.load(std::memory_order_acquire) == AAUDIO_PERFORMANCE_MODE_LOW_LATENCY
-        : selected != Impl::AudioProfile::Safe;
+        : selected == Impl::AudioProfile::Custom
+            ? impl_->requestedLowLatency.load(std::memory_order_acquire)
+            : selected != Impl::AudioProfile::Safe;
     status->setProperty("sharingMode", exclusive ? "exclusive" : "shared");
     status->setProperty("performanceMode", lowLatency ? "low_latency" : "power_saving");
     return juce::JSON::toString(juce::var(status), true).toStdString();

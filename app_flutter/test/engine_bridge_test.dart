@@ -79,6 +79,18 @@ void main() {
             'maxCallbackMicros': 0.0,
             'sharingMode': 'shared',
             'performanceMode': 'low_latency',
+            'requestedSampleRate': call.arguments is Map
+                ? (call.arguments as Map)['sampleRate'] ?? 48000
+                : 48000,
+            'requestedFramesPerCallback': call.arguments is Map
+                ? (call.arguments as Map)['framesPerCallback'] ?? 192
+                : 192,
+            'requestedBufferCapacityFrames': call.arguments is Map
+                ? (call.arguments as Map)['bufferCapacityFrames'] ?? 2048
+                : 2048,
+            'requestedBufferSizeFrames': call.arguments is Map
+                ? (call.arguments as Map)['bufferSizeFrames'] ?? 768
+                : 768,
           };
         case 'createProject':
           return emptySnapshot;
@@ -581,8 +593,10 @@ void main() {
   });
 
   test('audio engine profile and diagnostics round-trip', () async {
-    final configured =
-        await bridge.configureAudioEngine(AudioEngineProfile.lowLatency);
+    final configured = await bridge.configureAudioEngine(
+      AudioEngineProfile.lowLatency,
+      const AudioEngineCustomSettings(),
+    );
     expect(configured.profile, AudioEngineProfile.lowLatency);
     expect(configured.sampleRate, 48000);
     expect(configured.framesPerBurst, 192);
@@ -590,5 +604,21 @@ void main() {
     final status = await bridge.getAudioEngineStatus();
     expect(status.profile, AudioEngineProfile.balanced);
     expect(status.platform, 'AAudio');
+
+    const custom = AudioEngineCustomSettings(
+      sampleRate: 96000,
+      framesPerCallback: 256,
+      bufferCapacityFrames: 4096,
+      bufferSizeFrames: 1024,
+    );
+    final customStatus = await bridge.configureAudioEngine(
+      AudioEngineProfile.custom,
+      custom,
+    );
+    expect(customStatus.profile, AudioEngineProfile.custom);
+    expect(customStatus.requestedSampleRate, 96000);
+    expect(customStatus.requestedFramesPerCallback, 256);
+    expect(customStatus.requestedBufferCapacityFrames, 4096);
+    expect(customStatus.requestedBufferSizeFrames, 1024);
   });
 }

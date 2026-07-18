@@ -194,11 +194,13 @@ class DawShell extends StatefulWidget {
     required this.bridge,
     this.showWelcomeOnLaunch = false,
     this.initialAudioEngineProfile = AudioEngineProfile.balanced,
+    this.initialCustomAudioSettings = const AudioEngineCustomSettings(),
   });
 
   final EngineBridge bridge;
   final bool showWelcomeOnLaunch;
   final AudioEngineProfile initialAudioEngineProfile;
+  final AudioEngineCustomSettings initialCustomAudioSettings;
 
   @override
   State<DawShell> createState() => _DawShellState();

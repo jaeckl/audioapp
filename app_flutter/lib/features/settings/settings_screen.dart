@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../welcome/welcome_theme.dart';
 import 'audio_engine_settings.dart';
@@ -10,16 +11,20 @@ class SettingsScreen extends StatefulWidget {
     required this.showWelcomeOnLaunch,
     required this.onShowWelcomeOnLaunchChanged,
     this.audioEngineProfile = AudioEngineProfile.balanced,
+    this.customAudioSettings = const AudioEngineCustomSettings(),
     this.audioEngineStatus,
-    this.onAudioEngineProfileChanged,
+    this.onAudioEngineConfigurationChanged,
   });
 
   final bool showWelcomeOnLaunch;
   final Future<void> Function(bool value) onShowWelcomeOnLaunchChanged;
   final AudioEngineProfile audioEngineProfile;
+  final AudioEngineCustomSettings customAudioSettings;
   final AudioEngineStatus? audioEngineStatus;
-  final Future<AudioEngineStatus> Function(AudioEngineProfile profile)?
-      onAudioEngineProfileChanged;
+  final Future<AudioEngineStatus> Function(
+    AudioEngineProfile profile,
+    AudioEngineCustomSettings customSettings,
+  )? onAudioEngineConfigurationChanged;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -28,6 +33,8 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   late bool _showWelcomeOnLaunch = widget.showWelcomeOnLaunch;
   late AudioEngineProfile _audioEngineProfile = widget.audioEngineProfile;
+  late AudioEngineCustomSettings _customAudioSettings =
+      widget.customAudioSettings;
   late AudioEngineStatus? _audioEngineStatus = widget.audioEngineStatus;
   bool _saving = false;
   bool _savingAudio = false;
@@ -53,11 +60,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _setAudioEngineProfile(AudioEngineProfile profile) async {
-    final callback = widget.onAudioEngineProfileChanged;
-    if (_savingAudio || profile == _audioEngineProfile || callback == null) {
+  Future<void> _setAudioEngineConfiguration(
+    AudioEngineProfile profile,
+    AudioEngineCustomSettings customSettings,
+  ) async {
+    final callback = widget.onAudioEngineConfigurationChanged;
+    if (_savingAudio || callback == null) {
       return;
     }
+    if (profile == _audioEngineProfile &&
+        profile != AudioEngineProfile.custom) {
+      return;
+    }
+    if (profile == AudioEngineProfile.custom) customSettings.validate();
     final previous = _audioEngineProfile;
     setState(() {
       _audioEngineProfile = profile;
@@ -65,9 +80,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _error = null;
     });
     try {
-      final status = await callback(profile);
+      final status = await callback(profile, customSettings);
       if (!mounted) return;
-      setState(() => _audioEngineStatus = status);
+      setState(() {
+        _audioEngineStatus = status;
+        _customAudioSettings = customSettings;
+      });
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -112,7 +130,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       key: ValueKey('settings-audio-${profile.storageValue}'),
                       onTap: _savingAudio
                           ? null
-                          : () => _setAudioEngineProfile(profile),
+                          : () => _setAudioEngineConfiguration(
+                                profile,
+                                _customAudioSettings,
+                              ),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -152,6 +173,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                           ],
                         ),
+                      ),
+                    ),
+                  if (_audioEngineProfile == AudioEngineProfile.custom)
+                    _CustomAudioControls(
+                      initialSettings: _customAudioSettings,
+                      actualBurstFrames:
+                          _audioEngineStatus?.framesPerBurst ?? 0,
+                      enabled: !_savingAudio,
+                      onApply: (settings) => _setAudioEngineConfiguration(
+                        AudioEngineProfile.custom,
+                        settings,
                       ),
                     ),
                   if (_savingAudio)
@@ -215,6 +247,221 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
+class _CustomAudioControls extends StatefulWidget {
+  const _CustomAudioControls({
+    required this.initialSettings,
+    required this.actualBurstFrames,
+    required this.enabled,
+    required this.onApply,
+  });
+
+  final AudioEngineCustomSettings initialSettings;
+  final int actualBurstFrames;
+  final bool enabled;
+  final Future<void> Function(AudioEngineCustomSettings settings) onApply;
+
+  @override
+  State<_CustomAudioControls> createState() => _CustomAudioControlsState();
+}
+
+class _CustomAudioControlsState extends State<_CustomAudioControls> {
+  late final TextEditingController _sampleRate = TextEditingController(
+    text: '${widget.initialSettings.sampleRate}',
+  );
+  late final TextEditingController _callbackFrames = TextEditingController(
+    text: '${widget.initialSettings.framesPerCallback}',
+  );
+  late final TextEditingController _bufferCapacity = TextEditingController(
+    text: '${widget.initialSettings.bufferCapacityFrames}',
+  );
+  late final TextEditingController _bufferSize = TextEditingController(
+    text: '${widget.initialSettings.bufferSizeFrames}',
+  );
+  late bool _lowLatency = widget.initialSettings.lowLatency;
+  late bool _exclusive = widget.initialSettings.exclusive;
+  String? _validationError;
+
+  @override
+  void dispose() {
+    _sampleRate.dispose();
+    _callbackFrames.dispose();
+    _bufferCapacity.dispose();
+    _bufferSize.dispose();
+    super.dispose();
+  }
+
+  Future<void> _apply() async {
+    try {
+      final settings = AudioEngineCustomSettings(
+        sampleRate: int.parse(_sampleRate.text.trim()),
+        framesPerCallback: int.parse(_callbackFrames.text.trim()),
+        bufferCapacityFrames: int.parse(_bufferCapacity.text.trim()),
+        bufferSizeFrames: int.parse(_bufferSize.text.trim()),
+        lowLatency: _lowLatency,
+        exclusive: _exclusive,
+      );
+      settings.validate();
+      setState(() => _validationError = null);
+      await widget.onApply(settings);
+    } on FormatException catch (error) {
+      setState(() => _validationError = error.message);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('settings-custom-audio-controls'),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: WelcomeTheme.panelBorder)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'EXPERT STREAM REQUEST',
+            style: WelcomeTheme.sectionLabel,
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _AudioNumberField(
+                  fieldKey: const ValueKey('settings-custom-sample-rate'),
+                  controller: _sampleRate,
+                  label: 'Sample rate',
+                  suffix: 'Hz',
+                  enabled: widget.enabled,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _AudioNumberField(
+                  fieldKey: const ValueKey('settings-custom-callback'),
+                  controller: _callbackFrames,
+                  label: 'Callback',
+                  suffix: 'frames',
+                  enabled: widget.enabled,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _AudioNumberField(
+                  fieldKey: const ValueKey('settings-custom-capacity'),
+                  controller: _bufferCapacity,
+                  label: 'Capacity',
+                  suffix: 'frames',
+                  enabled: widget.enabled,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _AudioNumberField(
+                  fieldKey: const ValueKey('settings-custom-buffer'),
+                  controller: _bufferSize,
+                  label: 'Active buffer',
+                  suffix: 'frames',
+                  enabled: widget.enabled,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            activeThumbColor: WelcomeTheme.accent,
+            title: const Text('Low-latency performance mode'),
+            value: _lowLatency,
+            onChanged: widget.enabled
+                ? (value) => setState(() => _lowLatency = value)
+                : null,
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            activeThumbColor: WelcomeTheme.accent,
+            title: const Text('Request exclusive output'),
+            subtitle: const Text(
+              'Falls back to shared output if Android rejects the request',
+              style: TextStyle(color: WelcomeTheme.textMuted),
+            ),
+            value: _exclusive,
+            onChanged: widget.enabled
+                ? (value) => setState(() => _exclusive = value)
+                : null,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            widget.actualBurstFrames > 0
+                ? 'Hardware burst: ${widget.actualBurstFrames} frames (negotiated by Android)'
+                : 'Hardware burst is negotiated by Android and appears after playback starts.',
+            style: const TextStyle(
+              color: WelcomeTheme.textMuted,
+              fontSize: 12,
+            ),
+          ),
+          if (_validationError != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _validationError!,
+              style: const TextStyle(color: WelcomeTheme.error, fontSize: 12),
+            ),
+          ],
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              key: const ValueKey('settings-apply-custom-audio'),
+              onPressed: widget.enabled ? _apply : null,
+              icon: const Icon(Icons.tune_rounded),
+              label: const Text('Apply custom audio settings'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AudioNumberField extends StatelessWidget {
+  const _AudioNumberField({
+    required this.fieldKey,
+    required this.controller,
+    required this.label,
+    required this.suffix,
+    required this.enabled,
+  });
+
+  final TextEditingController controller;
+  final Key fieldKey;
+  final String label;
+  final String suffix;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      key: fieldKey,
+      controller: controller,
+      enabled: enabled,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      decoration: InputDecoration(
+        isDense: true,
+        labelText: label,
+        suffixText: suffix,
+        border: const OutlineInputBorder(),
+      ),
+    );
+  }
+}
+
 class _AudioEngineDiagnostics extends StatelessWidget {
   const _AudioEngineDiagnostics({required this.status});
 
@@ -229,10 +476,25 @@ class _AudioEngineDiagnostics extends StatelessWidget {
             ('Backend', current.platform),
             ('Stream', current.streamOpen ? 'Open' : 'Idle'),
             ('Sample rate', '${current.sampleRate.round()} Hz'),
+            if (current.framesPerCallback > 0)
+              ('Callback', '${current.framesPerCallback} frames'),
             if (current.framesPerBurst > 0)
               ('Hardware burst', '${current.framesPerBurst} frames'),
             if (current.bufferSizeFrames > 0)
               ('Active buffer', '${current.bufferSizeFrames} frames'),
+            if (current.bufferCapacityFrames > 0)
+              ('Buffer capacity', '${current.bufferCapacityFrames} frames'),
+            if (current.profile == AudioEngineProfile.custom) ...[
+              ('Requested rate', '${current.requestedSampleRate} Hz'),
+              (
+                'Requested callback',
+                '${current.requestedFramesPerCallback} frames'
+              ),
+              (
+                'Requested buffer',
+                '${current.requestedBufferSizeFrames} / ${current.requestedBufferCapacityFrames} frames'
+              ),
+            ],
             ('Mode', '${current.performanceMode} · ${current.sharingMode}'),
             ('AAudio XRuns', '${current.xRunCount}'),
             ('DSP deadline misses', '${current.callbackOverruns}'),

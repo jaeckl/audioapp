@@ -1366,7 +1366,14 @@ void EngineHost::registerAllCommands() {
 
     reg.registerCommand("configureAudioEngine", [](const commands::CommandContext& ctx) -> commands::CommandResult {
         const auto profile = ctx.args["profile"].toString().toStdString();
-        if (!ctx.engine.configureAudioEngine(profile)) {
+        if (!ctx.engine.configureAudioEngine(
+                profile,
+                static_cast<int>(ctx.args["sampleRate"]),
+                static_cast<int>(ctx.args["framesPerCallback"]),
+                static_cast<int>(ctx.args["bufferCapacityFrames"]),
+                static_cast<int>(ctx.args["bufferSizeFrames"]),
+                static_cast<bool>(ctx.args["lowLatency"]),
+                static_cast<bool>(ctx.args["exclusive"]))) {
             return commands::errorResult("invalid_audio_profile");
         }
         return commands::rawResult(ctx.engine.getAudioEngineStatusJson());

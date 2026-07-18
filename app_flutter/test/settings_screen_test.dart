@@ -11,7 +11,6 @@ void main() {
   testWidgets('Settings contains only persistent app preferences',
       (tester) async {
     var savedValue = true;
-    var savedProfile = AudioEngineProfile.balanced;
     await tester.pumpWidget(
       MaterialApp(
         home: SettingsScreen(
@@ -19,12 +18,36 @@ void main() {
           onShowWelcomeOnLaunchChanged: (value) async {
             savedValue = value;
           },
-          onAudioEngineProfileChanged: (profile) async {
+        ),
+      ),
+    );
+
+    expect(find.text('Loop playback'), findsNothing);
+
+    final startupSwitch = find.byKey(const ValueKey('settings-show-welcome'));
+    await tester.scrollUntilVisible(startupSwitch, 250);
+    expect(find.text('Show project hub on launch'), findsOneWidget);
+    await tester.tap(startupSwitch);
+    await tester.pumpAndSettle();
+    expect(savedValue, isFalse);
+  });
+
+  testWidgets('custom audio controls apply direct stream values',
+      (tester) async {
+    var savedProfile = AudioEngineProfile.balanced;
+    var savedCustom = const AudioEngineCustomSettings();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SettingsScreen(
+          showWelcomeOnLaunch: true,
+          onShowWelcomeOnLaunchChanged: (_) async {},
+          onAudioEngineConfigurationChanged: (profile, customSettings) async {
             savedProfile = profile;
+            savedCustom = customSettings;
             return AudioEngineStatus.fromMap({
               'profile': profile.storageValue,
               'platform': 'AAudio',
-              'sampleRate': 48000,
+              'sampleRate': customSettings.sampleRate,
               'streamOpen': false,
             });
           },
@@ -32,18 +55,32 @@ void main() {
       ),
     );
 
-    expect(find.text('Show project hub on launch'), findsOneWidget);
-    expect(find.text('Loop playback'), findsNothing);
-
-    await tester.tap(find.byKey(const ValueKey('settings-show-welcome')));
-    await tester.pumpAndSettle();
-    expect(savedValue, isFalse);
-
-    await tester.tap(
-      find.byKey(const ValueKey('settings-audio-low_latency')),
-    );
+    final lowLatency = find.byKey(const ValueKey('settings-audio-low_latency'));
+    await tester.tap(lowLatency);
     await tester.pumpAndSettle();
     expect(savedProfile, AudioEngineProfile.lowLatency);
+
+    final customProfile = find.byKey(const ValueKey('settings-audio-custom'));
+    await tester.scrollUntilVisible(customProfile, 200);
+    await tester.tap(customProfile);
+    await tester.pumpAndSettle();
+    expect(savedProfile, AudioEngineProfile.custom);
+    expect(
+      find.byKey(const ValueKey('settings-custom-audio-controls')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('settings-custom-sample-rate')),
+      '96000',
+    );
+    tester.testTextInput.hide();
+    await tester.pump();
+    final apply = find.byKey(const ValueKey('settings-apply-custom-audio'));
+    await tester.ensureVisible(apply);
+    await tester.tap(apply);
+    await tester.pumpAndSettle();
+    expect(savedCustom.sampleRate, 96000);
   });
 
   test('startup preference survives a store round trip', () async {
@@ -56,5 +93,19 @@ void main() {
     expect(await store.loadAudioEngineProfile(), AudioEngineProfile.balanced);
     await store.saveAudioEngineProfile(AudioEngineProfile.safe);
     expect(await store.loadAudioEngineProfile(), AudioEngineProfile.safe);
+    const custom = AudioEngineCustomSettings(
+      sampleRate: 96000,
+      framesPerCallback: 256,
+      bufferCapacityFrames: 4096,
+      bufferSizeFrames: 1024,
+      exclusive: true,
+    );
+    await store.saveAudioEngineCustomSettings(custom);
+    final restored = await store.loadAudioEngineCustomSettings();
+    expect(restored.sampleRate, 96000);
+    expect(restored.framesPerCallback, 256);
+    expect(restored.bufferCapacityFrames, 4096);
+    expect(restored.bufferSizeFrames, 1024);
+    expect(restored.exclusive, isTrue);
   });
 }

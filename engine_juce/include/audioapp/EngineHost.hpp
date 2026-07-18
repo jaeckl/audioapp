@@ -38,7 +38,13 @@ public:
     std::string ping() const;
     void setPlaying(bool shouldPlay);
     bool isPlaying() const noexcept;
-    bool configureAudioEngine(const std::string& profile);
+    bool configureAudioEngine(const std::string& profile,
+                              int sampleRate,
+                              int framesPerCallback,
+                              int bufferCapacityFrames,
+                              int bufferSizeFrames,
+                              bool lowLatency,
+                              bool exclusive);
     std::string getAudioEngineStatusJson() const;
 
     void createProject();

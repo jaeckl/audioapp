@@ -20,6 +20,10 @@ struct EngineHost::Impl : juce::AudioIODeviceCallback {
     std::atomic<bool> audioInitialized{false};
     juce::CriticalSection initMutex;
     std::string audioProfile{"balanced"};
+    int requestedSampleRate = 48000;
+    int requestedFramesPerCallback = 192;
+    int requestedBufferCapacity = 2048;
+    int requestedBufferSize = 768;
 
     void ensureAudioInitialized() {
         if (audioInitialized.load(std::memory_order_acquire)) {
@@ -140,14 +144,34 @@ bool EngineHost::isPlaying() const noexcept {
     return impl_->playing.load(std::memory_order_acquire);
 }
 
-bool EngineHost::configureAudioEngine(const std::string& profile) {
-    if (profile != "low_latency" && profile != "balanced" && profile != "safe") {
+bool EngineHost::configureAudioEngine(const std::string& profile,
+                                      int sampleRate,
+                                      int framesPerCallback,
+                                      int bufferCapacityFrames,
+                                      int bufferSizeFrames,
+                                      bool /*lowLatency*/,
+                                      bool /*exclusive*/) {
+    if (profile != "low_latency" && profile != "balanced" &&
+        profile != "safe" && profile != "custom") {
+        return false;
+    }
+    if (profile == "custom" &&
+        (sampleRate < 8000 || sampleRate > 192000 ||
+         framesPerCallback < 16 || framesPerCallback > 4096 ||
+         bufferCapacityFrames < 64 || bufferCapacityFrames > 32768 ||
+         bufferSizeFrames < 16 || bufferSizeFrames > bufferCapacityFrames)) {
         return false;
     }
     setPlaying(false);
     stopPreview();
     allNotesOff();
     impl_->audioProfile = profile;
+    if (profile == "custom") {
+        impl_->requestedSampleRate = sampleRate;
+        impl_->requestedFramesPerCallback = framesPerCallback;
+        impl_->requestedBufferCapacity = bufferCapacityFrames;
+        impl_->requestedBufferSize = bufferSizeFrames;
+    }
     return true;
 }
 
@@ -165,6 +189,10 @@ std::string EngineHost::getAudioEngineStatusJson() const {
     status->setProperty("xRunCount", 0);
     status->setProperty("callbackOverruns", 0);
     status->setProperty("maxCallbackMicros", 0.0);
+    status->setProperty("requestedSampleRate", impl_->requestedSampleRate);
+    status->setProperty("requestedFramesPerCallback", impl_->requestedFramesPerCallback);
+    status->setProperty("requestedBufferCapacityFrames", impl_->requestedBufferCapacity);
+    status->setProperty("requestedBufferSizeFrames", impl_->requestedBufferSize);
     status->setProperty("sharingMode", "system");
     status->setProperty("performanceMode", juce::String(impl_->audioProfile));
     return juce::JSON::toString(juce::var(status), true).toStdString();

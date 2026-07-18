@@ -3,10 +3,15 @@ part of 'engine_bridge.dart';
 extension EngineBridgeAudioEngineOperation on EngineBridge {
   Future<AudioEngineStatus> configureAudioEngine(
     AudioEngineProfile profile,
+    AudioEngineCustomSettings customSettings,
   ) async {
+    if (profile == AudioEngineProfile.custom) customSettings.validate();
     final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
       'configureAudioEngine',
-      {'profile': profile.storageValue},
+      {
+        'profile': profile.storageValue,
+        ...customSettings.toMap(),
+      },
     );
     if (result == null || result['ok'] != true) {
       throw PlatformException(
