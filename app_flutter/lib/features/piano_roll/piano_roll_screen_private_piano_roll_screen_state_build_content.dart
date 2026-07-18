@@ -91,6 +91,7 @@ extension PianoRollScreenStateBuildcontentOperation on _PianoRollScreenState {
                 onCenterModeChanged: _onCenterModeChanged,
                 showCompTab: _takes.length > 1,
                 showHarmonicTab: _editorMode == MidiEditorMode.piano,
+                showDrumTab: _editorMode == MidiEditorMode.drums,
                 snapLabel: _snapChipLabel,
                 scaleLabel: _scaleChipLabel,
                 onViewTap: _openViewSheet,
@@ -140,6 +141,50 @@ extension PianoRollScreenStateBuildcontentOperation on _PianoRollScreenState {
                   },
                   onRhythmChanged: _onRhythmChanged,
                 ),
+              if (_toolMode == PianoRollCenterMode.pattern && !_showTakes)
+                DrumPatternToolPanel(
+                  hits: _drumHits,
+                  steps: _drumSteps,
+                  rotate: _drumRotate,
+                  stepBeats: _drumStepBeats,
+                  laneLabel: _drumLaneLabel,
+                  onHitsChanged: (v) => setState(() => _drumHits = v),
+                  onStepsChanged: (v) => setState(() => _drumSteps = v),
+                  onRotateChanged: (v) => setState(() => _drumRotate = v),
+                  onStepBeatsChanged: (v) =>
+                      setState(() => _drumStepBeats = v),
+                  onApply: _onDrumApplyEuclidean,
+                  onRotateLeft: () => _onDrumRotateLane(-1),
+                  onRotateRight: () => _onDrumRotateLane(1),
+                  onClear: _onDrumClearLane,
+                ),
+              if (_toolMode == PianoRollCenterMode.groove && !_showTakes)
+                DrumGrooveToolPanel(
+                  probability: _drumProbability,
+                  ratchet: _drumRatchet,
+                  humanize: _drumHumanize,
+                  laneLabel: _drumLaneLabel,
+                  onProbabilityChanged: (v) =>
+                      setState(() => _drumProbability = v),
+                  onRatchetChanged: (v) => setState(() => _drumRatchet = v),
+                  onHumanizeChanged: (v) =>
+                      setState(() => _drumHumanize = v),
+                  onDice: _onDrumDice,
+                  onRatchet: _onDrumRatchet,
+                  onHumanize: _onDrumHumanize,
+                ),
+              if (_toolMode == PianoRollCenterMode.fill && !_showTakes)
+                DrumFillToolPanel(
+                  fillLengthBeats: _drumFillLengthBeats,
+                  intensity: _drumFillIntensity,
+                  style: _drumFillStyle,
+                  onFillLengthChanged: (v) =>
+                      setState(() => _drumFillLengthBeats = v),
+                  onIntensityChanged: (v) =>
+                      setState(() => _drumFillIntensity = v),
+                  onStyleChanged: (v) => setState(() => _drumFillStyle = v),
+                  onApply: _onDrumApplyFill,
+                ),
               Expanded(
                 child: ListenableBuilder(
                   listenable: _previewTransport,
@@ -183,6 +228,9 @@ extension PianoRollScreenStateBuildcontentOperation on _PianoRollScreenState {
                           : _tool,
                       drawPattern: _drawPattern,
                       selectedIndex: _selectedIndex,
+                      selectedPitch: _editorMode == MidiEditorMode.drums
+                          ? _selectedDrumPitch
+                          : null,
                       chordGroupEdit: _isHarmonyTool,
                       chordGroupSelected: _harmonyChordSelected,
                       chordSlots: _chordSlots,
@@ -199,7 +247,13 @@ extension PianoRollScreenStateBuildcontentOperation on _PianoRollScreenState {
                       onNotesChanged: _onNotesChanged,
                       onSelectionChanged: (index) => setState(() {
                         _selectedIndex = index;
-                        if (index == null) _harmonyChordSelected = true;
+                        if (index == null) {
+                          _harmonyChordSelected = true;
+                        } else if (_editorMode == MidiEditorMode.drums &&
+                            index >= 0 &&
+                            index < _notes.length) {
+                          _selectedDrumPitch = _notes[index].pitch;
+                        }
                       }),
                       onEditStarted: _onEditStarted,
                       onEditFinished: _onEditFinished,
@@ -221,6 +275,9 @@ extension PianoRollScreenStateBuildcontentOperation on _PianoRollScreenState {
                         unawaited(_noteAudition.release());
                       },
                       onPitchPreview: (pitch) {
+                        if (_editorMode == MidiEditorMode.drums) {
+                          _selectDrumPitch(pitch);
+                        }
                         unawaited(
                           _noteAudition.preview(
                             MidiNoteSnapshot(
@@ -299,6 +356,11 @@ extension PianoRollScreenStateBuildcontentOperation on _PianoRollScreenState {
                     _editorMode = mode;
                     _selectedIndex = null;
                     if (mode == MidiEditorMode.drums) {
+                      if (_isHarmonyTool) {
+                        _toolMode = PianoRollCenterMode.notes;
+                      }
+                      _selectedDrumPitch ??= _initialDrumPitch();
+                    } else if (_isDrumTool) {
                       _toolMode = PianoRollCenterMode.notes;
                     }
                   }),

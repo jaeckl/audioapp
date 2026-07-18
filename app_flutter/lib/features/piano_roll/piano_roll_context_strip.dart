@@ -16,6 +16,7 @@ class PianoRollContextStrip extends StatelessWidget {
     required this.onCenterModeChanged,
     required this.showCompTab,
     required this.showHarmonicTab,
+    this.showDrumTab = false,
     required this.snapLabel,
     this.scaleLabel,
     required this.onViewTap,
@@ -28,6 +29,7 @@ class PianoRollContextStrip extends StatelessWidget {
   final ValueChanged<PianoRollCenterMode> onCenterModeChanged;
   final bool showCompTab;
   final bool showHarmonicTab;
+  final bool showDrumTab;
   final String snapLabel;
   final String? scaleLabel;
   final VoidCallback onViewTap;
@@ -49,6 +51,7 @@ class PianoRollContextStrip extends StatelessWidget {
                 centerMode: centerMode,
                 showCompTab: showCompTab,
                 showHarmonicTab: showHarmonicTab,
+                showDrumTab: showDrumTab,
                 onChanged: onCenterModeChanged,
               ),
               const SizedBox(width: 8),

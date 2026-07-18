@@ -12,6 +12,8 @@ import '../harmonic_assistant/chord_rhythm_catalog.dart';
 import '../harmonic_assistant/harmonic_assistant_commit.dart';
 import '../harmonic_assistant/harmonic_note_ops.dart';
 import '../harmonic_assistant/harmonic_tool_panels.dart';
+import '../drum_assistant/drum_note_ops.dart';
+import '../drum_assistant/drum_tool_panels.dart';
 import '../music_theory/progression_templates.dart';
 import '../play/play_deck.dart';
 import '../play/play_deck_layout.dart';
@@ -76,6 +78,7 @@ part 'piano_roll_screen_private_piano_roll_screen_state_on_scale_changed.dart';
 part 'piano_roll_screen_private_piano_roll_screen_state_persist_scale_settings.dart';
 part 'piano_roll_screen_private_piano_roll_screen_state_open_edit_sheet.dart';
 part 'piano_roll_screen_private_piano_roll_screen_state_open_harmonic_sheet.dart';
+part 'piano_roll_screen_private_piano_roll_screen_state_drum_tools.dart';
 
 part 'piano_roll_screen_private_piano_roll_screen_state_open_grid_sheet.dart';
 part 'piano_roll_screen_private_piano_roll_screen_state_build_content.dart';

@@ -12,6 +12,7 @@ extension _PianoRollViewportStateBuildkeycolumn on PianoRollViewportState {
           maxPitch: widget.maxPitch,
           rowHeight: _rowHeight,
           highlightPitch: widget.drumAnchorPitch,
+          selectedPitch: widget.selectedPitch,
           lanes: widget.laneLayout?.lanes,
           onPitchTap: widget.onPitchPreview,
         ),

@@ -101,6 +101,7 @@ class PianoRollViewport extends StatefulWidget {
     this.onNotePreview,
     this.onNotePreviewEnd,
     this.onPitchPreview,
+    this.selectedPitch,
     this.timelineScrollController,
     this.chordGroupEdit = false,
     this.chordGroupSelected = true,
@@ -141,6 +142,9 @@ class PianoRollViewport extends StatefulWidget {
   final void Function(MidiNoteSnapshot note, {bool hold})? onNotePreview;
   final VoidCallback? onNotePreviewEnd;
   final ValueChanged<int>? onPitchPreview;
+
+  /// Selected drum lane pitch (drums mode). Highlighted in the key column.
+  final int? selectedPitch;
 
   /// Harmonic/Progression: tap selects chord cluster; double-tap drills to note.
   final bool chordGroupEdit;

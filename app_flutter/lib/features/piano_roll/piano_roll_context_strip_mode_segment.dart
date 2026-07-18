@@ -5,12 +5,14 @@ class _ModeSegment extends StatelessWidget {
     required this.centerMode,
     required this.showCompTab,
     required this.showHarmonicTab,
+    required this.showDrumTab,
     required this.onChanged,
   });
 
   final PianoRollCenterMode centerMode;
   final bool showCompTab;
   final bool showHarmonicTab;
+  final bool showDrumTab;
   final ValueChanged<PianoRollCenterMode> onChanged;
 
   @override
@@ -45,6 +47,23 @@ class _ModeSegment extends StatelessWidget {
               label: 'Rhythm',
               active: centerMode == PianoRollCenterMode.rhythm,
               onTap: () => onChanged(PianoRollCenterMode.rhythm),
+            ),
+          ],
+          if (showDrumTab) ...[
+            _SegmentTab(
+              label: 'Pattern',
+              active: centerMode == PianoRollCenterMode.pattern,
+              onTap: () => onChanged(PianoRollCenterMode.pattern),
+            ),
+            _SegmentTab(
+              label: 'Groove',
+              active: centerMode == PianoRollCenterMode.groove,
+              onTap: () => onChanged(PianoRollCenterMode.groove),
+            ),
+            _SegmentTab(
+              label: 'Fill',
+              active: centerMode == PianoRollCenterMode.fill,
+              onTap: () => onChanged(PianoRollCenterMode.fill),
             ),
           ],
           if (showCompTab)

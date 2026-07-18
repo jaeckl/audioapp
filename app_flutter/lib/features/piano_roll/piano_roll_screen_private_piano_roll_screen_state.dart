@@ -27,6 +27,17 @@ class _PianoRollScreenState extends State<PianoRollScreen> with TickerProviderSt
   RhythmGenre _rhythmGenre = RhythmGenre.house;
   String _rhythmSubgenreId = 'house_classic';
   String _rhythmPresetId = 'house_offbeat_ands';
+  int _drumHits = 4;
+  int _drumSteps = 16;
+  int _drumRotate = 0;
+  double _drumStepBeats = 0.25;
+  double _drumProbability = 0.7;
+  int _drumRatchet = 4;
+  double _drumHumanize = 12;
+  double _drumFillLengthBeats = 4;
+  double _drumFillIntensity = 0.65;
+  String _drumFillStyle = 'roll';
+  int? _selectedDrumPitch;
   List<ChordSlot> _chordSlots = [];
   late bool _compFlattened;
   MidiCompTool _compTool = MidiCompTool.comp;
@@ -46,6 +57,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with TickerProviderSt
     _takeRegions = List.of(widget.clip.activeTakeRegions);
     _compFlattened = widget.clip.compFlattened;
     _editorMode = widget.drumLaneLayout == null ? MidiEditorMode.piano : MidiEditorMode.drums;
+    _selectedDrumPitch = _initialDrumPitch();
     _scale = PianoRollScaleSettings.fromClip(widget.clip);
     _harmonicParams = HarmonicToolParams();
     _chordSlots = HarmonicNoteOps.slotsFromNotes(_notes);

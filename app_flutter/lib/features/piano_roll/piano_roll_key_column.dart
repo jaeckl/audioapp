@@ -14,6 +14,7 @@ class PianoRollKeyColumn extends StatelessWidget {
     required this.maxPitch,
     required this.rowHeight,
     this.highlightPitch,
+    this.selectedPitch,
     this.onPitchTap,
     this.lanes,
   });
@@ -24,6 +25,9 @@ class PianoRollKeyColumn extends StatelessWidget {
 
   /// GM drum lane (e.g. 38 = D2 snare) — show full note name on this row.
   final int? highlightPitch;
+
+  /// Active drum-tool / draw target lane (drums mode).
+  final int? selectedPitch;
   final ValueChanged<int>? onPitchTap;
   final List<MidiLaneDefinition>? lanes;
 
@@ -55,6 +59,7 @@ class PianoRollKeyColumn extends StatelessWidget {
                 row: row,
                 rowHeight: rowHeight,
                 highlight: highlightPitch == pitches[row],
+                selected: selectedPitch == pitches[row],
                 onTap:
                     onPitchTap == null ? null : () => onPitchTap!(pitches[row]),
               ),

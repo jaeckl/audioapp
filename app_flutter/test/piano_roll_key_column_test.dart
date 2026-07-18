@@ -47,4 +47,29 @@ void main() {
     expect(find.text('Kick'), findsOneWidget);
     expect(find.text('C4'), findsNothing);
   });
+
+  testWidgets('drum lane tap reports pitch for selection', (tester) async {
+    int? tappedPitch;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: PianoRollKeyColumn(
+            minPitch: 0,
+            maxPitch: 127,
+            rowHeight: 24,
+            selectedPitch: 36,
+            lanes: const [
+              MidiLaneDefinition(pitch: 42, name: 'Closed Hat'),
+              MidiLaneDefinition(pitch: 36, name: 'Kick'),
+            ],
+            onPitchTap: (pitch) => tappedPitch = pitch,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Closed Hat'));
+    await tester.pump();
+    expect(tappedPitch, 42);
+  });
 }

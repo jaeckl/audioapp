@@ -5,6 +5,7 @@ class _KeyRow extends StatelessWidget {
     required this.pitch,
     required this.rowHeight,
     this.highlight = false,
+    this.selected = false,
     this.onTap,
     this.label,
     this.enabled = true,
@@ -15,6 +16,7 @@ class _KeyRow extends StatelessWidget {
   final int pitch;
   final double rowHeight;
   final bool highlight;
+  final bool selected;
   final VoidCallback? onTap;
   final String? label;
   final bool enabled;
@@ -26,13 +28,31 @@ class _KeyRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isC = pitch % 12 == 0;
-    final bg = drumLane
-        ? (row.isEven ? const Color(0xFF24242D) : const Color(0xFF202029))
-        : !enabled
-            ? PianoRollTheme.keyColumnBackground
-            : (_isBlack
-                ? PianoRollTheme.blackKeyRow
-                : PianoRollTheme.whiteKeyRow);
+    final Color bg;
+    if (selected) {
+      bg = const Color(0xFF3A2A30);
+    } else if (drumLane) {
+      bg = row.isEven ? const Color(0xFF24242D) : const Color(0xFF202029);
+    } else if (!enabled) {
+      bg = PianoRollTheme.keyColumnBackground;
+    } else if (_isBlack) {
+      bg = PianoRollTheme.blackKeyRow;
+    } else {
+      bg = PianoRollTheme.whiteKeyRow;
+    }
+
+    final showLabel =
+        enabled && (label != null || isC || highlight || selected);
+    final Color labelColor;
+    if (selected) {
+      labelColor = PianoRollTheme.accent;
+    } else if (highlight) {
+      labelColor = const Color(0xFFE8A060);
+    } else if (_isBlack) {
+      labelColor = PianoRollTheme.cKeyAccent;
+    } else {
+      labelColor = PianoRollTheme.whiteKeyLabel;
+    }
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -40,7 +60,7 @@ class _KeyRow extends StatelessWidget {
       child: Container(
         height: rowHeight,
         decoration: BoxDecoration(
-          color: highlight ? const Color(0xFF3A3028) : bg,
+          color: bg,
           border: Border(
             bottom: BorderSide(
               color: drumLane
@@ -50,28 +70,26 @@ class _KeyRow extends StatelessWidget {
                       : const Color(0xFFD9D0C4)),
               width: drumLane ? 1 : 0.5,
             ),
-            left: highlight
-                ? const BorderSide(color: Color(0xFFE8A060), width: 2)
-                : BorderSide.none,
+            left: selected
+                ? const BorderSide(color: PianoRollTheme.accent, width: 2)
+                : highlight
+                    ? const BorderSide(color: Color(0xFFE8A060), width: 2)
+                    : BorderSide.none,
           ),
         ),
         alignment: Alignment.center,
-        child: enabled && (label != null || isC || highlight)
+        child: showLabel
             ? Text(
                 label ??
-                    (highlight
+                    ((highlight || selected)
                         ? PianoRollMetrics.noteLabel(pitch)
                         : PianoRollMetrics.octaveLabel(pitch)),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: highlight ? 8 : 9,
+                  fontSize: (highlight || selected) ? 8 : 9,
                   fontWeight: FontWeight.w700,
-                  color: highlight
-                      ? const Color(0xFFE8A060)
-                      : (_isBlack
-                          ? PianoRollTheme.cKeyAccent
-                          : PianoRollTheme.whiteKeyLabel),
+                  color: labelColor,
                 ),
               )
             : null,

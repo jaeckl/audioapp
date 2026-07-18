@@ -40,6 +40,18 @@ extension _PianoRollScreenStateHarmonicMode on _PianoRollScreenState {
           _harmonyChordSelected = true;
           _ensureRhythmSelection();
           _ensureChordSlots();
+        case PianoRollCenterMode.pattern:
+          _showTakes = false;
+          _toolMode = PianoRollCenterMode.pattern;
+          _harmonyChordSelected = true;
+        case PianoRollCenterMode.groove:
+          _showTakes = false;
+          _toolMode = PianoRollCenterMode.groove;
+          _harmonyChordSelected = true;
+        case PianoRollCenterMode.fill:
+          _showTakes = false;
+          _toolMode = PianoRollCenterMode.fill;
+          _harmonyChordSelected = true;
         case PianoRollCenterMode.comp:
           _toolMode = PianoRollCenterMode.notes;
           _harmonyChordSelected = true;
