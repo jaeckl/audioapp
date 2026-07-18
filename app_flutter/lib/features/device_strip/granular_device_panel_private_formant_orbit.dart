@@ -63,7 +63,19 @@ class _FormantOrbit extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
+  Widget build(BuildContext context) => EffectiveParameterValueBuilder(
+        parameterId: 'formX',
+        fallbackValue: x,
+        active: xAutomated,
+        builder: (context, liveX) => EffectiveParameterValueBuilder(
+          parameterId: 'formY',
+          fallbackValue: y,
+          active: yAutomated,
+          builder: (context, liveY) => _buildOrbit(liveX, liveY),
+        ),
+      );
+
+  Widget _buildOrbit(double liveX, double liveY) => LayoutBuilder(
         builder: (context, constraints) {
           final size = Size(constraints.maxWidth, constraints.maxHeight);
           return GestureDetector(
@@ -76,8 +88,8 @@ class _FormantOrbit extends StatelessWidget {
                 ?.call(_axisFor(details.localPosition, size)),
             child: CustomPaint(
               painter: _FormantOrbitPainter(
-                x: x,
-                y: y,
+                x: liveX,
+                y: liveY,
                 labels: labels,
                 points: _points(size),
                 xActive: xModulated || xAutomated,

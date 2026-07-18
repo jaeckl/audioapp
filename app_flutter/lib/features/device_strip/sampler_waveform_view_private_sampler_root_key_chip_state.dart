@@ -13,7 +13,18 @@ class _SamplerRootKeyChipState extends State<SamplerRootKeyChip> {
 
   @override
   Widget build(BuildContext context) {
-    final label = formatSamplerMidiNote(widget.rootPitch);
+    final mod = widget.modulation;
+    return EffectiveParameterValueBuilder(
+      parameterId: 'rootPitch',
+      fallbackValue: widget.rootPitch / 127,
+      active: mod.automatedParams.contains('rootPitch'),
+      builder: (context, liveValue) =>
+          _buildWithRoot(context, (liveValue * 127).round()),
+    );
+  }
+
+  Widget _buildWithRoot(BuildContext context, int displayedRootPitch) {
+    final label = formatSamplerMidiNote(displayedRootPitch);
     final accent = widget.accentColor;
     final muted = accent.withValues(alpha: 0.55);
     final mod = widget.modulation;

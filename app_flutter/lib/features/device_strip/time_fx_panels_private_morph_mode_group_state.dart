@@ -53,7 +53,17 @@ class _MorphModeGroupState extends State<_MorphModeGroup>
 
   @override
   Widget build(BuildContext context) {
-    final selected = widget.value.round().clamp(0, 3);
+    final maxIndex = widget.labels.length - 1;
+    return EffectiveParameterValueBuilder(
+      parameterId: widget.parameterId,
+      fallbackValue: maxIndex <= 0 ? 0 : widget.value / maxIndex,
+      active: widget.automationActive,
+      builder: (context, value) => _buildGroup(value * maxIndex),
+    );
+  }
+
+  Widget _buildGroup(double displayValue) {
+    final selected = displayValue.round().clamp(0, widget.labels.length - 1);
     final shownAmount = _assigning ? _assignment : widget.modulationAmount;
     final pulseAccent =
         widget.linkModeActive ? const Color(0xFFB48CFF) : widget.accent;
@@ -170,7 +180,7 @@ class _MorphModeGroupState extends State<_MorphModeGroup>
                     child: CustomPaint(
                       key: ValueKey('${widget.keyPrefix}-modulation-line'),
                       painter: _ChorusModulationLinePainter(
-                        value: widget.value,
+                        value: displayValue,
                         amount: shownAmount,
                         inAssignment: _assigning,
                       ),

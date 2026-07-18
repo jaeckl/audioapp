@@ -3415,6 +3415,7 @@ std::string ProjectEngine::readEffectiveParameterJson(
     const uint64_t target = stableDeviceSubgraphNodeId(
         deviceId, DeviceSubgraphNodeRole::DeviceProcessor);
     float value = 0.0f;
+    float automationBase = 0.0f;
     bool found = false;
     for (int track = 0; track < trackPlayback_.count() && !found; ++track) {
         const auto& snapshot = trackPlayback_[track];
@@ -3422,16 +3423,94 @@ std::string ProjectEngine::readEffectiveParameterJson(
             const auto* processor = snapshot.arena.get(index);
             if (processor == nullptr) continue;
             if (processor->stableProcessorNodeId == target)
-                found = processor->readEffectiveParameter(encoded, value);
+                found = processor->readEffectiveParameter(encoded, value,
+                                                           &automationBase);
             else
-                found = processor->readNestedEffectiveParameter(target, encoded, value);
+                found = processor->readNestedEffectiveParameter(
+                    target, encoded, value, &automationBase);
         }
     }
     if (!found)
         return R"({"ok":false,"error":"effective_value_unavailable"})";
-    char buffer[64];
-    snprintf(buffer, sizeof(buffer), "%.8f", static_cast<double>(value));
-    return std::string(R"({"ok":true,"value":)") + buffer + "}";
+    char valueBuffer[64];
+    char automationBuffer[64];
+    snprintf(valueBuffer, sizeof(valueBuffer), "%.8f", static_cast<double>(value));
+    snprintf(automationBuffer, sizeof(automationBuffer), "%.8f",
+             static_cast<double>(automationBase));
+    return std::string(R"({"ok":true,"value":)") + valueBuffer +
+        R"(,"automationBase":)" + automationBuffer + "}";
+}
+
+std::string ProjectEngine::readEffectiveParametersJson(
+    const std::vector<std::pair<std::string, std::string>>& requests) {
+    const juce::ScopedReadLock lock(mutex_);
+    std::string json = R"({"ok":true,"values":[)";
+    for (size_t requestIndex = 0; requestIndex < requests.size();
+         ++requestIndex) {
+        if (requestIndex != 0) json += ',';
+        const auto& [deviceId, parameterId] = requests[requestIndex];
+        auto* device = findDeviceLocked(deviceId);
+        if (device == nullptr) {
+            json += "null";
+            continue;
+        }
+
+        uint16_t encoded = 0xffff;
+        if (parameterId == "gain") encoded = kEncodedCommonGain;
+        else if (parameterId == "pan") encoded = kEncodedCommonPan;
+        else if (parameterId == "bypass") encoded = kEncodedCommonBypass;
+        else if (parameterId == "outputMix") encoded = kEncodedCommonOutputMix;
+        else if (parameterId == "outputWidth") encoded = kEncodedCommonOutputWidth;
+        else if (const auto* type = deviceRegistry_.findForSlot(*device)) {
+            const auto descriptors = type->paramDescriptors();
+            const auto descriptor = std::find_if(
+                descriptors.begin(), descriptors.end(),
+                [&](const ParamDescriptor& candidate) {
+                    return parameterId == candidate.stableName;
+                });
+            if (descriptor != descriptors.end())
+                encoded = encodeAutomationParamId(
+                    parameterId.c_str(), type->kind(), descriptor->localParamId);
+        }
+        if (encoded == 0xffff) {
+            json += "null";
+            continue;
+        }
+
+        const uint64_t target = stableDeviceSubgraphNodeId(
+            deviceId, DeviceSubgraphNodeRole::DeviceProcessor);
+        float value = 0.0f;
+        float automationBase = 0.0f;
+        bool found = false;
+        for (int track = 0; track < trackPlayback_.count() && !found; ++track) {
+            const auto& snapshot = trackPlayback_[track];
+            for (int index = 0; index < snapshot.deviceCount && !found; ++index) {
+                const auto* processor = snapshot.arena.get(index);
+                if (processor == nullptr) continue;
+                if (processor->stableProcessorNodeId == target)
+                    found = processor->readEffectiveParameter(
+                        encoded, value, &automationBase);
+                else
+                    found = processor->readNestedEffectiveParameter(
+                        target, encoded, value, &automationBase);
+            }
+        }
+        if (!found) {
+            json += "null";
+            continue;
+        }
+
+        char valueBuffer[64];
+        char automationBuffer[64];
+        snprintf(valueBuffer, sizeof(valueBuffer), "%.8f",
+                 static_cast<double>(value));
+        snprintf(automationBuffer, sizeof(automationBuffer), "%.8f",
+                 static_cast<double>(automationBase));
+        json += std::string(R"({"value":)") + valueBuffer +
+            R"(,"automationBase":)" + automationBuffer + "}";
+    }
+    json += "]}";
+    return json;
 }
 
 void ProjectEngine::clearGraphTapsLocked() noexcept {

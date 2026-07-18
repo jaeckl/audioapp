@@ -38,8 +38,9 @@ public:
     bool setNestedResolvedAsset(uint64_t processorNodeId,
                                 const ResolvedAssetUpdate& update) noexcept override;
     bool readNestedEffectiveParameter(uint64_t processorNodeId,
-                                      uint16_t parameterId,
-                                      float& value) const noexcept override;
+                                     uint16_t parameterId,
+                                     float& value,
+                                     float* automationBase = nullptr) const noexcept override;
     void bindCompiledParameterSpans(const AutomationClipPlayback* clips,
                                     int clipCount,
                                     const ModulationEdgePlayback* edges,

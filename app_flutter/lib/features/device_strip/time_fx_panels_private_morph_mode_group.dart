@@ -5,6 +5,7 @@ class _MorphModeGroup extends StatefulWidget {
     required this.labels,
     required this.keyPrefix,
     required this.value,
+    required this.parameterId,
     required this.accent,
     required this.modulationActive,
     required this.modulationAmount,
@@ -20,6 +21,7 @@ class _MorphModeGroup extends StatefulWidget {
   final List<String> labels;
   final String keyPrefix;
   final double value;
+  final String parameterId;
   final Color accent;
   final bool modulationActive;
   final double modulationAmount;

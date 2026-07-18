@@ -46,6 +46,11 @@ extension _WavetableSynthDevicePanelStateFiltertab
                       const SizedBox(height: 4),
                       FilterModeSelector(
                         selectedIndex: mode,
+                        parameterId: 'filterMode',
+                        automated:
+                            widget.automatedParams.contains('filterMode'),
+                        modulated:
+                            widget.modulatedParams.contains('filterMode'),
                         accentColor: WavetableSynthDevicePanel.accent,
                         onSelected: (index) => widget.onParameterChanged(
                             'filterMode', index.toDouble()),

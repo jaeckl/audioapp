@@ -218,12 +218,17 @@ int main() {
            "live DSP targets ramp and publish their effective value atomically");
     smoothingProbe.publishFinalEffectiveParameter(encodedDrive,
                                                    firstSmoothed + 0.1f);
+    smoothingProbe.publishAutomationBaseParameter(encodedDrive,
+                                                   firstSmoothed + 0.05f);
     float manualBase = 0.0f;
+    float automationBase = 0.0f;
     expect(smoothingProbe.readManualEffectiveParameter(encodedDrive, manualBase) &&
                std::abs(manualBase - firstSmoothed) < 1.0e-6f &&
-               smoothingProbe.readEffectiveParameter(encodedDrive, monitoredValue) &&
+               smoothingProbe.readEffectiveParameter(encodedDrive, monitoredValue,
+                                                       &automationBase) &&
+               std::abs(automationBase - (firstSmoothed + 0.05f)) < 1.0e-6f &&
                std::abs(monitoredValue - (firstSmoothed + 0.1f)) < 1.0e-6f,
-           "final modulation monitoring never feeds back into the manual base");
+           "manual, automated, and final presentation values remain separate");
     smoothingProbe.setCompiledParameter(encodedDrive, 0.0f,
                                         ParameterUpdateRate::Discrete);
     expect(smoothingProbe.readEffectiveParameter(encodedDrive, monitoredValue) &&

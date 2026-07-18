@@ -348,6 +348,8 @@ public:
     std::string readGraphTapJson(const std::string& tapId, int maxFrames = 512);
     std::string readEffectiveParameterJson(const std::string& deviceId,
                                            const std::string& parameterId);
+    std::string readEffectiveParametersJson(
+        const std::vector<std::pair<std::string, std::string>>& requests);
 
     /// Expose modulator types for serialization dispatch.
     const std::vector<std::unique_ptr<IModulatorType>>& modulatorTypes() const {

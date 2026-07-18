@@ -113,6 +113,7 @@ class ResonatorBankPanel extends StatelessWidget {
       modulationActive: modulatedParams.contains(parameterId),
       automationActive: automatedParams.contains(parameterId),
       modulationAmount: modulationAmounts[parameterId] ?? 0,
+      parameterId: parameterId,
       connectModeActive: connectModeLfoId != null,
       onModulationAssign: onModulationAssign == null
           ? null

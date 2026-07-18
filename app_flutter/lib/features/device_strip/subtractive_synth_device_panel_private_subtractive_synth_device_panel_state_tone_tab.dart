@@ -42,6 +42,11 @@ extension _SubtractiveSynthDevicePanelStateTonetab
                       children: [
                         FilterModeSelector(
                           selectedIndex: mode,
+                          parameterId: 'filterMode',
+                          automated:
+                              widget.automatedParams.contains('filterMode'),
+                          modulated:
+                              widget.modulatedParams.contains('filterMode'),
                           accentColor: SubtractiveSynthDevicePanel.accent,
                           overflowOptions: const [
                             FilterModeOverflowOption(index: 4, label: 'FB'),

@@ -234,6 +234,7 @@ class RoutingDevicePanel extends StatelessWidget {
               modulationActive: modulatedParams.contains('routeMix'),
               automationActive: automatedParams.contains('routeMix'),
               modulationAmount: modulationAmounts['routeMix'] ?? 0,
+              parameterId: 'routeMix',
               connectModeActive: connectModeLfoId != null,
               onModulationAssign: onModulationAssign == null
                   ? null

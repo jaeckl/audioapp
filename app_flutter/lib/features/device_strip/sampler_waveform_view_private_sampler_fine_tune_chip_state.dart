@@ -13,7 +13,18 @@ class _SamplerFineTuneChipState extends State<SamplerFineTuneChip> {
 
   @override
   Widget build(BuildContext context) {
-    final label = formatSamplerFineTune(widget.rootFineTune);
+    final mod = widget.modulation;
+    return EffectiveParameterValueBuilder(
+      parameterId: 'rootFineTune',
+      fallbackValue: (widget.rootFineTune + 100) / 200,
+      active: mod.automatedParams.contains('rootFineTune'),
+      builder: (context, liveValue) =>
+          _buildWithFineTune(context, liveValue * 200 - 100),
+    );
+  }
+
+  Widget _buildWithFineTune(BuildContext context, double displayedFineTune) {
+    final label = formatSamplerFineTune(displayedFineTune);
     final accent = widget.accentColor;
     final muted = accent.withValues(alpha: 0.55);
 

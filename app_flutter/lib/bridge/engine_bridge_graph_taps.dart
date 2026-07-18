@@ -1,5 +1,11 @@
 part of 'engine_bridge.dart';
 
+typedef EffectiveParameterState = ({
+  double automationBase,
+  double effectiveValue,
+});
+typedef EffectiveParameterRequest = ({String deviceId, String parameterId});
+
 extension EngineBridgeGraphTapsOperation on EngineBridge {
   Future<double?> readEffectiveParameter({
     required String deviceId,
@@ -10,6 +16,50 @@ extension EngineBridgeGraphTapsOperation on EngineBridge {
       'parameterId': parameterId,
     });
     return (result['value'] as num?)?.toDouble();
+  }
+
+  Future<EffectiveParameterState?> readEffectiveParameterState({
+    required String deviceId,
+    required String parameterId,
+  }) async {
+    final result = await invokeRaw('readEffectiveParameter', {
+      'deviceId': deviceId,
+      'parameterId': parameterId,
+    });
+    final effective = (result['value'] as num?)?.toDouble();
+    if (effective == null) return null;
+    return (
+      automationBase:
+          (result['automationBase'] as num?)?.toDouble() ?? effective,
+      effectiveValue: effective,
+    );
+  }
+
+  Future<List<EffectiveParameterState?>> readEffectiveParameterStates(
+    List<EffectiveParameterRequest> requests,
+  ) async {
+    if (requests.isEmpty) return const [];
+    final result = await invokeRaw('readEffectiveParameters', {
+      'requests': [
+        for (final request in requests)
+          {
+            'deviceId': request.deviceId,
+            'parameterId': request.parameterId,
+          },
+      ],
+    });
+    final values = result['values'] as List<dynamic>? ?? const [];
+    return List<EffectiveParameterState?>.generate(requests.length, (index) {
+      if (index >= values.length || values[index] is! Map) return null;
+      final value = values[index] as Map<dynamic, dynamic>;
+      final effective = (value['value'] as num?)?.toDouble();
+      if (effective == null) return null;
+      return (
+        automationBase:
+            (value['automationBase'] as num?)?.toDouble() ?? effective,
+        effectiveValue: effective,
+      );
+    });
   }
 
   Future<String> createGraphTap({

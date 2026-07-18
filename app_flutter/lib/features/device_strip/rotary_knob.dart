@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import 'device_knob_sizes.dart';
 import 'effective_parameter_monitor.dart';
+import 'effective_parameter_binding.dart';
 import 'modulator_polarity.dart';
 
 import '../../bridge/project_snapshot.dart';
@@ -40,6 +41,7 @@ class RotaryKnob extends StatefulWidget {
     this.modulationAmount = 0.0,
     this.modulatorPolarity = ModulatorPolarity.bipolar,
     this.polarityParamId,
+    this.parameterId,
     this.deviceId,
     this.lfos = const [],
     this.modEdges = const [],
@@ -67,6 +69,7 @@ class RotaryKnob extends StatefulWidget {
   final double modulationAmount;
   final ModulatorPolarity modulatorPolarity;
   final String? polarityParamId;
+  final String? parameterId;
   final String? deviceId;
   final List<LfoSnapshot> lfos;
   final List<ModulationEdgeSnapshot> modEdges;

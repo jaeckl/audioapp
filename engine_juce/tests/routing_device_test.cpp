@@ -501,6 +501,15 @@ int main() {
     expect(static_cast<bool>(ownedEffective["ok"]) &&
                std::abs(static_cast<double>(ownedEffective["value"]) - 0.73) < 1.0e-4,
            "device-owned sample-accurate automation publishes its final knob value");
+    const auto ownedEffectiveBatch = juce::JSON::parse(
+        ownedControlProject->readEffectiveParametersJson(
+            {{phaseMod, "pmOp1Level"}, {"missing", "drive"}}));
+    const auto* ownedValues = ownedEffectiveBatch["values"].getArray();
+    expect(ownedValues != nullptr && ownedValues->size() == 2 &&
+               std::abs(static_cast<double>((*ownedValues)[0]["automationBase"]) -
+                        0.73) < 1.0e-4 &&
+               (*ownedValues)[1].isVoid(),
+           "effective UI values batch under one project-state read lock");
 
     auto drumProject = std::make_unique<ProjectEngine>();
     drumProject->createProject();

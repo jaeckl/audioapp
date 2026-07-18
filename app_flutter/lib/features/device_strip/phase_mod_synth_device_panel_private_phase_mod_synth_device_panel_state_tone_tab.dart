@@ -24,6 +24,9 @@ extension _PhaseModSynthDevicePanelStateTonetab
                   const SizedBox(height: 4),
                   FilterModeSelector(
                     selectedIndex: mode,
+                    parameterId: 'filterMode',
+                    automated: widget.automatedParams.contains('filterMode'),
+                    modulated: widget.modulatedParams.contains('filterMode'),
                     accentColor: PhaseModSynthDevicePanel.accent,
                     primaryOptions: const [
                       FilterModePrimaryOption(

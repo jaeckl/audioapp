@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../bridge/device_snapshot.dart';
 import 'device_knob_sizes.dart';
 import 'device_automation_spinner.dart';
+import 'effective_parameter_binding.dart';
 import 'device_strip_metrics.dart';
 import 'device_tab_bar.dart';
 import 'panels/compact_fx_layout.dart';
@@ -93,6 +94,7 @@ class _MoodFxKnob extends StatelessWidget {
       modulationActive: modulatedParams.contains(paramId),
       automationActive: automatedParams.contains(paramId),
       modulationAmount: modulationAmounts[paramId] ?? 0.0,
+      parameterId: paramId,
       connectModeActive: connectModeLfoId != null,
       onModulationAssign: onModulationAssign != null
           ? (amount) => onModulationAssign!(paramId, amount)

@@ -35,6 +35,7 @@ class _WavetableSynthDevicePanelState extends State<WavetableSynthDevicePanel> {
       automationActive:
           paramId != null && widget.automatedParams.contains(paramId),
       modulationAmount: modAmount,
+      parameterId: paramId,
       connectModeActive: paramId != null && connectModeLfoId != null,
       onModulationAssign: paramId != null && onModulationAssign != null
           ? (a) => onModulationAssign(paramId, a)

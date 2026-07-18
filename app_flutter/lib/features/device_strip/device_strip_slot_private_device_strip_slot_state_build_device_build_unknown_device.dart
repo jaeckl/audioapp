@@ -12,6 +12,8 @@ extension DeviceStripSlotStateBuildunknowndeviceOperation
               params: params,
               currentValues: _deviceCurrentValues,
               modulationAmounts: _modulationAmounts,
+              modulatedParams: _modulatedParamIds,
+              automatedParams: _automatedParamIds,
               onParameterChanged: (paramId, value) =>
                   widget.onSamplerParameterChanged(paramId, value),
             ),

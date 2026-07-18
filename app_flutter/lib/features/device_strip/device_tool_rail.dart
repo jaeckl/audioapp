@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'device_strip_metrics.dart';
 import 'device_strip_theme.dart';
+import 'effective_parameter_binding.dart';
 
 part 'device_tool_rail_tool_rail_button.dart';
 part 'device_tool_rail_tool_rail_button_state.dart';
@@ -95,18 +96,23 @@ class DeviceToolRail extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _ToolRailButton(
-                    icon: Icons.power_settings_new,
-                    tooltip: bypassed ? 'Enable device' : 'Bypass device',
-                    active: !bypassed,
-                    onPressed: onBypassToggle,
-                    modulationActive: bypassModulationActive,
-                    automationActive: bypassAutomationActive,
-                    connectModeActive: bypassConnectModeActive,
-                    linkModeActive: bypassLinkModeActive,
-                    onModulationAssign: onBypassModulationAssign,
-                    onLinkTap: onBypassAutomationLinkTap,
-                    onAutomateRequest: onAutomateBypass,
+                  EffectiveParameterValueBuilder(
+                    parameterId: 'bypass',
+                    fallbackValue: bypassed ? 1 : 0,
+                    active: bypassAutomationActive,
+                    builder: (context, value) => _ToolRailButton(
+                      icon: Icons.power_settings_new,
+                      tooltip: value >= .5 ? 'Enable device' : 'Bypass device',
+                      active: value < .5,
+                      onPressed: onBypassToggle,
+                      modulationActive: bypassModulationActive,
+                      automationActive: bypassAutomationActive,
+                      connectModeActive: bypassConnectModeActive,
+                      linkModeActive: bypassLinkModeActive,
+                      onModulationAssign: onBypassModulationAssign,
+                      onLinkTap: onBypassAutomationLinkTap,
+                      onAutomateRequest: onAutomateBypass,
+                    ),
                   ),
                   if (showLibrary)
                     _ToolRailButton(

@@ -44,6 +44,7 @@ RotaryKnob deviceAutomationKnob({
     modulationAmount: modulationAmounts[paramId] ?? 0.0,
     modulatorPolarity: modulatorPolarity ?? ModulatorPolarity.bipolar,
     polarityParamId: paramId,
+    parameterId: paramId,
     deviceId: deviceId,
     lfos: lfos,
     modEdges: modEdges,
@@ -54,11 +55,9 @@ RotaryKnob deviceAutomationKnob({
         : null,
     linkModeActive: automationLinkActive,
     linkModeAccent: LibraryTheme.accentAutomation,
-    onLinkTap: onAutomationLinkTap != null
-        ? () => onAutomationLinkTap(paramId)
-        : null,
-    onAutomateRequest: onAutomateParameter != null
-        ? () => onAutomateParameter(paramId)
-        : null,
+    onLinkTap:
+        onAutomationLinkTap != null ? () => onAutomationLinkTap(paramId) : null,
+    onAutomateRequest:
+        onAutomateParameter != null ? () => onAutomateParameter(paramId) : null,
   );
 }

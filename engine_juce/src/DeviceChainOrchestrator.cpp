@@ -433,6 +433,19 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         const int targetModEdgeCount = targetModEdges != nullptr
             ? proc->modulationSpanCount : 0;
         const uint16_t di = static_cast<uint16_t>(deviceIndex);
+        const bool automationBypass = evaluateCommonBypass(
+            proc->bypassed,
+            di,
+            proc->stableProcessorNodeId,
+            ctx.playheadStartBeat,
+            numFrames,
+            targetAutomation,
+            targetAutomationCount,
+            nullptr,
+            0,
+            nullptr,
+            0,
+            nullptr);
         const bool effectiveBypass = evaluateCommonBypass(
             proc->bypassed,
             di,
@@ -446,6 +459,10 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
             targetModEdges,
             targetModEdgeCount,
             ctx.modulators);
+        proc->publishPresentationParameter(
+            kEncodedCommonBypass,
+            automationBypass ? 1.0f : 0.0f,
+            effectiveBypass ? 1.0f : 0.0f);
         if (effectiveBypass) {
             captureAudioGraphTaps(proc->stableProcessorNodeId);
             captureAudioGraphTaps(proc->stableOutputNodeId);
@@ -629,8 +646,9 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                 float manualBase = 0.0f;
                 if (proc->readManualEffectiveParameter(
                         target.parameterId, manualBase)) {
-                    proc->publishFinalEffectiveParameter(
+                    proc->publishPresentationParameter(
                         target.parameterId,
+                        manualBase,
                         manualBase + target.modulationAmount);
                 }
                 continue;
@@ -645,7 +663,8 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                 applyAutomationValue(
                     modulatedParams, nodeKind, target.parameterId, effective);
             }
-            proc->publishFinalEffectiveParameter(target.parameterId, effective);
+            proc->publishPresentationParameter(
+                target.parameterId, target.automatedValue, effective);
         }
 
         // MIDI-note transforms consume the same post-control value bank as
@@ -665,10 +684,17 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         }
 
         // --- Per-frame gain/pan LFO modulation ---
+        const int monitorFrame = std::clamp(numFrames / 2, 0, numFrames - 1);
+        const float monitorGainBase = s.perFrameGain[monitorFrame];
+        const float monitorPanBase = s.perFramePan[monitorFrame];
         applyCommonGainPanLfo(s, di, proc->stableProcessorNodeId, numFrames,
                               ctx.lfoValues, ctx.lfoCount,
                               targetModEdges, targetModEdgeCount,
                               ctx.modulators);
+        proc->publishPresentationParameter(
+            kEncodedCommonGain, monitorGainBase, s.perFrameGain[monitorFrame]);
+        proc->publishPresentationParameter(
+            kEncodedCommonPan, monitorPanBase, s.perFramePan[monitorFrame]);
 
         // --- Process device via virtual dispatch ---
         pc.modulatedParams = &modulatedParams;

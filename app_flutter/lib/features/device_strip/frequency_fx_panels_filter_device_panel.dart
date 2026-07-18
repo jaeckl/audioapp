@@ -42,20 +42,28 @@ class FilterDevicePanel extends StatelessWidget {
     final q = _normalizedToQ(resNorm);
     // 4 modes quantised onto [0,1] at 0.125 / 0.375 / 0.625 / 0.875.
     final modeIndex = (modeNorm * 4.0).round().clamp(0, 3);
-    final previewMode = FilterPreviewMode.values[modeIndex];
-
     return FilterSectionLayout(
-      preview: FilterPreview(
-        cutoffHz: cutoffHz,
-        q: q,
-        mode: previewMode,
-        accent: accent,
+      preview: EffectiveParameterValuesBuilder(
+        fallbackValues: {
+          'ffxCutoff': cutoffNorm,
+          'ffxResonance': resNorm,
+          'ffxFilterMode': modeNorm,
+        },
+        activeParameterIds: automatedParams,
+        builder: (context, values) => FilterPreview(
+          cutoffHz: _normalizedToFrequency(values['ffxCutoff']!),
+          q: _normalizedToQ(values['ffxResonance']!),
+          mode: FilterPreviewMode
+              .values[(values['ffxFilterMode']! * 4).round().clamp(0, 3)],
+          accent: accent,
+        ),
       ),
       modeSelector: FilterModeSelector(
         selectedIndex: modeIndex,
         accentColor: accent,
         modulated: modulatedParams.contains('ffxFilterMode'),
         automated: automatedParams.contains('ffxFilterMode'),
+        parameterId: 'ffxFilterMode',
         onSelected: (index) => onParameterChanged(
           'ffxFilterMode',
           FilterFxModeNorm.values[index],

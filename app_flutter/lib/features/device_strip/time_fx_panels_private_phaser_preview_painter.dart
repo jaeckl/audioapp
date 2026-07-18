@@ -1,10 +1,18 @@
 part of 'time_fx_panels.dart';
 
 class _PhaserPreviewPainter extends CustomPainter {
-  const _PhaserPreviewPainter({required this.device, required this.view});
+  const _PhaserPreviewPainter({
+    required this.device,
+    required this.view,
+    required this.liveValues,
+  });
 
   final PhaserDeviceSnapshot device;
   final PhaserViewTab view;
+  final Map<String, double> liveValues;
+
+  double _value(String parameter, double fallback) =>
+      liveValues[parameter] ?? fallback;
 
   void _text(Canvas canvas, String value, Offset offset) {
     final painter = TextPainter(
@@ -23,7 +31,8 @@ class _PhaserPreviewPainter extends CustomPainter {
 
   double _wave(double phase) {
     final p = phase - phase.floorToDouble();
-    return switch (device.phaserWaveform.round().clamp(0, 3)) {
+    final waveform = _value('waveform', device.phaserWaveform / 3) * 3;
+    return switch (waveform.round().clamp(0, 3)) {
       1 => 1 - 4 * (p - .5).abs(),
       2 => 2 * p - 1,
       3 => math.sin((phase.floor() * 91.7) + 1.2) >= 0 ? .75 : -.75,
@@ -33,6 +42,22 @@ class _PhaserPreviewPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final stereoPhase = _value('stereoPhase', device.phaserStereoPhase);
+    final phaseOffset = _value('phaseOffset', device.phaserPhaseOffset);
+    final stages = (2 +
+            _value('stages', ((device.phaserStages - 2) / 10).clamp(0, 1)) * 10)
+        .round()
+        .clamp(2, 12);
+    final centreFrequency = 20 *
+        math.pow(
+          1000,
+          _value(
+            'centreFrequencyHz',
+            math.log(device.phaserCentreFrequencyHz.clamp(20, 20000) / 20) /
+                math.log(1000),
+          ),
+        );
+    final depth = _value('depth', device.phaserDepth);
     final grid = Paint()
       ..color = Colors.white.withValues(alpha: .06)
       ..strokeWidth = 1;
@@ -54,7 +79,7 @@ class _PhaserPreviewPainter extends CustomPainter {
     if (view == PhaserViewTab.motion) {
       _text(
         canvas,
-        'L / R MODULATION · ${(device.phaserStereoPhase * 180).round()}° OFFSET',
+        'L / R MODULATION · ${(stereoPhase * 180).round()}° OFFSET',
         const Offset(8, 8),
       );
       Path curve(double offset) {
@@ -72,24 +97,23 @@ class _PhaserPreviewPainter extends CustomPainter {
       }
 
       canvas.drawPath(
-        curve(device.phaserPhaseOffset),
+        curve(phaseOffset),
         Paint()
           ..color = PhaserFxPanel.accent
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2,
       );
       canvas.drawPath(
-        curve(device.phaserPhaseOffset + device.phaserStereoPhase * .5),
+        curve(phaseOffset + stereoPhase * .5),
         Paint()
           ..color = const Color(0xFF78AEE8)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5,
       );
     } else {
-      final stages = device.phaserStages.round().clamp(2, 12);
       _text(
         canvas,
-        '$stages STAGES · ${_formatHz(device.phaserCentreFrequencyHz)} · ${(device.phaserDepth * 4).toStringAsFixed(1)} OCT SWEEP',
+        '$stages STAGES · ${_formatHz(centreFrequency.toDouble())} · ${(depth * 4).toStringAsFixed(1)} OCT SWEEP',
         const Offset(8, 8),
       );
       final path = Path();

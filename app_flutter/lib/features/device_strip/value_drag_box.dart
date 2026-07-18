@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
 import 'device_automation_spinner.dart';
+import 'effective_parameter_binding.dart';
 
 /// Reusable compact value-drag box.
 ///
@@ -111,9 +112,19 @@ class ValueDragBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return EffectiveParameterValueBuilder(
+      parameterId: paramId,
+      fallbackValue: valueNorm,
+      active: automatedParams.contains(paramId),
+      deviceId: deviceId,
+      builder: (context, liveValue) => _buildWithValue(context, liveValue),
+    );
+  }
+
+  Widget _buildWithValue(BuildContext context, double displayedValueNorm) {
     final valueCount = values.length;
-    final idx = normToIndex(valueNorm, valueCount);
-    final display = format(valueNorm);
+    final idx = normToIndex(displayedValueNorm, valueCount);
+    final display = format(displayedValueNorm);
 
     double dragStartY = 0;
     int dragStartIdx = idx;
@@ -125,7 +136,8 @@ class ValueDragBox extends StatelessWidget {
         dragStartIdx = idx;
       },
       onVerticalDragUpdate: (d) {
-        final delta = ((dragStartY - d.localPosition.dy) / dragPixelsPerStep).round();
+        final delta =
+            ((dragStartY - d.localPosition.dy) / dragPixelsPerStep).round();
         final nextIdx = (dragStartIdx + delta).clamp(0, valueCount - 1);
         if (nextIdx != idx) {
           onChanged(indexToNorm(nextIdx, valueCount));

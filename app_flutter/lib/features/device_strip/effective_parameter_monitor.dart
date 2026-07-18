@@ -6,6 +6,11 @@ import '../../bridge/engine_bridge.dart';
 
 typedef EffectiveParameterKey = ({String deviceId, String parameterId});
 
+typedef MonitoredParameterValue = ({
+  double automationBase,
+  double effectiveValue,
+});
+
 /// Coalesced presentation-only polling for visible automated/modulated knobs.
 /// Values never enter project state and can therefore never feed back to DSP.
 class EffectiveParameterMonitor extends ChangeNotifier {
@@ -13,7 +18,7 @@ class EffectiveParameterMonitor extends ChangeNotifier {
   Timer? _timer;
   bool _polling = false;
   final Map<EffectiveParameterKey, int> _references = {};
-  final Map<EffectiveParameterKey, double> _values = {};
+  final Map<EffectiveParameterKey, MonitoredParameterValue> _values = {};
 
   void start(EngineBridge bridge) {
     _bridge = bridge;
@@ -44,7 +49,13 @@ class EffectiveParameterMonitor extends ChangeNotifier {
     }
   }
 
-  double? valueFor(EffectiveParameterKey key) => _values[key];
+  /// Widget position after automation, before modulation.
+  double? valueFor(EffectiveParameterKey key) => _values[key]?.automationBase;
+
+  /// Final DSP-observed value, available for meters/diagnostics. Controls do
+  /// not use this as their position because modulation is drawn separately.
+  double? effectiveValueFor(EffectiveParameterKey key) =>
+      _values[key]?.effectiveValue;
 
   Future<void> _poll() async {
     final bridge = _bridge;
@@ -53,16 +64,16 @@ class EffectiveParameterMonitor extends ChangeNotifier {
     var changed = false;
     try {
       final keys = List<EffectiveParameterKey>.of(_references.keys);
-      final values =
-          await Future.wait(keys.map((key) => bridge.readEffectiveParameter(
-                deviceId: key.deviceId,
-                parameterId: key.parameterId,
-              )));
+      final values = await bridge.readEffectiveParameterStates(keys);
       for (var index = 0; index < keys.length; index++) {
         final value = values[index];
         if (value == null || !_references.containsKey(keys[index])) continue;
-        if (_values[keys[index]] != value) {
-          _values[keys[index]] = value.clamp(0.0, 1.0).toDouble();
+        final monitored = (
+          automationBase: value.automationBase.clamp(0.0, 1.0).toDouble(),
+          effectiveValue: value.effectiveValue.clamp(0.0, 1.0).toDouble(),
+        );
+        if (_values[keys[index]] != monitored) {
+          _values[keys[index]] = monitored;
           changed = true;
         }
       }

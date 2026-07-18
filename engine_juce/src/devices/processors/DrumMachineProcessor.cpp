@@ -114,15 +114,17 @@ bool DrumMachineProcessor::setNestedResolvedAsset(
 }
 
 bool DrumMachineProcessor::readNestedEffectiveParameter(
-    uint64_t processorNodeId, uint16_t parameterId, float& value) const noexcept {
+    uint64_t processorNodeId, uint16_t parameterId, float& value,
+    float* automationBase) const noexcept {
     for (const auto& runtime : pads_) {
         const int childCount = playback_ ? playback_->pads[runtime.padIndex].deviceCount : 0;
         for (int child = 0; runtime.arena && child < childCount; ++child) {
             const auto* processor = runtime.arena->get(child);
             if (processor == nullptr) continue;
             if (processor->stableProcessorNodeId == processorNodeId)
-                return processor->readEffectiveParameter(parameterId, value);
-            if (processor->readNestedEffectiveParameter(processorNodeId, parameterId, value))
+                return processor->readEffectiveParameter(parameterId, value, automationBase);
+            if (processor->readNestedEffectiveParameter(processorNodeId, parameterId,
+                                                        value, automationBase))
                 return true;
         }
     }

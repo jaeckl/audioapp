@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
 import 'device_automation_knob.dart';
+import 'effective_parameter_binding.dart';
 import 'device_knob_sizes.dart';
 import 'device_tab_bar.dart';
 

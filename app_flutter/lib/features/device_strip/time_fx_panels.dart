@@ -9,6 +9,7 @@ import 'device_tab_bar.dart';
 import 'panels/compact_fx_layout.dart';
 import 'rotary_knob.dart';
 import 'value_drag_box.dart';
+import 'effective_parameter_binding.dart';
 
 part 'time_fx_panels_delay_fx_panel.dart';
 part 'time_fx_panels_delay_fx_strip.dart';
@@ -101,6 +102,7 @@ class _TimeFxKnob extends StatelessWidget {
       modulationActive: modulatedParams.contains(paramId),
       automationActive: automatedParams.contains(paramId),
       modulationAmount: modulationAmounts[paramId] ?? 0.0,
+      parameterId: paramId,
       connectModeActive: connectModeLfoId != null,
       onModulationAssign: onModulationAssign != null
           ? (amount) => onModulationAssign!(paramId, amount)

@@ -115,11 +115,14 @@ public:
         }
     }
 
-    bool readEffectiveParameter(uint16_t parameterId, float& value) const noexcept {
+    bool readEffectiveParameter(uint16_t parameterId, float& value,
+                                float* automationBase = nullptr) const noexcept {
         for (const auto& slot : effectiveParameterSlots_) {
             if (slot.parameterId.load(std::memory_order_acquire) != parameterId)
                 continue;
             value = slot.value.load(std::memory_order_acquire);
+            if (automationBase != nullptr)
+                *automationBase = slot.automationBase.load(std::memory_order_acquire);
             return true;
         }
         return false;
@@ -157,12 +160,67 @@ public:
         }
     }
 
+    /// Publish the normalized value after manual control and automation, but
+    /// before modulation. Presentation uses this as the widget position while
+    /// drawing modulation depth separately; it never feeds DSP state.
+    void publishAutomationBaseParameter(uint16_t parameterId, float value) noexcept {
+        EffectiveParameterSlot* empty = nullptr;
+        for (auto& slot : effectiveParameterSlots_) {
+            const auto existing = slot.parameterId.load(std::memory_order_relaxed);
+            if (existing == parameterId) {
+                slot.automationBase.store(std::clamp(value, 0.0f, 1.0f),
+                                          std::memory_order_release);
+                return;
+            }
+            if (existing == 0xffff && empty == nullptr) empty = &slot;
+        }
+        if (empty != nullptr) {
+            const float clamped = std::clamp(value, 0.0f, 1.0f);
+            empty->automationBase.store(clamped, std::memory_order_relaxed);
+            empty->value.store(clamped, std::memory_order_relaxed);
+            empty->manualValueAvailable.store(false, std::memory_order_relaxed);
+            empty->parameterId.store(parameterId, std::memory_order_release);
+        }
+    }
+
+    /// Publish the pre-modulation widget position and final DSP-observed value
+    /// in one bounded slot lookup. The audio path uses this to avoid scanning
+    /// the fixed bank twice for every automated parameter.
+    void publishPresentationParameter(uint16_t parameterId,
+                                      float automationBase,
+                                      float finalValue) noexcept {
+        EffectiveParameterSlot* empty = nullptr;
+        for (auto& slot : effectiveParameterSlots_) {
+            const auto existing = slot.parameterId.load(std::memory_order_relaxed);
+            if (existing == parameterId) {
+                slot.automationBase.store(
+                    std::clamp(automationBase, 0.0f, 1.0f),
+                    std::memory_order_relaxed);
+                slot.value.store(std::clamp(finalValue, 0.0f, 1.0f),
+                                 std::memory_order_release);
+                return;
+            }
+            if (existing == 0xffff && empty == nullptr) empty = &slot;
+        }
+        if (empty != nullptr) {
+            empty->automationBase.store(
+                std::clamp(automationBase, 0.0f, 1.0f),
+                std::memory_order_relaxed);
+            empty->value.store(std::clamp(finalValue, 0.0f, 1.0f),
+                               std::memory_order_relaxed);
+            empty->manualValueAvailable.store(false, std::memory_order_relaxed);
+            empty->parameterId.store(parameterId, std::memory_order_release);
+        }
+    }
+
     virtual bool readNestedEffectiveParameter(uint64_t processorNodeId,
                                               uint16_t parameterId,
-                                              float& value) const noexcept {
+                                              float& value,
+                                              float* automationBase = nullptr) const noexcept {
         (void)processorNodeId;
         (void)parameterId;
         (void)value;
+        (void)automationBase;
         return false;
     }
 
@@ -324,6 +382,7 @@ private:
     struct EffectiveParameterSlot {
         std::atomic<uint16_t> parameterId{0xffff};
         std::atomic<float> value{0.0f};
+        std::atomic<float> automationBase{0.0f};
         std::atomic<float> manualValue{0.0f};
         std::atomic<bool> manualValueAvailable{false};
     };
@@ -334,6 +393,7 @@ private:
             if (existing == parameterId) {
                 slot.manualValue.store(value, std::memory_order_relaxed);
                 slot.manualValueAvailable.store(true, std::memory_order_relaxed);
+                slot.automationBase.store(value, std::memory_order_relaxed);
                 slot.value.store(value, std::memory_order_release);
                 return;
             }
@@ -342,6 +402,7 @@ private:
         if (empty != nullptr) {
             empty->manualValue.store(value, std::memory_order_relaxed);
             empty->manualValueAvailable.store(true, std::memory_order_relaxed);
+            empty->automationBase.store(value, std::memory_order_relaxed);
             empty->value.store(value, std::memory_order_relaxed);
             empty->parameterId.store(parameterId, std::memory_order_release);
         }

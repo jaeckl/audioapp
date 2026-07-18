@@ -139,6 +139,7 @@ class ChorusFxPanel extends StatelessWidget {
           labels: const ['Classic', 'Ensemble', 'Dimension', 'Drift'],
           keyPrefix: 'chorus-mode',
           value: device.modeMorph,
+          parameterId: 'modeMorph',
           accent: accent,
           modulationActive: modulatedParams.contains('modeMorph'),
           modulationAmount: modulationAmounts['modeMorph'] ?? 0,

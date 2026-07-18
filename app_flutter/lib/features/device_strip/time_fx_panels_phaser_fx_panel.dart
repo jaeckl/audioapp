@@ -126,7 +126,11 @@ class PhaserFxPanel extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: _PhaserPreview(device: device, view: selectedTab),
+                  child: _PhaserPreview(
+                    device: device,
+                    view: selectedTab,
+                    automatedParams: automatedParams,
+                  ),
                 ),
                 const SizedBox(height: 5),
                 Row(

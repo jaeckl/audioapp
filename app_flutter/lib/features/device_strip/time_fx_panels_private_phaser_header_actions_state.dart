@@ -47,8 +47,17 @@ class _PhaserHeaderActionsState extends State<PhaserHeaderActions>
 
   @override
   Widget build(BuildContext context) {
+    return EffectiveParameterValueBuilder(
+      parameterId: 'waveform',
+      fallbackValue: widget.device.phaserWaveform / 3,
+      active: widget.automatedParams.contains('waveform'),
+      builder: (context, value) =>
+          _buildSelector((value * 3).round().clamp(0, 3)),
+    );
+  }
+
+  Widget _buildSelector(int waveform) {
     const accent = PhaserFxPanel.accent;
-    final waveform = widget.device.phaserWaveform.round().clamp(0, 3);
     final shownAmount =
         _assigning ? _amount : widget.modulationAmounts['waveform'] ?? 0.0;
     return GestureDetector(

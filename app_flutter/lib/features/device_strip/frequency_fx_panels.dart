@@ -13,6 +13,7 @@ import 'panels/filter_section_layout.dart';
 import 'panels/filter_mode_icons.dart';
 import 'rotary_knob.dart';
 import 'value_drag_box.dart';
+import 'effective_parameter_binding.dart';
 
 part 'frequency_fx_panels_filter_device_panel.dart';
 part 'frequency_fx_panels_filter_device_strip.dart';
@@ -119,6 +120,7 @@ class _FrequencyFxKnob extends StatelessWidget {
       modulationActive: modulatedParams.contains(paramId),
       automationActive: automatedParams.contains(paramId),
       modulationAmount: modulationAmounts[paramId] ?? 0.0,
+      parameterId: paramId,
       connectModeActive: connectModeLfoId != null,
       onModulationAssign: onModulationAssign != null
           ? (amount) => onModulationAssign!(paramId, amount)

@@ -52,6 +52,7 @@ class _DynamicsKnob extends StatelessWidget {
       automationActive: automatedParams.contains(paramId),
       modulationAmount: modulationAmounts[paramId] ?? 0.0,
       polarityParamId: paramId,
+      parameterId: paramId,
       deviceId: deviceId,
       lfos: lfos,
       modEdges: modEdges,

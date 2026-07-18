@@ -1269,6 +1269,11 @@ std::string EngineHost::readEffectiveParameterJson(
     return project_->readEffectiveParameterJson(deviceId, parameterId);
 }
 
+std::string EngineHost::readEffectiveParametersJson(
+    const std::vector<std::pair<std::string, std::string>>& requests) {
+    return project_->readEffectiveParametersJson(requests);
+}
+
 namespace {
 
 /// Convert any populated SnapshotDelta into a delta CommandResult.
@@ -2343,6 +2348,25 @@ void EngineHost::registerAllCommands() {
         const auto parameterId = ctx.args["parameterId"].toString().toStdString();
         return commands::rawResult(
             ctx.engine.readEffectiveParameterJson(deviceId, parameterId));
+    });
+
+    reg.registerCommand("readEffectiveParameters", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        constexpr size_t kMaxPresentationRequests = 512;
+        std::vector<std::pair<std::string, std::string>> requests;
+        if (auto* array = ctx.args["requests"].getArray()) {
+            requests.reserve(std::min(static_cast<size_t>(array->size()),
+                                      kMaxPresentationRequests));
+            for (const auto& item : *array) {
+                if (requests.size() >= kMaxPresentationRequests) break;
+                const auto* object = item.getDynamicObject();
+                if (object == nullptr) continue;
+                requests.emplace_back(
+                    object->getProperty("deviceId").toString().toStdString(),
+                    object->getProperty("parameterId").toString().toStdString());
+            }
+        }
+        return commands::rawResult(
+            ctx.engine.readEffectiveParametersJson(requests));
     });
 
     // ── Undo / Redo ──────────────────────────────────────

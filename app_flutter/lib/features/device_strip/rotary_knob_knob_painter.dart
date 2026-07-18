@@ -73,16 +73,17 @@ class _KnobPainter extends CustomPainter {
       final modSweepAngle =
           KnobArcGeometry.indicatorAngle(range.high) - modStartAngle;
 
-      final modRect = connectModeActive
-          ? Rect.fromCircle(center: center, radius: radius + strokeWidth)
-          : arcRect;
+      // Keep modulation depth visually separate from the live automation
+      // position: a thinner, softly coloured arc just outside the value arc.
+      final modRect =
+          Rect.fromCircle(center: center, radius: radius + strokeWidth * 0.85);
       final modPaint = Paint()
         ..color = connectModeActive
             ? Colors.white.withValues(alpha: 0.5)
-            : accentColor.withValues(alpha: 0.5)
+            : accentColor.withValues(alpha: 0.38)
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
-        ..strokeWidth = strokeWidth * 0.5;
+        ..strokeWidth = strokeWidth * 0.55;
       canvas.drawArc(modRect, modStartAngle, modSweepAngle, false, modPaint);
     }
 

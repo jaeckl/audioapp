@@ -27,6 +27,7 @@ class _ClapGeneratorDevicePanelState extends State<ClapGeneratorDevicePanel> {
       modulationActive: widget.modulatedParams.contains(paramId),
       automationActive: widget.automatedParams.contains(paramId),
       modulationAmount: widget.modulationAmounts[paramId] ?? 0.0,
+      parameterId: paramId,
       connectModeActive: widget.connectModeLfoId != null,
       onModulationAssign: widget.onModulationAssign != null
           ? (amount) => widget.onModulationAssign!(paramId, amount)

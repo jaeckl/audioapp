@@ -29,7 +29,6 @@ class BitcrusherHeaderActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const labels = ['Classic', 'Impact', 'Sub', 'Organic'];
-    final selected = device.bcMode.round().clamp(0, 3);
     final antiAlias = device.bcFilter > .82
         ? 0
         : device.bcFilter > .55
@@ -38,61 +37,70 @@ class BitcrusherHeaderActions extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 0, 4, 0),
       child: Row(children: [
-        _HorizontalGroupShell(
-          width: 210,
-          height: 32,
-          value: device.bcMode,
-          maxValue: 3,
-          accent: BitcrusherFxPanel.accent,
-          modulationActive: modulatedParams.contains('bcMode'),
-          modulationAmount: modulationAmounts['bcMode'] ?? 0,
-          automationActive: automatedParams.contains('bcMode'),
-          connectModeActive: connectModeLfoId != null,
-          linkModeActive: automationLinkActive,
-          onModulationAssign: onModulationAssign == null
-              ? null
-              : (amount) => onModulationAssign!('bcMode', amount),
-          onLinkTap: onAutomationLinkTap == null
-              ? null
-              : () => onAutomationLinkTap!('bcMode'),
-          onAutomateRequest: onAutomateParameter == null
-              ? null
-              : () => onAutomateParameter!('bcMode'),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(5),
-            child: Row(children: [
-              for (var i = 0; i < labels.length; i++)
-                Expanded(
-                  child: Material(
-                    color: i == selected
-                        ? BitcrusherFxPanel.accent
-                        : const Color(0xFF0C0C11),
-                    child: InkWell(
-                      key: ValueKey('bitcrusher-mode-$i'),
-                      onTap: () => onParameterChanged('bcMode', i.toDouble()),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: i < labels.length - 1
-                              ? Border(
-                                  right: BorderSide(
-                                      color:
-                                          Colors.white.withValues(alpha: .07)))
-                              : null,
+        EffectiveParameterValueBuilder(
+          parameterId: 'bcMode',
+          fallbackValue: device.bcMode / 3,
+          active: automatedParams.contains('bcMode'),
+          builder: (context, liveValue) {
+            final selected = (liveValue * 3).round().clamp(0, 3);
+            return _HorizontalGroupShell(
+              width: 210,
+              height: 32,
+              value: selected.toDouble(),
+              maxValue: 3,
+              accent: BitcrusherFxPanel.accent,
+              modulationActive: modulatedParams.contains('bcMode'),
+              modulationAmount: modulationAmounts['bcMode'] ?? 0,
+              automationActive: automatedParams.contains('bcMode'),
+              connectModeActive: connectModeLfoId != null,
+              linkModeActive: automationLinkActive,
+              onModulationAssign: onModulationAssign == null
+                  ? null
+                  : (amount) => onModulationAssign!('bcMode', amount),
+              onLinkTap: onAutomationLinkTap == null
+                  ? null
+                  : () => onAutomationLinkTap!('bcMode'),
+              onAutomateRequest: onAutomateParameter == null
+                  ? null
+                  : () => onAutomateParameter!('bcMode'),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(5),
+                child: Row(children: [
+                  for (var i = 0; i < labels.length; i++)
+                    Expanded(
+                      child: Material(
+                        color: i == selected
+                            ? BitcrusherFxPanel.accent
+                            : const Color(0xFF0C0C11),
+                        child: InkWell(
+                          key: ValueKey('bitcrusher-mode-$i'),
+                          onTap: () =>
+                              onParameterChanged('bcMode', i.toDouble()),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border: i < labels.length - 1
+                                  ? Border(
+                                      right: BorderSide(
+                                          color: Colors.white
+                                              .withValues(alpha: .07)))
+                                  : null,
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(labels[i],
+                                style: TextStyle(
+                                    color: i == selected
+                                        ? Colors.white
+                                        : Colors.white38,
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w700)),
+                          ),
                         ),
-                        alignment: Alignment.center,
-                        child: Text(labels[i],
-                            style: TextStyle(
-                                color: i == selected
-                                    ? Colors.white
-                                    : Colors.white38,
-                                fontSize: 8,
-                                fontWeight: FontWeight.w700)),
                       ),
                     ),
-                  ),
-                ),
-            ]),
-          ),
+                ]),
+              ),
+            );
+          },
         ),
         const Spacer(),
         deviceAutomationSpinner(

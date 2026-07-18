@@ -77,107 +77,110 @@ extension DeviceStripSlotStateBuildcontentOperation on _DeviceStripSlotState {
                   gap * (totalCols - 1);
             }
 
-            return SizedBox(
-              width: _slotWidth + modGridWidthLocal - _modGridWidth,
-              height: cardHeight,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  DeviceToolRail(
-                    deviceName:
-                        DeviceStripTheme.labelForDeviceType(widget.device.type),
-                    accentColor: DeviceStripTheme.accentForDeviceType(
-                        widget.device.type),
-                    bypassed: widget.device.bypassed,
-                    showLibrary: widget.onOpenLibrary != null,
-                    libraryTooltip: 'Device presets',
-                    onBypassToggle: widget.onBypassToggle ?? () {},
-                    bypassModulationActive:
-                        _modulatedParamIds.contains('bypass'),
-                    bypassAutomationActive:
-                        _automatedParamIds.contains('bypass'),
-                    bypassConnectModeActive: _connectModeLfo != null,
-                    bypassLinkModeActive: widget.automationLinkActive,
-                    onBypassModulationAssign: _connectModeLfo == null
-                        ? null
-                        : _onBypassModulationAssign,
-                    onBypassAutomationLinkTap:
-                        widget.onAutomationParamSelected == null
-                            ? null
-                            : () => _onAutomationLinkTap('bypass'),
-                    onAutomateBypass: widget.onAutomateParameter == null
-                        ? null
-                        : () => _onAutomateParameter('bypass'),
-                    onDelete: widget.onDeleteRequest,
-                    onLibrary: widget.onOpenLibrary != null
-                        ? () => widget.onOpenLibrary!(
-                            libraryFilterForDeviceType(widget.device.type))
-                        : null,
-                    modActive: _modStripVisible,
-                    onModToggle: () async {
-                      if (!_modStripVisible && _localLfos.isEmpty) {
-                        // Auto-create first LFO so the strip isn't empty
-                        await _onBridgeCall('createLfo', {});
-                        if (!mounted) return;
-                      }
-                      setState(() => _modStripVisible = !_modStripVisible);
-                    },
-                  ),
-                  if (_modStripVisible)
-                    SizedBox(
-                      width: modGridWidthLocal,
-                      child: DecoratedBox(
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF14141C),
-                        ),
-                        child: _modulationSidebar(),
-                      ),
+            return EffectiveParameterScope(
+              deviceId: widget.device.id,
+              child: SizedBox(
+                width: _slotWidth + modGridWidthLocal - _modGridWidth,
+                height: cardHeight,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    DeviceToolRail(
+                      deviceName: DeviceStripTheme.labelForDeviceType(
+                          widget.device.type),
+                      accentColor: DeviceStripTheme.accentForDeviceType(
+                          widget.device.type),
+                      bypassed: widget.device.bypassed,
+                      showLibrary: widget.onOpenLibrary != null,
+                      libraryTooltip: 'Device presets',
+                      onBypassToggle: widget.onBypassToggle ?? () {},
+                      bypassModulationActive:
+                          _modulatedParamIds.contains('bypass'),
+                      bypassAutomationActive:
+                          _automatedParamIds.contains('bypass'),
+                      bypassConnectModeActive: _connectModeLfo != null,
+                      bypassLinkModeActive: widget.automationLinkActive,
+                      onBypassModulationAssign: _connectModeLfo == null
+                          ? null
+                          : _onBypassModulationAssign,
+                      onBypassAutomationLinkTap:
+                          widget.onAutomationParamSelected == null
+                              ? null
+                              : () => _onAutomationLinkTap('bypass'),
+                      onAutomateBypass: widget.onAutomateParameter == null
+                          ? null
+                          : () => _onAutomateParameter('bypass'),
+                      onDelete: widget.onDeleteRequest,
+                      onLibrary: widget.onOpenLibrary != null
+                          ? () => widget.onOpenLibrary!(
+                              libraryFilterForDeviceType(widget.device.type))
+                          : null,
+                      modActive: _modStripVisible,
+                      onModToggle: () async {
+                        if (!_modStripVisible && _localLfos.isEmpty) {
+                          // Auto-create first LFO so the strip isn't empty
+                          await _onBridgeCall('createLfo', {});
+                          if (!mounted) return;
+                        }
+                        setState(() => _modStripVisible = !_modStripVisible);
+                      },
                     ),
-                  if (_modStripVisible &&
-                      _showTargetsPanel &&
-                      _selectedLfo != null)
-                    _targetsPanel(_targetsPanelLfo!),
-                  if (_modStripVisible && _selectedLfo != null)
-                    _buildModulatorPropertiesPanel(_selectedLfo!, bodyHeight),
-                  if (_inputWidth > 0)
-                    SizedBox(
-                      width: _inputWidth,
-                      child: _meterAwareChromePanel(
-                        (bindings) =>
-                            DeviceStripChrome.inputPanel(
-                              deviceType: widget.device.type,
-                              bindings: bindings,
-                            ) ??
-                            const SizedBox.shrink(),
-                      ),
-                    ),
-                  SizedBox(
-                    width: _cardWidth,
-                    child: DeviceStripCard(
-                      deviceType: widget.device.type,
-                      subtitle: _cardSubtitle,
-                      attachToolRail: true,
-                      attachInputPanel: _inputWidth > 0,
-                      attachOutputPanel: _outputWidth > 0,
-                      tabs: _containerTabs,
-                      selectedTabIndex: _selectedTabIndex,
-                      onTabSelected: _onTabSelected,
-                      headerActions: _deviceHeaderActions,
-                      bodyHeight: bodyHeight,
-                      child: _buildDevice(context, bodyHeight),
-                    ),
-                  ),
-                  if (_outputWidth > 0)
-                    SizedBox(
-                      width: _outputWidth,
-                      child: _meterAwareChromePanel(
-                        (bindings) => DeviceStripChrome.outputPanel(
-                          deviceType: widget.device.type,
-                          bindings: bindings,
+                    if (_modStripVisible)
+                      SizedBox(
+                        width: modGridWidthLocal,
+                        child: DecoratedBox(
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF14141C),
+                          ),
+                          child: _modulationSidebar(),
                         ),
                       ),
+                    if (_modStripVisible &&
+                        _showTargetsPanel &&
+                        _selectedLfo != null)
+                      _targetsPanel(_targetsPanelLfo!),
+                    if (_modStripVisible && _selectedLfo != null)
+                      _buildModulatorPropertiesPanel(_selectedLfo!, bodyHeight),
+                    if (_inputWidth > 0)
+                      SizedBox(
+                        width: _inputWidth,
+                        child: _meterAwareChromePanel(
+                          (bindings) =>
+                              DeviceStripChrome.inputPanel(
+                                deviceType: widget.device.type,
+                                bindings: bindings,
+                              ) ??
+                              const SizedBox.shrink(),
+                        ),
+                      ),
+                    SizedBox(
+                      width: _cardWidth,
+                      child: DeviceStripCard(
+                        deviceType: widget.device.type,
+                        subtitle: _cardSubtitle,
+                        attachToolRail: true,
+                        attachInputPanel: _inputWidth > 0,
+                        attachOutputPanel: _outputWidth > 0,
+                        tabs: _containerTabs,
+                        selectedTabIndex: _selectedTabIndex,
+                        onTabSelected: _onTabSelected,
+                        headerActions: _deviceHeaderActions,
+                        bodyHeight: bodyHeight,
+                        child: _buildDevice(context, bodyHeight),
+                      ),
                     ),
-                ],
+                    if (_outputWidth > 0)
+                      SizedBox(
+                        width: _outputWidth,
+                        child: _meterAwareChromePanel(
+                          (bindings) => DeviceStripChrome.outputPanel(
+                            deviceType: widget.device.type,
+                            bindings: bindings,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             );
           },

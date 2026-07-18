@@ -73,14 +73,16 @@ bool ChainProcessor::setNestedCompiledParameter(uint64_t processorNodeId,
 
 bool ChainProcessor::readNestedEffectiveParameter(uint64_t processorNodeId,
                                                    uint16_t parameterId,
-                                                   float& value) const noexcept {
+                                                   float& value,
+                                                   float* automationBase) const noexcept {
     if (!arena_ || !playback_) return false;
     for (int child = 0; child < playback_->deviceCount; ++child) {
         const auto* processor = arena_->get(child);
         if (processor == nullptr) continue;
         if (processor->stableProcessorNodeId == processorNodeId)
-            return processor->readEffectiveParameter(parameterId, value);
-        if (processor->readNestedEffectiveParameter(processorNodeId, parameterId, value))
+            return processor->readEffectiveParameter(parameterId, value, automationBase);
+        if (processor->readNestedEffectiveParameter(processorNodeId, parameterId,
+                                                    value, automationBase))
             return true;
     }
     return false;

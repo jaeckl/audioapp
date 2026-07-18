@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'device_panel_theme.dart';
 import 'filter_mode_icons.dart';
+import '../effective_parameter_binding.dart';
 
 part 'filter_mode_selector_filter_mode_primary_option.dart';
 part 'filter_mode_selector_filter_mode_overflow_option.dart';
@@ -24,6 +25,7 @@ class FilterModeSelector extends StatelessWidget {
     this.height = DevicePanelTheme.modeRowHeight,
     this.modulated = false,
     this.automated = false,
+    this.parameterId,
   });
 
   final int selectedIndex;
@@ -35,6 +37,7 @@ class FilterModeSelector extends StatelessWidget {
   final double height;
   final bool modulated;
   final bool automated;
+  final String? parameterId;
 
   static const _defaultPrimaryOptions = <FilterModePrimaryOption>[
     FilterModePrimaryOption(index: 0, curve: FilterCurveMode.lowPass),
@@ -46,24 +49,36 @@ class FilterModeSelector extends StatelessWidget {
   List<FilterModePrimaryOption> get _rowOptions =>
       primaryOptions ?? _defaultPrimaryOptions;
 
-  bool get _overflowActive =>
-      overflowOptions.any((option) => option.index == selectedIndex);
-
-  bool _isPrimarySelected(int engineIndex) =>
-      !_overflowActive && selectedIndex == engineIndex;
-
-  FilterModeOverflowOption? get _activeOverflow {
-    for (final option in overflowOptions) {
-      if (option.index == selectedIndex) return option;
+  int get _maxIndex {
+    var maximum = 0;
+    for (final option in _rowOptions) {
+      if (option.index > maximum) maximum = option.index;
     }
-    return null;
+    for (final option in overflowOptions) {
+      if (option.index > maximum) maximum = option.index;
+    }
+    return maximum;
   }
 
   @override
   Widget build(BuildContext context) {
+    final id = parameterId;
+    if (id != null && automated && _maxIndex > 0) {
+      return EffectiveParameterValueBuilder(
+        parameterId: id,
+        fallbackValue: selectedIndex / _maxIndex,
+        active: true,
+        builder: (context, value) =>
+            _buildWithIndex(context, (value * _maxIndex).round()),
+      );
+    }
+    return _buildWithIndex(context, selectedIndex);
+  }
+
+  Widget _buildWithIndex(BuildContext context, int liveSelectedIndex) {
     if (layout == FilterModeSelectorLayout.iconGrid) {
       return FilterModeIconGrid(
-        selectedIndex: selectedIndex.clamp(0, 3),
+        selectedIndex: liveSelectedIndex.clamp(0, 3),
         accentColor: accentColor,
         onSelected: onSelected,
       );
@@ -81,14 +96,16 @@ class FilterModeSelector extends StatelessWidget {
           for (var i = 0; i < _rowOptions.length; i++) ...[
             Expanded(
               child: _ModeCell(
-                selected: _isPrimarySelected(_rowOptions[i].index),
+                selected: !_overflowActiveFor(liveSelectedIndex) &&
+                    liveSelectedIndex == _rowOptions[i].index,
                 accent: accentColor,
                 onTap: () => onSelected(_rowOptions[i].index),
                 child: CustomPaint(
                   size: Size.square(height - 6),
                   painter: FilterCurveIconPainter(
                     mode: _rowOptions[i].curve,
-                    color: _isPrimarySelected(_rowOptions[i].index)
+                    color: (!_overflowActiveFor(liveSelectedIndex) &&
+                            liveSelectedIndex == _rowOptions[i].index)
                         ? accentColor
                         : Colors.white.withValues(alpha: 0.38),
                     strokeWidth: ((height - 6) * 0.05).clamp(1.4, 2.2),
@@ -103,8 +120,8 @@ class FilterModeSelector extends StatelessWidget {
             Container(width: 1, color: Colors.white.withValues(alpha: 0.06)),
             _OverflowCell(
               accent: accentColor,
-              active: _overflowActive,
-              label: _activeOverflow?.label ?? '···',
+              active: _overflowActiveFor(liveSelectedIndex),
+              label: _activeOverflowFor(liveSelectedIndex)?.label ?? '···',
               options: overflowOptions,
               onSelected: onSelected,
             ),
@@ -112,5 +129,15 @@ class FilterModeSelector extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  bool _overflowActiveFor(int index) =>
+      overflowOptions.any((option) => option.index == index);
+
+  FilterModeOverflowOption? _activeOverflowFor(int index) {
+    for (final option in overflowOptions) {
+      if (option.index == index) return option;
+    }
+    return null;
   }
 }

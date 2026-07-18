@@ -61,51 +61,60 @@ class BitcrusherFxPanel extends StatelessWidget {
         );
 
     Widget shapeGroup() {
-      final selected = device.bcShape.round().clamp(0, 3);
       const icons = [
         Icons.horizontal_rule_rounded,
         Icons.waves_rounded,
         Icons.change_history_rounded,
         Icons.stacked_line_chart_rounded
       ];
-      return _HorizontalGroupShell(
-        width: 92,
-        height: 30,
-        value: device.bcShape,
-        maxValue: 3,
-        accent: accent,
-        modulationActive: modulatedParams.contains('bcShape'),
-        modulationAmount: modulationAmounts['bcShape'] ?? 0,
-        automationActive: automatedParams.contains('bcShape'),
-        connectModeActive: connectModeLfoId != null,
-        linkModeActive: automationLinkActive,
-        onModulationAssign: onModulationAssign == null
-            ? null
-            : (amount) => onModulationAssign!('bcShape', amount),
-        onLinkTap: onAutomationLinkTap == null
-            ? null
-            : () => onAutomationLinkTap!('bcShape'),
-        onAutomateRequest: onAutomateParameter == null
-            ? null
-            : () => onAutomateParameter!('bcShape'),
-        child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: Row(children: [
-              for (var i = 0; i < icons.length; i++)
-                Expanded(
-                    child: InkWell(
-                  key: ValueKey('bitcrusher-shape-$i'),
-                  onTap: () => onParameterChanged('bcShape', i.toDouble()),
-                  child: ColoredBox(
-                      color: i == selected
-                          ? Colors.white.withValues(alpha: .08)
-                          : const Color(0xFF0C0C11),
-                      child: Center(
-                          child: Icon(icons[i],
-                              size: 14,
-                              color: i == selected ? accent : Colors.white54))),
-                )),
-            ])),
+      return EffectiveParameterValueBuilder(
+        parameterId: 'bcShape',
+        fallbackValue: device.bcShape / 3,
+        active: automatedParams.contains('bcShape'),
+        builder: (context, liveValue) {
+          final selected = (liveValue * 3).round().clamp(0, 3);
+          return _HorizontalGroupShell(
+            width: 92,
+            height: 30,
+            value: selected.toDouble(),
+            maxValue: 3,
+            accent: accent,
+            modulationActive: modulatedParams.contains('bcShape'),
+            modulationAmount: modulationAmounts['bcShape'] ?? 0,
+            automationActive: automatedParams.contains('bcShape'),
+            connectModeActive: connectModeLfoId != null,
+            linkModeActive: automationLinkActive,
+            onModulationAssign: onModulationAssign == null
+                ? null
+                : (amount) => onModulationAssign!('bcShape', amount),
+            onLinkTap: onAutomationLinkTap == null
+                ? null
+                : () => onAutomationLinkTap!('bcShape'),
+            onAutomateRequest: onAutomateParameter == null
+                ? null
+                : () => onAutomateParameter!('bcShape'),
+            child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: Row(children: [
+                  for (var i = 0; i < icons.length; i++)
+                    Expanded(
+                        child: InkWell(
+                      key: ValueKey('bitcrusher-shape-$i'),
+                      onTap: () => onParameterChanged('bcShape', i.toDouble()),
+                      child: ColoredBox(
+                          color: i == selected
+                              ? Colors.white.withValues(alpha: .08)
+                              : const Color(0xFF0C0C11),
+                          child: Center(
+                              child: Icon(icons[i],
+                                  size: 14,
+                                  color: i == selected
+                                      ? accent
+                                      : Colors.white54))),
+                    )),
+                ])),
+          );
+        },
       );
     }
 
@@ -150,12 +159,22 @@ class BitcrusherFxPanel extends StatelessWidget {
                   padding: const EdgeInsets.all(5),
                   child: Column(children: [
                     Expanded(
-                        child: CustomPaint(
-                            painter: _BitcrusherPreviewPainter(
-                                rate: device.bcRate,
-                                bits: device.bcBits,
-                                accent: accent),
-                            child: const SizedBox.expand())),
+                      child: EffectiveParameterValuesBuilder(
+                        fallbackValues: {
+                          'bcRate': device.bcRate,
+                          'bcBits': _bcBitsNorm,
+                        },
+                        activeParameterIds: automatedParams,
+                        builder: (context, values) => CustomPaint(
+                          painter: _BitcrusherPreviewPainter(
+                            rate: values['bcRate']!,
+                            bits: 1 + values['bcBits']! * 15,
+                            accent: accent,
+                          ),
+                          child: const SizedBox.expand(),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Row(
                         crossAxisAlignment: CrossAxisAlignment.end,

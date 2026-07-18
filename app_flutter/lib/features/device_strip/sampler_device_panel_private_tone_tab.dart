@@ -72,6 +72,9 @@ class _ToneTab extends StatelessWidget {
                 const SizedBox(height: 4),
                 FilterModeSelector(
                   selectedIndex: modeIndex,
+                  parameterId: 'filterMode',
+                  automated: automatedParams.contains('filterMode'),
+                  modulated: modulatedParams.contains('filterMode'),
                   accentColor: SamplerDevicePanel.accent,
                   onSelected: (index) =>
                       onParameterChanged('filterMode', index.toDouble()),

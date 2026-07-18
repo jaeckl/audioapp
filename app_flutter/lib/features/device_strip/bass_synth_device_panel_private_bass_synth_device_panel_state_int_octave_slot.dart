@@ -10,7 +10,32 @@ extension _BassSynthDevicePanelStateIntoctaveslot
     required String label,
     required String Function(int) formatter,
   }) {
-    final display = formatter(value);
+    return EffectiveParameterValueBuilder(
+      parameterId: paramId,
+      fallbackValue: (value - min) / (max - min),
+      active: widget.automatedParams.contains(paramId),
+      builder: (context, liveValue) => _buildIntOctaveSlot(
+        value: value,
+        displayedValue: min + (liveValue * (max - min)).round(),
+        paramId: paramId,
+        min: min,
+        max: max,
+        label: label,
+        formatter: formatter,
+      ),
+    );
+  }
+
+  Widget _buildIntOctaveSlot({
+    required int value,
+    required int displayedValue,
+    required String paramId,
+    required int min,
+    required int max,
+    required String label,
+    required String Function(int) formatter,
+  }) {
+    final display = formatter(displayedValue);
     final accent = BassSynthDevicePanel.accent;
     final muted = accent.withValues(alpha: 0.55);
     final size = _knobSize;

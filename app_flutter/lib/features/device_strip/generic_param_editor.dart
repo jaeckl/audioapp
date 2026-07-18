@@ -1,6 +1,7 @@
 /// A generic parameter editor widget that renders controls from metadata.
 /// Falls back when no custom device editor exists.
 library;
+
 import 'package:flutter/material.dart';
 
 import '../../bridge/param_descriptor.dart';
@@ -16,12 +17,16 @@ class GenericParamEditor extends StatelessWidget {
     required this.params,
     required this.currentValues,
     required this.modulationAmounts,
+    required this.modulatedParams,
+    required this.automatedParams,
     required this.onParameterChanged,
   });
 
   final List<DeviceParamDescriptor> params;
   final Map<String, double> currentValues;
   final Map<String, double> modulationAmounts;
+  final Set<String> modulatedParams;
+  final Set<String> automatedParams;
   final void Function(String parameterId, double value) onParameterChanged;
 
   @override
@@ -46,20 +51,21 @@ class GenericParamEditor extends StatelessWidget {
         alignment: WrapAlignment.center,
         children: params.map((param) {
           final current = currentValues[param.stableName] ?? param.defaultValue;
-          final modAmount =
-              modulationAmounts[param.stableName] ?? 0.0;
+          final modAmount = modulationAmounts[param.stableName] ?? 0.0;
           return SizedBox(
             width: knobSize,
             child: RotaryKnob(
               label: param.displayName,
               value: (current - param.min) / (param.max - param.min),
               onChanged: (normalized) {
-                final actual =
-                    param.min + normalized * (param.max - param.min);
+                final actual = param.min + normalized * (param.max - param.min);
                 onParameterChanged(param.stableName, actual);
               },
               size: DeviceKnobSizes.compact,
               accentColor: DeviceStripTheme.genericAccent,
+              parameterId: param.stableName,
+              modulationActive: modulatedParams.contains(param.stableName),
+              automationActive: automatedParams.contains(param.stableName),
               modulationAmount: modAmount,
             ),
           );

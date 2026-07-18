@@ -171,6 +171,7 @@ class KickGeneratorDevicePanel extends StatelessWidget {
       modulationActive: modulatedParams.contains(paramId),
       automationActive: automatedParams.contains(paramId),
       modulationAmount: modulationAmounts[paramId] ?? 0.0,
+      parameterId: paramId,
       connectModeActive: connectModeLfoId != null,
       onModulationAssign: onModulationAssign != null
           ? (amount) => onModulationAssign!(paramId, amount)

@@ -28,6 +28,7 @@ import 'sequencer_step_editor.dart';
 import 'generic_param_editor.dart';
 import 'modulator_types.dart';
 import 'device_knob_sizes.dart';
+import 'effective_parameter_binding.dart';
 import 'modulator_rate_codec.dart';
 import 'rotary_knob.dart';
 import 'kick_generator_device_strip.dart';

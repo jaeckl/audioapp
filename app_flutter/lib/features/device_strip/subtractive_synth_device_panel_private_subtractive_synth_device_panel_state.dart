@@ -38,6 +38,7 @@ class _SubtractiveSynthDevicePanelState
           paramId != null && widget.automatedParams.contains(paramId),
       modulationAmount: modAmount,
       polarityParamId: paramId,
+      parameterId: paramId,
       deviceId: widget.device.id,
       lfos: widget.lfos,
       modEdges: widget.modEdges,

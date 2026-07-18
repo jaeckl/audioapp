@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../sample_library/sample_library_screen.dart';
 import 'device_automation_spinner.dart';
+import 'effective_parameter_binding.dart';
 import 'modulator_polarity.dart';
 
 part 'sampler_waveform_view_sampler_waveform_density.dart';
@@ -38,6 +39,7 @@ const double _handleVisualWidth = 12;
 const double _handleHitRadius = 28;
 const double _minSpanSec = 0.02;
 const double _handleVerticalInset = 4.0;
+
 /// Strip: loop region only. Editor: trim bounds + optional loop band inside trim.
 /// Shared waveform surface for sampler Wave tab (strip + fullscreen).
 class SamplerWaveformView extends StatefulWidget {

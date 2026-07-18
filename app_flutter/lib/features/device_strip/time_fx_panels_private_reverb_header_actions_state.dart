@@ -46,8 +46,21 @@ class _ReverbHeaderActionsState extends State<ReverbHeaderActions>
 
   @override
   Widget build(BuildContext context) {
+    return EffectiveParameterValuesBuilder(
+      fallbackValues: {
+        'modeMorph': widget.device.modeMorph / 3,
+        'freeze': widget.device.freeze,
+      },
+      activeParameterIds: widget.automatedParams,
+      builder: (context, values) => _buildActions(
+        (values['modeMorph']! * 3).round().clamp(0, 3),
+        values['freeze']!,
+      ),
+    );
+  }
+
+  Widget _buildActions(int mode, double freeze) {
     const accent = ReverbFxPanel.accent;
-    final mode = widget.device.modeMorph.round().clamp(0, 3);
     final shownAmount =
         _assigning ? _amount : widget.modulationAmounts['modeMorph'] ?? 0;
     final pulseColor =
@@ -191,7 +204,7 @@ class _ReverbHeaderActionsState extends State<ReverbHeaderActions>
               customBorder: const CircleBorder(),
               onTap: () => widget.onParameterChanged(
                 'freeze',
-                widget.device.freeze >= .5 ? 0 : 1,
+                freeze >= .5 ? 0 : 1,
               ),
               onLongPress: () {
                 HapticFeedback.mediumImpact();
@@ -210,8 +223,7 @@ class _ReverbHeaderActionsState extends State<ReverbHeaderActions>
                     Icon(
                       Icons.ac_unit,
                       size: 19,
-                      color:
-                          widget.device.freeze >= .5 ? accent : Colors.white54,
+                      color: freeze >= .5 ? accent : Colors.white54,
                     ),
                     if (widget.automatedParams.contains('freeze'))
                       const Positioned(

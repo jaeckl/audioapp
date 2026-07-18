@@ -29,7 +29,18 @@ void main() {
             'peakL': 0.5,
           };
         case 'readEffectiveParameter':
-          return {'ok': true, 'value': 0.625};
+          return {
+            'ok': true,
+            'value': 0.625,
+            'automationBase': 0.375,
+          };
+        case 'readEffectiveParameters':
+          return {
+            'ok': true,
+            'values': [
+              {'value': 0.625, 'automationBase': 0.375},
+            ],
+          };
       }
       return {'ok': false, 'error': 'unexpected'};
     });
@@ -99,9 +110,15 @@ void main() {
     await tester.pump(const Duration(milliseconds: 40));
     await tester.pump();
 
-    expect(effectiveParameterMonitor.valueFor(key), 0.625);
-    expect(calls.where((call) => call.method == 'readEffectiveParameter'),
+    expect(effectiveParameterMonitor.valueFor(key), 0.375);
+    expect(effectiveParameterMonitor.effectiveValueFor(key), 0.625);
+    expect(calls.where((call) => call.method == 'readEffectiveParameters'),
         hasLength(1));
+    expect(calls.single.arguments, {
+      'requests': [
+        {'deviceId': 'dev-2', 'parameterId': 'drive'},
+      ],
+    });
     effectiveParameterMonitor.unregister(key);
     effectiveParameterMonitor.stop();
   });

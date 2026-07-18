@@ -12,14 +12,18 @@ class _RotaryKnobState extends State<RotaryKnob>
 
   late final AnimationController _pulseController;
   late final Animation<double> _pulseAnimation;
+  String? _scopedDeviceId;
 
   EffectiveParameterKey? get _effectiveKey {
     if ((!widget.automationActive && !widget.modulationActive) ||
-        widget.deviceId == null ||
-        widget.polarityParamId == null) {
+        (widget.deviceId ?? _scopedDeviceId) == null ||
+        (widget.parameterId ?? widget.polarityParamId) == null) {
       return null;
     }
-    return (deviceId: widget.deviceId!, parameterId: widget.polarityParamId!);
+    return (
+      deviceId: widget.deviceId ?? _scopedDeviceId!,
+      parameterId: widget.parameterId ?? widget.polarityParamId!
+    );
   }
 
   double get _displayValue {
@@ -47,16 +51,28 @@ class _RotaryKnobState extends State<RotaryKnob>
   }
 
   @override
+  void didChangeDependencies() {
+    final oldKey = _effectiveKey;
+    super.didChangeDependencies();
+    _scopedDeviceId = EffectiveParameterScope.maybeDeviceIdOf(context);
+    final newKey = _effectiveKey;
+    if (oldKey != newKey) {
+      if (oldKey != null) effectiveParameterMonitor.unregister(oldKey);
+      if (newKey != null) effectiveParameterMonitor.register(newKey);
+    }
+  }
+
+  @override
   void didUpdateWidget(covariant RotaryKnob oldWidget) {
     super.didUpdateWidget(oldWidget);
     final oldKey =
         ((!oldWidget.automationActive && !oldWidget.modulationActive) ||
-                oldWidget.deviceId == null ||
-                oldWidget.polarityParamId == null)
+                (oldWidget.deviceId ?? _scopedDeviceId) == null ||
+                (oldWidget.parameterId ?? oldWidget.polarityParamId) == null)
             ? null
             : (
-                deviceId: oldWidget.deviceId!,
-                parameterId: oldWidget.polarityParamId!
+                deviceId: oldWidget.deviceId ?? _scopedDeviceId!,
+                parameterId: oldWidget.parameterId ?? oldWidget.polarityParamId!
               );
     final newKey = _effectiveKey;
     if (oldKey != newKey) {
