@@ -36,6 +36,63 @@ struct WavetableSynthParams {
     float ampRelease = 0.3f;
 };
 
+struct WavetableSynthParamsPlayback {
+    float gain = 1.0f;
+    int wavetableIndex = -1;
+    float wtPosition = 0.0f;
+    float wtOctave = 0.5f;
+    float wtSemitone = 0.5f;
+    float wtFine = 0.5f;
+    float wtUnison = 0.0f;
+    float wtDetune = 0.0f;
+    int filterMode = 0;
+    float filterCutoff = 1.0f;
+    float filterResonance = 0.0f;
+    float filterEnvAmount = 0.0f;
+    float filterAttack = 0.1f;
+    float filterDecay = 0.3f;
+    float filterSustain = 0.5f;
+    float filterRelease = 0.5f;
+    float ampAttack = 0.01f;
+    float ampDecay = 0.2f;
+    float ampSustain = 0.8f;
+    float ampRelease = 0.3f;
+};
+
+/// Strip control-thread asset identity when copying parameters in realtime.
+/// The audio snapshot resolves `wavetableIndex`; DSP never needs to copy the
+/// potentially heap-backed asset name.
+inline WavetableSynthParamsPlayback wavetableRealtimeParams(
+    const WavetableSynthParams& source) noexcept {
+    WavetableSynthParamsPlayback out;
+    out.gain = source.gain;
+    out.wavetableIndex = source.wavetableIndex;
+    out.wtPosition = source.wtPosition;
+    out.wtOctave = source.wtOctave;
+    out.wtSemitone = source.wtSemitone;
+    out.wtFine = source.wtFine;
+    out.wtUnison = source.wtUnison;
+    out.wtDetune = source.wtDetune;
+    out.filterMode = source.filterMode;
+    out.filterCutoff = source.filterCutoff;
+    out.filterResonance = source.filterResonance;
+    out.filterEnvAmount = source.filterEnvAmount;
+    out.filterAttack = source.filterAttack;
+    out.filterDecay = source.filterDecay;
+    out.filterSustain = source.filterSustain;
+    out.filterRelease = source.filterRelease;
+    out.ampAttack = source.ampAttack;
+    out.ampDecay = source.ampDecay;
+    out.ampSustain = source.ampSustain;
+    out.ampRelease = source.ampRelease;
+    return out;
+}
+
+inline WavetableSynthParamsPlayback wavetableRealtimeParams(
+    const WavetableSynthParamsPlayback& source) noexcept {
+    return source;
+}
+
 struct WavetableVoiceRuntime {
     uint8_t active = 0;
     int pitch = 60;
@@ -89,7 +146,7 @@ void mixWavetableMidiNotesBlock(float* monoOut,
                                 double playheadStartBeat,
                                 const WavetableMidiNoteRegion* notes,
                                 int noteCount,
-                                const WavetableSynthParams& params,
+                                const WavetableSynthParamsPlayback& params,
                                 WavetableSynthRuntime& runtime,
                                 const float* wavetablePcm,
                                 int wavetableFrameCount,
@@ -122,7 +179,7 @@ float wavetablePitchHz(int rootPitch,
                        float semiNorm,
                        float fineNorm) noexcept;
 
-float wavetableVoiceSample(const WavetableSynthParams& params,
+float wavetableVoiceSample(const WavetableSynthParamsPlayback& params,
                            const float* table,
                            int frameCount,
                            int frameLength,

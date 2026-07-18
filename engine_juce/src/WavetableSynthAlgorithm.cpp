@@ -120,7 +120,7 @@ float wavetableInterpolatedSample(const float* table,
     return interpolatedA + frac * (interpolatedB - interpolatedA);
 }
 
-float wavetableVoiceSample(const WavetableSynthParams& params,
+float wavetableVoiceSample(const WavetableSynthParamsPlayback& params,
                            const float* table,
                            int frameCount,
                            int frameLength,
@@ -169,7 +169,7 @@ void mixWavetableMidiNotesBlock(float* monoOut,
                                 double playheadStartBeat,
                                 const WavetableMidiNoteRegion* notes,
                                 int noteCount,
-                                const WavetableSynthParams& params,
+                                const WavetableSynthParamsPlayback& params,
                                 WavetableSynthRuntime& runtime,
                                 const float* wavetablePcm,
                                 int wavetableFrameCount,
@@ -281,7 +281,7 @@ void mixWavetableMidiNotesBlock(float* monoOut,
     for (int frame = 0; frame < numFrames; ++frame) {
         const double beat = beatAtFrame(blockStartBeat, frame, sampleRate, bpm);
 
-        WavetableSynthParams frameParams = params;
+        WavetableSynthParamsPlayback frameParams = wavetableRealtimeParams(params);
         if (useAutomation) {
             DeviceVariantParams variant = frameParams;
             // applyDspAutomationAtBeat(const DeviceVariantParams&, DeviceNodeKind, uint16_t, ...)
@@ -296,7 +296,7 @@ void mixWavetableMidiNotesBlock(float* monoOut,
                                             frame,
                                             lfoStride,
                                             *instMod);
-            if (const auto* automated = std::get_if<WavetableSynthParams>(&variant)) {
+            if (const auto* automated = std::get_if<WavetableSynthParamsPlayback>(&variant)) {
                 frameParams = *automated;
             }
         } else if (useModulation) {
@@ -367,7 +367,7 @@ void mixWavetableMidiNotesBlock(float* monoOut,
 
             const float vel = safe_clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
 
-            WavetableSynthParams voiceParams = frameParams;
+            WavetableSynthParamsPlayback voiceParams = wavetableRealtimeParams(frameParams);
             float panelGain = commonControls != nullptr
                 ? commonControls->gainAt(frame)
                 : (perFramePanelGain != nullptr ? perFramePanelGain[frame] : 1.0f);
@@ -384,7 +384,7 @@ void mixWavetableMidiNotesBlock(float* monoOut,
                                           key,
                                           evalCtx,
                                           *instMod);
-                if (const auto* modulated = std::get_if<WavetableSynthParams>(&variant)) {
+                if (const auto* modulated = std::get_if<WavetableSynthParamsPlayback>(&variant)) {
                     voiceParams = *modulated;
                 }
                 panelGain = applyPerNoteCommonGain(panelGain,

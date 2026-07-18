@@ -2,8 +2,10 @@
 
 ## Status
 
-Accepted. The informational benchmark harness is implemented; the registry-wide
-correctness matrix remains the next phase.
+Accepted and implemented. The registry-wide matrix covers descriptor contracts,
+invalid numeric controls, all built-in processors, supported sample rates,
+representative block sizes, reset safety, finite output, and warmed callback
+allocations. Oversized blocks are covered by the subsequent chunking phase.
 
 ## Context
 

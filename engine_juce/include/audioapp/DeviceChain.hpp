@@ -259,7 +259,7 @@ using DeviceVariantParams = std::variant<
     OscillatorParams,
     SamplerParams,
     SubtractiveSynthParams,
-    WavetableSynthParams,
+    WavetableSynthParamsPlayback,
     PhaseModSynthParams,
     KickGeneratorParams,
     SnareGeneratorParams,

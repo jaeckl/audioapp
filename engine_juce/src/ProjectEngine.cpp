@@ -901,7 +901,7 @@ bool ProjectEngine::setDeviceStringParameter(const std::string& deviceId,
             command.resolvedAsset.granular = std::get<GranularParams>(resolvedNode.params);
         else
             command.resolvedAsset.wavetableIndex =
-                std::get<WavetableSynthParams>(resolvedNode.params).wavetableIndex;
+                std::get<WavetableSynthParamsPlayback>(resolvedNode.params).wavetableIndex;
         markDeviceOwnerFreezeStaleLocked(deviceId);
         return enqueueRealtimeCommand(std::move(command));
     }

@@ -356,7 +356,7 @@ int main() {
            "sample replacement preserves unrelated DSP and voice parameters");
 
     WavetableSynthProcessor wavetableAssetProbe;
-    WavetableSynthParams wavetableParams;
+    WavetableSynthParamsPlayback wavetableParams;
     wavetableParams.wavetableIndex = 2;
     wavetableAssetProbe.initParams(wavetableParams);
     ResolvedAssetUpdate wavetableAsset;

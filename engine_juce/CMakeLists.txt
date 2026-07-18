@@ -187,6 +187,10 @@ if(NOT ANDROID)
     benchmarks/dsp_benchmark.cpp
   )
   target_link_libraries(audioapp_dsp_benchmarks PRIVATE audioapp_engine)
+  add_executable(device_correctness_matrix_tests EXCLUDE_FROM_ALL
+    tests/device_correctness_matrix_test.cpp
+  )
+  target_link_libraries(device_correctness_matrix_tests PRIVATE audioapp_engine)
   execute_process(
     COMMAND git rev-parse --short HEAD
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -240,6 +244,9 @@ endif()
 
 if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
   enable_testing()
+
+  add_test(NAME device_correctness_matrix_tests
+    COMMAND device_correctness_matrix_tests)
 
   add_executable(audioapp_group_track_test tests/group_track_test.cpp)
   target_link_libraries(audioapp_group_track_test PRIVATE audioapp_engine)

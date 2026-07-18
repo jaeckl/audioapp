@@ -25,9 +25,6 @@ inline bool setGain(DeviceSlot& slot, float value) {
 }
 
 inline bool setPan(DeviceSlot& slot, float value) {
-    if (isTrackGain(slot)) {
-        return false;
-    }
     auto* panel = std::get_if<StereoOutputPanel>(&slot.config.outputPanel);
     if (panel) {
         panel->pan = std::clamp(value, 0.0f, 1.0f);

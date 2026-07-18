@@ -1540,7 +1540,7 @@ void applyAutomationValue(DeviceVariantParams& params,
         }
         break;
     case ParamKind::WavetableSynth:
-        if (auto* p = std::get_if<WavetableSynthParams>(&params)) {
+        if (auto* p = std::get_if<WavetableSynthParamsPlayback>(&params)) {
             switch (static_cast<WavetableParam>(rawId)) {
             case WavetableParam::WtPosition:      p->wtPosition = value; break;
             case WavetableParam::WtOctave:        p->wtOctave = value; break;

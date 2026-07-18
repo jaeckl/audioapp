@@ -78,7 +78,7 @@ bool isNoteAudibleInBlock(const WavetableMidiNoteRegion& note,
 
 void WavetableSynthProcessor::initParams(const DeviceVariantParams& params) noexcept {
     DeviceProcessor::initParams(params);
-    if (const auto* wt = std::get_if<WavetableSynthParams>(&params)) {
+    if (const auto* wt = std::get_if<WavetableSynthParamsPlayback>(&params)) {
         realtimeWtPosition_.store(safe_clamp(wt->wtPosition, 0.0f, 1.0f), std::memory_order_release);
         realtimeWtPositionValid_.store(true, std::memory_order_release);
         runtime_.wavetableIndex = wt->wavetableIndex;
@@ -147,7 +147,8 @@ void WavetableSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) no
     int pcmFrameCount = 0;
     int pcmFrameLength = 0;
     const float* pcmData = nullptr;
-    auto params = std::get<WavetableSynthParams>(*ctx.modulatedParams);
+    auto params = wavetableRealtimeParams(
+        std::get<WavetableSynthParamsPlayback>(*ctx.modulatedParams));
     const uint16_t di = static_cast<uint16_t>(ctx.deviceIndex);
     if (realtimeWtPositionValid_.load(std::memory_order_acquire) &&
         !blockHasWtPositionAutomation(di, ctx.automationClips, ctx.automationClipCount) &&

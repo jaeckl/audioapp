@@ -33,6 +33,8 @@
 #include "audioapp/effects/StutterDeviceType.hpp"
 #include "audioapp/effects/EffectDeviceRegistration.hpp"
 
+#include <cmath>
+
 namespace audioapp {
 
 DeviceRegistry::DeviceRegistry() = default;
@@ -93,6 +95,9 @@ DeviceSlot DeviceRegistry::createDefault(std::string_view typeId,
 DeviceParameterResult DeviceRegistry::setParameter(DeviceSlot& slot,
                                                    std::string_view parameterId,
                                                    float value) const {
+    if (!std::isfinite(value)) {
+        return {};
+    }
     const IDeviceType* type = findForSlot(slot);
     if (type == nullptr) {
         return {};

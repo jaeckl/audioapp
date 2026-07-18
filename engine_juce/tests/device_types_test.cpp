@@ -79,8 +79,11 @@ public:
             registry.buildPlaybackNode(gain, context, gainNode);
             expect(gainNode.kind == audioapp::DeviceNodeKind::TrackGain,
                    "gain node kind should be TrackGain");
-            expect(expectFalse(registry.setParameter(gain, "pan", 0.0f).handled),
-                   "track gain should not handle pan");
+            expect(registry.setParameter(gain, "pan", 0.0f).handled,
+                   "track gain should handle its stereo output pan");
+            expectWithinAbsoluteError(
+                std::get<audioapp::StereoOutputPanel>(gain.config.outputPanel).pan,
+                0.0f, 0.001f);
 
             audioapp::DeviceNodePlayback synthNode{};
             audioapp::DeviceSlot synth =

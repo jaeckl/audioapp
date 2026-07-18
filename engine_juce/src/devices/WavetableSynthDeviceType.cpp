@@ -120,7 +120,7 @@ void WavetableSynthDeviceType::buildPlaybackNode(const DeviceSlot& slot,
         if (params.wavetableIndex < 0) params.wavetableIndex = 0;
     }
     out.kind = DeviceNodeKind::WavetableSynth;
-    out.params = params;
+    out.params = wavetableRealtimeParams(params);
 }
 
 bool WavetableSynthDeviceType::buildLiveInstrument(const DeviceSlot& slot,

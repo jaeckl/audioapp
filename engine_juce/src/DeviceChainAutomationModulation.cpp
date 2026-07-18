@@ -405,7 +405,7 @@ void applyModulation(PhaseModSynthParams& p, float modAmount, uint16_t localPara
     }
 }
 
-void applyModulation(WavetableSynthParams& p, float modAmount, uint16_t localParamId) noexcept {
+void applyModulation(WavetableSynthParamsPlayback& p, float modAmount, uint16_t localParamId) noexcept {
     switch (static_cast<WavetableParam>(unpackParamId(localParamId))) {
     case WavetableParam::WtPosition:      p.wtPosition = std::clamp(p.wtPosition + modAmount, 0.0f, 1.0f); break;
     case WavetableParam::WtOctave:        p.wtOctave = std::clamp(p.wtOctave + modAmount, 0.0f, 1.0f); break;

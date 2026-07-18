@@ -444,13 +444,13 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                     continue;
                 }
 
-                auto baseParams = inst.wavetable;
+                auto baseParams = wavetableRealtimeParams(inst.wavetable);
                 baseParams.gain = 1.0f;
                 DeviceVariantParams variant = baseParams;
                 applyPerNoteDspModulation(variant, DeviceNodeKind::WavetableSynth,
                                           inst.deviceIndex, elapsedSec, perNoteDuration, noteKey,
                                           evalCtx, modCtx);
-                const auto params = std::get<WavetableSynthParams>(variant);
+                const auto params = std::get<WavetableSynthParamsPlayback>(variant);
                 const float ampAttackSec = adsrNormalizedToSeconds(params.ampAttack, 2.0f);
                 const float ampDecaySec = adsrNormalizedToSeconds(params.ampDecay, 2.0f);
                 const float ampReleaseSec = adsrNormalizedToSeconds(params.ampRelease, 3.0f);
