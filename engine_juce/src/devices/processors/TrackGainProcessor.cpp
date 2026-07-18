@@ -8,12 +8,25 @@
 namespace audioapp {
 
 void TrackGainProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
-    for (int f = 0; f < block.numSamples; ++f) {
-        const float pan=std::clamp(ctx.scratch.perFramePan[f],0.0f,1.0f);
-        const float leftBalance=pan<=.5f?1.0f:2.0f*(1.0f-pan);
-        const float rightBalance=pan>=.5f?1.0f:2.0f*pan;
-        block.channelL[f] *= ctx.scratch.perFrameGain[f]*leftBalance;
-        block.channelR[f] *= ctx.scratch.perFrameGain[f]*rightBalance;
+    const auto& common = ctx.commonControls;
+    if (common.gainMode == CommonControlMode::Constant &&
+        common.panMode == CommonControlMode::Constant) {
+        const float pan = std::clamp(common.panEnd, 0.0f, 1.0f);
+        const float leftBalance = pan <= 0.5f ? 1.0f : 2.0f * (1.0f - pan);
+        const float rightBalance = pan >= 0.5f ? 1.0f : 2.0f * pan;
+        multiplyScalarGain(
+            block.channelL, block.numSamples, common.gainEnd * leftBalance);
+        multiplyScalarGain(
+            block.channelR, block.numSamples, common.gainEnd * rightBalance);
+    } else {
+        for (int f = 0; f < block.numSamples; ++f) {
+            const float pan = std::clamp(common.panAt(f), 0.0f, 1.0f);
+            const float leftBalance = pan <= 0.5f ? 1.0f : 2.0f * (1.0f - pan);
+            const float rightBalance = pan >= 0.5f ? 1.0f : 2.0f * pan;
+            const float gain = common.gainAt(f);
+            block.channelL[f] *= gain * leftBalance;
+            block.channelR[f] *= gain * rightBalance;
+        }
     }
     if(isMeterSlotSubscribed(ctx,meterSlot)&&ctx.deviceMeters!=nullptr&&
        meterSlot>=0&&meterSlot<ctx.maxDeviceMeters){

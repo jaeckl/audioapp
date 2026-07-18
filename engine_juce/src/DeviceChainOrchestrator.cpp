@@ -228,9 +228,13 @@ static bool evaluateCommonBypass(
 // Fused logical InputAdapter. It owns universal strip targets and their
 // block-ramped values; device-specific input controls remain in the DSP until
 // their parameter families are migrated to generic adapter policies.
-static void runFusedInputAdapter(DeviceProcessor& processor,
-                                 DeviceChainScratch& scratch,
-                                 int numFrames) noexcept {
+static CommonControlBlock prepareCommonControls(
+    DeviceProcessor& processor,
+    DeviceChainScratch& scratch,
+    int numFrames,
+    bool dynamicGain,
+    bool dynamicPan,
+    bool materializeLegacyArrays) noexcept {
     if (!processor.commonSmoothingReady) {
         processor.smoothedGain = processor.gain;
         processor.smoothedPan = processor.pan;
@@ -238,18 +242,42 @@ static void runFusedInputAdapter(DeviceProcessor& processor,
         processor.smoothedOutputWidth = processor.outputWidth;
         processor.commonSmoothingReady = true;
     }
-    const float gainStep = (processor.gain - processor.smoothedGain) /
-                           static_cast<float>(std::max(1, numFrames));
-    const float panStep = (processor.pan - processor.smoothedPan) /
-                          static_cast<float>(std::max(1, numFrames));
-    for (int frame = 0; frame < numFrames; ++frame) {
-        scratch.perFrameGain[frame] = processor.smoothedGain +
-            gainStep * static_cast<float>(frame + 1);
-        scratch.perFramePan[frame] = processor.smoothedPan +
-            panStep * static_cast<float>(frame + 1);
+
+    CommonControlBlock controls;
+    controls.numFrames = numFrames;
+    controls.gainStart = processor.smoothedGain;
+    controls.gainEnd = processor.gain;
+    controls.panStart = processor.smoothedPan;
+    controls.panEnd = processor.pan;
+    controls.gainMode = dynamicGain
+        ? CommonControlMode::Dynamic
+        : (processor.gain != processor.smoothedGain
+            ? CommonControlMode::Ramp : CommonControlMode::Constant);
+    controls.panMode = dynamicPan
+        ? CommonControlMode::Dynamic
+        : (processor.pan != processor.smoothedPan
+            ? CommonControlMode::Ramp : CommonControlMode::Constant);
+
+    const bool writeGain = dynamicGain || materializeLegacyArrays;
+    const bool writePan = dynamicPan || materializeLegacyArrays;
+    const float inverseFrames = 1.0f / static_cast<float>(std::max(1, numFrames));
+    if (writeGain) {
+        const float gainStep = (controls.gainEnd - controls.gainStart) * inverseFrames;
+        for (int frame = 0; frame < numFrames; ++frame)
+            scratch.perFrameGain[frame] = controls.gainStart +
+                gainStep * static_cast<float>(frame + 1);
+        if (dynamicGain) controls.gainValues = scratch.perFrameGain;
+    }
+    if (writePan) {
+        const float panStep = (controls.panEnd - controls.panStart) * inverseFrames;
+        for (int frame = 0; frame < numFrames; ++frame)
+            scratch.perFramePan[frame] = controls.panStart +
+                panStep * static_cast<float>(frame + 1);
+        if (dynamicPan) controls.panValues = scratch.perFramePan;
     }
     processor.smoothedGain = processor.gain;
     processor.smoothedPan = processor.pan;
+    return controls;
 }
 
 // Legacy inputGain is semantically an InputAdapter trim for these device
@@ -283,17 +311,24 @@ static void runFusedOutputAdapter(DeviceProcessor& processor,
                                   DeviceNodeKind nodeKind,
                                   AudioBlock& block,
                                   DeviceChainScratch& scratch,
+                                  const CommonControlBlock& commonControls,
                                   int numFrames) noexcept {
     const float outputMixStep = (processor.outputMix - processor.smoothedOutputMix) /
                                 static_cast<float>(std::max(1, numFrames));
     if (processor.outputMix != 1.0f || processor.smoothedOutputMix != 1.0f) {
-        for (int frame = 0; frame < numFrames; ++frame) {
-            const float mix = processor.smoothedOutputMix +
-                              outputMixStep * static_cast<float>(frame + 1);
-            block.channelL[frame] = scratch.tempStereoL[frame] * (1.0f - mix) +
-                                    block.channelL[frame] * mix;
-            block.channelR[frame] = scratch.tempStereoR[frame] * (1.0f - mix) +
-                                    block.channelR[frame] * mix;
+        if (processor.outputMix == processor.smoothedOutputMix) {
+            const float mix = processor.outputMix;
+            mixDryWet(block.channelL, scratch.tempStereoL, numFrames, mix);
+            mixDryWet(block.channelR, scratch.tempStereoR, numFrames, mix);
+        } else {
+            for (int frame = 0; frame < numFrames; ++frame) {
+                const float mix = processor.smoothedOutputMix +
+                                  outputMixStep * static_cast<float>(frame + 1);
+                block.channelL[frame] = scratch.tempStereoL[frame] * (1.0f - mix) +
+                                        block.channelL[frame] * mix;
+                block.channelR[frame] = scratch.tempStereoR[frame] * (1.0f - mix) +
+                                        block.channelR[frame] * mix;
+            }
         }
     }
     processor.smoothedOutputMix = processor.outputMix;
@@ -313,7 +348,19 @@ static void runFusedOutputAdapter(DeviceProcessor& processor,
     processor.smoothedOutputWidth = processor.outputWidth;
 
     if (!isInstrumentDeviceNodeKind(nodeKind) && nodeKind != DeviceNodeKind::TrackGain) {
-        StereoOutputPanel::applyInPlace(block, numFrames, scratch.perFrameGain);
+        if (commonControls.gainMode == CommonControlMode::Constant) {
+            applyStereoScalarGain(block.channelL, block.channelR, numFrames,
+                                  commonControls.gainEnd);
+        } else {
+            const float* gains = commonControls.gainValues;
+            if (commonControls.gainMode == CommonControlMode::Ramp) {
+                for (int frame = 0; frame < numFrames; ++frame)
+                    scratch.perFrameGain[frame] = commonControls.gainAt(frame);
+                gains = scratch.perFrameGain;
+            }
+            multiplyPerFrameGain(block.channelL, numFrames, gains);
+            multiplyPerFrameGain(block.channelR, numFrames, gains);
+        }
     }
 }
 
@@ -436,6 +483,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         const int targetModEdgeCount = targetModEdges != nullptr
             ? proc->modulationSpanCount : 0;
         const uint16_t di = static_cast<uint16_t>(deviceIndex);
+        const DeviceNodeKind nodeKind = proc->kind();
         const bool automationBypass = evaluateCommonBypass(
             proc->bypassed,
             di,
@@ -475,9 +523,15 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
             continue;
         }
 
-        runFusedInputAdapter(*proc, s, numFrames);
-
-        const DeviceNodeKind nodeKind = proc->kind();
+        // Instrument kernels still consume the legacy arrays directly. Effects,
+        // routing devices, containers, and Track Gain use the compact control
+        // descriptor and avoid those writes in their steady-state path.
+        const bool legacyInstrumentControls = isInstrumentDeviceNodeKind(nodeKind);
+        CommonControlBlock commonControls = prepareCommonControls(
+            *proc, s, numFrames,
+            proc->hasCommonGainAutomation || proc->hasCommonGainModulation,
+            proc->hasCommonPanAutomation || proc->hasCommonPanModulation,
+            legacyInstrumentControls);
 
         if (nodeKind == DeviceNodeKind::MidiReceiver && ctx.graph != nullptr &&
             ctx.graphMidiNotes != nullptr && ctx.graphMidiCounts != nullptr) {
@@ -534,6 +588,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         pc.modulators = ctx.modulators;
         pc.retriggerGeneration = ctx.retriggerGeneration;
         pc.numFrames = numFrames;
+        pc.commonControls = commonControls;
 
         // --- Timeline automation ---
         auto modulatedParams = proc->storedParams(); // start from processor's own params
@@ -697,16 +752,17 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
 
         // --- Per-frame gain/pan LFO modulation ---
         const int monitorFrame = std::clamp(numFrames / 2, 0, numFrames - 1);
-        const float monitorGainBase = s.perFrameGain[monitorFrame];
-        const float monitorPanBase = s.perFramePan[monitorFrame];
+        const float monitorGainBase = commonControls.gainAt(monitorFrame);
+        const float monitorPanBase = commonControls.panAt(monitorFrame);
         applyCommonGainPanLfo(s, di, proc->stableProcessorNodeId, numFrames,
                               ctx.lfoValues, ctx.lfoCount,
                               targetModEdges, targetModEdgeCount,
                               ctx.modulators);
         proc->publishPresentationParameter(
-            kEncodedCommonGain, monitorGainBase, s.perFrameGain[monitorFrame]);
+            kEncodedCommonGain, monitorGainBase, commonControls.gainAt(monitorFrame));
         proc->publishPresentationParameter(
-            kEncodedCommonPan, monitorPanBase, s.perFramePan[monitorFrame]);
+            kEncodedCommonPan, monitorPanBase, commonControls.panAt(monitorFrame));
+        pc.commonControls = commonControls;
 
         // --- Process device via virtual dispatch ---
         pc.modulatedParams = &modulatedParams;
@@ -752,16 +808,18 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
             }
         }
 
-        // Save dry signal for outputMix blend
-        std::copy(block.channelL, block.channelL + numFrames, s.tempStereoL);
-        std::copy(block.channelR, block.channelR + numFrames, s.tempStereoR);
+        // Full-wet steady state needs no dry-buffer traffic.
+        if (proc->outputMix != 1.0f || proc->smoothedOutputMix != 1.0f) {
+            std::copy(block.channelL, block.channelL + numFrames, s.tempStereoL);
+            std::copy(block.channelR, block.channelR + numFrames, s.tempStereoR);
+        }
 
         runFusedInputTrimAdapter(*proc, modulatedParams, block, numFrames);
 
         proc->process(block, pc);
 
         captureAudioGraphTaps(proc->stableProcessorNodeId);
-        runFusedOutputAdapter(*proc, nodeKind, block, s, numFrames);
+        runFusedOutputAdapter(*proc, nodeKind, block, s, commonControls, numFrames);
         captureAudioGraphTaps(proc->stableOutputNodeId);
         captureMidiGraphTaps(proc->stableOutputNodeId);
         captureAudioSources(deviceIndex);

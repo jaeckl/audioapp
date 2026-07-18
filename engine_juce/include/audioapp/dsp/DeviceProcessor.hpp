@@ -242,17 +242,27 @@ public:
         const ModulationEdgePlayback* edges, int edgeCount) noexcept {
         automationSpanOffset = automationSpanCount = 0;
         modulationSpanOffset = modulationSpanCount = 0;
+        hasCommonGainAutomation = hasCommonPanAutomation = false;
+        hasCommonGainModulation = hasCommonPanModulation = false;
         for (int index = 0; index < clipCount; ++index) {
             if (clips[index].targetNodeId != stableProcessorNodeId) continue;
             if (automationSpanCount == 0)
                 automationSpanOffset = static_cast<uint8_t>(index);
             ++automationSpanCount;
+            hasCommonGainAutomation = hasCommonGainAutomation ||
+                clips[index].localParamId == kEncodedCommonGain;
+            hasCommonPanAutomation = hasCommonPanAutomation ||
+                clips[index].localParamId == kEncodedCommonPan;
         }
         for (int index = 0; index < edgeCount; ++index) {
             if (edges[index].targetNodeId != stableProcessorNodeId) continue;
             if (modulationSpanCount == 0)
                 modulationSpanOffset = static_cast<uint8_t>(index);
             ++modulationSpanCount;
+            hasCommonGainModulation = hasCommonGainModulation ||
+                edges[index].localParamId == kEncodedCommonGain;
+            hasCommonPanModulation = hasCommonPanModulation ||
+                edges[index].localParamId == kEncodedCommonPan;
         }
     }
 
@@ -363,6 +373,10 @@ public:
     uint8_t automationSpanCount = 0;
     uint8_t modulationSpanOffset = 0;
     uint8_t modulationSpanCount = 0;
+    bool hasCommonGainAutomation = false;
+    bool hasCommonPanAutomation = false;
+    bool hasCommonGainModulation = false;
+    bool hasCommonPanModulation = false;
 
 protected:
     DeviceProcessor() = default;

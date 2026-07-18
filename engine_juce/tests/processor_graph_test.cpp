@@ -4,6 +4,7 @@
 #include "audioapp/devices/DeviceSlot.hpp"
 #include "audioapp/devices/PhaseModSynthDeviceType.hpp"
 #include "audioapp/devices/processors/WavetableSynthProcessor.hpp"
+#include "audioapp/devices/processors/TrackGainProcessor.hpp"
 #include "audioapp/dsp/ProcessorArena.hpp"
 
 #include <iostream>
@@ -62,6 +63,58 @@ audioapp::GraphReceiverDefinition receiver(const char* id, audioapp::GraphSignal
 
 int main() {
     using namespace audioapp;
+
+    CommonControlBlock constantControls;
+    constantControls.gainEnd = 0.25f;
+    constantControls.panEnd = 0.75f;
+    constantControls.numFrames = 8;
+    expect(constantControls.gainAt(4) == 0.25f &&
+           constantControls.panAt(4) == 0.75f,
+           "constant common controls do not require per-frame buffers");
+
+    CommonControlBlock rampControls;
+    rampControls.gainMode = CommonControlMode::Ramp;
+    rampControls.panMode = CommonControlMode::Ramp;
+    rampControls.gainStart = 1.0f;
+    rampControls.gainEnd = 0.5f;
+    rampControls.panStart = 0.5f;
+    rampControls.panEnd = 1.0f;
+    rampControls.numFrames = 8;
+    expect(rampControls.gainAt(0) > rampControls.gainAt(7) &&
+           std::abs(rampControls.gainAt(7) - 0.5f) < 1.0e-6f &&
+           std::abs(rampControls.panAt(7) - 1.0f) < 1.0e-6f,
+           "manual common-control ramps reach their target at the block boundary");
+
+    auto controlScratch = std::make_unique<DeviceChainScratch>();
+    float controlLeft[8];
+    float controlRight[8];
+    std::fill_n(controlLeft, 8, 1.0f);
+    std::fill_n(controlRight, 8, 1.0f);
+    AudioBlock controlBlock{controlLeft, controlRight, 8};
+    ProcessContext controlContext(*controlScratch);
+    controlContext.numFrames = 8;
+    controlContext.commonControls = constantControls;
+    TrackGainProcessor trackGain;
+    trackGain.process(controlBlock, controlContext);
+    expect(std::abs(controlLeft[3] - 0.125f) < 1.0e-6f &&
+           std::abs(controlRight[3] - 0.25f) < 1.0e-6f,
+           "Track Gain constant mode applies precomputed scalar channel gains");
+
+    SmoothingProbeProcessor commonTargetProbe;
+    commonTargetProbe.stableProcessorNodeId = 77;
+    AutomationClipPlayback commonAutomation[1]{};
+    commonAutomation[0].targetNodeId = 77;
+    commonAutomation[0].localParamId = kEncodedCommonGain;
+    ModulationEdgePlayback commonModulation[1]{};
+    commonModulation[0].targetNodeId = 77;
+    commonModulation[0].localParamId = kEncodedCommonPan;
+    commonTargetProbe.bindCompiledParameterSpans(
+        commonAutomation, 1, commonModulation, 1);
+    expect(commonTargetProbe.hasCommonGainAutomation &&
+           commonTargetProbe.hasCommonPanModulation &&
+           !commonTargetProbe.hasCommonPanAutomation &&
+           !commonTargetProbe.hasCommonGainModulation,
+           "compiled parameter spans classify dynamic common controls once");
 
     GraphTrackDefinition linear[3];
     linear[0].trackId = "a";

@@ -3,6 +3,11 @@
 #include <algorithm>
 #include <cmath>
 #include <atomic>
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+#include <arm_neon.h>
+#elif defined(_M_X64) || defined(_M_IX86) || defined(__SSE__)
+#include <xmmintrin.h>
+#endif
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/dsp/ProcessContext.hpp"
 
@@ -43,17 +48,70 @@ inline void publishDynamicsMeters(const DeviceNodePlayback& n,
     meters[n.meterSlot].inputPeak.store(inputPeak, std::memory_order_relaxed);
 }
 
+inline void multiplyScalarGain(float* buffer, int frames, float gain) noexcept {
+    if (gain == 1.0f || frames <= 0) return;
+    int frame = 0;
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+    const float32x4_t gains = vdupq_n_f32(gain);
+    for (; frame + 4 <= frames; frame += 4)
+        vst1q_f32(buffer + frame, vmulq_f32(vld1q_f32(buffer + frame), gains));
+#elif defined(_M_X64) || defined(_M_IX86) || defined(__SSE__)
+    const __m128 gains = _mm_set1_ps(gain);
+    for (; frame + 4 <= frames; frame += 4)
+        _mm_storeu_ps(buffer + frame, _mm_mul_ps(_mm_loadu_ps(buffer + frame), gains));
+#endif
+    for (; frame < frames; ++frame) buffer[frame] *= gain;
+}
+
 inline void applyStereoScalarGain(float* left, float* right, int frames, float gain) noexcept {
-    for (int f = 0; f < frames; ++f) {
-        left[f] *= gain;
-        right[f] *= gain;
-    }
+    multiplyScalarGain(left, frames, gain);
+    multiplyScalarGain(right, frames, gain);
 }
 
 inline void multiplyPerFrameGain(float* buffer, int frames, const float* gain) noexcept {
-    for (int f = 0; f < frames; ++f) {
-        buffer[f] *= gain[f];
+    if (frames <= 0 || gain == nullptr) return;
+    int frame = 0;
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+    for (; frame + 4 <= frames; frame += 4)
+        vst1q_f32(buffer + frame,
+                  vmulq_f32(vld1q_f32(buffer + frame), vld1q_f32(gain + frame)));
+#elif defined(_M_X64) || defined(_M_IX86) || defined(__SSE__)
+    for (; frame + 4 <= frames; frame += 4)
+        _mm_storeu_ps(buffer + frame,
+                      _mm_mul_ps(_mm_loadu_ps(buffer + frame),
+                                 _mm_loadu_ps(gain + frame)));
+#endif
+    for (; frame < frames; ++frame) buffer[frame] *= gain[frame];
+}
+
+inline void mixDryWet(float* wet, const float* dry, int frames, float mix) noexcept {
+    if (frames <= 0) return;
+    if (mix == 1.0f) return;
+    if (mix == 0.0f) {
+        std::copy(dry, dry + frames, wet);
+        return;
     }
+    const float dryMix = 1.0f - mix;
+    int frame = 0;
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+    const float32x4_t wetGains = vdupq_n_f32(mix);
+    const float32x4_t dryGains = vdupq_n_f32(dryMix);
+    for (; frame + 4 <= frames; frame += 4) {
+        const auto mixed = vaddq_f32(vmulq_f32(vld1q_f32(wet + frame), wetGains),
+                                     vmulq_f32(vld1q_f32(dry + frame), dryGains));
+        vst1q_f32(wet + frame, mixed);
+    }
+#elif defined(_M_X64) || defined(_M_IX86) || defined(__SSE__)
+    const __m128 wetGains = _mm_set1_ps(mix);
+    const __m128 dryGains = _mm_set1_ps(dryMix);
+    for (; frame + 4 <= frames; frame += 4) {
+        const auto mixed = _mm_add_ps(_mm_mul_ps(_mm_loadu_ps(wet + frame), wetGains),
+                                      _mm_mul_ps(_mm_loadu_ps(dry + frame), dryGains));
+        _mm_storeu_ps(wet + frame, mixed);
+    }
+#endif
+    for (; frame < frames; ++frame)
+        wet[frame] = wet[frame] * mix + dry[frame] * dryMix;
 }
 
 inline void mixStereoPerFramePan(float* trackLeftL, float* trackRightL,
