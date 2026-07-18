@@ -159,6 +159,18 @@ int main() {
            parameterUpdateRateFor(discreteDescriptor) == ParameterUpdateRate::Discrete,
            "parameter metadata separates continuous gestures from selectors");
 
+    DeviceVariantParams delayParams = DelayParamsPlayback{};
+    applyAutomationValue(delayParams, DeviceNodeKind::Delay,
+                         packParamId(ParamKind::Delay, 3), 1.0f);
+    applyAutomationValue(delayParams, DeviceNodeKind::Delay,
+                         packParamId(ParamKind::Delay, 4), 1.0f);
+    applyAutomationValue(delayParams, DeviceNodeKind::Delay,
+                         packParamId(ParamKind::Delay, 5), 1.0f);
+    const auto& compactDelay = std::get<DelayParamsPlayback>(delayParams);
+    expect(compactDelay.timeMode == 3.0f && compactDelay.noteCount == 8.0f &&
+               compactDelay.blurMode == 2.0f,
+           "all numeric delay controls use compact typed updates");
+
     SmoothingProbeProcessor smoothingProbe;
     smoothingProbe.initParams(DistortionParamsPlayback{});
     const auto encodedDrive = packParamId(ParamKind::Distortion, 0);

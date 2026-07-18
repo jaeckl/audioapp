@@ -478,6 +478,7 @@ enum class ParamKind : uint16_t {
     Reverb           = 29,
     Phaser           = 30,
     Delay            = 31,
+    MidiDelay        = 32,
 };
 
 constexpr uint16_t kParamKindShift      = 10;

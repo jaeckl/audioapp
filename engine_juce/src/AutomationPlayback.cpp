@@ -75,6 +75,7 @@ static ParamKind paramKindForDevice(DeviceNodeKind kind) noexcept {
     case DeviceNodeKind::BassSynth:        return ParamKind::BassSynth;
     case DeviceNodeKind::PhaseModSynth:    return ParamKind::PhaseModSynth;
     case DeviceNodeKind::Delay:            return ParamKind::Delay;
+    case DeviceNodeKind::MidiDelay:        return ParamKind::MidiDelay;
     case DeviceNodeKind::Filter:           return ParamKind::Filter;
     case DeviceNodeKind::FourBandEq:       return ParamKind::FourBandEq;
     case DeviceNodeKind::FrequencyShifter: return ParamKind::FrequencyShifter;
@@ -1443,10 +1444,23 @@ void applyAutomationValue(DeviceVariantParams& params,
             case 0: p->timeMs = value * 5000.0f; break;
             case 1: p->feedback = value * 0.95f; break;
             case 2: p->mix = value; break;
+            case 3: p->timeMode = std::round(value * 3.0f); break;
+            case 4: p->noteCount = 1.0f + std::round(value * 7.0f); break;
+            case 5: p->blurMode = std::round(value * 2.0f); break;
             case 6: p->blurAmount = value; break;
             case 7: p->inputDucking = value; break;
             case 8: p->lowCutHz = 20.0f + value * 1980.0f; break;
             case 9: p->highCutHz = 2000.0f + value * 18000.0f; break;
+            default: break;
+            }
+        }
+        break;
+    case ParamKind::MidiDelay:
+        if (auto* p = std::get_if<MidiDelayParams>(&params)) {
+            switch (rawId) {
+            case 0: p->mode = std::round(value); break;
+            case 1: p->seconds = value * 2.0f; break;
+            case 2: p->division = 0.0625f + value * (4.0f - 0.0625f); break;
             default: break;
             }
         }

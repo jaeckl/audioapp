@@ -480,6 +480,14 @@ int main() {
            "MIDI delay uses tempo sync");
     expect(delayedProject->setDeviceParameter(midiDelay, "midiDelayDivision", 1.0f),
            "MIDI delay uses a quarter-note delay");
+    float midiDelayProbe[64]{};
+    delayedProject->setPlaying(true);
+    delayedProject->readMasterMix(midiDelayProbe, 64, 48000.0, 0.0);
+    delayedProject->setPlaying(false);
+    const auto midiDelayEffective = juce::JSON::parse(
+        delayedProject->readEffectiveParameterJson(midiDelay, "midiDelayDivision"));
+    expect(static_cast<bool>(midiDelayEffective["ok"]),
+           "MIDI delay uses the compact realtime parameter stream");
     const auto delayedReceiver = delayedProject->addDeviceToTrack(
         delayedDestination, device_types::kMidiReceiver, 0);
     expect(!delayedReceiver.empty(), "delayed MIDI receiver is created");

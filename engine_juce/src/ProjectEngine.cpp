@@ -77,6 +77,7 @@ bool supportsCompiledNormalizedParameter(DeviceNodeKind kind) noexcept {
     case DeviceNodeKind::Chorus:
     case DeviceNodeKind::Reverb:
     case DeviceNodeKind::Phaser:
+    case DeviceNodeKind::MidiDelay:
         return true;
     default:
         return false;

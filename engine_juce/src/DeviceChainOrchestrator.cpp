@@ -462,18 +462,6 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
             }
         }
 
-        if (nodeKind == DeviceNodeKind::MidiDelay) {
-            const auto params = std::get<MidiDelayParams>(proc->storedParams());
-            const double delayBeats = params.mode >= 0.5f
-                ? static_cast<double>(params.division)
-                : static_cast<double>(params.seconds) * static_cast<double>(std::max(ctx.bpm, 1)) / 60.0;
-            for (int i = 0; i < activeNoteCount; ++i) {
-                activeNotes[i].noteStartBeat += delayBeats;
-                activeNotes[i].clipLengthBeats += delayBeats;
-                activeNotes[i].contentLengthBeats += delayBeats;
-            }
-        }
-
         const bool needsSubBlocks = nodeNeedsSubBlocks(
             deviceIndex,
             targetAutomation, targetAutomationCount,
@@ -568,6 +556,22 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                         applyModulation(params, modAmount, pid);
                     }, modulatedParams);
                 }
+            }
+        }
+
+        // MIDI-note transforms consume the same post-control value bank as
+        // audio processors. Reading storedParams_ earlier would make live
+        // changes lag one callback behind the compact parameter stream.
+        if (nodeKind == DeviceNodeKind::MidiDelay) {
+            const auto& params = std::get<MidiDelayParams>(modulatedParams);
+            const double delayBeats = params.mode >= 0.5f
+                ? static_cast<double>(params.division)
+                : static_cast<double>(params.seconds) *
+                    static_cast<double>(std::max(ctx.bpm, 1)) / 60.0;
+            for (int i = 0; i < activeNoteCount; ++i) {
+                activeNotes[i].noteStartBeat += delayBeats;
+                activeNotes[i].clipLengthBeats += delayBeats;
+                activeNotes[i].contentLengthBeats += delayBeats;
             }
         }
 
