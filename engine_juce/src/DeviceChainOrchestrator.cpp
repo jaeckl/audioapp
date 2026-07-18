@@ -501,6 +501,20 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         // --- Timeline automation ---
         auto modulatedParams = proc->storedParams(); // start from processor's own params
         proc->applyCompiledParameterSmoothing(modulatedParams, numFrames, ctx.sampleRate);
+        struct FinalParameterTarget {
+            uint16_t parameterId = 0xffff;
+            float automatedValue = 0.0f;
+            float modulationAmount = 0.0f;
+        };
+        std::array<FinalParameterTarget, kMaxCompiledParametersPerProcessor> finalTargets{};
+        int finalTargetCount = 0;
+        const auto findFinalTarget = [&](uint16_t parameterId) noexcept
+            -> FinalParameterTarget* {
+            for (int index = 0; index < finalTargetCount; ++index)
+                if (finalTargets[static_cast<size_t>(index)].parameterId == parameterId)
+                    return &finalTargets[static_cast<size_t>(index)];
+            return nullptr;
+        };
         if (targetAutomation != nullptr && targetAutomationCount > 0) {
             for (int a = 0; a < targetAutomationCount; ++a) {
                 const auto& ac = targetAutomation[a];
@@ -527,7 +541,13 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                     float beatInClip = 0.0f;
                     if (!automationBeatInClip(ac, beat, beatInClip)) continue;
                     const float val = evaluateAutomationEnvelopeCached(ac, beatInClip);
-                    applyAutomationValue(modulatedParams, nodeKind, ac.localParamId, val);
+                    auto* target = findFinalTarget(ac.localParamId);
+                    if (target == nullptr && finalTargetCount <
+                            static_cast<int>(finalTargets.size())) {
+                        target = &finalTargets[static_cast<size_t>(finalTargetCount++)];
+                        target->parameterId = ac.localParamId;
+                    }
+                    if (target != nullptr) target->automatedValue = val;
                 }
             }
         }
@@ -552,11 +572,30 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                     const int lfoFrame = numFrames / 2;
                     const float lfoOut = ctx.lfoValues[edge.lfoId * numFrames + lfoFrame];
                     const float modAmount = edge.amount * lfoOut;
-                    std::visit([&](auto& params) {
-                        applyModulation(params, modAmount, pid);
-                    }, modulatedParams);
+                    if (auto* target = findFinalTarget(pid)) {
+                        target->modulationAmount += modAmount;
+                    } else {
+                        std::visit([&](auto& params) {
+                            applyModulation(params, modAmount, pid);
+                        }, modulatedParams);
+                        float manualBase = 0.0f;
+                        if (proc->readEffectiveParameter(pid, manualBase))
+                            proc->publishFinalEffectiveParameter(
+                                pid, manualBase + modAmount);
+                    }
                 }
             }
+        }
+
+        // Absolute automation and additive modulation meet once here. This
+        // avoids applying/smoothing the same target independently per source.
+        for (int index = 0; index < finalTargetCount; ++index) {
+            const auto& target = finalTargets[static_cast<size_t>(index)];
+            const float effective = std::clamp(
+                target.automatedValue + target.modulationAmount, 0.0f, 1.0f);
+            applyAutomationValue(
+                modulatedParams, nodeKind, target.parameterId, effective);
+            proc->publishFinalEffectiveParameter(target.parameterId, effective);
         }
 
         // MIDI-note transforms consume the same post-control value bank as

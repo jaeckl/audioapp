@@ -125,6 +125,12 @@ public:
         return false;
     }
 
+    /// Publish the normalized value after base, automation, and modulation
+    /// have been combined. The monitor is observational and never feeds DSP.
+    void publishFinalEffectiveParameter(uint16_t parameterId, float value) noexcept {
+        publishEffectiveParameter(parameterId, std::clamp(value, 0.0f, 1.0f));
+    }
+
     virtual bool readNestedEffectiveParameter(uint64_t processorNodeId,
                                               uint16_t parameterId,
                                               float& value) const noexcept {
