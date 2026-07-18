@@ -166,10 +166,10 @@ public:
         }
     }
 
-    virtual bool updateDrumPadParameter(int note, std::string_view parameterId,
+    virtual bool updateDrumPadParameter(int note, DrumPadParameter parameter,
                                         float value) noexcept {
         (void)note;
-        (void)parameterId;
+        (void)parameter;
         (void)value;
         return false;
     }

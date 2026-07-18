@@ -431,6 +431,19 @@ int main() {
         drumProject->readGraphTapJson(drumTap, 128));
     expect(static_cast<int>(drumTapJson["frameCount"]) == 128,
            "nested Drum Machine context publishes graph taps");
+    expect(drumProject->setDrumPadParameter(drum, 60, "gain", 0.0f) &&
+           drumProject->setDrumPadParameter(drum, 60, "pan", 1.0f),
+           "distinct drum-pad parameters queue before one callback");
+    std::fill(std::begin(tapLeft), std::end(tapLeft), 0.0f);
+    std::fill(std::begin(tapRight), std::end(tapRight), 0.0f);
+    drumProject->setPlaying(true);
+    drumProject->readMasterMixStereo(tapLeft, tapRight, 128, 48000.0, 0.0);
+    drumProject->setPlaying(false);
+    float mutedPadEnergy = 0.0f;
+    for (int frame = 0; frame < 128; ++frame)
+        mutedPadEnergy += std::abs(tapLeft[frame]) + std::abs(tapRight[frame]);
+    expect(mutedPadEnergy < 1.0e-5f,
+           "gain and pan for one pad survive command coalescing independently");
 
     auto midiProject = std::make_unique<ProjectEngine>();
     midiProject->createProject();

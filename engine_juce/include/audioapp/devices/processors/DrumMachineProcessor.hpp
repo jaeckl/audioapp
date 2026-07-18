@@ -42,7 +42,7 @@ public:
                                     int clipCount,
                                     const ModulationEdgePlayback* edges,
                                     int edgeCount) noexcept override;
-    bool updateDrumPadParameter(int note, std::string_view parameterId,
+    bool updateDrumPadParameter(int note, DrumPadParameter parameter,
                                 float value) noexcept override;
     void process(AudioBlock&, ProcessContext&) noexcept override;
     void resetPlaybackState() noexcept override;

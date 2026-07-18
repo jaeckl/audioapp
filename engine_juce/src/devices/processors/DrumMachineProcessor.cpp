@@ -126,16 +126,16 @@ void DrumMachineProcessor::bindCompiledParameterSpans(
 }
 
 bool DrumMachineProcessor::updateDrumPadParameter(
-    int note, std::string_view parameterId, float value) noexcept {
+    int note, DrumPadParameter parameter, float value) noexcept {
     if (playback_ == nullptr || note < 0 || note >= 128) return false;
     const auto it = std::find_if(pads_.begin(), pads_.end(),
         [note](const PadRuntime& runtime) { return runtime.padIndex == note; });
     if (it == pads_.end()) return false;
-    if (parameterId == "gain") it->gain = std::clamp(value, 0.0f, 2.0f);
-    else if (parameterId == "pan") it->pan = std::clamp(value, 0.0f, 1.0f);
-    else if (parameterId == "mute") it->muted = value >= 0.5f;
-    else if (parameterId == "solo") it->solo = value >= 0.5f;
-    else if (parameterId == "chokeGroup")
+    if (parameter == DrumPadParameter::Gain) it->gain = std::clamp(value, 0.0f, 2.0f);
+    else if (parameter == DrumPadParameter::Pan) it->pan = std::clamp(value, 0.0f, 1.0f);
+    else if (parameter == DrumPadParameter::Mute) it->muted = value >= 0.5f;
+    else if (parameter == DrumPadParameter::Solo) it->solo = value >= 0.5f;
+    else if (parameter == DrumPadParameter::ChokeGroup)
         it->chokeGroup = std::clamp(static_cast<int>(std::lround(value)), 0, 16);
     else return false;
     return true;

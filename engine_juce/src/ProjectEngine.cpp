@@ -686,17 +686,18 @@ bool ProjectEngine::setDrumPadParameter(const std::string& drumMachineId, int no
     if (machineSlot == nullptr || machineSlot->config.typeId != device_types::kDrumMachine ||
         note < 0 || note >= DrumMachineModel::kMidiNoteCount) return false;
     auto& pad = std::get<DrumMachineModel>(machineSlot->config.instance).pads[static_cast<size_t>(note)];
-    if (parameterId == "gain") pad.gain = std::clamp(value, 0.0f, 2.0f);
-    else if (parameterId == "pan") pad.pan = std::clamp(value, 0.0f, 1.0f);
-    else if (parameterId == "mute") pad.muted = value >= 0.5f;
-    else if (parameterId == "solo") pad.solo = value >= 0.5f;
-    else if (parameterId == "chokeGroup") pad.chokeGroup = std::clamp(static_cast<int>(std::lround(value)), 0, 16);
+    DrumPadParameter compiledParameter = DrumPadParameter::Invalid;
+    if (parameterId == "gain") { pad.gain = std::clamp(value, 0.0f, 2.0f); compiledParameter = DrumPadParameter::Gain; }
+    else if (parameterId == "pan") { pad.pan = std::clamp(value, 0.0f, 1.0f); compiledParameter = DrumPadParameter::Pan; }
+    else if (parameterId == "mute") { pad.muted = value >= 0.5f; compiledParameter = DrumPadParameter::Mute; }
+    else if (parameterId == "solo") { pad.solo = value >= 0.5f; compiledParameter = DrumPadParameter::Solo; }
+    else if (parameterId == "chokeGroup") { pad.chokeGroup = std::clamp(static_cast<int>(std::lround(value)), 0, 16); compiledParameter = DrumPadParameter::ChokeGroup; }
     else return false;
     syncProjectTreeLocked();
     RealtimeCommand command;
     command.type = RealtimeCommandType::DrumPad;
     command.targetId = drumMachineId;
-    command.parameterId = parameterId;
+    command.drumPadParameter = compiledParameter;
     command.note = note;
     command.value = value;
     return enqueueRealtimeCommand(std::move(command));
@@ -1960,7 +1961,9 @@ void ProjectEngine::drainRealtimeCommands() noexcept {
         int existing = -1;
         for (int i = 0; i < latestCount; ++i) {
             const bool samePad = candidate.type != RealtimeCommandType::DrumPad ||
-                                 candidate.note == latest[i]->note;
+                                 (candidate.note == latest[i]->note &&
+                                  candidate.drumPadParameter ==
+                                      latest[i]->drumPadParameter);
             const bool sameDeviceClass =
                 candidate.type != RealtimeCommandType::DeviceNode ||
                 candidate.commonOnly == latest[i]->commonOnly;
@@ -2007,7 +2010,7 @@ void ProjectEngine::drainRealtimeCommands() noexcept {
                         if (snap.devices[d].deviceId != command.targetId) continue;
                         if (auto* processor = snap.arena.get(d)) {
                             processor->updateDrumPadParameter(
-                                command.note, command.parameterId, command.value);
+                                command.note, command.drumPadParameter, command.value);
                         }
                         break;
                     }

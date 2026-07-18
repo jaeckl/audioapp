@@ -27,6 +27,15 @@
 
 namespace audioapp {
 
+enum class DrumPadParameter : uint8_t {
+    Gain,
+    Pan,
+    Mute,
+    Solo,
+    ChokeGroup,
+    Invalid,
+};
+
 struct DrumMachinePlayback;
 struct ChainPlayback;
 

@@ -511,7 +511,7 @@ private:
         RealtimeCommandType type = RealtimeCommandType::DeviceNode;
         DeviceNodePlayback node{};
         std::string targetId;
-        std::string parameterId;
+        DrumPadParameter drumPadParameter = DrumPadParameter::Invalid;
         float value = 0.0f;
         int note = 0;
         bool commonOnly = false;
