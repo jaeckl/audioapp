@@ -30,6 +30,33 @@ public:
                 peak = std::max(peak, std::abs(sample));
             expect(peak > 0.0f, "master mix should produce non-zero audio");
         }
+
+        beginTest("live master gain ramps inside the callback");
+        {
+            audioapp::EngineHost host;
+            host.createProject();
+            const auto track = host.addTrack("Ramp");
+            host.selectTrack(track);
+            host.addDeviceToTrack(track, "simple_oscillator");
+            const auto clip = host.createMidiClip(track, 0.0, 4.0);
+            host.setMidiClipNotes(clip, {{69, 0.0, 4.0, 100.0f}});
+            host.setPlaying(true);
+
+            float buffer[128]{};
+            host.setMasterGain(0.0f);
+            host.readMasterMix(buffer, 128, 48000.0, 0.0);
+            host.readMasterMix(buffer, 128, 48000.0, 128.0 / 24000.0);
+            host.setMasterGain(1.0f);
+            host.readMasterMix(buffer, 128, 48000.0, 256.0 / 24000.0);
+
+            float latePeak = 0.0f;
+            for (int frame = 96; frame < 128; ++frame)
+                latePeak = std::max(latePeak, std::abs(buffer[frame]));
+            expect(std::abs(buffer[0]) < 0.01f,
+                   "first sample stays near the prior silent master value");
+            expect(latePeak > 0.02f,
+                   "master ramp reaches audible gain later in the block");
+        }
     }
 };
 static MasterMixTest masterMixTest;

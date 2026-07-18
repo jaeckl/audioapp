@@ -554,6 +554,8 @@ private:
     ClipRepository clipRepo_{trackRepo_};
     std::atomic<float> activeFrequencyHz_{440.0f};
     std::atomic<float> masterGain_{1.0f};
+    // Audio-thread-owned ramp origin. Control writes only masterGain_.
+    float smoothedMasterGain_ = 1.0f;
     std::atomic<bool> metronomeEnabled_{false};
     std::atomic<float> metronomeLevel_{0.65f};
     std::atomic<int> countInBars_{1};

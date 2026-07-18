@@ -152,6 +152,7 @@ void ProjectEngine::createProject() {
     modulationGraph_.clear();
     activeFrequencyHz_.store(440.0f, std::memory_order_release);
     masterGain_.store(1.0f, std::memory_order_release);
+    smoothedMasterGain_ = 1.0f;
     countInRemainingBeats_.store(0.0, std::memory_order_release);
     trackPlayback_.setCount(0);
 
@@ -2448,22 +2449,34 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                           metronomeLevel_.load(std::memory_order_acquire));
     }
 
+    // Ramp the master target across the callback. This state is owned only by
+    // the audio thread; setMasterGain merely publishes the next target.
+    const float masterGainStart = smoothedMasterGain_;
+    const float masterGainStep = (masterGain - masterGainStart) /
+        static_cast<float>(std::max(1, framesToProcess));
+    const auto masterGainAt = [&](int frame) noexcept {
+        return masterGainStart + masterGainStep * static_cast<float>(frame + 1);
+    };
+
     // Simple peak limiter + emergency hard clamp for the master bus.
     float peak = 0.0f;
     for (int frame = 0; frame < framesToProcess; ++frame) {
-        peak = std::max(peak, std::max(std::abs(masterLeft[frame] * masterGain),
-                                        std::abs(masterRight[frame] * masterGain)));
+        const float frameGain = masterGainAt(frame);
+        peak = std::max(peak, std::max(std::abs(masterLeft[frame] * frameGain),
+                                      std::abs(masterRight[frame] * frameGain)));
     }
 
     const float limitThreshold = 0.95f;
     const float limitGain = peak > limitThreshold ? limitThreshold / peak : 1.0f;
 
     for (int frame = 0; frame < framesToProcess; ++frame) {
-        float l = masterLeft[frame] * masterGain * limitGain;
-        float r = masterRight[frame] * masterGain * limitGain;
+        const float frameGain = masterGainAt(frame);
+        float l = masterLeft[frame] * frameGain * limitGain;
+        float r = masterRight[frame] * frameGain * limitGain;
         masterLeft[frame] = std::isfinite(l) ? std::clamp(l, -1.0f, 1.0f) : 0.0f;
         masterRight[frame] = std::isfinite(r) ? std::clamp(r, -1.0f, 1.0f) : 0.0f;
     }
+    smoothedMasterGain_ = masterGain;
 }
 
 void ProjectEngine::mixAtPlayheadBeat(float* monoOut,
