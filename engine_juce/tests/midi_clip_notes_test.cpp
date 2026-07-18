@@ -37,18 +37,20 @@ public:
                 "not-playing should return oscillator default 440");
         }
 
-        beginTest("playing with oscillator and default seed C4 note");
+        beginTest("playing with oscillator and explicit C4 note");
         {
             auto project = std::make_unique<audioapp::ProjectEngine>();
             project->createProject();
             const std::string trackId = project->addTrack("Keys");
-            project->createMidiClip(trackId, 0.0, 4.0);
+            const std::string clipId = project->createMidiClip(trackId, 0.0, 4.0);
             project->addDeviceToTrack(trackId, "simple_oscillator");
+            expect(project->setMidiClipNotes(
+                       clipId, {audioapp::MidiNoteState{60, 0.0, 4.0, 100.0f}}),
+                   "set explicit C4 note");
             project->setPlaying(true);
-            // createMidiClip always adds a C4 seed note (pitch=60) at beat 0
             expectWithinAbsoluteError(
                 project->activeOscillatorFrequencyHz(), 261.63f, 1.0f,
-                "playing with seed C4 note should give 261.63 Hz");
+                "playing with C4 note should give 261.63 Hz");
         }
 
         beginTest("active frequency tracks MIDI note pitch");
