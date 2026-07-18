@@ -568,22 +568,14 @@ struct ParamDescriptor {
     float maxValue;
     bool automatable;
     bool modulatable;
+    // Declared by the device type. Never infer realtime behavior from the
+    // serialized/display name: names are UI contracts, not DSP policy.
+    ParameterUpdateRate updateRate = ParameterUpdateRate::Smoothed;
 };
 
 inline ParameterUpdateRate parameterUpdateRateFor(
     const ParamDescriptor& descriptor) noexcept {
-    const std::string_view name{descriptor.stableName != nullptr
-        ? descriptor.stableName : ""};
-    constexpr std::string_view discreteTokens[] = {
-        "mode", "Mode", "waveform", "Waveform", "type", "Type",
-        "sync", "Sync", "retrigger", "Retrigger", "stages", "Stages",
-        "voices", "Voices", "freeze", "Freeze", "direction", "Direction",
-        "shape", "Shape", "enabled", "Enabled", "solo", "mute"
-    };
-    for (const auto token : discreteTokens)
-        if (name.find(token) != std::string_view::npos)
-            return ParameterUpdateRate::Discrete;
-    return descriptor.automatable ? ParameterUpdateRate::Smoothed
+    return descriptor.automatable ? descriptor.updateRate
                                   : ParameterUpdateRate::Block;
 }
 

@@ -408,19 +408,19 @@ std::span<const ParamDescriptor> SamplerDeviceType::paramDescriptors() const noe
         {static_cast<uint16_t>(SamplerParam::Decay), "decay", "Decay", 0.1f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(SamplerParam::Sustain), "sustain", "Sustain", 1.0f, 0.0f, 1.0f, true, false},
         {static_cast<uint16_t>(SamplerParam::Release), "release", "Release", 0.2f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(SamplerParam::RootPitch), "rootPitch", "Root Pitch", 60.0f, 0.0f, 127.0f, true, false},
+        {static_cast<uint16_t>(SamplerParam::RootPitch), "rootPitch", "Root Pitch", 60.0f, 0.0f, 127.0f, true, false, ParameterUpdateRate::Discrete},
         {static_cast<uint16_t>(SamplerParam::RootFineTune), "rootFineTune", "Fine Tune", 0.0f, -100.0f, 100.0f, true, false},
         {static_cast<uint16_t>(SamplerParam::FilterEnvAmount), "filterEnvAmount", "Filter Env", 0.5f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(SamplerParam::FilterAttack), "filterAttack", "Flt Attack", 0.05f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(SamplerParam::FilterDecay), "filterDecay", "Flt Decay", 0.35f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(SamplerParam::FilterSustain), "filterSustain", "Flt Sustain", 0.4f, 0.0f, 1.0f, true, false},
         {static_cast<uint16_t>(SamplerParam::FilterRelease), "filterRelease", "Flt Release", 0.45f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(SamplerParam::FilterMode), "filterMode", "Filter Mode", 0.0f, 0.0f, 3.0f, true, true},
+        {static_cast<uint16_t>(SamplerParam::FilterMode), "filterMode", "Filter Mode", 0.0f, 0.0f, 3.0f, true, true, ParameterUpdateRate::Discrete},
         {static_cast<uint16_t>(SamplerParam::TrimStartSec), "trimStartSec", "Trim Start", 0.0f, 0.0f, 86400.0f, true, false},
         {static_cast<uint16_t>(SamplerParam::TrimEndSec), "trimEndSec", "Trim End", 0.0f, 0.0f, 86400.0f, true, false},
         {static_cast<uint16_t>(SamplerParam::RegionStartSec), "regionStartSec", "Region Start", 0.0f, 0.0f, 86400.0f, true, false},
         {static_cast<uint16_t>(SamplerParam::RegionEndSec), "regionEndSec", "Region End", 0.0f, 0.0f, 86400.0f, true, false},
-        {static_cast<uint16_t>(SamplerParam::PlaybackMode), "playbackMode", "Playback Mode", 0.0f, 0.0f, 2.0f, true, false},
+        {static_cast<uint16_t>(SamplerParam::PlaybackMode), "playbackMode", "Playback Mode", 0.0f, 0.0f, 2.0f, true, false, ParameterUpdateRate::Discrete},
     };
     return kParams;
 }

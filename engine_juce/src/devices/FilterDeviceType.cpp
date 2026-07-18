@@ -179,7 +179,7 @@ std::span<const ParamDescriptor> FilterDeviceType::paramDescriptors() const noex
     static constexpr ParamDescriptor kParams[] = {
         {static_cast<uint16_t>(FilterParam::Cutoff), "ffxCutoff", "Cutoff", 0.6f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(FilterParam::Resonance), "ffxResonance", "Resonance", 0.3f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(FilterParam::Mode), "ffxFilterMode", "Mode", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FilterParam::Mode), "ffxFilterMode", "Mode", 0.0f, 0.0f, 1.0f, true, true, ParameterUpdateRate::Discrete},
     };
     return kParams;
 }

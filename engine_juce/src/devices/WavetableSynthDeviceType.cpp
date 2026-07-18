@@ -335,7 +335,7 @@ std::span<const ParamDescriptor> WavetableSynthDeviceType::paramDescriptors() co
     static constexpr ParamDescriptor kParams[] = {
         {static_cast<uint16_t>(WavetableParam::FilterCutoff), "filterCutoff", "Filter Cutoff", 1.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(WavetableParam::FilterResonance), "filterResonance", "Filter Res", 0.0f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(WavetableParam::FilterMode), "filterMode", "Filter Mode", 0.0f, 0.0f, 3.0f, true, true},
+        {static_cast<uint16_t>(WavetableParam::FilterMode), "filterMode", "Filter Mode", 0.0f, 0.0f, 3.0f, true, true, ParameterUpdateRate::Discrete},
         {static_cast<uint16_t>(WavetableParam::AmpAttack), "attack", "Attack", 0.01f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(WavetableParam::AmpDecay), "decay", "Decay", 0.2f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(WavetableParam::AmpSustain), "sustain", "Sustain", 0.8f, 0.0f, 1.0f, true, false},

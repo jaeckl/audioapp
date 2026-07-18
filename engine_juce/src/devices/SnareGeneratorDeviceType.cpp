@@ -217,7 +217,7 @@ std::string_view SnareGeneratorDeviceType::paramIdToString(uint16_t localId) con
 
 std::span<const ParamDescriptor> SnareGeneratorDeviceType::paramDescriptors() const noexcept {
     static constexpr ParamDescriptor kParams[] = {
-        {static_cast<uint16_t>(SnareParam::Model), "snareModel", "Model", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(SnareParam::Model), "snareModel", "Model", 0.0f, 0.0f, 1.0f, true, true, ParameterUpdateRate::Discrete},
         {static_cast<uint16_t>(SnareParam::Body), "snareBody", "Body", 0.45f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(SnareParam::Ring), "snareRing", "Ring", 0.40f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(SnareParam::Tune), "snareTune", "Tune", 0.50f, 0.0f, 1.0f, true, true},

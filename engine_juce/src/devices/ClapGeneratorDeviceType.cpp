@@ -206,7 +206,7 @@ std::string_view ClapGeneratorDeviceType::paramIdToString(uint16_t localId) cons
 
 std::span<const ParamDescriptor> ClapGeneratorDeviceType::paramDescriptors() const noexcept {
     static constexpr ParamDescriptor kParams[] = {
-        {static_cast<uint16_t>(ClapParam::Bursts), "clapBursts", "Bursts", 0.50f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(ClapParam::Bursts), "clapBursts", "Bursts", 0.50f, 0.0f, 1.0f, true, true, ParameterUpdateRate::Discrete},
         {static_cast<uint16_t>(ClapParam::Spread), "clapSpread", "Spread", 0.45f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(ClapParam::Tone), "clapTone", "Tone", 0.55f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(ClapParam::Room), "clapRoom", "Room", 0.50f, 0.0f, 1.0f, true, true},

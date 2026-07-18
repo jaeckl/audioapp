@@ -116,7 +116,7 @@ std::string_view MidiDelayDeviceType::paramIdToString(uint16_t id) const noexcep
 }
 std::span<const ParamDescriptor> MidiDelayDeviceType::paramDescriptors() const noexcept {
     static constexpr ParamDescriptor params[] = {
-        {0, "midiDelayMode", "Mode", 0.0f, 0.0f, 1.0f, true, false},
+        {0, "midiDelayMode", "Mode", 0.0f, 0.0f, 1.0f, true, false, ParameterUpdateRate::Discrete},
         {1, "midiDelaySeconds", "Seconds", 0.25f, 0.0f, 2.0f, true, false},
         {2, "midiDelayDivision", "Division", 0.5f, 0.0625f, 4.0f, true, false},
     };

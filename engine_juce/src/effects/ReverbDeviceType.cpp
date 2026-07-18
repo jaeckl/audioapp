@@ -192,7 +192,7 @@ std::span<const ParamDescriptor> ReverbDeviceType::paramDescriptors() const noex
         {7, "lowCut", "Low Cut", .26f, 0, 1, true, true},
         {8, "highCut", "High Cut", .86f, 0, 1, true, true},
         {9, "ducking", "Ducking", .25f, 0, 1, true, true},
-        {10, "freeze", "Freeze", 0, 0, 1, true, true},
+        {10, "freeze", "Freeze", 0, 0, 1, true, true, ParameterUpdateRate::Discrete},
     };
     return descriptors;
 }

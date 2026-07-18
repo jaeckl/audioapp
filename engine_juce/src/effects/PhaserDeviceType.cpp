@@ -265,12 +265,12 @@ std::span<const ParamDescriptor> PhaserDeviceType::paramDescriptors() const noex
         {static_cast<uint16_t>(PhaserParam::Rate), "rateHz", "Rate", 0.8f, 0.05f, 10.0f, true, true},
         {static_cast<uint16_t>(PhaserParam::Feedback), "feedback", "Feedback", 0.3f, 0.0f, 0.95f, true, true},
         {static_cast<uint16_t>(PhaserParam::CentreFrequency), "centreFrequencyHz", "Centre Freq", 1000.0f, 20.0f, 20000.0f, true, true},
-        {static_cast<uint16_t>(PhaserParam::RateMode), "rateMode", "Rate Mode", 2.0f, 0.0f, 3.0f, true, false},
-        {static_cast<uint16_t>(PhaserParam::Waveform), "waveform", "Waveform", 0.0f, 0.0f, 3.0f, true, true},
+        {static_cast<uint16_t>(PhaserParam::RateMode), "rateMode", "Rate Mode", 2.0f, 0.0f, 3.0f, true, false, ParameterUpdateRate::Discrete},
+        {static_cast<uint16_t>(PhaserParam::Waveform), "waveform", "Waveform", 0.0f, 0.0f, 3.0f, true, true, ParameterUpdateRate::Discrete},
         {static_cast<uint16_t>(PhaserParam::WaveShape), "waveShape", "Wave Shape", 0.34f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaserParam::PhaseOffset), "phaseOffset", "LFO Phase", 0.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(PhaserParam::StereoPhase), "stereoPhase", "Stereo Phase", 0.75f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(PhaserParam::Stages), "stages", "Stages", 8.0f, 2.0f, 12.0f, true, true},
+        {static_cast<uint16_t>(PhaserParam::Stages), "stages", "Stages", 8.0f, 2.0f, 12.0f, true, true, ParameterUpdateRate::Discrete},
     };
     return kParams;
 }

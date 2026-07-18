@@ -2,6 +2,7 @@
 #include "audioapp/AutomationPlayback.hpp"
 #include "audioapp/DeviceSubgraph.hpp"
 #include "audioapp/devices/DeviceSlot.hpp"
+#include "audioapp/devices/PhaseModSynthDeviceType.hpp"
 #include "audioapp/dsp/ProcessorArena.hpp"
 
 #include <iostream>
@@ -154,10 +155,31 @@ int main() {
     const ParamDescriptor continuousDescriptor{0, "drive", "Drive", 0.0f,
                                                0.0f, 1.0f, true, true};
     const ParamDescriptor discreteDescriptor{1, "waveform", "Waveform", 0.0f,
-                                             0.0f, 4.0f, true, true};
+                                             0.0f, 4.0f, true, true,
+                                             ParameterUpdateRate::Discrete};
     expect(parameterUpdateRateFor(continuousDescriptor) == ParameterUpdateRate::Smoothed &&
            parameterUpdateRateFor(discreteDescriptor) == ParameterUpdateRate::Discrete,
            "parameter metadata separates continuous gestures from selectors");
+
+    const PhaseModSynthDeviceType phaseModType;
+    const auto declaredPhaseModParams = phaseModType.paramDescriptors();
+    const auto rateFor = [&](std::string_view name) {
+        const auto found = std::find_if(
+            declaredPhaseModParams.begin(), declaredPhaseModParams.end(),
+            [&](const ParamDescriptor& descriptor) {
+                return name == descriptor.stableName;
+            });
+        return found == declaredPhaseModParams.end()
+            ? ParameterUpdateRate::AudioRate
+            : parameterUpdateRateFor(*found);
+    };
+    expect(rateFor("pmOp1Wave") == ParameterUpdateRate::Discrete &&
+               rateFor("pmAlgoIndex") == ParameterUpdateRate::Discrete &&
+               rateFor("pmMono") == ParameterUpdateRate::Discrete &&
+               rateFor("pmLegato") == ParameterUpdateRate::Discrete &&
+               rateFor("pmLfoDest") == ParameterUpdateRate::Discrete &&
+               rateFor("pmOp1Fine") == ParameterUpdateRate::Smoothed,
+           "Phase Mod declares selector and continuous rates without name heuristics");
 
     DeviceVariantParams delayParams = DelayParamsPlayback{};
     applyAutomationValue(delayParams, DeviceNodeKind::Delay,

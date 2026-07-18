@@ -217,7 +217,7 @@ std::span<const ParamDescriptor> ChorusDeviceType::paramDescriptors() const noex
         {3, "classicDelay", "Classic Delay", .30f, 0, 1, true, true}, {4, "classicFeedback", "Classic Feedback", 0, 0, 1, true, true},
         {5, "classicPhase", "Classic Phase", .5f, 0, 1, true, true}, {6, "classicShape", "Classic Shape", 0, 0, 1, true, true},
         {7, "ensembleRate", "Ensemble Rate", .25f, 0, 1, true, true}, {8, "ensembleDepth", "Ensemble Depth", .5f, 0, 1, true, true},
-        {9, "ensembleVoices", "Ensemble Voices", .5f, 0, 1, true, true}, {10, "ensembleSpread", "Ensemble Spread", .65f, 0, 1, true, true},
+        {9, "ensembleVoices", "Ensemble Voices", .5f, 0, 1, true, true, ParameterUpdateRate::Discrete}, {10, "ensembleSpread", "Ensemble Spread", .65f, 0, 1, true, true},
         {11, "ensembleDrift", "Ensemble Drift", .25f, 0, 1, true, true}, {12, "ensembleTone", "Ensemble Tone", .65f, 0, 1, true, true},
         {13, "dimensionAmount", "Dimension Amount", .5f, 0, 1, true, true}, {14, "dimensionDelay", "Dimension Delay", .35f, 0, 1, true, true},
         {15, "dimensionSpread", "Dimension Spread", .8f, 0, 1, true, true}, {16, "dimensionMotion", "Dimension Motion", .25f, 0, 1, true, true},

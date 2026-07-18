@@ -211,7 +211,7 @@ std::string_view KickGeneratorDeviceType::paramIdToString(uint16_t localId) cons
 
 std::span<const ParamDescriptor> KickGeneratorDeviceType::paramDescriptors() const noexcept {
     static constexpr ParamDescriptor kParams[] = {
-        {static_cast<uint16_t>(KickParam::Model), "kickModel", "Model", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(KickParam::Model), "kickModel", "Model", 0.0f, 0.0f, 1.0f, true, true, ParameterUpdateRate::Discrete},
         {static_cast<uint16_t>(KickParam::Pitch), "kickPitch", "Pitch", 0.55f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(KickParam::Punch), "kickPunch", "Punch", 0.60f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(KickParam::Decay), "kickDecay", "Decay", 0.50f, 0.0f, 1.0f, true, true},
