@@ -28,8 +28,11 @@ public:
             expect(result.handled, "depth parameter should be handled");
             result = registry.setParameter(slot, "rateHz", 1.2f);
             expect(result.handled, "rateHz parameter should be handled");
-            result = registry.setParameter(slot, "mix", 0.4f);
-            expect(result.handled, "mix parameter should be handled");
+            result = registry.setParameter(slot, "outputMix", 0.4f);
+            expect(result.handled, "outputMix adapter parameter should be handled");
+            expectWithinAbsoluteError(
+                std::get<audioapp::StereoOutputPanel>(slot.config.outputPanel).outputMix,
+                0.4f, 0.001f, "outputMix should update the output adapter");
         }
 
         beginTest("round-trip snapshot");
