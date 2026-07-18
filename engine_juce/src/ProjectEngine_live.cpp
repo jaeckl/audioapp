@@ -110,7 +110,10 @@ bool ProjectEngine::noteOn(int pitch, float velocity) {
     // retrigger generation with the arrangement LFO render path, causing
     // unwanted envelope resets on arrangement LFOs (staccato/gate artifacts).
 
-    if (recordArmed_ && countInRemainingBeats_.load(std::memory_order_acquire) <= 0.0) {
+    // An explicit recording session is already armed by its own API and must
+    // capture even when the transport-wide record-arm flag is false.
+    if ((recordArmed_ || captureActive_) &&
+        countInRemainingBeats_.load(std::memory_order_acquire) <= 0.0) {
         const uint64_t now = liveMixer_.sampleClock();
         if (!captureActive_) {
             captureActive_ = true;
@@ -133,7 +136,7 @@ bool ProjectEngine::noteOn(int pitch, float velocity) {
 bool ProjectEngine::noteOff(int pitch) {
     const juce::ScopedWriteLock lock(mutex_);
     liveMixer_.noteOff(pitch);
-    if (recordArmed_ && captureActive_) {
+    if (captureActive_) {
         if (captureEventCount_ < kMaxCaptureEvents) {
             const int idx = (captureEventHead_ + captureEventCount_) % kMaxCaptureEvents;
             captureEvents_[idx] = CaptureEvent{
