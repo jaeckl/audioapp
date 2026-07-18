@@ -536,8 +536,17 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                     }
                 } else if (ac.localParamId == kEncodedCommonBypass) {
                     continue;
-                } else if (!needsSubBlocks || !handlesOwnModulation(nodeKind)) {
-                    const double beat = ctx.playheadStartBeat;
+                } else {
+                    // Processors that render automation per frame still use
+                    // their local sample-accurate evaluator for DSP. Evaluate
+                    // the block midpoint here as the one device-wide value
+                    // exposed to presentation monitoring.
+                    const bool ownsTimeVaryingControls =
+                        needsSubBlocks && handlesOwnModulation(nodeKind);
+                    const double beat = ctx.playheadStartBeat +
+                        (ownsTimeVaryingControls
+                            ? static_cast<double>(numFrames / 2) * beatsPerFrame
+                            : 0.0);
                     float beatInClip = 0.0f;
                     if (!automationBeatInClip(ac, beat, beatInClip)) continue;
                     const float val = evaluateAutomationEnvelopeCached(ac, beatInClip);
@@ -547,7 +556,9 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                         target = &finalTargets[static_cast<size_t>(finalTargetCount++)];
                         target->parameterId = ac.localParamId;
                     }
-                    if (target != nullptr) target->automatedValue = val;
+                    if (target != nullptr) {
+                        target->automatedValue = val;
+                    }
                 }
             }
         }
@@ -564,17 +575,18 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                 if (pid == kEncodedCommonGain ||
                     pid == kEncodedCommonPan ||
                     pid == kEncodedCommonBypass) continue;
-                if (!needsSubBlocks || !handlesOwnModulation(nodeKind)) {
-                    if (ctx.modulators != nullptr
-                        && modulatorUsesPerNoteClock(ctx.modulators[edge.lfoId])) {
-                        continue;
-                    }
-                    const int lfoFrame = numFrames / 2;
-                    const float lfoOut = ctx.lfoValues[edge.lfoId * numFrames + lfoFrame];
-                    const float modAmount = edge.amount * lfoOut;
-                    if (auto* target = findFinalTarget(pid)) {
-                        target->modulationAmount += modAmount;
-                    } else {
+                if (ctx.modulators != nullptr
+                    && modulatorUsesPerNoteClock(ctx.modulators[edge.lfoId])) {
+                    // A per-note modulator has one value per active voice, so
+                    // it deliberately has no single device-wide knob value.
+                    continue;
+                }
+                const int lfoFrame = numFrames / 2;
+                const float lfoOut = ctx.lfoValues[edge.lfoId * numFrames + lfoFrame];
+                const float modAmount = edge.amount * lfoOut;
+                if (auto* target = findFinalTarget(pid)) {
+                    target->modulationAmount += modAmount;
+                } else if (!needsSubBlocks || !handlesOwnModulation(nodeKind)) {
                         std::visit([&](auto& params) {
                             applyModulation(params, modAmount, pid);
                         }, modulatedParams);
@@ -582,7 +594,6 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                         if (proc->readEffectiveParameter(pid, manualBase))
                             proc->publishFinalEffectiveParameter(
                                 pid, manualBase + modAmount);
-                    }
                 }
             }
         }
@@ -593,8 +604,13 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
             const auto& target = finalTargets[static_cast<size_t>(index)];
             const float effective = std::clamp(
                 target.automatedValue + target.modulationAmount, 0.0f, 1.0f);
-            applyAutomationValue(
-                modulatedParams, nodeKind, target.parameterId, effective);
+            // Device-owned time-varying renderers apply the same automation
+            // and global modulation at frame/sub-block rate. Do not apply the
+            // midpoint probe to their DSP input a second time.
+            if (!needsSubBlocks || !handlesOwnModulation(nodeKind)) {
+                applyAutomationValue(
+                    modulatedParams, nodeKind, target.parameterId, effective);
+            }
             proc->publishFinalEffectiveParameter(target.parameterId, effective);
         }
 

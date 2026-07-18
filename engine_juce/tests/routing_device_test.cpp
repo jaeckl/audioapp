@@ -433,6 +433,29 @@ int main() {
            static_cast<double>(effectiveJson["value"]) < targetFrequency,
            "coalesced nested gesture preserves its first pre-gesture value");
 
+    auto ownedControlProject = std::make_unique<ProjectEngine>();
+    ownedControlProject->createProject();
+    const auto ownedControlTrack = ownedControlProject->addTrack("Owned Controls");
+    const auto phaseMod = ownedControlProject->addDeviceToTrack(
+        ownedControlTrack, device_types::kPhaseModSynth);
+    const auto phaseAutomation = ownedControlProject->createAutomationClip(
+        ownedControlTrack, 0.0, 4.0);
+    expect(ownedControlProject->assignAutomationTarget(
+               phaseAutomation, phaseMod, "pmOp1Level") &&
+           ownedControlProject->setAutomationPoints(
+               phaseAutomation, {{0.0, 0.73f}, {4.0, 0.73f}}),
+           "device-owned renderer receives an automation target");
+    ownedControlProject->setPlaying(true);
+    ownedControlProject->readMasterMixStereo(
+        tapLeft, tapRight, 128, 48000.0, 0.0);
+    ownedControlProject->setPlaying(false);
+    const auto ownedEffective = juce::JSON::parse(
+        ownedControlProject->readEffectiveParameterJson(
+            phaseMod, "pmOp1Level"));
+    expect(static_cast<bool>(ownedEffective["ok"]) &&
+               std::abs(static_cast<double>(ownedEffective["value"]) - 0.73) < 1.0e-4,
+           "device-owned sample-accurate automation publishes its final knob value");
+
     auto drumProject = std::make_unique<ProjectEngine>();
     drumProject->createProject();
     const auto drumTrack = drumProject->addTrack("Drum Tap");

@@ -139,7 +139,7 @@ the points actually crossed rather than restarting at point zero each block.
 The live-control portion of phases 5–7 is complete. Descriptor metadata is
 compiled to an explicit `Discrete`, `Block`, `Smoothed`, `ControlRate`, or
 `AudioRate` policy before entering the mailbox. Discrete selectors step at the
-block boundary; continuous DSP gestures feed a fixed 16-slot processor-local
+block boundary; continuous DSP gestures feed a fixed 128-slot processor-local
 target bank and advance with a sample-rate-independent 10 ms ramp. The same
 implementation is inherited by every typed processor and recursively by Chain
 and Drum children; it allocates and locks neither when accepting a target nor
@@ -155,7 +155,12 @@ effective normalized value through a fixed atomic monitor bank. Top-level and
 nested values are readable through `readEffectiveParameter`; the Flutter bridge
 exposes this separately from project state so UI animation cannot feed values
 back into DSP or trigger a snapshot rebuild. Coalesced UI scheduling remains a
-Flutter presentation concern rather than audio-engine state.
+Flutter presentation concern rather than audio-engine state. Renderers that
+evaluate device-wide automation and global modulation per frame publish the
+block-midpoint composed value without applying that probe to DSP a second time.
+Per-note modulation deliberately has no single device-wide effective value:
+different active voices can have different values, and collapsing those into
+one knob position would be false state.
 
 Consistency is part of the contract: every automatable or modulatable parameter
 must declare its rate and smoothing behavior, and tests must reject missing
