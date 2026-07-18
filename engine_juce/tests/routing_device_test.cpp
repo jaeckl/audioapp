@@ -359,6 +359,37 @@ int main() {
     expect(longestCallback < callbackDeadline,
            "command-flooded callbacks with 16 taps stay inside the device deadline");
 
+    auto capacityProject = std::make_unique<ProjectEngine>();
+    const auto capacityTrack = capacityProject->addTrack("Modulation capacity");
+    const auto capacityOscillator = capacityProject->addDeviceToTrack(
+        capacityTrack, device_types::kOscillator);
+    const auto capacityClip = capacityProject->createMidiClip(
+        capacityTrack, 0.0, 16.0);
+    expect(capacityProject->setMidiClipNotes(
+        capacityClip, {{60, 0.0, 16.0, 100.0f}}),
+        "maximum modulation-capacity fixture is configured");
+    float capacityLeft[kScratchFrames]{};
+    float capacityRight[kScratchFrames]{};
+    capacityProject->setPlaying(true);
+    capacityProject->readMasterMixStereo(
+        capacityLeft, capacityRight, 128, 48000.0, 0.0);
+    capacityProject->setPlaying(false);
+    for (int index = 0; index < ModulationGraph::kMaxLfos; ++index) {
+        const int modulator = capacityProject->createLfo(index % 2);
+        expect(modulator > 0 && capacityProject->assignModulation(
+            modulator, capacityOscillator, "gain", 0.25f),
+            "maximum modulation-capacity edge is compiled");
+    }
+    capacityProject->setPlaying(true);
+    realtime_allocation_audit::count = 0;
+    realtime_allocation_audit::enabled = true;
+    capacityProject->readMasterMixStereo(
+        capacityLeft, capacityRight, kScratchFrames, 48000.0, 0.0);
+    realtime_allocation_audit::enabled = false;
+    capacityProject->setPlaying(false);
+    expect(realtime_allocation_audit::count == 0,
+           "first maximum-capacity modulation callback performs no heap allocations");
+
     const auto audioReceiver = audioProject->addDeviceToTrack(destination, device_types::kAudioReceiver);
     expect(!audioReceiver.empty(), "audio receiver is created");
     expect(audioProject->setDeviceStringParameter(audioReceiver, "sourceId", replacementOscillator),

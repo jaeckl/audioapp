@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed — ordered after ADR-0011 instrumentation and benchmarks.
+Accepted. Predictable callback allocation is implemented and audited at maximum
+modulation/tap capacity. Arbitrary block chunking and cache-layout decisions
+remain subsequent phases.
 
 ## Context
 

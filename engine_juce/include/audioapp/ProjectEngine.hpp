@@ -38,7 +38,6 @@ namespace audioapp {
 
 struct ProjectFileData;
 struct DeviceChainScratch;
-
 /// Live meter readouts for dynamics devices (gate, compressor, expander, limiter).
 /// Populated by applyLiveDeviceMetersLocked() during snapshot building.
 /// Not persisted to project files — runtime-only.
@@ -591,6 +590,17 @@ private:
     LivePerformanceMixer liveMixer_;
     std::atomic<float> livePitchBend_{0.0f};
     std::atomic<float> liveModulation_{0.0f};
+
+    struct RealtimeModulationScratch {
+        static constexpr int kMaxFrames = 4096;
+        std::array<IModulator*, ModulationGraph::kMaxLfos> modulators{};
+        std::array<float, ModulationGraph::kMaxLfos * kMaxFrames> values{};
+        std::array<float, kMaxFrames> noteElapsed{};
+    };
+    // Allocated with the engine on the control thread. Capacity changes in the
+    // modulation topology never grow a container from the audio callback.
+    std::unique_ptr<RealtimeModulationScratch> realtimeModulationScratch_ =
+        std::make_unique<RealtimeModulationScratch>();
 
     PlaybackStateStorage trackPlayback_;
     ProcessorGraphSnapshot processorGraphs_[2];

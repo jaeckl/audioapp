@@ -2070,8 +2070,9 @@ void ProjectEngine::drainRealtimeCommands() noexcept {
 void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                                             float* masterRight,
                                             int numFrames,
-                                            double sampleRate,
-                                            double playheadStartBeat) noexcept {
+                                             double sampleRate,
+                                             double playheadStartBeat) noexcept {
+    static_assert(RealtimeModulationScratch::kMaxFrames == kScratchFrames);
     if (masterLeft == nullptr || masterRight == nullptr || numFrames <= 0) {
         return;
     }
@@ -2191,32 +2192,27 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         return false;
     };
 
-        // Compute per-frame LFO values for gain/pan modulation.
+    // Compute per-frame LFO values for gain/pan modulation.
     // DSP-specific params still use frame-0 (block-rate).
-    const int lfoCount = modulationGraph_.lfoPlaybackCount();
+    const int lfoCount = std::clamp(
+        modulationGraph_.lfoPlaybackCount(), 0, ModulationGraph::kMaxLfos);
     const uint32_t retriggerGeneration = modulationGraph_.noteRetriggerGeneration();
-    thread_local std::vector<IModulator*> modulatorPtrs;
+    auto& modulationScratch = *realtimeModulationScratch_;
     bool anyPerNoteModulator = false;
     if (lfoCount > 0) {
-        modulatorPtrs.resize(static_cast<size_t>(lfoCount));
         for (int i = 0; i < lfoCount; ++i) {
-            modulatorPtrs[static_cast<size_t>(i)] = modulationGraph_.modulator(i);
-            if (!anyPerNoteModulator && modulatorPtrs[static_cast<size_t>(i)] != nullptr &&
-                modulatorPtrs[static_cast<size_t>(i)]->usesPerNoteClock()) {
+            modulationScratch.modulators[static_cast<size_t>(i)] =
+                modulationGraph_.modulator(i);
+            if (!anyPerNoteModulator &&
+                modulationScratch.modulators[static_cast<size_t>(i)] != nullptr &&
+                modulationScratch.modulators[static_cast<size_t>(i)]->usesPerNoteClock()) {
                 anyPerNoteModulator = true;
             }
         }
     }
-    thread_local std::vector<float> lfoValues;
     if (lfoCount > 0) {
-        const size_t needed = static_cast<size_t>(lfoCount) * static_cast<size_t>(framesToProcess);
-        if (lfoValues.capacity() < needed) {
-            lfoValues.reserve(needed + 4096);
-        }
-        lfoValues.resize(needed, 0.0f);
         const double playheadSeconds = playheadStartBeat * 60.0 / static_cast<double>(std::max(transport_.bpm(), 1));
         const double samplePeriod = 1.0 / std::max(sampleRate, 1.0);
-        thread_local std::vector<float> noteElapsedPerFrame;
         if (anyPerNoteModulator) {
             const double invBpmSeconds = 60.0 / static_cast<double>(std::max(transport_.bpm(), 1));
             const auto noteElapsedSecondsAtBeat = [&](double beat) -> double {
@@ -2243,11 +2239,10 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                 }
                 return (beat - latestOnsetBeat) * invBpmSeconds;
             };
-            noteElapsedPerFrame.resize(static_cast<size_t>(framesToProcess));
             for (int frame = 0; frame < framesToProcess; ++frame) {
                 const double frameBeat = playheadStartBeat
                     + static_cast<double>(frame) * beatsPerFrame;
-                noteElapsedPerFrame[static_cast<size_t>(frame)] =
+                modulationScratch.noteElapsed[static_cast<size_t>(frame)] =
                     static_cast<float>(noteElapsedSecondsAtBeat(frameBeat));
             }
         }
@@ -2264,7 +2259,8 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                     retriggerGeneration,
                     -1.0);
                 for (int frame = 0; frame < framesToProcess; ++frame) {
-                    lfoValues[static_cast<size_t>(i * framesToProcess + frame)] = value;
+                    modulationScratch.values[
+                        static_cast<size_t>(i * framesToProcess + frame)] = value;
                 }
                 continue;
             }
@@ -2275,9 +2271,11 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                     secondsWithinBlock *
                         (static_cast<double>(std::max(transport_.bpm(), 1)) / 60.0);
                 const double noteElapsed = anyPerNoteModulator
-                    ? static_cast<double>(noteElapsedPerFrame[static_cast<size_t>(frame)])
+                    ? static_cast<double>(
+                        modulationScratch.noteElapsed[static_cast<size_t>(frame)])
                     : -1.0;
-                lfoValues[static_cast<size_t>(i * framesToProcess + frame)] =
+                modulationScratch.values[
+                    static_cast<size_t>(i * framesToProcess + frame)] =
                     mod->evaluate(frameBeat, transport_.bpm(),
                                   secondsWithinBlock, playheadSeconds, retriggerGeneration,
                                   noteElapsed);
@@ -2390,9 +2388,9 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                 ctx.tapGraph = useGraph ? &graph : nullptr;
                 ctx.graphTapRuntimes = graphTapRuntimes_.get();
                 ctx.graphTapRuntimeCount = kMaxProcessorGraphTaps;
-                ctx.lfoValues = lfoCount > 0 ? lfoValues.data() : nullptr;
+                ctx.lfoValues = lfoCount > 0 ? modulationScratch.values.data() : nullptr;
                 ctx.lfoCount = lfoCount;
-                ctx.modulators = lfoCount > 0 ? modulatorPtrs.data() : nullptr;
+                ctx.modulators = lfoCount > 0 ? modulationScratch.modulators.data() : nullptr;
                 ctx.retriggerGeneration = retriggerGeneration;
                 ctx.modEdges = track.modEdgeCount > 0 ? track.modEdges : nullptr;
                 ctx.modEdgeCount = track.modEdgeCount;
@@ -2442,9 +2440,9 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         ctx.tapGraph = useGraph ? &graph : nullptr;
         ctx.graphTapRuntimes = graphTapRuntimes_.get();
         ctx.graphTapRuntimeCount = kMaxProcessorGraphTaps;
-        ctx.lfoValues = lfoCount > 0 ? lfoValues.data() : nullptr;
+        ctx.lfoValues = lfoCount > 0 ? modulationScratch.values.data() : nullptr;
         ctx.lfoCount = lfoCount;
-        ctx.modulators = lfoCount > 0 ? modulatorPtrs.data() : nullptr;
+        ctx.modulators = lfoCount > 0 ? modulationScratch.modulators.data() : nullptr;
         ctx.retriggerGeneration = retriggerGeneration;
         ctx.modEdges = track.modEdgeCount > 0 ? track.modEdges : nullptr;
         ctx.modEdgeCount = track.modEdgeCount;
