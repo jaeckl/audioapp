@@ -41,12 +41,16 @@ public:
             const std::string trackId = project->addTrack("Keys");
             const std::string clipId = project->createMidiClip(trackId, 0.0, 8.0);
 
+            expect(project->setMidiClipNotes(
+                clipId, {audioapp::MidiNoteState{60, 0.0, 2.0, 100.0f}}));
+
             std::vector<audioapp::MidiNoteState> take2Notes;
             take2Notes.push_back({64, 0.0, 2.0, 100.0f});
             expect(project->addMidiClipTake(clipId, "Take 2", 0.0, 8.0, take2Notes));
 
             expect(project->flattenMidiComp(clipId));
-            const auto* clip = findMidiClip(project->snapshot(), clipId);
+            const auto snapshot = project->snapshot();
+            const auto* clip = findMidiClip(snapshot, clipId);
             expect(clip != nullptr);
             if (clip == nullptr) return;
             expect(clip->compFlattened, "flatten should set compFlattened");
@@ -58,6 +62,9 @@ public:
             project->createProject();
             const std::string trackId = project->addTrack("Keys");
             const std::string clipId = project->createMidiClip(trackId, 0.0, 8.0);
+
+            expect(project->setMidiClipNotes(
+                clipId, {audioapp::MidiNoteState{60, 0.0, 2.0, 100.0f}}));
 
             std::vector<audioapp::MidiNoteState> take2Notes;
             take2Notes.push_back({64, 0.0, 2.0, 100.0f});
@@ -73,7 +80,8 @@ public:
             expect(!take2Id.empty());
             expect(project->setMidiClipTakeRegionTake(clipId, 0, take2Id));
 
-            const auto* clip = findMidiClip(project->snapshot(), clipId);
+            const auto snapshot = project->snapshot();
+            const auto* clip = findMidiClip(snapshot, clipId);
             expect(clip != nullptr);
             if (clip == nullptr) return;
             expectEquals(clip->notes.size(), static_cast<size_t>(1));
@@ -87,6 +95,9 @@ public:
             const std::string trackId = project->addTrack("Keys");
             const std::string clipId = project->createMidiClip(trackId, 0.0, 8.0);
 
+            expect(project->setMidiClipNotes(
+                clipId, {audioapp::MidiNoteState{60, 0.0, 2.0, 100.0f}}));
+
             std::vector<audioapp::MidiNoteState> take2Notes;
             take2Notes.push_back({64, 0.0, 2.0, 100.0f});
             expect(project->addMidiClipTake(clipId, "Take 2", 0.0, 8.0, take2Notes));
@@ -95,7 +106,8 @@ public:
             edited.push_back({72, 0.0, 1.0, 100.0f});
             expect(project->setMidiClipNotes(clipId, edited));
 
-            const auto* clip = findMidiClip(project->snapshot(), clipId);
+            const auto snapshot = project->snapshot();
+            const auto* clip = findMidiClip(snapshot, clipId);
             expect(clip != nullptr);
             if (clip == nullptr) return;
             expect(clip->compFlattened, "note edit should auto-flatten multi-take clip");
@@ -107,6 +119,9 @@ public:
             project->createProject();
             const std::string trackId = project->addTrack("Keys");
             const std::string clipId = project->createMidiClip(trackId, 0.0, 8.0);
+
+            expect(project->setMidiClipNotes(
+                clipId, {audioapp::MidiNoteState{60, 0.0, 2.0, 100.0f}}));
 
             std::vector<audioapp::MidiNoteState> take2Notes;
             take2Notes.push_back({64, 0.0, 2.0, 100.0f});
@@ -123,7 +138,8 @@ public:
 
             expect(project->reopenMidiComp(clipId));
 
-            const auto* clip = findMidiClip(project->snapshot(), clipId);
+            const auto snapshot = project->snapshot();
+            const auto* clip = findMidiClip(snapshot, clipId);
             expect(clip != nullptr);
             if (clip == nullptr) return;
             expect(!clip->compFlattened, "reopen clears flattened flag");
