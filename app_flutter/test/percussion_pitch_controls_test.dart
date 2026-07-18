@@ -4,6 +4,7 @@ import 'package:audioapp/features/device_strip/crash_generator_device_panel.dart
 import 'package:audioapp/features/device_strip/dedicated_percussion_device_panel.dart';
 import 'package:audioapp/features/device_strip/kick_generator_device_panel.dart';
 import 'package:audioapp/features/device_strip/snare_generator_device_panel.dart';
+import 'package:audioapp/features/device_strip/rotary_knob.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -88,7 +89,6 @@ void main() {
         ),
       ClapGeneratorDeviceSnapshot d => ClapGeneratorDevicePanel(
           device: d,
-          selectedTab: ClapDeviceTab.tone,
           onParameterChanged: onChanged,
         ),
       DedicatedPercussionDeviceSnapshot d => DedicatedPercussionDevicePanel(
@@ -132,6 +132,17 @@ void main() {
       expect(find.text('Tune'), findsOneWidget);
       expect(
           find.byKey(const ValueKey('drum-keytrack-toggle')), findsOneWidget);
+      final toggle = find.byKey(const ValueKey('drum-keytrack-toggle'));
+      final chevron = find.byKey(const ValueKey('drum-keytrack-chevron'));
+      final tuneKnob = find.byWidgetPredicate(
+        (widget) => widget is RotaryKnob && widget.label == 'Tune',
+      );
+      expect(chevron, findsOneWidget);
+      expect(tuneKnob, findsOneWidget);
+      expect(
+          tester.getCenter(toggle).dx, lessThan(tester.getCenter(chevron).dx));
+      expect(tester.getCenter(chevron).dx,
+          lessThan(tester.getCenter(tuneKnob).dx));
       await tester.tap(find.byKey(const ValueKey('drum-keytrack-toggle')));
       expect(changedParameter, entry.value);
       expect(changedValue, 0.0);

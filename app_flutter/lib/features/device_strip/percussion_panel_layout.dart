@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'device_strip_theme.dart';
+import 'drum_keytrack_toggle.dart';
 
 /// Shared compact layout primitives for synthesized percussion devices.
 ///
@@ -10,12 +11,14 @@ class PercussionPanelLayout extends StatelessWidget {
   const PercussionPanelLayout({
     super.key,
     required this.cards,
+    this.flexes = const [],
   });
 
   static const double designWidth = 360;
   static const double gap = 8;
 
   final List<Widget> cards;
+  final List<int> flexes;
 
   @override
   Widget build(BuildContext context) {
@@ -26,10 +29,83 @@ class PercussionPanelLayout extends StatelessWidget {
         children: [
           for (var index = 0; index < cards.length; index++) ...[
             if (index > 0) const SizedBox(width: gap),
-            Expanded(child: cards[index]),
+            Expanded(
+              flex: index < flexes.length ? flexes[index] : 1,
+              child: cards[index],
+            ),
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Keyboard tracking relation used by every pitched percussion device.
+/// Mirrors the Subtractive filter flow: toggle -> relation -> destination.
+class PercussionPitchControl extends StatelessWidget {
+  const PercussionPitchControl({
+    super.key,
+    required this.active,
+    required this.accent,
+    required this.knob,
+    required this.onChanged,
+  });
+
+  final bool active;
+  final Color accent;
+  final Widget knob;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 13),
+          child: DrumKeyTrackToggle(
+            active: active,
+            accent: accent,
+            onChanged: onChanged,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(5, 22, 5, 0),
+          child: Icon(
+            Icons.arrow_forward_ios,
+            key: const ValueKey('drum-keytrack-chevron'),
+            size: 10,
+            color: active ? accent : Colors.white24,
+          ),
+        ),
+        knob,
+      ],
+    );
+  }
+}
+
+class PercussionKnobRows extends StatelessWidget {
+  const PercussionKnobRows({
+    super.key,
+    required this.rows,
+  });
+
+  final List<List<Widget>> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        for (final row in rows)
+          Flexible(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [for (final child in row) Flexible(child: child)],
+            ),
+          ),
+      ],
     );
   }
 }

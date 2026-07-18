@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
 import 'device_knob_sizes.dart';
-import 'drum_keytrack_toggle.dart';
 import 'percussion_panel_layout.dart';
 import 'rotary_knob.dart';
 
@@ -36,13 +35,27 @@ class DedicatedPercussionDevicePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final config = _PercussionUiConfig.forType(device.type);
     return PercussionPanelLayout(
+      flexes: const [5, 6],
       cards: [
-        for (final column in config.columns)
-          PercussionControlCard(
-            child: PercussionKnobColumn(
-              children: [for (final spec in column) _knob(config, spec)],
-            ),
+        PercussionControlCard(
+          child: PercussionKnobRows(
+            rows: [
+              [_knob(config, config.columns.first.first)],
+              [
+                for (final spec in config.columns.first.skip(1))
+                  _knob(config, spec),
+              ],
+            ],
           ),
+        ),
+        PercussionControlCard(
+          child: PercussionKnobRows(
+            rows: [
+              for (final row in config.columns.skip(1))
+                [for (final spec in row) _knob(config, spec)],
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -77,18 +90,12 @@ class DedicatedPercussionDevicePanel extends StatelessWidget {
       onChanged: (next) => onParameterChanged(spec.id, next),
     );
     if (!isPitch) return knob;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        knob,
-        const SizedBox(width: 4),
-        DrumKeyTrackToggle(
-          active: keyTrack,
-          accent: config.accent,
-          onChanged: (active) =>
-              onParameterChanged(config.keyTrackId, active ? 1.0 : 0.0),
-        ),
-      ],
+    return PercussionPitchControl(
+      active: keyTrack,
+      accent: config.accent,
+      knob: knob,
+      onChanged: (active) =>
+          onParameterChanged(config.keyTrackId, active ? 1.0 : 0.0),
     );
   }
 }

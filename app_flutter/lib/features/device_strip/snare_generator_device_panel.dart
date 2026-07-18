@@ -4,7 +4,6 @@ import '../../bridge/project_snapshot.dart';
 import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
-import 'drum_keytrack_toggle.dart';
 import 'percussion_panel_layout.dart';
 import 'rotary_knob.dart';
 import 'snare_envelope_preview.dart';
@@ -52,6 +51,7 @@ class SnareGeneratorDevicePanel extends StatelessWidget {
     SnareKnobSpec spec(String parameterId) =>
         knobs.firstWhere((candidate) => candidate.paramId == parameterId);
     final bench = PercussionPanelLayout(
+      flexes: const [5, 6],
       cards: [
         PercussionControlCard(
           child: Column(
@@ -72,19 +72,17 @@ class SnareGeneratorDevicePanel extends StatelessWidget {
           ),
         ),
         PercussionControlCard(
-          child: PercussionKnobColumn(
-            children: [
-              _buildKnob(spec('snareBody')),
-              _buildKnob(spec('snareRing')),
-            ],
-          ),
-        ),
-        PercussionControlCard(
-          child: PercussionKnobColumn(
-            children: [
-              _buildKnob(spec('snareSnares')),
-              _buildKnob(spec('snareSnap')),
-              _buildKnob(spec('snareDecay')),
+          child: PercussionKnobRows(
+            rows: [
+              [
+                _buildKnob(spec('snareBody')),
+                _buildKnob(spec('snareRing')),
+              ],
+              [
+                _buildKnob(spec('snareSnares')),
+                _buildKnob(spec('snareSnap')),
+                _buildKnob(spec('snareDecay')),
+              ],
             ],
           ),
         ),
@@ -126,18 +124,12 @@ class SnareGeneratorDevicePanel extends StatelessWidget {
       onChanged: (v) => onParameterChanged(paramId, v),
     );
     if (paramId != 'snareTune') return knob;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        knob,
-        const SizedBox(width: 4),
-        DrumKeyTrackToggle(
-          active: device.snareKeyTrack >= 0.5,
-          accent: accent,
-          onChanged: (active) =>
-              onParameterChanged('snareKeyTrack', active ? 1.0 : 0.0),
-        ),
-      ],
+    return PercussionPitchControl(
+      active: device.snareKeyTrack >= 0.5,
+      accent: accent,
+      knob: knob,
+      onChanged: (active) =>
+          onParameterChanged('snareKeyTrack', active ? 1.0 : 0.0),
     );
   }
 }

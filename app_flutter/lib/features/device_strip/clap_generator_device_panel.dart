@@ -6,9 +6,9 @@ import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
 import 'drum_keytrack_toggle.dart';
+import 'percussion_panel_layout.dart';
 import 'rotary_knob.dart';
 
-part 'clap_generator_device_panel_clap_device_tab.dart';
 part 'clap_generator_device_panel_clap_generator_device_panel_state.dart';
 
 class ClapGeneratorDevicePanel extends StatefulWidget {
@@ -18,8 +18,6 @@ class ClapGeneratorDevicePanel extends StatefulWidget {
     required this.device,
     required this.onParameterChanged,
     this.embeddedInCard = false,
-    this.selectedTab,
-    this.onTabChanged,
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
@@ -33,8 +31,6 @@ class ClapGeneratorDevicePanel extends StatefulWidget {
   final ClapGeneratorDeviceSnapshot device;
   final void Function(String parameterId, double value) onParameterChanged;
   final bool embeddedInCard;
-  final ClapDeviceTab? selectedTab;
-  final ValueChanged<ClapDeviceTab>? onTabChanged;
   final Set<String> modulatedParams;
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
@@ -49,12 +45,9 @@ class ClapGeneratorDevicePanel extends StatefulWidget {
   /// Clap — oscillator width for single-tab layout.
   static const double designWidth = 360;
 
-  /// Single Burst tab.
-  static const containerTabs = <DeviceTabSpec>[
-    DeviceTabSpec(label: 'Burst', icon: Icons.view_column),
-    DeviceTabSpec(label: 'Tone', icon: Icons.tune),
-    DeviceTabSpec(label: 'Amp', icon: Icons.show_chart),
-  ];
+  /// One compact bench; the former tabs described parameter groups, not
+  /// different algorithms.
+  static const containerTabs = <DeviceTabSpec>[];
 
   @override
   State<ClapGeneratorDevicePanel> createState() =>

@@ -43,7 +43,7 @@ void main() {
     );
     expect(find.text('Ring'), findsOneWidget);
     expect(find.text('Snares'), findsOneWidget);
-    expect(find.byType(PercussionControlCard), findsNWidgets(3));
+    expect(find.byType(PercussionControlCard), findsNWidgets(2));
     expect(find.text('Acoustic'), findsNothing);
     expect(find.text('Tight'), findsNothing);
     expect(find.text('909'), findsNothing);

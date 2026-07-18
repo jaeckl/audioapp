@@ -73,7 +73,7 @@ void main() {
       (tester) async {
     await pumpKickSlot(tester);
 
-    expect(find.byType(PercussionControlCard), findsNWidgets(3));
+    expect(find.byType(PercussionControlCard), findsNWidgets(2));
     expect(find.text('909'), findsNothing);
     expect(find.text('Analog'), findsNothing);
     expect(find.text('Mono · 808'), findsOneWidget);

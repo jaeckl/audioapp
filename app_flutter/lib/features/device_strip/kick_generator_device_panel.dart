@@ -4,7 +4,6 @@ import '../../bridge/project_snapshot.dart';
 import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
-import 'drum_keytrack_toggle.dart';
 import 'kick_envelope_preview.dart';
 import 'kick_model_ui_registry.dart';
 import 'percussion_panel_layout.dart';
@@ -52,6 +51,7 @@ class KickGeneratorDevicePanel extends StatelessWidget {
     KickKnobSpec spec(String parameterId) =>
         knobs.firstWhere((candidate) => candidate.paramId == parameterId);
     final bench = PercussionPanelLayout(
+      flexes: const [5, 6],
       cards: [
         PercussionControlCard(
           child: Column(
@@ -70,18 +70,16 @@ class KickGeneratorDevicePanel extends StatelessWidget {
           ),
         ),
         PercussionControlCard(
-          child: PercussionKnobColumn(
-            children: [
-              _buildKnob(spec('kickPunch')),
-              _buildKnob(spec('kickTone')),
-            ],
-          ),
-        ),
-        PercussionControlCard(
-          child: PercussionKnobColumn(
-            children: [
-              _buildKnob(spec('kickClick')),
-              _buildKnob(spec('kickDecay')),
+          child: PercussionKnobRows(
+            rows: [
+              [
+                _buildKnob(spec('kickPunch')),
+                _buildKnob(spec('kickTone')),
+              ],
+              [
+                _buildKnob(spec('kickClick')),
+                _buildKnob(spec('kickDecay')),
+              ],
             ],
           ),
         ),
@@ -123,18 +121,12 @@ class KickGeneratorDevicePanel extends StatelessWidget {
       onChanged: (v) => onParameterChanged(paramId, v),
     );
     if (paramId != 'kickPitch') return knob;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        knob,
-        const SizedBox(width: 4),
-        DrumKeyTrackToggle(
-          active: device.kickKeyTrack >= 0.5,
-          accent: accent,
-          onChanged: (active) =>
-              onParameterChanged('kickKeyTrack', active ? 1.0 : 0.0),
-        ),
-      ],
+    return PercussionPitchControl(
+      active: device.kickKeyTrack >= 0.5,
+      accent: accent,
+      knob: knob,
+      onChanged: (active) =>
+          onParameterChanged('kickKeyTrack', active ? 1.0 : 0.0),
     );
   }
 }

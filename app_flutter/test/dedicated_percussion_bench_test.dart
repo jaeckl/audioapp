@@ -11,7 +11,7 @@ void main() {
     'tom_generator': ['Bend', 'Body'],
     'rimshot_generator': ['Tone', 'Snap'],
   }.entries) {
-    testWidgets('${entry.key} uses three compact unnamed cards',
+    testWidgets('${entry.key} uses two asymmetric compact cards',
         (tester) async {
       final device = DeviceSnapshot.fromMap({
         'id': entry.key,
@@ -30,7 +30,7 @@ void main() {
           ),
         ),
       ));
-      expect(find.byType(PercussionControlCard), findsNWidgets(3));
+      expect(find.byType(PercussionControlCard), findsNWidgets(2));
       expect(find.text(entry.value[0]), findsOneWidget);
       expect(find.text(entry.value[1]), findsOneWidget);
     });

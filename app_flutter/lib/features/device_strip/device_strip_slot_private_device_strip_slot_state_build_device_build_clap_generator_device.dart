@@ -11,7 +11,6 @@ extension DeviceStripSlotStateBuildclapgeneratordeviceOperation
       child: ClapGeneratorDeviceStrip(
         device: dev,
         onParameterChanged: widget.onDeviceParameterChanged,
-        selectedTab: ClapDeviceTab.values[_selectedTabIndex.clamp(0, 2)],
         modulatedParams: _modulatedParamIds,
         automatedParams: _automatedParamIds,
         modulationAmounts: _modulationAmounts,

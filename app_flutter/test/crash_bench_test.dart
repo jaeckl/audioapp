@@ -40,7 +40,7 @@ void main() {
     );
     expect(find.text('Color'), findsOneWidget);
     expect(find.text('Spread'), findsOneWidget);
-    expect(find.byType(PercussionControlCard), findsNWidgets(3));
+    expect(find.byType(PercussionControlCard), findsNWidgets(2));
     expect(find.text('Classic'), findsNothing);
     expect(find.text('Dark'), findsNothing);
   });

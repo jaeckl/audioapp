@@ -6,7 +6,6 @@ import 'crash_model_ui_registry.dart';
 import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
-import 'drum_keytrack_toggle.dart';
 import 'percussion_panel_layout.dart';
 import 'rotary_knob.dart';
 
@@ -51,6 +50,7 @@ class CrashGeneratorDevicePanel extends StatelessWidget {
     CrashKnobSpec spec(String parameterId) =>
         knobs.firstWhere((candidate) => candidate.paramId == parameterId);
     final bench = PercussionPanelLayout(
+      flexes: const [5, 6],
       cards: [
         PercussionControlCard(
           child: Column(
@@ -67,16 +67,14 @@ class CrashGeneratorDevicePanel extends StatelessWidget {
           ),
         ),
         PercussionControlCard(
-          child: PercussionKnobColumn(
-            children: [
-              _buildKnob(spec('crashColor')),
-              _buildKnob(spec('crashSpread')),
+          child: PercussionKnobRows(
+            rows: [
+              [
+                _buildKnob(spec('crashColor')),
+                _buildKnob(spec('crashSpread')),
+              ],
+              [_buildKnob(spec('crashDecay'))],
             ],
-          ),
-        ),
-        PercussionControlCard(
-          child: PercussionKnobColumn(
-            children: [_buildKnob(spec('crashDecay'))],
           ),
         ),
       ],
@@ -117,18 +115,12 @@ class CrashGeneratorDevicePanel extends StatelessWidget {
       onChanged: (v) => onParameterChanged(paramId, v),
     );
     if (paramId != 'crashPitch') return knob;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        knob,
-        const SizedBox(width: 4),
-        DrumKeyTrackToggle(
-          active: device.crashKeyTrack >= 0.5,
-          accent: accent,
-          onChanged: (active) =>
-              onParameterChanged('crashKeyTrack', active ? 1.0 : 0.0),
-        ),
-      ],
+    return PercussionPitchControl(
+      active: device.crashKeyTrack >= 0.5,
+      accent: accent,
+      knob: knob,
+      onChanged: (active) =>
+          onParameterChanged('crashKeyTrack', active ? 1.0 : 0.0),
     );
   }
 }
