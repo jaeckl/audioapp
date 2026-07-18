@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
 import 'cymbal_decay_preview.dart';
-import 'crash_model.dart';
 import 'crash_model_ui_registry.dart';
 import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
-import 'drum_model_tab_bar.dart';
 import 'drum_keytrack_toggle.dart';
+import 'percussion_panel_layout.dart';
 import 'rotary_knob.dart';
 
 class CrashGeneratorDevicePanel extends StatelessWidget {
@@ -42,114 +41,50 @@ class CrashGeneratorDevicePanel extends StatelessWidget {
 
   static const accent = DeviceStripTheme.crashGeneratorAccent;
 
-  /// Crash bench — wide kick layout.
-  static const double designWidth = 480;
+  static const double designWidth = PercussionPanelLayout.designWidth;
 
   static const containerTabs = <DeviceTabSpec>[];
 
   @override
   Widget build(BuildContext context) {
-    final modelIndex = CrashModel.indexFromValue(device.crashModel);
     final knobs = CrashModelUiRegistry.knobs;
-    final bench = Padding(
-      padding: const EdgeInsets.all(8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            flex: 5,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: _previewBox(
-                    child: CymbalDecayPreview(
-                      color: device.crashColor,
-                      decay: device.crashDecay,
-                      accent: accent,
-                    ),
-                  ),
+    CrashKnobSpec spec(String parameterId) =>
+        knobs.firstWhere((candidate) => candidate.paramId == parameterId);
+    final bench = PercussionPanelLayout(
+      cards: [
+        PercussionControlCard(
+          child: Column(
+            children: [
+              PercussionMiniPreview(
+                child: CymbalDecayPreview(
+                  color: device.crashColor,
+                  decay: device.crashDecay,
+                  accent: accent,
                 ),
-                const SizedBox(height: 8),
-                Expanded(
-                  flex: 1,
-                  child: DrumModelTabBar(
-                    labels: CrashModel.labels,
-                    selectedIndex: modelIndex,
-                    accent: accent,
-                    isEnabled: CrashModel.isSelectable,
-                    onSelected: (i) => onParameterChanged(
-                        'crashModel', CrashModel.valueFromIndex(i)),
-                  ),
-                ),
-              ],
-            ),
+              ),
+              Expanded(child: Center(child: _buildKnob(spec('crashPitch')))),
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 5,
-            child: Column(
-              children: [
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      for (final spec in knobs.take(2)) _buildKnob(spec),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      for (final spec in knobs.skip(2)) _buildKnob(spec),
-                      const SizedBox(width: DeviceKnobSizes.strip),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+        ),
+        PercussionControlCard(
+          child: PercussionKnobColumn(
+            children: [
+              _buildKnob(spec('crashColor')),
+              _buildKnob(spec('crashSpread')),
+            ],
           ),
-        ],
-      ),
+        ),
+        PercussionControlCard(
+          child: PercussionKnobColumn(
+            children: [_buildKnob(spec('crashDecay'))],
+          ),
+        ),
+      ],
     );
-
-    if (embeddedInCard) {
-      return bench;
-    }
-
-    return Material(
-      color: const Color(0xFF1C1C24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 6, 10, 4),
-            child: Text(
-              'CRASH GENERATOR',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Colors.white54,
-                    letterSpacing: 1.2,
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-          ),
-          Expanded(child: bench),
-        ],
-      ),
-    );
-  }
-
-  Widget _previewBox({required Widget child}) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFF0E0E14),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: ClipRRect(borderRadius: BorderRadius.circular(6), child: child),
+    return PercussionPanelSurface(
+      title: 'CRASH GENERATOR',
+      embeddedInCard: embeddedInCard,
+      child: bench,
     );
   }
 

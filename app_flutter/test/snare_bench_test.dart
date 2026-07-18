@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:audioapp/bridge/project_snapshot.dart';
 import 'package:audioapp/features/device_strip/device_strip_metrics.dart';
+import 'package:audioapp/features/device_strip/percussion_panel_layout.dart';
 import 'package:audioapp/features/device_strip/snare_generator_device_panel.dart';
 
 void main() {
@@ -23,14 +24,14 @@ void main() {
     snareVelocity: 1.0,
   );
 
-  testWidgets('snare bench uses kick layout width', (tester) async {
+  testWidgets('snare uses compact unnamed percussion cards', (tester) async {
     expect(DeviceStripMetrics.designWidthFor('snare_generator'),
         DeviceStripMetrics.kickDesignWidth);
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: SizedBox(
-            width: 480,
+            width: 360,
             height: 280,
             child: SnareGeneratorDevicePanel(
               device: snare,
@@ -42,6 +43,9 @@ void main() {
     );
     expect(find.text('Ring'), findsOneWidget);
     expect(find.text('Snares'), findsOneWidget);
-    expect(find.text('Acoustic'), findsOneWidget);
+    expect(find.byType(PercussionControlCard), findsNWidgets(3));
+    expect(find.text('Acoustic'), findsNothing);
+    expect(find.text('Tight'), findsNothing);
+    expect(find.text('909'), findsNothing);
   });
 }

@@ -5,6 +5,7 @@ import 'package:audioapp/bridge/project_snapshot.dart';
 import 'package:audioapp/features/device_strip/crash_generator_device_panel.dart';
 import 'package:audioapp/features/device_strip/cymbal_generator_device_panel.dart';
 import 'package:audioapp/features/device_strip/device_strip_metrics.dart';
+import 'package:audioapp/features/device_strip/percussion_panel_layout.dart';
 
 void main() {
   const cymbal = CymbalGeneratorDeviceSnapshot(
@@ -35,14 +36,14 @@ void main() {
     crashVelocity: 1.0,
   );
 
-  testWidgets('cymbal bench uses kick layout width', (tester) async {
+  testWidgets('cymbal uses compact unnamed percussion cards', (tester) async {
     expect(DeviceStripMetrics.designWidthFor('cymbal_generator'),
         DeviceStripMetrics.kickDesignWidth);
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: SizedBox(
-            width: 480,
+            width: 360,
             height: 280,
             child: CymbalGeneratorDevicePanel(
               device: cymbal,
@@ -53,7 +54,10 @@ void main() {
       ),
     );
     expect(find.text('Color'), findsOneWidget);
-    expect(find.text('Closed'), findsOneWidget);
+    expect(find.byType(PercussionControlCard), findsNWidgets(3));
+    expect(find.text('Closed'), findsNothing);
+    expect(find.text('Open'), findsNothing);
+    expect(find.text('Pedal'), findsNothing);
   });
 
   testWidgets('crash bench shows color and spread knobs', (tester) async {
@@ -63,7 +67,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: SizedBox(
-            width: 480,
+            width: 360,
             height: 280,
             child: CrashGeneratorDevicePanel(
               device: crash,
@@ -75,6 +79,8 @@ void main() {
     );
     expect(find.text('Color'), findsOneWidget);
     expect(find.text('Spread'), findsOneWidget);
-    expect(find.text('Classic'), findsOneWidget);
+    expect(find.byType(PercussionControlCard), findsNWidgets(3));
+    expect(find.text('Classic'), findsNothing);
+    expect(find.text('Dark'), findsNothing);
   });
 }

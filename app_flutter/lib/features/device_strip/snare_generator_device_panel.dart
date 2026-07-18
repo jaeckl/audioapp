@@ -4,11 +4,10 @@ import '../../bridge/project_snapshot.dart';
 import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
-import 'drum_model_tab_bar.dart';
 import 'drum_keytrack_toggle.dart';
+import 'percussion_panel_layout.dart';
 import 'rotary_knob.dart';
 import 'snare_envelope_preview.dart';
-import 'snare_model.dart';
 import 'snare_model_ui_registry.dart';
 
 class SnareGeneratorDevicePanel extends StatelessWidget {
@@ -42,118 +41,59 @@ class SnareGeneratorDevicePanel extends StatelessWidget {
 
   static const accent = DeviceStripTheme.snareGeneratorAccent;
 
-  /// Snare bench — same kick width for two-row knob grid.
-  static const double designWidth = 480;
+  static const double designWidth = PercussionPanelLayout.designWidth;
 
   /// No tabs — single-page layout.
   static const containerTabs = <DeviceTabSpec>[];
 
   @override
   Widget build(BuildContext context) {
-    final modelIndex = SnareModel.indexFromValue(device.snareModel);
     final knobs = SnareModelUiRegistry.knobs;
-    final bench = Padding(
-      padding: const EdgeInsets.all(8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            flex: 5,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: _previewBox(
-                    child: SnareEnvelopePreview(
-                      body: device.snareBody,
-                      ring: device.snareRing,
-                      tune: device.snareTune,
-                      snares: device.snareSnares,
-                      snap: device.snareSnap,
-                      decay: device.snareDecay,
-                      accent: accent,
-                    ),
-                  ),
+    SnareKnobSpec spec(String parameterId) =>
+        knobs.firstWhere((candidate) => candidate.paramId == parameterId);
+    final bench = PercussionPanelLayout(
+      cards: [
+        PercussionControlCard(
+          child: Column(
+            children: [
+              PercussionMiniPreview(
+                child: SnareEnvelopePreview(
+                  body: device.snareBody,
+                  ring: device.snareRing,
+                  tune: device.snareTune,
+                  snares: device.snareSnares,
+                  snap: device.snareSnap,
+                  decay: device.snareDecay,
+                  accent: accent,
                 ),
-                const SizedBox(height: 8),
-                Expanded(
-                  flex: 1,
-                  child: DrumModelTabBar(
-                    labels: SnareModel.labels,
-                    selectedIndex: modelIndex,
-                    accent: accent,
-                    isEnabled: SnareModel.isSelectable,
-                    onSelected: (i) => onParameterChanged(
-                        'snareModel', SnareModel.valueFromIndex(i)),
-                  ),
-                ),
-              ],
-            ),
+              ),
+              Expanded(child: Center(child: _buildKnob(spec('snareTune')))),
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 5,
-            child: Column(
-              children: [
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      for (final spec in knobs.take(3)) _buildKnob(spec),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      for (final spec in knobs.skip(3)) _buildKnob(spec),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+        ),
+        PercussionControlCard(
+          child: PercussionKnobColumn(
+            children: [
+              _buildKnob(spec('snareBody')),
+              _buildKnob(spec('snareRing')),
+            ],
           ),
-        ],
-      ),
+        ),
+        PercussionControlCard(
+          child: PercussionKnobColumn(
+            children: [
+              _buildKnob(spec('snareSnares')),
+              _buildKnob(spec('snareSnap')),
+              _buildKnob(spec('snareDecay')),
+            ],
+          ),
+        ),
+      ],
     );
-
-    if (embeddedInCard) {
-      return bench;
-    }
-
-    return Material(
-      color: const Color(0xFF1C1C24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 6, 10, 4),
-            child: Text(
-              'SNARE GENERATOR',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Colors.white54,
-                    letterSpacing: 1.2,
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-          ),
-          Expanded(child: bench),
-        ],
-      ),
-    );
-  }
-
-  Widget _previewBox({required Widget child}) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFF0E0E14),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: ClipRRect(borderRadius: BorderRadius.circular(6), child: child),
+    return PercussionPanelSurface(
+      title: 'SNARE GENERATOR',
+      embeddedInCard: embeddedInCard,
+      child: bench,
     );
   }
 

@@ -22,7 +22,7 @@ final class SnareGeneratorDefinition extends DrumInstrumentDefinition {
 
   @override
   DeviceLayoutMetadata get layout => const DeviceLayoutMetadata(
-        designWidth: 480,
+        designWidth: 360,
         inputPanelWidth: 0,
         outputPanelWidth: 64,
       );

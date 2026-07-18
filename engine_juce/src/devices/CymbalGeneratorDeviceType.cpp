@@ -217,7 +217,7 @@ std::string_view CymbalGeneratorDeviceType::paramIdToString(uint16_t localId) co
 
 std::span<const ParamDescriptor> CymbalGeneratorDeviceType::paramDescriptors() const noexcept {
     static constexpr ParamDescriptor kParams[] = {
-        {static_cast<uint16_t>(CymbalParam::Model), "cymbalModel", "Model", 0.0f, 0.0f, 1.0f, true, true, ParameterUpdateRate::Discrete},
+        {static_cast<uint16_t>(CymbalParam::Model), "cymbalModel", "Model", 0.0f, 0.0f, 1.0f, false, false, ParameterUpdateRate::Discrete},
         {static_cast<uint16_t>(CymbalParam::Color), "cymbalColor", "Color", 0.68f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(CymbalParam::Decay), "cymbalDecay", "Decay", 0.50f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(CymbalParam::Width), "cymbalWidth", "Width", 0.35f, 0.0f, 1.0f, true, true},

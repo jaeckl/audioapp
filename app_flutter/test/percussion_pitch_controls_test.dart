@@ -96,7 +96,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: SizedBox(width: 480, height: 300, child: panel),
+          body: SizedBox(width: 360, height: 300, child: panel),
         ),
       ),
     );

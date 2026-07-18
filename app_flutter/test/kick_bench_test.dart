@@ -1,6 +1,7 @@
 import 'package:audioapp/bridge/project_snapshot.dart';
 import 'package:audioapp/features/device_strip/device_strip_metrics.dart';
 import 'package:audioapp/features/device_strip/device_strip_slot.dart';
+import 'package:audioapp/features/device_strip/percussion_panel_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -51,8 +52,8 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  test('kick design width is wider bench layout', () {
-    expect(DeviceStripMetrics.designWidthFor('kick_generator'), 480);
+  test('kick uses compact percussion design width', () {
+    expect(DeviceStripMetrics.designWidthFor('kick_generator'), 360);
   });
 
   testWidgets('kick bench shows all timbre knobs without tabs', (tester) async {
@@ -68,13 +69,34 @@ void main() {
     expect(find.text('Amp'), findsNothing);
   });
 
-  testWidgets('kick bench shows model segment with 808 selected', (tester) async {
+  testWidgets('kick bench uses unnamed cards without placeholder algorithms',
+      (tester) async {
     await pumpKickSlot(tester);
 
-    expect(find.text('808'), findsWidgets);
-    expect(find.text('909'), findsOneWidget);
-    expect(find.text('Analog'), findsOneWidget);
+    expect(find.byType(PercussionControlCard), findsNWidgets(3));
+    expect(find.text('909'), findsNothing);
+    expect(find.text('Analog'), findsNothing);
     expect(find.text('Mono · 808'), findsOneWidget);
+  });
+
+  testWidgets('percussion algorithm tabs are flat structural controls',
+      (tester) async {
+    int? selected;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Material(
+          child: PercussionAlgorithmTabBar(
+            labels: const ['808', '909'],
+            selectedIndex: 0,
+            accent: Colors.red,
+            onSelected: (index) => selected = index,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('percussion-algorithm-tab-1')));
+    expect(selected, 1);
   });
 
   testWidgets('kick velocity is on output rail not card body', (tester) async {

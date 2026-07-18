@@ -217,7 +217,7 @@ std::string_view CrashGeneratorDeviceType::paramIdToString(uint16_t localId) con
 
 std::span<const ParamDescriptor> CrashGeneratorDeviceType::paramDescriptors() const noexcept {
     static constexpr ParamDescriptor kParams[] = {
-        {static_cast<uint16_t>(CrashParam::Model), "crashModel", "Model", 0.0f, 0.0f, 1.0f, true, true, ParameterUpdateRate::Discrete},
+        {static_cast<uint16_t>(CrashParam::Model), "crashModel", "Model", 0.0f, 0.0f, 1.0f, false, false, ParameterUpdateRate::Discrete},
         {static_cast<uint16_t>(CrashParam::Color), "crashColor", "Color", 0.62f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(CrashParam::Spread), "crashSpread", "Spread", 0.50f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(CrashParam::Decay), "crashDecay", "Decay", 0.55f, 0.0f, 1.0f, true, true},

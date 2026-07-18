@@ -1,5 +1,6 @@
 import '../../devices/device_repository.dart';
 import 'device_knob_sizes.dart';
+import 'percussion_panel_layout.dart';
 
 /// Device strip layout constants.
 class DeviceStripMetrics {
@@ -31,7 +32,7 @@ class DeviceStripMetrics {
   /// Alias for [height] — fullscreen chain uses the same device card height.
   static const double fullscreenHeight = height;
 
-  static const double kickDesignWidth = 480;
+  static const double kickDesignWidth = PercussionPanelLayout.designWidth;
 
   static const double oscillatorDesignWidth = 360;
 

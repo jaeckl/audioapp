@@ -73,6 +73,43 @@ public:
             expectWithinAbsoluteError(defaultGain, 1.0f, 0.001f);
         }
 
+        beginTest("percussion algorithms are structural state");
+        {
+            const struct {
+                std::string_view typeId;
+                std::string_view modelParam;
+            } cases[] = {
+                {audioapp::device_types::kKickGenerator, "kickModel"},
+                {audioapp::device_types::kSnareGenerator, "snareModel"},
+                {audioapp::device_types::kCymbalGenerator, "cymbalModel"},
+                {audioapp::device_types::kCrashGenerator, "crashModel"},
+            };
+
+            for (const auto& item : cases) {
+                const auto* type = registry.find(item.typeId);
+                expect(type != nullptr, std::string(item.typeId) + " should be registered");
+                if (type == nullptr) continue;
+
+                bool foundDescriptor = false;
+                for (const auto& descriptor : type->paramDescriptors()) {
+                    if (descriptor.stableName != item.modelParam) continue;
+                    foundDescriptor = true;
+                    expect(!descriptor.automatable,
+                           std::string(item.modelParam) + " must not be automatable");
+                    expect(!descriptor.modulatable,
+                           std::string(item.modelParam) + " must not be modulatable");
+                }
+                expect(foundDescriptor,
+                       std::string(item.modelParam) + " descriptor should exist");
+
+                for (const auto parameter : type->modulatableParams()) {
+                    expect(parameter != item.modelParam,
+                           std::string(item.modelParam) +
+                               " must not be advertised as a modulation target");
+                }
+            }
+        }
+
         beginTest("create default subtractive synth");
         {
             audioapp::DeviceSlot synth = registry.createDefault(
