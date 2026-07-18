@@ -4122,6 +4122,57 @@ void ProjectEngine::syncActiveFrequencyLocked() {
 }
 
 void ProjectEngine::rebuildModEdgesLocked() {
+    const auto normalizedBaseValue = [this](
+        const std::string& deviceId,
+        const std::string& parameterId,
+        const IDeviceType* type) -> float {
+        if (type == nullptr) return 0.0f;
+        const auto* slot = findDeviceLocked(deviceId);
+        if (slot == nullptr) return 0.0f;
+
+        float minimum = 0.0f;
+        float maximum = 1.0f;
+        float rawValue = 0.0f;
+        bool found = false;
+        const auto descriptors = type->paramDescriptors();
+        const auto descriptor = std::find_if(
+            descriptors.begin(), descriptors.end(),
+            [&](const ParamDescriptor& candidate) {
+                return parameterId == candidate.stableName;
+            });
+        if (descriptor != descriptors.end()) {
+            minimum = descriptor->minValue;
+            maximum = descriptor->maxValue;
+            rawValue = descriptor->defaultValue;
+        }
+
+        const auto serialized = type->slotToVar(*slot);
+        if (const auto* object = serialized.getDynamicObject()) {
+            const juce::Identifier property(parameterId);
+            const juce::DynamicObject* values = nullptr;
+            if (parameterId == "gain" || parameterId == "pan" ||
+                parameterId == "outputMix" || parameterId == "outputWidth") {
+                values = object->getProperty("outputPanel").getDynamicObject();
+            } else if (parameterId == "bypass") {
+                values = object;
+            } else {
+                values = object->getProperty("parameters").getDynamicObject();
+            }
+            if (values != nullptr && values->hasProperty(property)) {
+                const auto value = values->getProperty(property);
+                if (value.isDouble() || value.isInt() || value.isInt64() ||
+                    value.isBool()) {
+                    rawValue = static_cast<float>(static_cast<double>(value));
+                    found = true;
+                }
+            }
+        }
+        if (!found && descriptor == descriptors.end()) return 0.0f;
+        const float width = maximum - minimum;
+        if (!std::isfinite(rawValue) || width <= 0.0f) return 0.0f;
+        return std::clamp((rawValue - minimum) / width, 0.0f, 1.0f);
+    };
+
     for (int t = 0; t < kMaxTracks; ++t) {
         auto& snap = trackPlayback_[t];
         snap.modEdgeCount = 0;
@@ -4182,6 +4233,8 @@ void ProjectEngine::rebuildModEdgesLocked() {
                          : static_cast<uint16_t>(-1);
                 me.localParamId = encodeAutomationParamId(
                     globalEdge.paramId.c_str(), targetKind, rawPerKindId);
+                me.baseValue = normalizedBaseValue(
+                    globalEdge.deviceId, globalEdge.paramId, type);
             }
             if (me.localParamId == 0 && globalEdge.paramId != "gain") {
                 --snap.modEdgeCount;

@@ -511,6 +511,43 @@ int main() {
                (*ownedValues)[1].isVoid(),
            "effective UI values batch under one project-state read lock");
 
+    auto modulationPresentationProject = std::make_unique<ProjectEngine>();
+    modulationPresentationProject->createProject();
+    const auto modulationTrack =
+        modulationPresentationProject->addTrack("Modulation Presentation");
+    modulationPresentationProject->addDeviceToTrack(
+        modulationTrack, device_types::kOscillator);
+    const auto untouchedDistortion =
+        modulationPresentationProject->addDeviceToTrack(
+            modulationTrack, device_types::kDistortion);
+    const int presentationLfo = modulationPresentationProject->createLfo(0);
+    expect(modulationPresentationProject->updateLfoParam(
+               presentationLfo, "waveform", 1.0f) &&
+               modulationPresentationProject->updateLfoParam(
+                   presentationLfo, "rate", 8.0f) &&
+               modulationPresentationProject->updateLfoParam(
+                   presentationLfo, "retrigger", 1.0f) &&
+               modulationPresentationProject->assignModulation(
+                   presentationLfo, untouchedDistortion, "drive", 0.5f),
+           "modulation presentation fixture assigns an untouched parameter");
+    modulationPresentationProject->setPlaying(true);
+    bool observedLiveDisplacement = false;
+    double observedBase = -1.0;
+    for (int block = 0; block < 32 && !observedLiveDisplacement; ++block) {
+        modulationPresentationProject->readMasterMixStereo(
+            tapLeft, tapRight, 128, 48000.0, 0.0);
+        const auto monitored = juce::JSON::parse(
+            modulationPresentationProject->readEffectiveParameterJson(
+                untouchedDistortion, "drive"));
+        if (!static_cast<bool>(monitored["ok"])) continue;
+        observedBase = static_cast<double>(monitored["automationBase"]);
+        const double finalValue = static_cast<double>(monitored["value"]);
+        observedLiveDisplacement = std::abs(finalValue - observedBase) > 1.0e-4;
+    }
+    modulationPresentationProject->setPlaying(false);
+    expect(observedBase >= 0.0 && observedLiveDisplacement,
+           "untouched modulation-only parameters publish base and animated final values");
+
     auto drumProject = std::make_unique<ProjectEngine>();
     drumProject->createProject();
     const auto drumTrack = drumProject->addTrack("Drum Tap");

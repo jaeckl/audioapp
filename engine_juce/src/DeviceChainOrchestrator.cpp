@@ -539,7 +539,9 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
             uint16_t parameterId = 0xffff;
             float automatedValue = 0.0f;
             float modulationAmount = 0.0f;
+            float compiledBaseValue = 0.0f;
             bool hasAutomation = false;
+            bool hasCompiledBaseValue = false;
         };
         std::array<FinalParameterTarget, kMaxCompiledParametersPerProcessor> finalTargets{};
         int finalTargetCount = 0;
@@ -626,7 +628,13 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                     target = &finalTargets[static_cast<size_t>(finalTargetCount++)];
                     target->parameterId = pid;
                 }
-                if (target != nullptr) target->modulationAmount += modAmount;
+                if (target != nullptr) {
+                    target->modulationAmount += modAmount;
+                    if (!target->hasCompiledBaseValue) {
+                        target->compiledBaseValue = edge.baseValue;
+                        target->hasCompiledBaseValue = true;
+                    }
+                }
             }
         }
 
@@ -643,9 +651,10 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                                         target.parameterId);
                     }, modulatedParams);
                 }
-                float manualBase = 0.0f;
-                if (proc->readManualEffectiveParameter(
-                        target.parameterId, manualBase)) {
+                float manualBase = target.compiledBaseValue;
+                const bool hasLiveManualBase = proc->readManualEffectiveParameter(
+                    target.parameterId, manualBase);
+                if (hasLiveManualBase || target.hasCompiledBaseValue) {
                     proc->publishPresentationParameter(
                         target.parameterId,
                         manualBase,

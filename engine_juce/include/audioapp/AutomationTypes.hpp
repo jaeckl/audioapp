@@ -545,6 +545,10 @@ struct ModulationEdgePlayback {
     uint16_t localParamId = 0;
     uint16_t lfoId = 0;
     float amount = 0.0f;
+    // Normalized control-thread value at edge compilation. This lets the
+    // presentation monitor publish modulation-only targets before the user
+    // has touched the parameter and created a live smoothing slot.
+    float baseValue = 0.0f;
 };
 
 constexpr bool playbackTargetMatches(uint64_t targetNodeId,
