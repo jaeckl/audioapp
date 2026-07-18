@@ -26,6 +26,7 @@ void main() {
   String? lastRecentProjectUri;
   String? lastExampleProjectJson;
   String? lastCreatedWorkspaceFolder;
+  int stopCalls = 0;
 
   const bootstrapSnapshot = {
     'ok': true,
@@ -55,6 +56,7 @@ void main() {
     lastRecentProjectUri = null;
     lastExampleProjectJson = null;
     lastCreatedWorkspaceFolder = null;
+    stopCalls = 0;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
       switch (call.method) {
@@ -86,6 +88,15 @@ void main() {
             'bpm': 120,
             'loopEnabled': true,
             'loopLengthBeats': 16.0,
+          };
+        case 'configureAudioEngine':
+        case 'getAudioEngineStatus':
+          return {
+            'ok': true,
+            'profile': 'balanced',
+            'platform': 'AAudio',
+            'streamOpen': false,
+            'sampleRate': 48000.0,
           };
         case 'addTrack':
           return {
@@ -457,12 +468,16 @@ void main() {
         case 'setDeviceStringParameter':
         case 'setMasterGain':
         case 'setPlayheadBeats':
-        case 'play':
-        case 'stop':
         case 'enterPlayMode':
         case 'allNotesOff':
         case 'clearCapture':
+        case 'stopPreview':
           return {'ok': true};
+        case 'play':
+          return null;
+        case 'stop':
+          stopCalls++;
+          return null;
         case 'noteOn':
           final args = call.arguments as Map<dynamic, dynamic>?;
           lastNoteOnPitch = (args?['pitch'] as num?)?.toInt();
@@ -567,6 +582,28 @@ void main() {
     await tester.tap(find.byTooltip('Add track'));
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.play_arrow), findsOneWidget);
+  });
+
+  testWidgets('playback stops when the app is no longer active',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(home: DawShell(bridge: EngineBridge(channel: channel))),
+    );
+    final playButton = find.bySemanticsLabel('Play');
+    for (var i = 0; i < 20 && playButton.evaluate().isEmpty; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    await tester.tap(playButton);
+    await tester.pump();
+    expect(find.bySemanticsLabel('Stop'), findsOneWidget);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.bySemanticsLabel('Play'), findsOneWidget);
+    expect(stopCalls, greaterThan(0));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
   });
 
   testWidgets('welcome hub waits for explicit project creation',

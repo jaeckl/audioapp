@@ -217,6 +217,18 @@ class DawTransportController extends ChangeNotifier {
     }
   }
 
+  Future<void> stopForLifecycle() async {
+    stopPlayheadAnimation();
+    _holdPlayheadForCountIn = false;
+    playing = false;
+    notifyListeners();
+    try {
+      await _bridge.stop();
+    } catch (_) {
+      // The native Activity has its own onPause fail-safe.
+    }
+  }
+
   void setFollowPlayheadEnabled(bool enabled) {
     followPlayheadEnabled = enabled;
     if (enabled) {

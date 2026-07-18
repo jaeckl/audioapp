@@ -29,7 +29,17 @@ struct EngineHost::Impl {
     // Timing instrumentation (audio-thread safe, atomics)
     std::atomic<int64_t> maxCallbackNs{0};
     std::atomic<uint32_t> callbackCount{0};
+    std::atomic<uint32_t> callbackOverrunCount{0};
     int64_t blockDeadlineNs = 0; // set on stream open
+
+    enum class AudioProfile : int { LowLatency, Balanced, Safe };
+    std::atomic<AudioProfile> profile{AudioProfile::Balanced};
+    std::atomic<int32_t> actualFramesPerBurst{0};
+    std::atomic<int32_t> actualBufferSize{0};
+    std::atomic<int32_t> actualBufferCapacity{0};
+    std::atomic<int32_t> actualFramesPerCallback{0};
+    std::atomic<int32_t> actualPerformanceMode{AAUDIO_PERFORMANCE_MODE_NONE};
+    std::atomic<int32_t> actualSharingMode{AAUDIO_SHARING_MODE_SHARED};
 
     static aaudio_data_callback_result_t dataCallback(AAudioStream* /*stream*/,
                                                         void* userData,
@@ -44,6 +54,7 @@ struct EngineHost::Impl {
         timespec t0;
         clock_gettime(CLOCK_MONOTONIC, &t0);
         const int64_t deadlineNs = self->blockDeadlineNs;
+        self->callbackCount.fetch_add(1, std::memory_order_relaxed);
 
         // --- Core render ---
         auto* output = static_cast<float*>(audioData);
@@ -96,6 +107,7 @@ struct EngineHost::Impl {
 
         // Log overruns only — STATS logging on the audio thread can itself cause XRUNs.
         if (deadlineNs > 0 && elapsedNs > deadlineNs) {
+            self->callbackOverrunCount.fetch_add(1, std::memory_order_relaxed);
             static thread_local int32_t xrunThrottle = 0;
             if ((++xrunThrottle % 20) == 0) {
                 AUDIOAPP_ERR("XRUN: callback took %lld us (deadline %lld us) ph=%.2f",
@@ -128,11 +140,21 @@ struct EngineHost::Impl {
             return false;
         }
 
+        const auto requestedProfile = profile.load(std::memory_order_acquire);
+        const auto performanceMode = requestedProfile == AudioProfile::Safe
+            ? AAUDIO_PERFORMANCE_MODE_POWER_SAVING
+            : AAUDIO_PERFORMANCE_MODE_LOW_LATENCY;
+        const auto sharingMode = requestedProfile == AudioProfile::LowLatency
+            ? AAUDIO_SHARING_MODE_EXCLUSIVE
+            : AAUDIO_SHARING_MODE_SHARED;
+
         AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
-        AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_POWER_SAVING);
-        AAudioStreamBuilder_setBufferCapacityInFrames(builder, 8192);
-        AAudioStreamBuilder_setFramesPerDataCallback(builder, 1024);
-        AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_SHARED);
+        AAudioStreamBuilder_setPerformanceMode(builder, performanceMode);
+        if (requestedProfile == AudioProfile::Safe) {
+            AAudioStreamBuilder_setBufferCapacityInFrames(builder, 8192);
+            AAudioStreamBuilder_setFramesPerDataCallback(builder, 1024);
+        }
+        AAudioStreamBuilder_setSharingMode(builder, sharingMode);
         AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_FLOAT);
         AAudioStreamBuilder_setChannelCount(builder, 2);
         AAudioStreamBuilder_setDataCallback(builder, &Impl::dataCallback, this);
@@ -141,6 +163,25 @@ struct EngineHost::Impl {
         result = AAudioStreamBuilder_openStream(builder, &stream);
         AAudioStreamBuilder_delete(builder);
 
+        if ((result != AAUDIO_OK || stream == nullptr) &&
+            sharingMode == AAUDIO_SHARING_MODE_EXCLUSIVE) {
+            // Exclusive mode is opportunistic on Android. Retry the same
+            // low-latency profile in shared mode instead of failing playback.
+            stream = nullptr;
+            result = AAudio_createStreamBuilder(&builder);
+            if (result == AAUDIO_OK && builder != nullptr) {
+                AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
+                AAudioStreamBuilder_setPerformanceMode(builder, performanceMode);
+                AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_SHARED);
+                AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_FLOAT);
+                AAudioStreamBuilder_setChannelCount(builder, 2);
+                AAudioStreamBuilder_setDataCallback(builder, &Impl::dataCallback, this);
+                AAudioStreamBuilder_setErrorCallback(builder, &Impl::errorCallback, this);
+                result = AAudioStreamBuilder_openStream(builder, &stream);
+                AAudioStreamBuilder_delete(builder);
+            }
+        }
+
         if (result != AAUDIO_OK || stream == nullptr) {
             AUDIOAPP_LOG("AAudioStreamBuilder_openStream failed: %s", AAudio_convertResultToText(result));
             stream = nullptr;
@@ -148,11 +189,22 @@ struct EngineHost::Impl {
         }
 
         sampleRate.store(AAudioStream_getSampleRate(stream), std::memory_order_release);
+        const int32_t framesPerBurst = AAudioStream_getFramesPerBurst(stream);
+        if (requestedProfile != AudioProfile::Safe && framesPerBurst > 0) {
+            const int32_t burstCount = requestedProfile == AudioProfile::LowLatency ? 2 : 4;
+            AAudioStream_setBufferSizeInFrames(stream, framesPerBurst * burstCount);
+        }
         // Compute per-callback deadline: bufferSize / sampleRate in nanoseconds
         const int32_t actualBufSize = AAudioStream_getBufferSizeInFrames(stream);
         const int32_t framesPerCallback = AAudioStream_getFramesPerDataCallback(stream);
         const int32_t effectiveFrames = framesPerCallback > 0 ? framesPerCallback : actualBufSize;
         blockDeadlineNs = static_cast<int64_t>(static_cast<double>(effectiveFrames) / sampleRate.load(std::memory_order_acquire) * 1e9);
+        actualFramesPerBurst.store(framesPerBurst, std::memory_order_release);
+        actualBufferSize.store(actualBufSize, std::memory_order_release);
+        actualBufferCapacity.store(AAudioStream_getBufferCapacityInFrames(stream), std::memory_order_release);
+        actualFramesPerCallback.store(framesPerCallback, std::memory_order_release);
+        actualPerformanceMode.store(AAudioStream_getPerformanceMode(stream), std::memory_order_release);
+        actualSharingMode.store(AAudioStream_getSharingMode(stream), std::memory_order_release);
         oscillator.setFrequency(440.0f);
         AUDIOAPP_LOG("AAudio stream open, sampleRate=%.0f bufferFrames=%d callbackFrames=%d deadlineNs=%lld",
                      sampleRate.load(), actualBufSize, framesPerCallback, blockDeadlineNs);
@@ -167,6 +219,7 @@ struct EngineHost::Impl {
         AAudioStream_requestStop(stream);
         AAudioStream_close(stream);
         stream = nullptr;
+        blockDeadlineNs = 0;
     }
 
     bool startStream() {
@@ -233,6 +286,60 @@ void EngineHost::setPlaying(bool shouldPlay) {
 
 bool EngineHost::isPlaying() const noexcept {
     return impl_->playing.load(std::memory_order_acquire);
+}
+
+bool EngineHost::configureAudioEngine(const std::string& profileName) {
+    Impl::AudioProfile nextProfile;
+    if (profileName == "low_latency") {
+        nextProfile = Impl::AudioProfile::LowLatency;
+    } else if (profileName == "balanced") {
+        nextProfile = Impl::AudioProfile::Balanced;
+    } else if (profileName == "safe") {
+        nextProfile = Impl::AudioProfile::Safe;
+    } else {
+        return false;
+    }
+
+    setPlaying(false);
+    stopPreview();
+    allNotesOff();
+    impl_->closeStream();
+    impl_->profile.store(nextProfile, std::memory_order_release);
+    impl_->maxCallbackNs.store(0, std::memory_order_release);
+    impl_->callbackCount.store(0, std::memory_order_release);
+    impl_->callbackOverrunCount.store(0, std::memory_order_release);
+    return true;
+}
+
+std::string EngineHost::getAudioEngineStatusJson() const {
+    const juce::ScopedLock lock(impl_->streamMutex);
+    const auto selected = impl_->profile.load(std::memory_order_acquire);
+    const char* profileName = selected == Impl::AudioProfile::LowLatency ? "low_latency"
+        : selected == Impl::AudioProfile::Safe ? "safe" : "balanced";
+    const bool streamOpen = impl_->stream != nullptr;
+    const int32_t xruns = streamOpen ? AAudioStream_getXRunCount(impl_->stream) : 0;
+    auto* status = new juce::DynamicObject();
+    status->setProperty("ok", true);
+    status->setProperty("profile", profileName);
+    status->setProperty("platform", "AAudio");
+    status->setProperty("streamOpen", streamOpen);
+    status->setProperty("sampleRate", impl_->sampleRate.load(std::memory_order_acquire));
+    status->setProperty("framesPerBurst", impl_->actualFramesPerBurst.load(std::memory_order_acquire));
+    status->setProperty("bufferSizeFrames", impl_->actualBufferSize.load(std::memory_order_acquire));
+    status->setProperty("bufferCapacityFrames", impl_->actualBufferCapacity.load(std::memory_order_acquire));
+    status->setProperty("framesPerCallback", impl_->actualFramesPerCallback.load(std::memory_order_acquire));
+    status->setProperty("xRunCount", xruns);
+    status->setProperty("callbackOverruns", static_cast<int>(impl_->callbackOverrunCount.load(std::memory_order_acquire)));
+    status->setProperty("maxCallbackMicros", static_cast<double>(impl_->maxCallbackNs.load(std::memory_order_acquire)) / 1000.0);
+    const bool exclusive = streamOpen
+        ? impl_->actualSharingMode.load(std::memory_order_acquire) == AAUDIO_SHARING_MODE_EXCLUSIVE
+        : selected == Impl::AudioProfile::LowLatency;
+    const bool lowLatency = streamOpen
+        ? impl_->actualPerformanceMode.load(std::memory_order_acquire) == AAUDIO_PERFORMANCE_MODE_LOW_LATENCY
+        : selected != Impl::AudioProfile::Safe;
+    status->setProperty("sharingMode", exclusive ? "exclusive" : "shared");
+    status->setProperty("performanceMode", lowLatency ? "low_latency" : "power_saving");
+    return juce::JSON::toString(juce::var(status), true).toStdString();
 }
 
 void EngineHost::ensureAudioOutput() {

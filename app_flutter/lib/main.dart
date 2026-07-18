@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'app/daw_shell.dart';
 import 'bridge/engine_bridge.dart';
 import 'features/settings/app_settings_store.dart';
+import 'features/settings/audio_engine_settings.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,21 +19,29 @@ Future<void> main() async {
     ),
   );
   var showWelcomeOnLaunch = true;
+  var audioEngineProfile = AudioEngineProfile.balanced;
   try {
-    showWelcomeOnLaunch = await AppSettingsStore().loadShowWelcomeOnLaunch();
+    final settings = AppSettingsStore();
+    showWelcomeOnLaunch = await settings.loadShowWelcomeOnLaunch();
+    audioEngineProfile = await settings.loadAudioEngineProfile();
   } catch (_) {
     // A preference failure must never prevent the DAW from opening.
   }
-  runApp(AudioApp(showWelcomeOnLaunch: showWelcomeOnLaunch));
+  runApp(AudioApp(
+    showWelcomeOnLaunch: showWelcomeOnLaunch,
+    audioEngineProfile: audioEngineProfile,
+  ));
 }
 
 class AudioApp extends StatelessWidget {
   const AudioApp({
     super.key,
     this.showWelcomeOnLaunch = true,
+    this.audioEngineProfile = AudioEngineProfile.balanced,
   });
 
   final bool showWelcomeOnLaunch;
+  final AudioEngineProfile audioEngineProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +61,7 @@ class AudioApp extends StatelessWidget {
       home: DawShell(
         bridge: EngineBridge(),
         showWelcomeOnLaunch: showWelcomeOnLaunch,
+        initialAudioEngineProfile: audioEngineProfile,
       ),
     );
   }

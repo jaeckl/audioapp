@@ -1,6 +1,7 @@
 part of 'daw_shell.dart';
 
-class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
+class _DawShellState extends State<DawShell>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late final DawTransportController _transport;
   late final SnapshotStore _store;
   late final LiveMetersStore _liveMeters;
@@ -30,6 +31,10 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   bool _wtPositionSendInFlight = false;
   bool _bootstrapReady = false;
   bool _showWelcomeOnLaunch = true;
+  late AudioEngineProfile _audioEngineProfile =
+      widget.initialAudioEngineProfile;
+  AudioEngineStatus? _audioEngineStatus;
+  bool _inactiveStopInFlight = false;
   List<RecentProjectEntry> _recentProjects = const [];
   bool _snapClipsEnabled = true;
   RecordWriteMode _recordWriteMode = RecordWriteMode.take;
@@ -133,6 +138,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _store = SnapshotStore(widget.bridge)..addListener(_onStoreChanged);
     _liveMeters = LiveMetersStore();
     _transport = DawTransportController(
@@ -147,6 +153,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pendingWtPositionTimer?.cancel();
     _audioRecordingSnapshotTimer?.cancel();
     _store.removeListener(_onStoreChanged);
@@ -157,6 +164,38 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     _transport.dispose();
     effectiveParameterMonitor.stop();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_transport.syncTransportState(updatePlaying: true));
+      return;
+    }
+    if (_inactiveStopInFlight) return;
+    _inactiveStopInFlight = true;
+    unawaited(_stopForInactiveApp());
+  }
+
+  Future<void> _stopForInactiveApp() async {
+    try {
+      // Update local transport state before platform calls: Flutter may be in
+      // the process of detaching. Android repeats the stop synchronously from
+      // Activity.onPause, so audio cannot outlive a stalled Flutter frame.
+      await _transport.stopForLifecycle();
+      _liveMeters.clear();
+      await Future.wait<void>([
+        widget.bridge.stopPreview().catchError((Object _) {}),
+        widget.bridge.allNotesOff().catchError((Object _) {}),
+      ]);
+      if (_anyRecordingActive) {
+        await _stopPlay();
+      }
+    } catch (_) {
+      // Lifecycle cleanup is best effort while the platform view detaches.
+    } finally {
+      _inactiveStopInFlight = false;
+    }
   }
 
   double get _effectivePlayheadBeats {

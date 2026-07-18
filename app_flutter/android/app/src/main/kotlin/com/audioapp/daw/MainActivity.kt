@@ -420,6 +420,14 @@ class MainActivity : FlutterFragmentActivity() {
         }
     }
 
+    override fun onPause() {
+        // AudioApp playback is foreground-only. This native boundary is the
+        // fail-safe for screen-off/app-switch if Flutter is momentarily busy.
+        nativeStop()
+        releasePlaybackWakeLock()
+        super.onPause()
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)

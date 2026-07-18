@@ -7,6 +7,7 @@ import 'live_meters_dto.dart';
 import 'param_descriptor.dart';
 import 'project_snapshot.dart';
 import 'transport_state.dart';
+import '../features/settings/audio_engine_settings.dart';
 
 part 'engine_bridge_recent_project_entry.dart';
 part 'engine_bridge_audio_recording_session.dart';
@@ -16,6 +17,7 @@ part 'engine_bridge_graph_taps.dart';
 part 'engine_bridge_ping.dart';
 part 'engine_bridge_play.dart';
 part 'engine_bridge_stop.dart';
+part 'engine_bridge_audio_engine.dart';
 part 'engine_bridge_create_project.dart';
 part 'engine_bridge_get_project_snapshot.dart';
 part 'engine_bridge_get_transport_state.dart';

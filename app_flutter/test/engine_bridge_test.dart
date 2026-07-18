@@ -1,6 +1,7 @@
 import 'package:audioapp/bridge/engine_bridge.dart';
 import 'package:audioapp/bridge/project_snapshot.dart';
 import 'package:audioapp/features/automation/automation_curve_shapes.dart';
+import 'package:audioapp/features/settings/audio_engine_settings.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -59,6 +60,26 @@ void main() {
         case 'play':
         case 'stop':
           return null;
+        case 'configureAudioEngine':
+        case 'getAudioEngineStatus':
+          return {
+            'ok': true,
+            'profile': call.arguments is Map
+                ? (call.arguments as Map)['profile'] ?? 'balanced'
+                : 'balanced',
+            'platform': 'AAudio',
+            'streamOpen': false,
+            'sampleRate': 48000.0,
+            'framesPerBurst': 192,
+            'bufferSizeFrames': 768,
+            'bufferCapacityFrames': 1536,
+            'framesPerCallback': 0,
+            'xRunCount': 0,
+            'callbackOverruns': 0,
+            'maxCallbackMicros': 0.0,
+            'sharingMode': 'shared',
+            'performanceMode': 'low_latency',
+          };
         case 'createProject':
           return emptySnapshot;
         case 'addTrack':
@@ -557,5 +578,17 @@ void main() {
       snapshot.selectedTrack!.automationClips.first.points.length,
       sawPoints.length,
     );
+  });
+
+  test('audio engine profile and diagnostics round-trip', () async {
+    final configured =
+        await bridge.configureAudioEngine(AudioEngineProfile.lowLatency);
+    expect(configured.profile, AudioEngineProfile.lowLatency);
+    expect(configured.sampleRate, 48000);
+    expect(configured.framesPerBurst, 192);
+
+    final status = await bridge.getAudioEngineStatus();
+    expect(status.profile, AudioEngineProfile.balanced);
+    expect(status.platform, 'AAudio');
   });
 }

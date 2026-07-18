@@ -32,15 +32,45 @@ extension DawShellStateBuildtabbodyOperation on _DawShellState {
           onSaveProject: _saveProject,
           onLoadProject: _loadProject,
           onExportMix: _exportMix,
-          onOpenSettings: () {
+          onOpenSettings: () async {
+            try {
+              _audioEngineStatus = await widget.bridge.getAudioEngineStatus();
+            } catch (_) {
+              // The settings page can still change the stored profile when
+              // runtime diagnostics are temporarily unavailable.
+            }
+            if (!mounted) return;
             Navigator.of(context).push<void>(
               MaterialPageRoute<void>(
                 builder: (_) => SettingsScreen(
                   showWelcomeOnLaunch: _showWelcomeOnLaunch,
+                  audioEngineProfile: _audioEngineProfile,
+                  audioEngineStatus: _audioEngineStatus,
                   onShowWelcomeOnLaunchChanged: (value) async {
                     await _appSettings.saveShowWelcomeOnLaunch(value);
                     if (!mounted) return;
                     _showWelcomeOnLaunch = value;
+                  },
+                  onAudioEngineProfileChanged: (profile) async {
+                    final previousProfile = _audioEngineProfile;
+                    if (_transport.playing || _anyRecordingActive) {
+                      await _stopPlay();
+                    }
+                    await Future.wait<void>([
+                      widget.bridge.stopPreview(),
+                      widget.bridge.allNotesOff(),
+                    ]);
+                    final status =
+                        await widget.bridge.configureAudioEngine(profile);
+                    try {
+                      await _appSettings.saveAudioEngineProfile(profile);
+                    } catch (_) {
+                      await widget.bridge.configureAudioEngine(previousProfile);
+                      rethrow;
+                    }
+                    _audioEngineProfile = profile;
+                    _audioEngineStatus = status;
+                    return status;
                   },
                 ),
               ),

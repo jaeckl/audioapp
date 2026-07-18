@@ -1364,6 +1364,18 @@ void EngineHost::registerAllCommands() {
         return commands::okResult();
     });
 
+    reg.registerCommand("configureAudioEngine", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto profile = ctx.args["profile"].toString().toStdString();
+        if (!ctx.engine.configureAudioEngine(profile)) {
+            return commands::errorResult("invalid_audio_profile");
+        }
+        return commands::rawResult(ctx.engine.getAudioEngineStatusJson());
+    });
+
+    reg.registerCommand("getAudioEngineStatus", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        return commands::rawResult(ctx.engine.getAudioEngineStatusJson());
+    });
+
     reg.registerCommand("createProject", [](const commands::CommandContext& ctx) -> commands::CommandResult {
         ctx.engine.createProject();
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());

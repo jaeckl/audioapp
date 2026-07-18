@@ -4,6 +4,12 @@ extension DawShellStateBootstrapOperation on _DawShellState {
   Future<void> _bootstrap() async {
     try {
       await widget.bridge.ping();
+      try {
+        _audioEngineStatus =
+            await widget.bridge.configureAudioEngine(_audioEngineProfile);
+      } catch (_) {
+        // Preference failures must not prevent opening or creating projects.
+      }
       await _refreshRecentProjects();
       final showWelcome = widget.showWelcomeOnLaunch;
       _showWelcomeOnLaunch = showWelcome;

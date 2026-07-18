@@ -37,6 +37,7 @@ import '../features/sample_library/sample_library_screen.dart';
 import '../features/sample_editor/sample_editor_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/settings/app_settings_store.dart';
+import '../features/settings/audio_engine_settings.dart';
 import '../features/settings/project_hub_screen.dart';
 import '../features/welcome/example_projects.dart';
 import '../features/welcome/welcome_hub.dart';
@@ -192,10 +193,12 @@ class DawShell extends StatefulWidget {
     super.key,
     required this.bridge,
     this.showWelcomeOnLaunch = false,
+    this.initialAudioEngineProfile = AudioEngineProfile.balanced,
   });
 
   final EngineBridge bridge;
   final bool showWelcomeOnLaunch;
+  final AudioEngineProfile initialAudioEngineProfile;
 
   @override
   State<DawShell> createState() => _DawShellState();

@@ -38,6 +38,8 @@ public:
     std::string ping() const;
     void setPlaying(bool shouldPlay);
     bool isPlaying() const noexcept;
+    bool configureAudioEngine(const std::string& profile);
+    std::string getAudioEngineStatusJson() const;
 
     void createProject();
     std::string addTrack(const std::string& name);
