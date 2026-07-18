@@ -45,6 +45,7 @@ import 'time_fx_panels.dart';
 import 'drum_machine_device_panel.dart';
 import 'modulation_connect_mode.dart';
 import 'chain_device_panel.dart';
+import 'split_device_panel.dart';
 import 'granular_device_panel.dart';
 import 'mood_fx_panels.dart';
 import 'frequency_fx_panels.dart';
@@ -93,6 +94,7 @@ part 'device_strip_slot_private_device_strip_slot_state_seq_polarity_toggle.dart
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_oscilloscope_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_drum_machine_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_device_chain_device.dart';
+part 'device_strip_slot_private_device_strip_slot_state_build_device_build_split_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_granular_formant_synth_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_simple_sampler_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_simple_oscillator_device.dart';
@@ -186,6 +188,9 @@ class DeviceStripSlot extends StatefulWidget {
     this.noteFxExpanded = false,
     this.onToggleAudioFx,
     this.onToggleNoteFx,
+    this.splitBranch0Expanded = false,
+    this.splitBranch1Expanded = false,
+    this.onToggleSplitBranch,
   });
 
   final TrackSnapshot track;
@@ -248,6 +253,9 @@ class DeviceStripSlot extends StatefulWidget {
   final bool noteFxExpanded;
   final VoidCallback? onToggleAudioFx;
   final VoidCallback? onToggleNoteFx;
+  final bool splitBranch0Expanded;
+  final bool splitBranch1Expanded;
+  final void Function(int branchIndex)? onToggleSplitBranch;
 
   @override
   State<DeviceStripSlot> createState() => _DeviceStripSlotState();

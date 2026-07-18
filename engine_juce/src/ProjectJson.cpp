@@ -669,6 +669,29 @@ juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& regi
         }
         return result;
     }
+    if (device_types::isSplitType(slot.config.typeId)) {
+        const auto& split = std::get<SplitModel>(slot.config.instance);
+        const IDeviceType* type = registry.findForSlot(slot);
+        juce::var result = type != nullptr ? type->slotToVar(slot) : juce::var{};
+        if (auto* object = result.getDynamicObject()) {
+            const std::vector<std::shared_ptr<DeviceSlot>>* sides[2] = {&split.branch0, &split.branch1};
+            juce::Array<juce::var> branches;
+            for (const auto* side : sides) {
+                juce::Array<juce::var> devices;
+                for (const auto& device : *side) {
+                    if (device != nullptr && !device_types::isSplitType(device->config.typeId) &&
+                        device->config.typeId != device_types::kChain) {
+                        devices.add(deviceSlotToVarImpl(*device, registry));
+                    }
+                }
+                auto* branchObject = new juce::DynamicObject();
+                branchObject->setProperty("devices", devices);
+                branches.add(juce::var(branchObject));
+            }
+            object->setProperty("branches", branches);
+        }
+        return result;
+    }
     if (slot.config.typeId == device_types::kDrumMachine) {
         const auto& machine = std::get<DrumMachineModel>(slot.config.instance);
         juce::Array<juce::var> pads;
@@ -761,6 +784,34 @@ DeviceSlot deviceVarToSlotImpl(const juce::var& obj, const DeviceRegistry& regis
                     DeviceSlot child = deviceVarToSlotImpl(value, registry);
                     if (!child.id.empty() && child.config.typeId != device_types::kChain) {
                         chain.devices.push_back(std::make_shared<DeviceSlot>(std::move(child)));
+                    }
+                }
+            }
+            return slot;
+        }
+        if (device_types::isSplitType(typeId)) {
+            const IDeviceType* type = registry.find(typeId);
+            if (type == nullptr) return {};
+            DeviceSlot slot = type->varToSlot(obj);
+            if (slot.id.empty()) return {};
+            slot.config.bypassed = static_cast<bool>(object->getProperty("bypass"));
+            auto& split = std::get<SplitModel>(slot.config.instance);
+            std::vector<std::shared_ptr<DeviceSlot>>* sides[2] = {&split.branch0, &split.branch1};
+            if (const auto* branches = varArray(object->getProperty("branches"))) {
+                for (int branchIndex = 0; branchIndex < 2 && branchIndex < branches->size();
+                     ++branchIndex) {
+                    const auto* branchObject = (*branches)[branchIndex].getDynamicObject();
+                    if (branchObject == nullptr) continue;
+                    if (const auto* devices = varArray(branchObject->getProperty("devices"))) {
+                        for (const auto& value : *devices) {
+                            if (sides[branchIndex]->size() >= 8) break;
+                            DeviceSlot child = deviceVarToSlotImpl(value, registry);
+                            if (!child.id.empty() && !device_types::isSplitType(child.config.typeId) &&
+                                child.config.typeId != device_types::kChain) {
+                                sides[branchIndex]->push_back(
+                                    std::make_shared<DeviceSlot>(std::move(child)));
+                            }
+                        }
                     }
                 }
             }

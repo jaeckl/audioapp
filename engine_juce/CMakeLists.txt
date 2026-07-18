@@ -90,12 +90,15 @@ add_library(audioapp_engine STATIC
   src/devices/processors/AnalysisProcessor.cpp
   src/devices/processors/ChainProcessor.cpp
   src/devices/processors/GranularProcessor.cpp
+  src/devices/processors/SplitProcessor.cpp
   src/devices/DeviceRegistry.cpp
   src/devices/DrumMachineModel.cpp
   src/devices/ChainModel.cpp
+  src/devices/SplitModel.cpp
   src/devices/DrumMachineDeviceType.cpp
   src/devices/AnalysisDeviceType.cpp
   src/devices/ChainDeviceType.cpp
+  src/devices/SplitDeviceType.cpp
   src/devices/GranularDeviceType.cpp
   src/devices/IDeviceType.cpp
   src/devices/OscillatorDeviceType.cpp
@@ -337,6 +340,7 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/sampler_midi_playback_test.cpp
     tests/sampler_playback_mode_test.cpp
     tests/snare_generator_test.cpp
+    tests/split_processor_test.cpp
     tests/stacked_lfo_modulation_test.cpp
     tests/subtractive_lfo_filter_test.cpp
     tests/subtractive_preset_apply_test.cpp

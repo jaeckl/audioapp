@@ -12,6 +12,8 @@ const fxDeviceTypes = <String>{
   'tremolo',
   'stutter_fx',
   'device_chain',
+  'lr_split',
+  'ms_split',
 };
 
 const frequencyFxDeviceTypes = <String>{

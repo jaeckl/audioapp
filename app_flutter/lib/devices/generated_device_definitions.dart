@@ -43,6 +43,8 @@ import 'time_fx/delay_definition.dart';
 import 'time_fx/phaser_definition.dart';
 import 'time_fx/reverb_definition.dart';
 import 'utility/device_chain_definition.dart';
+import 'utility/lr_split_definition.dart';
+import 'utility/ms_split_definition.dart';
 import 'utility/track_gain_definition.dart';
 
 final List<DeviceDefinition<DeviceSnapshot>> generatedDeviceDefinitions = [
@@ -86,5 +88,7 @@ final List<DeviceDefinition<DeviceSnapshot>> generatedDeviceDefinitions = [
   PhaserDefinition(),
   ReverbDefinition(),
   DeviceChainDefinition(),
+  LrSplitDefinition(),
+  MsSplitDefinition(),
   TrackGainDefinition(),
 ];

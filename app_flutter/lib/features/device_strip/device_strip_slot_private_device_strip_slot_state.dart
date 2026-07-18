@@ -86,6 +86,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       'loudness_meter',
       'stereo_imager',
       'device_chain',
+      'lr_split',
+      'ms_split',
       'granular_formant_synth',
       'stutter_fx',
     };

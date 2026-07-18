@@ -133,6 +133,11 @@ class ProjectSnapshot {
           final child = findInDevices(device.devices);
           if (child != null) return child;
         }
+        if (device is SplitDeviceSnapshot) {
+          final child = findInDevices(device.branch0) ??
+              findInDevices(device.branch1);
+          if (child != null) return child;
+        }
         if (device is DrumMachineDeviceSnapshot) {
           for (final pad in device.pads) {
             final child = findInDevices(pad.devices);
@@ -236,6 +241,12 @@ class ProjectSnapshot {
       if (device is ChainDeviceSnapshot) {
         return device.copyWith(
           devices: device.devices.map(updateDevice).toList(growable: false),
+        );
+      }
+      if (device is SplitDeviceSnapshot) {
+        return device.copyWith(
+          branch0: device.branch0.map(updateDevice).toList(growable: false),
+          branch1: device.branch1.map(updateDevice).toList(growable: false),
         );
       }
       if (device is DrumMachineDeviceSnapshot) {

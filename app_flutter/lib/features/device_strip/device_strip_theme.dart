@@ -60,6 +60,8 @@ abstract final class DeviceStripTheme {
   static const stutterAccent = Color(0xFF57D3C4);
   static const drumMachineAccent = Color(0xFF8B7CF6);
   static const analysisAccent = Color(0xFF57D3C4);
+  static const lrSplitAccent = Color(0xFF57C4E0);
+  static const msSplitAccent = Color(0xFFE0A857);
 
   static Color accentForDeviceType(String type) => switch (type) {
         'simple_sampler' => samplerAccent,
@@ -97,6 +99,8 @@ abstract final class DeviceStripTheme {
         'stutter_fx' => stutterAccent,
         'drum_machine' => drumMachineAccent,
         'device_chain' => const Color(0xFF62C7B5),
+        'lr_split' => lrSplitAccent,
+        'ms_split' => msSplitAccent,
         'granular_formant_synth' => const Color(0xFFDA70D6),
         'oscilloscope' ||
         'spectrum_analyzer' ||
@@ -142,6 +146,8 @@ abstract final class DeviceStripTheme {
         'stutter_fx' => 'Stutter',
         'drum_machine' => 'Drum Machine',
         'device_chain' => 'Chain',
+        'lr_split' => 'LR Split',
+        'ms_split' => 'Mid-Side Split',
         'granular_formant_synth' => 'Grain Form',
         'oscilloscope' => 'Oscilloscope',
         'spectrum_analyzer' => 'Spectrum Analyzer',

@@ -13,9 +13,11 @@ DeviceSnapshot _device(String id, String type) => DeviceSnapshot.fromMap({
     });
 
 void main() {
-  test('publishesLiveMeters covers analysis and dynamics types', () {
+  test('publishesLiveMeters covers analysis, dynamics and split types', () {
     expect(MeterSubscription.publishesLiveMeters('oscilloscope'), isTrue);
     expect(MeterSubscription.publishesLiveMeters('compressor'), isTrue);
+    expect(MeterSubscription.publishesLiveMeters('lr_split'), isTrue);
+    expect(MeterSubscription.publishesLiveMeters('ms_split'), isTrue);
     expect(MeterSubscription.publishesLiveMeters('simple_oscillator'), isFalse);
   });
 

@@ -80,6 +80,10 @@ DeviceSubgraphTree buildDeviceSubgraphTree(const DeviceSlot& slot) {
     if (const auto* chain = std::get_if<ChainModel>(&slot.config.instance)) {
         appendSlots(chain->devices, tree.chainChildren);
     }
+    if (const auto* split = std::get_if<SplitModel>(&slot.config.instance)) {
+        appendSlots(split->branch0, tree.splitBranch0);
+        appendSlots(split->branch1, tree.splitBranch1);
+    }
     if (const auto* drum = std::get_if<DrumMachineModel>(&slot.config.instance)) {
         for (const auto& pad : drum->pads) {
             if (pad.devices.empty()) continue;
@@ -118,6 +122,17 @@ DeviceSubgraphTree buildDeviceSubgraphTree(const DeviceNodePlayback& node) {
             }
             tree.drumPads.push_back(std::move(branch));
         }
+    }
+    if (const auto* split = std::get_if<SplitParams>(&node.params);
+        split != nullptr && split->playback != nullptr) {
+        auto appendBranch = [](const SplitBranchPlayback& branch, auto& destination) {
+            destination.reserve(static_cast<size_t>(branch.deviceCount));
+            for (int index = 0; index < branch.deviceCount; ++index) {
+                destination.push_back(buildDeviceSubgraphTree(branch.devices[index]));
+            }
+        };
+        appendBranch(split->playback->branches[0], tree.splitBranch0);
+        appendBranch(split->playback->branches[1], tree.splitBranch1);
     }
     return tree;
 }
@@ -174,6 +189,8 @@ CompiledDeviceSubgraphSchedule compileDeviceSubgraphTree(
         for (const auto& child : tree.chainChildren) appendRef(child, processorId, depth + 1, appendRef);
         for (const auto& pad : tree.drumPads)
             for (const auto& child : pad.children) appendRef(child, processorId, depth + 1, appendRef);
+        for (const auto& child : tree.splitBranch0) appendRef(child, processorId, depth + 1, appendRef);
+        for (const auto& child : tree.splitBranch1) appendRef(child, processorId, depth + 1, appendRef);
         appendStage(DeviceSubgraphNodeRole::OutputAdapter,
                     CompiledDeviceSubgraphStage::OutputAdapter);
     };

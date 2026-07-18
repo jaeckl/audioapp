@@ -43,6 +43,19 @@ struct DeviceChainScratchArena {
         return {nullptr, nullptr};
     }
 
+    /// Return a previously allocated stereo buffer pair to the arena.
+    /// Processors are rebuilt independently from this long-lived scratch
+    /// storage, so their leases must not remain marked in use after teardown.
+    void release(float* left, float* right) noexcept {
+        if (left == nullptr || right == nullptr) return;
+        for (int i = 0; i < kMaxTimeBasedEffects; ++i) {
+            if (left == storage[i][0] && right == storage[i][1]) {
+                inUse[i] = false;
+                return;
+            }
+        }
+    }
+
     void reset() noexcept {
         for (int i = 0; i < kMaxTimeBasedEffects; ++i) inUse[i] = false;
     }

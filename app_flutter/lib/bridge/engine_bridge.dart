@@ -37,6 +37,8 @@ part 'engine_bridge_add_device_to_drum_pad.dart';
 part 'engine_bridge_remove_device_from_drum_pad.dart';
 part 'engine_bridge_add_device_to_chain.dart';
 part 'engine_bridge_remove_device_from_chain.dart';
+part 'engine_bridge_add_device_to_split_branch.dart';
+part 'engine_bridge_remove_device_from_split_branch.dart';
 part 'engine_bridge_add_device_to_synth_audio_fx.dart';
 part 'engine_bridge_remove_device_from_synth_audio_fx.dart';
 part 'engine_bridge_add_device_to_synth_note_fx.dart';

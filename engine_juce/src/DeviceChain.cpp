@@ -128,6 +128,8 @@ DeviceNodeKind deviceNodeKindFromTypeId(const std::string& typeId) noexcept {
     if (typeId == kLoudnessMeter)    return DeviceNodeKind::LoudnessMeter;
     if (typeId == kStereoImager)     return DeviceNodeKind::StereoImager;
     if (typeId == kChain)            return DeviceNodeKind::Chain;
+    if (typeId == kLrSplit)          return DeviceNodeKind::Split;
+    if (typeId == kMsSplit)          return DeviceNodeKind::Split;
     return DeviceNodeKind::Unknown;
 }
 

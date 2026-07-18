@@ -10,6 +10,11 @@ TrackSnapshot? _trackOwningDevice(String deviceId) {
         if (device is ChainDeviceSnapshot && containsDevice(device.devices)) {
           return true;
         }
+        if (device is SplitDeviceSnapshot &&
+            (containsDevice(device.branch0) ||
+                containsDevice(device.branch1))) {
+          return true;
+        }
         if (device is DrumMachineDeviceSnapshot) {
           for (final pad in device.pads) {
             if (containsDevice(pad.devices)) return true;

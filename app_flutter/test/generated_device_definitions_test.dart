@@ -47,6 +47,8 @@ void main() {
         'loudness_meter',
         'stereo_imager',
         'device_chain',
+        'lr_split',
+        'ms_split',
         'track_gain',
       },
     );

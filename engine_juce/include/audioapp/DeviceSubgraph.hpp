@@ -81,6 +81,8 @@ struct DeviceSubgraphTree {
     std::vector<DeviceSubgraphTree> audioFx;
     std::vector<DeviceSubgraphTree> chainChildren;
     std::vector<DrumPadBranch> drumPads;
+    std::vector<DeviceSubgraphTree> splitBranch0;
+    std::vector<DeviceSubgraphTree> splitBranch1;
 };
 
 DeviceSubgraphTree buildDeviceSubgraphTree(const DeviceSlot& slot);

@@ -141,6 +141,19 @@ bool EngineHost::removeDeviceFromChain(const std::string& chainId, const std::st
     return project_ != nullptr && project_->removeDeviceFromChain(chainId, deviceId);
 }
 
+std::string EngineHost::addDeviceToSplitBranch(const std::string& splitId, int branchIndex,
+                                                const std::string& deviceType, int insertIndex) {
+    return project_ != nullptr
+        ? project_->addDeviceToSplitBranch(splitId, branchIndex, deviceType, insertIndex)
+        : std::string{};
+}
+
+bool EngineHost::removeDeviceFromSplitBranch(const std::string& splitId, int branchIndex,
+                                             const std::string& deviceId) {
+    return project_ != nullptr &&
+        project_->removeDeviceFromSplitBranch(splitId, branchIndex, deviceId);
+}
+
 std::string EngineHost::addDeviceToSynthAudioFx(const std::string& deviceId,
                                                   const std::string& deviceType, int insertIndex) {
     return project_ != nullptr ? project_->addDeviceToSynthAudioFx(deviceId, deviceType, insertIndex) : std::string{};
@@ -1546,6 +1559,26 @@ void EngineHost::registerAllCommands() {
         const auto deviceId = ctx.args["deviceId"].toString().toStdString();
         if (!ctx.engine.removeDeviceFromChain(chainId, deviceId))
             return commands::errorResult("chain_device_not_found");
+        return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
+    });
+
+    reg.registerCommand("addDeviceToSplitBranch", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto splitId = ctx.args["splitId"].toString().toStdString();
+        const auto deviceType = ctx.args["deviceType"].toString().toStdString();
+        const int branchIndex = static_cast<int>(static_cast<double>(ctx.args["branchIndex"]));
+        const int insertIndex = ctx.args.hasProperty("insertIndex")
+            ? static_cast<int>(static_cast<double>(ctx.args["insertIndex"])) : -1;
+        if (ctx.engine.addDeviceToSplitBranch(splitId, branchIndex, deviceType, insertIndex).empty())
+            return commands::errorResult("invalid_split_device");
+        return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
+    });
+
+    reg.registerCommand("removeDeviceFromSplitBranch", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto splitId = ctx.args["splitId"].toString().toStdString();
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        const int branchIndex = static_cast<int>(static_cast<double>(ctx.args["branchIndex"]));
+        if (!ctx.engine.removeDeviceFromSplitBranch(splitId, branchIndex, deviceId))
+            return commands::errorResult("split_device_not_found");
         return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
     });
 

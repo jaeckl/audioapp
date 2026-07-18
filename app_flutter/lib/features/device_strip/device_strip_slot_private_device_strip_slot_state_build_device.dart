@@ -12,6 +12,9 @@ extension DeviceStripSlotStateBuilddeviceOperation on _DeviceStripSlotState {
         return _buildDrumMachineDevice(context, contentHeight);
       case 'device_chain':
         return _buildDeviceChainDevice(context, contentHeight);
+      case 'lr_split':
+      case 'ms_split':
+        return _buildSplitDevice(context, contentHeight);
       case 'granular_formant_synth':
         return _buildGranularFormantSynthDevice(context, contentHeight);
       case 'simple_sampler':

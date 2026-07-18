@@ -25,6 +25,7 @@ part 'device_chain_row_private_virtual_chain_bracket_painter.dart';
 part 'device_chain_row_private_device_chain_row_state_sample_drop_target.dart';
 part 'device_chain_row_private_device_chain_row_state_automation_aware_device.dart';
 part 'device_chain_row_private_device_chain_row_state_virtual_device_chain.dart';
+part 'device_chain_row_private_device_chain_row_state_virtual_split_branch.dart';
 part 'device_chain_row_private_device_chain_row_state_virtual_pad_chain.dart';
 part 'device_chain_row_private_device_chain_row_state_virtual_audio_fx_chain.dart';
 part 'device_chain_row_private_device_chain_row_state_virtual_note_fx_chain.dart';

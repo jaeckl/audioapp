@@ -117,6 +117,12 @@ void collectDeviceTreeIds(const DeviceSlot& slot, std::vector<std::string>& ids)
         for (const auto& pad : std::get<DrumMachineModel>(slot.config.instance).pads)
             for (const auto& child : pad.devices)
                 if (child) collectDeviceTreeIds(*child, ids);
+    } else if (device_types::isSplitType(slot.config.typeId)) {
+        const auto& split = std::get<SplitModel>(slot.config.instance);
+        for (const auto& child : split.branch0)
+            if (child) collectDeviceTreeIds(*child, ids);
+        for (const auto& child : split.branch1)
+            if (child) collectDeviceTreeIds(*child, ids);
     }
     for (const auto& child : slot.noteFxDevices)
         if (child) collectDeviceTreeIds(*child, ids);
@@ -407,6 +413,53 @@ bool ProjectEngine::removeDeviceFromChain(const std::string& chainId,
     return true;
 }
 
+std::string ProjectEngine::addDeviceToSplitBranch(const std::string& splitId,
+                                                   int branchIndex,
+                                                   const std::string& deviceType,
+                                                   int insertIndex) {
+    const juce::ScopedWriteLock lock(mutex_);
+    if (branchIndex < 0 || branchIndex > 1) return {};
+    DeviceSlot* slot = findDeviceLocked(splitId);
+    if (slot == nullptr || !device_types::isSplitType(slot->config.typeId) ||
+        device_types::isSplitType(deviceType) || deviceType == device_types::kChain ||
+        !deviceRegistry_.isKnownType(deviceType)) return {};
+    auto& split = std::get<SplitModel>(slot->config.instance);
+    auto& branch = branchIndex == 0 ? split.branch0 : split.branch1;
+    if (branch.size() >= 8) return {};
+    const std::string id = trackRepo_.allocateDeviceId();
+    auto child = std::make_shared<DeviceSlot>(deviceRegistry_.createDefault(deviceType, id));
+    const size_t at = insertIndex < 0 ? branch.size()
+        : std::min(static_cast<size_t>(insertIndex), branch.size());
+    branch.insert(branch.begin() + static_cast<std::ptrdiff_t>(at), std::move(child));
+    rebuildTrackPlaybackLocked();
+    return id;
+}
+
+bool ProjectEngine::removeDeviceFromSplitBranch(const std::string& splitId,
+                                                int branchIndex,
+                                                const std::string& deviceId) {
+    const juce::ScopedWriteLock lock(mutex_);
+    if (branchIndex < 0 || branchIndex > 1) return false;
+    DeviceSlot* slot = findDeviceLocked(splitId);
+    if (slot == nullptr || !device_types::isSplitType(slot->config.typeId)) return false;
+    auto& split = std::get<SplitModel>(slot->config.instance);
+    auto& branch = branchIndex == 0 ? split.branch0 : split.branch1;
+    const auto it = std::find_if(branch.begin(), branch.end(), [&](const auto& child) {
+        return child != nullptr && child->id == deviceId;
+    });
+    if (it == branch.end()) return false;
+    std::vector<std::string> removedIds;
+    collectDeviceTreeIds(**it, removedIds);
+    branch.erase(it);
+    for (const auto& removedId : removedIds) {
+        automationClipStore_.unlinkForDevice(removedId);
+        modulationGraph_.removeModulationForDevice(removedId);
+        modulationGraph_.removeModulatorsOwnedByDevice(removedId);
+    }
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
 std::string ProjectEngine::addDeviceToSynthAudioFx(const std::string& deviceId,
                                                     const std::string& deviceType,
                                                     int insertIndex) {
@@ -499,6 +552,12 @@ std::string ProjectEngine::getDevicePresetJson(const std::string& deviceId) cons
             for (const auto& pad : std::get<DrumMachineModel>(slot.config.instance).pads)
                 for (const auto& child : pad.devices)
                     if (child) if (const auto* found = find(*child)) return found;
+        } else if (device_types::isSplitType(slot.config.typeId)) {
+            const auto& split = std::get<SplitModel>(slot.config.instance);
+            for (const auto& child : split.branch0)
+                if (child) if (const auto* found = find(*child)) return found;
+            for (const auto& child : split.branch1)
+                if (child) if (const auto* found = find(*child)) return found;
         }
         for (const auto& child : slot.audioFxDevices)
             if (child) if (const auto* found = find(*child)) return found;
@@ -591,6 +650,10 @@ bool ProjectEngine::applyDevicePresetJson(const std::string& deviceId,
         } else if (slot.config.typeId == device_types::kDrumMachine) {
             for (const auto& pad : std::get<DrumMachineModel>(slot.config.instance).pads)
                 for (const auto& child : pad.devices) if (child) collectChildren(*child);
+        } else if (device_types::isSplitType(slot.config.typeId)) {
+            const auto& split = std::get<SplitModel>(slot.config.instance);
+            for (const auto& child : split.branch0) if (child) collectChildren(*child);
+            for (const auto& child : split.branch1) if (child) collectChildren(*child);
         }
         for (const auto& child : slot.audioFxDevices) if (child) collectChildren(*child);
         for (const auto& child : slot.noteFxDevices) if (child) collectChildren(*child);
@@ -608,6 +671,10 @@ bool ProjectEngine::applyDevicePresetJson(const std::string& deviceId,
         } else if (slot.config.typeId == device_types::kDrumMachine) {
             for (auto& pad : std::get<DrumMachineModel>(slot.config.instance).pads)
                 for (auto& child : pad.devices) if (child) renewIds(*child, false);
+        } else if (device_types::isSplitType(slot.config.typeId)) {
+            auto& split = std::get<SplitModel>(slot.config.instance);
+            for (auto& child : split.branch0) if (child) renewIds(*child, false);
+            for (auto& child : split.branch1) if (child) renewIds(*child, false);
         }
         for (auto& child : slot.audioFxDevices) if (child) renewIds(*child, false);
         for (auto& child : slot.noteFxDevices) if (child) renewIds(*child, false);
@@ -3712,7 +3779,24 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                     }
                 }
             }
-            if ((isDynamicsDeviceNodeKind(node.kind) || isAnalysisDeviceNodeKind(node.kind)) && deviceMeterSlotCount_ < kMaxDeviceMeters) {
+            if (node.kind == DeviceNodeKind::Split) {
+                auto playback = std::get<SplitParams>(node.params).playback;
+                if (playback != nullptr) {
+                    auto mutablePlayback = std::const_pointer_cast<SplitPlayback>(playback);
+                    for (int branch = 0; branch < 2; ++branch) {
+                        auto& branchPlayback = mutablePlayback->branches[branch];
+                        for (int child = 0; child < branchPlayback.deviceCount; ++child) {
+                            branchPlayback.devices[child].automationTargetIndex = static_cast<uint16_t>(
+                                0x2000u | (static_cast<uint16_t>(snap.deviceCount) << 5u) |
+                                (static_cast<uint16_t>(branch) << 4u) |
+                                static_cast<uint16_t>(child));
+                        }
+                    }
+                }
+            }
+            if ((isDynamicsDeviceNodeKind(node.kind) || isAnalysisDeviceNodeKind(node.kind) ||
+                 node.kind == DeviceNodeKind::Split) &&
+                deviceMeterSlotCount_ < kMaxDeviceMeters) {
                 node.meterSlot = static_cast<int8_t>(deviceMeterSlotCount_);
                 deviceMeterIds_[deviceMeterSlotCount_] = dev.id;
                 ++deviceMeterSlotCount_;
@@ -3953,6 +4037,22 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                     targetKind = childNode.kind;
                     targetType = deviceRegistry_.findByKind(targetKind);
                     break;
+                }
+            }
+            if (snap.devices[i].kind == DeviceNodeKind::Split) {
+                const auto playback = std::get<SplitParams>(snap.devices[i].params).playback;
+                if (playback == nullptr) continue;
+                for (int branch = 0; branch < 2 && di < 0; ++branch) {
+                    const auto& branchPlayback = playback->branches[branch];
+                    for (int child = 0; child < branchPlayback.deviceCount; ++child) {
+                        const auto& childNode = branchPlayback.devices[child];
+                        if (childNode.deviceId != clip.deviceId) continue;
+                        di = i;
+                        targetIndex = childNode.automationTargetIndex;
+                        targetKind = childNode.kind;
+                        targetType = deviceRegistry_.findByKind(targetKind);
+                        break;
+                    }
                 }
             }
         }
@@ -4263,6 +4363,20 @@ void ProjectEngine::rebuildModEdgesLocked() {
                         break;
                     }
                 }
+                if (snap.devices[i].kind == DeviceNodeKind::Split) {
+                    const auto playback = std::get<SplitParams>(snap.devices[i].params).playback;
+                    if (playback == nullptr) continue;
+                    for (int branch = 0; branch < 2 && di < 0; ++branch) {
+                        const auto& branchPlayback = playback->branches[branch];
+                        for (int child = 0; child < branchPlayback.deviceCount; ++child) {
+                            if (branchPlayback.devices[child].deviceId != globalEdge.deviceId) continue;
+                            di = i;
+                            targetIndex = branchPlayback.devices[child].automationTargetIndex;
+                            targetKind = branchPlayback.devices[child].kind;
+                            break;
+                        }
+                    }
+                }
                 if (di >= 0) break;
             }
             if (di < 0) continue;
@@ -4309,6 +4423,15 @@ DeviceSlot* ProjectEngine::findDeviceLocked(const std::string& deviceId) {
             if (device.config.typeId == device_types::kChain) {
                 auto& chain = std::get<ChainModel>(device.config.instance);
                 for (auto& child : chain.devices) {
+                    if (child != nullptr && child->id == deviceId) return child.get();
+                }
+            }
+            if (device_types::isSplitType(device.config.typeId)) {
+                auto& split = std::get<SplitModel>(device.config.instance);
+                for (auto& child : split.branch0) {
+                    if (child != nullptr && child->id == deviceId) return child.get();
+                }
+                for (auto& child : split.branch1) {
                     if (child != nullptr && child->id == deviceId) return child.get();
                 }
             }

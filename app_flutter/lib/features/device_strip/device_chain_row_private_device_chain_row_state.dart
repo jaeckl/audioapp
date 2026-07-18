@@ -5,9 +5,22 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
   List<String> _lastReported = const [];
   final Map<String, bool> _synthAudioFxExpanded = {};
   final Map<String, bool> _synthNoteFxExpanded = {};
+  final Map<String, Set<int>> _splitBranchExpanded = {};
 
   bool _isSynth(String type) =>
       DeviceCapabilities.virtualStripHosts.contains(type);
+
+  bool _isSplitBranchExpanded(String deviceId, int branchIndex) =>
+      _splitBranchExpanded[deviceId]?.contains(branchIndex) ?? false;
+
+  void _toggleSplitBranch(String deviceId, int branchIndex) {
+    setState(() {
+      final branches = _splitBranchExpanded.putIfAbsent(deviceId, () => {});
+      if (!branches.remove(branchIndex)) {
+        branches.add(branchIndex);
+      }
+    });
+  }
 
   ScrollController get _scrollController =>
       widget.scrollController ?? _ownedScrollController!;
@@ -232,6 +245,14 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                                 }
                               })
                           : null,
+                      splitBranch0Expanded:
+                          _isSplitBranchExpanded(devices[i].id, 0),
+                      splitBranch1Expanded:
+                          _isSplitBranchExpanded(devices[i].id, 1),
+                      onToggleSplitBranch: devices[i] is SplitDeviceSnapshot
+                          ? (branchIndex) =>
+                              _toggleSplitBranch(devices[i].id, branchIndex)
+                          : null,
                       onDrumTriggerNote: (note) =>
                           widget.onPreviewSampler?.call(note),
                       onEmptyDrumPadTap: (note) {
@@ -249,6 +270,14 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                 if (devices[i] is ChainDeviceSnapshot)
                   _virtualDeviceChain(
                       context, devices[i] as ChainDeviceSnapshot),
+                if (devices[i] is SplitDeviceSnapshot) ...[
+                  if (_isSplitBranchExpanded(devices[i].id, 0))
+                    _virtualSplitBranch(
+                        context, devices[i] as SplitDeviceSnapshot, 0),
+                  if (_isSplitBranchExpanded(devices[i].id, 1))
+                    _virtualSplitBranch(
+                        context, devices[i] as SplitDeviceSnapshot, 1),
+                ],
                 if (_isSynth(devices[i].type) &&
                     (_synthAudioFxExpanded[devices[i].id] ?? false))
                   _virtualAudioFxChain(context, devices[i]),

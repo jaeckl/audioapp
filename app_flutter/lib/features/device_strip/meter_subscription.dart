@@ -21,8 +21,16 @@ abstract final class MeterSubscription {
     'limiter',
   };
 
+  /// Split devices publish post-gain peaks per branch (L/Mid → left, R/Side → right).
+  static const _splitTypes = {
+    'lr_split',
+    'ms_split',
+  };
+
   static bool publishesLiveMeters(String deviceType) =>
-      _analysisTypes.contains(deviceType) || _dynamicsTypes.contains(deviceType);
+      _analysisTypes.contains(deviceType) ||
+      _dynamicsTypes.contains(deviceType) ||
+      _splitTypes.contains(deviceType);
 
   /// Device IDs on [track] that overlap the horizontal viewport and publish meters.
   static List<String> visibleMeterDeviceIds({

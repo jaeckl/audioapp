@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "audioapp/AutomationTypes.hpp"
+#include "audioapp/devices/SplitMode.hpp"
 #include "audioapp/KickAlgorithm.hpp"
 #include "audioapp/SnareAlgorithm.hpp"
 #include "audioapp/ClapAlgorithm.hpp"
@@ -38,6 +39,7 @@ enum class DrumPadParameter : uint8_t {
 
 struct DrumMachinePlayback;
 struct ChainPlayback;
+struct SplitPlayback;
 
 static constexpr int kMaxInstrumentRegions = 32;
 
@@ -105,6 +107,7 @@ enum class DeviceNodeKind : uint8_t {
     RideGenerator,
     TomGenerator,
     RimshotGenerator,
+    Split,
 };
 
 // --- Per-device DSP-only parameter structs ---
@@ -243,6 +246,7 @@ struct DrumMachineParams {
     std::shared_ptr<const DrumMachinePlayback> playback;
 };
 struct ChainParams { std::shared_ptr<const ChainPlayback> playback; float mix=1.0f; float gain=1.0f; };
+struct SplitParams { std::shared_ptr<const SplitPlayback> playback; };
 struct GranularParams { const float* pcm=nullptr; int frameCount=0; double pcmRate=48000.0;
  float position=.25f,scan=.15f,size=.35f,density=.35f,spray=.1f,pitch=.5f,formant=.5f,character=.45f;
  float regionStart=0.f,regionEnd=1.f,attack=.02f,release=.25f,spread=.35f;
@@ -290,7 +294,8 @@ using DeviceVariantParams = std::variant<
     DrumMachineParams
     ,ChainParams,
     GranularParams,
-    StutterParamsPlayback
+    StutterParamsPlayback,
+    SplitParams
 >;
 
 /// Per-track device chain node (built on control thread, read on audio thread).
@@ -313,6 +318,21 @@ struct ChainPlayback {
     float gain = 1.0f;
     int deviceCount = 0;
     DeviceNodePlayback devices[8]{};
+};
+
+/// One side of an LR/Mid-Side split container (L/Mid or R/Side).
+struct SplitBranchPlayback {
+    int deviceCount = 0;
+    DeviceNodePlayback devices[8]{};
+};
+
+struct SplitPlayback {
+    SplitMode mode = SplitMode::Lr;
+    float branch0Gain = 1.0f;
+    float branch1Gain = 1.0f;
+    bool branch0Solo = false;
+    bool branch1Solo = false;
+    SplitBranchPlayback branches[2]{};
 };
 
 struct DrumPadPlayback {
