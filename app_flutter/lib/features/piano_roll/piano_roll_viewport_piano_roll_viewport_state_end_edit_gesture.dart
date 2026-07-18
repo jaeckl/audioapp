@@ -18,6 +18,13 @@ extension _PianoRollViewportStateEndeditgesture on PianoRollViewportState {
     _editCommitted = false;
     _draggingClipEnd = false;
     _drawHorizontalTravel = 0;
+    _dragGroupIndexes = const [];
+    _dragStartBeats = const {};
+    _dragStartDurations = const {};
+    _dragStartPitches = const {};
+    _dragStartAllNotes = null;
+    _dragStartSlots = const [];
+    _dragAsChord = false;
     _lockScrollForEdit = false;
     if (save && _draggingIndex != null && _dragMode != _DragMode.none) {
       widget.onEditFinished();

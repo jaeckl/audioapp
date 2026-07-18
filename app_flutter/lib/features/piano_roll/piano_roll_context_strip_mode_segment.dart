@@ -2,12 +2,16 @@ part of 'piano_roll_context_strip.dart';
 
 class _ModeSegment extends StatelessWidget {
   const _ModeSegment({
-    required this.notesMode,
+    required this.centerMode,
+    required this.showCompTab,
+    required this.showHarmonicTab,
     required this.onChanged,
   });
 
-  final bool notesMode;
-  final ValueChanged<bool> onChanged;
+  final PianoRollCenterMode centerMode;
+  final bool showCompTab;
+  final bool showHarmonicTab;
+  final ValueChanged<PianoRollCenterMode> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -23,14 +27,32 @@ class _ModeSegment extends StatelessWidget {
         children: [
           _SegmentTab(
             label: 'Notes',
-            active: notesMode,
-            onTap: () => onChanged(true),
+            active: centerMode == PianoRollCenterMode.notes,
+            onTap: () => onChanged(PianoRollCenterMode.notes),
           ),
-          _SegmentTab(
-            label: 'Comp',
-            active: !notesMode,
-            onTap: () => onChanged(false),
-          ),
+          if (showHarmonicTab) ...[
+            _SegmentTab(
+              label: 'Harmonic',
+              active: centerMode == PianoRollCenterMode.harmonic,
+              onTap: () => onChanged(PianoRollCenterMode.harmonic),
+            ),
+            _SegmentTab(
+              label: 'Progression',
+              active: centerMode == PianoRollCenterMode.progression,
+              onTap: () => onChanged(PianoRollCenterMode.progression),
+            ),
+            _SegmentTab(
+              label: 'Rhythm',
+              active: centerMode == PianoRollCenterMode.rhythm,
+              onTap: () => onChanged(PianoRollCenterMode.rhythm),
+            ),
+          ],
+          if (showCompTab)
+            _SegmentTab(
+              label: 'Comp',
+              active: centerMode == PianoRollCenterMode.comp,
+              onTap: () => onChanged(PianoRollCenterMode.comp),
+            ),
         ],
       ),
     );

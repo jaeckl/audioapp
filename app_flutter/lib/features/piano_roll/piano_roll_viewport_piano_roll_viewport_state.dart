@@ -46,11 +46,24 @@ class PianoRollViewportState extends State<PianoRollViewport> {
   double? _dragStartDuration;
   int? _dragStartPitch;
   List<int> _drawChordIndexes = const [];
+  List<int> _dragGroupIndexes = const [];
+  Map<int, double> _dragStartBeats = const {};
+  Map<int, double> _dragStartDurations = const {};
+  Map<int, int> _dragStartPitches = const {};
+  List<MidiNoteSnapshot>? _dragStartAllNotes;
+  List<ChordSlot> _dragStartSlots = const [];
+  bool _dragAsChord = false;
+  int? _lastTapIndex;
+  DateTime? _lastTapAt;
+
+  bool get _isResizeDrag =>
+      _dragMode == _DragMode.resizeStart || _dragMode == _DragMode.resizeEnd;
 
   static const double _tapSlop = 8;
   static const double _drawPaintThreshold = 12;
   static const double _pinchMinSpan = 8;
   static const double _pinchAxisRatio = 1.15;
+  static const Duration _doubleTapWindow = Duration(milliseconds: 320);
 
   bool get _canvasPinchActive => _canvasPointers.length >= 2;
 

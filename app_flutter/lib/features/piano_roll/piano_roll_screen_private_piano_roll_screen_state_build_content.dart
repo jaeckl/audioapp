@@ -1,7 +1,7 @@
 part of 'piano_roll_screen.dart';
 
 extension PianoRollScreenStateBuildcontentOperation on _PianoRollScreenState {
-Widget _buildContent(BuildContext context) {
+  Widget _buildContent(BuildContext context) {
     final barCount = (_clipLengthBeats / PianoRollMetrics.beatsPerBar).ceil();
 
     return PopScope(
@@ -87,93 +87,153 @@ Widget _buildContent(BuildContext context) {
           child: Column(
             children: [
               PianoRollContextStrip(
-                showCompSegment: _takes.length > 1,
-                notesMode: !_showTakes,
-                onModeChanged: (notesMode) {
-                  setState(() {
-                    _showTakes = !notesMode;
-                    if (!notesMode) _compTool = MidiCompTool.comp;
-                  });
-                  if (!notesMode) {
-                    unawaited(
-                      MidiCompModeHints.maybeShow(context, MidiCompTool.comp),
-                    );
-                  }
-                },
+                centerMode: _centerMode,
+                onCenterModeChanged: _onCenterModeChanged,
+                showCompTab: _takes.length > 1,
+                showHarmonicTab: _editorMode == MidiEditorMode.piano,
                 snapLabel: _snapChipLabel,
                 scaleLabel: _scaleChipLabel,
                 onViewTap: _openViewSheet,
                 modeChip: _modeChip,
               ),
+              if (_toolMode == PianoRollCenterMode.harmonic && !_showTakes)
+                HarmonicToolPanel(
+                  scale: _scale.scale,
+                  rootPitchClass: _scale.rootPitchClass,
+                  armedDegree: _armedDegree,
+                  params: _harmonicParams,
+                  onDegreeTap: _onHarmonicDegreeTap,
+                  onParamsChanged: (p) => setState(() => _harmonicParams = p),
+                ),
+              if (_toolMode == PianoRollCenterMode.progression && !_showTakes)
+                ProgressionToolPanel(
+                  genre: _progressionGenre,
+                  subgenreId: _progressionSubgenreId,
+                  templateId: _progressionTemplateId,
+                  onGenreChanged: (g) => setState(() {
+                    _progressionGenre = g;
+                    _ensureProgressionSelection();
+                  }),
+                  onSubgenreChanged: (id) => setState(() {
+                    _progressionSubgenreId = id;
+                    _ensureProgressionSelection();
+                  }),
+                  onTemplateChanged: (id) =>
+                      setState(() => _progressionTemplateId = id),
+                ),
+              if (_toolMode == PianoRollCenterMode.rhythm && !_showTakes)
+                RhythmToolPanel(
+                  genre: _rhythmGenre,
+                  subgenreId: _rhythmSubgenreId,
+                  rhythmId: _rhythmPresetId,
+                  onGenreChanged: (g) {
+                    setState(() {
+                      _rhythmGenre = g;
+                      _ensureRhythmSelection();
+                    });
+                  },
+                  onSubgenreChanged: (id) {
+                    setState(() {
+                      _rhythmSubgenreId = id;
+                      _ensureRhythmSelection();
+                    });
+                  },
+                  onRhythmChanged: _onRhythmChanged,
+                ),
               Expanded(
                 child: ListenableBuilder(
                   listenable: _previewTransport,
-                  builder: (context, _) => _showTakes && _takes.isNotEmpty
-                      ? MidiTakeCompView(
-                          compNotes: _notes,
-                          takes: _takes,
-                          regions: _takeRegions,
-                          clipLengthBeats: _clipLengthBeats,
-                          virtualLengthBeats: _virtualLengthBeats,
-                          viewRangeBars: _viewRangeBars,
-                          compTool: _compTool,
-                          playheadBeat: _previewTransport.clipLocalBeat,
-                          readOnly: _compFlattened,
-                          selectedMarker: _selectedTakeMarker,
-                          onPlayheadSeek: _previewTransport.seekClipLocal,
-                          onMarkerSelected: (index) => setState(() => _selectedTakeMarker = index),
-                          onMarkerMove: _moveMidiTakeMarker,
-                          onMarkerMoveEnd: (index, beat) => _saveMidiTakeMarkerMove(index, beat),
-                          onTakeAtBeat: _setMidiTakeAtBeat,
-                        )
-                      : PianoRollViewport(
-                          timelineScrollController: _timelineScrollController,
-                          notes: _notes,
-                          clipLengthBeats: _clipLengthBeats,
-                          virtualLengthBeats: _virtualLengthBeats,
-                          minPitch: PianoRollMetrics.gridMinPitch,
-                          maxPitch: PianoRollMetrics.gridMaxPitch,
-                          drumAnchorPitch: widget.drumAnchorPitch,
-                          laneLayout: _editorMode == MidiEditorMode.drums ? widget.drumLaneLayout : null,
-                          gridSettings: _grid,
-                          scaleSettings: _scale,
-                          tool: _tool,
-                          drawPattern: _drawPattern,
-                          selectedIndex: _selectedIndex,
-                          onNotesChanged: _onNotesChanged,
-                          onSelectionChanged: (index) => setState(() => _selectedIndex = index),
-                          onEditStarted: _onEditStarted,
-                          onEditFinished: _onEditFinished,
-                          onClipLengthChanged: (length) {
-                            setState(() => _clipLengthBeats = length);
-                            _previewTransport.maxClipBeat = length;
-                          },
-                          onClipLengthCommit: _persistClipLength,
-                          viewRangeBars: _viewRangeBars,
-                          virtualPlayheadBeat: _previewTransport.clipLocalBeat,
-                          onVirtualPlayheadSeek: _previewTransport.seekClipLocal,
-                          previewPlaying: _previewTransport.isPlaying,
-                          onPreviewPlayRequested: _startPreviewPlay,
-                          onPreviewStopRequested: _stopPreviewPlay,
-                          onNotePreview: (note, {hold = false}) {
-                            unawaited(_noteAudition.preview(note, hold: hold));
-                          },
-                          onNotePreviewEnd: () {
-                            unawaited(_noteAudition.release());
-                          },
-                          onPitchPreview: (pitch) {
-                            unawaited(
-                              _noteAudition.preview(
-                                MidiNoteSnapshot(
-                                  pitch: pitch,
-                                  startBeat: 0,
-                                  durationBeats: 0.25,
-                                  velocity: 100,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                  builder: (context, _) {
+                    if (_showTakes && _takes.isNotEmpty) {
+                      return MidiTakeCompView(
+                        compNotes: _notes,
+                        takes: _takes,
+                        regions: _takeRegions,
+                        clipLengthBeats: _clipLengthBeats,
+                        virtualLengthBeats: _virtualLengthBeats,
+                        viewRangeBars: _viewRangeBars,
+                        compTool: _compTool,
+                        playheadBeat: _previewTransport.clipLocalBeat,
+                        readOnly: _compFlattened,
+                        selectedMarker: _selectedTakeMarker,
+                        onPlayheadSeek: _previewTransport.seekClipLocal,
+                        onMarkerSelected: (index) =>
+                            setState(() => _selectedTakeMarker = index),
+                        onMarkerMove: _moveMidiTakeMarker,
+                        onMarkerMoveEnd: (index, beat) =>
+                            _saveMidiTakeMarkerMove(index, beat),
+                        onTakeAtBeat: _setMidiTakeAtBeat,
+                      );
+                    }
+                    return PianoRollViewport(
+                      timelineScrollController: _timelineScrollController,
+                      notes: _notes,
+                      clipLengthBeats: _clipLengthBeats,
+                      virtualLengthBeats: _virtualLengthBeats,
+                      minPitch: PianoRollMetrics.gridMinPitch,
+                      maxPitch: PianoRollMetrics.gridMaxPitch,
+                      drumAnchorPitch: widget.drumAnchorPitch,
+                      laneLayout: _editorMode == MidiEditorMode.drums
+                          ? widget.drumLaneLayout
+                          : null,
+                      gridSettings: _grid,
+                      scaleSettings: _scale,
+                      tool: _isHarmonyTool
+                          ? PianoRollTool.select
+                          : _tool,
+                      drawPattern: _drawPattern,
+                      selectedIndex: _selectedIndex,
+                      chordGroupEdit: _isHarmonyTool,
+                      chordGroupSelected: _harmonyChordSelected,
+                      chordSlots: _chordSlots,
+                      onChordSlotsChanged: (slots) =>
+                          setState(() => _chordSlots = slots),
+                      onChordGroupSelectedChanged: (chord) =>
+                          setState(() => _harmonyChordSelected = chord),
+                      onHarmonyInsertTap:
+                          _showHarmonyInsert ? _onRollPlusTap : null,
+                      harmonyInsertTooltip:
+                          _toolMode == PianoRollCenterMode.harmonic
+                              ? 'Insert chord after last chord'
+                              : 'Insert progression after last chord',
+                      onNotesChanged: _onNotesChanged,
+                      onSelectionChanged: (index) => setState(() {
+                        _selectedIndex = index;
+                        if (index == null) _harmonyChordSelected = true;
+                      }),
+                      onEditStarted: _onEditStarted,
+                      onEditFinished: _onEditFinished,
+                      onClipLengthChanged: (length) {
+                        setState(() => _clipLengthBeats = length);
+                        _previewTransport.maxClipBeat = length;
+                      },
+                      onClipLengthCommit: _persistClipLength,
+                      viewRangeBars: _viewRangeBars,
+                      virtualPlayheadBeat: _previewTransport.clipLocalBeat,
+                      onVirtualPlayheadSeek: _previewTransport.seekClipLocal,
+                      previewPlaying: _previewTransport.isPlaying,
+                      onPreviewPlayRequested: _startPreviewPlay,
+                      onPreviewStopRequested: _stopPreviewPlay,
+                      onNotePreview: (note, {hold = false}) {
+                        unawaited(_noteAudition.preview(note, hold: hold));
+                      },
+                      onNotePreviewEnd: () {
+                        unawaited(_noteAudition.release());
+                      },
+                      onPitchPreview: (pitch) {
+                        unawaited(
+                          _noteAudition.preview(
+                            MidiNoteSnapshot(
+                              pitch: pitch,
+                              startBeat: 0,
+                              durationBeats: 0.25,
+                              velocity: 100,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
               ),
               if (_showTakes && _takes.isNotEmpty)
@@ -212,7 +272,9 @@ Widget _buildContent(BuildContext context) {
                                 _selectedTakeMarker = null;
                               }
                             });
-                            unawaited(MidiCompModeHints.maybeShow(context, tool));
+                            unawaited(
+                              MidiCompModeHints.maybeShow(context, tool),
+                            );
                           },
                           onPreviewPlayStop: _togglePreviewPlay,
                         ),
@@ -236,8 +298,12 @@ Widget _buildContent(BuildContext context) {
                   onEditorModeChanged: (mode) => setState(() {
                     _editorMode = mode;
                     _selectedIndex = null;
+                    if (mode == MidiEditorMode.drums) {
+                      _toolMode = PianoRollCenterMode.notes;
+                    }
                   }),
                   onDrawSettings: _openDrawSheet,
+                  hideNoteTools: _isHarmonyTool,
                 ),
                 PlayDeck(
                   bridge: widget.bridge,

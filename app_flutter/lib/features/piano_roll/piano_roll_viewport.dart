@@ -6,6 +6,7 @@ import 'package:flutter/scheduler.dart';
 import '../../bridge/project_snapshot.dart';
 import '../editor/editor_virtual_playhead.dart';
 import '../editor/timeline_marker_layer.dart';
+import '../harmonic_assistant/harmonic_note_ops.dart';
 import 'piano_roll_clip_end_marker.dart';
 import 'piano_roll_grid_painter.dart';
 import 'piano_roll_key_column.dart';
@@ -16,6 +17,7 @@ import 'piano_roll_note_block.dart';
 import 'piano_roll_ruler.dart';
 import 'piano_roll_scale.dart';
 import 'piano_roll_theme.dart';
+import '../harmonic_assistant/harmonic_roll_plus_button.dart';
 
 part 'piano_roll_viewport_private_drag_mode.dart';
 part 'piano_roll_viewport_private_pinch_zoom_axis.dart';
@@ -56,6 +58,7 @@ part 'piano_roll_viewport_piano_roll_viewport_state_pitch_from_dy.dart';
 part 'piano_roll_viewport_piano_roll_viewport_state_beat_from_dx.dart';
 part 'piano_roll_viewport_piano_roll_viewport_state_note_index_at.dart';
 part 'piano_roll_viewport_piano_roll_viewport_state_drag_mode_at.dart';
+part 'piano_roll_viewport_piano_roll_viewport_state_chord_group.dart';
 part 'piano_roll_viewport_piano_roll_viewport_state_set_notes.dart';
 part 'piano_roll_viewport_piano_roll_viewport_state_delete_note.dart';
 part 'piano_roll_viewport_piano_roll_viewport_state_update_note.dart';
@@ -99,6 +102,13 @@ class PianoRollViewport extends StatefulWidget {
     this.onNotePreviewEnd,
     this.onPitchPreview,
     this.timelineScrollController,
+    this.chordGroupEdit = false,
+    this.chordGroupSelected = true,
+    this.onChordGroupSelectedChanged,
+    this.onHarmonyInsertTap,
+    this.harmonyInsertTooltip = 'Insert after last chord',
+    this.chordSlots = const [],
+    this.onChordSlotsChanged,
   });
 
   final List<MidiNoteSnapshot> notes;
@@ -131,6 +141,22 @@ class PianoRollViewport extends StatefulWidget {
   final void Function(MidiNoteSnapshot note, {bool hold})? onNotePreview;
   final VoidCallback? onNotePreviewEnd;
   final ValueChanged<int>? onPitchPreview;
+
+  /// Harmonic/Progression: tap selects chord cluster; double-tap drills to note.
+  final bool chordGroupEdit;
+
+  /// When [chordGroupEdit], true = whole chord; false = single drilled note.
+  final bool chordGroupSelected;
+
+  final ValueChanged<bool>? onChordGroupSelectedChanged;
+
+  /// When set, shows a + at the start of empty timeline after last chord.
+  final VoidCallback? onHarmonyInsertTap;
+  final String harmonyInsertTooltip;
+
+  /// Stable chord spans for Harmonic/Progression/Rhythm group edit.
+  final List<ChordSlot> chordSlots;
+  final ValueChanged<List<ChordSlot>>? onChordSlotsChanged;
 
   @override
   State<PianoRollViewport> createState() => PianoRollViewportState();

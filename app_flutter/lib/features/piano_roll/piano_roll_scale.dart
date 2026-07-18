@@ -1,5 +1,5 @@
 import '../../bridge/project_snapshot.dart';
-import '../play/play_deck_layout.dart';
+import '../music_theory/chord_quality.dart';
 import '../play/play_scale.dart';
 
 class PianoRollScaleSettings {
@@ -103,9 +103,3 @@ class PianoRollScaleSettings {
       );
 }
 
-ChordQuality chordQualityById(String id) {
-  for (final quality in ChordQuality.values) {
-    if (quality.name == id) return quality;
-  }
-  return ChordQuality.off;
-}

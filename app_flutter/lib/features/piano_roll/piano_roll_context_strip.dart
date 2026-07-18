@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'piano_roll_center_mode.dart';
 import 'piano_roll_theme.dart';
 
 part 'piano_roll_context_strip_mode_segment.dart';
@@ -11,9 +12,10 @@ part 'piano_roll_context_strip_mode_chip.dart';
 class PianoRollContextStrip extends StatelessWidget {
   const PianoRollContextStrip({
     super.key,
-    required this.showCompSegment,
-    required this.notesMode,
-    required this.onModeChanged,
+    required this.centerMode,
+    required this.onCenterModeChanged,
+    required this.showCompTab,
+    required this.showHarmonicTab,
     required this.snapLabel,
     this.scaleLabel,
     required this.onViewTap,
@@ -22,9 +24,10 @@ class PianoRollContextStrip extends StatelessWidget {
 
   static const height = 44.0;
 
-  final bool showCompSegment;
-  final bool notesMode;
-  final ValueChanged<bool> onModeChanged;
+  final PianoRollCenterMode centerMode;
+  final ValueChanged<PianoRollCenterMode> onCenterModeChanged;
+  final bool showCompTab;
+  final bool showHarmonicTab;
   final String snapLabel;
   final String? scaleLabel;
   final VoidCallback onViewTap;
@@ -42,13 +45,13 @@ class PianoRollContextStrip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Row(
             children: [
-              if (showCompSegment) ...[
-                _ModeSegment(
-                  notesMode: notesMode,
-                  onChanged: onModeChanged,
-                ),
-                const SizedBox(width: 8),
-              ],
+              _ModeSegment(
+                centerMode: centerMode,
+                showCompTab: showCompTab,
+                showHarmonicTab: showHarmonicTab,
+                onChanged: onCenterModeChanged,
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,

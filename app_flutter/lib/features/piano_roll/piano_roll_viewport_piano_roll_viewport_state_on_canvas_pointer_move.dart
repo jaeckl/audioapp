@@ -49,7 +49,7 @@ extension _PianoRollViewportStateOncanvaspointermove on PianoRollViewportState {
     }
 
     if (widget.tool == PianoRollTool.select && _draggingIndex != null) {
-      if (_dragMode == _DragMode.move || _dragMode == _DragMode.resize) {
+      if (_dragMode == _DragMode.move || _isResizeDrag) {
         if (_editTravel > PianoRollViewportState._tapSlop &&
             _dragStartBeat != null) {
           _applyNoteDrag(canvasPos);

@@ -1,12 +1,14 @@
+import '../music_theory/chord_quality.dart';
+
+export '../music_theory/chord_quality.dart';
+
 part 'play_deck_layout_play_surface_mode.dart';
 part 'play_deck_layout_play_context_view.dart';
 part 'play_deck_layout_arp_mode.dart';
-part 'play_deck_layout_chord_quality.dart';
 part 'play_deck_layout_capture_quantize.dart';
 part 'play_deck_layout_chord_memory.dart';
 
 part 'play_deck_layout_arp_mode_label.dart';
-part 'play_deck_layout_chord_quality_label.dart';
 part 'play_deck_layout_capture_quantize_label.dart';
 /// Mode toggle for the rail (keyboard/pads switch).
 /// What is currently filling the play area next to the rail.

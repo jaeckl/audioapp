@@ -30,7 +30,7 @@ extension _PianoRollViewportStateOncanvaspointerup on PianoRollViewportState {
       widget.onNotePreview?.call(widget.notes[_draggingIndex!]);
     }
 
-    if (_dragMode == _DragMode.resize || _movePreviewPitch != null) {
+    if (_isResizeDrag || _movePreviewPitch != null) {
       widget.onNotePreviewEnd?.call();
     }
     _movePreviewPitch = null;

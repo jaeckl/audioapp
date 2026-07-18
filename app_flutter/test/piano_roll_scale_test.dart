@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:audioapp/bridge/project_snapshot.dart';
 import 'package:audioapp/features/piano_roll/piano_roll_scale.dart';
-import 'package:audioapp/features/play/play_deck_layout.dart';
+import 'package:audioapp/features/music_theory/chord_quality.dart';
 import 'package:audioapp/features/play/play_scale.dart';
 
 void main() {

@@ -75,7 +75,7 @@ class PianoRollGridSheet extends StatefulWidget {
       _showPopup(
         context,
         alignBottom: false,
-        panelHeight: showScaleControls ? 460 : 380,
+        panelHeight: showScaleControls ? 520 : 440,
         child: PianoRollGridSheet(
           initialSettings: settings,
           initialScaleSettings: scaleSettings,

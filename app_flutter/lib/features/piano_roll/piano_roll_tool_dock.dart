@@ -22,6 +22,7 @@ class PianoRollToolDock extends StatelessWidget {
     required this.canUseDrumMode,
     required this.onEditorModeChanged,
     required this.onDrawSettings,
+    this.hideNoteTools = false,
   });
 
   final PianoRollTool tool;
@@ -38,6 +39,9 @@ class PianoRollToolDock extends StatelessWidget {
   final ValueChanged<MidiEditorMode> onEditorModeChanged;
   final VoidCallback onDrawSettings;
 
+  /// When true (Harmonic / Progression), hide Select/Draw/Edit.
+  final bool hideNoteTools;
+
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
@@ -46,43 +50,45 @@ class PianoRollToolDock extends StatelessWidget {
         height: PianoRollMetrics.toolDockHeight,
         child: Row(
           children: [
-            _DockButton(
-              icon: Icons.pan_tool_alt_outlined,
-              activeIcon: Icons.pan_tool_alt,
-              label: 'Select',
-              active: tool == PianoRollTool.select,
-              onTap: () => onToolChanged(PianoRollTool.select),
-            ),
-            _DockButton(
-              icon: Icons.edit_outlined,
-              activeIcon: Icons.edit,
-              label: 'Draw',
-              active: tool == PianoRollTool.draw,
-              onTap: () => onToolChanged(PianoRollTool.draw),
-              onLongPress: onDrawSettings,
-            ),
-            _DockButton(
-              icon: Icons.tune_outlined,
-              activeIcon: Icons.tune,
-              label: 'Edit',
-              active: false,
-              onTap: onEditTap,
-              enabled: editorMode == MidiEditorMode.piano,
-            ),
-            if (canUseDrumMode)
+            if (!hideNoteTools) ...[
               _DockButton(
-                icon: editorMode == MidiEditorMode.drums
-                    ? Icons.piano
-                    : Icons.grid_view_rounded,
-                activeIcon: Icons.grid_view_rounded,
-                label: editorMode == MidiEditorMode.drums ? 'Piano' : 'Drums',
-                active: editorMode == MidiEditorMode.drums,
-                onTap: () => onEditorModeChanged(
-                  editorMode == MidiEditorMode.drums
-                      ? MidiEditorMode.piano
-                      : MidiEditorMode.drums,
-                ),
+                icon: Icons.pan_tool_alt_outlined,
+                activeIcon: Icons.pan_tool_alt,
+                label: 'Select',
+                active: tool == PianoRollTool.select,
+                onTap: () => onToolChanged(PianoRollTool.select),
               ),
+              _DockButton(
+                icon: Icons.edit_outlined,
+                activeIcon: Icons.edit,
+                label: 'Draw',
+                active: tool == PianoRollTool.draw,
+                onTap: () => onToolChanged(PianoRollTool.draw),
+                onLongPress: onDrawSettings,
+              ),
+              _DockButton(
+                icon: Icons.tune_outlined,
+                activeIcon: Icons.tune,
+                label: 'Edit',
+                active: false,
+                onTap: onEditTap,
+                enabled: editorMode == MidiEditorMode.piano,
+              ),
+              if (canUseDrumMode)
+                _DockButton(
+                  icon: editorMode == MidiEditorMode.drums
+                      ? Icons.piano
+                      : Icons.grid_view_rounded,
+                  activeIcon: Icons.grid_view_rounded,
+                  label: editorMode == MidiEditorMode.drums ? 'Piano' : 'Drums',
+                  active: editorMode == MidiEditorMode.drums,
+                  onTap: () => onEditorModeChanged(
+                    editorMode == MidiEditorMode.drums
+                        ? MidiEditorMode.piano
+                        : MidiEditorMode.drums,
+                  ),
+                ),
+            ],
             const Spacer(),
             _DockButton(
               icon: Icons.play_arrow,

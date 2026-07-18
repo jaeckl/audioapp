@@ -18,11 +18,22 @@ class _PianoRollScreenState extends State<PianoRollScreen> with TickerProviderSt
   PianoRollDrawPattern _drawPattern = PianoRollDrawPattern.single;
   late MidiEditorMode _editorMode;
   bool _showTakes = false;
+  PianoRollCenterMode _toolMode = PianoRollCenterMode.notes;
+  late HarmonicToolParams _harmonicParams;
+  int _armedDegree = 1;
+  RhythmGenre _progressionGenre = RhythmGenre.pop;
+  String _progressionSubgenreId = 'pop_radio';
+  String _progressionTemplateId = ProgressionTemplate.pop1564.id;
+  RhythmGenre _rhythmGenre = RhythmGenre.house;
+  String _rhythmSubgenreId = 'house_classic';
+  String _rhythmPresetId = 'house_offbeat_ands';
+  List<ChordSlot> _chordSlots = [];
   late bool _compFlattened;
   MidiCompTool _compTool = MidiCompTool.comp;
   bool _autoFlattenNotified = false;
   Future<void>? _flattenInFlight;
   int? _selectedIndex;
+  bool _harmonyChordSelected = true;
   int? _selectedTakeMarker;
   int _viewRangeBars = EditorViewRange.defaultBars;
   Future<void>? _pendingNoteSave;
@@ -36,6 +47,8 @@ class _PianoRollScreenState extends State<PianoRollScreen> with TickerProviderSt
     _compFlattened = widget.clip.compFlattened;
     _editorMode = widget.drumLaneLayout == null ? MidiEditorMode.piano : MidiEditorMode.drums;
     _scale = PianoRollScaleSettings.fromClip(widget.clip);
+    _harmonicParams = HarmonicToolParams();
+    _chordSlots = HarmonicNoteOps.slotsFromNotes(_notes);
     _clipLengthBeats = widget.clip.editorContentLengthBeats;
     _previewTransport = ClipEditorTransportController(
       bridge: widget.bridge,

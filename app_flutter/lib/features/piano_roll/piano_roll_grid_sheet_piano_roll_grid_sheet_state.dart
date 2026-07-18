@@ -84,6 +84,15 @@ class _PianoRollGridSheetState extends State<PianoRollGridSheet> {
             onChanged: (value) => _setGrid(_settings.copyWith(snap: value)),
           ),
           const SizedBox(height: 12),
+          _DropdownRow<double>(
+            label: 'Note length',
+            value: _noteLengthValue,
+            values: const [0.125, 0.25, 0.5, 1, 2, 4, 8],
+            text: _noteLengthLabel,
+            onChanged: (value) =>
+                _setGrid(_settings.copyWith(defaultNoteBeats: value)),
+          ),
+          const SizedBox(height: 12),
           const _SectionTitle('Grid feel'),
           const SizedBox(height: 8),
           Row(children: [

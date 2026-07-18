@@ -19,6 +19,13 @@ extension _PianoRollViewportStateCanceleditgesture on PianoRollViewportState {
     _draggingClipEnd = false;
     _drawHorizontalTravel = 0;
     _drawChordIndexes = const [];
+    _dragGroupIndexes = const [];
+    _dragStartBeats = const {};
+    _dragStartDurations = const {};
+    _dragStartPitches = const {};
+    _dragStartAllNotes = null;
+    _dragStartSlots = const [];
+    _dragAsChord = false;
     _lockScrollForEdit = false;
     if (_dragMode != _DragMode.none && _draggingIndex != null) {
       widget.onEditFinished();
