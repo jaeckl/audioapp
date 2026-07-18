@@ -13,7 +13,9 @@ public:
         audioapp::MidiClipState clip;
         clip.id = "clip-1";
         clip.startBeat = 0.0;
-        clip.lengthBeats = 4.0;
+        clip.lengthBeats = 8.0;
+        clip.naturalLengthBeats = 4.0;
+        clip.loopContent = true;
         clip.notes.push_back(audioapp::MidiNoteState{60, 0.0, 1.0, 100.0f});
 
         beginTest("activeMidiPitchAtBeat");
