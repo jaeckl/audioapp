@@ -1249,10 +1249,10 @@ void EngineHost::setMeterSubscriptions(const std::vector<std::string>& deviceIds
     project_->setMeterSubscriptions(deviceIds);
 }
 
-std::string EngineHost::createGraphTap(const std::string& deviceId,
+std::string EngineHost::createGraphTap(const std::string& targetId,
                                        GraphTapKind kind,
                                        uint32_t capacityFrames) {
-    return project_->createGraphTap(deviceId, kind, capacityFrames);
+    return project_->createGraphTap(targetId, kind, capacityFrames);
 }
 
 bool EngineHost::removeGraphTap(const std::string& tapId) {
@@ -2290,7 +2290,11 @@ void EngineHost::registerAllCommands() {
     });
 
     reg.registerCommand("createGraphTap", [](const commands::CommandContext& ctx) -> commands::CommandResult {
-        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        // targetId is the generalized API. deviceId remains accepted so older
+        // Flutter/native callers keep working unchanged.
+        const auto targetId = ctx.args.hasProperty("targetId")
+            ? ctx.args["targetId"].toString().toStdString()
+            : ctx.args["deviceId"].toString().toStdString();
         const auto kindName = ctx.args["kind"].toString().toStdString();
         GraphTapKind kind = GraphTapKind::None;
         if (kindName == "meter") kind = GraphTapKind::Meter;
@@ -2302,7 +2306,7 @@ void EngineHost::registerAllCommands() {
                 static_cast<int64_t>(static_cast<double>(ctx.args["capacityFrames"])),
                 int64_t{1}, static_cast<int64_t>(kGraphTapMaxBufferedFrames)))
             : kGraphTapDefaultRecorderFrames;
-        const auto tapId = ctx.engine.createGraphTap(deviceId, kind, capacity);
+        const auto tapId = ctx.engine.createGraphTap(targetId, kind, capacity);
         if (tapId.empty()) return commands::errorResult("invalid_tap_target");
         auto* result = new juce::DynamicObject();
         result->setProperty("ok", true);

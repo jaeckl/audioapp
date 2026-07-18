@@ -19,8 +19,8 @@ flows with audio observation would make both APIs misleading.
 
 ## Decision: graph taps
 
-A graph tap is a transient observer attached to the audio output port of a
-logical device Output Adapter:
+A graph tap is a transient observer attached to an explicit graph audio output
+port. Device targets attach to their logical Output Adapter:
 
 ```text
 Input Adapter -> Device DSP -> Output Adapter -> [tap observers] -> next node
@@ -39,9 +39,11 @@ Taps are independent of routing edges:
 - they work when the output has no routing receiver;
 - they preserve Input/DSP/Output fusion.
 
-The initial target contract is device Output Adapter, stereo audio port zero.
-Track, group, master, MIDI, side-chain, and arbitrary internal port taps require
-their own explicit stable port identities and are deferred.
+Track and group targets attach after their device chain and audibility ramp,
+immediately before their signal is accumulated into the parent bus. The master
+target attaches after gain and limiting. All use stable numeric output-node IDs
+compiled on the control thread. MIDI, side-chain, and arbitrary internal port
+taps remain outside this audio-output contract.
 
 ### Runtime kinds
 
@@ -69,11 +71,13 @@ not advance while frozen.
 
 The bridge exposes:
 
-- `createGraphTap(deviceId, kind, capacityFrames)` -> stable session tap ID;
+- `createGraphTap(targetId, kind, capacityFrames)` -> stable session tap ID;
 - `removeGraphTap(tapId)`;
 - `readGraphTap(tapId, maxFrames)`.
 
-Kinds are `meter`, `analyzer`, and `recorder`. Recorder/analyzer readback is
+`targetId` accepts a device ID, track/group ID, or `master`; the bridge still
+accepts the legacy `deviceId` field for compatibility. Kinds are `meter`,
+`analyzer`, and `recorder`. Recorder/analyzer readback is
 bounded; unbounded PCM JSON is forbidden. A later native typed-data or file
 writer may consume the same ring without changing the compiled graph contract.
 

@@ -338,8 +338,9 @@ public:
     std::string getDeviceMetersJson();
     void setMeterSubscriptions(const std::vector<std::string>& deviceIds);
 
-    /// Runtime-only observers on logical device Output Adapter ports.
-    std::string createGraphTap(const std::string& deviceId,
+    /// Runtime-only observers on device, track/group, or master output ports.
+    /// targetId may identify a device output, a track/group output, or "master".
+    std::string createGraphTap(const std::string& targetId,
                                GraphTapKind kind,
                                uint32_t capacityFrames = kGraphTapDefaultRecorderFrames);
     bool removeGraphTap(const std::string& tapId);
@@ -402,6 +403,8 @@ private:
 
     struct TrackPlaybackSnapshot {
         std::string trackId;
+        uint64_t outputNodeId = 0;
+        bool outputTapActive = false;
         int parentGroupTrackIndex = -1;
         bool muted = false;
         bool soloed = false;
@@ -590,9 +593,11 @@ private:
     std::atomic<int> activeProcessorGraph_{0};
     int lastBuiltProcessorGraph_ = 0; // control thread only
     struct GraphTapRegistration {
+        enum class SourceScope : uint8_t { Device, Track, Master };
         bool active = false;
         std::string tapId;
-        std::string deviceId;
+        std::string targetId;
+        SourceScope sourceScope = SourceScope::Device;
         uint64_t sourceOutputNodeId = 0;
         GraphTapKind kind = GraphTapKind::None;
         uint32_t capacityFrames = kGraphTapDefaultRecorderFrames;

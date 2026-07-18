@@ -245,7 +245,8 @@ public:
     /// Format: {"ok":true,"meters":{"dev-1":{"gr":-3.5,"in":0.85},"dev-2":{...}}}
     std::string getDeviceMetersJson();
     void setMeterSubscriptions(const std::vector<std::string>& deviceIds);
-    std::string createGraphTap(const std::string& deviceId,
+    /// targetId may identify a device output, a track/group output, or "master".
+    std::string createGraphTap(const std::string& targetId,
                                GraphTapKind kind,
                                uint32_t capacityFrames = kGraphTapDefaultRecorderFrames);
     bool removeGraphTap(const std::string& tapId);

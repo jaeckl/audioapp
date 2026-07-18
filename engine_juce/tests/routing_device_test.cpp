@@ -76,6 +76,9 @@ int main() {
     audioProject->createProject();
     const auto source = audioProject->addTrack("Source");
     const auto destination = audioProject->addTrack("Destination");
+    const auto group = audioProject->addGroupTrack("Group");
+    expect(audioProject->setTrackGroup(source, group),
+           "source track can route through a group bus");
     const auto oscillator = audioProject->addDeviceToTrack(source, device_types::kOscillator);
     expect(!oscillator.empty(),
            "source oscillator is created");
@@ -84,8 +87,15 @@ int main() {
         oscillator, GraphTapKind::Meter, 256);
     const auto recorderTap = audioProject->createGraphTap(
         oscillator, GraphTapKind::Recorder, 256);
-    expect(!meterTap.empty() && !recorderTap.empty(),
-           "multiple runtime taps attach to one output without a receiver");
+    const auto trackTap = audioProject->createGraphTap(
+        source, GraphTapKind::Recorder, 256);
+    const auto groupTap = audioProject->createGraphTap(
+        group, GraphTapKind::Meter, 256);
+    const auto masterTap = audioProject->createGraphTap(
+        "master", GraphTapKind::Recorder, 256);
+    expect(!meterTap.empty() && !recorderTap.empty() && !trackTap.empty() &&
+               !groupTap.empty() && !masterTap.empty(),
+           "device, track, group, and master output ports accept runtime taps");
     float tapLeft[128]{};
     float tapRight[128]{};
     audioProject->setPlaying(true);
@@ -94,11 +104,21 @@ int main() {
     const auto meterJson = juce::JSON::parse(audioProject->readGraphTapJson(meterTap));
     const auto recorderJson = juce::JSON::parse(
         audioProject->readGraphTapJson(recorderTap, 128));
+    const auto trackJson = juce::JSON::parse(
+        audioProject->readGraphTapJson(trackTap, 128));
+    const auto groupJson = juce::JSON::parse(
+        audioProject->readGraphTapJson(groupTap));
+    const auto masterJson = juce::JSON::parse(
+        audioProject->readGraphTapJson(masterTap, 128));
     expect(static_cast<int>(meterJson["sequence"]) > 0 &&
            static_cast<double>(meterJson["peakL"]) > 0.0,
            "meter tap executes at the source output adapter");
     expect(static_cast<int>(recorderJson["frameCount"]) == 128,
            "recorder tap returns the captured block in order");
+    expect(static_cast<int>(trackJson["frameCount"]) == 128 &&
+               static_cast<int>(groupJson["sequence"]) > 0 &&
+               static_cast<int>(masterJson["frameCount"]) == 128,
+           "track, group, and post-limiter master taps execute once per block");
     const auto capturedLeft = jsonFloatArray(recorderJson, "left");
     bool outputSamplesMatch = capturedLeft.size() == 128;
     for (size_t i = 0; outputSamplesMatch && i < capturedLeft.size(); ++i) {
@@ -107,7 +127,10 @@ int main() {
     expect(outputSamplesMatch,
            "recorder observes the exact post-output-adapter signal sent to the track");
     expect(audioProject->removeGraphTap(meterTap) &&
-           audioProject->removeGraphTap(recorderTap),
+           audioProject->removeGraphTap(recorderTap) &&
+           audioProject->removeGraphTap(trackTap) &&
+           audioProject->removeGraphTap(groupTap) &&
+           audioProject->removeGraphTap(masterTap),
            "runtime taps can be removed safely");
     expect(audioProject->readGraphTapJson(meterTap).find("tap_not_found") != std::string::npos,
            "removed tap generations are no longer readable");

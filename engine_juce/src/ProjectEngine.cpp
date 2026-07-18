@@ -2068,9 +2068,6 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
     // Apply compact mailboxes last so the newest live gesture wins.
     drainRealtimeParameters();
     const int trackCount = trackPlayback_.count();
-    if (trackCount <= 0) {
-        return;
-    }
 
     if (transport_.isPlaying()) {
         const double prevPlayhead = lastArrangementMixPlayhead_;
@@ -2104,6 +2101,18 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
     const int graphIndex = activeProcessorGraph_.load(std::memory_order_acquire);
     const ProcessorGraphSnapshot graph = processorGraphs_[graphIndex];
     const bool useGraph = graph.trackCount == trackCount;
+    const auto captureOutputTaps = [&](uint64_t outputNodeId,
+                                       const float* left,
+                                       const float* right) noexcept {
+        if (!useGraph || outputNodeId == 0) return;
+        for (int tapIndex = 0; tapIndex < graph.tapCount; ++tapIndex) {
+            const auto& tap = graph.taps[static_cast<size_t>(tapIndex)];
+            if (tap.sourceOutputNodeId != outputNodeId ||
+                tap.runtimeSlot >= kMaxProcessorGraphTaps) continue;
+            processGraphTap(graphTapRuntimes_[tap.runtimeSlot], tap,
+                            left, right, framesToProcess, sampleRate);
+        }
+    };
     for (int slot = 0; slot < graph.audioBufferSlotCount; ++slot) {
         std::memset(graphAudioLeft[slot], 0,
                     static_cast<size_t>(framesToProcess) * sizeof(float));
@@ -2378,7 +2387,14 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                     break;
                 }
             }
-            if (onlyPassthroughGain) {
+            bool receivesGroupChild = false;
+            for (int childIndex = 0; childIndex < trackCount; ++childIndex) {
+                if (trackPlayback_[childIndex].parentGroupTrackIndex == trackIndex) {
+                    receivesGroupChild = true;
+                    break;
+                }
+            }
+            if (onlyPassthroughGain && !track.outputTapActive && !receivesGroupChild) {
                 continue;
             }
         }
@@ -2446,6 +2462,12 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         }
         mutableTrack.audibilityGain = audibleTarget;
 
+        // A track and a group share the same explicit bus-output contract.
+        // Group capture happens after all children have been accumulated and
+        // its own device chain/audibility stage has run.
+        captureOutputTaps(track.outputNodeId,
+            trackLeft[trackIndex], trackRight[trackIndex]);
+
         const int parentGroup = track.parentGroupTrackIndex;
         for (int frame = 0; frame < framesToProcess; ++frame) {
             if (parentGroup >= 0 && parentGroup < trackCount) {
@@ -2494,6 +2516,9 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         masterRight[frame] = std::isfinite(r) ? std::clamp(r, -1.0f, 1.0f) : 0.0f;
     }
     smoothedMasterGain_ = masterGain;
+    captureOutputTaps(stableDeviceSubgraphNodeId(
+        "graph-master-output", DeviceSubgraphNodeRole::OutputAdapter),
+        masterLeft, masterRight);
 }
 
 void ProjectEngine::mixAtPlayheadBeat(float* monoOut,
@@ -3086,16 +3111,31 @@ void ProjectEngine::setMeterSubscriptions(const std::vector<std::string>& device
     }
 }
 
-std::string ProjectEngine::createGraphTap(const std::string& deviceId,
+std::string ProjectEngine::createGraphTap(const std::string& targetId,
                                           GraphTapKind kind,
                                           uint32_t capacityFrames) {
     const juce::ScopedWriteLock lock(mutex_);
-    DeviceSlot* device = findDeviceLocked(deviceId);
-    if (device == nullptr || kind == GraphTapKind::None) return {};
-    const auto nodeKind = deviceNodeKindFromTypeId(device->config.typeId);
-    const auto plan = compileDeviceExecutionPlan(nodeKind);
-    if (!plan.valid() ||
-        !hasPort(plan.logical.nodes[2].outputPorts, DevicePortMask::Audio)) {
+    if (kind == GraphTapKind::None) return {};
+
+    GraphTapRegistration::SourceScope sourceScope;
+    uint64_t sourceOutputNodeId = 0;
+    if (DeviceSlot* device = findDeviceLocked(targetId)) {
+        const auto nodeKind = deviceNodeKindFromTypeId(device->config.typeId);
+        const auto plan = compileDeviceExecutionPlan(nodeKind);
+        if (!plan.valid() ||
+            !hasPort(plan.logical.nodes[2].outputPorts, DevicePortMask::Audio)) return {};
+        sourceScope = GraphTapRegistration::SourceScope::Device;
+        sourceOutputNodeId = stableDeviceSubgraphNodeId(
+            targetId, DeviceSubgraphNodeRole::OutputAdapter);
+    } else if (trackRepo_.findTrack(targetId) != nullptr) {
+        sourceScope = GraphTapRegistration::SourceScope::Track;
+        sourceOutputNodeId = stableDeviceSubgraphNodeId(
+            "graph-track-output:" + targetId, DeviceSubgraphNodeRole::OutputAdapter);
+    } else if (targetId == "master") {
+        sourceScope = GraphTapRegistration::SourceScope::Master;
+        sourceOutputNodeId = stableDeviceSubgraphNodeId(
+            "graph-master-output", DeviceSubgraphNodeRole::OutputAdapter);
+    } else {
         return {};
     }
 
@@ -3122,9 +3162,9 @@ std::string ProjectEngine::createGraphTap(const std::string& deviceId,
     auto& registration = graphTapRegistrations_[static_cast<size_t>(slot)];
     registration.active = true;
     registration.tapId = "tap-" + std::to_string(nextGraphTapId_++);
-    registration.deviceId = deviceId;
-    registration.sourceOutputNodeId = stableDeviceSubgraphNodeId(
-        deviceId, DeviceSubgraphNodeRole::OutputAdapter);
+    registration.targetId = targetId;
+    registration.sourceScope = sourceScope;
+    registration.sourceOutputNodeId = sourceOutputNodeId;
     registration.kind = kind;
     registration.capacityFrames = std::clamp(
         capacityFrames, 1u, kGraphTapMaxBufferedFrames);
@@ -3195,8 +3235,9 @@ std::string ProjectEngine::readGraphTapJson(const std::string& tapId, int maxFra
     const uint32_t sampleRate = registration->kind == GraphTapKind::Meter
         ? meter.sampleRate : runtime.sampleRate.load(std::memory_order_relaxed);
     std::string json = R"({"ok":true,"tapId":)" + jsonString(tapId) +
-        R"(,"type":")" + kindName + R"(","deviceId":)" +
-        jsonString(registration->deviceId) + R"(,"sequence":)" +
+        R"(,"type":")" + kindName + R"(","targetId":)" +
+        jsonString(registration->targetId) + R"(,"deviceId":)" +
+        jsonString(registration->targetId) + R"(,"sequence":)" +
         std::to_string(sequence) +
         R"(,"sampleRate":)" +
         std::to_string(sampleRate) +
@@ -3205,7 +3246,13 @@ std::string ProjectEngine::readGraphTapJson(const std::string& tapId, int maxFra
         R"(,"overflowed":)" +
         (runtime.overflowed.load(std::memory_order_acquire) ? "true" : "false");
     json += R"(,"sourceAvailable":)";
-    json += findDeviceLocked(registration->deviceId) != nullptr ? "true" : "false";
+    const bool sourceAvailable =
+        (registration->sourceScope == GraphTapRegistration::SourceScope::Device &&
+         findDeviceLocked(registration->targetId) != nullptr) ||
+        (registration->sourceScope == GraphTapRegistration::SourceScope::Track &&
+         trackRepo_.findTrack(registration->targetId) != nullptr) ||
+        registration->sourceScope == GraphTapRegistration::SourceScope::Master;
+    json += sourceAvailable ? "true" : "false";
 
     char buf[64];
     if (registration->kind == GraphTapKind::Meter) {
@@ -3403,6 +3450,16 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
 
         TrackPlaybackSnapshot& snap = trackPlayback_[trackIndex];
         snap.trackId = sourceTrack.id;
+        snap.outputNodeId = stableDeviceSubgraphNodeId(
+            "graph-track-output:" + sourceTrack.id,
+            DeviceSubgraphNodeRole::OutputAdapter);
+        snap.outputTapActive = false;
+        for (const auto& registration : graphTapRegistrations_) {
+            if (registration.active && registration.sourceOutputNodeId == snap.outputNodeId) {
+                snap.outputTapActive = true;
+                break;
+            }
+        }
         snap.muted = sourceTrack.muted;
         snap.soloed = sourceTrack.soloed;
         snap.audibilityGain = sourceTrack.muted ? 0.0f : 1.0f;
@@ -3789,7 +3846,13 @@ void ProjectEngine::rebuildProcessorGraphLocked(int trackCount) {
     int tapDefinitionCount = 0;
     for (int slot = 0; slot < kMaxProcessorGraphTaps; ++slot) {
         const auto& registration = graphTapRegistrations_[static_cast<size_t>(slot)];
-        if (!registration.active || findDeviceLocked(registration.deviceId) == nullptr) continue;
+        const bool sourceAvailable =
+            (registration.sourceScope == GraphTapRegistration::SourceScope::Device &&
+             findDeviceLocked(registration.targetId) != nullptr) ||
+            (registration.sourceScope == GraphTapRegistration::SourceScope::Track &&
+             trackRepo_.findTrack(registration.targetId) != nullptr) ||
+            registration.sourceScope == GraphTapRegistration::SourceScope::Master;
+        if (!registration.active || !sourceAvailable) continue;
         tapDefinitions[static_cast<size_t>(tapDefinitionCount++)] = GraphTapDefinition{
             registration.sourceOutputNodeId,
             static_cast<uint8_t>(slot),
