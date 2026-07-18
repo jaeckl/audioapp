@@ -2,8 +2,10 @@
 
 ## Status
 
-Proposed — implement after benchmark baselines and realtime memory ownership are
-in place.
+Accepted and implemented for Spectrum Analyzer. A fixed 2,048-point Hann-window
+FFT with a 512-sample hop owns its input ring, window, and complex workspace in
+the processor. Callback boundaries no longer define analysis windows, and no
+FFT work occurs while the analyzer meter is unsubscribed.
 
 ## Context
 
@@ -34,9 +36,9 @@ arbitrary callback chunks
 - No FFT device allocates, locks, formats JSON or publishes Flutter objects from
   the callback.
 
-JUCE DSP FFT is the initial implementation. A platform-specific implementation
-may replace it only behind the same contract and after device benchmarks on
-representative ARM hardware.
+A fixed radix-2 implementation is used initially so the Android engine does not
+pull the full JUCE DSP module into every ABI. It is isolated behind the analysis
+processor contract and can be replaced only after representative ARM benchmarks.
 
 ## Verification
 

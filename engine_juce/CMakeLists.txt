@@ -284,6 +284,7 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
 
   set(AUDIOAPP_TEST_SOURCES
     tests/JuceTestRunner.cpp
+    tests/analysis_processor_test.cpp
     tests/autobroken_routing_test.cpp
     tests/automation_clip_drag_test.cpp
     tests/automation_clip_test.cpp

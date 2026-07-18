@@ -7,6 +7,146 @@
 
 namespace audioapp {
 
+AnalysisProcessor::AnalysisProcessor(DeviceNodeKind kind) noexcept : kind_(kind) {
+    constexpr float kTwoPi = 6.28318530717958647692f;
+    for (int sample = 0; sample < kFftSize; ++sample) {
+        fftWindow_[static_cast<size_t>(sample)] = 0.5f - 0.5f * std::cos(
+            kTwoPi * static_cast<float>(sample) /
+            static_cast<float>(kFftSize - 1));
+    }
+}
+
+void AnalysisProcessor::resetPlaybackState() noexcept {
+    fftInputRing_.fill(0.0f);
+    fftReal_.fill(0.0f);
+    fftImag_.fill(0.0f);
+    spectrumValues_.fill(0.0f);
+    fftWriteIndex_ = 0;
+    fftInputCount_ = 0;
+    samplesSinceFft_ = 0;
+    samplesUntilSpectrumPublish_ = 0;
+    loudness_ = -70.0f;
+}
+
+void AnalysisProcessor::calculateSpectrum(double sampleRate,
+                                          DeviceMeterAtomic& meter,
+                                          bool publish) noexcept {
+    float mean = 0.0f;
+    for (const float sample : fftInputRing_) mean += sample;
+    mean /= static_cast<float>(kFftSize);
+
+    for (int sample = 0; sample < kFftSize; ++sample) {
+        const int ringIndex = (fftWriteIndex_ + sample) & (kFftSize - 1);
+        fftReal_[static_cast<size_t>(sample)] =
+            (fftInputRing_[static_cast<size_t>(ringIndex)] - mean) *
+            fftWindow_[static_cast<size_t>(sample)];
+        fftImag_[static_cast<size_t>(sample)] = 0.0f;
+    }
+
+    for (int index = 1, reversed = 0; index < kFftSize; ++index) {
+        int bit = kFftSize >> 1;
+        for (; (reversed & bit) != 0; bit >>= 1) reversed ^= bit;
+        reversed ^= bit;
+        if (index < reversed) {
+            std::swap(fftReal_[static_cast<size_t>(index)],
+                      fftReal_[static_cast<size_t>(reversed)]);
+            std::swap(fftImag_[static_cast<size_t>(index)],
+                      fftImag_[static_cast<size_t>(reversed)]);
+        }
+    }
+
+    constexpr float kTwoPi = 6.28318530717958647692f;
+    for (int length = 2; length <= kFftSize; length <<= 1) {
+        const float angle = -kTwoPi / static_cast<float>(length);
+        const float stepReal = std::cos(angle);
+        const float stepImag = std::sin(angle);
+        const int half = length >> 1;
+        for (int start = 0; start < kFftSize; start += length) {
+            float twiddleReal = 1.0f;
+            float twiddleImag = 0.0f;
+            for (int offset = 0; offset < half; ++offset) {
+                const int even = start + offset;
+                const int odd = even + half;
+                const float oddReal =
+                    fftReal_[static_cast<size_t>(odd)] * twiddleReal -
+                    fftImag_[static_cast<size_t>(odd)] * twiddleImag;
+                const float oddImag =
+                    fftReal_[static_cast<size_t>(odd)] * twiddleImag +
+                    fftImag_[static_cast<size_t>(odd)] * twiddleReal;
+                const float evenReal = fftReal_[static_cast<size_t>(even)];
+                const float evenImag = fftImag_[static_cast<size_t>(even)];
+                fftReal_[static_cast<size_t>(even)] = evenReal + oddReal;
+                fftImag_[static_cast<size_t>(even)] = evenImag + oddImag;
+                fftReal_[static_cast<size_t>(odd)] = evenReal - oddReal;
+                fftImag_[static_cast<size_t>(odd)] = evenImag - oddImag;
+                const float nextReal = twiddleReal * stepReal -
+                    twiddleImag * stepImag;
+                twiddleImag = twiddleReal * stepImag +
+                    twiddleImag * stepReal;
+                twiddleReal = nextReal;
+            }
+        }
+    }
+
+    constexpr float kMinimumFrequency = 20.0f;
+    const float safeSampleRate = static_cast<float>(std::max(sampleRate, 1.0));
+    const float maximumFrequency = std::min(
+        20000.0f, safeSampleRate * 0.5f);
+    const float logRange = std::log(maximumFrequency / kMinimumFrequency);
+    const float magnitudeScale = 4.0f / static_cast<float>(kFftSize);
+    for (int band = 0; band < 24; ++band) {
+        const float low = kMinimumFrequency * std::exp(
+            logRange * static_cast<float>(band) / 24.0f);
+        const float high = kMinimumFrequency * std::exp(
+            logRange * static_cast<float>(band + 1) / 24.0f);
+        const int firstBin = std::max(1, static_cast<int>(std::ceil(
+            low * static_cast<float>(kFftSize) /
+            safeSampleRate)));
+        const int lastBin = std::min(kFftSize / 2,
+            std::max(firstBin, static_cast<int>(std::floor(
+                high * static_cast<float>(kFftSize) /
+                safeSampleRate))));
+        float magnitude = 0.0f;
+        for (int bin = firstBin; bin <= lastBin; ++bin) {
+            magnitude = std::max(magnitude, std::hypot(
+                fftReal_[static_cast<size_t>(bin)],
+                fftImag_[static_cast<size_t>(bin)]) * magnitudeScale);
+        }
+        const float normalized = std::clamp(
+            (20.0f * std::log10(std::max(magnitude, 1.0e-5f)) + 80.0f) /
+                80.0f,
+            0.0f, 1.0f);
+        spectrumValues_[static_cast<size_t>(band)] = normalized;
+        if (publish) {
+            meter.spectrum[band].store(normalized, std::memory_order_relaxed);
+        }
+    }
+}
+
+void AnalysisProcessor::pushSpectrumSamples(const AudioBlock& block,
+                                            ProcessContext& ctx,
+                                            DeviceMeterAtomic& meter) noexcept {
+    for (int frame = 0; frame < block.numSamples; ++frame) {
+        --samplesUntilSpectrumPublish_;
+        fftInputRing_[static_cast<size_t>(fftWriteIndex_)] =
+            0.5f * (block.channelL[frame] + block.channelR[frame]);
+        fftWriteIndex_ = (fftWriteIndex_ + 1) & (kFftSize - 1);
+        fftInputCount_ = std::min(fftInputCount_ + 1, kFftSize);
+        ++samplesSinceFft_;
+        if (fftInputCount_ < kFftSize ||
+            (samplesSinceFft_ < kFftHop && samplesSinceFft_ != kFftSize)) {
+            continue;
+        }
+        const bool publish = samplesUntilSpectrumPublish_ <= 0;
+        calculateSpectrum(ctx.sampleRate, meter, publish);
+        samplesSinceFft_ = 0;
+        if (publish) {
+            samplesUntilSpectrumPublish_ = std::max(
+                1, static_cast<int>(ctx.sampleRate / 60.0));
+        }
+    }
+}
+
 void AnalysisProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
     if (block.numSamples <= 0) {
         return;
@@ -53,24 +193,8 @@ void AnalysisProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept
             meter.waveform[b].store(v, std::memory_order_relaxed);
         }
     }
-    samplesUntilSpectrum_ -= block.numSamples;
-    if (kind_ == DeviceNodeKind::SpectrumAnalyzer && samplesUntilSpectrum_ <= 0) {
-        samplesUntilSpectrum_ = std::max(1, static_cast<int>(ctx.sampleRate / 60.0));
-        constexpr float pi = 3.14159265358979323846f;
-        for (int b = 0; b < 24; ++b) {
-            const int bin = 1 + b * (block.numSamples / 2 - 1) / 24;
-            float re = 0.0f, im = 0.0f;
-            for (int i = 0; i < block.numSamples; ++i) {
-                const float sample = 0.5f * (block.channelL[i] + block.channelR[i]);
-                const float phase = 2.0f * pi * static_cast<float>(bin * i) / static_cast<float>(block.numSamples);
-                re += sample * std::cos(phase);
-                im -= sample * std::sin(phase);
-            }
-            const float mag = std::sqrt(re * re + im * im) / static_cast<float>(block.numSamples);
-            meter.spectrum[b].store(
-                std::clamp((20.0f * std::log10(std::max(mag, 1.0e-5f)) + 80.0f) / 80.0f, 0.0f, 1.0f),
-                std::memory_order_relaxed);
-        }
+    if (kind_ == DeviceNodeKind::SpectrumAnalyzer) {
+        pushSpectrumSamples(block, ctx, meter);
     }
 }
 
