@@ -307,9 +307,14 @@ bool ProjectEngine::removeDeviceFromTrack(const std::string& deviceId) {
         return false;
     }
 
+    std::vector<std::string> removedIds;
+    collectDeviceTreeIds(slot, removedIds);
     ownerTrack->devices.erase(ownerTrack->devices.begin() + static_cast<std::ptrdiff_t>(deviceIndex));
-    automationClipStore_.unlinkForDevice(deviceId);
-    modulationGraph_.removeModulationForDevice(deviceId);
+    for (const auto& removedId : removedIds) {
+        automationClipStore_.unlinkForDevice(removedId);
+        modulationGraph_.removeModulationForDevice(removedId);
+        modulationGraph_.removeModulatorsOwnedByDevice(removedId);
+    }
     liveMixer_.allNotesOff();
     syncActiveFrequencyLocked();
     rebuildTrackPlaybackLocked();
@@ -347,7 +352,14 @@ bool ProjectEngine::removeDeviceFromDrumPad(const std::string& drumMachineId, in
         return child != nullptr && child->id == deviceId;
     });
     if (it == pad.devices.end()) return false;
+    std::vector<std::string> removedIds;
+    collectDeviceTreeIds(**it, removedIds);
     pad.devices.erase(it);
+    for (const auto& removedId : removedIds) {
+        automationClipStore_.unlinkForDevice(removedId);
+        modulationGraph_.removeModulationForDevice(removedId);
+        modulationGraph_.removeModulatorsOwnedByDevice(removedId);
+    }
     rebuildTrackPlaybackLocked();
     return true;
 }
@@ -380,9 +392,14 @@ bool ProjectEngine::removeDeviceFromChain(const std::string& chainId,
         return child != nullptr && child->id == deviceId;
     });
     if (it == devices.end()) return false;
+    std::vector<std::string> removedIds;
+    collectDeviceTreeIds(**it, removedIds);
     devices.erase(it);
-    automationClipStore_.unlinkForDevice(deviceId);
-    modulationGraph_.removeModulationForDevice(deviceId);
+    for (const auto& removedId : removedIds) {
+        automationClipStore_.unlinkForDevice(removedId);
+        modulationGraph_.removeModulationForDevice(removedId);
+        modulationGraph_.removeModulatorsOwnedByDevice(removedId);
+    }
     rebuildTrackPlaybackLocked();
     return true;
 }
@@ -421,6 +438,7 @@ bool ProjectEngine::removeDeviceFromSynthAudioFx(const std::string& deviceId,
     for (const auto& id : removedIds) {
         automationClipStore_.unlinkForDevice(id);
         modulationGraph_.removeModulationForDevice(id);
+        modulationGraph_.removeModulatorsOwnedByDevice(id);
     }
     rebuildTrackPlaybackLocked();
     return true;
@@ -460,6 +478,7 @@ bool ProjectEngine::removeDeviceFromSynthNoteFx(const std::string& deviceId,
     for (const auto& id : removedIds) {
         automationClipStore_.unlinkForDevice(id);
         modulationGraph_.removeModulationForDevice(id);
+        modulationGraph_.removeModulatorsOwnedByDevice(id);
     }
     rebuildTrackPlaybackLocked();
     return true;
@@ -608,6 +627,7 @@ bool ProjectEngine::applyDevicePresetJson(const std::string& deviceId,
     for (const auto& childId : removedChildIds) {
         if (!bundledPreset) automationClipStore_.unlinkForDevice(childId);
         modulationGraph_.removeModulationForDevice(childId);
+        modulationGraph_.removeModulatorsOwnedByDevice(childId);
     }
     if (presetObject != nullptr) {
         std::string homeTrackId;
@@ -657,6 +677,10 @@ bool ProjectEngine::applyDevicePresetJson(const std::string& deviceId,
         for (auto record : imported.lfos()) {
             const int oldId = record.id;
             record.id = nextModId++;
+            if (const auto owner = idMap.find(record.ownerDeviceId);
+                owner != idMap.end()) {
+                record.ownerDeviceId = owner->second;
+            }
             modIdMap[oldId] = record.id;
             records.push_back(std::move(record));
         }
@@ -2924,9 +2948,12 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
     return true;
 }
 
-int ProjectEngine::createLfo(int modulatorType) {
+int ProjectEngine::createLfo(int modulatorType,
+                             const std::string& ownerDeviceId) {
     const juce::ScopedWriteLock lock(mutex_);
-    return modulationGraph_.createLfo(modulatorType);
+    if (!ownerDeviceId.empty() && findDeviceLocked(ownerDeviceId) == nullptr)
+        return -1;
+    return modulationGraph_.createLfo(modulatorType, ownerDeviceId);
 }
 
 bool ProjectEngine::removeLfo(int lfoId) {
@@ -3018,7 +3045,7 @@ bool ProjectEngine::applySubtractiveSynthPreset(
     std::vector<int> createdLfoIds;
     createdLfoIds.reserve(lfos.size());
     for (const auto& spec : lfos) {
-        const int lfoId = modulationGraph_.createLfo();
+        const int lfoId = modulationGraph_.createLfo(0, deviceId);
         modulationGraph_.updateLfoParam(lfoId, "waveform", static_cast<float>(spec.waveform));
         modulationGraph_.updateLfoParam(lfoId, "rate", spec.rate);
         modulationGraph_.updateLfoParam(lfoId, "syncDivision", static_cast<float>(spec.syncDivision));
@@ -4423,6 +4450,8 @@ void ProjectEngine::rebuildRepoCacheFromTree() {
         ModulationGraph::ModulatorRecord rec;
         rec.id = static_cast<int>(modTree[state::props::lfoId]);
         rec.typeIndex = static_cast<int>(modTree[state::props::typeIndex]);
+        rec.ownerDeviceId =
+            modTree[state::props::ownerDeviceId].toString().toStdString();
         if (rec.typeIndex >= 0 &&
             static_cast<size_t>(rec.typeIndex) < modulationGraph_.modulatorTypes().size()) {
             const auto& type = modulationGraph_.modulatorTypes()[static_cast<size_t>(rec.typeIndex)];
@@ -4552,7 +4581,8 @@ void ProjectEngine::syncProjectTreeLocked() {
             const auto& type = modulationGraph_.modulatorTypes()[static_cast<size_t>(rec.typeIndex)];
             paramsJson = juce::JSON::toString(type->paramsToVar(rec.params)).toStdString();
         }
-        auto modTree = state::createModulatorTree(rec.id, rec.typeIndex, paramsJson);
+        auto modTree = state::createModulatorTree(
+            rec.id, rec.typeIndex, paramsJson, rec.ownerDeviceId);
         projectRoot_.addChild(std::move(modTree), -1, nullptr);
     }
 

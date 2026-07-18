@@ -3,6 +3,7 @@ part of 'project_snapshot.dart';
 class LfoSnapshot {
   const LfoSnapshot({
     required this.id,
+    this.ownerDeviceId = '',
     this.type = 'lfo',
     this.retrigger = 0,
     this.waveform = 0,
@@ -36,6 +37,7 @@ class LfoSnapshot {
   });
 
   final int id;
+  final String ownerDeviceId;
 
   /// "lfo" or "envelope" — type string from engine IModulatorType::typeId().
   final String type;
@@ -80,11 +82,13 @@ class LfoSnapshot {
                   : 0;
 
   factory LfoSnapshot.fromMap(Map<dynamic, dynamic> map) {
+    final ownerDeviceId = map['ownerDeviceId'] as String? ?? '';
     // New style: type field from IModulatorType::paramsToVar()
     final typeStr = map['type'] as String? ?? '';
     if (typeStr == 'envelope') {
       return LfoSnapshot(
         id: (map['id'] as num?)?.toInt() ?? 0,
+        ownerDeviceId: ownerDeviceId,
         type: 'envelope',
         attack: (map['attack'] as num?)?.toDouble() ?? 0.08,
         decay: (map['decay'] as num?)?.toDouble() ?? 0.22,
@@ -110,6 +114,7 @@ class LfoSnapshot {
       }
       return LfoSnapshot(
         id: (map['id'] as num?)?.toInt() ?? 0,
+        ownerDeviceId: ownerDeviceId,
         type: 'sequencer',
         sequencerSteps: stepCount,
         sequencerDirection: (map['direction'] as num?)?.toInt() ?? 0,
@@ -131,12 +136,14 @@ class LfoSnapshot {
         final posKey = 'bp_${i}_pos';
         final valKey = 'bp_${i}_val';
         final shapeKey = 'bp_${i}_shape';
-        positions.add((map[posKey] as num?)?.toDouble() ?? (i / (bpCount - 1).clamp(1, bpCount - 1)));
+        positions.add((map[posKey] as num?)?.toDouble() ??
+            (i / (bpCount - 1).clamp(1, bpCount - 1)));
         values.add((map[valKey] as num?)?.toDouble() ?? 0.0);
         shapes.add((map[shapeKey] as num?)?.toInt() ?? 0);
       }
       return LfoSnapshot(
         id: (map['id'] as num?)?.toInt() ?? 0,
+        ownerDeviceId: ownerDeviceId,
         type: 'curve',
         rate: (map['rate'] as num?)?.toDouble() ?? 0.5,
         retrigger: (map['retrigger'] as num?)?.toInt() ?? 1,
@@ -151,6 +158,7 @@ class LfoSnapshot {
     // LFO or default (fallback for old-format JSON with numeric modulatorType)
     return LfoSnapshot(
       id: (map['id'] as num?)?.toInt() ?? 0,
+      ownerDeviceId: ownerDeviceId,
       type: typeStr.isNotEmpty ? typeStr : 'lfo',
       retrigger: (map['retrigger'] as num?)?.toInt() ?? 0,
       waveform: (map['waveform'] as num?)?.toInt() ?? 0,
@@ -184,7 +192,9 @@ class LfoSnapshot {
     'Ramp',
   ];
 
-  String get waveformName => waveform >= 0 && waveform < waveformNames.length ? waveformNames[waveform] : 'Sine';
+  String get waveformName => waveform >= 0 && waveform < waveformNames.length
+      ? waveformNames[waveform]
+      : 'Sine';
 
   /// Optimistic param update: maps param name → copyWith field.
   /// Returns a new [LfoSnapshot] with that field changed.

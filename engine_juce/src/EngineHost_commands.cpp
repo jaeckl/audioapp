@@ -755,8 +755,9 @@ bool EngineHost::redo() {
     return project_->redo();
 }
 
-int EngineHost::createLfo(int modulatorType) {
-    return project_->createLfo(modulatorType);
+int EngineHost::createLfo(int modulatorType,
+                          const std::string& ownerDeviceId) {
+    return project_->createLfo(modulatorType, ownerDeviceId);
 }
 
 bool EngineHost::removeLfo(int lfoId) {
@@ -2101,7 +2102,9 @@ void EngineHost::registerAllCommands() {
 
     reg.registerCommand("createLfo", [](const commands::CommandContext& ctx) -> commands::CommandResult {
         const int modType = static_cast<int>(static_cast<double>(ctx.args["modulatorType"]));
-        ctx.engine.createLfo(modType);
+        const auto ownerDeviceId =
+            ctx.args["deviceId"].toString().toStdString();
+        ctx.engine.createLfo(modType, ownerDeviceId);
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
         return commands::okWithFullRefresh(snap);
     });

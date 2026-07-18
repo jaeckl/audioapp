@@ -119,7 +119,10 @@ extension DeviceStripSlotStateBuildcontentOperation on _DeviceStripSlotState {
                       onModToggle: () async {
                         if (!_modStripVisible && _localLfos.isEmpty) {
                           // Auto-create first LFO so the strip isn't empty
-                          await _onBridgeCall('createLfo', {});
+                          await _onBridgeCall(
+                            'createLfo',
+                            {'deviceId': widget.device.id},
+                          );
                           if (!mounted) return;
                         }
                         setState(() => _modStripVisible = !_modStripVisible);

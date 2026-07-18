@@ -67,7 +67,10 @@ class ModulationStrip extends StatelessWidget {
                 child: SizedBox(
                   width: double.infinity,
                   child: TextButton.icon(
-                    onPressed: () => onBridgeCall('createLfo', {}),
+                    onPressed: () => onBridgeCall(
+                      'createLfo',
+                      {'deviceId': deviceId},
+                    ),
                     icon: Icon(Icons.add,
                         size: 14, color: theme.colorScheme.primary),
                     label: Text(

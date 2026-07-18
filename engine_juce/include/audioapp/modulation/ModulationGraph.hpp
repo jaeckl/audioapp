@@ -25,6 +25,7 @@ public:
     struct ModulatorRecord {
         int id = 0;
         int typeIndex = 0;  // 0=Lfo, 1=Envelope (index into modulatorTypes_)
+        std::string ownerDeviceId;
         ModulatorParams params;
     };
 
@@ -34,7 +35,8 @@ public:
     void rebuildPlayback();
     void recomputeIdCounters();
 
-    int createLfo(int modulatorType = 0);
+    int createLfo(int modulatorType = 0,
+                  const std::string& ownerDeviceId = {});
     bool removeLfo(int lfoId);
     bool updateLfoParam(int lfoId, const std::string& param, float value);
     bool batchUpdateLfoParams(int lfoId, const std::vector<std::pair<std::string, float>>& params);
@@ -46,6 +48,7 @@ public:
                           const std::string& deviceId,
                           const std::string& paramId);
     void removeModulationForDevice(const std::string& deviceId);
+    void removeModulatorsOwnedByDevice(const std::string& deviceId);
     bool hasLfo(int lfoId) const;
     void retriggerOnNote() noexcept;
 

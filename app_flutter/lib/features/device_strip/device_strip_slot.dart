@@ -10,6 +10,7 @@ import '../content_library/library_filter.dart';
 import 'bass_synth_device_panel.dart';
 import 'bass_synth_device_strip.dart';
 import 'device_container_tabs.dart';
+import 'device_modulator_scope.dart';
 import 'device_strip_chrome.dart';
 import 'device_tab_bar.dart';
 import 'device_strip_card.dart';

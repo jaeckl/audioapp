@@ -30,7 +30,11 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   void initState() {
     super.initState();
     _selectedTabIndex = _initialTabIndex();
-    _localLfos = List.of(widget.lfos);
+    _localLfos = modulatorsForDevicePanel(
+      modulators: widget.lfos,
+      edges: widget.modEdges,
+      deviceId: widget.device.id,
+    );
     _localModEdges = List.of(widget.modEdges);
     _connectModeLfoId = deviceModulationConnectMode.value;
     deviceModulationConnectMode.addListener(_syncGlobalConnectMode);
@@ -88,19 +92,24 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   @override
   void didUpdateWidget(covariant DeviceStripSlot oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.device.type == 'simple_sampler' && widget.samplerTab != oldWidget.samplerTab) {
+    if (widget.device.type == 'simple_sampler' &&
+        widget.samplerTab != oldWidget.samplerTab) {
       _selectedTabIndex = widget.samplerTab.index;
     }
-    if (widget.device.type == 'subtractive_synth' && widget.synthTab != oldWidget.synthTab) {
+    if (widget.device.type == 'subtractive_synth' &&
+        widget.synthTab != oldWidget.synthTab) {
       _selectedTabIndex = widget.synthTab.index;
     }
-    if (widget.device.type == 'bass_synth' && widget.bassTab != oldWidget.bassTab) {
+    if (widget.device.type == 'bass_synth' &&
+        widget.bassTab != oldWidget.bassTab) {
       _selectedTabIndex = widget.bassTab.index;
     }
-    if (widget.device.type == 'phase_mod_synth' && widget.pmTab != oldWidget.pmTab) {
+    if (widget.device.type == 'phase_mod_synth' &&
+        widget.pmTab != oldWidget.pmTab) {
       _selectedTabIndex = widget.pmTab.index;
     }
-    if (widget.device.type == 'wavetable_synth' && widget.wtTab != oldWidget.wtTab) {
+    if (widget.device.type == 'wavetable_synth' &&
+        widget.wtTab != oldWidget.wtTab) {
       _selectedTabIndex = widget.wtTab.index;
     }
     if (widget.device.id != oldWidget.device.id) {
@@ -108,24 +117,37 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       _ensureParamDescriptors();
     }
     // Sync local LFO/edge state from parent snapshot
-    if (widget.lfos != oldWidget.lfos || widget.modEdges != oldWidget.modEdges) {
-      _localLfos = List.of(widget.lfos);
+    if (widget.lfos != oldWidget.lfos ||
+        widget.modEdges != oldWidget.modEdges) {
+      _localLfos = modulatorsForDevicePanel(
+        modulators: widget.lfos,
+        edges: widget.modEdges,
+        deviceId: widget.device.id,
+      );
       _localModEdges = List.of(widget.modEdges);
       // Validate selection IDs against new list
       final ids = _localLfos.map((l) => l.id).toSet();
-      if (_selectedLfoId != null && !ids.contains(_selectedLfoId)) _selectedLfoId = null;
-      if (_connectModeLfoId != null && !ids.contains(_connectModeLfoId)) _connectModeLfoId = null;
+      if (_selectedLfoId != null && !ids.contains(_selectedLfoId))
+        _selectedLfoId = null;
+      if (_connectModeLfoId != null && !ids.contains(_connectModeLfoId))
+        _connectModeLfoId = null;
     }
   }
 
-  LfoSnapshot? get _selectedLfo => _selectedLfoId == null ? null : _localLfos.where((l) => l.id == _selectedLfoId).firstOrNull;
+  LfoSnapshot? get _selectedLfo => _selectedLfoId == null
+      ? null
+      : _localLfos.where((l) => l.id == _selectedLfoId).firstOrNull;
 
   Iterable<AutomationClipSnapshot> get _automationClips =>
-      widget.projectAutomationClips.isNotEmpty ? widget.projectAutomationClips : widget.track.automationClips;
+      widget.projectAutomationClips.isNotEmpty
+          ? widget.projectAutomationClips
+          : widget.track.automationClips;
 
   Set<String> get _automatedParamIds {
     final ids = <String>{
-      ..._automationClips.where((clip) => clip.deviceId == widget.device.id && clip.isLinked).map((clip) => clip.paramId),
+      ..._automationClips
+          .where((clip) => clip.deviceId == widget.device.id && clip.isLinked)
+          .map((clip) => clip.paramId),
     };
     return ids;
   }
@@ -156,7 +178,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
 
   int? get _connectModeLfo {
     if (_connectModeLfoId == null) return null;
-    if (_localLfos.any((l) => l.id == _connectModeLfoId)) return _connectModeLfoId;
+    if (_localLfos.any((l) => l.id == _connectModeLfoId))
+      return _connectModeLfoId;
     return null;
   }
 
@@ -174,8 +197,11 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         connectModeLfoId: _connectModeLfo,
         onModulationAssign: _onModulationForDevice,
         automationLinkActive: widget.automationLinkActive,
-        onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
-        onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+        onAutomationLinkTap: widget.onAutomationParamSelected != null
+            ? _onAutomationLinkTap
+            : null,
+        onAutomateParameter:
+            widget.onAutomateParameter != null ? _onAutomateParameter : null,
       );
     }
     if (widget.device.type == 'phaser') {
@@ -188,8 +214,11 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         connectModeLfoId: _connectModeLfo,
         onModulationAssign: _onModulationForDevice,
         automationLinkActive: widget.automationLinkActive,
-        onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
-        onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+        onAutomationLinkTap: widget.onAutomationParamSelected != null
+            ? _onAutomationLinkTap
+            : null,
+        onAutomateParameter:
+            widget.onAutomateParameter != null ? _onAutomateParameter : null,
       );
     }
     if (widget.device.type == 'bitcrusher') {
@@ -202,8 +231,11 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         connectModeLfoId: _connectModeLfo,
         onModulationAssign: _onModulationForDevice,
         automationLinkActive: widget.automationLinkActive,
-        onAutomationLinkTap: widget.onAutomationParamSelected != null ? _onAutomationLinkTap : null,
-        onAutomateParameter: widget.onAutomateParameter != null ? _onAutomateParameter : null,
+        onAutomationLinkTap: widget.onAutomationParamSelected != null
+            ? _onAutomationLinkTap
+            : null,
+        onAutomateParameter:
+            widget.onAutomateParameter != null ? _onAutomateParameter : null,
       );
     }
     return null;
@@ -228,13 +260,24 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     return 260.0;
   }
 
-  double get _modTargetsWidth => _modStripVisible && _showTargetsPanel && _selectedLfo != null ? 160.0 : 0.0;
-  double get _inputWidth => DeviceStripMetrics.inputPanelWidthFor(widget.device.type);
-  double get _outputWidth => DeviceStripMetrics.outputPanelWidthFor(widget.device.type);
+  double get _modTargetsWidth =>
+      _modStripVisible && _showTargetsPanel && _selectedLfo != null
+          ? 160.0
+          : 0.0;
+  double get _inputWidth =>
+      DeviceStripMetrics.inputPanelWidthFor(widget.device.type);
+  double get _outputWidth =>
+      DeviceStripMetrics.outputPanelWidthFor(widget.device.type);
 
   double get _slotWidth {
     if (!_showsToolRail) return _cardWidth;
-    return _cardWidth + DeviceStripMetrics.toolRailWidth + _inputWidth + _outputWidth + _modGridWidth + _modTargetsWidth + _modPropsWidth;
+    return _cardWidth +
+        DeviceStripMetrics.toolRailWidth +
+        _inputWidth +
+        _outputWidth +
+        _modGridWidth +
+        _modTargetsWidth +
+        _modPropsWidth;
   }
 
   LfoSnapshot? get _targetsPanelLfo {
@@ -251,11 +294,14 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       PhaseModSynthDeviceSnapshot() => '4-OP · PM',
       WavetableSynthDeviceSnapshot() => 'Wavetable · 8 voices',
       SubtractiveSynthDeviceSnapshot() => 'Multimode · 8 voices',
-      KickGeneratorDeviceSnapshot() => 'Mono · ${KickModel.labelFromValue(dev.kickModel)}',
+      KickGeneratorDeviceSnapshot() =>
+        'Mono · ${KickModel.labelFromValue(dev.kickModel)}',
       SnareGeneratorDeviceSnapshot() => 'Mono · synth',
       ClapGeneratorDeviceSnapshot() => 'Mono · synth',
-      CymbalGeneratorDeviceSnapshot() => 'Mono · ${CymbalModel.labelFromValue(dev.cymbalModel)}',
-      CrashGeneratorDeviceSnapshot() => 'Mono · ${CrashModel.labelFromValue(dev.crashModel)}',
+      CymbalGeneratorDeviceSnapshot() =>
+        'Mono · ${CymbalModel.labelFromValue(dev.cymbalModel)}',
+      CrashGeneratorDeviceSnapshot() =>
+        'Mono · ${CrashModel.labelFromValue(dev.crashModel)}',
       GateDeviceSnapshot() => 'Stereo · FX',
       CompressorDeviceSnapshot() => 'Stereo · FX',
       ExpanderDeviceSnapshot() => 'Stereo · FX',

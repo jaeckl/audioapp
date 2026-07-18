@@ -1,8 +1,9 @@
 part of 'project_snapshot.dart';
 
 extension LfoSnapshotCopywithOperation on LfoSnapshot {
-LfoSnapshot copyWith({
+  LfoSnapshot copyWith({
     int? id,
+    String? ownerDeviceId,
     String? type,
     int? retrigger,
     int? waveform,
@@ -36,6 +37,7 @@ LfoSnapshot copyWith({
   }) {
     return LfoSnapshot(
       id: id ?? this.id,
+      ownerDeviceId: ownerDeviceId ?? this.ownerDeviceId,
       type: type ?? this.type,
       retrigger: retrigger ?? this.retrigger,
       waveform: waveform ?? this.waveform,

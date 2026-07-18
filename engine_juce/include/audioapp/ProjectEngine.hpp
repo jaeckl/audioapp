@@ -269,7 +269,8 @@ public:
     bool isTrackFrozen(const std::string& trackId) const;
 
     bool setRecordArmed(bool armed);
-    int createLfo(int modulatorType = 0);
+    int createLfo(int modulatorType = 0,
+                  const std::string& ownerDeviceId = {});
     bool removeLfo(int lfoId);
     bool updateLfoParam(int lfoId, const std::string& param, float value);
     bool batchUpdateLfoParams(int lfoId, const std::vector<std::pair<std::string, float>>& params);

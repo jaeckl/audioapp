@@ -985,6 +985,7 @@ juce::var modulatorRecordsToVar(const std::vector<ModulationGraph::ModulatorReco
         if (auto* obj = paramsVar.getDynamicObject()) {
             obj->setProperty("id", rec.id);
             obj->setProperty("type", juce::String(type->typeId()));
+            obj->setProperty("ownerDeviceId", juce::String(rec.ownerDeviceId));
         }
         result.add(paramsVar);
     }
@@ -1018,6 +1019,8 @@ void modulatorRecordsFromVar(const juce::var& arr,
         ModulationGraph::ModulatorRecord rec;
         rec.id = id;
         rec.typeIndex = typeIndex;
+        rec.ownerDeviceId =
+            obj->getProperty("ownerDeviceId").toString().toStdString();
         rec.params = modTypes[static_cast<size_t>(typeIndex)]->varToParams(item);
         out.push_back(std::move(rec));
     }

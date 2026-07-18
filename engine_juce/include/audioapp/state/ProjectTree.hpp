@@ -83,6 +83,7 @@ inline const juce::Identifier amount = "amount";
 // Modulator
 inline const juce::Identifier typeIndex      = "typeIndex";
 inline const juce::Identifier modulatorBlob  = "modulatorBlob";
+inline const juce::Identifier ownerDeviceId  = "ownerDeviceId";
 
 } // namespace props
 
@@ -179,11 +180,13 @@ inline juce::ValueTree createAutomationClipTree(const std::string& clipId,
 /// Create a Modulator child ValueTree.
 inline juce::ValueTree createModulatorTree(int lfoId,
                                            int typeIndex,
-                                           const std::string& paramsJson) {
+                                           const std::string& paramsJson,
+                                           const std::string& ownerDeviceId = {}) {
     juce::ValueTree mod{kModulatorType.data()};
     mod.setProperty(props::lfoId, lfoId, nullptr);
     mod.setProperty(props::typeIndex, typeIndex, nullptr);
     mod.setProperty(props::modulatorBlob, juce::String{paramsJson}, nullptr);
+    mod.setProperty(props::ownerDeviceId, juce::String{ownerDeviceId}, nullptr);
     return mod;
 }
 

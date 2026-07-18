@@ -13,8 +13,10 @@ extension DeviceStripSlotStateModulationsidebarOperation
           playing: widget.playing,
           onLfoTap: _onLfoTap,
           onLfoLongPress: _onLfoLongPress,
-          onAddModulator: (type) =>
-              _onBridgeCall('createLfo', {'modulatorType': type}),
+          onAddModulator: (type) => _onBridgeCall('createLfo', {
+            'modulatorType': type,
+            'deviceId': widget.device.id,
+          }),
           onRemoveLfo: (id) => _onBridgeCall('removeLfo', {'lfoId': id}),
           targetsPanelVisible: _showTargetsPanel,
           onShowTargets: (id) {

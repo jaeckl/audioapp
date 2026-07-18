@@ -58,12 +58,14 @@ void ModulationGraph::recomputeIdCounters() {
     nextLfoId_ = maxLfo + 1;
 }
 
-int ModulationGraph::createLfo(int modulatorType) {
+int ModulationGraph::createLfo(int modulatorType,
+                               const std::string& ownerDeviceId) {
     const int typeIndex = std::clamp(modulatorType, 0, static_cast<int>(modulatorTypes_.size()) - 1);
     const auto& type = modulatorTypes_[static_cast<size_t>(typeIndex)];
     ModulatorRecord rec;
     rec.id = nextLfoId_++;
     rec.typeIndex = typeIndex;
+    rec.ownerDeviceId = ownerDeviceId;
     rec.params = type->createDefault();
     lfos_.push_back(std::move(rec));
     rebuildPlayback();
@@ -156,7 +158,14 @@ bool ModulationGraph::hasLfo(int lfoId) const {
 
 bool ModulationGraph::assignModulation(int lfoId, const std::string& deviceId,
                                        const std::string& paramId, float amount) {
-    if (!hasLfo(lfoId)) return false;
+    auto record = std::find_if(lfos_.begin(), lfos_.end(),
+                               [lfoId](const ModulatorRecord& candidate) {
+                                   return candidate.id == lfoId;
+                               });
+    if (record == lfos_.end()) return false;
+    if (!record->ownerDeviceId.empty() && record->ownerDeviceId != deviceId)
+        return false;
+    if (record->ownerDeviceId.empty()) record->ownerDeviceId = deviceId;
     for (auto& edge : modEdges_) {
         if (edge.lfoId == lfoId && edge.deviceId == deviceId && edge.paramId == paramId) {
             edge.deviceId = deviceId;
@@ -195,6 +204,29 @@ void ModulationGraph::removeModulationForDevice(const std::string& deviceId) {
     }
 }
 
+void ModulationGraph::removeModulatorsOwnedByDevice(
+    const std::string& deviceId) {
+    if (deviceId.empty()) return;
+    std::vector<int> removedIds;
+    for (auto it = lfos_.begin(); it != lfos_.end();) {
+        if (it->ownerDeviceId == deviceId) {
+            removedIds.push_back(it->id);
+            it = lfos_.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    if (removedIds.empty()) return;
+    modEdges_.erase(
+        std::remove_if(modEdges_.begin(), modEdges_.end(),
+                       [&](const ModulationEdge& edge) {
+                           return std::find(removedIds.begin(), removedIds.end(),
+                                            edge.lfoId) != removedIds.end();
+                       }),
+        modEdges_.end());
+    rebuildPlayback();
+}
+
 void ModulationGraph::retriggerOnNote() noexcept {
     noteRetriggerGeneration_.fetch_add(1, std::memory_order_release);
 }
@@ -208,6 +240,8 @@ juce::var ModulationGraph::recordsToVar() const {
         if (auto* obj = paramsVar.getDynamicObject()) {
             obj->setProperty("id", rec.id);
             obj->setProperty("type", juce::String(type->typeId()));
+            obj->setProperty("ownerDeviceId",
+                             juce::String(rec.ownerDeviceId));
         }
         result.add(paramsVar);
     }
@@ -240,6 +274,8 @@ void ModulationGraph::recordsFromVar(const juce::var& arr) {
         ModulatorRecord rec;
         rec.id = id;
         rec.typeIndex = typeIndex;
+        rec.ownerDeviceId =
+            obj->getProperty("ownerDeviceId").toString().toStdString();
         rec.params = modulatorTypes_[static_cast<size_t>(typeIndex)]->varToParams(item);
         lfos_.push_back(std::move(rec));
     }
@@ -249,6 +285,19 @@ void ModulationGraph::replaceRecords(const std::vector<ModulatorRecord>& records
                                       const std::vector<ModulationEdge>& edges) {
     lfos_ = records;
     modEdges_ = edges;
+    // Migrate legacy records when all of their existing targets agree on one
+    // device. Multi-device legacy modulators remain visible on each target.
+    for (auto& record : lfos_) {
+        if (!record.ownerDeviceId.empty()) continue;
+        std::string inferredOwner;
+        bool ambiguous = false;
+        for (const auto& edge : modEdges_) {
+            if (edge.lfoId != record.id) continue;
+            if (inferredOwner.empty()) inferredOwner = edge.deviceId;
+            else if (inferredOwner != edge.deviceId) ambiguous = true;
+        }
+        if (!ambiguous) record.ownerDeviceId = inferredOwner;
+    }
     recomputeIdCounters();
     rebuildPlayback();
 }

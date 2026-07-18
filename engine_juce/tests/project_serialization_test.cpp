@@ -95,6 +95,47 @@ public:
             expect(roundTrip.tracks[0].devices.size() == parsed.tracks[0].devices.size(),
                    "round-trip device count should match");
         }
+
+        beginTest("modulators remain scoped to their owning device");
+        {
+            audioapp::EngineHost scoped;
+            scoped.createProject();
+            const auto scopedTrack = scoped.addTrack("Scoped Modulation");
+            const auto owner = scoped.addDeviceToTrack(
+                scopedTrack, audioapp::device_types::kDistortion);
+            const auto other = scoped.addDeviceToTrack(
+                scopedTrack, audioapp::device_types::kDistortion);
+            const int lfo = scoped.createLfo(0, owner);
+
+            expect(lfo > 0, "should create a device-owned modulator");
+            expect(scoped.assignModulation(lfo, owner, "drive", 0.5f),
+                   "owner device should accept its modulator");
+            expect(!scoped.assignModulation(lfo, other, "drive", 0.5f),
+                   "another device should reject the owned modulator");
+
+            const auto projectJson = scoped.getProjectFileJson();
+            expect(projectJson.find("\"ownerDeviceId\"") != std::string::npos &&
+                       projectJson.find(owner) != std::string::npos,
+                   "project file should persist modulator ownership");
+
+            audioapp::EngineHost restored;
+            restored.createProject();
+            expect(restored.loadProjectFileJson(projectJson),
+                   "should restore a project with owned modulators");
+            expect(restored.getProjectSnapshotJson().find(owner) !=
+                       std::string::npos,
+                   "snapshot should publish restored modulator ownership");
+
+            expect(restored.removeDeviceFromTrack(owner),
+                   "should remove the modulator owner");
+            const auto afterRemoval = restored.getProjectFileJson();
+            audioapp::ProjectFileData parsedAfterRemoval;
+            expect(audioapp::test::parseProjectJsonInto(
+                       afterRemoval, parsedAfterRemoval),
+                   "should parse the project after owner removal");
+            expect(parsedAfterRemoval.lfos.empty(),
+                   "removing a device should remove its owned modulators");
+        }
     }
 };
 
