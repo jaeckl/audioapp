@@ -141,6 +141,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     );
     _meterSubscription = widget.bridge.meterStream.listen(_onMetersBatch);
     _midiNoteSubscription = widget.bridge.noteEvents.listen(_onLiveMidiNote);
+    effectiveParameterMonitor.start(widget.bridge);
     _bootstrap();
   }
 
@@ -154,6 +155,7 @@ class _DawShellState extends State<DawShell> with TickerProviderStateMixin {
     _meterSubscription?.cancel();
     _midiNoteSubscription?.cancel();
     _transport.dispose();
+    effectiveParameterMonitor.stop();
     super.dispose();
   }
 

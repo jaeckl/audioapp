@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'device_knob_sizes.dart';
+import 'effective_parameter_monitor.dart';
 import 'modulator_polarity.dart';
 
 import '../../bridge/project_snapshot.dart';
@@ -22,6 +23,7 @@ part 'rotary_knob_rotary_knob_state_on_long_press_start.dart';
 part 'rotary_knob_rotary_knob_state_on_long_press_move_update.dart';
 part 'rotary_knob_rotary_knob_state_on_long_press_end.dart';
 part 'rotary_knob_rotary_knob_state_build_content.dart';
+
 /// Knob dial geometry — 0 at south-west, max at south-east (clockwise over the
 /// top; bottom 120° is empty).
 /// Compact rotary control styled after Bitwig / FL Studio Mobile device knobs.

@@ -1,6 +1,7 @@
 part of 'rotary_knob.dart';
 
-class _RotaryKnobState extends State<RotaryKnob> with SingleTickerProviderStateMixin {
+class _RotaryKnobState extends State<RotaryKnob>
+    with SingleTickerProviderStateMixin {
   double _dragStartValue = 0;
   double _dragStartY = 0;
   bool _highlightsVisible = true;
@@ -11,6 +12,22 @@ class _RotaryKnobState extends State<RotaryKnob> with SingleTickerProviderStateM
 
   late final AnimationController _pulseController;
   late final Animation<double> _pulseAnimation;
+
+  EffectiveParameterKey? get _effectiveKey {
+    if ((!widget.automationActive && !widget.modulationActive) ||
+        widget.deviceId == null ||
+        widget.polarityParamId == null) {
+      return null;
+    }
+    return (deviceId: widget.deviceId!, parameterId: widget.polarityParamId!);
+  }
+
+  double get _displayValue {
+    final key = _effectiveKey;
+    return key == null
+        ? widget.value
+        : effectiveParameterMonitor.valueFor(key) ?? widget.value;
+  }
 
   @override
   void initState() {
@@ -25,13 +42,30 @@ class _RotaryKnobState extends State<RotaryKnob> with SingleTickerProviderStateM
     if (widget.connectModeActive || widget.linkModeActive) {
       _pulseController.repeat(reverse: true);
     }
+    final key = _effectiveKey;
+    if (key != null) effectiveParameterMonitor.register(key);
   }
 
   @override
   void didUpdateWidget(covariant RotaryKnob oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final oldKey =
+        ((!oldWidget.automationActive && !oldWidget.modulationActive) ||
+                oldWidget.deviceId == null ||
+                oldWidget.polarityParamId == null)
+            ? null
+            : (
+                deviceId: oldWidget.deviceId!,
+                parameterId: oldWidget.polarityParamId!
+              );
+    final newKey = _effectiveKey;
+    if (oldKey != newKey) {
+      if (oldKey != null) effectiveParameterMonitor.unregister(oldKey);
+      if (newKey != null) effectiveParameterMonitor.register(newKey);
+    }
     final pulseActive = widget.connectModeActive || widget.linkModeActive;
-    final oldPulseActive = oldWidget.connectModeActive || oldWidget.linkModeActive;
+    final oldPulseActive =
+        oldWidget.connectModeActive || oldWidget.linkModeActive;
     if (pulseActive && !oldPulseActive) {
       _pulseController.repeat(reverse: true);
     } else if (!pulseActive && oldPulseActive) {
@@ -42,6 +76,8 @@ class _RotaryKnobState extends State<RotaryKnob> with SingleTickerProviderStateM
 
   @override
   void dispose() {
+    final key = _effectiveKey;
+    if (key != null) effectiveParameterMonitor.unregister(key);
     _pulseController.dispose();
     super.dispose();
   }
@@ -51,6 +87,11 @@ class _RotaryKnobState extends State<RotaryKnob> with SingleTickerProviderStateM
   // --- Connect-mode long-press modulation assignment ---
 
   @override
-  Widget build(BuildContext context) => _buildContent(context);
-
+  Widget build(BuildContext context) {
+    if (_effectiveKey == null) return _buildContent(context);
+    return AnimatedBuilder(
+      animation: effectiveParameterMonitor,
+      builder: (context, _) => _buildContent(context),
+    );
+  }
 }

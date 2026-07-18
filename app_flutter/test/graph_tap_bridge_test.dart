@@ -1,4 +1,5 @@
 import 'package:audioapp/bridge/engine_bridge.dart';
+import 'package:audioapp/features/device_strip/effective_parameter_monitor.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -35,6 +36,7 @@ void main() {
   });
 
   tearDown(() {
+    effectiveParameterMonitor.stop();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null);
   });
@@ -72,5 +74,21 @@ void main() {
       'deviceId': 'dev-2',
       'parameterId': 'drive',
     });
+  });
+
+  testWidgets('visible effective controls are polled on one coalesced timer',
+      (tester) async {
+    const key = (deviceId: 'dev-2', parameterId: 'drive');
+    effectiveParameterMonitor.start(bridge);
+    effectiveParameterMonitor.register(key);
+
+    await tester.pump(const Duration(milliseconds: 40));
+    await tester.pump();
+
+    expect(effectiveParameterMonitor.valueFor(key), 0.625);
+    expect(calls.where((call) => call.method == 'readEffectiveParameter'),
+        hasLength(1));
+    effectiveParameterMonitor.unregister(key);
+    effectiveParameterMonitor.stop();
   });
 }
