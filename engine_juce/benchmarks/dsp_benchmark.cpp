@@ -167,8 +167,9 @@ Scenario makeScenario(std::string_view name) {
                 scenario.engine->createGraphTap(
                     scenario.controlledDevice, audioapp::GraphTapKind::Meter, 64);
         } else if (name == "analyzer") {
-            scenario.engine->addDeviceToTrack(
+            const auto analyzer = scenario.engine->addDeviceToTrack(
                 trackId, audioapp::device_types::kSpectrumAnalyzer);
+            scenario.engine->setMeterSubscriptions({analyzer});
         }
     }
     scenario.engine->setPlaying(true);
@@ -252,7 +253,9 @@ int main(int argc, char** argv) {
               << architecture() << "\",\"compiler\":\"" << compiler()
               << "\",\"buildType\":\"" << buildType()
               << "\",\"commit\":\"" << AUDIOAPP_BENCHMARK_COMMIT
-              << "\",\"warmup\":" << options.warmup
+              << "\",\"processorGraphSnapshotBytes\":"
+              << sizeof(audioapp::ProcessorGraphSnapshot)
+              << ",\"warmup\":" << options.warmup
               << ",\"iterations\":" << options.iterations << "},\"results\":[";
     for (size_t index = 0; index < results.size(); ++index) {
         if (index != 0) std::cout << ',';

@@ -2142,8 +2142,11 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         (static_cast<double>(std::max(transport_.bpm(), 1)) / 60.0) / sampleRate;
     const double blockEndBeat =
         playheadStartBeat + static_cast<double>(framesToProcess) * beatsPerFrame;
-    const int graphIndex = activeProcessorGraph_.load(std::memory_order_acquire);
-    const ProcessorGraphSnapshot graph = processorGraphs_[graphIndex];
+    // The read guard pins this playback bank until the callback returns. Its
+    // graph index names the matching immutable graph bank, so the control
+    // thread cannot rebuild the referenced graph while it is in use.
+    const int graphIndex = trackPlayback_.graphIndexForState(playbackRead.index);
+    const ProcessorGraphSnapshot& graph = processorGraphs_[graphIndex];
     const bool useGraph = graph.trackCount == trackCount;
     const auto captureOutputTaps = [&](uint64_t outputNodeId,
                                        const float* left,
