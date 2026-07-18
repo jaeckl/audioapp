@@ -36,7 +36,7 @@ public:
             host.createProject();
             const std::string trackId = host.addTrack("Test");
             host.selectTrack(trackId);
-            const std::string synthId = host.addDeviceToTrack(trackId, "subtractive_synth");
+            const std::string synthId = host.addDeviceToTrack(trackId, "simple_oscillator");
 
             const std::string midiClipId = host.createMidiClip(trackId, 0.0, 4.0);
             expect(!midiClipId.empty(), "midi clip created");
@@ -76,7 +76,7 @@ public:
             host.createProject();
             const std::string trackId = host.addTrack("Test");
             host.selectTrack(trackId);
-            const std::string synthId = host.addDeviceToTrack(trackId, "subtractive_synth");
+            const std::string synthId = host.addDeviceToTrack(trackId, "simple_oscillator");
 
             const std::string midiClipId = host.createMidiClip(trackId, 0.0, 4.0);
             expect(!midiClipId.empty(), "midi clip created");
@@ -86,7 +86,8 @@ public:
 
             const int lfoId = host.createLfo(0);
             host.updateLfoParam(lfoId, "waveform", 1.0f);   // triangle
-            host.updateLfoParam(lfoId, "rate", 4.0f);
+            // Avoid one complete LFO cycle per 0.25 s analysis window.
+            host.updateLfoParam(lfoId, "rate", 0.73f);
             host.updateLfoParam(lfoId, "syncDivision", 0.0f);
             expect(host.assignModulation(lfoId, synthId, "gain", 0.3f),
                    "assign modulation");
@@ -117,7 +118,7 @@ public:
             host.createProject();
             const std::string trackId = host.addTrack("Test");
             host.selectTrack(trackId);
-            const std::string synthId = host.addDeviceToTrack(trackId, "subtractive_synth");
+            const std::string synthId = host.addDeviceToTrack(trackId, "simple_oscillator");
 
             const std::string midiClipId = host.createMidiClip(trackId, 0.0, 4.0);
             expect(!midiClipId.empty(), "midi clip created");
@@ -136,7 +137,7 @@ public:
 
             const int lfoId = host.createLfo(0);
             host.updateLfoParam(lfoId, "waveform", 1.0f);   // triangle
-            host.updateLfoParam(lfoId, "rate", 4.0f);
+            host.updateLfoParam(lfoId, "rate", 0.73f);
             host.updateLfoParam(lfoId, "syncDivision", 0.0f);
             expect(host.assignModulation(lfoId, synthId, "gain", 0.3f),
                    "assign modulation");
@@ -178,7 +179,7 @@ public:
             host.createProject();
             const std::string trackId = host.addTrack("Test");
             host.selectTrack(trackId);
-            const std::string synthId = host.addDeviceToTrack(trackId, "subtractive_synth");
+            const std::string synthId = host.addDeviceToTrack(trackId, "simple_oscillator");
 
             const std::string midiClipId = host.createMidiClip(trackId, 0.0, 4.0);
             expect(!midiClipId.empty(), "midi clip created");
@@ -197,7 +198,7 @@ public:
 
             const int lfoId = host.createLfo(0);
             host.updateLfoParam(lfoId, "waveform", 1.0f);   // triangle
-            host.updateLfoParam(lfoId, "rate", 4.0f);
+            host.updateLfoParam(lfoId, "rate", 0.73f);
             host.updateLfoParam(lfoId, "syncDivision", 0.0f);
             expect(host.assignModulation(lfoId, synthId, "pan", 0.3f),
                    "assign pan modulation");
