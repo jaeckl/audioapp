@@ -3,8 +3,9 @@
 ## Status
 
 Accepted. Predictable callback allocation is implemented and audited at maximum
-modulation/tap capacity. Arbitrary block chunking and cache-layout decisions
-remain subsequent phases.
+modulation/tap capacity. Public arrangement rendering now chunks arbitrary block
+sizes through the bounded graph scratch while preserving sample/beat continuity.
+Cache-layout decisions remain a subsequent measured phase.
 
 ## Context
 

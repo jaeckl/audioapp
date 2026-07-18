@@ -1772,18 +1772,18 @@ void ProjectEngine::readMasterMix(float* monoOut,
         return;
     }
     constexpr int kMaxFrames = kMaxProcessorGraphBlockFrames;
-    const int framesToProcess = numFrames > kMaxFrames ? kMaxFrames : numFrames;
     thread_local float left[kMaxFrames];
     thread_local float right[kMaxFrames];
-    std::memset(left, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
-    std::memset(right, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
-    readMasterMixStereo(left, right, framesToProcess, sampleRate, playheadStartBeat);
-    for (int frame = 0; frame < framesToProcess; ++frame) {
-        monoOut[frame] = (left[frame] + right[frame]) * 0.5f;
-    }
-    if (framesToProcess < numFrames) {
-        std::memset(monoOut + framesToProcess, 0,
-                    static_cast<size_t>(numFrames - framesToProcess) * sizeof(float));
+    const double beatsPerFrame =
+        (static_cast<double>(std::max(transport_.bpm(), 1)) / 60.0) /
+        std::max(sampleRate, 1.0);
+    for (int offset = 0; offset < numFrames; offset += kMaxFrames) {
+        const int chunkFrames = std::min(kMaxFrames, numFrames - offset);
+        readMasterMixStereo(left, right, chunkFrames, sampleRate,
+                           playheadStartBeat + static_cast<double>(offset) * beatsPerFrame);
+        for (int frame = 0; frame < chunkFrames; ++frame) {
+            monoOut[offset + frame] = (left[frame] + right[frame]) * 0.5f;
+        }
     }
 }
 
@@ -1800,10 +1800,26 @@ void ProjectEngine::readMasterMixStereo(float* leftOut,
     if (!transport_.isPlaying()) {
         return;
     }
+    constexpr int kMaxFrames = kMaxProcessorGraphBlockFrames;
+    const double beatsPerFrame =
+        (static_cast<double>(std::max(transport_.bpm(), 1)) / 60.0) /
+        std::max(sampleRate, 1.0);
+    const auto mixChunks = [&](int outputOffset, int frameCount,
+                               double startBeat) noexcept {
+        for (int chunkOffset = 0; chunkOffset < frameCount;
+             chunkOffset += kMaxFrames) {
+            const int chunkFrames = std::min(
+                kMaxFrames, frameCount - chunkOffset);
+            mixAtPlayheadBeatStereo(
+                leftOut + outputOffset + chunkOffset,
+                rightOut + outputOffset + chunkOffset,
+                chunkFrames, sampleRate,
+                startBeat + static_cast<double>(chunkOffset) * beatsPerFrame);
+        }
+    };
     const double remaining = countInRemainingBeats_.load(std::memory_order_acquire);
     if (remaining > 0.0) {
         const int bpm = transport_.bpm();
-        const double beatsPerFrame = (static_cast<double>(bpm) / 60.0) / sampleRate;
         const int preRollFrames = std::min(numFrames,
             static_cast<int>(std::ceil(remaining / beatsPerFrame)));
         const double totalBeats = static_cast<double>(countInBars_.load(std::memory_order_acquire) * 4);
@@ -1811,8 +1827,8 @@ void ProjectEngine::readMasterMixStereo(float* leftOut,
                           totalBeats - remaining, bpm,
                           metronomeLevel_.load(std::memory_order_acquire));
         if (preRollFrames < numFrames) {
-            mixAtPlayheadBeatStereo(leftOut + preRollFrames, rightOut + preRollFrames,
-                numFrames - preRollFrames, sampleRate, playheadStartBeat);
+            mixChunks(preRollFrames, numFrames - preRollFrames,
+                      playheadStartBeat);
         }
         return;
     }
@@ -1820,7 +1836,7 @@ void ProjectEngine::readMasterMixStereo(float* leftOut,
     // provides happens-before for all trackPlayback_[] writes by the
     // control thread in rebuildTrackPlaybackLocked. TransportController
     // and ModulationGraph use their own atomics/double-buffering.
-    mixAtPlayheadBeatStereo(leftOut, rightOut, numFrames, sampleRate, playheadStartBeat);
+    mixChunks(0, numFrames, playheadStartBeat);
     if (trackPlayback_.count() <= 0 &&
         metronomeEnabled_.load(std::memory_order_acquire)) {
         addMetronomeClick(leftOut, rightOut, numFrames, sampleRate, playheadStartBeat,
