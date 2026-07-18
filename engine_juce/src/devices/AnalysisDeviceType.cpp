@@ -39,6 +39,10 @@ DeviceSlot AnalysisDeviceType::varToSlot(const juce::var& value) const {
     auto slot = createDefault(""); if (const auto* object = value.getDynamicObject()) {
         slot.id = object->getProperty("id").toString().toStdString();
         const auto bypass = object->getProperty("bypass"); slot.config.bypassed = (bypass.isDouble() || bypass.isInt()) && static_cast<double>(bypass) >= 0.5;
+        if (object->getProperty("inputPanel").getDynamicObject() != nullptr)
+            slot.config.inputPanel = inputPanelFromVar(object->getProperty("inputPanel"));
+        if (object->getProperty("outputPanel").getDynamicObject() != nullptr)
+            slot.config.outputPanel = outputPanelFromVar(object->getProperty("outputPanel"));
     } return slot;
 }
 DeviceProcessor* AnalysisDeviceType::createProcessor(ProcessorArena& arena) const { return arena.template emplace<AnalysisProcessor>(kind_); }

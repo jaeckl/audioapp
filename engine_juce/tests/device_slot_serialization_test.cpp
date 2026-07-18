@@ -80,17 +80,25 @@ public:
                 expect(restored.id == original.id, "id mismatch for " + std::string(typeId));
                 expect(restored.config.bypassed == original.config.bypassed, "bypass mismatch for " + std::string(typeId));
 
-                // Parameter modification round-trip (if modulatable params exist)
-                auto modulatable = registry.modulatableParams(typeId);
-                if (!modulatable.empty()) {
+                // Output-adapter state is independent of a device DSP's
+                // modulatable parameter list. Exercise the panel variant
+                // directly so a DSP parameter also named "gain" cannot mask it.
+                const bool hasOutputGain = std::holds_alternative<audioapp::MonoOutputPanel>(
+                    original.config.outputPanel) ||
+                    std::holds_alternative<audioapp::StereoOutputPanel>(
+                        original.config.outputPanel);
+                if (hasOutputGain) {
                     audioapp::DeviceSlot modified = original;
-                    // Set output panel gain/bypass via the device-type setParameter
-                    registry.setParameter(modified, "gain", 0.5f);
-                    bool panSet = false;
-                    if (modulatable.size() > 1 && modulatable[1] == "pan") {
-                        registry.setParameter(modified, "pan", 0.8f);
-                        panSet = true;
-                    }
+                    std::visit([](auto& panel) {
+                        using T = std::decay_t<decltype(panel)>;
+                        if constexpr (std::is_same_v<T, audioapp::MonoOutputPanel> ||
+                                      std::is_same_v<T, audioapp::StereoOutputPanel>)
+                            panel.gain = 0.5f;
+                        if constexpr (std::is_same_v<T, audioapp::StereoOutputPanel>)
+                            panel.pan = 0.8f;
+                    }, modified.config.outputPanel);
+                    const bool panSet = std::holds_alternative<audioapp::StereoOutputPanel>(
+                        modified.config.outputPanel);
                     bool bypassSet = registry.setParameter(modified, "bypass", 1.0f).handled;
 
                     const std::string json2 = audioapp::deviceSlotToVar(modified, registry);
@@ -156,12 +164,16 @@ public:
                 expect(hasMeters(parsed), juce::String(dynType) + " missing meters sub-object");
             }
 
-            // TrackGain: verify no pan/bypass in output
+            // TrackGain is itself the strip output adapter and persists both
+            // gain and pan; bypass remains unsupported.
             {
                 audioapp::DeviceSlot slot = registry.createDefault(audioapp::device_types::kTrackGain, "tg-test");
                 const auto json = audioapp::deviceSlotToVar(slot, registry);
                 const auto parsed = juce::JSON::parse(juce::String(json));
-                expect(!hasJsonParameter(parsed, "pan"), "track_gain should not write pan parameter");
+                expect(hasJsonParameter(parsed, "pan"),
+                       "track_gain should persist its pan parameter");
+                expectWithinAbsoluteError(readJsonFloat(parsed, "pan", -1.0f), 0.5f,
+                                          0.001f, "track_gain default pan should be centred");
             }
         }
 

@@ -3,6 +3,7 @@
 #include "audioapp/devices/DeviceTypeIds.hpp"
 #include "audioapp/devices/instances/GranularModel.hpp"
 #include "audioapp/devices/processors/GranularProcessor.hpp"
+#include "audioapp/devices/DevicePanelTypes.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -127,6 +128,8 @@ juce::var GranularDeviceType::slotToVar(const DeviceSlot& slot) const {
     object->setProperty("type", juce::String(typeId()));
     object->setProperty("bypass", slot.config.bypassed);
     object->setProperty("parameters", juce::var(parameters));
+    object->setProperty("inputPanel", inputPanelToVar(slot.config.inputPanel));
+    object->setProperty("outputPanel", outputPanelToVar(slot.config.outputPanel));
     return juce::var(object);
 }
 
@@ -135,6 +138,8 @@ DeviceSlot GranularDeviceType::varToSlot(const juce::var& value) const {
     if (auto* object = value.getDynamicObject()) {
         slot.id = object->getProperty("id").toString().toStdString();
         slot.config.bypassed = static_cast<bool>(object->getProperty("bypass"));
+        slot.config.inputPanel = inputPanelFromVar(object->getProperty("inputPanel"));
+        slot.config.outputPanel = outputPanelFromVar(object->getProperty("outputPanel"));
         if (auto* p = object->getProperty("parameters").getDynamicObject()) {
             auto& m = std::get<GranularModel>(slot.config.instance);
             m.sampleId = p->getProperty("sampleId").toString().toStdString();
