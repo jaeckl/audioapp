@@ -680,6 +680,7 @@ juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& regi
                 juce::Array<juce::var> devices;
                 for (const auto& device : *side) {
                     if (device != nullptr && !device_types::isSplitType(device->config.typeId) &&
+                        !device_types::isMultibandSplitType(device->config.typeId) &&
                         device->config.typeId != device_types::kChain) {
                         devices.add(deviceSlotToVarImpl(*device, registry));
                     }
@@ -689,6 +690,29 @@ juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& regi
                 branches.add(juce::var(branchObject));
             }
             object->setProperty("branches", branches);
+        }
+        return result;
+    }
+    if (device_types::isMultibandSplitType(slot.config.typeId)) {
+        const auto& mb = std::get<MultibandSplitModel>(slot.config.instance);
+        const IDeviceType* type = registry.findForSlot(slot);
+        juce::var result = type != nullptr ? type->slotToVar(slot) : juce::var{};
+        if (auto* object = result.getDynamicObject()) {
+            juce::Array<juce::var> bands;
+            for (int b = 0; b < mb.bandCount && b < kMaxMbBands; ++b) {
+                juce::Array<juce::var> devices;
+                for (const auto& device : mb.bands[b]) {
+                    if (device != nullptr && !device_types::isSplitType(device->config.typeId) &&
+                        !device_types::isMultibandSplitType(device->config.typeId) &&
+                        device->config.typeId != device_types::kChain) {
+                        devices.add(deviceSlotToVarImpl(*device, registry));
+                    }
+                }
+                auto* bandObject = new juce::DynamicObject();
+                bandObject->setProperty("devices", devices);
+                bands.add(juce::var(bandObject));
+            }
+            object->setProperty("bands", bands);
         }
         return result;
     }
@@ -807,8 +831,38 @@ DeviceSlot deviceVarToSlotImpl(const juce::var& obj, const DeviceRegistry& regis
                             if (sides[branchIndex]->size() >= 8) break;
                             DeviceSlot child = deviceVarToSlotImpl(value, registry);
                             if (!child.id.empty() && !device_types::isSplitType(child.config.typeId) &&
+                                !device_types::isMultibandSplitType(child.config.typeId) &&
                                 child.config.typeId != device_types::kChain) {
                                 sides[branchIndex]->push_back(
+                                    std::make_shared<DeviceSlot>(std::move(child)));
+                            }
+                        }
+                    }
+                }
+            }
+            return slot;
+        }
+        if (device_types::isMultibandSplitType(typeId)) {
+            const IDeviceType* type = registry.find(typeId);
+            if (type == nullptr) return {};
+            DeviceSlot slot = type->varToSlot(obj);
+            if (slot.id.empty()) return {};
+            slot.config.bypassed = static_cast<bool>(object->getProperty("bypass"));
+            auto& mb = std::get<MultibandSplitModel>(slot.config.instance);
+            if (const auto* bands = varArray(object->getProperty("bands"))) {
+                for (int bandIndex = 0;
+                     bandIndex < mb.bandCount && bandIndex < bands->size() && bandIndex < kMaxMbBands;
+                     ++bandIndex) {
+                    const auto* bandObject = (*bands)[bandIndex].getDynamicObject();
+                    if (bandObject == nullptr) continue;
+                    if (const auto* devices = varArray(bandObject->getProperty("devices"))) {
+                        for (const auto& value : *devices) {
+                            if (mb.bands[bandIndex].size() >= 8) break;
+                            DeviceSlot child = deviceVarToSlotImpl(value, registry);
+                            if (!child.id.empty() && !device_types::isSplitType(child.config.typeId) &&
+                                !device_types::isMultibandSplitType(child.config.typeId) &&
+                                child.config.typeId != device_types::kChain) {
+                                mb.bands[bandIndex].push_back(
                                     std::make_shared<DeviceSlot>(std::move(child)));
                             }
                         }

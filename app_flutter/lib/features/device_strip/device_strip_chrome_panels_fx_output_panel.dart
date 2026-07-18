@@ -36,10 +36,16 @@ class FxOutputPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final eff =
-        device is EffectDeviceSnapshot ? device as EffectDeviceSnapshot : null;
-    final mix = eff?.outputMix ?? 1.0;
-    final width = eff?.outputWidth ?? 1.0;
+    final mix = switch (device) {
+      EffectDeviceSnapshot d => d.outputMix,
+      MultibandSplitDeviceSnapshot d => d.outputMix,
+      _ => 1.0,
+    };
+    final width = switch (device) {
+      EffectDeviceSnapshot d => d.outputWidth,
+      MultibandSplitDeviceSnapshot d => d.outputWidth,
+      _ => 1.0,
+    };
 
     return _ChromeOutputShell(
       width: DeviceStripMetrics.dynamicsOutputPanelWidth,

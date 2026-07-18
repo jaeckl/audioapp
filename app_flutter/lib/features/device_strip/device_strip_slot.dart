@@ -46,6 +46,7 @@ import 'drum_machine_device_panel.dart';
 import 'modulation_connect_mode.dart';
 import 'chain_device_panel.dart';
 import 'split_device_panel.dart';
+import 'multiband_split_panel.dart';
 import 'granular_device_panel.dart';
 import 'mood_fx_panels.dart';
 import 'frequency_fx_panels.dart';
@@ -95,6 +96,7 @@ part 'device_strip_slot_private_device_strip_slot_state_build_device_build_oscil
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_drum_machine_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_device_chain_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_split_device.dart';
+part 'device_strip_slot_private_device_strip_slot_state_build_device_build_multiband_split_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_granular_formant_synth_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_simple_sampler_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_simple_oscillator_device.dart';
@@ -191,6 +193,8 @@ class DeviceStripSlot extends StatefulWidget {
     this.splitBranch0Expanded = false,
     this.splitBranch1Expanded = false,
     this.onToggleSplitBranch,
+    this.multibandExpandedBands = const {},
+    this.onToggleMultibandBand,
   });
 
   final TrackSnapshot track;
@@ -256,6 +260,8 @@ class DeviceStripSlot extends StatefulWidget {
   final bool splitBranch0Expanded;
   final bool splitBranch1Expanded;
   final void Function(int branchIndex)? onToggleSplitBranch;
+  final Set<int> multibandExpandedBands;
+  final void Function(int bandIndex)? onToggleMultibandBand;
 
   @override
   State<DeviceStripSlot> createState() => _DeviceStripSlotState();

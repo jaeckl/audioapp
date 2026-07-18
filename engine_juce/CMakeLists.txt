@@ -91,14 +91,17 @@ add_library(audioapp_engine STATIC
   src/devices/processors/ChainProcessor.cpp
   src/devices/processors/GranularProcessor.cpp
   src/devices/processors/SplitProcessor.cpp
+  src/devices/processors/MultibandSplitProcessor.cpp
   src/devices/DeviceRegistry.cpp
   src/devices/DrumMachineModel.cpp
   src/devices/ChainModel.cpp
   src/devices/SplitModel.cpp
+  src/devices/MultibandSplitModel.cpp
   src/devices/DrumMachineDeviceType.cpp
   src/devices/AnalysisDeviceType.cpp
   src/devices/ChainDeviceType.cpp
   src/devices/SplitDeviceType.cpp
+  src/devices/MultibandSplitDeviceType.cpp
   src/devices/GranularDeviceType.cpp
   src/devices/IDeviceType.cpp
   src/devices/OscillatorDeviceType.cpp
@@ -231,6 +234,8 @@ if(ANDROID)
   find_library(log-lib log)
   target_link_libraries(audioapp_engine
     PUBLIC
+      juce::juce_audio_basics
+      juce::juce_dsp
       ${aaudio-lib}
       ${log-lib}
   )
@@ -341,6 +346,7 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/sampler_playback_mode_test.cpp
     tests/snare_generator_test.cpp
     tests/split_processor_test.cpp
+    tests/multiband_split_processor_test.cpp
     tests/stacked_lfo_modulation_test.cpp
     tests/subtractive_lfo_filter_test.cpp
     tests/subtractive_preset_apply_test.cpp

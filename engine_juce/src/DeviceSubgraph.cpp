@@ -2,6 +2,7 @@
 
 #include "audioapp/devices/DeviceSlot.hpp"
 
+#include <algorithm>
 #include <functional>
 
 namespace audioapp {
@@ -84,6 +85,10 @@ DeviceSubgraphTree buildDeviceSubgraphTree(const DeviceSlot& slot) {
         appendSlots(split->branch0, tree.splitBranch0);
         appendSlots(split->branch1, tree.splitBranch1);
     }
+    if (const auto* mb = std::get_if<MultibandSplitModel>(&slot.config.instance)) {
+        for (int b = 0; b < mb->bandCount && b < 4; ++b)
+            appendSlots(mb->bands[b], tree.multibandBands[static_cast<size_t>(b)]);
+    }
     if (const auto* drum = std::get_if<DrumMachineModel>(&slot.config.instance)) {
         for (const auto& pad : drum->pads) {
             if (pad.devices.empty()) continue;
@@ -133,6 +138,17 @@ DeviceSubgraphTree buildDeviceSubgraphTree(const DeviceNodePlayback& node) {
         };
         appendBranch(split->playback->branches[0], tree.splitBranch0);
         appendBranch(split->playback->branches[1], tree.splitBranch1);
+    }
+    if (const auto* mb = std::get_if<MultibandSplitParams>(&node.params);
+        mb != nullptr && mb->playback != nullptr) {
+        const int bandCount = std::clamp(mb->playback->bandCount, 2, 4);
+        for (int b = 0; b < bandCount; ++b) {
+            const auto& branch = mb->playback->bands[b];
+            auto& destination = tree.multibandBands[static_cast<size_t>(b)];
+            destination.reserve(static_cast<size_t>(branch.deviceCount));
+            for (int index = 0; index < branch.deviceCount; ++index)
+                destination.push_back(buildDeviceSubgraphTree(branch.devices[index]));
+        }
     }
     return tree;
 }
@@ -191,6 +207,8 @@ CompiledDeviceSubgraphSchedule compileDeviceSubgraphTree(
             for (const auto& child : pad.children) appendRef(child, processorId, depth + 1, appendRef);
         for (const auto& child : tree.splitBranch0) appendRef(child, processorId, depth + 1, appendRef);
         for (const auto& child : tree.splitBranch1) appendRef(child, processorId, depth + 1, appendRef);
+        for (const auto& band : tree.multibandBands)
+            for (const auto& child : band) appendRef(child, processorId, depth + 1, appendRef);
         appendStage(DeviceSubgraphNodeRole::OutputAdapter,
                     CompiledDeviceSubgraphStage::OutputAdapter);
     };

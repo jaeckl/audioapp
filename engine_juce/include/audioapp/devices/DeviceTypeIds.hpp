@@ -47,6 +47,9 @@ inline constexpr const char* kStereoImager = "stereo_imager";
 inline constexpr const char* kChain = "device_chain";
 inline constexpr const char* kLrSplit = "lr_split";
 inline constexpr const char* kMsSplit = "ms_split";
+inline constexpr const char* kMbSplit2 = "mb_split_2";
+inline constexpr const char* kMbSplit3 = "mb_split_3";
+inline constexpr const char* kMbSplit4 = "mb_split_4";
 
 /// Returns true for synth/instrument device types that support audio/note FX sub-strips.
 inline bool isSynthType(std::string_view typeId) {
@@ -66,12 +69,18 @@ inline bool isAudioFxType(std::string_view typeId) {
            typeId == kFourBandEq || typeId == kFrequencyShifter ||
            typeId == kResonatorBank || typeId == kBitcrusher ||
            typeId == kDistortion || typeId == kTremolo || typeId == kStutter ||
-           typeId == kLrSplit || typeId == kMsSplit;
+           typeId == kLrSplit || typeId == kMsSplit ||
+           typeId == kMbSplit2 || typeId == kMbSplit3 || typeId == kMbSplit4;
 }
 
 /// Returns true for LR/Mid-Side split container device types.
 inline bool isSplitType(std::string_view typeId) {
     return typeId == kLrSplit || typeId == kMsSplit;
+}
+
+/// Returns true for multiband split container device types.
+inline bool isMultibandSplitType(std::string_view typeId) {
+    return typeId == kMbSplit2 || typeId == kMbSplit3 || typeId == kMbSplit4;
 }
 
 } // namespace audioapp::device_types

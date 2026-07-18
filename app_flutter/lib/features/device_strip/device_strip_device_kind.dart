@@ -28,6 +28,9 @@ const frequencyFxDeviceTypes = <String>{
   'spectrum_analyzer',
   'loudness_meter',
   'stereo_imager',
+  'mb_split_2',
+  'mb_split_3',
+  'mb_split_4',
 };
 
 extension DeviceStripDeviceKind on DeviceSnapshot {

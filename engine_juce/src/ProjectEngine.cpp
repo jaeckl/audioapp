@@ -123,6 +123,11 @@ void collectDeviceTreeIds(const DeviceSlot& slot, std::vector<std::string>& ids)
             if (child) collectDeviceTreeIds(*child, ids);
         for (const auto& child : split.branch1)
             if (child) collectDeviceTreeIds(*child, ids);
+    } else if (device_types::isMultibandSplitType(slot.config.typeId)) {
+        const auto& mb = std::get<MultibandSplitModel>(slot.config.instance);
+        for (int b = 0; b < mb.bandCount && b < kMaxMbBands; ++b)
+            for (const auto& child : mb.bands[b])
+                if (child) collectDeviceTreeIds(*child, ids);
     }
     for (const auto& child : slot.noteFxDevices)
         if (child) collectDeviceTreeIds(*child, ids);
@@ -421,7 +426,8 @@ std::string ProjectEngine::addDeviceToSplitBranch(const std::string& splitId,
     if (branchIndex < 0 || branchIndex > 1) return {};
     DeviceSlot* slot = findDeviceLocked(splitId);
     if (slot == nullptr || !device_types::isSplitType(slot->config.typeId) ||
-        device_types::isSplitType(deviceType) || deviceType == device_types::kChain ||
+        device_types::isSplitType(deviceType) || device_types::isMultibandSplitType(deviceType) ||
+        deviceType == device_types::kChain ||
         !deviceRegistry_.isKnownType(deviceType)) return {};
     auto& split = std::get<SplitModel>(slot->config.instance);
     auto& branch = branchIndex == 0 ? split.branch0 : split.branch1;
@@ -451,6 +457,54 @@ bool ProjectEngine::removeDeviceFromSplitBranch(const std::string& splitId,
     std::vector<std::string> removedIds;
     collectDeviceTreeIds(**it, removedIds);
     branch.erase(it);
+    for (const auto& removedId : removedIds) {
+        automationClipStore_.unlinkForDevice(removedId);
+        modulationGraph_.removeModulationForDevice(removedId);
+        modulationGraph_.removeModulatorsOwnedByDevice(removedId);
+    }
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
+std::string ProjectEngine::addDeviceToMultibandBand(const std::string& mbId,
+                                                     int bandIndex,
+                                                     const std::string& deviceType,
+                                                     int insertIndex) {
+    const juce::ScopedWriteLock lock(mutex_);
+    DeviceSlot* slot = findDeviceLocked(mbId);
+    if (slot == nullptr || !device_types::isMultibandSplitType(slot->config.typeId) ||
+        device_types::isSplitType(deviceType) || device_types::isMultibandSplitType(deviceType) ||
+        deviceType == device_types::kChain || !deviceRegistry_.isKnownType(deviceType))
+        return {};
+    auto& mb = std::get<MultibandSplitModel>(slot->config.instance);
+    if (bandIndex < 0 || bandIndex >= mb.bandCount || bandIndex >= kMaxMbBands) return {};
+    auto& band = mb.bands[bandIndex];
+    if (band.size() >= 8) return {};
+    const std::string id = trackRepo_.allocateDeviceId();
+    auto child = std::make_shared<DeviceSlot>(deviceRegistry_.createDefault(deviceType, id));
+    const size_t at = insertIndex < 0 ? band.size()
+        : std::min(static_cast<size_t>(insertIndex), band.size());
+    band.insert(band.begin() + static_cast<std::ptrdiff_t>(at), std::move(child));
+    rebuildTrackPlaybackLocked();
+    return id;
+}
+
+bool ProjectEngine::removeDeviceFromMultibandBand(const std::string& mbId,
+                                                  int bandIndex,
+                                                  const std::string& deviceId) {
+    const juce::ScopedWriteLock lock(mutex_);
+    DeviceSlot* slot = findDeviceLocked(mbId);
+    if (slot == nullptr || !device_types::isMultibandSplitType(slot->config.typeId)) return false;
+    auto& mb = std::get<MultibandSplitModel>(slot->config.instance);
+    if (bandIndex < 0 || bandIndex >= mb.bandCount || bandIndex >= kMaxMbBands) return false;
+    auto& band = mb.bands[bandIndex];
+    const auto it = std::find_if(band.begin(), band.end(), [&](const auto& child) {
+        return child != nullptr && child->id == deviceId;
+    });
+    if (it == band.end()) return false;
+    std::vector<std::string> removedIds;
+    collectDeviceTreeIds(**it, removedIds);
+    band.erase(it);
     for (const auto& removedId : removedIds) {
         automationClipStore_.unlinkForDevice(removedId);
         modulationGraph_.removeModulationForDevice(removedId);
@@ -558,6 +612,11 @@ std::string ProjectEngine::getDevicePresetJson(const std::string& deviceId) cons
                 if (child) if (const auto* found = find(*child)) return found;
             for (const auto& child : split.branch1)
                 if (child) if (const auto* found = find(*child)) return found;
+        } else if (device_types::isMultibandSplitType(slot.config.typeId)) {
+            const auto& mb = std::get<MultibandSplitModel>(slot.config.instance);
+            for (int b = 0; b < mb.bandCount && b < kMaxMbBands; ++b)
+                for (const auto& child : mb.bands[b])
+                    if (child) if (const auto* found = find(*child)) return found;
         }
         for (const auto& child : slot.audioFxDevices)
             if (child) if (const auto* found = find(*child)) return found;
@@ -654,6 +713,10 @@ bool ProjectEngine::applyDevicePresetJson(const std::string& deviceId,
             const auto& split = std::get<SplitModel>(slot.config.instance);
             for (const auto& child : split.branch0) if (child) collectChildren(*child);
             for (const auto& child : split.branch1) if (child) collectChildren(*child);
+        } else if (device_types::isMultibandSplitType(slot.config.typeId)) {
+            const auto& mb = std::get<MultibandSplitModel>(slot.config.instance);
+            for (int b = 0; b < mb.bandCount && b < kMaxMbBands; ++b)
+                for (const auto& child : mb.bands[b]) if (child) collectChildren(*child);
         }
         for (const auto& child : slot.audioFxDevices) if (child) collectChildren(*child);
         for (const auto& child : slot.noteFxDevices) if (child) collectChildren(*child);
@@ -675,6 +738,10 @@ bool ProjectEngine::applyDevicePresetJson(const std::string& deviceId,
             auto& split = std::get<SplitModel>(slot.config.instance);
             for (auto& child : split.branch0) if (child) renewIds(*child, false);
             for (auto& child : split.branch1) if (child) renewIds(*child, false);
+        } else if (device_types::isMultibandSplitType(slot.config.typeId)) {
+            auto& mb = std::get<MultibandSplitModel>(slot.config.instance);
+            for (int b = 0; b < mb.bandCount && b < kMaxMbBands; ++b)
+                for (auto& child : mb.bands[b]) if (child) renewIds(*child, false);
         }
         for (auto& child : slot.audioFxDevices) if (child) renewIds(*child, false);
         for (auto& child : slot.noteFxDevices) if (child) renewIds(*child, false);
@@ -3794,8 +3861,25 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                     }
                 }
             }
+            if (node.kind == DeviceNodeKind::MultibandSplit) {
+                auto playback = std::get<MultibandSplitParams>(node.params).playback;
+                if (playback != nullptr) {
+                    auto mutablePlayback = std::const_pointer_cast<MultibandSplitPlayback>(playback);
+                    const int bandCount = std::clamp(mutablePlayback->bandCount, 2, kMaxMbBands);
+                    for (int band = 0; band < bandCount; ++band) {
+                        auto& bandPlayback = mutablePlayback->bands[band];
+                        for (int child = 0; child < bandPlayback.deviceCount; ++child) {
+                            bandPlayback.devices[child].automationTargetIndex = static_cast<uint16_t>(
+                                0x0800u | (static_cast<uint16_t>(snap.deviceCount) << 6u) |
+                                (static_cast<uint16_t>(band) << 4u) |
+                                static_cast<uint16_t>(child));
+                        }
+                    }
+                }
+            }
             if ((isDynamicsDeviceNodeKind(node.kind) || isAnalysisDeviceNodeKind(node.kind) ||
-                 node.kind == DeviceNodeKind::Split) &&
+                 node.kind == DeviceNodeKind::Split ||
+                 node.kind == DeviceNodeKind::MultibandSplit) &&
                 deviceMeterSlotCount_ < kMaxDeviceMeters) {
                 node.meterSlot = static_cast<int8_t>(deviceMeterSlotCount_);
                 deviceMeterIds_[deviceMeterSlotCount_] = dev.id;
@@ -4046,6 +4130,24 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                     const auto& branchPlayback = playback->branches[branch];
                     for (int child = 0; child < branchPlayback.deviceCount; ++child) {
                         const auto& childNode = branchPlayback.devices[child];
+                        if (childNode.deviceId != clip.deviceId) continue;
+                        di = i;
+                        targetIndex = childNode.automationTargetIndex;
+                        targetKind = childNode.kind;
+                        targetType = deviceRegistry_.findByKind(targetKind);
+                        break;
+                    }
+                }
+            }
+            if (snap.devices[i].kind == DeviceNodeKind::MultibandSplit) {
+                const auto playback =
+                    std::get<MultibandSplitParams>(snap.devices[i].params).playback;
+                if (playback == nullptr) continue;
+                const int bandCount = std::clamp(playback->bandCount, 2, kMaxMbBands);
+                for (int band = 0; band < bandCount && di < 0; ++band) {
+                    const auto& bandPlayback = playback->bands[band];
+                    for (int child = 0; child < bandPlayback.deviceCount; ++child) {
+                        const auto& childNode = bandPlayback.devices[child];
                         if (childNode.deviceId != clip.deviceId) continue;
                         di = i;
                         targetIndex = childNode.automationTargetIndex;
@@ -4377,6 +4479,22 @@ void ProjectEngine::rebuildModEdgesLocked() {
                         }
                     }
                 }
+                if (snap.devices[i].kind == DeviceNodeKind::MultibandSplit) {
+                    const auto playback =
+                        std::get<MultibandSplitParams>(snap.devices[i].params).playback;
+                    if (playback == nullptr) continue;
+                    const int bandCount = std::clamp(playback->bandCount, 2, kMaxMbBands);
+                    for (int band = 0; band < bandCount && di < 0; ++band) {
+                        const auto& bandPlayback = playback->bands[band];
+                        for (int child = 0; child < bandPlayback.deviceCount; ++child) {
+                            if (bandPlayback.devices[child].deviceId != globalEdge.deviceId) continue;
+                            di = i;
+                            targetIndex = bandPlayback.devices[child].automationTargetIndex;
+                            targetKind = bandPlayback.devices[child].kind;
+                            break;
+                        }
+                    }
+                }
                 if (di >= 0) break;
             }
             if (di < 0) continue;
@@ -4433,6 +4551,14 @@ DeviceSlot* ProjectEngine::findDeviceLocked(const std::string& deviceId) {
                 }
                 for (auto& child : split.branch1) {
                     if (child != nullptr && child->id == deviceId) return child.get();
+                }
+            }
+            if (device_types::isMultibandSplitType(device.config.typeId)) {
+                auto& mb = std::get<MultibandSplitModel>(device.config.instance);
+                for (int b = 0; b < mb.bandCount && b < kMaxMbBands; ++b) {
+                    for (auto& child : mb.bands[b]) {
+                        if (child != nullptr && child->id == deviceId) return child.get();
+                    }
                 }
             }
             for (auto& child : device.audioFxDevices) {

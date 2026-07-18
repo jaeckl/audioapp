@@ -9,12 +9,14 @@ class SplitBranchToggleButton extends StatelessWidget {
     required this.active,
     required this.accentColor,
     required this.onPressed,
+    this.centerBody = false,
   });
 
   /// ~1.5× the chrome FX toggle (53×25).
   static const double width = 80;
   static const double height = 38;
-  static const double _bodyWidth = 60;
+  static const double bodyWidth = 60;
+  static const double _bodyWidth = bodyWidth;
   static const double _fontSize = 12;
 
   final String label;
@@ -22,8 +24,13 @@ class SplitBranchToggleButton extends StatelessWidget {
   final Color accentColor;
   final VoidCallback? onPressed;
 
+  /// When true, dark body is centered in [width] (for stacked knob columns).
+  final bool centerBody;
+
   @override
   Widget build(BuildContext context) {
+    final bodyLeft = centerBody ? (width - _bodyWidth) / 2 : 0.0;
+
     return GestureDetector(
       onTap: onPressed,
       child: SizedBox(
@@ -33,7 +40,7 @@ class SplitBranchToggleButton extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             Positioned(
-              left: 0,
+              left: bodyLeft,
               top: 0,
               width: _bodyWidth,
               height: height,
@@ -59,6 +66,7 @@ class SplitBranchToggleButton extends StatelessWidget {
                   painter: _SplitFxAdornmentPainter(
                     accentColor: accentColor,
                     active: active,
+                    bodyLeft: bodyLeft,
                   ),
                 ),
               ),
@@ -75,10 +83,12 @@ class _SplitFxAdornmentPainter extends CustomPainter {
   const _SplitFxAdornmentPainter({
     required this.accentColor,
     required this.active,
+    required this.bodyLeft,
   });
 
   final Color accentColor;
   final bool active;
+  final double bodyLeft;
 
   // Chrome reference: body 40 wide, bracket height 3, triangle at x 42.5–47.5.
   static const double _scale = SplitBranchToggleButton._bodyWidth / 40.0;
@@ -87,6 +97,7 @@ class _SplitFxAdornmentPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final bodyW = SplitBranchToggleButton._bodyWidth;
     final bracketH = 3.0 * _scale;
+    final ox = bodyLeft;
 
     final bracketPaint = Paint()
       ..color = accentColor
@@ -94,14 +105,14 @@ class _SplitFxAdornmentPainter extends CustomPainter {
       ..strokeWidth = 1.2
       ..strokeCap = StrokeCap.round;
     final bracket = Path()
-      ..moveTo(0, bracketH)
-      ..lineTo(0, 0)
-      ..lineTo(bodyW, 0)
-      ..lineTo(bodyW, bracketH);
+      ..moveTo(ox, bracketH)
+      ..lineTo(ox, 0)
+      ..lineTo(ox + bodyW, 0)
+      ..lineTo(ox + bodyW, bracketH);
     canvas.drawPath(bracket, bracketPaint);
 
-    final tipX = 47.5 * _scale;
-    final baseX = 42.5 * _scale;
+    final tipX = ox + 47.5 * _scale;
+    final baseX = ox + 42.5 * _scale;
     final midY = size.height * 0.5;
     final halfH = 4.0 * _scale;
     final triangle = Path()
@@ -119,5 +130,7 @@ class _SplitFxAdornmentPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_SplitFxAdornmentPainter old) =>
-      old.accentColor != accentColor || old.active != active;
+      old.accentColor != accentColor ||
+      old.active != active ||
+      old.bodyLeft != bodyLeft;
 }

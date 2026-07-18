@@ -1,6 +1,6 @@
 part of 'device_chain_row.dart';
 
-const _splitNestingRejectedTypes = {
+const _mbNestingRejectedTypes = {
   'device_chain',
   'lr_split',
   'ms_split',
@@ -9,25 +9,26 @@ const _splitNestingRejectedTypes = {
   'mb_split_4',
 };
 
-extension _DeviceChainRowStateVirtualsplitbranch on _DeviceChainRowState {
-  String _splitBranchLabel(SplitDeviceSnapshot split, int branchIndex) {
-    if (split.isMidSide) return branchIndex == 0 ? 'MID' : 'SIDE';
-    return branchIndex == 0 ? 'L' : 'R';
+extension _DeviceChainRowStateVirtualmultibandband on _DeviceChainRowState {
+  String _mbBandLabel(MultibandSplitDeviceSnapshot mb, int bandIndex) {
+    final labels = MultibandSplitDeviceSnapshot.bandLabels(mb.bandCount);
+    if (bandIndex >= 0 && bandIndex < labels.length) return labels[bandIndex];
+    return 'B${bandIndex + 1}';
   }
 
-  Widget _virtualSplitBranch(
+  Widget _virtualMultibandBand(
     BuildContext context,
-    SplitDeviceSnapshot split,
-    int branchIndex,
+    MultibandSplitDeviceSnapshot mb,
+    int bandIndex,
   ) {
-    final accent = DeviceStripTheme.accentForDeviceType(split.type);
-    final branchDevices = split.branchDevices(branchIndex);
+    final accent = DeviceStripTheme.accentForDeviceType(mb.type);
+    final bandDevices = mb.bandDevices(bandIndex);
     Future<void> addDevice() async {
       final type = await showDevicePickerSheet(context);
-      if (type == null || _splitNestingRejectedTypes.contains(type)) return;
-      await widget.onModulationBridgeCall?.call('addDeviceToSplitBranch', {
-        'splitId': split.id,
-        'branchIndex': branchIndex,
+      if (type == null || _mbNestingRejectedTypes.contains(type)) return;
+      await widget.onModulationBridgeCall?.call('addDeviceToMultibandBand', {
+        'mbId': mb.id,
+        'bandIndex': bandIndex,
         'deviceType': type,
       });
     }
@@ -43,14 +44,14 @@ extension _DeviceChainRowStateVirtualsplitbranch on _DeviceChainRowState {
             child: Row(children: [
               RotatedBox(
                   quarterTurns: 3,
-                  child: Text(_splitBranchLabel(split, branchIndex),
+                  child: Text(_mbBandLabel(mb, bandIndex),
                       style: TextStyle(
                           color: accent,
                           fontSize: 10,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.8))),
               const SizedBox(width: 7),
-              for (final child in branchDevices) ...[
+              for (final child in bandDevices) ...[
                 _automationAwareDevice(
                     child,
                     (displayChild) => _sampleDropTarget(
@@ -89,9 +90,9 @@ extension _DeviceChainRowStateVirtualsplitbranch on _DeviceChainRowState {
                               : () => widget.onBypassToggle!(
                                   child.id, !child.bypassed),
                           onDeleteRequest: () => widget.onModulationBridgeCall
-                              ?.call('removeDeviceFromSplitBranch', {
-                            'splitId': split.id,
-                            'branchIndex': branchIndex,
+                              ?.call('removeDeviceFromMultibandBand', {
+                            'mbId': mb.id,
+                            'bandIndex': bandIndex,
                             'deviceId': child.id,
                           }),
                           onOpenLibrary: widget.onOpenLibrary == null
@@ -113,7 +114,7 @@ extension _DeviceChainRowStateVirtualsplitbranch on _DeviceChainRowState {
                         ))),
                 const SizedBox(width: 5),
               ],
-              if (branchDevices.length < 8)
+              if (bandDevices.length < 8)
                 SizedBox(
                   width: DeviceStripMetrics.separatorWidth,
                   child: Center(

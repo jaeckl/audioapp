@@ -83,6 +83,7 @@ struct DeviceSubgraphTree {
     std::vector<DrumPadBranch> drumPads;
     std::vector<DeviceSubgraphTree> splitBranch0;
     std::vector<DeviceSubgraphTree> splitBranch1;
+    std::array<std::vector<DeviceSubgraphTree>, 4> multibandBands{};
 };
 
 DeviceSubgraphTree buildDeviceSubgraphTree(const DeviceSlot& slot);

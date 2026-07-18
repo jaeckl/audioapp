@@ -77,6 +77,10 @@ public:
                                        const std::string& deviceType, int insertIndex = -1);
     bool removeDeviceFromSplitBranch(const std::string& splitId, int branchIndex,
                                      const std::string& deviceId);
+    std::string addDeviceToMultibandBand(const std::string& mbId, int bandIndex,
+                                        const std::string& deviceType, int insertIndex = -1);
+    bool removeDeviceFromMultibandBand(const std::string& mbId, int bandIndex,
+                                       const std::string& deviceId);
     std::string addDeviceToSynthAudioFx(const std::string& deviceId,
                                          const std::string& deviceType,
                                          int insertIndex = -1);

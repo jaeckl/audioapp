@@ -154,6 +154,19 @@ bool EngineHost::removeDeviceFromSplitBranch(const std::string& splitId, int bra
         project_->removeDeviceFromSplitBranch(splitId, branchIndex, deviceId);
 }
 
+std::string EngineHost::addDeviceToMultibandBand(const std::string& mbId, int bandIndex,
+                                                 const std::string& deviceType, int insertIndex) {
+    return project_ != nullptr
+        ? project_->addDeviceToMultibandBand(mbId, bandIndex, deviceType, insertIndex)
+        : std::string{};
+}
+
+bool EngineHost::removeDeviceFromMultibandBand(const std::string& mbId, int bandIndex,
+                                               const std::string& deviceId) {
+    return project_ != nullptr &&
+        project_->removeDeviceFromMultibandBand(mbId, bandIndex, deviceId);
+}
+
 std::string EngineHost::addDeviceToSynthAudioFx(const std::string& deviceId,
                                                   const std::string& deviceType, int insertIndex) {
     return project_ != nullptr ? project_->addDeviceToSynthAudioFx(deviceId, deviceType, insertIndex) : std::string{};
@@ -1579,6 +1592,26 @@ void EngineHost::registerAllCommands() {
         const int branchIndex = static_cast<int>(static_cast<double>(ctx.args["branchIndex"]));
         if (!ctx.engine.removeDeviceFromSplitBranch(splitId, branchIndex, deviceId))
             return commands::errorResult("split_device_not_found");
+        return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
+    });
+
+    reg.registerCommand("addDeviceToMultibandBand", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto mbId = ctx.args["mbId"].toString().toStdString();
+        const auto deviceType = ctx.args["deviceType"].toString().toStdString();
+        const int bandIndex = static_cast<int>(static_cast<double>(ctx.args["bandIndex"]));
+        const int insertIndex = ctx.args.hasProperty("insertIndex")
+            ? static_cast<int>(static_cast<double>(ctx.args["insertIndex"])) : -1;
+        if (ctx.engine.addDeviceToMultibandBand(mbId, bandIndex, deviceType, insertIndex).empty())
+            return commands::errorResult("invalid_multiband_device");
+        return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
+    });
+
+    reg.registerCommand("removeDeviceFromMultibandBand", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto mbId = ctx.args["mbId"].toString().toStdString();
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        const int bandIndex = static_cast<int>(static_cast<double>(ctx.args["bandIndex"]));
+        if (!ctx.engine.removeDeviceFromMultibandBand(mbId, bandIndex, deviceId))
+            return commands::errorResult("multiband_device_not_found");
         return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
     });
 

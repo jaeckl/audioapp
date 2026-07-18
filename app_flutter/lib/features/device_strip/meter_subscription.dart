@@ -25,6 +25,9 @@ abstract final class MeterSubscription {
   static const _splitTypes = {
     'lr_split',
     'ms_split',
+    'mb_split_2',
+    'mb_split_3',
+    'mb_split_4',
   };
 
   static bool publishesLiveMeters(String deviceType) =>

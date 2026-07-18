@@ -31,6 +31,9 @@ abstract final class DeviceStripChrome {
     'distortion',
     'tremolo',
     'stutter_fx',
+    'mb_split_2',
+    'mb_split_3',
+    'mb_split_4',
   };
   static const _emptyOutputTypes = {
     'oscilloscope',

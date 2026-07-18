@@ -6,6 +6,7 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
   final Map<String, bool> _synthAudioFxExpanded = {};
   final Map<String, bool> _synthNoteFxExpanded = {};
   final Map<String, Set<int>> _splitBranchExpanded = {};
+  final Map<String, Set<int>> _mbBandExpanded = {};
 
   bool _isSynth(String type) =>
       DeviceCapabilities.virtualStripHosts.contains(type);
@@ -18,6 +19,18 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
       final branches = _splitBranchExpanded.putIfAbsent(deviceId, () => {});
       if (!branches.remove(branchIndex)) {
         branches.add(branchIndex);
+      }
+    });
+  }
+
+  bool _isMbBandExpanded(String deviceId, int bandIndex) =>
+      _mbBandExpanded[deviceId]?.contains(bandIndex) ?? false;
+
+  void _toggleMbBand(String deviceId, int bandIndex) {
+    setState(() {
+      final bands = _mbBandExpanded.putIfAbsent(deviceId, () => {});
+      if (!bands.remove(bandIndex)) {
+        bands.add(bandIndex);
       }
     });
   }
@@ -253,6 +266,15 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                           ? (branchIndex) =>
                               _toggleSplitBranch(devices[i].id, branchIndex)
                           : null,
+                      multibandExpandedBands: devices[i]
+                              is MultibandSplitDeviceSnapshot
+                          ? (_mbBandExpanded[devices[i].id] ?? const {})
+                          : const {},
+                      onToggleMultibandBand:
+                          devices[i] is MultibandSplitDeviceSnapshot
+                              ? (bandIndex) =>
+                                  _toggleMbBand(devices[i].id, bandIndex)
+                              : null,
                       onDrumTriggerNote: (note) =>
                           widget.onPreviewSampler?.call(note),
                       onEmptyDrumPadTap: (note) {
@@ -277,6 +299,14 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                   if (_isSplitBranchExpanded(devices[i].id, 1))
                     _virtualSplitBranch(
                         context, devices[i] as SplitDeviceSnapshot, 1),
+                ],
+                if (devices[i] is MultibandSplitDeviceSnapshot) ...[
+                  for (var b = 0;
+                      b < (devices[i] as MultibandSplitDeviceSnapshot).bandCount;
+                      b++)
+                    if (_isMbBandExpanded(devices[i].id, b))
+                      _virtualMultibandBand(context,
+                          devices[i] as MultibandSplitDeviceSnapshot, b),
                 ],
                 if (_isSynth(devices[i].type) &&
                     (_synthAudioFxExpanded[devices[i].id] ?? false))

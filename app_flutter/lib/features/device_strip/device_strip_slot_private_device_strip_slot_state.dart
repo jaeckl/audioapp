@@ -88,6 +88,9 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       'device_chain',
       'lr_split',
       'ms_split',
+      'mb_split_2',
+      'mb_split_3',
+      'mb_split_4',
       'granular_formant_synth',
       'stutter_fx',
     };

@@ -20,6 +20,9 @@ import 'dynamics/compressor_definition.dart';
 import 'dynamics/expander_definition.dart';
 import 'dynamics/gate_definition.dart';
 import 'dynamics/limiter_definition.dart';
+import 'frequency/mb_split_2_definition.dart';
+import 'frequency/mb_split_3_definition.dart';
+import 'frequency/mb_split_4_definition.dart';
 import 'frequency_fx/filter_definition.dart';
 import 'frequency_fx/four_band_eq_definition.dart';
 import 'frequency_fx/frequency_shifter_definition.dart';
@@ -65,6 +68,9 @@ final List<DeviceDefinition<DeviceSnapshot>> generatedDeviceDefinitions = [
   ExpanderDefinition(),
   GateDefinition(),
   LimiterDefinition(),
+  MbSplit2Definition(),
+  MbSplit3Definition(),
+  MbSplit4Definition(),
   FilterDefinition(),
   FourBandEqDefinition(),
   FrequencyShifterDefinition(),

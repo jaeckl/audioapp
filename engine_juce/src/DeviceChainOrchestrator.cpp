@@ -39,6 +39,7 @@ using namespace audioapp::DeviceChainAutomationModulation;
 #include "audioapp/devices/processors/GranularProcessor.hpp"
 #include "audioapp/devices/processors/StutterProcessor.hpp"
 #include "audioapp/devices/processors/SplitProcessor.hpp"
+#include "audioapp/devices/processors/MultibandSplitProcessor.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -94,6 +95,7 @@ static const FactoryFn kProcessorFactories[] = {
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<TomProcessor>(); },
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<RimshotProcessor>(); },
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<SplitProcessor>(); },  // Split
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<MultibandSplitProcessor>(); },  // MultibandSplit
 };
 static constexpr size_t kNumFactories = sizeof(kProcessorFactories) / sizeof(kProcessorFactories[0]);
 
@@ -560,7 +562,8 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         pc.lfoCount = ctx.lfoCount;
         const bool isContainer = nodeKind == DeviceNodeKind::Chain ||
                                  nodeKind == DeviceNodeKind::DrumMachine ||
-                                 nodeKind == DeviceNodeKind::Split;
+                                 nodeKind == DeviceNodeKind::Split ||
+                                 nodeKind == DeviceNodeKind::MultibandSplit;
         pc.modEdges = isContainer ? ctx.modEdges : targetModEdges;
         pc.modEdgeCount = isContainer ? ctx.modEdgeCount : targetModEdgeCount;
         pc.automationClips = isContainer ? ctx.automationClips : targetAutomation;

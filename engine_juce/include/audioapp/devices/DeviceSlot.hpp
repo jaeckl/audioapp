@@ -36,6 +36,7 @@
 #include "audioapp/MidiDelay.hpp"
 #include "audioapp/devices/instances/ChainModel.hpp"
 #include "audioapp/devices/instances/SplitModel.hpp"
+#include "audioapp/devices/instances/MultibandSplitModel.hpp"
 
 namespace audioapp {
 
@@ -76,7 +77,8 @@ using DeviceInstance = std::variant<
     DrumMachineModel,
     GranularModel,
     ChainModel,
-    SplitModel
+    SplitModel,
+    MultibandSplitModel
 >;
 
 /// Unified device config wrapping params, panels, and bypass.

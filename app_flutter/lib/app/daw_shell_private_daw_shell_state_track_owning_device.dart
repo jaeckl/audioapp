@@ -15,6 +15,11 @@ TrackSnapshot? _trackOwningDevice(String deviceId) {
                 containsDevice(device.branch1))) {
           return true;
         }
+        if (device is MultibandSplitDeviceSnapshot) {
+          for (final band in device.bands) {
+            if (containsDevice(band)) return true;
+          }
+        }
         if (device is DrumMachineDeviceSnapshot) {
           for (final pad in device.pads) {
             if (containsDevice(pad.devices)) return true;
