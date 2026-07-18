@@ -179,8 +179,11 @@ void CymbalProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
         );
         for (int f = 0; f < block.numSamples; ++f) {
             const float angle = std::clamp(ctx.scratch.perFramePan[f], 0.0f, 1.0f) * 1.57079632679f;
-            block.channelL[f] += ctx.scratch.tempStereoL[f] * std::cos(angle) + ctx.scratch.tempStereoR[f] * std::cos(angle);
-            block.channelR[f] += ctx.scratch.tempStereoL[f] * std::sin(angle) + ctx.scratch.tempStereoR[f] * std::sin(angle);
+            constexpr float kCenterCompensation = 1.41421356237f;
+            block.channelL[f] += ctx.scratch.tempStereoL[f] *
+                std::cos(angle) * kCenterCompensation;
+            block.channelR[f] += ctx.scratch.tempStereoR[f] *
+                std::sin(angle) * kCenterCompensation;
         }
     }
 }

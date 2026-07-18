@@ -4,8 +4,8 @@
 ///   1. LFO -> Kick pitch   -> spectral change
 ///   2. LFO -> Snare body   -> spectral change
 ///   3. LFO -> Clap tone    -> spectral change
-///   4. LFO -> Crash spread -> spectral change
-///   5. LFO -> Cymbal width -> spectral change
+///   4. LFO -> Crash spread -> stereo-width change
+///   5. LFO -> Cymbal width -> stereo-width change
 ///
 /// Each test renders the percussion device with an LFO modulating the
 /// characteristic parameter at full amount (1.0). Windows of the buffer
@@ -54,6 +54,42 @@ bool testPercussionModulation(const std::string& deviceType,
     }
 
     host.setPlaying(true);
+    if (param == "crashSpread" || param == "cymbalWidth") {
+        constexpr int kFrames = 96000;
+        constexpr int kBlock = 512;
+        std::vector<float> left(kFrames, 0.0f);
+        std::vector<float> right(kFrames, 0.0f);
+        for (int offset = 0; offset < kFrames; offset += kBlock) {
+            const int frames = std::min(kBlock, kFrames - offset);
+            const double beat = static_cast<double>(offset) / 48000.0 * 2.0;
+            host.readMasterMixStereo(left.data() + offset, right.data() + offset,
+                                     frames, 48000.0, beat);
+        }
+        float widest = 0.0f;
+        float narrowest = std::numeric_limits<float>::infinity();
+        constexpr int kWindows = 8;
+        const int windowFrames = kFrames / kWindows;
+        for (int window = 0; window < kWindows; ++window) {
+            double sideEnergy = 0.0;
+            double midEnergy = 0.0;
+            const int begin = window * windowFrames;
+            for (int frame = begin; frame < begin + windowFrames; ++frame) {
+                const double mid = left[frame] + right[frame];
+                const double side = left[frame] - right[frame];
+                midEnergy += mid * mid;
+                sideEnergy += side * side;
+            }
+            const float width = static_cast<float>(
+                std::sqrt(sideEnergy / std::max(midEnergy, 1.0e-12)));
+            widest = std::max(widest, width);
+            narrowest = std::min(narrowest, width);
+        }
+        const float widthRatio = widest / std::max(narrowest, 1.0e-6f);
+        std::fprintf(stderr, "DIAG perc: type=%s param=%s widthRatio=%g\n",
+            deviceType.c_str(), param.c_str(), widthRatio);
+        const float requiredRatio = param == "cymbalWidth" ? 1.05f : 1.2f;
+        return widthRatio >= requiredRatio;
+    }
     const std::vector<float> block = host.renderOffline(4.0, 48000.0);
     const float rms = audioapp::test::fullRms(block);
 
@@ -106,12 +142,12 @@ public:
         beginTest("LFO -> Crash spread -> spectral change");
         {
             expect(testPercussionModulation("crash_generator", "crashSpread", "Crash spread"),
-                   "crash spread modulation should change spectral content");
+                   "crash spread modulation should change stereo width");
         }
         beginTest("LFO -> Cymbal width -> spectral change");
         {
             expect(testPercussionModulation("cymbal_generator", "cymbalWidth", "Cymbal width"),
-                   "cymbal width modulation should change spectral content");
+                   "cymbal width modulation should change stereo width");
         }
     }
 };
