@@ -1,5 +1,7 @@
 import 'package:audioapp/bridge/engine_bridge.dart';
+import 'package:audioapp/features/device_strip/effective_parameter_binding.dart';
 import 'package:audioapp/features/device_strip/effective_parameter_monitor.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -120,6 +122,31 @@ void main() {
       ],
     });
     effectiveParameterMonitor.unregister(key);
+    effectiveParameterMonitor.stop();
+  });
+
+  testWidgets('presentation binding exposes base and final modulation value',
+      (tester) async {
+    effectiveParameterMonitor.start(bridge);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: EffectiveParameterScope(
+          deviceId: 'dev-2',
+          child: EffectiveParameterPresentationBuilder(
+            parameterId: 'drive',
+            fallbackValue: 0.0,
+            active: true,
+            builder: (context, base, effective) => Text(
+                '${base.toStringAsFixed(3)}/${effective.toStringAsFixed(3)}'),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump(const Duration(milliseconds: 40));
+    await tester.pump();
+
+    expect(find.text('0.375/0.625'), findsOneWidget);
     effectiveParameterMonitor.stop();
   });
 }

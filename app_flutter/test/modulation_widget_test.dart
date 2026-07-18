@@ -102,8 +102,7 @@ void main() {
           playing: false,
           loopEnabled: true,
           recordArmed: false,
-          master:
-              MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1.0),
+          master: MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1.0),
           samples: [],
           tracks: [],
         );
@@ -187,6 +186,53 @@ void main() {
       expect(find.text('test'), findsOneWidget);
       // ModulationVerticalBar is rendered when modulation is active with non-zero amount.
       expect(find.byType(ModulationVerticalBar), findsOneWidget);
+    });
+
+    testWidgets('passes live modulation to the z-order overlay',
+        (tester) async {
+      await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+          body: ModulatableSpinnerShell(
+            width: 40,
+            height: 40,
+            accentColor: Colors.amber,
+            borderAlpha: 0.5,
+            modulationActive: true,
+            modulationAmount: 0.5,
+            liveModulationAmount: -0.2,
+            child: Text('test'),
+          ),
+        ),
+      ));
+
+      final bar = tester.widget<ModulationVerticalBar>(
+        find.byType(ModulationVerticalBar),
+      );
+      expect(bar.amount, 0.5);
+      expect(bar.currentAmount, -0.2);
+    });
+
+    testWidgets('hides live modulation in link mode', (tester) async {
+      await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+          body: ModulatableSpinnerShell(
+            width: 40,
+            height: 40,
+            accentColor: Colors.amber,
+            borderAlpha: 0.5,
+            modulationActive: true,
+            modulationAmount: 0.5,
+            liveModulationAmount: 0.2,
+            linkModeActive: true,
+            child: Text('test'),
+          ),
+        ),
+      ));
+
+      final bar = tester.widget<ModulationVerticalBar>(
+        find.byType(ModulationVerticalBar),
+      );
+      expect(bar.currentAmount, isNull);
     });
 
     testWidgets('shows connect-mode pulse', (tester) async {

@@ -73,19 +73,31 @@ extension RotaryKnobStateBuildcontentOperation on _RotaryKnobState {
                       SizedBox(
                         width: widget.size,
                         height: widget.size,
-                        child: CustomPaint(
-                          size: Size(widget.size, widget.size),
-                          painter: _KnobPainter(
-                            value: displayValue.clamp(0, 1),
-                            angle: angle,
-                            accentColor: pulseAccent,
-                            strokeWidth: stroke,
-                            modulationActive: widget.modulationActive,
-                            modulationAmount: widget.modulationAmount,
-                            modulatorPolarity: effectivePolarity,
-                            connectModeActive: showConnectPulse,
-                            assignmentMode: _assignmentMode,
-                            assignmentAmount: _assignmentAmount,
+                        child: TweenAnimationBuilder<double>(
+                          duration: const Duration(milliseconds: 42),
+                          curve: Curves.linear,
+                          tween: Tween<double>(
+                            end: _modulatedDisplayValue ?? displayValue,
+                          ),
+                          builder: (context, animatedModulatedValue, _) =>
+                              CustomPaint(
+                            size: Size(widget.size, widget.size),
+                            painter: _KnobPainter(
+                              value: displayValue.clamp(0, 1),
+                              angle: angle,
+                              accentColor: pulseAccent,
+                              strokeWidth: stroke,
+                              modulationActive: widget.modulationActive,
+                              modulationAmount: widget.modulationAmount,
+                              modulatedValue: animatedModulatedValue,
+                              liveModulationVisible:
+                                  !widget.connectModeActive &&
+                                      !widget.linkModeActive,
+                              modulatorPolarity: effectivePolarity,
+                              connectModeActive: showConnectPulse,
+                              assignmentMode: _assignmentMode,
+                              assignmentAmount: _assignmentAmount,
+                            ),
                           ),
                         ),
                       ),

@@ -33,6 +33,14 @@ class _RotaryKnobState extends State<RotaryKnob>
         : effectiveParameterMonitor.valueFor(key) ?? widget.value;
   }
 
+  double? get _modulatedDisplayValue {
+    if (!widget.modulationActive) return null;
+    final key = _effectiveKey;
+    return key == null
+        ? null
+        : effectiveParameterMonitor.effectiveValueFor(key);
+  }
+
   @override
   void initState() {
     super.initState();

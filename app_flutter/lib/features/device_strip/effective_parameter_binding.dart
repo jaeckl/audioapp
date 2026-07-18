@@ -45,6 +45,93 @@ class EffectiveParameterValueBuilder extends StatefulWidget {
       _EffectiveParameterValueBuilderState();
 }
 
+/// Rebuilds presentation chrome with both the automation-adjusted base and the
+/// final value observed by DSP after modulation.
+class EffectiveParameterPresentationBuilder extends StatefulWidget {
+  const EffectiveParameterPresentationBuilder({
+    super.key,
+    required this.parameterId,
+    required this.fallbackValue,
+    required this.active,
+    required this.builder,
+    this.deviceId,
+  });
+
+  final String parameterId;
+  final double fallbackValue;
+  final bool active;
+  final String? deviceId;
+  final Widget Function(
+    BuildContext context,
+    double automationBase,
+    double effectiveValue,
+  ) builder;
+
+  @override
+  State<EffectiveParameterPresentationBuilder> createState() =>
+      _EffectiveParameterPresentationBuilderState();
+}
+
+class _EffectiveParameterPresentationBuilderState
+    extends State<EffectiveParameterPresentationBuilder> {
+  EffectiveParameterKey? _key;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncRegistration();
+  }
+
+  @override
+  void didUpdateWidget(EffectiveParameterPresentationBuilder oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncRegistration();
+  }
+
+  EffectiveParameterKey? _resolvedKey() {
+    if (!widget.active) return null;
+    final deviceId =
+        widget.deviceId ?? EffectiveParameterScope.maybeDeviceIdOf(context);
+    if (deviceId == null) return null;
+    return (deviceId: deviceId, parameterId: widget.parameterId);
+  }
+
+  void _syncRegistration() {
+    final next = _resolvedKey();
+    if (next == _key) return;
+    if (_key != null) effectiveParameterMonitor.unregister(_key!);
+    _key = next;
+    if (_key != null) effectiveParameterMonitor.register(_key!);
+  }
+
+  @override
+  void dispose() {
+    if (_key != null) effectiveParameterMonitor.unregister(_key!);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: effectiveParameterMonitor,
+      builder: (context, _) {
+        final automationBase = _key == null
+            ? widget.fallbackValue
+            : effectiveParameterMonitor.valueFor(_key!) ?? widget.fallbackValue;
+        final effectiveValue = _key == null
+            ? automationBase
+            : effectiveParameterMonitor.effectiveValueFor(_key!) ??
+                automationBase;
+        return widget.builder(
+          context,
+          automationBase.clamp(0.0, 1.0).toDouble(),
+          effectiveValue.clamp(0.0, 1.0).toDouble(),
+        );
+      },
+    );
+  }
+}
+
 class _EffectiveParameterValueBuilderState
     extends State<EffectiveParameterValueBuilder> {
   EffectiveParameterKey? _key;

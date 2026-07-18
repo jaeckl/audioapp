@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
+import 'effective_parameter_binding.dart';
 import 'modulatable_spinner_shell.dart';
 import 'modulator_polarity.dart';
 
 import '../../bridge/project_snapshot.dart';
 
-ModulatableSpinnerShell deviceAutomationSpinner({
+Widget deviceAutomationSpinner({
   required String paramId,
   required double width,
   required double height,
@@ -36,24 +37,36 @@ ModulatableSpinnerShell deviceAutomationSpinner({
             )
           : ModulatorPolarity.bipolar);
 
-  return ModulatableSpinnerShell(
-    width: width,
-    height: height,
-    accentColor: accentColor,
-    borderAlpha: borderAlpha,
-    modulationActive: modulatedParams.contains(paramId),
-    automationActive: automatedParams.contains(paramId),
-    modulationAmount: modulationAmounts[paramId] ?? 0.0,
-    modulatorPolarity: polarity,
-    connectModeActive: connectModeLfoId != null,
-    onModulationAssign: onModulationAssign != null
-        ? (amount) => onModulationAssign(paramId, amount)
-        : null,
-    linkModeActive: automationLinkActive,
-    onLinkTap: onAutomationLinkTap != null ? () => onAutomationLinkTap(paramId) : null,
-    onAutomateRequest: onAutomateParameter != null
-        ? () => onAutomateParameter(paramId)
-        : null,
-    child: child,
+  final modulationActive = modulatedParams.contains(paramId);
+  final automationActive = automatedParams.contains(paramId);
+  return EffectiveParameterPresentationBuilder(
+    parameterId: paramId,
+    deviceId: deviceId,
+    fallbackValue: 0.0,
+    active: modulationActive || automationActive,
+    builder: (context, automationBase, effectiveValue) =>
+        ModulatableSpinnerShell(
+      width: width,
+      height: height,
+      accentColor: accentColor,
+      borderAlpha: borderAlpha,
+      modulationActive: modulationActive,
+      automationActive: automationActive,
+      modulationAmount: modulationAmounts[paramId] ?? 0.0,
+      liveModulationAmount: effectiveValue - automationBase,
+      modulatorPolarity: polarity,
+      connectModeActive: connectModeLfoId != null,
+      onModulationAssign: onModulationAssign != null
+          ? (amount) => onModulationAssign(paramId, amount)
+          : null,
+      linkModeActive: automationLinkActive,
+      onLinkTap: onAutomationLinkTap != null
+          ? () => onAutomationLinkTap(paramId)
+          : null,
+      onAutomateRequest: onAutomateParameter != null
+          ? () => onAutomateParameter(paramId)
+          : null,
+      child: child,
+    ),
   );
 }

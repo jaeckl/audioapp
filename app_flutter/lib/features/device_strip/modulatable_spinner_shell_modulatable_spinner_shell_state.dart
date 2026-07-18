@@ -157,6 +157,10 @@ class _ModulatableSpinnerShellState extends State<ModulatableSpinnerShell>
                     ModulationVerticalBar(
                       polarity: widget.modulatorPolarity,
                       amount: barAmount,
+                      currentAmount:
+                          !widget.connectModeActive && !widget.linkModeActive
+                              ? widget.liveModulationAmount
+                              : null,
                       inAssignment: _assignmentMode,
                     ),
                   if (widget.automationActive)

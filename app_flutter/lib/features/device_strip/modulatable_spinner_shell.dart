@@ -19,6 +19,7 @@ class ModulatableSpinnerShell extends StatefulWidget {
     required this.child,
     this.modulationActive = false,
     this.modulationAmount = 0.0,
+    this.liveModulationAmount = 0.0,
     this.modulatorPolarity = ModulatorPolarity.bipolar,
     this.connectModeActive = false,
     this.onModulationAssign,
@@ -35,6 +36,7 @@ class ModulatableSpinnerShell extends StatefulWidget {
   final Widget child;
   final bool modulationActive;
   final double modulationAmount;
+  final double liveModulationAmount;
   final ModulatorPolarity modulatorPolarity;
   final bool connectModeActive;
   final ValueChanged<double>? onModulationAssign;

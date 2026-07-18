@@ -8,6 +8,8 @@ class _KnobPainter extends CustomPainter {
     this.strokeWidth = 3,
     this.modulationActive = false,
     this.modulationAmount = 0.0,
+    this.modulatedValue,
+    this.liveModulationVisible = true,
     this.modulatorPolarity = ModulatorPolarity.bipolar,
     this.connectModeActive = false,
     this.assignmentMode = false,
@@ -20,6 +22,8 @@ class _KnobPainter extends CustomPainter {
   final double strokeWidth;
   final bool modulationActive;
   final double modulationAmount;
+  final double? modulatedValue;
+  final bool liveModulationVisible;
   final ModulatorPolarity modulatorPolarity;
   final bool connectModeActive;
   final bool assignmentMode;
@@ -85,6 +89,24 @@ class _KnobPainter extends CustomPainter {
         ..strokeCap = StrokeCap.round
         ..strokeWidth = strokeWidth * 0.55;
       canvas.drawArc(modRect, modStartAngle, modSweepAngle, false, modPaint);
+
+      // The brighter segment is the current modulation displacement. It uses
+      // the same geometry as the depth arc and is painted afterwards, so
+      // "above" means z-order rather than another concentric radius.
+      final liveValue = modulatedValue?.clamp(0.0, 1.0);
+      if (liveModulationVisible && liveValue != null) {
+        final liveStart = KnobArcGeometry.indicatorAngle(value);
+        final liveSweep = KnobArcGeometry.indicatorAngle(liveValue) - liveStart;
+        if (liveSweep.abs() > 0.0001) {
+          final livePaint = Paint()
+            ..color = Color.lerp(accentColor, Colors.white, 0.32)!
+                .withValues(alpha: 0.95)
+            ..style = PaintingStyle.stroke
+            ..strokeCap = StrokeCap.round
+            ..strokeWidth = strokeWidth * 0.72;
+          canvas.drawArc(modRect, liveStart, liveSweep, false, livePaint);
+        }
+      }
     }
 
     // --- Assignment arc (connect-mode long-press drag visual) ---
@@ -128,6 +150,8 @@ class _KnobPainter extends CustomPainter {
         oldDelegate.angle != angle ||
         oldDelegate.modulationActive != modulationActive ||
         oldDelegate.modulationAmount != modulationAmount ||
+        oldDelegate.modulatedValue != modulatedValue ||
+        oldDelegate.liveModulationVisible != liveModulationVisible ||
         oldDelegate.modulatorPolarity != modulatorPolarity ||
         oldDelegate.connectModeActive != connectModeActive ||
         oldDelegate.assignmentMode != assignmentMode ||
