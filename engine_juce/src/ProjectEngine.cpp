@@ -2963,7 +2963,7 @@ bool ProjectEngine::removeLfo(int lfoId) {
     const juce::ScopedWriteLock lock(mutex_);
     const bool result = modulationGraph_.removeLfo(lfoId);
     if (result) {
-        rebuildModEdgesLocked();
+        rebuildTrackPlaybackLocked();
     }
     return result;
 }
@@ -2986,7 +2986,7 @@ bool ProjectEngine::assignModulation(int lfoId, const std::string& deviceId,
     }
     const bool result = modulationGraph_.assignModulation(lfoId, deviceId, paramId, amount);
     if (result) {
-        rebuildModEdgesLocked();
+        rebuildTrackPlaybackLocked();
     }
     return result;
 }
@@ -2997,7 +2997,7 @@ bool ProjectEngine::removeModulation(int lfoId,
     const juce::ScopedWriteLock lock(mutex_);
     const bool result = modulationGraph_.removeModulation(lfoId, deviceId, paramId);
     if (result) {
-        rebuildModEdgesLocked();
+        rebuildTrackPlaybackLocked();
     }
     return result;
 }

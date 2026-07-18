@@ -528,17 +528,19 @@ int main() {
                modulationPresentationProject->updateLfoParam(
                    presentationLfo, "retrigger", 1.0f) &&
                modulationPresentationProject->assignModulation(
-                   presentationLfo, untouchedDistortion, "drive", 0.5f),
+                   presentationLfo, untouchedDistortion, "distDrive", 0.5f),
            "modulation presentation fixture assigns an untouched parameter");
     modulationPresentationProject->setPlaying(true);
     bool observedLiveDisplacement = false;
     double observedBase = -1.0;
     for (int block = 0; block < 32 && !observedLiveDisplacement; ++block) {
+        const double blockStartBeat = static_cast<double>(block * 128) *
+            (120.0 / (60.0 * 48000.0));
         modulationPresentationProject->readMasterMixStereo(
-            tapLeft, tapRight, 128, 48000.0, 0.0);
+            tapLeft, tapRight, 128, 48000.0, blockStartBeat);
         const auto monitored = juce::JSON::parse(
             modulationPresentationProject->readEffectiveParameterJson(
-                untouchedDistortion, "drive"));
+                untouchedDistortion, "distDrive"));
         if (!static_cast<bool>(monitored["ok"])) continue;
         observedBase = static_cast<double>(monitored["automationBase"]);
         const double finalValue = static_cast<double>(monitored["value"]);
