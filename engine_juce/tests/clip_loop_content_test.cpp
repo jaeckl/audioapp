@@ -372,6 +372,15 @@ public:
 
             }
 
+            // Playback clips intentionally reject unbound/empty automation.
+            // Supply a valid target and point; this test exercises only the
+            // arrangement-to-loop-content beat mapping.
+            clipModel.deviceId = "test-device";
+            clipModel.paramId = "gain";
+            if (clipModel.points.empty()) {
+                clipModel.points.push_back(audioapp::AutomationPoint{0.0, 0.0f});
+            }
+
 
 
             audioapp::AutomationClipPlayback pb{};
