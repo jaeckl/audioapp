@@ -38,7 +38,10 @@ class DrumMonoOutputPanel extends StatelessWidget {
         'kick_generator' => 'kickVelocity',
         'snare_generator' => 'snareVelocity',
         'clap_generator' => 'clapVelocity',
-        'cymbal_generator' => 'cymbalVelocity',
+        'hihat_generator' => 'hihatVelocity',
+        'ride_generator' => 'rideVelocity',
+        'tom_generator' => 'tomVelocity',
+        'rimshot_generator' => 'rimshotVelocity',
         'crash_generator' => 'crashVelocity',
         _ => null,
       };
@@ -47,7 +50,8 @@ class DrumMonoOutputPanel extends StatelessWidget {
         KickGeneratorDeviceSnapshot() => device.kickVelocity,
         SnareGeneratorDeviceSnapshot() => device.snareVelocity,
         ClapGeneratorDeviceSnapshot() => device.clapVelocity,
-        CymbalGeneratorDeviceSnapshot() => device.cymbalVelocity,
+        DedicatedPercussionDeviceSnapshot() => device.value(
+            velocityParamIdFor(device.type) ?? '', 1.0),
         CrashGeneratorDeviceSnapshot() => device.crashVelocity,
         _ => 1.0,
       };

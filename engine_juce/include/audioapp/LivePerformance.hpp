@@ -7,7 +7,7 @@
 #include "audioapp/KickAlgorithm.hpp"
 #include "audioapp/SnareAlgorithm.hpp"
 #include "audioapp/ClapAlgorithm.hpp"
-#include "audioapp/CymbalAlgorithm.hpp"
+#include "audioapp/DedicatedPercussionAlgorithm.hpp"
 #include "audioapp/CrashAlgorithm.hpp"
 #include "audioapp/SamplerFilter.hpp"
 #include "audioapp/PhaseModSynthAlgorithm.hpp"
@@ -27,8 +27,11 @@ enum class LiveInstrumentKind : uint8_t {
     KickGenerator,
     SnareGenerator,
     ClapGenerator,
-    CymbalGenerator,
+    HihatGenerator,
     CrashGenerator,
+    RideGenerator,
+    TomGenerator,
+    RimshotGenerator,
     BassSynth,
     PhaseModSynth,
     WavetableSynth,
@@ -66,7 +69,10 @@ struct LiveInstrumentSnapshot {
     KickGeneratorParams kick{};
     SnareGeneratorParams snare{};
     ClapGeneratorParams clap{};
-    CymbalGeneratorParams cymbal{};
+    HihatGeneratorParams hihat{};
+    RideGeneratorParams ride{};
+    TomGeneratorParams tom{};
+    RimshotGeneratorParams rimshot{};
     CrashGeneratorParams crash{};
     PhaseModSynthParams phaseMod{};
     WavetableSynthParams wavetable{};
@@ -96,7 +102,10 @@ struct LiveVoiceSlot {
     KickVoiceRuntime kick{};
     SnareVoiceRuntime snare{};
     ClapVoiceRuntime clap{};
-    CymbalVoiceRuntime cymbal{};
+    HihatVoiceRuntime hihat{};
+    RideVoiceRuntime ride{};
+    TomVoiceRuntime tom{};
+    RimshotVoiceRuntime rimshot{};
     CrashVoiceRuntime crash{};
     float granularZ1[3]{};
     float granularZ2[3]{};

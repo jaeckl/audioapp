@@ -1,5 +1,5 @@
 {
-  "project_format_version": 1,
+  "project_format_version": 2,
   "name": "Afterburner Neuro Run",
   "bpm": 174,
   "selectedTrackId": "track-neuro-bass",
@@ -182,16 +182,19 @@
       "devices": [
         {
           "id": "ab-hat",
-          "type": "cymbal_generator",
+          "type": "hihat_generator",
           "parameters": {
-            "cymbalModel": 0.0,
-            "cymbalColor": 0.6,
-            "cymbalDecay": 0.15,
-            "cymbalWidth": 0.3,
-            "cymbalVelocity": 0.48,
-            "gain": 0.22,
-            "bypass": 0.0
-          }
+            "hihatPitch": 0.5,
+            "hihatColor": 0.6,
+            "hihatDecay": 0.15,
+            "hihatTightness": 0.78,
+            "hihatNoise": 0.34,
+            "hihatWidth": 0.3,
+            "hihatVelocity": 0.48,
+            "hihatKeyTrack": 0.0
+          },
+          "outputPanel": {"type": "mono", "gain": 0.22},
+          "bypass": 0.0
         },
         {"id": "ab-hat-gain", "type": "track_gain", "parameters": {"gain": 0.2, "bypass": 0.0}}
       ],

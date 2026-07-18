@@ -7,7 +7,7 @@
 #include "audioapp/KickAlgorithm.hpp"
 #include "audioapp/SnareAlgorithm.hpp"
 #include "audioapp/ClapAlgorithm.hpp"
-#include "audioapp/CymbalAlgorithm.hpp"
+#include "audioapp/DedicatedPercussionAlgorithm.hpp"
 #include "audioapp/CrashAlgorithm.hpp"
 #include "audioapp/SubtractiveSynthAlgorithm.hpp"
 #include "audioapp/instruments/PerNoteModulation.hpp"
@@ -110,7 +110,10 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         voice.kick = KickVoiceRuntime{};
         voice.snare = SnareVoiceRuntime{};
         voice.clap = ClapVoiceRuntime{};
-        voice.cymbal = CymbalVoiceRuntime{};
+        voice.hihat = HihatVoiceRuntime{};
+        voice.ride = RideVoiceRuntime{};
+        voice.tom = TomVoiceRuntime{};
+        voice.rimshot = RimshotVoiceRuntime{};
         voice.crash = CrashVoiceRuntime{};
         voice.subtractiveStartSec = static_cast<double>(now) / 48000.0;
         voice.subtractiveReleaseSec = -1.0;
@@ -125,8 +128,14 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
             configureSnareVoice(voice.snare, instrument.snare, 48000.0f);
         } else if (instrument.kind == LiveInstrumentKind::ClapGenerator) {
             triggerClapVoice(voice.clap, voice.pitch, voice.velocity, instrument.clap);
-        } else if (instrument.kind == LiveInstrumentKind::CymbalGenerator) {
-            triggerCymbalVoice(voice.cymbal, pitch, voice.velocity);
+        } else if (instrument.kind == LiveInstrumentKind::HihatGenerator) {
+            triggerHihatVoice(voice.hihat, pitch, voice.velocity);
+        } else if (instrument.kind == LiveInstrumentKind::RideGenerator) {
+            triggerRideVoice(voice.ride, pitch, voice.velocity);
+        } else if (instrument.kind == LiveInstrumentKind::TomGenerator) {
+            triggerTomVoice(voice.tom, pitch, voice.velocity);
+        } else if (instrument.kind == LiveInstrumentKind::RimshotGenerator) {
+            triggerRimshotVoice(voice.rimshot, pitch, voice.velocity);
         } else if (instrument.kind == LiveInstrumentKind::CrashGenerator) {
             triggerCrashVoice(voice.crash, pitch, voice.velocity);
         } else if (instrument.kind == LiveInstrumentKind::PhaseModSynth) {
@@ -159,7 +168,10 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
     steal.kick = KickVoiceRuntime{};
     steal.snare = SnareVoiceRuntime{};
     steal.clap = ClapVoiceRuntime{};
-    steal.cymbal = CymbalVoiceRuntime{};
+    steal.hihat = HihatVoiceRuntime{};
+    steal.ride = RideVoiceRuntime{};
+    steal.tom = TomVoiceRuntime{};
+    steal.rimshot = RimshotVoiceRuntime{};
     steal.crash = CrashVoiceRuntime{};
     steal.subtractiveStartSec = static_cast<double>(now) / 48000.0;
     steal.subtractiveReleaseSec = -1.0;
@@ -173,8 +185,14 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         configureSnareVoice(steal.snare, instrument.snare, 48000.0f);
     } else if (instrument.kind == LiveInstrumentKind::ClapGenerator) {
         triggerClapVoice(steal.clap, steal.pitch, steal.velocity, instrument.clap);
-    } else if (instrument.kind == LiveInstrumentKind::CymbalGenerator) {
-        triggerCymbalVoice(steal.cymbal, pitch, steal.velocity);
+    } else if (instrument.kind == LiveInstrumentKind::HihatGenerator) {
+        triggerHihatVoice(steal.hihat, pitch, steal.velocity);
+    } else if (instrument.kind == LiveInstrumentKind::RideGenerator) {
+        triggerRideVoice(steal.ride, pitch, steal.velocity);
+    } else if (instrument.kind == LiveInstrumentKind::TomGenerator) {
+        triggerTomVoice(steal.tom, pitch, steal.velocity);
+    } else if (instrument.kind == LiveInstrumentKind::RimshotGenerator) {
+        triggerRimshotVoice(steal.rimshot, pitch, steal.velocity);
     } else if (instrument.kind == LiveInstrumentKind::CrashGenerator) {
         triggerCrashVoice(steal.crash, pitch, steal.velocity);
     } else if (instrument.kind == LiveInstrumentKind::PhaseModSynth) {
@@ -319,25 +337,50 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                 continue;
             }
 
-            if (inst.kind == LiveInstrumentKind::CymbalGenerator) {
-                auto& cyv = voice.cymbal;
+            if (inst.kind == LiveInstrumentKind::HihatGenerator) {
+                auto& cyv = voice.hihat;
                 const double elapsedSec =
                     static_cast<double>(sampleIndex - voice.startSample) / sampleRate;
                 if (elapsedSec < 0.0) {
                     continue;
                 }
                 if (cyv.active == 0) {
-                    triggerCymbalVoice(cyv, voice.pitch, voice.velocity);
+                    triggerHihatVoice(cyv, voice.pitch, voice.velocity);
                 }
                 cyv.elapsedSec = elapsedSec;
                 const float vel = std::clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
-                const float velGain = 1.0f - inst.cymbal.cymbalVelocity * (1.0f - vel);
-                mix += (cymbalGeneratorSampleL(cyv, inst.cymbal, sampleRate, velGain) +
-                        cymbalGeneratorSampleR(cyv, inst.cymbal, sampleRate, velGain)) * 0.5f;
+                const float velGain = 1.0f - inst.hihat.hihatVelocity * (1.0f - vel);
+                mix += (hihatSampleL(cyv, inst.hihat, sampleRate, velGain) +
+                        hihatSampleR(cyv, inst.hihat, sampleRate, velGain)) * 0.5f;
                 if (cyv.active == 0) {
                     voice.active.store(0, std::memory_order_release);
                 }
                 continue;
+            }
+
+            if (inst.kind == LiveInstrumentKind::RideGenerator) {
+                auto& v = voice.ride; const double t = static_cast<double>(sampleIndex - voice.startSample) / sampleRate;
+                if (v.active == 0) triggerRideVoice(v, voice.pitch, voice.velocity); v.elapsedSec = t;
+                const float vel = std::clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
+                const float vg = 1.0f - inst.ride.rideVelocity * (1.0f - vel);
+                mix += (rideSampleL(v, inst.ride, sampleRate, vg) + rideSampleR(v, inst.ride, sampleRate, vg)) * .5f;
+                if (v.active == 0) voice.active.store(0, std::memory_order_release); continue;
+            }
+            if (inst.kind == LiveInstrumentKind::TomGenerator) {
+                auto& v = voice.tom; const double t = static_cast<double>(sampleIndex - voice.startSample) / sampleRate;
+                if (v.active == 0) triggerTomVoice(v, voice.pitch, voice.velocity); v.elapsedSec = t;
+                const float vel = std::clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
+                const float vg = 1.0f - inst.tom.tomVelocity * (1.0f - vel);
+                mix += tomSampleL(v, inst.tom, sampleRate, vg);
+                if (v.active == 0) voice.active.store(0, std::memory_order_release); continue;
+            }
+            if (inst.kind == LiveInstrumentKind::RimshotGenerator) {
+                auto& v = voice.rimshot; const double t = static_cast<double>(sampleIndex - voice.startSample) / sampleRate;
+                if (v.active == 0) triggerRimshotVoice(v, voice.pitch, voice.velocity); v.elapsedSec = t;
+                const float vel = std::clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
+                const float vg = 1.0f - inst.rimshot.rimshotVelocity * (1.0f - vel);
+                mix += rimshotSampleL(v, inst.rimshot, sampleRate, vg);
+                if (v.active == 0) voice.active.store(0, std::memory_order_release); continue;
             }
 
             if (inst.kind == LiveInstrumentKind::CrashGenerator) {

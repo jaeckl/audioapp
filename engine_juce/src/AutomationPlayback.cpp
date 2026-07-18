@@ -7,7 +7,7 @@
 #include "audioapp/KickAlgorithm.hpp"
 #include "audioapp/SnareAlgorithm.hpp"
 #include "audioapp/ClapAlgorithm.hpp"
-#include "audioapp/CymbalAlgorithm.hpp"
+#include "audioapp/DedicatedPercussionAlgorithm.hpp"
 #include "audioapp/CrashAlgorithm.hpp"
 #include "audioapp/PhaseModSynthAlgorithm.hpp"
 #include "audioapp/WavetableSynthAlgorithm.hpp"
@@ -66,7 +66,10 @@ static ParamKind paramKindForDevice(DeviceNodeKind kind) noexcept {
     case DeviceNodeKind::KickGenerator:    return ParamKind::KickGenerator;
     case DeviceNodeKind::SnareGenerator:   return ParamKind::SnareGenerator;
     case DeviceNodeKind::ClapGenerator:    return ParamKind::ClapGenerator;
-    case DeviceNodeKind::CymbalGenerator:  return ParamKind::CymbalGenerator;
+    case DeviceNodeKind::HihatGenerator:   return ParamKind::HihatGenerator;
+    case DeviceNodeKind::RideGenerator:    return ParamKind::RideGenerator;
+    case DeviceNodeKind::TomGenerator:     return ParamKind::TomGenerator;
+    case DeviceNodeKind::RimshotGenerator: return ParamKind::RimshotGenerator;
     case DeviceNodeKind::CrashGenerator:   return ParamKind::CrashGenerator;
     case DeviceNodeKind::Gate:             return ParamKind::Gate;
     case DeviceNodeKind::Compressor:       return ParamKind::Compressor;
@@ -262,19 +265,33 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         if (auto v = c("clapKeyTrack", ClapParam::KeyTrack)) return v;
         return 0;
     }
-    case DeviceNodeKind::CymbalGenerator: {
-        auto c = [&](const char* n, CymbalParam pid) {
+    case DeviceNodeKind::HihatGenerator: {
+        auto c = [&](const char* n, HihatParam pid) {
             return std::strcmp(name, n) == 0
-                ? packParamId(ParamKind::CymbalGenerator, static_cast<uint16_t>(pid))
+                ? packParamId(ParamKind::HihatGenerator, static_cast<uint16_t>(pid))
                 : 0;
         };
-        if (auto v = c("cymbalColor", CymbalParam::Color)) return v;
-        if (auto v = c("cymbalDecay", CymbalParam::Decay)) return v;
-        if (auto v = c("cymbalWidth", CymbalParam::Width)) return v;
-        if (auto v = c("cymbalVelocity", CymbalParam::Velocity)) return v;
-        if (auto v = c("cymbalPitch", CymbalParam::Pitch)) return v;
-        if (auto v = c("cymbalKeyTrack", CymbalParam::KeyTrack)) return v;
+        if (auto v = c("hihatPitch", HihatParam::Pitch)) return v;
+        if (auto v = c("hihatColor", HihatParam::Color)) return v;
+        if (auto v = c("hihatDecay", HihatParam::Decay)) return v;
+        if (auto v = c("hihatTightness", HihatParam::Tightness)) return v;
+        if (auto v = c("hihatNoise", HihatParam::Noise)) return v;
+        if (auto v = c("hihatWidth", HihatParam::Width)) return v;
+        if (auto v = c("hihatVelocity", HihatParam::Velocity)) return v;
+        if (auto v = c("hihatKeyTrack", HihatParam::KeyTrack)) return v;
         return 0;
+    }
+    case DeviceNodeKind::RideGenerator: {
+        auto c=[&](const char*n,RideParam p){return std::strcmp(name,n)==0?packParamId(ParamKind::RideGenerator,static_cast<uint16_t>(p)):0;};
+        if(auto v=c("ridePitch",RideParam::Pitch))return v;if(auto v=c("rideBrightness",RideParam::Brightness))return v;if(auto v=c("rideDecay",RideParam::Decay))return v;if(auto v=c("rideBell",RideParam::Bell))return v;if(auto v=c("rideDamping",RideParam::Damping))return v;if(auto v=c("rideWidth",RideParam::Width))return v;if(auto v=c("rideVelocity",RideParam::Velocity))return v;if(auto v=c("rideKeyTrack",RideParam::KeyTrack))return v;return 0;
+    }
+    case DeviceNodeKind::TomGenerator: {
+        auto c=[&](const char*n,TomParam p){return std::strcmp(name,n)==0?packParamId(ParamKind::TomGenerator,static_cast<uint16_t>(p)):0;};
+        if(auto v=c("tomPitch",TomParam::Pitch))return v;if(auto v=c("tomDecay",TomParam::Decay))return v;if(auto v=c("tomBend",TomParam::Bend))return v;if(auto v=c("tomBody",TomParam::Body))return v;if(auto v=c("tomAttack",TomParam::Attack))return v;if(auto v=c("tomNoise",TomParam::Noise))return v;if(auto v=c("tomVelocity",TomParam::Velocity))return v;if(auto v=c("tomKeyTrack",TomParam::KeyTrack))return v;return 0;
+    }
+    case DeviceNodeKind::RimshotGenerator: {
+        auto c=[&](const char*n,RimshotParam p){return std::strcmp(name,n)==0?packParamId(ParamKind::RimshotGenerator,static_cast<uint16_t>(p)):0;};
+        if(auto v=c("rimshotPitch",RimshotParam::Pitch))return v;if(auto v=c("rimshotDecay",RimshotParam::Decay))return v;if(auto v=c("rimshotTone",RimshotParam::Tone))return v;if(auto v=c("rimshotSnap",RimshotParam::Snap))return v;if(auto v=c("rimshotBody",RimshotParam::Body))return v;if(auto v=c("rimshotVelocity",RimshotParam::Velocity))return v;if(auto v=c("rimshotKeyTrack",RimshotParam::KeyTrack))return v;return 0;
     }
     case DeviceNodeKind::CrashGenerator: {
         auto c = [&](const char* n, CrashParam pid) {
@@ -660,17 +677,15 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         default: return "";
         }
     }
-    case DeviceNodeKind::CymbalGenerator: {
-        switch (static_cast<CymbalParam>(rawId)) {
-        case CymbalParam::Color: return "cymbalColor";
-        case CymbalParam::Decay: return "cymbalDecay";
-        case CymbalParam::Width: return "cymbalWidth";
-        case CymbalParam::Velocity: return "cymbalVelocity";
-        case CymbalParam::Pitch: return "cymbalPitch";
-        case CymbalParam::KeyTrack: return "cymbalKeyTrack";
+    case DeviceNodeKind::HihatGenerator: {
+        switch (static_cast<HihatParam>(rawId)) {
+        case HihatParam::Pitch:return "hihatPitch";case HihatParam::Color:return "hihatColor";case HihatParam::Decay:return "hihatDecay";case HihatParam::Tightness:return "hihatTightness";case HihatParam::Noise:return "hihatNoise";case HihatParam::Width:return "hihatWidth";case HihatParam::Velocity:return "hihatVelocity";case HihatParam::KeyTrack:return "hihatKeyTrack";
         default: return "";
         }
     }
+    case DeviceNodeKind::RideGenerator: { static constexpr const char* n[]={"ridePitch","rideBrightness","rideDecay","rideBell","rideDamping","rideWidth","rideVelocity","rideKeyTrack"}; return rawId<8?n[rawId]:""; }
+    case DeviceNodeKind::TomGenerator: { static constexpr const char* n[]={"tomPitch","tomDecay","tomBend","tomBody","tomAttack","tomNoise","tomVelocity","tomKeyTrack"}; return rawId<8?n[rawId]:""; }
+    case DeviceNodeKind::RimshotGenerator: { static constexpr const char* n[]={"rimshotPitch","rimshotDecay","rimshotTone","rimshotSnap","rimshotBody","rimshotVelocity","rimshotKeyTrack"}; return rawId<7?n[rawId]:""; }
     case DeviceNodeKind::CrashGenerator: {
         switch (static_cast<CrashParam>(rawId)) {
         case CrashParam::Color: return "crashColor";
@@ -1310,18 +1325,17 @@ void applyAutomationValue(DeviceVariantParams& params,
             }
         }
         break;
-    case ParamKind::CymbalGenerator:
-        if (auto* p = std::get_if<CymbalGeneratorParams>(&params)) {
-            switch (static_cast<CymbalParam>(rawId)) {
-            case CymbalParam::Color: p->cymbalColor = value; break;
-            case CymbalParam::Decay: p->cymbalDecay = value; break;
-            case CymbalParam::Width: p->cymbalWidth = value; break;
-            case CymbalParam::Velocity: p->cymbalVelocity = value; break;
-            case CymbalParam::Pitch: p->cymbalPitch = value; break;
-            case CymbalParam::KeyTrack: p->cymbalKeyTrack = value >= 0.5f ? 1.0f : 0.0f; break;
-            default: break;
-            }
-        }
+    case ParamKind::HihatGenerator:
+        if (auto* p=std::get_if<HihatGeneratorParams>(&params)) { float* a[]={&p->hihatPitch,&p->hihatColor,&p->hihatDecay,&p->hihatTightness,&p->hihatNoise,&p->hihatWidth,&p->hihatVelocity,&p->hihatKeyTrack}; if(rawId<8)*a[rawId]=rawId==7?(value>=.5f):value; }
+        break;
+    case ParamKind::RideGenerator:
+        if (auto* p=std::get_if<RideGeneratorParams>(&params)) { float* a[]={&p->ridePitch,&p->rideBrightness,&p->rideDecay,&p->rideBell,&p->rideDamping,&p->rideWidth,&p->rideVelocity,&p->rideKeyTrack}; if(rawId<8)*a[rawId]=rawId==7?(value>=.5f):value; }
+        break;
+    case ParamKind::TomGenerator:
+        if (auto* p=std::get_if<TomGeneratorParams>(&params)) { float* a[]={&p->tomPitch,&p->tomDecay,&p->tomBend,&p->tomBody,&p->tomAttack,&p->tomNoise,&p->tomVelocity,&p->tomKeyTrack}; if(rawId<8)*a[rawId]=rawId==7?(value>=.5f):value; }
+        break;
+    case ParamKind::RimshotGenerator:
+        if (auto* p=std::get_if<RimshotGeneratorParams>(&params)) { float* a[]={&p->rimshotPitch,&p->rimshotDecay,&p->rimshotTone,&p->rimshotSnap,&p->rimshotBody,&p->rimshotVelocity,&p->rimshotKeyTrack}; if(rawId<7)*a[rawId]=rawId==6?(value>=.5f):value; }
         break;
     case ParamKind::CrashGenerator:
         if (auto* p = std::get_if<CrashGeneratorParams>(&params)) {

@@ -25,13 +25,15 @@ const List<DevicePresetFilter> kDevicePresetFilters = [
       label: 'Clap',
       icon: Icons.pan_tool_outlined),
   DevicePresetFilter(
-      deviceType: 'cymbal_generator',
-      label: 'Cymbal',
+      deviceType: 'hihat_generator',
+      label: 'Hi-Hat',
       icon: Icons.music_note_outlined),
   DevicePresetFilter(
-      deviceType: 'hi_hat_generator',
-      label: 'Hi-hat',
-      icon: Icons.timer_outlined),
+      deviceType: 'ride_generator', label: 'Ride', icon: Icons.album_outlined),
+  DevicePresetFilter(
+      deviceType: 'tom_generator', label: 'Tom', icon: Icons.circle_outlined),
+  DevicePresetFilter(
+      deviceType: 'rimshot_generator', label: 'Rimshot', icon: Icons.adjust),
   DevicePresetFilter(
       deviceType: 'bass_synth', label: 'Bass Synth', icon: Icons.waves),
   DevicePresetFilter(

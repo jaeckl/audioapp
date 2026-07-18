@@ -18,7 +18,7 @@ using namespace audioapp::DeviceChainAutomationModulation;
 #include "audioapp/devices/processors/KickProcessor.hpp"
 #include "audioapp/devices/processors/SnareProcessor.hpp"
 #include "audioapp/devices/processors/ClapProcessor.hpp"
-#include "audioapp/devices/processors/CymbalProcessor.hpp"
+#include "audioapp/devices/processors/DedicatedPercussionProcessors.hpp"
 #include "audioapp/devices/processors/CrashProcessor.hpp"
 #include "audioapp/devices/processors/GateProcessor.hpp"
 #include "audioapp/devices/processors/CompressorProcessor.hpp"
@@ -57,7 +57,7 @@ static const FactoryFn kProcessorFactories[] = {
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<KickProcessor>(); },                 // KickGenerator = 4
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<SnareProcessor>(); },                // SnareGenerator = 5
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<ClapProcessor>(); },                 // ClapGenerator = 6
-    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<CymbalProcessor>(); },               // CymbalGenerator = 7
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<HihatProcessor>(); },                // HihatGenerator = 7
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<CrashProcessor>(); },                // CrashGenerator = 8
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<GateProcessor>(); },                 // Gate = 9
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<CompressorProcessor>(); },           // Compressor = 10
@@ -89,6 +89,9 @@ static const FactoryFn kProcessorFactories[] = {
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<ChainProcessor>(); },
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<GranularProcessor>(); },
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<StutterProcessor>(); },
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<RideProcessor>(); },
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<TomProcessor>(); },
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<RimshotProcessor>(); },
 };
 static constexpr size_t kNumFactories = sizeof(kProcessorFactories) / sizeof(kProcessorFactories[0]);
 

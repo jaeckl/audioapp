@@ -61,7 +61,10 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       'kick_generator',
       'snare_generator',
       'clap_generator',
-      'cymbal_generator',
+      'hihat_generator',
+      'ride_generator',
+      'tom_generator',
+      'rimshot_generator',
       'crash_generator',
       'gate',
       'compressor',
@@ -298,8 +301,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
         'Mono · ${KickModel.labelFromValue(dev.kickModel)}',
       SnareGeneratorDeviceSnapshot() => 'Mono · synth',
       ClapGeneratorDeviceSnapshot() => 'Mono · synth',
-      CymbalGeneratorDeviceSnapshot() =>
-        'Mono · ${CymbalModel.labelFromValue(dev.cymbalModel)}',
+      DedicatedPercussionDeviceSnapshot() => 'Mono · synth',
       CrashGeneratorDeviceSnapshot() =>
         'Mono · ${CrashModel.labelFromValue(dev.crashModel)}',
       GateDeviceSnapshot() => 'Stereo · FX',

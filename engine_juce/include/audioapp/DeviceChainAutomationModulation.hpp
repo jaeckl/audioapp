@@ -26,7 +26,10 @@ void applyModulation(SubtractiveSynthParams& p, float modAmount, uint16_t localP
 void applyModulation(KickGeneratorParams& p, float modAmount, uint16_t localParamId) noexcept;
 void applyModulation(SnareGeneratorParams& p, float modAmount, uint16_t localParamId) noexcept;
 void applyModulation(ClapGeneratorParams& p, float modAmount, uint16_t localParamId) noexcept;
-void applyModulation(CymbalGeneratorParams& p, float modAmount, uint16_t localParamId) noexcept;
+void applyModulation(HihatGeneratorParams& p, float modAmount, uint16_t localParamId) noexcept;
+void applyModulation(RideGeneratorParams& p, float modAmount, uint16_t localParamId) noexcept;
+void applyModulation(TomGeneratorParams& p, float modAmount, uint16_t localParamId) noexcept;
+void applyModulation(RimshotGeneratorParams& p, float modAmount, uint16_t localParamId) noexcept;
 void applyModulation(CrashGeneratorParams& p, float modAmount, uint16_t localParamId) noexcept;
 void applyModulation(GateParams& p, float modAmount, uint16_t localParamId) noexcept;
 void applyModulation(CompressorParams& p, float modAmount, uint16_t localParamId) noexcept;

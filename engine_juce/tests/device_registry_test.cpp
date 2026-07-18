@@ -26,7 +26,11 @@ public:
             expect(registry.isKnownType(audioapp::device_types::kKickGenerator));
             expect(registry.isKnownType(audioapp::device_types::kSnareGenerator));
             expect(registry.isKnownType(audioapp::device_types::kClapGenerator));
-            expect(registry.isKnownType(audioapp::device_types::kCymbalGenerator));
+            expect(registry.isKnownType(audioapp::device_types::kHihatGenerator));
+            expect(registry.isKnownType(audioapp::device_types::kRideGenerator));
+            expect(registry.isKnownType(audioapp::device_types::kTomGenerator));
+            expect(registry.isKnownType(audioapp::device_types::kRimshotGenerator));
+            expect(!registry.isKnownType("cymbal_generator"));
             expect(registry.isKnownType(audioapp::device_types::kCrashGenerator));
             expect(registry.isKnownType(audioapp::device_types::kGate));
             expect(registry.isKnownType(audioapp::device_types::kCompressor));
@@ -81,7 +85,6 @@ public:
             } cases[] = {
                 {audioapp::device_types::kKickGenerator, "kickModel"},
                 {audioapp::device_types::kSnareGenerator, "snareModel"},
-                {audioapp::device_types::kCymbalGenerator, "cymbalModel"},
                 {audioapp::device_types::kCrashGenerator, "crashModel"},
             };
 

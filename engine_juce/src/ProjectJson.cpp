@@ -9,6 +9,8 @@
 
 #include <juce_core/juce_core.h>
 
+#include <unordered_set>
+
 namespace audioapp {
 
 namespace {
@@ -27,6 +29,92 @@ juce::var parseRootVar(const std::string& json) {
         return juce::var();
     }
     return parsed;
+}
+
+const char* migratedHihatParam(std::string_view oldName) noexcept {
+    if (oldName == "cymbalPitch") return "hihatPitch";
+    if (oldName == "cymbalColor") return "hihatColor";
+    if (oldName == "cymbalDecay") return "hihatDecay";
+    if (oldName == "cymbalWidth") return "hihatWidth";
+    if (oldName == "cymbalVelocity") return "hihatVelocity";
+    if (oldName == "cymbalKeyTrack") return "hihatKeyTrack";
+    return nullptr;
+}
+
+void migrateV1DeviceToV2(juce::var& value, std::unordered_set<std::string>& migratedIds) {
+    auto* object = value.getDynamicObject();
+    if (object == nullptr) return;
+    if (object->getProperty("type").toString() == "cymbal_generator") {
+        const auto id = object->getProperty("id").toString().toStdString();
+        migratedIds.insert(id);
+        object->setProperty("type", device_types::kHihatGenerator);
+        if (auto* old = object->getProperty("parameters").getDynamicObject()) {
+            if (object->getProperty("outputPanel").getDynamicObject() == nullptr) {
+                auto* output = new juce::DynamicObject();
+                output->setProperty("type", "mono");
+                output->setProperty("gain", old->getProperty("gain"));
+                object->setProperty("outputPanel", juce::var(output));
+                object->setProperty("bypass", old->getProperty("bypass"));
+            }
+            auto* parameters = new juce::DynamicObject();
+            parameters->setProperty("hihatPitch", old->getProperty("cymbalPitch"));
+            parameters->setProperty("hihatColor", old->getProperty("cymbalColor"));
+            parameters->setProperty("hihatDecay", old->getProperty("cymbalDecay"));
+            parameters->setProperty("hihatWidth", old->getProperty("cymbalWidth"));
+            parameters->setProperty("hihatVelocity", old->getProperty("cymbalVelocity"));
+            parameters->setProperty("hihatKeyTrack", old->getProperty("cymbalKeyTrack"));
+            parameters->setProperty("hihatTightness", 0.72);
+            parameters->setProperty("hihatNoise", 0.34);
+            object->setProperty("parameters", juce::var(parameters));
+        }
+    }
+    const auto migrateArray = [&](const char* property) {
+        if (auto* children = object->getProperty(property).getArray())
+            for (auto& child : *children) migrateV1DeviceToV2(child, migratedIds);
+    };
+    migrateArray("devices");
+    migrateArray("audioFxDevices");
+    migrateArray("noteFxDevices");
+    if (auto* pads = object->getProperty("pads").getArray()) {
+        for (auto& pad : *pads)
+            if (auto* padObject = pad.getDynamicObject())
+                if (auto* devices = padObject->getProperty("devices").getArray())
+                    for (auto& child : *devices) migrateV1DeviceToV2(child, migratedIds);
+    }
+}
+
+bool migrateProjectVarToCurrent(juce::var& root) {
+    auto* object = root.getDynamicObject();
+    if (object == nullptr) return false;
+    const int version = static_cast<int>(object->getProperty("project_format_version"));
+    if (version == kProjectFormatVersion) return true;
+    if (version != 1) return false;
+
+    std::unordered_set<std::string> migratedIds;
+    if (auto* tracks = object->getProperty("tracks").getArray()) {
+        for (auto& track : *tracks) {
+            if (auto* trackObject = track.getDynamicObject())
+                if (auto* devices = trackObject->getProperty("devices").getArray())
+                    for (auto& device : *devices) migrateV1DeviceToV2(device, migratedIds);
+        }
+    }
+    const auto migrateTargets = [&](const char* property) {
+        if (auto* targets = object->getProperty(property).getArray()) {
+            for (auto& target : *targets) {
+                auto* targetObject = target.getDynamicObject();
+                if (targetObject == nullptr) continue;
+                const auto id = targetObject->getProperty("deviceId").toString().toStdString();
+                if (!migratedIds.contains(id)) continue;
+                const auto oldParam = targetObject->getProperty("paramId").toString().toStdString();
+                if (const char* replacement = migratedHihatParam(oldParam))
+                    targetObject->setProperty("paramId", replacement);
+            }
+        }
+    };
+    migrateTargets("modEdges");
+    migrateTargets("automationClips");
+    object->setProperty("project_format_version", kProjectFormatVersion);
+    return true;
 }
 
 std::string toStdString(const juce::String& value) {
@@ -1042,16 +1130,14 @@ bool parseProjectFileJson(const std::string& json,
                           ProjectFileData& out,
                           const DeviceRegistry& registry,
                           const std::vector<std::unique_ptr<IModulatorType>>& modulatorTypes) {
-    const auto root = parseRootVar(json);
+    auto root = parseRootVar(json);
+    if (!migrateProjectVarToCurrent(root)) return false;
     const auto* object = root.getDynamicObject();
     if (object == nullptr) {
         return false;
     }
 
-    out.projectFormatVersion = varToInt(object->getProperty("project_format_version"), 0);
-    if (out.projectFormatVersion != kProjectFormatVersion) {
-        return false;
-    }
+    out.projectFormatVersion = kProjectFormatVersion;
 
     out.name = varToString(object->getProperty("name"));
     out.bpm = varToInt(object->getProperty("bpm"), 120);

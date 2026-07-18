@@ -48,7 +48,7 @@ add_library(audioapp_engine STATIC
   src/PhaseModSynthAlgorithm.cpp
   src/SnareAlgorithm.cpp
   src/ClapAlgorithm.cpp
-  src/CymbalAlgorithm.cpp
+  src/DedicatedPercussionAlgorithm.cpp
   src/CrashAlgorithm.cpp
   src/MetallicNoiseSynth.cpp
   src/DynamicsProcessor.cpp
@@ -68,7 +68,7 @@ add_library(audioapp_engine STATIC
   src/devices/processors/KickProcessor.cpp
   src/devices/processors/SnareProcessor.cpp
   src/devices/processors/ClapProcessor.cpp
-  src/devices/processors/CymbalProcessor.cpp
+  src/devices/processors/DedicatedPercussionProcessors.cpp
   src/devices/processors/CrashProcessor.cpp
   src/devices/processors/DrumMachineProcessor.cpp
   src/devices/processors/GateProcessor.cpp
@@ -106,7 +106,7 @@ add_library(audioapp_engine STATIC
   src/devices/KickGeneratorDeviceType.cpp
   src/devices/SnareGeneratorDeviceType.cpp
   src/devices/ClapGeneratorDeviceType.cpp
-  src/devices/CymbalGeneratorDeviceType.cpp
+  src/devices/DedicatedPercussionDeviceTypes.cpp
   src/devices/CrashGeneratorDeviceType.cpp
   src/devices/GateDeviceType.cpp
   src/devices/CompressorDeviceType.cpp
@@ -272,7 +272,7 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/clip_loop_content_test.cpp
     tests/common_param_modulation_test.cpp
     tests/crash_generator_test.cpp
-    tests/cymbal_generator_test.cpp
+    tests/dedicated_percussion_test.cpp
     tests/device_chain_test.cpp
     tests/device_registry_test.cpp
     tests/device_slot_serialization_test.cpp

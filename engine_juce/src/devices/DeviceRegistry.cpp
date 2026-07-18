@@ -4,7 +4,7 @@
 #include "audioapp/devices/KickGeneratorDeviceType.hpp"
 #include "audioapp/devices/SnareGeneratorDeviceType.hpp"
 #include "audioapp/devices/ClapGeneratorDeviceType.hpp"
-#include "audioapp/devices/CymbalGeneratorDeviceType.hpp"
+#include "audioapp/devices/DedicatedPercussionDeviceTypes.hpp"
 #include "audioapp/devices/CrashGeneratorDeviceType.hpp"
 #include "audioapp/devices/GateDeviceType.hpp"
 #include "audioapp/devices/CompressorDeviceType.hpp"
@@ -151,7 +151,10 @@ DeviceRegistry DeviceRegistry::createBuiltIn() {
     registry.registerType(std::make_unique<KickGeneratorDeviceType>());
     registry.registerType(std::make_unique<SnareGeneratorDeviceType>());
     registry.registerType(std::make_unique<ClapGeneratorDeviceType>());
-    registry.registerType(std::make_unique<CymbalGeneratorDeviceType>());
+    registry.registerType(std::make_unique<HihatGeneratorDeviceType>());
+    registry.registerType(std::make_unique<RideGeneratorDeviceType>());
+    registry.registerType(std::make_unique<TomGeneratorDeviceType>());
+    registry.registerType(std::make_unique<RimshotGeneratorDeviceType>());
     registry.registerType(std::make_unique<CrashGeneratorDeviceType>());
     registry.registerType(std::make_unique<GateDeviceType>());
     registry.registerType(std::make_unique<CompressorDeviceType>());

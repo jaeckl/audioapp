@@ -10,7 +10,7 @@
 #include "audioapp/KickAlgorithm.hpp"
 #include "audioapp/SnareAlgorithm.hpp"
 #include "audioapp/ClapAlgorithm.hpp"
-#include "audioapp/CymbalAlgorithm.hpp"
+#include "audioapp/DedicatedPercussionAlgorithm.hpp"
 #include "audioapp/CrashAlgorithm.hpp"
 #include "audioapp/DynamicsProcessor.hpp"
 #include "audioapp/ModulationTypes.hpp"
@@ -70,7 +70,7 @@ enum class DeviceNodeKind : uint8_t {
     KickGenerator,
     SnareGenerator,
     ClapGenerator,
-    CymbalGenerator,
+    HihatGenerator,
     CrashGenerator,
     Gate,
     Compressor,
@@ -102,6 +102,9 @@ enum class DeviceNodeKind : uint8_t {
     Chain,
     Granular,
     Stutter,
+    RideGenerator,
+    TomGenerator,
+    RimshotGenerator,
 };
 
 // --- Per-device DSP-only parameter structs ---
@@ -261,7 +264,10 @@ using DeviceVariantParams = std::variant<
     KickGeneratorParams,
     SnareGeneratorParams,
     ClapGeneratorParams,
-    CymbalGeneratorParams,
+    HihatGeneratorParams,
+    RideGeneratorParams,
+    TomGeneratorParams,
+    RimshotGeneratorParams,
     CrashGeneratorParams,
     GateParams,
     CompressorParams,

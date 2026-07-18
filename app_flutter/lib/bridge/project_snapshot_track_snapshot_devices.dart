@@ -42,8 +42,14 @@ extension TrackSnapshotDevices on TrackSnapshot {
           return 38;
         case 'clap_generator':
           return 39;
-        case 'cymbal_generator':
+        case 'hihat_generator':
           return 42;
+        case 'ride_generator':
+          return 51;
+        case 'tom_generator':
+          return 45;
+        case 'rimshot_generator':
+          return 37;
         case 'crash_generator':
           return 49;
       }

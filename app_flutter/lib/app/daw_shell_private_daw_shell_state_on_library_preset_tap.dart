@@ -45,7 +45,10 @@ Future<void> _onLibraryPresetTap(LibraryPresetItem item) async {
         'kick_generator',
         'snare_generator',
         'clap_generator',
-        'cymbal_generator',
+        'hihat_generator',
+        'ride_generator',
+        'tom_generator',
+        'rimshot_generator',
         'crash_generator',
       };
       if (!allowed.contains(item.deviceType)) return;

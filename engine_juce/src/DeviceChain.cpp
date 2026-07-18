@@ -19,7 +19,9 @@ bool isInstrumentDeviceNodeKind(const DeviceNodeKind kind) noexcept {
     return kind == DeviceNodeKind::Oscillator || kind == DeviceNodeKind::Sampler ||
            kind == DeviceNodeKind::SubtractiveSynth || kind == DeviceNodeKind::KickGenerator ||
            kind == DeviceNodeKind::SnareGenerator || kind == DeviceNodeKind::ClapGenerator ||
-           kind == DeviceNodeKind::CymbalGenerator || kind == DeviceNodeKind::CrashGenerator ||
+           kind == DeviceNodeKind::HihatGenerator || kind == DeviceNodeKind::CrashGenerator ||
+           kind == DeviceNodeKind::RideGenerator || kind == DeviceNodeKind::TomGenerator ||
+           kind == DeviceNodeKind::RimshotGenerator ||
            kind == DeviceNodeKind::BassSynth ||
            kind == DeviceNodeKind::PhaseModSynth ||
            kind == DeviceNodeKind::WavetableSynth ||
@@ -91,7 +93,10 @@ DeviceNodeKind deviceNodeKindFromTypeId(const std::string& typeId) noexcept {
     if (typeId == kKickGenerator)    return DeviceNodeKind::KickGenerator;
     if (typeId == kSnareGenerator)   return DeviceNodeKind::SnareGenerator;
     if (typeId == kClapGenerator)    return DeviceNodeKind::ClapGenerator;
-    if (typeId == kCymbalGenerator)  return DeviceNodeKind::CymbalGenerator;
+    if (typeId == kHihatGenerator)   return DeviceNodeKind::HihatGenerator;
+    if (typeId == kRideGenerator)    return DeviceNodeKind::RideGenerator;
+    if (typeId == kTomGenerator)     return DeviceNodeKind::TomGenerator;
+    if (typeId == kRimshotGenerator) return DeviceNodeKind::RimshotGenerator;
     if (typeId == kCrashGenerator)   return DeviceNodeKind::CrashGenerator;
     if (typeId == kGate)             return DeviceNodeKind::Gate;
     if (typeId == kCompressor)       return DeviceNodeKind::Compressor;

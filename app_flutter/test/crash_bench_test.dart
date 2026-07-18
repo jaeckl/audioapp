@@ -1,0 +1,47 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:audioapp/bridge/project_snapshot.dart';
+import 'package:audioapp/features/device_strip/crash_generator_device_panel.dart';
+import 'package:audioapp/features/device_strip/device_strip_metrics.dart';
+import 'package:audioapp/features/device_strip/percussion_panel_layout.dart';
+
+void main() {
+  const crash = CrashGeneratorDeviceSnapshot(
+    id: 'cr1',
+    gain: 1.0,
+    pan: 0.5,
+    bypassed: false,
+    meterGainReductionDb: 0.0,
+    meterInputLevel: 0.0,
+    crashModel: 0.0,
+    crashColor: 0.5,
+    crashSpread: 0.5,
+    crashDecay: 0.55,
+    crashVelocity: 1.0,
+  );
+
+  testWidgets('crash bench shows color and spread knobs', (tester) async {
+    expect(DeviceStripMetrics.designWidthFor('crash_generator'),
+        DeviceStripMetrics.kickDesignWidth);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 360,
+            height: 280,
+            child: CrashGeneratorDevicePanel(
+              device: crash,
+              onParameterChanged: (_, __) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('Color'), findsOneWidget);
+    expect(find.text('Spread'), findsOneWidget);
+    expect(find.byType(PercussionControlCard), findsNWidgets(3));
+    expect(find.text('Classic'), findsNothing);
+    expect(find.text('Dark'), findsNothing);
+  });
+}

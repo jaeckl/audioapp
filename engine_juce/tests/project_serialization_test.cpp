@@ -146,14 +146,23 @@ public:
                 track, audioapp::device_types::kSnareGenerator);
             const auto clap = percussion.addDeviceToTrack(
                 track, audioapp::device_types::kClapGenerator);
-            const auto cymbal = percussion.addDeviceToTrack(
-                track, audioapp::device_types::kCymbalGenerator);
+            const auto hihat = percussion.addDeviceToTrack(
+                track, audioapp::device_types::kHihatGenerator);
+            const auto ride = percussion.addDeviceToTrack(
+                track, audioapp::device_types::kRideGenerator);
+            const auto tom = percussion.addDeviceToTrack(
+                track, audioapp::device_types::kTomGenerator);
+            const auto rimshot = percussion.addDeviceToTrack(
+                track, audioapp::device_types::kRimshotGenerator);
             const auto crash = percussion.addDeviceToTrack(
                 track, audioapp::device_types::kCrashGenerator);
             expect(percussion.setDeviceParameter(snare, "snareKeyTrack", 0.0f) &&
                        percussion.setDeviceParameter(clap, "clapPitch", 0.25f) &&
                        percussion.setDeviceParameter(clap, "clapKeyTrack", 0.0f) &&
-                       percussion.setDeviceParameter(cymbal, "cymbalPitch", 0.75f) &&
+                       percussion.setDeviceParameter(hihat, "hihatPitch", 0.75f) &&
+                       percussion.setDeviceParameter(ride, "rideBell", 0.64f) &&
+                       percussion.setDeviceParameter(tom, "tomBend", 0.70f) &&
+                       percussion.setDeviceParameter(rimshot, "rimshotSnap", 0.84f) &&
                        percussion.setDeviceParameter(crash, "crashPitch", 0.80f),
                    "should update every percussion pitch contract");
 
@@ -164,9 +173,76 @@ public:
             const auto snapshot = restored.getProjectSnapshotJson();
             expect(snapshot.find("snareKeyTrack") != std::string::npos &&
                        snapshot.find("clapPitch") != std::string::npos &&
-                       snapshot.find("cymbalPitch") != std::string::npos &&
+                       snapshot.find("hihatPitch") != std::string::npos &&
+                       snapshot.find("rideBell") != std::string::npos &&
+                       snapshot.find("tomBend") != std::string::npos &&
+                       snapshot.find("rimshotSnap") != std::string::npos &&
                        snapshot.find("crashPitch") != std::string::npos,
                    "restored snapshot should publish percussion pitch controls");
+        }
+
+        beginTest("project v1 migrates cymbal devices and targets to v2");
+        {
+            const std::string v1 = R"json({
+              "project_format_version":1,"name":"v1","bpm":120,
+              "selectedTrackId":"t1","tracks":[{"id":"t1","name":"Drums",
+              "devices":[{"id":"old-cym","type":"cymbal_generator",
+              "parameters":{"gain":0.7,"bypass":0,"cymbalPitch":0.73,
+              "cymbalColor":0.61,"cymbalDecay":0.22,"cymbalWidth":0.3,
+              "cymbalVelocity":0.9,"cymbalKeyTrack":1}}]}],
+              "modEdges":[{"lfoId":0,"deviceId":"old-cym","paramId":"cymbalPitch","amount":0.2}],
+              "automationClips":[{"id":"a1","deviceId":"old-cym","paramId":"cymbalDecay","points":[]}]
+            })json";
+            audioapp::ProjectFileData migrated;
+            expect(audioapp::test::parseProjectJsonInto(v1, migrated),
+                   "v1 project should migrate");
+            expect(migrated.projectFormatVersion == 2);
+            expect(migrated.tracks.size() == 1 && !migrated.tracks[0].devices.empty());
+            if (migrated.tracks.size() == 1 && !migrated.tracks[0].devices.empty()) {
+                const auto& slot = migrated.tracks[0].devices[0];
+                expect(slot.config.typeId == audioapp::device_types::kHihatGenerator);
+                expectWithinAbsoluteError(std::get<audioapp::HihatGeneratorParams>(
+                    slot.config.instance).hihatPitch, 0.73f, 0.001f);
+            }
+            expect(migrated.modEdges.size() == 1 && migrated.modEdges[0].paramId == "hihatPitch");
+            expect(migrated.automationClips.size() == 1 &&
+                   migrated.automationClips[0].paramId == "hihatDecay");
+        }
+
+        beginTest("project v1 migrates cymbal devices nested in drum pads");
+        {
+            const std::string v1 = R"json({
+              "project_format_version":1,"name":"nested","bpm":120,
+              "selectedTrackId":"t1","tracks":[{"id":"t1","name":"Drums",
+              "devices":[{"id":"dm","type":"drum_machine","bypass":false,
+              "pads":[{"note":42,"name":"Hat","gain":1.0,"pan":0.5,
+              "muted":false,"solo":false,"chokeGroup":1,"devices":[{
+              "id":"nested-cym","type":"cymbal_generator","parameters":{
+              "gain":0.8,"bypass":0,"cymbalPitch":0.42,"cymbalColor":0.7,
+              "cymbalDecay":0.18,"cymbalWidth":0.2,"cymbalVelocity":1.0,
+              "cymbalKeyTrack":0}}]}]}]}],"modEdges":[],"automationClips":[]
+            })json";
+            audioapp::ProjectFileData migrated;
+            expect(audioapp::test::parseProjectJsonInto(v1, migrated),
+                   "nested v1 device should migrate");
+            expect(migrated.tracks.size() == 1 && !migrated.tracks[0].devices.empty());
+            if (migrated.tracks.size() == 1 && !migrated.tracks[0].devices.empty()) {
+                const auto& machine = std::get<audioapp::DrumMachineModel>(
+                    migrated.tracks[0].devices[0].config.instance);
+                expect(machine.pads[42].devices.size() == 1);
+                if (machine.pads[42].devices.size() == 1) {
+                    expect(machine.pads[42].devices[0]->config.typeId ==
+                           audioapp::device_types::kHihatGenerator);
+                }
+            }
+        }
+
+        beginTest("unknown future project format is rejected");
+        {
+            audioapp::ProjectFileData project;
+            expect(!audioapp::test::parseProjectJsonInto(
+                       R"json({"project_format_version":3,"tracks":[]})json", project),
+                   "version 3 must not be parsed by a version 2 engine");
         }
     }
 };

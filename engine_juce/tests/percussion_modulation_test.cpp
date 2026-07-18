@@ -31,7 +31,8 @@ namespace {
 /// 1.5x HF energy variation, indicating the modulation changed the timbre.
 bool testPercussionModulation(const std::string& deviceType,
                               const std::string& param,
-                              const std::string& label) {
+                              const std::string& label,
+                              float requiredSpectralRatio = 1.5f) {
     audioapp::EngineHost host;
     host.createProject();
     const std::string trackId = host.addTrack("Test");
@@ -117,7 +118,7 @@ bool testPercussionModulation(const std::string& deviceType,
     const float ratio = brightest / darkest;
     std::fprintf(stderr, "DIAG perc: type=%s param=%s rms=%g hfRatio=%g\n",
         deviceType.c_str(), param.c_str(), rms, ratio);
-    return ratio >= 1.5f;
+    return ratio >= requiredSpectralRatio;
 }
 
 } // namespace
@@ -144,7 +145,10 @@ public:
                 {"kickKeyTrack", audioapp::DeviceNodeKind::KickGenerator},
                 {"snareKeyTrack", audioapp::DeviceNodeKind::SnareGenerator},
                 {"clapKeyTrack", audioapp::DeviceNodeKind::ClapGenerator},
-                {"cymbalKeyTrack", audioapp::DeviceNodeKind::CymbalGenerator},
+                {"hihatKeyTrack", audioapp::DeviceNodeKind::HihatGenerator},
+                {"rideKeyTrack", audioapp::DeviceNodeKind::RideGenerator},
+                {"tomKeyTrack", audioapp::DeviceNodeKind::TomGenerator},
+                {"rimshotKeyTrack", audioapp::DeviceNodeKind::RimshotGenerator},
                 {"crashKeyTrack", audioapp::DeviceNodeKind::CrashGenerator},
             };
             for (const auto& item : cases) {
@@ -169,15 +173,18 @@ public:
             expect(testPercussionModulation("clap_generator", "clapTone", "Clap tone"),
                    "clap tone modulation should change spectral content");
         }
-        beginTest("LFO -> Crash spread -> spectral change");
+        beginTest("LFO -> Crash pitch -> spectral change");
         {
-            expect(testPercussionModulation("crash_generator", "crashSpread", "Crash spread"),
-                   "crash spread modulation should change stereo width");
+            expect(testPercussionModulation("crash_generator", "crashPitch", "Crash pitch"),
+                   "crash pitch modulation should change spectral content");
         }
-        beginTest("LFO -> Cymbal width -> spectral change");
+        beginTest("LFO -> dedicated percussion pitch -> spectral change");
         {
-            expect(testPercussionModulation("cymbal_generator", "cymbalWidth", "Cymbal width"),
-                   "cymbal width modulation should change stereo width");
+            expect(testPercussionModulation("hihat_generator", "hihatPitch", "Hi-hat pitch"));
+            expect(testPercussionModulation("ride_generator", "rideBrightness",
+                                            "Ride brightness", 1.15f));
+            expect(testPercussionModulation("tom_generator", "tomPitch", "Tom pitch"));
+            expect(testPercussionModulation("rimshot_generator", "rimshotPitch", "Rimshot pitch"));
         }
     }
 };

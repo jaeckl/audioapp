@@ -129,14 +129,20 @@ enum class ClapParam : uint16_t {
     KeyTrack = 7,
 };
 
-enum class CymbalParam : uint16_t {
-    Model = 0,
-    Color = 1,
-    Decay = 2,
-    Width = 3,
-    Velocity = 4,
-    Pitch = 5,
-    KeyTrack = 6,
+enum class HihatParam : uint16_t {
+    Pitch = 0, Color, Decay, Tightness, Noise, Width, Velocity, KeyTrack,
+};
+
+enum class RideParam : uint16_t {
+    Pitch = 0, Brightness, Decay, Bell, Damping, Width, Velocity, KeyTrack,
+};
+
+enum class TomParam : uint16_t {
+    Pitch = 0, Decay, Bend, Body, Attack, Noise, Velocity, KeyTrack,
+};
+
+enum class RimshotParam : uint16_t {
+    Pitch = 0, Decay, Tone, Snap, Body, Velocity, KeyTrack,
 };
 
 enum class CrashParam : uint16_t {
@@ -460,7 +466,7 @@ enum class ParamKind : uint16_t {
     KickGenerator    = 4,
     SnareGenerator   = 5,
     ClapGenerator    = 6,
-    CymbalGenerator  = 7,
+    HihatGenerator   = 7,
     CrashGenerator   = 8,
     Gate             = 9,
     Compressor       = 10,
@@ -486,6 +492,9 @@ enum class ParamKind : uint16_t {
     Phaser           = 30,
     Delay            = 31,
     MidiDelay        = 32,
+    RideGenerator    = 33,
+    TomGenerator     = 34,
+    RimshotGenerator = 35,
 };
 
 constexpr uint16_t kParamKindShift      = 10;

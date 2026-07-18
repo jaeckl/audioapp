@@ -1,7 +1,7 @@
 import 'package:audioapp/bridge/project_snapshot.dart';
 import 'package:audioapp/features/device_strip/clap_generator_device_panel.dart';
 import 'package:audioapp/features/device_strip/crash_generator_device_panel.dart';
-import 'package:audioapp/features/device_strip/cymbal_generator_device_panel.dart';
+import 'package:audioapp/features/device_strip/dedicated_percussion_device_panel.dart';
 import 'package:audioapp/features/device_strip/kick_generator_device_panel.dart';
 import 'package:audioapp/features/device_strip/snare_generator_device_panel.dart';
 import 'package:flutter/material.dart';
@@ -17,7 +17,10 @@ void main() {
             'kick_generator' => 'kickKeyTrack',
             'snare_generator' => 'snareKeyTrack',
             'clap_generator' => 'clapKeyTrack',
-            'cymbal_generator' => 'cymbalKeyTrack',
+            'hihat_generator' => 'hihatKeyTrack',
+            'ride_generator' => 'rideKeyTrack',
+            'tom_generator' => 'tomKeyTrack',
+            'rimshot_generator' => 'rimshotKeyTrack',
             'crash_generator' => 'crashKeyTrack',
             _ => throw StateError('Unexpected percussion type'),
           }: keyTrack ? 1.0 : 0.0,
@@ -46,13 +49,18 @@ void main() {
           .clapKeyTrack,
       0.0,
     );
-    expect(
-      (DeviceSnapshot.fromMap({
-        'type': 'cymbal_generator',
-      }) as CymbalGeneratorDeviceSnapshot)
-          .cymbalKeyTrack,
-      0.0,
-    );
+    for (final type in const [
+      'hihat_generator',
+      'ride_generator',
+      'tom_generator',
+      'rimshot_generator'
+    ]) {
+      expect(
+          (DeviceSnapshot.fromMap({'type': type})
+                  as DedicatedPercussionDeviceSnapshot)
+              .value('${type.split('_').first}KeyTrack', 0.0),
+          0.0);
+    }
     expect(
       (DeviceSnapshot.fromMap({
         'type': 'crash_generator',
@@ -83,7 +91,7 @@ void main() {
           selectedTab: ClapDeviceTab.tone,
           onParameterChanged: onChanged,
         ),
-      CymbalGeneratorDeviceSnapshot d => CymbalGeneratorDevicePanel(
+      DedicatedPercussionDeviceSnapshot d => DedicatedPercussionDevicePanel(
           device: d,
           onParameterChanged: onChanged,
         ),
@@ -107,7 +115,10 @@ void main() {
     'kick_generator': 'kickKeyTrack',
     'snare_generator': 'snareKeyTrack',
     'clap_generator': 'clapKeyTrack',
-    'cymbal_generator': 'cymbalKeyTrack',
+    'hihat_generator': 'hihatKeyTrack',
+    'ride_generator': 'rideKeyTrack',
+    'tom_generator': 'tomKeyTrack',
+    'rimshot_generator': 'rimshotKeyTrack',
     'crash_generator': 'crashKeyTrack',
   }.entries) {
     testWidgets('${entry.key} exposes pitch and keytrack', (tester) async {

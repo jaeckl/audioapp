@@ -28,7 +28,7 @@ Legacy name `DeviceLevelPanel` (Pan + Gain for all) is **retired** in favor of o
 
 | `device.type` | Panel | Controls | Width |
 |---------------|-------|----------|-------|
-| `kick_generator`, `snare_generator`, `clap_generator`, `cymbal_generator` | `DrumMonoOutputPanel` | Gain, Velocity sens | 64px |
+| `kick_generator`, `snare_generator`, `clap_generator`, `hihat_generator`, `ride_generator`, `tom_generator`, `rimshot_generator` | `DrumMonoOutputPanel` | Gain, Velocity sens | 64px |
 | `simple_oscillator`, `simple_sampler`, `subtractive_synth` | `StereoGainPanPanel` | Pan, Gain | 64px |
 | `gate`, `compressor`, `expander`, `limiter` | `DynamicsOutputPanel` | Gain, GR meter | 72px |
 | default | `StereoGainPanPanel` | Pan, Gain | 64px |

@@ -9,10 +9,13 @@ import 'analysis/spectrum_analyzer_definition.dart';
 import 'analysis/stereo_imager_definition.dart';
 import 'drums/clap_generator_definition.dart';
 import 'drums/crash_generator_definition.dart';
-import 'drums/cymbal_generator_definition.dart';
 import 'drums/drum_machine_definition.dart';
+import 'drums/hihat_generator_definition.dart';
 import 'drums/kick_generator_definition.dart';
+import 'drums/ride_generator_definition.dart';
+import 'drums/rimshot_generator_definition.dart';
 import 'drums/snare_generator_definition.dart';
+import 'drums/tom_generator_definition.dart';
 import 'dynamics/compressor_definition.dart';
 import 'dynamics/expander_definition.dart';
 import 'dynamics/gate_definition.dart';
@@ -49,10 +52,13 @@ final List<DeviceDefinition<DeviceSnapshot>> generatedDeviceDefinitions = [
   StereoImagerDefinition(),
   ClapGeneratorDefinition(),
   CrashGeneratorDefinition(),
-  CymbalGeneratorDefinition(),
   DrumMachineDefinition(),
+  HihatGeneratorDefinition(),
   KickGeneratorDefinition(),
+  RideGeneratorDefinition(),
+  RimshotGeneratorDefinition(),
   SnareGeneratorDefinition(),
+  TomGeneratorDefinition(),
   CompressorDefinition(),
   ExpanderDefinition(),
   GateDefinition(),

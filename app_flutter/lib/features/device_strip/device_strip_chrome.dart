@@ -16,7 +16,10 @@ abstract final class DeviceStripChrome {
     'kick_generator',
     'snare_generator',
     'clap_generator',
-    'cymbal_generator',
+    'hihat_generator',
+    'ride_generator',
+    'tom_generator',
+    'rimshot_generator',
     'crash_generator',
   };
   static const _fxOutputTypes = {

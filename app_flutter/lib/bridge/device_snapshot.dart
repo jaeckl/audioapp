@@ -35,7 +35,7 @@ part 'device_families/effect_family_stutter_device_snapshot.dart';
 part 'device_families/drum_generator_family_kick_generator_device_snapshot.dart';
 part 'device_families/drum_generator_family_snare_generator_device_snapshot.dart';
 part 'device_families/drum_generator_family_clap_generator_device_snapshot.dart';
-part 'device_families/drum_generator_family_cymbal_generator_device_snapshot.dart';
+part 'device_families/drum_generator_family_dedicated_percussion_device_snapshot.dart';
 part 'device_families/drum_generator_family_crash_generator_device_snapshot.dart';
 part 'device_families/frequency_fx_family_filter_device_snapshot.dart';
 part 'device_families/frequency_fx_family_four_band_eq_device_snapshot.dart';

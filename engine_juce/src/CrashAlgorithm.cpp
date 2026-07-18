@@ -64,8 +64,8 @@ float render(CrashVoiceRuntime& voice, const CrashGeneratorParams& params,
     float low = 0.0f, mid = 0.0f, high = 0.0f;
     for (int i = 0; i < kCrashModeCount; ++i) {
         const float stereoWeight = right
-            ? (1.0f + spread * 0.24f * kStereoShape[i])
-            : (1.0f - spread * 0.24f * kStereoShape[i]);
+            ? (1.0f + spread * 0.82f * kStereoShape[i])
+            : (1.0f - spread * 0.82f * kStereoShape[i]);
         const float amp = stereoWeight / std::sqrt(1.0f + i * 0.72f);
         if (i < 4) low += voice.modalSample[i] * amp * lowEnv;
         else if (i < 10) mid += voice.modalSample[i] * amp * midEnv;

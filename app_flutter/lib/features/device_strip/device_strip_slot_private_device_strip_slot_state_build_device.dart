@@ -32,8 +32,11 @@ extension DeviceStripSlotStateBuilddeviceOperation on _DeviceStripSlotState {
         return _buildSnareGeneratorDevice(context, contentHeight);
       case 'clap_generator':
         return _buildClapGeneratorDevice(context, contentHeight);
-      case 'cymbal_generator':
-        return _buildCymbalGeneratorDevice(context, contentHeight);
+      case 'hihat_generator':
+      case 'ride_generator':
+      case 'tom_generator':
+      case 'rimshot_generator':
+        return _buildDedicatedPercussionDevice(context, contentHeight);
       case 'crash_generator':
         return _buildCrashGeneratorDevice(context, contentHeight);
       case 'gate':

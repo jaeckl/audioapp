@@ -8,7 +8,7 @@
 #include "audioapp/KickAlgorithm.hpp"
 #include "audioapp/SnareAlgorithm.hpp"
 #include "audioapp/ClapAlgorithm.hpp"
-#include "audioapp/CymbalAlgorithm.hpp"
+#include "audioapp/DedicatedPercussionAlgorithm.hpp"
 #include "audioapp/CrashAlgorithm.hpp"
 #include "audioapp/DynamicsProcessor.hpp"
 #include "audioapp/WavetableSynthAlgorithm.hpp"
@@ -297,17 +297,10 @@ void applyModulation(ClapGeneratorParams& p, float modAmount, uint16_t localPara
     }
 }
 
-void applyModulation(CymbalGeneratorParams& p, float modAmount, uint16_t localParamId) noexcept {
-    switch (static_cast<CymbalParam>(unpackParamId(localParamId))) {
-    case CymbalParam::Color:    p.cymbalColor = std::clamp(p.cymbalColor + modAmount, 0.0f, 1.0f); break;
-    case CymbalParam::Decay:    p.cymbalDecay = std::clamp(p.cymbalDecay + modAmount, 0.0f, 1.0f); break;
-    case CymbalParam::Width:    p.cymbalWidth = std::clamp(p.cymbalWidth + modAmount, 0.0f, 1.0f); break;
-    case CymbalParam::Velocity: p.cymbalVelocity = std::clamp(p.cymbalVelocity + modAmount, 0.0f, 1.0f); break;
-    case CymbalParam::Pitch:    p.cymbalPitch = std::clamp(p.cymbalPitch + modAmount, 0.0f, 1.0f); break;
-    case CymbalParam::KeyTrack: p.cymbalKeyTrack = p.cymbalKeyTrack + modAmount >= 0.5f ? 1.0f : 0.0f; break;
-    default: break;
-    }
-}
+void applyModulation(HihatGeneratorParams& p,float m,uint16_t id) noexcept { float* a[]={&p.hihatPitch,&p.hihatColor,&p.hihatDecay,&p.hihatTightness,&p.hihatNoise,&p.hihatWidth,&p.hihatVelocity,&p.hihatKeyTrack};const auto i=unpackParamId(id);if(i<8)*a[i]=i==7?(*a[i]+m>=.5f):std::clamp(*a[i]+m,0.f,1.f); }
+void applyModulation(RideGeneratorParams& p,float m,uint16_t id) noexcept { float* a[]={&p.ridePitch,&p.rideBrightness,&p.rideDecay,&p.rideBell,&p.rideDamping,&p.rideWidth,&p.rideVelocity,&p.rideKeyTrack};const auto i=unpackParamId(id);if(i<8)*a[i]=i==7?(*a[i]+m>=.5f):std::clamp(*a[i]+m,0.f,1.f); }
+void applyModulation(TomGeneratorParams& p,float m,uint16_t id) noexcept { float* a[]={&p.tomPitch,&p.tomDecay,&p.tomBend,&p.tomBody,&p.tomAttack,&p.tomNoise,&p.tomVelocity,&p.tomKeyTrack};const auto i=unpackParamId(id);if(i<8)*a[i]=i==7?(*a[i]+m>=.5f):std::clamp(*a[i]+m,0.f,1.f); }
+void applyModulation(RimshotGeneratorParams& p,float m,uint16_t id) noexcept { float* a[]={&p.rimshotPitch,&p.rimshotDecay,&p.rimshotTone,&p.rimshotSnap,&p.rimshotBody,&p.rimshotVelocity,&p.rimshotKeyTrack};const auto i=unpackParamId(id);if(i<7)*a[i]=i==6?(*a[i]+m>=.5f):std::clamp(*a[i]+m,0.f,1.f); }
 
 void applyModulation(CrashGeneratorParams& p, float modAmount, uint16_t localParamId) noexcept {
     switch (static_cast<CrashParam>(unpackParamId(localParamId))) {

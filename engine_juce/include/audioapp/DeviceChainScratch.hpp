@@ -7,7 +7,7 @@
 #include "audioapp/KickAlgorithm.hpp"
 #include "audioapp/SnareAlgorithm.hpp"
 #include "audioapp/ClapAlgorithm.hpp"
-#include "audioapp/CymbalAlgorithm.hpp"
+#include "audioapp/DedicatedPercussionAlgorithm.hpp"
 #include "audioapp/CrashAlgorithm.hpp"
 #include "audioapp/PhaseModSynthAlgorithm.hpp"
 #include "audioapp/WavetableSynthAlgorithm.hpp"
@@ -59,7 +59,7 @@ struct DeviceChainScratch {
     KickMidiNoteRegion kickRegions[kMaxInstrumentRegions];
     SnareMidiNoteRegion snareRegions[kMaxInstrumentRegions];
     ClapMidiNoteRegion clapRegions[kMaxInstrumentRegions];
-    CymbalMidiNoteRegion cymbalRegions[kMaxInstrumentRegions];
+    PercussionMidiNoteRegion percussionRegions[kMaxInstrumentRegions];
     CrashMidiNoteRegion crashRegions[kMaxInstrumentRegions];
     PhaseModSynthMidiNoteRegion phaseModRegions[kMaxInstrumentRegions];
     WavetableMidiNoteRegion wavetableRegions[kMaxInstrumentRegions];

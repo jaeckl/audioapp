@@ -21,7 +21,7 @@
 #include "audioapp/KickAlgorithm.hpp"
 #include "audioapp/SnareAlgorithm.hpp"
 #include "audioapp/ClapAlgorithm.hpp"
-#include "audioapp/CymbalAlgorithm.hpp"
+#include "audioapp/DedicatedPercussionAlgorithm.hpp"
 #include "audioapp/CrashAlgorithm.hpp"
 #include "audioapp/SubtractiveSynthAlgorithm.hpp"
 #include "audioapp/effects/DelayParams.hpp"
@@ -55,7 +55,10 @@ bool supportsCompiledNormalizedParameter(DeviceNodeKind kind) noexcept {
     case DeviceNodeKind::KickGenerator:
     case DeviceNodeKind::SnareGenerator:
     case DeviceNodeKind::ClapGenerator:
-    case DeviceNodeKind::CymbalGenerator:
+    case DeviceNodeKind::HihatGenerator:
+    case DeviceNodeKind::RideGenerator:
+    case DeviceNodeKind::TomGenerator:
+    case DeviceNodeKind::RimshotGenerator:
     case DeviceNodeKind::CrashGenerator:
     case DeviceNodeKind::Gate:
     case DeviceNodeKind::Compressor:

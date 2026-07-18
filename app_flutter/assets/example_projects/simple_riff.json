@@ -1,5 +1,5 @@
 {
-  "project_format_version": 1,
+  "project_format_version": 2,
   "name": "Neon Break Pressure",
   "bpm": 174,
   "selectedTrackId": "track-mid-bass",
@@ -268,16 +268,19 @@
       "devices": [
         {
           "id": "dev-hat",
-          "type": "cymbal_generator",
+          "type": "hihat_generator",
           "parameters": {
-            "cymbalModel": 0.15,
-            "cymbalColor": 0.58,
-            "cymbalDecay": 0.16,
-            "cymbalWidth": 0.28,
-            "cymbalVelocity": 0.5,
-            "gain": 0.24,
-            "bypass": 0.0
-          }
+            "hihatPitch": 0.5,
+            "hihatColor": 0.58,
+            "hihatDecay": 0.16,
+            "hihatTightness": 0.78,
+            "hihatNoise": 0.34,
+            "hihatWidth": 0.28,
+            "hihatVelocity": 0.5,
+            "hihatKeyTrack": 0.0
+          },
+          "outputPanel": {"type": "mono", "gain": 0.24},
+          "bypass": 0.0
         },
         {"id": "dev-hat-gain", "type": "track_gain", "parameters": {"gain": 0.2, "bypass": 0.0}}
       ],

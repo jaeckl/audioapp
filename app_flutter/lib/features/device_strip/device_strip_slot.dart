@@ -37,8 +37,7 @@ import 'kick_model.dart';
 import 'snare_generator_device_strip.dart';
 import 'clap_generator_device_panel.dart';
 import 'clap_generator_device_strip.dart';
-import 'cymbal_generator_device_strip.dart';
-import 'cymbal_model.dart';
+import 'dedicated_percussion_device_panel.dart';
 import 'crash_generator_device_strip.dart';
 import 'crash_model.dart';
 import 'dynamics_fx_panels.dart';
@@ -104,7 +103,7 @@ part 'device_strip_slot_private_device_strip_slot_state_build_device_build_subtr
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_kick_generator_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_snare_generator_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_clap_generator_device.dart';
-part 'device_strip_slot_private_device_strip_slot_state_build_device_build_cymbal_generator_device.dart';
+part 'device_strip_slot_private_device_strip_slot_state_build_device_build_dedicated_percussion_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_crash_generator_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_gate_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_compressor_device.dart';

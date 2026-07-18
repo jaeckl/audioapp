@@ -195,8 +195,7 @@ void main() {
       );
 
       expect(find.byType(ClipRRect), findsNothing);
-      expect(
-          find.byIcon(Icons.auto_awesome_mosaic_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.auto_awesome_mosaic_outlined), findsOneWidget);
     });
   });
 
@@ -220,11 +219,13 @@ void main() {
       expect(find.text('Kick'), findsOneWidget);
       expect(find.text('Snare'), findsOneWidget);
       expect(find.text('Clap'), findsOneWidget);
-      expect(find.text('Cymbal'), findsOneWidget);
-      expect(find.text('Hi-hat'), findsOneWidget);
+      expect(find.text('Hi-Hat'), findsOneWidget);
+      expect(find.text('Ride'), findsOneWidget);
+      expect(find.text('Tom'), findsOneWidget);
+      expect(find.text('Rimshot'), findsOneWidget);
       // Scroll horizontally to reveal off-screen chips
       final listView = find.byType(ListView).first;
-      await tester.drag(listView, const Offset(-400, 0));
+      await tester.drag(listView, const Offset(-800, 0));
       await tester.pump();
       expect(find.text('Bass Synth'), findsOneWidget);
       expect(find.text('Dynamics'), findsOneWidget);
@@ -259,8 +260,7 @@ void main() {
       expect(captured, 'subtractive_synth');
     });
 
-    testWidgets('tapping All calls onFilterChanged with null',
-        (tester) async {
+    testWidgets('tapping All calls onFilterChanged with null', (tester) async {
       String? captured = 'simple_sampler';
       await tester.pumpWidget(
         MaterialApp(
@@ -307,8 +307,7 @@ void main() {
       expect(selectedId, 'sample:kick');
     });
 
-    testWidgets('tapping a different item changes selection',
-        (tester) async {
+    testWidgets('tapping a different item changes selection', (tester) async {
       String? selectedId;
       await tester.pumpWidget(
         MaterialApp(
@@ -395,8 +394,7 @@ void main() {
       expect(filled.onPressed, isNull);
     });
 
-    testWidgets('shows enabled Insert with a non-null ID',
-        (tester) async {
+    testWidgets('shows enabled Insert with a non-null ID', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -480,8 +478,7 @@ void main() {
       expect(_containersWithBorder(), findsAtLeastNWidgets(1));
     });
 
-    testWidgets('switching selection moves border highlight',
-        (tester) async {
+    testWidgets('switching selection moves border highlight', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -536,8 +533,7 @@ void main() {
       expect(_presetTitles(), findsNWidgets(4));
     });
 
-    testWidgets('filtering by device type narrows results',
-        (tester) async {
+    testWidgets('filtering by device type narrows results', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(

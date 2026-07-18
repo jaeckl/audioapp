@@ -43,7 +43,10 @@ void main() {
     'kick_generator',
     'snare_generator',
     'clap_generator',
-    'cymbal_generator',
+    'hihat_generator',
+    'ride_generator',
+    'tom_generator',
+    'rimshot_generator',
     'crash_generator',
   ];
 
@@ -63,7 +66,8 @@ void main() {
   }
 
   test('DrumMonoOutputPanel maps clap velocity param', () {
-    expect(DrumMonoOutputPanel.velocityParamIdFor('clap_generator'), 'clapVelocity');
+    expect(DrumMonoOutputPanel.velocityParamIdFor('clap_generator'),
+        'clapVelocity');
   });
 
   testWidgets('compressor shows GR from device meters', (tester) async {

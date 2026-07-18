@@ -98,9 +98,11 @@ class _LibraryContentPaneState extends State<LibraryContentPane> {
           'kick_generator',
           'snare_generator',
           'clap_generator',
-          'cymbal_generator',
+          'hihat_generator',
+          'ride_generator',
+          'tom_generator',
+          'rimshot_generator',
           'crash_generator',
-          'hi_hat_generator',
         };
         filtered = filtered
             .where((item) =>

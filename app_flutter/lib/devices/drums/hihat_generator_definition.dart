@@ -6,15 +6,15 @@ import '../definition/device_layout_metadata.dart';
 import '../definition/device_picker_metadata.dart';
 import '../definition/drum_instrument_definition.dart';
 
-@AudioDeviceDefinition('cymbal_generator')
-final class CymbalGeneratorDefinition extends DrumInstrumentDefinition {
+@AudioDeviceDefinition('hihat_generator')
+final class HihatGeneratorDefinition extends DrumInstrumentDefinition {
   @override
-  String get typeId => 'cymbal_generator';
+  String get typeId => 'hihat_generator';
 
   @override
   DevicePickerMetadata get picker => const DevicePickerMetadata(
-        name: 'Cymbal Generator',
-        description: 'Hi-hat · filtered noise wash',
+        name: 'Hi-Hat',
+        description: 'Closed to open metallic hats',
         icon: Icons.blur_on,
         color: Color(0xFF9AD4E8),
         category: 'Instruments',
@@ -29,5 +29,5 @@ final class CymbalGeneratorDefinition extends DrumInstrumentDefinition {
 
   @override
   DeviceSnapshot parseSnapshot(Map<dynamic, dynamic> map) =>
-      CymbalGeneratorDeviceSnapshot.fromMap(map);
+      DedicatedPercussionDeviceSnapshot.fromMap(map);
 }

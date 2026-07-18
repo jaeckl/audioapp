@@ -11,7 +11,7 @@
 #include "audioapp/KickAlgorithm.hpp"       // KickGeneratorParams
 #include "audioapp/SnareAlgorithm.hpp"      // SnareGeneratorParams
 #include "audioapp/ClapAlgorithm.hpp"       // ClapGeneratorParams
-#include "audioapp/CymbalAlgorithm.hpp"     // CymbalGeneratorParams
+#include "audioapp/DedicatedPercussionAlgorithm.hpp"
 #include "audioapp/CrashAlgorithm.hpp"      // CrashGeneratorParams
 #include "audioapp/SubtractiveSynthAlgorithm.hpp"    // SubtractiveSynthParams
 #include "audioapp/DeviceChain.hpp"         // OscillatorParams, TrackGainParams
@@ -47,7 +47,10 @@ using DeviceInstance = std::variant<
     KickGeneratorParams,        // was KickGeneratorInstance
     SnareGeneratorParams,       // was SnareGeneratorInstance
     ClapGeneratorParams,        // was ClapGeneratorInstance
-    CymbalGeneratorParams,      // was CymbalGeneratorInstance
+    HihatGeneratorParams,
+    RideGeneratorParams,
+    TomGeneratorParams,
+    RimshotGeneratorParams,
     CrashGeneratorParams,       // was CrashGeneratorInstance
     GateParams,                 // was GateInstance
     CompressorParams,           // was CompressorInstance

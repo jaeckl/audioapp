@@ -232,28 +232,15 @@ public:
                                       "osc1Level+osc2Level->oscMix expected ~0.2");
         }
 
-        beginTest("legacy rename: cymbalMetal+cymbalBrightness -> cymbalColor");
+        beginTest("dedicated percussion slot round-trip");
         {
-            auto* root = new juce::DynamicObject();
-            root->setProperty("id", "legacy-cym");
-            root->setProperty("type", juce::String(audioapp::device_types::kCymbalGenerator));
-            auto* params = new juce::DynamicObject();
-            params->setProperty("gain", 1.0);
-            params->setProperty("pan", 0.5);
-            params->setProperty("bypass", 0.0);
-            params->setProperty("cymbalMetal", 0.6f);
-            params->setProperty("cymbalBrightness", 0.8f);
-            root->setProperty("parameters", juce::var(params));
-            const auto legacyJson = juce::JSON::toString(juce::var(root), false);
-
-            const audioapp::DeviceSlot restored =
-                audioapp::deviceVarToSlot(legacyJson.toStdString(), registry);
-            const auto reserialized = audioapp::deviceSlotToVar(restored, registry);
-            const auto parsed = juce::JSON::parse(juce::String(reserialized));
-            const float color = readJsonFloat(parsed, "cymbalColor", -1.0f);
-            // Expected: (0.6 + 0.8) * 0.5 = 0.7
-            expectWithinAbsoluteError(color, 0.7f, 0.005f,
-                                      "cymbalMetal+bright->cymbalColor expected ~0.7");
+            auto slot = registry.createDefault(audioapp::device_types::kRideGenerator, "ride-1");
+            expect(registry.setParameter(slot, "rideBell", 0.81f).handled);
+            const auto json = audioapp::deviceSlotToVar(slot, registry);
+            const auto restored = audioapp::deviceVarToSlot(json, registry);
+            expect(restored.config.typeId == audioapp::device_types::kRideGenerator);
+            expectWithinAbsoluteError(std::get<audioapp::RideGeneratorParams>(
+                restored.config.instance).rideBell, 0.81f, 0.001f);
         }
 
         beginTest("legacy rename: crashWash+crashBright -> crashColor");

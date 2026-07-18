@@ -1,5 +1,5 @@
 {
-  "project_format_version": 1,
+  "project_format_version": 2,
   "name": "Supersaw Flutter Motif",
   "bpm": 128,
   "selectedTrackId": "track-supersaw",
@@ -221,16 +221,19 @@
         },
         {
           "id": "sf-hat",
-          "type": "cymbal_generator",
+          "type": "hihat_generator",
           "parameters": {
-            "cymbalModel": 0.05,
-            "cymbalColor": 0.58,
-            "cymbalDecay": 0.14,
-            "cymbalWidth": 0.28,
-            "cymbalVelocity": 0.46,
-            "gain": 0.2,
-            "bypass": 0.0
-          }
+            "hihatPitch": 0.5,
+            "hihatColor": 0.58,
+            "hihatDecay": 0.14,
+            "hihatTightness": 0.8,
+            "hihatNoise": 0.34,
+            "hihatWidth": 0.28,
+            "hihatVelocity": 0.46,
+            "hihatKeyTrack": 0.0
+          },
+          "outputPanel": {"type": "mono", "gain": 0.2},
+          "bypass": 0.0
         },
         {
           "id": "sf-drum-gain",

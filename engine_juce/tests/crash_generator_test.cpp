@@ -77,6 +77,28 @@ public:
             }
             expect(difference > 0.01f, "crash pitch should change rendered audio");
         }
+
+        beginTest("spread decorrelates stereo output");
+        {
+            audioapp::CrashGeneratorParams monoParams;
+            auto wideParams = monoParams;
+            monoParams.crashSpread = 0.0f;
+            wideParams.crashSpread = 1.0f;
+            audioapp::CrashVoiceRuntime mono, wide;
+            audioapp::triggerCrashVoice(mono, 49, 100.0f);
+            audioapp::triggerCrashVoice(wide, 49, 100.0f);
+            double monoSide = 0.0, wideSide = 0.0;
+            for (int frame = 0; frame < 2048; ++frame) {
+                mono.elapsedSec = wide.elapsedSec = frame / kSampleRate;
+                const float ml = audioapp::crashGeneratorSampleL(mono, monoParams, kSampleRate, 1.0f);
+                const float mr = audioapp::crashGeneratorSampleR(mono, monoParams, kSampleRate, 1.0f);
+                const float wl = audioapp::crashGeneratorSampleL(wide, wideParams, kSampleRate, 1.0f);
+                const float wr = audioapp::crashGeneratorSampleR(wide, wideParams, kSampleRate, 1.0f);
+                monoSide += std::abs(ml - mr);
+                wideSide += std::abs(wl - wr);
+            }
+            expect(wideSide > monoSide + 0.1, "spread should create stereo side energy");
+        }
     }
 };
 

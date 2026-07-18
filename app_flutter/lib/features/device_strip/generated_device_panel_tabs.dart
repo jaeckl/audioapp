@@ -5,7 +5,6 @@ import 'device_tab_bar.dart';
 import 'bass_synth_device_panel.dart';
 import 'clap_generator_device_panel.dart';
 import 'crash_generator_device_panel.dart';
-import 'cymbal_generator_device_panel.dart';
 import 'dynamics_fx_panels.dart';
 import 'frequency_fx_panels.dart';
 import 'granular_device_panel.dart';
@@ -29,7 +28,6 @@ final Map<String, List<DeviceTabSpec>> generatedDevicePanelTabs = {
   'clap_generator': ClapGeneratorDevicePanel.containerTabs,
   'compressor': CompressorDevicePanel.containerTabs,
   'crash_generator': CrashGeneratorDevicePanel.containerTabs,
-  'cymbal_generator': CymbalGeneratorDevicePanel.containerTabs,
   'distortion': DistortionFxPanel.containerTabs,
   'expander': ExpanderDevicePanel.containerTabs,
   'filter': FilterDevicePanel.containerTabs,

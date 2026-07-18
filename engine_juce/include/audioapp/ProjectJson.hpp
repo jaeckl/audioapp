@@ -11,7 +11,7 @@
 namespace audioapp {
 
 struct ProjectFileData {
-    int projectFormatVersion = 1;
+    int projectFormatVersion = 2;
     std::string name = "Untitled";
     int bpm = 120;
     std::string selectedTrackId;
@@ -27,7 +27,7 @@ struct ProjectFileData {
     std::vector<AutomationClipState> automationClips;
 };
 
-constexpr int kProjectFormatVersion = 1;
+constexpr int kProjectFormatVersion = 2;
 
 std::string projectFileToJson(const ProjectFileData& project,
                                const DeviceRegistry& registry,
