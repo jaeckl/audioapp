@@ -2,6 +2,12 @@ part of 'daw_shell.dart';
 
 extension DawShellStateOnlibrarypresettapOperation on _DawShellState {
   Future<void> _onLibraryPresetTap(LibraryPresetItem item) async {
+    // Prefer completing a pending strip/substrip device pick so the nest host
+    // performs the insert (same path as picking a bare device type).
+    if (await _completeDevicePickWithPreset(item)) {
+      return;
+    }
+
     final presetTarget = _libraryPresetDeviceId;
     if (item.isUser && item.presetJson != null && presetTarget != null) {
       try {

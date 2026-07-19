@@ -91,6 +91,7 @@ Widget _buildArrangementColumn(ProjectSnapshot snapshot) {
             onCreateSamplerFromDroppedSample: _createSamplerFromDroppedSample,
             onAssignDroppedSampleToDevice: _assignDroppedSampleToDevice,
             onPresetTap: _onLibraryPresetTap,
+            onQueuePresetForDevicePick: _onQueuePresetForDevicePick,
             onWavetableTap: _onLibraryWavetableTap,
           )
         else if (_tab == _ShellTab.keys)

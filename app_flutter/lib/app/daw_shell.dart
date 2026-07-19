@@ -118,6 +118,7 @@ part 'daw_shell_private_daw_shell_state_on_library_midi_tap.dart';
 part 'daw_shell_private_daw_shell_state_on_library_midi_preview_tap.dart';
 part 'daw_shell_private_daw_shell_state_on_library_automation_preview_tap.dart';
 part 'daw_shell_private_daw_shell_state_on_library_automation_tap.dart';
+part 'daw_shell_private_daw_shell_state_pending_insert_preset.dart';
 part 'daw_shell_private_daw_shell_state_apply_factory_preset_json.dart';
 part 'daw_shell_private_daw_shell_state_on_library_preset_tap.dart';
 part 'daw_shell_private_daw_shell_state_on_library_preset_preview_tap.dart';

@@ -6,6 +6,12 @@ extension DawShellStateApplyfactorypresetjsonOperation on _DawShellState {
     if (presetJson == null) return false;
 
     try {
+      // Virtual substrip / strip `+` pick: let the closed-over nest host add
+      // the device, then apply the preset onto the new child.
+      if (await _completeDevicePickWithPreset(item)) {
+        return true;
+      }
+
       final presetTarget = _libraryPresetDeviceId;
       if (presetTarget != null) {
         final target = _snapshot?.deviceById(presetTarget);

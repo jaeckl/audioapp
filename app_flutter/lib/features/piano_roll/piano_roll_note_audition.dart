@@ -18,7 +18,7 @@ class PianoRollNoteAudition {
   int? _heldPitch;
   Timer? _releaseTimer;
 
-  int _previewPitch(MidiNoteSnapshot note) => drumAnchorPitch ?? note.pitch;
+  int _previewPitch(MidiNoteSnapshot note) => note.pitch;
 
   Future<void> preview(MidiNoteSnapshot note, {bool hold = false}) async {
     await release();

@@ -42,7 +42,12 @@ class _ClapGeneratorDevicePanelState extends State<ClapGeneratorDevicePanel> {
         label: active ? 'Tune' : 'Pitch',
         value: widget.device.clapPitch,
         paramId: 'clapPitch',
-        displayValue: percussionPitchLabel(widget.device.clapPitch),
+        // GM clap = 39 (D#2); Pitch mode shows note, Tune shows ±st.
+        displayValue: percussionPitchModeLabel(
+          widget.device.clapPitch,
+          39,
+          keyTrack: active,
+        ),
         onChanged: (value) => widget.onParameterChanged('clapPitch', value),
       ),
       onChanged: (enabled) => widget.onParameterChanged(

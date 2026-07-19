@@ -171,7 +171,7 @@ DeviceSlot ClapGeneratorDeviceType::varToSlot(const juce::var& obj) const {
             inst.clapDecay = readFloat(p, "clapDecay", 0.50f);
             inst.clapVelocity = readFloat(p, "clapVelocity", 1.0f);
             inst.clapPitch = readFloat(p, "clapPitch", 0.50f);
-            inst.clapKeyTrack = readFloat(p, "clapKeyTrack", 0.0f);
+            inst.clapKeyTrack = readFloat(p, "clapKeyTrack", 1.0f);
             slot.config.instance = inst;
 
         }
@@ -223,7 +223,7 @@ std::span<const ParamDescriptor> ClapGeneratorDeviceType::paramDescriptors() con
         {static_cast<uint16_t>(ClapParam::Decay), "clapDecay", "Decay", 0.50f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(ClapParam::Velocity), "clapVelocity", "Velocity", 1.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(ClapParam::Pitch), "clapPitch", "Pitch", 0.50f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(ClapParam::KeyTrack), "clapKeyTrack", "Key Track", 0.0f, 0.0f, 1.0f, true, true, ParameterUpdateRate::Discrete},
+        {static_cast<uint16_t>(ClapParam::KeyTrack), "clapKeyTrack", "Key Track", 1.0f, 0.0f, 1.0f, true, true, ParameterUpdateRate::Discrete},
     };
     return kParams;
 }

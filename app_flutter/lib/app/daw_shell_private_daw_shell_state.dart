@@ -25,6 +25,10 @@ class _DawShellState extends State<DawShell>
   String? _libraryWavetableDeviceId;
   String? _libraryPresetDeviceId;
   String? _libraryPresetDeviceType;
+  /// After device-pick insert (track/substrip), apply this preset to the new device.
+  String? _pendingInsertPresetJson;
+  String? _pendingInsertPresetDeviceType;
+  Set<String>? _pendingInsertPresetBeforeIds;
   final GlobalKey<LibraryFlyInPanelState> _libraryPanelKey = GlobalKey();
   final TimelineViewportScrollController _arrangementScrollController =
       TimelineViewportScrollController();

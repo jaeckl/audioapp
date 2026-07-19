@@ -53,6 +53,7 @@ class DeviceStrip extends StatefulWidget {
     this.onCreateSamplerFromDroppedSample,
     this.onAssignDroppedSampleToDevice,
     this.onPresetTap,
+    this.onQueuePresetForDevicePick,
     this.onWavetableTap,
   });
 
@@ -104,6 +105,7 @@ class DeviceStrip extends StatefulWidget {
   final Future<void> Function(DeviceSnapshot device, SampleClipDragData sample)?
       onAssignDroppedSampleToDevice;
   final void Function(LibraryPresetItem item)? onPresetTap;
+  final bool Function(LibraryPresetItem item)? onQueuePresetForDevicePick;
   final void Function(LibraryWavetableItem item)? onWavetableTap;
 
   @override

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
 import 'device_knob_sizes.dart';
+import 'drum_keytrack_toggle.dart';
 import 'percussion_panel_layout.dart';
 import 'rotary_knob.dart';
 
@@ -100,27 +101,12 @@ class DedicatedPercussionDevicePanel extends StatelessWidget {
   }
 }
 
-String _pitchLabel(double normalized, int anchorPitch, bool keyTrack) {
-  const names = [
-    'C',
-    'C#',
-    'D',
-    'D#',
-    'E',
-    'F',
-    'F#',
-    'G',
-    'G#',
-    'A',
-    'A#',
-    'B'
-  ];
-  final semitones = ((normalized.clamp(0.0, 1.0) - 0.5) * 48).round();
-  if (keyTrack)
-    return semitones == 0 ? '0 st' : '${semitones > 0 ? '+' : ''}$semitones st';
-  final midi = (anchorPitch + semitones).clamp(0, 127);
-  return '${names[midi % 12]}${midi ~/ 12 - 1}';
-}
+String _pitchLabel(double normalized, int anchorPitch, bool keyTrack) =>
+    percussionPitchModeLabel(
+      normalized,
+      anchorPitch,
+      keyTrack: keyTrack,
+    );
 
 class _PercussionKnobSpec {
   const _PercussionKnobSpec(this.id, this.label, this.fallback);

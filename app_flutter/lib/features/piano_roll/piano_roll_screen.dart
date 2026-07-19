@@ -102,7 +102,8 @@ class PianoRollScreen extends StatefulWidget {
   final ValueChanged<ProjectSnapshot> onSnapshot;
   final double savedArrangementPlayhead;
 
-  /// GM drum pitch for this track (38 snare, 36 kick, …). Locks draw lane + scroll.
+  /// GM drum hint pitch (38 snare, 36 kick, …) for scroll / highlight / pads.
+  /// Does not lock drawing or persist — MIDI stays chromatic.
   final int? drumAnchorPitch;
   final MidiLaneLayout? drumLaneLayout;
 

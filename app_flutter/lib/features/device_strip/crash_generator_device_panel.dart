@@ -6,6 +6,7 @@ import 'crash_model_ui_registry.dart';
 import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
+import 'drum_keytrack_toggle.dart';
 import 'percussion_panel_layout.dart';
 import 'rotary_knob.dart';
 
@@ -95,7 +96,13 @@ class CrashGeneratorDevicePanel extends StatelessWidget {
           : spec.label,
       value: value.clamp(0.0, 1.0),
       size: DeviceKnobSizes.strip,
-      displayValue: spec.format(value),
+      displayValue: paramId == 'crashPitch'
+          ? percussionPitchModeLabel(
+              value,
+              49,
+              keyTrack: device.crashKeyTrack >= 0.5,
+            )
+          : spec.format(value),
       accentColor: accent,
       modulationActive: modulatedParams.contains(paramId),
       automationActive: automatedParams.contains(paramId),
