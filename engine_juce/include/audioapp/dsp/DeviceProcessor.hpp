@@ -378,6 +378,15 @@ public:
     bool hasCommonGainModulation = false;
     bool hasCommonPanModulation = false;
 
+    /// True when strip gain/pan/mix/width targets match audio-thread smoothed state.
+    bool commonStripSettled() const noexcept {
+        return commonSmoothingReady
+            && gain == smoothedGain
+            && pan == smoothedPan
+            && outputMix == smoothedOutputMix
+            && outputWidth == smoothedOutputWidth;
+    }
+
 protected:
     DeviceProcessor() = default;
     DeviceProcessor(const DeviceProcessor&) = delete;

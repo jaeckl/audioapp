@@ -2938,7 +2938,17 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                             left, right, framesToProcess, sampleRate);
         }
     };
-    for (int slot = 0; slot < graph.audioBufferSlotCount; ++slot) {
+    // Clear only slots that writers/readers use this block. Feedback edges
+    // write the feedback bank (not graphAudio); leave the read bank intact.
+    for (int edgeIndex = 0; edgeIndex < graph.audioEdgeCount; ++edgeIndex) {
+        const auto& edge = graph.audioEdges[static_cast<size_t>(edgeIndex)];
+        if (edge.feedback) {
+            continue;
+        }
+        const int slot = edge.bufferSlot;
+        if (slot < 0 || slot >= graph.audioBufferSlotCount) {
+            continue;
+        }
         std::memset(graphAudioLeft[slot], 0,
                     static_cast<size_t>(framesToProcess) * sizeof(float));
         std::memset(graphAudioRight[slot], 0,
@@ -2988,6 +2998,27 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         }
         return false;
     };
+
+    // Inaudible tracks skip sample/MIDI/processChain unless they feed a graph
+    // edge (capture runs inside the chain, before audibility gain).
+    bool trackNeedsProcess[kMaxTracks]{};
+    for (int trackIndex = 0; trackIndex < trackCount; ++trackIndex) {
+        trackNeedsProcess[trackIndex] = trackAudibleForOutput(trackIndex);
+    }
+    if (useGraph) {
+        for (int edgeIndex = 0; edgeIndex < graph.audioEdgeCount; ++edgeIndex) {
+            const auto source = graph.audioEdges[static_cast<size_t>(edgeIndex)].sourceTrack;
+            if (source < trackCount) {
+                trackNeedsProcess[source] = true;
+            }
+        }
+        for (int edgeIndex = 0; edgeIndex < graph.midiEdgeCount; ++edgeIndex) {
+            const auto source = graph.midiEdges[static_cast<size_t>(edgeIndex)].sourceTrack;
+            if (source < trackCount) {
+                trackNeedsProcess[source] = true;
+            }
+        }
+    }
 
     // Compute per-frame LFO values for gain/pan modulation.
     // DSP-specific params still use frame-0 (block-rate).
@@ -3100,10 +3131,15 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
     // Prepare each track's own clip and MIDI input before graph execution.
     for (int trackIndex = 0; trackIndex < trackCount; ++trackIndex) {
         const TrackPlaybackSnapshot& track = trackPlayback_[trackIndex];
+        // Always clear: muted parents may still receive child bus audio.
         std::memset(trackLeft[trackIndex], 0,
                     static_cast<size_t>(framesToProcess) * sizeof(float));
         std::memset(trackRight[trackIndex], 0,
                     static_cast<size_t>(framesToProcess) * sizeof(float));
+        if (!trackNeedsProcess[trackIndex]) {
+            routedMidiCount[trackIndex] = 0;
+            continue;
+        }
         if (track.freeze.active) {
             continue;
         }
@@ -3161,11 +3197,59 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         routedMidiCount[trackIndex] = routedCount;
     }
 
+    const auto finishTrackAudibilityAndRoute = [&](int trackIndex, bool audible) noexcept {
+        const TrackPlaybackSnapshot& track = trackPlayback_[trackIndex];
+        const float audibleTarget = audible ? 1.0f : 0.0f;
+        auto& mutableTrack = trackPlayback_[trackIndex];
+        const float audibleStep = (audibleTarget - mutableTrack.audibilityGain) /
+                                  static_cast<float>(std::max(1, framesToProcess));
+        for (int frame = 0; frame < framesToProcess; ++frame) {
+            const float audibleGain = mutableTrack.audibilityGain +
+                                      audibleStep * static_cast<float>(frame + 1);
+            trackLeft[trackIndex][frame] *= audibleGain;
+            trackRight[trackIndex][frame] *= audibleGain;
+        }
+        mutableTrack.audibilityGain = audibleTarget;
+        captureOutputTaps(track.outputNodeId,
+            trackLeft[trackIndex], trackRight[trackIndex]);
+        for (int frame = 0; frame < framesToProcess; ++frame) {
+            const float l = trackLeft[trackIndex][frame];
+            const float r = trackRight[trackIndex][frame];
+            switch (track.outputTargetKind) {
+                case OutputTargetKind::Track: {
+                    const int dest = track.outputTargetTrackIndex;
+                    if (dest >= 0 && dest < trackCount) {
+                        trackLeft[dest][frame] += l;
+                        trackRight[dest][frame] += r;
+                    } else {
+                        virtualMasterLeft[frame] += l;
+                        virtualMasterRight[frame] += r;
+                    }
+                    break;
+                }
+                case OutputTargetKind::Device:
+                    deviceBusLeft[frame] += l;
+                    deviceBusRight[frame] += r;
+                    break;
+                case OutputTargetKind::Master:
+                default:
+                    virtualMasterLeft[frame] += l;
+                    virtualMasterRight[frame] += r;
+                    break;
+            }
+        }
+    };
+
     for (int orderIndex = 0; orderIndex < trackCount; ++orderIndex) {
         const int trackIndex = useGraph
             ? static_cast<int>(graph.executionOrder[static_cast<size_t>(orderIndex)])
             : orderIndex;
         const TrackPlaybackSnapshot& track = trackPlayback_[trackIndex];
+
+        if (!trackNeedsProcess[trackIndex]) {
+            finishTrackAudibilityAndRoute(trackIndex, false);
+            continue;
+        }
 
         if (track.freeze.active) {
             FreezePlaybackRegion region{
@@ -3290,51 +3374,10 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
 
         } // !track.freeze.active
 
-        const float audibleTarget = trackAudibleForOutput(trackIndex) ? 1.0f : 0.0f;
-        auto& mutableTrack = trackPlayback_[trackIndex];
-        const float audibleStep = (audibleTarget - mutableTrack.audibilityGain) /
-                                  static_cast<float>(std::max(1, framesToProcess));
-        for (int frame = 0; frame < framesToProcess; ++frame) {
-            const float audibleGain = mutableTrack.audibilityGain +
-                                      audibleStep * static_cast<float>(frame + 1);
-            trackLeft[trackIndex][frame] *= audibleGain;
-            trackRight[trackIndex][frame] *= audibleGain;
-        }
-        mutableTrack.audibilityGain = audibleTarget;
-
         // A track and a group share the same explicit bus-output contract.
         // Group capture happens after all children have been accumulated and
         // its own device chain/audibility stage has run.
-        captureOutputTaps(track.outputNodeId,
-            trackLeft[trackIndex], trackRight[trackIndex]);
-
-        // Route after chain: virtual master input, invisible device bus, or another track.
-        for (int frame = 0; frame < framesToProcess; ++frame) {
-            const float l = trackLeft[trackIndex][frame];
-            const float r = trackRight[trackIndex][frame];
-            switch (track.outputTargetKind) {
-                case OutputTargetKind::Track: {
-                    const int dest = track.outputTargetTrackIndex;
-                    if (dest >= 0 && dest < trackCount) {
-                        trackLeft[dest][frame] += l;
-                        trackRight[dest][frame] += r;
-                    } else {
-                        virtualMasterLeft[frame] += l;
-                        virtualMasterRight[frame] += r;
-                    }
-                    break;
-                }
-                case OutputTargetKind::Device:
-                    deviceBusLeft[frame] += l;
-                    deviceBusRight[frame] += r;
-                    break;
-                case OutputTargetKind::Master:
-                default:
-                    virtualMasterLeft[frame] += l;
-                    virtualMasterRight[frame] += r;
-                    break;
-            }
-        }
+        finishTrackAudibilityAndRoute(trackIndex, trackAudibleForOutput(trackIndex));
     }
 
     graphFeedback.readIndex = graphFeedbackWriteIndex;
