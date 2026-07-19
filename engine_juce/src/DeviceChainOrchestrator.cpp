@@ -459,28 +459,29 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
     const auto captureAudioGraphTaps = [&](uint64_t nodeId) noexcept {
         if (ctx.tapGraph == nullptr || ctx.graphTapRuntimes == nullptr ||
             ctx.graphTapRuntimeCount <= 0) return;
-        for (int tapIndex = 0; tapIndex < ctx.tapGraph->tapCount; ++tapIndex) {
-            const auto& tap = ctx.tapGraph->taps[static_cast<size_t>(tapIndex)];
+        forEachGraphTapOnSource(*ctx.tapGraph, nodeId, [&](const CompiledGraphTap& tap) noexcept {
             if (tap.kind == GraphTapKind::MidiRecorder ||
-                tap.sourceOutputNodeId != nodeId ||
-                tap.runtimeSlot >= ctx.graphTapRuntimeCount) continue;
+                tap.runtimeSlot >= ctx.graphTapRuntimeCount) {
+                return;
+            }
             processGraphTap(ctx.graphTapRuntimes[tap.runtimeSlot], tap,
                             ctx.trackLeft, ctx.trackRight, numFrames,
                             ctx.sampleRate);
-        }
+        });
     };
 
     const auto captureMidiGraphTaps = [&](uint64_t outputNodeId) noexcept {
         if (outputNodeId == 0 || ctx.tapGraph == nullptr ||
             ctx.graphTapRuntimes == nullptr || ctx.graphTapRuntimeCount <= 0) return;
-        for (int tapIndex = 0; tapIndex < ctx.tapGraph->tapCount; ++tapIndex) {
-            const auto& tap = ctx.tapGraph->taps[static_cast<size_t>(tapIndex)];
+        forEachGraphTapOnSource(*ctx.tapGraph, outputNodeId,
+                                [&](const CompiledGraphTap& tap) noexcept {
             if (tap.kind != GraphTapKind::MidiRecorder ||
-                tap.sourceOutputNodeId != outputNodeId ||
-                tap.runtimeSlot >= ctx.graphTapRuntimeCount) continue;
+                tap.runtimeSlot >= ctx.graphTapRuntimeCount) {
+                return;
+            }
             processGraphMidiTap(ctx.graphTapRuntimes[tap.runtimeSlot], tap,
                                 activeNotes, activeNoteCount);
-        }
+        });
     };
 
     const bool useCompiledOrder = ctx.compiledDeviceOrder != nullptr &&
