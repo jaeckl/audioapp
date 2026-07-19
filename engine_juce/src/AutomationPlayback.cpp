@@ -11,6 +11,7 @@
 #include "audioapp/CrashAlgorithm.hpp"
 #include "audioapp/PhaseModSynthAlgorithm.hpp"
 #include "audioapp/WavetableSynthAlgorithm.hpp"
+#include "audioapp/GranularAlgorithm.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -1746,7 +1747,21 @@ void applyAutomationValue(DeviceVariantParams& params,
         }
         break;
     case ParamKind::Granular:
-        if(auto*p=std::get_if<GranularParams>(&params)){float* values[]={&p->position,&p->scan,&p->size,&p->density,&p->spray,&p->pitch,&p->formant,&p->character,&p->regionStart,&p->regionEnd,&p->attack,&p->release,&p->spread,&p->formX,&p->formY};if(rawId<15)*values[rawId]=value;else if(rawId==15)p->vowel=std::clamp((int)std::lround(value*5.f),0,5);}
+        if (auto* p = std::get_if<GranularParams>(&params)) {
+            float* values[] = {&p->position, &p->scan, &p->size, &p->density, &p->spray,
+                               &p->pitch, &p->formant, &p->character, &p->regionStart,
+                               &p->regionEnd, &p->attack, &p->release, &p->spread,
+                               &p->formX, &p->formY};
+            if (rawId < 15) {
+                *values[rawId] = value;
+            } else if (rawId == 15) {
+                // Match setParameter: absolute 0..5. Also accept normalized 0..1.
+                const int vowel = std::clamp(
+                    static_cast<int>(std::lround(value > 1.0f ? value : value * 5.0f)), 0, 5);
+                p->vowel = vowel;
+                granularVowelFormPoint(vowel, p->formX, p->formY);
+            }
+        }
         break;
     case ParamKind::Stutter:
         if (auto* p = std::get_if<StutterParamsPlayback>(&params)) {

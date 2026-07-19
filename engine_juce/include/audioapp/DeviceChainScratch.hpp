@@ -25,6 +25,8 @@ constexpr int kSubtractiveControlSubBlockFrames = 32;
 constexpr int kWavetableControlSubBlockFrames = 32;
 /// Global automation/LFO hold interval for phase-mod synth (sample-and-hold).
 constexpr int kPhaseModControlSubBlockFrames = 32;
+/// Global automation/LFO hold interval for granular synth (sample-and-hold).
+constexpr int kGranularControlSubBlockFrames = 32;
 
 /// Dedicated preallocated storage for time-based effect ring buffers.
 /// One per track. Allows placement-new of ring buffers without heap allocation.
