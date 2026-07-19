@@ -11,6 +11,7 @@ import '../content_library/library_device_family.dart';
 import '../content_library/library_filter.dart';
 import '../content_library/library_catalog.dart';
 import '../content_library/library_fly_in_panel.dart';
+import 'device_chain_layout.dart';
 import 'device_chain_minimap.dart';
 import 'device_chain_row.dart';
 import 'device_strip_slot.dart';

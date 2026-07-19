@@ -19,17 +19,11 @@ constexpr float kMinDb = -80.0f;
 constexpr float kMaxDb = 0.0f;
 constexpr float kMinGapDb = 6.0f;
 
-bool isForbiddenNestedType(std::string_view typeId) noexcept {
-    return device_types::isSplitType(typeId) || device_types::isMultibandSplitType(typeId) ||
-           device_types::isSpectralLoudSplitType(typeId) || typeId == device_types::kChain;
-}
-
 void appendBranch(const std::vector<std::shared_ptr<DeviceSlot>>& devices,
                   const PlaybackBuildContext& context, SplitBranchPlayback& out) {
     if (context.deviceRegistry == nullptr) return;
     for (const auto& child : devices) {
-        if (!child || isForbiddenNestedType(child->config.typeId) || out.deviceCount >= 8)
-            continue;
+        if (!child || out.deviceCount >= 8) continue;
         auto& node = out.devices[out.deviceCount++];
         node.deviceId = child->id;
         node.bypassed = child->config.bypassed;

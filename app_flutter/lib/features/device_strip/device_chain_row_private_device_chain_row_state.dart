@@ -23,6 +23,8 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
         branches.add(branchIndex);
       }
     });
+    _notifyExpandChanged();
+    _scheduleMeterReport();
   }
 
   bool _isMbBandExpanded(String deviceId, int bandIndex) =>
@@ -35,6 +37,8 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
         bands.add(bandIndex);
       }
     });
+    _notifyExpandChanged();
+    _scheduleMeterReport();
   }
 
   bool _isSlBandExpanded(String deviceId, int bandIndex) =>
@@ -47,6 +51,22 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
         bands.add(bandIndex);
       }
     });
+    _notifyExpandChanged();
+    _scheduleMeterReport();
+  }
+
+  DeviceChainExpandState _currentExpandState() => DeviceChainExpandState(
+        synthAudioFxExpanded: _synthAudioFxExpanded,
+        synthNoteFxExpanded: _synthNoteFxExpanded,
+        splitBranchExpanded: _splitBranchExpanded,
+        mbBandExpanded: _mbBandExpanded,
+        slBandExpanded: _slBandExpanded,
+        drumChainExpandedFor: widget.drumChainExpandedFor,
+        drumSelectedNoteFor: widget.drumSelectedNoteFor,
+      );
+
+  void _notifyExpandChanged() {
+    widget.onExpandChanged?.call(_currentExpandState());
   }
 
   ScrollController get _scrollController =>
@@ -61,8 +81,10 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
     } else {
       widget.scrollController!.addListener(_scheduleMeterReport);
     }
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _reportMeterSubscriptions());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _notifyExpandChanged();
+      _reportMeterSubscriptions();
+    });
   }
 
   @override
@@ -78,7 +100,10 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
     if (oldWidget.track != widget.track ||
         oldWidget.density != widget.density ||
         oldWidget.onMeterSubscriptionsChanged !=
-            widget.onMeterSubscriptionsChanged) {
+            widget.onMeterSubscriptionsChanged ||
+        oldWidget.drumChainExpandedFor != widget.drumChainExpandedFor ||
+        oldWidget.drumSelectedNoteFor != widget.drumSelectedNoteFor) {
+      _notifyExpandChanged();
       _scheduleMeterReport();
     }
   }
@@ -100,6 +125,7 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
       density: widget.density,
       scrollController: _scrollController,
       viewportWidth: box.size.width,
+      expand: _currentExpandState(),
     );
     if (listEquals(ids, _lastReported)) return;
     _lastReported = ids;
@@ -141,6 +167,7 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
         child: ListView(
           controller: _scrollController,
           scrollDirection: Axis.horizontal,
+          clipBehavior: Clip.none,
           padding: widget.density == DeviceStripSlotDensity.collapsed
               ? const EdgeInsets.fromLTRB(
                   8,
@@ -253,24 +280,32 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                           ? (_synthNoteFxExpanded[devices[i].id] ?? false)
                           : false,
                       onToggleAudioFx: _isSynth(devices[i].type)
-                          ? () => setState(() {
+                          ? () {
+                              setState(() {
                                 final id = devices[i].id;
                                 _synthAudioFxExpanded[id] =
                                     !(_synthAudioFxExpanded[id] ?? false);
                                 if (_synthAudioFxExpanded[id] == true) {
                                   _synthNoteFxExpanded[id] = false;
                                 }
-                              })
+                              });
+                              _notifyExpandChanged();
+                              _scheduleMeterReport();
+                            }
                           : null,
                       onToggleNoteFx: _isSynth(devices[i].type)
-                          ? () => setState(() {
+                          ? () {
+                              setState(() {
                                 final id = devices[i].id;
                                 _synthNoteFxExpanded[id] =
                                     !(_synthNoteFxExpanded[id] ?? false);
                                 if (_synthNoteFxExpanded[id] == true) {
                                   _synthAudioFxExpanded[id] = false;
                                 }
-                              })
+                              });
+                              _notifyExpandChanged();
+                              _scheduleMeterReport();
+                            }
                           : null,
                       splitBranch0Expanded:
                           _isSplitBranchExpanded(devices[i].id, 0),
@@ -308,49 +343,7 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                     ),
                   ),
                 ),
-                if (devices[i] is DrumMachineDeviceSnapshot &&
-                    (widget.drumChainExpandedFor?.call(devices[i].id) ?? true))
-                  _virtualPadChain(
-                      context, devices[i] as DrumMachineDeviceSnapshot),
-                if (devices[i] is ChainDeviceSnapshot)
-                  _virtualDeviceChain(
-                      context, devices[i] as ChainDeviceSnapshot),
-                if (devices[i] is SplitDeviceSnapshot) ...[
-                  if (_isSplitBranchExpanded(devices[i].id, 0))
-                    _virtualSplitBranch(
-                        context, devices[i] as SplitDeviceSnapshot, 0),
-                  if (_isSplitBranchExpanded(devices[i].id, 1))
-                    _virtualSplitBranch(
-                        context, devices[i] as SplitDeviceSnapshot, 1),
-                ],
-                if (devices[i] is MultibandSplitDeviceSnapshot) ...[
-                  for (var b = 0;
-                      b < (devices[i] as MultibandSplitDeviceSnapshot).bandCount;
-                      b++)
-                    if (_isMbBandExpanded(devices[i].id, b))
-                      _virtualMultibandBand(context,
-                          devices[i] as MultibandSplitDeviceSnapshot, b),
-                ],
-                if (devices[i] is SpectralLoudSplitDeviceSnapshot) ...[
-                  for (var b = 0; b < 3; b++)
-                    if (_isSlBandExpanded(devices[i].id, b))
-                      _virtualSpectralLoudBand(context,
-                          devices[i] as SpectralLoudSplitDeviceSnapshot, b),
-                  if (_synthNoteFxExpanded[devices[i].id] ?? false)
-                    _virtualSpectralLoudPreFx(
-                        context, devices[i] as SpectralLoudSplitDeviceSnapshot),
-                  if (_synthAudioFxExpanded[devices[i].id] ?? false)
-                    _virtualSpectralLoudPostFx(
-                        context, devices[i] as SpectralLoudSplitDeviceSnapshot),
-                ],
-                if (_isSynth(devices[i].type) &&
-                    devices[i] is! SpectralLoudSplitDeviceSnapshot &&
-                    (_synthAudioFxExpanded[devices[i].id] ?? false))
-                  _virtualAudioFxChain(context, devices[i]),
-                if (_isSynth(devices[i].type) &&
-                    devices[i] is! SpectralLoudSplitDeviceSnapshot &&
-                    (_synthNoteFxExpanded[devices[i].id] ?? false))
-                  _virtualNoteFxChain(context, devices[i]),
+                ..._inlineVirtualRegionsAfterDevice(context, devices[i]),
                 _sampleDropTarget(
                   enabled: widget.track.canInsertDevices &&
                       widget.onCreateSamplerFromDroppedSample != null,

@@ -14,6 +14,7 @@ import 'device_strip_metrics.dart';
 import 'device_strip_slot.dart';
 import 'device_strip_theme.dart';
 import 'device_picker_sheet.dart';
+import 'device_chain_layout.dart';
 import 'device_insert_slot.dart';
 import 'meter_subscription.dart';
 import 'live_automation_value.dart';
@@ -32,6 +33,7 @@ part 'device_chain_row_private_device_chain_row_state_virtual_spectral_loud.dart
 part 'device_chain_row_private_device_chain_row_state_virtual_pad_chain.dart';
 part 'device_chain_row_private_device_chain_row_state_virtual_audio_fx_chain.dart';
 part 'device_chain_row_private_device_chain_row_state_virtual_note_fx_chain.dart';
+part 'device_chain_row_private_device_chain_row_state_virtual_nested.dart';
 part 'device_chain_row_private_device_chain_row_state_leading_insert.dart';
 
 /// Horizontally scrollable Bitwig/Ableton-style device chain row.
@@ -81,6 +83,7 @@ class DeviceChainRow extends StatefulWidget {
     this.onDrumBankChanged,
     this.onDrumChainToggle,
     this.onMeterSubscriptionsChanged,
+    this.onExpandChanged,
     this.onCreateSamplerFromDroppedSample,
     this.onAssignDroppedSampleToDevice,
   });
@@ -142,6 +145,7 @@ class DeviceChainRow extends StatefulWidget {
   final void Function(String deviceId, int start)? onDrumBankChanged;
   final ValueChanged<String>? onDrumChainToggle;
   final ValueChanged<List<String>>? onMeterSubscriptionsChanged;
+  final ValueChanged<DeviceChainExpandState>? onExpandChanged;
   final Future<void> Function(SampleClipDragData sample, int insertIndex)?
       onCreateSamplerFromDroppedSample;
   final Future<void> Function(DeviceSnapshot device, SampleClipDragData sample)?

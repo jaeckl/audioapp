@@ -73,6 +73,7 @@ public:
     std::string addDeviceToChain(const std::string& chainId, const std::string& deviceType,
                                  int insertIndex = -1);
     bool removeDeviceFromChain(const std::string& chainId, const std::string& deviceId);
+    const NestingError& lastNestingError() const noexcept;
     std::string addDeviceToSplitBranch(const std::string& splitId, int branchIndex,
                                        const std::string& deviceType, int insertIndex = -1);
     bool removeDeviceFromSplitBranch(const std::string& splitId, int branchIndex,

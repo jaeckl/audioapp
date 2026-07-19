@@ -31,6 +31,7 @@
 #include "audioapp/SubtractiveSynthAlgorithm.hpp"
 #include "audioapp/PhaseModSynthAlgorithm.hpp"
 #include "audioapp/devices/DeviceRegistry.hpp"
+#include "audioapp/devices/NestingError.hpp"
 #include "audioapp/transport/TransportController.hpp"
 #include "audioapp/modulation/ModulationGraph.hpp"
 
@@ -136,6 +137,8 @@ public:
     std::string addDeviceToChain(const std::string& chainId, const std::string& deviceType,
                                  int insertIndex = -1);
     bool removeDeviceFromChain(const std::string& chainId, const std::string& deviceId);
+    /// Last structured nesting failure from an add* call (control thread).
+    const NestingError& lastNestingError() const noexcept { return lastNestingError_; }
     std::string addDeviceToSplitBranch(const std::string& splitId, int branchIndex,
                                        const std::string& deviceType, int insertIndex = -1);
     bool removeDeviceFromSplitBranch(const std::string& splitId, int branchIndex,
@@ -766,6 +769,7 @@ private:
     double lastArrangementMixPlayhead_ = -1.0;
 
     DeviceRegistry deviceRegistry_{DeviceRegistry::createBuiltIn()};
+    NestingError lastNestingError_{};
 };
 
 } // namespace audioapp

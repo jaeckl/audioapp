@@ -19,11 +19,13 @@ class DeviceChainMinimap extends StatefulWidget {
     required this.track,
     required this.scrollController,
     required this.density,
+    this.expand = DeviceChainExpandState.empty,
   });
 
   final TrackSnapshot track;
   final ScrollController scrollController;
   final DeviceStripSlotDensity density;
+  final DeviceChainExpandState expand;
 
   @override
   State<DeviceChainMinimap> createState() => _DeviceChainMinimapState();

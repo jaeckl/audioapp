@@ -661,7 +661,7 @@ juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& regi
         if (auto* object = result.getDynamicObject()) {
             juce::Array<juce::var> devices;
             for (const auto& device : chain.devices) {
-                if (device != nullptr && device->config.typeId != device_types::kChain) {
+                if (device != nullptr) {
                     devices.add(deviceSlotToVarImpl(*device, registry));
                 }
             }
@@ -679,9 +679,7 @@ juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& regi
             for (const auto* side : sides) {
                 juce::Array<juce::var> devices;
                 for (const auto& device : *side) {
-                    if (device != nullptr && !device_types::isSplitType(device->config.typeId) &&
-                        !device_types::isMultibandSplitType(device->config.typeId) &&
-                        device->config.typeId != device_types::kChain) {
+                    if (device != nullptr) {
                         devices.add(deviceSlotToVarImpl(*device, registry));
                     }
                 }
@@ -702,9 +700,7 @@ juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& regi
             for (int b = 0; b < mb.bandCount && b < kMaxMbBands; ++b) {
                 juce::Array<juce::var> devices;
                 for (const auto& device : mb.bands[b]) {
-                    if (device != nullptr && !device_types::isSplitType(device->config.typeId) &&
-                        !device_types::isMultibandSplitType(device->config.typeId) &&
-                        device->config.typeId != device_types::kChain) {
+                    if (device != nullptr) {
                         devices.add(deviceSlotToVarImpl(*device, registry));
                     }
                 }
@@ -724,10 +720,7 @@ juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& regi
             auto writeDevices = [&](const std::vector<std::shared_ptr<DeviceSlot>>& list) {
                 juce::Array<juce::var> devices;
                 for (const auto& device : list) {
-                    if (device != nullptr && !device_types::isSplitType(device->config.typeId) &&
-                        !device_types::isMultibandSplitType(device->config.typeId) &&
-                        !device_types::isSpectralLoudSplitType(device->config.typeId) &&
-                        device->config.typeId != device_types::kChain) {
+                    if (device != nullptr) {
                         devices.add(deviceSlotToVarImpl(*device, registry));
                     }
                 }
@@ -767,7 +760,7 @@ juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& regi
             padObject->setProperty("chokeGroup", pad.chokeGroup);
             juce::Array<juce::var> devices;
             for (const auto& device : pad.devices) {
-                if (device != nullptr && device->config.typeId != device_types::kDrumMachine) {
+                if (device != nullptr) {
                     devices.add(deviceSlotToVarImpl(*device, registry));
                 }
             }
@@ -839,7 +832,7 @@ DeviceSlot deviceVarToSlotImpl(const juce::var& obj, const DeviceRegistry& regis
                 for (const auto& value : *devices) {
                     if (chain.devices.size() >= 8) break;
                     DeviceSlot child = deviceVarToSlotImpl(value, registry);
-                    if (!child.id.empty() && child.config.typeId != device_types::kChain) {
+                    if (!child.id.empty()) {
                         chain.devices.push_back(std::make_shared<DeviceSlot>(std::move(child)));
                     }
                 }
@@ -863,9 +856,7 @@ DeviceSlot deviceVarToSlotImpl(const juce::var& obj, const DeviceRegistry& regis
                         for (const auto& value : *devices) {
                             if (sides[branchIndex]->size() >= 8) break;
                             DeviceSlot child = deviceVarToSlotImpl(value, registry);
-                            if (!child.id.empty() && !device_types::isSplitType(child.config.typeId) &&
-                                !device_types::isMultibandSplitType(child.config.typeId) &&
-                                child.config.typeId != device_types::kChain) {
+                            if (!child.id.empty()) {
                                 sides[branchIndex]->push_back(
                                     std::make_shared<DeviceSlot>(std::move(child)));
                             }
@@ -892,9 +883,7 @@ DeviceSlot deviceVarToSlotImpl(const juce::var& obj, const DeviceRegistry& regis
                         for (const auto& value : *devices) {
                             if (mb.bands[bandIndex].size() >= 8) break;
                             DeviceSlot child = deviceVarToSlotImpl(value, registry);
-                            if (!child.id.empty() && !device_types::isSplitType(child.config.typeId) &&
-                                !device_types::isMultibandSplitType(child.config.typeId) &&
-                                child.config.typeId != device_types::kChain) {
+                            if (!child.id.empty()) {
                                 mb.bands[bandIndex].push_back(
                                     std::make_shared<DeviceSlot>(std::move(child)));
                             }
@@ -919,10 +908,7 @@ DeviceSlot deviceVarToSlotImpl(const juce::var& obj, const DeviceRegistry& regis
                     for (const auto& value : *devices) {
                         if (dest.size() >= 8) break;
                         DeviceSlot child = deviceVarToSlotImpl(value, registry);
-                        if (!child.id.empty() && !device_types::isSplitType(child.config.typeId) &&
-                            !device_types::isMultibandSplitType(child.config.typeId) &&
-                            !device_types::isSpectralLoudSplitType(child.config.typeId) &&
-                            child.config.typeId != device_types::kChain) {
+                        if (!child.id.empty()) {
                             dest.push_back(std::make_shared<DeviceSlot>(std::move(child)));
                         }
                     }
@@ -972,7 +958,7 @@ DeviceSlot deviceVarToSlotImpl(const juce::var& obj, const DeviceRegistry& regis
                         for (const auto& deviceValue : *devices) {
                             if (pad.devices.size() >= DrumMachineModel::kMaxDevicesPerPad) break;
                             DeviceSlot child = deviceVarToSlotImpl(deviceValue, registry);
-                            if (!child.id.empty() && child.config.typeId != device_types::kDrumMachine) {
+                            if (!child.id.empty()) {
                                 pad.devices.push_back(std::make_shared<DeviceSlot>(std::move(child)));
                             }
                         }

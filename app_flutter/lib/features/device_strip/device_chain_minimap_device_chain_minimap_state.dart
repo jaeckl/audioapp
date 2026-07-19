@@ -28,6 +28,21 @@ class _DeviceChainMinimapState extends State<DeviceChainMinimap> {
     if (!_scrubbing && mounted) setState(() {});
   }
 
+  double _contentWidth(double viewportWidth) {
+    final calculated = DeviceChainLayout.contentWidth(
+      widget.track,
+      widget.density,
+      expand: widget.expand,
+    );
+    if (widget.scrollController.hasClients &&
+        widget.scrollController.position.hasContentDimensions) {
+      final fromScroll =
+          widget.scrollController.position.maxScrollExtent + viewportWidth;
+      if (fromScroll > calculated) return fromScroll;
+    }
+    return calculated;
+  }
+
   void _scrubToLocalX(double localX, double trackWidth, double viewportWidth) {
     final controller = widget.scrollController;
     if (!controller.hasClients) return;
@@ -35,8 +50,7 @@ class _DeviceChainMinimapState extends State<DeviceChainMinimap> {
     final maxExtent = _maxScrollExtent();
     if (maxExtent <= 0) return;
 
-    final contentWidth =
-        DeviceChainLayout.contentWidth(widget.track, widget.density);
+    final contentWidth = _contentWidth(viewportWidth);
     final thumbWidth = _thumbWidth(trackWidth, viewportWidth, contentWidth);
     final travel = trackWidth - thumbWidth;
     if (travel <= 0) return;
@@ -87,8 +101,7 @@ class _DeviceChainMinimapState extends State<DeviceChainMinimap> {
           builder: (context, constraints) {
             final trackWidth = constraints.maxWidth;
             final viewportWidth = MediaQuery.sizeOf(context).width;
-            final contentWidth =
-                DeviceChainLayout.contentWidth(widget.track, widget.density);
+            final contentWidth = _contentWidth(viewportWidth);
             final scrollOffset = widget.scrollController.hasClients
                 ? widget.scrollController.offset
                 : 0.0;

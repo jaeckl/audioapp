@@ -10,6 +10,9 @@
 #include "audioapp/DeviceChainOrchestrator.hpp"
 #include "audioapp/DeviceChainScratch.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
+#include "audioapp/devices/DeviceNestingValidator.hpp"
+#include "audioapp/devices/DeviceTreeWalk.hpp"
+#include "audioapp/devices/NestingError.hpp"
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/DeviceChainOrchestrator.hpp"
 #include "audioapp/DeviceChainScratch.hpp"
@@ -96,6 +99,20 @@ bool supportsCompiledNormalizedParameter(DeviceNodeKind kind) noexcept {
 // device ID/type. Sharing an arena is safe only when a rebuild would not need
 // to write into its processors; parameter changes continue through the live
 // command path or get a freshly built arena.
+NestingTrackEstimate estimateTrackContainingDevice(
+    const TrackRepository& trackRepo, const std::string& deviceId) {
+    for (const auto& track : trackRepo.tracks()) {
+        for (const auto& device : track.devices) {
+            std::vector<std::string> ids;
+            collectDeviceTreeIds(device, ids);
+            if (std::find(ids.begin(), ids.end(), deviceId) != ids.end()) {
+                return DeviceNestingValidator::estimateTrack(track.devices);
+            }
+        }
+    }
+    return {};
+}
+
 bool playbackNodesEquivalent(const DeviceNodePlayback& a,
                              const DeviceNodePlayback& b) noexcept {
     return a.kind == b.kind &&
@@ -111,42 +128,6 @@ bool playbackNodesEquivalent(const DeviceNodePlayback& a,
            a.voicePolicy.retriggerReplacesVoice == b.voicePolicy.retriggerReplacesVoice &&
            a.params.index() == b.params.index() &&
            std::memcmp(&a.params, &b.params, sizeof(DeviceVariantParams)) == 0;
-}
-
-void collectDeviceTreeIds(const DeviceSlot& slot, std::vector<std::string>& ids) {
-    ids.push_back(slot.id);
-    if (slot.config.typeId == device_types::kChain) {
-        for (const auto& child : std::get<ChainModel>(slot.config.instance).devices)
-            if (child) collectDeviceTreeIds(*child, ids);
-    } else if (slot.config.typeId == device_types::kDrumMachine) {
-        for (const auto& pad : std::get<DrumMachineModel>(slot.config.instance).pads)
-            for (const auto& child : pad.devices)
-                if (child) collectDeviceTreeIds(*child, ids);
-    } else if (device_types::isSplitType(slot.config.typeId)) {
-        const auto& split = std::get<SplitModel>(slot.config.instance);
-        for (const auto& child : split.branch0)
-            if (child) collectDeviceTreeIds(*child, ids);
-        for (const auto& child : split.branch1)
-            if (child) collectDeviceTreeIds(*child, ids);
-    } else if (device_types::isMultibandSplitType(slot.config.typeId)) {
-        const auto& mb = std::get<MultibandSplitModel>(slot.config.instance);
-        for (int b = 0; b < mb.bandCount && b < kMaxMbBands; ++b)
-            for (const auto& child : mb.bands[b])
-                if (child) collectDeviceTreeIds(*child, ids);
-    } else if (device_types::isSpectralLoudSplitType(slot.config.typeId)) {
-        const auto& sl = std::get<SpectralLoudSplitModel>(slot.config.instance);
-        for (const auto& child : sl.preFxDevices)
-            if (child) collectDeviceTreeIds(*child, ids);
-        for (const auto& child : sl.postFxDevices)
-            if (child) collectDeviceTreeIds(*child, ids);
-        for (int b = 0; b < kSpectralLoudBands; ++b)
-            for (const auto& child : sl.bands[b])
-                if (child) collectDeviceTreeIds(*child, ids);
-    }
-    for (const auto& child : slot.noteFxDevices)
-        if (child) collectDeviceTreeIds(*child, ids);
-    for (const auto& child : slot.audioFxDevices)
-        if (child) collectDeviceTreeIds(*child, ids);
 }
 
 void addMetronomeClick(float* left, float* right, int frames, double sampleRate,
@@ -166,6 +147,235 @@ void addMetronomeClick(float* left, float* right, int frames, double sampleRate,
             * envelope * level * (accent ? 0.42f : 0.30f);
         left[frame] += click;
         right[frame] += click;
+    }
+}
+
+struct PlaybackTargetResolveResult {
+    bool found = false;
+    int topLevelIndex = -1;
+    uint16_t targetIndex = 0;
+    DeviceNodeKind targetKind = DeviceNodeKind::Unknown;
+};
+
+const DeviceNodePlayback* findPlaybackNodeByDeviceId(const DeviceNodePlayback& node,
+                                                     const std::string& deviceId) {
+    if (node.deviceId == deviceId) return &node;
+
+    auto searchBranch = [&](const SplitBranchPlayback& branch) -> const DeviceNodePlayback* {
+        for (int child = 0; child < branch.deviceCount; ++child) {
+            if (const auto* found = findPlaybackNodeByDeviceId(branch.devices[child], deviceId))
+                return found;
+        }
+        return nullptr;
+    };
+
+    if (node.kind == DeviceNodeKind::DrumMachine) {
+        if (const auto playback = std::get<DrumMachineParams>(node.params).playback) {
+            for (int note = 0; note < 128; ++note) {
+                const auto& pad = playback->pads[note];
+                for (int child = 0; child < pad.deviceCount; ++child) {
+                    if (const auto* found =
+                            findPlaybackNodeByDeviceId(pad.devices[child], deviceId))
+                        return found;
+                }
+            }
+        }
+    } else if (node.kind == DeviceNodeKind::Chain) {
+        if (const auto playback = std::get<ChainParams>(node.params).playback) {
+            for (int child = 0; child < playback->deviceCount; ++child) {
+                if (const auto* found =
+                        findPlaybackNodeByDeviceId(playback->devices[child], deviceId))
+                    return found;
+            }
+        }
+    } else if (node.kind == DeviceNodeKind::Split) {
+        if (const auto playback = std::get<SplitParams>(node.params).playback) {
+            for (int branch = 0; branch < 2; ++branch) {
+                if (const auto* found = searchBranch(playback->branches[branch]))
+                    return found;
+            }
+        }
+    } else if (node.kind == DeviceNodeKind::MultibandSplit) {
+        if (const auto playback = std::get<MultibandSplitParams>(node.params).playback) {
+            const int bandCount = std::clamp(playback->bandCount, 2, kMaxMbBands);
+            for (int band = 0; band < bandCount; ++band) {
+                if (const auto* found = searchBranch(playback->bands[band]))
+                    return found;
+            }
+        }
+    } else if (node.kind == DeviceNodeKind::SpectralLoudSplit) {
+        if (const auto playback = std::get<SpectralLoudSplitParams>(node.params).playback) {
+            if (const auto* found = searchBranch(playback->preFx))
+                return found;
+            if (const auto* found = searchBranch(playback->postFx))
+                return found;
+            for (int band = 0; band < kSpectralLoudBands; ++band) {
+                if (const auto* found = searchBranch(playback->bands[band]))
+                    return found;
+            }
+        }
+    }
+    return nullptr;
+}
+
+PlaybackTargetResolveResult resolvePlaybackTarget(
+    const DeviceNodePlayback* devices,
+    int deviceCount,
+    const std::string& deviceId) {
+    PlaybackTargetResolveResult result;
+    for (int i = 0; i < deviceCount; ++i) {
+        if (devices[i].deviceId == deviceId) {
+            result.found = true;
+            result.topLevelIndex = i;
+            result.targetIndex = static_cast<uint16_t>(i);
+            result.targetKind = devices[i].kind;
+            return result;
+        }
+        if (const auto* nested = findPlaybackNodeByDeviceId(devices[i], deviceId)) {
+            result.found = true;
+            result.topLevelIndex = i;
+            result.targetIndex = nested->automationTargetIndex;
+            result.targetKind = nested->kind;
+            return result;
+        }
+    }
+    return result;
+}
+
+bool publishesPlaybackMeters(const DeviceNodePlayback& node) noexcept {
+    return isDynamicsDeviceNodeKind(node.kind) || isAnalysisDeviceNodeKind(node.kind) ||
+           node.kind == DeviceNodeKind::Split ||
+           node.kind == DeviceNodeKind::MultibandSplit ||
+           node.kind == DeviceNodeKind::SpectralLoudSplit;
+}
+
+void tryAssignPlaybackMeterSlot(DeviceNodePlayback& node, int& slotCount,
+                                std::string* meterIds) {
+    node.meterSlot = -1;
+    if (publishesPlaybackMeters(node) && slotCount < kMaxDeviceMeters) {
+        node.meterSlot = static_cast<int8_t>(slotCount);
+        meterIds[slotCount] = node.deviceId;
+        ++slotCount;
+    }
+}
+
+void assignNestedPlaybackMeterSlots(DeviceNodePlayback& node, int& slotCount,
+                                    std::string* meterIds) {
+    auto walkChild = [&](DeviceNodePlayback& child) {
+        tryAssignPlaybackMeterSlot(child, slotCount, meterIds);
+        assignNestedPlaybackMeterSlots(child, slotCount, meterIds);
+    };
+    auto walkBranch = [&](SplitBranchPlayback& branch) {
+        for (int child = 0; child < branch.deviceCount; ++child)
+            walkChild(branch.devices[child]);
+    };
+
+    if (node.kind == DeviceNodeKind::DrumMachine) {
+        auto playback = std::get<DrumMachineParams>(node.params).playback;
+        if (playback == nullptr) return;
+        auto mutablePlayback = std::const_pointer_cast<DrumMachinePlayback>(playback);
+        for (int note = 0; note < 128; ++note) {
+            auto& pad = mutablePlayback->pads[note];
+            for (int child = 0; child < pad.deviceCount; ++child)
+                walkChild(pad.devices[child]);
+        }
+    } else if (node.kind == DeviceNodeKind::Chain) {
+        auto playback = std::get<ChainParams>(node.params).playback;
+        if (playback == nullptr) return;
+        auto mutablePlayback = std::const_pointer_cast<ChainPlayback>(playback);
+        for (int child = 0; child < mutablePlayback->deviceCount; ++child)
+            walkChild(mutablePlayback->devices[child]);
+    } else if (node.kind == DeviceNodeKind::Split) {
+        auto playback = std::get<SplitParams>(node.params).playback;
+        if (playback == nullptr) return;
+        auto mutablePlayback = std::const_pointer_cast<SplitPlayback>(playback);
+        for (int branch = 0; branch < 2; ++branch)
+            walkBranch(mutablePlayback->branches[branch]);
+    } else if (node.kind == DeviceNodeKind::MultibandSplit) {
+        auto playback = std::get<MultibandSplitParams>(node.params).playback;
+        if (playback == nullptr) return;
+        auto mutablePlayback = std::const_pointer_cast<MultibandSplitPlayback>(playback);
+        const int bandCount = std::clamp(mutablePlayback->bandCount, 2, kMaxMbBands);
+        for (int band = 0; band < bandCount; ++band)
+            walkBranch(mutablePlayback->bands[band]);
+    } else if (node.kind == DeviceNodeKind::SpectralLoudSplit) {
+        auto playback = std::get<SpectralLoudSplitParams>(node.params).playback;
+        if (playback == nullptr) return;
+        auto mutablePlayback = std::const_pointer_cast<SpectralLoudSplitPlayback>(playback);
+        walkBranch(mutablePlayback->preFx);
+        walkBranch(mutablePlayback->postFx);
+        for (int band = 0; band < kSpectralLoudBands; ++band)
+            walkBranch(mutablePlayback->bands[band]);
+    }
+}
+
+void tagNestedPlaybackAutomationTargets(DeviceNodePlayback& node, uint16_t snapIndex) {
+    auto tagBranch = [&](SplitBranchPlayback& branch, uint16_t tag) {
+        for (int child = 0; child < branch.deviceCount; ++child) {
+            branch.devices[child].automationTargetIndex = static_cast<uint16_t>(
+                tag | (snapIndex << 6u) | static_cast<uint16_t>(child));
+            tagNestedPlaybackAutomationTargets(branch.devices[child], snapIndex);
+        }
+    };
+
+    if (node.kind == DeviceNodeKind::DrumMachine) {
+        auto playback = std::get<DrumMachineParams>(node.params).playback;
+        if (playback == nullptr) return;
+        auto mutablePlayback = std::const_pointer_cast<DrumMachinePlayback>(playback);
+        for (int note = 0; note < 128; ++note) {
+            auto& pad = mutablePlayback->pads[note];
+            for (int child = 0; child < pad.deviceCount; ++child) {
+                pad.devices[child].automationTargetIndex = static_cast<uint16_t>(
+                    0x8000u | (snapIndex << 9u) | (static_cast<uint16_t>(note) << 2u) |
+                    static_cast<uint16_t>(child));
+                tagNestedPlaybackAutomationTargets(pad.devices[child], snapIndex);
+            }
+        }
+    } else if (node.kind == DeviceNodeKind::Chain) {
+        auto playback = std::get<ChainParams>(node.params).playback;
+        if (playback == nullptr) return;
+        auto mutablePlayback = std::const_pointer_cast<ChainPlayback>(playback);
+        for (int child = 0; child < mutablePlayback->deviceCount; ++child) {
+            mutablePlayback->devices[child].automationTargetIndex = static_cast<uint16_t>(
+                0x4000u | (snapIndex << 4u) | static_cast<uint16_t>(child));
+            tagNestedPlaybackAutomationTargets(mutablePlayback->devices[child], snapIndex);
+        }
+    } else if (node.kind == DeviceNodeKind::Split) {
+        auto playback = std::get<SplitParams>(node.params).playback;
+        if (playback == nullptr) return;
+        auto mutablePlayback = std::const_pointer_cast<SplitPlayback>(playback);
+        for (int branch = 0; branch < 2; ++branch) {
+            auto& branchPlayback = mutablePlayback->branches[branch];
+            for (int child = 0; child < branchPlayback.deviceCount; ++child) {
+                branchPlayback.devices[child].automationTargetIndex = static_cast<uint16_t>(
+                    0x2000u | (snapIndex << 5u) | (static_cast<uint16_t>(branch) << 4u) |
+                    static_cast<uint16_t>(child));
+                tagNestedPlaybackAutomationTargets(branchPlayback.devices[child], snapIndex);
+            }
+        }
+    } else if (node.kind == DeviceNodeKind::MultibandSplit) {
+        auto playback = std::get<MultibandSplitParams>(node.params).playback;
+        if (playback == nullptr) return;
+        auto mutablePlayback = std::const_pointer_cast<MultibandSplitPlayback>(playback);
+        const int bandCount = std::clamp(mutablePlayback->bandCount, 2, kMaxMbBands);
+        for (int band = 0; band < bandCount; ++band) {
+            auto& bandPlayback = mutablePlayback->bands[band];
+            for (int child = 0; child < bandPlayback.deviceCount; ++child) {
+                bandPlayback.devices[child].automationTargetIndex = static_cast<uint16_t>(
+                    0x0800u | (snapIndex << 6u) | (static_cast<uint16_t>(band) << 4u) |
+                    static_cast<uint16_t>(child));
+                tagNestedPlaybackAutomationTargets(bandPlayback.devices[child], snapIndex);
+            }
+        }
+    } else if (node.kind == DeviceNodeKind::SpectralLoudSplit) {
+        auto playback = std::get<SpectralLoudSplitParams>(node.params).playback;
+        if (playback == nullptr) return;
+        auto mutablePlayback = std::const_pointer_cast<SpectralLoudSplitPlayback>(playback);
+        tagBranch(mutablePlayback->preFx, 0x0400u | 0x0030u);
+        tagBranch(mutablePlayback->postFx, 0x0400u | 0x0040u);
+        for (int band = 0; band < kSpectralLoudBands; ++band)
+            tagBranch(mutablePlayback->bands[band],
+                      static_cast<uint16_t>(0x0400u | (static_cast<uint16_t>(band) << 4u)));
     }
 }
 } // namespace
@@ -353,13 +563,30 @@ std::string ProjectEngine::addDeviceToDrumPad(const std::string& drumMachineId, 
                                               const std::string& deviceType, int insertIndex,
                                               const std::string& padName) {
     const juce::ScopedWriteLock lock(mutex_);
+    lastNestingError_ = {};
     DeviceSlot* machineSlot = findDeviceLocked(drumMachineId);
     if (machineSlot == nullptr || machineSlot->config.typeId != device_types::kDrumMachine ||
-        note < 0 || note >= DrumMachineModel::kMidiNoteCount ||
-        deviceType == device_types::kDrumMachine || !deviceRegistry_.isKnownType(deviceType)) return {};
+        note < 0 || note >= DrumMachineModel::kMidiNoteCount) {
+        lastNestingError_ = makeNestingError(NestingErrorCode::UnknownParent,
+                                             "Parent device not found.", drumMachineId, deviceType);
+        return {};
+    }
+    if (!deviceRegistry_.isKnownType(deviceType)) {
+        lastNestingError_ = makeNestingError(NestingErrorCode::UnknownType,
+                                             "Unknown device type.", drumMachineId, deviceType);
+        return {};
+    }
     auto& pad = std::get<DrumMachineModel>(machineSlot->config.instance).pads[static_cast<size_t>(note)];
     if (!padName.empty()) pad.name = padName;
-    if (pad.devices.size() >= DrumMachineModel::kMaxDevicesPerPad) return {};
+
+    const auto trackEst = estimateTrackContainingDevice(trackRepo_, drumMachineId);
+    const auto nestErr = DeviceNestingValidator::validateInsert(
+        *machineSlot, deviceType, true, static_cast<int>(pad.devices.size()), true, trackEst);
+    if (!nestErr.ok()) {
+        lastNestingError_ = nestErr;
+        return {};
+    }
+
     const std::string id = trackRepo_.allocateDeviceId();
     auto child = std::make_shared<DeviceSlot>(deviceRegistry_.createDefault(deviceType, id));
     size_t at = insertIndex < 0 ? pad.devices.size()
@@ -396,11 +623,29 @@ std::string ProjectEngine::addDeviceToChain(const std::string& chainId,
                                              const std::string& deviceType,
                                              int insertIndex) {
     const juce::ScopedWriteLock lock(mutex_);
+    lastNestingError_ = {};
     DeviceSlot* slot = findDeviceLocked(chainId);
-    if (slot == nullptr || slot->config.typeId != device_types::kChain ||
-        deviceType == device_types::kChain || !deviceRegistry_.isKnownType(deviceType)) return {};
+    if (slot == nullptr || slot->config.typeId != device_types::kChain) {
+        lastNestingError_ = makeNestingError(NestingErrorCode::UnknownParent,
+                                             "Parent device not found.", chainId, deviceType);
+        return {};
+    }
+    if (!deviceRegistry_.isKnownType(deviceType)) {
+        lastNestingError_ = makeNestingError(NestingErrorCode::UnknownType,
+                                             "Unknown device type.", chainId, deviceType);
+        return {};
+    }
     auto& devices = std::get<ChainModel>(slot->config.instance).devices;
-    if (devices.size() >= 8) return {};
+
+    const auto trackEst = estimateTrackContainingDevice(trackRepo_, chainId);
+
+    const auto nestErr = DeviceNestingValidator::validateInsert(
+        *slot, deviceType, true, static_cast<int>(devices.size()), false, trackEst);
+    if (!nestErr.ok()) {
+        lastNestingError_ = nestErr;
+        return {};
+    }
+
     const std::string id = trackRepo_.allocateDeviceId();
     auto child = std::make_shared<DeviceSlot>(deviceRegistry_.createDefault(deviceType, id));
     const size_t at = insertIndex < 0 ? devices.size()
@@ -437,16 +682,34 @@ std::string ProjectEngine::addDeviceToSplitBranch(const std::string& splitId,
                                                    const std::string& deviceType,
                                                    int insertIndex) {
     const juce::ScopedWriteLock lock(mutex_);
-    if (branchIndex < 0 || branchIndex > 1) return {};
+    lastNestingError_ = {};
+    if (branchIndex < 0 || branchIndex > 1) {
+        lastNestingError_ = makeNestingError(NestingErrorCode::UnknownParent,
+                                             "Parent device not found.", splitId, deviceType);
+        return {};
+    }
     DeviceSlot* slot = findDeviceLocked(splitId);
-    if (slot == nullptr || !device_types::isSplitType(slot->config.typeId) ||
-        device_types::isSplitType(deviceType) || device_types::isMultibandSplitType(deviceType) ||
-        device_types::isSpectralLoudSplitType(deviceType) ||
-        deviceType == device_types::kChain ||
-        !deviceRegistry_.isKnownType(deviceType)) return {};
+    if (slot == nullptr || !device_types::isSplitType(slot->config.typeId)) {
+        lastNestingError_ = makeNestingError(NestingErrorCode::UnknownParent,
+                                             "Parent device not found.", splitId, deviceType);
+        return {};
+    }
+    if (!deviceRegistry_.isKnownType(deviceType)) {
+        lastNestingError_ = makeNestingError(NestingErrorCode::UnknownType,
+                                             "Unknown device type.", splitId, deviceType);
+        return {};
+    }
     auto& split = std::get<SplitModel>(slot->config.instance);
     auto& branch = branchIndex == 0 ? split.branch0 : split.branch1;
-    if (branch.size() >= 8) return {};
+
+    const auto trackEst = estimateTrackContainingDevice(trackRepo_, splitId);
+    const auto nestErr = DeviceNestingValidator::validateInsert(
+        *slot, deviceType, true, static_cast<int>(branch.size()), false, trackEst);
+    if (!nestErr.ok()) {
+        lastNestingError_ = nestErr;
+        return {};
+    }
+
     const std::string id = trackRepo_.allocateDeviceId();
     auto child = std::make_shared<DeviceSlot>(deviceRegistry_.createDefault(deviceType, id));
     const size_t at = insertIndex < 0 ? branch.size()
@@ -486,16 +749,34 @@ std::string ProjectEngine::addDeviceToMultibandBand(const std::string& mbId,
                                                      const std::string& deviceType,
                                                      int insertIndex) {
     const juce::ScopedWriteLock lock(mutex_);
+    lastNestingError_ = {};
     DeviceSlot* slot = findDeviceLocked(mbId);
-    if (slot == nullptr || !device_types::isMultibandSplitType(slot->config.typeId) ||
-        device_types::isSplitType(deviceType) || device_types::isMultibandSplitType(deviceType) ||
-        device_types::isSpectralLoudSplitType(deviceType) ||
-        deviceType == device_types::kChain || !deviceRegistry_.isKnownType(deviceType))
+    if (slot == nullptr || !device_types::isMultibandSplitType(slot->config.typeId)) {
+        lastNestingError_ = makeNestingError(NestingErrorCode::UnknownParent,
+                                             "Parent device not found.", mbId, deviceType);
         return {};
+    }
     auto& mb = std::get<MultibandSplitModel>(slot->config.instance);
-    if (bandIndex < 0 || bandIndex >= mb.bandCount || bandIndex >= kMaxMbBands) return {};
+    if (bandIndex < 0 || bandIndex >= mb.bandCount || bandIndex >= kMaxMbBands) {
+        lastNestingError_ = makeNestingError(NestingErrorCode::UnknownParent,
+                                             "Parent device not found.", mbId, deviceType);
+        return {};
+    }
+    if (!deviceRegistry_.isKnownType(deviceType)) {
+        lastNestingError_ = makeNestingError(NestingErrorCode::UnknownType,
+                                             "Unknown device type.", mbId, deviceType);
+        return {};
+    }
     auto& band = mb.bands[bandIndex];
-    if (band.size() >= 8) return {};
+
+    const auto trackEst = estimateTrackContainingDevice(trackRepo_, mbId);
+    const auto nestErr = DeviceNestingValidator::validateInsert(
+        *slot, deviceType, true, static_cast<int>(band.size()), false, trackEst);
+    if (!nestErr.ok()) {
+        lastNestingError_ = nestErr;
+        return {};
+    }
+
     const std::string id = trackRepo_.allocateDeviceId();
     auto child = std::make_shared<DeviceSlot>(deviceRegistry_.createDefault(deviceType, id));
     const size_t at = insertIndex < 0 ? band.size()
@@ -535,16 +816,34 @@ std::string ProjectEngine::addDeviceToSpectralLoudBand(const std::string& device
                                                        const std::string& deviceType,
                                                        int insertIndex) {
     const juce::ScopedWriteLock lock(mutex_);
+    lastNestingError_ = {};
     DeviceSlot* slot = findDeviceLocked(deviceId);
-    if (slot == nullptr || !device_types::isSpectralLoudSplitType(slot->config.typeId) ||
-        device_types::isSplitType(deviceType) || device_types::isMultibandSplitType(deviceType) ||
-        device_types::isSpectralLoudSplitType(deviceType) ||
-        deviceType == device_types::kChain || !deviceRegistry_.isKnownType(deviceType))
+    if (slot == nullptr || !device_types::isSpectralLoudSplitType(slot->config.typeId)) {
+        lastNestingError_ = makeNestingError(NestingErrorCode::UnknownParent,
+                                             "Parent device not found.", deviceId, deviceType);
         return {};
+    }
     auto& sl = std::get<SpectralLoudSplitModel>(slot->config.instance);
-    if (bandIndex < 0 || bandIndex >= kSpectralLoudBands) return {};
+    if (bandIndex < 0 || bandIndex >= kSpectralLoudBands) {
+        lastNestingError_ = makeNestingError(NestingErrorCode::UnknownParent,
+                                             "Parent device not found.", deviceId, deviceType);
+        return {};
+    }
+    if (!deviceRegistry_.isKnownType(deviceType)) {
+        lastNestingError_ = makeNestingError(NestingErrorCode::UnknownType,
+                                             "Unknown device type.", deviceId, deviceType);
+        return {};
+    }
     auto& band = sl.bands[bandIndex];
-    if (band.size() >= 8) return {};
+
+    const auto trackEst = estimateTrackContainingDevice(trackRepo_, deviceId);
+    const auto nestErr = DeviceNestingValidator::validateInsert(
+        *slot, deviceType, true, static_cast<int>(band.size()), false, trackEst);
+    if (!nestErr.ok()) {
+        lastNestingError_ = nestErr;
+        return {};
+    }
+
     const std::string id = trackRepo_.allocateDeviceId();
     auto child = std::make_shared<DeviceSlot>(deviceRegistry_.createDefault(deviceType, id));
     const size_t at = insertIndex < 0 ? band.size()
@@ -584,12 +883,28 @@ std::string ProjectEngine::addDeviceToSpectralLoudPreFx(const std::string& devic
                                                         const std::string& deviceType,
                                                         int insertIndex) {
     const juce::ScopedWriteLock lock(mutex_);
+    lastNestingError_ = {};
     DeviceSlot* slot = findDeviceLocked(deviceId);
-    if (slot == nullptr || !device_types::isSpectralLoudSplitType(slot->config.typeId) ||
-        !device_types::isAudioFxType(deviceType))
+    if (slot == nullptr || !device_types::isSpectralLoudSplitType(slot->config.typeId)) {
+        lastNestingError_ = makeNestingError(NestingErrorCode::UnknownParent,
+                                             "Parent device not found.", deviceId, deviceType);
         return {};
+    }
+    if (!deviceRegistry_.isKnownType(deviceType)) {
+        lastNestingError_ = makeNestingError(NestingErrorCode::UnknownType,
+                                             "Unknown device type.", deviceId, deviceType);
+        return {};
+    }
     auto& sl = std::get<SpectralLoudSplitModel>(slot->config.instance);
-    if (sl.preFxDevices.size() >= 8) return {};
+
+    const auto trackEst = estimateTrackContainingDevice(trackRepo_, deviceId);
+    const auto nestErr = DeviceNestingValidator::validateInsert(
+        *slot, deviceType, true, static_cast<int>(sl.preFxDevices.size()), false, trackEst);
+    if (!nestErr.ok()) {
+        lastNestingError_ = nestErr;
+        return {};
+    }
+
     const std::string id = trackRepo_.allocateDeviceId();
     auto child = std::make_shared<DeviceSlot>(deviceRegistry_.createDefault(deviceType, id));
     const size_t at = insertIndex < 0 ? sl.preFxDevices.size()
@@ -627,12 +942,28 @@ std::string ProjectEngine::addDeviceToSpectralLoudPostFx(const std::string& devi
                                                          const std::string& deviceType,
                                                          int insertIndex) {
     const juce::ScopedWriteLock lock(mutex_);
+    lastNestingError_ = {};
     DeviceSlot* slot = findDeviceLocked(deviceId);
-    if (slot == nullptr || !device_types::isSpectralLoudSplitType(slot->config.typeId) ||
-        !device_types::isAudioFxType(deviceType))
+    if (slot == nullptr || !device_types::isSpectralLoudSplitType(slot->config.typeId)) {
+        lastNestingError_ = makeNestingError(NestingErrorCode::UnknownParent,
+                                             "Parent device not found.", deviceId, deviceType);
         return {};
+    }
+    if (!deviceRegistry_.isKnownType(deviceType)) {
+        lastNestingError_ = makeNestingError(NestingErrorCode::UnknownType,
+                                             "Unknown device type.", deviceId, deviceType);
+        return {};
+    }
     auto& sl = std::get<SpectralLoudSplitModel>(slot->config.instance);
-    if (sl.postFxDevices.size() >= 8) return {};
+
+    const auto trackEst = estimateTrackContainingDevice(trackRepo_, deviceId);
+    const auto nestErr = DeviceNestingValidator::validateInsert(
+        *slot, deviceType, true, static_cast<int>(sl.postFxDevices.size()), false, trackEst);
+    if (!nestErr.ok()) {
+        lastNestingError_ = nestErr;
+        return {};
+    }
+
     const std::string id = trackRepo_.allocateDeviceId();
     auto child = std::make_shared<DeviceSlot>(deviceRegistry_.createDefault(deviceType, id));
     const size_t at = insertIndex < 0 ? sl.postFxDevices.size()
@@ -670,10 +1001,25 @@ std::string ProjectEngine::addDeviceToSynthAudioFx(const std::string& deviceId,
                                                     const std::string& deviceType,
                                                     int insertIndex) {
     const juce::ScopedWriteLock lock(mutex_);
+    lastNestingError_ = {};
     DeviceSlot* slot = findDeviceLocked(deviceId);
-    if (slot == nullptr || !device_types::isSynthType(slot->config.typeId) ||
-        !device_types::isAudioFxType(deviceType)) return {};
-    if (slot->audioFxDevices.size() >= 8) return {};
+    if (slot == nullptr || !device_types::isSynthType(slot->config.typeId)) {
+        lastNestingError_ = makeNestingError(NestingErrorCode::UnknownParent,
+                                             "Parent device not found.", deviceId, deviceType);
+        return {};
+    }
+    if (!deviceRegistry_.isKnownType(deviceType)) {
+        lastNestingError_ = makeNestingError(NestingErrorCode::UnknownType,
+                                             "Unknown device type.", deviceId, deviceType);
+        return {};
+    }
+    const auto trackEst = estimateTrackContainingDevice(trackRepo_, deviceId);
+    const auto nestErr = DeviceNestingValidator::validateInsert(
+        *slot, deviceType, true, static_cast<int>(slot->audioFxDevices.size()), false, trackEst);
+    if (!nestErr.ok()) {
+        lastNestingError_ = nestErr;
+        return {};
+    }
     const std::string id = trackRepo_.allocateDeviceId();
     auto child = std::make_shared<DeviceSlot>(deviceRegistry_.createDefault(deviceType, id));
     const size_t at = insertIndex < 0 ? slot->audioFxDevices.size()
@@ -710,10 +1056,25 @@ std::string ProjectEngine::addDeviceToSynthNoteFx(const std::string& deviceId,
                                                     const std::string& deviceType,
                                                     int insertIndex) {
     const juce::ScopedWriteLock lock(mutex_);
+    lastNestingError_ = {};
     DeviceSlot* slot = findDeviceLocked(deviceId);
-    if (slot == nullptr || !device_types::isSynthType(slot->config.typeId) ||
-        !device_types::isNoteFxType(deviceType)) return {};
-    if (slot->noteFxDevices.size() >= 8) return {};
+    if (slot == nullptr || !device_types::isSynthType(slot->config.typeId)) {
+        lastNestingError_ = makeNestingError(NestingErrorCode::UnknownParent,
+                                             "Parent device not found.", deviceId, deviceType);
+        return {};
+    }
+    if (!deviceRegistry_.isKnownType(deviceType)) {
+        lastNestingError_ = makeNestingError(NestingErrorCode::UnknownType,
+                                             "Unknown device type.", deviceId, deviceType);
+        return {};
+    }
+    const auto trackEst = estimateTrackContainingDevice(trackRepo_, deviceId);
+    const auto nestErr = DeviceNestingValidator::validateInsert(
+        *slot, deviceType, true, static_cast<int>(slot->noteFxDevices.size()), false, trackEst);
+    if (!nestErr.ok()) {
+        lastNestingError_ = nestErr;
+        return {};
+    }
     const std::string id = trackRepo_.allocateDeviceId();
     auto child = std::make_shared<DeviceSlot>(deviceRegistry_.createDefault(deviceType, id));
     const size_t at = insertIndex < 0 ? slot->noteFxDevices.size()
@@ -942,16 +1303,14 @@ bool ProjectEngine::applyDevicePresetJson(const std::string& deviceId,
     if (presetObject != nullptr) {
         std::string homeTrackId;
         for (const auto& track : trackRepo_.tracks()) {
-            std::function<bool(const DeviceSlot&)> contains = [&](const DeviceSlot& slot) {
-                if (slot.id == deviceId) return true;
-                if (slot.config.typeId == device_types::kChain)
-                    for (const auto& child : std::get<ChainModel>(slot.config.instance).devices)
-                        if (child && contains(*child)) return true;
-                for (const auto& child : slot.noteFxDevices) if (child && contains(*child)) return true;
-                for (const auto& child : slot.audioFxDevices) if (child && contains(*child)) return true;
-                return false;
-            };
-            for (const auto& slot : track.devices) if (contains(slot)) { homeTrackId = track.id; break; }
+            for (const auto& slot : track.devices) {
+                std::vector<std::string> ids;
+                collectDeviceTreeIds(slot, ids);
+                if (std::find(ids.begin(), ids.end(), deviceId) != ids.end()) {
+                    homeTrackId = track.id;
+                    break;
+                }
+            }
             if (!homeTrackId.empty()) break;
         }
         if (const auto* clips = presetObject->getProperty("automationClips").getArray()) {
@@ -4000,94 +4359,11 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                     node.outputWidth = 1.0f;
                 }
             }, dev.config.outputPanel);
-            node.meterSlot = -1;
             deviceRegistry_.buildPlaybackNode(dev, context, node);
             node.automationTargetIndex = static_cast<uint16_t>(snap.deviceCount);
-            if (node.kind == DeviceNodeKind::DrumMachine) {
-                auto playback = std::get<DrumMachineParams>(node.params).playback;
-                if (playback != nullptr) {
-                    auto mutablePlayback = std::const_pointer_cast<DrumMachinePlayback>(playback);
-                    for (int note = 0; note < 128; ++note) {
-                        auto& pad = mutablePlayback->pads[note];
-                        for (int child = 0; child < pad.deviceCount; ++child) {
-                            pad.devices[child].automationTargetIndex = static_cast<uint16_t>(
-                                0x8000u | (static_cast<uint16_t>(snap.deviceCount) << 9u) |
-                                (static_cast<uint16_t>(note) << 2u) |
-                                static_cast<uint16_t>(child));
-                        }
-                    }
-                }
-            }
-            if (node.kind == DeviceNodeKind::Chain) {
-                auto playback = std::get<ChainParams>(node.params).playback;
-                if (playback != nullptr) {
-                    auto mutablePlayback = std::const_pointer_cast<ChainPlayback>(playback);
-                    for (int child = 0; child < mutablePlayback->deviceCount; ++child) {
-                        mutablePlayback->devices[child].automationTargetIndex = static_cast<uint16_t>(
-                            0x4000u | (static_cast<uint16_t>(snap.deviceCount) << 4u) |
-                            static_cast<uint16_t>(child));
-                    }
-                }
-            }
-            if (node.kind == DeviceNodeKind::Split) {
-                auto playback = std::get<SplitParams>(node.params).playback;
-                if (playback != nullptr) {
-                    auto mutablePlayback = std::const_pointer_cast<SplitPlayback>(playback);
-                    for (int branch = 0; branch < 2; ++branch) {
-                        auto& branchPlayback = mutablePlayback->branches[branch];
-                        for (int child = 0; child < branchPlayback.deviceCount; ++child) {
-                            branchPlayback.devices[child].automationTargetIndex = static_cast<uint16_t>(
-                                0x2000u | (static_cast<uint16_t>(snap.deviceCount) << 5u) |
-                                (static_cast<uint16_t>(branch) << 4u) |
-                                static_cast<uint16_t>(child));
-                        }
-                    }
-                }
-            }
-            if (node.kind == DeviceNodeKind::MultibandSplit) {
-                auto playback = std::get<MultibandSplitParams>(node.params).playback;
-                if (playback != nullptr) {
-                    auto mutablePlayback = std::const_pointer_cast<MultibandSplitPlayback>(playback);
-                    const int bandCount = std::clamp(mutablePlayback->bandCount, 2, kMaxMbBands);
-                    for (int band = 0; band < bandCount; ++band) {
-                        auto& bandPlayback = mutablePlayback->bands[band];
-                        for (int child = 0; child < bandPlayback.deviceCount; ++child) {
-                            bandPlayback.devices[child].automationTargetIndex = static_cast<uint16_t>(
-                                0x0800u | (static_cast<uint16_t>(snap.deviceCount) << 6u) |
-                                (static_cast<uint16_t>(band) << 4u) |
-                                static_cast<uint16_t>(child));
-                        }
-                    }
-                }
-            }
-            if (node.kind == DeviceNodeKind::SpectralLoudSplit) {
-                auto playback = std::get<SpectralLoudSplitParams>(node.params).playback;
-                if (playback != nullptr) {
-                    auto mutablePlayback =
-                        std::const_pointer_cast<SpectralLoudSplitPlayback>(playback);
-                    auto tagBranch = [&](SplitBranchPlayback& branch, uint16_t tag) {
-                        for (int child = 0; child < branch.deviceCount; ++child) {
-                            branch.devices[child].automationTargetIndex = static_cast<uint16_t>(
-                                0x0400u | (static_cast<uint16_t>(snap.deviceCount) << 6u) | tag |
-                                static_cast<uint16_t>(child));
-                        }
-                    };
-                    tagBranch(mutablePlayback->preFx, 0x0030u);
-                    tagBranch(mutablePlayback->postFx, 0x0040u);
-                    for (int band = 0; band < kSpectralLoudBands; ++band)
-                        tagBranch(mutablePlayback->bands[band],
-                                  static_cast<uint16_t>(band) << 4u);
-                }
-            }
-            if ((isDynamicsDeviceNodeKind(node.kind) || isAnalysisDeviceNodeKind(node.kind) ||
-                 node.kind == DeviceNodeKind::Split ||
-                 node.kind == DeviceNodeKind::MultibandSplit ||
-                 node.kind == DeviceNodeKind::SpectralLoudSplit) &&
-                deviceMeterSlotCount_ < kMaxDeviceMeters) {
-                node.meterSlot = static_cast<int8_t>(deviceMeterSlotCount_);
-                deviceMeterIds_[deviceMeterSlotCount_] = dev.id;
-                ++deviceMeterSlotCount_;
-            }
+            tagNestedPlaybackAutomationTargets(node, static_cast<uint16_t>(snap.deviceCount));
+            tryAssignPlaybackMeterSlot(node, deviceMeterSlotCount_, deviceMeterIds_);
+            assignNestedPlaybackMeterSlots(node, deviceMeterSlotCount_, deviceMeterIds_);
             ++snap.deviceCount;
         };
 
@@ -4285,84 +4561,13 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
         for (const auto& clip : automationClipStore_.clips()) {
             if (snap.automationClipCount >= 16) break;
             if (clip.deviceId.empty()) continue;
-        int di = -1;
-        uint16_t targetIndex = 0;
-        DeviceNodeKind targetKind = DeviceNodeKind::Unknown;
-        const IDeviceType* targetType = nullptr;
-        for (int i = 0; i < snap.deviceCount; ++i) {
-            if (snap.devices[i].deviceId == clip.deviceId) {
-                di = i;
-                targetIndex = static_cast<uint16_t>(i);
-                targetKind = snap.devices[i].kind;
-                targetType = deviceRegistry_.findByKind(targetKind);
-                break;
-            }
-            if (snap.devices[i].kind == DeviceNodeKind::DrumMachine) {
-                const auto playback = std::get<DrumMachineParams>(snap.devices[i].params).playback;
-                if (playback == nullptr) continue;
-                for (int note = 0; note < 128 && di < 0; ++note) {
-                    const auto& pad = playback->pads[note];
-                    for (int child = 0; child < pad.deviceCount; ++child) {
-                        const auto& childNode = pad.devices[child];
-                        if (childNode.deviceId != clip.deviceId) continue;
-                        di = i;
-                        targetIndex = childNode.automationTargetIndex;
-                        targetKind = childNode.kind;
-                        targetType = deviceRegistry_.findByKind(targetKind);
-                        break;
-                    }
-                }
-            }
-            if (snap.devices[i].kind == DeviceNodeKind::Chain) {
-                const auto playback = std::get<ChainParams>(snap.devices[i].params).playback;
-                if (playback == nullptr) continue;
-                for (int child = 0; child < playback->deviceCount; ++child) {
-                    const auto& childNode = playback->devices[child];
-                    if (childNode.deviceId != clip.deviceId) continue;
-                    di = i;
-                    targetIndex = childNode.automationTargetIndex;
-                    targetKind = childNode.kind;
-                    targetType = deviceRegistry_.findByKind(targetKind);
-                    break;
-                }
-            }
-            if (snap.devices[i].kind == DeviceNodeKind::Split) {
-                const auto playback = std::get<SplitParams>(snap.devices[i].params).playback;
-                if (playback == nullptr) continue;
-                for (int branch = 0; branch < 2 && di < 0; ++branch) {
-                    const auto& branchPlayback = playback->branches[branch];
-                    for (int child = 0; child < branchPlayback.deviceCount; ++child) {
-                        const auto& childNode = branchPlayback.devices[child];
-                        if (childNode.deviceId != clip.deviceId) continue;
-                        di = i;
-                        targetIndex = childNode.automationTargetIndex;
-                        targetKind = childNode.kind;
-                        targetType = deviceRegistry_.findByKind(targetKind);
-                        break;
-                    }
-                }
-            }
-            if (snap.devices[i].kind == DeviceNodeKind::MultibandSplit) {
-                const auto playback =
-                    std::get<MultibandSplitParams>(snap.devices[i].params).playback;
-                if (playback == nullptr) continue;
-                const int bandCount = std::clamp(playback->bandCount, 2, kMaxMbBands);
-                for (int band = 0; band < bandCount && di < 0; ++band) {
-                    const auto& bandPlayback = playback->bands[band];
-                    for (int child = 0; child < bandPlayback.deviceCount; ++child) {
-                        const auto& childNode = bandPlayback.devices[child];
-                        if (childNode.deviceId != clip.deviceId) continue;
-                        di = i;
-                        targetIndex = childNode.automationTargetIndex;
-                        targetKind = childNode.kind;
-                        targetType = deviceRegistry_.findByKind(targetKind);
-                        break;
-                    }
-                }
-            }
-        }
-        if (di < 0) continue; // target device lives on another track
-        AutomationClipPlayback pb{};
+            const auto resolved =
+                resolvePlaybackTarget(snap.devices, snap.deviceCount, clip.deviceId);
+            if (!resolved.found) continue;
+            const uint16_t targetIndex = resolved.targetIndex;
+            const DeviceNodeKind targetKind = resolved.targetKind;
+            const IDeviceType* targetType = deviceRegistry_.findByKind(targetKind);
+            AutomationClipPlayback pb{};
         if (!automationClipPlaybackFromClip(clip, pb)) continue;
         pb.deviceIndex = targetIndex;
         pb.targetNodeId = stableDeviceSubgraphNodeId(
@@ -4630,81 +4835,14 @@ void ProjectEngine::rebuildModEdgesLocked() {
         snap.modEdgeCount = 0;
         for (const auto& globalEdge : modulationGraph_.modEdges()) {
             if (snap.modEdgeCount >= 16) break;
-            int di = -1;
-            uint16_t targetIndex = 0;
-            DeviceNodeKind targetKind = DeviceNodeKind::Unknown;
-            for (int i = 0; i < snap.deviceCount; ++i) {
-                if (snap.devices[i].deviceId == globalEdge.deviceId) {
-                    di = i;
-                    targetIndex = static_cast<uint16_t>(i);
-                    targetKind = snap.devices[i].kind;
-                    break;
-                }
-                if (snap.devices[i].kind == DeviceNodeKind::DrumMachine) {
-                    const auto playback =
-                        std::get<DrumMachineParams>(snap.devices[i].params).playback;
-                    if (playback != nullptr) {
-                        for (int note = 0; note < 128 && di < 0; ++note) {
-                            const auto& pad = playback->pads[note];
-                            for (int child = 0; child < pad.deviceCount; ++child) {
-                                if (pad.devices[child].deviceId != globalEdge.deviceId)
-                                    continue;
-                                di = i;
-                                targetIndex = pad.devices[child].automationTargetIndex;
-                                targetKind = pad.devices[child].kind;
-                                break;
-                            }
-                        }
-                    }
-                }
-                if (snap.devices[i].kind == DeviceNodeKind::Chain) {
-                    const auto playback = std::get<ChainParams>(snap.devices[i].params).playback;
-                    if (playback == nullptr) continue;
-                    for (int child = 0; child < playback->deviceCount; ++child) {
-                        if (playback->devices[child].deviceId != globalEdge.deviceId) continue;
-                        di = i;
-                        targetIndex = playback->devices[child].automationTargetIndex;
-                        targetKind = playback->devices[child].kind;
-                        break;
-                    }
-                }
-                if (snap.devices[i].kind == DeviceNodeKind::Split) {
-                    const auto playback = std::get<SplitParams>(snap.devices[i].params).playback;
-                    if (playback == nullptr) continue;
-                    for (int branch = 0; branch < 2 && di < 0; ++branch) {
-                        const auto& branchPlayback = playback->branches[branch];
-                        for (int child = 0; child < branchPlayback.deviceCount; ++child) {
-                            if (branchPlayback.devices[child].deviceId != globalEdge.deviceId) continue;
-                            di = i;
-                            targetIndex = branchPlayback.devices[child].automationTargetIndex;
-                            targetKind = branchPlayback.devices[child].kind;
-                            break;
-                        }
-                    }
-                }
-                if (snap.devices[i].kind == DeviceNodeKind::MultibandSplit) {
-                    const auto playback =
-                        std::get<MultibandSplitParams>(snap.devices[i].params).playback;
-                    if (playback == nullptr) continue;
-                    const int bandCount = std::clamp(playback->bandCount, 2, kMaxMbBands);
-                    for (int band = 0; band < bandCount && di < 0; ++band) {
-                        const auto& bandPlayback = playback->bands[band];
-                        for (int child = 0; child < bandPlayback.deviceCount; ++child) {
-                            if (bandPlayback.devices[child].deviceId != globalEdge.deviceId) continue;
-                            di = i;
-                            targetIndex = bandPlayback.devices[child].automationTargetIndex;
-                            targetKind = bandPlayback.devices[child].kind;
-                            break;
-                        }
-                    }
-                }
-                if (di >= 0) break;
-            }
-            if (di < 0) continue;
+            const auto resolved = resolvePlaybackTarget(
+                snap.devices, snap.deviceCount, globalEdge.deviceId);
+            if (!resolved.found) continue;
             const int lfoPlaybackIdx = modulationGraph_.playbackIndexForLfoId(globalEdge.lfoId);
             if (lfoPlaybackIdx < 0) continue;
+            const DeviceNodeKind targetKind = resolved.targetKind;
             ModulationEdgePlayback& me = snap.modEdges[snap.modEdgeCount++];
-            me.deviceIndex = targetIndex;
+            me.deviceIndex = resolved.targetIndex;
             me.targetNodeId = stableDeviceSubgraphNodeId(
                 globalEdge.deviceId, DeviceSubgraphNodeRole::DeviceProcessor);
             me.lfoId = static_cast<uint16_t>(lfoPlaybackIdx);
@@ -4733,53 +4871,11 @@ DeviceSlot* ProjectEngine::findDeviceLocked(const std::string& deviceId) {
             if (device.id == deviceId) {
                 return &device;
             }
-            if (device.config.typeId == device_types::kDrumMachine) {
-                auto& machine = std::get<DrumMachineModel>(device.config.instance);
-                for (auto& pad : machine.pads) {
-                    for (auto& child : pad.devices) {
-                        if (child != nullptr && child->id == deviceId) return child.get();
-                    }
-                }
-            }
-            if (device.config.typeId == device_types::kChain) {
-                auto& chain = std::get<ChainModel>(device.config.instance);
-                for (auto& child : chain.devices) {
-                    if (child != nullptr && child->id == deviceId) return child.get();
-                }
-            }
-            if (device_types::isSplitType(device.config.typeId)) {
-                auto& split = std::get<SplitModel>(device.config.instance);
-                for (auto& child : split.branch0) {
-                    if (child != nullptr && child->id == deviceId) return child.get();
-                }
-                for (auto& child : split.branch1) {
-                    if (child != nullptr && child->id == deviceId) return child.get();
-                }
-            }
-            if (device_types::isMultibandSplitType(device.config.typeId)) {
-                auto& mb = std::get<MultibandSplitModel>(device.config.instance);
-                for (int b = 0; b < mb.bandCount && b < kMaxMbBands; ++b) {
-                    for (auto& child : mb.bands[b]) {
-                        if (child != nullptr && child->id == deviceId) return child.get();
-                    }
-                }
-            }
-            if (device_types::isSpectralLoudSplitType(device.config.typeId)) {
-                auto& sl = std::get<SpectralLoudSplitModel>(device.config.instance);
-                for (auto& child : sl.preFxDevices)
-                    if (child != nullptr && child->id == deviceId) return child.get();
-                for (auto& child : sl.postFxDevices)
-                    if (child != nullptr && child->id == deviceId) return child.get();
-                for (int b = 0; b < kSpectralLoudBands; ++b)
-                    for (auto& child : sl.bands[b])
-                        if (child != nullptr && child->id == deviceId) return child.get();
-            }
-            for (auto& child : device.audioFxDevices) {
-                if (child != nullptr && child->id == deviceId) return child.get();
-            }
-            for (auto& child : device.noteFxDevices) {
-                if (child != nullptr && child->id == deviceId) return child.get();
-            }
+            DeviceSlot* found = nullptr;
+            walkDeviceTree(device, [&](DeviceSlot& slot) {
+                if (slot.id == deviceId) found = &slot;
+            });
+            if (found != nullptr) return found;
         }
     }
     return nullptr;

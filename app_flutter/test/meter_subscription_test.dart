@@ -89,4 +89,64 @@ void main() {
     expect(atThird, contains('third'));
     expect(atThird, isNot(contains('first')));
   });
+
+  testWidgets('visibleMeterDeviceIds includes nested chain compressor in viewport',
+      (tester) async {
+    const density = DeviceStripSlotDensity.strip;
+    final chain = ChainDeviceSnapshot(
+      id: 'chain-host',
+      bypassed: false,
+      devices: [
+        _device('nested-comp', 'compressor'),
+      ],
+    );
+    final track = TrackSnapshot(
+      id: 't1',
+      name: 'Track 1',
+      devices: [
+        _device('osc', 'simple_oscillator'),
+        chain,
+      ],
+      midiClips: const [],
+      sampleClips: const [],
+    );
+
+    final scroll = ScrollController();
+    addTearDown(scroll.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SizedBox(
+          width: 400,
+          height: 120,
+          child: ListView(
+            controller: scroll,
+            scrollDirection: Axis.horizontal,
+            children: const [
+              SizedBox(width: 4000, height: 80),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    var x = 8.0;
+    for (final device in track.visibleDevices) {
+      x += DeviceChainLayout.slotWidthFor(device, density);
+      if (device.id == 'chain-host') break;
+      x += DeviceStripMetrics.separatorWidth;
+    }
+    const chromeWidth = 2.0 + 18.0 + 20.0;
+    scroll.jumpTo(x + chromeWidth);
+    await tester.pump();
+
+    final ids = MeterSubscription.visibleMeterDeviceIds(
+      track: track,
+      density: density,
+      scrollController: scroll,
+      viewportWidth: 400,
+    );
+    expect(ids, contains('nested-comp'));
+  });
 }

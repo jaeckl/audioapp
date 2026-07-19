@@ -135,6 +135,10 @@ void ChainProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
     sub.automationClipCount = ctx.automationClipCount;
     sub.modEdges = ctx.modEdges;
     sub.modEdgeCount = ctx.modEdgeCount;
+    sub.deviceMeters = ctx.deviceMeters;
+    sub.maxDeviceMeters = ctx.maxDeviceMeters;
+    sub.meterSlotSubscribed = ctx.meterSlotSubscribed;
+    DeviceChainScratchGuard scratchGuard(ctx.scratch, block.numSamples);
     DeviceChainOrchestrator::processChain(sub);
 
     const auto* runtime = ctx.modulatedParams ? std::get_if<ChainParams>(ctx.modulatedParams) : nullptr;

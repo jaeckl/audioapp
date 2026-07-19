@@ -21,7 +21,7 @@ std::vector<std::string_view> ChainDeviceType::modulatableParams() const{return 
 void ChainDeviceType::buildPlaybackNode(const DeviceSlot& s,const PlaybackBuildContext& c,DeviceNodePlayback& o) const {
     auto p=std::make_shared<ChainPlayback>(); const auto& m=std::get<ChainModel>(s.config.instance);
     if(c.deviceRegistry) for(const auto& child:m.devices){
-        if(!child||child->config.typeId==device_types::kChain||p->deviceCount>=8) continue;
+        if(!child||p->deviceCount>=8) continue;
         auto& n=p->devices[p->deviceCount++]; n.deviceId=child->id; n.bypassed=child->config.bypassed;
         c.deviceRegistry->buildPlaybackNode(*child,c,n);
     }

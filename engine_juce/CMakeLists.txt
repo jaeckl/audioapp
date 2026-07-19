@@ -65,6 +65,7 @@ add_library(audioapp_engine STATIC
   src/DeviceChainAutomationModulation.cpp
   src/instruments/PerNoteModulation.cpp
   src/DeviceChainOrchestrator.cpp
+  src/DeviceChainScratch.cpp
   src/devices/processors/TrackGainProcessor.cpp
   src/devices/processors/OscillatorProcessor.cpp
   src/devices/processors/SamplerProcessor.cpp
@@ -106,6 +107,8 @@ add_library(audioapp_engine STATIC
   src/devices/processors/SpectralLoudSplitProcessor.cpp
   src/dsp/RealFft.cpp
   src/devices/DeviceRegistry.cpp
+  src/devices/DeviceTreeWalk.cpp
+  src/devices/DeviceNestingValidator.cpp
   src/devices/DrumMachineModel.cpp
   src/devices/ChainModel.cpp
   src/devices/SplitModel.cpp
@@ -331,6 +334,11 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/crash_generator_test.cpp
     tests/dedicated_percussion_test.cpp
     tests/device_chain_test.cpp
+    tests/device_chain_scratch_reentrancy_test.cpp
+    tests/nested_chain_meter_test.cpp
+    tests/device_nesting_validator_test.cpp
+    tests/device_open_nesting_smoke_test.cpp
+    tests/device_recursive_find_test.cpp
     tests/device_registry_test.cpp
     tests/device_slot_serialization_test.cpp
     tests/device_types_test.cpp

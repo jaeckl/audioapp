@@ -7,6 +7,7 @@
 #include "audioapp/snapshot/SnapshotDelta.hpp"
 #include "audioapp/AutomationPlayback.hpp"
 #include "audioapp/DeviceChain.hpp"
+#include "audioapp/devices/NestingError.hpp"
 
 #include <cmath>
 #include <cstdio>
@@ -25,6 +26,15 @@ namespace audioapp {
 
 namespace {
 std::atomic<bool> gAudioOutputEnabled{true};
+
+commands::CommandResult nestingInsertErrorResult(const EngineHost& engine,
+                                                  std::string_view fallbackCode) {
+    const auto& nestErr = engine.lastNestingError();
+    if (nestErr.code != NestingErrorCode::None) {
+        return commands::errorResult(std::string(nestingErrorBridgeCode(nestErr.code)));
+    }
+    return commands::errorResult(std::string(fallbackCode));
+}
 }
 
 void EngineHost::setAudioOutputEnabled(bool enabled) noexcept {
@@ -135,6 +145,11 @@ bool EngineHost::removeDeviceFromDrumPad(const std::string& drumMachineId, int n
 std::string EngineHost::addDeviceToChain(const std::string& chainId,
                                           const std::string& deviceType, int insertIndex) {
     return project_ != nullptr ? project_->addDeviceToChain(chainId, deviceType, insertIndex) : std::string{};
+}
+
+const NestingError& EngineHost::lastNestingError() const noexcept {
+    static const NestingError kEmpty{};
+    return project_ != nullptr ? project_->lastNestingError() : kEmpty;
 }
 
 bool EngineHost::removeDeviceFromChain(const std::string& chainId, const std::string& deviceId) {
@@ -1576,7 +1591,7 @@ void EngineHost::registerAllCommands() {
         const auto padName = ctx.args.hasProperty("padName")
             ? ctx.args["padName"].toString().toStdString() : std::string{};
         if (ctx.engine.addDeviceToDrumPad(machineId, note, deviceType, insertIndex, padName).empty())
-            return commands::errorResult("invalid_drum_pad_device");
+            return nestingInsertErrorResult(ctx.engine, "invalid_drum_pad_device");
         return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
     });
 
@@ -1605,7 +1620,7 @@ void EngineHost::registerAllCommands() {
         const int insertIndex = ctx.args.hasProperty("insertIndex")
             ? static_cast<int>(static_cast<double>(ctx.args["insertIndex"])) : -1;
         if (ctx.engine.addDeviceToChain(chainId, deviceType, insertIndex).empty())
-            return commands::errorResult("invalid_chain_device");
+            return nestingInsertErrorResult(ctx.engine, "invalid_chain_device");
         return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
     });
 
@@ -1624,7 +1639,7 @@ void EngineHost::registerAllCommands() {
         const int insertIndex = ctx.args.hasProperty("insertIndex")
             ? static_cast<int>(static_cast<double>(ctx.args["insertIndex"])) : -1;
         if (ctx.engine.addDeviceToSplitBranch(splitId, branchIndex, deviceType, insertIndex).empty())
-            return commands::errorResult("invalid_split_device");
+            return nestingInsertErrorResult(ctx.engine, "invalid_split_device");
         return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
     });
 
@@ -1644,7 +1659,7 @@ void EngineHost::registerAllCommands() {
         const int insertIndex = ctx.args.hasProperty("insertIndex")
             ? static_cast<int>(static_cast<double>(ctx.args["insertIndex"])) : -1;
         if (ctx.engine.addDeviceToMultibandBand(mbId, bandIndex, deviceType, insertIndex).empty())
-            return commands::errorResult("invalid_multiband_device");
+            return nestingInsertErrorResult(ctx.engine, "invalid_multiband_device");
         return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
     });
 
@@ -1664,7 +1679,7 @@ void EngineHost::registerAllCommands() {
         const int insertIndex = ctx.args.hasProperty("insertIndex")
             ? static_cast<int>(static_cast<double>(ctx.args["insertIndex"])) : -1;
         if (ctx.engine.addDeviceToSpectralLoudBand(deviceId, bandIndex, deviceType, insertIndex).empty())
-            return commands::errorResult("invalid_spectral_loud_device");
+            return nestingInsertErrorResult(ctx.engine, "invalid_spectral_loud_device");
         return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
     });
 
@@ -1683,7 +1698,7 @@ void EngineHost::registerAllCommands() {
         const int insertIndex = ctx.args.hasProperty("insertIndex")
             ? static_cast<int>(static_cast<double>(ctx.args["insertIndex"])) : -1;
         if (ctx.engine.addDeviceToSpectralLoudPreFx(deviceId, deviceType, insertIndex).empty())
-            return commands::errorResult("invalid_spectral_loud_pre_fx");
+            return nestingInsertErrorResult(ctx.engine, "invalid_spectral_loud_pre_fx");
         return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
     });
 
@@ -1701,7 +1716,7 @@ void EngineHost::registerAllCommands() {
         const int insertIndex = ctx.args.hasProperty("insertIndex")
             ? static_cast<int>(static_cast<double>(ctx.args["insertIndex"])) : -1;
         if (ctx.engine.addDeviceToSpectralLoudPostFx(deviceId, deviceType, insertIndex).empty())
-            return commands::errorResult("invalid_spectral_loud_post_fx");
+            return nestingInsertErrorResult(ctx.engine, "invalid_spectral_loud_post_fx");
         return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
     });
 
@@ -2586,7 +2601,7 @@ void EngineHost::registerAllCommands() {
         const int insertIndex = ctx.args.hasProperty("insertIndex")
             ? static_cast<int>(static_cast<double>(ctx.args["insertIndex"])) : -1;
         if (ctx.engine.addDeviceToSynthAudioFx(deviceId, deviceType, insertIndex).empty())
-            return commands::errorResult("invalid_synth_or_fx");
+            return nestingInsertErrorResult(ctx.engine, "invalid_synth_or_fx");
         return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
     });
 
@@ -2604,7 +2619,7 @@ void EngineHost::registerAllCommands() {
         const int insertIndex = ctx.args.hasProperty("insertIndex")
             ? static_cast<int>(static_cast<double>(ctx.args["insertIndex"])) : -1;
         if (ctx.engine.addDeviceToSynthNoteFx(deviceId, deviceType, insertIndex).empty())
-            return commands::errorResult("invalid_synth_or_fx");
+            return nestingInsertErrorResult(ctx.engine, "invalid_synth_or_fx");
         return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
     });
 

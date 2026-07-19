@@ -12,6 +12,7 @@
 #include "audioapp/PhaseModSynthAlgorithm.hpp"
 #include "audioapp/WavetableSynthAlgorithm.hpp"
 #include "audioapp/instruments/PerNoteModulation.hpp"
+#include <cstring>
 #include <utility>
 
 namespace audioapp {
@@ -61,6 +62,14 @@ struct DeviceChainScratchArena {
     }
 };
 
+/// Saved outer-chain scratch buffers while a nested processChain runs.
+struct DeviceChainScratchFrame {
+    float tempStereoL[kScratchFrames];
+    float tempStereoR[kScratchFrames];
+    float perFrameGain[kScratchFrames];
+    float perFramePan[kScratchFrames];
+};
+
 struct DeviceChainScratch {
     float scratch[kScratchFrames];
     float tempStereoL[kScratchFrames];
@@ -79,6 +88,26 @@ struct DeviceChainScratch {
     BiquadState samplerNoteFilterStates[kMaxInstrumentRegions];
     DeviceChainScratchArena ringBufferArena;
     PerNoteModCache perNoteModCache;
+
+    static constexpr int kMaxScratchNestDepth = 8;
+    DeviceChainScratchFrame nestFrames[kMaxScratchNestDepth]{};
+    int scratchNestDepth = 0;
+};
+
+/// RAII push/pop for nested processChain re-entrancy (audio thread only).
+class DeviceChainScratchGuard {
+public:
+    explicit DeviceChainScratchGuard(DeviceChainScratch& scratch,
+                                     int numFrames = kScratchFrames) noexcept;
+    ~DeviceChainScratchGuard() noexcept;
+
+    DeviceChainScratchGuard(const DeviceChainScratchGuard&) = delete;
+    DeviceChainScratchGuard& operator=(const DeviceChainScratchGuard&) = delete;
+
+private:
+    DeviceChainScratch& scratch_;
+    int savedDepth_ = -1;
+    int numFrames_ = 0;
 };
 
 } // namespace audioapp

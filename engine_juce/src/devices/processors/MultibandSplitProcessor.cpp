@@ -92,6 +92,10 @@ void MultibandSplitProcessor::runBand(int bandIndex, float* left, float* right,
     sub.automationClipCount = ctx.automationClipCount;
     sub.modEdges = ctx.modEdges;
     sub.modEdgeCount = ctx.modEdgeCount;
+    sub.deviceMeters = ctx.deviceMeters;
+    sub.maxDeviceMeters = ctx.maxDeviceMeters;
+    sub.meterSlotSubscribed = ctx.meterSlotSubscribed;
+    DeviceChainScratchGuard scratchGuard(ctx.scratch, numSamples);
     DeviceChainOrchestrator::processChain(sub);
 }
 

@@ -171,22 +171,6 @@ void main() {
     expect(DeviceStripChrome.inputWidth('spectral_loud_split'), 0);
   });
 
-  test('nest-reject type set matches Flutter virtual strip guard (temp policy)', () {
-    // Current UI/engine reject containers. Future: no nesting restrictions.
-    const rejected = {
-      'device_chain',
-      'lr_split',
-      'ms_split',
-      'mb_split_2',
-      'mb_split_3',
-      'mb_split_4',
-      'spectral_loud_split',
-    };
-    expect(rejected.contains('compressor'), isFalse);
-    expect(rejected.contains('mb_split_2'), isTrue);
-    expect(rejected.contains('spectral_loud_split'), isTrue);
-  });
-
   TrackSnapshot trackFor(DeviceSnapshot device) => TrackSnapshot(
         id: 'track-1',
         name: 'Track 1',
@@ -194,6 +178,94 @@ void main() {
         midiClips: [],
         sampleClips: [],
       );
+
+  test('open nesting: nested spectral hosts parse containers in PRE/band/POST',
+      () {
+    final nested = DeviceSnapshot.fromMap({
+      'id': 'sl-nest',
+      'type': 'spectral_loud_split',
+      'bypass': false,
+      'parameters': const {},
+      'bands': [
+        {
+          'devices': [
+            {
+              'id': 'band-chain',
+              'type': 'device_chain',
+              'bypass': false,
+              'parameters': const {},
+              'devices': [
+                {
+                  'id': 'band-delay',
+                  'type': 'delay',
+                  'bypass': false,
+                  'parameters': const {},
+                }
+              ],
+            }
+          ],
+        },
+        {'devices': const []},
+        {'devices': const []},
+      ],
+      'preFx': {
+        'devices': [
+          {
+            'id': 'pre-mb',
+            'type': 'mb_split_3',
+            'bypass': false,
+            'parameters': const {},
+            'bands': [
+              {
+                'devices': [
+                  {
+                    'id': 'pre-fx',
+                    'type': 'filter',
+                    'bypass': false,
+                    'parameters': const {},
+                  }
+                ],
+              },
+              {'devices': const []},
+              {'devices': const []},
+            ],
+          }
+        ],
+      },
+      'postFx': {
+        'devices': [
+          {
+            'id': 'post-chain',
+            'type': 'device_chain',
+            'bypass': false,
+            'parameters': const {},
+            'devices': const [],
+          }
+        ],
+      },
+    }) as SpectralLoudSplitDeviceSnapshot;
+
+    expect(nested.bandDevices(0).single.type, 'device_chain');
+    expect(nested.preFxDevices.single.type, 'mb_split_3');
+    expect(nested.postFxDevices.single.type, 'device_chain');
+
+    final snap = ProjectSnapshot(
+      bpm: 120,
+      selectedTrackId: 'track-1',
+      playheadBeats: 0,
+      playing: false,
+      loopEnabled: true,
+      recordArmed: false,
+      master: const MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1),
+      samples: const [],
+      tracks: [trackFor(nested)],
+      lfos: const [],
+      modEdges: const [],
+    );
+    expect(snap.deviceById('band-delay'), isNotNull);
+    expect(snap.deviceById('pre-fx'), isNotNull);
+    expect(snap.deviceById('post-chain'), isNotNull);
+  });
 
   testWidgets('panel shows Loud/Mid/Quiet rows and preview handles',
       (tester) async {

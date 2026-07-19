@@ -41,6 +41,7 @@ struct ProcessContext {
     DeviceMeterAtomic* deviceMeters = nullptr;
     int maxDeviceMeters = 0;
     const bool* meterSlotSubscribed = nullptr;
+    /// Nested container processors must copy these three fields into sub-ctx.
 
     const ProcessorGraphSnapshot* tapGraph = nullptr;
     GraphTapRuntime* graphTapRuntimes = nullptr;

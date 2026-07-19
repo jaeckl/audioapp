@@ -40,8 +40,7 @@ public:
             expect(project->removeDeviceFromSpectralLoudPostFx(slId, postFx));
         }
 
-        // Current product policy rejects container nesting. Planned: open nesting.
-        beginTest("nest reject: containers blocked on band/pre/post");
+        beginTest("nest accept: containers allowed on band/pre/post under caps");
         {
             auto project = std::make_unique<audioapp::ProjectEngine>();
             project->createProject();
@@ -50,43 +49,28 @@ public:
                 project->addDeviceToTrack(track, audioapp::device_types::kSpectralLoudSplit);
             expect(!slId.empty());
 
-            expect(project
+            expect(!project
+                       ->addDeviceToSpectralLoudBand(slId, 0, audioapp::device_types::kChain)
+                       .empty(),
+                   "chain accepted on band");
+            expect(!project
                        ->addDeviceToSpectralLoudBand(slId, 1,
                                                      audioapp::device_types::kMbSplit2)
                        .empty(),
-                   "mb_split rejected on band");
-            expect(project
-                       ->addDeviceToSpectralLoudBand(slId, 1,
+                   "mb_split accepted on band");
+            expect(!project
+                       ->addDeviceToSpectralLoudBand(slId, 2,
                                                      audioapp::device_types::kSpectralLoudSplit)
                        .empty(),
-                   "spectral rejected on band");
-            expect(project
-                       ->addDeviceToSpectralLoudBand(slId, 1, audioapp::device_types::kChain)
+                   "spectral accepted on band");
+            expect(!project
+                       ->addDeviceToSpectralLoudPreFx(slId, audioapp::device_types::kLrSplit)
                        .empty(),
-                   "chain rejected on band");
-            expect(project
-                       ->addDeviceToSpectralLoudBand(slId, 1, audioapp::device_types::kLrSplit)
-                       .empty(),
-                   "lr_split rejected on band");
-
-            expect(project
-                       ->addDeviceToSpectralLoudPreFx(slId,
-                                                     audioapp::device_types::kMbSplit3)
-                       .empty(),
-                   "mb_split rejected on PRE");
-            expect(project
-                       ->addDeviceToSpectralLoudPreFx(slId,
-                                                     audioapp::device_types::kSpectralLoudSplit)
-                       .empty(),
-                   "spectral rejected on PRE");
-            expect(project
-                       ->addDeviceToSpectralLoudPostFx(slId, audioapp::device_types::kChain)
-                       .empty(),
-                   "chain rejected on POST");
-            expect(project
+                   "lr_split accepted on PRE");
+            expect(!project
                        ->addDeviceToSpectralLoudPostFx(slId, audioapp::device_types::kMsSplit)
                        .empty(),
-                   "ms_split rejected on POST");
+                   "ms_split accepted on POST");
         }
 
         beginTest("parameter + JSON round-trip nested spectral loud");
@@ -148,7 +132,7 @@ public:
             expectWithinAbsoluteError(mix, 0.55f, 0.01f);
         }
 
-        beginTest("JSON ingest drops forbidden nested containers");
+        beginTest("JSON round-trip keeps nested containers");
         {
             const audioapp::DeviceRegistry registry = audioapp::DeviceRegistry::createBuiltIn();
             audioapp::DeviceSlot slot =
@@ -163,8 +147,12 @@ public:
             audioapp::DeviceSlot restored = audioapp::deviceVarToSlot(json, registry);
             const auto& restoredModel =
                 std::get<audioapp::SpectralLoudSplitModel>(restored.config.instance);
-            expect(restoredModel.bands[1].empty(), "forbidden mb nest dropped on ingest");
-            expect(restoredModel.preFxDevices.empty(), "forbidden chain nest dropped on ingest");
+            expect(restoredModel.bands[1].size() == 1, "mb nest round-trips on ingest");
+            expect(restoredModel.preFxDevices.size() == 1, "chain nest round-trips on ingest");
+            expect(restoredModel.bands[1][0]->config.typeId ==
+                   audioapp::device_types::kMbSplit2);
+            expect(restoredModel.preFxDevices[0]->config.typeId ==
+                   audioapp::device_types::kChain);
         }
     }
 };

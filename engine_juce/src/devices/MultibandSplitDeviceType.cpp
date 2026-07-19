@@ -19,17 +19,11 @@ constexpr float kMinCrossoverHz = 40.0f;
 constexpr float kMaxCrossoverHz = 18000.0f;
 constexpr float kCrossoverGap = 1.25f;
 
-bool isForbiddenNestedType(std::string_view typeId) noexcept {
-    return device_types::isSplitType(typeId) || device_types::isMultibandSplitType(typeId) ||
-           device_types::isSpectralLoudSplitType(typeId) || typeId == device_types::kChain;
-}
-
 void appendBand(const std::vector<std::shared_ptr<DeviceSlot>>& band,
                 const PlaybackBuildContext& context, SplitBranchPlayback& out) {
     if (context.deviceRegistry == nullptr) return;
     for (const auto& child : band) {
-        if (!child || isForbiddenNestedType(child->config.typeId) || out.deviceCount >= 8)
-            continue;
+        if (!child || out.deviceCount >= 8) continue;
         auto& node = out.devices[out.deviceCount++];
         node.deviceId = child->id;
         node.bypassed = child->config.bypassed;

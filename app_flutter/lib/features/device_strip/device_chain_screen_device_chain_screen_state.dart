@@ -4,6 +4,7 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<LibraryFlyInPanelState> _libraryPanelKey = GlobalKey();
   late TrackSnapshot _track;
+  DeviceChainExpandState _expand = DeviceChainExpandState.empty;
 
   bool _libraryOpen = false;
   LibraryBrowseMode _libraryBrowseMode = LibraryBrowseMode.resources;
@@ -296,6 +297,10 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
                       onGetParamDescriptors: widget.onGetParamDescriptors,
                       onMeterSubscriptionsChanged:
                           widget.onMeterSubscriptionsChanged,
+                      onExpandChanged: (expand) {
+                        if (!mounted) return;
+                        setState(() => _expand = expand);
+                      },
                     ),
                   ),
                 ),
@@ -303,6 +308,7 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
                   track: _track,
                   scrollController: _scrollController,
                   density: density,
+                  expand: _expand,
                 ),
               ],
             ),

@@ -1,7 +1,21 @@
 part of 'daw_shell.dart';
 
 extension DawShellStateModulationbridgecallOperation on _DawShellState {
-Future<ProjectSnapshot> _modulationBridgeCall(
+  static const _emptyBridgeSnapshot = ProjectSnapshot(
+    bpm: 120,
+    selectedTrackId: '',
+    playheadBeats: 0,
+    playing: false,
+    loopEnabled: true,
+    recordArmed: false,
+    master: MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1.0),
+    samples: [],
+    tracks: [],
+    lfos: [],
+    modEdges: [],
+  );
+
+  Future<ProjectSnapshot> _modulationBridgeCall(
     String method,
     Map<String, dynamic> args,
   ) async {
@@ -15,25 +29,26 @@ Future<ProjectSnapshot> _modulationBridgeCall(
           await _store.invokeRaw(method, args);
           return _snapshot!;
       }
-    } catch (e) {
-      if (!mounted) {
-        return _snapshot ??
-            const ProjectSnapshot(
-              bpm: 120,
-              selectedTrackId: '',
-              playheadBeats: 0,
-              playing: false,
-              loopEnabled: true,
-              recordArmed: false,
-              master:
-                  MasterTrackSnapshot(id: 'master', name: 'Master', gain: 1.0),
-              samples: [],
-              tracks: [],
-              lfos: [],
-              modEdges: [],
-            );
+    } on PlatformException catch (e) {
+      if (mounted && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(nestingErrorSnackMessage(e)),
+            duration: const Duration(seconds: 3),
+          ),
+        );
       }
-      rethrow;
+      return _snapshot ?? _emptyBridgeSnapshot;
+    } catch (e) {
+      if (mounted && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(nestingErrorSnackMessage(e)),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+      return _snapshot ?? _emptyBridgeSnapshot;
     }
   }
 }
