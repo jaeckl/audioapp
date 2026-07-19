@@ -13,6 +13,7 @@ class StereoGainPanPanel extends StatelessWidget {
     required this.accentColor,
     required this.onParameterChanged,
     this.knobSize = DeviceKnobSizes.compact,
+    this.knobColumnAlignment = MainAxisAlignment.center,
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
@@ -29,6 +30,8 @@ class StereoGainPanPanel extends StatelessWidget {
   final Color accentColor;
   final void Function(String parameterId, double value) onParameterChanged;
   final double knobSize;
+  /// Vertical placement of Pan/Gain in the output rail.
+  final MainAxisAlignment knobColumnAlignment;
   final Set<String> modulatedParams;
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
@@ -72,7 +75,7 @@ class StereoGainPanPanel extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: knobColumnAlignment,
           children: [
             deviceAutomationKnob(
               label: 'Pan',

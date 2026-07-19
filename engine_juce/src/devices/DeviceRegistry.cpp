@@ -35,6 +35,7 @@
 #include "audioapp/effects/TremoloDeviceType.hpp"
 #include "audioapp/effects/StutterDeviceType.hpp"
 #include "audioapp/effects/EffectDeviceRegistration.hpp"
+#include "audioapp/effects/RestoreEffectRegistration.hpp"
 
 #include <cmath>
 
@@ -184,6 +185,7 @@ DeviceRegistry DeviceRegistry::createBuiltIn() {
     registry.registerType(std::make_unique<DistortionDeviceType>());
     registry.registerType(std::make_unique<TremoloDeviceType>());
     registry.registerType(std::make_unique<StutterDeviceType>());
+    registerRestoreEffects(registry);
     registerTimeBasedEffects(registry);
     registry.registerType(std::make_unique<AnalysisDeviceType>(device_types::kOscilloscope, DeviceNodeKind::Oscilloscope));
     registry.registerType(std::make_unique<AnalysisDeviceType>(device_types::kSpectrumAnalyzer, DeviceNodeKind::SpectrumAnalyzer));

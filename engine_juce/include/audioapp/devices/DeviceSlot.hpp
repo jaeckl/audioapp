@@ -23,6 +23,11 @@
 #include "audioapp/effects/DistortionParams.hpp"
 #include "audioapp/effects/TremoloParams.hpp"
 #include "audioapp/effects/StutterParams.hpp"
+#include "audioapp/effects/DcOffsetParams.hpp"
+#include "audioapp/effects/DeCracklerParams.hpp"
+#include "audioapp/effects/DeEsserParams.hpp"
+#include "audioapp/effects/DeHumParams.hpp"
+#include "audioapp/effects/DeNoiseParams.hpp"
 
 // Model types (non-trivial replacements)
 #include "audioapp/devices/instances/SamplerModel.hpp"
@@ -72,6 +77,11 @@ using DeviceInstance = std::variant<
     DistortionParams,
     TremoloParams,
     StutterParams,
+    DcOffsetParams,
+    DeCracklerParams,
+    DeEsserParams,
+    DeHumParams,
+    DeNoiseParams,
     ResonatorBankModel,
     RoutingModel,
     MidiDelayModel,

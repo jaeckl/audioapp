@@ -39,6 +39,11 @@ import 'mood_fx/bitcrusher_definition.dart';
 import 'mood_fx/distortion_definition.dart';
 import 'mood_fx/stutter_definition.dart';
 import 'mood_fx/tremolo_definition.dart';
+import 'restore_fx/dc_offset_definition.dart';
+import 'restore_fx/de_crackler_definition.dart';
+import 'restore_fx/de_esser_definition.dart';
+import 'restore_fx/de_hum_definition.dart';
+import 'restore_fx/de_noise_definition.dart';
 import 'routing/audio_receiver_definition.dart';
 import 'routing/midi_delay_definition.dart';
 import 'routing/midi_receiver_definition.dart';
@@ -88,6 +93,11 @@ final List<DeviceDefinition<DeviceSnapshot>> generatedDeviceDefinitions = [
   DistortionDefinition(),
   StutterDefinition(),
   TremoloDefinition(),
+  DcOffsetDefinition(),
+  DeCracklerDefinition(),
+  DeEsserDefinition(),
+  DeHumDefinition(),
+  DeNoiseDefinition(),
   AudioReceiverDefinition(),
   MidiDelayDefinition(),
   MidiReceiverDefinition(),

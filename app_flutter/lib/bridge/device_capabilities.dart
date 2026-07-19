@@ -28,5 +28,10 @@ abstract final class DeviceCapabilities {
     'distortion',
     'tremolo',
     'stutter_fx',
+    'dc_offset',
+    'de_crackler',
+    'de_esser',
+    'de_hum',
+    'de_noise',
   };
 }

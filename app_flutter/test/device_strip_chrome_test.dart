@@ -4,6 +4,7 @@ import 'package:audioapp/features/device_strip/device_strip_chrome_panels.dart';
 import 'package:audioapp/features/device_strip/device_strip_metrics.dart';
 import 'package:audioapp/features/device_strip/device_strip_slot.dart';
 import 'package:audioapp/features/device_strip/device_picker_sheet.dart';
+import 'package:audioapp/features/device_strip/stereo_gain_pan_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -266,5 +267,68 @@ void main() {
     expect(find.text('Gain'), findsNothing);
     expect(find.text('Pan'), findsNothing);
     expect(find.byType(EmptyChromeOutputPanel), findsOneWidget);
+  });
+
+  test('restore chrome widths empty OUT vs gain/pan rails', () {
+    expect(DeviceStripChrome.outputWidth('dc_offset'), 30);
+    expect(DeviceStripChrome.outputWidth('de_crackler'), 30);
+    expect(DeviceStripChrome.outputWidth('de_esser'), 64);
+    expect(DeviceStripChrome.outputWidth('de_hum'), 64);
+    expect(DeviceStripChrome.outputWidth('de_noise'), 64);
+    expect(DeviceStripChrome.hasInputPanel('dc_offset'), isFalse);
+    expect(DeviceStripChrome.hasInputPanel('de_esser'), isFalse);
+  });
+
+  testWidgets('dc_offset / de_crackler use empty output chrome', (tester) async {
+    for (final type in ['dc_offset', 'de_crackler']) {
+      final device = DeviceSnapshot.fromMap({
+        'id': 'dev-$type',
+        'type': type,
+        'parameters': <String, Object>{},
+      });
+      final panel = DeviceStripChrome.outputPanel(
+        deviceType: type,
+        bindings: DeviceStripChromeBindings(
+          device: device,
+          accentColor: const Color(0xFF7DD3C0),
+          onParameterChanged: (_, __) {},
+        ),
+      );
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: SizedBox(width: 40, height: 280, child: panel),
+        ),
+      ));
+      expect(find.byType(EmptyChromeOutputPanel), findsOneWidget, reason: type);
+      expect(find.byType(StereoGainPanPanel), findsNothing, reason: type);
+    }
+  });
+
+  testWidgets('de_esser / de_hum / de_noise show Gain and Pan OUT',
+      (tester) async {
+    for (final type in ['de_esser', 'de_hum', 'de_noise']) {
+      final device = DeviceSnapshot.fromMap({
+        'id': 'dev-$type',
+        'type': type,
+        'parameters': {'gain': 0.8, 'pan': 0.25},
+      });
+      final panel = DeviceStripChrome.outputPanel(
+        deviceType: type,
+        bindings: DeviceStripChromeBindings(
+          device: device,
+          accentColor: const Color(0xFFC084FC),
+          onParameterChanged: (_, __) {},
+        ),
+      );
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: SizedBox(width: 64, height: 280, child: panel),
+        ),
+      ));
+      expect(find.byType(StereoGainPanPanel), findsOneWidget, reason: type);
+      expect(find.text('Gain'), findsOneWidget, reason: type);
+      expect(find.text('Pan'), findsOneWidget, reason: type);
+      expect(find.byType(EmptyChromeOutputPanel), findsNothing, reason: type);
+    }
   });
 }
