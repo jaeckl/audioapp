@@ -5,6 +5,7 @@ void _closeLibrary() {
     final pending = _libraryDevicePickCompleter;
     if (pending != null && !pending.isCompleted) {
       pending.complete(null);
+      _clearPendingInsertPreset();
     }
     _libraryDevicePickCompleter = null;
     setState(() {

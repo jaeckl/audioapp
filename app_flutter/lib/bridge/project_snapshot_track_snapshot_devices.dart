@@ -32,27 +32,29 @@ extension TrackSnapshotDevices on TrackSnapshot {
     return null;
   }
 
-  /// GM anchor pitch for monophonic drum generators (snare = 38, etc.).
+  /// GM hint pitch for the first monophonic drum generator on this track
+  /// (scroll / highlight / live-pad base). Null when a drum_machine is present
+  /// so kit lanes are not conflated with a mono-drum anchor.
+  ///
+  /// Does **not** lock piano-roll draw/persist — MIDI stays chromatic; Key Track
+  /// on the device decides whether playback follows note pitch.
   int? get drumAnchorPitch {
     for (final device in visibleDevices) {
-      switch (device.type) {
-        case 'kick_generator':
-          return 36;
-        case 'snare_generator':
-          return 38;
-        case 'clap_generator':
-          return 39;
-        case 'hihat_generator':
-          return 42;
-        case 'ride_generator':
-          return 51;
-        case 'tom_generator':
-          return 45;
-        case 'rimshot_generator':
-          return 37;
-        case 'crash_generator':
-          return 49;
-      }
+      if (device.type == 'drum_machine') return null;
+    }
+    for (final device in visibleDevices) {
+      final anchor = switch (device.type) {
+        'kick_generator' => 36,
+        'snare_generator' => 38,
+        'clap_generator' => 39,
+        'hihat_generator' => 42,
+        'ride_generator' => 51,
+        'tom_generator' => 45,
+        'rimshot_generator' => 37,
+        'crash_generator' => 49,
+        _ => null,
+      };
+      if (anchor != null) return anchor;
     }
     return null;
   }

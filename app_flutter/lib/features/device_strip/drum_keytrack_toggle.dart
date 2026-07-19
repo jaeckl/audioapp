@@ -43,3 +43,31 @@ String percussionPitchLabel(double normalized) {
   if (semitones == 0) return '0 st';
   return '${semitones > 0 ? '+' : ''}$semitones st';
 }
+
+/// Pitch mode (keyTrack off) → MIDI note at [anchorPitch]; Tune → ±st.
+String percussionPitchModeLabel(
+  double normalized,
+  int anchorPitch, {
+  required bool keyTrack,
+}) {
+  final semitones = ((normalized.clamp(0.0, 1.0) - 0.5) * 48).round();
+  if (keyTrack) {
+    return semitones == 0 ? '0 st' : '${semitones > 0 ? '+' : ''}$semitones st';
+  }
+  const names = [
+    'C',
+    'C#',
+    'D',
+    'D#',
+    'E',
+    'F',
+    'F#',
+    'G',
+    'G#',
+    'A',
+    'A#',
+    'B'
+  ];
+  final midi = (anchorPitch + semitones).clamp(0, 127);
+  return '${names[midi % 12]}${midi ~/ 12 - 1}';
+}

@@ -27,6 +27,9 @@ extension DawShellStateModulationbridgecallOperation on _DawShellState {
           return _snapshot!;
         default:
           await _store.invokeRaw(method, args);
+          if (_isNestAddMethod(method)) {
+            await _flushPendingInsertPreset();
+          }
           return _snapshot!;
       }
     } on PlatformException catch (e) {

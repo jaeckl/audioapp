@@ -15,7 +15,7 @@ class ClapGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
     required this.clapDecay,
     required this.clapVelocity,
     this.clapPitch = 0.50,
-    this.clapKeyTrack = 0.0,
+    this.clapKeyTrack = 1.0,
   }) : super(type: 'clap_generator');
 
   final double clapBursts;
@@ -46,7 +46,7 @@ class ClapGeneratorDeviceSnapshot extends DrumGeneratorDeviceSnapshot {
       clapDecay: (params['clapDecay'] as num?)?.toDouble() ?? 0.50,
       clapVelocity: (params['clapVelocity'] as num?)?.toDouble() ?? 1.0,
       clapPitch: (params['clapPitch'] as num?)?.toDouble() ?? 0.50,
-      clapKeyTrack: (params['clapKeyTrack'] as num?)?.toDouble() ?? 0.0,
+      clapKeyTrack: (params['clapKeyTrack'] as num?)?.toDouble() ?? 1.0,
     );
   }
 

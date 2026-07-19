@@ -13,7 +13,8 @@ Future<ProjectSnapshot> _addDeviceToTrack(
         insertIndex: insertIndex,
       );
       await _refreshSnapshot(snapshot);
-      return snapshot;
+      await _flushPendingInsertPreset();
+      return _snapshot ?? snapshot;
     } catch (e) {
       if (!mounted) rethrow;
       setState(() => _projectError = e.toString());

@@ -189,6 +189,19 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
     }
   }
 
+  Future<void> _onLibraryPresetTap(LibraryPresetItem item) async {
+    final pick = _devicePickCompleter;
+    if (pick != null &&
+        !pick.isCompleted &&
+        (widget.onQueuePresetForDevicePick?.call(item) ?? false)) {
+      pick.complete(item.deviceType);
+      _devicePickCompleter = null;
+      if (mounted) await _libraryPanelKey.currentState?.close();
+      return;
+    }
+    widget.onPresetTap?.call(item);
+  }
+
   Future<void> _onLibraryInsertAudio(SampleLibraryEntrySnapshot sample) async {
     final device = _libraryDevice;
     if (device != null) {
@@ -342,7 +355,7 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
                 onPreviewAudio: widget.onPreviewAudio,
                 onInsertAudio: _onLibraryInsertAudio,
                 onImportAudio: widget.onImportAudio,
-                onPresetTap: widget.onPresetTap,
+                onPresetTap: _onLibraryPresetTap,
                 onWavetableTap: widget.onWavetableTap,
                 onInsertDeviceType: _onLibraryInsertDeviceType,
               ),

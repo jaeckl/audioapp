@@ -48,7 +48,7 @@ void main() {
         'type': 'clap_generator',
       }) as ClapGeneratorDeviceSnapshot)
           .clapKeyTrack,
-      0.0,
+      1.0,
     );
     for (final type in const [
       'hihat_generator',
@@ -154,4 +154,20 @@ void main() {
       expect(find.text('Tune'), findsNothing);
     });
   }
+
+  testWidgets('clap Pitch mode shows GM clap note D#2', (tester) async {
+    await pumpPanel(tester, 'clap_generator', (_, __) {}, keyTrack: false);
+    expect(find.text('D#2'), findsOneWidget);
+    expect(find.text('0 st'), findsNothing);
+  });
+
+  testWidgets('snare Pitch mode shows GM snare note D2', (tester) async {
+    await pumpPanel(tester, 'snare_generator', (_, __) {}, keyTrack: false);
+    expect(find.text('D2'), findsOneWidget);
+  });
+
+  testWidgets('crash Pitch mode shows GM crash note C#3', (tester) async {
+    await pumpPanel(tester, 'crash_generator', (_, __) {}, keyTrack: false);
+    expect(find.text('C#3'), findsOneWidget);
+  });
 }

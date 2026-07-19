@@ -77,6 +77,7 @@ class _DeviceStripState extends State<DeviceStrip> {
           onGetParamDescriptors: widget.onGetParamDescriptors,
           onMeterSubscriptionsChanged: widget.onMeterSubscriptionsChanged,
           onPresetTap: widget.onPresetTap,
+          onQueuePresetForDevicePick: widget.onQueuePresetForDevicePick,
           onWavetableTap: widget.onWavetableTap,
         ),
       ),

@@ -49,6 +49,7 @@ class DeviceChainScreen extends StatefulWidget {
     this.onGetParamDescriptors,
     this.onMeterSubscriptionsChanged,
     this.onPresetTap,
+    this.onQueuePresetForDevicePick,
     this.onWavetableTap,
   });
 
@@ -89,6 +90,9 @@ class DeviceChainScreen extends StatefulWidget {
       onGetParamDescriptors;
   final ValueChanged<List<String>>? onMeterSubscriptionsChanged;
   final void Function(LibraryPresetItem item)? onPresetTap;
+  /// When a virtual-strip `+` pick is open, queue preset apply + return true
+  /// so this screen can complete its local pick completer with [item.deviceType].
+  final bool Function(LibraryPresetItem item)? onQueuePresetForDevicePick;
   final void Function(LibraryWavetableItem item)? onWavetableTap;
 
   @override

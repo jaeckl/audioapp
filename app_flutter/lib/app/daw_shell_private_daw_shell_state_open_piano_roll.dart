@@ -31,6 +31,7 @@ Future<void> _openPianoRoll(String trackId, MidiClipSnapshot clip) async {
                     )),
           );
 
+    final hasDrumLanes = drumLaneLayout?.isNotEmpty == true;
     final savedPlayhead = await _beginClipEditorSession();
     if (!mounted) return;
     await Navigator.of(context).push<void>(
@@ -40,9 +41,10 @@ Future<void> _openPianoRoll(String trackId, MidiClipSnapshot clip) async {
           clip: clip,
           trackName: track!.name,
           bpm: _snapshot?.bpm ?? 120,
-          drumAnchorPitch: track.drumAnchorPitch,
-          drumLaneLayout:
-              drumLaneLayout?.isNotEmpty == true ? drumLaneLayout : null,
+          // Hint only (scroll/highlight/pads). Never lock draw when a kit
+          // owns the roll — kit lanes must keep their pad pitches.
+          drumAnchorPitch: hasDrumLanes ? null : track.drumAnchorPitch,
+          drumLaneLayout: hasDrumLanes ? drumLaneLayout : null,
           onSnapshot: _refreshSnapshot,
           savedArrangementPlayhead: savedPlayhead,
         ),

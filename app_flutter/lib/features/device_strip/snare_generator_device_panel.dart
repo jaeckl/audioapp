@@ -4,6 +4,7 @@ import '../../bridge/project_snapshot.dart';
 import 'device_knob_sizes.dart';
 import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
+import 'drum_keytrack_toggle.dart';
 import 'percussion_panel_layout.dart';
 import 'rotary_knob.dart';
 import 'snare_envelope_preview.dart';
@@ -104,7 +105,13 @@ class SnareGeneratorDevicePanel extends StatelessWidget {
           : spec.label,
       value: value.clamp(0.0, 1.0),
       size: DeviceKnobSizes.strip,
-      displayValue: spec.format(value),
+      displayValue: paramId == 'snareTune'
+          ? percussionPitchModeLabel(
+              value,
+              38,
+              keyTrack: device.snareKeyTrack >= 0.5,
+            )
+          : spec.format(value),
       accentColor: accent,
       modulationActive: modulatedParams.contains(paramId),
       automationActive: automatedParams.contains(paramId),
