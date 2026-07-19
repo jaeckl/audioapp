@@ -7,6 +7,23 @@
 
 namespace audioapp {
 
+namespace {
+
+inline void readBin(const float* freq, int bin, int fftSize, float& re, float& im) noexcept {
+    if (bin == 0) {
+        re = freq[0];
+        im = 0.0f;
+    } else if (bin == fftSize / 2) {
+        re = freq[1];
+        im = 0.0f;
+    } else {
+        re = freq[2 * bin];
+        im = freq[2 * bin + 1];
+    }
+}
+
+} // namespace
+
 AnalysisProcessor::AnalysisProcessor(DeviceNodeKind kind) noexcept : kind_(kind) {
     constexpr float kTwoPi = 6.28318530717958647692f;
     for (int sample = 0; sample < kFftSize; ++sample) {
@@ -18,8 +35,7 @@ AnalysisProcessor::AnalysisProcessor(DeviceNodeKind kind) noexcept : kind_(kind)
 
 void AnalysisProcessor::resetPlaybackState() noexcept {
     fftInputRing_.fill(0.0f);
-    fftReal_.fill(0.0f);
-    fftImag_.fill(0.0f);
+    fftBuffer_.fill(0.0f);
     spectrumValues_.fill(0.0f);
     fftWriteIndex_ = 0;
     fftInputCount_ = 0;
@@ -37,56 +53,15 @@ void AnalysisProcessor::calculateSpectrum(double sampleRate,
 
     for (int sample = 0; sample < kFftSize; ++sample) {
         const int ringIndex = (fftWriteIndex_ + sample) & (kFftSize - 1);
-        fftReal_[static_cast<size_t>(sample)] =
+        fftBuffer_[static_cast<size_t>(sample)] =
             (fftInputRing_[static_cast<size_t>(ringIndex)] - mean) *
             fftWindow_[static_cast<size_t>(sample)];
-        fftImag_[static_cast<size_t>(sample)] = 0.0f;
+    }
+    for (int sample = kFftSize; sample < kFftSize * 2; ++sample) {
+        fftBuffer_[static_cast<size_t>(sample)] = 0.0f;
     }
 
-    for (int index = 1, reversed = 0; index < kFftSize; ++index) {
-        int bit = kFftSize >> 1;
-        for (; (reversed & bit) != 0; bit >>= 1) reversed ^= bit;
-        reversed ^= bit;
-        if (index < reversed) {
-            std::swap(fftReal_[static_cast<size_t>(index)],
-                      fftReal_[static_cast<size_t>(reversed)]);
-            std::swap(fftImag_[static_cast<size_t>(index)],
-                      fftImag_[static_cast<size_t>(reversed)]);
-        }
-    }
-
-    constexpr float kTwoPi = 6.28318530717958647692f;
-    for (int length = 2; length <= kFftSize; length <<= 1) {
-        const float angle = -kTwoPi / static_cast<float>(length);
-        const float stepReal = std::cos(angle);
-        const float stepImag = std::sin(angle);
-        const int half = length >> 1;
-        for (int start = 0; start < kFftSize; start += length) {
-            float twiddleReal = 1.0f;
-            float twiddleImag = 0.0f;
-            for (int offset = 0; offset < half; ++offset) {
-                const int even = start + offset;
-                const int odd = even + half;
-                const float oddReal =
-                    fftReal_[static_cast<size_t>(odd)] * twiddleReal -
-                    fftImag_[static_cast<size_t>(odd)] * twiddleImag;
-                const float oddImag =
-                    fftReal_[static_cast<size_t>(odd)] * twiddleImag +
-                    fftImag_[static_cast<size_t>(odd)] * twiddleReal;
-                const float evenReal = fftReal_[static_cast<size_t>(even)];
-                const float evenImag = fftImag_[static_cast<size_t>(even)];
-                fftReal_[static_cast<size_t>(even)] = evenReal + oddReal;
-                fftImag_[static_cast<size_t>(even)] = evenImag + oddImag;
-                fftReal_[static_cast<size_t>(odd)] = evenReal - oddReal;
-                fftImag_[static_cast<size_t>(odd)] = evenImag - oddImag;
-                const float nextReal = twiddleReal * stepReal -
-                    twiddleImag * stepImag;
-                twiddleImag = twiddleReal * stepImag +
-                    twiddleImag * stepReal;
-                twiddleReal = nextReal;
-            }
-        }
-    }
+    fft_.forwardRealOnly(fftBuffer_.data());
 
     constexpr float kMinimumFrequency = 20.0f;
     const float safeSampleRate = static_cast<float>(std::max(sampleRate, 1.0));
@@ -108,9 +83,9 @@ void AnalysisProcessor::calculateSpectrum(double sampleRate,
                 safeSampleRate))));
         float magnitude = 0.0f;
         for (int bin = firstBin; bin <= lastBin; ++bin) {
-            magnitude = std::max(magnitude, std::hypot(
-                fftReal_[static_cast<size_t>(bin)],
-                fftImag_[static_cast<size_t>(bin)]) * magnitudeScale);
+            float re = 0.0f, im = 0.0f;
+            readBin(fftBuffer_.data(), bin, kFftSize, re, im);
+            magnitude = std::max(magnitude, std::hypot(re, im) * magnitudeScale);
         }
         const float normalized = std::clamp(
             (20.0f * std::log10(std::max(magnitude, 1.0e-5f)) + 80.0f) /

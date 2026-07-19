@@ -1,6 +1,7 @@
 #pragma once
 
 #include "audioapp/dsp/DeviceProcessor.hpp"
+#include "audioapp/dsp/RealFft.hpp"
 
 #include <array>
 
@@ -26,8 +27,8 @@ private:
     float loudness_ = -70.0f;
     std::array<float, kFftSize> fftInputRing_{};
     std::array<float, kFftSize> fftWindow_{};
-    std::array<float, kFftSize> fftReal_{};
-    std::array<float, kFftSize> fftImag_{};
+    RealFft fft_{kFftOrder};
+    std::array<float, kFftSize * 2> fftBuffer_{};
     std::array<float, 24> spectrumValues_{};
     int fftWriteIndex_ = 0;
     int fftInputCount_ = 0;
