@@ -99,6 +99,9 @@ bool TrackRepository::moveTrack(const std::string& trackId,
         return false;
     }
     moving.front().parentGroupId = parentGroupId;
+    // Keep audio routing aligned with group nesting by default.
+    moving.front().outputTarget =
+        parentGroupId.empty() ? std::string(kOutputTargetMaster) : parentGroupId;
 
     auto insertion = remaining.end();
     if (!beforeTrackId.empty()) {
@@ -166,6 +169,11 @@ bool TrackRepository::deleteTrack(const std::string& trackId) {
                 }
             }
         }
+        for (auto& track : tracks_) {
+            if (track.outputTarget == trackId) {
+                track.outputTarget = kOutputTargetMaster;
+            }
+        }
         tracks_.erase(it);
         if (selectedTrackId_ == trackId) {
             selectedTrackId_ = tracks_.empty() ? std::string{} : tracks_.front().id;
@@ -176,10 +184,53 @@ bool TrackRepository::deleteTrack(const std::string& trackId) {
 }
 
 bool TrackRepository::selectTrack(const std::string& trackId) {
+    if (trackId == kOutputTargetMaster) {
+        selectedTrackId_ = trackId;
+        return true;
+    }
     if (findTrack(trackId) == nullptr) {
         return false;
     }
     selectedTrackId_ = trackId;
+    return true;
+}
+
+bool TrackRepository::setTrackOutput(const std::string& trackId,
+                                     const std::string& outputTarget) {
+    if (trackId == kOutputTargetMaster || trackId == kOutputTargetDevice) {
+        return false;
+    }
+    auto* track = findTrack(trackId);
+    if (track == nullptr) {
+        return false;
+    }
+    if (outputTarget == kOutputTargetMaster || outputTarget == kOutputTargetDevice) {
+        track->outputTarget = outputTarget;
+        return true;
+    }
+    if (outputTarget == trackId) {
+        return false;
+    }
+    const Track* dest = findTrack(outputTarget);
+    if (dest == nullptr) {
+        return false;
+    }
+    // Reject cycles: walk dest → … and fail if we hit trackId.
+    std::string cursor = outputTarget;
+    for (int hop = 0; hop < 64; ++hop) {
+        if (cursor == trackId) {
+            return false;
+        }
+        if (cursor == kOutputTargetMaster || cursor == kOutputTargetDevice) {
+            break;
+        }
+        const Track* next = findTrack(cursor);
+        if (next == nullptr) {
+            break;
+        }
+        cursor = next->outputTarget.empty() ? kOutputTargetMaster : next->outputTarget;
+    }
+    track->outputTarget = outputTarget;
     return true;
 }
 

@@ -21,6 +21,8 @@ extension DawShellStateBuildtabbodyOperation on _DawShellState {
                   _setTrackSoloed(trackId: trackId, soloed: soloed),
               onTrackSelected: _selectTrack,
               onMasterGainChanged: _setMasterGain,
+              onTrackOutputChanged: (trackId, outputTarget) =>
+                  _setTrackOutput(trackId: trackId, outputTarget: outputTarget),
             ),
           ],
         );

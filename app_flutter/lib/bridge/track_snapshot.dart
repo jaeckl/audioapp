@@ -9,6 +9,7 @@ class TrackSnapshot {
     this.muted = false,
     this.soloed = false,
     this.parentGroupId = '',
+    this.outputTarget = 'master',
     required this.devices,
     required this.midiClips,
     required this.sampleClips,
@@ -23,6 +24,8 @@ class TrackSnapshot {
   final bool muted;
   final bool soloed;
   final String parentGroupId;
+  /// `master`, `device`, or another track id.
+  final String outputTarget;
   final List<DeviceSnapshot> devices;
   final List<MidiClipSnapshot> midiClips;
   final List<SampleClipSnapshot> sampleClips;
@@ -43,6 +46,7 @@ class TrackSnapshot {
     bool? muted,
     bool? soloed,
     String? parentGroupId,
+    String? outputTarget,
     List<DeviceSnapshot>? devices,
     List<MidiClipSnapshot>? midiClips,
     List<SampleClipSnapshot>? sampleClips,
@@ -57,6 +61,7 @@ class TrackSnapshot {
       muted: muted ?? this.muted,
       soloed: soloed ?? this.soloed,
       parentGroupId: parentGroupId ?? this.parentGroupId,
+      outputTarget: outputTarget ?? this.outputTarget,
       devices: devices ?? this.devices,
       midiClips: midiClips ?? this.midiClips,
       sampleClips: sampleClips ?? this.sampleClips,
@@ -86,6 +91,7 @@ class TrackSnapshot {
       muted: map['muted'] as bool? ?? false,
       soloed: map['soloed'] as bool? ?? false,
       parentGroupId: map['parentGroupId'] as String? ?? '',
+      outputTarget: map['outputTarget'] as String? ?? 'master',
       devices: parseDeviceList(map, 'devices'),
       midiClips: clipsRaw
           .map((c) => MidiClipSnapshot.fromMap(c as Map<dynamic, dynamic>))

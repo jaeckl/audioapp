@@ -8,6 +8,8 @@ class _ClipDragPreview extends StatelessWidget {
     required this.pixelsPerBeat,
     required this.scrollOffset,
     required this.verticalScrollOffset,
+    required this.masterLaneGap,
+    required this.masterVisibleIndex,
     required this.timelineEndBeat,
     required this.headerWidth,
   });
@@ -18,6 +20,8 @@ class _ClipDragPreview extends StatelessWidget {
   final double pixelsPerBeat;
   final double scrollOffset;
   final double verticalScrollOffset;
+  final double masterLaneGap;
+  final int masterVisibleIndex;
   final double timelineEndBeat;
   final double headerWidth;
 
@@ -32,8 +36,11 @@ class _ClipDragPreview extends StatelessWidget {
     final left =
         headerWidth + session.previewStartBeat * pixelsPerBeat - scrollOffset;
     if (visibleTrackIndex < 0) return const SizedBox.shrink();
+    final gapBeforeRow =
+        visibleTrackIndex >= masterVisibleIndex ? masterLaneGap : 0.0;
     final top = PianoRollMetrics.rulerHeight +
-        visibleTrackIndex * laneHeight -
+        visibleTrackIndex * laneHeight +
+        gapBeforeRow -
         verticalScrollOffset +
         4;
     final height = laneHeight - 8;

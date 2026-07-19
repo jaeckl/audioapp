@@ -7,7 +7,7 @@ void _updateClipDragAt(Offset globalPosition) {
       return;
     }
     final targetIndex = _trackIndexFromGlobal(globalPosition);
-    final targetTrack = widget.snapshot.tracks[targetIndex];
+    final targetTrack = _trackByIndex(targetIndex);
     final desiredBeat = _desiredBeatForDrag(globalPosition, session);
     final previewStart =
         _previewStartBeatForTrack(targetTrack, session, desiredBeat);

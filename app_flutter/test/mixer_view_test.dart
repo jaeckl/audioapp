@@ -64,6 +64,7 @@ void main() {
           onTrackSoloed: (_, __) {},
           onTrackSelected: (_) {},
           onMasterGainChanged: (_) {},
+          onTrackOutputChanged: (_, __) {},
         ),
       ),
     ));
@@ -71,7 +72,8 @@ void main() {
     expect(find.text('Pan'), findsOneWidget);
     expect(find.text('M'), findsOneWidget);
     expect(find.text('S'), findsOneWidget);
-    expect(find.text('Master'), findsOneWidget);
+    expect(find.text('Master'), findsWidgets);
+    expect(find.text('Device'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

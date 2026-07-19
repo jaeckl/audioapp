@@ -8,7 +8,7 @@ Future<void> _endClipDrag() async {
     }
     setState(() => _clipDrag = null);
 
-    final targetTrack = widget.snapshot.tracks[session.targetTrackIndex];
+    final targetTrack = _trackByIndex(session.targetTrackIndex);
     if (targetTrack.isGroup && session.automationClip == null) {
       return;
     }

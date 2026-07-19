@@ -252,7 +252,15 @@ class _DawShellState extends State<DawShell>
       startBeat: anchorStart,
       lengthBeats: anchorLength,
     );
-    final track = snapshot.tracks.firstWhere((track) => track.id == trackId);
+    final track = snapshot.trackById(trackId);
+    if (track == null || track.midiClips.isEmpty) {
+      return (
+        snapshot: snapshot,
+        clipId: '',
+        anchorStartBeat: anchorStart,
+        anchorLengthBeats: anchorLength,
+      );
+    }
     final created = track.midiClips.lastWhere(
       (clip) => !beforeIds.contains(clip.id),
       orElse: () => track.midiClips.last,

@@ -84,6 +84,11 @@ bool EngineHost::setTrackSoloed(const std::string& trackId, bool soloed) {
     return project_->setTrackSoloed(trackId, soloed);
 }
 
+bool EngineHost::setTrackOutput(const std::string& trackId,
+                                const std::string& outputTarget) {
+    return project_->setTrackOutput(trackId, outputTarget);
+}
+
 bool EngineHost::freezeTrack(const std::string& trackId) {
     const bool wasPlaying = isPlaying();
     if (wasPlaying) {
@@ -1528,6 +1533,15 @@ void EngineHost::registerAllCommands() {
         const bool soloed = static_cast<bool>(ctx.args["soloed"]);
         if (!ctx.engine.setTrackSoloed(trackId, soloed))
             return commands::errorResult("invalid_track");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("setTrackOutput", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto trackId = ctx.args["trackId"].toString().toStdString();
+        const auto outputTarget = ctx.args["outputTarget"].toString().toStdString();
+        if (!ctx.engine.setTrackOutput(trackId, outputTarget))
+            return commands::errorResult("invalid_track_output");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
         return commands::okWithFullRefresh(snap);
     });

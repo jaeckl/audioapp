@@ -8,8 +8,7 @@ void _autoScrollTrackDrag(DragUpdateDetails details) {
     if (stack == null) return;
     final localY = stack.globalToLocal(details.globalPosition).dy;
     final viewportTop = PianoRollMetrics.rulerHeight;
-    final viewportBottom = stack.size.height -
-        (widget.compact ? 0 : ArrangementTimelineMetrics.trackLaneHeight);
+    final viewportBottom = stack.size.height;
     const edgeSize = 52.0;
     double delta = 0;
     if (localY < viewportTop + edgeSize) {

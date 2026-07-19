@@ -104,12 +104,21 @@ class ProjectSnapshot {
   }
 
   TrackSnapshot? get selectedTrack {
+    return trackById(selectedTrackId) ??
+        (tracks.isEmpty ? null : tracks.first);
+  }
+
+  /// Resolve a track id, including the virtual master bus.
+  TrackSnapshot? trackById(String trackId) {
+    if (trackId == 'master') {
+      return master.asTrackSnapshot(projectAutomationClips: automationClips);
+    }
     for (final track in tracks) {
-      if (track.id == selectedTrackId) {
+      if (track.id == trackId) {
         return track;
       }
     }
-    return tracks.isEmpty ? null : tracks.first;
+    return null;
   }
 
   Iterable<AutomationClipSnapshot> get allAutomationClips sync* {
@@ -177,7 +186,7 @@ class ProjectSnapshot {
       final device = findInDevices(track.devices);
       if (device != null) return device;
     }
-    return null;
+    return findInDevices(master.devices);
   }
 
   /// Merge live dynamics meter readouts from EventChannel stream.
@@ -223,6 +232,32 @@ class ProjectSnapshot {
     bool? muted,
     bool? soloed,
   }) {
+    if (trackId == 'master') {
+      return ProjectSnapshot(
+        bpm: bpm,
+        selectedTrackId: selectedTrackId,
+        playheadBeats: playheadBeats,
+        playing: playing,
+        loopEnabled: loopEnabled,
+        loopRegionStartBeat: loopRegionStartBeat,
+        loopRegionEndBeat: loopRegionEndBeat,
+        recordArmed: recordArmed,
+        master: MasterTrackSnapshot(
+          id: master.id,
+          name: master.name,
+          gain: master.gain,
+          muted: muted ?? master.muted,
+          devices: master.devices,
+          midiClips: master.midiClips,
+          sampleClips: master.sampleClips,
+        ),
+        samples: samples,
+        tracks: tracks,
+        lfos: lfos,
+        modEdges: modEdges,
+        automationClips: automationClips,
+      );
+    }
     return ProjectSnapshot(
       bpm: bpm,
       selectedTrackId: selectedTrackId,

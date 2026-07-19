@@ -7,7 +7,6 @@ class _ArrangementPlayheadOverlayState
     super.initState();
     widget.playheadListenable.addListener(_onTick);
     widget.horizontalScroll.addListener(_onTick);
-    widget.masterScroll.addListener(_onTick);
   }
 
   @override
@@ -23,7 +22,6 @@ class _ArrangementPlayheadOverlayState
   void dispose() {
     widget.playheadListenable.removeListener(_onTick);
     widget.horizontalScroll.removeListener(_onTick);
-    widget.masterScroll.removeListener(_onTick);
     super.dispose();
   }
 
@@ -34,9 +32,8 @@ class _ArrangementPlayheadOverlayState
   double get _beat =>
       widget.scrubPlayheadBeats ?? widget.playheadListenable.value;
 
-  double get _scrollOffset => widget.horizontalScroll.hasClients
-      ? widget.horizontalScroll.offset
-      : (widget.masterScroll.hasClients ? widget.masterScroll.offset : 0.0);
+  double get _scrollOffset =>
+      widget.horizontalScroll.hasClients ? widget.horizontalScroll.offset : 0.0;
 
   @override
   Widget build(BuildContext context) {

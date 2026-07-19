@@ -6,28 +6,35 @@ class _TrackChannel extends StatelessWidget {
     required this.icon,
     required this.selected,
     required this.meter,
+    required this.outputChoices,
     required this.onGainChanged,
     required this.onPanChanged,
     required this.onSelect,
     required this.onMute,
     required this.onSolo,
+    required this.onOutputChanged,
   });
 
   final TrackSnapshot track;
   final IconData icon;
   final bool selected;
   final DeviceMeterReading? meter;
+  final List<_OutputDestination> outputChoices;
   final ValueChanged<double> onGainChanged, onPanChanged;
   final VoidCallback onSelect, onMute, onSolo;
+  final ValueChanged<String> onOutputChanged;
 
   @override
   Widget build(BuildContext context) {
     final device = track.trackGainDevice;
     final accent = selected ? const Color(0xFFE8A54B) : const Color(0xFF777787);
+    final outputValue = outputChoices.any((c) => c.id == track.outputTarget)
+        ? track.outputTarget
+        : 'master';
     return GestureDetector(
       onTap: onSelect,
       child: Container(
-        width: 84,
+        width: 104,
         margin: const EdgeInsets.only(right: 6),
         padding: const EdgeInsets.fromLTRB(5, 5, 5, 4),
         decoration: BoxDecoration(
@@ -104,6 +111,33 @@ class _TrackChannel extends StatelessWidget {
                 Text('${track.visibleDevices.length}',
                     style: const TextStyle(fontSize: 8, color: Colors.white38)),
               ],
+            ),
+            const SizedBox(height: 4),
+            SizedBox(
+              height: 22,
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  isExpanded: true,
+                  isDense: true,
+                  value: outputValue,
+                  dropdownColor: const Color(0xFF1E1E28),
+                  style: const TextStyle(fontSize: 9, color: Colors.white70),
+                  iconSize: 14,
+                  items: [
+                    for (final choice in outputChoices)
+                      DropdownMenuItem(
+                        value: choice.id,
+                        child: Text(
+                          choice.label,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) onOutputChanged(value);
+                  },
+                ),
+              ),
             ),
           ],
         ),
