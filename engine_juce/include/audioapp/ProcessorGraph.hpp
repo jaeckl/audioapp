@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cstdint>
@@ -208,6 +209,27 @@ struct ProcessorGraphSnapshot {
 
     bool valid() const noexcept { return error == ProcessorGraphError::None; }
 };
+
+/// Walk compiled taps for one stable output node (taps sorted by source id).
+/// Returns false immediately when tapCount == 0.
+template <typename Fn>
+void forEachGraphTapOnSource(const ProcessorGraphSnapshot& graph,
+                             uint64_t sourceOutputNodeId,
+                             Fn&& fn) noexcept {
+    if (sourceOutputNodeId == 0 || graph.tapCount == 0) {
+        return;
+    }
+    const auto* begin = graph.taps.data();
+    const auto* end = begin + graph.tapCount;
+    const auto* it = std::lower_bound(
+        begin, end, sourceOutputNodeId,
+        [](const CompiledGraphTap& tap, uint64_t id) noexcept {
+            return tap.sourceOutputNodeId < id;
+        });
+    for (; it != end && it->sourceOutputNodeId == sourceOutputNodeId; ++it) {
+        fn(*it);
+    }
+}
 
 ProcessorGraphSnapshot buildProcessorGraph(
     std::span<const GraphTrackDefinition> tracks,

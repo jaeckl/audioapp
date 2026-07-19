@@ -158,6 +158,17 @@ ProcessorGraphSnapshot buildProcessorGraph(
         };
         graph.taps[graph.tapCount++] = compiled;
     }
+    // Sort so forEachGraphTapOnSource can binary-search by sourceOutputNodeId.
+    if (graph.tapCount > 1) {
+        std::sort(graph.taps.begin(),
+                  graph.taps.begin() + graph.tapCount,
+                  [](const CompiledGraphTap& a, const CompiledGraphTap& b) noexcept {
+                      if (a.sourceOutputNodeId != b.sourceOutputNodeId) {
+                          return a.sourceOutputNodeId < b.sourceOutputNodeId;
+                      }
+                      return static_cast<uint8_t>(a.kind) < static_cast<uint8_t>(b.kind);
+                  });
+    }
 
     // Compile per-destination latency alignment metadata. Runtime delay slots
     // are only exercised when a source reports non-zero latency.

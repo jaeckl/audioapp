@@ -2930,13 +2930,13 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                                        const float* left,
                                        const float* right) noexcept {
         if (!useGraph || outputNodeId == 0) return;
-        for (int tapIndex = 0; tapIndex < graph.tapCount; ++tapIndex) {
-            const auto& tap = graph.taps[static_cast<size_t>(tapIndex)];
-            if (tap.sourceOutputNodeId != outputNodeId ||
-                tap.runtimeSlot >= kMaxProcessorGraphTaps) continue;
+        forEachGraphTapOnSource(graph, outputNodeId, [&](const CompiledGraphTap& tap) noexcept {
+            if (tap.runtimeSlot >= kMaxProcessorGraphTaps) {
+                return;
+            }
             processGraphTap(graphTapRuntimes_[tap.runtimeSlot], tap,
                             left, right, framesToProcess, sampleRate);
-        }
+        });
     };
     // Clear only slots that writers/readers use this block. Feedback edges
     // write the feedback bank (not graphAudio); leave the read bank intact.

@@ -180,8 +180,18 @@ int main() {
     expect(graph.audioEdgeCount == 0 && graph.audioBufferSlotCount == 0,
            "taps create no routing edges or route buffers");
     expect(graph.taps[0].sourceOutputNodeId == 1001 &&
+           graph.taps[0].kind == GraphTapKind::Meter &&
            graph.taps[1].kind == GraphTapKind::Recorder,
-           "compiled taps retain stable output IDs and kinds");
+           "compiled taps retain stable output IDs and kinds (sorted by source)");
+    int visited = 0;
+    forEachGraphTapOnSource(graph, 1001, [&](const CompiledGraphTap& tap) {
+        ++visited;
+        expect(tap.sourceOutputNodeId == 1001, "index walks only matching source");
+    });
+    expect(visited == 2, "source index visits both taps on the same node");
+    visited = 0;
+    forEachGraphTapOnSource(graph, 9999, [&](const CompiledGraphTap&) { ++visited; });
+    expect(visited == 0, "missing source id visits nothing");
 
     const GraphTapDefinition invalidTap[] = {
         {0, 0, 1, GraphTapKind::Meter, 64},
