@@ -18,7 +18,22 @@
     "subtractive": {
       "description": "Subtractive synth with a short chord pattern.",
       "dartDefine": "LAB_SCENARIO=subtractive",
-      "mapsToBenchmark": null
+      "mapsToBenchmark": "subtractive_synth"
+    },
+    "wavetable": {
+      "description": "Wavetable synth with a short chord pattern.",
+      "dartDefine": "LAB_SCENARIO=wavetable",
+      "mapsToBenchmark": "wavetable_synth"
+    },
+    "phasemod": {
+      "description": "Phase-mod synth with a short chord pattern.",
+      "dartDefine": "LAB_SCENARIO=phasemod",
+      "mapsToBenchmark": "phasemod_synth"
+    },
+    "granular": {
+      "description": "Granular formant synth with a short chord pattern.",
+      "dartDefine": "LAB_SCENARIO=granular",
+      "mapsToBenchmark": "granular_synth"
     }
   },
   "profiles": ["low_latency", "balanced", "safe"],
