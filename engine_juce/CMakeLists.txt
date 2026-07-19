@@ -54,6 +54,7 @@ add_library(audioapp_engine STATIC
   src/WavetableOscSimd.cpp
   src/WavetableBank.cpp
   src/PhaseModSynthAlgorithm.cpp
+  src/PhaseModOscSimd.cpp
   src/SnareAlgorithm.cpp
   src/ClapAlgorithm.cpp
   src/DedicatedPercussionAlgorithm.cpp
@@ -402,6 +403,8 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/subtractive_control_rate_test.cpp
     tests/wavetable_control_rate_test.cpp
     tests/wavetable_osc_simd_test.cpp
+    tests/phasemod_control_rate_test.cpp
+    tests/phasemod_osc_simd_test.cpp
     tests/subtractive_osc_simd_test.cpp
     tests/subtractive_preset_apply_test.cpp
     tests/subtractive_synth_test.cpp
