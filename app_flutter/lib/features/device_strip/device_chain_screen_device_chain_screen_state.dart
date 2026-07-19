@@ -3,9 +3,15 @@ part of 'device_chain_screen.dart';
 class _DeviceChainScreenState extends State<DeviceChainScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<LibraryFlyInPanelState> _libraryPanelKey = GlobalKey();
-  DeviceSnapshot? _libraryDevice;
-  LibraryFilter? _libraryFilter;
   late TrackSnapshot _track;
+
+  bool _libraryOpen = false;
+  LibraryBrowseMode _libraryBrowseMode = LibraryBrowseMode.resources;
+  LibraryCategory _libraryCategory = LibraryCategory.audioClips;
+  LibraryDeviceFamily _libraryDeviceFamily = LibraryDeviceFamily.instrument;
+  LibraryDeviceFamily? _libraryLockedFamily;
+  DeviceSnapshot? _libraryDevice;
+  Completer<String?>? _devicePickCompleter;
 
   @override
   void initState() {
@@ -119,21 +125,67 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
   void dispose() {
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     _scrollController.dispose();
+    final pending = _devicePickCompleter;
+    if (pending != null && !pending.isCompleted) {
+      pending.complete(null);
+    }
     super.dispose();
   }
 
   void _openLibrary(DeviceSnapshot device, LibraryFilter filter) {
+    final resourceBrowse =
+        filter.defaultCategory == LibraryCategory.audioClips ||
+            filter.defaultCategory == LibraryCategory.wavetables;
     setState(() {
+      _libraryOpen = true;
+      _libraryBrowseMode = resourceBrowse
+          ? LibraryBrowseMode.resources
+          : LibraryBrowseMode.devices;
+      _libraryCategory = filter.defaultCategory == LibraryCategory.devicePresets
+          ? LibraryCategory.audioClips
+          : filter.defaultCategory;
       _libraryDevice = device;
-      _libraryFilter = filter;
+      _libraryDeviceFamily = libraryDeviceFamilyForType(device.type);
+      _libraryLockedFamily = null;
     });
   }
 
-  void _closeLibrary() {
+  Future<String?> _pickDeviceType({LibraryDeviceFamily? lockedFamily}) async {
+    _devicePickCompleter?.complete(null);
+    final completer = Completer<String?>();
+    _devicePickCompleter = completer;
     setState(() {
+      _libraryOpen = true;
+      _libraryBrowseMode = LibraryBrowseMode.devices;
+      _libraryDeviceFamily = lockedFamily ?? LibraryDeviceFamily.instrument;
+      _libraryLockedFamily = lockedFamily;
       _libraryDevice = null;
-      _libraryFilter = null;
+      _libraryCategory = LibraryCategory.audioClips;
     });
+    return completer.future;
+  }
+
+  void _closeLibrary() {
+    final pending = _devicePickCompleter;
+    if (pending != null && !pending.isCompleted) {
+      pending.complete(null);
+    }
+    _devicePickCompleter = null;
+    setState(() {
+      _libraryOpen = false;
+      _libraryDevice = null;
+      _libraryLockedFamily = null;
+      _libraryBrowseMode = LibraryBrowseMode.resources;
+    });
+  }
+
+  Future<void> _onLibraryInsertDeviceType(String deviceType) async {
+    final pick = _devicePickCompleter;
+    if (pick != null && !pick.isCompleted) {
+      pick.complete(deviceType);
+      _devicePickCompleter = null;
+      if (mounted) await _libraryPanelKey.currentState?.close();
+    }
   }
 
   Future<void> _onLibraryInsertAudio(SampleLibraryEntrySnapshot sample) async {
@@ -154,8 +206,10 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
 
   Future<ProjectSnapshot?> _onInsertDevice(int index) async {
     try {
-      final snapshot = await widget.onInsertDevice(index);
-      if (snapshot != null && mounted) {
+      final type = await _pickDeviceType();
+      if (type == null || !mounted) return null;
+      final snapshot = await widget.onAddDevice(type, index);
+      if (mounted) {
         final track = snapshot.tracks.firstWhere(
           (t) => t.id == _track.id,
           orElse: () => _track,
@@ -227,6 +281,7 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
                           ? null
                           : _onDeleteDevice,
                       onOpenLibrary: _openLibrary,
+                      onPickDeviceType: _pickDeviceType,
                       onPreviewSample: widget.onPreviewAudio,
                       lfos: widget.snapshot.lfos,
                       modEdges: widget.snapshot.modEdges,
@@ -267,20 +322,23 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
                 icon: const Icon(Icons.close, size: 22),
               ),
             ),
-            if (_libraryDevice != null)
+            if (_libraryOpen)
               LibraryFlyInPanel(
                 key: _libraryPanelKey,
                 snapshot: widget.snapshot,
-                initialCategory: _libraryFilter?.defaultCategory ??
-                    LibraryCategory.audioClips,
-                presetDeviceId: _libraryDevice!.id,
-                presetDeviceType: _libraryDevice!.type,
+                browseMode: _libraryBrowseMode,
+                initialCategory: _libraryCategory,
+                initialDeviceFamily: _libraryDeviceFamily,
+                lockedDeviceFamily: _libraryLockedFamily,
+                presetDeviceId: _libraryDevice?.id,
+                presetDeviceType: _libraryDevice?.type,
                 onClose: _closeLibrary,
                 onPreviewAudio: widget.onPreviewAudio,
                 onInsertAudio: _onLibraryInsertAudio,
                 onImportAudio: widget.onImportAudio,
                 onPresetTap: widget.onPresetTap,
                 onWavetableTap: widget.onWavetableTap,
+                onInsertDeviceType: _onLibraryInsertDeviceType,
               ),
           ],
         ),

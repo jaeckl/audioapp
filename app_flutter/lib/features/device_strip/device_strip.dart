@@ -5,6 +5,7 @@ import '../../bridge/param_descriptor.dart';
 import '../../bridge/live_meters_dto.dart';
 import '../../bridge/project_snapshot.dart';
 import '../content_library/library_catalog.dart';
+import '../content_library/library_device_family.dart';
 import '../content_library/library_filter.dart';
 import '../clip_drag/sample_clip_drag_data.dart';
 import 'device_chain_row.dart';
@@ -42,6 +43,7 @@ class DeviceStrip extends StatefulWidget {
     required this.onRemoveDevice,
     required this.onOpenDeviceLibrary,
     this.onOpenDrumPadLibrary,
+    this.onPickDeviceType,
     this.onModulationBridgeCall,
     this.automationLinkClipId,
     this.onAutomationParamSelected,
@@ -81,6 +83,8 @@ class DeviceStrip extends StatefulWidget {
       onOpenDeviceLibrary;
   final void Function(DrumMachineDeviceSnapshot device, int note)?
       onOpenDrumPadLibrary;
+  final Future<String?> Function({LibraryDeviceFamily? lockedFamily})?
+      onPickDeviceType;
   final Future<ProjectSnapshot> Function(
       String method, Map<String, dynamic> args)? onModulationBridgeCall;
   final String? automationLinkClipId;

@@ -7,7 +7,9 @@ extension _DeviceChainRowStateVirtualpadchain on _DeviceChainRowState {
     final pad = machine.padForNote(note);
     final accent = DeviceStripTheme.accentForDeviceType('drum_machine');
     Future<void> addDevice() async {
-      final type = await showDevicePickerSheet(context);
+      final type = widget.onPickDeviceType != null
+          ? await widget.onPickDeviceType!()
+          : await showDevicePickerSheet(context);
       if (type == null || type == 'drum_machine') return;
       await widget.onModulationBridgeCall?.call('addDeviceToDrumPad', {
         'drumMachineId': machine.id,

@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../bridge/param_descriptor.dart';
 import '../../bridge/project_snapshot.dart';
+import '../content_library/library_browse_mode.dart';
 import '../content_library/library_category.dart';
+import '../content_library/library_device_family.dart';
 import '../content_library/library_filter.dart';
 import '../content_library/library_catalog.dart';
 import '../content_library/library_fly_in_panel.dart';
@@ -27,7 +31,7 @@ class DeviceChainScreen extends StatefulWidget {
     this.onDeviceStringParameterChanged,
     required this.onOpenSamplerEditor,
     required this.onFrequencyChanged,
-    required this.onInsertDevice,
+    required this.onAddDevice,
     required this.onPreviewAudio,
     required this.onAssignSamplerSample,
     required this.onImportAudio,
@@ -58,7 +62,8 @@ class DeviceChainScreen extends StatefulWidget {
   final void Function(TrackSnapshot track, DeviceSnapshot device)
       onOpenSamplerEditor;
   final void Function(String deviceId, double frequencyHz) onFrequencyChanged;
-  final Future<ProjectSnapshot?> Function(int insertIndex) onInsertDevice;
+  final Future<ProjectSnapshot> Function(String deviceType, int insertIndex)
+      onAddDevice;
   final ValueChanged<SampleLibraryEntrySnapshot> onPreviewAudio;
   final void Function(String deviceId, String sampleId) onAssignSamplerSample;
   final Future<void> Function() onImportAudio;

@@ -3,10 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
+import 'library_browse_mode.dart';
 import 'library_catalog.dart';
 import 'library_category.dart';
 import 'library_category_menu.dart';
 import 'library_content_pane.dart';
+import 'library_device_browser_pane.dart';
+import 'library_device_family.dart';
 import 'library_header.dart';
 import 'library_manifest.dart';
 import 'library_preset_preview_bar.dart';
@@ -26,6 +29,7 @@ part 'library_fly_in_panel_library_fly_in_panel_state_on_item_selected.dart';
 part 'library_fly_in_panel_library_fly_in_panel_state_on_insert.dart';
 part 'library_fly_in_panel_library_fly_in_panel_state_save_preset.dart';
 part 'library_fly_in_panel_library_fly_in_panel_state_manage_user_preset.dart';
+
 /// Slide-in content library: half width in landscape, full width in portrait.
 class LibraryFlyInPanel extends StatefulWidget {
   const LibraryFlyInPanel({
@@ -35,7 +39,10 @@ class LibraryFlyInPanel extends StatefulWidget {
     required this.onPreviewAudio,
     required this.onInsertAudio,
     required this.onImportAudio,
+    this.browseMode = LibraryBrowseMode.resources,
     this.initialCategory = LibraryCategory.audioClips,
+    this.initialDeviceFamily = LibraryDeviceFamily.instrument,
+    this.lockedDeviceFamily,
     this.onMidiClipTap,
     this.onMidiPreviewTap,
     this.onAutomationTap,
@@ -43,6 +50,7 @@ class LibraryFlyInPanel extends StatefulWidget {
     this.onPresetTap,
     this.onPresetPreviewTap,
     this.onWavetableTap,
+    this.onInsertDeviceType,
     this.onStopPreview,
     this.percussionOnly = false,
     this.presetDeviceId,
@@ -55,7 +63,10 @@ class LibraryFlyInPanel extends StatefulWidget {
   final ValueChanged<SampleLibraryEntrySnapshot> onPreviewAudio;
   final ValueChanged<SampleLibraryEntrySnapshot> onInsertAudio;
   final VoidCallback onImportAudio;
+  final LibraryBrowseMode browseMode;
   final LibraryCategory initialCategory;
+  final LibraryDeviceFamily initialDeviceFamily;
+  final LibraryDeviceFamily? lockedDeviceFamily;
   final void Function(LibraryMidiItem item)? onMidiClipTap;
   final void Function(LibraryMidiItem item)? onMidiPreviewTap;
   final void Function(LibraryAutomationItem item)? onAutomationTap;
@@ -64,9 +75,7 @@ class LibraryFlyInPanel extends StatefulWidget {
   final void Function(LibraryPresetItem item, {double startBeat, bool loop})?
       onPresetPreviewTap;
   final void Function(LibraryWavetableItem item)? onWavetableTap;
-
-  /// Optional: invoked when the panel wants to halt any active engine preview
-  /// (e.g. when the user toggles auto-play/loop off mid-preview).
+  final ValueChanged<String>? onInsertDeviceType;
   final VoidCallback? onStopPreview;
   final bool percussionOnly;
   final String? presetDeviceId, presetDeviceType;

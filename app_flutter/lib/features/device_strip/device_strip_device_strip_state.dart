@@ -28,9 +28,17 @@ class _DeviceStripState extends State<DeviceStrip> {
     setState(() => _synthTabs[deviceId] = tab);
   }
 
+  Future<String?> _resolveDeviceType({LibraryDeviceFamily? lockedFamily}) {
+    final pick = widget.onPickDeviceType;
+    if (pick != null) {
+      return pick(lockedFamily: lockedFamily);
+    }
+    return showDevicePickerSheet(context);
+  }
+
   Future<ProjectSnapshot?> _insertDevice(
       TrackSnapshot track, int insertIndex) async {
-    final deviceType = await showDevicePickerSheet(context);
+    final deviceType = await _resolveDeviceType();
     if (deviceType == null || !mounted) return null;
     return widget.onAddDevice(track.id, deviceType, insertIndex);
   }
@@ -51,7 +59,8 @@ class _DeviceStripState extends State<DeviceStrip> {
           onDeviceStringParameterChanged: widget.onDeviceStringParameterChanged,
           onOpenSamplerEditor: widget.onOpenSamplerEditor,
           onFrequencyChanged: widget.onFrequencyChanged,
-          onInsertDevice: (insertIndex) => _insertDevice(track, insertIndex),
+          onAddDevice: (type, insertIndex) =>
+              widget.onAddDevice(track.id, type, insertIndex),
           onSamplerTabChanged: _setSamplerTab,
           onSynthTabChanged: _setSynthTab,
           onBypassToggle: widget.onBypassToggle,
@@ -147,6 +156,7 @@ class _DeviceStripState extends State<DeviceStrip> {
                       widget.onRemoveDevice(track, device),
                   onOpenLibrary: widget.onOpenDeviceLibrary,
                   onOpenDrumPadLibrary: widget.onOpenDrumPadLibrary,
+                  onPickDeviceType: widget.onPickDeviceType,
                   onPreviewSample: widget.onPreviewSample,
                   onPreviewSampler: widget.onPreviewSampler,
                   onModulationBridgeCall: widget.onModulationBridgeCall,

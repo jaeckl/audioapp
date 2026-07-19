@@ -27,10 +27,10 @@ class _CategoryButton extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       child: Material(
         color: selected ? accent.withValues(alpha: 0.14) : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
             child: Column(
@@ -46,8 +46,9 @@ class _CategoryButton extends StatelessWidget {
                   category.title,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color:
-                            selected ? Colors.white : LibraryTheme.labelMuted,
+                        color: selected
+                            ? WelcomeTheme.textPrimary
+                            : LibraryTheme.labelMuted,
                         fontWeight:
                             selected ? FontWeight.w700 : FontWeight.w500,
                         fontSize: 10,

@@ -4,8 +4,11 @@ extension _DeviceChainRowStateVirtualnotefxchain on _DeviceChainRowState {
   Widget _virtualNoteFxChain(BuildContext context, DeviceSnapshot synth) {
     const accent = Color(0xFFF9FF00);
     Future<void> addDevice() async {
-      final type = await showVirtualFxPickerSheet(context,
-          role: DevicePickerRole.noteFx);
+      final type = widget.onPickDeviceType != null
+          ? await widget.onPickDeviceType!(
+              lockedFamily: LibraryDeviceFamily.noteFx)
+          : await showVirtualFxPickerSheet(context,
+              role: DevicePickerRole.noteFx);
       if (type == null) return;
       await widget.onModulationBridgeCall?.call('addDeviceToSynthNoteFx', {
         'deviceId': synth.id,

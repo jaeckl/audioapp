@@ -6,6 +6,7 @@ import '../../bridge/device_capabilities.dart';
 import '../../bridge/live_meters_dto.dart';
 import '../../bridge/project_snapshot.dart';
 import '../content_library/library_filter.dart';
+import '../content_library/library_device_family.dart';
 import '../clip_drag/sample_clip_drag_data.dart';
 import 'device_chain_separator.dart';
 import 'device_strip_device_kind.dart';
@@ -61,6 +62,7 @@ class DeviceChainRow extends StatefulWidget {
     this.onDeleteDevice,
     this.onOpenLibrary,
     this.onOpenDrumPadLibrary,
+    this.onPickDeviceType,
     this.onPreviewSample,
     this.onPreviewSampler,
     this.lfos = const [],
@@ -115,6 +117,8 @@ class DeviceChainRow extends StatefulWidget {
       onOpenLibrary;
   final void Function(DrumMachineDeviceSnapshot device, int note)?
       onOpenDrumPadLibrary;
+  final Future<String?> Function({LibraryDeviceFamily? lockedFamily})?
+      onPickDeviceType;
   final ValueChanged<SampleLibraryEntrySnapshot>? onPreviewSample;
   final ValueChanged<int>? onPreviewSampler;
   final List<LfoSnapshot> lfos;

@@ -25,7 +25,9 @@ extension _DeviceChainRowStateVirtualmultibandband on _DeviceChainRowState {
     final accent = DeviceStripTheme.accentForDeviceType(mb.type);
     final bandDevices = mb.bandDevices(bandIndex);
     Future<void> addDevice() async {
-      final type = await showDevicePickerSheet(context);
+      final type = widget.onPickDeviceType != null
+          ? await widget.onPickDeviceType!()
+          : await showDevicePickerSheet(context);
       if (type == null || _mbNestingRejectedTypes.contains(type)) return;
       await widget.onModulationBridgeCall?.call('addDeviceToMultibandBand', {
         'mbId': mb.id,

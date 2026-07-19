@@ -39,14 +39,14 @@ class _LibraryItemTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tile = Material(
-      color: isSelected
-          ? accent.withValues(alpha: 0.08)
+          color: isSelected
+          ? LibraryTheme.selectedFill(accent)
           : LibraryTheme.cardBackground,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(LibraryTheme.panelRadius),
       child: InkWell(
         onTap: onTap,
         onLongPress: onLongPress,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(LibraryTheme.panelRadius),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
@@ -62,7 +62,7 @@ class _LibraryItemTile extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: LibraryTheme.textPrimary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -71,8 +71,8 @@ class _LibraryItemTile extends StatelessWidget {
                       item.subtitle,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
+                      style: const TextStyle(
+                        color: LibraryTheme.labelMuted,
                         fontSize: 12,
                       ),
                     ),
@@ -87,13 +87,19 @@ class _LibraryItemTile extends StatelessWidget {
     );
 
     if (!isSelected) {
-      return tile;
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(LibraryTheme.panelRadius),
+          border: Border.all(color: LibraryTheme.border),
+        ),
+        child: tile,
+      );
     }
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: accent, width: 1.5),
+        borderRadius: BorderRadius.circular(LibraryTheme.panelRadius),
+        border: Border.all(color: accent.withValues(alpha: 0.7), width: 1.5),
       ),
       child: tile,
     );

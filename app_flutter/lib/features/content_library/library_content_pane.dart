@@ -7,12 +7,15 @@ import 'library_catalog.dart';
 import 'library_category.dart';
 import 'library_manifest.dart';
 import 'library_preview_widget.dart';
-import 'library_tag_filter_bar.dart';
 import 'library_tags.dart';
 import 'library_theme.dart';
 import 'user_device_preset_store.dart';
+import '../welcome/welcome_theme.dart';
 
 part 'library_content_pane_library_content_pane_state.dart';
+part 'library_content_pane_resource_path_bar.dart';
+part 'library_content_pane_resource_nav_tile.dart';
+part 'library_content_pane_resource_pages.dart';
 part 'library_content_pane_filtered_empty_state.dart';
 part 'library_content_pane_empty_category_state.dart';
 part 'library_content_pane_library_item_tile.dart';
