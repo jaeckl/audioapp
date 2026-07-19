@@ -101,7 +101,11 @@ struct WavetableVoiceRuntime {
     double startBeat = 0.0;
     double clipStartBeat = 0.0;
     double releaseBeat = -1.0;
-    float phase = 0.0f;
+    float phases[kWavetableMaxUnison]{};
+    float unisonHzRatio[kWavetableMaxUnison]{1.0f, 1.0f, 1.0f, 1.0f,
+                                            1.0f, 1.0f, 1.0f, 1.0f};
+    int cachedUnisonCount = 0;
+    float cachedUnisonSpreadCents = -1.0f;
     float targetHz = 440.0f;
     float currentHz = 440.0f;
     float wtFrameIndex = 0.0f;
@@ -183,9 +187,8 @@ float wavetableVoiceSample(const WavetableSynthParamsPlayback& params,
                            const float* table,
                            int frameCount,
                            int frameLength,
-                           float& phase,
+                           WavetableVoiceRuntime& voice,
                            float wtPosition,
-                           float hz,
                            float sampleRate,
                            float ampGain,
                            float filterGain,

@@ -175,7 +175,7 @@ void WavetableSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) no
     for (int i = 0; i < regionCount; ++i) {
         const MidiPlaybackNote& note = ctx.notes[i];
         ctx.scratch.wavetableRegions[i] = WavetableMidiNoteRegion{
-            note.pitch, note.pitch,
+            note.pitch, i,
             note.clipStartBeat, note.clipLengthBeats,
             note.noteStartBeat, note.noteDurationBeats, note.velocity,
             note.loopContent, note.contentLengthBeats

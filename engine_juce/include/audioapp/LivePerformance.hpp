@@ -98,6 +98,7 @@ struct LiveVoiceSlot {
     BiquadState filterState2{};
     BiquadCoeffs wavetableFilterCoeffs{};
     SubtractiveVoiceRuntime subtractive{};
+    WavetableVoiceRuntime wavetable{};
     PhaseModSynthVoiceRuntime phaseMod{};
     KickVoiceRuntime kick{};
     SnareVoiceRuntime snare{};

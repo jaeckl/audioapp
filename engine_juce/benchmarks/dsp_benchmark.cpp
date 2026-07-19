@@ -179,6 +179,16 @@ Scenario makeScenario(std::string_view name) {
             scenario.engine->updateLfoParam(lfo, "waveform", 0.0f);
             scenario.engine->updateLfoParam(lfo, "rate", 4.0f);
             scenario.engine->assignModulation(lfo, scenario.controlledDevice, "filterCutoff", 0.6f);
+        } else if (name == "wavetable_synth") {
+            scenario.controlledDevice = scenario.engine->addDeviceToTrack(
+                trackId, audioapp::device_types::kWavetableSynth);
+            scenario.engine->setDeviceParameter(scenario.controlledDevice, "filterCutoff", 0.35f);
+            scenario.engine->setDeviceParameter(scenario.controlledDevice, "wtUnison", 0.75f);
+            scenario.engine->setDeviceParameter(scenario.controlledDevice, "wtDetune", 0.5f);
+            const int lfo = scenario.engine->createLfo(0);
+            scenario.engine->updateLfoParam(lfo, "waveform", 0.0f);
+            scenario.engine->updateLfoParam(lfo, "rate", 4.0f);
+            scenario.engine->assignModulation(lfo, scenario.controlledDevice, "filterCutoff", 0.6f);
         }
     }
     scenario.engine->setPlaying(true);
@@ -244,7 +254,8 @@ int main(int argc, char** argv) {
     const auto options = parseOptions(argc, argv);
     const std::vector<std::string> scenarios{
         "static", "manual_ramp", "automation", "modulation", "serial_chain",
-        "parallel_branches", "graph_taps", "analyzer"};
+        "parallel_branches", "graph_taps", "analyzer", "subtractive_synth",
+        "wavetable_synth"};
     std::vector<Result> results;
     for (const auto& scenario : scenarios) {
         if (!options.scenarioFilter.empty() && scenario != options.scenarioFilter) continue;

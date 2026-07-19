@@ -106,6 +106,7 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         voice.filterState2 = BiquadState{};
         voice.wavetableFilterCoeffs = BiquadCoeffs{};
         voice.subtractive = SubtractiveVoiceRuntime{};
+        voice.wavetable = WavetableVoiceRuntime{};
         voice.phaseMod = PhaseModSynthVoiceRuntime{};
         voice.kick = KickVoiceRuntime{};
         voice.snare = SnareVoiceRuntime{};
@@ -146,6 +147,10 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
             voice.phaseMod.releaseBeat = -1.0;
             voice.phaseMod.targetHz = midiNoteToHz(pitch);
             voice.phaseMod.currentHz = voice.phaseMod.targetHz;
+        } else if (instrument.kind == LiveInstrumentKind::WavetableSynth) {
+            voice.wavetable = WavetableVoiceRuntime{};
+            voice.wavetable.pitch = pitch;
+            voice.wavetable.velocity = voice.velocity;
         }
         voice.active.store(1, std::memory_order_release);
         return i;
@@ -164,6 +169,7 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
     steal.filterState2 = BiquadState{};
     steal.wavetableFilterCoeffs = BiquadCoeffs{};
     steal.subtractive = SubtractiveVoiceRuntime{};
+    steal.wavetable = WavetableVoiceRuntime{};
     steal.phaseMod = PhaseModSynthVoiceRuntime{};
     steal.kick = KickVoiceRuntime{};
     steal.snare = SnareVoiceRuntime{};
@@ -203,6 +209,10 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         steal.phaseMod.releaseBeat = -1.0;
         steal.phaseMod.targetHz = midiNoteToHz(pitch);
         steal.phaseMod.currentHz = steal.phaseMod.targetHz;
+    } else if (instrument.kind == LiveInstrumentKind::WavetableSynth) {
+        steal.wavetable = WavetableVoiceRuntime{};
+        steal.wavetable.pitch = pitch;
+        steal.wavetable.velocity = steal.velocity;
     }
     steal.active.store(1, std::memory_order_release);
     return 0;
@@ -483,17 +493,17 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                                                          filterAttackSec, filterDecaySec,
                                                          filterSustain, filterReleaseSec);
 
-                const float hz = midiNoteToHz(voice.pitch);
                 const float wtPos = params.wtPosition *
                     static_cast<float>(std::max(inst.wavetablePcmFrameCount - 1, 1));
                 const float vel = std::clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
+                voice.wavetable.pitch = voice.pitch;
 
                 mix += wavetableVoiceSample(params,
                                             inst.wavetablePcm,
                                             inst.wavetablePcmFrameCount,
                                             inst.wavetablePcmFrameLength,
-                                            voice.oscillatorPhase,
-                                            wtPos, hz,
+                                            voice.wavetable,
+                                            wtPos,
                                             sampleRate,
                                             ampGain * vel,
                                             filterGain,
