@@ -1,7 +1,7 @@
 part of 'daw_shell.dart';
 
 extension DawShellStateOnlibrarypresettapOperation on _DawShellState {
-Future<void> _onLibraryPresetTap(LibraryPresetItem item) async {
+  Future<void> _onLibraryPresetTap(LibraryPresetItem item) async {
     final presetTarget = _libraryPresetDeviceId;
     if (item.isUser && item.presetJson != null && presetTarget != null) {
       try {
@@ -16,6 +16,11 @@ Future<void> _onLibraryPresetTap(LibraryPresetItem item) async {
       }
       return;
     }
+
+    if (!item.isUser && await _applyFactoryPresetJson(item)) {
+      return;
+    }
+
     if (presetTarget != null && item.deviceType != 'subtractive_synth') {
       final preset = DevicePresetStore.find(item.deviceType, item.id);
       if (preset == null) return;
@@ -37,6 +42,7 @@ Future<void> _onLibraryPresetTap(LibraryPresetItem item) async {
       await _libraryPanelKey.currentState?.close();
       return;
     }
+
     final drumMachineId = _libraryDrumMachineId;
     final drumNote = _libraryDrumNote;
     if (drumMachineId != null && drumNote != null) {
@@ -86,19 +92,18 @@ Future<void> _onLibraryPresetTap(LibraryPresetItem item) async {
       await _libraryPanelKey.currentState?.close();
       return;
     }
+
     final track = _snapshot?.selectedTrack;
     if (track == null) return;
 
     var synth = track.subtractiveSynthDevice;
     if (item.deviceType == 'subtractive_synth') {
       if (synth == null) {
-        // Automatically add a Subtractive Synth device to the track on insert
         try {
           final snapshot = await widget.bridge.addDeviceToTrack(
             trackId: track.id,
             deviceType: 'subtractive_synth',
           );
-          // Find the newly added subtractive synth device
           final updatedTrack =
               snapshot.tracks.firstWhere((t) => t.id == track.id);
           synth = updatedTrack.subtractiveSynthDevice;

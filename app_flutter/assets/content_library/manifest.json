@@ -1,248 +1,3940 @@
 {
   "version": 1,
   "presets": [
-    {"id":"preset:grain-glass-choir","title":"Glass Choir","subtitle":"Wide frozen voices","deviceType":"granular_formant_synth","tags":["granular","choir","pad","factory"]},
-    {"id":"preset:grain-liquid-air","title":"Liquid Air","subtitle":"Breathy drifting cloud","deviceType":"granular_formant_synth","tags":["granular","air","pad","factory"]},
-    {"id":"preset:grain-talking-bass","title":"Talking Bass","subtitle":"Low vowel motion","deviceType":"granular_formant_synth","tags":["granular","bass","vocal","factory"]},
-    {"id":"preset:grain-metal-bloom","title":"Metal Bloom","subtitle":"Slow metallic expansion","deviceType":"granular_formant_synth","tags":["granular","metallic","texture","factory"]},
-    {"id":"preset:grain-vox-motion","title":"Vox Motion","subtitle":"Rhythmic vocal grains","deviceType":"granular_formant_synth","tags":["granular","vocal","motion","factory"]},
-    {"id":"preset:grain-sine-freeze","title":"Sine Freeze","subtitle":"Soft suspended harmonic","deviceType":"granular_formant_synth","tags":["granular","soft","pad","factory"]},
+    {
+      "id": "preset:grain-glass-choir",
+      "title": "Glass Choir",
+      "subtitle": "Wide frozen voices",
+      "deviceType": "granular_formant_synth",
+      "tags": [
+        "granular",
+        "choir",
+        "pad",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:grain-liquid-air",
+      "title": "Liquid Air",
+      "subtitle": "Breathy drifting cloud",
+      "deviceType": "granular_formant_synth",
+      "tags": [
+        "granular",
+        "air",
+        "pad",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:grain-talking-bass",
+      "title": "Talking Bass",
+      "subtitle": "Low vowel motion",
+      "deviceType": "granular_formant_synth",
+      "tags": [
+        "granular",
+        "bass",
+        "vocal",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:grain-metal-bloom",
+      "title": "Metal Bloom",
+      "subtitle": "Slow metallic expansion",
+      "deviceType": "granular_formant_synth",
+      "tags": [
+        "granular",
+        "metallic",
+        "texture",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:grain-vox-motion",
+      "title": "Vox Motion",
+      "subtitle": "Rhythmic vocal grains",
+      "deviceType": "granular_formant_synth",
+      "tags": [
+        "granular",
+        "vocal",
+        "motion",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:grain-sine-freeze",
+      "title": "Sine Freeze",
+      "subtitle": "Soft suspended harmonic",
+      "deviceType": "granular_formant_synth",
+      "tags": [
+        "granular",
+        "soft",
+        "pad",
+        "factory"
+      ]
+    },
     {
       "id": "preset:sampler-warm",
       "title": "Warm sampler",
       "subtitle": "Punchy kit · short env",
       "deviceType": "simple_sampler",
-      "tags": ["keys", "warm", "factory"]
+      "tags": [
+        "keys",
+        "warm",
+        "factory"
+      ]
     },
     {
       "id": "preset:sampler-lofi",
       "title": "Lo-fi keys",
       "subtitle": "Filtered piano stack",
       "deviceType": "simple_sampler",
-      "tags": ["keys", "lofi", "factory"]
+      "tags": [
+        "keys",
+        "lofi",
+        "factory"
+      ]
     },
     {
       "id": "preset:osc-pluck",
       "title": "Pluck oscillator",
       "subtitle": "Bright mono lead",
       "deviceType": "simple_oscillator",
-      "tags": ["pluck", "bright", "factory"]
+      "tags": [
+        "pluck",
+        "bright",
+        "factory"
+      ]
     },
     {
       "id": "preset:osc-bass",
       "title": "Sub bass",
       "subtitle": "Low sine foundation",
       "deviceType": "simple_oscillator",
-      "tags": ["bass", "dark", "factory"]
+      "tags": [
+        "bass",
+        "dark",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-init",
       "title": "Init synth",
       "subtitle": "Saw · open filter",
       "deviceType": "subtractive_synth",
-      "tags": ["init", "clean", "factory"]
+      "tags": [
+        "init",
+        "clean",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-pad-warm",
       "title": "Warm pad",
       "subtitle": "Unison saws · slow swell",
       "deviceType": "subtractive_synth",
-      "tags": ["pad", "warm", "factory"]
+      "tags": [
+        "pad",
+        "warm",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-pad-glass",
       "title": "Glass pad",
       "subtitle": "Airy sine stack · bright",
       "deviceType": "subtractive_synth",
-      "tags": ["pad", "bright", "factory"]
+      "tags": [
+        "pad",
+        "bright",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-pad-choir",
       "title": "Choir pad",
       "subtitle": "Wide unison · legato",
       "deviceType": "subtractive_synth",
-      "tags": ["pad", "warm", "factory"]
+      "tags": [
+        "pad",
+        "warm",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-pad-dark",
       "title": "Dark pad",
       "subtitle": "Low filter · subtle noise",
       "deviceType": "subtractive_synth",
-      "tags": ["pad", "dark", "factory"]
+      "tags": [
+        "pad",
+        "dark",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-pad-lofi",
       "title": "Lo-fi pad",
       "subtitle": "Dusty · filtered warmth",
       "deviceType": "subtractive_synth",
-      "tags": ["pad", "lofi", "factory"]
+      "tags": [
+        "pad",
+        "lofi",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-pluck",
       "title": "Pluck",
       "subtitle": "Short amp · filter sweep",
       "deviceType": "subtractive_synth",
-      "tags": ["pluck", "bright", "factory"]
+      "tags": [
+        "pluck",
+        "bright",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-noise-sweep",
       "title": "Noise sweep",
       "subtitle": "Filter env texture",
       "deviceType": "subtractive_synth",
-      "tags": ["fx", "texture", "factory"]
+      "tags": [
+        "fx",
+        "texture",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-bass-sub-foundation",
       "title": "Sub foundation",
       "subtitle": "Sine sub · LP24 · mono",
       "deviceType": "subtractive_synth",
-      "tags": ["bass", "dark", "factory"]
+      "tags": [
+        "bass",
+        "dark",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-bass-punch",
       "title": "Punch bass",
       "subtitle": "Square stack · snappy filter",
       "deviceType": "subtractive_synth",
-      "tags": ["bass", "aggressive", "factory"]
+      "tags": [
+        "bass",
+        "aggressive",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-bass-reese",
       "title": "Reese bass",
       "subtitle": "Detuned saw unison",
       "deviceType": "subtractive_synth",
-      "tags": ["bass", "dark", "factory"]
+      "tags": [
+        "bass",
+        "dark",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-bass-warehouse",
       "title": "Warehouse bass",
       "subtitle": "AM mix · filter FM",
       "deviceType": "subtractive_synth",
-      "tags": ["bass", "aggressive", "factory"]
+      "tags": [
+        "bass",
+        "aggressive",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-bass-acid",
       "title": "Acid bass",
       "subtitle": "Sync · resonant sweep",
       "deviceType": "subtractive_synth",
-      "tags": ["bass", "bright", "factory"]
+      "tags": [
+        "bass",
+        "bright",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-bass-wobble-classic",
       "title": "Classic wobble",
       "subtitle": "Dubstep · 1/4 filter LFO",
       "deviceType": "subtractive_synth",
-      "tags": ["bass", "wobble", "edm", "aggressive", "factory"]
+      "tags": [
+        "bass",
+        "wobble",
+        "edm",
+        "aggressive",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-bass-wobble-fast",
       "title": "Fast wobble",
       "subtitle": "1/16 tri · resonant bass",
       "deviceType": "subtractive_synth",
-      "tags": ["bass", "wobble", "dnb", "aggressive", "factory"]
+      "tags": [
+        "bass",
+        "wobble",
+        "dnb",
+        "aggressive",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-bass-wobble-dub",
       "title": "Dub wobble",
       "subtitle": "Square LFO · driven LP24",
       "deviceType": "subtractive_synth",
-      "tags": ["bass", "wobble", "edm", "dark", "factory"]
+      "tags": [
+        "bass",
+        "wobble",
+        "edm",
+        "dark",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-bass-wobble-growl",
       "title": "Growl wobble",
       "subtitle": "Dual LFO · FM + cutoff",
       "deviceType": "subtractive_synth",
-      "tags": ["bass", "wobble", "aggressive", "factory"]
+      "tags": [
+        "bass",
+        "wobble",
+        "aggressive",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-bass-wobble-talk",
       "title": "Talk wobble",
       "subtitle": "Slow LFO · legato filter",
       "deviceType": "subtractive_synth",
-      "tags": ["bass", "wobble", "groovy", "factory"]
+      "tags": [
+        "bass",
+        "wobble",
+        "groovy",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-lead-saw",
       "title": "Saw lead",
       "subtitle": "Classic bright solo",
       "deviceType": "subtractive_synth",
-      "tags": ["lead", "bright", "factory"]
+      "tags": [
+        "lead",
+        "bright",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-lead-sync",
       "title": "Sync lead",
       "subtitle": "Hard sync · cutting",
       "deviceType": "subtractive_synth",
-      "tags": ["lead", "aggressive", "factory"]
+      "tags": [
+        "lead",
+        "aggressive",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-lead-silk",
       "title": "Silk lead",
       "subtitle": "Soft sine · slow attack",
       "deviceType": "subtractive_synth",
-      "tags": ["lead", "warm", "factory"]
+      "tags": [
+        "lead",
+        "warm",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-lead-wide",
       "title": "Wide lead",
       "subtitle": "Unison saws · glide",
       "deviceType": "subtractive_synth",
-      "tags": ["lead", "bright", "factory"]
+      "tags": [
+        "lead",
+        "bright",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-lead-bite",
       "title": "Bite lead",
       "subtitle": "Square · filter drive",
       "deviceType": "subtractive_synth",
-      "tags": ["lead", "aggressive", "factory"]
+      "tags": [
+        "lead",
+        "aggressive",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-lead-wobble",
       "title": "Wobble lead",
       "subtitle": "1/8 square · filter motion",
       "deviceType": "subtractive_synth",
-      "tags": ["lead", "wobble", "edm", "factory"]
+      "tags": [
+        "lead",
+        "wobble",
+        "edm",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-lead-siren",
       "title": "Siren lead",
       "subtitle": "Sync · sweeping LFO",
       "deviceType": "subtractive_synth",
-      "tags": ["lead", "wobble", "fx", "aggressive", "factory"]
+      "tags": [
+        "lead",
+        "wobble",
+        "fx",
+        "aggressive",
+        "factory"
+      ]
     },
     {
       "id": "preset:synth-fx-riser-noise",
       "title": "Noise riser",
       "subtitle": "LFO sweep · build FX",
       "deviceType": "subtractive_synth",
-      "tags": ["fx", "texture", "progressive", "factory"]
+      "tags": [
+        "fx",
+        "texture",
+        "progressive",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:808-kick",
+      "title": "808 · Kick",
+      "subtitle": "808 family · Kick",
+      "deviceType": "kick_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "808",
+        "edm",
+        "electro"
+      ]
+    },
+    {
+      "id": "preset:808-snare",
+      "title": "808 · Snare",
+      "subtitle": "808 family · Snare",
+      "deviceType": "snare_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "808",
+        "edm",
+        "electro"
+      ]
+    },
+    {
+      "id": "preset:808-clap",
+      "title": "808 · Clap",
+      "subtitle": "808 family · Clap",
+      "deviceType": "clap_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "808",
+        "edm",
+        "electro"
+      ]
+    },
+    {
+      "id": "preset:808-chh",
+      "title": "808 · Closed Hat",
+      "subtitle": "808 family · Closed Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "808",
+        "edm",
+        "electro"
+      ]
+    },
+    {
+      "id": "preset:808-ohh",
+      "title": "808 · Open Hat",
+      "subtitle": "808 family · Open Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "808",
+        "edm",
+        "electro"
+      ]
+    },
+    {
+      "id": "preset:808-rim",
+      "title": "808 · Rim",
+      "subtitle": "808 family · Rim",
+      "deviceType": "rimshot_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "808",
+        "edm",
+        "electro"
+      ]
+    },
+    {
+      "id": "preset:808-tomlo",
+      "title": "808 · Tom Lo",
+      "subtitle": "808 family · Tom Lo",
+      "deviceType": "tom_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "808",
+        "edm",
+        "electro"
+      ]
+    },
+    {
+      "id": "preset:808-tommid",
+      "title": "808 · Tom Mid",
+      "subtitle": "808 family · Tom Mid",
+      "deviceType": "tom_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "808",
+        "edm",
+        "electro"
+      ]
+    },
+    {
+      "id": "preset:808-tomhi",
+      "title": "808 · Tom Hi",
+      "subtitle": "808 family · Tom Hi",
+      "deviceType": "tom_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "808",
+        "edm",
+        "electro"
+      ]
+    },
+    {
+      "id": "preset:808-crash",
+      "title": "808 · Crash",
+      "subtitle": "808 family · Crash",
+      "deviceType": "crash_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "808",
+        "edm",
+        "electro"
+      ]
+    },
+    {
+      "id": "preset:909-kick",
+      "title": "909 · Kick",
+      "subtitle": "909 family · Kick",
+      "deviceType": "kick_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "909",
+        "house",
+        "techno"
+      ]
+    },
+    {
+      "id": "preset:909-snare",
+      "title": "909 · Snare",
+      "subtitle": "909 family · Snare",
+      "deviceType": "snare_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "909",
+        "house",
+        "techno"
+      ]
+    },
+    {
+      "id": "preset:909-clap",
+      "title": "909 · Clap",
+      "subtitle": "909 family · Clap",
+      "deviceType": "clap_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "909",
+        "house",
+        "techno"
+      ]
+    },
+    {
+      "id": "preset:909-chh",
+      "title": "909 · Closed Hat",
+      "subtitle": "909 family · Closed Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "909",
+        "house",
+        "techno"
+      ]
+    },
+    {
+      "id": "preset:909-ohh",
+      "title": "909 · Open Hat",
+      "subtitle": "909 family · Open Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "909",
+        "house",
+        "techno"
+      ]
+    },
+    {
+      "id": "preset:909-rim",
+      "title": "909 · Rim",
+      "subtitle": "909 family · Rim",
+      "deviceType": "rimshot_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "909",
+        "house",
+        "techno"
+      ]
+    },
+    {
+      "id": "preset:909-tomlo",
+      "title": "909 · Tom Lo",
+      "subtitle": "909 family · Tom Lo",
+      "deviceType": "tom_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "909",
+        "house",
+        "techno"
+      ]
+    },
+    {
+      "id": "preset:909-tommid",
+      "title": "909 · Tom Mid",
+      "subtitle": "909 family · Tom Mid",
+      "deviceType": "tom_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "909",
+        "house",
+        "techno"
+      ]
+    },
+    {
+      "id": "preset:909-tomhi",
+      "title": "909 · Tom Hi",
+      "subtitle": "909 family · Tom Hi",
+      "deviceType": "tom_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "909",
+        "house",
+        "techno"
+      ]
+    },
+    {
+      "id": "preset:909-ride",
+      "title": "909 · Ride",
+      "subtitle": "909 family · Ride",
+      "deviceType": "ride_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "909",
+        "house",
+        "techno"
+      ]
+    },
+    {
+      "id": "preset:909-crash",
+      "title": "909 · Crash",
+      "subtitle": "909 family · Crash",
+      "deviceType": "crash_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "909",
+        "house",
+        "techno"
+      ]
+    },
+    {
+      "id": "preset:electro-kick",
+      "title": "Electro · Kick",
+      "subtitle": "Electro family · Kick",
+      "deviceType": "kick_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "electro"
+      ]
+    },
+    {
+      "id": "preset:electro-snare",
+      "title": "Electro · Snare",
+      "subtitle": "Electro family · Snare",
+      "deviceType": "snare_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "electro"
+      ]
+    },
+    {
+      "id": "preset:electro-clap",
+      "title": "Electro · Clap",
+      "subtitle": "Electro family · Clap",
+      "deviceType": "clap_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "electro"
+      ]
+    },
+    {
+      "id": "preset:electro-chh",
+      "title": "Electro · Closed Hat",
+      "subtitle": "Electro family · Closed Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "electro"
+      ]
+    },
+    {
+      "id": "preset:electro-ohh",
+      "title": "Electro · Open Hat",
+      "subtitle": "Electro family · Open Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "electro"
+      ]
+    },
+    {
+      "id": "preset:electro-rim",
+      "title": "Electro · Rim",
+      "subtitle": "Electro family · Rim",
+      "deviceType": "rimshot_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "electro"
+      ]
+    },
+    {
+      "id": "preset:electro-tommid",
+      "title": "Electro · Tom Mid",
+      "subtitle": "Electro family · Tom Mid",
+      "deviceType": "tom_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "electro"
+      ]
+    },
+    {
+      "id": "preset:electro-crash",
+      "title": "Electro · Crash",
+      "subtitle": "Electro family · Crash",
+      "deviceType": "crash_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "electro"
+      ]
+    },
+    {
+      "id": "preset:trap-kick",
+      "title": "Trap · Kick",
+      "subtitle": "Trap family · Kick",
+      "deviceType": "kick_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "trap"
+      ]
+    },
+    {
+      "id": "preset:trap-snare",
+      "title": "Trap · Snare",
+      "subtitle": "Trap family · Snare",
+      "deviceType": "snare_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "trap"
+      ]
+    },
+    {
+      "id": "preset:trap-clap",
+      "title": "Trap · Clap",
+      "subtitle": "Trap family · Clap",
+      "deviceType": "clap_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "trap"
+      ]
+    },
+    {
+      "id": "preset:trap-chh",
+      "title": "Trap · Closed Hat",
+      "subtitle": "Trap family · Closed Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "trap"
+      ]
+    },
+    {
+      "id": "preset:trap-ohh",
+      "title": "Trap · Open Hat",
+      "subtitle": "Trap family · Open Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "trap"
+      ]
+    },
+    {
+      "id": "preset:trap-rim",
+      "title": "Trap · Rim",
+      "subtitle": "Trap family · Rim",
+      "deviceType": "rimshot_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "trap"
+      ]
+    },
+    {
+      "id": "preset:trap-tomlo",
+      "title": "Trap · Tom Lo",
+      "subtitle": "Trap family · Tom Lo",
+      "deviceType": "tom_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "trap"
+      ]
+    },
+    {
+      "id": "preset:boombap-kick",
+      "title": "Boom Bap · Kick",
+      "subtitle": "Boom Bap family · Kick",
+      "deviceType": "kick_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "boombap",
+        "hiphop",
+        "lofi"
+      ]
+    },
+    {
+      "id": "preset:boombap-snare",
+      "title": "Boom Bap · Snare",
+      "subtitle": "Boom Bap family · Snare",
+      "deviceType": "snare_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "boombap",
+        "hiphop",
+        "lofi"
+      ]
+    },
+    {
+      "id": "preset:boombap-rim",
+      "title": "Boom Bap · Rim",
+      "subtitle": "Boom Bap family · Rim",
+      "deviceType": "rimshot_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "boombap",
+        "hiphop",
+        "lofi"
+      ]
+    },
+    {
+      "id": "preset:boombap-chh",
+      "title": "Boom Bap · Closed Hat",
+      "subtitle": "Boom Bap family · Closed Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "boombap",
+        "hiphop",
+        "lofi"
+      ]
+    },
+    {
+      "id": "preset:boombap-ohh",
+      "title": "Boom Bap · Open Hat",
+      "subtitle": "Boom Bap family · Open Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "boombap",
+        "hiphop",
+        "lofi"
+      ]
+    },
+    {
+      "id": "preset:boombap-tomlo",
+      "title": "Boom Bap · Tom Lo",
+      "subtitle": "Boom Bap family · Tom Lo",
+      "deviceType": "tom_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "boombap",
+        "hiphop",
+        "lofi"
+      ]
+    },
+    {
+      "id": "preset:boombap-tommid",
+      "title": "Boom Bap · Tom Mid",
+      "subtitle": "Boom Bap family · Tom Mid",
+      "deviceType": "tom_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "boombap",
+        "hiphop",
+        "lofi"
+      ]
+    },
+    {
+      "id": "preset:house-kick",
+      "title": "House · Kick",
+      "subtitle": "House family · Kick",
+      "deviceType": "kick_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "house"
+      ]
+    },
+    {
+      "id": "preset:house-snare",
+      "title": "House · Snare",
+      "subtitle": "House family · Snare",
+      "deviceType": "snare_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "house"
+      ]
+    },
+    {
+      "id": "preset:house-clap",
+      "title": "House · Clap",
+      "subtitle": "House family · Clap",
+      "deviceType": "clap_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "house"
+      ]
+    },
+    {
+      "id": "preset:house-chh",
+      "title": "House · Closed Hat",
+      "subtitle": "House family · Closed Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "house"
+      ]
+    },
+    {
+      "id": "preset:house-ohh",
+      "title": "House · Open Hat",
+      "subtitle": "House family · Open Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "house"
+      ]
+    },
+    {
+      "id": "preset:house-ride",
+      "title": "House · Ride",
+      "subtitle": "House family · Ride",
+      "deviceType": "ride_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "house"
+      ]
+    },
+    {
+      "id": "preset:house-crash",
+      "title": "House · Crash",
+      "subtitle": "House family · Crash",
+      "deviceType": "crash_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "house"
+      ]
+    },
+    {
+      "id": "preset:techno-kick",
+      "title": "Techno · Kick",
+      "subtitle": "Techno family · Kick",
+      "deviceType": "kick_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "techno",
+        "dark"
+      ]
+    },
+    {
+      "id": "preset:techno-snare",
+      "title": "Techno · Snare",
+      "subtitle": "Techno family · Snare",
+      "deviceType": "snare_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "techno",
+        "dark"
+      ]
+    },
+    {
+      "id": "preset:techno-chh",
+      "title": "Techno · Closed Hat",
+      "subtitle": "Techno family · Closed Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "techno",
+        "dark"
+      ]
+    },
+    {
+      "id": "preset:techno-ohh",
+      "title": "Techno · Open Hat",
+      "subtitle": "Techno family · Open Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "techno",
+        "dark"
+      ]
+    },
+    {
+      "id": "preset:techno-rim",
+      "title": "Techno · Rim",
+      "subtitle": "Techno family · Rim",
+      "deviceType": "rimshot_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "techno",
+        "dark"
+      ]
+    },
+    {
+      "id": "preset:techno-ride",
+      "title": "Techno · Ride",
+      "subtitle": "Techno family · Ride",
+      "deviceType": "ride_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "techno",
+        "dark"
+      ]
+    },
+    {
+      "id": "preset:techno-crash",
+      "title": "Techno · Crash",
+      "subtitle": "Techno family · Crash",
+      "deviceType": "crash_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "techno",
+        "dark"
+      ]
+    },
+    {
+      "id": "preset:pop-kick",
+      "title": "Pop · Kick",
+      "subtitle": "Pop family · Kick",
+      "deviceType": "kick_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "pop",
+        "clean"
+      ]
+    },
+    {
+      "id": "preset:pop-snare",
+      "title": "Pop · Snare",
+      "subtitle": "Pop family · Snare",
+      "deviceType": "snare_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "pop",
+        "clean"
+      ]
+    },
+    {
+      "id": "preset:pop-clap",
+      "title": "Pop · Clap",
+      "subtitle": "Pop family · Clap",
+      "deviceType": "clap_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "pop",
+        "clean"
+      ]
+    },
+    {
+      "id": "preset:pop-chh",
+      "title": "Pop · Closed Hat",
+      "subtitle": "Pop family · Closed Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "pop",
+        "clean"
+      ]
+    },
+    {
+      "id": "preset:pop-ohh",
+      "title": "Pop · Open Hat",
+      "subtitle": "Pop family · Open Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "pop",
+        "clean"
+      ]
+    },
+    {
+      "id": "preset:pop-rim",
+      "title": "Pop · Rim",
+      "subtitle": "Pop family · Rim",
+      "deviceType": "rimshot_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "pop",
+        "clean"
+      ]
+    },
+    {
+      "id": "preset:pop-tommid",
+      "title": "Pop · Tom Mid",
+      "subtitle": "Pop family · Tom Mid",
+      "deviceType": "tom_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "pop",
+        "clean"
+      ]
+    },
+    {
+      "id": "preset:pop-crash",
+      "title": "Pop · Crash",
+      "subtitle": "Pop family · Crash",
+      "deviceType": "crash_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "pop",
+        "clean"
+      ]
+    },
+    {
+      "id": "preset:rnb-kick",
+      "title": "R&B · Kick",
+      "subtitle": "R&B family · Kick",
+      "deviceType": "kick_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "rnb"
+      ]
+    },
+    {
+      "id": "preset:rnb-snare",
+      "title": "R&B · Snare",
+      "subtitle": "R&B family · Snare",
+      "deviceType": "snare_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "rnb"
+      ]
+    },
+    {
+      "id": "preset:rnb-rim",
+      "title": "R&B · Rim",
+      "subtitle": "R&B family · Rim",
+      "deviceType": "rimshot_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "rnb"
+      ]
+    },
+    {
+      "id": "preset:rnb-chh",
+      "title": "R&B · Closed Hat",
+      "subtitle": "R&B family · Closed Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "rnb"
+      ]
+    },
+    {
+      "id": "preset:rnb-ohh",
+      "title": "R&B · Open Hat",
+      "subtitle": "R&B family · Open Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "rnb"
+      ]
+    },
+    {
+      "id": "preset:rnb-clap",
+      "title": "R&B · Clap",
+      "subtitle": "R&B family · Clap",
+      "deviceType": "clap_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "rnb"
+      ]
+    },
+    {
+      "id": "preset:rnb-tomlo",
+      "title": "R&B · Tom Lo",
+      "subtitle": "R&B family · Tom Lo",
+      "deviceType": "tom_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "rnb"
+      ]
+    },
+    {
+      "id": "preset:reggae-kick",
+      "title": "Reggae · Kick",
+      "subtitle": "Reggae family · Kick",
+      "deviceType": "kick_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "reggae"
+      ]
+    },
+    {
+      "id": "preset:reggae-snare",
+      "title": "Reggae · Snare",
+      "subtitle": "Reggae family · Snare",
+      "deviceType": "snare_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "reggae"
+      ]
+    },
+    {
+      "id": "preset:reggae-rim",
+      "title": "Reggae · Rim",
+      "subtitle": "Reggae family · Rim",
+      "deviceType": "rimshot_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "reggae"
+      ]
+    },
+    {
+      "id": "preset:reggae-chh",
+      "title": "Reggae · Closed Hat",
+      "subtitle": "Reggae family · Closed Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "reggae"
+      ]
+    },
+    {
+      "id": "preset:reggae-ohh",
+      "title": "Reggae · Open Hat",
+      "subtitle": "Reggae family · Open Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "reggae"
+      ]
+    },
+    {
+      "id": "preset:rock-kick",
+      "title": "Rock · Kick",
+      "subtitle": "Rock family · Kick",
+      "deviceType": "kick_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "rock"
+      ]
+    },
+    {
+      "id": "preset:rock-snare",
+      "title": "Rock · Snare",
+      "subtitle": "Rock family · Snare",
+      "deviceType": "snare_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "rock"
+      ]
+    },
+    {
+      "id": "preset:rock-rim",
+      "title": "Rock · Rim",
+      "subtitle": "Rock family · Rim",
+      "deviceType": "rimshot_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "rock"
+      ]
+    },
+    {
+      "id": "preset:rock-chh",
+      "title": "Rock · Closed Hat",
+      "subtitle": "Rock family · Closed Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "rock"
+      ]
+    },
+    {
+      "id": "preset:rock-ohh",
+      "title": "Rock · Open Hat",
+      "subtitle": "Rock family · Open Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "rock"
+      ]
+    },
+    {
+      "id": "preset:rock-tomlo",
+      "title": "Rock · Tom Lo",
+      "subtitle": "Rock family · Tom Lo",
+      "deviceType": "tom_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "rock"
+      ]
+    },
+    {
+      "id": "preset:rock-tommid",
+      "title": "Rock · Tom Mid",
+      "subtitle": "Rock family · Tom Mid",
+      "deviceType": "tom_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "rock"
+      ]
+    },
+    {
+      "id": "preset:rock-tomhi",
+      "title": "Rock · Tom Hi",
+      "subtitle": "Rock family · Tom Hi",
+      "deviceType": "tom_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "rock"
+      ]
+    },
+    {
+      "id": "preset:rock-ride",
+      "title": "Rock · Ride",
+      "subtitle": "Rock family · Ride",
+      "deviceType": "ride_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "rock"
+      ]
+    },
+    {
+      "id": "preset:rock-crash",
+      "title": "Rock · Crash",
+      "subtitle": "Rock family · Crash",
+      "deviceType": "crash_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "rock"
+      ]
+    },
+    {
+      "id": "preset:breakbeat-kick",
+      "title": "Breakbeat · Kick",
+      "subtitle": "Breakbeat family · Kick",
+      "deviceType": "kick_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "preset:breakbeat-snare",
+      "title": "Breakbeat · Snare",
+      "subtitle": "Breakbeat family · Snare",
+      "deviceType": "snare_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "preset:breakbeat-rim",
+      "title": "Breakbeat · Rim",
+      "subtitle": "Breakbeat family · Rim",
+      "deviceType": "rimshot_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "preset:breakbeat-chh",
+      "title": "Breakbeat · Closed Hat",
+      "subtitle": "Breakbeat family · Closed Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "preset:breakbeat-ohh",
+      "title": "Breakbeat · Open Hat",
+      "subtitle": "Breakbeat family · Open Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "preset:breakbeat-tomlo",
+      "title": "Breakbeat · Tom Lo",
+      "subtitle": "Breakbeat family · Tom Lo",
+      "deviceType": "tom_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "preset:breakbeat-tomhi",
+      "title": "Breakbeat · Tom Hi",
+      "subtitle": "Breakbeat family · Tom Hi",
+      "deviceType": "tom_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "preset:breakbeat-crash",
+      "title": "Breakbeat · Crash",
+      "subtitle": "Breakbeat family · Crash",
+      "deviceType": "crash_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "preset:disco-kick",
+      "title": "Disco · Kick",
+      "subtitle": "Disco family · Kick",
+      "deviceType": "kick_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "disco",
+        "funk"
+      ]
+    },
+    {
+      "id": "preset:disco-snare",
+      "title": "Disco · Snare",
+      "subtitle": "Disco family · Snare",
+      "deviceType": "snare_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "disco",
+        "funk"
+      ]
+    },
+    {
+      "id": "preset:disco-clap",
+      "title": "Disco · Clap",
+      "subtitle": "Disco family · Clap",
+      "deviceType": "clap_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "disco",
+        "funk"
+      ]
+    },
+    {
+      "id": "preset:disco-chh",
+      "title": "Disco · Closed Hat",
+      "subtitle": "Disco family · Closed Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "disco",
+        "funk"
+      ]
+    },
+    {
+      "id": "preset:disco-ohh",
+      "title": "Disco · Open Hat",
+      "subtitle": "Disco family · Open Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "disco",
+        "funk"
+      ]
+    },
+    {
+      "id": "preset:disco-ride",
+      "title": "Disco · Ride",
+      "subtitle": "Disco family · Ride",
+      "deviceType": "ride_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "disco",
+        "funk"
+      ]
+    },
+    {
+      "id": "preset:dnb-kick",
+      "title": "DnB · Kick",
+      "subtitle": "DnB family · Kick",
+      "deviceType": "kick_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "dnb"
+      ]
+    },
+    {
+      "id": "preset:dnb-snare",
+      "title": "DnB · Snare",
+      "subtitle": "DnB family · Snare",
+      "deviceType": "snare_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "dnb"
+      ]
+    },
+    {
+      "id": "preset:dnb-chh",
+      "title": "DnB · Closed Hat",
+      "subtitle": "DnB family · Closed Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "dnb"
+      ]
+    },
+    {
+      "id": "preset:dnb-ohh",
+      "title": "DnB · Open Hat",
+      "subtitle": "DnB family · Open Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "dnb"
+      ]
+    },
+    {
+      "id": "preset:dnb-rim",
+      "title": "DnB · Rim",
+      "subtitle": "DnB family · Rim",
+      "deviceType": "rimshot_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "dnb"
+      ]
+    },
+    {
+      "id": "preset:dnb-crash",
+      "title": "DnB · Crash",
+      "subtitle": "DnB family · Crash",
+      "deviceType": "crash_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "dnb"
+      ]
+    },
+    {
+      "id": "preset:ambient-kick",
+      "title": "Ambient · Kick",
+      "subtitle": "Ambient family · Kick",
+      "deviceType": "kick_generator",
+      "tags": [
+        "factory",
+        "kick",
+        "ambient"
+      ]
+    },
+    {
+      "id": "preset:ambient-snare",
+      "title": "Ambient · Snare",
+      "subtitle": "Ambient family · Snare",
+      "deviceType": "snare_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "ambient"
+      ]
+    },
+    {
+      "id": "preset:ambient-chh",
+      "title": "Ambient · Closed Hat",
+      "subtitle": "Ambient family · Closed Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "ambient"
+      ]
+    },
+    {
+      "id": "preset:ambient-ohh",
+      "title": "Ambient · Open Hat",
+      "subtitle": "Ambient family · Open Hat",
+      "deviceType": "hihat_generator",
+      "tags": [
+        "factory",
+        "fx",
+        "ambient"
+      ]
+    },
+    {
+      "id": "preset:ambient-rim",
+      "title": "Ambient · Rim",
+      "subtitle": "Ambient family · Rim",
+      "deviceType": "rimshot_generator",
+      "tags": [
+        "factory",
+        "snare",
+        "ambient"
+      ]
+    },
+    {
+      "id": "preset:kit-808",
+      "title": "808 · Kit",
+      "subtitle": "808 drum machine · family voices",
+      "deviceType": "drum_machine",
+      "tags": [
+        "factory",
+        "drums",
+        "808",
+        "edm",
+        "electro"
+      ]
+    },
+    {
+      "id": "preset:kit-909",
+      "title": "909 · Kit",
+      "subtitle": "909 drum machine · family voices",
+      "deviceType": "drum_machine",
+      "tags": [
+        "factory",
+        "drums",
+        "909",
+        "house",
+        "techno"
+      ]
+    },
+    {
+      "id": "preset:kit-electro",
+      "title": "Electro · Kit",
+      "subtitle": "Electro drum machine · family voices",
+      "deviceType": "drum_machine",
+      "tags": [
+        "factory",
+        "drums",
+        "electro"
+      ]
+    },
+    {
+      "id": "preset:kit-trap",
+      "title": "Trap · Kit",
+      "subtitle": "Trap drum machine · family voices",
+      "deviceType": "drum_machine",
+      "tags": [
+        "factory",
+        "drums",
+        "trap"
+      ]
+    },
+    {
+      "id": "preset:kit-boombap",
+      "title": "Boom Bap · Kit",
+      "subtitle": "Boom Bap drum machine · family voices",
+      "deviceType": "drum_machine",
+      "tags": [
+        "factory",
+        "drums",
+        "boombap",
+        "hiphop",
+        "lofi"
+      ]
+    },
+    {
+      "id": "preset:kit-house",
+      "title": "House · Kit",
+      "subtitle": "House drum machine · family voices",
+      "deviceType": "drum_machine",
+      "tags": [
+        "factory",
+        "drums",
+        "house"
+      ]
+    },
+    {
+      "id": "preset:kit-techno",
+      "title": "Techno · Kit",
+      "subtitle": "Techno drum machine · family voices",
+      "deviceType": "drum_machine",
+      "tags": [
+        "factory",
+        "drums",
+        "techno",
+        "dark"
+      ]
+    },
+    {
+      "id": "preset:kit-pop",
+      "title": "Pop · Kit",
+      "subtitle": "Pop drum machine · family voices",
+      "deviceType": "drum_machine",
+      "tags": [
+        "factory",
+        "drums",
+        "pop",
+        "clean"
+      ]
+    },
+    {
+      "id": "preset:kit-rnb",
+      "title": "R&B · Kit",
+      "subtitle": "R&B drum machine · family voices",
+      "deviceType": "drum_machine",
+      "tags": [
+        "factory",
+        "drums",
+        "rnb"
+      ]
+    },
+    {
+      "id": "preset:kit-reggae",
+      "title": "Reggae · Kit",
+      "subtitle": "Reggae drum machine · family voices",
+      "deviceType": "drum_machine",
+      "tags": [
+        "factory",
+        "drums",
+        "reggae"
+      ]
+    },
+    {
+      "id": "preset:kit-rock",
+      "title": "Rock · Kit",
+      "subtitle": "Rock drum machine · family voices",
+      "deviceType": "drum_machine",
+      "tags": [
+        "factory",
+        "drums",
+        "rock"
+      ]
+    },
+    {
+      "id": "preset:kit-breakbeat",
+      "title": "Breakbeat · Kit",
+      "subtitle": "Breakbeat drum machine · family voices",
+      "deviceType": "drum_machine",
+      "tags": [
+        "factory",
+        "drums",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "preset:kit-disco",
+      "title": "Disco · Kit",
+      "subtitle": "Disco drum machine · family voices",
+      "deviceType": "drum_machine",
+      "tags": [
+        "factory",
+        "drums",
+        "disco",
+        "funk"
+      ]
+    },
+    {
+      "id": "preset:kit-dnb",
+      "title": "DnB · Kit",
+      "subtitle": "DnB drum machine · family voices",
+      "deviceType": "drum_machine",
+      "tags": [
+        "factory",
+        "drums",
+        "dnb"
+      ]
+    },
+    {
+      "id": "preset:kit-ambient",
+      "title": "Ambient · Kit",
+      "subtitle": "Ambient drum machine · family voices",
+      "deviceType": "drum_machine",
+      "tags": [
+        "factory",
+        "drums",
+        "ambient"
+      ]
     }
   ],
   "midiClips": [
-    {"id": "midi:edm-bass-offbeat", "title": "Offbeat drive", "subtitle": "EDM · 4 bars · 16 notes", "patternId": "edm-bass-offbeat", "tags": ["bass", "edm", "groovy", "factory"]},
-    {"id": "midi:edm-bass-fourfloor", "title": "Four-on-floor", "subtitle": "EDM · 4 bars · pumping root", "patternId": "edm-bass-fourfloor", "tags": ["bass", "edm", "groovy", "factory"]},
-    {"id": "midi:dnb-bass-roller", "title": "DnB roller", "subtitle": "Drum & bass · 16th bass roll", "patternId": "dnb-bass-roller", "tags": ["bass", "dnb", "groovy", "factory"]},
-    {"id": "midi:dnb-bass-jumpup", "title": "Jump-up stabs", "subtitle": "Drum & bass · syncopated hits", "patternId": "dnb-bass-jumpup", "tags": ["bass", "dnb", "groovy", "factory"]},
-    {"id": "midi:edm-dnb-groove", "title": "Half-time sway", "subtitle": "EDM/DnB · halftime groove", "patternId": "edm-dnb-groove", "tags": ["bass", "edm", "dnb", "groovy", "factory"]},
-    {"id": "midi:prog-chords-cycle", "title": "Cycle stabs", "subtitle": "Progressive · Am-F-C-G", "patternId": "prog-chords-cycle", "tags": ["lead", "chords", "progressive", "factory"]},
-    {"id": "midi:prog-chords-uplift", "title": "Uplift chords", "subtitle": "Progressive · emotional lift", "patternId": "prog-chords-uplift", "tags": ["lead", "chords", "progressive", "factory"]},
-    {"id": "midi:prog-chords-sparse", "title": "Sparse pads-to-lead", "subtitle": "Progressive · wide spacing", "patternId": "prog-chords-sparse", "tags": ["lead", "chords", "progressive", "factory"]},
-    {"id": "midi:prog-chords-rhythm", "title": "Rhythm stabs", "subtitle": "Progressive · 8th chord hits", "patternId": "prog-chords-rhythm", "tags": ["lead", "chords", "progressive", "factory"]},
-    {"id": "midi:prog-chords-wide", "title": "Wide voicings", "subtitle": "Progressive · open chord stack", "patternId": "prog-chords-wide", "tags": ["lead", "chords", "progressive", "factory"]},
-    {"id": "midi:pad-am-warm", "title": "Warm Am pad", "subtitle": "Pad · 4-bar progression", "patternId": "pad-am-warm", "tags": ["pad", "warm", "factory"]},
-    {"id": "midi:pad-fm7-stack", "title": "FM7 stack", "subtitle": "Pad · layered sevenths", "patternId": "pad-fm7-stack", "tags": ["pad", "bright", "factory"]},
-    {"id": "midi:pad-dm-emotional", "title": "Emotional Dm", "subtitle": "Pad · minor wash", "patternId": "pad-dm-emotional", "tags": ["pad", "dark", "factory"]},
-    {"id": "midi:pad-epic-rise", "title": "Epic rise", "subtitle": "Pad · building chords", "patternId": "pad-epic-rise", "tags": ["pad", "progressive", "factory"]},
-    {"id": "midi:pad-ambient-cluster", "title": "Ambient cluster", "subtitle": "Pad · dense held stack", "patternId": "pad-ambient-cluster", "tags": ["pad", "texture", "factory"]},
-    {"id": "midi:edm-melody-anthem", "title": "Anthem lead", "subtitle": "EDM · festival topline", "patternId": "edm-melody-anthem", "tags": ["lead", "melody", "edm", "factory"]},
-    {"id": "midi:edm-melody-hook-a", "title": "Hook A", "subtitle": "EDM · catchy 4-bar hook", "patternId": "edm-melody-hook-a", "tags": ["lead", "melody", "edm", "factory"]},
-    {"id": "midi:edm-melody-hook-b", "title": "Hook B", "subtitle": "EDM · higher register hook", "patternId": "edm-melody-hook-b", "tags": ["lead", "melody", "edm", "factory"]},
-    {"id": "midi:edm-melody-arpeggio", "title": "Arp lead", "subtitle": "EDM · rising arpeggio", "patternId": "edm-melody-arpeggio", "tags": ["lead", "melody", "edm", "factory"]},
-    {"id": "midi:edm-melody-drop", "title": "Drop lead", "subtitle": "EDM · 2-bar drop line", "patternId": "edm-melody-drop", "tags": ["lead", "melody", "edm", "aggressive", "factory"]},
-    {"id": "midi:edm-melody-pluck", "title": "Pluck melody", "subtitle": "EDM · short pluck line", "patternId": "edm-melody-pluck", "tags": ["lead", "melody", "pluck", "edm", "factory"]},
-    {"id": "midi:edm-melody-festival", "title": "Festival lead", "subtitle": "EDM · big-room line", "patternId": "edm-melody-festival", "tags": ["lead", "melody", "edm", "bright", "factory"]},
-    {"id": "midi:edm-melody-night", "title": "Night drive", "subtitle": "EDM · darker minor line", "patternId": "edm-melody-night", "tags": ["lead", "melody", "edm", "dark", "factory"]},
-    {"id": "midi:edm-melody-rise", "title": "Rising lead", "subtitle": "EDM · build-up melody", "patternId": "edm-melody-rise", "tags": ["lead", "melody", "edm", "progressive", "factory"]},
-    {"id": "midi:edm-melody-chant", "title": "Chant motif", "subtitle": "EDM · rhythmic repeat", "patternId": "edm-melody-chant", "tags": ["lead", "melody", "edm", "groovy", "factory"]}
+    {
+      "id": "midi:edm-bass-offbeat",
+      "title": "Offbeat drive",
+      "subtitle": "EDM · 4 bars · 16 notes",
+      "patternId": "edm-bass-offbeat",
+      "tags": [
+        "bass",
+        "edm",
+        "groovy",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:edm-bass-fourfloor",
+      "title": "Four-on-floor",
+      "subtitle": "EDM · 4 bars · pumping root",
+      "patternId": "edm-bass-fourfloor",
+      "tags": [
+        "bass",
+        "edm",
+        "groovy",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:dnb-bass-roller",
+      "title": "DnB roller",
+      "subtitle": "Drum & bass · 16th bass roll",
+      "patternId": "dnb-bass-roller",
+      "tags": [
+        "bass",
+        "dnb",
+        "groovy",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:dnb-bass-jumpup",
+      "title": "Jump-up stabs",
+      "subtitle": "Drum & bass · syncopated hits",
+      "patternId": "dnb-bass-jumpup",
+      "tags": [
+        "bass",
+        "dnb",
+        "groovy",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:edm-dnb-groove",
+      "title": "Half-time sway",
+      "subtitle": "EDM/DnB · halftime groove",
+      "patternId": "edm-dnb-groove",
+      "tags": [
+        "bass",
+        "edm",
+        "dnb",
+        "groovy",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:prog-chords-cycle",
+      "title": "Cycle stabs",
+      "subtitle": "Progressive · Am-F-C-G",
+      "patternId": "prog-chords-cycle",
+      "tags": [
+        "lead",
+        "chords",
+        "progressive",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:prog-chords-uplift",
+      "title": "Uplift chords",
+      "subtitle": "Progressive · emotional lift",
+      "patternId": "prog-chords-uplift",
+      "tags": [
+        "lead",
+        "chords",
+        "progressive",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:prog-chords-sparse",
+      "title": "Sparse pads-to-lead",
+      "subtitle": "Progressive · wide spacing",
+      "patternId": "prog-chords-sparse",
+      "tags": [
+        "lead",
+        "chords",
+        "progressive",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:prog-chords-rhythm",
+      "title": "Rhythm stabs",
+      "subtitle": "Progressive · 8th chord hits",
+      "patternId": "prog-chords-rhythm",
+      "tags": [
+        "lead",
+        "chords",
+        "progressive",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:prog-chords-wide",
+      "title": "Wide voicings",
+      "subtitle": "Progressive · open chord stack",
+      "patternId": "prog-chords-wide",
+      "tags": [
+        "lead",
+        "chords",
+        "progressive",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:pad-am-warm",
+      "title": "Warm Am pad",
+      "subtitle": "Pad · 4-bar progression",
+      "patternId": "pad-am-warm",
+      "tags": [
+        "pad",
+        "warm",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:pad-fm7-stack",
+      "title": "FM7 stack",
+      "subtitle": "Pad · layered sevenths",
+      "patternId": "pad-fm7-stack",
+      "tags": [
+        "pad",
+        "bright",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:pad-dm-emotional",
+      "title": "Emotional Dm",
+      "subtitle": "Pad · minor wash",
+      "patternId": "pad-dm-emotional",
+      "tags": [
+        "pad",
+        "dark",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:pad-epic-rise",
+      "title": "Epic rise",
+      "subtitle": "Pad · building chords",
+      "patternId": "pad-epic-rise",
+      "tags": [
+        "pad",
+        "progressive",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:pad-ambient-cluster",
+      "title": "Ambient cluster",
+      "subtitle": "Pad · dense held stack",
+      "patternId": "pad-ambient-cluster",
+      "tags": [
+        "pad",
+        "texture",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:edm-melody-anthem",
+      "title": "Anthem lead",
+      "subtitle": "EDM · festival topline",
+      "patternId": "edm-melody-anthem",
+      "tags": [
+        "lead",
+        "melody",
+        "edm",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:edm-melody-hook-a",
+      "title": "Hook A",
+      "subtitle": "EDM · catchy 4-bar hook",
+      "patternId": "edm-melody-hook-a",
+      "tags": [
+        "lead",
+        "melody",
+        "edm",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:edm-melody-hook-b",
+      "title": "Hook B",
+      "subtitle": "EDM · higher register hook",
+      "patternId": "edm-melody-hook-b",
+      "tags": [
+        "lead",
+        "melody",
+        "edm",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:edm-melody-arpeggio",
+      "title": "Arp lead",
+      "subtitle": "EDM · rising arpeggio",
+      "patternId": "edm-melody-arpeggio",
+      "tags": [
+        "lead",
+        "melody",
+        "edm",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:edm-melody-drop",
+      "title": "Drop lead",
+      "subtitle": "EDM · 2-bar drop line",
+      "patternId": "edm-melody-drop",
+      "tags": [
+        "lead",
+        "melody",
+        "edm",
+        "aggressive",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:edm-melody-pluck",
+      "title": "Pluck melody",
+      "subtitle": "EDM · short pluck line",
+      "patternId": "edm-melody-pluck",
+      "tags": [
+        "lead",
+        "melody",
+        "pluck",
+        "edm",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:edm-melody-festival",
+      "title": "Festival lead",
+      "subtitle": "EDM · big-room line",
+      "patternId": "edm-melody-festival",
+      "tags": [
+        "lead",
+        "melody",
+        "edm",
+        "bright",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:edm-melody-night",
+      "title": "Night drive",
+      "subtitle": "EDM · darker minor line",
+      "patternId": "edm-melody-night",
+      "tags": [
+        "lead",
+        "melody",
+        "edm",
+        "dark",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:edm-melody-rise",
+      "title": "Rising lead",
+      "subtitle": "EDM · build-up melody",
+      "patternId": "edm-melody-rise",
+      "tags": [
+        "lead",
+        "melody",
+        "edm",
+        "progressive",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:edm-melody-chant",
+      "title": "Chant motif",
+      "subtitle": "EDM · rhythmic repeat",
+      "patternId": "edm-melody-chant",
+      "tags": [
+        "lead",
+        "melody",
+        "edm",
+        "groovy",
+        "factory"
+      ]
+    },
+    {
+      "id": "midi:drum-ambient-brush-feel",
+      "title": "Brush / Soft Hat Bed",
+      "subtitle": "Ambient - 72 BPM - 1 bar - light swing",
+      "patternId": "ambient-brush-feel",
+      "tags": [
+        "drums",
+        "factory",
+        "ambient"
+      ]
+    },
+    {
+      "id": "midi:drum-ambient-half-perc",
+      "title": "Half Perc Cycle",
+      "subtitle": "Ambient - 100 BPM - 2 bars",
+      "patternId": "ambient-half-perc",
+      "tags": [
+        "drums",
+        "factory",
+        "ambient"
+      ]
+    },
+    {
+      "id": "midi:drum-ambient-no-kick",
+      "title": "Hats Only Cloud",
+      "subtitle": "Ambient - 90 BPM - 1 bar",
+      "patternId": "ambient-no-kick",
+      "tags": [
+        "drums",
+        "factory",
+        "ambient"
+      ]
+    },
+    {
+      "id": "midi:drum-ambient-soft-pulse",
+      "title": "Soft Pulse",
+      "subtitle": "Ambient - 70 BPM - 1 bar",
+      "patternId": "ambient-soft-pulse",
+      "tags": [
+        "drums",
+        "factory",
+        "ambient"
+      ]
+    },
+    {
+      "id": "midi:drum-ambient-sparse-kick",
+      "title": "Ambient Sparse Kick",
+      "subtitle": "Ambient - 80 BPM - 2 bars",
+      "patternId": "ambient-sparse-kick",
+      "tags": [
+        "drums",
+        "factory",
+        "ambient"
+      ]
+    },
+    {
+      "id": "midi:drum-ambient-triphop-dust",
+      "title": "Trip-Hop Dust",
+      "subtitle": "Ambient - 80 BPM - 1 bar - heavy swing",
+      "patternId": "ambient-triphop-dust",
+      "tags": [
+        "drums",
+        "factory",
+        "ambient"
+      ]
+    },
+    {
+      "id": "midi:drum-breakbeat-2step-break",
+      "title": "2-Step Break",
+      "subtitle": "Breakbeat - 132 BPM - 1 bar - medium swing",
+      "patternId": "breakbeat-2step-break",
+      "tags": [
+        "drums",
+        "factory",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "midi:drum-breakbeat-amen-bar3",
+      "title": "Amen Skeleton Bar 3",
+      "subtitle": "Breakbeat - 136 BPM - 1 bar - light swing",
+      "patternId": "breakbeat-amen-bar3",
+      "tags": [
+        "drums",
+        "factory",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "midi:drum-breakbeat-amen-bar4",
+      "title": "Amen Skeleton Bar 4",
+      "subtitle": "Breakbeat - 136 BPM - 1 bar - light swing",
+      "patternId": "breakbeat-amen-bar4",
+      "tags": [
+        "drums",
+        "factory",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "midi:drum-breakbeat-amen-bars12",
+      "title": "Amen Skeleton Bars 1–2",
+      "subtitle": "Breakbeat - 136 BPM - 1 bar - light swing",
+      "patternId": "breakbeat-amen-bars12",
+      "tags": [
+        "drums",
+        "factory",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "midi:drum-breakbeat-apache-perc",
+      "title": "Apache Perc Bed",
+      "subtitle": "Breakbeat - 110 BPM - 1 bar",
+      "patternId": "breakbeat-apache-perc",
+      "tags": [
+        "drums",
+        "factory",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "midi:drum-breakbeat-big-beat",
+      "title": "Big Beat Slam",
+      "subtitle": "Breakbeat - 120 BPM - 1 bar",
+      "patternId": "breakbeat-big-beat",
+      "tags": [
+        "drums",
+        "factory",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "midi:drum-breakbeat-electro-break",
+      "title": "Electro-Break Hybrid",
+      "subtitle": "Breakbeat - 125 BPM - 1 bar",
+      "patternId": "breakbeat-electro-break",
+      "tags": [
+        "drums",
+        "factory",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "midi:drum-breakbeat-fill-snare",
+      "title": "Break Fill Snare",
+      "subtitle": "Breakbeat - 130 BPM - 1 bar",
+      "patternId": "breakbeat-fill-snare",
+      "tags": [
+        "drums",
+        "factory",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "midi:drum-breakbeat-funky-drummer-lite",
+      "title": "Funky Drummer Lite",
+      "subtitle": "Breakbeat - 102 BPM - 1 bar - medium swing",
+      "patternId": "breakbeat-funky-drummer-lite",
+      "tags": [
+        "drums",
+        "factory",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "midi:drum-breakbeat-ghost-snare-bed",
+      "title": "Ghost Snare Bed",
+      "subtitle": "Breakbeat - 100 BPM - 1 bar - medium swing",
+      "patternId": "breakbeat-ghost-snare-bed",
+      "tags": [
+        "drums",
+        "factory",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "midi:drum-breakbeat-half-amen",
+      "title": "Half-Time Amen Feel",
+      "subtitle": "Breakbeat - 85 BPM - 1 bar - light swing",
+      "patternId": "breakbeat-half-amen",
+      "tags": [
+        "drums",
+        "factory",
+        "breakbeat",
+        "groovy"
+      ]
+    },
+    {
+      "id": "midi:drum-breakbeat-hiphop-break",
+      "title": "Hip-Hop Break Loop",
+      "subtitle": "Breakbeat - 92 BPM - 1 bar - medium swing",
+      "patternId": "breakbeat-hiphop-break",
+      "tags": [
+        "drums",
+        "factory",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "midi:drum-breakbeat-impeach-lite",
+      "title": "Impeach-Style Syncop",
+      "subtitle": "Breakbeat - 96 BPM - 1 bar - light swing",
+      "patternId": "breakbeat-impeach-lite",
+      "tags": [
+        "drums",
+        "factory",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "midi:drum-breakbeat-jungle-amen-chop",
+      "title": "Jungle Amen Chop Grid",
+      "subtitle": "Breakbeat - 170 BPM - 1 bar",
+      "patternId": "breakbeat-jungle-amen-chop",
+      "tags": [
+        "drums",
+        "factory",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "midi:drum-breakbeat-rolling",
+      "title": "Rolling Breaks",
+      "subtitle": "Breakbeat - 128 BPM - 1 bar",
+      "patternId": "breakbeat-rolling",
+      "tags": [
+        "drums",
+        "factory",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "midi:drum-breakbeat-think-feel",
+      "title": "Think Break Feel",
+      "subtitle": "Breakbeat - 108 BPM - 1 bar - medium swing",
+      "patternId": "breakbeat-think-feel",
+      "tags": [
+        "drums",
+        "factory",
+        "breakbeat"
+      ]
+    },
+    {
+      "id": "midi:drum-disco-four-ohh",
+      "title": "Disco Four + OHH",
+      "subtitle": "Disco - 118 BPM - 1 bar",
+      "patternId": "disco-four-ohh",
+      "tags": [
+        "drums",
+        "factory",
+        "disco"
+      ]
+    },
+    {
+      "id": "midi:drum-disco-offbeat-hats",
+      "title": "Disco Offbeat Hats",
+      "subtitle": "Disco - 120 BPM - 1 bar",
+      "patternId": "disco-offbeat-hats",
+      "tags": [
+        "drums",
+        "factory",
+        "disco"
+      ]
+    },
+    {
+      "id": "midi:drum-dnb-2step-01",
+      "title": "DnB 2-Step",
+      "subtitle": "DnB - 174 BPM - 1 bar - light swing",
+      "patternId": "dnb-2step-01",
+      "tags": [
+        "drums",
+        "factory",
+        "dnb"
+      ]
+    },
+    {
+      "id": "midi:drum-dnb-2step-swung-hats",
+      "title": "DnB Swung Hats",
+      "subtitle": "DnB - 174 BPM - 1 bar - light swing",
+      "patternId": "dnb-2step-swung-hats",
+      "tags": [
+        "drums",
+        "factory",
+        "dnb"
+      ]
+    },
+    {
+      "id": "midi:drum-dnb-halftime",
+      "title": "DnB Halftime",
+      "subtitle": "DnB - 172 BPM - 1 bar",
+      "patternId": "dnb-halftime",
+      "tags": [
+        "drums",
+        "factory",
+        "dnb",
+        "groovy"
+      ]
+    },
+    {
+      "id": "midi:drum-dnb-jungle-amen",
+      "title": "Jungle Amen Chop",
+      "subtitle": "DnB - 170 BPM - 1 bar",
+      "patternId": "dnb-jungle-amen",
+      "tags": [
+        "drums",
+        "factory",
+        "dnb"
+      ]
+    },
+    {
+      "id": "midi:drum-dnb-neuro-syncop",
+      "title": "Neuro Syncop Kick",
+      "subtitle": "DnB - 174 BPM - 1 bar",
+      "patternId": "dnb-neuro-syncop",
+      "tags": [
+        "drums",
+        "factory",
+        "dnb"
+      ]
+    },
+    {
+      "id": "midi:drum-electro-1982-part1",
+      "title": "Electro 1982 Part 1",
+      "subtitle": "Electro - 120 BPM - 1 bar",
+      "patternId": "electro-1982-part1",
+      "tags": [
+        "drums",
+        "factory",
+        "electro"
+      ]
+    },
+    {
+      "id": "midi:drum-electro-808-crew-demo",
+      "title": "808 Crew Electro Funk",
+      "subtitle": "Electro - 128 BPM - 1 bar",
+      "patternId": "electro-808-crew-demo",
+      "tags": [
+        "drums",
+        "factory",
+        "electro"
+      ]
+    },
+    {
+      "id": "midi:drum-electro-circuit-breaker",
+      "title": "Circuit Breaker Beat",
+      "subtitle": "Electro - 125 BPM - 1 bar",
+      "patternId": "electro-circuit-breaker",
+      "tags": [
+        "drums",
+        "factory",
+        "electro"
+      ]
+    },
+    {
+      "id": "midi:drum-electro-fast-lane",
+      "title": "Fast Lane Young Ladies",
+      "subtitle": "Electro - 124 BPM - 1 bar",
+      "patternId": "electro-fast-lane",
+      "tags": [
+        "drums",
+        "factory",
+        "electro"
+      ]
+    },
+    {
+      "id": "midi:drum-electro-freestyle-dont-stop",
+      "title": "Don't Stop the Rock",
+      "subtitle": "Electro - 120 BPM - 1 bar",
+      "patternId": "electro-freestyle-dont-stop",
+      "tags": [
+        "drums",
+        "factory",
+        "electro"
+      ]
+    },
+    {
+      "id": "midi:drum-electro-jj-fad-supersonic",
+      "title": "Supersonic Bounce",
+      "subtitle": "Electro - 130 BPM - 1 bar",
+      "patternId": "electro-jj-fad-supersonic",
+      "tags": [
+        "drums",
+        "factory",
+        "electro"
+      ]
+    },
+    {
+      "id": "midi:drum-electro-man-parrish-clap",
+      "title": "Hip Hop Be Bop Clap Build",
+      "subtitle": "Electro - 116 BPM - 1 bar",
+      "patternId": "electro-man-parrish-clap",
+      "tags": [
+        "drums",
+        "factory",
+        "electro"
+      ]
+    },
+    {
+      "id": "midi:drum-electro-miami-bass-classic",
+      "title": "Miami Bass Classic",
+      "subtitle": "Electro - 140 BPM - 1 bar - light swing",
+      "patternId": "electro-miami-bass-classic",
+      "tags": [
+        "drums",
+        "factory",
+        "electro"
+      ]
+    },
+    {
+      "id": "midi:drum-electro-miami-bass-syncop",
+      "title": "Miami Bass Syncop Kick",
+      "subtitle": "Electro - 135 BPM - 1 bar - light swing",
+      "patternId": "electro-miami-bass-syncop",
+      "tags": [
+        "drums",
+        "factory",
+        "electro"
+      ]
+    },
+    {
+      "id": "midi:drum-electro-miami-mami-clave",
+      "title": "Miami Mami Clave",
+      "subtitle": "Electro - 120 BPM - 1 bar - medium swing",
+      "patternId": "electro-miami-mami-clave",
+      "tags": [
+        "drums",
+        "factory",
+        "electro"
+      ]
+    },
+    {
+      "id": "midi:drum-electro-planet-rock-01",
+      "title": "Planet Rock Core",
+      "subtitle": "Electro - 128 BPM - 1 bar",
+      "patternId": "electro-planet-rock-01",
+      "tags": [
+        "drums",
+        "factory",
+        "electro"
+      ]
+    },
+    {
+      "id": "midi:drum-electro-planet-rock-cowbell",
+      "title": "Planet Rock Cowbell Layer",
+      "subtitle": "Electro - 128 BPM - 1 bar",
+      "patternId": "electro-planet-rock-cowbell",
+      "tags": [
+        "drums",
+        "factory",
+        "electro"
+      ]
+    },
+    {
+      "id": "midi:drum-electro-robotnick-four",
+      "title": "Problemes Four-Floor Variant",
+      "subtitle": "Electro - 118 BPM - 1 bar",
+      "patternId": "electro-robotnick-four",
+      "tags": [
+        "drums",
+        "factory",
+        "electro"
+      ]
+    },
+    {
+      "id": "midi:drum-electro-robotnick-problemes",
+      "title": "Problemes d'amour Kick Push",
+      "subtitle": "Electro - 118 BPM - 1 bar",
+      "patternId": "electro-robotnick-problemes",
+      "tags": [
+        "drums",
+        "factory",
+        "electro"
+      ]
+    },
+    {
+      "id": "midi:drum-electro-shadow-groove",
+      "title": "Shadow Groove ElectroWerk",
+      "subtitle": "Electro - 122 BPM - 1 bar",
+      "patternId": "electro-shadow-groove",
+      "tags": [
+        "drums",
+        "factory",
+        "electro"
+      ]
+    },
+    {
+      "id": "midi:drum-electro-south-i95",
+      "title": "South I-95 Miami",
+      "subtitle": "Electro - 138 BPM - 1 bar - light swing",
+      "patternId": "electro-south-i95",
+      "tags": [
+        "drums",
+        "factory",
+        "electro"
+      ]
+    },
+    {
+      "id": "midi:drum-electro-xray-video-control",
+      "title": "Video Control Clave",
+      "subtitle": "Electro - 120 BPM - 1 bar",
+      "patternId": "electro-xray-video-control",
+      "tags": [
+        "drums",
+        "factory",
+        "electro"
+      ]
+    },
+    {
+      "id": "midi:drum-funk-linear",
+      "title": "Linear Funk",
+      "subtitle": "Funk - 98 BPM - 1 bar - medium swing",
+      "patternId": "funk-linear",
+      "tags": [
+        "drums",
+        "factory",
+        "funk"
+      ]
+    },
+    {
+      "id": "midi:drum-funk-ni-ghost",
+      "title": "Funk NI Ghosts",
+      "subtitle": "Funk - 100 BPM - 1 bar - medium swing",
+      "patternId": "funk-ni-ghost",
+      "tags": [
+        "drums",
+        "factory",
+        "funk"
+      ]
+    },
+    {
+      "id": "midi:drum-hiphop-boom-bap-01",
+      "title": "Boom Bap Classic",
+      "subtitle": "Hip-hop - 90 BPM - 1 bar - medium swing",
+      "patternId": "hiphop-boom-bap-01",
+      "tags": [
+        "drums",
+        "factory",
+        "hiphop"
+      ]
+    },
+    {
+      "id": "midi:drum-hiphop-boom-bap-swung-kick",
+      "title": "Boom Bap Swung Kick",
+      "subtitle": "Hip-hop - 87 BPM - 1 bar - heavy swing",
+      "patternId": "hiphop-boom-bap-swung-kick",
+      "tags": [
+        "drums",
+        "factory",
+        "hiphop"
+      ]
+    },
+    {
+      "id": "midi:drum-hiphop-chopped",
+      "title": "Chopped Kick",
+      "subtitle": "Hip-hop - 94 BPM - 1 bar - medium swing",
+      "patternId": "hiphop-chopped",
+      "tags": [
+        "drums",
+        "factory",
+        "hiphop"
+      ]
+    },
+    {
+      "id": "midi:drum-hiphop-crunk",
+      "title": "Crunk Snap",
+      "subtitle": "Hip-hop - 76 BPM - 1 bar",
+      "patternId": "hiphop-crunk",
+      "tags": [
+        "drums",
+        "factory",
+        "hiphop"
+      ]
+    },
+    {
+      "id": "midi:drum-hiphop-lofi",
+      "title": "Lo-Fi Headnod",
+      "subtitle": "Hip-hop - 78 BPM - 1 bar - heavy swing",
+      "patternId": "hiphop-lofi",
+      "tags": [
+        "drums",
+        "factory",
+        "hiphop",
+        "lofi"
+      ]
+    },
+    {
+      "id": "midi:drum-house-909-basic1",
+      "title": "909 Basic1",
+      "subtitle": "House - 120 BPM - 1 bar",
+      "patternId": "house-909-basic1",
+      "tags": [
+        "drums",
+        "factory",
+        "house"
+      ]
+    },
+    {
+      "id": "midi:drum-house-afro-house",
+      "title": "Afro House Pulse",
+      "subtitle": "House - 120 BPM - 1 bar - medium swing",
+      "patternId": "house-afro-house",
+      "tags": [
+        "drums",
+        "factory",
+        "house"
+      ]
+    },
+    {
+      "id": "midi:drum-house-brit-skip",
+      "title": "Brit House Skip",
+      "subtitle": "House - 125 BPM - 1 bar - medium swing",
+      "patternId": "house-brit-skip",
+      "tags": [
+        "drums",
+        "factory",
+        "house"
+      ]
+    },
+    {
+      "id": "midi:drum-house-deep-sparse",
+      "title": "Deep House Sparse",
+      "subtitle": "House - 118 BPM - 1 bar - light swing",
+      "patternId": "house-deep-sparse",
+      "tags": [
+        "drums",
+        "factory",
+        "house"
+      ]
+    },
+    {
+      "id": "midi:drum-house-disco-strings-bed",
+      "title": "Disco House Bed",
+      "subtitle": "House - 120 BPM - 1 bar",
+      "patternId": "house-disco-strings-bed",
+      "tags": [
+        "drums",
+        "factory",
+        "house"
+      ]
+    },
+    {
+      "id": "midi:drum-house-four-on-floor-01",
+      "title": "Classic Four-on-Floor",
+      "subtitle": "House - 124 BPM - 1 bar",
+      "patternId": "house-four-on-floor-01",
+      "tags": [
+        "drums",
+        "factory",
+        "house"
+      ]
+    },
+    {
+      "id": "midi:drum-house-french-filter",
+      "title": "French/Filter Disco House",
+      "subtitle": "House - 122 BPM - 1 bar",
+      "patternId": "house-french-filter",
+      "tags": [
+        "drums",
+        "factory",
+        "house"
+      ]
+    },
+    {
+      "id": "midi:drum-house-garage-2step",
+      "title": "UK Garage 2-Step",
+      "subtitle": "House - 130 BPM - 1 bar - heavy swing",
+      "patternId": "house-garage-2step",
+      "tags": [
+        "drums",
+        "factory",
+        "house"
+      ]
+    },
+    {
+      "id": "midi:drum-house-jacking-chicago",
+      "title": "Jacking Chicago",
+      "subtitle": "House - 124 BPM - 1 bar",
+      "patternId": "house-jacking-chicago",
+      "tags": [
+        "drums",
+        "factory",
+        "house"
+      ]
+    },
+    {
+      "id": "midi:drum-house-minimal-click",
+      "title": "Minimal Click House",
+      "subtitle": "House - 124 BPM - 1 bar",
+      "patternId": "house-minimal-click",
+      "tags": [
+        "drums",
+        "factory",
+        "house"
+      ]
+    },
+    {
+      "id": "midi:drum-house-ni-swung",
+      "title": "Swung House Groove",
+      "subtitle": "House - 123 BPM - 1 bar - medium swing",
+      "patternId": "house-ni-swung",
+      "tags": [
+        "drums",
+        "factory",
+        "house"
+      ]
+    },
+    {
+      "id": "midi:drum-house-offbeat-bass-kick",
+      "title": "Offbeat Ghost Kick",
+      "subtitle": "House - 126 BPM - 1 bar - light swing",
+      "patternId": "house-offbeat-bass-kick",
+      "tags": [
+        "drums",
+        "factory",
+        "house"
+      ]
+    },
+    {
+      "id": "midi:drum-house-progressive-build",
+      "title": "Progressive Wide Hats",
+      "subtitle": "House - 128 BPM - 1 bar",
+      "patternId": "house-progressive-build",
+      "tags": [
+        "drums",
+        "factory",
+        "house"
+      ]
+    },
+    {
+      "id": "midi:drum-house-rim-latin",
+      "title": "Latin House Rim",
+      "subtitle": "House - 122 BPM - 1 bar",
+      "patternId": "house-rim-latin",
+      "tags": [
+        "drums",
+        "factory",
+        "house"
+      ]
+    },
+    {
+      "id": "midi:drum-house-tech-house-perc",
+      "title": "Tech House Perc",
+      "subtitle": "House - 126 BPM - 1 bar - light swing",
+      "patternId": "house-tech-house-perc",
+      "tags": [
+        "drums",
+        "factory",
+        "house"
+      ]
+    },
+    {
+      "id": "midi:drum-house-vocal-chop-space",
+      "title": "Vocal Chop Space",
+      "subtitle": "House - 120 BPM - 1 bar - light swing",
+      "patternId": "house-vocal-chop-space",
+      "tags": [
+        "drums",
+        "factory",
+        "house"
+      ]
+    },
+    {
+      "id": "midi:drum-latin-clave-son",
+      "title": "Son Clave 3-2 (perc)",
+      "subtitle": "Latin - 100 BPM - 2 bars",
+      "patternId": "latin-clave-son",
+      "tags": [
+        "drums",
+        "factory",
+        "latin"
+      ]
+    },
+    {
+      "id": "midi:drum-latin-rumba-pocket",
+      "title": "Rumba Pocket Ops",
+      "subtitle": "Latin - 100 BPM - 1 bar",
+      "patternId": "latin-rumba-pocket",
+      "tags": [
+        "drums",
+        "factory",
+        "latin"
+      ]
+    },
+    {
+      "id": "midi:drum-latin-samba-lite",
+      "title": "Samba Lite",
+      "subtitle": "Latin - 105 BPM - 1 bar",
+      "patternId": "latin-samba-lite",
+      "tags": [
+        "drums",
+        "factory",
+        "latin"
+      ]
+    },
+    {
+      "id": "midi:drum-pop-acoustic-campfire",
+      "title": "Acoustic Campfire",
+      "subtitle": "Pop - 90 BPM - 1 bar - light swing",
+      "patternId": "pop-acoustic-campfire",
+      "tags": [
+        "drums",
+        "factory",
+        "pop"
+      ]
+    },
+    {
+      "id": "midi:drum-pop-ballad-sparse",
+      "title": "Ballad Sparse",
+      "subtitle": "Pop - 72 BPM - 1 bar",
+      "patternId": "pop-ballad-sparse",
+      "tags": [
+        "drums",
+        "factory",
+        "pop"
+      ]
+    },
+    {
+      "id": "midi:drum-pop-clap-layer",
+      "title": "Snare+Clap Layer",
+      "subtitle": "Pop - 112 BPM - 1 bar",
+      "patternId": "pop-clap-layer",
+      "tags": [
+        "drums",
+        "factory",
+        "pop"
+      ]
+    },
+    {
+      "id": "midi:drum-pop-dancehall-lite",
+      "title": "Pop Dancehall Lite",
+      "subtitle": "Pop - 100 BPM - 1 bar",
+      "patternId": "pop-dancehall-lite",
+      "tags": [
+        "drums",
+        "factory",
+        "pop"
+      ]
+    },
+    {
+      "id": "midi:drum-pop-double-chorus-kick",
+      "title": "Double Chorus Kick",
+      "subtitle": "Pop - 120 BPM - 1 bar",
+      "patternId": "pop-double-chorus-kick",
+      "tags": [
+        "drums",
+        "factory",
+        "pop"
+      ]
+    },
+    {
+      "id": "midi:drum-pop-four-floor-anthem",
+      "title": "Pop Four-on-Floor",
+      "subtitle": "Pop - 122 BPM - 1 bar",
+      "patternId": "pop-four-floor-anthem",
+      "tags": [
+        "drums",
+        "factory",
+        "pop"
+      ]
+    },
+    {
+      "id": "midi:drum-pop-half-time-chorus",
+      "title": "Half-Time Chorus",
+      "subtitle": "Pop - 140 BPM - 1 bar",
+      "patternId": "pop-half-time-chorus",
+      "tags": [
+        "drums",
+        "factory",
+        "pop",
+        "groovy"
+      ]
+    },
+    {
+      "id": "midi:drum-pop-money-beat-01",
+      "title": "Money Beat Basic",
+      "subtitle": "Pop - 100 BPM - 1 bar",
+      "patternId": "pop-money-beat-01",
+      "tags": [
+        "drums",
+        "factory",
+        "pop"
+      ]
+    },
+    {
+      "id": "midi:drum-pop-money-beat-16hats",
+      "title": "Money Beat 16th Hats",
+      "subtitle": "Pop - 110 BPM - 1 bar",
+      "patternId": "pop-money-beat-16hats",
+      "tags": [
+        "drums",
+        "factory",
+        "pop"
+      ]
+    },
+    {
+      "id": "midi:drum-pop-ohh-lift",
+      "title": "Open Hat Lift",
+      "subtitle": "Pop - 118 BPM - 1 bar",
+      "patternId": "pop-ohh-lift",
+      "tags": [
+        "drums",
+        "factory",
+        "pop"
+      ]
+    },
+    {
+      "id": "midi:drum-pop-quiet-loud-verse",
+      "title": "Quiet-Loud Verse",
+      "subtitle": "Pop - 102 BPM - 1 bar",
+      "patternId": "pop-quiet-loud-verse",
+      "tags": [
+        "drums",
+        "factory",
+        "pop"
+      ]
+    },
+    {
+      "id": "midi:drum-pop-reggaeton-crossover",
+      "title": "Reggaeton Crossover",
+      "subtitle": "Pop - 96 BPM - 1 bar",
+      "patternId": "pop-reggaeton-crossover",
+      "tags": [
+        "drums",
+        "factory",
+        "pop"
+      ]
+    },
+    {
+      "id": "midi:drum-pop-sidechain-pump",
+      "title": "Sidechain Pump Grid",
+      "subtitle": "Pop - 128 BPM - 1 bar",
+      "patternId": "pop-sidechain-pump",
+      "tags": [
+        "drums",
+        "factory",
+        "pop"
+      ]
+    },
+    {
+      "id": "midi:drum-pop-syncop-kick",
+      "title": "Syncop Kick Verse",
+      "subtitle": "Pop - 105 BPM - 1 bar - light swing",
+      "patternId": "pop-syncop-kick",
+      "tags": [
+        "drums",
+        "factory",
+        "pop"
+      ]
+    },
+    {
+      "id": "midi:drum-pop-tom-fill-lite",
+      "title": "Tom Fill Lite (bar2)",
+      "subtitle": "Pop - 108 BPM - 2 bars",
+      "patternId": "pop-tom-fill-lite",
+      "tags": [
+        "drums",
+        "factory",
+        "pop"
+      ]
+    },
+    {
+      "id": "midi:drum-pop-uk-garage-shuffle",
+      "title": "UKG-Pop Shuffle",
+      "subtitle": "Pop - 130 BPM - 1 bar - medium swing",
+      "patternId": "pop-uk-garage-shuffle",
+      "tags": [
+        "drums",
+        "factory",
+        "pop"
+      ]
+    },
+    {
+      "id": "midi:drum-reggae-copeland-upbeat",
+      "title": "Upbeat Hat Emphasis",
+      "subtitle": "Reggae - 118 BPM - 1 bar - medium swing",
+      "patternId": "reggae-copeland-upbeat",
+      "tags": [
+        "drums",
+        "factory",
+        "reggae"
+      ]
+    },
+    {
+      "id": "midi:drum-reggae-dancehall-dembow",
+      "title": "Dancehall Dembow",
+      "subtitle": "Reggae - 100 BPM - 1 bar",
+      "patternId": "reggae-dancehall-dembow",
+      "tags": [
+        "drums",
+        "factory",
+        "reggae"
+      ]
+    },
+    {
+      "id": "midi:drum-reggae-dancehall-fast",
+      "title": "Dancehall Fast Shell",
+      "subtitle": "Reggae - 108 BPM - 1 bar",
+      "patternId": "reggae-dancehall-fast",
+      "tags": [
+        "drums",
+        "factory",
+        "reggae"
+      ]
+    },
+    {
+      "id": "midi:drum-reggae-dub-sparse",
+      "title": "Dub Sparse",
+      "subtitle": "Reggae - 70 BPM - 1 bar - light swing",
+      "patternId": "reggae-dub-sparse",
+      "tags": [
+        "drums",
+        "factory",
+        "reggae"
+      ]
+    },
+    {
+      "id": "midi:drum-reggae-nyahbinghi-perc",
+      "title": "Nyahbinghi Perc Bed",
+      "subtitle": "Reggae - 68 BPM - 1 bar",
+      "patternId": "reggae-nyahbinghi-perc",
+      "tags": [
+        "drums",
+        "factory",
+        "reggae"
+      ]
+    },
+    {
+      "id": "midi:drum-reggae-one-drop-01",
+      "title": "One Drop Classic",
+      "subtitle": "Reggae - 72 BPM - 1 bar - medium swing",
+      "patternId": "reggae-one-drop-01",
+      "tags": [
+        "drums",
+        "factory",
+        "reggae"
+      ]
+    },
+    {
+      "id": "midi:drum-reggae-one-drop-8hats",
+      "title": "One Drop Full Hats",
+      "subtitle": "Reggae - 74 BPM - 1 bar - medium swing",
+      "patternId": "reggae-one-drop-8hats",
+      "tags": [
+        "drums",
+        "factory",
+        "reggae"
+      ]
+    },
+    {
+      "id": "midi:drum-reggae-one-drop-rim-and",
+      "title": "One Drop + And-of-4 Rim",
+      "subtitle": "Reggae - 72 BPM - 1 bar - medium swing",
+      "patternId": "reggae-one-drop-rim-and",
+      "tags": [
+        "drums",
+        "factory",
+        "reggae"
+      ]
+    },
+    {
+      "id": "midi:drum-reggae-one-drop-shuffle",
+      "title": "One Drop Shuffle Hats",
+      "subtitle": "Reggae - 70 BPM - 1 bar - heavy swing",
+      "patternId": "reggae-one-drop-shuffle",
+      "tags": [
+        "drums",
+        "factory",
+        "reggae"
+      ]
+    },
+    {
+      "id": "midi:drum-reggae-rockers-01",
+      "title": "Rockers Groove",
+      "subtitle": "Reggae - 76 BPM - 1 bar - medium swing",
+      "patternId": "reggae-rockers-01",
+      "tags": [
+        "drums",
+        "factory",
+        "reggae"
+      ]
+    },
+    {
+      "id": "midi:drum-reggae-rockers-money",
+      "title": "Rockers Money Beat",
+      "subtitle": "Reggae - 82 BPM - 1 bar - medium swing",
+      "patternId": "reggae-rockers-money",
+      "tags": [
+        "drums",
+        "factory",
+        "reggae"
+      ]
+    },
+    {
+      "id": "midi:drum-reggae-ska-half",
+      "title": "Ska/Half-Time Drop",
+      "subtitle": "Reggae - 140 BPM - 1 bar",
+      "patternId": "reggae-ska-half",
+      "tags": [
+        "drums",
+        "factory",
+        "reggae",
+        "groovy"
+      ]
+    },
+    {
+      "id": "midi:drum-reggae-steppers-01",
+      "title": "Steppers Four Floor",
+      "subtitle": "Reggae - 78 BPM - 1 bar - light swing",
+      "patternId": "reggae-steppers-01",
+      "tags": [
+        "drums",
+        "factory",
+        "reggae"
+      ]
+    },
+    {
+      "id": "midi:drum-reggae-steppers-8th-kick",
+      "title": "Steppers 8th Kick",
+      "subtitle": "Reggae - 80 BPM - 1 bar - light swing",
+      "patternId": "reggae-steppers-8th-kick",
+      "tags": [
+        "drums",
+        "factory",
+        "reggae"
+      ]
+    },
+    {
+      "id": "midi:drum-reggae-steppers-tom",
+      "title": "Steppers Tom Accents",
+      "subtitle": "Reggae - 76 BPM - 1 bar - light swing",
+      "patternId": "reggae-steppers-tom",
+      "tags": [
+        "drums",
+        "factory",
+        "reggae"
+      ]
+    },
+    {
+      "id": "midi:drum-reggae-sublime-hybrid",
+      "title": "Rock-Reggae Hybrid",
+      "subtitle": "Reggae - 92 BPM - 1 bar - light swing",
+      "patternId": "reggae-sublime-hybrid",
+      "tags": [
+        "drums",
+        "factory",
+        "reggae"
+      ]
+    },
+    {
+      "id": "midi:drum-rnb-6-8-feel",
+      "title": "6/8 Neo Feel (as 16ths)",
+      "subtitle": "R&B - 86 BPM - 1 bar - heavy swing",
+      "patternId": "rnb-6-8-feel",
+      "tags": [
+        "drums",
+        "factory",
+        "rnb"
+      ]
+    },
+    {
+      "id": "midi:drum-rnb-alt-rnb-broken",
+      "title": "Alt-R&B Broken",
+      "subtitle": "R&B - 100 BPM - 1 bar - medium swing",
+      "patternId": "rnb-alt-rnb-broken",
+      "tags": [
+        "drums",
+        "factory",
+        "rnb"
+      ]
+    },
+    {
+      "id": "midi:drum-rnb-bounce-2000s",
+      "title": "2000s Bounce",
+      "subtitle": "R&B - 102 BPM - 1 bar - light swing",
+      "patternId": "rnb-bounce-2000s",
+      "tags": [
+        "drums",
+        "factory",
+        "rnb"
+      ]
+    },
+    {
+      "id": "midi:drum-rnb-clap-delay",
+      "title": "Delayed Clap",
+      "subtitle": "R&B - 95 BPM - 1 bar - light swing",
+      "patternId": "rnb-clap-delay",
+      "tags": [
+        "drums",
+        "factory",
+        "rnb"
+      ]
+    },
+    {
+      "id": "midi:drum-rnb-classic-backbeat",
+      "title": "Classic R&B Backbeat",
+      "subtitle": "R&B - 88 BPM - 1 bar - medium swing",
+      "patternId": "rnb-classic-backbeat",
+      "tags": [
+        "drums",
+        "factory",
+        "rnb"
+      ]
+    },
+    {
+      "id": "midi:drum-rnb-contemporary-trap",
+      "title": "Contemporary R&B Trap",
+      "subtitle": "R&B - 140 BPM - 1 bar",
+      "patternId": "rnb-contemporary-trap",
+      "tags": [
+        "drums",
+        "factory",
+        "rnb"
+      ]
+    },
+    {
+      "id": "midi:drum-rnb-finger-snap",
+      "title": "Finger Snap Groove",
+      "subtitle": "R&B - 78 BPM - 1 bar - medium swing",
+      "patternId": "rnb-finger-snap",
+      "tags": [
+        "drums",
+        "factory",
+        "rnb"
+      ]
+    },
+    {
+      "id": "midi:drum-rnb-gospel-chops",
+      "title": "Gospel Chop Feel",
+      "subtitle": "R&B - 92 BPM - 1 bar - medium swing",
+      "patternId": "rnb-gospel-chops",
+      "tags": [
+        "drums",
+        "factory",
+        "rnb"
+      ]
+    },
+    {
+      "id": "midi:drum-rnb-motown-four",
+      "title": "Motown Four Feel",
+      "subtitle": "R&B - 112 BPM - 1 bar",
+      "patternId": "rnb-motown-four",
+      "tags": [
+        "drums",
+        "factory",
+        "rnb"
+      ]
+    },
+    {
+      "id": "midi:drum-rnb-neo-soul-ghosts",
+      "title": "Neo-Soul Ghost Snare",
+      "subtitle": "R&B - 90 BPM - 1 bar - heavy swing",
+      "patternId": "rnb-neo-soul-ghosts",
+      "tags": [
+        "drums",
+        "factory",
+        "rnb"
+      ]
+    },
+    {
+      "id": "midi:drum-rnb-neo-soul-rim",
+      "title": "Neo-Soul Rim Groove",
+      "subtitle": "R&B - 82 BPM - 1 bar - heavy swing",
+      "patternId": "rnb-neo-soul-rim",
+      "tags": [
+        "drums",
+        "factory",
+        "rnb"
+      ]
+    },
+    {
+      "id": "midi:drum-rnb-new-jack-swing",
+      "title": "New Jack Swing",
+      "subtitle": "R&B - 108 BPM - 1 bar - heavy swing",
+      "patternId": "rnb-new-jack-swing",
+      "tags": [
+        "drums",
+        "factory",
+        "rnb"
+      ]
+    },
+    {
+      "id": "midi:drum-rnb-philly-soul",
+      "title": "Philly Soul Soft",
+      "subtitle": "R&B - 94 BPM - 1 bar - light swing",
+      "patternId": "rnb-philly-soul",
+      "tags": [
+        "drums",
+        "factory",
+        "rnb"
+      ]
+    },
+    {
+      "id": "midi:drum-rnb-slow-jam",
+      "title": "Slow Jam",
+      "subtitle": "R&B - 66 BPM - 1 bar - light swing",
+      "patternId": "rnb-slow-jam",
+      "tags": [
+        "drums",
+        "factory",
+        "rnb"
+      ]
+    },
+    {
+      "id": "midi:drum-rnb-timbaland-skip",
+      "title": "Timbaland Skip",
+      "subtitle": "R&B - 96 BPM - 1 bar - medium swing",
+      "patternId": "rnb-timbaland-skip",
+      "tags": [
+        "drums",
+        "factory",
+        "rnb"
+      ]
+    },
+    {
+      "id": "midi:drum-rnb-verse-kick-hole",
+      "title": "Verse Kick Hole",
+      "subtitle": "R&B - 88 BPM - 1 bar - medium swing",
+      "patternId": "rnb-verse-kick-hole",
+      "tags": [
+        "drums",
+        "factory",
+        "rnb"
+      ]
+    },
+    {
+      "id": "midi:drum-rock-basic-01",
+      "title": "Basic Rock",
+      "subtitle": "Rock - 110 BPM - 1 bar",
+      "patternId": "rock-basic-01",
+      "tags": [
+        "drums",
+        "factory",
+        "rock"
+      ]
+    },
+    {
+      "id": "midi:drum-rock-blues-shuffle",
+      "title": "Blues Rock Shuffle",
+      "subtitle": "Rock - 100 BPM - 1 bar - heavy swing",
+      "patternId": "rock-blues-shuffle",
+      "tags": [
+        "drums",
+        "factory",
+        "rock"
+      ]
+    },
+    {
+      "id": "midi:drum-rock-cypress-kick",
+      "title": "Syncop Kick 16 Hats",
+      "subtitle": "Rock - 95 BPM - 1 bar",
+      "patternId": "rock-cypress-kick",
+      "tags": [
+        "drums",
+        "factory",
+        "rock"
+      ]
+    },
+    {
+      "id": "midi:drum-rock-fill-bar",
+      "title": "Rock Fill Bar",
+      "subtitle": "Rock - 110 BPM - 1 bar",
+      "patternId": "rock-fill-bar",
+      "tags": [
+        "drums",
+        "factory",
+        "rock"
+      ]
+    },
+    {
+      "id": "midi:drum-rock-four-on-floor",
+      "title": "Rock Four Floor",
+      "subtitle": "Rock - 120 BPM - 1 bar",
+      "patternId": "rock-four-on-floor",
+      "tags": [
+        "drums",
+        "factory",
+        "rock"
+      ]
+    },
+    {
+      "id": "midi:drum-rock-garage",
+      "title": "Garage Rock",
+      "subtitle": "Rock - 130 BPM - 1 bar",
+      "patternId": "rock-garage",
+      "tags": [
+        "drums",
+        "factory",
+        "rock"
+      ]
+    },
+    {
+      "id": "midi:drum-rock-half-time",
+      "title": "Half-Time Rock",
+      "subtitle": "Rock - 140 BPM - 1 bar",
+      "patternId": "rock-half-time",
+      "tags": [
+        "drums",
+        "factory",
+        "rock",
+        "groovy"
+      ]
+    },
+    {
+      "id": "midi:drum-rock-hard-ni",
+      "title": "Hard Rock NI",
+      "subtitle": "Rock - 80 BPM - 1 bar",
+      "patternId": "rock-hard-ni",
+      "tags": [
+        "drums",
+        "factory",
+        "rock"
+      ]
+    },
+    {
+      "id": "midi:drum-rock-metal-double",
+      "title": "Metal Double Kick Lite",
+      "subtitle": "Rock - 160 BPM - 1 bar",
+      "patternId": "rock-metal-double",
+      "tags": [
+        "drums",
+        "factory",
+        "rock"
+      ]
+    },
+    {
+      "id": "midi:drum-rock-pocket-ops-1",
+      "title": "Rock Pocket Ops 1",
+      "subtitle": "Rock - 100 BPM - 1 bar",
+      "patternId": "rock-pocket-ops-1",
+      "tags": [
+        "drums",
+        "factory",
+        "rock"
+      ]
+    },
+    {
+      "id": "midi:drum-rock-punk-01",
+      "title": "Punk Straight",
+      "subtitle": "Rock - 180 BPM - 1 bar",
+      "patternId": "rock-punk-01",
+      "tags": [
+        "drums",
+        "factory",
+        "rock"
+      ]
+    },
+    {
+      "id": "midi:drum-rock-punk-dbeat",
+      "title": "Punk D-Beat",
+      "subtitle": "Rock - 175 BPM - 1 bar",
+      "patternId": "rock-punk-dbeat",
+      "tags": [
+        "drums",
+        "factory",
+        "rock"
+      ]
+    },
+    {
+      "id": "midi:drum-rock-ride-chorus",
+      "title": "Ride Chorus",
+      "subtitle": "Rock - 115 BPM - 1 bar",
+      "patternId": "rock-ride-chorus",
+      "tags": [
+        "drums",
+        "factory",
+        "rock"
+      ]
+    },
+    {
+      "id": "midi:drum-rock-surf",
+      "title": "Surf Beat",
+      "subtitle": "Rock - 145 BPM - 1 bar",
+      "patternId": "rock-surf",
+      "tags": [
+        "drums",
+        "factory",
+        "rock"
+      ]
+    },
+    {
+      "id": "midi:drum-rock-tom-groove",
+      "title": "Tom Groove",
+      "subtitle": "Rock - 100 BPM - 1 bar",
+      "patternId": "rock-tom-groove",
+      "tags": [
+        "drums",
+        "factory",
+        "rock"
+      ]
+    },
+    {
+      "id": "midi:drum-rock-train-beat",
+      "title": "Train Beat",
+      "subtitle": "Rock - 150 BPM - 1 bar",
+      "patternId": "rock-train-beat",
+      "tags": [
+        "drums",
+        "factory",
+        "rock"
+      ]
+    },
+    {
+      "id": "midi:drum-techno-detroit-909",
+      "title": "Detroit 909",
+      "subtitle": "Techno - 128 BPM - 1 bar - light swing",
+      "patternId": "techno-detroit-909",
+      "tags": [
+        "drums",
+        "factory",
+        "techno"
+      ]
+    },
+    {
+      "id": "midi:drum-techno-hard",
+      "title": "Hard Techno Drive",
+      "subtitle": "Techno - 145 BPM - 1 bar",
+      "patternId": "techno-hard",
+      "tags": [
+        "drums",
+        "factory",
+        "techno"
+      ]
+    },
+    {
+      "id": "midi:drum-techno-industrial-rim",
+      "title": "Industrial Rim",
+      "subtitle": "Techno - 135 BPM - 1 bar",
+      "patternId": "techno-industrial-rim",
+      "tags": [
+        "drums",
+        "factory",
+        "techno"
+      ]
+    },
+    {
+      "id": "midi:drum-techno-minimal",
+      "title": "Minimal Pulse",
+      "subtitle": "Techno - 130 BPM - 1 bar",
+      "patternId": "techno-minimal",
+      "tags": [
+        "drums",
+        "factory",
+        "techno"
+      ]
+    },
+    {
+      "id": "midi:drum-techno-rumble-tom",
+      "title": "Rumble Tom",
+      "subtitle": "Techno - 132 BPM - 1 bar - light swing",
+      "patternId": "techno-rumble-tom",
+      "tags": [
+        "drums",
+        "factory",
+        "techno"
+      ]
+    },
+    {
+      "id": "midi:drum-trap-16th-hats",
+      "title": "Full 16th Hats",
+      "subtitle": "Trap - 140 BPM - 1 bar",
+      "patternId": "trap-16th-hats",
+      "tags": [
+        "drums",
+        "factory",
+        "trap"
+      ]
+    },
+    {
+      "id": "midi:drum-trap-basic-half-time",
+      "title": "Trap Basic Half-Time",
+      "subtitle": "Trap - 140 BPM - 1 bar",
+      "patternId": "trap-basic-half-time",
+      "tags": [
+        "drums",
+        "factory",
+        "trap",
+        "groovy"
+      ]
+    },
+    {
+      "id": "midi:drum-trap-busy-kick",
+      "title": "Busy 808 Kick Grid",
+      "subtitle": "Trap - 148 BPM - 1 bar",
+      "patternId": "trap-busy-kick",
+      "tags": [
+        "drums",
+        "factory",
+        "trap"
+      ]
+    },
+    {
+      "id": "midi:drum-trap-clap-only-3",
+      "title": "Clap Only on 3",
+      "subtitle": "Trap - 150 BPM - 1 bar",
+      "patternId": "trap-clap-only-3",
+      "tags": [
+        "drums",
+        "factory",
+        "trap"
+      ]
+    },
+    {
+      "id": "midi:drum-trap-double-time-hats",
+      "title": "Double-Time Hat Burst",
+      "subtitle": "Trap - 140 BPM - 1 bar",
+      "patternId": "trap-double-time-hats",
+      "tags": [
+        "drums",
+        "factory",
+        "trap"
+      ]
+    },
+    {
+      "id": "midi:drum-trap-march-hats",
+      "title": "Marching Hat Accents",
+      "subtitle": "Trap - 136 BPM - 1 bar",
+      "patternId": "trap-march-hats",
+      "tags": [
+        "drums",
+        "factory",
+        "trap"
+      ]
+    },
+    {
+      "id": "midi:drum-trap-ni-2bar",
+      "title": "NI Trap 2-Bar",
+      "subtitle": "Trap - 130 BPM - 2 bars",
+      "patternId": "trap-ni-2bar",
+      "tags": [
+        "drums",
+        "factory",
+        "trap"
+      ]
+    },
+    {
+      "id": "midi:drum-trap-open-hat-offs",
+      "title": "Open Hat Offs",
+      "subtitle": "Trap - 138 BPM - 1 bar",
+      "patternId": "trap-open-hat-offs",
+      "tags": [
+        "drums",
+        "factory",
+        "trap"
+      ]
+    },
+    {
+      "id": "midi:drum-trap-phonk",
+      "title": "Phonk Cowbell",
+      "subtitle": "Trap - 140 BPM - 1 bar",
+      "patternId": "trap-phonk",
+      "tags": [
+        "drums",
+        "factory",
+        "trap"
+      ]
+    },
+    {
+      "id": "midi:drum-trap-pluggnb",
+      "title": "Pluggnb Soft",
+      "subtitle": "Trap - 134 BPM - 1 bar - light swing",
+      "patternId": "trap-pluggnb",
+      "tags": [
+        "drums",
+        "factory",
+        "trap"
+      ]
+    },
+    {
+      "id": "midi:drum-trap-pocket-ops-a",
+      "title": "Pocket Ops Trap A",
+      "subtitle": "Trap - 140 BPM - 1 bar",
+      "patternId": "trap-pocket-ops-a",
+      "tags": [
+        "drums",
+        "factory",
+        "trap"
+      ]
+    },
+    {
+      "id": "midi:drum-trap-roll-end",
+      "title": "Hat Roll into Snare",
+      "subtitle": "Trap - 140 BPM - 1 bar",
+      "patternId": "trap-roll-end",
+      "tags": [
+        "drums",
+        "factory",
+        "trap"
+      ]
+    },
+    {
+      "id": "midi:drum-trap-snare-roll-end",
+      "title": "Snare Roll Exit",
+      "subtitle": "Trap - 140 BPM - 1 bar",
+      "patternId": "trap-snare-roll-end",
+      "tags": [
+        "drums",
+        "factory",
+        "trap"
+      ]
+    },
+    {
+      "id": "midi:drum-trap-sparse-drill",
+      "title": "Drill Sparse",
+      "subtitle": "Trap - 140 BPM - 1 bar",
+      "patternId": "trap-sparse-drill",
+      "tags": [
+        "drums",
+        "factory",
+        "trap"
+      ]
+    },
+    {
+      "id": "midi:drum-trap-syncop-snare",
+      "title": "Syncop Snare Trap",
+      "subtitle": "Trap - 142 BPM - 1 bar",
+      "patternId": "trap-syncop-snare",
+      "tags": [
+        "drums",
+        "factory",
+        "trap"
+      ]
+    },
+    {
+      "id": "midi:drum-trap-triplet-hats",
+      "title": "Triplet Hat Bounce",
+      "subtitle": "Trap - 145 BPM - 1 bar",
+      "patternId": "trap-triplet-hats",
+      "tags": [
+        "drums",
+        "factory",
+        "trap"
+      ]
+    }
   ]
 }

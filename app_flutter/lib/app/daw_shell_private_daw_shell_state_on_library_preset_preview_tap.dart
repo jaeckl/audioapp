@@ -1,16 +1,20 @@
 part of 'daw_shell.dart';
 
 extension DawShellStateOnlibrarypresetpreviewtapOperation on _DawShellState {
-Future<void> _onLibraryPresetPreviewTap(LibraryPresetItem item,
+  Future<void> _onLibraryPresetPreviewTap(LibraryPresetItem item,
       {double startBeat = 0.0, bool loop = true}) async {
-    final preset = DevicePresetStore.find(item.deviceType, item.id);
+    final previewType =
+        FactoryPresetJson.previewDeviceType(item.id) ?? item.deviceType;
+    final params = FactoryPresetJson.flatParamsForPreview(item.id) ??
+        DevicePresetStore.find(item.deviceType, item.id)?.params;
     debugPrint(
-        '[library preset] item.id=${item.id} deviceType=${item.deviceType} startBeat=$startBeat loop=$loop presetFound=${preset != null}');
-    if (preset == null) {
+        '[library preset] item.id=${item.id} deviceType=${item.deviceType} '
+        'previewType=$previewType startBeat=$startBeat loop=$loop '
+        'presetFound=${params != null}');
+    if (params == null) {
       return;
     }
 
-    // Gather selected track's MIDI clip notes in timeline coordinates
     final track = _snapshot?.selectedTrack;
     final notes = <MidiNoteSnapshot>[];
     double maxBeat = 8.0;
@@ -32,7 +36,6 @@ Future<void> _onLibraryPresetPreviewTap(LibraryPresetItem item,
       }
     }
 
-    // Fallback C arpeggio pattern if there are no notes on the selected track
     if (notes.isEmpty) {
       notes.add(const MidiNoteSnapshot(
           pitch: 48, startBeat: 0.0, durationBeats: 1.0, velocity: 90.0));
@@ -45,13 +48,11 @@ Future<void> _onLibraryPresetPreviewTap(LibraryPresetItem item,
       maxBeat = 4.0;
     }
 
-    // Preview preset virtually via bridge. The preset's own deviceType is forwarded as-is;
-    // the engine's DeviceRegistry builds the matching virtual slot.
     final bpm = _snapshot?.bpm ?? 120;
     try {
       await widget.bridge.previewPreset(
-        deviceType: item.deviceType,
-        params: preset.params,
+        deviceType: previewType,
+        params: params,
         notes: notes,
         lengthBeats: maxBeat,
         bpm: bpm,

@@ -15,6 +15,10 @@ const List<DevicePresetFilter> kDevicePresetFilters = [
   DevicePresetFilter(
       deviceType: 'subtractive_synth', label: 'Synth', icon: Icons.waves),
   DevicePresetFilter(
+      deviceType: 'drum_machine',
+      label: 'Drum Kit',
+      icon: Icons.grid_view_outlined),
+  DevicePresetFilter(
       deviceType: 'kick_generator', label: 'Kick', icon: Icons.circle),
   DevicePresetFilter(
       deviceType: 'snare_generator',
@@ -34,6 +38,10 @@ const List<DevicePresetFilter> kDevicePresetFilters = [
       deviceType: 'tom_generator', label: 'Tom', icon: Icons.circle_outlined),
   DevicePresetFilter(
       deviceType: 'rimshot_generator', label: 'Rimshot', icon: Icons.adjust),
+  DevicePresetFilter(
+      deviceType: 'crash_generator',
+      label: 'Crash',
+      icon: Icons.brightness_high_outlined),
   DevicePresetFilter(
       deviceType: 'bass_synth', label: 'Bass Synth', icon: Icons.waves),
   DevicePresetFilter(
