@@ -1,4 +1,6 @@
 #include "audioapp/ProjectEngine.hpp"
+#include "audioapp/SampleBank.hpp"
+#include "audioapp/WavetableBank.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
 
 #include <algorithm>
@@ -32,6 +34,8 @@ struct Options {
 struct Scenario {
     std::string name;
     std::unique_ptr<audioapp::ProjectEngine> engine;
+    std::unique_ptr<audioapp::SampleBank> sampleBank;
+    std::unique_ptr<audioapp::WavetableBank> wavetableBank;
     std::string controlledDevice;
     bool alternatesManualGain = false;
 };
@@ -180,8 +184,24 @@ Scenario makeScenario(std::string_view name) {
             scenario.engine->updateLfoParam(lfo, "rate", 4.0f);
             scenario.engine->assignModulation(lfo, scenario.controlledDevice, "filterCutoff", 0.6f);
         } else if (name == "wavetable_synth") {
+            scenario.wavetableBank = std::make_unique<audioapp::WavetableBank>();
+            constexpr int kFrames = 4;
+            constexpr int kLen = 256;
+            std::vector<float> pcm(static_cast<size_t>(kFrames * kLen), 0.0f);
+            for (int frame = 0; frame < kFrames; ++frame) {
+                for (int i = 0; i < kLen; ++i) {
+                    const float phase = 6.28318530718f * static_cast<float>(i) /
+                                        static_cast<float>(kLen);
+                    pcm[static_cast<size_t>(frame * kLen + i)] =
+                        std::sin(phase) * (0.4f + 0.15f * static_cast<float>(frame));
+                }
+            }
+            scenario.wavetableBank->addPcmTable("bench_sine", std::move(pcm), kFrames, kLen);
+            scenario.engine->setWavetableBank(scenario.wavetableBank.get());
             scenario.controlledDevice = scenario.engine->addDeviceToTrack(
                 trackId, audioapp::device_types::kWavetableSynth);
+            scenario.engine->setDeviceStringParameter(scenario.controlledDevice, "wavetableId",
+                                                      "bench_sine");
             scenario.engine->setDeviceParameter(scenario.controlledDevice, "filterCutoff", 0.35f);
             scenario.engine->setDeviceParameter(scenario.controlledDevice, "wtUnison", 0.75f);
             scenario.engine->setDeviceParameter(scenario.controlledDevice, "wtDetune", 0.5f);
@@ -200,8 +220,14 @@ Scenario makeScenario(std::string_view name) {
             scenario.engine->updateLfoParam(lfo, "rate", 4.0f);
             scenario.engine->assignModulation(lfo, scenario.controlledDevice, "filterCutoff", 0.6f);
         } else if (name == "granular_synth") {
+            scenario.sampleBank = std::make_unique<audioapp::SampleBank>();
+            scenario.sampleBank->registerBundledDefaults();
+            scenario.engine->setSampleBank(scenario.sampleBank.get());
             scenario.controlledDevice = scenario.engine->addDeviceToTrack(
                 trackId, audioapp::device_types::kGranular);
+            // Bind bundled formant source sample used by granular.
+            scenario.engine->setDeviceStringParameter(scenario.controlledDevice, "sampleId",
+                                                      "sample_form_source");
             scenario.engine->setDeviceParameter(scenario.controlledDevice, "density", 0.55f);
             scenario.engine->setDeviceParameter(scenario.controlledDevice, "size", 0.4f);
             const int lfo = scenario.engine->createLfo(0);

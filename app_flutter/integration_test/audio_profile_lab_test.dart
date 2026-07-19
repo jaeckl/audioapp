@@ -13,10 +13,17 @@ import 'package:integration_test/integration_test.dart';
 ///   flutter test integration_test/audio_profile_lab_test.dart -d <serial>
 ///
 /// Optional dart-defines:
-///   LAB_SCENARIO=light|parallel|serial_chain|subtractive
+///   LAB_SCENARIO=light|parallel|serial_chain|subtractive|wavetable|phasemod|granular
 ///   LAB_PLAY_SECONDS=20
 ///   LAB_SETTLE_SECONDS=2
 const _reportPrefix = '@@AUDIO_PROFILE_LAB@@';
+
+const _labChordNotes = [
+  MidiNoteSnapshot(pitch: 48, startBeat: 0, durationBeats: 1, velocity: 110),
+  MidiNoteSnapshot(pitch: 52, startBeat: 1, durationBeats: 1, velocity: 105),
+  MidiNoteSnapshot(pitch: 55, startBeat: 2, durationBeats: 1, velocity: 100),
+  MidiNoteSnapshot(pitch: 60, startBeat: 3, durationBeats: 1, velocity: 100),
+];
 
 Future<void> _setupLightWorkload(EngineBridge bridge) async {
   var snapshot = await bridge.createProject();
@@ -116,14 +123,39 @@ Future<void> _setupSerialChainWorkload(EngineBridge bridge) async {
   );
 }
 
-Future<void> _setupSubtractiveWorkload(EngineBridge bridge) async {
+Future<String> _addSynthTrackWithChord(
+  EngineBridge bridge, {
+  required String trackName,
+  required String deviceType,
+  Map<String, String> stringParams = const {},
+  Map<String, double> params = const {},
+}) async {
   var snapshot = await bridge.createProject();
-  snapshot = await bridge.addTrack(name: 'Subtractive');
+  snapshot = await bridge.addTrack(name: trackName);
   final trackId = snapshot.tracks.last.id;
-  await bridge.addDeviceToTrack(
+  snapshot = await bridge.addDeviceToTrack(
     trackId: trackId,
-    deviceType: 'subtractive_synth',
+    deviceType: deviceType,
   );
+  final deviceId = snapshot.tracks
+      .firstWhere((track) => track.id == trackId)
+      .devices
+      .last
+      .id;
+  for (final entry in stringParams.entries) {
+    await bridge.setDeviceStringParameter(
+      deviceId: deviceId,
+      parameterId: entry.key,
+      value: entry.value,
+    );
+  }
+  for (final entry in params.entries) {
+    await bridge.setDeviceParameter(
+      deviceId: deviceId,
+      parameterId: entry.key,
+      value: entry.value,
+    );
+  }
   final clip = await bridge.createMidiClip(
     trackId: trackId,
     startBeat: 0,
@@ -134,35 +166,8 @@ Future<void> _setupSubtractiveWorkload(EngineBridge bridge) async {
       .midiClips
       .last
       .id;
-  await bridge.setMidiClipNotes(
-    clipId: clipId,
-    notes: const [
-      MidiNoteSnapshot(
-        pitch: 48,
-        startBeat: 0,
-        durationBeats: 1,
-        velocity: 110,
-      ),
-      MidiNoteSnapshot(
-        pitch: 52,
-        startBeat: 1,
-        durationBeats: 1,
-        velocity: 105,
-      ),
-      MidiNoteSnapshot(
-        pitch: 55,
-        startBeat: 2,
-        durationBeats: 1,
-        velocity: 100,
-      ),
-      MidiNoteSnapshot(
-        pitch: 60,
-        startBeat: 3,
-        durationBeats: 1,
-        velocity: 100,
-      ),
-    ],
-  );
+  await bridge.setMidiClipNotes(clipId: clipId, notes: _labChordNotes);
+  return deviceId;
 }
 
 Future<void> _setupScenario(EngineBridge bridge, String scenario) async {
@@ -171,7 +176,29 @@ Future<void> _setupScenario(EngineBridge bridge, String scenario) async {
   } else if (scenario == 'serial_chain') {
     await _setupSerialChainWorkload(bridge);
   } else if (scenario == 'subtractive') {
-    await _setupSubtractiveWorkload(bridge);
+    await _addSynthTrackWithChord(
+      bridge,
+      trackName: 'Subtractive',
+      deviceType: 'subtractive_synth',
+    );
+  } else if (scenario == 'wavetable') {
+    await _addSynthTrackWithChord(
+      bridge,
+      trackName: 'Wavetable',
+      deviceType: 'wavetable_synth',
+    );
+  } else if (scenario == 'phasemod') {
+    await _addSynthTrackWithChord(
+      bridge,
+      trackName: 'PhaseMod',
+      deviceType: 'phase_mod_synth',
+    );
+  } else if (scenario == 'granular') {
+    await _addSynthTrackWithChord(
+      bridge,
+      trackName: 'Granular',
+      deviceType: 'granular_formant_synth',
+    );
   } else {
     await _setupLightWorkload(bridge);
   }
@@ -278,5 +305,5 @@ void main() {
 
     // Host-side scripts scrape this sentinel from flutter test output.
     print('$_reportPrefix${jsonEncode(report)}');
-  });
+  }, timeout: const Timeout(Duration(minutes: 10)));
 }

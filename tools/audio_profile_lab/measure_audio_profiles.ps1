@@ -10,7 +10,7 @@
 #>
 param(
     [string]$DeviceId = "ZY32MCWDJ6",
-    [ValidateSet("light", "parallel", "serial_chain", "subtractive")]
+    [ValidateSet("light", "parallel", "serial_chain", "subtractive", "wavetable", "phasemod", "granular")]
     [string]$Scenario = "light",
     [int]$PlaySeconds = 20,
     [int]$SettleSeconds = 2,
@@ -98,11 +98,25 @@ if ($Manual) {
             "--dart-define=LAB_SAMPLE_MS=$SampleMs"
         )
         Write-Host "Running integration test on device..."
+        # Flutter prints Gradle warnings to stderr; don't treat those as terminating errors.
+        $prevEap = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        # Force UTF-8 log so parse_lab_output.py can read the sentinel line.
+        $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+        [System.IO.File]::WriteAllText($flutterLogPath, "", $utf8NoBom)
+        $flutterExit = 0
         & flutter test integration_test/audio_profile_lab_test.dart `
             -d $DeviceId `
-            @defines 2>&1 | Tee-Object -FilePath $flutterLogPath
-        if ($LASTEXITCODE -ne 0) {
-            Write-Error "flutter test failed. See $flutterLogPath"
+            --timeout 10m `
+            @defines 2>&1 | ForEach-Object {
+                $line = "$_"
+                [System.IO.File]::AppendAllText($flutterLogPath, $line + [Environment]::NewLine, $utf8NoBom)
+                $line
+            }
+        $flutterExit = $LASTEXITCODE
+        $ErrorActionPreference = $prevEap
+        if ($flutterExit -ne 0) {
+            Write-Error "flutter test failed (exit $flutterExit). See $flutterLogPath"
         }
     } finally {
         Pop-Location
@@ -113,9 +127,21 @@ if ($Manual) {
     }
 }
 
-$python = "python"
-if (Get-Command python3 -ErrorAction SilentlyContinue) { $python = "python3" }
-& $python (Join-Path $LabDir "parse_lab_output.py") `
+# Prefer real Python / py launcher over the Windows Store stub named "python".
+$pythonCmd = $null
+$pythonArgs = @()
+if (Get-Command py -ErrorAction SilentlyContinue) {
+    $pythonCmd = "py"
+    $pythonArgs = @("-3")
+} elseif (Get-Command python3 -ErrorAction SilentlyContinue) {
+    $pythonCmd = "python3"
+} elseif (Get-Command python -ErrorAction SilentlyContinue) {
+    $pythonCmd = "python"
+}
+if (-not $pythonCmd) {
+    Write-Error "Python not found. Install Python 3 or ensure py/python3 is on PATH."
+}
+& $pythonCmd @pythonArgs (Join-Path $LabDir "parse_lab_output.py") `
     $flutterLogPath `
     $logcatPath `
     --output-json $jsonPath `

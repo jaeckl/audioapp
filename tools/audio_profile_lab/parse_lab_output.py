@@ -26,7 +26,16 @@ class XRunEvent:
 
 
 def load_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8", errors="replace")
+    raw = path.read_bytes()
+    if raw.startswith(b"\xff\xfe") or raw.startswith(b"\xfe\xff"):
+        return raw.decode("utf-16", errors="replace")
+    # PowerShell Tee-Object often writes UTF-16 LE without BOM.
+    if b"\x00" in raw[:200] and REPORT_PREFIX.encode("utf-8") not in raw:
+        try:
+            return raw.decode("utf-16-le", errors="replace")
+        except UnicodeDecodeError:
+            pass
+    return raw.decode("utf-8", errors="replace")
 
 
 def extract_reports(text: str) -> list[dict[str, Any]]:

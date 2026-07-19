@@ -399,6 +399,25 @@ const WavetableEntry* WavetableBank::get(int index) const noexcept {
     return &entries_[static_cast<size_t>(index)];
 }
 
+int WavetableBank::addPcmTable(const std::string& name,
+                               std::vector<float> pcm,
+                               int frameCount,
+                               int frameLength,
+                               float sampleRate) {
+    if (frameCount <= 0 || frameLength <= 0 ||
+        static_cast<int>(pcm.size()) < frameCount * frameLength) {
+        return -1;
+    }
+    WavetableEntry entry;
+    entry.name = name;
+    entry.pcm = std::move(pcm);
+    entry.frameCount = frameCount;
+    entry.frameLength = frameLength;
+    entry.sampleRate = sampleRate;
+    entries_.push_back(std::move(entry));
+    return static_cast<int>(entries_.size()) - 1;
+}
+
 int WavetableBank::findByName(const std::string& name) const noexcept {
     for (size_t i = 0; i < entries_.size(); ++i) {
         if (entries_[i].name == name) {

@@ -26,6 +26,13 @@ public:
     /// Access loaded wavetable by index.
     const WavetableEntry* get(int index) const noexcept;
 
+    /// Insert a prebuilt multi-frame table (tests / dsp_benchmark).
+    int addPcmTable(const std::string& name,
+                    std::vector<float> pcm,
+                    int frameCount,
+                    int frameLength,
+                    float sampleRate = 48000.0f);
+
     /// Number of loaded wavetables.
     int size() const noexcept { return static_cast<int>(entries_.size()); }
 
