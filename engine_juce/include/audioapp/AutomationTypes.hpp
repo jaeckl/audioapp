@@ -410,6 +410,37 @@ enum class StutterParam : uint16_t {
     OutputGain = 12,
 };
 
+enum class DcOffsetParam : uint16_t {
+    Mode = 0,
+    Amount = 1,
+    Cutoff = 2,
+};
+
+enum class DeCracklerParam : uint16_t {
+    Sensitivity = 0,
+    Strength = 1,
+    Width = 2,
+};
+
+enum class DeEsserParam : uint16_t {
+    Freq = 0,
+    Threshold = 1,
+    Amount = 2,
+    Listen = 3,
+};
+
+enum class DeHumParam : uint16_t {
+    MainsFreq = 0,
+    Depth = 1,
+    Harmonics = 2,
+};
+
+enum class DeNoiseParam : uint16_t {
+    Threshold = 0,
+    Reduction = 1,
+    Smoothing = 2,
+};
+
 enum class ChorusParam : uint16_t {
     ModeMorph = 0,
     ClassicRate, ClassicDepth, ClassicDelay, ClassicFeedback, ClassicPhase, ClassicShape,
@@ -495,6 +526,11 @@ enum class ParamKind : uint16_t {
     RideGenerator    = 33,
     TomGenerator     = 34,
     RimshotGenerator = 35,
+    DcOffset         = 36,
+    DeCrackler       = 37,
+    DeEsser          = 38,
+    DeHum            = 39,
+    DeNoise          = 40,
 };
 
 constexpr uint16_t kParamKindShift      = 10;

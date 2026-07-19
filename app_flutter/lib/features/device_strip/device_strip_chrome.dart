@@ -43,6 +43,15 @@ abstract final class DeviceStripChrome {
     'device_chain',
     'lr_split',
     'ms_split',
+    // Restore utility — empty chrome cap (no Mix/Width).
+    'dc_offset',
+    'de_crackler',
+  };
+  /// Restore inserts that need makeup gain — Pan/Gain pinned to bottom.
+  static const _restoreGainPanTypes = {
+    'de_esser',
+    'de_hum',
+    'de_noise',
   };
 
   static bool hasInputPanel(String deviceType) =>
@@ -185,6 +194,24 @@ abstract final class DeviceStripChrome {
         noteFxExpanded: bindings.noteFxExpanded,
         onToggleAudioFx: bindings.onToggleAudioFx,
         onToggleNoteFx: bindings.onToggleNoteFx,
+      );
+    }
+    if (_restoreGainPanTypes.contains(deviceType)) {
+      return StereoGainPanPanel(
+        device: bindings.device,
+        accentColor: bindings.accentColor,
+        onParameterChanged: bindings.onParameterChanged,
+        knobColumnAlignment: MainAxisAlignment.end,
+        modulatedParams: bindings.modulatedParams,
+        automatedParams: bindings.automatedParams,
+        modulationAmounts: bindings.modulationAmounts,
+        lfos: bindings.lfos,
+        modEdges: bindings.modEdges,
+        connectModeLfoId: bindings.connectModeLfoId,
+        onModulationAssign: bindings.onModulationAssign,
+        automationLinkActive: bindings.automationLinkActive,
+        onAutomationLinkTap: bindings.onAutomationLinkTap,
+        onAutomateParameter: bindings.onAutomateParameter,
       );
     }
     return StereoGainPanPanel(

@@ -232,6 +232,27 @@ Future<String?> showDevicePickerSheet(BuildContext context) {
                   subtitle: Text(definition.picker.description),
                   onTap: () => Navigator.pop(context, definition.typeId),
                 ),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
+                child: Text(
+                  'Restore Effects',
+                  style: TextStyle(
+                    color: Color(0xFF9A9AA8),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+              ),
+              for (final definition in deviceDefinitionRepository.definitions
+                  .where((item) => item.picker.category == 'Restore Effects'))
+                ListTile(
+                  leading: Icon(definition.picker.icon,
+                      color: definition.picker.color),
+                  title: Text(definition.picker.name),
+                  subtitle: Text(definition.picker.description),
+                  onTap: () => Navigator.pop(context, definition.typeId),
+                ),
               const SizedBox(height: 8),
             ],
           ),

@@ -105,6 +105,11 @@ void applyModulation(BitcrusherParamsPlayback& p, float amount, uint16_t localPa
 }
 void applyModulation(DistortionParamsPlayback&, float, uint16_t) noexcept {}
 void applyModulation(TremoloParamsPlayback&, float, uint16_t) noexcept {}
+void applyModulation(DcOffsetParamsPlayback&, float, uint16_t) noexcept {}
+void applyModulation(DeCracklerParamsPlayback&, float, uint16_t) noexcept {}
+void applyModulation(DeEsserParamsPlayback&, float, uint16_t) noexcept {}
+void applyModulation(DeHumParamsPlayback&, float, uint16_t) noexcept {}
+void applyModulation(DeNoiseParamsPlayback&, float, uint16_t) noexcept {}
 void applyModulation(StutterParamsPlayback& p, float modAmount, uint16_t localParamId) noexcept {
     switch (static_cast<StutterParam>(unpackParamId(localParamId))) {
     case StutterParam::Trigger: p.trigger = std::clamp(p.trigger + modAmount, 0.0f, 1.0f); break;

@@ -37,6 +37,11 @@ inline constexpr const char* kBitcrusher = "bitcrusher";
 inline constexpr const char* kDistortion = "distortion";
 inline constexpr const char* kTremolo = "tremolo";
 inline constexpr const char* kStutter = "stutter_fx";
+inline constexpr const char* kDcOffset = "dc_offset";
+inline constexpr const char* kDeCrackler = "de_crackler";
+inline constexpr const char* kDeEsser = "de_esser";
+inline constexpr const char* kDeHum = "de_hum";
+inline constexpr const char* kDeNoise = "de_noise";
 inline constexpr const char* kWavetableSynth = "wavetable_synth";
 inline constexpr const char* kDrumMachine = "drum_machine";
 inline constexpr const char* kGranular = "granular_formant_synth";
@@ -70,6 +75,8 @@ inline bool isAudioFxType(std::string_view typeId) {
            typeId == kFourBandEq || typeId == kFrequencyShifter ||
            typeId == kResonatorBank || typeId == kBitcrusher ||
            typeId == kDistortion || typeId == kTremolo || typeId == kStutter ||
+           typeId == kDcOffset || typeId == kDeCrackler || typeId == kDeEsser ||
+           typeId == kDeHum || typeId == kDeNoise ||
            typeId == kLrSplit || typeId == kMsSplit ||
            typeId == kMbSplit2 || typeId == kMbSplit3 || typeId == kMbSplit4 ||
            typeId == kSpectralLoudSplit;

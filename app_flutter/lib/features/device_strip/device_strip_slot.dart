@@ -50,6 +50,7 @@ import 'multiband_split_panel.dart';
 import 'spectral_loud_split_panel.dart';
 import 'granular_device_panel.dart';
 import 'mood_fx_panels.dart';
+import 'restore_fx_panels.dart';
 import 'frequency_fx_panels.dart';
 import 'resonator_bank_panel.dart';
 import 'routing_device_panel.dart';
@@ -129,6 +130,11 @@ part 'device_strip_slot_private_device_strip_slot_state_build_device_build_bitcr
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_distortion_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_tremolo_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_stutter_fx_device.dart';
+part 'device_strip_slot_private_device_strip_slot_state_build_device_build_dc_offset_device.dart';
+part 'device_strip_slot_private_device_strip_slot_state_build_device_build_de_crackler_device.dart';
+part 'device_strip_slot_private_device_strip_slot_state_build_device_build_de_esser_device.dart';
+part 'device_strip_slot_private_device_strip_slot_state_build_device_build_de_hum_device.dart';
+part 'device_strip_slot_private_device_strip_slot_state_build_device_build_de_noise_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_unknown_device.dart';
 
 const _seqAccent = Color(0xFFE8A54B);

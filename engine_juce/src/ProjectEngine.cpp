@@ -71,6 +71,11 @@ bool supportsCompiledNormalizedParameter(DeviceNodeKind kind) noexcept {
     case DeviceNodeKind::Bitcrusher:
     case DeviceNodeKind::Distortion:
     case DeviceNodeKind::Tremolo:
+    case DeviceNodeKind::DcOffset:
+    case DeviceNodeKind::DeCrackler:
+    case DeviceNodeKind::DeEsser:
+    case DeviceNodeKind::DeHum:
+    case DeviceNodeKind::DeNoise:
     case DeviceNodeKind::ResonatorBank:
     case DeviceNodeKind::AudioReceiver:
     case DeviceNodeKind::MidiReceiver:

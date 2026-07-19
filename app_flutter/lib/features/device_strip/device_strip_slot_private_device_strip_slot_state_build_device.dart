@@ -85,6 +85,16 @@ extension DeviceStripSlotStateBuilddeviceOperation on _DeviceStripSlotState {
         return _buildTremoloDevice(context, contentHeight);
       case 'stutter_fx':
         return _buildStutterFxDevice(context, contentHeight);
+      case 'dc_offset':
+        return _buildDcOffsetDevice(context, contentHeight);
+      case 'de_crackler':
+        return _buildDeCracklerDevice(context, contentHeight);
+      case 'de_esser':
+        return _buildDeEsserDevice(context, contentHeight);
+      case 'de_hum':
+        return _buildDeHumDevice(context, contentHeight);
+      case 'de_noise':
+        return _buildDeNoiseDevice(context, contentHeight);
       default:
         return _buildUnknownDevice(context, contentHeight);
     }

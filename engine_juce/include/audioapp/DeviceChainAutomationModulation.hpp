@@ -41,6 +41,11 @@ void applyModulation(BitcrusherParamsPlayback&, float, uint16_t) noexcept;
 void applyModulation(DistortionParamsPlayback&, float, uint16_t) noexcept;
 void applyModulation(TremoloParamsPlayback&, float, uint16_t) noexcept;
 void applyModulation(StutterParamsPlayback&, float, uint16_t) noexcept;
+void applyModulation(DcOffsetParamsPlayback&, float, uint16_t) noexcept;
+void applyModulation(DeCracklerParamsPlayback&, float, uint16_t) noexcept;
+void applyModulation(DeEsserParamsPlayback&, float, uint16_t) noexcept;
+void applyModulation(DeHumParamsPlayback&, float, uint16_t) noexcept;
+void applyModulation(DeNoiseParamsPlayback&, float, uint16_t) noexcept;
 inline void applyModulation(DrumMachineParams&, float, uint16_t) noexcept {}
 inline void applyModulation(ChainParams& p, float amount, uint16_t localParamId) noexcept {
     const auto rawId = unpackParamId(localParamId);

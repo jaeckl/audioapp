@@ -93,6 +93,11 @@ add_library(audioapp_engine STATIC
   src/devices/processors/DistortionProcessor.cpp
   src/devices/processors/TremoloProcessor.cpp
   src/devices/processors/StutterProcessor.cpp
+  src/devices/processors/DcOffsetProcessor.cpp
+  src/devices/processors/DeCracklerProcessor.cpp
+  src/devices/processors/DeEsserProcessor.cpp
+  src/devices/processors/DeHumProcessor.cpp
+  src/devices/processors/DeNoiseProcessor.cpp
   src/devices/processors/AnalysisProcessor.cpp
   src/devices/processors/ChainProcessor.cpp
   src/devices/processors/GranularProcessor.cpp
@@ -147,6 +152,12 @@ add_library(audioapp_engine STATIC
   src/effects/DistortionDeviceType.cpp
   src/effects/TremoloDeviceType.cpp
   src/effects/StutterDeviceType.cpp
+  src/effects/RestoreEffectRegistration.cpp
+  src/effects/DcOffsetDeviceType.cpp
+  src/effects/DeCracklerDeviceType.cpp
+  src/effects/DeEsserDeviceType.cpp
+  src/effects/DeHumDeviceType.cpp
+  src/effects/DeNoiseDeviceType.cpp
   src/model/TrackRepository.cpp
   src/model/ClipRepository.cpp
   src/model/AutomationClipStore.cpp
@@ -334,6 +345,9 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/filter_device_test.cpp
     tests/four_band_eq_test.cpp
     tests/frequency_shifter_test.cpp
+    tests/restore_fx_test.cpp
+    tests/restore_fx_dsp_test.cpp
+    tests/restore_fx_integration_test.cpp
     tests/engine_smoke_test.cpp
     tests/gain_pan_mod_auto_test.cpp
     tests/gate_device_test.cpp

@@ -14,6 +14,7 @@ import 'mood_fx_panels.dart';
 import 'oscillator_device_panel.dart';
 import 'phase_mod_synth_device_panel.dart';
 import 'resonator_bank_panel.dart';
+import 'restore_fx_panels.dart';
 import 'routing_device_panel.dart';
 import 'sampler_device_panel.dart';
 import 'snare_generator_device_panel.dart';
@@ -28,6 +29,11 @@ final Map<String, List<DeviceTabSpec>> generatedDevicePanelTabs = {
   'clap_generator': ClapGeneratorDevicePanel.containerTabs,
   'compressor': CompressorDevicePanel.containerTabs,
   'crash_generator': CrashGeneratorDevicePanel.containerTabs,
+  'dc_offset': DcOffsetFxPanel.containerTabs,
+  'de_crackler': DeCracklerFxPanel.containerTabs,
+  'de_esser': DeEsserFxPanel.containerTabs,
+  'de_hum': DeHumFxPanel.containerTabs,
+  'de_noise': DeNoiseFxPanel.containerTabs,
   'distortion': DistortionFxPanel.containerTabs,
   'expander': ExpanderDevicePanel.containerTabs,
   'filter': FilterDevicePanel.containerTabs,

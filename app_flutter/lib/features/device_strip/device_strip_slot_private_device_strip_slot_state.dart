@@ -94,6 +94,11 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       'spectral_loud_split',
       'granular_formant_synth',
       'stutter_fx',
+      'dc_offset',
+      'de_crackler',
+      'de_esser',
+      'de_hum',
+      'de_noise',
     };
     return knownTypes.contains(widget.device.type);
   }
@@ -314,6 +319,11 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       CompressorDeviceSnapshot() => 'Stereo · FX',
       ExpanderDeviceSnapshot() => 'Stereo · FX',
       LimiterDeviceSnapshot() => 'Stereo · FX',
+      DcOffsetDeviceSnapshot() => 'Stereo · Restore',
+      DeCracklerDeviceSnapshot() => 'Stereo · Restore',
+      DeEsserDeviceSnapshot() => 'Stereo · Restore',
+      DeHumDeviceSnapshot() => 'Stereo · Restore',
+      DeNoiseDeviceSnapshot() => 'Stereo · Restore',
       _ => null,
     };
   }

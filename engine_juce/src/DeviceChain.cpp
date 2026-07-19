@@ -134,6 +134,11 @@ DeviceNodeKind deviceNodeKindFromTypeId(const std::string& typeId) noexcept {
         return DeviceNodeKind::MultibandSplit;
     if (typeId == kSpectralLoudSplit)
         return DeviceNodeKind::SpectralLoudSplit;
+    if (typeId == kDcOffset)         return DeviceNodeKind::DcOffset;
+    if (typeId == kDeCrackler)       return DeviceNodeKind::DeCrackler;
+    if (typeId == kDeEsser)          return DeviceNodeKind::DeEsser;
+    if (typeId == kDeHum)            return DeviceNodeKind::DeHum;
+    if (typeId == kDeNoise)          return DeviceNodeKind::DeNoise;
     return DeviceNodeKind::Unknown;
 }
 

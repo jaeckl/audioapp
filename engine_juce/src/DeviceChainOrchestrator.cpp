@@ -41,6 +41,11 @@ using namespace audioapp::DeviceChainAutomationModulation;
 #include "audioapp/devices/processors/SplitProcessor.hpp"
 #include "audioapp/devices/processors/MultibandSplitProcessor.hpp"
 #include "audioapp/devices/processors/SpectralLoudSplitProcessor.hpp"
+#include "audioapp/devices/processors/DcOffsetProcessor.hpp"
+#include "audioapp/devices/processors/DeCracklerProcessor.hpp"
+#include "audioapp/devices/processors/DeEsserProcessor.hpp"
+#include "audioapp/devices/processors/DeHumProcessor.hpp"
+#include "audioapp/devices/processors/DeNoiseProcessor.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -98,6 +103,11 @@ static const FactoryFn kProcessorFactories[] = {
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<SplitProcessor>(); },  // Split
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<MultibandSplitProcessor>(); },  // MultibandSplit
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<SpectralLoudSplitProcessor>(); },  // SpectralLoudSplit
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<DcOffsetProcessor>(); },
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<DeCracklerProcessor>(); },
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<DeEsserProcessor>(); },
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<DeHumProcessor>(); },
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<DeNoiseProcessor>(); },
 };
 static constexpr size_t kNumFactories = sizeof(kProcessorFactories) / sizeof(kProcessorFactories[0]);
 
@@ -353,18 +363,30 @@ static void runFusedOutputAdapter(DeviceProcessor& processor,
     processor.smoothedOutputWidth = processor.outputWidth;
 
     if (!isInstrumentDeviceNodeKind(nodeKind) && nodeKind != DeviceNodeKind::TrackGain) {
-        if (commonControls.gainMode == CommonControlMode::Constant) {
-            applyStereoScalarGain(block.channelL, block.channelR, numFrames,
-                                  commonControls.gainEnd);
-        } else {
-            const float* gains = commonControls.gainValues;
-            if (commonControls.gainMode == CommonControlMode::Ramp) {
-                for (int frame = 0; frame < numFrames; ++frame)
-                    scratch.perFrameGain[frame] = commonControls.gainAt(frame);
-                gains = scratch.perFrameGain;
+        // Stereo balance (same law as TrackGain) so Gain/Pan chrome on FX
+        // devices actually moves the image — not gain-only.
+        auto balance = [](float pan, float& left, float& right) noexcept {
+            const float p = std::clamp(pan, 0.0f, 1.0f);
+            left = p <= 0.5f ? 1.0f : 2.0f * (1.0f - p);
+            right = p >= 0.5f ? 1.0f : 2.0f * p;
+        };
+        const bool constGain = commonControls.gainMode == CommonControlMode::Constant;
+        const bool constPan = commonControls.panMode == CommonControlMode::Constant;
+        if (constGain && constPan) {
+            float leftBal = 1.0f, rightBal = 1.0f;
+            balance(commonControls.panEnd, leftBal, rightBal);
+            for (int frame = 0; frame < numFrames; ++frame) {
+                block.channelL[frame] *= commonControls.gainEnd * leftBal;
+                block.channelR[frame] *= commonControls.gainEnd * rightBal;
             }
-            multiplyPerFrameGain(block.channelL, numFrames, gains);
-            multiplyPerFrameGain(block.channelR, numFrames, gains);
+        } else {
+            for (int frame = 0; frame < numFrames; ++frame) {
+                float leftBal = 1.0f, rightBal = 1.0f;
+                balance(commonControls.panAt(frame), leftBal, rightBal);
+                const float g = commonControls.gainAt(frame);
+                block.channelL[frame] *= g * leftBal;
+                block.channelR[frame] *= g * rightBal;
+            }
         }
     }
 }

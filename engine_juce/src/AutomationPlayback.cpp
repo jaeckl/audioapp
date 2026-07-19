@@ -85,6 +85,11 @@ static ParamKind paramKindForDevice(DeviceNodeKind kind) noexcept {
     case DeviceNodeKind::Bitcrusher:       return ParamKind::Bitcrusher;
     case DeviceNodeKind::Distortion:       return ParamKind::Distortion;
     case DeviceNodeKind::Tremolo:          return ParamKind::Tremolo;
+    case DeviceNodeKind::DcOffset:         return ParamKind::DcOffset;
+    case DeviceNodeKind::DeCrackler:       return ParamKind::DeCrackler;
+    case DeviceNodeKind::DeEsser:          return ParamKind::DeEsser;
+    case DeviceNodeKind::DeHum:            return ParamKind::DeHum;
+    case DeviceNodeKind::DeNoise:          return ParamKind::DeNoise;
     case DeviceNodeKind::WavetableSynth:   return ParamKind::WavetableSynth;
     case DeviceNodeKind::ResonatorBank:    return ParamKind::ResonatorBank;
     case DeviceNodeKind::AudioReceiver:
@@ -548,6 +553,62 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         if (std::strcmp(name, "phaserCentreFrequencyHz") == 0) return packParamId(ParamKind::Phaser, 3);
         return 0;
     }
+    case DeviceNodeKind::DcOffset: {
+        auto p = [&](const char* n, DcOffsetParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::DcOffset, static_cast<uint16_t>(pid))
+                : 0;
+        };
+        if (auto v = p("dcMode", DcOffsetParam::Mode)) return v;
+        if (auto v = p("dcAmount", DcOffsetParam::Amount)) return v;
+        if (auto v = p("dcCutoff", DcOffsetParam::Cutoff)) return v;
+        return 0;
+    }
+    case DeviceNodeKind::DeCrackler: {
+        auto p = [&](const char* n, DeCracklerParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::DeCrackler, static_cast<uint16_t>(pid))
+                : 0;
+        };
+        if (auto v = p("crackSense", DeCracklerParam::Sensitivity)) return v;
+        if (auto v = p("crackStrength", DeCracklerParam::Strength)) return v;
+        if (auto v = p("crackWidth", DeCracklerParam::Width)) return v;
+        return 0;
+    }
+    case DeviceNodeKind::DeEsser: {
+        auto p = [&](const char* n, DeEsserParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::DeEsser, static_cast<uint16_t>(pid))
+                : 0;
+        };
+        if (auto v = p("deFreq", DeEsserParam::Freq)) return v;
+        if (auto v = p("deThresh", DeEsserParam::Threshold)) return v;
+        if (auto v = p("deAmount", DeEsserParam::Amount)) return v;
+        if (auto v = p("deListen", DeEsserParam::Listen)) return v;
+        return 0;
+    }
+    case DeviceNodeKind::DeHum: {
+        auto p = [&](const char* n, DeHumParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::DeHum, static_cast<uint16_t>(pid))
+                : 0;
+        };
+        if (auto v = p("humMains", DeHumParam::MainsFreq)) return v;
+        if (auto v = p("humDepth", DeHumParam::Depth)) return v;
+        if (auto v = p("humHarmonics", DeHumParam::Harmonics)) return v;
+        return 0;
+    }
+    case DeviceNodeKind::DeNoise: {
+        auto p = [&](const char* n, DeNoiseParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::DeNoise, static_cast<uint16_t>(pid))
+                : 0;
+        };
+        if (auto v = p("dnThresh", DeNoiseParam::Threshold)) return v;
+        if (auto v = p("dnReduce", DeNoiseParam::Reduction)) return v;
+        if (auto v = p("dnSmooth", DeNoiseParam::Smoothing)) return v;
+        return 0;
+    }
     default:
         return 0;
     }
@@ -885,6 +946,47 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         return rawId < std::size(kReverbParamNames) ? kReverbParamNames[rawId] : "";
     case DeviceNodeKind::Phaser:
         return rawId < std::size(kPhaserParamNames) ? kPhaserParamNames[rawId] : "";
+    case DeviceNodeKind::DcOffset: {
+        switch (static_cast<DcOffsetParam>(rawId)) {
+        case DcOffsetParam::Mode: return "dcMode";
+        case DcOffsetParam::Amount: return "dcAmount";
+        case DcOffsetParam::Cutoff: return "dcCutoff";
+        default: return "";
+        }
+    }
+    case DeviceNodeKind::DeCrackler: {
+        switch (static_cast<DeCracklerParam>(rawId)) {
+        case DeCracklerParam::Sensitivity: return "crackSense";
+        case DeCracklerParam::Strength: return "crackStrength";
+        case DeCracklerParam::Width: return "crackWidth";
+        default: return "";
+        }
+    }
+    case DeviceNodeKind::DeEsser: {
+        switch (static_cast<DeEsserParam>(rawId)) {
+        case DeEsserParam::Freq: return "deFreq";
+        case DeEsserParam::Threshold: return "deThresh";
+        case DeEsserParam::Amount: return "deAmount";
+        case DeEsserParam::Listen: return "deListen";
+        default: return "";
+        }
+    }
+    case DeviceNodeKind::DeHum: {
+        switch (static_cast<DeHumParam>(rawId)) {
+        case DeHumParam::MainsFreq: return "humMains";
+        case DeHumParam::Depth: return "humDepth";
+        case DeHumParam::Harmonics: return "humHarmonics";
+        default: return "";
+        }
+    }
+    case DeviceNodeKind::DeNoise: {
+        switch (static_cast<DeNoiseParam>(rawId)) {
+        case DeNoiseParam::Threshold: return "dnThresh";
+        case DeNoiseParam::Reduction: return "dnReduce";
+        case DeNoiseParam::Smoothing: return "dnSmooth";
+        default: return "";
+        }
+    }
     default:
         return "";
     }
@@ -1536,6 +1638,52 @@ void applyAutomationValue(DeviceVariantParams& params,
             case TremoloParam::Depth: p->depth = value; break;
             case TremoloParam::Rate: p->rateHz = 0.1f + value * 19.9f; break;
             case TremoloParam::Shape: p->shape = value; break;
+            }
+        }
+        break;
+    case ParamKind::DcOffset:
+        if (auto* p = std::get_if<DcOffsetParamsPlayback>(&params)) {
+            switch (static_cast<DcOffsetParam>(rawId)) {
+            case DcOffsetParam::Mode: p->mode = value; break;
+            case DcOffsetParam::Amount: p->amount = value; break;
+            case DcOffsetParam::Cutoff: p->cutoff = value; break;
+            }
+        }
+        break;
+    case ParamKind::DeCrackler:
+        if (auto* p = std::get_if<DeCracklerParamsPlayback>(&params)) {
+            switch (static_cast<DeCracklerParam>(rawId)) {
+            case DeCracklerParam::Sensitivity: p->sensitivity = value; break;
+            case DeCracklerParam::Strength: p->strength = value; break;
+            case DeCracklerParam::Width: p->width = value; break;
+            }
+        }
+        break;
+    case ParamKind::DeEsser:
+        if (auto* p = std::get_if<DeEsserParamsPlayback>(&params)) {
+            switch (static_cast<DeEsserParam>(rawId)) {
+            case DeEsserParam::Freq: p->freq = value; break;
+            case DeEsserParam::Threshold: p->threshold = value; break;
+            case DeEsserParam::Amount: p->amount = value; break;
+            case DeEsserParam::Listen: p->listen = value; break;
+            }
+        }
+        break;
+    case ParamKind::DeHum:
+        if (auto* p = std::get_if<DeHumParamsPlayback>(&params)) {
+            switch (static_cast<DeHumParam>(rawId)) {
+            case DeHumParam::MainsFreq: p->mainsFreq = value; break;
+            case DeHumParam::Depth: p->depth = value; break;
+            case DeHumParam::Harmonics: p->harmonics = value; break;
+            }
+        }
+        break;
+    case ParamKind::DeNoise:
+        if (auto* p = std::get_if<DeNoiseParamsPlayback>(&params)) {
+            switch (static_cast<DeNoiseParam>(rawId)) {
+            case DeNoiseParam::Threshold: p->threshold = value; break;
+            case DeNoiseParam::Reduction: p->reduction = value; break;
+            case DeNoiseParam::Smoothing: p->smoothing = value; break;
             }
         }
         break;

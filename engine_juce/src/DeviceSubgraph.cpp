@@ -29,6 +29,11 @@ bool hasPureInputTrim(DeviceNodeKind kind) noexcept {
         case DeviceNodeKind::Bitcrusher:
         case DeviceNodeKind::Distortion:
         case DeviceNodeKind::Tremolo:
+        case DeviceNodeKind::DcOffset:
+        case DeviceNodeKind::DeCrackler:
+        case DeviceNodeKind::DeEsser:
+        case DeviceNodeKind::DeHum:
+        case DeviceNodeKind::DeNoise:
             return true;
         default:
             return false;

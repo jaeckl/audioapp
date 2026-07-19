@@ -112,6 +112,11 @@ enum class DeviceNodeKind : uint8_t {
     Split,
     MultibandSplit,
     SpectralLoudSplit,
+    DcOffset,
+    DeCrackler,
+    DeEsser,
+    DeHum,
+    DeNoise,
 };
 
 // --- Per-device DSP-only parameter structs ---
@@ -201,6 +206,42 @@ struct TremoloParamsPlayback {
     float depth = 0.5f;
     float rateHz = 5.0f;
     float shape = 0.0f;
+    float inputGain = 1.0f;
+};
+
+struct DcOffsetParamsPlayback {
+    float mode = 1.0f;      // 0=Mean, 1=HPF
+    float amount = 1.0f;
+    float cutoff = 0.3f;
+    float inputGain = 1.0f;
+};
+
+struct DeCracklerParamsPlayback {
+    float sensitivity = 0.5f;
+    float strength = 0.6f;
+    float width = 0.4f;
+    float inputGain = 1.0f;
+};
+
+struct DeEsserParamsPlayback {
+    float freq = 0.55f;
+    float threshold = 0.45f;
+    float amount = 0.5f;
+    float listen = 0.0f;   // 0/1
+    float inputGain = 1.0f;
+};
+
+struct DeHumParamsPlayback {
+    float mainsFreq = 0.0f; // 0=50Hz, 1=60Hz
+    float depth = 0.7f;
+    float harmonics = 0.4f;
+    float inputGain = 1.0f;
+};
+
+struct DeNoiseParamsPlayback {
+    float threshold = 0.35f;
+    float reduction = 0.5f;
+    float smoothing = 0.4f;
     float inputGain = 1.0f;
 };
 
@@ -294,6 +335,11 @@ using DeviceVariantParams = std::variant<
     BitcrusherParamsPlayback,
     DistortionParamsPlayback,
     TremoloParamsPlayback,
+    DcOffsetParamsPlayback,
+    DeCracklerParamsPlayback,
+    DeEsserParamsPlayback,
+    DeHumParamsPlayback,
+    DeNoiseParamsPlayback,
     ResonatorBankParams,
     RoutingParams,
     MidiDelayParams,
