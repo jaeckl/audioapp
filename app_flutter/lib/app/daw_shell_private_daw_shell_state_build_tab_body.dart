@@ -19,6 +19,8 @@ extension DawShellStateBuildtabbodyOperation on _DawShellState {
                   _setTrackMuted(trackId: trackId, muted: muted),
               onTrackSoloed: (trackId, soloed) =>
                   _setTrackSoloed(trackId: trackId, soloed: soloed),
+              onTrackRecordArmed: (trackId, armed) =>
+                  _setTrackRecordArmed(trackId: trackId, armed: armed),
               onTrackSelected: _selectTrack,
               onMasterGainChanged: _setMasterGain,
               onTrackOutputChanged: (trackId, outputTarget) =>

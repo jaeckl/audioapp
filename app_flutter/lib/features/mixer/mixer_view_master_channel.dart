@@ -4,64 +4,89 @@ class _MasterChannel extends StatelessWidget {
   const _MasterChannel({
     required this.title,
     required this.gain,
+    required this.muted,
     required this.selected,
+    required this.meter,
     required this.onGainChanged,
     required this.onSelect,
+    required this.onMute,
   });
 
   final String title;
   final double gain;
+  final bool muted;
   final bool selected;
+  final DeviceMeterReading? meter;
   final ValueChanged<double> onGainChanged;
   final VoidCallback onSelect;
+  final VoidCallback onMute;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: onSelect,
-        child: Container(
-          width: 104,
-          margin: const EdgeInsets.only(right: 6),
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xFF2E2A1E) : const Color(0xFF28241A),
-            borderRadius: BorderRadius.circular(5),
-            border: Border.all(
-              color: selected
-                  ? Colors.amber
-                  : Colors.amber.withValues(alpha: .35),
+  Widget build(BuildContext context) {
+    final accent =
+        selected ? TrackLaneColor.master : MixerTheme.masterIcon;
+    return _MixerChannelFrame(
+      selected: selected,
+      isMaster: true,
+      accent: TrackLaneColor.master,
+      child: Column(
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onSelect,
+            child: Column(
+              children: [
+                Icon(Icons.speaker_outlined,
+                    size: MixerTheme.headerIconSize, color: accent),
+                const SizedBox(height: 4),
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: MixerTheme.nameFontSize,
+                    fontWeight: FontWeight.w700,
+                    color: MixerTheme.textPrimary,
+                  ),
+                ),
+              ],
             ),
           ),
-          child: Column(children: [
-            const Icon(Icons.speaker, size: 15, color: Colors.amber),
-            Text(title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 9, color: Colors.white70)),
-            Expanded(
-              child: RotatedBox(
-                quarterTurns: 3,
-                child: Slider(
-                    value: gain.clamp(0.0, 1.0), onChanged: onGainChanged),
-              ),
+          const SizedBox(height: 6),
+          Expanded(
+            child: _MixerFader(
+              gain: gain,
+              accent: accent,
+              meter: meter,
+              onChanged: onGainChanged,
             ),
-            Text('${(gain * 100).round()}%',
-                style: const TextStyle(fontSize: 9, color: Colors.white54)),
-            const SizedBox(height: 4),
-            // Locked: virtual master always feeds the invisible device mix bus.
-            Container(
-              height: 22,
-              alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              decoration: BoxDecoration(
-                color: Colors.black26,
-                borderRadius: BorderRadius.circular(3),
+          ),
+          const SizedBox(height: 6),
+          _MixerMixButtonRow(
+            recordArmed: false,
+            soloed: false,
+            muted: muted,
+            onRecord: null,
+            onSolo: null,
+            onMute: onMute,
+            showRecord: false,
+            showSolo: false,
+          ),
+          const SizedBox(height: 6),
+          const _MixerOutputMenu(
+            choices: [
+              _OutputDestination(
+                id: 'device',
+                label: 'Device',
+                icon: Icons.headphones_outlined,
               ),
-              child: const Text(
-                'Device',
-                style: TextStyle(fontSize: 9, color: Colors.white54),
-              ),
-            ),
-          ]),
-        ),
-      );
+            ],
+            valueId: 'device',
+            onChanged: null,
+            locked: true,
+          ),
+        ],
+      ),
+    );
+  }
 }

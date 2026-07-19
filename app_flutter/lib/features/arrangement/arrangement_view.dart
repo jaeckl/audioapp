@@ -24,6 +24,7 @@ import 'freeze_clip_renderer.dart';
 import 'midi_clip_renderer.dart';
 import 'sample_clip_renderer.dart';
 import 'snap_grid_resolution.dart';
+import 'track_lane_color.dart';
 import 'track_lane_icon.dart';
 import 'track_mix_button.dart';
 

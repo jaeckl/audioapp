@@ -137,11 +137,12 @@ class _TrackHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final icon = TrackLaneIcon.iconForTrack(track, index);
+    final accent = TrackLaneColor.colorForTrack(track, index);
     final iconColor = track.isGroup
         ? ArrangementTheme.masterIcon
         : selected
-            ? ArrangementTheme.textPrimary
-            : ArrangementTheme.textMuted;
+            ? accent
+            : accent.withValues(alpha: 0.75);
 
     final nameRow = Row(
       children: [
@@ -164,17 +165,22 @@ class _TrackHeader extends StatelessWidget {
       ],
     );
 
+    final headerBg = Color.alphaBlend(
+      TrackLaneColor.headerWash(accent, selected: selected),
+      selected ? ArrangementTheme.headerSelected : ArrangementTheme.cardBackground,
+    );
     final lane = Material(
-      color: selected ? ArrangementTheme.headerSelected : Colors.transparent,
+      color: headerBg,
       child: Container(
         width: headerWidth,
         height: ArrangementTimelineMetrics.trackLaneHeight,
         padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
         clipBehavior: Clip.hardEdge,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(
-            bottom: BorderSide(color: ArrangementTheme.divider),
-            right: BorderSide(color: ArrangementTheme.border),
+            left: BorderSide(color: accent.withValues(alpha: 0.85), width: 3),
+            bottom: const BorderSide(color: ArrangementTheme.divider),
+            right: const BorderSide(color: ArrangementTheme.border),
           ),
         ),
         // BoxDecoration borders inset the child (bottom 1px), so name row
