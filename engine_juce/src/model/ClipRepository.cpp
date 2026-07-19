@@ -263,16 +263,13 @@ ClipRepository::ClipRepository(TrackRepository& tracks) : tracks_(tracks) {}
 void ClipRepository::clear() {
     nextClipNum_ = 1;
     nextSampleClipNum_ = 1;
+    masterMidiClips_.clear();
+    masterSampleClips_.clear();
 }
 
 std::string ClipRepository::createMidiClip(const std::string& trackId,
                                            double startBeat,
                                            double lengthBeats) {
-    Track* track = tracks_.findTrack(trackId);
-    if (track == nullptr) {
-        return {};
-    }
-
     MidiClip clip;
     clip.id = "clip-" + std::to_string(nextClipNum_++);
     clip.startBeat = startBeat < 0.0 ? 0.0 : startBeat;
@@ -290,6 +287,15 @@ std::string ClipRepository::createMidiClip(const std::string& trackId,
     region.takeId = take.id;
     clip.activeTakeRegions.push_back(region);
 
+    if (trackId == kOutputTargetMaster) {
+        masterMidiClips_.push_back(std::move(clip));
+        return masterMidiClips_.back().id;
+    }
+
+    Track* track = tracks_.findTrack(trackId);
+    if (track == nullptr) {
+        return {};
+    }
     track->midiClips.push_back(std::move(clip));
     return track->midiClips.back().id;
 }
@@ -621,8 +627,7 @@ std::string ClipRepository::createSampleClip(const std::string& trackId,
                                              double lengthBeats,
                                              const SampleBank* sampleBank,
                                              int bpm) {
-    Track* track = tracks_.findTrack(trackId);
-    if (track == nullptr || sampleId.empty()) {
+    if (sampleId.empty()) {
         return {};
     }
     if (sampleBank != nullptr && sampleBank->findSample(sampleId) == nullptr) {
@@ -640,9 +645,6 @@ std::string ClipRepository::createSampleClip(const std::string& trackId,
     } else {
         clip.lengthBeats = 4.0;
     }
-    // The waveform's natural extent is the source sample's duration at the
-    // current BPM. Resize never touches this — it only changes the playback
-    // window. The UI uses it to render the waveform at its natural density.
     if (sampleBank != nullptr) {
         clip.naturalLengthBeats = sampleBank->beatsForSample(sampleId, bpm);
     } else {
@@ -660,6 +662,15 @@ std::string ClipRepository::createSampleClip(const std::string& trackId,
     region.takeId = take.id;
     clip.activeTakeRegions.push_back(region);
 
+    if (trackId == kOutputTargetMaster) {
+        masterSampleClips_.push_back(std::move(clip));
+        return masterSampleClips_.back().id;
+    }
+
+    Track* track = tracks_.findTrack(trackId);
+    if (track == nullptr) {
+        return {};
+    }
     track->sampleClips.push_back(std::move(clip));
     return track->sampleClips.back().id;
 }
@@ -667,12 +678,33 @@ std::string ClipRepository::createSampleClip(const std::string& trackId,
 bool ClipRepository::moveClip(const std::string& clipId,
                               const std::string& targetTrackId,
                               double startBeat) {
-    Track* targetTrack = tracks_.findTrack(targetTrackId);
-    if (targetTrack == nullptr || clipId.empty()) {
+    if (clipId.empty()) {
+        return false;
+    }
+    const bool targetIsMaster = targetTrackId == kOutputTargetMaster;
+    Track* targetTrack = targetIsMaster ? nullptr : tracks_.findTrack(targetTrackId);
+    if (!targetIsMaster && targetTrack == nullptr) {
         return false;
     }
 
     const double clampedStart = startBeat < 0.0 ? 0.0 : startBeat;
+
+    auto pushMidi = [&](MidiClip clip) {
+        clip.startBeat = clampedStart;
+        if (targetIsMaster) {
+            masterMidiClips_.push_back(std::move(clip));
+        } else {
+            targetTrack->midiClips.push_back(std::move(clip));
+        }
+    };
+    auto pushSample = [&](SampleClip clip) {
+        clip.startBeat = clampedStart;
+        if (targetIsMaster) {
+            masterSampleClips_.push_back(std::move(clip));
+        } else {
+            targetTrack->sampleClips.push_back(std::move(clip));
+        }
+    };
 
     for (auto& track : tracks_.tracks()) {
         for (auto it = track.midiClips.begin(); it != track.midiClips.end(); ++it) {
@@ -681,12 +713,10 @@ bool ClipRepository::moveClip(const std::string& clipId,
             }
             MidiClip clip = std::move(*it);
             track.midiClips.erase(it);
-            clip.startBeat = clampedStart;
-            targetTrack->midiClips.push_back(std::move(clip));
+            pushMidi(std::move(clip));
             return true;
         }
     }
-
     for (auto& track : tracks_.tracks()) {
         for (auto it = track.sampleClips.begin(); it != track.sampleClips.end(); ++it) {
             if (it->id != clipId) {
@@ -694,8 +724,29 @@ bool ClipRepository::moveClip(const std::string& clipId,
             }
             SampleClip clip = std::move(*it);
             track.sampleClips.erase(it);
-            clip.startBeat = clampedStart;
-            targetTrack->sampleClips.push_back(std::move(clip));
+            pushSample(std::move(clip));
+            return true;
+        }
+    }
+    if (true) {
+        for (auto it = masterMidiClips_.begin(); it != masterMidiClips_.end(); ++it) {
+            if (it->id != clipId) {
+                continue;
+            }
+            MidiClip clip = std::move(*it);
+            masterMidiClips_.erase(it);
+            pushMidi(std::move(clip));
+            return true;
+        }
+    }
+    if (true) {
+        for (auto it = masterSampleClips_.begin(); it != masterSampleClips_.end(); ++it) {
+            if (it->id != clipId) {
+                continue;
+            }
+            SampleClip clip = std::move(*it);
+            masterSampleClips_.erase(it);
+            pushSample(std::move(clip));
             return true;
         }
     }
@@ -1040,6 +1091,22 @@ bool ClipRepository::deleteClip(const std::string& clipId) {
             }
         }
     }
+    if (true) {
+        for (auto it = masterMidiClips_.begin(); it != masterMidiClips_.end(); ++it) {
+            if (it->id == clipId) {
+                masterMidiClips_.erase(it);
+                return true;
+            }
+        }
+    }
+    if (true) {
+        for (auto it = masterSampleClips_.begin(); it != masterSampleClips_.end(); ++it) {
+            if (it->id == clipId) {
+                masterSampleClips_.erase(it);
+                return true;
+            }
+        }
+    }
     return false;
 }
 
@@ -1066,6 +1133,30 @@ bool ClipRepository::duplicateClip(const std::string& clipId) {
             return true;
         }
     }
+    if (true) {
+        for (const auto& clip : masterMidiClips_) {
+            if (clip.id != clipId) {
+                continue;
+            }
+            MidiClip copy = clip;
+            copy.id = "clip-" + std::to_string(nextClipNum_++);
+            copy.startBeat = clip.startBeat + clip.lengthBeats;
+            masterMidiClips_.push_back(std::move(copy));
+            return true;
+        }
+    }
+    if (true) {
+        for (const auto& clip : masterSampleClips_) {
+            if (clip.id != clipId) {
+                continue;
+            }
+            SampleClip copy = clip;
+            copy.id = "sclip-" + std::to_string(nextSampleClipNum_++);
+            copy.startBeat = clip.startBeat + clip.lengthBeats;
+            masterSampleClips_.push_back(std::move(copy));
+            return true;
+        }
+    }
     return false;
 }
 
@@ -1077,12 +1168,26 @@ MidiClip* ClipRepository::findMidiClip(const std::string& clipId) {
             }
         }
     }
+    if (true) {
+        for (auto& clip : masterMidiClips_) {
+            if (clip.id == clipId) {
+                return &clip;
+            }
+        }
+    }
     return nullptr;
 }
 
 SampleClip* ClipRepository::findSampleClip(const std::string& clipId) {
     for (auto& track : tracks_.tracks()) {
         for (auto& clip : track.sampleClips) {
+            if (clip.id == clipId) {
+                return &clip;
+            }
+        }
+    }
+    if (true) {
+        for (auto& clip : masterSampleClips_) {
             if (clip.id == clipId) {
                 return &clip;
             }

@@ -84,8 +84,8 @@ void main() {
 
     expect(find.text('Kick'), findsOneWidget);
     expect(find.text('Snare'), findsOneWidget);
-    expect(find.text('S'), findsNWidgets(2));
-    expect(find.text('M'), findsNWidgets(2));
+    expect(find.byIcon(Icons.headphones), findsAtLeastNWidgets(2));
+    expect(find.byIcon(Icons.volume_off), findsAtLeastNWidgets(2));
   });
 
   test('header width metrics expose expanded threshold', () {

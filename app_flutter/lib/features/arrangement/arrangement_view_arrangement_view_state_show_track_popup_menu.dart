@@ -50,7 +50,9 @@ Future<void> _showTrackPopupMenu(
               title: Text('Add Automation Clip'),
             ),
           ),
-        if (!track.isGroup && widget.onSetTrackGroup != null)
+        if (!track.isGroup &&
+            track.id != 'master' &&
+            widget.onSetTrackGroup != null)
           for (final group
               in widget.snapshot.tracks.where((item) => item.isGroup))
             PopupMenuItem(
@@ -65,6 +67,7 @@ Future<void> _showTrackPopupMenu(
               ),
             ),
         if (!track.isGroup &&
+            track.id != 'master' &&
             track.parentGroupId.isNotEmpty &&
             widget.onSetTrackGroup != null)
           const PopupMenuItem(
@@ -75,7 +78,7 @@ Future<void> _showTrackPopupMenu(
               title: Text('Remove from group'),
             ),
           ),
-        if (widget.onDeleteTrack != null)
+        if (widget.onDeleteTrack != null && track.id != 'master')
           const PopupMenuItem(
             value: 'delete_track',
             child: ListTile(

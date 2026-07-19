@@ -1,12 +1,11 @@
 part of 'arrangement_view.dart';
 
 extension ArrangementViewStateJumpscrolltobeatOperation on ArrangementViewState {
-void _jumpScrollToBeat(double beat, {required double viewportX}) {
+  void _jumpScrollToBeat(double beat, {required double viewportX}) {
     _programmaticScroll = true;
     final jumped = jumpTimelineScrollToBeatAtViewportXNow(
       horizontal: _horizontalScroll,
       ruler: _rulerScroll,
-      mirror: _masterScroll,
       beat: beat,
       pixelsPerBeat: _pixelsPerBeat,
       viewportX: viewportX,
@@ -21,7 +20,6 @@ void _jumpScrollToBeat(double beat, {required double viewportX}) {
       if (jumpTimelineScrollToBeatAtViewportXNow(
         horizontal: _horizontalScroll,
         ruler: _rulerScroll,
-        mirror: _masterScroll,
         beat: beat,
         pixelsPerBeat: _pixelsPerBeat,
         viewportX: viewportX,

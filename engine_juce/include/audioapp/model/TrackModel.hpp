@@ -133,6 +133,10 @@ struct TrackFreezeData {
     std::vector<float> waveformPeaks;
 };
 
+/// Audio output destination sentinels (also used as Track::outputTarget).
+inline constexpr const char* kOutputTargetMaster = "master";
+inline constexpr const char* kOutputTargetDevice = "device";
+
 struct Track {
     std::string id;
     std::string name;
@@ -141,6 +145,9 @@ struct Track {
     bool muted = false;
     bool soloed = false;
     std::string parentGroupId;
+    /// Where this track's audio goes after its device chain:
+    /// `master`, `device`, or another track id. Default = master.
+    std::string outputTarget = kOutputTargetMaster;
     std::vector<DeviceSlot> devices;
     std::vector<MidiClip> midiClips;
     std::vector<SampleClip> sampleClips;

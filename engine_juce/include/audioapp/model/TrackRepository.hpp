@@ -21,6 +21,7 @@ public:
                    const std::string& beforeTrackId);
     bool setTrackMuted(const std::string& trackId, bool muted);
     bool setTrackSoloed(const std::string& trackId, bool soloed);
+    bool setTrackOutput(const std::string& trackId, const std::string& outputTarget);
     bool deleteTrack(const std::string& trackId);
     bool selectTrack(const std::string& trackId);
 

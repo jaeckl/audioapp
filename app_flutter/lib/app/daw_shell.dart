@@ -79,6 +79,7 @@ part 'daw_shell_private_daw_shell_state_set_track_group.dart';
 part 'daw_shell_private_daw_shell_state_move_track.dart';
 part 'daw_shell_private_daw_shell_state_set_track_muted.dart';
 part 'daw_shell_private_daw_shell_state_set_track_soloed.dart';
+part 'daw_shell_private_daw_shell_state_set_track_output.dart';
 part 'daw_shell_private_daw_shell_state_toggle_track_freeze.dart';
 part 'daw_shell_private_daw_shell_state_track_frozen.dart';
 part 'daw_shell_private_daw_shell_state_show_frozen_track_snack.dart';

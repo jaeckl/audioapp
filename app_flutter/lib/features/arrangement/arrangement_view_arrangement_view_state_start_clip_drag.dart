@@ -14,7 +14,7 @@ void _startClipDrag({
   }) {
     final pointerBeat = _beatFromGlobal(globalPosition);
     final trackIndex = _sourceTrackIndex(trackId);
-    final track = widget.snapshot.tracks[trackIndex];
+    final track = _trackByIndex(trackIndex);
     final session = ArrangementClipDragSession(
       clipId: clipId,
       sourceTrackId: trackId,

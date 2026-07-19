@@ -13,6 +13,7 @@ part 'mixer_view_track_channel.dart';
 part 'mixer_view_master_channel.dart';
 part 'mixer_view_stereo_meter.dart';
 part 'mixer_view_mix_toggle.dart';
+part 'mixer_view_output_destinations.dart';
 
 class MixerView extends StatelessWidget {
   const MixerView({
@@ -25,9 +26,10 @@ class MixerView extends StatelessWidget {
     required this.onTrackSoloed,
     required this.onTrackSelected,
     required this.onMasterGainChanged,
+    required this.onTrackOutputChanged,
   });
 
-  static const double panelHeight = 272;
+  static const double panelHeight = 300;
   final ProjectSnapshot snapshot;
   final ValueListenable<Map<String, DeviceMeterReading>> liveMeters;
   final void Function(String deviceId, double gain) onTrackGainChanged;
@@ -36,6 +38,7 @@ class MixerView extends StatelessWidget {
   final void Function(String trackId, bool soloed) onTrackSoloed;
   final ValueChanged<String> onTrackSelected;
   final ValueChanged<double> onMasterGainChanged;
+  final void Function(String trackId, String outputTarget) onTrackOutputChanged;
 
   @override
   Widget build(BuildContext context) => Material(
@@ -56,6 +59,10 @@ class MixerView extends StatelessWidget {
                     meter: snapshot.tracks[i].trackGainDevice == null
                         ? null
                         : meters[snapshot.tracks[i].trackGainDevice!.id],
+                    outputChoices: _outputChoicesFor(
+                      snapshot: snapshot,
+                      selfId: snapshot.tracks[i].id,
+                    ),
                     onGainChanged: (value) {
                       final device = snapshot.tracks[i].trackGainDevice;
                       if (device != null) onTrackGainChanged(device.id, value);
@@ -69,11 +76,15 @@ class MixerView extends StatelessWidget {
                         snapshot.tracks[i].id, !snapshot.tracks[i].muted),
                     onSolo: () => onTrackSoloed(
                         snapshot.tracks[i].id, !snapshot.tracks[i].soloed),
+                    onOutputChanged: (target) =>
+                        onTrackOutputChanged(snapshot.tracks[i].id, target),
                   ),
                 _MasterChannel(
                   title: snapshot.master.name,
                   gain: snapshot.master.gain,
+                  selected: snapshot.selectedTrackId == 'master',
                   onGainChanged: onMasterGainChanged,
+                  onSelect: () => onTrackSelected('master'),
                 ),
               ],
             ),

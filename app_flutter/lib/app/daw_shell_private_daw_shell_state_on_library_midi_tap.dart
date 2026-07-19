@@ -28,9 +28,9 @@ Future<void> _onLibraryMidiTap(LibraryMidiItem item) async {
           startBeat: startBeat,
           lengthBeats: item.clip.lengthBeats,
         );
-        final updatedTrack =
-            snapshot.tracks.firstWhere((t) => t.id == track.id);
-        if (updatedTrack.midiClips.length > beforeClipCount) {
+        final updatedTrack = snapshot.trackById(track.id);
+        if (updatedTrack != null &&
+            updatedTrack.midiClips.length > beforeClipCount) {
           final clip = updatedTrack.midiClips.last;
           snapshot = await widget.bridge.setMidiClipNotes(
             clipId: clip.id,

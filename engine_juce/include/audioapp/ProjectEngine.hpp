@@ -68,6 +68,8 @@ struct TrackState {
     bool muted = false;
     bool soloed = false;
     std::string parentGroupId;
+    /// `master`, `device`, or another track id. Default = master.
+    std::string outputTarget = "master";
     std::vector<DeviceSlot> devices;
     /// Parallel meter array by deviceId. Only populated for snapshot serialization.
     std::vector<DeviceMeterState> deviceMeters;
@@ -80,6 +82,11 @@ struct MasterTrackState {
     std::string id = "master";
     std::string name = "Master";
     float gain = 1.0f;
+    bool muted = false;
+    std::vector<DeviceSlot> devices;
+    std::vector<DeviceMeterState> deviceMeters;
+    std::vector<MidiClipState> midiClips;
+    std::vector<SampleClipState> sampleClips;
 };
 
 struct ProjectSnapshot {
@@ -124,6 +131,8 @@ public:
                    const std::string& beforeTrackId);
     bool setTrackMuted(const std::string& trackId, bool muted);
     bool setTrackSoloed(const std::string& trackId, bool soloed);
+    /// Route track audio after its chain: target = "master" | "device" | other track id.
+    bool setTrackOutput(const std::string& trackId, const std::string& outputTarget);
     bool selectTrack(const std::string& trackId);
     std::string addDeviceToTrack(const std::string& trackId,
                                  const std::string& deviceType,
@@ -430,11 +439,19 @@ private:
 
     static constexpr int kMaxTracks = 8;
 
+    enum class OutputTargetKind : uint8_t {
+        Master = 0,
+        Device = 1,
+        Track = 2,
+    };
+
     struct TrackPlaybackSnapshot {
         std::string trackId;
         uint64_t outputNodeId = 0;
         bool outputTapActive = false;
         int parentGroupTrackIndex = -1;
+        OutputTargetKind outputTargetKind = OutputTargetKind::Master;
+        int outputTargetTrackIndex = -1;
         bool muted = false;
         bool soloed = false;
         float audibilityGain = 1.0f;
@@ -591,6 +608,9 @@ private:
     std::atomic<float> masterGain_{1.0f};
     // Audio-thread-owned ramp origin. Control writes only masterGain_.
     float smoothedMasterGain_ = 1.0f;
+    /// Control-thread virtual master (devices/clips/mute). Gain lives in masterGain_.
+    MasterTrackState masterControl_;
+    std::atomic<bool> masterMuted_{false};
     std::atomic<bool> metronomeEnabled_{false};
     std::atomic<float> metronomeLevel_{0.65f};
     std::atomic<int> countInBars_{1};

@@ -8,7 +8,11 @@ void _onTimelineScroll() {
         !_followSuspended) {
       _suspendFollow();
     }
-    _syncTrackScrollToMaster();
+    if (_rulerScroll.hasClients &&
+        _horizontalScroll.hasClients &&
+        _rulerScroll.offset != _horizontalScroll.offset) {
+      _rulerScroll.jumpTo(_horizontalScroll.offset);
+    }
     if (mounted) {
       setState(() {});
     }

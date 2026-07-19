@@ -97,11 +97,21 @@ public:
     MidiClip* findMidiClip(const std::string& clipId);
     SampleClip* findSampleClip(const std::string& clipId);
 
+    /// Virtual master bus clips (id "master") — not in TrackRepository.
+    std::vector<MidiClip>& masterMidiClips() { return masterMidiClips_; }
+    std::vector<SampleClip>& masterSampleClips() { return masterSampleClips_; }
+    const std::vector<MidiClip>& masterMidiClips() const { return masterMidiClips_; }
+    const std::vector<SampleClip>& masterSampleClips() const {
+        return masterSampleClips_;
+    }
+
     void recomputeIdCounters();
     void clear();
 
 private:
     TrackRepository& tracks_;
+    std::vector<MidiClip> masterMidiClips_;
+    std::vector<SampleClip> masterSampleClips_;
     int nextClipNum_ = 1;
     int nextSampleClipNum_ = 1;
 };

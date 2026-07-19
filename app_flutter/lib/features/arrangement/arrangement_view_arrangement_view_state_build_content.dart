@@ -22,18 +22,32 @@ extension ArrangementViewStateBuildcontentOperation on ArrangementViewState {
           final viewportWidth = constraints.maxWidth - headerWidth;
           _timelineViewportWidth = viewportWidth;
 
-          final laneCount = visibleTracks.length + (widget.compact ? 0 : 1);
-          final lanesHeight =
-              laneCount * ArrangementTimelineMetrics.trackLaneHeight;
+          final includeChrome = !widget.compact;
+          final laneH = ArrangementTimelineMetrics.trackLaneHeight;
+          final contentLaneCount = visibleTracks.length +
+              (includeChrome ? 1 : 0) + // add-track
+              (includeChrome ? 1 : 0); // master
+          final contentHeight = contentLaneCount * laneH;
+          final viewportHeight = math.max(
+            0.0,
+            constraints.maxHeight - PianoRollMetrics.rulerHeight,
+          );
+          // Tracks stay at top; only master sinks to viewport bottom when short.
+          final masterGap =
+              includeChrome ? math.max(0.0, viewportHeight - contentHeight) : 0.0;
+          _masterLaneGap = masterGap;
+          final paddedHeight = contentHeight + masterGap;
+
+          final masterTrack = _masterTrackSnapshot();
 
           final lanesChild = SizedBox(
             key: _trackLanesKey,
             width: timelineWidth,
-            height: lanesHeight,
+            height: paddedHeight,
             child: Stack(
               children: [
                 CustomPaint(
-                  size: Size(timelineWidth, lanesHeight),
+                  size: Size(timelineWidth, paddedHeight),
                   painter: ArrangementGridPainter(
                     virtualLengthBeats: _timelineEndBeat,
                     pixelsPerBeat: _pixelsPerBeat,
@@ -46,59 +60,11 @@ extension ArrangementViewStateBuildcontentOperation on ArrangementViewState {
                 Column(
                   children: [
                     for (final track in visibleTracks)
-                      _TrackDropTarget(
-                        target: track,
-                        intentBuilder: _trackDropIntent,
-                        onDrop: _commitTrackDrop,
-                        child: _TrackLane(
-                          track: track,
-                          selected: track.id == widget.snapshot.selectedTrackId,
-                          onTap: () {
-                            if (_selectedClipId != null) {
-                              setState(() => _selectedClipId = null);
-                            }
-                            widget.onTrackSelected(track.id);
-                          },
-                          pixelsPerBeat: _pixelsPerBeat,
-                          timelineEndBeat: _timelineEndBeat,
-                          viewportWidthPx: viewportWidth,
-                          draggingClipId: _clipDrag?.clipId,
-                          selectedClipId: _selectedClipId,
-                          highlightedClipId: widget.highlightedClipId,
-                          onClipTap: widget.onClipTap,
-                          onSampleClipTap: widget.onSampleClipTap,
-                          onClipSelected: (trackId, clipId) {
-                            widget.onTrackSelected(trackId);
-                            setState(() => _selectedClipId = clipId);
-                          },
-                          onClipDragStart: _startClipDrag,
-                          onClipDragUpdate: _updateClipDrag,
-                          onClipDragEnd: _onClipDragEnd,
-                          onSampleClipDragUpdate: _updateClipDragAt,
-                          onSampleClipDragEnd: _onSampleClipDragEnd,
-                          onClipDragCancel: _cancelClipDrag,
-                          onLongPressStart: (details) => _onTrackLongPress(
-                            track,
-                            details,
-                            lanePress: true,
-                          ),
-                          onResizeClipStart: _startClipResize,
-                          onResizeClipUpdate: _updateClipResize,
-                          onResizeClipEnd: _endClipResize,
-                          onResizeClipCancel: _cancelClipResize,
-                          previewLengthFor: previewLengthFor,
-                          liveMidiPreviewNotes: widget.liveMidiPreviewNotes,
-                          liveMidiPreviewClips:
-                              widget.liveMidiPreviewClips[track.id] ?? const [],
-                          onDeleteClip: widget.onDeleteClip,
-                          onClipMenu: _showClipMenu,
-                          automationLinkClipId: widget.automationLinkClipId,
-                          onAutomationLinkToggle: widget.onAutomationLinkToggle,
-                          onAutomationClipDoubleTap:
-                              widget.onAutomationClipDoubleTap,
-                        ),
-                      ),
-                    if (!widget.compact) const _AddTrackLane(),
+                      _buildVisibleTrackLane(track, viewportWidth),
+                    if (includeChrome) const _AddTrackLane(),
+                    if (masterGap > 0) SizedBox(height: masterGap),
+                    if (includeChrome)
+                      _buildMasterTrackLane(masterTrack, viewportWidth),
                   ],
                 ),
               ],
@@ -106,13 +72,14 @@ extension ArrangementViewStateBuildcontentOperation on ArrangementViewState {
           );
 
           final clipDrag = _clipDrag;
-          final clipDragVisibleIndex = clipDrag == null
-              ? -1
-              : visibleTracks.indexWhere(
-                  (track) =>
-                      track.id ==
-                      widget.snapshot.tracks[clipDrag.targetTrackIndex].id,
-                );
+          final clipDragVisibleIndex = () {
+            if (clipDrag == null) return -1;
+            final target = _trackByIndex(clipDrag.targetTrackIndex);
+            if (target.id == 'master') {
+              return visibleTracks.length + (includeChrome ? 1 : 0);
+            }
+            return visibleTracks.indexWhere((track) => track.id == target.id);
+          }();
 
           final trackHeaders = Column(
             mainAxisSize: MainAxisSize.min,
@@ -195,11 +162,33 @@ extension ArrangementViewStateBuildcontentOperation on ArrangementViewState {
                                 ),
                   ),
                 ),
-              if (!widget.compact)
+              if (includeChrome)
                 _AddTrackHeader(
                   width: headerWidth,
                   onTap: widget.onAddTrack,
                   onLongPress: _showAddTrackMenu,
+                ),
+              if (masterGap > 0) SizedBox(height: masterGap),
+              if (includeChrome)
+                _MasterHeader(
+                  master: widget.snapshot.master,
+                  width: headerWidth,
+                  selected: widget.snapshot.selectedTrackId == 'master',
+                  onTap: () => widget.onTrackSelected('master'),
+                  onToggleMute: () {
+                    final muted = !widget.snapshot.master.muted;
+                    widget.onSetTrackMuted?.call(
+                      trackId: 'master',
+                      muted: muted,
+                    );
+                  },
+                  onLongPressStart: widget.compact
+                      ? null
+                      : (details) => _onTrackLongPress(
+                            masterTrack,
+                            details,
+                            lanePress: false,
+                          ),
                 ),
             ],
           );

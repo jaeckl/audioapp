@@ -9,7 +9,8 @@ extension ArrangementViewStateBuildStackOperation on ArrangementViewState {
     required double scrollOffset,
     required Widget lanesChild,
     required Widget trackHeaders,
-    required ({List<Widget> behindChrome, List<Widget> inFrontOfChrome}) markerLayers,
+    required ({List<Widget> behindChrome, List<Widget> inFrontOfChrome})
+        markerLayers,
     required ArrangementClipDragSession? clipDrag,
     required int clipDragVisibleIndex,
   }) {
@@ -102,34 +103,6 @@ extension ArrangementViewStateBuildStackOperation on ArrangementViewState {
                 ],
               ),
             ),
-            if (!widget.compact)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: headerWidth,
-                  ),
-                  Expanded(
-                    child: ClipRect(
-                      child: SingleChildScrollView(
-                        controller: _masterScroll,
-                        scrollDirection: Axis.horizontal,
-                        physics: const ClampingScrollPhysics(
-                          parent: AlwaysScrollableScrollPhysics(),
-                        ),
-                        child: _MasterLane(
-                          width: timelineWidth,
-                          timelineEndBeat: _timelineEndBeat,
-                          pixelsPerBeat: _pixelsPerBeat,
-                          regionStartBeat: displayRegionStart,
-                          regionEndBeat: displayRegionEnd,
-                          showRegionShading: widget.snapshot.loopEnabled,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
           ],
         ),
         ...markerLayers.behindChrome,
@@ -140,7 +113,6 @@ extension ArrangementViewStateBuildStackOperation on ArrangementViewState {
             scrubPlayheadBeats: _scrubPlayheadBeats,
             pixelsPerBeat: _pixelsPerBeat,
             horizontalScroll: _horizontalScroll,
-            masterScroll: _masterScroll,
             playing: widget.playing,
             scrubbingPlayhead: _scrubbingPlayhead,
             inFrontOfChrome: false,
@@ -159,7 +131,7 @@ extension ArrangementViewStateBuildStackOperation on ArrangementViewState {
         Positioned(
           left: 0,
           top: PianoRollMetrics.rulerHeight,
-          bottom: widget.compact ? 0 : ArrangementTimelineMetrics.trackLaneHeight,
+          bottom: 0,
           width: headerWidth,
           child: ClipRect(
             child: SingleChildScrollView(
@@ -172,16 +144,6 @@ extension ArrangementViewStateBuildStackOperation on ArrangementViewState {
             ),
           ),
         ),
-        if (!widget.compact)
-          Positioned(
-            left: 0,
-            bottom: 0,
-            width: headerWidth,
-            child: _MasterHeader(
-              master: widget.snapshot.master,
-              width: headerWidth,
-            ),
-          ),
         ...markerLayers.inFrontOfChrome,
         if (widget.playheadListenable != null)
           ArrangementPlayheadOverlay(
@@ -190,7 +152,6 @@ extension ArrangementViewStateBuildStackOperation on ArrangementViewState {
             scrubPlayheadBeats: _scrubPlayheadBeats,
             pixelsPerBeat: _pixelsPerBeat,
             horizontalScroll: _horizontalScroll,
-            masterScroll: _masterScroll,
             playing: widget.playing,
             scrubbingPlayhead: _scrubbingPlayhead,
             inFrontOfChrome: true,
@@ -221,7 +182,12 @@ extension ArrangementViewStateBuildStackOperation on ArrangementViewState {
             visibleTrackIndex: clipDragVisibleIndex,
             pixelsPerBeat: _pixelsPerBeat,
             scrollOffset: scrollOffset,
-            verticalScrollOffset: _trackVerticalScroll.hasClients ? _trackVerticalScroll.offset : 0,
+            verticalScrollOffset:
+                _trackVerticalScroll.hasClients ? _trackVerticalScroll.offset : 0,
+            masterLaneGap: _masterLaneGap,
+            masterVisibleIndex: widget.compact
+                ? -1
+                : _visibleTracks().length + 1,
             timelineEndBeat: _timelineEndBeat,
             headerWidth: headerWidth,
           ),

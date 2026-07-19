@@ -565,6 +565,7 @@ std::vector<AutomationClipState> automationClipArrayFromVar(const juce::var& val
 // Forward declaration — defined below in this namespace.
 juce::var trackToVarSnapshot(const TrackState& track,
                               const DeviceRegistry& registry);
+juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& registry);
 
 juce::var snapshotToVar(const ProjectSnapshot& snapshot,
                          const DeviceRegistry& registry,
@@ -585,6 +586,24 @@ juce::var snapshotToVar(const ProjectSnapshot& snapshot,
     master->setProperty("id", toJuceString(snapshot.master.id));
     master->setProperty("name", toJuceString(snapshot.master.name));
     master->setProperty("gain", static_cast<double>(snapshot.master.gain));
+    master->setProperty("muted", snapshot.master.muted);
+    {
+        juce::Array<juce::var> devices;
+        for (const auto& device : snapshot.master.devices) {
+            devices.add(deviceSlotToVarImpl(device, registry));
+        }
+        master->setProperty("devices", devices);
+        juce::Array<juce::var> midiClips;
+        for (const auto& clip : snapshot.master.midiClips) {
+            midiClips.add(midiClipToVar(clip));
+        }
+        master->setProperty("midiClips", midiClips);
+        juce::Array<juce::var> sampleClips;
+        for (const auto& clip : snapshot.master.sampleClips) {
+            sampleClips.add(sampleClipToVar(clip));
+        }
+        master->setProperty("sampleClips", sampleClips);
+    }
 
     auto* object = new juce::DynamicObject();
     object->setProperty("bpm", snapshot.bpm);
@@ -640,6 +659,24 @@ juce::var projectFileToVar(const ProjectFileData& project,
     master->setProperty("id", toJuceString(project.master.id));
     master->setProperty("name", toJuceString(project.master.name));
     master->setProperty("gain", static_cast<double>(project.master.gain));
+    master->setProperty("muted", project.master.muted);
+    {
+        juce::Array<juce::var> devices;
+        for (const auto& device : project.master.devices) {
+            devices.add(deviceSlotToVarImpl(device, registry));
+        }
+        master->setProperty("devices", devices);
+        juce::Array<juce::var> midiClips;
+        for (const auto& clip : project.master.midiClips) {
+            midiClips.add(midiClipToVar(clip));
+        }
+        master->setProperty("midiClips", midiClips);
+        juce::Array<juce::var> sampleClips;
+        for (const auto& clip : project.master.sampleClips) {
+            sampleClips.add(sampleClipToVar(clip));
+        }
+        master->setProperty("sampleClips", sampleClips);
+    }
     object->setProperty("master", juce::var(master));
     object->setProperty("samples", samples);
     object->setProperty("tracks", tracks);
@@ -1038,6 +1075,8 @@ juce::var trackToVarPersistence(const TrackState& track,
     object->setProperty("muted", track.muted);
     object->setProperty("soloed", track.soloed);
     object->setProperty("parentGroupId", toJuceString(track.parentGroupId));
+    object->setProperty("outputTarget", toJuceString(
+        track.outputTarget.empty() ? "master" : track.outputTarget));
     object->setProperty("devices", devices);
     object->setProperty("midiClips", clips);
     object->setProperty("sampleClips", sampleClips);
@@ -1079,6 +1118,12 @@ TrackState trackFromVarPersistence(const juce::var& value,
         if (object->hasProperty("soloed"))
             track.soloed = static_cast<bool>(object->getProperty("soloed"));
         track.parentGroupId = varToString(object->getProperty("parentGroupId"));
+        if (object->hasProperty("outputTarget")) {
+            track.outputTarget = varToString(object->getProperty("outputTarget"));
+        }
+        if (track.outputTarget.empty()) {
+            track.outputTarget = "master";
+        }
         if (const auto* devices = varArray(object->getProperty("devices"))) {
             for (const auto& deviceVar : *devices) {
                 track.devices.push_back(
@@ -1167,6 +1212,8 @@ juce::var trackToVarSnapshot(const TrackState& track,
     object->setProperty("muted", track.muted);
     object->setProperty("soloed", track.soloed);
     object->setProperty("parentGroupId", toJuceString(track.parentGroupId));
+    object->setProperty("outputTarget", toJuceString(
+        track.outputTarget.empty() ? "master" : track.outputTarget));
     object->setProperty("devices", devices);
     object->setProperty("midiClips", clips);
     object->setProperty("sampleClips", sampleClips);
@@ -1317,10 +1364,30 @@ bool parseProjectFileJson(const std::string& json,
     out.master.id = "master";
     out.master.name = "Master";
     out.master.gain = 1.0f;
+    out.master.muted = false;
+    out.master.devices.clear();
     if (const auto* masterObject = object->getProperty("master").getDynamicObject()) {
         out.master.id = varToString(masterObject->getProperty("id"));
         out.master.name = varToString(masterObject->getProperty("name"));
         out.master.gain = varToFloat(masterObject->getProperty("gain"), 1.0f);
+        if (masterObject->hasProperty("muted")) {
+            out.master.muted = static_cast<bool>(masterObject->getProperty("muted"));
+        }
+        if (const auto* devices = varArray(masterObject->getProperty("devices"))) {
+            for (const auto& deviceVar : *devices) {
+                out.master.devices.push_back(deviceVarToSlotImpl(deviceVar, registry));
+            }
+        }
+        if (const auto* midiClips = varArray(masterObject->getProperty("midiClips"))) {
+            for (const auto& clipVar : *midiClips) {
+                out.master.midiClips.push_back(midiClipFromVar(clipVar));
+            }
+        }
+        if (const auto* sampleClips = varArray(masterObject->getProperty("sampleClips"))) {
+            for (const auto& clipVar : *sampleClips) {
+                out.master.sampleClips.push_back(sampleClipFromVar(clipVar));
+            }
+        }
     }
 
     if (const auto* samples = varArray(object->getProperty("samples"))) {

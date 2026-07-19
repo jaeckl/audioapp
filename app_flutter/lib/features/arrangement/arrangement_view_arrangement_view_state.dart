@@ -2,13 +2,14 @@ part of 'arrangement_view.dart';
 
 class ArrangementViewState extends State<ArrangementView> {
   final ScrollController _horizontalScroll = ScrollController();
-  final ScrollController _masterScroll = ScrollController();
   final ScrollController _rulerScroll = ScrollController();
   final ScrollController _trackVerticalScroll = ScrollController();
   final ScrollController _headerVerticalScroll = ScrollController();
   final GlobalKey _timelineViewportKey = GlobalKey();
   final GlobalKey _trackLanesKey = GlobalKey();
   final GlobalKey _arrangementStackKey = GlobalKey();
+  /// Empty space between add-track and master when lanes shorter than viewport.
+  double _masterLaneGap = 0;
   double _pixelsPerBeat = ArrangementTimelineMetrics.defaultPixelsPerBeat;
   double _scaleStartPixelsPerBeat =
       ArrangementTimelineMetrics.defaultPixelsPerBeat;
@@ -68,9 +69,8 @@ class ArrangementViewState extends State<ArrangementView> {
   double get _displayRegionEnd =>
       _previewRegionEnd ?? widget.snapshot.loopRegionEndBeat;
 
-  double get _horizontalScrollOffset => _horizontalScroll.hasClients
-      ? _horizontalScroll.offset
-      : (_masterScroll.hasClients ? _masterScroll.offset : 0.0);
+  double get _horizontalScrollOffset =>
+      _horizontalScroll.hasClients ? _horizontalScroll.offset : 0.0;
 
   /// Scroll offset for ruler pointer ↔ marker math (must match [_rulerCanvasDx]).
   double get _rulerScrollOffset =>
@@ -80,7 +80,6 @@ class ArrangementViewState extends State<ArrangementView> {
   void initState() {
     super.initState();
     _horizontalScroll.addListener(_onTimelineScroll);
-    _masterScroll.addListener(_syncMasterScrollToTrack);
     _trackVerticalScroll.addListener(_syncTrackVerticalToHeader);
     _headerVerticalScroll.addListener(_syncHeaderVerticalToTrack);
     _bindTimelineScrollController();
@@ -125,11 +124,9 @@ class ArrangementViewState extends State<ArrangementView> {
     widget.playheadListenable?.removeListener(_onPlayheadListenableTick);
     widget.timelineScrollController?.bind();
     _horizontalScroll.removeListener(_onTimelineScroll);
-    _masterScroll.removeListener(_syncMasterScrollToTrack);
     _trackVerticalScroll.removeListener(_syncTrackVerticalToHeader);
     _headerVerticalScroll.removeListener(_syncHeaderVerticalToTrack);
     _horizontalScroll.dispose();
-    _masterScroll.dispose();
     _rulerScroll.dispose();
     _trackVerticalScroll.dispose();
     _headerVerticalScroll.dispose();

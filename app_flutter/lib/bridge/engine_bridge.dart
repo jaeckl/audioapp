@@ -27,6 +27,7 @@ part 'engine_bridge_set_track_group.dart';
 part 'engine_bridge_move_track.dart';
 part 'engine_bridge_set_track_muted.dart';
 part 'engine_bridge_set_track_soloed.dart';
+part 'engine_bridge_set_track_output.dart';
 part 'engine_bridge_freeze_track.dart';
 part 'engine_bridge_unfreeze_track.dart';
 part 'engine_bridge_refresh_track_freeze.dart';

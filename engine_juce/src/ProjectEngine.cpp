@@ -392,6 +392,8 @@ void ProjectEngine::createProject() {
     activeFrequencyHz_.store(440.0f, std::memory_order_release);
     masterGain_.store(1.0f, std::memory_order_release);
     smoothedMasterGain_ = 1.0f;
+    masterControl_ = MasterTrackState{};
+    masterMuted_.store(false, std::memory_order_release);
     countInRemainingBeats_.store(0.0, std::memory_order_release);
     trackPlayback_.setCount(0);
 
@@ -440,6 +442,12 @@ bool ProjectEngine::moveTrack(const std::string& trackId,
 
 bool ProjectEngine::setTrackMuted(const std::string& trackId, bool muted) {
     const juce::ScopedWriteLock lock(mutex_);
+    if (trackId == kOutputTargetMaster) {
+        masterControl_.muted = muted;
+        masterMuted_.store(muted, std::memory_order_release);
+        syncProjectTreeLocked();
+        return true;
+    }
     if (!trackRepo_.setTrackMuted(trackId, muted)) {
         return false;
     }
@@ -453,6 +461,9 @@ bool ProjectEngine::setTrackMuted(const std::string& trackId, bool muted) {
 
 bool ProjectEngine::setTrackSoloed(const std::string& trackId, bool soloed) {
     const juce::ScopedWriteLock lock(mutex_);
+    if (trackId == kOutputTargetMaster) {
+        return false; // virtual master has no solo
+    }
     if (!trackRepo_.setTrackSoloed(trackId, soloed)) {
         return false;
     }
@@ -462,6 +473,17 @@ bool ProjectEngine::setTrackSoloed(const std::string& trackId, bool soloed) {
     command.targetId = trackId;
     command.value = soloed ? 1.0f : 0.0f;
     return enqueueRealtimeCommand(std::move(command));
+}
+
+bool ProjectEngine::setTrackOutput(const std::string& trackId,
+                                   const std::string& outputTarget) {
+    const juce::ScopedWriteLock lock(mutex_);
+    if (!trackRepo_.setTrackOutput(trackId, outputTarget)) {
+        return false;
+    }
+    syncProjectTreeLocked();
+    rebuildTrackPlaybackLocked();
+    return true;
 }
 
 bool ProjectEngine::selectTrack(const std::string& trackId) {
@@ -482,14 +504,33 @@ std::string ProjectEngine::addDeviceToTrack(const std::string& trackId,
                                             const std::string& deviceType,
                                             int insertIndex) {
     const juce::ScopedWriteLock lock(mutex_);
-    Track* track = trackRepo_.findTrack(trackId);
-    if (track == nullptr) {
-        return {};
-    }
-
     const std::string resolvedType =
         deviceType.empty() ? device_types::kOscillator : deviceType;
     if (!deviceRegistry_.isKnownType(resolvedType)) {
+        return {};
+    }
+
+    // Virtual master: allow instruments + FX (track-shaped bus).
+    if (trackId == kOutputTargetMaster) {
+        if (deviceNodeKindFromTypeId(resolvedType) == DeviceNodeKind::TrackGain) {
+            return {};
+        }
+        const std::string deviceId = trackRepo_.allocateDeviceId();
+        DeviceSlot device = deviceRegistry_.createDefault(resolvedType, deviceId);
+        size_t insertAt = masterControl_.devices.size();
+        if (insertIndex >= 0) {
+            insertAt = std::min(static_cast<size_t>(insertIndex), masterControl_.devices.size());
+        }
+        masterControl_.devices.insert(
+            masterControl_.devices.begin() + static_cast<std::ptrdiff_t>(insertAt),
+            std::move(device));
+        syncActiveFrequencyLocked();
+        rebuildTrackPlaybackLocked();
+        return deviceId;
+    }
+
+    Track* track = trackRepo_.findTrack(trackId);
+    if (track == nullptr) {
         return {};
     }
 
@@ -520,6 +561,16 @@ bool ProjectEngine::removeDeviceFromTrack(const std::string& deviceId) {
     const juce::ScopedWriteLock lock(mutex_);
     if (deviceId.empty()) {
         return false;
+    }
+
+    for (size_t i = 0; i < masterControl_.devices.size(); ++i) {
+        if (masterControl_.devices[i].id == deviceId) {
+            masterControl_.devices.erase(masterControl_.devices.begin() +
+                                         static_cast<std::ptrdiff_t>(i));
+            syncActiveFrequencyLocked();
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
     }
 
     Track* ownerTrack = nullptr;
@@ -1615,9 +1666,11 @@ std::string ProjectEngine::createMidiClip(const std::string& trackId,
                                           double startBeat,
                                           double lengthBeats) {
     const juce::ScopedWriteLock lock(mutex_);
-    const auto* track = trackRepo_.findTrack(trackId);
-    if (track == nullptr || track->isGroup || track->freeze.enabled) {
-        return {};
+    if (trackId != kOutputTargetMaster) {
+        const auto* track = trackRepo_.findTrack(trackId);
+        if (track == nullptr || track->isGroup || track->freeze.enabled) {
+            return {};
+        }
     }
     const std::string clipId = clipRepo_.createMidiClip(trackId, startBeat, lengthBeats);
     if (clipId.empty()) {
@@ -1763,9 +1816,11 @@ std::string ProjectEngine::createSampleClip(const std::string& trackId,
                                             double startBeat,
                                             double lengthBeats) {
     const juce::ScopedWriteLock lock(mutex_);
-    const auto* track = trackRepo_.findTrack(trackId);
-    if (track == nullptr || track->isGroup || track->freeze.enabled) {
-        return {};
+    if (trackId != kOutputTargetMaster) {
+        const auto* track = trackRepo_.findTrack(trackId);
+        if (track == nullptr || track->isGroup || track->freeze.enabled) {
+            return {};
+        }
     }
     const std::string clipId = clipRepo_.createSampleClip(
         trackId, sampleId, startBeat, lengthBeats, sampleBank_, transport_.bpm());
@@ -1799,9 +1854,11 @@ std::string ProjectEngine::createAutomationClip(const std::string& homeTrackId,
     if (homeTrackId.empty()) {
         return {};
     }
-    const auto* track = trackRepo_.findTrack(homeTrackId);
-    if (track == nullptr || track->freeze.enabled) {
-        return {};
+    if (homeTrackId != kOutputTargetMaster) {
+        const auto* track = trackRepo_.findTrack(homeTrackId);
+        if (track == nullptr || track->freeze.enabled) {
+            return {};
+        }
     }
     const std::string clipId = automationClipStore_.create(homeTrackId, startBeat, lengthBeats);
     if (clipId.empty()) {
@@ -2252,9 +2309,50 @@ ProjectSnapshot ProjectEngine::snapshot() const {
     snap.loopRegionStartBeat = transport_.loopRegionStartBeat();
     snap.loopRegionEndBeat = transport_.loopRegionEndBeat();
     snap.recordArmed = recordArmed_;
-    snap.master.id = "master";
-    snap.master.name = "Master";
+    snap.master.id = masterControl_.id.empty() ? "master" : masterControl_.id;
+    snap.master.name = masterControl_.name.empty() ? "Master" : masterControl_.name;
     snap.master.gain = masterGain_.load(std::memory_order_relaxed);
+    snap.master.muted = masterControl_.muted;
+    snap.master.devices = masterControl_.devices;
+    snap.master.midiClips.clear();
+    for (const auto& clip : clipRepo_.masterMidiClips()) {
+        MidiClipState cs;
+        cs.id = clip.id;
+        cs.startBeat = clip.startBeat;
+        cs.lengthBeats = clip.lengthBeats;
+        cs.naturalLengthBeats = clip.naturalLengthBeats;
+        cs.loopContent = clip.loopContent;
+        cs.editorScaleRoot = clip.editorScaleRoot;
+        cs.editorScaleId = clip.editorScaleId;
+        cs.editorScaleHighlight = clip.editorScaleHighlight;
+        cs.editorScaleSnap = clip.editorScaleSnap;
+        cs.editorChordQuality = clip.editorChordQuality;
+        for (const auto& note : clip.notes) {
+            cs.notes.push_back(MidiNoteState{
+                note.pitch, note.startBeat, note.durationBeats, note.velocity});
+        }
+        snap.master.midiClips.push_back(std::move(cs));
+    }
+    snap.master.sampleClips.clear();
+    for (const auto& clip : clipRepo_.masterSampleClips()) {
+        SampleClipState cs;
+        cs.id = clip.id;
+        cs.sampleId = clip.sampleId;
+        cs.startBeat = clip.startBeat;
+        cs.lengthBeats = clip.lengthBeats;
+        cs.naturalLengthBeats = clip.naturalLengthBeats;
+        cs.loopContent = clip.loopContent;
+        cs.sourceStart = clip.sourceStart;
+        cs.sourceEnd = clip.sourceEnd;
+        cs.gain = clip.gain;
+        cs.fadeIn = clip.fadeIn;
+        cs.fadeOut = clip.fadeOut;
+        cs.fadeInCurve = clip.fadeInCurve;
+        cs.fadeOutCurve = clip.fadeOutCurve;
+        cs.reversed = clip.reversed;
+        cs.warpRepitch = clip.warpRepitch;
+        snap.master.sampleClips.push_back(std::move(cs));
+    }
     if (sampleBank_ != nullptr) {
         for (const auto& sample : sampleBank_->listSamples()) {
             SampleLibraryEntryState entry;
@@ -2276,6 +2374,7 @@ ProjectSnapshot ProjectEngine::snapshot() const {
         ts.muted = track.muted;
         ts.soloed = track.soloed;
         ts.parentGroupId = track.parentGroupId;
+        ts.outputTarget = track.outputTarget.empty() ? kOutputTargetMaster : track.outputTarget;
         ts.devices.reserve(track.devices.size());
         for (const auto& device : track.devices) {
             ts.devices.push_back(device);
@@ -2801,6 +2900,10 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
     constexpr int kMaxFrames = 4096;
     thread_local float trackLeft[kMaxTracks][kMaxFrames];
     thread_local float trackRight[kMaxTracks][kMaxFrames];
+    thread_local float virtualMasterLeft[kMaxFrames];
+    thread_local float virtualMasterRight[kMaxFrames];
+    thread_local float deviceBusLeft[kMaxFrames];
+    thread_local float deviceBusRight[kMaxFrames];
     constexpr int kMaxRoutedMidiNotes = 256;
     thread_local MidiPlaybackNote routedMidi[kMaxTracks][kMaxRoutedMidiNotes];
     thread_local MidiPlaybackNote graphMidiEdges[kMaxProcessorGraphEdges][kMaxRoutedMidiNotes];
@@ -2809,6 +2912,10 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
     thread_local float graphAudioRight[kMaxProcessorGraphEdges][kMaxFrames];
     int routedMidiCount[kMaxTracks]{};
     const int framesToProcess = numFrames > kMaxFrames ? kMaxFrames : numFrames;
+    std::memset(virtualMasterLeft, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+    std::memset(virtualMasterRight, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+    std::memset(deviceBusLeft, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
+    std::memset(deviceBusRight, 0, static_cast<size_t>(framesToProcess) * sizeof(float));
     const double beatsPerFrame =
         (static_cast<double>(std::max(transport_.bpm(), 1)) / 60.0) / sampleRate;
     const double blockEndBeat =
@@ -3102,14 +3209,16 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                     break;
                 }
             }
-            bool receivesGroupChild = false;
+            bool receivesRoutedChild = false;
             for (int childIndex = 0; childIndex < trackCount; ++childIndex) {
-                if (trackPlayback_[childIndex].parentGroupTrackIndex == trackIndex) {
-                    receivesGroupChild = true;
+                const auto& child = trackPlayback_[childIndex];
+                if (child.outputTargetKind == OutputTargetKind::Track &&
+                    child.outputTargetTrackIndex == trackIndex) {
+                    receivesRoutedChild = true;
                     break;
                 }
             }
-            if (onlyPassthroughGain && !track.outputTapActive && !receivesGroupChild) {
+            if (onlyPassthroughGain && !track.outputTapActive && !receivesRoutedChild) {
                 continue;
             }
         }
@@ -3184,14 +3293,31 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
         captureOutputTaps(track.outputNodeId,
             trackLeft[trackIndex], trackRight[trackIndex]);
 
-        const int parentGroup = track.parentGroupTrackIndex;
+        // Route after chain: virtual master input, invisible device bus, or another track.
         for (int frame = 0; frame < framesToProcess; ++frame) {
-            if (parentGroup >= 0 && parentGroup < trackCount) {
-                trackLeft[parentGroup][frame] += trackLeft[trackIndex][frame];
-                trackRight[parentGroup][frame] += trackRight[trackIndex][frame];
-            } else {
-                masterLeft[frame] += trackLeft[trackIndex][frame];
-                masterRight[frame] += trackRight[trackIndex][frame];
+            const float l = trackLeft[trackIndex][frame];
+            const float r = trackRight[trackIndex][frame];
+            switch (track.outputTargetKind) {
+                case OutputTargetKind::Track: {
+                    const int dest = track.outputTargetTrackIndex;
+                    if (dest >= 0 && dest < trackCount) {
+                        trackLeft[dest][frame] += l;
+                        trackRight[dest][frame] += r;
+                    } else {
+                        virtualMasterLeft[frame] += l;
+                        virtualMasterRight[frame] += r;
+                    }
+                    break;
+                }
+                case OutputTargetKind::Device:
+                    deviceBusLeft[frame] += l;
+                    deviceBusRight[frame] += r;
+                    break;
+                case OutputTargetKind::Master:
+                default:
+                    virtualMasterLeft[frame] += l;
+                    virtualMasterRight[frame] += r;
+                    break;
             }
         }
     }
@@ -3199,39 +3325,47 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
     graphFeedback.readIndex = graphFeedbackWriteIndex;
 
     if (metronomeEnabled_.load(std::memory_order_acquire)) {
-        addMetronomeClick(masterLeft, masterRight, framesToProcess, sampleRate,
+        addMetronomeClick(deviceBusLeft, deviceBusRight, framesToProcess, sampleRate,
                           playheadStartBeat, transport_.bpm(),
                           metronomeLevel_.load(std::memory_order_acquire));
     }
 
-    // Ramp the master target across the callback. This state is owned only by
-    // the audio thread; setMasterGain merely publishes the next target.
+    // Virtual master fader → invisible device mix bus (bypass tracks skip this).
     const float masterGainStart = smoothedMasterGain_;
     const float masterGainStep = (masterGain - masterGainStart) /
         static_cast<float>(std::max(1, framesToProcess));
     const auto masterGainAt = [&](int frame) noexcept {
         return masterGainStart + masterGainStep * static_cast<float>(frame + 1);
     };
+    const bool masterSilent = masterMuted_.load(std::memory_order_acquire);
+    for (int frame = 0; frame < framesToProcess; ++frame) {
+        if (masterSilent) {
+            virtualMasterLeft[frame] = 0.0f;
+            virtualMasterRight[frame] = 0.0f;
+            continue;
+        }
+        const float frameGain = masterGainAt(frame);
+        deviceBusLeft[frame] += virtualMasterLeft[frame] * frameGain;
+        deviceBusRight[frame] += virtualMasterRight[frame] * frameGain;
+    }
+    smoothedMasterGain_ = masterGain;
 
-    // Simple peak limiter + emergency hard clamp for the master bus.
+    // Peak limiter + hard clamp on the invisible device mix bus.
     float peak = 0.0f;
     for (int frame = 0; frame < framesToProcess; ++frame) {
-        const float frameGain = masterGainAt(frame);
-        peak = std::max(peak, std::max(std::abs(masterLeft[frame] * frameGain),
-                                      std::abs(masterRight[frame] * frameGain)));
+        peak = std::max(peak, std::max(std::abs(deviceBusLeft[frame]),
+                                      std::abs(deviceBusRight[frame])));
     }
 
     const float limitThreshold = 0.95f;
     const float limitGain = peak > limitThreshold ? limitThreshold / peak : 1.0f;
 
     for (int frame = 0; frame < framesToProcess; ++frame) {
-        const float frameGain = masterGainAt(frame);
-        float l = masterLeft[frame] * frameGain * limitGain;
-        float r = masterRight[frame] * frameGain * limitGain;
+        float l = deviceBusLeft[frame] * limitGain;
+        float r = deviceBusRight[frame] * limitGain;
         masterLeft[frame] = std::isfinite(l) ? std::clamp(l, -1.0f, 1.0f) : 0.0f;
         masterRight[frame] = std::isfinite(r) ? std::clamp(r, -1.0f, 1.0f) : 0.0f;
     }
-    smoothedMasterGain_ = masterGain;
     captureOutputTaps(stableDeviceSubgraphNodeId(
         "graph-master-output", DeviceSubgraphNodeRole::OutputAdapter),
         masterLeft, masterRight);
@@ -3327,9 +3461,35 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
     file.loopEnabled = transport_.loopEnabled();
     file.loopRegionStartBeat = transport_.loopRegionStartBeat();
     file.loopRegionEndBeat = transport_.loopRegionEndBeat();
-    file.master.id = "master";
-    file.master.name = "Master";
+    file.master.id = masterControl_.id.empty() ? "master" : masterControl_.id;
+    file.master.name = masterControl_.name.empty() ? "Master" : masterControl_.name;
     file.master.gain = masterGain_.load(std::memory_order_relaxed);
+    file.master.muted = masterControl_.muted;
+    file.master.devices = masterControl_.devices;
+    file.master.midiClips.clear();
+    for (const auto& clip : clipRepo_.masterMidiClips()) {
+        MidiClipState cs;
+        cs.id = clip.id;
+        cs.startBeat = clip.startBeat;
+        cs.lengthBeats = clip.lengthBeats;
+        cs.naturalLengthBeats = clip.naturalLengthBeats;
+        cs.loopContent = clip.loopContent;
+        file.master.midiClips.push_back(std::move(cs));
+    }
+    file.master.sampleClips.clear();
+    for (const auto& clip : clipRepo_.masterSampleClips()) {
+        SampleClipState cs;
+        cs.id = clip.id;
+        cs.sampleId = clip.sampleId;
+        cs.startBeat = clip.startBeat;
+        cs.lengthBeats = clip.lengthBeats;
+        cs.naturalLengthBeats = clip.naturalLengthBeats;
+        cs.loopContent = clip.loopContent;
+        cs.sourceStart = clip.sourceStart;
+        cs.sourceEnd = clip.sourceEnd;
+        cs.gain = clip.gain;
+        file.master.sampleClips.push_back(std::move(cs));
+    }
     if (sampleBank_ != nullptr) {
         for (const auto& sample : sampleBank_->listSamples()) {
             SampleLibraryEntryState entry;
@@ -3352,6 +3512,7 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
         ts.muted = track.muted;
         ts.soloed = track.soloed;
         ts.parentGroupId = track.parentGroupId;
+        ts.outputTarget = track.outputTarget.empty() ? kOutputTargetMaster : track.outputTarget;
         for (const auto& device : track.devices) {
             ts.devices.push_back(device);
         }
@@ -3490,6 +3651,13 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
         track.muted = trackState.muted;
         track.soloed = trackState.soloed;
         track.parentGroupId = trackState.parentGroupId;
+        track.outputTarget = trackState.outputTarget.empty()
+            ? std::string(kOutputTargetMaster)
+            : trackState.outputTarget;
+        // Legacy projects: nest audio with visual group when outputTarget still default.
+        if (track.outputTarget == kOutputTargetMaster && !track.parentGroupId.empty()) {
+            track.outputTarget = track.parentGroupId;
+        }
         for (const auto& deviceState : trackState.devices) {
             track.devices.push_back(deviceState);
         }
@@ -3631,6 +3799,36 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
         masterGain_.store(std::clamp(data.master.gain, 0.0f, 1.0f), std::memory_order_release);
     } else {
         masterGain_.store(1.0f, std::memory_order_release);
+    }
+    masterControl_ = data.master;
+    masterControl_.id = "master";
+    if (masterControl_.name.empty()) {
+        masterControl_.name = "Master";
+    }
+    masterMuted_.store(masterControl_.muted, std::memory_order_release);
+    clipRepo_.masterMidiClips().clear();
+    for (const auto& clipState : data.master.midiClips) {
+        MidiClip clip;
+        clip.id = clipState.id;
+        clip.startBeat = clipState.startBeat;
+        clip.lengthBeats = clipState.lengthBeats;
+        clip.naturalLengthBeats = clipState.naturalLengthBeats;
+        clip.loopContent = clipState.loopContent;
+        clipRepo_.masterMidiClips().push_back(std::move(clip));
+    }
+    clipRepo_.masterSampleClips().clear();
+    for (const auto& clipState : data.master.sampleClips) {
+        SampleClip clip;
+        clip.id = clipState.id;
+        clip.sampleId = clipState.sampleId;
+        clip.startBeat = clipState.startBeat;
+        clip.lengthBeats = clipState.lengthBeats;
+        clip.naturalLengthBeats = clipState.naturalLengthBeats;
+        clip.loopContent = clipState.loopContent;
+        clip.sourceStart = clipState.sourceStart;
+        clip.sourceEnd = clipState.sourceEnd;
+        clip.gain = clipState.gain;
+        clipRepo_.masterSampleClips().push_back(std::move(clip));
     }
     transport_.setPlaying(false);
     transport_.resetPlayhead();
@@ -4317,6 +4515,41 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                 }
             }
         }
+        // Resolve audio output target (device mix bus / virtual master / another track).
+        snap.outputTargetKind = OutputTargetKind::Master;
+        snap.outputTargetTrackIndex = -1;
+        const std::string& target = sourceTrack.outputTarget.empty()
+            ? std::string(kOutputTargetMaster)
+            : sourceTrack.outputTarget;
+        if (target == kOutputTargetDevice) {
+            snap.outputTargetKind = OutputTargetKind::Device;
+        } else if (target != kOutputTargetMaster) {
+            bool found = false;
+            for (size_t destIndex = 0; destIndex < trackRepo_.tracks().size(); ++destIndex) {
+                if (trackRepo_.tracks()[destIndex].id == target) {
+                    snap.outputTargetKind = OutputTargetKind::Track;
+                    snap.outputTargetTrackIndex = static_cast<int>(destIndex);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                // Legacy fallback: parent group bus when outputTarget is stale.
+                if (snap.parentGroupTrackIndex >= 0) {
+                    snap.outputTargetKind = OutputTargetKind::Track;
+                    snap.outputTargetTrackIndex = snap.parentGroupTrackIndex;
+                }
+            }
+        } else if (snap.parentGroupTrackIndex >= 0 &&
+                   (sourceTrack.outputTarget.empty() ||
+                    sourceTrack.outputTarget == kOutputTargetMaster)) {
+            // Projects that only have parentGroupId (pre-outputTarget) keep group bus.
+            // Once outputTarget is explicitly "master", do not override.
+            if (sourceTrack.outputTarget.empty()) {
+                snap.outputTargetKind = OutputTargetKind::Track;
+                snap.outputTargetTrackIndex = snap.parentGroupTrackIndex;
+            }
+        }
         snap.noteCount = 0;
         snap.regionCount = 0;
         snap.deviceCount = 0;
@@ -4649,8 +4882,11 @@ void ProjectEngine::rebuildProcessorGraphLocked(int trackCount) {
         if (trackIndex >= trackCount || trackIndex >= kMaxProcessorGraphTracks) break;
         auto& definition = definitions[static_cast<size_t>(trackIndex)];
         definition.trackId = track.id;
+        // Topo order: sources that route into this track must run first.
         definition.parentGroupTrack = static_cast<int8_t>(
-            trackPlayback_[trackIndex].parentGroupTrackIndex);
+            trackPlayback_[trackIndex].outputTargetKind == OutputTargetKind::Track
+                ? trackPlayback_[trackIndex].outputTargetTrackIndex
+                : -1);
         midiInputIds[static_cast<size_t>(trackIndex)] = "track-midi:" + track.id;
         definition.sources[definition.sourceCount++] = GraphSourceDefinition{
             midiInputIds[static_cast<size_t>(trackIndex)], GraphSignalType::Midi,
@@ -4877,6 +5113,16 @@ DeviceSlot* ProjectEngine::findDeviceLocked(const std::string& deviceId) {
             });
             if (found != nullptr) return found;
         }
+    }
+    for (auto& device : masterControl_.devices) {
+        if (device.id == deviceId) {
+            return &device;
+        }
+        DeviceSlot* found = nullptr;
+        walkDeviceTree(device, [&](DeviceSlot& slot) {
+            if (slot.id == deviceId) found = &slot;
+        });
+        if (found != nullptr) return found;
     }
     return nullptr;
 }

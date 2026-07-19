@@ -18,7 +18,6 @@ class ArrangementPlayheadOverlay extends StatefulWidget {
     required this.scrubPlayheadBeats,
     required this.pixelsPerBeat,
     required this.horizontalScroll,
-    required this.masterScroll,
     required this.playing,
     required this.scrubbingPlayhead,
     required this.inFrontOfChrome,
@@ -33,7 +32,6 @@ class ArrangementPlayheadOverlay extends StatefulWidget {
   final double? scrubPlayheadBeats;
   final double pixelsPerBeat;
   final ScrollController horizontalScroll;
-  final ScrollController masterScroll;
   final bool playing;
   final bool scrubbingPlayhead;
   final bool inFrontOfChrome;
