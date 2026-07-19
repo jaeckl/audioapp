@@ -3,16 +3,21 @@
 #include <juce_core/juce_core.h>
 #include <cstdio>
 #include <cstring>
+#if defined(_MSC_VER)
 #include <crtdbg.h>
+#endif
 
+#if defined(_MSC_VER)
 static void invalidParamHandler(const wchar_t* expr, const wchar_t* func, const wchar_t* file, unsigned int line, uintptr_t)
 {
     std::fprintf(stderr, "\nINVALID PARAM: expr=%S func=%S file=%S line=%u\n", expr, func, file, line);
     fflush(stderr);
 }
+#endif
 
 int main(int argc, char** argv)
 {
+#if defined(_MSC_VER)
     _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
     _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);
     _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
@@ -20,6 +25,7 @@ int main(int argc, char** argv)
     _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
     _CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
     _set_invalid_parameter_handler(invalidParamHandler);
+#endif
 
     bool enableAudioOutput = false;
     const char* filter = nullptr;

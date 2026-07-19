@@ -3391,6 +3391,18 @@ void ProjectEngine::mixAtPlayheadBeat(float* monoOut,
 }
 
 void ProjectEngine::setPlaying(bool playing) {
+    if (playing) {
+        const juce::ScopedWriteLock lock(mutex_);
+        {
+            PlaybackStateStorage::ReadGuard playbackRead(trackPlayback_);
+            const int trackCount = trackPlayback_.count();
+            for (int trackIndex = 0; trackIndex < trackCount; ++trackIndex) {
+                resetInstrumentPlaybackStateInArena(trackPlayback_[trackIndex].arena);
+            }
+        }
+        modulationGraph_.retriggerOnNote();
+        lastArrangementMixPlayhead_ = -1.0;
+    }
     if (playing && recordArmed_) {
         countInRemainingBeats_.store(
             static_cast<double>(countInBars_.load(std::memory_order_acquire) * 4),

@@ -213,6 +213,8 @@ void mixWavetableMidiNotesBlock(float* monoOut,
     const float filterSustain = safe_clamp(params.filterSustain, 0.0f, 1.0f);
 
     const double blockStartBeat = playheadStartBeat;
+    const double blockEndBeat = blockStartBeat + static_cast<double>(numFrames) *
+        (static_cast<double>(bpm) / 60.0) / sampleRate;
 
     // Phase 1: Voice allocation
     int allocatedVoices = 0;
@@ -243,8 +245,16 @@ void mixWavetableMidiNotesBlock(float* monoOut,
         }
 
         auto& voice = runtime.voices[vi];
+        const bool noteOnsetInBlock = midiNoteOnsetInBlock(
+            blockStartBeat,
+            blockEndBeat,
+            notes[ni].clipStartBeat,
+            notes[ni].clipLengthBeats,
+            notes[ni].contentLengthBeats,
+            notes[ni].loopContent,
+            notes[ni].noteStartBeat);
         if (voice.pitch != notes[ni].pitch || voice.startBeat != notes[ni].noteStartBeat ||
-            voice.clipStartBeat != notes[ni].clipStartBeat) {
+            voice.clipStartBeat != notes[ni].clipStartBeat || noteOnsetInBlock) {
             std::memset(&voice, 0, sizeof(voice));
             voice.active = 1;
             voice.pitch = notes[ni].pitch;
