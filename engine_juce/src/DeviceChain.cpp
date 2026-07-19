@@ -51,7 +51,7 @@ bool handlesOwnModulation(DeviceNodeKind kind) noexcept {
     // Returns true for instrument types that implement their own per-frame or
     // sub-block modulation inside their process() method, either via explicit
     // sub-block loops (Oscillator, Sampler) or held global modulation inside
-    // mix*MidiNotesBlock (SubtractiveSynth, BassSynth, PhaseModSynth).
+    // mix*MidiNotesBlock (SubtractiveSynth, BassSynth, PhaseModSynth, WavetableSynth).
     // Percussion generators (Kick, Snare, Clap, Cymbal, Crash) depend on the
     // orchestrator applying block-rate modulation to ctx.modulatedParams and
     // so must return false here.
@@ -59,7 +59,8 @@ bool handlesOwnModulation(DeviceNodeKind kind) noexcept {
            kind == DeviceNodeKind::Sampler ||
            kind == DeviceNodeKind::SubtractiveSynth ||
            kind == DeviceNodeKind::BassSynth ||
-           kind == DeviceNodeKind::PhaseModSynth;
+           kind == DeviceNodeKind::PhaseModSynth ||
+           kind == DeviceNodeKind::WavetableSynth;
 }
 
 float midiActiveFrequencyHz(const MidiPlaybackNote* notes,

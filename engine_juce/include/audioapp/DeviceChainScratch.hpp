@@ -21,6 +21,8 @@ constexpr int kScratchFrames = 4096;
 constexpr int kAutomationSubBlockFrames = 64;
 /// Global automation/LFO hold interval for subtractive synth (sample-and-hold).
 constexpr int kSubtractiveControlSubBlockFrames = 32;
+/// Global automation/LFO hold interval for wavetable synth (sample-and-hold).
+constexpr int kWavetableControlSubBlockFrames = 32;
 
 /// Dedicated preallocated storage for time-based effect ring buffers.
 /// One per track. Allows placement-new of ring buffers without heap allocation.
