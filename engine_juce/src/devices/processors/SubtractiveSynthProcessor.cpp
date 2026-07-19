@@ -192,6 +192,8 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
                        : 1.0f;
 
     const double blockStartBeat = playheadStartBeat;
+    const double blockEndBeat = blockStartBeat + static_cast<double>(numFrames) *
+        (static_cast<double>(bpm) / 60.0) / sampleRate;
 
     // --- Phase 1: Voice allocation ---
     int allocatedVoices = 0;
@@ -222,8 +224,16 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
         }
 
         auto& voice = runtime.voices[vi];
+        const bool noteOnsetInBlock = midiNoteOnsetInBlock(
+            blockStartBeat,
+            blockEndBeat,
+            notes[ni].clipStartBeat,
+            notes[ni].clipLengthBeats,
+            notes[ni].contentLengthBeats,
+            notes[ni].loopContent,
+            notes[ni].noteStartBeat);
         if (voice.pitch != notes[ni].pitch || voice.startBeat != notes[ni].noteStartBeat ||
-            voice.clipStartBeat != notes[ni].clipStartBeat) {
+            voice.clipStartBeat != notes[ni].clipStartBeat || noteOnsetInBlock) {
             const bool glideFromPreviousVoice = glideMs > 0.0f && voice.active != 0;
             const float previousHz = voice.currentHz;
             std::memset(&voice, 0, sizeof(voice));
