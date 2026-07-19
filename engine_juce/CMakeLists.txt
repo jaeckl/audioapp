@@ -362,6 +362,8 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/split_processor_test.cpp
     tests/multiband_split_processor_test.cpp
     tests/spectral_loud_split_processor_test.cpp
+    tests/spectral_loud_split_engine_test.cpp
+    tests/real_fft_test.cpp
     tests/stacked_lfo_modulation_test.cpp
     tests/subtractive_lfo_filter_test.cpp
     tests/subtractive_preset_apply_test.cpp
