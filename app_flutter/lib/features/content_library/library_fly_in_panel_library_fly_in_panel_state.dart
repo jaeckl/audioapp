@@ -1,17 +1,16 @@
 part of 'library_fly_in_panel.dart';
 
-class LibraryFlyInPanelState extends State<LibraryFlyInPanel> with SingleTickerProviderStateMixin {
+class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<Offset> _slide;
   late LibraryCategory _category;
+  late LibraryDeviceFamily _deviceFamily;
   LibraryManifest? _manifest;
   String? _selectedItemId;
   bool _presetPreviewLoopEnabled = true;
   double _presetScrubBeat = 0.0;
 
-  /// Preview timing state. When [_previewActive] is true the timer tick
-  /// advances [_presetScrubBeat] at the configured BPM so the playhead
-  /// visually moves while the engine plays.
   bool _previewActive = false;
   bool _previewLoop = true;
   double _previewLengthBeats = 0.0;
@@ -20,10 +19,22 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel> with SingleTickerP
   DateTime? _previewStartedAt;
   Timer? _previewTicker;
 
+  bool get _devicesMode => widget.browseMode == LibraryBrowseMode.devices;
+
   @override
   void initState() {
     super.initState();
-    _category = widget.initialCategory;
+    _category = widget.initialCategory == LibraryCategory.devicePresets &&
+            !_devicesMode
+        ? LibraryCategory.audioClips
+        : widget.initialCategory;
+    if (_category == LibraryCategory.devicePresets && !_devicesMode) {
+      _category = LibraryCategory.audioClips;
+    }
+    _deviceFamily = widget.lockedDeviceFamily ??
+        (widget.presetDeviceType != null
+            ? libraryDeviceFamilyForType(widget.presetDeviceType!)
+            : widget.initialDeviceFamily);
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 260),
@@ -47,17 +58,11 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel> with SingleTickerP
     super.dispose();
   }
 
-  /// Starts (or restarts) the visual playhead timer so the bar's playhead
-  /// line tracks the engine's preview playhead. The math mirrors the engine:
-  /// beat = startBeat + elapsed_seconds * (bpm / 60).
-  /// Wraps the parent's preset preview callback to:
-  ///  - inject the current preview-bar scrub beat as the default startBeat
-  ///  - inject the current auto-play/loop state as the default `loop`
-  ///  - keep the panel's stored scrub beat in sync with what the user is playing
-  ///  - animate the visual playhead while the engine is playing
   LibraryPresetItem? get _selectedUserPreset {
     if (_selectedItemId == null) return null;
-    return LibraryCatalog.presetItems(_manifest).where((p) => p.id == _selectedItemId && p.isUser).firstOrNull;
+    return LibraryCatalog.presetItems(_manifest)
+        .where((p) => p.id == _selectedItemId && p.isUser)
+        .firstOrNull;
   }
 
   @override
@@ -65,7 +70,12 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel> with SingleTickerP
     final size = MediaQuery.sizeOf(context);
     final landscape = size.width > size.height;
     final panelWidth = landscape ? size.width * 0.5 : size.width;
-    final accent = LibraryTheme.accentFor(_category);
+    final accent = _devicesMode
+        ? _deviceFamily.accent
+        : LibraryTheme.accentFor(_category);
+    final families = widget.lockedDeviceFamily != null
+        ? <LibraryDeviceFamily>[widget.lockedDeviceFamily!]
+        : LibraryDeviceFamily.values;
 
     return Stack(
       children: [
@@ -74,7 +84,9 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel> with SingleTickerP
             onTap: close,
             behavior: HitTestBehavior.opaque,
             child: Container(
-              color: landscape ? Colors.black.withValues(alpha: 0.18) : Colors.black54,
+              color: landscape
+                  ? Colors.black.withValues(alpha: 0.18)
+                  : Colors.black54,
             ),
           ),
         ),
@@ -92,7 +104,9 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel> with SingleTickerP
                 right: false,
                 child: DecoratedBox(
                   decoration: const BoxDecoration(
-                    border: Border(right: BorderSide(color: LibraryTheme.border)),
+                    border: Border(
+                      right: BorderSide(color: LibraryTheme.border),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -102,10 +116,30 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel> with SingleTickerP
                         selectedItemId: _selectedItemId,
                         onInsert: _selectedItemId != null ? _onInsert : null,
                         accent: accent,
-                        title: widget.presetDeviceType == null ? 'Library' : 'Presets',
-                        onSavePreset: _category == LibraryCategory.devicePresets && widget.onCaptureDevicePreset != null ? _savePreset : null,
+                        title: _devicesMode
+                            ? (widget.lockedDeviceFamily != null
+                                ? 'Insert ${widget.lockedDeviceFamily!.title}'
+                                : 'Devices')
+                            : 'Library',
+                        subtitle: _devicesMode
+                            ? 'Devices and presets'
+                            : 'Browse project resources',
+                        onSavePreset: !_devicesMode &&
+                                _category == LibraryCategory.devicePresets &&
+                                widget.onCaptureDevicePreset != null
+                            ? _savePreset
+                            : (_devicesMode &&
+                                    widget.onCaptureDevicePreset != null
+                                ? _savePreset
+                                : null),
                         updatePreset: _selectedUserPreset != null,
-                        actionLabel: _category == LibraryCategory.devicePresets ? 'Load' : 'Insert',
+                        actionLabel: _devicesMode
+                            ? (_selectedItemId?.startsWith('device:') == true
+                                ? 'Add'
+                                : 'Load')
+                            : (_category == LibraryCategory.devicePresets
+                                ? 'Load'
+                                : 'Insert'),
                       ),
                       Expanded(
                         child: Row(
@@ -113,7 +147,11 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel> with SingleTickerP
                           children: [
                             LibraryCategoryMenu(
                               selected: _category,
-                              categories: widget.percussionOnly ? const [LibraryCategory.audioClips, LibraryCategory.devicePresets] : LibraryCategory.values,
+                              categories: widget.percussionOnly
+                                  ? const [
+                                      LibraryCategory.audioClips,
+                                    ]
+                                  : kLibraryResourceRail,
                               onSelected: (category) => setState(() {
                                 _category = category;
                                 _selectedItemId = null;
@@ -121,48 +159,74 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel> with SingleTickerP
                                 _presetScrubBeat = 0;
                                 _stopPreviewAnimation();
                               }),
+                              deviceFamilies: _devicesMode ? families : null,
+                              selectedFamily:
+                                  _devicesMode ? _deviceFamily : null,
+                              onFamilySelected: (family) => setState(() {
+                                _deviceFamily = family;
+                                _selectedItemId = null;
+                                _stopPreviewAnimation();
+                              }),
                             ),
                             Expanded(
-                              child: LibraryContentPane(
-                                category: _category,
-                                snapshot: widget.snapshot,
-                                onPreviewAudio: widget.onPreviewAudio,
-                                onInsertAudio: widget.onInsertAudio,
-                                onImportAudio: widget.onImportAudio,
-                                onItemSelected: _onItemSelected,
-                                onMidiClipTap: widget.onMidiClipTap,
-                                onMidiPreviewTap: widget.onMidiPreviewTap,
-                                onAutomationTap: widget.onAutomationTap,
-                                onAutomationPreviewTap: widget.onAutomationPreviewTap,
-                                onPresetTap: widget.onPresetTap,
-                                onPresetPreviewTap: _onPresetPreviewTap,
-                                onWavetableTap: widget.onWavetableTap,
-                                autoPlayOnSelect: _presetPreviewLoopEnabled,
-                                percussionOnly: widget.percussionOnly,
-                                presetDeviceType: widget.presetDeviceType,
-                                onUserPresetLongPress: _manageUserPreset,
-                              ),
+                              child: _devicesMode
+                                  ? LibraryDeviceBrowserPane(
+                                      family: _deviceFamily,
+                                      manifest: _manifest,
+                                      selectedItemId: _selectedItemId,
+                                      percussionOnly: widget.percussionOnly,
+                                      lockedTypeId: widget.presetDeviceType,
+                                      onItemSelected: (id) => setState(
+                                          () => _selectedItemId = id),
+                                      onSelectDeviceType: (typeId) {
+                                        setState(() =>
+                                            _selectedItemId = 'device:$typeId');
+                                      },
+                                      onSelectPreset: (item) {
+                                        setState(
+                                            () => _selectedItemId = item.id);
+                                      },
+                                    )
+                                  : LibraryContentPane(
+                                      category: _category,
+                                      snapshot: widget.snapshot,
+                                      onPreviewAudio: widget.onPreviewAudio,
+                                      onInsertAudio: widget.onInsertAudio,
+                                      onImportAudio: widget.onImportAudio,
+                                      onItemSelected: _onItemSelected,
+                                      onMidiClipTap: widget.onMidiClipTap,
+                                      onMidiPreviewTap: widget.onMidiPreviewTap,
+                                      onAutomationTap: widget.onAutomationTap,
+                                      onAutomationPreviewTap:
+                                          widget.onAutomationPreviewTap,
+                                      onPresetTap: widget.onPresetTap,
+                                      onPresetPreviewTap: _onPresetPreviewTap,
+                                      onWavetableTap: widget.onWavetableTap,
+                                      autoPlayOnSelect:
+                                          _presetPreviewLoopEnabled,
+                                      percussionOnly: widget.percussionOnly,
+                                      presetDeviceType: widget.presetDeviceType,
+                                      onUserPresetLongPress: _manageUserPreset,
+                                    ),
                             ),
                           ],
                         ),
                       ),
-                      if (_category == LibraryCategory.devicePresets && _selectedItemId != null)
+                      if ((_devicesMode ||
+                              _category == LibraryCategory.devicePresets) &&
+                          _selectedItemId != null &&
+                          !_selectedItemId!.startsWith('device:'))
                         PresetPreviewBar(
                           snapshot: widget.snapshot,
                           selectedTrackId: widget.snapshot.selectedTrackId,
                           displayPlayhead: _presetPreviewLoopEnabled,
                           onClipTap: (clip) {
-                            // Jump preview to the tapped clip's start beat
-                            final items = LibraryCatalog.itemsFor(
-                              _category,
-                              widget.snapshot,
-                              manifest: _manifest,
-                            );
+                            final items = LibraryCatalog.presetItems(_manifest);
                             try {
-                              final item = items.firstWhere((i) => i.id == _selectedItemId);
-                              if (item is LibraryPresetItem) {
-                                _onPresetPreviewTap(item, startBeat: clip.startBeat);
-                              }
+                              final item = items
+                                  .firstWhere((i) => i.id == _selectedItemId);
+                              _onPresetPreviewTap(item,
+                                  startBeat: clip.startBeat);
                             } catch (_) {}
                           },
                         ),

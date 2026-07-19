@@ -1,4 +1,5 @@
 import 'package:audioapp/bridge/project_snapshot.dart';
+import 'package:audioapp/features/content_library/library_browse_mode.dart';
 import 'package:audioapp/features/content_library/library_category.dart';
 import 'package:audioapp/features/content_library/library_fly_in_panel.dart';
 import 'package:flutter/material.dart';
@@ -90,10 +91,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Audio clips'), findsOneWidget);
+    expect(find.text('Audio'), findsWidgets);
     expect(find.text('MIDI'), findsOneWidget);
     expect(find.text('Automation'), findsOneWidget);
-    expect(find.text('Presets'), findsOneWidget);
+    expect(find.text('Presets'), findsNothing);
+    expect(find.text('Wavetables'), findsOneWidget);
 
     await tester.tap(find.text('MIDI'));
     // MIDI category shows loading spinner while manifest loads;
@@ -102,7 +104,62 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('MIDI clips'), findsOneWidget);
+    expect(find.text('BROWSE'), findsOneWidget);
+    expect(find.text('All roles'), findsOneWidget);
+  });
+
+  testWidgets('Devices browse mode shows Instrument / Audio FX / Note FX',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: LibraryFlyInPanel(
+            snapshot: _emptySnapshot(),
+            browseMode: LibraryBrowseMode.devices,
+            onClose: () {},
+            onPreviewAudio: (_) {},
+            onInsertAudio: (_) {},
+            onImportAudio: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Instrument'), findsWidgets);
+    expect(find.text('Audio FX'), findsOneWidget);
+    expect(find.text('Note FX'), findsOneWidget);
+    expect(find.text('BROWSE'), findsOneWidget);
+    expect(find.text('All instruments'), findsOneWidget);
+  });
+
+  testWidgets('Devices browse drills Kind → Type → Results', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: LibraryFlyInPanel(
+            snapshot: _emptySnapshot(),
+            browseMode: LibraryBrowseMode.devices,
+            onClose: () {},
+            onPreviewAudio: (_) {},
+            onInsertAudio: (_) {},
+            onImportAudio: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('All instruments'), findsOneWidget);
+    await tester.tap(find.text('Synth'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('All types'), findsOneWidget);
+    await tester.tap(find.text('All types'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Results'), findsOneWidget);
+    expect(find.text('DEVICE'), findsWidgets);
   });
 
   testWidgets('Scrim tap closes library', (tester) async {

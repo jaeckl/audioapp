@@ -4,7 +4,9 @@ extension _DeviceChainRowStateVirtualdevicechain on _DeviceChainRowState {
   Widget _virtualDeviceChain(BuildContext context, ChainDeviceSnapshot chain) {
     final accent = DeviceStripTheme.accentForDeviceType('device_chain');
     Future<void> addDevice() async {
-      final type = await showDevicePickerSheet(context);
+      final type = widget.onPickDeviceType != null
+          ? await widget.onPickDeviceType!()
+          : await showDevicePickerSheet(context);
       if (type == null || type == 'device_chain') return;
       await widget.onModulationBridgeCall?.call('addDeviceToChain', {
         'chainId': chain.id,

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
-/// Page header with Library title, global Insert button, and close icon.
+import '../welcome/welcome_theme.dart';
+import 'library_theme.dart';
+
+/// Page header with Library title, action button, and close — Project chrome.
 class LibraryHeader extends StatelessWidget {
   const LibraryHeader({
     super.key,
@@ -9,6 +12,7 @@ class LibraryHeader extends StatelessWidget {
     this.onInsert,
     required this.accent,
     this.title = 'Library',
+    this.subtitle = 'Browse project resources',
     this.onSavePreset,
     this.updatePreset = false,
     this.actionLabel = 'Insert',
@@ -19,6 +23,7 @@ class LibraryHeader extends StatelessWidget {
   final VoidCallback? onInsert;
   final Color accent;
   final String title;
+  final String subtitle;
   final VoidCallback? onSavePreset;
   final bool updatePreset;
   final String actionLabel;
@@ -27,17 +32,42 @@ class LibraryHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasSelection = selectedItemId != null;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 4, 4),
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
       child: Row(
         children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: LibraryTheme.softFill(accent),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: accent.withValues(alpha: 0.4)),
+            ),
+            child: Icon(Icons.library_music_rounded, color: accent, size: 22),
           ),
-          const Spacer(),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: WelcomeTheme.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: WelcomeTheme.textMuted,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
           if (onSavePreset != null)
             IconButton(
               tooltip: updatePreset ? 'Update preset' : 'Save device preset',
@@ -47,19 +77,23 @@ class LibraryHeader extends StatelessWidget {
                   updatePreset ? Icons.save_as_outlined : Icons.save_outlined),
             ),
           FilledButton(
-            onPressed: hasSelection ? onInsert : null,
-            child: Text(
-              actionLabel,
-              style: TextStyle(
-                color: hasSelection ? Colors.white : Colors.white38,
+            style: FilledButton.styleFrom(
+              backgroundColor: hasSelection ? accent : LibraryTheme.cardBackground,
+              foregroundColor:
+                  hasSelection ? Colors.white : WelcomeTheme.textMuted,
+              disabledBackgroundColor: LibraryTheme.cardBackground,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: WelcomeTheme.panelBorder),
               ),
             ),
+            onPressed: hasSelection ? onInsert : null,
+            child: Text(actionLabel),
           ),
-          const SizedBox(width: 4),
           IconButton(
             tooltip: 'Close library',
             onPressed: onClose,
-            icon: const Icon(Icons.close, color: Colors.white54),
+            icon: const Icon(Icons.close, color: WelcomeTheme.textMuted),
           ),
         ],
       ),

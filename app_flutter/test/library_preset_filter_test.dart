@@ -1,5 +1,4 @@
 import 'package:audioapp/bridge/project_snapshot.dart';
-import 'package:audioapp/features/content_library/device_preset_filter_list.dart';
 import 'package:audioapp/features/content_library/library_category.dart';
 import 'package:audioapp/features/content_library/library_content_pane.dart';
 import 'package:audioapp/features/content_library/library_manifest.dart';
@@ -84,7 +83,7 @@ Finder _presetTitles() => find.descendant(
     );
 
 void main() {
-  testWidgets('device type filter chips shown for presets', (tester) async {
+  testWidgets('device type browse page shown for presets', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -102,9 +101,10 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    // Device type filter chips should be present
-    expect(find.byType(DevicePresetFilterList), findsOneWidget);
-    // All presets shown initially ("All" filter selected)
+    expect(find.text('All types'), findsOneWidget);
+    await tester.tap(find.text('All types'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
     expect(_presetTitles(), findsNWidgets(3));
   });
 
@@ -127,14 +127,12 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(_presetTitles(), findsNWidgets(3));
+    expect(find.text('All types'), findsOneWidget);
 
-    // Tap "Synth" chip to filter by subtractive_synth
     await tester.tap(find.text('Synth'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    // Only "Warm pad" should remain (only subtractive_synth preset)
     expect(_presetTitles(), findsOneWidget);
     expect(find.text('Warm pad'), findsOneWidget);
   });

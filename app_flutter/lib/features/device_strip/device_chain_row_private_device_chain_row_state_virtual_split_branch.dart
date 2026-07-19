@@ -24,7 +24,9 @@ extension _DeviceChainRowStateVirtualsplitbranch on _DeviceChainRowState {
     final accent = DeviceStripTheme.accentForDeviceType(split.type);
     final branchDevices = split.branchDevices(branchIndex);
     Future<void> addDevice() async {
-      final type = await showDevicePickerSheet(context);
+      final type = widget.onPickDeviceType != null
+          ? await widget.onPickDeviceType!()
+          : await showDevicePickerSheet(context);
       if (type == null || _splitNestingRejectedTypes.contains(type)) return;
       await widget.onModulationBridgeCall?.call('addDeviceToSplitBranch', {
         'splitId': split.id,

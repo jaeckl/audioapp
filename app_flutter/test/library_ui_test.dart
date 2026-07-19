@@ -301,6 +301,10 @@ void main() {
       );
       await tester.pump();
 
+      // Source drill → results
+      await tester.tap(find.text('All sources'));
+      await tester.pump();
+
       await tester.tap(find.text('Kick'));
       await tester.pump();
 
@@ -323,6 +327,8 @@ void main() {
           ),
         ),
       );
+      await tester.pump();
+      await tester.tap(find.text('All sources'));
       await tester.pump();
 
       await tester.tap(find.text('Kick'));
@@ -356,6 +362,10 @@ void main() {
         ),
       );
       await tester.pump();
+      await tester.tap(find.text('All sources'));
+      await tester.pump();
+      callCount = 0;
+      selectedId = null;
 
       await tester.tap(find.text('Kick'));
       await tester.pump();
@@ -469,6 +479,8 @@ void main() {
         ),
       );
       await tester.pump();
+      await tester.tap(find.text('All sources'));
+      await tester.pump();
 
       expect(_containersWithBorder(), findsNothing);
 
@@ -493,6 +505,8 @@ void main() {
         ),
       );
       await tester.pump();
+      await tester.tap(find.text('All sources'));
+      await tester.pump();
 
       // Tap first item → border appears
       await tester.tap(find.text('Kick'));
@@ -510,7 +524,7 @@ void main() {
   // 7. Device preset filter integration
   // ====================================================================
   group('Device preset filter integration', () {
-    testWidgets('device filter chips shown for presets category',
+    testWidgets('device type browse page shown for presets category',
         (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -529,8 +543,8 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.byType(DevicePresetFilterList), findsOneWidget);
-      expect(_presetTitles(), findsNWidgets(4));
+      expect(find.text('All types'), findsOneWidget);
+      expect(find.text('Synth'), findsOneWidget);
     });
 
     testWidgets('filtering by device type narrows results', (tester) async {
@@ -551,21 +565,23 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(_presetTitles(), findsNWidgets(4));
-
-      // Tap "Synth" to filter by subtractive_synth
+      // Tap "Synth" to filter by subtractive_synth → results
       await tester.tap(find.text('Synth'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
+      expect(find.text('Results'), findsOneWidget);
       expect(_presetTitles(), findsNWidgets(2));
       expect(find.text('Warm pad'), findsOneWidget);
       expect(find.text('Pluck'), findsOneWidget);
       expect(find.text('Kick drum'), findsNothing);
       expect(find.text('Bass'), findsNothing);
 
-      // Tap "All" to reset
-      await tester.tap(find.text('All'));
+      // Path back to type list, then All types
+      await tester.tap(find.text('Synth').first);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.text('All types'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 

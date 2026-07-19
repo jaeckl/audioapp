@@ -81,6 +81,7 @@ Widget _buildArrangementColumn(ProjectSnapshot snapshot) {
             onRemoveDevice: _confirmRemoveDevice,
             onOpenDeviceLibrary: _openDeviceLibrary,
             onOpenDrumPadLibrary: _openDrumPadLibrary,
+            onPickDeviceType: _pickDeviceFromLibrary,
             onModulationBridgeCall: _modulationBridgeCall,
             automationLinkClipId: _automationLinkClipId,
             onAutomationParamSelected: _assignAutomationParam,

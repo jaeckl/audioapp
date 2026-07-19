@@ -20,7 +20,9 @@ extension _DeviceChainRowStateVirtualspectralloudband on _DeviceChainRowState {
     final bandDevices = device.bandDevices(bandIndex);
     final label = SpectralLoudSplitDeviceSnapshot.bandLabels[bandIndex];
     Future<void> addDevice() async {
-      final type = await showDevicePickerSheet(context);
+      final type = widget.onPickDeviceType != null
+          ? await widget.onPickDeviceType!()
+          : await showDevicePickerSheet(context);
       if (type == null || _slNestingRejectedTypes.contains(type)) return;
       await widget.onModulationBridgeCall?.call('addDeviceToSpectralLoudBand', {
         'deviceId': device.id,
@@ -49,7 +51,9 @@ extension _DeviceChainRowStateVirtualspectralloudband on _DeviceChainRowState {
   ) {
     final accent = DeviceStripTheme.accentForDeviceType(device.type);
     Future<void> addDevice() async {
-      final type = await showDevicePickerSheet(context);
+      final type = widget.onPickDeviceType != null
+          ? await widget.onPickDeviceType!()
+          : await showDevicePickerSheet(context);
       if (type == null || _slNestingRejectedTypes.contains(type)) return;
       await widget.onModulationBridgeCall?.call('addDeviceToSpectralLoudPreFx', {
         'deviceId': device.id,
@@ -76,7 +80,9 @@ extension _DeviceChainRowStateVirtualspectralloudband on _DeviceChainRowState {
   ) {
     final accent = DeviceStripTheme.accentForDeviceType(device.type);
     Future<void> addDevice() async {
-      final type = await showDevicePickerSheet(context);
+      final type = widget.onPickDeviceType != null
+          ? await widget.onPickDeviceType!()
+          : await showDevicePickerSheet(context);
       if (type == null || _slNestingRejectedTypes.contains(type)) return;
       await widget.onModulationBridgeCall
           ?.call('addDeviceToSpectralLoudPostFx', {

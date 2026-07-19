@@ -11,7 +11,13 @@ class _DawShellState extends State<DawShell>
   String? _projectError;
   _ShellTab _tab = _ShellTab.devices;
   bool _libraryOpen = false;
+  LibraryBrowseMode _libraryBrowseMode = LibraryBrowseMode.resources;
   LibraryCategory _libraryCategory = LibraryCategory.audioClips;
+  LibraryDeviceFamily _libraryDeviceFamily = LibraryDeviceFamily.instrument;
+  LibraryDeviceFamily? _libraryLockedFamily;
+  String? _libraryInsertTrackId;
+  int? _libraryInsertIndex;
+  Completer<String?>? _libraryDevicePickCompleter;
   String? _librarySamplerDeviceId;
   String? _libraryDrumMachineId;
   int? _libraryDrumNote;
@@ -295,7 +301,10 @@ class _DawShellState extends State<DawShell>
             LibraryFlyInPanel(
               key: _libraryPanelKey,
               snapshot: snapshot,
+              browseMode: _libraryBrowseMode,
               initialCategory: _libraryCategory,
+              initialDeviceFamily: _libraryDeviceFamily,
+              lockedDeviceFamily: _libraryLockedFamily,
               percussionOnly: _libraryDrumMachineId != null,
               presetDeviceId: _libraryPresetDeviceId,
               presetDeviceType: _libraryPresetDeviceType,
@@ -314,6 +323,7 @@ class _DawShellState extends State<DawShell>
               onPresetTap: _onLibraryPresetTap,
               onPresetPreviewTap: _onLibraryPresetPreviewTap,
               onWavetableTap: _onLibraryWavetableTap,
+              onInsertDeviceType: _onLibraryInsertDeviceType,
               onStopPreview: () {
                 widget.bridge.stopPreview().catchError((Object _) {});
               },

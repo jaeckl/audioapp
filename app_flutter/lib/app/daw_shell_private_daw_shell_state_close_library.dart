@@ -2,8 +2,17 @@ part of 'daw_shell.dart';
 
 extension DawShellStateCloselibraryOperation on _DawShellState {
 void _closeLibrary() {
+    final pending = _libraryDevicePickCompleter;
+    if (pending != null && !pending.isCompleted) {
+      pending.complete(null);
+    }
+    _libraryDevicePickCompleter = null;
     setState(() {
       _libraryOpen = false;
+      _libraryBrowseMode = LibraryBrowseMode.resources;
+      _libraryLockedFamily = null;
+      _libraryInsertTrackId = null;
+      _libraryInsertIndex = null;
       _librarySamplerDeviceId = null;
       _libraryWavetableDeviceId = null;
       _libraryDrumMachineId = null;
