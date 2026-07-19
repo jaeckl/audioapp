@@ -5,15 +5,20 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/live_meters_dto.dart';
 import '../../bridge/project_snapshot.dart';
+import '../arrangement/track_lane_color.dart';
 import '../arrangement/track_lane_icon.dart';
-import '../device_strip/device_knob_sizes.dart';
-import '../device_strip/rotary_knob.dart';
+import 'mixer_theme.dart';
 
+part 'mixer_view_channel_frame.dart';
+part 'mixer_view_engraved_paint.dart';
 part 'mixer_view_track_channel.dart';
 part 'mixer_view_master_channel.dart';
 part 'mixer_view_stereo_meter.dart';
-part 'mixer_view_mix_toggle.dart';
+part 'mixer_view_fader.dart';
+part 'mixer_view_pan_slider.dart';
+part 'mixer_view_mix_button_row.dart';
 part 'mixer_view_output_destinations.dart';
+part 'mixer_view_output_menu.dart';
 
 class MixerView extends StatelessWidget {
   const MixerView({
@@ -24,38 +29,46 @@ class MixerView extends StatelessWidget {
     required this.onTrackPanChanged,
     required this.onTrackMuted,
     required this.onTrackSoloed,
+    required this.onTrackRecordArmed,
     required this.onTrackSelected,
     required this.onMasterGainChanged,
     required this.onTrackOutputChanged,
   });
 
-  static const double panelHeight = 300;
+  static const double panelHeight = MixerTheme.panelHeight;
+
   final ProjectSnapshot snapshot;
   final ValueListenable<Map<String, DeviceMeterReading>> liveMeters;
   final void Function(String deviceId, double gain) onTrackGainChanged;
   final void Function(String deviceId, double pan) onTrackPanChanged;
   final void Function(String trackId, bool muted) onTrackMuted;
   final void Function(String trackId, bool soloed) onTrackSoloed;
+  final void Function(String trackId, bool armed) onTrackRecordArmed;
   final ValueChanged<String> onTrackSelected;
   final ValueChanged<double> onMasterGainChanged;
   final void Function(String trackId, String outputTarget) onTrackOutputChanged;
 
   @override
   Widget build(BuildContext context) => Material(
-        color: const Color(0xFF121218),
+        color: MixerTheme.panelBackground,
         child: SizedBox(
           height: panelHeight,
           child: ValueListenableBuilder<Map<String, DeviceMeterReading>>(
             valueListenable: liveMeters,
             builder: (context, meters, _) => ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
               children: [
                 for (var i = 0; i < snapshot.tracks.length; i++)
                   _TrackChannel(
                     track: snapshot.tracks[i],
                     icon: TrackLaneIcon.iconForTrack(snapshot.tracks[i], i),
-                    selected: snapshot.tracks[i].id == snapshot.selectedTrackId,
+                    accent: TrackLaneColor.colorForTrack(snapshot.tracks[i], i),
+                    selected:
+                        snapshot.tracks[i].id == snapshot.selectedTrackId,
+                    recordArmed: snapshot.tracks[i].id ==
+                            snapshot.selectedTrackId &&
+                        snapshot.recordArmed,
                     meter: snapshot.tracks[i].trackGainDevice == null
                         ? null
                         : meters[snapshot.tracks[i].trackGainDevice!.id],
@@ -73,18 +86,31 @@ class MixerView extends StatelessWidget {
                     },
                     onSelect: () => onTrackSelected(snapshot.tracks[i].id),
                     onMute: () => onTrackMuted(
-                        snapshot.tracks[i].id, !snapshot.tracks[i].muted),
+                      snapshot.tracks[i].id,
+                      !snapshot.tracks[i].muted,
+                    ),
                     onSolo: () => onTrackSoloed(
-                        snapshot.tracks[i].id, !snapshot.tracks[i].soloed),
+                      snapshot.tracks[i].id,
+                      !snapshot.tracks[i].soloed,
+                    ),
+                    onRecord: () => onTrackRecordArmed(
+                      snapshot.tracks[i].id,
+                      !(snapshot.tracks[i].id == snapshot.selectedTrackId &&
+                          snapshot.recordArmed),
+                    ),
                     onOutputChanged: (target) =>
                         onTrackOutputChanged(snapshot.tracks[i].id, target),
                   ),
                 _MasterChannel(
                   title: snapshot.master.name,
                   gain: snapshot.master.gain,
+                  muted: snapshot.master.muted,
                   selected: snapshot.selectedTrackId == 'master',
+                  meter: meters['master'],
                   onGainChanged: onMasterGainChanged,
                   onSelect: () => onTrackSelected('master'),
+                  onMute: () =>
+                      onTrackMuted('master', !snapshot.master.muted),
                 ),
               ],
             ),
