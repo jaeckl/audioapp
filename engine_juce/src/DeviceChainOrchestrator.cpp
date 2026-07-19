@@ -550,6 +550,68 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
             continue;
         }
 
+        const bool isContainer = nodeKind == DeviceNodeKind::Chain ||
+                                 nodeKind == DeviceNodeKind::DrumMachine ||
+                                 nodeKind == DeviceNodeKind::Split ||
+                                 nodeKind == DeviceNodeKind::MultibandSplit ||
+                                 nodeKind == DeviceNodeKind::SpectralLoudSplit;
+        const bool isGraphIoDevice =
+            nodeKind == DeviceNodeKind::MidiReceiver ||
+            nodeKind == DeviceNodeKind::AudioReceiver ||
+            nodeKind == DeviceNodeKind::MidiDelay;
+        // Idle leaf: no auto/mod spans, strip settled, not bypassed — skip
+        // finalTargets merge and dual common-control Dynamic paths.
+        const bool idleLeaf =
+            !isContainer &&
+            !isGraphIoDevice &&
+            targetAutomationCount == 0 &&
+            targetModEdgeCount == 0 &&
+            !proc->bypassed &&
+            proc->commonStripSettled();
+        if (idleLeaf) {
+            CommonControlBlock commonControls = prepareCommonControls(
+                *proc, s, numFrames, false, false);
+            ProcessContext pc(s);
+            pc.notes = activeNotes;
+            pc.noteCount = activeNoteCount;
+            pc.playheadBeat = ctx.playheadStartBeat;
+            pc.bpm = ctx.bpm;
+            pc.sampleRate = ctx.sampleRate;
+            pc.suppressInstruments = ctx.suppressInstruments;
+            pc.voicePolicy = proc->voicePolicy;
+            pc.deviceMeters = ctx.deviceMeters;
+            pc.maxDeviceMeters = ctx.maxDeviceMeters;
+            pc.meterSlotSubscribed = ctx.meterSlotSubscribed;
+            pc.tapGraph = ctx.tapGraph;
+            pc.graphTapRuntimes = ctx.graphTapRuntimes;
+            pc.graphTapRuntimeCount = ctx.graphTapRuntimeCount;
+            pc.deviceIndex = deviceIndex;
+            pc.needsSubBlocks = false;
+            pc.wavetableBank = ctx.wavetableBank;
+            pc.modulators = ctx.modulators;
+            pc.retriggerGeneration = ctx.retriggerGeneration;
+            pc.numFrames = numFrames;
+            pc.commonControls = commonControls;
+            auto modulatedParams = proc->storedParams();
+            proc->applyCompiledParameterSmoothing(
+                modulatedParams, numFrames, ctx.sampleRate);
+            pc.modulatedParams = &modulatedParams;
+            AudioBlock block{ctx.trackLeft, ctx.trackRight, numFrames};
+            if (proc->outputMix != 1.0f || proc->smoothedOutputMix != 1.0f) {
+                std::copy(block.channelL, block.channelL + numFrames, s.tempStereoL);
+                std::copy(block.channelR, block.channelR + numFrames, s.tempStereoR);
+            }
+            runFusedInputTrimAdapter(*proc, modulatedParams, block, numFrames);
+            proc->process(block, pc);
+            captureAudioGraphTaps(proc->stableProcessorNodeId);
+            runFusedOutputAdapter(*proc, nodeKind, block, s, commonControls, numFrames);
+            captureAudioGraphTaps(proc->stableOutputNodeId);
+            captureMidiGraphTaps(proc->stableOutputNodeId);
+            captureAudioSources(deviceIndex);
+            captureMidiSources(deviceIndex);
+            continue;
+        }
+
         CommonControlBlock commonControls = prepareCommonControls(
             *proc, s, numFrames,
             proc->hasCommonGainAutomation || proc->hasCommonGainModulation,
@@ -584,11 +646,6 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         ProcessContext pc(s);
         pc.lfoValues = ctx.lfoValues;
         pc.lfoCount = ctx.lfoCount;
-        const bool isContainer = nodeKind == DeviceNodeKind::Chain ||
-                                 nodeKind == DeviceNodeKind::DrumMachine ||
-                                 nodeKind == DeviceNodeKind::Split ||
-                                 nodeKind == DeviceNodeKind::MultibandSplit ||
-                                 nodeKind == DeviceNodeKind::SpectralLoudSplit;
         pc.modEdges = isContainer ? ctx.modEdges : targetModEdges;
         pc.modEdgeCount = isContainer ? ctx.modEdgeCount : targetModEdgeCount;
         pc.automationClips = isContainer ? ctx.automationClips : targetAutomation;
