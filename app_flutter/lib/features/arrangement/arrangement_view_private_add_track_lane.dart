@@ -7,9 +7,9 @@ class _AddTrackLane extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: ArrangementTimelineMetrics.trackLaneHeight,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+          bottom: BorderSide(color: ArrangementTheme.divider),
         ),
       ),
     );

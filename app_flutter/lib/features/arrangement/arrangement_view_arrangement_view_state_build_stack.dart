@@ -49,6 +49,8 @@ extension ArrangementViewStateBuildStackOperation on ArrangementViewState {
                               regionStartBeat: displayRegionStart,
                               highlightColor: ArrangementLoopRegionTheme.color,
                               pixelsPerBeat: _pixelsPerBeat,
+                              backgroundColor: ArrangementTheme.rulerBackground,
+                              idlePillColor: ArrangementTheme.rulerIdlePill,
                             ),
                           ),
                         ),
@@ -152,7 +154,7 @@ extension ArrangementViewStateBuildStackOperation on ArrangementViewState {
           top: 0,
           width: headerWidth,
           height: PianoRollMetrics.rulerHeight,
-          child: ColoredBox(color: PianoRollTheme.rulerBackground),
+          child: ColoredBox(color: ArrangementTheme.rulerBackground),
         ),
         Positioned(
           left: 0,

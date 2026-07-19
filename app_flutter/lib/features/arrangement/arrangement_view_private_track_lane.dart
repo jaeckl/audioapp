@@ -164,7 +164,7 @@ class _TrackLane extends StatelessWidget {
       height: laneHeight,
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+          bottom: const BorderSide(color: ArrangementTheme.divider),
         ),
       ),
       child: Stack(
@@ -173,7 +173,7 @@ class _TrackLane extends StatelessWidget {
           if (selected)
             Positioned.fill(
               child: ColoredBox(
-                color: const Color(0xFF22222C).withValues(alpha: 0.55),
+                color: ArrangementTheme.laneSelected,
               ),
             ),
           Positioned.fill(

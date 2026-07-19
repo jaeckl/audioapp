@@ -14,6 +14,7 @@ import 'arrangement_grid_painter.dart';
 import 'arrangement_loop_region_marker.dart';
 import 'arrangement_playhead_marker.dart';
 import 'arrangement_playhead_overlay.dart';
+import 'arrangement_theme.dart';
 import 'arrangement_timeline_metrics.dart';
 import '../editor/timeline_marker_layer.dart';
 import 'automation_clip_renderer.dart';

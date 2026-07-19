@@ -13,6 +13,8 @@ class PianoRollRuler extends StatelessWidget {
     required this.pixelsPerBeat,
     this.regionStartBeat = 0,
     this.highlightColor,
+    this.backgroundColor,
+    this.idlePillColor,
   });
 
   final double virtualLengthBeats;
@@ -20,6 +22,8 @@ class PianoRollRuler extends StatelessWidget {
   final double pixelsPerBeat;
   final double regionStartBeat;
   final Color? highlightColor;
+  final Color? backgroundColor;
+  final Color? idlePillColor;
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +40,8 @@ class PianoRollRuler extends StatelessWidget {
           regionStartBeat: regionStartBeat,
           highlightColor: highlightColor,
           pixelsPerBeat: pixelsPerBeat,
+          backgroundColor: backgroundColor,
+          idlePillColor: idlePillColor,
         ),
       ),
     );

@@ -11,7 +11,7 @@ extension ArrangementViewStateBuildcontentOperation on ArrangementViewState {
 
     return Container(
       clipBehavior: Clip.none,
-      color: const Color(0xFF1A1A22),
+      color: ArrangementTheme.background,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final headerWidth = widget.compact

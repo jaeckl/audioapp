@@ -9,8 +9,9 @@ class ArrangementTimelineMetrics {
   static const double minPixelsPerBeat = 28;
   static const double maxPixelsPerBeat = 200;
   static const double trackHeaderWidth = 44;
-  static const double trackHeaderExpandedWidth = 168;
-  static const double trackLaneHeight = 56;
+  static const double trackHeaderExpandedWidth = 184;
+  static const double trackLaneHeight = 70;
+  static const double mixButtonHeight = 30;
 
   static bool headerShowsMixControls(double columnWidth) =>
       columnWidth > trackHeaderWidth + 8;

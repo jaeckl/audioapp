@@ -39,9 +39,9 @@ class _MasterLane extends StatelessWidget {
           ),
           Container(
             decoration: BoxDecoration(
-              color: const Color(0xCC252018),
+              color: ArrangementTheme.masterLaneWash,
               border: Border(
-                top: BorderSide(color: Colors.amber.withValues(alpha: 0.35)),
+                top: BorderSide(color: ArrangementTheme.masterBorder),
               ),
             ),
             alignment: Alignment.centerLeft,
@@ -49,7 +49,7 @@ class _MasterLane extends StatelessWidget {
             child: Text(
               'Master → Device out',
               style: theme.textTheme.labelMedium?.copyWith(
-                color: Colors.amber.shade100,
+                color: ArrangementTheme.masterLabel,
                 fontWeight: FontWeight.w600,
               ),
             ),

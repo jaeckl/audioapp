@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../piano_roll/piano_roll_metrics.dart';
 import '../piano_roll/piano_roll_theme.dart';
+import 'arrangement_theme.dart';
 
 /// Beat/bar grid background for arrangement track lanes — matches the piano roll canvas.
 class ArrangementGridPainter extends CustomPainter {
@@ -25,7 +26,7 @@ class ArrangementGridPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(
       Offset.zero & size,
-      Paint()..color = PianoRollTheme.surface,
+      Paint()..color = ArrangementTheme.surface,
     );
 
     if (showRegionShading && regionEndBeat > regionStartBeat) {
