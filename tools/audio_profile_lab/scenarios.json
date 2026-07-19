@@ -1,0 +1,31 @@
+{
+  "scenarios": {
+    "light": {
+      "description": "Single track, simple oscillator, sustained MIDI note.",
+      "dartDefine": "LAB_SCENARIO=light",
+      "mapsToBenchmark": "default"
+    },
+    "parallel": {
+      "description": "Four independent oscillator tracks (no cross-routing).",
+      "dartDefine": "LAB_SCENARIO=parallel",
+      "mapsToBenchmark": "parallel_branches"
+    },
+    "serial_chain": {
+      "description": "Oscillator through distortion, filter, and reverb on one track.",
+      "dartDefine": "LAB_SCENARIO=serial_chain",
+      "mapsToBenchmark": "serial_chain"
+    },
+    "subtractive": {
+      "description": "Subtractive synth with a short chord pattern.",
+      "dartDefine": "LAB_SCENARIO=subtractive",
+      "mapsToBenchmark": null
+    }
+  },
+  "profiles": ["low_latency", "balanced", "safe"],
+  "defaults": {
+    "playSeconds": 20,
+    "settleSeconds": 2,
+    "sampleIntervalMs": 500,
+    "deviceSerial": "ZY32MCWDJ6"
+  }
+}
