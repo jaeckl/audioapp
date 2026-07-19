@@ -1,0 +1,33 @@
+part of 'library_midi_patterns.dart';
+
+/// Factory drum beats — extras.
+final Map<String, LibraryMidiPattern> _library_midi_patternsGroupDrums_extras = {
+  "ambient-brush-feel": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.03, voices: {36: "x-----------x---", 37: "----.-------.---", 38: "x-x-x-x-x-x-x-x-"}),
+  "ambient-half-perc": LibraryMidiPatterns._drumBeat(bars: 2, swingDelay: 0.0, voices: {36: "x-------------------------------", 40: "------------------------x-------", 44: "----x-----------x-------x-------"}),
+  "ambient-no-kick": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.0, voices: {38: "x---x---x---x---", 39: "--------------x-", 44: "--------x-------"}),
+  "ambient-soft-pulse": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.0, voices: {36: "x---------------", 38: "----x-------x---", 40: "--------x-------"}),
+  "ambient-sparse-kick": LibraryMidiPatterns._drumBeat(bars: 2, swingDelay: 0.0, voices: {36: "x---------------x---------------", 38: "----------------x---------------", 44: "--------x---------------x-------"}),
+  "ambient-triphop-dust": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.08, voices: {36: "x-------x-------", 37: "----x-------x---", 38: "x--x--x--x--x--x"}),
+  "disco-four-ohh": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.0, voices: {36: "x---x---x---x---", 37: "----x-------x---", 38: "x-x-x-x-x-x-x-x-", 39: "--x---x---x---x-"}),
+  "disco-offbeat-hats": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.0, voices: {36: "x---x---x---x---", 37: "----x-------x---", 38: "--x---x---x---x-"}),
+  "dnb-2step-01": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.03, voices: {36: "x-----x---------", 37: "----x-------x---", 38: "x-x-x-x-x-x-x-x-"}),
+  "dnb-2step-swung-hats": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.03, voices: {36: "x-----x---------", 37: "----x-------x---", 38: "x-x-x-x-x.x.x-x-"}),
+  "dnb-halftime": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.0, voices: {36: "x---------------", 37: "--------x-------", 38: "x-x-x-x-x-x-x-x-", 44: "--x--x----x--x--"}),
+  "dnb-jungle-amen": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.0, voices: {36: "x-----x----x----", 37: "--x-x----x--xx--", 38: "x-x-x-x-x-x-x-x-", 47: "--------------x-"}),
+  "dnb-neuro-syncop": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.0, voices: {36: "x----x--x---x---", 37: "----x-------x---", 38: "xxxxxxxxxxxxxxxx"}),
+  "funk-linear": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.055, voices: {36: "x------x--x-----", 37: "----x--.----x---", 38: "-x-x-x-x-x-x-x-x"}),
+  "funk-ni-ghost": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.055, voices: {36: "x-x-----x-------", 37: "----X--.----X--.", 38: "x-x-x-x-x-x-x---", 39: "--------------x-"}),
+  "hiphop-boom-bap-01": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.055, voices: {36: "x-----x---x-----", 37: "----x-------x---", 38: "x-x-x-x-x-x-x-x-"}),
+  "hiphop-boom-bap-swung-kick": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.08, voices: {36: "x---.---x-------", 37: "----x-------x---", 38: "x-x-x-x-x-x-x-x-"}),
+  "hiphop-chopped": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.055, voices: {36: "x--x--x-----x---", 37: "----x--.----x---", 38: "x-x-x-x-x-x-x--x"}),
+  "hiphop-crunk": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.0, voices: {36: "x---x---x---x---", 37: "----x-------x---", 38: "--x---x---x---x-", 40: "----x-------x---"}),
+  "hiphop-lofi": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.08, voices: {36: "x-------x--x----", 37: "----x-------x---", 38: "x--x--x--x--x--x", 40: "------.-------.-"}),
+  "latin-clave-son": LibraryMidiPatterns._drumBeat(bars: 2, swingDelay: 0.0, voices: {36: "x---x---x---x---x---x---x---x---", 37: "----x-------x-------x-------x---", 44: "x--x--x---x-x---x--x--x---x-x---"}),
+  "latin-rumba-pocket": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.0, voices: {36: "x---x---x---x-x-", 37: "----x-------x---", 38: "---------x------", 39: "--x---x---x---x-"}),
+  "latin-samba-lite": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.0, voices: {36: "-x---x-----x--xx", 37: "---x-----x---x--", 38: "x-----xxx-----xx", 44: "x---xx----xxxxx-"}),
+  "techno-detroit-909": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.03, voices: {36: "x---x---x---x---", 38: "-x-Xx-x-Xx-x-Xx-", 39: "--x---x---x---x-", 40: "----x-------x---"}),
+  "techno-hard": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.0, voices: {36: "x---x---x---x---", 38: "xxxxxxxxxxxxxxxx", 40: "----x-------x---", 44: "--x--x--x--x--x-"}),
+  "techno-industrial-rim": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.0, voices: {36: "x---x---x---x---", 37: "----x-------x---", 38: "--x---x---x---x-", 40: "x-x-x-x-x-x-x-x-"}),
+  "techno-minimal": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.0, voices: {36: "x---x---x---x---", 38: "-x-x-x-x-x-x-x-x", 40: "--------x-------"}),
+  "techno-rumble-tom": LibraryMidiPatterns._drumBeat(bars: 1, swingDelay: 0.03, voices: {36: "x---x---x---x---", 39: "--x---x---x---x-", 40: "----x-------x---", 41: "------x-------x-"}),
+};

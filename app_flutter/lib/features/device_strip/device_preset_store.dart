@@ -1,6 +1,15 @@
 import 'subtractive_synth_presets.dart';
 
 part 'device_preset_store_device_preset.dart';
+part 'device_preset_store_drums_kick.dart';
+part 'device_preset_store_drums_snare.dart';
+part 'device_preset_store_drums_clap.dart';
+part 'device_preset_store_drums_hihat.dart';
+part 'device_preset_store_drums_rimshot.dart';
+part 'device_preset_store_drums_tom.dart';
+part 'device_preset_store_drums_ride.dart';
+part 'device_preset_store_drums_crash.dart';
+
 /// Generic factory preset payload. The parameter map shape (id -> float) is
 /// the same regardless of device type — the engine's `DeviceRegistry`
 /// already knows how to apply these params for any registered device.
@@ -169,6 +178,22 @@ abstract final class DevicePresetStore {
         return _oscillator[presetId];
       case 'granular_formant_synth':
         return _granular[presetId];
+      case 'kick_generator':
+        return _kick[presetId];
+      case 'snare_generator':
+        return _snare[presetId];
+      case 'clap_generator':
+        return _clap[presetId];
+      case 'hihat_generator':
+        return _hihat[presetId];
+      case 'rimshot_generator':
+        return _rimshot[presetId];
+      case 'tom_generator':
+        return _tom[presetId];
+      case 'ride_generator':
+        return _ride[presetId];
+      case 'crash_generator':
+        return _crash[presetId];
       default:
         return null;
     }

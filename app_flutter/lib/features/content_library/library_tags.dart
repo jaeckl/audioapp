@@ -19,6 +19,7 @@ const Map<String, LibraryTagGroup> kLibraryTagToGroup = {
   'init': LibraryTagGroup.role,
   'chords': LibraryTagGroup.role,
   'melody': LibraryTagGroup.role,
+  'drums': LibraryTagGroup.role,
   // Character — sonic feel / genre
   'warm': LibraryTagGroup.character,
   'bright': LibraryTagGroup.character,
@@ -31,6 +32,24 @@ const Map<String, LibraryTagGroup> kLibraryTagToGroup = {
   'progressive': LibraryTagGroup.character,
   'groovy': LibraryTagGroup.character,
   'wobble': LibraryTagGroup.character,
+  'electro': LibraryTagGroup.character,
+  'pop': LibraryTagGroup.character,
+  'house': LibraryTagGroup.character,
+  'rnb': LibraryTagGroup.character,
+  'reggae': LibraryTagGroup.character,
+  'rock': LibraryTagGroup.character,
+  'breakbeat': LibraryTagGroup.character,
+  'trap': LibraryTagGroup.character,
+  'techno': LibraryTagGroup.character,
+  'hiphop': LibraryTagGroup.character,
+  'disco': LibraryTagGroup.character,
+  'funk': LibraryTagGroup.character,
+  'latin': LibraryTagGroup.character,
+  'ambient': LibraryTagGroup.character,
+  // Drum device family slugs (also used as character filters)
+  '808': LibraryTagGroup.character,
+  '909': LibraryTagGroup.character,
+  'boombap': LibraryTagGroup.character,
   // Source
   'factory': LibraryTagGroup.source,
   'imported': LibraryTagGroup.source,
@@ -51,6 +70,7 @@ const Map<LibraryTagGroup, List<String>> kLibraryTagsByGroup = {
     'init',
     'chords',
     'melody',
+    'drums',
   ],
   LibraryTagGroup.character: [
     'warm',
@@ -64,6 +84,23 @@ const Map<LibraryTagGroup, List<String>> kLibraryTagsByGroup = {
     'progressive',
     'groovy',
     'wobble',
+    'electro',
+    'pop',
+    'house',
+    'rnb',
+    'reggae',
+    'rock',
+    'breakbeat',
+    'trap',
+    'techno',
+    'hiphop',
+    'disco',
+    'funk',
+    'latin',
+    'ambient',
+    '808',
+    '909',
+    'boombap',
   ],
   LibraryTagGroup.source: [
     'factory',
@@ -77,7 +114,13 @@ String libraryTagLabel(String tag) {
   if (tag == 'fx') return 'FX';
   if (tag == 'edm') return 'EDM';
   if (tag == 'dnb') return 'DnB';
+  if (tag == 'rnb') return 'R&B';
+  if (tag == 'hiphop') return 'Hip-hop';
+  if (tag == 'breakbeat') return 'Breakbeat';
   if (tag == 'progressive') return 'Progressive';
+  if (tag == 'boombap') return 'Boom Bap';
+  if (tag == '808') return '808';
+  if (tag == '909') return '909';
   return tag[0].toUpperCase() + tag.substring(1);
 }
 

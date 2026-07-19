@@ -1,0 +1,2548 @@
+pad_map:
+  kick: 36
+  snare: 37
+  chh: 38
+  ohh: 39
+  clap: 40
+  rim: 40
+  tom_lo: 41
+  tom_mid: 42
+  tom_hi: 43
+  perc:
+  - 44
+  - 45
+  ride: 46
+  crash: 47
+notation:
+  x: hit
+  '-': rest
+  X: accent
+  .: ghost
+  o: open-hat-on-chh-row-if-no-ohh-voice
+patterns:
+- id: electro-planet-rock-01
+  name: Planet Rock Core
+  genre: Electro
+  tags:
+  - electro-funk
+  - '808'
+  - '1982'
+  - freestyle-adjacent
+  bpm: 128
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-----x---------
+    snare: '----x-------x---'
+    clap: '----x-------x---'
+    chh: x-xxx-xxx-xx-xxx
+  notes: Afrika Bambaataa / Soulsonic Force skeleton — electro DNA.
+- id: electro-planet-rock-cowbell
+  name: Planet Rock Cowbell Layer
+  genre: Electro
+  tags:
+  - electro-funk
+  - '808'
+  - cowbell
+  bpm: 128
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-----x---------
+    snare: '----x-------x---'
+    chh: x-xxx-xxx-xxxxxx
+    perc: x-x-x-xx-x-xx-x-
+  notes: Cowbell syncopation = classic electro propulsion.
+- id: electro-808-crew-demo
+  name: 808 Crew Electro Funk
+  genre: Electro
+  tags:
+  - electro-funk
+  - '808'
+  - clave
+  bpm: 128
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-----x---------
+    snare: '----x-------x---'
+    chh: xxxxxxxxxxxx-xxx
+    ohh: '----------x-x---'
+    perc: --xx--x---------
+  notes: Dense 16ths + clave burst into backbeat.
+- id: electro-1982-part1
+  name: Electro 1982 Part 1
+  genre: Electro
+  tags:
+  - electro
+  - '808'
+  - clave
+  - early-80s
+  bpm: 120
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-----x---------
+    snare: '----x-------x---'
+    chh: xxxxxxxxxxxxxxxx
+    ohh: x---x-x-----x---
+    perc: xx-x--xx------xx
+  notes: Full 16th hats + clave — early electro template.
+- id: electro-robotnick-problemes
+  name: Problemes d'amour Kick Push
+  genre: Electro
+  tags:
+  - italo-electro
+  - freestyle-adjacent
+  - '808'
+  bpm: 118
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: xxxxx---x---x---
+    snare: '----x-------x---'
+    chh: --x---x---x---x-
+  notes: Alexander Robotnick — clustered kick intro feel.
+- id: electro-robotnick-four
+  name: Problemes Four-Floor Variant
+  genre: Electro
+  tags:
+  - italo-electro
+  - four-on-floor
+  bpm: 118
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    snare: '----x-------x---'
+    chh: --x---x---x---x-
+    rim: -x-x-x-x--x-x-x-
+  notes: Straighter kick + rim chatter for dancefloor.
+- id: electro-miami-bass-classic
+  name: Miami Bass Classic
+  genre: Electro
+  tags:
+  - miami-bass
+  - '808'
+  - booty-bass
+  bpm: 140
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x-----x---x---x-
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Sustained 808 kick feel; raise tempo for Miami heat.
+- id: electro-miami-bass-syncop
+  name: Miami Bass Syncop Kick
+  genre: Electro
+  tags:
+  - miami-bass
+  - '808'
+  bpm: 135
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x--x-x-x-x------
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-xxxx
+    rim: '------x------xxx'
+  notes: Busy early-bar kick + rim roll into bar end.
+- id: electro-miami-mami-clave
+  name: Miami Mami Clave
+  genre: Electro
+  tags:
+  - miami-bass
+  - clave
+  - '808'
+  bpm: 120
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x-----x---------
+    snare: '----x-------x---'
+    perc: x-xxx-xxx-xxx-xx
+  notes: Kick/snare skeleton + clave bed (hats optional).
+- id: electro-jj-fad-supersonic
+  name: Supersonic Bounce
+  genre: Electro
+  tags:
+  - miami-bass
+  - freestyle
+  - '808'
+  bpm: 130
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-----x---x---x-
+    snare: '----x-------x---'
+    chh: x-xxx-xxx-xxx-xx
+  notes: J.J. Fad–style bounce kick on 1/7/11/15.
+- id: electro-freestyle-dont-stop
+  name: Don't Stop the Rock
+  genre: Electro
+  tags:
+  - freestyle
+  - electro-funk
+  - cowbell
+  bpm: 120
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-----x---------
+    snare: '----x-------x---'
+    chh: x-xxx-xxx-xx-xxx
+    perc: x--xx--x-xx-x--x
+  notes: Freestyle cowbell chatter over electro kick.
+- id: electro-circuit-breaker
+  name: Circuit Breaker Beat
+  genre: Electro
+  tags:
+  - electro
+  - rim-heavy
+  - industrial-adjacent
+  bpm: 125
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: --x---xx--x----x
+    snare: '----x-------x---'
+    chh: xxxxxxxxxxxxxxxx
+    clap: '------------x---'
+    rim: x-x-xx-xx-xx-xxx
+    crash: x---------------
+    tom_lo: x---------------
+  notes: Rim-driven electro; crash/tom mark downbeat.
+- id: electro-shadow-groove
+  name: Shadow Groove ElectroWerk
+  genre: Electro
+  tags:
+  - electro
+  - syncopated
+  - rim
+  bpm: 122
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: xxx---xx--xx--x-
+    snare: '----x-------x---'
+    chh: x-x-x-xxxx-xxx-x
+    rim: x-xx--xx-x-xx-xx
+  notes: Off-grid kick clusters + rim counter-rhythm.
+- id: electro-fast-lane
+  name: Fast Lane Young Ladies
+  genre: Electro
+  tags:
+  - electro-funk
+  - cowbell
+  - sparse-snare
+  bpm: 124
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-----x---------
+    chh: x-xxx-xxx-xxxxxx
+    perc: x-----x---------
+    tom_lo: xx-------x------
+  notes: Snare optional; cowbell doubles kick hits.
+- id: electro-man-parrish-clap
+  name: Hip Hop Be Bop Clap Build
+  genre: Electro
+  tags:
+  - electro
+  - clap-focus
+  - minimal
+  bpm: 116
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    clap: x-------x-------
+  notes: Man Parrish clap stub — layer under full kit.
+- id: electro-xray-video-control
+  name: Video Control Clave
+  genre: Electro
+  tags:
+  - electro
+  - clave
+  - freestyle
+  bpm: 120
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-----x---x--x--
+    chh: x-xxxx-xx-xxxx--
+    perc: x-x-x--x-xxx-x--
+  notes: Kick/clave interlocking — no snare variant.
+- id: electro-south-i95
+  name: South I-95 Miami
+  genre: Electro
+  tags:
+  - miami-bass
+  - open-hat
+  bpm: 138
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x-----xx--x----x
+    snare: '----x-------x---'
+    chh: x-x-x-x-x---x-x-
+    ohh: '----------x-x---'
+  notes: Double kick into beat 2 + open-hat lift.
+- id: pop-money-beat-01
+  name: Money Beat Basic
+  genre: Pop
+  tags:
+  - mainstream
+  - ballad-uptempo
+  - classic
+  bpm: 100
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-------x-------
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Universal pop/rock backbeat — start here.
+- id: pop-money-beat-16hats
+  name: Money Beat 16th Hats
+  genre: Pop
+  tags:
+  - mainstream
+  - modern-pop
+  bpm: 110
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-------x-------
+    snare: '----x-------x---'
+    chh: X.X.X.X.X.X.X.X.
+  notes: Accent every other 16th for radio polish.
+- id: pop-four-floor-anthem
+  name: Pop Four-on-Floor
+  genre: Pop
+  tags:
+  - dance-pop
+  - disco-pop
+  - 2010s
+  bpm: 122
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    clap: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+    ohh: --x---x---x---x-
+  notes: Chorus lift — house DNA in pop clothing.
+- id: pop-half-time-chorus
+  name: Half-Time Chorus
+  genre: Pop
+  tags:
+  - half-time
+  - modern-pop
+  - trap-pop
+  bpm: 140
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---------------
+    snare: '--------x-------'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Feel 70 BPM at 140 — big chorus drop.
+- id: pop-syncop-kick
+  name: Syncop Kick Verse
+  genre: Pop
+  tags:
+  - verse
+  - indie-pop
+  bpm: 105
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x--x----x-x-----
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Skip beat-3 kick for forward lean.
+- id: pop-clap-layer
+  name: Snare+Clap Layer
+  genre: Pop
+  tags:
+  - mainstream
+  - radio
+  bpm: 112
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-------x---x---
+    snare: '----x-------x---'
+    clap: '----x-------x---'
+    chh: xxxxxxxxxxxxxxxx
+  notes: Layer clap on snare for chart punch.
+- id: pop-ohh-lift
+  name: Open Hat Lift
+  genre: Pop
+  tags:
+  - pre-chorus
+  - build
+  bpm: 118
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-------x-------
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x---
+    ohh: '--------------x-'
+  notes: OHH on last 8th = phrase lift.
+- id: pop-tom-fill-lite
+  name: Tom Fill Lite (bar2)
+  genre: Pop
+  tags:
+  - fill
+  - transition
+  bpm: 108
+  bars: 2
+  steps: 32
+  swing: none
+  voices:
+    kick: x-------x-------x---------------
+    snare: '----x-------x-------x-----------'
+    chh: x-x-x-x-x-x-x-x-x-x-x-x---------
+    tom_hi: '------------------------x-x-----'
+    tom_mid: '--------------------------x-x---'
+    tom_lo: '------------------------------xx'
+  notes: '2-bar: groove then descending tom exit.'
+- id: pop-dancehall-lite
+  name: Pop Dancehall Lite
+  genre: Pop
+  tags:
+  - caribbean-pop
+  - dembow-lite
+  bpm: 100
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x-----x-x---
+    snare: '----x--x----x---'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Soft dembow hint for tropical pop.
+- id: pop-ballad-sparse
+  name: Ballad Sparse
+  genre: Pop
+  tags:
+  - ballad
+  - sparse
+  - emotional
+  bpm: 72
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---------------
+    snare: '--------x-------'
+    ride: x---x---x---x---
+  notes: Quarter ride + half-time snare.
+- id: pop-uk-garage-shuffle
+  name: UKG-Pop Shuffle
+  genre: Pop
+  tags:
+  - uk-garage
+  - 2-step
+  - 2020s-pop
+  bpm: 130
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x-----x---x-----
+    snare: '----x-------x---'
+    chh: x--x--x--x--x--x
+    ohh: '------x-------x-'
+  notes: Skipped kick + swung hats = 2-step pop.
+- id: pop-reggaeton-crossover
+  name: Reggaeton Crossover
+  genre: Pop
+  tags:
+  - latin-pop
+  - dembow
+  bpm: 96
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x-----x-----
+    snare: '----x--x----x---'
+    chh: --x---x---x---x-
+  notes: Dembow skeleton for Latin-pop verses.
+- id: pop-sidechain-pump
+  name: Sidechain Pump Grid
+  genre: Pop
+  tags:
+  - EDM-pop
+  - four-on-floor
+  bpm: 128
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    clap: '----x-------x---'
+    chh: -x-x-x-x-x-x-x-x
+  notes: Offbeat CHH for ducking/pump feel.
+- id: pop-acoustic-campfire
+  name: Acoustic Campfire
+  genre: Pop
+  tags:
+  - acoustic
+  - singer-songwriter
+  bpm: 90
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x-------x-------
+    rim: '----x-------x---'
+    chh: x---x---x---x---
+  notes: Rim for soft snare; keep dynamics low.
+- id: pop-double-chorus-kick
+  name: Double Chorus Kick
+  genre: Pop
+  tags:
+  - anthem
+  - rock-pop
+  bpm: 120
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x--x----x--x----
+    snare: '----x-------x---'
+    chh: X-X-X-X-X-X-X-X-
+    crash: x---------------
+  notes: Extra kick 16ths + crash open.
+- id: pop-quiet-loud-verse
+  name: Quiet-Loud Verse
+  genre: Pop
+  tags:
+  - alt-pop
+  - dynamics
+  bpm: 102
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-----------x---
+    snare: '----x-------x---'
+    chh: x---x---x---x---
+  notes: Sparse kick — leave space for vocal.
+- id: house-four-on-floor-01
+  name: Classic Four-on-Floor
+  genre: House
+  tags:
+  - classic-house
+  - chicago
+  - '909'
+  bpm: 124
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    clap: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+    ohh: --x---x---x---x-
+  notes: NI/Pocket Ops house baseline.
+- id: house-ni-swung
+  name: Swung House Groove
+  genre: House
+  tags:
+  - classic-house
+  - swing
+  - funky
+  bpm: 123
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x---x---x---x---
+    clap: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+    ohh: --x---x---x---x-
+    snare: '---------------x'
+  notes: NI tip — swung 16th snare end-bar funk.
+- id: house-deep-sparse
+  name: Deep House Sparse
+  genre: House
+  tags:
+  - deep-house
+  - chill
+  bpm: 118
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x---x---x---x---
+    clap: '----x-------x---'
+    chh: x---x---x---x---
+    ohh: '------x-------x-'
+  notes: Quarter hats — room for chords/bass.
+- id: house-tech-house-perc
+  name: Tech House Perc
+  genre: House
+  tags:
+  - tech-house
+  - percussion
+  bpm: 126
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x---x---x---x---
+    clap: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+    perc: --x--x----x--x--
+    rim: '------x-------x-'
+  notes: Offbeat perc + rim for peak-time shuffle.
+- id: house-progressive-build
+  name: Progressive Wide Hats
+  genre: House
+  tags:
+  - progressive-house
+  - trance-adjacent
+  bpm: 128
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    clap: '----x-------x---'
+    chh: xxxxxxxxxxxxxxxx
+    crash: x---------------
+  notes: Full 16ths for energy; filter-automate.
+- id: house-french-filter
+  name: French/Filter Disco House
+  genre: House
+  tags:
+  - french-house
+  - filter
+  - disco
+  bpm: 122
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    snare: '----x-------x---'
+    clap: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+    ohh: --x---x---x---x-
+    tom_lo: '------------x---'
+  notes: Disco snare+clap stack; tom for filter bump.
+- id: house-brit-skip
+  name: Brit House Skip
+  genre: House
+  tags:
+  - uk-house
+  - skippy
+  bpm: 125
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x---x---x---x---
+    snare: '----x-------x---'
+    chh: xxxxxxxxxxxxxxxx
+    ohh: --x--x----x--x--
+  notes: Pocket Ops HOUSE 2 — busy hats + skip OHH.
+- id: house-909-basic1
+  name: 909 Basic1
+  genre: House
+  tags:
+  - '909'
+  - classic
+  - tom-accent
+  bpm: 120
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    chh: x---x---x---x---
+    ohh: --x---x---x---x-
+    clap: '----x---------x-'
+    rim: -x--------------
+    tom_hi: '---x------------'
+    tom_lo: '---x------------'
+  notes: drum-patterns.com 909basic1 — quirky tom/rim.
+- id: house-jacking-chicago
+  name: Jacking Chicago
+  genre: House
+  tags:
+  - chicago
+  - jack
+  - raw
+  bpm: 124
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    clap: '----x-------x---'
+    chh: --x---x---x---x-
+    rim: x---x---x---x---
+  notes: Hats only on offs; rim on quarters = jack.
+- id: house-garage-2step
+  name: UK Garage 2-Step
+  genre: House
+  tags:
+  - uk-garage
+  - 2-step
+  bpm: 130
+  bars: 1
+  steps: 16
+  swing: heavy
+  voices:
+    kick: x-------x--x----
+    snare: '----x-------x---'
+    chh: x--xx-x--xx-x--x
+    ohh: '------x-------x-'
+  notes: Missing kick on 3 = classic 2-step hole.
+- id: house-afro-house
+  name: Afro House Pulse
+  genre: House
+  tags:
+  - afro-house
+  - percussion
+  bpm: 120
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x---x---x---x---
+    clap: '----x-------x---'
+    chh: x-x--x-x-x-x--x-
+    perc: -x-x--x--x-x--x-
+    tom_lo: '------x-------x-'
+  notes: Polyrhythmic perc over four-floor.
+- id: house-minimal-click
+  name: Minimal Click House
+  genre: House
+  tags:
+  - minimal
+  - micro
+  bpm: 124
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    clap: '--------x-------'
+    chh: -x-x-x-x-x-x-x-x
+    rim: '----x-------x---'
+  notes: Single clap on 3; rim as soft 2/4.
+- id: house-vocal-chop-space
+  name: Vocal Chop Space
+  genre: House
+  tags:
+  - deep-house
+  - sparse-snare
+  bpm: 120
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x---x---x---x---
+    clap: '----x-----------'
+    chh: x-x-x-x-x-x-x-x-
+    ohh: '--------------x-'
+  notes: Drop beat-4 clap — leave vocal pocket.
+- id: house-offbeat-bass-kick
+  name: Offbeat Ghost Kick
+  genre: House
+  tags:
+  - tech-house
+  - groove
+  bpm: 126
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x---x--.x---x--.
+    clap: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+    ohh: --x---x---x---x-
+  notes: Ghost kick before 3 & 1 = shuffle push.
+- id: house-rim-latin
+  name: Latin House Rim
+  genre: House
+  tags:
+  - latin-house
+  - rim
+  bpm: 122
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    clap: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+    rim: --x--x----x--x--
+    perc: x--x--x--x--x--x
+  notes: Clave-ish perc + rim offs.
+- id: house-disco-strings-bed
+  name: Disco House Bed
+  genre: House
+  tags:
+  - disco-house
+  - classic
+  bpm: 120
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+    ohh: --x---x---x---x-
+    ride: x---x---x---x---
+  notes: Ride quarters under disco snare.
+- id: rnb-classic-backbeat
+  name: Classic R&B Backbeat
+  genre: R&B
+  tags:
+  - classic
+  - 90s
+  - quiet-storm
+  bpm: 88
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x-------x--x----
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Pocket Ops/boom-bap cousin — swung 8ths.
+- id: rnb-neo-soul-rim
+  name: Neo-Soul Rim Groove
+  genre: R&B
+  tags:
+  - neo-soul
+  - questlove
+  - rim
+  - drag
+  bpm: 82
+  bars: 1
+  steps: 16
+  swing: heavy
+  voices:
+    kick: x-----x---x-----
+    rim: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+    snare: '------.-------.-'
+  notes: Cross-stick 2/4; drag behind grid in DAW.
+- id: rnb-neo-soul-ghosts
+  name: Neo-Soul Ghost Snare
+  genre: R&B
+  tags:
+  - neo-soul
+  - ghost-notes
+  - funk
+  bpm: 90
+  bars: 1
+  steps: 16
+  swing: heavy
+  voices:
+    kick: x--x----x-------
+    snare: '----X--.----X--.'
+    chh: x-x-x-x-x-x-x-o-
+  notes: Ghosts between backbeats — Dilla/Quest feel.
+- id: rnb-contemporary-trap
+  name: Contemporary R&B Trap
+  genre: R&B
+  tags:
+  - contemporary
+  - trap-influenced
+  bpm: 140
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-----------x---
+    snare: '--------x-------'
+    clap: '--------x-------'
+    chh: x-x-x-xxx-x-x-x-
+  notes: Half-time snare; busy hats for 2010s R&B.
+- id: rnb-timbaland-skip
+  name: Timbaland Skip
+  genre: R&B
+  tags:
+  - 2000s
+  - syncopated
+  - quirky
+  bpm: 96
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x--x------x--x--
+    snare: '----x--x----x---'
+    chh: x--x--x--x--x--x
+    perc: '------x-------x-'
+  notes: Odd kick/snare placement — leave holes.
+- id: rnb-slow-jam
+  name: Slow Jam
+  genre: R&B
+  tags:
+  - ballad
+  - quiet-storm
+  bpm: 66
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x-----------x---
+    snare: '--------x-------'
+    chh: x---x---x---x---
+    ohh: '--------------x-'
+  notes: Sparse; OHH for phrase end.
+- id: rnb-new-jack-swing
+  name: New Jack Swing
+  genre: R&B
+  tags:
+  - new-jack-swing
+  - 80s
+  - swung
+  bpm: 108
+  bars: 1
+  steps: 16
+  swing: heavy
+  voices:
+    kick: x--x----x--x----
+    snare: '----x-------x---'
+    chh: x--xx-x--xx-x--x
+    clap: '----x-------x---'
+  notes: Triplet-leaning swing + clap layer.
+- id: rnb-motown-four
+  name: Motown Four Feel
+  genre: R&B
+  tags:
+  - classic
+  - motown
+  - straight
+  bpm: 112
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+    tom_lo: '------------x---'
+  notes: Driving quarters; tom for turnaround.
+- id: rnb-philly-soul
+  name: Philly Soul Soft
+  genre: R&B
+  tags:
+  - classic
+  - soft
+  - ride
+  bpm: 94
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x-------x-------
+    snare: '----x-------x---'
+    ride: x-x-x-x-x-x-x-x-
+  notes: Ride 8ths instead of hats.
+- id: rnb-alt-rnb-broken
+  name: Alt-R&B Broken
+  genre: R&B
+  tags:
+  - alt-rnb
+  - broken-beat
+  bpm: 100
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x----x---x--x---
+    snare: '---x-----x--x---'
+    chh: x-x--x-x--x-x-x-
+  notes: Displaced snare — The Weeknd-era tension.
+- id: rnb-finger-snap
+  name: Finger Snap Groove
+  genre: R&B
+  tags:
+  - minimal
+  - snaps
+  - contemporary
+  bpm: 78
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x---------------
+    clap: '----x-------x---'
+    chh: '----x-------x---'
+  notes: Kick+snap only — vocal-first beds.
+- id: rnb-bounce-2000s
+  name: 2000s Bounce
+  genre: R&B
+  tags:
+  - 2000s
+  - club-rnb
+  bpm: 102
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x--x--x---x-----
+    snare: '----x-------x---'
+    chh: xxxxxxxxxxxxxxxx
+    ohh: '------x-------x-'
+  notes: Triplet-ish kick bounce under 16ths.
+- id: rnb-gospel-chops
+  name: Gospel Chop Feel
+  genre: R&B
+  tags:
+  - gospel
+  - chops
+  - busy
+  bpm: 92
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x--x--x-x--x----
+    snare: '----X--.X--.X--.'
+    chh: x-x-x-x-x-x-x-x-
+    crash: x---------------
+  notes: Ghost snare chatter = church pocket.
+- id: rnb-6-8-feel
+  name: 6/8 Neo Feel (as 16ths)
+  genre: R&B
+  tags:
+  - neo-soul
+  - compound
+  - dangelo
+  bpm: 86
+  bars: 1
+  steps: 16
+  swing: heavy
+  voices:
+    kick: x-----x-----x---
+    rim: '----x-------x---'
+    chh: x--x--x--x--x--x
+  notes: Triplet hat grid; map as swung 16ths.
+- id: rnb-clap-delay
+  name: Delayed Clap
+  genre: R&B
+  tags:
+  - contemporary
+  - effects
+  bpm: 95
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x-------x--x----
+    snare: '----x-------x---'
+    clap: '-----x-------x--'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Clap 1 step after snare = slap delay sim.
+- id: rnb-verse-kick-hole
+  name: Verse Kick Hole
+  genre: R&B
+  tags:
+  - verse
+  - space
+  bpm: 88
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x-----------x---
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+    ohh: '----------x-----'
+  notes: No kick on 3 — bass owns the pocket.
+- id: reggae-one-drop-01
+  name: One Drop Classic
+  genre: Reggae
+  tags:
+  - one-drop
+  - roots
+  - carlton-barrett
+  bpm: 72
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: '--------x-------'
+    rim: '--------x-------'
+    chh: --x---x---x---x-
+  notes: Beat 1 empty; kick+rim on 3. Wikipedia one-drop.
+- id: reggae-one-drop-8hats
+  name: One Drop Full Hats
+  genre: Reggae
+  tags:
+  - one-drop
+  - roots
+  bpm: 74
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: '--------x-------'
+    rim: '--------x-------'
+    chh: x-x-x-x-x-x-x-x-
+  notes: 8th hats variant; accent offs for skank.
+- id: reggae-one-drop-shuffle
+  name: One Drop Shuffle Hats
+  genre: Reggae
+  tags:
+  - one-drop
+  - shuffle
+  - stir-it-up
+  bpm: 70
+  bars: 1
+  steps: 16
+  swing: heavy
+  voices:
+    kick: '--------x-------'
+    rim: '--------x-------'
+    chh: x--xx-x--xx-x--x
+  notes: Carlton Barrett shuffle hat feel.
+- id: reggae-steppers-01
+  name: Steppers Four Floor
+  genre: Reggae
+  tags:
+  - steppers
+  - roots
+  - exodus
+  bpm: 78
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x---x---x---x---
+    rim: '--------x-------'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Kick every quarter + rim on 3.
+- id: reggae-steppers-8th-kick
+  name: Steppers 8th Kick
+  genre: Reggae
+  tags:
+  - steppers
+  - driving
+  bpm: 80
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x-x-x-x-x-x-x-x-
+    rim: '--------x-------'
+    chh: --x---x---x---x-
+  notes: Wiki steppers = 8th kicks under one-drop hands.
+- id: reggae-rockers-01
+  name: Rockers Groove
+  genre: Reggae
+  tags:
+  - rockers
+  - roots
+  bpm: 76
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x---x---x---x---
+    rim: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Rockers ≈ one-drop hands + quarter kick; rim 2/4.
+- id: reggae-rockers-money
+  name: Rockers Money Beat
+  genre: Reggae
+  tags:
+  - rockers
+  - hybrid
+  bpm: 82
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x-------x-------
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+  notes: RhythmNotes rockers = kick 1/3 snare 2/4.
+- id: reggae-one-drop-rim-and
+  name: One Drop + And-of-4 Rim
+  genre: Reggae
+  tags:
+  - one-drop
+  - variation
+  bpm: 72
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: '--------x-------'
+    rim: '--------x-----x-'
+    chh: --x---x---x---x-
+  notes: Extra rim on and-of-4 — common variation.
+- id: reggae-dancehall-dembow
+  name: Dancehall Dembow
+  genre: Reggae
+  tags:
+  - dancehall
+  - dembow
+  bpm: 100
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x-----x-----
+    snare: '----x--x----x---'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Kick 1 + and-of-2; snare 2, and-of-2, 4.
+- id: reggae-dancehall-fast
+  name: Dancehall Fast Shell
+  genre: Reggae
+  tags:
+  - dancehall
+  - digital
+  bpm: 108
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    snare: '----x--x----x---'
+    chh: --x---x---x---x-
+  notes: Busier kick under dembow snare.
+- id: reggae-dub-sparse
+  name: Dub Sparse
+  genre: Reggae
+  tags:
+  - dub
+  - sparse
+  - effects
+  bpm: 70
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: '--------x-------'
+    rim: '--------x-------'
+    chh: '------x-------x-'
+    perc: x---------------
+  notes: Huge space for delay throws.
+- id: reggae-ska-half
+  name: Ska/Half-Time Drop
+  genre: Reggae
+  tags:
+  - ska
+  - rocksteady
+  - half-time
+  bpm: 140
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: '--------x-------'
+    snare: '--------x-------'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Wiki half-time one-drop / ska-adjacent.
+- id: reggae-sublime-hybrid
+  name: Rock-Reggae Hybrid
+  genre: Reggae
+  tags:
+  - rock-reggae
+  - sublime
+  - crossover
+  bpm: 92
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x-------x-------
+    snare: '----x-------x---'
+    chh: --x---x---x---x-
+  notes: Money beat + offbeat hats = Sublime feel.
+- id: reggae-copeland-upbeat
+  name: Upbeat Hat Emphasis
+  genre: Reggae
+  tags:
+  - new-wave-reggae
+  - police
+  - hats
+  bpm: 118
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: '--------x-------'
+    snare: '----x-------x---'
+    chh: -X-X-X-X-X-X-X-X
+  notes: Accent offs hard — Stewart Copeland energy.
+- id: reggae-steppers-tom
+  name: Steppers Tom Accents
+  genre: Reggae
+  tags:
+  - steppers
+  - fills-lite
+  bpm: 76
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x---x---x---x---
+    rim: '--------x-------'
+    chh: x-x-x-x-x-x-x-x-
+    tom_lo: '--------------x-'
+    tom_mid: '------------x---'
+  notes: Soft tom answers before bar 1.
+- id: reggae-nyahbinghi-perc
+  name: Nyahbinghi Perc Bed
+  genre: Reggae
+  tags:
+  - nyahbinghi
+  - percussion
+  - ritual
+  bpm: 68
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: '--------x-------'
+    rim: '--------x-------'
+    perc: x---x---x---x---
+    tom_lo: --x---x---x---x-
+  notes: Heartbeat perc under one-drop.
+- id: rock-basic-01
+  name: Basic Rock
+  genre: Rock
+  tags:
+  - basic-rock
+  - classic
+  bpm: 110
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-------x-------
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Money beat — universal rock starter.
+- id: rock-four-on-floor
+  name: Rock Four Floor
+  genre: Rock
+  tags:
+  - hard-rock
+  - glam
+  - driving
+  bpm: 120
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Glam/hard-rock drive.
+- id: rock-pocket-ops-1
+  name: Rock Pocket Ops 1
+  genre: Rock
+  tags:
+  - classic
+  - syncop-kick
+  bpm: 100
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x------xx--x----
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+    crash: x---------------
+  notes: BD 1/8/9/11 — Pocket Ops ROCK 1.
+- id: rock-hard-ni
+  name: Hard Rock NI
+  genre: Rock
+  tags:
+  - hard-rock
+  - 70s
+  bpm: 80
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-------x--.----
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+  notes: NI hard rock — quiet kick after beat 3.
+- id: rock-punk-01
+  name: Punk Straight
+  genre: Rock
+  tags:
+  - punk
+  - driving
+  bpm: 180
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    snare: '----x-------x---'
+    chh: xxxxxxxxxxxxxxxx
+  notes: Quarter kick + 16th hats — thrash energy.
+- id: rock-punk-dbeat
+  name: Punk D-Beat
+  genre: Rock
+  tags:
+  - punk
+  - hardcore
+  - d-beat
+  bpm: 175
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x--x----x--x----
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Kick on 1 & and-of-1 (etc).
+- id: rock-half-time
+  name: Half-Time Rock
+  genre: Rock
+  tags:
+  - half-time
+  - grunge
+  - metal
+  bpm: 140
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---------------
+    snare: '--------x-------'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Snare on 3 — sludge/chorus weight.
+- id: rock-train-beat
+  name: Train Beat
+  genre: Rock
+  tags:
+  - train-beat
+  - country-rock
+  - buzzcock
+  bpm: 150
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    snare: x-x-x-x-x-x-x-x-
+    chh: '----------------'
+  notes: Alternating snare 8ths — rockabilly/punk.
+- id: rock-tom-groove
+  name: Tom Groove
+  genre: Rock
+  tags:
+  - tom-groove
+  - tribal
+  - fills
+  bpm: 100
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-------x-------
+    snare: '----x-------x---'
+    tom_lo: x---x---x---x---
+    tom_mid: --x---x---x---x-
+    chh: '----------------'
+  notes: Phil Collins / stadium tom bed.
+- id: rock-ride-chorus
+  name: Ride Chorus
+  genre: Rock
+  tags:
+  - chorus
+  - classic-rock
+  bpm: 115
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-------x--x----
+    snare: '----x-------x---'
+    ride: x-x-x-x-x-x-x-x-
+    crash: x---------------
+  notes: Open to ride for chorus lift.
+- id: rock-blues-shuffle
+  name: Blues Rock Shuffle
+  genre: Rock
+  tags:
+  - blues-rock
+  - shuffle
+  - triplet
+  bpm: 100
+  bars: 1
+  steps: 16
+  swing: heavy
+  voices:
+    kick: x-------x-------
+    snare: '----x-------x---'
+    chh: x--x--x--x--x--x
+  notes: Triplet feel via heavy swing on 8ths.
+- id: rock-garage
+  name: Garage Rock
+  genre: Rock
+  tags:
+  - garage
+  - raw
+  bpm: 130
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    snare: '----x-------x---'
+    chh: X-X-X-X-X-X-X-X-
+    crash: x-------x-------
+  notes: Loud hats + crash every 2 — dirty.
+- id: rock-surf
+  name: Surf Beat
+  genre: Rock
+  tags:
+  - surf
+  - 60s
+  bpm: 145
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-------x-------
+    snare: '----x--x----x--x'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Snare on 2+and, 4+and.
+- id: rock-metal-double
+  name: Metal Double Kick Lite
+  genre: Rock
+  tags:
+  - metal
+  - double-kick
+  bpm: 160
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: xx--xx--xx--xx--
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+    crash: x---------------
+  notes: Lite double-kick pulses (not blast).
+- id: rock-fill-bar
+  name: Rock Fill Bar
+  genre: Rock
+  tags:
+  - fill
+  - transition
+  bpm: 110
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---------------
+    snare: '----x---xxxx----'
+    tom_hi: '--------xxxx----'
+    tom_mid: '------------xx--'
+    tom_lo: '--------------xx'
+    crash: x---------------
+  notes: Snare→toms dump into crash.
+- id: rock-cypress-kick
+  name: Syncop Kick 16 Hats
+  genre: Rock
+  tags:
+  - rap-rock
+  - dense-hats
+  bpm: 95
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x--x----x-x-----
+    snare: '----x-------x---'
+    chh: xxxxxxxxxxxxxxxx
+  notes: drum-patterns Cypress Hill–style kick.
+- id: breakbeat-amen-bars12
+  name: Amen Skeleton Bars 1–2
+  genre: Breakbeat
+  tags:
+  - amen
+  - jungle
+  - funk-break
+  - winstons
+  bpm: 136
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x---------xx----
+    snare: '----x--x-x--x--.'
+    ride: x-x-x-x-x-x-x-x-
+  notes: Amen bars 1–2 grid (Ethan Hein / DrumsTheWord).
+- id: breakbeat-amen-bar3
+  name: Amen Skeleton Bar 3
+  genre: Breakbeat
+  tags:
+  - amen
+  - displaced-snare
+  - jungle
+  bpm: 136
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x---------x-----
+    snare: '----x--x-x----x-'
+    ride: x-x-x-x-x-x-x-x-
+  notes: Displaced snare = Amen magic.
+- id: breakbeat-amen-bar4
+  name: Amen Skeleton Bar 4
+  genre: Breakbeat
+  tags:
+  - amen
+  - crash
+  - jungle
+  bpm: 136
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: --xx------------
+    snare: -x--x--x-x----x-
+    ride: x-x-x-x-x---x-x-
+    ohh: '----------x-----'
+    crash: '----------x-----'
+  notes: Empty 1 + crash on + of 3 — Amen bar 4.
+- id: breakbeat-think-feel
+  name: Think Break Feel
+  genre: Breakbeat
+  tags:
+  - think-break
+  - lyn-collins
+  - funk
+  bpm: 108
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x--x----x-------
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+    perc: '------x-------x-'
+  notes: Funky kick syncop; leave space for Yeah/Woo chops.
+- id: breakbeat-apache-perc
+  name: Apache Perc Bed
+  genre: Breakbeat
+  tags:
+  - apache
+  - bongo
+  - hip-hop-break
+  bpm: 110
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-------x--x----
+    snare: '----x-------x---'
+    perc: x-xx-xx-x-xx-xx-
+    tom_lo: --x---x---x---x-
+  notes: Bongo/conga energy over funk backbeat.
+- id: breakbeat-funky-drummer-lite
+  name: Funky Drummer Lite
+  genre: Breakbeat
+  tags:
+  - funky-drummer
+  - james-brown
+  - ghost
+  bpm: 102
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x-------x-------
+    snare: '----X.x.X.x.X.x.'
+    chh: x-x-x-x-x-x-x-o-
+  notes: Ghost snare stream — Clyde Stubblefield vibe.
+- id: breakbeat-big-beat
+  name: Big Beat Slam
+  genre: Breakbeat
+  tags:
+  - big-beat
+  - 90s
+  - chemical-brothers
+  bpm: 120
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x--x----x--x----
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+    crash: x-------x-------
+  notes: Loud, simple, distorted-friendly.
+- id: breakbeat-2step-break
+  name: 2-Step Break
+  genre: Breakbeat
+  tags:
+  - breaks
+  - nu-skool
+  bpm: 132
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x-----x---x-----
+    snare: '----x-------x---'
+    chh: x--x-xx--x-xx--x
+  notes: UK breaks / garage-break hybrid.
+- id: breakbeat-jungle-amen-chop
+  name: Jungle Amen Chop Grid
+  genre: Breakbeat
+  tags:
+  - jungle
+  - amen-chop
+  - dnb-adjacent
+  bpm: 170
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-----x----x----
+    snare: --x-x----x--x-x-
+    chh: x-x-x-x-x-x-x-x-
+  notes: Resequenced Amen hits at jungle tempo.
+- id: breakbeat-hiphop-break
+  name: Hip-Hop Break Loop
+  genre: Breakbeat
+  tags:
+  - hip-hop
+  - boom-bap-break
+  bpm: 92
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x-----x---x-----
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x--x
+  notes: Slowed break feel for MPC-style beats.
+- id: breakbeat-impeach-lite
+  name: Impeach-Style Syncop
+  genre: Breakbeat
+  tags:
+  - impeach-the-president
+  - classic-break
+  bpm: 96
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x--x----x-------
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Honey Drippers–adjacent kick syncop.
+- id: breakbeat-rolling
+  name: Rolling Breaks
+  genre: Breakbeat
+  tags:
+  - rolling-breaks
+  - 90s
+  bpm: 128
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x--x--x--x--x--x
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Continuous kick chatter under backbeat.
+- id: breakbeat-ghost-snare-bed
+  name: Ghost Snare Bed
+  genre: Breakbeat
+  tags:
+  - ghosts
+  - funk-break
+  bpm: 100
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x-------x--x----
+    snare: .--.X--..--.X--.
+    chh: x-x-x-x-x-x-x-x-
+  notes: Pocket Ops ghost-snare approach.
+- id: breakbeat-half-amen
+  name: Half-Time Amen Feel
+  genre: Breakbeat
+  tags:
+  - amen
+  - half-time
+  - hip-hop
+  bpm: 85
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x---------xx----
+    snare: '----x--x-x--x---'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Amen bars1–2 slowed for boom-bap.
+- id: breakbeat-fill-snare
+  name: Break Fill Snare
+  genre: Breakbeat
+  tags:
+  - fill
+  - edit
+  bpm: 130
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---------------
+    snare: --x-x-x-x-x-x-xx
+    crash: '--------------x-'
+  notes: Edit fill into next phrase.
+- id: breakbeat-electro-break
+  name: Electro-Break Hybrid
+  genre: Breakbeat
+  tags:
+  - electro
+  - breakbeat
+  - '808'
+  bpm: 125
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-----x--x--x---
+    snare: '----x-------x---'
+    chh: xxxxxxxxxxxxxxxx
+    perc: x--x--xx--x--x--
+  notes: 808 electro kick + break syncop.
+- id: trap-basic-half-time
+  name: Trap Basic Half-Time
+  genre: Trap
+  tags:
+  - atlanta
+  - '808'
+  - half-time
+  bpm: 140
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-----------x---
+    snare: '--------x-------'
+    clap: '--------x-------'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Snare/clap on 3; kick 1 + late.
+- id: trap-ni-2bar
+  name: NI Trap 2-Bar
+  genre: Trap
+  tags:
+  - atlanta
+  - rolls
+  - tutorial
+  bpm: 130
+  bars: 2
+  steps: 32
+  swing: none
+  voices:
+    kick: x-----------x-------x-----------
+    clap: '--------x---------------x-------'
+    snare: '----------------------------x-x-'
+    chh: x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-
+  notes: 'NI: clap on 3 each bar; kicks 1+4 then bar2 beat2; snare end bar2.'
+- id: trap-16th-hats
+  name: Full 16th Hats
+  genre: Trap
+  tags:
+  - hats
+  - velocity
+  bpm: 140
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-------x-------
+    snare: '--------x-------'
+    chh: X.X.X.X.X.X.X.X.
+  notes: Velocity alternate — never flat 127.
+- id: trap-roll-end
+  name: Hat Roll into Snare
+  genre: Trap
+  tags:
+  - hat-roll
+  - 32nd
+  bpm: 140
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---------------
+    snare: '--------x-------'
+    chh: x-x-x-x-xxx-x-x-
+  notes: Replace steps 7–8 w/ 3×32nd crescendo roll.
+- id: trap-triplet-hats
+  name: Triplet Hat Bounce
+  genre: Trap
+  tags:
+  - triplets
+  - atlanta
+  bpm: 145
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-----x---------
+    snare: '--------x-------'
+    chh: x--x--x--x--x--x
+    ohh: '------x-------x-'
+  notes: 8th-triplet feel on hats.
+- id: trap-sparse-drill
+  name: Drill Sparse
+  genre: Trap
+  tags:
+  - drill
+  - uk-drill
+  - sparse
+  bpm: 140
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-----x----x----
+    snare: '--------x-------'
+    chh: x---x---x---x---
+    perc: '------x-------x-'
+  notes: Sliding 808s implied; dry sparse hits.
+- id: trap-busy-kick
+  name: Busy 808 Kick Grid
+  genre: Trap
+  tags:
+  - '808'
+  - melodic-kick
+  bpm: 148
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x--x--x---x--x--
+    snare: '--------x-------'
+    chh: x-x-x-xxx-x-xxx-
+  notes: Kick pattern = bass rhythm outline.
+- id: trap-open-hat-offs
+  name: Open Hat Offs
+  genre: Trap
+  tags:
+  - hats
+  - groove
+  bpm: 138
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-----------x---
+    snare: '--------x-------'
+    chh: x-x-x-x-x-x-x-x-
+    ohh: --x---x---x---x-
+  notes: OHH offs over 8th CHH.
+- id: trap-snare-roll-end
+  name: Snare Roll Exit
+  genre: Trap
+  tags:
+  - fill
+  - snare-roll
+  bpm: 140
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---------------
+    snare: '--------x--xxxxx'
+    chh: x-x-x-x-x-------
+  notes: 16th snare roll out of half-time.
+- id: trap-pocket-ops-a
+  name: Pocket Ops Trap A
+  genre: Trap
+  tags:
+  - classic
+  - simple
+  bpm: 140
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-----x-----x---
+    snare: '--------x-------'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Pocket Ops TRAP-A skeleton.
+- id: trap-clap-only-3
+  name: Clap Only on 3
+  genre: Trap
+  tags:
+  - minimal
+  - modern
+  bpm: 150
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x--x--------x---
+    clap: '--------x-------'
+    chh: xxxxxxxxxxxxxxxx
+  notes: No snare — clap carries backbeat.
+- id: trap-syncop-snare
+  name: Syncop Snare Trap
+  genre: Trap
+  tags:
+  - experimental
+  - offset
+  bpm: 142
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-------x-------
+    snare: '------x-----x---'
+    chh: x-x-xxx-x-x-xxx-
+  notes: Snare off 3 — tension verse.
+- id: trap-march-hats
+  name: Marching Hat Accents
+  genre: Trap
+  tags:
+  - velocity
+  - march
+  bpm: 136
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-----------x---
+    snare: '--------x-------'
+    chh: X-x-X-x-X-x-X-x-
+  notes: Accent every other 8th.
+- id: trap-double-time-hats
+  name: Double-Time Hat Burst
+  genre: Trap
+  tags:
+  - energy
+  - chorus
+  bpm: 140
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-----x---x-----
+    snare: '--------x-------'
+    chh: xxxxxxxxxxxxxxxx
+    ohh: '--------------x-'
+  notes: Full 16ths = chorus energy.
+- id: trap-pluggnb
+  name: Pluggnb Soft
+  genre: Trap
+  tags:
+  - plugg
+  - melodic
+  - soft
+  bpm: 134
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x---------x-----
+    snare: '--------x-------'
+    chh: x--x--x--x--x--x
+    clap: '--------.-------'
+  notes: Softer velocities; airy plugg feel.
+- id: trap-phonk
+  name: Phonk Cowbell
+  genre: Trap
+  tags:
+  - phonk
+  - cowbell
+  - drift
+  bpm: 140
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x-----x-----
+    snare: '----x-------x---'
+    perc: x-x-x-x-x-x-x-x-
+    chh: --x---x---x---x-
+  notes: Cowbell 8ths over Memphis-ish backbeat.
+- id: techno-detroit-909
+  name: Detroit 909
+  genre: Techno
+  tags:
+  - detroit
+  - '909'
+  - classic
+  bpm: 128
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x---x---x---x---
+    clap: '----x-------x---'
+    ohh: --x---x---x---x-
+    chh: -x-Xx-x-Xx-x-Xx-
+  notes: 'Aulart Detroit: OHH offs + accented CHH.'
+- id: techno-minimal
+  name: Minimal Pulse
+  genre: Techno
+  tags:
+  - minimal
+  - berlin
+  bpm: 130
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    chh: -x-x-x-x-x-x-x-x
+    clap: '--------x-------'
+  notes: Clap only on 3 — Berlin pocket.
+- id: techno-hard
+  name: Hard Techno Drive
+  genre: Techno
+  tags:
+  - hard-techno
+  - peak
+  bpm: 145
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    clap: '----x-------x---'
+    chh: xxxxxxxxxxxxxxxx
+    perc: --x--x--x--x--x-
+  notes: Max density; tight swing 4–8%.
+- id: techno-rumble-tom
+  name: Rumble Tom
+  genre: Techno
+  tags:
+  - peak-time
+  - tom
+  bpm: 132
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x---x---x---x---
+    ohh: --x---x---x---x-
+    tom_lo: '------x-------x-'
+    clap: '----x-------x---'
+  notes: Low tom on 7/15 for loop variation.
+- id: techno-industrial-rim
+  name: Industrial Rim
+  genre: Techno
+  tags:
+  - industrial
+  - ebm-adjacent
+  bpm: 135
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    rim: x-x-x-x-x-x-x-x-
+    snare: '----x-------x---'
+    chh: --x---x---x---x-
+  notes: Rim 8ths as metallic machine bed.
+- id: hiphop-boom-bap-01
+  name: Boom Bap Classic
+  genre: Hip-hop
+  tags:
+  - boom-bap
+  - 90s
+  - mpc
+  bpm: 90
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x-----x---x-----
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+  notes: 'NI hip-hop: kick on 1 & 6th 8th.'
+- id: hiphop-boom-bap-swung-kick
+  name: Boom Bap Swung Kick
+  genre: Hip-hop
+  tags:
+  - boom-bap
+  - swing
+  bpm: 87
+  bars: 1
+  steps: 16
+  swing: heavy
+  voices:
+    kick: x---.---x-------
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Quiet swung 16th kick after 1.
+- id: hiphop-lofi
+  name: Lo-Fi Headnod
+  genre: Hip-hop
+  tags:
+  - lofi
+  - dusty
+  bpm: 78
+  bars: 1
+  steps: 16
+  swing: heavy
+  voices:
+    kick: x-------x--x----
+    snare: '----x-------x---'
+    chh: x--x--x--x--x--x
+    rim: '------.-------.-'
+  notes: Heavy swing; soft rim ghosts.
+- id: hiphop-chopped
+  name: Chopped Kick
+  genre: Hip-hop
+  tags:
+  - sample-chop
+  - modern
+  bpm: 94
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x--x--x-----x---
+    snare: '----x--.----x---'
+    chh: x-x-x-x-x-x-x--x
+  notes: Extra kicks mimic chop accents.
+- id: hiphop-crunk
+  name: Crunk Snap
+  genre: Hip-hop
+  tags:
+  - crunk
+  - south
+  - snaps
+  bpm: 76
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    snare: '----x-------x---'
+    clap: '----x-------x---'
+    chh: --x---x---x---x-
+  notes: Slow four + snaps/claps.
+- id: dnb-2step-01
+  name: DnB 2-Step
+  genre: DnB
+  tags:
+  - 2-step
+  - liquid
+  - neuro
+  bpm: 174
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x-----x---------
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+  notes: NI DnB 2-step core.
+- id: dnb-2step-swung-hats
+  name: DnB Swung Hats
+  genre: DnB
+  tags:
+  - liquid
+  - swing
+  bpm: 174
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x-----x---------
+    snare: '----x-------x---'
+    chh: x-x-x-x-x.x.x-x-
+  notes: Soft 16ths on 8 & 10 for swing.
+- id: dnb-jungle-amen
+  name: Jungle Amen Chop
+  genre: DnB
+  tags:
+  - jungle
+  - amen
+  bpm: 170
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x-----x----x----
+    snare: --x-x----x--xx--
+    chh: x-x-x-x-x-x-x-x-
+    crash: '--------------x-'
+  notes: Chopped Amen at jungle speed.
+- id: dnb-neuro-syncop
+  name: Neuro Syncop Kick
+  genre: DnB
+  tags:
+  - neurofunk
+  - syncop
+  bpm: 174
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x----x--x---x---
+    snare: '----x-------x---'
+    chh: xxxxxxxxxxxxxxxx
+  notes: Uneven kick for reese space.
+- id: dnb-halftime
+  name: DnB Halftime
+  genre: DnB
+  tags:
+  - halftime
+  - modern
+  bpm: 172
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---------------
+    snare: '--------x-------'
+    chh: x-x-x-x-x-x-x-x-
+    perc: --x--x----x--x--
+  notes: Half-time snare at DnB tempo.
+- id: disco-four-ohh
+  name: Disco Four + OHH
+  genre: Disco
+  tags:
+  - disco
+  - four-on-floor
+  bpm: 118
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    snare: '----x-------x---'
+    chh: x-x-x-x-x-x-x-x-
+    ohh: --x---x---x---x-
+  notes: Classic disco — house ancestor.
+- id: disco-offbeat-hats
+  name: Disco Offbeat Hats
+  genre: Disco
+  tags:
+  - disco
+  - hats
+  bpm: 120
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x---
+    snare: '----x-------x---'
+    chh: --x---x---x---x-
+  notes: Only offs — guitar skank space.
+- id: funk-ni-ghost
+  name: Funk NI Ghosts
+  genre: Funk
+  tags:
+  - funk
+  - ghosts
+  - swing
+  bpm: 100
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x-x-----x-------
+    snare: '----X--.----X--.'
+    chh: x-x-x-x-x-x-x-o-
+  notes: 'NI funk: ghosts + swung 16th hats.'
+- id: funk-linear
+  name: Linear Funk
+  genre: Funk
+  tags:
+  - linear
+  - pocket
+  bpm: 98
+  bars: 1
+  steps: 16
+  swing: medium
+  voices:
+    kick: x------x--x-----
+    snare: '----x--.----x---'
+    chh: -x-x-x-x-x-x-x-x
+  notes: Few threads overlap — linear groove.
+- id: latin-clave-son
+  name: Son Clave 3-2 (perc)
+  genre: Latin
+  tags:
+  - clave
+  - son
+  - afro-cuban
+  bpm: 100
+  bars: 2
+  steps: 32
+  swing: none
+  voices:
+    perc: x--x--x---x-x---x--x--x---x-x---
+    kick: x---x---x---x---x---x---x---x---
+    snare: '----x-------x-------x-------x---'
+  notes: Clave on perc 44; don't fight it.
+- id: latin-rumba-pocket
+  name: Rumba Pocket Ops
+  genre: Latin
+  tags:
+  - rumba
+  - afro-cuban
+  bpm: 100
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---x---x---x-x-
+    snare: '----x-------x---'
+    chh: '---------x------'
+    ohh: --x---x---x---x-
+  notes: Pocket Ops RUMBA skeleton.
+- id: latin-samba-lite
+  name: Samba Lite
+  genre: Latin
+  tags:
+  - samba
+  - brazil
+  bpm: 105
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: -x---x-----x--xx
+    snare: '---x-----x---x--'
+    chh: x-----xxx-----xx
+    perc: x---xx----xxxxx-
+  notes: Simplified samba from drum-patterns variants.
+- id: ambient-sparse-kick
+  name: Ambient Sparse Kick
+  genre: Ambient
+  tags:
+  - ambient
+  - minimal
+  - sparse
+  bpm: 80
+  bars: 2
+  steps: 32
+  swing: none
+  voices:
+    kick: x---------------x---------------
+    perc: '--------x---------------x-------'
+    chh: '----------------x---------------'
+  notes: One kick/bar — texture over groove.
+- id: ambient-soft-pulse
+  name: Soft Pulse
+  genre: Ambient
+  tags:
+  - downtempo
+  - soft
+  - minimal
+  bpm: 70
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    kick: x---------------
+    rim: '--------x-------'
+    chh: '----x-------x---'
+  notes: Bare pulse — pads/field carry rhythm.
+- id: ambient-brush-feel
+  name: Brush / Soft Hat Bed
+  genre: Ambient
+  tags:
+  - jazz-ambient
+  - brushes
+  bpm: 72
+  bars: 1
+  steps: 16
+  swing: light
+  voices:
+    kick: x-----------x---
+    snare: '----.-------.---'
+    chh: x-x-x-x-x-x-x-x-
+  notes: Ghost snare = brush taps; keep vel low.
+- id: ambient-triphop-dust
+  name: Trip-Hop Dust
+  genre: Ambient
+  tags:
+  - trip-hop
+  - downtempo
+  bpm: 80
+  bars: 1
+  steps: 16
+  swing: heavy
+  voices:
+    kick: x-------x-------
+    snare: '----x-------x---'
+    chh: x--x--x--x--x--x
+  notes: Slow swung boom-bap for Portishead beds.
+- id: ambient-no-kick
+  name: Hats Only Cloud
+  genre: Ambient
+  tags:
+  - minimal
+  - no-kick
+  bpm: 90
+  bars: 1
+  steps: 16
+  swing: none
+  voices:
+    chh: x---x---x---x---
+    ohh: '--------------x-'
+    perc: '--------x-------'
+  notes: No kick — drone/bass owns low end.
+- id: ambient-half-perc
+  name: Half Perc Cycle
+  genre: Ambient
+  tags:
+  - idm-adjacent
+  - sparse
+  bpm: 100
+  bars: 2
+  steps: 32
+  swing: none
+  voices:
+    kick: x-------------------------------
+    perc: '----x-----------x-------x-------'
+    rim: '------------------------x-------'
+  notes: 2-bar perc cycle; very low density.

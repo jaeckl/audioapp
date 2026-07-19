@@ -2,6 +2,10 @@
 
 Synthesized **one-shot percussion instruments** as first-class devices. Each generator is monophonic (retrigger on new note), MIDI-triggered, and optimized for mobile strip UX.
 
+**Drum-machine pad layout:** [drum_machine_pad_layout.md](../drum_machine_pad_layout.md) (Chromatic C1 + bottom-row Kick · Snare · CHH · OHH).
+
+**Per-device family presets:** [drum_device_family_presets.md](../drum_device_family_presets.md) — 15 style families (808, 909, trap, …) as `DevicePresetStore` + library manifest entries (not full drum_machine kits).
+
 ## Why generators vs sample clips
 
 | Approach | Best for |
