@@ -7,9 +7,11 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
   final Map<String, bool> _synthNoteFxExpanded = {};
   final Map<String, Set<int>> _splitBranchExpanded = {};
   final Map<String, Set<int>> _mbBandExpanded = {};
+  final Map<String, Set<int>> _slBandExpanded = {};
 
   bool _isSynth(String type) =>
-      DeviceCapabilities.virtualStripHosts.contains(type);
+      DeviceCapabilities.virtualStripHosts.contains(type) ||
+      type == 'spectral_loud_split';
 
   bool _isSplitBranchExpanded(String deviceId, int branchIndex) =>
       _splitBranchExpanded[deviceId]?.contains(branchIndex) ?? false;
@@ -29,6 +31,18 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
   void _toggleMbBand(String deviceId, int bandIndex) {
     setState(() {
       final bands = _mbBandExpanded.putIfAbsent(deviceId, () => {});
+      if (!bands.remove(bandIndex)) {
+        bands.add(bandIndex);
+      }
+    });
+  }
+
+  bool _isSlBandExpanded(String deviceId, int bandIndex) =>
+      _slBandExpanded[deviceId]?.contains(bandIndex) ?? false;
+
+  void _toggleSlBand(String deviceId, int bandIndex) {
+    setState(() {
+      final bands = _slBandExpanded.putIfAbsent(deviceId, () => {});
       if (!bands.remove(bandIndex)) {
         bands.add(bandIndex);
       }
@@ -275,6 +289,15 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                               ? (bandIndex) =>
                                   _toggleMbBand(devices[i].id, bandIndex)
                               : null,
+                      spectralLoudExpandedBands: devices[i]
+                              is SpectralLoudSplitDeviceSnapshot
+                          ? (_slBandExpanded[devices[i].id] ?? const {})
+                          : const {},
+                      onToggleSpectralLoudBand:
+                          devices[i] is SpectralLoudSplitDeviceSnapshot
+                              ? (bandIndex) =>
+                                  _toggleSlBand(devices[i].id, bandIndex)
+                              : null,
                       onDrumTriggerNote: (note) =>
                           widget.onPreviewSampler?.call(note),
                       onEmptyDrumPadTap: (note) {
@@ -308,10 +331,24 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                       _virtualMultibandBand(context,
                           devices[i] as MultibandSplitDeviceSnapshot, b),
                 ],
+                if (devices[i] is SpectralLoudSplitDeviceSnapshot) ...[
+                  for (var b = 0; b < 3; b++)
+                    if (_isSlBandExpanded(devices[i].id, b))
+                      _virtualSpectralLoudBand(context,
+                          devices[i] as SpectralLoudSplitDeviceSnapshot, b),
+                  if (_synthNoteFxExpanded[devices[i].id] ?? false)
+                    _virtualSpectralLoudPreFx(
+                        context, devices[i] as SpectralLoudSplitDeviceSnapshot),
+                  if (_synthAudioFxExpanded[devices[i].id] ?? false)
+                    _virtualSpectralLoudPostFx(
+                        context, devices[i] as SpectralLoudSplitDeviceSnapshot),
+                ],
                 if (_isSynth(devices[i].type) &&
+                    devices[i] is! SpectralLoudSplitDeviceSnapshot &&
                     (_synthAudioFxExpanded[devices[i].id] ?? false))
                   _virtualAudioFxChain(context, devices[i]),
                 if (_isSynth(devices[i].type) &&
+                    devices[i] is! SpectralLoudSplitDeviceSnapshot &&
                     (_synthNoteFxExpanded[devices[i].id] ?? false))
                   _virtualNoteFxChain(context, devices[i]),
                 _sampleDropTarget(

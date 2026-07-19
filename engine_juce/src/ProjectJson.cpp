@@ -716,6 +716,39 @@ juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& regi
         }
         return result;
     }
+    if (device_types::isSpectralLoudSplitType(slot.config.typeId)) {
+        const auto& sl = std::get<SpectralLoudSplitModel>(slot.config.instance);
+        const IDeviceType* type = registry.findForSlot(slot);
+        juce::var result = type != nullptr ? type->slotToVar(slot) : juce::var{};
+        if (auto* object = result.getDynamicObject()) {
+            auto writeDevices = [&](const std::vector<std::shared_ptr<DeviceSlot>>& list) {
+                juce::Array<juce::var> devices;
+                for (const auto& device : list) {
+                    if (device != nullptr && !device_types::isSplitType(device->config.typeId) &&
+                        !device_types::isMultibandSplitType(device->config.typeId) &&
+                        !device_types::isSpectralLoudSplitType(device->config.typeId) &&
+                        device->config.typeId != device_types::kChain) {
+                        devices.add(deviceSlotToVarImpl(*device, registry));
+                    }
+                }
+                return devices;
+            };
+            juce::Array<juce::var> bands;
+            for (int b = 0; b < kSpectralLoudBands; ++b) {
+                auto* bandObject = new juce::DynamicObject();
+                bandObject->setProperty("devices", writeDevices(sl.bands[b]));
+                bands.add(juce::var(bandObject));
+            }
+            object->setProperty("bands", bands);
+            auto* preObj = new juce::DynamicObject();
+            preObj->setProperty("devices", writeDevices(sl.preFxDevices));
+            object->setProperty("preFx", juce::var(preObj));
+            auto* postObj = new juce::DynamicObject();
+            postObj->setProperty("devices", writeDevices(sl.postFxDevices));
+            object->setProperty("postFx", juce::var(postObj));
+        }
+        return result;
+    }
     if (slot.config.typeId == device_types::kDrumMachine) {
         const auto& machine = std::get<DrumMachineModel>(slot.config.instance);
         juce::Array<juce::var> pads;
@@ -869,6 +902,40 @@ DeviceSlot deviceVarToSlotImpl(const juce::var& obj, const DeviceRegistry& regis
                     }
                 }
             }
+            return slot;
+        }
+        if (device_types::isSpectralLoudSplitType(typeId)) {
+            const IDeviceType* type = registry.find(typeId);
+            if (type == nullptr) return {};
+            DeviceSlot slot = type->varToSlot(obj);
+            if (slot.id.empty()) return {};
+            slot.config.bypassed = static_cast<bool>(object->getProperty("bypass"));
+            auto& sl = std::get<SpectralLoudSplitModel>(slot.config.instance);
+            auto readList = [&](const juce::var& container,
+                                std::vector<std::shared_ptr<DeviceSlot>>& dest) {
+                const auto* obj = container.getDynamicObject();
+                if (obj == nullptr) return;
+                if (const auto* devices = varArray(obj->getProperty("devices"))) {
+                    for (const auto& value : *devices) {
+                        if (dest.size() >= 8) break;
+                        DeviceSlot child = deviceVarToSlotImpl(value, registry);
+                        if (!child.id.empty() && !device_types::isSplitType(child.config.typeId) &&
+                            !device_types::isMultibandSplitType(child.config.typeId) &&
+                            !device_types::isSpectralLoudSplitType(child.config.typeId) &&
+                            child.config.typeId != device_types::kChain) {
+                            dest.push_back(std::make_shared<DeviceSlot>(std::move(child)));
+                        }
+                    }
+                }
+            };
+            if (const auto* bands = varArray(object->getProperty("bands"))) {
+                for (int bandIndex = 0;
+                     bandIndex < kSpectralLoudBands && bandIndex < bands->size(); ++bandIndex) {
+                    readList((*bands)[bandIndex], sl.bands[bandIndex]);
+                }
+            }
+            readList(object->getProperty("preFx"), sl.preFxDevices);
+            readList(object->getProperty("postFx"), sl.postFxDevices);
             return slot;
         }
         if (typeId == device_types::kDrumMachine) {

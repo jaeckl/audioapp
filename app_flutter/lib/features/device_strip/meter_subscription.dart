@@ -28,6 +28,7 @@ abstract final class MeterSubscription {
     'mb_split_2',
     'mb_split_3',
     'mb_split_4',
+    'spectral_loud_split',
   };
 
   static bool publishesLiveMeters(String deviceType) =>

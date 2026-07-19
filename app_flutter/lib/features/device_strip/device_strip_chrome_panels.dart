@@ -16,6 +16,7 @@ part 'device_strip_chrome_panels_private_chrome_output_shell.dart';
 part 'device_strip_chrome_panels_fx_output_panel.dart';
 part 'device_strip_chrome_panels_private_chrome_input_shell.dart';
 part 'device_strip_chrome_panels_synth_output_panel.dart';
+part 'device_strip_chrome_panels_pre_post_mix_output_panel.dart';
 part 'device_strip_chrome_panels_private_fx_toggle_button.dart';
 part 'device_strip_chrome_panels_private_fx_button_adornment_painter.dart';
 

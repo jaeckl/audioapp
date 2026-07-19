@@ -19,6 +19,7 @@ void appendBranch(const std::vector<std::shared_ptr<DeviceSlot>>& branch,
     for (const auto& child : branch) {
         if (!child || device_types::isSplitType(child->config.typeId) ||
             device_types::isMultibandSplitType(child->config.typeId) ||
+            device_types::isSpectralLoudSplitType(child->config.typeId) ||
             child->config.typeId == device_types::kChain ||
             out.deviceCount >= 8) {
             continue;

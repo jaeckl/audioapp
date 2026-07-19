@@ -19,6 +19,8 @@ extension DeviceStripSlotStateBuilddeviceOperation on _DeviceStripSlotState {
       case 'mb_split_3':
       case 'mb_split_4':
         return _buildMultibandSplitDevice(context, contentHeight);
+      case 'spectral_loud_split':
+        return _buildSpectralLoudSplitDevice(context, contentHeight);
       case 'granular_formant_synth':
         return _buildGranularFormantSynthDevice(context, contentHeight);
       case 'simple_sampler':

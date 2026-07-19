@@ -19,6 +19,7 @@ void main() {
     expect(MeterSubscription.publishesLiveMeters('lr_split'), isTrue);
     expect(MeterSubscription.publishesLiveMeters('ms_split'), isTrue);
     expect(MeterSubscription.publishesLiveMeters('mb_split_2'), isTrue);
+    expect(MeterSubscription.publishesLiveMeters('spectral_loud_split'), isTrue);
     expect(MeterSubscription.publishesLiveMeters('simple_oscillator'), isFalse);
   });
 

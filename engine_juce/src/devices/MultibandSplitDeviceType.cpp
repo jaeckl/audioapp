@@ -21,7 +21,7 @@ constexpr float kCrossoverGap = 1.25f;
 
 bool isForbiddenNestedType(std::string_view typeId) noexcept {
     return device_types::isSplitType(typeId) || device_types::isMultibandSplitType(typeId) ||
-           typeId == device_types::kChain;
+           device_types::isSpectralLoudSplitType(typeId) || typeId == device_types::kChain;
 }
 
 void appendBand(const std::vector<std::shared_ptr<DeviceSlot>>& band,

@@ -144,6 +144,16 @@ class ProjectSnapshot {
             if (child != null) return child;
           }
         }
+        if (device is SpectralLoudSplitDeviceSnapshot) {
+          for (final band in device.bands) {
+            final child = findInDevices(band);
+            if (child != null) return child;
+          }
+          final pre = findInDevices(device.preFxDevices);
+          if (pre != null) return pre;
+          final post = findInDevices(device.postFxDevices);
+          if (post != null) return post;
+        }
         if (device is DrumMachineDeviceSnapshot) {
           for (final pad in device.pads) {
             final child = findInDevices(pad.devices);
@@ -260,6 +270,17 @@ class ProjectSnapshot {
           bands: device.bands
               .map((band) => band.map(updateDevice).toList(growable: false))
               .toList(growable: false),
+        );
+      }
+      if (device is SpectralLoudSplitDeviceSnapshot) {
+        return device.copyWith(
+          bands: device.bands
+              .map((band) => band.map(updateDevice).toList(growable: false))
+              .toList(growable: false),
+          preFxDevices:
+              device.preFxDevices.map(updateDevice).toList(growable: false),
+          postFxDevices:
+              device.postFxDevices.map(updateDevice).toList(growable: false),
         );
       }
       if (device is DrumMachineDeviceSnapshot) {

@@ -41,6 +41,7 @@ struct DrumMachinePlayback;
 struct ChainPlayback;
 struct SplitPlayback;
 struct MultibandSplitPlayback;
+struct SpectralLoudSplitPlayback;
 
 static constexpr int kMaxInstrumentRegions = 32;
 
@@ -110,6 +111,7 @@ enum class DeviceNodeKind : uint8_t {
     RimshotGenerator,
     Split,
     MultibandSplit,
+    SpectralLoudSplit,
 };
 
 // --- Per-device DSP-only parameter structs ---
@@ -250,6 +252,7 @@ struct DrumMachineParams {
 struct ChainParams { std::shared_ptr<const ChainPlayback> playback; float mix=1.0f; float gain=1.0f; };
 struct SplitParams { std::shared_ptr<const SplitPlayback> playback; };
 struct MultibandSplitParams { std::shared_ptr<const MultibandSplitPlayback> playback; };
+struct SpectralLoudSplitParams { std::shared_ptr<const SpectralLoudSplitPlayback> playback; };
 struct GranularParams { const float* pcm=nullptr; int frameCount=0; double pcmRate=48000.0;
  float position=.25f,scan=.15f,size=.35f,density=.35f,spray=.1f,pitch=.5f,formant=.5f,character=.45f;
  float regionStart=0.f,regionEnd=1.f,attack=.02f,release=.25f,spread=.35f;
@@ -299,7 +302,8 @@ using DeviceVariantParams = std::variant<
     GranularParams,
     StutterParamsPlayback,
     SplitParams,
-    MultibandSplitParams
+    MultibandSplitParams,
+    SpectralLoudSplitParams
 >;
 
 /// Per-track device chain node (built on control thread, read on audio thread).
@@ -344,6 +348,16 @@ struct MultibandSplitPlayback {
     float crossoverHz[3]{};
     float bandGain[4]{1.0f, 1.0f, 1.0f, 1.0f};
     SplitBranchPlayback bands[4]{};
+};
+
+struct SpectralLoudSplitPlayback {
+    float highDb = -18.0f;
+    float lowDb = -40.0f;
+    float bandGain[3]{1.0f, 1.0f, 1.0f};
+    float bandSolo[3]{};
+    SplitBranchPlayback preFx{};
+    SplitBranchPlayback bands[3]{};
+    SplitBranchPlayback postFx{};
 };
 
 struct DrumPadPlayback {

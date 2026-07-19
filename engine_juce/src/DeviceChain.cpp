@@ -132,6 +132,8 @@ DeviceNodeKind deviceNodeKindFromTypeId(const std::string& typeId) noexcept {
     if (typeId == kMsSplit)          return DeviceNodeKind::Split;
     if (typeId == kMbSplit2 || typeId == kMbSplit3 || typeId == kMbSplit4)
         return DeviceNodeKind::MultibandSplit;
+    if (typeId == kSpectralLoudSplit)
+        return DeviceNodeKind::SpectralLoudSplit;
     return DeviceNodeKind::Unknown;
 }
 

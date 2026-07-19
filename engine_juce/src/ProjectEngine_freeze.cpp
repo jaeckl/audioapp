@@ -35,7 +35,7 @@ bool ProjectEngine::freezeTrackLocked(Track& track,
         return false;
     }
 
-    const int trackCount = trackPlaybackCount_.load(std::memory_order_acquire);
+    const int trackCount = trackPlayback_.count();
     if (trackIndex < 0 || trackIndex >= trackCount) {
         return false;
     }

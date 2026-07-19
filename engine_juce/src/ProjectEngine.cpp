@@ -128,6 +128,15 @@ void collectDeviceTreeIds(const DeviceSlot& slot, std::vector<std::string>& ids)
         for (int b = 0; b < mb.bandCount && b < kMaxMbBands; ++b)
             for (const auto& child : mb.bands[b])
                 if (child) collectDeviceTreeIds(*child, ids);
+    } else if (device_types::isSpectralLoudSplitType(slot.config.typeId)) {
+        const auto& sl = std::get<SpectralLoudSplitModel>(slot.config.instance);
+        for (const auto& child : sl.preFxDevices)
+            if (child) collectDeviceTreeIds(*child, ids);
+        for (const auto& child : sl.postFxDevices)
+            if (child) collectDeviceTreeIds(*child, ids);
+        for (int b = 0; b < kSpectralLoudBands; ++b)
+            for (const auto& child : sl.bands[b])
+                if (child) collectDeviceTreeIds(*child, ids);
     }
     for (const auto& child : slot.noteFxDevices)
         if (child) collectDeviceTreeIds(*child, ids);
@@ -427,6 +436,7 @@ std::string ProjectEngine::addDeviceToSplitBranch(const std::string& splitId,
     DeviceSlot* slot = findDeviceLocked(splitId);
     if (slot == nullptr || !device_types::isSplitType(slot->config.typeId) ||
         device_types::isSplitType(deviceType) || device_types::isMultibandSplitType(deviceType) ||
+        device_types::isSpectralLoudSplitType(deviceType) ||
         deviceType == device_types::kChain ||
         !deviceRegistry_.isKnownType(deviceType)) return {};
     auto& split = std::get<SplitModel>(slot->config.instance);
@@ -474,6 +484,7 @@ std::string ProjectEngine::addDeviceToMultibandBand(const std::string& mbId,
     DeviceSlot* slot = findDeviceLocked(mbId);
     if (slot == nullptr || !device_types::isMultibandSplitType(slot->config.typeId) ||
         device_types::isSplitType(deviceType) || device_types::isMultibandSplitType(deviceType) ||
+        device_types::isSpectralLoudSplitType(deviceType) ||
         deviceType == device_types::kChain || !deviceRegistry_.isKnownType(deviceType))
         return {};
     auto& mb = std::get<MultibandSplitModel>(slot->config.instance);
@@ -505,6 +516,142 @@ bool ProjectEngine::removeDeviceFromMultibandBand(const std::string& mbId,
     std::vector<std::string> removedIds;
     collectDeviceTreeIds(**it, removedIds);
     band.erase(it);
+    for (const auto& removedId : removedIds) {
+        automationClipStore_.unlinkForDevice(removedId);
+        modulationGraph_.removeModulationForDevice(removedId);
+        modulationGraph_.removeModulatorsOwnedByDevice(removedId);
+    }
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
+std::string ProjectEngine::addDeviceToSpectralLoudBand(const std::string& deviceId,
+                                                       int bandIndex,
+                                                       const std::string& deviceType,
+                                                       int insertIndex) {
+    const juce::ScopedWriteLock lock(mutex_);
+    DeviceSlot* slot = findDeviceLocked(deviceId);
+    if (slot == nullptr || !device_types::isSpectralLoudSplitType(slot->config.typeId) ||
+        device_types::isSplitType(deviceType) || device_types::isMultibandSplitType(deviceType) ||
+        device_types::isSpectralLoudSplitType(deviceType) ||
+        deviceType == device_types::kChain || !deviceRegistry_.isKnownType(deviceType))
+        return {};
+    auto& sl = std::get<SpectralLoudSplitModel>(slot->config.instance);
+    if (bandIndex < 0 || bandIndex >= kSpectralLoudBands) return {};
+    auto& band = sl.bands[bandIndex];
+    if (band.size() >= 8) return {};
+    const std::string id = trackRepo_.allocateDeviceId();
+    auto child = std::make_shared<DeviceSlot>(deviceRegistry_.createDefault(deviceType, id));
+    const size_t at = insertIndex < 0 ? band.size()
+        : std::min(static_cast<size_t>(insertIndex), band.size());
+    band.insert(band.begin() + static_cast<std::ptrdiff_t>(at), std::move(child));
+    rebuildTrackPlaybackLocked();
+    return id;
+}
+
+bool ProjectEngine::removeDeviceFromSpectralLoudBand(const std::string& deviceId,
+                                                     int bandIndex,
+                                                     const std::string& childId) {
+    const juce::ScopedWriteLock lock(mutex_);
+    DeviceSlot* slot = findDeviceLocked(deviceId);
+    if (slot == nullptr || !device_types::isSpectralLoudSplitType(slot->config.typeId))
+        return false;
+    auto& sl = std::get<SpectralLoudSplitModel>(slot->config.instance);
+    if (bandIndex < 0 || bandIndex >= kSpectralLoudBands) return false;
+    auto& band = sl.bands[bandIndex];
+    const auto it = std::find_if(band.begin(), band.end(), [&](const auto& child) {
+        return child != nullptr && child->id == childId;
+    });
+    if (it == band.end()) return false;
+    std::vector<std::string> removedIds;
+    collectDeviceTreeIds(**it, removedIds);
+    band.erase(it);
+    for (const auto& removedId : removedIds) {
+        automationClipStore_.unlinkForDevice(removedId);
+        modulationGraph_.removeModulationForDevice(removedId);
+        modulationGraph_.removeModulatorsOwnedByDevice(removedId);
+    }
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
+std::string ProjectEngine::addDeviceToSpectralLoudPreFx(const std::string& deviceId,
+                                                        const std::string& deviceType,
+                                                        int insertIndex) {
+    const juce::ScopedWriteLock lock(mutex_);
+    DeviceSlot* slot = findDeviceLocked(deviceId);
+    if (slot == nullptr || !device_types::isSpectralLoudSplitType(slot->config.typeId) ||
+        !device_types::isAudioFxType(deviceType))
+        return {};
+    auto& sl = std::get<SpectralLoudSplitModel>(slot->config.instance);
+    if (sl.preFxDevices.size() >= 8) return {};
+    const std::string id = trackRepo_.allocateDeviceId();
+    auto child = std::make_shared<DeviceSlot>(deviceRegistry_.createDefault(deviceType, id));
+    const size_t at = insertIndex < 0 ? sl.preFxDevices.size()
+        : std::min(static_cast<size_t>(insertIndex), sl.preFxDevices.size());
+    sl.preFxDevices.insert(sl.preFxDevices.begin() + static_cast<std::ptrdiff_t>(at),
+                           std::move(child));
+    rebuildTrackPlaybackLocked();
+    return id;
+}
+
+bool ProjectEngine::removeDeviceFromSpectralLoudPreFx(const std::string& deviceId,
+                                                      const std::string& childId) {
+    const juce::ScopedWriteLock lock(mutex_);
+    DeviceSlot* slot = findDeviceLocked(deviceId);
+    if (slot == nullptr || !device_types::isSpectralLoudSplitType(slot->config.typeId))
+        return false;
+    auto& devices = std::get<SpectralLoudSplitModel>(slot->config.instance).preFxDevices;
+    const auto it = std::find_if(devices.begin(), devices.end(), [&](const auto& child) {
+        return child != nullptr && child->id == childId;
+    });
+    if (it == devices.end()) return false;
+    std::vector<std::string> removedIds;
+    collectDeviceTreeIds(**it, removedIds);
+    devices.erase(it);
+    for (const auto& removedId : removedIds) {
+        automationClipStore_.unlinkForDevice(removedId);
+        modulationGraph_.removeModulationForDevice(removedId);
+        modulationGraph_.removeModulatorsOwnedByDevice(removedId);
+    }
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
+std::string ProjectEngine::addDeviceToSpectralLoudPostFx(const std::string& deviceId,
+                                                         const std::string& deviceType,
+                                                         int insertIndex) {
+    const juce::ScopedWriteLock lock(mutex_);
+    DeviceSlot* slot = findDeviceLocked(deviceId);
+    if (slot == nullptr || !device_types::isSpectralLoudSplitType(slot->config.typeId) ||
+        !device_types::isAudioFxType(deviceType))
+        return {};
+    auto& sl = std::get<SpectralLoudSplitModel>(slot->config.instance);
+    if (sl.postFxDevices.size() >= 8) return {};
+    const std::string id = trackRepo_.allocateDeviceId();
+    auto child = std::make_shared<DeviceSlot>(deviceRegistry_.createDefault(deviceType, id));
+    const size_t at = insertIndex < 0 ? sl.postFxDevices.size()
+        : std::min(static_cast<size_t>(insertIndex), sl.postFxDevices.size());
+    sl.postFxDevices.insert(sl.postFxDevices.begin() + static_cast<std::ptrdiff_t>(at),
+                            std::move(child));
+    rebuildTrackPlaybackLocked();
+    return id;
+}
+
+bool ProjectEngine::removeDeviceFromSpectralLoudPostFx(const std::string& deviceId,
+                                                       const std::string& childId) {
+    const juce::ScopedWriteLock lock(mutex_);
+    DeviceSlot* slot = findDeviceLocked(deviceId);
+    if (slot == nullptr || !device_types::isSpectralLoudSplitType(slot->config.typeId))
+        return false;
+    auto& devices = std::get<SpectralLoudSplitModel>(slot->config.instance).postFxDevices;
+    const auto it = std::find_if(devices.begin(), devices.end(), [&](const auto& child) {
+        return child != nullptr && child->id == childId;
+    });
+    if (it == devices.end()) return false;
+    std::vector<std::string> removedIds;
+    collectDeviceTreeIds(**it, removedIds);
+    devices.erase(it);
     for (const auto& removedId : removedIds) {
         automationClipStore_.unlinkForDevice(removedId);
         modulationGraph_.removeModulationForDevice(removedId);
@@ -617,6 +764,15 @@ std::string ProjectEngine::getDevicePresetJson(const std::string& deviceId) cons
             for (int b = 0; b < mb.bandCount && b < kMaxMbBands; ++b)
                 for (const auto& child : mb.bands[b])
                     if (child) if (const auto* found = find(*child)) return found;
+        } else if (device_types::isSpectralLoudSplitType(slot.config.typeId)) {
+            const auto& sl = std::get<SpectralLoudSplitModel>(slot.config.instance);
+            for (const auto& child : sl.preFxDevices)
+                if (child) if (const auto* found = find(*child)) return found;
+            for (const auto& child : sl.postFxDevices)
+                if (child) if (const auto* found = find(*child)) return found;
+            for (int b = 0; b < kSpectralLoudBands; ++b)
+                for (const auto& child : sl.bands[b])
+                    if (child) if (const auto* found = find(*child)) return found;
         }
         for (const auto& child : slot.audioFxDevices)
             if (child) if (const auto* found = find(*child)) return found;
@@ -717,6 +873,12 @@ bool ProjectEngine::applyDevicePresetJson(const std::string& deviceId,
             const auto& mb = std::get<MultibandSplitModel>(slot.config.instance);
             for (int b = 0; b < mb.bandCount && b < kMaxMbBands; ++b)
                 for (const auto& child : mb.bands[b]) if (child) collectChildren(*child);
+        } else if (device_types::isSpectralLoudSplitType(slot.config.typeId)) {
+            const auto& sl = std::get<SpectralLoudSplitModel>(slot.config.instance);
+            for (const auto& child : sl.preFxDevices) if (child) collectChildren(*child);
+            for (const auto& child : sl.postFxDevices) if (child) collectChildren(*child);
+            for (int b = 0; b < kSpectralLoudBands; ++b)
+                for (const auto& child : sl.bands[b]) if (child) collectChildren(*child);
         }
         for (const auto& child : slot.audioFxDevices) if (child) collectChildren(*child);
         for (const auto& child : slot.noteFxDevices) if (child) collectChildren(*child);
@@ -742,6 +904,12 @@ bool ProjectEngine::applyDevicePresetJson(const std::string& deviceId,
             auto& mb = std::get<MultibandSplitModel>(slot.config.instance);
             for (int b = 0; b < mb.bandCount && b < kMaxMbBands; ++b)
                 for (auto& child : mb.bands[b]) if (child) renewIds(*child, false);
+        } else if (device_types::isSpectralLoudSplitType(slot.config.typeId)) {
+            auto& sl = std::get<SpectralLoudSplitModel>(slot.config.instance);
+            for (auto& child : sl.preFxDevices) if (child) renewIds(*child, false);
+            for (auto& child : sl.postFxDevices) if (child) renewIds(*child, false);
+            for (int b = 0; b < kSpectralLoudBands; ++b)
+                for (auto& child : sl.bands[b]) if (child) renewIds(*child, false);
         }
         for (auto& child : slot.audioFxDevices) if (child) renewIds(*child, false);
         for (auto& child : slot.noteFxDevices) if (child) renewIds(*child, false);
@@ -908,6 +1076,11 @@ bool ProjectEngine::setDeviceParameter(const std::string& deviceId,
                 node.pan = panel.pan;
                 node.outputMix = panel.outputMix;
                 node.outputWidth = panel.outputWidth;
+            } else if constexpr (std::is_same_v<T, PrePostMixOutputPanel>) {
+                node.gain = 1.0f;
+                node.pan = 0.5f;
+                node.outputMix = panel.outputMix;
+                node.outputWidth = 1.0f;
             }
         }, device->config.outputPanel);
     };
@@ -3810,6 +3983,11 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                     node.pan = panel.pan;
                     node.outputMix = panel.outputMix;
                     node.outputWidth = panel.outputWidth;
+                } else if constexpr (std::is_same_v<T, PrePostMixOutputPanel>) {
+                    node.gain = 1.0f;
+                    node.pan = 0.5f;
+                    node.outputMix = panel.outputMix;
+                    node.outputWidth = 1.0f;
                 } else {
                     node.gain = 1.0f;
                     node.pan = 0.5f;
@@ -3877,9 +4055,29 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                     }
                 }
             }
+            if (node.kind == DeviceNodeKind::SpectralLoudSplit) {
+                auto playback = std::get<SpectralLoudSplitParams>(node.params).playback;
+                if (playback != nullptr) {
+                    auto mutablePlayback =
+                        std::const_pointer_cast<SpectralLoudSplitPlayback>(playback);
+                    auto tagBranch = [&](SplitBranchPlayback& branch, uint16_t tag) {
+                        for (int child = 0; child < branch.deviceCount; ++child) {
+                            branch.devices[child].automationTargetIndex = static_cast<uint16_t>(
+                                0x0400u | (static_cast<uint16_t>(snap.deviceCount) << 6u) | tag |
+                                static_cast<uint16_t>(child));
+                        }
+                    };
+                    tagBranch(mutablePlayback->preFx, 0x0030u);
+                    tagBranch(mutablePlayback->postFx, 0x0040u);
+                    for (int band = 0; band < kSpectralLoudBands; ++band)
+                        tagBranch(mutablePlayback->bands[band],
+                                  static_cast<uint16_t>(band) << 4u);
+                }
+            }
             if ((isDynamicsDeviceNodeKind(node.kind) || isAnalysisDeviceNodeKind(node.kind) ||
                  node.kind == DeviceNodeKind::Split ||
-                 node.kind == DeviceNodeKind::MultibandSplit) &&
+                 node.kind == DeviceNodeKind::MultibandSplit ||
+                 node.kind == DeviceNodeKind::SpectralLoudSplit) &&
                 deviceMeterSlotCount_ < kMaxDeviceMeters) {
                 node.meterSlot = static_cast<int8_t>(deviceMeterSlotCount_);
                 deviceMeterIds_[deviceMeterSlotCount_] = dev.id;
@@ -4560,6 +4758,16 @@ DeviceSlot* ProjectEngine::findDeviceLocked(const std::string& deviceId) {
                         if (child != nullptr && child->id == deviceId) return child.get();
                     }
                 }
+            }
+            if (device_types::isSpectralLoudSplitType(device.config.typeId)) {
+                auto& sl = std::get<SpectralLoudSplitModel>(device.config.instance);
+                for (auto& child : sl.preFxDevices)
+                    if (child != nullptr && child->id == deviceId) return child.get();
+                for (auto& child : sl.postFxDevices)
+                    if (child != nullptr && child->id == deviceId) return child.get();
+                for (int b = 0; b < kSpectralLoudBands; ++b)
+                    for (auto& child : sl.bands[b])
+                        if (child != nullptr && child->id == deviceId) return child.get();
             }
             for (auto& child : device.audioFxDevices) {
                 if (child != nullptr && child->id == deviceId) return child.get();

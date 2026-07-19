@@ -167,6 +167,48 @@ bool EngineHost::removeDeviceFromMultibandBand(const std::string& mbId, int band
         project_->removeDeviceFromMultibandBand(mbId, bandIndex, deviceId);
 }
 
+std::string EngineHost::addDeviceToSpectralLoudBand(const std::string& deviceId, int bandIndex,
+                                                    const std::string& deviceType,
+                                                    int insertIndex) {
+    return project_ != nullptr
+        ? project_->addDeviceToSpectralLoudBand(deviceId, bandIndex, deviceType, insertIndex)
+        : std::string{};
+}
+
+bool EngineHost::removeDeviceFromSpectralLoudBand(const std::string& deviceId, int bandIndex,
+                                                  const std::string& childId) {
+    return project_ != nullptr &&
+        project_->removeDeviceFromSpectralLoudBand(deviceId, bandIndex, childId);
+}
+
+std::string EngineHost::addDeviceToSpectralLoudPreFx(const std::string& deviceId,
+                                                     const std::string& deviceType,
+                                                     int insertIndex) {
+    return project_ != nullptr
+        ? project_->addDeviceToSpectralLoudPreFx(deviceId, deviceType, insertIndex)
+        : std::string{};
+}
+
+bool EngineHost::removeDeviceFromSpectralLoudPreFx(const std::string& deviceId,
+                                                   const std::string& childId) {
+    return project_ != nullptr &&
+        project_->removeDeviceFromSpectralLoudPreFx(deviceId, childId);
+}
+
+std::string EngineHost::addDeviceToSpectralLoudPostFx(const std::string& deviceId,
+                                                      const std::string& deviceType,
+                                                      int insertIndex) {
+    return project_ != nullptr
+        ? project_->addDeviceToSpectralLoudPostFx(deviceId, deviceType, insertIndex)
+        : std::string{};
+}
+
+bool EngineHost::removeDeviceFromSpectralLoudPostFx(const std::string& deviceId,
+                                                    const std::string& childId) {
+    return project_ != nullptr &&
+        project_->removeDeviceFromSpectralLoudPostFx(deviceId, childId);
+}
+
 std::string EngineHost::addDeviceToSynthAudioFx(const std::string& deviceId,
                                                   const std::string& deviceType, int insertIndex) {
     return project_ != nullptr ? project_->addDeviceToSynthAudioFx(deviceId, deviceType, insertIndex) : std::string{};
@@ -1612,6 +1654,62 @@ void EngineHost::registerAllCommands() {
         const int bandIndex = static_cast<int>(static_cast<double>(ctx.args["bandIndex"]));
         if (!ctx.engine.removeDeviceFromMultibandBand(mbId, bandIndex, deviceId))
             return commands::errorResult("multiband_device_not_found");
+        return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
+    });
+
+    reg.registerCommand("addDeviceToSpectralLoudBand", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        const auto deviceType = ctx.args["deviceType"].toString().toStdString();
+        const int bandIndex = static_cast<int>(static_cast<double>(ctx.args["bandIndex"]));
+        const int insertIndex = ctx.args.hasProperty("insertIndex")
+            ? static_cast<int>(static_cast<double>(ctx.args["insertIndex"])) : -1;
+        if (ctx.engine.addDeviceToSpectralLoudBand(deviceId, bandIndex, deviceType, insertIndex).empty())
+            return commands::errorResult("invalid_spectral_loud_device");
+        return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
+    });
+
+    reg.registerCommand("removeDeviceFromSpectralLoudBand", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        const auto childId = ctx.args["childId"].toString().toStdString();
+        const int bandIndex = static_cast<int>(static_cast<double>(ctx.args["bandIndex"]));
+        if (!ctx.engine.removeDeviceFromSpectralLoudBand(deviceId, bandIndex, childId))
+            return commands::errorResult("spectral_loud_band_device_not_found");
+        return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
+    });
+
+    reg.registerCommand("addDeviceToSpectralLoudPreFx", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        const auto deviceType = ctx.args["deviceType"].toString().toStdString();
+        const int insertIndex = ctx.args.hasProperty("insertIndex")
+            ? static_cast<int>(static_cast<double>(ctx.args["insertIndex"])) : -1;
+        if (ctx.engine.addDeviceToSpectralLoudPreFx(deviceId, deviceType, insertIndex).empty())
+            return commands::errorResult("invalid_spectral_loud_pre_fx");
+        return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
+    });
+
+    reg.registerCommand("removeDeviceFromSpectralLoudPreFx", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        const auto childId = ctx.args["childId"].toString().toStdString();
+        if (!ctx.engine.removeDeviceFromSpectralLoudPreFx(deviceId, childId))
+            return commands::errorResult("spectral_loud_pre_fx_not_found");
+        return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
+    });
+
+    reg.registerCommand("addDeviceToSpectralLoudPostFx", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        const auto deviceType = ctx.args["deviceType"].toString().toStdString();
+        const int insertIndex = ctx.args.hasProperty("insertIndex")
+            ? static_cast<int>(static_cast<double>(ctx.args["insertIndex"])) : -1;
+        if (ctx.engine.addDeviceToSpectralLoudPostFx(deviceId, deviceType, insertIndex).empty())
+            return commands::errorResult("invalid_spectral_loud_post_fx");
+        return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
+    });
+
+    reg.registerCommand("removeDeviceFromSpectralLoudPostFx", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        const auto childId = ctx.args["childId"].toString().toStdString();
+        if (!ctx.engine.removeDeviceFromSpectralLoudPostFx(deviceId, childId))
+            return commands::errorResult("spectral_loud_post_fx_not_found");
         return commands::okWithFullRefresh(juce::JSON::parse(ctx.engine.getProjectSnapshotJson()));
     });
 

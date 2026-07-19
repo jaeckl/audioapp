@@ -20,6 +20,13 @@ TrackSnapshot? _trackOwningDevice(String deviceId) {
             if (containsDevice(band)) return true;
           }
         }
+        if (device is SpectralLoudSplitDeviceSnapshot) {
+          for (final band in device.bands) {
+            if (containsDevice(band)) return true;
+          }
+          if (containsDevice(device.preFxDevices)) return true;
+          if (containsDevice(device.postFxDevices)) return true;
+        }
         if (device is DrumMachineDeviceSnapshot) {
           for (final pad in device.pads) {
             if (containsDevice(pad.devices)) return true;

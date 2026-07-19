@@ -89,7 +89,7 @@ bool ProjectEngine::noteOn(int pitch, float velocity) {
     }
 
     rebuildTrackPlaybackLocked();
-    for (int ti = 0; ti < trackPlaybackCount_.load(std::memory_order_acquire); ++ti) {
+    for (int ti = 0; ti < trackPlayback_.count(); ++ti) {
         const auto& playback = trackPlayback_[ti];
         if (playback.trackId != track->id) continue;
         instrument.modEdgeCount = std::min(playback.modEdgeCount, 16);

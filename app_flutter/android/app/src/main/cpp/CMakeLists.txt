@@ -4,6 +4,8 @@ project(audioapp_native LANGUAGES CXX C)
 set(AUDIOAPP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../")
 
 set(AUDIOAPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+# Phone ARM: in-tree NEON real FFT (compile-time swap vs juce::dsp::FFT).
+set(AUDIOAPP_USE_NEON_FFT ON CACHE BOOL "" FORCE)
 add_subdirectory("${AUDIOAPP_ROOT}/engine_juce" "${CMAKE_BINARY_DIR}/audioapp_engine")
 
 add_library(audioapp_native SHARED

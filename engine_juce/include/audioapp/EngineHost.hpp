@@ -81,6 +81,21 @@ public:
                                         const std::string& deviceType, int insertIndex = -1);
     bool removeDeviceFromMultibandBand(const std::string& mbId, int bandIndex,
                                        const std::string& deviceId);
+    std::string addDeviceToSpectralLoudBand(const std::string& deviceId, int bandIndex,
+                                            const std::string& deviceType,
+                                            int insertIndex = -1);
+    bool removeDeviceFromSpectralLoudBand(const std::string& deviceId, int bandIndex,
+                                          const std::string& childId);
+    std::string addDeviceToSpectralLoudPreFx(const std::string& deviceId,
+                                             const std::string& deviceType,
+                                             int insertIndex = -1);
+    bool removeDeviceFromSpectralLoudPreFx(const std::string& deviceId,
+                                           const std::string& childId);
+    std::string addDeviceToSpectralLoudPostFx(const std::string& deviceId,
+                                              const std::string& deviceType,
+                                              int insertIndex = -1);
+    bool removeDeviceFromSpectralLoudPostFx(const std::string& deviceId,
+                                            const std::string& childId);
     std::string addDeviceToSynthAudioFx(const std::string& deviceId,
                                          const std::string& deviceType,
                                          int insertIndex = -1);

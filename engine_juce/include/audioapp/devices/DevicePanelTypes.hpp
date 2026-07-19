@@ -118,11 +118,22 @@ struct RoutingOutputPanel {
     void enumerate(Callback&& /*cb*/) const {}
 };
 
+/// Mix-only output with PRE FX / POST FX virtual strips (chrome toggles).
+/// Dry = device input (before PRE); wet = after POST. Mix blends them.
+struct PrePostMixOutputPanel {
+    float outputMix = 1.0f; // dry/wet, [0, 1]
+
+    template <typename Callback>
+    void enumerate(Callback&& cb) const {
+        cb("outputMix", outputMix);
+    }
+};
+
 // ── Variant aliases ───────────────────────────────────────────────────
 
 using InputPanelParams  = std::variant<EmptyPanel, DynamicsInputPanel>;
 using OutputPanelParams = std::variant<EmptyPanel, MonoOutputPanel, StereoOutputPanel,
-                                       RoutingOutputPanel>;
+                                       RoutingOutputPanel, PrePostMixOutputPanel>;
 
 // ── Serialization helpers ─────────────────────────────────────────────
 
@@ -174,6 +185,9 @@ inline juce::var outputPanelToVar(const OutputPanelParams& panel) {
             obj->setProperty("outputWidth", static_cast<double>(p.outputWidth));
         } else if constexpr (std::is_same_v<T, RoutingOutputPanel>) {
             obj->setProperty("type", "routing");
+        } else if constexpr (std::is_same_v<T, PrePostMixOutputPanel>) {
+            obj->setProperty("type", "pre_post_mix");
+            obj->setProperty("outputMix", static_cast<double>(p.outputMix));
         } else {
             obj->setProperty("type", "empty");
         }
@@ -201,6 +215,8 @@ inline OutputPanelParams outputPanelFromVar(const juce::var& obj, float legacyGa
             return sp;
         } else if (typeStr == "routing") {
             return RoutingOutputPanel{};
+        } else if (typeStr == "pre_post_mix") {
+            return PrePostMixOutputPanel{ readFloat("outputMix", 1.0f) };
         }
     }
     // Legacy fallback

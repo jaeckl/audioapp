@@ -145,6 +145,27 @@ abstract final class DeviceStripChrome {
         onAutomateParameter: bindings.onAutomateParameter,
       );
     }
+    if (deviceType == 'spectral_loud_split') {
+      return PrePostMixOutputPanel(
+        device: bindings.device,
+        accentColor: bindings.accentColor,
+        onParameterChanged: bindings.onParameterChanged,
+        modulatedParams: bindings.modulatedParams,
+        automatedParams: bindings.automatedParams,
+        modulationAmounts: bindings.modulationAmounts,
+        lfos: bindings.lfos,
+        modEdges: bindings.modEdges,
+        connectModeLfoId: bindings.connectModeLfoId,
+        onModulationAssign: bindings.onModulationAssign,
+        automationLinkActive: bindings.automationLinkActive,
+        onAutomationLinkTap: bindings.onAutomationLinkTap,
+        onAutomateParameter: bindings.onAutomateParameter,
+        preFxExpanded: bindings.noteFxExpanded,
+        postFxExpanded: bindings.audioFxExpanded,
+        onTogglePreFx: bindings.onToggleNoteFx,
+        onTogglePostFx: bindings.onToggleAudioFx,
+      );
+    }
     if (DeviceCapabilities.virtualStripHosts.contains(deviceType)) {
       return SynthOutputPanel(
         device: bindings.device,

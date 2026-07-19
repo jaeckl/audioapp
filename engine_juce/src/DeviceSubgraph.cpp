@@ -89,6 +89,12 @@ DeviceSubgraphTree buildDeviceSubgraphTree(const DeviceSlot& slot) {
         for (int b = 0; b < mb->bandCount && b < 4; ++b)
             appendSlots(mb->bands[b], tree.multibandBands[static_cast<size_t>(b)]);
     }
+    if (const auto* sl = std::get_if<SpectralLoudSplitModel>(&slot.config.instance)) {
+        appendSlots(sl->preFxDevices, tree.spectralPreFx);
+        appendSlots(sl->postFxDevices, tree.spectralPostFx);
+        for (int b = 0; b < kSpectralLoudBands; ++b)
+            appendSlots(sl->bands[b], tree.spectralBands[static_cast<size_t>(b)]);
+    }
     if (const auto* drum = std::get_if<DrumMachineModel>(&slot.config.instance)) {
         for (const auto& pad : drum->pads) {
             if (pad.devices.empty()) continue;
@@ -150,6 +156,18 @@ DeviceSubgraphTree buildDeviceSubgraphTree(const DeviceNodePlayback& node) {
                 destination.push_back(buildDeviceSubgraphTree(branch.devices[index]));
         }
     }
+    if (const auto* sl = std::get_if<SpectralLoudSplitParams>(&node.params);
+        sl != nullptr && sl->playback != nullptr) {
+        auto appendBranch = [](const SplitBranchPlayback& branch, auto& destination) {
+            destination.reserve(static_cast<size_t>(branch.deviceCount));
+            for (int index = 0; index < branch.deviceCount; ++index)
+                destination.push_back(buildDeviceSubgraphTree(branch.devices[index]));
+        };
+        appendBranch(sl->playback->preFx, tree.spectralPreFx);
+        appendBranch(sl->playback->postFx, tree.spectralPostFx);
+        for (int b = 0; b < kSpectralLoudBands; ++b)
+            appendBranch(sl->playback->bands[b], tree.spectralBands[static_cast<size_t>(b)]);
+    }
     return tree;
 }
 
@@ -209,6 +227,10 @@ CompiledDeviceSubgraphSchedule compileDeviceSubgraphTree(
         for (const auto& child : tree.splitBranch1) appendRef(child, processorId, depth + 1, appendRef);
         for (const auto& band : tree.multibandBands)
             for (const auto& child : band) appendRef(child, processorId, depth + 1, appendRef);
+        for (const auto& child : tree.spectralPreFx) appendRef(child, processorId, depth + 1, appendRef);
+        for (const auto& band : tree.spectralBands)
+            for (const auto& child : band) appendRef(child, processorId, depth + 1, appendRef);
+        for (const auto& child : tree.spectralPostFx) appendRef(child, processorId, depth + 1, appendRef);
         appendStage(DeviceSubgraphNodeRole::OutputAdapter,
                     CompiledDeviceSubgraphStage::OutputAdapter);
     };

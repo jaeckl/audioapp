@@ -37,6 +37,7 @@
 #include "audioapp/devices/instances/ChainModel.hpp"
 #include "audioapp/devices/instances/SplitModel.hpp"
 #include "audioapp/devices/instances/MultibandSplitModel.hpp"
+#include "audioapp/devices/instances/SpectralLoudSplitModel.hpp"
 
 namespace audioapp {
 
@@ -78,7 +79,8 @@ using DeviceInstance = std::variant<
     GranularModel,
     ChainModel,
     SplitModel,
-    MultibandSplitModel
+    MultibandSplitModel,
+    SpectralLoudSplitModel
 >;
 
 /// Unified device config wrapping params, panels, and bypass.

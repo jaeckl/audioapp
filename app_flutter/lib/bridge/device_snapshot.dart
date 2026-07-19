@@ -24,6 +24,7 @@ part 'device_families/analysis_family.dart';
 part 'device_families/chain_family.dart';
 part 'device_families/split_family.dart';
 part 'device_families/multiband_split_family.dart';
+part 'device_families/spectral_loud_split_family.dart';
 part 'device_families/granular_family.dart';
 
 part 'device_families/effect_family_delay_device_snapshot.dart';

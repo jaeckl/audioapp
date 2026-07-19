@@ -7,6 +7,7 @@ const _splitNestingRejectedTypes = {
   'mb_split_2',
   'mb_split_3',
   'mb_split_4',
+  'spectral_loud_split',
 };
 
 extension _DeviceChainRowStateVirtualsplitbranch on _DeviceChainRowState {

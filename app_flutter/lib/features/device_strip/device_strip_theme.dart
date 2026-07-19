@@ -6,6 +6,10 @@ abstract final class DeviceStripTheme {
   static const cardBackground = Color(0xFF1A1A24);
   static const cardHeader = Color(0xFF22222E);
   static const toolRailBackground = Color(0xFF16161E);
+  /// Nested section panel (daw_elements `panel_background` / elevated).
+  static const panelElevated = Color(0xFF16161E);
+  /// Deeper inset / screen well (daw_elements hierarchy hero well).
+  static const panelScreen = Color(0xFF121218);
   static const cardBorder = Color(0xFF4A4A5C);
   static const cardBorderHighlight = Color(0xFF6A6A7C);
   static const cardShadow = Color(0x99000000);
@@ -65,6 +69,17 @@ abstract final class DeviceStripTheme {
   static const mbSplit2Accent = Color(0xFF6BCB9A);
   static const mbSplit3Accent = Color(0xFF7AB8E8);
   static const mbSplit4Accent = Color(0xFFE8B86B);
+  static const spectralLoudSplitAccent = Color(0xFF7EC8E3);
+  /// Loud / mid / quiet row highlights (visual hierarchy only).
+  static const spectralLoudBandLoud = Color(0xFFF08A6B);
+  static const spectralLoudBandMid = Color(0xFFE8C06B);
+  static const spectralLoudBandQuiet = Color(0xFF6BA3E8);
+
+  static Color spectralLoudBandColor(int bandIndex) => switch (bandIndex) {
+        0 => spectralLoudBandLoud,
+        1 => spectralLoudBandMid,
+        _ => spectralLoudBandQuiet,
+      };
 
   static Color accentForDeviceType(String type) => switch (type) {
         'simple_sampler' => samplerAccent,
@@ -107,6 +122,7 @@ abstract final class DeviceStripTheme {
         'mb_split_2' => mbSplit2Accent,
         'mb_split_3' => mbSplit3Accent,
         'mb_split_4' => mbSplit4Accent,
+        'spectral_loud_split' => spectralLoudSplitAccent,
         'granular_formant_synth' => const Color(0xFFDA70D6),
         'oscilloscope' ||
         'spectrum_analyzer' ||
@@ -157,6 +173,7 @@ abstract final class DeviceStripTheme {
         'mb_split_2' => '2-Band Split',
         'mb_split_3' => '3-Band Split',
         'mb_split_4' => '4-Band Split',
+        'spectral_loud_split' => 'Spectral Loud Split',
         'granular_formant_synth' => 'Grain Form',
         'oscilloscope' => 'Oscilloscope',
         'spectrum_analyzer' => 'Spectrum Analyzer',

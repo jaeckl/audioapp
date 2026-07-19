@@ -6,6 +6,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(AUDIOAPP_BUILD_TESTS "Build engine unit tests" ON)
+# In-tree real FFT (NEON butterflies on ARM). Default ON for Android device builds.
+if(ANDROID)
+  option(AUDIOAPP_USE_NEON_FFT "Use in-tree NEON/scalar real FFT instead of juce::dsp::FFT" ON)
+else()
+  option(AUDIOAPP_USE_NEON_FFT "Use in-tree NEON/scalar real FFT instead of juce::dsp::FFT" OFF)
+endif()
 
 set(JUCE_BUILD_HELPER_TOOLS OFF CACHE BOOL "" FORCE)
 set(JUCE_BUILD_EXTRAS OFF CACHE BOOL "" FORCE)
@@ -92,16 +98,20 @@ add_library(audioapp_engine STATIC
   src/devices/processors/GranularProcessor.cpp
   src/devices/processors/SplitProcessor.cpp
   src/devices/processors/MultibandSplitProcessor.cpp
+  src/devices/processors/SpectralLoudSplitProcessor.cpp
+  src/dsp/RealFft.cpp
   src/devices/DeviceRegistry.cpp
   src/devices/DrumMachineModel.cpp
   src/devices/ChainModel.cpp
   src/devices/SplitModel.cpp
   src/devices/MultibandSplitModel.cpp
+  src/devices/SpectralLoudSplitModel.cpp
   src/devices/DrumMachineDeviceType.cpp
   src/devices/AnalysisDeviceType.cpp
   src/devices/ChainDeviceType.cpp
   src/devices/SplitDeviceType.cpp
   src/devices/MultibandSplitDeviceType.cpp
+  src/devices/SpectralLoudSplitDeviceType.cpp
   src/devices/GranularDeviceType.cpp
   src/devices/IDeviceType.cpp
   src/devices/OscillatorDeviceType.cpp
@@ -175,6 +185,10 @@ target_compile_definitions(audioapp_engine
     JUCE_DISPLAY_SPLASH_SCREEN=0
     _SILENCE_CXX20_OLD_SHARED_PTR_ATOMIC_SUPPORT_DEPRECATION_WARNING
 )
+
+if(AUDIOAPP_USE_NEON_FFT)
+  target_compile_definitions(audioapp_engine PUBLIC AUDIOAPP_USE_NEON_FFT=1)
+endif()
 
 if(NOT ANDROID)
   add_executable(resonator_bank_tests EXCLUDE_FROM_ALL
@@ -347,6 +361,7 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/snare_generator_test.cpp
     tests/split_processor_test.cpp
     tests/multiband_split_processor_test.cpp
+    tests/spectral_loud_split_processor_test.cpp
     tests/stacked_lfo_modulation_test.cpp
     tests/subtractive_lfo_filter_test.cpp
     tests/subtractive_preset_apply_test.cpp

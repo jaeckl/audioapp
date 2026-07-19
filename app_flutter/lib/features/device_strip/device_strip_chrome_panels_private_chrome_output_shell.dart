@@ -30,9 +30,17 @@ class _ChromeOutputShell extends StatelessWidget {
             right: borderSide,
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-          child: child,
+        // Allow bottom knob labels to paint; Column layouts keep them inside.
+        child: ClipRRect(
+          borderRadius: BorderRadius.only(
+            topRight: rightRadius,
+            bottomRight: rightRadius,
+          ),
+          clipBehavior: Clip.hardEdge,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(4, 8, 4, 10),
+            child: child,
+          ),
         ),
       ),
     );

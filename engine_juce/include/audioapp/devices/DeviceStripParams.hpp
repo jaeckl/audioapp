@@ -42,9 +42,13 @@ inline bool setBypass(DeviceSlot& slot, float value) {
 }
 
 inline bool setOutputMix(DeviceSlot& slot, float value) {
-    auto* panel = std::get_if<StereoOutputPanel>(&slot.config.outputPanel);
-    if (panel) {
-        panel->outputMix = std::clamp(value, 0.0f, 1.0f);
+    const float clamped = std::clamp(value, 0.0f, 1.0f);
+    if (auto* panel = std::get_if<StereoOutputPanel>(&slot.config.outputPanel)) {
+        panel->outputMix = clamped;
+        return true;
+    }
+    if (auto* panel = std::get_if<PrePostMixOutputPanel>(&slot.config.outputPanel)) {
+        panel->outputMix = clamped;
         return true;
     }
     return false;
