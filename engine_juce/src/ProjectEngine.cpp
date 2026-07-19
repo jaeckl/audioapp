@@ -2991,30 +2991,47 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
 
     // Compute per-frame LFO values for gain/pan modulation.
     // DSP-specific params still use frame-0 (block-rate).
+    // Per-note clocks only need noteElapsed from tracks that actually own a
+    // per-note mod edge — skip idle tracks' note scans (Tier B hot path).
     const int lfoCount = std::clamp(
         modulationGraph_.lfoPlaybackCount(), 0, ModulationGraph::kMaxLfos);
     const uint32_t retriggerGeneration = modulationGraph_.noteRetriggerGeneration();
     auto& modulationScratch = *realtimeModulationScratch_;
-    bool anyPerNoteModulator = false;
+    bool needsPerNoteElapsed = false;
+    bool trackNeedsPerNoteElapsed[kMaxTracks]{};
     if (lfoCount > 0) {
         for (int i = 0; i < lfoCount; ++i) {
             modulationScratch.modulators[static_cast<size_t>(i)] =
                 modulationGraph_.modulator(i);
-            if (!anyPerNoteModulator &&
-                modulationScratch.modulators[static_cast<size_t>(i)] != nullptr &&
-                modulationScratch.modulators[static_cast<size_t>(i)]->usesPerNoteClock()) {
-                anyPerNoteModulator = true;
+        }
+        for (int trackIndex = 0; trackIndex < trackCount; ++trackIndex) {
+            const TrackPlaybackSnapshot& track = trackPlayback_[trackIndex];
+            for (int e = 0; e < track.modEdgeCount; ++e) {
+                const auto lfoId = track.modEdges[static_cast<size_t>(e)].lfoId;
+                if (lfoId >= static_cast<uint16_t>(lfoCount)) {
+                    continue;
+                }
+                const auto* mod =
+                    modulationScratch.modulators[static_cast<size_t>(lfoId)];
+                if (mod != nullptr && mod->usesPerNoteClock()) {
+                    trackNeedsPerNoteElapsed[trackIndex] = true;
+                    needsPerNoteElapsed = true;
+                    break;
+                }
             }
         }
     }
     if (lfoCount > 0) {
         const double playheadSeconds = playheadStartBeat * 60.0 / static_cast<double>(std::max(transport_.bpm(), 1));
         const double samplePeriod = 1.0 / std::max(sampleRate, 1.0);
-        if (anyPerNoteModulator) {
+        if (needsPerNoteElapsed) {
             const double invBpmSeconds = 60.0 / static_cast<double>(std::max(transport_.bpm(), 1));
             const auto noteElapsedSecondsAtBeat = [&](double beat) -> double {
                 double latestOnsetBeat = -1.0;
                 for (int trackIndex = 0; trackIndex < trackCount; ++trackIndex) {
+                    if (!trackNeedsPerNoteElapsed[trackIndex]) {
+                        continue;
+                    }
                     const TrackPlaybackSnapshot& track = trackPlayback_[trackIndex];
                     for (int noteIndex = 0; noteIndex < track.noteCount; ++noteIndex) {
                         const PlaybackNote& note = track.notes[noteIndex];
@@ -3047,7 +3064,7 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
             auto* mod = modulationGraph_.modulator(i);
             if (mod == nullptr) continue;
             const bool perNote = mod->usesPerNoteClock();
-            if (!perNote) {
+            if (!perNote || !needsPerNoteElapsed) {
                 const float value = mod->evaluate(
                     playheadStartBeat,
                     transport_.bpm(),
@@ -3067,10 +3084,8 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                     playheadStartBeat +
                     secondsWithinBlock *
                         (static_cast<double>(std::max(transport_.bpm(), 1)) / 60.0);
-                const double noteElapsed = anyPerNoteModulator
-                    ? static_cast<double>(
-                        modulationScratch.noteElapsed[static_cast<size_t>(frame)])
-                    : -1.0;
+                const double noteElapsed = static_cast<double>(
+                    modulationScratch.noteElapsed[static_cast<size_t>(frame)]);
                 modulationScratch.values[
                     static_cast<size_t>(i * framesToProcess + frame)] =
                     mod->evaluate(frameBeat, transport_.bpm(),

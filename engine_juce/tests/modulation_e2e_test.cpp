@@ -278,6 +278,52 @@ public:
                 "mod_e2e_t8_retrigger.bin", setup.host, 4.0, 48000.0, 2.0e-4f));
         }
 
+        beginTest("OnNote elapsed ignores idle tracks without per-note edges");
+        {
+            auto makeOnNoteOscProject = [](bool poisonIdleTracks) {
+                audioapp::EngineHost host;
+                host.createProject();
+                const auto trackId = host.addTrack("Mod");
+                host.selectTrack(trackId);
+                const auto oscId = host.addDeviceToTrack(trackId, "simple_oscillator");
+                const auto clipId = host.createMidiClip(trackId, 0.0, 4.0);
+                host.setMidiClipNotes(clipId, {{60, 0.0, 4.0, 100.0f}});
+
+                const int lfoId = host.createLfo(0);
+                host.updateLfoParam(lfoId, "waveform", 0.0f);
+                host.updateLfoParam(lfoId, "rate", 4.0f);
+                host.updateLfoParam(lfoId, "syncDivision", 0.0f);
+                host.updateLfoParam(lfoId, "retrigger", 2.0f); // OnNote
+                host.assignModulation(lfoId, oscId, "frequency", 0.8f);
+
+                if (poisonIdleTracks) {
+                    // Late notes on other tracks must not reset the modulated
+                    // track's block-rate OnNote clock (dspParamsAtFrame path).
+                    for (int i = 0; i < 6; ++i) {
+                        const auto idleId = host.addTrack("Idle");
+                        const auto idleClip = host.createMidiClip(idleId, 0.0, 4.0);
+                        host.setMidiClipNotes(idleClip, {{72, 2.0, 2.0, 100.0f}});
+                    }
+                }
+                host.setPlaying(true);
+                return host.renderOffline(4.0, 48000.0);
+            };
+
+            const auto clean = makeOnNoteOscProject(false);
+            const auto poisoned = makeOnNoteOscProject(true);
+            expect(clean.size() == poisoned.size() && clean.size() >= 48000,
+                   "both renders produce audio");
+            // After beat 2 the idle tracks fire; scoped elapsed must still match.
+            const int mid = static_cast<int>(clean.size() / 2);
+            const int len = static_cast<int>(clean.size()) - mid;
+            const float cleanRms = audioapp::test::rms(clean, mid, len);
+            const float poisonRms = audioapp::test::rms(poisoned, mid, len);
+            expect(cleanRms >= 1.0e-4f && poisonRms >= 1.0e-4f, "audible second half");
+            const float denom = std::max(cleanRms, 1.0e-6f);
+            expect(std::abs(cleanRms - poisonRms) / denom < 0.05f,
+                   "idle-track notes must not alter OnNote osc second-half RMS");
+        }
+
         // ================================================================
         // Test 9: Modulation edge removal (golden)
         // ================================================================
