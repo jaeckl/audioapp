@@ -199,6 +199,15 @@ Scenario makeScenario(std::string_view name) {
             scenario.engine->updateLfoParam(lfo, "waveform", 0.0f);
             scenario.engine->updateLfoParam(lfo, "rate", 4.0f);
             scenario.engine->assignModulation(lfo, scenario.controlledDevice, "filterCutoff", 0.6f);
+        } else if (name == "granular_synth") {
+            scenario.controlledDevice = scenario.engine->addDeviceToTrack(
+                trackId, audioapp::device_types::kGranular);
+            scenario.engine->setDeviceParameter(scenario.controlledDevice, "density", 0.55f);
+            scenario.engine->setDeviceParameter(scenario.controlledDevice, "size", 0.4f);
+            const int lfo = scenario.engine->createLfo(0);
+            scenario.engine->updateLfoParam(lfo, "waveform", 0.0f);
+            scenario.engine->updateLfoParam(lfo, "rate", 4.0f);
+            scenario.engine->assignModulation(lfo, scenario.controlledDevice, "density", 0.5f);
         }
     }
     scenario.engine->setPlaying(true);
@@ -265,7 +274,7 @@ int main(int argc, char** argv) {
     const std::vector<std::string> scenarios{
         "static", "manual_ramp", "automation", "modulation", "serial_chain",
         "parallel_branches", "graph_taps", "analyzer", "subtractive_synth",
-        "wavetable_synth", "phasemod_synth"};
+        "wavetable_synth", "phasemod_synth", "granular_synth"};
     std::vector<Result> results;
     for (const auto& scenario : scenarios) {
         if (!options.scenarioFilter.empty() && scenario != options.scenarioFilter) continue;

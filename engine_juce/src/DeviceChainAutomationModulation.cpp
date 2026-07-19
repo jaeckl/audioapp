@@ -531,6 +531,7 @@ bool nodeUsesDspAutomationSubBlocks(const DeviceNodePlayback& node,
             case DeviceNodeKind::BassSynth:
             case DeviceNodeKind::PhaseModSynth:
             case DeviceNodeKind::WavetableSynth:
+            case DeviceNodeKind::Granular:
                 return false; // global automation/mod held in sub-blocks inside mix*MidiNotesBlock
             default:
                 return false;
