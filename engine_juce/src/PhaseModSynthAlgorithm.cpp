@@ -1,4 +1,5 @@
 #include "audioapp/PhaseModSynthAlgorithm.hpp"
+#include "audioapp/PhaseModOscSimd.hpp"
 
 #include "audioapp/AutomationPlayback.hpp"
 #include "audioapp/DeviceChain.hpp"
@@ -250,7 +251,6 @@ float phaseModVoiceSample(PhaseModSynthVoiceRuntime& voice,
                           double sampleRate,
                           float glideCoeff,
                           float lfoOut) noexcept {
-    // --- Glide ---
     const int effectivePitch = voice.pitch;
     const float glideTargetHz = midiNoteToHz(effectivePitch);
     if (glideCoeff > 0.0f && glideCoeff < 1.0f) {
@@ -261,128 +261,114 @@ float phaseModVoiceSample(PhaseModSynthVoiceRuntime& voice,
     voice.targetHz = glideTargetHz;
 
     const float rootHz = voice.currentHz;
-
-    // --- Unison ---
     const int unisonCount = phaseModUnisonCount(params.unisonVoices);
     const float spreadCents = params.unisonDetune * 50.0f;
 
-    // Refresh precomputed per-unison increments when unison count or detune changes
-    if (unisonCount != voice.cachedUnisonCount) {
+    if (unisonCount != voice.cachedUnisonCount ||
+        std::abs(spreadCents - voice.cachedUnisonSpreadCents) > 0.01f) {
         precomputePhaseIncs(voice.opPhaseIncs, unisonCount, spreadCents, sampleRate);
         voice.cachedUnisonCount = unisonCount;
+        voice.cachedUnisonSpreadCents = spreadCents;
     }
 
-    // --- LFO output for this sample ---
-    // Apply LFO to pitch if destination is pitch
     float lfoPitchMod = 0.0f;
     if (params.lfoDest == 1 && params.lfoAmount > 0.0f) {
-        lfoPitchMod = lfoOut * params.lfoAmount * 12.0f; // up to ±12 semitones
+        lfoPitchMod = lfoOut * params.lfoAmount * 12.0f;
     }
 
-    // --- Per-unison accumulator ---
-    float mixAccum = 0.0f;
-
-    for (int u = 0; u < unisonCount; ++u) {
-        // Per-operator modulator outputs for the current unison voice
-        float modOutput[kPhaseModOpsPerVoice]{};
-
-        // Phase modulation contributions: modulators feed forward to carriers
-        // First, accumulate operator outputs for this algorithm
-        float opOutput[kPhaseModOpsPerVoice]{};
-
-        // Precompute operator Hz (with pitch LFO applied uniformly)
-        float opHz[kPhaseModOpsPerVoice];
-        for (int op = 0; op < kPhaseModOpsPerVoice; ++op) {
-            const auto& opParams = params.operators[op];
-            const float fineCents = opParams.fine;
-            const float ratio = opParams.ratio <= 0.0f ? 1.0f : opParams.ratio;
-            opHz[op] = rootHz * ratio * std::pow(2.0f, fineCents / 1200.0f);
-
-            // Apply LFO pitch modulation
-            if (lfoPitchMod != 0.0f) {
-                opHz[op] *= std::pow(2.0f, lfoPitchMod / 1200.0f);
-            }
+    float opHz[kPhaseModOpsPerVoice];
+    for (int op = 0; op < kPhaseModOpsPerVoice; ++op) {
+        const auto& opParams = params.operators[op];
+        const float ratio = opParams.ratio <= 0.0f ? 1.0f : opParams.ratio;
+        opHz[op] = rootHz * ratio * std::pow(2.0f, opParams.fine / 1200.0f);
+        if (lfoPitchMod != 0.0f) {
+            opHz[op] *= std::pow(2.0f, lfoPitchMod / 1200.0f);
         }
+    }
 
-        // Process operators in algorithm order
-        const int algo = safe_clamp(params.algoIndex, 0, 7);
+    // Ops serial (same-sample PM); unison parallel via SIMD bank.
+    // Layout: modOutput/opOutput[u * ops + op], phases interleaved same way.
+    float modOutput[kPhaseModMaxUnison * kPhaseModOpsPerVoice]{};
+    float opOutput[kPhaseModMaxUnison * kPhaseModOpsPerVoice]{};
 
-        // For each algorithm, determine processing order and modulation routing.
-        // "modulators" feed their output into the phase of another operator.
-        // "carriers" sum to the output mix.
-        //
-        // We process operators in topological order (modulators before their targets).
-        // Algorithm table:
-        //   0 (stack_4):       op1→op2→op3→op4 (all carriers)
-        //   1 (mod_3_to_1):    op1→op2→op3, op4 carrier
-        //   2 (mod_3_to_2):    op1→op2→op3, op4 carrier
-        //   3 (dual_2_to_1):   op1→op2, op3→op4, 2+4 out
-        //   4 (chain_4):       op1→op2→op3→op4 (op4 carrier)
-        //   5 (pair_1_to_2):   op1→op2, op3→op4, 2+4 out
-        //   6 (one_to_all):    op1→op2,3,4 all
-        //   7 (all_mod_fb):    op1→op2→op3→op4, feedback on op1
+    for (int opIdx = 0; opIdx < kPhaseModOpsPerVoice; ++opIdx) {
+        const auto& opParams = params.operators[opIdx];
+        float phaseLanes[kPhaseModMaxUnison]{};
+        float incLanes[kPhaseModMaxUnison]{};
+        float modPhases[kPhaseModMaxUnison]{};
+        float outLanes[kPhaseModMaxUnison]{};
 
-        // Process all 4 operators sequentially with full 4x4 PM Matrix Modulation routing
-        for (int opIdx = 0; opIdx < kPhaseModOpsPerVoice; ++opIdx) {
-            const auto& opParams = params.operators[opIdx];
+        for (int u = 0; u < unisonCount; ++u) {
             const int phaseIdx = u * kPhaseModOpsPerVoice + opIdx;
+            phaseLanes[u] = voice.opPhases[phaseIdx];
+            incLanes[u] = voice.opPhaseIncs[phaseIdx];
 
-            // Phase accumulation
-            voice.opPhases[phaseIdx] += opHz[opIdx] * voice.opPhaseIncs[phaseIdx];
-            if (voice.opPhases[phaseIdx] >= kPM_TwoPi) {
-                voice.opPhases[phaseIdx] -= kPM_TwoPi;
-            }
-
-            float phase = voice.opPhases[phaseIdx];
-
-            // 4x4 PM Matrix Modulation: Sum inputs from all 4 operators
             float modPhase = 0.0f;
             for (int srcOp = 0; srcOp < kPhaseModOpsPerVoice; ++srcOp) {
                 const auto& srcParams = params.operators[srcOp];
                 float influence = 0.0f;
-                if (opIdx == 0)      influence = srcParams.attack;  // OP X -> OP 1
-                else if (opIdx == 1) influence = srcParams.decay;   // OP X -> OP 2
-                else if (opIdx == 2) influence = srcParams.sustain; // OP X -> OP 3
-                else if (opIdx == 3) influence = srcParams.release; // OP X -> OP 4
+                if (opIdx == 0)      influence = srcParams.attack;
+                else if (opIdx == 1) influence = srcParams.decay;
+                else if (opIdx == 2) influence = srcParams.sustain;
+                else                 influence = srcParams.release;
 
                 if (influence > 0.0f) {
-                    // Forward modulation uses current-sample output; feedback/self-feedback uses previous-sample output
-                    float modulatorSample = (srcOp >= opIdx) ? voice.prevOpOutput[srcOp] : modOutput[srcOp];
+                    const int srcIdx = u * kPhaseModOpsPerVoice + srcOp;
+                    const float modulatorSample = (srcOp >= opIdx)
+                        ? voice.prevOpOutput[srcIdx]
+                        : modOutput[srcIdx];
                     modPhase += modulatorSample * influence * 4.0f;
                 }
             }
-
-            phase += modPhase;
-
-            // Read waveform
-            float sample = pmMorphWaveSample(opParams.wave, phase);
-
-            // Apply flat gate envelope (repurposed per-operator ADSR)
-            sample *= opParams.level;
-
-            modOutput[opIdx] = sample;
-            opOutput[opIdx] = sample;
-            voice.prevOpOutput[opIdx] = std::tanh(sample);
+            // Wire unused feedback param as self-mod on op0 (previous sample).
+            if (opIdx == 0 && params.feedback > 0.0f) {
+                const int selfIdx = u * kPhaseModOpsPerVoice;
+                modPhase += voice.prevOpOutput[selfIdx] * params.feedback * 4.0f;
+            }
+            modPhases[u] = modPhase;
         }
 
-        // Symmetrical output mix: all active operators sum to output
-        float voiceSample = (opOutput[0] + opOutput[1] + opOutput[2] + opOutput[3]) * 0.25f;
+        if (!renderPhaseModUnisonOpSimd(opParams.wave,
+                                        opParams.level,
+                                        opHz[opIdx],
+                                        incLanes,
+                                        phaseLanes,
+                                        modPhases,
+                                        unisonCount,
+                                        outLanes)) {
+            for (int u = 0; u < unisonCount; ++u) {
+                phaseLanes[u] += opHz[opIdx] * incLanes[u];
+                if (phaseLanes[u] >= kPM_TwoPi) {
+                    phaseLanes[u] -= kPM_TwoPi;
+                }
+                outLanes[u] = pmMorphWaveSample(opParams.wave, phaseLanes[u] + modPhases[u]) *
+                              opParams.level;
+            }
+        }
 
-        mixAccum += voiceSample;
+        for (int u = 0; u < unisonCount; ++u) {
+            const int phaseIdx = u * kPhaseModOpsPerVoice + opIdx;
+            voice.opPhases[phaseIdx] = phaseLanes[u];
+            modOutput[phaseIdx] = outLanes[u];
+            opOutput[phaseIdx] = outLanes[u];
+            voice.prevOpOutput[phaseIdx] = std::tanh(outLanes[u]);
+        }
     }
 
-    // Scale unison sum
+    (void)params.algoIndex; // matrix routing is source of truth; algos reserved
+
+    float mixAccum = 0.0f;
+    for (int u = 0; u < unisonCount; ++u) {
+        const int base = u * kPhaseModOpsPerVoice;
+        mixAccum += (opOutput[base] + opOutput[base + 1] + opOutput[base + 2] +
+                     opOutput[base + 3]) *
+                    0.25f;
+    }
+
     float output = mixAccum / static_cast<float>(unisonCount);
-
-    // --- Filter ---
-    output = pmProcessFilter(output, voice, params, filterGain, sampleRate);
-
-    // --- Soft clip before final output ---
+    output = pmProcessFilter(output, voice, params, filterGain, static_cast<float>(sampleRate));
     output = std::tanh(output * 0.75f) / 0.75f;
-
-    // Apply amp gain
     output *= ampGain;
-
     return output;
 }
 

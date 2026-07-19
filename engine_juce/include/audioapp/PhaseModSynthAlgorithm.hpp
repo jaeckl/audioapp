@@ -85,12 +85,14 @@ struct PhaseModSynthVoiceRuntime {
     // Per-operator per-unison phase increments (precomputed before per-sample loop)
     float opPhaseIncs[kPhaseModMaxUnison * kPhaseModOpsPerVoice]{};
     int cachedUnisonCount = 0;
+    float cachedUnisonSpreadCents = -1.0f;
     // Cached key-track ratio (recomputed on note-on or param change)
     float cachedKeyTrackRatio = 1.0f;
     float envelopeValues[kPhaseModOpsPerVoice]{};
     int envelopePhase[kPhaseModOpsPerVoice]{};  // 0=attack,1=decay,2=sustain,3=release,4=done
     float envelopeStart[kPhaseModOpsPerVoice]{};
-    float prevOpOutput[kPhaseModOpsPerVoice]{};  // previous sample output for feedback
+    /// Previous-sample op output per unison voice (indexed [u * ops + op]).
+    float prevOpOutput[kPhaseModMaxUnison * kPhaseModOpsPerVoice]{};
 
     // Runtime state
     float currentHz = 440.0f;

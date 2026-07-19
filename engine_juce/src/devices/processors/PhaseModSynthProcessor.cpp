@@ -14,10 +14,6 @@
 
 namespace audioapp {
 
-// -----------------------------------------------------------------------
-// Internal helpers (moved from PhaseModSynth.cpp)
-// -----------------------------------------------------------------------
-
 namespace {
 
 static inline float safe_clamp(float v, float lo, float hi) noexcept {
@@ -92,11 +88,89 @@ static bool isNoteAudible(const PhaseModSynthMidiNoteRegion& note,
     return loopedBeat < noteEnd + releaseBeats;
 }
 
-} // anonymous namespace
+static PhaseModSynthParams heldPhaseModParamsAtFrame(
+    const PhaseModSynthParams& base,
+    int heldFrame,
+    double blockStartBeat,
+    double sampleRate,
+    int bpm,
+    bool useAutomation,
+    const AutomationClipPlayback* automationClips,
+    int automationClipCount,
+    const uint16_t* automationDeviceIndex,
+    bool useModulation,
+    const float* lfoValues,
+    int lfoCount,
+    int lfoStride,
+    const ModulationEdgePlayback* modEdges,
+    int modEdgeCount,
+    const uint16_t* modulationDeviceIndex,
+    const InstrumentModulationContext* instMod) noexcept {
+    PhaseModSynthParams held = base;
+    const double beat = beatAtFrame(blockStartBeat, heldFrame, sampleRate, bpm);
+    if (useAutomation) {
+        DeviceVariantParams variant = held;
+        applyDspAutomationAtBeat(variant,
+                                 DeviceNodeKind::PhaseModSynth,
+                                 *automationDeviceIndex,
+                                 beat,
+                                 automationClips,
+                                 automationClipCount);
+        if (const auto* automated = std::get_if<PhaseModSynthParams>(&variant)) {
+            held = *automated;
+        }
+    }
+    if (useModulation && instMod != nullptr) {
+        DeviceVariantParams variant = held;
+        applyGlobalDspModulationAtFrame(variant,
+                                        DeviceNodeKind::PhaseModSynth,
+                                        instMod->deviceIndex,
+                                        heldFrame,
+                                        lfoStride,
+                                        *instMod);
+        if (const auto* modulated = std::get_if<PhaseModSynthParams>(&variant)) {
+            held = *modulated;
+        }
+    } else if (useModulation) {
+        for (int e = 0; e < modEdgeCount; ++e) {
+            const ModulationEdgePlayback& edge = modEdges[e];
+            if (edge.deviceIndex != *modulationDeviceIndex) continue;
+            if (edge.lfoId >= static_cast<uint16_t>(lfoCount)) continue;
+            const uint16_t pid = edge.localParamId;
+            if (pid == kEncodedCommonGain ||
+                pid == kEncodedCommonPan ||
+                pid == kEncodedCommonBypass) {
+                continue;
+            }
+            const float lfoOut = lfoValues[static_cast<size_t>(edge.lfoId) *
+                                              static_cast<size_t>(lfoStride) +
+                                              static_cast<size_t>(heldFrame)];
+            DeviceChainAutomationModulation::applyModulation(held, edge.amount * lfoOut, pid);
+        }
+    }
+    return held;
+}
 
-// mixPhaseModMidiNotesBlock is at audioapp namespace scope (NOT in anonymous
-// namespace) because it is called from tests/phase_mod_synth_test.cpp in a
-// different translation unit.
+static int resolveVoiceNoteIndex(const PhaseModSynthVoiceRuntime& voice,
+                                 const PhaseModSynthMidiNoteRegion* notes,
+                                 int noteCount) noexcept {
+    const int ni = voice.noteKey;
+    if (ni >= 0 && ni < noteCount &&
+        notes[ni].pitch == voice.pitch &&
+        notes[ni].noteStartBeat == voice.startBeat &&
+        notes[ni].clipStartBeat == voice.clipStartBeat) {
+        return ni;
+    }
+    for (int n = 0; n < noteCount; ++n) {
+        if (notes[n].pitch == voice.pitch && notes[n].noteStartBeat == voice.startBeat &&
+            notes[n].clipStartBeat == voice.clipStartBeat) {
+            return n;
+        }
+    }
+    return -1;
+}
+
+} // anonymous namespace
 
 void mixPhaseModMidiNotesBlock(float* monoOut,
                                int numFrames,
@@ -135,34 +209,22 @@ void mixPhaseModMidiNotesBlock(float* monoOut,
                                modEdges != nullptr && modEdgeCount > 0 &&
                                modulationDeviceIndex != nullptr;
 
-    const float ampReleaseSec = adsrNormalizedToSeconds(params.ampRelease, 3.0f);
-    const float ampAttackSec = adsrNormalizedToSeconds(params.ampAttack, 2.0f);
-    const float ampDecaySec = adsrNormalizedToSeconds(params.ampDecay, 2.0f);
-    const float ampSustain = safe_clamp(params.ampSustain, 0.0f, 1.0f);
-    const float filterAttackSec = adsrNormalizedToSeconds(params.filterAttack, 2.0f);
-    const float filterDecaySec = adsrNormalizedToSeconds(params.filterDecay, 2.0f);
-    const float filterReleaseSec = adsrNormalizedToSeconds(params.filterRelease, 3.0f);
-    const float filterSustain = safe_clamp(params.filterSustain, 0.0f, 1.0f);
-    const float glideMs = params.glideMs * 2000.0f;
-    const float glideCoeff =
-        glideMs > 0.0f ? 1.0f - std::exp(-1.0f / (static_cast<float>(sampleRate) * glideMs * 0.001f))
-                       : 1.0f;
-
     const double blockStartBeat = playheadStartBeat;
     const double blockEndBeat = blockStartBeat + static_cast<double>(numFrames) *
         (static_cast<double>(bpm) / 60.0) / sampleRate;
 
-    // --- Phase 1: Voice allocation ---
+    const float ampReleaseSecAlloc = adsrNormalizedToSeconds(params.ampRelease, 3.0f);
+
     int allocatedVoices = 0;
     for (int ni = retriggerReplacesVoice && maxVoices == 1 ? noteCount - 1 : 0;
          ni >= 0 && ni < noteCount && allocatedVoices < maxVoices;
          ni += retriggerReplacesVoice && maxVoices == 1 ? -1 : 1) {
-        if (!isNoteAudibleInBlock(notes[ni], blockStartBeat, numFrames, sampleRate, bpm, ampReleaseSec)) {
+        if (!isNoteAudibleInBlock(notes[ni], blockStartBeat, numFrames, sampleRate, bpm,
+                                  ampReleaseSecAlloc)) {
             continue;
         }
 
         int vi = -1;
-        // 1. Exact match by pitch and startBeat
         for (int v = 0; v < maxVoices; ++v) {
             if (runtime.voices[v].active != 0 &&
                 runtime.voices[v].pitch == notes[ni].pitch &&
@@ -172,13 +234,11 @@ void mixPhaseModMidiNotesBlock(float* monoOut,
                 break;
             }
         }
-        // 2. Free slot
         if (vi < 0) {
             for (int v = 0; v < maxVoices; ++v) {
                 if (runtime.voices[v].active == 0) { vi = v; break; }
             }
         }
-        // 3. Steal
         if (vi < 0) {
             vi = runtime.stealIndex;
             runtime.stealIndex = (runtime.stealIndex + 1) % maxVoices;
@@ -193,20 +253,23 @@ void mixPhaseModMidiNotesBlock(float* monoOut,
             notes[ni].contentLengthBeats,
             notes[ni].loopContent,
             notes[ni].noteStartBeat);
+        const float glideMsAlloc = params.glideMs * 2000.0f;
         if (voice.pitch != notes[ni].pitch || voice.startBeat != notes[ni].noteStartBeat ||
             voice.clipStartBeat != notes[ni].clipStartBeat || noteOnsetInBlock) {
-            const bool glideFromPreviousVoice = glideMs > 0.0f && voice.active != 0;
+            const bool glideFromPreviousVoice = glideMsAlloc > 0.0f && voice.active != 0;
             const float previousHz = voice.currentHz;
             std::memset(&voice, 0, sizeof(voice));
             voice.active = 1;
             voice.pitch = notes[ni].pitch;
             voice.startBeat = notes[ni].noteStartBeat;
             voice.clipStartBeat = notes[ni].clipStartBeat;
+            voice.noteKey = ni;
             voice.velocity = notes[ni].velocity;
             voice.targetHz = midiNoteToHz(notes[ni].pitch);
             voice.currentHz = glideFromPreviousVoice ? previousHz : voice.targetHz;
         } else {
             voice.active = 1;
+            voice.noteKey = ni;
         }
         ++allocatedVoices;
     }
@@ -220,56 +283,29 @@ void mixPhaseModMidiNotesBlock(float* monoOut,
     }
     if (!anyVoiceActive) return;
 
-    // --- Per-frame rendering ---
-    for (int frame = 0; frame < numFrames; ++frame) {
+    const bool needsHeldParams = useAutomation || useModulation;
+
+    auto renderFrame = [&](int frame, const PhaseModSynthParams& heldParams) {
         const float beat = beatAtFrame(blockStartBeat, frame, sampleRate, bpm);
 
-        PhaseModSynthParams frameParams = params;
-        if (useAutomation) {
-            DeviceVariantParams variant = frameParams;
-            applyDspAutomationAtBeat(variant, DeviceNodeKind::PhaseModSynth,
-                                     *automationDeviceIndex, beat,
-                                     automationClips, automationClipCount);
-            if (const auto* automated = std::get_if<PhaseModSynthParams>(&variant)) {
-                frameParams = *automated;
-            }
-        }
-
-        // Graph modulation: global edges at frame rate; per-note edges per voice.
-        if (useModulation && instMod != nullptr) {
-            DeviceVariantParams variant = frameParams;
-            applyGlobalDspModulationAtFrame(variant,
-                                            DeviceNodeKind::PhaseModSynth,
-                                            instMod->deviceIndex,
-                                            frame,
-                                            lfoStride,
-                                            *instMod);
-            if (const auto* automated = std::get_if<PhaseModSynthParams>(&variant)) {
-                frameParams = *automated;
-            }
-        } else if (useModulation) {
-            for (int e = 0; e < modEdgeCount; ++e) {
-                const ModulationEdgePlayback& edge = modEdges[e];
-                if (edge.deviceIndex != *modulationDeviceIndex) continue;
-                if (edge.lfoId >= static_cast<uint16_t>(lfoCount)) continue;
-                const uint16_t pid = edge.localParamId;
-                if (pid == kEncodedCommonGain ||
-                    pid == kEncodedCommonPan ||
-                    pid == kEncodedCommonBypass) continue;
-                const float lfoOut = lfoValues[static_cast<size_t>(edge.lfoId) *
-                                   static_cast<size_t>(lfoStride) +
-                                   static_cast<size_t>(frame)];
-                const float modAmount = edge.amount * lfoOut;
-                DeviceChainAutomationModulation::applyModulation(frameParams, modAmount, pid);
-            }
-        }
+        const float ampReleaseSec = adsrNormalizedToSeconds(heldParams.ampRelease, 3.0f);
+        const float ampAttackSec = adsrNormalizedToSeconds(heldParams.ampAttack, 2.0f);
+        const float ampDecaySec = adsrNormalizedToSeconds(heldParams.ampDecay, 2.0f);
+        const float ampSustain = safe_clamp(heldParams.ampSustain, 0.0f, 1.0f);
+        const float filterAttackSec = adsrNormalizedToSeconds(heldParams.filterAttack, 2.0f);
+        const float filterDecaySec = adsrNormalizedToSeconds(heldParams.filterDecay, 2.0f);
+        const float filterSustain = safe_clamp(heldParams.filterSustain, 0.0f, 1.0f);
+        const float glideMs = heldParams.glideMs * 2000.0f;
+        const float glideCoeff =
+            glideMs > 0.0f
+                ? 1.0f - std::exp(-1.0f / (static_cast<float>(sampleRate) * glideMs * 0.001f))
+                : 1.0f;
 
         float mix = 0.0f;
         int renderedCount = 0;
 
-        // Mono mode
         int activeMonoPitch = -1;
-        if (frameParams.synthMono >= 0.5f) {
+        if (heldParams.synthMono >= 0.5f) {
             for (int ni = noteCount - 1; ni >= 0; --ni) {
                 double elapsedSec = 0.0, noteDurSec = 0.0;
                 bool inRelease = false;
@@ -285,20 +321,16 @@ void mixPhaseModMidiNotesBlock(float* monoOut,
             auto& voice = runtime.voices[v];
             if (voice.active == 0) continue;
 
-            if (frameParams.synthMono >= 0.5f && voice.pitch != activeMonoPitch) {
+            if (heldParams.synthMono >= 0.5f && voice.pitch != activeMonoPitch) {
                 if (activeMonoPitch >= 0) voice.active = 0;
                 continue;
             }
 
-            int ni = -1;
-            for (int n = 0; n < noteCount; ++n) {
-                if (notes[n].pitch == voice.pitch && notes[n].noteStartBeat == voice.startBeat &&
-                    notes[n].clipStartBeat == voice.clipStartBeat) {
-                    ni = n;
-                    break;
-                }
-            }
+            int ni = resolveVoiceNoteIndex(voice, notes, noteCount);
             if (ni < 0) continue;
+            if (ni != voice.noteKey) {
+                voice.noteKey = ni;
+            }
 
             const auto& note = notes[ni];
             double elapsedSec = 0.0, noteDurSec = 0.0;
@@ -322,18 +354,20 @@ void mixPhaseModMidiNotesBlock(float* monoOut,
                 continue;
             }
 
-            const float filterGain = samplerAdsrGain(static_cast<float>(elapsedSec),
-                                                     static_cast<float>(noteDurSec),
-                                                     filterAttackSec, filterDecaySec,
-                                                     filterSustain, filterReleaseSec);
+            const float filterGain = samplerAdsrGain(
+                static_cast<float>(elapsedSec),
+                static_cast<float>(noteDurSec),
+                filterAttackSec,
+                filterDecaySec,
+                filterSustain,
+                adsrNormalizedToSeconds(heldParams.filterRelease, 3.0f));
             const float vel = safe_clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
-            const float velGain = 1.0f - frameParams.velocitySensitivity * (1.0f - vel);
+            const float velGain = 1.0f - heldParams.velocitySensitivity * (1.0f - vel);
 
-            PhaseModSynthParams voiceParams = frameParams;
+            PhaseModSynthParams voiceParams = heldParams;
             float panelGain = commonControls != nullptr
                 ? commonControls->gainAt(frame)
                 : (perFramePanelGain != nullptr ? perFramePanelGain[frame] : 1.0f);
-            float voiceLfoOut = 0.0f;
             if (instMod != nullptr) {
                 const NoteModKey key =
                     noteModKeyFromRegion(note.pitch, note.clipStartBeat, note.noteStartBeat);
@@ -362,21 +396,52 @@ void mixPhaseModMidiNotesBlock(float* monoOut,
             mix += phaseModVoiceSample(voice, voiceParams,
                                        ampGain * velGain,
                                        filterGain,
-                                       sampleRate, glideCoeff, voiceLfoOut) *
+                                       sampleRate, glideCoeff, 0.0f) *
                    voiceParams.gain * panelGain * kInstrumentOutputGain * voiceParams.masterVol;
 
             if (inRelease && elapsedSec >= noteDurSec + static_cast<double>(ampReleaseSec)) {
                 voice.active = 0;
             }
-
             ++renderedCount;
         }
 
         if (renderedCount > 0) {
             mix *= 1.0f / std::sqrt(static_cast<float>(renderedCount));
         }
-
         monoOut[frame] += mix;
+    };
+
+    if (!needsHeldParams) {
+        for (int frame = 0; frame < numFrames; ++frame) {
+            renderFrame(frame, params);
+        }
+        return;
+    }
+
+    for (int sub = 0; sub < numFrames; sub += kPhaseModControlSubBlockFrames) {
+        const PhaseModSynthParams heldParams = heldPhaseModParamsAtFrame(
+            params,
+            sub,
+            blockStartBeat,
+            sampleRate,
+            bpm,
+            useAutomation,
+            automationClips,
+            automationClipCount,
+            automationDeviceIndex,
+            useModulation,
+            lfoValues,
+            lfoCount,
+            lfoStride,
+            modEdges,
+            modEdgeCount,
+            modulationDeviceIndex,
+            instMod);
+
+        const int subLen = std::min(kPhaseModControlSubBlockFrames, numFrames - sub);
+        for (int frame = sub; frame < sub + subLen; ++frame) {
+            renderFrame(frame, heldParams);
+        }
     }
 }
 
@@ -389,7 +454,7 @@ void PhaseModSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) noe
     for (int i = 0; i < regionCount; ++i) {
         const MidiPlaybackNote& note = ctx.notes[i];
         ctx.scratch.phaseModRegions[i] = PhaseModSynthMidiNoteRegion{
-            note.pitch, note.pitch,
+            note.pitch, i,
             note.clipStartBeat, note.clipLengthBeats,
             note.noteStartBeat, note.noteDurationBeats, note.velocity,
             note.loopContent, note.contentLengthBeats
