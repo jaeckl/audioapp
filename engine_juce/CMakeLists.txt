@@ -372,6 +372,7 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/lfo_polarity_test.cpp
     tests/lfo_sync_bpm_test.cpp
     tests/live_performance_test.cpp
+    tests/play_transport_responsiveness_test.cpp
     tests/master_mix_test.cpp
     tests/midi_clip_notes_test.cpp
     tests/midi_comp_flatten_test.cpp

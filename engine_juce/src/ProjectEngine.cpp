@@ -3391,10 +3391,6 @@ void ProjectEngine::mixAtPlayheadBeat(float* monoOut,
 }
 
 void ProjectEngine::setPlaying(bool playing) {
-    if (playing) {
-        const juce::ScopedWriteLock lock(mutex_);
-        rebuildTrackPlaybackLocked();
-    }
     if (playing && recordArmed_) {
         countInRemainingBeats_.store(
             static_cast<double>(countInBars_.load(std::memory_order_acquire) * 4),
@@ -4475,6 +4471,7 @@ void ProjectEngine::applyLiveDeviceMetersLocked(ProjectSnapshot& snap) const {
 void ProjectEngine::rebuildTrackPlaybackLocked() {
     const std::lock_guard<std::recursive_mutex> playbackLock(playbackMutex_);
     if (syncingTree_) return;
+    ++playbackRebuildCount_;
     const int committedState = trackPlayback_.beginBuild();
     if (committedState >= 0) {
         activeProcessorGraph_.store(

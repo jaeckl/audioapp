@@ -393,6 +393,7 @@ public:
 
     void setPlaying(bool playing);
     bool isPlaying() const noexcept;
+    uint32_t playbackRebuildCount() const noexcept { return playbackRebuildCount_; }
     double playheadBeats() const noexcept;
     void setPlayheadBeats(double beats) noexcept;
     void resetPlayhead() noexcept;
@@ -689,6 +690,7 @@ private:
     std::string deviceMeterIds_[kMaxDeviceMeters];
     std::array<bool, kMaxDeviceMeters> meterSlotSubscribed_{};
     int deviceMeterSlotCount_ = 0;
+    uint32_t playbackRebuildCount_ = 0;
 
     static constexpr int kMaxAutomationClips = 32;
     // Global automation playback array (per-track resolution happens in rebuildAutomationPlaybackLocked)
