@@ -1,0 +1,38 @@
+{
+  "platform": "AAudio",
+  "note": "Requested values from EngineHost_android.cpp. HAL may adjust actual buffer size.",
+  "profilesAt48kHz": {
+    "low_latency": {
+      "framesPerCallback": 512,
+      "activeBufferFrames": 1024,
+      "bufferCapacityFrames": 2048,
+      "callbackDeadlineMs": 10.67,
+      "activeBufferMs": 21.33,
+      "performanceMode": "low_latency",
+      "sharingMode": "exclusive_if_available_else_shared"
+    },
+    "balanced": {
+      "framesPerCallback": 1024,
+      "activeBufferFrames": 4096,
+      "bufferCapacityFrames": 8192,
+      "callbackDeadlineMs": 21.33,
+      "activeBufferMs": 85.33,
+      "performanceMode": "low_latency",
+      "sharingMode": "shared"
+    },
+    "safe": {
+      "framesPerCallback": 1024,
+      "activeBufferFrames": 8192,
+      "bufferCapacityFrames": 16384,
+      "callbackDeadlineMs": 21.33,
+      "activeBufferMs": 170.67,
+      "performanceMode": "power_saving",
+      "sharingMode": "shared"
+    }
+  },
+  "budgetTarget": {
+    "source": "docs/testing/performance_budgets.md",
+    "maxCallbackFractionOfDeadline": 0.5,
+    "referenceBlockFrames": 256
+  }
+}
