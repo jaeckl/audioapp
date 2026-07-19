@@ -304,9 +304,9 @@ void EngineHost::setPlaying(bool shouldPlay) {
             project_->setPlaying(false);
             return;
         }
-    } else {
-        impl_->stopStream();
     }
+    // Keep the AAudio stream warm after transport stop; callbacks output silence
+    // while not playing so the next Play avoids requestStart + buffer refill.
 
     project_->setPlaying(shouldPlay);
     impl_->playing.store(shouldPlay, std::memory_order_release);
