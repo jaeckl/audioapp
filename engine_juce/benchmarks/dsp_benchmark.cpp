@@ -170,6 +170,15 @@ Scenario makeScenario(std::string_view name) {
             const auto analyzer = scenario.engine->addDeviceToTrack(
                 trackId, audioapp::device_types::kSpectrumAnalyzer);
             scenario.engine->setMeterSubscriptions({analyzer});
+        } else if (name == "subtractive_synth") {
+            scenario.controlledDevice = scenario.engine->addDeviceToTrack(
+                trackId, audioapp::device_types::kSubtractiveSynth);
+            scenario.engine->setDeviceParameter(scenario.controlledDevice, "filterCutoff", 0.35f);
+            scenario.engine->setDeviceParameter(scenario.controlledDevice, "unisonVoices", 0.75f);
+            const int lfo = scenario.engine->createLfo(0);
+            scenario.engine->updateLfoParam(lfo, "waveform", 0.0f);
+            scenario.engine->updateLfoParam(lfo, "rate", 4.0f);
+            scenario.engine->assignModulation(lfo, scenario.controlledDevice, "filterCutoff", 0.6f);
         }
     }
     scenario.engine->setPlaying(true);

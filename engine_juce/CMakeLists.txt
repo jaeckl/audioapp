@@ -49,6 +49,7 @@ add_library(audioapp_engine STATIC
   src/SamplerFilter.cpp
   src/KickAlgorithm.cpp
   src/SubtractiveSynthAlgorithm.cpp
+  src/SubtractiveOscSimd.cpp
   src/WavetableSynthAlgorithm.cpp
   src/WavetableBank.cpp
   src/PhaseModSynthAlgorithm.cpp
@@ -397,6 +398,8 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/real_fft_test.cpp
     tests/stacked_lfo_modulation_test.cpp
     tests/subtractive_lfo_filter_test.cpp
+    tests/subtractive_control_rate_test.cpp
+    tests/subtractive_osc_simd_test.cpp
     tests/subtractive_preset_apply_test.cpp
     tests/subtractive_synth_test.cpp
     tests/phase_mod_synth_test.cpp
