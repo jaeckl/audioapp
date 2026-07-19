@@ -14,8 +14,8 @@ struct ClapGeneratorParams {
     float clapRoom = 0.50f;
     float clapDecay = 0.50f;
     float clapVelocity = 1.0f;
-    float clapPitch = 0.50f;
-    float clapKeyTrack = 1.0f;
+    float clapPitch = 0.50f;    // moves crack BP center
+    float clapKeyTrack = 1.0f;  // MIDI moves crack BP
 };
 
 struct ClapVoiceRuntime {
@@ -23,13 +23,15 @@ struct ClapVoiceRuntime {
     int pitch = 39;
     float velocity = 100.0f;
     double elapsedSec = 0.0;
-    float noiseSeed = 0.789f;
-    int burstCount = 3;
+    uint32_t noiseSeed = 1u;
+    float noiseLp = 0.0f; // pink tilt
+    int burstCount = 4;
     float burstOffsets[5] = {};
-    BiquadCoeffs palmCoeffs{};
-    BiquadCoeffs airCoeffs{};
-    BiquadState palmState{};
-    BiquadState airState{};
+    BiquadCoeffs bpCoeffs{};
+    BiquadCoeffs lpCoeffs{}; // fixed gentle shelf after BP
+    BiquadState bpState{};
+    BiquadState lpState{};
+    float bodyHz = 1000.0f;
     float configuredTone = -1.0f;
     float configuredPitchRatio = -1.0f;
     float configuredSampleRate = 0.0f;
