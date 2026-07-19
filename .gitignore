@@ -49,3 +49,6 @@ fixtures/renders/tmp/
 /debug-*.png
 /debug-*.txt
 /build_log.txt
+
+# On-device audio profile lab captures
+tools/audio_profile_lab/runs/
