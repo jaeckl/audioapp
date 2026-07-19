@@ -4,6 +4,7 @@
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/MidiUtils.hpp"
 #include "audioapp/SamplerFilter.hpp"
+#include "audioapp/SubtractiveOscSimd.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -95,6 +96,20 @@ float renderOscBank(float shape,
 
     const float sync = safe_clamp(syncAmount, 0.0f, 1.0f);
     const bool hardSyncSlave = masterWrapped != nullptr && sync > 0.001f;
+    if (!hardSyncSlave) {
+        float simdSum = 0.0f;
+        if (renderOscBankNoSyncSimd(shape,
+                                    rootHz,
+                                    phaseIncPerUnit,
+                                    unisonCount,
+                                    level,
+                                    phases,
+                                    wrappedOut,
+                                    simdSum)) {
+            return simdSum;
+        }
+    }
+
     float sum = 0.0f;
     for (int u = 0; u < unisonCount; ++u) {
         const float phaseInc = rootHz * phaseIncPerUnit[u];
@@ -157,10 +172,12 @@ float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
     const float spreadCents = params.unisonDetune * 50.0f;
 
     // Refresh precomputed per-unison increments when unison count or detune changes
-    if (unisonCount != voice.cachedUnisonCount) {
+    if (unisonCount != voice.cachedUnisonCount ||
+        std::abs(spreadCents - voice.cachedUnisonSpreadCents) > 0.01f) {
         precomputeBankIncrements(voice.osc1PhaseIncPerUnit, unisonCount, 0.0f, spreadCents, sampleRate);
         precomputeBankIncrements(voice.osc2PhaseIncPerUnit, unisonCount, 0.0f, spreadCents, sampleRate);
         voice.cachedUnisonCount = unisonCount;
+        voice.cachedUnisonSpreadCents = spreadCents;
     }
 
     const float osc1Root =

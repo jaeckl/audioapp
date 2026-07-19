@@ -136,6 +136,106 @@ static void applySubtractiveModulation(SubtractiveSynthParams& p, float modAmoun
     }
 }
 
+static SubtractiveSynthParams heldSubtractiveParamsAtFrame(
+    const SubtractiveSynthParams& base,
+    int heldFrame,
+    double blockStartBeat,
+    double sampleRate,
+    int bpm,
+    bool useAutomation,
+    const AutomationClipPlayback* automationClips,
+    int automationClipCount,
+    const uint16_t* automationDeviceIndex,
+    bool useModulation,
+    const float* lfoValues,
+    int lfoCount,
+    int lfoStride,
+    const ModulationEdgePlayback* modEdges,
+    int modEdgeCount,
+    const uint16_t* modulationDeviceIndex,
+    const InstrumentModulationContext* instMod) noexcept {
+    SubtractiveSynthParams held = base;
+    const double beat = beatAtFrame(blockStartBeat, heldFrame, sampleRate, bpm);
+    if (useAutomation) {
+        DeviceVariantParams variant = held;
+        applyDspAutomationAtBeat(variant,
+                                 DeviceNodeKind::SubtractiveSynth,
+                                 *automationDeviceIndex,
+                                 beat,
+                                 automationClips,
+                                 automationClipCount);
+        if (const auto* automated = std::get_if<SubtractiveSynthParams>(&variant)) {
+            held = *automated;
+        }
+    }
+    if (useModulation && instMod != nullptr) {
+        DeviceVariantParams variant = held;
+        applyGlobalDspModulationAtFrame(variant,
+                                        DeviceNodeKind::SubtractiveSynth,
+                                        instMod->deviceIndex,
+                                        heldFrame,
+                                        lfoStride,
+                                        *instMod);
+        if (const auto* modulated = std::get_if<SubtractiveSynthParams>(&variant)) {
+            held = *modulated;
+        }
+    } else if (useModulation) {
+        for (int e = 0; e < modEdgeCount; ++e) {
+            const ModulationEdgePlayback& edge = modEdges[e];
+            if (edge.deviceIndex != *modulationDeviceIndex) continue;
+            if (edge.lfoId >= static_cast<uint16_t>(lfoCount)) continue;
+            const uint16_t pid = edge.localParamId;
+            if (pid == kEncodedCommonGain ||
+                pid == kEncodedCommonPan ||
+                pid == kEncodedCommonBypass) {
+                continue;
+            }
+            const float lfoOut = lfoValues[static_cast<size_t>(edge.lfoId) *
+                                              static_cast<size_t>(lfoStride) +
+                                              static_cast<size_t>(heldFrame)];
+            const float modAmount = edge.amount * lfoOut;
+            applySubtractiveModulation(held, modAmount, pid);
+        }
+    }
+    return held;
+}
+
+static int resolveVoiceNoteIndex(const SubtractiveVoiceRuntime& voice,
+                                 const SubtractiveMidiNoteRegion* notes,
+                                 int noteCount) noexcept {
+    int ni = voice.noteKey;
+    if (ni >= 0 && ni < noteCount &&
+        notes[ni].pitch == voice.pitch &&
+        notes[ni].noteStartBeat == voice.startBeat &&
+        notes[ni].clipStartBeat == voice.clipStartBeat) {
+        return ni;
+    }
+    for (int n = 0; n < noteCount; ++n) {
+        if (notes[n].pitch == voice.pitch && notes[n].noteStartBeat == voice.startBeat &&
+            notes[n].clipStartBeat == voice.clipStartBeat) {
+            return n;
+        }
+    }
+    return -1;
+}
+
+static int activeMonoPitchAtBeat(const SubtractiveMidiNoteRegion* notes,
+                                 int noteCount,
+                                 double beat,
+                                 int bpm,
+                                 float ampReleaseSec) noexcept {
+    for (int ni = noteCount - 1; ni >= 0; --ni) {
+        double elapsedSec = 0.0;
+        double noteDurSec = 0.0;
+        bool inRelease = false;
+        if (isSubtractiveNoteAudible(notes[ni], beat, bpm, ampReleaseSec,
+                                     elapsedSec, noteDurSec, inRelease)) {
+            return notes[ni].pitch;
+        }
+    }
+    return -1;
+}
+
 } // anonymous namespace
 
 // mixSubtractiveMidiNotesBlock is at audioapp namespace scope so it remains
@@ -241,6 +341,7 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
             voice.pitch = notes[ni].pitch;
             voice.startBeat = notes[ni].noteStartBeat;
             voice.clipStartBeat = notes[ni].clipStartBeat;
+            voice.noteKey = ni;
             voice.velocity = notes[ni].velocity;
             voice.targetHz = subtractiveOscPitchHz(notes[ni].pitch, 0.5f, 0.0f, 0.5f);
             voice.currentHz = glideFromPreviousVoice ? previousHz : voice.targetHz;
@@ -260,92 +361,36 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
     }
     if (!anyVoiceActive) return;
 
-    // --- Phase 2: Per-frame rendering ---
-    for (int frame = 0; frame < numFrames; ++frame) {
+    const bool needsHeldParams = useAutomation || useModulation;
+
+    auto renderFrame = [&](int frame, const SubtractiveSynthParams& heldParams, int activeMonoPitch) {
         const double beat = beatAtFrame(blockStartBeat, frame, sampleRate, bpm);
-
-        SubtractiveSynthParams frameParams = params;
-        if (useAutomation) {
-            DeviceVariantParams variant = frameParams;
-            applyDspAutomationAtBeat(variant,
-                                     DeviceNodeKind::SubtractiveSynth,
-                                     *automationDeviceIndex,
-                                     beat,
-                                     automationClips,
-                                     automationClipCount);
-            if (const auto* automated = std::get_if<SubtractiveSynthParams>(&variant)) {
-                frameParams = *automated;
-            }
-        }
-        if (useModulation && instMod != nullptr) {
-            DeviceVariantParams variant = frameParams;
-            applyGlobalDspModulationAtFrame(variant,
-                                            DeviceNodeKind::SubtractiveSynth,
-                                            instMod->deviceIndex,
-                                            frame,
-                                            lfoStride,
-                                            *instMod);
-            if (const auto* automated = std::get_if<SubtractiveSynthParams>(&variant)) {
-                frameParams = *automated;
-            }
-        } else if (useModulation) {
-            for (int e = 0; e < modEdgeCount; ++e) {
-                const ModulationEdgePlayback& edge = modEdges[e];
-                if (edge.deviceIndex != *modulationDeviceIndex) continue;
-                if (edge.lfoId >= static_cast<uint16_t>(lfoCount)) continue;
-                const uint16_t pid = edge.localParamId;
-                if (pid == kEncodedCommonGain ||
-                    pid == kEncodedCommonPan ||
-                    pid == kEncodedCommonBypass) {
-                    continue;
-                }
-                const float lfoOut = lfoValues[static_cast<size_t>(edge.lfoId) *
-                                                  static_cast<size_t>(lfoStride) +
-                                                  static_cast<size_t>(frame)];
-                const float modAmount = edge.amount * lfoOut;
-                applySubtractiveModulation(frameParams, modAmount, pid);
-            }
-        }
-
         float mix = 0.0f;
         int renderedCount = 0;
-
-        int activeMonoPitch = -1;
-        if (frameParams.synthMono >= 0.5f) {
-            for (int ni = noteCount - 1; ni >= 0; --ni) {
-                double elapsedSec = 0.0, noteDurSec = 0.0;
-                bool inRelease = false;
-                if (isSubtractiveNoteAudible(notes[ni], beat, bpm, ampReleaseSec,
-                                              elapsedSec, noteDurSec, inRelease)) {
-                    activeMonoPitch = notes[ni].pitch;
-                    break;
-                }
-            }
-        }
 
         for (int v = 0; v < maxVoices; ++v) {
             auto& voice = runtime.voices[v];
             if (voice.active == 0) continue;
 
-            if (frameParams.synthMono >= 0.5f && voice.pitch != activeMonoPitch) {
+            if (heldParams.synthMono >= 0.5f && voice.pitch != activeMonoPitch) {
                 if (activeMonoPitch >= 0) {
                     voice.active = 0;
                 }
                 continue;
             }
 
-            int ni = -1;
-            for (int n = 0; n < noteCount; ++n) {
-                if (notes[n].pitch == voice.pitch && notes[n].noteStartBeat == voice.startBeat &&
-                    notes[n].clipStartBeat == voice.clipStartBeat) { ni = n; break; }
-            }
+            int ni = resolveVoiceNoteIndex(voice, notes, noteCount);
             if (ni < 0) continue;
+            if (ni != voice.noteKey) {
+                voice.noteKey = ni;
+            }
 
             const auto& note = notes[ni];
-            double elapsedSec = 0.0, noteDurSec = 0.0;
+            double elapsedSec = 0.0;
+            double noteDurSec = 0.0;
             bool inRelease = false;
             if (!isSubtractiveNoteAudible(note, beat, bpm, ampReleaseSec,
-                                           elapsedSec, noteDurSec, inRelease)) {
+                                          elapsedSec, noteDurSec, inRelease)) {
                 if (inRelease && elapsedSec >= noteDurSec + static_cast<double>(ampReleaseSec)) {
                     voice.active = 0;
                 }
@@ -368,9 +413,9 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
                                                      filterAttackSec, filterDecaySec,
                                                      filterSustain, filterReleaseSec);
             const float vel = safe_clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
-            const float velGain = 1.0f - frameParams.velocitySensitivity * (1.0f - vel);
+            const float velGain = 1.0f - heldParams.velocitySensitivity * (1.0f - vel);
 
-            SubtractiveSynthParams voiceParams = frameParams;
+            SubtractiveSynthParams voiceParams = heldParams;
             float panelGain = commonControls != nullptr
                 ? commonControls->gainAt(frame)
                 : (perFramePanelGain != nullptr ? perFramePanelGain[frame] : 1.0f);
@@ -400,9 +445,9 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
             }
 
             mix += subtractiveVoiceSample(voice, voiceParams,
-                                           ampGain * velGain,
-                                           filterGain,
-                                           sampleRate, glideCoeff) *
+                                          ampGain * velGain,
+                                          filterGain,
+                                          sampleRate, glideCoeff) *
                    voiceParams.gain * panelGain * kInstrumentOutputGain;
 
             if (inRelease && elapsedSec >= noteDurSec + static_cast<double>(ampReleaseSec)) {
@@ -415,6 +460,52 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
             mix *= 1.0f / std::sqrt(static_cast<float>(renderedCount));
         }
         monoOut[frame] += mix;
+    };
+
+    if (!needsHeldParams) {
+        for (int frame = 0; frame < numFrames; ++frame) {
+            int activeMonoPitch = -1;
+            if (params.synthMono >= 0.5f) {
+                activeMonoPitch = activeMonoPitchAtBeat(
+                    notes, noteCount, beatAtFrame(blockStartBeat, frame, sampleRate, bpm),
+                    bpm, ampReleaseSec);
+            }
+            renderFrame(frame, params, activeMonoPitch);
+        }
+        return;
+    }
+
+    for (int sub = 0; sub < numFrames; sub += kSubtractiveControlSubBlockFrames) {
+        const int subLen = std::min(kSubtractiveControlSubBlockFrames, numFrames - sub);
+        const SubtractiveSynthParams heldParams = heldSubtractiveParamsAtFrame(
+            params,
+            sub,
+            blockStartBeat,
+            sampleRate,
+            bpm,
+            useAutomation,
+            automationClips,
+            automationClipCount,
+            automationDeviceIndex,
+            useModulation,
+            lfoValues,
+            lfoCount,
+            lfoStride,
+            modEdges,
+            modEdgeCount,
+            modulationDeviceIndex,
+            instMod);
+
+        int activeMonoPitch = -1;
+        if (heldParams.synthMono >= 0.5f) {
+            activeMonoPitch = activeMonoPitchAtBeat(
+                notes, noteCount, beatAtFrame(blockStartBeat, sub, sampleRate, bpm),
+                bpm, ampReleaseSec);
+        }
+
+        for (int frame = sub; frame < sub + subLen; ++frame) {
+            renderFrame(frame, heldParams, activeMonoPitch);
+        }
     }
 }
 
@@ -427,7 +518,7 @@ void SubtractiveSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) 
     for (int i = 0; i < regionCount; ++i) {
         const MidiPlaybackNote& note = ctx.notes[i];
         ctx.scratch.subtractiveRegions[i] = SubtractiveMidiNoteRegion{
-            note.pitch, note.pitch,
+            note.pitch, i,
             note.clipStartBeat, note.clipLengthBeats,
             note.noteStartBeat, note.noteDurationBeats, note.velocity,
             note.loopContent, note.contentLengthBeats
@@ -477,7 +568,7 @@ void BassSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcep
     for (int i = 0; i < regionCount; ++i) {
         const MidiPlaybackNote& note = ctx.notes[i];
         ctx.scratch.subtractiveRegions[i] = SubtractiveMidiNoteRegion{
-            note.pitch, note.pitch,
+            note.pitch, i,
             note.clipStartBeat, note.clipLengthBeats,
             note.noteStartBeat, note.noteDurationBeats, note.velocity,
             note.loopContent, note.contentLengthBeats

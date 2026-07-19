@@ -81,6 +81,7 @@ struct SubtractiveVoiceRuntime {
     float osc1PhaseIncPerUnit[kSubtractiveMaxUnison]{};
     float osc2PhaseIncPerUnit[kSubtractiveMaxUnison]{};
     int cachedUnisonCount = 0;
+    float cachedUnisonSpreadCents = -1.0f;
     // Cached key-track ratio (recomputed on note-on or param change)
     float cachedKeyTrackRatio = 1.0f;
     // Cached filter coefficients to avoid per-sample cookSamplerBiquad
