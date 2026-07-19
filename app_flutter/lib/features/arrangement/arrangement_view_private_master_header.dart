@@ -8,7 +8,6 @@ class _MasterHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Tooltip(
       message: master.name,
       child: Semantics(
@@ -18,14 +17,14 @@ class _MasterHeader extends StatelessWidget {
           height: ArrangementTimelineMetrics.trackLaneHeight,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: const Color(0xFF2A2418),
+            color: ArrangementTheme.masterHeader,
             border: Border(
-              top: BorderSide(color: Colors.amber.withValues(alpha: 0.35)),
-              right: BorderSide(color: Colors.white.withValues(alpha: 0.04)),
+              top: BorderSide(color: ArrangementTheme.masterBorder),
+              right: const BorderSide(color: ArrangementTheme.border),
             ),
           ),
           child: Icon(Icons.speaker_outlined,
-              size: 22, color: theme.colorScheme.secondary),
+              size: 22, color: ArrangementTheme.masterIcon),
         ),
       ),
     );

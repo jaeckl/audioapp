@@ -10,7 +10,7 @@ Future<void> _showClipMenu(String clipId) async {
     final loopContent = _clipLoopContent(clipId);
     final action = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: const Color(0xFF1A1A22),
+      backgroundColor: ArrangementTheme.menuBackground,
       showDragHandle: true,
       builder: (context) => SafeArea(
         child: Column(

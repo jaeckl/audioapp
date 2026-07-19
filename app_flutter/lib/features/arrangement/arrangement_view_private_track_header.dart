@@ -37,125 +37,163 @@ class _TrackHeader extends StatelessWidget {
   final VoidCallback? onToggleCollapsed;
   final GestureLongPressStartCallback? onLongPressStart;
 
-  Widget _groupChevron(ThemeData theme) {
+  Widget _groupChevron() {
     if (onToggleCollapsed == null) return const SizedBox.shrink();
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onToggleCollapsed,
       child: SizedBox(
-        width: 15,
+        width: 18,
         child: Icon(
           collapsed ? Icons.chevron_right : Icons.expand_more,
-          size: 15,
-          color: Colors.white70,
+          size: 16,
+          color: ArrangementTheme.textMuted,
         ),
+      ),
+    );
+  }
+
+  Widget _mixRow() {
+    const gap = 4.0;
+    const h = ArrangementTimelineMetrics.mixButtonHeight;
+    final buttons = <Widget>[
+      if (onToggleRecordArmed != null)
+        Expanded(
+          child: TrackMixButton(
+            tooltip: 'Record arm',
+            icon: Icons.circle,
+            active: recordArmed,
+            onTap: onToggleRecordArmed!,
+            color: Colors.redAccent,
+            height: h,
+          ),
+        ),
+      if (onToggleSolo != null)
+        Expanded(
+          child: TrackMixButton(
+            tooltip: 'Solo',
+            icon: Icons.headphones,
+            active: track.soloed,
+            onTap: onToggleSolo!,
+            color: Colors.amber,
+            height: h,
+          ),
+        ),
+      if (onToggleMute != null)
+        Expanded(
+          child: TrackMixButton(
+            tooltip: 'Mute',
+            icon: Icons.volume_off,
+            active: track.muted,
+            onTap: onToggleMute!,
+            color: Colors.redAccent,
+            height: h,
+          ),
+        ),
+      if (onToggleFreeze != null)
+        Expanded(
+          child: Stack(
+            fit: StackFit.expand,
+            clipBehavior: Clip.none,
+            children: [
+              TrackMixButton(
+                tooltip: 'Freeze',
+                icon: Icons.ac_unit,
+                active: track.freeze.enabled,
+                onTap: onToggleFreeze!,
+                color: track.freeze.stale
+                    ? Colors.amber
+                    : const Color(0xFF8EB4FF),
+                height: h,
+              ),
+              if (track.freeze.enabled && track.freeze.stale)
+                const Positioned(
+                  right: 2,
+                  top: 2,
+                  child: Icon(
+                    Icons.circle,
+                    size: 7,
+                    color: Colors.amberAccent,
+                  ),
+                ),
+            ],
+          ),
+        ),
+    ];
+    if (buttons.isEmpty) return const SizedBox.shrink();
+    return SizedBox(
+      height: h,
+      child: Row(
+        children: [
+          for (var i = 0; i < buttons.length; i++) ...[
+            if (i > 0) const SizedBox(width: gap),
+            buttons[i],
+          ],
+        ],
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final icon = TrackLaneIcon.iconForTrack(track, index);
     final iconColor = track.isGroup
-        ? Colors.amber.shade200
+        ? ArrangementTheme.masterIcon
         : selected
-            ? theme.colorScheme.primary
-            : Colors.white70;
+            ? ArrangementTheme.textPrimary
+            : ArrangementTheme.textMuted;
+
+    final nameRow = Row(
+      children: [
+        _groupChevron(),
+        Icon(icon, size: 18, color: iconColor),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            track.name,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            style: const TextStyle(
+              color: ArrangementTheme.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              height: 1.1,
+            ),
+          ),
+        ),
+      ],
+    );
 
     final lane = Material(
-      color: selected ? const Color(0xFF2D2D3A) : Colors.transparent,
+      color: selected ? ArrangementTheme.headerSelected : Colors.transparent,
       child: Container(
         width: headerWidth,
         height: ArrangementTimelineMetrics.trackLaneHeight,
-        padding: EdgeInsets.only(
-          left: track.parentGroupId.isNotEmpty ? 4 : 2,
-          right: showMixControls ? 4 : 0,
-        ),
-        decoration: BoxDecoration(
+        padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
+        clipBehavior: Clip.hardEdge,
+        decoration: const BoxDecoration(
           border: Border(
-            bottom: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
-            right: BorderSide(color: Colors.white.withValues(alpha: 0.04)),
+            bottom: BorderSide(color: ArrangementTheme.divider),
+            right: BorderSide(color: ArrangementTheme.border),
           ),
         ),
+        // BoxDecoration borders inset the child (bottom 1px), so name row
+        // must flex — fixed 28+4+30 overflows the padded lane by 1.
         child: showMixControls
-            ? Row(
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _groupChevron(theme),
                   Expanded(
                     child: InkWell(
                       onTap: onTap,
-                      child: Row(
-                        children: [
-                          Icon(icon, size: 20, color: iconColor),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              track.name,
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.92),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: nameRow,
                       ),
                     ),
                   ),
-                  if (onToggleRecordArmed != null) ...[
-                    TrackMixButton(
-                      label: 'R',
-                      active: recordArmed,
-                      onTap: onToggleRecordArmed!,
-                      color: Colors.redAccent,
-                    ),
-                    const SizedBox(width: 4),
-                  ],
-                  if (onToggleSolo != null) ...[
-                    TrackMixButton(
-                      label: 'S',
-                      active: track.soloed,
-                      onTap: onToggleSolo!,
-                      color: Colors.amber,
-                    ),
-                    const SizedBox(width: 4),
-                  ],
-                  if (onToggleMute != null)
-                    TrackMixButton(
-                      label: 'M',
-                      active: track.muted,
-                      onTap: onToggleMute!,
-                      color: Colors.redAccent,
-                    ),
-                  if (onToggleFreeze != null) ...[
-                    const SizedBox(width: 4),
-                    Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        TrackMixButton(
-                          label: 'F',
-                          active: track.freeze.enabled,
-                          onTap: onToggleFreeze!,
-                          color: track.freeze.stale
-                              ? Colors.amber
-                              : const Color(0xFF8EB4FF),
-                        ),
-                        if (track.freeze.enabled && track.freeze.stale)
-                          const Positioned(
-                            right: -1,
-                            top: -1,
-                            child: Icon(
-                              Icons.circle,
-                              size: 7,
-                              color: Colors.amberAccent,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
+                  const SizedBox(height: 4),
+                  _mixRow(),
                 ],
               )
             : InkWell(
@@ -165,18 +203,18 @@ class _TrackHeader extends StatelessWidget {
                   children: [
                     if (track.parentGroupId.isNotEmpty)
                       Positioned(
-                        left: 3,
+                        left: 0,
                         top: 0,
                         bottom: 0,
                         child: Container(
                           width: 2,
-                          color:
-                              theme.colorScheme.primary.withValues(alpha: 0.45),
+                          color: ArrangementTheme.masterIcon
+                              .withValues(alpha: 0.55),
                         ),
                       ),
                     Padding(
                       padding: EdgeInsets.only(
-                        left: track.parentGroupId.isNotEmpty ? 7 : 0,
+                        left: track.parentGroupId.isNotEmpty ? 6 : 0,
                       ),
                       child: Icon(icon, size: 22, color: iconColor),
                     ),
@@ -185,7 +223,7 @@ class _TrackHeader extends StatelessWidget {
                         left: 0,
                         top: 0,
                         bottom: 0,
-                        child: _groupChevron(theme),
+                        child: _groupChevron(),
                       ),
                   ],
                 ),

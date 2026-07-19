@@ -28,16 +28,14 @@ class _AddTrackHeader extends StatelessWidget {
               width: width,
               height: ArrangementTimelineMetrics.trackLaneHeight,
               alignment: Alignment.center,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 border: Border(
-                  bottom:
-                      BorderSide(color: Colors.white.withValues(alpha: 0.06)),
-                  right:
-                      BorderSide(color: Colors.white.withValues(alpha: 0.04)),
+                  bottom: BorderSide(color: ArrangementTheme.divider),
+                  right: BorderSide(color: ArrangementTheme.border),
                 ),
               ),
-              child: Icon(Icons.add,
-                  size: 24, color: Colors.white.withValues(alpha: 0.5)),
+              child: const Icon(Icons.add,
+                  size: 24, color: ArrangementTheme.textMuted),
             ),
           ),
         ),

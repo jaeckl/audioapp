@@ -20,7 +20,7 @@ Future<void> _showTrackPopupMenu(
     final action = await showMenu<String>(
       context: context,
       position: menuPosition,
-      color: const Color(0xFF1A1A22),
+      color: ArrangementTheme.menuBackground,
       items: [
         if (!track.isGroup && !track.freeze.enabled)
           const PopupMenuItem(

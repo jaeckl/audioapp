@@ -1,44 +1,56 @@
 import 'package:flutter/material.dart';
 
-import '../play/play_deck_theme.dart';
+import 'arrangement_theme.dart';
 
+/// Mix control chip for track headers (record / solo / mute / freeze).
 class TrackMixButton extends StatelessWidget {
   const TrackMixButton({
     super.key,
-    required this.label,
     required this.active,
     required this.onTap,
     required this.color,
-  });
+    this.label,
+    this.icon,
+    this.height = 32,
+    this.tooltip,
+  }) : assert(label != null || icon != null);
 
-  final String label;
+  final String? label;
+  final IconData? icon;
   final bool active;
   final VoidCallback onTap;
   final Color color;
+  final double height;
+  final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: active ? color : const Color(0xFF1C1C20),
-      borderRadius: BorderRadius.circular(4),
+    final fg = active ? Colors.black : ArrangementTheme.textPrimary;
+    final button = Material(
+      color: active ? color : ArrangementTheme.mixButtonIdle,
+      borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(8),
         child: SizedBox(
-          width: 22,
-          height: 22,
+          height: height,
+          width: double.infinity,
           child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: active ? Colors.black : PlayDeckTheme.optionLabel,
-              ),
-            ),
+            child: icon != null
+                ? Icon(icon, size: height * 0.55, color: fg)
+                : Text(
+                    label!,
+                    style: TextStyle(
+                      fontSize: height * 0.38,
+                      fontWeight: FontWeight.w700,
+                      color: fg,
+                    ),
+                  ),
           ),
         ),
       ),
     );
+    if (tooltip == null) return button;
+    return Tooltip(message: tooltip!, child: button);
   }
 }

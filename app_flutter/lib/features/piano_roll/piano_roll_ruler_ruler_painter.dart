@@ -7,6 +7,8 @@ class _RulerPainter extends CustomPainter {
     required this.regionStartBeat,
     required this.highlightColor,
     required this.pixelsPerBeat,
+    this.backgroundColor,
+    this.idlePillColor,
   });
 
   final int barCount;
@@ -14,6 +16,8 @@ class _RulerPainter extends CustomPainter {
   final double regionStartBeat;
   final Color? highlightColor;
   final double pixelsPerBeat;
+  final Color? backgroundColor;
+  final Color? idlePillColor;
 
   static const double _laneInset = 3.0;
   static const double _laneVInset = 4.0;
@@ -24,7 +28,8 @@ class _RulerPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (size.width <= 0 || size.height <= 0) return;
 
-    final bgPaint = Paint()..color = PianoRollTheme.rulerBackground;
+    final bgPaint =
+        Paint()..color = backgroundColor ?? PianoRollTheme.rulerBackground;
     canvas.drawRect(Offset.zero & size, bgPaint);
 
     final barHeight = size.height - _laneVInset * 2;
@@ -40,7 +45,8 @@ class _RulerPainter extends CustomPainter {
     final radius = const Radius.circular(4);
     final accent = highlightColor ?? PianoRollTheme.accent;
     final activeFill = Paint()..color = accent.withValues(alpha: 0.28);
-    final idleFill = Paint()..color = const Color(0xFF22222A);
+    final idleFill =
+        Paint()..color = idlePillColor ?? const Color(0xFF22222A);
     final activeEdge = Paint()..color = accent.withValues(alpha: 0.18);
 
     if (regionEndPx - regionStartPx >= _minLaneWidth) {
@@ -118,6 +124,8 @@ class _RulerPainter extends CustomPainter {
         oldDelegate.clipLengthBeats != clipLengthBeats ||
         oldDelegate.regionStartBeat != regionStartBeat ||
         oldDelegate.highlightColor != highlightColor ||
-        oldDelegate.pixelsPerBeat != pixelsPerBeat;
+        oldDelegate.pixelsPerBeat != pixelsPerBeat ||
+        oldDelegate.backgroundColor != backgroundColor ||
+        oldDelegate.idlePillColor != idlePillColor;
   }
 }
