@@ -94,7 +94,9 @@ void mixClapMidiNotesBlock(float* monoOut,
             runtime.lastNoteKey = -1;
             continue;
         }
-        if (runtime.lastNoteKey != activeNoteKey || runtime.voice.active == 0) {
+        if (runtime.lastNoteKey != activeNoteKey || runtime.voice.active == 0 ||
+            runtime.voice.pitch != activePitch) {
+            // Retrigger on pitch change so piano-roll note swaps retune immediately.
             triggerClapVoice(runtime.voice, activePitch, activeVelocity, params);
             runtime.lastNoteKey = activeNoteKey;
         }
