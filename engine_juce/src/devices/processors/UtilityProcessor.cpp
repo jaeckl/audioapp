@@ -14,11 +14,10 @@ void UtilityProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept 
     }
 
     const float trim = std::clamp(p.utilTrim, 0.0f, 1.0f);
-    const bool mono = p.utilMono >= 0.5f;
+    const float width = std::clamp(p.utilWidth, 0.0f, 1.0f);
     const bool swap = p.utilSwap >= 0.5f;
-    const float pol = std::clamp(p.utilPolarity, 0.0f, 1.0f);
-    const bool invertL = (pol > 0.16f && pol < 0.5f) || pol >= 0.83f;
-    const bool invertR = pol >= 0.5f;
+    const bool invertL = p.utilInvertL >= 0.5f;
+    const bool invertR = p.utilInvertR >= 0.5f;
     const bool autopan = p.utilAutopan >= 0.5f;
     const float rateHz = 0.1f + std::clamp(p.utilAutopanRate, 0.0f, 1.0f) * 7.9f;
     const float depth = std::clamp(p.utilAutopanDepth, 0.0f, 1.0f);
@@ -28,10 +27,12 @@ void UtilityProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept 
     for (int i = 0; i < n; ++i) {
         float l = block.channelL[i];
         float r = block.channelR[i];
-        if (mono) {
-            const float m = 0.5f * (l + r);
-            l = m;
-            r = m;
+        // Mid/side width: 0 = mono sum, 1 = untouched stereo.
+        {
+            const float mid = 0.5f * (l + r);
+            const float side = 0.5f * (l - r);
+            l = mid + width * side;
+            r = mid - width * side;
         }
         if (swap) {
             const float t = l;

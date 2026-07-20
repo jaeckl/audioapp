@@ -450,13 +450,14 @@ enum class DuckerParam : uint16_t {
 };
 
 enum class UtilityParam : uint16_t {
-    Mono = 0,
-    Polarity = 1,
+    Width = 0,
+    InvertL = 1,
     Swap = 2,
     Trim = 3,
     Autopan = 4,
     AutopanRate = 5,
     AutopanDepth = 6,
+    InvertR = 7,
 };
 
 enum class ChorusParam : uint16_t {

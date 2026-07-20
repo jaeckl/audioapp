@@ -9,6 +9,27 @@
 
 namespace audioapp {
 
+namespace {
+
+void migrateLegacyPolarity(UtilityModel& inst, float pol) {
+    // Legacy: 0=off, ~0.33=L, ~0.66=R, 1=both
+    if (pol >= 0.83f) {
+        inst.utilInvertL = 1.0f;
+        inst.utilInvertR = 1.0f;
+    } else if (pol >= 0.5f) {
+        inst.utilInvertL = 0.0f;
+        inst.utilInvertR = 1.0f;
+    } else if (pol >= 0.16f) {
+        inst.utilInvertL = 1.0f;
+        inst.utilInvertR = 0.0f;
+    } else {
+        inst.utilInvertL = 0.0f;
+        inst.utilInvertR = 0.0f;
+    }
+}
+
+} // namespace
+
 DeviceSlot UtilityDeviceType::createDefault(const std::string& deviceId) const {
     DeviceSlot slot;
     slot.id = deviceId;
@@ -35,11 +56,12 @@ DeviceParameterResult UtilityDeviceType::setParameter(DeviceSlot& slot,
         return result;
     }
     switch (static_cast<UtilityParam>(id)) {
-    case UtilityParam::Mono: instance.utilMono = clamped; break;
-    case UtilityParam::Polarity: instance.utilPolarity = clamped; break;
-    case UtilityParam::Swap: instance.utilSwap = clamped; break;
+    case UtilityParam::Width: instance.utilWidth = clamped; break;
+    case UtilityParam::InvertL: instance.utilInvertL = clamped >= 0.5f ? 1.0f : 0.0f; break;
+    case UtilityParam::InvertR: instance.utilInvertR = clamped >= 0.5f ? 1.0f : 0.0f; break;
+    case UtilityParam::Swap: instance.utilSwap = clamped >= 0.5f ? 1.0f : 0.0f; break;
     case UtilityParam::Trim: instance.utilTrim = clamped; break;
-    case UtilityParam::Autopan: instance.utilAutopan = clamped; break;
+    case UtilityParam::Autopan: instance.utilAutopan = clamped >= 0.5f ? 1.0f : 0.0f; break;
     case UtilityParam::AutopanRate: instance.utilAutopanRate = clamped; break;
     case UtilityParam::AutopanDepth: instance.utilAutopanDepth = clamped; break;
     default: return result;
@@ -54,7 +76,7 @@ bool UtilityDeviceType::setStringParameter(DeviceSlot&, std::string_view, const 
 }
 
 std::vector<std::string_view> UtilityDeviceType::modulatableParams() const {
-    return {"utilMono", "utilPolarity", "utilSwap", "utilTrim", "utilAutopan",
+    return {"utilWidth", "utilInvertL", "utilInvertR", "utilSwap", "utilTrim", "utilAutopan",
             "utilAutopanRate", "utilAutopanDepth"};
 }
 
@@ -72,8 +94,9 @@ bool UtilityDeviceType::buildLiveInstrument(const DeviceSlot&, const PlaybackBui
 juce::var UtilityDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
     const auto& inst = std::get<UtilityModel>(slot.config.instance);
-    parameters->setProperty("utilMono", static_cast<double>(inst.utilMono));
-    parameters->setProperty("utilPolarity", static_cast<double>(inst.utilPolarity));
+    parameters->setProperty("utilWidth", static_cast<double>(inst.utilWidth));
+    parameters->setProperty("utilInvertL", static_cast<double>(inst.utilInvertL));
+    parameters->setProperty("utilInvertR", static_cast<double>(inst.utilInvertR));
     parameters->setProperty("utilSwap", static_cast<double>(inst.utilSwap));
     parameters->setProperty("utilTrim", static_cast<double>(inst.utilTrim));
     parameters->setProperty("utilAutopan", static_cast<double>(inst.utilAutopan));
@@ -112,11 +135,22 @@ DeviceSlot UtilityDeviceType::varToSlot(const juce::var& obj) const {
                     return static_cast<float>(static_cast<double>(v));
                 return fallback;
             };
-            inst.utilMono = read("utilMono", 0.0f);
-            inst.utilPolarity = read("utilPolarity", 0.0f);
-            inst.utilSwap = read("utilSwap", 0.0f);
+            if (p->hasProperty("utilWidth")) {
+                inst.utilWidth = read("utilWidth", 1.0f);
+            } else if (p->hasProperty("utilMono")) {
+                inst.utilWidth = read("utilMono", 0.0f) >= 0.5f ? 0.0f : 1.0f;
+            } else {
+                inst.utilWidth = 1.0f;
+            }
+            if (p->hasProperty("utilInvertL") || p->hasProperty("utilInvertR")) {
+                inst.utilInvertL = read("utilInvertL", 0.0f) >= 0.5f ? 1.0f : 0.0f;
+                inst.utilInvertR = read("utilInvertR", 0.0f) >= 0.5f ? 1.0f : 0.0f;
+            } else if (p->hasProperty("utilPolarity")) {
+                migrateLegacyPolarity(inst, read("utilPolarity", 0.0f));
+            }
+            inst.utilSwap = read("utilSwap", 0.0f) >= 0.5f ? 1.0f : 0.0f;
             inst.utilTrim = read("utilTrim", 1.0f);
-            inst.utilAutopan = read("utilAutopan", 0.0f);
+            inst.utilAutopan = read("utilAutopan", 0.0f) >= 0.5f ? 1.0f : 0.0f;
             inst.utilAutopanRate = read("utilAutopanRate", 0.35f);
             inst.utilAutopanDepth = read("utilAutopanDepth", 0.5f);
             slot.config.instance = inst;
@@ -132,8 +166,10 @@ DeviceProcessor* UtilityDeviceType::createProcessor(ProcessorArena& arena) const
 DeviceNodeKind UtilityDeviceType::kind() const noexcept { return DeviceNodeKind::Utility; }
 
 uint16_t UtilityDeviceType::paramIdFromString(std::string_view name) const noexcept {
-    if (name == "utilMono") return static_cast<uint16_t>(UtilityParam::Mono);
-    if (name == "utilPolarity") return static_cast<uint16_t>(UtilityParam::Polarity);
+    if (name == "utilWidth" || name == "utilMono")
+        return static_cast<uint16_t>(UtilityParam::Width);
+    if (name == "utilInvertL") return static_cast<uint16_t>(UtilityParam::InvertL);
+    if (name == "utilInvertR") return static_cast<uint16_t>(UtilityParam::InvertR);
     if (name == "utilSwap") return static_cast<uint16_t>(UtilityParam::Swap);
     if (name == "utilTrim") return static_cast<uint16_t>(UtilityParam::Trim);
     if (name == "utilAutopan") return static_cast<uint16_t>(UtilityParam::Autopan);
@@ -144,8 +180,9 @@ uint16_t UtilityDeviceType::paramIdFromString(std::string_view name) const noexc
 
 std::string_view UtilityDeviceType::paramIdToString(uint16_t localId) const noexcept {
     switch (static_cast<UtilityParam>(localId)) {
-    case UtilityParam::Mono: return "utilMono";
-    case UtilityParam::Polarity: return "utilPolarity";
+    case UtilityParam::Width: return "utilWidth";
+    case UtilityParam::InvertL: return "utilInvertL";
+    case UtilityParam::InvertR: return "utilInvertR";
     case UtilityParam::Swap: return "utilSwap";
     case UtilityParam::Trim: return "utilTrim";
     case UtilityParam::Autopan: return "utilAutopan";
@@ -157,8 +194,9 @@ std::string_view UtilityDeviceType::paramIdToString(uint16_t localId) const noex
 
 std::span<const ParamDescriptor> UtilityDeviceType::paramDescriptors() const noexcept {
     static constexpr ParamDescriptor kParams[] = {
-        {static_cast<uint16_t>(UtilityParam::Mono), "utilMono", "Mono", 0.0f, 0.0f, 1.0f, true, false},
-        {static_cast<uint16_t>(UtilityParam::Polarity), "utilPolarity", "Polarity", 0.0f, 0.0f, 1.0f, true, false},
+        {static_cast<uint16_t>(UtilityParam::Width), "utilWidth", "Width", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(UtilityParam::InvertL), "utilInvertL", "L-", 0.0f, 0.0f, 1.0f, true, false},
+        {static_cast<uint16_t>(UtilityParam::InvertR), "utilInvertR", "R-", 0.0f, 0.0f, 1.0f, true, false},
         {static_cast<uint16_t>(UtilityParam::Swap), "utilSwap", "Swap", 0.0f, 0.0f, 1.0f, true, false},
         {static_cast<uint16_t>(UtilityParam::Trim), "utilTrim", "Trim", 1.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(UtilityParam::Autopan), "utilAutopan", "Autopan", 0.0f, 0.0f, 1.0f, true, false},

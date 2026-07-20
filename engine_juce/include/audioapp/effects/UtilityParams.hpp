@@ -5,8 +5,10 @@
 namespace audioapp {
 
 struct UtilityParams {
-    float utilMono = 0.0f;
-    float utilPolarity = 0.0f; // 0 off, 0.33 L, 0.66 R, 1 both
+    /// 0 = mono sum, 1 = full stereo (mid/side width).
+    float utilWidth = 1.0f;
+    float utilInvertL = 0.0f;
+    float utilInvertR = 0.0f;
     float utilSwap = 0.0f;
     float utilTrim = 1.0f;
     float utilAutopan = 0.0f;
@@ -15,8 +17,9 @@ struct UtilityParams {
 };
 
 struct UtilityModel {
-    float utilMono = 0.0f;
-    float utilPolarity = 0.0f;
+    float utilWidth = 1.0f;
+    float utilInvertL = 0.0f;
+    float utilInvertR = 0.0f;
     float utilSwap = 0.0f;
     float utilTrim = 1.0f;
     float utilAutopan = 0.0f;
@@ -25,8 +28,9 @@ struct UtilityModel {
 
     UtilityParams toPlaybackParams() const noexcept {
         return {
-            utilMono >= 0.5f ? 1.0f : 0.0f,
-            std::clamp(utilPolarity, 0.0f, 1.0f),
+            std::clamp(utilWidth, 0.0f, 1.0f),
+            utilInvertL >= 0.5f ? 1.0f : 0.0f,
+            utilInvertR >= 0.5f ? 1.0f : 0.0f,
             utilSwap >= 0.5f ? 1.0f : 0.0f,
             std::clamp(utilTrim, 0.0f, 1.0f),
             utilAutopan >= 0.5f ? 1.0f : 0.0f,

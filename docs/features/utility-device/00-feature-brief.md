@@ -14,8 +14,9 @@ One **Utility** FX device with modes: mono sum, polarity invert, channel swap, t
 
 | Param | Role |
 |-------|------|
-| `utilMono` | ≥0.5 = mono sum |
-| `utilPolarity` | 0=off, ~0.33=L, ~0.66=R, 1=both |
+| `utilWidth` | 0 = mono sum, 1 = full stereo (mid/side) |
+| `utilInvertL` / `utilInvertR` | ≥0.5 = invert that channel |
+| `utilSwap` | ≥0.5 = swap L/R |
 | `utilSwap` | ≥0.5 = L↔R |
 | `utilTrim` | gain 0..1 (1 = unity) |
 | `utilAutopan` | ≥0.5 on |
