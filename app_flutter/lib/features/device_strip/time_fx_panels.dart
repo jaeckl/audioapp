@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../bridge/project_snapshot.dart';
 import 'device_strip_metrics.dart';
+import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
 import 'panels/compact_fx_layout.dart';
 import 'rotary_knob.dart';

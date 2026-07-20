@@ -58,7 +58,7 @@ class DelayFxPanel extends StatelessWidget {
           height: 174,
           padding: const EdgeInsets.symmetric(vertical: 3),
           decoration: BoxDecoration(
-            color: const Color(0xFF050508),
+            color: DeviceStripTheme.panelElevated,
             borderRadius: BorderRadius.circular(4),
           ),
           child: Column(
@@ -189,7 +189,7 @@ class DelayFxPanel extends StatelessWidget {
                 height: 78,
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF050508),
+                  color: DeviceStripTheme.panelElevated,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Row(
