@@ -41,11 +41,13 @@ class ResonatorBankPreviewPainter extends CustomPainter {
       final damp = math.exp(-damping * octave * 1.4);
       final peak = (0.32 + decay * 0.55) * damp * colorGain.clamp(0.28, 2.2);
       final height = (size.height * peak).clamp(8.0, size.height * 0.88);
-      final stereo = (band.isEven ? -1 : 1) * width;
+      // Engine: width = normalized * 2 (0..2). Preview must match.
+      final stereoWidth = width.clamp(0.0, 1.0) * 2.0;
+      final stereo = (band.isEven ? -1 : 1) * stereoWidth;
       final bandColor = Color.lerp(
           accent,
           stereo < 0 ? Colors.cyanAccent : Colors.pinkAccent,
-          stereo.abs().clamp(0.0, 1.0) * 0.28)!;
+          (stereo.abs() / 2.0).clamp(0.0, 1.0) * 0.28)!;
       final glow = Paint()
         ..color = bandColor.withValues(alpha: 0.14)
         ..strokeWidth = 7

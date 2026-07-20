@@ -4,10 +4,10 @@ extension DeviceStripSlotStateBuildresonatorbankdeviceOperation
     on _DeviceStripSlotState {
   Widget _buildResonatorBankDevice(BuildContext context, double contentHeight) {
     final dev = widget.device as ResonatorBankDeviceSnapshot;
-    return DeviceStripViewport(
-      shrinkWrap: true,
-      designWidth: _cardWidth,
-      designHeight: contentHeight,
+    // Full-bleed modal hero — skip DeviceStripViewport letterbox.
+    return SizedBox(
+      width: _cardWidth,
+      height: contentHeight,
       child: ResonatorBankPanel(
         device: dev,
         onParameterChanged: widget.onDeviceParameterChanged,

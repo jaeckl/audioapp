@@ -1,4 +1,5 @@
 import 'package:audioapp/bridge/device_snapshot.dart';
+import 'package:audioapp/devices/frequency_fx/resonator_bank_definition.dart';
 import 'package:audioapp/features/device_strip/device_picker_sheet.dart';
 import 'package:audioapp/features/device_strip/resonator_bank_panel.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,13 @@ void main() {
     expect(snapshot.resColor, 0.25);
     expect(snapshot.withParameter('resWidth', 2).resWidth, 1);
     expect(snapshot.withParameter('resMix', -1).resMix, 0);
+  });
+
+  test('resonator chrome matches empty input + stereo out', () {
+    final layout = ResonatorBankDefinition().layout;
+    expect(layout.designWidth, 424);
+    expect(layout.inputPanelWidth, 0);
+    expect(layout.outputPanelWidth, 64);
   });
 
   testWidgets('device picker lists RESONATE', (tester) async {
@@ -38,7 +46,7 @@ void main() {
     expect(find.text('RESONATE'), findsOneWidget);
   });
 
-  testWidgets('compact resonator panel renders all seven controls', (
+  testWidgets('resonator rail face renders tuning + body + width/mix', (
     tester,
   ) async {
     const device = ResonatorBankDeviceSnapshot(
@@ -82,6 +90,7 @@ void main() {
     ]) {
       expect(find.text(label), findsOneWidget);
     }
+    expect(ResonatorBankPanel.designWidth, 424);
     expect(tester.takeException(), isNull);
   });
 }
