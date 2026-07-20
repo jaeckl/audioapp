@@ -46,7 +46,12 @@ DeviceParameterResult LimiterDeviceType::setParameter(DeviceSlot& slot,
             return result;
     }
     switch (static_cast<LimiterParam>(id)) {
-    case LimiterParam::InputGain: instance.inputGain = clamped; break;
+    case LimiterParam::InputGain:
+        instance.inputGain = clamped;
+        if (auto* panel = std::get_if<DynamicsInputPanel>(&slot.config.inputPanel)) {
+            panel->trim = clamped;
+        }
+        break;
     case LimiterParam::Ceiling: instance.limitCeiling = clamped; break;
     case LimiterParam::Attack: instance.limitAttack = clamped; break;
     case LimiterParam::Release: instance.limitRelease = clamped; break;
@@ -239,6 +244,7 @@ uint16_t LimiterDeviceType::paramIdFromString(std::string_view name) const noexc
     auto l = [&](std::string_view n, LimiterParam pid) -> uint16_t {
         return name == n ? static_cast<uint16_t>(pid) : static_cast<uint16_t>(-1);
     };
+    if (auto v = l("inputGain", LimiterParam::InputGain); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = l("limitInputGain", LimiterParam::InputGain); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = l("limitCeiling", LimiterParam::Ceiling); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = l("limitAttack", LimiterParam::Attack); v != static_cast<uint16_t>(-1)) return v;
@@ -251,7 +257,7 @@ uint16_t LimiterDeviceType::paramIdFromString(std::string_view name) const noexc
 
 std::string_view LimiterDeviceType::paramIdToString(uint16_t localId) const noexcept {
     switch (static_cast<LimiterParam>(localId)) {
-    case LimiterParam::InputGain: return "limitInputGain";
+    case LimiterParam::InputGain: return "inputGain";
     case LimiterParam::Ceiling: return "limitCeiling";
     case LimiterParam::Attack: return "limitAttack";
     case LimiterParam::Release: return "limitRelease";
@@ -264,7 +270,7 @@ std::string_view LimiterDeviceType::paramIdToString(uint16_t localId) const noex
 
 std::span<const ParamDescriptor> LimiterDeviceType::paramDescriptors() const noexcept {
     static constexpr ParamDescriptor kParams[] = {
-        {static_cast<uint16_t>(LimiterParam::InputGain), "limitInputGain", "Input Gain", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(LimiterParam::InputGain), "inputGain", "Input Gain", 1.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(LimiterParam::Ceiling), "limitCeiling", "Ceiling", 0.85f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(LimiterParam::Attack), "limitAttack", "Attack", 0.10f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(LimiterParam::Release), "limitRelease", "Release", 0.40f, 0.0f, 1.0f, true, true},

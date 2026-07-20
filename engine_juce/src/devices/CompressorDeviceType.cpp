@@ -45,7 +45,12 @@ DeviceParameterResult CompressorDeviceType::setParameter(DeviceSlot& slot,
             return result;
     }
     switch (static_cast<CompressorParam>(id)) {
-    case CompressorParam::InputGain: instance.inputGain = clamped; break;
+    case CompressorParam::InputGain:
+        instance.inputGain = clamped;
+        if (auto* panel = std::get_if<DynamicsInputPanel>(&slot.config.inputPanel)) {
+            panel->trim = clamped;
+        }
+        break;
     case CompressorParam::Threshold: instance.compThreshold = clamped; break;
     case CompressorParam::Ratio: instance.compRatio = clamped; break;
     case CompressorParam::Attack: instance.compAttack = clamped; break;
@@ -241,6 +246,7 @@ uint16_t CompressorDeviceType::paramIdFromString(std::string_view name) const no
     auto c = [&](std::string_view n, CompressorParam pid) -> uint16_t {
         return name == n ? static_cast<uint16_t>(pid) : static_cast<uint16_t>(-1);
     };
+    if (auto v = c("inputGain", CompressorParam::InputGain); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = c("compInputGain", CompressorParam::InputGain); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = c("compThreshold", CompressorParam::Threshold); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = c("compRatio", CompressorParam::Ratio); v != static_cast<uint16_t>(-1)) return v;
@@ -253,7 +259,7 @@ uint16_t CompressorDeviceType::paramIdFromString(std::string_view name) const no
 
 std::string_view CompressorDeviceType::paramIdToString(uint16_t localId) const noexcept {
     switch (static_cast<CompressorParam>(localId)) {
-    case CompressorParam::InputGain: return "compInputGain";
+    case CompressorParam::InputGain: return "inputGain";
     case CompressorParam::Threshold: return "compThreshold";
     case CompressorParam::Ratio: return "compRatio";
     case CompressorParam::Attack: return "compAttack";
@@ -266,7 +272,7 @@ std::string_view CompressorDeviceType::paramIdToString(uint16_t localId) const n
 
 std::span<const ParamDescriptor> CompressorDeviceType::paramDescriptors() const noexcept {
     static constexpr ParamDescriptor kParams[] = {
-        {static_cast<uint16_t>(CompressorParam::InputGain), "compInputGain", "Input Gain", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(CompressorParam::InputGain), "inputGain", "Input Gain", 1.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(CompressorParam::Threshold), "compThreshold", "Threshold", 0.55f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(CompressorParam::Ratio), "compRatio", "Ratio", 0.50f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(CompressorParam::Attack), "compAttack", "Attack", 0.20f, 0.0f, 1.0f, true, true},

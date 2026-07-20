@@ -45,7 +45,12 @@ DeviceParameterResult GateDeviceType::setParameter(DeviceSlot& slot,
             return result;
     }
     switch (static_cast<GateParam>(id)) {
-    case GateParam::InputGain: instance.inputGain = clamped; break;
+    case GateParam::InputGain:
+        instance.inputGain = clamped;
+        if (auto* panel = std::get_if<DynamicsInputPanel>(&slot.config.inputPanel)) {
+            panel->trim = clamped;
+        }
+        break;
     case GateParam::Threshold: instance.gateThreshold = clamped; break;
     case GateParam::Attack: instance.gateAttack = clamped; break;
     case GateParam::Release: instance.gateRelease = clamped; break;
@@ -236,6 +241,7 @@ uint16_t GateDeviceType::paramIdFromString(std::string_view name) const noexcept
     auto g = [&](std::string_view n, GateParam pid) -> uint16_t {
         return name == n ? static_cast<uint16_t>(pid) : static_cast<uint16_t>(-1);
     };
+    if (auto v = g("inputGain", GateParam::InputGain); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = g("gateInputGain", GateParam::InputGain); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = g("gateThreshold", GateParam::Threshold); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = g("gateAttack", GateParam::Attack); v != static_cast<uint16_t>(-1)) return v;
@@ -247,7 +253,7 @@ uint16_t GateDeviceType::paramIdFromString(std::string_view name) const noexcept
 
 std::string_view GateDeviceType::paramIdToString(uint16_t localId) const noexcept {
     switch (static_cast<GateParam>(localId)) {
-    case GateParam::InputGain: return "gateInputGain";
+    case GateParam::InputGain: return "inputGain";
     case GateParam::Threshold: return "gateThreshold";
     case GateParam::Attack: return "gateAttack";
     case GateParam::Release: return "gateRelease";
@@ -259,7 +265,7 @@ std::string_view GateDeviceType::paramIdToString(uint16_t localId) const noexcep
 
 std::span<const ParamDescriptor> GateDeviceType::paramDescriptors() const noexcept {
     static constexpr ParamDescriptor kParams[] = {
-        {static_cast<uint16_t>(GateParam::InputGain), "gateInputGain", "Input Gain", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(GateParam::InputGain), "inputGain", "Input Gain", 1.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(GateParam::Threshold), "gateThreshold", "Threshold", 0.45f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(GateParam::Attack), "gateAttack", "Attack", 0.25f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(GateParam::Release), "gateRelease", "Release", 0.50f, 0.0f, 1.0f, true, true},

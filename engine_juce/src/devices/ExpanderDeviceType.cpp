@@ -47,7 +47,13 @@ DeviceParameterResult ExpanderDeviceType::setParameter(DeviceSlot& slot,
             return result;
     }
     switch (static_cast<ExpanderParam>(id)) {
-    case ExpanderParam::InputGain: instance.inputGain = clamped; break;
+    case ExpanderParam::InputGain:
+        instance.inputGain = clamped;
+        // buildPlaybackNode reads DynamicsInputPanel.trim — keep in sync.
+        if (auto* panel = std::get_if<DynamicsInputPanel>(&slot.config.inputPanel)) {
+            panel->trim = clamped;
+        }
+        break;
     case ExpanderParam::Threshold: instance.expandThreshold = clamped; break;
     case ExpanderParam::Ratio: instance.expandRatio = clamped; break;
     case ExpanderParam::Attack: instance.expandAttack = clamped; break;
@@ -237,6 +243,8 @@ uint16_t ExpanderDeviceType::paramIdFromString(std::string_view name) const noex
     auto e = [&](std::string_view n, ExpanderParam pid) -> uint16_t {
         return name == n ? static_cast<uint16_t>(pid) : static_cast<uint16_t>(-1);
     };
+    // Canonical Flutter/automation id is "inputGain"; keep expInputGain as alias.
+    if (auto v = e("inputGain", ExpanderParam::InputGain); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = e("expInputGain", ExpanderParam::InputGain); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = e("expandThreshold", ExpanderParam::Threshold); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = e("expandRatio", ExpanderParam::Ratio); v != static_cast<uint16_t>(-1)) return v;
@@ -248,7 +256,7 @@ uint16_t ExpanderDeviceType::paramIdFromString(std::string_view name) const noex
 
 std::string_view ExpanderDeviceType::paramIdToString(uint16_t localId) const noexcept {
     switch (static_cast<ExpanderParam>(localId)) {
-    case ExpanderParam::InputGain: return "expInputGain";
+    case ExpanderParam::InputGain: return "inputGain";
     case ExpanderParam::Threshold: return "expandThreshold";
     case ExpanderParam::Ratio: return "expandRatio";
     case ExpanderParam::Attack: return "expandAttack";
@@ -260,7 +268,7 @@ std::string_view ExpanderDeviceType::paramIdToString(uint16_t localId) const noe
 
 std::span<const ParamDescriptor> ExpanderDeviceType::paramDescriptors() const noexcept {
     static constexpr ParamDescriptor kParams[] = {
-        {static_cast<uint16_t>(ExpanderParam::InputGain), "expInputGain", "Input Gain", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(ExpanderParam::InputGain), "inputGain", "Input Gain", 1.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(ExpanderParam::Threshold), "expandThreshold", "Threshold", 0.40f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(ExpanderParam::Ratio), "expandRatio", "Ratio", 0.45f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(ExpanderParam::Attack), "expandAttack", "Attack", 0.25f, 0.0f, 1.0f, true, true},
