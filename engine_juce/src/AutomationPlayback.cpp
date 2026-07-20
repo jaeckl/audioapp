@@ -1683,6 +1683,7 @@ void applyAutomationValue(DeviceVariantParams& params,
             case DistortionParam::Drive: p->drive = value; break;
             case DistortionParam::Tone: p->tone = value; break;
             case DistortionParam::Mix: p->mix = value; break;
+            case DistortionParam::Sym: p->sym = value; break;
             }
         }
         break;

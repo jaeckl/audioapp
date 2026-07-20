@@ -66,6 +66,8 @@ REQUIRED when preview is legitimate (Filter reference):
 
 **Allowed without full-bleed:** faces with **no** legitimate preview (utility, pure toggle/knob FX) — use control wells only. Do **not** invent a black screen to “match Filter.”
 
+**No lone nested well:** if the face has no hero/display, do **not** wrap the whole body in a single `panelElevated` card. That is a sub-panel of a panel with nothing to contrast against — controls sit on the chassis (`#1A1A24`). Use a floating/elevated plate only when it sits *on* a darker hero (Filter) or when grouping *multiple* competing regions that need shade separation.
+
 ### Vertical caste (fixed order)
 
 1. **HERO screen** — darkest surface. Either full-bleed (preview faces) or absent (no-preview faces).

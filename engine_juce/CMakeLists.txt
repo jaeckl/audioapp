@@ -361,6 +361,7 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/device_types_test.cpp
     tests/dynamics_processor_test.cpp
     tests/effect_chorus_test.cpp
+    tests/effect_distortion_test.cpp
     tests/effect_delay_test.cpp
     tests/effect_device_automation_test.cpp
     tests/effect_device_modulation_test.cpp

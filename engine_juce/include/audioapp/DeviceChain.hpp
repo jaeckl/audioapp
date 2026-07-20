@@ -203,6 +203,7 @@ struct DistortionParamsPlayback {
     float drive = 0.5f;
     float tone = 0.5f;
     float mix = 0.5f;
+    float sym = 0.5f;
     float inputGain = 1.0f;
 };
 

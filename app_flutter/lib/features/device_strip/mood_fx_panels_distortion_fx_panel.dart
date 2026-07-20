@@ -4,7 +4,7 @@ class DistortionFxPanel extends StatelessWidget {
   static const registeredDeviceTypes = ['distortion'];
   static const accent = Color(0xFFE85D4B);
   static const containerTabs = <DeviceTabSpec>[];
-  static const double designWidth = 216;
+  static const double designWidth = 224;
 
   final DistortionDeviceSnapshot device;
   final MoodFxParameterChanged onParameterChanged;
@@ -33,51 +33,70 @@ class DistortionFxPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _moodFxSinglePage(
+    return FilterSectionLayout(
+      modeSelector: const SizedBox.shrink(),
       preview: CustomPaint(
         painter: _DistortionPreviewPainter(
           drive: device.distDrive,
+          sym: device.distSym,
           accent: accent,
         ),
         child: const SizedBox.expand(),
       ),
-      rows: [
-        _knobGridRow([
-          _knob(
-            label: 'Drive',
+      controls: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _distKnob(
+            label: 'DRIVE',
             value: device.distDrive,
             paramId: 'distDrive',
-            onParameterChanged: onParameterChanged,
-            accent: accent,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
             displayValue: '${(device.distDrive * 100).round()}%',
           ),
-          _knob(
-            label: 'Tone',
+          _distKnob(
+            label: 'SYM',
+            value: device.distSym,
+            paramId: 'distSym',
+            displayValue: _symDisplay(device.distSym),
+          ),
+          _distKnob(
+            label: 'TONE',
             value: device.distTone,
             paramId: 'distTone',
-            onParameterChanged: onParameterChanged,
-            accent: accent,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
             displayValue: '${(device.distTone * 100).round()}%',
           ),
-          null,
-        ]),
-      ],
+        ],
+      ),
     );
+  }
+
+  Widget _distKnob({
+    required String label,
+    required double value,
+    required String paramId,
+    required String displayValue,
+  }) {
+    return _knob(
+      label: label,
+      value: value,
+      paramId: paramId,
+      onParameterChanged: onParameterChanged,
+      accent: accent,
+      modulatedParams: modulatedParams,
+      automatedParams: automatedParams,
+      modulationAmounts: modulationAmounts,
+      connectModeLfoId: connectModeLfoId,
+      onModulationAssign: onModulationAssign,
+      automationLinkActive: automationLinkActive,
+      onAutomationLinkTap: onAutomationLinkTap,
+      onAutomateParameter: onAutomateParameter,
+      displayValue: displayValue,
+      size: DeviceKnobSizes.strip,
+    );
+  }
+
+  static String _symDisplay(double sym) {
+    final bias = ((sym - 0.5) * 200).round();
+    if (bias == 0) return '0';
+    return bias > 0 ? '+$bias' : '$bias';
   }
 }

@@ -86,12 +86,9 @@ class FilterSectionLayout extends StatelessWidget {
       decoration: BoxDecoration(
         color: DeviceStripTheme.panelElevated,
         borderRadius: BorderRadius.circular(DevicePanelTheme.sectionRadius),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.08),
-        ),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(4, 4, 4, 6),
+        padding: const EdgeInsets.fromLTRB(2, 4, 2, 6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,

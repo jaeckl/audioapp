@@ -56,8 +56,7 @@ class DeviceStripCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final accent = DeviceStripTheme.accentForDeviceType(deviceType);
-    // Filter: tool rail already shows name; keep blank header strip for chrome.
-    final label = deviceType == 'filter'
+    final label = (deviceType == 'filter' || deviceType == 'distortion')
         ? ''
         : DeviceStripTheme.labelForDeviceType(deviceType);
     final radius = const Radius.circular(DeviceStripTheme.cardRadius);

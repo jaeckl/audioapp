@@ -17,6 +17,7 @@ DeviceSlot DistortionDeviceType::createDefault(const std::string& deviceId) cons
     instance.drive = 0.5;
     instance.tone = 0.5;
     instance.mix = 0.5;
+    instance.sym = 0.5;
     slot.config.instance = std::move(instance);
     slot.config.inputPanel = EmptyPanel{};
     slot.config.outputPanel = StereoOutputPanel{};
@@ -47,6 +48,9 @@ DeviceParameterResult DistortionDeviceType::setParameter(DeviceSlot& slot,
     case DistortionParam::Mix:
         instance.mix = juce::jlimit(0.0, 1.0, static_cast<double>(value));
         break;
+    case DistortionParam::Sym:
+        instance.sym = juce::jlimit(0.0, 1.0, static_cast<double>(value));
+        break;
     default:
         return result;
     }
@@ -57,7 +61,7 @@ DeviceParameterResult DistortionDeviceType::setParameter(DeviceSlot& slot,
 bool DistortionDeviceType::setStringParameter(DeviceSlot&, std::string_view, const std::string&, const PlaybackBuildContext&) const { return false; }
 
 std::vector<std::string_view> DistortionDeviceType::modulatableParams() const {
-    return {"gain", "pan"};
+    return {"gain", "pan", "distDrive", "distTone", "distSym", "distMix"};
 }
 
 void DistortionDeviceType::buildPlaybackNode(const DeviceSlot& slot, const PlaybackBuildContext&, DeviceNodePlayback& out) const {
@@ -67,6 +71,7 @@ void DistortionDeviceType::buildPlaybackNode(const DeviceSlot& slot, const Playb
     p.drive = static_cast<float>(inst.drive);
     p.tone = static_cast<float>(inst.tone);
     p.mix = static_cast<float>(inst.mix);
+    p.sym = static_cast<float>(inst.sym);
     p.inputGain = 1.0f;
     out.params = p;
 }
@@ -79,6 +84,7 @@ juce::var DistortionDeviceType::slotToVar(const DeviceSlot& slot) const {
     parameters->setProperty("drive", inst.drive);
     parameters->setProperty("tone", inst.tone);
     parameters->setProperty("mix", inst.mix);
+    parameters->setProperty("sym", inst.sym);
 
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
@@ -161,6 +167,8 @@ DeviceSlot DistortionDeviceType::varToSlot(const juce::var& obj) const {
             inst.drive = p->getProperty("drive").toString().getDoubleValue();
             inst.tone = p->getProperty("tone").toString().getDoubleValue();
             inst.mix = p->getProperty("mix").toString().getDoubleValue();
+            const auto symVar = p->getProperty("sym");
+            inst.sym = symVar.isVoid() ? 0.5 : symVar.toString().getDoubleValue();
             inst.clamp();
             slot.config.instance = inst;
         }
@@ -175,17 +183,19 @@ DeviceProcessor* DistortionDeviceType::createProcessor(ProcessorArena& arena) co
 DeviceNodeKind DistortionDeviceType::kind() const noexcept { return DeviceNodeKind::Distortion; }
 
 uint16_t DistortionDeviceType::paramIdFromString(std::string_view name) const noexcept {
-    if (name == "distDrive") return static_cast<uint16_t>(DistortionParam::Drive);
-    if (name == "distTone")  return static_cast<uint16_t>(DistortionParam::Tone);
-    if (name == "distMix")   return static_cast<uint16_t>(DistortionParam::Mix);
+    if (name == "distDrive" || name == "drive") return static_cast<uint16_t>(DistortionParam::Drive);
+    if (name == "distTone" || name == "tone") return static_cast<uint16_t>(DistortionParam::Tone);
+    if (name == "distMix" || name == "mix") return static_cast<uint16_t>(DistortionParam::Mix);
+    if (name == "distSym" || name == "sym") return static_cast<uint16_t>(DistortionParam::Sym);
     return static_cast<uint16_t>(-1);
 }
 
 std::string_view DistortionDeviceType::paramIdToString(uint16_t localId) const noexcept {
     switch (static_cast<DistortionParam>(localId)) {
     case DistortionParam::Drive: return "distDrive";
-    case DistortionParam::Tone:  return "distTone";
-    case DistortionParam::Mix:   return "distMix";
+    case DistortionParam::Tone: return "distTone";
+    case DistortionParam::Mix: return "distMix";
+    case DistortionParam::Sym: return "distSym";
     default: return "";
     }
 }
@@ -193,6 +203,7 @@ std::string_view DistortionDeviceType::paramIdToString(uint16_t localId) const n
 std::span<const ParamDescriptor> DistortionDeviceType::paramDescriptors() const noexcept {
     static constexpr ParamDescriptor kParams[] = {
         {static_cast<uint16_t>(DistortionParam::Drive), "distDrive", "Drive", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(DistortionParam::Sym), "distSym", "Sym", 0.5f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(DistortionParam::Tone), "distTone", "Tone", 0.5f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(DistortionParam::Mix), "distMix", "Mix", 0.5f, 0.0f, 1.0f, true, true},
     };

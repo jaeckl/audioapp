@@ -386,6 +386,7 @@ enum class DistortionParam : uint16_t {
     Drive = 0,
     Tone = 1,
     Mix = 2,
+    Sym = 3,
 };
 
 enum class TremoloParam : uint16_t {

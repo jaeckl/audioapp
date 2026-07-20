@@ -4,10 +4,10 @@ extension DeviceStripSlotStateBuilddistortiondeviceOperation
     on _DeviceStripSlotState {
   Widget _buildDistortionDevice(BuildContext context, double contentHeight) {
     final dev = widget.device as DistortionDeviceSnapshot;
-    return DeviceStripViewport(
-      shrinkWrap: true,
-      designWidth: _cardWidth,
-      designHeight: contentHeight,
+    // Full-bleed transfer hero — skip DeviceStripViewport letterbox.
+    return SizedBox(
+      width: _cardWidth,
+      height: contentHeight,
       child: DistortionFxStrip(
         device: dev,
         onParameterChanged: widget.onDeviceParameterChanged,
