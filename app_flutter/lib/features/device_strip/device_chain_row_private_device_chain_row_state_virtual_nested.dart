@@ -49,12 +49,12 @@ extension _DeviceChainRowStateVirtualNested on _DeviceChainRowState {
       if (_synthAudioFxExpanded[device.id] ?? false) {
         regions.add(_virtualSpectralLoudPostFx(context, device));
       }
-    }
-    if (_isSynth(device.type) && device is! SpectralLoudSplitDeviceSnapshot) {
-      if (_synthAudioFxExpanded[device.id] ?? false) {
+    } else {
+      if (_hostsAudioFx(device.type) &&
+          (_synthAudioFxExpanded[device.id] ?? false)) {
         regions.add(_virtualAudioFxChain(context, device));
       }
-      if (_synthNoteFxExpanded[device.id] ?? false) {
+      if (_isSynth(device.type) && (_synthNoteFxExpanded[device.id] ?? false)) {
         regions.add(_virtualNoteFxChain(context, device));
       }
     }
@@ -78,11 +78,21 @@ extension _DeviceChainRowStateVirtualNested on _DeviceChainRowState {
             widget.onAssignDroppedSampleToDevice!(device, sample),
         child: DeviceStripSlot(
           track: widget.track,
-          routingSources: device is RoutingDeviceSnapshot &&
-                  widget.routingSnapshot != null
-              ? buildRoutingSourceOptions(
-                  widget.routingSnapshot!, widget.track, device)
-              : const [],
+          routingSources: () {
+            if (widget.routingSnapshot == null) {
+              return const <RoutingSourceOption>[];
+            }
+            if (device is RoutingDeviceSnapshot) {
+              return buildRoutingSourceOptions(
+                  widget.routingSnapshot!, widget.track, device);
+            }
+            if (device is DuckerDeviceSnapshot) {
+              return buildSidechainSourceOptions(
+                  widget.routingSnapshot!, widget.track, device);
+            }
+            return const <RoutingSourceOption>[];
+          }(),
+          routingTracks: widget.routingSnapshot?.tracks ?? const [],
           device: displayDevice,
           sample: _sampleFor(device),
           bpm: widget.bpm,
@@ -140,13 +150,13 @@ extension _DeviceChainRowStateVirtualNested on _DeviceChainRowState {
           onDrumBankChanged: (start) =>
               widget.onDrumBankChanged?.call(device.id, start),
           onDrumChainToggle: () => widget.onDrumChainToggle?.call(device.id),
-          audioFxExpanded: _isSynth(device.type)
+          audioFxExpanded: _hostsAudioFx(device.type)
               ? (_synthAudioFxExpanded[device.id] ?? false)
               : false,
           noteFxExpanded: _isSynth(device.type)
               ? (_synthNoteFxExpanded[device.id] ?? false)
               : false,
-          onToggleAudioFx: _isSynth(device.type)
+          onToggleAudioFx: _hostsAudioFx(device.type)
               ? () {
                   setState(() {
                     final id = device.id;

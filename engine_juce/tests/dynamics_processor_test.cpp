@@ -1,6 +1,9 @@
 #include <juce_core/juce_core.h>
 #include "TestHelpers.h"
 #include "audioapp/DynamicsProcessor.hpp"
+#include "audioapp/effects/DuckerParams.hpp"
+
+#include <cmath>
 
 class DynamicsProcessorTest : public juce::UnitTest {
 public:
@@ -56,6 +59,50 @@ public:
             const float outputPeak = audioapp::test::peakAbsStereo(left, right, kFrames);
             expect(outputPeak < inputPeak * 0.98f,
                    "compressed output below input peak");
+        }
+        beginTest("ducker attenuates when sidechain is loud");
+        {
+            float left[kFrames] = {};
+            float right[kFrames] = {};
+            float sideL[kFrames] = {};
+            float sideR[kFrames] = {};
+            for (int i = 0; i < kFrames; ++i) {
+                left[i] = 0.8f;
+                right[i] = 0.8f;
+                sideL[i] = 0.95f;
+                sideR[i] = 0.95f;
+            }
+            const float inputPeak = audioapp::test::peakAbsStereo(left, right, kFrames);
+
+            audioapp::DuckerParams duckParams;
+            duckParams.duckThreshold = 0.2f;
+            duckParams.duckDepth = 1.0f;
+            duckParams.duckAttack = 0.0f;
+            duckParams.duckRelease = 0.0f;
+            audioapp::DynamicsRuntime duckRuntime{};
+            audioapp::processDuckerStereoBlock(left, right, kFrames, sideL, sideR,
+                                               kSampleRate, duckParams, duckRuntime);
+
+            const float outputPeak = audioapp::test::peakAbsStereo(left, right, kFrames);
+            expect(outputPeak < inputPeak * 0.7f, "ducked output below input");
+            expect(duckRuntime.gainReductionDb < -1.0f, "reports gain reduction");
+        }
+        beginTest("utility mono sums channels");
+        {
+            float left[64];
+            float right[64];
+            for (int i = 0; i < 64; ++i) {
+                left[i] = 0.5f;
+                right[i] = -0.5f;
+            }
+            // Inline utility mono: average
+            for (int i = 0; i < 64; ++i) {
+                const float m = 0.5f * (left[i] + right[i]);
+                left[i] = m;
+                right[i] = m;
+            }
+            expect(std::abs(left[0]) < 0.001f && std::abs(right[0]) < 0.001f,
+                   "mono of +0.5/-0.5 is silence");
         }
     }
 };

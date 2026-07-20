@@ -80,4 +80,15 @@ void processLimiterStereoBlock(float* trackLeft,
                                const LimiterParams& params,
                                DynamicsRuntime& runtime) noexcept;
 
+struct DuckerParams;
+
+void processDuckerStereoBlock(float* trackLeft,
+                              float* trackRight,
+                              int numFrames,
+                              const float* sidechainLeft,
+                              const float* sidechainRight,
+                              double sampleRate,
+                              const DuckerParams& params,
+                              DynamicsRuntime& runtime) noexcept;
+
 } // namespace audioapp

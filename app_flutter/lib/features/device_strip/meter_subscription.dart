@@ -20,6 +20,7 @@ abstract final class MeterSubscription {
     'compressor',
     'expander',
     'limiter',
+    'ducker',
   };
 
   /// Split devices publish post-gain peaks per branch (L/Mid → left, R/Side → right).
@@ -40,6 +41,9 @@ abstract final class MeterSubscription {
   static bool _isSynthHost(String type) =>
       DeviceCapabilities.virtualStripHosts.contains(type) ||
       type == 'spectral_loud_split';
+
+  static bool _hostsAudioFx(String type) =>
+      DeviceCapabilities.hostsAudioFx(type);
 
   static bool _overlapsViewport(
     double slotStart,
@@ -203,13 +207,10 @@ abstract final class MeterSubscription {
           showInsertWhenUnderCap: true,
         );
       }
-    }
-
-    if (_isSynthHost(device.type) &&
-        device is! SpectralLoudSplitDeviceSnapshot &&
-        device is VirtualStripHostSnapshot) {
+    } else if (device is VirtualStripHostSnapshot) {
       final host = device;
-      if (expand.isSynthAudioFxExpanded(device.id)) {
+      if (_hostsAudioFx(device.type) &&
+          expand.isSynthAudioFxExpanded(device.id)) {
         x = _walkVirtualStripList(
           host.audioFxDevices,
           density,
@@ -222,7 +223,8 @@ abstract final class MeterSubscription {
           showInsertWhenUnderCap: true,
         );
       }
-      if (expand.isSynthNoteFxExpanded(device.id)) {
+      if (_isSynthHost(device.type) &&
+          expand.isSynthNoteFxExpanded(device.id)) {
         x = _walkVirtualStripList(
           host.noteFxDevices,
           density,

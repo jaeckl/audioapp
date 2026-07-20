@@ -46,6 +46,7 @@ abstract final class DeviceStripChrome {
     // Restore utility — empty chrome cap (no Mix/Width).
     'dc_offset',
     'de_crackler',
+    'utility',
   };
   /// Restore inserts that need makeup gain — Pan/Gain pinned to bottom.
   static const _restoreGainPanTypes = {
@@ -135,6 +136,8 @@ abstract final class DeviceStripChrome {
         automationLinkActive: bindings.automationLinkActive,
         onAutomationLinkTap: bindings.onAutomationLinkTap,
         onAutomateParameter: bindings.onAutomateParameter,
+        audioFxExpanded: bindings.audioFxExpanded,
+        onToggleAudioFx: null,
       );
     }
     if (_fxOutputTypes.contains(deviceType)) {

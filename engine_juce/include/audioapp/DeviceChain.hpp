@@ -25,6 +25,8 @@
 #include "audioapp/RoutingDevices.hpp"
 #include "audioapp/MidiDelay.hpp"
 #include "audioapp/effects/StutterParams.hpp"
+#include "audioapp/effects/DuckerParams.hpp"
+#include "audioapp/effects/UtilityParams.hpp"
 
 namespace audioapp {
 
@@ -117,6 +119,8 @@ enum class DeviceNodeKind : uint8_t {
     DeEsser,
     DeHum,
     DeNoise,
+    Ducker,
+    Utility,
 };
 
 // --- Per-device DSP-only parameter structs ---
@@ -245,6 +249,8 @@ struct DeNoiseParamsPlayback {
     float inputGain = 1.0f;
 };
 
+// DuckerParams / UtilityParams live in effects headers; included via DeviceSlot.
+
 struct StutterParamsPlayback {
     float trigger = 0.0f;
     float captureMs = 500.0f;
@@ -340,6 +346,8 @@ using DeviceVariantParams = std::variant<
     DeEsserParamsPlayback,
     DeHumParamsPlayback,
     DeNoiseParamsPlayback,
+    DuckerParams,
+    UtilityParams,
     ResonatorBankParams,
     RoutingParams,
     MidiDelayParams,

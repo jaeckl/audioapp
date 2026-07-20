@@ -51,6 +51,7 @@ import 'spectral_loud_split_panel.dart';
 import 'granular_device_panel.dart';
 import 'mood_fx_panels.dart';
 import 'restore_fx_panels.dart';
+import 'utility_device_panel.dart';
 import 'frequency_fx_panels.dart';
 import 'resonator_bank_panel.dart';
 import 'routing_device_panel.dart';
@@ -116,6 +117,8 @@ part 'device_strip_slot_private_device_strip_slot_state_build_device_build_gate_
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_compressor_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_expander_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_limiter_device.dart';
+part 'device_strip_slot_private_device_strip_slot_state_build_device_build_ducker_device.dart';
+part 'device_strip_slot_private_device_strip_slot_state_build_device_build_utility_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_filter_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_four_band_eq_device.dart';
 part 'device_strip_slot_private_device_strip_slot_state_build_device_build_frequency_shifter_device.dart';
@@ -148,6 +151,7 @@ class DeviceStripSlot extends StatefulWidget {
     super.key,
     required this.track,
     this.routingSources = const [],
+    this.routingTracks = const [],
     required this.device,
     required this.sample,
     required this.bpm,
@@ -209,6 +213,7 @@ class DeviceStripSlot extends StatefulWidget {
 
   final TrackSnapshot track;
   final List<RoutingSourceOption> routingSources;
+  final List<TrackSnapshot> routingTracks;
   final DeviceSnapshot device;
   final SampleLibraryEntrySnapshot? sample;
   final int bpm;

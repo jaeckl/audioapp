@@ -18,6 +18,8 @@ class DynamicsOutputPanel extends StatelessWidget {
     this.automationLinkActive = false,
     this.onAutomationLinkTap,
     this.onAutomateParameter,
+    this.audioFxExpanded = false,
+    this.onToggleAudioFx,
   });
 
   final DeviceSnapshot device;
@@ -35,6 +37,8 @@ class DynamicsOutputPanel extends StatelessWidget {
   final bool automationLinkActive;
   final ValueChanged<String>? onAutomationLinkTap;
   final ValueChanged<String>? onAutomateParameter;
+  final bool audioFxExpanded;
+  final VoidCallback? onToggleAudioFx;
 
   static double gainReductionMeterLevel(double db) {
     const maxDb = 24.0;
@@ -43,30 +47,44 @@ class DynamicsOutputPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final column = _DynamicsSideColumn(
+      label: 'GR',
+      meterLevel: gainReductionMeterLevel(gainReductionDb),
+      accentColor: accentColor,
+      bottomKnob: deviceAutomationKnob(
+        label: 'Gain',
+        value: device.gain.clamp(0, 1),
+        size: knobSize,
+        displayValue: StereoGainPanPanel.formatGain(device.gain),
+        onChanged: (value) => onParameterChanged('gain', value),
+        paramId: 'gain',
+        accentColor: accentColor,
+        modulatedParams: modulatedParams,
+        automatedParams: automatedParams,
+        modulationAmounts: modulationAmounts,
+        connectModeLfoId: connectModeLfoId,
+        onModulationAssign: onModulationAssign,
+        automationLinkActive: automationLinkActive,
+        onAutomationLinkTap: onAutomationLinkTap,
+        onAutomateParameter: onAutomateParameter,
+      ),
+    );
     return _ChromeOutputShell(
       width: DeviceStripMetrics.dynamicsOutputPanelWidth,
-      child: _DynamicsSideColumn(
-        label: 'GR',
-        meterLevel: gainReductionMeterLevel(gainReductionDb),
-        accentColor: accentColor,
-        bottomKnob: deviceAutomationKnob(
-          label: 'Gain',
-          value: device.gain.clamp(0, 1),
-          size: knobSize,
-          displayValue: StereoGainPanPanel.formatGain(device.gain),
-          onChanged: (value) => onParameterChanged('gain', value),
-          paramId: 'gain',
-          accentColor: accentColor,
-          modulatedParams: modulatedParams,
-          automatedParams: automatedParams,
-          modulationAmounts: modulationAmounts,
-          connectModeLfoId: connectModeLfoId,
-          onModulationAssign: onModulationAssign,
-          automationLinkActive: automationLinkActive,
-          onAutomationLinkTap: onAutomationLinkTap,
-          onAutomateParameter: onAutomateParameter,
-        ),
-      ),
+      child: onToggleAudioFx == null
+          ? column
+          : Column(
+              children: [
+                _FxToggleButton(
+                  label: 'FX',
+                  active: audioFxExpanded,
+                  accentColor: const Color(0xFF00FF33),
+                  onPressed: onToggleAudioFx,
+                ),
+                const SizedBox(height: 6),
+                Expanded(child: column),
+              ],
+            ),
     );
   }
 }

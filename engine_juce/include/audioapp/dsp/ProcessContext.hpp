@@ -55,6 +55,9 @@ struct ProcessContext {
     const DeviceVariantParams* modulatedParams = nullptr;
     const WavetableBank* wavetableBank = nullptr;
 
+    const float* sidechainL = nullptr;
+    const float* sidechainR = nullptr;
+
     IModulator* const* modulators = nullptr;
     uint32_t retriggerGeneration = 0;
 

@@ -141,6 +141,8 @@ DeviceNodeKind deviceNodeKindFromTypeId(const std::string& typeId) noexcept {
     if (typeId == kDeEsser)          return DeviceNodeKind::DeEsser;
     if (typeId == kDeHum)            return DeviceNodeKind::DeHum;
     if (typeId == kDeNoise)          return DeviceNodeKind::DeNoise;
+    if (typeId == kDucker)           return DeviceNodeKind::Ducker;
+    if (typeId == kUtility)          return DeviceNodeKind::Utility;
     return DeviceNodeKind::Unknown;
 }
 

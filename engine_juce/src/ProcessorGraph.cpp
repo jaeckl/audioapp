@@ -69,7 +69,8 @@ ProcessorGraphSnapshot buildProcessorGraph(
                         graph.error = ProcessorGraphError::InvalidPort;
                         return graph;
                     }
-                    if (receiver.signalType == GraphSignalType::Audio && ++matchedAudioSources > 1) {
+                    if (receiver.signalType == GraphSignalType::Audio && !receiver.sidechain &&
+                        ++matchedAudioSources > 1) {
                         graph.audioEdgeCount = 0;
                         graph.midiEdgeCount = 0;
                         graph.error = ProcessorGraphError::MultipleAudioInputs;
@@ -112,6 +113,7 @@ ProcessorGraphSnapshot buildProcessorGraph(
                         ? std::min(candidate.eventCapacity, receiver.eventCapacity) : 0;
                     edge.sourceLatencySamples = candidate.latencySamples;
                     edge.feedback = receiver.feedback;
+                    edge.sidechain = receiver.sidechain;
                     if (edge.feedback && receiver.signalType != GraphSignalType::Audio) {
                         graph.audioEdgeCount = 0;
                         graph.midiEdgeCount = 0;

@@ -91,6 +91,8 @@ static ParamKind paramKindForDevice(DeviceNodeKind kind) noexcept {
     case DeviceNodeKind::DeEsser:          return ParamKind::DeEsser;
     case DeviceNodeKind::DeHum:            return ParamKind::DeHum;
     case DeviceNodeKind::DeNoise:          return ParamKind::DeNoise;
+    case DeviceNodeKind::Ducker:           return ParamKind::Ducker;
+    case DeviceNodeKind::Utility:          return ParamKind::Utility;
     case DeviceNodeKind::WavetableSynth:   return ParamKind::WavetableSynth;
     case DeviceNodeKind::ResonatorBank:    return ParamKind::ResonatorBank;
     case DeviceNodeKind::AudioReceiver:
@@ -610,6 +612,33 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
         if (auto v = p("dnSmooth", DeNoiseParam::Smoothing)) return v;
         return 0;
     }
+    case DeviceNodeKind::Ducker: {
+        auto p = [&](const char* n, DuckerParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::Ducker, static_cast<uint16_t>(pid))
+                : 0;
+        };
+        if (auto v = p("duckThreshold", DuckerParam::Threshold)) return v;
+        if (auto v = p("duckDepth", DuckerParam::Depth)) return v;
+        if (auto v = p("duckAttack", DuckerParam::Attack)) return v;
+        if (auto v = p("duckRelease", DuckerParam::Release)) return v;
+        return 0;
+    }
+    case DeviceNodeKind::Utility: {
+        auto p = [&](const char* n, UtilityParam pid) {
+            return std::strcmp(name, n) == 0
+                ? packParamId(ParamKind::Utility, static_cast<uint16_t>(pid))
+                : 0;
+        };
+        if (auto v = p("utilMono", UtilityParam::Mono)) return v;
+        if (auto v = p("utilPolarity", UtilityParam::Polarity)) return v;
+        if (auto v = p("utilSwap", UtilityParam::Swap)) return v;
+        if (auto v = p("utilTrim", UtilityParam::Trim)) return v;
+        if (auto v = p("utilAutopan", UtilityParam::Autopan)) return v;
+        if (auto v = p("utilAutopanRate", UtilityParam::AutopanRate)) return v;
+        if (auto v = p("utilAutopanDepth", UtilityParam::AutopanDepth)) return v;
+        return 0;
+    }
     default:
         return 0;
     }
@@ -985,6 +1014,27 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
         case DeNoiseParam::Threshold: return "dnThresh";
         case DeNoiseParam::Reduction: return "dnReduce";
         case DeNoiseParam::Smoothing: return "dnSmooth";
+        default: return "";
+        }
+    }
+    case DeviceNodeKind::Ducker: {
+        switch (static_cast<DuckerParam>(rawId)) {
+        case DuckerParam::Threshold: return "duckThreshold";
+        case DuckerParam::Depth: return "duckDepth";
+        case DuckerParam::Attack: return "duckAttack";
+        case DuckerParam::Release: return "duckRelease";
+        default: return "";
+        }
+    }
+    case DeviceNodeKind::Utility: {
+        switch (static_cast<UtilityParam>(rawId)) {
+        case UtilityParam::Mono: return "utilMono";
+        case UtilityParam::Polarity: return "utilPolarity";
+        case UtilityParam::Swap: return "utilSwap";
+        case UtilityParam::Trim: return "utilTrim";
+        case UtilityParam::Autopan: return "utilAutopan";
+        case UtilityParam::AutopanRate: return "utilAutopanRate";
+        case UtilityParam::AutopanDepth: return "utilAutopanDepth";
         default: return "";
         }
     }
@@ -1685,6 +1735,29 @@ void applyAutomationValue(DeviceVariantParams& params,
             case DeNoiseParam::Threshold: p->threshold = value; break;
             case DeNoiseParam::Reduction: p->reduction = value; break;
             case DeNoiseParam::Smoothing: p->smoothing = value; break;
+            }
+        }
+        break;
+    case ParamKind::Ducker:
+        if (auto* p = std::get_if<DuckerParams>(&params)) {
+            switch (static_cast<DuckerParam>(rawId)) {
+            case DuckerParam::Threshold: p->duckThreshold = value; break;
+            case DuckerParam::Depth: p->duckDepth = value; break;
+            case DuckerParam::Attack: p->duckAttack = value; break;
+            case DuckerParam::Release: p->duckRelease = value; break;
+            }
+        }
+        break;
+    case ParamKind::Utility:
+        if (auto* p = std::get_if<UtilityParams>(&params)) {
+            switch (static_cast<UtilityParam>(rawId)) {
+            case UtilityParam::Mono: p->utilMono = value; break;
+            case UtilityParam::Polarity: p->utilPolarity = value; break;
+            case UtilityParam::Swap: p->utilSwap = value; break;
+            case UtilityParam::Trim: p->utilTrim = value; break;
+            case UtilityParam::Autopan: p->utilAutopan = value; break;
+            case UtilityParam::AutopanRate: p->utilAutopanRate = value; break;
+            case UtilityParam::AutopanDepth: p->utilAutopanDepth = value; break;
             }
         }
         break;

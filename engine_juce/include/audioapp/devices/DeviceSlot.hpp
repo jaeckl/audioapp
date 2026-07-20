@@ -28,6 +28,8 @@
 #include "audioapp/effects/DeEsserParams.hpp"
 #include "audioapp/effects/DeHumParams.hpp"
 #include "audioapp/effects/DeNoiseParams.hpp"
+#include "audioapp/effects/DuckerParams.hpp"
+#include "audioapp/effects/UtilityParams.hpp"
 
 // Model types (non-trivial replacements)
 #include "audioapp/devices/instances/SamplerModel.hpp"
@@ -82,6 +84,8 @@ using DeviceInstance = std::variant<
     DeEsserParams,
     DeHumParams,
     DeNoiseParams,
+    DuckerModel,
+    UtilityModel,
     ResonatorBankModel,
     RoutingModel,
     MidiDelayModel,

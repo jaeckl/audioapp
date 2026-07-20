@@ -13,6 +13,8 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
       DeviceCapabilities.virtualStripHosts.contains(type) ||
       type == 'spectral_loud_split';
 
+  bool _hostsAudioFx(String type) => DeviceCapabilities.hostsAudioFx(type);
+
   bool _isSplitBranchExpanded(String deviceId, int branchIndex) =>
       _splitBranchExpanded[deviceId]?.contains(branchIndex) ?? false;
 
@@ -196,11 +198,20 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                         devices[i], sample),
                     child: DeviceStripSlot(
                       track: widget.track,
-                      routingSources: devices[i] is RoutingDeviceSnapshot &&
-                              widget.routingSnapshot != null
-                          ? buildRoutingSourceOptions(widget.routingSnapshot!,
-                              widget.track, devices[i] as RoutingDeviceSnapshot)
-                          : const [],
+                      routingSources: () {
+                        final d = devices[i];
+                        if (widget.routingSnapshot == null) return const <RoutingSourceOption>[];
+                        if (d is RoutingDeviceSnapshot) {
+                          return buildRoutingSourceOptions(
+                              widget.routingSnapshot!, widget.track, d);
+                        }
+                        if (d is DuckerDeviceSnapshot) {
+                          return buildSidechainSourceOptions(
+                              widget.routingSnapshot!, widget.track, d);
+                        }
+                        return const <RoutingSourceOption>[];
+                      }(),
+                      routingTracks: widget.routingSnapshot?.tracks ?? const [],
                       device: displayDevice,
                       sample: _sampleFor(devices[i]),
                       bpm: widget.bpm,
@@ -273,13 +284,13 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                           widget.onDrumBankChanged?.call(devices[i].id, start),
                       onDrumChainToggle: () =>
                           widget.onDrumChainToggle?.call(devices[i].id),
-                      audioFxExpanded: _isSynth(devices[i].type)
+                      audioFxExpanded: _hostsAudioFx(devices[i].type)
                           ? (_synthAudioFxExpanded[devices[i].id] ?? false)
                           : false,
                       noteFxExpanded: _isSynth(devices[i].type)
                           ? (_synthNoteFxExpanded[devices[i].id] ?? false)
                           : false,
-                      onToggleAudioFx: _isSynth(devices[i].type)
+                      onToggleAudioFx: _hostsAudioFx(devices[i].type)
                           ? () {
                               setState(() {
                                 final id = devices[i].id;

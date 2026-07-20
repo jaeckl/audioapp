@@ -820,7 +820,8 @@ juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& regi
         object->setProperty("pads", pads);
         return juce::var(object);
     }
-    if (device_types::isSynthType(slot.config.typeId)) {
+    if (device_types::isSynthType(slot.config.typeId) ||
+        device_types::isSidechainFxHost(slot.config.typeId)) {
         const IDeviceType* type = registry.findForSlot(slot);
         juce::var result = type != nullptr ? type->slotToVar(slot) : juce::var{};
         if (auto* object = result.getDynamicObject()) {
@@ -833,7 +834,8 @@ juce::var deviceSlotToVarImpl(const DeviceSlot& slot, const DeviceRegistry& regi
                 }
                 object->setProperty("audioFxDevices", devices);
             }
-            if (!slot.noteFxDevices.empty()) {
+            if (device_types::isSynthType(slot.config.typeId) &&
+                !slot.noteFxDevices.empty()) {
                 juce::Array<juce::var> devices;
                 for (const auto& child : slot.noteFxDevices) {
                     if (child != nullptr) {
@@ -1004,7 +1006,8 @@ DeviceSlot deviceVarToSlotImpl(const juce::var& obj, const DeviceRegistry& regis
             }
             return slot;
         }
-        if (device_types::isSynthType(typeId)) {
+        if (device_types::isSynthType(typeId) ||
+            device_types::isSidechainFxHost(typeId)) {
             const IDeviceType* type = registry.find(typeId);
             if (type == nullptr) return {};
             DeviceSlot slot = type->varToSlot(obj);
@@ -1021,14 +1024,16 @@ DeviceSlot deviceVarToSlotImpl(const juce::var& obj, const DeviceRegistry& regis
                     }
                 }
             }
-            if (const auto* devices = varArray(object->getProperty("noteFxDevices"))) {
-                slot.noteFxDevices.reserve(std::min(devices->size(), 8));
-                for (const auto& value : *devices) {
-                    if (slot.noteFxDevices.size() >= 8) break;
-                    DeviceSlot child = deviceVarToSlotImpl(value, registry);
-                    if (!child.id.empty() && device_types::isNoteFxType(child.config.typeId)) {
-                        slot.noteFxDevices.push_back(
-                            std::make_shared<DeviceSlot>(std::move(child)));
+            if (device_types::isSynthType(typeId)) {
+                if (const auto* devices = varArray(object->getProperty("noteFxDevices"))) {
+                    slot.noteFxDevices.reserve(std::min(devices->size(), 8));
+                    for (const auto& value : *devices) {
+                        if (slot.noteFxDevices.size() >= 8) break;
+                        DeviceSlot child = deviceVarToSlotImpl(value, registry);
+                        if (!child.id.empty() && device_types::isNoteFxType(child.config.typeId)) {
+                            slot.noteFxDevices.push_back(
+                                std::make_shared<DeviceSlot>(std::move(child)));
+                        }
                     }
                 }
             }

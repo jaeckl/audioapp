@@ -46,6 +46,8 @@ using namespace audioapp::DeviceChainAutomationModulation;
 #include "audioapp/devices/processors/DeEsserProcessor.hpp"
 #include "audioapp/devices/processors/DeHumProcessor.hpp"
 #include "audioapp/devices/processors/DeNoiseProcessor.hpp"
+#include "audioapp/devices/processors/DuckerProcessor.hpp"
+#include "audioapp/devices/processors/UtilityProcessor.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -108,6 +110,8 @@ static const FactoryFn kProcessorFactories[] = {
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<DeEsserProcessor>(); },
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<DeHumProcessor>(); },
     [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<DeNoiseProcessor>(); },
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<DuckerProcessor>(); },
+    [](ProcessorArena& a) -> DeviceProcessor* { return a.template emplace<UtilityProcessor>(); },
 };
 static constexpr size_t kNumFactories = sizeof(kProcessorFactories) / sizeof(kProcessorFactories[0]);
 
@@ -856,7 +860,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
             const float mix = std::get<RoutingParams>(modulatedParams).routeMix;
             for (int edgeIndex = 0; edgeIndex < ctx.graph->audioEdgeCount; ++edgeIndex) {
                 const auto& edge = ctx.graph->audioEdges[static_cast<size_t>(edgeIndex)];
-                if (edge.destinationTrack != ctx.graphTrackIndex ||
+                if (edge.sidechain || edge.destinationTrack != ctx.graphTrackIndex ||
                     edge.destinationDevice != deviceIndex) continue;
                 const bool useFeedback = edge.feedback && ctx.graphFeedbackReadLeft != nullptr &&
                     ctx.graphFeedbackReadRight != nullptr && ctx.graphFeedbackStride > 0;
@@ -889,6 +893,25 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
                     block.channelR[frame] = block.channelR[frame] * (1.0f - mix) + delayedRight * mix;
                 }
             }
+        }
+
+        if (nodeKind == DeviceNodeKind::Ducker && ctx.graph != nullptr &&
+            ctx.graphAudioLeft != nullptr && ctx.graphAudioRight != nullptr) {
+            pc.sidechainL = nullptr;
+            pc.sidechainR = nullptr;
+            for (int edgeIndex = 0; edgeIndex < ctx.graph->audioEdgeCount; ++edgeIndex) {
+                const auto& edge = ctx.graph->audioEdges[static_cast<size_t>(edgeIndex)];
+                if (!edge.sidechain || edge.destinationTrack != ctx.graphTrackIndex ||
+                    edge.destinationDevice != deviceIndex) {
+                    continue;
+                }
+                pc.sidechainL = ctx.graphAudioLeft + edge.bufferSlot * ctx.graphAudioStride;
+                pc.sidechainR = ctx.graphAudioRight + edge.bufferSlot * ctx.graphAudioStride;
+                break;
+            }
+        } else {
+            pc.sidechainL = nullptr;
+            pc.sidechainR = nullptr;
         }
 
         // Full-wet steady state needs no dry-buffer traffic.
