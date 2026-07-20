@@ -197,16 +197,8 @@ void processFourBandEqStereoBlock(float* trackLeft,
 
 // --- Frequency Shifter ---
 //
-// NOTE (simplified fallback): the contract specifies FrequencyShifterRuntime
-// carries only { phaseL, phaseR }. A true SSB frequency shifter needs a
-// persistent Hilbert-transformer (90-degree phase-split all-pass chain) per
-// channel, which would require additional state in the runtime struct. The
-// owning WP (device type) will extend the runtime if/when SSB is desired.
-// For now we implement ring modulation: output = input * cos(omega * t).
-// This shifts the spectrum symmetrically around the carrier (equal upper
-// and lower sidebands) rather than suppressing one sideband, but it is
-// real-time safe, allocation-free, and matches the contracted runtime layout
-// exactly.
+// Ring modulator: wet = (dry + fb*prevWet) * cos(ωt), then one-pole tone LP,
+// then dry/wet mix. Not SSB — equal upper/lower sidebands.
 void processFrequencyShifterStereoBlock(float* trackLeft,
                                         float* trackRight,
                                         int numFrames,
@@ -218,32 +210,52 @@ void processFrequencyShifterStereoBlock(float* trackLeft,
     }
 
     const double shift = static_cast<double>(
-        safe_clamp(params.shiftHz, -2000.0f, 2000.0f));
+        safe_clamp(params.shiftHz, -2050.0f, 2050.0f));
     const double omega = 2.0 * kPi * shift / static_cast<double>(sampleRate);
+    const float mix = safe_clamp(params.mix, 0.0f, 1.0f);
+    const float feedback = safe_clamp(params.feedback, 0.0f, 0.95f) * 0.95f;
+    const float tone = safe_clamp(params.tone, 0.0f, 1.0f);
+    const bool toneOpen = tone >= 0.995f;
 
-    // Slight per-channel phase offset keeps the stereo image wide when
-    // shift is non-zero (identical phases would collapse to mono for
-    // mono input).
+    // Tone 0 → ~200 Hz LP; tone near 1 → bypass (fully open).
+    const float toneHz = 200.0f * std::pow(80.0f, tone); // ~200..16k before bypass
+    const float toneCoeff = static_cast<float>(
+        std::exp(-2.0 * kPi * static_cast<double>(toneHz) / sampleRate));
+    const float toneGain = 1.0f - toneCoeff;
+
     const double stereoDetune = 1.0e-4;
 
     for (int i = 0; i < numFrames; ++i) {
-        const double outL = static_cast<double>(trackLeft[i]) * std::cos(runtime.phaseL);
-        const double outR = static_cast<double>(trackRight[i]) * std::cos(runtime.phaseR + stereoDetune);
+        const float dryL = trackLeft[i];
+        const float dryR = trackRight[i];
 
-        if (!std::isfinite(outL)) {
-            trackLeft[i] = 0.0f;
+        const float ringInL = dryL + feedback * runtime.feedbackL;
+        const float ringInR = dryR + feedback * runtime.feedbackR;
+
+        float wetL = ringInL * static_cast<float>(std::cos(runtime.phaseL));
+        float wetR = ringInR * static_cast<float>(std::cos(runtime.phaseR + stereoDetune));
+
+        if (!toneOpen) {
+            runtime.toneL = toneGain * wetL + toneCoeff * runtime.toneL;
+            runtime.toneR = toneGain * wetR + toneCoeff * runtime.toneR;
+            wetL = runtime.toneL;
+            wetR = runtime.toneR;
         } else {
-            trackLeft[i] = safe_clamp(static_cast<float>(outL), -4.0f, 4.0f);
+            runtime.toneL = wetL;
+            runtime.toneR = wetR;
         }
-        if (!std::isfinite(outR)) {
-            trackRight[i] = 0.0f;
-        } else {
-            trackRight[i] = safe_clamp(static_cast<float>(outR), -4.0f, 4.0f);
-        }
+
+        runtime.feedbackL = safe_clamp(wetL, -4.0f, 4.0f);
+        runtime.feedbackR = safe_clamp(wetR, -4.0f, 4.0f);
+
+        const float outL = dryL * (1.0f - mix) + wetL * mix;
+        const float outR = dryR * (1.0f - mix) + wetR * mix;
+
+        trackLeft[i] = std::isfinite(outL) ? safe_clamp(outL, -4.0f, 4.0f) : 0.0f;
+        trackRight[i] = std::isfinite(outR) ? safe_clamp(outR, -4.0f, 4.0f) : 0.0f;
 
         runtime.phaseL += omega;
         runtime.phaseR += omega;
-        // Periodically wrap the accumulator to keep its magnitude bounded.
         if (runtime.phaseL > 1.0e6) runtime.phaseL -= 1.0e6;
         if (runtime.phaseR > 1.0e6) runtime.phaseR -= 1.0e6;
     }

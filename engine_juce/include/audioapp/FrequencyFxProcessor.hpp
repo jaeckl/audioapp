@@ -31,14 +31,21 @@ struct FourBandEqRuntime {
     BiquadState bands[4][2];  // [band][channel]
 };
 
-// --- Frequency Shifter ---
+// --- Frequency Shifter (ring modulator) ---
 struct FrequencyShifterParams {
-    float shiftHz = 0.0f;     // -2000 to +2000 Hz
+    float shiftHz = 0.0f;     // coarse + fine combined, -2050..+2050
+    float mix = 1.0f;         // 0 dry .. 1 wet
+    float tone = 1.0f;        // 0 dark LP .. 1 open
+    float feedback = 0.0f;    // 0..~0.95 into ring input
 };
 
 struct FrequencyShifterRuntime {
     double phaseL = 0.0;
     double phaseR = 0.0;
+    float feedbackL = 0.0f;
+    float feedbackR = 0.0f;
+    float toneL = 0.0f;
+    float toneR = 0.0f;
 };
 
 // --- Processing function declarations ---

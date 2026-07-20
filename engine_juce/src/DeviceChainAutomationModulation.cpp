@@ -179,9 +179,22 @@ void applyModulation(FourBandEqParams& p, float modAmount, uint16_t localParamId
 }
 
 void applyModulation(FrequencyShifterParams& p, float modAmount, uint16_t localParamId) noexcept {
-    if (static_cast<FrequencyShifterParam>(unpackParamId(localParamId)) == FrequencyShifterParam::Shift) {
-        // Shift is a signed Hz offset in [-2000, 2000]; full-range LFO sweeps 2 kHz.
-        p.shiftHz = std::clamp(p.shiftHz + modAmount * 1000.0f, -2000.0f, 2000.0f);
+    switch (static_cast<FrequencyShifterParam>(unpackParamId(localParamId))) {
+    case FrequencyShifterParam::Shift:
+        p.shiftHz = std::clamp(p.shiftHz + modAmount * 1000.0f, -2050.0f, 2050.0f);
+        break;
+    case FrequencyShifterParam::Fine:
+        p.shiftHz = std::clamp(p.shiftHz + modAmount * 50.0f, -2050.0f, 2050.0f);
+        break;
+    case FrequencyShifterParam::Mix:
+        p.mix = std::clamp(p.mix + modAmount, 0.0f, 1.0f);
+        break;
+    case FrequencyShifterParam::Tone:
+        p.tone = std::clamp(p.tone + modAmount, 0.0f, 1.0f);
+        break;
+    case FrequencyShifterParam::Feedback:
+        p.feedback = std::clamp(p.feedback + modAmount, 0.0f, 1.0f);
+        break;
     }
 }
 

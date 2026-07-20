@@ -58,14 +58,22 @@ struct FourBandEqModel {
     }
 };
 
-/// Control-thread state for the Frequency Shifter device.
+/// Control-thread state for the Ring Mod / Frequency Shifter device.
 struct FrequencyShifterModel {
-    float ffxShift = 0.5f;  // normalized 0-1 → -2000 to +2000 Hz (0.5 = no shift)
+    float ffxShift = 0.5f;     // coarse ±2000 Hz (0.5 = 0)
+    float ffxFine = 0.5f;      // fine ±50 Hz (0.5 = 0)
+    float ffxMix = 1.0f;       // dry/wet
+    float ffxTone = 1.0f;      // wet lowpass openness
+    float ffxFeedback = 0.0f;  // ring feedback
 
     FrequencyShifterParams toPlaybackParams() const {
         FrequencyShifterParams p;
-        // ffxShift=0 → -2000Hz, ffxShift=0.5 → 0Hz, ffxShift=1 → +2000Hz
-        p.shiftHz = (ffxShift - 0.5f) * 4000.0f;
+        const float coarse = (ffxShift - 0.5f) * 4000.0f;
+        const float fine = (ffxFine - 0.5f) * 100.0f;
+        p.shiftHz = coarse + fine;
+        p.mix = std::clamp(ffxMix, 0.0f, 1.0f);
+        p.tone = std::clamp(ffxTone, 0.0f, 1.0f);
+        p.feedback = std::clamp(ffxFeedback, 0.0f, 1.0f);
         return p;
     }
 };
