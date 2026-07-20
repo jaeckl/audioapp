@@ -21,8 +21,8 @@ class CompressorDevicePanel extends StatelessWidget {
   static const accent = Color(0xFFE8A54B);
   static const containerTabs = <DeviceTabSpec>[];
 
-  /// Compressor — compact dynamics FX card.
-  static const double designWidth = 216;
+  /// Phaser-like rails + full-bleed transfer curve.
+  static const double designWidth = 424;
   final CompressorDeviceSnapshot device;
   final DynamicsParameterChanged onParameterChanged;
   final CompressorDeviceTab? selectedTab;
@@ -39,7 +39,33 @@ class CompressorDevicePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _dynamicsSinglePage(
+    Widget k(
+      String label,
+      double value,
+      String paramId,
+      String display,
+    ) =>
+        _knob(
+          label: label,
+          value: value,
+          paramId: paramId,
+          accent: accent,
+          onParameterChanged: onParameterChanged,
+          modulatedParams: modulatedParams,
+          automatedParams: automatedParams,
+          modulationAmounts: modulationAmounts,
+          connectModeLfoId: connectModeLfoId,
+          deviceId: device.id,
+          lfos: lfos,
+          modEdges: modEdges,
+          onModulationAssign: onModulationAssign,
+          automationLinkActive: automationLinkActive,
+          onAutomationLinkTap: onAutomationLinkTap,
+          onAutomateParameter: onAutomateParameter,
+          displayValue: display,
+        );
+
+    return _DynamicsRailFace(
       preview: DynamicsEnvelopePreview(
         threshold: device.compThreshold,
         ratio: device.compRatio,
@@ -48,125 +74,23 @@ class CompressorDevicePanel extends StatelessWidget {
         accent: accent,
         mode: DynamicsPreviewMode.compressor,
       ),
-      rows: [
-        _knobGridRow([
-          _knob(
-            label: 'Threshold',
-            value: device.compThreshold,
-            paramId: 'compThreshold',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: dynamicsThresholdLabel(device.compThreshold),
-          ),
-          _knob(
-            label: 'Ratio',
-            value: device.compRatio,
-            paramId: 'compRatio',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: dynamicsRatioLabel(device.compRatio),
-          ),
-          _knob(
-            label: 'Knee',
-            value: device.compKnee,
-            paramId: 'compKnee',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${(device.compKnee * 12).round()} dB',
-          ),
-        ]),
-        _knobGridRow([
-          _knob(
-            label: 'Attack',
-            value: device.compAttack,
-            paramId: 'compAttack',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: dynamicsTimeLabel(device.compAttack),
-          ),
-          _knob(
-            label: 'Release',
-            value: device.compRelease,
-            paramId: 'compRelease',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: dynamicsTimeLabel(device.compRelease),
-          ),
-          _knob(
-            label: 'Makeup',
-            value: device.compMakeup,
-            paramId: 'compMakeup',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: dynamicsMakeupLabel(device.compMakeup),
-          ),
-        ]),
+      left: [
+        k('Attack', device.compAttack, 'compAttack',
+            dynamicsTimeLabel(device.compAttack)),
+        k('Release', device.compRelease, 'compRelease',
+            dynamicsTimeLabel(device.compRelease)),
+      ],
+      plate: [
+        k('Threshold', device.compThreshold, 'compThreshold',
+            dynamicsThresholdLabel(device.compThreshold)),
+        k('Ratio', device.compRatio, 'compRatio',
+            dynamicsRatioLabel(device.compRatio)),
+      ],
+      right: [
+        k('Knee', device.compKnee, 'compKnee',
+            '${(device.compKnee * 12).round()} dB'),
+        k('Makeup', device.compMakeup, 'compMakeup',
+            dynamicsMakeupLabel(device.compMakeup)),
       ],
     );
   }

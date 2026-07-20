@@ -116,19 +116,21 @@ class DynamicsEnvelopePreview extends StatelessWidget {
   final double ceiling;
 
   @override
-  Widget build(BuildContext context) => CustomPaint(
-        painter: _DynamicsEnvelopePainter(
-          threshold: threshold,
-          accent: accent,
-          mode: mode,
-          ratio: ratio,
-          knee: knee,
-          range: range,
-          makeup: makeup,
-          drive: drive,
-          ceiling: ceiling,
+  Widget build(BuildContext context) => IgnorePointer(
+        child: CustomPaint(
+          painter: _DynamicsEnvelopePainter(
+            threshold: threshold,
+            accent: accent,
+            mode: mode,
+            ratio: ratio,
+            knee: knee,
+            range: range,
+            makeup: makeup,
+            drive: drive,
+            ceiling: ceiling,
+          ),
+          child: const SizedBox.expand(),
         ),
-        child: const SizedBox.expand(),
       );
 }
 

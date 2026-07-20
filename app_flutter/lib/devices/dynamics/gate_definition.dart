@@ -32,7 +32,7 @@ final class GateDefinition implements DeviceDefinition<DeviceSnapshot> {
       );
   @override
   DeviceLayoutMetadata get layout => const DeviceLayoutMetadata(
-      designWidth: 214, inputPanelWidth: 64, outputPanelWidth: 64);
+      designWidth: 340, inputPanelWidth: 64, outputPanelWidth: 64);
   @override
   DeviceSnapshot parseSnapshot(Map<dynamic, dynamic> map) =>
       GateDeviceSnapshot.fromMap(map);

@@ -7,6 +7,7 @@ import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
 import 'dynamics_envelope_preview.dart';
 import 'panels/compact_fx_layout.dart';
+import 'panels/filter_section_layout.dart';
 import 'rotary_knob.dart';
 import 'routing_device_panel.dart';
 import 'stereo_gain_pan_panel.dart';
@@ -21,6 +22,7 @@ export 'dynamics/expander_device_tab.dart';
 export 'dynamics/limiter_device_tab.dart';
 
 part 'dynamics/dynamics_knob.dart';
+part 'dynamics/dynamics_rail_face.dart';
 part 'dynamics/gate_device_panel.dart';
 part 'dynamics/gate_device_strip.dart';
 part 'dynamics/compressor_device_panel.dart';

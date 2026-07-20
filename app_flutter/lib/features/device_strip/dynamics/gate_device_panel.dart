@@ -22,8 +22,8 @@ class GateDevicePanel extends StatelessWidget {
   static const accent = Color(0xFF6EC9A8);
   static const containerTabs = <DeviceTabSpec>[];
 
-  /// Gate — compact dynamics FX card.
-  static const double designWidth = 216;
+  /// Single timing rail + full-bleed transfer curve.
+  static const double designWidth = 340;
 
   final GateDeviceSnapshot device;
   final DynamicsParameterChanged onParameterChanged;
@@ -41,113 +41,51 @@ class GateDevicePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _dynamicsSinglePage(
+    Widget k(
+      String label,
+      double value,
+      String paramId,
+      String display,
+    ) =>
+        _knob(
+          label: label,
+          value: value,
+          paramId: paramId,
+          accent: accent,
+          onParameterChanged: onParameterChanged,
+          modulatedParams: modulatedParams,
+          automatedParams: automatedParams,
+          modulationAmounts: modulationAmounts,
+          connectModeLfoId: connectModeLfoId,
+          deviceId: device.id,
+          lfos: lfos,
+          modEdges: modEdges,
+          onModulationAssign: onModulationAssign,
+          automationLinkActive: automationLinkActive,
+          onAutomationLinkTap: onAutomationLinkTap,
+          onAutomateParameter: onAutomateParameter,
+          displayValue: display,
+        );
+
+    return _DynamicsRailFace(
       preview: DynamicsEnvelopePreview(
         threshold: device.gateThreshold,
         range: device.gateRange,
         accent: accent,
       ),
-      rows: [
-        _knobGridRow([
-          _knob(
-            label: 'Threshold',
-            value: device.gateThreshold,
-            paramId: 'gateThreshold',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: dynamicsThresholdLabel(device.gateThreshold),
-          ),
-          _knob(
-            label: 'Attack',
-            value: device.gateAttack,
-            paramId: 'gateAttack',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: dynamicsTimeLabel(device.gateAttack),
-          ),
-          _knob(
-            label: 'Release',
-            value: device.gateRelease,
-            paramId: 'gateRelease',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: dynamicsTimeLabel(device.gateRelease),
-          ),
-        ]),
-        _knobGridRow([
-          _knob(
-            label: 'Hold',
-            value: device.gateHold,
-            paramId: 'gateHold',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: dynamicsHoldLabel(device.gateHold),
-          ),
-          _knob(
-            label: 'Floor',
-            value: device.gateRange,
-            paramId: 'gateRange',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: dynamicsRangeLabel(device.gateRange),
-          ),
-          null,
-        ]),
+      left: [
+        k('Attack', device.gateAttack, 'gateAttack',
+            dynamicsTimeLabel(device.gateAttack)),
+        k('Hold', device.gateHold, 'gateHold',
+            dynamicsHoldLabel(device.gateHold)),
+        k('Release', device.gateRelease, 'gateRelease',
+            dynamicsTimeLabel(device.gateRelease)),
+      ],
+      plate: [
+        k('Threshold', device.gateThreshold, 'gateThreshold',
+            dynamicsThresholdLabel(device.gateThreshold)),
+        k('Floor', device.gateRange, 'gateRange',
+            dynamicsRangeLabel(device.gateRange)),
       ],
     );
   }

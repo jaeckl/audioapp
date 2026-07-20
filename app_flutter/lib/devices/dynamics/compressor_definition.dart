@@ -32,7 +32,7 @@ final class CompressorDefinition implements DeviceDefinition<DeviceSnapshot> {
       );
   @override
   DeviceLayoutMetadata get layout => const DeviceLayoutMetadata(
-      designWidth: 214, inputPanelWidth: 64, outputPanelWidth: 64);
+      designWidth: 424, inputPanelWidth: 64, outputPanelWidth: 64);
   @override
   DeviceSnapshot parseSnapshot(Map<dynamic, dynamic> map) =>
       CompressorDeviceSnapshot.fromMap(map);

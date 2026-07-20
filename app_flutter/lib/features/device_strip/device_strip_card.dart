@@ -56,7 +56,11 @@ class DeviceStripCard extends StatelessWidget {
   bool get _usesHeaderFaceCast =>
       deviceType == 'filter' ||
       deviceType == 'distortion' ||
-      deviceType == 'phaser';
+      deviceType == 'phaser' ||
+      deviceType == 'compressor' ||
+      deviceType == 'limiter' ||
+      deviceType == 'expander' ||
+      deviceType == 'gate';
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +68,11 @@ class DeviceStripCard extends StatelessWidget {
     final accent = DeviceStripTheme.accentForDeviceType(deviceType);
     final label = (deviceType == 'filter' ||
             deviceType == 'distortion' ||
-            deviceType == 'phaser')
+            deviceType == 'phaser' ||
+            deviceType == 'compressor' ||
+            deviceType == 'limiter' ||
+            deviceType == 'expander' ||
+            deviceType == 'gate')
         ? ''
         : DeviceStripTheme.labelForDeviceType(deviceType);
     final radius = const Radius.circular(DeviceStripTheme.cardRadius);
