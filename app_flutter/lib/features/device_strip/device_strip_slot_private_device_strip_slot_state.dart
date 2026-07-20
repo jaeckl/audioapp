@@ -229,23 +229,6 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
             widget.onAutomateParameter != null ? _onAutomateParameter : null,
       );
     }
-    if (widget.device.type == 'phaser') {
-      return PhaserHeaderActions(
-        device: widget.device as PhaserDeviceSnapshot,
-        onParameterChanged: widget.onDeviceParameterChanged,
-        modulatedParams: _modulatedParamIds,
-        automatedParams: _automatedParamIds,
-        modulationAmounts: _modulationAmounts,
-        connectModeLfoId: _connectModeLfo,
-        onModulationAssign: _onModulationForDevice,
-        automationLinkActive: widget.automationLinkActive,
-        onAutomationLinkTap: widget.onAutomationParamSelected != null
-            ? _onAutomationLinkTap
-            : null,
-        onAutomateParameter:
-            widget.onAutomateParameter != null ? _onAutomateParameter : null,
-      );
-    }
     if (widget.device.type == 'bitcrusher') {
       return BitcrusherHeaderActions(
         device: widget.device as BitcrusherDeviceSnapshot,

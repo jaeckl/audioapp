@@ -21,9 +21,8 @@ PhaserDeviceSnapshot _phaser() => const PhaserDeviceSnapshot(
 
 Widget _host(
   PhaserDeviceSnapshot device,
-  void Function(String, double) changed, {
-  PhaserViewTab tab = PhaserViewTab.motion,
-}) =>
+  void Function(String, double) changed,
+) =>
     MaterialApp(
       home: Scaffold(
         body: SizedBox(
@@ -31,7 +30,6 @@ Widget _host(
           height: 280,
           child: PhaserFxPanel(
             device: device,
-            selectedTab: tab,
             onParameterChanged: changed,
           ),
         ),
@@ -39,7 +37,7 @@ Widget _host(
     );
 
 void main() {
-  testWidgets('refined B exposes motion controls and response preview',
+  testWidgets('phaser face exposes rails, plate knobs, waveform group',
       (tester) async {
     await tester.pumpWidget(_host(_phaser(), (_, __) {}));
 
@@ -52,43 +50,53 @@ void main() {
       'Centre',
       'Feedback',
       'Stages',
+      'SIN',
+      'TRI',
+      'RMP',
+      'RND',
     ]) {
       expect(find.text(label), findsOneWidget);
     }
     expect(find.byKey(const ValueKey('phaser-preview')), findsOneWidget);
+    expect(find.byKey(const ValueKey('phaser-waveform-selector')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('phaser-view-motion')), findsOneWidget);
+    expect(find.byKey(const ValueKey('phaser-view-response')), findsOneWidget);
     expect(
       tester.widget<ValueDragBox>(find.byType(ValueDragBox)).dragPixelsPerStep,
       32,
     );
     expect(PhaserFxPanel.designWidth, 424);
+    expect(PhaserFxPanel.containerTabs, isEmpty);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('rate label and waveform selector change advanced modes',
-      (tester) async {
+  testWidgets('waveform cells and view toggle change state', (tester) async {
     final changes = <(String, double)>[];
     await tester.pumpWidget(_host(
       _phaser(),
       (id, value) => changes.add((id, value)),
     ));
 
+    await tester.tap(find.text('TRI'));
+    await tester.pump();
+    expect(changes, contains(('waveform', 1.0)));
+
+    await tester.tap(find.byKey(const ValueKey('phaser-view-response')));
+    await tester.pump();
+    expect(
+      tester.widget<Icon>(find.descendant(
+        of: find.byKey(const ValueKey('phaser-view-response')),
+        matching: find.byType(Icon),
+      )).color,
+      PhaserFxPanel.accent,
+    );
+
     await tester.tap(find.byKey(const ValueKey('knob-label-menu-8th')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('4th').last);
-    expect(changes, contains(('rateMode', 3.0)));
-
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: PhaserHeaderActions(
-          device: _phaser(),
-          onParameterChanged: (id, value) => changes.add((id, value)),
-        ),
-      ),
-    ));
-    await tester.tap(find.byKey(const ValueKey('phaser-waveform-menu')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('TRIANGLE'));
-    expect(changes, contains(('waveform', 1.0)));
+    expect(changes, contains(('rateMode', 3.0)));
     expect(tester.takeException(), isNull);
   });
 
@@ -114,12 +122,5 @@ void main() {
     expect(snapshot.phaserWaveform, 2);
     expect(snapshot.phaserStages, 10);
     expect(snapshot.withParameter('stereoPhase', .5).phaserStereoPhase, .5);
-  });
-
-  test('phaser registers motion and response tabs', () {
-    expect(
-      PhaserFxPanel.containerTabs.map((tab) => tab.label),
-      orderedEquals(['MOTION', 'RESPONSE']),
-    );
   });
 }
