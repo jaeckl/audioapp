@@ -17,15 +17,22 @@ class _HeaderBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: DeviceStripTheme.headerHeight,
-      color: DeviceStripTheme.cardHeader,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       alignment: Alignment.centerLeft,
-      child: _HeaderText(
-        theme: theme,
-        accent: accent,
-        label: label,
-        subtitle: subtitle,
+      decoration: const BoxDecoration(
+        color: DeviceStripTheme.cardHeader,
+        border: Border(
+          bottom: BorderSide(color: Color(0xFF050508), width: 1.5),
+        ),
       ),
+      child: label.isEmpty && (subtitle == null || subtitle!.isEmpty)
+          ? null
+          : _HeaderText(
+              theme: theme,
+              accent: accent,
+              label: label,
+              subtitle: subtitle,
+            ),
     );
   }
 }

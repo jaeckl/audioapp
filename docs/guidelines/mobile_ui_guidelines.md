@@ -26,7 +26,8 @@ See [mobile_ux_competitive_analysis.md](mobile_ux_competitive_analysis.md) for A
 ## Device panels
 
 - One **tab per parameter group** (Sample / Env / Filter / Level) — never all knobs at once.
-- **Big rotary knobs** (`DeviceKnobSizes`: strip 56dp, editor 76dp).
+- **Big rotary knobs** (`DeviceKnobSizes`: strip 56dp, editor 76dp) — **always flat** (no skeuomorphic dome).
+- Face layout must follow [device_face_layout_contract.md](../design/device_face_layout_contract.md): one hero, screen chrome, control well; Mix/Width live in output rails when present.
 - Double-tap knob resets to 50%; double-tap clip opens Duplicate / Delete menu.
 
 ## Phone vs tablet

@@ -47,6 +47,8 @@ abstract final class DeviceStripChrome {
     'dc_offset',
     'de_crackler',
     'utility',
+    // Filter — no Mix/Width params; empty right cap only.
+    'filter',
   };
   /// Restore inserts that need makeup gain — Pan/Gain pinned to bottom.
   static const _restoreGainPanTypes = {

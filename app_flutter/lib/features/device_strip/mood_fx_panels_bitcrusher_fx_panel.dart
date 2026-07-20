@@ -73,7 +73,7 @@ class BitcrusherFxPanel extends StatelessWidget {
         active: automatedParams.contains('bcShape'),
         builder: (context, liveValue) {
           final selected = (liveValue * 3).round().clamp(0, 3);
-          return _HorizontalGroupShell(
+          return HorizontalGroupShell(
             width: 92,
             height: 30,
             value: selected.toDouble(),

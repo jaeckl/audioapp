@@ -1,6 +1,7 @@
 # Device strip chrome — input/output panels and slot layout
 
 **ADR:** [ADR-0008](../adr/ADR-0008-device-strip-ui-chrome.md)  
+**Face composition (hierarchy, archetypes, flat knobs):** [device_face_layout_contract.md](device_face_layout_contract.md)  
 **Milestone:** M15
 
 ## Overview

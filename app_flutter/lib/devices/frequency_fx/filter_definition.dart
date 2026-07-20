@@ -18,7 +18,8 @@ final class FilterDefinition extends AudioEffectDefinition {
       category: 'Frequency Effects');
   @override
   DeviceLayoutMetadata get layout => const DeviceLayoutMetadata(
-      designWidth: 216, inputPanelWidth: 64, outputPanelWidth: 64);
+      // No input chrome (no sidechain / in-meter). Empty output cap only.
+      designWidth: 216, inputPanelWidth: 0, outputPanelWidth: 30);
   @override
   DeviceSnapshot parseSnapshot(Map<dynamic, dynamic> map) =>
       FilterDeviceSnapshot.fromMap(map);

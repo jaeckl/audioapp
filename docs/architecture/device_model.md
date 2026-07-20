@@ -46,6 +46,7 @@ Per-device **input** and **output** columns replace the universal Pan+Gain rail 
 
 - [ADR-0008](../adr/ADR-0008-device-strip-ui-chrome.md)
 - [device_strip_chrome.md](../design/device_strip_chrome.md)
+- [device_face_layout_contract.md](../design/device_face_layout_contract.md) — how the card **face body** composes relative to rails/tabs (Bitwig hierarchy, **flat** knobs)
 
 Slot order: `[Tool][Mod?][Lfo?][Input?][Card][Output?]`. Engine `DeviceSlot.gain` / `pan` remain universal; UI chooses visibility.
 

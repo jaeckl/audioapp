@@ -17,26 +17,29 @@ class _ContainerTabHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Container(
       height: DeviceStripTheme.headerHeight,
-      child: ColoredBox(
+      decoration: const BoxDecoration(
         color: DeviceStripTheme.cardHeader,
-        child: Row(
-          children: [
-            if (tabs.isNotEmpty)
-              Expanded(
-                child: DeviceHeaderTabBar(
-                  tabs: tabs,
-                  selectedIndex: selectedTabIndex,
-                  accentColor: accent,
-                  compact: actions != null,
-                  onSelected: onTabSelected ?? (_) {},
-                ),
-              ),
-            if (actions != null)
-              if (tabs.isEmpty) Expanded(child: actions!) else actions!,
-          ],
+        border: Border(
+          bottom: BorderSide(color: Color(0xFF050508), width: 1.5),
         ),
+      ),
+      child: Row(
+        children: [
+          if (tabs.isNotEmpty)
+            Expanded(
+              child: DeviceHeaderTabBar(
+                tabs: tabs,
+                selectedIndex: selectedTabIndex,
+                accentColor: accent,
+                compact: actions != null,
+                onSelected: onTabSelected ?? (_) {},
+              ),
+            ),
+          if (actions != null)
+            if (tabs.isEmpty) Expanded(child: actions!) else actions!,
+        ],
       ),
     );
   }
