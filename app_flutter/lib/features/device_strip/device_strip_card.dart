@@ -56,6 +56,7 @@ class DeviceStripCard extends StatelessWidget {
   bool get _usesHeaderFaceCast =>
       deviceType == 'filter' ||
       deviceType == 'distortion' ||
+      deviceType == 'four_band_eq' ||
       deviceType == 'phaser' ||
       deviceType == 'compressor' ||
       deviceType == 'limiter' ||
@@ -70,6 +71,7 @@ class DeviceStripCard extends StatelessWidget {
     final accent = DeviceStripTheme.accentForDeviceType(deviceType);
     final label = (deviceType == 'filter' ||
             deviceType == 'distortion' ||
+            deviceType == 'four_band_eq' ||
             deviceType == 'phaser' ||
             deviceType == 'compressor' ||
             deviceType == 'limiter' ||

@@ -168,16 +168,16 @@ DeviceSlot FourBandEqDeviceType::varToSlot(const juce::var& obj) const {
             FourBandEqModel inst;
             inst.ffxBand1Freq = readFloat("ffxBand1Freq", 0.15f);
             inst.ffxBand1Gain = readFloat("ffxBand1Gain", 0.5f);
-            inst.ffxBand1Q = readFloat("ffxBand1Q", 0.5f);
+            inst.ffxBand1Q = readFloat("ffxBand1Q", 0.03f);
             inst.ffxBand2Freq = readFloat("ffxBand2Freq", 0.35f);
             inst.ffxBand2Gain = readFloat("ffxBand2Gain", 0.5f);
-            inst.ffxBand2Q = readFloat("ffxBand2Q", 0.5f);
+            inst.ffxBand2Q = readFloat("ffxBand2Q", 0.03f);
             inst.ffxBand3Freq = readFloat("ffxBand3Freq", 0.6f);
             inst.ffxBand3Gain = readFloat("ffxBand3Gain", 0.5f);
-            inst.ffxBand3Q = readFloat("ffxBand3Q", 0.5f);
+            inst.ffxBand3Q = readFloat("ffxBand3Q", 0.03f);
             inst.ffxBand4Freq = readFloat("ffxBand4Freq", 0.85f);
             inst.ffxBand4Gain = readFloat("ffxBand4Gain", 0.5f);
-            inst.ffxBand4Q = readFloat("ffxBand4Q", 0.5f);
+            inst.ffxBand4Q = readFloat("ffxBand4Q", 0.03f);
             slot.config.instance = inst;
         }
     }
@@ -226,18 +226,18 @@ std::string_view FourBandEqDeviceType::paramIdToString(uint16_t localId) const n
 
 std::span<const ParamDescriptor> FourBandEqDeviceType::paramDescriptors() const noexcept {
     static constexpr ParamDescriptor kParams[] = {
-        {static_cast<uint16_t>(FourBandEqParam::Band1Freq), "ffxBand1Freq", "Low Freq", 0.4f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FourBandEqParam::Band1Freq), "ffxBand1Freq", "Low Freq", 0.15f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(FourBandEqParam::Band1Gain), "ffxBand1Gain", "Low Gain", 0.5f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(FourBandEqParam::Band1Q), "ffxBand1Q", "Low Q", 0.3f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(FourBandEqParam::Band2Freq), "ffxBand2Freq", "LM Freq", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FourBandEqParam::Band1Q), "ffxBand1Q", "Low Q", 0.03f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FourBandEqParam::Band2Freq), "ffxBand2Freq", "LM Freq", 0.35f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(FourBandEqParam::Band2Gain), "ffxBand2Gain", "LM Gain", 0.5f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(FourBandEqParam::Band2Q), "ffxBand2Q", "LM Q", 0.3f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(FourBandEqParam::Band3Freq), "ffxBand3Freq", "HM Freq", 0.7f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FourBandEqParam::Band2Q), "ffxBand2Q", "LM Q", 0.03f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FourBandEqParam::Band3Freq), "ffxBand3Freq", "HM Freq", 0.6f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(FourBandEqParam::Band3Gain), "ffxBand3Gain", "HM Gain", 0.5f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(FourBandEqParam::Band3Q), "ffxBand3Q", "HM Q", 0.3f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(FourBandEqParam::Band4Freq), "ffxBand4Freq", "High Freq", 0.8f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FourBandEqParam::Band3Q), "ffxBand3Q", "HM Q", 0.03f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FourBandEqParam::Band4Freq), "ffxBand4Freq", "High Freq", 0.85f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(FourBandEqParam::Band4Gain), "ffxBand4Gain", "High Gain", 0.5f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(FourBandEqParam::Band4Q), "ffxBand4Q", "High Q", 0.3f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FourBandEqParam::Band4Q), "ffxBand4Q", "High Q", 0.03f, 0.0f, 1.0f, true, true},
     };
     return kParams;
 }
